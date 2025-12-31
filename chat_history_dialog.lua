@@ -9,7 +9,9 @@ local _ = require("gettext")
 local InputDialog = require("ui/widget/inputdialog")
 local ChatGPTViewer = require("chatgptviewer")
 local MessageHistory = require("message_history")
-local queryChatGPT = require("gpt_query")
+local GptQuery = require("gpt_query")
+local queryChatGPT = GptQuery.query
+local isStreamingInProgress = GptQuery.isStreamingInProgress
 local logger = require("logger")
 
 -- Helper function for string formatting with translations
@@ -539,22 +541,41 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
 
     local self_ref = self
 
-    local function addMessage(message, is_context)
-        if not message or message == "" then return nil end
-
-        history:addUserMessage(message, is_context)
-        local answer = queryChatGPT(history:getMessages(), config)
-        history:addAssistantMessage(answer, history:getModel() or (config and config.model))
-
-        -- Auto-save continued chats
-        if config.features.auto_save_all_chats or (config.features.auto_save_chats ~= false) then
-            local save_ok = chat_history_manager:saveChat(document_path, chat.title, history, {id = chat.id})
-            if not save_ok then
-                logger.warn("KOAssistant: Failed to save updated chat")
-            end
+    -- addMessage now accepts an optional callback for async streaming
+    -- @param message string: The user's message
+    -- @param is_context boolean: Whether this is a context message (hidden from display)
+    -- @param on_complete function: Optional callback(success, answer, error) for streaming
+    -- @return answer string (non-streaming) or nil (streaming - result via callback)
+    local function addMessage(message, is_context, on_complete)
+        if not message or message == "" then
+            if on_complete then on_complete(false, nil, "Empty message") end
+            return nil
         end
 
-        return answer
+        history:addUserMessage(message, is_context)
+
+        -- Use callback pattern for streaming support
+        local answer_result = queryChatGPT(history:getMessages(), config, function(success, answer, err)
+            if success and answer then
+                history:addAssistantMessage(answer, history:getModel() or (config and config.model))
+
+                -- Auto-save continued chats
+                if config.features.auto_save_all_chats or (config.features.auto_save_chats ~= false) then
+                    local save_ok = chat_history_manager:saveChat(document_path, chat.title, history, {id = chat.id})
+                    if not save_ok then
+                        logger.warn("KOAssistant: Failed to save updated chat")
+                    end
+                end
+            end
+            -- Call the completion callback
+            if on_complete then on_complete(success, answer, err) end
+        end)
+
+        -- For non-streaming, return the result directly
+        if not isStreamingInProgress(answer_result) then
+            return answer_result
+        end
+        return nil -- Streaming will update via callback
     end
 
     local date_str = os.date("%Y-%m-%d %H:%M", chat.timestamp or 0)
@@ -623,21 +644,27 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
                     history.debug_mode = debug_mode
                 end
             end,
-            onAskQuestion = function(_, question)
+            onAskQuestion = function(self_viewer, question)
                 showLoadingDialog()
 
                 UIManager:scheduleIn(0.1, function()
-                    local answer = addMessage(question)
-
-                    if answer then
-                        local new_content = history:createResultText("", config)
-                        showChatViewer(new_content)
-                    else
-                        UIManager:show(InfoMessage:new{
-                            text = _("Failed to get response. Please try again."),
-                            timeout = 2,
-                        })
+                    -- Use callback pattern for streaming support
+                    local function onResponseComplete(success, answer, err)
+                        if success and answer then
+                            local new_content = history:createResultText("", config)
+                            showChatViewer(new_content)
+                        else
+                            UIManager:show(InfoMessage:new{
+                                text = _("Failed to get response: ") .. (err or "Unknown error"),
+                                timeout = 2,
+                            })
+                        end
                     end
+
+                    local answer = addMessage(question, false, onResponseComplete)
+
+                    -- For non-streaming, the answer is returned directly and callback was already called
+                    -- For streaming, answer is nil and callback will be called when stream completes
                 end)
             end,
             save_callback = function()

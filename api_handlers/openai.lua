@@ -14,27 +14,47 @@ function OpenAIHandler:query(message_history, config)
     end
 
     local defaults = Defaults.ProviderDefaults.openai
-    
+
     -- Use the RequestBuilder to create the request body
     local request_body, error = RequestBuilder:buildRequestBody(message_history, config, "openai")
     if not request_body then
         return "Error: " .. error
     end
 
+    -- Check if streaming is enabled
+    local use_streaming = config.features and config.features.enable_streaming
+
     -- Debug: Print request body
     if config and config.features and config.features.debug then
         print("OpenAI Request Body:", json.encode(request_body))
+        print("Streaming enabled:", use_streaming and "yes" or "no")
     end
 
     local requestBody = json.encode(request_body)
-    local responseBody = {}
     local headers = {
         ["Content-Type"] = "application/json",
-        ["Authorization"] = "Bearer " .. config.api_key
+        ["Authorization"] = "Bearer " .. config.api_key,
+        ["Content-Length"] = tostring(#requestBody),
     }
 
+    local base_url = config.base_url or defaults.base_url
+
+    -- If streaming is enabled, return the background request function
+    if use_streaming then
+        -- Add stream parameter to request body
+        local stream_request_body = json.decode(requestBody)
+        stream_request_body.stream = true
+        local stream_body = json.encode(stream_request_body)
+        headers["Content-Length"] = tostring(#stream_body)
+        headers["Accept"] = "text/event-stream"
+
+        return self:backgroundRequest(base_url, headers, stream_body)
+    end
+
+    -- Non-streaming mode: make regular request
+    local responseBody = {}
     local success, code = https.request({
-        url = config.base_url or defaults.base_url,
+        url = base_url,
         method = "POST",
         headers = headers,
         source = ltn12.source.string(requestBody),
@@ -50,18 +70,18 @@ function OpenAIHandler:query(message_history, config)
     if not success then
         return response
     end
-    
+
     -- Debug: Print parsed response
     if config and config.features and config.features.debug then
         print("OpenAI Parsed Response:", json.encode(response))
     end
-    
+
     local success, result = ResponseParser:parseResponse(response, "openai")
     if not success then
         return "Error: " .. result
     end
-    
+
     return result
 end
 
-return OpenAIHandler 
+return OpenAIHandler
