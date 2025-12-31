@@ -9,6 +9,7 @@ You can:
 - Have general chats (no context)
 - Select documents in the file browser and chat about them (using metadata like title, author, etc), and create custom actions and prompts for single selection
 - Select multiple documents in the file browser and compare them, and create custom actions and prompts for multi-selection, like finding common themes, etc
+- Create large custom prompts that send a set of instructions or context to the AI along with your message, depending on your need/project/what you are reading (expansion of this feature planned)
 - Highlight text in a document and have it explained, translated, or chat about it, etc
 - Save/autosave and continue chats
 - Export chats to markdown and text
@@ -21,9 +22,9 @@ A wiki will be made for creating custom prompts and actions, and other advanced 
 
 Originally forked from [ASKGPT by Drew Baumann](https://github.com/drewbaumann/askgpt). See Credits and history at the bottom of this readme
 
-This plugin was made for personal use and made public in case it is useful. Many functions are still under development, and many are untested. More providers will hopefully be added shortly. Feel free to open a feature request or issue, or start a discussion.
+This plugin was made for personal use and made public in case it is useful. Many functions are still under development, and many are untested. More providers will hopefully be added shortly. **Feel free to open a feature request or issue, or start a discussion, if you need some specific model or setting added.**
 
-NB: Only Anthropic has been thoroughly tested as it is what I use
+NB: Only Anthropic has been thoroughly tested for now as it is what I use. Other models are currently outdated (you can add custom models in the UI)
 
 ## Quick Minimal Setup
 
