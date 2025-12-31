@@ -2,7 +2,7 @@
 
 A powerful AI assistant integrated into KOReader.
 
-The vision is to be more of a technical research assistant and knowledge expander than a "book helper" plugin, so there won't likely be features like X-Ray and so on.
+The vision is to be more of a technical research assistant and knowledge expander than a "novel reading helper" plugin, so there won't likely be features like character X-Ray and so on.
 
 > **Note:** This project was recently renamed from "Assistant" to "KOAssistant" due to a naming conflict with [a more popular fork](https://github.com/omer-faruq/assistant.koplugin) of this repo. Some internal references and UI elements may still show the old name.
 
