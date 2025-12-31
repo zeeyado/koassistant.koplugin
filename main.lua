@@ -1485,55 +1485,59 @@ end
 function AskGPT:testProviderConnection()
   local InfoMessage = require("ui/widget/infomessage")
   local UIManager = require("ui/uimanager")
-  local queryChatGPT = require("gpt_query")
+  local GptQuery = require("gpt_query")
+  local queryChatGPT = GptQuery.query
+  local isStreamingInProgress = GptQuery.isStreamingInProgress
   local MessageHistory = require("message_history")
-  
+
   UIManager:show(InfoMessage:new{
     text = _("Testing connection..."),
     timeout = 2,
   })
-  
+
   -- Create a simple test message
   local test_message_history = MessageHistory:new()
   test_message_history:addUserMessage("Hello, this is a connection test. Please respond with 'Connection successful'.")
-  
+
   -- Get current configuration (global configuration is updated with settings in init)
+  -- Disable streaming for test to keep it simple
   local test_config = {
     provider = configuration.provider,
     model = configuration.model,
     temperature = 0.1,
     max_tokens = 50,
     features = {
-      debug = configuration.features and configuration.features.debug or false
+      debug = configuration.features and configuration.features.debug or false,
+      enable_streaming = false, -- Disable streaming for test
     }
   }
-  
-  -- Perform the test query asynchronously
+
+  -- Perform the test query asynchronously with callback
   UIManager:scheduleIn(0.1, function()
-    local response = queryChatGPT(test_message_history:getMessages(), test_config)
-    
-    if response and type(response) == "string" then
-      if response:match("^Error:") then
-        -- Connection failed
-        UIManager:show(InfoMessage:new{
-          text = _("Connection test failed:\n") .. response,
-          timeout = 5,
-        })
+    queryChatGPT(test_message_history:getMessages(), test_config, function(success, response, err)
+      if success and response and type(response) == "string" then
+        if response:match("^Error:") then
+          -- Connection failed
+          UIManager:show(InfoMessage:new{
+            text = _("Connection test failed:\n") .. response,
+            timeout = 5,
+          })
+        else
+          -- Connection successful
+          UIManager:show(InfoMessage:new{
+            text = string.format(_("Connection test successful!\n\nProvider: %s\nModel: %s\n\nResponse: %s"),
+              test_config.provider, test_config.model or "default", response:sub(1, 100)),
+            timeout = 5,
+          })
+        end
       else
-        -- Connection successful
+        -- Connection failed with error
         UIManager:show(InfoMessage:new{
-          text = string.format(_("Connection test successful!\n\nProvider: %s\nModel: %s\n\nResponse: %s"), 
-            test_config.provider, test_config.model or "default", response:sub(1, 100)),
+          text = _("Connection test failed: ") .. (err or "Unexpected response format"),
           timeout = 5,
         })
       end
-    else
-      -- Unexpected response format
-      UIManager:show(InfoMessage:new{
-        text = _("Connection test failed: Unexpected response format"),
-        timeout = 5,
-      })
-    end
+    end)
   end)
 end
 
