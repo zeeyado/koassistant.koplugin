@@ -36,6 +36,115 @@ local _ = require("gettext")
 local Screen = Device.screen
 local MD = require("apps/filemanager/lib/md")
 
+-- Pre-process markdown tables to HTML (luamd doesn't support tables)
+local function preprocessMarkdownTables(text)
+    if not text then return text end
+
+    local lines = {}
+    for line in text:gmatch("([^\n]*)\n?") do
+        table.insert(lines, line)
+    end
+
+    local result = {}
+    local i = 1
+
+    while i <= #lines do
+        local line = lines[i]
+
+        -- Check if this line looks like a table row (contains | and isn't a code block)
+        local is_table_row = line:match("^%s*|.*|%s*$") or line:match("^%s*[^|]+|[^|]+")
+
+        -- Also check if next line is a separator row (|----|----| pattern)
+        local next_line = lines[i + 1]
+        local is_separator = next_line and next_line:match("^%s*|?[%s%-:]+|[%s%-:|]+$")
+
+        if is_table_row and is_separator then
+            -- Found a markdown table, parse it
+            local table_html = {"<table>"}
+
+            -- Parse header row
+            local header_cells = {}
+            for cell in line:gmatch("[^|]+") do
+                local trimmed = cell:match("^%s*(.-)%s*$")
+                if trimmed and trimmed ~= "" then
+                    table.insert(header_cells, trimmed)
+                end
+            end
+
+            -- Parse alignment from separator row
+            local alignments = {}
+            for sep in next_line:gmatch("[^|]+") do
+                local trimmed = sep:match("^%s*(.-)%s*$")
+                if trimmed and trimmed:match("^:?%-+:?$") then
+                    if trimmed:match("^:.*:$") then
+                        table.insert(alignments, "center")
+                    elseif trimmed:match(":$") then
+                        table.insert(alignments, "right")
+                    else
+                        table.insert(alignments, "left")
+                    end
+                end
+            end
+
+            -- Generate header HTML
+            table.insert(table_html, "<thead><tr>")
+            for j, cell in ipairs(header_cells) do
+                local align = alignments[j] or "left"
+                table.insert(table_html, string.format('<th style="text-align:%s">%s</th>', align, cell))
+            end
+            table.insert(table_html, "</tr></thead>")
+
+            -- Skip header and separator rows
+            i = i + 2
+
+            -- Parse body rows
+            table.insert(table_html, "<tbody>")
+            while i <= #lines do
+                local body_line = lines[i]
+
+                -- Check if still a table row
+                if not (body_line:match("^%s*|.*|%s*$") or body_line:match("^%s*[^|]+|[^|]+")) then
+                    break
+                end
+
+                -- Skip empty lines within table
+                if body_line:match("^%s*$") then
+                    break
+                end
+
+                local body_cells = {}
+                for cell in body_line:gmatch("[^|]+") do
+                    local trimmed = cell:match("^%s*(.-)%s*$")
+                    if trimmed then
+                        table.insert(body_cells, trimmed)
+                    end
+                end
+
+                -- Generate row HTML
+                table.insert(table_html, "<tr>")
+                for j, cell in ipairs(body_cells) do
+                    local align = alignments[j] or "left"
+                    -- Skip empty cells that are just whitespace from leading/trailing |
+                    if cell ~= "" then
+                        table.insert(table_html, string.format('<td style="text-align:%s">%s</td>', align, cell))
+                    end
+                end
+                table.insert(table_html, "</tr>")
+
+                i = i + 1
+            end
+            table.insert(table_html, "</tbody></table>")
+
+            table.insert(result, table.concat(table_html, "\n"))
+        else
+            table.insert(result, line)
+            i = i + 1
+        end
+    end
+
+    return table.concat(result, "\n")
+end
+
 -- CSS for markdown rendering
 local VIEWER_CSS = [[
 @page {
@@ -434,7 +543,9 @@ function ChatGPTViewer:init()
 
   if self.render_markdown then
     -- Convert Markdown to HTML and render in a ScrollHtmlWidget
-    local html_body, err = MD(self.text, {})
+    -- Preprocess tables first since luamd doesn't support them
+    local preprocessed_text = preprocessMarkdownTables(self.text)
+    local html_body, err = MD(preprocessed_text, {})
     if err then
       logger.warn("ChatGPTViewer: could not generate HTML", err)
       -- Fallback to plain text if HTML generation fails
@@ -714,12 +825,14 @@ function ChatGPTViewer:update(new_text, scroll_to_bottom)
   
   if self.render_markdown then
     -- Convert Markdown to HTML and update the ScrollHtmlWidget
-    local html_body, err = MD(new_text, {})
+    -- Preprocess tables first since luamd doesn't support them
+    local preprocessed_text = preprocessMarkdownTables(new_text)
+    local html_body, err = MD(preprocessed_text, {})
     if err then
       logger.warn("ChatGPTViewer: could not generate HTML", err)
       html_body = "<pre>" .. (new_text or "Missing text.") .. "</pre>"
     end
-    
+
     -- Recreate the ScrollHtmlWidget with new content
     self.scroll_text_w = ScrollHtmlWidget:new {
       html_body = html_body,
@@ -824,7 +937,9 @@ function ChatGPTViewer:toggleMarkdown()
   
   if self.render_markdown then
     -- Convert to markdown
-    local html_body, err = MD(self.text, {})
+    -- Preprocess tables first since luamd doesn't support them
+    local preprocessed_text = preprocessMarkdownTables(self.text)
+    local html_body, err = MD(preprocessed_text, {})
     if err then
       logger.warn("ChatGPTViewer: could not generate HTML", err)
       html_body = "<pre>" .. (self.text or "Missing text.") .. "</pre>"
