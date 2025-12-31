@@ -148,7 +148,8 @@ function SettingsManager:createMenuItem(plugin, item, schema)
                 buttons = {
                     {
                         {
-                            text = _("Cancel"),
+                            text = _("Close"),
+                            id = "close",
                             callback = function()
                                 UIManager:close(dialog)
                             end,
@@ -195,7 +196,8 @@ function SettingsManager:createMenuItem(plugin, item, schema)
                 buttons = {
                     {
                         {
-                            text = _("Cancel"),
+                            text = _("Close"),
+                            id = "close",
                             callback = function()
                                 UIManager:close(dialog)
                             end,

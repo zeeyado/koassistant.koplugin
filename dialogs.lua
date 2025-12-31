@@ -146,7 +146,8 @@ local function createSaveDialog(document_path, history, chat_history_manager, is
         buttons = {
             {
                 {
-                    text = _("Cancel"),
+                    text = _("Close"),
+                    id = "close",
                     callback = function()
                         -- Close the dialog and do nothing else
                         UIManager:close(save_dialog)
@@ -751,9 +752,9 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
 
     -- Collect all buttons in priority order
     local all_buttons = {
-        -- 1. Cancel
+        -- 1. Close
         {
-            text = _("Cancel"),
+            text = _("Close"),
             id = "close",
             callback = function()
                 UIManager:close(input_dialog)

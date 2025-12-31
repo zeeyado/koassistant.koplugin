@@ -401,7 +401,8 @@ function PromptsManager:showPromptEditor(existing_prompt)
         buttons = {
             {
                 {
-                    text = _("Cancel"),
+                    text = _("Close"),
+                    id = "close",
                     callback = function()
                         UIManager:close(dialog)
                         -- Don't reopen menu on cancel

@@ -459,7 +459,8 @@ function ChatHistoryDialog:showRenameDialog(ui, document_path, chat, chat_histor
         buttons = {
             {
                 {
-                    text = _("Cancel"),
+                    text = _("Close"),
+                    id = "close",
                     callback = function()
                         UIManager:close(rename_dialog)
                     end,

@@ -650,7 +650,7 @@ function ChatGPTViewer:askAnotherQuestion()
     buttons = {
       {
         {
-          text = _("Cancel"),
+          text = _("Close"),
           id = "close",  -- Enable tap-outside-to-close
           callback = function()
             -- Save draft before closing

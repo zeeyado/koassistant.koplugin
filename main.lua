@@ -897,7 +897,8 @@ function AskGPT:showThresholdDialog()
     buttons = {
       {
         {
-          text = _("Cancel"),
+          text = _("Close"),
+          id = "close",
           callback = function()
             UIManager:close(self.threshold_dialog)
           end,
@@ -955,7 +956,8 @@ function AskGPT:showTranslationDialog()
     buttons = {
       {
         {
-          text = _("Cancel"),
+          text = _("Close"),
+          id = "close",
           callback = function()
             UIManager:close(self.translation_dialog)
           end,
@@ -1436,7 +1438,8 @@ function AskGPT:showCustomModelDialogForProvider(provider_id, provider_name)
     buttons = {
       {
         {
-          text = _("Cancel"),
+          text = _("Close"),
+          id = "close",
           callback = function()
             UIManager:close(custom_model_dialog)
           end,
