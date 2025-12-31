@@ -320,8 +320,21 @@ function ChatHistoryDialog:showChatsForDocument(ui, document, chat_history_manag
         end,
     }
 
-    -- Enable the return button
+    -- Enable the return button by populating paths table
+    -- This must be done after creation but before showing
+    chat_menu.paths = chat_menu.paths or {}
     table.insert(chat_menu.paths, true)
+
+    -- Force the return button to be visible and enabled
+    -- The button starts hidden and disabled by default in Menu:init()
+    -- We need to both show() it and enableDisable(true) after setting paths
+    if chat_menu.page_return_arrow then
+        chat_menu.page_return_arrow:show()
+        chat_menu.page_return_arrow:enableDisable(true)
+        logger.info("Chat history: Return arrow button shown and enabled")
+    else
+        logger.warn("Chat history: page_return_arrow not found")
+    end
 
     self.current_menu = chat_menu
     UIManager:show(chat_menu)
