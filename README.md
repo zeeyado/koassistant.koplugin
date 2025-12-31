@@ -7,9 +7,9 @@ A powerful AI assistant integrated into KOReader.
 You can:
 
 - Have general chats (no context)
-- Select books in the file browser and chat about them (using metadata like title, author, etc), and create custom actions and prompts for single selection
-- Select multiple books in the file browser and compare them, and create custom actions and prompts for multi-selection, like finding common themes, etc
-- Highlight text in a book and have it explained, translated, or chat about it, etc
+- Select documents in the file browser and chat about them (using metadata like title, author, etc), and create custom actions and prompts for single selection
+- Select multiple documents in the file browser and compare them, and create custom actions and prompts for multi-selection, like finding common themes, etc
+- Highlight text in a document and have it explained, translated, or chat about it, etc
 - Save/autosave and continue chats
 - Export chats to markdown and text
 - Use different AI models (for speed/depth, etc)
