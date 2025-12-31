@@ -19,9 +19,9 @@ A wiki will be made for creating custom prompts and actions, and other advanced 
 
 Originally forked from [ASKGPT by Drew Baumann](https://github.com/drewbaumann/askgpt). See Credits and history at the bottom of this readme
 
-This plugin was made for personal use and made public in case it is useful. Many functions are still under development, and many are untested. More providers will be added shortly. feel free to open a feature request or issue, or start a discussion.
+This plugin was made for personal use and made public in case it is useful. Many functions are still under development, and many are untested. More providers will hopefully be added shortly. feel free to open a feature request or issue, or start a discussion.
 
-NB: Gemini and Deepseek have not been thorougly tested for response format. Anthropic and OpenAi have been tested well.
+NB: Only Anthropic has been thoroughly tested
 
 ## Quick Minimal Setup
 
