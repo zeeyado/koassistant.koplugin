@@ -79,6 +79,10 @@ local function compareVersions(v1, v2)
 end
 
 function UpdateChecker.checkForUpdates(silent)
+    -- TODO: Re-enable update checks after first public release
+    -- Temporarily disabled during development
+    if true then return false end
+
     local response_body = {}
     local request_result, code = http.request {
         url = "https://api.github.com/repos/zeeyado/KOAssistant/releases/latest",

@@ -110,8 +110,8 @@ function PromptsManager:loadPrompts()
                 -- Update context to include general
                 if existing.context == "highlight" then
                     existing.context = "highlight+general"
-                elseif existing.context == "file_browser" then
-                    existing.context = "file_browser+general"
+                elseif existing.context == "book" then
+                    existing.context = "book+general"
                 elseif existing.context == "both" then
                     existing.context = "all"
                 end
@@ -169,10 +169,12 @@ function PromptsManager:showPromptsMenu()
     -- Group prompts by context
     local contexts = {
         { id = "highlight", text = _("Highlight Context") },
-        { id = "file_browser", text = _("File Browser Context") },
-        { id = "multi_file_browser", text = _("Multi-File Browser Context") },
+        { id = "book", text = _("Book Context (File Browser)") },
+        { id = "multi_book", text = _("Multi-Book Context") },
         { id = "general", text = _("General Context") },
-        { id = "both", text = _("Highlight & File Browser") },
+        { id = "both", text = _("Highlight & Book") },
+        { id = "highlight+general", text = _("Highlight & General") },
+        { id = "book+general", text = _("Book & General") },
         { id = "all", text = _("All Contexts") },
     }
     
@@ -571,13 +573,17 @@ function PromptsManager:getContextDisplayName(context)
     if context == "highlight" then
         return _("Highlight")
     elseif context == "book" then
-        return _("Book")
+        return _("Book (File Browser)")
     elseif context == "multi_book" then
         return _("Multi-Book")
     elseif context == "general" then
         return _("General")
     elseif context == "both" then
         return _("Highlight & Book")
+    elseif context == "highlight+general" then
+        return _("Highlight & General")
+    elseif context == "book+general" then
+        return _("Book & General")
     elseif context == "all" then
         return _("All Contexts")
     else

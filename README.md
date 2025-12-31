@@ -7,12 +7,15 @@ A powerful AI assistant integrated into KOReader.
 You can:
 
 - Have general chats (no context)
-- Select books and chat about them (using metadata like title, author, etc)
-- Use and create custom actions to compare books, find common themes, etc
+- Select books and chat about them (using metadata like title, author, etc), and create custom actions and prompts for single selection
+- Select multiple books in the file browser and compare them, and create custom actions and prompts for multi-selection
+- Use and create custom actions to compare books, find common themes, give author/subject information, etc
 - Highlight text in a book and have it explained, translated, or chat about it, etc
-- Save and continue chats 
+- Save/autosave and continue chats
+- Export chats 
 - Use different AI models (for speed/depth, etc)
 - Map functions to gestures and pop up menus for quick actions
+- Configure most things in the UI (including disabling/enabling prompts depending on context)
 - Much more using custom prompts/actions
 
 A wiki will be made for creating custom prompts and actions, and other advanced configuration and usage. 
@@ -70,7 +73,6 @@ Examples (my usage preference; you can use whichever gestures you like):
 - Go to Settings → Gesture Manager → Tap corner → Bottom left
 - General → (add all KOAssistant actions -- Chat history, Continue last chat, Chat about book, etc)
 - Select "Show as QuickMenu"
--
 
 You have to do this for both Reader view and File browser. This will give you an easy to access KOAssistant menu.
 
