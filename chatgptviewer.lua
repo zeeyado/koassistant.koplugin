@@ -651,6 +651,7 @@ function ChatGPTViewer:askAnotherQuestion()
       {
         {
           text = _("Cancel"),
+          id = "close",  -- Enable tap-outside-to-close
           callback = function()
             -- Save draft before closing
             local draft = input_dialog:getInputText()
