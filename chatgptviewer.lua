@@ -280,7 +280,13 @@ function ChatGPTViewer:init()
         end,
       },
       {
-        text = _("Save"),
+        text_func = function()
+          -- Check if auto-save is enabled (use passed-in configuration)
+          -- Only show "Autosaved" if auto_save_all_chats is explicitly true
+          local auto_save = self.configuration and self.configuration.features and
+            self.configuration.features.auto_save_all_chats == true
+          return auto_save and _("Autosaved") or _("Save")
+        end,
         id = "save_chat",
         callback = function()
           if self.save_callback then
@@ -394,6 +400,17 @@ function ChatGPTViewer:init()
     zero_sep = true,
     show_parent = self,
   }
+
+  -- Disable save button if auto-save is enabled (check passed-in configuration)
+  -- Only disable if auto_save_all_chats is explicitly true
+  local auto_save_enabled = self.configuration and self.configuration.features and
+    self.configuration.features.auto_save_all_chats == true
+  if auto_save_enabled then
+    local save_button = self.button_table:getButtonById("save_chat")
+    if save_button then
+      save_button:disable()
+    end
+  end
 
   local textw_height = self.height - titlebar:getHeight() - self.button_table:getSize().h
 

@@ -7,9 +7,9 @@ A powerful AI assistant integrated into KOReader.
 You can:
 
 - Have general chats (no context)
-- Select books and chat about them (using metadata lke title, author, etc)
+- Select books and chat about them (using metadata like title, author, etc)
 - Use and create custom actions to compare books, find common themes, etc
-- Hihglight text in a book and have it explained, or chat about it, etc
+- Highlight text in a book and have it explained, translated, or chat about it, etc
 - Save and continue chats 
 - Use different AI models (for speed/depth, etc)
 - Map functions to gestures and pop up menus for quick actions
