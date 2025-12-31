@@ -638,6 +638,7 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
         local viewer = ChatGPTViewer:new{
             title = detailed_title,
             text = display_text,
+            scroll_to_bottom = true, -- Scroll to bottom to show latest messages
             configuration = config,
             original_history = history,
             original_highlighted_text = "",
