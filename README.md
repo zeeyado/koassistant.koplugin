@@ -94,7 +94,7 @@ You can also assign any gesture to any action as you see fit.
 - **Choose your model wisely** - Fast models for quick queries, powerful models (e.g. Claude Sonnet 4) for complex analysis (you can create custom prompts using specific models to override the default for that prompt)
 
 
-## Feature Overview
+## Feature Overview (outdated, to be updated)
 
 ### Core Features
 
@@ -135,7 +135,7 @@ You can also assign any gesture to any action as you see fit.
 - **Gesture Support**: Assignable actions for quick access (Quick menu, Continue last chat, etc.)
 - **Provider Flexibility**: Use different models for different tasks
 
-## Configuration
+## Configuration (outdated, to be updated - wiki)
 
 ### Basic Configuration (UI-Based)
 
@@ -157,7 +157,7 @@ Access all settings via **Tools → KOAssistant → Settings**:
    - Create custom prompts
    - Import/export prompt collections
 
-### Advanced Configuration
+### Advanced Configuration (outdated, to be updated)
 
 For power users, three configuration files offer deep customization:
 
@@ -226,7 +226,7 @@ return {
 
 - Ask
 
-## Planned Features
+## Planned Features (Outdated, to be updated)
 
 - **Web Search Integration**: AI-powered web search through API
 - **Profiles/Projects**: Switch between different prompt sets for academic reading, leisure, research
@@ -240,19 +240,18 @@ return {
 
 ## Current State
 
-**Version**: 0.1.0-beta
+**Version**: 0.1.1
 
 KOAssistant is under active development. The core functionality works but there are known bugs being addressed:
 
 - ✅ Core AI query functionality works
 - ✅ Multiple AI provider support implemented
 - ✅ Context-aware system (highlights, books, multi-book)
-- ⚠️ Chat saving/management - some reliability issues
-- ⚠️ UI - various bugs including overlapping windows
-- ⚠️ Auto-save - inconsistent behavior
+- ✅ Chat saving/management - working
+- ✅ UI - mostly fixed
+- ✅ Auto-save working
 - 🚧 Performance optimizations needed
 - 🚧 Profile system in design phase
-- 🚧 Name migration from "Assistant" to "KOAssistant" in progress
 
 ## Contributing
 
