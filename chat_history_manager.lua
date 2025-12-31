@@ -9,7 +9,7 @@ local _ = require("gettext")
 local ChatHistoryManager = {}
 
 -- Constants
-ChatHistoryManager.CHAT_DIR = DataStorage:getDataDir() .. "/assistant_chats"
+ChatHistoryManager.CHAT_DIR = DataStorage:getDataDir() .. "/koassistant_chats"
 
 function ChatHistoryManager:new()
     local manager = {}

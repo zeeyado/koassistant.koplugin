@@ -564,12 +564,12 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
             original_highlighted_text = "",  -- No highlighted text in continued chats
             settings_callback = function(path, value)
                 -- Update plugin settings if we have access to the plugin
-                local plugin = ui and ui.assistant
+                local plugin = ui and ui.koassistant
                 if not plugin then
-                    -- Try to find the assistant plugin from UIManager
+                    -- Try to find the KOAssistant plugin from UIManager
                     local top_widget = UIManager:getTopmostVisibleWidget()
-                    if top_widget and top_widget.ui and top_widget.ui.assistant then
-                        plugin = top_widget.ui.assistant
+                    if top_widget and top_widget.ui and top_widget.ui.koassistant then
+                        plugin = top_widget.ui.koassistant
                     end
                 end
                 

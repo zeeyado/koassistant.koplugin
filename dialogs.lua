@@ -173,9 +173,9 @@ local function createSaveDialog(document_path, history, chat_history_manager, is
                             if book_metadata then
                                 metadata.book_title = book_metadata.title
                                 metadata.book_author = book_metadata.author
-                                logger.info("Assistant: Saving chat with metadata - title: " .. (book_metadata.title or "nil") .. ", author: " .. (book_metadata.author or "nil"))
+                                logger.info("KOAssistant: Saving chat with metadata - title: " .. (book_metadata.title or "nil") .. ", author: " .. (book_metadata.author or "nil"))
                             else
-                                logger.info("Assistant: No book metadata available for save")
+                                logger.info("KOAssistant: No book metadata available for save")
                             end
                             
                             return chat_history_manager:saveChat(
@@ -473,9 +473,9 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
             )
             
             if success then
-                logger.info("Assistant: Auto-saved chat with title: " .. suggested_title)
+                logger.info("KOAssistant: Auto-saved chat with title: " .. suggested_title)
             else
-                logger.warn("Assistant: Failed to auto-save chat")
+                logger.warn("KOAssistant: Failed to auto-save chat")
             end
         end)
     end
@@ -683,7 +683,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             title = title,
             author = author
         }
-        logger.info("Assistant: Document context - title: " .. title .. ", author: " .. author)
+        logger.info("KOAssistant: Document context - title: " .. title .. ", author: " .. author)
     elseif configuration and configuration.features and configuration.features.book_metadata then
         -- File browser context, use metadata from configuration
         book_metadata = {
@@ -694,9 +694,9 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         if configuration.features.book_metadata.file then
             document_path = configuration.features.book_metadata.file
         end
-        logger.info("Assistant: File browser context - title: " .. (book_metadata.title or "nil") .. ", author: " .. (book_metadata.author or "nil"))
+        logger.info("KOAssistant: File browser context - title: " .. (book_metadata.title or "nil") .. ", author: " .. (book_metadata.author or "nil"))
     else
-        logger.info("Assistant: No metadata available in either context")
+        logger.info("KOAssistant: No metadata available in either context")
     end
 
     -- Collect all buttons in priority order
@@ -924,7 +924,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
 
     -- Show the dialog with the button rows
     input_dialog = InputDialog:new{
-        title = _("Assistant Actions"),
+        title = _("KOAssistant Actions"),
         input_hint = _("Type your question or additional instructions for any action..."),
         input_type = "text",
         buttons = button_rows,

@@ -1,7 +1,7 @@
 local _ = require("gettext")
 
 -- Settings Schema Definition
--- This file defines the structure and metadata for all Assistant plugin settings
+-- This file defines the structure and metadata for all KOAssistant plugin settings
 -- Used to generate UI and validate settings
 
 local SettingsSchema = {

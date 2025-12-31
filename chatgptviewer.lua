@@ -399,7 +399,7 @@ function ChatGPTViewer:init()
 
   -- Load configuration and check if markdown rendering is enabled
   self.configuration = {}
-  local ok, loaded_config = pcall(dofile, require("datastorage"):getSettingsDir() .. "/assistant.koplugin/configuration.lua")
+  local ok, loaded_config = pcall(dofile, require("datastorage"):getSettingsDir() .. "/koassistant.koplugin/configuration.lua")
   if ok and loaded_config then
     self.configuration = loaded_config
   end

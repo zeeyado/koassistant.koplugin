@@ -2,3 +2,5 @@
 /apikeys.lua
 .DS_Store
 /custom_prompts.lua
+CLAUDE.md
+custom_prompts.lua

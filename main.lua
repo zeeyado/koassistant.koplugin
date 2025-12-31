@@ -94,7 +94,7 @@ local function table_count(t)
 end
 
 local AskGPT = WidgetContainer:extend{
-  name = "assistant",
+  name = "koassistant",
   is_doc_only = false,
 }
 
@@ -102,7 +102,7 @@ local AskGPT = WidgetContainer:extend{
 local updateMessageShown = false
 
 function AskGPT:init()
-  logger.info("Assistant plugin: init() called")
+  logger.info("KOAssistant plugin: init() called")
   
   -- Initialize settings
   self:initSettings()
@@ -116,9 +116,9 @@ function AskGPT:init()
   
   -- Add to highlight dialog if highlight feature is available
   if self.ui and self.ui.highlight then
-    self.ui.highlight:addToHighlightDialog("assistant_dialog", function(_reader_highlight_instance)
+    self.ui.highlight:addToHighlightDialog("koassistant_dialog", function(_reader_highlight_instance)
       return {
-        text = _("Assistant"),
+        text = _("KOAssistant"),
         enabled = Device:hasClipboard(),
         callback = function()
           NetworkMgr:runWhenOnline(function()
@@ -133,7 +133,7 @@ function AskGPT:init()
         end,
       }
     end)
-    logger.info("Added Assistant to highlight dialog")
+    logger.info("Added KOAssistant to highlight dialog")
   else
     logger.warn("Highlight feature not available, skipping highlight dialog integration")
   end
@@ -149,19 +149,19 @@ function AskGPT:init()
   -- Register file dialog buttons with delays to ensure they appear at the bottom
   -- First attempt after a short delay to let core plugins register
   UIManager:scheduleIn(0.5, function()
-    logger.info("Assistant: First file dialog button registration (0.5s delay)")
+    logger.info("KOAssistant: First file dialog button registration (0.5s delay)")
     self:addFileDialogButtons()
   end)
-  
+
   -- Second attempt after other plugins should be loaded
   UIManager:scheduleIn(2, function()
-    logger.info("Assistant: Second file dialog button registration (2s delay)")
+    logger.info("KOAssistant: Second file dialog button registration (2s delay)")
     self:addFileDialogButtons()
   end)
-  
-  -- Final attempt to ensure registration in all contexts  
+
+  -- Final attempt to ensure registration in all contexts
   UIManager:scheduleIn(5, function()
-    logger.info("Assistant: Final file dialog button registration (5s delay)")
+    logger.info("KOAssistant: Final file dialog button registration (5s delay)")
     self:addFileDialogButtons()
   end)
   
@@ -171,22 +171,22 @@ end
 
 -- Button generator for single file actions
 function AskGPT:generateFileDialogButtons(file, is_file, book_props)
-  logger.info("Assistant: generateFileDialogButtons called with file=" .. tostring(file) .. 
+  logger.info("KOAssistant: generateFileDialogButtons called with file=" .. tostring(file) ..
               ", is_file=" .. tostring(is_file) .. ", has_book_props=" .. tostring(book_props ~= nil))
-  
+
   -- Only show buttons for document files
   if is_file and self:isDocumentFile(file) then
-    logger.info("Assistant: File is a document, creating Assistant button")
+    logger.info("KOAssistant: File is a document, creating KOAssistant button")
     
     -- Get metadata
     local title = book_props and book_props.title or file:match("([^/]+)$")
     local authors = book_props and book_props.authors or ""
     
-    -- Return a row with the Assistant button
+    -- Return a row with the KOAssistant button
     -- FileManagerHistory expects a row (array of buttons)
     local buttons = {
       {
-        text = _("Assistant"),
+        text = _("KOAssistant"),
         callback = function()
           -- Close any open file dialog
           local UIManager = require("ui/uimanager")
@@ -194,16 +194,16 @@ function AskGPT:generateFileDialogButtons(file, is_file, book_props)
           if current_dialog and current_dialog.close then
             UIManager:close(current_dialog)
           end
-          -- Show assistant dialog with book context
-          self:showAssistantDialogForFile(file, title, authors, book_props)
+          -- Show KOAssistant dialog with book context
+          self:showKOAssistantDialogForFile(file, title, authors, book_props)
         end,
       }
     }
-    
-    logger.info("Assistant: Returning button row")
+
+    logger.info("KOAssistant: Returning button row")
     return buttons
   else
-    logger.info("Assistant: Not a document file or is_file=false, returning nil")
+    logger.info("KOAssistant: Not a document file or is_file=false, returning nil")
     return nil
   end
 end
@@ -212,12 +212,12 @@ end
 function AskGPT:generateMultiSelectButtons(file, is_file, book_props)
   local FileManager = require("apps/filemanager/filemanager")
   -- Check if we have multiple files selected
-  if FileManager.instance and FileManager.instance.selected_files and 
+  if FileManager.instance and FileManager.instance.selected_files and
      next(FileManager.instance.selected_files) then
-    logger.info("Assistant: Multiple files selected")
+    logger.info("KOAssistant: Multiple files selected")
     return {
       {
-        text = _("Compare Selected Books"),
+        text = _("Compare with KOAssistant"),
         callback = function()
           local UIManager = require("ui/uimanager")
           local current_dialog = UIManager:getTopmostVisibleWidget()
@@ -235,11 +235,11 @@ end
 function AskGPT:addFileDialogButtons()
   -- Prevent multiple registrations
   if self.file_dialog_buttons_added then
-    logger.info("Assistant: File dialog buttons already registered, skipping")
+    logger.info("KOAssistant: File dialog buttons already registered, skipping")
     return true
   end
-  
-  logger.info("Assistant: Attempting to add file dialog buttons")
+
+  logger.info("KOAssistant: Attempting to add file dialog buttons")
   
   local FileManager = require("apps/filemanager/filemanager")
   
@@ -259,7 +259,7 @@ function AskGPT:addFileDialogButtons()
   local single_file_generator = function(file, is_file, book_props)
     local buttons = self:generateFileDialogButtons(file, is_file, book_props)
     if buttons then
-      logger.info("Assistant: Generated buttons for file: " .. tostring(file))
+      logger.info("KOAssistant: Generated buttons for file: " .. tostring(file))
     end
     return buttons
   end
@@ -273,12 +273,12 @@ function AskGPT:addFileDialogButtons()
   -- Method 1: Register via instance method if available
   if FileManager.instance and FileManager.instance.addFileDialogButtons then
     local success = pcall(function()
-      FileManager.instance:addFileDialogButtons("zzz_assistant_file_actions", single_file_generator)
-      FileManager.instance:addFileDialogButtons("zzz_assistant_multi_select", multi_file_generator)
+      FileManager.instance:addFileDialogButtons("zzz_koassistant_file_actions", single_file_generator)
+      FileManager.instance:addFileDialogButtons("zzz_koassistant_multi_select", multi_file_generator)
     end)
-    
+
     if success then
-      logger.info("Assistant: File dialog buttons registered via instance method")
+      logger.info("KOAssistant: File dialog buttons registered via instance method")
       success_count = success_count + 1
     end
   end
@@ -294,23 +294,23 @@ function AskGPT:addFileDialogButtons()
   
   for widget_name, widget_class in pairs(widgets_to_register) do
     if widget_class and FileManager.addFileDialogButtons then
-      logger.info("Assistant: Attempting to register buttons on " .. widget_name .. " class")
+      logger.info("KOAssistant: Attempting to register buttons on " .. widget_name .. " class")
       local success, err = pcall(function()
-        FileManager.addFileDialogButtons(widget_class, "zzz_assistant_file_actions", single_file_generator)
-        FileManager.addFileDialogButtons(widget_class, "zzz_assistant_multi_select", multi_file_generator)
+        FileManager.addFileDialogButtons(widget_class, "zzz_koassistant_file_actions", single_file_generator)
+        FileManager.addFileDialogButtons(widget_class, "zzz_koassistant_multi_select", multi_file_generator)
       end)
-      
+
       if success then
-        logger.info("Assistant: File dialog buttons registered on " .. widget_name)
+        logger.info("KOAssistant: File dialog buttons registered on " .. widget_name)
         success_count = success_count + 1
       else
-        logger.warn("Assistant: Failed to register buttons on " .. widget_name .. ": " .. tostring(err))
+        logger.warn("KOAssistant: Failed to register buttons on " .. widget_name .. ": " .. tostring(err))
       end
     else
       if not widget_class then
-        logger.warn("Assistant: Widget class " .. widget_name .. " not loaded")
+        logger.warn("KOAssistant: Widget class " .. widget_name .. " not loaded")
       else
-        logger.warn("Assistant: FileManager.addFileDialogButtons not available")
+        logger.warn("KOAssistant: FileManager.addFileDialogButtons not available")
       end
     end
   end
@@ -323,7 +323,7 @@ function AskGPT:addFileDialogButtons()
     self:checkButtonVisibility()
     return true
   else
-    logger.error("Assistant: Failed to register file dialog buttons with any method")
+    logger.error("KOAssistant: Failed to register file dialog buttons with any method")
     return false
   end
 end
@@ -333,8 +333,8 @@ function AskGPT:removeFileDialogButtons()
   if not self.file_dialog_buttons_added then
     return
   end
-  
-  logger.info("Assistant: Removing file dialog buttons")
+
+  logger.info("KOAssistant: Removing file dialog buttons")
   
   local FileManager = require("apps/filemanager/filemanager")
   local FileManagerHistory = require("apps/filemanager/filemanagerhistory")
@@ -344,8 +344,8 @@ function AskGPT:removeFileDialogButtons()
   -- Remove from instance if available
   if FileManager.instance and FileManager.instance.removeFileDialogButtons then
     pcall(function()
-      FileManager.instance:removeFileDialogButtons("zzz_assistant_multi_select")
-      FileManager.instance:removeFileDialogButtons("zzz_assistant_file_actions")
+      FileManager.instance:removeFileDialogButtons("zzz_koassistant_multi_select")
+      FileManager.instance:removeFileDialogButtons("zzz_koassistant_file_actions")
     end)
   end
   
@@ -360,22 +360,22 @@ function AskGPT:removeFileDialogButtons()
   for widget_name, widget_class in pairs(widgets_to_clean) do
     if widget_class and FileManager.removeFileDialogButtons then
       pcall(function()
-        FileManager.removeFileDialogButtons(widget_class, "zzz_assistant_multi_select")
-        FileManager.removeFileDialogButtons(widget_class, "zzz_assistant_file_actions")
+        FileManager.removeFileDialogButtons(widget_class, "zzz_koassistant_multi_select")
+        FileManager.removeFileDialogButtons(widget_class, "zzz_koassistant_file_actions")
       end)
     end
   end
-  
+
   self.file_dialog_buttons_added = false
-  logger.info("Assistant: File dialog buttons removed")
+  logger.info("KOAssistant: File dialog buttons removed")
 end
 
 function AskGPT:checkButtonVisibility()
   local FileManager = require("apps/filemanager/filemanager")
-  
+
   -- Check instance buttons
   if FileManager.instance and FileManager.instance.file_dialog_added_buttons then
-    logger.info("Assistant: FileManager.instance.file_dialog_added_buttons has " .. 
+    logger.info("KOAssistant: FileManager.instance.file_dialog_added_buttons has " ..
                 #FileManager.instance.file_dialog_added_buttons .. " entries")
     
     -- List all button generators for debugging (limit to first 10 to avoid spam)
@@ -390,13 +390,13 @@ function AskGPT:checkButtonVisibility()
       else
         name = "unknown"
       end
-      logger.info("Assistant: Instance button generator " .. i .. ": " .. name)
+      logger.info("KOAssistant: Instance button generator " .. i .. ": " .. name)
     end
   end
   
   -- Check static buttons
   if FileManager.file_dialog_added_buttons then
-    logger.info("Assistant: FileManager.file_dialog_added_buttons (static) has " .. 
+    logger.info("KOAssistant: FileManager.file_dialog_added_buttons (static) has " ..
                 #FileManager.file_dialog_added_buttons .. " entries")
     
     -- List all button generators for debugging
@@ -407,24 +407,24 @@ function AskGPT:checkButtonVisibility()
       elseif type(entry) == "function" then
         -- Try to identify our functions
         local info = debug.getinfo(entry)
-        if info and info.source and info.source:find("assistant.koplugin") then
-          name = "assistant_function"
+        if info and info.source and info.source:find("koassistant.koplugin") then
+          name = "koassistant_function"
         else
           name = "function"
         end
       else
         name = tostring(type(entry))
       end
-      logger.info("Assistant: Static button generator " .. i .. ": " .. name)
+      logger.info("KOAssistant: Static button generator " .. i .. ": " .. name)
     end
   end
   
   -- Note: Cannot check FileManagerHistory/Collection here due to circular dependency
   -- They will be checked when they're actually created
-  logger.info("Assistant: Button registration complete. History/Collection will see buttons when created.")
+  logger.info("KOAssistant: Button registration complete. History/Collection will see buttons when created.")
 end
 
-function AskGPT:showAssistantDialogForFile(file, title, authors, book_props)
+function AskGPT:showKOAssistantDialogForFile(file, title, authors, book_props)
   -- Create book context string
   local book_context = string.format("Book: %s", title)
   if authors and authors ~= "" then
@@ -504,7 +504,7 @@ end
 function AskGPT:compareSelectedBooks(selected_files)
   -- Check if we have selected files
   if not selected_files then
-    logger.error("Assistant: compareSelectedBooks called with nil selected_files")
+    logger.error("KOAssistant: compareSelectedBooks called with nil selected_files")
     UIManager:show(InfoMessage:new{
       text = _("No files selected for comparison"),
     })
@@ -525,9 +525,9 @@ function AskGPT:compareSelectedBooks(selected_files)
   local file_count = 0
   for file, _ in pairs(selected_files) do
     file_count = file_count + 1
-    logger.info("Assistant: Selected file " .. file_count .. ": " .. tostring(file))
+    logger.info("KOAssistant: Selected file " .. file_count .. ": " .. tostring(file))
   end
-  logger.info("Assistant: Processing " .. file_count .. " selected files")
+  logger.info("KOAssistant: Processing " .. file_count .. " selected files")
   
   -- Gather info about each selected book
   for file, _ in pairs(selected_files) do
@@ -573,7 +573,7 @@ function AskGPT:compareSelectedBooks(selected_files)
         title = file:match("([^/]+)$") or "Unknown"
       end
       
-      logger.info("Assistant: Book info - Title: " .. tostring(title) .. ", Authors: " .. tostring(authors))
+      logger.info("KOAssistant: Book info - Title: " .. tostring(title) .. ", Authors: " .. tostring(authors))
       
       table.insert(books_info, {
         title = title,
@@ -581,11 +581,11 @@ function AskGPT:compareSelectedBooks(selected_files)
         file = file
       })
     else
-      logger.warn("Assistant: File is not a document: " .. tostring(file))
+      logger.warn("KOAssistant: File is not a document: " .. tostring(file))
     end
   end
-  
-  logger.info("Assistant: Collected info for " .. #books_info .. " books")
+
+  logger.info("KOAssistant: Collected info for " .. #books_info .. " books")
   
   -- Create comparison prompt
   if #books_info < 2 then
@@ -604,7 +604,7 @@ function AskGPT:compareSelectedBooks(selected_files)
     end
   end
   
-  logger.info("Assistant: Books list for comparison:")
+  logger.info("KOAssistant: Books list for comparison:")
   for i, book_str in ipairs(books_list) do
     logger.info("  " .. book_str)
   end
@@ -614,7 +614,7 @@ function AskGPT:compareSelectedBooks(selected_files)
                                     #books_info, 
                                     table.concat(books_list, "\n"))
   
-  logger.info("Assistant: Book context for comparison: " .. prompt_text)
+  logger.info("KOAssistant: Book context for comparison: " .. prompt_text)
   
   -- Create a copy of configuration with file browser context
   local temp_config = {}
@@ -662,10 +662,10 @@ function AskGPT:compareSelectedBooks(selected_files)
 end
 
 -- Generate button for multi-select plus dialog
-function AskGPT:genMultipleAssistantButton(close_dialog_toggle_select_mode_callback, button_disabled, selected_files)
+function AskGPT:genMultipleKOAssistantButton(close_dialog_toggle_select_mode_callback, button_disabled, selected_files)
   return {
     {
-      text = _("Compare with Assistant"),
+      text = _("Compare with KOAssistant"),
       enabled = not button_disabled,
       callback = function()
         -- Capture selected files before closing dialog
@@ -687,7 +687,7 @@ function AskGPT:genMultipleAssistantButton(close_dialog_toggle_select_mode_callb
             self:compareSelectedBooks(files_copy)
           end)
         else
-          logger.error("Assistant: No selected files found for comparison")
+          logger.error("KOAssistant: No selected files found for comparison")
           UIManager:show(InfoMessage:new{
             text = _("No files selected for comparison"),
           })
@@ -698,62 +698,62 @@ function AskGPT:genMultipleAssistantButton(close_dialog_toggle_select_mode_callb
 end
 
 function AskGPT:onDispatcherRegisterActions()
-  logger.info("Assistant: onDispatcherRegisterActions called")
-  
+  logger.info("KOAssistant: onDispatcherRegisterActions called")
+
   if not Dispatcher then
-    logger.warn("Assistant: Dispatcher module not available!")
+    logger.warn("KOAssistant: Dispatcher module not available!")
     return
   end
-  
+
   -- Register chat history action
-  Dispatcher:registerAction("assistant_chat_history", {
-    category = "none", 
-    event = "AssistantChatHistory", 
-    title = _("Assistant: Chat History"), 
+  Dispatcher:registerAction("koassistant_chat_history", {
+    category = "none",
+    event = "KOAssistantChatHistory",
+    title = _("KOAssistant: Chat History"),
     general = true
   })
-  
+
   -- Register continue last saved chat action
-  Dispatcher:registerAction("assistant_continue_last", {
-    category = "none", 
-    event = "AssistantContinueLast", 
-    title = _("Assistant: Continue Last Saved Chat"), 
+  Dispatcher:registerAction("koassistant_continue_last", {
+    category = "none",
+    event = "KOAssistantContinueLast",
+    title = _("KOAssistant: Continue Last Saved Chat"),
     general = true,
     separator = true
   })
-  
-  -- Register assistant settings action
-  Dispatcher:registerAction("assistant_settings", {
-    category = "none", 
-    event = "AssistantSettings", 
-    title = _("Assistant: Settings"), 
+
+  -- Register KOAssistant settings action
+  Dispatcher:registerAction("koassistant_settings", {
+    category = "none",
+    event = "KOAssistantSettings",
+    title = _("KOAssistant: Settings"),
     general = true
   })
-  
+
   -- Register general context chat action
-  Dispatcher:registerAction("assistant_general_chat", {
-    category = "none", 
-    event = "AssistantGeneralChat", 
-    title = _("Assistant: General Chat"), 
+  Dispatcher:registerAction("koassistant_general_chat", {
+    category = "none",
+    event = "KOAssistantGeneralChat",
+    title = _("KOAssistant: General Chat"),
     general = true
   })
-  
+
   -- Register file browser context action
-  Dispatcher:registerAction("assistant_book_chat", {
-    category = "none", 
-    event = "AssistantBookChat", 
-    title = _("Assistant: Chat About Book"), 
+  Dispatcher:registerAction("koassistant_book_chat", {
+    category = "none",
+    event = "KOAssistantBookChat",
+    title = _("KOAssistant: Chat About Book"),
     general = true
   })
-  
-  logger.info("Assistant: Dispatcher actions registered successfully")
+
+  logger.info("KOAssistant: Dispatcher actions registered successfully")
 end
 
 function AskGPT:registerToMainMenu()
   -- Add to KOReader's main menu
   if not self.menu_item and self.ui and self.ui.menu then
     self.menu_item = self.ui.menu:registerToMainMenu(self)
-    logger.info("Registered Assistant to main menu")
+    logger.info("Registered KOAssistant to main menu")
   else
     if not self.ui then
       logger.warn("Cannot register to main menu: UI not available")
@@ -765,7 +765,7 @@ end
 
 function AskGPT:initSettings()
   -- Create settings file path
-  self.settings_file = DataStorage:getSettingsDir() .. "/assistant_settings.lua"
+  self.settings_file = DataStorage:getSettingsDir() .. "/koassistant_settings.lua"
   -- Initialize settings with default values from configuration.lua
   self.settings = LuaSettings:open(self.settings_file)
   
@@ -823,7 +823,7 @@ function AskGPT:addToMainMenu(menu_items)
   local settings_menu = SettingsManager:generateMenuFromSchema(self, SettingsSchema)
   
   -- Create the main menu with quick actions at top level
-  local assistant_menu = {
+  local koassistant_menu = {
     {
       text = _("New General Chat"),
       callback = function()
@@ -845,14 +845,14 @@ function AskGPT:addToMainMenu(menu_items)
   
   -- Add all settings categories
   for _, item in ipairs(settings_menu) do
-    table.insert(assistant_menu, item)
+    table.insert(koassistant_menu, item)
   end
-  
-  menu_items["assistant"] = {
-    text = _("Assistant"),
+
+  menu_items["koassistant"] = {
+    text = _("KOAssistant"),
     sorting_hint = "tools",
     sorting_order = 1, -- Add explicit sorting order to appear at the top
-    sub_item_table = assistant_menu,
+    sub_item_table = koassistant_menu,
   }
 end
 
@@ -968,13 +968,13 @@ function AskGPT:showTranslationDialog()
 end
 
 -- Event handlers for gesture-triggered actions
-function AskGPT:onAssistantChatHistory()
+function AskGPT:onKOAssistantChatHistory()
   -- Use the same implementation as the settings menu
   self:showChatHistory()
   return true
 end
 
-function AskGPT:onAssistantContinueLast()
+function AskGPT:onKOAssistantContinueLast()
   local ChatHistoryManager = require("chat_history_manager")
   local ChatHistoryDialog = require("chat_history_dialog")
   
@@ -998,7 +998,7 @@ function AskGPT:onAssistantContinueLast()
   return true
 end
 
-function AskGPT:onAssistantGeneralChat()
+function AskGPT:onKOAssistantGeneralChat()
   if not configuration then
     UIManager:show(InfoMessage:new{
       icon = "notice-warning",
@@ -1036,7 +1036,7 @@ function AskGPT:onAssistantGeneralChat()
   return true
 end
 
-function AskGPT:onAssistantBookChat()
+function AskGPT:onKOAssistantBookChat()
   -- Check if we have a document open
   if not self.ui or not self.ui.document then
     UIManager:show(InfoMessage:new{
@@ -1052,12 +1052,12 @@ function AskGPT:onAssistantBookChat()
   local authors = doc_props.authors or ""
   
   -- Call the existing function that handles file browser context properly
-  self:showAssistantDialogForFile(self.ui.document.file, title, authors, doc_props)
+  self:showKOAssistantDialogForFile(self.ui.document.file, title, authors, doc_props)
   return true
 end
 
-function AskGPT:onAssistantSettings()
-  logger.info("Assistant: Opening settings menu")
+function AskGPT:onKOAssistantSettings()
+  logger.info("KOAssistant: Opening settings menu")
   
   local UIManager = require("ui/uimanager")
   
@@ -1078,9 +1078,9 @@ function AskGPT:onAssistantSettings()
         if self.ui.document then
           -- We're in a reader with a document open
           tools_tab_index = 4
-          logger.info("Assistant: In reader mode, Tools tab is at index 4")
+          logger.info("KOAssistant: In reader mode, Tools tab is at index 4")
         else
-          logger.info("Assistant: In file manager mode, Tools tab is at index 3")
+          logger.info("KOAssistant: In file manager mode, Tools tab is at index 3")
         end
         
         -- Show the main menu at Tools tab
@@ -1097,52 +1097,52 @@ function AskGPT:onAssistantSettings()
             -- Get the current page items
             local current_items = touch_menu.item_table
             if current_items then
-              logger.info("Assistant: Tools tab has " .. #current_items .. " items on current page")
-              
-              -- Look for Assistant on the current page
+              logger.info("KOAssistant: Tools tab has " .. #current_items .. " items on current page")
+
+              -- Look for KOAssistant on the current page
               for i, item in ipairs(current_items) do
                 logger.info("  Item " .. i .. ": " .. (item.text or "no text"))
-                if item.text == _("Assistant") or item.text == "Assistant" then
-                  logger.info("Assistant: Found Assistant at position " .. i .. ", selecting it")
+                if item.text == _("KOAssistant") or item.text == "KOAssistant" then
+                  logger.info("KOAssistant: Found KOAssistant at position " .. i .. ", selecting it")
                   touch_menu:onMenuSelect(item)
                   return
                 end
               end
               
               -- If not found, look for next page indicator
-              logger.info("Assistant: Not found on current page, checking for next page")
+              logger.info("KOAssistant: Not found on current page, checking for next page")
               for i, item in ipairs(current_items) do
                 -- In KOReader, the next page is usually indicated by "More" or similar
                 if item.text and (item.text:match("More") or item.text:match(">>") or i == #current_items) then
-                  logger.info("Assistant: Going to next page")
+                  logger.info("KOAssistant: Going to next page")
                   touch_menu:onMenuSelect(item)
-                  
-                  -- After navigating to next page, look for Assistant
+
+                  -- After navigating to next page, look for KOAssistant
                   UIManager:scheduleIn(0.2, function()
                     local new_items = touch_menu.item_table
                     if new_items then
-                      logger.info("Assistant: Next page has " .. #new_items .. " items")
+                      logger.info("KOAssistant: Next page has " .. #new_items .. " items")
                       for j, new_item in ipairs(new_items) do
                         logger.info("  Item " .. j .. ": " .. (new_item.text or "no text"))
-                        if new_item.text == _("Assistant") or new_item.text == "Assistant" then
-                          logger.info("Assistant: Found Assistant on next page at position " .. j)
+                        if new_item.text == _("KOAssistant") or new_item.text == "KOAssistant" then
+                          logger.info("KOAssistant: Found KOAssistant on next page at position " .. j)
                           touch_menu:onMenuSelect(new_item)
                           return
                         end
                       end
                     end
-                    logger.warn("Assistant: Could not find Assistant on next page either")
+                    logger.warn("KOAssistant: Could not find KOAssistant on next page either")
                   end)
                   return
                 end
               end
-              
-              logger.warn("Assistant: Could not find Assistant or next page indicator")
+
+              logger.warn("KOAssistant: Could not find KOAssistant or next page indicator")
             else
-              logger.warn("Assistant: No items found in Tools menu")
+              logger.warn("KOAssistant: No items found in Tools menu")
             end
           else
-            logger.warn("Assistant: Could not access menu container")
+            logger.warn("KOAssistant: Could not access menu container")
           end
         end)
       end
@@ -1183,14 +1183,17 @@ function AskGPT:getModelMenuItems()
   end
   
   -- Add option to use default model
+  local Defaults = require("api_handlers/defaults")
+  local current_provider = self.settings:readSetting("provider") or "anthropic"
+  local default_model = Defaults.getDefaultModel(current_provider)
   table.insert(sub_item_table, {
-    text = _("Use Default Model"),
+    text = T(_("Use Default (%1)"), default_model),
     callback = function()
       self.settings:saveSetting("model", nil)
       self.settings:flush()
       self:updateConfigFromSettings()
       UIManager:show(InfoMessage:new{
-        text = _("Using default model for selected provider"),
+        text = T(_("Using default model: %1"), default_model),
       })
     end,
     checked_func = function()
@@ -1280,10 +1283,12 @@ function AskGPT:getFlatProviderModelMenu()
     })
     
     -- Add default model option
+    local Defaults = require("api_handlers/defaults")
+    local default_model = Defaults.getDefaultModel(provider.id)
     table.insert(menu_items, {
-      text = _("   Default Model"),
+      text = T(_("   Default (%1)"), default_model),
       checked_func = function()
-        return self.settings:readSetting("provider") == provider.id and 
+        return self.settings:readSetting("provider") == provider.id and
                self.settings:readSetting("model") == nil
       end,
       callback = function()
@@ -1292,7 +1297,7 @@ function AskGPT:getFlatProviderModelMenu()
         self.settings:flush()
         self:updateConfigFromSettings()
         UIManager:show(InfoMessage:new{
-          text = T(_("Using %1 with default model"), provider.name),
+          text = T(_("Using %1 with default: %2"), provider.name, default_model),
           timeout = 2,
         })
       end,
@@ -1368,10 +1373,12 @@ function AskGPT:getProviderModelItems(provider_id, provider_name)
   end
   
   -- Add "Use Default Model" option
+  local Defaults = require("api_handlers/defaults")
+  local default_model = Defaults.getDefaultModel(provider_id)
   table.insert(model_items, {
-    text = _("Use Default Model"),
+    text = T(_("Use Default (%1)"), default_model),
     checked_func = function()
-      return self.settings:readSetting("provider") == provider_id and 
+      return self.settings:readSetting("provider") == provider_id and
              self.settings:readSetting("model") == nil
     end,
     callback = function(touchmenu_instance)
@@ -1379,12 +1386,12 @@ function AskGPT:getProviderModelItems(provider_id, provider_name)
       self.settings:saveSetting("model", nil)
       self.settings:flush()
       self:updateConfigFromSettings()
-      
+
       UIManager:show(InfoMessage:new{
-        text = T(_("Provider set to %1 with default model"), provider_name),
+        text = T(_("Provider set to %1 with default: %2"), provider_name, default_model),
         timeout = 2,
       })
-      
+
       -- Go back to parent menu to see updated provider checkmark
       if touchmenu_instance then
         touchmenu_instance:onBack()
@@ -1643,8 +1650,8 @@ end
 
 function AskGPT:showAbout()
   UIManager:show(InfoMessage:new{
-    text = _("KOReader Assistant Plugin\nVersion: ") .. 
-          (UpdateChecker.getCurrentVersion() or "Unknown") .. 
+    text = _("KOAssistant Plugin\nVersion: ") ..
+          (UpdateChecker.getCurrentVersion() or "Unknown") ..
           "\nProvides AI assistant capabilities via various API providers." ..
           "\n\nGesture Support:\nAssign gestures in Settings → Gesture Manager",
   })
@@ -1652,14 +1659,14 @@ end
 
 -- Event handlers for registering buttons with different FileManager views
 function AskGPT:onFileManagerReady(filemanager)
-  logger.info("Assistant: onFileManagerReady event received")
+  logger.info("KOAssistant: onFileManagerReady event received")
   
   -- Register immediately since FileManager should be ready
   self:addFileDialogButtons()
   
   -- Also register with a delay as a fallback
   UIManager:scheduleIn(0.1, function()
-    logger.info("Assistant: Late registration of file dialog buttons (onFileManagerReady)")
+    logger.info("KOAssistant: Late registration of file dialog buttons (onFileManagerReady)")
     self:addFileDialogButtons()
   end)
 end
@@ -1668,18 +1675,18 @@ end
 function AskGPT:patchFileManagerForMultiSelect()
   local FileManager = require("apps/filemanager/filemanager")
   local ButtonDialog = require("ui/widget/buttondialog")
-  
+
   if not FileManager or not ButtonDialog then
-    logger.warn("Assistant: Could not load required modules for multi-select patching")
+    logger.warn("KOAssistant: Could not load required modules for multi-select patching")
     return
   end
   
   -- Store reference to self for the closure
-  local assistant_plugin = self
-  
+  local koassistant_plugin = self
+
   -- Patch ButtonDialog.new to inject our button into multi-select dialogs
-  if not ButtonDialog._orig_new_assistant then
-    ButtonDialog._orig_new_assistant = ButtonDialog.new
+  if not ButtonDialog._orig_new_koassistant then
+    ButtonDialog._orig_new_koassistant = ButtonDialog.new
     
     ButtonDialog.new = function(self, o)
       -- Check if this is a FileManager multi-select dialog
@@ -1712,52 +1719,52 @@ function AskGPT:patchFileManagerForMultiSelect()
               fm:onToggleSelectMode(true)
             end)
           end
-          
-          -- Add assistant button
-          local assistant_button = assistant_plugin:genMultipleAssistantButton(
+
+          -- Add KOAssistant button
+          local koassistant_button = koassistant_plugin:genMultipleKOAssistantButton(
             close_callback,
             not actions_enabled,
             fm.selected_files
           )
           
-          if assistant_button then
-            table.insert(o.buttons, insert_position, assistant_button)
-            logger.info("Assistant: Added multi-select button to dialog at position " .. insert_position)
+          if koassistant_button then
+            table.insert(o.buttons, insert_position, koassistant_button)
+            logger.info("KOAssistant: Added multi-select button to dialog at position " .. insert_position)
           end
         end
       end
-      
+
       -- Call original constructor
-      return ButtonDialog._orig_new_assistant(self, o)
+      return ButtonDialog._orig_new_koassistant(self, o)
     end
-    
-    logger.info("Assistant: Patched ButtonDialog.new for multi-select support")
+
+    logger.info("KOAssistant: Patched ButtonDialog.new for multi-select support")
   end
 end
 
 -- These events don't actually exist in KOReader, but we keep them for future compatibility
 function AskGPT:onFileManagerHistoryReady(filemanager_history)
-  logger.info("Assistant: onFileManagerHistoryReady event received (deprecated)")
+  logger.info("KOAssistant: onFileManagerHistoryReady event received (deprecated)")
 end
 
 function AskGPT:onFileManagerCollectionReady(filemanager_collection)
-  logger.info("Assistant: onFileManagerCollectionReady event received (deprecated)")
+  logger.info("KOAssistant: onFileManagerCollectionReady event received (deprecated)")
 end
 
 -- Support for FileSearcher (search results) - this event also doesn't exist
 function AskGPT:onShowFileSearch()
-  logger.info("Assistant: onShowFileSearch event received (deprecated)")
+  logger.info("KOAssistant: onShowFileSearch event received (deprecated)")
 end
 
 
 -- Legacy event handlers for compatibility
 function AskGPT:onFileManagerShow(filemanager)
-  logger.info("Assistant: onFileManagerShow event received")
+  logger.info("KOAssistant: onFileManagerShow event received")
   -- Don't register buttons immediately - let delayed registration handle it
   -- But do register ourselves for multi-select support
   if filemanager then
-    filemanager.assistant = self
-    logger.info("Assistant: Registered with FileManager for multi-select support")
+    filemanager.koassistant = self
+    logger.info("KOAssistant: Registered with FileManager for multi-select support")
   end
 end
 
@@ -1765,45 +1772,45 @@ end
 function AskGPT:onSetDimensions(dimen)
   -- This event is fired when various UI elements are being set up
   -- Don't register immediately - let delayed registration handle it
-  logger.info("Assistant: onSetDimensions event received")
+  logger.info("KOAssistant: onSetDimensions event received")
 end
 
 function AskGPT:onFileManagerInstance(filemanager)
-  logger.info("Assistant: onFileManagerInstance event received")
+  logger.info("KOAssistant: onFileManagerInstance event received")
   -- Don't register immediately - let delayed registration handle it
 end
 
 -- Additional event handlers that might help catch FileManager initialization
 function AskGPT:onFileManagerSetDimensions()
-  logger.info("Assistant: onFileManagerSetDimensions event received")
+  logger.info("KOAssistant: onFileManagerSetDimensions event received")
   -- Don't register immediately - let delayed registration handle it
 end
 
 function AskGPT:onPathChanged()
   -- This event fires when FileManager changes directory
   -- Don't register immediately - let delayed registration handle it
-  logger.info("Assistant: onPathChanged event received")
+  logger.info("KOAssistant: onPathChanged event received")
 end
 
 -- Hook into FileSearcher initialization
 function AskGPT:onShowFileSearch(searcher)
-  logger.info("Assistant: onShowFileSearch event received")
+  logger.info("KOAssistant: onShowFileSearch event received")
   -- Don't register immediately - let delayed registration handle it
 end
 
 -- Hook into Collections/History views
 function AskGPT:onShowHistoryMenu()
-  logger.info("Assistant: onShowHistoryMenu event received")
+  logger.info("KOAssistant: onShowHistoryMenu event received")
   -- Don't register immediately - let delayed registration handle it
 end
 
 function AskGPT:onShowCollectionMenu()
-  logger.info("Assistant: onShowCollectionMenu event received")
+  logger.info("KOAssistant: onShowCollectionMenu event received")
   -- Don't register immediately - let delayed registration handle it
 end
 
 function AskGPT:migratePromptsV2()
-  logger.info("Assistant: Performing one-time prompt migration to v2 format")
+  logger.info("KOAssistant: Performing one-time prompt migration to v2 format")
   
   -- Check if we have any old configuration that needs migration
   local old_config_path = script_path() .. "configuration.lua"
@@ -1815,7 +1822,7 @@ function AskGPT:migratePromptsV2()
   -- First check for old format prompts (features.prompts)
   if ok and old_config and old_config.features and old_config.features.prompts then
     -- We have old format prompts that need migration
-    logger.info("Assistant: Found old format prompts, migrating to custom_prompts")
+    logger.info("KOAssistant: Found old format prompts, migrating to custom_prompts")
     
     -- Migrate each old prompt to custom prompts
     for key, prompt in pairs(old_config.features.prompts) do
@@ -1847,7 +1854,7 @@ function AskGPT:migratePromptsV2()
         
         if not exists then
           table.insert(custom_prompts, migrated_prompt)
-          logger.info("Assistant: Migrated prompt: " .. migrated_prompt.text)
+          logger.info("KOAssistant: Migrated prompt: " .. migrated_prompt.text)
           migrated = true
         end
       end
@@ -1856,7 +1863,7 @@ function AskGPT:migratePromptsV2()
   
   -- Also check for custom_prompts in configuration.lua (since we're moving them to a separate file)
   if ok and old_config and old_config.custom_prompts then
-    logger.info("Assistant: Found custom_prompts in configuration.lua, migrating to UI settings")
+    logger.info("KOAssistant: Found custom_prompts in configuration.lua, migrating to UI settings")
     
     for _, prompt in ipairs(old_config.custom_prompts) do
       if type(prompt) == "table" and prompt.text then
@@ -1871,7 +1878,7 @@ function AskGPT:migratePromptsV2()
         
         if not exists then
           table.insert(custom_prompts, prompt)
-          logger.info("Assistant: Migrated custom prompt: " .. prompt.text)
+          logger.info("KOAssistant: Migrated custom prompt: " .. prompt.text)
           migrated = true
         end
       end
@@ -1882,9 +1889,9 @@ function AskGPT:migratePromptsV2()
   if migrated and #custom_prompts > 0 then
     self.settings:saveSetting("custom_prompts", custom_prompts)
     self.settings:flush()
-    logger.info("Assistant: Migration complete, saved " .. #custom_prompts .. " custom prompts")
+    logger.info("KOAssistant: Migration complete, saved " .. #custom_prompts .. " custom prompts")
   else
-    logger.info("Assistant: No prompts found to migrate")
+    logger.info("KOAssistant: No prompts found to migrate")
   end
 end
 

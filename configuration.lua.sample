@@ -1,4 +1,4 @@
--- Configuration for KOReader Assistant Plugin
+-- Configuration for KOReader KOAssistant Plugin
 -- Copy this file to configuration.lua and modify as needed
 -- All settings are optional - uncomment to override defaults
 

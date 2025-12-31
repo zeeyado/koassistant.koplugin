@@ -81,10 +81,10 @@ end
 function UpdateChecker.checkForUpdates(silent)
     local response_body = {}
     local request_result, code = http.request {
-        url = "https://api.github.com/repos/zeeyado/Assistant/releases/latest",
+        url = "https://api.github.com/repos/zeeyado/KOAssistant/releases/latest",
         headers = {
             ["Accept"] = "application/vnd.github.v3+json",
-            ["User-Agent"] = "KOReader-Assistant-Plugin"
+            ["User-Agent"] = "KOReader-KOAssistant-Plugin"
         },
         sink = ltn12.sink.table(response_body)
     }

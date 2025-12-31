@@ -237,7 +237,7 @@ function MessageHistory:createResultText(highlightedText, config)
     -- Show conversation (non-context messages)
     for i = 2, #self.messages do
         if not self.messages[i].is_context then
-            local prefix = self.messages[i].role == self.ROLES.USER and "▶ User: " or "◉ Assistant: "
+            local prefix = self.messages[i].role == self.ROLES.USER and "▶ User: " or "◉ KOAssistant: "
             table.insert(result, prefix .. self.messages[i].content .. "\n\n")
         end
     end

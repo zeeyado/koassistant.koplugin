@@ -1,4 +1,4 @@
--- Centralized AI instructions and templates for the Assistant plugin
+-- Centralized AI instructions and templates for the KOAssistant plugin
 -- Use configuration.lua to override specific instructions
 
 local _ = require("gettext")

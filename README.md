@@ -1,6 +1,8 @@
-# KOReader Assistant Plugin
+# KOAssistant - KOReader AI Assistant Plugin
 
 A powerful AI assistant integrated into KOReader.
+
+> **Note:** This project was recently renamed from "Assistant" to "KOAssistant" due to a naming conflict with [a more popular fork](https://github.com/omer-faruq/assistant.koplugin) of this repo. Some internal references and UI elements may still show the old name.
 
 You can:
 
@@ -29,16 +31,16 @@ NB: Gemini and Deepseek have not been thorougly tested for response format. Anth
 
 Download: (Code (at top right of this page) -> Download ZIP. 
 
-or Clone: `git clone https://github.com/zeeyado/assistant.koplugin`
+or Clone: `git clone https://github.com/zeeyado/koassistant.koplugin`
 
 or Download latest release (not yet available)
 
 Rename and place in your KOReader plugins directory:
 
    ```
-   # Kobo/Kindle: /mnt/onboard/.adds/koreader/plugins/assistant.koplugin/
-   # Android: /sdcard/koreader/plugins/assistant.koplugin/
-   # macOS: ~/Library/Application Support/koreader/plugins/assistant.koplugin/
+   # Kobo/Kindle: /mnt/onboard/.adds/koreader/plugins/koassistant.koplugin/
+   # Android: /sdcard/koreader/plugins/koassistant.koplugin/
+   # macOS: ~/Library/Application Support/koreader/plugins/koassistant.koplugin/
    ```
 
 
@@ -48,7 +50,7 @@ Copy the sample file `apikeys.lua.sample` and rename to `apikeys.lua`
 
 Add at least one API key  
  
-3. **Restart KOReader** - You're ready to go! Set your desired provider and model in the settings UI (Tools -> page 2 -> Assistant (under "More tools")
+3. **Restart KOReader** - You're ready to go! Set your desired provider and model in the settings UI (Tools -> page 2 -> KOAssistant (under "More tools")
 
 ### Minimum Requirements
 
@@ -66,17 +68,17 @@ Examples (my usage preference; you can use whichever gestures you like):
 **In Reader View (while reading) and in File browser:**
 
 - Go to Settings → Gesture Manager → Tap corner → Bottom left
-- General → (add all Assistant actions -- Chat history, Continue last chat, Chat about book, etc)
+- General → (add all KOAssistant actions -- Chat history, Continue last chat, Chat about book, etc)
 - Select "Show as QuickMenu"
 -
 
-You have to do this for both Reader view and File browser. This will give you an easy to access Assistant menu.
+You have to do this for both Reader view and File browser. This will give you an easy to access KOAssistant menu.
 
 You can also assign any gesture to any action as you see fit.
 
 ### 2. Enable/disable prompts and create custom actions
 
-- Go to Asstant settings -> Prompts & Responses -> Manage prompts
+- Go to KOAssistant settings -> Prompts & Responses -> Manage prompts
 - Enable/disable the builtin prompts
 - Create you own custom prompts in custom_prompts.lua
 
@@ -133,7 +135,7 @@ You can also assign any gesture to any action as you see fit.
 
 ### Basic Configuration (UI-Based)
 
-Access all settings via **Tools → Assistant → Settings**:
+Access all settings via **Tools → KOAssistant → Settings**:
 
 1. **AI Provider & Model**
 
@@ -234,16 +236,19 @@ return {
 
 ## Current State
 
-**Version**: 0.1.0-beta (July 2025)
+**Version**: 0.1.0-beta
 
-The Assistant plugin is under active development with a strong foundation:
+KOAssistant is under active development. The core functionality works but there are known bugs being addressed:
 
-- ✅ Core functionality stable and well-tested
-- ✅ Multiple AI provider support fully implemented
-- ✅ Context-aware system working across all KOReader interfaces
-- ✅ Chat history and conversation management complete
+- ✅ Core AI query functionality works
+- ✅ Multiple AI provider support implemented
+- ✅ Context-aware system (highlights, books, multi-book)
+- ⚠️ Chat saving/management - some reliability issues
+- ⚠️ UI - various bugs including overlapping windows
+- ⚠️ Auto-save - inconsistent behavior
+- 🚧 Performance optimizations needed
 - 🚧 Profile system in design phase
-- 🚧 Enhanced context features planned
+- 🚧 Name migration from "Assistant" to "KOAssistant" in progress
 
 ## Contributing
 
@@ -260,7 +265,7 @@ Note: The codebase is transitioning to a more unified message and prompt buildin
 
 ### Fork History
 
-Originally forked from [ASKGPT by Drew Baumann](https://github.com/drewbaumann/askgpt) in February 2025, expanded with some features (prompts customization and multiple providers, etc) and renamed to Assistant, at which point it was forked by others, and these forks are still in development. It was then taken private (and thus out of the fork network) for focused development and re-released publicly in July 2025, in a much expanded state. 
+Originally forked from [ASKGPT by Drew Baumann](https://github.com/drewbaumann/askgpt) in February 2025, expanded with features (prompts customization, multiple providers, etc) and renamed to Assistant, then later renamed to KOAssistant. It was forked by others while named Assistant, and those forks are still in development. It was then taken private (and thus out of the fork network) for focused development and re-released publicly in July 2025, in a much expanded state. 
 
 ### Acknowledgments
 
@@ -279,4 +284,4 @@ GNU General Public License v3.0 - See [LICENSE](LICENSE) file for details
 
 - Check [KOReader Docs](https://koreader.rocks/doc/)
 - Visit [User Patches Wiki](https://github.com/koreader/koreader/wiki/User-patches)
-- Report issues on [GitHub](https://github.com/yourusername/koreader-assistant/issues)
+- Report issues on [GitHub](https://github.com/zeeyado/koassistant.koplugin/issues)

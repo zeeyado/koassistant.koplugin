@@ -353,7 +353,7 @@ function SettingsManager:generateQuickSettingsMenu(plugin, schema)
     table.insert(quick_items, {
         text = _("All Settings..."),
         callback = function()
-            plugin:onAssistantSettings()
+            plugin:onKOAssistantSettings()
         end,
     })
     

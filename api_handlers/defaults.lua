@@ -1,7 +1,27 @@
+-- Load model lists to get default models dynamically
+local ModelLists = require("model_lists")
+
+-- Helper function to get the default model for a provider (first in the list)
+local function getDefaultModel(provider)
+    local models = ModelLists[provider]
+    if models and #models > 0 then
+        return models[1]
+    end
+    -- Fallback models in case model_lists.lua is missing entries
+    local fallbacks = {
+        anthropic = "claude-sonnet-4-5-20250929",
+        openai = "gpt-4.1",
+        deepseek = "deepseek-chat",
+        gemini = "gemini-2.5-pro",
+        ollama = "llama3",
+    }
+    return fallbacks[provider] or "unknown"
+end
+
 local ProviderDefaults = {
     anthropic = {
         provider = "anthropic",
-        model = "claude-sonnet-4-20250514",
+        model = getDefaultModel("anthropic"),
         base_url = "https://api.anthropic.com/v1/messages",
         additional_parameters = {
             anthropic_version = "2023-06-01",
@@ -10,7 +30,7 @@ local ProviderDefaults = {
     },
     openai = {
         provider = "openai",
-        model = "gpt-4.1",
+        model = getDefaultModel("openai"),
         base_url = "https://api.openai.com/v1/chat/completions",
         additional_parameters = {
             temperature = 0.7,
@@ -19,7 +39,7 @@ local ProviderDefaults = {
     },
     deepseek = {
         provider = "deepseek",
-        model = "deepseek-chat",
+        model = getDefaultModel("deepseek"),
         base_url = "https://api.deepseek.com/v1/chat/completions",
         additional_parameters = {
             temperature = 0.7,
@@ -28,7 +48,7 @@ local ProviderDefaults = {
     },
     ollama = {
         provider = "ollama",
-        model = "deepseek-r1:14b",
+        model = getDefaultModel("ollama"),
         base_url = "http://localhost:11434/api/chat",
         additional_parameters = {
             temperature = 0.7
@@ -36,7 +56,7 @@ local ProviderDefaults = {
     },
     gemini = {
         provider = "gemini",
-        model = "gemini-1.5-flash",
+        model = getDefaultModel("gemini"),
         base_url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent",
         additional_parameters = {
             temperature = 0.7
@@ -46,5 +66,6 @@ local ProviderDefaults = {
 
 return {
     ProviderDefaults = ProviderDefaults,
+    getDefaultModel = getDefaultModel,
     ParameterDocs = ParameterDocs
-} 
+}

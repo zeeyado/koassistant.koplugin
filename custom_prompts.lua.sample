@@ -1,6 +1,6 @@
--- Custom prompts for KOReader Assistant Plugin
+-- Custom prompts for KOReader KOAssistant Plugin
 -- Copy this file to custom_prompts.lua to add your own prompts
--- You can also manage prompts through the UI: Tools > Assistant > Settings > Manage Prompts
+-- You can also manage prompts through the UI: Tools > KOAssistant > Settings > Manage Prompts
 
 --[[
 Each prompt must have:
