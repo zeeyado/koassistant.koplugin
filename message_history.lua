@@ -12,7 +12,8 @@ function MessageHistory:new(system_prompt, prompt_action)
         messages = {},
         model = nil,  -- Will be set after first response
         chat_id = nil, -- Chat ID for existing chats
-        prompt_action = prompt_action -- Store the action/prompt type for naming
+        prompt_action = prompt_action, -- Store the action/prompt type for naming
+        launch_context = nil -- For general chats launched from within a book
     }
     
     if system_prompt then
@@ -73,34 +74,39 @@ function MessageHistory:clear()
 end
 
 -- Create a new instance from saved messages
-function MessageHistory:fromSavedMessages(messages, model, chat_id, prompt_action)
+function MessageHistory:fromSavedMessages(messages, model, chat_id, prompt_action, launch_context)
     local history = self:new()
-    
+
     -- Clear any default messages
     history.messages = {}
-    
+
     -- Add all saved messages
     if messages and #messages > 0 then
         for _, msg in ipairs(messages) do
             table.insert(history.messages, msg)
         end
     end
-    
+
     -- Set the model if provided
     if model then
         history.model = model
     end
-    
+
     -- Set the chat ID if provided
     if chat_id then
         history.chat_id = chat_id
     end
-    
+
     -- Set the prompt action if provided
     if prompt_action then
         history.prompt_action = prompt_action
     end
-    
+
+    -- Set the launch context if provided (for general chats launched from a book)
+    if launch_context then
+        history.launch_context = launch_context
+    end
+
     return history
 end
 
@@ -186,14 +192,24 @@ end
 
 function MessageHistory:createResultText(highlightedText, config)
     local result = {}
-    
+
+    -- Show launch context header if this is a general chat launched from a book
+    if self.launch_context and self.launch_context.title then
+        local launch_note = "[Launched from: " .. self.launch_context.title
+        if self.launch_context.author then
+            launch_note = launch_note .. " by " .. self.launch_context.author
+        end
+        launch_note = launch_note .. "]\n\n"
+        table.insert(result, launch_note)
+    end
+
     -- Check if we should show the highlighted text
     local should_hide = config and config.features and (
         config.features.hide_highlighted_text or
         (config.features.hide_long_highlights and highlightedText and
          string.len(highlightedText) > (config.features.long_highlight_threshold or 280))
     )
-    
+
     if not should_hide and highlightedText and highlightedText ~= "" then
         -- Check if this is file browser context
         if config and config.features and config.features.is_file_browser_context then

@@ -380,12 +380,22 @@ end
 function ChatHistoryManager:exportChatAsText(document_path, chat_id)
     local chat = self:getChatById(document_path, chat_id)
     if not chat then return nil end
-    
+
     local result = {}
     table.insert(result, "Chat: " .. chat.title)
     table.insert(result, "Date: " .. os.date("%Y-%m-%d %H:%M", chat.timestamp))
     table.insert(result, "Document: " .. chat.document_path)
     table.insert(result, "Model: " .. (chat.model or "Unknown"))
+
+    -- Include launch context if available (for general chats launched from a book)
+    if chat.launch_context and chat.launch_context.title then
+        local launch_info = "Launched from: " .. chat.launch_context.title
+        if chat.launch_context.author then
+            launch_info = launch_info .. " by " .. chat.launch_context.author
+        end
+        table.insert(result, launch_info)
+    end
+
     table.insert(result, "")
     
     -- Format messages
@@ -407,12 +417,22 @@ end
 function ChatHistoryManager:exportChatAsMarkdown(document_path, chat_id)
     local chat = self:getChatById(document_path, chat_id)
     if not chat then return nil end
-    
+
     local result = {}
     table.insert(result, "# " .. chat.title)
     table.insert(result, "**Date:** " .. os.date("%Y-%m-%d %H:%M", chat.timestamp))
     table.insert(result, "**Document:** " .. chat.document_path)
     table.insert(result, "**Model:** " .. (chat.model or "Unknown"))
+
+    -- Include launch context if available (for general chats launched from a book)
+    if chat.launch_context and chat.launch_context.title then
+        local launch_info = "**Launched from:** " .. chat.launch_context.title
+        if chat.launch_context.author then
+            launch_info = launch_info .. " by " .. chat.launch_context.author
+        end
+        table.insert(result, launch_info)
+    end
+
     table.insert(result, "")
     
     -- Format messages

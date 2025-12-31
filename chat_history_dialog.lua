@@ -510,7 +510,7 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
 
     local history
     local ok, err = pcall(function()
-        history = MessageHistory:fromSavedMessages(chat.messages, chat.model, chat.id, chat.prompt_action)
+        history = MessageHistory:fromSavedMessages(chat.messages, chat.model, chat.id, chat.prompt_action, chat.launch_context)
     end)
 
     if not ok or not history then
@@ -565,15 +565,8 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
         safeClose(self_ref.current_chat_viewer)
         self_ref.current_chat_viewer = nil
 
-        -- Build the display text, optionally including launch context header
+        -- Note: launch context is now included in createResultText() via history.launch_context
         local display_text = content_text or history:createResultText("", config)
-        if chat.launch_context and chat.launch_context.title then
-            local launch_note = "ℹ Launched from: " .. chat.launch_context.title
-            if chat.launch_context.author then
-                launch_note = launch_note .. " by " .. chat.launch_context.author
-            end
-            display_text = launch_note .. "\n\n" .. display_text
-        end
 
         local viewer = ChatGPTViewer:new{
             title = detailed_title,
