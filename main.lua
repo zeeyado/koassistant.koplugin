@@ -115,8 +115,13 @@ local function maybeCheckForUpdates(plugin_instance)
         end
     end
     if auto_check then
-        UpdateChecker.checkForUpdates(true) -- silent = true for auto-check
+        -- Mark as shown immediately to prevent duplicate checks
         updateMessageShown = true
+        -- Run update check in background after a short delay
+        -- This allows the main action (chat dialog) to proceed first
+        UIManager:scheduleIn(0.5, function()
+            UpdateChecker.checkForUpdates(true) -- silent = true for auto-check
+        end)
     end
 end
 
