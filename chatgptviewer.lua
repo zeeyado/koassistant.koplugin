@@ -313,8 +313,9 @@ function ChatGPTViewer:init()
       },
       HoldPanText = {
         GestureRange:new {
-          ges = "hold",
+          ges = "hold_pan",
           range = range,
+          rate = Screen.low_pan_rate and 5.0 or 30.0,
         },
       },
       HoldReleaseText = {
@@ -558,6 +559,7 @@ function ChatGPTViewer:init()
       width = self.width - 2 * self.text_padding - 2 * self.text_margin,
       height = textw_height - 2 * self.text_padding - 2 * self.text_margin,
       dialog = self,
+      highlight_text_selection = true,
     }
   else
     -- If not rendering Markdown, use the text as is
@@ -809,8 +811,7 @@ function ChatGPTViewer:handleTextSelection(text, hold_duration, start_idx, end_i
   if Device:hasClipboard() then
     Device.input.setClipboardText(text)
     UIManager:show(Notification:new {
-      text = start_idx == end_idx and _("Word copied to clipboard.")
-          or _("Selection copied to clipboard."),
+      text = _("Copied to clipboard."),
     })
   end
 end
@@ -841,6 +842,7 @@ function ChatGPTViewer:update(new_text, scroll_to_bottom)
       width = self.width - 2 * self.text_padding - 2 * self.text_margin,
       height = self.textw:getSize().h - 2 * self.text_padding - 2 * self.text_margin,
       dialog = self,
+      highlight_text_selection = true,
     }
     
     -- Update the frame container with the new scroll widget
@@ -951,6 +953,7 @@ function ChatGPTViewer:toggleMarkdown()
       width = self.width - 2 * self.text_padding - 2 * self.text_margin,
       height = textw_height - 2 * self.text_padding - 2 * self.text_margin,
       dialog = self,
+      highlight_text_selection = true,
     }
   else
     -- Convert to plain text
