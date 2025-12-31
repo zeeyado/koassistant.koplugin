@@ -18,7 +18,7 @@ You can:
 - Configure most things in the UI (including provider/model selecgtion, disabling/enabling prompts depending on context, translation language, chat history)
 - Much more using custom prompts/actions
 
-A wiki will be made for creating custom prompts and actions, and other advanced configuration and usage. 
+A wiki/doc page will be made for creating custom prompts and actions, and other advanced configuration and usage. 
 
 Originally forked from [ASKGPT by Drew Baumann](https://github.com/drewbaumann/askgpt). See Credits and history at the bottom of this readme
 
