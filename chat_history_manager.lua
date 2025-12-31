@@ -312,21 +312,95 @@ end
 -- Delete a chat
 function ChatHistoryManager:deleteChat(document_path, chat_id)
     if not document_path or not chat_id then return false end
-    
+
     local doc_dir = self:getDocumentChatDir(document_path)
     if not doc_dir then return false end
-    
+
     local chat_path = doc_dir .. "/" .. chat_id .. ".lua"
     if lfs.attributes(chat_path, "mode") then
         os.remove(chat_path)
         logger.info("Deleted chat: " .. chat_id)
         return true
     end
-    
+
     return false
 end
 
--- Rename a chat 
+-- Delete all chats for a specific document
+function ChatHistoryManager:deleteAllChatsForDocument(document_path)
+    if not document_path then return 0 end
+
+    local doc_dir = self:getDocumentChatDir(document_path)
+    if not doc_dir or not lfs.attributes(doc_dir, "mode") then
+        return 0
+    end
+
+    local deleted_count = 0
+
+    -- Delete all chat files in the document directory
+    for filename in lfs.dir(doc_dir) do
+        if filename ~= "." and filename ~= ".." then
+            local file_path = doc_dir .. "/" .. filename
+            local attr = lfs.attributes(file_path, "mode")
+            if attr == "file" then
+                os.remove(file_path)
+                deleted_count = deleted_count + 1
+                logger.info("Deleted chat file: " .. filename)
+            end
+        end
+    end
+
+    -- Remove the empty directory
+    local ok, err = os.remove(doc_dir)
+    if ok then
+        logger.info("Removed empty document directory: " .. doc_dir)
+    else
+        logger.warn("Could not remove document directory: " .. (err or "unknown error"))
+    end
+
+    logger.info("Deleted " .. deleted_count .. " chats for document: " .. document_path)
+    return deleted_count
+end
+
+-- Delete all chats across all documents
+function ChatHistoryManager:deleteAllChats()
+    if not lfs.attributes(self.CHAT_DIR, "mode") then
+        return 0
+    end
+
+    local total_deleted = 0
+    local docs_deleted = 0
+
+    -- Iterate through all document directories
+    for doc_hash in lfs.dir(self.CHAT_DIR) do
+        if doc_hash ~= "." and doc_hash ~= ".." then
+            local doc_dir = self.CHAT_DIR .. "/" .. doc_hash
+            local attr = lfs.attributes(doc_dir, "mode")
+
+            if attr == "directory" then
+                -- Delete all files in this directory
+                for filename in lfs.dir(doc_dir) do
+                    if filename ~= "." and filename ~= ".." then
+                        local file_path = doc_dir .. "/" .. filename
+                        if lfs.attributes(file_path, "mode") == "file" then
+                            os.remove(file_path)
+                            total_deleted = total_deleted + 1
+                        end
+                    end
+                end
+
+                -- Remove the empty directory
+                os.remove(doc_dir)
+                docs_deleted = docs_deleted + 1
+            end
+        end
+    end
+
+    logger.info("Deleted " .. total_deleted .. " chats from " .. docs_deleted .. " documents")
+    return total_deleted, docs_deleted
+end
+
+-- Rename a chat
 function ChatHistoryManager:renameChat(document_path, chat_id, new_title)
     if not document_path or not chat_id or not new_title then
         logger.warn("Cannot rename chat: missing document path, chat ID, or new title")

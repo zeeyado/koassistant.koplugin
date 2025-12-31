@@ -39,10 +39,11 @@ function ChatHistoryDialog:closeAllDialogs()
     self.current_chat_viewer = nil
 end
 
-function ChatHistoryDialog:showChatListMenuOptions(ui, document, chat_history_manager, config)
+function ChatHistoryDialog:showChatListMenuOptions(ui, document, chat_history_manager, config, nav_context)
     -- Close any existing options dialog first
     safeClose(self.current_options_dialog)
 
+    local self_ref = self
     local dialog
     local buttons = {
         {
@@ -50,15 +51,23 @@ function ChatHistoryDialog:showChatListMenuOptions(ui, document, chat_history_ma
                 text = _("Delete all chats for this book"),
                 callback = function()
                     safeClose(dialog)
+                    self_ref.current_options_dialog = nil
                     UIManager:show(ConfirmBox:new{
                         text = T(_("Delete all chats for \"%1\"?\n\nThis action cannot be undone."), document.title),
                         ok_text = _("Delete"),
                         ok_callback = function()
-                            -- TODO: Implement delete all chats for document
+                            local deleted_count = chat_history_manager:deleteAllChatsForDocument(document.path)
                             UIManager:show(InfoMessage:new{
-                                text = _("Delete all for book not yet implemented"),
+                                text = T(_("Deleted %1 chat(s)"), deleted_count),
                                 timeout = 2,
                             })
+                            -- Close the chat list menu and go back to document list
+                            safeClose(self_ref.current_menu)
+                            self_ref.current_menu = nil
+                            -- Refresh the document list
+                            UIManager:scheduleIn(0.5, function()
+                                self_ref:showChatHistoryBrowser(ui, nil, chat_history_manager, config, nav_context)
+                            end)
                         end,
                     })
                 end,
@@ -69,7 +78,7 @@ function ChatHistoryDialog:showChatListMenuOptions(ui, document, chat_history_ma
                 text = _("Close"),
                 callback = function()
                     safeClose(dialog)
-                    self.current_options_dialog = nil
+                    self_ref.current_options_dialog = nil
                 end,
             },
         },
@@ -87,6 +96,7 @@ function ChatHistoryDialog:showDocumentMenuOptions(ui, chat_history_manager, con
     -- Close any existing options dialog first
     safeClose(self.current_options_dialog)
 
+    local self_ref = self
     local dialog
     local buttons = {
         {
@@ -94,15 +104,19 @@ function ChatHistoryDialog:showDocumentMenuOptions(ui, chat_history_manager, con
                 text = _("Delete all chats"),
                 callback = function()
                     safeClose(dialog)
+                    self_ref.current_options_dialog = nil
                     UIManager:show(ConfirmBox:new{
                         text = _("Delete all saved chats?\n\nThis action cannot be undone."),
                         ok_text = _("Delete"),
                         ok_callback = function()
-                            -- TODO: Implement delete all functionality
+                            local total_deleted, docs_deleted = chat_history_manager:deleteAllChats()
                             UIManager:show(InfoMessage:new{
-                                text = _("Delete all not yet implemented"),
+                                text = T(_("Deleted %1 chat(s) from %2 book(s)"), total_deleted, docs_deleted),
                                 timeout = 2,
                             })
+                            -- Close the menu since there's nothing left to show
+                            safeClose(self_ref.current_menu)
+                            self_ref.current_menu = nil
                         end,
                     })
                 end,
@@ -113,7 +127,7 @@ function ChatHistoryDialog:showDocumentMenuOptions(ui, chat_history_manager, con
                 text = _("Close"),
                 callback = function()
                     safeClose(dialog)
-                    self.current_options_dialog = nil
+                    self_ref.current_options_dialog = nil
                 end,
             },
         },
@@ -307,7 +321,7 @@ function ChatHistoryDialog:showChatsForDocument(ui, document, chat_history_manag
         align_baselines = false,
         with_dots = false,
         onLeftButtonTap = function()
-            self_ref:showChatListMenuOptions(ui, document, chat_history_manager, config)
+            self_ref:showChatListMenuOptions(ui, document, chat_history_manager, config, nav_context)
         end,
         onReturn = function()
             logger.info("Chat history: Return button pressed")
