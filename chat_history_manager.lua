@@ -170,13 +170,13 @@ function ChatHistoryManager:saveChat(document_path, chat_title, message_history,
         logger.warn("Cannot save chat: missing document path or message history")
         return false
     end
-    
+
     local doc_dir = self:getDocumentChatDir(document_path)
     if not doc_dir then
         logger.warn("Cannot create document directory for chat history")
         return false
     end
-    
+
     -- Generate a chat ID if not provided in metadata
     local chat_id = (metadata and metadata.id) or self:generateChatId()
     
