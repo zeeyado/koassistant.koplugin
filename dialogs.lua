@@ -219,39 +219,56 @@ local function createSaveDialog(document_path, history, chat_history_manager, is
     UIManager:show(save_dialog)
 end
 
+-- Helper function to create exportable text from history
+local function createExportText(history, format)
+    local result = {}
+    local is_markdown = format == "markdown"
+
+    if is_markdown then
+        table.insert(result, "# Chat")
+        table.insert(result, "**Date:** " .. os.date("%Y-%m-%d %H:%M"))
+        table.insert(result, "**Model:** " .. (history:getModel() or "Unknown"))
+    else
+        table.insert(result, "Chat")
+        table.insert(result, "Date: " .. os.date("%Y-%m-%d %H:%M"))
+        table.insert(result, "Model: " .. (history:getModel() or "Unknown"))
+    end
+    table.insert(result, "")
+
+    -- Format messages
+    for _, msg in ipairs(history:getMessages()) do
+        local role = msg.role:gsub("^%l", string.upper)
+        local content = msg.content
+
+        -- Skip context messages in export by default
+        if not msg.is_context then
+            if is_markdown then
+                table.insert(result, "### " .. role)
+                table.insert(result, content)
+            else
+                table.insert(result, role .. ": " .. content)
+            end
+            table.insert(result, "")
+        end
+    end
+
+    return table.concat(result, "\n")
+end
+
 -- Function to show export options dialog for the current chat
 local function showExportOptions(history)
     local ButtonDialog = require("ui/widget/buttondialog")
     local Device = require("device")
     local InfoMessage = require("ui/widget/infomessage")
-    local T = require("ffi/util").template
     local _ = require("gettext")
-    
+
     local buttons = {
+        -- Row 1: Copy options
         {
             {
                 text = _("Copy as Text"),
                 callback = function()
-                    -- Create plain text format
-                    local result = {}
-                    table.insert(result, "Chat")
-                    table.insert(result, "Date: " .. os.date("%Y-%m-%d %H:%M"))
-                    table.insert(result, "Model: " .. (history:getModel() or "Unknown"))
-                    table.insert(result, "")
-                    
-                    -- Format messages
-                    for _, msg in ipairs(history:getMessages()) do
-                        local role = msg.role:gsub("^%l", string.upper)
-                        local content = msg.content
-                        
-                        -- Skip context messages in export by default
-                        if not msg.is_context then
-                            table.insert(result, role .. ": " .. content)
-                            table.insert(result, "")
-                        end
-                    end
-                    
-                    local text = table.concat(result, "\n")
+                    local text = createExportText(history, "text")
                     if text then
                         Device.input.setClipboardText(text)
                         UIManager:show(InfoMessage:new{
@@ -264,27 +281,7 @@ local function showExportOptions(history)
             {
                 text = _("Copy as Markdown"),
                 callback = function()
-                    -- Create markdown format
-                    local result = {}
-                    table.insert(result, "# Chat")
-                    table.insert(result, "**Date:** " .. os.date("%Y-%m-%d %H:%M"))
-                    table.insert(result, "**Model:** " .. (history:getModel() or "Unknown"))
-                    table.insert(result, "")
-                    
-                    -- Format messages
-                    for _, msg in ipairs(history:getMessages()) do
-                        local role = msg.role:gsub("^%l", string.upper)
-                        local content = msg.content
-                        
-                        -- Skip context messages in export by default
-                        if not msg.is_context then
-                            table.insert(result, "### " .. role)
-                            table.insert(result, content)
-                            table.insert(result, "")
-                        end
-                    end
-                    
-                    local markdown = table.concat(result, "\n")
+                    local markdown = createExportText(history, "markdown")
                     if markdown then
                         Device.input.setClipboardText(markdown)
                         UIManager:show(InfoMessage:new{
@@ -295,29 +292,46 @@ local function showExportOptions(history)
                 end,
             },
         },
-        {
+    }
+
+    -- Row 2: Share button (only on Android)
+    if Device:canShareText() then
+        table.insert(buttons, {
             {
-                text = _("Close"),
+                text = _("Share"),
                 callback = function()
-                    local dialog = UIManager.current_dialog
-                    if dialog then
-                        UIManager:close(dialog)
+                    local text = createExportText(history, "text")
+                    if text then
+                        -- Close the dialog before invoking Android share
+                        UIManager:close(UIManager._window_stack[#UIManager._window_stack].widget)
+                        Device:doShareText(text, _("Share KOAssistant Chat"), _("KOAssistant Chat"), "text/plain")
                     end
                 end,
             },
+        })
+    end
+
+    -- Last row: Close button
+    table.insert(buttons, {
+        {
+            text = _("Close"),
+            callback = function()
+                -- Will be updated after dialog creation
+            end,
         },
-    }
-    
+    })
+
     local export_dialog = ButtonDialog:new{
         title = _("Export Chat"),
         buttons = buttons,
     }
-    
+
     -- Update the close button callback to use the local reference
-    export_dialog.buttons[2][1].callback = function()
+    local close_row = #export_dialog.buttons
+    export_dialog.buttons[close_row][1].callback = function()
         UIManager:close(export_dialog)
     end
-    
+
     UIManager:show(export_dialog)
 end
 
