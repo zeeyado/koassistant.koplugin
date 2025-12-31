@@ -633,11 +633,11 @@ end
 function ChatGPTViewer:askAnotherQuestion()
   -- Store reference to current instance to use in callbacks
   local current_instance = self
-  
+
   local input_dialog
   input_dialog = InputDialog:new {
     title = _("Reply"),
-    input = "",
+    input = self.reply_draft or "",  -- Restore saved draft
     input_type = "text",
     description = _("Enter your reply."),
     input_height = 6,
@@ -652,6 +652,13 @@ function ChatGPTViewer:askAnotherQuestion()
         {
           text = _("Cancel"),
           callback = function()
+            -- Save draft before closing
+            local draft = input_dialog:getInputText()
+            if draft and draft ~= "" then
+              current_instance.reply_draft = draft
+            else
+              current_instance.reply_draft = nil
+            end
             UIManager:close(input_dialog)
           end,
         },
@@ -661,11 +668,14 @@ function ChatGPTViewer:askAnotherQuestion()
           callback = function()
             local input_text = input_dialog:getInputText()
             UIManager:close(input_dialog)
-            
+
+            -- Clear draft on send
+            current_instance.reply_draft = nil
+
             if input_text and input_text ~= "" then
               -- Store reference to onAskQuestion before we potentially close this instance
               local onAskQuestionFn = current_instance.onAskQuestion
-              
+
               -- Check if we have a valid callback
               if onAskQuestionFn then
                 -- Properly pass self as first argument
