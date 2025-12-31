@@ -66,7 +66,7 @@ Add at least one API key
 
 ### 1. Configure Gestures for Quick Access
 
-**Basic one time steps ease of use**
+**Basic one time steps for ease of use**
 
 Examples (my usage preference; you can use whichever gestures you like):
 
