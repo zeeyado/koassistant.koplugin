@@ -161,6 +161,13 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
             return
         end
 
+        -- Check for empty result - this can happen if the stream completed
+        -- but no content was received (e.g., API returned empty response)
+        if result == "" then
+            if on_complete then on_complete(false, nil, _("No response received from AI")) end
+            return
+        end
+
         if on_complete then on_complete(true, result, nil) end
     end
 
@@ -188,7 +195,6 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
 
     streamDialog = InputDialog:new{
         title = _("AI is responding"),
-        description = string.format("%s / %s", provider_name or "AI", model or ""),
         inputtext_class = StreamText,
         input_face = Font:getFace("infofont", font_size),
 

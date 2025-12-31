@@ -723,7 +723,7 @@ local function handlePredefinedPrompt(prompt_type, highlightedText, ui, configur
 
     -- Get response from AI with callback for async streaming
     local function handleResponse(success, answer, err)
-        if success and answer then
+        if success and answer and answer ~= "" then
             -- If user typed additional input, add it as a visible message before the response
             if has_additional_input then
                 history:addUserMessage(additional_input, false)
@@ -733,6 +733,10 @@ local function handlePredefinedPrompt(prompt_type, highlightedText, ui, configur
                 on_complete(history, temp_config)
             end
         else
+            -- Treat empty answer as error
+            if success and (not answer or answer == "") then
+                err = _("No response received from AI")
+            end
             if on_complete then
                 on_complete(nil, err or "Unknown error")
             end
