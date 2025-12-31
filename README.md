@@ -9,7 +9,7 @@ You can:
 - Have general chats (no context)
 - Select documents in the file browser and chat about them (using metadata like title, author, etc), and create custom actions and prompts for single selection
 - Select multiple documents in the file browser and compare them, and create custom actions and prompts for multi-selection, like finding common themes, etc
-- Create large custom prompts that send a set of instructions or context to the AI along with your message, depending on your need/project/what you are reading (expansion of this feature planned)
+- Create large custom prompts that send a set of instructions or context to the AI along with your message, depending on your need/project/what you are reading (expansion of this feature planned to use koreader profile settings)
 - Highlight text in a document and have it explained, translated, or chat about it, etc
 - Save/autosave and continue chats
 - Export chats to markdown and text

@@ -92,10 +92,19 @@ function SettingsManager:createMenuItem(plugin, item, schema)
     
     if item.type == "toggle" then
         menu_item.checked_func = function()
-            return self:getSettingValue(plugin, item.path or item.id) == true
+            local value = self:getSettingValue(plugin, item.path or item.id)
+            -- If value is nil, use the default from the schema
+            if value == nil then
+                return item.default == true
+            end
+            return value == true
         end
         menu_item.callback = function(touchmenu_instance)
             local current = self:getSettingValue(plugin, item.path or item.id)
+            -- If value is nil, use the default from the schema
+            if current == nil then
+                current = item.default == true
+            end
             self:setSettingValue(plugin, item.path or item.id, not current)
             plugin:updateConfigFromSettings()
             
