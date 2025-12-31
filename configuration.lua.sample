@@ -69,7 +69,7 @@ local CONFIGURATION = {
         
         -- Chat management
         auto_save_chats = true,             -- Auto-save when continuing from history
-        auto_save_all_chats = false,        -- Auto-save all new chats
+        auto_save_all_chats = true,         -- Auto-save all new chats (default: true)
         
         -- Development
         debug = false,                      -- Show detailed message information

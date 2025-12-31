@@ -792,6 +792,9 @@ function AskGPT:initSettings()
       long_highlight_threshold = configuration.features.long_highlight_threshold or 280,
       translate_to = configuration.features.translate_to or "English",
       debug = configuration.features.debug or false,
+      auto_save_all_chats = true,  -- Default to auto-save for new installs
+      auto_save_chats = true,      -- Default for continued chats
+      render_markdown = true,      -- Default to render markdown
     })
   end
   
