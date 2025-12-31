@@ -36,7 +36,7 @@ Download: (Code (at top right of this page) -> Download ZIP.
 
 or Clone: `git clone https://github.com/zeeyado/koassistant.koplugin`
 
-or Download latest release (not yet available)
+or Download latest release: https://github.com/zeeyado/koassistant.koplugin/releases
 
 Rename and place in your KOReader plugins directory:
 
