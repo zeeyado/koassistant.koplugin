@@ -332,12 +332,22 @@ function ChatHistoryDialog:showChatOptions(ui, document_path, chat, chat_history
     safeClose(self.current_options_dialog)
     self.current_options_dialog = nil
 
-    if not chat then
+    if not chat or not chat.id then
         UIManager:show(InfoMessage:new{
             text = _("Error: Cannot load chat data."),
             timeout = 2,
         })
         return
+    end
+
+    -- IMPORTANT: Always reload chat from disk to get the latest version
+    -- This prevents using stale cached data if the chat was modified elsewhere
+    local fresh_chat = chat_history_manager:getChatById(document_path, chat.id)
+    if fresh_chat then
+        logger.info("ChatHistoryDialog: Reloaded fresh chat data for id: " .. chat.id)
+        chat = fresh_chat
+    else
+        logger.warn("ChatHistoryDialog: Could not reload chat, using cached version")
     end
 
     local date_str = os.date("%Y-%m-%d %H:%M", chat.timestamp or 0)
@@ -460,12 +470,22 @@ function ChatHistoryDialog:showRenameDialog(ui, document_path, chat, chat_histor
 end
 
 function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_manager, config)
-    if not chat then
+    if not chat or not chat.id then
         UIManager:show(InfoMessage:new{
             text = _("Error: Cannot load chat data."),
             timeout = 2,
         })
         return
+    end
+
+    -- IMPORTANT: Always reload chat from disk to ensure we have the latest version
+    -- This is critical to prevent data loss from stale cached data
+    local fresh_chat = chat_history_manager:getChatById(document_path, chat.id)
+    if fresh_chat then
+        logger.info("continueChat: Using fresh chat data with " .. #(fresh_chat.messages or {}) .. " messages")
+        chat = fresh_chat
+    else
+        logger.warn("continueChat: Could not reload chat from disk, using provided data")
     end
 
     -- Close any existing chat viewer
@@ -498,10 +518,11 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
         local answer = queryChatGPT(history:getMessages(), config)
         history:addAssistantMessage(answer, history:getModel() or (config and config.model))
 
+        -- Auto-save continued chats
         if config.features.auto_save_all_chats or (config.features.auto_save_chats ~= false) then
             local save_ok = chat_history_manager:saveChat(document_path, chat.title, history, {id = chat.id})
             if not save_ok then
-                logger.warn("Failed to save updated chat")
+                logger.warn("KOAssistant: Failed to save updated chat")
             end
         end
 
