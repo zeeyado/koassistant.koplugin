@@ -644,13 +644,20 @@ local function handlePredefinedPrompt(prompt_type, highlightedText, ui, configur
     -- Build and add the consolidated message (now including system prompt)
     local consolidated_message = buildConsolidatedMessage(prompt, context, message_data, system_prompt)
     history:addUserMessage(consolidated_message, true)
-    
+
+    -- Track if user provided additional input
+    local has_additional_input = additional_input and additional_input ~= ""
+
     -- Get response from AI
     local answer = queryChatGPT(history:getMessages(), temp_config)
     if answer then
+        -- If user typed additional input, add it as a visible message before the response
+        if has_additional_input then
+            history:addUserMessage(additional_input, false)
+        end
         history:addAssistantMessage(answer, ConfigHelper:getModelInfo(temp_config))
     end
-    
+
     return history, temp_config
 end
 
@@ -792,9 +799,12 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         table.insert(parts, "")
                     end
                     
-                    -- Add user question
+                    -- Get user's typed question
                     local question = input_dialog:getInputText()
-                    if question and question ~= "" then
+                    local has_user_question = question and question ~= ""
+
+                    -- Add user question to context message
+                    if has_user_question then
                         table.insert(parts, "[User Question]")
                         table.insert(parts, question)
                     else
@@ -802,14 +812,18 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         table.insert(parts, "[User Question]")
                         table.insert(parts, "I have a question for you.")
                     end
-                    
-                    -- Create the consolidated message
+
+                    -- Create the consolidated message (sent to AI as context)
                     local consolidated_message = table.concat(parts, "\n")
                     history:addUserMessage(consolidated_message, true)
-                    
+
                     -- Get initial response
                     local answer = queryChatGPT(history:getMessages(), configuration)
                     if answer then
+                        -- If user typed a question, add it as a visible message before the response
+                        if has_user_question then
+                            history:addUserMessage(question, false)
+                        end
                         history:addAssistantMessage(answer, ConfigHelper:getModelInfo(configuration))
                     end
                     
@@ -867,30 +881,37 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         table.insert(parts, "Translate the following text to " .. translation_language .. ": " .. highlighted_text)
                     end
                     
+                    -- Track if user provided additional input
+                    local has_additional_input = additional_input and additional_input ~= ""
+
                     -- Add additional user input if provided
-                    if additional_input and additional_input ~= "" then
+                    if has_additional_input then
                         table.insert(parts, "")
                         table.insert(parts, "[Additional user input]")
                         table.insert(parts, additional_input)
                     end
-                    
+
                     -- Create the consolidated message
                     local consolidated_message = table.concat(parts, "\n")
                     history:addUserMessage(consolidated_message, true)
-                    
+
                     -- Get initial response
                     local answer = queryChatGPT(history:getMessages(), configuration)
                     if answer then
+                        -- If user typed additional input, add it as a visible message before the response
+                        if has_additional_input then
+                            history:addUserMessage(additional_input, false)
+                        end
                         history:addAssistantMessage(answer, ConfigHelper:getModelInfo(configuration))
                     end
-                    
+
                     local function addMessage(message, is_context)
                         history:addUserMessage(message, is_context)
                         local answer = queryChatGPT(history:getMessages(), configuration)
                         history:addAssistantMessage(answer, ConfigHelper:getModelInfo(configuration))
                         return answer
                     end
-                    
+
                     showResponseDialog(_("Translation"), history, highlighted_text, addMessage, configuration, document_path, plugin, book_metadata, launch_context)
                 end)
             end
