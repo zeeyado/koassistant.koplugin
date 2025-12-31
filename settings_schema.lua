@@ -258,10 +258,22 @@ local SettingsSchema = {
             items = {
                 {
                     id = "check_updates",
-                    type = "action", 
+                    type = "action",
                     text = _("Check for Updates"),
                     description = _("Check for new plugin versions"),
                     callback = "checkForUpdates",
+                },
+                {
+                    id = "auto_check_updates",
+                    type = "toggle",
+                    text = _("Auto-check for Updates"),
+                    description = _("Check for updates on first use each session"),
+                    default = true,
+                    path = "features.auto_check_updates",
+                },
+                {
+                    id = "separator_updates",
+                    type = "separator",
                 },
                 {
                     id = "version_info",

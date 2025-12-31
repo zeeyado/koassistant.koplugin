@@ -78,27 +78,29 @@ local function compareVersions(v1, v2)
     return 0
 end
 
-function UpdateChecker.checkForUpdates(silent)
-    -- TODO: Re-enable update checks after first public release
-    -- Temporarily disabled during development
-    if true then return false end
+function UpdateChecker.checkForUpdates(silent, include_prereleases)
+    -- Default to including prereleases since we're in alpha/beta
+    if include_prereleases == nil then
+        include_prereleases = true
+    end
 
     local response_body = {}
+    -- Fetch all releases (not just latest) to include prereleases
     local request_result, code = http.request {
-        url = "https://api.github.com/repos/zeeyado/KOAssistant/releases/latest",
+        url = "https://api.github.com/repos/zeeyado/koassistant.koplugin/releases",
         headers = {
             ["Accept"] = "application/vnd.github.v3+json",
             ["User-Agent"] = "KOReader-KOAssistant-Plugin"
         },
         sink = ltn12.sink.table(response_body)
     }
-    
+
     if code == 200 then
         local data = table.concat(response_body)
-        local success, parsed_data = pcall(json.decode, data)
-        
+        local success, releases = pcall(json.decode, data)
+
         if not success then
-            logger.err("Failed to parse GitHub API response:", parsed_data)
+            logger.err("Failed to parse GitHub API response:", releases)
             if not silent then
                 UIManager:show(InfoMessage:new{
                     text = "Failed to check for updates: Invalid response format",
@@ -107,21 +109,44 @@ function UpdateChecker.checkForUpdates(silent)
             end
             return false
         end
-        
-        local latest_version = parsed_data.tag_name
+
+        -- Find the latest release (first non-draft, optionally including prereleases)
+        local latest_release = nil
+        for _, release in ipairs(releases) do
+            if not release.draft then
+                if include_prereleases or not release.prerelease then
+                    latest_release = release
+                    break
+                end
+            end
+        end
+
+        if not latest_release then
+            if not silent then
+                UIManager:show(InfoMessage:new{
+                    text = "No releases found",
+                    timeout = 3
+                })
+            end
+            return false
+        end
+
+        local latest_version = latest_release.tag_name
         if latest_version and latest_version:match("^v") then
             latest_version = latest_version:sub(2) -- Remove 'v' prefix
         end
-        
+
         local current_version = meta.version
         local comparison = compareVersions(current_version, latest_version)
-        
+
+        logger.info("Update check: current=" .. current_version .. ", latest=" .. latest_version .. ", comparison=" .. comparison)
+
         if comparison < 0 then
             -- New version available
-            local release_notes = parsed_data.body or "No release notes available."
-            local download_url = parsed_data.html_url
-            local is_prerelease = parsed_data.prerelease or false
-            
+            local release_notes = latest_release.body or "No release notes available."
+            local download_url = latest_release.html_url
+            local is_prerelease = latest_release.prerelease or false
+
             local message = string.format(
                 "New %sversion available!\n\nCurrent: %s\nLatest: %s\n\nRelease notes:\n%s\n\nWould you like to visit the release page?",
                 is_prerelease and "pre-release " or "",
@@ -129,7 +154,7 @@ function UpdateChecker.checkForUpdates(silent)
                 latest_version,
                 release_notes:sub(1, 500) -- Limit release notes length
             )
-            
+
             UIManager:show(ConfirmBox:new{
                 text = message,
                 ok_text = "Visit Release Page",
@@ -144,7 +169,7 @@ function UpdateChecker.checkForUpdates(silent)
                     end
                 end,
             })
-            
+
             return true, latest_version
         elseif comparison == 0 then
             if not silent then
