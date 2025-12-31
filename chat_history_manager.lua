@@ -193,7 +193,9 @@ function ChatHistoryManager:saveChat(document_path, chat_title, message_history,
         book_title = metadata and metadata.book_title or nil,
         book_author = metadata and metadata.book_author or nil,
         -- Store prompt action for continued chats
-        prompt_action = message_history.prompt_action or nil
+        prompt_action = message_history.prompt_action or nil,
+        -- Store launch context for general chats started from within a book
+        launch_context = metadata and metadata.launch_context or nil
     }
     
     -- Check if this is an update to an existing chat

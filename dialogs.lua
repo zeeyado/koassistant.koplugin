@@ -120,7 +120,7 @@ local function getAllPrompts(configuration, plugin)
     return prompts, prompt_keys
 end
 
-local function createSaveDialog(document_path, history, chat_history_manager, is_general_context, book_metadata)
+local function createSaveDialog(document_path, history, chat_history_manager, is_general_context, book_metadata, launch_context)
     -- Guard against missing document path - allow special case for general context
     if not document_path and not is_general_context then
         UIManager:show(InfoMessage:new{
@@ -176,6 +176,12 @@ local function createSaveDialog(document_path, history, chat_history_manager, is
                                 logger.info("KOAssistant: Saving chat with metadata - title: " .. (book_metadata.title or "nil") .. ", author: " .. (book_metadata.author or "nil"))
                             else
                                 logger.info("KOAssistant: No book metadata available for save")
+                            end
+
+                            -- Add launch context if available (for general chats launched from a book)
+                            if launch_context then
+                                metadata.launch_context = launch_context
+                                logger.info("KOAssistant: Saving chat with launch context - from: " .. (launch_context.title or "nil"))
                             end
                             
                             return chat_history_manager:saveChat(
@@ -315,7 +321,7 @@ local function showExportOptions(history)
     UIManager:show(export_dialog)
 end
 
-local function showResponseDialog(title, history, highlightedText, addMessage, temp_config, document_path, plugin, book_metadata)
+local function showResponseDialog(title, history, highlightedText, addMessage, temp_config, document_path, plugin, book_metadata, launch_context)
     local result_text = history:createResultText(highlightedText, temp_config or CONFIGURATION)
     local model_info = history:getModel() or ConfigHelper:getModelInfo(temp_config)
     
@@ -427,7 +433,7 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
             else
                 -- Call our helper function to handle saving
                 local is_general_context = temp_config and temp_config.features and temp_config.features.is_general_context or false
-                createSaveDialog(document_path, history, chat_history_manager, is_general_context, book_metadata)
+                createSaveDialog(document_path, history, chat_history_manager, is_general_context, book_metadata, launch_context)
             end
         end,
         export_callback = function()
@@ -462,6 +468,9 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
             if book_metadata then
                 metadata.book_title = book_metadata.title
                 metadata.book_author = book_metadata.author
+            end
+            if launch_context then
+                metadata.launch_context = launch_context
             end
             
             -- Save with suggested title
@@ -670,20 +679,40 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         logger.warn("Configuration missing or no features")
     end
     
-    local title = ui_instance and ui_instance.document and ui_instance.document:getProps().title or _("Unknown Title")
-    local author = ui_instance and ui_instance.document and ui_instance.document:getProps().authors or _("Unknown Author")
-    local document_path = ui_instance and ui_instance.document and ui_instance.document.file or nil
-    
-    -- Create book metadata object
-    -- Check both document context and file browser context for metadata
+    -- Check if this is a general context chat (no book association)
+    local is_general_context = configuration and configuration.features and configuration.features.is_general_context
+
+    -- Capture book info from document if available (for launch_context even in general chats)
+    local doc_title = ui_instance and ui_instance.document and ui_instance.document:getProps().title or nil
+    local doc_author = ui_instance and ui_instance.document and ui_instance.document:getProps().authors or nil
+    local doc_file = ui_instance and ui_instance.document and ui_instance.document.file or nil
+
+    -- For general context, don't use document_path - these chats are context-free
+    -- But capture launch_context so we know where the chat was started from
+    local document_path = nil
+    local launch_context = nil
     local book_metadata = nil
-    if document_path then
-        -- Document is open, use its metadata
+
+    if is_general_context then
+        -- General chat: don't associate with a document, but track launch context
+        if doc_title and doc_file then
+            launch_context = {
+                title = doc_title,
+                author = doc_author,
+                file = doc_file
+            }
+            logger.info("KOAssistant: General chat launched from book - " .. doc_title)
+        else
+            logger.info("KOAssistant: General chat with no launch context")
+        end
+    elseif doc_file then
+        -- Document is open, use its metadata and path
+        document_path = doc_file
         book_metadata = {
-            title = title,
-            author = author
+            title = doc_title or _("Unknown Title"),
+            author = doc_author or _("Unknown Author")
         }
-        logger.info("KOAssistant: Document context - title: " .. title .. ", author: " .. author)
+        logger.info("KOAssistant: Document context - title: " .. (doc_title or "nil") .. ", author: " .. (doc_author or "nil"))
     elseif configuration and configuration.features and configuration.features.book_metadata then
         -- File browser context, use metadata from configuration
         book_metadata = {
@@ -791,7 +820,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         return answer
                     end
                     
-                    showResponseDialog(_("Chat"), history, highlighted_text, addMessage, configuration, document_path, plugin, book_metadata)
+                    showResponseDialog(_("Chat"), history, highlighted_text, addMessage, configuration, document_path, plugin, book_metadata, launch_context)
                 end)
             end
         }
@@ -862,7 +891,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         return answer
                     end
                     
-                    showResponseDialog(_("Translation"), history, highlighted_text, addMessage, configuration, document_path, plugin, book_metadata)
+                    showResponseDialog(_("Translation"), history, highlighted_text, addMessage, configuration, document_path, plugin, book_metadata, launch_context)
                 end)
             end
         })
@@ -891,7 +920,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                             history:addAssistantMessage(answer, ConfigHelper:getModelInfo(temp_config))
                             return answer
                         end
-                        showResponseDialog(gettext(prompt.text), history, highlighted_text, addMessage, temp_config, document_path, plugin, book_metadata)
+                        showResponseDialog(gettext(prompt.text), history, highlighted_text, addMessage, temp_config, document_path, plugin, book_metadata, launch_context)
                     else
                         UIManager:show(InfoMessage:new{
                             text = gettext("Error handling prompt: " .. prompt_type),
