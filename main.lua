@@ -101,6 +101,25 @@ local AskGPT = WidgetContainer:extend{
 -- Flag to ensure the update message is shown only once per session
 local updateMessageShown = false
 
+-- Helper function to check for updates if auto-check is enabled
+local function maybeCheckForUpdates(plugin_instance)
+    if updateMessageShown then
+        return
+    end
+    -- Check if auto-check is enabled (default: true)
+    local auto_check = true
+    if plugin_instance and plugin_instance.settings then
+        local features = plugin_instance.settings:readSetting("features") or {}
+        if features.auto_check_updates == false then
+            auto_check = false
+        end
+    end
+    if auto_check then
+        UpdateChecker.checkForUpdates(true) -- silent = true for auto-check
+        updateMessageShown = true
+    end
+end
+
 function AskGPT:init()
   logger.info("KOAssistant plugin: init() called")
   
@@ -122,10 +141,7 @@ function AskGPT:init()
         enabled = Device:hasClipboard(),
         callback = function()
           NetworkMgr:runWhenOnline(function()
-            if not updateMessageShown then
-              UpdateChecker.checkForUpdates()
-              updateMessageShown = true -- Set flag to true so it won't show again
-            end
+            maybeCheckForUpdates(self)
             -- Make sure we're using the latest configuration
             self:updateConfigFromSettings()
             showChatGPTDialog(self.ui, _reader_highlight_instance.selected_text.text, configuration, nil, self)
@@ -485,10 +501,7 @@ function AskGPT:showKOAssistantDialogForFile(file, title, authors, book_props)
   }
   
   NetworkMgr:runWhenOnline(function()
-    if not updateMessageShown then
-      UpdateChecker.checkForUpdates()
-      updateMessageShown = true
-    end
+    maybeCheckForUpdates(self)
     -- Show dialog with book context instead of highlighted text
     showChatGPTDialog(self.ui, book_context, temp_config, nil, self)
   end)
@@ -649,10 +662,7 @@ function AskGPT:compareSelectedBooks(selected_files)
   end
   
   NetworkMgr:runWhenOnline(function()
-    if not updateMessageShown then
-      UpdateChecker.checkForUpdates()
-      updateMessageShown = true
-    end
+    maybeCheckForUpdates(self)
     -- Don't update from settings as we want our temp_config
     -- Pass the prompt as book context with book configuration
     -- Use FileManager.instance as the UI context
@@ -1011,13 +1021,10 @@ function AskGPT:onKOAssistantGeneralChat()
   end
   
   NetworkMgr:runWhenOnline(function()
-    if not updateMessageShown then
-      UpdateChecker.checkForUpdates()
-      updateMessageShown = true
-    end
+    maybeCheckForUpdates(self)
     -- Make sure we're using the latest configuration
     self:updateConfigFromSettings()
-    
+
     -- Create a temp config with general context flag
     local temp_config = {}
     for k, v in pairs(configuration) do
@@ -1579,13 +1586,10 @@ function AskGPT:startGeneralChat()
   end
   
   NetworkMgr:runWhenOnline(function()
-    if not updateMessageShown then
-      UpdateChecker.checkForUpdates()
-      updateMessageShown = true
-    end
+    maybeCheckForUpdates(self)
     -- Make sure we're using the latest configuration
     self:updateConfigFromSettings()
-    
+
     -- Create a temp config with general context flag
     local temp_config = {}
     for k, v in pairs(configuration) do
