@@ -7,7 +7,9 @@ local Screen = Device.screen
 local gettext = require("gettext")
 local _ = gettext    -- Keep the shorthand but make it local
 
-local queryChatGPT = require("gpt_query")
+local GptQuery = require("gpt_query")
+local queryChatGPT = GptQuery.query
+local isStreamingInProgress = GptQuery.isStreamingInProgress
 local ConfigHelper = require("config_helper")
 local MessageHistory = require("message_history")
 local ChatHistoryManager = require("chat_history_manager")
@@ -398,18 +400,15 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
         onAskQuestion = function(viewer, question)
             -- Show loading dialog
             showLoadingDialog()
-            
-            -- Process the question
-            addMessage(question)
-            
-            -- Update the viewer with new content
-            UIManager:scheduleIn(0.1, function()
+
+            -- Function to update the viewer with new content
+            local function updateViewer()
                 -- Check if our global reference is still the same
                 if _G.ActiveChatViewer == viewer then
                     -- Always close the existing viewer
                     UIManager:close(viewer)
                     _G.ActiveChatViewer = nil
-                    
+
                     -- Create a new viewer with updated content
                     local new_viewer = ChatGPTViewer:new {
                         title = title .. " (" .. model_info .. ")",
@@ -429,14 +428,58 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                             end
                         end
                     }
-                    
+
                     -- Set global reference to new viewer
                     _G.ActiveChatViewer = new_viewer
-                    
+
                     -- Show the new viewer
                     UIManager:show(new_viewer)
                 end
+            end
+
+            -- Process the question with callback for streaming support
+            local result = addMessage(question, false, function(success, answer, err)
+                if success then
+                    updateViewer()
+
+                    -- Auto-save after each follow-up message if enabled
+                    if temp_config and temp_config.features and temp_config.features.auto_save_all_chats then
+                        local is_general_context = temp_config.features.is_general_context or false
+                        local suggested_title = history:getSuggestedTitle()
+
+                        local metadata = {}
+                        if history.chat_id then
+                            metadata.id = history.chat_id
+                        end
+                        if book_metadata then
+                            metadata.book_title = book_metadata.title
+                            metadata.book_author = book_metadata.author
+                        end
+                        if launch_context then
+                            metadata.launch_context = launch_context
+                        end
+
+                        local save_success = chat_history_manager:saveChat(
+                            document_path or (is_general_context and "__GENERAL_CHATS__" or nil),
+                            suggested_title,
+                            history,
+                            metadata
+                        )
+                        if save_success then
+                            logger.info("KOAssistant: Auto-saved chat after follow-up")
+                        else
+                            logger.warn("KOAssistant: Failed to auto-save chat after follow-up")
+                        end
+                    end
+                else
+                    UIManager:show(InfoMessage:new{
+                        text = _("Failed to get response: ") .. (err or "Unknown error"),
+                        timeout = 2,
+                    })
+                end
             end)
+
+            -- For non-streaming, the callback was already called, viewer will be updated
         end,
         save_callback = function()
             -- Check if auto-save all chats is enabled
@@ -602,17 +645,32 @@ local function buildConsolidatedMessage(prompt, context, data, system_prompt)
     return table.concat(parts, "\n")
 end
 
-local function handlePredefinedPrompt(prompt_type, highlightedText, ui, configuration, existing_history, plugin, additional_input)
+--- Handle a predefined prompt query
+--- @param prompt_type string: The type of prompt to use
+--- @param highlightedText string: The highlighted text (optional)
+--- @param ui table: The UI instance
+--- @param configuration table: The configuration table
+--- @param existing_history table: Existing message history (unused, for compatibility)
+--- @param plugin table: The plugin instance
+--- @param additional_input string: Additional user input (optional)
+--- @param on_complete function: Optional callback for async streaming - receives (history, temp_config) or (nil, error_string)
+--- @return history, temp_config when not streaming; nil when streaming (result comes via callback)
+local function handlePredefinedPrompt(prompt_type, highlightedText, ui, configuration, existing_history, plugin, additional_input, on_complete)
     -- Use passed configuration or fall back to global
     local config = configuration or CONFIGURATION
-    
+
     -- Get the prompts based on context
     local prompts, _ = getAllPrompts(config, plugin)
-    
+
     -- Get prompt configuration
     local prompt = prompts[prompt_type]
     if not prompt then
-        return nil, "Prompt '" .. prompt_type .. "' not found"
+        local err = "Prompt '" .. prompt_type .. "' not found"
+        if on_complete then
+            on_complete(nil, err)
+            return nil
+        end
+        return nil, err
     end
 
     -- Create a temporary configuration using the passed config as base
@@ -624,7 +682,7 @@ local function handlePredefinedPrompt(prompt_type, highlightedText, ui, configur
         temp_config.provider_settings[prompt.provider].model = prompt.model
         temp_config.default_provider = prompt.provider
     end
-    
+
     -- Determine system prompt based on context
     local system_prompt = prompt.system_prompt
     if not system_prompt and plugin and plugin.prompt_service then
@@ -633,14 +691,14 @@ local function handlePredefinedPrompt(prompt_type, highlightedText, ui, configur
     end
     -- Use centralized default system prompt if none provided
     system_prompt = system_prompt or plugin.prompt_service:getSystemPrompt(nil, "default")
-    
+
     -- Create history WITHOUT system prompt (we'll include it in the consolidated message)
     -- Pass prompt text for better chat naming
     local history = MessageHistory:new(nil, prompt.text)
-    
+
     -- Determine context
     local context = getPromptContext(config)
-    
+
     -- Build data for consolidated message
     local message_data = {
         highlighted_text = highlightedText,
@@ -649,13 +707,13 @@ local function handlePredefinedPrompt(prompt_type, highlightedText, ui, configur
         books_info = config.features.books_info,
         book_context = config.features.book_context
     }
-    
+
     -- Add book info for highlight context if needed
     if context == "highlight" and prompt.include_book_context and ui and ui.document then
         message_data.book_title = ui.document:getProps().title
         message_data.book_author = ui.document:getProps().authors
     end
-    
+
     -- Build and add the consolidated message (now including system prompt)
     local consolidated_message = buildConsolidatedMessage(prompt, context, message_data, system_prompt)
     history:addUserMessage(consolidated_message, true)
@@ -663,16 +721,37 @@ local function handlePredefinedPrompt(prompt_type, highlightedText, ui, configur
     -- Track if user provided additional input
     local has_additional_input = additional_input and additional_input ~= ""
 
-    -- Get response from AI
-    local answer = queryChatGPT(history:getMessages(), temp_config)
-    if answer then
-        -- If user typed additional input, add it as a visible message before the response
-        if has_additional_input then
-            history:addUserMessage(additional_input, false)
+    -- Get response from AI with callback for async streaming
+    local function handleResponse(success, answer, err)
+        if success and answer and answer ~= "" then
+            -- If user typed additional input, add it as a visible message before the response
+            if has_additional_input then
+                history:addUserMessage(additional_input, false)
+            end
+            history:addAssistantMessage(answer, ConfigHelper:getModelInfo(temp_config))
+            if on_complete then
+                on_complete(history, temp_config)
+            end
+        else
+            -- Treat empty answer as error
+            if success and (not answer or answer == "") then
+                err = _("No response received from AI")
+            end
+            if on_complete then
+                on_complete(nil, err or "Unknown error")
+            end
         end
-        history:addAssistantMessage(answer, ConfigHelper:getModelInfo(temp_config))
     end
 
+    local result = queryChatGPT(history:getMessages(), temp_config, handleResponse)
+
+    -- If streaming is in progress, return nil (result comes via callback)
+    if isStreamingInProgress(result) then
+        return nil
+    end
+
+    -- Non-streaming: handleResponse callback was already called by queryChatGPT
+    -- Return history and config for backward compatibility with callers that don't use callback
     return history, temp_config
 end
 
@@ -832,24 +911,41 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     local consolidated_message = table.concat(parts, "\n")
                     history:addUserMessage(consolidated_message, true)
 
-                    -- Get initial response
-                    local answer = queryChatGPT(history:getMessages(), configuration)
-                    if answer then
-                        -- If user typed a question, add it as a visible message before the response
-                        if has_user_question then
-                            history:addUserMessage(question, false)
+                    -- Callback to handle response (for both streaming and non-streaming)
+                    local function onResponseReady(success, answer, err)
+                        if success and answer then
+                            -- If user typed a question, add it as a visible message before the response
+                            if has_user_question then
+                                history:addUserMessage(question, false)
+                            end
+                            history:addAssistantMessage(answer, ConfigHelper:getModelInfo(configuration))
+
+                            local function addMessage(message, is_context, on_complete)
+                                history:addUserMessage(message, is_context)
+                                local answer_result = queryChatGPT(history:getMessages(), configuration, function(msg_success, msg_answer, msg_err)
+                                    if msg_success and msg_answer then
+                                        history:addAssistantMessage(msg_answer, ConfigHelper:getModelInfo(configuration))
+                                    end
+                                    if on_complete then on_complete(msg_success, msg_answer, msg_err) end
+                                end)
+                                if not isStreamingInProgress(answer_result) then
+                                    return answer_result
+                                end
+                                return nil
+                            end
+
+                            showResponseDialog(_("Chat"), history, highlighted_text, addMessage, configuration, document_path, plugin, book_metadata, launch_context)
+                        else
+                            UIManager:show(InfoMessage:new{
+                                text = _("Error: ") .. (err or "Unknown error"),
+                                timeout = 3
+                            })
                         end
-                        history:addAssistantMessage(answer, ConfigHelper:getModelInfo(configuration))
                     end
-                    
-                    local function addMessage(message, is_context)
-                        history:addUserMessage(message, is_context)
-                        local answer = queryChatGPT(history:getMessages(), configuration)
-                        history:addAssistantMessage(answer, ConfigHelper:getModelInfo(configuration))
-                        return answer
-                    end
-                    
-                    showResponseDialog(_("Chat"), history, highlighted_text, addMessage, configuration, document_path, plugin, book_metadata, launch_context)
+
+                    -- Get initial response with callback
+                    local result = queryChatGPT(history:getMessages(), configuration, onResponseReady)
+                    -- If not streaming, callback was already invoked
                 end)
             end
         }
@@ -910,24 +1006,41 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     local consolidated_message = table.concat(parts, "\n")
                     history:addUserMessage(consolidated_message, true)
 
-                    -- Get initial response
-                    local answer = queryChatGPT(history:getMessages(), configuration)
-                    if answer then
-                        -- If user typed additional input, add it as a visible message before the response
-                        if has_additional_input then
-                            history:addUserMessage(additional_input, false)
+                    -- Callback to handle response (for both streaming and non-streaming)
+                    local function onResponseReady(success, answer, err)
+                        if success and answer then
+                            -- If user typed additional input, add it as a visible message before the response
+                            if has_additional_input then
+                                history:addUserMessage(additional_input, false)
+                            end
+                            history:addAssistantMessage(answer, ConfigHelper:getModelInfo(configuration))
+
+                            local function addMessage(message, is_context, on_complete)
+                                history:addUserMessage(message, is_context)
+                                local answer_result = queryChatGPT(history:getMessages(), configuration, function(msg_success, msg_answer, msg_err)
+                                    if msg_success and msg_answer then
+                                        history:addAssistantMessage(msg_answer, ConfigHelper:getModelInfo(configuration))
+                                    end
+                                    if on_complete then on_complete(msg_success, msg_answer, msg_err) end
+                                end)
+                                if not isStreamingInProgress(answer_result) then
+                                    return answer_result
+                                end
+                                return nil
+                            end
+
+                            showResponseDialog(_("Translation"), history, highlighted_text, addMessage, configuration, document_path, plugin, book_metadata, launch_context)
+                        else
+                            UIManager:show(InfoMessage:new{
+                                text = _("Error: ") .. (err or "Unknown error"),
+                                timeout = 3
+                            })
                         end
-                        history:addAssistantMessage(answer, ConfigHelper:getModelInfo(configuration))
                     end
 
-                    local function addMessage(message, is_context)
-                        history:addUserMessage(message, is_context)
-                        local answer = queryChatGPT(history:getMessages(), configuration)
-                        history:addAssistantMessage(answer, ConfigHelper:getModelInfo(configuration))
-                        return answer
-                    end
-
-                    showResponseDialog(_("Translation"), history, highlighted_text, addMessage, configuration, document_path, plugin, book_metadata, launch_context)
+                    -- Get initial response with callback
+                    local result = queryChatGPT(history:getMessages(), configuration, onResponseReady)
+                    -- If not streaming, callback was already invoked
                 end)
             end
         })
@@ -948,21 +1061,40 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                 UIManager:close(input_dialog)
                 showLoadingDialog()
                 UIManager:scheduleIn(0.1, function()
-                    local history, temp_config = handlePredefinedPrompt(prompt_type, highlighted_text, ui_instance, configuration, nil, plugin, additional_input)
-                    if history then
-                        local function addMessage(message, is_context)
-                            history:addUserMessage(message, is_context)
-                            local answer = queryChatGPT(history:getMessages(), temp_config)
-                            history:addAssistantMessage(answer, ConfigHelper:getModelInfo(temp_config))
-                            return answer
+                    -- Callback for when response is ready (handles both streaming and non-streaming)
+                    local function onPromptComplete(history, temp_config_or_error)
+                        if history then
+                            local temp_config = temp_config_or_error
+                            local function addMessage(message, is_context, on_complete)
+                                history:addUserMessage(message, is_context)
+                                -- For follow-up messages, use callback pattern too
+                                local answer_result = queryChatGPT(history:getMessages(), temp_config, function(success, answer, err)
+                                    if success and answer then
+                                        history:addAssistantMessage(answer, ConfigHelper:getModelInfo(temp_config))
+                                    end
+                                    if on_complete then on_complete(success, answer, err) end
+                                end)
+                                -- For non-streaming, return the result directly
+                                if not isStreamingInProgress(answer_result) then
+                                    return answer_result
+                                end
+                                return nil -- Streaming will update via callback
+                            end
+                            showResponseDialog(gettext(prompt.text), history, highlighted_text, addMessage, temp_config, document_path, plugin, book_metadata, launch_context)
+                        else
+                            local error_msg = temp_config_or_error or "Unknown error"
+                            UIManager:show(InfoMessage:new{
+                                text = gettext("Error handling prompt: " .. prompt_type .. " - " .. error_msg),
+                                timeout = 2
+                            })
                         end
-                        showResponseDialog(gettext(prompt.text), history, highlighted_text, addMessage, temp_config, document_path, plugin, book_metadata, launch_context)
-                    else
-                        UIManager:show(InfoMessage:new{
-                            text = gettext("Error handling prompt: " .. prompt_type),
-                            timeout = 2
-                        })
                     end
+
+                    -- Call with callback for streaming support
+                    local history, temp_config = handlePredefinedPrompt(prompt_type, highlighted_text, ui_instance, configuration, nil, plugin, additional_input, onPromptComplete)
+
+                    -- For non-streaming, history is returned directly and callback was also called
+                    -- The callback handles showing the dialog, so we don't need to do anything here
                 end)
             end
         })

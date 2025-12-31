@@ -9,7 +9,9 @@ local _ = require("gettext")
 local InputDialog = require("ui/widget/inputdialog")
 local ChatGPTViewer = require("chatgptviewer")
 local MessageHistory = require("message_history")
-local queryChatGPT = require("gpt_query")
+local GptQuery = require("gpt_query")
+local queryChatGPT = GptQuery.query
+local isStreamingInProgress = GptQuery.isStreamingInProgress
 local logger = require("logger")
 
 -- Helper function for string formatting with translations
@@ -238,11 +240,18 @@ function ChatHistoryDialog:showChatHistoryBrowser(ui, current_document_path, cha
             self_ref:showDocumentMenuOptions(ui, chat_history_manager, config)
         end,
         close_callback = function()
-            self_ref.current_menu = nil
+            -- Only clear if this menu is still the current one
+            if self_ref.current_menu == document_menu then
+                logger.info("KOAssistant: document_menu close_callback - clearing current_menu")
+                self_ref.current_menu = nil
+            else
+                logger.info("KOAssistant: document_menu close_callback - skipping, current_menu already changed")
+            end
         end,
     }
 
     self.current_menu = document_menu
+    logger.info("KOAssistant: Set current_menu to document_menu " .. tostring(document_menu))
     UIManager:show(document_menu)
 end
 
@@ -330,7 +339,13 @@ function ChatHistoryDialog:showChatsForDocument(ui, document, chat_history_manag
             self_ref:showChatHistoryBrowser(ui, nil, chat_history_manager, config, nav_context)
         end,
         close_callback = function()
-            self_ref.current_menu = nil
+            -- Only clear if this menu is still the current one
+            if self_ref.current_menu == chat_menu then
+                logger.info("KOAssistant: chat_menu close_callback - clearing current_menu")
+                self_ref.current_menu = nil
+            else
+                logger.info("KOAssistant: chat_menu close_callback - skipping, current_menu already changed")
+            end
         end,
     }
 
@@ -351,10 +366,12 @@ function ChatHistoryDialog:showChatsForDocument(ui, document, chat_history_manag
     end
 
     self.current_menu = chat_menu
+    logger.info("KOAssistant: Set current_menu to " .. tostring(chat_menu))
     UIManager:show(chat_menu)
 end
 
 function ChatHistoryDialog:showChatOptions(ui, document_path, chat, chat_history_manager, config, document, nav_context)
+    logger.info("KOAssistant: showChatOptions - self.current_menu = " .. tostring(self.current_menu))
     -- Close any existing options dialog first
     safeClose(self.current_options_dialog)
     self.current_options_dialog = nil
@@ -388,6 +405,9 @@ function ChatHistoryDialog:showChatOptions(ui, document_path, chat, chat_history
 
     local self_ref = self
     local dialog
+    -- Capture the current menu reference NOW, before any callbacks run
+    -- This ensures we can close it later even if self.current_menu changes
+    local menu_to_close = self.current_menu
 
     local buttons = {
         {
@@ -396,8 +416,10 @@ function ChatHistoryDialog:showChatOptions(ui, document_path, chat, chat_history
                 callback = function()
                     safeClose(dialog)
                     self_ref.current_options_dialog = nil
-                    -- Also close the menu before opening the chat viewer
-                    safeClose(self_ref.current_menu)
+                    -- Close the menu before opening the chat viewer
+                    if menu_to_close then
+                        UIManager:close(menu_to_close)
+                    end
                     self_ref.current_menu = nil
                     self_ref:continueChat(ui, document_path, chat, chat_history_manager, config)
                 end,
@@ -425,7 +447,8 @@ function ChatHistoryDialog:showChatOptions(ui, document_path, chat, chat_history
                 callback = function()
                     safeClose(dialog)
                     self_ref.current_options_dialog = nil
-                    self_ref:confirmDelete(ui, document_path, chat.id, chat_history_manager, config, document, nav_context)
+                    -- Pass the menu reference to the confirm dialog - it will close only on confirm
+                    self_ref:confirmDeleteWithClose(ui, document_path, chat.id, chat_history_manager, config, document, nav_context, menu_to_close)
                 end,
             },
         },
@@ -539,22 +562,51 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
 
     local self_ref = self
 
-    local function addMessage(message, is_context)
-        if not message or message == "" then return nil end
-
-        history:addUserMessage(message, is_context)
-        local answer = queryChatGPT(history:getMessages(), config)
-        history:addAssistantMessage(answer, history:getModel() or (config and config.model))
-
-        -- Auto-save continued chats
-        if config.features.auto_save_all_chats or (config.features.auto_save_chats ~= false) then
-            local save_ok = chat_history_manager:saveChat(document_path, chat.title, history, {id = chat.id})
-            if not save_ok then
-                logger.warn("KOAssistant: Failed to save updated chat")
-            end
+    -- addMessage now accepts an optional callback for async streaming
+    -- @param message string: The user's message
+    -- @param is_context boolean: Whether this is a context message (hidden from display)
+    -- @param on_complete function: Optional callback(success, answer, error) for streaming
+    -- @return answer string (non-streaming) or nil (streaming - result via callback)
+    local function addMessage(message, is_context, on_complete)
+        if not message or message == "" then
+            logger.warn("KOAssistant: addMessage called with empty message")
+            if on_complete then on_complete(false, nil, "Empty message") end
+            return nil
         end
 
-        return answer
+        logger.info("KOAssistant: Adding user message to history, length: " .. #message)
+        history:addUserMessage(message, is_context)
+
+        -- Use callback pattern for streaming support
+        logger.info("KOAssistant: Calling queryChatGPT with " .. #history:getMessages() .. " messages")
+        local answer_result = queryChatGPT(history:getMessages(), config, function(success, answer, err)
+            logger.info("KOAssistant: queryChatGPT callback - success: " .. tostring(success) .. ", answer length: " .. tostring(answer and #answer or 0) .. ", err: " .. tostring(err))
+            -- Only save if we got a non-empty answer
+            if success and answer and answer ~= "" then
+                history:addAssistantMessage(answer, history:getModel() or (config and config.model))
+
+                -- Auto-save continued chats
+                if config.features.auto_save_all_chats or (config.features.auto_save_chats ~= false) then
+                    local save_ok = chat_history_manager:saveChat(document_path, chat.title, history, {id = chat.id})
+                    if not save_ok then
+                        logger.warn("KOAssistant: Failed to save updated chat")
+                    end
+                end
+            elseif success and (not answer or answer == "") then
+                -- Streaming returned success but empty content - treat as error
+                logger.warn("KOAssistant: Got success but empty answer, treating as error")
+                success = false
+                err = err or _("No response received from AI")
+            end
+            -- Call the completion callback
+            if on_complete then on_complete(success, answer, err) end
+        end)
+
+        -- For non-streaming, return the result directly
+        if not isStreamingInProgress(answer_result) then
+            return answer_result
+        end
+        return nil -- Streaming will update via callback
     end
 
     local date_str = os.date("%Y-%m-%d %H:%M", chat.timestamp or 0)
@@ -586,6 +638,7 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
         local viewer = ChatGPTViewer:new{
             title = detailed_title,
             text = display_text,
+            scroll_to_bottom = true, -- Scroll to bottom to show latest messages
             configuration = config,
             original_history = history,
             original_highlighted_text = "",
@@ -623,21 +676,27 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
                     history.debug_mode = debug_mode
                 end
             end,
-            onAskQuestion = function(_, question)
+            onAskQuestion = function(self_viewer, question)
                 showLoadingDialog()
 
                 UIManager:scheduleIn(0.1, function()
-                    local answer = addMessage(question)
-
-                    if answer then
-                        local new_content = history:createResultText("", config)
-                        showChatViewer(new_content)
-                    else
-                        UIManager:show(InfoMessage:new{
-                            text = _("Failed to get response. Please try again."),
-                            timeout = 2,
-                        })
+                    -- Use callback pattern for streaming support
+                    local function onResponseComplete(success, answer, err)
+                        if success and answer then
+                            local new_content = history:createResultText("", config)
+                            showChatViewer(new_content)
+                        else
+                            UIManager:show(InfoMessage:new{
+                                text = _("Failed to get response: ") .. (err or "Unknown error"),
+                                timeout = 2,
+                            })
+                        end
                     end
+
+                    local answer = addMessage(question, false, onResponseComplete)
+
+                    -- For non-streaming, the answer is returned directly and callback was already called
+                    -- For streaming, answer is nil and callback will be called when stream completes
                 end)
             end,
             save_callback = function()
@@ -734,7 +793,8 @@ function ChatHistoryDialog:showExportOptions(document_path, chat_id, chat_histor
     UIManager:show(dialog)
 end
 
-function ChatHistoryDialog:confirmDelete(ui, document_path, chat_id, chat_history_manager, config, document, nav_context)
+-- Simple delete confirmation - menu is already closed before this is called
+function ChatHistoryDialog:confirmDeleteSimple(ui, document_path, chat_id, chat_history_manager, config, document, nav_context)
     local self_ref = self
 
     UIManager:show(ConfirmBox:new{
@@ -742,20 +802,90 @@ function ChatHistoryDialog:confirmDelete(ui, document_path, chat_id, chat_histor
         ok_text = _("Delete"),
         ok_callback = function()
             local success = chat_history_manager:deleteChat(document_path, chat_id)
-            UIManager:show(InfoMessage:new{
-                text = success and _("Chat deleted") or _("Failed to delete chat"),
-                timeout = 2,
-            })
 
-            -- Refresh the chat list if we have the document info
-            if success and document then
-                -- Schedule refresh to happen after the info message
-                UIManager:scheduleIn(0.5, function()
-                    self_ref:showChatsForDocument(ui, document, chat_history_manager, config, nav_context)
+            if success then
+                UIManager:show(InfoMessage:new{
+                    text = _("Chat deleted"),
+                    timeout = 2,
+                })
+
+                -- Schedule the reload with a small delay to let UI settle
+                UIManager:scheduleIn(0.1, function()
+                    -- Check if there are any chats left for this document
+                    local remaining_chats = chat_history_manager:getChatsForDocument(document.path)
+                    if #remaining_chats == 0 then
+                        -- No chats left, go back to document list
+                        self_ref:showChatHistoryBrowser(ui, nil, chat_history_manager, config, nav_context)
+                    else
+                        -- Still have chats, reload the chat list
+                        self_ref:showChatsForDocument(ui, document, chat_history_manager, config, nav_context)
+                    end
                 end)
+            else
+                UIManager:show(InfoMessage:new{
+                    text = _("Failed to delete chat"),
+                    timeout = 2,
+                })
             end
         end,
     })
+end
+
+-- Delete confirmation that closes menu only on confirm (not on cancel)
+function ChatHistoryDialog:confirmDeleteWithClose(ui, document_path, chat_id, chat_history_manager, config, document, nav_context, menu_to_close)
+    local self_ref = self
+
+    UIManager:show(ConfirmBox:new{
+        text = _("Are you sure you want to delete this chat?"),
+        ok_text = _("Delete"),
+        ok_callback = function()
+            -- Delete the chat first
+            local success = chat_history_manager:deleteChat(document_path, chat_id)
+
+            if success then
+                -- Close the menu AFTER delete succeeds
+                if menu_to_close then
+                    UIManager:close(menu_to_close)
+                end
+                self_ref.current_menu = nil
+
+                -- Show info message
+                UIManager:show(InfoMessage:new{
+                    text = _("Chat deleted"),
+                    timeout = 2,
+                })
+
+                -- Schedule the reload AFTER a delay to let the close complete
+                UIManager:scheduleIn(0.2, function()
+                    -- Check if there are any chats left for this document
+                    local remaining_chats = chat_history_manager:getChatsForDocument(document.path)
+                    if #remaining_chats == 0 then
+                        -- No chats left, go back to document list
+                        self_ref:showChatHistoryBrowser(ui, nil, chat_history_manager, config, nav_context)
+                    else
+                        -- Still have chats, reload the chat list
+                        self_ref:showChatsForDocument(ui, document, chat_history_manager, config, nav_context)
+                    end
+                end)
+            else
+                UIManager:show(InfoMessage:new{
+                    text = _("Failed to delete chat"),
+                    timeout = 2,
+                })
+            end
+        end,
+        -- On cancel, menu stays open - nothing to do
+    })
+end
+
+-- Legacy confirmDelete for backwards compatibility
+function ChatHistoryDialog:confirmDelete(ui, document_path, chat_id, chat_history_manager, config, document, nav_context)
+    -- Close current menu first if it exists
+    if self.current_menu then
+        UIManager:close(self.current_menu)
+        self.current_menu = nil
+    end
+    self:confirmDeleteSimple(ui, document_path, chat_id, chat_history_manager, config, document, nav_context)
 end
 
 return ChatHistoryDialog
