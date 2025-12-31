@@ -7,24 +7,23 @@ A powerful AI assistant integrated into KOReader.
 You can:
 
 - Have general chats (no context)
-- Select books and chat about them (using metadata like title, author, etc), and create custom actions and prompts for single selection
-- Select multiple books in the file browser and compare them, and create custom actions and prompts for multi-selection
-- Use and create custom actions to compare books, find common themes, give author/subject information, etc
+- Select books in the file browser and chat about them (using metadata like title, author, etc), and create custom actions and prompts for single selection
+- Select multiple books in the file browser and compare them, and create custom actions and prompts for multi-selection, like finding common themes, etc
 - Highlight text in a book and have it explained, translated, or chat about it, etc
 - Save/autosave and continue chats
-- Export chats 
+- Export chats to markdown and text
 - Use different AI models (for speed/depth, etc)
 - Map functions to gestures and pop up menus for quick actions
-- Configure most things in the UI (including disabling/enabling prompts depending on context)
+- Configure most things in the UI (including provider/model selecgtion, disabling/enabling prompts depending on context, translation language, chat history)
 - Much more using custom prompts/actions
 
 A wiki will be made for creating custom prompts and actions, and other advanced configuration and usage. 
 
 Originally forked from [ASKGPT by Drew Baumann](https://github.com/drewbaumann/askgpt). See Credits and history at the bottom of this readme
 
-This plugin was made for personal use and made public in case it is useful. Many functions are still under development, and many are untested. More providers will hopefully be added shortly. feel free to open a feature request or issue, or start a discussion.
+This plugin was made for personal use and made public in case it is useful. Many functions are still under development, and many are untested. More providers will hopefully be added shortly. Feel free to open a feature request or issue, or start a discussion.
 
-NB: Only Anthropic has been thoroughly tested
+NB: Only Anthropic has been thoroughly tested as it is what I use
 
 ## Quick Minimal Setup
 
@@ -53,7 +52,7 @@ Copy the sample file `apikeys.lua.sample` and rename to `apikeys.lua`
 
 Add at least one API key  
  
-3. **Restart KOReader** - You're ready to go! Set your desired provider and model in the settings UI (Tools -> page 2 -> KOAssistant (under "More tools")
+3. **Restart KOReader** - You're ready to go. Set your desired provider and model in the settings UI (Tools -> page 2 -> KOAssistant (under "More tools")
 
 ### Minimum Requirements
 
