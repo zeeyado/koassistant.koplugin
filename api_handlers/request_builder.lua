@@ -9,12 +9,21 @@ function RequestBuilder:new(o)
     return o
 end
 
+-- Helper function to check if content is non-empty
+local function hasContent(msg)
+    if not msg or not msg.content then return false end
+    if type(msg.content) == "string" then
+        return msg.content:match("%S") ~= nil  -- Has at least one non-whitespace char
+    end
+    return true  -- For non-string content (like arrays), assume valid
+end
+
 -- Message format transformers for each provider
 local MESSAGE_TRANSFORMERS = {
     anthropic = function(messages)
         local transformed = {}
         for _, msg in ipairs(messages) do
-            if msg.role ~= "system" then
+            if msg.role ~= "system" and hasContent(msg) then
                 table.insert(transformed, {
                     role = msg.role == "assistant" and "assistant" or "user",
                     content = msg.content
@@ -23,33 +32,52 @@ local MESSAGE_TRANSFORMERS = {
         end
         return transformed
     end,
-    
+
     gemini = function(messages)
         local transformed = {}
         for _, msg in ipairs(messages) do
-            table.insert(transformed, {
-                role = msg.role == "assistant" and "model" or "user",
-                parts = {{ text = msg.content }}
-            })
+            -- Skip system messages (Gemini handles system instructions differently)
+            if msg.role ~= "system" and hasContent(msg) then
+                table.insert(transformed, {
+                    role = msg.role == "assistant" and "model" or "user",
+                    parts = {{ text = msg.content }}
+                })
+            end
         end
         return transformed
     end,
-    
+
     openai = function(messages)
-        return messages -- OpenAI uses the standard format
+        -- Filter out messages with empty content
+        local filtered = {}
+        for _, msg in ipairs(messages) do
+            if hasContent(msg) then
+                table.insert(filtered, msg)
+            end
+        end
+        return filtered
     end,
-    
+
     deepseek = function(messages)
-        return messages -- DeepSeek uses the same format as OpenAI
+        -- Filter out messages with empty content (same as OpenAI)
+        local filtered = {}
+        for _, msg in ipairs(messages) do
+            if hasContent(msg) then
+                table.insert(filtered, msg)
+            end
+        end
+        return filtered
     end,
-    
+
     ollama = function(messages)
         local transformed = {}
         for _, msg in ipairs(messages) do
-            table.insert(transformed, {
-                role = msg.role,
-                content = msg.content
-            })
+            if hasContent(msg) then
+                table.insert(transformed, {
+                    role = msg.role,
+                    content = msg.content
+                })
+            end
         end
         return transformed
     end
