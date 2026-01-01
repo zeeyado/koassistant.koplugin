@@ -188,8 +188,8 @@ local SettingsSchema = {
                     id = "enable_streaming",
                     type = "toggle",
                     text = _("Enable Streaming"),
-                    description = _("Show AI responses as they're generated (experimental)"),
-                    default = false,
+                    description = _("Show AI responses as they're generated"),
+                    default = true,
                     path = "features.enable_streaming",
                 },
                 {

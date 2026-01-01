@@ -810,6 +810,9 @@ function AskGPT:initSettings()
       auto_save_all_chats = true,  -- Default to auto-save for new installs
       auto_save_chats = true,      -- Default for continued chats
       render_markdown = true,      -- Default to render markdown
+      enable_streaming = true,     -- Default to streaming for new installs
+      stream_auto_scroll = true,   -- Default to auto-scroll during streaming
+      large_stream_dialog = true,  -- Default to full-screen streaming dialog
     })
   end
   
