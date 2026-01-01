@@ -53,6 +53,7 @@ function PromptsManager:loadPrompts()
             enabled = prompt.enabled,
             requires = prompt.requires,
             id = prompt.id,
+            include_book_context = prompt.include_book_context,
         })
     end
     
@@ -401,6 +402,7 @@ function PromptsManager:showPromptEditor(existing_prompt)
         system_prompt = existing_prompt and existing_prompt.system_prompt or "",
         user_prompt = existing_prompt and existing_prompt.user_prompt or "",
         context = existing_prompt and existing_prompt.context or nil,
+        include_book_context = existing_prompt and existing_prompt.include_book_context or false,
         existing_prompt = existing_prompt,
     }
 
@@ -411,70 +413,101 @@ end
 function PromptsManager:showStep1_NameAndContext(state)
     local is_edit = state.existing_prompt ~= nil
 
-    local dialog
-    dialog = InputDialog:new{
+    -- Build button rows
+    local button_rows = {}
+
+    -- Row 1: Cancel, Context, Next
+    table.insert(button_rows, {
+        {
+            text = _("Cancel"),
+            id = "close",
+            callback = function()
+                UIManager:close(self.step1_dialog)
+            end,
+        },
+        {
+            text = _("Context: ") .. (state.context and self:getContextDisplayName(state.context) or _("Not set")),
+            callback = function()
+                state.name = self.step1_dialog:getInputText()
+                UIManager:close(self.step1_dialog)
+                self:showContextSelectorWizard(state)
+            end,
+        },
+        {
+            text = _("Next →"),
+            callback = function()
+                local name = self.step1_dialog:getInputText()
+                if name == "" then
+                    UIManager:show(InfoMessage:new{
+                        text = _("Please enter a prompt name"),
+                    })
+                    return
+                end
+                if not state.context then
+                    UIManager:show(InfoMessage:new{
+                        text = _("Please select a context first"),
+                    })
+                    return
+                end
+                state.name = name
+                UIManager:close(self.step1_dialog)
+                self:showStep2_SystemPrompt(state)
+            end,
+        },
+    })
+
+    -- Row 2: Book Info toggle (only for contexts that include highlight)
+    if state.context and self:contextIncludesHighlight(state.context) then
+        local checkbox = state.include_book_context and "☑ " or "☐ "
+        table.insert(button_rows, {
+            {
+                text = checkbox .. _("Include book info (title, author)"),
+                callback = function()
+                    state.name = self.step1_dialog:getInputText()
+                    state.include_book_context = not state.include_book_context
+                    UIManager:close(self.step1_dialog)
+                    self:showStep1_NameAndContext(state)
+                end,
+            },
+        })
+    end
+
+    -- Build description based on context
+    local description = _("Example: 'Summarize', 'Explain Simply', 'Find Themes'")
+    if state.context then
+        local info = self:getContextInfo(state.context, state.include_book_context)
+        if info and info.includes then
+            description = description .. "\n\n" .. info.includes
+        end
+    end
+
+    self.step1_dialog = InputDialog:new{
         title = is_edit and _("Edit Prompt - Name") or _("New Prompt - Step 1/3"),
         input = state.name,
         input_hint = _("Enter a short name (shown as button)"),
-        description = _("Example: 'Summarize', 'Explain Simply', 'Find Themes'"),
-        buttons = {
-            {
-                {
-                    text = _("Cancel"),
-                    id = "close",
-                    callback = function()
-                        UIManager:close(dialog)
-                    end,
-                },
-                {
-                    text = _("Context: ") .. (state.context and self:getContextDisplayName(state.context) or _("Not set")),
-                    callback = function()
-                        state.name = dialog:getInputText()
-                        UIManager:close(dialog)
-                        self:showContextSelectorWizard(state)
-                    end,
-                },
-                {
-                    text = _("Next →"),
-                    callback = function()
-                        local name = dialog:getInputText()
-                        if name == "" then
-                            UIManager:show(InfoMessage:new{
-                                text = _("Please enter a prompt name"),
-                            })
-                            return
-                        end
-                        if not state.context then
-                            UIManager:show(InfoMessage:new{
-                                text = _("Please select a context first"),
-                            })
-                            return
-                        end
-                        state.name = name
-                        UIManager:close(dialog)
-                        self:showStep2_SystemPrompt(state)
-                    end,
-                },
-            },
-        },
+        description = description,
+        buttons = button_rows,
     }
 
-    UIManager:show(dialog)
-    dialog:onShowKeyboard()
+    UIManager:show(self.step1_dialog)
+    self.step1_dialog:onShowKeyboard()
 end
 
 -- Get context info including what data is available
-function PromptsManager:getContextInfo(context_value)
+function PromptsManager:getContextInfo(context_value, include_book_context)
     local context_info = {
         highlight = {
             text = _("Highlight"),
             desc = _("When text is selected in a book"),
-            includes = _("Includes: selected text, book title, author"),
+            -- Note: book info can be optionally included via include_book_context flag
+            includes = include_book_context
+                and _("Includes: selected text + book title, author")
+                or _("Includes: selected text only"),
         },
         book = {
             text = _("Book"),
             desc = _("When a book is selected in file browser"),
-            includes = _("Includes: book title, author"),
+            includes = _("Includes: book title, author (automatic)"),
         },
         multi_book = {
             text = _("Multi-Book"),
@@ -489,7 +522,7 @@ function PromptsManager:getContextInfo(context_value)
         both = {
             text = _("Highlight & Book"),
             desc = _("Both highlight and book contexts"),
-            includes = _("Varies by trigger"),
+            includes = _("Highlight: selected text; Book: title/author"),
         },
         all = {
             text = _("All Contexts"),
@@ -498,6 +531,11 @@ function PromptsManager:getContextInfo(context_value)
         },
     }
     return context_info[context_value]
+end
+
+-- Check if a context includes highlight context (where include_book_context applies)
+function PromptsManager:contextIncludesHighlight(context)
+    return context == "highlight" or context == "both" or context == "all"
 end
 
 -- Get default system prompt for a context
@@ -529,7 +567,8 @@ function PromptsManager:showContextSelectorWizard(state)
     local buttons = {}
 
     for _, option in ipairs(context_options) do
-        local info = self:getContextInfo(option.value)
+        -- For highlight context, show info based on current include_book_context setting
+        local info = self:getContextInfo(option.value, state.include_book_context)
         local prefix = (state.context == option.value) and "● " or "○ "
         -- Show context name, description, and what data is included
         local button_text = prefix .. info.text .. "\n   " .. info.desc
@@ -693,9 +732,9 @@ function PromptsManager:showStep3_UserPrompt(state)
 
                         -- Save the prompt
                         if is_edit then
-                            self:updatePrompt(state.existing_prompt, state.name, state.system_prompt, state.user_prompt, state.context)
+                            self:updatePrompt(state.existing_prompt, state.name, state.system_prompt, state.user_prompt, state.context, state.include_book_context)
                         else
-                            self:addPrompt(state.name, state.system_prompt, state.user_prompt, state.context)
+                            self:addPrompt(state.name, state.system_prompt, state.user_prompt, state.context, state.include_book_context)
                         end
 
                         -- Refresh prompts menu
@@ -782,7 +821,7 @@ function PromptsManager:showPlaceholderSelectorWizard(state)
     UIManager:show(self.placeholder_dialog)
 end
 
-function PromptsManager:addPrompt(name, system_prompt, user_prompt, context)
+function PromptsManager:addPrompt(name, system_prompt, user_prompt, context, include_book_context)
     if self.plugin.prompt_service then
         -- Convert empty strings to nil so fallback system prompts work
         local sys_prompt = (system_prompt and system_prompt ~= "") and system_prompt or nil
@@ -792,6 +831,7 @@ function PromptsManager:addPrompt(name, system_prompt, user_prompt, context)
             system_prompt = sys_prompt,
             user_prompt = user_prompt,
             context = context,
+            include_book_context = include_book_context or nil,  -- Only store if true
             enabled = true,
         })
 
@@ -801,7 +841,7 @@ function PromptsManager:addPrompt(name, system_prompt, user_prompt, context)
     end
 end
 
-function PromptsManager:updatePrompt(existing_prompt, name, system_prompt, user_prompt, context)
+function PromptsManager:updatePrompt(existing_prompt, name, system_prompt, user_prompt, context, include_book_context)
     if self.plugin.prompt_service then
         -- Convert empty strings to nil so fallback system prompts work
         local sys_prompt = (system_prompt and system_prompt ~= "") and system_prompt or nil
@@ -819,6 +859,7 @@ function PromptsManager:updatePrompt(existing_prompt, name, system_prompt, user_
                     system_prompt = sys_prompt,
                     user_prompt = user_prompt,
                     context = context,
+                    include_book_context = include_book_context or nil,  -- Only store if true
                     enabled = true,
                 })
 
@@ -835,6 +876,7 @@ function PromptsManager:updatePrompt(existing_prompt, name, system_prompt, user_
                             system_prompt = sys_prompt,
                             user_prompt = user_prompt,
                             context = context,
+                            include_book_context = include_book_context or nil,  -- Only store if true
                             enabled = true,
                         })
 

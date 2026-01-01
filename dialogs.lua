@@ -564,8 +564,8 @@ local function buildConsolidatedMessage(prompt, context, data, system_prompt)
     local user_prompt = prompt.user_prompt or "Please analyze:"
     
     -- Handle different contexts
-    if context == "multi_file_browser" then
-        -- Multi-file context with {count} and {books_list} substitution
+    if context == "multi_book" or context == "multi_file_browser" then
+        -- Multi-book context with {count} and {books_list} substitution
         if data.books_info then
             local count = #data.books_info
             local books_list = {}
@@ -586,15 +586,28 @@ local function buildConsolidatedMessage(prompt, context, data, system_prompt)
         end
         table.insert(parts, "[Request]")
         table.insert(parts, user_prompt)
-        
-    elseif context == "file_browser" then
-        -- Add book context if available
+
+    elseif context == "book" or context == "file_browser" then
+        -- Book context: add book info and substitute template variables
         if data.book_metadata then
             local metadata = data.book_metadata
-            -- Replace template variables
+            -- Add book context so AI knows which book we're discussing
+            table.insert(parts, "[Context]")
+            local book_info = string.format('Book: "%s"', metadata.title or "Unknown")
+            if metadata.author and metadata.author ~= "" then
+                book_info = book_info .. " by " .. metadata.author
+            end
+            table.insert(parts, book_info)
+            table.insert(parts, "")
+            -- Replace template variables in user prompt
             user_prompt = user_prompt:gsub("{title}", metadata.title or "Unknown")
             user_prompt = user_prompt:gsub("{author}", metadata.author or "")
             user_prompt = user_prompt:gsub("{author_clause}", metadata.author_clause or "")
+        elseif data.book_context then
+            -- Fallback: use pre-formatted book context string if metadata not available
+            table.insert(parts, "[Context]")
+            table.insert(parts, data.book_context)
+            table.insert(parts, "")
         end
         table.insert(parts, "[Request]")
         table.insert(parts, user_prompt)
@@ -605,34 +618,43 @@ local function buildConsolidatedMessage(prompt, context, data, system_prompt)
         table.insert(parts, user_prompt)
         
     else  -- highlight context
-        -- Add book context if requested
-        if prompt.include_book_context and data.book_title then
+        -- Build context section
+        local has_context = data.book_title or data.highlighted_text
+
+        if has_context then
             table.insert(parts, "[Context]")
-            table.insert(parts, string.format('From "%s" by %s', 
-                data.book_title or "Unknown Title", 
-                data.book_author or "Unknown Author"))
-            table.insert(parts, "")
-        end
-        
-        -- Add highlighted text context
-        if data.highlighted_text then
-            -- Handle template replacement
-            if user_prompt:find("{highlighted_text}") then
-                user_prompt = user_prompt:gsub("{highlighted_text}", data.highlighted_text)
-                table.insert(parts, "[Request]")
-                table.insert(parts, user_prompt)
-            else
-                -- Old format: show text first, then prompt
+
+            -- Add book info if available (controlled by include_book_context flag)
+            if data.book_title then
+                table.insert(parts, string.format('From "%s"%s',
+                    data.book_title,
+                    (data.book_author and data.book_author ~= "") and (" by " .. data.book_author) or ""))
+            end
+
+            -- Add highlighted text
+            if data.highlighted_text then
+                if data.book_title then
+                    table.insert(parts, "")  -- Add spacing if book info was shown
+                end
                 table.insert(parts, "Selected text:")
                 table.insert(parts, '"' .. data.highlighted_text .. '"')
-                table.insert(parts, "")
-                table.insert(parts, "[Request]")
-                table.insert(parts, user_prompt)
             end
-        else
-            table.insert(parts, "[Request]")
-            table.insert(parts, user_prompt)
+            table.insert(parts, "")
         end
+
+        -- Support template variables
+        if data.book_title then
+            user_prompt = user_prompt:gsub("{title}", data.book_title or "Unknown")
+            user_prompt = user_prompt:gsub("{author}", data.book_author or "")
+            user_prompt = user_prompt:gsub("{author_clause}",
+                (data.book_author and data.book_author ~= "") and (" by " .. data.book_author) or "")
+        end
+        if data.highlighted_text then
+            user_prompt = user_prompt:gsub("{highlighted_text}", data.highlighted_text)
+        end
+
+        table.insert(parts, "[Request]")
+        table.insert(parts, user_prompt)
     end
     
     -- Add additional user input if provided
@@ -654,8 +676,9 @@ end
 --- @param plugin table: The plugin instance
 --- @param additional_input string: Additional user input (optional)
 --- @param on_complete function: Optional callback for async streaming - receives (history, temp_config) or (nil, error_string)
+--- @param book_metadata table: Optional book metadata {title, author} - used when ui.document is not available
 --- @return history, temp_config when not streaming; nil when streaming (result comes via callback)
-local function handlePredefinedPrompt(prompt_type, highlightedText, ui, configuration, existing_history, plugin, additional_input, on_complete)
+local function handlePredefinedPrompt(prompt_type, highlightedText, ui, configuration, existing_history, plugin, additional_input, on_complete, book_metadata)
     -- Use passed configuration or fall back to global
     local config = configuration or CONFIGURATION
 
@@ -711,10 +734,33 @@ local function handlePredefinedPrompt(prompt_type, highlightedText, ui, configur
         book_context = config.features.book_context
     }
 
-    -- Add book info for highlight context if needed
-    if context == "highlight" and prompt.include_book_context and ui and ui.document then
-        message_data.book_title = ui.document:getProps().title
-        message_data.book_author = ui.document:getProps().authors
+    -- Add book info for highlight context when:
+    -- 1. include_book_context is enabled for the prompt, OR
+    -- 2. The prompt uses template variables that require book info
+    -- Try to get from ui.document first, then fall back to passed book_metadata
+    if context == "highlight" then
+        local should_include_book = prompt.include_book_context
+
+        -- Also include if prompt uses book-related placeholders
+        if not should_include_book and prompt.user_prompt then
+            should_include_book = prompt.user_prompt:find("{title}") or
+                                  prompt.user_prompt:find("{author}") or
+                                  prompt.user_prompt:find("{author_clause}")
+        end
+
+        if should_include_book then
+            -- Try ui.document first
+            if ui and ui.document then
+                local props = ui.document:getProps()
+                message_data.book_title = props and props.title
+                message_data.book_author = props and props.authors
+            end
+            -- Fall back to passed book_metadata if not available
+            if not message_data.book_title and book_metadata then
+                message_data.book_title = book_metadata.title
+                message_data.book_author = book_metadata.author
+            end
+        end
     end
 
     -- Build and add the consolidated message (now including system prompt)
@@ -1094,7 +1140,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     end
 
                     -- Call with callback for streaming support
-                    local history, temp_config = handlePredefinedPrompt(prompt_type, highlighted_text, ui_instance, configuration, nil, plugin, additional_input, onPromptComplete)
+                    local history, temp_config = handlePredefinedPrompt(prompt_type, highlighted_text, ui_instance, configuration, nil, plugin, additional_input, onPromptComplete, book_metadata)
 
                     -- For non-streaming, history is returned directly and callback was also called
                     -- The callback handles showing the dialog, so we don't need to do anything here
