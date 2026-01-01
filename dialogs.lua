@@ -345,7 +345,7 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
     -- Determine effective save path based on save_category
     -- If save_category is set, use it as the document path for saving
     -- This allows prompts to save chats to custom categories (e.g., "Islamic Studies")
-    local effective_save_path = document_path
+    local effective_save_path = nil  -- Only set when save_category is used
     local effective_launch_context = launch_context
     if save_category and save_category ~= "" then
         effective_save_path = "__CATEGORY:" .. save_category .. "__"
@@ -431,6 +431,7 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                     local new_viewer = ChatGPTViewer:new {
                         title = title .. " (" .. model_info .. ")",
                         text = history:createResultText(highlightedText, temp_config or CONFIGURATION),
+                        configuration = temp_config or CONFIGURATION,  -- Pass configuration to maintain auto-save state
                         scroll_to_bottom = true, -- Scroll to bottom to show new question
                         debug_mode = viewer.debug_mode,
                         original_history = history,
@@ -477,14 +478,20 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                             metadata.launch_context = effective_launch_context
                         end
 
-                        local save_success = chat_history_manager:saveChat(
-                            effective_save_path or (is_general_context and "__GENERAL_CHATS__" or nil),
+                        -- Determine save path: custom category > document path > general chats
+                        local save_path = effective_save_path or document_path or (is_general_context and "__GENERAL_CHATS__" or nil)
+                        local save_result = chat_history_manager:saveChat(
+                            save_path,
                             suggested_title,
                             history,
                             metadata
                         )
-                        if save_success then
-                            logger.info("KOAssistant: Auto-saved chat after follow-up")
+                        if save_result and save_result ~= false then
+                            -- Store the chat ID in history for future saves (prevents duplicates)
+                            if not history.chat_id then
+                                history.chat_id = save_result
+                            end
+                            logger.info("KOAssistant: Auto-saved chat after follow-up with id: " .. tostring(save_result))
                         else
                             logger.warn("KOAssistant: Failed to auto-save chat after follow-up")
                         end
@@ -508,9 +515,10 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                 })
             else
                 -- Call our helper function to handle saving
-                -- Use effective_save_path if set (custom category), otherwise check general context
+                -- Determine save path: custom category > document path > general chats fallback
                 local is_general_context = temp_config and temp_config.features and temp_config.features.is_general_context or false
-                createSaveDialog(effective_save_path or document_path, history, chat_history_manager, is_general_context, book_metadata, effective_launch_context)
+                local save_path = effective_save_path or document_path
+                createSaveDialog(save_path, history, chat_history_manager, is_general_context, book_metadata, effective_launch_context or launch_context)
             end
         end,
         export_callback = function()
@@ -550,16 +558,21 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                 metadata.launch_context = effective_launch_context
             end
 
-            -- Save with suggested title - use effective_save_path if custom category
-            local success = chat_history_manager:saveChat(
-                effective_save_path or (is_general_context and "__GENERAL_CHATS__" or nil),
+            -- Determine save path: custom category > document path > general chats
+            local save_path = effective_save_path or document_path or (is_general_context and "__GENERAL_CHATS__" or nil)
+            local result = chat_history_manager:saveChat(
+                save_path,
                 suggested_title,
                 history,
                 metadata
             )
-            
-            if success then
-                logger.info("KOAssistant: Auto-saved chat with title: " .. suggested_title)
+
+            if result and result ~= false then
+                -- Store the chat ID in history for future saves (prevents duplicates)
+                if not history.chat_id then
+                    history.chat_id = result
+                end
+                logger.info("KOAssistant: Auto-saved chat with id: " .. tostring(result) .. ", title: " .. suggested_title)
             else
                 logger.warn("KOAssistant: Failed to auto-save chat")
             end
