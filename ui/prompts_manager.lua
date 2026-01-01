@@ -5,14 +5,10 @@ local UIManager = require("ui/uimanager")
 local Menu = require("ui/widget/menu")
 local InfoMessage = require("ui/widget/infomessage")
 local ConfirmBox = require("ui/widget/confirmbox")
-local MultiInputDialog = require("ui/widget/multiinputdialog")
-local ButtonTable = require("ui/widget/buttontable")
-local FrameContainer = require("ui/widget/container/framecontainer")
-local VerticalGroup = require("ui/widget/verticalgroup")
-local Font = require("ui/font")
-local Screen = require("device").screen
-local util = require("util")
+local InputDialog = require("ui/widget/inputdialog")
+local ButtonDialog = require("ui/widget/buttondialog")
 local TextViewer = require("ui/widget/textviewer")
+local Screen = require("device").screen
 
 local PromptsManager = {}
 
@@ -153,14 +149,12 @@ function PromptsManager:showPromptsMenu()
         enabled = false,
     })
     
-    -- Add "Add New Prompt" item (grayed out for now)
+    -- Add "Add New Prompt" item
     table.insert(menu_items, {
-        text = _("+ Add New Prompt (planned)"),
-        enabled = false,
+        text = _("+ Add New Prompt"),
         callback = function()
-            UIManager:show(InfoMessage:new{
-                text = _("Add new prompt feature coming soon..."),
-            })
+            UIManager:close(self.prompts_menu)
+            self:showPromptEditor(nil)  -- nil = new prompt
         end,
     })
     
@@ -338,114 +332,286 @@ function PromptsManager:showPromptDetails(prompt)
     end
     
     local buttons = {}
-    
-    -- Edit button (only for user-created prompts, not built-in ones)
-    if prompt.source == "ui" or prompt.source == "config" then
+
+    -- Edit button (only for UI-created prompts)
+    if prompt.source == "ui" then
+        -- Row with Edit and Delete buttons
         table.insert(buttons, {
-            text = _("Edit"),
-            callback = function()
-                self:showPromptEditor(prompt)
-            end,
-        })
-        -- Only allow deletion of UI-created prompts (not custom_prompts.lua)
-        if prompt.source == "ui" then
-            table.insert(buttons, {
+            {
+                text = _("Edit"),
+                callback = function()
+                    -- Close the details dialog first
+                    if self.details_dialog then
+                        UIManager:close(self.details_dialog)
+                    end
+                    self:showPromptEditor(prompt)
+                end,
+            },
+            {
                 text = _("Delete"),
                 callback = function()
                     UIManager:show(ConfirmBox:new{
                         text = _("Delete this prompt?"),
                         ok_callback = function()
                             self:deletePrompt(prompt)
-                            -- Close and refresh the prompts menu
+                            -- Close details and prompts menu, then refresh
+                            if self.details_dialog then
+                                UIManager:close(self.details_dialog)
+                            end
                             if self.prompts_menu then
                                 UIManager:close(self.prompts_menu)
                             end
-                            self:show() -- Refresh the list
+                            self:show()
                         end,
                     })
                 end,
-            })
-        end
+            },
+        })
+    elseif prompt.source == "config" then
+        -- Prompts from custom_prompts.lua - show info about editing
+        table.insert(buttons, {
+            {
+                text = _("Edit file"),
+                callback = function()
+                    UIManager:show(InfoMessage:new{
+                        text = _("This prompt is defined in custom_prompts.lua.\nPlease edit that file directly to modify it."),
+                    })
+                end,
+            },
+        })
     end
-    
-    UIManager:show(TextViewer:new{
+
+    self.details_dialog = TextViewer:new{
         title = _("Prompt Details"),
         text = info_text,
         buttons_table = buttons,
         width = self.width * 0.9,
         height = self.height * 0.8,
-    })
+    }
+    UIManager:show(self.details_dialog)
 end
 
+-- Wizard Step 1: Enter prompt name and select context
 function PromptsManager:showPromptEditor(existing_prompt)
     local is_edit = existing_prompt ~= nil
-    
-    local dialog = MultiInputDialog:new{
-        title = is_edit and _("Edit Prompt") or _("Add New Prompt"),
-        fields = {
-            {
-                text = existing_prompt and existing_prompt.text or "",
-                hint = _("Prompt name (e.g., 'Summarize')"),
-            },
-            {
-                text = existing_prompt and existing_prompt.system_prompt or "",
-                hint = _("System prompt (AI behavior instructions)"),
-                height = 100,
-            },
-            {
-                text = existing_prompt and existing_prompt.user_prompt or "",
-                hint = _("User prompt template (use {highlighted_text}, {title}, {author})"),
-                height = 100,
-            },
-        },
+
+    -- Initialize wizard state
+    local state = {
+        name = existing_prompt and existing_prompt.text or "",
+        system_prompt = existing_prompt and existing_prompt.system_prompt or "",
+        user_prompt = existing_prompt and existing_prompt.user_prompt or "",
+        context = existing_prompt and existing_prompt.context or nil,
+        existing_prompt = existing_prompt,
+    }
+
+    self:showStep1_NameAndContext(state)
+end
+
+-- Step 1: Name and Context selection
+function PromptsManager:showStep1_NameAndContext(state)
+    local is_edit = state.existing_prompt ~= nil
+
+    local dialog
+    dialog = InputDialog:new{
+        title = is_edit and _("Edit Prompt - Name") or _("New Prompt - Step 1/3"),
+        input = state.name,
+        input_hint = _("Enter a short name (shown as button)"),
+        description = _("Example: 'Summarize', 'Explain Simply', 'Find Themes'"),
         buttons = {
             {
                 {
-                    text = _("Close"),
+                    text = _("Cancel"),
                     id = "close",
                     callback = function()
                         UIManager:close(dialog)
-                        -- Don't reopen menu on cancel
                     end,
                 },
                 {
-                    text = _("Context"),
+                    text = _("Context: ") .. (state.context and self:getContextDisplayName(state.context) or _("Not set")),
                     callback = function()
+                        state.name = dialog:getInputText()
                         UIManager:close(dialog)
-                        self:showContextSelector(dialog, existing_prompt)
+                        self:showContextSelectorWizard(state)
                     end,
                 },
                 {
-                    text = is_edit and _("Save") or _("Add"),
+                    text = _("Next →"),
                     callback = function()
-                        local name = dialog.fields[1].text
-                        local system_prompt = dialog.fields[2].text
-                        local user_prompt = dialog.fields[3].text
-                        
+                        local name = dialog:getInputText()
                         if name == "" then
                             UIManager:show(InfoMessage:new{
-                                text = _("Prompt name cannot be empty"),
+                                text = _("Please enter a prompt name"),
                             })
                             return
                         end
-                        
+                        if not state.context then
+                            UIManager:show(InfoMessage:new{
+                                text = _("Please select a context first"),
+                            })
+                            return
+                        end
+                        state.name = name
+                        UIManager:close(dialog)
+                        self:showStep2_SystemPrompt(state)
+                    end,
+                },
+            },
+        },
+    }
+
+    UIManager:show(dialog)
+    dialog:onShowKeyboard()
+end
+
+-- Context selector for wizard
+function PromptsManager:showContextSelectorWizard(state)
+    local context_options = {
+        { value = "highlight", text = _("Highlight"), desc = _("When text is selected in a book") },
+        { value = "book", text = _("Book"), desc = _("When a book is selected in file browser") },
+        { value = "multi_book", text = _("Multi-Book"), desc = _("When multiple books are selected") },
+        { value = "general", text = _("General"), desc = _("General chat, no specific context") },
+        { value = "both", text = _("Highlight & Book"), desc = _("Both highlight and book contexts") },
+        { value = "all", text = _("All Contexts"), desc = _("Available everywhere") },
+    }
+
+    local buttons = {}
+
+    for _, option in ipairs(context_options) do
+        local prefix = (state.context == option.value) and "● " or "○ "
+        table.insert(buttons, {
+            {
+                text = prefix .. option.text .. " - " .. option.desc,
+                callback = function()
+                    state.context = option.value
+                    UIManager:close(self.context_dialog)
+                    self:showStep1_NameAndContext(state)
+                end,
+            },
+        })
+    end
+
+    table.insert(buttons, {
+        {
+            text = _("Cancel"),
+            callback = function()
+                UIManager:close(self.context_dialog)
+                self:showStep1_NameAndContext(state)
+            end,
+        },
+    })
+
+    self.context_dialog = ButtonDialog:new{
+        title = _("Select Context"),
+        buttons = buttons,
+    }
+
+    UIManager:show(self.context_dialog)
+end
+
+-- Step 2: System prompt (optional, fullscreen)
+function PromptsManager:showStep2_SystemPrompt(state)
+    local is_edit = state.existing_prompt ~= nil
+
+    local dialog
+    dialog = InputDialog:new{
+        title = is_edit and _("Edit Prompt - System Instructions") or _("New Prompt - Step 2/3"),
+        input = state.system_prompt or "",
+        input_hint = _("Optional: Instructions for how the AI should behave"),
+        description = _("Leave empty to use the default for the selected context.\n\nExamples:\n• 'You are an expert literary critic.'\n• 'Respond in simple terms a child could understand.'\n• 'Be concise and use bullet points.'"),
+        fullscreen = true,
+        allow_newline = true,
+        buttons = {
+            {
+                {
+                    text = _("← Back"),
+                    callback = function()
+                        state.system_prompt = dialog:getInputText()
+                        UIManager:close(dialog)
+                        self:showStep1_NameAndContext(state)
+                    end,
+                },
+                {
+                    text = _("Skip (use default)"),
+                    callback = function()
+                        state.system_prompt = ""
+                        UIManager:close(dialog)
+                        self:showStep3_UserPrompt(state)
+                    end,
+                },
+                {
+                    text = _("Next →"),
+                    callback = function()
+                        state.system_prompt = dialog:getInputText()
+                        UIManager:close(dialog)
+                        self:showStep3_UserPrompt(state)
+                    end,
+                },
+            },
+        },
+    }
+
+    UIManager:show(dialog)
+    dialog:onShowKeyboard()
+end
+
+-- Step 3: User prompt (required, fullscreen with Insert button)
+function PromptsManager:showStep3_UserPrompt(state)
+    local is_edit = state.existing_prompt ~= nil
+
+    -- Build description based on context
+    local available_placeholders = self:getPlaceholdersForContext(state.context)
+    local placeholder_list = ""
+    for _, p in ipairs(available_placeholders) do
+        placeholder_list = placeholder_list .. "• " .. p.text .. ": " .. p.value .. "\n"
+    end
+
+    local dialog
+    dialog = InputDialog:new{
+        title = is_edit and _("Edit Prompt - User Prompt") or _("New Prompt - Step 3/3"),
+        input = state.user_prompt or "",
+        input_hint = _("What should be sent to the AI?"),
+        description = _("Write your prompt here. Use placeholders to include context data:\n\n") .. placeholder_list,
+        fullscreen = true,
+        allow_newline = true,
+        buttons = {
+            {
+                {
+                    text = _("← Back"),
+                    callback = function()
+                        state.user_prompt = dialog:getInputText()
+                        UIManager:close(dialog)
+                        self:showStep2_SystemPrompt(state)
+                    end,
+                },
+                {
+                    text = _("Insert..."),
+                    callback = function()
+                        state.user_prompt = dialog:getInputText()
+                        UIManager:close(dialog)
+                        self:showPlaceholderSelectorWizard(state)
+                    end,
+                },
+                {
+                    text = is_edit and _("Save") or _("Create"),
+                    callback = function()
+                        local user_prompt = dialog:getInputText()
                         if user_prompt == "" then
                             UIManager:show(InfoMessage:new{
                                 text = _("User prompt cannot be empty"),
                             })
                             return
                         end
-                        
-                        local context = dialog.context or (existing_prompt and existing_prompt.context) or "both"
-                        
-                        if is_edit then
-                            self:updatePrompt(existing_prompt, name, system_prompt, user_prompt, context)
-                        else
-                            self:addPrompt(name, system_prompt, user_prompt, context)
-                        end
-                        
+                        state.user_prompt = user_prompt
                         UIManager:close(dialog)
-                        -- Close and refresh the prompts menu
+
+                        -- Save the prompt
+                        if is_edit then
+                            self:updatePrompt(state.existing_prompt, state.name, state.system_prompt, state.user_prompt, state.context)
+                        else
+                            self:addPrompt(state.name, state.system_prompt, state.user_prompt, state.context)
+                        end
+
+                        -- Refresh prompts menu
                         if self.prompts_menu then
                             UIManager:close(self.prompts_menu)
                         end
@@ -455,66 +621,93 @@ function PromptsManager:showPromptEditor(existing_prompt)
             },
         },
     }
-    
-    dialog.context = existing_prompt and existing_prompt.context or "both"
-    
+
     UIManager:show(dialog)
     dialog:onShowKeyboard()
 end
 
-function PromptsManager:showContextSelector(parent_dialog, existing_prompt)
-    local context_options = {
-        { value = "highlight", text = _("Highlight Context Only") },
-        { value = "book", text = _("Book Context Only") },
-        { value = "multi_book", text = _("Multi-Book Context Only") },
-        { value = "general", text = _("General Context Only") },
-        { value = "both", text = _("Highlight & Book") },
-        { value = "all", text = _("All Contexts") },
+-- Get placeholders available for a given context
+function PromptsManager:getPlaceholdersForContext(context)
+    local all_placeholders = {
+        { value = "{highlighted_text}", text = _("Selected Text"), contexts = {"highlight", "both", "all"} },
+        { value = "{title}", text = _("Book Title"), contexts = {"highlight", "book", "both", "all"} },
+        { value = "{author}", text = _("Author Name"), contexts = {"highlight", "book", "both", "all"} },
+        { value = "{author_clause}", text = _("Author Clause"), contexts = {"highlight", "book", "both", "all"} },
+        { value = "{count}", text = _("Book Count"), contexts = {"multi_book", "all"} },
+        { value = "{books_list}", text = _("Books List"), contexts = {"multi_book", "all"} },
     }
-    
-    local radio_buttons = {}
-    for _, option in ipairs(context_options) do
-        table.insert(radio_buttons, {
-            {
-                text = option.text,
-                checked_func = function()
-                    return parent_dialog.context == option.value
-                end,
-                callback = function()
-                    parent_dialog.context = option.value
-                    UIManager:close(self.context_dialog)
-                    UIManager:show(parent_dialog)
-                end,
-            },
-        })
+
+    local result = {}
+    for _, p in ipairs(all_placeholders) do
+        for _, ctx in ipairs(p.contexts) do
+            if ctx == context then
+                table.insert(result, p)
+                break
+            end
+        end
     end
-    
-    self.context_dialog = FrameContainer:new{
-        background = 0,
-        bordersize = 2,
-        padding = 10,
-        VerticalGroup:new{
-            align = "left",
-            ButtonTable:new{
-                title = _("Select Context"),
-                buttons = radio_buttons,
-            },
+
+    -- For general context, show a note
+    if context == "general" and #result == 0 then
+        table.insert(result, { value = "", text = _("(No placeholders for general context)") })
+    end
+
+    return result
+end
+
+-- Placeholder selector for wizard
+function PromptsManager:showPlaceholderSelectorWizard(state)
+    local placeholders = self:getPlaceholdersForContext(state.context)
+
+    local buttons = {}
+
+    for _, placeholder in ipairs(placeholders) do
+        if placeholder.value ~= "" then
+            table.insert(buttons, {
+                {
+                    text = placeholder.text .. "  →  " .. placeholder.value,
+                    callback = function()
+                        UIManager:close(self.placeholder_dialog)
+                        -- Append placeholder to user prompt
+                        state.user_prompt = (state.user_prompt or "") .. placeholder.value
+                        self:showStep3_UserPrompt(state)
+                    end,
+                },
+            })
+        end
+    end
+
+    table.insert(buttons, {
+        {
+            text = _("Cancel"),
+            callback = function()
+                UIManager:close(self.placeholder_dialog)
+                self:showStep3_UserPrompt(state)
+            end,
         },
+    })
+
+    self.placeholder_dialog = ButtonDialog:new{
+        title = _("Insert Placeholder"),
+        buttons = buttons,
     }
-    
-    UIManager:show(self.context_dialog)
+
+    UIManager:show(self.placeholder_dialog)
 end
 
 function PromptsManager:addPrompt(name, system_prompt, user_prompt, context)
     if self.plugin.prompt_service then
+        -- Convert empty strings to nil so fallback system prompts work
+        local sys_prompt = (system_prompt and system_prompt ~= "") and system_prompt or nil
+
         self.plugin.prompt_service:addUserPrompt({
             text = name,
-            system_prompt = system_prompt,
+            system_prompt = sys_prompt,
             user_prompt = user_prompt,
             context = context,
             enabled = true,
         })
-        
+
         UIManager:show(InfoMessage:new{
             text = _("Prompt added successfully"),
         })
@@ -523,24 +716,46 @@ end
 
 function PromptsManager:updatePrompt(existing_prompt, name, system_prompt, user_prompt, context)
     if self.plugin.prompt_service then
+        -- Convert empty strings to nil so fallback system prompts work
+        local sys_prompt = (system_prompt and system_prompt ~= "") and system_prompt or nil
+
         if existing_prompt.source == "ui" then
-            -- Find the index of this prompt in custom_prompts
-            local custom_prompts = self.plugin.settings:readSetting("custom_prompts") or {}
-            
-            for i, prompt in ipairs(custom_prompts) do
-                if prompt.text == existing_prompt.text then
-                    self.plugin.prompt_service:updateUserPrompt(i, {
-                        text = name,
-                        system_prompt = system_prompt,
-                        user_prompt = user_prompt,
-                        context = context,
-                        enabled = existing_prompt.enabled,
-                    })
-                    
-                    UIManager:show(InfoMessage:new{
-                        text = _("Prompt updated successfully"),
-                    })
-                    break
+            -- Extract index from prompt ID (format: "ui_N")
+            local index = nil
+            if existing_prompt.id and existing_prompt.id:match("^ui_(%d+)$") then
+                index = tonumber(existing_prompt.id:match("^ui_(%d+)$"))
+            end
+
+            if index then
+                self.plugin.prompt_service:updateUserPrompt(index, {
+                    text = name,
+                    system_prompt = sys_prompt,
+                    user_prompt = user_prompt,
+                    context = context,
+                    enabled = true,
+                })
+
+                UIManager:show(InfoMessage:new{
+                    text = _("Prompt updated successfully"),
+                })
+            else
+                -- Fallback: find by original name
+                local custom_prompts = self.plugin.settings:readSetting("custom_prompts") or {}
+                for i, prompt in ipairs(custom_prompts) do
+                    if prompt.text == existing_prompt.text then
+                        self.plugin.prompt_service:updateUserPrompt(i, {
+                            text = name,
+                            system_prompt = sys_prompt,
+                            user_prompt = user_prompt,
+                            context = context,
+                            enabled = true,
+                        })
+
+                        UIManager:show(InfoMessage:new{
+                            text = _("Prompt updated successfully"),
+                        })
+                        break
+                    end
                 end
             end
         elseif existing_prompt.source == "config" then

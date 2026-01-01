@@ -209,17 +209,34 @@ end
 
 function PromptService:setPromptEnabled(context, prompt_text, enabled)
     local disabled_prompts = self.settings:readSetting("disabled_prompts") or {}
-    local key = context .. ":" .. prompt_text
-    
-    if enabled then
-        disabled_prompts[key] = nil
+
+    -- Expand compound contexts to individual contexts
+    local contexts_to_toggle = {}
+    if context == "all" then
+        contexts_to_toggle = {"highlight", "book", "multi_book", "general"}
+    elseif context == "both" then
+        contexts_to_toggle = {"highlight", "book"}
+    elseif context == "highlight+general" then
+        contexts_to_toggle = {"highlight", "general"}
+    elseif context == "book+general" then
+        contexts_to_toggle = {"book", "general"}
     else
-        disabled_prompts[key] = true
+        contexts_to_toggle = {context}
     end
-    
+
+    -- Toggle each individual context
+    for _, ctx in ipairs(contexts_to_toggle) do
+        local key = ctx .. ":" .. prompt_text
+        if enabled then
+            disabled_prompts[key] = nil
+        else
+            disabled_prompts[key] = true
+        end
+    end
+
     self.settings:saveSetting("disabled_prompts", disabled_prompts)
     self.settings:flush()
-    
+
     -- Invalidate cache to force reload
     self.prompts_cache = nil
 end

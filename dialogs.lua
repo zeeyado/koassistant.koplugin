@@ -684,13 +684,16 @@ local function handlePredefinedPrompt(prompt_type, highlightedText, ui, configur
     end
 
     -- Determine system prompt based on context
+    -- Check for empty string as well as nil
     local system_prompt = prompt.system_prompt
-    if not system_prompt and plugin and plugin.prompt_service then
+    if (not system_prompt or system_prompt == "") and plugin and plugin.prompt_service then
         local context = getPromptContext(config)
         system_prompt = plugin.prompt_service:getSystemPrompt(context)
     end
     -- Use centralized default system prompt if none provided
-    system_prompt = system_prompt or plugin.prompt_service:getSystemPrompt(nil, "default")
+    if not system_prompt or system_prompt == "" then
+        system_prompt = plugin.prompt_service:getSystemPrompt(nil, "default")
+    end
 
     -- Create history WITHOUT system prompt (we'll include it in the consolidated message)
     -- Pass prompt text for better chat naming
