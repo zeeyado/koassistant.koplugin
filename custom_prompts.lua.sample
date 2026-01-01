@@ -10,7 +10,7 @@ Each prompt must have:
 Optional fields:
   - context: Where this prompt appears (required for file-based prompts)
     • "highlight" - When text is highlighted
-    • "book" - When accessing from file browser  
+    • "book" - When accessing from file browser
     • "multi_book" - When multiple books selected
     • "general" - No specific context (Tools menu)
     • "both" - Appears in highlight AND book contexts
@@ -19,6 +19,7 @@ Optional fields:
   - model: Use specific model
   - enabled: Set to false to disable (default: true)
   - include_book_context: Add book info to highlight prompts (default: false)
+  - save_category: Save chats to a custom category (e.g., "Islamic Studies", "Research")
 
 Template variables:
   - Highlight context: {highlighted_text}
@@ -68,6 +69,15 @@ return {
         context = "general",
         system_prompt = "You are a creative writing assistant.",
         user_prompt = "Help me with creative writing."
+    },
+
+    -- Custom save category example
+    {
+        text = "Research Notes",
+        context = "highlight",
+        user_prompt = "Analyze this text and create research notes: {highlighted_text}",
+        include_book_context = true,
+        save_category = "Research"  -- All chats go to "Research" category instead of the book
     },
     
     -- Both contexts example (works for highlight AND single book)

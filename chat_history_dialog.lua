@@ -206,12 +206,23 @@ function ChatHistoryDialog:showChatHistoryBrowser(ui, current_document_path, cha
 
         -- Capture doc in closure
         local captured_doc = doc
+
+        -- Determine help text based on document type
+        local help_text
+        if doc.path == "__GENERAL_CHATS__" then
+            help_text = _("AI conversations without book context")
+        elseif doc.path:match("^__CATEGORY:(.+)__$") then
+            help_text = _("Custom category for organized chats")
+        else
+            help_text = doc.path
+        end
+
         table.insert(menu_items, {
             text = display_text,
             mandatory = right_text,
             mandatory_dim = true,
             bold = true,
-            help_text = doc.path == "__GENERAL_CHATS__" and _("AI conversations without book context") or doc.path,
+            help_text = help_text,
             callback = function()
                 logger.info("Document selected: " .. captured_doc.title)
                 -- Close the current menu before showing the next one
