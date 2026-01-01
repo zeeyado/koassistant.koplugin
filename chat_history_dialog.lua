@@ -550,6 +550,9 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
         logger.warn("continueChat: Could not reload chat from disk, using provided data")
     end
 
+    -- Track this as the last opened chat
+    chat_history_manager:setLastOpenedChat(document_path, chat.id)
+
     -- Close any existing chat viewer
     safeClose(self.current_chat_viewer)
     self.current_chat_viewer = nil

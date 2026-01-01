@@ -578,8 +578,49 @@ function ChatHistoryManager:getMostRecentChat()
     if most_recent_chat and most_recent_doc_path then
         return most_recent_chat, most_recent_doc_path
     end
-    
+
     return nil, nil
 end
 
-return ChatHistoryManager 
+-- Settings file for tracking last opened chat
+local LAST_OPENED_FILE = DataStorage:getSettingsDir() .. "/koassistant_last_opened.lua"
+
+-- Track the last opened chat (called when a chat is opened/continued)
+function ChatHistoryManager:setLastOpenedChat(document_path, chat_id)
+    if not document_path or not chat_id then
+        logger.warn("setLastOpenedChat: Missing document_path or chat_id")
+        return false
+    end
+
+    local settings = LuaSettings:open(LAST_OPENED_FILE)
+    settings:saveSetting("last_opened", {
+        document_path = document_path,
+        chat_id = chat_id,
+        timestamp = os.time()
+    })
+    settings:flush()
+    logger.info("Saved last opened chat: " .. chat_id .. " for document: " .. document_path)
+    return true
+end
+
+-- Get the last opened chat (regardless of when it was last saved)
+function ChatHistoryManager:getLastOpenedChat()
+    local settings = LuaSettings:open(LAST_OPENED_FILE)
+    local last_opened = settings:readSetting("last_opened")
+
+    if not last_opened or not last_opened.document_path or not last_opened.chat_id then
+        logger.info("No last opened chat found")
+        return nil, nil
+    end
+
+    -- Try to load the chat from disk
+    local chat = self:getChatById(last_opened.document_path, last_opened.chat_id)
+    if not chat then
+        logger.warn("Last opened chat no longer exists: " .. last_opened.chat_id)
+        return nil, nil
+    end
+
+    return chat, last_opened.document_path
+end
+
+return ChatHistoryManager
