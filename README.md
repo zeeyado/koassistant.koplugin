@@ -17,7 +17,7 @@ You can:
 - Export chats to markdown and text
 - Use different AI models (for speed/depth, etc)
 - Map functions to gestures and pop up menus for quick actions
-- Configure most things in the UI (including provider/model selection, disabling/enabling prompts, translation language, chat history, etc)
+- Configure most things in the UI (including provider/model selection, managing prompts, translation language, chat history, etc)
 - Much more using custom prompts/actions
 
 A wiki/doc page will be made for creating custom prompts and actions, and other advanced configuration and usage. 
