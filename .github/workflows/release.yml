@@ -9,6 +9,9 @@ on:
         description: 'Release tag to attach zip to (e.g., v0.2.0)'
         required: true
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
