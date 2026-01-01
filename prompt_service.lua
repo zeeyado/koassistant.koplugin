@@ -165,7 +165,7 @@ end
 function PromptService:addPromptToCache(context, id, prompt, source, default_system_prompt)
     local disabled_prompts = self.settings:readSetting("disabled_prompts") or {}
     local key = context .. ":" .. (prompt.text or id)
-    
+
     local prompt_data = {
         id = id,
         text = prompt.text or id,
@@ -176,9 +176,11 @@ function PromptService:addPromptToCache(context, id, prompt, source, default_sys
         provider = prompt.provider,
         model = prompt.model,
         requires = prompt.requires,
-        include_book_context = prompt.include_book_context
+        include_book_context = prompt.include_book_context,
+        -- Store original context for proper toggling in prompts manager
+        original_context = prompt.context,
     }
-    
+
     table.insert(self.prompts_cache[context], prompt_data)
 end
 

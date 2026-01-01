@@ -463,24 +463,82 @@ function PromptsManager:showStep1_NameAndContext(state)
     dialog:onShowKeyboard()
 end
 
+-- Get context info including what data is available
+function PromptsManager:getContextInfo(context_value)
+    local context_info = {
+        highlight = {
+            text = _("Highlight"),
+            desc = _("When text is selected in a book"),
+            includes = _("Includes: selected text, book title, author"),
+        },
+        book = {
+            text = _("Book"),
+            desc = _("When a book is selected in file browser"),
+            includes = _("Includes: book title, author"),
+        },
+        multi_book = {
+            text = _("Multi-Book"),
+            desc = _("When multiple books are selected"),
+            includes = _("Includes: list of books with titles/authors, count"),
+        },
+        general = {
+            text = _("General"),
+            desc = _("General chat, no specific context"),
+            includes = _("No automatic context data"),
+        },
+        both = {
+            text = _("Highlight & Book"),
+            desc = _("Both highlight and book contexts"),
+            includes = _("Varies by trigger"),
+        },
+        all = {
+            text = _("All Contexts"),
+            desc = _("Available everywhere"),
+            includes = _("Varies by trigger"),
+        },
+    }
+    return context_info[context_value]
+end
+
+-- Get default system prompt for a context
+-- For compound contexts (both, all), returns nil since the actual default varies by trigger
+function PromptsManager:getDefaultSystemPrompt(context)
+    local defaults = {
+        highlight = "You are a helpful reading assistant. The user has highlighted text from a book and wants help understanding or exploring it.",
+        book = "You are an AI assistant helping with questions about books. The user has selected a book from their library and wants to know more about it.",
+        multi_book = "You are an AI assistant helping analyze and compare books. The user has selected multiple books from their library and wants insights about the collection.",
+        general = "You are a helpful AI assistant ready to engage in conversation, answer questions, and help with various tasks.",
+        -- Compound contexts don't have a single default - it varies by how the prompt is triggered
+        both = nil,
+        all = nil,
+    }
+    return defaults[context]
+end
+
 -- Context selector for wizard
 function PromptsManager:showContextSelectorWizard(state)
     local context_options = {
-        { value = "highlight", text = _("Highlight"), desc = _("When text is selected in a book") },
-        { value = "book", text = _("Book"), desc = _("When a book is selected in file browser") },
-        { value = "multi_book", text = _("Multi-Book"), desc = _("When multiple books are selected") },
-        { value = "general", text = _("General"), desc = _("General chat, no specific context") },
-        { value = "both", text = _("Highlight & Book"), desc = _("Both highlight and book contexts") },
-        { value = "all", text = _("All Contexts"), desc = _("Available everywhere") },
+        { value = "highlight" },
+        { value = "book" },
+        { value = "multi_book" },
+        { value = "general" },
+        { value = "both" },
+        { value = "all" },
     }
 
     local buttons = {}
 
     for _, option in ipairs(context_options) do
+        local info = self:getContextInfo(option.value)
         local prefix = (state.context == option.value) and "● " or "○ "
+        -- Show context name, description, and what data is included
+        local button_text = prefix .. info.text .. "\n   " .. info.desc
+        if info.includes then
+            button_text = button_text .. "\n   " .. info.includes
+        end
         table.insert(buttons, {
             {
-                text = prefix .. option.text .. " - " .. option.desc,
+                text = button_text,
                 callback = function()
                     state.context = option.value
                     UIManager:close(self.context_dialog)
@@ -512,12 +570,41 @@ end
 function PromptsManager:showStep2_SystemPrompt(state)
     local is_edit = state.existing_prompt ~= nil
 
+    -- Get context info and default prompt
+    local context_info = self:getContextInfo(state.context)
+    local default_prompt = self:getDefaultSystemPrompt(state.context)
+
+    local description, input_hint
+
+    if default_prompt then
+        -- Single context - show the specific default
+        description = string.format(
+            _("Leave empty to use the context default.\n\n" ..
+              "Examples:\n" ..
+              "• 'You are an expert literary critic.'\n" ..
+              "• 'Respond simply, as if explaining to a child.'\n" ..
+              "• 'Be concise. Use bullet points.'"))
+        -- Show the default prompt as gray hint text in the input field
+        input_hint = default_prompt
+    else
+        -- Compound context (both, all) - default varies by trigger
+        description = string.format(
+            _("For '%s', the default system prompt varies depending on how the prompt is triggered:\n" ..
+              "• From highlight: reading assistant prompt\n" ..
+              "• From book: book assistant prompt\n" ..
+              "• From multi-book: comparison prompt\n" ..
+              "• From general: general assistant prompt\n\n" ..
+              "Leave empty to use these context-specific defaults, or write your own."),
+            context_info.text)
+        input_hint = _("Leave empty for context-specific defaults")
+    end
+
     local dialog
     dialog = InputDialog:new{
         title = is_edit and _("Edit Prompt - System Instructions") or _("New Prompt - Step 2/3"),
         input = state.system_prompt or "",
-        input_hint = _("Optional: Instructions for how the AI should behave"),
-        description = _("Leave empty to use the default for the selected context.\n\nExamples:\n• 'You are an expert literary critic.'\n• 'Respond in simple terms a child could understand.'\n• 'Be concise and use bullet points.'"),
+        input_hint = input_hint,
+        description = description,
         fullscreen = true,
         allow_newline = true,
         buttons = {
