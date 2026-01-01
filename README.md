@@ -2,7 +2,7 @@
 
 A powerful AI assistant integrated into KOReader.
 
-The vision is to be more of a technical research assistant and knowledge expander than a "novel reading helper" plugin, so there won't likely be features like character X-Ray and so on.
+Meant to be a technical research assistant and knowledge expander.
 
 > **Note:** This project was recently renamed from "Assistant" to "KOAssistant" due to a naming conflict with [a more popular fork](https://github.com/omer-faruq/assistant.koplugin) of this repo. Some internal references and UI elements may still show the old name.
 
@@ -11,13 +11,13 @@ You can:
 - Have general chats (no context)
 - Select documents in the file browser and chat about them (using metadata like title, author, etc), and create custom actions and prompts for single selection
 - Select multiple documents in the file browser and compare them, and create custom actions and prompts for multi-selection, like finding common themes, etc
-- Create large custom prompts that send a set of instructions or context to the AI along with your message, depending on your need/project/what you are reading (expansion of this feature planned to use koreader profile settings)
 - Highlight text in a document and have it explained, translated, or chat about it, etc
-- Save/autosave and continue chats
+- Create large custom prompts that send a set of instructions or context to the AI along with your message, depending on your need/project/what you are reading (expansion of this feature planned to use koreader profile settings)
+- Save/autosave and continue chats any time, have multiple chats per document, etc
 - Export chats to markdown and text
 - Use different AI models (for speed/depth, etc)
 - Map functions to gestures and pop up menus for quick actions
-- Configure most things in the UI (including provider/model selecgtion, disabling/enabling prompts depending on context, translation language, chat history)
+- Configure most things in the UI (including provider/model selection, disabling/enabling prompts, translation language, chat history, etc)
 - Much more using custom prompts/actions
 
 A wiki/doc page will be made for creating custom prompts and actions, and other advanced configuration and usage. 
