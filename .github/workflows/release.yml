@@ -1,0 +1,39 @@
+name: Create Release Zip
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Create plugin directory structure
+        run: |
+          mkdir -p build/koassistant.koplugin
+          # Copy all files except excluded ones
+          rsync -av --exclude='.git' \
+                    --exclude='.github' \
+                    --exclude='.claude' \
+                    --exclude='docs' \
+                    . build/koassistant.koplugin/
+
+      - name: Create zip archive
+        run: |
+          cd build
+          zip -r koassistant.koplugin.zip koassistant.koplugin
+
+      - name: Upload Release Asset
+        uses: softprops/action-gh-release@v1
+        with:
+          files: build/koassistant.koplugin.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
