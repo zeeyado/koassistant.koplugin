@@ -919,26 +919,32 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     end
                     
                     -- Add appropriate context
-                    if configuration.features.is_file_browser_context then
-                        -- For file browser, highlighted_text contains the book metadata
+                    if configuration.features.is_book_context then
+                        -- For book context (file browser or gesture action), include book metadata
                         table.insert(parts, "[Context]")
-                        table.insert(parts, highlighted_text)
+                        if book_metadata then
+                            table.insert(parts, string.format('Book: "%s"%s',
+                                book_metadata.title or "Unknown",
+                                (book_metadata.author and book_metadata.author ~= "") and (" by " .. book_metadata.author) or ""))
+                        elseif highlighted_text then
+                            -- Fallback to highlighted_text if it contains formatted book info
+                            table.insert(parts, highlighted_text)
+                        end
                         table.insert(parts, "")
                     elseif configuration.features.is_general_context then
                         -- For general context, no initial context needed
                         -- User will provide their question/prompt
                     elseif highlighted_text then
-                        -- For highlighted text context
+                        -- For highlighted text context - always include book info if available
                         table.insert(parts, "[Context]")
-                        if title and author then
-                            table.insert(parts, string.format('From "%s" by %s', title, author))
+                        if book_metadata and book_metadata.title then
+                            table.insert(parts, string.format('From "%s"%s',
+                                book_metadata.title,
+                                (book_metadata.author and book_metadata.author ~= "") and (" by " .. book_metadata.author) or ""))
                             table.insert(parts, "")
-                            table.insert(parts, "Highlighted text:")
-                            table.insert(parts, '"' .. highlighted_text .. '"')
-                        else
-                            table.insert(parts, "Highlighted text:")
-                            table.insert(parts, '"' .. highlighted_text .. '"')
                         end
+                        table.insert(parts, "Selected text:")
+                        table.insert(parts, '"' .. highlighted_text .. '"')
                         table.insert(parts, "")
                     end
                     
