@@ -338,27 +338,9 @@ local function showExportOptions(history)
     UIManager:show(export_dialog)
 end
 
-local function showResponseDialog(title, history, highlightedText, addMessage, temp_config, document_path, plugin, book_metadata, launch_context, save_category)
+local function showResponseDialog(title, history, highlightedText, addMessage, temp_config, document_path, plugin, book_metadata, launch_context)
     local result_text = history:createResultText(highlightedText, temp_config or CONFIGURATION)
     local model_info = history:getModel() or ConfigHelper:getModelInfo(temp_config)
-
-    -- Determine effective save path based on save_category
-    -- If save_category is set, use it as the document path for saving
-    -- This allows prompts to save chats to custom categories (e.g., "Islamic Studies")
-    local effective_save_path = nil  -- Only set when save_category is used
-    local effective_launch_context = launch_context
-    if save_category and save_category ~= "" then
-        effective_save_path = "__CATEGORY:" .. save_category .. "__"
-        -- If we're overriding to a category, capture the original context as launch_context
-        -- so we know where the chat was started from
-        if not effective_launch_context and book_metadata and book_metadata.title then
-            effective_launch_context = {
-                title = book_metadata.title,
-                author = book_metadata.author,
-                file = document_path
-            }
-        end
-    end
 
     -- Initialize chat history manager
     local chat_history_manager = ChatHistoryManager:new()
@@ -474,12 +456,15 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                             metadata.book_title = book_metadata.title
                             metadata.book_author = book_metadata.author
                         end
-                        if effective_launch_context then
-                            metadata.launch_context = effective_launch_context
+                        if launch_context then
+                            metadata.launch_context = launch_context
+                        end
+                        if history.domain then
+                            metadata.domain = history.domain
                         end
 
-                        -- Determine save path: custom category > document path > general chats
-                        local save_path = effective_save_path or document_path or (is_general_context and "__GENERAL_CHATS__" or nil)
+                        -- Determine save path: document path or general chats
+                        local save_path = document_path or (is_general_context and "__GENERAL_CHATS__" or nil)
                         local save_result = chat_history_manager:saveChat(
                             save_path,
                             suggested_title,
@@ -515,10 +500,8 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                 })
             else
                 -- Call our helper function to handle saving
-                -- Determine save path: custom category > document path > general chats fallback
                 local is_general_context = temp_config and temp_config.features and temp_config.features.is_general_context or false
-                local save_path = effective_save_path or document_path
-                createSaveDialog(save_path, history, chat_history_manager, is_general_context, book_metadata, effective_launch_context or launch_context)
+                createSaveDialog(document_path, history, chat_history_manager, is_general_context, book_metadata, launch_context)
             end
         end,
         export_callback = function()
@@ -554,12 +537,15 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                 metadata.book_title = book_metadata.title
                 metadata.book_author = book_metadata.author
             end
-            if effective_launch_context then
-                metadata.launch_context = effective_launch_context
+            if launch_context then
+                metadata.launch_context = launch_context
+            end
+            if history.domain then
+                metadata.domain = history.domain
             end
 
-            -- Determine save path: custom category > document path > general chats
-            local save_path = effective_save_path or document_path or (is_general_context and "__GENERAL_CHATS__" or nil)
+            -- Determine save path: document path or general chats
+            local save_path = document_path or (is_general_context and "__GENERAL_CHATS__" or nil)
             local result = chat_history_manager:saveChat(
                 save_path,
                 suggested_title,
@@ -581,12 +567,23 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
 end
 
 -- Helper function to build consolidated messages
-local function buildConsolidatedMessage(prompt, context, data, system_prompt)
+-- @param prompt: The prompt definition
+-- @param context: The context type (highlight, book, multi_book, general)
+-- @param data: Context-specific data (highlighted_text, book_metadata, etc.)
+-- @param system_prompt: Optional system prompt override
+-- @param domain_context: Optional domain context text to prepend
+local function buildConsolidatedMessage(prompt, context, data, system_prompt, domain_context)
     local parts = {}
-    
+
+    -- Add domain context if provided (background knowledge about the topic area)
+    if domain_context and domain_context ~= "" then
+        table.insert(parts, "[Domain Context]")
+        table.insert(parts, domain_context)
+        table.insert(parts, "")
+    end
+
     -- Add system prompt if provided
     if system_prompt then
-        table.insert(parts, "")  -- Add line break before [Instructions]
         table.insert(parts, "[Instructions]")
         table.insert(parts, system_prompt)
         table.insert(parts, "")
@@ -795,9 +792,34 @@ local function handlePredefinedPrompt(prompt_type, highlightedText, ui, configur
         end
     end
 
-    -- Build and add the consolidated message (now including system prompt)
-    local consolidated_message = buildConsolidatedMessage(prompt, context, message_data, system_prompt)
+    -- Get domain context if a domain is set
+    -- Priority: prompt.domain (locked) > config.features.selected_domain (user choice)
+    local domain_context = nil
+    local domain_id = prompt.domain or (config.features and config.features.selected_domain)
+    if domain_id then
+        local Domains = require("domains")
+        local all_domains = Domains.load()
+        if all_domains[domain_id] then
+            domain_context = all_domains[domain_id].context
+            -- Also add system_hint to system prompt if available
+            if all_domains[domain_id].system_hint then
+                if system_prompt then
+                    system_prompt = system_prompt .. "\n\n" .. all_domains[domain_id].system_hint
+                else
+                    system_prompt = all_domains[domain_id].system_hint
+                end
+            end
+        end
+    end
+
+    -- Build and add the consolidated message (now including system prompt and domain context)
+    local consolidated_message = buildConsolidatedMessage(prompt, context, message_data, system_prompt, domain_context)
     history:addUserMessage(consolidated_message, true)
+
+    -- Store domain in history for saving with chat
+    if domain_id then
+        history.domain = domain_id
+    end
 
     -- Track if user provided additional input
     local has_additional_input = additional_input and additional_input ~= ""
@@ -910,6 +932,86 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         logger.info("KOAssistant: No metadata available in either context")
     end
 
+    -- Track selected domain for this dialog (initialize from config if set)
+    local selected_domain = configuration and configuration.features and configuration.features.selected_domain or nil
+
+    -- Function to show domain selector
+    local function showDomainSelector()
+        local Domains = require("domains")
+        local all_domains = Domains.load()
+        local sorted_ids = Domains.getSortedIds(all_domains)
+
+        local buttons = {}
+
+        -- "None" option
+        local none_prefix = (not selected_domain) and "● " or "○ "
+        table.insert(buttons, {
+            {
+                text = none_prefix .. _("None"),
+                callback = function()
+                    selected_domain = nil
+                    configuration.features = configuration.features or {}
+                    configuration.features.selected_domain = nil
+                    UIManager:close(_G.domain_selector_dialog)
+                    -- Refresh main dialog to show updated domain selection
+                    UIManager:close(input_dialog)
+                    showChatGPTDialog(ui_instance, highlighted_text, configuration, nil, plugin, book_metadata)
+                end,
+            },
+        })
+
+        -- Domain options
+        for _, domain_id in ipairs(sorted_ids) do
+            local domain = all_domains[domain_id]
+            local prefix = (selected_domain == domain_id) and "● " or "○ "
+            table.insert(buttons, {
+                {
+                    text = prefix .. domain.name,
+                    callback = function()
+                        selected_domain = domain_id
+                        configuration.features = configuration.features or {}
+                        configuration.features.selected_domain = domain_id
+                        UIManager:close(_G.domain_selector_dialog)
+                        -- Refresh main dialog to show updated domain selection
+                        UIManager:close(input_dialog)
+                        showChatGPTDialog(ui_instance, highlighted_text, configuration, nil, plugin, book_metadata)
+                    end,
+                },
+            })
+        end
+
+        -- Close button
+        table.insert(buttons, {
+            {
+                text = _("Close"),
+                id = "close",
+                callback = function()
+                    UIManager:close(_G.domain_selector_dialog)
+                end,
+            },
+        })
+
+        local ButtonDialog = require("ui/widget/buttondialog")
+        _G.domain_selector_dialog = ButtonDialog:new{
+            title = _("Select Domain"),
+            buttons = buttons,
+        }
+        UIManager:show(_G.domain_selector_dialog)
+    end
+
+    -- Get domain display name for button
+    local function getDomainDisplayName()
+        if not selected_domain then
+            return _("None")
+        end
+        local Domains = require("domains")
+        local all_domains = Domains.load()
+        if all_domains[selected_domain] then
+            return all_domains[selected_domain].name
+        end
+        return selected_domain
+    end
+
     -- Collect all buttons in priority order
     local all_buttons = {
         -- 1. Close
@@ -920,7 +1022,14 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                 UIManager:close(input_dialog)
             end
         },
-        -- 2. Ask
+        -- 2. Domain selector
+        {
+            text = _("Domain: ") .. getDomainDisplayName(),
+            callback = function()
+                showDomainSelector()
+            end
+        },
+        -- 3. Ask
         {
             text = _("Ask"),
             callback = function()
@@ -935,12 +1044,43 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         -- Use context-specific fallback system prompt
                         system_prompt = plugin.prompt_service:getSystemPrompt(context)
                     end
-                    
+
+                    -- Get domain context if a domain is selected
+                    local domain_id = selected_domain
+                    local domain_context = nil
+                    if domain_id then
+                        local Domains = require("domains")
+                        local all_domains = Domains.load()
+                        if all_domains[domain_id] then
+                            domain_context = all_domains[domain_id].context
+                            -- Add domain system hint to system prompt if available
+                            if all_domains[domain_id].system_hint then
+                                if system_prompt then
+                                    system_prompt = system_prompt .. "\n\n" .. all_domains[domain_id].system_hint
+                                else
+                                    system_prompt = all_domains[domain_id].system_hint
+                                end
+                            end
+                        end
+                    end
+
                     -- Create history WITHOUT system prompt (we'll include it in the consolidated message)
                     local history = MessageHistory:new(nil, "Ask")
-                    
+
+                    -- Store domain in history for saving with chat
+                    if domain_id then
+                        history.domain = domain_id
+                    end
+
                     -- Build consolidated message parts
                     local parts = {}
+
+                    -- Add domain context first if provided (background knowledge)
+                    if domain_context and domain_context ~= "" then
+                        table.insert(parts, "[Domain Context]")
+                        table.insert(parts, domain_context)
+                        table.insert(parts, "")
+                    end
                     
                     -- Add system prompt
                     if system_prompt then
@@ -1167,7 +1307,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                                 end
                                 return nil -- Streaming will update via callback
                             end
-                            showResponseDialog(gettext(prompt.text), history, highlighted_text, addMessage, temp_config, document_path, plugin, book_metadata, launch_context, prompt.save_category)
+                            showResponseDialog(gettext(prompt.text), history, highlighted_text, addMessage, temp_config, document_path, plugin, book_metadata, launch_context)
                         else
                             local error_msg = temp_config_or_error or "Unknown error"
                             UIManager:show(InfoMessage:new{

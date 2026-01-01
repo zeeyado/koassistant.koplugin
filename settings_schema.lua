@@ -94,6 +94,13 @@ local SettingsSchema = {
                     callback = "showPromptsManager",
                 },
                 {
+                    id = "view_domains",
+                    type = "action",
+                    text = _("View Domains"),
+                    description = _("View available knowledge domains for AI context"),
+                    callback = "showDomainsViewer",
+                },
+                {
                     id = "translation_language",
                     type = "text",
                     text = _("Translation Language"),

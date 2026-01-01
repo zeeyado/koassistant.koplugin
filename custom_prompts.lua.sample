@@ -19,7 +19,7 @@ Optional fields:
   - model: Use specific model
   - enabled: Set to false to disable (default: true)
   - include_book_context: Add book info to highlight prompts (default: false)
-  - save_category: Save chats to a custom category (e.g., "Islamic Studies", "Research")
+  - domain: Lock this prompt to a specific domain (defined in domains.lua)
 
 Template variables:
   - Highlight context: {highlighted_text}
@@ -71,13 +71,13 @@ return {
         user_prompt = "Help me with creative writing."
     },
 
-    -- Custom save category example
+    -- Domain-locked prompt example
     {
         text = "Research Notes",
         context = "highlight",
         user_prompt = "Analyze this text and create research notes: {highlighted_text}",
         include_book_context = true,
-        save_category = "Research"  -- All chats go to "Research" category instead of the book
+        domain = "research"  -- Always use "research" domain context (defined in domains.lua)
     },
     
     -- Both contexts example (works for highlight AND single book)

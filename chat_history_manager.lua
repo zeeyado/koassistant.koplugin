@@ -82,14 +82,10 @@ function ChatHistoryManager:getAllDocuments()
                         -- Get the document path from one of the chats
                         local document_path = self:getDocumentPathFromHash(doc_hash)
                         if document_path then
-                            -- Handle special cases for general context and custom categories
+                            -- Handle special case for general context
                             local document_title, book_author
                             if document_path == "__GENERAL_CHATS__" then
                                 document_title = _("General AI Chats")
-                            elseif document_path:match("^__CATEGORY:(.+)__$") then
-                                -- Custom save category - extract the category name
-                                local category_name = document_path:match("^__CATEGORY:(.+)__$")
-                                document_title = category_name
                             else
                                 -- Try to get book metadata from one of the chats
                                 local book_title_found = nil
@@ -144,18 +140,8 @@ function ChatHistoryManager:getAllDocuments()
             return false
         end
 
-        -- Custom categories come before regular books
-        local a_is_category = a.path:match("^__CATEGORY:(.+)__$")
-        local b_is_category = b.path:match("^__CATEGORY:(.+)__$")
-
-        if a_is_category and not b_is_category then
-            return true  -- Categories before books
-        elseif b_is_category and not a_is_category then
-            return false  -- Books after categories
-        else
-            -- Both categories or both books: sort alphabetically by title
-            return a.title < b.title
-        end
+        -- Sort alphabetically by title
+        return a.title < b.title
     end)
     
     return documents
@@ -210,7 +196,11 @@ function ChatHistoryManager:saveChat(document_path, chat_title, message_history,
         -- Store prompt action for continued chats
         prompt_action = message_history.prompt_action or nil,
         -- Store launch context for general chats started from within a book
-        launch_context = metadata and metadata.launch_context or nil
+        launch_context = metadata and metadata.launch_context or nil,
+        -- Store domain for filtering and context (optional, set at chat start only)
+        domain = metadata and metadata.domain or nil,
+        -- Store tags for organization (can be modified anytime)
+        tags = metadata and metadata.tags or {},
     }
     
     -- Check if this is an update to an existing chat
@@ -621,6 +611,292 @@ function ChatHistoryManager:getLastOpenedChat()
     end
 
     return chat, last_opened.document_path
+end
+
+-- Get all chats grouped by domain
+-- Returns a table with domain IDs as keys and arrays of {chat, document_path} as values
+-- Chats without a domain are grouped under "untagged"
+function ChatHistoryManager:getChatsByDomain()
+    local domains = {}
+    domains["untagged"] = {}
+
+    -- Loop through all document directories
+    if not lfs.attributes(self.CHAT_DIR, "mode") then
+        return domains
+    end
+
+    for doc_hash in lfs.dir(self.CHAT_DIR) do
+        if doc_hash ~= "." and doc_hash ~= ".." then
+            local doc_dir = self.CHAT_DIR .. "/" .. doc_hash
+            if lfs.attributes(doc_dir, "mode") == "directory" then
+                -- Get chats from this document directory
+                for filename in lfs.dir(doc_dir) do
+                    if filename ~= "." and filename ~= ".." and not filename:match("%.old$") then
+                        local chat_path = doc_dir .. "/" .. filename
+                        local chat = self:loadChat(chat_path)
+                        if chat and chat.messages and #chat.messages > 0 then
+                            local domain_key = chat.domain or "untagged"
+                            if not domains[domain_key] then
+                                domains[domain_key] = {}
+                            end
+                            table.insert(domains[domain_key], {
+                                chat = chat,
+                                document_path = chat.document_path
+                            })
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    -- Sort chats within each domain by timestamp (newest first)
+    for domain_key, chats in pairs(domains) do
+        table.sort(chats, function(a, b)
+            return (a.chat.timestamp or 0) > (b.chat.timestamp or 0)
+        end)
+    end
+
+    return domains
+end
+
+-- Get count of chats per domain
+function ChatHistoryManager:getDomainChatCounts()
+    local chats_by_domain = self:getChatsByDomain()
+    local counts = {}
+
+    for domain_key, chats in pairs(chats_by_domain) do
+        counts[domain_key] = #chats
+    end
+
+    return counts
+end
+
+-- Add a tag to a chat
+function ChatHistoryManager:addTagToChat(document_path, chat_id, tag)
+    if not document_path or not chat_id or not tag or tag == "" then
+        logger.warn("Cannot add tag: missing required parameters")
+        return false
+    end
+
+    -- Normalize the tag (trim whitespace)
+    tag = tag:match("^%s*(.-)%s*$")
+    if tag == "" then return false end
+
+    -- Load the chat
+    local chat = self:getChatById(document_path, chat_id)
+    if not chat then
+        logger.warn("Cannot add tag: chat not found")
+        return false
+    end
+
+    -- Initialize tags array if needed
+    if not chat.tags then
+        chat.tags = {}
+    end
+
+    -- Check if tag already exists
+    for _, existing_tag in ipairs(chat.tags) do
+        if existing_tag == tag then
+            logger.info("Tag already exists: " .. tag)
+            return true  -- Already has this tag
+        end
+    end
+
+    -- Add the tag
+    table.insert(chat.tags, tag)
+
+    -- Save the chat back to the file
+    return self:updateChatData(document_path, chat_id, chat)
+end
+
+-- Remove a tag from a chat
+function ChatHistoryManager:removeTagFromChat(document_path, chat_id, tag)
+    if not document_path or not chat_id or not tag then
+        logger.warn("Cannot remove tag: missing required parameters")
+        return false
+    end
+
+    -- Load the chat
+    local chat = self:getChatById(document_path, chat_id)
+    if not chat then
+        logger.warn("Cannot remove tag: chat not found")
+        return false
+    end
+
+    if not chat.tags then
+        return true  -- No tags to remove
+    end
+
+    -- Find and remove the tag
+    local found = false
+    for i, existing_tag in ipairs(chat.tags) do
+        if existing_tag == tag then
+            table.remove(chat.tags, i)
+            found = true
+            break
+        end
+    end
+
+    if not found then
+        return true  -- Tag wasn't there anyway
+    end
+
+    -- Save the chat back to the file
+    return self:updateChatData(document_path, chat_id, chat)
+end
+
+-- Update chat data (internal helper for tag operations)
+function ChatHistoryManager:updateChatData(document_path, chat_id, chat_data)
+    local doc_dir = self:getDocumentChatDir(document_path)
+    if not doc_dir then return false end
+
+    local chat_path = doc_dir .. "/" .. chat_id .. ".lua"
+
+    -- Create backup
+    local backup_path = chat_path .. ".old"
+    if lfs.attributes(backup_path, "mode") then
+        os.remove(backup_path)
+    end
+
+    -- Rename the current file to .old as a backup
+    if lfs.attributes(chat_path, "mode") then
+        os.rename(chat_path, backup_path)
+    end
+
+    -- Save updated chat
+    local ok, err = pcall(function()
+        local settings = LuaSettings:open(chat_path)
+        settings:saveSetting("chat", chat_data)
+        settings:flush()
+    end)
+
+    if not ok then
+        logger.warn("Failed to update chat data: " .. (err or "unknown error"))
+        -- Restore backup on failure
+        if lfs.attributes(backup_path, "mode") then
+            os.rename(backup_path, chat_path)
+        end
+        return false
+    end
+
+    return true
+end
+
+-- Get all unique tags across all chats
+function ChatHistoryManager:getAllTags()
+    local tags_set = {}
+
+    -- Loop through all document directories
+    if not lfs.attributes(self.CHAT_DIR, "mode") then
+        return {}
+    end
+
+    for doc_hash in lfs.dir(self.CHAT_DIR) do
+        if doc_hash ~= "." and doc_hash ~= ".." then
+            local doc_dir = self.CHAT_DIR .. "/" .. doc_hash
+            if lfs.attributes(doc_dir, "mode") == "directory" then
+                -- Get chats from this document directory
+                for filename in lfs.dir(doc_dir) do
+                    if filename ~= "." and filename ~= ".." and not filename:match("%.old$") then
+                        local chat_path = doc_dir .. "/" .. filename
+                        local chat = self:loadChat(chat_path)
+                        if chat and chat.tags then
+                            for _, tag in ipairs(chat.tags) do
+                                tags_set[tag] = true
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    -- Convert set to sorted array
+    local tags = {}
+    for tag in pairs(tags_set) do
+        table.insert(tags, tag)
+    end
+    table.sort(tags)
+
+    return tags
+end
+
+-- Get all chats with a specific tag
+function ChatHistoryManager:getChatsByTag(tag)
+    local chats = {}
+
+    if not tag then return chats end
+
+    -- Loop through all document directories
+    if not lfs.attributes(self.CHAT_DIR, "mode") then
+        return chats
+    end
+
+    for doc_hash in lfs.dir(self.CHAT_DIR) do
+        if doc_hash ~= "." and doc_hash ~= ".." then
+            local doc_dir = self.CHAT_DIR .. "/" .. doc_hash
+            if lfs.attributes(doc_dir, "mode") == "directory" then
+                -- Get chats from this document directory
+                for filename in lfs.dir(doc_dir) do
+                    if filename ~= "." and filename ~= ".." and not filename:match("%.old$") then
+                        local chat_path = doc_dir .. "/" .. filename
+                        local chat = self:loadChat(chat_path)
+                        if chat and chat.tags and chat.messages and #chat.messages > 0 then
+                            for _, chat_tag in ipairs(chat.tags) do
+                                if chat_tag == tag then
+                                    table.insert(chats, {
+                                        chat = chat,
+                                        document_path = chat.document_path
+                                    })
+                                    break
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    -- Sort by timestamp (newest first)
+    table.sort(chats, function(a, b)
+        return (a.chat.timestamp or 0) > (b.chat.timestamp or 0)
+    end)
+
+    return chats
+end
+
+-- Get count of chats per tag
+function ChatHistoryManager:getTagChatCounts()
+    local counts = {}
+
+    -- Loop through all document directories
+    if not lfs.attributes(self.CHAT_DIR, "mode") then
+        return counts
+    end
+
+    for doc_hash in lfs.dir(self.CHAT_DIR) do
+        if doc_hash ~= "." and doc_hash ~= ".." then
+            local doc_dir = self.CHAT_DIR .. "/" .. doc_hash
+            if lfs.attributes(doc_dir, "mode") == "directory" then
+                -- Get chats from this document directory
+                for filename in lfs.dir(doc_dir) do
+                    if filename ~= "." and filename ~= ".." and not filename:match("%.old$") then
+                        local chat_path = doc_dir .. "/" .. filename
+                        local chat = self:loadChat(chat_path)
+                        if chat and chat.tags and chat.messages and #chat.messages > 0 then
+                            for _, tag in ipairs(chat.tags) do
+                                counts[tag] = (counts[tag] or 0) + 1
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    return counts
 end
 
 return ChatHistoryManager
