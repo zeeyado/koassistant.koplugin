@@ -397,12 +397,13 @@ function PromptsManager:showPromptEditor(existing_prompt)
     local is_edit = existing_prompt ~= nil
 
     -- Initialize wizard state
+    -- For new prompts, default include_book_context to true (recommended)
     local state = {
         name = existing_prompt and existing_prompt.text or "",
         system_prompt = existing_prompt and existing_prompt.system_prompt or "",
         user_prompt = existing_prompt and existing_prompt.user_prompt or "",
         context = existing_prompt and existing_prompt.context or nil,
-        include_book_context = existing_prompt and existing_prompt.include_book_context or false,
+        include_book_context = existing_prompt and existing_prompt.include_book_context or (not existing_prompt and true) or false,
         existing_prompt = existing_prompt,
     }
 
@@ -482,7 +483,7 @@ function PromptsManager:showStep1_NameAndContext(state)
     end
 
     self.step1_dialog = InputDialog:new{
-        title = is_edit and _("Edit Prompt - Name") or _("New Prompt - Step 1/3"),
+        title = is_edit and _("Edit Prompt - Name") or _("Step 1/3: Name & Context"),
         input = state.name,
         input_hint = _("Enter a short name (shown as button)"),
         description = description,
@@ -506,7 +507,7 @@ function PromptsManager:getContextInfo(context_value, include_book_context)
         },
         book = {
             text = _("Book"),
-            desc = _("When a book is selected in file browser"),
+            desc = _("File browser selection or 'Chat about book' gesture"),
             includes = _("Includes: book title, author (automatic)"),
         },
         multi_book = {
@@ -616,13 +617,26 @@ function PromptsManager:showStep2_SystemPrompt(state)
     local description, input_hint
 
     if default_prompt then
-        -- Single context - show the specific default
+        -- Single context - show the specific default and what data is auto-included
+        local context_data_note = ""
+        if state.context == "book" then
+            context_data_note = _("\n\nNote: Book title and author are automatically sent to the AI.")
+        elseif state.context == "multi_book" then
+            context_data_note = _("\n\nNote: The list of selected books is automatically sent to the AI.")
+        elseif state.context == "highlight" then
+            if state.include_book_context then
+                context_data_note = _("\n\nNote: Selected text + book info are automatically sent to the AI.")
+            else
+                context_data_note = _("\n\nNote: Selected text is automatically sent to the AI.")
+            end
+        end
+
         description = string.format(
             _("Leave empty to use the context default.\n\n" ..
               "Examples:\n" ..
               "• 'You are an expert literary critic.'\n" ..
               "• 'Respond simply, as if explaining to a child.'\n" ..
-              "• 'Be concise. Use bullet points.'"))
+              "• 'Be concise. Use bullet points.'")) .. context_data_note
         -- Show the default prompt as gray hint text in the input field
         input_hint = default_prompt
     else
@@ -640,7 +654,7 @@ function PromptsManager:showStep2_SystemPrompt(state)
 
     local dialog
     dialog = InputDialog:new{
-        title = is_edit and _("Edit Prompt - System Instructions") or _("New Prompt - Step 2/3"),
+        title = is_edit and _("Edit Prompt - System Instructions") or _("Step 2/3: System Instructions"),
         input = state.system_prompt or "",
         input_hint = input_hint,
         description = description,
@@ -693,7 +707,7 @@ function PromptsManager:showStep3_UserPrompt(state)
 
     local dialog
     dialog = InputDialog:new{
-        title = is_edit and _("Edit Prompt - User Prompt") or _("New Prompt - Step 3/3"),
+        title = is_edit and _("Edit Prompt - User Prompt") or _("Step 3/3: User Prompt"),
         input = state.user_prompt or "",
         input_hint = _("What should be sent to the AI?"),
         description = _("Write your prompt here. Use placeholders to include context data:\n\n") .. placeholder_list,
