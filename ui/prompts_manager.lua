@@ -571,10 +571,13 @@ function PromptsManager:showContextSelectorWizard(state)
         -- For highlight context, show info based on current include_book_context setting
         local info = self:getContextInfo(option.value, state.include_book_context)
         local prefix = (state.context == option.value) and "● " or "○ "
-        -- Show context name, description, and what data is included
-        local button_text = prefix .. info.text .. "\n   " .. info.desc
+        -- Show context name on first line, description and includes on subsequent lines
+        local button_text = prefix .. info.text
+        if info.desc then
+            button_text = button_text .. "\n    " .. info.desc
+        end
         if info.includes then
-            button_text = button_text .. "\n   " .. info.includes
+            button_text = button_text .. "\n    " .. info.includes
         end
         table.insert(buttons, {
             {
@@ -710,7 +713,7 @@ function PromptsManager:showStep3_UserPrompt(state)
         title = is_edit and _("Edit Prompt - User Prompt") or _("Step 3/3: User Prompt"),
         input = state.user_prompt or "",
         input_hint = _("What should be sent to the AI?"),
-        description = _("Write your prompt here. Use placeholders to include context data:\n\n") .. placeholder_list,
+        description = _("Write your prompt here. Use placeholders to include context data:\n\n") .. placeholder_list .. _("\nTip: Users can add extra input when using this prompt."),
         fullscreen = true,
         allow_newline = true,
         buttons = {
