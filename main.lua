@@ -734,6 +734,14 @@ function AskGPT:onDispatcherRegisterActions()
     event = "KOAssistantContinueLast",
     title = _("KOAssistant: Continue Last Saved Chat"),
     general = true,
+  })
+
+  -- Register continue last opened chat action
+  Dispatcher:registerAction("koassistant_continue_last_opened", {
+    category = "none",
+    event = "KOAssistantContinueLastOpened",
+    title = _("KOAssistant: Continue Last Opened Chat"),
+    general = true,
     separator = true
   })
 
@@ -1000,10 +1008,10 @@ end
 function AskGPT:onKOAssistantContinueLast()
   local ChatHistoryManager = require("chat_history_manager")
   local ChatHistoryDialog = require("chat_history_dialog")
-  
-  -- Get the most recent chat across all documents
+
+  -- Get the most recently saved chat across all documents
   local most_recent_chat, document_path = ChatHistoryManager:getMostRecentChat()
-  
+
   if not most_recent_chat then
     UIManager:show(InfoMessage:new{
       icon = "notice-warning",
@@ -1011,13 +1019,37 @@ function AskGPT:onKOAssistantContinueLast()
     })
     return true
   end
-  
-  logger.info("Continue last chat: found chat ID " .. (most_recent_chat.id or "nil") .. 
+
+  logger.info("Continue last saved chat: found chat ID " .. (most_recent_chat.id or "nil") ..
               " for document: " .. (document_path or "nil"))
-  
+
   -- Continue the most recent chat
   local chat_history_manager = ChatHistoryManager:new()
   ChatHistoryDialog:continueChat(self.ui, document_path, most_recent_chat, chat_history_manager, configuration)
+  return true
+end
+
+function AskGPT:onKOAssistantContinueLastOpened()
+  local ChatHistoryManager = require("chat_history_manager")
+  local ChatHistoryDialog = require("chat_history_dialog")
+
+  -- Get the last opened chat (regardless of when it was last saved)
+  local chat_history_manager = ChatHistoryManager:new()
+  local last_opened_chat, document_path = chat_history_manager:getLastOpenedChat()
+
+  if not last_opened_chat then
+    UIManager:show(InfoMessage:new{
+      icon = "notice-warning",
+      text = _("No previously opened chat found")
+    })
+    return true
+  end
+
+  logger.info("Continue last opened chat: found chat ID " .. (last_opened_chat.id or "nil") ..
+              " for document: " .. (document_path or "nil"))
+
+  -- Continue the last opened chat
+  ChatHistoryDialog:continueChat(self.ui, document_path, last_opened_chat, chat_history_manager, configuration)
   return true
 end
 
