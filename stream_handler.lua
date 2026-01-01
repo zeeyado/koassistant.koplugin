@@ -192,6 +192,55 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
     end
 
     local font_size = (settings and settings.response_font_size) or 20
+    local auto_scroll = settings and settings.stream_auto_scroll ~= false
+    local scroll_paused = false  -- Track if user has paused auto-scroll
+
+    -- Functions to pause/resume auto-scroll (forward declarations)
+    local pauseAutoScroll, resumeAutoScroll
+
+    pauseAutoScroll = function()
+        if not scroll_paused and auto_scroll then
+            scroll_paused = true
+            -- Update button to show "Resume"
+            local btn = streamDialog.button_table:getButtonById("scroll_control")
+            if btn then
+                btn:setText(_("Resume ↓"), btn.width)
+                btn.callback = resumeAutoScroll
+                UIManager:setDirty(streamDialog, "ui")
+            end
+        end
+    end
+
+    resumeAutoScroll = function()
+        scroll_paused = false
+        -- Scroll to bottom
+        streamDialog._input_widget:scrollToBottom()
+        -- Update button back to "Pause"
+        local btn = streamDialog.button_table:getButtonById("scroll_control")
+        if btn then
+            btn:setText(_("Pause ↓"), btn.width)
+            btn.callback = pauseAutoScroll
+            UIManager:setDirty(streamDialog, "ui")
+        end
+    end
+
+    -- Build buttons - include Pause button only if auto_scroll is enabled
+    local dialog_buttons = {
+        {
+            {
+                text = _("Stop"),
+                id = "close",
+                callback = _closeStreamDialog,
+            },
+        }
+    }
+    if auto_scroll then
+        table.insert(dialog_buttons[1], {
+            text = _("Pause ↓"),
+            id = "scroll_control",
+            callback = pauseAutoScroll,
+        })
+    end
 
     streamDialog = InputDialog:new{
         title = _("AI is responding"),
@@ -214,21 +263,28 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
         condensed = true,
         auto_para_direction = true,
         scroll_by_pan = true,
-        buttons = {
-            {
-                {
-                    text = _("Stop"),
-                    id = "close",
-                    callback = _closeStreamDialog,
-                },
-            }
-        }
+        buttons = dialog_buttons,
     }
 
     -- Add close button to title bar
     streamDialog.title_bar.close_callback = _closeStreamDialog
     streamDialog.title_bar:init()
     UIManager:show(streamDialog)
+
+    -- Hook into scroll callbacks to auto-pause when user scrolls
+    if auto_scroll then
+        local original_scrollUp = streamDialog._input_widget.scrollUp
+        streamDialog._input_widget.scrollUp = function(self_widget, ...)
+            pauseAutoScroll()
+            return original_scrollUp(self_widget, ...)
+        end
+
+        local original_scrollDown = streamDialog._input_widget.scrollDown
+        streamDialog._input_widget.scrollDown = function(self_widget, ...)
+            pauseAutoScroll()
+            return original_scrollDown(self_widget, ...)
+        end
+    end
 
     -- Set up waiting animation
     local animation = self:createWaitingAnimation()
@@ -240,8 +296,6 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
         end
     end
     animation_task = UIManager:scheduleIn(0.4, updateAnimation)
-
-    local auto_scroll = settings and settings.stream_auto_scroll ~= false
 
     -- Start the subprocess
     pid, parent_read_fd = ffiutil.runInSubProcess(backgroundQueryFunc, true)
@@ -310,9 +364,11 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                                     streamDialog._input_widget:setText("", true)
                                 end
 
-                                if auto_scroll then
+                                if auto_scroll and not scroll_paused then
+                                    -- Normal auto-scroll: append and scroll to bottom
                                     streamDialog:addTextToInput(content)
                                 else
+                                    -- Either manual mode OR paused: preserve scroll position
                                     streamDialog._input_widget:resyncPos()
                                     streamDialog._input_widget:setText(table.concat(result_buffer), true)
                                 end
