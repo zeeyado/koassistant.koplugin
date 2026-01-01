@@ -4,6 +4,8 @@ A powerful AI assistant integrated into KOReader.
 
 Meant to be a technical research assistant and knowledge expander.
 
+This plugin is currently under heavy development. Typically features are added in branches. See the branches if you want to test new features not yet included in the latest release.
+
 > **Note:** This project was recently renamed from "Assistant" to "KOAssistant" due to a naming conflict with [a more popular fork](https://github.com/omer-faruq/assistant.koplugin) of this repo. Some internal references and UI elements may still show the old name.
 
 You can:
@@ -19,6 +21,11 @@ You can:
 - Map functions to gestures and pop up menus for quick actions
 - Configure most things in the UI (including provider/model selection, managing prompts, translation language, chat history, etc)
 - Much more using custom prompts/actions
+
+Coming:
+- Project management with their own project instructions (similar to Claude.ai projects)
+- Custom chat saving categories
+- Pulling system prompts from various projects
 
 A wiki/doc page will be made for creating custom prompts and actions, and other advanced configuration and usage. 
 
