@@ -338,10 +338,28 @@ local function showExportOptions(history)
     UIManager:show(export_dialog)
 end
 
-local function showResponseDialog(title, history, highlightedText, addMessage, temp_config, document_path, plugin, book_metadata, launch_context)
+local function showResponseDialog(title, history, highlightedText, addMessage, temp_config, document_path, plugin, book_metadata, launch_context, save_category)
     local result_text = history:createResultText(highlightedText, temp_config or CONFIGURATION)
     local model_info = history:getModel() or ConfigHelper:getModelInfo(temp_config)
-    
+
+    -- Determine effective save path based on save_category
+    -- If save_category is set, use it as the document path for saving
+    -- This allows prompts to save chats to custom categories (e.g., "Islamic Studies")
+    local effective_save_path = document_path
+    local effective_launch_context = launch_context
+    if save_category and save_category ~= "" then
+        effective_save_path = "__CATEGORY:" .. save_category .. "__"
+        -- If we're overriding to a category, capture the original context as launch_context
+        -- so we know where the chat was started from
+        if not effective_launch_context and book_metadata and book_metadata.title then
+            effective_launch_context = {
+                title = book_metadata.title,
+                author = book_metadata.author,
+                file = document_path
+            }
+        end
+    end
+
     -- Initialize chat history manager
     local chat_history_manager = ChatHistoryManager:new()
     
@@ -455,12 +473,12 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                             metadata.book_title = book_metadata.title
                             metadata.book_author = book_metadata.author
                         end
-                        if launch_context then
-                            metadata.launch_context = launch_context
+                        if effective_launch_context then
+                            metadata.launch_context = effective_launch_context
                         end
 
                         local save_success = chat_history_manager:saveChat(
-                            document_path or (is_general_context and "__GENERAL_CHATS__" or nil),
+                            effective_save_path or (is_general_context and "__GENERAL_CHATS__" or nil),
                             suggested_title,
                             history,
                             metadata
@@ -490,8 +508,9 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                 })
             else
                 -- Call our helper function to handle saving
+                -- Use effective_save_path if set (custom category), otherwise check general context
                 local is_general_context = temp_config and temp_config.features and temp_config.features.is_general_context or false
-                createSaveDialog(document_path, history, chat_history_manager, is_general_context, book_metadata, launch_context)
+                createSaveDialog(effective_save_path or document_path, history, chat_history_manager, is_general_context, book_metadata, effective_launch_context)
             end
         end,
         export_callback = function()
@@ -517,7 +536,7 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
         UIManager:scheduleIn(0.1, function()
             local is_general_context = temp_config.features.is_general_context or false
             local suggested_title = history:getSuggestedTitle()
-            
+
             -- Create metadata for saving
             local metadata = {}
             if history.chat_id then
@@ -527,13 +546,13 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                 metadata.book_title = book_metadata.title
                 metadata.book_author = book_metadata.author
             end
-            if launch_context then
-                metadata.launch_context = launch_context
+            if effective_launch_context then
+                metadata.launch_context = effective_launch_context
             end
-            
-            -- Save with suggested title
+
+            -- Save with suggested title - use effective_save_path if custom category
             local success = chat_history_manager:saveChat(
-                document_path or (is_general_context and "__GENERAL_CHATS__" or nil),
+                effective_save_path or (is_general_context and "__GENERAL_CHATS__" or nil),
                 suggested_title,
                 history,
                 metadata
@@ -1135,7 +1154,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                                 end
                                 return nil -- Streaming will update via callback
                             end
-                            showResponseDialog(gettext(prompt.text), history, highlighted_text, addMessage, temp_config, document_path, plugin, book_metadata, launch_context)
+                            showResponseDialog(gettext(prompt.text), history, highlighted_text, addMessage, temp_config, document_path, plugin, book_metadata, launch_context, prompt.save_category)
                         else
                             local error_msg = temp_config_or_error or "Unknown error"
                             UIManager:show(InfoMessage:new{

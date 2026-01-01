@@ -82,10 +82,14 @@ function ChatHistoryManager:getAllDocuments()
                         -- Get the document path from one of the chats
                         local document_path = self:getDocumentPathFromHash(doc_hash)
                         if document_path then
-                            -- Handle special case for general context chats
+                            -- Handle special cases for general context and custom categories
                             local document_title, book_author
                             if document_path == "__GENERAL_CHATS__" then
                                 document_title = _("General AI Chats")
+                            elseif document_path:match("^__CATEGORY:(.+)__$") then
+                                -- Custom save category - extract the category name
+                                local category_name = document_path:match("^__CATEGORY:(.+)__$")
+                                document_title = category_name
                             else
                                 -- Try to get book metadata from one of the chats
                                 local book_title_found = nil
@@ -131,14 +135,25 @@ function ChatHistoryManager:getAllDocuments()
         end
     end
     
-    -- Sort: General AI Chats first, then alphabetically by title
-    table.sort(documents, function(a, b) 
+    -- Sort: General AI Chats first, then custom categories, then books alphabetically
+    table.sort(documents, function(a, b)
         -- General chats always come first
         if a.path == "__GENERAL_CHATS__" then
             return true
         elseif b.path == "__GENERAL_CHATS__" then
             return false
+        end
+
+        -- Custom categories come before regular books
+        local a_is_category = a.path:match("^__CATEGORY:(.+)__$")
+        local b_is_category = b.path:match("^__CATEGORY:(.+)__$")
+
+        if a_is_category and not b_is_category then
+            return true  -- Categories before books
+        elseif b_is_category and not a_is_category then
+            return false  -- Books after categories
         else
+            -- Both categories or both books: sort alphabetically by title
             return a.title < b.title
         end
     end)

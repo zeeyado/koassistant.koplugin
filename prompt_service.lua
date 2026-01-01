@@ -179,6 +179,8 @@ function PromptService:addPromptToCache(context, id, prompt, source, default_sys
         include_book_context = prompt.include_book_context,
         -- Store original context for proper toggling in prompts manager
         original_context = prompt.context,
+        -- Custom save category for organizing chats (e.g., "Islamic Studies")
+        save_category = prompt.save_category,
     }
 
     table.insert(self.prompts_cache[context], prompt_data)

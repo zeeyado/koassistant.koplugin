@@ -404,6 +404,7 @@ function PromptsManager:showPromptEditor(existing_prompt)
         user_prompt = existing_prompt and existing_prompt.user_prompt or "",
         context = existing_prompt and existing_prompt.context or nil,
         include_book_context = existing_prompt and existing_prompt.include_book_context or (not existing_prompt and true) or false,
+        save_category = existing_prompt and existing_prompt.save_category or nil,
         existing_prompt = existing_prompt,
     }
 
@@ -472,6 +473,19 @@ function PromptsManager:showStep1_NameAndContext(state)
             },
         })
     end
+
+    -- Row 3: Save Category (optional - for organizing chats)
+    local category_display = state.save_category and state.save_category or _("Default")
+    table.insert(button_rows, {
+        {
+            text = _("Save to: ") .. category_display,
+            callback = function()
+                state.name = self.step1_dialog:getInputText()
+                UIManager:close(self.step1_dialog)
+                self:showSaveCategorySelector(state)
+            end,
+        },
+    })
 
     -- Build description based on context
     local description = _("Example: 'Summarize', 'Explain Simply', 'Find Themes'")
@@ -607,6 +621,148 @@ function PromptsManager:showContextSelectorWizard(state)
     }
 
     UIManager:show(self.context_dialog)
+end
+
+-- Save category selector for wizard
+function PromptsManager:showSaveCategorySelector(state)
+    -- Get existing categories from saved chats
+    local existing_categories = self:getExistingCategories()
+
+    local buttons = {}
+
+    -- Option to use default (no custom category)
+    local default_prefix = (not state.save_category) and "● " or "○ "
+    table.insert(buttons, {
+        {
+            text = default_prefix .. _("Default (based on context)"),
+            callback = function()
+                state.save_category = nil
+                UIManager:close(self.category_dialog)
+                self:showStep1_NameAndContext(state)
+            end,
+        },
+    })
+
+    -- Show existing categories
+    for _, category in ipairs(existing_categories) do
+        local prefix = (state.save_category == category) and "● " or "○ "
+        table.insert(buttons, {
+            {
+                text = prefix .. category,
+                callback = function()
+                    state.save_category = category
+                    UIManager:close(self.category_dialog)
+                    self:showStep1_NameAndContext(state)
+                end,
+            },
+        })
+    end
+
+    -- Option to create new category
+    table.insert(buttons, {
+        {
+            text = _("+ Create new category..."),
+            callback = function()
+                UIManager:close(self.category_dialog)
+                self:showNewCategoryDialog(state)
+            end,
+        },
+    })
+
+    -- Cancel button
+    table.insert(buttons, {
+        {
+            text = _("Cancel"),
+            callback = function()
+                UIManager:close(self.category_dialog)
+                self:showStep1_NameAndContext(state)
+            end,
+        },
+    })
+
+    self.category_dialog = ButtonDialog:new{
+        title = _("Save Chats To"),
+        buttons = buttons,
+    }
+
+    UIManager:show(self.category_dialog)
+end
+
+-- Dialog for creating a new category
+function PromptsManager:showNewCategoryDialog(state)
+    local dialog
+    dialog = InputDialog:new{
+        title = _("New Category"),
+        input = "",
+        input_hint = _("e.g., Islamic Studies, Research, Language Learning"),
+        description = _("Enter a name for the new save category.\nChats from this prompt will be saved under this category."),
+        buttons = {
+            {
+                {
+                    text = _("Cancel"),
+                    id = "close",
+                    callback = function()
+                        UIManager:close(dialog)
+                        self:showSaveCategorySelector(state)
+                    end,
+                },
+                {
+                    text = _("Create"),
+                    callback = function()
+                        local category_name = dialog:getInputText()
+                        if category_name and category_name ~= "" then
+                            state.save_category = category_name
+                            UIManager:close(dialog)
+                            self:showStep1_NameAndContext(state)
+                        else
+                            UIManager:show(InfoMessage:new{
+                                text = _("Please enter a category name"),
+                            })
+                        end
+                    end,
+                },
+            },
+        },
+    }
+
+    UIManager:show(dialog)
+    dialog:onShowKeyboard()
+end
+
+-- Get existing save categories from saved chats
+function PromptsManager:getExistingCategories()
+    local categories = {}
+    local seen = {}
+
+    -- Try to load existing categories from chat history
+    local ChatHistoryManager = require("chat_history_manager")
+    local chat_manager = ChatHistoryManager:new()
+    local documents = chat_manager:getAllDocuments()
+
+    for _, doc in ipairs(documents) do
+        -- Check if this is a custom category
+        local category_name = doc.path:match("^__CATEGORY:(.+)__$")
+        if category_name and not seen[category_name] then
+            table.insert(categories, category_name)
+            seen[category_name] = true
+        end
+    end
+
+    -- Also check for categories from existing prompts in settings
+    if self.plugin and self.plugin.settings then
+        local custom_prompts = self.plugin.settings:readSetting("custom_prompts") or {}
+        for _, prompt in ipairs(custom_prompts) do
+            if prompt.save_category and not seen[prompt.save_category] then
+                table.insert(categories, prompt.save_category)
+                seen[prompt.save_category] = true
+            end
+        end
+    end
+
+    -- Sort alphabetically
+    table.sort(categories)
+
+    return categories
 end
 
 -- Step 2: System prompt (optional, fullscreen)
@@ -749,9 +905,9 @@ function PromptsManager:showStep3_UserPrompt(state)
 
                         -- Save the prompt
                         if is_edit then
-                            self:updatePrompt(state.existing_prompt, state.name, state.system_prompt, state.user_prompt, state.context, state.include_book_context)
+                            self:updatePrompt(state.existing_prompt, state.name, state.system_prompt, state.user_prompt, state.context, state.include_book_context, state.save_category)
                         else
-                            self:addPrompt(state.name, state.system_prompt, state.user_prompt, state.context, state.include_book_context)
+                            self:addPrompt(state.name, state.system_prompt, state.user_prompt, state.context, state.include_book_context, state.save_category)
                         end
 
                         -- Refresh prompts menu
@@ -838,7 +994,7 @@ function PromptsManager:showPlaceholderSelectorWizard(state)
     UIManager:show(self.placeholder_dialog)
 end
 
-function PromptsManager:addPrompt(name, system_prompt, user_prompt, context, include_book_context)
+function PromptsManager:addPrompt(name, system_prompt, user_prompt, context, include_book_context, save_category)
     if self.plugin.prompt_service then
         -- Convert empty strings to nil so fallback system prompts work
         local sys_prompt = (system_prompt and system_prompt ~= "") and system_prompt or nil
@@ -849,6 +1005,7 @@ function PromptsManager:addPrompt(name, system_prompt, user_prompt, context, inc
             user_prompt = user_prompt,
             context = context,
             include_book_context = include_book_context or nil,  -- Only store if true
+            save_category = save_category,  -- Custom category for organizing chats
             enabled = true,
         })
 
@@ -858,7 +1015,7 @@ function PromptsManager:addPrompt(name, system_prompt, user_prompt, context, inc
     end
 end
 
-function PromptsManager:updatePrompt(existing_prompt, name, system_prompt, user_prompt, context, include_book_context)
+function PromptsManager:updatePrompt(existing_prompt, name, system_prompt, user_prompt, context, include_book_context, save_category)
     if self.plugin.prompt_service then
         -- Convert empty strings to nil so fallback system prompts work
         local sys_prompt = (system_prompt and system_prompt ~= "") and system_prompt or nil
@@ -877,6 +1034,7 @@ function PromptsManager:updatePrompt(existing_prompt, name, system_prompt, user_
                     user_prompt = user_prompt,
                     context = context,
                     include_book_context = include_book_context or nil,  -- Only store if true
+                    save_category = save_category,  -- Custom category for organizing chats
                     enabled = true,
                 })
 
@@ -894,6 +1052,7 @@ function PromptsManager:updatePrompt(existing_prompt, name, system_prompt, user_
                             user_prompt = user_prompt,
                             context = context,
                             include_book_context = include_book_context or nil,  -- Only store if true
+                            save_category = save_category,  -- Custom category for organizing chats
                             enabled = true,
                         })
 
