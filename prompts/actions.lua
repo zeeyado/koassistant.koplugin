@@ -1,0 +1,269 @@
+-- Action definitions for KOAssistant
+-- Actions are UI elements (buttons) that trigger AI interactions
+--
+-- This module separates concerns:
+--   - Actions: UI definition, context, API parameters
+--   - Templates: User prompt text (in templates.lua)
+--   - System prompts: AI behavior (in system_prompts.lua)
+--
+-- Action schema:
+--   id            - Unique identifier (required)
+--   text          - Button display text (required)
+--   context       - Where it appears: "highlight", "book", "multi_book", "general", "all", "both" (required)
+--   template      - User prompt template ID from templates.lua (required)
+--   system_prompt - Optional action-specific system prompt override
+--   api_params    - Optional API parameters: { temperature, max_tokens, thinking }
+--   requires      - Optional metadata requirement: "author", "title", etc.
+--   enabled       - Default enabled state (default: true)
+--   builtin       - Whether this is a built-in action (default: true for this file)
+
+local _ = require("gettext")
+
+local Actions = {}
+
+-- Built-in actions for highlight context
+Actions.highlight = {
+    explain = {
+        id = "explain",
+        text = _("Explain"),
+        context = "highlight",
+        template = "explain",
+        system_prompt = "You are a helpful assistant that explains complex topics clearly and concisely. Break down concepts in an understandable way.",
+        api_params = {
+            temperature = 0.5,  -- More focused for explanations
+        },
+        include_book_context = true,
+        builtin = true,
+    },
+    eli5 = {
+        id = "eli5",
+        text = _("ELI5"),
+        context = "highlight",
+        template = "eli5",
+        system_prompt = "You are a helpful assistant that explains complex topics clearly and concisely. Break down concepts into ELI5 terms.",
+        api_params = {
+            temperature = 0.6,
+        },
+        include_book_context = false,
+        builtin = true,
+    },
+    summarize = {
+        id = "summarize",
+        text = _("Summarize"),
+        context = "highlight",
+        template = "summarize",
+        system_prompt = "You are a helpful assistant. Provide clear, concise summaries that capture the main points.",
+        api_params = {
+            temperature = 0.4,  -- More deterministic for summaries
+        },
+        include_book_context = true,
+        builtin = true,
+    },
+}
+
+-- Built-in actions for book context (single book from file browser)
+Actions.book = {
+    book_info = {
+        id = "book_info",
+        text = _("Book Info"),
+        context = "book",
+        template = "book_info",
+        api_params = {
+            temperature = 0.7,
+        },
+        builtin = true,
+    },
+    similar_books = {
+        id = "similar_books",
+        text = _("Find Similar"),
+        context = "book",
+        template = "similar_books",
+        api_params = {
+            temperature = 0.8,  -- More creative for recommendations
+        },
+        builtin = true,
+    },
+    explain_author = {
+        id = "explain_author",
+        text = _("About Author"),
+        context = "book",
+        template = "explain_author",
+        requires = "author",
+        api_params = {
+            temperature = 0.7,
+        },
+        builtin = true,
+    },
+    historical_context = {
+        id = "historical_context",
+        text = _("Historical Context"),
+        context = "book",
+        template = "historical_context",
+        api_params = {
+            temperature = 0.6,
+        },
+        builtin = true,
+    },
+}
+
+-- Built-in actions for multi-book context
+Actions.multi_book = {
+    compare_books = {
+        id = "compare_books",
+        text = _("Compare Books"),
+        context = "multi_book",
+        template = "compare_books",
+        api_params = {
+            temperature = 0.6,
+            max_tokens = 4096,  -- Comparisons can be lengthy
+        },
+        builtin = true,
+    },
+    common_themes = {
+        id = "common_themes",
+        text = _("Find Common Themes"),
+        context = "multi_book",
+        template = "common_themes",
+        api_params = {
+            temperature = 0.7,
+        },
+        builtin = true,
+    },
+    collection_summary = {
+        id = "collection_summary",
+        text = _("Analyze Collection"),
+        context = "multi_book",
+        template = "collection_summary",
+        api_params = {
+            temperature = 0.7,
+        },
+        builtin = true,
+    },
+    quick_summaries = {
+        id = "quick_summaries",
+        text = _("Quick Summaries"),
+        context = "multi_book",
+        template = "quick_summaries",
+        api_params = {
+            temperature = 0.5,
+            max_tokens = 4096,  -- Multiple summaries need space
+        },
+        builtin = true,
+    },
+}
+
+-- Built-in actions for general context
+Actions.general = {
+    -- General context uses the "Ask" button directly without predefined actions
+    -- Custom prompts can target general context
+}
+
+-- Special actions (not context-specific)
+Actions.special = {
+    translate = {
+        id = "translate",
+        text = _("Translate"),
+        context = "all",  -- Available in all contexts
+        template = "translate",
+        -- Uses translation context from system_prompts.lua
+        context_type = "translation",  -- Override context type for system prompt
+        api_params = {
+            temperature = 0.3,  -- Very deterministic for translations
+        },
+        builtin = true,
+    },
+}
+
+-- Get all actions for a specific context
+-- @param context: "highlight", "book", "multi_book", "general"
+-- @return table: Array of action definitions
+function Actions.getForContext(context)
+    local result = {}
+
+    -- Get context-specific actions
+    local context_actions = Actions[context] or {}
+    for _, action in pairs(context_actions) do
+        table.insert(result, action)
+    end
+
+    -- Add special actions that apply to this context
+    for _, action in pairs(Actions.special) do
+        if action.context == "all" or
+           action.context == context or
+           (action.context == "both" and (context == "highlight" or context == "book")) then
+            table.insert(result, action)
+        end
+    end
+
+    return result
+end
+
+-- Get a specific action by ID
+-- @param action_id: The action's unique identifier
+-- @return table or nil: Action definition if found
+function Actions.getById(action_id)
+    -- Search all context tables
+    for _, context_table in pairs({Actions.highlight, Actions.book, Actions.multi_book, Actions.general, Actions.special}) do
+        if context_table[action_id] then
+            return context_table[action_id]
+        end
+    end
+    return nil
+end
+
+-- Get all built-in actions grouped by context
+-- @return table: { highlight = {...}, book = {...}, multi_book = {...}, general = {...} }
+function Actions.getAllBuiltin()
+    return {
+        highlight = Actions.highlight,
+        book = Actions.book,
+        multi_book = Actions.multi_book,
+        general = Actions.general,
+        special = Actions.special,
+    }
+end
+
+-- Check if an action's requirements are met
+-- @param action: Action definition
+-- @param metadata: Available metadata (title, author, etc.)
+-- @return boolean: true if requirements are met
+function Actions.checkRequirements(action, metadata)
+    if not action.requires then
+        return true
+    end
+
+    metadata = metadata or {}
+
+    if action.requires == "author" then
+        return metadata.author and metadata.author ~= ""
+    elseif action.requires == "title" then
+        return metadata.title and metadata.title ~= ""
+    end
+
+    return true
+end
+
+-- Get API parameters for an action, with defaults
+-- @param action: Action definition
+-- @param defaults: Default API parameters
+-- @return table: Merged API parameters
+function Actions.getApiParams(action, defaults)
+    defaults = defaults or {}
+    local params = {}
+
+    -- Start with defaults
+    for k, v in pairs(defaults) do
+        params[k] = v
+    end
+
+    -- Override with action-specific params
+    if action and action.api_params then
+        for k, v in pairs(action.api_params) do
+            params[k] = v
+        end
+    end
+
+    return params
+end
+
+return Actions

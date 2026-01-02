@@ -222,6 +222,35 @@ local SettingsSchema = {
                     type = "separator",
                 },
                 {
+                    id = "api_settings_header",
+                    type = "header",
+                    text = _("API Settings"),
+                },
+                {
+                    id = "use_new_request_format",
+                    type = "toggle",
+                    text = _("Use Structured Requests"),
+                    description = _("Enable optimized request format with prompt caching (Anthropic only)"),
+                    default = true,
+                    path = "features.use_new_request_format",
+                },
+                {
+                    id = "ai_behavior_variant",
+                    type = "radio",
+                    text = _("AI Behavior Style"),
+                    description = _("How detailed should the AI's behavioral guidelines be"),
+                    default = "full",
+                    path = "features.ai_behavior_variant",
+                    options = {
+                        { value = "minimal", text = _("Minimal (~100 tokens)") },
+                        { value = "full", text = _("Full (~500 tokens)") },
+                    },
+                },
+                {
+                    id = "separator_5",
+                    type = "separator",
+                },
+                {
                     id = "settings_profiles",
                     type = "submenu",
                     text = _("Settings Profiles (planned)"),
