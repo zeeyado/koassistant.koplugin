@@ -110,13 +110,33 @@ function UpdateChecker.checkForUpdates(silent, include_prereleases)
             return false
         end
 
-        -- Find the latest release (first non-draft, optionally including prereleases)
+        -- Helper to extract version string from tag (handles v0.4.1, v.0.4.1, 0.4.1)
+        local function extractVersion(tag)
+            if not tag then return nil end
+            -- Remove common prefixes: "v", "v.", "V", "V."
+            local version = tag:gsub("^[vV]%.?", "")
+            return version
+        end
+
+        -- Find the latest release by comparing versions (don't rely on array order)
         local latest_release = nil
+        local latest_version_str = nil
         for _, release in ipairs(releases) do
             if not release.draft then
                 if include_prereleases or not release.prerelease then
-                    latest_release = release
-                    break
+                    local version_str = extractVersion(release.tag_name)
+                    if version_str and parseVersion(version_str) then
+                        if not latest_release then
+                            latest_release = release
+                            latest_version_str = version_str
+                        else
+                            -- Compare and keep the higher version
+                            if compareVersions(version_str, latest_version_str) > 0 then
+                                latest_release = release
+                                latest_version_str = version_str
+                            end
+                        end
+                    end
                 end
             end
         end
@@ -131,10 +151,8 @@ function UpdateChecker.checkForUpdates(silent, include_prereleases)
             return false
         end
 
-        local latest_version = latest_release.tag_name
-        if latest_version and latest_version:match("^v") then
-            latest_version = latest_version:sub(2) -- Remove 'v' prefix
-        end
+        -- Use the already-extracted version from the loop
+        local latest_version = latest_version_str
 
         local current_version = meta.version
         local comparison = compareVersions(current_version, latest_version)
