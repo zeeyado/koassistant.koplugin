@@ -849,16 +849,22 @@ local function handlePredefinedPrompt(prompt_type, highlightedText, ui, configur
     end
 
     -- Determine system prompt based on context
-    -- Check for empty string as well as nil
+    -- For new Anthropic format, behavior+context are handled by buildAnthropicSystemConfig
+    -- We only need the prompt-specific system prompt here
+    local using_new_format = shouldUseNewRequestFormat(temp_config)
     local system_prompt = prompt.system_prompt
     local service = plugin and (plugin.action_service or plugin.prompt_service)
-    if (not system_prompt or system_prompt == "") and service then
-        local context = getPromptContext(config)
-        system_prompt = service:getSystemPrompt(context)
-    end
-    -- Use centralized default system prompt if none provided
-    if (not system_prompt or system_prompt == "") and service then
-        system_prompt = service:getSystemPrompt(nil, "default")
+
+    -- Only get flattened system prompt for legacy (non-Anthropic) format
+    if not using_new_format then
+        if (not system_prompt or system_prompt == "") and service then
+            local context = getPromptContext(config)
+            system_prompt = service:getSystemPrompt(context)
+        end
+        -- Use centralized default system prompt if none provided
+        if (not system_prompt or system_prompt == "") and service then
+            system_prompt = service:getSystemPrompt(nil, "default")
+        end
     end
 
     -- Create history WITHOUT system prompt (we'll include it in the consolidated message)
@@ -928,7 +934,6 @@ local function handlePredefinedPrompt(prompt_type, highlightedText, ui, configur
 
     -- Build and add the consolidated message (now including system prompt and domain context)
     -- When using new format, skip domain/system in message - they go in system array
-    local using_new_format = shouldUseNewRequestFormat(temp_config)
     local consolidated_message = buildConsolidatedMessage(prompt, context, message_data, system_prompt, domain_context, using_new_format)
     history:addUserMessage(consolidated_message, true)
 
@@ -1167,8 +1172,11 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                 showLoadingDialog()
                 UIManager:scheduleIn(0.1, function()
                     -- Determine system prompt based on context
+                    -- For new Anthropic format, behavior+context are handled by buildAnthropicSystemConfig
+                    -- We only need this for legacy format (non-Anthropic) or custom overrides
+                    local using_new_format = shouldUseNewRequestFormat(configuration)
                     local system_prompt = configuration.features.system_prompt
-                    if not system_prompt then
+                    if not using_new_format and not system_prompt then
                         -- Get the current context
                         local context = getPromptContext(configuration)
                         -- Use context-specific fallback system prompt
@@ -1205,9 +1213,6 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
 
                     -- Build consolidated message parts
                     local parts = {}
-
-                    -- Check if we're using new request format (domain/system go in system array, not user message)
-                    local using_new_format = shouldUseNewRequestFormat(configuration)
 
                     -- Add domain context first if provided (background knowledge)
                     -- Skip if using new format - domain will go in system array instead
