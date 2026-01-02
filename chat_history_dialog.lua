@@ -107,9 +107,13 @@ function ChatHistoryDialog:showDocumentMenuOptions(ui, chat_history_manager, con
                 callback = function()
                     safeClose(dialog)
                     self_ref.current_options_dialog = nil
+                    -- Close current menu first, then open new one with delay
                     safeClose(self_ref.current_menu)
                     self_ref.current_menu = nil
-                    self_ref:showChatsByDomainBrowser(ui, chat_history_manager, config)
+                    -- Delay to let UIManager process the close before opening new menu
+                    UIManager:scheduleIn(0.1, function()
+                        self_ref:showChatsByDomainBrowser(ui, chat_history_manager, config)
+                    end)
                 end,
             },
             {
@@ -117,9 +121,13 @@ function ChatHistoryDialog:showDocumentMenuOptions(ui, chat_history_manager, con
                 callback = function()
                     safeClose(dialog)
                     self_ref.current_options_dialog = nil
+                    -- Close current menu first, then open new one with delay
                     safeClose(self_ref.current_menu)
                     self_ref.current_menu = nil
-                    self_ref:showChatsByTagBrowser(ui, chat_history_manager, config)
+                    -- Delay to let UIManager process the close before opening new menu
+                    UIManager:scheduleIn(0.1, function()
+                        self_ref:showChatsByTagBrowser(ui, chat_history_manager, config)
+                    end)
                 end,
             },
         },
@@ -159,6 +167,114 @@ function ChatHistoryDialog:showDocumentMenuOptions(ui, chat_history_manager, con
 
     dialog = ButtonDialog:new{
         title = _("Chat History Options"),
+        buttons = buttons,
+    }
+    self.current_options_dialog = dialog
+    UIManager:show(dialog)
+end
+
+-- Show navigation options when in Domain browser
+function ChatHistoryDialog:showDomainBrowserMenuOptions(ui, chat_history_manager, config)
+    safeClose(self.current_options_dialog)
+
+    local self_ref = self
+    local dialog
+    local buttons = {
+        {
+            {
+                text = _("View by Tag"),
+                callback = function()
+                    safeClose(dialog)
+                    self_ref.current_options_dialog = nil
+                    safeClose(self_ref.current_menu)
+                    self_ref.current_menu = nil
+                    UIManager:scheduleIn(0.1, function()
+                        self_ref:showChatsByTagBrowser(ui, chat_history_manager, config)
+                    end)
+                end,
+            },
+        },
+        {
+            {
+                text = _("Chat History"),
+                callback = function()
+                    safeClose(dialog)
+                    self_ref.current_options_dialog = nil
+                    safeClose(self_ref.current_menu)
+                    self_ref.current_menu = nil
+                    UIManager:scheduleIn(0.1, function()
+                        self_ref:showChatHistoryBrowser(ui, nil, chat_history_manager, config)
+                    end)
+                end,
+            },
+        },
+        {
+            {
+                text = _("Close"),
+                callback = function()
+                    safeClose(dialog)
+                    self_ref.current_options_dialog = nil
+                end,
+            },
+        },
+    }
+
+    dialog = ButtonDialog:new{
+        title = _("Navigate"),
+        buttons = buttons,
+    }
+    self.current_options_dialog = dialog
+    UIManager:show(dialog)
+end
+
+-- Show navigation options when in Tag browser
+function ChatHistoryDialog:showTagBrowserMenuOptions(ui, chat_history_manager, config)
+    safeClose(self.current_options_dialog)
+
+    local self_ref = self
+    local dialog
+    local buttons = {
+        {
+            {
+                text = _("View by Domain"),
+                callback = function()
+                    safeClose(dialog)
+                    self_ref.current_options_dialog = nil
+                    safeClose(self_ref.current_menu)
+                    self_ref.current_menu = nil
+                    UIManager:scheduleIn(0.1, function()
+                        self_ref:showChatsByDomainBrowser(ui, chat_history_manager, config)
+                    end)
+                end,
+            },
+        },
+        {
+            {
+                text = _("Chat History"),
+                callback = function()
+                    safeClose(dialog)
+                    self_ref.current_options_dialog = nil
+                    safeClose(self_ref.current_menu)
+                    self_ref.current_menu = nil
+                    UIManager:scheduleIn(0.1, function()
+                        self_ref:showChatHistoryBrowser(ui, nil, chat_history_manager, config)
+                    end)
+                end,
+            },
+        },
+        {
+            {
+                text = _("Close"),
+                callback = function()
+                    safeClose(dialog)
+                    self_ref.current_options_dialog = nil
+                end,
+            },
+        },
+    }
+
+    dialog = ButtonDialog:new{
+        title = _("Navigate"),
         buttons = buttons,
     }
     self.current_options_dialog = dialog
@@ -233,8 +349,7 @@ function ChatHistoryDialog:showChatsByDomainBrowser(ui, chat_history_manager, co
             mandatory_dim = true,
             bold = true,
             callback = function()
-                safeClose(self_ref.current_menu)
-                self_ref.current_menu = nil
+                -- Target function handles closing current_menu
                 self_ref:showChatsForDomain(ui, domain_key, chats, all_domains, chat_history_manager, config)
             end
         })
@@ -244,11 +359,12 @@ function ChatHistoryDialog:showChatsByDomainBrowser(ui, chat_history_manager, co
     local domain_menu = Menu:new{
         title = _("Chat History by Domain"),
         title_bar_left_icon = "appbar.menu",
+        is_borderless = true,
+        is_popout = false,
+        width = Screen:getWidth(),
+        height = Screen:getHeight(),
         onLeftButtonTap = function()
-            safeClose(self_ref.current_menu)
-            self_ref.current_menu = nil
-            -- Go back to normal document view
-            self_ref:showChatHistoryBrowser(ui, nil, chat_history_manager, config)
+            self_ref:showDomainBrowserMenuOptions(ui, chat_history_manager, config)
         end,
         item_table = menu_items,
         single_line = false,
@@ -324,17 +440,28 @@ function ChatHistoryDialog:showChatsForDomain(ui, domain_key, chats, all_domains
     end
 
     local Menu = require("ui/widget/menu")
-    local chat_menu = Menu:new{
+    local chat_menu
+    chat_menu = Menu:new{
         title = domain_name .. " (" .. #chats .. ")",
         item_table = menu_items,
+        is_borderless = true,
+        is_popout = false,
+        width = Screen:getWidth(),
+        height = Screen:getHeight(),
         single_line = false,
         multilines_forced = true,
         items_font_size = 18,
         items_mandatory_font_size = 14,
         onReturn = function()
-            safeClose(chat_menu)
-            self_ref.current_menu = nil
-            self_ref:showChatsByDomainBrowser(ui, chat_history_manager, config)
+            -- Close this menu using self_ref.current_menu (chat_menu is nil during Menu:new evaluation)
+            if self_ref.current_menu then
+                UIManager:close(self_ref.current_menu)
+                self_ref.current_menu = nil
+            end
+            -- Delay to let UIManager process the close before showing new menu
+            UIManager:scheduleIn(0.15, function()
+                self_ref:showChatsByDomainBrowser(ui, chat_history_manager, config)
+            end)
         end,
         close_callback = function()
             if self_ref.current_menu == chat_menu then
@@ -435,9 +562,7 @@ function ChatHistoryDialog:showChatHistoryBrowser(ui, current_document_path, cha
             help_text = help_text,
             callback = function()
                 logger.info("Document selected: " .. captured_doc.title)
-                -- Close the current menu before showing the next one
-                safeClose(self_ref.current_menu)
-                self_ref.current_menu = nil
+                -- Target function handles closing current_menu
                 self_ref:showChatsForDocument(ui, captured_doc, chat_history_manager, config, nav_context)
             end
         })
@@ -504,6 +629,8 @@ function ChatHistoryDialog:showChatsForDocument(ui, document, chat_history_manag
         local date_str = os.date("%Y-%m-%d %H:%M", chat.timestamp or 0)
         local title = chat.title or "Untitled"
         local model = chat.model or "Unknown"
+        -- Shorten model name for display (strip date suffix)
+        local short_model = model:gsub("%-20%d%d%d%d%d%d$", "")
         local msg_count = #(chat.messages or {})
 
         local preview = ""
@@ -522,7 +649,8 @@ function ChatHistoryDialog:showChatsForDocument(ui, document, chat_history_manag
         local captured_chat = chat
         table.insert(menu_items, {
             text = title .. " • " .. date_str,
-            mandatory = model .. " • " .. msg_count .. " " .. (msg_count == 1 and _("message") or _("messages")),
+            -- Compact format: "model • count" (no "messages" text)
+            mandatory = short_model .. " • " .. msg_count,
             mandatory_dim = true,
             bold = true,
             help_text = preview,
@@ -1027,11 +1155,14 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
     local date_str = os.date("%Y-%m-%d %H:%M", chat.timestamp or 0)
     local msg_count = #(chat.messages or {})
     local model = chat.model or "AI"
+    -- Shorten model name for display
+    local short_model = model:gsub("%-20%d%d%d%d%d%d$", "")
 
+    -- Compact title: "Title • date • model • count"
     local detailed_title = (chat.title or _("Untitled")) .. " • " ..
                           date_str .. " • " ..
-                          model .. " • " ..
-                          tostring(msg_count) .. " " .. _("msgs")
+                          short_model .. " • " ..
+                          tostring(msg_count)
 
     local function showLoadingDialog()
         local loading = InfoMessage:new{
@@ -1356,8 +1487,7 @@ function ChatHistoryDialog:showChatsByTagBrowser(ui, chat_history_manager, confi
             mandatory_dim = true,
             bold = true,
             callback = function()
-                safeClose(self_ref.current_menu)
-                self_ref.current_menu = nil
+                -- Target function handles closing current_menu
                 self_ref:showChatsForTag(ui, tag, chat_history_manager, config)
             end
         })
@@ -1366,11 +1496,12 @@ function ChatHistoryDialog:showChatsByTagBrowser(ui, chat_history_manager, confi
     local tag_menu = Menu:new{
         title = _("Chat History by Tag"),
         title_bar_left_icon = "appbar.menu",
+        is_borderless = true,
+        is_popout = false,
+        width = Screen:getWidth(),
+        height = Screen:getHeight(),
         onLeftButtonTap = function()
-            safeClose(self_ref.current_menu)
-            self_ref.current_menu = nil
-            -- Go back to normal document view
-            self_ref:showChatHistoryBrowser(ui, nil, chat_history_manager, config)
+            self_ref:showTagBrowserMenuOptions(ui, chat_history_manager, config)
         end,
         item_table = menu_items,
         single_line = false,
@@ -1446,17 +1577,28 @@ function ChatHistoryDialog:showChatsForTag(ui, tag, chat_history_manager, config
         })
     end
 
-    local chat_menu = Menu:new{
+    local chat_menu
+    chat_menu = Menu:new{
         title = "#" .. tag .. " (" .. #chats .. ")",
         item_table = menu_items,
+        is_borderless = true,
+        is_popout = false,
+        width = Screen:getWidth(),
+        height = Screen:getHeight(),
         single_line = false,
         multilines_forced = true,
         items_font_size = 18,
         items_mandatory_font_size = 14,
         onReturn = function()
-            safeClose(chat_menu)
-            self_ref.current_menu = nil
-            self_ref:showChatsByTagBrowser(ui, chat_history_manager, config)
+            -- Close this menu using self_ref.current_menu (chat_menu is nil during Menu:new evaluation)
+            if self_ref.current_menu then
+                UIManager:close(self_ref.current_menu)
+                self_ref.current_menu = nil
+            end
+            -- Delay to let UIManager process the close before showing new menu
+            UIManager:scheduleIn(0.15, function()
+                self_ref:showChatsByTagBrowser(ui, chat_history_manager, config)
+            end)
         end,
         close_callback = function()
             if self_ref.current_menu == chat_menu then

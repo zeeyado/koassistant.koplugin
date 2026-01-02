@@ -35,6 +35,7 @@ local util = require("util")
 local _ = require("gettext")
 local Screen = Device.screen
 local MD = require("apps/filemanager/lib/md")
+local UIConstants = require("ui/constants")
 
 -- Pre-process markdown tables to HTML (luamd doesn't support tables)
 local function preprocessMarkdownTables(text)
@@ -261,15 +262,15 @@ local ChatGPTViewer = InputContainer:extend {
 }
 
 function ChatGPTViewer:init()
-  -- calculate window dimension
+  -- calculate window dimension using shared constants
   self.align = "center"
   self.region = Geom:new {
     x = 0, y = 0,
     w = Screen:getWidth(),
     h = Screen:getHeight(),
   }
-  self.width = self.width or Screen:getWidth() - Screen:scaleBySize(30)
-  self.height = self.height or Screen:getHeight() - Screen:scaleBySize(30)
+  self.width = self.width or UIConstants.CHAT_WIDTH()
+  self.height = self.height or UIConstants.CHAT_HEIGHT()
 
   self._find_next = false
   self._find_next_button = false
@@ -524,11 +525,13 @@ function ChatGPTViewer:init()
 
   local textw_height = self.height - titlebar:getHeight() - self.button_table:getSize().h
 
-  -- Load configuration and check if markdown rendering is enabled
-  self.configuration = {}
-  local ok, loaded_config = pcall(dofile, require("datastorage"):getSettingsDir() .. "/koassistant.koplugin/configuration.lua")
-  if ok and loaded_config then
-    self.configuration = loaded_config
+  -- Use passed configuration, or load from disk as fallback
+  if not self.configuration then
+    self.configuration = {}
+    local ok, loaded_config = pcall(dofile, require("datastorage"):getSettingsDir() .. "/koassistant.koplugin/configuration.lua")
+    if ok and loaded_config then
+      self.configuration = loaded_config
+    end
   end
   
   -- Use configuration setting if present, otherwise use instance setting
@@ -644,9 +647,9 @@ function ChatGPTViewer:askAnotherQuestion()
     allow_newline = true,
     input_multiline = true,
     text_height = 300,  -- Set explicit height for the text input widget
-    width = Screen:getWidth() * 0.9,
-    text_widget_width = Screen:getWidth() * 0.8,
-    text_widget_height = Screen:getHeight() * 0.3,
+    width = UIConstants.DIALOG_WIDTH(),
+    text_widget_width = UIConstants.DIALOG_WIDTH() - Screen:scaleBySize(50),  -- Dialog width minus padding
+    text_widget_height = math.floor(Screen:getHeight() * UIConstants.INPUT_HEIGHT_RATIO),
     buttons = {
       {
         {
