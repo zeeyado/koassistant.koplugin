@@ -6,4 +6,10 @@ CLAUDE.md
 custom_prompts.lua
 plan.md
 /docs
+
+# User domains (not tracked)
+/domains/
 domains.lua
+
+# Keep sample domains tracked
+!/domains.sample/

@@ -158,12 +158,12 @@ Actions.general = {
     -- Custom prompts can target general context
 }
 
--- Special actions (not context-specific)
+-- Special actions (context-specific overrides)
 Actions.special = {
     translate = {
         id = "translate",
         text = _("Translate"),
-        context = "all",  -- Available in all contexts
+        context = "highlight",  -- Only for highlighted text
         template = "translate",
         -- Uses translation context from system_prompts.lua
         context_type = "translation",  -- Override context type for system prompt

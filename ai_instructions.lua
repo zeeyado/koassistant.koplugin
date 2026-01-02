@@ -1,3 +1,7 @@
+-- DEPRECATED: This module is replaced by prompts/system_prompts.lua
+-- Kept for backwards compatibility during transition period.
+-- New code should use ActionService with prompts/system_prompts.lua instead.
+--
 -- Centralized AI instructions and templates for the KOAssistant plugin
 -- Use configuration.lua to override specific instructions
 

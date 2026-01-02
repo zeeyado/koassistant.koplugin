@@ -8,15 +8,15 @@ local ConfirmBox = require("ui/widget/confirmbox")
 local InputDialog = require("ui/widget/inputdialog")
 local ButtonDialog = require("ui/widget/buttondialog")
 local TextViewer = require("ui/widget/textviewer")
-local Screen = require("device").screen
+local UIConstants = require("ui/constants")
 
 local PromptsManager = {}
 
 function PromptsManager:new(plugin)
     local o = {
         plugin = plugin,
-        width = Screen:getWidth(),
-        height = Screen:getHeight(),
+        width = UIConstants.DIALOG_WIDTH(),
+        height = UIConstants.DIALOG_HEIGHT(),
     }
     setmetatable(o, self)
     self.__index = self
@@ -145,7 +145,7 @@ function PromptsManager:showPromptsMenu()
     
     -- Add help text at the top
     table.insert(menu_items, {
-        text = _("Tap to toggle • Hold for details"),
+        text = _("Tap to toggle • Hold for details • ★ = editable"),
         dim = true,
         enabled = false,
     })
@@ -194,17 +194,19 @@ function PromptsManager:showPromptsMenu()
             -- Add prompts for this context
             for _, prompt in ipairs(context_prompts) do
                 local item_text = prompt.text
-                
-                -- Add source indicator for user prompts
-                if prompt.source == "user" then
-                    item_text = item_text .. " ✏"
+
+                -- Add source indicator for user-created prompts (editable/deletable)
+                if prompt.source == "ui" then
+                    item_text = "★ " .. item_text
+                elseif prompt.source == "config" then
+                    item_text = item_text .. " (file)"
                 end
-                
+
                 -- Add requires indicator
                 if prompt.requires then
                     item_text = item_text .. " [" .. prompt.requires .. "]"
                 end
-                
+
                 -- Add checkbox with better spacing
                 local checkbox = prompt.enabled and "☑" or "☐"
                 item_text = checkbox .. "  " .. item_text
@@ -273,6 +275,10 @@ function PromptsManager:showPromptsMenu()
     self.prompts_menu = Menu:new{
         title = _("Manage Prompts"),
         item_table = menu_items,
+        width = self.width,
+        height = self.height,
+        is_borderless = true,
+        is_popout = false,
         onMenuSelect = function(_, item)
             if item and item.callback then
                 item.callback()
