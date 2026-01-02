@@ -1,297 +1,537 @@
-# KOAssistant - KOReader AI Assistant Plugin
+# KOAssistant - AI Assistant for KOReader
 
 A powerful AI assistant integrated into KOReader.
 
 Meant to be a technical research assistant and knowledge expander.
 
-This plugin is currently under heavy development. Typically features are added in branches. See the branches if you want to test new features not yet included in the latest release. Anthropic is being used for testing. It is possible that you may get error using other providers for now.
+You can have context free chats, or chat about or compare one or more documents in your library, or about text highlighted in a document. You can translate, get text explained, compare books/articles, and much more by creating custom actions and prompts. Chats are automatcally saved and you can resume them any time.
 
-> **Note:** This project was recently renamed from "Assistant" to "KOAssistant" due to a naming conflict with [a more popular fork](https://github.com/omer-faruq/assistant.koplugin) of this repo. Some internal references and UI elements may still show the old name.
+Most settings are configurable in the UI, including provider/model, AI behavior, and more, with some advanced settings requiring file editing.
 
-You can:
+> **Development Status**: KOAssistant is under active development. **Anthropic (Claude)** is the primary focus and most thoroughly tested. Other providers (OpenAI, DeepSeek, Gemini, Ollama) are supported but may need adjustments and further integration. Feedback appreciated.
 
-- Have general chats (no context)
-- Select documents in the file browser and chat about them (using metadata like title, author, etc), and create custom actions and prompts for single selection
-- Select multiple documents in the file browser and compare them, and create custom actions and prompts for multi-selection, like finding common themes, etc
-- Highlight text in a document and have it explained, translated, or chat about it, etc
-- Create large custom prompts that send a set of instructions or context to the AI along with your message, depending on your need/project/what you are reading (expansion of this feature planned to use koreader profile settings)
-- Save/autosave and continue chats any time, have multiple chats per document, etc
-- Export chats to markdown and text
-- Use different AI models (for speed/depth, etc)
-- Map functions to gestures and pop up menus for quick actions
-- Configure most things in the UI (including provider/model selection, managing prompts, translation language, chat history, etc)
-- Much more using custom prompts/actions
-
-Coming:
-- Domains with their own user defined context, attachable to chats at the beginning, and attachable to custom actions
-- Tagging system, attachble to chats any time
-- Browse by tag/domain
-
-A wiki/doc page will be made for creating custom prompts and actions, and other advanced configuration and usage. 
-
-Originally forked from [ASKGPT by Drew Baumann](https://github.com/drewbaumann/askgpt). See Credits and history at the bottom of this readme
-
-This plugin was made for personal use and made public in case it is useful. Many functions are still under development, and many are untested. More providers will hopefully be added shortly. **Feel free to open a feature request or issue, or start a discussion, if you need some specific model or setting added.**
-
-NB: Only Anthropic has been thoroughly tested for now as it is what I use. Other models are currently outdated (you can add custom models in the UI)
-
-## Quick Minimal Setup
-
-**Get started in 3 simple steps:**
-
-1. **Install the plugin**
-
-Download: (Code (at top right of this page) -> Download ZIP. 
-
-or Clone: `git clone https://github.com/zeeyado/koassistant.koplugin`
-
-or Download latest release: https://github.com/zeeyado/koassistant.koplugin/releases
-
-Rename and place in your KOReader plugins directory:
-
-   ```
-   # Kobo/Kindle: /mnt/onboard/.adds/koreader/plugins/koassistant.koplugin/
-   # Android: /sdcard/koreader/plugins/koassistant.koplugin/
-   # macOS: ~/Library/Application Support/koreader/plugins/koassistant.koplugin/
-   ```
+> **Note**: This project was recently renamed from "Assistant" to "KOAssistant" due to a naming conflict with [a fork of this project](https://github.com/omer-faruq/assistant.koplugin). Some internal references may still show the old name.
 
 
-2. **Add your API key(s)**
+---
 
-Copy the sample file `apikeys.lua.sample` and rename to `apikeys.lua`
+## Table of Contents
 
-Add at least one API key  
- 
-3. **Restart KOReader** - You're ready to go. Set your desired provider and model in the settings UI (Tools -> page 2 -> KOAssistant (under "More tools")
+- [Quick Setup](#quick-setup)
+- [Recommended Setup](#recommended-setup)
+- [How to Use KOAssistant](#how-to-use-koassistant)
+  - [Highlight Mode](#highlight-mode)
+  - [Book Mode](#book-mode)
+  - [Multi-Book Mode](#multi-book-mode)
+  - [General Chat](#general-chat)
+- [Managing Conversations](#managing-conversations)
+- [Knowledge Domains](#knowledge-domains)
+- [Tags](#tags)
+- [Custom Prompts & Actions](#custom-prompts--actions)
+- [Settings Reference](#settings-reference)
+- [Advanced Configuration](#advanced-configuration)
+- [Technical Features](#technical-features)
+- [Supported Providers](#supported-providers)
+- [Troubleshooting](#troubleshooting)
+- [Contributing](#contributing)
+- [Credits](#credits)
 
-### Minimum Requirements
+---
 
-- KOReader version 2023.04 or newer
-- At least one API key from: [Anthropic](https://console.anthropic.com/), [OpenAI](https://platform.openai.com/), [DeepSeek](https://platform.deepseek.com/), [Google](https://aistudio.google.com/) (more providers are being added)
+## Quick Setup
 
-## HIGHLY Recommended Initial Setup
+**Get started in 3 steps:**
 
-### 1. Configure Gestures for Quick Access
+### 1. Install the Plugin
 
-**Basic one time steps for ease of use**
+Download from [Releases](https://github.com/zeeyado/koassistant.koplugin/releases) or clone:
+```bash
+git clone https://github.com/zeeyado/koassistant.koplugin
+```
 
-Examples (my usage preference; you can use whichever gestures you like):
+Copy to your KOReader plugins directory:
+```
+Kobo/Kindle:  /mnt/onboard/.adds/koreader/plugins/koassistant.koplugin/
+Android:      /sdcard/koreader/plugins/koassistant.koplugin/
+macOS:        ~/Library/Application Support/koreader/plugins/koassistant.koplugin/
+Linux:        ~/.config/koreader/plugins/koassistant.koplugin/
+```
 
-**In Reader View (while reading) and in File browser:**
+### 2. Add Your API Key
 
-- Go to Settings → Gesture Manager → Tap corner → Bottom left
-- General → (add all KOAssistant actions -- Chat history, Continue last chat, Chat about book, etc)
-- Select "Show as QuickMenu"
+Make a copy of apikeys.lua.sample and name it apikeys.lua
 
-You have to do this for both Reader view and File browser. This will give you an easy to access KOAssistant menu.
+```bash
+cp apikeys.lua.sample apikeys.lua
+```
 
-You can also assign any gesture to any action as you see fit.
-
-### 2. Enable/disable prompts and create custom actions
-
-- Go to KOAssistant settings -> Prompts & Responses -> Manage prompts
-- Enable/disable the builtin prompts
-- Create you own custom prompts in custom_prompts.lua
-
-
-### 3. Getting Started Tips
-
-- **Well-formatted metadata** enhances AI responses - use e.g Calibre or Zotero to ensure your books and papers have proper titles, authors, and ISBNs
-- **Adjust highlight settings** - Set shorter tap duration for single words in Settings → Taps and Gestures
-- **Choose your model wisely** - Fast models for quick queries, powerful models (e.g. Claude Sonnet 4) for complex analysis (you can create custom prompts using specific models to override the default for that prompt)
-
-
-## Feature Overview (outdated, to be updated)
-
-### Core Features
-
-**In-Book Assistant**
-
-- **Highlight & Ask**: Select any text and get instant explanations, translations, or summaries
-- **Context-Aware**: AI understands what book you're reading and provides relevant responses
-- **Quick Translate**: One-tap translation to your preferred language
-- **Custom Prompts**: Create specialized prompts/actions for your reading needs
-
-**File Browser Integration**
-
-- **Book Analysis**: Long-press any book to get summaries, reviews, or reading time estimates
-- **Multi-Book Comparison**: Select multiple books to compare themes, find reading order, or analyze your collection
-- **Author Information**: Get background on authors and historical context
-- **Custom Prompts**: Create specialized prompts/actions
-
-**General Chat**
-
-- **No Context Required**: Start AI conversations without selecting text or books -- just have a regular Chat with the model of your choice
-- **Brainstorming Mode**: Creative writing assistance and idea generation
-- **Code Help**: Programming assistance with syntax highlighting
-
-**Advanced Features**
-
-- **Chat History**: Save, continue, and export conversations (auto save available in settings)
-- **Markdown Rendering**: Beautiful formatting with adjustable font sizes (planned)
-- **Debug Mode**: See exactly what's sent to the AI to debug and improve your prompts
-- **Auto-Update**: Keep the plugin current with built-in update checking (planned)
-- **Multiple Providers**: Switch between AI providers on the fly (better UI implementation planned)
-- **Prompt management**: enable/disable built in and custom prompts in the UI (so you dont have to delete them)
-- **Profile for different tasks:** (planned feature). Have different sets of prompts/actions for different uses (e.g. Regular book reading vs Academic reading vs Specific case study, etc
-
-### Unique Capabilities
-
-- **4 Context Modes**: Different behaviors for highlights, single books, multiple books, and general chat, each with its own set of prompts/actions
-- **Schema-Driven Settings**: All prompts and settings manageable through the UI
-- **Gesture Support**: Assignable actions for quick access (Quick menu, Continue last chat, etc.)
-- **Provider Flexibility**: Use different models for different tasks
-
-## Configuration (outdated, to be updated - wiki)
-
-### Basic Configuration (UI-Based)
-
-Access all settings via **Tools → KOAssistant → Settings**:
-
-1. **AI Provider & Model**
-
-   - Select your provider (Anthropic, OpenAI, etc.)
-   - Choose a model or enter custom model names
-   - Test connection to verify setup
-2. **Display Options**
-
-   - Toggle markdown rendering
-   - Adjust font size (14-30)
-   - Configure highlight display
-3. **Prompts Management**
-
-   - Enable/disable built-in prompts
-   - Create custom prompts
-   - Import/export prompt collections
-
-### Advanced Configuration (outdated, to be updated)
-
-For power users, three configuration files offer deep customization:
-
-#### 1. `apikeys.lua` (Required)
-
+Edit `apikeys.lua` and add your API key:
 ```lua
 return {
-    anthropic = "sk-ant-...",    -- Claude API
-    openai = "sk-...",           -- GPT API
-    deepseek = "sk-...",         -- DeepSeek API
-    gemini = "...",              -- Gemini API
-    ollama = "",                 -- Usually empty for local
+    anthropic = "your-key-here",  -- Get from console.anthropic.com
+    openai = "",     -- Optional: platform.openai.com
+    deepseek = "",   -- Optional: platform.deepseek.com
+    gemini = "",     -- Optional: aistudio.google.com
+    ollama = "",     -- Usually empty for local Ollama
 }
 ```
 
-#### 2. `custom_prompts.lua` (Optional)
+### 3. Restart KOReader
 
-Create specialized prompts for your workflow:
+Find KOAssistant Settings in: **Tools → Page 2 → KOAssistant**
+
+---
+
+## Recommended Setup
+
+### Configure Quick Access Gestures
+
+For easy access, assign KOAssistant actions to a gesture:
+
+1. Go to **Settings → Gesture Manager → Tap corner → Bottom left** (or your preferred gesture)
+2. Select **General** 
+3. Add KOAssistant actions:
+   - Chat History
+   - Continue Last Chat
+   - General Chat
+   - Chat About Book
+   - Settings
+   - ...
+4. Enable **"Show as QuickMenu"**
+
+> **Tip**: Set up gestures in both **Reader View** (while reading) and **File Browser** separately.
+
+### Tips for Better Results
+
+- **Good book metadata** improves AI responses. Use Calibre or similar tools to ensure titles and authors are correct.
+- **Shorter tap duration** makes text selection easier: Settings → Taps and Gestures → Long-press interval
+- **Choose models wisely**: Fast models (like Haiku) for quick queries; powerful models (like Sonnet, Opus) for deeper analysis
+- **Discover advanced functionality** dig into the deeper functionality available in KOAssistant, like custom domains and actions, to enhance the plugin and tailor it to your usage.
+
+---
+
+## How to Use KOAssistant
+
+KOAssistant works in **4 contexts**, each with its own set of actions, and you can create custom actions for each and all contexts:
+
+### Highlight Mode
+
+**Access**: Highlight text in a document → tap "KOAssistant"
+
+**Built-in Actions**:
+| Action | Description |
+|--------|-------------|
+| **Ask** | Free-form question about the text |
+| **Explain** | Detailed explanation of the passage |
+| **ELI5** | Explain Like I'm 5 - simplified explanation |
+| **Summarize** | Concise summary of the text |
+| **Translate** | Translate to your configured language |
+
+**What the AI sees**: Your highlighted text, plus optionally the book title and author.
+
+### Book Mode
+
+**Access**: Long-press a book in File Browser → "KOAssistant" or select gesture action "Chat about book" while in a document
+
+**Built-in Actions**:
+| Action | Description |
+|--------|-------------|
+| **Ask** | Free-form question about the book |
+| **Book Info** | Overview, significance, and why to read it |
+| **Find Similar** | Recommendations for similar books |
+| **About Author** | Author biography and writing style |
+| **Historical Context** | When written and historical significance |
+
+**What the AI sees**: Book metadata (title, author from file properties)
+
+### Multi-Book Mode
+
+**Access**: Select multiple documents in File Browser → tap any → "Compare with KOAssistant"
+
+**Built-in Actions**:
+| Action | Description |
+|--------|-------------|
+| **Compare Books** | Compare themes, styles, target audiences |
+| **Find Common Themes** | Identify shared topics and patterns |
+| **Analyze Collection** | What this selection reveals about reader interests |
+| **Quick Summaries** | Brief summary of each book |
+
+**What the AI sees**: List of book titles and authors
+
+### General Chat
+
+**Access**: Tools → KOAssistant → New General Chat, or via gesture (easier)
+
+A free-form conversation without specific book context. If started while a book is open, that "launch context" is saved with the chat (so you know eheere you laucnhed it from) but doesn't affect the conversation, i.e. the AI doesn't see that you launched it from a specific document.
+
+---
+
+## Managing Conversations
+
+### Auto-Save
+
+By default, all chats are automatically saved. You can disable this in Settings → Conversations.
+
+- **Auto-save All Chats**: Save every new conversation
+- **Auto-save Continued Chats**: Only save when continuing from history
+
+### Chat History
+
+**Access**: Tools → KOAssistant → Chat History
+
+Hamburger Menu:
+
+Browse saved conversations organized by:
+- **By Document**: Chats grouped by book (including "General AI Chats")
+- **By Domain**: Filter by knowledge domain (hamburger menu → View by Domain)
+- **By Tag**: Filter by tags you've added (hamburger menu → View by Tag)
+
+Delete all chats
+
+### Chat Actions
+
+Select any chat to:
+- **Continue**: Resume the conversation
+- **Rename**: Change the chat title
+- **Tags**: Add or remove tags
+- **Export**: Copy as Text or Markdown
+- **Delete**: Remove the chat
+
+### Export Formats
+
+- **Text**: Plain text format, good for sharing
+- **Markdown**: Formatted with headers, includes metadata
+
+---
+
+## Knowledge Domains
+
+Domains provide **background context** to frame AI conversations. When you select a domain, its context text is included with every message. They can function similarly to the Projects-feature that many AI providers have. You can have very small, focused projects, or large, detailed, interdisciplinary ones. It is up to you to tailor this. 
+
+### Creating Domains
+
+Make a `domains/` folder and create files in it:
+
+**Example**: `domains/philosophy.md`
+```markdown
+# Philosophy
+
+This conversation relates to philosophical inquiry and analysis.
+Consider different schools of thought, logical arguments, and ethical implications.
+Reference relevant philosophers and their works when appropriate.
+```
+
+**File format**:
+- Filename becomes the domain ID: `my_domain.md` → ID `my_domain`
+- First `# Heading` becomes the display name (or derived from filename)
+- Rest of file is the context sent to AI
+- Supported: `.md` and `.txt` files
+
+See `domains.sample/` for examples.
+
+### Using Domains
+
+1. In the chat dialog, tap the **Domain** button
+2. Select a domain from the list
+3. All messages in this chat will include that domain's context
+
+**Note**: Domains are knowledge tags, NOT storage locations. Chats still save to their book or "General AI Chats", but you can browse by domain in the Chat history. Domains have to be added at the beginning of a chat as they provide context for the AI.
+
+---
+
+## Tags
+
+Tags are simple labels for organizing chats. Unlike domains:
+- No context attached (just labels)
+- Can be added/removed anytime
+- Multiple tags per chat allowed
+
+### Adding Tags
+
+1. Open Chat History
+2. Long-press a chat → **Tags**
+3. Add new tags or select existing ones
+
+### Browsing by Tag
+
+Chat History → hamburger menu → **View by Tag**
+
+---
+
+## Custom Prompts & Actions
+
+### Managing Prompts in the UI
+
+**Tools → KOAssistant → Prompts & Responses → Manage Prompts**
+
+- Toggle built-in prompts on/off
+- Create new prompts with the wizard
+- Edit or delete your custom prompts (marked with ★)
+
+### Prompt Creation Wizard
+
+1. **Name & Context**: Set button text and where it appears
+2. **System Instructions**: Optional AI behavior override
+3. **User Prompt**: The actual prompt template
+
+### Template Variables
+
+| Variable | Context | Description |
+|----------|---------|-------------|
+| `{highlighted_text}` | Highlight | The selected text |
+| `{title}` | Book, Highlight | Book title |
+| `{author}` | Book, Highlight | Book author |
+| `{author_clause}` | Book, Highlight | " by Author" or empty |
+| `{count}` | Multi-book | Number of books |
+| `{books_list}` | Multi-book | Formatted list of books |
+| `{language}` | Translate | Target language |
+
+### File-Based Custom Prompts
+
+For more control, create `custom_prompts.lua`:
 
 ```lua
 return {
     {
         text = "Grammar Check",
         context = "highlight",
-        user_prompt = "Check grammar in: {highlighted_text}"
+        system_prompt = "You are a grammar expert.",
+        user_prompt = "Check grammar: {highlighted_text}"
     },
     {
-        text = "Book Club Questions",
+        text = "Discussion Questions",
         context = "book",
-        user_prompt = "Generate discussion questions for {title}"
-    }
+        user_prompt = "Generate 5 discussion questions for '{title}'{author_clause}."
+    },
+    {
+        text = "Series Order",
+        context = "multi_book",
+        user_prompt = "What's the reading order for these books?\n\n{books_list}"
+    },
 }
 ```
 
-#### 3. `configuration.lua` (Optional)
+**Optional fields**:
+- `system_prompt`: Override AI behavior
+- `provider`: Force specific provider ("anthropic", "openai", etc.)
+- `model`: Force specific model
+- `enabled`: Set to `false` to hide
+- `include_book_context`: Add book info to highlight prompts
+- `domain`: Lock to a specific domain
 
-Override defaults and fine-tune behavior:
+See `custom_prompts.lua.sample` for more examples.
+
+---
+
+## Settings Reference
+
+**Tools → KOAssistant → Settings**
+
+### AI Provider & Model
+- **Provider & Model**: Select your AI provider and model
+- **Test Connection**: Verify API credentials work
+
+### Conversations
+- **New General Chat**: Start a context-free conversation
+- **Chat History**: Browse saved conversations
+- **Auto-save options**: Control automatic saving
+
+### Prompts & Responses
+- **Manage Prompts**: Enable/disable and create prompts
+- **View Domains**: See available knowledge domains
+- **Translation Language**: Default target language
+- **Render Markdown**: Format responses with styling
+- **Hide Highlighted Text**: Don't show selection in responses
+- **Hide Long Highlights**: Collapse highlights over threshold
+
+### Advanced
+- **Debug Mode**: Show detailed request/response info
+- **Debug Display**: What to show (minimal/names/full)
+- **Enable Streaming**: Show responses as they generate
+- **Auto-scroll Streaming**: Follow new text during streaming
+- **Large Stream Dialog**: Full-screen streaming window
+- **AI Behavior Style**: Minimal (~100 tokens) or Full (~500 tokens)
+- **Temperature**: Response creativity (0=focused, 2=creative)
+- **Extended Thinking**: Enable AI reasoning (Anthropic only)
+- **Thinking Budget**: Token limit for reasoning process
+
+### About
+- **Check for Updates**: Manual update check
+- **Auto-check Updates**: Check on startup
+- **Version Info**: Plugin version and gesture tips
+
+---
+
+## Advanced Configuration
+
+### configuration.lua
+
+For advanced overrides, copy `configuration.lua.sample` to `configuration.lua`:
 
 ```lua
 return {
+    -- Force a specific provider/model
     provider = "anthropic",
-    model = "claude-3-5-sonnet-20241022",
+    model = "claude-sonnet-4-20250514",
+
+    -- Provider-specific settings
+    provider_settings = {
+        anthropic = {
+            base_url = "https://api.anthropic.com/v1/messages",
+            additional_parameters = {
+                max_tokens = 4096
+            }
+        },
+        ollama = {
+            model = "llama3",
+            base_url = "http://192.168.1.100:11434/api/chat",
+        }
+    },
+
+    -- Feature overrides
     features = {
-        render_markdown = true,
-        auto_save_chats = true,
-        debug = false
-    }
+        enable_streaming = true,
+        ai_behavior_variant = "full",
+        enable_extended_thinking = true,
+        thinking_budget_tokens = 10000,
+    },
 }
 ```
 
-### Built-in Prompts by Context
+---
 
-**Highlight Context:**
+## Technical Features
 
-- Explain, ELI5, Summarize
+### Streaming Responses
 
-**Book Context:**
+When enabled, responses appear in real-time as the AI generates them.
 
-- Book Info, Find Similar, Author Background, Historical Context
+- **Auto-scroll**: Follows new text as it appears
+- **Pause button**: Tap to stop auto-scrolling and read
+- **Resume button**: Jump back to bottom and continue following
 
-**Multi-Book Context:**
+Works with all providers that support streaming.
 
-- Compare Books, Common Themes, Collection Analysis
+### Prompt Caching (Anthropic)
 
-**General Context:**
+Reduces API costs by ~90% for repeated context, especially useful for large domains with many tokens:
 
-- Ask
+- **What's cached**: AI behavior instructions + domain context
+- **Cache duration**: 5 minutes (Anthropic's policy)
+- **Automatically enabled**: No configuration needed
 
-## Planned Features (Outdated, to be updated)
+When you have the same domain selected across multiple questions, subsequent queries use cached system instructions.
 
-- **Web Search Integration**: AI-powered web search through API
-- **Profiles/Projects**: Switch between different prompt sets for academic reading, leisure, research
-- **Specialized Profiles**: Pre-configured setups for Medicine, Geopolitics, Language Learning, etc.
-- **Enhanced Context**: Add reading progress, notes, and annotations to AI context
-- **Content vs Metadata**: Choose whether AI sees book content or just metadata
-- **Voice Integration**: Text-to-speech for AI responses
-- **Batch Operations**: Process multiple highlights or books in one go
-- **Export Formats**: Save conversations as markdown, PDF, or EPUB
-- and more
+### Extended Thinking (Anthropic)
 
-## Current State
+For complex questions, Claude can "think" through the problem before responding:
 
-**Version**: 0.1.1
+1. Enable in Settings → Advanced → Enable Extended Thinking
+2. Set token budget (1024-32000)
+3. Temperature is forced to 1.0 (API requirement)
 
-KOAssistant is under active development. The core functionality works but there are known bugs being addressed:
+Best for: Complex analysis, reasoning problems, nuanced questions
 
-- ✅ Core AI query functionality works
-- ✅ Multiple AI provider support implemented
-- ✅ Context-aware system (highlights, books, multi-book)
-- ✅ Chat saving/management - working
-- ✅ UI - mostly fixed
-- ✅ Auto-save working
-- 🚧 Performance optimizations needed
-- 🚧 Profile system in design phase
+### AI Behavior Variants
+
+Two styles of AI personality:
+
+- **Minimal** (~100 tokens): Brief guidelines, lower cost
+- **Full** (~500 tokens): Comprehensive guidelines for natural, well-formatted responses
+
+---
+
+## Supported Providers
+
+| Provider | Status | API Key From |
+|----------|--------|--------------|
+| **Anthropic** | Primary focus | [console.anthropic.com](https://console.anthropic.com/) |
+| OpenAI | Supported | [platform.openai.com](https://platform.openai.com/) |
+| DeepSeek | Supported | [platform.deepseek.com](https://platform.deepseek.com/) |
+| Gemini | Supported | [aistudio.google.com](https://aistudio.google.com/) |
+| Ollama | Supported | Local (no key needed) |
+
+### Adding Custom Models
+
+In the model selection menu, choose "Custom model..." to enter any model ID your provider supports.
+
+### Provider Quirks
+
+- **Anthropic**: Temperature capped at 1.0; Extended thinking forces temp to exactly 1.0
+- **Gemini**: Uses "model" role instead of "assistant"
+- **Ollama**: Local only; configure `base_url` in `configuration.lua` for remote instances
+
+---
+
+## Troubleshooting
+
+### "API key missing" error
+Edit `apikeys.lua` and add your key for the selected provider.
+
+### No response / timeout
+1. Check internet connection
+2. Enable Debug Mode to see the actual error
+3. Try Test Connection in settings
+
+### Streaming not working
+1. Ensure "Enable Streaming" is on in Advanced settings
+2. Some providers may have different streaming support
+
+### Wrong model showing
+1. Check Settings → AI Provider & Model
+2. When switching providers, the model resets to that provider's default
+
+### Chats not saving
+1. Check Settings → Conversations → Auto-save settings
+2. Manually save via the Save button in chat
+
+### Debug Mode
+
+Enable in Settings → Advanced → Debug Mode
+
+Shows:
+- Full request body sent to API
+- Raw API response
+- Configuration details (provider, model, temperature, etc.)
+
+---
+
+## Requirements
+
+- KOReader 2023.04 or newer
+- Internet connection
+- At least one API key
+
+---
 
 ## Contributing
 
-Contributions are welcome! Feel free to:
-
-- Submit patches and pull requests
-- Report issues and bugs
-- Share feature ideas in discussions
+Contributions welcome! You can:
+- Report bugs and issues
+- Submit pull requests
+- Share feature ideas
 - Improve documentation
 
-Note: The codebase is transitioning to a more unified message and prompt building system, and work is being done on unifying window and menu systems, and defragmentation of the code base.
+---
 
-## Credits & History
+## Credits
 
-### Fork History
+### History
 
-Originally forked from [ASKGPT by Drew Baumann](https://github.com/drewbaumann/askgpt) in February 2025, expanded with features (prompts customization, multiple providers, etc) and renamed to Assistant, then later renamed to KOAssistant. It was forked by others while named Assistant, and those forks are still in development. It was then taken private (and thus out of the fork network) for focused development and re-released publicly in July 2025, in a much expanded state. 
+Originally forked from [ASKGPT by Drew Baumann](https://github.com/drewbaumann/askgpt) in February 2025. Expanded with multi-provider support, custom prompts, chat history, domains, and more.
 
 ### Acknowledgments
 
-- Original ASKGPT plugin by Drew Baumann
-- Inspiration from features in Omer's fork (gestures, shortcuts)
-- KOReader community for the excellent plugin framework
+- Drew Baumann - Original ASKGPT plugin
+- KOReader community - Excellent plugin framework
 - All contributors and testers
 
 ### License
 
-GNU General Public License v3.0 - See [LICENSE](LICENSE) file for details
+GNU General Public License v3.0 - See [LICENSE](LICENSE)
 
 ---
 
-**Need Help?**
-
-- Check [KOReader Docs](https://koreader.rocks/doc/)
-- Visit [User Patches Wiki](https://github.com/koreader/koreader/wiki/User-patches)
-- Report issues on [GitHub](https://github.com/zeeyado/koassistant.koplugin/issues)
+**Questions or Issues?**
+- [GitHub Issues](https://github.com/zeeyado/koassistant.koplugin/issues)
+- [KOReader Docs](https://koreader.rocks/doc/)
