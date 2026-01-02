@@ -221,8 +221,37 @@ function MessageHistory:createResultText(highlightedText, config)
 
     -- Debug mode: show messages sent to AI
     if config and config.features and config.features.debug then
-        table.insert(result, "Messages sent to AI:\n-------------------\n\n")
-        
+        local display_level = config.features.debug_display_level or "names"
+
+        table.insert(result, "--- Debug Info ---\n\n")
+
+        -- Show system config info based on display level
+        if display_level == "names" or display_level == "full" then
+            -- Show behavior variant and domain names
+            local behavior = config.features.ai_behavior_variant or "full"
+            local domain = config.features.selected_domain or "none"
+            table.insert(result, "● Config: behavior=" .. behavior .. ", domain=" .. domain .. "\n\n")
+        end
+
+        if display_level == "full" and config.system then
+            -- Show full system array content
+            table.insert(result, "● System Array:\n")
+            for i, block in ipairs(config.system) do
+                local cached = block.cache_control and " [CACHED]" or ""
+                local preview = block.text or ""
+                if #preview > 200 then
+                    preview = preview:sub(1, 200) .. "..."
+                end
+                table.insert(result, string.format("  [%d]%s: %s\n", i, cached, preview))
+            end
+            table.insert(result, "\n")
+        end
+
+        -- Show messages (always, but label based on level)
+        if display_level ~= "minimal" then
+            table.insert(result, "● Messages:\n")
+        end
+
         -- Find the last user message (current query)
         local last_user_index = #self.messages
         for i = #self.messages, 1, -1 do
@@ -231,7 +260,7 @@ function MessageHistory:createResultText(highlightedText, config)
                 break
             end
         end
-        
+
         -- Show all messages up to and including the last user message
         for i = 1, last_user_index do
             local msg = self.messages[i]
@@ -247,7 +276,7 @@ function MessageHistory:createResultText(highlightedText, config)
             end
             table.insert(result, prefix .. role_text .. context_tag .. ": " .. msg.content .. "\n\n")
         end
-        table.insert(result, "-------------------\n\n")
+        table.insert(result, "------------------\n\n")
     end
 
     -- Show conversation (non-context messages)

@@ -192,6 +192,20 @@ local SettingsSchema = {
                     path = "features.debug",
                 },
                 {
+                    id = "debug_display_level",
+                    type = "radio",
+                    text = _("Debug Display"),
+                    description = _("What to show in debug view"),
+                    default = "names",
+                    path = "features.debug_display_level",
+                    depends_on = { id = "debug_mode", value = true },
+                    options = {
+                        { value = "minimal", text = _("User input only") },
+                        { value = "names", text = _("Show config names") },
+                        { value = "full", text = _("Full system content") },
+                    },
+                },
+                {
                     id = "enable_streaming",
                     type = "toggle",
                     text = _("Enable Streaming"),
