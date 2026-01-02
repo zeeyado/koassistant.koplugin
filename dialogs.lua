@@ -1056,6 +1056,9 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
 
     -- Function to show domain selector
     local function showDomainSelector()
+        -- Close the on-screen keyboard first to prevent z-order issues
+        input_dialog:onCloseKeyboard()
+
         local DomainLoader = require("domain_loader")
         local all_domains = DomainLoader.load()
         local sorted_ids = DomainLoader.getSortedIds(all_domains)
