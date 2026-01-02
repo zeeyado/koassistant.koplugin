@@ -96,13 +96,25 @@ function AnthropicRequest:build(config)
     request_body.max_tokens = params.max_tokens or AnthropicRequest.DEFAULT_PARAMS.max_tokens
     request_body.temperature = params.temperature or AnthropicRequest.DEFAULT_PARAMS.temperature
 
+    -- Clamp temperature to Anthropic's max of 1.0 (other providers support up to 2.0)
+    if request_body.temperature > 1.0 then
+        request_body.temperature = 1.0
+    end
+
     -- Add extended thinking if enabled
     if params.thinking then
         request_body.thinking = params.thinking
         -- Extended thinking has specific requirements:
         -- - budget_tokens must be >= 1024
+        -- - max_tokens MUST be > budget_tokens
         -- - temperature MUST be exactly 1.0 (API rejects any other value)
         request_body.temperature = 1.0
+
+        -- Ensure max_tokens > budget_tokens (API requirement)
+        local budget = params.thinking.budget_tokens or 4096
+        if request_body.max_tokens <= budget then
+            request_body.max_tokens = budget + 4096
+        end
     end
 
     -- Add streaming if requested
