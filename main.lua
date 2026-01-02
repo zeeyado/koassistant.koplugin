@@ -1581,6 +1581,53 @@ function AskGPT:showPromptsManager()
   prompts_manager:show()
 end
 
+function AskGPT:showDomainsViewer()
+  local Domains = require("domains")
+  local all_domains = Domains.load()
+  local sorted_ids = Domains.getSortedIds(all_domains)
+
+  -- Build info text showing all domains
+  local lines = {}
+  table.insert(lines, _("Knowledge domains provide background context for AI conversations."))
+  table.insert(lines, "")
+  table.insert(lines, _("To add custom domains, edit configuration.lua"))
+  table.insert(lines, "")
+  table.insert(lines, "────────────────────")
+  table.insert(lines, "")
+
+  for _, id in ipairs(sorted_ids) do
+    local domain = all_domains[id]
+    table.insert(lines, "▸ " .. (domain.name or id))
+    -- Show a brief preview of the context (first line or first 100 chars)
+    if domain.context then
+      local preview = domain.context:match("^[^\n]+") or domain.context
+      if #preview > 100 then
+        preview = preview:sub(1, 97) .. "..."
+      end
+      table.insert(lines, "  " .. preview)
+    end
+    table.insert(lines, "")
+  end
+
+  if #sorted_ids == 0 then
+    table.insert(lines, _("No domains defined."))
+    table.insert(lines, "")
+  end
+
+  table.insert(lines, "────────────────────")
+  table.insert(lines, "")
+  table.insert(lines, string.format(_("Total: %d domains"), #sorted_ids))
+
+  -- Show in a scrollable text viewer
+  local TextViewer = require("ui/widget/textviewer")
+  UIManager:show(TextViewer:new{
+    title = _("Available Domains"),
+    text = table.concat(lines, "\n"),
+    width = Screen:getWidth() * 0.9,
+    height = Screen:getHeight() * 0.8,
+  })
+end
+
 function AskGPT:importPrompts()
   UIManager:show(InfoMessage:new{
     text = _("Import prompts feature coming soon..."),

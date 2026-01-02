@@ -23,9 +23,9 @@ You can:
 - Much more using custom prompts/actions
 
 Coming:
-- Project management with their own project instructions (similar to Claude.ai projects)
-- Custom chat saving categories
-- Pulling system prompts from various projects
+- Domains with their own user defined context, attachable to chats at the beginning, and attachable to custom actions
+- Tagging system, attachble to chats any time
+- Browse by tag/domain
 
 A wiki/doc page will be made for creating custom prompts and actions, and other advanced configuration and usage. 
 

@@ -103,6 +103,28 @@ function ChatHistoryDialog:showDocumentMenuOptions(ui, chat_history_manager, con
     local buttons = {
         {
             {
+                text = _("View by Domain"),
+                callback = function()
+                    safeClose(dialog)
+                    self_ref.current_options_dialog = nil
+                    safeClose(self_ref.current_menu)
+                    self_ref.current_menu = nil
+                    self_ref:showChatsByDomainBrowser(ui, chat_history_manager, config)
+                end,
+            },
+            {
+                text = _("View by Tag"),
+                callback = function()
+                    safeClose(dialog)
+                    self_ref.current_options_dialog = nil
+                    safeClose(self_ref.current_menu)
+                    self_ref.current_menu = nil
+                    self_ref:showChatsByTagBrowser(ui, chat_history_manager, config)
+                end,
+            },
+        },
+        {
+            {
                 text = _("Delete all chats"),
                 callback = function()
                     safeClose(dialog)
@@ -141,6 +163,196 @@ function ChatHistoryDialog:showDocumentMenuOptions(ui, chat_history_manager, con
     }
     self.current_options_dialog = dialog
     UIManager:show(dialog)
+end
+
+-- Show chats grouped by domain
+function ChatHistoryDialog:showChatsByDomainBrowser(ui, chat_history_manager, config)
+    -- Close any existing menu first
+    safeClose(self.current_menu)
+    self.current_menu = nil
+
+    -- Get chats grouped by domain
+    local chats_by_domain = chat_history_manager:getChatsByDomain()
+
+    -- Load domain definitions for display names
+    local Domains = require("domains")
+    local all_domains = Domains.load()
+
+    -- Build menu items for each domain that has chats
+    local menu_items = {}
+    local self_ref = self
+
+    -- Get sorted list of domain keys (with chats)
+    local domain_keys = {}
+    for domain_key, chats in pairs(chats_by_domain) do
+        if #chats > 0 then
+            table.insert(domain_keys, domain_key)
+        end
+    end
+
+    -- Sort: domains first (alphabetically by name), then "untagged" at the end
+    table.sort(domain_keys, function(a, b)
+        if a == "untagged" then return false end
+        if b == "untagged" then return true end
+        local name_a = all_domains[a] and all_domains[a].name or a
+        local name_b = all_domains[b] and all_domains[b].name or b
+        return name_a < name_b
+    end)
+
+    if #domain_keys == 0 then
+        UIManager:show(InfoMessage:new{
+            text = _("No saved chats found"),
+            timeout = 2,
+        })
+        return
+    end
+
+    for i, domain_key in ipairs(domain_keys) do
+        local chats = chats_by_domain[domain_key]
+        local chat_count = #chats
+
+        -- Get display name
+        local display_name
+        if domain_key == "untagged" then
+            display_name = _("Untagged")
+        elseif all_domains[domain_key] then
+            display_name = all_domains[domain_key].name
+        else
+            display_name = domain_key
+        end
+
+        -- Get most recent chat date for this domain
+        local most_recent = chats[1] and chats[1].chat and chats[1].chat.timestamp or 0
+        local date_str = most_recent > 0 and os.date("%Y-%m-%d", most_recent) or ""
+
+        local right_text = tostring(chat_count) .. " " .. (chat_count == 1 and _("chat") or _("chats")) .. " • " .. date_str
+
+        table.insert(menu_items, {
+            text = display_name,
+            mandatory = right_text,
+            mandatory_dim = true,
+            bold = true,
+            callback = function()
+                safeClose(self_ref.current_menu)
+                self_ref.current_menu = nil
+                self_ref:showChatsForDomain(ui, domain_key, chats, all_domains, chat_history_manager, config)
+            end
+        })
+    end
+
+    local Menu = require("ui/widget/menu")
+    local domain_menu = Menu:new{
+        title = _("Chat History by Domain"),
+        title_bar_left_icon = "appbar.menu",
+        onLeftButtonTap = function()
+            safeClose(self_ref.current_menu)
+            self_ref.current_menu = nil
+            -- Go back to normal document view
+            self_ref:showChatHistoryBrowser(ui, nil, chat_history_manager, config)
+        end,
+        item_table = menu_items,
+        single_line = false,
+        multilines_forced = true,
+        items_font_size = 18,
+        items_mandatory_font_size = 14,
+        close_callback = function()
+            if self_ref.current_menu == domain_menu then
+                self_ref.current_menu = nil
+            end
+        end,
+    }
+
+    self.current_menu = domain_menu
+    UIManager:show(domain_menu)
+end
+
+-- Show chats for a specific domain
+function ChatHistoryDialog:showChatsForDomain(ui, domain_key, chats, all_domains, chat_history_manager, config)
+    -- Close any existing menu first
+    safeClose(self.current_menu)
+    self.current_menu = nil
+
+    -- Get display name
+    local domain_name
+    if domain_key == "untagged" then
+        domain_name = _("Untagged")
+    elseif all_domains[domain_key] then
+        domain_name = all_domains[domain_key].name
+    else
+        domain_name = domain_key
+    end
+
+    local menu_items = {}
+    local self_ref = self
+
+    for idx, chat_entry in ipairs(chats) do
+        local chat = chat_entry.chat
+        local document_path = chat_entry.document_path
+
+        local title = chat.title or _("Untitled Chat")
+        local date_str = chat.timestamp and os.date("%Y-%m-%d", chat.timestamp) or ""
+        local msg_count = chat.messages and #chat.messages or 0
+
+        -- Show book info if available
+        local book_info = ""
+        if chat.book_title then
+            book_info = chat.book_title
+            if chat.book_author and chat.book_author ~= "" then
+                book_info = book_info .. " • " .. chat.book_author
+            end
+        elseif document_path == "__GENERAL_CHATS__" then
+            book_info = _("General Chat")
+        end
+
+        local right_text = date_str .. " • " .. msg_count .. " " .. (msg_count == 1 and _("msg") or _("msgs"))
+
+        table.insert(menu_items, {
+            text = title,
+            info = book_info ~= "" and book_info or nil,
+            mandatory = right_text,
+            mandatory_dim = true,
+            callback = function()
+                -- Build a document object for compatibility with existing functions
+                local doc = {
+                    path = document_path,
+                    title = chat.book_title or (document_path == "__GENERAL_CHATS__" and _("General AI Chats") or domain_name),
+                    author = chat.book_author,
+                }
+                self_ref:showChatOptions(ui, document_path, chat, chat_history_manager, config, doc, nil)
+            end
+        })
+    end
+
+    local Menu = require("ui/widget/menu")
+    local chat_menu = Menu:new{
+        title = domain_name .. " (" .. #chats .. ")",
+        item_table = menu_items,
+        single_line = false,
+        multilines_forced = true,
+        items_font_size = 18,
+        items_mandatory_font_size = 14,
+        onReturn = function()
+            safeClose(chat_menu)
+            self_ref.current_menu = nil
+            self_ref:showChatsByDomainBrowser(ui, chat_history_manager, config)
+        end,
+        close_callback = function()
+            if self_ref.current_menu == chat_menu then
+                self_ref.current_menu = nil
+            end
+        end,
+    }
+
+    -- Enable return button
+    chat_menu.paths = chat_menu.paths or {}
+    table.insert(chat_menu.paths, true)
+    if chat_menu.page_return_arrow then
+        chat_menu.page_return_arrow:show()
+        chat_menu.page_return_arrow:enableDisable(true)
+    end
+
+    self.current_menu = chat_menu
+    UIManager:show(chat_menu)
 end
 
 function ChatHistoryDialog:showChatHistoryBrowser(ui, current_document_path, chat_history_manager, config, nav_context)
@@ -211,8 +423,6 @@ function ChatHistoryDialog:showChatHistoryBrowser(ui, current_document_path, cha
         local help_text
         if doc.path == "__GENERAL_CHATS__" then
             help_text = _("AI conversations without book context")
-        elseif doc.path:match("^__CATEGORY:(.+)__$") then
-            help_text = _("Custom category for organized chats")
         else
             help_text = doc.path
         end
@@ -420,6 +630,16 @@ function ChatHistoryDialog:showChatOptions(ui, document_path, chat, chat_history
     -- This ensures we can close it later even if self.current_menu changes
     local menu_to_close = self.current_menu
 
+    -- Format tags for display
+    local tags_display = ""
+    if chat.tags and #chat.tags > 0 then
+        local tag_strs = {}
+        for _, t in ipairs(chat.tags) do
+            table.insert(tag_strs, "#" .. t)
+        end
+        tags_display = table.concat(tag_strs, " ")
+    end
+
     local buttons = {
         {
             {
@@ -441,6 +661,16 @@ function ChatHistoryDialog:showChatOptions(ui, document_path, chat, chat_history
                     safeClose(dialog)
                     self_ref.current_options_dialog = nil
                     self_ref:showRenameDialog(ui, document_path, chat, chat_history_manager, config, document, nav_context)
+                end,
+            },
+        },
+        {
+            {
+                text = _("Tags") .. (tags_display ~= "" and ": " .. tags_display or ""),
+                callback = function()
+                    safeClose(dialog)
+                    self_ref.current_options_dialog = nil
+                    self_ref:showTagsManager(ui, document_path, chat, chat_history_manager, config, document, nav_context)
                 end,
             },
         },
@@ -529,6 +759,177 @@ function ChatHistoryDialog:showRenameDialog(ui, document_path, chat, chat_histor
     }
 
     UIManager:show(rename_dialog)
+end
+
+function ChatHistoryDialog:showTagsManager(ui, document_path, chat, chat_history_manager, config, document, nav_context)
+    local self_ref = self
+
+    -- Function to show the tags menu
+    local function showTagsMenu()
+        -- Reload chat to get latest tags
+        local fresh_chat = chat_history_manager:getChatById(document_path, chat.id)
+        if fresh_chat then
+            chat = fresh_chat
+        end
+
+        local current_tags = chat.tags or {}
+        local all_tags = chat_history_manager:getAllTags()
+
+        local buttons = {}
+
+        -- Show current tags with remove option
+        if #current_tags > 0 then
+            table.insert(buttons, {
+                {
+                    text = _("Current tags:"),
+                    enabled = false,
+                },
+            })
+
+            for ti, tag in ipairs(current_tags) do
+                table.insert(buttons, {
+                    {
+                        text = "#" .. tag .. " ✕",
+                        callback = function()
+                            chat_history_manager:removeTagFromChat(document_path, chat.id, tag)
+                            UIManager:show(InfoMessage:new{
+                                text = T(_("Removed tag: %1"), tag),
+                                timeout = 1,
+                            })
+                            UIManager:scheduleIn(0.3, showTagsMenu)
+                        end,
+                    },
+                })
+            end
+
+            table.insert(buttons, {
+                {
+                    text = "────────────────────",
+                    enabled = false,
+                },
+            })
+        end
+
+        -- Show existing tags that aren't on this chat (for quick add)
+        local available_tags = {}
+        for ti, tag in ipairs(all_tags) do
+            local already_has = false
+            for ci, current in ipairs(current_tags) do
+                if current == tag then
+                    already_has = true
+                    break
+                end
+            end
+            if not already_has then
+                table.insert(available_tags, tag)
+            end
+        end
+
+        if #available_tags > 0 then
+            table.insert(buttons, {
+                {
+                    text = _("Add existing tag:"),
+                    enabled = false,
+                },
+            })
+
+            -- Show up to 5 existing tags for quick add
+            local shown_tags = 0
+            for ai, tag in ipairs(available_tags) do
+                if shown_tags >= 5 then break end
+                table.insert(buttons, {
+                    {
+                        text = "#" .. tag,
+                        callback = function()
+                            chat_history_manager:addTagToChat(document_path, chat.id, tag)
+                            UIManager:show(InfoMessage:new{
+                                text = T(_("Added tag: %1"), tag),
+                                timeout = 1,
+                            })
+                            UIManager:scheduleIn(0.3, showTagsMenu)
+                        end,
+                    },
+                })
+                shown_tags = shown_tags + 1
+            end
+
+            table.insert(buttons, {
+                {
+                    text = "────────────────────",
+                    enabled = false,
+                },
+            })
+        end
+
+        -- Add new tag button
+        table.insert(buttons, {
+            {
+                text = _("+ Add new tag"),
+                callback = function()
+                    local tag_dialog
+                    tag_dialog = InputDialog:new{
+                        title = _("New Tag"),
+                        input_hint = _("Enter tag name"),
+                        buttons = {
+                            {
+                                {
+                                    text = _("Close"),
+                                    id = "close",
+                                    callback = function()
+                                        UIManager:close(tag_dialog)
+                                        showTagsMenu()
+                                    end,
+                                },
+                                {
+                                    text = _("Add"),
+                                    is_enter_default = true,
+                                    callback = function()
+                                        local new_tag = tag_dialog:getInputText()
+                                        UIManager:close(tag_dialog)
+                                        if new_tag and new_tag ~= "" then
+                                            -- Remove # if user typed it
+                                            new_tag = new_tag:gsub("^#", "")
+                                            new_tag = new_tag:match("^%s*(.-)%s*$")  -- trim
+                                            if new_tag ~= "" then
+                                                chat_history_manager:addTagToChat(document_path, chat.id, new_tag)
+                                                UIManager:show(InfoMessage:new{
+                                                    text = T(_("Added tag: %1"), new_tag),
+                                                    timeout = 1,
+                                                })
+                                            end
+                                        end
+                                        UIManager:scheduleIn(0.3, showTagsMenu)
+                                    end,
+                                },
+                            },
+                        },
+                    }
+                    UIManager:show(tag_dialog)
+                    tag_dialog:onShowKeyboard()
+                end,
+            },
+        })
+
+        -- Done button
+        table.insert(buttons, {
+            {
+                text = _("Done"),
+                callback = function()
+                    -- Go back to chat options with refreshed chat data
+                    self_ref:showChatOptions(ui, document_path, chat, chat_history_manager, config, document, nav_context)
+                end,
+            },
+        })
+
+        local dialog = ButtonDialog:new{
+            title = _("Manage Tags"),
+            buttons = buttons,
+        }
+        self_ref.current_options_dialog = dialog
+        UIManager:show(dialog)
+    end
+
+    showTagsMenu()
 end
 
 function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_manager, config)
@@ -900,6 +1301,180 @@ function ChatHistoryDialog:confirmDelete(ui, document_path, chat_id, chat_histor
         self.current_menu = nil
     end
     self:confirmDeleteSimple(ui, document_path, chat_id, chat_history_manager, config, document, nav_context)
+end
+
+-- Show chats grouped by tag
+function ChatHistoryDialog:showChatsByTagBrowser(ui, chat_history_manager, config)
+    -- Close any existing menu first
+    safeClose(self.current_menu)
+    self.current_menu = nil
+
+    -- Get all tags with chat counts
+    local tag_counts = chat_history_manager:getTagChatCounts()
+
+    -- Build menu items for each tag that has chats
+    local menu_items = {}
+    local self_ref = self
+
+    -- Get sorted list of tags
+    local tags = {}
+    for tag, count in pairs(tag_counts) do
+        if count > 0 then
+            table.insert(tags, { name = tag, count = count })
+        end
+    end
+
+    -- Sort alphabetically by tag name
+    table.sort(tags, function(a, b)
+        return a.name < b.name
+    end)
+
+    if #tags == 0 then
+        UIManager:show(InfoMessage:new{
+            text = _("No tagged chats found.\n\nYou can add tags to chats from the chat options menu."),
+            timeout = 3,
+        })
+        -- Go back to document view
+        self:showChatHistoryBrowser(ui, nil, chat_history_manager, config)
+        return
+    end
+
+    for i, tag_info in ipairs(tags) do
+        local tag = tag_info.name
+        local chat_count = tag_info.count
+
+        -- Get most recent chat date for this tag
+        local chats = chat_history_manager:getChatsByTag(tag)
+        local most_recent = chats[1] and chats[1].chat and chats[1].chat.timestamp or 0
+        local date_str = most_recent > 0 and os.date("%Y-%m-%d", most_recent) or ""
+
+        local right_text = tostring(chat_count) .. " " .. (chat_count == 1 and _("chat") or _("chats")) .. " • " .. date_str
+
+        table.insert(menu_items, {
+            text = "#" .. tag,
+            mandatory = right_text,
+            mandatory_dim = true,
+            bold = true,
+            callback = function()
+                safeClose(self_ref.current_menu)
+                self_ref.current_menu = nil
+                self_ref:showChatsForTag(ui, tag, chat_history_manager, config)
+            end
+        })
+    end
+
+    local tag_menu = Menu:new{
+        title = _("Chat History by Tag"),
+        title_bar_left_icon = "appbar.menu",
+        onLeftButtonTap = function()
+            safeClose(self_ref.current_menu)
+            self_ref.current_menu = nil
+            -- Go back to normal document view
+            self_ref:showChatHistoryBrowser(ui, nil, chat_history_manager, config)
+        end,
+        item_table = menu_items,
+        single_line = false,
+        multilines_forced = true,
+        items_font_size = 18,
+        items_mandatory_font_size = 14,
+        close_callback = function()
+            if self_ref.current_menu == tag_menu then
+                self_ref.current_menu = nil
+            end
+        end,
+    }
+
+    self.current_menu = tag_menu
+    UIManager:show(tag_menu)
+end
+
+-- Show chats for a specific tag
+function ChatHistoryDialog:showChatsForTag(ui, tag, chat_history_manager, config)
+    -- Close any existing menu first
+    safeClose(self.current_menu)
+    self.current_menu = nil
+
+    local chats = chat_history_manager:getChatsByTag(tag)
+
+    if #chats == 0 then
+        UIManager:show(InfoMessage:new{
+            text = _("No chats found with this tag"),
+            timeout = 2,
+        })
+        self:showChatsByTagBrowser(ui, chat_history_manager, config)
+        return
+    end
+
+    local menu_items = {}
+    local self_ref = self
+
+    for idx, chat_entry in ipairs(chats) do
+        local chat = chat_entry.chat
+        local document_path = chat_entry.document_path
+
+        local title = chat.title or _("Untitled Chat")
+        local date_str = chat.timestamp and os.date("%Y-%m-%d", chat.timestamp) or ""
+        local msg_count = chat.messages and #chat.messages or 0
+
+        -- Show book info if available
+        local book_info = ""
+        if chat.book_title then
+            book_info = chat.book_title
+            if chat.book_author and chat.book_author ~= "" then
+                book_info = book_info .. " • " .. chat.book_author
+            end
+        elseif document_path == "__GENERAL_CHATS__" then
+            book_info = _("General Chat")
+        end
+
+        local right_text = date_str .. " • " .. msg_count .. " " .. (msg_count == 1 and _("msg") or _("msgs"))
+
+        table.insert(menu_items, {
+            text = title,
+            info = book_info ~= "" and book_info or nil,
+            mandatory = right_text,
+            mandatory_dim = true,
+            callback = function()
+                -- Build a document object for compatibility with existing functions
+                local doc = {
+                    path = document_path,
+                    title = chat.book_title or (document_path == "__GENERAL_CHATS__" and _("General AI Chats") or "#" .. tag),
+                    author = chat.book_author,
+                }
+                self_ref:showChatOptions(ui, document_path, chat, chat_history_manager, config, doc, nil)
+            end
+        })
+    end
+
+    local chat_menu = Menu:new{
+        title = "#" .. tag .. " (" .. #chats .. ")",
+        item_table = menu_items,
+        single_line = false,
+        multilines_forced = true,
+        items_font_size = 18,
+        items_mandatory_font_size = 14,
+        onReturn = function()
+            safeClose(chat_menu)
+            self_ref.current_menu = nil
+            self_ref:showChatsByTagBrowser(ui, chat_history_manager, config)
+        end,
+        close_callback = function()
+            if self_ref.current_menu == chat_menu then
+                self_ref.current_menu = nil
+            end
+        end,
+    }
+
+    -- Enable return button
+    chat_menu.paths = chat_menu.paths or {}
+    table.insert(chat_menu.paths, true)
+    if chat_menu.page_return_arrow then
+        chat_menu.page_return_arrow:show()
+        chat_menu.page_return_arrow:enableDisable(true)
+    end
+
+    self.current_menu = chat_menu
+    UIManager:show(chat_menu)
 end
 
 return ChatHistoryDialog
