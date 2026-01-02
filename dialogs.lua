@@ -1318,10 +1318,13 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         }
     }
 
-    -- 3. Translate (only for highlighted text context, not file browser or general)
+    -- 3. Translate (only for highlighted text context, not book/multi-book/general)
     local translation_language = configuration.features.translation_language or configuration.features.translate_to or "English"
-    if translation_language and not configuration.features.is_file_browser_context 
-       and not configuration.features.is_general_context and highlighted_text then
+    if translation_language
+       and not configuration.features.is_book_context
+       and not configuration.features.is_multi_book_context
+       and not configuration.features.is_general_context
+       and highlighted_text then
         table.insert(all_buttons, {
             text = _("Translate"),
             prompt_type = "translate",
@@ -1336,19 +1339,13 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     -- Use centralized translation system prompt
                     local translation_prompt = svc:getSystemPrompt("translation", "translation")
 
-                    -- Create history WITHOUT system prompt (we'll include it in the consolidated message)
+                    -- Create history WITHOUT system prompt (it goes to system array via applyNewRequestFormat)
                     local history = MessageHistory:new(nil, "Translate")
 
                     -- Build consolidated message parts
+                    -- Note: translation_prompt goes to system array via applyNewRequestFormat,
+                    -- so we only include the request and user input here
                     local parts = {}
-
-                    -- Add system prompt
-                    if translation_prompt then
-                        table.insert(parts, "")  -- Add line break before [Instructions]
-                        table.insert(parts, "[Instructions]")
-                        table.insert(parts, translation_prompt)
-                        table.insert(parts, "")
-                    end
 
                     -- Add translation request
                     table.insert(parts, "[Request]")
