@@ -104,6 +104,11 @@ local function queryChatGPT(message_history, temp_config, on_complete)
         return "Error: " .. err
     end
 
+    -- Warn if extended thinking is enabled for non-Anthropic providers
+    if config.features and config.features.enable_extended_thinking and provider ~= "anthropic" then
+        logger.warn("KOAssistant: Extended thinking is only supported for Anthropic provider, ignoring setting")
+    end
+
     local success, result = pcall(function()
         return handler:query(message_history, config)
     end)
