@@ -99,12 +99,10 @@ function AnthropicRequest:build(config)
     -- Add extended thinking if enabled
     if params.thinking then
         request_body.thinking = params.thinking
-        -- Extended thinking has specific requirements
+        -- Extended thinking has specific requirements:
         -- - budget_tokens must be >= 1024
-        -- - Cannot use with temperature > 1.0
-        if request_body.temperature > 1.0 then
-            request_body.temperature = 1.0
-        end
+        -- - temperature MUST be exactly 1.0 (API rejects any other value)
+        request_body.temperature = 1.0
     end
 
     -- Add streaming if requested

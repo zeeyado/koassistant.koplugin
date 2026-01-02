@@ -138,9 +138,31 @@ local function applyNewRequestFormat(config, context_type, domain_context, actio
     if system_array then
         config.system = system_array
 
-        -- Apply action-specific API params if available
+        -- Start with action-specific API params if available
         if action and action.api_params then
             config.api_params = action.api_params
+        else
+            config.api_params = {}
+        end
+
+        -- Apply global temperature if not overridden by action
+        if not config.api_params.temperature then
+            if config.features and config.features.default_temperature then
+                config.api_params.temperature = config.features.default_temperature
+            end
+            -- Note: temperature is forced to 1.0 by anthropic_request.lua when thinking is enabled
+        end
+
+        -- Apply global extended thinking if enabled and not overridden by action
+        -- Only for Anthropic provider (others will ignore or warn)
+        if config.features and config.features.enable_extended_thinking then
+            if not config.api_params.thinking then
+                local budget = config.features.thinking_budget_tokens or 4096
+                config.api_params.thinking = {
+                    type = "enabled",
+                    budget_tokens = math.max(budget, 1024),  -- Minimum 1024
+                }
+            end
         end
 
         return true
@@ -954,7 +976,7 @@ local function handlePredefinedPrompt(prompt_type, highlightedText, ui, configur
     return history, temp_config
 end
 
-local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_type, plugin, book_metadata)
+local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_type, plugin, book_metadata, initial_input)
     -- Use the passed configuration or fall back to the global CONFIGURATION
     local configuration = config or CONFIGURATION
     
@@ -1050,10 +1072,12 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     configuration.features.selected_domain = nil
                     -- Persist to settings so it survives restarts
                     persistDomainSelection(plugin, nil)
+                    -- Capture current input text before closing
+                    local current_input = input_dialog:getInputText()
                     UIManager:close(_G.domain_selector_dialog)
-                    -- Refresh main dialog to show updated domain selection
+                    -- Refresh main dialog to show updated domain selection, preserving input
                     UIManager:close(input_dialog)
-                    showChatGPTDialog(ui_instance, highlighted_text, configuration, nil, plugin, book_metadata)
+                    showChatGPTDialog(ui_instance, highlighted_text, configuration, nil, plugin, book_metadata, current_input)
                 end,
             },
         })
@@ -1071,10 +1095,12 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         configuration.features.selected_domain = domain_id
                         -- Persist to settings so it survives restarts
                         persistDomainSelection(plugin, domain_id)
+                        -- Capture current input text before closing
+                        local current_input = input_dialog:getInputText()
                         UIManager:close(_G.domain_selector_dialog)
-                        -- Refresh main dialog to show updated domain selection
+                        -- Refresh main dialog to show updated domain selection, preserving input
                         UIManager:close(input_dialog)
-                        showChatGPTDialog(ui_instance, highlighted_text, configuration, nil, plugin, book_metadata)
+                        showChatGPTDialog(ui_instance, highlighted_text, configuration, nil, plugin, book_metadata, current_input)
                     end,
                 },
             })
@@ -1461,6 +1487,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     -- Show the dialog with the button rows
     input_dialog = InputDialog:new{
         title = _("KOAssistant Actions"),
+        input = initial_input or "",  -- Restore input if provided (e.g., after domain change)
         input_hint = _("Type your question or additional instructions for any action..."),
         input_type = "text",
         buttons = button_rows,

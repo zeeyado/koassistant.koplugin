@@ -237,7 +237,14 @@ function MessageHistory:createResultText(highlightedText, config)
             end
             local temp = config.additional_parameters and config.additional_parameters.temperature or 0.7
             table.insert(result, string.format("● Config: behavior=%s, domain=%s\n", behavior, domain))
-            table.insert(result, string.format("  model=%s, temp=%.1f\n\n", model, temp))
+
+            -- Check for extended thinking
+            local thinking_info = ""
+            if config.api_params and config.api_params.thinking then
+                local budget = config.api_params.thinking.budget_tokens or 0
+                thinking_info = string.format(", thinking=%d", budget)
+            end
+            table.insert(result, string.format("  model=%s, temp=%.1f%s\n\n", model, temp, thinking_info))
         end
 
         if display_level == "full" and config.system then
