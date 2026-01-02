@@ -13,6 +13,7 @@ local logger = require("logger")
 local json = require("json")
 local ffi = require("ffi")
 local ffiutil = require("ffi/util")
+local UIConstants = require("ui/constants")
 
 local StreamHandler = {
     interrupt_stream = nil,      -- function to interrupt the stream query
@@ -176,18 +177,21 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
         finishStream()
     end
 
-    -- Dialog size configuration
-    local width, use_available_height, text_height, is_movable
+    -- Dialog size configuration (uses UIConstants for consistency)
+    local width, text_height, is_movable
     local large_dialog = settings and settings.large_stream_dialog ~= false
     if large_dialog then
-        width = Screen:getWidth() - 2 * Size.margin.default
-        text_height = nil
-        use_available_height = true
+        -- Large streaming dialog (same size as chat window - 95%)
+        -- Calculate text_height to achieve ~95% total dialog height
+        -- Account for dialog chrome: title bar (~50px), buttons (~60px), borders/padding (~40px)
+        local chrome_height = Screen:scaleBySize(150)
+        width = UIConstants.CHAT_WIDTH()
+        text_height = UIConstants.CHAT_HEIGHT() - chrome_height
         is_movable = false
     else
-        width = Screen:getWidth() - Screen:scaleBySize(80)
-        text_height = math.floor(Screen:getHeight() * 0.35)
-        use_available_height = false
+        -- Compact streaming dialog
+        width = UIConstants.COMPACT_DIALOG_WIDTH()
+        text_height = math.floor(Screen:getHeight() * UIConstants.INPUT_HEIGHT_RATIO)
         is_movable = true
     end
 
@@ -249,7 +253,6 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
 
         -- size parameters
         width = width,
-        use_available_height = use_available_height,
         text_height = text_height,
         is_movable = is_movable,
 

@@ -8,6 +8,7 @@ local InfoMessage = require("ui/widget/infomessage")
 local Menu = require("ui/widget/menu")
 local MultiInputDialog = require("ui/widget/multiinputdialog")
 local ButtonDialog = require("ui/widget/buttondialog")
+local SpinWidget = require("ui/widget/spinwidget")
 local LuaSettings = require("luasettings")
 local DataStorage = require("datastorage")
 local T = require("ffi/util").template
@@ -20,6 +21,7 @@ local UpdateChecker = require("update_checker")
 local SettingsSchema = require("settings_schema")
 local SettingsManager = require("ui/settings_manager")
 local PromptsManager = require("ui/prompts_manager")
+local UIConstants = require("ui/constants")
 local PromptService = require("prompt_service")
 local ActionService = require("action_service")
 
@@ -128,7 +130,10 @@ end
 
 function AskGPT:init()
   logger.info("KOAssistant plugin: init() called")
-  
+
+  -- Store configuration on the instance (single source of truth)
+  self.configuration = configuration
+
   -- Initialize settings
   self:initSettings()
   
@@ -863,56 +868,668 @@ end
 
 function AskGPT:updateConfigFromSettings()
   -- Update configuration with values from settings
-  configuration.provider = self.settings:readSetting("provider")
-  configuration.model = self.settings:readSetting("model")
-  
-  local features = self.settings:readSetting("features")
-  if features then
-    -- Update all features from settings
-    configuration.features = features
-  end
-  
-  
+  -- Provider and model are stored inside features table
+  local features = self.settings:readSetting("features") or {}
+
+  configuration.provider = features.provider or "anthropic"
+  configuration.model = features.model
+  configuration.features = features
+
   -- Log the current configuration for debugging
-  logger.info("Updated configuration: provider=" .. (configuration.provider or "nil") .. 
-              ", model=" .. (configuration.model or "default"))
+  local config_parts = {
+    "provider=" .. (configuration.provider or "nil"),
+    "model=" .. (configuration.model or "default"),
+  }
+
+  -- Always show AI behavior variant
+  table.insert(config_parts, "behavior=" .. (features.ai_behavior_variant or "full"))
+
+  -- Add other relevant settings if they differ from defaults
+  if features.default_temperature and features.default_temperature ~= 0.7 then
+    table.insert(config_parts, "temp=" .. features.default_temperature)
+  end
+  if features.enable_extended_thinking then
+    table.insert(config_parts, "thinking=" .. (features.thinking_budget_tokens or 4096))
+  end
+  -- Always show debug level when debug is enabled
+  if features.debug then
+    table.insert(config_parts, "debug=" .. (features.debug_display_level or "names"))
+  end
+  if features.enable_streaming == false then
+    table.insert(config_parts, "streaming=off")
+  end
+  if features.render_markdown == false then
+    table.insert(config_parts, "markdown=off")
+  end
+
+  logger.info("KOAssistant config: " .. table.concat(config_parts, ", "))
+end
+
+-- Helper: Get current provider name
+function AskGPT:getCurrentProvider()
+  local features = self.settings:readSetting("features") or {}
+  return features.provider or self.configuration.provider or "anthropic"
+end
+
+-- Helper: Get current model name
+function AskGPT:getCurrentModel()
+  local features = self.settings:readSetting("features") or {}
+  return features.model or self.configuration.model or "claude-sonnet-4-20250514"
+end
+
+-- Helper: Build provider selection sub-menu
+function AskGPT:buildProviderMenu()
+  local self_ref = self
+  local current = self:getCurrentProvider()
+  local providers = {"anthropic", "openai", "deepseek", "gemini", "ollama"}
+  local Defaults = require("api_handlers.defaults")
+  local items = {}
+
+  for _, provider in ipairs(providers) do
+    table.insert(items, {
+      text = provider:gsub("^%l", string.upper),  -- Capitalize
+      checked_func = function() return self_ref:getCurrentProvider() == provider end,
+      radio = true,
+      callback = function()
+        local features = self_ref.settings:readSetting("features") or {}
+        local old_provider = features.provider
+
+        -- Reset model to new provider's default when provider changes
+        if old_provider ~= provider then
+          local provider_defaults = Defaults.ProviderDefaults[provider]
+          if provider_defaults and provider_defaults.model then
+            features.model = provider_defaults.model
+          else
+            features.model = nil  -- Clear if no default
+          end
+        end
+
+        features.provider = provider
+        self_ref.settings:saveSetting("features", features)
+        self_ref.settings:flush()
+        self_ref:updateConfigFromSettings()
+      end,
+      keep_menu_open = true,
+    })
+  end
+
+  return items
+end
+
+-- Helper: Build model selection sub-menu for current provider
+function AskGPT:buildModelMenu()
+  local self_ref = self
+  local provider = self:getCurrentProvider()
+  local models = ModelLists[provider] or {}
+  local Defaults = require("api_handlers.defaults")
+  local provider_defaults = Defaults.ProviderDefaults[provider]
+  local default_model = provider_defaults and provider_defaults.model or nil
+  local items = {}
+
+  for i = 1, #models do
+    local model = models[i]
+    -- Show full model name
+    local display_name = model
+
+    -- Mark default model
+    local is_default = (model == default_model)
+    if is_default then
+      display_name = display_name .. " " .. _("(default)")
+    end
+
+    table.insert(items, {
+      text = display_name,
+      checked_func = function()
+        local f = self_ref.settings:readSetting("features") or {}
+        local selected = f.model or default_model
+        return selected == model
+      end,
+      radio = true,
+      callback = function()
+        local f = self_ref.settings:readSetting("features") or {}
+        f.model = model
+        self_ref.settings:saveSetting("features", f)
+        self_ref.settings:flush()
+        self_ref:updateConfigFromSettings()
+      end,
+      keep_menu_open = true,
+    })
+  end
+
+  -- Add custom model input option
+  table.insert(items, {
+    text = _("Custom model..."),
+    callback = function()
+      local f = self_ref.settings:readSetting("features") or {}
+      local current_model = f.model or ""
+      local InputDialog = require("ui/widget/inputdialog")
+      local input_dialog
+      input_dialog = InputDialog:new{
+        title = _("Enter Custom Model Name"),
+        input = current_model,
+        input_hint = _("e.g., claude-3-opus-20240229"),
+        description = _("Enter the exact model identifier for this provider."),
+        buttons = {
+          {
+            {
+              text = _("Cancel"),
+              id = "close",
+              callback = function()
+                UIManager:close(input_dialog)
+              end,
+            },
+            {
+              text = _("Save"),
+              is_enter_default = true,
+              callback = function()
+                local new_model = input_dialog:getInputText()
+                if new_model and new_model ~= "" then
+                  f.model = new_model
+                  self_ref.settings:saveSetting("features", f)
+                  self_ref.settings:flush()
+                  self_ref:updateConfigFromSettings()
+                end
+                UIManager:close(input_dialog)
+              end,
+            },
+          },
+        },
+      }
+      UIManager:show(input_dialog)
+      input_dialog:onShowKeyboard()
+    end,
+  })
+
+  if #items == 1 then
+    -- Only the custom option exists, add a note
+    table.insert(items, 1, {
+      text = _("No predefined models"),
+      enabled = false,
+    })
+  end
+
+  return items
+end
+
+-- Helper: Show temperature SpinWidget
+function AskGPT:showTemperatureSpinner(touchmenu)
+  local features = self.settings:readSetting("features") or {}
+  UIManager:show(SpinWidget:new{
+    title_text = _("Temperature"),
+    info_text = _("Controls response randomness\n0 = focused, 2 = creative\n(Forced to 1.0 with extended thinking)"),
+    value = features.default_temperature or 0.7,
+    value_min = 0,
+    value_max = 2,
+    value_step = 0.1,
+    precision = "%.1f",
+    default_value = 0.7,
+    callback = function(spin)
+      features.default_temperature = spin.value
+      self.settings:saveSetting("features", features)
+      self.settings:flush()
+      self:updateConfigFromSettings()
+    end,
+    close_callback = function()
+      if touchmenu then touchmenu:updateItems() end
+    end,
+  })
+end
+
+-- Helper: Show thinking budget SpinWidget
+function AskGPT:showThinkingBudgetSpinner(touchmenu)
+  local features = self.settings:readSetting("features") or {}
+  UIManager:show(SpinWidget:new{
+    title_text = _("Thinking Token Budget"),
+    info_text = _("Maximum tokens for AI reasoning\n(Anthropic extended thinking only)"),
+    value = features.thinking_budget_tokens or 4096,
+    value_min = 1024,
+    value_max = 32000,
+    value_step = 1024,
+    default_value = 4096,
+    callback = function(spin)
+      features.thinking_budget_tokens = spin.value
+      self.settings:saveSetting("features", features)
+      self.settings:flush()
+      self:updateConfigFromSettings()
+    end,
+    close_callback = function()
+      if touchmenu then touchmenu:updateItems() end
+    end,
+  })
+end
+
+-- Helper: Build Display Settings sub-menu
+function AskGPT:buildDisplaySettings()
+  local self_ref = self
+  return {
+    {
+      text = _("Render Markdown"),
+      checked_func = function()
+        local f = self_ref.settings:readSetting("features") or {}
+        return f.render_markdown ~= false
+      end,
+      callback = function()
+        local f = self_ref.settings:readSetting("features") or {}
+        f.render_markdown = not (f.render_markdown ~= false)
+        self_ref.settings:saveSetting("features", f)
+        self_ref.settings:flush()
+        self_ref:updateConfigFromSettings()
+      end,
+      keep_menu_open = true,
+    },
+    {
+      text = _("Hide Highlighted Text"),
+      checked_func = function()
+        local f = self_ref.settings:readSetting("features") or {}
+        return f.hide_highlighted_text == true
+      end,
+      callback = function()
+        local f = self_ref.settings:readSetting("features") or {}
+        f.hide_highlighted_text = not f.hide_highlighted_text
+        self_ref.settings:saveSetting("features", f)
+        self_ref.settings:flush()
+        self_ref:updateConfigFromSettings()
+      end,
+      keep_menu_open = true,
+    },
+    {
+      text = _("Hide Long Highlights"),
+      checked_func = function()
+        local f = self_ref.settings:readSetting("features") or {}
+        return f.hide_long_highlights ~= false
+      end,
+      callback = function()
+        local f = self_ref.settings:readSetting("features") or {}
+        f.hide_long_highlights = not (f.hide_long_highlights ~= false)
+        self_ref.settings:saveSetting("features", f)
+        self_ref.settings:flush()
+        self_ref:updateConfigFromSettings()
+      end,
+      keep_menu_open = true,
+    },
+    {
+      text_func = function()
+        local f = self_ref.settings:readSetting("features") or {}
+        return T(_("Long Highlight Threshold: %1"), f.long_highlight_threshold or 280)
+      end,
+      enabled_func = function()
+        local f = self_ref.settings:readSetting("features") or {}
+        return f.hide_long_highlights ~= false
+      end,
+      callback = function()
+        self_ref:showThresholdDialog()
+      end,
+      keep_menu_open = true,
+    },
+  }
+end
+
+-- Helper: Build Chat Settings sub-menu
+function AskGPT:buildChatSettings()
+  local self_ref = self
+  return {
+    {
+      text = _("Auto-save All Chats"),
+      checked_func = function()
+        local f = self_ref.settings:readSetting("features") or {}
+        return f.auto_save_all_chats ~= false
+      end,
+      callback = function()
+        local f = self_ref.settings:readSetting("features") or {}
+        f.auto_save_all_chats = not (f.auto_save_all_chats ~= false)
+        self_ref.settings:saveSetting("features", f)
+        self_ref.settings:flush()
+        self_ref:updateConfigFromSettings()
+      end,
+      keep_menu_open = true,
+    },
+    {
+      text = _("Auto-save Continued Chats"),
+      enabled_func = function()
+        local f = self_ref.settings:readSetting("features") or {}
+        return f.auto_save_all_chats == false
+      end,
+      checked_func = function()
+        local f = self_ref.settings:readSetting("features") or {}
+        return f.auto_save_chats ~= false
+      end,
+      callback = function()
+        local f = self_ref.settings:readSetting("features") or {}
+        f.auto_save_chats = not (f.auto_save_chats ~= false)
+        self_ref.settings:saveSetting("features", f)
+        self_ref.settings:flush()
+        self_ref:updateConfigFromSettings()
+      end,
+      keep_menu_open = true,
+      separator = true,
+    },
+    {
+      text = _("Enable Streaming"),
+      checked_func = function()
+        local f = self_ref.settings:readSetting("features") or {}
+        return f.enable_streaming ~= false
+      end,
+      callback = function()
+        local f = self_ref.settings:readSetting("features") or {}
+        f.enable_streaming = not (f.enable_streaming ~= false)
+        self_ref.settings:saveSetting("features", f)
+        self_ref.settings:flush()
+        self_ref:updateConfigFromSettings()
+      end,
+      keep_menu_open = true,
+    },
+    {
+      text = _("Auto-scroll Streaming"),
+      enabled_func = function()
+        local f = self_ref.settings:readSetting("features") or {}
+        return f.enable_streaming ~= false
+      end,
+      checked_func = function()
+        local f = self_ref.settings:readSetting("features") or {}
+        return f.stream_auto_scroll ~= false
+      end,
+      callback = function()
+        local f = self_ref.settings:readSetting("features") or {}
+        f.stream_auto_scroll = not (f.stream_auto_scroll ~= false)
+        self_ref.settings:saveSetting("features", f)
+        self_ref.settings:flush()
+        self_ref:updateConfigFromSettings()
+      end,
+      keep_menu_open = true,
+    },
+    {
+      text = _("Large Stream Dialog"),
+      enabled_func = function()
+        local f = self_ref.settings:readSetting("features") or {}
+        return f.enable_streaming ~= false
+      end,
+      checked_func = function()
+        local f = self_ref.settings:readSetting("features") or {}
+        return f.large_stream_dialog ~= false
+      end,
+      callback = function()
+        local f = self_ref.settings:readSetting("features") or {}
+        f.large_stream_dialog = not (f.large_stream_dialog ~= false)
+        self_ref.settings:saveSetting("features", f)
+        self_ref.settings:flush()
+        self_ref:updateConfigFromSettings()
+      end,
+      keep_menu_open = true,
+    },
+  }
+end
+
+-- Helper: Build Advanced Settings sub-menu
+function AskGPT:buildAdvancedSettings()
+  local self_ref = self
+  return {
+    -- AI Behavior
+    {
+      text_func = function()
+        local f = self_ref.settings:readSetting("features") or {}
+        local variant = f.ai_behavior_variant or "full"
+        return T(_("AI Behavior: %1"), variant == "minimal" and _("Minimal") or _("Full"))
+      end,
+      sub_item_table = {
+        {
+          text = _("Minimal (~100 tokens)"),
+          checked_func = function()
+            local f = self_ref.settings:readSetting("features") or {}
+            return (f.ai_behavior_variant or "full") == "minimal"
+          end,
+          radio = true,
+          callback = function()
+            local f = self_ref.settings:readSetting("features") or {}
+            f.ai_behavior_variant = "minimal"
+            self_ref.settings:saveSetting("features", f)
+            self_ref.settings:flush()
+            self_ref:updateConfigFromSettings()
+          end,
+          keep_menu_open = true,
+        },
+        {
+          text = _("Full (~500 tokens)"),
+          checked_func = function()
+            local f = self_ref.settings:readSetting("features") or {}
+            return (f.ai_behavior_variant or "full") == "full"
+          end,
+          radio = true,
+          callback = function()
+            local f = self_ref.settings:readSetting("features") or {}
+            f.ai_behavior_variant = "full"
+            self_ref.settings:saveSetting("features", f)
+            self_ref.settings:flush()
+            self_ref:updateConfigFromSettings()
+          end,
+          keep_menu_open = true,
+        },
+      },
+      separator = true,
+    },
+    -- Extended Thinking
+    {
+      text = _("Enable Extended Thinking"),
+      checked_func = function()
+        local f = self_ref.settings:readSetting("features") or {}
+        return f.enable_extended_thinking == true
+      end,
+      callback = function()
+        local f = self_ref.settings:readSetting("features") or {}
+        f.enable_extended_thinking = not f.enable_extended_thinking
+        self_ref.settings:saveSetting("features", f)
+        self_ref.settings:flush()
+        self_ref:updateConfigFromSettings()
+      end,
+      keep_menu_open = true,
+    },
+    {
+      text_func = function()
+        local f = self_ref.settings:readSetting("features") or {}
+        return T(_("Thinking Budget: %1"), f.thinking_budget_tokens or 4096)
+      end,
+      enabled_func = function()
+        local f = self_ref.settings:readSetting("features") or {}
+        return f.enable_extended_thinking == true
+      end,
+      callback = function(touchmenu)
+        self_ref:showThinkingBudgetSpinner(touchmenu)
+      end,
+      keep_menu_open = true,
+      separator = true,
+    },
+    -- Debug
+    {
+      text = _("Debug Mode"),
+      checked_func = function()
+        local f = self_ref.settings:readSetting("features") or {}
+        return f.debug == true
+      end,
+      callback = function()
+        local f = self_ref.settings:readSetting("features") or {}
+        f.debug = not f.debug
+        self_ref.settings:saveSetting("features", f)
+        self_ref.settings:flush()
+        self_ref:updateConfigFromSettings()
+      end,
+      keep_menu_open = true,
+    },
+    {
+      text_func = function()
+        local f = self_ref.settings:readSetting("features") or {}
+        local level = f.debug_display_level or "names"
+        local labels = { minimal = _("Minimal"), names = _("Names"), full = _("Full") }
+        return T(_("Debug Display: %1"), labels[level] or level)
+      end,
+      enabled_func = function()
+        local f = self_ref.settings:readSetting("features") or {}
+        return f.debug == true
+      end,
+      sub_item_table = {
+        {
+          text = _("Minimal (user input only)"),
+          checked_func = function()
+            local f = self_ref.settings:readSetting("features") or {}
+            return (f.debug_display_level or "names") == "minimal"
+          end,
+          radio = true,
+          callback = function()
+            local f = self_ref.settings:readSetting("features") or {}
+            f.debug_display_level = "minimal"
+            self_ref.settings:saveSetting("features", f)
+            self_ref.settings:flush()
+            self_ref:updateConfigFromSettings()
+          end,
+          keep_menu_open = true,
+        },
+        {
+          text = _("Names (config summary)"),
+          checked_func = function()
+            local f = self_ref.settings:readSetting("features") or {}
+            return (f.debug_display_level or "names") == "names"
+          end,
+          radio = true,
+          callback = function()
+            local f = self_ref.settings:readSetting("features") or {}
+            f.debug_display_level = "names"
+            self_ref.settings:saveSetting("features", f)
+            self_ref.settings:flush()
+            self_ref:updateConfigFromSettings()
+          end,
+          keep_menu_open = true,
+        },
+        {
+          text = _("Full (system blocks)"),
+          checked_func = function()
+            local f = self_ref.settings:readSetting("features") or {}
+            return (f.debug_display_level or "names") == "full"
+          end,
+          radio = true,
+          callback = function()
+            local f = self_ref.settings:readSetting("features") or {}
+            f.debug_display_level = "full"
+            self_ref.settings:saveSetting("features", f)
+            self_ref.settings:flush()
+            self_ref:updateConfigFromSettings()
+          end,
+          keep_menu_open = true,
+        },
+      },
+      separator = true,
+    },
+    -- Connection test
+    {
+      text = _("Test Connection"),
+      callback = function()
+        self_ref:testProviderConnection()
+      end,
+    },
+  }
 end
 
 function AskGPT:addToMainMenu(menu_items)
-  -- Generate menu from schema
-  local settings_menu = SettingsManager:generateMenuFromSchema(self, SettingsSchema)
-  
-  -- Create the main menu with quick actions at top level
-  local koassistant_menu = {
-    {
-      text = _("New General Chat"),
-      callback = function()
-        self:startGeneralChat()
-      end,
-    },
-    {
-      text = _("Chat History"),
-      callback = function()
-        self:showChatHistory()
-      end,
-    },
-    {
-      text = "────────────────────",
-      enabled = false,
-      callback = function() end,
-    },
-  }
-  
-  -- Add all settings categories
-  for _, item in ipairs(settings_menu) do
-    table.insert(koassistant_menu, item)
-  end
+  local self_ref = self
 
   menu_items["koassistant"] = {
     text = _("KOAssistant"),
     sorting_hint = "tools",
-    sorting_order = 1, -- Add explicit sorting order to appear at the top
-    sub_item_table = koassistant_menu,
+    sorting_order = 1,
+    sub_item_table_func = function()
+      return {
+        -- Quick actions
+        {
+          text = _("New General Chat"),
+          callback = function()
+            self_ref:startGeneralChat()
+          end,
+        },
+        {
+          text = _("Chat History"),
+          callback = function()
+            self_ref:showChatHistory()
+          end,
+          separator = true,
+        },
+
+        -- Top-level settings (Provider, Model, Temperature)
+        {
+          text_func = function()
+            return T(_("Provider: %1"), self_ref:getCurrentProvider():gsub("^%l", string.upper))
+          end,
+          sub_item_table_func = function()
+            return self_ref:buildProviderMenu()
+          end,
+        },
+        {
+          text_func = function()
+            return T(_("Model: %1"), self_ref:getCurrentModel())
+          end,
+          sub_item_table_func = function()
+            return self_ref:buildModelMenu()
+          end,
+        },
+        {
+          text_func = function()
+            local f = self_ref.settings:readSetting("features") or {}
+            return T(_("Temperature: %1"), string.format("%.1f", f.default_temperature or 0.7))
+          end,
+          callback = function(touchmenu)
+            self_ref:showTemperatureSpinner(touchmenu)
+          end,
+          keep_menu_open = true,
+          separator = true,
+        },
+
+        -- Settings categories
+        {
+          text = _("Display Settings"),
+          sub_item_table_func = function()
+            return self_ref:buildDisplaySettings()
+          end,
+        },
+        {
+          text = _("Chat Settings"),
+          sub_item_table_func = function()
+            return self_ref:buildChatSettings()
+          end,
+        },
+        {
+          text = _("Advanced"),
+          sub_item_table_func = function()
+            return self_ref:buildAdvancedSettings()
+          end,
+          separator = true,
+        },
+
+        -- Prompts and Domains
+        {
+          text = _("Manage Prompts"),
+          callback = function()
+            self_ref:showPromptsManager()
+          end,
+        },
+        {
+          text = _("View Domains"),
+          callback = function()
+            self_ref:showDomainsViewer()
+          end,
+          separator = true,
+        },
+
+        -- About
+        {
+          text = _("About KOAssistant"),
+          callback = function()
+            self_ref:showAboutInfo()
+          end,
+        },
+        {
+          text = _("Check for Updates"),
+          callback = function()
+            self_ref:checkForUpdates()
+          end,
+        },
+      }
+    end,
   }
 end
 
@@ -1139,103 +1756,37 @@ function AskGPT:onKOAssistantBookChat()
   return true
 end
 
+--- Open KOAssistant settings via menu traversal
+--- Opens the main menu at the Tools tab and selects KOAssistant
 function AskGPT:onKOAssistantSettings()
-  logger.info("KOAssistant: Opening settings menu")
-  
-  local UIManager = require("ui/uimanager")
-  
-  -- Check if we're in FileManager or Reader context
-  if self.ui then
-    -- First ensure the main menu exists
-    if not self.ui.menu then
-      self.ui:handleEvent(Event:new("ShowMenu"))
-    end
-    
-    -- Use a slight delay to ensure the menu is ready
-    UIManager:scheduleIn(0.1, function()
-      if self.ui.menu and self.ui.menu.onShowMenu then
-        -- Determine the correct tab index for Tools
-        -- In FileManager: Tools is at index 3
-        -- In ReaderUI (document open): Tools is at index 4 (due to document tab)
-        local tools_tab_index = 3
-        if self.ui.document then
-          -- We're in a reader with a document open
-          tools_tab_index = 4
-          logger.info("KOAssistant: In reader mode, Tools tab is at index 4")
-        else
-          logger.info("KOAssistant: In file manager mode, Tools tab is at index 3")
-        end
-        
-        -- Show the main menu at Tools tab
-        self.ui.menu:onShowMenu(tools_tab_index)
-        
-        -- After menu is shown, navigate to Assistant
-        UIManager:scheduleIn(0.2, function()
-          -- Try to access the menu container
-          local menu_container = self.ui.menu.menu_container
-          if menu_container and menu_container[1] then
-            local touch_menu = menu_container[1]
-            
-            -- Now we should be on the Tools tab
-            -- Get the current page items
-            local current_items = touch_menu.item_table
-            if current_items then
-              logger.info("KOAssistant: Tools tab has " .. #current_items .. " items on current page")
+  logger.info("KOAssistant: Opening settings via menu traversal")
 
-              -- Look for KOAssistant on the current page
-              for i, item in ipairs(current_items) do
-                logger.info("  Item " .. i .. ": " .. (item.text or "no text"))
-                if item.text == _("KOAssistant") or item.text == "KOAssistant" then
-                  logger.info("KOAssistant: Found KOAssistant at position " .. i .. ", selecting it")
-                  touch_menu:onMenuSelect(item)
-                  return
-                end
-              end
-              
-              -- If not found, look for next page indicator
-              logger.info("KOAssistant: Not found on current page, checking for next page")
-              for i, item in ipairs(current_items) do
-                -- In KOReader, the next page is usually indicated by "More" or similar
-                if item.text and (item.text:match("More") or item.text:match(">>") or i == #current_items) then
-                  logger.info("KOAssistant: Going to next page")
-                  touch_menu:onMenuSelect(item)
+  -- Determine Tools tab index (3 in FileManager, 4 in Reader)
+  local tools_tab_index = self.ui.document and 4 or 3
 
-                  -- After navigating to next page, look for KOAssistant
-                  UIManager:scheduleIn(0.2, function()
-                    local new_items = touch_menu.item_table
-                    if new_items then
-                      logger.info("KOAssistant: Next page has " .. #new_items .. " items")
-                      for j, new_item in ipairs(new_items) do
-                        logger.info("  Item " .. j .. ": " .. (new_item.text or "no text"))
-                        if new_item.text == _("KOAssistant") or new_item.text == "KOAssistant" then
-                          logger.info("KOAssistant: Found KOAssistant on next page at position " .. j)
-                          touch_menu:onMenuSelect(new_item)
-                          return
-                        end
-                      end
-                    end
-                    logger.warn("KOAssistant: Could not find KOAssistant on next page either")
-                  end)
-                  return
-                end
-              end
+  -- Show main menu at Tools tab, then traverse to KOAssistant
+  if self.ui.menu and self.ui.menu.onShowMenu then
+    self.ui.menu:onShowMenu(tools_tab_index)
 
-              logger.warn("KOAssistant: Could not find KOAssistant or next page indicator")
-            else
-              logger.warn("KOAssistant: No items found in Tools menu")
+    -- Schedule menu item selection after menu is shown
+    UIManager:scheduleIn(0.2, function()
+      local menu_container = self.ui.menu.menu_container
+      if menu_container and menu_container[1] then
+        local touch_menu = menu_container[1]
+        local menu_items = touch_menu.item_table
+        if menu_items then
+          for i = 1, #menu_items do
+            local item = menu_items[i]
+            if item.text == "KOAssistant" then
+              touch_menu:onMenuSelect(item)
+              return
             end
-          else
-            logger.warn("KOAssistant: Could not access menu container")
           end
-        end)
+        end
       end
     end)
-  else
-    UIManager:show(require("ui/widget/infomessage"):new{
-      text = _("Please open a book or file browser first"),
-    })
   end
-  
+
   return true
 end
 
@@ -1619,9 +2170,16 @@ function AskGPT:showDomainsViewer()
 
   -- Build info text showing all domains
   local lines = {}
-  table.insert(lines, _("Knowledge domains provide background context for AI conversations."))
+  table.insert(lines, _("WHAT ARE DOMAINS?"))
+  table.insert(lines, _("Knowledge domains provide background context for AI conversations. When you select a domain, its context is prepended to every message you send."))
   table.insert(lines, "")
-  table.insert(lines, _("To add domains, create .md files in the domains/ folder."))
+  table.insert(lines, _("HOW THEY WORK:"))
+  table.insert(lines, _("• Domain context is sent with each message to frame the conversation"))
+  table.insert(lines, _("• Larger domains give better results but use more tokens"))
+  table.insert(lines, _("• Anthropic supports prompt caching - consecutive messages reuse cached context (~90% cost savings)"))
+  table.insert(lines, "")
+  table.insert(lines, _("CREATING DOMAINS:"))
+  table.insert(lines, _("Create .md or .txt files in the domains/ folder."))
   table.insert(lines, _("See domains.sample/ for examples."))
   table.insert(lines, "")
   table.insert(lines, "────────────────────")
@@ -1655,8 +2213,8 @@ function AskGPT:showDomainsViewer()
   UIManager:show(TextViewer:new{
     title = _("Available Domains"),
     text = table.concat(lines, "\n"),
-    width = Screen:getWidth() * 0.9,
-    height = Screen:getHeight() * 0.8,
+    width = UIConstants.DIALOG_WIDTH(),
+    height = UIConstants.DIALOG_HEIGHT(),
   })
 end
 
