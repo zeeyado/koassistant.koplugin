@@ -5,6 +5,7 @@ local json = require("json")
 local Defaults = require("api_handlers.defaults")
 local RequestBuilder = require("api_handlers.request_builder")
 local ResponseParser = require("api_handlers.response_parser")
+local AnthropicRequest = require("api_handlers.anthropic_request")
 
 local AnthropicHandler = BaseHandler:new()
 
@@ -14,11 +15,25 @@ function AnthropicHandler:query(message_history, config)
     end
 
     local defaults = Defaults.ProviderDefaults.anthropic
+    local use_new_format = config.features and config.features.use_new_request_format
+    local request_body
 
-    -- Use the RequestBuilder to create the request body
-    local request_body, error = RequestBuilder:buildRequestBody(message_history, config, "anthropic")
-    if not request_body then
-        return "Error: " .. error
+    if use_new_format and config.system then
+        -- New format: use AnthropicRequest with pre-built system array
+        request_body = AnthropicRequest:build({
+            model = config.model or defaults.model,
+            messages = message_history,
+            system = config.system,  -- Pre-built by ActionService
+            api_params = config.api_params,
+            additional_parameters = config.additional_parameters,
+        })
+    else
+        -- Legacy format: use RequestBuilder
+        local error
+        request_body, error = RequestBuilder:buildRequestBody(message_history, config, "anthropic")
+        if not request_body then
+            return "Error: " .. error
+        end
     end
 
     -- Check if streaming is enabled
@@ -28,6 +43,7 @@ function AnthropicHandler:query(message_history, config)
     if config and config.features and config.features.debug then
         print("Anthropic Request Body:", json.encode(request_body))
         print("Streaming enabled:", use_streaming and "yes" or "no")
+        print("Using new request format:", use_new_format and "yes" or "no")
     end
 
     local requestBody = json.encode(request_body)
@@ -35,6 +51,7 @@ function AnthropicHandler:query(message_history, config)
         ["Content-Type"] = "application/json",
         ["x-api-key"] = config.api_key,
         ["anthropic-version"] = defaults.additional_parameters.anthropic_version,
+        ["anthropic-beta"] = AnthropicRequest.CACHE_BETA,  -- Enable prompt caching
         ["Content-Length"] = tostring(#requestBody),
     }
 

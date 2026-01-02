@@ -124,10 +124,15 @@ function SettingsManager:createMenuItem(plugin, item, schema)
             table.insert(menu_item.sub_item_table, {
                 text = option.text,
                 checked_func = function()
-                    return self:getSettingValue(plugin, item.id) == option.value
+                    local value = self:getSettingValue(plugin, item.path or item.id)
+                    -- If value is nil, use the default from the schema
+                    if value == nil then
+                        value = item.default
+                    end
+                    return value == option.value
                 end,
                 callback = function()
-                    self:setSettingValue(plugin, item.id, option.value)
+                    self:setSettingValue(plugin, item.path or item.id, option.value)
                     plugin:updateConfigFromSettings()
                 end,
             })

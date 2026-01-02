@@ -221,8 +221,55 @@ function MessageHistory:createResultText(highlightedText, config)
 
     -- Debug mode: show messages sent to AI
     if config and config.features and config.features.debug then
-        table.insert(result, "Messages sent to AI:\n-------------------\n\n")
-        
+        local display_level = config.features.debug_display_level or "names"
+
+        table.insert(result, "--- Debug Info ---\n\n")
+
+        -- Show system config info based on display level
+        if display_level == "names" or display_level == "full" then
+            -- Show behavior variant, domain, model, and temperature
+            local behavior = config.features.ai_behavior_variant or "full"
+            local domain = config.features.selected_domain or "none"
+            local model = config.model or "default"
+            -- Truncate long model names (e.g., "claude-sonnet-4-5-20250929" -> "claude-sonnet-4-5")
+            if #model > 20 then
+                model = model:sub(1, 17) .. "..."
+            end
+            local temp = config.additional_parameters and config.additional_parameters.temperature or 0.7
+            table.insert(result, string.format("● Config: behavior=%s, domain=%s\n", behavior, domain))
+
+            -- Check for extended thinking
+            local thinking_info = ""
+            if config.api_params and config.api_params.thinking then
+                local budget = config.api_params.thinking.budget_tokens or 0
+                thinking_info = string.format(", thinking=%d", budget)
+            end
+            table.insert(result, string.format("  model=%s, temp=%.1f%s\n\n", model, temp, thinking_info))
+        end
+
+        if display_level == "full" and config.system then
+            -- Show system array content with labels
+            table.insert(result, "● System Array:\n")
+            for _, block in ipairs(config.system) do
+                local label = block.label or "unknown"
+                local cached = block.cache_control and " [CACHED]" or ""
+                local preview = block.text or ""
+                -- Show first 100 chars of each block
+                if #preview > 100 then
+                    preview = preview:sub(1, 100):gsub("\n", " ") .. "..."
+                else
+                    preview = preview:gsub("\n", " ")
+                end
+                table.insert(result, string.format("  %s%s: %s\n", label, cached, preview))
+            end
+            table.insert(result, "\n")
+        end
+
+        -- Show messages (always, but label based on level)
+        if display_level ~= "minimal" then
+            table.insert(result, "● Messages:\n")
+        end
+
         -- Find the last user message (current query)
         local last_user_index = #self.messages
         for i = #self.messages, 1, -1 do
@@ -231,7 +278,7 @@ function MessageHistory:createResultText(highlightedText, config)
                 break
             end
         end
-        
+
         -- Show all messages up to and including the last user message
         for i = 1, last_user_index do
             local msg = self.messages[i]
@@ -247,7 +294,7 @@ function MessageHistory:createResultText(highlightedText, config)
             end
             table.insert(result, prefix .. role_text .. context_tag .. ": " .. msg.content .. "\n\n")
         end
-        table.insert(result, "-------------------\n\n")
+        table.insert(result, "------------------\n\n")
     end
 
     -- Show conversation (non-context messages)

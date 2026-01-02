@@ -25,7 +25,8 @@ local ProviderDefaults = {
         base_url = "https://api.anthropic.com/v1/messages",
         additional_parameters = {
             anthropic_version = "2023-06-01",
-            max_tokens = 4096
+            max_tokens = 4096,
+            temperature = 0.7,  -- Added: Anthropic defaults to 1.0 without this
         }
     },
     openai = {

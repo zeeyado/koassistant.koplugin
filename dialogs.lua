@@ -15,6 +15,19 @@ local MessageHistory = require("message_history")
 local ChatHistoryManager = require("chat_history_manager")
 local logger = require("logger")
 
+-- New request format modules (Phase 3)
+local ActionService = nil
+local function getActionService(settings)
+    if not ActionService then
+        local ok, AS = pcall(require, "action_service")
+        if ok then
+            ActionService = AS:new(settings)
+            ActionService:initialize()
+        end
+    end
+    return ActionService
+end
+
 local CONFIGURATION = nil
 local input_dialog
 
@@ -59,6 +72,103 @@ local function getPromptContext(config)
         end
     end
     return "highlight"  -- default
+end
+
+-- Helper to check if we should use new Anthropic request format
+-- Returns true if: feature flag enabled AND provider is Anthropic
+local function shouldUseNewRequestFormat(config)
+    if not config or not config.features then return false end
+    if not config.features.use_new_request_format then return false end
+
+    -- Check if provider is Anthropic
+    local provider = config.provider or config.default_provider or "anthropic"
+    return provider == "anthropic"
+end
+
+-- Build Anthropic system array for new request format
+-- @param config: Full configuration
+-- @param context_type: "highlight", "book", "multi_book", "general"
+-- @param domain_context: Optional domain context string
+-- @param action_system_prompt: Optional action-specific system prompt
+-- @param plugin: Plugin instance (for settings access)
+-- @return system_array, api_params or nil if ActionService unavailable
+local function buildAnthropicSystemConfig(config, context_type, domain_context, action_system_prompt, plugin)
+    local as = getActionService(plugin and plugin.settings)
+    if not as then
+        return nil, nil
+    end
+
+    -- Build system array
+    local system_array = as:buildAnthropicSystem({
+        context_type = context_type,
+        domain_context = domain_context,
+        action = action_system_prompt and { system_prompt = action_system_prompt } or nil,
+    })
+
+    return system_array, nil
+end
+
+-- Helper to persist domain selection to settings
+-- This ensures domain selection survives restarts
+local function persistDomainSelection(plugin, domain_id)
+    if not plugin or not plugin.settings then return end
+    local features = plugin.settings:readSetting("features") or {}
+    features.selected_domain = domain_id
+    plugin.settings:saveSetting("features", features)
+    plugin.settings:flush()
+end
+
+-- Apply new request format to config if applicable
+-- Modifies config in-place to add system array and api_params
+-- @param config: Configuration to modify
+-- @param context_type: "highlight", "book", "multi_book", "general"
+-- @param domain_context: Optional domain context string
+-- @param action_system_prompt: Optional action-specific system prompt
+-- @param action: Optional action definition with api_params
+-- @param plugin: Plugin instance
+local function applyNewRequestFormat(config, context_type, domain_context, action_system_prompt, action, plugin)
+    if not shouldUseNewRequestFormat(config) then
+        return false
+    end
+
+    local system_array = buildAnthropicSystemConfig(
+        config, context_type, domain_context, action_system_prompt, plugin
+    )
+
+    if system_array then
+        config.system = system_array
+
+        -- Start with action-specific API params if available
+        if action and action.api_params then
+            config.api_params = action.api_params
+        else
+            config.api_params = {}
+        end
+
+        -- Apply global temperature if not overridden by action
+        if not config.api_params.temperature then
+            if config.features and config.features.default_temperature then
+                config.api_params.temperature = config.features.default_temperature
+            end
+            -- Note: temperature is forced to 1.0 by anthropic_request.lua when thinking is enabled
+        end
+
+        -- Apply global extended thinking if enabled and not overridden by action
+        -- Only for Anthropic provider (others will ignore or warn)
+        if config.features and config.features.enable_extended_thinking then
+            if not config.api_params.thinking then
+                local budget = config.features.thinking_budget_tokens or 4096
+                config.api_params.thinking = {
+                    type = "enabled",
+                    budget_tokens = math.max(budget, 1024),  -- Minimum 1024
+                }
+            end
+        end
+
+        return true
+    end
+
+    return false
 end
 
 local function createTempConfig(prompt, base_config)
@@ -572,18 +682,21 @@ end
 -- @param data: Context-specific data (highlighted_text, book_metadata, etc.)
 -- @param system_prompt: Optional system prompt override
 -- @param domain_context: Optional domain context text to prepend
-local function buildConsolidatedMessage(prompt, context, data, system_prompt, domain_context)
+-- @param using_new_format: If true, skip domain/system (they go in system array instead)
+local function buildConsolidatedMessage(prompt, context, data, system_prompt, domain_context, using_new_format)
     local parts = {}
 
     -- Add domain context if provided (background knowledge about the topic area)
-    if domain_context and domain_context ~= "" then
+    -- Skip if using new format - domain will go in system array instead
+    if not using_new_format and domain_context and domain_context ~= "" then
         table.insert(parts, "[Domain Context]")
         table.insert(parts, domain_context)
         table.insert(parts, "")
     end
 
     -- Add system prompt if provided
-    if system_prompt then
+    -- Skip if using new format - system prompt will go in system array instead
+    if not using_new_format and system_prompt then
         table.insert(parts, "[Instructions]")
         table.insert(parts, system_prompt)
         table.insert(parts, "")
@@ -813,7 +926,9 @@ local function handlePredefinedPrompt(prompt_type, highlightedText, ui, configur
     end
 
     -- Build and add the consolidated message (now including system prompt and domain context)
-    local consolidated_message = buildConsolidatedMessage(prompt, context, message_data, system_prompt, domain_context)
+    -- When using new format, skip domain/system in message - they go in system array
+    local using_new_format = shouldUseNewRequestFormat(temp_config)
+    local consolidated_message = buildConsolidatedMessage(prompt, context, message_data, system_prompt, domain_context, using_new_format)
     history:addUserMessage(consolidated_message, true)
 
     -- Store domain in history for saving with chat
@@ -823,6 +938,9 @@ local function handlePredefinedPrompt(prompt_type, highlightedText, ui, configur
 
     -- Track if user provided additional input
     local has_additional_input = additional_input and additional_input ~= ""
+
+    -- Apply new request format if enabled (adds system array for Anthropic)
+    applyNewRequestFormat(temp_config, context, domain_context, system_prompt, prompt, plugin)
 
     -- Get response from AI with callback for async streaming
     local function handleResponse(success, answer, err)
@@ -858,7 +976,7 @@ local function handlePredefinedPrompt(prompt_type, highlightedText, ui, configur
     return history, temp_config
 end
 
-local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_type, plugin, book_metadata)
+local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_type, plugin, book_metadata, initial_input)
     -- Use the passed configuration or fall back to the global CONFIGURATION
     local configuration = config or CONFIGURATION
     
@@ -952,10 +1070,14 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     selected_domain = nil
                     configuration.features = configuration.features or {}
                     configuration.features.selected_domain = nil
+                    -- Persist to settings so it survives restarts
+                    persistDomainSelection(plugin, nil)
+                    -- Capture current input text before closing
+                    local current_input = input_dialog:getInputText()
                     UIManager:close(_G.domain_selector_dialog)
-                    -- Refresh main dialog to show updated domain selection
+                    -- Refresh main dialog to show updated domain selection, preserving input
                     UIManager:close(input_dialog)
-                    showChatGPTDialog(ui_instance, highlighted_text, configuration, nil, plugin, book_metadata)
+                    showChatGPTDialog(ui_instance, highlighted_text, configuration, nil, plugin, book_metadata, current_input)
                 end,
             },
         })
@@ -971,10 +1093,14 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         selected_domain = domain_id
                         configuration.features = configuration.features or {}
                         configuration.features.selected_domain = domain_id
+                        -- Persist to settings so it survives restarts
+                        persistDomainSelection(plugin, domain_id)
+                        -- Capture current input text before closing
+                        local current_input = input_dialog:getInputText()
                         UIManager:close(_G.domain_selector_dialog)
-                        -- Refresh main dialog to show updated domain selection
+                        -- Refresh main dialog to show updated domain selection, preserving input
                         UIManager:close(input_dialog)
-                        showChatGPTDialog(ui_instance, highlighted_text, configuration, nil, plugin, book_metadata)
+                        showChatGPTDialog(ui_instance, highlighted_text, configuration, nil, plugin, book_metadata, current_input)
                     end,
                 },
             })
@@ -1075,21 +1201,26 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     -- Build consolidated message parts
                     local parts = {}
 
+                    -- Check if we're using new request format (domain/system go in system array, not user message)
+                    local using_new_format = shouldUseNewRequestFormat(configuration)
+
                     -- Add domain context first if provided (background knowledge)
-                    if domain_context and domain_context ~= "" then
+                    -- Skip if using new format - domain will go in system array instead
+                    if not using_new_format and domain_context and domain_context ~= "" then
                         table.insert(parts, "[Domain Context]")
                         table.insert(parts, domain_context)
                         table.insert(parts, "")
                     end
-                    
+
                     -- Add system prompt
-                    if system_prompt then
+                    -- Skip if using new format - system prompt will go in system array instead
+                    if not using_new_format and system_prompt then
                         table.insert(parts, "")  -- Add line break before [Instructions]
                         table.insert(parts, "[Instructions]")
                         table.insert(parts, system_prompt)
                         table.insert(parts, "")
                     end
-                    
+
                     -- Add appropriate context
                     if configuration.features.is_book_context then
                         -- For book context (file browser or gesture action), include book metadata
@@ -1137,6 +1268,10 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     -- Create the consolidated message (sent to AI as context)
                     local consolidated_message = table.concat(parts, "\n")
                     history:addUserMessage(consolidated_message, true)
+
+                    -- Apply new request format if enabled (adds system array for Anthropic)
+                    local context = getPromptContext(configuration)
+                    applyNewRequestFormat(configuration, context, domain_context, system_prompt, nil, plugin)
 
                     -- Callback to handle response (for both streaming and non-streaming)
                     local function onResponseReady(success, answer, err)
@@ -1232,6 +1367,9 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     -- Create the consolidated message
                     local consolidated_message = table.concat(parts, "\n")
                     history:addUserMessage(consolidated_message, true)
+
+                    -- Apply new request format if enabled (adds system array for Anthropic)
+                    applyNewRequestFormat(configuration, "translation", nil, translation_prompt, nil, plugin)
 
                     -- Callback to handle response (for both streaming and non-streaming)
                     local function onResponseReady(success, answer, err)
@@ -1349,6 +1487,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     -- Show the dialog with the button rows
     input_dialog = InputDialog:new{
         title = _("KOAssistant Actions"),
+        input = initial_input or "",  -- Restore input if provided (e.g., after domain change)
         input_hint = _("Type your question or additional instructions for any action..."),
         input_type = "text",
         buttons = button_rows,

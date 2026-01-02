@@ -821,9 +821,36 @@ function AskGPT:initSettings()
       enable_streaming = true,     -- Default to streaming for new installs
       stream_auto_scroll = true,   -- Default to auto-scroll during streaming
       large_stream_dialog = true,  -- Default to full-screen streaming dialog
+      -- New request format (Phase 4)
+      use_new_request_format = true,  -- Enable structured Anthropic requests with caching
+      ai_behavior_variant = "full", -- AI behavior style: "minimal" (~100 tokens) or "full" (~500 tokens)
     })
   end
-  
+
+  -- Migration for existing users: add new settings with defaults
+  -- This runs even if features already exists (for users upgrading from older versions)
+  local features = self.settings:readSetting("features")
+  if features then
+    local needs_save = false
+
+    -- Add use_new_request_format if missing (Phase 4)
+    if features.use_new_request_format == nil then
+      features.use_new_request_format = true
+      needs_save = true
+    end
+
+    -- Add ai_behavior_variant if missing (Phase 4)
+    if features.ai_behavior_variant == nil then
+      features.ai_behavior_variant = "full"
+      needs_save = true
+    end
+
+    if needs_save then
+      self.settings:saveSetting("features", features)
+      logger.info("KOAssistant: Migrated settings - added new request format options")
+    end
+  end
+
   self.settings:flush()
   
   -- Update the configuration with settings values
