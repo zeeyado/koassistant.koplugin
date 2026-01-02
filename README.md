@@ -4,7 +4,7 @@ A powerful AI assistant integrated into KOReader.
 
 Meant to be a technical research assistant and knowledge expander.
 
-This plugin is currently under heavy development. Typically features are added in branches. See the branches if you want to test new features not yet included in the latest release.
+This plugin is currently under heavy development. Typically features are added in branches. See the branches if you want to test new features not yet included in the latest release. Anthropic is being used for testing. It is possible that you may get error using other providers for now.
 
 > **Note:** This project was recently renamed from "Assistant" to "KOAssistant" due to a naming conflict with [a more popular fork](https://github.com/omer-faruq/assistant.koplugin) of this repo. Some internal references and UI elements may still show the old name.
 

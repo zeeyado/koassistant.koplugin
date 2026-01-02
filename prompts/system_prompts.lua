@@ -128,6 +128,7 @@ end
 --   enable_caching: boolean (default true for Anthropic)
 -- }
 -- @return table: Array of content blocks for Anthropic system parameter
+-- Each block includes a `label` field for debug display (ignored by API)
 function SystemPrompts.buildAnthropicSystemArray(config)
     config = config or {}
     local blocks = {}
@@ -138,9 +139,16 @@ function SystemPrompts.buildAnthropicSystemArray(config)
         config.domain_context
     )
 
+    -- Determine label based on what's included
+    local block1_label = "behavior"
+    if config.domain_context and config.domain_context ~= "" then
+        block1_label = "behavior+domain"
+    end
+
     local block1 = {
         type = "text",
         text = cacheable,
+        label = block1_label,  -- For debug display
     }
 
     -- Add cache_control if caching is enabled (default true)
@@ -156,6 +164,7 @@ function SystemPrompts.buildAnthropicSystemArray(config)
         table.insert(blocks, {
             type = "text",
             text = context_prompt,
+            label = "context",  -- For debug display
         })
     end
 
@@ -164,6 +173,7 @@ function SystemPrompts.buildAnthropicSystemArray(config)
         table.insert(blocks, {
             type = "text",
             text = config.action_system_prompt,
+            label = "action",  -- For debug display
         })
     end
 

@@ -39,8 +39,19 @@ function AnthropicRequest:build(config)
 
     -- Add system array if provided
     -- This should come from ActionService:buildAnthropicSystem()
+    -- Strip out 'label' field which is for debug display only (API rejects extra fields)
     if config.system and #config.system > 0 then
-        request_body.system = config.system
+        request_body.system = {}
+        for _, block in ipairs(config.system) do
+            local clean_block = {
+                type = block.type,
+                text = block.text,
+            }
+            if block.cache_control then
+                clean_block.cache_control = block.cache_control
+            end
+            table.insert(request_body.system, clean_block)
+        end
     end
 
     -- Add messages (user/assistant only, no system role)

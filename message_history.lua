@@ -227,22 +227,33 @@ function MessageHistory:createResultText(highlightedText, config)
 
         -- Show system config info based on display level
         if display_level == "names" or display_level == "full" then
-            -- Show behavior variant and domain names
+            -- Show behavior variant, domain, model, and temperature
             local behavior = config.features.ai_behavior_variant or "full"
             local domain = config.features.selected_domain or "none"
-            table.insert(result, "● Config: behavior=" .. behavior .. ", domain=" .. domain .. "\n\n")
+            local model = config.model or "default"
+            -- Truncate long model names (e.g., "claude-sonnet-4-5-20250929" -> "claude-sonnet-4-5")
+            if #model > 20 then
+                model = model:sub(1, 17) .. "..."
+            end
+            local temp = config.additional_parameters and config.additional_parameters.temperature or 0.7
+            table.insert(result, string.format("● Config: behavior=%s, domain=%s\n", behavior, domain))
+            table.insert(result, string.format("  model=%s, temp=%.1f\n\n", model, temp))
         end
 
         if display_level == "full" and config.system then
-            -- Show full system array content
+            -- Show system array content with labels
             table.insert(result, "● System Array:\n")
-            for i, block in ipairs(config.system) do
+            for _, block in ipairs(config.system) do
+                local label = block.label or "unknown"
                 local cached = block.cache_control and " [CACHED]" or ""
                 local preview = block.text or ""
-                if #preview > 200 then
-                    preview = preview:sub(1, 200) .. "..."
+                -- Show first 100 chars of each block
+                if #preview > 100 then
+                    preview = preview:sub(1, 100):gsub("\n", " ") .. "..."
+                else
+                    preview = preview:gsub("\n", " ")
                 end
-                table.insert(result, string.format("  [%d]%s: %s\n", i, cached, preview))
+                table.insert(result, string.format("  %s%s: %s\n", label, cached, preview))
             end
             table.insert(result, "\n")
         end
