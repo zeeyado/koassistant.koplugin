@@ -1519,7 +1519,7 @@ function AskGPT:addToMainMenu(menu_items)
         {
           text = _("About KOAssistant"),
           callback = function()
-            self_ref:showAboutInfo()
+            self_ref:showAbout()
           end,
         },
         {
