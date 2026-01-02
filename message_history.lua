@@ -211,9 +211,18 @@ function MessageHistory:createResultText(highlightedText, config)
     )
 
     if not should_hide and highlightedText and highlightedText ~= "" then
-        -- Check if this is file browser context
-        if config and config.features and config.features.is_file_browser_context then
-            table.insert(result, "Book metadata:\n" .. highlightedText .. "\n\n")
+        -- Check context type and use appropriate label
+        if config and config.features then
+            if config.features.is_book_context then
+                -- Single book context from file browser
+                table.insert(result, "Book: " .. highlightedText .. "\n\n")
+            elseif config.features.is_multi_book_context then
+                -- Multiple books selected
+                table.insert(result, "Selected books:\n" .. highlightedText .. "\n\n")
+            else
+                -- Default: highlighted text from reader
+                table.insert(result, "Highlighted text: \"" .. highlightedText .. "\"\n\n")
+            end
         else
             table.insert(result, "Highlighted text: \"" .. highlightedText .. "\"\n\n")
         end
