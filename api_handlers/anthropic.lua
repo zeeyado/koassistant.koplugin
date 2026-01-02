@@ -15,10 +15,11 @@ function AnthropicHandler:query(message_history, config)
     end
 
     local defaults = Defaults.ProviderDefaults.anthropic
-    local use_new_format = config.features and config.features.use_new_request_format
+    -- Use new format if system array was pre-built by dialogs.lua (always for Anthropic now)
+    local use_new_format = config.system ~= nil
     local request_body
 
-    if use_new_format and config.system then
+    if use_new_format then
         -- New format: use AnthropicRequest with pre-built system array
         request_body = AnthropicRequest:build({
             model = config.model or defaults.model,
@@ -28,7 +29,7 @@ function AnthropicHandler:query(message_history, config)
             additional_parameters = config.additional_parameters,
         })
     else
-        -- Legacy format: use RequestBuilder
+        -- Legacy format: use RequestBuilder (fallback for edge cases)
         local error
         request_body, error = RequestBuilder:buildRequestBody(message_history, config, "anthropic")
         if not request_body then

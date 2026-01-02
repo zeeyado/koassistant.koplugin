@@ -1,3 +1,7 @@
+-- DEPRECATED: This module is replaced by action_service.lua
+-- Kept for backwards compatibility during transition period.
+-- New code should use ActionService instead.
+--
 -- Centralized Prompt Service for managing all prompts
 local logger = require("logger")
 

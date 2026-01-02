@@ -75,12 +75,10 @@ local function getPromptContext(config)
 end
 
 -- Helper to check if we should use new Anthropic request format
--- Returns true if: feature flag enabled AND provider is Anthropic
+-- Returns true if provider is Anthropic (automatically enabled, no feature flag)
 local function shouldUseNewRequestFormat(config)
-    if not config or not config.features then return false end
-    if not config.features.use_new_request_format then return false end
-
-    -- Check if provider is Anthropic
+    if not config then return false end
+    -- Check if provider is Anthropic - new format always used for Anthropic
     local provider = config.provider or config.default_provider or "anthropic"
     return provider == "anthropic"
 end
@@ -214,11 +212,13 @@ local function getAllPrompts(configuration, plugin)
     local logger = require("logger")
     logger.info("getAllPrompts: context = " .. context)
     
-    -- Use PromptService if available
-    if plugin and plugin.prompt_service then
-        local service_prompts = plugin.prompt_service:getAllPrompts(context)
-        logger.info("getAllPrompts: Got " .. #service_prompts .. " prompts from service")
-        
+    -- Use ActionService if available, fallback to PromptService
+    local service = plugin and (plugin.action_service or plugin.prompt_service)
+    if service then
+        local service_prompts = service:getAllPrompts(context)
+        logger.info("getAllPrompts: Got " .. #service_prompts .. " prompts from " ..
+                    (plugin.action_service and "ActionService" or "PromptService"))
+
         -- Convert from array to keyed table for compatibility
         for _, prompt in ipairs(service_prompts) do
             local key = prompt.id or ("prompt_" .. #prompt_keys + 1)
@@ -226,7 +226,7 @@ local function getAllPrompts(configuration, plugin)
             table.insert(prompt_keys, key)
         end
     else
-        logger.warn("getAllPrompts: PromptService not available, no prompts returned")
+        logger.warn("getAllPrompts: No prompt service available, no prompts returned")
     end
     
     return prompts, prompt_keys
@@ -851,13 +851,14 @@ local function handlePredefinedPrompt(prompt_type, highlightedText, ui, configur
     -- Determine system prompt based on context
     -- Check for empty string as well as nil
     local system_prompt = prompt.system_prompt
-    if (not system_prompt or system_prompt == "") and plugin and plugin.prompt_service then
+    local service = plugin and (plugin.action_service or plugin.prompt_service)
+    if (not system_prompt or system_prompt == "") and service then
         local context = getPromptContext(config)
-        system_prompt = plugin.prompt_service:getSystemPrompt(context)
+        system_prompt = service:getSystemPrompt(context)
     end
     -- Use centralized default system prompt if none provided
-    if not system_prompt or system_prompt == "" then
-        system_prompt = plugin.prompt_service:getSystemPrompt(nil, "default")
+    if (not system_prompt or system_prompt == "") and service then
+        system_prompt = service:getSystemPrompt(nil, "default")
     end
 
     -- Create history WITHOUT system prompt (we'll include it in the consolidated message)
@@ -910,8 +911,8 @@ local function handlePredefinedPrompt(prompt_type, highlightedText, ui, configur
     local domain_context = nil
     local domain_id = prompt.domain or (config.features and config.features.selected_domain)
     if domain_id then
-        local Domains = require("domains")
-        local all_domains = Domains.load()
+        local DomainLoader = require("domain_loader")
+        local all_domains = DomainLoader.load()
         if all_domains[domain_id] then
             domain_context = all_domains[domain_id].context
             -- Also add system_hint to system prompt if available
@@ -1055,9 +1056,9 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
 
     -- Function to show domain selector
     local function showDomainSelector()
-        local Domains = require("domains")
-        local all_domains = Domains.load()
-        local sorted_ids = Domains.getSortedIds(all_domains)
+        local DomainLoader = require("domain_loader")
+        local all_domains = DomainLoader.load()
+        local sorted_ids = DomainLoader.getSortedIds(all_domains)
 
         local buttons = {}
 
@@ -1130,8 +1131,8 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         if not selected_domain then
             return _("None")
         end
-        local Domains = require("domains")
-        local all_domains = Domains.load()
+        local DomainLoader = require("domain_loader")
+        local all_domains = DomainLoader.load()
         if all_domains[selected_domain] then
             return all_domains[selected_domain].name
         end
@@ -1168,15 +1169,16 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         -- Get the current context
                         local context = getPromptContext(configuration)
                         -- Use context-specific fallback system prompt
-                        system_prompt = plugin.prompt_service:getSystemPrompt(context)
+                        local svc = plugin.action_service or plugin.prompt_service
+                        system_prompt = svc:getSystemPrompt(context)
                     end
 
                     -- Get domain context if a domain is selected
                     local domain_id = selected_domain
                     local domain_context = nil
                     if domain_id then
-                        local Domains = require("domains")
-                        local all_domains = Domains.load()
+                        local DomainLoader = require("domain_loader")
+                        local all_domains = DomainLoader.load()
                         if all_domains[domain_id] then
                             domain_context = all_domains[domain_id].context
                             -- Add domain system hint to system prompt if available
@@ -1325,15 +1327,18 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                 UIManager:close(input_dialog)
                 showLoadingDialog()
                 UIManager:scheduleIn(0.1, function()
+                    -- Use ActionService if available, fallback to PromptService
+                    local svc = plugin.action_service or plugin.prompt_service
+
                     -- Use centralized translation system prompt
-                    local translation_prompt = plugin.prompt_service:getSystemPrompt("translation", "translation")
-                    
+                    local translation_prompt = svc:getSystemPrompt("translation", "translation")
+
                     -- Create history WITHOUT system prompt (we'll include it in the consolidated message)
                     local history = MessageHistory:new(nil, "Translate")
-                    
+
                     -- Build consolidated message parts
                     local parts = {}
-                    
+
                     -- Add system prompt
                     if translation_prompt then
                         table.insert(parts, "")  -- Add line break before [Instructions]
@@ -1341,11 +1346,11 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         table.insert(parts, translation_prompt)
                         table.insert(parts, "")
                     end
-                    
+
                     -- Add translation request
                     table.insert(parts, "[Request]")
                     -- Use centralized translation template
-                    local translate_template = plugin.prompt_service:getActionTemplate("translate")
+                    local translate_template = svc:getActionTemplate("translate")
                     if translate_template then
                         local request = translate_template:gsub("{language}", translation_language):gsub("{text}", highlighted_text)
                         table.insert(parts, request)

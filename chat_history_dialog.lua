@@ -175,8 +175,8 @@ function ChatHistoryDialog:showChatsByDomainBrowser(ui, chat_history_manager, co
     local chats_by_domain = chat_history_manager:getChatsByDomain()
 
     -- Load domain definitions for display names
-    local Domains = require("domains")
-    local all_domains = Domains.load()
+    local DomainLoader = require("domain_loader")
+    local all_domains = DomainLoader.load()
 
     -- Build menu items for each domain that has chats
     local menu_items = {}

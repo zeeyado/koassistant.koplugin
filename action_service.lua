@@ -498,4 +498,183 @@ function ActionService:initialize()
     self:init()
 end
 
+--------------------------------------------------------------------------------
+-- Legacy API Adapters
+-- These methods provide backwards compatibility with prompt_service.lua API
+-- so dialogs.lua can switch to ActionService without breaking
+--------------------------------------------------------------------------------
+
+-- Get all prompts for a context (legacy API adapter)
+-- Converts actions to the legacy prompt format expected by dialogs.lua
+-- @param context: "highlight", "book", "multi_book", "general"
+-- @param include_disabled: Include disabled prompts
+-- @return table: Array of prompts in legacy format
+function ActionService:getAllPrompts(context, include_disabled)
+    local actions = self:getAllActions(context, include_disabled)
+    local prompts = {}
+
+    for _, action in ipairs(actions) do
+        -- Convert action to legacy prompt format
+        local prompt = {
+            id = action.id,
+            text = action.text,
+            system_prompt = action.system_prompt,
+            user_prompt = action.user_prompt or (action.template and self:getTemplateText(action.template)),
+            enabled = action.enabled,
+            source = action.source,
+            provider = action.provider,
+            model = action.model,
+            requires = action.requires,
+            include_book_context = action.include_book_context,
+            original_context = action.context,
+            domain = action.domain,
+            -- Keep action reference for new features
+            _action = action,
+        }
+        table.insert(prompts, prompt)
+    end
+
+    return prompts
+end
+
+-- Get a specific prompt by ID (legacy API adapter)
+-- @param context: Context to search in
+-- @param prompt_id: The prompt's unique identifier
+-- @return table or nil: Prompt in legacy format if found
+function ActionService:getPrompt(context, prompt_id)
+    local action = self:getAction(context, prompt_id)
+    if not action then
+        return nil
+    end
+
+    -- Convert to legacy format
+    return {
+        id = action.id,
+        text = action.text,
+        system_prompt = action.system_prompt,
+        user_prompt = action.user_prompt or (action.template and self:getTemplateText(action.template)),
+        enabled = action.enabled,
+        source = action.source,
+        provider = action.provider,
+        model = action.model,
+        requires = action.requires,
+        include_book_context = action.include_book_context,
+        original_context = action.context,
+        domain = action.domain,
+        _action = action,
+    }
+end
+
+-- Get template text for a template ID
+-- Helper for legacy API conversion
+function ActionService:getTemplateText(template_id)
+    if self.Templates and self.Templates.get then
+        return self.Templates.get(template_id)
+    end
+    return nil
+end
+
+-- Get action template (legacy API adapter)
+-- Alias for getTemplateText to match PromptService API
+function ActionService:getActionTemplate(template_name)
+    return self:getTemplateText(template_name)
+end
+
+-- Get system prompt for a context (legacy API adapter)
+-- This uses the new layered system but returns a flat string for compatibility
+-- @param context: "highlight", "book", "multi_book", "general", "translation"
+-- @param prompt_type: Optional specific prompt type (e.g., "default", "translation")
+-- @return string: System prompt text
+function ActionService:getSystemPrompt(context, prompt_type)
+    -- If prompt_type is specified, try to get that specific type
+    local context_type = prompt_type or context or "default"
+
+    -- Map legacy names
+    if context_type == "file_browser" then
+        context_type = "book"
+    elseif context_type == "multi_file_browser" then
+        context_type = "multi_book"
+    end
+
+    -- Use the flattened system builder (for non-Anthropic or simple queries)
+    return self:buildFlattenedSystem({
+        context_type = context_type,
+        domain_context = nil,  -- Domain handled separately in dialogs.lua
+        action = nil,
+    })
+end
+
+-- Set prompt enabled state (legacy API adapter)
+-- @param context: Context (can be "all", "both", or specific)
+-- @param prompt_text: The prompt's display text
+-- @param enabled: Boolean enabled state
+function ActionService:setPromptEnabled(context, prompt_text, enabled)
+    -- Find the action with matching text
+    local contexts_to_check = {}
+    if context == "all" then
+        contexts_to_check = {"highlight", "book", "multi_book", "general"}
+    elseif context == "both" then
+        contexts_to_check = {"highlight", "book"}
+    else
+        contexts_to_check = {context}
+    end
+
+    for _, ctx in ipairs(contexts_to_check) do
+        local actions = self:getAllActions(ctx, true)
+        for _, action in ipairs(actions) do
+            if action.text == prompt_text then
+                self:setActionEnabled(ctx, action.id, enabled)
+            end
+        end
+    end
+end
+
+-- Add a user-created prompt (legacy API adapter)
+-- Converts legacy prompt format to action format
+-- @param prompt_data: Prompt in legacy format
+function ActionService:addUserPrompt(prompt_data)
+    local action_data = {
+        text = prompt_data.text,
+        context = prompt_data.context or "both",
+        user_prompt = prompt_data.user_prompt,
+        system_prompt = prompt_data.system_prompt,
+        provider = prompt_data.provider,
+        model = prompt_data.model,
+        requires = prompt_data.requires,
+        include_book_context = prompt_data.include_book_context,
+        domain = prompt_data.domain,
+        api_params = {
+            temperature = 0.7,
+        },
+    }
+    self:addUserAction(action_data)
+end
+
+-- Update a user-created prompt (legacy API adapter)
+-- @param index: Index of the prompt to update
+-- @param prompt_data: New prompt data in legacy format
+function ActionService:updateUserPrompt(index, prompt_data)
+    local action_data = {
+        text = prompt_data.text,
+        context = prompt_data.context or "both",
+        user_prompt = prompt_data.user_prompt,
+        system_prompt = prompt_data.system_prompt,
+        provider = prompt_data.provider,
+        model = prompt_data.model,
+        requires = prompt_data.requires,
+        include_book_context = prompt_data.include_book_context,
+        domain = prompt_data.domain,
+        api_params = {
+            temperature = 0.7,
+        },
+    }
+    self:updateUserAction(index, action_data)
+end
+
+-- Delete a user-created prompt (legacy API adapter)
+-- @param index: Index of the prompt to delete
+function ActionService:deleteUserPrompt(index)
+    self:deleteUserAction(index)
+end
+
 return ActionService

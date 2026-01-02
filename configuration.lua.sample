@@ -1,14 +1,24 @@
 -- Configuration for KOReader KOAssistant Plugin
 -- Copy this file to configuration.lua and modify as needed
+--
+-- NOTE: Most settings are better configured through the Settings UI:
+--   Tools > KOAssistant > Settings
+--
+-- This file is for ADVANCED OVERRIDES only:
+--   - Custom provider endpoints
+--   - Model specifications not in the UI
+--   - System prompt customizations
+--   - Extended thinking configuration
+--
 -- All settings are optional - uncomment to override defaults
 
 local CONFIGURATION = {
     -- AI provider: "anthropic", "openai", "deepseek", "gemini", or "ollama"
     -- provider = "anthropic",
-    
+
     -- Override the default model for your provider
-    -- model = "claude-3-5-haiku-20241022",
-    
+    -- model = "claude-sonnet-4-20250514",
+
     -- Provider-specific settings (uncomment to override defaults)
     --[[
     provider_settings = {
@@ -21,7 +31,7 @@ local CONFIGURATION = {
             }
         },
         openai = {
-            model = "gpt-4.1",
+            model = "gpt-4o",
             base_url = "https://api.openai.com/v1/chat/completions",
             additional_parameters = {
                 temperature = 0.7,
@@ -37,14 +47,14 @@ local CONFIGURATION = {
             }
         },
         gemini = {
-            model = "gemini-pro",
-            base_url = "https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent",
+            model = "gemini-2.0-flash",
+            base_url = "https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent",
             additional_parameters = {
                 temperature = 0.7
             }
         },
         ollama = {
-            model = "deepseek-r1:14b",  -- or "llama3", "mistral", "mixtral", etc.
+            model = "deepseek-r1:14b",  -- or "llama3", "mistral", "qwen", etc.
             base_url = "http://localhost:11434/api/chat",  -- replace with your Ollama server
             additional_parameters = {
                 temperature = 0.7
@@ -54,31 +64,49 @@ local CONFIGURATION = {
     --]]
 
     -- Display and behavior settings
+    -- NOTE: Most of these are available in the Settings UI
     features = {
         -- Text display
-        hide_highlighted_text = false,      -- Hide highlighted text in responses
-        hide_long_highlights = true,        -- Replace long highlights with "..."
-        long_highlight_threshold = 280,     -- Characters before highlight is "long"
-        
+        -- hide_highlighted_text = false,      -- Hide highlighted text in responses
+        -- hide_long_highlights = true,        -- Replace long highlights with "..."
+        -- long_highlight_threshold = 280,     -- Characters before highlight is "long"
+
         -- Translation
-        translate_to = "English",           -- Default translation target language
-        
+        -- translate_to = "English",           -- Default translation target language
+
         -- Response rendering
-        render_markdown = true,             -- Format responses (bold, lists, etc.)
-        markdown_font_size = 20,            -- Font size for formatted text (14-30)
-        
+        -- render_markdown = true,             -- Format responses (bold, lists, etc.)
+        -- markdown_font_size = 20,            -- Font size for formatted text (14-30)
+
         -- Chat management
-        auto_save_chats = true,             -- Auto-save when continuing from history
-        auto_save_all_chats = true,         -- Auto-save all new chats (default: true)
-        
+        -- auto_save_chats = true,             -- Auto-save when continuing from history
+        -- auto_save_all_chats = true,         -- Auto-save all new chats
+
+        -- Streaming (configurable in UI)
+        -- enable_streaming = true,            -- Show responses as they generate
+        -- stream_auto_scroll = true,          -- Auto-scroll during streaming
+        -- large_stream_dialog = true,         -- Full-screen streaming dialog
+
+        -- AI Behavior (Anthropic only)
+        -- ai_behavior_variant = "full",       -- "minimal" (~100 tokens) or "full" (~500 tokens)
+                                               -- Controls how detailed the AI behavior guidelines are
+
         -- Development
-        debug = false,                      -- Show detailed message information
-        
-        -- Future features (not yet implemented)
-        -- stream_responses = false,        -- Show responses as they generate
+        -- debug = false,                      -- Show detailed request/response information
     },
-    
+
+    -- Extended Thinking (Anthropic only)
+    -- Enables Claude's extended reasoning for complex questions
+    -- NOTE: When enabled, temperature is forced to 1.0 (API requirement)
+    --[[
+    features = {
+        enable_extended_thinking = true,       -- Enable extended thinking mode
+        thinking_budget_tokens = 10000,        -- Token budget for thinking (1000-100000)
+    },
+    --]]
+
     -- Override AI instructions (uncomment to customize)
+    -- These override the built-in prompts from prompts/system_prompts.lua
     --[[
     ai_instructions = {
         -- System prompts for different contexts
@@ -90,12 +118,12 @@ local CONFIGURATION = {
             general = "You are Claude, an AI assistant ready to help.",
             translation = "Translate accurately, preserving meaning and tone.",
         },
-        
+
         -- Action templates (use {variable} for substitutions)
         action_templates = {
             translate = "Translate to {language}: {text}",
         },
-        
+
         -- Error message templates
         error_templates = {
             api_key_missing = "Please add your {provider} API key to apikeys.lua",

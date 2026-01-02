@@ -21,6 +21,7 @@ local SettingsSchema = require("settings_schema")
 local SettingsManager = require("ui/settings_manager")
 local PromptsManager = require("ui/prompts_manager")
 local PromptService = require("prompt_service")
+local ActionService = require("action_service")
 
 -- Load model lists
 local ModelLists = {}
@@ -131,10 +132,14 @@ function AskGPT:init()
   -- Initialize settings
   self:initSettings()
   
-  -- Initialize prompt service
+  -- Initialize prompt service (legacy, kept for backwards compatibility)
   self.prompt_service = PromptService:new(self.settings)
   self.prompt_service:initialize()
-  
+
+  -- Initialize action service (new primary service)
+  self.action_service = ActionService:new(self.settings)
+  self.action_service:initialize()
+
   -- Register dispatcher actions
   self:onDispatcherRegisterActions()
   
@@ -821,8 +826,7 @@ function AskGPT:initSettings()
       enable_streaming = true,     -- Default to streaming for new installs
       stream_auto_scroll = true,   -- Default to auto-scroll during streaming
       large_stream_dialog = true,  -- Default to full-screen streaming dialog
-      -- New request format (Phase 4)
-      use_new_request_format = true,  -- Enable structured Anthropic requests with caching
+      -- Anthropic settings
       ai_behavior_variant = "full", -- AI behavior style: "minimal" (~100 tokens) or "full" (~500 tokens)
     })
   end
@@ -833,15 +837,15 @@ function AskGPT:initSettings()
   if features then
     local needs_save = false
 
-    -- Add use_new_request_format if missing (Phase 4)
-    if features.use_new_request_format == nil then
-      features.use_new_request_format = true
+    -- Add ai_behavior_variant if missing
+    if features.ai_behavior_variant == nil then
+      features.ai_behavior_variant = "full"
       needs_save = true
     end
 
-    -- Add ai_behavior_variant if missing (Phase 4)
-    if features.ai_behavior_variant == nil then
-      features.ai_behavior_variant = "full"
+    -- Clean up removed settings
+    if features.use_new_request_format ~= nil then
+      features.use_new_request_format = nil
       needs_save = true
     end
 
@@ -1609,15 +1613,16 @@ function AskGPT:showPromptsManager()
 end
 
 function AskGPT:showDomainsViewer()
-  local Domains = require("domains")
-  local all_domains = Domains.load()
-  local sorted_ids = Domains.getSortedIds(all_domains)
+  local DomainLoader = require("domain_loader")
+  local all_domains = DomainLoader.load()
+  local sorted_ids = DomainLoader.getSortedIds(all_domains)
 
   -- Build info text showing all domains
   local lines = {}
   table.insert(lines, _("Knowledge domains provide background context for AI conversations."))
   table.insert(lines, "")
-  table.insert(lines, _("To add custom domains, edit configuration.lua"))
+  table.insert(lines, _("To add domains, create .md files in the domains/ folder."))
+  table.insert(lines, _("See domains.sample/ for examples."))
   table.insert(lines, "")
   table.insert(lines, "────────────────────")
   table.insert(lines, "")

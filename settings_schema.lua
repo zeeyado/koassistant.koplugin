@@ -238,15 +238,7 @@ local SettingsSchema = {
                 {
                     id = "api_settings_header",
                     type = "header",
-                    text = _("API Settings"),
-                },
-                {
-                    id = "use_new_request_format",
-                    type = "toggle",
-                    text = _("Use Structured Requests"),
-                    description = _("Enable optimized request format with prompt caching (Anthropic only)"),
-                    default = true,
-                    path = "features.use_new_request_format",
+                    text = _("API Settings (Anthropic)"),
                 },
                 {
                     id = "ai_behavior_variant",
