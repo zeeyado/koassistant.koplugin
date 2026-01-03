@@ -4,7 +4,7 @@ A powerful AI assistant integrated into KOReader.
 
 Meant to be a technical research assistant and knowledge expander.
 
-You can have context free chats, or chat about or compare one or more documents in your library, or about text highlighted in a document. You can translate, get text explained, compare books/articles, and much more by creating custom actions and prompts. Chats are automatcally saved and you can resume them any time.
+You can have context free chats, or chat about or compare one or more documents in your library, or about text highlighted in a document. You can translate, get text explained, compare books/articles, and much more by creating custom actions. Chats are automatically saved and you can resume them any time.
 
 Most settings are configurable in the UI, including provider/model, AI behavior, and more, with some advanced settings requiring file editing.
 
@@ -27,7 +27,7 @@ Most settings are configurable in the UI, including provider/model, AI behavior,
 - [Managing Conversations](#managing-conversations)
 - [Knowledge Domains](#knowledge-domains)
 - [Tags](#tags)
-- [Custom Prompts & Actions](#custom-prompts--actions)
+- [Custom Actions](#custom-actions)
 - [Settings Reference](#settings-reference)
 - [Advanced Configuration](#advanced-configuration)
 - [Technical Features](#technical-features)
@@ -258,21 +258,21 @@ Chat History → hamburger menu → **View by Tag**
 
 ---
 
-## Custom Prompts & Actions
+## Custom Actions
 
-### Managing Prompts in the UI
+### Managing Actions in the UI
 
-**Tools → KOAssistant → Prompts & Responses → Manage Prompts**
+**Tools → KOAssistant → Manage Actions**
 
-- Toggle built-in prompts on/off
-- Create new prompts with the wizard
-- Edit or delete your custom prompts (marked with ★)
+- Toggle built-in actions on/off
+- Create new actions with the wizard
+- Edit or delete your custom actions (marked with ★)
 
-### Prompt Creation Wizard
+### Action Creation Wizard
 
 1. **Name & Context**: Set button text and where it appears
-2. **System Instructions**: Optional AI behavior override
-3. **User Prompt**: The actual prompt template
+2. **AI Behavior**: Optional behavior override (use global, minimal, full, none, or custom)
+3. **Action Prompt**: The actual prompt template sent to the AI
 
 ### Template Variables
 
@@ -284,42 +284,43 @@ Chat History → hamburger menu → **View by Tag**
 | `{author_clause}` | Book, Highlight | " by Author" or empty |
 | `{count}` | Multi-book | Number of books |
 | `{books_list}` | Multi-book | Formatted list of books |
-| `{language}` | Translate | Target language |
+| `{translation_language}` | Any | Target language from settings |
 
-### File-Based Custom Prompts
+### File-Based Custom Actions
 
-For more control, create `custom_prompts.lua`:
+For more control, create `custom_actions.lua`:
 
 ```lua
 return {
     {
         text = "Grammar Check",
         context = "highlight",
-        system_prompt = "You are a grammar expert.",
-        user_prompt = "Check grammar: {highlighted_text}"
+        behavior_override = "You are a grammar expert. Be precise and analytical.",
+        prompt = "Check grammar: {highlighted_text}"
     },
     {
         text = "Discussion Questions",
         context = "book",
-        user_prompt = "Generate 5 discussion questions for '{title}'{author_clause}."
+        prompt = "Generate 5 discussion questions for '{title}'{author_clause}."
     },
     {
         text = "Series Order",
         context = "multi_book",
-        user_prompt = "What's the reading order for these books?\n\n{books_list}"
+        prompt = "What's the reading order for these books?\n\n{books_list}"
     },
 }
 ```
 
 **Optional fields**:
-- `system_prompt`: Override AI behavior
+- `behavior_variant`: Use a preset behavior ("minimal", "full", "none")
+- `behavior_override`: Custom behavior text (overrides variant)
 - `provider`: Force specific provider ("anthropic", "openai", etc.)
 - `model`: Force specific model
 - `enabled`: Set to `false` to hide
-- `include_book_context`: Add book info to highlight prompts
+- `include_book_context`: Add book info to highlight actions
 - `domain`: Lock to a specific domain
 
-See `custom_prompts.lua.sample` for more examples.
+See `custom_actions.lua.sample` for more examples.
 
 ---
 
@@ -336,10 +337,10 @@ See `custom_prompts.lua.sample` for more examples.
 - **Chat History**: Browse saved conversations
 - **Auto-save options**: Control automatic saving
 
-### Prompts & Responses
-- **Manage Prompts**: Enable/disable and create prompts
+### Actions & Domains
+- **Translation Language**: Target language for the Translate action
+- **Manage Actions**: Enable/disable and create actions
 - **View Domains**: See available knowledge domains
-- **Translation Language**: Default target language
 - **Render Markdown**: Format responses with styling
 - **Hide Highlighted Text**: Don't show selection in responses
 - **Hide Long Highlights**: Collapse highlights over threshold
@@ -434,10 +435,15 @@ Best for: Complex analysis, reasoning problems, nuanced questions
 
 ### AI Behavior Variants
 
-Two styles of AI personality:
+Two styles of AI personality, configurable globally or per-action:
 
 - **Minimal** (~100 tokens): Brief guidelines, lower cost
 - **Full** (~500 tokens): Comprehensive guidelines for natural, well-formatted responses
+
+Individual actions can override the global setting:
+- Use a different variant (minimal/full/none)
+- Provide completely custom behavior text
+- The built-in Translate action uses minimal behavior for direct, accurate translations
 
 ---
 
@@ -518,7 +524,7 @@ Contributions welcome! You can:
 
 ### History
 
-Originally forked from [ASKGPT by Drew Baumann](https://github.com/drewbaumann/askgpt) in February 2025. Expanded with multi-provider support, custom prompts, chat history, domains, and more.
+Originally forked from [ASKGPT by Drew Baumann](https://github.com/drewbaumann/askgpt) in February 2025. Expanded with multi-provider support, custom actions, chat history, domains, and more.
 
 ### Acknowledgments
 

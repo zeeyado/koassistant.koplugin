@@ -795,7 +795,7 @@ function AskGPT:initSettings()
       hide_highlighted_text = configuration.features.hide_highlighted_text or false,
       hide_long_highlights = configuration.features.hide_long_highlights or true,
       long_highlight_threshold = configuration.features.long_highlight_threshold or 280,
-      translate_to = configuration.features.translate_to or "English",
+      translation_language = configuration.features.translation_language or "English",
       debug = configuration.features.debug or false,
       show_debug_in_chat = false,  -- Whether to show debug in chat viewer (independent of console logging)
       auto_save_all_chats = true,  -- Default to auto-save for new installs
@@ -824,6 +824,15 @@ function AskGPT:initSettings()
     -- Add show_debug_in_chat if missing (separate from console debug)
     if features.show_debug_in_chat == nil then
       features.show_debug_in_chat = false
+      needs_save = true
+    end
+
+    -- Migrate translate_to to translation_language
+    if features.translate_to ~= nil then
+      if features.translation_language == nil then
+        features.translation_language = features.translate_to
+      end
+      features.translate_to = nil
       needs_save = true
     end
 
@@ -1049,50 +1058,8 @@ function AskGPT:showManageModelsDialog()
   })
 end
 
-function AskGPT:showTranslationDialog()
-  local features = self.settings:readSetting("features")
-  -- Store dialog in self to ensure it remains in scope during callbacks
-  self.translation_dialog = MultiInputDialog:new{
-    title = _("Translation Language"),
-    fields = {
-      {
-        text = features.translate_to or "English",
-        hint = _("Language name or leave blank to disable"),
-      },
-    },
-    buttons = {
-      {
-        {
-          text = _("Close"),
-          id = "close",
-          callback = function()
-            UIManager:close(self.translation_dialog)
-          end,
-        },
-        {
-          text = _("Save"),
-          callback = function()
-            local language = self.translation_dialog.fields[1].text
-            if language == "" then
-              language = nil
-            end
-            features.translate_to = language
-            self.settings:saveSetting("features", features)
-            self.settings:flush()
-            self:updateConfigFromSettings()
-            UIManager:close(self.translation_dialog)
-            UIManager:show(InfoMessage:new{
-              text = language and 
-                     T(_("Translation set to %1"), language) or
-                     _("Translation disabled"),
-            })
-          end,
-        },
-      },
-    },
-  }
-  UIManager:show(self.translation_dialog)
-end
+-- showTranslationDialog() removed - translation language is now configured
+-- via Settings → Translation Language (settings_schema.lua)
 
 -- Event handlers for gesture-triggered actions
 function AskGPT:onKOAssistantChatHistory()
@@ -1358,13 +1325,13 @@ function AskGPT:showDomainsViewer()
 end
 
 function AskGPT:restoreDefaultPrompts()
-  -- Clear custom prompts and disabled prompts
-  self.settings:saveSetting("custom_prompts", {})
+  -- Clear custom actions and disabled prompts
+  self.settings:saveSetting("custom_actions", {})
   self.settings:saveSetting("disabled_prompts", {})
   self.settings:flush()
-  
+
   UIManager:show(InfoMessage:new{
-    text = _("Default prompts restored"),
+    text = _("Default actions restored"),
   })
 end
 
@@ -1526,24 +1493,47 @@ end
 
 function AskGPT:migratePromptsV2()
   logger.info("KOAssistant: Performing one-time prompt migration to v2 format")
-  
+
   -- Check if we have any old configuration that needs migration
   local old_config_path = script_path() .. "configuration.lua"
   local ok, old_config = pcall(dofile, old_config_path)
-  
+
   local migrated = false
-  local custom_prompts = self.settings:readSetting("custom_prompts") or {}
-  
+  -- Read from new key first, fallback to old key for migration
+  local custom_actions = self.settings:readSetting("custom_actions") or {}
+
+  -- Migrate from old custom_prompts key to custom_actions
+  local old_custom_prompts = self.settings:readSetting("custom_prompts")
+  if old_custom_prompts and #old_custom_prompts > 0 then
+    logger.info("KOAssistant: Found old custom_prompts key, migrating to custom_actions")
+    for _, prompt in ipairs(old_custom_prompts) do
+      -- Check if this action already exists
+      local exists = false
+      for _, existing in ipairs(custom_actions) do
+        if existing.text == prompt.text then
+          exists = true
+          break
+        end
+      end
+      if not exists then
+        table.insert(custom_actions, prompt)
+        migrated = true
+      end
+    end
+    -- Clear old key after migration
+    self.settings:delSetting("custom_prompts")
+  end
+
   -- First check for old format prompts (features.prompts)
   if ok and old_config and old_config.features and old_config.features.prompts then
     -- We have old format prompts that need migration
-    logger.info("KOAssistant: Found old format prompts, migrating to custom_prompts")
-    
-    -- Migrate each old prompt to custom prompts
+    logger.info("KOAssistant: Found old format prompts, migrating to custom_actions")
+
+    -- Migrate each old prompt to custom actions
     for key, prompt in pairs(old_config.features.prompts) do
       if type(prompt) == "table" and prompt.text then
-        -- Create a new custom prompt entry
-        local migrated_prompt = {
+        -- Create a new custom action entry
+        local migrated_action = {
           text = prompt.text,
           context = "highlight", -- Old prompts were for highlights
           system_prompt = prompt.system_prompt,
@@ -1552,61 +1542,61 @@ function AskGPT:migratePromptsV2()
           model = prompt.model,
           include_book_context = prompt.include_book_context
         }
-        
+
         -- Fix user_prompt to use template variable if needed
-        if migrated_prompt.user_prompt and not migrated_prompt.user_prompt:find("{highlighted_text}") then
-          migrated_prompt.user_prompt = migrated_prompt.user_prompt .. "{highlighted_text}"
+        if migrated_action.user_prompt and not migrated_action.user_prompt:find("{highlighted_text}") then
+          migrated_action.user_prompt = migrated_action.user_prompt .. "{highlighted_text}"
         end
-        
-        -- Check if this prompt already exists (by text)
+
+        -- Check if this action already exists (by text)
         local exists = false
-        for _, existing in ipairs(custom_prompts) do
-          if existing.text == migrated_prompt.text then
+        for _, existing in ipairs(custom_actions) do
+          if existing.text == migrated_action.text then
             exists = true
             break
           end
         end
-        
+
         if not exists then
-          table.insert(custom_prompts, migrated_prompt)
-          logger.info("KOAssistant: Migrated prompt: " .. migrated_prompt.text)
+          table.insert(custom_actions, migrated_action)
+          logger.info("KOAssistant: Migrated action: " .. migrated_action.text)
           migrated = true
         end
       end
     end
   end
-  
+
   -- Also check for custom_prompts in configuration.lua (since we're moving them to a separate file)
   if ok and old_config and old_config.custom_prompts then
     logger.info("KOAssistant: Found custom_prompts in configuration.lua, migrating to UI settings")
-    
+
     for _, prompt in ipairs(old_config.custom_prompts) do
       if type(prompt) == "table" and prompt.text then
-        -- Check if this prompt already exists (by text)
+        -- Check if this action already exists (by text)
         local exists = false
-        for _, existing in ipairs(custom_prompts) do
+        for _, existing in ipairs(custom_actions) do
           if existing.text == prompt.text then
             exists = true
             break
           end
         end
-        
+
         if not exists then
-          table.insert(custom_prompts, prompt)
-          logger.info("KOAssistant: Migrated custom prompt: " .. prompt.text)
+          table.insert(custom_actions, prompt)
+          logger.info("KOAssistant: Migrated custom action: " .. prompt.text)
           migrated = true
         end
       end
     end
   end
-  
-  -- Save migrated prompts
-  if migrated and #custom_prompts > 0 then
-    self.settings:saveSetting("custom_prompts", custom_prompts)
+
+  -- Save migrated actions
+  if migrated and #custom_actions > 0 then
+    self.settings:saveSetting("custom_actions", custom_actions)
     self.settings:flush()
-    logger.info("KOAssistant: Migration complete, saved " .. #custom_prompts .. " custom prompts")
+    logger.info("KOAssistant: Migration complete, saved " .. #custom_actions .. " custom actions")
   else
-    logger.info("KOAssistant: No prompts found to migrate")
+    logger.info("KOAssistant: No actions found to migrate")
   end
 end
 

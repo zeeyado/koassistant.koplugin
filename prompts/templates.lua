@@ -91,9 +91,9 @@ Provide insights about:
 Focus on the main premise and why someone might want to read it.]],
 }
 
--- Special templates
+-- Special templates (reserved for future use)
+-- Note: translate action now uses inline prompt with {translation_language} placeholder
 Templates.special = {
-    translate = [[Translate the following text to {language}: {text}]],
 }
 
 -- Get a template by ID

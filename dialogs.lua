@@ -709,8 +709,14 @@ local function buildConsolidatedMessage(prompt, context, data, system_prompt, do
     end
     
     -- Get the user prompt template
-    local user_prompt = prompt.user_prompt or "Please analyze:"
-    
+    -- Support both new field name (prompt) and legacy (user_prompt)
+    local user_prompt = prompt.prompt or prompt.user_prompt or "Please analyze:"
+
+    -- Substitute translation_language early (applies to all contexts)
+    if data.translation_language then
+        user_prompt = user_prompt:gsub("{translation_language}", data.translation_language)
+    end
+
     -- Handle different contexts
     if context == "multi_book" or context == "multi_file_browser" then
         -- Multi-book context with {count} and {books_list} substitution
@@ -885,7 +891,8 @@ local function handlePredefinedPrompt(prompt_type, highlightedText, ui, configur
         additional_input = additional_input,
         book_metadata = config.features.book_metadata,
         books_info = config.features.books_info,
-        book_context = config.features.book_context
+        book_context = config.features.book_context,
+        translation_language = config.features.translation_language or "English"
     }
 
     -- Add book info for highlight context when:
@@ -1332,110 +1339,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         }
     }
 
-    -- 3. Translate (only for highlighted text context, not book/multi-book/general)
-    local translation_language = configuration.features.translation_language or configuration.features.translate_to or "English"
-    if translation_language
-       and not configuration.features.is_book_context
-       and not configuration.features.is_multi_book_context
-       and not configuration.features.is_general_context
-       and highlighted_text then
-        table.insert(all_buttons, {
-            text = _("Translate"),
-            prompt_type = "translate",
-            callback = function()
-                local additional_input = input_dialog:getInputText()
-                UIManager:close(input_dialog)
-                showLoadingDialog()
-                UIManager:scheduleIn(0.1, function()
-                    -- Use ActionService if available, fallback to PromptService
-                    local svc = plugin.action_service or plugin.prompt_service
-
-                    -- Use centralized translation system prompt
-                    local translation_prompt = svc:getSystemPrompt("translation", "translation")
-
-                    -- Create history WITHOUT system prompt (it goes to system array via applyNewRequestFormat)
-                    local history = MessageHistory:new(nil, "Translate")
-
-                    -- Build consolidated message parts
-                    -- Note: translation_prompt goes to system array via applyNewRequestFormat,
-                    -- so we only include the request and user input here
-                    local parts = {}
-
-                    -- Add translation request
-                    table.insert(parts, "[Request]")
-                    -- Use centralized translation template
-                    local translate_template = svc:getActionTemplate("translate")
-                    if translate_template then
-                        local request = translate_template:gsub("{language}", translation_language):gsub("{text}", highlighted_text)
-                        table.insert(parts, request)
-                    else
-                        -- Fallback
-                        table.insert(parts, "Translate the following text to " .. translation_language .. ": " .. highlighted_text)
-                    end
-                    
-                    -- Track if user provided additional input
-                    local has_additional_input = additional_input and additional_input ~= ""
-
-                    -- Add additional user input if provided
-                    if has_additional_input then
-                        table.insert(parts, "")
-                        table.insert(parts, "[Additional user input]")
-                        table.insert(parts, additional_input)
-                    end
-
-                    -- Create the consolidated message
-                    local consolidated_message = table.concat(parts, "\n")
-                    history:addUserMessage(consolidated_message, true)
-
-                    -- Apply new request format if enabled (adds system array for Anthropic)
-                    -- Translation uses behavior_variant = "none" (no AI personality)
-                    local translate_action = {
-                        behavior_variant = "none",
-                        api_params = { temperature = 0.3 },
-                    }
-                    applyNewRequestFormat(configuration, nil, translate_action, plugin)
-
-                    -- Callback to handle response (for both streaming and non-streaming)
-                    local function onResponseReady(success, answer, err)
-                        if success and answer then
-                            -- If user typed additional input, add it as a visible message before the response
-                            if has_additional_input then
-                                history:addUserMessage(additional_input, false)
-                            end
-                            history:addAssistantMessage(answer, ConfigHelper:getModelInfo(configuration))
-
-                            local function addMessage(message, is_context, on_complete)
-                                history:addUserMessage(message, is_context)
-                                local answer_result = queryChatGPT(history:getMessages(), configuration, function(msg_success, msg_answer, msg_err)
-                                    if msg_success and msg_answer then
-                                        history:addAssistantMessage(msg_answer, ConfigHelper:getModelInfo(configuration))
-                                    end
-                                    if on_complete then on_complete(msg_success, msg_answer, msg_err) end
-                                end)
-                                if not isStreamingInProgress(answer_result) then
-                                    return answer_result
-                                end
-                                return nil
-                            end
-
-                            showResponseDialog(_("Translation"), history, highlighted_text, addMessage, configuration, document_path, plugin, book_metadata, launch_context)
-                        else
-                            UIManager:show(InfoMessage:new{
-                                text = _("Error: ") .. (err or "Unknown error"),
-                                timeout = 3
-                            })
-                        end
-                    end
-
-                    -- Get initial response with callback
-                    local result = queryChatGPT(history:getMessages(), configuration, onResponseReady)
-                    -- If not streaming, callback was already invoked
-                end)
-            end
-        })
-    end
-
-    -- 4. Custom prompts
+    -- 3. Custom actions (including Translate, which is now a built-in action)
     local prompts, prompt_keys = getAllPrompts(configuration, plugin)
     logger.info("showChatGPTDialog: Got " .. #prompt_keys .. " custom prompts")
     for _, prompt_type in ipairs(prompt_keys) do
