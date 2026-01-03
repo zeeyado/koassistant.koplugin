@@ -31,8 +31,7 @@ end
 function PromptsManager:loadPrompts()
     self.prompts = {}
 
-    -- Use ActionService if available, fallback to PromptService
-    local service = self.plugin.action_service or self.plugin.prompt_service
+    local service = self.plugin.action_service
     if not service then
         logger.warn("PromptsManager: No prompt service available")
         return
@@ -58,13 +57,9 @@ function PromptsManager:loadPrompts()
 
         return {
             text = prompt.text,
-            -- NEW: Behavior fields
             behavior_variant = prompt.behavior_variant,
             behavior_override = prompt.behavior_override,
-            -- NEW: Action prompt (with fallback to user_prompt)
-            prompt = prompt.prompt or prompt.user_prompt,
-            -- Legacy field for display compatibility
-            user_prompt = prompt.prompt or prompt.user_prompt,
+            prompt = prompt.prompt,
             context = context,
             source = prompt.source,
             enabled = prompt.enabled,
@@ -152,8 +147,8 @@ function PromptsManager:loadPrompts()
 end
 
 function PromptsManager:setPromptEnabled(prompt_text, context, enabled)
-    if self.plugin.prompt_service then
-        self.plugin.prompt_service:setPromptEnabled(context, prompt_text, enabled)
+    if self.plugin.action_service then
+        self.plugin.action_service:setActionEnabled(context, prompt_text, enabled)
     end
 end
 
@@ -360,7 +355,7 @@ function PromptsManager:showPromptDetails(prompt)
         _("AI Behavior"),
         behavior_text,
         _("Action Prompt"),
-        prompt.prompt or prompt.user_prompt or _("(None)")
+        prompt.prompt or _("(None)")
     )
 
     if prompt.requires then
@@ -432,14 +427,11 @@ function PromptsManager:showPromptEditor(existing_prompt)
     local is_edit = existing_prompt ~= nil
 
     -- Initialize wizard state
-    -- NEW ARCHITECTURE (v0.5): behavior_variant/behavior_override + prompt
     local state = {
         name = existing_prompt and existing_prompt.text or "",
-        -- NEW: Behavior fields (replaces system_prompt)
         behavior_variant = existing_prompt and existing_prompt.behavior_variant or nil,  -- nil = use global
         behavior_override = existing_prompt and existing_prompt.behavior_override or "",
-        -- NEW: Action prompt (replaces user_prompt)
-        prompt = existing_prompt and (existing_prompt.prompt or existing_prompt.user_prompt) or "",
+        prompt = existing_prompt and existing_prompt.prompt or "",
         context = existing_prompt and existing_prompt.context or nil,
         include_book_context = existing_prompt and existing_prompt.include_book_context or (not existing_prompt and true) or false,
         domain = existing_prompt and existing_prompt.domain or nil,
@@ -925,24 +917,20 @@ function PromptsManager:showPlaceholderSelectorWizard(state)
     UIManager:show(self.placeholder_dialog)
 end
 
--- NEW ARCHITECTURE (v0.5): Uses state object with behavior_variant, behavior_override, prompt
 function PromptsManager:addPrompt(state)
-    local service = self.plugin.action_service or self.plugin.prompt_service
+    local service = self.plugin.action_service
     if service then
         -- Convert empty strings to nil
         local behavior_override = (state.behavior_override and state.behavior_override ~= "") and state.behavior_override or nil
 
-        service:addUserPrompt({
+        service:addUserAction({
             text = state.name,
-            -- NEW: Behavior fields
             behavior_variant = state.behavior_variant,
             behavior_override = behavior_override,
-            -- NEW: Action prompt (also set user_prompt for backwards compatibility)
             prompt = state.prompt,
-            user_prompt = state.prompt,  -- Legacy field for backwards compat
             context = state.context,
-            include_book_context = state.include_book_context or nil,  -- Only store if true
-            domain = state.domain,  -- Domain for background knowledge context (optional)
+            include_book_context = state.include_book_context or nil,
+            domain = state.domain,
             enabled = true,
         })
 
@@ -952,9 +940,8 @@ function PromptsManager:addPrompt(state)
     end
 end
 
--- NEW ARCHITECTURE (v0.5): Uses state object with behavior_variant, behavior_override, prompt
 function PromptsManager:updatePrompt(existing_prompt, state)
-    local service = self.plugin.action_service or self.plugin.prompt_service
+    local service = self.plugin.action_service
     if service then
         -- Convert empty strings to nil
         local behavior_override = (state.behavior_override and state.behavior_override ~= "") and state.behavior_override or nil
@@ -968,15 +955,12 @@ function PromptsManager:updatePrompt(existing_prompt, state)
 
             local prompt_data = {
                 text = state.name,
-                -- NEW: Behavior fields
                 behavior_variant = state.behavior_variant,
                 behavior_override = behavior_override,
-                -- NEW: Action prompt (also set user_prompt for backwards compatibility)
                 prompt = state.prompt,
-                user_prompt = state.prompt,  -- Legacy field for backwards compat
                 context = state.context,
-                include_book_context = state.include_book_context or nil,  -- Only store if true
-                domain = state.domain,  -- Domain for background knowledge context (optional)
+                include_book_context = state.include_book_context or nil,
+                domain = state.domain,
                 enabled = true,
             }
 
@@ -1008,14 +992,14 @@ function PromptsManager:updatePrompt(existing_prompt, state)
 end
 
 function PromptsManager:deletePrompt(prompt)
-    if self.plugin.prompt_service and prompt.source == "ui" then
+    if self.plugin.action_service and prompt.source == "ui" then
         -- Find the index of this action in custom_actions
-        local custom_prompts = self.plugin.settings:readSetting("custom_actions") or {}
-        
-        for i = #custom_prompts, 1, -1 do
-            if custom_prompts[i].text == prompt.text then
-                self.plugin.prompt_service:deleteUserPrompt(i)
-                
+        local custom_actions = self.plugin.settings:readSetting("custom_actions") or {}
+
+        for i = #custom_actions, 1, -1 do
+            if custom_actions[i].text == prompt.text then
+                self.plugin.action_service:deleteUserAction(i)
+
                 UIManager:show(InfoMessage:new{
                     text = _("Action deleted successfully"),
                 })

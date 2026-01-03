@@ -105,32 +105,10 @@ local CONFIGURATION = {
     },
     --]]
 
-    -- Override AI instructions (uncomment to customize)
-    -- These override the built-in prompts from prompts/system_prompts.lua
-    --[[
-    ai_instructions = {
-        -- System prompts for different contexts
-        system_prompts = {
-            default = "You are a helpful assistant.",
-            highlight = "You are a reading companion helping understand selected text.",
-            book = "You are a librarian providing insights about books.",
-            multi_book = "You are a literary analyst comparing book collections.",
-            general = "You are Claude, an AI assistant ready to help.",
-            translation = "Translate accurately, preserving meaning and tone.",
-        },
-
-        -- Action templates (use {variable} for substitutions)
-        action_templates = {
-            translate = "Translate to {language}: {text}",
-        },
-
-        -- Error message templates
-        error_templates = {
-            api_key_missing = "Please add your {provider} API key to apikeys.lua",
-            config_invalid = "Configuration error: {error}",
-        }
-    },
-    --]]
+    -- For custom AI behavior, use custom_actions.lua to define actions with:
+    --   - behavior_override: Custom system prompt text
+    --   - behavior_variant: "minimal", "full", or "none"
+    -- See custom_actions.lua.sample for examples
 }
 
 return CONFIGURATION

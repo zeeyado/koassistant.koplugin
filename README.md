@@ -162,7 +162,7 @@ KOAssistant works in **4 contexts**, each with its own set of actions, and you c
 
 **Access**: Tools → KOAssistant → New General Chat, or via gesture (easier)
 
-A free-form conversation without specific book context. If started while a book is open, that "launch context" is saved with the chat (so you know eheere you laucnhed it from) but doesn't affect the conversation, i.e. the AI doesn't see that you launched it from a specific document.
+A free-form conversation without specific book context. If started while a book is open, that "launch context" is saved with the chat (so you know where you launched it from) but doesn't affect the conversation, i.e. the AI doesn't see that you launched it from a specific document.
 
 ---
 

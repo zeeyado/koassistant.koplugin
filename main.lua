@@ -21,7 +21,6 @@ local SettingsSchema = require("settings_schema")
 local SettingsManager = require("ui/settings_manager")
 local PromptsManager = require("ui/prompts_manager")
 local UIConstants = require("ui/constants")
-local PromptService = require("prompt_service")
 local ActionService = require("action_service")
 
 local ModelLists = require("model_lists")
@@ -108,12 +107,8 @@ function AskGPT:init()
 
   -- Initialize settings
   self:initSettings()
-  
-  -- Initialize prompt service (legacy, kept for backwards compatibility)
-  self.prompt_service = PromptService:new(self.settings)
-  self.prompt_service:initialize()
 
-  -- Initialize action service (new primary service)
+  -- Initialize action service
   self.action_service = ActionService:new(self.settings)
   self.action_service:initialize()
 
@@ -773,14 +768,7 @@ function AskGPT:initSettings()
   self.settings_file = DataStorage:getSettingsDir() .. "/koassistant_settings.lua"
   -- Initialize settings with default values from configuration.lua
   self.settings = LuaSettings:open(self.settings_file)
-  
-  -- Perform one-time migration from old prompt format
-  if not self.settings:readSetting("prompts_migrated_v2") then
-    self:migratePromptsV2()
-    self.settings:saveSetting("prompts_migrated_v2", true)
-    self.settings:flush()
-  end
-  
+
   -- Set default values if they don't exist
   if not self.settings:has("provider") then
     self.settings:saveSetting("provider", configuration.provider or "anthropic")
@@ -1488,115 +1476,6 @@ function AskGPT:patchFileManagerForMultiSelect()
     end
 
     logger.info("KOAssistant: Patched ButtonDialog.new for multi-select support")
-  end
-end
-
-function AskGPT:migratePromptsV2()
-  logger.info("KOAssistant: Performing one-time prompt migration to v2 format")
-
-  -- Check if we have any old configuration that needs migration
-  local old_config_path = script_path() .. "configuration.lua"
-  local ok, old_config = pcall(dofile, old_config_path)
-
-  local migrated = false
-  -- Read from new key first, fallback to old key for migration
-  local custom_actions = self.settings:readSetting("custom_actions") or {}
-
-  -- Migrate from old custom_prompts key to custom_actions
-  local old_custom_prompts = self.settings:readSetting("custom_prompts")
-  if old_custom_prompts and #old_custom_prompts > 0 then
-    logger.info("KOAssistant: Found old custom_prompts key, migrating to custom_actions")
-    for _, prompt in ipairs(old_custom_prompts) do
-      -- Check if this action already exists
-      local exists = false
-      for _, existing in ipairs(custom_actions) do
-        if existing.text == prompt.text then
-          exists = true
-          break
-        end
-      end
-      if not exists then
-        table.insert(custom_actions, prompt)
-        migrated = true
-      end
-    end
-    -- Clear old key after migration
-    self.settings:delSetting("custom_prompts")
-  end
-
-  -- First check for old format prompts (features.prompts)
-  if ok and old_config and old_config.features and old_config.features.prompts then
-    -- We have old format prompts that need migration
-    logger.info("KOAssistant: Found old format prompts, migrating to custom_actions")
-
-    -- Migrate each old prompt to custom actions
-    for key, prompt in pairs(old_config.features.prompts) do
-      if type(prompt) == "table" and prompt.text then
-        -- Create a new custom action entry
-        local migrated_action = {
-          text = prompt.text,
-          context = "highlight", -- Old prompts were for highlights
-          system_prompt = prompt.system_prompt,
-          user_prompt = prompt.user_prompt,
-          provider = prompt.provider,
-          model = prompt.model,
-          include_book_context = prompt.include_book_context
-        }
-
-        -- Fix user_prompt to use template variable if needed
-        if migrated_action.user_prompt and not migrated_action.user_prompt:find("{highlighted_text}") then
-          migrated_action.user_prompt = migrated_action.user_prompt .. "{highlighted_text}"
-        end
-
-        -- Check if this action already exists (by text)
-        local exists = false
-        for _, existing in ipairs(custom_actions) do
-          if existing.text == migrated_action.text then
-            exists = true
-            break
-          end
-        end
-
-        if not exists then
-          table.insert(custom_actions, migrated_action)
-          logger.info("KOAssistant: Migrated action: " .. migrated_action.text)
-          migrated = true
-        end
-      end
-    end
-  end
-
-  -- Also check for custom_prompts in configuration.lua (since we're moving them to a separate file)
-  if ok and old_config and old_config.custom_prompts then
-    logger.info("KOAssistant: Found custom_prompts in configuration.lua, migrating to UI settings")
-
-    for _, prompt in ipairs(old_config.custom_prompts) do
-      if type(prompt) == "table" and prompt.text then
-        -- Check if this action already exists (by text)
-        local exists = false
-        for _, existing in ipairs(custom_actions) do
-          if existing.text == prompt.text then
-            exists = true
-            break
-          end
-        end
-
-        if not exists then
-          table.insert(custom_actions, prompt)
-          logger.info("KOAssistant: Migrated custom action: " .. prompt.text)
-          migrated = true
-        end
-      end
-    end
-  end
-
-  -- Save migrated actions
-  if migrated and #custom_actions > 0 then
-    self.settings:saveSetting("custom_actions", custom_actions)
-    self.settings:flush()
-    logger.info("KOAssistant: Migration complete, saved " .. #custom_actions .. " custom actions")
-  else
-    logger.info("KOAssistant: No actions found to migrate")
   end
 end
 

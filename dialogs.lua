@@ -708,9 +708,12 @@ local function buildConsolidatedMessage(prompt, context, data, system_prompt, do
         table.insert(parts, "")
     end
     
-    -- Get the user prompt template
-    -- Support both new field name (prompt) and legacy (user_prompt)
-    local user_prompt = prompt.prompt or prompt.user_prompt or "Please analyze:"
+    -- Get the action prompt template
+    local user_prompt = prompt.prompt
+    if not user_prompt then
+        logger.warn("Action missing prompt field: " .. (prompt.text or "unknown"))
+        user_prompt = ""
+    end
 
     -- Substitute translation_language early (applies to all contexts)
     if data.translation_language then
@@ -903,8 +906,7 @@ local function handlePredefinedPrompt(prompt_type, highlightedText, ui, configur
         local should_include_book = prompt.include_book_context
 
         -- Also include if prompt uses book-related placeholders
-        -- Check both prompt (new) and user_prompt (legacy) fields
-        local prompt_text = prompt.prompt or prompt.user_prompt
+        local prompt_text = prompt.prompt
         if not should_include_book and prompt_text then
             should_include_book = prompt_text:find("{title}") or
                                   prompt_text:find("{author}") or
