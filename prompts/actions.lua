@@ -2,33 +2,41 @@
 -- Actions are UI elements (buttons) that trigger AI interactions
 --
 -- This module separates concerns:
---   - Actions: UI definition, context, API parameters
+--   - Actions: UI definition, context, behavior control, API parameters
 --   - Templates: User prompt text (in templates.lua)
---   - System prompts: AI behavior (in system_prompts.lua)
+--   - System prompts: AI behavior variants (in system_prompts.lua)
+--
+-- NEW ARCHITECTURE (v0.5):
+--   System array: behavior (from variant/override/none) + domain [CACHED]
+--   User message: context data + action prompt (template) + runtime input
 --
 -- Action schema:
---   id            - Unique identifier (required)
---   text          - Button display text (required)
---   context       - Where it appears: "highlight", "book", "multi_book", "general", "all", "both" (required)
---   template      - User prompt template ID from templates.lua (required)
---   system_prompt - Optional action-specific system prompt override
---   api_params    - Optional API parameters: { temperature, max_tokens, thinking }
---   requires      - Optional metadata requirement: "author", "title", etc.
---   enabled       - Default enabled state (default: true)
---   builtin       - Whether this is a built-in action (default: true for this file)
+--   id               - Unique identifier (required)
+--   text             - Button display text (required)
+--   context          - Where it appears: "highlight", "book", "multi_book", "general", "all", "both" (required)
+--   template         - User prompt template ID from templates.lua (required for builtin)
+--   prompt           - Direct user prompt text (for custom actions without template)
+--   behavior_variant - Override global behavior: "minimal", "full", "none" (optional)
+--   behavior_override- Custom behavior text, replaces variant entirely (optional)
+--   api_params       - Optional API parameters: { temperature, max_tokens, thinking }
+--   requires         - Optional metadata requirement: "author", "title", etc.
+--   include_book_context - Include book metadata with highlight context (optional)
+--   enabled          - Default enabled state (default: true)
+--   builtin          - Whether this is a built-in action (default: true for this file)
 
 local _ = require("gettext")
 
 local Actions = {}
 
 -- Built-in actions for highlight context
+-- These use global behavior setting (no behavior_variant override)
 Actions.highlight = {
     explain = {
         id = "explain",
         text = _("Explain"),
         context = "highlight",
         template = "explain",
-        system_prompt = "You are a helpful assistant that explains complex topics clearly and concisely. Break down concepts in an understandable way.",
+        -- Uses global behavior variant (full/minimal)
         api_params = {
             temperature = 0.5,  -- More focused for explanations
         },
@@ -40,7 +48,7 @@ Actions.highlight = {
         text = _("ELI5"),
         context = "highlight",
         template = "eli5",
-        system_prompt = "You are a helpful assistant that explains complex topics clearly and concisely. Break down concepts into ELI5 terms.",
+        -- Uses global behavior variant
         api_params = {
             temperature = 0.6,
         },
@@ -52,7 +60,7 @@ Actions.highlight = {
         text = _("Summarize"),
         context = "highlight",
         template = "summarize",
-        system_prompt = "You are a helpful assistant. Provide clear, concise summaries that capture the main points.",
+        -- Uses global behavior variant
         api_params = {
             temperature = 0.4,  -- More deterministic for summaries
         },
@@ -165,8 +173,7 @@ Actions.special = {
         text = _("Translate"),
         context = "highlight",  -- Only for highlighted text
         template = "translate",
-        -- Uses translation context from system_prompts.lua
-        context_type = "translation",  -- Override context type for system prompt
+        behavior_variant = "none",  -- No AI personality, just direct translation
         api_params = {
             temperature = 0.3,  -- Very deterministic for translations
         },

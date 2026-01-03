@@ -30,33 +30,45 @@ end
 
 function PromptsManager:loadPrompts()
     self.prompts = {}
-    
-    if not self.plugin.prompt_service then
-        logger.warn("PromptsManager: PromptService not available")
+
+    -- Use ActionService if available, fallback to PromptService
+    local service = self.plugin.action_service or self.plugin.prompt_service
+    if not service then
+        logger.warn("PromptsManager: No prompt service available")
         return
     end
-    
+
     -- Load all prompts from all contexts
-    local highlight_prompts = self.plugin.prompt_service:getAllPrompts("highlight", true)
-    local book_prompts = self.plugin.prompt_service:getAllPrompts("book", true)
-    local multi_book_prompts = self.plugin.prompt_service:getAllPrompts("multi_book", true)
-    local general_prompts = self.plugin.prompt_service:getAllPrompts("general", true)
-    
-    -- Add highlight prompts
-    for _, prompt in ipairs(highlight_prompts) do
-        table.insert(self.prompts, {
+    local highlight_prompts = service:getAllPrompts("highlight", true)
+    local book_prompts = service:getAllPrompts("book", true)
+    local multi_book_prompts = service:getAllPrompts("multi_book", true)
+    local general_prompts = service:getAllPrompts("general", true)
+
+    -- Helper to add prompt with new field names
+    local function addPromptEntry(prompt, context_override)
+        return {
             text = prompt.text,
-            system_prompt = prompt.system_prompt,
-            user_prompt = prompt.user_prompt,
-            context = "highlight",
+            -- NEW: Behavior fields
+            behavior_variant = prompt.behavior_variant,
+            behavior_override = prompt.behavior_override,
+            -- NEW: Action prompt (with fallback to user_prompt)
+            prompt = prompt.prompt or prompt.user_prompt,
+            -- Legacy field for display compatibility
+            user_prompt = prompt.prompt or prompt.user_prompt,
+            context = context_override or prompt.original_context or "highlight",
             source = prompt.source,
             enabled = prompt.enabled,
             requires = prompt.requires,
             id = prompt.id,
             include_book_context = prompt.include_book_context,
-        })
+        }
     end
-    
+
+    -- Add highlight prompts
+    for _, prompt in ipairs(highlight_prompts) do
+        table.insert(self.prompts, addPromptEntry(prompt, "highlight"))
+    end
+
     -- Add book prompts (avoid duplicates for "both" context)
     for _, prompt in ipairs(book_prompts) do
         -- Check if this prompt already exists in highlight context
@@ -69,35 +81,17 @@ function PromptsManager:loadPrompts()
                 break
             end
         end
-        
+
         if not exists then
-            table.insert(self.prompts, {
-                text = prompt.text,
-                system_prompt = prompt.system_prompt,
-                user_prompt = prompt.user_prompt,
-                context = "book",
-                source = prompt.source,
-                enabled = prompt.enabled,
-                requires = prompt.requires,
-                id = prompt.id,
-            })
+            table.insert(self.prompts, addPromptEntry(prompt, "book"))
         end
     end
-    
+
     -- Add multi-book prompts
     for _, prompt in ipairs(multi_book_prompts) do
-        table.insert(self.prompts, {
-            text = prompt.text,
-            system_prompt = prompt.system_prompt,
-            user_prompt = prompt.user_prompt,
-            context = "multi_book",
-            source = prompt.source,
-            enabled = prompt.enabled,
-            requires = prompt.requires,
-            id = prompt.id,
-        })
+        table.insert(self.prompts, addPromptEntry(prompt, "multi_book"))
     end
-    
+
     -- Add general prompts
     for _, prompt in ipairs(general_prompts) do
         -- Check if this prompt already exists in other contexts
@@ -116,21 +110,12 @@ function PromptsManager:loadPrompts()
                 break
             end
         end
-        
+
         if not exists then
-            table.insert(self.prompts, {
-                text = prompt.text,
-                system_prompt = prompt.system_prompt,
-                user_prompt = prompt.user_prompt,
-                context = "general",
-                source = prompt.source,
-                enabled = prompt.enabled,
-                requires = prompt.requires,
-                id = prompt.id,
-            })
+            table.insert(self.prompts, addPromptEntry(prompt, "general"))
         end
     end
-    
+
     logger.info("PromptsManager: Total prompts loaded: " .. #self.prompts)
 end
 
@@ -315,25 +300,37 @@ function PromptsManager:showPromptDetails(prompt)
     if prompt.source == "builtin" then
         source_text = _("Built-in")
     elseif prompt.source == "config" then
-        source_text = _("Custom (custom_prompts.lua)")
+        source_text = _("Custom (custom_actions.lua)")
     elseif prompt.source == "ui" then
         source_text = _("User-defined (UI)")
     else
         source_text = prompt.source or _("Unknown")
     end
-    
+
+    -- Determine behavior display text
+    local behavior_text
+    if prompt.behavior_override and prompt.behavior_override ~= "" then
+        behavior_text = _("Custom: ") .. prompt.behavior_override
+    elseif prompt.behavior_variant == "none" then
+        behavior_text = _("None (disabled)")
+    elseif prompt.behavior_variant then
+        behavior_text = prompt.behavior_variant
+    else
+        behavior_text = _("(Use global setting)")
+    end
+
     local info_text = string.format(
         "%s\n\n%s: %s\n%s: %s\n%s: %s\n\n%s:\n%s\n\n%s:\n%s",
         prompt.text,
         _("Context"), self:getContextDisplayName(prompt.context),
         _("Source"), source_text,
         _("Status"), prompt.enabled and _("Enabled") or _("Disabled"),
-        _("System Prompt"),
-        prompt.system_prompt or _("(None)"),
-        _("User Prompt"),
-        prompt.user_prompt or _("(None)")
+        _("AI Behavior"),
+        behavior_text,
+        _("Action Prompt"),
+        prompt.prompt or prompt.user_prompt or _("(None)")
     )
-    
+
     if prompt.requires then
         info_text = info_text .. "\n\n" .. _("Requires") .. ": " .. prompt.requires
     end
@@ -403,11 +400,14 @@ function PromptsManager:showPromptEditor(existing_prompt)
     local is_edit = existing_prompt ~= nil
 
     -- Initialize wizard state
-    -- For new prompts, default include_book_context to true (recommended)
+    -- NEW ARCHITECTURE (v0.5): behavior_variant/behavior_override + prompt
     local state = {
         name = existing_prompt and existing_prompt.text or "",
-        system_prompt = existing_prompt and existing_prompt.system_prompt or "",
-        user_prompt = existing_prompt and existing_prompt.user_prompt or "",
+        -- NEW: Behavior fields (replaces system_prompt)
+        behavior_variant = existing_prompt and existing_prompt.behavior_variant or nil,  -- nil = use global
+        behavior_override = existing_prompt and existing_prompt.behavior_override or "",
+        -- NEW: Action prompt (replaces user_prompt)
+        prompt = existing_prompt and (existing_prompt.prompt or existing_prompt.user_prompt) or "",
         context = existing_prompt and existing_prompt.context or nil,
         include_book_context = existing_prompt and existing_prompt.include_book_context or (not existing_prompt and true) or false,
         domain = existing_prompt and existing_prompt.domain or nil,
@@ -459,7 +459,7 @@ function PromptsManager:showStep1_NameAndContext(state)
                 end
                 state.name = name
                 UIManager:close(self.step1_dialog)
-                self:showStep2_SystemPrompt(state)
+                self:showStep2_Behavior(state)
             end,
         },
     })
@@ -616,58 +616,105 @@ function PromptsManager:showContextSelectorWizard(state)
     UIManager:show(self.context_dialog)
 end
 
--- Step 2: System prompt (optional, fullscreen)
-function PromptsManager:showStep2_SystemPrompt(state)
+-- Step 2: AI Behavior (optional)
+-- NEW ARCHITECTURE (v0.5): Select behavior variant or enter custom override
+function PromptsManager:showStep2_Behavior(state)
     local is_edit = state.existing_prompt ~= nil
 
-    -- Get context info and default prompt
-    local context_info = self:getContextInfo(state.context)
-    local default_prompt = self:getDefaultSystemPrompt(state.context)
-
-    local description, input_hint
-
-    if default_prompt then
-        -- Single context - show the specific default and what data is auto-included
-        local context_data_note = ""
-        if state.context == "book" then
-            context_data_note = _("\n\nNote: Book title and author are automatically sent to the AI.")
-        elseif state.context == "multi_book" then
-            context_data_note = _("\n\nNote: The list of selected books is automatically sent to the AI.")
-        elseif state.context == "highlight" then
-            if state.include_book_context then
-                context_data_note = _("\n\nNote: Selected text + book info are automatically sent to the AI.")
-            else
-                context_data_note = _("\n\nNote: Selected text is automatically sent to the AI.")
-            end
-        end
-
-        description = string.format(
-            _("Leave empty to use the context default.\n\n" ..
-              "Examples:\n" ..
-              "• 'You are an expert literary critic.'\n" ..
-              "• 'Respond simply, as if explaining to a child.'\n" ..
-              "• 'Be concise. Use bullet points.'")) .. context_data_note
-        -- Show the default prompt as gray hint text in the input field
-        input_hint = default_prompt
-    else
-        -- Compound context (both, all) - default varies by trigger
-        description = string.format(
-            _("For '%s', the default system prompt varies depending on how the prompt is triggered:\n" ..
-              "• From highlight: reading assistant prompt\n" ..
-              "• From book: book assistant prompt\n" ..
-              "• From multi-book: comparison prompt\n" ..
-              "• From general: general assistant prompt\n\n" ..
-              "Leave empty to use these context-specific defaults, or write your own."),
-            context_info.text)
-        input_hint = _("Leave empty for context-specific defaults")
+    -- Determine current selection for radio button display
+    local current_selection = "global"  -- Default
+    if state.behavior_override and state.behavior_override ~= "" then
+        current_selection = "custom"
+    elseif state.behavior_variant == "none" then
+        current_selection = "none"
+    elseif state.behavior_variant == "minimal" then
+        current_selection = "minimal"
+    elseif state.behavior_variant == "full" then
+        current_selection = "full"
     end
+
+    -- Build behavior options as buttons
+    local behavior_options = {
+        { id = "global", text = _("Use global setting"), desc = _("Inherits from Settings → Advanced → AI Behavior Style") },
+        { id = "minimal", text = _("Minimal"), desc = _("Brief, focused responses (~100 tokens)") },
+        { id = "full", text = _("Full"), desc = _("Comprehensive Claude-style guidelines (~500 tokens)") },
+        { id = "none", text = _("None"), desc = _("No behavior instructions - just your action prompt") },
+        { id = "custom", text = _("Custom..."), desc = _("Define your own AI personality/role") },
+    }
+
+    local buttons = {}
+
+    for _, option in ipairs(behavior_options) do
+        local prefix = (current_selection == option.id) and "● " or "○ "
+        table.insert(buttons, {
+            {
+                text = prefix .. option.text .. "\n    " .. option.desc,
+                callback = function()
+                    UIManager:close(self.behavior_dialog)
+                    if option.id == "custom" then
+                        -- Show custom behavior input
+                        self:showCustomBehaviorInput(state)
+                    else
+                        -- Set the variant
+                        if option.id == "global" then
+                            state.behavior_variant = nil
+                            state.behavior_override = ""
+                        elseif option.id == "none" then
+                            state.behavior_variant = "none"
+                            state.behavior_override = ""
+                        else
+                            state.behavior_variant = option.id
+                            state.behavior_override = ""
+                        end
+                        self:showStep3_ActionPrompt(state)
+                    end
+                end,
+            },
+        })
+    end
+
+    -- Navigation buttons
+    table.insert(buttons, {
+        {
+            text = _("← Back"),
+            callback = function()
+                UIManager:close(self.behavior_dialog)
+                self:showStep1_NameAndContext(state)
+            end,
+        },
+        {
+            text = _("Skip (use global)"),
+            callback = function()
+                state.behavior_variant = nil
+                state.behavior_override = ""
+                UIManager:close(self.behavior_dialog)
+                self:showStep3_ActionPrompt(state)
+            end,
+        },
+    })
+
+    self.behavior_dialog = ButtonDialog:new{
+        title = is_edit and _("Edit Prompt - AI Behavior") or _("Step 2/3: AI Behavior"),
+        buttons = buttons,
+    }
+
+    UIManager:show(self.behavior_dialog)
+end
+
+-- Custom behavior input dialog
+function PromptsManager:showCustomBehaviorInput(state)
+    local is_edit = state.existing_prompt ~= nil
 
     local dialog
     dialog = InputDialog:new{
-        title = is_edit and _("Edit Prompt - System Instructions") or _("Step 2/3: System Instructions"),
-        input = state.system_prompt or "",
-        input_hint = input_hint,
-        description = description,
+        title = is_edit and _("Edit Prompt - Custom Behavior") or _("Step 2/3: Custom Behavior"),
+        input = state.behavior_override or "",
+        input_hint = _("Describe how the AI should behave or what role it should play"),
+        description = _("Examples:\n" ..
+            "• 'You are a grammar expert. Be precise and analytical.'\n" ..
+            "• 'You are a literary critic specializing in 19th century fiction.'\n" ..
+            "• 'Respond concisely. Use bullet points when helpful.'\n\n" ..
+            "This replaces the global AI behavior setting for this prompt."),
         fullscreen = true,
         allow_newline = true,
         buttons = {
@@ -675,25 +722,25 @@ function PromptsManager:showStep2_SystemPrompt(state)
                 {
                     text = _("← Back"),
                     callback = function()
-                        state.system_prompt = dialog:getInputText()
+                        state.behavior_override = dialog:getInputText()
                         UIManager:close(dialog)
-                        self:showStep1_NameAndContext(state)
-                    end,
-                },
-                {
-                    text = _("Skip (use default)"),
-                    callback = function()
-                        state.system_prompt = ""
-                        UIManager:close(dialog)
-                        self:showStep3_UserPrompt(state)
+                        self:showStep2_Behavior(state)
                     end,
                 },
                 {
                     text = _("Next →"),
                     callback = function()
-                        state.system_prompt = dialog:getInputText()
+                        local custom_behavior = dialog:getInputText()
+                        if custom_behavior == "" then
+                            UIManager:show(InfoMessage:new{
+                                text = _("Please enter custom behavior text, or go back and choose a different option"),
+                            })
+                            return
+                        end
+                        state.behavior_override = custom_behavior
+                        state.behavior_variant = nil  -- Override takes precedence
                         UIManager:close(dialog)
-                        self:showStep3_UserPrompt(state)
+                        self:showStep3_ActionPrompt(state)
                     end,
                 },
             },
@@ -704,8 +751,9 @@ function PromptsManager:showStep2_SystemPrompt(state)
     dialog:onShowKeyboard()
 end
 
--- Step 3: User prompt (required, fullscreen with Insert button)
-function PromptsManager:showStep3_UserPrompt(state)
+-- Step 3: Action Prompt (required, fullscreen with Insert button)
+-- NEW ARCHITECTURE (v0.5): This is the main prompt that tells the AI what to do
+function PromptsManager:showStep3_ActionPrompt(state)
     local is_edit = state.existing_prompt ~= nil
 
     -- Build description based on context
@@ -717,10 +765,10 @@ function PromptsManager:showStep3_UserPrompt(state)
 
     local dialog
     dialog = InputDialog:new{
-        title = is_edit and _("Edit Prompt - User Prompt") or _("Step 3/3: User Prompt"),
-        input = state.user_prompt or "",
-        input_hint = _("What should be sent to the AI?"),
-        description = _("Write your prompt here. Use placeholders to include context data:\n\n") .. placeholder_list .. _("\nTip: Users can add extra input when using this prompt."),
+        title = is_edit and _("Edit Prompt - Action Prompt") or _("Step 3/3: Action Prompt"),
+        input = state.prompt or "",
+        input_hint = _("What should the AI do?"),
+        description = _("This is the main instruction sent to the AI. Use placeholders to include context:\n\n") .. placeholder_list .. _("\nTip: Users can add extra input when using this action."),
         fullscreen = true,
         allow_newline = true,
         buttons = {
@@ -728,15 +776,15 @@ function PromptsManager:showStep3_UserPrompt(state)
                 {
                     text = _("← Back"),
                     callback = function()
-                        state.user_prompt = dialog:getInputText()
+                        state.prompt = dialog:getInputText()
                         UIManager:close(dialog)
-                        self:showStep2_SystemPrompt(state)
+                        self:showStep2_Behavior(state)
                     end,
                 },
                 {
                     text = _("Insert..."),
                     callback = function()
-                        state.user_prompt = dialog:getInputText()
+                        state.prompt = dialog:getInputText()
                         UIManager:close(dialog)
                         self:showPlaceholderSelectorWizard(state)
                     end,
@@ -744,21 +792,21 @@ function PromptsManager:showStep3_UserPrompt(state)
                 {
                     text = is_edit and _("Save") or _("Create"),
                     callback = function()
-                        local user_prompt = dialog:getInputText()
-                        if user_prompt == "" then
+                        local prompt_text = dialog:getInputText()
+                        if prompt_text == "" then
                             UIManager:show(InfoMessage:new{
-                                text = _("User prompt cannot be empty"),
+                                text = _("Action prompt cannot be empty"),
                             })
                             return
                         end
-                        state.user_prompt = user_prompt
+                        state.prompt = prompt_text
                         UIManager:close(dialog)
 
-                        -- Save the prompt
+                        -- Save the prompt with new field names
                         if is_edit then
-                            self:updatePrompt(state.existing_prompt, state.name, state.system_prompt, state.user_prompt, state.context, state.include_book_context, state.domain)
+                            self:updatePrompt(state.existing_prompt, state)
                         else
-                            self:addPrompt(state.name, state.system_prompt, state.user_prompt, state.context, state.include_book_context, state.domain)
+                            self:addPrompt(state)
                         end
 
                         -- Refresh prompts menu
@@ -818,9 +866,9 @@ function PromptsManager:showPlaceholderSelectorWizard(state)
                     text = placeholder.text .. "  →  " .. placeholder.value,
                     callback = function()
                         UIManager:close(self.placeholder_dialog)
-                        -- Append placeholder to user prompt
-                        state.user_prompt = (state.user_prompt or "") .. placeholder.value
-                        self:showStep3_UserPrompt(state)
+                        -- Append placeholder to action prompt
+                        state.prompt = (state.prompt or "") .. placeholder.value
+                        self:showStep3_ActionPrompt(state)
                     end,
                 },
             })
@@ -832,7 +880,7 @@ function PromptsManager:showPlaceholderSelectorWizard(state)
             text = _("Cancel"),
             callback = function()
                 UIManager:close(self.placeholder_dialog)
-                self:showStep3_UserPrompt(state)
+                self:showStep3_ActionPrompt(state)
             end,
         },
     })
@@ -845,31 +893,39 @@ function PromptsManager:showPlaceholderSelectorWizard(state)
     UIManager:show(self.placeholder_dialog)
 end
 
-function PromptsManager:addPrompt(name, system_prompt, user_prompt, context, include_book_context, domain)
-    if self.plugin.prompt_service then
-        -- Convert empty strings to nil so fallback system prompts work
-        local sys_prompt = (system_prompt and system_prompt ~= "") and system_prompt or nil
+-- NEW ARCHITECTURE (v0.5): Uses state object with behavior_variant, behavior_override, prompt
+function PromptsManager:addPrompt(state)
+    local service = self.plugin.action_service or self.plugin.prompt_service
+    if service then
+        -- Convert empty strings to nil
+        local behavior_override = (state.behavior_override and state.behavior_override ~= "") and state.behavior_override or nil
 
-        self.plugin.prompt_service:addUserPrompt({
-            text = name,
-            system_prompt = sys_prompt,
-            user_prompt = user_prompt,
-            context = context,
-            include_book_context = include_book_context or nil,  -- Only store if true
-            domain = domain,  -- Domain for background knowledge context (optional)
+        service:addUserPrompt({
+            text = state.name,
+            -- NEW: Behavior fields
+            behavior_variant = state.behavior_variant,
+            behavior_override = behavior_override,
+            -- NEW: Action prompt (also set user_prompt for backwards compatibility)
+            prompt = state.prompt,
+            user_prompt = state.prompt,  -- Legacy field for backwards compat
+            context = state.context,
+            include_book_context = state.include_book_context or nil,  -- Only store if true
+            domain = state.domain,  -- Domain for background knowledge context (optional)
             enabled = true,
         })
 
         UIManager:show(InfoMessage:new{
-            text = _("Prompt added successfully"),
+            text = _("Action added successfully"),
         })
     end
 end
 
-function PromptsManager:updatePrompt(existing_prompt, name, system_prompt, user_prompt, context, include_book_context, domain)
-    if self.plugin.prompt_service then
-        -- Convert empty strings to nil so fallback system prompts work
-        local sys_prompt = (system_prompt and system_prompt ~= "") and system_prompt or nil
+-- NEW ARCHITECTURE (v0.5): Uses state object with behavior_variant, behavior_override, prompt
+function PromptsManager:updatePrompt(existing_prompt, state)
+    local service = self.plugin.action_service or self.plugin.prompt_service
+    if service then
+        -- Convert empty strings to nil
+        local behavior_override = (state.behavior_override and state.behavior_override ~= "") and state.behavior_override or nil
 
         if existing_prompt.source == "ui" then
             -- Extract index from prompt ID (format: "ui_N")
@@ -878,46 +934,42 @@ function PromptsManager:updatePrompt(existing_prompt, name, system_prompt, user_
                 index = tonumber(existing_prompt.id:match("^ui_(%d+)$"))
             end
 
-            if index then
-                self.plugin.prompt_service:updateUserPrompt(index, {
-                    text = name,
-                    system_prompt = sys_prompt,
-                    user_prompt = user_prompt,
-                    context = context,
-                    include_book_context = include_book_context or nil,  -- Only store if true
-                    domain = domain,  -- Domain for background knowledge context (optional)
-                    enabled = true,
-                })
+            local prompt_data = {
+                text = state.name,
+                -- NEW: Behavior fields
+                behavior_variant = state.behavior_variant,
+                behavior_override = behavior_override,
+                -- NEW: Action prompt (also set user_prompt for backwards compatibility)
+                prompt = state.prompt,
+                user_prompt = state.prompt,  -- Legacy field for backwards compat
+                context = state.context,
+                include_book_context = state.include_book_context or nil,  -- Only store if true
+                domain = state.domain,  -- Domain for background knowledge context (optional)
+                enabled = true,
+            }
 
+            if index then
+                service:updateUserPrompt(index, prompt_data)
                 UIManager:show(InfoMessage:new{
-                    text = _("Prompt updated successfully"),
+                    text = _("Action updated successfully"),
                 })
             else
                 -- Fallback: find by original name
                 local custom_prompts = self.plugin.settings:readSetting("custom_prompts") or {}
                 for i, prompt in ipairs(custom_prompts) do
                     if prompt.text == existing_prompt.text then
-                        self.plugin.prompt_service:updateUserPrompt(i, {
-                            text = name,
-                            system_prompt = sys_prompt,
-                            user_prompt = user_prompt,
-                            context = context,
-                            include_book_context = include_book_context or nil,  -- Only store if true
-                            domain = domain,  -- Domain for background knowledge context (optional)
-                            enabled = true,
-                        })
-
+                        service:updateUserPrompt(i, prompt_data)
                         UIManager:show(InfoMessage:new{
-                            text = _("Prompt updated successfully"),
+                            text = _("Action updated successfully"),
                         })
                         break
                     end
                 end
             end
         elseif existing_prompt.source == "config" then
-            -- Prompts from custom_prompts.lua cannot be edited via UI
+            -- Prompts from custom_actions.lua cannot be edited via UI
             UIManager:show(InfoMessage:new{
-                text = _("This prompt is defined in custom_prompts.lua.\nPlease edit that file directly to modify it."),
+                text = _("This action is defined in custom_actions.lua.\nPlease edit that file directly to modify it."),
             })
         end
     end

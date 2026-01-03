@@ -1,0 +1,145 @@
+-- Custom Actions for KOAssistant
+-- Copy this file to custom_actions.lua and modify as needed
+--
+-- NEW ARCHITECTURE (v0.5):
+--   System array: behavior (from variant/override/none) + domain [CACHED]
+--   User message: context data + action prompt + runtime input
+--
+-- Action Schema:
+--   text            - Display name (button label) [REQUIRED]
+--   context         - Where it appears [REQUIRED]:
+--                     "highlight" - Text selection in book
+--                     "book" - Single book from file browser
+--                     "multi_book" - Multiple books selected
+--                     "general" - Standalone chat, no context
+--                     "both" - Highlight and book contexts
+--                     "all" - All contexts
+--   prompt          - The instruction sent to AI [REQUIRED]
+--                     Use {highlighted_text}, {title}, {author}, etc.
+--
+--   behavior_variant - Pick from: "minimal", "full", "none", or nil (use global)
+--   behavior_override - Custom behavior text (replaces variant if set)
+--
+--   api_params      - Optional API overrides: { temperature, max_tokens }
+--   requires        - Optional: "author" or "title" (skip if missing)
+--   include_book_context - Include book title/author with highlight (default false)
+--   domain          - Lock to specific domain (optional)
+--   enabled         - Default enabled state (default true)
+
+return {
+    -----------------------------------------------------------------------
+    -- EXAMPLE 1: Simple action using global behavior
+    -----------------------------------------------------------------------
+    {
+        text = "Define Word",
+        context = "highlight",
+        -- No behavior fields = uses global AI Behavior Style setting
+        prompt = "Define this word or phrase: {highlighted_text}",
+    },
+
+    -----------------------------------------------------------------------
+    -- EXAMPLE 2: Action with behavior disabled (direct response)
+    -----------------------------------------------------------------------
+    {
+        text = "Quick Translate",
+        context = "highlight",
+        behavior_variant = "none",  -- No AI personality, just translate
+        prompt = "Translate to English: {highlighted_text}",
+        api_params = {
+            temperature = 0.3,  -- Very deterministic
+        },
+    },
+
+    -----------------------------------------------------------------------
+    -- EXAMPLE 3: Action with specific behavior variant
+    -----------------------------------------------------------------------
+    {
+        text = "Explain Simply",
+        context = "highlight",
+        behavior_variant = "minimal",  -- Brief, focused responses
+        prompt = "Explain this in simple terms a child could understand: {highlighted_text}",
+        include_book_context = true,  -- Include book title/author
+    },
+
+    -----------------------------------------------------------------------
+    -- EXAMPLE 4: Action with custom behavior (role/personality)
+    -----------------------------------------------------------------------
+    {
+        text = "Grammar Analysis",
+        context = "highlight",
+        behavior_override = "You are a grammar expert. Provide precise, analytical assessments of sentence structure, parts of speech, and grammatical correctness. Be technical but clear.",
+        prompt = "Analyze the grammar of this text: {highlighted_text}",
+        api_params = {
+            temperature = 0.5,
+        },
+    },
+
+    -----------------------------------------------------------------------
+    -- EXAMPLE 5: Book context action
+    -----------------------------------------------------------------------
+    {
+        text = "Similar Recommendations",
+        context = "book",
+        -- Uses global behavior
+        prompt = "Suggest 5 books similar to '{title}' by {author}. Explain why each is similar.",
+        requires = "author",  -- Only show if book has author info
+    },
+
+    -----------------------------------------------------------------------
+    -- EXAMPLE 6: Multi-book context action
+    -----------------------------------------------------------------------
+    {
+        text = "Reading Order",
+        context = "multi_book",
+        behavior_variant = "minimal",  -- Brief response
+        prompt = "Suggest an optimal reading order for these {count} books:\n{books_list}\n\nConsider chronology, difficulty, and thematic connections.",
+    },
+
+    -----------------------------------------------------------------------
+    -- EXAMPLE 7: Action available in multiple contexts
+    -----------------------------------------------------------------------
+    {
+        text = "Summarize",
+        context = "both",  -- Available in highlight AND book contexts
+        prompt = "Provide a concise summary of: {highlighted_text}",
+        -- In book context, {highlighted_text} will be empty, so you might want
+        -- separate actions for each context instead
+    },
+
+    -----------------------------------------------------------------------
+    -- EXAMPLE 8: Literary critic with custom role
+    -----------------------------------------------------------------------
+    {
+        text = "Literary Analysis",
+        context = "highlight",
+        behavior_override = "You are a literary critic specializing in narrative technique and thematic analysis. Provide insightful, academic-level analysis while remaining accessible.",
+        prompt = "Analyze this passage from '{title}' by {author}:\n\n{highlighted_text}\n\nDiscuss literary devices, themes, and significance.",
+        include_book_context = true,
+        api_params = {
+            temperature = 0.7,
+            max_tokens = 1500,
+        },
+    },
+
+    -----------------------------------------------------------------------
+    -- EXAMPLE 9: Disabled action (for reference/later use)
+    -----------------------------------------------------------------------
+    {
+        text = "Experimental Feature",
+        context = "general",
+        behavior_variant = "full",
+        prompt = "This is a test action.",
+        enabled = false,  -- Won't appear in menus
+    },
+
+    -----------------------------------------------------------------------
+    -- EXAMPLE 10: Domain-locked action
+    -----------------------------------------------------------------------
+    -- Uncomment if you have a domain file at domains/philosophy.md
+    -- {
+    --     text = "Philosophical Analysis",
+    --     context = "highlight",
+    --     domain = "philosophy",  -- Always uses this domain
+    --     prompt = "Analyze this text through a philosophical lens: {highlighted_text}",
+    -- },
+}
