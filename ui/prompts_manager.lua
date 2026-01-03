@@ -70,6 +70,8 @@ function PromptsManager:loadPrompts()
             id = prompt.id,
             include_book_context = prompt.include_book_context,
             temperature = temperature,
+            extended_thinking = prompt.extended_thinking,
+            thinking_budget = prompt.thinking_budget,
         }
     end
 
@@ -351,15 +353,27 @@ function PromptsManager:showPromptDetails(prompt)
     end
 
     -- Temperature display
-    local temp_text = prompt.temperature and string.format("%.1f", prompt.temperature) or _("Global default")
+    local temp_text = prompt.temperature and string.format("%.1f", prompt.temperature) or _("Global")
+
+    -- Extended thinking display
+    local thinking_text
+    if prompt.extended_thinking == "on" then
+        local budget = prompt.thinking_budget or 4096
+        thinking_text = string.format(_("On (%d tokens)"), budget)
+    elseif prompt.extended_thinking == "off" then
+        thinking_text = _("Off")
+    else
+        thinking_text = _("Global")
+    end
 
     local info_text = string.format(
-        "%s\n\n%s: %s\n%s: %s\n%s: %s\n%s: %s\n\n%s:\n%s\n\n%s:\n%s",
+        "%s\n\n%s: %s\n%s: %s\n%s: %s\n%s: %s\n%s: %s\n\n%s:\n%s\n\n%s:\n%s",
         prompt.text,
         _("Context"), self:getContextDisplayName(prompt.context),
         _("Source"), source_text,
         _("Status"), prompt.enabled and _("Enabled") or _("Disabled"),
         _("Temperature"), temp_text,
+        _("Extended Thinking"), thinking_text,
         _("AI Behavior"),
         behavior_text,
         _("Action Prompt"),
@@ -444,6 +458,8 @@ function PromptsManager:showPromptEditor(existing_prompt)
         include_book_context = existing_prompt and existing_prompt.include_book_context or (not existing_prompt and true) or false,
         domain = existing_prompt and existing_prompt.domain or nil,
         temperature = existing_prompt and existing_prompt.temperature or nil,  -- nil = use global
+        extended_thinking = existing_prompt and existing_prompt.extended_thinking or nil,  -- nil = use global, "off" = force off, "on" = force on
+        thinking_budget = existing_prompt and existing_prompt.thinking_budget or nil,  -- nil = use global default
         existing_prompt = existing_prompt,
     }
 
@@ -844,26 +860,50 @@ function PromptsManager:showStep3_ActionPrompt(state)
     dialog:onShowKeyboard()
 end
 
--- Step 4: Advanced Settings (temperature)
+-- Step 4: Advanced Settings (temperature, extended thinking)
 function PromptsManager:showStep4_Advanced(state)
     local is_edit = state.existing_prompt ~= nil
 
     -- Get current temperature display
-    local temp_display = state.temperature and string.format("%.1f", state.temperature) or _("Global default")
+    local temp_display = state.temperature and string.format("%.1f", state.temperature) or _("Global")
+
+    -- Get current extended thinking display
+    local thinking_display
+    if state.extended_thinking == "on" then
+        local budget = state.thinking_budget or 4096
+        thinking_display = string.format(_("On (%d tokens)"), budget)
+    elseif state.extended_thinking == "off" then
+        thinking_display = _("Off")
+    else
+        thinking_display = _("Global")
+    end
 
     local buttons = {
+        -- Row 1: Temperature
+        {
+            {
+                text = _("Temperature: ") .. temp_display,
+                callback = function()
+                    self:showTemperatureSelector(state)
+                end,
+            },
+        },
+        -- Row 2: Extended Thinking
+        {
+            {
+                text = _("Extended Thinking: ") .. thinking_display,
+                callback = function()
+                    self:showThinkingSelector(state)
+                end,
+            },
+        },
+        -- Row 3: Back / Save
         {
             {
                 text = _("← Back"),
                 callback = function()
                     UIManager:close(self.advanced_dialog)
                     self:showStep3_ActionPrompt(state)
-                end,
-            },
-            {
-                text = _("Temperature: ") .. temp_display,
-                callback = function()
-                    self:showTemperatureSelector(state)
                 end,
             },
             {
@@ -888,21 +928,17 @@ function PromptsManager:showStep4_Advanced(state)
         },
     }
 
-    local info = _([[Temperature controls how random or creative the AI's responses are.
+    local info = _([[Advanced settings for this action.
 
-Range: 0.0 to 2.0
-• Anthropic/Claude: clamped to max 1.0
-• Extended thinking: forced to exactly 1.0
+Temperature: ]] .. temp_display .. [[
 
-Guidelines:
-• Low (0.1-0.3): Factual, deterministic
-  Best for: translations, factual questions
-• Medium (0.5-0.7): Balanced
-  Best for: explanations, general questions
-• High (0.8-1.0): Creative, varied
-  Best for: creative writing, brainstorming
+  Range 0.0-2.0 (Anthropic max 1.0)
+  Lower = focused, Higher = creative
 
-Current: ]] .. temp_display)
+Extended Thinking: ]] .. thinking_display .. [[
+
+  Anthropic-only. Enables complex reasoning.
+  Forces temperature to 1.0 when active.]])
 
     self.advanced_dialog = ButtonDialog:new{
         title = is_edit and _("Edit Action - Advanced") or _("Step 4/4: Advanced Settings"),
@@ -945,6 +981,92 @@ function PromptsManager:showTemperatureSelector(state)
         end,
         callback = function(spin)
             state.temperature = spin.value
+            UIManager:close(self.advanced_dialog)
+            self:showStep4_Advanced(state)
+        end,
+    }
+
+    UIManager:show(spin_widget)
+end
+
+-- Extended thinking selector dialog
+function PromptsManager:showThinkingSelector(state)
+    local buttons = {
+        {
+            {
+                text = _("Use global setting"),
+                callback = function()
+                    state.extended_thinking = nil
+                    state.thinking_budget = nil
+                    UIManager:close(self.thinking_dialog)
+                    UIManager:close(self.advanced_dialog)
+                    self:showStep4_Advanced(state)
+                end,
+            },
+        },
+        {
+            {
+                text = _("Force OFF for this action"),
+                callback = function()
+                    state.extended_thinking = "off"
+                    state.thinking_budget = nil
+                    UIManager:close(self.thinking_dialog)
+                    UIManager:close(self.advanced_dialog)
+                    self:showStep4_Advanced(state)
+                end,
+            },
+        },
+        {
+            {
+                text = _("Force ON..."),
+                callback = function()
+                    UIManager:close(self.thinking_dialog)
+                    self:showThinkingBudgetSelector(state)
+                end,
+            },
+        },
+        {
+            {
+                text = _("Cancel"),
+                callback = function()
+                    UIManager:close(self.thinking_dialog)
+                end,
+            },
+        },
+    }
+
+    self.thinking_dialog = ButtonDialog:new{
+        title = _("Extended Thinking"),
+        info_text = _([[Extended thinking enables Claude's complex reasoning capability.
+
+• Global: Follow the setting in Settings → Advanced
+• Force OFF: Never use thinking for this action
+• Force ON: Always use thinking (set budget)
+
+Note: Anthropic/Claude only. Forces temperature to 1.0.]]),
+        buttons = buttons,
+    }
+
+    UIManager:show(self.thinking_dialog)
+end
+
+-- Thinking budget selector
+function PromptsManager:showThinkingBudgetSelector(state)
+    local SpinWidget = require("ui/widget/spinwidget")
+
+    local current_budget = state.thinking_budget or 4096
+
+    local spin_widget = SpinWidget:new{
+        title_text = _("Thinking Budget"),
+        info_text = _("Token budget for extended thinking.\nHigher = more complex reasoning.\nRange: 1024 - 32000"),
+        value = current_budget,
+        value_min = 1024,
+        value_max = 32000,
+        value_step = 1024,
+        default_value = 4096,
+        callback = function(spin)
+            state.extended_thinking = "on"
+            state.thinking_budget = spin.value
             UIManager:close(self.advanced_dialog)
             self:showStep4_Advanced(state)
         end,
@@ -1043,6 +1165,8 @@ function PromptsManager:addPrompt(state)
             include_book_context = state.include_book_context or nil,
             domain = state.domain,
             api_params = api_params,
+            extended_thinking = state.extended_thinking,  -- nil = global, "off" = force off, "on" = force on
+            thinking_budget = state.thinking_budget,      -- only used when extended_thinking = "on"
             enabled = true,
         })
 
@@ -1080,6 +1204,8 @@ function PromptsManager:updatePrompt(existing_prompt, state)
                 include_book_context = state.include_book_context or nil,
                 domain = state.domain,
                 api_params = api_params,
+                extended_thinking = state.extended_thinking,
+                thinking_budget = state.thinking_budget,
                 enabled = true,
             }
 

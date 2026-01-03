@@ -157,14 +157,25 @@ local function applyNewRequestFormat(config, domain_context, action, plugin)
             -- Note: temperature is forced to 1.0 by anthropic_request.lua when thinking is enabled
         end
 
-        -- Apply global extended thinking if enabled and not overridden by action
+        -- Apply extended thinking based on action override or global setting
         -- Only for Anthropic provider (others will ignore or warn)
-        if config.features and config.features.enable_extended_thinking then
+        if action and action.extended_thinking == "off" then
+            -- Action explicitly disables thinking - don't apply
+            config.api_params.thinking = nil
+        elseif action and action.extended_thinking == "on" then
+            -- Action explicitly enables thinking with its own budget
+            local budget = action.thinking_budget or 4096
+            config.api_params.thinking = {
+                type = "enabled",
+                budget_tokens = math.max(budget, 1024),
+            }
+        elseif config.features and config.features.enable_extended_thinking then
+            -- Fall back to global setting
             if not config.api_params.thinking then
                 local budget = config.features.thinking_budget_tokens or 4096
                 config.api_params.thinking = {
                     type = "enabled",
-                    budget_tokens = math.max(budget, 1024),  -- Minimum 1024
+                    budget_tokens = math.max(budget, 1024),
                 }
             end
         end
