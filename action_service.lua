@@ -234,26 +234,22 @@ function ActionService:expandContexts(context)
     end
 end
 
--- Load legacy prompts from prompt_service format
+-- Load legacy prompts - handles disabled_prompts format only
+-- Note: custom_actions are already loaded in step 3, don't load them again here
 function ActionService:loadLegacyPrompts(disabled_actions)
-    -- Load from legacy disabled_prompts setting
+    -- Only handle legacy disabled_prompts setting for backwards compatibility
+    -- The actual actions are loaded from custom_actions in loadActions() step 3
     local disabled_prompts = self.settings:readSetting("disabled_prompts") or {}
 
-    -- Load UI-created actions
-    local legacy_prompts = self.settings:readSetting("custom_actions") or {}
-    for i, prompt in ipairs(legacy_prompts) do
-        local id = "legacy_ui_" .. i
-        local action = self:convertLegacyPrompt(prompt)
-        action.id = id
-        action.source = "legacy_ui"
-
-        local contexts = self:expandContexts(prompt.context)
-        for _, context in ipairs(contexts) do
-            -- Check both old and new disabled formats
-            local key = context .. ":" .. id
-            local legacy_key = context .. ":" .. (prompt.text or id)
-            action.enabled = not disabled_actions[key] and not disabled_prompts[legacy_key]
-            table.insert(self.actions_cache[context], self:copyAction(action))
+    -- Apply legacy disabled state to already-loaded UI actions
+    for _, context in ipairs({"highlight", "book", "multi_book", "general"}) do
+        for _, action in ipairs(self.actions_cache[context]) do
+            if action.source == "ui" then
+                local legacy_key = context .. ":" .. (action.text or action.id)
+                if disabled_prompts[legacy_key] then
+                    action.enabled = false
+                end
+            end
         end
     end
 end
