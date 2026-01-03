@@ -52,7 +52,7 @@ local SettingsSchema = {
             max = 2,
             step = 0.1,
             precision = "%.1f",
-            info_text = _("0 = focused and deterministic, 2 = creative"),
+            info_text = _("Range: 0.0-2.0 (Anthropic max 1.0)\nLower = focused, deterministic\nHigher = creative, varied"),
             separator = true,
         },
 

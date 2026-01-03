@@ -55,6 +55,9 @@ function PromptsManager:loadPrompts()
             context = context_override or prompt.original_context or "highlight"
         end
 
+        -- Extract temperature from api_params if present
+        local temperature = prompt.api_params and prompt.api_params.temperature or nil
+
         return {
             text = prompt.text,
             behavior_variant = prompt.behavior_variant,
@@ -66,6 +69,7 @@ function PromptsManager:loadPrompts()
             requires = prompt.requires,
             id = prompt.id,
             include_book_context = prompt.include_book_context,
+            temperature = temperature,
         }
     end
 
@@ -346,12 +350,16 @@ function PromptsManager:showPromptDetails(prompt)
         behavior_text = _("(Use global setting)")
     end
 
+    -- Temperature display
+    local temp_text = prompt.temperature and string.format("%.1f", prompt.temperature) or _("Global default")
+
     local info_text = string.format(
-        "%s\n\n%s: %s\n%s: %s\n%s: %s\n\n%s:\n%s\n\n%s:\n%s",
+        "%s\n\n%s: %s\n%s: %s\n%s: %s\n%s: %s\n\n%s:\n%s\n\n%s:\n%s",
         prompt.text,
         _("Context"), self:getContextDisplayName(prompt.context),
         _("Source"), source_text,
         _("Status"), prompt.enabled and _("Enabled") or _("Disabled"),
+        _("Temperature"), temp_text,
         _("AI Behavior"),
         behavior_text,
         _("Action Prompt"),
@@ -435,6 +443,7 @@ function PromptsManager:showPromptEditor(existing_prompt)
         context = existing_prompt and existing_prompt.context or nil,
         include_book_context = existing_prompt and existing_prompt.include_book_context or (not existing_prompt and true) or false,
         domain = existing_prompt and existing_prompt.domain or nil,
+        temperature = existing_prompt and existing_prompt.temperature or nil,  -- nil = use global
         existing_prompt = existing_prompt,
     }
 
@@ -776,7 +785,6 @@ function PromptsManager:showCustomBehaviorInput(state)
 end
 
 -- Step 3: Action Prompt (required, fullscreen with Insert button)
--- NEW ARCHITECTURE (v0.5): This is the main prompt that tells the AI what to do
 function PromptsManager:showStep3_ActionPrompt(state)
     local is_edit = state.existing_prompt ~= nil
 
@@ -789,7 +797,7 @@ function PromptsManager:showStep3_ActionPrompt(state)
 
     local dialog
     dialog = InputDialog:new{
-        title = is_edit and _("Edit Action - Action Prompt") or _("Step 3/3: Action Prompt"),
+        title = is_edit and _("Edit Action - Action Prompt") or _("Step 3/4: Action Prompt"),
         input = state.prompt or "",
         input_hint = _("What should the AI do?"),
         description = _("This is the main instruction sent to the AI. Use placeholders to include context:\n\n") .. placeholder_list .. _("\nTip: Users can add extra input when using this action."),
@@ -814,7 +822,7 @@ function PromptsManager:showStep3_ActionPrompt(state)
                     end,
                 },
                 {
-                    text = is_edit and _("Save") or _("Create"),
+                    text = _("Next →"),
                     callback = function()
                         local prompt_text = dialog:getInputText()
                         if prompt_text == "" then
@@ -825,19 +833,7 @@ function PromptsManager:showStep3_ActionPrompt(state)
                         end
                         state.prompt = prompt_text
                         UIManager:close(dialog)
-
-                        -- Save the prompt with new field names
-                        if is_edit then
-                            self:updatePrompt(state.existing_prompt, state)
-                        else
-                            self:addPrompt(state)
-                        end
-
-                        -- Refresh prompts menu
-                        if self.prompts_menu then
-                            UIManager:close(self.prompts_menu)
-                        end
-                        self:show()
+                        self:showStep4_Advanced(state)
                     end,
                 },
             },
@@ -846,6 +842,115 @@ function PromptsManager:showStep3_ActionPrompt(state)
 
     UIManager:show(dialog)
     dialog:onShowKeyboard()
+end
+
+-- Step 4: Advanced Settings (temperature)
+function PromptsManager:showStep4_Advanced(state)
+    local is_edit = state.existing_prompt ~= nil
+
+    -- Get current temperature display
+    local temp_display = state.temperature and string.format("%.1f", state.temperature) or _("Global default")
+
+    local buttons = {
+        {
+            {
+                text = _("← Back"),
+                callback = function()
+                    UIManager:close(self.advanced_dialog)
+                    self:showStep3_ActionPrompt(state)
+                end,
+            },
+            {
+                text = _("Temperature: ") .. temp_display,
+                callback = function()
+                    self:showTemperatureSelector(state)
+                end,
+            },
+            {
+                text = is_edit and _("Save") or _("Create"),
+                callback = function()
+                    UIManager:close(self.advanced_dialog)
+
+                    -- Save the action
+                    if is_edit then
+                        self:updatePrompt(state.existing_prompt, state)
+                    else
+                        self:addPrompt(state)
+                    end
+
+                    -- Refresh prompts menu
+                    if self.prompts_menu then
+                        UIManager:close(self.prompts_menu)
+                    end
+                    self:show()
+                end,
+            },
+        },
+    }
+
+    local info = _([[Temperature controls how random or creative the AI's responses are.
+
+Range: 0.0 to 2.0
+• Anthropic/Claude: clamped to max 1.0
+• Extended thinking: forced to exactly 1.0
+
+Guidelines:
+• Low (0.1-0.3): Factual, deterministic
+  Best for: translations, factual questions
+• Medium (0.5-0.7): Balanced
+  Best for: explanations, general questions
+• High (0.8-1.0): Creative, varied
+  Best for: creative writing, brainstorming
+
+Current: ]] .. temp_display)
+
+    self.advanced_dialog = ButtonDialog:new{
+        title = is_edit and _("Edit Action - Advanced") or _("Step 4/4: Advanced Settings"),
+        info_text = info,
+        buttons = buttons,
+    }
+
+    UIManager:show(self.advanced_dialog)
+end
+
+-- Temperature selector dialog
+function PromptsManager:showTemperatureSelector(state)
+    local SpinWidget = require("ui/widget/spinwidget")
+
+    -- Current value or default to 0.7
+    local current_temp = state.temperature or 0.7
+
+    -- Build value table for 0.0 to 2.0 in 0.1 increments
+    local value_table = {}
+    for i = 0, 20 do
+        table.insert(value_table, i / 10)
+    end
+
+    -- Find current index in table
+    local value_index = math.floor(current_temp * 10) + 1
+    if value_index < 1 then value_index = 1 end
+    if value_index > 21 then value_index = 21 end
+
+    local spin_widget = SpinWidget:new{
+        title_text = _("Temperature"),
+        info_text = _("Range: 0.0-2.0 (Anthropic max 1.0)\nLower = focused, deterministic\nHigher = creative, varied"),
+        value_table = value_table,
+        value_index = value_index,
+        default_value = 8,  -- Index for 0.7
+        extra_text = _("Use global"),
+        extra_callback = function()
+            state.temperature = nil
+            UIManager:close(self.advanced_dialog)
+            self:showStep4_Advanced(state)
+        end,
+        callback = function(spin)
+            state.temperature = spin.value
+            UIManager:close(self.advanced_dialog)
+            self:showStep4_Advanced(state)
+        end,
+    }
+
+    UIManager:show(spin_widget)
 end
 
 -- Get placeholders available for a given context
@@ -923,6 +1028,12 @@ function PromptsManager:addPrompt(state)
         -- Convert empty strings to nil
         local behavior_override = (state.behavior_override and state.behavior_override ~= "") and state.behavior_override or nil
 
+        -- Build api_params if temperature is set
+        local api_params = nil
+        if state.temperature then
+            api_params = { temperature = state.temperature }
+        end
+
         service:addUserAction({
             text = state.name,
             behavior_variant = state.behavior_variant,
@@ -931,6 +1042,7 @@ function PromptsManager:addPrompt(state)
             context = state.context,
             include_book_context = state.include_book_context or nil,
             domain = state.domain,
+            api_params = api_params,
             enabled = true,
         })
 
@@ -945,6 +1057,12 @@ function PromptsManager:updatePrompt(existing_prompt, state)
     if service then
         -- Convert empty strings to nil
         local behavior_override = (state.behavior_override and state.behavior_override ~= "") and state.behavior_override or nil
+
+        -- Build api_params if temperature is set
+        local api_params = nil
+        if state.temperature then
+            api_params = { temperature = state.temperature }
+        end
 
         if existing_prompt.source == "ui" then
             -- Extract index from prompt ID (format: "ui_N")
@@ -961,11 +1079,12 @@ function PromptsManager:updatePrompt(existing_prompt, state)
                 context = state.context,
                 include_book_context = state.include_book_context or nil,
                 domain = state.domain,
+                api_params = api_params,
                 enabled = true,
             }
 
             if index then
-                service:updateUserPrompt(index, prompt_data)
+                service:updateUserAction(index, prompt_data)
                 UIManager:show(InfoMessage:new{
                     text = _("Action updated successfully"),
                 })
