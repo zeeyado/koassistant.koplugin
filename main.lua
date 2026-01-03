@@ -8,7 +8,6 @@ local InfoMessage = require("ui/widget/infomessage")
 local Menu = require("ui/widget/menu")
 local MultiInputDialog = require("ui/widget/multiinputdialog")
 local ButtonDialog = require("ui/widget/buttondialog")
-local SpinWidget = require("ui/widget/spinwidget")
 local LuaSettings = require("luasettings")
 local DataStorage = require("datastorage")
 local T = require("ffi/util").template
@@ -25,34 +24,7 @@ local UIConstants = require("ui/constants")
 local PromptService = require("prompt_service")
 local ActionService = require("action_service")
 
--- Load model lists
-local ModelLists = {}
-local ok, loaded_lists = pcall(function() 
-    local path = package.path
-    -- Add the current directory to the package path if not already there
-    if not path:match("%./%?%.lua") then
-        package.path = "./?.lua;" .. path
-    end
-    return require("model_lists") 
-end)
-if ok and loaded_lists then
-    ModelLists = loaded_lists
-    logger.info("Loaded model lists from model_lists.lua: " .. #(ModelLists.anthropic or {}) .. " Anthropic models, " .. 
-                #(ModelLists.openai or {}) .. " OpenAI models, " .. 
-                #(ModelLists.deepseek or {}) .. " DeepSeek models, " ..
-                #(ModelLists.gemini or {}) .. " Gemini models, " ..
-                #(ModelLists.ollama or {}) .. " Ollama models")
-else
-    logger.warn("Could not load model_lists.lua: " .. tostring(loaded_lists) .. ", using empty lists")
-    -- Fallback to basic model lists
-    ModelLists = {
-        anthropic = {"claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-haiku-20240307"},
-        openai = {"gpt-4o", "gpt-4-turbo", "gpt-3.5-turbo"},
-        deepseek = {"deepseek-chat"},
-        gemini = {"gemini-1.5-pro", "gemini-1.0-pro"},
-        ollama = {"llama3", "mistral", "mixtral"}
-    }
-end
+local ModelLists = require("model_lists")
 
 -- Load the configuration directly
 local configuration = {
@@ -1561,20 +1533,6 @@ function AskGPT:showCustomModelDialogForProvider(provider_id, provider_name)
   custom_model_dialog:onShowKeyboard()
 end
 
-function AskGPT:getProviderConfigMenuItems()
-  -- TODO: Implement provider-specific configuration options
-  return {
-    {
-      text = _("Provider configuration coming soon..."),
-      callback = function()
-        UIManager:show(InfoMessage:new{
-          text = _("Provider-specific configuration will be available in a future update."),
-        })
-      end,
-    },
-  }
-end
-
 function AskGPT:testProviderConnection()
   local InfoMessage = require("ui/widget/infomessage")
   local UIManager = require("ui/uimanager")
@@ -1694,18 +1652,6 @@ function AskGPT:showDomainsViewer()
   })
 end
 
-function AskGPT:importPrompts()
-  UIManager:show(InfoMessage:new{
-    text = _("Import prompts feature coming soon..."),
-  })
-end
-
-function AskGPT:exportPrompts()
-  UIManager:show(InfoMessage:new{
-    text = _("Export prompts feature coming soon..."),
-  })
-end
-
 function AskGPT:restoreDefaultPrompts()
   -- Clear custom prompts and disabled prompts
   self.settings:saveSetting("custom_prompts", {})
@@ -1714,24 +1660,6 @@ function AskGPT:restoreDefaultPrompts()
   
   UIManager:show(InfoMessage:new{
     text = _("Default prompts restored"),
-  })
-end
-
-function AskGPT:saveSettingsProfile()
-  UIManager:show(InfoMessage:new{
-    text = _("Settings profiles feature coming soon..."),
-  })
-end
-
-function AskGPT:loadSettingsProfile()
-  UIManager:show(InfoMessage:new{
-    text = _("Settings profiles feature coming soon..."),
-  })
-end
-
-function AskGPT:deleteSettingsProfile()
-  UIManager:show(InfoMessage:new{
-    text = _("Settings profiles feature coming soon..."),
   })
 end
 
@@ -1789,24 +1717,6 @@ function AskGPT:showChatHistory()
       chat_history_manager, 
       configuration
   )
-end
-
-function AskGPT:importSettings()
-  UIManager:show(InfoMessage:new{
-    text = _("Import settings feature coming soon..."),
-  })
-end
-
-function AskGPT:exportSettings()
-  UIManager:show(InfoMessage:new{
-    text = _("Export settings feature coming soon..."),
-  })
-end
-
-function AskGPT:editConfigurationFile()
-  UIManager:show(InfoMessage:new{
-    text = _("To edit advanced settings, please modify configuration.lua in the plugin directory."),
-  })
 end
 
 function AskGPT:checkForUpdates()
@@ -1907,73 +1817,6 @@ function AskGPT:patchFileManagerForMultiSelect()
 
     logger.info("KOAssistant: Patched ButtonDialog.new for multi-select support")
   end
-end
-
--- These events don't actually exist in KOReader, but we keep them for future compatibility
-function AskGPT:onFileManagerHistoryReady(filemanager_history)
-  logger.info("KOAssistant: onFileManagerHistoryReady event received (deprecated)")
-end
-
-function AskGPT:onFileManagerCollectionReady(filemanager_collection)
-  logger.info("KOAssistant: onFileManagerCollectionReady event received (deprecated)")
-end
-
--- Support for FileSearcher (search results) - this event also doesn't exist
-function AskGPT:onShowFileSearch()
-  logger.info("KOAssistant: onShowFileSearch event received (deprecated)")
-end
-
-
--- Legacy event handlers for compatibility
-function AskGPT:onFileManagerShow(filemanager)
-  logger.info("KOAssistant: onFileManagerShow event received")
-  -- Don't register buttons immediately - let delayed registration handle it
-  -- But do register ourselves for multi-select support
-  if filemanager then
-    filemanager.koassistant = self
-    logger.info("KOAssistant: Registered with FileManager for multi-select support")
-  end
-end
-
--- Try to catch when file dialogs are about to be shown
-function AskGPT:onSetDimensions(dimen)
-  -- This event is fired when various UI elements are being set up
-  -- Don't register immediately - let delayed registration handle it
-  logger.info("KOAssistant: onSetDimensions event received")
-end
-
-function AskGPT:onFileManagerInstance(filemanager)
-  logger.info("KOAssistant: onFileManagerInstance event received")
-  -- Don't register immediately - let delayed registration handle it
-end
-
--- Additional event handlers that might help catch FileManager initialization
-function AskGPT:onFileManagerSetDimensions()
-  logger.info("KOAssistant: onFileManagerSetDimensions event received")
-  -- Don't register immediately - let delayed registration handle it
-end
-
-function AskGPT:onPathChanged()
-  -- This event fires when FileManager changes directory
-  -- Don't register immediately - let delayed registration handle it
-  logger.info("KOAssistant: onPathChanged event received")
-end
-
--- Hook into FileSearcher initialization
-function AskGPT:onShowFileSearch(searcher)
-  logger.info("KOAssistant: onShowFileSearch event received")
-  -- Don't register immediately - let delayed registration handle it
-end
-
--- Hook into Collections/History views
-function AskGPT:onShowHistoryMenu()
-  logger.info("KOAssistant: onShowHistoryMenu event received")
-  -- Don't register immediately - let delayed registration handle it
-end
-
-function AskGPT:onShowCollectionMenu()
-  logger.info("KOAssistant: onShowCollectionMenu event received")
-  -- Don't register immediately - let delayed registration handle it
 end
 
 function AskGPT:migratePromptsV2()
