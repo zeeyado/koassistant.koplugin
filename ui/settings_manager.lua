@@ -1,30 +1,20 @@
 local _ = require("gettext")
 local logger = require("logger")
+local T = require("ffi/util").template
 
 local SettingsManager = {}
 
--- Generate menu items from settings schema
+-- Generate menu items from settings schema (flat items structure)
 function SettingsManager:generateMenuFromSchema(plugin, schema)
     local menu_items = {}
-    
-    for _, category in ipairs(schema.categories) do
-        local category_item = {
-            text = category.text,
-            sub_item_table = {}
-        }
-        
-        for _, item in ipairs(category.items) do
-            local menu_item = self:createMenuItem(plugin, item, schema)
-            if menu_item then
-                table.insert(category_item.sub_item_table, menu_item)
-            end
-        end
-        
-        if #category_item.sub_item_table > 0 then
-            table.insert(menu_items, category_item)
+
+    for _, item in ipairs(schema.items) do
+        local menu_item = self:createMenuItem(plugin, item, schema)
+        if menu_item then
+            table.insert(menu_items, menu_item)
         end
     end
-    
+
     return menu_items
 end
 
@@ -46,49 +36,58 @@ function SettingsManager:createMenuItem(plugin, item, schema)
         }
     end
     
-    local menu_item = {
-        text = item.text or item.id,
-        enabled_func = function()
-            -- First check if the item is explicitly disabled
-            if item.enabled == false then
-                return false
-            end
-            
-            -- Then check dependencies
-            if item.depends_on then
-                if type(item.depends_on) == "table" then
-                    -- Complex dependency
-                    -- Need to find the path for the dependency item
-                    local dep_path = nil
-                    local function findItemPath(categories, id)
-                        if not categories then return id end
-                        for _, category in ipairs(categories) do
-                            if category and category.items then
-                                for _, subitem in ipairs(category.items) do
-                                    if subitem and subitem.id == id then
-                                        return subitem.path or subitem.id
-                                    end
-                                end
-                            end
-                        end
-                        return id -- fallback to id if path not found
+    local menu_item = {}
+
+    -- Support for dynamic text labels via text_func
+    if item.text_func then
+        menu_item.text_func = function()
+            return item.text_func(plugin)
+        end
+    else
+        menu_item.text = item.text or item.id
+    end
+
+    -- Support for separator line after this item
+    if item.separator then
+        menu_item.separator = true
+    end
+
+    menu_item.enabled_func = function()
+        -- First check if the item is explicitly disabled
+        if item.enabled == false then
+            return false
+        end
+
+        -- Then check dependencies
+        if item.depends_on then
+            if type(item.depends_on) == "table" then
+                -- Complex dependency with id and value
+                local SettingsSchema = require("settings_schema")
+                local dep_path = SettingsSchema:getItemPath(item.depends_on.id)
+                local dependency_value = self:getSettingValue(plugin, dep_path)
+
+                -- If dependency value is nil, use the default from schema
+                if dependency_value == nil then
+                    local dep_item = SettingsSchema:getItemById(item.depends_on.id)
+                    if dep_item then
+                        dependency_value = dep_item.default
                     end
-                    
-                    -- Get the schema to find the path
-                    local SettingsSchema = require("settings_schema")
-                    dep_path = findItemPath(SettingsSchema.categories, item.depends_on.id)
-                    
-                    local dependency_value = self:getSettingValue(plugin, dep_path)
-                    return dependency_value == item.depends_on.value
-                else
-                    -- Simple dependency - just check if has value
-                    local dependency_value = self:getSettingValue(plugin, item.depends_on)
-                    return dependency_value ~= nil
                 end
+
+                return dependency_value == item.depends_on.value
+            else
+                -- Simple dependency - just check if has value
+                local dependency_value = self:getSettingValue(plugin, item.depends_on)
+                return dependency_value ~= nil
             end
-            return true
-        end,
-    }
+        end
+        return true
+    end
+
+    -- Support for help_text
+    if item.help_text then
+        menu_item.help_text = item.help_text
+    end
     
     if item.type == "toggle" then
         menu_item.checked_func = function()
@@ -119,10 +118,17 @@ function SettingsManager:createMenuItem(plugin, item, schema)
         
     elseif item.type == "radio" then
         -- Radio buttons need special handling
+        -- Support text_func for dynamic labels on the parent item
+        if item.text_func then
+            menu_item.text_func = function()
+                return item.text_func(plugin)
+            end
+        end
         menu_item.sub_item_table = {}
         for _, option in ipairs(item.options) do
             table.insert(menu_item.sub_item_table, {
                 text = option.text,
+                radio = true,
                 checked_func = function()
                     local value = self:getSettingValue(plugin, item.path or item.id)
                     -- If value is nil, use the default from the schema
@@ -135,6 +141,7 @@ function SettingsManager:createMenuItem(plugin, item, schema)
                     self:setSettingValue(plugin, item.path or item.id, option.value)
                     plugin:updateConfigFromSettings()
                 end,
+                keep_menu_open = true,
             })
         end
         
@@ -182,7 +189,44 @@ function SettingsManager:createMenuItem(plugin, item, schema)
             UIManager:show(dialog)
             dialog:onShowKeyboard()
         end
-        
+
+    elseif item.type == "spinner" then
+        -- Spinner widget for numbers (like Temperature, Thinking Budget)
+        menu_item.text_func = function()
+            local value = self:getSettingValue(plugin, item.path or item.id) or item.default
+            local formatted
+            if item.precision then
+                formatted = string.format(item.precision, value)
+            else
+                formatted = tostring(value)
+            end
+            return T(item.text .. ": %1", formatted)
+        end
+        menu_item.callback = function(touchmenu_instance)
+            local SpinWidget = require("ui/widget/spinwidget")
+            local UIManager = require("ui/uimanager")
+            local current = self:getSettingValue(plugin, item.path or item.id) or item.default
+            local spin = SpinWidget:new{
+                value = current,
+                value_min = item.min or 0,
+                value_max = item.max or 100,
+                value_step = item.step or 1,
+                precision = item.precision,
+                ok_text = _("Set"),
+                title_text = item.title or item.text,
+                info_text = item.info_text or item.description,
+                callback = function(spin)
+                    self:setSettingValue(plugin, item.path or item.id, spin.value)
+                    plugin:updateConfigFromSettings()
+                    if touchmenu_instance then
+                        touchmenu_instance:updateItems()
+                    end
+                end,
+            }
+            UIManager:show(spin)
+        end
+        menu_item.keep_menu_open = true
+
     elseif item.type == "text" then
         menu_item.callback = function()
             local InputDialog = require("ui/widget/inputdialog")
@@ -329,51 +373,6 @@ function SettingsManager:setSettingValue(plugin, path, value)
     
     current[parts[#parts]] = value
     plugin.settings:flush()
-end
-
--- Generate quick settings menu for gesture access
-function SettingsManager:generateQuickSettingsMenu(plugin, schema)
-    local quick_items = {}
-    
-    -- Add most commonly used settings
-    table.insert(quick_items, {
-        text = _("AI Provider"),
-        sub_item_table_func = function()
-            local provider_item = schema:getItemById("provider")
-            if provider_item then
-                return self:createMenuItem(plugin, provider_item, schema).sub_item_table
-            end
-            return {}
-        end,
-    })
-    
-    table.insert(quick_items, {
-        text = _("Model"),
-        sub_item_table_func = function()
-            return plugin:getModelMenuItems()
-        end,
-    })
-    
-    -- Add debug mode toggle
-    local debug_item = schema:getItemById("debug_mode")
-    if debug_item then
-        table.insert(quick_items, self:createMenuItem(plugin, debug_item, schema))
-    end
-    
-    -- Add separator
-    table.insert(quick_items, {
-        text = "---",
-    })
-    
-    -- Add link to full settings
-    table.insert(quick_items, {
-        text = _("All Settings..."),
-        callback = function()
-            plugin:onKOAssistantSettings()
-        end,
-    })
-    
-    return quick_items
 end
 
 return SettingsManager
