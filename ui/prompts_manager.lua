@@ -45,7 +45,17 @@ function PromptsManager:loadPrompts()
     local general_prompts = service:getAllPrompts("general", true)
 
     -- Helper to add prompt with new field names
+    -- Preserves compound contexts (all, both) from original_context
     local function addPromptEntry(prompt, context_override)
+        -- Use original context if it's a compound context (all, both)
+        local context = prompt.original_context
+        if context == "all" or context == "both" then
+            -- Keep compound context as-is
+        else
+            -- Use the override for simple contexts
+            context = context_override or prompt.original_context or "highlight"
+        end
+
         return {
             text = prompt.text,
             -- NEW: Behavior fields
@@ -55,7 +65,7 @@ function PromptsManager:loadPrompts()
             prompt = prompt.prompt or prompt.user_prompt,
             -- Legacy field for display compatibility
             user_prompt = prompt.prompt or prompt.user_prompt,
-            context = context_override or prompt.original_context or "highlight",
+            context = context,
             source = prompt.source,
             enabled = prompt.enabled,
             requires = prompt.requires,
@@ -64,55 +74,77 @@ function PromptsManager:loadPrompts()
         }
     end
 
+    -- Track seen prompts to avoid duplicates from compound contexts
+    local seen = {}
+
     -- Add highlight prompts
     for _, prompt in ipairs(highlight_prompts) do
-        table.insert(self.prompts, addPromptEntry(prompt, "highlight"))
+        local key = prompt.text .. "|" .. (prompt.source or "")
+        if not seen[key] then
+            table.insert(self.prompts, addPromptEntry(prompt, "highlight"))
+            seen[key] = true
+        end
     end
 
     -- Add book prompts (avoid duplicates for "both" context)
     for _, prompt in ipairs(book_prompts) do
-        -- Check if this prompt already exists in highlight context
-        local exists = false
-        for _, existing in ipairs(self.prompts) do
-            if existing.text == prompt.text and existing.source == prompt.source then
-                -- Change context to "both"
-                existing.context = "both"
-                exists = true
-                break
+        local key = prompt.text .. "|" .. (prompt.source or "")
+        if not seen[key] then
+            -- Check if this prompt already exists in highlight context
+            local exists = false
+            for _, existing in ipairs(self.prompts) do
+                if existing.text == prompt.text and existing.source == prompt.source then
+                    -- Change context to "both" (unless it's already a compound)
+                    if existing.context ~= "all" and existing.context ~= "both" then
+                        existing.context = "both"
+                    end
+                    exists = true
+                    break
+                end
             end
-        end
 
-        if not exists then
-            table.insert(self.prompts, addPromptEntry(prompt, "book"))
+            if not exists then
+                table.insert(self.prompts, addPromptEntry(prompt, "book"))
+            end
+            seen[key] = true
         end
     end
 
     -- Add multi-book prompts
     for _, prompt in ipairs(multi_book_prompts) do
-        table.insert(self.prompts, addPromptEntry(prompt, "multi_book"))
+        local key = prompt.text .. "|" .. (prompt.source or "")
+        if not seen[key] then
+            table.insert(self.prompts, addPromptEntry(prompt, "multi_book"))
+            seen[key] = true
+        end
     end
 
     -- Add general prompts
     for _, prompt in ipairs(general_prompts) do
-        -- Check if this prompt already exists in other contexts
-        local exists = false
-        for _, existing in ipairs(self.prompts) do
-            if existing.text == prompt.text and existing.source == prompt.source then
-                -- Update context to include general
-                if existing.context == "highlight" then
-                    existing.context = "highlight+general"
-                elseif existing.context == "book" then
-                    existing.context = "book+general"
-                elseif existing.context == "both" then
-                    existing.context = "all"
+        local key = prompt.text .. "|" .. (prompt.source or "")
+        if not seen[key] then
+            -- Check if this prompt already exists in other contexts
+            local exists = false
+            for _, existing in ipairs(self.prompts) do
+                if existing.text == prompt.text and existing.source == prompt.source then
+                    -- Update context to include general (unless it's already a compound)
+                    if existing.context == "highlight" then
+                        existing.context = "highlight+general"
+                    elseif existing.context == "book" then
+                        existing.context = "book+general"
+                    elseif existing.context == "both" then
+                        existing.context = "all"
+                    end
+                    -- Don't change if already "all"
+                    exists = true
+                    break
                 end
-                exists = true
-                break
             end
-        end
 
-        if not exists then
-            table.insert(self.prompts, addPromptEntry(prompt, "general"))
+            if not exists then
+                table.insert(self.prompts, addPromptEntry(prompt, "general"))
+            end
+            seen[key] = true
         end
     end
 

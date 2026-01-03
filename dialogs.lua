@@ -896,10 +896,12 @@ local function handlePredefinedPrompt(prompt_type, highlightedText, ui, configur
         local should_include_book = prompt.include_book_context
 
         -- Also include if prompt uses book-related placeholders
-        if not should_include_book and prompt.user_prompt then
-            should_include_book = prompt.user_prompt:find("{title}") or
-                                  prompt.user_prompt:find("{author}") or
-                                  prompt.user_prompt:find("{author_clause}")
+        -- Check both prompt (new) and user_prompt (legacy) fields
+        local prompt_text = prompt.prompt or prompt.user_prompt
+        if not should_include_book and prompt_text then
+            should_include_book = prompt_text:find("{title}") or
+                                  prompt_text:find("{author}") or
+                                  prompt_text:find("{author_clause}")
         end
 
         if should_include_book then
