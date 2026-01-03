@@ -18,7 +18,9 @@
 --   prompt           - Direct user prompt text (for custom actions without template)
 --   behavior_variant - Override global behavior: "minimal", "full", "none" (optional)
 --   behavior_override- Custom behavior text, replaces variant entirely (optional)
---   api_params       - Optional API parameters: { temperature, max_tokens, thinking }
+--   extended_thinking- Override global thinking: "off" to disable, "on" to enable (optional)
+--   thinking_budget  - Token budget when extended_thinking="on" (1024-32000, default 4096)
+--   api_params       - Optional API parameters: { temperature, max_tokens }
 --   requires         - Optional metadata requirement: "author", "title", etc.
 --   include_book_context - Include book metadata with highlight context (optional)
 --   enabled          - Default enabled state (default: true)
@@ -175,6 +177,7 @@ Actions.special = {
         behavior_override = "Provide direct, accurate translations without additional commentary unless specifically asked.",
         prompt = "Translate this to {translation_language}: {highlighted_text}",
         include_book_context = false,
+        extended_thinking = "off",  -- Translations don't benefit from extended thinking
         api_params = {
             temperature = 0.3,  -- Very deterministic for translations
         },
