@@ -6,6 +6,8 @@ CLAUDE.md
 custom_prompts.lua
 plan.md
 /docs
+.stfolder
+.stversions
 
 # User domains (not tracked)
 /domains/
