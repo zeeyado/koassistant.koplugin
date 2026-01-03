@@ -267,13 +267,7 @@ function SettingsManager:createMenuItem(plugin, item, schema)
             UIManager:show(dialog)
             dialog:onShowKeyboard()
         end
-        
-    elseif item.type == "dynamic_select" then
-        -- Dynamic select (like model selection)
-        menu_item.sub_item_table_func = function()
-            return plugin:getModelMenuItems()
-        end
-        
+
     elseif item.type == "action" then
         -- Action button
         if item.confirm then
