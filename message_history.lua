@@ -236,16 +236,30 @@ function MessageHistory:createResultText(highlightedText, config)
 
         -- Show system config info based on display level
         if display_level == "names" or display_level == "full" then
-            -- Show behavior variant, domain, model, and temperature
+            -- Show provider, behavior variant, domain, model, and temperature
+            local provider = config.provider or config.default_provider or "unknown"
             local behavior = config.features.ai_behavior_variant or "full"
             local domain = config.features.selected_domain or "none"
-            local model = config.model or "default"
-            -- Truncate long model names (e.g., "claude-sonnet-4-5-20250929" -> "claude-sonnet-4-5")
-            if #model > 20 then
-                model = model:sub(1, 17) .. "..."
+
+            -- Get actual model from provider settings if available
+            local model = config.model
+            if (not model or model == "default") and config.provider_settings and config.provider_settings[provider] then
+                model = config.provider_settings[provider].model
             end
+            model = model or "default"
+
+            -- Truncate long model names (e.g., "claude-sonnet-4-5-20250929" -> "claude-sonnet-4-5")
+            if #model > 25 then
+                model = model:sub(1, 22) .. "..."
+            end
+
             local temp = config.additional_parameters and config.additional_parameters.temperature or 0.7
-            table.insert(result, string.format("● Config: behavior=%s, domain=%s\n", behavior, domain))
+            -- Also check api_params for temperature (new location)
+            if config.api_params and config.api_params.temperature then
+                temp = config.api_params.temperature
+            end
+
+            table.insert(result, string.format("● Config: provider=%s, behavior=%s, domain=%s\n", provider, behavior, domain))
 
             -- Check for extended thinking
             local thinking_info = ""

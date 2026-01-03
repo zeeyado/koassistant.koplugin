@@ -84,26 +84,29 @@ local function shouldUseNewRequestFormat(config)
 end
 
 -- Build Anthropic system array for new request format
+--
+-- NEW ARCHITECTURE (v0.5):
+--   System array contains only: behavior (or none) + domain [CACHED]
+--   Action controls behavior via behavior_variant or behavior_override
+--
 -- @param config: Full configuration
--- @param context_type: "highlight", "book", "multi_book", "general"
 -- @param domain_context: Optional domain context string
--- @param action_system_prompt: Optional action-specific system prompt
+-- @param action: Optional action definition with behavior_variant/behavior_override
 -- @param plugin: Plugin instance (for settings access)
--- @return system_array, api_params or nil if ActionService unavailable
-local function buildAnthropicSystemConfig(config, context_type, domain_context, action_system_prompt, plugin)
+-- @return system_array or nil if ActionService unavailable
+local function buildAnthropicSystemConfig(config, domain_context, action, plugin)
     local as = getActionService(plugin and plugin.settings)
     if not as then
-        return nil, nil
+        return nil
     end
 
-    -- Build system array
+    -- Build system array with action's behavior settings
     local system_array = as:buildAnthropicSystem({
-        context_type = context_type,
         domain_context = domain_context,
-        action = action_system_prompt and { system_prompt = action_system_prompt } or nil,
+        action = action,  -- Action with behavior_variant/behavior_override
     })
 
-    return system_array, nil
+    return system_array
 end
 
 -- Helper to persist domain selection to settings
@@ -118,19 +121,22 @@ end
 
 -- Apply new request format to config if applicable
 -- Modifies config in-place to add system array and api_params
+--
+-- NEW ARCHITECTURE (v0.5):
+--   System array: behavior (from action or global) + domain [CACHED]
+--   Action controls behavior via behavior_variant or behavior_override
+--
 -- @param config: Configuration to modify
--- @param context_type: "highlight", "book", "multi_book", "general"
 -- @param domain_context: Optional domain context string
--- @param action_system_prompt: Optional action-specific system prompt
--- @param action: Optional action definition with api_params
+-- @param action: Optional action definition with behavior_variant/behavior_override and api_params
 -- @param plugin: Plugin instance
-local function applyNewRequestFormat(config, context_type, domain_context, action_system_prompt, action, plugin)
+local function applyNewRequestFormat(config, domain_context, action, plugin)
     if not shouldUseNewRequestFormat(config) then
         return false
     end
 
     local system_array = buildAnthropicSystemConfig(
-        config, context_type, domain_context, action_system_prompt, plugin
+        config, domain_context, action, plugin
     )
 
     if system_array then
@@ -849,21 +855,20 @@ local function handlePredefinedPrompt(prompt_type, highlightedText, ui, configur
     end
 
     -- Determine system prompt based on context
-    -- For new Anthropic format, behavior+context are handled by buildAnthropicSystemConfig
-    -- We only need the prompt-specific system prompt here
+    -- NEW ARCHITECTURE (v0.5):
+    --   For Anthropic: behavior is handled by buildAnthropicSystemConfig via action fields
+    --   For legacy providers: we need a flattened system prompt
     local using_new_format = shouldUseNewRequestFormat(temp_config)
-    local system_prompt = prompt.system_prompt
+    local system_prompt = nil
     local service = plugin and (plugin.action_service or plugin.prompt_service)
 
     -- Only get flattened system prompt for legacy (non-Anthropic) format
-    if not using_new_format then
-        if (not system_prompt or system_prompt == "") and service then
-            local context = getPromptContext(config)
-            system_prompt = service:getSystemPrompt(context)
-        end
-        -- Use centralized default system prompt if none provided
-        if (not system_prompt or system_prompt == "") and service then
-            system_prompt = service:getSystemPrompt(nil, "default")
+    if not using_new_format and service then
+        -- Get flattened behavior for non-Anthropic providers
+        system_prompt = service:getSystemPrompt()
+        -- Add behavior_override if action has one (for backwards compatibility)
+        if prompt.behavior_override and prompt.behavior_override ~= "" then
+            system_prompt = prompt.behavior_override
         end
     end
 
@@ -891,10 +896,12 @@ local function handlePredefinedPrompt(prompt_type, highlightedText, ui, configur
         local should_include_book = prompt.include_book_context
 
         -- Also include if prompt uses book-related placeholders
-        if not should_include_book and prompt.user_prompt then
-            should_include_book = prompt.user_prompt:find("{title}") or
-                                  prompt.user_prompt:find("{author}") or
-                                  prompt.user_prompt:find("{author_clause}")
+        -- Check both prompt (new) and user_prompt (legacy) fields
+        local prompt_text = prompt.prompt or prompt.user_prompt
+        if not should_include_book and prompt_text then
+            should_include_book = prompt_text:find("{title}") or
+                                  prompt_text:find("{author}") or
+                                  prompt_text:find("{author_clause}")
         end
 
         if should_include_book then
@@ -946,7 +953,9 @@ local function handlePredefinedPrompt(prompt_type, highlightedText, ui, configur
     local has_additional_input = additional_input and additional_input ~= ""
 
     -- Apply new request format if enabled (adds system array for Anthropic)
-    applyNewRequestFormat(temp_config, context, domain_context, system_prompt, prompt, plugin)
+    -- Pass the prompt/action object which contains behavior_variant/behavior_override
+    local action = prompt._action or prompt  -- Use underlying action if available
+    applyNewRequestFormat(temp_config, domain_context, action, plugin)
 
     -- Get response from AI with callback for async streaming
     local function handleResponse(success, answer, err)
@@ -1280,8 +1289,8 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     history:addUserMessage(consolidated_message, true)
 
                     -- Apply new request format if enabled (adds system array for Anthropic)
-                    local context = getPromptContext(configuration)
-                    applyNewRequestFormat(configuration, context, domain_context, system_prompt, nil, plugin)
+                    -- No action specified, uses global behavior setting
+                    applyNewRequestFormat(configuration, domain_context, nil, plugin)
 
                     -- Callback to handle response (for both streaming and non-streaming)
                     local function onResponseReady(success, answer, err)
@@ -1379,7 +1388,12 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     history:addUserMessage(consolidated_message, true)
 
                     -- Apply new request format if enabled (adds system array for Anthropic)
-                    applyNewRequestFormat(configuration, "translation", nil, translation_prompt, nil, plugin)
+                    -- Translation uses behavior_variant = "none" (no AI personality)
+                    local translate_action = {
+                        behavior_variant = "none",
+                        api_params = { temperature = 0.3 },
+                    }
+                    applyNewRequestFormat(configuration, nil, translate_action, plugin)
 
                     -- Callback to handle response (for both streaming and non-streaming)
                     local function onResponseReady(success, answer, err)

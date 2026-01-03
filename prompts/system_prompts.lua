@@ -1,13 +1,19 @@
 -- Centralized system prompts for KOAssistant
--- This module provides layered system prompts for AI interactions
+-- This module provides behavior prompts for AI interactions
 --
 -- Structure:
 --   behavior = AI personality/style variants (cacheable)
---   context  = Context-specific instructions (added per-request)
+--   context  = Context-specific instructions (DEPRECATED - kept for reference)
 --
--- Usage with Anthropic caching:
---   Cacheable content: behavior + domain (put in system array with cache_control)
---   Variable content: context + action (not cached)
+-- System Array (Anthropic):
+--   [1] Behavior (from variant, override, or none) + Domain [CACHED]
+--
+-- User Message:
+--   [Context data] + [Action prompt] + [Runtime input]
+--
+-- Actions can control behavior via:
+--   behavior_variant = "minimal" | "full" | "none"  (pick from list)
+--   behavior_override = "custom text..."            (replace entirely)
 
 local _ = require("gettext")
 
@@ -91,6 +97,8 @@ If the source language is ambiguous, make your best determination and note your 
 
 -- Helper function to get behavior prompt by variant name
 -- Falls back to 'minimal' if variant not found
+-- @param variant: "minimal", "full", or nil
+-- @return string: Behavior prompt text
 function SystemPrompts.getBehavior(variant)
     variant = variant or "minimal"
     return SystemPrompts.behavior[variant] or SystemPrompts.behavior.minimal
@@ -98,119 +106,167 @@ end
 
 -- Helper function to get context prompt by context type
 -- Falls back to 'default' if context not found
+-- DEPRECATED: Context instructions are no longer added to system array
+-- Kept for backwards compatibility and reference
+-- @param context_type: "highlight", "book", "multi_book", "general", "translation"
+-- @return string: Context prompt text
 function SystemPrompts.getContext(context_type)
     context_type = context_type or "default"
     return SystemPrompts.context[context_type] or SystemPrompts.context.default
 end
 
--- Get combined cacheable content (behavior + domain)
--- This is what should be cached in Anthropic requests
--- @param behavior_variant: "minimal" or "full"
--- @param domain_context: Optional domain context string
--- @return string: Combined content for caching
-function SystemPrompts.getCacheableContent(behavior_variant, domain_context)
-    local behavior = SystemPrompts.getBehavior(behavior_variant)
+-- Resolve behavior for an action
+-- Handles priority: override > variant > global setting
+-- @param config: {
+--   behavior_override: custom behavior text (highest priority),
+--   behavior_variant: "minimal", "full", "none", or nil,
+--   global_variant: global setting fallback (features.ai_behavior_variant)
+-- }
+-- @return behavior_text (string or nil), source (string)
+--   behavior_text: The resolved behavior text, or nil if disabled
+--   source: "override", "variant", "none", or "global"
+function SystemPrompts.resolveBehavior(config)
+    config = config or {}
 
-    if domain_context and domain_context ~= "" then
-        return behavior .. "\n\n---\n\n" .. domain_context
+    -- Priority 1: Custom override text
+    if config.behavior_override and config.behavior_override ~= "" then
+        return config.behavior_override, "override"
     end
 
-    return behavior
+    -- Priority 2: Named variant (including "none")
+    if config.behavior_variant then
+        if config.behavior_variant == "none" then
+            return nil, "none"  -- Behavior disabled
+        end
+        -- Use specific variant
+        local behavior = SystemPrompts.behavior[config.behavior_variant]
+        if behavior then
+            return behavior, "variant"
+        end
+        -- Unknown variant, fall through to global
+    end
+
+    -- Priority 3: Global setting
+    local global_variant = config.global_variant or "full"
+    return SystemPrompts.getBehavior(global_variant), "global"
+end
+
+-- Get combined cacheable content (behavior + domain)
+-- This is what should be cached in Anthropic requests
+-- @param behavior_text: Resolved behavior text (or nil if disabled)
+-- @param domain_context: Optional domain context string
+-- @return string or nil: Combined content for caching
+function SystemPrompts.getCacheableContent(behavior_text, domain_context)
+    local has_behavior = behavior_text and behavior_text ~= ""
+    local has_domain = domain_context and domain_context ~= ""
+
+    if has_behavior and has_domain then
+        return behavior_text .. "\n\n---\n\n" .. domain_context
+    elseif has_behavior then
+        return behavior_text
+    elseif has_domain then
+        return domain_context
+    end
+
+    return nil  -- Nothing to cache
 end
 
 -- Build complete system prompt array for Anthropic
 -- Returns array of content blocks suitable for Anthropic's system parameter
+--
+-- NEW ARCHITECTURE (v0.5):
+--   System array contains only: behavior (or none) + domain [CACHED]
+--   Context instructions and action prompts go in user message
+--
 -- @param config: {
---   behavior_variant: "minimal" or "full",
+--   behavior_variant: "minimal", "full", "none", or nil (use global),
+--   behavior_override: custom behavior text (overrides variant),
+--   global_variant: global setting fallback (features.ai_behavior_variant),
 --   domain_context: optional domain context string,
---   context_type: "highlight", "book", "multi_book", "general", "translation",
---   action_system_prompt: optional action-specific system prompt,
 --   enable_caching: boolean (default true for Anthropic)
 -- }
 -- @return table: Array of content blocks for Anthropic system parameter
--- Each block includes a `label` field for debug display (ignored by API)
+-- Each block includes a `label` field for debug display (stripped before API call)
 function SystemPrompts.buildAnthropicSystemArray(config)
     config = config or {}
     local blocks = {}
 
-    -- Block 1: Cacheable content (behavior + domain)
-    local cacheable = SystemPrompts.getCacheableContent(
-        config.behavior_variant,
-        config.domain_context
-    )
+    -- Resolve behavior using priority: override > variant > global
+    local behavior_text, behavior_source = SystemPrompts.resolveBehavior({
+        behavior_override = config.behavior_override,
+        behavior_variant = config.behavior_variant,
+        global_variant = config.global_variant,
+    })
 
-    -- Determine label based on what's included
-    local block1_label = "behavior"
-    if config.domain_context and config.domain_context ~= "" then
-        block1_label = "behavior+domain"
+    -- Get cacheable content (behavior + domain, or just domain if behavior disabled)
+    local cacheable = SystemPrompts.getCacheableContent(behavior_text, config.domain_context)
+
+    -- If nothing to put in system array, return empty
+    if not cacheable then
+        return blocks
     end
 
-    local block1 = {
+    -- Determine label based on what's included
+    local label
+    local has_domain = config.domain_context and config.domain_context ~= ""
+    if behavior_source == "none" then
+        label = "domain"  -- Only domain, no behavior
+    elseif has_domain then
+        label = "behavior+domain"
+    else
+        label = "behavior"
+    end
+
+    local block = {
         type = "text",
         text = cacheable,
-        label = block1_label,  -- For debug display
+        label = label,  -- For debug display (stripped before API call)
     }
 
     -- Add cache_control if caching is enabled (default true)
     if config.enable_caching ~= false then
-        block1.cache_control = { type = "ephemeral" }
+        block.cache_control = { type = "ephemeral" }
     end
 
-    table.insert(blocks, block1)
-
-    -- Block 2: Context instructions (not cached)
-    local context_prompt = SystemPrompts.getContext(config.context_type)
-    if context_prompt and context_prompt ~= "" then
-        table.insert(blocks, {
-            type = "text",
-            text = context_prompt,
-            label = "context",  -- For debug display
-        })
-    end
-
-    -- Block 3: Action-specific system prompt (not cached)
-    if config.action_system_prompt and config.action_system_prompt ~= "" then
-        table.insert(blocks, {
-            type = "text",
-            text = config.action_system_prompt,
-            label = "action",  -- For debug display
-        })
-    end
+    table.insert(blocks, block)
 
     return blocks
 end
 
 -- Build flattened system prompt for non-Anthropic providers
--- Combines all layers into a single string
+-- Combines behavior + domain into a single string
+--
+-- NEW ARCHITECTURE (v0.5):
+--   Only includes behavior (or none) + domain
+--   Context instructions and action prompts go in user message
+--
 -- @param config: Same as buildAnthropicSystemArray
--- @return string: Combined system prompt
+-- @return string: Combined system prompt (may be empty string)
 function SystemPrompts.buildFlattenedPrompt(config)
     config = config or {}
-    local parts = {}
 
-    -- Add behavior
-    local behavior = SystemPrompts.getBehavior(config.behavior_variant)
-    if behavior and behavior ~= "" then
-        table.insert(parts, behavior)
+    -- Resolve behavior using priority: override > variant > global
+    local behavior_text, _ = SystemPrompts.resolveBehavior({
+        behavior_override = config.behavior_override,
+        behavior_variant = config.behavior_variant,
+        global_variant = config.global_variant,
+    })
+
+    -- Get combined content
+    local content = SystemPrompts.getCacheableContent(behavior_text, config.domain_context)
+
+    return content or ""
+end
+
+-- Get list of available behavior variant names
+-- @return table: Array of variant names
+function SystemPrompts.getVariantNames()
+    local names = {}
+    for name, _ in pairs(SystemPrompts.behavior) do
+        table.insert(names, name)
     end
-
-    -- Add domain context
-    if config.domain_context and config.domain_context ~= "" then
-        table.insert(parts, config.domain_context)
-    end
-
-    -- Add context instructions
-    local context_prompt = SystemPrompts.getContext(config.context_type)
-    if context_prompt and context_prompt ~= "" then
-        table.insert(parts, context_prompt)
-    end
-
-    -- Add action-specific prompt
-    if config.action_system_prompt and config.action_system_prompt ~= "" then
-        table.insert(parts, config.action_system_prompt)
-    end
-
-    return table.concat(parts, "\n\n---\n\n")
+    table.sort(names)
+    return names
 end
 
 return SystemPrompts
