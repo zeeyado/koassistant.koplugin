@@ -1,345 +1,293 @@
 local _ = require("gettext")
+local T = require("ffi/util").template
 
 -- Settings Schema Definition
 -- This file defines the structure and metadata for all KOAssistant plugin settings
--- Used to generate UI and validate settings
+-- Used by SettingsManager to generate menus - SINGLE SOURCE OF TRUTH
 
 local SettingsSchema = {
-    -- Main categories
-    categories = {
+    -- Menu items in display order (flat structure matching main menu)
+    items = {
+        -- Quick actions
         {
-            id = "provider_model",
-            text = _("AI Provider & Model"),
-            icon = "appbar.provider",
-            description = _("Select AI provider and model"),
-            items = {
-                {
-                    id = "provider_model_select",
-                    type = "submenu",
-                    text = _("Provider & Model"),
-                    description = _("Select AI provider and model"),
-                    callback = "getFlatProviderModelMenu",
-                },
-                {
-                    id = "test_connection",
-                    type = "action",
-                    text = _("Test Connection"),
-                    description = _("Verify API credentials and connection"),
-                    callback = "testProviderConnection",
-                },
-            },
+            id = "new_general_chat",
+            type = "action",
+            text = _("New General Chat"),
+            callback = "startGeneralChat",
         },
         {
-            id = "conversations",
-            text = _("Conversations"),
-            icon = "appbar.menu",
-            description = _("Chat management and history"),
-            items = {
-                {
-                    id = "new_general_chat",
-                    type = "action",
-                    text = _("New General Chat"),
-                    description = _("Start a new conversation without context"),
-                    callback = "startGeneralChat",
-                },
-                {
-                    id = "chat_history",
-                    type = "action",
-                    text = _("Chat History"),
-                    description = _("View and manage saved conversations"),
-                    callback = "showChatHistory",
-                },
-                {
-                    id = "separator_1",
-                    type = "separator",
-                },
-                {
-                    id = "auto_save_chats",
-                    type = "toggle",
-                    text = _("Auto-save Continued Chats"),
-                    description = _("Automatically save chats when continued from history"),
-                    default = true,
-                    path = "features.auto_save_chats",
-                    depends_on = { id = "auto_save_all_chats", value = false },
-                },
-                {
-                    id = "auto_save_all_chats",
-                    type = "toggle",
-                    text = _("Auto-save All Chats"),
-                    description = _("Automatically save all new chats with default naming"),
-                    default = true,
-                    path = "features.auto_save_all_chats",
-                },
-            },
+            id = "chat_history",
+            type = "action",
+            text = _("Chat History"),
+            callback = "showChatHistory",
+            separator = true,
+        },
+
+        -- Provider, Model, Temperature (top-level)
+        {
+            id = "provider",
+            type = "submenu",
+            text_func = function(plugin)
+                local f = plugin.settings:readSetting("features") or {}
+                local provider = f.provider or "anthropic"
+                return T(_("Provider: %1"), provider:gsub("^%l", string.upper))
+            end,
+            callback = "buildProviderMenu",
         },
         {
-            id = "prompts_responses",
-            text = _("Prompts & Responses"),
-            icon = "appbar.menu",
-            description = _("Manage prompts and response display"),
+            id = "model",
+            type = "submenu",
+            text_func = function(plugin)
+                return T(_("Model: %1"), plugin:getCurrentModel())
+            end,
+            callback = "buildModelMenu",
+        },
+        {
+            id = "temperature",
+            type = "spinner",
+            text = _("Temperature"),
+            path = "features.default_temperature",
+            default = 0.7,
+            min = 0,
+            max = 2,
+            step = 0.1,
+            precision = "%.1f",
+            info_text = _("0 = focused and deterministic, 2 = creative"),
+            separator = true,
+        },
+
+        -- Display Settings submenu
+        {
+            id = "display_settings",
+            type = "submenu",
+            text = _("Display Settings"),
             items = {
-                {
-                    id = "manage_prompts",
-                    type = "action",
-                    text = _("Manage Prompts"),
-                    description = _("Add, edit, or remove custom prompts"),
-                    callback = "showPromptsManager",
-                },
-                {
-                    id = "view_domains",
-                    type = "action",
-                    text = _("View Domains"),
-                    description = _("View available knowledge domains for AI context"),
-                    callback = "showDomainsViewer",
-                },
-                {
-                    id = "translation_language",
-                    type = "text",
-                    text = _("Translation Language"),
-                    description = _("Default target language for translations"),
-                    default = "English",
-                    path = "features.translate_to",
-                },
-                {
-                    id = "separator_2",
-                    type = "separator",
-                },
-                {
-                    id = "response_display_header",
-                    type = "header",
-                    text = _("Response Display"),
-                },
                 {
                     id = "render_markdown",
                     type = "toggle",
                     text = _("Render Markdown"),
-                    description = _("Display AI responses with formatted text (bold, italic, lists, etc.)"),
-                    default = true,
                     path = "features.render_markdown",
-                },
-                {
-                    id = "separator_3",
-                    type = "separator",
-                },
-                {
-                    id = "highlight_display_header",
-                    type = "header",
-                    text = _("Highlight Display"),
+                    default = true,
                 },
                 {
                     id = "hide_highlighted_text",
                     type = "toggle",
                     text = _("Hide Highlighted Text"),
-                    description = _("Don't show the highlighted text in AI responses"),
-                    default = false,
                     path = "features.hide_highlighted_text",
+                    default = false,
                 },
                 {
                     id = "hide_long_highlights",
                     type = "toggle",
                     text = _("Hide Long Highlights"),
-                    description = _("Replace long highlights with '...' in display"),
-                    default = true,
                     path = "features.hide_long_highlights",
+                    default = true,
                 },
                 {
                     id = "long_highlight_threshold",
-                    type = "number",
+                    type = "spinner",
                     text = _("Long Highlight Threshold"),
-                    description = _("Number of characters before a highlight is considered long"),
+                    path = "features.long_highlight_threshold",
                     default = 280,
                     min = 50,
                     max = 1000,
-                    step = 50,
-                    path = "features.long_highlight_threshold",
+                    step = 10,
+                    precision = "%d",
                     depends_on = { id = "hide_long_highlights", value = true },
                 },
             },
         },
+
+        -- Chat Settings submenu
         {
-            id = "advanced",
-            text = _("Advanced"),
-            icon = "appbar.settings",
-            description = _("Debug mode and advanced options"),
+            id = "chat_settings",
+            type = "submenu",
+            text = _("Chat Settings"),
             items = {
                 {
-                    id = "debug_mode",
+                    id = "auto_save_all_chats",
                     type = "toggle",
-                    text = _("Console Debug"),
-                    description = _("Enable console/terminal debug logging (for developers)"),
-                    default = false,
-                    path = "features.debug",
+                    text = _("Auto-save All Chats"),
+                    path = "features.auto_save_all_chats",
+                    default = true,
                 },
                 {
-                    id = "show_debug_in_chat",
+                    id = "auto_save_chats",
                     type = "toggle",
-                    text = _("Show Debug in Chat"),
-                    description = _("Display debug information in chat viewer"),
-                    default = false,
-                    path = "features.show_debug_in_chat",
-                },
-                {
-                    id = "debug_display_level",
-                    type = "radio",
-                    text = _("Debug Detail Level"),
-                    description = _("Level of detail in debug view"),
-                    default = "names",
-                    path = "features.debug_display_level",
-                    depends_on = { id = "show_debug_in_chat", value = true },
-                    options = {
-                        { value = "minimal", text = _("User input only") },
-                        { value = "names", text = _("Show config names") },
-                        { value = "full", text = _("Full system content") },
-                    },
+                    text = _("Auto-save Continued Chats"),
+                    path = "features.auto_save_chats",
+                    default = true,
+                    depends_on = { id = "auto_save_all_chats", value = false },
+                    separator = true,
                 },
                 {
                     id = "enable_streaming",
                     type = "toggle",
                     text = _("Enable Streaming"),
-                    description = _("Show AI responses as they're generated"),
-                    default = true,
                     path = "features.enable_streaming",
+                    default = true,
                 },
                 {
                     id = "stream_auto_scroll",
                     type = "toggle",
                     text = _("Auto-scroll Streaming"),
-                    description = _("Automatically scroll to show new text while streaming"),
-                    default = true,
                     path = "features.stream_auto_scroll",
+                    default = true,
                     depends_on = { id = "enable_streaming", value = true },
                 },
                 {
                     id = "large_stream_dialog",
                     type = "toggle",
                     text = _("Large Stream Dialog"),
-                    description = _("Use full-screen dialog for streaming responses"),
-                    default = true,
                     path = "features.large_stream_dialog",
+                    default = true,
                     depends_on = { id = "enable_streaming", value = true },
                 },
-                {
-                    id = "separator_4",
-                    type = "separator",
-                },
-                {
-                    id = "api_settings_header",
-                    type = "header",
-                    text = _("API Settings (Anthropic)"),
-                },
+            },
+        },
+
+        -- Advanced submenu
+        {
+            id = "advanced",
+            type = "submenu",
+            text = _("Advanced"),
+            separator = true,
+            items = {
                 {
                     id = "ai_behavior_variant",
                     type = "radio",
-                    text = _("AI Behavior Style"),
-                    description = _("How detailed should the AI's behavioral guidelines be"),
-                    default = "full",
+                    text_func = function(plugin)
+                        local f = plugin.settings:readSetting("features") or {}
+                        local variant = f.ai_behavior_variant or "full"
+                        return T(_("AI Behavior: %1"), variant == "minimal" and _("Minimal") or _("Full"))
+                    end,
                     path = "features.ai_behavior_variant",
+                    default = "full",
+                    separator = true,
                     options = {
                         { value = "minimal", text = _("Minimal (~100 tokens)") },
                         { value = "full", text = _("Full (~500 tokens)") },
                     },
                 },
                 {
-                    id = "default_temperature",
-                    type = "number",
-                    text = _("Temperature"),
-                    description = _("Creativity level (0=focused, 2=creative). Forced to 1.0 with extended thinking."),
-                    default = 0.7,
-                    min = 0,
-                    max = 2,
-                    step = 0.1,
-                    path = "features.default_temperature",
-                },
-                {
-                    id = "extended_thinking_header",
-                    type = "header",
-                    text = _("Extended Thinking"),
-                },
-                {
                     id = "enable_extended_thinking",
                     type = "toggle",
                     text = _("Enable Extended Thinking"),
-                    description = _("Allow AI to reason through complex problems (Anthropic only, slower)"),
-                    default = false,
                     path = "features.enable_extended_thinking",
+                    default = false,
                 },
                 {
                     id = "thinking_budget_tokens",
-                    type = "number",
-                    text = _("Thinking Token Budget"),
-                    description = _("Maximum tokens for thinking process (1024-32000)"),
+                    type = "spinner",
+                    text = _("Thinking Budget"),
+                    path = "features.thinking_budget_tokens",
                     default = 4096,
                     min = 1024,
                     max = 32000,
                     step = 1024,
-                    path = "features.thinking_budget_tokens",
+                    precision = "%d",
                     depends_on = { id = "enable_extended_thinking", value = true },
+                    separator = true,
+                },
+                {
+                    id = "debug",
+                    type = "toggle",
+                    text = _("Console Debug"),
+                    help_text = _("Enable console/terminal debug logging (for developers)"),
+                    path = "features.debug",
+                    default = false,
+                },
+                {
+                    id = "show_debug_in_chat",
+                    type = "toggle",
+                    text = _("Show Debug in Chat"),
+                    help_text = _("Display debug information in chat viewer"),
+                    path = "features.show_debug_in_chat",
+                    default = false,
+                },
+                {
+                    id = "debug_display_level",
+                    type = "radio",
+                    text_func = function(plugin)
+                        local f = plugin.settings:readSetting("features") or {}
+                        local level = f.debug_display_level or "names"
+                        local labels = { minimal = _("Minimal"), names = _("Names"), full = _("Full") }
+                        return T(_("Debug Detail Level: %1"), labels[level] or level)
+                    end,
+                    path = "features.debug_display_level",
+                    default = "names",
+                    depends_on = { id = "show_debug_in_chat", value = true },
+                    separator = true,
+                    options = {
+                        { value = "minimal", text = _("Minimal (user input only)") },
+                        { value = "names", text = _("Names (config summary)") },
+                        { value = "full", text = _("Full (system blocks)") },
+                    },
+                },
+                {
+                    id = "test_connection",
+                    type = "action",
+                    text = _("Test Connection"),
+                    callback = "testProviderConnection",
                 },
             },
         },
+
+        -- Prompts and Domains
+        {
+            id = "manage_prompts",
+            type = "action",
+            text = _("Manage Prompts"),
+            callback = "showPromptsManager",
+        },
+        {
+            id = "view_domains",
+            type = "action",
+            text = _("View Domains"),
+            callback = "showDomainsViewer",
+            separator = true,
+        },
+
+        -- About
         {
             id = "about",
-            text = _("About"),
-            icon = "appbar.info",
-            description = _("Updates and version information"),
-            items = {
-                {
-                    id = "check_updates",
-                    type = "action",
-                    text = _("Check for Updates"),
-                    description = _("Check for new plugin versions"),
-                    callback = "checkForUpdates",
-                },
-                {
-                    id = "auto_check_updates",
-                    type = "toggle",
-                    text = _("Auto-check for Updates"),
-                    description = _("Check for updates on first use each session"),
-                    default = true,
-                    path = "features.auto_check_updates",
-                },
-                {
-                    id = "separator_updates",
-                    type = "separator",
-                },
-                {
-                    id = "version_info",
-                    type = "action",
-                    text = _("Version Info"),
-                    description = _("Show version and gesture information"),
-                    callback = "showAbout",
-                },
-            },
+            type = "action",
+            text = _("About KOAssistant"),
+            callback = "showAbout",
+        },
+        {
+            id = "check_updates",
+            type = "action",
+            text = _("Check for Updates"),
+            callback = "checkForUpdates",
         },
     },
 
     -- Helper functions for schema usage
-    getCategoryById = function(self, id)
-        for _, category in ipairs(self.categories) do
-            if category.id == id then
-                return category
+    getItemById = function(self, item_id, items_list)
+        items_list = items_list or self.items
+        for _, item in ipairs(items_list) do
+            if item.id == item_id then
+                return item
+            end
+            -- Check submenu items
+            if item.type == "submenu" and item.items then
+                local found = self:getItemById(item_id, item.items)
+                if found then
+                    return found
+                end
             end
         end
         return nil
     end,
 
-    getItemById = function(self, item_id)
-        for _, category in ipairs(self.categories) do
-            for _, item in ipairs(category.items) do
-                if item.id == item_id then
-                    return item, category
-                end
-                -- Check submenu items
-                if item.type == "submenu" and item.items then
-                    for _, subitem in ipairs(item.items) do
-                        if subitem.id == item_id then
-                            return subitem, item
-                        end
-                    end
-                end
-            end
+    -- Get the path for dependency resolution
+    getItemPath = function(self, item_id, items_list)
+        local item = self:getItemById(item_id, items_list)
+        if item then
+            return item.path or item.id
         end
-        return nil
+        return item_id
     end,
 
     -- Validate a settings value against its schema
@@ -351,7 +299,7 @@ local SettingsSchema = {
 
         if item.type == "toggle" then
             return type(value) == "boolean", "Value must be true or false"
-        elseif item.type == "number" then
+        elseif item.type == "number" or item.type == "spinner" then
             if type(value) ~= "number" then
                 return false, "Value must be a number"
             end
