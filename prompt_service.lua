@@ -147,9 +147,9 @@ function PromptService:loadPrompts()
         end
     end
     
-    -- 3. Load UI-created prompts from settings
-    local ui_prompts = self.settings:readSetting("custom_prompts") or {}
-    logger.info("PromptService: Loading " .. #ui_prompts .. " UI-created prompts")
+    -- 3. Load UI-created actions from settings
+    local ui_prompts = self.settings:readSetting("custom_actions") or {}
+    logger.info("PromptService: Loading " .. #ui_prompts .. " UI-created actions")
     for i, prompt in ipairs(ui_prompts) do
         local id = "ui_" .. i
         self:addCustomPrompt(id, prompt, "ui")
@@ -250,34 +250,34 @@ function PromptService:setPromptEnabled(context, prompt_text, enabled)
 end
 
 function PromptService:addUserPrompt(prompt_data)
-    local custom_prompts = self.settings:readSetting("custom_prompts") or {}
-    table.insert(custom_prompts, prompt_data)
-    self.settings:saveSetting("custom_prompts", custom_prompts)
+    local custom_actions = self.settings:readSetting("custom_actions") or {}
+    table.insert(custom_actions, prompt_data)
+    self.settings:saveSetting("custom_actions", custom_actions)
     self.settings:flush()
-    
+
     -- Invalidate cache to force reload
     self.prompts_cache = nil
 end
 
 function PromptService:updateUserPrompt(index, prompt_data)
-    local custom_prompts = self.settings:readSetting("custom_prompts") or {}
-    if custom_prompts[index] then
-        custom_prompts[index] = prompt_data
-        self.settings:saveSetting("custom_prompts", custom_prompts)
+    local custom_actions = self.settings:readSetting("custom_actions") or {}
+    if custom_actions[index] then
+        custom_actions[index] = prompt_data
+        self.settings:saveSetting("custom_actions", custom_actions)
         self.settings:flush()
-        
+
         -- Invalidate cache to force reload
         self.prompts_cache = nil
     end
 end
 
 function PromptService:deleteUserPrompt(index)
-    local custom_prompts = self.settings:readSetting("custom_prompts") or {}
-    if custom_prompts[index] then
-        table.remove(custom_prompts, index)
-        self.settings:saveSetting("custom_prompts", custom_prompts)
+    local custom_actions = self.settings:readSetting("custom_actions") or {}
+    if custom_actions[index] then
+        table.remove(custom_actions, index)
+        self.settings:saveSetting("custom_actions", custom_actions)
         self.settings:flush()
-        
+
         -- Invalidate cache to force reload
         self.prompts_cache = nil
     end

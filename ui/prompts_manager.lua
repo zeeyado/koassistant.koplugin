@@ -169,7 +169,7 @@ function PromptsManager:showPromptsMenu()
     
     -- Add "Add New Prompt" item
     table.insert(menu_items, {
-        text = _("+ Add New Prompt"),
+        text = _("+ Add Action"),
         callback = function()
             UIManager:close(self.prompts_menu)
             self:showPromptEditor(nil)  -- nil = new prompt
@@ -272,7 +272,7 @@ function PromptsManager:showPromptsMenu()
                 text = _("Restore Defaults"),
                 callback = function()
                     UIManager:show(ConfirmBox:new{
-                        text = _("This will remove all custom prompts and reset all prompt settings. Continue?"),
+                        text = _("This will remove all custom actions and reset all action settings. Continue?"),
                         ok_callback = function()
                             UIManager:close(self.prompts_menu)
                             if self.plugin.restoreDefaultPrompts then
@@ -290,7 +290,7 @@ function PromptsManager:showPromptsMenu()
     }
     
     self.prompts_menu = Menu:new{
-        title = _("Manage Prompts"),
+        title = _("Manage Actions"),
         item_table = menu_items,
         width = self.width,
         height = self.height,
@@ -387,7 +387,7 @@ function PromptsManager:showPromptDetails(prompt)
                 text = _("Delete"),
                 callback = function()
                     UIManager:show(ConfirmBox:new{
-                        text = _("Delete this prompt?"),
+                        text = _("Delete this action?"),
                         ok_callback = function()
                             self:deletePrompt(prompt)
                             -- Close details and prompts menu, then refresh
@@ -410,7 +410,7 @@ function PromptsManager:showPromptDetails(prompt)
                 text = _("Edit file"),
                 callback = function()
                     UIManager:show(InfoMessage:new{
-                        text = _("This prompt is defined in custom_prompts.lua.\nPlease edit that file directly to modify it."),
+                        text = _("This action is defined in custom_actions.lua.\nPlease edit that file directly to modify it."),
                     })
                 end,
             },
@@ -418,7 +418,7 @@ function PromptsManager:showPromptDetails(prompt)
     end
 
     self.details_dialog = TextViewer:new{
-        title = _("Prompt Details"),
+        title = _("Action Details"),
         text = info_text,
         buttons_table = buttons,
         width = self.width * 0.9,
@@ -522,7 +522,7 @@ function PromptsManager:showStep1_NameAndContext(state)
     end
 
     self.step1_dialog = InputDialog:new{
-        title = is_edit and _("Edit Prompt - Name") or _("Step 1/3: Name & Context"),
+        title = is_edit and _("Edit Action - Name") or _("Step 1/3: Name & Context"),
         input = state.name,
         input_hint = _("Enter a short name (shown as button)"),
         description = description,
@@ -726,7 +726,7 @@ function PromptsManager:showStep2_Behavior(state)
     })
 
     self.behavior_dialog = ButtonDialog:new{
-        title = is_edit and _("Edit Prompt - AI Behavior") or _("Step 2/3: AI Behavior"),
+        title = is_edit and _("Edit Action - AI Behavior") or _("Step 2/3: AI Behavior"),
         buttons = buttons,
     }
 
@@ -739,14 +739,14 @@ function PromptsManager:showCustomBehaviorInput(state)
 
     local dialog
     dialog = InputDialog:new{
-        title = is_edit and _("Edit Prompt - Custom Behavior") or _("Step 2/3: Custom Behavior"),
+        title = is_edit and _("Edit Action - Custom Behavior") or _("Step 2/3: Custom Behavior"),
         input = state.behavior_override or "",
         input_hint = _("Describe how the AI should behave or what role it should play"),
         description = _("Examples:\n" ..
             "• 'You are a grammar expert. Be precise and analytical.'\n" ..
             "• 'You are a literary critic specializing in 19th century fiction.'\n" ..
             "• 'Respond concisely. Use bullet points when helpful.'\n\n" ..
-            "This replaces the global AI behavior setting for this prompt."),
+            "This replaces the global AI behavior setting for this action."),
         fullscreen = true,
         allow_newline = true,
         buttons = {
@@ -797,7 +797,7 @@ function PromptsManager:showStep3_ActionPrompt(state)
 
     local dialog
     dialog = InputDialog:new{
-        title = is_edit and _("Edit Prompt - Action Prompt") or _("Step 3/3: Action Prompt"),
+        title = is_edit and _("Edit Action - Action Prompt") or _("Step 3/3: Action Prompt"),
         input = state.prompt or "",
         input_hint = _("What should the AI do?"),
         description = _("This is the main instruction sent to the AI. Use placeholders to include context:\n\n") .. placeholder_list .. _("\nTip: Users can add extra input when using this action."),
@@ -987,7 +987,7 @@ function PromptsManager:updatePrompt(existing_prompt, state)
                 })
             else
                 -- Fallback: find by original name
-                local custom_prompts = self.plugin.settings:readSetting("custom_prompts") or {}
+                local custom_prompts = self.plugin.settings:readSetting("custom_actions") or {}
                 for i, prompt in ipairs(custom_prompts) do
                     if prompt.text == existing_prompt.text then
                         service:updateUserPrompt(i, prompt_data)
@@ -1009,15 +1009,15 @@ end
 
 function PromptsManager:deletePrompt(prompt)
     if self.plugin.prompt_service and prompt.source == "ui" then
-        -- Find the index of this prompt in custom_prompts
-        local custom_prompts = self.plugin.settings:readSetting("custom_prompts") or {}
+        -- Find the index of this action in custom_actions
+        local custom_prompts = self.plugin.settings:readSetting("custom_actions") or {}
         
         for i = #custom_prompts, 1, -1 do
             if custom_prompts[i].text == prompt.text then
                 self.plugin.prompt_service:deleteUserPrompt(i)
                 
                 UIManager:show(InfoMessage:new{
-                    text = _("Prompt deleted successfully"),
+                    text = _("Action deleted successfully"),
                 })
                 break
             end

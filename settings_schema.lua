@@ -233,11 +233,19 @@ local SettingsSchema = {
             },
         },
 
-        -- Prompts and Domains
+        -- Actions and Domains
         {
-            id = "manage_prompts",
+            id = "translation_language",
+            type = "text",
+            text = _("Translation Language"),
+            path = "features.translation_language",
+            default = "English",
+            help_text = _("Target language for the Translate action"),
+        },
+        {
+            id = "manage_actions",
             type = "action",
-            text = _("Manage Prompts"),
+            text = _("Manage Actions"),
             callback = "showPromptsManager",
         },
         {

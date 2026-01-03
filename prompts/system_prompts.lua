@@ -89,10 +89,8 @@ A list of books with titles and authors will be provided. Consider relationships
 
 If the chat was launched from within a book, that context may be provided, but it's optional background information rather than the focus of the discussion.]],
 
-    -- Translation requests
-    translation = [[The user wants a translation. Provide direct, accurate translations without additional commentary unless specifically asked. Preserve the tone and style of the original text where possible.
-
-If the source language is ambiguous, make your best determination and note your assumption only if there's significant uncertainty.]],
+    -- Note: Translation is now handled via built-in action with behavior_override
+    -- See prompts/actions.lua Actions.special.translate
 }
 
 -- Helper function to get behavior prompt by variant name
@@ -108,7 +106,7 @@ end
 -- Falls back to 'default' if context not found
 -- DEPRECATED: Context instructions are no longer added to system array
 -- Kept for backwards compatibility and reference
--- @param context_type: "highlight", "book", "multi_book", "general", "translation"
+-- @param context_type: "highlight", "book", "multi_book", "general"
 -- @return string: Context prompt text
 function SystemPrompts.getContext(context_type)
     context_type = context_type or "default"

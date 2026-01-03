@@ -71,11 +71,9 @@ function ActionService:checkMigration()
         return
     end
 
-    local custom_prompts = self.settings:readSetting("custom_prompts")
-    if custom_prompts and #custom_prompts > 0 then
-        logger.info("ActionService: Found legacy custom_prompts, marking for migration")
-        -- For now, we keep both systems running in parallel
-        -- Full migration happens in Phase 4
+    local custom_actions = self.settings:readSetting("custom_actions")
+    if custom_actions and #custom_actions > 0 then
+        logger.info("ActionService: Found custom_actions with " .. #custom_actions .. " entries")
     end
 end
 
@@ -241,8 +239,8 @@ function ActionService:loadLegacyPrompts(disabled_actions)
     -- Load from legacy disabled_prompts setting
     local disabled_prompts = self.settings:readSetting("disabled_prompts") or {}
 
-    -- Load UI-created prompts (legacy format)
-    local legacy_prompts = self.settings:readSetting("custom_prompts") or {}
+    -- Load UI-created actions
+    local legacy_prompts = self.settings:readSetting("custom_actions") or {}
     for i, prompt in ipairs(legacy_prompts) do
         local id = "legacy_ui_" .. i
         local action = self:convertLegacyPrompt(prompt)
