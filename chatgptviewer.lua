@@ -448,7 +448,7 @@ function ChatGPTViewer:init()
       },
       {
         text_func = function()
-          return self.debug_mode and "Debug ON" or "Debug OFF"
+          return self.show_debug_in_chat and "Hide Debug" or "Show Debug"
         end,
         id = "toggle_debug",
         callback = function()
@@ -456,7 +456,7 @@ function ChatGPTViewer:init()
         end,
         hold_callback = function()
           UIManager:show(Notification:new{
-            text = _("Toggle debug mode for detailed message info"),
+            text = _("Toggle debug display in chat viewer"),
             timeout = 2,
           })
         end,
@@ -541,8 +541,8 @@ function ChatGPTViewer:init()
   if self.configuration.features and self.configuration.features.markdown_font_size then
     self.markdown_font_size = self.configuration.features.markdown_font_size
   end
-  if self.configuration.features and self.configuration.features.debug ~= nil then
-    self.debug_mode = self.configuration.features.debug
+  if self.configuration.features and self.configuration.features.show_debug_in_chat ~= nil then
+    self.show_debug_in_chat = self.configuration.features.show_debug_in_chat
   end
 
   if self.render_markdown then
@@ -1005,54 +1005,63 @@ function ChatGPTViewer:toggleMarkdown()
 end
 
 function ChatGPTViewer:toggleDebugMode()
-  -- Toggle debug mode
-  self.debug_mode = not self.debug_mode
-  
+  -- Toggle debug display (not console logging - that's controlled separately in settings)
+  self.show_debug_in_chat = not self.show_debug_in_chat
+
   -- Update configuration
   if self.configuration.features then
-    self.configuration.features.debug = self.debug_mode
+    self.configuration.features.show_debug_in_chat = self.show_debug_in_chat
   end
-  
-  -- Save to settings if available
+
+  -- Save display preference to settings
   if self.settings_callback then
-    self.settings_callback("features.debug", self.debug_mode)
+    self.settings_callback("features.show_debug_in_chat", self.show_debug_in_chat)
   end
-  
-  -- If debug mode was toggled and we have update_debug_callback, call it
+
+  -- If debug display was toggled and we have update_debug_callback, call it
   if self.update_debug_callback then
-    self.update_debug_callback(self.debug_mode)
+    self.update_debug_callback(self.show_debug_in_chat)
   end
-  
+
   -- Rebuild the display with debug info shown/hidden
   if self.original_history then
-    -- Create a temporary config with updated debug mode
+    -- Create a temporary config with updated display setting
     local temp_config = {
       features = {
-        debug = self.debug_mode,
+        show_debug_in_chat = self.show_debug_in_chat,
+        debug_display_level = self.configuration.features and self.configuration.features.debug_display_level,
         hide_highlighted_text = self.configuration.features and self.configuration.features.hide_highlighted_text,
         hide_long_highlights = self.configuration.features and self.configuration.features.hide_long_highlights,
         long_highlight_threshold = self.configuration.features and self.configuration.features.long_highlight_threshold,
         is_file_browser_context = self.configuration.features and self.configuration.features.is_file_browser_context,
-      }
+        is_book_context = self.configuration.features and self.configuration.features.is_book_context,
+        is_multi_book_context = self.configuration.features and self.configuration.features.is_multi_book_context,
+        ai_behavior_variant = self.configuration.features and self.configuration.features.ai_behavior_variant,
+        selected_domain = self.configuration.features and self.configuration.features.selected_domain,
+      },
+      model = self.configuration.model,
+      additional_parameters = self.configuration.additional_parameters,
+      api_params = self.configuration.api_params,
+      system = self.configuration.system,
     }
-    
-    -- Recreate the text with new debug setting
+
+    -- Recreate the text with new display setting
     local new_text = self.original_history:createResultText(self.original_highlighted_text or "", temp_config)
     self:update(new_text, false)  -- false = don't scroll to bottom
   end
-  
+
   -- Update button text
   local button = self.button_table:getButtonById("toggle_debug")
   if button then
-    button:setText(self.debug_mode and "Debug ON" or "Debug OFF", button.width)
+    button:setText(self.show_debug_in_chat and "Hide Debug" or "Show Debug", button.width)
   end
-  
+
   -- Show notification
   UIManager:show(Notification:new{
-    text = self.debug_mode and _("Debug mode enabled - showing message details") or _("Debug mode disabled"),
+    text = self.show_debug_in_chat and _("Showing debug info") or _("Debug info hidden"),
     timeout = 2,
   })
-  
+
   -- Refresh display
   UIManager:setDirty(self, function()
     return "ui", self.frame.dimen

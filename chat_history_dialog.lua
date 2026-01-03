@@ -1212,14 +1212,14 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
                     end
                     plugin.settings:flush()
 
-                    if config and config.features and parts[1] == "features" and parts[2] == "debug" then
-                        config.features.debug = value
+                    if config and config.features and parts[1] == "features" and parts[2] == "show_debug_in_chat" then
+                        config.features.show_debug_in_chat = value
                     end
                 end
             end,
-            update_debug_callback = function(debug_mode)
-                if history and history.debug_mode ~= nil then
-                    history.debug_mode = debug_mode
+            update_debug_callback = function(show_debug)
+                if history and history.show_debug_in_chat ~= nil then
+                    history.show_debug_in_chat = show_debug
                 end
             end,
             onAskQuestion = function(self_viewer, question)

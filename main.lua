@@ -825,6 +825,7 @@ function AskGPT:initSettings()
       long_highlight_threshold = configuration.features.long_highlight_threshold or 280,
       translate_to = configuration.features.translate_to or "English",
       debug = configuration.features.debug or false,
+      show_debug_in_chat = false,  -- Whether to show debug in chat viewer (independent of console logging)
       auto_save_all_chats = true,  -- Default to auto-save for new installs
       auto_save_chats = true,      -- Default for continued chats
       render_markdown = true,      -- Default to render markdown
@@ -845,6 +846,12 @@ function AskGPT:initSettings()
     -- Add ai_behavior_variant if missing
     if features.ai_behavior_variant == nil then
       features.ai_behavior_variant = "full"
+      needs_save = true
+    end
+
+    -- Add show_debug_in_chat if missing (separate from console debug)
+    if features.show_debug_in_chat == nil then
+      features.show_debug_in_chat = false
       needs_save = true
     end
 
@@ -1337,9 +1344,10 @@ function AskGPT:buildAdvancedSettings()
       keep_menu_open = true,
       separator = true,
     },
-    -- Debug
+    -- Console Debug (terminal logging)
     {
-      text = _("Debug Mode"),
+      text = _("Console Debug"),
+      help_text = _("Enable console/terminal debug logging (for developers)"),
       checked_func = function()
         local f = self_ref.settings:readSetting("features") or {}
         return f.debug == true
@@ -1353,16 +1361,34 @@ function AskGPT:buildAdvancedSettings()
       end,
       keep_menu_open = true,
     },
+    -- Show Debug in Chat (viewer display)
+    {
+      text = _("Show Debug in Chat"),
+      help_text = _("Display debug information in chat viewer"),
+      checked_func = function()
+        local f = self_ref.settings:readSetting("features") or {}
+        return f.show_debug_in_chat == true
+      end,
+      callback = function()
+        local f = self_ref.settings:readSetting("features") or {}
+        f.show_debug_in_chat = not f.show_debug_in_chat
+        self_ref.settings:saveSetting("features", f)
+        self_ref.settings:flush()
+        self_ref:updateConfigFromSettings()
+      end,
+      keep_menu_open = true,
+    },
+    -- Debug Detail Level (depends on Show Debug in Chat)
     {
       text_func = function()
         local f = self_ref.settings:readSetting("features") or {}
         local level = f.debug_display_level or "names"
         local labels = { minimal = _("Minimal"), names = _("Names"), full = _("Full") }
-        return T(_("Debug Display: %1"), labels[level] or level)
+        return T(_("Debug Detail Level: %1"), labels[level] or level)
       end,
       enabled_func = function()
         local f = self_ref.settings:readSetting("features") or {}
-        return f.debug == true
+        return f.show_debug_in_chat == true
       end,
       sub_item_table = {
         {

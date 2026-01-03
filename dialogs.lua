@@ -465,7 +465,7 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
         title = title .. " (" .. model_info .. ")",
         text = result_text,
         configuration = temp_config or CONFIGURATION,  -- Pass configuration for debug toggle
-        debug_mode = temp_config and temp_config.features and temp_config.features.debug or false,
+        show_debug_in_chat = temp_config and temp_config.features and temp_config.features.show_debug_in_chat or false,
         original_history = history,
         original_highlighted_text = highlightedText,
         settings_callback = function(path, value)
@@ -493,18 +493,18 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                     
                     -- Also update configuration object
                     plugin:updateConfigFromSettings()
-                    
+
                     -- Update temp_config if it exists
-                    if temp_config and temp_config.features and parts[1] == "features" and parts[2] == "debug" then
-                        temp_config.features.debug = value
+                    if temp_config and temp_config.features and parts[1] == "features" and parts[2] == "show_debug_in_chat" then
+                        temp_config.features.show_debug_in_chat = value
                     end
                 end
             end
         end,
         update_debug_callback = function(enabled)
-            -- Update debug mode in history if available
-            if history and history.debug_mode ~= nil then
-                history.debug_mode = enabled
+            -- Update debug display setting in history if available
+            if history and history.show_debug_in_chat ~= nil then
+                history.show_debug_in_chat = enabled
             end
         end,
         onAskQuestion = function(viewer, question)
@@ -525,7 +525,7 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                         text = history:createResultText(highlightedText, temp_config or CONFIGURATION),
                         configuration = temp_config or CONFIGURATION,  -- Pass configuration to maintain auto-save state
                         scroll_to_bottom = true, -- Scroll to bottom to show new question
-                        debug_mode = viewer.debug_mode,
+                        show_debug_in_chat = viewer.show_debug_in_chat,
                         original_history = history,
                         original_highlighted_text = highlightedText,
                         settings_callback = viewer.settings_callback,

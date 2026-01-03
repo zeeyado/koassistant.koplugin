@@ -228,8 +228,8 @@ function MessageHistory:createResultText(highlightedText, config)
         end
     end
 
-    -- Debug mode: show messages sent to AI
-    if config and config.features and config.features.debug then
+    -- Debug display: show messages sent to AI (controlled by show_debug_in_chat, independent of console debug)
+    if config and config.features and config.features.show_debug_in_chat then
         local display_level = config.features.debug_display_level or "names"
 
         table.insert(result, "--- Debug Info ---\n\n")
