@@ -72,7 +72,7 @@ local CONFIGURATION = {
         -- long_highlight_threshold = 280,     -- Characters before highlight is "long"
 
         -- Translation
-        -- translate_to = "English",           -- Default translation target language
+        -- translation_language = "English",    -- Target language for Translate action
 
         -- Response rendering
         -- render_markdown = true,             -- Format responses (bold, lists, etc.)

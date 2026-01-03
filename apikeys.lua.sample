@@ -3,7 +3,7 @@
 --
 -- This is one of three user-configurable files:
 -- 1. apikeys.lua - API credentials for AI providers (this file)
--- 2. custom_prompts.lua - User-defined prompts and actions
+-- 2. custom_actions.lua - User-defined actions
 -- 3. configuration.lua - Advanced settings and provider overrides
 
 return {
