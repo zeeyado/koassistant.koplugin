@@ -1,12 +1,12 @@
 -- Action Service for KOAssistant
 -- Coordinates actions, templates, and system prompts
 --
--- This module replaces prompt_service.lua with a cleaner architecture:
+-- Architecture:
 --   - Actions: UI buttons with behavior control & API parameters (prompts/actions.lua)
 --   - Templates: User prompt text (prompts/templates.lua)
 --   - System prompts: AI behavior variants (prompts/system_prompts.lua)
 --
--- NEW ARCHITECTURE (v0.5):
+-- Request structure:
 --   System array: behavior (from variant/override/none) + domain [CACHED]
 --   User message: context data + action prompt + runtime input
 --
@@ -14,7 +14,6 @@
 --   - Per-action behavior control (variant, override, or none)
 --   - Per-action API parameters (temperature, max_tokens, thinking)
 --   - Prompt caching support for Anthropic
---   - Migration support from legacy prompt_service data
 
 local logger = require("logger")
 
@@ -58,22 +57,6 @@ function ActionService:init()
         logger.info("ActionService: Loaded templates module")
     else
         logger.err("ActionService: Failed to load prompts/templates.lua: " .. tostring(Templates))
-    end
-
-    -- Check for migration needed
-    self:checkMigration()
-end
-
--- Check if legacy prompts need migration
-function ActionService:checkMigration()
-    local migrated = self.settings:readSetting("actions_migrated_v1")
-    if migrated then
-        return
-    end
-
-    local custom_actions = self.settings:readSetting("custom_actions")
-    if custom_actions and #custom_actions > 0 then
-        logger.info("ActionService: Found custom_actions with " .. #custom_actions .. " entries")
     end
 end
 
@@ -177,9 +160,6 @@ function ActionService:loadActions()
         self:addCustomAction(id, action, "ui", disabled_actions)
     end
 
-    -- 4. Also load legacy prompts for backwards compatibility
-    self:loadLegacyPrompts(disabled_actions)
-
     -- Log summary
     self:logLoadSummary()
 end
@@ -223,67 +203,10 @@ function ActionService:expandContexts(context)
         return {"highlight", "book"}
     elseif context == "highlight" or context == "book" or context == "multi_book" or context == "general" then
         return {context}
-    -- Legacy names
-    elseif context == "file_browser" then
-        return {"book"}
-    elseif context == "multi_file_browser" then
-        return {"multi_book"}
     else
         -- Default to highlight + book
         return {"highlight", "book"}
     end
-end
-
--- Load legacy prompts - handles disabled_prompts format only
--- Note: custom_actions are already loaded in step 3, don't load them again here
-function ActionService:loadLegacyPrompts(disabled_actions)
-    -- Only handle legacy disabled_prompts setting for backwards compatibility
-    -- The actual actions are loaded from custom_actions in loadActions() step 3
-    local disabled_prompts = self.settings:readSetting("disabled_prompts") or {}
-
-    -- Apply legacy disabled state to already-loaded UI actions
-    for _, context in ipairs({"highlight", "book", "multi_book", "general"}) do
-        for _, action in ipairs(self.actions_cache[context]) do
-            if action.source == "ui" then
-                local legacy_key = context .. ":" .. (action.text or action.id)
-                if disabled_prompts[legacy_key] then
-                    action.enabled = false
-                end
-            end
-        end
-    end
-end
-
--- Convert legacy prompt format to action format
--- Maps old system_prompt to behavior_override for backwards compatibility
-function ActionService:convertLegacyPrompt(prompt)
-    -- Map legacy system_prompt to behavior_override
-    local behavior_override = nil
-    if prompt.system_prompt and prompt.system_prompt ~= "" then
-        behavior_override = prompt.system_prompt
-        logger.dbg("ActionService: Migrating legacy system_prompt to behavior_override for: " .. (prompt.text or "unnamed"))
-    end
-
-    return {
-        text = prompt.text,
-        context = prompt.context or "both",
-        template = nil,  -- Custom prompts use prompt directly
-        prompt = prompt.user_prompt,  -- Renamed from user_prompt
-        -- NEW: behavior fields replace system_prompt
-        behavior_override = behavior_override,
-        behavior_variant = nil,  -- Use global setting
-        -- Legacy field kept for reference during migration
-        _legacy_system_prompt = prompt.system_prompt,
-        provider = prompt.provider,
-        model = prompt.model,
-        requires = prompt.requires,
-        include_book_context = prompt.include_book_context,
-        domain = prompt.domain,
-        api_params = {
-            temperature = 0.7,  -- Default
-        },
-        builtin = false,
-    }
 end
 
 -- Log summary of loaded actions
@@ -362,9 +285,8 @@ end
 -- @param data: Context data for variable substitution
 -- @return string: Rendered user message
 function ActionService:buildUserMessage(action, context_type, data)
-    -- Custom actions have prompt directly (new field name)
-    -- Also check user_prompt for backwards compatibility
-    local prompt_text = action.prompt or action.user_prompt
+    -- Custom actions have prompt directly
+    local prompt_text = action.prompt
     if prompt_text then
         if self.Templates then
             local variables = self.Templates.buildVariables(context_type, data)
@@ -527,89 +449,7 @@ function ActionService:initialize()
     self:init()
 end
 
---------------------------------------------------------------------------------
--- Legacy API Adapters
--- These methods provide backwards compatibility with prompt_service.lua API
--- so dialogs.lua can switch to ActionService without breaking
---------------------------------------------------------------------------------
-
--- Get all prompts for a context (legacy API adapter)
--- Converts actions to the legacy prompt format expected by dialogs.lua
--- @param context: "highlight", "book", "multi_book", "general"
--- @param include_disabled: Include disabled prompts
--- @return table: Array of prompts in legacy format
-function ActionService:getAllPrompts(context, include_disabled)
-    local actions = self:getAllActions(context, include_disabled)
-    local prompts = {}
-
-    for _, action in ipairs(actions) do
-        -- Convert action to legacy prompt format
-        -- Note: system_prompt is deprecated, use behavior_override instead
-        local prompt = {
-            id = action.id,
-            text = action.text,
-            -- NEW: behavior fields
-            behavior_variant = action.behavior_variant,
-            behavior_override = action.behavior_override,
-            -- Legacy field for backwards compatibility (deprecated)
-            system_prompt = action.behavior_override or action.system_prompt,
-            -- Prompt field (new name) with fallback to user_prompt (old name)
-            prompt = action.prompt or action.user_prompt or (action.template and self:getTemplateText(action.template)),
-            user_prompt = action.prompt or action.user_prompt or (action.template and self:getTemplateText(action.template)),
-            enabled = action.enabled,
-            source = action.source,
-            provider = action.provider,
-            model = action.model,
-            requires = action.requires,
-            include_book_context = action.include_book_context,
-            original_context = action.context,
-            domain = action.domain,
-            -- Keep action reference for new features
-            _action = action,
-        }
-        table.insert(prompts, prompt)
-    end
-
-    return prompts
-end
-
--- Get a specific prompt by ID (legacy API adapter)
--- @param context: Context to search in
--- @param prompt_id: The prompt's unique identifier
--- @return table or nil: Prompt in legacy format if found
-function ActionService:getPrompt(context, prompt_id)
-    local action = self:getAction(context, prompt_id)
-    if not action then
-        return nil
-    end
-
-    -- Convert to legacy format
-    -- Note: system_prompt is deprecated, use behavior_override instead
-    return {
-        id = action.id,
-        text = action.text,
-        -- NEW: behavior fields
-        behavior_variant = action.behavior_variant,
-        behavior_override = action.behavior_override,
-        -- Legacy field for backwards compatibility (deprecated)
-        system_prompt = action.behavior_override or action.system_prompt,
-        -- Prompt field (new name) with fallback to user_prompt (old name)
-        prompt = action.prompt or action.user_prompt or (action.template and self:getTemplateText(action.template)),
-        user_prompt = action.prompt or action.user_prompt or (action.template and self:getTemplateText(action.template)),
-        enabled = action.enabled,
-        source = action.source,
-        provider = action.provider,
-        model = action.model,
-        requires = action.requires,
-        include_book_context = action.include_book_context,
-        original_context = action.context,
-        domain = action.domain,
-        _action = action,
-    }
-end
-
 -- Get template text for a template ID
--- Helper for legacy API conversion
 function ActionService:getTemplateText(template_id)
     if self.Templates and self.Templates.get then
         return self.Templates.get(template_id)
@@ -617,107 +457,14 @@ function ActionService:getTemplateText(template_id)
     return nil
 end
 
--- Get action template (legacy API adapter)
--- Alias for getTemplateText to match PromptService API
-function ActionService:getActionTemplate(template_name)
-    return self:getTemplateText(template_name)
+-- Adapter: getAllPrompts -> getAllActions (used by dialogs.lua, prompts_manager.lua)
+function ActionService:getAllPrompts(context, include_disabled)
+    return self:getAllActions(context, include_disabled)
 end
 
--- Get system prompt for a context (legacy API adapter)
--- This uses the new layered system but returns a flat string for compatibility
---
--- DEPRECATED: In the new architecture, system prompts are just behavior + domain.
--- Context-specific instructions are no longer included in system array.
---
--- @param context: "highlight", "book", "multi_book", "general" (ignored in new architecture)
--- @param prompt_type: Optional specific prompt type (ignored in new architecture)
--- @return string: System prompt text (behavior only)
-function ActionService:getSystemPrompt(context, prompt_type)
-    -- In the new architecture, getSystemPrompt just returns the global behavior
-    -- Context and action-specific prompts go in the user message now
-    return self:buildFlattenedSystem({
-        domain_context = nil,  -- Domain handled separately in dialogs.lua
-        action = nil,  -- No action-specific behavior override
-    })
-end
-
--- Set prompt enabled state (legacy API adapter)
--- @param context: Context (can be "all", "both", or specific)
--- @param prompt_text: The prompt's display text
--- @param enabled: Boolean enabled state
-function ActionService:setPromptEnabled(context, prompt_text, enabled)
-    -- Find the action with matching text
-    local contexts_to_check = {}
-    if context == "all" then
-        contexts_to_check = {"highlight", "book", "multi_book", "general"}
-    elseif context == "both" then
-        contexts_to_check = {"highlight", "book"}
-    else
-        contexts_to_check = {context}
-    end
-
-    for _, ctx in ipairs(contexts_to_check) do
-        local actions = self:getAllActions(ctx, true)
-        for _, action in ipairs(actions) do
-            if action.text == prompt_text then
-                self:setActionEnabled(ctx, action.id, enabled)
-            end
-        end
-    end
-end
-
--- Add a user-created prompt (legacy API adapter)
--- Converts legacy prompt format to action format
--- @param prompt_data: Prompt data (supports both old and new field names)
-function ActionService:addUserPrompt(prompt_data)
-    local action_data = {
-        text = prompt_data.text,
-        context = prompt_data.context or "both",
-        -- NEW: prompt field (also accepts user_prompt for backwards compatibility)
-        prompt = prompt_data.prompt or prompt_data.user_prompt,
-        -- NEW: behavior fields (also accepts system_prompt for backwards compatibility)
-        behavior_variant = prompt_data.behavior_variant,
-        behavior_override = prompt_data.behavior_override or prompt_data.system_prompt,
-        provider = prompt_data.provider,
-        model = prompt_data.model,
-        requires = prompt_data.requires,
-        include_book_context = prompt_data.include_book_context,
-        domain = prompt_data.domain,
-        api_params = {
-            temperature = 0.7,
-        },
-    }
-    self:addUserAction(action_data)
-end
-
--- Update a user-created prompt (legacy API adapter)
--- @param index: Index of the prompt to update
--- @param prompt_data: New prompt data (supports both old and new field names)
-function ActionService:updateUserPrompt(index, prompt_data)
-    local action_data = {
-        text = prompt_data.text,
-        context = prompt_data.context or "both",
-        -- NEW: prompt field (also accepts user_prompt for backwards compatibility)
-        prompt = prompt_data.prompt or prompt_data.user_prompt,
-        -- NEW: behavior fields (also accepts system_prompt for backwards compatibility)
-        behavior_variant = prompt_data.behavior_variant,
-        behavior_override = prompt_data.behavior_override or prompt_data.system_prompt,
-        provider = prompt_data.provider,
-        model = prompt_data.model,
-        requires = prompt_data.requires,
-        include_book_context = prompt_data.include_book_context,
-        domain = prompt_data.domain,
-        api_params = {
-            temperature = 0.7,
-        },
-    }
-    self:updateUserAction(index, action_data)
-end
-
--- Delete a user-created prompt (legacy API adapter)
--- @param index: Index of the prompt to delete
-function ActionService:deleteUserPrompt(index)
-    self:deleteUserAction(index)
+-- Adapter: getPrompt -> getAction (used by dialogs.lua)
+function ActionService:getPrompt(context, prompt_id)
+    return self:getAction(context, prompt_id)
 end
 
 return ActionService
