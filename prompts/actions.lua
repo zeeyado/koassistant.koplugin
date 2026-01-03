@@ -172,8 +172,9 @@ Actions.special = {
         id = "translate",
         text = _("Translate"),
         context = "highlight",  -- Only for highlighted text
-        template = "translate",
-        behavior_variant = "none",  -- No AI personality, just direct translation
+        behavior_override = "Provide direct, accurate translations without additional commentary unless specifically asked.",
+        prompt = "Translate this to {translation_language}: {highlighted_text}",
+        include_book_context = false,
         api_params = {
             temperature = 0.3,  -- Very deterministic for translations
         },
