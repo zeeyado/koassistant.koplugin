@@ -41,8 +41,8 @@ If you don't include a `# Heading`, the display name is derived from the filenam
 ## Sample Files
 
 Copy files from this folder to `domains/` and customize them:
-- `research.md.sample` → `domains/research.md`
-- `literature.md.sample` → `domains/literature.md`
+- `research.md` → `domains/research.md`
+- `literature.md` → `domains/literature.md`
 
 ## Note
 

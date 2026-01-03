@@ -2,8 +2,10 @@
 /apikeys.lua
 .DS_Store
 /custom_prompts.lua
-CLAUDE.md
+/custom_actions.lua
 custom_prompts.lua
+custom_actions.lua
+CLAUDE.md
 plan.md
 /docs
 .stfolder
@@ -11,7 +13,6 @@ plan.md
 
 # User domains (not tracked)
 /domains/
-domains.lua
 
 # Keep sample domains tracked
 !/domains.sample/
