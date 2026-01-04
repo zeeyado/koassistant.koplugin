@@ -5,24 +5,39 @@ local ModelLists = {
         "claude-haiku-4-5-20251001",
         "claude-opus-4-5-20251101",
     },
-    openai = {
+    oopenai = {
+        -- GPT-5 family (flagship)
+        "gpt-5.2",
+        "gpt-5.2-mini",
+        "gpt-5.1",
+        "gpt-5",
+        "gpt-5-mini",
+        -- GPT-4.1 family
         "gpt-4.1",
         "gpt-4.1-mini",
         "gpt-4.1-nano",
+        -- Reasoning models
+        "o3",
+        "o3-pro",
         "o4-mini",
-        "o1",
-        "o3-mini",
+        -- Legacy
         "gpt-4o",
-        "gpt-40-mini",
+        "gpt-4o-mini",
     },
     deepseek = {
-        "deepseek-chat",
-        "deepseek-reasoner",
+        "deepseek-chat",      -
+        "deepseek-reasoner",  
     },
     gemini = {
+        -- Gemini 3 (preview)
+        "gemini-3-pro-preview",
+        "gemini-3-flash-preview",
+        -- Gemini 2.5 (stable)
         "gemini-2.5-pro",
         "gemini-2.5-flash",
-        "gemini-2.5-flash-lite-preview-06-17",
+        "gemini-2.5-flash-lite",
+        -- Gemini 2.0 (previous gen)
+        "gemini-2.0-flash",
     },
     ollama = {
         "llama3",
@@ -46,5 +61,4 @@ local ModelLists = {
         "orca-mini",
     }
 }
-
-return ModelLists 
+return ModelLists
