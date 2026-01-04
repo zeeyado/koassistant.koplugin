@@ -95,10 +95,14 @@ If the chat was launched from within a book, that context may be provided, but i
 
 -- Helper function to get behavior prompt by variant name
 -- Falls back to 'minimal' if variant not found
--- @param variant: "minimal", "full", or nil
+-- @param variant: "minimal", "full", "custom", or nil
+-- @param custom_text: Custom behavior text (used when variant is "custom")
 -- @return string: Behavior prompt text
-function SystemPrompts.getBehavior(variant)
+function SystemPrompts.getBehavior(variant, custom_text)
     variant = variant or "minimal"
+    if variant == "custom" then
+        return custom_text or SystemPrompts.behavior.minimal
+    end
     return SystemPrompts.behavior[variant] or SystemPrompts.behavior.minimal
 end
 
@@ -117,8 +121,9 @@ end
 -- Handles priority: override > variant > global setting
 -- @param config: {
 --   behavior_override: custom behavior text (highest priority),
---   behavior_variant: "minimal", "full", "none", or nil,
---   global_variant: global setting fallback (features.ai_behavior_variant)
+--   behavior_variant: "minimal", "full", "custom", "none", or nil,
+--   global_variant: global setting fallback (features.ai_behavior_variant),
+--   custom_ai_behavior: user's custom behavior text (used when variant is "custom")
 -- }
 -- @return behavior_text (string or nil), source (string)
 --   behavior_text: The resolved behavior text, or nil if disabled
@@ -126,15 +131,18 @@ end
 function SystemPrompts.resolveBehavior(config)
     config = config or {}
 
-    -- Priority 1: Custom override text
+    -- Priority 1: Custom override text (per-action)
     if config.behavior_override and config.behavior_override ~= "" then
         return config.behavior_override, "override"
     end
 
-    -- Priority 2: Named variant (including "none")
+    -- Priority 2: Named variant (including "none" and "custom")
     if config.behavior_variant then
         if config.behavior_variant == "none" then
             return nil, "none"  -- Behavior disabled
+        end
+        if config.behavior_variant == "custom" then
+            return config.custom_ai_behavior or SystemPrompts.behavior.minimal, "variant"
         end
         -- Use specific variant
         local behavior = SystemPrompts.behavior[config.behavior_variant]
@@ -146,6 +154,9 @@ function SystemPrompts.resolveBehavior(config)
 
     -- Priority 3: Global setting
     local global_variant = config.global_variant or "full"
+    if global_variant == "custom" then
+        return config.custom_ai_behavior or SystemPrompts.behavior.minimal, "global"
+    end
     return SystemPrompts.getBehavior(global_variant), "global"
 end
 
@@ -195,6 +206,7 @@ function SystemPrompts.buildAnthropicSystemArray(config)
         behavior_override = config.behavior_override,
         behavior_variant = config.behavior_variant,
         global_variant = config.global_variant,
+        custom_ai_behavior = config.custom_ai_behavior,
     })
 
     -- Build language instruction if user has configured languages
@@ -287,6 +299,7 @@ function SystemPrompts.buildFlattenedPrompt(config)
         behavior_override = config.behavior_override,
         behavior_variant = config.behavior_variant,
         global_variant = config.global_variant,
+        custom_ai_behavior = config.custom_ai_behavior,
     })
 
     -- Get combined content

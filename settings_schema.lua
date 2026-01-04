@@ -159,15 +159,24 @@ local SettingsSchema = {
                     text_func = function(plugin)
                         local f = plugin.settings:readSetting("features") or {}
                         local variant = f.ai_behavior_variant or "full"
-                        return T(_("AI Behavior: %1"), variant == "minimal" and _("Minimal") or _("Full"))
+                        local labels = { minimal = _("Minimal"), full = _("Full"), custom = _("Custom") }
+                        return T(_("AI Behavior: %1"), labels[variant] or _("Full"))
                     end,
                     path = "features.ai_behavior_variant",
                     default = "full",
-                    separator = true,
                     options = {
                         { value = "minimal", text = _("Minimal (~100 tokens)") },
                         { value = "full", text = _("Full (~500 tokens)") },
+                        { value = "custom", text = _("Custom") },
                     },
+                },
+                {
+                    id = "custom_ai_behavior",
+                    type = "action",
+                    text = _("Edit Custom Behavior..."),
+                    callback = "editCustomAIBehavior",
+                    depends_on = { id = "ai_behavior_variant", value = "custom" },
+                    separator = true,
                 },
                 {
                     id = "enable_extended_thinking",

@@ -372,7 +372,8 @@ See `custom_actions.lua.sample` for more examples.
 - **Large Stream Dialog**: Use full-screen streaming window
 
 ### Advanced
-- **AI Behavior**: Minimal (~100 tokens) or Full (~500 tokens) guidelines
+- **AI Behavior**: Minimal (~100 tokens), Full (~500 tokens), or Custom guidelines
+- **Edit Custom Behavior**: Define your own AI behavior instructions (when Custom is selected)
 - **Enable Extended Thinking**: Enable Claude's reasoning capability (Anthropic only)
 - **Thinking Budget**: Token budget for reasoning (1024-32000)
 - **Console Debug**: Enable terminal/console debug logging
@@ -496,14 +497,15 @@ Best for: Complex analysis, reasoning problems, nuanced questions
 
 ### AI Behavior Variants
 
-Two styles of AI personality, configurable globally or per-action:
+Three styles of AI personality, configurable globally or per-action:
 
 - **Minimal** (~100 tokens): Brief guidelines, lower cost
 - **Full** (~500 tokens): Comprehensive guidelines for natural, well-formatted responses
+- **Custom**: Your own behavior instructions, fully customizable
 
 Individual actions can override the global setting:
-- Use a different variant (minimal/full/none)
-- Provide completely custom behavior text
+- Use a different variant (minimal/full/custom/none)
+- Provide completely custom behavior text per-action
 - The built-in Translate action uses minimal behavior for direct, accurate translations
 
 ---
