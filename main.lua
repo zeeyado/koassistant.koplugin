@@ -1031,6 +1031,106 @@ function AskGPT:buildModelMenu()
   return items
 end
 
+-- Get the effective primary language (with override support)
+function AskGPT:getEffectivePrimaryLanguage()
+  local features = self.settings:readSetting("features") or {}
+  local user_languages = features.user_languages or ""
+  local override = features.primary_language
+
+  if user_languages == "" then
+    return nil
+  end
+
+  -- Parse languages
+  local languages = {}
+  for lang in user_languages:gmatch("([^,]+)") do
+    local trimmed = lang:match("^%s*(.-)%s*$")
+    if trimmed ~= "" then
+      table.insert(languages, trimmed)
+    end
+  end
+
+  if #languages == 0 then
+    return nil
+  end
+
+  -- Check if override is valid (exists in list)
+  if override and override ~= "" then
+    for _, lang in ipairs(languages) do
+      if lang == override then
+        return override
+      end
+    end
+  end
+
+  -- Default to first language
+  return languages[1]
+end
+
+-- Build primary language picker menu
+function AskGPT:buildPrimaryLanguageMenu()
+  local self_ref = self
+  local features = self.settings:readSetting("features") or {}
+  local user_languages = features.user_languages or ""
+
+  if user_languages == "" then
+    return {
+      {
+        text = _("Set your languages first"),
+        enabled = false,
+      },
+    }
+  end
+
+  -- Parse languages
+  local languages = {}
+  for lang in user_languages:gmatch("([^,]+)") do
+    local trimmed = lang:match("^%s*(.-)%s*$")
+    if trimmed ~= "" then
+      table.insert(languages, trimmed)
+    end
+  end
+
+  if #languages == 0 then
+    return {
+      {
+        text = _("No valid languages found"),
+        enabled = false,
+      },
+    }
+  end
+
+  local current_primary = self:getEffectivePrimaryLanguage()
+  local menu_items = {}
+
+  for i, lang in ipairs(languages) do
+    local is_first = (i == 1)
+    local lang_copy = lang  -- Capture for closure
+
+    table.insert(menu_items, {
+      text = is_first and lang .. " " .. _("(default)") or lang,
+      checked_func = function()
+        return lang_copy == self_ref:getEffectivePrimaryLanguage()
+      end,
+      radio = true,
+      callback = function()
+        local f = self_ref.settings:readSetting("features") or {}
+        if is_first then
+          -- First language = clear override (use default)
+          f.primary_language = nil
+        else
+          f.primary_language = lang_copy
+        end
+        self_ref.settings:saveSetting("features", f)
+        self_ref.settings:flush()
+      end,
+      keep_menu_open = true,
+    })
+  end
+
+  return menu_items
+end
+
 function AskGPT:addToMainMenu(menu_items)
   menu_items["koassistant"] = {
     text = _("KOAssistant"),

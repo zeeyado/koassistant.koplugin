@@ -909,20 +909,14 @@ local function handlePredefinedPrompt(prompt_type, highlightedText, ui, configur
     -- Determine context
     local context = getPromptContext(config)
 
-    -- Resolve effective translation language
-    local effective_translation_language
-    if config.features.translation_use_primary ~= false then
-        -- Default: use first language from user_languages (primary)
-        local user_languages = config.features.user_languages or "English"
-        local primary = user_languages:match("^%s*([^,]+)")  -- Get first language
-        if primary then
-            primary = primary:match("^%s*(.-)%s*$")  -- Trim whitespace
-        end
-        effective_translation_language = (primary and primary ~= "") and primary or "English"
-    else
-        -- Use custom translation_language setting
-        effective_translation_language = config.features.translation_language or "English"
-    end
+    -- Resolve effective translation language (uses SystemPrompts for consistency)
+    local SystemPrompts = require("prompts.system_prompts")
+    local effective_translation_language = SystemPrompts.getEffectiveTranslationLanguage({
+        translation_use_primary = config.features.translation_use_primary,
+        user_languages = config.features.user_languages,
+        primary_language = config.features.primary_language,
+        translation_language = config.features.translation_language,
+    })
 
     -- Build data for consolidated message
     local message_data = {
