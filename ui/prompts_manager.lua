@@ -1192,6 +1192,7 @@ function PromptsManager:showThinkingBudgetSelector(state)
         value_max = 32000,
         value_step = 1024,
         default_value = 4096,
+        ok_always_enabled = true,  -- Allow Apply even when value unchanged
         callback = function(spin)
             state.extended_thinking = "on"
             state.thinking_budget = spin.value
@@ -1706,6 +1707,7 @@ function PromptsManager:showBuiltinThinkingBudgetSelector(state)
         value_max = 32000,
         value_step = 1024,
         default_value = 4096,
+        ok_always_enabled = true,  -- Allow Apply even when value unchanged
         callback = function(spin)
             state.extended_thinking = "on"
             state.thinking_budget = spin.value
