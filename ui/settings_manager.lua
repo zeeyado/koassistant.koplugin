@@ -20,6 +20,14 @@ end
 
 -- Create a single menu item based on its schema definition
 function SettingsManager:createMenuItem(plugin, item, schema)
+    -- Check visibility first - if visible_func returns false, skip this item entirely
+    if item.visible_func then
+        local visible = item.visible_func(plugin)
+        if not visible then
+            return nil
+        end
+    end
+
     -- Handle special item types
     if item.type == "separator" then
         return { 

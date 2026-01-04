@@ -350,6 +350,7 @@ See `custom_actions.lua.sample` for more examples.
 **Tools → KOAssistant → Settings**
 
 ### Quick Actions
+- **Chat about Book**: Start a conversation about the current book (only visible when reading)
 - **New General Chat**: Start a context-free conversation
 - **Chat History**: Browse saved conversations
 
