@@ -1232,12 +1232,6 @@ function AskGPT:editCustomAIBehavior()
   local features = self.settings:readSetting("features") or {}
   local current_text = features.custom_ai_behavior or ""
 
-  -- Get full behavior as default template if empty
-  if current_text == "" then
-    local SystemPrompts = require("prompts.system_prompts")
-    current_text = SystemPrompts.getBehavior("full") or ""
-  end
-
   local InputDialog = require("ui/widget/inputdialog")
   local input_dialog
   input_dialog = InputDialog:new{
