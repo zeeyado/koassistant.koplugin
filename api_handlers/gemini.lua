@@ -8,17 +8,56 @@ local ResponseParser = require("api_handlers.response_parser")
 
 local GeminiHandler = BaseHandler:new()
 
+-- Build the full Gemini API URL with model name
+-- @param base_url string: Base URL (without model)
+-- @param model string: Model name
+-- @param streaming boolean: Whether to use streaming endpoint
+-- @return string: Full URL
+local function buildGeminiUrl(base_url, model, streaming)
+    local endpoint = streaming and ":streamGenerateContent" or ":generateContent"
+    local url = base_url .. "/" .. model .. endpoint
+    if streaming then
+        url = url .. "?alt=sse"
+    end
+    return url
+end
+
+-- Extract system messages from message history for system_instruction
+-- @param messages table: Message history
+-- @return string|nil: Combined system instruction text
+local function extractSystemInstruction(messages)
+    local system_parts = {}
+    for _, msg in ipairs(messages) do
+        if msg.role == "system" and msg.content and msg.content ~= "" then
+            table.insert(system_parts, msg.content)
+        end
+    end
+    if #system_parts > 0 then
+        return table.concat(system_parts, "\n\n")
+    end
+    return nil
+end
+
 function GeminiHandler:query(message_history, config)
     if not config or not config.api_key then
         return "Error: Missing API key in configuration"
     end
 
     local defaults = Defaults.ProviderDefaults.gemini
+    local model = config.model or defaults.model
 
     -- Use the RequestBuilder to create the request body
     local request_body, error = RequestBuilder:buildRequestBody(message_history, config, "gemini")
     if not request_body then
         return "Error: " .. error
+    end
+
+    -- Extract system instruction from message history
+    local system_instruction = extractSystemInstruction(message_history)
+    if system_instruction then
+        request_body.system_instruction = {
+            parts = {{ text = system_instruction }}
+        }
     end
 
     -- Check if streaming is enabled
@@ -28,32 +67,30 @@ function GeminiHandler:query(message_history, config)
     if config and config.features and config.features.debug then
         print("Gemini Request Body:", json.encode(request_body))
         print("Streaming enabled:", use_streaming and "yes" or "no")
+        print("Model:", model)
     end
 
     local requestBody = json.encode(request_body)
+
+    -- Use header-based authentication (more secure than query param)
     local headers = {
         ["Content-Type"] = "application/json",
+        ["x-goog-api-key"] = config.api_key,
         ["Content-Length"] = tostring(#requestBody),
     }
 
-    -- Gemini uses different endpoints for streaming vs non-streaming
-    -- Non-streaming: generateContent
-    -- Streaming: streamGenerateContent
     local base_url = config.base_url or defaults.base_url
 
-    -- If streaming is enabled, modify the endpoint
+    -- If streaming is enabled, return the background request function
     if use_streaming then
-        -- Change endpoint from generateContent to streamGenerateContent
-        base_url = base_url:gsub(":generateContent$", ":streamGenerateContent")
-        base_url = base_url .. "?key=" .. config.api_key .. "&alt=sse"
+        local stream_url = buildGeminiUrl(base_url, model, true)
         headers["Accept"] = "text/event-stream"
 
-        return self:backgroundRequest(base_url, headers, requestBody)
+        return self:backgroundRequest(stream_url, headers, requestBody)
     end
 
     -- Non-streaming mode: make regular request
-    -- Add API key as query parameter
-    local url = base_url .. "?key=" .. config.api_key
+    local url = buildGeminiUrl(base_url, model, false)
 
     local responseBody = {}
     local success, code = https.request({

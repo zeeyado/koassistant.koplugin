@@ -58,7 +58,8 @@ local ProviderDefaults = {
     gemini = {
         provider = "gemini",
         model = getDefaultModel("gemini"),
-        base_url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent",
+        -- Base URL without model - model is inserted dynamically by the handler
+        base_url = "https://generativelanguage.googleapis.com/v1beta/models",
         additional_parameters = {
             temperature = 0.7
         }
