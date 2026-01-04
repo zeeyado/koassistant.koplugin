@@ -117,8 +117,11 @@ function BaseHandler:backgroundRequest(url, headers, body)
             sink = ltn12.sink.file(pipe_w),  -- response body writes to pipe
         }
 
+        -- Use https.request for HTTPS URLs, http.request for HTTP
+        local request_func = string.sub(url, 1, 8) == "https://" and https.request or http.request
+
         local ok, code, resp_headers, status = pcall(function()
-            return socket.skip(1, http.request(request))
+            return socket.skip(1, request_func(request))
         end)
 
         if not ok then
@@ -126,14 +129,16 @@ function BaseHandler:backgroundRequest(url, headers, body)
             local err_msg = tostring(code)  -- code contains error message when pcall fails
             logger.warn("Background request error:", err_msg, "url:", url)
             ffiutil.writeToFD(child_write_fd,
-                string.format("\r\n%s [Connection Error: %s] URL:%s\n\n",
-                    self.PROTOCOL_NON_200, err_msg, url))
+                string.format("\r\n%sConnection error: %s\n\n",
+                    self.PROTOCOL_NON_200, err_msg))
         elseif code ~= 200 then
             logger.warn("Background request non-200:", code, "status:", status, "url:", url)
             -- Write error marker to pipe so parent can detect non-200 response
+            -- Extract just the status text (e.g., "Payment Required" from "HTTP/1.1 402 Payment Required")
+            local status_text = status and status:match("^HTTP/%S+%s+%d+%s+(.+)$") or status or "Request failed"
             ffiutil.writeToFD(child_write_fd,
-                string.format("\r\n%s [%s %s] URL:%s\n\n",
-                    self.PROTOCOL_NON_200, status or "", code or "", url))
+                string.format("\r\n%sError %d: %s\n\n",
+                    self.PROTOCOL_NON_200, code or 0, status_text))
         end
 
         ffi.C.close(child_write_fd)  -- close the write end of the pipe
