@@ -103,16 +103,16 @@ For easy access, assign KOAssistant actions to a gesture:
 
 ### Tips for Better Results
 
-- **Good book metadata** improves AI responses. Use Calibre or similar tools to ensure titles and authors are correct.
-- **Shorter tap duration** makes text selection easier: Settings → Taps and Gestures → Long-press interval
-- **Choose models wisely**: Fast models (like Haiku) for quick queries; powerful models (like Sonnet, Opus) for deeper analysis
-- **Discover advanced functionality** dig into the deeper functionality available in KOAssistant, like custom domains and actions, to enhance the plugin and tailor it to your usage.
+- **Good document metadata** improves AI responses. Use Calibre, Zotero, or similar tools to ensure titles, authors, and identifiers are correct.
+- **Shorter tap duration** makes text selection in KOReader easier: Settings → Taps and Gestures → Long-press interval
+- **Choose models wisely**: Fast models (like Haiku) for quick queries; powerful models (like Sonnet, Opus) for deeper analysis. Choose an appropriate model for a given task (you can set specific models for you custom actions)
+- **Discover advanced functionality and adjust settings**: Dig into the deeper functionality available in KOAssistant, like custom knowledge domains and custom actions, temperature, extended thinking, and AI behavior settings, to enhance the plugin and tailor it to your usage.
 
 ---
 
 ## How to Use KOAssistant
 
-KOAssistant works in **4 contexts**, each with its own set of actions, and you can create custom actions for each and all contexts:
+KOAssistant works in **4 contexts**, each with its own set of actions, and you can create custom actions for each and all contexts, and enable/disable the built in ones:
 
 ### Highlight Mode
 
@@ -129,9 +129,9 @@ KOAssistant works in **4 contexts**, each with its own set of actions, and you c
 
 **What the AI sees**: Your highlighted text, plus optionally the book title and author.
 
-### Book Mode
+### Book/document Mode 
 
-**Access**: Long-press a book in File Browser → "KOAssistant" or select gesture action "Chat about book" while in a document
+**Access**: Long-press a book in File Browser → "KOAssistant" or select gesture action "Chat about book/document" while in a document
 
 **Built-in Actions**:
 | Action | Description |
@@ -142,27 +142,27 @@ KOAssistant works in **4 contexts**, each with its own set of actions, and you c
 | **About Author** | Author biography and writing style |
 | **Historical Context** | When written and historical significance |
 
-**What the AI sees**: Book metadata (title, author from file properties)
+**What the AI sees**: Document metadata (title, author, identifiers from file properties)
 
-### Multi-Book Mode
+### Multi-Document Mode
 
 **Access**: Select multiple documents in File Browser → tap any → "Compare with KOAssistant"
 
 **Built-in Actions**:
 | Action | Description |
 |--------|-------------|
-| **Compare Books** | Compare themes, styles, target audiences |
+| **Compare** | Compare themes, styles, target audiences |
 | **Find Common Themes** | Identify shared topics and patterns |
 | **Analyze Collection** | What this selection reveals about reader interests |
 | **Quick Summaries** | Brief summary of each book |
 
-**What the AI sees**: List of book titles and authors
+**What the AI sees**: List of titles, authors, and identifiers 
 
 ### General Chat
 
 **Access**: Tools → KOAssistant → New General Chat, or via gesture (easier)
 
-A free-form conversation without specific book context. If started while a book is open, that "launch context" is saved with the chat (so you know where you launched it from) but doesn't affect the conversation, i.e. the AI doesn't see that you launched it from a specific document.
+A free-form conversation without specific document context. If started while a book is open, that "launch context" is saved with the chat (so you know where you launched it from) but doesn't affect the conversation, i.e. the AI doesn't see that you launched it from a specific document, and the chat is saved in General chats
 
 ---
 
@@ -206,7 +206,7 @@ Select any chat to:
 
 ## Knowledge Domains
 
-Domains provide **background context** to frame AI conversations. When you select a domain, its context text is included with every message. They can function similarly to the Projects-feature that many AI providers have. You can have very small, focused projects, or large, detailed, interdisciplinary ones. It is up to you to tailor this. 
+Domains provide **background context** to frame AI conversations. When you select a domain, its context text is included with every message. They can function similarly to the Projects-feature that many AI providers have. You can have very small, focused projects/domains, or large, detailed, interdisciplinary ones. It is up to you to tailor this. 
 
 ### Creating Domains
 
@@ -235,7 +235,11 @@ See `domains.sample/` for examples.
 2. Select a domain from the list
 3. All messages in this chat will include that domain's context
 
-**Note**: Domains are knowledge tags, NOT storage locations. Chats still save to their book or "General AI Chats", but you can browse by domain in the Chat history. Domains have to be added at the beginning of a chat as they provide context for the AI.
+**Note**: Domains are knowledge tags, NOT storage locations. Chats still save to their book or "General AI Chats", but you can browse by domain in the Chat history. Domains have to be added at the beginning of a chat as they provide context for the AI. If you use large and detailed knowledge domains, you will get better results, at a higher request price.
+
+### Browsing by Domain:
+
+Chat History → hamburger menu → **View by Domain**
 
 ---
 
@@ -252,6 +256,8 @@ Tags are simple labels for organizing chats. Unlike domains:
 2. Long-press a chat → **Tags**
 3. Add new tags or select existing ones
 
+Currently being expanded to make it easier to create and add tags.
+
 ### Browsing by Tag
 
 Chat History → hamburger menu → **View by Tag**
@@ -264,17 +270,20 @@ Chat History → hamburger menu → **View by Tag**
 
 **Tools → KOAssistant → Manage Actions**
 
-- Toggle built-in actions on/off
+- Toggle built-in and custom actions on/off
 - Create new actions with the wizard
 - Edit or delete your custom actions (marked with ★)
 
 ### Action Creation Wizard
 
-1. **Name & Context**: Set button text and where it appears
+1. **Name & Context**: Set button text and where/when it appears
 2. **AI Behavior**: Optional behavior override (use global, minimal, full, none, or custom)
 3. **Action Prompt**: The actual prompt template sent to the AI
+4. **Advanced**: Provider, Model, Temperature and Extended thinking overrides 
 
 ### Template Variables
+
+Insert these in you action prompt if you want the AI to reference them.
 
 | Variable | Context | Description |
 |----------|---------|-------------|
