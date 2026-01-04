@@ -259,14 +259,20 @@ function ActionService:logLoadSummary()
 end
 
 -- Set action enabled state
+-- Handles compound contexts (all, both) by expanding to individual contexts
 function ActionService:setActionEnabled(context, action_id, enabled)
     local disabled_actions = self.settings:readSetting("disabled_actions") or {}
-    local key = context .. ":" .. action_id
 
-    if enabled then
-        disabled_actions[key] = nil
-    else
-        disabled_actions[key] = true
+    -- Expand compound contexts to individual contexts
+    local contexts = self:expandContexts(context)
+
+    for _, ctx in ipairs(contexts) do
+        local key = ctx .. ":" .. action_id
+        if enabled then
+            disabled_actions[key] = nil
+        else
+            disabled_actions[key] = true
+        end
     end
 
     self.settings:saveSetting("disabled_actions", disabled_actions)
