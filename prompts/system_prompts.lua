@@ -318,6 +318,74 @@ function SystemPrompts.buildFlattenedPrompt(config)
     return content or ""
 end
 
+-- Build unified system prompt configuration for ALL providers
+-- Returns a unified format that each provider handler can adapt to its native API
+--
+-- This is the NEW unified approach (v0.5.2+):
+--   All providers receive the same config.system structure
+--   Each handler transforms to its native format:
+--     - Anthropic: array with cache_control
+--     - OpenAI/DeepSeek: first message with role="system"
+--     - Gemini: system_instruction field
+--     - Ollama: included in messages
+--
+-- @param config: {
+--   behavior_variant: "minimal", "full", "custom", "none", or nil,
+--   behavior_override: custom behavior text (overrides variant),
+--   global_variant: global setting fallback,
+--   custom_ai_behavior: user's custom behavior text,
+--   domain_context: optional domain context string,
+--   enable_caching: boolean (only used by Anthropic),
+--   user_languages: comma-separated languages,
+--   primary_language: explicit primary language override,
+-- }
+-- @return table: {
+--   text: Combined system prompt string (may be empty),
+--   enable_caching: Whether to enable caching (Anthropic only),
+--   components: { behavior, domain, language } for debugging,
+-- }
+function SystemPrompts.buildUnifiedSystem(config)
+    config = config or {}
+
+    -- Resolve behavior using priority: override > variant > global
+    local behavior_text, behavior_source = SystemPrompts.resolveBehavior({
+        behavior_override = config.behavior_override,
+        behavior_variant = config.behavior_variant,
+        global_variant = config.global_variant,
+        custom_ai_behavior = config.custom_ai_behavior,
+    })
+
+    -- Build language instruction if user has configured languages
+    local language_instruction = nil
+    if config.user_languages and config.user_languages ~= "" then
+        language_instruction = SystemPrompts.buildLanguageInstruction(
+            config.user_languages, config.primary_language
+        )
+    end
+
+    -- Get combined content (behavior + domain)
+    local content = SystemPrompts.getCacheableContent(behavior_text, config.domain_context)
+
+    -- Append language instruction if present
+    if language_instruction then
+        if content then
+            content = content .. "\n\n" .. language_instruction
+        else
+            content = language_instruction
+        end
+    end
+
+    return {
+        text = content or "",
+        enable_caching = config.enable_caching ~= false,
+        components = {
+            behavior = (behavior_source ~= "none") and behavior_text or nil,
+            domain = config.domain_context,
+            language = language_instruction,
+        },
+    }
+end
+
 -- Get list of available behavior variant names
 -- @return table: Array of variant names
 function SystemPrompts.getVariantNames()

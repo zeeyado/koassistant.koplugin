@@ -1,3 +1,7 @@
+-- DEPRECATED (v0.5.2): This module is no longer used.
+-- All providers now build their own request bodies directly using unified config.
+-- Kept for reference during migration period. Safe to delete after testing.
+
 local Defaults = require("api_handlers.defaults")
 
 local RequestBuilder = {}
