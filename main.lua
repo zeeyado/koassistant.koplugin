@@ -1131,6 +1131,101 @@ function AskGPT:buildPrimaryLanguageMenu()
   return menu_items
 end
 
+-- Build translation language picker menu
+function AskGPT:buildTranslationLanguageMenu()
+  local self_ref = self
+  local features = self.settings:readSetting("features") or {}
+  local user_languages = features.user_languages or ""
+
+  local menu_items = {}
+
+  -- Parse languages from user_languages
+  local languages = {}
+  for lang in user_languages:gmatch("([^,]+)") do
+    local trimmed = lang:match("^%s*(.-)%s*$")
+    if trimmed ~= "" then
+      table.insert(languages, trimmed)
+    end
+  end
+
+  -- Add each language as an option
+  for _, lang in ipairs(languages) do
+    local lang_copy = lang  -- Capture for closure
+    table.insert(menu_items, {
+      text = lang,
+      checked_func = function()
+        local f = self_ref.settings:readSetting("features") or {}
+        return (f.translation_language or "English") == lang_copy
+      end,
+      radio = true,
+      callback = function()
+        local f = self_ref.settings:readSetting("features") or {}
+        f.translation_language = lang_copy
+        self_ref.settings:saveSetting("features", f)
+        self_ref.settings:flush()
+      end,
+      keep_menu_open = true,
+    })
+  end
+
+  -- Add separator if we have languages
+  if #languages > 0 then
+    menu_items[#menu_items].separator = true
+  end
+
+  -- Add "Custom..." option for entering any language
+  table.insert(menu_items, {
+    text = _("Custom..."),
+    callback = function()
+      local InputDialog = require("ui/widget/inputdialog")
+      local f = self_ref.settings:readSetting("features") or {}
+      local input_dialog
+      input_dialog = InputDialog:new{
+        title = _("Custom Translation Language"),
+        input = f.translation_language or "English",
+        input_hint = _("e.g., Spanish, Japanese, French"),
+        description = _("Enter the target language for translations."),
+        buttons = {
+          {
+            {
+              text = _("Cancel"),
+              id = "close",
+              callback = function()
+                UIManager:close(input_dialog)
+              end,
+            },
+            {
+              text = _("Save"),
+              is_enter_default = true,
+              callback = function()
+                local new_lang = input_dialog:getInputText()
+                if new_lang and new_lang ~= "" then
+                  f.translation_language = new_lang
+                  self_ref.settings:saveSetting("features", f)
+                  self_ref.settings:flush()
+                end
+                UIManager:close(input_dialog)
+              end,
+            },
+          },
+        },
+      }
+      UIManager:show(input_dialog)
+      input_dialog:onShowKeyboard()
+    end,
+  })
+
+  -- If no languages set, show a helpful message
+  if #languages == 0 then
+    table.insert(menu_items, 1, {
+      text = _("(Set your languages for quick selection)"),
+      enabled = false,
+    })
+  end
+
+  return menu_items
+end
+
 function AskGPT:addToMainMenu(menu_items)
   menu_items["koassistant"] = {
     text = _("KOAssistant"),

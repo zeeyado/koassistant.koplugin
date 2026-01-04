@@ -266,16 +266,18 @@ local SettingsSchema = {
                     text = _("Translate to Primary Language"),
                     path = "features.translation_use_primary",
                     default = true,
-                    help_text = _("Use your primary language as the translation target. Disable to set a custom target."),
+                    help_text = _("Use your primary language as the translation target. Disable to choose a different target."),
                 },
                 {
                     id = "translation_language",
-                    type = "text",
-                    text = _("Translation Target"),
-                    path = "features.translation_language",
-                    default = "English",
+                    type = "submenu",
+                    text_func = function(plugin)
+                        local f = plugin.settings:readSetting("features") or {}
+                        local target = f.translation_language or _("English")
+                        return T(_("Translation Target: %1"), target)
+                    end,
+                    callback = "buildTranslationLanguageMenu",
                     depends_on = { id = "translation_use_primary", value = false },
-                    help_text = _("Target language for the Translate action."),
                 },
             },
         },
