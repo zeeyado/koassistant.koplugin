@@ -38,19 +38,34 @@ function AnthropicRequest:build(config)
     }
 
     -- Add system array if provided
-    -- This should come from ActionService:buildAnthropicSystem()
-    -- Strip out 'label' field which is for debug display only (API rejects extra fields)
-    if config.system and #config.system > 0 then
-        request_body.system = {}
-        for _, block in ipairs(config.system) do
-            local clean_block = {
-                type = block.type,
-                text = block.text,
+    -- Handles two formats:
+    --   1. Unified format (v0.5.2+): { text, enable_caching, components }
+    --   2. Legacy array format: array of { type, text, cache_control } blocks
+    if config.system then
+        -- Check for unified format (has 'text' field)
+        if config.system.text and config.system.text ~= "" then
+            -- Convert unified format to Anthropic array format
+            local block = {
+                type = "text",
+                text = config.system.text,
             }
-            if block.cache_control then
-                clean_block.cache_control = block.cache_control
+            if config.system.enable_caching then
+                block.cache_control = { type = "ephemeral" }
             end
-            table.insert(request_body.system, clean_block)
+            request_body.system = { block }
+        elseif #config.system > 0 then
+            -- Legacy array format - strip debug fields
+            request_body.system = {}
+            for _, block in ipairs(config.system) do
+                local clean_block = {
+                    type = block.type,
+                    text = block.text,
+                }
+                if block.cache_control then
+                    clean_block.cache_control = block.cache_control
+                end
+                table.insert(request_body.system, clean_block)
+            end
         end
     end
 
