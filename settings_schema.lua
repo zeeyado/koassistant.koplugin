@@ -233,15 +233,42 @@ local SettingsSchema = {
             },
         },
 
-        -- Actions and Domains
+        -- Language Settings submenu
         {
-            id = "translation_language",
-            type = "text",
-            text = _("Translation Language"),
-            path = "features.translation_language",
-            default = "English",
-            help_text = _("Target language for the Translate action"),
+            id = "language_settings",
+            type = "submenu",
+            text = _("Language"),
+            items = {
+                {
+                    id = "user_languages",
+                    type = "text",
+                    text = _("Your Languages (first is primary)"),
+                    path = "features.user_languages",
+                    default = "",
+                    help_text = _("Languages you speak, separated by commas. Leave empty for default AI behavior.\n\nThe FIRST language is your primary. AI will:\n• Respond in your primary language by default\n• Switch to another language if you type in it\n\nExamples:\n• \"English\" - always respond in English\n• \"German, English\" - German by default, English if you type in English"),
+                    separator = true,
+                },
+                {
+                    id = "translation_use_primary",
+                    type = "toggle",
+                    text = _("Translate to Primary Language"),
+                    path = "features.translation_use_primary",
+                    default = true,
+                    help_text = _("Use your first language as the translation target. Disable to set a custom target."),
+                },
+                {
+                    id = "translation_language",
+                    type = "text",
+                    text = _("Translation Target"),
+                    path = "features.translation_language",
+                    default = "English",
+                    depends_on = { id = "translation_use_primary", value = false },
+                    help_text = _("Target language for the Translate action."),
+                },
+            },
         },
+
+        -- Actions and Domains
         {
             id = "manage_actions",
             type = "action",

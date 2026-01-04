@@ -173,7 +173,7 @@ end
 -- Returns array of content blocks suitable for Anthropic's system parameter
 --
 -- NEW ARCHITECTURE (v0.5):
---   System array contains only: behavior (or none) + domain [CACHED]
+--   System array contains only: behavior (or none) + domain [CACHED] + language instruction
 --   Context instructions and action prompts go in user message
 --
 -- @param config: {
@@ -181,7 +181,8 @@ end
 --   behavior_override: custom behavior text (overrides variant),
 --   global_variant: global setting fallback (features.ai_behavior_variant),
 --   domain_context: optional domain context string,
---   enable_caching: boolean (default true for Anthropic)
+--   enable_caching: boolean (default true for Anthropic),
+--   user_languages: comma-separated languages (first is primary), empty = no instruction
 -- }
 -- @return table: Array of content blocks for Anthropic system parameter
 -- Each block includes a `label` field for debug display (stripped before API call)
@@ -196,8 +197,23 @@ function SystemPrompts.buildAnthropicSystemArray(config)
         global_variant = config.global_variant,
     })
 
+    -- Build language instruction if user has configured languages
+    local language_instruction = nil
+    if config.user_languages and config.user_languages ~= "" then
+        language_instruction = SystemPrompts.buildLanguageInstruction(config.user_languages)
+    end
+
     -- Get cacheable content (behavior + domain, or just domain if behavior disabled)
     local cacheable = SystemPrompts.getCacheableContent(behavior_text, config.domain_context)
+
+    -- Append language instruction to cacheable content if present
+    if language_instruction then
+        if cacheable then
+            cacheable = cacheable .. "\n\n" .. language_instruction
+        else
+            cacheable = language_instruction
+        end
+    end
 
     -- If nothing to put in system array, return empty
     if not cacheable then
@@ -207,10 +223,21 @@ function SystemPrompts.buildAnthropicSystemArray(config)
     -- Determine label based on what's included
     local label
     local has_domain = config.domain_context and config.domain_context ~= ""
+    local has_language = language_instruction ~= nil
     if behavior_source == "none" then
-        label = "domain"  -- Only domain, no behavior
+        if has_domain and has_language then
+            label = "domain+language"
+        elseif has_domain then
+            label = "domain"
+        elseif has_language then
+            label = "language"
+        end
+    elseif has_domain and has_language then
+        label = "behavior+domain+language"
     elseif has_domain then
         label = "behavior+domain"
+    elseif has_language then
+        label = "behavior+language"
     else
         label = "behavior"
     end
@@ -232,10 +259,10 @@ function SystemPrompts.buildAnthropicSystemArray(config)
 end
 
 -- Build flattened system prompt for non-Anthropic providers
--- Combines behavior + domain into a single string
+-- Combines behavior + domain + language instruction into a single string
 --
 -- NEW ARCHITECTURE (v0.5):
---   Only includes behavior (or none) + domain
+--   Only includes behavior (or none) + domain + language instruction
 --   Context instructions and action prompts go in user message
 --
 -- @param config: Same as buildAnthropicSystemArray
@@ -253,6 +280,16 @@ function SystemPrompts.buildFlattenedPrompt(config)
     -- Get combined content
     local content = SystemPrompts.getCacheableContent(behavior_text, config.domain_context)
 
+    -- Append language instruction if user has configured languages
+    if config.user_languages and config.user_languages ~= "" then
+        local language_instruction = SystemPrompts.buildLanguageInstruction(config.user_languages)
+        if content then
+            content = content .. "\n\n" .. language_instruction
+        else
+            content = language_instruction
+        end
+    end
+
     return content or ""
 end
 
@@ -265,6 +302,63 @@ function SystemPrompts.getVariantNames()
     end
     table.sort(names)
     return names
+end
+
+-- Parse user languages string into primary and full list
+-- @param user_languages: Comma-separated string of languages (first is primary)
+-- @return primary: First language in the list
+-- @return languages_list: Full trimmed string of all languages
+function SystemPrompts.parseUserLanguages(user_languages)
+    if not user_languages or user_languages == "" then
+        return "English", "English"
+    end
+
+    -- Trim and normalize
+    local trimmed = user_languages:match("^%s*(.-)%s*$")
+    if trimmed == "" then
+        return "English", "English"
+    end
+
+    -- Extract first language as primary
+    local primary = trimmed:match("^([^,]+)")
+    if primary then
+        primary = primary:match("^%s*(.-)%s*$")  -- Trim whitespace
+    else
+        primary = trimmed
+    end
+
+    return primary, trimmed
+end
+
+-- Build language instruction for system prompt
+-- @param user_languages: Comma-separated string of languages (first is primary)
+-- @return string: Language instruction text
+function SystemPrompts.buildLanguageInstruction(user_languages)
+    local primary, languages_list = SystemPrompts.parseUserLanguages(user_languages)
+
+    return string.format(
+        "The user speaks: %s. Always respond in %s unless the user writes in a different language from this list, in which case respond in that language.",
+        languages_list,
+        primary
+    )
+end
+
+-- Get effective translation language
+-- @param config: {
+--   translation_use_primary: boolean,
+--   user_languages: string (comma-separated, first is primary),
+--   translation_language: string (fallback when not using primary)
+-- }
+-- @return string: Effective translation target language
+function SystemPrompts.getEffectiveTranslationLanguage(config)
+    config = config or {}
+
+    if config.translation_use_primary ~= false then
+        local primary, _ = SystemPrompts.parseUserLanguages(config.user_languages)
+        return primary
+    else
+        return config.translation_language or "English"
+    end
 end
 
 return SystemPrompts
