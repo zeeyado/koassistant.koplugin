@@ -897,11 +897,8 @@ local function handlePredefinedPrompt(prompt_type, highlightedText, ui, configur
     -- Only get flattened system prompt for legacy (non-Anthropic) format
     if not using_new_format and service then
         -- Get flattened behavior for non-Anthropic providers
-        system_prompt = service:getSystemPrompt()
-        -- Add behavior_override if action has one (for backwards compatibility)
-        if prompt.behavior_override and prompt.behavior_override ~= "" then
-            system_prompt = prompt.behavior_override
-        end
+        -- Pass the action so behavior_variant/behavior_override are respected
+        system_prompt = service:buildFlattenedSystem({ action = prompt })
     end
 
     -- Create history WITHOUT system prompt (we'll include it in the consolidated message)
@@ -1227,11 +1224,11 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     local using_new_format = shouldUseNewRequestFormat(configuration)
                     local system_prompt = configuration.features.system_prompt
                     if not using_new_format and not system_prompt then
-                        -- Get the current context
-                        local context = getPromptContext(configuration)
-                        -- Use context-specific fallback system prompt
+                        -- Get flattened behavior for non-Anthropic providers
                         local svc = plugin.action_service or plugin.prompt_service
-                        system_prompt = svc:getSystemPrompt(context)
+                        if svc then
+                            system_prompt = svc:buildFlattenedSystem({})
+                        end
                     end
 
                     -- Get domain context if a domain is selected
