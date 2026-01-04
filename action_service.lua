@@ -135,6 +135,8 @@ function ActionService:loadActions()
                 local action_data = self:copyAction(action)
                 action_data.enabled = not disabled_actions[key]
                 action_data.source = "builtin"
+                -- Preserve original context for compound contexts (all, both)
+                action_data.original_context = action.context
 
                 -- Apply user overrides for built-in actions
                 local override = builtin_overrides[key]
@@ -221,6 +223,8 @@ function ActionService:addCustomAction(id, action, source, disabled_actions)
         action_data.enabled = not disabled_actions[key]
         action_data.source = source
         action_data.builtin = false
+        -- Preserve original context for compound contexts (all, both)
+        action_data.original_context = action.context
         table.insert(self.actions_cache[context], action_data)
     end
 end
