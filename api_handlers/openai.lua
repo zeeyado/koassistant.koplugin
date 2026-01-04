@@ -21,6 +21,15 @@ function OpenAIHandler:query(message_history, config)
         return "Error: " .. error
     end
 
+    -- OpenAI's newer models (GPT-5.x, o-series) require max_completion_tokens instead of max_tokens
+    -- Convert the parameter name for these models
+    local model = request_body.model or ""
+    local needs_new_param = model:match("^gpt%-5") or model:match("^o%d") or model:match("^gpt%-4%.1")
+    if needs_new_param and request_body.max_tokens then
+        request_body.max_completion_tokens = request_body.max_tokens
+        request_body.max_tokens = nil
+    end
+
     -- Check if streaming is enabled
     local use_streaming = config.features and config.features.enable_streaming
 

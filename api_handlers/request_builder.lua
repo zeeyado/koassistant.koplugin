@@ -18,6 +18,68 @@ local function hasContent(msg)
     return true  -- For non-string content (like arrays), assume valid
 end
 
+-- Helper: Split consolidated message at [User Question] marker
+-- Returns: system_part, user_part (either can be nil)
+local function splitConsolidatedMessage(content)
+    local marker = "%[User Question%]"
+    local start_pos = content:find(marker)
+
+    if start_pos then
+        local system_part = content:sub(1, start_pos - 1):match("^%s*(.-)%s*$")  -- trim
+        local user_part = content:sub(start_pos + 15):match("^%s*(.-)%s*$")  -- skip marker, trim
+        return system_part ~= "" and system_part or nil,
+               user_part ~= "" and user_part or nil
+    end
+
+    -- No marker found - treat entire content as system
+    return content, nil
+end
+
+-- Helper: Transform messages for OpenAI-compatible APIs
+-- Strips internal fields, handles first is_context message by splitting system/user
+local function transformForOpenAICompat(messages)
+    local transformed = {}
+    local first_context_handled = false
+
+    for _, msg in ipairs(messages) do
+        if hasContent(msg) then
+            -- First user message with is_context=true contains system + user content
+            -- Split it into separate system and user messages
+            if not first_context_handled and msg.role == "user" and msg.is_context then
+                first_context_handled = true
+                local system_part, user_part = splitConsolidatedMessage(msg.content)
+
+                if system_part then
+                    table.insert(transformed, {
+                        role = "system",
+                        content = system_part
+                    })
+                end
+
+                if user_part then
+                    table.insert(transformed, {
+                        role = "user",
+                        content = user_part
+                    })
+                else
+                    -- No user part found - add minimal user message
+                    table.insert(transformed, {
+                        role = "user",
+                        content = "Please respond."
+                    })
+                end
+            else
+                -- Strip internal fields, only keep role and content
+                table.insert(transformed, {
+                    role = msg.role,
+                    content = msg.content
+                })
+            end
+        end
+    end
+    return transformed
+end
+
 -- Message format transformers for each provider
 local MESSAGE_TRANSFORMERS = {
     anthropic = function(messages)
@@ -35,9 +97,29 @@ local MESSAGE_TRANSFORMERS = {
 
     gemini = function(messages)
         local transformed = {}
+        local first_context_handled = false
+
         for _, msg in ipairs(messages) do
-            -- Skip system messages (Gemini handles system instructions differently)
-            if msg.role ~= "system" and hasContent(msg) then
+            -- Skip system role messages (Gemini handles via system_instruction)
+            if msg.role == "system" then
+                -- Skip - handled separately via system_instruction
+            elseif not first_context_handled and msg.role == "user" and msg.is_context then
+                -- Extract user question part from consolidated message
+                first_context_handled = true
+                local _, user_part = splitConsolidatedMessage(msg.content)
+                if user_part then
+                    table.insert(transformed, {
+                        role = "user",
+                        parts = {{ text = user_part }}
+                    })
+                else
+                    -- No user part found - add minimal user message
+                    table.insert(transformed, {
+                        role = "user",
+                        parts = {{ text = "Please respond." }}
+                    })
+                end
+            elseif hasContent(msg) then
                 table.insert(transformed, {
                     role = msg.role == "assistant" and "model" or "user",
                     parts = {{ text = msg.content }}
@@ -47,32 +129,17 @@ local MESSAGE_TRANSFORMERS = {
         return transformed
     end,
 
-    openai = function(messages)
-        -- Filter out messages with empty content
-        local filtered = {}
-        for _, msg in ipairs(messages) do
-            if hasContent(msg) then
-                table.insert(filtered, msg)
-            end
-        end
-        return filtered
-    end,
+    -- OpenAI: first is_context message becomes system, strip internal fields
+    openai = transformForOpenAICompat,
 
-    deepseek = function(messages)
-        -- Filter out messages with empty content (same as OpenAI)
-        local filtered = {}
-        for _, msg in ipairs(messages) do
-            if hasContent(msg) then
-                table.insert(filtered, msg)
-            end
-        end
-        return filtered
-    end,
+    -- DeepSeek: OpenAI-compatible API
+    deepseek = transformForOpenAICompat,
 
     ollama = function(messages)
         local transformed = {}
         for _, msg in ipairs(messages) do
             if hasContent(msg) then
+                -- Strip internal fields, only keep role and content
                 table.insert(transformed, {
                     role = msg.role,
                     content = msg.content

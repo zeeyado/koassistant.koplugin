@@ -22,16 +22,44 @@ local function buildGeminiUrl(base_url, model, streaming)
     return url
 end
 
+-- Helper: Split consolidated message at [User Question] marker
+-- Returns: system_part, user_part (either can be nil)
+local function splitAtUserQuestion(content)
+    local marker = "%[User Question%]"
+    local start_pos = content:find(marker)
+
+    if start_pos then
+        local system_part = content:sub(1, start_pos - 1):match("^%s*(.-)%s*$")  -- trim
+        return system_part ~= "" and system_part or nil
+    end
+
+    -- No marker found - treat entire content as system
+    return content
+end
+
 -- Extract system messages from message history for system_instruction
+-- Looks for:
+--   1. First user message with is_context=true (consolidated system prompt - extracts only system part)
+--   2. Any explicit system role messages
 -- @param messages table: Message history
 -- @return string|nil: Combined system instruction text
 local function extractSystemInstruction(messages)
     local system_parts = {}
-    for _, msg in ipairs(messages) do
-        if msg.role == "system" and msg.content and msg.content ~= "" then
+
+    for i, msg in ipairs(messages) do
+        -- First user message with is_context=true contains the consolidated system prompt
+        -- Extract only the system part (before [User Question] marker)
+        if i == 1 and msg.role == "user" and msg.is_context and msg.content and msg.content ~= "" then
+            local system_part = splitAtUserQuestion(msg.content)
+            if system_part then
+                table.insert(system_parts, system_part)
+            end
+        -- Also capture any explicit system role messages
+        elseif msg.role == "system" and msg.content and msg.content ~= "" then
             table.insert(system_parts, msg.content)
         end
     end
+
     if #system_parts > 0 then
         return table.concat(system_parts, "\n\n")
     end
@@ -59,6 +87,24 @@ function GeminiHandler:query(message_history, config)
             parts = {{ text = system_instruction }}
         }
     end
+
+    -- Gemini requires generation parameters inside generationConfig object
+    -- Move temperature and max_tokens from root level
+    local generation_config = {}
+    if request_body.temperature then
+        generation_config.temperature = request_body.temperature
+        request_body.temperature = nil
+    end
+    if request_body.max_tokens then
+        generation_config.maxOutputTokens = request_body.max_tokens
+        request_body.max_tokens = nil
+    end
+    if next(generation_config) then
+        request_body.generationConfig = generation_config
+    end
+
+    -- Remove 'model' from request body - Gemini uses it in the URL, not the body
+    request_body.model = nil
 
     -- Check if streaming is enabled
     local use_streaming = config.features and config.features.enable_streaming
