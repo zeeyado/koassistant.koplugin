@@ -276,6 +276,12 @@ local SettingsSchema = {
             callback = "showPromptsManager",
         },
         {
+            id = "highlight_menu_actions",
+            type = "action",
+            text = _("Highlight Menu Actions"),
+            callback = "showHighlightMenuManager",
+        },
+        {
             id = "view_domains",
             type = "action",
             text = _("View Domains"),

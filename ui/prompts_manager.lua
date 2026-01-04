@@ -510,6 +510,29 @@ function PromptsManager:showPromptDetails(prompt)
         table.insert(buttons, button_row)
     end
 
+    -- Add highlight menu toggle for highlight-context actions that don't require input
+    local is_highlight_context = prompt.context == "highlight" or prompt.context == "both" or prompt.context == "all"
+    local requires_input = prompt.id == "ask" or (prompt.prompt and prompt.prompt:find("{user_input}"))
+    if is_highlight_context and not requires_input and self.plugin.action_service then
+        local in_menu = self.plugin.action_service:isInHighlightMenu(prompt.id)
+        table.insert(buttons, {
+            {
+                text = in_menu and _("✓ In Highlight Menu") or _("Add to Highlight Menu"),
+                callback = function()
+                    if in_menu then
+                        self.plugin.action_service:removeFromHighlightMenu(prompt.id)
+                    else
+                        self.plugin.action_service:addToHighlightMenu(prompt.id)
+                    end
+                    UIManager:close(self.details_dialog)
+                    UIManager:show(InfoMessage:new{
+                        text = _("Highlight menu will update on next app restart."),
+                    })
+                end,
+            },
+        })
+    end
+
     self.details_dialog = TextViewer:new{
         title = _("Action Details"),
         text = info_text,
@@ -2121,6 +2144,127 @@ function PromptsManager:getContextDisplayName(context)
     else
         return context
     end
+end
+
+-- ============================================================
+-- Highlight Menu Manager
+-- ============================================================
+
+-- Show the highlight menu manager
+function PromptsManager:showHighlightMenuManager()
+    if not self.plugin.action_service then
+        UIManager:show(InfoMessage:new{
+            text = _("Action service not available."),
+        })
+        return
+    end
+
+    local actions = self.plugin.action_service:getHighlightMenuActionObjects()
+
+    if #actions == 0 then
+        UIManager:show(InfoMessage:new{
+            text = _("No actions added to highlight menu yet.\n\nGo to Manage Actions, tap on a highlight action, and select 'Add to Highlight Menu' for quick access."),
+        })
+        return
+    end
+
+    local menu_items = {}
+    for i, action in ipairs(actions) do
+        table.insert(menu_items, {
+            text = string.format("%d. %s", i, action.text),
+            callback = function()
+                self:showHighlightMenuActionOptions(action, i, #actions)
+            end,
+        })
+    end
+
+    self.highlight_menu = Menu:new{
+        title = _("Highlight Menu Actions"),
+        item_table = menu_items,
+        width = self.width,
+        height = self.height,
+        covers_fullscreen = true,
+        is_borderless = true,
+        is_popout = false,
+        onMenuHold = function(menu, item)
+            if item and item.callback then
+                item.callback()
+            end
+        end,
+        close_callback = function()
+            UIManager:close(self.highlight_menu)
+        end,
+    }
+    UIManager:show(self.highlight_menu)
+end
+
+-- Show options for a highlight menu action (move up/down, remove)
+function PromptsManager:showHighlightMenuActionOptions(action, index, total)
+    local buttons = {}
+
+    if index > 1 then
+        table.insert(buttons, {
+            {
+                text = _("↑ Move Up"),
+                callback = function()
+                    self.plugin.action_service:moveHighlightMenuAction(action.id, "up")
+                    UIManager:close(self.options_dialog)
+                    UIManager:close(self.highlight_menu)
+                    self:showHighlightMenuManager()
+                end,
+            },
+        })
+    end
+
+    if index < total then
+        table.insert(buttons, {
+            {
+                text = _("↓ Move Down"),
+                callback = function()
+                    self.plugin.action_service:moveHighlightMenuAction(action.id, "down")
+                    UIManager:close(self.options_dialog)
+                    UIManager:close(self.highlight_menu)
+                    self:showHighlightMenuManager()
+                end,
+            },
+        })
+    end
+
+    table.insert(buttons, {
+        {
+            text = _("Remove from Menu"),
+            callback = function()
+                self.plugin.action_service:removeFromHighlightMenu(action.id)
+                UIManager:close(self.options_dialog)
+                UIManager:close(self.highlight_menu)
+                -- Show updated menu or info if empty
+                local remaining = self.plugin.action_service:getHighlightMenuActionObjects()
+                if #remaining > 0 then
+                    self:showHighlightMenuManager()
+                else
+                    UIManager:show(InfoMessage:new{
+                        text = _("All actions removed from highlight menu."),
+                    })
+                end
+            end,
+        },
+    })
+
+    table.insert(buttons, {
+        {
+            text = _("Cancel"),
+            callback = function()
+                UIManager:close(self.options_dialog)
+            end,
+        },
+    })
+
+    self.options_dialog = ButtonDialog:new{
+        title = action.text,
+        info_text = _("Position: ") .. index .. "/" .. total,
+        buttons = buttons,
+    }
+    UIManager:show(self.options_dialog)
 end
 
 return PromptsManager
