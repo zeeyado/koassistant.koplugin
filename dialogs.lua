@@ -1490,4 +1490,72 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     end
 end
 
-return showChatGPTDialog
+-- Execute an action directly without showing the intermediate dialog
+-- Used for quick actions from highlight menu
+-- @param ui table: The UI instance
+-- @param action table: The action object (already resolved)
+-- @param highlighted_text string: The highlighted text
+-- @param configuration table: The configuration table
+-- @param plugin table: The plugin instance
+local function executeDirectAction(ui, action, highlighted_text, configuration, plugin)
+    local logger = require("logger")
+
+    if not action then
+        logger.err("KOAssistant: executeDirectAction called without action")
+        UIManager:show(InfoMessage:new{
+            text = _("Error: No action specified"),
+            timeout = 2
+        })
+        return
+    end
+
+    logger.info("KOAssistant: Executing quick action - " .. (action.text or action.id))
+
+    -- Get document info if available
+    local document_path = nil
+    local book_metadata = nil
+
+    if ui and ui.document then
+        local props = ui.document:getProps()
+        document_path = ui.document.file
+        book_metadata = {
+            title = props and props.title or _("Unknown Title"),
+            author = props and props.authors or _("Unknown Author")
+        }
+    end
+
+    -- Callback for when response is ready
+    local function onComplete(history, temp_config_or_error)
+        if history then
+            local temp_config = temp_config_or_error
+            local function addMessage(message, is_context, on_complete_msg)
+                history:addUserMessage(message, is_context)
+                local answer_result = queryChatGPT(history:getMessages(), temp_config, function(success, answer, err)
+                    if success and answer then
+                        history:addAssistantMessage(answer, ConfigHelper:getModelInfo(temp_config))
+                    end
+                    if on_complete_msg then on_complete_msg(success, answer, err) end
+                end)
+                if not isStreamingInProgress(answer_result) then
+                    return answer_result
+                end
+                return nil
+            end
+            showResponseDialog(action.text, history, highlighted_text, addMessage, temp_config, document_path, plugin, book_metadata, nil)
+        else
+            local error_msg = temp_config_or_error or "Unknown error"
+            UIManager:show(InfoMessage:new{
+                text = _("Error: ") .. error_msg,
+                timeout = 3
+            })
+        end
+    end
+
+    -- Call handlePredefinedPrompt with the action ID
+    handlePredefinedPrompt(action.id, highlighted_text, ui, configuration, nil, plugin, nil, onComplete, book_metadata)
+end
+
+return {
+    showChatGPTDialog = showChatGPTDialog,
+    executeDirectAction = executeDirectAction,
+}
