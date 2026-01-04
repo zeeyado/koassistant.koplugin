@@ -379,7 +379,7 @@ See `custom_actions.lua.sample` for more examples.
 - **Test Connection**: Verify API credentials work
 
 ### Language
-- **Your Languages**: Languages you speak, separated by commas. Leave empty for default AI behavior. The first language is your primary/default.
+- **Your Languages (first is primary)**: Languages you speak, separated by commas. Leave empty for default AI behavior.
 - **Translate to Primary Language**: Use your first language as the translation target.
 - **Translation Target**: Custom target language for Translate (when above is disabled).
 

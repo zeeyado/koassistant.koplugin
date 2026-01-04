@@ -242,7 +242,7 @@ local SettingsSchema = {
                 {
                     id = "user_languages",
                     type = "text",
-                    text = _("Your Languages"),
+                    text = _("Your Languages (first is primary)"),
                     path = "features.user_languages",
                     default = "",
                     help_text = _("Languages you speak, separated by commas. Leave empty for default AI behavior.\n\nThe FIRST language is your primary. AI will:\n• Respond in your primary language by default\n• Switch to another language if you type in it\n\nExamples:\n• \"English\" - always respond in English\n• \"German, English\" - German by default, English if you type in English"),
