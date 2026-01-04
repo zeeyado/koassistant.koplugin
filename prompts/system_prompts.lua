@@ -182,8 +182,7 @@ end
 --   global_variant: global setting fallback (features.ai_behavior_variant),
 --   domain_context: optional domain context string,
 --   enable_caching: boolean (default true for Anthropic),
---   enable_language_matching: boolean (default false),
---   user_languages: comma-separated languages (first is primary)
+--   user_languages: comma-separated languages (first is primary), empty = no instruction
 -- }
 -- @return table: Array of content blocks for Anthropic system parameter
 -- Each block includes a `label` field for debug display (stripped before API call)
@@ -198,9 +197,9 @@ function SystemPrompts.buildAnthropicSystemArray(config)
         global_variant = config.global_variant,
     })
 
-    -- Build language instruction if enabled
+    -- Build language instruction if user has configured languages
     local language_instruction = nil
-    if config.enable_language_matching then
+    if config.user_languages and config.user_languages ~= "" then
         language_instruction = SystemPrompts.buildLanguageInstruction(config.user_languages)
     end
 
@@ -281,8 +280,8 @@ function SystemPrompts.buildFlattenedPrompt(config)
     -- Get combined content
     local content = SystemPrompts.getCacheableContent(behavior_text, config.domain_context)
 
-    -- Append language instruction if enabled
-    if config.enable_language_matching then
+    -- Append language instruction if user has configured languages
+    if config.user_languages and config.user_languages ~= "" then
         local language_instruction = SystemPrompts.buildLanguageInstruction(config.user_languages)
         if content then
             content = content .. "\n\n" .. language_instruction

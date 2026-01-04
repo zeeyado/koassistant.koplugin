@@ -244,16 +244,8 @@ local SettingsSchema = {
                     type = "text",
                     text = _("Your Languages"),
                     path = "features.user_languages",
-                    default = "English",
-                    help_text = _("Languages you speak, separated by commas.\nThe FIRST language is your primary/default.\n\nExamples:\n• \"English\" - monolingual\n• \"German, English\" - German is primary\n• \"Arabic, English, French\" - Arabic is primary"),
-                },
-                {
-                    id = "enable_language_matching",
-                    type = "toggle",
-                    text = _("Match Response Language"),
-                    path = "features.enable_language_matching",
-                    default = false,
-                    help_text = _("AI responds in the language you type in.\n\nWhen enabled:\n• AI uses your first (primary) language by default\n• If you type in another language from your list, AI responds in that language\n\nWhen disabled: AI uses its default behavior."),
+                    default = "",
+                    help_text = _("Languages you speak, separated by commas. Leave empty for default AI behavior.\n\nThe FIRST language is your primary. AI will:\n• Respond in your primary language by default\n• Switch to another language if you type in it\n\nExamples:\n• \"English\" - always respond in English\n• \"German, English\" - German by default, English if you type in English"),
                     separator = true,
                 },
                 {

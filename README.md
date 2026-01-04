@@ -379,15 +379,18 @@ See `custom_actions.lua.sample` for more examples.
 - **Test Connection**: Verify API credentials work
 
 ### Language
-- **Your Languages**: Languages you speak, separated by commas. The first language is your primary/default. Examples: "English", "German, English", "Arabic, English, French"
-- **Match Response Language**: AI responds in the language you type in. Uses your first (primary) language by default; if you type in another language from your list, AI responds in that language.
+- **Your Languages**: Languages you speak, separated by commas. Leave empty for default AI behavior. The first language is your primary/default.
 - **Translate to Primary Language**: Use your first language as the translation target.
 - **Translation Target**: Custom target language for Translate (when above is disabled).
 
-**How language matching works:**
-- Your first language is always the default response language
-- If you type in another language from your list, AI responds in that language
-- This lets multilingual users naturally switch languages
+**How language responses work** (when Your Languages is configured):
+- AI responds in your first (primary) language by default
+- If you type in another language from your list, AI switches to that language
+- Leave empty to let AI use its default behavior
+
+**Examples:**
+- `"English"` - AI always responds in English
+- `"German, English"` - German by default; responds in English if you type in English
 
 ### Actions & Domains
 - **Manage Actions**: Enable/disable built-in actions, create custom actions
