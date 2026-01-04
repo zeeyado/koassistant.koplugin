@@ -378,8 +378,21 @@ See `custom_actions.lua.sample` for more examples.
 - **Debug Detail Level**: Verbosity (Minimal/Names/Full)
 - **Test Connection**: Verify API credentials work
 
+### Language
+- **Your Languages (first is primary)**: Languages you speak, separated by commas. Leave empty for default AI behavior.
+- **Translate to Primary Language**: Use your first language as the translation target.
+- **Translation Target**: Custom target language for Translate (when above is disabled).
+
+**How language responses work** (when Your Languages is configured):
+- AI responds in your first (primary) language by default
+- If you type in another language from your list, AI switches to that language
+- Leave empty to let AI use its default behavior
+
+**Examples:**
+- `"English"` - AI always responds in English
+- `"German, English"` - German by default; responds in English if you type in English
+
 ### Actions & Domains
-- **Translation Language**: Target language for the Translate action
 - **Manage Actions**: Enable/disable built-in actions, create custom actions
 - **View Domains**: See available knowledge domains
 
@@ -543,6 +556,19 @@ Contributions welcome! You can:
 - Submit pull requests
 - Share feature ideas
 - Improve documentation
+- Translate the plugin UI
+
+### Contributing Translations
+
+KOAssistant is ready for localization. All UI strings use KOReader's gettext system (`_()` function).
+
+**To add a new language:**
+1. The plugin uses KOReader's translation system
+2. All 300+ UI strings are already marked for translation
+3. Create `.po` files for your language following KOReader's translation workflow
+4. Submit via pull request or the [KOReader Weblate](https://hosted.weblate.org/projects/koreader/)
+
+**Note:** The plugin is under active development, so some strings may change between versions. Contributions are still valuable and will be maintained.
 
 ---
 
