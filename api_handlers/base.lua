@@ -117,9 +117,18 @@ function BaseHandler:backgroundRequest(url, headers, body)
             sink = ltn12.sink.file(pipe_w),  -- response body writes to pipe
         }
 
-        local code, resp_headers, status = socket.skip(1, http.request(request))
+        local ok, code, resp_headers, status = pcall(function()
+            return socket.skip(1, http.request(request))
+        end)
 
-        if code ~= 200 then
+        if not ok then
+            -- pcall failed - likely a connection or SSL error
+            local err_msg = tostring(code)  -- code contains error message when pcall fails
+            logger.warn("Background request error:", err_msg, "url:", url)
+            ffiutil.writeToFD(child_write_fd,
+                string.format("\r\n%s [Connection Error: %s] URL:%s\n\n",
+                    self.PROTOCOL_NON_200, err_msg, url))
+        elseif code ~= 200 then
             logger.warn("Background request non-200:", code, "status:", status, "url:", url)
             -- Write error marker to pipe so parent can detect non-200 response
             ffiutil.writeToFD(child_write_fd,

@@ -163,8 +163,23 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
         end
 
         -- Check for empty result - this can happen if the stream completed
-        -- but no content was received (e.g., API returned empty response)
+        -- but no content was received (e.g., API returned empty response or error)
         if result == "" then
+            -- Log partial_data which might contain error info
+            if partial_data and #partial_data > 0 then
+                logger.warn("Stream ended with no content but partial_data:", partial_data:sub(1, 500))
+                -- Try to extract error from partial data
+                if partial_data:sub(1, 1) == "{" then
+                    local ok, j = pcall(json.decode, partial_data)
+                    if ok and j and j.error then
+                        local err_msg = j.error.message or j.error.code or json.encode(j.error)
+                        if on_complete then on_complete(false, nil, err_msg) end
+                        return
+                    end
+                end
+                if on_complete then on_complete(false, nil, _("No response received. Raw: ") .. partial_data:sub(1, 200)) end
+                return
+            end
             if on_complete then on_complete(false, nil, _("No response received from AI")) end
             return
         end
@@ -384,16 +399,44 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                     elseif line:sub(1, 1) == ":" then
                         -- SSE comment/keep-alive
                     elseif line:sub(1, 1) == "{" then
-                        -- Raw JSON (possibly error)
-                        local ok, j = pcall(json.decode, line)
-                        if ok and j then
-                            local err_message = j.error and j.error.message
-                            if err_message then
-                                table.insert(result_buffer, err_message)
+                        -- Raw JSON line (NDJSON format - used by Ollama)
+                        local ok, event = pcall(json.decode, line)
+                        if ok and event then
+                            -- Check for error response
+                            if event.error then
+                                local err_message = event.error.message or event.error
+                                table.insert(result_buffer, tostring(err_message))
+                            -- Check for Ollama done signal
+                            elseif event.done == true then
+                                completed = true
+                                finishStream()
+                                return
+                            else
+                                -- Try to extract streaming content
+                                local content = self:extractContentFromSSE(event)
+                                if type(content) == "string" and #content > 0 then
+                                    table.insert(result_buffer, content)
+
+                                    -- Update UI (same logic as SSE handling)
+                                    if not first_content_received then
+                                        first_content_received = true
+                                        if animation_task then
+                                            UIManager:unschedule(animation_task)
+                                            animation_task = nil
+                                        end
+                                        streamDialog._input_widget:setText("", true)
+                                    end
+
+                                    if auto_scroll and not scroll_paused then
+                                        streamDialog:addTextToInput(content)
+                                    else
+                                        streamDialog._input_widget:resyncPos()
+                                        streamDialog._input_widget:setText(table.concat(result_buffer), true)
+                                    end
+                                end
                             end
-                            logger.info("JSON object received:", line)
                         else
-                            table.insert(result_buffer, line)
+                            logger.warn("Failed to parse NDJSON line:", line)
                         end
                     elseif line:sub(1, #PROTOCOL_NON_200) == PROTOCOL_NON_200 then
                         non200 = true
@@ -466,6 +509,12 @@ function StreamHandler:extractContentFromSSE(event)
         if parts and parts[1] and parts[1].text then
             return parts[1].text
         end
+    end
+
+    -- Ollama format: message.content (NDJSON streaming)
+    local ollama_message = event.message
+    if ollama_message and ollama_message.content then
+        return ollama_message.content
     end
 
     return nil
