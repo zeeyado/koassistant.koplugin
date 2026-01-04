@@ -1226,6 +1226,65 @@ function AskGPT:buildTranslationLanguageMenu()
   return menu_items
 end
 
+-- Edit custom AI behavior text
+function AskGPT:editCustomAIBehavior()
+  local self_ref = self
+  local features = self.settings:readSetting("features") or {}
+  local current_text = features.custom_ai_behavior or ""
+
+  -- Get full behavior as default template if empty
+  if current_text == "" then
+    local SystemPrompts = require("prompts.system_prompts")
+    current_text = SystemPrompts.getBehavior("full") or ""
+  end
+
+  local InputDialog = require("ui/widget/inputdialog")
+  local input_dialog
+  input_dialog = InputDialog:new{
+    title = _("Custom AI Behavior"),
+    input = current_text,
+    input_hint = _("Enter custom AI behavior instructions..."),
+    description = _("Define how the AI should behave. This replaces the built-in Minimal/Full behavior when 'Custom' is selected.\n\nTip: Start with the Full behavior as a template."),
+    input_type = "text",
+    allow_newline = true,
+    cursor_at_end = false,
+    fullscreen = true,
+    buttons = {
+      {
+        {
+          text = _("Cancel"),
+          id = "close",
+          callback = function()
+            UIManager:close(input_dialog)
+          end,
+        },
+        {
+          text = _("Load Full"),
+          callback = function()
+            local SystemPrompts = require("prompts.system_prompts")
+            local full_text = SystemPrompts.getBehavior("full") or ""
+            input_dialog:setInputText(full_text)
+          end,
+        },
+        {
+          text = _("Save"),
+          is_enter_default = true,
+          callback = function()
+            local new_text = input_dialog:getInputText()
+            local f = self_ref.settings:readSetting("features") or {}
+            f.custom_ai_behavior = new_text
+            self_ref.settings:saveSetting("features", f)
+            self_ref.settings:flush()
+            UIManager:close(input_dialog)
+          end,
+        },
+      },
+    },
+  }
+  UIManager:show(input_dialog)
+  input_dialog:onShowKeyboard()
+end
+
 function AskGPT:addToMainMenu(menu_items)
   menu_items["koassistant"] = {
     text = _("KOAssistant"),

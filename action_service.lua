@@ -376,6 +376,7 @@ function ActionService:buildAnthropicSystem(config)
     local features = self.settings:readSetting("features") or {}
     local user_languages = features.user_languages or ""
     local primary_language = features.primary_language  -- Optional override
+    local custom_ai_behavior = features.custom_ai_behavior  -- Custom behavior text
 
     return self.SystemPrompts.buildAnthropicSystemArray({
         behavior_variant = behavior_variant,
@@ -385,6 +386,7 @@ function ActionService:buildAnthropicSystem(config)
         enable_caching = true,
         user_languages = user_languages,
         primary_language = primary_language,
+        custom_ai_behavior = custom_ai_behavior,
     })
 end
 
@@ -419,6 +421,7 @@ function ActionService:buildFlattenedSystem(config)
     local features = self.settings:readSetting("features") or {}
     local user_languages = features.user_languages or ""
     local primary_language = features.primary_language  -- Optional override
+    local custom_ai_behavior = features.custom_ai_behavior  -- Custom behavior text
 
     return self.SystemPrompts.buildFlattenedPrompt({
         behavior_variant = behavior_variant,
@@ -427,6 +430,7 @@ function ActionService:buildFlattenedSystem(config)
         domain_context = config.domain_context,
         user_languages = user_languages,
         primary_language = primary_language,
+        custom_ai_behavior = custom_ai_behavior,
     })
 end
 
