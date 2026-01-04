@@ -43,6 +43,9 @@ function PromptsManager:loadPrompts()
     local multi_book_prompts = service:getAllPrompts("multi_book", true)
     local general_prompts = service:getAllPrompts("general", true)
 
+    -- Load builtin action overrides
+    local builtin_overrides = self.plugin.settings:readSetting("builtin_action_overrides") or {}
+
     -- Helper to add prompt with new field names
     -- Preserves compound contexts (all, both) from original_context
     local function addPromptEntry(prompt, context_override)
@@ -67,7 +70,8 @@ function PromptsManager:loadPrompts()
             end
         end
 
-        return {
+        -- Build the entry
+        local entry = {
             text = prompt.text,
             behavior_variant = prompt.behavior_variant,
             behavior_override = prompt.behavior_override,
@@ -83,7 +87,27 @@ function PromptsManager:loadPrompts()
             thinking_budget = prompt.thinking_budget,
             provider = prompt.provider,
             model = prompt.model,
+            has_override = false,
         }
+
+        -- Apply builtin action overrides if this is a builtin action
+        if prompt.source == "builtin" and prompt.id then
+            local override_key = context_override .. ":" .. prompt.id
+            local override = builtin_overrides[override_key]
+            if override then
+                entry.has_override = true
+                -- Merge override fields
+                if override.temperature then entry.temperature = override.temperature end
+                if override.extended_thinking then entry.extended_thinking = override.extended_thinking end
+                if override.thinking_budget then entry.thinking_budget = override.thinking_budget end
+                if override.provider then entry.provider = override.provider end
+                if override.model then entry.model = override.model end
+                if override.behavior_variant then entry.behavior_variant = override.behavior_variant end
+                if override.behavior_override then entry.behavior_override = override.behavior_override end
+            end
+        end
+
+        return entry
     end
 
     -- Track seen prompts to avoid duplicates from compound contexts
@@ -174,7 +198,7 @@ function PromptsManager:showPromptsMenu()
     
     -- Add help text at the top
     table.insert(menu_items, {
-        text = _("Tap to toggle • Hold for details • ★ = editable"),
+        text = _("Tap to toggle • Hold for details • ★ = custom • ⚙ = modified"),
         dim = true,
         enabled = false,
     })
@@ -224,11 +248,15 @@ function PromptsManager:showPromptsMenu()
             for _, prompt in ipairs(context_prompts) do
                 local item_text = prompt.text
 
-                -- Add source indicator for user-created prompts (editable/deletable)
+                -- Add source indicator
+                -- ★ = custom action (UI-created or from file)
+                -- ⚙ = built-in action with user overrides
                 if prompt.source == "ui" then
                     item_text = "★ " .. item_text
                 elseif prompt.source == "config" then
-                    item_text = item_text .. " (file)"
+                    item_text = "★ " .. item_text .. " (file)"
+                elseif prompt.source == "builtin" and prompt.has_override then
+                    item_text = "⚙ " .. item_text
                 end
 
                 -- Add requires indicator
@@ -448,6 +476,38 @@ function PromptsManager:showPromptDetails(prompt)
                 end,
             },
         })
+    elseif prompt.source == "builtin" then
+        -- Built-in actions - allow editing settings (not the prompt itself)
+        local button_row = {
+            {
+                text = _("Edit Settings"),
+                callback = function()
+                    if self.details_dialog then
+                        UIManager:close(self.details_dialog)
+                    end
+                    self:showBuiltinSettingsEditor(prompt)
+                end,
+            },
+        }
+        -- Add Reset button if there are overrides
+        if prompt.has_override then
+            table.insert(button_row, {
+                text = _("Reset to Default"),
+                callback = function()
+                    UIManager:show(ConfirmBox:new{
+                        text = _("Reset this action to default settings?"),
+                        ok_callback = function()
+                            self:resetBuiltinOverride(prompt)
+                            if self.details_dialog then
+                                UIManager:close(self.details_dialog)
+                            end
+                            self:refreshMenu()
+                        end,
+                    })
+                end,
+            })
+        end
+        table.insert(buttons, button_row)
     end
 
     self.details_dialog = TextViewer:new{
@@ -1272,6 +1332,590 @@ function PromptsManager:showCustomModelInput(state)
 
     UIManager:show(dialog)
     dialog:onShowKeyboard()
+end
+
+-- Built-in action settings editor
+-- Shows a combined dialog with behavior + advanced settings
+function PromptsManager:showBuiltinSettingsEditor(prompt)
+    -- Initialize state from current prompt values
+    local state = {
+        prompt = prompt,  -- Reference to the original prompt
+        behavior_variant = prompt.behavior_variant,
+        behavior_override = prompt.behavior_override or "",
+        temperature = prompt.temperature,
+        extended_thinking = prompt.extended_thinking,
+        thinking_budget = prompt.thinking_budget,
+        provider = prompt.provider,
+        model = prompt.model,
+    }
+
+    self:showBuiltinSettingsDialog(state)
+end
+
+-- The actual dialog for builtin settings
+function PromptsManager:showBuiltinSettingsDialog(state)
+    local prompt = state.prompt
+
+    -- Behavior display
+    local behavior_display
+    if state.behavior_override and state.behavior_override ~= "" then
+        behavior_display = _("Custom")
+    elseif state.behavior_variant == "none" then
+        behavior_display = _("None")
+    elseif state.behavior_variant == "minimal" then
+        behavior_display = _("Minimal")
+    elseif state.behavior_variant == "full" then
+        behavior_display = _("Full")
+    else
+        behavior_display = _("Global")
+    end
+
+    -- Temperature display
+    local temp_display = state.temperature and string.format("%.1f", state.temperature) or _("Global")
+
+    -- Extended thinking display
+    local thinking_display
+    if state.extended_thinking == "on" then
+        local budget = state.thinking_budget or 4096
+        thinking_display = string.format(_("On (%d tokens)"), budget)
+    elseif state.extended_thinking == "off" then
+        thinking_display = _("Off")
+    else
+        thinking_display = _("Global")
+    end
+
+    -- Provider/model display
+    local provider_display = state.provider or _("Global")
+    local model_display = state.model or _("Global")
+
+    local buttons = {
+        -- Row 1: AI Behavior
+        {
+            {
+                text = _("AI Behavior: ") .. behavior_display,
+                callback = function()
+                    UIManager:close(self.builtin_settings_dialog)
+                    self:showBuiltinBehaviorSelector(state)
+                end,
+            },
+        },
+        -- Row 2: Temperature
+        {
+            {
+                text = _("Temperature: ") .. temp_display,
+                callback = function()
+                    self:showBuiltinTemperatureSelector(state)
+                end,
+            },
+        },
+        -- Row 3: Extended Thinking
+        {
+            {
+                text = _("Extended Thinking: ") .. thinking_display,
+                callback = function()
+                    self:showBuiltinThinkingSelector(state)
+                end,
+            },
+        },
+        -- Row 4: Provider/Model
+        {
+            {
+                text = _("Provider: ") .. provider_display,
+                callback = function()
+                    self:showBuiltinProviderSelector(state)
+                end,
+            },
+            {
+                text = _("Model: ") .. model_display,
+                callback = function()
+                    if not state.provider then
+                        UIManager:show(InfoMessage:new{
+                            text = _("Please select a provider first"),
+                        })
+                        return
+                    end
+                    self:showBuiltinModelSelector(state)
+                end,
+            },
+        },
+        -- Row 5: Cancel / Save
+        {
+            {
+                text = _("Cancel"),
+                callback = function()
+                    UIManager:close(self.builtin_settings_dialog)
+                end,
+            },
+            {
+                text = _("Save"),
+                callback = function()
+                    UIManager:close(self.builtin_settings_dialog)
+                    self:saveBuiltinOverride(prompt, state)
+                    self:refreshMenu()
+                end,
+            },
+        },
+    }
+
+    local info = string.format(_([[Edit settings for: %s
+
+These settings override the defaults for this built-in action.
+Set to "Global" to use the default setting.]]), prompt.text)
+
+    self.builtin_settings_dialog = ButtonDialog:new{
+        title = _("Edit Built-in Action Settings"),
+        info_text = info,
+        buttons = buttons,
+    }
+
+    UIManager:show(self.builtin_settings_dialog)
+end
+
+-- Behavior selector for builtin actions
+function PromptsManager:showBuiltinBehaviorSelector(state)
+    -- Determine current selection
+    local current_selection = "global"
+    if state.behavior_override and state.behavior_override ~= "" then
+        current_selection = "custom"
+    elseif state.behavior_variant == "none" then
+        current_selection = "none"
+    elseif state.behavior_variant == "minimal" then
+        current_selection = "minimal"
+    elseif state.behavior_variant == "full" then
+        current_selection = "full"
+    end
+
+    local behavior_options = {
+        { id = "global", text = _("Use global setting") },
+        { id = "minimal", text = _("Minimal (~100 tokens)") },
+        { id = "full", text = _("Full (~500 tokens)") },
+        { id = "none", text = _("None (no behavior)") },
+        { id = "custom", text = _("Custom...") },
+    }
+
+    local buttons = {}
+    for _, option in ipairs(behavior_options) do
+        local prefix = (current_selection == option.id) and "● " or "○ "
+        table.insert(buttons, {
+            {
+                text = prefix .. option.text,
+                callback = function()
+                    UIManager:close(self.builtin_behavior_dialog)
+                    if option.id == "custom" then
+                        self:showBuiltinCustomBehaviorInput(state)
+                    else
+                        if option.id == "global" then
+                            state.behavior_variant = nil
+                            state.behavior_override = ""
+                        elseif option.id == "none" then
+                            state.behavior_variant = "none"
+                            state.behavior_override = ""
+                        else
+                            state.behavior_variant = option.id
+                            state.behavior_override = ""
+                        end
+                        self:showBuiltinSettingsDialog(state)
+                    end
+                end,
+            },
+        })
+    end
+
+    table.insert(buttons, {
+        {
+            text = _("Cancel"),
+            callback = function()
+                UIManager:close(self.builtin_behavior_dialog)
+                self:showBuiltinSettingsDialog(state)
+            end,
+        },
+    })
+
+    self.builtin_behavior_dialog = ButtonDialog:new{
+        title = _("AI Behavior"),
+        buttons = buttons,
+    }
+
+    UIManager:show(self.builtin_behavior_dialog)
+end
+
+-- Custom behavior input for builtin actions
+function PromptsManager:showBuiltinCustomBehaviorInput(state)
+    local dialog
+    dialog = InputDialog:new{
+        title = _("Custom Behavior"),
+        input = state.behavior_override or "",
+        input_hint = _("Describe how the AI should behave"),
+        fullscreen = true,
+        allow_newline = true,
+        buttons = {
+            {
+                {
+                    text = _("Cancel"),
+                    callback = function()
+                        UIManager:close(dialog)
+                        self:showBuiltinBehaviorSelector(state)
+                    end,
+                },
+                {
+                    text = _("OK"),
+                    callback = function()
+                        local text = dialog:getInputText()
+                        if text and text ~= "" then
+                            state.behavior_override = text
+                            state.behavior_variant = nil
+                        end
+                        UIManager:close(dialog)
+                        self:showBuiltinSettingsDialog(state)
+                    end,
+                },
+            },
+        },
+    }
+
+    UIManager:show(dialog)
+    dialog:onShowKeyboard()
+end
+
+-- Temperature selector for builtin actions
+function PromptsManager:showBuiltinTemperatureSelector(state)
+    local SpinWidget = require("ui/widget/spinwidget")
+
+    local current_temp = state.temperature or 0.7
+
+    local value_table = {}
+    for i = 0, 20 do
+        table.insert(value_table, i / 10)
+    end
+
+    local value_index = math.floor(current_temp * 10) + 1
+    if value_index < 1 then value_index = 1 end
+    if value_index > 21 then value_index = 21 end
+
+    local spin_widget = SpinWidget:new{
+        title_text = _("Temperature"),
+        info_text = _("Range: 0.0-2.0 (Anthropic max 1.0)\nLower = focused\nHigher = creative"),
+        value_table = value_table,
+        value_index = value_index,
+        default_value = 8,
+        extra_text = _("Use global"),
+        extra_callback = function()
+            state.temperature = nil
+            UIManager:close(self.builtin_settings_dialog)
+            self:showBuiltinSettingsDialog(state)
+        end,
+        callback = function(spin)
+            state.temperature = spin.value
+            UIManager:close(self.builtin_settings_dialog)
+            self:showBuiltinSettingsDialog(state)
+        end,
+    }
+
+    UIManager:show(spin_widget)
+end
+
+-- Thinking selector for builtin actions
+function PromptsManager:showBuiltinThinkingSelector(state)
+    local buttons = {
+        {
+            {
+                text = _("Use global setting"),
+                callback = function()
+                    state.extended_thinking = nil
+                    state.thinking_budget = nil
+                    UIManager:close(self.builtin_thinking_dialog)
+                    UIManager:close(self.builtin_settings_dialog)
+                    self:showBuiltinSettingsDialog(state)
+                end,
+            },
+        },
+        {
+            {
+                text = _("Force OFF"),
+                callback = function()
+                    state.extended_thinking = "off"
+                    state.thinking_budget = nil
+                    UIManager:close(self.builtin_thinking_dialog)
+                    UIManager:close(self.builtin_settings_dialog)
+                    self:showBuiltinSettingsDialog(state)
+                end,
+            },
+        },
+        {
+            {
+                text = _("Force ON..."),
+                callback = function()
+                    UIManager:close(self.builtin_thinking_dialog)
+                    self:showBuiltinThinkingBudgetSelector(state)
+                end,
+            },
+        },
+        {
+            {
+                text = _("Cancel"),
+                callback = function()
+                    UIManager:close(self.builtin_thinking_dialog)
+                end,
+            },
+        },
+    }
+
+    self.builtin_thinking_dialog = ButtonDialog:new{
+        title = _("Extended Thinking"),
+        info_text = _("Anthropic/Claude only. Forces temperature to 1.0."),
+        buttons = buttons,
+    }
+
+    UIManager:show(self.builtin_thinking_dialog)
+end
+
+-- Thinking budget selector for builtin actions
+function PromptsManager:showBuiltinThinkingBudgetSelector(state)
+    local SpinWidget = require("ui/widget/spinwidget")
+
+    local current_budget = state.thinking_budget or 4096
+
+    local spin_widget = SpinWidget:new{
+        title_text = _("Thinking Budget"),
+        info_text = _("Token budget (1024-32000)"),
+        value = current_budget,
+        value_min = 1024,
+        value_max = 32000,
+        value_step = 1024,
+        default_value = 4096,
+        callback = function(spin)
+            state.extended_thinking = "on"
+            state.thinking_budget = spin.value
+            UIManager:close(self.builtin_settings_dialog)
+            self:showBuiltinSettingsDialog(state)
+        end,
+    }
+
+    UIManager:show(spin_widget)
+end
+
+-- Provider selector for builtin actions
+function PromptsManager:showBuiltinProviderSelector(state)
+    local ModelLists = require("model_lists")
+
+    local providers = { "anthropic", "openai", "deepseek", "gemini", "ollama" }
+
+    local buttons = {
+        {
+            {
+                text = _("Use global setting"),
+                callback = function()
+                    state.provider = nil
+                    state.model = nil
+                    UIManager:close(self.builtin_provider_dialog)
+                    UIManager:close(self.builtin_settings_dialog)
+                    self:showBuiltinSettingsDialog(state)
+                end,
+            },
+        },
+    }
+
+    for _, provider in ipairs(providers) do
+        local prefix = (state.provider == provider) and "● " or "○ "
+        local model_count = ModelLists[provider] and #ModelLists[provider] or 0
+        table.insert(buttons, {
+            {
+                text = prefix .. provider .. " (" .. model_count .. " models)",
+                callback = function()
+                    state.provider = provider
+                    if ModelLists[provider] and #ModelLists[provider] > 0 then
+                        state.model = ModelLists[provider][1]
+                    else
+                        state.model = nil
+                    end
+                    UIManager:close(self.builtin_provider_dialog)
+                    UIManager:close(self.builtin_settings_dialog)
+                    self:showBuiltinSettingsDialog(state)
+                end,
+            },
+        })
+    end
+
+    table.insert(buttons, {
+        {
+            text = _("Cancel"),
+            callback = function()
+                UIManager:close(self.builtin_provider_dialog)
+            end,
+        },
+    })
+
+    self.builtin_provider_dialog = ButtonDialog:new{
+        title = _("Select Provider"),
+        buttons = buttons,
+    }
+
+    UIManager:show(self.builtin_provider_dialog)
+end
+
+-- Model selector for builtin actions
+function PromptsManager:showBuiltinModelSelector(state)
+    local ModelLists = require("model_lists")
+
+    local models = ModelLists[state.provider] or {}
+
+    local buttons = {}
+
+    for _, model in ipairs(models) do
+        local prefix = (state.model == model) and "● " or "○ "
+        table.insert(buttons, {
+            {
+                text = prefix .. model,
+                callback = function()
+                    state.model = model
+                    UIManager:close(self.builtin_model_dialog)
+                    UIManager:close(self.builtin_settings_dialog)
+                    self:showBuiltinSettingsDialog(state)
+                end,
+            },
+        })
+    end
+
+    table.insert(buttons, {
+        {
+            text = _("Custom model..."),
+            callback = function()
+                UIManager:close(self.builtin_model_dialog)
+                self:showBuiltinCustomModelInput(state)
+            end,
+        },
+    })
+
+    table.insert(buttons, {
+        {
+            text = _("Cancel"),
+            callback = function()
+                UIManager:close(self.builtin_model_dialog)
+            end,
+        },
+    })
+
+    self.builtin_model_dialog = ButtonDialog:new{
+        title = _("Select Model for ") .. state.provider,
+        buttons = buttons,
+    }
+
+    UIManager:show(self.builtin_model_dialog)
+end
+
+-- Custom model input for builtin actions
+function PromptsManager:showBuiltinCustomModelInput(state)
+    local dialog
+    dialog = InputDialog:new{
+        title = _("Custom Model"),
+        input = state.model or "",
+        input_hint = _("Enter model ID"),
+        description = _("Enter the exact model ID for ") .. state.provider,
+        buttons = {
+            {
+                {
+                    text = _("Cancel"),
+                    callback = function()
+                        UIManager:close(dialog)
+                        UIManager:close(self.builtin_settings_dialog)
+                        self:showBuiltinSettingsDialog(state)
+                    end,
+                },
+                {
+                    text = _("OK"),
+                    callback = function()
+                        local model = dialog:getInputText()
+                        if model and model ~= "" then
+                            state.model = model
+                        end
+                        UIManager:close(dialog)
+                        UIManager:close(self.builtin_settings_dialog)
+                        self:showBuiltinSettingsDialog(state)
+                    end,
+                },
+            },
+        },
+    }
+
+    UIManager:show(dialog)
+    dialog:onShowKeyboard()
+end
+
+-- Save builtin action override
+function PromptsManager:saveBuiltinOverride(prompt, state)
+    local all_overrides = self.plugin.settings:readSetting("builtin_action_overrides") or {}
+    local key = prompt.context .. ":" .. prompt.id
+
+    -- Build override object with only non-nil/non-global values
+    local override = {}
+    local has_any = false
+
+    if state.temperature then
+        override.temperature = state.temperature
+        has_any = true
+    end
+    if state.extended_thinking then
+        override.extended_thinking = state.extended_thinking
+        has_any = true
+    end
+    if state.thinking_budget then
+        override.thinking_budget = state.thinking_budget
+        has_any = true
+    end
+    if state.provider then
+        override.provider = state.provider
+        has_any = true
+    end
+    if state.model then
+        override.model = state.model
+        has_any = true
+    end
+    if state.behavior_variant then
+        override.behavior_variant = state.behavior_variant
+        has_any = true
+    end
+    if state.behavior_override and state.behavior_override ~= "" then
+        override.behavior_override = state.behavior_override
+        has_any = true
+    end
+
+    if has_any then
+        all_overrides[key] = override
+    else
+        all_overrides[key] = nil  -- Remove if no overrides
+    end
+
+    self.plugin.settings:saveSetting("builtin_action_overrides", all_overrides)
+    self.plugin.settings:flush()
+
+    -- Invalidate action_service cache so it reloads with new overrides
+    if self.plugin.action_service then
+        self.plugin.action_service.actions_cache = nil
+    end
+
+    UIManager:show(InfoMessage:new{
+        text = has_any and _("Settings saved") or _("Settings reset to default"),
+    })
+end
+
+-- Reset builtin action override
+function PromptsManager:resetBuiltinOverride(prompt)
+    local all_overrides = self.plugin.settings:readSetting("builtin_action_overrides") or {}
+    local key = prompt.context .. ":" .. prompt.id
+
+    all_overrides[key] = nil
+
+    self.plugin.settings:saveSetting("builtin_action_overrides", all_overrides)
+    self.plugin.settings:flush()
+
+    -- Invalidate action_service cache
+    if self.plugin.action_service then
+        self.plugin.action_service.actions_cache = nil
+    end
+
+    UIManager:show(InfoMessage:new{
+        text = _("Settings reset to default"),
+    })
 end
 
 -- Get placeholders available for a given context
