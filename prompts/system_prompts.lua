@@ -248,6 +248,18 @@ function SystemPrompts.buildAnthropicSystemArray(config)
         label = label,  -- For debug display (stripped before API call)
     }
 
+    -- Store individual components for debug display (stripped before API call)
+    block.debug_components = {}
+    if behavior_text and behavior_source ~= "none" then
+        table.insert(block.debug_components, { name = "behavior", text = behavior_text })
+    end
+    if config.domain_context and config.domain_context ~= "" then
+        table.insert(block.debug_components, { name = "domain", text = config.domain_context })
+    end
+    if language_instruction then
+        table.insert(block.debug_components, { name = "language", text = language_instruction })
+    end
+
     -- Add cache_control if caching is enabled (default true)
     if config.enable_caching ~= false then
         block.cache_control = { type = "ephemeral" }

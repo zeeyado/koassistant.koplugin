@@ -276,14 +276,31 @@ function MessageHistory:createResultText(highlightedText, config)
             for _, block in ipairs(config.system) do
                 local label = block.label or "unknown"
                 local cached = block.cache_control and " [CACHED]" or ""
-                local preview = block.text or ""
-                -- Show first 100 chars of each block
-                if #preview > 100 then
-                    preview = preview:sub(1, 100):gsub("\n", " ") .. "..."
+
+                -- If we have individual components, show each one
+                if block.debug_components and #block.debug_components > 0 then
+                    table.insert(result, string.format("  %s%s:\n", label, cached))
+                    for _, component in ipairs(block.debug_components) do
+                        local preview = component.text or ""
+                        -- Show first 80 chars of each component
+                        if #preview > 80 then
+                            preview = preview:sub(1, 80):gsub("\n", " ") .. "..."
+                        else
+                            preview = preview:gsub("\n", " ")
+                        end
+                        table.insert(result, string.format("    - %s: %s\n", component.name, preview))
+                    end
                 else
-                    preview = preview:gsub("\n", " ")
+                    -- Fallback: show combined text preview
+                    local preview = block.text or ""
+                    -- Show first 100 chars of each block
+                    if #preview > 100 then
+                        preview = preview:sub(1, 100):gsub("\n", " ") .. "..."
+                    else
+                        preview = preview:gsub("\n", " ")
+                    end
+                    table.insert(result, string.format("  %s%s: %s\n", label, cached, preview))
                 end
-                table.insert(result, string.format("  %s%s: %s\n", label, cached, preview))
             end
             table.insert(result, "\n")
         end
