@@ -273,6 +273,13 @@ Chat History → hamburger menu → **View by Tag**
 - Toggle built-in and custom actions on/off
 - Create new actions with the wizard
 - Edit or delete your custom actions (marked with ★)
+- Edit settings for built-in actions (temperature, thinking, provider/model, AI behavior)
+
+**Action indicators:**
+- **★** = Custom action (editable)
+- **⚙** = Built-in action with modified settings
+
+**Editing built-in actions:** Long-press any built-in action → "Edit Settings" to customize its advanced settings without creating a new action. Use "Reset to Default" to restore original settings.
 
 ### Action Creation Wizard
 
@@ -324,7 +331,10 @@ return {
 - `behavior_variant`: Use a preset behavior ("minimal", "full", "none")
 - `behavior_override`: Custom behavior text (overrides variant)
 - `provider`: Force specific provider ("anthropic", "openai", etc.)
-- `model`: Force specific model
+- `model`: Force specific model for the provider
+- `temperature`: Override global temperature (0.0-2.0)
+- `extended_thinking`: Override thinking ("off" to disable, "on" to enable)
+- `thinking_budget`: Token budget when extended_thinking="on" (1024-32000)
 - `enabled`: Set to `false` to hide
 - `include_book_context`: Add book info to highlight actions
 - `domain`: Lock to a specific domain
@@ -337,38 +347,45 @@ See `custom_actions.lua.sample` for more examples.
 
 **Tools → KOAssistant → Settings**
 
-### AI Provider & Model
-- **Provider & Model**: Select your AI provider and model
-- **Test Connection**: Verify API credentials work
-
-### Conversations
+### Quick Actions
 - **New General Chat**: Start a context-free conversation
 - **Chat History**: Browse saved conversations
-- **Auto-save options**: Control automatic saving
+
+### Provider & Model
+- **Provider**: Select AI provider (Anthropic, OpenAI, DeepSeek, Gemini, Ollama)
+- **Model**: Select model for the chosen provider
+- **Temperature**: Response creativity (0.0-2.0, Anthropic max 1.0)
+
+### Display Settings
+- **Render Markdown**: Format responses with styling (bold, lists, etc.)
+- **Hide Highlighted Text**: Don't show selection in responses
+- **Hide Long Highlights**: Collapse highlights over character threshold
+- **Long Highlight Threshold**: Character limit before collapsing (default: 280)
+
+### Chat Settings
+- **Auto-save All Chats**: Automatically save every new conversation
+- **Auto-save Continued Chats**: Only save when continuing from history
+- **Enable Streaming**: Show responses as they generate in real-time
+- **Auto-scroll Streaming**: Follow new text during streaming
+- **Large Stream Dialog**: Use full-screen streaming window
+
+### Advanced
+- **AI Behavior**: Minimal (~100 tokens) or Full (~500 tokens) guidelines
+- **Enable Extended Thinking**: Enable Claude's reasoning capability (Anthropic only)
+- **Thinking Budget**: Token budget for reasoning (1024-32000)
+- **Console Debug**: Enable terminal/console debug logging
+- **Show Debug in Chat**: Display debug info in chat viewer
+- **Debug Detail Level**: Verbosity (Minimal/Names/Full)
+- **Test Connection**: Verify API credentials work
 
 ### Actions & Domains
 - **Translation Language**: Target language for the Translate action
-- **Manage Actions**: Enable/disable and create actions
+- **Manage Actions**: Enable/disable built-in actions, create custom actions
 - **View Domains**: See available knowledge domains
-- **Render Markdown**: Format responses with styling
-- **Hide Highlighted Text**: Don't show selection in responses
-- **Hide Long Highlights**: Collapse highlights over threshold
-
-### Advanced
-- **Debug Mode**: Show detailed request/response info
-- **Debug Display**: What to show (minimal/names/full)
-- **Enable Streaming**: Show responses as they generate
-- **Auto-scroll Streaming**: Follow new text during streaming
-- **Large Stream Dialog**: Full-screen streaming window
-- **AI Behavior Style**: Minimal (~100 tokens) or Full (~500 tokens)
-- **Temperature**: Response creativity (0=focused, 2=creative)
-- **Extended Thinking**: Enable AI reasoning (Anthropic only)
-- **Thinking Budget**: Token limit for reasoning process
 
 ### About
+- **About KOAssistant**: Plugin info and gesture tips
 - **Check for Updates**: Manual update check
-- **Auto-check Updates**: Check on startup
-- **Version Info**: Plugin version and gesture tips
 
 ---
 

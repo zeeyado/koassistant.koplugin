@@ -124,6 +124,7 @@ function ActionService:loadActions()
     }
 
     local disabled_actions = self.settings:readSetting("disabled_actions") or {}
+    local builtin_overrides = self.settings:readSetting("builtin_action_overrides") or {}
 
     -- 1. Load built-in actions from prompts/actions.lua
     if self.Actions then
@@ -134,6 +135,35 @@ function ActionService:loadActions()
                 local action_data = self:copyAction(action)
                 action_data.enabled = not disabled_actions[key]
                 action_data.source = "builtin"
+
+                -- Apply user overrides for built-in actions
+                local override = builtin_overrides[key]
+                if override then
+                    action_data.has_override = true
+                    -- Apply each override field
+                    if override.behavior_variant then
+                        action_data.behavior_variant = override.behavior_variant
+                    end
+                    if override.behavior_override then
+                        action_data.behavior_override = override.behavior_override
+                    end
+                    if override.temperature then
+                        action_data.temperature = override.temperature
+                    end
+                    if override.extended_thinking then
+                        action_data.extended_thinking = override.extended_thinking
+                    end
+                    if override.thinking_budget then
+                        action_data.thinking_budget = override.thinking_budget
+                    end
+                    if override.provider then
+                        action_data.provider = override.provider
+                    end
+                    if override.model then
+                        action_data.model = override.model
+                    end
+                end
+
                 table.insert(self.actions_cache[context], action_data)
             end
         end
