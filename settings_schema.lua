@@ -10,6 +10,15 @@ local SettingsSchema = {
     items = {
         -- Quick actions
         {
+            id = "chat_about_book",
+            type = "action",
+            text = _("Chat about Book"),
+            callback = "onKOAssistantBookChat",
+            visible_func = function(plugin)
+                return plugin.ui and plugin.ui.document ~= nil
+            end,
+        },
+        {
             id = "new_general_chat",
             type = "action",
             text = _("New General Chat"),
