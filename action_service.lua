@@ -368,10 +368,9 @@ function ActionService:buildAnthropicSystem(config)
     -- Get global setting as fallback
     local global_variant = self:getBehaviorVariant()
 
-    -- Get language settings
+    -- Get language settings (empty = no language instruction)
     local features = self.settings:readSetting("features") or {}
-    local enable_language_matching = features.enable_language_matching or false
-    local user_languages = features.user_languages or "English"
+    local user_languages = features.user_languages or ""
 
     return self.SystemPrompts.buildAnthropicSystemArray({
         behavior_variant = behavior_variant,
@@ -379,7 +378,6 @@ function ActionService:buildAnthropicSystem(config)
         global_variant = global_variant,
         domain_context = config.domain_context,
         enable_caching = true,
-        enable_language_matching = enable_language_matching,
         user_languages = user_languages,
     })
 end
@@ -411,17 +409,15 @@ function ActionService:buildFlattenedSystem(config)
     -- Get global setting as fallback
     local global_variant = self:getBehaviorVariant()
 
-    -- Get language settings
+    -- Get language settings (empty = no language instruction)
     local features = self.settings:readSetting("features") or {}
-    local enable_language_matching = features.enable_language_matching or false
-    local user_languages = features.user_languages or "English"
+    local user_languages = features.user_languages or ""
 
     return self.SystemPrompts.buildFlattenedPrompt({
         behavior_variant = behavior_variant,
         behavior_override = behavior_override,
         global_variant = global_variant,
         domain_context = config.domain_context,
-        enable_language_matching = enable_language_matching,
         user_languages = user_languages,
     })
 end
