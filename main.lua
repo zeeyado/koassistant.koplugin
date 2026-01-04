@@ -1588,7 +1588,7 @@ function AskGPT:registerHighlightMenuActions()
 
     self.ui.highlight:addToHighlightDialog(dialog_id, function(_reader_highlight_instance)
       return {
-        text = "KOA: " .. action_copy.text,
+        text = action_copy.text .. " (KOA)",
         enabled = Device:hasClipboard(),
         callback = function()
           NetworkMgr:runWhenOnline(function()

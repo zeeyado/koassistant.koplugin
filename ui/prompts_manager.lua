@@ -356,13 +356,19 @@ function PromptsManager:showPromptsMenu()
 end
 
 function PromptsManager:refreshMenu()
-    -- Close and reopen the menu to refresh it
+    -- Close and reopen the menu to refresh it, preserving the current page
     if self.prompts_menu then
         local menu = self.prompts_menu
+        -- Save current page before closing
+        local current_page = menu.page
         UIManager:close(menu)
         -- Schedule reopening after close
         UIManager:scheduleIn(0.1, function()
             self:show()
+            -- Restore page after menu is shown
+            if self.prompts_menu and current_page and current_page > 1 then
+                self.prompts_menu:onGotoPage(current_page)
+            end
         end)
     end
 end
@@ -833,10 +839,9 @@ function PromptsManager:showStep2_Behavior(state)
             end,
         },
         {
-            text = _("Skip (use global)"),
+            text = _("Next →"),
             callback = function()
-                state.behavior_variant = nil
-                state.behavior_override = ""
+                -- Preserve current state (don't reset to global)
                 UIManager:close(self.behavior_dialog)
                 self:showStep3_ActionPrompt(state)
             end,

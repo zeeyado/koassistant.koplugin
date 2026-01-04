@@ -881,7 +881,9 @@ local function handlePredefinedPrompt(prompt_type, highlightedText, ui, configur
             temp_config.provider_settings[prompt.provider] = {}
         end
         temp_config.provider_settings[prompt.provider].model = prompt.model
-        temp_config.default_provider = prompt.provider
+        -- Set both provider and model at top level so they take precedence
+        temp_config.provider = prompt.provider
+        temp_config.model = prompt.model
     end
 
     -- Determine system prompt based on context
