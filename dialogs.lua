@@ -909,6 +909,18 @@ local function handlePredefinedPrompt(prompt_type, highlightedText, ui, configur
     -- Determine context
     local context = getPromptContext(config)
 
+    -- Resolve effective translation language
+    local effective_translation_language
+    if config.features.translation_use_primary ~= false then
+        -- Default: use primary language setting
+        local primary = config.features.primary_language or "English"
+        primary = primary:match("^%s*(.-)%s*$")  -- Trim whitespace
+        effective_translation_language = (primary ~= "") and primary or "English"
+    else
+        -- Use custom translation_language setting
+        effective_translation_language = config.features.translation_language or "English"
+    end
+
     -- Build data for consolidated message
     local message_data = {
         highlighted_text = highlightedText,
@@ -916,7 +928,7 @@ local function handlePredefinedPrompt(prompt_type, highlightedText, ui, configur
         book_metadata = config.features.book_metadata,
         books_info = config.features.books_info,
         book_context = config.features.book_context,
-        translation_language = config.features.translation_language or "English"
+        translation_language = effective_translation_language
     }
 
     -- Add book info for highlight context when:

@@ -173,7 +173,7 @@ end
 -- Returns array of content blocks suitable for Anthropic's system parameter
 --
 -- NEW ARCHITECTURE (v0.5):
---   System array contains only: behavior (or none) + domain [CACHED]
+--   System array contains only: behavior (or none) + domain [CACHED] + language instruction
 --   Context instructions and action prompts go in user message
 --
 -- @param config: {
@@ -181,7 +181,10 @@ end
 --   behavior_override: custom behavior text (overrides variant),
 --   global_variant: global setting fallback (features.ai_behavior_variant),
 --   domain_context: optional domain context string,
---   enable_caching: boolean (default true for Anthropic)
+--   enable_caching: boolean (default true for Anthropic),
+--   enable_language_matching: boolean (default false),
+--   primary_language: user's main language,
+--   additional_languages: other languages user speaks (comma-separated)
 -- }
 -- @return table: Array of content blocks for Anthropic system parameter
 -- Each block includes a `label` field for debug display (stripped before API call)
@@ -196,8 +199,26 @@ function SystemPrompts.buildAnthropicSystemArray(config)
         global_variant = config.global_variant,
     })
 
+    -- Build language instruction if enabled
+    local language_instruction = nil
+    if config.enable_language_matching then
+        language_instruction = SystemPrompts.buildLanguageInstruction(
+            config.primary_language,
+            config.additional_languages
+        )
+    end
+
     -- Get cacheable content (behavior + domain, or just domain if behavior disabled)
     local cacheable = SystemPrompts.getCacheableContent(behavior_text, config.domain_context)
+
+    -- Append language instruction to cacheable content if present
+    if language_instruction then
+        if cacheable then
+            cacheable = cacheable .. "\n\n" .. language_instruction
+        else
+            cacheable = language_instruction
+        end
+    end
 
     -- If nothing to put in system array, return empty
     if not cacheable then
@@ -207,10 +228,21 @@ function SystemPrompts.buildAnthropicSystemArray(config)
     -- Determine label based on what's included
     local label
     local has_domain = config.domain_context and config.domain_context ~= ""
+    local has_language = language_instruction ~= nil
     if behavior_source == "none" then
-        label = "domain"  -- Only domain, no behavior
+        if has_domain and has_language then
+            label = "domain+language"
+        elseif has_domain then
+            label = "domain"
+        elseif has_language then
+            label = "language"
+        end
+    elseif has_domain and has_language then
+        label = "behavior+domain+language"
     elseif has_domain then
         label = "behavior+domain"
+    elseif has_language then
+        label = "behavior+language"
     else
         label = "behavior"
     end
@@ -232,10 +264,10 @@ function SystemPrompts.buildAnthropicSystemArray(config)
 end
 
 -- Build flattened system prompt for non-Anthropic providers
--- Combines behavior + domain into a single string
+-- Combines behavior + domain + language instruction into a single string
 --
 -- NEW ARCHITECTURE (v0.5):
---   Only includes behavior (or none) + domain
+--   Only includes behavior (or none) + domain + language instruction
 --   Context instructions and action prompts go in user message
 --
 -- @param config: Same as buildAnthropicSystemArray
@@ -253,6 +285,19 @@ function SystemPrompts.buildFlattenedPrompt(config)
     -- Get combined content
     local content = SystemPrompts.getCacheableContent(behavior_text, config.domain_context)
 
+    -- Append language instruction if enabled
+    if config.enable_language_matching then
+        local language_instruction = SystemPrompts.buildLanguageInstruction(
+            config.primary_language,
+            config.additional_languages
+        )
+        if content then
+            content = content .. "\n\n" .. language_instruction
+        else
+            content = language_instruction
+        end
+    end
+
     return content or ""
 end
 
@@ -265,6 +310,69 @@ function SystemPrompts.getVariantNames()
     end
     table.sort(names)
     return names
+end
+
+-- Build combined language list from primary and additional languages
+-- @param primary_language: Main language (required)
+-- @param additional_languages: Comma-separated additional languages (optional)
+-- @return string: Combined language list for display
+function SystemPrompts.buildLanguageList(primary_language, additional_languages)
+    local primary = primary_language or "English"
+    -- Trim primary
+    primary = primary:match("^%s*(.-)%s*$")
+    if primary == "" then
+        primary = "English"
+    end
+
+    -- If no additional languages, just return primary
+    if not additional_languages or additional_languages == "" then
+        return primary
+    end
+
+    -- Trim additional
+    local additional = additional_languages:match("^%s*(.-)%s*$")
+    if additional == "" then
+        return primary
+    end
+
+    -- Combine: "English, German, Spanish"
+    return primary .. ", " .. additional
+end
+
+-- Build language instruction for system prompt
+-- @param primary_language: User's main language
+-- @param additional_languages: Other languages user speaks (comma-separated, optional)
+-- @return string: Language instruction text
+function SystemPrompts.buildLanguageInstruction(primary_language, additional_languages)
+    local primary = (primary_language and primary_language:match("^%s*(.-)%s*$")) or "English"
+    if primary == "" then primary = "English" end
+
+    local languages_list = SystemPrompts.buildLanguageList(primary, additional_languages)
+
+    return string.format(
+        "The user speaks: %s. Always respond in %s unless the user writes in a different language from this list, in which case respond in that language.",
+        languages_list,
+        primary
+    )
+end
+
+-- Get effective translation language
+-- @param config: {
+--   translation_use_primary: boolean,
+--   primary_language: string,
+--   translation_language: string (fallback when not using primary)
+-- }
+-- @return string: Effective translation target language
+function SystemPrompts.getEffectiveTranslationLanguage(config)
+    config = config or {}
+
+    if config.translation_use_primary ~= false then
+        local primary = config.primary_language or "English"
+        primary = primary:match("^%s*(.-)%s*$")
+        return (primary ~= "") and primary or "English"
+    else
+        return config.translation_language or "English"
+    end
 end
 
 return SystemPrompts

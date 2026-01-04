@@ -233,15 +233,58 @@ local SettingsSchema = {
             },
         },
 
-        -- Actions and Domains
+        -- Language Settings submenu
         {
-            id = "translation_language",
-            type = "text",
-            text = _("Translation Language"),
-            path = "features.translation_language",
-            default = "English",
-            help_text = _("Target language for the Translate action"),
+            id = "language_settings",
+            type = "submenu",
+            text = _("Language"),
+            items = {
+                {
+                    id = "primary_language",
+                    type = "text",
+                    text = _("Primary Language"),
+                    path = "features.primary_language",
+                    default = "English",
+                    help_text = _("Your main language. AI will respond in this language by default when language matching is enabled."),
+                },
+                {
+                    id = "additional_languages",
+                    type = "text",
+                    text = _("Additional Languages"),
+                    path = "features.additional_languages",
+                    default = "",
+                    help_text = _("Other languages you speak (comma-separated, optional).\nExample: \"German, Spanish\"\n\nWhen language matching is enabled and you write in one of these languages, AI will respond in that language instead of your primary."),
+                },
+                {
+                    id = "enable_language_matching",
+                    type = "toggle",
+                    text = _("Enable Response Language Matching"),
+                    path = "features.enable_language_matching",
+                    default = false,
+                    help_text = _("When enabled:\n• AI responds in your Primary Language by default\n• If you write in an Additional Language, AI responds in that language\n\nWhen disabled: AI uses default behavior."),
+                    separator = true,
+                },
+                {
+                    id = "translation_use_primary",
+                    type = "toggle",
+                    text = _("Translate to Primary Language"),
+                    path = "features.translation_use_primary",
+                    default = true,
+                    help_text = _("When enabled, the Translate action uses your Primary Language as the target. Disable to set a different target."),
+                },
+                {
+                    id = "translation_language",
+                    type = "text",
+                    text = _("Translation Target"),
+                    path = "features.translation_language",
+                    default = "English",
+                    depends_on = { id = "translation_use_primary", value = false },
+                    help_text = _("Target language for the Translate action."),
+                },
+            },
         },
+
+        -- Actions and Domains
         {
             id = "manage_actions",
             type = "action",

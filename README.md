@@ -378,8 +378,19 @@ See `custom_actions.lua.sample` for more examples.
 - **Debug Detail Level**: Verbosity (Minimal/Names/Full)
 - **Test Connection**: Verify API credentials work
 
+### Language
+- **Primary Language**: Your main language (e.g., "English", "German"). AI responds in this language by default when language matching is enabled.
+- **Additional Languages**: Other languages you speak (comma-separated, optional). Example: "German, Spanish"
+- **Enable Response Language Matching**: When enabled, AI responds in your Primary Language. If you write in an Additional Language, AI responds in that language instead.
+- **Translate to Primary Language**: When enabled, the Translate action uses your Primary Language as the target.
+- **Translation Target**: Target language for Translate when not using Primary Language.
+
+**How language matching works:**
+- Your Primary Language is always the default response language
+- If you write a message in an Additional Language, AI responds in that language
+- This lets multilingual users naturally switch languages by writing in the desired language
+
 ### Actions & Domains
-- **Translation Language**: Target language for the Translate action
 - **Manage Actions**: Enable/disable built-in actions, create custom actions
 - **View Domains**: See available knowledge domains
 
@@ -543,6 +554,19 @@ Contributions welcome! You can:
 - Submit pull requests
 - Share feature ideas
 - Improve documentation
+- Translate the plugin UI
+
+### Contributing Translations
+
+KOAssistant is ready for localization. All UI strings use KOReader's gettext system (`_()` function).
+
+**To add a new language:**
+1. The plugin uses KOReader's translation system
+2. All 300+ UI strings are already marked for translation
+3. Create `.po` files for your language following KOReader's translation workflow
+4. Submit via pull request or the [KOReader Weblate](https://hosted.weblate.org/projects/koreader/)
+
+**Note:** The plugin is under active development, so some strings may change between versions. Contributions are still valuable and will be maintained.
 
 ---
 
