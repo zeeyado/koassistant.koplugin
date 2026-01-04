@@ -15,7 +15,8 @@ local logger = require("logger")
 local util = require("util")
 local Screen = Device.screen
 
-local showChatGPTDialog = require("dialogs")
+local Dialogs = require("dialogs")
+local showChatGPTDialog = Dialogs.showChatGPTDialog
 local UpdateChecker = require("update_checker")
 local SettingsSchema = require("settings_schema")
 local SettingsManager = require("ui/settings_manager")
@@ -132,6 +133,9 @@ function AskGPT:init()
       }
     end)
     logger.info("Added KOAssistant to highlight dialog")
+
+    -- Register quick actions for highlight menu
+    self:registerHighlightMenuActions()
   else
     logger.warn("Highlight feature not available, skipping highlight dialog integration")
   end
@@ -1257,6 +1261,11 @@ function AskGPT:showPromptsManager()
   prompts_manager:show()
 end
 
+function AskGPT:showHighlightMenuManager()
+  local prompts_manager = PromptsManager:new(self)
+  prompts_manager:showHighlightMenuManager()
+end
+
 function AskGPT:showDomainsViewer()
   local DomainLoader = require("domain_loader")
   local all_domains = DomainLoader.load()
@@ -1310,6 +1319,43 @@ function AskGPT:showDomainsViewer()
     width = UIConstants.DIALOG_WIDTH(),
     height = UIConstants.DIALOG_HEIGHT(),
   })
+end
+
+-- Register quick actions for highlight menu
+-- Called during init to add user-configured actions directly to the highlight popup
+function AskGPT:registerHighlightMenuActions()
+  if not self.ui or not self.ui.highlight then return end
+
+  local quick_actions = self.action_service:getHighlightMenuActionObjects()
+  if #quick_actions == 0 then
+    logger.info("KOAssistant: No quick actions configured for highlight menu")
+    return
+  end
+
+  logger.info("KOAssistant: Registering " .. #quick_actions .. " quick actions for highlight menu")
+
+  for _, action in ipairs(quick_actions) do
+    local dialog_id = "koassistant_quick_" .. action.id
+    local action_copy = action  -- Capture in closure
+
+    self.ui.highlight:addToHighlightDialog(dialog_id, function(_reader_highlight_instance)
+      return {
+        text = "KOA: " .. action_copy.text,
+        enabled = Device:hasClipboard(),
+        callback = function()
+          NetworkMgr:runWhenOnline(function()
+            self:updateConfigFromSettings()
+            self:executeQuickAction(action_copy, _reader_highlight_instance.selected_text.text)
+          end)
+        end,
+      }
+    end)
+  end
+end
+
+-- Execute a quick action directly without showing intermediate dialog
+function AskGPT:executeQuickAction(action, highlighted_text)
+  Dialogs.executeDirectAction(self.ui, action, highlighted_text, configuration, self)
 end
 
 function AskGPT:restoreDefaultPrompts()

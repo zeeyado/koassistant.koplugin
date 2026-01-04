@@ -507,4 +507,75 @@ function ActionService:getPrompt(context, prompt_id)
     return self:getAction(context, prompt_id)
 end
 
+-- ============================================================
+-- Highlight Menu Quick Actions
+-- ============================================================
+
+-- Get ordered list of highlight menu action IDs
+function ActionService:getHighlightMenuActions()
+    return self.settings:readSetting("highlight_menu_actions") or {}
+end
+
+-- Check if action is in highlight menu
+function ActionService:isInHighlightMenu(action_id)
+    local actions = self:getHighlightMenuActions()
+    for _, id in ipairs(actions) do
+        if id == action_id then return true end
+    end
+    return false
+end
+
+-- Add action to highlight menu (appends to end)
+function ActionService:addToHighlightMenu(action_id)
+    local actions = self:getHighlightMenuActions()
+    -- Don't add duplicates
+    if not self:isInHighlightMenu(action_id) then
+        table.insert(actions, action_id)
+        self.settings:saveSetting("highlight_menu_actions", actions)
+        self.settings:flush()
+    end
+end
+
+-- Remove action from highlight menu
+function ActionService:removeFromHighlightMenu(action_id)
+    local actions = self:getHighlightMenuActions()
+    for i, id in ipairs(actions) do
+        if id == action_id then
+            table.remove(actions, i)
+            self.settings:saveSetting("highlight_menu_actions", actions)
+            self.settings:flush()
+            return
+        end
+    end
+end
+
+-- Move action in highlight menu order
+function ActionService:moveHighlightMenuAction(action_id, direction)
+    local actions = self:getHighlightMenuActions()
+    for i, id in ipairs(actions) do
+        if id == action_id then
+            local new_index = direction == "up" and i - 1 or i + 1
+            if new_index >= 1 and new_index <= #actions then
+                actions[i], actions[new_index] = actions[new_index], actions[i]
+                self.settings:saveSetting("highlight_menu_actions", actions)
+                self.settings:flush()
+            end
+            return
+        end
+    end
+end
+
+-- Get full action objects for highlight menu (resolved, in order)
+function ActionService:getHighlightMenuActionObjects()
+    local action_ids = self:getHighlightMenuActions()
+    local result = {}
+    for _, id in ipairs(action_ids) do
+        local action = self:getAction("highlight", id)
+        if action and action.enabled then
+            table.insert(result, action)
+        end
+    end
+    return result
+end
+
 return ActionService
