@@ -375,6 +375,7 @@ function ActionService:buildAnthropicSystem(config)
     -- Get language settings (empty = no language instruction)
     local features = self.settings:readSetting("features") or {}
     local user_languages = features.user_languages or ""
+    local primary_language = features.primary_language  -- Optional override
 
     return self.SystemPrompts.buildAnthropicSystemArray({
         behavior_variant = behavior_variant,
@@ -383,6 +384,7 @@ function ActionService:buildAnthropicSystem(config)
         domain_context = config.domain_context,
         enable_caching = true,
         user_languages = user_languages,
+        primary_language = primary_language,
     })
 end
 
@@ -416,6 +418,7 @@ function ActionService:buildFlattenedSystem(config)
     -- Get language settings (empty = no language instruction)
     local features = self.settings:readSetting("features") or {}
     local user_languages = features.user_languages or ""
+    local primary_language = features.primary_language  -- Optional override
 
     return self.SystemPrompts.buildFlattenedPrompt({
         behavior_variant = behavior_variant,
@@ -423,6 +426,7 @@ function ActionService:buildFlattenedSystem(config)
         global_variant = global_variant,
         domain_context = config.domain_context,
         user_languages = user_languages,
+        primary_language = primary_language,
     })
 end
 

@@ -242,10 +242,22 @@ local SettingsSchema = {
                 {
                     id = "user_languages",
                     type = "text",
-                    text = _("Your Languages (first is primary)"),
+                    text = _("Your Languages"),
                     path = "features.user_languages",
                     default = "",
-                    help_text = _("Languages you speak, separated by commas. Leave empty for default AI behavior.\n\nThe FIRST language is your primary. AI will:\n• Respond in your primary language by default\n• Switch to another language if you type in it\n\nExamples:\n• \"English\" - always respond in English\n• \"German, English\" - German by default, English if you type in English"),
+                    help_text = _("Languages you speak, separated by commas. Leave empty for default AI behavior.\n\nExamples:\n• \"English\"\n• \"German, English, French\""),
+                },
+                {
+                    id = "primary_language",
+                    type = "submenu",
+                    text_func = function(plugin)
+                        local primary = plugin:getEffectivePrimaryLanguage()
+                        if not primary or primary == "" then
+                            return _("Primary Language: (not set)")
+                        end
+                        return T(_("Primary Language: %1"), primary)
+                    end,
+                    callback = "buildPrimaryLanguageMenu",
                     separator = true,
                 },
                 {
@@ -254,7 +266,7 @@ local SettingsSchema = {
                     text = _("Translate to Primary Language"),
                     path = "features.translation_use_primary",
                     default = true,
-                    help_text = _("Use your first language as the translation target. Disable to set a custom target."),
+                    help_text = _("Use your primary language as the translation target. Disable to set a custom target."),
                 },
                 {
                     id = "translation_language",
