@@ -118,6 +118,8 @@ KOAssistant works in **4 contexts**, each with its own set of actions, and you c
 
 **Access**: Highlight text in a document → tap "KOAssistant"
 
+**Quick Actions**: You can add frequently-used actions directly to KOReader's highlight popup menu for faster access. Instead of going through the KOAssistant dialog, actions like "KOA: Explain" or "KOA: Translate" appear as separate buttons. See [Highlight Menu Actions](#highlight-menu-actions) below.
+
 **Built-in Actions**:
 | Action | Description |
 |--------|-------------|
@@ -394,7 +396,26 @@ See `custom_actions.lua.sample` for more examples.
 
 ### Actions & Domains
 - **Manage Actions**: Enable/disable built-in actions, create custom actions
+- **Highlight Menu Actions**: View and reorder actions added to the highlight popup menu
 - **View Domains**: See available knowledge domains
+
+### Highlight Menu Actions
+
+Add frequently-used highlight actions directly to KOReader's highlight popup for faster access:
+
+1. Go to **Manage Actions**
+2. Tap on a highlight-context action (Explain, Translate, etc.)
+3. Tap **"Add to Highlight Menu"**
+4. **Restart KOReader** for changes to take effect
+
+Actions appear as "KOA: Explain", "KOA: Translate", etc. in the highlight popup.
+
+**Managing quick actions**:
+- Use **Highlight Menu Actions** to view all enabled quick actions
+- Tap an action to move it up/down or remove it
+- Actions requiring user input (like "Ask") cannot be added
+
+**Note**: Changes require an app restart since the highlight menu is built at startup.
 
 ### About
 - **About KOAssistant**: Plugin info and gesture tips
