@@ -58,11 +58,20 @@ function PromptsManager:loadPrompts()
         -- Extract temperature from api_params if present
         local temperature = prompt.api_params and prompt.api_params.temperature or nil
 
+        -- Resolve template to prompt text if needed (for built-in actions)
+        local prompt_text = prompt.prompt
+        if not prompt_text and prompt.template then
+            local ok, Templates = pcall(require, "prompts/templates")
+            if ok and Templates and Templates.get then
+                prompt_text = Templates.get(prompt.template)
+            end
+        end
+
         return {
             text = prompt.text,
             behavior_variant = prompt.behavior_variant,
             behavior_override = prompt.behavior_override,
-            prompt = prompt.prompt,
+            prompt = prompt_text,
             context = context,
             source = prompt.source,
             enabled = prompt.enabled,
@@ -152,9 +161,9 @@ function PromptsManager:loadPrompts()
     logger.info("PromptsManager: Total prompts loaded: " .. #self.prompts)
 end
 
-function PromptsManager:setPromptEnabled(prompt_text, context, enabled)
+function PromptsManager:setPromptEnabled(action_id, context, enabled)
     if self.plugin.action_service then
-        self.plugin.action_service:setActionEnabled(context, prompt_text, enabled)
+        self.plugin.action_service:setActionEnabled(context, action_id, enabled)
     end
 end
 
@@ -233,8 +242,8 @@ function PromptsManager:showPromptsMenu()
                     text = item_text,
                     prompt = prompt,  -- Store reference to prompt
                     callback = function()
-                        -- Toggle enabled state
-                        self:setPromptEnabled(prompt.text, prompt.context, not prompt.enabled)
+                        -- Toggle enabled state (use prompt.id, not prompt.text)
+                        self:setPromptEnabled(prompt.id, prompt.context, not prompt.enabled)
                         -- Refresh the menu
                         self:refreshMenu()
                     end,

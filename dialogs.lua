@@ -720,7 +720,13 @@ local function buildConsolidatedMessage(prompt, context, data, system_prompt, do
     end
     
     -- Get the action prompt template
+    -- Actions can have either `prompt` (direct text) or `template` (reference to templates.lua)
     local user_prompt = prompt.prompt
+    if not user_prompt and prompt.template then
+        -- Resolve template reference
+        local Templates = require("prompts/templates")
+        user_prompt = Templates.get(prompt.template)
+    end
     if not user_prompt then
         logger.warn("Action missing prompt field: " .. (prompt.text or "unknown"))
         user_prompt = ""
@@ -786,8 +792,12 @@ local function buildConsolidatedMessage(prompt, context, data, system_prompt, do
         table.insert(parts, user_prompt)
         
     else  -- highlight context
+        -- Check if prompt already includes {highlighted_text} - if so, don't duplicate in context
+        local prompt_has_highlight_var = user_prompt:find("{highlighted_text}", 1, true) ~= nil
+
         -- Build context section
-        local has_context = data.book_title or data.highlighted_text
+        -- Only include highlighted_text in context if the prompt doesn't already have the variable
+        local has_context = data.book_title or (data.highlighted_text and not prompt_has_highlight_var)
 
         if has_context then
             table.insert(parts, "[Context]")
@@ -799,8 +809,8 @@ local function buildConsolidatedMessage(prompt, context, data, system_prompt, do
                     (data.book_author and data.book_author ~= "") and (" by " .. data.book_author) or ""))
             end
 
-            -- Add highlighted text
-            if data.highlighted_text then
+            -- Add highlighted text only if not already in prompt template
+            if data.highlighted_text and not prompt_has_highlight_var then
                 if data.book_title then
                     table.insert(parts, "")  -- Add spacing if book info was shown
                 end
