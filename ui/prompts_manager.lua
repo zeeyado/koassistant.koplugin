@@ -81,6 +81,8 @@ function PromptsManager:loadPrompts()
             temperature = temperature,
             extended_thinking = prompt.extended_thinking,
             thinking_budget = prompt.thinking_budget,
+            provider = prompt.provider,
+            model = prompt.model,
         }
     end
 
@@ -375,14 +377,19 @@ function PromptsManager:showPromptDetails(prompt)
         thinking_text = _("Global")
     end
 
+    -- Provider/model display
+    local provider_text = prompt.provider or _("Global")
+    local model_text = prompt.model or _("Global")
+
     local info_text = string.format(
-        "%s\n\n%s: %s\n%s: %s\n%s: %s\n%s: %s\n%s: %s\n\n%s:\n%s\n\n%s:\n%s",
+        "%s\n\n%s: %s\n%s: %s\n%s: %s\n%s: %s\n%s: %s\n%s: %s / %s\n\n%s:\n%s\n\n%s:\n%s",
         prompt.text,
         _("Context"), self:getContextDisplayName(prompt.context),
         _("Source"), source_text,
         _("Status"), prompt.enabled and _("Enabled") or _("Disabled"),
         _("Temperature"), temp_text,
         _("Extended Thinking"), thinking_text,
+        _("Provider/Model"), provider_text, model_text,
         _("AI Behavior"),
         behavior_text,
         _("Action Prompt"),
@@ -469,6 +476,8 @@ function PromptsManager:showPromptEditor(existing_prompt)
         temperature = existing_prompt and existing_prompt.temperature or nil,  -- nil = use global
         extended_thinking = existing_prompt and existing_prompt.extended_thinking or nil,  -- nil = use global, "off" = force off, "on" = force on
         thinking_budget = existing_prompt and existing_prompt.thinking_budget or nil,  -- nil = use global default
+        provider = existing_prompt and existing_prompt.provider or nil,  -- nil = use global
+        model = existing_prompt and existing_prompt.model or nil,  -- nil = use global
         existing_prompt = existing_prompt,
     }
 
@@ -869,7 +878,7 @@ function PromptsManager:showStep3_ActionPrompt(state)
     dialog:onShowKeyboard()
 end
 
--- Step 4: Advanced Settings (temperature, extended thinking)
+-- Step 4: Advanced Settings (temperature, extended thinking, provider/model)
 function PromptsManager:showStep4_Advanced(state)
     local is_edit = state.existing_prompt ~= nil
 
@@ -886,6 +895,10 @@ function PromptsManager:showStep4_Advanced(state)
     else
         thinking_display = _("Global")
     end
+
+    -- Get current provider/model display
+    local provider_display = state.provider or _("Global")
+    local model_display = state.model or _("Global")
 
     local buttons = {
         -- Row 1: Temperature
@@ -906,7 +919,28 @@ function PromptsManager:showStep4_Advanced(state)
                 end,
             },
         },
-        -- Row 3: Back / Save
+        -- Row 3: Provider/Model
+        {
+            {
+                text = _("Provider: ") .. provider_display,
+                callback = function()
+                    self:showProviderSelector(state)
+                end,
+            },
+            {
+                text = _("Model: ") .. model_display,
+                callback = function()
+                    if not state.provider then
+                        UIManager:show(InfoMessage:new{
+                            text = _("Please select a provider first"),
+                        })
+                        return
+                    end
+                    self:showModelSelector(state)
+                end,
+            },
+        },
+        -- Row 4: Back / Save
         {
             {
                 text = _("← Back"),
@@ -942,12 +976,14 @@ function PromptsManager:showStep4_Advanced(state)
 Temperature: ]] .. temp_display .. [[
 
   Range 0.0-2.0 (Anthropic max 1.0)
-  Lower = focused, Higher = creative
 
 Extended Thinking: ]] .. thinking_display .. [[
 
-  Anthropic-only. Enables complex reasoning.
-  Forces temperature to 1.0 when active.]])
+  Anthropic-only. Forces temp to 1.0.
+
+Provider/Model: ]] .. provider_display .. " / " .. model_display .. [[
+
+  Override global provider/model for this action.]])
 
     self.advanced_dialog = ButtonDialog:new{
         title = is_edit and _("Edit Action - Advanced") or _("Step 4/4: Advanced Settings"),
@@ -1084,6 +1120,160 @@ function PromptsManager:showThinkingBudgetSelector(state)
     UIManager:show(spin_widget)
 end
 
+-- Provider selector dialog
+function PromptsManager:showProviderSelector(state)
+    local ModelLists = require("model_lists")
+
+    local providers = { "anthropic", "openai", "deepseek", "gemini", "ollama" }
+
+    local buttons = {
+        -- Use global option
+        {
+            {
+                text = _("Use global setting"),
+                callback = function()
+                    state.provider = nil
+                    state.model = nil  -- Clear model when clearing provider
+                    UIManager:close(self.provider_dialog)
+                    UIManager:close(self.advanced_dialog)
+                    self:showStep4_Advanced(state)
+                end,
+            },
+        },
+    }
+
+    -- Add provider options
+    for _, provider in ipairs(providers) do
+        local prefix = (state.provider == provider) and "● " or "○ "
+        local model_count = ModelLists[provider] and #ModelLists[provider] or 0
+        table.insert(buttons, {
+            {
+                text = prefix .. provider .. " (" .. model_count .. " models)",
+                callback = function()
+                    state.provider = provider
+                    -- Set default model for this provider
+                    if ModelLists[provider] and #ModelLists[provider] > 0 then
+                        state.model = ModelLists[provider][1]
+                    else
+                        state.model = nil
+                    end
+                    UIManager:close(self.provider_dialog)
+                    UIManager:close(self.advanced_dialog)
+                    self:showStep4_Advanced(state)
+                end,
+            },
+        })
+    end
+
+    -- Cancel button
+    table.insert(buttons, {
+        {
+            text = _("Cancel"),
+            callback = function()
+                UIManager:close(self.provider_dialog)
+            end,
+        },
+    })
+
+    self.provider_dialog = ButtonDialog:new{
+        title = _("Select Provider"),
+        buttons = buttons,
+    }
+
+    UIManager:show(self.provider_dialog)
+end
+
+-- Model selector dialog
+function PromptsManager:showModelSelector(state)
+    local ModelLists = require("model_lists")
+
+    local models = ModelLists[state.provider] or {}
+
+    local buttons = {}
+
+    -- Add model options
+    for _, model in ipairs(models) do
+        local prefix = (state.model == model) and "● " or "○ "
+        table.insert(buttons, {
+            {
+                text = prefix .. model,
+                callback = function()
+                    state.model = model
+                    UIManager:close(self.model_dialog)
+                    UIManager:close(self.advanced_dialog)
+                    self:showStep4_Advanced(state)
+                end,
+            },
+        })
+    end
+
+    -- Custom model option
+    table.insert(buttons, {
+        {
+            text = _("Custom model..."),
+            callback = function()
+                UIManager:close(self.model_dialog)
+                self:showCustomModelInput(state)
+            end,
+        },
+    })
+
+    -- Cancel button
+    table.insert(buttons, {
+        {
+            text = _("Cancel"),
+            callback = function()
+                UIManager:close(self.model_dialog)
+            end,
+        },
+    })
+
+    self.model_dialog = ButtonDialog:new{
+        title = _("Select Model for ") .. state.provider,
+        buttons = buttons,
+    }
+
+    UIManager:show(self.model_dialog)
+end
+
+-- Custom model input dialog
+function PromptsManager:showCustomModelInput(state)
+    local dialog
+    dialog = InputDialog:new{
+        title = _("Custom Model"),
+        input = state.model or "",
+        input_hint = _("Enter model ID"),
+        description = _("Enter the exact model ID for ") .. state.provider,
+        buttons = {
+            {
+                {
+                    text = _("Cancel"),
+                    callback = function()
+                        UIManager:close(dialog)
+                        UIManager:close(self.advanced_dialog)
+                        self:showStep4_Advanced(state)
+                    end,
+                },
+                {
+                    text = _("OK"),
+                    callback = function()
+                        local model = dialog:getInputText()
+                        if model and model ~= "" then
+                            state.model = model
+                        end
+                        UIManager:close(dialog)
+                        UIManager:close(self.advanced_dialog)
+                        self:showStep4_Advanced(state)
+                    end,
+                },
+            },
+        },
+    }
+
+    UIManager:show(dialog)
+    dialog:onShowKeyboard()
+end
+
 -- Get placeholders available for a given context
 function PromptsManager:getPlaceholdersForContext(context)
     local all_placeholders = {
@@ -1176,6 +1366,8 @@ function PromptsManager:addPrompt(state)
             api_params = api_params,
             extended_thinking = state.extended_thinking,  -- nil = global, "off" = force off, "on" = force on
             thinking_budget = state.thinking_budget,      -- only used when extended_thinking = "on"
+            provider = state.provider,  -- nil = use global
+            model = state.model,        -- nil = use global
             enabled = true,
         })
 
@@ -1215,6 +1407,8 @@ function PromptsManager:updatePrompt(existing_prompt, state)
                 api_params = api_params,
                 extended_thinking = state.extended_thinking,
                 thinking_budget = state.thinking_budget,
+                provider = state.provider,
+                model = state.model,
                 enabled = true,
             }
 
