@@ -271,36 +271,68 @@ function MessageHistory:createResultText(highlightedText, config)
         end
 
         if display_level == "full" and config.system then
-            -- Show system array content with labels
-            table.insert(result, "● System Array:\n")
-            for _, block in ipairs(config.system) do
-                local label = block.label or "unknown"
-                local cached = block.cache_control and " [CACHED]" or ""
+            -- Determine header based on provider (Anthropic uses array format)
+            local provider = config.provider or config.default_provider or "unknown"
+            local header = (provider == "anthropic") and "● System Array:\n" or "● System Prompt:\n"
+            table.insert(result, header)
 
-                -- If we have individual components, show each one
-                if block.debug_components and #block.debug_components > 0 then
-                    table.insert(result, string.format("  %s%s:\n", label, cached))
-                    for _, component in ipairs(block.debug_components) do
-                        local preview = component.text or ""
-                        -- Show first 80 chars of each component
-                        if #preview > 80 then
-                            preview = preview:sub(1, 80):gsub("\n", " ") .. "..."
-                        else
-                            preview = preview:gsub("\n", " ")
-                        end
-                        table.insert(result, string.format("    - %s: %s\n", component.name, preview))
+            -- Handle unified format (v0.5.2+): { text, enable_caching, components }
+            if config.system.text ~= nil then
+                local cached = config.system.enable_caching and " [CACHED]" or ""
+
+                -- Build component names list for the header
+                local comp_names = {}
+                local comps = config.system.components or {}
+                if comps.behavior then table.insert(comp_names, "behavior") end
+                if comps.domain then table.insert(comp_names, "domain") end
+                if comps.language then table.insert(comp_names, "language") end
+
+                if #comp_names > 0 then
+                    -- Show combined header like "behavior+domain+language [CACHED]:"
+                    local combined = table.concat(comp_names, "+")
+                    table.insert(result, string.format("  %s%s:\n", combined, cached))
+
+                    -- Show each component as sub-item
+                    if comps.behavior then
+                        local preview = comps.behavior:sub(1, 80):gsub("\n", " ")
+                        if #comps.behavior > 80 then preview = preview .. "..." end
+                        table.insert(result, string.format("    - behavior: %s\n", preview))
+                    end
+                    if comps.domain then
+                        local preview = comps.domain:sub(1, 80):gsub("\n", " ")
+                        if #comps.domain > 80 then preview = preview .. "..." end
+                        table.insert(result, string.format("    - domain: %s\n", preview))
+                    end
+                    if comps.language then
+                        local preview = comps.language:sub(1, 80):gsub("\n", " ")
+                        if #comps.language > 80 then preview = preview .. "..." end
+                        table.insert(result, string.format("    - language: %s\n", preview))
                     end
                 else
-                    -- Fallback: show combined text preview
-                    local preview = block.text or ""
-                    -- Show first 100 chars of each block
+                    -- Fallback: show combined text
+                    local preview = config.system.text or ""
                     if #preview > 100 then
                         preview = preview:sub(1, 100):gsub("\n", " ") .. "..."
                     else
                         preview = preview:gsub("\n", " ")
                     end
-                    table.insert(result, string.format("  %s%s: %s\n", label, cached, preview))
+                    table.insert(result, string.format("  text%s: %s\n", cached, preview))
                 end
+            -- Legacy array format (for backwards compatibility)
+            elseif #config.system > 0 then
+                for _, block in ipairs(config.system) do
+                    local label = block.label or "unknown"
+                    local cached_flag = block.cache_control and " [CACHED]" or ""
+                    local preview = block.text or ""
+                    if #preview > 100 then
+                        preview = preview:sub(1, 100):gsub("\n", " ") .. "..."
+                    else
+                        preview = preview:gsub("\n", " ")
+                    end
+                    table.insert(result, string.format("  %s%s: %s\n", label, cached_flag, preview))
+                end
+            else
+                table.insert(result, "  (empty)\n")
             end
             table.insert(result, "\n")
         end
