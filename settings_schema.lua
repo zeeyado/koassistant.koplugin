@@ -41,21 +41,8 @@ local SettingsSchema = {
                 return T(_("Model: %1"), plugin:getCurrentModel())
             end,
             callback = "buildModelMenu",
-        },
-        {
-            id = "temperature",
-            type = "spinner",
-            text = _("Temperature"),
-            path = "features.default_temperature",
-            default = 0.7,
-            min = 0,
-            max = 2,
-            step = 0.1,
-            precision = "%.1f",
-            info_text = _("Range: 0.0-2.0 (Anthropic max 1.0)\nLower = focused, deterministic\nHigher = creative, varied"),
             separator = true,
         },
-
         -- Display Settings submenu
         {
             id = "display_settings",
@@ -176,6 +163,19 @@ local SettingsSchema = {
                     text = _("Edit Custom Behavior..."),
                     callback = "editCustomAIBehavior",
                     depends_on = { id = "ai_behavior_variant", value = "custom" },
+                    separator = true,
+                },
+                {
+                    id = "temperature",
+                    type = "spinner",
+                    text = _("Temperature"),
+                    path = "features.default_temperature",
+                    default = 0.7,
+                    min = 0,
+                    max = 2,
+                    step = 0.1,
+                    precision = "%.1f",
+                    info_text = _("Range: 0.0-2.0 (Anthropic max 1.0)\nLower = focused, deterministic\nHigher = creative, varied"),
                     separator = true,
                 },
                 {

@@ -356,7 +356,6 @@ See `custom_actions.lua.sample` for more examples.
 ### Provider & Model
 - **Provider**: Select AI provider (Anthropic, OpenAI, DeepSeek, Gemini, Ollama)
 - **Model**: Select model for the chosen provider
-- **Temperature**: Response creativity (0.0-2.0, Anthropic max 1.0)
 
 ### Display Settings
 - **Render Markdown**: Format responses with styling (bold, lists, etc.)
@@ -374,6 +373,7 @@ See `custom_actions.lua.sample` for more examples.
 ### Advanced
 - **AI Behavior**: Minimal (~100 tokens), Full (~500 tokens), or Custom guidelines
 - **Edit Custom Behavior**: Define your own AI behavior instructions (when Custom is selected)
+- **Temperature**: Response creativity (0.0-2.0, Anthropic max 1.0)
 - **Enable Extended Thinking**: Enable Claude's reasoning capability (Anthropic only)
 - **Thinking Budget**: Token budget for reasoning (1024-32000)
 - **Console Debug**: Enable terminal/console debug logging
