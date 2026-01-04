@@ -3,7 +3,6 @@ local https = require("ssl.https")
 local ltn12 = require("ltn12")
 local json = require("json")
 local Defaults = require("api_handlers.defaults")
-local RequestBuilder = require("api_handlers.request_builder")
 local ResponseParser = require("api_handlers.response_parser")
 local AnthropicRequest = require("api_handlers.anthropic_request")
 
@@ -15,27 +14,15 @@ function AnthropicHandler:query(message_history, config)
     end
 
     local defaults = Defaults.ProviderDefaults.anthropic
-    -- Use new format if system array was pre-built by dialogs.lua (always for Anthropic now)
-    local use_new_format = config.system ~= nil
-    local request_body
 
-    if use_new_format then
-        -- New format: use AnthropicRequest with pre-built system array
-        request_body = AnthropicRequest:build({
-            model = config.model or defaults.model,
-            messages = message_history,
-            system = config.system,  -- Pre-built by ActionService
-            api_params = config.api_params,
-            additional_parameters = config.additional_parameters,
-        })
-    else
-        -- Legacy format: use RequestBuilder (fallback for edge cases)
-        local error
-        request_body, error = RequestBuilder:buildRequestBody(message_history, config, "anthropic")
-        if not request_body then
-            return "Error: " .. error
-        end
-    end
+    -- Build request using AnthropicRequest with unified config
+    local request_body = AnthropicRequest:build({
+        model = config.model or defaults.model,
+        messages = message_history,
+        system = config.system,  -- Unified format from buildUnifiedRequestConfig
+        api_params = config.api_params,
+        additional_parameters = config.additional_parameters,
+    })
 
     -- Check if streaming is enabled
     local use_streaming = config.features and config.features.enable_streaming
@@ -44,7 +31,6 @@ function AnthropicHandler:query(message_history, config)
     if config and config.features and config.features.debug then
         print("Anthropic Request Body:", json.encode(request_body))
         print("Streaming enabled:", use_streaming and "yes" or "no")
-        print("Using new request format:", use_new_format and "yes" or "no")
     end
 
     local requestBody = json.encode(request_body)

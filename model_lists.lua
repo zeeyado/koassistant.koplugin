@@ -35,13 +35,13 @@ local ModelLists = {
         "deepseek-reasoner",
     },
     gemini = {
+        "gemini-2.5-flash-lite",
         -- Gemini 3 (preview)
         "gemini-3-pro-preview",
         "gemini-3-flash-preview",
         -- Gemini 2.5 (stable)
         "gemini-2.5-pro",
         "gemini-2.5-flash",
-        "gemini-2.5-flash-lite",
         -- Gemini 2.0
         "gemini-2.0-flash",
         "gemini-2.0-flash-lite",

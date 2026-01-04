@@ -74,41 +74,6 @@ local function getPromptContext(config)
     return "highlight"  -- default
 end
 
--- Helper to check if we should use new Anthropic request format
--- Returns true if provider is Anthropic (automatically enabled, no feature flag)
-local function shouldUseNewRequestFormat(config)
-    if not config then return false end
-    -- Check if provider is Anthropic - new format always used for Anthropic
-    local provider = config.provider or config.default_provider or "anthropic"
-    return provider == "anthropic"
-end
-
--- Build Anthropic system array for new request format
---
--- NEW ARCHITECTURE (v0.5):
---   System array contains only: behavior (or none) + domain [CACHED]
---   Action controls behavior via behavior_variant or behavior_override
---
--- @param config: Full configuration
--- @param domain_context: Optional domain context string
--- @param action: Optional action definition with behavior_variant/behavior_override
--- @param plugin: Plugin instance (for settings access)
--- @return system_array or nil if ActionService unavailable
-local function buildAnthropicSystemConfig(config, domain_context, action, plugin)
-    local as = getActionService(plugin and plugin.settings)
-    if not as then
-        return nil
-    end
-
-    -- Build system array with action's behavior settings
-    local system_array = as:buildAnthropicSystem({
-        domain_context = domain_context,
-        action = action,  -- Action with behavior_variant/behavior_override
-    })
-
-    return system_array
-end
-
 -- Helper to persist domain selection to settings
 -- This ensures domain selection survives restarts
 local function persistDomainSelection(plugin, domain_id)
@@ -119,71 +84,87 @@ local function persistDomainSelection(plugin, domain_id)
     plugin.settings:flush()
 end
 
--- Apply new request format to config if applicable
--- Modifies config in-place to add system array and api_params
+-- Build unified request config for ALL providers (v0.5.2+)
 --
--- NEW ARCHITECTURE (v0.5):
---   System array: behavior (from action or global) + domain [CACHED]
---   Action controls behavior via behavior_variant or behavior_override
+-- All providers receive the same config structure:
+--   config.system = { text, enable_caching, components }
+--   config.api_params = { temperature, max_tokens, thinking }
 --
--- @param config: Configuration to modify
+-- Each handler then adapts to its native API format
+--
+-- @param config: Configuration to modify (modified in-place)
 -- @param domain_context: Optional domain context string
--- @param action: Optional action definition with behavior_variant/behavior_override and api_params
+-- @param action: Optional action definition with behavior/api_params
 -- @param plugin: Plugin instance
-local function applyNewRequestFormat(config, domain_context, action, plugin)
-    if not shouldUseNewRequestFormat(config) then
-        return false
+-- @return boolean: true if config was successfully built
+local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
+    if not config then return false end
+
+    local features = config.features or {}
+    local SystemPrompts = require("prompts.system_prompts")
+
+    -- Build unified system prompt (works for all providers)
+    local system_config = SystemPrompts.buildUnifiedSystem({
+        -- Behavior resolution (priority: action override > action variant > global)
+        behavior_variant = action and action.behavior_variant,
+        behavior_override = action and action.behavior_override,
+        global_variant = features.ai_behavior_variant or "full",
+        custom_ai_behavior = features.custom_ai_behavior,
+        -- Domain context
+        domain_context = domain_context,
+        -- Caching (only effective for Anthropic)
+        enable_caching = (config.provider or config.default_provider) == "anthropic",
+        -- Language settings
+        user_languages = features.user_languages or "",
+        primary_language = features.primary_language,
+    })
+
+    config.system = system_config
+
+    -- Build api_params (works for all providers, handlers use what they support)
+    config.api_params = {}
+
+    -- Start with action-specific API params if available
+    if action and action.api_params then
+        for k, v in pairs(action.api_params) do
+            config.api_params[k] = v
+        end
     end
 
-    local system_array = buildAnthropicSystemConfig(
-        config, domain_context, action, plugin
-    )
-
-    if system_array then
-        config.system = system_array
-
-        -- Start with action-specific API params if available
-        if action and action.api_params then
-            config.api_params = action.api_params
-        else
-            config.api_params = {}
-        end
-
-        -- Apply global temperature if not overridden by action
-        if not config.api_params.temperature then
-            if config.features and config.features.default_temperature then
-                config.api_params.temperature = config.features.default_temperature
-            end
-            -- Note: temperature is forced to 1.0 by anthropic_request.lua when thinking is enabled
-        end
-
-        -- Apply extended thinking based on action override or global setting
-        -- Only for Anthropic provider (others will ignore or warn)
-        if action and action.extended_thinking == "off" then
-            -- Action explicitly disables thinking - don't apply
-            config.api_params.thinking = nil
-        elseif action and action.extended_thinking == "on" then
-            -- Action explicitly enables thinking with its own budget
-            local budget = action.thinking_budget or 4096
-            config.api_params.thinking = {
-                type = "enabled",
-                budget_tokens = math.max(budget, 1024),
-            }
-        elseif config.features and config.features.enable_extended_thinking then
-            -- Fall back to global setting
-            if not config.api_params.thinking then
-                local budget = config.features.thinking_budget_tokens or 4096
-                config.api_params.thinking = {
-                    type = "enabled",
-                    budget_tokens = math.max(budget, 1024),
-                }
-            end
-        end
-
-        return true
+    -- Apply per-action temperature override, or fall back to global
+    if action and action.temperature then
+        config.api_params.temperature = action.temperature
+    elseif not config.api_params.temperature and features.default_temperature then
+        config.api_params.temperature = features.default_temperature
     end
 
-    return false
+    -- Apply max_tokens from defaults if not set
+    if not config.api_params.max_tokens then
+        config.api_params.max_tokens = 4096
+    end
+
+    -- Extended thinking (Anthropic only - other handlers will ignore)
+    -- Priority: action override > global setting
+    if action and action.extended_thinking == "off" then
+        -- Action explicitly disables thinking
+        config.api_params.thinking = nil
+    elseif action and action.extended_thinking == "on" then
+        -- Action explicitly enables thinking with its own budget
+        local budget = action.thinking_budget or 4096
+        config.api_params.thinking = {
+            type = "enabled",
+            budget_tokens = math.max(budget, 1024),
+        }
+    elseif features.enable_extended_thinking then
+        -- Fall back to global setting
+        local budget = features.thinking_budget_tokens or 4096
+        config.api_params.thinking = {
+            type = "enabled",
+            budget_tokens = math.max(budget, 1024),
+        }
+    end
+
+    return true
 end
 
 local function createTempConfig(prompt, base_config)
@@ -886,20 +867,9 @@ local function handlePredefinedPrompt(prompt_type, highlightedText, ui, configur
         temp_config.model = prompt.model
     end
 
-    -- Determine system prompt based on context
-    -- NEW ARCHITECTURE (v0.5):
-    --   For Anthropic: behavior is handled by buildAnthropicSystemConfig via action fields
-    --   For legacy providers: we need a flattened system prompt
-    local using_new_format = shouldUseNewRequestFormat(temp_config)
-    local system_prompt = nil
-    local service = plugin and (plugin.action_service or plugin.prompt_service)
-
-    -- Only get flattened system prompt for legacy (non-Anthropic) format
-    if not using_new_format and service then
-        -- Get flattened behavior for non-Anthropic providers
-        -- Pass the action so behavior_variant/behavior_override are respected
-        system_prompt = service:buildFlattenedSystem({ action = prompt })
-    end
+    -- NEW ARCHITECTURE (v0.5.2+): Unified request config for all providers
+    -- System prompt is built by buildUnifiedRequestConfig and passed in config.system
+    -- No longer embedded in the consolidated message
 
     -- Create history WITHOUT system prompt (we'll include it in the consolidated message)
     -- Pass prompt text for better chat naming
@@ -966,20 +936,12 @@ local function handlePredefinedPrompt(prompt_type, highlightedText, ui, configur
         local all_domains = DomainLoader.load()
         if all_domains[domain_id] then
             domain_context = all_domains[domain_id].context
-            -- Also add system_hint to system prompt if available
-            if all_domains[domain_id].system_hint then
-                if system_prompt then
-                    system_prompt = system_prompt .. "\n\n" .. all_domains[domain_id].system_hint
-                else
-                    system_prompt = all_domains[domain_id].system_hint
-                end
-            end
         end
     end
 
-    -- Build and add the consolidated message (now including system prompt and domain context)
-    -- When using new format, skip domain/system in message - they go in system array
-    local consolidated_message = buildConsolidatedMessage(prompt, context, message_data, system_prompt, domain_context, using_new_format)
+    -- Build and add the consolidated message
+    -- System prompt and domain are now in config.system (unified approach)
+    local consolidated_message = buildConsolidatedMessage(prompt, context, message_data, nil, nil, true)
     history:addUserMessage(consolidated_message, true)
 
     -- Store domain in history for saving with chat
@@ -990,10 +952,10 @@ local function handlePredefinedPrompt(prompt_type, highlightedText, ui, configur
     -- Track if user provided additional input
     local has_additional_input = additional_input and additional_input ~= ""
 
-    -- Apply new request format if enabled (adds system array for Anthropic)
+    -- Build unified request config for ALL providers
     -- Pass the prompt/action object which contains behavior_variant/behavior_override
     local action = prompt._action or prompt  -- Use underlying action if available
-    applyNewRequestFormat(temp_config, domain_context, action, plugin)
+    buildUnifiedRequestConfig(temp_config, domain_context, action, plugin)
 
     -- Get response from AI with callback for async streaming
     local function handleResponse(success, answer, err)
@@ -1218,20 +1180,10 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                 UIManager:close(input_dialog)
                 showLoadingDialog()
                 UIManager:scheduleIn(0.1, function()
-                    -- Determine system prompt based on context
-                    -- For new Anthropic format, behavior+context are handled by buildAnthropicSystemConfig
-                    -- We only need this for legacy format (non-Anthropic) or custom overrides
-                    local using_new_format = shouldUseNewRequestFormat(configuration)
-                    local system_prompt = configuration.features.system_prompt
-                    if not using_new_format and not system_prompt then
-                        -- Get flattened behavior for non-Anthropic providers
-                        local svc = plugin.action_service or plugin.prompt_service
-                        if svc then
-                            system_prompt = svc:buildFlattenedSystem({})
-                        end
-                    end
+                    -- NEW ARCHITECTURE (v0.5.2+): Unified request config for all providers
+                    -- System prompt and domain are built by buildUnifiedRequestConfig
 
-                    -- Get domain context if a domain is selected
+                    -- Get domain context if a domain is selected (for passing to buildUnifiedRequestConfig)
                     local domain_id = selected_domain
                     local domain_context = nil
                     if domain_id then
@@ -1239,18 +1191,10 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         local all_domains = DomainLoader.load()
                         if all_domains[domain_id] then
                             domain_context = all_domains[domain_id].context
-                            -- Add domain system hint to system prompt if available
-                            if all_domains[domain_id].system_hint then
-                                if system_prompt then
-                                    system_prompt = system_prompt .. "\n\n" .. all_domains[domain_id].system_hint
-                                else
-                                    system_prompt = all_domains[domain_id].system_hint
-                                end
-                            end
                         end
                     end
 
-                    -- Create history WITHOUT system prompt (we'll include it in the consolidated message)
+                    -- Create history WITHOUT system prompt (system is in config.system)
                     local history = MessageHistory:new(nil, "Ask")
 
                     -- Store domain in history for saving with chat
@@ -1258,25 +1202,8 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         history.domain = domain_id
                     end
 
-                    -- Build consolidated message parts
+                    -- Build consolidated message parts (no system/domain - they're in config.system now)
                     local parts = {}
-
-                    -- Add domain context first if provided (background knowledge)
-                    -- Skip if using new format - domain will go in system array instead
-                    if not using_new_format and domain_context and domain_context ~= "" then
-                        table.insert(parts, "[Domain Context]")
-                        table.insert(parts, domain_context)
-                        table.insert(parts, "")
-                    end
-
-                    -- Add system prompt
-                    -- Skip if using new format - system prompt will go in system array instead
-                    if not using_new_format and system_prompt then
-                        table.insert(parts, "")  -- Add line break before [Instructions]
-                        table.insert(parts, "[Instructions]")
-                        table.insert(parts, system_prompt)
-                        table.insert(parts, "")
-                    end
 
                     -- Add appropriate context
                     if configuration.features.is_book_context then
@@ -1326,9 +1253,9 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     local consolidated_message = table.concat(parts, "\n")
                     history:addUserMessage(consolidated_message, true)
 
-                    -- Apply new request format if enabled (adds system array for Anthropic)
+                    -- Build unified request config for ALL providers
                     -- No action specified, uses global behavior setting
-                    applyNewRequestFormat(configuration, domain_context, nil, plugin)
+                    buildUnifiedRequestConfig(configuration, domain_context, nil, plugin)
 
                     -- Callback to handle response (for both streaming and non-streaming)
                     local function onResponseReady(success, answer, err)
