@@ -21,8 +21,8 @@ Most settings are configurable in the UI, including provider/model, AI behavior,
 - [Recommended Setup](#recommended-setup)
 - [How to Use KOAssistant](#how-to-use-koassistant)
   - [Highlight Mode](#highlight-mode)
-  - [Book Mode](#book-mode)
-  - [Multi-Book Mode](#multi-book-mode)
+  - [Book/Document Mode](#book-mode)
+  - [Multi-Document Mode](#multi-book-mode)
   - [General Chat](#general-chat)
 - [Managing Conversations](#managing-conversations)
 - [Knowledge Domains](#knowledge-domains)
@@ -127,7 +127,7 @@ KOAssistant works in **4 contexts**, each with its own set of actions, and you c
 | **Summarize** | Concise summary of the text |
 | **Translate** | Translate to your configured language |
 
-**What the AI sees**: Your highlighted text, plus optionally the book title and author.
+**What the AI sees**: Your highlighted text, plus Document metadata (title, author, identifiers from file properties)
 
 ### Book/document Mode 
 
