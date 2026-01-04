@@ -912,10 +912,13 @@ local function handlePredefinedPrompt(prompt_type, highlightedText, ui, configur
     -- Resolve effective translation language
     local effective_translation_language
     if config.features.translation_use_primary ~= false then
-        -- Default: use primary language setting
-        local primary = config.features.primary_language or "English"
-        primary = primary:match("^%s*(.-)%s*$")  -- Trim whitespace
-        effective_translation_language = (primary ~= "") and primary or "English"
+        -- Default: use first language from user_languages (primary)
+        local user_languages = config.features.user_languages or "English"
+        local primary = user_languages:match("^%s*([^,]+)")  -- Get first language
+        if primary then
+            primary = primary:match("^%s*(.-)%s*$")  -- Trim whitespace
+        end
+        effective_translation_language = (primary and primary ~= "") and primary or "English"
     else
         -- Use custom translation_language setting
         effective_translation_language = config.features.translation_language or "English"

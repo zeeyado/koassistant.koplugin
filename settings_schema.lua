@@ -240,28 +240,20 @@ local SettingsSchema = {
             text = _("Language"),
             items = {
                 {
-                    id = "primary_language",
+                    id = "user_languages",
                     type = "text",
-                    text = _("Primary Language"),
-                    path = "features.primary_language",
+                    text = _("Your Languages"),
+                    path = "features.user_languages",
                     default = "English",
-                    help_text = _("Your main language. AI will respond in this language by default when language matching is enabled."),
-                },
-                {
-                    id = "additional_languages",
-                    type = "text",
-                    text = _("Additional Languages"),
-                    path = "features.additional_languages",
-                    default = "",
-                    help_text = _("Other languages you speak (comma-separated, optional).\nExample: \"German, Spanish\"\n\nWhen language matching is enabled and you write in one of these languages, AI will respond in that language instead of your primary."),
+                    help_text = _("Languages you speak, separated by commas.\nThe FIRST language is your primary/default.\n\nExamples:\n• \"English\" - monolingual\n• \"German, English\" - German is primary\n• \"Arabic, English, French\" - Arabic is primary"),
                 },
                 {
                     id = "enable_language_matching",
                     type = "toggle",
-                    text = _("Enable Response Language Matching"),
+                    text = _("Match Response Language"),
                     path = "features.enable_language_matching",
                     default = false,
-                    help_text = _("When enabled:\n• AI responds in your Primary Language by default\n• If you write in an Additional Language, AI responds in that language\n\nWhen disabled: AI uses default behavior."),
+                    help_text = _("AI responds in the language you type in.\n\nWhen enabled:\n• AI uses your first (primary) language by default\n• If you type in another language from your list, AI responds in that language\n\nWhen disabled: AI uses its default behavior."),
                     separator = true,
                 },
                 {
@@ -270,7 +262,7 @@ local SettingsSchema = {
                     text = _("Translate to Primary Language"),
                     path = "features.translation_use_primary",
                     default = true,
-                    help_text = _("When enabled, the Translate action uses your Primary Language as the target. Disable to set a different target."),
+                    help_text = _("Use your first language as the translation target. Disable to set a custom target."),
                 },
                 {
                     id = "translation_language",
