@@ -92,7 +92,7 @@ end
 function FullProviderTests:testBasicConnectivity(provider, handler, api_key, verbose)
     local config = TestConfig.buildConfig(provider, api_key, {
         system_prompt = "You are a test assistant. Respond with just 'OK'.",
-        max_tokens = 64,
+        max_tokens = 256,  -- Increased for Gemini 2.5+ models
     })
     local messages = {{ role = "user", content = "Say OK" }}
 
@@ -111,7 +111,7 @@ end
 function FullProviderTests:testMinimalBehavior(provider, handler, api_key, verbose)
     local config = TestConfig.buildFullConfig(provider, api_key, {
         behavior_variant = "minimal",
-        max_tokens = 128,
+        max_tokens = 256,  -- Increased for Gemini 2.5+ models
     })
     local messages = {{ role = "user", content = "What is 2+2? Just the number." }}
 
@@ -130,7 +130,7 @@ end
 function FullProviderTests:testFullBehavior(provider, handler, api_key, verbose)
     local config = TestConfig.buildFullConfig(provider, api_key, {
         behavior_variant = "full",
-        max_tokens = 256,
+        max_tokens = 512,  -- Full behavior adds ~500 tokens system prompt
     })
     local messages = {{ role = "user", content = "Hello, who are you?" }}
 
@@ -149,7 +149,7 @@ end
 function FullProviderTests:testTemperatureZero(provider, handler, api_key, verbose)
     local config = TestConfig.buildConfig(provider, api_key, {
         temperature = 0.0,
-        max_tokens = 64,
+        max_tokens = 256,  -- Increased for Gemini 2.5+ models
     })
     local messages = {{ role = "user", content = "What is the capital of France? One word." }}
 
@@ -169,7 +169,7 @@ function FullProviderTests:testTemperatureMax(provider, handler, api_key, verbos
     local max_temp = getMaxTemperature(provider)
     local config = TestConfig.buildConfig(provider, api_key, {
         temperature = max_temp,
-        max_tokens = 128,
+        max_tokens = 2048,  -- Gemini 2.5+ needs more tokens at high temp
     })
     local messages = {{ role = "user", content = "Write a creative one-sentence story." }}
 
@@ -189,7 +189,7 @@ function FullProviderTests:testDomainContext(provider, handler, api_key, verbose
     local config = TestConfig.buildFullConfig(provider, api_key, {
         behavior_variant = "minimal",
         domain_context = "This conversation is about astronomy and space science.",
-        max_tokens = 256,
+        max_tokens = 2048,  -- Gemini 2.5+ may need more tokens
     })
     local messages = {{ role = "user", content = "What is a popular thing to observe?" }}
 
@@ -225,7 +225,7 @@ function FullProviderTests:testLanguageInstruction(provider, handler, api_key, v
         behavior_variant = "minimal",
         user_languages = "Spanish, English",
         primary_language = "Spanish",
-        max_tokens = 128,
+        max_tokens = 1024,  -- Gemini 2.5+ may need more tokens
     })
     local messages = {{ role = "user", content = "Say hello" }}
 
@@ -308,7 +308,7 @@ function FullProviderTests:runAllTests(provider, api_key, verbose)
 
         if not ok then
             print("\27[31m✗ ERROR\27[0m")
-            print(string.format("      Exception: %s", tostring(result):sub(1, 80)))
+            print(string.format("      Exception: %s", tostring(result)))
             self:log(provider, test.name, "fail", "Exception: " .. tostring(result), 0)
             all_passed = false
         else
@@ -321,7 +321,8 @@ function FullProviderTests:runAllTests(provider, api_key, verbose)
                 print("\27[33m⊘ SKIP\27[0m")
             else
                 print("\27[31m✗ FAIL\27[0m")
-                print(string.format("      %s", last_result.message:sub(1, 80)))
+                -- Show full error message for debugging
+                print(string.format("      %s", last_result.message))
                 all_passed = false
             end
         end
@@ -342,7 +343,9 @@ function FullProviderTests:printSummary()
         print("  Failed tests:")
         for _, r in ipairs(self.results) do
             if r.status == "fail" then
-                print(string.format("    - %s: %s - %s", r.provider, r.test, r.message:sub(1, 50)))
+                -- Show full error message in summary for debugging
+                print(string.format("    - %s: %s", r.provider, r.test))
+                print(string.format("      %s", r.message))
             end
         end
     end
