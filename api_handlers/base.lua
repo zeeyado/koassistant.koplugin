@@ -103,9 +103,16 @@ function BaseHandler:backgroundRequest(url, headers, body)
             return
         end
 
-        -- Disable SSL certificate verification for https URLs
+        -- Initialize SSL in subprocess (required for fresh starts with streaming)
+        -- Re-require modules in subprocess to ensure proper initialization after fork
+        local subprocess_http = require("socket.http")
+        local subprocess_https = require("ssl.https")
         if string.sub(url, 1, 8) == "https://" then
-            https.cert_verify = false
+            -- Also require ssl to ensure it's loaded
+            require("ssl")
+            -- Disable certificate verification
+            subprocess_https.cert_verify = false
+            subprocess_https.TIMEOUT = 60
         end
 
         local pipe_w = wrap_fd(child_write_fd)  -- wrap the write end of the pipe
@@ -118,7 +125,7 @@ function BaseHandler:backgroundRequest(url, headers, body)
         }
 
         -- Use https.request for HTTPS URLs, http.request for HTTP
-        local request_func = string.sub(url, 1, 8) == "https://" and https.request or http.request
+        local request_func = string.sub(url, 1, 8) == "https://" and subprocess_https.request or subprocess_http.request
 
         local ok, code, resp_headers, status = pcall(function()
             return socket.skip(1, request_func(request))
