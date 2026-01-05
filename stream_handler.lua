@@ -355,11 +355,24 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                     if not line_end then break end
 
                     local line = partial_data:sub(1, line_end - 1)
-                    partial_data = partial_data:sub(line_end + 1)
+                    -- Handle both \r\n and \n line endings
+                    local next_start = line_end + 1
+                    if partial_data:sub(line_end, line_end) == "\r" and
+                       partial_data:sub(line_end + 1, line_end + 1) == "\n" then
+                        next_start = line_end + 2  -- Skip both \r and \n
+                    end
+                    partial_data = partial_data:sub(next_start)
 
-                    -- Parse SSE data line
+                    -- Parse SSE data line (handle both "data: " and "data:" formats)
+                    local data_prefix_len = nil
                     if line:sub(1, 6) == "data: " then
-                        local json_str = line:sub(7):match("^%s*(.-)%s*$") -- trim
+                        data_prefix_len = 6
+                    elseif line:sub(1, 5) == "data:" then
+                        data_prefix_len = 5
+                    end
+
+                    if data_prefix_len then
+                        local json_str = line:sub(data_prefix_len + 1):match("^%s*(.-)%s*$") -- trim
                         if json_str == '[DONE]' then
                             completed = true
                             finishStream()
@@ -483,7 +496,11 @@ function StreamHandler:extractContentFromSSE(event)
     -- OpenAI/DeepSeek format: choices[0].delta.content
     local choice = event.choices and event.choices[1]
     if choice then
-        if choice.finish_reason then return nil end -- Don't add newline for finish
+        -- Check for actual stop reasons (not just truthy - JSON null can be truthy in some parsers)
+        local finish = choice.finish_reason
+        if finish and type(finish) == "string" and finish ~= "" then
+            return nil  -- Stream complete
+        end
         local delta = choice.delta
         if delta then
             return delta.content or delta.reasoning_content
