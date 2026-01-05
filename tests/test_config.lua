@@ -22,8 +22,8 @@ function TestConfig.getPluginDir()
         end
     end
 
-    -- Default fallback
-    return "/Users/zzz/Library/Application Support/koreader/plugins/koassistant.koplugin"
+    -- Default fallback: current directory (user should run from plugin dir)
+    return "."
 end
 
 -- Load API keys from plugin directory

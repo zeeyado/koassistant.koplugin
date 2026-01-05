@@ -49,7 +49,7 @@ sudo luarocks install dkjson
 2. **Run from the plugin directory**:
 
    ```bash
-   cd "/Users/zzz/Library/Application Support/koreader/plugins/koassistant.koplugin"
+   cd /path/to/koassistant.koplugin
    lua tests/run_tests.lua
    ```
 
