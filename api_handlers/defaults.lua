@@ -14,6 +14,18 @@ local function getDefaultModel(provider)
         deepseek = "deepseek-chat",
         gemini = "gemini-2.5-pro",
         ollama = "llama3",
+        -- New providers
+        groq = "llama-3.3-70b-versatile",
+        mistral = "mistral-large-latest",
+        xai = "grok-3",  -- Grok 4.x doesn't exist yet (Jan 2025)
+        openrouter = "anthropic/claude-sonnet-4-5",
+        qwen = "qwen-max",
+        kimi = "moonshot-v1-auto",
+        together = "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+        fireworks = "accounts/fireworks/models/llama-v3p3-70b-instruct",
+        sambanova = "Meta-Llama-3.3-70B-Instruct",
+        cohere = "command-r-plus-08-2024",
+        doubao = "doubao-1.5-pro-32k",
     }
     return fallbacks[provider] or "unknown"
 end
@@ -62,6 +74,106 @@ local ProviderDefaults = {
         base_url = "https://generativelanguage.googleapis.com/v1beta/models",
         additional_parameters = {
             temperature = 0.7
+        }
+    },
+    -- New providers (OpenAI-compatible)
+    groq = {
+        provider = "groq",
+        model = getDefaultModel("groq"),
+        base_url = "https://api.groq.com/openai/v1/chat/completions",
+        additional_parameters = {
+            temperature = 0.7,
+            max_tokens = 4096
+        }
+    },
+    mistral = {
+        provider = "mistral",
+        model = getDefaultModel("mistral"),
+        base_url = "https://api.mistral.ai/v1/chat/completions",
+        additional_parameters = {
+            temperature = 0.7,
+            max_tokens = 4096
+        }
+    },
+    xai = {
+        provider = "xai",
+        model = getDefaultModel("xai"),
+        base_url = "https://api.x.ai/v1/chat/completions",
+        additional_parameters = {
+            temperature = 0.7,
+            max_tokens = 4096
+        }
+    },
+    openrouter = {
+        provider = "openrouter",
+        model = getDefaultModel("openrouter"),
+        base_url = "https://openrouter.ai/api/v1/chat/completions",
+        additional_parameters = {
+            temperature = 0.7,
+            max_tokens = 4096
+        }
+    },
+    qwen = {
+        provider = "qwen",
+        model = getDefaultModel("qwen"),
+        base_url = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions",
+        additional_parameters = {
+            temperature = 0.7,
+            max_tokens = 4096
+        }
+    },
+    kimi = {
+        provider = "kimi",
+        model = getDefaultModel("kimi"),
+        base_url = "https://api.moonshot.cn/v1/chat/completions",
+        additional_parameters = {
+            temperature = 0.7,
+            max_tokens = 4096
+        }
+    },
+    together = {
+        provider = "together",
+        model = getDefaultModel("together"),
+        base_url = "https://api.together.xyz/v1/chat/completions",
+        additional_parameters = {
+            temperature = 0.7,
+            max_tokens = 4096
+        }
+    },
+    fireworks = {
+        provider = "fireworks",
+        model = getDefaultModel("fireworks"),
+        base_url = "https://api.fireworks.ai/inference/v1/chat/completions",
+        additional_parameters = {
+            temperature = 0.7,
+            max_tokens = 4096
+        }
+    },
+    sambanova = {
+        provider = "sambanova",
+        model = getDefaultModel("sambanova"),
+        base_url = "https://api.sambanova.ai/v1/chat/completions",
+        additional_parameters = {
+            temperature = 0.7,
+            max_tokens = 4096
+        }
+    },
+    cohere = {
+        provider = "cohere",
+        model = getDefaultModel("cohere"),
+        base_url = "https://api.cohere.com/v2/chat",
+        additional_parameters = {
+            temperature = 0.7,
+            max_tokens = 4096
+        }
+    },
+    doubao = {
+        provider = "doubao",
+        model = getDefaultModel("doubao"),
+        base_url = "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
+        additional_parameters = {
+            temperature = 0.7,
+            max_tokens = 4096
         }
     }
 }

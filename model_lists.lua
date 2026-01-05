@@ -45,13 +45,13 @@ local ModelLists = {
         "deepseek-reasoner",
     },
     gemini = {
-        -- Gemini 3 (preview)
-        "gemini-3-pro-preview",
-        "gemini-3-flash-preview",
-        -- Gemini 2.5 (stable)
+        -- Gemini 2.5 (stable, recommended)
         "gemini-2.5-pro",
         "gemini-2.5-flash",
         "gemini-2.5-flash-lite",
+        -- Gemini 3 (preview - thinking models, use more tokens)
+        "gemini-3-pro-preview",
+        "gemini-3-flash-preview",
         -- Gemini 2.0
         "gemini-2.0-flash",
         "gemini-2.0-flash-lite",
@@ -122,6 +122,161 @@ local ModelLists = {
         "command-r",
         "neural-chat",
         "vicuna",
+    },
+    -- New providers
+    groq = {
+        -- Llama 4 (fastest)
+        "llama-4-scout-17b-16e-instruct",
+        "llama-4-maverick-17b-128e-instruct",
+        -- Llama 3.3
+        "llama-3.3-70b-versatile",
+        "llama-3.3-70b-specdec",
+        -- Qwen
+        "qwen-qwq-32b",
+        -- DeepSeek
+        "deepseek-r1-distill-llama-70b",
+        "deepseek-r1-distill-qwen-32b",
+        -- Llama 3.1
+        "llama-3.1-8b-instant",
+    },
+    mistral = {
+        -- Flagship
+        "mistral-large-latest",
+        "mistral-large-2411",
+        -- Coding
+        "codestral-latest",
+        "codestral-2501",
+        -- Vision
+        "pixtral-large-latest",
+        "pixtral-12b-2409",
+        -- Reasoning
+        "magistral-medium-2507",
+        "magistral-small-2507",
+        -- Small/Fast
+        "mistral-small-latest",
+        "open-mistral-nemo",
+    },
+    xai = {
+        -- Grok 4.1 (latest, 2025)
+        "grok-4-1-fast-reasoning",
+        "grok-4-1-fast-non-reasoning",
+        -- Grok 4
+        "grok-4-fast-reasoning",
+        "grok-4-fast-non-reasoning",
+        "grok-4-0709",
+        -- Grok Code
+        "grok-code-fast-1",
+        -- Grok 3
+        "grok-3",
+        "grok-3-mini",
+        -- Grok 2 Vision
+        "grok-2-vision-1212",
+    },
+    openrouter = {
+        -- Curated popular choices
+        -- Special: First entry is a placeholder for custom model input
+        "custom",  -- UI will show text input when selected
+        -- Popular models (format: provider/model-name)
+        "anthropic/claude-sonnet-4-5",
+        "openai/gpt-5.2",
+        "google/gemini-2.5-pro",
+        "meta-llama/llama-4-maverick",
+        "deepseek/deepseek-r1",
+        "mistralai/mistral-large-2411",
+        "qwen/qwen3-235b-a22b",
+        "x-ai/grok-4",
+    },
+    qwen = {
+        -- Qwen3 (latest)
+        "qwen3-max",
+        "qwen3-max-2025-09-23",
+        -- Qwen Max
+        "qwen-max",
+        "qwen-max-2025-01-25",
+        -- Qwen Plus
+        "qwen-plus",
+        "qwen-plus-latest",
+        -- Coding
+        "qwen3-coder-flash",
+        -- Math
+        "qwen-math-plus",
+    },
+    kimi = {
+        -- K2 (latest, 256K context)
+        "kimi-k2-0711-preview",
+        "kimi-k2-thinking-preview",
+        -- Auto (routes to best model)
+        "moonshot-v1-auto",
+        -- Specific context sizes
+        "moonshot-v1-8k",
+        "moonshot-v1-32k",
+        "moonshot-v1-128k",
+    },
+    together = {
+        -- Llama 4
+        "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
+        "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+        -- Llama 3.3
+        "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+        -- Qwen 3
+        "Qwen/Qwen3-235B-A22B-fp8",
+        "Qwen/Qwen3-32B",
+        -- DeepSeek
+        "deepseek-ai/DeepSeek-R1",
+        "deepseek-ai/DeepSeek-R1-Distill-Llama-70B",
+        -- Mistral
+        "mistralai/Mistral-Large-2411",
+    },
+    fireworks = {
+        -- Llama 4
+        "accounts/fireworks/models/llama4-maverick-instruct-basic",
+        "accounts/fireworks/models/llama4-scout-instruct-basic",
+        -- Llama 3.3
+        "accounts/fireworks/models/llama-v3p3-70b-instruct",
+        -- Qwen 3
+        "accounts/fireworks/models/qwen3-235b-a22b",
+        -- DeepSeek
+        "accounts/fireworks/models/deepseek-r1",
+        -- Mixtral
+        "accounts/fireworks/models/mixtral-8x22b-instruct",
+    },
+    sambanova = {
+        -- Llama 4
+        "Meta-Llama-4-Maverick-17B-128E-Instruct",
+        "Meta-Llama-4-Scout-17B-16E-Instruct",
+        -- Llama 3.x
+        "Meta-Llama-3.3-70B-Instruct",
+        "Meta-Llama-3.1-405B-Instruct",
+        "Meta-Llama-3.1-70B-Instruct",
+        "Meta-Llama-3.1-8B-Instruct",
+        -- DeepSeek
+        "DeepSeek-R1",
+        "DeepSeek-R1-Distill-Llama-70B",
+        -- Qwen
+        "Qwen3-32B",
+    },
+    cohere = {
+        -- Command A (latest, strongest)
+        "command-a-03-2025",
+        -- Command R+
+        "command-r-plus-08-2024",
+        -- Command R
+        "command-r-08-2024",
+        -- Smaller
+        "command-r7b-12-2024",
+    },
+    doubao = {
+        -- Pro models (latest)
+        "doubao-1.5-pro-32k",
+        "doubao-1.5-pro-256k",
+        -- Vision
+        "doubao-1.5-vision-pro-32k",
+        -- Seed models (newest)
+        "doubao-seed-1.6-flash",
+        -- Code
+        "doubao-seed-code",
+        -- Lite (fast/cheap)
+        "doubao-lite-32k",
     }
 }
 return ModelLists
