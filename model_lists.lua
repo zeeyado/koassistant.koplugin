@@ -157,20 +157,20 @@ local ModelLists = {
         "open-mistral-nemo",
     },
     xai = {
-        -- Grok 4.x (latest)
-        "grok-4.1",
-        "grok-4.1-fast",
-        "grok-4",
-        "grok-4-fast",
-        -- Grok 3.x
+        -- Grok 4.1 (latest, 2025)
+        "grok-4-1-fast-reasoning",
+        "grok-4-1-fast-non-reasoning",
+        -- Grok 4
+        "grok-4-fast-reasoning",
+        "grok-4-fast-non-reasoning",
+        "grok-4-0709",
+        -- Grok Code
+        "grok-code-fast-1",
+        -- Grok 3
         "grok-3",
-        "grok-3-fast",
         "grok-3-mini",
-        "grok-3-mini-fast",
-        -- Vision
+        -- Grok 2 Vision
         "grok-2-vision-1212",
-        -- Image generation
-        "grok-2-image-1212",
     },
     openrouter = {
         -- Curated popular choices

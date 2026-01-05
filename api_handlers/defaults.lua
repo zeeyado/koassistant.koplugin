@@ -17,7 +17,7 @@ local function getDefaultModel(provider)
         -- New providers
         groq = "llama-3.3-70b-versatile",
         mistral = "mistral-large-latest",
-        xai = "grok-3",
+        xai = "grok-3",  -- Grok 4.x doesn't exist yet (Jan 2025)
         openrouter = "anthropic/claude-sonnet-4-5",
         qwen = "qwen-max",
         kimi = "moonshot-v1-auto",
