@@ -2,46 +2,134 @@
 
 Standalone test framework for testing KOAssistant without running KOReader's GUI.
 
+## Quick Start
+
+```bash
+cd /path/to/koassistant.koplugin
+
+# Run unit tests (fast, no API calls)
+lua tests/run_tests.lua --unit
+
+# Run provider connectivity tests
+lua tests/run_tests.lua
+
+# Inspect request structure
+lua tests/inspect.lua anthropic
+
+# Start web UI for interactive testing
+lua tests/inspect.lua --web
+```
+
+## Tools
+
+### Test Runner (`run_tests.lua`)
+
+Runs automated tests against providers.
+
+```bash
+# Unit tests only (107 tests, no API calls)
+lua tests/run_tests.lua --unit
+
+# Basic connectivity for all providers
+lua tests/run_tests.lua
+
+# Single provider
+lua tests/run_tests.lua anthropic
+
+# Comprehensive tests (behaviors, temps, domains)
+lua tests/run_tests.lua anthropic --full
+
+# Verbose output
+lua tests/run_tests.lua -v
+```
+
+### Request Inspector (`inspect.lua`)
+
+Visualize exactly what requests are sent to each provider.
+
+```bash
+# Inspect single provider
+lua tests/inspect.lua anthropic
+lua tests/inspect.lua openai --behavior full
+
+# Compare providers side-by-side
+lua tests/inspect.lua --compare anthropic openai gemini
+
+# Export as JSON
+lua tests/inspect.lua --export anthropic > request.json
+
+# List providers and presets
+lua tests/inspect.lua --list
+
+# Use presets
+lua tests/inspect.lua anthropic --preset thinking
+lua tests/inspect.lua anthropic --preset domain
+
+# Custom options
+lua tests/inspect.lua anthropic --behavior minimal --temp 0.5
+lua tests/inspect.lua anthropic --languages "English, Spanish"
+lua tests/inspect.lua anthropic --thinking 8192
+```
+
+**Presets:** `minimal`, `full`, `domain`, `thinking`, `multilingual`, `custom`
+
+### Web UI (`inspect.lua --web`)
+
+Interactive browser-based request inspector.
+
+```bash
+# Start web server (default port 8080)
+lua tests/inspect.lua --web
+
+# Custom port
+lua tests/inspect.lua --web --port 3000
+
+# Then open http://localhost:8080
+```
+
+**Features:**
+- Live request building (no API calls needed)
+- Provider/model selection with all 16 providers
+- Behavior toggles, temperature slider
+- Domain context and language settings
+- Extended thinking configuration
+- Syntax-highlighted JSON output
+- Dark mode support
+
 ## Test Categories
 
-### Unit Tests (Fast, Free, No API Calls)
-Located in `tests/unit/`. These test core logic without making API calls:
-- `test_system_prompts.lua` - Behavior variants, language parsing, domain integration
-- `test_streaming_parser.lua` - SSE/NDJSON content extraction
-- `test_response_parser.lua` - Response parsing for all 16 providers
+### Unit Tests (107 tests, no API calls)
 
-### Integration Tests (Real API Calls)
-The default test mode. Tests all 16 AI providers with real API calls.
+Located in `tests/unit/`:
+- `test_system_prompts.lua` - 46 tests: behavior variants, language parsing, domain
+- `test_streaming_parser.lua` - 22 tests: SSE/NDJSON content extraction
+- `test_response_parser.lua` - 39 tests: response parsing for all 16 providers
+
+### Integration Tests (real API calls)
+
+| Mode | Description |
+|------|-------------|
+| Default | Basic connectivity (API responds, returns string) |
+| `--full` | Behaviors, temperatures, domains, languages, extended thinking |
 
 ## Prerequisites
 
-You need Lua 5.3+ with LuaSocket and LuaSec installed.
+Lua 5.3+ with LuaSocket, LuaSec, and dkjson.
 
 ### macOS (Homebrew)
 
 ```bash
-# Install Lua
 brew install lua luarocks
+luarocks install luasocket luasec dkjson
 
-# Install required packages
-luarocks install luasocket
-luarocks install luasec
-luarocks install dkjson
-
-# Verify installation
-lua -v
-lua -e "require('socket'); print('LuaSocket OK')"
-lua -e "require('ssl'); print('LuaSec OK')"
-lua -e "require('dkjson'); print('dkjson OK')"
+# Verify
+lua -e "require('socket'); require('ssl'); require('dkjson'); print('OK')"
 ```
 
 ### Linux (Debian/Ubuntu)
 
 ```bash
-# Install Lua and LuaRocks
 sudo apt install lua5.3 liblua5.3-dev luarocks
-
-# Install packages
 sudo luarocks install luasocket
 sudo luarocks install luasec OPENSSL_DIR=/usr
 sudo luarocks install dkjson
@@ -49,7 +137,7 @@ sudo luarocks install dkjson
 
 ## Setup
 
-1. **Ensure you have API keys configured** in `apikeys.lua`:
+1. **Configure API keys** in `apikeys.lua`:
 
    ```bash
    cd /path/to/koassistant.koplugin
@@ -64,125 +152,25 @@ sudo luarocks install dkjson
    lua tests/run_tests.lua
    ```
 
-## Usage
-
-### Run Unit Tests (Fast, No API Calls)
-
-```bash
-lua tests/run_tests.lua --unit
-```
-
-### Run All Tests (Unit + Integration)
-
-```bash
-lua tests/run_tests.lua --all
-```
-
-### Run Integration Tests Only (Default)
-
-```bash
-lua tests/run_tests.lua
-```
-
-### Test a Single Provider
-
-```bash
-lua tests/run_tests.lua anthropic
-lua tests/run_tests.lua openai
-lua tests/run_tests.lua groq
-```
-
-### Comprehensive Provider Tests (--full)
-
-Run comprehensive tests that check behaviors, temperatures, domains, and language instructions:
-
-```bash
-# Test a single provider comprehensively
-lua tests/run_tests.lua groq --full
-lua tests/run_tests.lua anthropic --full -v
-
-# Test all providers comprehensively (takes longer)
-lua tests/run_tests.lua --full
-```
-
-The `--full` flag runs these tests for each provider:
-- Basic connectivity
-- Minimal behavior variant
-- Full behavior variant
-- Temperature 0.0 (deterministic)
-- Temperature max (1.0 for Anthropic, 2.0 for others)
-- Domain context (checks if response reflects domain)
-- Language instruction (checks if response is in correct language)
-- Extended thinking (Anthropic only)
-
-### Verbose Mode (Show Responses)
-
-```bash
-lua tests/run_tests.lua --verbose
-lua tests/run_tests.lua -v openai
-```
-
-### Help
-
-```bash
-lua tests/run_tests.lua --help
-```
-
 ## Local Configuration
 
-Create a local configuration file to customize paths and settings:
+Create `tests/local_config.lua` for custom settings:
 
 ```bash
 cp tests/local_config.lua.sample tests/local_config.lua
-# Edit tests/local_config.lua with your settings
 ```
 
-The local config file is gitignored and supports:
-- `plugin_dir` - Override plugin directory path
-- `apikeys_path` - Override API keys file location
-- `default_provider` - Default provider for quick tests
-- `verbose` - Always run in verbose mode
-- `skip_providers` - Skip specific providers even if API key exists
+Supports: `plugin_dir`, `apikeys_path`, `default_provider`, `verbose`, `skip_providers`
 
-## Expected Output
-
-```
-======================================================================
-  KOAssistant Provider Tests
-======================================================================
-
-  anthropic    ✓ PASS  (1.23s)
-  openai       ✓ PASS  (890ms)
-  deepseek     ✓ PASS  (1.45s)
-  gemini       ✓ PASS  (670ms)
-  ollama       ⊘ SKIP  (no API key)
-  groq         ✓ PASS  (340ms)
-  mistral      ✓ PASS  (910ms)
-  xai          ⊘ SKIP  (no API key)
-  openrouter   ✓ PASS  (780ms)
-  qwen         ✗ FAIL
-               Error: Invalid API key format
-  kimi         ⊘ SKIP  (no API key)
-  together     ✓ PASS  (560ms)
-  fireworks    ✓ PASS  (450ms)
-  sambanova    ✓ PASS  (380ms)
-  cohere       ✓ PASS  (920ms)
-  doubao       ⊘ SKIP  (no API key)
-
-----------------------------------------------------------------------
-  Results: 11 passed, 1 failed, 4 skipped
-
-```
-
-## Providers
+## Providers (16 total)
 
 | Provider | Description |
 |----------|-------------|
-| anthropic | Claude models |
+| anthropic | Claude models (extended thinking support) |
 | openai | GPT models |
-| deepseek | DeepSeek models |
+| deepseek | DeepSeek models (reasoning_content) |
 | gemini | Google Gemini |
-| ollama | Local models (requires running Ollama) |
+| ollama | Local models (NDJSON streaming) |
 | groq | Fast inference |
 | mistral | Mistral AI |
 | xai | Grok models |
@@ -192,62 +180,57 @@ The local config file is gitignored and supports:
 | together | Together AI |
 | fireworks | Fireworks AI |
 | sambanova | SambaNova |
-| cohere | Command models |
+| cohere | Command models (v2 API) |
 | doubao | ByteDance |
-
-## Notes
-
-- **API Keys**: Providers without valid API keys are skipped (not failed)
-- **Ollama**: Requires a running Ollama instance locally
-- **Streaming**: Not tested (requires KOReader's subprocess system)
-- **Token Limits**: Tests use small token limits (64-256) to minimize costs
-
-## Troubleshooting
-
-### "module 'socket' not found"
-
-Install LuaSocket:
-```bash
-luarocks install luasocket
-```
-
-### "module 'ssl' not found"
-
-Install LuaSec:
-```bash
-# macOS
-luarocks install luasec
-
-# Linux (may need OpenSSL path)
-sudo luarocks install luasec OPENSSL_DIR=/usr
-```
-
-### "module 'dkjson' not found"
-
-Install dkjson:
-```bash
-luarocks install dkjson
-```
-
-### Tests hang or timeout
-
-Some providers may be slow. The tests don't have a timeout - they wait for the API response. If a provider consistently hangs, there may be a network or API issue.
 
 ## Files
 
 ```
 tests/
-├── run_tests.lua              # Main test runner (--unit, --all, --full flags)
-├── test_config.lua            # Configuration helpers (buildConfig, buildFullConfig)
-├── local_config.lua.sample    # Sample local config (copy to local_config.lua)
-├── local_config.lua           # User's local config (gitignored)
+├── run_tests.lua              # Test runner
+├── inspect.lua                # Request inspector (CLI + Web UI)
+├── test_config.lua            # Config helpers (buildFullConfig)
+├── local_config.lua.sample    # Local config template
 ├── lib/
-│   └── mock_koreader.lua      # KOReader module mocks
-├── unit/                      # Unit tests (no API calls)
-│   ├── test_system_prompts.lua    # 46 tests - behavior, language, domain
-│   ├── test_streaming_parser.lua  # 22 tests - SSE/NDJSON parsing
-│   └── test_response_parser.lua   # 39 tests - 16 provider responses
-├── integration/               # Integration tests (real API calls)
-│   └── test_full_provider.lua     # Comprehensive provider tests (--full flag)
-└── README.md                  # This file
+│   ├── mock_koreader.lua      # KOReader module mocks
+│   ├── request_inspector.lua  # Core inspection logic
+│   ├── terminal_formatter.lua # ANSI colors, formatting
+│   └── web_server.lua         # LuaSocket HTTP server
+├── web/
+│   └── index.html             # Web UI frontend
+└── unit/
+    ├── test_system_prompts.lua
+    ├── test_streaming_parser.lua
+    └── test_response_parser.lua
 ```
+
+## Troubleshooting
+
+### Module not found errors
+
+```bash
+luarocks install luasocket
+luarocks install luasec        # macOS
+sudo luarocks install luasec OPENSSL_DIR=/usr  # Linux
+luarocks install dkjson
+```
+
+### Web UI won't start
+
+Check if port is in use:
+```bash
+lsof -i :8080
+# Use different port
+lua tests/inspect.lua --web --port 3000
+```
+
+### Tests hang
+
+Some providers may be slow. Tests wait for API response without timeout. Check network connectivity if a provider consistently hangs.
+
+## Notes
+
+- **API Keys**: Providers without keys are skipped (not failed)
+- **Ollama**: Requires running Ollama instance locally
+- **Streaming**: Not fully testable standalone (requires KOReader subprocess)
+- **Token Limits**: Tests use small limits (64-512 tokens) to minimize costs

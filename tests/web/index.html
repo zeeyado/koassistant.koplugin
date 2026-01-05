@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KOAssistant Request Inspector</title>
+    <style>
+        :root {
+            --bg: #f5f5f5;
+            --bg-card: #ffffff;
+            --text: #333333;
+            --text-muted: #666666;
+            --border: #dddddd;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --success: #16a34a;
+            --error: #dc2626;
+            --code-bg: #1e1e1e;
+            --code-text: #d4d4d4;
+        }
+        .dark {
+            --bg: #1a1a1a;
+            --bg-card: #2d2d2d;
+            --text: #e5e5e5;
+            --text-muted: #a0a0a0;
+            --border: #404040;
+            --code-bg: #0d0d0d;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.5;
+            min-height: 100vh;
+        }
+        header {
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        header h1 { font-size: 1.25rem; font-weight: 600; }
+        .dark-toggle {
+            background: none;
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .dark-toggle:hover { background: var(--border); }
+        main {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 1rem;
+            padding: 1rem 2rem;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        @media (max-width: 900px) {
+            main { grid-template-columns: 1fr; }
+        }
+        .panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.5rem;
+        }
+        .panel h2 {
+            font-size: 0.875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+            letter-spacing: 0.05em;
+        }
+        .form-group { margin-bottom: 1rem; }
+        .form-group label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+        }
+        select, input[type="text"], input[type="number"], textarea {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            background: var(--bg);
+            color: var(--text);
+            font-size: 0.875rem;
+        }
+        select:focus, input:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        textarea { resize: vertical; min-height: 80px; font-family: inherit; }
+        .btn-group { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+        .btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            background: var(--bg);
+            color: var(--text);
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .btn:hover { background: var(--border); }
+        .btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+        .btn.primary { background: var(--primary); color: white; border-color: var(--primary); }
+        .btn.primary:hover { background: var(--primary-hover); }
+        .btn.success { background: var(--success); color: white; border-color: var(--success); }
+        .slider-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .slider-group input[type="range"] { flex: 1; }
+        .slider-group span { min-width: 3rem; text-align: right; font-family: monospace; }
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .checkbox-group input { width: auto; }
+        .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 1rem; }
+        .tab {
+            padding: 0.75rem 1rem;
+            border: none;
+            background: none;
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -1px;
+        }
+        .tab:hover { color: var(--text); }
+        .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+        .output {
+            background: var(--code-bg);
+            color: var(--code-text);
+            padding: 1rem;
+            border-radius: 4px;
+            font-family: 'Fira Code', 'Monaco', 'Consolas', monospace;
+            font-size: 0.8125rem;
+            overflow: auto;
+            max-height: 600px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .output .key { color: #9cdcfe; }
+        .output .string { color: #ce9178; }
+        .output .number { color: #b5cea8; }
+        .output .boolean { color: #569cd6; }
+        .output .null { color: #569cd6; }
+        .section-divider {
+            border-top: 1px solid var(--border);
+            margin: 1rem 0;
+            padding-top: 1rem;
+        }
+        .section-divider h3 {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+        .status { font-size: 0.875rem; padding: 0.5rem; border-radius: 4px; margin-bottom: 1rem; }
+        .status.loading { background: #fef3c7; color: #92400e; }
+        .status.success { background: #d1fae5; color: #065f46; }
+        .status.error { background: #fee2e2; color: #991b1b; }
+        .dark .status.loading { background: #78350f; color: #fef3c7; }
+        .dark .status.success { background: #064e3b; color: #d1fae5; }
+        .dark .status.error { background: #7f1d1d; color: #fee2e2; }
+        .compare-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; }
+        .compare-card { background: var(--code-bg); border-radius: 4px; padding: 1rem; }
+        .compare-card h4 { color: var(--primary); margin-bottom: 0.5rem; font-size: 0.875rem; }
+        .provider-checks { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
+        .provider-check { display: flex; align-items: center; gap: 0.25rem; font-size: 0.8125rem; }
+        .provider-check input { width: auto; }
+        footer { text-align: center; padding: 2rem; color: var(--text-muted); font-size: 0.875rem; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>KOAssistant Request Inspector</h1>
+        <button class="dark-toggle" onclick="toggleDarkMode()">Toggle Dark Mode</button>
+    </header>
+
+    <main>
+        <div class="panel config-panel">
+            <h2>Configuration</h2>
+
+            <div class="form-group">
+                <label>Provider</label>
+                <select id="provider" onchange="onProviderChange()"></select>
+            </div>
+
+            <div class="form-group">
+                <label>Model</label>
+                <select id="model"></select>
+            </div>
+
+            <div class="section-divider">
+                <h3>Behavior</h3>
+                <div class="btn-group" id="behavior-btns">
+                    <button class="btn" data-value="minimal">Minimal</button>
+                    <button class="btn active" data-value="full">Full</button>
+                    <button class="btn" data-value="none">None</button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Temperature</label>
+                <div class="slider-group">
+                    <input type="range" id="temperature" min="0" max="2" step="0.1" value="0.7" oninput="updateTempLabel()">
+                    <span id="temp-label">0.7</span>
+                </div>
+            </div>
+
+            <div class="section-divider">
+                <h3>Domain Context (optional)</h3>
+                <textarea id="domain" placeholder="Enter domain context text..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Languages</label>
+                <input type="text" id="languages" placeholder="e.g., English, Spanish">
+            </div>
+
+            <div class="section-divider">
+                <h3>Extended Thinking (Anthropic)</h3>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="thinking-enabled">
+                    <label for="thinking-enabled">Enable</label>
+                    <input type="number" id="thinking-budget" value="4096" min="1024" max="32000" style="width: 100px; margin-left: 1rem;">
+                    <span>tokens</span>
+                </div>
+            </div>
+
+            <div class="section-divider">
+                <h3>User Message</h3>
+                <textarea id="message" placeholder="Enter test message...">Say hello in exactly 5 words.</textarea>
+            </div>
+
+            <div class="btn-group">
+                <button class="btn primary" onclick="buildRequest()">Build Request</button>
+                <button class="btn success" onclick="sendRequest()">Send Request</button>
+            </div>
+
+            <div class="section-divider">
+                <h3>Presets</h3>
+                <div class="btn-group">
+                    <button class="btn" onclick="loadPreset('minimal')">Minimal</button>
+                    <button class="btn" onclick="loadPreset('full')">Full</button>
+                    <button class="btn" onclick="loadPreset('domain')">Domain</button>
+                    <button class="btn" onclick="loadPreset('thinking')">Thinking</button>
+                    <button class="btn" onclick="loadPreset('multilingual')">Multilingual</button>
+                </div>
+            </div>
+
+            <div class="section-divider">
+                <h3>Compare Providers</h3>
+                <div class="provider-checks" id="compare-checks"></div>
+                <button class="btn" onclick="compareProviders()">Compare Selected</button>
+            </div>
+        </div>
+
+        <div class="panel output-panel">
+            <h2>Output</h2>
+
+            <div id="status" class="status" style="display: none;"></div>
+
+            <div class="tabs">
+                <button class="tab active" data-tab="request">Request Body</button>
+                <button class="tab" data-tab="system">System Prompt</button>
+                <button class="tab" data-tab="headers">Headers</button>
+                <button class="tab" data-tab="response">Response</button>
+                <button class="tab" data-tab="compare">Compare</button>
+            </div>
+
+            <div id="tab-request" class="tab-content">
+                <div class="output" id="output-request">Click "Build Request" to see the request body...</div>
+            </div>
+            <div id="tab-system" class="tab-content" style="display: none;">
+                <div class="output" id="output-system">Click "Build Request" to see the system prompt...</div>
+            </div>
+            <div id="tab-headers" class="tab-content" style="display: none;">
+                <div class="output" id="output-headers">Click "Build Request" to see the headers...</div>
+            </div>
+            <div id="tab-response" class="tab-content" style="display: none;">
+                <div class="output" id="output-response">Click "Send Request" to see the response...</div>
+            </div>
+            <div id="tab-compare" class="tab-content" style="display: none;">
+                <div class="compare-grid" id="output-compare">Select providers and click "Compare Selected"...</div>
+            </div>
+
+            <div style="margin-top: 1rem;">
+                <button class="btn" onclick="copyOutput()">Copy to Clipboard</button>
+                <button class="btn" onclick="exportJSON()">Export JSON</button>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        KOAssistant Request Inspector | <a href="https://github.com/zeeyado/koassistant.koplugin" style="color: var(--primary);">GitHub</a>
+    </footer>
+
+    <script>
+        // State
+        const state = {
+            providers: {},
+            lastBuild: null,
+            lastResponse: null,
+            compareResults: null
+        };
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Dark mode from localStorage
+            if (localStorage.getItem('darkMode') === 'true') {
+                document.body.classList.add('dark');
+            }
+
+            // Tab switching
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+            });
+
+            // Behavior buttons
+            document.querySelectorAll('#behavior-btns .btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('#behavior-btns .btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                });
+            });
+
+            // Load providers
+            await loadProviders();
+        });
+
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark');
+            localStorage.setItem('darkMode', document.body.classList.contains('dark'));
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+            document.querySelector(`.tab[data-tab="${tabName}"]`).classList.add('active');
+            document.getElementById(`tab-${tabName}`).style.display = 'block';
+        }
+
+        function updateTempLabel() {
+            document.getElementById('temp-label').textContent = document.getElementById('temperature').value;
+        }
+
+        async function loadProviders() {
+            try {
+                const response = await fetch('/api/providers');
+                state.providers = await response.json();
+
+                const providerSelect = document.getElementById('provider');
+                providerSelect.innerHTML = Object.keys(state.providers)
+                    .map(p => `<option value="${p}">${p}</option>`)
+                    .join('');
+
+                // Default to anthropic if available
+                if (state.providers.anthropic) {
+                    providerSelect.value = 'anthropic';
+                }
+
+                onProviderChange();
+
+                // Build compare checkboxes
+                const checksContainer = document.getElementById('compare-checks');
+                checksContainer.innerHTML = Object.keys(state.providers)
+                    .map(p => `<label class="provider-check"><input type="checkbox" value="${p}" ${p === 'anthropic' || p === 'openai' || p === 'gemini' ? 'checked' : ''}> ${p}</label>`)
+                    .join('');
+            } catch (e) {
+                showStatus('error', 'Failed to load providers: ' + e.message);
+            }
+        }
+
+        function onProviderChange() {
+            const provider = document.getElementById('provider').value;
+            const models = state.providers[provider] || [];
+            document.getElementById('model').innerHTML = models.map(m => `<option value="${m}">${m}</option>`).join('');
+        }
+
+        function getConfig() {
+            const activeBehavior = document.querySelector('#behavior-btns .btn.active');
+            return {
+                provider: document.getElementById('provider').value,
+                model: document.getElementById('model').value,
+                behavior: activeBehavior ? activeBehavior.dataset.value : 'full',
+                temperature: parseFloat(document.getElementById('temperature').value),
+                domain: document.getElementById('domain').value,
+                languages: document.getElementById('languages').value,
+                thinking: {
+                    enabled: document.getElementById('thinking-enabled').checked,
+                    budget: parseInt(document.getElementById('thinking-budget').value) || 4096
+                },
+                message: document.getElementById('message').value
+            };
+        }
+
+        function showStatus(type, message) {
+            const status = document.getElementById('status');
+            status.className = 'status ' + type;
+            status.textContent = message;
+            status.style.display = 'block';
+            if (type === 'success') {
+                setTimeout(() => { status.style.display = 'none'; }, 3000);
+            }
+        }
+
+        function syntaxHighlight(json) {
+            if (typeof json !== 'string') {
+                json = JSON.stringify(json, null, 2);
+            }
+            return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+                let cls = 'number';
+                if (/^"/.test(match)) {
+                    if (/:$/.test(match)) {
+                        cls = 'key';
+                        match = match.slice(0, -1) + ':';
+                    } else {
+                        cls = 'string';
+                    }
+                } else if (/true|false/.test(match)) {
+                    cls = 'boolean';
+                } else if (/null/.test(match)) {
+                    cls = 'null';
+                }
+                return '<span class="' + cls + '">' + match + '</span>';
+            });
+        }
+
+        async function buildRequest() {
+            showStatus('loading', 'Building request...');
+            try {
+                const config = getConfig();
+                const response = await fetch('/api/build', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+                state.lastBuild = await response.json();
+
+                if (state.lastBuild.error) {
+                    showStatus('error', state.lastBuild.error);
+                    return;
+                }
+
+                // Update outputs
+                document.getElementById('output-request').innerHTML = syntaxHighlight(state.lastBuild.request?.body || {});
+                document.getElementById('output-system').innerHTML = syntaxHighlight({
+                    text: state.lastBuild.system_prompt?.text || '',
+                    components: state.lastBuild.system_prompt?.components || {},
+                    token_estimate: state.lastBuild.system_prompt?.token_estimate || 0
+                });
+                document.getElementById('output-headers').innerHTML = syntaxHighlight(state.lastBuild.request?.headers || {});
+
+                showStatus('success', 'Request built successfully');
+                switchTab('request');
+            } catch (e) {
+                showStatus('error', 'Build failed: ' + e.message);
+            }
+        }
+
+        async function sendRequest() {
+            showStatus('loading', 'Sending request...');
+            try {
+                const config = getConfig();
+                const response = await fetch('/api/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+                state.lastResponse = await response.json();
+
+                if (state.lastResponse.error) {
+                    showStatus('error', state.lastResponse.error);
+                    document.getElementById('output-response').innerHTML = syntaxHighlight({ error: state.lastResponse.error });
+                    switchTab('response');
+                    return;
+                }
+
+                // Update response output
+                document.getElementById('output-response').innerHTML = syntaxHighlight({
+                    status_code: state.lastResponse.response?.status_code,
+                    elapsed_ms: state.lastResponse.response?.elapsed_ms,
+                    parsed_text: state.lastResponse.response?.parsed_text,
+                    raw_body: state.lastResponse.response?.raw_body
+                });
+
+                // Also update build outputs
+                document.getElementById('output-request').innerHTML = syntaxHighlight(state.lastResponse.request?.body || {});
+                document.getElementById('output-headers').innerHTML = syntaxHighlight(state.lastResponse.request?.headers || {});
+
+                showStatus('success', `Response received in ${state.lastResponse.response?.elapsed_ms || '?'}ms`);
+                switchTab('response');
+            } catch (e) {
+                showStatus('error', 'Send failed: ' + e.message);
+            }
+        }
+
+        async function compareProviders() {
+            const checked = document.querySelectorAll('#compare-checks input:checked');
+            const providers = Array.from(checked).map(c => c.value);
+
+            if (providers.length < 2) {
+                showStatus('error', 'Select at least 2 providers to compare');
+                return;
+            }
+
+            showStatus('loading', 'Comparing providers...');
+            try {
+                const config = getConfig();
+                config.providers = providers;
+                const response = await fetch('/api/compare', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+                state.compareResults = await response.json();
+
+                if (state.compareResults.error) {
+                    showStatus('error', state.compareResults.error);
+                    return;
+                }
+
+                // Build comparison view
+                const grid = document.getElementById('output-compare');
+                grid.innerHTML = providers.map(p => {
+                    const result = state.compareResults[p] || { error: 'No result' };
+                    return `<div class="compare-card">
+                        <h4>${p}</h4>
+                        <pre class="output" style="max-height: 400px;">${result.error ? result.error : syntaxHighlight(result.request?.body || {})}</pre>
+                    </div>`;
+                }).join('');
+
+                showStatus('success', 'Comparison complete');
+                switchTab('compare');
+            } catch (e) {
+                showStatus('error', 'Compare failed: ' + e.message);
+            }
+        }
+
+        function loadPreset(preset) {
+            const presets = {
+                minimal: { behavior: 'minimal', temperature: 0.7, domain: '', languages: '', thinking: { enabled: false } },
+                full: { behavior: 'full', temperature: 0.7, domain: '', languages: '', thinking: { enabled: false } },
+                domain: { behavior: 'full', temperature: 0.7, domain: 'This conversation relates to Islamic religious sciences. Key concepts include Quran, Hadith, Tafsir (exegesis), Fiqh (jurisprudence), Aqidah (creed), and Tasawwuf (spirituality).', languages: '', thinking: { enabled: false } },
+                thinking: { behavior: 'full', temperature: 1.0, domain: '', languages: '', thinking: { enabled: true, budget: 4096 } },
+                multilingual: { behavior: 'full', temperature: 0.7, domain: '', languages: 'English, Spanish, Arabic', thinking: { enabled: false } }
+            };
+
+            const p = presets[preset];
+            if (!p) return;
+
+            // Set behavior
+            document.querySelectorAll('#behavior-btns .btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.value === p.behavior);
+            });
+
+            document.getElementById('temperature').value = p.temperature;
+            updateTempLabel();
+            document.getElementById('domain').value = p.domain;
+            document.getElementById('languages').value = p.languages;
+            document.getElementById('thinking-enabled').checked = p.thinking.enabled;
+            if (p.thinking.budget) {
+                document.getElementById('thinking-budget').value = p.thinking.budget;
+            }
+
+            // If thinking preset and not anthropic, switch to anthropic
+            if (preset === 'thinking' && document.getElementById('provider').value !== 'anthropic') {
+                document.getElementById('provider').value = 'anthropic';
+                onProviderChange();
+            }
+        }
+
+        function copyOutput() {
+            const activeTab = document.querySelector('.tab.active').dataset.tab;
+            const output = document.getElementById(`output-${activeTab}`);
+            const text = output.textContent || output.innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                showStatus('success', 'Copied to clipboard');
+            });
+        }
+
+        function exportJSON() {
+            const data = {
+                timestamp: new Date().toISOString(),
+                config: getConfig(),
+                build: state.lastBuild,
+                response: state.lastResponse
+            };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `koassistant-request-${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>

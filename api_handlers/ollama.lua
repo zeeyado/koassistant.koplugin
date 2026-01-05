@@ -16,6 +16,57 @@ local function hasContent(msg)
     return true
 end
 
+--- Build the request body, headers, and URL without making the API call.
+--- @param message_history table: Array of message objects
+--- @param config table: Unified config from buildUnifiedRequestConfig
+--- @return table: { body = table, headers = table, url = string }
+function OllamaHandler:buildRequestBody(message_history, config)
+    local defaults = Defaults.ProviderDefaults.ollama
+    local model = config.model or defaults.model
+
+    local request_body = {
+        model = model,
+        messages = {},
+        stream = false,  -- Default to non-streaming for inspection
+    }
+
+    if config.system and config.system.text and config.system.text ~= "" then
+        table.insert(request_body.messages, {
+            role = "system",
+            content = config.system.text,
+        })
+    end
+
+    for _, msg in ipairs(message_history) do
+        if msg.role ~= "system" and hasContent(msg) then
+            table.insert(request_body.messages, {
+                role = msg.role == "assistant" and "assistant" or "user",
+                content = msg.content,
+            })
+        end
+    end
+
+    -- Ollama uses options object for parameters
+    local api_params = config.api_params or {}
+    local default_params = defaults.additional_parameters or {}
+
+    request_body.options = {
+        temperature = api_params.temperature or default_params.temperature or 0.7,
+    }
+
+    local headers = {
+        ["Content-Type"] = "application/json",
+    }
+
+    return {
+        body = request_body,
+        headers = headers,
+        url = config.base_url or defaults.base_url,
+        model = model,
+        provider = "ollama",
+    }
+end
+
 function OllamaHandler:query(message_history, config)
     local defaults = Defaults.ProviderDefaults.ollama
     local model = config.model or defaults.model

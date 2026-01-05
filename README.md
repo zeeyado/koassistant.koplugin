@@ -623,6 +623,8 @@ A standalone test suite is available in `tests/`. See `tests/README.md` for setu
 ```bash
 lua tests/run_tests.lua --unit   # Fast unit tests (no API calls)
 lua tests/run_tests.lua --full   # Comprehensive provider tests
+lua tests/inspect.lua anthropic  # Inspect request structure
+lua tests/inspect.lua --web      # Interactive web UI
 ```
 
 ### Contributing Translations
