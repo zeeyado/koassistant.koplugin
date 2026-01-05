@@ -8,7 +8,7 @@ You can have context free chats, or chat about or compare one or more documents 
 
 Most settings are configurable in the UI, including provider/model, AI behavior, and more, with some advanced settings requiring file editing.
 
-> **Development Status**: KOAssistant is under active development. **Anthropic (Claude)** is the primary focus and most thoroughly tested. Other providers (OpenAI, DeepSeek, Gemini, Ollama) are supported but may need adjustments and further integration. Feedback appreciated.
+> **Development Status**: KOAssistant is under active development. **Anthropic (Claude)** is the primary focus and most thoroughly tested. 16 providers are supported (see [Supported Providers](#supported-providers)), though some may need adjustments. Feedback appreciated.
 
 > **Note**: This project was recently renamed from "Assistant" to "KOAssistant" due to a naming conflict with [a fork of this project](https://github.com/omer-faruq/assistant.koplugin). Some internal references may still show the old name.
 
@@ -65,16 +65,16 @@ Make a copy of apikeys.lua.sample and name it apikeys.lua
 cp apikeys.lua.sample apikeys.lua
 ```
 
-Edit `apikeys.lua` and add your API key:
+Edit `apikeys.lua` and add your API key(s):
 ```lua
 return {
-    anthropic = "your-key-here",  -- Get from console.anthropic.com
-    openai = "",     -- Optional: platform.openai.com
-    deepseek = "",   -- Optional: platform.deepseek.com
-    gemini = "",     -- Optional: aistudio.google.com
-    ollama = "",     -- Usually empty for local Ollama
+    anthropic = "your-key-here",  -- console.anthropic.com
+    openai = "",                  -- platform.openai.com
+    -- See apikeys.lua.sample for all 16 providers
 }
 ```
+
+See [Supported Providers](#supported-providers) for full list with links to get API keys.
 
 ### 3. Restart KOReader
 
@@ -355,7 +355,7 @@ See `custom_actions.lua.sample` for more examples.
 - **Chat History**: Browse saved conversations
 
 ### Provider & Model
-- **Provider**: Select AI provider (Anthropic, OpenAI, DeepSeek, Gemini, Ollama)
+- **Provider**: Select AI provider (16 options - see [Supported Providers](#supported-providers))
 - **Model**: Select model for the chosen provider
 
 ### Display Settings
@@ -513,13 +513,43 @@ Individual actions can override the global setting:
 
 ## Supported Providers
 
-| Provider | Status | API Key From |
-|----------|--------|--------------|
-| **Anthropic** | Primary focus | [console.anthropic.com](https://console.anthropic.com/) |
-| OpenAI | Supported | [platform.openai.com](https://platform.openai.com/) |
-| DeepSeek | Supported | [platform.deepseek.com](https://platform.deepseek.com/) |
-| Gemini | Supported | [aistudio.google.com](https://aistudio.google.com/) |
-| Ollama | Supported | Local (no key needed) |
+KOAssistant supports **16 AI providers**. Anthropic (Claude) is the primary focus and most thoroughly tested.
+
+### Core Providers
+
+| Provider | Description | Get API Key |
+|----------|-------------|-------------|
+| **Anthropic** | Claude models (primary focus) | [console.anthropic.com](https://console.anthropic.com/) |
+| **OpenAI** | GPT models | [platform.openai.com](https://platform.openai.com/) |
+| **DeepSeek** | Cost-effective reasoning models | [platform.deepseek.com](https://platform.deepseek.com/) |
+| **Gemini** | Google's Gemini models | [aistudio.google.com](https://aistudio.google.com/) |
+| **Ollama** | Local models (no API key needed) | [ollama.ai](https://ollama.ai/) |
+
+### Fast Inference Providers
+
+| Provider | Description | Get API Key |
+|----------|-------------|-------------|
+| **Groq** | Extremely fast inference | [console.groq.com](https://console.groq.com/) |
+| **Fireworks** | Fast inference for open models | [fireworks.ai](https://fireworks.ai/) |
+| **SambaNova** | Fastest inference, free tier available | [cloud.sambanova.ai](https://cloud.sambanova.ai/) |
+| **Together** | 200+ open source models | [api.together.xyz](https://api.together.xyz/) |
+
+### Additional Providers
+
+| Provider | Description | Get API Key |
+|----------|-------------|-------------|
+| **Mistral** | European provider, coding models | [console.mistral.ai](https://console.mistral.ai/) |
+| **xAI** | Grok models, up to 2M context | [console.x.ai](https://console.x.ai/) |
+| **OpenRouter** | Meta-provider, 500+ models | [openrouter.ai](https://openrouter.ai/) |
+| **Cohere** | Command models | [dashboard.cohere.com](https://dashboard.cohere.com/) |
+
+### Chinese Providers
+
+| Provider | Description | Get API Key |
+|----------|-------------|-------------|
+| **Qwen** | Alibaba's Qwen models | [dashscope.console.aliyun.com](https://dashscope.console.aliyun.com/) |
+| **Kimi** | Moonshot, 256K context | [platform.moonshot.cn](https://platform.moonshot.cn/) |
+| **Doubao** | ByteDance Volcano Engine | [console.volcengine.com](https://console.volcengine.com/) |
 
 ### Adding Custom Models
 
@@ -528,8 +558,11 @@ In the model selection menu, choose "Custom model..." to enter any model ID your
 ### Provider Quirks
 
 - **Anthropic**: Temperature capped at 1.0; Extended thinking forces temp to exactly 1.0
-- **Gemini**: Uses "model" role instead of "assistant"
+- **Gemini**: Uses "model" role instead of "assistant"; dynamic URL construction
 - **Ollama**: Local only; configure `base_url` in `configuration.lua` for remote instances
+- **OpenRouter**: Requires HTTP-Referer header (handled automatically)
+- **Cohere**: Uses v2/chat endpoint with different response format
+- **OpenAI**: Newer models (GPT-5.x, o-series) use `max_completion_tokens` instead of `max_tokens`
 
 ---
 

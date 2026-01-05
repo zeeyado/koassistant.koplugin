@@ -64,9 +64,127 @@ local RESPONSE_TRANSFORMERS = {
         if response.error then
             return false, response.error
         end
-        
+
         if response.message and response.message.content then
             return true, response.message.content
+        end
+        return false, "Unexpected response format"
+    end,
+
+    -- New providers (OpenAI-compatible)
+    groq = function(response)
+        if response.error then
+            return false, response.error.message or response.error.type or "Unknown error"
+        end
+        if response.choices and response.choices[1] and response.choices[1].message then
+            return true, response.choices[1].message.content
+        end
+        return false, "Unexpected response format"
+    end,
+
+    mistral = function(response)
+        if response.error then
+            return false, response.error.message or response.error.type or "Unknown error"
+        end
+        if response.choices and response.choices[1] and response.choices[1].message then
+            return true, response.choices[1].message.content
+        end
+        return false, "Unexpected response format"
+    end,
+
+    xai = function(response)
+        if response.error then
+            return false, response.error.message or response.error.type or "Unknown error"
+        end
+        if response.choices and response.choices[1] and response.choices[1].message then
+            return true, response.choices[1].message.content
+        end
+        return false, "Unexpected response format"
+    end,
+
+    openrouter = function(response)
+        if response.error then
+            return false, response.error.message or response.error.type or "Unknown error"
+        end
+        if response.choices and response.choices[1] and response.choices[1].message then
+            return true, response.choices[1].message.content
+        end
+        return false, "Unexpected response format"
+    end,
+
+    qwen = function(response)
+        if response.error then
+            return false, response.error.message or response.error.type or "Unknown error"
+        end
+        if response.choices and response.choices[1] and response.choices[1].message then
+            return true, response.choices[1].message.content
+        end
+        return false, "Unexpected response format"
+    end,
+
+    kimi = function(response)
+        if response.error then
+            return false, response.error.message or response.error.type or "Unknown error"
+        end
+        if response.choices and response.choices[1] and response.choices[1].message then
+            return true, response.choices[1].message.content
+        end
+        return false, "Unexpected response format"
+    end,
+
+    together = function(response)
+        if response.error then
+            return false, response.error.message or response.error.type or "Unknown error"
+        end
+        if response.choices and response.choices[1] and response.choices[1].message then
+            return true, response.choices[1].message.content
+        end
+        return false, "Unexpected response format"
+    end,
+
+    fireworks = function(response)
+        if response.error then
+            return false, response.error.message or response.error.type or "Unknown error"
+        end
+        if response.choices and response.choices[1] and response.choices[1].message then
+            return true, response.choices[1].message.content
+        end
+        return false, "Unexpected response format"
+    end,
+
+    sambanova = function(response)
+        if response.error then
+            return false, response.error.message or response.error.type or "Unknown error"
+        end
+        if response.choices and response.choices[1] and response.choices[1].message then
+            return true, response.choices[1].message.content
+        end
+        return false, "Unexpected response format"
+    end,
+
+    cohere = function(response)
+        -- Cohere v2 API response format
+        if response.error then
+            return false, response.message or response.error or "Unknown error"
+        end
+        -- Cohere v2 returns message.content as array of content blocks
+        if response.message and response.message.content then
+            local content = response.message.content
+            if type(content) == "table" and content[1] and content[1].text then
+                return true, content[1].text
+            elseif type(content) == "string" then
+                return true, content
+            end
+        end
+        return false, "Unexpected response format"
+    end,
+
+    doubao = function(response)
+        if response.error then
+            return false, response.error.message or response.error.type or "Unknown error"
+        end
+        if response.choices and response.choices[1] and response.choices[1].message then
+            return true, response.choices[1].message.content
         end
         return false, "Unexpected response format"
     end

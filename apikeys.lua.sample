@@ -26,6 +26,48 @@ return {
     -- Ollama typically doesn't need an API key if running locally
     -- If using a remote Ollama instance, you can set a key here if required
     ollama = "",
-    
-    -- Add any other provider API keys here
+
+    -- Groq API key (fast inference)
+    -- Get from: https://console.groq.com/
+    groq = "YOUR_GROQ_API_KEY",
+
+    -- Mistral AI API key
+    -- Get from: https://console.mistral.ai/
+    mistral = "YOUR_MISTRAL_API_KEY",
+
+    -- xAI API key (Grok models)
+    -- Get from: https://console.x.ai/
+    xai = "YOUR_XAI_API_KEY",
+
+    -- OpenRouter API key (access 500+ models)
+    -- Get from: https://openrouter.ai/
+    openrouter = "YOUR_OPENROUTER_API_KEY",
+
+    -- Qwen/DashScope API key (Alibaba)
+    -- Get from: https://dashscope.console.aliyun.com/
+    qwen = "YOUR_QWEN_API_KEY",
+
+    -- Kimi/Moonshot API key
+    -- Get from: https://platform.moonshot.cn/
+    kimi = "YOUR_KIMI_API_KEY",
+
+    -- Together AI API key
+    -- Get from: https://api.together.xyz/
+    together = "YOUR_TOGETHER_API_KEY",
+
+    -- Fireworks AI API key
+    -- Get from: https://fireworks.ai/
+    fireworks = "YOUR_FIREWORKS_API_KEY",
+
+    -- SambaNova API key
+    -- Get from: https://cloud.sambanova.ai/
+    sambanova = "YOUR_SAMBANOVA_API_KEY",
+
+    -- Cohere API key
+    -- Get from: https://dashboard.cohere.com/
+    cohere = "YOUR_COHERE_API_KEY",
+
+    -- Doubao/ByteDance API key
+    -- Get from: https://console.volcengine.com/
+    doubao = "YOUR_DOUBAO_API_KEY",
 } 
