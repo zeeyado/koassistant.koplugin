@@ -157,15 +157,16 @@ function TestConfig.buildFullConfig(provider, api_key, options)
     return config
 end
 
--- Get list of all providers
+-- Get list of all providers (derived from model_lists.lua - single source of truth)
 function TestConfig.getAllProviders()
-    return {
-        -- Original providers
-        "anthropic", "openai", "deepseek", "gemini", "ollama",
-        -- New providers
-        "groq", "mistral", "xai", "openrouter", "qwen", "kimi",
-        "together", "fireworks", "sambanova", "cohere", "doubao"
-    }
+    local ModelLists = require("model_lists")
+    local providers = {}
+    for provider, _ in pairs(ModelLists) do
+        table.insert(providers, provider)
+    end
+    -- Sort for consistent ordering
+    table.sort(providers)
+    return providers
 end
 
 -- Simple test message history
