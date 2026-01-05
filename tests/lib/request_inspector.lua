@@ -7,33 +7,18 @@ local TestConfig = require("test_config")
 
 local RequestInspector = {}
 
--- List of providers that have buildRequestBody() implemented
--- All 16 providers now supported
-RequestInspector.supported_providers = {
-    "anthropic",
-    "openai",
-    "deepseek",
-    "gemini",
-    "groq",
-    "mistral",
-    "xai",
-    "ollama",
-    "openrouter",
-    "qwen",
-    "kimi",
-    "together",
-    "fireworks",
-    "sambanova",
-    "cohere",
-    "doubao",
-}
-
 -- Check if a provider is supported for inspection
+-- (dynamically checks if handler exists and has buildRequestBody method)
 function RequestInspector:isSupported(provider)
-    for _, p in ipairs(self.supported_providers) do
-        if p == provider then return true end
-    end
-    return false
+    local ok, handler = pcall(require, "api_handlers." .. provider)
+    if not ok or not handler then return false end
+    return handler.buildRequestBody ~= nil
+end
+
+-- Get list of all supported providers (derived from model_lists.lua)
+function RequestInspector:getAllProviders()
+    local TestConfig = require("test_config")
+    return TestConfig.getAllProviders()
 end
 
 -- Build a request using the REAL handler code
