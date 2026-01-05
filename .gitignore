@@ -17,3 +17,6 @@ plan.md
 
 # Keep sample domains tracked
 !/domains.sample/
+
+# Test local configuration (user-specific paths)
+/tests/local_config.lua

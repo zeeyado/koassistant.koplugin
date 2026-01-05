@@ -1,12 +1,16 @@
 #!/usr/bin/env lua
 -- KOAssistant Test Runner
--- Tests all AI providers with real API calls
+-- Runs unit tests (no API calls) and integration tests (real API calls)
 --
 -- Usage:
---   lua tests/run_tests.lua              # Test all providers
+--   lua tests/run_tests.lua              # Run integration tests (providers)
+--   lua tests/run_tests.lua --unit       # Run unit tests only (fast, free)
+--   lua tests/run_tests.lua --all        # Run all tests
 --   lua tests/run_tests.lua anthropic    # Test single provider
 --   lua tests/run_tests.lua --verbose    # Show responses
 --   lua tests/run_tests.lua openai -v    # Test one provider, verbose
+--   lua tests/run_tests.lua groq --full  # Run comprehensive tests for a provider
+--   lua tests/run_tests.lua --full       # Run comprehensive tests for all providers
 
 -- Detect script location and set up paths
 local function setupPaths()
@@ -49,7 +53,13 @@ local function parseArgs()
         provider = nil,
         verbose = false,
         help = false,
+        unit = false,
+        all = false,
+        full = false,
     }
+
+    -- Apply defaults from local config
+    args.verbose = TestConfig.isVerboseDefault()
 
     for i = 1, #arg do
         local a = arg[i]
@@ -57,6 +67,12 @@ local function parseArgs()
             args.verbose = true
         elseif a == "--help" or a == "-h" then
             args.help = true
+        elseif a == "--unit" then
+            args.unit = true
+        elseif a == "--all" then
+            args.all = true
+        elseif a == "--full" then
+            args.full = true
         elseif not a:match("^%-") then
             args.provider = a
         end
@@ -72,12 +88,19 @@ KOAssistant Test Runner
 Usage: lua tests/run_tests.lua [options] [provider]
 
 Options:
+  --unit           Run unit tests only (fast, no API calls)
+  --all            Run both unit and integration tests
+  --full           Run comprehensive tests (behaviors, temps, domains, languages)
   -v, --verbose    Show API responses
   -h, --help       Show this help
 
 Examples:
-  lua tests/run_tests.lua              # Test all providers
-  lua tests/run_tests.lua anthropic    # Test only Anthropic
+  lua tests/run_tests.lua              # Basic connectivity test for all providers
+  lua tests/run_tests.lua --unit       # Run unit tests only (fast, free)
+  lua tests/run_tests.lua --all        # Run all tests (unit + integration)
+  lua tests/run_tests.lua anthropic    # Test only Anthropic (basic)
+  lua tests/run_tests.lua groq --full  # Comprehensive tests for Groq
+  lua tests/run_tests.lua --full       # Comprehensive tests for all providers
   lua tests/run_tests.lua -v openai    # Test OpenAI with verbose output
 
 Providers:
@@ -85,8 +108,68 @@ Providers:
   xai, openrouter, qwen, kimi, together, fireworks, sambanova,
   cohere, doubao
 
+Configuration:
+  Create tests/local_config.lua from tests/local_config.lua.sample
+  to customize paths and default settings.
+
 Note: Providers without valid API keys in apikeys.lua will be skipped.
 ]])
+end
+
+-- Discover unit test files
+local function discoverUnitTests()
+    local tests = {}
+    local unit_dir = TESTS_DIR .. "/unit"
+
+    -- Use io.popen to list files (works on Unix-like systems)
+    local handle = io.popen('ls "' .. unit_dir .. '"/*.lua 2>/dev/null')
+    if handle then
+        for file in handle:lines() do
+            table.insert(tests, file)
+        end
+        handle:close()
+    end
+
+    return tests
+end
+
+-- Run unit tests
+local function runUnitTests()
+    print("")
+    print(string.rep("=", 70))
+    print("  Unit Tests (No API Calls)")
+    print(string.rep("=", 70))
+
+    local tests = discoverUnitTests()
+    if #tests == 0 then
+        print("\n  No unit tests found in tests/unit/")
+        return true
+    end
+
+    local all_passed = true
+
+    for _, test_file in ipairs(tests) do
+        -- Extract test name
+        local test_name = test_file:match("([^/]+)%.lua$")
+        print(string.format("\n  Running: %s", test_name))
+
+        -- Load and run the test
+        local chunk, err = loadfile(test_file)
+        if not chunk then
+            print(string.format("    ✗ Failed to load: %s", err))
+            all_passed = false
+        else
+            local ok, result = pcall(chunk)
+            if not ok then
+                print(string.format("    ✗ Error: %s", tostring(result)))
+                all_passed = false
+            elseif result == false then
+                all_passed = false
+            end
+        end
+    end
+
+    return all_passed
 end
 
 -- Test a single provider
@@ -138,8 +221,71 @@ local function testProvider(provider, api_key, verbose)
     end
 end
 
--- Main test runner
-local function runTests(args)
+-- Run comprehensive tests (--full flag)
+local function runFullTests(args)
+    -- Load the full provider test module
+    local FullProviderTests = require("integration.test_full_provider")
+    FullProviderTests:reset()
+
+    -- Load API keys
+    local apikeys = TestConfig.loadApiKeys()
+
+    -- Print header
+    print("")
+    print(string.rep("=", 70))
+    print("  KOAssistant Comprehensive Provider Tests (--full)")
+    print(string.rep("=", 70))
+
+    -- Get providers to test
+    local providers = TestConfig.getAllProviders()
+    local target = args.provider
+
+    -- If no specific provider, use default from local config if set
+    if not target and not args.full then
+        -- This shouldn't happen, but just in case
+        target = TestConfig.getDefaultProvider()
+    end
+
+    local all_passed = true
+
+    -- Test each provider
+    for _, provider in ipairs(providers) do
+        -- Skip if specific provider requested and this isn't it
+        if target and target ~= provider then
+            goto continue
+        end
+
+        -- Check if provider should be skipped via local config
+        if TestConfig.isProviderSkipped(provider) then
+            print(string.format("\n  [%s] \27[33m⊘ SKIP\27[0m (disabled in local config)", provider))
+            goto continue
+        end
+
+        -- Get API key for this provider
+        local api_key = apikeys[provider]
+
+        if not TestConfig.isValidApiKey(api_key) then
+            print(string.format("\n  [%s] \27[33m⊘ SKIP\27[0m (no API key)", provider))
+            goto continue
+        end
+
+        -- Run full tests for this provider
+        local success = FullProviderTests:runAllTests(provider, api_key, args.verbose)
+        if not success then
+            all_passed = false
+        end
+
+        ::continue::
+    end
+
+    -- Print summary
+    FullProviderTests:printSummary()
+
+    return all_passed
+end
+
+-- Run integration tests (provider tests with real API calls)
+local function runIntegrationTests(args)
     -- Load API keys
     local apikeys = TestConfig.loadApiKeys()
 
@@ -230,5 +376,22 @@ if args.help then
     os.exit(0)
 end
 
-local success = runTests(args)
+local success = true
+
+-- Run unit tests if --unit or --all
+if args.unit or args.all then
+    local unit_success = runUnitTests()
+    success = success and unit_success
+end
+
+-- Run full comprehensive tests if --full flag is set
+if args.full then
+    local full_success = runFullTests(args)
+    success = success and full_success
+-- Run basic integration tests if --all or no specific flag (default behavior)
+elseif args.all or (not args.unit) then
+    local integration_success = runIntegrationTests(args)
+    success = success and integration_success
+end
+
 os.exit(success and 0 or 1)

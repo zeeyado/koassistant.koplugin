@@ -1,0 +1,35 @@
+-- Local Test Configuration
+-- Copy this file to local_config.lua and customize for your environment.
+-- local_config.lua is gitignored and will not be committed.
+--
+-- All settings are optional - defaults will be used if not specified.
+
+return {
+    -- Plugin directory path (default: auto-detect from script location)
+    -- Set this if you're running tests from a different directory
+    plugin_dir = nil,
+
+    -- API keys file path (default: plugin_dir/apikeys.lua)
+    -- Set this if your apikeys.lua is in a different location
+    apikeys_path = nil,
+
+    -- Default provider for quick tests when no provider is specified
+    -- Used by --full flag tests
+    default_provider = "anthropic",
+
+    -- Always run in verbose mode (default: false)
+    verbose = false,
+
+    -- Test output directory (default: current directory)
+    -- For saving test logs or reports
+    output_dir = nil,
+
+    -- Timeout for API requests in seconds (default: 60)
+    api_timeout = 60,
+
+    -- Skip providers even if API key exists (useful for rate-limited providers)
+    skip_providers = {
+        -- "ollama",  -- Skip if not running locally
+        -- "doubao",  -- Skip if rate limited
+    },
+}

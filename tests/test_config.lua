@@ -3,9 +3,20 @@
 
 local TestConfig = {}
 
+-- Local configuration (optional, gitignored)
+local local_config = nil
+pcall(function()
+    local_config = require("local_config")
+end)
+
 -- Detect plugin directory from this script's location
 function TestConfig.getPluginDir()
-    -- Try environment variable first
+    -- Try local config first (user-specified)
+    if local_config and local_config.plugin_dir then
+        return local_config.plugin_dir
+    end
+
+    -- Try environment variable
     local env_dir = os.getenv("KOASSISTANT_DIR")
     if env_dir then
         return env_dir
@@ -92,6 +103,60 @@ function TestConfig.buildConfig(provider, api_key, options)
     }
 end
 
+-- Build full config using the real plugin pipeline
+-- This mirrors dialogs.lua:buildUnifiedRequestConfig() and uses system_prompts.lua
+-- Use this for integration tests that need realistic config building
+function TestConfig.buildFullConfig(provider, api_key, options)
+    options = options or {}
+
+    -- Load SystemPrompts for behavior/language/domain building
+    local SystemPrompts = require("prompts.system_prompts")
+
+    -- Build unified system using the real pipeline
+    local system = SystemPrompts.buildUnifiedSystem({
+        behavior_variant = options.behavior_variant,
+        behavior_override = options.behavior_override,
+        global_variant = options.global_variant or "full",
+        custom_ai_behavior = options.custom_ai_behavior,
+        domain_context = options.domain_context,
+        enable_caching = options.enable_caching,
+        user_languages = options.user_languages,
+        primary_language = options.primary_language,
+    })
+
+    local config = {
+        provider = provider,
+        api_key = api_key,
+        model = options.model,  -- nil = use provider default
+
+        -- Use the unified system from the real pipeline
+        system = system,
+
+        -- API parameters
+        api_params = {
+            temperature = options.temperature or 0.7,
+            max_tokens = options.max_tokens or 512,
+        },
+
+        -- Feature flags
+        features = {
+            enable_streaming = false,  -- Always false for standalone tests
+            debug = options.debug or false,
+        },
+    }
+
+    -- Add extended thinking if enabled (Anthropic only)
+    if options.extended_thinking then
+        config.api_params.thinking = {
+            type = "enabled",
+            budget_tokens = options.thinking_budget or 4096
+        }
+        config.api_params.temperature = 1.0  -- Required for extended thinking
+    end
+
+    return config
+end
+
 -- Get list of all providers
 function TestConfig.getAllProviders()
     return {
@@ -117,6 +182,40 @@ function TestConfig.formatTime(seconds)
     else
         return string.format("%.2fs", seconds)
     end
+end
+
+-- Get local config value with default
+function TestConfig.getLocalConfig(key, default)
+    if local_config and local_config[key] ~= nil then
+        return local_config[key]
+    end
+    return default
+end
+
+-- Check if a provider should be skipped (via local config)
+function TestConfig.isProviderSkipped(provider)
+    local skip_list = TestConfig.getLocalConfig("skip_providers", {})
+    for _, p in ipairs(skip_list) do
+        if p == provider then
+            return true
+        end
+    end
+    return false
+end
+
+-- Get default provider for quick tests
+function TestConfig.getDefaultProvider()
+    return TestConfig.getLocalConfig("default_provider", "anthropic")
+end
+
+-- Get API timeout
+function TestConfig.getApiTimeout()
+    return TestConfig.getLocalConfig("api_timeout", 60)
+end
+
+-- Get verbose setting
+function TestConfig.isVerboseDefault()
+    return TestConfig.getLocalConfig("verbose", false)
 end
 
 return TestConfig
