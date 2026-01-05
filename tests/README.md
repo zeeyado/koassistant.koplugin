@@ -91,8 +91,10 @@ lua tests/inspect.lua --web --port 3000
 - Live request building (no API calls needed)
 - Provider/model selection with all 16 providers
 - Behavior toggles, temperature slider
-- Domain context and language settings
-- Extended thinking configuration
+- **Domain loading** from your actual `domains/` folder
+- **Action loading** from `prompts/actions.lua` with template resolution
+- **Context simulation** (highlight text, book title/author)
+- Language settings and extended thinking configuration
 - Syntax-highlighted JSON output
 - Dark mode support
 

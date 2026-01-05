@@ -43,6 +43,7 @@ require("mock_koreader")
 local TestConfig = require("test_config")
 local RequestInspector = require("request_inspector")
 local TerminalFormatter = require("terminal_formatter")
+local MessageBuilder = require("message_builder")
 
 local c = TerminalFormatter.colors
 
@@ -674,6 +675,185 @@ local function startWebServer(options)
         })
     end)
 
+    -- GET /api/domains - List available domains from domains/ folder
+    server:route("GET", "/api/domains", function(headers, body)
+        local domains_data = {}
+        local domains_path = plugin_dir .. "/domains"
+
+        -- List files in domains/ folder using ls command
+        local handle = io.popen('ls -1 "' .. domains_path .. '" 2>/dev/null')
+        if handle then
+            for filename in handle:lines() do
+                if filename:match("%.md$") or filename:match("%.txt$") then
+                    local domain_id = filename:gsub("%.md$", ""):gsub("%.txt$", "")
+                    local filepath = domains_path .. "/" .. filename
+
+                    -- Read file content
+                    local file = io.open(filepath, "r")
+                    if file then
+                        local content = file:read("*a")
+                        file:close()
+
+                        -- Parse: first # heading is name, rest is context
+                        local name = domain_id:gsub("_", " "):gsub("(%a)([%w]*)", function(first, rest)
+                            return first:upper() .. rest
+                        end)
+                        local context = content
+
+                        local heading = content:match("^#%s*([^\n]+)")
+                        if heading then
+                            name = heading
+                            context = content:gsub("^#[^\n]*\n*", "")
+                        end
+
+                        table.insert(domains_data, {
+                            id = domain_id,
+                            name = name,
+                            context = context,
+                            preview = context:sub(1, 100) .. (context:len() > 100 and "..." or ""),
+                        })
+                    end
+                end
+            end
+            handle:close()
+        end
+
+        return "200 OK", "application/json", json.encode({
+            success = true,
+            domains = domains_data,
+        })
+    end)
+
+    -- GET /api/settings - Load plugin settings (for Web UI defaults)
+    server:route("GET", "/api/settings", function(headers, body)
+        -- Try to load settings from the plugin's settings file
+        local settings_data = {
+            -- Language settings
+            user_languages = "",
+            primary_language = nil,
+            translation_use_primary = true,
+            translation_language = "English",
+            -- Behavior settings
+            ai_behavior_variant = "full",
+            custom_ai_behavior = "",
+            -- API settings
+            default_temperature = 0.7,
+            enable_extended_thinking = false,
+            thinking_budget_tokens = 4096,
+        }
+
+        -- Try to load from koassistant_settings.lua if it exists
+        local settings_path = plugin_dir .. "/../koassistant_settings.lua"
+        local file = io.open(settings_path, "r")
+        if file then
+            file:close()
+            local ok, loaded = pcall(dofile, settings_path)
+            if ok and loaded and loaded.features then
+                local f = loaded.features
+                settings_data.user_languages = f.user_languages or ""
+                settings_data.primary_language = f.primary_language
+                settings_data.translation_use_primary = f.translation_use_primary ~= false
+                settings_data.translation_language = f.translation_language or "English"
+                settings_data.ai_behavior_variant = f.ai_behavior_variant or "full"
+                settings_data.custom_ai_behavior = f.custom_ai_behavior or ""
+                settings_data.default_temperature = f.default_temperature or 0.7
+                settings_data.enable_extended_thinking = f.enable_extended_thinking or false
+                settings_data.thinking_budget_tokens = f.thinking_budget_tokens or 4096
+            end
+        end
+
+        return "200 OK", "application/json", json.encode({
+            success = true,
+            settings = settings_data,
+        })
+    end)
+
+    -- GET /api/actions - List all built-in actions
+    server:route("GET", "/api/actions", function(headers, body)
+        local Actions = require("prompts.actions")
+        local Templates = require("prompts.templates")
+
+        local actions_data = {
+            highlight = {},
+            book = {},
+            multi_book = {},
+            general = {},
+        }
+
+        -- Helper to get template text
+        local function getTemplateText(template_id)
+            if Templates and Templates[template_id] then
+                return Templates[template_id]
+            end
+            return nil
+        end
+
+        -- Helper to add action to a specific context
+        local function addActionToContext(out_context, action)
+            if actions_data[out_context] then
+                table.insert(actions_data[out_context], {
+                    id = action.id,
+                    text = action.text,
+                    template = action.template,
+                    template_text = action.template and getTemplateText(action.template) or nil,
+                    prompt = action.prompt,
+                    behavior_variant = action.behavior_variant,
+                    behavior_override = action.behavior_override,
+                    api_params = action.api_params,
+                    include_book_context = action.include_book_context,
+                    extended_thinking = action.extended_thinking,
+                    context = action.context,  -- Include original context for filtering
+                })
+            end
+        end
+
+        -- Process each context (only the table properties, not methods)
+        local contexts = {"highlight", "book", "multi_book", "general", "special"}
+        for _, context in ipairs(contexts) do
+            local context_actions = Actions[context]
+            if context_actions and type(context_actions) == "table" then
+                for id, action in pairs(context_actions) do
+                    if type(action) == "table" and action.id then
+                        if context == "special" then
+                            -- Special actions: expand compound contexts properly
+                            if action.context == "both" then
+                                -- "both" means highlight AND book
+                                addActionToContext("highlight", action)
+                                addActionToContext("book", action)
+                            elseif action.context == "all" then
+                                -- "all" means ALL four contexts
+                                addActionToContext("highlight", action)
+                                addActionToContext("book", action)
+                                addActionToContext("multi_book", action)
+                                addActionToContext("general", action)
+                            elseif action.context then
+                                addActionToContext(action.context, action)
+                            end
+                        else
+                            -- Regular context actions
+                            addActionToContext(context, action)
+                        end
+                    end
+                end
+            end
+        end
+
+        -- Add "Ask" pseudo-action for general context (hardcoded in dialogs.lua, not in actions.lua)
+        table.insert(actions_data.general, {
+            id = "ask",
+            text = "Ask",
+            prompt = "",  -- Empty prompt, user provides the question
+            behavior_variant = nil,  -- Uses global behavior
+            context = "general",
+            is_pseudo_action = true,  -- Flag to indicate this is a pseudo-action (free-form input)
+        })
+
+        return "200 OK", "application/json", json.encode({
+            success = true,
+            actions = actions_data,
+        })
+    end)
+
     -- POST /api/build - Build request without sending
     server:route("POST", "/api/build", function(headers, body)
         local request_data = json.decode(body)
@@ -714,9 +894,62 @@ local function startWebServer(options)
         local api_key = api_keys[provider] or ""
         local config = buildConfigWithOptions(provider, api_key, build_options)
 
-        -- Build messages
+        -- Build messages using shared MessageBuilder (same as plugin)
+        local context = request_data.context or {}
+        local context_type = context.type or "general"
+
+        -- Build the action/prompt object
+        -- If an action was selected, it should have a prompt field
+        -- Otherwise, use the user's message as a simple prompt
+        local action = request_data.action or { prompt = request_data.message or "Say hello in exactly 5 words." }
+
+        -- Build context data for MessageBuilder
+        local context_data = {}
+
+        if context_type == "highlight" then
+            context_data.highlighted_text = context.highlighted_text
+            context_data.book_title = context.book_title
+            context_data.book_author = context.book_author
+        elseif context_type == "book" then
+            if context.book_title then
+                context_data.book_metadata = {
+                    title = context.book_title,
+                    author = context.book_author,
+                    author_clause = (context.book_author and context.book_author ~= "") and (" by " .. context.book_author) or ""
+                }
+            end
+        elseif context_type == "multi_book" then
+            context_data.books_info = context.books_info or {}
+        end
+
+        -- Add additional user input (if action was selected, the user's message is additional input)
+        if request_data.action and request_data.message and request_data.message ~= "" then
+            context_data.additional_input = request_data.message
+        end
+
+        -- Add translation language if applicable
+        if request_data.translation_language then
+            context_data.translation_language = request_data.translation_language
+        end
+
+        -- Load templates getter for template resolution
+        local templates_getter = nil
+        pcall(function()
+            local Templates = require("prompts/templates")
+            templates_getter = function(name) return Templates.get(name) end
+        end)
+
+        -- Build the message using shared MessageBuilder
+        local user_content = MessageBuilder.build({
+            prompt = action,
+            context = context_type,
+            data = context_data,
+            using_new_format = true,  -- System/domain handled separately
+            templates_getter = templates_getter,
+        })
+
         local messages = {
-            { role = "user", content = request_data.message or "Say hello in exactly 5 words." }
+            { role = "user", content = user_content }
         }
 
         -- Build request
