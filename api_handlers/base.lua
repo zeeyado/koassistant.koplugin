@@ -97,15 +97,20 @@ end
 --- @param body string: Request body (JSON encoded)
 --- @return function: A function to be run in subprocess via ffiutil.runInSubProcess
 function BaseHandler:backgroundRequest(url, headers, body)
-    -- Prime SSL in parent process before fork (fixes fresh-start streaming issue)
-    -- SSL must be fully initialized in parent before fork, or subprocess inherits
-    -- uninitialized state that re-requiring can't fix
+    -- Warmup: Make a quick TCP connection in parent before fork
+    -- This fixes macOS-specific issues where subprocess connections hang intermittently
+    -- The warmup establishes DNS/connection state that persists across fork
     if string.sub(url, 1, 8) == "https://" then
-        local ssl = require("ssl")
-        -- Create a throwaway context to force OpenSSL initialization
-        pcall(function()
-            ssl.newcontext({mode = "client", protocol = "any"})
-        end)
+        local parent_socket = require("socket")
+        local host = url:match("https://([^/:]+)")
+        if host then
+            pcall(function()
+                local sock = parent_socket.tcp()
+                sock:settimeout(5)
+                sock:connect(host, 443)
+                sock:close()
+            end)
+        end
     end
 
     return function(pid, child_write_fd)
@@ -114,52 +119,59 @@ function BaseHandler:backgroundRequest(url, headers, body)
             return
         end
 
-        -- Initialize SSL in subprocess (required for fresh starts with streaming)
-        -- Re-require modules in subprocess to ensure proper initialization after fork
-        local subprocess_http = require("socket.http")
-        local subprocess_https = require("ssl.https")
-        if string.sub(url, 1, 8) == "https://" then
-            -- Also require ssl to ensure it's loaded
-            require("ssl")
-            -- Disable certificate verification
-            subprocess_https.cert_verify = false
-            subprocess_https.TIMEOUT = 60
-        end
+        -- Wrap subprocess body in pcall to catch any initialization errors
+        local subprocess_ok, subprocess_err = pcall(function()
+            -- Re-require socket modules in subprocess after fork
+            -- CRITICAL: Must re-require base socket module, not just http/https
+            local subprocess_socket = require("socket")
+            local subprocess_http = require("socket.http")
+            local subprocess_https = require("ssl.https")
 
-        local pipe_w = wrap_fd(child_write_fd)  -- wrap the write end of the pipe
-        local request = {
-            url = url,
-            method = "POST",
-            headers = headers or {},
-            source = ltn12.source.string(body or ""),
-            sink = ltn12.sink.file(pipe_w),  -- response body writes to pipe
-        }
+            if string.sub(url, 1, 8) == "https://" then
+                subprocess_https.TIMEOUT = 60
+            end
 
-        -- Use https.request for HTTPS URLs, http.request for HTTP
-        local request_func = string.sub(url, 1, 8) == "https://" and subprocess_https.request or subprocess_http.request
+            local pipe_w = wrap_fd(child_write_fd)
+            local request = {
+                url = url,
+                method = "POST",
+                headers = headers or {},
+                source = ltn12.source.string(body or ""),
+                sink = ltn12.sink.file(pipe_w),
+            }
 
-        local ok, code, resp_headers, status = pcall(function()
-            return socket.skip(1, request_func(request))
+            -- Use https.request for HTTPS URLs, http.request for HTTP
+            local request_func = string.sub(url, 1, 8) == "https://" and subprocess_https.request or subprocess_http.request
+
+            local ok, code, resp_headers, status
+            ok, code, resp_headers, status = pcall(function()
+                return subprocess_socket.skip(1, request_func(request))
+            end)
+
+            if not ok then
+                -- pcall failed - likely a connection or SSL error
+                local err_msg = tostring(code)
+                logger.warn("Background request error:", err_msg, "url:", url)
+                ffiutil.writeToFD(child_write_fd,
+                    string.format("\r\n%sConnection error: %s\n\n",
+                        self.PROTOCOL_NON_200, err_msg))
+            elseif code ~= 200 then
+                logger.warn("Background request non-200:", code, "status:", status, "url:", url)
+                local status_text = status and status:match("^HTTP/%S+%s+%d+%s+(.+)$") or status or "Request failed"
+                ffiutil.writeToFD(child_write_fd,
+                    string.format("\r\n%sError %d: %s\n\n",
+                        self.PROTOCOL_NON_200, code or 0, status_text))
+            end
         end)
 
-        if not ok then
-            -- pcall failed - likely a connection or SSL error
-            local err_msg = tostring(code)  -- code contains error message when pcall fails
-            logger.warn("Background request error:", err_msg, "url:", url)
+        -- If the subprocess body threw an error, write it to the pipe
+        if not subprocess_ok then
+            local err_msg = tostring(subprocess_err)
             ffiutil.writeToFD(child_write_fd,
-                string.format("\r\n%sConnection error: %s\n\n",
-                    self.PROTOCOL_NON_200, err_msg))
-        elseif code ~= 200 then
-            logger.warn("Background request non-200:", code, "status:", status, "url:", url)
-            -- Write error marker to pipe so parent can detect non-200 response
-            -- Extract just the status text (e.g., "Payment Required" from "HTTP/1.1 402 Payment Required")
-            local status_text = status and status:match("^HTTP/%S+%s+%d+%s+(.+)$") or status or "Request failed"
-            ffiutil.writeToFD(child_write_fd,
-                string.format("\r\n%sError %d: %s\n\n",
-                    self.PROTOCOL_NON_200, code or 0, status_text))
+                string.format("\r\nX-NON-200-STATUS:Subprocess error: %s\n\n", err_msg))
         end
 
-        ffi.C.close(child_write_fd)  -- close the write end of the pipe
+        ffi.C.close(child_write_fd)
     end
 end
 
