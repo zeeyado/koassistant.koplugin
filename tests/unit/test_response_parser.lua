@@ -122,6 +122,29 @@ TestRunner:test("handles unexpected format", function()
     TestRunner:assertContains(result, "Unexpected response format", "error message")
 end)
 
+TestRunner:test("parses extended thinking response", function()
+    -- Extended thinking puts thinking block first, text block second
+    local response = {
+        content = {
+            { type = "thinking", thinking = "Let me think about this..." },
+            { type = "text", text = "The answer is 391" }
+        }
+    }
+    local success, result = ResponseParser:parseResponse(response, "anthropic")
+    TestRunner:assertTrue(success, "success")
+    TestRunner:assertEqual(result, "The answer is 391", "content")
+end)
+
+TestRunner:test("parses response with type field", function()
+    -- Regular response with explicit type field
+    local response = {
+        content = { { type = "text", text = "Hello with type" } }
+    }
+    local success, result = ResponseParser:parseResponse(response, "anthropic")
+    TestRunner:assertTrue(success, "success")
+    TestRunner:assertEqual(result, "Hello with type", "content")
+end)
+
 -- Test OpenAI format
 TestRunner:suite("OpenAI")
 
@@ -184,6 +207,21 @@ TestRunner:test("handles error response", function()
     local success, result = ResponseParser:parseResponse(response, "gemini")
     TestRunner:assertFalse(success, "success")
     TestRunner:assertEqual(result, "Invalid request", "error message")
+end)
+
+TestRunner:test("handles MAX_TOKENS with no content", function()
+    -- Gemini thinking models may hit MAX_TOKENS before generating any output
+    local response = {
+        candidates = {
+            {
+                content = { role = "model" },  -- No parts array
+                finishReason = "MAX_TOKENS"
+            }
+        }
+    }
+    local success, result = ResponseParser:parseResponse(response, "gemini")
+    TestRunner:assertFalse(success, "success")
+    TestRunner:assertContains(result, "MAX_TOKENS", "error message mentions MAX_TOKENS")
 end)
 
 -- Test DeepSeek format

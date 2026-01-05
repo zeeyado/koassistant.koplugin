@@ -6,9 +6,20 @@ local RESPONSE_TRANSFORMERS = {
         if response.type == "error" and response.error then
             return false, response.error.message
         end
-        
-        if response.content and response.content[1] and response.content[1].text then
-            return true, response.content[1].text
+
+        -- Handle extended thinking responses (content array with thinking + text blocks)
+        -- Also handles regular responses (content array with just text block)
+        if response.content then
+            -- Look for text block by type (extended thinking has thinking block first)
+            for _, block in ipairs(response.content) do
+                if block.type == "text" and block.text then
+                    return true, block.text
+                end
+            end
+            -- Fallback: first block with text field (legacy format)
+            if response.content[1] and response.content[1].text then
+                return true, response.content[1].text
+            end
         end
         return false, "Unexpected response format"
     end,
@@ -30,20 +41,25 @@ local RESPONSE_TRANSFORMERS = {
         if response.error then
             return false, response.error.message or response.error.code or "Unknown error"
         end
-        
+
         -- Check for direct text response (some Gemini endpoints return this)
         if response.text then
             return true, response.text
         end
-        
+
         -- Check for standard candidates format
         if response.candidates and response.candidates[1] then
             local candidate = response.candidates[1]
+            -- Check if MAX_TOKENS before content was generated (thinking models issue)
+            if candidate.finishReason == "MAX_TOKENS" and
+               (not candidate.content or not candidate.content.parts or #candidate.content.parts == 0) then
+                return false, "No content generated (MAX_TOKENS hit before output - increase max_tokens for thinking models)"
+            end
             if candidate.content and candidate.content.parts and candidate.content.parts[1] then
                 return true, candidate.content.parts[1].text
             end
         end
-        
+
         return false, "Unexpected response format"
     end,
     
@@ -199,12 +215,12 @@ function ResponseParser:parseResponse(response, provider)
     -- Add detailed logging for debugging
     local success, result = transform(response)
     if not success and result == "Unexpected response format" then
-        -- Provide more details about what was received
+        -- Provide more details about what was received (show full response for debugging)
         local json = require("json")
         local response_str = "Unable to encode response"
         pcall(function() response_str = json.encode(response) end)
-        return false, string.format("Unexpected response format from %s. Response: %s", 
-                                   provider, response_str:sub(1, 200))
+        return false, string.format("Unexpected response format from %s. Response: %s",
+                                   provider, response_str)
     end
     
     return success, result
