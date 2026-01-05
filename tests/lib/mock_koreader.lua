@@ -80,6 +80,38 @@ package.loaded["gettext"] = function(str)
     return str
 end
 
+-- Mock UI widgets (for stream_handler.lua)
+-- These are not used in unit tests, but need to exist so the module loads
+package.loaded["ui/widget/inputtext"] = {
+    extend = function() return {} end,
+}
+package.loaded["ui/widget/inputdialog"] = {}
+package.loaded["ui/uimanager"] = {
+    show = function() end,
+    close = function() end,
+    scheduleIn = function() end,
+}
+package.loaded["ui/font"] = {
+    getFace = function() return {} end,
+}
+package.loaded["ui/size"] = {
+    padding = { default = 0, large = 0 },
+    margin = { default = 0 },
+    line = { thick = 1 },
+    border = { default = 1 },
+}
+package.loaded["device"] = {
+    screen = {
+        getWidth = function() return 800 end,
+        getHeight = function() return 600 end,
+    },
+    isTouchDevice = function() return false end,
+    hasKeys = function() return false end,
+}
+package.loaded["ui/constants"] = {
+    DIALOG_WIDTH = 600,
+}
+
 -- Verification message
 if VERBOSE_MOCKS then
     print("[MOCK] KOReader mocks loaded successfully")

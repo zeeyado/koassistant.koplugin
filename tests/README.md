@@ -1,6 +1,17 @@
 # KOAssistant Test Suite
 
-Standalone test framework for testing all 16 AI providers without running KOReader's GUI.
+Standalone test framework for testing KOAssistant without running KOReader's GUI.
+
+## Test Categories
+
+### Unit Tests (Fast, Free, No API Calls)
+Located in `tests/unit/`. These test core logic without making API calls:
+- `test_system_prompts.lua` - Behavior variants, language parsing, domain integration
+- `test_streaming_parser.lua` - SSE/NDJSON content extraction
+- `test_response_parser.lua` - Response parsing for all 16 providers
+
+### Integration Tests (Real API Calls)
+The default test mode. Tests all 16 AI providers with real API calls.
 
 ## Prerequisites
 
@@ -55,7 +66,19 @@ sudo luarocks install dkjson
 
 ## Usage
 
-### Test All Providers
+### Run Unit Tests (Fast, No API Calls)
+
+```bash
+lua tests/run_tests.lua --unit
+```
+
+### Run All Tests (Unit + Integration)
+
+```bash
+lua tests/run_tests.lua --all
+```
+
+### Run Integration Tests Only (Default)
 
 ```bash
 lua tests/run_tests.lua
@@ -69,6 +92,29 @@ lua tests/run_tests.lua openai
 lua tests/run_tests.lua groq
 ```
 
+### Comprehensive Provider Tests (--full)
+
+Run comprehensive tests that check behaviors, temperatures, domains, and language instructions:
+
+```bash
+# Test a single provider comprehensively
+lua tests/run_tests.lua groq --full
+lua tests/run_tests.lua anthropic --full -v
+
+# Test all providers comprehensively (takes longer)
+lua tests/run_tests.lua --full
+```
+
+The `--full` flag runs these tests for each provider:
+- Basic connectivity
+- Minimal behavior variant
+- Full behavior variant
+- Temperature 0.0 (deterministic)
+- Temperature max (1.0 for Anthropic, 2.0 for others)
+- Domain context (checks if response reflects domain)
+- Language instruction (checks if response is in correct language)
+- Extended thinking (Anthropic only)
+
 ### Verbose Mode (Show Responses)
 
 ```bash
@@ -81,6 +127,22 @@ lua tests/run_tests.lua -v openai
 ```bash
 lua tests/run_tests.lua --help
 ```
+
+## Local Configuration
+
+Create a local configuration file to customize paths and settings:
+
+```bash
+cp tests/local_config.lua.sample tests/local_config.lua
+# Edit tests/local_config.lua with your settings
+```
+
+The local config file is gitignored and supports:
+- `plugin_dir` - Override plugin directory path
+- `apikeys_path` - Override API keys file location
+- `default_provider` - Default provider for quick tests
+- `verbose` - Always run in verbose mode
+- `skip_providers` - Skip specific providers even if API key exists
 
 ## Expected Output
 
@@ -175,10 +237,17 @@ Some providers may be slow. The tests don't have a timeout - they wait for the A
 
 ```
 tests/
-├── run_tests.lua      # Main test runner
-├── test_config.lua    # Configuration helpers
+├── run_tests.lua              # Main test runner (--unit, --all, --full flags)
+├── test_config.lua            # Configuration helpers (buildConfig, buildFullConfig)
+├── local_config.lua.sample    # Sample local config (copy to local_config.lua)
+├── local_config.lua           # User's local config (gitignored)
 ├── lib/
-│   └── mock_koreader.lua  # KOReader module mocks
-├── features/          # Feature-specific tests (future)
-└── README.md          # This file
+│   └── mock_koreader.lua      # KOReader module mocks
+├── unit/                      # Unit tests (no API calls)
+│   ├── test_system_prompts.lua    # 46 tests - behavior, language, domain
+│   ├── test_streaming_parser.lua  # 22 tests - SSE/NDJSON parsing
+│   └── test_response_parser.lua   # 39 tests - 16 provider responses
+├── integration/               # Integration tests (real API calls)
+│   └── test_full_provider.lua     # Comprehensive provider tests (--full flag)
+└── README.md                  # This file
 ```
