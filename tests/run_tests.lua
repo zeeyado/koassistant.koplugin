@@ -341,7 +341,7 @@ local function runIntegrationTests(args)
         else
             -- Failed
             print("\27[31m✗ FAIL\27[0m")
-            print(string.format("           %s", tostring(response):sub(1, 100)))
+            print(string.format("           %s", tostring(response)))
             table.insert(results.failed, { provider = provider, error = response })
         end
 
@@ -358,7 +358,7 @@ local function runIntegrationTests(args)
         print("")
         print("  Failed providers:")
         for _, f in ipairs(results.failed) do
-            print(string.format("    - %s: %s", f.provider, tostring(f.error):sub(1, 60)))
+            print(string.format("    - %s: %s", f.provider, tostring(f.error)))
         end
     end
 
