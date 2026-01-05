@@ -39,6 +39,8 @@ jobs:
                     --exclude='.github' \
                     --exclude='.claude' \
                     --exclude='docs' \
+                    --exclude='tests' \
+                    --exclude='.gitignore' \
                     . build/koassistant.koplugin/
 
       - name: Create zip archive
