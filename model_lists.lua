@@ -2,18 +2,28 @@
 -- Last updated: January 2026
 local ModelLists = {
     anthropic = {
-        -- Claude 4.5 (latest)
+        -- Claude 4.5 (latest generation)
         "claude-sonnet-4-5-20250929",
         "claude-haiku-4-5-20251001",
         "claude-opus-4-5-20251101",
+        -- Claude 4.x (legacy but still available)
+        "claude-opus-4-1-20250805",
+        "claude-sonnet-4-20250514",
+        "claude-opus-4-20250514",
+        -- Claude 3.x (legacy)
+        "claude-3-7-sonnet-20250219",
+        "claude-3-haiku-20240307",
     },
     openai = {
-        -- GPT-5 family (flagship)
+        -- GPT-5.2 (latest flagship, Dec 2025)
         "gpt-5.2",
-        "gpt-5.2-mini",
+        "gpt-5.2-pro",
+        -- GPT-5.1
         "gpt-5.1",
+        -- GPT-5 family (Aug 2025)
         "gpt-5",
         "gpt-5-mini",
+        "gpt-5-nano",
         -- GPT-4.1 family
         "gpt-4.1",
         "gpt-4.1-mini",
@@ -35,18 +45,22 @@ local ModelLists = {
         "deepseek-reasoner",
     },
     gemini = {
-        "gemini-2.5-flash-lite",
         -- Gemini 3 (preview)
         "gemini-3-pro-preview",
         "gemini-3-flash-preview",
         -- Gemini 2.5 (stable)
         "gemini-2.5-pro",
         "gemini-2.5-flash",
+        "gemini-2.5-flash-lite",
         -- Gemini 2.0
         "gemini-2.0-flash",
         "gemini-2.0-flash-lite",
     },
     ollama = {
+        -- Llama 4 (Meta, Apr 2025) - multimodal MoE
+        "llama4",
+        "llama4:scout",
+        "llama4:maverick",
         -- Llama 3.x (Meta)
         "llama3.3",
         "llama3.3:70b",
@@ -56,7 +70,15 @@ local ModelLists = {
         "llama3.1",
         "llama3.1:8b",
         "llama3.1:70b",
-        "llama3",
+        -- Qwen 3 (Alibaba, latest)
+        "qwen3",
+        "qwen3:0.6b",
+        "qwen3:1.7b",
+        "qwen3:4b",
+        "qwen3:8b",
+        "qwen3:14b",
+        "qwen3:30b",
+        "qwen3-coder",
         -- Qwen 2.5 (Alibaba)
         "qwen2.5",
         "qwen2.5:7b",
@@ -69,7 +91,13 @@ local ModelLists = {
         "deepseek-r1:8b",
         "deepseek-r1:14b",
         "deepseek-r1:32b",
-        "deepseek-v3",
+        "deepseek-r1:70b",
+        -- Gemma 3 (Google, latest)
+        "gemma3",
+        "gemma3:1b",
+        "gemma3:4b",
+        "gemma3:12b",
+        "gemma3:27b",
         -- Gemma 2 (Google)
         "gemma2",
         "gemma2:2b",
@@ -94,7 +122,6 @@ local ModelLists = {
         "command-r",
         "neural-chat",
         "vicuna",
-        "orca-mini",
     }
 }
 return ModelLists
