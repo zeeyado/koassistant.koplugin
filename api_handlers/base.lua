@@ -97,6 +97,17 @@ end
 --- @param body string: Request body (JSON encoded)
 --- @return function: A function to be run in subprocess via ffiutil.runInSubProcess
 function BaseHandler:backgroundRequest(url, headers, body)
+    -- Prime SSL in parent process before fork (fixes fresh-start streaming issue)
+    -- SSL must be fully initialized in parent before fork, or subprocess inherits
+    -- uninitialized state that re-requiring can't fix
+    if string.sub(url, 1, 8) == "https://" then
+        local ssl = require("ssl")
+        -- Create a throwaway context to force OpenSSL initialization
+        pcall(function()
+            ssl.newcontext({mode = "client", protocol = "any"})
+        end)
+    end
+
     return function(pid, child_write_fd)
         if not pid or not child_write_fd then
             logger.warn("Invalid parameters for background request")
