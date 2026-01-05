@@ -742,8 +742,9 @@ local function startWebServer(options)
             thinking_budget_tokens = 4096,
         }
 
-        -- Try to load from koassistant_settings.lua if it exists
-        local settings_path = plugin_dir .. "/../koassistant_settings.lua"
+        -- Try to load from koassistant_settings.lua (in KOReader's settings folder)
+        -- Plugin is at plugins/koassistant.koplugin/, so go up two levels to koreader root
+        local settings_path = plugin_dir .. "/../../settings/koassistant_settings.lua"
         local file = io.open(settings_path, "r")
         if file then
             file:close()
@@ -768,7 +769,7 @@ local function startWebServer(options)
         })
     end)
 
-    -- GET /api/actions - List all built-in actions
+    -- GET /api/actions - List all built-in and custom actions
     server:route("GET", "/api/actions", function(headers, body)
         local Actions = require("prompts.actions")
         local Templates = require("prompts.templates")
@@ -789,7 +790,7 @@ local function startWebServer(options)
         end
 
         -- Helper to add action to a specific context
-        local function addActionToContext(out_context, action)
+        local function addActionToContext(out_context, action, is_custom)
             if actions_data[out_context] then
                 table.insert(actions_data[out_context], {
                     id = action.id,
@@ -803,6 +804,7 @@ local function startWebServer(options)
                     include_book_context = action.include_book_context,
                     extended_thinking = action.extended_thinking,
                     context = action.context,  -- Include original context for filtering
+                    is_custom = is_custom or false,
                 })
             end
         end
@@ -832,6 +834,49 @@ local function startWebServer(options)
                         else
                             -- Regular context actions
                             addActionToContext(context, action)
+                        end
+                    end
+                end
+            end
+        end
+
+        -- Load custom actions from settings file
+        -- Plugin is at plugins/koassistant.koplugin/, so go up two levels to koreader root
+        local settings_path = plugin_dir .. "/../../settings/koassistant_settings.lua"
+        local settings_file = io.open(settings_path, "r")
+        if settings_file then
+            settings_file:close()
+            local ok, settings = pcall(dofile, settings_path)
+            if ok and settings and settings.custom_actions then
+                for i, action in ipairs(settings.custom_actions) do
+                    if action.enabled ~= false then
+                        -- Generate ID for custom action
+                        local custom_action = {
+                            id = "custom_" .. i,
+                            text = action.text or ("Custom " .. i),
+                            prompt = action.prompt,
+                            behavior_variant = action.behavior_variant,
+                            behavior_override = action.behavior_override,
+                            api_params = action.api_params,
+                            include_book_context = action.include_book_context,
+                            extended_thinking = action.extended_thinking,
+                            thinking_budget = action.thinking_budget,
+                            provider = action.provider,
+                            model = action.model,
+                            context = action.context,
+                        }
+
+                        -- Add to appropriate contexts
+                        if action.context == "both" then
+                            addActionToContext("highlight", custom_action, true)
+                            addActionToContext("book", custom_action, true)
+                        elseif action.context == "all" then
+                            addActionToContext("highlight", custom_action, true)
+                            addActionToContext("book", custom_action, true)
+                            addActionToContext("multi_book", custom_action, true)
+                            addActionToContext("general", custom_action, true)
+                        elseif action.context then
+                            addActionToContext(action.context, custom_action, true)
                         end
                     end
                 end

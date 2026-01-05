@@ -92,9 +92,11 @@ lua tests/inspect.lua --web --port 3000
 - Provider/model selection with all 16 providers
 - Behavior toggles, temperature slider
 - **Domain loading** from your actual `domains/` folder
-- **Action loading** from `prompts/actions.lua` with template resolution
-- **Context simulation** (highlight text, book title/author)
-- Language settings and extended thinking configuration
+- **Action loading** from `prompts/actions.lua` + custom actions from settings
+- **Settings sync** from your `koassistant_settings.lua` (languages, behavior, temperature)
+- **Context simulation** (highlight text, book title/author, multi-book)
+- Language settings with translation target dropdown
+- Extended thinking configuration
 - Syntax-highlighted JSON output
 - Dark mode support
 

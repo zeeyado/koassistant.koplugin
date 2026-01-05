@@ -305,7 +305,11 @@
                 </div>
                 <div class="form-group" id="translation-language-container">
                     <label>Translation Target Language</label>
-                    <input type="text" id="translation-language" placeholder="e.g., English" value="English">
+                    <select id="translation-language" onchange="onTranslationLanguageChange()">
+                        <option value="English">English</option>
+                        <option value="custom">Custom...</option>
+                    </select>
+                    <input type="text" id="translation-language-custom" placeholder="Enter custom language..." style="display: none; margin-top: 0.25rem;">
                 </div>
             </div>
 
@@ -432,6 +436,8 @@
                 const usePrimary = document.getElementById('translation-use-primary').checked;
                 document.getElementById('translation-language-container').style.display = usePrimary ? 'none' : 'block';
             });
+            // Translation language dropdown - show/hide custom input
+            document.getElementById('translation-language').addEventListener('change', onTranslationLanguageChange);
             // Initial state
             document.getElementById('translation-language-container').style.display = 'none';
 
@@ -564,7 +570,19 @@
                         document.getElementById('primary-language').value = s.primary_language;
                     }
                     document.getElementById('translation-use-primary').checked = s.translation_use_primary !== false;
-                    document.getElementById('translation-language').value = s.translation_language || 'English';
+
+                    // Set translation language - check if value exists in dropdown options
+                    const translationSelect = document.getElementById('translation-language');
+                    const translationValue = s.translation_language || 'English';
+                    const hasOption = Array.from(translationSelect.options).some(opt => opt.value === translationValue);
+                    if (hasOption) {
+                        translationSelect.value = translationValue;
+                    } else {
+                        translationSelect.value = 'custom';
+                        document.getElementById('translation-language-custom').value = translationValue;
+                        document.getElementById('translation-language-custom').style.display = 'block';
+                    }
+
                     document.getElementById('translation-language-container').style.display =
                         s.translation_use_primary !== false ? 'none' : 'block';
 
@@ -599,11 +617,29 @@
         function onUserLanguagesChange() {
             const languages = document.getElementById('user-languages').value;
             const primarySelect = document.getElementById('primary-language');
+            const translationSelect = document.getElementById('translation-language');
 
             // Parse languages and populate primary language dropdown
             const langList = languages.split(',').map(l => l.trim()).filter(l => l);
             primarySelect.innerHTML = '<option value="">Auto (first in list)</option>' +
                 langList.map(l => `<option value="${l}">${l}</option>`).join('');
+
+            // Also populate translation language dropdown (languages + custom option)
+            if (langList.length > 0) {
+                translationSelect.innerHTML =
+                    langList.map(l => `<option value="${l}">${l}</option>`).join('') +
+                    '<option value="custom">Custom...</option>';
+            } else {
+                translationSelect.innerHTML =
+                    '<option value="English">English</option>' +
+                    '<option value="custom">Custom...</option>';
+            }
+        }
+
+        function onTranslationLanguageChange() {
+            const translationSelect = document.getElementById('translation-language');
+            const customInput = document.getElementById('translation-language-custom');
+            customInput.style.display = translationSelect.value === 'custom' ? 'block' : 'none';
         }
 
         function onPrimaryLanguageChange() {
@@ -779,7 +815,17 @@
             const usePrimary = document.getElementById('translation-use-primary').checked;
             const userLangs = document.getElementById('user-languages').value;
             const primaryLang = document.getElementById('primary-language').value || userLangs.split(',')[0]?.trim() || 'English';
-            const translationLang = usePrimary ? primaryLang : document.getElementById('translation-language').value;
+            let translationLang;
+            if (usePrimary) {
+                translationLang = primaryLang;
+            } else {
+                const translationSelect = document.getElementById('translation-language').value;
+                if (translationSelect === 'custom') {
+                    translationLang = document.getElementById('translation-language-custom').value || 'English';
+                } else {
+                    translationLang = translationSelect;
+                }
+            }
 
             const behaviorValue = activeBehavior ? activeBehavior.dataset.value : 'full';
 
@@ -979,7 +1025,8 @@
                 document.getElementById('domain').value = p.domain;
             }
 
-            document.getElementById('languages').value = p.languages;
+            document.getElementById('user-languages').value = p.languages;
+            onUserLanguagesChange();  // Update primary/translation language dropdowns
             document.getElementById('thinking-enabled').checked = p.thinking.enabled;
             if (p.thinking.budget) {
                 document.getElementById('thinking-budget').value = p.thinking.budget;
