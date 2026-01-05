@@ -616,6 +616,15 @@ Contributions welcome! You can:
 - Improve documentation
 - Translate the plugin UI
 
+### For Developers
+
+A standalone test suite is available in `tests/`. See `tests/README.md` for setup and usage:
+
+```bash
+lua tests/run_tests.lua --unit   # Fast unit tests (no API calls)
+lua tests/run_tests.lua --full   # Comprehensive provider tests
+```
+
 ### Contributing Translations
 
 KOAssistant is ready for localization. All UI strings use KOReader's gettext system (`_()` function).
