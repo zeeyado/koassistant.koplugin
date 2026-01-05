@@ -69,6 +69,12 @@
             border-radius: 8px;
             padding: 1.5rem;
         }
+        .config-panel {
+            max-height: calc(100vh - 120px);
+            overflow-y: auto;
+            position: sticky;
+            top: 1rem;
+        }
         .panel h2 {
             font-size: 0.875rem;
             font-weight: 600;
@@ -211,6 +217,10 @@
                     <button class="btn" data-value="minimal">Minimal</button>
                     <button class="btn active" data-value="full">Full</button>
                     <button class="btn" data-value="none">None</button>
+                    <button class="btn" data-value="custom">Custom</button>
+                </div>
+                <div id="custom-behavior-container" style="display: none; margin-top: 0.5rem;">
+                    <textarea id="custom-behavior" placeholder="Enter custom AI behavior instructions..."></textarea>
                 </div>
             </div>
 
@@ -223,13 +233,80 @@
             </div>
 
             <div class="section-divider">
-                <h3>Domain Context (optional)</h3>
-                <textarea id="domain" placeholder="Enter domain context text..."></textarea>
+                <h3>Domain</h3>
+                <select id="domain-select" onchange="onDomainChange()">
+                    <option value="">None</option>
+                </select>
+                <textarea id="domain" placeholder="Domain context (select above or enter custom)..." style="margin-top: 0.5rem;"></textarea>
             </div>
 
-            <div class="form-group">
-                <label>Languages</label>
-                <input type="text" id="languages" placeholder="e.g., English, Spanish">
+            <div class="section-divider">
+                <h3>Context Simulation</h3>
+                <div class="form-group">
+                    <label>Context Type</label>
+                    <select id="context-type" onchange="onContextTypeChange()">
+                        <option value="general">General (no context)</option>
+                        <option value="highlight">Highlight (selected text)</option>
+                        <option value="book">Book (single book)</option>
+                        <option value="multi_book">Multi-Book (collection)</option>
+                    </select>
+                </div>
+                <div id="highlight-fields" style="display: none;">
+                    <div class="form-group">
+                        <label>Highlighted Text</label>
+                        <textarea id="highlighted-text" placeholder="Enter highlighted/selected text..."></textarea>
+                    </div>
+                </div>
+                <div id="book-fields" style="display: none;">
+                    <div class="form-group">
+                        <label>Book Title</label>
+                        <input type="text" id="book-title" placeholder="e.g., Crime and Punishment">
+                    </div>
+                    <div class="form-group">
+                        <label>Book Author</label>
+                        <input type="text" id="book-author" placeholder="e.g., Fyodor Dostoevsky">
+                    </div>
+                </div>
+                <div id="multi-book-fields" style="display: none;">
+                    <div class="form-group">
+                        <label>Books List (one per line: "Title" by Author)</label>
+                        <textarea id="books-list" placeholder="&quot;Crime and Punishment&quot; by Fyodor Dostoevsky
+&quot;The Brothers Karamazov&quot; by Fyodor Dostoevsky
+&quot;Notes from Underground&quot; by Fyodor Dostoevsky"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-divider">
+                <h3>Action</h3>
+                <select id="action-select" onchange="onActionChange()">
+                    <option value="">Custom (manual)</option>
+                </select>
+            </div>
+
+            <div class="section-divider">
+                <h3>Language Settings</h3>
+                <div class="form-group">
+                    <label>User Languages (comma-separated)</label>
+                    <input type="text" id="user-languages" placeholder="e.g., German, English, French">
+                </div>
+                <div class="form-group">
+                    <label>Primary Language</label>
+                    <select id="primary-language" onchange="onPrimaryLanguageChange()">
+                        <option value="">Auto (first in list)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Translation Settings</label>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="translation-use-primary" checked>
+                        <label for="translation-use-primary">Use primary language for translations</label>
+                    </div>
+                </div>
+                <div class="form-group" id="translation-language-container">
+                    <label>Translation Target Language</label>
+                    <input type="text" id="translation-language" placeholder="e.g., English" value="English">
+                </div>
             </div>
 
             <div class="section-divider">
@@ -243,8 +320,11 @@
             </div>
 
             <div class="section-divider">
-                <h3>User Message</h3>
-                <textarea id="message" placeholder="Enter test message...">Say hello in exactly 5 words.</textarea>
+                <h3>User Message / Additional Input</h3>
+                <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.5rem;">
+                    When an action is selected, this becomes additional user input. Otherwise, it's the main prompt.
+                </p>
+                <textarea id="message" placeholder="Enter test message or additional input...">Say hello in exactly 5 words.</textarea>
             </div>
 
             <div class="btn-group">
@@ -314,6 +394,8 @@
         // State
         const state = {
             providers: {},
+            domains: [],
+            actions: { highlight: [], book: [], multi_book: [], general: [] },
             lastBuild: null,
             lastResponse: null,
             compareResults: null
@@ -336,11 +418,33 @@
                 btn.addEventListener('click', () => {
                     document.querySelectorAll('#behavior-btns .btn').forEach(b => b.classList.remove('active'));
                     btn.classList.add('active');
+                    // Show/hide custom behavior textarea
+                    const customContainer = document.getElementById('custom-behavior-container');
+                    customContainer.style.display = btn.dataset.value === 'custom' ? 'block' : 'none';
                 });
             });
 
-            // Load providers
-            await loadProviders();
+            // User languages input - update primary language dropdown
+            document.getElementById('user-languages').addEventListener('input', onUserLanguagesChange);
+
+            // Translation checkbox - toggle translation language visibility
+            document.getElementById('translation-use-primary').addEventListener('change', () => {
+                const usePrimary = document.getElementById('translation-use-primary').checked;
+                document.getElementById('translation-language-container').style.display = usePrimary ? 'none' : 'block';
+            });
+            // Initial state
+            document.getElementById('translation-language-container').style.display = 'none';
+
+            // Load all data
+            await Promise.all([
+                loadProviders(),
+                loadDomains(),
+                loadActions(),
+                loadSettings()
+            ]);
+
+            // Initialize context type
+            onContextTypeChange();
         });
 
         function toggleDarkMode() {
@@ -362,10 +466,30 @@
         async function loadProviders() {
             try {
                 const response = await fetch('/api/providers');
-                state.providers = await response.json();
+                const data = await response.json();
+
+                // Transform array to map: { provider_id: [models] }
+                state.providers = {};
+                if (data.success && Array.isArray(data.providers)) {
+                    data.providers.forEach(function(p) {
+                        if (p && p.id) {
+                            state.providers[p.id] = p.models || [];
+                        }
+                    });
+                } else {
+                    console.error('Invalid providers response:', data);
+                    showStatus('error', 'Invalid providers response from server');
+                    return;
+                }
+
+                const providerIds = Object.keys(state.providers);
+                if (providerIds.length === 0) {
+                    showStatus('error', 'No providers loaded');
+                    return;
+                }
 
                 const providerSelect = document.getElementById('provider');
-                providerSelect.innerHTML = Object.keys(state.providers)
+                providerSelect.innerHTML = providerIds
                     .map(p => `<option value="${p}">${p}</option>`)
                     .join('');
 
@@ -378,10 +502,11 @@
 
                 // Build compare checkboxes
                 const checksContainer = document.getElementById('compare-checks');
-                checksContainer.innerHTML = Object.keys(state.providers)
+                checksContainer.innerHTML = providerIds
                     .map(p => `<label class="provider-check"><input type="checkbox" value="${p}" ${p === 'anthropic' || p === 'openai' || p === 'gemini' ? 'checked' : ''}> ${p}</label>`)
                     .join('');
             } catch (e) {
+                console.error('Error loading providers:', e);
                 showStatus('error', 'Failed to load providers: ' + e.message);
             }
         }
@@ -392,20 +517,289 @@
             document.getElementById('model').innerHTML = models.map(m => `<option value="${m}">${m}</option>`).join('');
         }
 
+        async function loadDomains() {
+            try {
+                const response = await fetch('/api/domains');
+                const data = await response.json();
+
+                if (data.success && Array.isArray(data.domains)) {
+                    state.domains = data.domains;
+
+                    const domainSelect = document.getElementById('domain-select');
+                    domainSelect.innerHTML = '<option value="">None</option>' +
+                        state.domains.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+                }
+            } catch (e) {
+                console.error('Error loading domains:', e);
+            }
+        }
+
+        async function loadActions() {
+            try {
+                const response = await fetch('/api/actions');
+                const data = await response.json();
+
+                if (data.success && data.actions) {
+                    state.actions = data.actions;
+                    updateActionDropdown();
+                }
+            } catch (e) {
+                console.error('Error loading actions:', e);
+            }
+        }
+
+        async function loadSettings() {
+            try {
+                const response = await fetch('/api/settings');
+                const data = await response.json();
+
+                if (data.success && data.settings) {
+                    const s = data.settings;
+                    // Apply loaded settings to form
+                    if (s.user_languages) {
+                        document.getElementById('user-languages').value = s.user_languages;
+                        onUserLanguagesChange();  // Update primary language dropdown
+                    }
+                    if (s.primary_language) {
+                        document.getElementById('primary-language').value = s.primary_language;
+                    }
+                    document.getElementById('translation-use-primary').checked = s.translation_use_primary !== false;
+                    document.getElementById('translation-language').value = s.translation_language || 'English';
+                    document.getElementById('translation-language-container').style.display =
+                        s.translation_use_primary !== false ? 'none' : 'block';
+
+                    // Behavior
+                    if (s.ai_behavior_variant) {
+                        document.querySelectorAll('#behavior-btns .btn').forEach(btn => {
+                            btn.classList.toggle('active', btn.dataset.value === s.ai_behavior_variant);
+                        });
+                        if (s.ai_behavior_variant === 'custom' && s.custom_ai_behavior) {
+                            document.getElementById('custom-behavior-container').style.display = 'block';
+                            document.getElementById('custom-behavior').value = s.custom_ai_behavior;
+                        }
+                    }
+
+                    // Temperature
+                    if (s.default_temperature !== undefined) {
+                        document.getElementById('temperature').value = s.default_temperature;
+                        updateTempLabel();
+                    }
+
+                    // Extended thinking
+                    document.getElementById('thinking-enabled').checked = s.enable_extended_thinking || false;
+                    if (s.thinking_budget_tokens) {
+                        document.getElementById('thinking-budget').value = s.thinking_budget_tokens;
+                    }
+                }
+            } catch (e) {
+                console.error('Error loading settings:', e);
+            }
+        }
+
+        function onUserLanguagesChange() {
+            const languages = document.getElementById('user-languages').value;
+            const primarySelect = document.getElementById('primary-language');
+
+            // Parse languages and populate primary language dropdown
+            const langList = languages.split(',').map(l => l.trim()).filter(l => l);
+            primarySelect.innerHTML = '<option value="">Auto (first in list)</option>' +
+                langList.map(l => `<option value="${l}">${l}</option>`).join('');
+        }
+
+        function onPrimaryLanguageChange() {
+            // Could be used for any side effects when primary language changes
+        }
+
+        function updateActionDropdown() {
+            const contextType = document.getElementById('context-type').value;
+            const actionSelect = document.getElementById('action-select');
+
+            // Get actions for current context
+            let actions = [...(state.actions[contextType] || [])];
+
+            // Include "all" context actions in every dropdown
+            // Include "both" context actions in highlight and book
+            // These may already be in the list from server, but we dedupe below
+            const allContexts = ['highlight', 'book', 'multi_book', 'general'];
+            for (const ctx of allContexts) {
+                if (ctx !== contextType && state.actions[ctx]) {
+                    for (const action of state.actions[ctx]) {
+                        if (action.context === 'all' ||
+                            (action.context === 'both' && (contextType === 'highlight' || contextType === 'book'))) {
+                            // Add if not already present
+                            if (!actions.find(a => a.id === action.id)) {
+                                actions.push(action);
+                            }
+                        }
+                    }
+                }
+            }
+
+            actionSelect.innerHTML = '<option value="">Custom (manual)</option>' +
+                actions.map(a => `<option value="${a.id}">${a.text || a.id}</option>`).join('');
+        }
+
+        function onDomainChange() {
+            const domainId = document.getElementById('domain-select').value;
+            const domainTextarea = document.getElementById('domain');
+
+            if (domainId) {
+                const domain = state.domains.find(d => d.id === domainId);
+                if (domain) {
+                    domainTextarea.value = domain.context;
+                }
+            } else {
+                domainTextarea.value = '';
+            }
+        }
+
+        function onContextTypeChange() {
+            const contextType = document.getElementById('context-type').value;
+
+            // Show/hide context fields
+            document.getElementById('highlight-fields').style.display =
+                contextType === 'highlight' ? 'block' : 'none';
+            document.getElementById('book-fields').style.display =
+                (contextType === 'book' || contextType === 'highlight') ? 'block' : 'none';
+            document.getElementById('multi-book-fields').style.display =
+                contextType === 'multi_book' ? 'block' : 'none';
+
+            // Update action dropdown to show context-appropriate actions
+            updateActionDropdown();
+        }
+
+        // Find action by ID across all contexts
+        function findAction(actionId) {
+            for (const ctx of ['highlight', 'book', 'multi_book', 'general']) {
+                const actions = state.actions[ctx] || [];
+                const found = actions.find(a => a.id === actionId);
+                if (found) return found;
+            }
+            return null;
+        }
+
+        function onActionChange() {
+            const actionId = document.getElementById('action-select').value;
+            const contextType = document.getElementById('context-type').value;
+
+            if (!actionId) {
+                return; // Custom mode - don't change anything
+            }
+
+            // Search all contexts for the action (handles compound contexts properly)
+            const action = findAction(actionId);
+
+            if (action) {
+                // Set behavior if action specifies it
+                if (action.behavior_variant) {
+                    document.querySelectorAll('#behavior-btns .btn').forEach(btn => {
+                        btn.classList.toggle('active', btn.dataset.value === action.behavior_variant);
+                    });
+                }
+
+                // Set temperature if action specifies it
+                if (action.api_params && action.api_params.temperature !== undefined) {
+                    document.getElementById('temperature').value = action.api_params.temperature;
+                    updateTempLabel();
+                }
+
+                // Set thinking if action specifies it
+                if (action.extended_thinking === 'on') {
+                    document.getElementById('thinking-enabled').checked = true;
+                    if (action.api_params && action.api_params.thinking_budget) {
+                        document.getElementById('thinking-budget').value = action.api_params.thinking_budget;
+                    }
+                } else if (action.extended_thinking === 'off') {
+                    document.getElementById('thinking-enabled').checked = false;
+                }
+
+                // Set message to the action prompt (with placeholders shown)
+                const promptText = action.template_text || action.prompt || '';
+                if (promptText) {
+                    document.getElementById('message').value = resolvePlaceholders(promptText);
+                }
+            }
+        }
+
+        function resolvePlaceholders(template) {
+            const contextType = document.getElementById('context-type').value;
+            const highlightedText = document.getElementById('highlighted-text').value || '[selected text]';
+            const bookTitle = document.getElementById('book-title').value || '[Book Title]';
+            const bookAuthor = document.getElementById('book-author').value || '[Author Name]';
+
+            let result = template;
+            result = result.replace(/{highlighted_text}/g, highlightedText);
+            result = result.replace(/{title}/g, bookTitle);
+            result = result.replace(/{author}/g, bookAuthor);
+            result = result.replace(/{author_clause}/g, bookAuthor ? 'by ' + bookAuthor : '');
+            result = result.replace(/{translation_language}/g, 'English');
+            result = result.replace(/{books_list}/g, bookTitle);
+            result = result.replace(/{count}/g, '1');
+
+            return result;
+        }
+
         function getConfig() {
             const activeBehavior = document.querySelector('#behavior-btns .btn.active');
+            const contextType = document.getElementById('context-type').value;
+            const actionId = document.getElementById('action-select').value;
+
+            // Get message
+            let message = document.getElementById('message').value;
+
+            // Build context object for the request
+            const context = {
+                type: contextType,
+                highlighted_text: document.getElementById('highlighted-text').value,
+                book_title: document.getElementById('book-title').value,
+                book_author: document.getElementById('book-author').value,
+            };
+
+            // Parse books_info for multi_book context
+            if (contextType === 'multi_book') {
+                const booksList = document.getElementById('books-list').value;
+                const books = booksList.split('\n').filter(l => l.trim()).map(line => {
+                    // Parse "Title" by Author format
+                    const match = line.match(/"([^"]+)"\s*by\s*(.+)/i);
+                    if (match) {
+                        return { title: match[1], authors: match[2].trim() };
+                    }
+                    return { title: line.trim(), authors: '' };
+                });
+                context.books_info = books;
+            }
+
+            // Get the selected action object if any
+            let action = null;
+            if (actionId) {
+                action = findAction(actionId);
+            }
+
+            // Determine translation language
+            const usePrimary = document.getElementById('translation-use-primary').checked;
+            const userLangs = document.getElementById('user-languages').value;
+            const primaryLang = document.getElementById('primary-language').value || userLangs.split(',')[0]?.trim() || 'English';
+            const translationLang = usePrimary ? primaryLang : document.getElementById('translation-language').value;
+
+            const behaviorValue = activeBehavior ? activeBehavior.dataset.value : 'full';
+
             return {
                 provider: document.getElementById('provider').value,
                 model: document.getElementById('model').value,
-                behavior: activeBehavior ? activeBehavior.dataset.value : 'full',
+                behavior: behaviorValue,
+                custom_behavior: behaviorValue === 'custom' ? document.getElementById('custom-behavior').value : null,
                 temperature: parseFloat(document.getElementById('temperature').value),
                 domain: document.getElementById('domain').value,
-                languages: document.getElementById('languages').value,
+                languages: document.getElementById('user-languages').value,
+                primary_language: document.getElementById('primary-language').value || null,
+                translation_language: translationLang,
                 thinking: {
                     enabled: document.getElementById('thinking-enabled').checked,
                     budget: parseInt(document.getElementById('thinking-budget').value) || 4096
                 },
-                message: document.getElementById('message').value
+                message: message,
+                context: context,
+                action: action,  // Full action object for MessageBuilder
             };
         }
 
@@ -554,11 +948,11 @@
 
         function loadPreset(preset) {
             const presets = {
-                minimal: { behavior: 'minimal', temperature: 0.7, domain: '', languages: '', thinking: { enabled: false } },
-                full: { behavior: 'full', temperature: 0.7, domain: '', languages: '', thinking: { enabled: false } },
-                domain: { behavior: 'full', temperature: 0.7, domain: 'This conversation relates to Islamic religious sciences. Key concepts include Quran, Hadith, Tafsir (exegesis), Fiqh (jurisprudence), Aqidah (creed), and Tasawwuf (spirituality).', languages: '', thinking: { enabled: false } },
-                thinking: { behavior: 'full', temperature: 1.0, domain: '', languages: '', thinking: { enabled: true, budget: 4096 } },
-                multilingual: { behavior: 'full', temperature: 0.7, domain: '', languages: 'English, Spanish, Arabic', thinking: { enabled: false } }
+                minimal: { behavior: 'minimal', temperature: 0.7, domain: '', domainId: '', languages: '', thinking: { enabled: false } },
+                full: { behavior: 'full', temperature: 0.7, domain: '', domainId: '', languages: '', thinking: { enabled: false } },
+                domain: { behavior: 'full', temperature: 0.7, domain: '', domainId: 'first', languages: '', thinking: { enabled: false } },
+                thinking: { behavior: 'full', temperature: 1.0, domain: '', domainId: '', languages: '', thinking: { enabled: true, budget: 4096 } },
+                multilingual: { behavior: 'full', temperature: 0.7, domain: '', domainId: '', languages: 'English, Spanish, Arabic', thinking: { enabled: false } }
             };
 
             const p = presets[preset];
@@ -571,7 +965,20 @@
 
             document.getElementById('temperature').value = p.temperature;
             updateTempLabel();
-            document.getElementById('domain').value = p.domain;
+
+            // Handle domain - prefer real domain if available
+            if (p.domainId === 'first' && state.domains.length > 0) {
+                // Use the first available domain
+                document.getElementById('domain-select').value = state.domains[0].id;
+                onDomainChange();
+            } else if (p.domainId) {
+                document.getElementById('domain-select').value = p.domainId;
+                onDomainChange();
+            } else {
+                document.getElementById('domain-select').value = '';
+                document.getElementById('domain').value = p.domain;
+            }
+
             document.getElementById('languages').value = p.languages;
             document.getElementById('thinking-enabled').checked = p.thinking.enabled;
             if (p.thinking.budget) {

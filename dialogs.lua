@@ -13,6 +13,7 @@ local isStreamingInProgress = GptQuery.isStreamingInProgress
 local ConfigHelper = require("config_helper")
 local MessageHistory = require("message_history")
 local ChatHistoryManager = require("chat_history_manager")
+local MessageBuilder = require("message_builder")
 local logger = require("logger")
 
 -- New request format modules (Phase 3)
@@ -675,6 +676,7 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
 end
 
 -- Helper function to build consolidated messages
+-- Delegates to shared MessageBuilder module for consistency with test framework
 -- @param prompt: The prompt definition
 -- @param context: The context type (highlight, book, multi_book, general)
 -- @param data: Context-specific data (highlighted_text, book_metadata, etc.)
@@ -682,148 +684,14 @@ end
 -- @param domain_context: Optional domain context text to prepend
 -- @param using_new_format: If true, skip domain/system (they go in system array instead)
 local function buildConsolidatedMessage(prompt, context, data, system_prompt, domain_context, using_new_format)
-    local parts = {}
-
-    -- Add domain context if provided (background knowledge about the topic area)
-    -- Skip if using new format - domain will go in system array instead
-    if not using_new_format and domain_context and domain_context ~= "" then
-        table.insert(parts, "[Domain Context]")
-        table.insert(parts, domain_context)
-        table.insert(parts, "")
-    end
-
-    -- Add system prompt if provided
-    -- Skip if using new format - system prompt will go in system array instead
-    if not using_new_format and system_prompt then
-        table.insert(parts, "[Instructions]")
-        table.insert(parts, system_prompt)
-        table.insert(parts, "")
-    end
-    
-    -- Get the action prompt template
-    -- Actions can have either `prompt` (direct text) or `template` (reference to templates.lua)
-    local user_prompt = prompt.prompt
-    if not user_prompt and prompt.template then
-        -- Resolve template reference
-        local Templates = require("prompts/templates")
-        user_prompt = Templates.get(prompt.template)
-    end
-    if not user_prompt then
-        logger.warn("Action missing prompt field: " .. (prompt.text or "unknown"))
-        user_prompt = ""
-    end
-
-    -- Substitute translation_language early (applies to all contexts)
-    if data.translation_language then
-        user_prompt = user_prompt:gsub("{translation_language}", data.translation_language)
-    end
-
-    -- Handle different contexts
-    if context == "multi_book" or context == "multi_file_browser" then
-        -- Multi-book context with {count} and {books_list} substitution
-        if data.books_info then
-            local count = #data.books_info
-            local books_list = {}
-            for i, book in ipairs(data.books_info) do
-                local book_str = string.format('%d. "%s"', i, book.title or "Unknown Title")
-                if book.authors and book.authors ~= "" then
-                    book_str = book_str .. " by " .. book.authors
-                end
-                table.insert(books_list, book_str)
-            end
-            user_prompt = user_prompt:gsub("{count}", tostring(count))
-            user_prompt = user_prompt:gsub("{books_list}", table.concat(books_list, "\n"))
-        elseif data.book_context then
-            -- Fallback: use pre-formatted book context if books_info not available
-            table.insert(parts, "[Context]")
-            table.insert(parts, data.book_context)
-            table.insert(parts, "")
-        end
-        table.insert(parts, "[Request]")
-        table.insert(parts, user_prompt)
-
-    elseif context == "book" or context == "file_browser" then
-        -- Book context: add book info and substitute template variables
-        if data.book_metadata then
-            local metadata = data.book_metadata
-            -- Add book context so AI knows which book we're discussing
-            table.insert(parts, "[Context]")
-            local book_info = string.format('Book: "%s"', metadata.title or "Unknown")
-            if metadata.author and metadata.author ~= "" then
-                book_info = book_info .. " by " .. metadata.author
-            end
-            table.insert(parts, book_info)
-            table.insert(parts, "")
-            -- Replace template variables in user prompt
-            user_prompt = user_prompt:gsub("{title}", metadata.title or "Unknown")
-            user_prompt = user_prompt:gsub("{author}", metadata.author or "")
-            user_prompt = user_prompt:gsub("{author_clause}", metadata.author_clause or "")
-        elseif data.book_context then
-            -- Fallback: use pre-formatted book context string if metadata not available
-            table.insert(parts, "[Context]")
-            table.insert(parts, data.book_context)
-            table.insert(parts, "")
-        end
-        table.insert(parts, "[Request]")
-        table.insert(parts, user_prompt)
-        
-    elseif context == "general" then
-        -- General context - just the prompt
-        table.insert(parts, "[Request]")
-        table.insert(parts, user_prompt)
-        
-    else  -- highlight context
-        -- Check if prompt already includes {highlighted_text} - if so, don't duplicate in context
-        local prompt_has_highlight_var = user_prompt:find("{highlighted_text}", 1, true) ~= nil
-
-        -- Build context section
-        -- Only include highlighted_text in context if the prompt doesn't already have the variable
-        local has_context = data.book_title or (data.highlighted_text and not prompt_has_highlight_var)
-
-        if has_context then
-            table.insert(parts, "[Context]")
-
-            -- Add book info if available (controlled by include_book_context flag)
-            if data.book_title then
-                table.insert(parts, string.format('From "%s"%s',
-                    data.book_title,
-                    (data.book_author and data.book_author ~= "") and (" by " .. data.book_author) or ""))
-            end
-
-            -- Add highlighted text only if not already in prompt template
-            if data.highlighted_text and not prompt_has_highlight_var then
-                if data.book_title then
-                    table.insert(parts, "")  -- Add spacing if book info was shown
-                end
-                table.insert(parts, "Selected text:")
-                table.insert(parts, '"' .. data.highlighted_text .. '"')
-            end
-            table.insert(parts, "")
-        end
-
-        -- Support template variables
-        if data.book_title then
-            user_prompt = user_prompt:gsub("{title}", data.book_title or "Unknown")
-            user_prompt = user_prompt:gsub("{author}", data.book_author or "")
-            user_prompt = user_prompt:gsub("{author_clause}",
-                (data.book_author and data.book_author ~= "") and (" by " .. data.book_author) or "")
-        end
-        if data.highlighted_text then
-            user_prompt = user_prompt:gsub("{highlighted_text}", data.highlighted_text)
-        end
-
-        table.insert(parts, "[Request]")
-        table.insert(parts, user_prompt)
-    end
-    
-    -- Add additional user input if provided
-    if data.additional_input and data.additional_input ~= "" then
-        table.insert(parts, "")
-        table.insert(parts, "[Additional user input]")
-        table.insert(parts, data.additional_input)
-    end
-    
-    return table.concat(parts, "\n")
+    return MessageBuilder.build({
+        prompt = prompt,
+        context = context,
+        data = data,
+        system_prompt = system_prompt,
+        domain_context = domain_context,
+        using_new_format = using_new_format,
+    })
 end
 
 --- Handle a predefined prompt query
