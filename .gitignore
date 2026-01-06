@@ -20,3 +20,6 @@ plan.md
 
 # Test local configuration (user-specific paths)
 /tests/local_config.lua
+
+# Compiled translation files (keep .pot and .po tracked)
+*.mo
