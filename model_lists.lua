@@ -17,7 +17,7 @@ local ModelLists = {
     openai = {
         -- GPT-5.2 (latest flagship, Dec 2025)
         "gpt-5.2",
-        "gpt-5.2-pro",
+        -- "gpt-5.2-pro",  -- Not a chat model (use v1/completions instead)
         -- GPT-5.1
         "gpt-5.1",
         -- GPT-5 family (Aug 2025)
@@ -177,7 +177,7 @@ local ModelLists = {
         -- Special: First entry is a placeholder for custom model input
         "custom",  -- UI will show text input when selected
         -- Popular models (format: provider/model-name)
-        "anthropic/claude-sonnet-4-5",
+        "anthropic/claude-sonnet-4-5-20250929",
         "openai/gpt-5.2",
         "google/gemini-2.5-pro",
         "meta-llama/llama-4-maverick",

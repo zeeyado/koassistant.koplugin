@@ -4,6 +4,7 @@ local ltn12 = require("ltn12")
 local json = require("json")
 local Defaults = require("api_handlers.defaults")
 local ResponseParser = require("api_handlers.response_parser")
+local ModelConstraints = require("model_constraints")
 
 local OpenAIHandler = BaseHandler:new()
 
@@ -63,6 +64,10 @@ function OpenAIHandler:buildRequestBody(message_history, config)
         request_body.max_tokens = nil
     end
 
+    -- Apply model-specific constraints (e.g., temperature=1.0 for gpt-5/o3 models)
+    local adjustments
+    request_body, adjustments = ModelConstraints.apply("openai", model, request_body)
+
     local headers = {
         ["Content-Type"] = "application/json",
         ["Authorization"] = "Bearer " .. (config.api_key or ""),
@@ -76,6 +81,7 @@ function OpenAIHandler:buildRequestBody(message_history, config)
         url = url,
         model = model,
         provider = "openai",
+        adjustments = adjustments,  -- Include for test inspector visibility
     }
 end
 
@@ -125,11 +131,16 @@ function OpenAIHandler:query(message_history, config)
         request_body.max_tokens = nil
     end
 
+    -- Apply model-specific constraints (e.g., temperature=1.0 for gpt-5/o3 models)
+    local adjustments
+    request_body, adjustments = ModelConstraints.apply("openai", model, request_body)
+
     -- Check if streaming is enabled
     local use_streaming = config.features and config.features.enable_streaming
 
-    -- Debug: Print request body
+    -- Debug: Print constraint adjustments and request body
     if config and config.features and config.features.debug then
+        ModelConstraints.logAdjustments("OpenAI", adjustments)
         print("OpenAI Request Body:", json.encode(request_body))
         print("Streaming enabled:", use_streaming and "yes" or "no")
     end

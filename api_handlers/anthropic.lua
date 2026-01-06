@@ -5,6 +5,7 @@ local json = require("json")
 local Defaults = require("api_handlers.defaults")
 local ResponseParser = require("api_handlers.response_parser")
 local AnthropicRequest = require("api_handlers.anthropic_request")
+local ModelConstraints = require("model_constraints")
 
 local AnthropicHandler = BaseHandler:new()
 
@@ -18,7 +19,7 @@ function AnthropicHandler:buildRequestBody(message_history, config)
     local model = config.model or defaults.model
 
     -- Build request using AnthropicRequest with unified config
-    local request_body = AnthropicRequest:build({
+    local request_body, adjustments = AnthropicRequest:build({
         model = model,
         messages = message_history,
         system = config.system,  -- Unified format from buildUnifiedRequestConfig
@@ -41,6 +42,7 @@ function AnthropicHandler:buildRequestBody(message_history, config)
         url = url,
         model = model,
         provider = "anthropic",
+        adjustments = adjustments,  -- Include for test inspector visibility
     }
 end
 
@@ -52,7 +54,7 @@ function AnthropicHandler:query(message_history, config)
     local defaults = Defaults.ProviderDefaults.anthropic
 
     -- Build request using AnthropicRequest with unified config
-    local request_body = AnthropicRequest:build({
+    local request_body, adjustments = AnthropicRequest:build({
         model = config.model or defaults.model,
         messages = message_history,
         system = config.system,  -- Unified format from buildUnifiedRequestConfig
@@ -63,8 +65,9 @@ function AnthropicHandler:query(message_history, config)
     -- Check if streaming is enabled
     local use_streaming = config.features and config.features.enable_streaming
 
-    -- Debug: Print request body
+    -- Debug: Print constraint adjustments and request body
     if config and config.features and config.features.debug then
+        ModelConstraints.logAdjustments("Anthropic", adjustments)
         print("Anthropic Request Body:", json.encode(request_body))
         print("Streaming enabled:", use_streaming and "yes" or "no")
     end

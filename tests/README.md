@@ -13,6 +13,9 @@ lua tests/run_tests.lua --unit
 # Run provider connectivity tests
 lua tests/run_tests.lua
 
+# Validate all models (detects constraints, ~1 token per model)
+lua tests/run_tests.lua --models
+
 # Inspect request structure
 lua tests/inspect.lua anthropic
 
@@ -38,6 +41,12 @@ lua tests/run_tests.lua anthropic
 
 # Comprehensive tests (behaviors, temps, domains)
 lua tests/run_tests.lua anthropic --full
+
+# Validate ALL models for a provider (minimal cost)
+lua tests/run_tests.lua --models openai
+
+# Validate all models across all providers
+lua tests/run_tests.lua --models
 
 # Verbose output
 lua tests/run_tests.lua -v
@@ -121,6 +130,33 @@ Located in `tests/unit/`:
 |------|-------------|
 | Default | Basic connectivity (API responds, returns string) |
 | `--full` | Behaviors, temperatures, domains, languages, extended thinking |
+| `--models` | Validate ALL models (~1 token each), detect parameter constraints |
+
+#### Model Validation (`--models`)
+
+Tests every model in `model_lists.lua` with ultra-minimal requests to discover:
+- Invalid model names (404 errors)
+- Parameter constraints (temperature, max_tokens requirements)
+- Access restrictions
+
+**Features:**
+- Pre-checks model names via provider APIs (OpenAI, Gemini, Ollama)
+- Auto-retries with adjusted parameters when constraints detected
+- Reports working models, constraints found, and invalid models
+
+**Example output:**
+```
+[openai] Testing 15 models...
+  Pre-check: 1 models not in API list
+    ⚠ o3-pro
+  gpt-5.2                    ⚠ CONSTRAINT: max_tokens (default rejected, max_tokens=16 works)
+  gpt-5-mini                 ⚠ CONSTRAINT: multiple constraints (temp=1.0 + max_tokens=16 works)
+  gpt-4.1                    ✓ OK (789ms)
+
+Detected Constraints:
+  openai/gpt-5.2: requires max_tokens >= 16
+  openai/gpt-5-mini: requires temp=1.0 + max_tokens >= 16
+```
 
 ## Prerequisites
 
@@ -208,6 +244,9 @@ tests/
 │   └── web_server.lua         # LuaSocket HTTP server
 ├── web/
 │   └── index.html             # Web UI frontend
+├── integration/
+│   ├── test_full_provider.lua    # Comprehensive tests (--full)
+│   └── test_model_validation.lua # Model validation (--models)
 └── unit/
     ├── test_system_prompts.lua
     ├── test_streaming_parser.lua
@@ -244,3 +283,4 @@ Some providers may be slow. Tests wait for API response without timeout. Check n
 - **Ollama**: Requires running Ollama instance locally
 - **Streaming**: Not fully testable standalone (requires KOReader subprocess)
 - **Token Limits**: Tests use small limits (64-512 tokens) to minimize costs
+- **Model Validation Cost**: `--models` uses ~10 input + 1 output tokens per model (~1,400 tokens total for all 130+ models, typically < $0.01)

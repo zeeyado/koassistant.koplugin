@@ -56,6 +56,7 @@ local function parseArgs()
         unit = false,
         all = false,
         full = false,
+        models = false,
     }
 
     -- Apply defaults from local config
@@ -73,6 +74,8 @@ local function parseArgs()
             args.all = true
         elseif a == "--full" then
             args.full = true
+        elseif a == "--models" then
+            args.models = true
         elseif not a:match("^%-") then
             args.provider = a
         end
@@ -91,6 +94,7 @@ Options:
   --unit           Run unit tests only (fast, no API calls)
   --all            Run both unit and integration tests
   --full           Run comprehensive tests (behaviors, temps, domains, languages)
+  --models         Validate ALL models (minimal cost ~1 token per model)
   -v, --verbose    Show API responses
   -h, --help       Show this help
 
@@ -101,6 +105,8 @@ Examples:
   lua tests/run_tests.lua anthropic    # Test only Anthropic (basic)
   lua tests/run_tests.lua groq --full  # Comprehensive tests for Groq
   lua tests/run_tests.lua --full       # Comprehensive tests for all providers
+  lua tests/run_tests.lua --models     # Validate all models (detects constraints)
+  lua tests/run_tests.lua --models openai  # Validate only OpenAI models
   lua tests/run_tests.lua -v openai    # Test OpenAI with verbose output
 
 Providers:
@@ -221,6 +227,15 @@ local function testProvider(provider, api_key, verbose)
     else
         return false, "Unexpected result type: " .. type(result), elapsed
     end
+end
+
+-- Run model validation tests (--models flag)
+local function runModelValidation(args)
+    -- Load the model validation module
+    local ModelValidation = require("integration.test_model_validation")
+    ModelValidation:reset()
+
+    return ModelValidation:runAllValidation(args)
 end
 
 -- Run comprehensive tests (--full flag)
@@ -386,8 +401,12 @@ if args.unit or args.all then
     success = success and unit_success
 end
 
+-- Run model validation tests if --models flag is set
+if args.models then
+    local models_success = runModelValidation(args)
+    success = success and models_success
 -- Run full comprehensive tests if --full flag is set
-if args.full then
+elseif args.full then
     local full_success = runFullTests(args)
     success = success and full_success
 -- Run basic integration tests if --all or no specific flag (default behavior)

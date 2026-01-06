@@ -4,10 +4,11 @@
 --
 -- Usage:
 --   local AnthropicRequest = require("api_handlers.anthropic_request")
---   local request = AnthropicRequest:build(config)
+--   local request, adjustments = AnthropicRequest:build(config)
 --   local headers = AnthropicRequest:getHeaders(config)
 
 local Defaults = require("api_handlers.defaults")
+local ModelConstraints = require("model_constraints")
 
 local AnthropicRequest = {}
 
@@ -111,10 +112,9 @@ function AnthropicRequest:build(config)
     request_body.max_tokens = params.max_tokens or AnthropicRequest.DEFAULT_PARAMS.max_tokens
     request_body.temperature = params.temperature or AnthropicRequest.DEFAULT_PARAMS.temperature
 
-    -- Clamp temperature to Anthropic's max of 1.0 (other providers support up to 2.0)
-    if request_body.temperature > 1.0 then
-        request_body.temperature = 1.0
-    end
+    -- Apply model constraints (Anthropic max temperature is 1.0)
+    local adjustments
+    request_body, adjustments = ModelConstraints.apply("anthropic", model, request_body)
 
     -- Add extended thinking if enabled
     if params.thinking then
@@ -123,12 +123,25 @@ function AnthropicRequest:build(config)
         -- - budget_tokens must be >= 1024
         -- - max_tokens MUST be > budget_tokens
         -- - temperature MUST be exactly 1.0 (API rejects any other value)
-        request_body.temperature = 1.0
+        if request_body.temperature ~= 1.0 then
+            adjustments.temperature = {
+                from = request_body.temperature,
+                to = 1.0,
+                reason = "extended thinking requires temp=1.0"
+            }
+            request_body.temperature = 1.0
+        end
 
         -- Ensure max_tokens > budget_tokens (API requirement)
         local budget = params.thinking.budget_tokens or 4096
         if request_body.max_tokens <= budget then
+            local old_max = request_body.max_tokens
             request_body.max_tokens = budget + 4096
+            adjustments.max_tokens = {
+                from = old_max,
+                to = request_body.max_tokens,
+                reason = "must be > thinking budget"
+            }
         end
     end
 
@@ -137,7 +150,7 @@ function AnthropicRequest:build(config)
         request_body.stream = true
     end
 
-    return request_body
+    return request_body, adjustments
 end
 
 -- Filter messages to remove system role and empty content

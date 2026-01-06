@@ -1,3 +1,5 @@
+local ModelConstraints = require("model_constraints")
+
 local MessageHistory = {}
 
 -- Message roles
@@ -259,15 +261,46 @@ function MessageHistory:createResultText(highlightedText, config)
                 temp = config.api_params.temperature
             end
 
-            table.insert(result, string.format("● Config: provider=%s, behavior=%s, domain=%s\n", provider, behavior, domain))
-
             -- Check for extended thinking
             local thinking_info = ""
-            if config.api_params and config.api_params.thinking then
+            local has_thinking = config.api_params and config.api_params.thinking
+            if has_thinking then
                 local budget = config.api_params.thinking.budget_tokens or 0
                 thinking_info = string.format(", thinking=%d", budget)
             end
-            table.insert(result, string.format("  model=%s, temp=%.1f%s\n\n", model, temp, thinking_info))
+
+            -- Apply model constraints to get effective temperature
+            -- (e.g., gpt-5/o3 require temp=1.0, Anthropic max is 1.0, extended thinking requires 1.0)
+            local effective_temp = temp
+            local temp_adjusted = false
+            local temp_reason = nil
+
+            -- Check model constraints
+            local test_params = { temperature = temp }
+            local _, adjustments = ModelConstraints.apply(provider, model, test_params)
+            if adjustments and adjustments.temperature then
+                effective_temp = adjustments.temperature.to
+                temp_adjusted = true
+                temp_reason = adjustments.temperature.reason
+            end
+
+            -- Extended thinking always forces temp=1.0
+            if has_thinking and effective_temp ~= 1.0 then
+                effective_temp = 1.0
+                temp_adjusted = true
+                temp_reason = "extended thinking"
+            end
+
+            -- Format temperature display
+            local temp_display
+            if temp_adjusted then
+                temp_display = string.format("%.1f→%.1f (%s)", temp, effective_temp, temp_reason or "model constraint")
+            else
+                temp_display = string.format("%.1f", temp)
+            end
+
+            table.insert(result, string.format("● Config: provider=%s, behavior=%s, domain=%s\n", provider, behavior, domain))
+            table.insert(result, string.format("  model=%s, temp=%s%s\n\n", model, temp_display, thinking_info))
         end
 
         if display_level == "full" and config.system then
