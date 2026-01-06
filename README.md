@@ -10,7 +10,7 @@ Meant to be a technical research assistant and knowledge expander.
 
 You can have context free chats, or chat about or compare one or more documents in your library, or about text highlighted in a document. You can translate, get text explained, compare books/articles, and much more by creating custom actions. Chats are automatically saved and you can resume them any time.
 
-Most settings are configurable in the UI, including provider/model, AI behavior, and more, with some advanced settings requiring file editing.
+Most settings are configurable in the UI, including provider/model, AI behavior, interaction languages, and more, with some advanced settings requiring file editing.
 
 > **Development Status**: KOAssistant is under active development, with changing features. **Anthropic** has been the primary focus and most thoroughly tested. 16 providers are supported (see [Supported Providers](#supported-providers)), though some may need adjustments. Feedback appreciated.
 
