@@ -98,7 +98,9 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
     local buffer = ffi.new('char[?]', chunksize, {0})
     local buffer_ptr = ffi.cast('void*', buffer)
     local PROTOCOL_NON_200 = "X-NON-200-STATUS:"
-    local check_interval_sec = 0.075  -- 75ms (was 125ms) for snappier streaming
+    -- Poll interval from settings (default 125ms), converted to seconds
+    local poll_interval_ms = settings and settings.poll_interval_ms or 125
+    local check_interval_sec = poll_interval_ms / 1000
 
     local function cleanup()
         if animation_task then

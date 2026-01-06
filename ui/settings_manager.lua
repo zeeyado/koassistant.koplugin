@@ -223,6 +223,7 @@ function SettingsManager:createMenuItem(plugin, item, schema)
                 ok_text = _("Set"),
                 title_text = item.title or item.text,
                 info_text = item.info_text or item.description,
+                default_value = item.default,  -- Enables "Use default" button
                 callback = function(spin)
                     self:setSettingValue(plugin, item.path or item.id, spin.value)
                     plugin:updateConfigFromSettings()
