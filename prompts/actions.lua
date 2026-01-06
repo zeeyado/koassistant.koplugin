@@ -26,7 +26,7 @@
 --   enabled          - Default enabled state (default: true)
 --   builtin          - Whether this is a built-in action (default: true for this file)
 
-local _ = require("gettext")
+local _ = require("koassistant_gettext")
 
 local Actions = {}
 

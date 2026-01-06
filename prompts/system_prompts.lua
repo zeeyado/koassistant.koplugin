@@ -15,7 +15,7 @@
 --   behavior_variant = "minimal" | "full" | "none"  (pick from list)
 --   behavior_override = "custom text..."            (replace entirely)
 
-local _ = require("gettext")
+local _ = require("koassistant_gettext")
 
 local SystemPrompts = {}
 

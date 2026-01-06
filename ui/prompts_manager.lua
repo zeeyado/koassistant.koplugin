@@ -1,4 +1,4 @@
-local _ = require("gettext")
+local _ = require("koassistant_gettext")
 local logger = require("logger")
 local DataStorage = require("datastorage")
 local UIManager = require("ui/uimanager")

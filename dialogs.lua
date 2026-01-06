@@ -4,8 +4,7 @@ local ChatGPTViewer = require("chatgptviewer")
 local UIManager = require("ui/uimanager")
 local InfoMessage = require("ui/widget/infomessage")
 local Screen = Device.screen
-local gettext = require("gettext")
-local _ = gettext    -- Keep the shorthand but make it local
+local _ = require("koassistant_gettext")
 
 local GptQuery = require("gpt_query")
 local queryChatGPT = GptQuery.query
@@ -372,7 +371,6 @@ local function showExportOptions(history)
     local ButtonDialog = require("ui/widget/buttondialog")
     local Device = require("device")
     local InfoMessage = require("ui/widget/infomessage")
-    local _ = require("gettext")
 
     local buttons = {
         -- Row 1: Copy options

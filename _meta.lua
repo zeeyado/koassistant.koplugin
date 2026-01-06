@@ -1,4 +1,4 @@
-local _ = require("gettext")
+local _ = require("koassistant_gettext")
 return {
     name = "koassistant",
     fullname = _("KOAssistant"),
