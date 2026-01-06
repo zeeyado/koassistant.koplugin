@@ -25,6 +25,15 @@ setupPaths()
 -- Load mocks BEFORE any plugin modules
 require("mock_koreader")
 
+-- Import StreamHandler from plugin code (not hardcoded reimplementation)
+local StreamHandler = require("stream_handler")
+
+-- Wrapper function to call the method from StreamHandler
+-- This ensures tests use actual plugin code, not duplicated logic
+local function extractContentFromSSE(event)
+    return StreamHandler:extractContentFromSSE(event)
+end
+
 -- Simple test framework
 local TestRunner = {
     passed = 0,
@@ -71,53 +80,6 @@ function TestRunner:summary()
         print(string.format("  %d passed, %d failed (of %d total)", self.passed, self.failed, total))
     end
     return self.failed == 0
-end
-
--- Extract the content extraction function from stream_handler
--- This is the core parsing logic we want to test
-local function extractContentFromSSE(event)
-    -- OpenAI/DeepSeek format: choices[0].delta.content
-    local choice = event.choices and event.choices[1]
-    if choice then
-        -- Check for actual stop reasons (not just truthy - JSON null can be truthy in some parsers)
-        local finish = choice.finish_reason
-        if finish and type(finish) == "string" and finish ~= "" then
-            return nil  -- Stream complete
-        end
-        local delta = choice.delta
-        if delta then
-            return delta.content or delta.reasoning_content
-        end
-    end
-
-    -- Anthropic format: delta.text
-    local anthropic_delta = event.delta
-    if anthropic_delta and anthropic_delta.text then
-        return anthropic_delta.text
-    end
-
-    -- Anthropic message event: content[0].text
-    local anthropic_content = event.content and event.content[1]
-    if anthropic_content and anthropic_content.text then
-        return anthropic_content.text
-    end
-
-    -- Gemini format: candidates[0].content.parts[0].text
-    local gemini_candidate = event.candidates and event.candidates[1]
-    if gemini_candidate then
-        local parts = gemini_candidate.content and gemini_candidate.content.parts
-        if parts and parts[1] and parts[1].text then
-            return parts[1].text
-        end
-    end
-
-    -- Ollama format: message.content (NDJSON streaming)
-    local ollama_message = event.message
-    if ollama_message and ollama_message.content then
-        return ollama_message.content
-    end
-
-    return nil
 end
 
 print("")

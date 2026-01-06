@@ -101,7 +101,9 @@ lua tests/inspect.lua --web --port 3000
 - Extended thinking configuration
 - Syntax-highlighted JSON output
 - **Chat tab** with conversation view (matches plugin - no system shown)
-- **Multi-turn chat** with reply input after response
+- **Multi-turn chat** with reply input (Enter key or Reply button)
+- **Response tab** shows raw API response, metadata (status, timing) shown separately
+- **Auto-scroll** chat to bottom on new messages
 - Dark mode support
 
 ## Test Categories

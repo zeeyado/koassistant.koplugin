@@ -497,6 +497,10 @@
                 <div class="output" id="output-headers">Click "Build Request" to see the headers...</div>
             </div>
             <div id="tab-response" class="tab-content" style="display: none;">
+                <div id="response-metadata" style="margin-bottom: 0.5rem; padding: 0.5rem; background: var(--bg); border-radius: 4px; font-size: 0.85rem; color: var(--text-muted); display: none;">
+                    <span id="response-status"></span> ·
+                    <span id="response-timing"></span>
+                </div>
                 <div class="output" id="output-response">Click "Send Request" to see the response...</div>
             </div>
             <div id="tab-compare" class="tab-content" style="display: none;">
@@ -512,16 +516,16 @@
                             </label>
                         </div>
                         <div class="chat-debug-content" id="chatDebugContent">
-                            <div id="chatDebugInfo">Build a request to see debug info...</div>
+                            <div id="chatDebugInfo">Send a request to see debug info...</div>
                         </div>
                     </div>
                     <div id="chatMessages">
-                        <p style="color: var(--text-muted); font-style: italic;">Build a request to see the conversation preview...</p>
+                        <p style="color: var(--text-muted); font-style: italic; text-align: center; padding: 2rem;">Click "Send Request" to start a conversation...</p>
                     </div>
                 </div>
                 <div class="chat-reply" id="chatReplySection" style="display: none;">
                     <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
-                        <input type="text" id="chatReplyInput" placeholder="Type a follow-up message..." style="flex: 1;">
+                        <input type="text" id="chatReplyInput" placeholder="Type a follow-up message..." style="flex: 1;" onkeypress="if(event.key==='Enter')sendReply()">
                         <button class="btn primary" onclick="sendReply()">Reply</button>
                     </div>
                 </div>
@@ -548,6 +552,7 @@
             lastResponse: null,
             compareResults: null,
             conversationHistory: [],  // For multi-turn chat
+            originalRequest: null,    // Store first request (not overwritten by replies)
             currentSystemPrompt: null  // Stored for follow-up messages
         };
 
@@ -1010,12 +1015,7 @@
             const toast = document.getElementById('toast');
             toast.className = 'toast ' + type + ' visible';
             toast.textContent = message;
-            if (type === 'success') {
-                setTimeout(() => { toast.classList.remove('visible'); }, 3000);
-            } else if (type === 'error') {
-                setTimeout(() => { toast.classList.remove('visible'); }, 5000);
-            }
-            // Loading stays visible until next status call
+            // Status stays visible until replaced by another status
         }
 
         const TEST_MESSAGE = 'Say hello in exactly 5 words.';
@@ -1077,8 +1077,8 @@
                 });
                 document.getElementById('output-headers').innerHTML = syntaxHighlight(state.lastBuild.request?.headers || {});
 
-                // Update chat view
-                renderChatView();
+                // Don't render chat view here - only after Send Request
+                // Chat should show conversation AFTER API response, not just built request
 
                 showStatus('success', 'Request built successfully');
                 switchTab('request');
@@ -1089,8 +1089,9 @@
 
         async function sendRequest() {
             showStatus('loading', 'Sending request...');
-            // Clear conversation history when starting fresh
+            // Clear conversation history and original request when starting fresh
             state.conversationHistory = [];
+            state.originalRequest = null;
             try {
                 const config = getConfig();
                 const response = await fetch('/api/send', {
@@ -1107,23 +1108,28 @@
                     return;
                 }
 
-                // Update response output
-                document.getElementById('output-response').innerHTML = syntaxHighlight({
-                    status_code: state.lastResponse.response?.status_code,
-                    elapsed_ms: state.lastResponse.response?.elapsed_ms,
-                    parsed_text: state.lastResponse.response?.parsed_text,
-                    raw_body: state.lastResponse.response?.raw_body
-                });
+                // Update response output - metadata separate from raw API response
+                const statusCode = state.lastResponse.response?.status_code || 'N/A';
+                const buildMs = state.lastResponse.response?.build_ms || 0;
+                const networkMs = state.lastResponse.response?.network_ms || 0;
+                document.getElementById('response-status').textContent = `Status: ${statusCode}`;
+                document.getElementById('response-timing').textContent = `Build: ${buildMs}ms · Network: ${networkMs}ms`;
+                document.getElementById('response-metadata').style.display = 'block';
+                // Show only the raw API response
+                document.getElementById('output-response').innerHTML = syntaxHighlight(state.lastResponse.response?.raw_body || {});
 
                 // Also update build outputs
                 document.getElementById('output-request').innerHTML = syntaxHighlight(state.lastResponse.request?.body || {});
                 document.getElementById('output-headers').innerHTML = syntaxHighlight(state.lastResponse.request?.headers || {});
 
+                // Store original request (for building conversation history in replies)
+                state.originalRequest = state.lastResponse.request;
                 // Store as lastBuild for chat view and update it
                 state.lastBuild = { request: state.lastResponse.request, system_prompt: state.lastResponse.system_prompt };
                 renderChatView();
 
-                showStatus('success', `Response received in ${state.lastResponse.response?.elapsed_ms || '?'}ms`);
+                showStatus('success', `Response received (build: ${buildMs}ms, network: ${networkMs}ms)`);
+                // Switch to Response tab to show raw response (user can switch to Chat for conversation view)
                 switchTab('response');
             } catch (e) {
                 showStatus('error', 'Send failed: ' + e.message);
@@ -1262,6 +1268,18 @@
             const buildResult = state.lastBuild;
             const responseResult = state.lastResponse;
 
+            // Only render if we have a response (not just a build)
+            if (!responseResult || !responseResult.response) {
+                // Show placeholder
+                document.getElementById('chatMessages').innerHTML = `
+                    <p style="color: var(--text-muted); font-style: italic; text-align: center; padding: 2rem;">
+                        Click "Send Request" to start a conversation...
+                    </p>
+                `;
+                document.getElementById('chatReplySection').style.display = 'none';
+                return;
+            }
+
             if (!buildResult || !buildResult.request) {
                 return;
             }
@@ -1270,36 +1288,87 @@
             const provider = config.provider;
             const requestBody = buildResult.request.body;
 
-            // Render debug info (like plugin's debug display - shows config summary, not raw prompts)
+            // Render debug info matching plugin format (see message_history.lua createResultText)
             const debugInfo = [];
-            debugInfo.push(`<strong>Provider:</strong> ${provider}`);
-            debugInfo.push(`<strong>Model:</strong> ${config.model || 'default'}`);
-            debugInfo.push(`<strong>Temperature:</strong> ${config.temperature || 0.7}`);
-            debugInfo.push(`<strong>Behavior:</strong> ${config.behavior || 'full'}`);
-            if (config.domain && config.domain !== 'none') {
-                debugInfo.push(`<strong>Domain:</strong> ${config.domain}`);
+
+            // Config line (like plugin: "● Config: provider=X, behavior=Y, domain=Z")
+            const domainName = document.getElementById('domain-select').value || 'none';
+            debugInfo.push(`<strong>● Config:</strong> provider=${provider}, behavior=${config.behavior || 'full'}, domain=${domainName}`);
+
+            // Model/temp/thinking line
+            let modelLine = `  model=${config.model || 'default'}, temp=${config.temperature || 0.7}`;
+            if (config.thinking?.enabled) {
+                modelLine += `, thinking=${config.thinking.budget}`;
             }
-            if (config.extended_thinking?.enabled) {
-                debugInfo.push(`<strong>Thinking:</strong> ${config.extended_thinking.budget_tokens} tokens`);
+            debugInfo.push(modelLine);
+
+            // System prompt components (like plugin: "● System Array/Prompt:")
+            if (buildResult.system_prompt) {
+                debugInfo.push('');
+                debugInfo.push(`<strong>● System Prompt:</strong>`);
+
+                const comps = buildResult.system_prompt.components || {};
+                const hasCaching = buildResult.system_prompt.enable_caching;
+                const cachedTag = hasCaching ? ' <span style="color: #22c55e;">[CACHED]</span>' : '';
+
+                // Show component names combined (like plugin: "behavior+domain+language [CACHED]:")
+                const compNames = [];
+                if (comps.behavior) compNames.push('behavior');
+                if (comps.domain) compNames.push('domain');
+                if (comps.language) compNames.push('language');
+
+                if (compNames.length > 0) {
+                    debugInfo.push(`  ${compNames.join('+')}${cachedTag}:`);
+
+                    // Show each component preview (like plugin)
+                    if (comps.behavior) {
+                        const preview = comps.behavior.substring(0, 80).replace(/\n/g, ' ');
+                        debugInfo.push(`    - behavior: ${preview}${comps.behavior.length > 80 ? '...' : ''}`);
+                    }
+                    if (comps.domain) {
+                        const preview = comps.domain.substring(0, 80).replace(/\n/g, ' ');
+                        debugInfo.push(`    - domain: ${preview}${comps.domain.length > 80 ? '...' : ''}`);
+                    }
+                    if (comps.language) {
+                        const preview = comps.language.substring(0, 80).replace(/\n/g, ' ');
+                        debugInfo.push(`    - language: ${preview}${comps.language.length > 80 ? '...' : ''}`);
+                    }
+                } else if (buildResult.system_prompt.text) {
+                    const preview = buildResult.system_prompt.text.substring(0, 100).replace(/\n/g, ' ');
+                    debugInfo.push(`  text${cachedTag}: ${preview}${buildResult.system_prompt.text.length > 100 ? '...' : ''}`);
+                }
             }
-            if (config.user_languages) {
-                debugInfo.push(`<strong>Languages:</strong> ${config.user_languages}`);
+
+            // Messages section (like plugin: "● Messages:")
+            debugInfo.push('');
+            debugInfo.push(`<strong>● Messages:</strong>`);
+
+            // Show user messages from request
+            const messages = requestBody.messages || requestBody.contents || [];
+            for (const msg of messages) {
+                if (msg.role === 'system') {
+                    // System messages shown in system prompt section above
+                    continue;
+                }
+                let content = msg.content;
+                if (Array.isArray(content)) {
+                    content = content.map(c => c.text || '').join('\n');
+                }
+                if (msg.parts && Array.isArray(msg.parts)) {
+                    content = msg.parts.map(p => p.text || '').join('\n');
+                }
+                const roleLabel = msg.role === 'user' ? '▶ User' : '◉ Assistant';
+                const preview = (content || '').substring(0, 100).replace(/\n/g, ' ');
+                debugInfo.push(`${roleLabel}: ${preview}${(content || '').length > 100 ? '...' : ''}`);
             }
-            // Add action info
-            const actionId = document.getElementById('action-select').value;
-            if (actionId) {
-                const action = findAction(actionId);
-                debugInfo.push(`<strong>Action:</strong> ${action?.text || actionId}`);
-            }
+
             document.getElementById('chatDebugInfo').innerHTML = debugInfo.join('<br>');
 
-            // Extract user messages (NOT system prompt - system is internal, like plugin)
+            // Extract user messages for chat display (NOT system - system is internal, like plugin)
             let userMessages = [];
             let assistantText = '';
 
-            // Get user messages from request - handle different provider formats
-            // OpenAI/Anthropic use 'messages', Gemini uses 'contents'
-            const messages = requestBody.messages || requestBody.contents || [];
+            // Reuse messages from debug section above
             for (const msg of messages) {
                 // Skip system messages (internal, not shown to user)
                 if (msg.role === 'system') continue;
@@ -1319,55 +1388,105 @@
             }
 
             // Get assistant response if available
+            // Debug: log the response structure
+            console.log('Response result:', responseResult);
+            console.log('Response object:', responseResult?.response);
+            console.log('Parsed text:', responseResult?.response?.parsed_text);
+
             if (responseResult?.response?.parsed_text) {
                 assistantText = responseResult.response.parsed_text;
+            } else if (responseResult?.response?.raw_body) {
+                // Fallback: try to extract from raw_body if parsed_text is missing
+                try {
+                    const raw = responseResult.response.raw_body;
+                    if (typeof raw === 'string') {
+                        const parsed = JSON.parse(raw);
+                        // Try common response formats
+                        assistantText = parsed?.choices?.[0]?.message?.content  // OpenAI
+                            || parsed?.content?.[0]?.text  // Anthropic
+                            || parsed?.candidates?.[0]?.content?.parts?.[0]?.text  // Gemini
+                            || parsed?.message?.content  // Ollama
+                            || parsed?.text  // Cohere
+                            || null;
+                    } else if (typeof raw === 'object') {
+                        assistantText = raw?.choices?.[0]?.message?.content
+                            || raw?.content?.[0]?.text
+                            || raw?.candidates?.[0]?.content?.parts?.[0]?.text
+                            || raw?.message?.content
+                            || raw?.text
+                            || null;
+                    }
+                    console.log('Extracted from raw_body:', assistantText);
+                } catch (e) {
+                    console.error('Failed to extract from raw_body:', e);
+                }
             }
 
             // Render chat messages (NO SYSTEM - matches plugin behavior)
             let chatHtml = '';
 
-            // Show user messages
-            for (const msg of userMessages) {
+            // Show original user message (only the FIRST one - subsequent messages are in conversationHistory)
+            // After replies, the request body contains ALL messages, so we only want the original
+            const firstUserMessage = userMessages.length > 0 ? userMessages[0] : null;
+            if (firstUserMessage) {
                 chatHtml += `
                     <div class="chat-message user">
-                        <div class="chat-message-role">USER</div>
-                        <div class="chat-message-content">${escapeHtml(msg)}</div>
-                    </div>
-                `;
-            }
-
-            if (assistantText) {
-                chatHtml += `
-                    <div class="chat-message assistant">
-                        <div class="chat-message-role">ASSISTANT</div>
-                        <div class="chat-message-content">${escapeHtml(assistantText)}</div>
+                        <div class="chat-message-role">▶ User</div>
+                        <div class="chat-message-content">${escapeHtml(firstUserMessage)}</div>
                     </div>
                 `;
             } else {
                 chatHtml += `
-                    <div class="chat-message assistant" style="opacity: 0.5;">
-                        <div class="chat-message-role">ASSISTANT</div>
-                        <div class="chat-message-content" style="font-style: italic;">Send request to see response...</div>
+                    <div class="chat-message user" style="opacity: 0.5;">
+                        <div class="chat-message-role">▶ User</div>
+                        <div class="chat-message-content" style="font-style: italic;">No user message found in request</div>
                     </div>
                 `;
             }
 
-            // Add any follow-up messages from conversation history
-            for (const msg of state.conversationHistory) {
-                const roleClass = msg.role === 'user' ? 'user' : 'assistant';
-                chatHtml += `
-                    <div class="chat-message ${roleClass}">
-                        <div class="chat-message-role">${msg.role.toUpperCase()}</div>
-                        <div class="chat-message-content">${escapeHtml(msg.content)}</div>
-                    </div>
-                `;
+            // If we have conversation history, it contains all messages in order (including first response)
+            // Only show assistantText if NO conversation history yet
+            if (state.conversationHistory.length > 0) {
+                // Show all messages from conversation history (first response + all follow-ups)
+                for (const msg of state.conversationHistory) {
+                    const roleClass = msg.role === 'user' ? 'user' : 'assistant';
+                    const roleLabel = msg.role === 'user' ? '▶ User' : '◉ KOAssistant';
+                    chatHtml += `
+                        <div class="chat-message ${roleClass}">
+                            <div class="chat-message-role">${roleLabel}</div>
+                            <div class="chat-message-content">${escapeHtml(msg.content)}</div>
+                        </div>
+                    `;
+                }
+            } else {
+                // No follow-ups yet - show the first assistant response
+                if (assistantText) {
+                    chatHtml += `
+                        <div class="chat-message assistant">
+                            <div class="chat-message-role">◉ KOAssistant</div>
+                            <div class="chat-message-content">${escapeHtml(assistantText)}</div>
+                        </div>
+                    `;
+                } else {
+                    chatHtml += `
+                        <div class="chat-message assistant" style="opacity: 0.5;">
+                            <div class="chat-message-role">◉ KOAssistant</div>
+                            <div class="chat-message-content" style="font-style: italic;">(No response text - check Response tab for details)</div>
+                        </div>
+                    `;
+                }
             }
 
-            document.getElementById('chatMessages').innerHTML = chatHtml;
+            const chatMessagesEl = document.getElementById('chatMessages');
+            chatMessagesEl.innerHTML = chatHtml;
 
-            // Show reply section only if we have a response
+            // Auto-scroll chat to bottom
+            const chatView = document.getElementById('output-chat');
+            chatView.scrollTop = chatView.scrollHeight;
+
+            // Show reply section if we have any response (allows continuing even if parsing failed)
             const replySection = document.getElementById('chatReplySection');
-            if (assistantText || state.conversationHistory.length > 0) {
+            if (responseResult?.response || state.conversationHistory.length > 0) {
                 replySection.style.display = 'block';
             } else {
                 replySection.style.display = 'none';
@@ -1389,7 +1508,7 @@
                 return;
             }
 
-            if (!state.lastResponse?.response?.parsed_text && state.conversationHistory.length === 0) {
+            if (!state.lastResponse?.response && state.conversationHistory.length === 0) {
                 showStatus('error', 'Send initial request first');
                 return;
             }
@@ -1400,15 +1519,30 @@
                 const config = getConfig();
 
                 // Build conversation history for the API
-                // Start with the original request's messages
-                const originalMessages = state.lastBuild?.request?.body?.messages || [];
+                // Start with the ORIGINAL request's messages (not lastBuild which gets updated)
+                const originalMessages = state.originalRequest?.body?.messages || [];
                 const allMessages = [...originalMessages];
 
                 // Add the first assistant response if not already in history
-                if (state.lastResponse?.response?.parsed_text && state.conversationHistory.length === 0) {
+                // Try to get the response text from parsed_text or extract from raw_body
+                let firstAssistantText = state.lastResponse?.response?.parsed_text;
+                if (!firstAssistantText && state.lastResponse?.response?.raw_body) {
+                    try {
+                        const raw = state.lastResponse.response.raw_body;
+                        if (typeof raw === 'object') {
+                            firstAssistantText = raw?.choices?.[0]?.message?.content
+                                || raw?.content?.[0]?.text
+                                || raw?.candidates?.[0]?.content?.parts?.[0]?.text
+                                || raw?.message?.content
+                                || raw?.text
+                                || null;
+                        }
+                    } catch (e) { /* ignore */ }
+                }
+                if (firstAssistantText && state.conversationHistory.length === 0) {
                     allMessages.push({
                         role: 'assistant',
-                        content: state.lastResponse.response.parsed_text
+                        content: firstAssistantText
                     });
                 }
 
@@ -1440,27 +1574,59 @@
 
                 // Update conversation history
                 // Add the first response if this is the first follow-up
-                if (state.lastResponse?.response?.parsed_text && state.conversationHistory.length === 0) {
+                if (firstAssistantText && state.conversationHistory.length === 0) {
                     state.conversationHistory.push({
                         role: 'assistant',
-                        content: state.lastResponse.response.parsed_text
+                        content: firstAssistantText
                     });
                 }
 
                 state.conversationHistory.push({ role: 'user', content: message });
+
+                // Extract reply text from result
+                let replyText = result.response?.parsed_text;
+                if (!replyText && result.response?.raw_body) {
+                    try {
+                        const raw = result.response.raw_body;
+                        if (typeof raw === 'object') {
+                            replyText = raw?.choices?.[0]?.message?.content
+                                || raw?.content?.[0]?.text
+                                || raw?.candidates?.[0]?.content?.parts?.[0]?.text
+                                || raw?.message?.content
+                                || raw?.text
+                                || null;
+                        }
+                    } catch (e) { /* ignore */ }
+                }
                 state.conversationHistory.push({
                     role: 'assistant',
-                    content: result.response?.parsed_text || '(No response)'
+                    content: replyText || '(No response)'
                 });
 
                 // Update state and re-render
                 state.lastResponse = result;
+
+                // Update Request/Response tabs with latest data
+                const replyStatusCode = result.response?.status_code || 'N/A';
+                const replyBuildMs = result.response?.build_ms || 0;
+                const replyNetworkMs = result.response?.network_ms || 0;
+                document.getElementById('response-status').textContent = `Status: ${replyStatusCode}`;
+                document.getElementById('response-timing').textContent = `Build: ${replyBuildMs}ms · Network: ${replyNetworkMs}ms`;
+                document.getElementById('response-metadata').style.display = 'block';
+                // Show only the raw API response
+                document.getElementById('output-response').innerHTML = syntaxHighlight(result.response?.raw_body || {});
+                document.getElementById('output-request').innerHTML = syntaxHighlight(result.request?.body || {});
+                document.getElementById('output-headers').innerHTML = syntaxHighlight(result.request?.headers || {});
+
+                // Update lastBuild for consistency
+                state.lastBuild = { request: result.request, system_prompt: result.system_prompt };
+
                 renderChatView();
 
                 // Clear input
                 input.value = '';
 
-                showStatus('success', `Reply received in ${result.response?.elapsed_ms || '?'}ms`);
+                showStatus('success', `Reply received (build: ${result.response?.build_ms || 0}ms, network: ${result.response?.network_ms || 0}ms)`);
             } catch (e) {
                 showStatus('error', 'Reply failed: ' + e.message);
             }

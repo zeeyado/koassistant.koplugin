@@ -1136,6 +1136,9 @@ local function startWebServer(options)
             })
         end
 
+        -- Start timing for config/message building
+        local build_start = socket.gettime()
+
         -- Build options (same as /api/build)
         local build_options = {
             behavior_variant = request_data.behavior or "full",
@@ -1293,6 +1296,9 @@ local function startWebServer(options)
             end
         end
 
+        -- Calculate build time
+        local build_ms = math.floor((socket.gettime() - build_start) * 1000)
+
         -- Make the actual HTTP request
         local start_time = socket.gettime()
         local response_body = {}
@@ -1329,10 +1335,10 @@ local function startWebServer(options)
                 raw_response = decoded
                 -- Try to extract text based on provider
                 local ResponseParser = require("api_handlers.response_parser")
-                local parse_ok, parsed = pcall(function()
-                    return ResponseParser:parse(provider, decoded)
+                local parse_ok, success, parsed = pcall(function()
+                    return ResponseParser:parseResponse(decoded, provider)
                 end)
-                if parse_ok and parsed then
+                if parse_ok and success and parsed then
                     parsed_text = parsed
                 end
             end
@@ -1366,7 +1372,8 @@ local function startWebServer(options)
             },
             response = {
                 status_code = status_code,
-                elapsed_ms = elapsed_ms,
+                build_ms = build_ms,
+                network_ms = elapsed_ms,
                 parsed_text = parsed_text,
                 raw_body = raw_response,
             },
