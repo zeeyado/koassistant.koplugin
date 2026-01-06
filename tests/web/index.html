@@ -75,6 +75,12 @@
             position: sticky;
             top: 1rem;
         }
+        .output-panel {
+            max-height: calc(100vh - 120px);
+            overflow-y: auto;
+            position: sticky;
+            top: 1rem;
+        }
         .panel h2 {
             font-size: 0.875rem;
             font-weight: 600;
@@ -154,9 +160,12 @@
             font-family: 'Fira Code', 'Monaco', 'Consolas', monospace;
             font-size: 0.8125rem;
             overflow: auto;
-            max-height: 600px;
+            /* Responsive height: fills available space, min 300px, max based on viewport */
+            min-height: 300px;
+            max-height: calc(100vh - 300px);
             white-space: pre-wrap;
             word-break: break-word;
+            resize: vertical; /* Allow manual resizing */
         }
         .output .key { color: #9cdcfe; }
         .output .string { color: #ce9178; }
@@ -175,19 +184,115 @@
             color: var(--text-muted);
             margin-bottom: 0.5rem;
         }
-        .status { font-size: 0.875rem; padding: 0.5rem; border-radius: 4px; margin-bottom: 1rem; }
-        .status.loading { background: #fef3c7; color: #92400e; }
-        .status.success { background: #d1fae5; color: #065f46; }
-        .status.error { background: #fee2e2; color: #991b1b; }
-        .dark .status.loading { background: #78350f; color: #fef3c7; }
-        .dark .status.success { background: #064e3b; color: #d1fae5; }
-        .dark .status.error { background: #7f1d1d; color: #fee2e2; }
+        .output-header { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; }
+        .output-header h2 { margin-bottom: 0; }
+        .toast {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .toast.visible { opacity: 1; }
+        .toast.loading { background: #fef3c7; color: #92400e; }
+        .toast.success { background: #d1fae5; color: #065f46; }
+        .toast.error { background: #fee2e2; color: #991b1b; }
+        .dark .toast.loading { background: #78350f; color: #fef3c7; }
+        .dark .toast.success { background: #064e3b; color: #d1fae5; }
+        .dark .toast.error { background: #7f1d1d; color: #fee2e2; }
         .compare-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; }
         .compare-card { background: var(--code-bg); border-radius: 4px; padding: 1rem; }
         .compare-card h4 { color: var(--primary); margin-bottom: 0.5rem; font-size: 0.875rem; }
-        .provider-checks { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
+        .provider-checks { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.5rem; }
         .provider-check { display: flex; align-items: center; gap: 0.25rem; font-size: 0.8125rem; }
         .provider-check input { width: auto; }
+        .select-all-btns { margin-bottom: 0.5rem; }
+        .select-all-btns button { font-size: 0.75rem; padding: 0.25rem 0.5rem; }
+        .sticky-buttons {
+            position: sticky;
+            bottom: -1.5rem; /* Offset the panel padding */
+            background: var(--bg-card);
+            padding: 1rem 1.5rem;
+            margin: 0 -1.5rem;
+            margin-bottom: -1.5rem; /* Eliminate gap at bottom */
+            border-top: 2px solid var(--primary);
+            box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 10;
+        }
+        .dark .sticky-buttons {
+            box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.4);
+        }
+        /* Chat view styles */
+        .chat-view {
+            background: var(--bg);
+            border-radius: 4px;
+            padding: 1rem;
+            min-height: 300px;
+            max-height: calc(100vh - 300px);
+            overflow-y: auto;
+        }
+        .chat-debug {
+            background: var(--code-bg);
+            color: var(--code-text);
+            padding: 0.75rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+            font-size: 0.75rem;
+            font-family: monospace;
+        }
+        .chat-debug-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        .chat-debug-header label { font-weight: 600; color: var(--text-muted); }
+        .chat-debug-content { display: none; }
+        .chat-debug-content.visible { display: block; }
+        .chat-message {
+            margin-bottom: 1rem;
+            padding: 0.75rem;
+            border-radius: 4px;
+        }
+        .chat-message.system {
+            background: #dbeafe;
+            border-left: 3px solid #3b82f6;
+        }
+        .dark .chat-message.system {
+            background: #1e3a5f;
+        }
+        .chat-message.user {
+            background: #dcfce7;
+            border-left: 3px solid #22c55e;
+        }
+        .dark .chat-message.user {
+            background: #14532d;
+        }
+        .chat-message.assistant {
+            background: #fef3c7;
+            border-left: 3px solid #f59e0b;
+        }
+        .dark .chat-message.assistant {
+            background: #78350f;
+        }
+        .chat-message-role {
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+            color: var(--text-muted);
+        }
+        .chat-message-content {
+            white-space: pre-wrap;
+            word-break: break-word;
+            font-size: 0.875rem;
+        }
+        .chat-placeholder {
+            color: var(--text-muted);
+            font-style: italic;
+            text-align: center;
+            padding: 2rem;
+        }
         footer { text-align: center; padding: 2rem; color: var(--text-muted); font-size: 0.875rem; }
     </style>
 </head>
@@ -279,8 +384,11 @@
 
             <div class="section-divider">
                 <h3>Action</h3>
+                <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.5rem;">
+                    ★ = custom. "None" = raw message without action (edge case).
+                </p>
                 <select id="action-select" onchange="onActionChange()">
-                    <option value="">Custom (manual)</option>
+                    <option value="">None (raw message only)</option>
                 </select>
             </div>
 
@@ -326,14 +434,20 @@
             <div class="section-divider">
                 <h3>User Message / Additional Input</h3>
                 <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.5rem;">
-                    When an action is selected, this becomes additional user input. Otherwise, it's the main prompt.
+                    When action selected: additional input. Otherwise: the main prompt.
                 </p>
-                <textarea id="message" placeholder="Enter test message or additional input...">Say hello in exactly 5 words.</textarea>
+                <div class="checkbox-group" style="margin-bottom: 0.5rem;">
+                    <input type="checkbox" id="use-test-message" onchange="toggleTestMessage()">
+                    <label for="use-test-message">Use test message</label>
+                </div>
+                <textarea id="message" placeholder="Enter your prompt or additional input..."></textarea>
             </div>
 
-            <div class="btn-group">
-                <button class="btn primary" onclick="buildRequest()">Build Request</button>
-                <button class="btn success" onclick="sendRequest()">Send Request</button>
+            <div class="sticky-buttons">
+                <div class="btn-group" style="margin-bottom: 0;">
+                    <button class="btn primary" onclick="buildRequest()">Build Request</button>
+                    <button class="btn success" onclick="sendRequest()">Send Request</button>
+                </div>
             </div>
 
             <div class="section-divider">
@@ -349,15 +463,20 @@
 
             <div class="section-divider">
                 <h3>Compare Providers</h3>
+                <div class="select-all-btns">
+                    <button class="btn" onclick="selectAllProviders()">Select All</button>
+                    <button class="btn" onclick="deselectAllProviders()">Deselect All</button>
+                </div>
                 <div class="provider-checks" id="compare-checks"></div>
                 <button class="btn" onclick="compareProviders()">Compare Selected</button>
             </div>
         </div>
 
         <div class="panel output-panel">
-            <h2>Output</h2>
-
-            <div id="status" class="status" style="display: none;"></div>
+            <div class="output-header">
+                <h2>Output</h2>
+                <span id="toast" class="toast"></span>
+            </div>
 
             <div class="tabs">
                 <button class="tab active" data-tab="request">Request Body</button>
@@ -365,6 +484,7 @@
                 <button class="tab" data-tab="headers">Headers</button>
                 <button class="tab" data-tab="response">Response</button>
                 <button class="tab" data-tab="compare">Compare</button>
+                <button class="tab" data-tab="chat">Chat</button>
             </div>
 
             <div id="tab-request" class="tab-content">
@@ -381,6 +501,30 @@
             </div>
             <div id="tab-compare" class="tab-content" style="display: none;">
                 <div class="compare-grid" id="output-compare">Select providers and click "Compare Selected"...</div>
+            </div>
+            <div id="tab-chat" class="tab-content" style="display: none;">
+                <div class="chat-view" id="output-chat">
+                    <div class="chat-debug">
+                        <div class="chat-debug-header">
+                            <span><strong>DEBUG</strong></span>
+                            <label style="font-size: 0.7rem; cursor: pointer;">
+                                <input type="checkbox" id="showDebug" onchange="toggleChatDebug()"> Show Debug
+                            </label>
+                        </div>
+                        <div class="chat-debug-content" id="chatDebugContent">
+                            <div id="chatDebugInfo">Build a request to see debug info...</div>
+                        </div>
+                    </div>
+                    <div id="chatMessages">
+                        <p style="color: var(--text-muted); font-style: italic;">Build a request to see the conversation preview...</p>
+                    </div>
+                </div>
+                <div class="chat-reply" id="chatReplySection" style="display: none;">
+                    <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                        <input type="text" id="chatReplyInput" placeholder="Type a follow-up message..." style="flex: 1;">
+                        <button class="btn primary" onclick="sendReply()">Reply</button>
+                    </div>
+                </div>
             </div>
 
             <div style="margin-top: 1rem;">
@@ -402,7 +546,9 @@
             actions: { highlight: [], book: [], multi_book: [], general: [] },
             lastBuild: null,
             lastResponse: null,
-            compareResults: null
+            compareResults: null,
+            conversationHistory: [],  // For multi-turn chat
+            currentSystemPrompt: null  // Stored for follow-up messages
         };
 
         // Initialize
@@ -506,10 +652,10 @@
 
                 onProviderChange();
 
-                // Build compare checkboxes
+                // Build compare checkboxes (all unchecked by default)
                 const checksContainer = document.getElementById('compare-checks');
                 checksContainer.innerHTML = providerIds
-                    .map(p => `<label class="provider-check"><input type="checkbox" value="${p}" ${p === 'anthropic' || p === 'openai' || p === 'gemini' ? 'checked' : ''}> ${p}</label>`)
+                    .map(p => `<label class="provider-check"><input type="checkbox" value="${p}"> ${p}</label>`)
                     .join('');
             } catch (e) {
                 console.error('Error loading providers:', e);
@@ -671,8 +817,19 @@
                 }
             }
 
-            actionSelect.innerHTML = '<option value="">Custom (manual)</option>' +
-                actions.map(a => `<option value="${a.id}">${a.text || a.id}</option>`).join('');
+            // "None" = raw message with no action processing (edge case testing)
+            // Ask is the default (like plugin behavior when no specific action is chosen)
+            actionSelect.innerHTML = '<option value="">None (edge case testing)</option>' +
+                actions.map(a => {
+                    const prefix = a.is_custom ? '★ ' : '';
+                    return `<option value="${a.id}">${prefix}${a.text || a.id}</option>`;
+                }).join('');
+
+            // Auto-select Ask as default (plugin always uses Ask behavior when no specific action)
+            const askOption = actions.find(a => a.id === 'ask');
+            if (askOption) {
+                actionSelect.value = 'ask';
+            }
         }
 
         function onDomainChange() {
@@ -850,12 +1007,26 @@
         }
 
         function showStatus(type, message) {
-            const status = document.getElementById('status');
-            status.className = 'status ' + type;
-            status.textContent = message;
-            status.style.display = 'block';
+            const toast = document.getElementById('toast');
+            toast.className = 'toast ' + type + ' visible';
+            toast.textContent = message;
             if (type === 'success') {
-                setTimeout(() => { status.style.display = 'none'; }, 3000);
+                setTimeout(() => { toast.classList.remove('visible'); }, 3000);
+            } else if (type === 'error') {
+                setTimeout(() => { toast.classList.remove('visible'); }, 5000);
+            }
+            // Loading stays visible until next status call
+        }
+
+        const TEST_MESSAGE = 'Say hello in exactly 5 words.';
+
+        function toggleTestMessage() {
+            const checkbox = document.getElementById('use-test-message');
+            const textarea = document.getElementById('message');
+            if (checkbox.checked) {
+                textarea.value = TEST_MESSAGE;
+            } else {
+                textarea.value = '';
             }
         }
 
@@ -906,6 +1077,9 @@
                 });
                 document.getElementById('output-headers').innerHTML = syntaxHighlight(state.lastBuild.request?.headers || {});
 
+                // Update chat view
+                renderChatView();
+
                 showStatus('success', 'Request built successfully');
                 switchTab('request');
             } catch (e) {
@@ -915,6 +1089,8 @@
 
         async function sendRequest() {
             showStatus('loading', 'Sending request...');
+            // Clear conversation history when starting fresh
+            state.conversationHistory = [];
             try {
                 const config = getConfig();
                 const response = await fetch('/api/send', {
@@ -942,6 +1118,10 @@
                 // Also update build outputs
                 document.getElementById('output-request').innerHTML = syntaxHighlight(state.lastResponse.request?.body || {});
                 document.getElementById('output-headers').innerHTML = syntaxHighlight(state.lastResponse.request?.headers || {});
+
+                // Store as lastBuild for chat view and update it
+                state.lastBuild = { request: state.lastResponse.request, system_prompt: state.lastResponse.system_prompt };
+                renderChatView();
 
                 showStatus('success', `Response received in ${state.lastResponse.response?.elapsed_ms || '?'}ms`);
                 switchTab('response');
@@ -1062,6 +1242,228 @@
             a.download = `koassistant-request-${Date.now()}.json`;
             a.click();
             URL.revokeObjectURL(url);
+        }
+
+        function selectAllProviders() {
+            document.querySelectorAll('#compare-checks input').forEach(cb => cb.checked = true);
+        }
+
+        function deselectAllProviders() {
+            document.querySelectorAll('#compare-checks input').forEach(cb => cb.checked = false);
+        }
+
+        function toggleChatDebug() {
+            const content = document.getElementById('chatDebugContent');
+            const checkbox = document.getElementById('showDebug');
+            content.classList.toggle('visible', checkbox.checked);
+        }
+
+        function renderChatView() {
+            const buildResult = state.lastBuild;
+            const responseResult = state.lastResponse;
+
+            if (!buildResult || !buildResult.request) {
+                return;
+            }
+
+            const config = getConfig();
+            const provider = config.provider;
+            const requestBody = buildResult.request.body;
+
+            // Render debug info (like plugin's debug display - shows config summary, not raw prompts)
+            const debugInfo = [];
+            debugInfo.push(`<strong>Provider:</strong> ${provider}`);
+            debugInfo.push(`<strong>Model:</strong> ${config.model || 'default'}`);
+            debugInfo.push(`<strong>Temperature:</strong> ${config.temperature || 0.7}`);
+            debugInfo.push(`<strong>Behavior:</strong> ${config.behavior || 'full'}`);
+            if (config.domain && config.domain !== 'none') {
+                debugInfo.push(`<strong>Domain:</strong> ${config.domain}`);
+            }
+            if (config.extended_thinking?.enabled) {
+                debugInfo.push(`<strong>Thinking:</strong> ${config.extended_thinking.budget_tokens} tokens`);
+            }
+            if (config.user_languages) {
+                debugInfo.push(`<strong>Languages:</strong> ${config.user_languages}`);
+            }
+            // Add action info
+            const actionId = document.getElementById('action-select').value;
+            if (actionId) {
+                const action = findAction(actionId);
+                debugInfo.push(`<strong>Action:</strong> ${action?.text || actionId}`);
+            }
+            document.getElementById('chatDebugInfo').innerHTML = debugInfo.join('<br>');
+
+            // Extract user messages (NOT system prompt - system is internal, like plugin)
+            let userMessages = [];
+            let assistantText = '';
+
+            // Get user messages from request - handle different provider formats
+            // OpenAI/Anthropic use 'messages', Gemini uses 'contents'
+            const messages = requestBody.messages || requestBody.contents || [];
+            for (const msg of messages) {
+                // Skip system messages (internal, not shown to user)
+                if (msg.role === 'system') continue;
+
+                if (msg.role === 'user') {
+                    let content = msg.content;
+                    // Handle Anthropic's array format
+                    if (Array.isArray(content)) {
+                        content = content.map(c => c.text || '').join('\n');
+                    }
+                    // Handle Gemini's parts format
+                    if (msg.parts && Array.isArray(msg.parts)) {
+                        content = msg.parts.map(p => p.text || '').join('\n');
+                    }
+                    if (content) userMessages.push(content);
+                }
+            }
+
+            // Get assistant response if available
+            if (responseResult?.response?.parsed_text) {
+                assistantText = responseResult.response.parsed_text;
+            }
+
+            // Render chat messages (NO SYSTEM - matches plugin behavior)
+            let chatHtml = '';
+
+            // Show user messages
+            for (const msg of userMessages) {
+                chatHtml += `
+                    <div class="chat-message user">
+                        <div class="chat-message-role">USER</div>
+                        <div class="chat-message-content">${escapeHtml(msg)}</div>
+                    </div>
+                `;
+            }
+
+            if (assistantText) {
+                chatHtml += `
+                    <div class="chat-message assistant">
+                        <div class="chat-message-role">ASSISTANT</div>
+                        <div class="chat-message-content">${escapeHtml(assistantText)}</div>
+                    </div>
+                `;
+            } else {
+                chatHtml += `
+                    <div class="chat-message assistant" style="opacity: 0.5;">
+                        <div class="chat-message-role">ASSISTANT</div>
+                        <div class="chat-message-content" style="font-style: italic;">Send request to see response...</div>
+                    </div>
+                `;
+            }
+
+            // Add any follow-up messages from conversation history
+            for (const msg of state.conversationHistory) {
+                const roleClass = msg.role === 'user' ? 'user' : 'assistant';
+                chatHtml += `
+                    <div class="chat-message ${roleClass}">
+                        <div class="chat-message-role">${msg.role.toUpperCase()}</div>
+                        <div class="chat-message-content">${escapeHtml(msg.content)}</div>
+                    </div>
+                `;
+            }
+
+            document.getElementById('chatMessages').innerHTML = chatHtml;
+
+            // Show reply section only if we have a response
+            const replySection = document.getElementById('chatReplySection');
+            if (assistantText || state.conversationHistory.length > 0) {
+                replySection.style.display = 'block';
+            } else {
+                replySection.style.display = 'none';
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML.replace(/\n/g, '<br>');
+        }
+
+        async function sendReply() {
+            const input = document.getElementById('chatReplyInput');
+            const message = input.value.trim();
+
+            if (!message) {
+                showStatus('error', 'Please enter a message');
+                return;
+            }
+
+            if (!state.lastResponse?.response?.parsed_text && state.conversationHistory.length === 0) {
+                showStatus('error', 'Send initial request first');
+                return;
+            }
+
+            showStatus('loading', 'Sending reply...');
+
+            try {
+                const config = getConfig();
+
+                // Build conversation history for the API
+                // Start with the original request's messages
+                const originalMessages = state.lastBuild?.request?.body?.messages || [];
+                const allMessages = [...originalMessages];
+
+                // Add the first assistant response if not already in history
+                if (state.lastResponse?.response?.parsed_text && state.conversationHistory.length === 0) {
+                    allMessages.push({
+                        role: 'assistant',
+                        content: state.lastResponse.response.parsed_text
+                    });
+                }
+
+                // Add conversation history
+                for (const msg of state.conversationHistory) {
+                    allMessages.push({ role: msg.role, content: msg.content });
+                }
+
+                // Add the new user message
+                allMessages.push({ role: 'user', content: message });
+
+                // Send to a special reply endpoint or modify config
+                const response = await fetch('/api/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        ...config,
+                        message: message,
+                        conversation_history: allMessages
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.error) {
+                    showStatus('error', result.error);
+                    return;
+                }
+
+                // Update conversation history
+                // Add the first response if this is the first follow-up
+                if (state.lastResponse?.response?.parsed_text && state.conversationHistory.length === 0) {
+                    state.conversationHistory.push({
+                        role: 'assistant',
+                        content: state.lastResponse.response.parsed_text
+                    });
+                }
+
+                state.conversationHistory.push({ role: 'user', content: message });
+                state.conversationHistory.push({
+                    role: 'assistant',
+                    content: result.response?.parsed_text || '(No response)'
+                });
+
+                // Update state and re-render
+                state.lastResponse = result;
+                renderChatView();
+
+                // Clear input
+                input.value = '';
+
+                showStatus('success', `Reply received in ${result.response?.elapsed_ms || '?'}ms`);
+            } catch (e) {
+                showStatus('error', 'Reply failed: ' + e.message);
+            }
         }
     </script>
 </body>

@@ -883,15 +883,20 @@ local function startWebServer(options)
             end
         end
 
-        -- Add "Ask" pseudo-action for general context (hardcoded in dialogs.lua, not in actions.lua)
-        table.insert(actions_data.general, {
+        -- Add "Ask" action to ALL contexts (hardcoded in dialogs.lua, not in actions.lua)
+        -- In the plugin, Ask is available everywhere and uses the user's typed question
+        -- Default message: "I have a question for you." if user doesn't type anything
+        local ask_action = {
             id = "ask",
             text = "Ask",
             prompt = "",  -- Empty prompt, user provides the question
+            default_message = "I have a question for you.",
             behavior_variant = nil,  -- Uses global behavior
-            context = "general",
-            is_pseudo_action = true,  -- Flag to indicate this is a pseudo-action (free-form input)
-        })
+            available_in_all_contexts = true,
+        }
+        for _, ctx in ipairs({"highlight", "book", "multi_book", "general"}) do
+            table.insert(actions_data[ctx], ask_action)
+        end
 
         return "200 OK", "application/json", json.encode({
             success = true,
@@ -947,6 +952,7 @@ local function startWebServer(options)
         -- If an action was selected, it should have a prompt field
         -- Otherwise, use the user's message as a simple prompt
         local action = request_data.action or { prompt = request_data.message or "Say hello in exactly 5 words." }
+        local is_ask_action = action and action.id == "ask"
 
         -- Build context data for MessageBuilder
         local context_data = {}
@@ -967,9 +973,16 @@ local function startWebServer(options)
             context_data.books_info = context.books_info or {}
         end
 
-        -- Add additional user input (if action was selected, the user's message is additional input)
+        -- For Ask action, the message IS the question (not additional input)
+        -- For other actions, the message is additional input
         if request_data.action and request_data.message and request_data.message ~= "" then
-            context_data.additional_input = request_data.message
+            if is_ask_action then
+                context_data.user_question = request_data.message
+            else
+                context_data.additional_input = request_data.message
+            end
+        elseif is_ask_action then
+            context_data.user_question = action.default_message or "I have a question for you."
         end
 
         -- Add translation language if applicable
@@ -984,14 +997,46 @@ local function startWebServer(options)
             templates_getter = function(name) return Templates.get(name) end
         end)
 
-        -- Build the message using shared MessageBuilder
-        local user_content = MessageBuilder.build({
-            prompt = action,
-            context = context_type,
-            data = context_data,
-            using_new_format = true,  -- System/domain handled separately
-            templates_getter = templates_getter,
-        })
+        -- Build the message - for Ask, format like plugin; for others, use MessageBuilder
+        local user_content
+        if is_ask_action then
+            local parts = {}
+            if context_type == "highlight" and context_data.highlighted_text then
+                if context_data.book_title then
+                    table.insert(parts, "[Context]")
+                    local book_info = '"' .. context_data.book_title .. '"'
+                    if context_data.book_author and context_data.book_author ~= "" then
+                        book_info = book_info .. " by " .. context_data.book_author
+                    end
+                    table.insert(parts, "From " .. book_info)
+                    table.insert(parts, "Selected text: " .. context_data.highlighted_text)
+                    table.insert(parts, "")
+                else
+                    table.insert(parts, "[Context]")
+                    table.insert(parts, "Selected text: " .. context_data.highlighted_text)
+                    table.insert(parts, "")
+                end
+            elseif context_type == "book" and context_data.book_metadata then
+                table.insert(parts, "[Context]")
+                local book_info = '"' .. context_data.book_metadata.title .. '"'
+                if context_data.book_metadata.author and context_data.book_metadata.author ~= "" then
+                    book_info = book_info .. " by " .. context_data.book_metadata.author
+                end
+                table.insert(parts, "About " .. book_info)
+                table.insert(parts, "")
+            end
+            table.insert(parts, "[User Question]")
+            table.insert(parts, context_data.user_question or "I have a question for you.")
+            user_content = table.concat(parts, "\n")
+        else
+            user_content = MessageBuilder.build({
+                prompt = action,
+                context = context_type,
+                data = context_data,
+                using_new_format = true,  -- System/domain handled separately
+                templates_getter = templates_getter,
+            })
+        end
 
         local messages = {
             { role = "user", content = user_content }
@@ -1052,6 +1097,278 @@ local function startWebServer(options)
                 text = system_text,
                 format = system_format,
                 token_estimate = math.ceil(#system_text / 4),  -- Rough estimate
+            },
+            provider = provider,
+            model = request.model or config.model,
+        })
+    end)
+
+    -- POST /api/send - Build and send request to provider
+    server:route("POST", "/api/send", function(headers, body)
+        local http = require("socket.http")
+        local https = require("ssl.https")
+        local ltn12 = require("ltn12")
+        local socket = require("socket")
+
+        local request_data = json.decode(body)
+        if not request_data then
+            return "400 Bad Request", "application/json", json.encode({ success = false, error = "Invalid JSON" })
+        end
+
+        local provider = request_data.provider
+        if not provider then
+            return "400 Bad Request", "application/json", json.encode({ success = false, error = "Missing provider" })
+        end
+
+        -- Check API key
+        local api_key = api_keys[provider]
+        if not api_key or api_key == "" then
+            return "400 Bad Request", "application/json", json.encode({
+                success = false,
+                error = "No API key configured for " .. provider
+            })
+        end
+
+        if not RequestInspector:isSupported(provider) then
+            return "400 Bad Request", "application/json", json.encode({
+                success = false,
+                error = "Provider '" .. provider .. "' is not supported"
+            })
+        end
+
+        -- Build options (same as /api/build)
+        local build_options = {
+            behavior_variant = request_data.behavior or "full",
+            behavior_override = request_data.custom_behavior,
+            temperature = request_data.temperature or 0.7,
+            domain_context = request_data.domain,
+            user_languages = request_data.languages,
+            primary_language = request_data.primary_language,
+            model = request_data.model,
+        }
+
+        if request_data.thinking and request_data.thinking.enabled then
+            build_options.extended_thinking = true
+            build_options.thinking_budget = request_data.thinking.budget or 4096
+        end
+
+        local config = buildConfigWithOptions(provider, api_key, build_options)
+
+        -- Build messages using shared MessageBuilder
+        local context = request_data.context or {}
+        local context_type = context.type or "general"
+
+        local action = request_data.action or { prompt = request_data.message or "Say hello in exactly 5 words." }
+        local is_ask_action = action and action.id == "ask"
+
+        local context_data = {}
+        if context_type == "highlight" then
+            context_data.highlighted_text = context.highlighted_text
+            context_data.book_title = context.book_title
+            context_data.book_author = context.book_author
+        elseif context_type == "book" then
+            if context.book_title then
+                context_data.book_metadata = {
+                    title = context.book_title,
+                    author = context.book_author,
+                    author_clause = (context.book_author and context.book_author ~= "") and (" by " .. context.book_author) or ""
+                }
+            end
+        elseif context_type == "multi_book" then
+            context_data.books_info = context.books_info or {}
+        end
+
+        -- For Ask action, the message IS the question (not additional input)
+        -- For other actions, the message is additional input
+        if request_data.action and request_data.message and request_data.message ~= "" then
+            if is_ask_action then
+                -- Ask: message becomes the user question (use default if empty)
+                context_data.user_question = request_data.message
+            else
+                -- Other actions: message is additional input
+                context_data.additional_input = request_data.message
+            end
+        elseif is_ask_action then
+            -- Ask with no message: use default
+            context_data.user_question = action.default_message or "I have a question for you."
+        end
+
+        if request_data.translation_language then
+            context_data.translation_language = request_data.translation_language
+        end
+
+        local templates_getter = nil
+        pcall(function()
+            local Templates = require("prompts/templates")
+            templates_getter = function(name) return Templates.get(name) end
+        end)
+
+        local user_content
+        if is_ask_action then
+            -- For Ask action, build message directly like the plugin does
+            -- Format: [Context info if any] + [User Question]
+            local parts = {}
+
+            -- Add context based on context_type
+            if context_type == "highlight" and context_data.highlighted_text then
+                if context_data.book_title then
+                    table.insert(parts, "[Context]")
+                    local book_info = '"' .. context_data.book_title .. '"'
+                    if context_data.book_author and context_data.book_author ~= "" then
+                        book_info = book_info .. " by " .. context_data.book_author
+                    end
+                    table.insert(parts, "From " .. book_info)
+                    table.insert(parts, "Selected text: " .. context_data.highlighted_text)
+                    table.insert(parts, "")
+                else
+                    table.insert(parts, "[Context]")
+                    table.insert(parts, "Selected text: " .. context_data.highlighted_text)
+                    table.insert(parts, "")
+                end
+            elseif context_type == "book" and context_data.book_metadata then
+                table.insert(parts, "[Context]")
+                local book_info = '"' .. context_data.book_metadata.title .. '"'
+                if context_data.book_metadata.author and context_data.book_metadata.author ~= "" then
+                    book_info = book_info .. " by " .. context_data.book_metadata.author
+                end
+                table.insert(parts, "About " .. book_info)
+                table.insert(parts, "")
+            end
+
+            -- Add the user's question
+            table.insert(parts, "[User Question]")
+            table.insert(parts, context_data.user_question or "I have a question for you.")
+
+            user_content = table.concat(parts, "\n")
+        else
+            user_content = MessageBuilder.build({
+                prompt = action,
+                context = context_type,
+                data = context_data,
+                using_new_format = true,
+                templates_getter = templates_getter,
+            })
+        end
+
+        -- Use conversation_history if provided (for multi-turn chat), otherwise build single message
+        local messages
+        if request_data.conversation_history and #request_data.conversation_history > 0 then
+            messages = request_data.conversation_history
+        else
+            messages = {
+                { role = "user", content = user_content }
+            }
+        end
+
+        -- Build request
+        local request, err = RequestInspector:buildRequest(provider, config, messages)
+        if not request then
+            return "500 Internal Server Error", "application/json", json.encode({
+                success = false,
+                error = err or "Failed to build request"
+            })
+        end
+
+        -- Extract system prompt info (same as /api/build)
+        local system_text = ""
+        local system_format = "unknown"
+        if request.body.system then
+            if type(request.body.system) == "table" and request.body.system[1] then
+                system_text = request.body.system[1].text or ""
+                system_format = "array"
+            elseif type(request.body.system) == "string" then
+                system_text = request.body.system
+                system_format = "string"
+            end
+        elseif request.body.system_instruction and request.body.system_instruction.parts then
+            system_text = request.body.system_instruction.parts[1].text or ""
+            system_format = "system_instruction"
+        elseif request.body.messages then
+            for _, msg in ipairs(request.body.messages) do
+                if msg.role == "system" then
+                    system_text = msg.content or ""
+                    system_format = "first_message"
+                    break
+                end
+            end
+        end
+
+        -- Make the actual HTTP request
+        local start_time = socket.gettime()
+        local response_body = {}
+        local request_body_json = json.encode(request.body)
+
+        -- Determine HTTP or HTTPS
+        local requester = http
+        if request.url:match("^https://") then
+            requester = https
+        end
+
+        -- Add Content-Length header
+        request.headers["Content-Length"] = tostring(#request_body_json)
+
+        local result, status_code, response_headers = requester.request({
+            url = request.url,
+            method = "POST",
+            headers = request.headers,
+            source = ltn12.source.string(request_body_json),
+            sink = ltn12.sink.table(response_body),
+        })
+
+        local elapsed_ms = math.floor((socket.gettime() - start_time) * 1000)
+        local response_text = table.concat(response_body)
+
+        -- Parse response
+        local parsed_text = nil
+        local raw_response = nil
+        local response_error = nil
+
+        if result and status_code == 200 then
+            local decode_ok, decoded = pcall(json.decode, response_text)
+            if decode_ok then
+                raw_response = decoded
+                -- Try to extract text based on provider
+                local ResponseParser = require("api_handlers.response_parser")
+                local parse_ok, parsed = pcall(function()
+                    return ResponseParser:parse(provider, decoded)
+                end)
+                if parse_ok and parsed then
+                    parsed_text = parsed
+                end
+            end
+        else
+            response_error = string.format("HTTP %s: %s", tostring(status_code), response_text:sub(1, 500))
+        end
+
+        -- Redact API key from headers for response
+        local safe_headers = {}
+        for k, v in pairs(request.headers) do
+            local key_lower = k:lower()
+            if key_lower == "authorization" or key_lower == "x-api-key" or key_lower == "x-goog-api-key" then
+                safe_headers[k] = "[REDACTED]"
+            else
+                safe_headers[k] = v
+            end
+        end
+
+        return "200 OK", "application/json", json.encode({
+            success = response_error == nil,
+            error = response_error,
+            request = {
+                url = request.url,
+                headers = safe_headers,
+                body = request.body,
+            },
+            system_prompt = {
+                text = system_text,
+                format = system_format,
+                token_estimate = math.ceil(#system_text / 4),
+            },
+            response = {
+                status_code = status_code,
+                elapsed_ms = elapsed_ms,
+                parsed_text = parsed_text,
+                raw_body = raw_response,
             },
             provider = provider,
             model = request.model or config.model,

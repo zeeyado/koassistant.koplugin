@@ -129,7 +129,8 @@ function WebServer:handleClient(client)
             self:sendResponse(client, "500 Internal Server Error", "application/json", error_msg)
         end
     else
-        self:sendResponse(client, "404 Not Found", "text/plain", "Not Found: " .. path)
+        local error_msg = json.encode({ error = "Not Found: " .. path })
+        self:sendResponse(client, "404 Not Found", "application/json", error_msg)
     end
 end
 
