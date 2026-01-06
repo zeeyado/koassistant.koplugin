@@ -41,6 +41,7 @@ jobs:
                     --exclude='build' \
                     --exclude='docs' \
                     --exclude='tests' \
+                    --exclude='scripts' \
                     --exclude='.gitignore' \
                     . build/koassistant.koplugin/
 
