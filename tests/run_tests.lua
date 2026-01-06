@@ -196,11 +196,13 @@ local function testProvider(provider, api_key, verbose)
     local messages = TestConfig.getTestMessages()
 
     -- Make the request
-    local start_time = os.clock()
+    -- Use socket.gettime() for wall-clock time (os.clock() measures CPU time, not I/O wait)
+    local socket = require("socket")
+    local start_time = socket.gettime()
     local ok, result = pcall(function()
         return handler:query(messages, config)
     end)
-    local elapsed = os.clock() - start_time
+    local elapsed = socket.gettime() - start_time
 
     if not ok then
         return false, "Exception: " .. tostring(result), elapsed

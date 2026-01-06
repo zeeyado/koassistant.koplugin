@@ -64,12 +64,14 @@ local function getMaxTemperature(provider)
 end
 
 -- Make a test request and verify it succeeds
+-- Use socket.gettime() for wall-clock time (os.clock() measures CPU time, not I/O wait)
+local socket = require("socket")
 local function makeTestRequest(handler, messages, config, provider)
-    local start_time = os.clock()
+    local start_time = socket.gettime()
     local ok, result = pcall(function()
         return handler:query(messages, config)
     end)
-    local elapsed = os.clock() - start_time
+    local elapsed = socket.gettime() - start_time
 
     if not ok then
         return false, "Exception: " .. tostring(result), elapsed

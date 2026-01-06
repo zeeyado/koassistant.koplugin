@@ -8,6 +8,42 @@ local AnthropicRequest = require("api_handlers.anthropic_request")
 
 local AnthropicHandler = BaseHandler:new()
 
+--- Build the request body, headers, and URL without making the API call.
+--- This is used by the test inspector to see exactly what would be sent.
+--- @param message_history table: Array of message objects
+--- @param config table: Unified config from buildUnifiedRequestConfig
+--- @return table: { body = table, headers = table, url = string }
+function AnthropicHandler:buildRequestBody(message_history, config)
+    local defaults = Defaults.ProviderDefaults.anthropic
+    local model = config.model or defaults.model
+
+    -- Build request using AnthropicRequest with unified config
+    local request_body = AnthropicRequest:build({
+        model = model,
+        messages = message_history,
+        system = config.system,  -- Unified format from buildUnifiedRequestConfig
+        api_params = config.api_params,
+        additional_parameters = config.additional_parameters,
+    })
+
+    local headers = {
+        ["Content-Type"] = "application/json",
+        ["x-api-key"] = config.api_key or "",
+        ["anthropic-version"] = defaults.additional_parameters.anthropic_version,
+        ["anthropic-beta"] = AnthropicRequest.CACHE_BETA,  -- Enable prompt caching
+    }
+
+    local url = config.base_url or defaults.base_url
+
+    return {
+        body = request_body,
+        headers = headers,
+        url = url,
+        model = model,
+        provider = "anthropic",
+    }
+end
+
 function AnthropicHandler:query(message_history, config)
     if not config or not config.api_key then
         return "Error: Missing API key in configuration"

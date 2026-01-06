@@ -16,6 +16,62 @@ local function hasContent(msg)
     return true
 end
 
+--- Build the request body, headers, and URL without making the API call.
+--- This is used by the test inspector to see exactly what would be sent.
+--- @param message_history table: Array of message objects
+--- @param config table: Unified config from buildUnifiedRequestConfig
+--- @return table: { body = table, headers = table, url = string }
+function DeepSeekHandler:buildRequestBody(message_history, config)
+    local defaults = Defaults.ProviderDefaults.deepseek
+    local model = config.model or defaults.model
+
+    -- Build request body using unified config
+    local request_body = {
+        model = model,
+        messages = {},
+    }
+
+    -- Add system message from unified config
+    if config.system and config.system.text and config.system.text ~= "" then
+        table.insert(request_body.messages, {
+            role = "system",
+            content = config.system.text,
+        })
+    end
+
+    -- Add conversation messages (filter out system role and empty content)
+    for _, msg in ipairs(message_history) do
+        if msg.role ~= "system" and hasContent(msg) then
+            table.insert(request_body.messages, {
+                role = msg.role == "assistant" and "assistant" or "user",
+                content = msg.content,
+            })
+        end
+    end
+
+    -- Apply API parameters from unified config
+    local api_params = config.api_params or {}
+    local default_params = defaults.additional_parameters or {}
+
+    request_body.temperature = api_params.temperature or default_params.temperature or 0.7
+    request_body.max_tokens = api_params.max_tokens or default_params.max_tokens or 4096
+
+    local headers = {
+        ["Content-Type"] = "application/json",
+        ["Authorization"] = "Bearer " .. (config.api_key or ""),
+    }
+
+    local url = config.base_url or defaults.base_url
+
+    return {
+        body = request_body,
+        headers = headers,
+        url = url,
+        model = model,
+        provider = "deepseek",
+    }
+end
+
 function DeepSeekHandler:query(message_history, config)
     if not config or not config.api_key then
         return "Error: Missing API key in configuration"
