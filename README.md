@@ -519,9 +519,7 @@ Individual actions can override the global setting:
 
 ## Supported Providers
 
-KOAssistant supports **16 AI providers**. Anthropic (Claude) is the primary focus and most thoroughly tested.
-
-### Core Providers
+KOAssistant supports **16 AI providers**. Anthropic (Claude) has been the primary focus and most thoroughly tested. Please test and give feedback -- fixes are quickly implemented
 
 | Provider | Description | Get API Key |
 |----------|-------------|-------------|
@@ -530,29 +528,14 @@ KOAssistant supports **16 AI providers**. Anthropic (Claude) is the primary focu
 | **DeepSeek** | Cost-effective reasoning models | [platform.deepseek.com](https://platform.deepseek.com/) |
 | **Gemini** | Google's Gemini models | [aistudio.google.com](https://aistudio.google.com/) |
 | **Ollama** | Local models (no API key needed) | [ollama.ai](https://ollama.ai/) |
-
-### Fast Inference Providers
-
-| Provider | Description | Get API Key |
-|----------|-------------|-------------|
 | **Groq** | Extremely fast inference | [console.groq.com](https://console.groq.com/) |
 | **Fireworks** | Fast inference for open models | [fireworks.ai](https://fireworks.ai/) |
 | **SambaNova** | Fastest inference, free tier available | [cloud.sambanova.ai](https://cloud.sambanova.ai/) |
 | **Together** | 200+ open source models | [api.together.xyz](https://api.together.xyz/) |
-
-### Additional Providers
-
-| Provider | Description | Get API Key |
-|----------|-------------|-------------|
 | **Mistral** | European provider, coding models | [console.mistral.ai](https://console.mistral.ai/) |
 | **xAI** | Grok models, up to 2M context | [console.x.ai](https://console.x.ai/) |
 | **OpenRouter** | Meta-provider, 500+ models | [openrouter.ai](https://openrouter.ai/) |
 | **Cohere** | Command models | [dashboard.cohere.com](https://dashboard.cohere.com/) |
-
-### Chinese Providers
-
-| Provider | Description | Get API Key |
-|----------|-------------|-------------|
 | **Qwen** | Alibaba's Qwen models | [dashscope.console.aliyun.com](https://dashscope.console.aliyun.com/) |
 | **Kimi** | Moonshot, 256K context | [platform.moonshot.cn](https://platform.moonshot.cn/) |
 | **Doubao** | ByteDance Volcano Engine | [console.volcengine.com](https://console.volcengine.com/) |
