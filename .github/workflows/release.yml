@@ -38,6 +38,7 @@ jobs:
           rsync -av --exclude='.git' \
                     --exclude='.github' \
                     --exclude='.claude' \
+                    --exclude='build' \
                     --exclude='docs' \
                     --exclude='tests' \
                     --exclude='.gitignore' \
