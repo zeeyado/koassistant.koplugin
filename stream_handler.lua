@@ -1,7 +1,7 @@
 --- Stream handler module for handling streaming AI responses
 --- Based on assistant.koplugin's streaming implementation
 --- Uses polling approach to avoid coroutine yield issues on some platforms
-local _ = require("gettext")
+local _ = require("koassistant_gettext")
 local InputText = require("ui/widget/inputtext")
 local InputDialog = require("ui/widget/inputdialog")
 local UIManager = require("ui/uimanager")

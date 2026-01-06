@@ -4,7 +4,7 @@ local logger = require("logger")
 local util = require("util")
 local lfs = require("libs/libkoreader-lfs")
 local md5 = require("ffi/sha2").md5
-local _ = require("gettext")
+local _ = require("koassistant_gettext")
 
 local ChatHistoryManager = {}
 

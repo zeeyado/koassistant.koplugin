@@ -11,7 +11,7 @@
 --   {language}         - Target language for translations
 --   {text}             - Text to translate
 
-local _ = require("gettext")
+local _ = require("koassistant_gettext")
 
 local Templates = {}
 
