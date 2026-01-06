@@ -1,9 +1,9 @@
-# KOAssistant - AI Assistant for KOReader
+# KOAssistant
 
 [![GitHub Release](https://img.shields.io/github/v/release/zeeyado/koassistant.koplugin)](https://github.com/zeeyado/koassistant.koplugin/releases/latest)
 [![License: GPL-3.0](https://img.shields.io/github/license/zeeyado/koassistant.koplugin)](LICENSE)
 
-A powerful AI assistant integrated into KOReader.
+**A powerful AI assistant integrated into KOReader.**
 
 Meant to be a technical research assistant and knowledge expander.
 
@@ -11,7 +11,7 @@ You can have context free chats, or chat about or compare one or more documents 
 
 Most settings are configurable in the UI, including provider/model, AI behavior, and more, with some advanced settings requiring file editing.
 
-> **Development Status**: KOAssistant is under active development. **Anthropic (Claude)** is the primary focus and most thoroughly tested. 16 providers are supported (see [Supported Providers](#supported-providers)), though some may need adjustments. Feedback appreciated.
+> **Development Status**: KOAssistant is under active development, with changing features. **Anthropic** has been the primary focus and most thoroughly tested. 16 providers are supported (see [Supported Providers](#supported-providers)), though some may need adjustments. Feedback appreciated.
 
 > **Note**: This project was recently renamed from "Assistant" to "KOAssistant" due to a naming conflict with [a fork of this project](https://github.com/omer-faruq/assistant.koplugin). Some internal references may still show the old name.
 
