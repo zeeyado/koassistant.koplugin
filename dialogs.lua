@@ -1166,12 +1166,12 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     -- 3. Custom actions (including Translate, which is now a built-in action)
     local prompts, prompt_keys = getAllPrompts(configuration, plugin)
     logger.info("showChatGPTDialog: Got " .. #prompt_keys .. " custom prompts")
-    for _, prompt_type in ipairs(prompt_keys) do
+    for _idx, prompt_type in ipairs(prompt_keys) do
         local prompt = prompts[prompt_type]
         if prompt and prompt.text then
             logger.info("Adding button for prompt: " .. prompt_type .. " with text: " .. prompt.text)
             table.insert(all_buttons, {
-                text = gettext(prompt.text),
+                text = _(prompt.text),
             prompt_type = prompt_type,
             callback = function()
                 local additional_input = input_dialog:getInputText()
@@ -1197,11 +1197,11 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                                 end
                                 return nil -- Streaming will update via callback
                             end
-                            showResponseDialog(gettext(prompt.text), history, highlighted_text, addMessage, temp_config, document_path, plugin, book_metadata, launch_context)
+                            showResponseDialog(_(prompt.text), history, highlighted_text, addMessage, temp_config, document_path, plugin, book_metadata, launch_context)
                         else
                             local error_msg = temp_config_or_error or "Unknown error"
                             UIManager:show(InfoMessage:new{
-                                text = gettext("Error handling prompt: " .. prompt_type .. " - " .. error_msg),
+                                text = _("Error handling prompt: ") .. prompt_type .. " - " .. error_msg,
                                 timeout = 2
                             })
                         end
