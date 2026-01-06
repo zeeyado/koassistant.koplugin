@@ -1631,7 +1631,7 @@ function AskGPT:startGeneralChat()
     })
     return
   end
-  
+
   NetworkMgr:runWhenOnline(function()
     maybeCheckForUpdates(self)
     -- Make sure we're using the latest configuration
@@ -1651,7 +1651,7 @@ function AskGPT:startGeneralChat()
     end
     temp_config.features = temp_config.features or {}
     temp_config.features.is_general_context = true
-    
+
     -- Show dialog with general context
     showChatGPTDialog(self.ui, nil, temp_config, nil, self)
   end)
