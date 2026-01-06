@@ -284,8 +284,8 @@ function MessageHistory:createResultText(highlightedText, config)
                 temp_reason = adjustments.temperature.reason
             end
 
-            -- Extended thinking always forces temp=1.0
-            if has_thinking and effective_temp ~= 1.0 then
+            -- Extended thinking always forces temp=1.0 (Anthropic only)
+            if has_thinking and provider == "anthropic" and effective_temp ~= 1.0 then
                 effective_temp = 1.0
                 temp_adjusted = true
                 temp_reason = "extended thinking"
