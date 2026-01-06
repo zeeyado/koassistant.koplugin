@@ -89,15 +89,19 @@ lua tests/inspect.lua --web --port 3000
 
 **Features:**
 - Live request building (no API calls needed)
+- **Send Request** to actually call provider APIs
 - Provider/model selection with all 16 providers
 - Behavior toggles, temperature slider
 - **Domain loading** from your actual `domains/` folder
 - **Action loading** from `prompts/actions.lua` + custom actions from settings
+- **Ask action** available in all contexts (like plugin)
 - **Settings sync** from your `koassistant_settings.lua` (languages, behavior, temperature)
 - **Context simulation** (highlight text, book title/author, multi-book)
 - Language settings with translation target dropdown
 - Extended thinking configuration
 - Syntax-highlighted JSON output
+- **Chat tab** with conversation view (matches plugin - no system shown)
+- **Multi-turn chat** with reply input after response
 - Dark mode support
 
 ## Test Categories
