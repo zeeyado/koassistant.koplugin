@@ -44,7 +44,7 @@ Most settings are configurable in the UI, including provider/model, AI behavior,
 
 ### 1. Install the Plugin
 
-Download from [Releases](https://github.com/zeeyado/koassistant.koplugin/releases) or clone:
+Download koassistant.koplugin.zip from latest [Release](https://github.com/zeeyado/koassistant.koplugin/releases) -> Assets or clone:
 ```bash
 git clone https://github.com/zeeyado/koassistant.koplugin
 ```
