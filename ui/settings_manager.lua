@@ -114,7 +114,12 @@ function SettingsManager:createMenuItem(plugin, item, schema)
             end
             self:setSettingValue(plugin, item.path or item.id, not current)
             plugin:updateConfigFromSettings()
-            
+
+            -- Call on_change callback if provided
+            if item.on_change then
+                item.on_change(not current, plugin)
+            end
+
             -- If this toggle affects dependencies, refresh the menu
             if item.id == "auto_save_all_chats" then
                 if touchmenu_instance then

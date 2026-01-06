@@ -86,8 +86,28 @@ local function parsePOFile(filepath)
     return result
 end
 
+-- Check if plugin is set to use KOReader's language or force English
+local function shouldUseKOReaderLanguage()
+    local ok, result = pcall(function()
+        local DataStorage = require("datastorage")
+        local LuaSettings = require("luasettings")
+        local settings = LuaSettings:open(DataStorage:getSettingsDir() .. "/koassistant_settings.lua")
+        local features = settings:readSetting("features")
+        if features and features.ui_language_auto == false then
+            return false
+        end
+        return true
+    end)
+    return not ok or result ~= false
+end
+
 -- Get KOReader's current language setting
 local function getCurrentLanguage()
+    -- Check plugin setting first
+    if not shouldUseKOReaderLanguage() then
+        return "en"
+    end
+
     if G_reader_settings then
         local lang = G_reader_settings:readSetting("language")
         if lang then

@@ -271,6 +271,26 @@ local SettingsSchema = {
             text = _("Language"),
             items = {
                 {
+                    id = "ui_language_info",
+                    type = "header",
+                    text = _("Disable to show English UI (requires restart)"),
+                },
+                {
+                    id = "ui_language_auto",
+                    type = "toggle",
+                    text = _("Match KOReader UI Language"),
+                    path = "features.ui_language_auto",
+                    default = true,
+                    separator = true,
+                    on_change = function()
+                        local InfoMessage = require("ui/widget/infomessage")
+                        local UIManager = require("ui/uimanager")
+                        UIManager:show(InfoMessage:new{
+                            text = _("Please restart KOReader for the language change to take effect."),
+                        })
+                    end,
+                },
+                {
                     id = "user_languages",
                     type = "text",
                     text = _("Your Languages"),

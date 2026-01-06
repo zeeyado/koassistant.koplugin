@@ -1437,7 +1437,7 @@ function AskGPT:onKOAssistantSettings()
         if menu_items then
           for i = 1, #menu_items do
             local item = menu_items[i]
-            if item.text == "KOAssistant" then
+            if item.text == _("KOAssistant") then
               touch_menu:onMenuSelect(item)
               return
             end
