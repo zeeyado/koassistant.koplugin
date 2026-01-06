@@ -1,5 +1,7 @@
 # KOAssistant - AI Assistant for KOReader
 
+[![GitHub Release](https://img.shields.io/github/v/release/zeeyado/koassistant.koplugin)](https://github.com/zeeyado/koassistant.koplugin/releases/latest)
+
 A powerful AI assistant integrated into KOReader.
 
 Meant to be a technical research assistant and knowledge expander.
