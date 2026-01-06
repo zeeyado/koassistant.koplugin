@@ -38,6 +38,7 @@ Most settings are configurable in the UI, including provider/model, AI behavior,
 - [Supported Providers](#supported-providers)
 - [Troubleshooting](#troubleshooting)
 - [Contributing](#contributing)
+- [Translations](#contributing-translations)
 - [Credits](#credits)
 
 ---
@@ -387,6 +388,7 @@ See `custom_actions.lua.sample` for more examples.
 - **Test Connection**: Verify API credentials work
 
 ### Language
+- **Match KOReader UI Language**: When enabled (default), the plugin UI follows KOReader's language setting. Disable to always show English UI (useful if translations are incomplete or inaccurate). Requires restart.
 - **Your Languages**: Languages you speak, separated by commas (e.g., "German, English, French"). Leave empty for default AI behavior.
 - **Primary Language**: Pick which language AI should respond in by default. Defaults to first in your list, but can be overridden.
 - **Translate to Primary Language**: Use your primary language as the translation target.
@@ -618,7 +620,7 @@ Contributions welcome! You can:
 - Submit pull requests
 - Share feature ideas
 - Improve documentation
-- Translate the plugin UI
+- [Translate the plugin UI](#contributing-translations) via Weblate
 
 ### For Developers
 
@@ -633,13 +635,25 @@ lua tests/inspect.lua --web      # Interactive web UI
 
 ### Contributing Translations
 
-KOAssistant is ready for localization. All UI strings use KOReader's gettext system (`_()` function).
+KOAssistant supports localization with translations managed via Weblate.
 
-**To add a new language:**
-1. The plugin uses KOReader's translation system
-2. All 300+ UI strings are already marked for translation
-3. Create `.po` files for your language following KOReader's translation workflow
-4. Submit via pull request or the [KOReader Weblate](https://hosted.weblate.org/projects/koreader/)
+[![Translation Status](https://hosted.weblate.org/widgets/koassistant/-/svg-badge.svg)](https://hosted.weblate.org/engage/koassistant/)
+
+**[Contribute translations on Weblate](https://hosted.weblate.org/engage/koassistant/)**
+
+**Current languages:** Arabic, Chinese, French, German, Italian, Portuguese, Spanish
+
+**Important:** Initial translations were AI-generated and marked as "needs review" (fuzzy). They may contain inaccuracies or awkward phrasing. Human review and corrections are welcome!
+
+**If you don't like the translations:** You can disable them in Settings → Language → disable "Match KOReader UI Language" to always show the original English UI.
+
+**To contribute:**
+1. Visit the [KOAssistant Weblate project](https://hosted.weblate.org/engage/koassistant/)
+2. Create an account or log in
+3. Select a language and start reviewing/translating
+4. Translations sync automatically to this repository
+
+**To add a new language:** Request it on Weblate or open a GitHub issue.
 
 **Note:** The plugin is under active development, so some strings may change between versions. Contributions are still valuable and will be maintained.
 
