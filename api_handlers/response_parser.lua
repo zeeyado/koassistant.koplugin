@@ -83,8 +83,24 @@ local RESPONSE_TRANSFORMERS = {
                (not candidate.content or not candidate.content.parts or #candidate.content.parts == 0) then
                 return false, "No content generated (MAX_TOKENS hit before output - increase max_tokens for thinking models)"
             end
-            if candidate.content and candidate.content.parts and candidate.content.parts[1] then
-                return true, candidate.content.parts[1].text
+            if candidate.content and candidate.content.parts then
+                -- Gemini 3 thinking: parts have thought=true for thinking, thought=false/nil for answer
+                local thinking_parts = {}
+                local content_parts = {}
+                for _, part in ipairs(candidate.content.parts) do
+                    if part.text then
+                        if part.thought then
+                            table.insert(thinking_parts, part.text)
+                        else
+                            table.insert(content_parts, part.text)
+                        end
+                    end
+                end
+                local content = table.concat(content_parts, "\n")
+                local thinking = #thinking_parts > 0 and table.concat(thinking_parts, "\n") or nil
+                if content ~= "" then
+                    return true, content, thinking
+                end
             end
         end
 

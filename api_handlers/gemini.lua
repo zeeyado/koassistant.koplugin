@@ -73,13 +73,14 @@ function GeminiHandler:buildRequestBody(message_history, config)
     }
 
     -- Add thinking config for Gemini 3 preview models if enabled
-    -- Gemini REST API uses snake_case: thinking_config.thinking_level
+    -- Gemini REST API uses camelCase: generationConfig.thinkingConfig.thinkingLevel
     -- Gemini 3 Pro: LOW, HIGH; Gemini 3 Flash: MINIMAL, LOW, MEDIUM, HIGH
     local adjustments = {}
     if api_params.thinking_level then
         if ModelConstraints.supportsCapability("gemini", model, "thinking") then
-            request_body.thinking_config = {
-                thinking_level = api_params.thinking_level:upper()
+            request_body.generationConfig.thinkingConfig = {
+                thinkingLevel = api_params.thinking_level:upper(),
+                includeThoughts = true,  -- Required to get thinking in response
             }
         else
             adjustments.thinking_skipped = {
@@ -147,13 +148,14 @@ function GeminiHandler:query(message_history, config)
     }
 
     -- Add thinking config for Gemini 3 preview models if enabled
-    -- Gemini REST API uses snake_case: thinking_config.thinking_level
+    -- Gemini REST API uses camelCase: generationConfig.thinkingConfig.thinkingLevel
     -- Gemini 3 Pro: LOW, HIGH; Gemini 3 Flash: MINIMAL, LOW, MEDIUM, HIGH
     local adjustments = {}
     if api_params.thinking_level then
         if ModelConstraints.supportsCapability("gemini", model, "thinking") then
-            request_body.thinking_config = {
-                thinking_level = api_params.thinking_level:upper()
+            request_body.generationConfig.thinkingConfig = {
+                thinkingLevel = api_params.thinking_level:upper(),
+                includeThoughts = true,  -- Required to get thinking in response
             }
         else
             adjustments.thinking_skipped = {
@@ -221,9 +223,18 @@ function GeminiHandler:query(message_history, config)
         print("Gemini Parsed Response:", json.encode(response))
     end
 
-    local success, result = ResponseParser:parseResponse(response, "gemini")
+    local success, result, reasoning = ResponseParser:parseResponse(response, "gemini")
     if not success then
         return "Error: " .. result
+    end
+
+    -- Return result with optional reasoning metadata (like Anthropic)
+    if reasoning then
+        return {
+            content = result,
+            reasoning = reasoning,
+            _has_reasoning = true,
+        }
     end
 
     return result
