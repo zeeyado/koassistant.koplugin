@@ -13,6 +13,7 @@ local ConfigHelper = require("config_helper")
 local MessageHistory = require("message_history")
 local ChatHistoryManager = require("chat_history_manager")
 local MessageBuilder = require("message_builder")
+local ModelConstraints = require("model_constraints")
 local logger = require("logger")
 
 -- New request format modules (Phase 3)
@@ -149,27 +150,80 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
     end
 
     -- Reasoning/Thinking support (per-provider toggles)
-    -- Priority: action override > per-provider setting
-    -- Supports: reasoning = "on"/"off", reasoning_effort, thinking_budget, reasoning_depth
+    -- Priority: action.reasoning_config > action.reasoning > per-provider setting
     local provider = config.provider or config.default_provider or "anthropic"
-    local reasoning_budget = features.reasoning_budget or 4096
-    local reasoning_effort = features.reasoning_effort or "medium"
-    local reasoning_depth = features.reasoning_depth or "high"
 
-    -- Per-provider reasoning toggles
+    -- Global defaults from settings (fall back to centralized defaults)
+    local rd = ModelConstraints.reasoning_defaults
+    local reasoning_budget = features.reasoning_budget or rd.anthropic.budget
+    local reasoning_effort = features.reasoning_effort or rd.openai.effort
+    local reasoning_depth = features.reasoning_depth or rd.gemini.level
+
+    -- Per-provider reasoning toggles (global settings)
     local anthropic_reasoning = features.anthropic_reasoning
     local openai_reasoning = features.openai_reasoning
     local gemini_reasoning = features.gemini_reasoning
 
-    -- Check for action overrides (also support legacy extended_thinking for backward compat)
-    -- Action override affects the current provider's reasoning
-    local action_override = nil  -- nil = use setting, true = force on, false = force off
+    -- Check for action overrides
+    -- NEW format: action.reasoning_config = { anthropic: {...}, openai: {...}, gemini: {...} } or "off"
+    -- LEGACY format: action.reasoning = "on"/"off", action.thinking_budget, etc.
+    local action_anthropic_override = nil  -- nil = use global, true = on, false = off
+    local action_openai_override = nil
+    local action_gemini_override = nil
+
     if action then
-        if action.reasoning == "off" or action.extended_thinking == "off" then
-            action_override = false
+        -- NEW format: per-provider reasoning_config
+        if action.reasoning_config then
+            if action.reasoning_config == "off" then
+                -- Force off for all providers
+                action_anthropic_override = false
+                action_openai_override = false
+                action_gemini_override = false
+            elseif type(action.reasoning_config) == "table" then
+                -- Per-provider configuration
+                local rc = action.reasoning_config
+
+                -- Anthropic config
+                if rc.anthropic then
+                    if rc.anthropic == "off" then
+                        action_anthropic_override = false
+                    elseif rc.anthropic.budget then
+                        action_anthropic_override = true
+                        reasoning_budget = rc.anthropic.budget
+                    end
+                end
+
+                -- OpenAI config
+                if rc.openai then
+                    if rc.openai == "off" then
+                        action_openai_override = false
+                    elseif rc.openai.effort then
+                        action_openai_override = true
+                        reasoning_effort = rc.openai.effort
+                    end
+                end
+
+                -- Gemini config
+                if rc.gemini then
+                    if rc.gemini == "off" then
+                        action_gemini_override = false
+                    elseif rc.gemini.level then
+                        action_gemini_override = true
+                        reasoning_depth = rc.gemini.level
+                    end
+                end
+            end
+        -- LEGACY format: action.reasoning = "on"/"off" or action.extended_thinking
+        elseif action.reasoning == "off" or action.extended_thinking == "off" then
+            -- Legacy: force off for all providers
+            action_anthropic_override = false
+            action_openai_override = false
+            action_gemini_override = false
         elseif action.reasoning == "on" or action.extended_thinking == "on" then
-            action_override = true
-            -- Action can override specific parameters
+            -- Legacy: force on with per-field overrides
+            action_anthropic_override = true
+            action_openai_override = true
+            action_gemini_override = true
             if action.thinking_budget then reasoning_budget = action.thinking_budget end
             if action.reasoning_effort then reasoning_effort = action.reasoning_effort end
             if action.reasoning_depth then reasoning_depth = action.reasoning_depth end
@@ -178,7 +232,7 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
 
     -- Apply reasoning parameters based on provider
     if provider == "anthropic" then
-        local enabled = action_override ~= nil and action_override or anthropic_reasoning
+        local enabled = action_anthropic_override ~= nil and action_anthropic_override or anthropic_reasoning
         if enabled then
             config.api_params.thinking = {
                 type = "enabled",
@@ -186,14 +240,14 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
             }
         end
     elseif provider == "openai" then
-        local enabled = action_override ~= nil and action_override or openai_reasoning
+        local enabled = action_openai_override ~= nil and action_openai_override or openai_reasoning
         if enabled then
             config.api_params.reasoning = {
                 effort = reasoning_effort,
             }
         end
     elseif provider == "gemini" then
-        local enabled = action_override ~= nil and action_override or gemini_reasoning
+        local enabled = action_gemini_override ~= nil and action_gemini_override or gemini_reasoning
         if enabled then
             config.api_params.thinking_level = reasoning_depth:upper()
         end

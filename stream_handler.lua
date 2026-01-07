@@ -53,6 +53,7 @@ end
 -- Export StreamText class
 StreamHandler.StreamText = StreamText
 
+
 --- Create a bouncing dot animation for waiting state
 function StreamHandler:createWaitingAnimation()
     local frames = { ".", "..", "...", "..", "." }
@@ -91,9 +92,10 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
     local pid, parent_read_fd = nil, nil
     local partial_data = ""
     local result_buffer = {}
+    local reasoning_buffer = {}  -- Capture reasoning content during stream
     local non200 = false
     local completed = false
-    local reasoning_detected = false  -- Track if thinking/reasoning was seen in stream
+    local in_reasoning_phase = false  -- Track if we're currently showing reasoning
 
     local chunksize = 1024 * 16
     local buffer = ffi.new('char[?]', chunksize, {0})
@@ -187,8 +189,9 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
             return
         end
 
-        -- Pass reasoning_detected as 4th arg (true if thinking was seen, nil otherwise)
-        if on_complete then on_complete(true, result, nil, reasoning_detected or nil) end
+        -- Pass reasoning content as 4th arg (string if captured, nil otherwise)
+        local reasoning_content = #reasoning_buffer > 0 and table.concat(reasoning_buffer) or nil
+        if on_complete then on_complete(true, result, nil, reasoning_content) end
     end
 
     local function _closeStreamDialog()
@@ -386,11 +389,41 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
 
                         local ok, event = pcall(json.decode, json_str)
                         if ok and event then
-                            local content, is_reasoning = self:extractContentFromSSE(event)
-                            if is_reasoning then
-                                reasoning_detected = true
+                            local content, reasoning = self:extractContentFromSSE(event)
+
+                            -- Handle reasoning content (displayed with header, saved separately)
+                            if type(reasoning) == "string" and #reasoning > 0 then
+                                table.insert(reasoning_buffer, reasoning)
+
+                                -- Update UI with reasoning
+                                if not first_content_received then
+                                    first_content_received = true
+                                    if animation_task then
+                                        UIManager:unschedule(animation_task)
+                                        animation_task = nil
+                                    end
+                                    in_reasoning_phase = true
+                                    streamDialog._input_widget:setText("", true)
+                                end
+
+                                if auto_scroll and not scroll_paused then
+                                    streamDialog:addTextToInput(reasoning)
+                                else
+                                    streamDialog._input_widget:resyncPos()
+                                    local display = in_reasoning_phase and table.concat(reasoning_buffer) or table.concat(result_buffer)
+                                    streamDialog._input_widget:setText(display, true)
+                                end
                             end
+
+                            -- Handle regular content
                             if type(content) == "string" and #content > 0 then
+                                -- If transitioning from reasoning to answer, add separator
+                                if in_reasoning_phase then
+                                    in_reasoning_phase = false
+                                    -- Clear the reasoning display and show answer
+                                    streamDialog._input_widget:setText("", true)
+                                end
+
                                 table.insert(result_buffer, content)
 
                                 -- Update UI
@@ -434,14 +467,40 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                                 return
                             else
                                 -- Try to extract streaming content
-                                local content, is_reasoning = self:extractContentFromSSE(event)
-                                if is_reasoning then
-                                    reasoning_detected = true
+                                local content, reasoning = self:extractContentFromSSE(event)
+
+                                -- Handle reasoning content (same logic as SSE handling)
+                                if type(reasoning) == "string" and #reasoning > 0 then
+                                    table.insert(reasoning_buffer, reasoning)
+
+                                    if not first_content_received then
+                                        first_content_received = true
+                                        if animation_task then
+                                            UIManager:unschedule(animation_task)
+                                            animation_task = nil
+                                        end
+                                        in_reasoning_phase = true
+                                        streamDialog._input_widget:setText("", true)
+                                    end
+
+                                    if auto_scroll and not scroll_paused then
+                                        streamDialog:addTextToInput(reasoning)
+                                    else
+                                        streamDialog._input_widget:resyncPos()
+                                        local display = in_reasoning_phase and table.concat(reasoning_buffer) or table.concat(result_buffer)
+                                        streamDialog._input_widget:setText(display, true)
+                                    end
                                 end
+
+                                -- Handle regular content
                                 if type(content) == "string" and #content > 0 then
+                                    if in_reasoning_phase then
+                                        in_reasoning_phase = false
+                                        streamDialog._input_widget:setText("", true)
+                                    end
+
                                     table.insert(result_buffer, content)
 
-                                    -- Update UI (same logic as SSE handling)
                                     if not first_content_received then
                                         first_content_received = true
                                         if animation_task then
@@ -502,7 +561,10 @@ end
 
 --- Extract content from SSE event based on provider format
 --- @param event table: Parsed JSON event
---- @return string|nil content, boolean|nil is_reasoning (true if this is a reasoning/thinking chunk)
+--- @return string|nil content, string|nil reasoning_content
+--- Returns: (content, nil) for regular content
+---          (nil, reasoning) for reasoning-only chunks
+---          (content, reasoning) if both present in same event
 function StreamHandler:extractContentFromSSE(event)
     -- OpenAI/DeepSeek format: choices[0].delta.content
     local choice = event.choices and event.choices[1]
@@ -510,69 +572,74 @@ function StreamHandler:extractContentFromSSE(event)
         -- Check for actual stop reasons (not just truthy - JSON null can be truthy in some parsers)
         local finish = choice.finish_reason
         if finish and type(finish) == "string" and finish ~= "" then
-            return nil
+            return nil, nil
         end
         local delta = choice.delta
         if delta then
-            -- DeepSeek reasoning_content indicates reasoning was used
-            if delta.reasoning_content then
-                return delta.reasoning_content, true  -- is_reasoning = true
+            -- DeepSeek: reasoning_content comes alongside regular content
+            local reasoning = delta.reasoning_content
+            local content = delta.content
+            if reasoning or content then
+                return content, reasoning
             end
-            return delta.content
         end
     end
 
-    -- Anthropic format: Check for thinking block start
+    -- Anthropic format: Check for thinking block start (no content yet, just marker)
     if event.type == "content_block_start" and event.content_block then
         if event.content_block.type == "thinking" then
-            return nil, true  -- Signal reasoning detected but no content to show
+            -- Initial thinking text might be in the block
+            local text = event.content_block.thinking
+            return nil, text  -- May be nil, that's okay
         end
     end
 
-    -- Anthropic format: delta.text (thinking content comes through delta.thinking)
+    -- Anthropic format: delta.text or delta.thinking
     local anthropic_delta = event.delta
     if anthropic_delta then
         if anthropic_delta.thinking then
-            return nil, true  -- Reasoning content, don't display but signal detected
+            -- This is thinking/reasoning content
+            return nil, anthropic_delta.thinking
         end
         if anthropic_delta.text then
-            return anthropic_delta.text
+            return anthropic_delta.text, nil
         end
     end
 
-    -- Anthropic message event: content[0].text
+    -- Anthropic message event: content[0].text or content[0].thinking
     local anthropic_content = event.content and event.content[1]
     if anthropic_content then
-        if anthropic_content.type == "thinking" then
-            return nil, true  -- Reasoning block
+        if anthropic_content.type == "thinking" and anthropic_content.thinking then
+            return nil, anthropic_content.thinking
         end
         if anthropic_content.text then
-            return anthropic_content.text
+            return anthropic_content.text, nil
         end
     end
 
     -- Gemini format: candidates[0].content.parts[0].text
-    -- Skip parts with thought=true (these are thinking/reasoning, not final answer)
+    -- Parts with thought=true are thinking/reasoning
     local gemini_candidate = event.candidates and event.candidates[1]
     if gemini_candidate then
         local parts = gemini_candidate.content and gemini_candidate.content.parts
         if parts then
-            local has_thinking = false
-            -- Check for thinking parts first
+            local content_text = nil
+            local reasoning_text = nil
+
             for _, part in ipairs(parts) do
-                if part.thought then
-                    has_thinking = true
+                if part.text then
+                    if part.thought then
+                        -- Thinking/reasoning part
+                        reasoning_text = (reasoning_text or "") .. part.text
+                    else
+                        -- Regular content part
+                        content_text = (content_text or "") .. part.text
+                    end
                 end
             end
-            -- Return first non-thinking part
-            for _, part in ipairs(parts) do
-                if part.text and not part.thought then
-                    return part.text, has_thinking or nil
-                end
-            end
-            -- If only thinking parts, signal reasoning detected
-            if has_thinking then
-                return nil, true
+
+            if content_text or reasoning_text then
+                return content_text, reasoning_text
             end
         end
     end
@@ -580,10 +647,10 @@ function StreamHandler:extractContentFromSSE(event)
     -- Ollama format: message.content (NDJSON streaming)
     local ollama_message = event.message
     if ollama_message and ollama_message.content then
-        return ollama_message.content
+        return ollama_message.content, nil
     end
 
-    return nil
+    return nil, nil
 end
 
 return StreamHandler

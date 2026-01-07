@@ -129,7 +129,20 @@ local function queryChatGPT(message_history, temp_config, on_complete)
     end
 
     -- Check if result is a function (streaming mode)
+    -- Also check for table with _stream_fn (streaming with metadata, e.g., OpenAI reasoning requested)
+    local stream_fn = nil
+    local stream_reasoning_requested = nil
+
     if type(result) == "function" then
+        stream_fn = result
+    elseif type(result) == "table" and result._stream_fn then
+        stream_fn = result._stream_fn
+        if result._reasoning_requested then
+            stream_reasoning_requested = { _requested = true, effort = result._reasoning_effort }
+        end
+    end
+
+    if stream_fn then
         -- Handler returned a background request function for streaming
         -- Import StreamHandler and process the stream
         local StreamHandler = require("stream_handler")
@@ -145,11 +158,11 @@ local function queryChatGPT(message_history, temp_config, on_complete)
 
         -- Streaming is async - show dialog and call on_complete when done
         stream_handler:showStreamDialog(
-            result,
+            stream_fn,
             provider,
             config.model,
             stream_settings,
-            function(stream_success, content, err, reasoning_detected)
+            function(stream_success, content, err, reasoning_content)
                 if stream_handler.user_interrupted then
                     if on_complete then on_complete(false, nil, "Request cancelled by user.") end
                     return
@@ -160,8 +173,13 @@ local function queryChatGPT(message_history, temp_config, on_complete)
                     return
                 end
 
-                -- Pass reasoning_detected as 4th arg (true if thinking was seen in stream)
-                if on_complete then on_complete(true, content, nil, reasoning_detected) end
+                -- Determine reasoning to pass:
+                -- 1. If reasoning_content is a string → captured reasoning (Anthropic, DeepSeek, Gemini)
+                -- 2. If stream_reasoning_requested → OpenAI format { _requested = true, effort = "..." }
+                -- 3. Otherwise → nil
+                local reasoning_info = reasoning_content or stream_reasoning_requested
+
+                if on_complete then on_complete(true, content, nil, reasoning_info) end
             end
         )
 
@@ -174,9 +192,17 @@ local function queryChatGPT(message_history, temp_config, on_complete)
     local reasoning = nil
 
     -- Check if result is a structured response with reasoning metadata
-    if type(result) == "table" and result._has_reasoning then
-        content = result.content
-        reasoning = result.reasoning
+    if type(result) == "table" then
+        if result._has_reasoning then
+            -- Confirmed reasoning (Anthropic, DeepSeek, Gemini): actual reasoning content returned
+            content = result.content
+            reasoning = result.reasoning
+        elseif result._reasoning_requested then
+            -- Requested reasoning (OpenAI): we sent the param but API doesn't expose content
+            content = result.content
+            -- Pass special marker to indicate reasoning was requested (not confirmed)
+            reasoning = { _requested = true, effort = result._reasoning_effort }
+        end
     end
 
     if on_complete then

@@ -1,4 +1,5 @@
 local Defaults = require("api_handlers.defaults")
+local ModelConstraints = require("model_constraints")
 
 local ConfigHelper = {}
 
@@ -126,7 +127,6 @@ function ConfigHelper:buildDebugInfo(config)
             level = config.api_params.thinking_level,
         }
     elseif provider == "deepseek" then
-        local ModelConstraints = require("model_constraints")
         if ModelConstraints.supportsCapability("deepseek", model, "reasoning") then
             debug_info.reasoning = {
                 type = "deepseek",

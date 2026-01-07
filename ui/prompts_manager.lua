@@ -9,6 +9,7 @@ local InputDialog = require("ui/widget/inputdialog")
 local ButtonDialog = require("ui/widget/buttondialog")
 local TextViewer = require("ui/widget/textviewer")
 local UIConstants = require("ui/constants")
+local ModelConstraints = require("model_constraints")
 
 local PromptsManager = {}
 
@@ -24,27 +25,28 @@ function PromptsManager:new(plugin)
 end
 
 -- Helper: Get display text for reasoning config (handles both legacy and new format)
-function PromptsManager:getReasoningDisplayText(action)
+-- Works with both action prompts and edit state objects
+function PromptsManager:getReasoningDisplayText(obj)
     -- New format: reasoning_config
-    if action.reasoning_config ~= nil then
-        if action.reasoning_config == "off" then
+    if obj.reasoning_config ~= nil then
+        if obj.reasoning_config == "off" then
             return _("Force OFF")
-        elseif type(action.reasoning_config) == "table" then
+        elseif type(obj.reasoning_config) == "table" then
             -- Per-provider config
             local parts = {}
-            if action.reasoning_config.anthropic then
-                if type(action.reasoning_config.anthropic) == "table" and action.reasoning_config.anthropic.budget then
-                    table.insert(parts, string.format("A:%d", action.reasoning_config.anthropic.budget))
+            if obj.reasoning_config.anthropic then
+                if type(obj.reasoning_config.anthropic) == "table" and obj.reasoning_config.anthropic.budget then
+                    table.insert(parts, string.format("A:%d", obj.reasoning_config.anthropic.budget))
                 end
             end
-            if action.reasoning_config.openai then
-                if type(action.reasoning_config.openai) == "table" and action.reasoning_config.openai.effort then
-                    table.insert(parts, "O:" .. action.reasoning_config.openai.effort:sub(1,1):upper())
+            if obj.reasoning_config.openai then
+                if type(obj.reasoning_config.openai) == "table" and obj.reasoning_config.openai.effort then
+                    table.insert(parts, "O:" .. obj.reasoning_config.openai.effort:sub(1,1):upper())
                 end
             end
-            if action.reasoning_config.gemini then
-                if type(action.reasoning_config.gemini) == "table" and action.reasoning_config.gemini.level then
-                    table.insert(parts, "G:" .. action.reasoning_config.gemini.level:sub(1,1):upper())
+            if obj.reasoning_config.gemini then
+                if type(obj.reasoning_config.gemini) == "table" and obj.reasoning_config.gemini.level then
+                    table.insert(parts, "G:" .. obj.reasoning_config.gemini.level:sub(1,1):upper())
                 end
             end
             if #parts > 0 then
@@ -55,55 +57,19 @@ function PromptsManager:getReasoningDisplayText(action)
     end
 
     -- Legacy format: extended_thinking
-    if action.extended_thinking == "on" then
-        local budget = action.thinking_budget or 4096
+    if obj.extended_thinking == "on" then
+        local budget = obj.thinking_budget or ModelConstraints.reasoning_defaults.anthropic.budget
         return string.format(_("On (%d tokens)"), budget)
-    elseif action.extended_thinking == "off" then
+    elseif obj.extended_thinking == "off" then
         return _("Force OFF")
     end
 
     return _("Global")
 end
 
--- Helper: Get display text for state (handles both legacy and new format)
+-- Alias for backward compatibility (same function, different name)
 function PromptsManager:getStateReasoningDisplayText(state)
-    -- New format: reasoning_config
-    if state.reasoning_config ~= nil then
-        if state.reasoning_config == "off" then
-            return _("Force OFF")
-        elseif type(state.reasoning_config) == "table" then
-            local parts = {}
-            if state.reasoning_config.anthropic then
-                if type(state.reasoning_config.anthropic) == "table" and state.reasoning_config.anthropic.budget then
-                    table.insert(parts, string.format("A:%d", state.reasoning_config.anthropic.budget))
-                end
-            end
-            if state.reasoning_config.openai then
-                if type(state.reasoning_config.openai) == "table" and state.reasoning_config.openai.effort then
-                    table.insert(parts, "O:" .. state.reasoning_config.openai.effort:sub(1,1):upper())
-                end
-            end
-            if state.reasoning_config.gemini then
-                if type(state.reasoning_config.gemini) == "table" and state.reasoning_config.gemini.level then
-                    table.insert(parts, "G:" .. state.reasoning_config.gemini.level:sub(1,1):upper())
-                end
-            end
-            if #parts > 0 then
-                return table.concat(parts, ", ")
-            end
-            return _("Configured")
-        end
-    end
-
-    -- Legacy format: extended_thinking
-    if state.extended_thinking == "on" then
-        local budget = state.thinking_budget or 4096
-        return string.format(_("On (%d tokens)"), budget)
-    elseif state.extended_thinking == "off" then
-        return _("Force OFF")
-    end
-
-    return _("Global")
+    return self:getReasoningDisplayText(state)
 end
 
 function PromptsManager:show()
@@ -1414,18 +1380,20 @@ end
 -- Anthropic budget selector
 function PromptsManager:showAnthropicBudgetSelector(state)
     local SpinWidget = require("ui/widget/spinwidget")
+    local defaults = ModelConstraints.reasoning_defaults.anthropic
 
     local current = state.reasoning_config.anthropic
-    local current_budget = (type(current) == "table" and current.budget) or 4096
+    local current_budget = (type(current) == "table" and current.budget) or defaults.budget
 
     local spin_widget = SpinWidget:new{
         title_text = _("Thinking Budget"),
-        info_text = _("Token budget for extended thinking.\nHigher = more complex reasoning.\nRange: 1024 - 32000"),
+        info_text = string.format(_("Token budget for extended thinking.\nHigher = more complex reasoning.\nRange: %d - %d"),
+            defaults.budget_min, defaults.budget_max),
         value = current_budget,
-        value_min = 1024,
-        value_max = 32000,
-        value_step = 1024,
-        default_value = 4096,
+        value_min = defaults.budget_min,
+        value_max = defaults.budget_max,
+        value_step = defaults.budget_step,
+        default_value = defaults.budget,
         ok_always_enabled = true,
         callback = function(spin)
             state.reasoning_config.anthropic = { budget = spin.value }
@@ -1585,17 +1553,19 @@ end
 -- Legacy: Thinking budget selector (for backward compatibility)
 function PromptsManager:showThinkingBudgetSelector(state)
     local SpinWidget = require("ui/widget/spinwidget")
+    local defaults = ModelConstraints.reasoning_defaults.anthropic
 
-    local current_budget = state.thinking_budget or 4096
+    local current_budget = state.thinking_budget or defaults.budget
 
     local spin_widget = SpinWidget:new{
         title_text = _("Thinking Budget"),
-        info_text = _("Token budget for reasoning (Anthropic).\nHigher = more complex reasoning.\nRange: 1024 - 32000"),
+        info_text = string.format(_("Token budget for reasoning (Anthropic).\nHigher = more complex reasoning.\nRange: %d - %d"),
+            defaults.budget_min, defaults.budget_max),
         value = current_budget,
-        value_min = 1024,
-        value_max = 32000,
-        value_step = 1024,
-        default_value = 4096,
+        value_min = defaults.budget_min,
+        value_max = defaults.budget_max,
+        value_step = defaults.budget_step,
+        default_value = defaults.budget,
         ok_always_enabled = true,
         callback = function(spin)
             -- Convert to new format
@@ -2031,87 +2001,6 @@ function PromptsManager:showBuiltinTemperatureSelector(state)
         end,
         callback = function(spin)
             state.temperature = spin.value
-            UIManager:close(self.builtin_settings_dialog)
-            self:showBuiltinSettingsDialog(state)
-        end,
-    }
-
-    UIManager:show(spin_widget)
-end
-
--- Thinking selector for builtin actions
-function PromptsManager:showBuiltinThinkingSelector(state)
-    local buttons = {
-        {
-            {
-                text = _("Use global setting"),
-                callback = function()
-                    state.extended_thinking = nil
-                    state.thinking_budget = nil
-                    UIManager:close(self.builtin_thinking_dialog)
-                    UIManager:close(self.builtin_settings_dialog)
-                    self:showBuiltinSettingsDialog(state)
-                end,
-            },
-        },
-        {
-            {
-                text = _("Force OFF"),
-                callback = function()
-                    state.extended_thinking = "off"
-                    state.thinking_budget = nil
-                    UIManager:close(self.builtin_thinking_dialog)
-                    UIManager:close(self.builtin_settings_dialog)
-                    self:showBuiltinSettingsDialog(state)
-                end,
-            },
-        },
-        {
-            {
-                text = _("Force ON..."),
-                callback = function()
-                    UIManager:close(self.builtin_thinking_dialog)
-                    self:showBuiltinThinkingBudgetSelector(state)
-                end,
-            },
-        },
-        {
-            {
-                text = _("Cancel"),
-                callback = function()
-                    UIManager:close(self.builtin_thinking_dialog)
-                end,
-            },
-        },
-    }
-
-    self.builtin_thinking_dialog = ButtonDialog:new{
-        title = _("Reasoning/Thinking"),
-        info_text = _("Anthropic, OpenAI (o3/gpt-5), Gemini 3. May force temp to 1.0."),
-        buttons = buttons,
-    }
-
-    UIManager:show(self.builtin_thinking_dialog)
-end
-
--- Thinking budget selector for builtin actions
-function PromptsManager:showBuiltinThinkingBudgetSelector(state)
-    local SpinWidget = require("ui/widget/spinwidget")
-
-    local current_budget = state.thinking_budget or 4096
-
-    local spin_widget = SpinWidget:new{
-        title_text = _("Thinking Budget"),
-        info_text = _("Token budget (1024-32000)"),
-        value = current_budget,
-        value_min = 1024,
-        value_max = 32000,
-        value_step = 1024,
-        default_value = 4096,
-        ok_always_enabled = true,  -- Allow Apply even when value unchanged
-        callback = function(spin)
-            state.extended_thinking = "on"
-            state.thinking_budget = spin.value
             UIManager:close(self.builtin_settings_dialog)
             self:showBuiltinSettingsDialog(state)
         end,

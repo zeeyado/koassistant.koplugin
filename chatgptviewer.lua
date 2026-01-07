@@ -26,6 +26,7 @@ local Notification = require("ui/widget/notification")
 local ScrollTextWidget = require("ui/widget/scrolltextwidget")
 local ScrollHtmlWidget = require("ui/widget/scrollhtmlwidget")
 local Size = require("ui/size")
+local TextViewer = require("ui/widget/textviewer")
 local TitleBar = require("ui/widget/titlebar")
 local UIManager = require("ui/uimanager")
 local VerticalGroup = require("ui/widget/verticalgroup")
@@ -457,6 +458,22 @@ function ChatGPTViewer:init()
         hold_callback = function()
           UIManager:show(Notification:new{
             text = _("Toggle debug display in chat viewer"),
+            timeout = 2,
+          })
+        end,
+      },
+      {
+        text = _("Show Reasoning"),
+        id = "view_reasoning",
+        enabled_func = function()
+          return self:hasReasoningContent()
+        end,
+        callback = function()
+          self:showReasoningViewer()
+        end,
+        hold_callback = function()
+          UIManager:show(Notification:new{
+            text = _("View AI reasoning/thinking content (when available)"),
             timeout = 2,
           })
         end,
@@ -1038,6 +1055,7 @@ function ChatGPTViewer:toggleDebugMode()
         is_multi_book_context = self.configuration.features and self.configuration.features.is_multi_book_context,
         ai_behavior_variant = self.configuration.features and self.configuration.features.ai_behavior_variant,
         selected_domain = self.configuration.features and self.configuration.features.selected_domain,
+        show_reasoning_indicator = self.configuration.features and self.configuration.features.show_reasoning_indicator,
       },
       model = self.configuration.model,
       additional_parameters = self.configuration.additional_parameters,
@@ -1066,6 +1084,70 @@ function ChatGPTViewer:toggleDebugMode()
   UIManager:setDirty(self, function()
     return "ui", self.frame.dimen
   end)
+end
+
+-- Check if there's any reasoning content available to view
+function ChatGPTViewer:hasReasoningContent()
+  if not self.original_history then
+    return false
+  end
+
+  local entries = self.original_history:getReasoningEntries()
+  return entries and #entries > 0
+end
+
+-- Show reasoning content in a viewer
+function ChatGPTViewer:showReasoningViewer()
+  if not self.original_history then
+    UIManager:show(Notification:new{
+      text = _("No conversation history available"),
+      timeout = 2,
+    })
+    return
+  end
+
+  local entries = self.original_history:getReasoningEntries()
+  if not entries or #entries == 0 then
+    UIManager:show(Notification:new{
+      text = _("No reasoning content available"),
+      timeout = 2,
+    })
+    return
+  end
+
+  -- Build the content to display
+  local content_parts = {}
+  local has_viewable_content = false
+
+  for idx, entry in ipairs(entries) do
+    table.insert(content_parts, string.format("--- Response #%d ---\n", entry.msg_num))
+
+    if entry.requested_only then
+      -- OpenAI: reasoning was requested but not exposed
+      local effort = entry.effort and (" (" .. entry.effort .. ")") or ""
+      table.insert(content_parts, string.format("Reasoning was requested%s but OpenAI does not expose reasoning content.\n", effort))
+    elseif entry.has_content then
+      -- Full reasoning content available
+      table.insert(content_parts, entry.reasoning .. "\n")
+      has_viewable_content = true
+    else
+      -- Legacy: reasoning was detected but content not captured (old streaming format)
+      table.insert(content_parts, "Reasoning/thinking was used but content was not captured.\n(This message is from an older chat - new chats capture reasoning content)\n")
+    end
+
+    table.insert(content_parts, "\n")
+  end
+
+  local title = has_viewable_content and _("AI Reasoning") or _("Reasoning Status")
+
+  local viewer = TextViewer:new{
+    title = title,
+    text = table.concat(content_parts),
+    width = self.width,
+    height = self.height,
+  }
+
+  UIManager:show(viewer)
 end
 
 return ChatGPTViewer
