@@ -53,12 +53,95 @@ if not _G.ActiveChatViewer then
     _G.ActiveChatViewer = nil
 end
 
-local function showLoadingDialog()
-    local loading = InfoMessage:new{
-        text = _("Loading..."),
-        timeout = 0.1
+-- Global reference to current loading dialog for closing
+local _active_loading_dialog = nil
+local _loading_animation_task = nil
+
+-- Create bouncing dot animation for loading state
+local function createLoadingAnimation()
+    local frames = { ".", "..", "...", "..", "." }
+    local currentIndex = 1
+    return {
+        getNextFrame = function()
+            local frame = frames[currentIndex]
+            currentIndex = currentIndex + 1
+            if currentIndex > #frames then
+                currentIndex = 1
+            end
+            return frame
+        end,
     }
-    UIManager:show(loading)
+end
+
+-- Show enhanced loading dialog with provider/model info and animation
+-- @param config: Optional configuration for displaying provider/model info
+local function showLoadingDialog(config)
+    -- Close any existing loading dialog
+    if _active_loading_dialog then
+        UIManager:close(_active_loading_dialog)
+        _active_loading_dialog = nil
+    end
+    if _loading_animation_task then
+        UIManager:unschedule(_loading_animation_task)
+        _loading_animation_task = nil
+    end
+
+    -- Build status text
+    local status_lines = {}
+    if config then
+        local provider = config.features and config.features.provider or "AI"
+        local model = ConfigHelper:getModelInfo(config) or "default"
+        table.insert(status_lines, string.format("%s: %s", provider:gsub("^%l", string.upper), model))
+
+        -- Check for reasoning/thinking enabled
+        local reasoning_enabled = false
+        if config.features then
+            if config.features.anthropic_reasoning or config.features.openai_reasoning or config.features.gemini_reasoning then
+                reasoning_enabled = true
+            end
+        end
+        if reasoning_enabled then
+            table.insert(status_lines, _("Reasoning enabled"))
+        end
+    end
+
+    local base_text = #status_lines > 0 and table.concat(status_lines, "\n") .. "\n\n" or ""
+    local animation = createLoadingAnimation()
+
+    -- Create initial loading dialog
+    local function createLoadingMessage()
+        return InfoMessage:new{
+            text = base_text .. _("Loading") .. animation:getNextFrame(),
+            -- No timeout - will be closed when response arrives
+        }
+    end
+
+    _active_loading_dialog = createLoadingMessage()
+    UIManager:show(_active_loading_dialog)
+
+    -- Animate the loading dots by recreating the dialog
+    local function updateAnimation()
+        if _active_loading_dialog then
+            -- Close current and show updated
+            UIManager:close(_active_loading_dialog)
+            _active_loading_dialog = createLoadingMessage()
+            UIManager:show(_active_loading_dialog)
+            _loading_animation_task = UIManager:scheduleIn(0.4, updateAnimation)
+        end
+    end
+    _loading_animation_task = UIManager:scheduleIn(0.4, updateAnimation)
+end
+
+-- Close the loading dialog (called when response is ready)
+local function closeLoadingDialog()
+    if _loading_animation_task then
+        UIManager:unschedule(_loading_animation_task)
+        _loading_animation_task = nil
+    end
+    if _active_loading_dialog then
+        UIManager:close(_active_loading_dialog)
+        _active_loading_dialog = nil
+    end
 end
 
 -- Helper function to determine prompt context
@@ -459,105 +542,77 @@ local function createExportText(history, format)
     return table.concat(result, "\n")
 end
 
--- Function to show export options dialog for the current chat
-local function showExportOptions(history)
-    local ButtonDialog = require("ui/widget/buttondialog")
-    local Device = require("device")
-    local InfoMessage = require("ui/widget/infomessage")
-
-    local buttons = {
-        -- Row 1: Copy options
-        {
-            {
-                text = _("Copy as Text"),
-                callback = function()
-                    local text = createExportText(history, "text")
-                    if text then
-                        Device.input.setClipboardText(text)
-                        UIManager:show(InfoMessage:new{
-                            text = _("Chat copied to clipboard as text"),
-                            timeout = 2,
-                        })
-                    end
-                end,
-            },
-            {
-                text = _("Copy as Markdown"),
-                callback = function()
-                    local markdown = createExportText(history, "markdown")
-                    if markdown then
-                        Device.input.setClipboardText(markdown)
-                        UIManager:show(InfoMessage:new{
-                            text = _("Chat copied to clipboard as markdown"),
-                            timeout = 2,
-                        })
-                    end
-                end,
-            },
-        },
-    }
-
-    -- Row 2: Share button (only on Android)
-    if Device:canShareText() then
-        table.insert(buttons, {
-            {
-                text = _("Share"),
-                callback = function()
-                    local text = createExportText(history, "text")
-                    if text then
-                        -- Close the dialog before invoking Android share
-                        UIManager:close(UIManager._window_stack[#UIManager._window_stack].widget)
-                        Device:doShareText(text, _("Share KOAssistant Chat"), _("KOAssistant Chat"), "text/plain")
-                    end
-                end,
-            },
-        })
-    end
-
-    -- Last row: Close button
-    table.insert(buttons, {
-        {
-            text = _("Close"),
-            callback = function()
-                -- Will be updated after dialog creation
-            end,
-        },
-    })
-
-    local export_dialog = ButtonDialog:new{
-        title = _("Export Chat"),
-        buttons = buttons,
-    }
-
-    -- Update the close button callback to use the local reference
-    local close_row = #export_dialog.buttons
-    export_dialog.buttons[close_row][1].callback = function()
-        UIManager:close(export_dialog)
-    end
-
-    UIManager:show(export_dialog)
-end
-
 local function showResponseDialog(title, history, highlightedText, addMessage, temp_config, document_path, plugin, book_metadata, launch_context)
     local result_text = history:createResultText(highlightedText, temp_config or CONFIGURATION)
     local model_info = history:getModel() or ConfigHelper:getModelInfo(temp_config)
 
     -- Initialize chat history manager
     local chat_history_manager = ChatHistoryManager:new()
-    
+
     -- Close existing chat viewer if any
     if _G.ActiveChatViewer then
         UIManager:close(_G.ActiveChatViewer)
         _G.ActiveChatViewer = nil
     end
-    
-    local chatgpt_viewer = ChatGPTViewer:new {
+
+    -- Forward declare for mutual reference
+    local chatgpt_viewer
+    local recreate_func
+
+    -- Recreate function for rotation handling
+    -- Takes state captured by ChatGPTViewer:captureState() and recreates the viewer
+    recreate_func = function(state)
+        -- Close existing viewer if any
+        if _G.ActiveChatViewer then
+            UIManager:close(_G.ActiveChatViewer)
+            _G.ActiveChatViewer = nil
+        end
+
+        -- Create new viewer with captured state but new dimensions
+        local new_viewer = ChatGPTViewer:new {
+            title = state.title,
+            text = state.text,
+            configuration = state.configuration,
+            render_markdown = state.render_markdown,
+            show_debug_in_chat = state.show_debug_in_chat,
+            original_history = state.original_history,
+            original_highlighted_text = state.original_highlighted_text,
+            reply_draft = state.reply_draft,
+            -- Callbacks from captured state
+            onAskQuestion = state.onAskQuestion,
+            save_callback = state.save_callback,
+            export_callback = state.export_callback,
+            close_callback = function()
+                if _G.ActiveChatViewer == new_viewer then
+                    _G.ActiveChatViewer = nil
+                end
+            end,
+            settings_callback = state.settings_callback,
+            update_debug_callback = state.update_debug_callback,
+            -- Pass recreate function for subsequent rotations
+            _recreate_func = recreate_func,
+        }
+
+        -- Set global reference
+        _G.ActiveChatViewer = new_viewer
+
+        -- Show the new viewer
+        UIManager:show(new_viewer)
+
+        -- Restore scroll position
+        if state.scroll_ratio and state.scroll_ratio > 0 then
+            new_viewer:restoreScrollPosition(state.scroll_ratio)
+        end
+    end
+
+    chatgpt_viewer = ChatGPTViewer:new {
         title = title .. " (" .. model_info .. ")",
         text = result_text,
         configuration = temp_config or CONFIGURATION,  -- Pass configuration for debug toggle
         show_debug_in_chat = temp_config and temp_config.features and temp_config.features.show_debug_in_chat or false,
         original_history = history,
         original_highlighted_text = highlightedText,
+        _recreate_func = recreate_func, -- For rotation handling
         settings_callback = function(path, value)
             -- Update plugin settings if plugin instance is available
             if plugin and plugin.settings then
@@ -598,11 +653,16 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
             end
         end,
         onAskQuestion = function(viewer, question)
-            -- Show loading dialog
-            showLoadingDialog()
+            -- Show loading dialog only when streaming is OFF (streaming has its own dialog)
+            local cfg = temp_config or CONFIGURATION
+            if not (cfg.features and cfg.features.enable_streaming) then
+                showLoadingDialog(cfg)
+            end
 
             -- Function to update the viewer with new content
             local function updateViewer()
+                -- Close loading dialog before showing response
+                closeLoadingDialog()
                 -- Check if our global reference is still the same
                 if _G.ActiveChatViewer == viewer then
                     -- Always close the existing viewer
@@ -618,6 +678,7 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                         show_debug_in_chat = viewer.show_debug_in_chat,
                         original_history = history,
                         original_highlighted_text = highlightedText,
+                        _recreate_func = recreate_func, -- For rotation handling
                         settings_callback = viewer.settings_callback,
                         update_debug_callback = viewer.update_debug_callback,
                         onAskQuestion = viewer.onAskQuestion,
@@ -682,6 +743,7 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                         end
                     end
                 else
+                    closeLoadingDialog()
                     UIManager:show(InfoMessage:new{
                         text = _("Failed to get response: ") .. (err or "Unknown error"),
                         timeout = 2,
@@ -705,8 +767,17 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
             end
         end,
         export_callback = function()
-            -- Call our helper function to handle exporting
-            showExportOptions(history)
+            -- Copy chat as markdown directly to clipboard
+            local Device = require("device")
+            local Notification = require("ui/widget/notification")
+            local markdown = createExportText(history, "markdown")
+            if markdown then
+                Device.input.setClipboardText(markdown)
+                UIManager:show(Notification:new{
+                    text = _("Chat copied to clipboard"),
+                    timeout = 2,
+                })
+            end
         end,
         close_callback = function()
             if _G.ActiveChatViewer == chatgpt_viewer then
@@ -1137,7 +1208,10 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             text = _("Ask"),
             callback = function()
                 UIManager:close(input_dialog)
-                showLoadingDialog()
+                -- Show loading dialog only when streaming is OFF
+                if not (configuration.features and configuration.features.enable_streaming) then
+                    showLoadingDialog(configuration)
+                end
                 UIManager:scheduleIn(0.1, function()
                     -- NEW ARCHITECTURE (v0.5.2+): Unified request config for all providers
                     -- System prompt and domain are built by buildUnifiedRequestConfig
@@ -1239,8 +1313,10 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                                 return nil
                             end
 
+                            closeLoadingDialog()
                             showResponseDialog(_("Chat"), history, highlighted_text, addMessage, configuration, document_path, plugin, book_metadata, launch_context)
                         else
+                            closeLoadingDialog()
                             UIManager:show(InfoMessage:new{
                                 text = _("Error: ") .. (err or "Unknown error"),
                                 timeout = 3
@@ -1269,7 +1345,10 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             callback = function()
                 local additional_input = input_dialog:getInputText()
                 UIManager:close(input_dialog)
-                showLoadingDialog()
+                -- Show loading dialog only when streaming is OFF
+                if not (configuration.features and configuration.features.enable_streaming) then
+                    showLoadingDialog(configuration)
+                end
                 UIManager:scheduleIn(0.1, function()
                     -- Callback for when response is ready (handles both streaming and non-streaming)
                     local function onPromptComplete(history, temp_config_or_error)
@@ -1290,8 +1369,10 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                                 end
                                 return nil -- Streaming will update via callback
                             end
+                            closeLoadingDialog()
                             showResponseDialog(_(prompt.text), history, highlighted_text, addMessage, temp_config, document_path, plugin, book_metadata, launch_context)
                         else
+                            closeLoadingDialog()
                             local error_msg = temp_config_or_error or "Unknown error"
                             UIManager:show(InfoMessage:new{
                                 text = _("Error handling prompt: ") .. prompt_type .. " - " .. error_msg,

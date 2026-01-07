@@ -8,6 +8,7 @@ local InfoMessage = require("ui/widget/infomessage")
 local Menu = require("ui/widget/menu")
 local MultiInputDialog = require("ui/widget/multiinputdialog")
 local ButtonDialog = require("ui/widget/buttondialog")
+local Notification = require("ui/widget/notification")
 local LuaSettings = require("luasettings")
 local DataStorage = require("datastorage")
 local T = require("ffi/util").template
@@ -750,6 +751,50 @@ function AskGPT:onDispatcherRegisterActions()
     general = true
   })
 
+  -- Register settings change actions (for gestures)
+  Dispatcher:registerAction("koassistant_change_primary_language", {
+    category = "none",
+    event = "KOAssistantChangePrimaryLanguage",
+    title = _("KOAssistant: Change Primary Language"),
+    general = true
+  })
+
+  Dispatcher:registerAction("koassistant_change_translation_language", {
+    category = "none",
+    event = "KOAssistantChangeTranslationLanguage",
+    title = _("KOAssistant: Change Translation Language"),
+    general = true
+  })
+
+  Dispatcher:registerAction("koassistant_change_provider", {
+    category = "none",
+    event = "KOAssistantChangeProvider",
+    title = _("KOAssistant: Change Provider"),
+    general = true
+  })
+
+  Dispatcher:registerAction("koassistant_change_model", {
+    category = "none",
+    event = "KOAssistantChangeModel",
+    title = _("KOAssistant: Change Model"),
+    general = true
+  })
+
+  Dispatcher:registerAction("koassistant_change_behavior", {
+    category = "none",
+    event = "KOAssistantChangeBehavior",
+    title = _("KOAssistant: Change AI Behavior"),
+    general = true
+  })
+
+  Dispatcher:registerAction("koassistant_ai_settings", {
+    category = "none",
+    event = "KOAssistantAISettings",
+    title = _("KOAssistant: AI Quick Settings"),
+    general = true,
+    separator = true
+  })
+
   logger.info("KOAssistant: Dispatcher actions registered successfully")
 end
 
@@ -913,18 +958,19 @@ function AskGPT:buildProviderMenu()
   local Defaults = require("api_handlers.defaults")
   local items = {}
 
-  for _, provider in ipairs(providers) do
+  for _i, provider in ipairs(providers) do
+    local prov_copy = provider  -- Capture for closure
     table.insert(items, {
-      text = provider:gsub("^%l", string.upper),  -- Capitalize
-      checked_func = function() return self_ref:getCurrentProvider() == provider end,
+      text = prov_copy:gsub("^%l", string.upper),  -- Capitalize
+      checked_func = function() return self_ref:getCurrentProvider() == prov_copy end,
       radio = true,
       callback = function()
         local features = self_ref.settings:readSetting("features") or {}
         local old_provider = features.provider
 
         -- Reset model to new provider's default when provider changes
-        if old_provider ~= provider then
-          local provider_defaults = Defaults.ProviderDefaults[provider]
+        if old_provider ~= prov_copy then
+          local provider_defaults = Defaults.ProviderDefaults[prov_copy]
           if provider_defaults and provider_defaults.model then
             features.model = provider_defaults.model
           else
@@ -932,10 +978,15 @@ function AskGPT:buildProviderMenu()
           end
         end
 
-        features.provider = provider
+        features.provider = prov_copy
         self_ref.settings:saveSetting("features", features)
         self_ref.settings:flush()
         self_ref:updateConfigFromSettings()
+        -- Show toast confirmation
+        UIManager:show(Notification:new{
+          text = string.format(_("Provider: %s"), prov_copy:gsub("^%l", string.upper)),
+          timeout = 1.5,
+        })
       end,
       keep_menu_open = true,
     })
@@ -979,6 +1030,11 @@ function AskGPT:buildModelMenu()
         self_ref.settings:saveSetting("features", f)
         self_ref.settings:flush()
         self_ref:updateConfigFromSettings()
+        -- Show toast confirmation
+        UIManager:show(Notification:new{
+          text = string.format(_("Model: %s"), model),
+          timeout = 1.5,
+        })
       end,
       keep_menu_open = true,
     })
@@ -1064,7 +1120,7 @@ function AskGPT:getEffectivePrimaryLanguage()
 
   -- Check if override is valid (exists in list)
   if override and override ~= "" then
-    for _, lang in ipairs(languages) do
+    for _i, lang in ipairs(languages) do
       if lang == override then
         return override
       end
@@ -1131,6 +1187,11 @@ function AskGPT:buildPrimaryLanguageMenu()
         end
         self_ref.settings:saveSetting("features", f)
         self_ref.settings:flush()
+        -- Show toast confirmation
+        UIManager:show(Notification:new{
+          text = string.format(_("Primary: %s"), lang_copy),
+          timeout = 1.5,
+        })
       end,
       keep_menu_open = true,
     })
@@ -1144,8 +1205,33 @@ function AskGPT:buildTranslationLanguageMenu()
   local self_ref = self
   local features = self.settings:readSetting("features") or {}
   local user_languages = features.user_languages or ""
+  local primary_language = features.primary_language or "English"
 
   local menu_items = {}
+
+  -- Add "Use Primary" option at top
+  table.insert(menu_items, {
+    text = string.format(_("Use Primary (%s)"), primary_language),
+    checked_func = function()
+      local f = self_ref.settings:readSetting("features") or {}
+      -- Check if translation_language matches primary or is empty/nil
+      local trans = f.translation_language
+      local prim = f.primary_language or "English"
+      return trans == nil or trans == "" or trans == prim or trans == "__PRIMARY__"
+    end,
+    radio = true,
+    callback = function()
+      local f = self_ref.settings:readSetting("features") or {}
+      f.translation_language = "__PRIMARY__"  -- Special value meaning "use primary"
+      self_ref.settings:saveSetting("features", f)
+      self_ref.settings:flush()
+      -- Show toast confirmation
+      UIManager:show(Notification:new{
+        text = string.format(_("Translate: %s"), primary_language),
+        timeout = 1.5,
+      })
+    end,
+  })
 
   -- Parse languages from user_languages
   local languages = {}
@@ -1157,13 +1243,14 @@ function AskGPT:buildTranslationLanguageMenu()
   end
 
   -- Add each language as an option
-  for _, lang in ipairs(languages) do
+  for _i, lang in ipairs(languages) do
     local lang_copy = lang  -- Capture for closure
     table.insert(menu_items, {
       text = lang,
       checked_func = function()
         local f = self_ref.settings:readSetting("features") or {}
-        return (f.translation_language or "English") == lang_copy
+        local trans = f.translation_language
+        return trans == lang_copy
       end,
       radio = true,
       callback = function()
@@ -1171,13 +1258,17 @@ function AskGPT:buildTranslationLanguageMenu()
         f.translation_language = lang_copy
         self_ref.settings:saveSetting("features", f)
         self_ref.settings:flush()
+        -- Show toast confirmation
+        UIManager:show(Notification:new{
+          text = string.format(_("Translate: %s"), lang_copy),
+          timeout = 1.5,
+        })
       end,
-      keep_menu_open = true,
     })
   end
 
-  -- Add separator if we have languages
-  if #languages > 0 then
+  -- Add separator before Custom
+  if #menu_items > 0 then
     menu_items[#menu_items].separator = true
   end
 
@@ -1453,6 +1544,220 @@ function AskGPT:onKOAssistantSettings()
   return true
 end
 
+--- Helper: Show a settings popup from menu items
+--- @param title string: Dialog title
+--- @param menu_items table: Array of menu items from build*Menu functions
+--- @param close_on_select boolean: If true, close popup after selection (default: true)
+function AskGPT:showQuickSettingsPopup(title, menu_items, close_on_select, on_close_callback)
+  local ButtonDialog = require("ui/widget/buttondialog")
+  local self_ref = self
+
+  -- Default to closing after selection
+  if close_on_select == nil then
+    close_on_select = true
+  end
+
+  local buttons = {}
+  for _idx, item in ipairs(menu_items) do
+    if item.text then
+      local is_checked = item.checked_func and item.checked_func()
+      local text = item.text
+      if is_checked then
+        text = "✓ " .. text
+      end
+      table.insert(buttons, {
+        {
+          text = text,
+          callback = function()
+            if item.callback then
+              item.callback()
+            end
+            UIManager:close(self_ref._quick_settings_dialog)
+            if not close_on_select then
+              -- Reopen to show updated state
+              self_ref:showQuickSettingsPopup(title, menu_items, close_on_select, on_close_callback)
+            else
+              self_ref._quick_settings_dialog = nil
+              -- Call the close callback if provided (e.g., to reopen parent dialog)
+              if on_close_callback then
+                on_close_callback()
+              end
+            end
+          end,
+        },
+      })
+    end
+  end
+
+  -- Add close button
+  table.insert(buttons, {
+    {
+      text = _("Close"),
+      callback = function()
+        UIManager:close(self_ref._quick_settings_dialog)
+        self_ref._quick_settings_dialog = nil
+        -- Don't call on_close_callback for explicit close - user wants to exit
+      end,
+    },
+  })
+
+  self._quick_settings_dialog = ButtonDialog:new{
+    title = title,
+    buttons = buttons,
+  }
+  UIManager:show(self._quick_settings_dialog)
+end
+
+--- Event handlers for gesture-accessible settings changes
+
+function AskGPT:onKOAssistantChangePrimaryLanguage()
+  local menu_items = self:buildPrimaryLanguageMenu()
+  self:showQuickSettingsPopup(_("Primary Language"), menu_items)
+  return true
+end
+
+function AskGPT:onKOAssistantChangeTranslationLanguage()
+  local menu_items = self:buildTranslationLanguageMenu()
+  self:showQuickSettingsPopup(_("Translation Language"), menu_items)
+  return true
+end
+
+function AskGPT:onKOAssistantChangeProvider()
+  local menu_items = self:buildProviderMenu()
+  self:showQuickSettingsPopup(_("Provider"), menu_items)
+  return true
+end
+
+function AskGPT:onKOAssistantChangeModel()
+  local menu_items = self:buildModelMenu()
+  self:showQuickSettingsPopup(_("Model"), menu_items)
+  return true
+end
+
+function AskGPT:onKOAssistantChangeBehavior()
+  local menu_items = self:buildBehaviorMenu()
+  self:showQuickSettingsPopup(_("AI Behavior"), menu_items)
+  return true
+end
+
+--- Build behavior variant menu (for gesture action)
+--- Just shows the available built-in behaviors - no custom option in quick menu
+function AskGPT:buildBehaviorMenu()
+  local self_ref = self
+
+  local options = {
+    { value = "minimal", text = _("Minimal (~100 tokens)") },
+    { value = "full", text = _("Full (~500 tokens)") },
+  }
+
+  local items = {}
+  for _idx, option in ipairs(options) do
+    local opt_copy = option
+    table.insert(items, {
+      text = opt_copy.text,
+      checked_func = function()
+        local f = self_ref.settings:readSetting("features") or {}
+        return (f.ai_behavior_variant or "full") == opt_copy.value
+      end,
+      radio = true,
+      callback = function()
+        local f = self_ref.settings:readSetting("features") or {}
+        f.ai_behavior_variant = opt_copy.value
+        self_ref.settings:saveSetting("features", f)
+        self_ref.settings:flush()
+        self_ref:updateConfigFromSettings()
+      end,
+    })
+  end
+
+  return items
+end
+
+--- Combined AI Quick Settings popup (for gesture action)
+function AskGPT:onKOAssistantAISettings()
+  local ButtonDialog = require("ui/widget/buttondialog")
+  local SpinWidget = require("ui/widget/spinwidget")
+  local self_ref = self
+
+  -- Helper to reopen this dialog after sub-dialog closes
+  local function reopenQuickSettings()
+    UIManager:scheduleIn(0.1, function()
+      self_ref:onKOAssistantAISettings()
+    end)
+  end
+
+  local features = self.settings:readSetting("features") or {}
+  local provider = features.provider or "anthropic"
+  local model = self:getCurrentModel() or "default"
+  local behavior = features.ai_behavior_variant or "full"
+  local temp = features.default_temperature or 0.7
+
+  local dialog
+  dialog = ButtonDialog:new{
+    title = _("AI Quick Settings"),
+    buttons = {
+      {{
+        text = string.format(_("Provider: %s"), provider:gsub("^%l", string.upper)),
+        callback = function()
+          UIManager:close(dialog)
+          -- Show provider selection, then reopen AI Quick Settings after selection
+          local menu_items = self_ref:buildProviderMenu()
+          self_ref:showQuickSettingsPopup(_("Provider"), menu_items, true, reopenQuickSettings)
+        end,
+      }},
+      {{
+        text = string.format(_("Model: %s"), model),
+        callback = function()
+          UIManager:close(dialog)
+          local menu_items = self_ref:buildModelMenu()
+          self_ref:showQuickSettingsPopup(_("Model"), menu_items, true, reopenQuickSettings)
+        end,
+      }},
+      {{
+        text = string.format(_("Temperature: %.1f"), temp),
+        callback = function()
+          UIManager:close(dialog)
+          local spin = SpinWidget:new{
+            value = temp,
+            value_min = 0,
+            value_max = 2,
+            value_step = 0.1,
+            precision = "%.1f",
+            ok_text = _("Set"),
+            title_text = _("Temperature"),
+            default_value = 0.7,
+            callback = function(spin_widget)
+              local f = self_ref.settings:readSetting("features") or {}
+              f.default_temperature = spin_widget.value
+              self_ref.settings:saveSetting("features", f)
+              self_ref.settings:flush()
+              self_ref:updateConfigFromSettings()
+              reopenQuickSettings()
+            end,
+          }
+          UIManager:show(spin)
+        end,
+      }},
+      {{
+        text = string.format(_("Behavior: %s"), behavior:gsub("^%l", string.upper)),
+        callback = function()
+          UIManager:close(dialog)
+          local menu_items = self_ref:buildBehaviorMenu()
+          self_ref:showQuickSettingsPopup(_("AI Behavior"), menu_items, true, reopenQuickSettings)
+        end,
+      }},
+      {{
+        text = _("Close"),
+        callback = function()
+          UIManager:close(dialog)
+        end,
+      }},
+    },
+  }
+  UIManager:show(dialog)
+  return true
+end
+
 function AskGPT:testProviderConnection()
   local InfoMessage = require("ui/widget/infomessage")
   local UIManager = require("ui/uimanager")
@@ -1544,7 +1849,7 @@ function AskGPT:showDomainsViewer()
   table.insert(lines, "────────────────────")
   table.insert(lines, "")
 
-  for _, id in ipairs(sorted_ids) do
+  for _i, id in ipairs(sorted_ids) do
     local domain = all_domains[id]
     table.insert(lines, "▸ " .. (domain.name or id))
     -- Show a brief preview of the context (first line or first 100 chars)
@@ -1590,7 +1895,7 @@ function AskGPT:registerHighlightMenuActions()
 
   logger.info("KOAssistant: Registering " .. #quick_actions .. " quick actions for highlight menu")
 
-  for _, action in ipairs(quick_actions) do
+  for _i, action in ipairs(quick_actions) do
     local dialog_id = "koassistant_quick_" .. action.id
     local action_copy = action  -- Capture in closure
 

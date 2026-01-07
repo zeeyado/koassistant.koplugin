@@ -260,6 +260,10 @@ local ChatGPTViewer = InputContainer:extend {
   save_callback = nil, -- New callback for saving chat
   export_callback = nil, -- New callback for exporting chat
   scroll_to_bottom = false, -- Whether to scroll to bottom on show
+
+  -- Recreate function for rotation handling
+  -- Set by dialogs.lua to enable window recreation on screen rotation
+  _recreate_func = nil,
 }
 
 function ChatGPTViewer:init()
@@ -381,55 +385,57 @@ function ChatGPTViewer:init()
   end
 
   -- buttons - organize into multiple rows for better layout
-  local default_buttons = {
-    -- First row: Main actions
+  -- First row: Main actions
+  local first_row = {
     {
-      {
-        text = _("Reply"),
-        id = "ask_another_question",
-        callback = function()
-          self:askAnotherQuestion()
-        end,
-      },
-      {
-        text_func = function()
-          -- Check if auto-save is enabled (use passed-in configuration)
-          -- Only show "Autosaved" if auto_save_all_chats is explicitly true
-          local auto_save = self.configuration and self.configuration.features and
-            self.configuration.features.auto_save_all_chats == true
-          return auto_save and _("Autosaved") or _("Save")
-        end,
-        id = "save_chat",
-        callback = function()
-          if self.save_callback then
-            self.save_callback()
-          else
-            local Notification = require("ui/widget/notification")
-            UIManager:show(Notification:new{
-              text = _("Save function not available"),
-              timeout = 2,
-            })
-          end
-        end,
-        hold_callback = self.default_hold_callback,
-      },
-      {
-        text = _("Export"),
-        id = "export_chat",
-        callback = function()
-          if self.export_callback then
-            self.export_callback()
-          else
-            local Notification = require("ui/widget/notification")
-            UIManager:show(Notification:new{
-              text = _("Export function not available"),
-              timeout = 2,
-            })
-          end
-        end,
-        hold_callback = self.default_hold_callback,
-      },
+      text = _("Reply"),
+      id = "ask_another_question",
+      callback = function()
+        self:askAnotherQuestion()
+      end,
     },
+    {
+      text_func = function()
+        -- Check if auto-save is enabled (use passed-in configuration)
+        -- Only show "Autosaved" if auto_save_all_chats is explicitly true
+        local auto_save = self.configuration and self.configuration.features and
+          self.configuration.features.auto_save_all_chats == true
+        return auto_save and _("Autosaved") or _("Save")
+      end,
+      id = "save_chat",
+      callback = function()
+        if self.save_callback then
+          self.save_callback()
+        else
+          local Notification = require("ui/widget/notification")
+          UIManager:show(Notification:new{
+            text = _("Save function not available"),
+            timeout = 2,
+          })
+        end
+      end,
+      hold_callback = self.default_hold_callback,
+    },
+    {
+      text = _("Copy"),
+      id = "copy_chat",
+      callback = function()
+        if self.export_callback then
+          self.export_callback()
+        else
+          local Notification = require("ui/widget/notification")
+          UIManager:show(Notification:new{
+            text = _("Copy function not available"),
+            timeout = 2,
+          })
+        end
+      end,
+      hold_callback = self.default_hold_callback,
+    },
+  }
+
+  local default_buttons = {
+    first_row,
     -- Second row: Controls and toggles
     {
       {
@@ -597,6 +603,7 @@ function ChatGPTViewer:init()
       auto_para_direction = self.auto_para_direction,
       alignment_strict = self.alignment_strict,
       scroll_callback = self._buttons_scroll_callback,
+      highlight_text_selection = true,
     }
   end
   self.textw = FrameContainer:new {
@@ -904,8 +911,9 @@ function ChatGPTViewer:update(new_text, scroll_to_bottom)
       auto_para_direction = self.auto_para_direction,
       alignment_strict = self.alignment_strict,
       scroll_callback = self._buttons_scroll_callback,
+      highlight_text_selection = true,
     }
-    
+
     -- Update the frame container with the new scroll widget
     self.textw:clear()
     self.textw[1] = self.scroll_text_w
@@ -1002,9 +1010,10 @@ function ChatGPTViewer:toggleMarkdown()
       auto_para_direction = self.auto_para_direction,
       alignment_strict = self.alignment_strict,
       scroll_callback = self._buttons_scroll_callback,
+      highlight_text_selection = true,
     }
   end
-  
+
   -- Update the frame container
   self.textw:clear()
   self.textw[1] = self.scroll_text_w
@@ -1148,6 +1157,82 @@ function ChatGPTViewer:showReasoningViewer()
   }
 
   UIManager:show(viewer)
+end
+
+-- Handle screen rotation by recreating the viewer with new dimensions
+-- This preserves state (text, scroll position, settings) across rotation
+function ChatGPTViewer:onSetRotationMode(rotation)
+  if not self._recreate_func then
+    -- No recreate function set, just ignore rotation
+    return false
+  end
+
+  -- Capture current state before closing
+  local state = self:captureState()
+
+  -- Close current viewer
+  UIManager:close(self)
+  if _G.ActiveChatViewer == self then
+    _G.ActiveChatViewer = nil
+  end
+
+  -- Schedule recreation to happen after rotation completes
+  UIManager:scheduleIn(0.1, function()
+    self._recreate_func(state)
+  end)
+
+  return true
+end
+
+-- Capture current viewer state for restoration after recreation
+function ChatGPTViewer:captureState()
+  local scroll_ratio = 0
+  if self.scroll_text_w then
+    -- Try to get current scroll position as ratio (0-1)
+    if self.scroll_text_w.getScrolledRatio then
+      scroll_ratio = self.scroll_text_w:getScrolledRatio()
+    elseif self.scroll_text_w.getScrollPercent then
+      scroll_ratio = self.scroll_text_w:getScrollPercent() / 100
+    end
+  end
+
+  return {
+    title = self.title,
+    text = self.text,
+    render_markdown = self.render_markdown,
+    show_debug_in_chat = self.show_debug_in_chat,
+    scroll_ratio = scroll_ratio,
+    configuration = self.configuration,
+    original_history = self.original_history,
+    original_highlighted_text = self.original_highlighted_text,
+    reply_draft = self.reply_draft,
+    -- Callbacks (will be re-bound by recreate function)
+    onAskQuestion = self.onAskQuestion,
+    save_callback = self.save_callback,
+    export_callback = self.export_callback,
+    close_callback = self.close_callback,
+    settings_callback = self.settings_callback,
+    update_debug_callback = self.update_debug_callback,
+  }
+end
+
+-- Restore scroll position after recreation
+function ChatGPTViewer:restoreScrollPosition(scroll_ratio)
+  if not self.scroll_text_w or not scroll_ratio or scroll_ratio == 0 then
+    return
+  end
+
+  -- Schedule scroll restoration after widget is fully rendered
+  UIManager:scheduleIn(0.2, function()
+    if self.scroll_text_w then
+      if self.scroll_text_w.scrollToRatio then
+        self.scroll_text_w:scrollToRatio(scroll_ratio)
+      elseif self.scroll_text_w.scrollToPercent then
+        self.scroll_text_w:scrollToPercent(scroll_ratio * 100)
+      end
+      UIManager:setDirty(self, "ui")
+    end
+  end)
 end
 
 return ChatGPTViewer

@@ -5,7 +5,9 @@ local meta = require("_meta")
 local InfoMessage = require("ui/widget/infomessage")
 local UIManager = require("ui/uimanager")
 local ConfirmBox = require("ui/widget/confirmbox")
+local TextViewer = require("ui/widget/textviewer")
 local Device = require("device")
+local Screen = Device.screen
 local logger = require("logger")
 
 local UpdateChecker = {}
@@ -166,27 +168,45 @@ function UpdateChecker.checkForUpdates(silent, include_prereleases)
             local is_prerelease = latest_release.prerelease or false
 
             local message = string.format(
-                "New %sversion available!\n\nCurrent: %s\nLatest: %s\n\nRelease notes:\n%s\n\nWould you like to visit the release page?",
+                "New %sversion available!\n\nCurrent: %s\nLatest: %s\n\n--- Release Notes ---\n\n%s",
                 is_prerelease and "pre-release " or "",
                 current_version,
                 latest_version,
-                release_notes:sub(1, 500) -- Limit release notes length
+                release_notes  -- No truncation - TextViewer handles scrolling
             )
 
-            UIManager:show(ConfirmBox:new{
+            local update_viewer
+            update_viewer = TextViewer:new{
+                title = is_prerelease and "Pre-release Update Available" or "Update Available",
                 text = message,
-                ok_text = "Visit Release Page",
-                ok_callback = function()
-                    if Device:canOpenLink() then
-                        Device:openLink(download_url)
-                    else
-                        UIManager:show(InfoMessage:new{
-                            text = "Please visit:\n" .. download_url,
-                            timeout = 10
-                        })
-                    end
-                end,
-            })
+                width = math.floor(Screen:getWidth() * 0.85),
+                height = math.floor(Screen:getHeight() * 0.85),
+                buttons_table = {
+                    {
+                        {
+                            text = "Later",
+                            callback = function()
+                                UIManager:close(update_viewer)
+                            end,
+                        },
+                        {
+                            text = "Visit Release Page",
+                            callback = function()
+                                UIManager:close(update_viewer)
+                                if Device:canOpenLink() then
+                                    Device:openLink(download_url)
+                                else
+                                    UIManager:show(InfoMessage:new{
+                                        text = "Please visit:\n" .. download_url,
+                                        timeout = 10
+                                    })
+                                end
+                            end,
+                        },
+                    },
+                },
+            }
+            UIManager:show(update_viewer)
 
             return true, latest_version
         elseif comparison == 0 then

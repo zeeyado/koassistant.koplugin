@@ -310,6 +310,51 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
             pauseAutoScroll()
             return original_scrollDown(self_widget, ...)
         end
+
+        -- Hook scrollText for pan scrolling (touch drag)
+        local original_scrollText = streamDialog._input_widget.scrollText
+        if original_scrollText then
+            streamDialog._input_widget.scrollText = function(self_widget, ...)
+                pauseAutoScroll()
+                return original_scrollText(self_widget, ...)
+            end
+        end
+
+        -- Hook page turn key events for hardware button scrolling
+        -- Store original handlers
+        local original_onKeyPgFwd = streamDialog.onKeyPgFwd
+        local original_onKeyPgBack = streamDialog.onKeyPgBack
+
+        streamDialog.onKeyPgFwd = function(self_dialog)
+            pauseAutoScroll()
+            if original_onKeyPgFwd then
+                return original_onKeyPgFwd(self_dialog)
+            end
+            -- Default: scroll down
+            if self_dialog._input_widget and self_dialog._input_widget.scrollDown then
+                self_dialog._input_widget:scrollDown()
+            end
+            return true
+        end
+
+        streamDialog.onKeyPgBack = function(self_dialog)
+            pauseAutoScroll()
+            if original_onKeyPgBack then
+                return original_onKeyPgBack(self_dialog)
+            end
+            -- Default: scroll up
+            if self_dialog._input_widget and self_dialog._input_widget.scrollUp then
+                self_dialog._input_widget:scrollUp()
+            end
+            return true
+        end
+
+        -- Register key events for page turn buttons if device has keys
+        if Device:hasKeys() then
+            streamDialog.key_events = streamDialog.key_events or {}
+            streamDialog.key_events.KeyPgFwd = { { Device.input.group.PgFwd } }
+            streamDialog.key_events.KeyPgBack = { { Device.input.group.PgBack } }
+        end
     end
 
     -- Set up waiting animation

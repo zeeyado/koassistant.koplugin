@@ -235,7 +235,12 @@ function ChatHistoryManager:saveChat(document_path, chat_title, message_history,
         end
         return false
     end
-    
+
+    -- Update last opened tracking to keep it in sync when content is added
+    -- This ensures last_opened and last_saved point to the same chat when content is modified
+    local message_count = #chat_data.messages
+    self:setLastOpenedChat(document_path, chat_id, message_count)
+
     logger.info("Saved chat history: " .. chat_id .. " for document: " .. document_path)
     return chat_id
 end
@@ -576,7 +581,10 @@ end
 local LAST_OPENED_FILE = DataStorage:getSettingsDir() .. "/koassistant_last_opened.lua"
 
 -- Track the last opened chat (called when a chat is opened/continued)
-function ChatHistoryManager:setLastOpenedChat(document_path, chat_id)
+-- @param document_path: The document path
+-- @param chat_id: The chat ID
+-- @param message_count: Optional message count to track if chat was modified
+function ChatHistoryManager:setLastOpenedChat(document_path, chat_id, message_count)
     if not document_path or not chat_id then
         logger.warn("setLastOpenedChat: Missing document_path or chat_id")
         return false
@@ -586,10 +594,12 @@ function ChatHistoryManager:setLastOpenedChat(document_path, chat_id)
     settings:saveSetting("last_opened", {
         document_path = document_path,
         chat_id = chat_id,
-        timestamp = os.time()
+        timestamp = os.time(),
+        message_count = message_count or 0,
     })
     settings:flush()
-    logger.info("Saved last opened chat: " .. chat_id .. " for document: " .. document_path)
+    logger.info("Saved last opened chat: " .. chat_id .. " for document: " .. document_path ..
+                (message_count and (" with " .. message_count .. " messages") or ""))
     return true
 end
 

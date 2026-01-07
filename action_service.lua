@@ -596,4 +596,135 @@ function ActionService:getHighlightMenuActionObjects()
     return result
 end
 
+-- Get all highlight context actions with their menu inclusion state
+-- Returns array of { action, in_menu, menu_position }
+-- Used by the highlight menu manager UI
+function ActionService:getAllHighlightActionsWithMenuState()
+    -- Get all highlight-context actions (including from 'both' and 'all' contexts)
+    local all_actions = self:getAllActions("highlight", true)  -- Include disabled
+    local menu_ids = self:getHighlightMenuActions()
+
+    -- Create lookup for menu positions
+    local menu_positions = {}
+    for i, id in ipairs(menu_ids) do
+        menu_positions[id] = i
+    end
+
+    local result = {}
+    for _, action in ipairs(all_actions) do
+        table.insert(result, {
+            action = action,
+            in_menu = menu_positions[action.id] ~= nil,
+            menu_position = menu_positions[action.id],
+        })
+    end
+
+    -- Sort: menu items first (by position), then non-menu items (alphabetically)
+    table.sort(result, function(a, b)
+        if a.in_menu and b.in_menu then
+            return a.menu_position < b.menu_position
+        elseif a.in_menu then
+            return true
+        elseif b.in_menu then
+            return false
+        else
+            return (a.action.text or "") < (b.action.text or "")
+        end
+    end)
+
+    return result
+end
+
+-- Toggle action inclusion in highlight menu
+-- Returns: true if now in menu, false if removed from menu
+function ActionService:toggleHighlightMenuAction(action_id)
+    if self:isInHighlightMenu(action_id) then
+        self:removeFromHighlightMenu(action_id)
+        return false
+    else
+        self:addToHighlightMenu(action_id)
+        return true
+    end
+end
+
+-- ============================================================
+-- Action Duplication
+-- ============================================================
+
+-- Create a duplicate of an action as data for a new custom action
+-- Generate a unique name for a duplicate action
+-- If "Name Copy" exists, tries "Name Copy (2)", "Name Copy (3)", etc.
+function ActionService:generateUniqueDuplicateName(base_name)
+    -- Must check ALL contexts since actions can have different contexts
+    local all_names = {}
+    for _i, context in ipairs({"highlight", "book", "multi_book", "general"}) do
+        local actions = self:getAllActions(context, true)  -- include_disabled = true
+        for _j, action in ipairs(actions) do
+            all_names[action.text] = true
+        end
+    end
+    local candidate = base_name .. " Copy"
+
+    -- Check if candidate exists
+    local function nameExists(name)
+        return all_names[name] == true
+    end
+
+    if not nameExists(candidate) then
+        return candidate
+    end
+
+    -- Try with incrementing numbers
+    local counter = 2
+    while counter <= 100 do  -- Safety limit
+        local numbered = base_name .. " Copy (" .. counter .. ")"
+        if not nameExists(numbered) then
+            return numbered
+        end
+        counter = counter + 1
+    end
+
+    -- Fallback with timestamp
+    return base_name .. " Copy (" .. os.time() .. ")"
+end
+
+-- Returns a table suitable for the wizard state (NOT saved yet)
+-- @param action: The action to duplicate
+-- @return table: Duplicate action data
+function ActionService:createDuplicateAction(action)
+    local duplicate = {
+        text = self:generateUniqueDuplicateName(action.text or "Action"),
+        context = action.context or "highlight",
+        behavior_variant = action.behavior_variant,
+        behavior_override = action.behavior_override,
+        extended_thinking = action.extended_thinking,
+        thinking_budget = action.thinking_budget,
+        reasoning_config = action.reasoning_config,
+        provider = action.provider,
+        model = action.model,
+        include_book_context = action.include_book_context,
+        requires = action.requires,
+        -- NOT copying: id (auto-generated), source (will be "ui"), enabled (default true)
+    }
+
+    -- Handle prompt: copy directly if exists, or resolve from template
+    if action.prompt then
+        duplicate.prompt = action.prompt
+    elseif action.template then
+        -- For builtin actions with templates, resolve the template to prompt text
+        local ok, Templates = pcall(require, "prompts/templates")
+        if ok and Templates and Templates.get then
+            duplicate.prompt = Templates.get(action.template)
+        end
+    end
+
+    -- Handle API params if present
+    if action.api_params then
+        duplicate.temperature = action.api_params.temperature
+        duplicate.max_tokens = action.api_params.max_tokens
+    end
+
+    return duplicate
+end
+
 return ActionService
