@@ -12,6 +12,7 @@ local MessageHistory = require("message_history")
 local GptQuery = require("gpt_query")
 local queryChatGPT = GptQuery.query
 local isStreamingInProgress = GptQuery.isStreamingInProgress
+local ConfigHelper = require("config_helper")
 local logger = require("logger")
 
 -- Helper function for string formatting with translations
@@ -1127,7 +1128,7 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
             -- Only save if we got a non-empty answer
             if success and answer and answer ~= "" then
                 -- Reasoning only passed for non-streaming responses when model actually used it
-                history:addAssistantMessage(answer, history:getModel() or (config and config.model), reasoning)
+                history:addAssistantMessage(answer, history:getModel() or (config and config.model), reasoning, ConfigHelper:buildDebugInfo(config))
 
                 -- Auto-save continued chats
                 if config.features.auto_save_all_chats or (config.features.auto_save_chats ~= false) then
