@@ -33,8 +33,9 @@ if ! command -v msgmerge &> /dev/null; then
     exit 1
 fi
 
-# Get version from _meta.lua
-VERSION=$(grep -oP 'version = "\K[^"]+' _meta.lua 2>/dev/null || echo "0.0.0")
+# Get version from _meta.lua (macOS-compatible)
+VERSION=$(sed -n 's/.*version = "\([^"]*\)".*/\1/p' _meta.lua 2>/dev/null)
+VERSION=${VERSION:-0.0.0}
 echo "Plugin version: $VERSION"
 echo ""
 
