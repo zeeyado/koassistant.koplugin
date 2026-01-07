@@ -86,6 +86,7 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
     local streamDialog
     local animation_task = nil
     local poll_task = nil
+    local ui_update_task = nil  -- Forward declaration for display throttling
     local first_content_received = false
 
     -- Stream processing state
@@ -139,6 +140,11 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
 
     local function finishStream()
         cleanup()
+        -- Cancel pending UI update if any
+        if ui_update_task then
+            UIManager:unschedule(ui_update_task)
+            ui_update_task = nil
+        end
         UIManager:close(streamDialog)
 
         local result = table.concat(result_buffer):match("^%s*(.-)%s*$") or "" -- trim
@@ -222,36 +228,60 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
     local auto_scroll = settings and settings.stream_auto_scroll == true
     local scroll_paused = false  -- Track if user has paused auto-scroll
 
-    -- Functions to pause/resume auto-scroll (forward declarations)
-    local pauseAutoScroll, resumeAutoScroll
+    -- Display throttling for performance (only affects non-auto-scroll mode)
+    local display_interval_sec = ((settings and settings.display_interval_ms) or 250) / 1000
+    local pending_ui_update = false
 
-    pauseAutoScroll = function()
-        if not scroll_paused and auto_scroll then
+    -- Throttled UI update function - batches multiple chunks into single display refresh
+    local function scheduleUIUpdate()
+        if pending_ui_update or completed then return end
+        pending_ui_update = true
+        ui_update_task = UIManager:scheduleIn(display_interval_sec, function()
+            pending_ui_update = false
+            ui_update_task = nil
+            if not completed and streamDialog and streamDialog._input_widget then
+                streamDialog._input_widget:resyncPos()
+                local display = in_reasoning_phase and table.concat(reasoning_buffer) or table.concat(result_buffer)
+                streamDialog._input_widget:setText(display, true)
+            end
+        end)
+    end
+
+    -- Auto-scroll state: starts based on setting, can be toggled by user
+    local auto_scroll_active = auto_scroll
+
+    -- Functions to toggle auto-scroll (forward declarations)
+    local turnOffAutoScroll, turnOnAutoScroll
+
+    turnOffAutoScroll = function()
+        if auto_scroll_active then
+            auto_scroll_active = false
             scroll_paused = true
-            -- Update button to show "Resume"
+            -- Update button to show current state (OFF)
             local btn = streamDialog.button_table:getButtonById("scroll_control")
             if btn then
-                btn:setText(_("Resume ↓"), btn.width)
-                btn.callback = resumeAutoScroll
+                btn:setText(_("Autoscroll OFF ↓"), btn.width)
+                btn.callback = turnOnAutoScroll
                 UIManager:setDirty(streamDialog, "ui")
             end
         end
     end
 
-    resumeAutoScroll = function()
+    turnOnAutoScroll = function()
+        auto_scroll_active = true
         scroll_paused = false
         -- Scroll to bottom
         streamDialog._input_widget:scrollToBottom()
-        -- Update button back to "Pause"
+        -- Update button to show current state (ON)
         local btn = streamDialog.button_table:getButtonById("scroll_control")
         if btn then
-            btn:setText(_("Pause ↓"), btn.width)
-            btn.callback = pauseAutoScroll
+            btn:setText(_("Autoscroll ON ↓"), btn.width)
+            btn.callback = turnOffAutoScroll
             UIManager:setDirty(streamDialog, "ui")
         end
     end
 
-    -- Build buttons - include Pause button only if auto_scroll is enabled
+    -- Build buttons - always include Autoscroll toggle
     local dialog_buttons = {
         {
             {
@@ -259,15 +289,14 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                 id = "close",
                 callback = _closeStreamDialog,
             },
+            {
+                -- Button shows current state, click toggles
+                text = auto_scroll and _("Autoscroll ON ↓") or _("Autoscroll OFF ↓"),
+                id = "scroll_control",
+                callback = auto_scroll and turnOffAutoScroll or turnOnAutoScroll,
+            },
         }
     }
-    if auto_scroll then
-        table.insert(dialog_buttons[1], {
-            text = _("Pause ↓"),
-            id = "scroll_control",
-            callback = pauseAutoScroll,
-        })
-    end
 
     streamDialog = InputDialog:new{
         title = _("AI is responding"),
@@ -301,13 +330,13 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
     if auto_scroll then
         local original_scrollUp = streamDialog._input_widget.scrollUp
         streamDialog._input_widget.scrollUp = function(self_widget, ...)
-            pauseAutoScroll()
+            turnOffAutoScroll()
             return original_scrollUp(self_widget, ...)
         end
 
         local original_scrollDown = streamDialog._input_widget.scrollDown
         streamDialog._input_widget.scrollDown = function(self_widget, ...)
-            pauseAutoScroll()
+            turnOffAutoScroll()
             return original_scrollDown(self_widget, ...)
         end
 
@@ -315,7 +344,7 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
         local original_scrollText = streamDialog._input_widget.scrollText
         if original_scrollText then
             streamDialog._input_widget.scrollText = function(self_widget, ...)
-                pauseAutoScroll()
+                turnOffAutoScroll()
                 return original_scrollText(self_widget, ...)
             end
         end
@@ -326,7 +355,7 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
         local original_onKeyPgBack = streamDialog.onKeyPgBack
 
         streamDialog.onKeyPgFwd = function(self_dialog)
-            pauseAutoScroll()
+            turnOffAutoScroll()
             if original_onKeyPgFwd then
                 return original_onKeyPgFwd(self_dialog)
             end
@@ -338,7 +367,7 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
         end
 
         streamDialog.onKeyPgBack = function(self_dialog)
-            pauseAutoScroll()
+            turnOffAutoScroll()
             if original_onKeyPgBack then
                 return original_onKeyPgBack(self_dialog)
             end
@@ -451,12 +480,11 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                                     streamDialog._input_widget:setText("", true)
                                 end
 
-                                if auto_scroll and not scroll_paused then
+                                if auto_scroll_active then
                                     streamDialog:addTextToInput(reasoning)
                                 else
-                                    streamDialog._input_widget:resyncPos()
-                                    local display = in_reasoning_phase and table.concat(reasoning_buffer) or table.concat(result_buffer)
-                                    streamDialog._input_widget:setText(display, true)
+                                    -- Throttled update for performance
+                                    scheduleUIUpdate()
                                 end
                             end
 
@@ -481,13 +509,12 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                                     streamDialog._input_widget:setText("", true)
                                 end
 
-                                if auto_scroll and not scroll_paused then
+                                if auto_scroll_active then
                                     -- Normal auto-scroll: append and scroll to bottom
                                     streamDialog:addTextToInput(content)
                                 else
-                                    -- Either manual mode OR paused: preserve scroll position
-                                    streamDialog._input_widget:resyncPos()
-                                    streamDialog._input_widget:setText(table.concat(result_buffer), true)
+                                    -- Throttled update for performance
+                                    scheduleUIUpdate()
                                 end
                             end
                         else
@@ -528,12 +555,11 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                                         streamDialog._input_widget:setText("", true)
                                     end
 
-                                    if auto_scroll and not scroll_paused then
+                                    if auto_scroll_active then
                                         streamDialog:addTextToInput(reasoning)
                                     else
-                                        streamDialog._input_widget:resyncPos()
-                                        local display = in_reasoning_phase and table.concat(reasoning_buffer) or table.concat(result_buffer)
-                                        streamDialog._input_widget:setText(display, true)
+                                        -- Throttled update for performance
+                                        scheduleUIUpdate()
                                     end
                                 end
 
@@ -555,11 +581,11 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                                         streamDialog._input_widget:setText("", true)
                                     end
 
-                                    if auto_scroll and not scroll_paused then
+                                    if auto_scroll_active then
                                         streamDialog:addTextToInput(content)
                                     else
-                                        streamDialog._input_widget:resyncPos()
-                                        streamDialog._input_widget:setText(table.concat(result_buffer), true)
+                                        -- Throttled update for performance
+                                        scheduleUIUpdate()
                                     end
                                 end
                             end

@@ -848,6 +848,7 @@ function AskGPT:initSettings()
       enable_streaming = true,     -- Default to streaming for new installs
       stream_auto_scroll = false,  -- Default to no auto-scroll during streaming
       large_stream_dialog = true,  -- Default to full-screen streaming dialog
+      stream_display_interval = 250,  -- ms between display updates (performance tuning)
       -- Anthropic settings
       ai_behavior_variant = "full", -- AI behavior style: "minimal" (~100 tokens) or "full" (~500 tokens)
     })
