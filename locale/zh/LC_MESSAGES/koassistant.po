@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: KOAssistant 0.6.2\n"
 "Report-Msgid-Bugs-To: https://github.com/zeeyado/koassistant.koplugin/"
 "issues\n"
-"POT-Creation-Date: 2026-01-07 12:34+0000\n"
+"POT-Creation-Date: 2026-01-07 20:48+0000\n"
 "PO-Revision-Date: 2026-01-06 18:39+0000\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: Chinese (Simplified)\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: _meta.lua:4 main.lua:123 main.lua:191 main.lua:1292 main.lua:1443
+#: _meta.lua:4 main.lua:124 main.lua:192 main.lua:1383 main.lua:1534
 #, fuzzy
 msgid "KOAssistant"
 msgstr "KO助手"
@@ -45,7 +45,7 @@ msgstr ""
 
 #: chat_history_dialog.lua:60 chat_history_dialog.lua:143
 #: chat_history_dialog.lua:816 chat_history_dialog.lua:1350
-#: chat_history_dialog.lua:1388 ui/prompts_manager.lua:529
+#: chat_history_dialog.lua:1388 ui/prompts_manager.lua:495
 #, fuzzy
 msgid "Delete"
 msgstr "删除"
@@ -59,8 +59,8 @@ msgstr "已删除 %1 个聊天"
 #: chat_history_dialog.lua:214 chat_history_dialog.lua:268
 #: chat_history_dialog.lua:827 chat_history_dialog.lua:855
 #: chat_history_dialog.lua:1005 chat_history_dialog.lua:1326
-#: chatgptviewer.lua:493 chatgptviewer.lua:656 dialogs.lua:298 dialogs.lua:466
-#: dialogs.lua:1035 dialogs.lua:1068 ui/settings_manager.lua:183
+#: chatgptviewer.lua:516 chatgptviewer.lua:680 dialogs.lua:435 dialogs.lua:1160
+#: dialogs.lua:1193 main.lua:1595 main.lua:1750 ui/settings_manager.lua:183
 #: ui/settings_manager.lua:269
 #, fuzzy
 msgid "Close"
@@ -113,7 +113,7 @@ msgstr "聊天记录"
 msgid "Navigate"
 msgstr "导航"
 
-#: chat_history_dialog.lua:321 chat_history_dialog.lua:503 main.lua:1329
+#: chat_history_dialog.lua:321 chat_history_dialog.lua:503 main.lua:1420
 #, fuzzy
 msgid "No saved chats found"
 msgstr "未找到保存的聊天"
@@ -167,7 +167,7 @@ msgstr "条消息"
 msgid "General AI Chats"
 msgstr "通用AI聊天"
 
-#: chat_history_dialog.lua:538 ui/prompts_manager.lua:468
+#: chat_history_dialog.lua:538 ui/prompts_manager.lua:434
 #, fuzzy
 msgid "Unknown"
 msgstr "未知"
@@ -222,7 +222,7 @@ msgstr "重命名"
 msgid "Tags"
 msgstr "标签"
 
-#: chat_history_dialog.lua:808 chatgptviewer.lua:416 ui/prompts_manager.lua:386
+#: chat_history_dialog.lua:808 ui/prompts_manager.lua:352
 #, fuzzy
 msgid "Export"
 msgstr "导出"
@@ -282,7 +282,7 @@ msgstr "输入标签名称"
 msgid "Add"
 msgstr "添加"
 
-#: chat_history_dialog.lua:1045 ui/prompts_manager.lua:1344
+#: chat_history_dialog.lua:1045 ui/prompts_manager.lua:1374
 #, fuzzy
 msgid "Done"
 msgstr "完成"
@@ -297,7 +297,7 @@ msgstr "管理标签"
 msgid "Error: Failed to load chat messages."
 msgstr "错误：加载聊天消息失败。"
 
-#: chat_history_dialog.lua:1144 dialogs.lua:879 stream_handler.lua:186
+#: chat_history_dialog.lua:1144 dialogs.lua:1004 stream_handler.lua:188
 #, fuzzy
 msgid "No response received from AI"
 msgstr "未收到AI回复"
@@ -307,12 +307,12 @@ msgstr "未收到AI回复"
 msgid "Untitled"
 msgstr "无标题"
 
-#: chat_history_dialog.lua:1171 dialogs.lua:57
+#: chat_history_dialog.lua:1171
 #, fuzzy
 msgid "Loading..."
 msgstr "加载中..."
 
-#: chat_history_dialog.lua:1238 dialogs.lua:632
+#: chat_history_dialog.lua:1238 dialogs.lua:748
 #, fuzzy
 msgid "Failed to get response: "
 msgstr "获取回复失败："
@@ -337,27 +337,27 @@ msgstr "聊天已保存"
 msgid "Failed to save chat"
 msgstr "保存聊天失败"
 
-#: chat_history_dialog.lua:1294 dialogs.lua:418
+#: chat_history_dialog.lua:1294
 #, fuzzy
 msgid "Copy as Text"
 msgstr "复制为文本"
 
-#: chat_history_dialog.lua:1300 dialogs.lua:424
+#: chat_history_dialog.lua:1300
 #, fuzzy
 msgid "Chat copied to clipboard as text"
 msgstr "聊天已作为文本复制到剪贴板"
 
-#: chat_history_dialog.lua:1309 dialogs.lua:431
+#: chat_history_dialog.lua:1309
 #, fuzzy
 msgid "Copy as Markdown"
 msgstr "复制为Markdown"
 
-#: chat_history_dialog.lua:1315 dialogs.lua:437
+#: chat_history_dialog.lua:1315
 #, fuzzy
 msgid "Chat copied to clipboard as markdown"
 msgstr "聊天已作为Markdown复制到剪贴板"
 
-#: chat_history_dialog.lua:1336 dialogs.lua:474
+#: chat_history_dialog.lua:1336
 #, fuzzy
 msgid "Export Chat"
 msgstr "导出聊天"
@@ -398,302 +398,388 @@ msgstr "按标签查看聊天记录"
 msgid "No chats found with this tag"
 msgstr "未找到带此标签的聊天"
 
-#: chatgptviewer.lua:387 chatgptviewer.lua:642
+#: chatgptviewer.lua:391 chatgptviewer.lua:666
 #, fuzzy
 msgid "Reply"
 msgstr "回复"
 
-#: chatgptviewer.lua:399
+#: chatgptviewer.lua:403
 #, fuzzy
 msgid "Autosaved"
 msgstr "已自动保存"
 
-#: chatgptviewer.lua:399 dialogs.lua:306 main.lua:1010 main.lua:1206
-#: main.lua:1272 ui/prompts_manager.lua:1111 ui/prompts_manager.lua:1875
+#: chatgptviewer.lua:403 dialogs.lua:443 main.lua:1066 main.lua:1297
+#: main.lua:1363 ui/prompts_manager.lua:1141 ui/prompts_manager.lua:1909
 #, fuzzy
 msgid "Save"
 msgstr "保存"
 
-#: chatgptviewer.lua:408
+#: chatgptviewer.lua:412
 #, fuzzy
 msgid "Save function not available"
 msgstr "保存功能不可用"
 
-#: chatgptviewer.lua:424
+#: chatgptviewer.lua:420
+msgid "Copy"
+msgstr ""
+
+#: chatgptviewer.lua:428
 #, fuzzy
-msgid "Export function not available"
+msgid "Copy function not available"
 msgstr "导出功能不可用"
 
-#: chatgptviewer.lua:444
+#: chatgptviewer.lua:451
 #, fuzzy
 msgid "Toggle between markdown and plain text display"
 msgstr "在Markdown和纯文本显示之间切换"
 
-#: chatgptviewer.lua:459
+#: chatgptviewer.lua:466
 #, fuzzy
 msgid "Toggle debug display in chat viewer"
 msgstr "在聊天查看器中切换调试显示"
 
-#: chatgptviewer.lua:645
+#: chatgptviewer.lua:472
+#, fuzzy
+msgid "Show Reasoning"
+msgstr "在聊天中显示调试"
+
+#: chatgptviewer.lua:482
+msgid "View AI reasoning/thinking content (when available)"
+msgstr ""
+
+#: chatgptviewer.lua:669
 #, fuzzy
 msgid "Enter your reply."
 msgstr "输入您的回复。"
 
-#: chatgptviewer.lua:670
+#: chatgptviewer.lua:694
 #, fuzzy
 msgid "Send"
 msgstr "发送"
 
-#: chatgptviewer.lua:828
+#: chatgptviewer.lua:852
 #, fuzzy
 msgid "Copied to clipboard."
 msgstr "已复制到剪贴板。"
 
-#: chatgptviewer.lua:1061
+#: chatgptviewer.lua:1088
 #, fuzzy
 msgid "Showing debug info"
 msgstr "显示调试信息"
 
-#: chatgptviewer.lua:1061
+#: chatgptviewer.lua:1088
 #, fuzzy
 msgid "Debug info hidden"
 msgstr "调试信息已隐藏"
 
-#: dialogs.lua:276
+#: chatgptviewer.lua:1112
+#, fuzzy
+msgid "No conversation history available"
+msgstr "导出功能不可用"
+
+#: chatgptviewer.lua:1121
+#, fuzzy
+msgid "No reasoning content available"
+msgstr "导出功能不可用"
+
+#: chatgptviewer.lua:1150
+msgid "AI Reasoning"
+msgstr ""
+
+#: chatgptviewer.lua:1150
+#, fuzzy
+msgid "Reasoning Status"
+msgstr "在聊天中显示调试"
+
+#: dialogs.lua:104
+#, fuzzy
+msgid "Reasoning enabled"
+msgstr "在聊天中显示调试"
+
+#: dialogs.lua:114
+#, fuzzy
+msgid "Loading"
+msgstr "加载中..."
+
+#: dialogs.lua:413
 #, fuzzy
 msgid "Cannot save: no document context"
 msgstr "无法保存：没有文档上下文"
 
-#: dialogs.lua:293
+#: dialogs.lua:430
 #, fuzzy
 msgid "Save Chat"
 msgstr "保存聊天"
 
-#: dialogs.lua:353
+#: dialogs.lua:490
 #, fuzzy
 msgid "Chat saved successfully"
 msgstr "聊天保存成功"
 
-#: dialogs.lua:358
+#: dialogs.lua:495
 #, fuzzy
 msgid "Failed to save chat: "
 msgstr "保存聊天失败："
 
-#: dialogs.lua:450
+#: dialogs.lua:777
 #, fuzzy
-msgid "Share"
-msgstr "分享"
+msgid "Chat copied to clipboard"
+msgstr "已复制到剪贴板。"
 
-#: dialogs.lua:456
-#, fuzzy
-msgid "Share KOAssistant Chat"
-msgstr "分享KO助手聊天"
-
-#: dialogs.lua:456
-#, fuzzy
-msgid "KOAssistant Chat"
-msgstr "KO助手聊天"
-
-#: dialogs.lua:954 dialogs.lua:1347
+#: dialogs.lua:1079 dialogs.lua:1482
 #, fuzzy
 msgid "Unknown Title"
 msgstr "未知标题"
 
-#: dialogs.lua:955 dialogs.lua:1348
+#: dialogs.lua:1080 dialogs.lua:1483
 #, fuzzy
 msgid "Unknown Author"
 msgstr "未知作者"
 
-#: dialogs.lua:991 dialogs.lua:1054 ui/prompts_manager.lua:875
-#: ui/prompts_manager.lua:1797
+#: dialogs.lua:1116 dialogs.lua:1179 ui/prompts_manager.lua:905
+#: ui/prompts_manager.lua:1831
 #, fuzzy
 msgid "None"
 msgstr "无"
 
-#: dialogs.lua:1045
+#: dialogs.lua:1170
 #, fuzzy
 msgid "Select Domain"
 msgstr "选择领域"
 
-#: dialogs.lua:1076
+#: dialogs.lua:1201
 #, fuzzy
 msgid "Domain: "
 msgstr "领域："
 
-#: dialogs.lua:1083
+#: dialogs.lua:1208
 #, fuzzy
 msgid "Ask"
 msgstr "提问"
 
-#: dialogs.lua:1188
+#: dialogs.lua:1317
 #, fuzzy
 msgid "Chat"
 msgstr "聊天"
 
-#: dialogs.lua:1191 dialogs.lua:1373
+#: dialogs.lua:1321 dialogs.lua:1508
 #, fuzzy
 msgid "Error: "
 msgstr "错误："
 
-#: dialogs.lua:1243
+#: dialogs.lua:1378
 msgid "Error handling prompt: "
 msgstr ""
 
-#: dialogs.lua:1280
+#: dialogs.lua:1415
 #, fuzzy
 msgid "KOAssistant Actions"
 msgstr "KO助手操作"
 
-#: dialogs.lua:1282
+#: dialogs.lua:1417
 #, fuzzy
 msgid "Type your question or additional instructions for any action..."
 msgstr "输入您的问题或任何操作的附加说明..."
 
-#: dialogs.lua:1309
+#: dialogs.lua:1444
 #, fuzzy
 msgid "Unknown prompt type: "
 msgstr "未知提示类型："
 
-#: dialogs.lua:1331
+#: dialogs.lua:1466
 #, fuzzy
 msgid "Error: No action specified"
 msgstr "错误：未指定操作"
 
-#: main.lua:222 main.lua:664
+#: main.lua:223 main.lua:665
 #, fuzzy
 msgid "Compare with KOAssistant"
 msgstr "使用KO助手比较"
 
-#: main.lua:508 main.lua:688
+#: main.lua:509 main.lua:689
 #, fuzzy
 msgid "No files selected for comparison"
 msgstr "未选择要比较的文件"
 
-#: main.lua:592
+#: main.lua:593
 #, fuzzy
 msgid "Please select at least 2 books to compare"
 msgstr "请至少选择2本书进行比较"
 
-#: main.lua:708
+#: main.lua:709
 #, fuzzy
 msgid "KOAssistant: Chat History"
 msgstr "KO助手：聊天记录"
 
-#: main.lua:716
+#: main.lua:717
 #, fuzzy
 msgid "KOAssistant: Continue Last Saved Chat"
 msgstr "KO助手：继续上次保存的聊天"
 
-#: main.lua:724
+#: main.lua:725
 #, fuzzy
 msgid "KOAssistant: Continue Last Opened Chat"
 msgstr "KO助手：继续上次打开的聊天"
 
-#: main.lua:733
+#: main.lua:734
 #, fuzzy
 msgid "KOAssistant: Settings"
 msgstr "KO助手：设置"
 
-#: main.lua:741
+#: main.lua:742
 #, fuzzy
 msgid "KOAssistant: General Chat"
 msgstr "KO助手：通用聊天"
 
-#: main.lua:749
+#: main.lua:750
 #, fuzzy
 msgid "KOAssistant: Chat About Book"
 msgstr "KO助手：关于书籍的聊天"
 
-#: main.lua:965 main.lua:1119
+#: main.lua:758
+#, fuzzy
+msgid "KOAssistant: Change Primary Language"
+msgstr "KO助手：聊天记录"
+
+#: main.lua:765
+#, fuzzy
+msgid "KOAssistant: Change Translation Language"
+msgstr "自定义翻译语言"
+
+#: main.lua:772
+#, fuzzy
+msgid "KOAssistant: Change Provider"
+msgstr "KO助手：聊天记录"
+
+#: main.lua:779
+#, fuzzy
+msgid "KOAssistant: Change Model"
+msgstr "KO助手聊天"
+
+#: main.lua:786
+#, fuzzy
+msgid "KOAssistant: Change AI Behavior"
+msgstr "KO助手：聊天记录"
+
+#: main.lua:793
+#, fuzzy
+msgid "KOAssistant: AI Quick Settings"
+msgstr "KO助手：设置"
+
+#: main.lua:987 main.lua:1700
+#, fuzzy, lua-format
+msgid "Provider: %s"
+msgstr "提供商：%1"
+
+#: main.lua:1016 main.lua:1175
 #, fuzzy
 msgid "(default)"
 msgstr "（默认）"
 
-#: main.lua:989 ui/prompts_manager.lua:1703 ui/prompts_manager.lua:2207
+#: main.lua:1035 main.lua:1709
+#, fuzzy, lua-format
+msgid "Model: %s"
+msgstr "模型：%1"
+
+#: main.lua:1045 ui/prompts_manager.lua:1737 ui/prompts_manager.lua:2160
 #, fuzzy
 msgid "Custom model..."
 msgstr "自定义模型..."
 
-#: main.lua:996
+#: main.lua:1052
 #, fuzzy
 msgid "Enter Custom Model Name"
 msgstr "输入自定义模型名称"
 
-#: main.lua:998
+#: main.lua:1054
 #, fuzzy
 msgid "e.g., claude-3-opus-20240229"
 msgstr "例如：claude-3-opus-20240229"
 
-#: main.lua:999
+#: main.lua:1055
 #, fuzzy
 msgid "Enter the exact model identifier for this provider."
 msgstr "输入此提供商的确切模型标识符。"
 
-#: main.lua:1003 main.lua:1199 main.lua:1257 ui/prompts_manager.lua:664
-#: ui/prompts_manager.lua:837 ui/prompts_manager.lua:1246
-#: ui/prompts_manager.lua:1396 ui/prompts_manager.lua:1494
-#: ui/prompts_manager.lua:1567 ui/prompts_manager.lua:1661
-#: ui/prompts_manager.lua:1714 ui/prompts_manager.lua:1740
-#: ui/prompts_manager.lua:1869 ui/prompts_manager.lua:1951
-#: ui/prompts_manager.lua:1979 ui/prompts_manager.lua:2080
-#: ui/prompts_manager.lua:2167 ui/prompts_manager.lua:2217
-#: ui/prompts_manager.lua:2243 ui/prompts_manager.lua:2406
-#: ui/prompts_manager.lua:2668
+#: main.lua:1059 main.lua:1290 main.lua:1348 ui/prompts_manager.lua:694
+#: ui/prompts_manager.lua:867 ui/prompts_manager.lua:1276
+#: ui/prompts_manager.lua:1426 ui/prompts_manager.lua:1526
+#: ui/prompts_manager.lua:1599 ui/prompts_manager.lua:1695
+#: ui/prompts_manager.lua:1748 ui/prompts_manager.lua:1774
+#: ui/prompts_manager.lua:1903 ui/prompts_manager.lua:1985
+#: ui/prompts_manager.lua:2013 ui/prompts_manager.lua:2120
+#: ui/prompts_manager.lua:2170 ui/prompts_manager.lua:2196
+#: ui/prompts_manager.lua:2359 ui/prompts_manager.lua:2660
 #, fuzzy
 msgid "Cancel"
 msgstr "取消"
 
-#: main.lua:1034
+#: main.lua:1090
 #, fuzzy
 msgid "No predefined models"
 msgstr "没有预定义的模型"
 
-#: main.lua:1087
+#: main.lua:1143
 #, fuzzy
 msgid "Set your languages first"
 msgstr "请先设置您的语言"
 
-#: main.lua:1105
+#: main.lua:1161
 #, fuzzy
 msgid "No valid languages found"
 msgstr "未找到有效语言"
 
-#: main.lua:1186 ui/prompts_manager.lua:876 ui/prompts_manager.lua:1918
+#: main.lua:1192
+#, fuzzy, lua-format
+msgid "Primary: %s"
+msgstr "主要语言：%1"
+
+#: main.lua:1214
+#, lua-format
+msgid "Use Primary (%s)"
+msgstr ""
+
+#: main.lua:1230 main.lua:1263
+#, fuzzy, lua-format
+msgid "Translate: %s"
+msgstr "翻译"
+
+#: main.lua:1277 ui/prompts_manager.lua:906 ui/prompts_manager.lua:1952
 #, fuzzy
 msgid "Custom..."
 msgstr "自定义..."
 
-#: main.lua:1192
+#: main.lua:1283
 #, fuzzy
 msgid "Custom Translation Language"
 msgstr "自定义翻译语言"
 
-#: main.lua:1194
+#: main.lua:1285
 #, fuzzy
 msgid "e.g., Spanish, Japanese, French"
 msgstr "例如：西班牙语、日语、法语"
 
-#: main.lua:1195
+#: main.lua:1286
 #, fuzzy
 msgid "Enter the target language for translations."
 msgstr "输入翻译目标语言。"
 
-#: main.lua:1229
+#: main.lua:1320
 #, fuzzy
 msgid "(Set your languages for quick selection)"
 msgstr "（设置您的语言以快速选择）"
 
-#: main.lua:1246
+#: main.lua:1337
 #, fuzzy
 msgid "Custom AI Behavior"
 msgstr "自定义AI行为"
 
-#: main.lua:1248
+#: main.lua:1339
 #, fuzzy
 msgid "Enter custom AI behavior instructions..."
 msgstr "输入自定义AI行为指令..."
 
-#: main.lua:1249
+#: main.lua:1340
 #, fuzzy
 msgid ""
 "Define how the AI should behave. This replaces the built-in Minimal/Full "
@@ -705,12 +791,12 @@ msgstr ""
 "\n"
 "提示：以完整行为作为模板开始。"
 
-#: main.lua:1264
+#: main.lua:1355
 #, fuzzy
 msgid "Load Full"
 msgstr "加载完整"
 
-#: main.lua:1305
+#: main.lua:1396
 #, fuzzy
 msgid ""
 "Model lists are now managed through the model_lists.lua file. Please edit "
@@ -718,32 +804,94 @@ msgid ""
 msgstr ""
 "模型列表现在通过model_lists.lua文件管理。请编辑此文件以添加或删除模型。"
 
-#: main.lua:1354
+#: main.lua:1445
 #, fuzzy
 msgid "No previously opened chat found"
 msgstr "未找到之前打开的聊天"
 
-#: main.lua:1371 main.lua:1633
+#: main.lua:1462 main.lua:1938
 #, fuzzy
 msgid "Configuration not found. Please set up configuration.lua first."
 msgstr "未找到配置。请先设置configuration.lua。"
 
-#: main.lua:1407
+#: main.lua:1498
 #, fuzzy
 msgid "Please open a book first"
 msgstr "请先打开一本书"
 
-#: main.lua:1465
+#: main.lua:1615
+#, fuzzy
+msgid "Primary Language"
+msgstr "主要语言：%1"
+
+#: main.lua:1621
+#, fuzzy
+msgid "Translation Language"
+msgstr "自定义翻译语言"
+
+#: main.lua:1627 main.lua:1705
+#, fuzzy
+msgid "Provider"
+msgstr "提供商："
+
+#: main.lua:1633 main.lua:1713
+#, fuzzy
+msgid "Model"
+msgstr "模型："
+
+#: main.lua:1639 main.lua:1746 ui/prompts_manager.lua:468
+#: ui/prompts_manager.lua:1994
+#, fuzzy
+msgid "AI Behavior"
+msgstr "AI行为"
+
+#: main.lua:1649 settings_schema.lua:192 ui/prompts_manager.lua:1949
+#, fuzzy
+msgid "Minimal (~100 tokens)"
+msgstr "最小（约100令牌）"
+
+#: main.lua:1650 settings_schema.lua:193 ui/prompts_manager.lua:1950
+#, fuzzy
+msgid "Full (~500 tokens)"
+msgstr "完整（约500令牌）"
+
+#: main.lua:1697
+#, fuzzy
+msgid "AI Quick Settings"
+msgstr "编辑设置"
+
+#: main.lua:1717
+#, fuzzy, lua-format
+msgid "Temperature: %.1f"
+msgstr "温度："
+
+#: main.lua:1726 ui/settings_manager.lua:235
+#, fuzzy
+msgid "Set"
+msgstr "设置"
+
+#: main.lua:1727 settings_schema.lua:208 ui/prompts_manager.lua:465
+#: ui/prompts_manager.lua:1204 ui/prompts_manager.lua:2055
+#, fuzzy
+msgid "Temperature"
+msgstr "温度"
+
+#: main.lua:1742
+#, fuzzy, lua-format
+msgid "Behavior: %s"
+msgstr "AI行为：%1"
+
+#: main.lua:1770
 #, fuzzy
 msgid "Testing connection..."
 msgstr "测试连接中..."
 
-#: main.lua:1493
+#: main.lua:1798
 #, fuzzy
 msgid "Connection test failed:\n"
 msgstr "连接测试失败：\n"
 
-#: main.lua:1499
+#: main.lua:1804
 #, fuzzy, lua-format
 msgid ""
 "Connection test successful!\n"
@@ -760,17 +908,17 @@ msgstr ""
 "\n"
 "回复：%s"
 
-#: main.lua:1507
+#: main.lua:1812
 #, fuzzy
 msgid "Connection test failed: "
 msgstr "连接测试失败："
 
-#: main.lua:1532
+#: main.lua:1837
 #, fuzzy
 msgid "WHAT ARE DOMAINS?"
 msgstr "什么是领域？"
 
-#: main.lua:1533
+#: main.lua:1838
 #, fuzzy
 msgid ""
 "Knowledge domains provide background context for AI conversations. When you "
@@ -779,64 +927,64 @@ msgstr ""
 "知识领域为AI对话提供背景上下文。当您选择一个领域时，其上下文会添加到您发送的"
 "每条消息前面。"
 
-#: main.lua:1535
+#: main.lua:1840
 #, fuzzy
 msgid "HOW THEY WORK:"
 msgstr "工作原理："
 
-#: main.lua:1536
+#: main.lua:1841
 #, fuzzy
 msgid "• Domain context is sent with each message to frame the conversation"
 msgstr "• 领域上下文随每条消息发送以构建对话框架"
 
-#: main.lua:1537
+#: main.lua:1842
 #, fuzzy
 msgid "• Larger domains give better results but use more tokens"
 msgstr "• 更大的领域提供更好的结果，但使用更多令牌"
 
-#: main.lua:1538
+#: main.lua:1843
 #, fuzzy
 msgid ""
 "• Anthropic supports prompt caching - consecutive messages reuse cached "
 "context (~90% cost savings)"
 msgstr "• Anthropic支持提示缓存 - 连续消息重用缓存的上下文（节省约90%成本）"
 
-#: main.lua:1540
+#: main.lua:1845
 #, fuzzy
 msgid "CREATING DOMAINS:"
 msgstr "创建领域："
 
-#: main.lua:1541
+#: main.lua:1846
 #, fuzzy
 msgid "Create .md or .txt files in the domains/ folder."
 msgstr "在domains/文件夹中创建.md或.txt文件。"
 
-#: main.lua:1542
+#: main.lua:1847
 #, fuzzy
 msgid "See domains.sample/ for examples."
 msgstr "请参阅domains.sample/获取示例。"
 
-#: main.lua:1562
+#: main.lua:1867
 #, fuzzy
 msgid "No domains defined."
 msgstr "未定义领域。"
 
-#: main.lua:1568
+#: main.lua:1873
 #, fuzzy, lua-format
 msgid "Total: %d domains"
 msgstr "总计：%d 个领域"
 
-#: main.lua:1573
+#: main.lua:1878
 #, fuzzy
 msgid "Available Domains"
 msgstr "可用领域"
 
-#: main.lua:1624
+#: main.lua:1929
 #, fuzzy
 msgid "Default actions restored"
 msgstr "已恢复默认操作"
 
-#: main.lua:1692
+#: main.lua:1997
 #, fuzzy
 msgid ""
 "KOAssistant Plugin\n"
@@ -845,7 +993,7 @@ msgstr ""
 "KO助手插件\n"
 "版本："
 
-#: main.lua:1744
+#: main.lua:2049
 #, fuzzy
 msgid "Refresh cached book information"
 msgstr "刷新缓存的书籍信息"
@@ -945,18 +1093,18 @@ msgid "Advanced"
 msgstr "高级"
 
 #: settings_schema.lua:186 settings_schema.lua:299 settings_schema.lua:347
-#: ui/prompts_manager.lua:873 ui/prompts_manager.lua:1799
+#: ui/prompts_manager.lua:903 ui/prompts_manager.lua:1833
 #, fuzzy
 msgid "Minimal"
 msgstr "最小"
 
 #: settings_schema.lua:186 settings_schema.lua:187 settings_schema.lua:347
-#: ui/prompts_manager.lua:874 ui/prompts_manager.lua:1801
+#: ui/prompts_manager.lua:904 ui/prompts_manager.lua:1835
 #, fuzzy
 msgid "Full"
 msgstr "完整"
 
-#: settings_schema.lua:186 settings_schema.lua:194 ui/prompts_manager.lua:1795
+#: settings_schema.lua:186 settings_schema.lua:194 ui/prompts_manager.lua:1829
 #, fuzzy
 msgid "Custom"
 msgstr "自定义"
@@ -966,28 +1114,12 @@ msgstr "自定义"
 msgid "AI Behavior: %1"
 msgstr "AI行为：%1"
 
-#: settings_schema.lua:192 ui/prompts_manager.lua:1915
-#, fuzzy
-msgid "Minimal (~100 tokens)"
-msgstr "最小（约100令牌）"
-
-#: settings_schema.lua:193 ui/prompts_manager.lua:1916
-#, fuzzy
-msgid "Full (~500 tokens)"
-msgstr "完整（约500令牌）"
-
 #: settings_schema.lua:200
 #, fuzzy
 msgid "Edit Custom Behavior..."
 msgstr "编辑自定义行为..."
 
-#: settings_schema.lua:208 ui/prompts_manager.lua:499
-#: ui/prompts_manager.lua:1174 ui/prompts_manager.lua:2021
-#, fuzzy
-msgid "Temperature"
-msgstr "温度"
-
-#: settings_schema.lua:215 ui/prompts_manager.lua:1175
+#: settings_schema.lua:215 ui/prompts_manager.lua:1205
 #, fuzzy
 msgid ""
 "Range: 0.0-2.0 (Anthropic max 1.0)\n"
@@ -998,7 +1130,7 @@ msgstr ""
 "更低 = 专注、确定性\n"
 "更高 = 创意、多样性"
 
-#: settings_schema.lua:222 ui/prompts_manager.lua:500
+#: settings_schema.lua:222 ui/prompts_manager.lua:466
 msgid "Reasoning"
 msgstr ""
 
@@ -1006,7 +1138,7 @@ msgstr ""
 msgid "Long-press provider for supported models"
 msgstr ""
 
-#: settings_schema.lua:236 ui/prompts_manager.lua:1406
+#: settings_schema.lua:236 ui/prompts_manager.lua:1436
 #, fuzzy
 msgid "Anthropic Extended Thinking"
 msgstr "扩展思考"
@@ -1037,7 +1169,7 @@ msgstr ""
 "更高 = 更复杂的推理。\n"
 "范围：1024 - 32000"
 
-#: settings_schema.lua:259 ui/prompts_manager.lua:1504
+#: settings_schema.lua:259 ui/prompts_manager.lua:1536
 msgid "OpenAI Reasoning"
 msgstr ""
 
@@ -1049,16 +1181,16 @@ msgid ""
 msgstr ""
 
 #: settings_schema.lua:270 settings_schema.lua:299 settings_schema.lua:309
-#: ui/prompts_manager.lua:1537
+#: ui/prompts_manager.lua:1569
 msgid "Low"
 msgstr ""
 
 #: settings_schema.lua:270 settings_schema.lua:299 settings_schema.lua:310
-#: ui/prompts_manager.lua:1547
+#: ui/prompts_manager.lua:1579
 msgid "Medium"
 msgstr ""
 
-#: settings_schema.lua:270 settings_schema.lua:299 ui/prompts_manager.lua:1557
+#: settings_schema.lua:270 settings_schema.lua:299 ui/prompts_manager.lua:1589
 #, fuzzy
 msgid "High"
 msgstr "高亮"
@@ -1086,7 +1218,7 @@ msgstr ""
 msgid "High (thorough)"
 msgstr ""
 
-#: settings_schema.lua:288 ui/prompts_manager.lua:1577
+#: settings_schema.lua:288 ui/prompts_manager.lua:1609
 #, fuzzy
 msgid "Gemini Thinking"
 msgstr "扩展思考"
@@ -1122,15 +1254,15 @@ msgstr "（默认）"
 
 #: settings_schema.lua:318
 #, fuzzy
-msgid "Show Reasoning in Chat"
+msgid "Show Indicator in Chat"
 msgstr "在聊天中显示调试"
 
 #: settings_schema.lua:319
 msgid ""
-"Display AI thinking/reasoning when available.\n"
+"Show '*[Reasoning was used]*' indicator in chat when reasoning is requested "
+"or used.\n"
 "\n"
-"Visible for: Anthropic, DeepSeek reasoner, R1 models\n"
-"Hidden (encrypted): OpenAI, Gemini"
+"Full reasoning content is always viewable via 'Show Reasoning' button."
 msgstr ""
 
 #: settings_schema.lua:328
@@ -1253,12 +1385,12 @@ msgstr "英语"
 msgid "Translation Target: %1"
 msgstr "翻译目标：%1"
 
-#: settings_schema.lua:442 ui/prompts_manager.lua:416
+#: settings_schema.lua:442 ui/prompts_manager.lua:382
 #, fuzzy
 msgid "Manage Actions"
 msgstr "管理操作"
 
-#: settings_schema.lua:448 ui/prompts_manager.lua:2595
+#: settings_schema.lua:448
 #, fuzzy
 msgid "Highlight Menu Actions"
 msgstr "高亮菜单操作"
@@ -1278,241 +1410,234 @@ msgstr "关于KO助手"
 msgid "Check for Updates"
 msgstr "检查更新"
 
-#: stream_handler.lua:145
+#: stream_handler.lua:147
 #, fuzzy
 msgid "Request cancelled by user."
 msgstr "请求已被用户取消。"
 
-#: stream_handler.lua:183
+#: stream_handler.lua:185
 #, fuzzy
 msgid "No response received. Raw: "
 msgstr "未收到回复。原始数据："
 
-#: stream_handler.lua:231
+#: stream_handler.lua:234
 #, fuzzy
 msgid "Resume ↓"
 msgstr "继续 ↓"
 
-#: stream_handler.lua:245 stream_handler.lua:263
+#: stream_handler.lua:248 stream_handler.lua:266
 #, fuzzy
 msgid "Pause ↓"
 msgstr "暂停 ↓"
 
-#: stream_handler.lua:255
+#: stream_handler.lua:258
 #, fuzzy
 msgid "Stop"
 msgstr "停止"
 
-#: stream_handler.lua:270
+#: stream_handler.lua:273
 #, fuzzy
 msgid "AI is responding"
 msgstr "AI正在回复"
 
-#: stream_handler.lua:330
+#: stream_handler.lua:378
 #, fuzzy
 msgid "Failed to start subprocess for request"
 msgstr "启动请求子进程失败"
 
-#: ui/prompts_manager.lua:31 ui/prompts_manager.lua:62
-#: ui/prompts_manager.lua:73 ui/prompts_manager.lua:103
-#: ui/prompts_manager.lua:2059
+#: ui/prompts_manager.lua:33 ui/prompts_manager.lua:64
 #, fuzzy
 msgid "Force OFF"
 msgstr "强制关闭"
 
-#: ui/prompts_manager.lua:53 ui/prompts_manager.lua:94
+#: ui/prompts_manager.lua:55
 msgid "Configured"
 msgstr ""
 
-#: ui/prompts_manager.lua:60 ui/prompts_manager.lua:101
+#: ui/prompts_manager.lua:62
 #, fuzzy, lua-format
 msgid "On (%d tokens)"
 msgstr "开启（%d 令牌）"
 
-#: ui/prompts_manager.lua:65 ui/prompts_manager.lua:106
-#: ui/prompts_manager.lua:484 ui/prompts_manager.lua:490
-#: ui/prompts_manager.lua:491 ui/prompts_manager.lua:1052
-#: ui/prompts_manager.lua:1058 ui/prompts_manager.lua:1059
-#: ui/prompts_manager.lua:1803 ui/prompts_manager.lua:1807
-#: ui/prompts_manager.lua:1813 ui/prompts_manager.lua:1814
+#: ui/prompts_manager.lua:67 ui/prompts_manager.lua:450
+#: ui/prompts_manager.lua:456 ui/prompts_manager.lua:457
+#: ui/prompts_manager.lua:1082 ui/prompts_manager.lua:1088
+#: ui/prompts_manager.lua:1089 ui/prompts_manager.lua:1837
+#: ui/prompts_manager.lua:1841 ui/prompts_manager.lua:1847
+#: ui/prompts_manager.lua:1848
 #, fuzzy
 msgid "Global"
 msgstr "全局"
 
-#: ui/prompts_manager.lua:284
+#: ui/prompts_manager.lua:250
 #, fuzzy
 msgid "Tap to toggle • Hold for details • ★ = custom • ⚙ = modified"
 msgstr "点击切换 • 长按查看详情 • ★ = 自定义 • ⚙ = 已修改"
 
-#: ui/prompts_manager.lua:291
+#: ui/prompts_manager.lua:257
 #, fuzzy
 msgid "+ Add Action"
 msgstr "+ 添加操作"
 
-#: ui/prompts_manager.lua:302
+#: ui/prompts_manager.lua:268
 #, fuzzy
 msgid "Highlight Context"
 msgstr "高亮上下文"
 
-#: ui/prompts_manager.lua:303
+#: ui/prompts_manager.lua:269
 #, fuzzy
 msgid "Book Context (File Browser)"
 msgstr "书籍上下文（文件浏览器）"
 
-#: ui/prompts_manager.lua:304
+#: ui/prompts_manager.lua:270
 #, fuzzy
 msgid "Multi-Book Context"
 msgstr "多书籍上下文"
 
-#: ui/prompts_manager.lua:305
+#: ui/prompts_manager.lua:271
 #, fuzzy
 msgid "General Context"
 msgstr "通用上下文"
 
-#: ui/prompts_manager.lua:306 ui/prompts_manager.lua:765
-#: ui/prompts_manager.lua:2550
+#: ui/prompts_manager.lua:272 ui/prompts_manager.lua:795
+#: ui/prompts_manager.lua:2503
 #, fuzzy
 msgid "Highlight & Book"
 msgstr "高亮和书籍"
 
-#: ui/prompts_manager.lua:307 ui/prompts_manager.lua:2552
+#: ui/prompts_manager.lua:273 ui/prompts_manager.lua:2505
 #, fuzzy
 msgid "Highlight & General"
 msgstr "高亮和通用"
 
-#: ui/prompts_manager.lua:308 ui/prompts_manager.lua:2554
+#: ui/prompts_manager.lua:274 ui/prompts_manager.lua:2507
 #, fuzzy
 msgid "Book & General"
 msgstr "书籍和通用"
 
-#: ui/prompts_manager.lua:309 ui/prompts_manager.lua:770
-#: ui/prompts_manager.lua:2556
+#: ui/prompts_manager.lua:275 ui/prompts_manager.lua:800
+#: ui/prompts_manager.lua:2509
 #, fuzzy
 msgid "All Contexts"
 msgstr "所有上下文"
 
-#: ui/prompts_manager.lua:377
+#: ui/prompts_manager.lua:343
 #, fuzzy
 msgid "Import"
 msgstr "导入"
 
-#: ui/prompts_manager.lua:381
+#: ui/prompts_manager.lua:347
 #, fuzzy
 msgid "Import feature coming soon..."
 msgstr "导入功能即将推出..."
 
-#: ui/prompts_manager.lua:390
+#: ui/prompts_manager.lua:356
 #, fuzzy
 msgid "Export feature coming soon..."
 msgstr "导出功能即将推出..."
 
-#: ui/prompts_manager.lua:395
+#: ui/prompts_manager.lua:361
 #, fuzzy
 msgid "Restore Defaults"
 msgstr "恢复默认"
 
-#: ui/prompts_manager.lua:398
+#: ui/prompts_manager.lua:364
 #, fuzzy
 msgid ""
 "This will remove all custom actions and reset all action settings. Continue?"
 msgstr "这将删除所有自定义操作并重置所有操作设置。继续？"
 
-#: ui/prompts_manager.lua:462
+#: ui/prompts_manager.lua:428
 #, fuzzy
 msgid "Built-in"
 msgstr "内置"
 
-#: ui/prompts_manager.lua:464
+#: ui/prompts_manager.lua:430
 #, fuzzy
 msgid "Custom (custom_actions.lua)"
 msgstr "自定义（custom_actions.lua）"
 
-#: ui/prompts_manager.lua:466
+#: ui/prompts_manager.lua:432
 #, fuzzy
 msgid "User-defined (UI)"
 msgstr "用户定义（界面）"
 
-#: ui/prompts_manager.lua:474
+#: ui/prompts_manager.lua:440
 #, fuzzy
 msgid "Custom: "
 msgstr "自定义："
 
-#: ui/prompts_manager.lua:476
+#: ui/prompts_manager.lua:442
 #, fuzzy
 msgid "None (disabled)"
 msgstr "无（已禁用）"
 
-#: ui/prompts_manager.lua:480
+#: ui/prompts_manager.lua:446
 #, fuzzy
 msgid "(Use global setting)"
 msgstr "（使用全局设置）"
 
-#: ui/prompts_manager.lua:496
+#: ui/prompts_manager.lua:462
 #, fuzzy
 msgid "Context"
 msgstr "上下文"
 
-#: ui/prompts_manager.lua:497
+#: ui/prompts_manager.lua:463
 #, fuzzy
 msgid "Source"
 msgstr "来源"
 
-#: ui/prompts_manager.lua:498
+#: ui/prompts_manager.lua:464
 #, fuzzy
 msgid "Status"
 msgstr "状态"
 
-#: ui/prompts_manager.lua:498
+#: ui/prompts_manager.lua:464
 #, fuzzy
 msgid "Enabled"
 msgstr "已启用"
 
-#: ui/prompts_manager.lua:498
+#: ui/prompts_manager.lua:464
 #, fuzzy
 msgid "Disabled"
 msgstr "已禁用"
 
-#: ui/prompts_manager.lua:501
+#: ui/prompts_manager.lua:467
 #, fuzzy
 msgid "Provider/Model"
 msgstr "提供商/模型"
 
-#: ui/prompts_manager.lua:502 ui/prompts_manager.lua:1960
-#, fuzzy
-msgid "AI Behavior"
-msgstr "AI行为"
-
-#: ui/prompts_manager.lua:504
+#: ui/prompts_manager.lua:470
 #, fuzzy
 msgid "Action Prompt"
 msgstr "操作提示"
 
-#: ui/prompts_manager.lua:505
+#: ui/prompts_manager.lua:471
 #, fuzzy
 msgid "(None)"
 msgstr "（无）"
 
-#: ui/prompts_manager.lua:509
+#: ui/prompts_manager.lua:475
 #, fuzzy
 msgid "Requires"
 msgstr "需要"
 
-#: ui/prompts_manager.lua:519
+#: ui/prompts_manager.lua:485
 #, fuzzy
 msgid "Edit"
 msgstr "编辑"
 
-#: ui/prompts_manager.lua:532
+#: ui/prompts_manager.lua:498
 #, fuzzy
 msgid "Delete this action?"
 msgstr "删除此操作？"
 
-#: ui/prompts_manager.lua:552
+#: ui/prompts_manager.lua:518
 #, fuzzy
 msgid "Edit file"
 msgstr "编辑文件"
 
-#: ui/prompts_manager.lua:555 ui/prompts_manager.lua:2516
+#: ui/prompts_manager.lua:521 ui/prompts_manager.lua:2469
 #, fuzzy
 msgid ""
 "This action is defined in custom_actions.lua.\n"
@@ -1521,248 +1646,269 @@ msgstr ""
 "此操作在custom_actions.lua中定义。\n"
 "请直接编辑该文件进行修改。"
 
-#: ui/prompts_manager.lua:564
+#: ui/prompts_manager.lua:530
 #, fuzzy
 msgid "Edit Settings"
 msgstr "编辑设置"
 
-#: ui/prompts_manager.lua:576
+#: ui/prompts_manager.lua:542
 #, fuzzy
 msgid "Reset to Default"
 msgstr "重置为默认"
 
-#: ui/prompts_manager.lua:579
+#: ui/prompts_manager.lua:545
 #, fuzzy
 msgid "Reset this action to default settings?"
 msgstr "将此操作重置为默认设置？"
 
-#: ui/prompts_manager.lua:601
+#: ui/prompts_manager.lua:567
 #, fuzzy
 msgid "✓ In Highlight Menu"
 msgstr "✓ 在高亮菜单中"
 
-#: ui/prompts_manager.lua:601
+#: ui/prompts_manager.lua:567
 #, fuzzy
 msgid "Add to Highlight Menu"
 msgstr "添加到高亮菜单"
 
-#: ui/prompts_manager.lua:610
+#: ui/prompts_manager.lua:572
 #, fuzzy
-msgid "Highlight menu will update on next app restart."
-msgstr "高亮菜单将在下次应用重启时更新。"
+msgid "Added to highlight menu."
+msgstr "添加到高亮菜单"
 
-#: ui/prompts_manager.lua:618
+#: ui/prompts_manager.lua:572
+#, fuzzy
+msgid "Removed from highlight menu."
+msgstr "所有操作已从高亮菜单移除。"
+
+#: ui/prompts_manager.lua:584
+msgid "Duplicate as Custom"
+msgstr ""
+
+#: ui/prompts_manager.lua:594
 #, fuzzy
 msgid "Action Details"
 msgstr "操作详情"
 
-#: ui/prompts_manager.lua:671
+#: ui/prompts_manager.lua:607 ui/prompts_manager.lua:2524
+#, fuzzy
+msgid "Action service not available."
+msgstr "操作服务不可用。"
+
+#: ui/prompts_manager.lua:646
+#, lua-format
+msgid ""
+"Created: %s\n"
+"\n"
+"You can find and edit it in the Actions list."
+msgstr ""
+
+#: ui/prompts_manager.lua:701
 #, fuzzy
 msgid "Context: "
 msgstr "上下文："
 
-#: ui/prompts_manager.lua:671
+#: ui/prompts_manager.lua:701
 #, fuzzy
 msgid "Not set"
 msgstr "未设置"
 
-#: ui/prompts_manager.lua:679 ui/prompts_manager.lua:920
-#: ui/prompts_manager.lua:964 ui/prompts_manager.lua:1025
+#: ui/prompts_manager.lua:709 ui/prompts_manager.lua:950
+#: ui/prompts_manager.lua:994 ui/prompts_manager.lua:1055
 #, fuzzy
 msgid "Next →"
 msgstr "下一步 →"
 
-#: ui/prompts_manager.lua:684
+#: ui/prompts_manager.lua:714
 #, fuzzy
 msgid "Please enter a prompt name"
 msgstr "请输入提示名称"
 
-#: ui/prompts_manager.lua:690
+#: ui/prompts_manager.lua:720
 #, fuzzy
 msgid "Please select a context first"
 msgstr "请先选择上下文"
 
-#: ui/prompts_manager.lua:706
+#: ui/prompts_manager.lua:736
 #, fuzzy
 msgid "Include book info (title, author)"
 msgstr "包含书籍信息（标题、作者）"
 
-#: ui/prompts_manager.lua:718
+#: ui/prompts_manager.lua:748
 #, fuzzy
 msgid "Example: 'Summarize', 'Explain Simply', 'Find Themes'"
 msgstr "示例：'总结'、'简单解释'、'查找主题'"
 
-#: ui/prompts_manager.lua:727
+#: ui/prompts_manager.lua:757
 #, fuzzy
 msgid "Edit Action - Name"
 msgstr "编辑操作 - 名称"
 
-#: ui/prompts_manager.lua:727
+#: ui/prompts_manager.lua:757
 #, fuzzy
 msgid "Step 1/3: Name & Context"
 msgstr "步骤 1/3：名称和上下文"
 
-#: ui/prompts_manager.lua:729
+#: ui/prompts_manager.lua:759
 #, fuzzy
 msgid "Enter a short name (shown as button)"
 msgstr "输入简短名称（显示为按钮）"
 
-#: ui/prompts_manager.lua:742 ui/prompts_manager.lua:2542
+#: ui/prompts_manager.lua:772 ui/prompts_manager.lua:2495
 #, fuzzy
 msgid "Highlight"
 msgstr "高亮"
 
-#: ui/prompts_manager.lua:743
+#: ui/prompts_manager.lua:773
 #, fuzzy
 msgid "When text is selected in a book"
 msgstr "当在书中选择文本时"
 
-#: ui/prompts_manager.lua:746
+#: ui/prompts_manager.lua:776
 #, fuzzy
 msgid "Includes: selected text + book title, author"
 msgstr "包括：选中文本 + 书名、作者"
 
-#: ui/prompts_manager.lua:747
+#: ui/prompts_manager.lua:777
 #, fuzzy
 msgid "Includes: selected text only"
 msgstr "包括：仅选中文本"
 
-#: ui/prompts_manager.lua:750
+#: ui/prompts_manager.lua:780
 #, fuzzy
 msgid "Book"
 msgstr "书籍"
 
-#: ui/prompts_manager.lua:751
+#: ui/prompts_manager.lua:781
 #, fuzzy
 msgid "File browser selection or 'Chat about book' gesture"
 msgstr "文件浏览器选择或'关于书籍的聊天'手势"
 
-#: ui/prompts_manager.lua:752
+#: ui/prompts_manager.lua:782
 #, fuzzy
 msgid "Includes: book title, author (automatic)"
 msgstr "包括：书名、作者（自动）"
 
-#: ui/prompts_manager.lua:755 ui/prompts_manager.lua:2546
+#: ui/prompts_manager.lua:785 ui/prompts_manager.lua:2499
 #, fuzzy
 msgid "Multi-Book"
 msgstr "多书籍"
 
-#: ui/prompts_manager.lua:756
+#: ui/prompts_manager.lua:786
 #, fuzzy
 msgid "When multiple books are selected"
 msgstr "当选择多本书时"
 
-#: ui/prompts_manager.lua:757
+#: ui/prompts_manager.lua:787
 #, fuzzy
 msgid "Includes: list of books with titles/authors, count"
 msgstr "包括：书名/作者列表、数量"
 
-#: ui/prompts_manager.lua:760 ui/prompts_manager.lua:2548
+#: ui/prompts_manager.lua:790 ui/prompts_manager.lua:2501
 #, fuzzy
 msgid "General"
 msgstr "通用"
 
-#: ui/prompts_manager.lua:761
+#: ui/prompts_manager.lua:791
 #, fuzzy
 msgid "General chat, no specific context"
 msgstr "通用聊天，无特定上下文"
 
-#: ui/prompts_manager.lua:762
+#: ui/prompts_manager.lua:792
 #, fuzzy
 msgid "No automatic context data"
 msgstr "无自动上下文数据"
 
-#: ui/prompts_manager.lua:766
+#: ui/prompts_manager.lua:796
 #, fuzzy
 msgid "Both highlight and book contexts"
 msgstr "高亮和书籍上下文"
 
-#: ui/prompts_manager.lua:767
+#: ui/prompts_manager.lua:797
 #, fuzzy
 msgid "Highlight: selected text; Book: title/author"
 msgstr "高亮：选中文本；书籍：标题/作者"
 
-#: ui/prompts_manager.lua:771
+#: ui/prompts_manager.lua:801
 #, fuzzy
 msgid "Available everywhere"
 msgstr "随处可用"
 
-#: ui/prompts_manager.lua:772
+#: ui/prompts_manager.lua:802
 #, fuzzy
 msgid "Varies by trigger"
 msgstr "因触发器而异"
 
-#: ui/prompts_manager.lua:846
+#: ui/prompts_manager.lua:876
 #, fuzzy
 msgid "Select Context"
 msgstr "选择上下文"
 
-#: ui/prompts_manager.lua:872 ui/prompts_manager.lua:1217
-#: ui/prompts_manager.lua:1367 ui/prompts_manager.lua:1444
-#: ui/prompts_manager.lua:1517 ui/prompts_manager.lua:1623
-#: ui/prompts_manager.lua:1914 ui/prompts_manager.lua:2047
-#: ui/prompts_manager.lua:2132
+#: ui/prompts_manager.lua:902 ui/prompts_manager.lua:1247
+#: ui/prompts_manager.lua:1397 ui/prompts_manager.lua:1476
+#: ui/prompts_manager.lua:1549 ui/prompts_manager.lua:1657
+#: ui/prompts_manager.lua:1948 ui/prompts_manager.lua:2085
 #, fuzzy
 msgid "Use global setting"
 msgstr "使用全局设置"
 
-#: ui/prompts_manager.lua:872
+#: ui/prompts_manager.lua:902
 #, fuzzy
 msgid "Inherits from Settings → Advanced → AI Behavior Style"
 msgstr "继承自设置 → 高级 → AI行为风格"
 
-#: ui/prompts_manager.lua:873
+#: ui/prompts_manager.lua:903
 #, fuzzy
 msgid "Brief, focused responses (~100 tokens)"
 msgstr "简短、专注的回复（约100令牌）"
 
-#: ui/prompts_manager.lua:874
+#: ui/prompts_manager.lua:904
 #, fuzzy
 msgid "Comprehensive Claude-style guidelines (~500 tokens)"
 msgstr "全面的Claude风格指南（约500令牌）"
 
-#: ui/prompts_manager.lua:875
+#: ui/prompts_manager.lua:905
 #, fuzzy
 msgid "No behavior instructions - just your action prompt"
 msgstr "无行为指令 - 仅您的操作提示"
 
-#: ui/prompts_manager.lua:876
+#: ui/prompts_manager.lua:906
 #, fuzzy
 msgid "Define your own AI personality/role"
 msgstr "定义您自己的AI个性/角色"
 
-#: ui/prompts_manager.lua:913 ui/prompts_manager.lua:956
-#: ui/prompts_manager.lua:1009 ui/prompts_manager.lua:1104
+#: ui/prompts_manager.lua:943 ui/prompts_manager.lua:986
+#: ui/prompts_manager.lua:1039 ui/prompts_manager.lua:1134
 #, fuzzy
 msgid "← Back"
 msgstr "← 返回"
 
-#: ui/prompts_manager.lua:930
+#: ui/prompts_manager.lua:960
 #, fuzzy
 msgid "Edit Action - AI Behavior"
 msgstr "编辑操作 - AI行为"
 
-#: ui/prompts_manager.lua:930
+#: ui/prompts_manager.lua:960
 #, fuzzy
 msgid "Step 2/3: AI Behavior"
 msgstr "步骤 2/3：AI行为"
 
-#: ui/prompts_manager.lua:943
+#: ui/prompts_manager.lua:973
 #, fuzzy
 msgid "Edit Action - Custom Behavior"
 msgstr "编辑操作 - 自定义行为"
 
-#: ui/prompts_manager.lua:943
+#: ui/prompts_manager.lua:973
 #, fuzzy
 msgid "Step 2/3: Custom Behavior"
 msgstr "步骤 2/3：自定义行为"
 
-#: ui/prompts_manager.lua:945
+#: ui/prompts_manager.lua:975
 #, fuzzy
 msgid "Describe how the AI should behave or what role it should play"
 msgstr "描述AI应如何行为或应扮演什么角色"
 
-#: ui/prompts_manager.lua:946
+#: ui/prompts_manager.lua:976
 #, fuzzy
 msgid ""
 "Examples:\n"
@@ -1779,28 +1925,28 @@ msgstr ""
 "\n"
 "这将替换此操作的全局AI行为设置。"
 
-#: ui/prompts_manager.lua:969
+#: ui/prompts_manager.lua:999
 #, fuzzy
 msgid ""
 "Please enter custom behavior text, or go back and choose a different option"
 msgstr "请输入自定义行为文本，或返回选择其他选项"
 
-#: ui/prompts_manager.lua:1000
+#: ui/prompts_manager.lua:1030
 #, fuzzy
 msgid "Edit Action - Action Prompt"
 msgstr "编辑操作 - 操作提示"
 
-#: ui/prompts_manager.lua:1000
+#: ui/prompts_manager.lua:1030
 #, fuzzy
 msgid "Step 3/4: Action Prompt"
 msgstr "步骤 3/4：操作提示"
 
-#: ui/prompts_manager.lua:1002
+#: ui/prompts_manager.lua:1032
 #, fuzzy
 msgid "What should the AI do?"
 msgstr "AI应该做什么？"
 
-#: ui/prompts_manager.lua:1003
+#: ui/prompts_manager.lua:1033
 #, fuzzy
 msgid ""
 "This is the main instruction sent to the AI. Use placeholders to include "
@@ -1810,7 +1956,7 @@ msgstr ""
 "这是发送给AI的主要指令。使用占位符包含上下文：\n"
 "\n"
 
-#: ui/prompts_manager.lua:1003
+#: ui/prompts_manager.lua:1033
 #, fuzzy
 msgid ""
 "\n"
@@ -1819,46 +1965,46 @@ msgstr ""
 "\n"
 "提示：用户在使用此操作时可以添加额外输入。"
 
-#: ui/prompts_manager.lua:1017
+#: ui/prompts_manager.lua:1047
 #, fuzzy
 msgid "Insert..."
 msgstr "插入..."
 
-#: ui/prompts_manager.lua:1030
+#: ui/prompts_manager.lua:1060
 #, fuzzy
 msgid "Action prompt cannot be empty"
 msgstr "操作提示不能为空"
 
-#: ui/prompts_manager.lua:1065 ui/prompts_manager.lua:1830
+#: ui/prompts_manager.lua:1095 ui/prompts_manager.lua:1864
 #, fuzzy
 msgid "Temperature: "
 msgstr "温度："
 
-#: ui/prompts_manager.lua:1074 ui/prompts_manager.lua:1839
+#: ui/prompts_manager.lua:1104 ui/prompts_manager.lua:1873
 msgid "Reasoning: "
 msgstr ""
 
-#: ui/prompts_manager.lua:1083 ui/prompts_manager.lua:1848
+#: ui/prompts_manager.lua:1113 ui/prompts_manager.lua:1882
 #, fuzzy
 msgid "Provider: "
 msgstr "提供商："
 
-#: ui/prompts_manager.lua:1089 ui/prompts_manager.lua:1854
+#: ui/prompts_manager.lua:1119 ui/prompts_manager.lua:1888
 #, fuzzy
 msgid "Model: "
 msgstr "模型："
 
-#: ui/prompts_manager.lua:1093 ui/prompts_manager.lua:1858
+#: ui/prompts_manager.lua:1123 ui/prompts_manager.lua:1892
 #, fuzzy
 msgid "Please select a provider first"
 msgstr "请先选择提供商"
 
-#: ui/prompts_manager.lua:1111
+#: ui/prompts_manager.lua:1141
 #, fuzzy
 msgid "Create"
 msgstr "创建"
 
-#: ui/prompts_manager.lua:1132
+#: ui/prompts_manager.lua:1162
 #, fuzzy
 msgid ""
 "Advanced settings for this action.\n"
@@ -1869,35 +2015,35 @@ msgstr ""
 "\n"
 "温度："
 
-#: ui/prompts_manager.lua:1147
+#: ui/prompts_manager.lua:1177
 #, fuzzy
 msgid "Edit Action - Advanced"
 msgstr "编辑操作 - 高级"
 
-#: ui/prompts_manager.lua:1147
+#: ui/prompts_manager.lua:1177
 #, fuzzy
 msgid "Step 4/4: Advanced Settings"
 msgstr "步骤 4/4：高级设置"
 
-#: ui/prompts_manager.lua:1179 ui/prompts_manager.lua:2026
+#: ui/prompts_manager.lua:1209 ui/prompts_manager.lua:2060
 #, fuzzy
 msgid "Use global"
 msgstr "使用全局"
 
-#: ui/prompts_manager.lua:1227
+#: ui/prompts_manager.lua:1257
 #, fuzzy
 msgid "Force OFF for all providers"
 msgstr "为此操作强制关闭"
 
-#: ui/prompts_manager.lua:1237
+#: ui/prompts_manager.lua:1267
 msgid "Configure per-provider..."
 msgstr ""
 
-#: ui/prompts_manager.lua:1255 ui/prompts_manager.lua:2089
+#: ui/prompts_manager.lua:1285
 msgid "Reasoning/Thinking"
 msgstr ""
 
-#: ui/prompts_manager.lua:1256
+#: ui/prompts_manager.lua:1286
 #, fuzzy
 msgid ""
 "Reasoning enables complex thinking for supported models.\n"
@@ -1917,151 +2063,150 @@ msgstr ""
 "\n"
 "注意：仅适用于Anthropic/Claude。强制温度为1.0。"
 
-#: ui/prompts_manager.lua:1287
+#: ui/prompts_manager.lua:1317
 #, fuzzy
 msgid "(global)"
 msgstr "全局"
 
-#: ui/prompts_manager.lua:1288 ui/prompts_manager.lua:1377
-#: ui/prompts_manager.lua:1454 ui/prompts_manager.lua:1527
+#: ui/prompts_manager.lua:1318 ui/prompts_manager.lua:1407
+#: ui/prompts_manager.lua:1486 ui/prompts_manager.lua:1559
 msgid "OFF"
 msgstr ""
 
-#: ui/prompts_manager.lua:1290
+#: ui/prompts_manager.lua:1320
 #, fuzzy, lua-format
 msgid "ON (%d tokens)"
 msgstr "开启（%d 令牌）"
 
-#: ui/prompts_manager.lua:1292 ui/prompts_manager.lua:1294
+#: ui/prompts_manager.lua:1322 ui/prompts_manager.lua:1324
 msgid "ON ("
 msgstr ""
 
-#: ui/prompts_manager.lua:1296
+#: ui/prompts_manager.lua:1326
 msgid "ON"
 msgstr ""
 
-#: ui/prompts_manager.lua:1317
+#: ui/prompts_manager.lua:1347
 msgid "Anthropic: "
 msgstr ""
 
-#: ui/prompts_manager.lua:1326
+#: ui/prompts_manager.lua:1356
 msgid "OpenAI: "
 msgstr ""
 
-#: ui/prompts_manager.lua:1335
+#: ui/prompts_manager.lua:1365
 msgid "Gemini: "
 msgstr ""
 
-#: ui/prompts_manager.lua:1354
+#: ui/prompts_manager.lua:1384
 msgid "Per-Provider Reasoning"
 msgstr ""
 
-#: ui/prompts_manager.lua:1355
+#: ui/prompts_manager.lua:1385
 msgid ""
 "Configure reasoning for each provider independently.\n"
 "DeepSeek reasoner model always uses reasoning automatically."
 msgstr ""
 
-#: ui/prompts_manager.lua:1387
+#: ui/prompts_manager.lua:1417
 msgid "ON (set budget)..."
 msgstr ""
 
-#: ui/prompts_manager.lua:1407
+#: ui/prompts_manager.lua:1437
 msgid ""
 "Extended thinking for Claude models.\n"
 "Supports: Sonnet 4.5, Opus 4.x, Haiku 4.5, Sonnet 3.7"
 msgstr ""
 
-#: ui/prompts_manager.lua:1422 ui/prompts_manager.lua:1592
-#: ui/prompts_manager.lua:2104
+#: ui/prompts_manager.lua:1453 ui/prompts_manager.lua:1625
 #, fuzzy
 msgid "Thinking Budget"
 msgstr "思考预算"
 
-#: ui/prompts_manager.lua:1423
-#, fuzzy
+#: ui/prompts_manager.lua:1454
+#, fuzzy, lua-format
 msgid ""
 "Token budget for extended thinking.\n"
 "Higher = more complex reasoning.\n"
-"Range: 1024 - 32000"
+"Range: %d - %d"
 msgstr ""
 "扩展思考的令牌预算。\n"
 "更高 = 更复杂的推理。\n"
 "范围：1024 - 32000"
 
-#: ui/prompts_manager.lua:1464
+#: ui/prompts_manager.lua:1496
 msgid "Low effort"
 msgstr ""
 
-#: ui/prompts_manager.lua:1474
+#: ui/prompts_manager.lua:1506
 msgid "Medium effort"
 msgstr ""
 
-#: ui/prompts_manager.lua:1484
+#: ui/prompts_manager.lua:1516
 msgid "High effort"
 msgstr ""
 
-#: ui/prompts_manager.lua:1505
+#: ui/prompts_manager.lua:1537
 msgid ""
 "Reasoning effort for OpenAI models.\n"
 "Supports: o3, o3-mini, o4-mini, GPT-5.x"
 msgstr ""
 
-#: ui/prompts_manager.lua:1578
+#: ui/prompts_manager.lua:1610
 msgid ""
 "Thinking level for Gemini models.\n"
 "Supports: gemini-3-*-preview"
 msgstr ""
 
-#: ui/prompts_manager.lua:1593
-#, fuzzy
+#: ui/prompts_manager.lua:1626
+#, fuzzy, lua-format
 msgid ""
 "Token budget for reasoning (Anthropic).\n"
 "Higher = more complex reasoning.\n"
-"Range: 1024 - 32000"
+"Range: %d - %d"
 msgstr ""
 "扩展思考的令牌预算。\n"
 "更高 = 更复杂的推理。\n"
 "范围：1024 - 32000"
 
-#: ui/prompts_manager.lua:1669 ui/prompts_manager.lua:2175
+#: ui/prompts_manager.lua:1703 ui/prompts_manager.lua:2128
 #, fuzzy
 msgid "Select Provider"
 msgstr "选择提供商"
 
-#: ui/prompts_manager.lua:1722 ui/prompts_manager.lua:2225
+#: ui/prompts_manager.lua:1756 ui/prompts_manager.lua:2178
 #, fuzzy
 msgid "Select Model for "
 msgstr "为以下选择模型："
 
-#: ui/prompts_manager.lua:1733 ui/prompts_manager.lua:2236
+#: ui/prompts_manager.lua:1767 ui/prompts_manager.lua:2189
 #, fuzzy
 msgid "Custom Model"
 msgstr "自定义模型"
 
-#: ui/prompts_manager.lua:1735 ui/prompts_manager.lua:2238
+#: ui/prompts_manager.lua:1769 ui/prompts_manager.lua:2191
 #, fuzzy
 msgid "Enter model ID"
 msgstr "输入模型ID"
 
-#: ui/prompts_manager.lua:1736 ui/prompts_manager.lua:2239
+#: ui/prompts_manager.lua:1770 ui/prompts_manager.lua:2192
 #, fuzzy
 msgid "Enter the exact model ID for "
 msgstr "输入确切的模型ID："
 
-#: ui/prompts_manager.lua:1748 ui/prompts_manager.lua:1986
-#: ui/prompts_manager.lua:2251 ui/settings_manager.lua:190
+#: ui/prompts_manager.lua:1782 ui/prompts_manager.lua:2020
+#: ui/prompts_manager.lua:2204 ui/settings_manager.lua:190
 #: ui/settings_manager.lua:276
 #, fuzzy
 msgid "OK"
 msgstr "确定"
 
-#: ui/prompts_manager.lua:1820
+#: ui/prompts_manager.lua:1854
 #, fuzzy
 msgid "AI Behavior: "
 msgstr "AI行为："
 
-#: ui/prompts_manager.lua:1885
+#: ui/prompts_manager.lua:1919
 #, fuzzy, lua-format
 msgid ""
 "Edit settings for: %s\n"
@@ -2074,27 +2219,27 @@ msgstr ""
 "这些设置覆盖此内置操作的默认值。\n"
 "设置为\"全局\"以使用默认设置。"
 
-#: ui/prompts_manager.lua:1891
+#: ui/prompts_manager.lua:1925
 #, fuzzy
 msgid "Edit Built-in Action Settings"
 msgstr "编辑内置操作设置"
 
-#: ui/prompts_manager.lua:1917
+#: ui/prompts_manager.lua:1951
 #, fuzzy
 msgid "None (no behavior)"
 msgstr "无（无行为）"
 
-#: ui/prompts_manager.lua:1971
+#: ui/prompts_manager.lua:2005
 #, fuzzy
 msgid "Custom Behavior"
 msgstr "自定义行为"
 
-#: ui/prompts_manager.lua:1973
+#: ui/prompts_manager.lua:2007
 #, fuzzy
 msgid "Describe how the AI should behave"
 msgstr "描述AI应如何行为"
 
-#: ui/prompts_manager.lua:2022
+#: ui/prompts_manager.lua:2056
 #, fuzzy
 msgid ""
 "Range: 0.0-2.0 (Anthropic max 1.0)\n"
@@ -2105,106 +2250,89 @@ msgstr ""
 "更低 = 专注\n"
 "更高 = 创意"
 
-#: ui/prompts_manager.lua:2071
-#, fuzzy
-msgid "Force ON..."
-msgstr "强制开启..."
-
-#: ui/prompts_manager.lua:2090
-msgid "Anthropic, OpenAI (o3/gpt-5), Gemini 3. May force temp to 1.0."
-msgstr ""
-
-#: ui/prompts_manager.lua:2105
-#, fuzzy
-msgid "Token budget (1024-32000)"
-msgstr "令牌预算（1024-32000）"
-
-#: ui/prompts_manager.lua:2329
+#: ui/prompts_manager.lua:2282
 #, fuzzy
 msgid "Settings saved"
 msgstr "设置已保存"
 
-#: ui/prompts_manager.lua:2329 ui/prompts_manager.lua:2349
+#: ui/prompts_manager.lua:2282 ui/prompts_manager.lua:2302
 #, fuzzy
 msgid "Settings reset to default"
 msgstr "设置已重置为默认"
 
-#: ui/prompts_manager.lua:2356
+#: ui/prompts_manager.lua:2309
 #, fuzzy
 msgid "Selected Text"
 msgstr "选中文本"
 
-#: ui/prompts_manager.lua:2357
+#: ui/prompts_manager.lua:2310
 #, fuzzy
 msgid "Book Title"
 msgstr "书名"
 
-#: ui/prompts_manager.lua:2358
+#: ui/prompts_manager.lua:2311
 #, fuzzy
 msgid "Author Name"
 msgstr "作者姓名"
 
-#: ui/prompts_manager.lua:2359
+#: ui/prompts_manager.lua:2312
 #, fuzzy
 msgid "Author Clause"
 msgstr "作者条款"
 
-#: ui/prompts_manager.lua:2360
+#: ui/prompts_manager.lua:2313
 #, fuzzy
 msgid "Book Count"
 msgstr "书籍数量"
 
-#: ui/prompts_manager.lua:2361
+#: ui/prompts_manager.lua:2314
 #, fuzzy
 msgid "Books List"
 msgstr "书籍列表"
 
-#: ui/prompts_manager.lua:2376
+#: ui/prompts_manager.lua:2329
 #, fuzzy
 msgid "(No placeholders for general context)"
 msgstr "（通用上下文无占位符）"
 
-#: ui/prompts_manager.lua:2415
+#: ui/prompts_manager.lua:2368
 #, fuzzy
 msgid "Insert Placeholder"
 msgstr "插入占位符"
 
-#: ui/prompts_manager.lua:2453
+#: ui/prompts_manager.lua:2406
 #, fuzzy
 msgid "Action added successfully"
 msgstr "操作添加成功"
 
-#: ui/prompts_manager.lua:2498 ui/prompts_manager.lua:2507
+#: ui/prompts_manager.lua:2451 ui/prompts_manager.lua:2460
 #, fuzzy
 msgid "Action updated successfully"
 msgstr "操作更新成功"
 
-#: ui/prompts_manager.lua:2532
+#: ui/prompts_manager.lua:2485
 #, fuzzy
 msgid "Action deleted successfully"
 msgstr "操作删除成功"
 
-#: ui/prompts_manager.lua:2544
+#: ui/prompts_manager.lua:2497
 #, fuzzy
 msgid "Book (File Browser)"
 msgstr "书籍（文件浏览器）"
 
-#: ui/prompts_manager.lua:2570
+#: ui/prompts_manager.lua:2533
 #, fuzzy
-msgid "Action service not available."
-msgstr "操作服务不可用。"
+msgid "No highlight actions available."
+msgstr "导出功能不可用"
 
-#: ui/prompts_manager.lua:2579
-#, fuzzy
-msgid ""
-"No actions added to highlight menu yet.\n"
-"\n"
-"Go to Manage Actions, tap on a highlight action, and select 'Add to "
-"Highlight Menu' for quick access."
+#: ui/prompts_manager.lua:2548
+msgid "✓ = in menu | Tap = toggle | Hold = move"
 msgstr ""
-"尚未添加操作到高亮菜单。\n"
-"\n"
-"转到管理操作，点击高亮操作，然后选择'添加到高亮菜单'以快速访问。"
+
+#: ui/prompts_manager.lua:2582
+#, fuzzy, lua-format
+msgid "Highlight Menu (%d enabled)"
+msgstr "高亮菜单操作"
 
 #: ui/prompts_manager.lua:2621
 #, fuzzy
@@ -2221,12 +2349,7 @@ msgstr "↓ 下移"
 msgid "Remove from Menu"
 msgstr "从菜单移除"
 
-#: ui/prompts_manager.lua:2659
-#, fuzzy
-msgid "All actions removed from highlight menu."
-msgstr "所有操作已从高亮菜单移除。"
-
-#: ui/prompts_manager.lua:2677
+#: ui/prompts_manager.lua:2669
 #, fuzzy
 msgid "Position: "
 msgstr "位置："
@@ -2235,11 +2358,6 @@ msgstr "位置："
 #, fuzzy
 msgid "Invalid value"
 msgstr "无效值"
-
-#: ui/settings_manager.lua:235
-#, fuzzy
-msgid "Set"
-msgstr "设置"
 
 #: ui/settings_manager.lua:299
 #, fuzzy
@@ -2305,6 +2423,37 @@ msgstr "快速摘要"
 #, fuzzy
 msgid "Translate"
 msgstr "翻译"
+
+#, fuzzy
+#~ msgid "Share"
+#~ msgstr "分享"
+
+#, fuzzy
+#~ msgid "Share KOAssistant Chat"
+#~ msgstr "分享KO助手聊天"
+
+#, fuzzy
+#~ msgid "Highlight menu will update on next app restart."
+#~ msgstr "高亮菜单将在下次应用重启时更新。"
+
+#, fuzzy
+#~ msgid "Force ON..."
+#~ msgstr "强制开启..."
+
+#, fuzzy
+#~ msgid "Token budget (1024-32000)"
+#~ msgstr "令牌预算（1024-32000）"
+
+#, fuzzy
+#~ msgid ""
+#~ "No actions added to highlight menu yet.\n"
+#~ "\n"
+#~ "Go to Manage Actions, tap on a highlight action, and select 'Add to "
+#~ "Highlight Menu' for quick access."
+#~ msgstr ""
+#~ "尚未添加操作到高亮菜单。\n"
+#~ "\n"
+#~ "转到管理操作，点击高亮操作，然后选择'添加到高亮菜单'以快速访问。"
 
 #, fuzzy
 #~ msgid ""
