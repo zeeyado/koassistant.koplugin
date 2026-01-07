@@ -74,6 +74,35 @@ function MessageHistory:getModel()
     return self.model
 end
 
+-- Get all reasoning content from assistant messages (for "View Reasoning" feature)
+-- Returns array of { index, reasoning, has_content } for messages with reasoning
+function MessageHistory:getReasoningEntries()
+    local entries = {}
+    local msg_num = 0
+
+    for i, msg in ipairs(self.messages) do
+        if msg.role == self.ROLES.ASSISTANT and not msg.is_context then
+            msg_num = msg_num + 1
+            if msg.reasoning then
+                local entry = {
+                    index = i,
+                    msg_num = msg_num,
+                    has_content = type(msg.reasoning) == "string",
+                    reasoning = msg.reasoning,
+                }
+                -- For OpenAI requested reasoning
+                if type(msg.reasoning) == "table" and msg.reasoning._requested then
+                    entry.requested_only = true
+                    entry.effort = msg.reasoning.effort
+                end
+                table.insert(entries, entry)
+            end
+        end
+    end
+
+    return entries
+end
+
 function MessageHistory:clear()
     -- Keep system message if it exists
     if self.messages[1] and self.messages[1].role == self.ROLES.SYSTEM then
@@ -437,8 +466,10 @@ function MessageHistory:createResultText(highlightedText, config)
         table.insert(result, "------------------\n\n")
     end
 
-    -- Check if reasoning display is enabled
-    local show_reasoning = config and config.features and config.features.show_reasoning_in_chat
+    -- Check if reasoning indicator should be shown in chat
+    -- Controlled by show_reasoning_indicator setting (default: true)
+    local show_indicator = config and config.features and config.features.show_reasoning_indicator
+    if show_indicator == nil then show_indicator = true end  -- Default to showing indicator
 
     -- Show conversation (non-context messages)
     for i = 2, #self.messages do
@@ -447,14 +478,18 @@ function MessageHistory:createResultText(highlightedText, config)
             local prefix = msg.role == self.ROLES.USER and "▶ User: " or "◉ KOAssistant: "
 
             -- If this is an assistant message with reasoning, show indicator
-            -- msg.reasoning can be: string (actual content) or true (detected but not captured)
-            if msg.role == self.ROLES.ASSISTANT and msg.reasoning then
-                if show_reasoning and type(msg.reasoning) == "string" then
-                    -- Show full reasoning content (only available for non-streaming)
-                    table.insert(result, "**[Extended Thinking]**\n")
-                    table.insert(result, "> " .. msg.reasoning:gsub("\n", "\n> ") .. "\n\n")
+            -- msg.reasoning can be:
+            --   string: actual reasoning content (Anthropic, DeepSeek, Gemini - non-streaming)
+            --   true: reasoning detected but not captured (streaming mode)
+            --   { _requested = true, effort = "..." }: requested but API doesn't expose (OpenAI)
+            -- Note: Full reasoning content is viewable via "Show Reasoning" button in ChatGPTViewer
+            if show_indicator and msg.role == self.ROLES.ASSISTANT and msg.reasoning then
+                if type(msg.reasoning) == "table" and msg.reasoning._requested then
+                    -- OpenAI: reasoning was requested but API doesn't expose content
+                    local effort = msg.reasoning.effort and (" (" .. msg.reasoning.effort .. ")") or ""
+                    table.insert(result, "*[Reasoning requested" .. effort .. "]*\n\n")
                 else
-                    -- Just show indicator that reasoning was used
+                    -- Reasoning confirmed (content may or may not be captured)
                     table.insert(result, "*[Reasoning/Thinking was used]*\n\n")
                 end
             end

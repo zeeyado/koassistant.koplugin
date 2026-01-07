@@ -112,6 +112,9 @@ function AnthropicRequest:build(config)
     request_body.max_tokens = params.max_tokens or AnthropicRequest.DEFAULT_PARAMS.max_tokens
     request_body.temperature = params.temperature or AnthropicRequest.DEFAULT_PARAMS.temperature
 
+    -- Get model for constraints and capability checking
+    local model = config.model or defaults.model
+
     -- Apply model constraints (Anthropic max temperature is 1.0)
     local adjustments
     request_body, adjustments = ModelConstraints.apply("anthropic", model, request_body)
@@ -119,7 +122,6 @@ function AnthropicRequest:build(config)
     -- Add extended thinking if enabled AND model supports it
     if params.thinking then
         -- Validate model supports extended thinking
-        local model = config.model or defaults.model
         local supports_thinking = ModelConstraints.supportsCapability("anthropic", model, "extended_thinking")
 
         if supports_thinking then
@@ -138,10 +140,11 @@ function AnthropicRequest:build(config)
             end
 
             -- Ensure max_tokens > budget_tokens (API requirement)
-            local budget = params.thinking.budget_tokens or 4096
+            local default_budget = ModelConstraints.reasoning_defaults.anthropic.budget
+            local budget = params.thinking.budget_tokens or default_budget
             if request_body.max_tokens <= budget then
                 local old_max = request_body.max_tokens
-                request_body.max_tokens = budget + 4096
+                request_body.max_tokens = budget + default_budget
                 adjustments.max_tokens = {
                     from = old_max,
                     to = request_body.max_tokens,
@@ -273,7 +276,8 @@ end
 -- @param budget_tokens: Token budget for thinking (minimum 1024)
 -- @return table: Thinking configuration
 function AnthropicRequest:buildThinkingConfig(budget_tokens)
-    budget_tokens = math.max(budget_tokens or 4096, 1024)
+    local defaults = ModelConstraints.reasoning_defaults.anthropic
+    budget_tokens = math.max(budget_tokens or defaults.budget, defaults.budget_min)
 
     return {
         type = "enabled",

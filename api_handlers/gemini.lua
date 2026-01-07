@@ -112,64 +112,18 @@ function GeminiHandler:query(message_history, config)
         return "Error: Missing API key in configuration"
     end
 
-    local defaults = Defaults.ProviderDefaults.gemini
-    local model = config.model or defaults.model
-
-    -- Build request body using unified config
-    local request_body = {
-        contents = {},
-    }
-
-    -- Add system instruction from unified config (Gemini's native approach)
-    if config.system and config.system.text and config.system.text ~= "" then
-        request_body.system_instruction = {
-            parts = {{ text = config.system.text }}
-        }
-    end
-
-    -- Add conversation messages (filter out system role and empty content)
-    -- Gemini uses "model" role instead of "assistant" and parts format
-    for _, msg in ipairs(message_history) do
-        if msg.role ~= "system" and hasContent(msg) then
-            table.insert(request_body.contents, {
-                role = msg.role == "assistant" and "model" or "user",
-                parts = {{ text = msg.content }}
-            })
-        end
-    end
-
-    -- Apply API parameters via generationConfig (Gemini's native approach)
-    local api_params = config.api_params or {}
-    local default_params = defaults.additional_parameters or {}
-
-    request_body.generationConfig = {
-        temperature = api_params.temperature or default_params.temperature or 0.7,
-        maxOutputTokens = api_params.max_tokens or 4096,
-    }
-
-    -- Add thinking config for Gemini 3 preview models if enabled
-    -- Gemini REST API uses camelCase: generationConfig.thinkingConfig.thinkingLevel
-    -- Gemini 3 Pro: LOW, HIGH; Gemini 3 Flash: MINIMAL, LOW, MEDIUM, HIGH
-    local adjustments = {}
-    if api_params.thinking_level then
-        if ModelConstraints.supportsCapability("gemini", model, "thinking") then
-            request_body.generationConfig.thinkingConfig = {
-                thinkingLevel = api_params.thinking_level:upper(),
-                includeThoughts = true,  -- Required to get thinking in response
-            }
-        else
-            adjustments.thinking_skipped = {
-                reason = "model " .. model .. " does not support thinking"
-            }
-        end
-    end
+    -- Use buildRequestBody to construct the request (single source of truth)
+    local built = self:buildRequestBody(message_history, config)
+    local request_body = built.body
+    local model = built.model
+    local adjustments = built.adjustments
 
     -- Check if streaming is enabled
     local use_streaming = config.features and config.features.enable_streaming
 
     -- Debug: Print request body and adjustments
     if config and config.features and config.features.debug then
-        if next(adjustments) then
+        if adjustments and next(adjustments) then
             ModelConstraints.logAdjustments("Gemini", adjustments)
         end
         print("Gemini Request Body:", json.encode(request_body))
@@ -186,6 +140,7 @@ function GeminiHandler:query(message_history, config)
         ["Content-Length"] = tostring(#requestBody),
     }
 
+    local defaults = Defaults.ProviderDefaults.gemini
     local base_url = config.base_url or defaults.base_url
 
     -- If streaming is enabled, return the background request function

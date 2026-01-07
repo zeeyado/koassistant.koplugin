@@ -311,14 +311,14 @@ local SettingsSchema = {
                                 { value = "high", text = _("High (default)") },
                             },
                         },
-                        -- Display option
+                        -- Indicator in chat (separate from "Show Reasoning" button)
                         {
-                            id = "show_reasoning_in_chat",
+                            id = "show_reasoning_indicator",
                             type = "toggle",
-                            text = _("Show Reasoning in Chat"),
-                            help_text = _("Display AI thinking/reasoning when available.\n\nVisible for: Anthropic, DeepSeek reasoner, R1 models\nHidden (encrypted): OpenAI, Gemini"),
-                            path = "features.show_reasoning_in_chat",
-                            default = false,
+                            text = _("Show Indicator in Chat"),
+                            help_text = _("Show '*[Reasoning was used]*' indicator in chat when reasoning is requested or used.\n\nFull reasoning content is always viewable via 'Show Reasoning' button."),
+                            path = "features.show_reasoning_indicator",
+                            default = true,
                         },
                     },
                 },

@@ -26,18 +26,20 @@ local ModelConstraints = {
 
 -- Model capabilities (reasoning/thinking support)
 -- Used to determine if a model supports specific features
+-- NOTE: Use base model names (without dates) to enable prefix matching
+-- e.g., "claude-sonnet-4-5" matches "claude-sonnet-4-5-20250929", "claude-sonnet-4-5-latest", etc.
 ModelConstraints.capabilities = {
     anthropic = {
         -- Models that support extended thinking
         -- Claude 3.5 Sonnet and Claude 3 Haiku do NOT support it
         extended_thinking = {
-            "claude-sonnet-4-5-20250929",
-            "claude-haiku-4-5-20251001",
-            "claude-opus-4-5-20251101",
-            "claude-opus-4-1-20250805",
-            "claude-sonnet-4-20250514",
-            "claude-opus-4-20250514",
-            "claude-3-7-sonnet-20250219",
+            "claude-sonnet-4-5",      -- 4.5 Sonnet
+            "claude-haiku-4-5",       -- 4.5 Haiku
+            "claude-opus-4-5",        -- 4.5 Opus
+            "claude-opus-4-1",        -- 4.1 Opus
+            "claude-sonnet-4",        -- 4 Sonnet (not 4.5)
+            "claude-opus-4",          -- 4 Opus (not 4.1 or 4.5)
+            "claude-3-7-sonnet",      -- 3.7 Sonnet
         },
     },
     openai = {
@@ -56,6 +58,29 @@ ModelConstraints.capabilities = {
         -- Gemini 3 preview models support thinking_level
         -- Gemini 2.x does NOT
         thinking = { "gemini-3-pro-preview", "gemini-3-flash-preview" },
+    },
+}
+
+-- Default values for reasoning/thinking settings
+-- Use these instead of hardcoding values throughout the codebase
+ModelConstraints.reasoning_defaults = {
+    -- Anthropic extended thinking
+    anthropic = {
+        budget = 4096,       -- Default budget_tokens
+        budget_min = 1024,   -- Minimum allowed
+        budget_max = 32000,  -- Maximum allowed
+        budget_step = 1024,  -- SpinWidget step
+    },
+    -- OpenAI reasoning effort
+    openai = {
+        effort = "medium",   -- Default effort level
+        effort_options = { "low", "medium", "high" },
+    },
+    -- Gemini thinking level
+    gemini = {
+        level = "high",      -- Default thinking level
+        level_options = { "low", "medium", "high" },  -- Common options
+        level_options_flash = { "minimal", "low", "medium", "high" },  -- Flash-specific
     },
 }
 
