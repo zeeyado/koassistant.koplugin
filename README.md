@@ -6,16 +6,15 @@
 
 **A powerful AI assistant integrated into KOReader.**
 
-Meant to be a technical research assistant and knowledge expander.
+A highly flexible and customizable research assistant and knowledge expander.
 
-You can have context free chats, or chat about or compare one or more documents in your library, or about text highlighted in a document. You can translate, get text explained, compare books/articles, and much more by creating custom actions. Chats are automatically saved and you can resume them any time.
+You can have context free chats, chat about documents in your library, or about text highlighted in a document, with or without additional context. You can translate text, get text explained/analyzed, compare books/articles, and much more by creating advanced and elaborate custom actions (with specific settings), additional contexts, and instructions. 
 
-Most settings are configurable in the UI, including provider/model, AI behavior, interaction languages, and more, with some advanced settings requiring file editing.
+Chat responses are streamed live (like ChatGPT/Claude, etc), are automatically or manually saved, and you can resume them any time, and continue with a different provider/model and other changed settings for a chat if you like. 
 
-> **Development Status**: KOAssistant is under active development, with changing features. **Anthropic** has been the primary focus and most thoroughly tested. 16 providers are supported (see [Supported Providers](#supported-providers)), though some may need adjustments. Feedback appreciated.
+Most settings are configurable in the UI, including provider/model, AI behavior, AI interaction/user languages, domains/project context, custom actions (and their components), and advanced settings like reasoning, temperature, and more. Most settings and functions can be specified for a given action.
 
-> **Note**: This project was recently renamed from "Assistant" to "KOAssistant" due to a naming conflict with [a fork of this project](https://github.com/omer-faruq/assistant.koplugin). Some internal references may still show the old name.
-
+> **Development Status**: KOAssistant is currently under heavy development, with features constantly added. 16 providers are supported (see [Supported Providers](#supported-providers)); testing and Feedback appreciated. You can open an issue, feature request, or start a discussion.
 
 ---
 
@@ -675,7 +674,7 @@ KOAssistant supports localization with translations managed via Weblate.
 
 ### History
 
-Originally forked from [ASKGPT by Drew Baumann](https://github.com/drewbaumann/askgpt) in February 2025. Expanded with multi-provider support, custom actions, chat history, domains, and more.
+Originally forked from [ASKGPT by Drew Baumann](https://github.com/drewbaumann/askgpt) in February 2025. Expanded with multi-provider support, custom actions, chat history, domains, and more. This project was originally forked from [ASKGPT by Drew Baumann](https://github.com/drewbaumann/askgpt), renamed to Assistant, and xpanded with multi-provider support, custom actions, chat history, and more. Recently renamed to "KOAssistant" due to a naming conflict with [a fork of this project](https://github.com/omer-faruq/assistant.koplugin). Some internal references may still show the old name.
 
 ### Acknowledgments
 
