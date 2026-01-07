@@ -4,7 +4,7 @@
 [![License: GPL-3.0](https://img.shields.io/github/license/zeeyado/koassistant.koplugin)](LICENSE)
 [![Translation Status](https://hosted.weblate.org/widgets/koassistant/-/svg-badge.svg)](https://hosted.weblate.org/engage/koassistant/)
 
-**A powerful AI assistant integrated into KOReader.**
+**Powerful AI assistant integrated into KOReader.**
 
 A highly flexible and customizable research assistant and knowledge expander.
 
