@@ -901,12 +901,8 @@ end
 function AskGPT:buildProviderMenu()
   local self_ref = self
   local current = self:getCurrentProvider()
-  local providers = {
-    "anthropic", "openai", "deepseek", "gemini", "ollama",
-    -- New providers
-    "groq", "mistral", "xai", "openrouter", "qwen", "kimi",
-    "together", "fireworks", "sambanova", "cohere", "doubao"
-  }
+  local ModelLists = require("model_lists")
+  local providers = ModelLists.getAllProviders()
   local Defaults = require("api_handlers.defaults")
   local items = {}
 
