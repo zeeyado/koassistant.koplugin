@@ -1213,7 +1213,7 @@ end
 function PromptsManager:showProviderSelector(state)
     local ModelLists = require("model_lists")
 
-    local providers = { "anthropic", "openai", "deepseek", "gemini", "ollama" }
+    local providers = ModelLists.getAllProviders()
 
     local buttons = {
         -- Use global option
@@ -1728,7 +1728,7 @@ end
 function PromptsManager:showBuiltinProviderSelector(state)
     local ModelLists = require("model_lists")
 
-    local providers = { "anthropic", "openai", "deepseek", "gemini", "ollama" }
+    local providers = ModelLists.getAllProviders()
 
     local buttons = {
         {
