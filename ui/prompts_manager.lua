@@ -422,7 +422,7 @@ function PromptsManager:showPromptDetails(prompt)
         _("Source"), source_text,
         _("Status"), prompt.enabled and _("Enabled") or _("Disabled"),
         _("Temperature"), temp_text,
-        _("Extended Thinking"), thinking_text,
+        _("Reasoning"), thinking_text,
         _("Provider/Model"), provider_text, model_text,
         _("AI Behavior"),
         behavior_text,
@@ -998,10 +998,10 @@ function PromptsManager:showStep4_Advanced(state)
                 end,
             },
         },
-        -- Row 2: Extended Thinking
+        -- Row 2: Reasoning/Thinking
         {
             {
-                text = _("Extended Thinking: ") .. thinking_display,
+                text = _("Reasoning: ") .. thinking_display,
                 callback = function()
                     self:showThinkingSelector(state)
                 end,
@@ -1065,9 +1065,9 @@ Temperature: ]] .. temp_display .. [[
 
   Range 0.0-2.0 (Anthropic max 1.0)
 
-Extended Thinking: ]] .. thinking_display .. [[
+Reasoning: ]] .. thinking_display .. [[
 
-  Anthropic-only. Forces temp to 1.0.
+  Anthropic/OpenAI/Gemini. May force temp to 1.0.
 
 Provider/Model: ]] .. provider_display .. " / " .. model_display .. [[
 
@@ -1169,14 +1169,15 @@ function PromptsManager:showThinkingSelector(state)
     }
 
     self.thinking_dialog = ButtonDialog:new{
-        title = _("Extended Thinking"),
-        info_text = _([[Extended thinking enables Claude's complex reasoning capability.
+        title = _("Reasoning/Thinking"),
+        info_text = _([[Reasoning enables complex thinking for supported models.
 
-• Global: Follow the setting in Settings → Advanced
+• Global: Follow per-provider settings in Settings → AI Response
 • Force OFF: Never use thinking for this action
 • Force ON: Always use thinking (set budget)
 
-Note: Anthropic/Claude only. Forces temperature to 1.0.]]),
+Works with: Anthropic, OpenAI (o3/gpt-5), Gemini 3.
+May force temperature to 1.0 for some models.]]),
         buttons = buttons,
     }
 
@@ -1191,7 +1192,7 @@ function PromptsManager:showThinkingBudgetSelector(state)
 
     local spin_widget = SpinWidget:new{
         title_text = _("Thinking Budget"),
-        info_text = _("Token budget for extended thinking.\nHigher = more complex reasoning.\nRange: 1024 - 32000"),
+        info_text = _("Token budget for reasoning (Anthropic).\nHigher = more complex reasoning.\nRange: 1024 - 32000"),
         value = current_budget,
         value_min = 1024,
         value_max = 32000,
@@ -1437,10 +1438,10 @@ function PromptsManager:showBuiltinSettingsDialog(state)
                 end,
             },
         },
-        -- Row 3: Extended Thinking
+        -- Row 3: Reasoning/Thinking
         {
             {
-                text = _("Extended Thinking: ") .. thinking_display,
+                text = _("Reasoning: ") .. thinking_display,
                 callback = function()
                     self:showBuiltinThinkingSelector(state)
                 end,
@@ -1690,8 +1691,8 @@ function PromptsManager:showBuiltinThinkingSelector(state)
     }
 
     self.builtin_thinking_dialog = ButtonDialog:new{
-        title = _("Extended Thinking"),
-        info_text = _("Anthropic/Claude only. Forces temperature to 1.0."),
+        title = _("Reasoning/Thinking"),
+        info_text = _("Anthropic, OpenAI (o3/gpt-5), Gemini 3. May force temp to 1.0."),
         buttons = buttons,
     }
 

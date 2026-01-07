@@ -93,6 +93,7 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
     local result_buffer = {}
     local non200 = false
     local completed = false
+    local reasoning_detected = false  -- Track if thinking/reasoning was seen in stream
 
     local chunksize = 1024 * 16
     local buffer = ffi.new('char[?]', chunksize, {0})
@@ -186,7 +187,8 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
             return
         end
 
-        if on_complete then on_complete(true, result, nil) end
+        -- Pass reasoning_detected as 4th arg (true if thinking was seen, nil otherwise)
+        if on_complete then on_complete(true, result, nil, reasoning_detected or nil) end
     end
 
     local function _closeStreamDialog()
@@ -384,7 +386,10 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
 
                         local ok, event = pcall(json.decode, json_str)
                         if ok and event then
-                            local content = self:extractContentFromSSE(event)
+                            local content, is_reasoning = self:extractContentFromSSE(event)
+                            if is_reasoning then
+                                reasoning_detected = true
+                            end
                             if type(content) == "string" and #content > 0 then
                                 table.insert(result_buffer, content)
 
@@ -429,7 +434,10 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                                 return
                             else
                                 -- Try to extract streaming content
-                                local content = self:extractContentFromSSE(event)
+                                local content, is_reasoning = self:extractContentFromSSE(event)
+                                if is_reasoning then
+                                    reasoning_detected = true
+                                end
                                 if type(content) == "string" and #content > 0 then
                                     table.insert(result_buffer, content)
 
@@ -494,7 +502,7 @@ end
 
 --- Extract content from SSE event based on provider format
 --- @param event table: Parsed JSON event
---- @return string|nil content
+--- @return string|nil content, boolean|nil is_reasoning (true if this is a reasoning/thinking chunk)
 function StreamHandler:extractContentFromSSE(event)
     -- OpenAI/DeepSeek format: choices[0].delta.content
     local choice = event.choices and event.choices[1]
@@ -502,32 +510,70 @@ function StreamHandler:extractContentFromSSE(event)
         -- Check for actual stop reasons (not just truthy - JSON null can be truthy in some parsers)
         local finish = choice.finish_reason
         if finish and type(finish) == "string" and finish ~= "" then
-            return nil  -- Stream complete
+            return nil
         end
         local delta = choice.delta
         if delta then
-            return delta.content or delta.reasoning_content
+            -- DeepSeek reasoning_content indicates reasoning was used
+            if delta.reasoning_content then
+                return delta.reasoning_content, true  -- is_reasoning = true
+            end
+            return delta.content
         end
     end
 
-    -- Anthropic format: delta.text
+    -- Anthropic format: Check for thinking block start
+    if event.type == "content_block_start" and event.content_block then
+        if event.content_block.type == "thinking" then
+            return nil, true  -- Signal reasoning detected but no content to show
+        end
+    end
+
+    -- Anthropic format: delta.text (thinking content comes through delta.thinking)
     local anthropic_delta = event.delta
-    if anthropic_delta and anthropic_delta.text then
-        return anthropic_delta.text
+    if anthropic_delta then
+        if anthropic_delta.thinking then
+            return nil, true  -- Reasoning content, don't display but signal detected
+        end
+        if anthropic_delta.text then
+            return anthropic_delta.text
+        end
     end
 
     -- Anthropic message event: content[0].text
     local anthropic_content = event.content and event.content[1]
-    if anthropic_content and anthropic_content.text then
-        return anthropic_content.text
+    if anthropic_content then
+        if anthropic_content.type == "thinking" then
+            return nil, true  -- Reasoning block
+        end
+        if anthropic_content.text then
+            return anthropic_content.text
+        end
     end
 
     -- Gemini format: candidates[0].content.parts[0].text
+    -- Skip parts with thought=true (these are thinking/reasoning, not final answer)
     local gemini_candidate = event.candidates and event.candidates[1]
     if gemini_candidate then
         local parts = gemini_candidate.content and gemini_candidate.content.parts
-        if parts and parts[1] and parts[1].text then
-            return parts[1].text
+        if parts then
+            local has_thinking = false
+            -- Check for thinking parts first
+            for _, part in ipairs(parts) do
+                if part.thought then
+                    has_thinking = true
+                end
+            end
+            -- Return first non-thinking part
+            for _, part in ipairs(parts) do
+                if part.text and not part.thought then
+                    return part.text, has_thinking or nil
+                end
+            end
+            -- If only thinking parts, signal reasoning detected
+            if has_thinking then
+                return nil, true
+            end
         end
     end
 
