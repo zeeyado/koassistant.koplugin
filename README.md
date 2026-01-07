@@ -8,9 +8,9 @@
 
 A highly flexible and customizable research assistant and knowledge expander.
 
-You can have context free chats, chat about documents in your library, or about text highlighted in a document, with or without additional context. You can translate text, get text explained/analyzed, compare books/articles, save chats (or copy parts of chats, like summaries) to highlight notes, and much more by creating creative, advanced, and elaborate custom actions, additional contexts, and instructions, all with their own highly granular settings. 
+You can have context free chats, chat about documents in your library, or about text highlighted in a document, with or without additional context. You can translate text, get text explained/analyzed, compare books/articles, and much more by creating advanced and elaborate custom actions, additional contexts, and instructions, all with their own highly granular settings. 
 
-Chat responses are streamed live (like ChatGPT/Claude, etc), are automatically (or manually) saved, and you can resume them any time, and continue chats with a different provider/model and other changed settings if you like. You can select and copy text from chats, and reply drafts are saved so you can re-read AI messages or copy and paste parts as you are structuring your reply.
+Chats are streamed live (like ChatGPT/Claude, etc), are automatically (or manually) saved, and you can resume them any time, and continue chats with a different provider/model and other changed settings if you like. You can one-click export/copy whole chats to clipboard (markdown formatting), or select and copy text from chats, to then paste e.g. in a highlight note in your document. Your chat reply drafts are saved so you can re-read AI messages and resume typing, or copy and paste parts as you are structuring your reply.
 
 Most settings are configurable in the UI, including: Provider/model, AI behavior, user/AI interaction language, translation languages, domains/project context, custom actions (Create, edit, duplicate, and adjust settings), and advanced settings like reasoning, temperature, and more. Most settings and functions combinations can be specified for a given action.
 
