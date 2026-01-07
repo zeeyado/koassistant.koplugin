@@ -1,6 +1,24 @@
 local ResponseParser = {}
 
+-- Helper to extract <think> tags from content (used by inference providers hosting R1)
+local function extractThinkTags(content)
+    if not content or type(content) ~= "string" then
+        return content, nil
+    end
+    -- Match <think>...</think> tags (case insensitive, handles newlines)
+    local thinking = content:match("<[Tt]hink>(.-)</[Tt]hink>")
+    if thinking then
+        -- Remove the tags from the content
+        local clean = content:gsub("<[Tt]hink>.-</[Tt]hink>", "")
+        -- Clean up leading/trailing whitespace
+        clean = clean:gsub("^%s+", ""):gsub("%s+$", "")
+        return clean, thinking
+    end
+    return content, nil
+end
+
 -- Response format transformers for each provider
+-- Returns: success, content, reasoning (reasoning is optional third return value)
 local RESPONSE_TRANSFORMERS = {
     anthropic = function(response)
         if response.type == "error" and response.error then
@@ -10,15 +28,25 @@ local RESPONSE_TRANSFORMERS = {
         -- Handle extended thinking responses (content array with thinking + text blocks)
         -- Also handles regular responses (content array with just text block)
         if response.content then
-            -- Look for text block by type (extended thinking has thinking block first)
+            local text_content = nil
+            local thinking_content = nil
+
+            -- Look for both thinking and text blocks
             for _, block in ipairs(response.content) do
-                if block.type == "text" and block.text then
-                    return true, block.text
+                if block.type == "thinking" and block.thinking then
+                    thinking_content = block.thinking
+                elseif block.type == "text" and block.text then
+                    text_content = block.text
                 end
             end
+
             -- Fallback: first block with text field (legacy format)
-            if response.content[1] and response.content[1].text then
-                return true, response.content[1].text
+            if not text_content and response.content[1] and response.content[1].text then
+                text_content = response.content[1].text
+            end
+
+            if text_content then
+                return true, text_content, thinking_content
             end
         end
         return false, "Unexpected response format"
@@ -68,9 +96,12 @@ local RESPONSE_TRANSFORMERS = {
         if response.error then
             return false, response.error.message or response.error.type or "Unknown error"
         end
-        
+
         if response.choices and response.choices[1] and response.choices[1].message then
-            return true, response.choices[1].message.content
+            local message = response.choices[1].message
+            local content = message.content
+            local reasoning = message.reasoning_content  -- DeepSeek reasoner returns this
+            return true, content, reasoning
         end
         return false, "Unexpected response format"
     end,
@@ -82,7 +113,10 @@ local RESPONSE_TRANSFORMERS = {
         end
 
         if response.message and response.message.content then
-            return true, response.message.content
+            local content = response.message.content
+            -- Extract <think> tags from R1 models running locally
+            local clean_content, reasoning = extractThinkTags(content)
+            return true, clean_content, reasoning
         end
         return false, "Unexpected response format"
     end,
@@ -93,7 +127,10 @@ local RESPONSE_TRANSFORMERS = {
             return false, response.error.message or response.error.type or "Unknown error"
         end
         if response.choices and response.choices[1] and response.choices[1].message then
-            return true, response.choices[1].message.content
+            local content = response.choices[1].message.content
+            -- Extract <think> tags from R1 models
+            local clean_content, reasoning = extractThinkTags(content)
+            return true, clean_content, reasoning
         end
         return false, "Unexpected response format"
     end,
@@ -153,7 +190,10 @@ local RESPONSE_TRANSFORMERS = {
             return false, response.error.message or response.error.type or "Unknown error"
         end
         if response.choices and response.choices[1] and response.choices[1].message then
-            return true, response.choices[1].message.content
+            local content = response.choices[1].message.content
+            -- Extract <think> tags from R1 models
+            local clean_content, reasoning = extractThinkTags(content)
+            return true, clean_content, reasoning
         end
         return false, "Unexpected response format"
     end,
@@ -163,7 +203,10 @@ local RESPONSE_TRANSFORMERS = {
             return false, response.error.message or response.error.type or "Unknown error"
         end
         if response.choices and response.choices[1] and response.choices[1].message then
-            return true, response.choices[1].message.content
+            local content = response.choices[1].message.content
+            -- Extract <think> tags from R1 models
+            local clean_content, reasoning = extractThinkTags(content)
+            return true, clean_content, reasoning
         end
         return false, "Unexpected response format"
     end,
@@ -173,7 +216,10 @@ local RESPONSE_TRANSFORMERS = {
             return false, response.error.message or response.error.type or "Unknown error"
         end
         if response.choices and response.choices[1] and response.choices[1].message then
-            return true, response.choices[1].message.content
+            local content = response.choices[1].message.content
+            -- Extract <think> tags from R1 models
+            local clean_content, reasoning = extractThinkTags(content)
+            return true, clean_content, reasoning
         end
         return false, "Unexpected response format"
     end,
@@ -206,14 +252,20 @@ local RESPONSE_TRANSFORMERS = {
     end
 }
 
+--- Parse a response from an AI provider
+--- @param response table: The raw response from the provider
+--- @param provider string: The provider name (e.g., "anthropic", "openai")
+--- @return boolean: Success flag
+--- @return string: Content (main response text) or error message
+--- @return string|nil: Reasoning content (thinking/reasoning if available, nil otherwise)
 function ResponseParser:parseResponse(response, provider)
     local transform = RESPONSE_TRANSFORMERS[provider]
     if not transform then
         return false, "No response transformer found for provider: " .. tostring(provider)
     end
-    
-    -- Add detailed logging for debugging
-    local success, result = transform(response)
+
+    -- Transform returns: success, content, reasoning (reasoning is optional)
+    local success, result, reasoning = transform(response)
     if not success and result == "Unexpected response format" then
         -- Provide more details about what was received (show full response for debugging)
         local json = require("json")
@@ -222,8 +274,8 @@ function ResponseParser:parseResponse(response, provider)
         return false, string.format("Unexpected response format from %s. Response: %s",
                                    provider, response_str)
     end
-    
-    return success, result
+
+    return success, result, reasoning
 end
 
 return ResponseParser 

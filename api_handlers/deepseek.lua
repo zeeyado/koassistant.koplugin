@@ -167,9 +167,18 @@ function DeepSeekHandler:query(message_history, config)
         print("DeepSeek Parsed Response:", json.encode(response))
     end
 
-    local success, result = ResponseParser:parseResponse(response, "deepseek")
+    local success, result, reasoning = ResponseParser:parseResponse(response, "deepseek")
     if not success then
         return "Error: " .. result
+    end
+
+    -- Return result with optional reasoning metadata (deepseek-reasoner)
+    if reasoning then
+        return {
+            content = result,
+            reasoning = reasoning,
+            _has_reasoning = true,
+        }
     end
 
     return result

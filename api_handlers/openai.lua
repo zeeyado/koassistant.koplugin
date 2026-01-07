@@ -68,6 +68,18 @@ function OpenAIHandler:buildRequestBody(message_history, config)
     local adjustments
     request_body, adjustments = ModelConstraints.apply("openai", model, request_body)
 
+    -- Add reasoning effort for o-series and GPT-5 models if enabled
+    -- OpenAI uses reasoning_effort as a top-level parameter (low/medium/high)
+    if api_params.reasoning and api_params.reasoning.effort then
+        if ModelConstraints.supportsCapability("openai", model, "reasoning") then
+            request_body.reasoning_effort = api_params.reasoning.effort
+        else
+            adjustments.reasoning_skipped = {
+                reason = "model " .. model .. " does not support reasoning"
+            }
+        end
+    end
+
     local headers = {
         ["Content-Type"] = "application/json",
         ["Authorization"] = "Bearer " .. (config.api_key or ""),
@@ -134,6 +146,18 @@ function OpenAIHandler:query(message_history, config)
     -- Apply model-specific constraints (e.g., temperature=1.0 for gpt-5/o3 models)
     local adjustments
     request_body, adjustments = ModelConstraints.apply("openai", model, request_body)
+
+    -- Add reasoning effort for o-series and GPT-5 models if enabled
+    -- OpenAI uses reasoning_effort as a top-level parameter (low/medium/high)
+    if api_params.reasoning and api_params.reasoning.effort then
+        if ModelConstraints.supportsCapability("openai", model, "reasoning") then
+            request_body.reasoning_effort = api_params.reasoning.effort
+        else
+            adjustments.reasoning_skipped = {
+                reason = "model " .. model .. " does not support reasoning"
+            }
+        end
+    end
 
     -- Check if streaming is enabled
     local use_streaming = config.features and config.features.enable_streaming

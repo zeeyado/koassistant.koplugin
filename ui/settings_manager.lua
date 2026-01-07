@@ -30,16 +30,23 @@ function SettingsManager:createMenuItem(plugin, item, schema)
 
     -- Handle special item types
     if item.type == "separator" then
-        return { 
+        return {
             text = "────────────────────",
             enabled = false,
             callback = function() end,  -- Empty callback to prevent any action
         }
     elseif item.type == "header" then
-        return { 
+        return {
             text = item.text,
             enabled = false,
             bold = true,
+            callback = function() end,  -- Empty callback to prevent any action
+        }
+    elseif item.type == "info" then
+        -- Non-interactive info text (e.g., model names below a toggle)
+        return {
+            text = item.text,
+            enabled = false,
             callback = function() end,  -- Empty callback to prevent any action
         }
     end

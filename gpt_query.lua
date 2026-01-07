@@ -173,9 +173,19 @@ local function queryChatGPT(message_history, temp_config, on_complete)
         return STREAMING_IN_PROGRESS
     end
 
-    -- Non-streaming response (string) - call callback if provided
+    -- Non-streaming response - handle both string and structured result (with reasoning)
+    local content = result
+    local reasoning = nil
+
+    -- Check if result is a structured response with reasoning metadata
+    if type(result) == "table" and result._has_reasoning then
+        content = result.content
+        reasoning = result.reasoning
+    end
+
     if on_complete then
-        on_complete(true, result, nil)
+        -- Pass reasoning as fourth argument when available
+        on_complete(true, content, nil, reasoning)
     end
     return result
 end

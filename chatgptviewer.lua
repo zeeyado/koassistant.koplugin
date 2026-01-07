@@ -647,8 +647,8 @@ function ChatGPTViewer:askAnotherQuestion()
     allow_newline = true,
     input_multiline = true,
     text_height = 300,  -- Set explicit height for the text input widget
-    width = UIConstants.DIALOG_WIDTH(),
-    text_widget_width = UIConstants.DIALOG_WIDTH() - Screen:scaleBySize(50),  -- Dialog width minus padding
+    width = UIConstants.CHAT_WIDTH(),  -- Match chat window width (95%)
+    text_widget_width = UIConstants.CHAT_WIDTH() - Screen:scaleBySize(50),  -- Dialog width minus padding
     text_widget_height = math.floor(Screen:getHeight() * UIConstants.INPUT_HEIGHT_RATIO),
     buttons = {
       {

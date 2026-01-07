@@ -39,11 +39,16 @@ function MessageHistory:addUserMessage(content, is_context)
     return #self.messages
 end
 
-function MessageHistory:addAssistantMessage(content, model)
-    table.insert(self.messages, {
+function MessageHistory:addAssistantMessage(content, model, reasoning)
+    local message = {
         role = self.ROLES.ASSISTANT,
         content = content
-    })
+    }
+    -- Store reasoning if provided (for models with visible thinking)
+    if reasoning then
+        message.reasoning = reasoning
+    end
+    table.insert(self.messages, message)
     if model then
         self.model = model
     end
@@ -261,12 +266,36 @@ function MessageHistory:createResultText(highlightedText, config)
                 temp = config.api_params.temperature
             end
 
-            -- Check for extended thinking
-            local thinking_info = ""
+            -- Check for reasoning/thinking configuration (per-provider toggles)
+            -- Show provider-specific reasoning info only when applicable
+            local reasoning_info = ""
             local has_thinking = config.api_params and config.api_params.thinking
-            if has_thinking then
-                local budget = config.api_params.thinking.budget_tokens or 0
-                thinking_info = string.format(", thinking=%d", budget)
+            local full_model = config.model or model
+
+            -- Determine if reasoning is actually active for this provider+model
+            if provider == "anthropic" and has_thinking then
+                -- Anthropic: check if model supports extended thinking
+                if ModelConstraints.supportsCapability("anthropic", full_model, "extended_thinking") then
+                    local budget = config.api_params.thinking.budget_tokens or 0
+                    reasoning_info = string.format(", thinking=%d", budget)
+                end
+            elseif provider == "openai" and config.api_params and config.api_params.reasoning then
+                -- OpenAI: check if model supports reasoning
+                if ModelConstraints.supportsCapability("openai", full_model, "reasoning") then
+                    local effort = config.api_params.reasoning.effort or "medium"
+                    reasoning_info = string.format(", reasoning=%s", effort)
+                end
+            elseif provider == "gemini" and config.api_params and config.api_params.thinking_level then
+                -- Gemini: check if model supports thinking
+                if ModelConstraints.supportsCapability("gemini", full_model, "thinking") then
+                    local depth = config.api_params.thinking_level or "HIGH"
+                    reasoning_info = string.format(", thinking=%s", depth:lower())
+                end
+            elseif provider == "deepseek" then
+                -- DeepSeek: reasoner always reasons, chat doesn't
+                if ModelConstraints.supportsCapability("deepseek", full_model, "reasoning") then
+                    reasoning_info = ", reasoning=auto"
+                end
             end
 
             -- Apply model constraints to get effective temperature
@@ -277,18 +306,21 @@ function MessageHistory:createResultText(highlightedText, config)
 
             -- Check model constraints
             local test_params = { temperature = temp }
-            local _, adjustments = ModelConstraints.apply(provider, model, test_params)
+            local full_model = config.model or model
+            local _, adjustments = ModelConstraints.apply(provider, full_model, test_params)
             if adjustments and adjustments.temperature then
                 effective_temp = adjustments.temperature.to
                 temp_adjusted = true
                 temp_reason = adjustments.temperature.reason
             end
 
-            -- Extended thinking always forces temp=1.0 (Anthropic only)
+            -- Extended thinking always forces temp=1.0 (Anthropic only, when model supports it)
             if has_thinking and provider == "anthropic" and effective_temp ~= 1.0 then
-                effective_temp = 1.0
-                temp_adjusted = true
-                temp_reason = "extended thinking"
+                if ModelConstraints.supportsCapability("anthropic", full_model, "extended_thinking") then
+                    effective_temp = 1.0
+                    temp_adjusted = true
+                    temp_reason = "extended thinking"
+                end
             end
 
             -- Format temperature display
@@ -300,7 +332,7 @@ function MessageHistory:createResultText(highlightedText, config)
             end
 
             table.insert(result, string.format("● Config: provider=%s, behavior=%s, domain=%s\n", provider, behavior, domain))
-            table.insert(result, string.format("  model=%s, temp=%s%s\n\n", model, temp_display, thinking_info))
+            table.insert(result, string.format("  model=%s, temp=%s%s\n\n", model, temp_display, reasoning_info))
         end
 
         if display_level == "full" and config.system then
@@ -402,14 +434,31 @@ function MessageHistory:createResultText(highlightedText, config)
         table.insert(result, "------------------\n\n")
     end
 
+    -- Check if reasoning display is enabled
+    local show_reasoning = config and config.features and config.features.show_reasoning_in_chat
+
     -- Show conversation (non-context messages)
     for i = 2, #self.messages do
         if not self.messages[i].is_context then
-            local prefix = self.messages[i].role == self.ROLES.USER and "▶ User: " or "◉ KOAssistant: "
-            table.insert(result, prefix .. self.messages[i].content .. "\n\n")
+            local msg = self.messages[i]
+            local prefix = msg.role == self.ROLES.USER and "▶ User: " or "◉ KOAssistant: "
+
+            -- If this is an assistant message with reasoning, show indicator and optionally full content
+            if msg.role == self.ROLES.ASSISTANT and msg.reasoning then
+                if show_reasoning then
+                    -- Show full reasoning content
+                    table.insert(result, "**[Extended Thinking]**\n")
+                    table.insert(result, "> " .. msg.reasoning:gsub("\n", "\n> ") .. "\n\n")
+                else
+                    -- Just show indicator that reasoning was used
+                    table.insert(result, "*[Extended Thinking was used]*\n\n")
+                end
+            end
+
+            table.insert(result, prefix .. msg.content .. "\n\n")
         end
     end
-    
+
     return table.concat(result)
 end
 
