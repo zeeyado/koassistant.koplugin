@@ -293,7 +293,7 @@ Chat History → hamburger menu → **View by Tag**
 1. **Name & Context**: Set button text and where/when it appears
 2. **AI Behavior**: Optional behavior override (use global, minimal, full, none, or custom)
 3. **Action Prompt**: The actual prompt template sent to the AI
-4. **Advanced**: Provider, Model, Temperature and Extended thinking overrides 
+4. **Advanced**: Provider, Model, Temperature, and Reasoning/Thinking overrides
 
 ### Template Variables
 
@@ -340,11 +340,22 @@ return {
 - `provider`: Force specific provider ("anthropic", "openai", etc.)
 - `model`: Force specific model for the provider
 - `temperature`: Override global temperature (0.0-2.0)
-- `extended_thinking`: Override thinking ("off" to disable, "on" to enable)
-- `thinking_budget`: Token budget when extended_thinking="on" (1024-32000)
+- `reasoning_config`: Per-provider reasoning settings (see below)
+- `extended_thinking`: Legacy: "off" to disable, "on" to enable (Anthropic only)
+- `thinking_budget`: Legacy: Token budget when extended_thinking="on" (1024-32000)
 - `enabled`: Set to `false` to hide
 - `include_book_context`: Add book info to highlight actions
 - `domain`: Lock to a specific domain
+
+**Per-provider reasoning config** (new in v0.6):
+```lua
+reasoning_config = {
+    anthropic = { budget = 4096 },      -- Extended thinking budget
+    openai = { effort = "medium" },     -- low/medium/high
+    gemini = { level = "high" },        -- low/medium/high
+}
+-- Or: reasoning_config = "off" to disable for all providers
+```
 
 See `custom_actions.lua.sample` for more examples.
 
@@ -380,8 +391,10 @@ See `custom_actions.lua.sample` for more examples.
 - **AI Behavior**: Minimal (~100 tokens), Full (~500 tokens), or Custom guidelines
 - **Edit Custom Behavior**: Define your own AI behavior instructions (when Custom is selected)
 - **Temperature**: Response creativity (0.0-2.0, Anthropic max 1.0)
-- **Enable Extended Thinking**: Enable Claude's reasoning capability (Anthropic only)
-- **Thinking Budget**: Token budget for reasoning (1024-32000)
+- **Reasoning/Thinking**: Per-provider reasoning settings:
+  - **Anthropic Extended Thinking**: Budget 1024-32000 tokens
+  - **OpenAI Reasoning**: Effort level (low/medium/high)
+  - **Gemini Thinking**: Level (low/medium/high)
 - **Console Debug**: Enable terminal/console debug logging
 - **Show Debug in Chat**: Display debug info in chat viewer
 - **Debug Detail Level**: Verbosity (Minimal/Names/Full)
@@ -492,13 +505,28 @@ Reduces API costs by ~90% for repeated context, especially useful for large doma
 
 When you have the same domain selected across multiple questions, subsequent queries use cached system instructions.
 
-### Extended Thinking (Anthropic)
+### Reasoning/Thinking
 
-For complex questions, Claude can "think" through the problem before responding:
+For complex questions, supported models can "think" through the problem before responding:
 
-1. Enable in Settings → Advanced → Enable Extended Thinking
+**Anthropic Extended Thinking:**
+1. Enable in Settings → AI Response → Anthropic Extended Thinking
 2. Set token budget (1024-32000)
 3. Temperature is forced to 1.0 (API requirement)
+4. Works with: Claude Sonnet 4.5, Opus 4.x, Haiku 4.5, Sonnet 3.7
+
+**OpenAI Reasoning:**
+1. Enable in Settings → AI Response → OpenAI Reasoning
+2. Set effort level (low/medium/high)
+3. Temperature is forced to 1.0 (API requirement)
+4. Works with: o3, o3-mini, o4-mini, GPT-5.x
+
+**Gemini Thinking:**
+1. Enable in Settings → AI Response → Gemini Thinking
+2. Set level (low/medium/high)
+3. Works with: gemini-3-*-preview models
+
+**DeepSeek:** The `deepseek-reasoner` model automatically uses reasoning (no setting needed).
 
 Best for: Complex analysis, reasoning problems, nuanced questions
 
@@ -547,11 +575,12 @@ In the model selection menu, choose "Custom model..." to enter any model ID your
 ### Provider Quirks
 
 - **Anthropic**: Temperature capped at 1.0; Extended thinking forces temp to exactly 1.0
-- **Gemini**: Uses "model" role instead of "assistant"; dynamic URL construction
+- **OpenAI**: Reasoning models (o3, GPT-5.x) force temp to 1.0; newer models use `max_completion_tokens`
+- **Gemini**: Uses "model" role instead of "assistant"; thinking uses camelCase REST API format
 - **Ollama**: Local only; configure `base_url` in `configuration.lua` for remote instances
 - **OpenRouter**: Requires HTTP-Referer header (handled automatically)
 - **Cohere**: Uses v2/chat endpoint with different response format
-- **OpenAI**: Newer models (GPT-5.x, o-series) use `max_completion_tokens` instead of `max_tokens`
+- **DeepSeek**: `deepseek-reasoner` model always reasons automatically
 
 ---
 
