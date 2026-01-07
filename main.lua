@@ -792,6 +792,13 @@ function AskGPT:onDispatcherRegisterActions()
     event = "KOAssistantAISettings",
     title = _("KOAssistant: AI Quick Settings"),
     general = true,
+  })
+
+  Dispatcher:registerAction("koassistant_action_manager", {
+    category = "none",
+    event = "KOAssistantActionManager",
+    title = _("KOAssistant: Action Manager"),
+    general = true,
     separator = true
   })
 
@@ -839,7 +846,7 @@ function AskGPT:initSettings()
       auto_save_chats = true,      -- Default for continued chats
       render_markdown = true,      -- Default to render markdown
       enable_streaming = true,     -- Default to streaming for new installs
-      stream_auto_scroll = true,   -- Default to auto-scroll during streaming
+      stream_auto_scroll = false,  -- Default to no auto-scroll during streaming
       large_stream_dialog = true,  -- Default to full-screen streaming dialog
       -- Anthropic settings
       ai_behavior_variant = "full", -- AI behavior style: "minimal" (~100 tokens) or "full" (~500 tokens)
@@ -1815,6 +1822,12 @@ function AskGPT:testProviderConnection()
       end
     end)
   end)
+end
+
+--- Action Manager gesture handler
+function AskGPT:onKOAssistantActionManager()
+  self:showPromptsManager()
+  return true
 end
 
 function AskGPT:showPromptsManager()

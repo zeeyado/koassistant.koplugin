@@ -1159,13 +1159,18 @@ function ChatGPTViewer:showReasoningViewer()
   UIManager:show(viewer)
 end
 
--- Handle screen rotation by recreating the viewer with new dimensions
--- This preserves state (text, scroll position, settings) across rotation
-function ChatGPTViewer:onSetRotationMode(rotation)
+-- Internal function to handle rotation/resize recreation
+-- Called by both onSetRotationMode and onScreenResize
+function ChatGPTViewer:_handleScreenChange()
   if not self._recreate_func then
-    -- No recreate function set, just ignore rotation
     return false
   end
+
+  -- Prevent double recreation if both events fire
+  if self._recreating then
+    return true
+  end
+  self._recreating = true
 
   -- Capture current state before closing
   local state = self:captureState()
@@ -1176,12 +1181,26 @@ function ChatGPTViewer:onSetRotationMode(rotation)
     _G.ActiveChatViewer = nil
   end
 
-  -- Schedule recreation to happen after rotation completes
-  UIManager:scheduleIn(0.1, function()
+  -- Schedule recreation with enough delay for screen dimensions to update
+  -- Use 0.2s to ensure Screen:getWidth()/getHeight() return new values
+  UIManager:scheduleIn(0.2, function()
     self._recreate_func(state)
   end)
 
   return true
+end
+
+-- Handle screen rotation by recreating the viewer with new dimensions
+-- This preserves state (text, scroll position, settings) across rotation
+function ChatGPTViewer:onSetRotationMode(rotation)
+  logger.dbg("ChatGPTViewer: onSetRotationMode called with rotation:", rotation)
+  return self:_handleScreenChange()
+end
+
+-- Alternative handler for screen resize events (some KOReader builds use this)
+function ChatGPTViewer:onScreenResize(dimen)
+  logger.dbg("ChatGPTViewer: onScreenResize called with dimen:", dimen)
+  return self:_handleScreenChange()
 end
 
 -- Capture current viewer state for restoration after recreation

@@ -219,7 +219,7 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
     end
 
     local font_size = (settings and settings.response_font_size) or 20
-    local auto_scroll = settings and settings.stream_auto_scroll ~= false
+    local auto_scroll = settings and settings.stream_auto_scroll == true
     local scroll_paused = false  -- Track if user has paused auto-scroll
 
     -- Functions to pause/resume auto-scroll (forward declarations)
