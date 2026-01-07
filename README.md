@@ -12,7 +12,7 @@ You can have context free chats, chat about documents in your library, or about 
 
 Chats are streamed live (like ChatGPT/Claude, etc), are automatically (or manually) saved, and you can resume them any time, and continue chats with a different provider/model and other changed settings if you like. You can one-click export/copy whole chats to clipboard (markdown formatting), or select and copy text from chats, to then paste e.g. in a highlight note in your document. Your chat reply drafts are saved so you can re-read AI messages and resume typing, or copy and paste parts as you are structuring your reply.
 
-Most settings are configurable in the UI, including: Provider/model, AI behavior, user/AI interaction language, translation languages, domains/project context, custom actions (Create, edit, duplicate, and adjust settings), and advanced settings like reasoning, temperature, and more. Most settings and functions combinations can be specified for a given action.
+Most settings are configurable in the UI, including: Provider/model, AI behavior and style, user-to-AI interaction languages, translation languages, domains/project/field context, custom actions (which you can create, edit, duplicate, and adjust settings for), and advanced model settings like reasoning/thinking, temperature, and more. Most settings, additional context, and function combinations can be specified for a given action.
 
 > **Development Status**: KOAssistant is currently under heavy development, with features constantly added. 16 providers are supported (see [Supported Providers](#supported-providers)); testing and Feedback appreciated. You can open an issue, feature request, or start a discussion.
 
