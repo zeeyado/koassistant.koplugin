@@ -267,28 +267,29 @@ function MessageHistory:createResultText(highlightedText, config)
             end
 
             -- Check for reasoning/thinking configuration (per-provider toggles)
-            -- Show provider-specific reasoning info only when applicable
+            -- Show provider-specific reasoning info based on SETTINGS (features.*_reasoning)
+            -- not api_params (which is only set during API call)
             local reasoning_info = ""
-            local has_thinking = config.api_params and config.api_params.thinking
+            local features = config.features or {}
             local full_model = config.model or model
 
-            -- Determine if reasoning is actually active for this provider+model
-            if provider == "anthropic" and has_thinking then
+            -- Determine if reasoning is enabled for this provider+model (check settings)
+            if provider == "anthropic" and features.anthropic_reasoning then
                 -- Anthropic: check if model supports extended thinking
                 if ModelConstraints.supportsCapability("anthropic", full_model, "extended_thinking") then
-                    local budget = config.api_params.thinking.budget_tokens or 0
+                    local budget = features.reasoning_budget or 4096
                     reasoning_info = string.format(", thinking=%d", budget)
                 end
-            elseif provider == "openai" and config.api_params and config.api_params.reasoning then
+            elseif provider == "openai" and features.openai_reasoning then
                 -- OpenAI: check if model supports reasoning
                 if ModelConstraints.supportsCapability("openai", full_model, "reasoning") then
-                    local effort = config.api_params.reasoning.effort or "medium"
+                    local effort = features.reasoning_effort or "medium"
                     reasoning_info = string.format(", reasoning=%s", effort)
                 end
-            elseif provider == "gemini" and config.api_params and config.api_params.thinking_level then
+            elseif provider == "gemini" and features.gemini_reasoning then
                 -- Gemini: check if model supports thinking
                 if ModelConstraints.supportsCapability("gemini", full_model, "thinking") then
-                    local depth = config.api_params.thinking_level or "HIGH"
+                    local depth = features.reasoning_depth or "high"
                     reasoning_info = string.format(", thinking=%s", depth:lower())
                 end
             elseif provider == "deepseek" then
@@ -443,15 +444,15 @@ function MessageHistory:createResultText(highlightedText, config)
             local msg = self.messages[i]
             local prefix = msg.role == self.ROLES.USER and "▶ User: " or "◉ KOAssistant: "
 
-            -- If this is an assistant message with reasoning, show indicator and optionally full content
-            -- reasoning can be: string (actual content), true (marker that reasoning was requested), or nil
+            -- If this is an assistant message with reasoning, show indicator
+            -- msg.reasoning can be: string (actual content) or true (detected but not captured)
             if msg.role == self.ROLES.ASSISTANT and msg.reasoning then
                 if show_reasoning and type(msg.reasoning) == "string" then
-                    -- Show full reasoning content (only if actual content available)
+                    -- Show full reasoning content (only available for non-streaming)
                     table.insert(result, "**[Extended Thinking]**\n")
                     table.insert(result, "> " .. msg.reasoning:gsub("\n", "\n> ") .. "\n\n")
                 else
-                    -- Show indicator that reasoning was used/requested
+                    -- Just show indicator that reasoning was used
                     table.insert(result, "*[Reasoning/Thinking was used]*\n\n")
                 end
             end
