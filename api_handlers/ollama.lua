@@ -156,9 +156,18 @@ function OllamaHandler:query(message_history, config)
         print("Ollama Parsed Response:", json.encode(response))
     end
 
-    local success, result = ResponseParser:parseResponse(response, "ollama")
+    local success, result, reasoning = ResponseParser:parseResponse(response, "ollama")
     if not success then
         return "Error: " .. result
+    end
+
+    -- Return result with optional reasoning metadata (R1 models use <think> tags)
+    if reasoning then
+        return {
+            content = result,
+            reasoning = reasoning,
+            _has_reasoning = true,
+        }
     end
 
     return result

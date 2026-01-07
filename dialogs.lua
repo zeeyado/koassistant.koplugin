@@ -143,20 +143,60 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
         config.api_params.max_tokens = 4096
     end
 
-    -- Extended thinking (Anthropic only - other handlers will ignore)
-    -- Priority: action override > global setting
-    if action and action.extended_thinking == "off" then
-        -- Action explicitly disables thinking
-        config.api_params.thinking = nil
-    elseif action and action.extended_thinking == "on" then
-        -- Action explicitly enables thinking with its own budget
-        local budget = action.thinking_budget or 4096
-        config.api_params.thinking = {
-            type = "enabled",
-            budget_tokens = math.max(budget, 1024),
-        }
-    elseif features.enable_extended_thinking then
-        -- Fall back to global setting
+    -- Reasoning/Thinking support (per-provider toggles)
+    -- Priority: action override > per-provider setting
+    -- Supports: reasoning = "on"/"off", reasoning_effort, thinking_budget, reasoning_depth
+    local provider = config.provider or config.default_provider or "anthropic"
+    local reasoning_budget = features.reasoning_budget or 4096
+    local reasoning_effort = features.reasoning_effort or "medium"
+    local reasoning_depth = features.reasoning_depth or "high"
+
+    -- Per-provider reasoning toggles
+    local anthropic_reasoning = features.anthropic_reasoning
+    local openai_reasoning = features.openai_reasoning
+    local gemini_reasoning = features.gemini_reasoning
+
+    -- Check for action overrides (also support legacy extended_thinking for backward compat)
+    -- Action override affects the current provider's reasoning
+    local action_override = nil  -- nil = use setting, true = force on, false = force off
+    if action then
+        if action.reasoning == "off" or action.extended_thinking == "off" then
+            action_override = false
+        elseif action.reasoning == "on" or action.extended_thinking == "on" then
+            action_override = true
+            -- Action can override specific parameters
+            if action.thinking_budget then reasoning_budget = action.thinking_budget end
+            if action.reasoning_effort then reasoning_effort = action.reasoning_effort end
+            if action.reasoning_depth then reasoning_depth = action.reasoning_depth end
+        end
+    end
+
+    -- Apply reasoning parameters based on provider
+    if provider == "anthropic" then
+        local enabled = action_override ~= nil and action_override or anthropic_reasoning
+        if enabled then
+            config.api_params.thinking = {
+                type = "enabled",
+                budget_tokens = math.max(reasoning_budget, 1024),
+            }
+        end
+    elseif provider == "openai" then
+        local enabled = action_override ~= nil and action_override or openai_reasoning
+        if enabled then
+            config.api_params.reasoning = {
+                effort = reasoning_effort,
+            }
+        end
+    elseif provider == "gemini" then
+        local enabled = action_override ~= nil and action_override or gemini_reasoning
+        if enabled then
+            config.api_params.thinking_level = reasoning_depth:upper()
+        end
+    end
+    -- DeepSeek: no parameter needed, reasoner model always reasons
+
+    -- Also support legacy enable_extended_thinking for backward compatibility
+    if not anthropic_reasoning and features.enable_extended_thinking and provider == "anthropic" then
         local budget = features.thinking_budget_tokens or 4096
         config.api_params.thinking = {
             type = "enabled",
@@ -824,13 +864,13 @@ local function handlePredefinedPrompt(prompt_type, highlightedText, ui, configur
     buildUnifiedRequestConfig(temp_config, domain_context, action, plugin)
 
     -- Get response from AI with callback for async streaming
-    local function handleResponse(success, answer, err)
+    local function handleResponse(success, answer, err, reasoning)
         if success and answer and answer ~= "" then
             -- If user typed additional input, add it as a visible message before the response
             if has_additional_input then
                 history:addUserMessage(additional_input, false)
             end
-            history:addAssistantMessage(answer, ConfigHelper:getModelInfo(temp_config))
+            history:addAssistantMessage(answer, ConfigHelper:getModelInfo(temp_config), reasoning)
             if on_complete then
                 on_complete(history, temp_config)
             end
@@ -1124,21 +1164,21 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     buildUnifiedRequestConfig(configuration, domain_context, nil, plugin)
 
                     -- Callback to handle response (for both streaming and non-streaming)
-                    local function onResponseReady(success, answer, err)
+                    local function onResponseReady(success, answer, err, reasoning)
                         if success and answer then
                             -- If user typed a question, add it as a visible message before the response
                             if has_user_question then
                                 history:addUserMessage(question, false)
                             end
-                            history:addAssistantMessage(answer, ConfigHelper:getModelInfo(configuration))
+                            history:addAssistantMessage(answer, ConfigHelper:getModelInfo(configuration), reasoning)
 
                             local function addMessage(message, is_context, on_complete)
                                 history:addUserMessage(message, is_context)
-                                local answer_result = queryChatGPT(history:getMessages(), configuration, function(msg_success, msg_answer, msg_err)
+                                local answer_result = queryChatGPT(history:getMessages(), configuration, function(msg_success, msg_answer, msg_err, msg_reasoning)
                                     if msg_success and msg_answer then
-                                        history:addAssistantMessage(msg_answer, ConfigHelper:getModelInfo(configuration))
+                                        history:addAssistantMessage(msg_answer, ConfigHelper:getModelInfo(configuration), msg_reasoning)
                                     end
-                                    if on_complete then on_complete(msg_success, msg_answer, msg_err) end
+                                    if on_complete then on_complete(msg_success, msg_answer, msg_err, msg_reasoning) end
                                 end)
                                 if not isStreamingInProgress(answer_result) then
                                     return answer_result
@@ -1185,11 +1225,11 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                             local function addMessage(message, is_context, on_complete)
                                 history:addUserMessage(message, is_context)
                                 -- For follow-up messages, use callback pattern too
-                                local answer_result = queryChatGPT(history:getMessages(), temp_config, function(success, answer, err)
+                                local answer_result = queryChatGPT(history:getMessages(), temp_config, function(success, answer, err, reasoning)
                                     if success and answer then
-                                        history:addAssistantMessage(answer, ConfigHelper:getModelInfo(temp_config))
+                                        history:addAssistantMessage(answer, ConfigHelper:getModelInfo(temp_config), reasoning)
                                     end
-                                    if on_complete then on_complete(success, answer, err) end
+                                    if on_complete then on_complete(success, answer, err, reasoning) end
                                 end)
                                 -- For non-streaming, return the result directly
                                 if not isStreamingInProgress(answer_result) then
@@ -1316,11 +1356,11 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
             local temp_config = temp_config_or_error
             local function addMessage(message, is_context, on_complete_msg)
                 history:addUserMessage(message, is_context)
-                local answer_result = queryChatGPT(history:getMessages(), temp_config, function(success, answer, err)
+                local answer_result = queryChatGPT(history:getMessages(), temp_config, function(success, answer, err, reasoning)
                     if success and answer then
-                        history:addAssistantMessage(answer, ConfigHelper:getModelInfo(temp_config))
+                        history:addAssistantMessage(answer, ConfigHelper:getModelInfo(temp_config), reasoning)
                     end
-                    if on_complete_msg then on_complete_msg(success, answer, err) end
+                    if on_complete_msg then on_complete_msg(success, answer, err, reasoning) end
                 end)
                 if not isStreamingInProgress(answer_result) then
                     return answer_result
