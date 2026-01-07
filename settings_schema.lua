@@ -1,9 +1,24 @@
 local _ = require("koassistant_gettext")
 local T = require("ffi/util").template
+local ModelConstraints = require("model_constraints")
 
 -- Settings Schema Definition
 -- This file defines the structure and metadata for all KOAssistant plugin settings
 -- Used by SettingsManager to generate menus - SINGLE SOURCE OF TRUTH
+
+-- Helper: Build model list string from capabilities
+local function getModelList(provider, capability)
+    local caps = ModelConstraints.capabilities[provider]
+    if not caps or not caps[capability] then return "" end
+
+    local models = {}
+    for _, model in ipairs(caps[capability]) do
+        -- Shorten model names for display (remove date suffixes)
+        local short = model:gsub("%-20%d%d%d%d%d%d$", "-*")
+        table.insert(models, "- " .. short)
+    end
+    return table.concat(models, "\n")
+end
 
 local SettingsSchema = {
     -- Menu items in display order (flat structure matching main menu)
@@ -200,25 +215,112 @@ local SettingsSchema = {
                     info_text = _("Range: 0.0-2.0 (Anthropic max 1.0)\nLower = focused, deterministic\nHigher = creative, varied"),
                     separator = true,
                 },
+                -- Reasoning / Thinking submenu (per-provider toggles)
                 {
-                    id = "enable_extended_thinking",
-                    type = "toggle",
-                    text = _("Enable Extended Thinking"),
-                    path = "features.enable_extended_thinking",
-                    default = false,
-                },
-                {
-                    id = "thinking_budget_tokens",
-                    type = "spinner",
-                    text = _("Thinking Budget"),
-                    path = "features.thinking_budget_tokens",
-                    default = 4096,
-                    min = 1024,
-                    max = 32000,
-                    step = 1024,
-                    precision = "%d",
-                    depends_on = { id = "enable_extended_thinking", value = true },
-                    separator = true,
+                    id = "reasoning_submenu",
+                    type = "submenu",
+                    text = _("Reasoning"),
+                    items = {
+                        -- Hint about long-press for model info
+                        {
+                            type = "info",
+                            text = _("Long-press provider for supported models"),
+                        },
+                        {
+                            type = "separator",
+                        },
+                        -- Anthropic Extended Thinking
+                        {
+                            id = "anthropic_reasoning",
+                            type = "toggle",
+                            text = _("Anthropic Extended Thinking"),
+                            help_text = _("Supported models:\n") .. getModelList("anthropic", "extended_thinking") .. _("\n\nLet Claude think through complex problems before responding."),
+                            path = "features.anthropic_reasoning",
+                            default = false,
+                        },
+                        {
+                            id = "reasoning_budget",
+                            type = "spinner",
+                            text = _("Thinking Budget (tokens)"),
+                            help_text = _("Token budget for extended thinking (1024-32000)\nHigher = more thorough reasoning, slower, more expensive"),
+                            path = "features.reasoning_budget",
+                            default = 4096,
+                            min = 1024,
+                            max = 32000,
+                            step = 1024,
+                            precision = "%d",
+                            depends_on = { id = "anthropic_reasoning", value = true },
+                            separator = true,
+                        },
+                        -- OpenAI Reasoning
+                        {
+                            id = "openai_reasoning",
+                            type = "toggle",
+                            text = _("OpenAI Reasoning"),
+                            help_text = _("Supported models:\n") .. getModelList("openai", "reasoning") .. _("\n\nReasoning is encrypted/hidden from user."),
+                            path = "features.openai_reasoning",
+                            default = false,
+                        },
+                        {
+                            id = "reasoning_effort",
+                            type = "radio",
+                            text_func = function(plugin)
+                                local f = plugin.settings:readSetting("features") or {}
+                                local effort = f.reasoning_effort or "medium"
+                                local labels = { low = _("Low"), medium = _("Medium"), high = _("High") }
+                                return T(_("Reasoning Effort: %1"), labels[effort] or effort)
+                            end,
+                            help_text = _("Low = faster, cheaper\nMedium = balanced\nHigh = thorough reasoning"),
+                            path = "features.reasoning_effort",
+                            default = "medium",
+                            depends_on = { id = "openai_reasoning", value = true },
+                            separator = true,
+                            options = {
+                                { value = "low", text = _("Low (faster, cheaper)") },
+                                { value = "medium", text = _("Medium (balanced)") },
+                                { value = "high", text = _("High (thorough)") },
+                            },
+                        },
+                        -- Gemini Thinking
+                        {
+                            id = "gemini_reasoning",
+                            type = "toggle",
+                            text = _("Gemini Thinking"),
+                            help_text = _("Supported models:\n") .. getModelList("gemini", "thinking") .. _("\n\nThinking is encrypted/hidden from user."),
+                            path = "features.gemini_reasoning",
+                            default = false,
+                        },
+                        {
+                            id = "reasoning_depth",
+                            type = "radio",
+                            text_func = function(plugin)
+                                local f = plugin.settings:readSetting("features") or {}
+                                local depth = f.reasoning_depth or "high"
+                                local labels = { minimal = _("Minimal"), low = _("Low"), medium = _("Medium"), high = _("High") }
+                                return T(_("Thinking Depth: %1"), labels[depth] or depth)
+                            end,
+                            help_text = _("Minimal = fastest\nLow/Medium = balanced\nHigh = deepest thinking"),
+                            path = "features.reasoning_depth",
+                            default = "high",
+                            depends_on = { id = "gemini_reasoning", value = true },
+                            separator = true,
+                            options = {
+                                { value = "minimal", text = _("Minimal (fastest)") },
+                                { value = "low", text = _("Low") },
+                                { value = "medium", text = _("Medium") },
+                                { value = "high", text = _("High (default)") },
+                            },
+                        },
+                        -- Display option
+                        {
+                            id = "show_reasoning_in_chat",
+                            type = "toggle",
+                            text = _("Show Reasoning in Chat"),
+                            help_text = _("Display AI thinking/reasoning when available.\n\nVisible for: Anthropic, DeepSeek reasoner, R1 models\nHidden (encrypted): OpenAI, Gemini"),
+                            path = "features.show_reasoning_in_chat",
+                            default = false,
+                        },
+                    },
                 },
                 {
                     id = "debug",

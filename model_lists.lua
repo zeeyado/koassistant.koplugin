@@ -279,4 +279,17 @@ local ModelLists = {
         "doubao-lite-32k",
     }
 }
+
+-- Get sorted list of all provider names (single source of truth)
+function ModelLists.getAllProviders()
+    local providers = {}
+    for provider, _ in pairs(ModelLists) do
+        if type(ModelLists[provider]) == "table" then
+            table.insert(providers, provider)
+        end
+    end
+    table.sort(providers)
+    return providers
+end
+
 return ModelLists

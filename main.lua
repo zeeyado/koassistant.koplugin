@@ -868,8 +868,15 @@ function AskGPT:updateConfigFromSettings()
   if features.default_temperature and features.default_temperature ~= 0.7 then
     table.insert(config_parts, "temp=" .. features.default_temperature)
   end
-  if features.enable_extended_thinking then
-    table.insert(config_parts, "thinking=" .. (features.thinking_budget_tokens or 4096))
+  -- Show per-provider reasoning settings
+  if features.anthropic_reasoning then
+    table.insert(config_parts, "anthropic_thinking=" .. (features.reasoning_budget or 4096))
+  end
+  if features.openai_reasoning then
+    table.insert(config_parts, "openai_reasoning=" .. (features.reasoning_effort or "medium"))
+  end
+  if features.gemini_reasoning then
+    table.insert(config_parts, "gemini_thinking=" .. (features.reasoning_depth or "high"))
   end
   -- Always show debug level when debug is enabled
   if features.debug then
@@ -901,12 +908,8 @@ end
 function AskGPT:buildProviderMenu()
   local self_ref = self
   local current = self:getCurrentProvider()
-  local providers = {
-    "anthropic", "openai", "deepseek", "gemini", "ollama",
-    -- New providers
-    "groq", "mistral", "xai", "openrouter", "qwen", "kimi",
-    "together", "fireworks", "sambanova", "cohere", "doubao"
-  }
+  local ModelLists = require("model_lists")
+  local providers = ModelLists.getAllProviders()
   local Defaults = require("api_handlers.defaults")
   local items = {}
 

@@ -23,6 +23,89 @@ function PromptsManager:new(plugin)
     return o
 end
 
+-- Helper: Get display text for reasoning config (handles both legacy and new format)
+function PromptsManager:getReasoningDisplayText(action)
+    -- New format: reasoning_config
+    if action.reasoning_config ~= nil then
+        if action.reasoning_config == "off" then
+            return _("Force OFF")
+        elseif type(action.reasoning_config) == "table" then
+            -- Per-provider config
+            local parts = {}
+            if action.reasoning_config.anthropic then
+                if type(action.reasoning_config.anthropic) == "table" and action.reasoning_config.anthropic.budget then
+                    table.insert(parts, string.format("A:%d", action.reasoning_config.anthropic.budget))
+                end
+            end
+            if action.reasoning_config.openai then
+                if type(action.reasoning_config.openai) == "table" and action.reasoning_config.openai.effort then
+                    table.insert(parts, "O:" .. action.reasoning_config.openai.effort:sub(1,1):upper())
+                end
+            end
+            if action.reasoning_config.gemini then
+                if type(action.reasoning_config.gemini) == "table" and action.reasoning_config.gemini.level then
+                    table.insert(parts, "G:" .. action.reasoning_config.gemini.level:sub(1,1):upper())
+                end
+            end
+            if #parts > 0 then
+                return table.concat(parts, ", ")
+            end
+            return _("Configured")
+        end
+    end
+
+    -- Legacy format: extended_thinking
+    if action.extended_thinking == "on" then
+        local budget = action.thinking_budget or 4096
+        return string.format(_("On (%d tokens)"), budget)
+    elseif action.extended_thinking == "off" then
+        return _("Force OFF")
+    end
+
+    return _("Global")
+end
+
+-- Helper: Get display text for state (handles both legacy and new format)
+function PromptsManager:getStateReasoningDisplayText(state)
+    -- New format: reasoning_config
+    if state.reasoning_config ~= nil then
+        if state.reasoning_config == "off" then
+            return _("Force OFF")
+        elseif type(state.reasoning_config) == "table" then
+            local parts = {}
+            if state.reasoning_config.anthropic then
+                if type(state.reasoning_config.anthropic) == "table" and state.reasoning_config.anthropic.budget then
+                    table.insert(parts, string.format("A:%d", state.reasoning_config.anthropic.budget))
+                end
+            end
+            if state.reasoning_config.openai then
+                if type(state.reasoning_config.openai) == "table" and state.reasoning_config.openai.effort then
+                    table.insert(parts, "O:" .. state.reasoning_config.openai.effort:sub(1,1):upper())
+                end
+            end
+            if state.reasoning_config.gemini then
+                if type(state.reasoning_config.gemini) == "table" and state.reasoning_config.gemini.level then
+                    table.insert(parts, "G:" .. state.reasoning_config.gemini.level:sub(1,1):upper())
+                end
+            end
+            if #parts > 0 then
+                return table.concat(parts, ", ")
+            end
+            return _("Configured")
+        end
+    end
+
+    -- Legacy format: extended_thinking
+    if state.extended_thinking == "on" then
+        local budget = state.thinking_budget or 4096
+        return string.format(_("On (%d tokens)"), budget)
+    elseif state.extended_thinking == "off" then
+        return _("Force OFF")
+    end
+
+    return _("Global")
+end
+
 function PromptsManager:show()
     self:loadPrompts()
     self:showPromptsMenu()
@@ -400,16 +483,8 @@ function PromptsManager:showPromptDetails(prompt)
     -- Temperature display
     local temp_text = prompt.temperature and string.format("%.1f", prompt.temperature) or _("Global")
 
-    -- Extended thinking display
-    local thinking_text
-    if prompt.extended_thinking == "on" then
-        local budget = prompt.thinking_budget or 4096
-        thinking_text = string.format(_("On (%d tokens)"), budget)
-    elseif prompt.extended_thinking == "off" then
-        thinking_text = _("Off")
-    else
-        thinking_text = _("Global")
-    end
+    -- Reasoning display (handles both legacy and new format)
+    local thinking_text = self:getReasoningDisplayText(prompt)
 
     -- Provider/model display
     local provider_text = prompt.provider or _("Global")
@@ -422,7 +497,7 @@ function PromptsManager:showPromptDetails(prompt)
         _("Source"), source_text,
         _("Status"), prompt.enabled and _("Enabled") or _("Disabled"),
         _("Temperature"), temp_text,
-        _("Extended Thinking"), thinking_text,
+        _("Reasoning"), thinking_text,
         _("Provider/Model"), provider_text, model_text,
         _("AI Behavior"),
         behavior_text,
@@ -563,8 +638,11 @@ function PromptsManager:showPromptEditor(existing_prompt)
         include_book_context = existing_prompt and existing_prompt.include_book_context or (not existing_prompt and true) or false,
         domain = existing_prompt and existing_prompt.domain or nil,
         temperature = existing_prompt and existing_prompt.temperature or nil,  -- nil = use global
-        extended_thinking = existing_prompt and existing_prompt.extended_thinking or nil,  -- nil = use global, "off" = force off, "on" = force on
-        thinking_budget = existing_prompt and existing_prompt.thinking_budget or nil,  -- nil = use global default
+        -- New format: reasoning_config (nil = global, "off" = force off, table = per-provider)
+        reasoning_config = existing_prompt and existing_prompt.reasoning_config or nil,
+        -- Legacy format (for backward compatibility)
+        extended_thinking = existing_prompt and existing_prompt.extended_thinking or nil,
+        thinking_budget = existing_prompt and existing_prompt.thinking_budget or nil,
         provider = existing_prompt and existing_prompt.provider or nil,  -- nil = use global
         model = existing_prompt and existing_prompt.model or nil,  -- nil = use global
         existing_prompt = existing_prompt,
@@ -973,16 +1051,8 @@ function PromptsManager:showStep4_Advanced(state)
     -- Get current temperature display
     local temp_display = state.temperature and string.format("%.1f", state.temperature) or _("Global")
 
-    -- Get current extended thinking display
-    local thinking_display
-    if state.extended_thinking == "on" then
-        local budget = state.thinking_budget or 4096
-        thinking_display = string.format(_("On (%d tokens)"), budget)
-    elseif state.extended_thinking == "off" then
-        thinking_display = _("Off")
-    else
-        thinking_display = _("Global")
-    end
+    -- Get current reasoning display (handles both legacy and new format)
+    local thinking_display = self:getStateReasoningDisplayText(state)
 
     -- Get current provider/model display
     local provider_display = state.provider or _("Global")
@@ -998,10 +1068,10 @@ function PromptsManager:showStep4_Advanced(state)
                 end,
             },
         },
-        -- Row 2: Extended Thinking
+        -- Row 2: Reasoning/Thinking
         {
             {
-                text = _("Extended Thinking: ") .. thinking_display,
+                text = _("Reasoning: ") .. thinking_display,
                 callback = function()
                     self:showThinkingSelector(state)
                 end,
@@ -1065,9 +1135,9 @@ Temperature: ]] .. temp_display .. [[
 
   Range 0.0-2.0 (Anthropic max 1.0)
 
-Extended Thinking: ]] .. thinking_display .. [[
+Reasoning: ]] .. thinking_display .. [[
 
-  Anthropic-only. Forces temp to 1.0.
+  Anthropic/OpenAI/Gemini. May force temp to 1.0.
 
 Provider/Model: ]] .. provider_display .. " / " .. model_display .. [[
 
@@ -1123,38 +1193,51 @@ function PromptsManager:showTemperatureSelector(state)
 end
 
 -- Extended thinking selector dialog
-function PromptsManager:showThinkingSelector(state)
+-- @param state: Action state being edited
+-- @param refresh_callback: Optional callback to refresh the parent dialog (for builtin actions)
+function PromptsManager:showThinkingSelector(state, refresh_callback)
+    -- Determine refresh behavior
+    local function refreshParent()
+        if refresh_callback then
+            refresh_callback()
+        elseif state.prompt and state.prompt.source then
+            -- Builtin action: has prompt reference with source field
+            UIManager:close(self.builtin_settings_dialog)
+            self:showBuiltinSettingsDialog(state)
+        else
+            -- Custom action wizard: refresh step 4
+            UIManager:close(self.advanced_dialog)
+            self:showStep4_Advanced(state)
+        end
+    end
+
     local buttons = {
         {
             {
                 text = _("Use global setting"),
                 callback = function()
-                    state.extended_thinking = nil
-                    state.thinking_budget = nil
+                    state.reasoning_config = nil  -- Use per-provider global settings
                     UIManager:close(self.thinking_dialog)
-                    UIManager:close(self.advanced_dialog)
-                    self:showStep4_Advanced(state)
+                    refreshParent()
                 end,
             },
         },
         {
             {
-                text = _("Force OFF for this action"),
+                text = _("Force OFF for all providers"),
                 callback = function()
-                    state.extended_thinking = "off"
-                    state.thinking_budget = nil
+                    state.reasoning_config = "off"  -- Disable for all
                     UIManager:close(self.thinking_dialog)
-                    UIManager:close(self.advanced_dialog)
-                    self:showStep4_Advanced(state)
+                    refreshParent()
                 end,
             },
         },
         {
             {
-                text = _("Force ON..."),
+                text = _("Configure per-provider..."),
                 callback = function()
                     UIManager:close(self.thinking_dialog)
-                    self:showThinkingBudgetSelector(state)
+                    self:showPerProviderReasoningMenu(state, refresh_callback)
                 end,
             },
         },
@@ -1169,25 +1252,171 @@ function PromptsManager:showThinkingSelector(state)
     }
 
     self.thinking_dialog = ButtonDialog:new{
-        title = _("Extended Thinking"),
-        info_text = _([[Extended thinking enables Claude's complex reasoning capability.
+        title = _("Reasoning/Thinking"),
+        info_text = _([[Reasoning enables complex thinking for supported models.
 
-• Global: Follow the setting in Settings → Advanced
+• Global: Follow per-provider settings in Settings menu
 • Force OFF: Never use thinking for this action
-• Force ON: Always use thinking (set budget)
+• Configure: Set per-provider reasoning (Anthropic budget, OpenAI effort, Gemini level)
 
-Note: Anthropic/Claude only. Forces temperature to 1.0.]]),
+May force temperature to 1.0 for some models.]]),
         buttons = buttons,
     }
 
     UIManager:show(self.thinking_dialog)
 end
 
--- Thinking budget selector
-function PromptsManager:showThinkingBudgetSelector(state)
+-- Per-provider reasoning configuration menu
+-- @param state: Action state being edited
+-- @param refresh_callback: Optional callback to refresh the parent dialog
+function PromptsManager:showPerProviderReasoningMenu(state, refresh_callback)
+    -- Store refresh callback in state for use by sub-dialogs
+    state._refresh_callback = refresh_callback
+
+    -- Initialize reasoning_config if needed
+    if type(state.reasoning_config) ~= "table" then
+        state.reasoning_config = {
+            anthropic = nil,  -- nil = use global, false = off, { budget = N } = on
+            openai = nil,     -- nil = use global, false = off, { effort = "..." } = on
+            gemini = nil,     -- nil = use global, false = off, { level = "..." } = on
+        }
+    end
+
+    local function getStatusText(provider)
+        local cfg = state.reasoning_config[provider]
+        if cfg == nil then return _("(global)") end
+        if cfg == false then return _("OFF") end
+        if provider == "anthropic" and cfg.budget then
+            return string.format(_("ON (%d tokens)"), cfg.budget)
+        elseif provider == "openai" and cfg.effort then
+            return _("ON (") .. cfg.effort .. ")"
+        elseif provider == "gemini" and cfg.level then
+            return _("ON (") .. cfg.level .. ")"
+        end
+        return _("ON")
+    end
+
+    -- Determine refresh behavior for Done button
+    local function refreshParent()
+        if refresh_callback then
+            refresh_callback()
+        elseif state.prompt and state.prompt.source then
+            -- Builtin action: has prompt reference with source field
+            UIManager:close(self.builtin_settings_dialog)
+            self:showBuiltinSettingsDialog(state)
+        else
+            -- Custom action wizard: refresh step 4
+            UIManager:close(self.advanced_dialog)
+            self:showStep4_Advanced(state)
+        end
+    end
+
+    local buttons = {
+        {
+            {
+                text = _("Anthropic: ") .. getStatusText("anthropic"),
+                callback = function()
+                    UIManager:close(self.per_provider_dialog)
+                    self:showAnthropicReasoningConfig(state)
+                end,
+            },
+        },
+        {
+            {
+                text = _("OpenAI: ") .. getStatusText("openai"),
+                callback = function()
+                    UIManager:close(self.per_provider_dialog)
+                    self:showOpenAIReasoningConfig(state)
+                end,
+            },
+        },
+        {
+            {
+                text = _("Gemini: ") .. getStatusText("gemini"),
+                callback = function()
+                    UIManager:close(self.per_provider_dialog)
+                    self:showGeminiReasoningConfig(state)
+                end,
+            },
+        },
+        {
+            {
+                text = _("Done"),
+                callback = function()
+                    UIManager:close(self.per_provider_dialog)
+                    refreshParent()
+                end,
+            },
+        },
+    }
+
+    self.per_provider_dialog = ButtonDialog:new{
+        title = _("Per-Provider Reasoning"),
+        info_text = _("Configure reasoning for each provider independently.\nDeepSeek reasoner model always uses reasoning automatically."),
+        buttons = buttons,
+    }
+
+    UIManager:show(self.per_provider_dialog)
+end
+
+-- Anthropic reasoning config
+function PromptsManager:showAnthropicReasoningConfig(state)
+    local buttons = {
+        {
+            {
+                text = _("Use global setting"),
+                callback = function()
+                    state.reasoning_config.anthropic = nil
+                    UIManager:close(self.anthropic_dialog)
+                    self:showPerProviderReasoningMenu(state)
+                end,
+            },
+        },
+        {
+            {
+                text = _("OFF"),
+                callback = function()
+                    state.reasoning_config.anthropic = false
+                    UIManager:close(self.anthropic_dialog)
+                    self:showPerProviderReasoningMenu(state)
+                end,
+            },
+        },
+        {
+            {
+                text = _("ON (set budget)..."),
+                callback = function()
+                    UIManager:close(self.anthropic_dialog)
+                    self:showAnthropicBudgetSelector(state)
+                end,
+            },
+        },
+        {
+            {
+                text = _("Cancel"),
+                callback = function()
+                    UIManager:close(self.anthropic_dialog)
+                    self:showPerProviderReasoningMenu(state)
+                end,
+            },
+        },
+    }
+
+    self.anthropic_dialog = ButtonDialog:new{
+        title = _("Anthropic Extended Thinking"),
+        info_text = _("Extended thinking for Claude models.\nSupports: Sonnet 4.5, Opus 4.x, Haiku 4.5, Sonnet 3.7"),
+        buttons = buttons,
+    }
+
+    UIManager:show(self.anthropic_dialog)
+end
+
+-- Anthropic budget selector
+function PromptsManager:showAnthropicBudgetSelector(state)
     local SpinWidget = require("ui/widget/spinwidget")
 
-    local current_budget = state.thinking_budget or 4096
+    local current = state.reasoning_config.anthropic
+    local current_budget = (type(current) == "table" and current.budget) or 4096
 
     local spin_widget = SpinWidget:new{
         title_text = _("Thinking Budget"),
@@ -1197,10 +1426,182 @@ function PromptsManager:showThinkingBudgetSelector(state)
         value_max = 32000,
         value_step = 1024,
         default_value = 4096,
-        ok_always_enabled = true,  -- Allow Apply even when value unchanged
+        ok_always_enabled = true,
         callback = function(spin)
-            state.extended_thinking = "on"
-            state.thinking_budget = spin.value
+            state.reasoning_config.anthropic = { budget = spin.value }
+            self:showPerProviderReasoningMenu(state)
+        end,
+    }
+
+    UIManager:show(spin_widget)
+end
+
+-- OpenAI reasoning config
+function PromptsManager:showOpenAIReasoningConfig(state)
+    local buttons = {
+        {
+            {
+                text = _("Use global setting"),
+                callback = function()
+                    state.reasoning_config.openai = nil
+                    UIManager:close(self.openai_dialog)
+                    self:showPerProviderReasoningMenu(state)
+                end,
+            },
+        },
+        {
+            {
+                text = _("OFF"),
+                callback = function()
+                    state.reasoning_config.openai = false
+                    UIManager:close(self.openai_dialog)
+                    self:showPerProviderReasoningMenu(state)
+                end,
+            },
+        },
+        {
+            {
+                text = _("Low effort"),
+                callback = function()
+                    state.reasoning_config.openai = { effort = "low" }
+                    UIManager:close(self.openai_dialog)
+                    self:showPerProviderReasoningMenu(state)
+                end,
+            },
+        },
+        {
+            {
+                text = _("Medium effort"),
+                callback = function()
+                    state.reasoning_config.openai = { effort = "medium" }
+                    UIManager:close(self.openai_dialog)
+                    self:showPerProviderReasoningMenu(state)
+                end,
+            },
+        },
+        {
+            {
+                text = _("High effort"),
+                callback = function()
+                    state.reasoning_config.openai = { effort = "high" }
+                    UIManager:close(self.openai_dialog)
+                    self:showPerProviderReasoningMenu(state)
+                end,
+            },
+        },
+        {
+            {
+                text = _("Cancel"),
+                callback = function()
+                    UIManager:close(self.openai_dialog)
+                    self:showPerProviderReasoningMenu(state)
+                end,
+            },
+        },
+    }
+
+    self.openai_dialog = ButtonDialog:new{
+        title = _("OpenAI Reasoning"),
+        info_text = _("Reasoning effort for OpenAI models.\nSupports: o3, o3-mini, o4-mini, GPT-5.x"),
+        buttons = buttons,
+    }
+
+    UIManager:show(self.openai_dialog)
+end
+
+-- Gemini reasoning config
+function PromptsManager:showGeminiReasoningConfig(state)
+    local buttons = {
+        {
+            {
+                text = _("Use global setting"),
+                callback = function()
+                    state.reasoning_config.gemini = nil
+                    UIManager:close(self.gemini_dialog)
+                    self:showPerProviderReasoningMenu(state)
+                end,
+            },
+        },
+        {
+            {
+                text = _("OFF"),
+                callback = function()
+                    state.reasoning_config.gemini = false
+                    UIManager:close(self.gemini_dialog)
+                    self:showPerProviderReasoningMenu(state)
+                end,
+            },
+        },
+        {
+            {
+                text = _("Low"),
+                callback = function()
+                    state.reasoning_config.gemini = { level = "low" }
+                    UIManager:close(self.gemini_dialog)
+                    self:showPerProviderReasoningMenu(state)
+                end,
+            },
+        },
+        {
+            {
+                text = _("Medium"),
+                callback = function()
+                    state.reasoning_config.gemini = { level = "medium" }
+                    UIManager:close(self.gemini_dialog)
+                    self:showPerProviderReasoningMenu(state)
+                end,
+            },
+        },
+        {
+            {
+                text = _("High"),
+                callback = function()
+                    state.reasoning_config.gemini = { level = "high" }
+                    UIManager:close(self.gemini_dialog)
+                    self:showPerProviderReasoningMenu(state)
+                end,
+            },
+        },
+        {
+            {
+                text = _("Cancel"),
+                callback = function()
+                    UIManager:close(self.gemini_dialog)
+                    self:showPerProviderReasoningMenu(state)
+                end,
+            },
+        },
+    }
+
+    self.gemini_dialog = ButtonDialog:new{
+        title = _("Gemini Thinking"),
+        info_text = _("Thinking level for Gemini models.\nSupports: gemini-3-*-preview"),
+        buttons = buttons,
+    }
+
+    UIManager:show(self.gemini_dialog)
+end
+
+-- Legacy: Thinking budget selector (for backward compatibility)
+function PromptsManager:showThinkingBudgetSelector(state)
+    local SpinWidget = require("ui/widget/spinwidget")
+
+    local current_budget = state.thinking_budget or 4096
+
+    local spin_widget = SpinWidget:new{
+        title_text = _("Thinking Budget"),
+        info_text = _("Token budget for reasoning (Anthropic).\nHigher = more complex reasoning.\nRange: 1024 - 32000"),
+        value = current_budget,
+        value_min = 1024,
+        value_max = 32000,
+        value_step = 1024,
+        default_value = 4096,
+        ok_always_enabled = true,
+        callback = function(spin)
+            -- Convert to new format
+            state.reasoning_config = {
+                anthropic = { budget = spin.value },
+            }
             UIManager:close(self.advanced_dialog)
             self:showStep4_Advanced(state)
         end,
@@ -1213,7 +1614,7 @@ end
 function PromptsManager:showProviderSelector(state)
     local ModelLists = require("model_lists")
 
-    local providers = { "anthropic", "openai", "deepseek", "gemini", "ollama" }
+    local providers = ModelLists.getAllProviders()
 
     local buttons = {
         -- Use global option
@@ -1372,6 +1773,9 @@ function PromptsManager:showBuiltinSettingsEditor(prompt)
         behavior_variant = prompt.behavior_variant,
         behavior_override = prompt.behavior_override or "",
         temperature = prompt.temperature,
+        -- New format: reasoning_config
+        reasoning_config = prompt.reasoning_config,
+        -- Legacy format (backward compatibility)
         extended_thinking = prompt.extended_thinking,
         thinking_budget = prompt.thinking_budget,
         provider = prompt.provider,
@@ -1402,16 +1806,8 @@ function PromptsManager:showBuiltinSettingsDialog(state)
     -- Temperature display
     local temp_display = state.temperature and string.format("%.1f", state.temperature) or _("Global")
 
-    -- Extended thinking display
-    local thinking_display
-    if state.extended_thinking == "on" then
-        local budget = state.thinking_budget or 4096
-        thinking_display = string.format(_("On (%d tokens)"), budget)
-    elseif state.extended_thinking == "off" then
-        thinking_display = _("Off")
-    else
-        thinking_display = _("Global")
-    end
+    -- Reasoning display (handles both legacy and new format)
+    local thinking_display = self:getStateReasoningDisplayText(state)
 
     -- Provider/model display
     local provider_display = state.provider or _("Global")
@@ -1437,12 +1833,12 @@ function PromptsManager:showBuiltinSettingsDialog(state)
                 end,
             },
         },
-        -- Row 3: Extended Thinking
+        -- Row 3: Reasoning/Thinking
         {
             {
-                text = _("Extended Thinking: ") .. thinking_display,
+                text = _("Reasoning: ") .. thinking_display,
                 callback = function()
-                    self:showBuiltinThinkingSelector(state)
+                    self:showThinkingSelector(state)  -- Use shared dialog
                 end,
             },
         },
@@ -1690,8 +2086,8 @@ function PromptsManager:showBuiltinThinkingSelector(state)
     }
 
     self.builtin_thinking_dialog = ButtonDialog:new{
-        title = _("Extended Thinking"),
-        info_text = _("Anthropic/Claude only. Forces temperature to 1.0."),
+        title = _("Reasoning/Thinking"),
+        info_text = _("Anthropic, OpenAI (o3/gpt-5), Gemini 3. May force temp to 1.0."),
         buttons = buttons,
     }
 
@@ -1728,7 +2124,7 @@ end
 function PromptsManager:showBuiltinProviderSelector(state)
     local ModelLists = require("model_lists")
 
-    local providers = { "anthropic", "openai", "deepseek", "gemini", "ollama" }
+    local providers = ModelLists.getAllProviders()
 
     local buttons = {
         {
@@ -1884,6 +2280,12 @@ function PromptsManager:saveBuiltinOverride(prompt, state)
         override.temperature = state.temperature
         has_any = true
     end
+    -- New format: reasoning_config
+    if state.reasoning_config then
+        override.reasoning_config = state.reasoning_config
+        has_any = true
+    end
+    -- Legacy format (backward compatibility)
     if state.extended_thinking then
         override.extended_thinking = state.extended_thinking
         has_any = true
@@ -2038,8 +2440,10 @@ function PromptsManager:addPrompt(state)
             include_book_context = state.include_book_context or nil,
             domain = state.domain,
             api_params = api_params,
-            extended_thinking = state.extended_thinking,  -- nil = global, "off" = force off, "on" = force on
-            thinking_budget = state.thinking_budget,      -- only used when extended_thinking = "on"
+            reasoning_config = state.reasoning_config,  -- nil = global, "off" = force off, table = per-provider
+            -- Legacy fields (backward compatibility)
+            extended_thinking = state.extended_thinking,
+            thinking_budget = state.thinking_budget,
             provider = state.provider,  -- nil = use global
             model = state.model,        -- nil = use global
             enabled = true,
@@ -2079,6 +2483,8 @@ function PromptsManager:updatePrompt(existing_prompt, state)
                 include_book_context = state.include_book_context or nil,
                 domain = state.domain,
                 api_params = api_params,
+                reasoning_config = state.reasoning_config,  -- nil = global, "off" = force off, table = per-provider
+                -- Legacy fields (backward compatibility)
                 extended_thinking = state.extended_thinking,
                 thinking_budget = state.thinking_budget,
                 provider = state.provider,
