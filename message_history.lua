@@ -444,14 +444,15 @@ function MessageHistory:createResultText(highlightedText, config)
             local prefix = msg.role == self.ROLES.USER and "▶ User: " or "◉ KOAssistant: "
 
             -- If this is an assistant message with reasoning, show indicator and optionally full content
+            -- reasoning can be: string (actual content), true (marker that reasoning was requested), or nil
             if msg.role == self.ROLES.ASSISTANT and msg.reasoning then
-                if show_reasoning then
-                    -- Show full reasoning content
+                if show_reasoning and type(msg.reasoning) == "string" then
+                    -- Show full reasoning content (only if actual content available)
                     table.insert(result, "**[Extended Thinking]**\n")
                     table.insert(result, "> " .. msg.reasoning:gsub("\n", "\n> ") .. "\n\n")
                 else
-                    -- Just show indicator that reasoning was used
-                    table.insert(result, "*[Extended Thinking was used]*\n\n")
+                    -- Show indicator that reasoning was used/requested
+                    table.insert(result, "*[Reasoning/Thinking was used]*\n\n")
                 end
             end
 

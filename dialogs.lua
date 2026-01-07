@@ -92,6 +92,22 @@ end
 --
 -- Each handler then adapts to its native API format
 --
+-- Helper: Get effective reasoning value for message storage
+-- If actual reasoning content was returned, use it
+-- If reasoning was requested but not returned (streaming), use marker (true)
+-- @param reasoning: Actual reasoning from callback (may be nil)
+-- @param config: Request config with api_params
+-- @return reasoning content, true (marker), or nil
+local function getEffectiveReasoning(reasoning, config)
+    if reasoning then return reasoning end
+    if config and config.api_params then
+        if config.api_params.thinking or config.api_params.reasoning or config.api_params.thinking_level then
+            return true  -- Marker that reasoning was requested
+        end
+    end
+    return nil
+end
+
 -- @param config: Configuration to modify (modified in-place)
 -- @param domain_context: Optional domain context string
 -- @param action: Optional action definition with behavior/api_params
@@ -870,7 +886,7 @@ local function handlePredefinedPrompt(prompt_type, highlightedText, ui, configur
             if has_additional_input then
                 history:addUserMessage(additional_input, false)
             end
-            history:addAssistantMessage(answer, ConfigHelper:getModelInfo(temp_config), reasoning)
+            history:addAssistantMessage(answer, ConfigHelper:getModelInfo(temp_config), getEffectiveReasoning(reasoning, temp_config))
             if on_complete then
                 on_complete(history, temp_config)
             end
@@ -1170,13 +1186,13 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                             if has_user_question then
                                 history:addUserMessage(question, false)
                             end
-                            history:addAssistantMessage(answer, ConfigHelper:getModelInfo(configuration), reasoning)
+                            history:addAssistantMessage(answer, ConfigHelper:getModelInfo(configuration), getEffectiveReasoning(reasoning, configuration))
 
                             local function addMessage(message, is_context, on_complete)
                                 history:addUserMessage(message, is_context)
                                 local answer_result = queryChatGPT(history:getMessages(), configuration, function(msg_success, msg_answer, msg_err, msg_reasoning)
                                     if msg_success and msg_answer then
-                                        history:addAssistantMessage(msg_answer, ConfigHelper:getModelInfo(configuration), msg_reasoning)
+                                        history:addAssistantMessage(msg_answer, ConfigHelper:getModelInfo(configuration), getEffectiveReasoning(msg_reasoning, configuration))
                                     end
                                     if on_complete then on_complete(msg_success, msg_answer, msg_err, msg_reasoning) end
                                 end)
@@ -1227,7 +1243,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                                 -- For follow-up messages, use callback pattern too
                                 local answer_result = queryChatGPT(history:getMessages(), temp_config, function(success, answer, err, reasoning)
                                     if success and answer then
-                                        history:addAssistantMessage(answer, ConfigHelper:getModelInfo(temp_config), reasoning)
+                                        history:addAssistantMessage(answer, ConfigHelper:getModelInfo(temp_config), getEffectiveReasoning(reasoning, temp_config))
                                     end
                                     if on_complete then on_complete(success, answer, err, reasoning) end
                                 end)
@@ -1358,7 +1374,7 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
                 history:addUserMessage(message, is_context)
                 local answer_result = queryChatGPT(history:getMessages(), temp_config, function(success, answer, err, reasoning)
                     if success and answer then
-                        history:addAssistantMessage(answer, ConfigHelper:getModelInfo(temp_config), reasoning)
+                        history:addAssistantMessage(answer, ConfigHelper:getModelInfo(temp_config), getEffectiveReasoning(reasoning, temp_config))
                     end
                     if on_complete_msg then on_complete_msg(success, answer, err, reasoning) end
                 end)

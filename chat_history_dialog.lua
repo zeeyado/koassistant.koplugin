@@ -1122,11 +1122,18 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
 
         -- Use callback pattern for streaming support
         logger.info("KOAssistant: Calling queryChatGPT with " .. #history:getMessages() .. " messages")
-        local answer_result = queryChatGPT(history:getMessages(), config, function(success, answer, err)
+        local answer_result = queryChatGPT(history:getMessages(), config, function(success, answer, err, reasoning)
             logger.info("KOAssistant: queryChatGPT callback - success: " .. tostring(success) .. ", answer length: " .. tostring(answer and #answer or 0) .. ", err: " .. tostring(err))
             -- Only save if we got a non-empty answer
             if success and answer and answer ~= "" then
-                history:addAssistantMessage(answer, history:getModel() or (config and config.model))
+                -- If reasoning not returned (streaming) but was requested, use marker
+                local effective_reasoning = reasoning
+                if not reasoning and config and config.api_params then
+                    if config.api_params.thinking or config.api_params.reasoning or config.api_params.thinking_level then
+                        effective_reasoning = true
+                    end
+                end
+                history:addAssistantMessage(answer, history:getModel() or (config and config.model), effective_reasoning)
 
                 -- Auto-save continued chats
                 if config.features.auto_save_all_chats or (config.features.auto_save_chats ~= false) then
