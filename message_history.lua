@@ -39,11 +39,20 @@ function MessageHistory:addUserMessage(content, is_context)
     return #self.messages
 end
 
-function MessageHistory:addAssistantMessage(content, model)
-    table.insert(self.messages, {
+function MessageHistory:addAssistantMessage(content, model, reasoning, debug_info)
+    local message = {
         role = self.ROLES.ASSISTANT,
         content = content
-    })
+    }
+    -- Store reasoning if provided (for models with visible thinking)
+    if reasoning then
+        message.reasoning = reasoning
+    end
+    -- Store debug info for accurate historical display (NOT exported with chat)
+    if debug_info then
+        message._debug_info = debug_info
+    end
+    table.insert(self.messages, message)
     if model then
         self.model = model
     end
@@ -238,69 +247,95 @@ function MessageHistory:createResultText(highlightedText, config)
 
         -- Show system config info based on display level
         if display_level == "names" or display_level == "full" then
-            -- Show provider, behavior variant, domain, model, and temperature
-            local provider = config.provider or config.default_provider or "unknown"
-            local behavior = config.features.ai_behavior_variant or "full"
-            local domain = config.features.selected_domain or "none"
-
-            -- Get actual model from provider settings if available
-            local model = config.model
-            if (not model or model == "default") and config.provider_settings and config.provider_settings[provider] then
-                model = config.provider_settings[provider].model
+            -- Find stored debug info from the last assistant message (what was USED)
+            local stored_debug = nil
+            for i = #self.messages, 1, -1 do
+                if self.messages[i].role == self.ROLES.ASSISTANT and self.messages[i]._debug_info then
+                    stored_debug = self.messages[i]._debug_info
+                    break
+                end
             end
-            model = model or "default"
+
+            -- Use stored debug info if available, otherwise fall back to current config
+            local provider, model, temp, behavior, domain, reasoning_info
+
+            if stored_debug then
+                -- Use what was ACTUALLY used for this chat
+                provider = stored_debug.provider or "unknown"
+                model = stored_debug.model or "default"
+                temp = stored_debug.temperature or 0.7
+                behavior = stored_debug.behavior or "full"
+                domain = stored_debug.domain or "none"
+
+                -- Build reasoning info from stored data
+                reasoning_info = ""
+                if stored_debug.reasoning then
+                    local r = stored_debug.reasoning
+                    if r.type == "anthropic" and r.budget then
+                        reasoning_info = string.format(", thinking=%d", r.budget)
+                    elseif r.type == "openai" and r.effort then
+                        reasoning_info = string.format(", reasoning=%s", r.effort)
+                    elseif r.type == "gemini" and r.level then
+                        reasoning_info = string.format(", thinking=%s", r.level:lower())
+                    elseif r.type == "deepseek" then
+                        reasoning_info = ", reasoning=auto"
+                    end
+                end
+            else
+                -- Fall back to current config (for chats created before debug storage)
+                provider = config.provider or config.default_provider or "unknown"
+                behavior = config.features.ai_behavior_variant or "full"
+                domain = config.features.selected_domain or "none"
+
+                -- Get actual model from provider settings if available
+                model = config.model
+                if (not model or model == "default") and config.provider_settings and config.provider_settings[provider] then
+                    model = config.provider_settings[provider].model
+                end
+                model = model or "default"
+
+                temp = config.additional_parameters and config.additional_parameters.temperature or 0.7
+                if config.api_params and config.api_params.temperature then
+                    temp = config.api_params.temperature
+                end
+
+                -- Build reasoning info from current settings
+                reasoning_info = ""
+                local features = config.features or {}
+                local full_model = config.model or model
+
+                if provider == "anthropic" and features.anthropic_reasoning then
+                    if ModelConstraints.supportsCapability("anthropic", full_model, "extended_thinking") then
+                        local budget = features.reasoning_budget or 4096
+                        reasoning_info = string.format(", thinking=%d", budget)
+                    end
+                elseif provider == "openai" and features.openai_reasoning then
+                    if ModelConstraints.supportsCapability("openai", full_model, "reasoning") then
+                        local effort = features.reasoning_effort or "medium"
+                        reasoning_info = string.format(", reasoning=%s", effort)
+                    end
+                elseif provider == "gemini" and features.gemini_reasoning then
+                    if ModelConstraints.supportsCapability("gemini", full_model, "thinking") then
+                        local depth = features.reasoning_depth or "high"
+                        reasoning_info = string.format(", thinking=%s", depth:lower())
+                    end
+                elseif provider == "deepseek" then
+                    if ModelConstraints.supportsCapability("deepseek", full_model, "reasoning") then
+                        reasoning_info = ", reasoning=auto"
+                    end
+                end
+            end
 
             -- Truncate long model names (e.g., "claude-sonnet-4-5-20250929" -> "claude-sonnet-4-5")
             if #model > 25 then
                 model = model:sub(1, 22) .. "..."
             end
 
-            local temp = config.additional_parameters and config.additional_parameters.temperature or 0.7
-            -- Also check api_params for temperature (new location)
-            if config.api_params and config.api_params.temperature then
-                temp = config.api_params.temperature
-            end
-
-            -- Check for extended thinking
-            local thinking_info = ""
-            local has_thinking = config.api_params and config.api_params.thinking
-            if has_thinking then
-                local budget = config.api_params.thinking.budget_tokens or 0
-                thinking_info = string.format(", thinking=%d", budget)
-            end
-
-            -- Apply model constraints to get effective temperature
-            -- (e.g., gpt-5/o3 require temp=1.0, Anthropic max is 1.0, extended thinking requires 1.0)
-            local effective_temp = temp
-            local temp_adjusted = false
-            local temp_reason = nil
-
-            -- Check model constraints
-            local test_params = { temperature = temp }
-            local _, adjustments = ModelConstraints.apply(provider, model, test_params)
-            if adjustments and adjustments.temperature then
-                effective_temp = adjustments.temperature.to
-                temp_adjusted = true
-                temp_reason = adjustments.temperature.reason
-            end
-
-            -- Extended thinking always forces temp=1.0
-            if has_thinking and effective_temp ~= 1.0 then
-                effective_temp = 1.0
-                temp_adjusted = true
-                temp_reason = "extended thinking"
-            end
-
-            -- Format temperature display
-            local temp_display
-            if temp_adjusted then
-                temp_display = string.format("%.1f→%.1f (%s)", temp, effective_temp, temp_reason or "model constraint")
-            else
-                temp_display = string.format("%.1f", temp)
-            end
+            -- Format temperature display (simple for stored, with constraints check for fallback)
+            local temp_display = string.format("%.1f", temp)
 
             table.insert(result, string.format("● Config: provider=%s, behavior=%s, domain=%s\n", provider, behavior, domain))
-            table.insert(result, string.format("  model=%s, temp=%s%s\n\n", model, temp_display, thinking_info))
+            table.insert(result, string.format("  model=%s, temp=%s%s\n\n", model, temp_display, reasoning_info))
         end
 
         if display_level == "full" and config.system then
@@ -402,14 +437,32 @@ function MessageHistory:createResultText(highlightedText, config)
         table.insert(result, "------------------\n\n")
     end
 
+    -- Check if reasoning display is enabled
+    local show_reasoning = config and config.features and config.features.show_reasoning_in_chat
+
     -- Show conversation (non-context messages)
     for i = 2, #self.messages do
         if not self.messages[i].is_context then
-            local prefix = self.messages[i].role == self.ROLES.USER and "▶ User: " or "◉ KOAssistant: "
-            table.insert(result, prefix .. self.messages[i].content .. "\n\n")
+            local msg = self.messages[i]
+            local prefix = msg.role == self.ROLES.USER and "▶ User: " or "◉ KOAssistant: "
+
+            -- If this is an assistant message with reasoning, show indicator
+            -- msg.reasoning can be: string (actual content) or true (detected but not captured)
+            if msg.role == self.ROLES.ASSISTANT and msg.reasoning then
+                if show_reasoning and type(msg.reasoning) == "string" then
+                    -- Show full reasoning content (only available for non-streaming)
+                    table.insert(result, "**[Extended Thinking]**\n")
+                    table.insert(result, "> " .. msg.reasoning:gsub("\n", "\n> ") .. "\n\n")
+                else
+                    -- Just show indicator that reasoning was used
+                    table.insert(result, "*[Reasoning/Thinking was used]*\n\n")
+                end
+            end
+
+            table.insert(result, prefix .. msg.content .. "\n\n")
         end
     end
-    
+
     return table.concat(result)
 end
 

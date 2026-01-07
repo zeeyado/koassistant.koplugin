@@ -127,8 +127,9 @@ function BaseHandler:backgroundRequest(url, headers, body)
             local subprocess_http = require("socket.http")
             local subprocess_https = require("ssl.https")
 
+            -- Longer timeout for reasoning models (they can take 60+ seconds)
             if string.sub(url, 1, 8) == "https://" then
-                subprocess_https.TIMEOUT = 60
+                subprocess_https.TIMEOUT = 180  -- 3 minutes for reasoning models
             end
 
             local pipe_w = wrap_fd(child_write_fd)

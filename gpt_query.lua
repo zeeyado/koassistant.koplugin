@@ -116,11 +116,6 @@ local function queryChatGPT(message_history, temp_config, on_complete)
         return "Error: " .. err
     end
 
-    -- Warn if extended thinking is enabled for non-Anthropic providers
-    if config.features and config.features.enable_extended_thinking and provider ~= "anthropic" then
-        logger.warn("KOAssistant: Extended thinking is only supported for Anthropic provider, ignoring setting")
-    end
-
     local success, result = pcall(function()
         return handler:query(message_history, config)
     end)
@@ -154,7 +149,7 @@ local function queryChatGPT(message_history, temp_config, on_complete)
             provider,
             config.model,
             stream_settings,
-            function(stream_success, content, err)
+            function(stream_success, content, err, reasoning_detected)
                 if stream_handler.user_interrupted then
                     if on_complete then on_complete(false, nil, "Request cancelled by user.") end
                     return
@@ -165,7 +160,8 @@ local function queryChatGPT(message_history, temp_config, on_complete)
                     return
                 end
 
-                if on_complete then on_complete(true, content, nil) end
+                -- Pass reasoning_detected as 4th arg (true if thinking was seen in stream)
+                if on_complete then on_complete(true, content, nil, reasoning_detected) end
             end
         )
 
@@ -173,9 +169,19 @@ local function queryChatGPT(message_history, temp_config, on_complete)
         return STREAMING_IN_PROGRESS
     end
 
-    -- Non-streaming response (string) - call callback if provided
+    -- Non-streaming response - handle both string and structured result (with reasoning)
+    local content = result
+    local reasoning = nil
+
+    -- Check if result is a structured response with reasoning metadata
+    if type(result) == "table" and result._has_reasoning then
+        content = result.content
+        reasoning = result.reasoning
+    end
+
     if on_complete then
-        on_complete(true, result, nil)
+        -- Pass reasoning as fourth argument when available
+        on_complete(true, content, nil, reasoning)
     end
     return result
 end

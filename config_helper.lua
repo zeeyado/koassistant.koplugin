@@ -65,20 +65,76 @@ function ConfigHelper:deepCopy(t)
 end
 
 function ConfigHelper:validate(config)
-    if not config then 
-        return false, "No configuration found" 
+    if not config then
+        return false, "No configuration found"
     end
-    
+
     local provider = config.provider
     if not provider then
         return false, "No provider specified in configuration"
     end
-    
+
     if not Defaults.ProviderDefaults[provider] then
         return false, "Unsupported provider: " .. provider
     end
-    
+
     return true
 end
 
-return ConfigHelper 
+-- Build debug info snapshot from config for message storage
+-- This is stored with messages so debug shows what was USED, not current settings
+function ConfigHelper:buildDebugInfo(config)
+    if not config then return nil end
+    local features = config.features or {}
+    local provider = config.provider or config.default_provider or "unknown"
+
+    -- Get actual model
+    local model = config.model
+    if (not model or model == "default") and config.provider_settings and config.provider_settings[provider] then
+        model = config.provider_settings[provider].model
+    end
+    model = model or "default"
+
+    -- Get temperature
+    local temp = features.default_temperature or 0.7
+    if config.api_params and config.api_params.temperature then
+        temp = config.api_params.temperature
+    end
+
+    local debug_info = {
+        provider = provider,
+        model = model,
+        temperature = temp,
+        behavior = features.ai_behavior_variant or "full",
+        domain = features.selected_domain,
+    }
+
+    -- Add reasoning info based on provider
+    if provider == "anthropic" and config.api_params and config.api_params.thinking then
+        debug_info.reasoning = {
+            type = "anthropic",
+            budget = config.api_params.thinking.budget_tokens,
+        }
+    elseif provider == "openai" and config.api_params and config.api_params.reasoning then
+        debug_info.reasoning = {
+            type = "openai",
+            effort = config.api_params.reasoning.effort,
+        }
+    elseif provider == "gemini" and config.api_params and config.api_params.thinking_level then
+        debug_info.reasoning = {
+            type = "gemini",
+            level = config.api_params.thinking_level,
+        }
+    elseif provider == "deepseek" then
+        local ModelConstraints = require("model_constraints")
+        if ModelConstraints.supportsCapability("deepseek", model, "reasoning") then
+            debug_info.reasoning = {
+                type = "deepseek",
+            }
+        end
+    end
+
+    return debug_info
+end
+
+return ConfigHelper

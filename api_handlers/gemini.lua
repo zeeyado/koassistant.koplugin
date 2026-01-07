@@ -4,6 +4,7 @@ local ltn12 = require("ltn12")
 local json = require("json")
 local Defaults = require("api_handlers.defaults")
 local ResponseParser = require("api_handlers.response_parser")
+local ModelConstraints = require("model_constraints")
 
 local GeminiHandler = BaseHandler:new()
 
@@ -71,6 +72,23 @@ function GeminiHandler:buildRequestBody(message_history, config)
         maxOutputTokens = api_params.max_tokens or 4096,
     }
 
+    -- Add thinking config for Gemini 3 preview models if enabled
+    -- Gemini REST API uses camelCase: generationConfig.thinkingConfig.thinkingLevel
+    -- Gemini 3 Pro: LOW, HIGH; Gemini 3 Flash: MINIMAL, LOW, MEDIUM, HIGH
+    local adjustments = {}
+    if api_params.thinking_level then
+        if ModelConstraints.supportsCapability("gemini", model, "thinking") then
+            request_body.generationConfig.thinkingConfig = {
+                thinkingLevel = api_params.thinking_level:upper(),
+                includeThoughts = true,  -- Required to get thinking in response
+            }
+        else
+            adjustments.thinking_skipped = {
+                reason = "model " .. model .. " does not support thinking"
+            }
+        end
+    end
+
     local headers = {
         ["Content-Type"] = "application/json",
         ["x-goog-api-key"] = config.api_key or "",
@@ -85,6 +103,7 @@ function GeminiHandler:buildRequestBody(message_history, config)
         url = url,
         model = model,
         provider = "gemini",
+        adjustments = adjustments,  -- Include for test inspector visibility
     }
 end
 
@@ -128,11 +147,31 @@ function GeminiHandler:query(message_history, config)
         maxOutputTokens = api_params.max_tokens or 4096,
     }
 
+    -- Add thinking config for Gemini 3 preview models if enabled
+    -- Gemini REST API uses camelCase: generationConfig.thinkingConfig.thinkingLevel
+    -- Gemini 3 Pro: LOW, HIGH; Gemini 3 Flash: MINIMAL, LOW, MEDIUM, HIGH
+    local adjustments = {}
+    if api_params.thinking_level then
+        if ModelConstraints.supportsCapability("gemini", model, "thinking") then
+            request_body.generationConfig.thinkingConfig = {
+                thinkingLevel = api_params.thinking_level:upper(),
+                includeThoughts = true,  -- Required to get thinking in response
+            }
+        else
+            adjustments.thinking_skipped = {
+                reason = "model " .. model .. " does not support thinking"
+            }
+        end
+    end
+
     -- Check if streaming is enabled
     local use_streaming = config.features and config.features.enable_streaming
 
-    -- Debug: Print request body
+    -- Debug: Print request body and adjustments
     if config and config.features and config.features.debug then
+        if next(adjustments) then
+            ModelConstraints.logAdjustments("Gemini", adjustments)
+        end
         print("Gemini Request Body:", json.encode(request_body))
         print("Streaming enabled:", use_streaming and "yes" or "no")
         print("Model:", model)
@@ -184,9 +223,18 @@ function GeminiHandler:query(message_history, config)
         print("Gemini Parsed Response:", json.encode(response))
     end
 
-    local success, result = ResponseParser:parseResponse(response, "gemini")
+    local success, result, reasoning = ResponseParser:parseResponse(response, "gemini")
     if not success then
         return "Error: " .. result
+    end
+
+    -- Return result with optional reasoning metadata (like Anthropic)
+    if reasoning then
+        return {
+            content = result,
+            reasoning = reasoning,
+            _has_reasoning = true,
+        }
     end
 
     return result
