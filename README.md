@@ -674,7 +674,7 @@ KOAssistant supports localization with translations managed via Weblate.
 
 ### History
 
-Originally forked from [ASKGPT by Drew Baumann](https://github.com/drewbaumann/askgpt) in February 2025. Expanded with multi-provider support, custom actions, chat history, domains, and more. This project was originally forked from [ASKGPT by Drew Baumann](https://github.com/drewbaumann/askgpt), renamed to Assistant, and xpanded with multi-provider support, custom actions, chat history, and more. Recently renamed to "KOAssistant" due to a naming conflict with [a fork of this project](https://github.com/omer-faruq/assistant.koplugin). Some internal references may still show the old name.
+This project was originally forked from [ASKGPT by Drew Baumann](https://github.com/drewbaumann/askgpt), renamed to Assistant, and expanded with multi-provider support, custom actions, chat history, and more. Recently renamed to "KOAssistant" due to a naming conflict with [a fork of this project](https://github.com/omer-faruq/assistant.koplugin). Some internal references may still show the old name.
 
 ### Acknowledgments
 
