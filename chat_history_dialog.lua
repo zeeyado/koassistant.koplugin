@@ -1267,7 +1267,16 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
                 end
             end,
             export_callback = function()
-                self_ref:showExportOptions(document_path, chat.id, chat_history_manager)
+                -- Copy chat as markdown directly to clipboard (consistent with new chats)
+                local markdown = chat_history_manager:exportChatAsMarkdown(document_path, chat.id)
+                if markdown then
+                    Device.input.setClipboardText(markdown)
+                    local Notification = require("ui/widget/notification")
+                    UIManager:show(Notification:new{
+                        text = _("Chat copied to clipboard"),
+                        timeout = 2,
+                    })
+                end
             end,
             close_callback = function()
                 self_ref.current_chat_viewer = nil
