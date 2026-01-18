@@ -22,6 +22,8 @@ Templates.highlight = {
     eli5 = [[Please ELI5 (Explain Like I'm 5) the following text: {highlighted_text}]],
 
     summarize = [[Please provide a concise summary of the following text: {highlighted_text}]],
+
+    elaborate = [[Please elaborate on the following text. Expand on the key concepts, provide additional context, and go deeper into the details: {highlighted_text}]],
 }
 
 -- Book context templates

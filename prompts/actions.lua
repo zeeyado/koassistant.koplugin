@@ -69,6 +69,18 @@ Actions.highlight = {
         include_book_context = true,
         builtin = true,
     },
+    elaborate = {
+        id = "elaborate",
+        text = _("Elaborate"),
+        context = "highlight",
+        template = "elaborate",
+        -- Uses global behavior variant
+        api_params = {
+            temperature = 0.7,  -- Balanced for expansive but coherent elaboration
+        },
+        include_book_context = true,
+        builtin = true,
+    },
 }
 
 -- Built-in actions for book context (single book from file browser)
