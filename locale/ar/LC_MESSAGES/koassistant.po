@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: KOAssistant 0.6.2\n"
 "Report-Msgid-Bugs-To: https://github.com/zeeyado/koassistant.koplugin/"
 "issues\n"
-"POT-Creation-Date: 2026-01-07 20:48+0000\n"
+"POT-Creation-Date: 2026-01-18 14:05+0000\n"
 "PO-Revision-Date: 2026-01-06 18:39+0000\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: Arabic\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: _meta.lua:4 main.lua:124 main.lua:192 main.lua:1383 main.lua:1534
+#: _meta.lua:4 main.lua:124 main.lua:197 main.lua:1376 main.lua:1520
 #, fuzzy
 msgid "KOAssistant"
 msgstr "مساعد KO"
@@ -44,8 +44,8 @@ msgstr ""
 "لا يمكن التراجع عن هذا الإجراء."
 
 #: chat_history_dialog.lua:60 chat_history_dialog.lua:143
-#: chat_history_dialog.lua:816 chat_history_dialog.lua:1350
-#: chat_history_dialog.lua:1388 ui/prompts_manager.lua:495
+#: chat_history_dialog.lua:816 chat_history_dialog.lua:1362
+#: chat_history_dialog.lua:1400 ui/prompts_manager.lua:495
 #, fuzzy
 msgid "Delete"
 msgstr "حذف"
@@ -58,9 +58,9 @@ msgstr "تم حذف %1 محادثة"
 #: chat_history_dialog.lua:81 chat_history_dialog.lua:160
 #: chat_history_dialog.lua:214 chat_history_dialog.lua:268
 #: chat_history_dialog.lua:827 chat_history_dialog.lua:855
-#: chat_history_dialog.lua:1005 chat_history_dialog.lua:1326
-#: chatgptviewer.lua:516 chatgptviewer.lua:680 dialogs.lua:435 dialogs.lua:1160
-#: dialogs.lua:1193 main.lua:1595 main.lua:1750 ui/settings_manager.lua:183
+#: chat_history_dialog.lua:1005 chat_history_dialog.lua:1338
+#: chatgptviewer.lua:538 chatgptviewer.lua:713 dialogs.lua:435 dialogs.lua:1173
+#: dialogs.lua:1206 main.lua:1581 main.lua:1744 ui/settings_manager.lua:183
 #: ui/settings_manager.lua:269
 #, fuzzy
 msgid "Close"
@@ -113,7 +113,7 @@ msgstr "سجل المحادثات"
 msgid "Navigate"
 msgstr "تصفح"
 
-#: chat_history_dialog.lua:321 chat_history_dialog.lua:503 main.lua:1420
+#: chat_history_dialog.lua:321 chat_history_dialog.lua:503 main.lua:1413
 #, fuzzy
 msgid "No saved chats found"
 msgstr "لم يتم العثور على محادثات محفوظة"
@@ -124,13 +124,13 @@ msgid "Untagged"
 msgstr "بدون وسم"
 
 #: chat_history_dialog.lua:345 chat_history_dialog.lua:545
-#: chat_history_dialog.lua:1484
+#: chat_history_dialog.lua:1496
 #, fuzzy
 msgid "chat"
 msgstr "محادثة"
 
 #: chat_history_dialog.lua:345 chat_history_dialog.lua:545
-#: chat_history_dialog.lua:1484
+#: chat_history_dialog.lua:1496
 #, fuzzy
 msgid "chats"
 msgstr "محادثات"
@@ -141,27 +141,27 @@ msgid "Chat History by Domain"
 msgstr "سجل المحادثات حسب المجال"
 
 #: chat_history_dialog.lua:409 chat_history_dialog.lua:751
-#: chat_history_dialog.lua:851 chat_history_dialog.lua:1548
+#: chat_history_dialog.lua:851 chat_history_dialog.lua:1560
 #, fuzzy
 msgid "Untitled Chat"
 msgstr "محادثة بدون عنوان"
 
-#: chat_history_dialog.lua:421 chat_history_dialog.lua:1560
+#: chat_history_dialog.lua:421 chat_history_dialog.lua:1572
 #, fuzzy
 msgid "General Chat"
 msgstr "محادثة عامة"
 
-#: chat_history_dialog.lua:424 chat_history_dialog.lua:1563
+#: chat_history_dialog.lua:424 chat_history_dialog.lua:1575
 #, fuzzy
 msgid "msg"
 msgstr "رسالة"
 
-#: chat_history_dialog.lua:424 chat_history_dialog.lua:1563
+#: chat_history_dialog.lua:424 chat_history_dialog.lua:1575
 #, fuzzy
 msgid "msgs"
 msgstr "رسائل"
 
-#: chat_history_dialog.lua:435 chat_history_dialog.lua:1574
+#: chat_history_dialog.lua:435 chat_history_dialog.lua:1586
 #: chat_history_manager.lua:88
 #, fuzzy
 msgid "General AI Chats"
@@ -297,87 +297,92 @@ msgstr "إدارة الوسوم"
 msgid "Error: Failed to load chat messages."
 msgstr "خطأ: فشل في تحميل رسائل المحادثة."
 
-#: chat_history_dialog.lua:1144 dialogs.lua:1004 stream_handler.lua:188
+#: chat_history_dialog.lua:1147 dialogs.lua:1017 stream_handler.lua:194
 #, fuzzy
 msgid "No response received from AI"
 msgstr "لم يتم استلام رد من الذكاء الاصطناعي"
 
-#: chat_history_dialog.lua:1164
+#: chat_history_dialog.lua:1167
 #, fuzzy
 msgid "Untitled"
 msgstr "بدون عنوان"
 
-#: chat_history_dialog.lua:1171
+#: chat_history_dialog.lua:1174
 #, fuzzy
 msgid "Loading..."
 msgstr "جاري التحميل..."
 
-#: chat_history_dialog.lua:1238 dialogs.lua:748
+#: chat_history_dialog.lua:1241 dialogs.lua:757
 #, fuzzy
 msgid "Failed to get response: "
 msgstr "فشل في الحصول على الرد: "
 
-#: chat_history_dialog.lua:1253
+#: chat_history_dialog.lua:1256
 #, fuzzy
 msgid "Auto-save is enabled in settings"
 msgstr "الحفظ التلقائي مفعل في الإعدادات"
 
-#: chat_history_dialog.lua:1258
+#: chat_history_dialog.lua:1261
 #, fuzzy
 msgid "Continued chats are automatically saved"
 msgstr "يتم حفظ المحادثات المستمرة تلقائياً"
 
-#: chat_history_dialog.lua:1264
+#: chat_history_dialog.lua:1267
 #, fuzzy
 msgid "Chat saved"
 msgstr "تم حفظ المحادثة"
 
-#: chat_history_dialog.lua:1264
+#: chat_history_dialog.lua:1267
 #, fuzzy
 msgid "Failed to save chat"
 msgstr "فشل في حفظ المحادثة"
 
-#: chat_history_dialog.lua:1294
+#: chat_history_dialog.lua:1279 dialogs.lua:786
+#, fuzzy
+msgid "Chat copied to clipboard"
+msgstr "تم النسخ إلى الحافظة."
+
+#: chat_history_dialog.lua:1306
 #, fuzzy
 msgid "Copy as Text"
 msgstr "نسخ كنص"
 
-#: chat_history_dialog.lua:1300
+#: chat_history_dialog.lua:1312
 #, fuzzy
 msgid "Chat copied to clipboard as text"
 msgstr "تم نسخ المحادثة إلى الحافظة كنص"
 
-#: chat_history_dialog.lua:1309
+#: chat_history_dialog.lua:1321
 #, fuzzy
 msgid "Copy as Markdown"
 msgstr "نسخ كـ Markdown"
 
-#: chat_history_dialog.lua:1315
+#: chat_history_dialog.lua:1327
 #, fuzzy
 msgid "Chat copied to clipboard as markdown"
 msgstr "تم نسخ المحادثة إلى الحافظة كـ Markdown"
 
-#: chat_history_dialog.lua:1336
+#: chat_history_dialog.lua:1348
 #, fuzzy
 msgid "Export Chat"
 msgstr "تصدير المحادثة"
 
-#: chat_history_dialog.lua:1349 chat_history_dialog.lua:1387
+#: chat_history_dialog.lua:1361 chat_history_dialog.lua:1399
 #, fuzzy
 msgid "Are you sure you want to delete this chat?"
 msgstr "هل أنت متأكد من حذف هذه المحادثة؟"
 
-#: chat_history_dialog.lua:1356 chat_history_dialog.lua:1402
+#: chat_history_dialog.lua:1368 chat_history_dialog.lua:1414
 #, fuzzy
 msgid "Chat deleted"
 msgstr "تم حذف المحادثة"
 
-#: chat_history_dialog.lua:1374 chat_history_dialog.lua:1420
+#: chat_history_dialog.lua:1386 chat_history_dialog.lua:1432
 #, fuzzy
 msgid "Failed to delete chat"
 msgstr "فشل في حذف المحادثة"
 
-#: chat_history_dialog.lua:1467
+#: chat_history_dialog.lua:1479
 #, fuzzy
 msgid ""
 "No tagged chats found.\n"
@@ -388,105 +393,127 @@ msgstr ""
 "\n"
 "يمكنك إضافة وسوم للمحادثات من قائمة خيارات المحادثة."
 
-#: chat_history_dialog.lua:1499
+#: chat_history_dialog.lua:1511
 #, fuzzy
 msgid "Chat History by Tag"
 msgstr "سجل المحادثات حسب الوسم"
 
-#: chat_history_dialog.lua:1534
+#: chat_history_dialog.lua:1546
 #, fuzzy
 msgid "No chats found with this tag"
 msgstr "لم يتم العثور على محادثات بهذا الوسم"
 
-#: chatgptviewer.lua:391 chatgptviewer.lua:666
+#: chatgptviewer.lua:394 chatgptviewer.lua:699
 #, fuzzy
 msgid "Reply"
 msgstr "رد"
 
-#: chatgptviewer.lua:403
+#: chatgptviewer.lua:406
 #, fuzzy
 msgid "Autosaved"
 msgstr "محفوظ تلقائياً"
 
-#: chatgptviewer.lua:403 dialogs.lua:443 main.lua:1066 main.lua:1297
-#: main.lua:1363 ui/prompts_manager.lua:1141 ui/prompts_manager.lua:1909
+#: chatgptviewer.lua:406 dialogs.lua:443 main.lua:1059 main.lua:1290
+#: main.lua:1356 ui/prompts_manager.lua:1141 ui/prompts_manager.lua:1909
 #, fuzzy
 msgid "Save"
 msgstr "حفظ"
 
-#: chatgptviewer.lua:412
+#: chatgptviewer.lua:415
 #, fuzzy
 msgid "Save function not available"
 msgstr "وظيفة الحفظ غير متاحة"
 
-#: chatgptviewer.lua:420
+#: chatgptviewer.lua:423
 msgid "Copy"
 msgstr ""
 
-#: chatgptviewer.lua:428
+#: chatgptviewer.lua:431
 #, fuzzy
 msgid "Copy function not available"
 msgstr "وظيفة التصدير غير متاحة"
 
-#: chatgptviewer.lua:451
+#: chatgptviewer.lua:454
 #, fuzzy
 msgid "Toggle between markdown and plain text display"
 msgstr "التبديل بين عرض Markdown والنص العادي"
 
-#: chatgptviewer.lua:466
+#: chatgptviewer.lua:469
 #, fuzzy
 msgid "Toggle debug display in chat viewer"
 msgstr "تبديل عرض التصحيح في عارض المحادثة"
 
-#: chatgptviewer.lua:472
+#: chatgptviewer.lua:476 chatgptviewer.lua:1166
+msgid "Show Quote"
+msgstr ""
+
+#: chatgptviewer.lua:476 chatgptviewer.lua:1166
+msgid "Hide Quote"
+msgstr ""
+
+#: chatgptviewer.lua:488
+#, fuzzy
+msgid "Toggle highlighted text display in chat"
+msgstr "تبديل عرض التصحيح في عارض المحادثة"
+
+#: chatgptviewer.lua:494
 #, fuzzy
 msgid "Show Reasoning"
 msgstr "إظهار التصحيح في المحادثة"
 
-#: chatgptviewer.lua:482
+#: chatgptviewer.lua:504
 msgid "View AI reasoning/thinking content (when available)"
 msgstr ""
 
-#: chatgptviewer.lua:669
+#: chatgptviewer.lua:702
 #, fuzzy
 msgid "Enter your reply."
 msgstr "أدخل ردك."
 
-#: chatgptviewer.lua:694
+#: chatgptviewer.lua:727
 #, fuzzy
 msgid "Send"
 msgstr "إرسال"
 
-#: chatgptviewer.lua:852
+#: chatgptviewer.lua:885
 #, fuzzy
 msgid "Copied to clipboard."
 msgstr "تم النسخ إلى الحافظة."
 
-#: chatgptviewer.lua:1088
+#: chatgptviewer.lua:1121
 #, fuzzy
 msgid "Showing debug info"
 msgstr "عرض معلومات التصحيح"
 
-#: chatgptviewer.lua:1088
+#: chatgptviewer.lua:1121
 #, fuzzy
 msgid "Debug info hidden"
 msgstr "معلومات التصحيح مخفية"
 
-#: chatgptviewer.lua:1112
+#: chatgptviewer.lua:1171
+#, fuzzy
+msgid "Quote hidden"
+msgstr "معلومات التصحيح مخفية"
+
+#: chatgptviewer.lua:1171
+msgid "Quote shown"
+msgstr ""
+
+#: chatgptviewer.lua:1195
 #, fuzzy
 msgid "No conversation history available"
 msgstr "وظيفة التصدير غير متاحة"
 
-#: chatgptviewer.lua:1121
+#: chatgptviewer.lua:1204
 #, fuzzy
 msgid "No reasoning content available"
 msgstr "وظيفة التصدير غير متاحة"
 
-#: chatgptviewer.lua:1150
+#: chatgptviewer.lua:1233
 msgid "AI Reasoning"
 msgstr ""
 
-#: chatgptviewer.lua:1150
+#: chatgptviewer.lua:1233
 #, fuzzy
 msgid "Reasoning Status"
 msgstr "إظهار التصحيح في المحادثة"
@@ -511,197 +538,197 @@ msgstr "لا يمكن الحفظ: لا يوجد سياق مستند"
 msgid "Save Chat"
 msgstr "حفظ المحادثة"
 
-#: dialogs.lua:490
+#: dialogs.lua:495
 #, fuzzy
 msgid "Chat saved successfully"
 msgstr "تم حفظ المحادثة بنجاح"
 
-#: dialogs.lua:495
+#: dialogs.lua:500
 #, fuzzy
 msgid "Failed to save chat: "
 msgstr "فشل في حفظ المحادثة: "
 
-#: dialogs.lua:777
-#, fuzzy
-msgid "Chat copied to clipboard"
-msgstr "تم النسخ إلى الحافظة."
-
-#: dialogs.lua:1079 dialogs.lua:1482
+#: dialogs.lua:1092 dialogs.lua:1512
 #, fuzzy
 msgid "Unknown Title"
 msgstr "عنوان غير معروف"
 
-#: dialogs.lua:1080 dialogs.lua:1483
+#: dialogs.lua:1093 dialogs.lua:1513
 #, fuzzy
 msgid "Unknown Author"
 msgstr "مؤلف غير معروف"
 
-#: dialogs.lua:1116 dialogs.lua:1179 ui/prompts_manager.lua:905
+#: dialogs.lua:1129 dialogs.lua:1192 ui/prompts_manager.lua:905
 #: ui/prompts_manager.lua:1831
 #, fuzzy
 msgid "None"
 msgstr "لا شيء"
 
-#: dialogs.lua:1170
+#: dialogs.lua:1183
 #, fuzzy
 msgid "Select Domain"
 msgstr "اختر المجال"
 
-#: dialogs.lua:1201
+#: dialogs.lua:1214
 #, fuzzy
 msgid "Domain: "
 msgstr "المجال: "
 
-#: dialogs.lua:1208
+#: dialogs.lua:1221
 #, fuzzy
 msgid "Ask"
 msgstr "اسأل"
 
-#: dialogs.lua:1317
+#: dialogs.lua:1330
 #, fuzzy
 msgid "Chat"
 msgstr "محادثة"
 
-#: dialogs.lua:1321 dialogs.lua:1508
+#: dialogs.lua:1334 dialogs.lua:1538
 #, fuzzy
 msgid "Error: "
 msgstr "خطأ: "
 
-#: dialogs.lua:1378
+#: dialogs.lua:1391
 msgid "Error handling prompt: "
 msgstr ""
 
-#: dialogs.lua:1415
+#: dialogs.lua:1428
 #, fuzzy
 msgid "KOAssistant Actions"
 msgstr "إجراءات مساعد KO"
 
-#: dialogs.lua:1417
+#: dialogs.lua:1430
 #, fuzzy
 msgid "Type your question or additional instructions for any action..."
 msgstr "اكتب سؤالك أو تعليمات إضافية لأي إجراء..."
 
-#: dialogs.lua:1444
+#: dialogs.lua:1474
 #, fuzzy
 msgid "Unknown prompt type: "
 msgstr "نوع موجه غير معروف: "
 
-#: dialogs.lua:1466
+#: dialogs.lua:1496
 #, fuzzy
 msgid "Error: No action specified"
 msgstr "خطأ: لم يتم تحديد إجراء"
 
-#: main.lua:223 main.lua:665
+#: main.lua:228 main.lua:650
 #, fuzzy
 msgid "Compare with KOAssistant"
 msgstr "مقارنة مع مساعد KO"
 
-#: main.lua:509 main.lua:689
+#: main.lua:504 main.lua:674
 #, fuzzy
 msgid "No files selected for comparison"
 msgstr "لم يتم اختيار ملفات للمقارنة"
 
-#: main.lua:593
+#: main.lua:588
 #, fuzzy
 msgid "Please select at least 2 books to compare"
 msgstr "يرجى اختيار كتابين على الأقل للمقارنة"
 
-#: main.lua:709
+#: main.lua:694
 #, fuzzy
 msgid "KOAssistant: Chat History"
 msgstr "مساعد KO: سجل المحادثات"
 
-#: main.lua:717
+#: main.lua:702
 #, fuzzy
 msgid "KOAssistant: Continue Last Saved Chat"
 msgstr "مساعد KO: متابعة آخر محادثة محفوظة"
 
-#: main.lua:725
+#: main.lua:710
 #, fuzzy
 msgid "KOAssistant: Continue Last Opened Chat"
 msgstr "مساعد KO: متابعة آخر محادثة مفتوحة"
 
-#: main.lua:734
+#: main.lua:719
 #, fuzzy
 msgid "KOAssistant: Settings"
 msgstr "مساعد KO: الإعدادات"
 
-#: main.lua:742
+#: main.lua:727
 #, fuzzy
 msgid "KOAssistant: General Chat"
 msgstr "مساعد KO: محادثة عامة"
 
-#: main.lua:750
+#: main.lua:735
 #, fuzzy
 msgid "KOAssistant: Chat About Book"
 msgstr "مساعد KO: محادثة عن الكتاب"
 
-#: main.lua:758
+#: main.lua:743
 #, fuzzy
 msgid "KOAssistant: Change Primary Language"
 msgstr "مساعد KO: سجل المحادثات"
 
-#: main.lua:765
+#: main.lua:750
 #, fuzzy
 msgid "KOAssistant: Change Translation Language"
 msgstr "لغة ترجمة مخصصة"
 
-#: main.lua:772
+#: main.lua:757
 #, fuzzy
 msgid "KOAssistant: Change Provider"
 msgstr "مساعد KO: سجل المحادثات"
 
-#: main.lua:779
+#: main.lua:764
 #, fuzzy
 msgid "KOAssistant: Change Model"
 msgstr "محادثة مساعد KO"
 
-#: main.lua:786
+#: main.lua:771
 #, fuzzy
 msgid "KOAssistant: Change AI Behavior"
 msgstr "مساعد KO: سجل المحادثات"
 
-#: main.lua:793
+#: main.lua:778
 #, fuzzy
 msgid "KOAssistant: AI Quick Settings"
 msgstr "مساعد KO: الإعدادات"
 
-#: main.lua:987 main.lua:1700
+#: main.lua:785
+#, fuzzy
+msgid "KOAssistant: Action Manager"
+msgstr "إجراءات مساعد KO"
+
+#: main.lua:980 main.lua:1690
 #, fuzzy, lua-format
 msgid "Provider: %s"
 msgstr "المزود: %1"
 
-#: main.lua:1016 main.lua:1175
+#: main.lua:1009 main.lua:1168
 #, fuzzy
 msgid "(default)"
 msgstr "(افتراضي)"
 
-#: main.lua:1035 main.lua:1709
+#: main.lua:1028 main.lua:1700
 #, fuzzy, lua-format
 msgid "Model: %s"
 msgstr "النموذج: %1"
 
-#: main.lua:1045 ui/prompts_manager.lua:1737 ui/prompts_manager.lua:2160
+#: main.lua:1038 ui/prompts_manager.lua:1737 ui/prompts_manager.lua:2160
 #, fuzzy
 msgid "Custom model..."
 msgstr "نموذج مخصص..."
 
-#: main.lua:1052
+#: main.lua:1045
 #, fuzzy
 msgid "Enter Custom Model Name"
 msgstr "أدخل اسم النموذج المخصص"
 
-#: main.lua:1054
+#: main.lua:1047
 #, fuzzy
 msgid "e.g., claude-3-opus-20240229"
 msgstr "مثال: claude-3-opus-20240229"
 
-#: main.lua:1055
+#: main.lua:1048
 #, fuzzy
 msgid "Enter the exact model identifier for this provider."
 msgstr "أدخل معرف النموذج الدقيق لهذا المزود."
 
-#: main.lua:1059 main.lua:1290 main.lua:1348 ui/prompts_manager.lua:694
+#: main.lua:1052 main.lua:1283 main.lua:1341 ui/prompts_manager.lua:694
 #: ui/prompts_manager.lua:867 ui/prompts_manager.lua:1276
 #: ui/prompts_manager.lua:1426 ui/prompts_manager.lua:1526
 #: ui/prompts_manager.lua:1599 ui/prompts_manager.lua:1695
@@ -714,72 +741,72 @@ msgstr "أدخل معرف النموذج الدقيق لهذا المزود."
 msgid "Cancel"
 msgstr "إلغاء"
 
-#: main.lua:1090
+#: main.lua:1083
 #, fuzzy
 msgid "No predefined models"
 msgstr "لا توجد نماذج محددة مسبقاً"
 
-#: main.lua:1143
+#: main.lua:1136
 #, fuzzy
 msgid "Set your languages first"
 msgstr "حدد لغاتك أولاً"
 
-#: main.lua:1161
+#: main.lua:1154
 #, fuzzy
 msgid "No valid languages found"
 msgstr "لم يتم العثور على لغات صالحة"
 
-#: main.lua:1192
+#: main.lua:1185
 #, fuzzy, lua-format
 msgid "Primary: %s"
 msgstr "اللغة الأساسية: %1"
 
-#: main.lua:1214
+#: main.lua:1207
 #, lua-format
 msgid "Use Primary (%s)"
 msgstr ""
 
-#: main.lua:1230 main.lua:1263
+#: main.lua:1223 main.lua:1256
 #, fuzzy, lua-format
 msgid "Translate: %s"
 msgstr "ترجم"
 
-#: main.lua:1277 ui/prompts_manager.lua:906 ui/prompts_manager.lua:1952
+#: main.lua:1270 ui/prompts_manager.lua:906 ui/prompts_manager.lua:1952
 #, fuzzy
 msgid "Custom..."
 msgstr "مخصص..."
 
-#: main.lua:1283
+#: main.lua:1276
 #, fuzzy
 msgid "Custom Translation Language"
 msgstr "لغة ترجمة مخصصة"
 
-#: main.lua:1285
+#: main.lua:1278
 #, fuzzy
 msgid "e.g., Spanish, Japanese, French"
 msgstr "مثال: الإسبانية، اليابانية، الفرنسية"
 
-#: main.lua:1286
+#: main.lua:1279
 #, fuzzy
 msgid "Enter the target language for translations."
 msgstr "أدخل اللغة المستهدفة للترجمات."
 
-#: main.lua:1320
+#: main.lua:1313
 #, fuzzy
 msgid "(Set your languages for quick selection)"
 msgstr "(حدد لغاتك للاختيار السريع)"
 
-#: main.lua:1337
+#: main.lua:1330
 #, fuzzy
 msgid "Custom AI Behavior"
 msgstr "سلوك الذكاء الاصطناعي المخصص"
 
-#: main.lua:1339
+#: main.lua:1332
 #, fuzzy
 msgid "Enter custom AI behavior instructions..."
 msgstr "أدخل تعليمات سلوك الذكاء الاصطناعي المخصصة..."
 
-#: main.lua:1340
+#: main.lua:1333
 #, fuzzy
 msgid ""
 "Define how the AI should behave. This replaces the built-in Minimal/Full "
@@ -792,12 +819,12 @@ msgstr ""
 "\n"
 "نصيحة: ابدأ بالسلوك الكامل كقالب."
 
-#: main.lua:1355
+#: main.lua:1348
 #, fuzzy
 msgid "Load Full"
 msgstr "تحميل الكامل"
 
-#: main.lua:1396
+#: main.lua:1389
 #, fuzzy
 msgid ""
 "Model lists are now managed through the model_lists.lua file. Please edit "
@@ -806,94 +833,94 @@ msgstr ""
 "يتم الآن إدارة قوائم النماذج من خلال ملف model_lists.lua. يرجى تحرير هذا "
 "الملف لإضافة أو إزالة النماذج."
 
-#: main.lua:1445
+#: main.lua:1438
 #, fuzzy
 msgid "No previously opened chat found"
 msgstr "لم يتم العثور على محادثة مفتوحة سابقاً"
 
-#: main.lua:1462 main.lua:1938
+#: main.lua:1455 main.lua:1953
 #, fuzzy
 msgid "Configuration not found. Please set up configuration.lua first."
 msgstr "لم يتم العثور على التكوين. يرجى إعداد configuration.lua أولاً."
 
-#: main.lua:1498
+#: main.lua:1484
 #, fuzzy
 msgid "Please open a book first"
 msgstr "يرجى فتح كتاب أولاً"
 
-#: main.lua:1615
+#: main.lua:1601
 #, fuzzy
 msgid "Primary Language"
 msgstr "اللغة الأساسية: %1"
 
-#: main.lua:1621
+#: main.lua:1607
 #, fuzzy
 msgid "Translation Language"
 msgstr "لغة ترجمة مخصصة"
 
-#: main.lua:1627 main.lua:1705
+#: main.lua:1613 main.lua:1696
 #, fuzzy
 msgid "Provider"
 msgstr "المزود: "
 
-#: main.lua:1633 main.lua:1713
+#: main.lua:1619 main.lua:1705
 #, fuzzy
 msgid "Model"
 msgstr "النموذج:"
 
-#: main.lua:1639 main.lua:1746 ui/prompts_manager.lua:468
+#: main.lua:1625 main.lua:1740 ui/prompts_manager.lua:468
 #: ui/prompts_manager.lua:1994
 #, fuzzy
 msgid "AI Behavior"
 msgstr "سلوك الذكاء الاصطناعي"
 
-#: main.lua:1649 settings_schema.lua:192 ui/prompts_manager.lua:1949
+#: main.lua:1635 settings_schema.lua:206 ui/prompts_manager.lua:1949
 #, fuzzy
 msgid "Minimal (~100 tokens)"
 msgstr "الحد الأدنى (~100 رمز)"
 
-#: main.lua:1650 settings_schema.lua:193 ui/prompts_manager.lua:1950
+#: main.lua:1636 settings_schema.lua:207 ui/prompts_manager.lua:1950
 #, fuzzy
 msgid "Full (~500 tokens)"
 msgstr "كامل (~500 رمز)"
 
-#: main.lua:1697
+#: main.lua:1687
 #, fuzzy
 msgid "AI Quick Settings"
 msgstr "تحرير الإعدادات"
 
-#: main.lua:1717
+#: main.lua:1709
 #, fuzzy, lua-format
 msgid "Temperature: %.1f"
 msgstr "درجة الحرارة: "
 
-#: main.lua:1726 ui/settings_manager.lua:235
+#: main.lua:1719 ui/settings_manager.lua:235
 #, fuzzy
 msgid "Set"
 msgstr "تعيين"
 
-#: main.lua:1727 settings_schema.lua:208 ui/prompts_manager.lua:465
+#: main.lua:1720 settings_schema.lua:222 ui/prompts_manager.lua:465
 #: ui/prompts_manager.lua:1204 ui/prompts_manager.lua:2055
 #, fuzzy
 msgid "Temperature"
 msgstr "درجة الحرارة"
 
-#: main.lua:1742
+#: main.lua:1735
 #, fuzzy, lua-format
 msgid "Behavior: %s"
 msgstr "سلوك الذكاء الاصطناعي: %1"
 
-#: main.lua:1770
+#: main.lua:1774
 #, fuzzy
 msgid "Testing connection..."
 msgstr "جاري اختبار الاتصال..."
 
-#: main.lua:1798
+#: main.lua:1802
 #, fuzzy
 msgid "Connection test failed:\n"
 msgstr "فشل اختبار الاتصال:\n"
 
-#: main.lua:1804
+#: main.lua:1808
 #, fuzzy, lua-format
 msgid ""
 "Connection test successful!\n"
@@ -910,17 +937,17 @@ msgstr ""
 "\n"
 "الرد: %s"
 
-#: main.lua:1812
+#: main.lua:1816
 #, fuzzy
 msgid "Connection test failed: "
 msgstr "فشل اختبار الاتصال: "
 
-#: main.lua:1837
+#: main.lua:1847
 #, fuzzy
 msgid "WHAT ARE DOMAINS?"
 msgstr "ما هي المجالات؟"
 
-#: main.lua:1838
+#: main.lua:1848
 #, fuzzy
 msgid ""
 "Knowledge domains provide background context for AI conversations. When you "
@@ -929,22 +956,22 @@ msgstr ""
 "توفر مجالات المعرفة سياقاً خلفياً لمحادثات الذكاء الاصطناعي. عند اختيار مجال، "
 "يتم إضافة سياقه في بداية كل رسالة ترسلها."
 
-#: main.lua:1840
+#: main.lua:1850
 #, fuzzy
 msgid "HOW THEY WORK:"
 msgstr "كيف تعمل:"
 
-#: main.lua:1841
+#: main.lua:1851
 #, fuzzy
 msgid "• Domain context is sent with each message to frame the conversation"
 msgstr "• يتم إرسال سياق المجال مع كل رسالة لتأطير المحادثة"
 
-#: main.lua:1842
+#: main.lua:1852
 #, fuzzy
 msgid "• Larger domains give better results but use more tokens"
 msgstr "• المجالات الأكبر تعطي نتائج أفضل لكنها تستخدم رموزاً أكثر"
 
-#: main.lua:1843
+#: main.lua:1853
 #, fuzzy
 msgid ""
 "• Anthropic supports prompt caching - consecutive messages reuse cached "
@@ -953,42 +980,42 @@ msgstr ""
 "• تدعم Anthropic التخزين المؤقت للموجهات - الرسائل المتتالية تعيد استخدام "
 "السياق المخزن مؤقتاً (توفير ~90% من التكلفة)"
 
-#: main.lua:1845
+#: main.lua:1855
 #, fuzzy
 msgid "CREATING DOMAINS:"
 msgstr "إنشاء المجالات:"
 
-#: main.lua:1846
+#: main.lua:1856
 #, fuzzy
 msgid "Create .md or .txt files in the domains/ folder."
 msgstr "أنشئ ملفات .md أو .txt في مجلد domains/."
 
-#: main.lua:1847
+#: main.lua:1857
 #, fuzzy
 msgid "See domains.sample/ for examples."
 msgstr "انظر domains.sample/ للأمثلة."
 
-#: main.lua:1867
+#: main.lua:1877
 #, fuzzy
 msgid "No domains defined."
 msgstr "لم يتم تعريف أي مجالات."
 
-#: main.lua:1873
+#: main.lua:1883
 #, fuzzy, lua-format
 msgid "Total: %d domains"
 msgstr "الإجمالي: %d مجال"
 
-#: main.lua:1878
+#: main.lua:1888
 #, fuzzy
 msgid "Available Domains"
 msgstr "المجالات المتاحة"
 
-#: main.lua:1929
+#: main.lua:1944
 #, fuzzy
 msgid "Default actions restored"
 msgstr "تمت استعادة الإجراءات الافتراضية"
 
-#: main.lua:1997
+#: main.lua:2005
 #, fuzzy
 msgid ""
 "KOAssistant Plugin\n"
@@ -997,7 +1024,7 @@ msgstr ""
 "إضافة مساعد KO\n"
 "الإصدار: "
 
-#: main.lua:2049
+#: main.lua:2057
 #, fuzzy
 msgid "Refresh cached book information"
 msgstr "تحديث معلومات الكتاب المخزنة مؤقتاً"
@@ -1042,47 +1069,47 @@ msgstr "إخفاء النص المميز"
 msgid "Hide Long Highlights"
 msgstr "إخفاء التمييزات الطويلة"
 
-#: settings_schema.lua:100
+#: settings_schema.lua:101
 #, fuzzy
 msgid "Long Highlight Threshold"
 msgstr "حد التمييز الطويل"
 
-#: settings_schema.lua:116
+#: settings_schema.lua:117
 #, fuzzy
 msgid "Chat Settings"
 msgstr "إعدادات المحادثة"
 
-#: settings_schema.lua:121
+#: settings_schema.lua:122
 #, fuzzy
 msgid "Auto-save All Chats"
 msgstr "حفظ تلقائي لجميع المحادثات"
 
-#: settings_schema.lua:128
+#: settings_schema.lua:129
 #, fuzzy
 msgid "Auto-save Continued Chats"
 msgstr "حفظ تلقائي للمحادثات المستمرة"
 
-#: settings_schema.lua:137
+#: settings_schema.lua:138
 #, fuzzy
 msgid "Enable Streaming"
 msgstr "تفعيل البث"
 
-#: settings_schema.lua:144
+#: settings_schema.lua:145
 #, fuzzy
 msgid "Auto-scroll Streaming"
 msgstr "تمرير تلقائي للبث"
 
-#: settings_schema.lua:152
+#: settings_schema.lua:153
 #, fuzzy
 msgid "Large Stream Dialog"
 msgstr "نافذة بث كبيرة"
 
-#: settings_schema.lua:160
+#: settings_schema.lua:161
 #, fuzzy
 msgid "Stream Poll Interval (ms)"
 msgstr "فترة استطلاع البث (مللي ثانية)"
 
-#: settings_schema.lua:167
+#: settings_schema.lua:168
 #, fuzzy
 msgid ""
 "How often to check for new stream data.\n"
@@ -1091,39 +1118,49 @@ msgstr ""
 "كم مرة يتم التحقق من بيانات البث الجديدة.\n"
 "أقل = أسرع استجابة لكن يستهلك بطارية أكثر."
 
-#: settings_schema.lua:177
+#: settings_schema.lua:174
+msgid "Display Refresh Interval (ms)"
+msgstr ""
+
+#: settings_schema.lua:181
+msgid ""
+"How often to refresh the display during streaming.\n"
+"Higher = better performance on slower devices."
+msgstr ""
+
+#: settings_schema.lua:191
 #, fuzzy
 msgid "Advanced"
 msgstr "متقدم"
 
-#: settings_schema.lua:186 settings_schema.lua:299 settings_schema.lua:347
+#: settings_schema.lua:200 settings_schema.lua:313 settings_schema.lua:361
 #: ui/prompts_manager.lua:903 ui/prompts_manager.lua:1833
 #, fuzzy
 msgid "Minimal"
 msgstr "الحد الأدنى"
 
-#: settings_schema.lua:186 settings_schema.lua:187 settings_schema.lua:347
+#: settings_schema.lua:200 settings_schema.lua:201 settings_schema.lua:361
 #: ui/prompts_manager.lua:904 ui/prompts_manager.lua:1835
 #, fuzzy
 msgid "Full"
 msgstr "كامل"
 
-#: settings_schema.lua:186 settings_schema.lua:194 ui/prompts_manager.lua:1829
+#: settings_schema.lua:200 settings_schema.lua:208 ui/prompts_manager.lua:1829
 #, fuzzy
 msgid "Custom"
 msgstr "مخصص"
 
-#: settings_schema.lua:187
+#: settings_schema.lua:201
 #, fuzzy
 msgid "AI Behavior: %1"
 msgstr "سلوك الذكاء الاصطناعي: %1"
 
-#: settings_schema.lua:200
+#: settings_schema.lua:214
 #, fuzzy
 msgid "Edit Custom Behavior..."
 msgstr "تحرير السلوك المخصص..."
 
-#: settings_schema.lua:215 ui/prompts_manager.lua:1205
+#: settings_schema.lua:229 ui/prompts_manager.lua:1205
 #, fuzzy
 msgid ""
 "Range: 0.0-2.0 (Anthropic max 1.0)\n"
@@ -1134,36 +1171,36 @@ msgstr ""
 "أقل = مركز، حتمي\n"
 "أعلى = إبداعي، متنوع"
 
-#: settings_schema.lua:222 ui/prompts_manager.lua:466
+#: settings_schema.lua:236 ui/prompts_manager.lua:466
 msgid "Reasoning"
 msgstr ""
 
-#: settings_schema.lua:227
+#: settings_schema.lua:241
 msgid "Long-press provider for supported models"
 msgstr ""
 
-#: settings_schema.lua:236 ui/prompts_manager.lua:1436
+#: settings_schema.lua:250 ui/prompts_manager.lua:1436
 #, fuzzy
 msgid "Anthropic Extended Thinking"
 msgstr "التفكير الموسع"
 
-#: settings_schema.lua:237 settings_schema.lua:260 settings_schema.lua:289
+#: settings_schema.lua:251 settings_schema.lua:274 settings_schema.lua:303
 msgid "Supported models:\n"
 msgstr ""
 
-#: settings_schema.lua:237
+#: settings_schema.lua:251
 msgid ""
 "\n"
 "\n"
 "Let Claude think through complex problems before responding."
 msgstr ""
 
-#: settings_schema.lua:244
+#: settings_schema.lua:258
 #, fuzzy
 msgid "Thinking Budget (tokens)"
 msgstr "ميزانية التفكير"
 
-#: settings_schema.lua:245
+#: settings_schema.lua:259
 #, fuzzy
 msgid ""
 "Token budget for extended thinking (1024-32000)\n"
@@ -1173,95 +1210,95 @@ msgstr ""
 "أعلى = تفكير أكثر تعقيداً.\n"
 "النطاق: 1024 - 32000"
 
-#: settings_schema.lua:259 ui/prompts_manager.lua:1536
+#: settings_schema.lua:273 ui/prompts_manager.lua:1536
 msgid "OpenAI Reasoning"
 msgstr ""
 
-#: settings_schema.lua:260
+#: settings_schema.lua:274
 msgid ""
 "\n"
 "\n"
 "Reasoning is encrypted/hidden from user."
 msgstr ""
 
-#: settings_schema.lua:270 settings_schema.lua:299 settings_schema.lua:309
+#: settings_schema.lua:284 settings_schema.lua:313 settings_schema.lua:323
 #: ui/prompts_manager.lua:1569
 msgid "Low"
 msgstr ""
 
-#: settings_schema.lua:270 settings_schema.lua:299 settings_schema.lua:310
+#: settings_schema.lua:284 settings_schema.lua:313 settings_schema.lua:324
 #: ui/prompts_manager.lua:1579
 msgid "Medium"
 msgstr ""
 
-#: settings_schema.lua:270 settings_schema.lua:299 ui/prompts_manager.lua:1589
+#: settings_schema.lua:284 settings_schema.lua:313 ui/prompts_manager.lua:1589
 #, fuzzy
 msgid "High"
 msgstr "تمييز"
 
-#: settings_schema.lua:271
+#: settings_schema.lua:285
 msgid "Reasoning Effort: %1"
 msgstr ""
 
-#: settings_schema.lua:273
+#: settings_schema.lua:287
 msgid ""
 "Low = faster, cheaper\n"
 "Medium = balanced\n"
 "High = thorough reasoning"
 msgstr ""
 
-#: settings_schema.lua:279
+#: settings_schema.lua:293
 msgid "Low (faster, cheaper)"
 msgstr ""
 
-#: settings_schema.lua:280
+#: settings_schema.lua:294
 msgid "Medium (balanced)"
 msgstr ""
 
-#: settings_schema.lua:281
+#: settings_schema.lua:295
 msgid "High (thorough)"
 msgstr ""
 
-#: settings_schema.lua:288 ui/prompts_manager.lua:1609
+#: settings_schema.lua:302 ui/prompts_manager.lua:1609
 #, fuzzy
 msgid "Gemini Thinking"
 msgstr "التفكير الموسع"
 
-#: settings_schema.lua:289
+#: settings_schema.lua:303
 msgid ""
 "\n"
 "\n"
 "Thinking is encrypted/hidden from user."
 msgstr ""
 
-#: settings_schema.lua:300
+#: settings_schema.lua:314
 #, fuzzy
 msgid "Thinking Depth: %1"
 msgstr "ميزانية التفكير"
 
-#: settings_schema.lua:302
+#: settings_schema.lua:316
 msgid ""
 "Minimal = fastest\n"
 "Low/Medium = balanced\n"
 "High = deepest thinking"
 msgstr ""
 
-#: settings_schema.lua:308
+#: settings_schema.lua:322
 #, fuzzy
 msgid "Minimal (fastest)"
 msgstr "الحد الأدنى (~100 رمز)"
 
-#: settings_schema.lua:311
+#: settings_schema.lua:325
 #, fuzzy
 msgid "High (default)"
 msgstr "(افتراضي)"
 
-#: settings_schema.lua:318
+#: settings_schema.lua:332
 #, fuzzy
 msgid "Show Indicator in Chat"
 msgstr "إظهار التصحيح في المحادثة"
 
-#: settings_schema.lua:319
+#: settings_schema.lua:333
 msgid ""
 "Show '*[Reasoning was used]*' indicator in chat when reasoning is requested "
 "or used.\n"
@@ -1269,79 +1306,79 @@ msgid ""
 "Full reasoning content is always viewable via 'Show Reasoning' button."
 msgstr ""
 
-#: settings_schema.lua:328
+#: settings_schema.lua:342
 #, fuzzy
 msgid "Console Debug"
 msgstr "تصحيح وحدة التحكم"
 
-#: settings_schema.lua:329
+#: settings_schema.lua:343
 #, fuzzy
 msgid "Enable console/terminal debug logging (for developers)"
 msgstr "تفعيل تسجيل التصحيح في وحدة التحكم/الطرفية (للمطورين)"
 
-#: settings_schema.lua:336
+#: settings_schema.lua:350
 #, fuzzy
 msgid "Show Debug in Chat"
 msgstr "إظهار التصحيح في المحادثة"
 
-#: settings_schema.lua:337
+#: settings_schema.lua:351
 #, fuzzy
 msgid "Display debug information in chat viewer"
 msgstr "عرض معلومات التصحيح في عارض المحادثة"
 
-#: settings_schema.lua:347
+#: settings_schema.lua:361
 #, fuzzy
 msgid "Names"
 msgstr "الأسماء"
 
-#: settings_schema.lua:348
+#: settings_schema.lua:362
 #, fuzzy
 msgid "Debug Detail Level: %1"
 msgstr "مستوى تفاصيل التصحيح: %1"
 
-#: settings_schema.lua:355
+#: settings_schema.lua:369
 #, fuzzy
 msgid "Minimal (user input only)"
 msgstr "الحد الأدنى (إدخال المستخدم فقط)"
 
-#: settings_schema.lua:356
+#: settings_schema.lua:370
 #, fuzzy
 msgid "Names (config summary)"
 msgstr "الأسماء (ملخص التكوين)"
 
-#: settings_schema.lua:357
+#: settings_schema.lua:371
 #, fuzzy
 msgid "Full (system blocks)"
 msgstr "كامل (كتل النظام)"
 
-#: settings_schema.lua:363
+#: settings_schema.lua:377
 #, fuzzy
 msgid "Test Connection"
 msgstr "اختبار الاتصال"
 
-#: settings_schema.lua:373
+#: settings_schema.lua:387
 #, fuzzy
 msgid "Language"
 msgstr "اللغة"
 
-#: settings_schema.lua:378
+#: settings_schema.lua:392
 msgid "Disable to show English UI (requires restart)"
 msgstr ""
 
-#: settings_schema.lua:383
+#: settings_schema.lua:397
 msgid "Match KOReader UI Language"
 msgstr ""
 
-#: settings_schema.lua:391
+#: settings_schema.lua:405
 msgid "Please restart KOReader for the language change to take effect."
 msgstr ""
 
-#: settings_schema.lua:398
+#: settings_schema.lua:412
 #, fuzzy
 msgid "Your Languages"
 msgstr "لغاتك"
 
-#: settings_schema.lua:401
+#: settings_schema.lua:415
 #, fuzzy
 msgid ""
 "Languages you speak, separated by commas. Leave empty for default AI "
@@ -1358,94 +1395,92 @@ msgstr ""
 "• \"الإنجليزية\"\n"
 "• \"الألمانية، الإنجليزية، الفرنسية\""
 
-#: settings_schema.lua:409
+#: settings_schema.lua:423
 #, fuzzy
 msgid "Primary Language: (not set)"
 msgstr "اللغة الأساسية: (غير محددة)"
 
-#: settings_schema.lua:411
+#: settings_schema.lua:425
 #, fuzzy
 msgid "Primary Language: %1"
 msgstr "اللغة الأساسية: %1"
 
-#: settings_schema.lua:419
+#: settings_schema.lua:433
 #, fuzzy
 msgid "Translate to Primary Language"
 msgstr "ترجم إلى اللغة الأساسية"
 
-#: settings_schema.lua:422
+#: settings_schema.lua:436
 #, fuzzy
 msgid ""
 "Use your primary language as the translation target. Disable to choose a "
 "different target."
 msgstr "استخدم لغتك الأساسية كهدف للترجمة. عطل هذا الخيار لاختيار هدف مختلف."
 
-#: settings_schema.lua:429
+#: settings_schema.lua:443
 #, fuzzy
 msgid "English"
 msgstr "الإنجليزية"
 
-#: settings_schema.lua:430
+#: settings_schema.lua:444
 #, fuzzy
 msgid "Translation Target: %1"
 msgstr "هدف الترجمة: %1"
 
-#: settings_schema.lua:442 ui/prompts_manager.lua:382
+#: settings_schema.lua:456 ui/prompts_manager.lua:382
 #, fuzzy
 msgid "Manage Actions"
 msgstr "إدارة الإجراءات"
 
-#: settings_schema.lua:448
+#: settings_schema.lua:462
 #, fuzzy
 msgid "Highlight Menu Actions"
 msgstr "إجراءات قائمة التمييز"
 
-#: settings_schema.lua:454
+#: settings_schema.lua:468
 #, fuzzy
 msgid "View Domains"
 msgstr "عرض المجالات"
 
-#: settings_schema.lua:463
+#: settings_schema.lua:477
 #, fuzzy
 msgid "About KOAssistant"
 msgstr "عن مساعد KO"
 
-#: settings_schema.lua:469
+#: settings_schema.lua:483
 #, fuzzy
 msgid "Check for Updates"
 msgstr "التحقق من التحديثات"
 
-#: stream_handler.lua:147
+#: stream_handler.lua:153
 #, fuzzy
 msgid "Request cancelled by user."
 msgstr "تم إلغاء الطلب من قبل المستخدم."
 
-#: stream_handler.lua:185
+#: stream_handler.lua:191
 #, fuzzy
 msgid "No response received. Raw: "
 msgstr "لم يتم استلام رد. البيانات الخام: "
 
-#: stream_handler.lua:234
-#, fuzzy
-msgid "Resume ↓"
-msgstr "استئناف ↓"
+#: stream_handler.lua:263 stream_handler.lua:294
+msgid "Autoscroll OFF ↓"
+msgstr ""
 
-#: stream_handler.lua:248 stream_handler.lua:266
-#, fuzzy
-msgid "Pause ↓"
-msgstr "إيقاف مؤقت ↓"
+#: stream_handler.lua:278 stream_handler.lua:294
+msgid "Autoscroll ON ↓"
+msgstr ""
 
-#: stream_handler.lua:258
+#: stream_handler.lua:288
 #, fuzzy
 msgid "Stop"
 msgstr "إيقاف"
 
-#: stream_handler.lua:273
+#: stream_handler.lua:302
 #, fuzzy
 msgid "AI is responding"
 msgstr "الذكاء الاصطناعي يستجيب"
 
-#: stream_handler.lua:378
+#: stream_handler.lua:407
 #, fuzzy
 msgid "Failed to start subprocess for request"
 msgstr "فشل في بدء العملية الفرعية للطلب"
@@ -2431,6 +2466,14 @@ msgstr "ملخصات سريعة"
 #, fuzzy
 msgid "Translate"
 msgstr "ترجم"
+
+#, fuzzy
+#~ msgid "Resume ↓"
+#~ msgstr "استئناف ↓"
+
+#, fuzzy
+#~ msgid "Pause ↓"
+#~ msgstr "إيقاف مؤقت ↓"
 
 #, fuzzy
 #~ msgid "Share"
