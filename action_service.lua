@@ -164,6 +164,9 @@ function ActionService:loadActions()
                     if override.model then
                         action_data.model = override.model
                     end
+                    if override.reasoning_config then
+                        action_data.reasoning_config = override.reasoning_config
+                    end
                 end
 
                 table.insert(self.actions_cache[context], action_data)
@@ -718,9 +721,15 @@ function ActionService:createDuplicateAction(action)
         end
     end
 
-    -- Handle API params if present
-    if action.api_params then
+    -- Handle temperature: check both top-level (from prompt entries) and api_params (from raw actions)
+    if action.temperature then
+        duplicate.temperature = action.temperature
+    elseif action.api_params and action.api_params.temperature then
         duplicate.temperature = action.api_params.temperature
+    end
+
+    -- Handle max_tokens from api_params if present
+    if action.api_params and action.api_params.max_tokens then
         duplicate.max_tokens = action.api_params.max_tokens
     end
 
