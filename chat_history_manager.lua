@@ -201,6 +201,8 @@ function ChatHistoryManager:saveChat(document_path, chat_title, message_history,
         domain = metadata and metadata.domain or nil,
         -- Store tags for organization (can be modified anytime)
         tags = metadata and metadata.tags or {},
+        -- Store highlighted text for display toggle in continued chats (not in messages/export)
+        original_highlighted_text = metadata and metadata.original_highlighted_text or nil,
     }
     
     -- Check if this is an update to an existing chat

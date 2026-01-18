@@ -406,7 +406,7 @@ local function getAllPrompts(configuration, plugin)
     return prompts, prompt_keys
 end
 
-local function createSaveDialog(document_path, history, chat_history_manager, is_general_context, book_metadata, launch_context)
+local function createSaveDialog(document_path, history, chat_history_manager, is_general_context, book_metadata, launch_context, highlighted_text)
     -- Guard against missing document path - allow special case for general context
     if not document_path and not is_general_context then
         UIManager:show(InfoMessage:new{
@@ -455,7 +455,7 @@ local function createSaveDialog(document_path, history, chat_history_manager, is
                             if history.chat_id then
                                 metadata.id = history.chat_id
                             end
-                            
+
                             -- Add book metadata if available
                             if book_metadata then
                                 metadata.book_title = book_metadata.title
@@ -470,7 +470,12 @@ local function createSaveDialog(document_path, history, chat_history_manager, is
                                 metadata.launch_context = launch_context
                                 logger.info("KOAssistant: Saving chat with launch context - from: " .. (launch_context.title or "nil"))
                             end
-                            
+
+                            -- Store highlighted text for display toggle in continued chats
+                            if highlighted_text and highlighted_text ~= "" then
+                                metadata.original_highlighted_text = highlighted_text
+                            end
+
                             return chat_history_manager:saveChat(
                                 document_path, 
                                 chat_title, 
@@ -723,6 +728,10 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                         if history.domain then
                             metadata.domain = history.domain
                         end
+                        -- Store highlighted text for display toggle in continued chats
+                        if highlightedText and highlightedText ~= "" then
+                            metadata.original_highlighted_text = highlightedText
+                        end
 
                         -- Determine save path: document path or general chats
                         local save_path = document_path or (is_general_context and "__GENERAL_CHATS__" or nil)
@@ -763,7 +772,7 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
             else
                 -- Call our helper function to handle saving
                 local is_general_context = temp_config and temp_config.features and temp_config.features.is_general_context or false
-                createSaveDialog(document_path, history, chat_history_manager, is_general_context, book_metadata, launch_context)
+                createSaveDialog(document_path, history, chat_history_manager, is_general_context, book_metadata, launch_context, highlightedText)
             end
         end,
         export_callback = function()
@@ -813,6 +822,10 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
             end
             if history.domain then
                 metadata.domain = history.domain
+            end
+            -- Store highlighted text for display toggle in continued chats
+            if highlightedText and highlightedText ~= "" then
+                metadata.original_highlighted_text = highlightedText
             end
 
             -- Determine save path: document path or general chats

@@ -1106,6 +1106,9 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
 
     local self_ref = self
 
+    -- Get stored highlighted text for display toggle (available for chats saved after this feature)
+    local chat_highlighted_text = chat.original_highlighted_text or ""
+
     -- addMessage now accepts an optional callback for async streaming
     -- @param message string: The user's message
     -- @param is_context boolean: Whether this is a context message (hidden from display)
@@ -1181,7 +1184,7 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
         self_ref.current_chat_viewer = nil
 
         -- Note: launch context is now included in createResultText() via history.launch_context
-        local display_text = content_text or history:createResultText("", config)
+        local display_text = content_text or history:createResultText(chat_highlighted_text, config)
 
         local viewer = ChatGPTViewer:new{
             title = detailed_title,
@@ -1189,7 +1192,7 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
             scroll_to_bottom = true, -- Scroll to bottom to show latest messages
             configuration = config,
             original_history = history,
-            original_highlighted_text = "",
+            original_highlighted_text = chat_highlighted_text,
             settings_callback = function(path, value)
                 local plugin = ui and ui.koassistant
                 if not plugin then
@@ -1231,7 +1234,7 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
                     -- Use callback pattern for streaming support
                     local function onResponseComplete(success, answer, err)
                         if success and answer then
-                            local new_content = history:createResultText("", config)
+                            local new_content = history:createResultText(chat_highlighted_text, config)
                             showChatViewer(new_content)
                         else
                             UIManager:show(InfoMessage:new{
