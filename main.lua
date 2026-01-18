@@ -444,53 +444,43 @@ function AskGPT:showKOAssistantDialogForFile(file, title, authors, book_props)
       book_context = book_context .. string.format("\nYear: %s", book_props.year)
     end
   end
-  
-  -- Create a copy of configuration with file browser context
-  local temp_config = {}
-  for k, v in pairs(configuration) do
-    if type(v) == "table" then
-      temp_config[k] = {}
-      for k2, v2 in pairs(v) do
-        temp_config[k][k2] = v2
-      end
-    else
-      temp_config[k] = v
-    end
-  end
-  
+
   -- Ensure features exists
-  temp_config.features = temp_config.features or {}
-  
+  configuration.features = configuration.features or {}
+
   -- Get book context configuration
-  local book_context_config = temp_config.features.book_context or {
+  local book_context_config = configuration.features.book_context or {
     prompts = {}
   }
-  
-  logger.info("Book context has " .. 
-    (book_context_config.prompts and tostring(table_count(book_context_config.prompts)) or "0") .. 
+
+  logger.info("Book context has " ..
+    (book_context_config.prompts and tostring(table_count(book_context_config.prompts)) or "0") ..
     " prompts defined")
-  
-  -- Don't set system prompt here - let dialogs.lua handle it based on context
-  -- Store book metadata separately for use in prompts
+
+  -- Set context flags on original configuration (no copy needed)
+  -- This ensures settings changes are immediately visible
+  -- Clear other context flags first
+  configuration.features.is_general_context = nil
+  configuration.features.is_book_context = true
+  configuration.features.is_multi_book_context = nil
+
+  -- Store book metadata for use in prompts
   if book_context and book_context ~= "" then
-    temp_config.features.book_context = book_context
+    configuration.features.book_context = book_context
   end
-  
-  -- Mark this as book context
-  temp_config.features.is_book_context = true
-  
+
   -- Store the book metadata for template substitution
-  temp_config.features.book_metadata = {
+  configuration.features.book_metadata = {
     title = title,
     author = authors,
     author_clause = authors ~= "" and string.format(" by %s", authors) or "",
     file = file  -- Add file path for chat saving
   }
-  
+
   NetworkMgr:runWhenOnline(function()
     maybeCheckForUpdates(self)
     -- Show dialog with book context instead of highlighted text
-    showChatGPTDialog(self.ui, book_context, temp_config, nil, self)
+    showChatGPTDialog(self.ui, book_context, configuration, nil, self)
   end)
 end
 
@@ -610,51 +600,41 @@ function AskGPT:compareSelectedBooks(selected_files)
   end
   
   -- Build the book context that will be used by the multi_file_browser prompts
-  local prompt_text = string.format("Selected %d books for comparison:\n\n%s", 
-                                    #books_info, 
+  local prompt_text = string.format("Selected %d books for comparison:\n\n%s",
+                                    #books_info,
                                     table.concat(books_list, "\n"))
-  
+
   logger.info("KOAssistant: Book context for comparison: " .. prompt_text)
-  
-  -- Create a copy of configuration with file browser context
-  local temp_config = {}
-  for k, v in pairs(configuration) do
-    if type(v) == "table" then
-      temp_config[k] = {}
-      for k2, v2 in pairs(v) do
-        temp_config[k][k2] = v2
-      end
-    else
-      temp_config[k] = v
-    end
-  end
-  
+
   -- Ensure features exists
-  temp_config.features = temp_config.features or {}
-  
-  -- Mark this as multi book context
-  temp_config.features.is_multi_book_context = true
-  
+  configuration.features = configuration.features or {}
+
+  -- Set context flags on original configuration (no copy needed)
+  -- This ensures settings changes are immediately visible
+  -- Clear other context flags first
+  configuration.features.is_general_context = nil
+  configuration.features.is_book_context = nil
+  configuration.features.is_multi_book_context = true
+
   -- Store the books list as context
-  temp_config.features.book_context = prompt_text
-  temp_config.features.books_info = books_info  -- Store the parsed book info for template substitution
-  
+  configuration.features.book_context = prompt_text
+  configuration.features.books_info = books_info  -- Store the parsed book info for template substitution
+
   -- Store metadata for template substitution (using first book's info)
   if #books_info > 0 then
-    temp_config.features.book_metadata = {
+    configuration.features.book_metadata = {
       title = books_info[1].title,
       author = books_info[1].authors,
       author_clause = books_info[1].authors ~= "" and string.format(" by %s", books_info[1].authors) or ""
     }
   end
-  
+
   NetworkMgr:runWhenOnline(function()
     maybeCheckForUpdates(self)
-    -- Don't update from settings as we want our temp_config
-    -- Pass the prompt as book context with book configuration
+    -- Pass the prompt as book context with configuration
     -- Use FileManager.instance as the UI context
     local ui_context = self.ui or FileManager.instance
-    showChatGPTDialog(ui_context, prompt_text, temp_config, nil, self)
+    showChatGPTDialog(ui_context, prompt_text, configuration, nil, self)
   end)
 end
 
@@ -1471,29 +1451,22 @@ function AskGPT:onKOAssistantGeneralChat()
     })
     return true
   end
-  
+
   NetworkMgr:runWhenOnline(function()
     maybeCheckForUpdates(self)
     -- Make sure we're using the latest configuration
     self:updateConfigFromSettings()
 
-    -- Create a temp config with general context flag
-    local temp_config = {}
-    for k, v in pairs(configuration) do
-      if type(v) ~= "table" then
-        temp_config[k] = v
-      else
-        temp_config[k] = {}
-        for k2, v2 in pairs(v) do
-          temp_config[k][k2] = v2
-        end
-      end
-    end
-    temp_config.features = temp_config.features or {}
-    temp_config.features.is_general_context = true
-    
+    -- Set context flag on the original configuration (no copy needed)
+    -- This ensures settings changes are immediately visible
+    configuration.features = configuration.features or {}
+    -- Clear other context flags first
+    configuration.features.is_general_context = true
+    configuration.features.is_book_context = nil
+    configuration.features.is_multi_book_context = nil
+
     -- Show dialog with general context
-    showChatGPTDialog(self.ui, nil, temp_config, nil, self)
+    showChatGPTDialog(self.ui, nil, configuration, nil, self)
   end)
   return true
 end
@@ -1682,7 +1655,8 @@ function AskGPT:buildBehaviorMenu()
 end
 
 --- Combined AI Quick Settings popup (for gesture action)
-function AskGPT:onKOAssistantAISettings()
+--- @param on_close_callback function: Optional callback called when user closes the dialog
+function AskGPT:onKOAssistantAISettings(on_close_callback)
   local ButtonDialog = require("ui/widget/buttondialog")
   local SpinWidget = require("ui/widget/spinwidget")
   local self_ref = self
@@ -1690,7 +1664,7 @@ function AskGPT:onKOAssistantAISettings()
   -- Helper to reopen this dialog after sub-dialog closes
   local function reopenQuickSettings()
     UIManager:scheduleIn(0.1, function()
-      self_ref:onKOAssistantAISettings()
+      self_ref:onKOAssistantAISettings(on_close_callback)
     end)
   end
 
@@ -1700,6 +1674,9 @@ function AskGPT:onKOAssistantAISettings()
   local behavior = features.ai_behavior_variant or "full"
   local temp = features.default_temperature or 0.7
 
+  -- Flag to track if we're closing for a sub-dialog (vs true dismissal)
+  local opening_subdialog = false
+
   local dialog
   dialog = ButtonDialog:new{
     title = _("AI Quick Settings"),
@@ -1707,6 +1684,7 @@ function AskGPT:onKOAssistantAISettings()
       {{
         text = string.format(_("Provider: %s"), provider:gsub("^%l", string.upper)),
         callback = function()
+          opening_subdialog = true
           UIManager:close(dialog)
           -- Show provider selection, then reopen AI Quick Settings after selection
           local menu_items = self_ref:buildProviderMenu()
@@ -1716,6 +1694,7 @@ function AskGPT:onKOAssistantAISettings()
       {{
         text = string.format(_("Model: %s"), model),
         callback = function()
+          opening_subdialog = true
           UIManager:close(dialog)
           local menu_items = self_ref:buildModelMenu()
           self_ref:showQuickSettingsPopup(_("Model"), menu_items, true, reopenQuickSettings)
@@ -1724,6 +1703,7 @@ function AskGPT:onKOAssistantAISettings()
       {{
         text = string.format(_("Temperature: %.1f"), temp),
         callback = function()
+          opening_subdialog = true
           UIManager:close(dialog)
           local spin = SpinWidget:new{
             value = temp,
@@ -1749,6 +1729,7 @@ function AskGPT:onKOAssistantAISettings()
       {{
         text = string.format(_("Behavior: %s"), behavior:gsub("^%l", string.upper)),
         callback = function()
+          opening_subdialog = true
           UIManager:close(dialog)
           local menu_items = self_ref:buildBehaviorMenu()
           self_ref:showQuickSettingsPopup(_("AI Behavior"), menu_items, true, reopenQuickSettings)
@@ -1757,10 +1738,21 @@ function AskGPT:onKOAssistantAISettings()
       {{
         text = _("Close"),
         callback = function()
+          opening_subdialog = true  -- Prevent dismiss_callback from also firing
           UIManager:close(dialog)
+          if on_close_callback then
+            on_close_callback()
+          end
         end,
       }},
     },
+    -- Handle all forms of dismissal (back button, tap outside, etc.)
+    close_callback = function()
+      logger.info("KOAssistant: Quick settings close_callback, opening_subdialog=" .. tostring(opening_subdialog) .. ", has_callback=" .. tostring(on_close_callback ~= nil))
+      if not opening_subdialog and on_close_callback then
+        on_close_callback()
+      end
+    end,
   }
   UIManager:show(dialog)
   return true
@@ -1945,7 +1937,7 @@ function AskGPT:restoreDefaultPrompts()
 end
 
 function AskGPT:startGeneralChat()
-  -- Same logic as onAssistantGeneralChat
+  -- Same logic as onKOAssistantGeneralChat
   if not configuration then
     UIManager:show(InfoMessage:new{
       icon = "notice-warning",
@@ -1959,23 +1951,16 @@ function AskGPT:startGeneralChat()
     -- Make sure we're using the latest configuration
     self:updateConfigFromSettings()
 
-    -- Create a temp config with general context flag
-    local temp_config = {}
-    for k, v in pairs(configuration) do
-      if type(v) ~= "table" then
-        temp_config[k] = v
-      else
-        temp_config[k] = {}
-        for k2, v2 in pairs(v) do
-          temp_config[k][k2] = v2
-        end
-      end
-    end
-    temp_config.features = temp_config.features or {}
-    temp_config.features.is_general_context = true
+    -- Set context flag on the original configuration (no copy needed)
+    -- This ensures settings changes are immediately visible
+    configuration.features = configuration.features or {}
+    -- Clear other context flags first
+    configuration.features.is_general_context = true
+    configuration.features.is_book_context = nil
+    configuration.features.is_multi_book_context = nil
 
     -- Show dialog with general context
-    showChatGPTDialog(self.ui, nil, temp_config, nil, self)
+    showChatGPTDialog(self.ui, nil, configuration, nil, self)
   end)
 end
 

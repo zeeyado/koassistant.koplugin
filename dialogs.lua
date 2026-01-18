@@ -1421,6 +1421,24 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         allow_newline = true,
         input_multiline = true,
         text_height = 300,
+        -- Settings icon in title bar - opens AI Quick Settings panel
+        title_bar_left_icon = "appbar.settings",
+        title_bar_left_icon_tap_callback = function()
+            input_dialog:onCloseKeyboard()
+            if plugin then
+                -- Capture current input before showing settings
+                local current_input = input_dialog:getInputText()
+                -- When settings closes, refresh the dialog to apply changes
+                plugin:onKOAssistantAISettings(function()
+                    logger.info("KOAssistant: Quick settings closed, refreshing input dialog")
+                    -- Update configuration from settings (modifies the shared configuration object)
+                    plugin:updateConfigFromSettings()
+                    -- Refresh the input dialog (configuration is already updated in place)
+                    UIManager:close(input_dialog)
+                    showChatGPTDialog(ui_instance, highlighted_text, configuration, nil, plugin, book_metadata, current_input)
+                end)
+            end
+        end,
     }
     
     -- If a prompt_type is specified, automatically trigger it after dialog is shown
