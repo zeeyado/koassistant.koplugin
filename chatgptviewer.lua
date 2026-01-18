@@ -543,6 +543,37 @@ function ChatGPTViewer:init()
       },
     },
   }
+  -- Use passed configuration, or load from disk as fallback
+  -- This must happen BEFORE button table creation so text_func can use the values
+  if not self.configuration then
+    self.configuration = {}
+    local ok, loaded_config = pcall(dofile, require("datastorage"):getSettingsDir() .. "/koassistant.koplugin/configuration.lua")
+    if ok and loaded_config then
+      self.configuration = loaded_config
+    end
+  end
+
+  -- Use configuration setting if present, otherwise use instance setting
+  if self.configuration.features and self.configuration.features.render_markdown ~= nil then
+    self.render_markdown = self.configuration.features.render_markdown
+  end
+  if self.configuration.features and self.configuration.features.markdown_font_size then
+    self.markdown_font_size = self.configuration.features.markdown_font_size
+  end
+  if self.configuration.features and self.configuration.features.show_debug_in_chat ~= nil then
+    self.show_debug_in_chat = self.configuration.features.show_debug_in_chat
+  end
+
+  -- Initialize hide_highlighted_text based on settings and text length
+  -- This determines initial button state (Show Quote vs Hide Quote)
+  -- Must happen BEFORE button table creation so text_func sees correct value
+  if self.configuration.features then
+    local highlight_text = self.original_highlighted_text or ""
+    local threshold = self.configuration.features.long_highlight_threshold or 280
+    self.hide_highlighted_text = self.configuration.features.hide_highlighted_text or
+      (self.configuration.features.hide_long_highlights and string.len(highlight_text) > threshold)
+  end
+
   local buttons = self.buttons_table or {}
   if self.add_default_buttons or not self.buttons_table then
     -- Add both rows
@@ -569,35 +600,6 @@ function ChatGPTViewer:init()
   end
 
   local textw_height = self.height - titlebar:getHeight() - self.button_table:getSize().h
-
-  -- Use passed configuration, or load from disk as fallback
-  if not self.configuration then
-    self.configuration = {}
-    local ok, loaded_config = pcall(dofile, require("datastorage"):getSettingsDir() .. "/koassistant.koplugin/configuration.lua")
-    if ok and loaded_config then
-      self.configuration = loaded_config
-    end
-  end
-  
-  -- Use configuration setting if present, otherwise use instance setting
-  if self.configuration.features and self.configuration.features.render_markdown ~= nil then
-    self.render_markdown = self.configuration.features.render_markdown
-  end
-  if self.configuration.features and self.configuration.features.markdown_font_size then
-    self.markdown_font_size = self.configuration.features.markdown_font_size
-  end
-  if self.configuration.features and self.configuration.features.show_debug_in_chat ~= nil then
-    self.show_debug_in_chat = self.configuration.features.show_debug_in_chat
-  end
-
-  -- Initialize hide_highlighted_text based on settings and text length
-  -- This determines initial button state (Show Quote vs Hide Quote)
-  if self.configuration.features then
-    local highlight_text = self.original_highlighted_text or ""
-    local threshold = self.configuration.features.long_highlight_threshold or 280
-    self.hide_highlighted_text = self.configuration.features.hide_highlighted_text or
-      (self.configuration.features.hide_long_highlights and string.len(highlight_text) > threshold)
-  end
 
   if self.render_markdown then
     -- Convert Markdown to HTML and render in a ScrollHtmlWidget

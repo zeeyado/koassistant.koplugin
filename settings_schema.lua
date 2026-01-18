@@ -93,6 +93,7 @@ local SettingsSchema = {
                     text = _("Hide Long Highlights"),
                     path = "features.hide_long_highlights",
                     default = true,
+                    depends_on = { id = "hide_highlighted_text", value = false },
                 },
                 {
                     id = "long_highlight_threshold",
