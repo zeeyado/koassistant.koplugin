@@ -471,6 +471,12 @@ function PromptsManager:showPromptDetails(prompt)
         prompt.prompt or _("(None)")
     )
 
+    -- Show include_book_context for highlight-related contexts
+    if prompt.context == "highlight" or prompt.context == "both" or prompt.context == "all" then
+        local book_context_text = prompt.include_book_context and _("Yes") or _("No")
+        info_text = info_text .. "\n\n" .. _("Include Book Info") .. ": " .. book_context_text
+    end
+
     if prompt.requires then
         info_text = info_text .. "\n\n" .. _("Requires") .. ": " .. prompt.requires
     end
