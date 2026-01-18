@@ -131,6 +131,7 @@ KOAssistant works in **4 contexts**, each with its own set of actions, and you c
 | **Explain** | Detailed explanation of the passage |
 | **ELI5** | Explain Like I'm 5 - simplified explanation |
 | **Summarize** | Concise summary of the text |
+| **Elaborate** | Expand on concepts, provide additional context and details |
 | **Translate** | Translate to your configured language |
 
 **What the AI sees**: Your highlighted text, plus Document metadata (title, author, identifiers from file properties)
@@ -169,6 +170,11 @@ KOAssistant works in **4 contexts**, each with its own set of actions, and you c
 **Access**: Tools → KOAssistant → New General Chat, or via gesture (easier)
 
 A free-form conversation without specific document context. If started while a book is open, that "launch context" is saved with the chat (so you know where you launched it from) but doesn't affect the conversation, i.e. the AI doesn't see that you launched it from a specific document, and the chat is saved in General chats
+
+### Quick UI Features
+
+- **Settings Icon**: Tap the gear icon in the input dialog title bar to quickly access AI settings (provider, model, temperature, etc.) without leaving the chat
+- **Show/Hide Quote**: In the chat viewer, toggle button to show or hide the highlighted text quote (useful for long selections)
 
 ---
 
@@ -383,7 +389,7 @@ See `custom_actions.lua.sample` for more examples.
 - **Auto-save All Chats**: Automatically save every new conversation
 - **Auto-save Continued Chats**: Only save when continuing from history
 - **Enable Streaming**: Show responses as they generate in real-time
-- **Auto-scroll Streaming**: Follow new text during streaming
+- **Auto-scroll Streaming**: Follow new text during streaming (off by default)
 - **Large Stream Dialog**: Use full-screen streaming window
 
 ### Advanced
