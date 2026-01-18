@@ -134,6 +134,7 @@ function PromptsManager:loadPrompts()
             temperature = temperature,
             extended_thinking = prompt.extended_thinking,
             thinking_budget = prompt.thinking_budget,
+            reasoning_config = prompt.reasoning_config,
             provider = prompt.provider,
             model = prompt.model,
             has_override = false,
@@ -153,6 +154,7 @@ function PromptsManager:loadPrompts()
                 if override.model then entry.model = override.model end
                 if override.behavior_variant then entry.behavior_variant = override.behavior_variant end
                 if override.behavior_override then entry.behavior_override = override.behavior_override end
+                if override.reasoning_config then entry.reasoning_config = override.reasoning_config end
             end
         end
 
