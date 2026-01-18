@@ -1430,7 +1430,6 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                 local current_input = input_dialog:getInputText()
                 -- When settings closes, refresh the dialog to apply changes
                 plugin:onKOAssistantAISettings(function()
-                    logger.info("KOAssistant: Quick settings closed, refreshing input dialog")
                     -- Update configuration from settings (modifies the shared configuration object)
                     plugin:updateConfigFromSettings()
                     -- Refresh the input dialog (configuration is already updated in place)

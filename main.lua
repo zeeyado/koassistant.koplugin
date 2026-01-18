@@ -128,6 +128,11 @@ function AskGPT:init()
             maybeCheckForUpdates(self)
             -- Make sure we're using the latest configuration
             self:updateConfigFromSettings()
+            -- Clear context flags for highlight context (default context)
+            configuration.features = configuration.features or {}
+            configuration.features.is_general_context = nil
+            configuration.features.is_book_context = nil
+            configuration.features.is_multi_book_context = nil
             showChatGPTDialog(self.ui, _reader_highlight_instance.selected_text.text, configuration, nil, self)
           end)
         end,
@@ -1748,7 +1753,6 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
     },
     -- Handle all forms of dismissal (back button, tap outside, etc.)
     close_callback = function()
-      logger.info("KOAssistant: Quick settings close_callback, opening_subdialog=" .. tostring(opening_subdialog) .. ", has_callback=" .. tostring(on_close_callback ~= nil))
       if not opening_subdialog and on_close_callback then
         on_close_callback()
       end
@@ -1922,6 +1926,11 @@ end
 
 -- Execute a quick action directly without showing intermediate dialog
 function AskGPT:executeQuickAction(action, highlighted_text)
+  -- Clear context flags for highlight context (default context)
+  configuration.features = configuration.features or {}
+  configuration.features.is_general_context = nil
+  configuration.features.is_book_context = nil
+  configuration.features.is_multi_book_context = nil
   Dialogs.executeDirectAction(self.ui, action, highlighted_text, configuration, self)
 end
 

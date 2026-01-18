@@ -264,6 +264,9 @@ local ChatGPTViewer = InputContainer:extend {
   -- Recreate function for rotation handling
   -- Set by dialogs.lua to enable window recreation on screen rotation
   _recreate_func = nil,
+
+  -- Session-only toggle for hiding highlighted text (does not persist)
+  hide_highlighted_text = false,
 }
 
 function ChatGPTViewer:init()
@@ -469,6 +472,25 @@ function ChatGPTViewer:init()
         end,
       },
       {
+        text_func = function()
+          return self.hide_highlighted_text and _("Show Quote") or _("Hide Quote")
+        end,
+        id = "toggle_highlight",
+        enabled_func = function()
+          -- Only enable when there's highlighted text to show/hide
+          return self.original_highlighted_text and self.original_highlighted_text ~= ""
+        end,
+        callback = function()
+          self:toggleHighlightVisibility()
+        end,
+        hold_callback = function()
+          UIManager:show(Notification:new{
+            text = _("Toggle highlighted text display in chat"),
+            timeout = 2,
+          })
+        end,
+      },
+      {
         text = _("Show Reasoning"),
         id = "view_reasoning",
         enabled_func = function()
@@ -566,6 +588,15 @@ function ChatGPTViewer:init()
   end
   if self.configuration.features and self.configuration.features.show_debug_in_chat ~= nil then
     self.show_debug_in_chat = self.configuration.features.show_debug_in_chat
+  end
+
+  -- Initialize hide_highlighted_text based on settings and text length
+  -- This determines initial button state (Show Quote vs Hide Quote)
+  if self.configuration.features then
+    local highlight_text = self.original_highlighted_text or ""
+    local threshold = self.configuration.features.long_highlight_threshold or 280
+    self.hide_highlighted_text = self.configuration.features.hide_highlighted_text or
+      (self.configuration.features.hide_long_highlights and string.len(highlight_text) > threshold)
   end
 
   if self.render_markdown then
@@ -1086,6 +1117,56 @@ function ChatGPTViewer:toggleDebugMode()
   -- Show notification
   UIManager:show(Notification:new{
     text = self.show_debug_in_chat and _("Showing debug info") or _("Debug info hidden"),
+    timeout = 2,
+  })
+
+  -- Refresh display
+  UIManager:setDirty(self, function()
+    return "ui", self.frame.dimen
+  end)
+end
+
+-- Toggle highlighted text visibility (session-only, does not persist)
+function ChatGPTViewer:toggleHighlightVisibility()
+  self.hide_highlighted_text = not self.hide_highlighted_text
+
+  -- Rebuild display with updated visibility
+  if self.original_history then
+    -- Create a temporary config with updated display setting
+    local temp_config = {
+      features = {
+        show_debug_in_chat = self.show_debug_in_chat,
+        debug_display_level = self.configuration.features and self.configuration.features.debug_display_level,
+        hide_highlighted_text = self.hide_highlighted_text,  -- Use toggled value
+        hide_long_highlights = false,  -- Disable auto-hide when manually toggling
+        long_highlight_threshold = self.configuration.features and self.configuration.features.long_highlight_threshold,
+        is_file_browser_context = self.configuration.features and self.configuration.features.is_file_browser_context,
+        is_book_context = self.configuration.features and self.configuration.features.is_book_context,
+        is_multi_book_context = self.configuration.features and self.configuration.features.is_multi_book_context,
+        ai_behavior_variant = self.configuration.features and self.configuration.features.ai_behavior_variant,
+        selected_domain = self.configuration.features and self.configuration.features.selected_domain,
+        show_reasoning_indicator = self.configuration.features and self.configuration.features.show_reasoning_indicator,
+      },
+      model = self.configuration.model,
+      additional_parameters = self.configuration.additional_parameters,
+      api_params = self.configuration.api_params,
+      system = self.configuration.system,
+    }
+
+    -- Recreate the text with new display setting
+    local new_text = self.original_history:createResultText(self.original_highlighted_text or "", temp_config)
+    self:update(new_text, false)  -- false = don't scroll to bottom
+  end
+
+  -- Update button text
+  local button = self.button_table:getButtonById("toggle_highlight")
+  if button then
+    button:setText(self.hide_highlighted_text and _("Show Quote") or _("Hide Quote"), button.width)
+  end
+
+  -- Show notification
+  UIManager:show(Notification:new{
+    text = self.hide_highlighted_text and _("Quote hidden") or _("Quote shown"),
     timeout = 2,
   })
 
