@@ -20,6 +20,7 @@ local Geom = require("ui/geometry")
 local Font = require("ui/font")
 local FrameContainer = require("ui/widget/container/framecontainer")
 local GestureRange = require("ui/gesturerange")
+local InfoMessage = require("ui/widget/infomessage")
 local InputContainer = require("ui/widget/container/inputcontainer")
 local InputDialog = require("ui/widget/inputdialog")
 local MovableContainer = require("ui/widget/container/movablecontainer")
@@ -39,6 +40,20 @@ local Screen = Device.screen
 local MD = require("apps/filemanager/lib/md")
 local SpinWidget = require("ui/widget/spinwidget")
 local UIConstants = require("ui/constants")
+
+-- Handle link taps in HTML content
+local function handleLinkTap(link)
+    if link and link.uri then
+        if Device:canOpenLink() then
+            Device:openLink(link.uri)
+        else
+            UIManager:show(InfoMessage:new{
+                text = _("Link: ") .. link.uri,
+                timeout = 10,
+            })
+        end
+    end
+end
 
 -- Pre-process markdown tables to HTML (luamd doesn't support tables)
 local function preprocessMarkdownTables(text)
@@ -149,6 +164,55 @@ local function preprocessMarkdownTables(text)
     return table.concat(result, "\n")
 end
 
+-- Auto-linkify plain URLs that aren't already part of markdown links
+-- Converts https://example.com to [https://example.com](https://example.com)
+-- Also handles www.example.com (adds https://)
+local function autoLinkUrls(text)
+    if not text then return text end
+
+    -- Step 1: Protect existing markdown links by storing them
+    local links = {}
+    local link_count = 0
+    local result = text:gsub("%[([^%]]+)%]%(([^%)]+)%)", function(link_text, url)
+        link_count = link_count + 1
+        local placeholder = "XURLLINKX" .. link_count .. "XURLLINKX"
+        links[link_count] = "[" .. link_text .. "](" .. url .. ")"
+        return placeholder
+    end)
+
+    -- Step 2: Convert http:// and https:// URLs to markdown links
+    result = result:gsub("(https?://[%w%-%./_~:?#@!$&'*+,;=%%]+)", function(url)
+        -- Clean trailing punctuation
+        local clean_url = url:gsub("[.,;:!?)]+$", "")
+        local trailing = url:sub(#clean_url + 1)
+        return "[" .. clean_url .. "](" .. clean_url .. ")" .. trailing
+    end)
+
+    -- Step 3: Convert www. URLs (need to check they're not already converted)
+    -- Only match www. that isn't preceded by :// (to avoid matching https://www.)
+    result = result:gsub("([^/])(www%.[%w%-%./_~:?#@!$&'*+,;=%%]+)", function(prefix, url)
+        local clean_url = url:gsub("[.,;:!?)]+$", "")
+        local trailing = url:sub(#clean_url + 1)
+        return prefix .. "[" .. clean_url .. "](https://" .. clean_url .. ")" .. trailing
+    end)
+    -- Handle www. at very start of text
+    if result:match("^www%.") then
+        result = result:gsub("^(www%.[%w%-%./_~:?#@!$&'*+,;=%%]+)", function(url)
+            local clean_url = url:gsub("[.,;:!?)]+$", "")
+            local trailing = url:sub(#clean_url + 1)
+            return "[" .. clean_url .. "](https://" .. clean_url .. ")" .. trailing
+        end)
+    end
+
+    -- Step 4: Restore the protected markdown links
+    for i = 1, link_count do
+        local placeholder = "XURLLINKX" .. i .. "XURLLINKX"
+        result = result:gsub(placeholder, function() return links[i] end)
+    end
+
+    return result
+end
+
 -- Pre-process brackets to prevent them being rendered as links
 -- Square brackets in markdown can be interpreted as link references
 local function preprocessBrackets(text)
@@ -158,14 +222,14 @@ local function preprocessBrackets(text)
     -- Real links have the pattern: [text](url) where url starts with http/https/mailto/# or is a relative path
 
     -- First, temporarily replace real markdown links with placeholders
-    local placeholders = {}
-    local placeholder_count = 0
+    local links = {}
+    local link_count = 0
 
     -- Match [text](url) pattern - url can be http, https, mailto, #anchor, or relative path
     local protected_text = text:gsub("%[([^%]]+)%]%(([^%)]+)%)", function(link_text, url)
-        placeholder_count = placeholder_count + 1
-        local placeholder = "\0LINK" .. placeholder_count .. "\0"
-        placeholders[placeholder] = "[" .. link_text .. "](" .. url .. ")"
+        link_count = link_count + 1
+        local placeholder = "XMDLINKX" .. link_count .. "XMDLINKX"
+        links[link_count] = "[" .. link_text .. "](" .. url .. ")"
         return placeholder
     end)
 
@@ -174,8 +238,9 @@ local function preprocessBrackets(text)
     protected_text = protected_text:gsub("%]", "&#93;")
 
     -- Restore the real links from placeholders
-    for placeholder, original in pairs(placeholders) do
-        protected_text = protected_text:gsub(placeholder, original)
+    for i = 1, link_count do
+        local placeholder = "XMDLINKX" .. i .. "XMDLINKX"
+        protected_text = protected_text:gsub(placeholder, function() return links[i] end)
     end
 
     return protected_text
@@ -669,9 +734,9 @@ function ChatGPTViewer:init()
 
   if self.render_markdown then
     -- Convert Markdown to HTML and render in a ScrollHtmlWidget
-    -- Preprocess brackets first to prevent them being rendered as links
-    -- Then preprocess tables since luamd doesn't support them
-    local bracket_escaped = preprocessBrackets(self.text)
+    -- 1. Auto-linkify plain URLs, 2. Escape non-link brackets, 3. Convert tables
+    local auto_linked = autoLinkUrls(self.text)
+    local bracket_escaped = preprocessBrackets(auto_linked)
     local preprocessed_text = preprocessMarkdownTables(bracket_escaped)
     local html_body, err = MD(preprocessed_text, {})
     if err then
@@ -687,6 +752,7 @@ function ChatGPTViewer:init()
       height = textw_height - 2 * self.text_padding - 2 * self.text_margin,
       dialog = self,
       highlight_text_selection = true,
+      html_link_tapped_callback = handleLinkTap,
     }
   else
     -- If not rendering Markdown, use the text as is
@@ -965,9 +1031,9 @@ function ChatGPTViewer:update(new_text, scroll_to_bottom)
   
   if self.render_markdown then
     -- Convert Markdown to HTML and update the ScrollHtmlWidget
-    -- First escape brackets to prevent them being rendered as links
-    -- Then preprocess tables since luamd doesn't support them
-    local bracket_escaped = preprocessBrackets(new_text)
+    -- 1. Auto-linkify plain URLs, 2. Escape non-link brackets, 3. Convert tables
+    local auto_linked = autoLinkUrls(new_text)
+    local bracket_escaped = preprocessBrackets(auto_linked)
     local preprocessed_text = preprocessMarkdownTables(bracket_escaped)
     local html_body, err = MD(preprocessed_text, {})
     if err then
@@ -984,6 +1050,7 @@ function ChatGPTViewer:update(new_text, scroll_to_bottom)
       height = self.textw:getSize().h - 2 * self.text_padding - 2 * self.text_margin,
       dialog = self,
       highlight_text_selection = true,
+      html_link_tapped_callback = handleLinkTap,
     }
     
     -- Update the frame container with the new scroll widget
@@ -1081,9 +1148,9 @@ function ChatGPTViewer:toggleMarkdown()
   
   if self.render_markdown then
     -- Convert to markdown
-    -- First escape brackets to prevent them being rendered as links
-    -- Then preprocess tables since luamd doesn't support them
-    local bracket_escaped = preprocessBrackets(self.text)
+    -- 1. Auto-linkify plain URLs, 2. Escape non-link brackets, 3. Convert tables
+    local auto_linked = autoLinkUrls(self.text)
+    local bracket_escaped = preprocessBrackets(auto_linked)
     local preprocessed_text = preprocessMarkdownTables(bracket_escaped)
     local html_body, err = MD(preprocessed_text, {})
     if err then
@@ -1098,6 +1165,7 @@ function ChatGPTViewer:toggleMarkdown()
       height = textw_height - 2 * self.text_padding - 2 * self.text_margin,
       dialog = self,
       highlight_text_selection = true,
+      html_link_tapped_callback = handleLinkTap,
     }
   else
     -- Convert to plain text
@@ -1581,7 +1649,9 @@ function ChatGPTViewer:refreshMarkdownDisplay()
   end
 
   -- Re-convert markdown with new settings and update display
-  local bracket_escaped = preprocessBrackets(self.text)
+  -- 1. Auto-linkify plain URLs, 2. Escape non-link brackets, 3. Convert tables
+  local auto_linked = autoLinkUrls(self.text)
+  local bracket_escaped = preprocessBrackets(auto_linked)
   local preprocessed_text = preprocessMarkdownTables(bracket_escaped)
   local html_body, err = MD(preprocessed_text, {})
   if err then
@@ -1601,6 +1671,7 @@ function ChatGPTViewer:refreshMarkdownDisplay()
     height = textw_height - 2 * self.text_padding - 2 * self.text_margin,
     dialog = self,
     highlight_text_selection = true,
+    html_link_tapped_callback = handleLinkTap,
   }
 
   -- Update the frame container

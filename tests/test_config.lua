@@ -160,13 +160,8 @@ end
 -- Get list of all providers (derived from model_lists.lua - single source of truth)
 function TestConfig.getAllProviders()
     local ModelLists = require("model_lists")
-    local providers = {}
-    for provider, _ in pairs(ModelLists) do
-        table.insert(providers, provider)
-    end
-    -- Sort for consistent ordering
-    table.sort(providers)
-    return providers
+    -- Use the built-in function which correctly filters out non-table keys
+    return ModelLists.getAllProviders()
 end
 
 -- Simple test message history

@@ -494,7 +494,13 @@ function MessageHistory:createResultText(highlightedText, config)
                 end
             end
 
-            table.insert(result, prefix .. msg.content .. "\n\n")
+            -- Add newline before content if it starts with markdown heading
+            -- so the heading renders properly (must start at beginning of line)
+            local content_separator = ""
+            if msg.role == self.ROLES.ASSISTANT and msg.content:match("^#") then
+                content_separator = "\n\n"
+            end
+            table.insert(result, prefix .. content_separator .. msg.content .. "\n\n")
         end
     end
 

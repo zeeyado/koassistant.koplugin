@@ -1,10 +1,12 @@
 local Device = require("device")
 local InputDialog = require("ui/widget/inputdialog")
+local ButtonDialog = require("ui/widget/buttondialog")
 local ChatGPTViewer = require("chatgptviewer")
 local UIManager = require("ui/uimanager")
 local InfoMessage = require("ui/widget/infomessage")
 local Screen = Device.screen
 local _ = require("koassistant_gettext")
+local T = require("ffi/util").template
 
 local GptQuery = require("gpt_query")
 local queryChatGPT = GptQuery.query
