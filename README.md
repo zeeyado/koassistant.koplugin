@@ -63,7 +63,7 @@ Linux:        ~/.config/koreader/plugins/koassistant.koplugin/
 
 ### 2. Add Your API Key
 
-**Option A: Via Settings (Recommended)**
+**Option A: Via Settings**
 
 1. Go to **Tools → KOAssistant → API Keys**
 2. Tap any provider to enter your API key
