@@ -65,6 +65,12 @@ local SettingsSchema = {
                 return T(_("Model: %1"), plugin:getCurrentModel())
             end,
             callback = "buildModelMenu",
+        },
+        {
+            id = "api_keys",
+            type = "submenu",
+            text = _("API Keys"),
+            callback = "buildApiKeysMenu",
             separator = true,
         },
         -- Display Settings submenu

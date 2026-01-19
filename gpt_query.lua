@@ -54,7 +54,17 @@ loadHandler("sambanova")
 loadHandler("cohere")
 loadHandler("doubao")
 
-local function getApiKey(provider)
+local function getApiKey(provider, settings)
+    -- 1. Check GUI-entered keys first (highest priority)
+    if settings then
+        local features = settings:readSetting("features") or {}
+        local gui_keys = features.api_keys or {}
+        if gui_keys[provider] and gui_keys[provider] ~= "" then
+            return gui_keys[provider]
+        end
+    end
+
+    -- 2. Fall back to apikeys.lua file
     local success, apikeys = pcall(function() return require("apikeys") end)
     if success and apikeys and apikeys[provider] then
         return apikeys[provider]
@@ -76,10 +86,11 @@ end
 --- @param message_history table: List of messages
 --- @param temp_config table: Configuration settings
 --- @param on_complete function: Optional callback for async streaming mode - receives (success, content, error)
+--- @param settings LuaSettings: Optional settings object for GUI API keys
 --- @return string|table|nil response, string|nil error
 --- When streaming is enabled and on_complete is provided, returns STREAMING_IN_PROGRESS marker
 --- and calls on_complete(success, content, error) when stream finishes
-local function queryChatGPT(message_history, temp_config, on_complete)
+local function queryChatGPT(message_history, temp_config, on_complete, settings)
     -- Merge config with defaults
     local config = ConfigHelper:mergeWithDefaults(temp_config or CONFIGURATION)
 
@@ -105,10 +116,10 @@ local function queryChatGPT(message_history, temp_config, on_complete)
         return "Error: " .. err
     end
 
-    -- Get API key for the selected provider
-    config.api_key = getApiKey(provider)
+    -- Get API key for the selected provider (GUI settings take priority over apikeys.lua)
+    config.api_key = getApiKey(provider, settings)
     if not config.api_key and provider ~= "ollama" then
-        local err = string.format("No API key found for provider %s. Please check apikeys.lua", provider)
+        local err = string.format("No API key found for provider %s. Set it in Settings → API Keys or apikeys.lua", provider)
         if on_complete then
             on_complete(false, nil, err)
             return STREAMING_IN_PROGRESS

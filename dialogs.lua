@@ -1022,7 +1022,7 @@ local function handlePredefinedPrompt(prompt_type, highlightedText, ui, configur
         end
     end
 
-    local result = queryChatGPT(history:getMessages(), temp_config, handleResponse)
+    local result = queryChatGPT(history:getMessages(), temp_config, handleResponse, plugin and plugin.settings)
 
     -- If streaming is in progress, return nil (result comes via callback)
     if isStreamingInProgress(result) then
@@ -1319,7 +1319,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                                         history:addAssistantMessage(msg_answer, ConfigHelper:getModelInfo(configuration), msg_reasoning, ConfigHelper:buildDebugInfo(configuration))
                                     end
                                     if on_complete then on_complete(msg_success, msg_answer, msg_err, msg_reasoning) end
-                                end)
+                                end, plugin and plugin.settings)
                                 if not isStreamingInProgress(answer_result) then
                                     return answer_result
                                 end
@@ -1338,7 +1338,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     end
 
                     -- Get initial response with callback
-                    local result = queryChatGPT(history:getMessages(), configuration, onResponseReady)
+                    local result = queryChatGPT(history:getMessages(), configuration, onResponseReady, plugin and plugin.settings)
                     -- If not streaming, callback was already invoked
                 end)
             end
@@ -1375,7 +1375,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                                         history:addAssistantMessage(answer, ConfigHelper:getModelInfo(temp_config), reasoning, ConfigHelper:buildDebugInfo(temp_config))
                                     end
                                     if on_complete then on_complete(success, answer, err, reasoning) end
-                                end)
+                                end, plugin and plugin.settings)
                                 -- For non-streaming, return the result directly
                                 if not isStreamingInProgress(answer_result) then
                                     return answer_result
@@ -1525,7 +1525,7 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
                         history:addAssistantMessage(answer, ConfigHelper:getModelInfo(temp_config), reasoning, ConfigHelper:buildDebugInfo(temp_config))
                     end
                     if on_complete_msg then on_complete_msg(success, answer, err, reasoning) end
-                end)
+                end, plugin and plugin.settings)
                 if not isStreamingInProgress(answer_result) then
                     return answer_result
                 end

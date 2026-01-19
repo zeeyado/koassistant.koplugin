@@ -1088,6 +1088,152 @@ function AskGPT:buildModelMenu()
   return items
 end
 
+-- Helper: Mask API key for display (e.g., "sk-...abc123")
+local function maskApiKey(key)
+  if not key or key == "" then return "" end
+  local len = #key
+  if len <= 8 then
+    return string.rep("*", len)
+  end
+  -- Show first 3 and last 4 characters
+  return key:sub(1, 3) .. "..." .. key:sub(-4)
+end
+
+-- Helper: Check if a key value looks like a placeholder (not a real key)
+local function isPlaceholderKey(key)
+  if not key or key == "" then return true end
+  -- Detect common placeholder patterns from apikeys.lua.sample
+  local upper = key:upper()
+  if upper:find("YOUR_") or upper:find("_HERE") or upper:find("API_KEY") then
+    return true
+  end
+  -- Real API keys are typically at least 20 characters
+  if #key < 20 then
+    return true
+  end
+  return false
+end
+
+-- Helper: Check if apikeys.lua has a real (non-placeholder) key for provider
+local function hasFileApiKey(provider)
+  local success, apikeys = pcall(function() return require("apikeys") end)
+  if not success or not apikeys or not apikeys[provider] then
+    return false
+  end
+  return not isPlaceholderKey(apikeys[provider])
+end
+
+-- Helper: Build API Keys management menu
+function AskGPT:buildApiKeysMenu()
+  local self_ref = self
+  local items = {}
+  local providers = ModelLists.getAllProviders()
+  local features = self.settings:readSetting("features") or {}
+  local gui_keys = features.api_keys or {}
+
+  for _i, provider in ipairs(providers) do
+    local prov_copy = provider
+    local has_gui_key = gui_keys[provider] and gui_keys[provider] ~= ""
+    local has_file_key = hasFileApiKey(provider)
+
+    -- Status indicator
+    local status = ""
+    if has_gui_key then
+      status = " [set]"
+    elseif has_file_key then
+      status = " (file)"
+    end
+
+    table.insert(items, {
+      text = prov_copy:gsub("^%l", string.upper) .. status,
+      keep_menu_open = true,
+      callback = function()
+        self_ref:showApiKeyDialog(prov_copy)
+      end,
+    })
+  end
+  return items
+end
+
+-- Show dialog to enter/edit API key for a provider
+function AskGPT:showApiKeyDialog(provider)
+  local self_ref = self
+  local features = self.settings:readSetting("features") or {}
+  local gui_keys = features.api_keys or {}
+  local current_key = gui_keys[provider] or ""
+  local masked = maskApiKey(current_key)
+  local has_file_key = hasFileApiKey(provider)
+
+  -- Build hint text
+  local hint_text
+  if masked ~= "" then
+    hint_text = string.format(_("Current: %s"), masked)
+  elseif has_file_key then
+    hint_text = _("Using key from apikeys.lua")
+  else
+    hint_text = _("Enter API key...")
+  end
+
+  local InputDialog = require("ui/widget/inputdialog")
+  local input_dialog
+  input_dialog = InputDialog:new{
+    title = provider:gsub("^%l", string.upper) .. " " .. _("API Key"),
+    input = "",  -- Start empty, show hint with masked value
+    input_hint = hint_text,
+    input_type = "text",
+    buttons = {
+      {
+        {
+          text = _("Cancel"),
+          id = "close",
+          callback = function()
+            UIManager:close(input_dialog)
+          end,
+        },
+        {
+          text = _("Clear"),
+          enabled = current_key ~= "",
+          callback = function()
+            local f = self_ref.settings:readSetting("features") or {}
+            f.api_keys = f.api_keys or {}
+            f.api_keys[provider] = nil
+            self_ref.settings:saveSetting("features", f)
+            self_ref.settings:flush()
+            UIManager:close(input_dialog)
+            UIManager:show(InfoMessage:new{
+              text = string.format(_("%s API key cleared"), provider:gsub("^%l", string.upper)),
+              timeout = 2,
+            })
+          end,
+        },
+        {
+          text = _("Save"),
+          is_enter_default = true,
+          callback = function()
+            local new_key = input_dialog:getInputText()
+            if new_key and new_key ~= "" then
+              local f = self_ref.settings:readSetting("features") or {}
+              f.api_keys = f.api_keys or {}
+              f.api_keys[provider] = new_key
+              self_ref.settings:saveSetting("features", f)
+              self_ref.settings:flush()
+              UIManager:close(input_dialog)
+              UIManager:show(InfoMessage:new{
+                text = string.format(_("%s API key saved"), provider:gsub("^%l", string.upper)),
+                timeout = 2,
+              })
+            else
+              UIManager:close(input_dialog)
+            end
+          end,
+        },
+      },
+    },
+  }
+  UIManager:show(input_dialog)
+  input_dialog:onShowKeyboard()
+end
+
 -- Get the effective primary language (with override support)
 function AskGPT:getEffectivePrimaryLanguage()
   local features = self.settings:readSetting("features") or {}
