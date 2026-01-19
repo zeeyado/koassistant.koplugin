@@ -158,6 +158,7 @@ KOAssistant works in **4 contexts**, each with its own set of actions, and you c
 **Built-in Actions**:
 | Action | Description |
 |--------|-------------|
+| **Ask** | Free-form question about the selected books |
 | **Compare** | Compare themes, styles, target audiences |
 | **Find Common Themes** | Identify shared topics and patterns |
 | **Analyze Collection** | What this selection reveals about reader interests |
