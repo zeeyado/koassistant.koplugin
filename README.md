@@ -63,6 +63,14 @@ Linux:        ~/.config/koreader/plugins/koassistant.koplugin/
 
 ### 2. Add Your API Key
 
+**Option A: Via Settings (Recommended)**
+
+1. Go to **Tools → KOAssistant → API Keys**
+2. Tap any provider to enter your API key
+3. Keys are stored securely in your settings
+
+**Option B: Via Configuration File**
+
 Make a copy of apikeys.lua.sample and name it apikeys.lua
 
 ```bash
@@ -77,6 +85,8 @@ return {
     -- See apikeys.lua.sample for all 16 providers
 }
 ```
+
+> **Note:** GUI-entered keys take priority over file-based keys. The API Keys menu shows `[set]` for GUI keys and `(file)` for keys from apikeys.lua.
 
 See [Supported Providers](#supported-providers) for full list with links to get API keys.
 
@@ -379,6 +389,12 @@ See `custom_actions.lua.sample` for more examples.
 ### Provider & Model
 - **Provider**: Select AI provider (16 options - see [Supported Providers](#supported-providers))
 - **Model**: Select model for the chosen provider
+
+### API Keys
+- Enter API keys directly via the GUI (no file editing needed)
+- Shows status indicators: `[set]` for GUI-entered keys, `(file)` for keys from apikeys.lua
+- GUI keys take priority over file-based keys
+- Tap a provider to enter, view (masked), or clear its key
 
 ### Display Settings
 - **Render Markdown**: Format responses with styling (bold, lists, etc.)
