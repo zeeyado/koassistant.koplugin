@@ -699,14 +699,14 @@ function ChatGPTViewer:askAnotherQuestion()
     title = _("Reply"),
     input = self.reply_draft or "",  -- Restore saved draft
     input_type = "text",
-    description = _("Enter your reply."),
-    input_height = 6,
+    input_hint = _("Type your reply..."),
+    input_height = 8,  -- Taller (was 6)
     allow_newline = true,
     input_multiline = true,
-    text_height = 300,  -- Set explicit height for the text input widget
+    text_height = 380,  -- Taller (was 300)
     width = UIConstants.DIALOG_WIDTH(),
     text_widget_width = UIConstants.DIALOG_WIDTH() - Screen:scaleBySize(50),  -- Dialog width minus padding
-    text_widget_height = math.floor(Screen:getHeight() * UIConstants.INPUT_HEIGHT_RATIO),
+    text_widget_height = math.floor(Screen:getHeight() * 0.38),  -- Taller (was 0.3)
     buttons = {
       {
         {

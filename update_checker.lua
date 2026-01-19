@@ -331,7 +331,7 @@ function UpdateChecker.checkForUpdates(silent, include_prereleases)
 
             local update_viewer
             update_viewer = MarkdownViewer:new{
-                title = is_prerelease and "Pre-release Update Available" or "Update Available",
+                title = is_prerelease and "KOAssistant Pre-release Update" or "KOAssistant Update Available",
                 markdown_text = markdown_content,
                 width = math.floor(Screen:getWidth() * 0.85),
                 height = math.floor(Screen:getHeight() * 0.85),
