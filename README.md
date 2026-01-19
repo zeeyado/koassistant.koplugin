@@ -184,8 +184,10 @@ A free-form conversation without specific document context. If started while a b
 
 ### Quick UI Features
 
-- **Settings Icon**: Tap the gear icon in the input dialog title bar to quickly access AI settings (provider, model, temperature, etc.) without leaving the chat
+- **Settings Icon (Input)**: Tap the gear icon in the input dialog title bar to quickly access AI settings (provider, model, temperature, etc.) without leaving the chat
+- **Settings Icon (Viewer)**: Tap the gear icon in the chat viewer title bar to adjust font size and text alignment (left/justified/right for RTL)
 - **Show/Hide Quote**: In the chat viewer, toggle button to show or hide the highlighted text quote (useful for long selections)
+- **Tag Button (#)**: Quick access to tag the current chat directly from the chat viewer
 
 ---
 
