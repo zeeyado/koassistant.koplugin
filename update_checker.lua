@@ -5,10 +5,163 @@ local meta = require("_meta")
 local InfoMessage = require("ui/widget/infomessage")
 local UIManager = require("ui/uimanager")
 local ConfirmBox = require("ui/widget/confirmbox")
-local TextViewer = require("ui/widget/textviewer")
 local Device = require("device")
 local Screen = Device.screen
 local logger = require("logger")
+
+-- For markdown rendering
+local Blitbuffer = require("ffi/blitbuffer")
+local ButtonTable = require("ui/widget/buttontable")
+local CenterContainer = require("ui/widget/container/centercontainer")
+local Font = require("ui/font")
+local FrameContainer = require("ui/widget/container/framecontainer")
+local Geom = require("ui/geometry")
+local InputContainer = require("ui/widget/container/inputcontainer")
+local MovableContainer = require("ui/widget/container/movablecontainer")
+local ScrollHtmlWidget = require("ui/widget/scrollhtmlwidget")
+local Size = require("ui/size")
+local TitleBar = require("ui/widget/titlebar")
+local VerticalGroup = require("ui/widget/verticalgroup")
+local MD = require("apps/filemanager/lib/md")
+
+-- CSS for markdown rendering (matches chatgptviewer style)
+local RELEASE_NOTES_CSS = [[
+@page {
+    margin: 0;
+    font-family: 'Noto Sans';
+}
+body {
+    margin: 0;
+    padding: 0;
+    line-height: 1.3;
+}
+h1, h2, h3, h4, h5, h6 {
+    margin: 0.5em 0 0.3em 0;
+    font-weight: bold;
+}
+h1 { font-size: 1.3em; }
+h2 { font-size: 1.2em; }
+h3 { font-size: 1.1em; }
+p { margin: 0.4em 0; }
+ul, ol { margin: 0.3em 0; padding-left: 1.5em; }
+li { margin: 0.15em 0; }
+code {
+    font-family: monospace;
+    background-color: #f0f0f0;
+    padding: 0.1em 0.3em;
+    border-radius: 3px;
+    font-size: 0.9em;
+}
+pre {
+    background-color: #f0f0f0;
+    padding: 0.5em;
+    border-radius: 3px;
+    overflow-x: auto;
+    margin: 0.5em 0;
+}
+pre code { background-color: transparent; padding: 0; }
+strong, b { font-weight: bold; }
+em, i { font-style: italic; }
+hr { border: none; border-top: 1px solid #ccc; margin: 0.8em 0; }
+blockquote {
+    margin: 0.5em 0;
+    padding-left: 1em;
+    border-left: 3px solid #ccc;
+}
+]]
+
+-- Simple Markdown Viewer widget for release notes
+local MarkdownViewer = InputContainer:extend{
+    title = "Release Notes",
+    markdown_text = "",
+    width = nil,
+    height = nil,
+    buttons_table = nil,
+    text_padding = Size.padding.default,
+    text_margin = 0,
+}
+
+function MarkdownViewer:init()
+    self.width = self.width or math.floor(Screen:getWidth() * 0.85)
+    self.height = self.height or math.floor(Screen:getHeight() * 0.85)
+
+    -- Convert markdown to HTML
+    local html_body, err = MD(self.markdown_text, {})
+    if err then
+        logger.warn("MarkdownViewer: could not generate HTML", err)
+        html_body = "<pre>" .. (self.markdown_text or "No content.") .. "</pre>"
+    end
+
+    -- Create title bar
+    local titlebar = TitleBar:new{
+        title = self.title,
+        width = self.width,
+        with_bottom_line = true,
+        close_callback = function()
+            UIManager:close(self)
+        end,
+    }
+
+    -- Create button table
+    local button_table = ButtonTable:new{
+        width = self.width - 2 * Size.padding.default,
+        buttons = self.buttons_table or {{
+            { text = "Close", callback = function() UIManager:close(self) end }
+        }},
+        zero_sep = true,
+        show_parent = self,
+    }
+
+    -- Calculate content height (minimal margins for more content space)
+    local content_height = self.height - titlebar:getHeight() - button_table:getSize().h - 2 * self.text_padding
+
+    -- Create scrollable HTML widget with GitHub-like font size
+    local scroll_widget = ScrollHtmlWidget:new{
+        html_body = html_body,
+        css = RELEASE_NOTES_CSS,
+        default_font_size = Screen:scaleBySize(16),
+        width = self.width - 2 * self.text_padding,
+        height = content_height,
+        dialog = self,
+    }
+
+    local text_container = FrameContainer:new{
+        padding = self.text_padding,
+        margin = 0,
+        bordersize = 0,
+        scroll_widget,
+    }
+
+    -- Assemble the widget
+    local frame_content = VerticalGroup:new{
+        align = "left",
+        titlebar,
+        text_container,
+        CenterContainer:new{
+            dimen = Geom:new{ w = self.width, h = button_table:getSize().h },
+            button_table,
+        },
+    }
+
+    self.movable = MovableContainer:new{
+        FrameContainer:new{
+            background = Blitbuffer.COLOR_WHITE,
+            radius = Size.radius.window,
+            padding = 0,
+            margin = 0,
+            frame_content,
+        }
+    }
+
+    self[1] = CenterContainer:new{
+        dimen = Screen:getSize(),
+        self.movable,
+    }
+end
+
+function MarkdownViewer:onCloseWidget()
+    UIManager:setDirty(nil, "partial")
+end
 
 local UpdateChecker = {}
 
@@ -167,18 +320,19 @@ function UpdateChecker.checkForUpdates(silent, include_prereleases)
             local download_url = latest_release.html_url
             local is_prerelease = latest_release.prerelease or false
 
-            local message = string.format(
-                "New %sversion available!\n\nCurrent: %s\nLatest: %s\n\n--- Release Notes ---\n\n%s",
+            -- Format as markdown with version info header
+            local markdown_content = string.format(
+                "**New %sversion available!**\n\n**Current:** %s  \n**Latest:** %s\n\n---\n\n%s",
                 is_prerelease and "pre-release " or "",
                 current_version,
                 latest_version,
-                release_notes  -- No truncation - TextViewer handles scrolling
+                release_notes
             )
 
             local update_viewer
-            update_viewer = TextViewer:new{
+            update_viewer = MarkdownViewer:new{
                 title = is_prerelease and "Pre-release Update Available" or "Update Available",
-                text = message,
+                markdown_text = markdown_content,
                 width = math.floor(Screen:getWidth() * 0.85),
                 height = math.floor(Screen:getHeight() * 0.85),
                 buttons_table = {
