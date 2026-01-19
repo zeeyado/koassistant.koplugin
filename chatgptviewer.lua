@@ -10,6 +10,7 @@ Displays some text in a scrollable view.
 ]]
 local BD = require("ui/bidi")
 local Blitbuffer = require("ffi/blitbuffer")
+local ButtonDialog = require("ui/widget/buttondialog")
 local ButtonTable = require("ui/widget/buttontable")
 local CenterContainer = require("ui/widget/container/centercontainer")
 local CheckButton = require("ui/widget/checkbutton")
@@ -36,6 +37,7 @@ local util = require("util")
 local _ = require("koassistant_gettext")
 local Screen = Device.screen
 local MD = require("apps/filemanager/lib/md")
+local SpinWidget = require("ui/widget/spinwidget")
 local UIConstants = require("ui/constants")
 
 -- Pre-process markdown tables to HTML (luamd doesn't support tables)
@@ -147,8 +149,42 @@ local function preprocessMarkdownTables(text)
     return table.concat(result, "\n")
 end
 
--- CSS for markdown rendering
-local VIEWER_CSS = [[
+-- Pre-process brackets to prevent them being rendered as links
+-- Square brackets in markdown can be interpreted as link references
+local function preprocessBrackets(text)
+    if not text then return text end
+
+    -- Strategy: Preserve real markdown links [text](url) but escape other brackets
+    -- Real links have the pattern: [text](url) where url starts with http/https/mailto/# or is a relative path
+
+    -- First, temporarily replace real markdown links with placeholders
+    local placeholders = {}
+    local placeholder_count = 0
+
+    -- Match [text](url) pattern - url can be http, https, mailto, #anchor, or relative path
+    local protected_text = text:gsub("%[([^%]]+)%]%(([^%)]+)%)", function(link_text, url)
+        placeholder_count = placeholder_count + 1
+        local placeholder = "\0LINK" .. placeholder_count .. "\0"
+        placeholders[placeholder] = "[" .. link_text .. "](" .. url .. ")"
+        return placeholder
+    end)
+
+    -- Now escape all remaining square brackets to HTML entities
+    protected_text = protected_text:gsub("%[", "&#91;")
+    protected_text = protected_text:gsub("%]", "&#93;")
+
+    -- Restore the real links from placeholders
+    for placeholder, original in pairs(placeholders) do
+        protected_text = protected_text:gsub(placeholder, original)
+    end
+
+    return protected_text
+end
+
+-- CSS for markdown rendering (function to support dynamic text-align)
+local function getViewerCSS(text_align)
+    text_align = text_align or "justify"
+    return string.format([[
 @page {
     margin: 0;
     font-family: 'Noto Sans';
@@ -157,7 +193,7 @@ local VIEWER_CSS = [[
 body {
     margin: 0;
     line-height: 1.3;
-    text-align: justify;
+    text-align: %s;
     padding: 0;
 }
 
@@ -220,7 +256,8 @@ th {
     background-color: #f0f0f0;
     font-weight: bold;
 }
-]]
+]], text_align)
+end
 
 local ChatGPTViewer = InputContainer:extend {
   title = nil,
@@ -238,6 +275,7 @@ local ChatGPTViewer = InputContainer:extend {
   justified = true,
   render_markdown = true, -- Convert markdown to HTML for display
   markdown_font_size = 20, -- Font size for markdown rendering
+  text_align = "justify", -- Text alignment for markdown: "justify" or "left"
   lang = nil,
   para_direction_rtl = nil,
   auto_para_direction = true,
@@ -259,6 +297,7 @@ local ChatGPTViewer = InputContainer:extend {
   onAskQuestion = nil,
   save_callback = nil, -- New callback for saving chat
   export_callback = nil, -- New callback for exporting chat
+  tag_callback = nil, -- Callback for tagging chat (receives showTagDialog function)
   scroll_to_bottom = false, -- Whether to scroll to bottom on show
 
   -- Recreate function for rotation handling
@@ -354,6 +393,10 @@ function ChatGPTViewer:init()
     title_shrink_font_to_fit = self.title_shrink_font_to_fit,
     close_callback = function() self:onClose() end,
     show_parent = self,
+    left_icon = "appbar.settings",
+    left_icon_tap_callback = function()
+      self:showViewerSettings()
+    end,
   }
 
   -- Callback to enable/disable buttons, for at-top/at-bottom feedback
@@ -434,6 +477,26 @@ function ChatGPTViewer:init()
         end
       end,
       hold_callback = self.default_hold_callback,
+    },
+    {
+      text = "#",
+      id = "tag_chat",
+      callback = function()
+        if self.tag_callback then
+          self.tag_callback()
+        else
+          UIManager:show(Notification:new{
+            text = _("Tag function not available"),
+            timeout = 2,
+          })
+        end
+      end,
+      hold_callback = function()
+        UIManager:show(Notification:new{
+          text = _("Add or manage tags for this chat"),
+          timeout = 2,
+        })
+      end,
     },
   }
 
@@ -560,6 +623,9 @@ function ChatGPTViewer:init()
   if self.configuration.features and self.configuration.features.markdown_font_size then
     self.markdown_font_size = self.configuration.features.markdown_font_size
   end
+  if self.configuration.features and self.configuration.features.text_align then
+    self.text_align = self.configuration.features.text_align
+  end
   if self.configuration.features and self.configuration.features.show_debug_in_chat ~= nil then
     self.show_debug_in_chat = self.configuration.features.show_debug_in_chat
   end
@@ -603,8 +669,10 @@ function ChatGPTViewer:init()
 
   if self.render_markdown then
     -- Convert Markdown to HTML and render in a ScrollHtmlWidget
-    -- Preprocess tables first since luamd doesn't support them
-    local preprocessed_text = preprocessMarkdownTables(self.text)
+    -- Preprocess brackets first to prevent them being rendered as links
+    -- Then preprocess tables since luamd doesn't support them
+    local bracket_escaped = preprocessBrackets(self.text)
+    local preprocessed_text = preprocessMarkdownTables(bracket_escaped)
     local html_body, err = MD(preprocessed_text, {})
     if err then
       logger.warn("ChatGPTViewer: could not generate HTML", err)
@@ -613,7 +681,7 @@ function ChatGPTViewer:init()
     end
     self.scroll_text_w = ScrollHtmlWidget:new {
       html_body = html_body,
-      css = VIEWER_CSS,
+      css = getViewerCSS(self.text_align),
       default_font_size = Screen:scaleBySize(self.markdown_font_size),
       width = self.width - 2 * self.text_padding - 2 * self.text_margin,
       height = textw_height - 2 * self.text_padding - 2 * self.text_margin,
@@ -897,8 +965,10 @@ function ChatGPTViewer:update(new_text, scroll_to_bottom)
   
   if self.render_markdown then
     -- Convert Markdown to HTML and update the ScrollHtmlWidget
-    -- Preprocess tables first since luamd doesn't support them
-    local preprocessed_text = preprocessMarkdownTables(new_text)
+    -- First escape brackets to prevent them being rendered as links
+    -- Then preprocess tables since luamd doesn't support them
+    local bracket_escaped = preprocessBrackets(new_text)
+    local preprocessed_text = preprocessMarkdownTables(bracket_escaped)
     local html_body, err = MD(preprocessed_text, {})
     if err then
       logger.warn("ChatGPTViewer: could not generate HTML", err)
@@ -908,7 +978,7 @@ function ChatGPTViewer:update(new_text, scroll_to_bottom)
     -- Recreate the ScrollHtmlWidget with new content
     self.scroll_text_w = ScrollHtmlWidget:new {
       html_body = html_body,
-      css = VIEWER_CSS,
+      css = getViewerCSS(self.text_align),
       default_font_size = Screen:scaleBySize(self.markdown_font_size),
       width = self.width - 2 * self.text_padding - 2 * self.text_margin,
       height = self.textw:getSize().h - 2 * self.text_padding - 2 * self.text_margin,
@@ -1011,8 +1081,10 @@ function ChatGPTViewer:toggleMarkdown()
   
   if self.render_markdown then
     -- Convert to markdown
-    -- Preprocess tables first since luamd doesn't support them
-    local preprocessed_text = preprocessMarkdownTables(self.text)
+    -- First escape brackets to prevent them being rendered as links
+    -- Then preprocess tables since luamd doesn't support them
+    local bracket_escaped = preprocessBrackets(self.text)
+    local preprocessed_text = preprocessMarkdownTables(bracket_escaped)
     local html_body, err = MD(preprocessed_text, {})
     if err then
       logger.warn("ChatGPTViewer: could not generate HTML", err)
@@ -1020,7 +1092,7 @@ function ChatGPTViewer:toggleMarkdown()
     end
     self.scroll_text_w = ScrollHtmlWidget:new {
       html_body = html_body,
-      css = VIEWER_CSS,
+      css = getViewerCSS(self.text_align),
       default_font_size = Screen:scaleBySize(self.markdown_font_size),
       width = self.width - 2 * self.text_padding - 2 * self.text_margin,
       height = textw_height - 2 * self.text_padding - 2 * self.text_margin,
@@ -1312,6 +1384,7 @@ function ChatGPTViewer:captureState()
     onAskQuestion = self.onAskQuestion,
     save_callback = self.save_callback,
     export_callback = self.export_callback,
+    tag_callback = self.tag_callback,
     close_callback = self.close_callback,
     settings_callback = self.settings_callback,
     update_debug_callback = self.update_debug_callback,
@@ -1334,6 +1407,209 @@ function ChatGPTViewer:restoreScrollPosition(scroll_ratio)
       end
       UIManager:setDirty(self, "ui")
     end
+  end)
+end
+
+-- Helper to get display name for text alignment
+local function getAlignmentDisplayName(align)
+  if align == "justify" then return _("Justified")
+  elseif align == "right" then return _("Right (RTL)")
+  else return _("Left")
+  end
+end
+
+-- Show viewer settings dialog (font size, text alignment)
+function ChatGPTViewer:showViewerSettings()
+  local dialog
+  dialog = ButtonDialog:new{
+    title = _("Chat Viewer Settings"),
+    buttons = {
+      {
+        {
+          text = _("Font Size") .. ": " .. self.markdown_font_size,
+          callback = function()
+            UIManager:close(dialog)
+            self:showFontSizeSpinner()
+          end,
+        },
+      },
+      {
+        {
+          text = _("Alignment") .. ": " .. getAlignmentDisplayName(self.text_align),
+          callback = function()
+            UIManager:close(dialog)
+            self:showAlignmentPicker()
+          end,
+        },
+      },
+      {
+        {
+          text = _("Reset to Defaults"),
+          callback = function()
+            UIManager:close(dialog)
+            self:resetViewerSettings()
+          end,
+        },
+      },
+      {
+        {
+          text = _("Close"),
+          callback = function()
+            UIManager:close(dialog)
+          end,
+        },
+      },
+    },
+  }
+  UIManager:show(dialog)
+end
+
+-- Show font size spinner
+function ChatGPTViewer:showFontSizeSpinner()
+  local spin_widget = SpinWidget:new{
+    title_text = _("Font Size"),
+    value = self.markdown_font_size,
+    value_min = 12,
+    value_max = 32,
+    value_step = 1,
+    default_value = 20,
+    ok_text = _("Set"),
+    callback = function(spin)
+      self.markdown_font_size = spin.value
+
+      -- Save to configuration and persist
+      if self.configuration.features then
+        self.configuration.features.markdown_font_size = spin.value
+      end
+      if self.settings_callback then
+        self.settings_callback("features.markdown_font_size", spin.value)
+      end
+
+      -- Refresh display
+      self:refreshMarkdownDisplay()
+
+      UIManager:show(Notification:new{
+        text = T(_("Font size set to %1"), spin.value),
+        timeout = 2,
+      })
+    end,
+  }
+  UIManager:show(spin_widget)
+end
+
+-- Show text alignment picker with Left, Justified, Right options
+function ChatGPTViewer:showAlignmentPicker()
+  local function setAlignment(align)
+    self.text_align = align
+
+    -- Save to configuration and persist
+    if self.configuration.features then
+      self.configuration.features.text_align = align
+    end
+    if self.settings_callback then
+      self.settings_callback("features.text_align", align)
+    end
+
+    -- Refresh display
+    self:refreshMarkdownDisplay()
+
+    UIManager:show(Notification:new{
+      text = T(_("Alignment: %1"), getAlignmentDisplayName(align)),
+      timeout = 2,
+    })
+  end
+
+  local function makeButton(align, label)
+    local is_current = self.text_align == align
+    return {
+      text = is_current and ("● " .. label) or label,
+      callback = function()
+        UIManager:close(align_dialog)
+        setAlignment(align)
+      end,
+    }
+  end
+
+  local align_dialog
+  align_dialog = ButtonDialog:new{
+    title = _("Text Alignment"),
+    buttons = {
+      { makeButton("left", _("Left")) },
+      { makeButton("justify", _("Justified")) },
+      { makeButton("right", _("Right (RTL)")) },
+      {
+        {
+          text = _("Cancel"),
+          callback = function()
+            UIManager:close(align_dialog)
+          end,
+        },
+      },
+    },
+  }
+  UIManager:show(align_dialog)
+end
+
+-- Reset viewer settings to defaults
+function ChatGPTViewer:resetViewerSettings()
+  self.markdown_font_size = 20
+  self.text_align = "justify"
+
+  -- Save to configuration and persist
+  if self.configuration.features then
+    self.configuration.features.markdown_font_size = 20
+    self.configuration.features.text_align = "justify"
+  end
+  if self.settings_callback then
+    self.settings_callback("features.markdown_font_size", 20)
+    self.settings_callback("features.text_align", "justify")
+  end
+
+  -- Refresh display
+  self:refreshMarkdownDisplay()
+
+  UIManager:show(Notification:new{
+    text = _("Settings reset to defaults"),
+    timeout = 2,
+  })
+end
+
+-- Refresh the markdown display after settings change
+function ChatGPTViewer:refreshMarkdownDisplay()
+  if not self.render_markdown then
+    return
+  end
+
+  -- Re-convert markdown with new settings and update display
+  local bracket_escaped = preprocessBrackets(self.text)
+  local preprocessed_text = preprocessMarkdownTables(bracket_escaped)
+  local html_body, err = MD(preprocessed_text, {})
+  if err then
+    logger.warn("ChatGPTViewer: could not generate HTML", err)
+    html_body = "<pre>" .. (self.text or "Missing text.") .. "</pre>"
+  end
+
+  -- Calculate current height
+  local textw_height = self.textw:getSize().h
+
+  -- Create new scroll widget with updated settings
+  self.scroll_text_w = ScrollHtmlWidget:new {
+    html_body = html_body,
+    css = getViewerCSS(self.text_align),
+    default_font_size = Screen:scaleBySize(self.markdown_font_size),
+    width = self.width - 2 * self.text_padding - 2 * self.text_margin,
+    height = textw_height - 2 * self.text_padding - 2 * self.text_margin,
+    dialog = self,
+    highlight_text_selection = true,
+  }
+
+  -- Update the frame container
+  self.textw:clear()
+  self.textw[1] = self.scroll_text_w
+
+  -- Refresh display
+  UIManager:setDirty(self, function()
+    return "ui", self.frame.dimen
   end)
 end
 

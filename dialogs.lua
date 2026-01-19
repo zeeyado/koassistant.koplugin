@@ -547,6 +547,188 @@ local function createExportText(history, format)
     return table.concat(result, "\n")
 end
 
+-- Track current tags dialog for proper closing
+local current_tags_dialog = nil
+
+-- Show tags management menu for a chat
+local function showTagsMenu(document_path, chat_id, chat_history_manager)
+    local function refreshMenu()
+        -- Close current dialog first
+        if current_tags_dialog then
+            UIManager:close(current_tags_dialog)
+            current_tags_dialog = nil
+        end
+        showTagsMenu(document_path, chat_id, chat_history_manager)
+    end
+
+    -- Get fresh chat data
+    local chat = chat_history_manager:getChatById(document_path, chat_id)
+    if not chat then
+        UIManager:show(InfoMessage:new{
+            text = _("Chat not found"),
+            timeout = 2,
+        })
+        return
+    end
+
+    local current_tags = chat.tags or {}
+    local all_tags = chat_history_manager:getAllTags()
+
+    local buttons = {}
+
+    -- Show current tags with remove option
+    if #current_tags > 0 then
+        table.insert(buttons, {
+            {
+                text = _("Current tags:"),
+                enabled = false,
+            },
+        })
+
+        for _idx, tag in ipairs(current_tags) do
+            table.insert(buttons, {
+                {
+                    text = "#" .. tag .. " ✕",
+                    callback = function()
+                        chat_history_manager:removeTagFromChat(document_path, chat_id, tag)
+                        UIManager:show(InfoMessage:new{
+                            text = T(_("Removed tag: %1"), tag),
+                            timeout = 1,
+                        })
+                        UIManager:scheduleIn(0.3, refreshMenu)
+                    end,
+                },
+            })
+        end
+
+        table.insert(buttons, {
+            {
+                text = "────────────────────",
+                enabled = false,
+            },
+        })
+    end
+
+    -- Show existing tags that aren't on this chat (for quick add)
+    local available_tags = {}
+    for _, tag in ipairs(all_tags) do
+        local already_has = false
+        for _, current in ipairs(current_tags) do
+            if current == tag then
+                already_has = true
+                break
+            end
+        end
+        if not already_has then
+            table.insert(available_tags, tag)
+        end
+    end
+
+    if #available_tags > 0 then
+        table.insert(buttons, {
+            {
+                text = _("Add existing tag:"),
+                enabled = false,
+            },
+        })
+
+        -- Show up to 5 existing tags for quick add
+        local shown_tags = 0
+        for _idx, tag in ipairs(available_tags) do
+            if shown_tags >= 5 then break end
+            table.insert(buttons, {
+                {
+                    text = "#" .. tag,
+                    callback = function()
+                        chat_history_manager:addTagToChat(document_path, chat_id, tag)
+                        UIManager:show(InfoMessage:new{
+                            text = T(_("Added tag: %1"), tag),
+                            timeout = 1,
+                        })
+                        UIManager:scheduleIn(0.3, refreshMenu)
+                    end,
+                },
+            })
+            shown_tags = shown_tags + 1
+        end
+
+        table.insert(buttons, {
+            {
+                text = "────────────────────",
+                enabled = false,
+            },
+        })
+    end
+
+    -- Add new tag button
+    table.insert(buttons, {
+        {
+            text = _("+ Add new tag"),
+            callback = function()
+                local tag_input
+                tag_input = InputDialog:new{
+                    title = _("New Tag"),
+                    input_hint = _("Enter tag name"),
+                    buttons = {
+                        {
+                            {
+                                text = _("Cancel"),
+                                id = "close",
+                                callback = function()
+                                    UIManager:close(tag_input)
+                                    refreshMenu()
+                                end,
+                            },
+                            {
+                                text = _("Add"),
+                                is_enter_default = true,
+                                callback = function()
+                                    local new_tag = tag_input:getInputText()
+                                    UIManager:close(tag_input)
+                                    if new_tag and new_tag ~= "" then
+                                        -- Remove # if user typed it
+                                        new_tag = new_tag:gsub("^#", "")
+                                        new_tag = new_tag:match("^%s*(.-)%s*$")  -- trim
+                                        if new_tag ~= "" then
+                                            chat_history_manager:addTagToChat(document_path, chat_id, new_tag)
+                                            UIManager:show(InfoMessage:new{
+                                                text = T(_("Added tag: %1"), new_tag),
+                                                timeout = 1,
+                                            })
+                                        end
+                                    end
+                                    UIManager:scheduleIn(0.3, refreshMenu)
+                                end,
+                            },
+                        },
+                    },
+                }
+                UIManager:show(tag_input)
+                tag_input:onShowKeyboard()
+            end,
+        },
+    })
+
+    -- Done button
+    table.insert(buttons, {
+        {
+            text = _("Done"),
+            callback = function()
+                if current_tags_dialog then
+                    UIManager:close(current_tags_dialog)
+                    current_tags_dialog = nil
+                end
+            end,
+        },
+    })
+
+    current_tags_dialog = ButtonDialog:new{
+        title = _("Manage Tags"),
+        buttons = buttons,
+    }
+    UIManager:show(current_tags_dialog)
+end
+
 local function showResponseDialog(title, history, highlightedText, addMessage, temp_config, document_path, plugin, book_metadata, launch_context)
     local result_text = history:createResultText(highlightedText, temp_config or CONFIGURATION)
     local model_info = history:getModel() or ConfigHelper:getModelInfo(temp_config)
@@ -587,6 +769,7 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
             onAskQuestion = state.onAskQuestion,
             save_callback = state.save_callback,
             export_callback = state.export_callback,
+            tag_callback = state.tag_callback,
             close_callback = function()
                 if _G.ActiveChatViewer == new_viewer then
                     _G.ActiveChatViewer = nil
@@ -689,6 +872,7 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                         onAskQuestion = viewer.onAskQuestion,
                         save_callback = viewer.save_callback,
                         export_callback = viewer.export_callback,
+                        tag_callback = viewer.tag_callback,
                         close_callback = function()
                             if _G.ActiveChatViewer == new_viewer then
                                 _G.ActiveChatViewer = nil
@@ -787,6 +971,34 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                     timeout = 2,
                 })
             end
+        end,
+        tag_callback = function()
+            -- Show tag management dialog for this chat
+            local chat_id = history.chat_id
+            if not chat_id then
+                UIManager:show(InfoMessage:new{
+                    text = _("Save the chat first to add tags"),
+                    timeout = 2,
+                })
+                return
+            end
+
+            -- Get effective document path
+            local effective_path = document_path
+            if not effective_path then
+                local is_general = temp_config and temp_config.features and temp_config.features.is_general_context
+                if is_general then
+                    effective_path = "__GENERAL_CHATS__"
+                else
+                    UIManager:show(InfoMessage:new{
+                        text = _("Cannot tag: no document context"),
+                        timeout = 2,
+                    })
+                    return
+                end
+            end
+
+            showTagsMenu(effective_path, chat_id, chat_history_manager)
         end,
         close_callback = function()
             if _G.ActiveChatViewer == chatgpt_viewer then
