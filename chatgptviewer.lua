@@ -41,17 +41,78 @@ local MD = require("apps/filemanager/lib/md")
 local SpinWidget = require("ui/widget/spinwidget")
 local UIConstants = require("ui/constants")
 
+-- Show link options dialog (similar to KOReader's ReaderLink)
+local link_dialog  -- Forward declaration for closures
+local function showLinkDialog(link_url)
+    if not link_url then return end
+
+    local buttons = {}
+
+    -- Copy to clipboard
+    table.insert(buttons, {
+        {
+            text = _("Copy"),
+            callback = function()
+                Device.input.setClipboardText(link_url)
+                UIManager:close(link_dialog)
+                UIManager:show(Notification:new{
+                    text = _("Link copied to clipboard"),
+                })
+            end,
+        },
+    })
+
+    -- Show QR code
+    local QRMessage = require("ui/widget/qrmessage")
+    table.insert(buttons, {
+        {
+            text = _("QR Code"),
+            callback = function()
+                UIManager:close(link_dialog)
+                UIManager:show(QRMessage:new{
+                    text = link_url,
+                    width = Screen:getWidth() * 0.8,
+                    height = Screen:getWidth() * 0.8,
+                })
+            end,
+        },
+    })
+
+    -- Open in browser (if supported)
+    if Device:canOpenLink() then
+        table.insert(buttons, {
+            {
+                text = _("Open in browser"),
+                callback = function()
+                    UIManager:close(link_dialog)
+                    Device:openLink(link_url)
+                end,
+            },
+        })
+    end
+
+    -- Cancel
+    table.insert(buttons, {
+        {
+            text = _("Cancel"),
+            callback = function()
+                UIManager:close(link_dialog)
+            end,
+        },
+    })
+
+    link_dialog = ButtonDialog:new{
+        title = link_url,
+        title_align = "center",
+        buttons = buttons,
+    }
+    UIManager:show(link_dialog)
+end
+
 -- Handle link taps in HTML content
 local function handleLinkTap(link)
     if link and link.uri then
-        if Device:canOpenLink() then
-            Device:openLink(link.uri)
-        else
-            UIManager:show(InfoMessage:new{
-                text = _("Link: ") .. link.uri,
-                timeout = 10,
-            })
-        end
+        showLinkDialog(link.uri)
     end
 end
 
