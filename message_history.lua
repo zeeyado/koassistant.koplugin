@@ -313,7 +313,7 @@ function MessageHistory:createResultText(highlightedText, config)
             else
                 -- Fall back to current config (for chats created before debug storage)
                 provider = config.provider or config.default_provider or "unknown"
-                behavior = config.features.ai_behavior_variant or "full"
+                behavior = config.features.selected_behavior or "full"
                 domain = config.features.selected_domain or "none"
 
                 -- Get actual model from provider settings if available

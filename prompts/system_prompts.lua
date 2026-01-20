@@ -21,7 +21,7 @@ local SystemPrompts = {}
 
 -- AI Behavior Variants
 -- These define the AI's personality and communication style
--- Selectable via settings: features.ai_behavior_variant
+-- Selectable via settings: features.selected_behavior
 SystemPrompts.behavior = {
     -- Minimal: ~100 tokens, focused on key conversational behaviors
     -- Good for: general use, lower token cost
@@ -121,9 +121,10 @@ end
 -- Handles priority: override > variant > global setting
 -- @param config: {
 --   behavior_override: custom behavior text (highest priority),
---   behavior_variant: "minimal", "full", "custom", "none", or nil,
---   global_variant: global setting fallback (features.ai_behavior_variant),
---   custom_ai_behavior: user's custom behavior text (used when variant is "custom")
+--   behavior_variant: "minimal", "full", "custom", "none", or any behavior ID,
+--   global_variant: global setting fallback (features.selected_behavior),
+--   custom_ai_behavior: user's custom behavior text (used when variant is "custom") - DEPRECATED
+--   custom_behaviors: array of UI-created behaviors from settings (NEW)
 -- }
 -- @return behavior_text (string or nil), source (string)
 --   behavior_text: The resolved behavior text, or nil if disabled
@@ -136,28 +137,47 @@ function SystemPrompts.resolveBehavior(config)
         return config.behavior_override, "override"
     end
 
-    -- Priority 2: Named variant (including "none" and "custom")
+    -- Priority 2: Named variant (including "none", "custom", or any behavior ID)
     if config.behavior_variant then
         if config.behavior_variant == "none" then
             return nil, "none"  -- Behavior disabled
         end
+        -- Legacy "custom" variant support
         if config.behavior_variant == "custom" then
             return config.custom_ai_behavior or SystemPrompts.behavior.minimal, "variant"
         end
-        -- Use specific variant
-        local behavior = SystemPrompts.behavior[config.behavior_variant]
+        -- Check built-in first
+        if SystemPrompts.behavior[config.behavior_variant] then
+            return SystemPrompts.behavior[config.behavior_variant], "variant"
+        end
+        -- Check all sources (folder, UI) for custom behavior ID
+        local behavior = SystemPrompts.getBehaviorById(config.behavior_variant, config.custom_behaviors)
         if behavior then
-            return behavior, "variant"
+            return behavior.text, "variant"
         end
         -- Unknown variant, fall through to global
     end
 
-    -- Priority 3: Global setting
+    -- Priority 3: Global setting (supports behavior ID or legacy values)
     local global_variant = config.global_variant or "full"
+    if global_variant == "none" then
+        return nil, "none"
+    end
+    -- Legacy "custom" support
     if global_variant == "custom" then
         return config.custom_ai_behavior or SystemPrompts.behavior.minimal, "global"
     end
-    return SystemPrompts.getBehavior(global_variant), "global"
+    -- Check built-in first
+    if SystemPrompts.behavior[global_variant] then
+        return SystemPrompts.behavior[global_variant], "global"
+    end
+    -- Check all sources for behavior ID
+    local behavior = SystemPrompts.getBehaviorById(global_variant, config.custom_behaviors)
+    if behavior then
+        return behavior.text, "global"
+    end
+    -- Final fallback to "full" built-in
+    return SystemPrompts.behavior.full, "global"
 end
 
 -- Get combined cacheable content (behavior + domain)
@@ -190,7 +210,7 @@ end
 -- @param config: {
 --   behavior_variant: "minimal", "full", "none", or nil (use global),
 --   behavior_override: custom behavior text (overrides variant),
---   global_variant: global setting fallback (features.ai_behavior_variant),
+--   global_variant: global setting fallback (features.selected_behavior),
 --   domain_context: optional domain context string,
 --   enable_caching: boolean (default true for Anthropic),
 --   user_languages: comma-separated languages (first is primary), empty = no instruction
@@ -207,6 +227,7 @@ function SystemPrompts.buildAnthropicSystemArray(config)
         behavior_variant = config.behavior_variant,
         global_variant = config.global_variant,
         custom_ai_behavior = config.custom_ai_behavior,
+        custom_behaviors = config.custom_behaviors,  -- NEW: array of UI-created behaviors
     })
 
     -- Build language instruction if user has configured languages
@@ -300,6 +321,7 @@ function SystemPrompts.buildFlattenedPrompt(config)
         behavior_variant = config.behavior_variant,
         global_variant = config.global_variant,
         custom_ai_behavior = config.custom_ai_behavior,
+        custom_behaviors = config.custom_behaviors,  -- NEW: array of UI-created behaviors
     })
 
     -- Get combined content
@@ -353,6 +375,7 @@ function SystemPrompts.buildUnifiedSystem(config)
         behavior_variant = config.behavior_variant,
         global_variant = config.global_variant,
         custom_ai_behavior = config.custom_ai_behavior,
+        custom_behaviors = config.custom_behaviors,  -- NEW: array of UI-created behaviors
     })
 
     -- Build language instruction if user has configured languages
@@ -386,7 +409,7 @@ function SystemPrompts.buildUnifiedSystem(config)
     }
 end
 
--- Get list of available behavior variant names
+-- Get list of available behavior variant names (built-in only)
 -- @return table: Array of variant names
 function SystemPrompts.getVariantNames()
     local names = {}
@@ -395,6 +418,137 @@ function SystemPrompts.getVariantNames()
     end
     table.sort(names)
     return names
+end
+
+-- Get all behaviors from all sources: built-in, folder, and UI-created
+-- @param custom_behaviors: Array of UI-created behaviors from settings (optional)
+-- @return table: { id = { id, name, text, source, display_name } }
+function SystemPrompts.getAllBehaviors(custom_behaviors)
+    local BehaviorLoader = require("behavior_loader")
+    local all_behaviors = {}
+
+    -- Collect built-in behavior names for conflict detection
+    local builtin_names = {}
+    for id, text in pairs(SystemPrompts.behavior) do
+        builtin_names[id:lower()] = true
+        all_behaviors[id] = {
+            id = id,
+            name = id:sub(1, 1):upper() .. id:sub(2),  -- Capitalize first letter
+            text = text,
+            source = "builtin",
+            display_name = id:sub(1, 1):upper() .. id:sub(2),
+        }
+    end
+
+    -- Load folder behaviors
+    local folder_behaviors = BehaviorLoader.load()
+    for id, behavior in pairs(folder_behaviors) do
+        -- Handle name conflicts with built-ins
+        local display_name = behavior.name
+        if builtin_names[behavior.name:lower()] or builtin_names[id:lower()] then
+            display_name = behavior.name .. " (file)"
+        end
+
+        all_behaviors[id] = {
+            id = id,
+            name = behavior.name,
+            text = behavior.text,
+            source = "folder",
+            display_name = display_name,
+            external = true,
+        }
+    end
+
+    -- Add UI-created behaviors
+    if custom_behaviors and type(custom_behaviors) == "table" then
+        for _, behavior in ipairs(custom_behaviors) do
+            if behavior.id and behavior.text then
+                all_behaviors[behavior.id] = {
+                    id = behavior.id,
+                    name = behavior.name or behavior.id,
+                    text = behavior.text,
+                    source = "ui",
+                    display_name = (behavior.name or behavior.id) .. " (custom)",
+                }
+            end
+        end
+    end
+
+    return all_behaviors
+end
+
+-- Get sorted list of behavior entries for UI display
+-- @param custom_behaviors: Array of UI-created behaviors from settings (optional)
+-- @return table: Array of behavior entries sorted by display_name
+function SystemPrompts.getSortedBehaviors(custom_behaviors)
+    local all = SystemPrompts.getAllBehaviors(custom_behaviors)
+    local sorted = {}
+
+    for _, behavior in pairs(all) do
+        table.insert(sorted, behavior)
+    end
+
+    table.sort(sorted, function(a, b)
+        -- Built-ins first, then folders, then UI
+        local order = { builtin = 1, folder = 2, ui = 3 }
+        if order[a.source] ~= order[b.source] then
+            return order[a.source] < order[b.source]
+        end
+        return (a.display_name or a.name) < (b.display_name or b.name)
+    end)
+
+    return sorted
+end
+
+-- Get a specific behavior by ID
+-- @param id: Behavior ID to look up
+-- @param custom_behaviors: Array of UI-created behaviors from settings (optional)
+-- @return table or nil: Behavior entry or nil if not found
+function SystemPrompts.getBehaviorById(id, custom_behaviors)
+    if not id then return nil end
+
+    -- Check built-in first
+    if SystemPrompts.behavior[id] then
+        return {
+            id = id,
+            name = id:sub(1, 1):upper() .. id:sub(2),
+            text = SystemPrompts.behavior[id],
+            source = "builtin",
+            display_name = id:sub(1, 1):upper() .. id:sub(2),
+        }
+    end
+
+    -- Check folder behaviors
+    local BehaviorLoader = require("behavior_loader")
+    local folder_behaviors = BehaviorLoader.load()
+    if folder_behaviors[id] then
+        local behavior = folder_behaviors[id]
+        return {
+            id = id,
+            name = behavior.name,
+            text = behavior.text,
+            source = "folder",
+            display_name = behavior.name,
+            external = true,
+        }
+    end
+
+    -- Check UI-created behaviors
+    if custom_behaviors and type(custom_behaviors) == "table" then
+        for _, behavior in ipairs(custom_behaviors) do
+            if behavior.id == id then
+                return {
+                    id = behavior.id,
+                    name = behavior.name or behavior.id,
+                    text = behavior.text,
+                    source = "ui",
+                    display_name = (behavior.name or behavior.id) .. " (custom)",
+                }
+            end
+        end
+    end
+
+    return nil
 end
 
 -- Parse user languages string into primary and full list

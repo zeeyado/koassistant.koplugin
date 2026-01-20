@@ -834,8 +834,9 @@ function AskGPT:initSettings()
       stream_auto_scroll = false,  -- Default to no auto-scroll during streaming
       large_stream_dialog = true,  -- Default to full-screen streaming dialog
       stream_display_interval = 250,  -- ms between display updates (performance tuning)
-      -- Anthropic settings
-      ai_behavior_variant = "full", -- AI behavior style: "minimal" (~100 tokens) or "full" (~500 tokens)
+      -- Behavior settings (new system v0.6+)
+      selected_behavior = "full",  -- Behavior ID: "minimal", "full", or custom ID
+      behavior_migrated = true,    -- Mark as already on new system
     })
   end
 
@@ -844,12 +845,6 @@ function AskGPT:initSettings()
   local features = self.settings:readSetting("features")
   if features then
     local needs_save = false
-
-    -- Add ai_behavior_variant if missing
-    if features.ai_behavior_variant == nil then
-      features.ai_behavior_variant = "full"
-      needs_save = true
-    end
 
     -- Add show_debug_in_chat if missing (separate from console debug)
     if features.show_debug_in_chat == nil then
@@ -872,9 +867,43 @@ function AskGPT:initSettings()
       needs_save = true
     end
 
+    -- ONE-TIME migration to new behavior system (v0.6+)
+    -- Only runs once, then sets behavior_migrated = true
+    if not features.behavior_migrated then
+      -- Migrate legacy custom_ai_behavior to custom_behaviors array
+      if features.ai_behavior_variant == "custom"
+         and features.custom_ai_behavior
+         and features.custom_ai_behavior ~= "" then
+        features.custom_behaviors = {
+          {
+            id = "migrated_1",
+            name = _("Custom (migrated)"),
+            text = features.custom_ai_behavior,
+          }
+        }
+        features.selected_behavior = "migrated_1"
+        logger.info("KOAssistant: Migrated custom_ai_behavior to custom_behaviors array")
+      elseif features.ai_behavior_variant == "minimal" then
+        features.selected_behavior = "minimal"
+      else
+        features.selected_behavior = "full"
+      end
+      -- Clean up legacy fields
+      features.ai_behavior_variant = nil
+      features.behavior_migrated = true
+      needs_save = true
+      logger.info("KOAssistant: Completed behavior system migration")
+    end
+
+    -- Ensure selected_behavior has a value
+    if not features.selected_behavior then
+      features.selected_behavior = "full"
+      needs_save = true
+    end
+
     if needs_save then
       self.settings:saveSetting("features", features)
-      logger.info("KOAssistant: Migrated settings - added new request format options")
+      logger.info("KOAssistant: Migrated settings")
     end
   end
 
@@ -900,7 +929,7 @@ function AskGPT:updateConfigFromSettings()
   }
 
   -- Always show AI behavior variant
-  table.insert(config_parts, "behavior=" .. (features.ai_behavior_variant or "full"))
+  table.insert(config_parts, "behavior=" .. (features.selected_behavior or "full"))
 
   -- Add other relevant settings if they differ from defaults
   if features.default_temperature and features.default_temperature ~= 0.7 then
@@ -1517,6 +1546,20 @@ function AskGPT:editCustomAIBehavior()
   input_dialog:onShowKeyboard()
 end
 
+-- Show behavior manager UI
+function AskGPT:showBehaviorManager()
+  local BehaviorManager = require("ui/behavior_manager")
+  local manager = BehaviorManager:new(self)
+  manager:show()
+end
+
+-- Show domain manager UI
+function AskGPT:showDomainManager()
+  local DomainManager = require("ui/domain_manager")
+  local manager = DomainManager:new(self)
+  manager:show()
+end
+
 function AskGPT:addToMainMenu(menu_items)
   menu_items["koassistant"] = {
     text = _("KOAssistant"),
@@ -1789,12 +1832,12 @@ function AskGPT:buildBehaviorMenu()
       text = opt_copy.text,
       checked_func = function()
         local f = self_ref.settings:readSetting("features") or {}
-        return (f.ai_behavior_variant or "full") == opt_copy.value
+        return (f.selected_behavior or "full") == opt_copy.value
       end,
       radio = true,
       callback = function()
         local f = self_ref.settings:readSetting("features") or {}
-        f.ai_behavior_variant = opt_copy.value
+        f.selected_behavior = opt_copy.value
         self_ref.settings:saveSetting("features", f)
         self_ref.settings:flush()
         self_ref:updateConfigFromSettings()
@@ -1822,7 +1865,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
   local features = self.settings:readSetting("features") or {}
   local provider = features.provider or "anthropic"
   local model = self:getCurrentModel() or "default"
-  local behavior = features.ai_behavior_variant or "full"
+  local behavior = features.selected_behavior or "full"
   local temp = features.default_temperature or 0.7
 
   -- Flag to track if we're closing for a sub-dialog (vs true dismissal)
@@ -1981,61 +2024,6 @@ end
 function AskGPT:showHighlightMenuManager()
   local prompts_manager = PromptsManager:new(self)
   prompts_manager:showHighlightMenuManager()
-end
-
-function AskGPT:showDomainsViewer()
-  local DomainLoader = require("domain_loader")
-  local all_domains = DomainLoader.load()
-  local sorted_ids = DomainLoader.getSortedIds(all_domains)
-
-  -- Build info text showing all domains
-  local lines = {}
-  table.insert(lines, _("WHAT ARE DOMAINS?"))
-  table.insert(lines, _("Knowledge domains provide background context for AI conversations. When you select a domain, its context is prepended to every message you send."))
-  table.insert(lines, "")
-  table.insert(lines, _("HOW THEY WORK:"))
-  table.insert(lines, _("• Domain context is sent with each message to frame the conversation"))
-  table.insert(lines, _("• Larger domains give better results but use more tokens"))
-  table.insert(lines, _("• Anthropic supports prompt caching - consecutive messages reuse cached context (~90% cost savings)"))
-  table.insert(lines, "")
-  table.insert(lines, _("CREATING DOMAINS:"))
-  table.insert(lines, _("Create .md or .txt files in the domains/ folder."))
-  table.insert(lines, _("See domains.sample/ for examples."))
-  table.insert(lines, "")
-  table.insert(lines, "────────────────────")
-  table.insert(lines, "")
-
-  for _i, id in ipairs(sorted_ids) do
-    local domain = all_domains[id]
-    table.insert(lines, "▸ " .. (domain.name or id))
-    -- Show a brief preview of the context (first line or first 100 chars)
-    if domain.context then
-      local preview = domain.context:match("^[^\n]+") or domain.context
-      if #preview > 100 then
-        preview = preview:sub(1, 97) .. "..."
-      end
-      table.insert(lines, "  " .. preview)
-    end
-    table.insert(lines, "")
-  end
-
-  if #sorted_ids == 0 then
-    table.insert(lines, _("No domains defined."))
-    table.insert(lines, "")
-  end
-
-  table.insert(lines, "────────────────────")
-  table.insert(lines, "")
-  table.insert(lines, string.format(_("Total: %d domains"), #sorted_ids))
-
-  -- Show in a scrollable text viewer
-  local TextViewer = require("ui/widget/textviewer")
-  UIManager:show(TextViewer:new{
-    title = _("Available Domains"),
-    text = table.concat(lines, "\n"),
-    width = UIConstants.DIALOG_WIDTH(),
-    height = UIConstants.DIALOG_HEIGHT(),
-  })
 end
 
 -- Register quick actions for highlight menu
