@@ -443,18 +443,13 @@ function SystemPrompts.getAllBehaviors(custom_behaviors)
     -- Load folder behaviors
     local folder_behaviors = BehaviorLoader.load()
     for id, behavior in pairs(folder_behaviors) do
-        -- Handle name conflicts with built-ins
-        local display_name = behavior.name
-        if builtin_names[behavior.name:lower()] or builtin_names[id:lower()] then
-            display_name = behavior.name .. " (file)"
-        end
-
+        -- Always show "(file)" indicator for folder behaviors
         all_behaviors[id] = {
             id = id,
             name = behavior.name,
             text = behavior.text,
             source = "folder",
-            display_name = display_name,
+            display_name = behavior.name .. " (file)",
             external = true,
         }
     end
@@ -528,7 +523,7 @@ function SystemPrompts.getBehaviorById(id, custom_behaviors)
             name = behavior.name,
             text = behavior.text,
             source = "folder",
-            display_name = behavior.name,
+            display_name = behavior.name .. " (file)",
             external = true,
         }
     end

@@ -1792,7 +1792,10 @@ function AskGPT:showQuickSettingsPopup(title, menu_items, close_on_select, on_cl
       callback = function()
         UIManager:close(self_ref._quick_settings_dialog)
         self_ref._quick_settings_dialog = nil
-        -- Don't call on_close_callback for explicit close - user wants to exit
+        -- Call on_close_callback to return to parent dialog (e.g., AI Quick Settings)
+        if on_close_callback then
+          on_close_callback()
+        end
       end,
     },
   })
@@ -1870,10 +1873,13 @@ function AskGPT:buildBehaviorMenu()
 end
 
 --- Combined AI Quick Settings popup (for gesture action)
+--- Two-column layout with commonly used settings
 --- @param on_close_callback function: Optional callback called when user closes the dialog
 function AskGPT:onKOAssistantAISettings(on_close_callback)
   local ButtonDialog = require("ui/widget/buttondialog")
   local SpinWidget = require("ui/widget/spinwidget")
+  local DomainLoader = require("domain_loader")
+  local SystemPrompts = require("prompts/system_prompts")
   local self_ref = self
 
   -- Helper to reopen this dialog after sub-dialog closes
@@ -1886,8 +1892,46 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
   local features = self.settings:readSetting("features") or {}
   local provider = features.provider or "anthropic"
   local model = self:getCurrentModel() or "default"
-  local behavior = features.selected_behavior or "full"
+  local behavior_id = features.selected_behavior or "full"
   local temp = features.default_temperature or 0.7
+  local streaming = features.enable_streaming ~= false  -- Default true
+
+  -- Get behavior display name (with source indicator)
+  local custom_behaviors = features.custom_behaviors or {}
+  local behavior_info = SystemPrompts.getBehaviorById(behavior_id, custom_behaviors)
+  local behavior_display = behavior_info and behavior_info.display_name or behavior_id
+
+  -- Get domain display name (with source indicator)
+  local domain_id = features.selected_domain
+  local domain_display = _("None")
+  if domain_id then
+    local custom_domains = features.custom_domains or {}
+    local domain = DomainLoader.getDomainById(domain_id, custom_domains)
+    if domain then
+      domain_display = domain.display_name or domain.name or domain_id
+    end
+  end
+
+  -- Get primary language display
+  local user_languages = features.user_languages or ""
+  local primary_lang = features.primary_language
+  local lang_display = _("Default")
+  if user_languages ~= "" then
+    local first_lang = user_languages:match("^%s*([^,]+)")
+    if first_lang then
+      first_lang = first_lang:match("^%s*(.-)%s*$")  -- trim
+    end
+    lang_display = primary_lang or first_lang or _("Default")
+  end
+
+  -- Get translation language display
+  local trans_lang = features.translation_language
+  local trans_display
+  if trans_lang == nil or trans_lang == "" or trans_lang == "__PRIMARY__" then
+    trans_display = lang_display  -- Use primary language
+  else
+    trans_display = trans_lang
+  end
 
   -- Flag to track if we're closing for a sub-dialog (vs true dismissal)
   local opening_subdialog = false
@@ -1896,70 +1940,145 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
   dialog = ButtonDialog:new{
     title = _("AI Quick Settings"),
     buttons = {
-      {{
-        text = string.format(_("Provider: %s"), provider:gsub("^%l", string.upper)),
-        callback = function()
-          opening_subdialog = true
-          UIManager:close(dialog)
-          -- Show provider selection, then reopen AI Quick Settings after selection
-          local menu_items = self_ref:buildProviderMenu()
-          self_ref:showQuickSettingsPopup(_("Provider"), menu_items, true, reopenQuickSettings)
-        end,
-      }},
-      {{
-        text = string.format(_("Model: %s"), model),
-        callback = function()
-          opening_subdialog = true
-          UIManager:close(dialog)
-          local menu_items = self_ref:buildModelMenu()
-          self_ref:showQuickSettingsPopup(_("Model"), menu_items, true, reopenQuickSettings)
-        end,
-      }},
-      {{
-        text = string.format(_("Temperature: %.1f"), temp),
-        callback = function()
-          opening_subdialog = true
-          UIManager:close(dialog)
-          local spin = SpinWidget:new{
-            value = temp,
-            value_min = 0,
-            value_max = 2,
-            value_step = 0.1,
-            precision = "%.1f",
-            ok_text = _("Set"),
-            title_text = _("Temperature"),
-            default_value = 0.7,
-            callback = function(spin_widget)
-              local f = self_ref.settings:readSetting("features") or {}
-              f.default_temperature = spin_widget.value
-              self_ref.settings:saveSetting("features", f)
-              self_ref.settings:flush()
-              self_ref:updateConfigFromSettings()
+      -- Row 1: Provider | Model
+      {
+        {
+          text = string.format(_("Provider: %s"), provider:gsub("^%l", string.upper)),
+          callback = function()
+            opening_subdialog = true
+            UIManager:close(dialog)
+            local menu_items = self_ref:buildProviderMenu()
+            self_ref:showQuickSettingsPopup(_("Provider"), menu_items, true, reopenQuickSettings)
+          end,
+        },
+        {
+          text = string.format(_("Model: %s"), model),
+          callback = function()
+            opening_subdialog = true
+            UIManager:close(dialog)
+            local menu_items = self_ref:buildModelMenu()
+            self_ref:showQuickSettingsPopup(_("Model"), menu_items, true, reopenQuickSettings)
+          end,
+        },
+      },
+      -- Row 2: Behavior | Domain
+      {
+        {
+          text = string.format(_("Behavior: %s"), behavior_display),
+          callback = function()
+            opening_subdialog = true
+            UIManager:close(dialog)
+            local menu_items = self_ref:buildBehaviorMenu()
+            self_ref:showQuickSettingsPopup(_("AI Behavior"), menu_items, true, reopenQuickSettings)
+          end,
+        },
+        {
+          text = string.format(_("Domain: %s"), domain_display),
+          callback = function()
+            opening_subdialog = true
+            UIManager:close(dialog)
+            local menu_items = self_ref:buildDomainMenu()
+            self_ref:showQuickSettingsPopup(_("Knowledge Domain"), menu_items, true, reopenQuickSettings)
+          end,
+        },
+      },
+      -- Row 3: Temperature | Streaming
+      {
+        {
+          text = string.format(_("Temp: %.1f"), temp),
+          callback = function()
+            opening_subdialog = true
+            UIManager:close(dialog)
+            local spin = SpinWidget:new{
+              value = temp,
+              value_min = 0,
+              value_max = 2,
+              value_step = 0.1,
+              precision = "%.1f",
+              ok_text = _("Set"),
+              title_text = _("Temperature"),
+              default_value = 0.7,
+              callback = function(spin_widget)
+                local f = self_ref.settings:readSetting("features") or {}
+                f.default_temperature = spin_widget.value
+                self_ref.settings:saveSetting("features", f)
+                self_ref.settings:flush()
+                self_ref:updateConfigFromSettings()
+                reopenQuickSettings()
+              end,
+            }
+            UIManager:show(spin)
+          end,
+        },
+        {
+          text = streaming and _("Streaming: ON") or _("Streaming: OFF"),
+          callback = function()
+            -- Toggle streaming directly
+            local f = self_ref.settings:readSetting("features") or {}
+            f.enable_streaming = not (f.enable_streaming ~= false)
+            self_ref.settings:saveSetting("features", f)
+            self_ref.settings:flush()
+            self_ref:updateConfigFromSettings()
+            -- Reopen to show updated state
+            opening_subdialog = true
+            UIManager:close(dialog)
+            reopenQuickSettings()
+          end,
+        },
+      },
+      -- Row 4: Language | Translation
+      {
+        {
+          text = string.format(_("Language: %s"), lang_display),
+          callback = function()
+            opening_subdialog = true
+            UIManager:close(dialog)
+            local menu_items = self_ref:buildPrimaryLanguageMenu()
+            if #menu_items == 0 then
+              -- No languages configured, show info
+              local InfoMessage = require("ui/widget/infomessage")
+              UIManager:show(InfoMessage:new{
+                text = _("Configure your languages in Settings → Language first."),
+                timeout = 3,
+              })
               reopenQuickSettings()
-            end,
-          }
-          UIManager:show(spin)
-        end,
-      }},
-      {{
-        text = string.format(_("Behavior: %s"), behavior:gsub("^%l", string.upper)),
-        callback = function()
-          opening_subdialog = true
-          UIManager:close(dialog)
-          local menu_items = self_ref:buildBehaviorMenu()
-          self_ref:showQuickSettingsPopup(_("AI Behavior"), menu_items, true, reopenQuickSettings)
-        end,
-      }},
-      {{
-        text = _("Close"),
-        callback = function()
-          opening_subdialog = true  -- Prevent dismiss_callback from also firing
-          UIManager:close(dialog)
-          if on_close_callback then
-            on_close_callback()
-          end
-        end,
-      }},
+            else
+              self_ref:showQuickSettingsPopup(_("Primary Language"), menu_items, true, reopenQuickSettings)
+            end
+          end,
+        },
+        {
+          text = string.format(_("Translate: %s"), trans_display),
+          callback = function()
+            opening_subdialog = true
+            UIManager:close(dialog)
+            local menu_items = self_ref:buildTranslationLanguageMenu()
+            self_ref:showQuickSettingsPopup(_("Translation Language"), menu_items, true, reopenQuickSettings)
+          end,
+        },
+      },
+      -- Row 5: More Settings | Close
+      {
+        {
+          text = _("More Settings..."),
+          callback = function()
+            opening_subdialog = true
+            UIManager:close(dialog)
+            -- Open full settings menu
+            self_ref:onKOAssistantSettings()
+          end,
+        },
+        {
+          text = _("Close"),
+          callback = function()
+            opening_subdialog = true
+            UIManager:close(dialog)
+            if on_close_callback then
+              on_close_callback()
+            end
+          end,
+        },
+      },
     },
     -- Handle all forms of dismissal (back button, tap outside, etc.)
     close_callback = function()
