@@ -120,11 +120,11 @@ After basic setup, explore these features to get the most out of KOAssistant:
 
 | Feature | What it does | Where to configure |
 |---------|--------------|-------------------|
-| **AI Behavior** | Control response style (concise, detailed, custom) | Settings → Manage Behaviors |
-| **Knowledge Domains** | Add project-like context to conversations | Settings → Manage Domains |
+| **AI Behavior** | Control response style (concise, detailed, custom) | Settings → Advanced → Manage Behaviors |
+| **Knowledge Domains** | Add project-like context to conversations | Settings → Advanced → Manage Domains |
 | **Custom Actions** | Create your own prompts and workflows | Settings → Manage Actions |
 | **Highlight Menu** | Add actions directly to highlight popup | Manage Actions → Add to Highlight Menu |
-| **Reasoning/Thinking** | Enable deep analysis for complex questions | Settings → AI Response |
+| **Reasoning/Thinking** | Enable deep analysis for complex questions | Settings → Advanced → Reasoning |
 | **Languages** | Configure multilingual responses | Settings → Language |
 
 See detailed sections below for each feature.
@@ -226,7 +226,7 @@ Behavior defines the AI's personality, communication style, and response guideli
 Create your own behaviors via:
 
 1. **Files**: Add `.md` or `.txt` files to `behaviors/` folder
-2. **UI**: Settings → Manage Behaviors → Create New
+2. **UI**: Settings → Advanced → Manage Behaviors → Create New
 
 **File format** (same as domains):
 - Filename becomes the behavior ID: `concise.md` → ID `concise`
@@ -315,7 +315,7 @@ You can have very small, focused domains, or large, detailed, interdisciplinary 
 Create domains via:
 
 1. **Files**: Add `.md` or `.txt` files to `domains/` folder
-2. **UI**: Settings → Manage Domains → Create New
+2. **UI**: Settings → Advanced → Manage Domains → Create New
 
 **File format**:
 
@@ -484,8 +484,8 @@ See `custom_actions.lua.sample` for more examples.
 - **Large Stream Dialog**: Use full-screen streaming window
 
 ### Advanced
-- **AI Behavior**: Minimal (~100 tokens), Full (~500 tokens), or Custom guidelines
-- **Edit Custom Behavior**: Define your own AI behavior instructions (when Custom is selected)
+- **Manage Behaviors**: Select or create AI behavior styles (shows current selection)
+- **Manage Domains**: Create and manage knowledge domains for project-like context
 - **Temperature**: Response creativity (0.0-2.0, Anthropic max 1.0)
 - **Reasoning/Thinking**: Per-provider reasoning settings:
   - **Anthropic Extended Thinking**: Budget 1024-32000 tokens
@@ -512,10 +512,9 @@ See `custom_actions.lua.sample` for more examples.
 - `"English"` - AI always responds in English
 - `"German, English, French"` with Primary set to "English" - English by default, switches if you type in German or French
 
-### Actions & Domains
+### Actions
 - **Manage Actions**: Enable/disable built-in actions, create custom actions
 - **Highlight Menu Actions**: View and reorder actions added to the highlight popup menu
-- **View Domains**: See available knowledge domains
 
 ### Highlight Menu Actions
 
