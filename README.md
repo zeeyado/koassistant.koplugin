@@ -224,6 +224,7 @@ Four built-in behaviors are always available (based on [Anthropic Claude guideli
 - **Standard** (~420 tokens): Balanced guidance for quality responses
 - **Full** (~1150 tokens): Comprehensive guidance for best quality responses
 - **Translator Direct** (~85 tokens): Direct translation without commentary (used by Translate action)
+- More built in ones are being tested, like **Research Standard** based on Perplexity
 
 ### Sample Behaviors
 
