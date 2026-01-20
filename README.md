@@ -217,9 +217,21 @@ Behavior defines the AI's personality, communication style, and response guideli
 
 ### Built-in Behaviors
 
-- **Minimal** (~100 tokens): Brief guidelines, natural conversation, lower cost
-- **Full** (~500 tokens): Comprehensive guidelines for well-formatted responses
-- To be expanded with a bunch of behaviors based on Anthropic, OpenAI, etc
+Three built-in behaviors are always available (based on [Anthropic Claude guidelines](https://docs.anthropic.com/en/release-notes/system-prompts)):
+
+- **Mini** (~220 tokens): Concise guidance for e-reader conversations
+- **Standard** (~420 tokens): Balanced guidance for quality responses
+- **Translator Direct** (~85 tokens): Direct translation without commentary (used by Translate action)
+
+### Sample Behaviors
+
+The `behaviors.sample/` folder contains a comprehensive collection including:
+
+- **Provider-inspired styles**: Claude, GPT, Gemini, Grok, Perplexity, DeepSeek (all provider-agnostic)
+- **Reading-specialized**: Scholarly, Translator, Religious/Classical, Creative
+- **Multiple sizes**: Mini (~160-190 tokens), Standard (~400-500), Full (~1150-1325)
+
+To use: copy desired files from `behaviors.sample/` to `behaviors/` folder.
 
 ### Custom Behaviors
 
@@ -233,7 +245,7 @@ Create your own behaviors via:
 - First `# Heading` becomes the display name
 - Rest of file is the behavior text sent to AI
 
-See `behaviors.sample/` for examples.
+See `behaviors.sample/README.md` for full documentation.
 
 ### Per-Action Overrides
 
