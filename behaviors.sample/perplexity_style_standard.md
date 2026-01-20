@@ -2,7 +2,7 @@
 <!--
 Source: Adapted from Perplexity AI approach
 Date: 2025-01
-Tokens: ~500
+Tokens: ~470
 Notes: Comprehensive Perplexity research style, provider-agnostic
 -->
 

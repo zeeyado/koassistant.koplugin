@@ -2,7 +2,7 @@
 <!--
 Source: Adapted from Anthropic Claude guidelines
 Date: 2025-01
-Tokens: ~150
+Tokens: ~190
 Notes: Core Claude conversational principles, provider-agnostic
 -->
 

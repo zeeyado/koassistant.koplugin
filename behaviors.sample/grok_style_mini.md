@@ -2,7 +2,7 @@
 <!--
 Source: Adapted from xAI Grok guidelines
 Date: 2025-01
-Tokens: ~120
+Tokens: ~160
 Notes: Core Grok direct/witty style, provider-agnostic
 -->
 
