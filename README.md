@@ -14,7 +14,7 @@ Chats are streamed live (like ChatGPT/Claude, etc), are automatically (or manual
 
 Most settings are configurable in the UI, including: Provider/model, AI behavior and style, user-to-AI interaction languages, translation languages, domains/project/field context, custom actions (which you can create, edit, duplicate, and adjust settings for), and advanced model settings like reasoning/thinking, temperature, and more. Most settings, additional context, and function combinations can be specified for a given action.
 
-> **Development Status**: KOAssistant is currently under heavy development, with features constantly added. 16 providers are supported (see [Supported Providers](#supported-providers)); testing and Feedback appreciated. You can open an issue, feature request, or start a discussion.
+> **Development Status**: KOAssistant is currently under heavy development, with features constantly added. 16 providers are supported (see [Supported Providers](#supported-providers)); **testing and Feedback appreciated**. You can open an issue, feature request, or start a discussion.
 
 ---
 
@@ -63,7 +63,7 @@ Linux:        ~/.config/koreader/plugins/koassistant.koplugin/
 
 1. Go to **Tools → KOAssistant → API Keys**
 2. Tap any provider to enter your API key
-3. Keys are stored securely in your settings
+3. Keys are shown semi-blurred in your settings
 
 **Option B: Via Configuration File**
 
@@ -96,7 +96,7 @@ Find KOAssistant Settings in: **Tools → Page 2 → KOAssistant**
 
 ### Configure Quick Access Gestures
 
-For easy access, assign KOAssistant actions to a gesture:
+For easy access to a list of settings, assign KOAssistant actions to a gesture:
 
 1. Go to **Settings → Gesture Manager → Tap corner → Bottom left** (or your preferred gesture)
 2. Select **General** 
@@ -110,6 +110,9 @@ For easy access, assign KOAssistant actions to a gesture:
 4. Enable **"Show as QuickMenu"**
 
 > **Tip**: Set up gestures in both **Reader View** (while reading) and **File Browser** separately.
+> 
+> **Tip**: Set other gestures for specific actions you use often, e.g. a multiswipe gesture for "Open Last Chat" if you keep going back and forth between a document and a specific chat.
+
 
 ### Key Features to Explore
 
@@ -130,7 +133,8 @@ See detailed sections below for each feature.
 
 - **Good document metadata** improves AI responses. Use Calibre, Zotero, or similar tools to ensure titles, authors, and identifiers are correct.
 - **Shorter tap duration** makes text selection in KOReader easier: Settings → Taps and Gestures → Long-press interval
-- **Choose models wisely**: Fast models (like Haiku) for quick queries; powerful models (like Sonnet, Opus) for deeper analysis
+- **Choose models wisely**: Fast models (like Haiku) for quick queries; powerful models (like Sonnet, Opus) for deeper analysis.
+- **Tailor to your use**: Set up and pick suitable Domains and AI Behavior, as well as Actions 
 
 ---
 
@@ -197,6 +201,7 @@ A free-form conversation without specific document context. If started while a b
 - **Settings Icon (Input)**: Tap the gear icon in the input dialog title bar to quickly access AI settings (provider, model, temperature, etc.) without leaving the chat
 - **Settings Icon (Viewer)**: Tap the gear icon in the chat viewer title bar to adjust font size and text alignment (left/justified/right for RTL)
 - **Show/Hide Quote**: In the chat viewer, toggle button to show or hide the highlighted text quote (useful for long selections)
+- **Other**: Turn on off Text/Markdown view, Debug view mode, add Tags, Change Domain, etc
 
 ---
 
@@ -214,6 +219,7 @@ Behavior defines the AI's personality, communication style, and response guideli
 
 - **Minimal** (~100 tokens): Brief guidelines, natural conversation, lower cost
 - **Full** (~500 tokens): Comprehensive guidelines for well-formatted responses
+- To be expanded with a bunch of behaviors based on Anthropic, OpenAI, etc
 
 ### Custom Behaviors
 
@@ -245,7 +251,7 @@ Individual actions can override the global behavior:
 By default, all chats are automatically saved. You can disable this in Settings → Conversations.
 
 - **Auto-save All Chats**: Save every new conversation
-- **Auto-save Continued Chats**: Only save when continuing from history
+- **Auto-save Continued Chats**: Only save when continuing from history (i.e. from an already saved chat)
 
 ### Chat History
 
@@ -282,7 +288,7 @@ Tags are simple labels for organizing chats. Unlike domains:
 - Multiple tags per chat allowed
 
 **Adding Tags**:
-- In chat viewer: Tap the **#** button in the title bar
+- In chat viewer: Tap the **#** button in the chat viewer
 - In chat history: Long-press a chat → Tags
 
 **Browsing by Tag**: Chat History → hamburger menu → View by Tag
@@ -338,7 +344,7 @@ Domains are selected **per-chat** when starting a conversation:
 2. Select a domain from the list
 3. All messages in this chat will include that domain's context
 
-**Note**: Domains must be selected at the start of a chat (they provide context for the AI). Larger domains give better results but increase API costs.
+**Note**: Domains must be selected at the start of a chat (they provide context for the AI). Larger domains give better results but increase API costs. Once a domain is picked in the input window, it stays active until replaced by "None" or another domain; keep this in mind if you often use quick actions without opening the input dialog.
 
 ### Browsing by Domain
 
@@ -364,6 +370,7 @@ When you select an action and start a chat, you can optionally add your own inpu
 - Create new actions with the wizard
 - Edit or delete your custom actions (marked with ★)
 - Edit settings for built-in actions (temperature, thinking, provider/model, AI behavior)
+- Duplicate/Copy existing Actions to use them as template (e.g. to make a slightly different variant)
 
 **Action indicators:**
 - **★** = Custom action (editable)
