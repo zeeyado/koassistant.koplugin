@@ -135,7 +135,7 @@ function DomainManager:showDomainMenu()
             enabled = false,
         })
     else
-        -- Group by source: folder first, then UI
+        -- Group by source: builtin first, then folder, then UI
         local current_source = nil
 
         for _idx, domain in ipairs(all_domains) do
@@ -143,7 +143,9 @@ function DomainManager:showDomainMenu()
             if domain.source ~= current_source then
                 current_source = domain.source
                 local header_text
-                if current_source == "folder" then
+                if current_source == "builtin" then
+                    header_text = _("BUILT-IN")
+                elseif current_source == "folder" then
                     header_text = _("FROM DOMAINS/ FOLDER")
                 elseif current_source == "ui" then
                     header_text = _("CUSTOM (UI-CREATED)")
@@ -259,7 +261,9 @@ end
 
 function DomainManager:showDomainDetails(domain)
     local source_text
-    if domain.source == "folder" then
+    if domain.source == "builtin" then
+        source_text = _("Built-in")
+    elseif domain.source == "folder" then
         source_text = _("File (domains/ folder)")
     elseif domain.source == "ui" then
         source_text = _("Custom (UI-created)")
@@ -270,14 +274,27 @@ function DomainManager:showDomainDetails(domain)
     -- Calculate approximate token count
     local token_estimate = math.ceil(#domain.context / 4)
 
-    local info_text = string.format(
-        "%s\n\n%s: %s\n%s: ~%d tokens\n\n%s:\n%s",
+    -- Build info text
+    local info_parts = {
         domain.display_name,
-        _("Source"), source_text,
-        _("Size"), token_estimate,
-        _("Content"),
-        domain.context
-    )
+        "",
+        _("Source") .. ": " .. source_text,
+    }
+
+    -- Add metadata if available (from file-based domains)
+    local metadata = domain.metadata
+    if metadata then
+        if metadata.notes then
+            table.insert(info_parts, _("Notes") .. ": " .. metadata.notes)
+        end
+    end
+
+    table.insert(info_parts, _("Size") .. ": ~" .. token_estimate .. " tokens")
+    table.insert(info_parts, "")
+    table.insert(info_parts, _("Content") .. ":")
+    table.insert(info_parts, domain.context)
+
+    local info_text = table.concat(info_parts, "\n")
 
     local buttons = {}
 
@@ -343,6 +360,17 @@ function DomainManager:showDomainDetails(domain)
                 callback = function()
                     UIManager:close(self.details_dialog)
                     self:showDomainEditor(nil, domain.context, domain.name .. " (copy)")
+                end,
+            },
+        })
+    elseif domain.source == "builtin" then
+        -- Built-in: View only, can use as template
+        table.insert(buttons, {
+            {
+                text = _("Use as Template"),
+                callback = function()
+                    UIManager:close(self.details_dialog)
+                    self:showDomainEditor(nil, domain.context, domain.name .. " (custom)")
                 end,
             },
         })

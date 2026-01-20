@@ -1,7 +1,7 @@
 # Direct Translator
 <!--
 Source: Built-in for translation actions
-Tokens: ~85
+Tokens: ~80
 Notes: Direct translation without commentary
 -->
 

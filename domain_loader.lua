@@ -45,13 +45,32 @@ local function filenameToDisplayName(filename)
     end)
 end
 
--- Strip HTML/XML comments from content (used for metadata)
-local function stripMetadataComments(text)
-    return text:gsub("<!%-%-.-%-%->\n?", "")
+-- Parse metadata from HTML comments
+-- Returns: metadata table and content with comments stripped
+local function parseMetadata(text)
+    local metadata = {}
+
+    -- Extract metadata from HTML-style comments <!-- ... -->
+    for comment in text:gmatch("<!%-%-(.-)%-%->") do
+        -- Parse key: value pairs
+        for line in comment:gmatch("[^\n]+") do
+            local key, value = line:match("^%s*([^:]+):%s*(.+)%s*$")
+            if key and value then
+                key = key:lower():gsub("^%s*", ""):gsub("%s*$", "")
+                value = value:gsub("^%s*", ""):gsub("%s*$", "")
+                metadata[key] = value
+            end
+        end
+    end
+
+    -- Remove HTML-style comments <!-- ... -->
+    local stripped = text:gsub("<!%-%-.-%-%->\n?", "")
+
+    return metadata, stripped
 end
 
 -- Parse a domain file
--- Returns: { name = "Display Name", context = "..." } or nil
+-- Returns: { name = "Display Name", context = "...", metadata = {...} } or nil
 local function parseDomainFile(content, fallback_name, source)
     if not content or content == "" then
         return nil
@@ -77,8 +96,9 @@ local function parseDomainFile(content, fallback_name, source)
         context = content
     end
 
-    -- Strip metadata comments from context
-    context = stripMetadataComments(context)
+    -- Parse and strip metadata comments from context
+    local metadata, stripped = parseMetadata(context)
+    context = stripped
 
     -- Trim whitespace from context
     context = context:match("^%s*(.-)%s*$") or ""
@@ -90,6 +110,7 @@ local function parseDomainFile(content, fallback_name, source)
     return {
         name = name,
         context = context,
+        metadata = metadata,  -- Tokens, Notes, etc.
         external = true,  -- Mark as loaded from external file
         source = source or "folder",
     }
@@ -216,6 +237,7 @@ function DomainLoader.getAllDomains(custom_domains)
             source = domain.source,
             display_name = domain.name .. display_suffix,
             external = domain.source ~= "builtin",
+            metadata = domain.metadata,  -- Tokens, Notes from file comments
         }
     end
 
@@ -279,6 +301,7 @@ function DomainLoader.getDomainById(id, custom_domains)
             source = domain.source,
             display_name = domain.name .. display_suffix,
             external = domain.source ~= "builtin",
+            metadata = domain.metadata,  -- Tokens, Notes from file comments
         }
     end
 
