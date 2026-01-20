@@ -9,7 +9,7 @@ msgstr ""
 "Report-Msgid-Bugs-To: https://github.com/zeeyado/koassistant.koplugin/"
 "issues\n"
 "POT-Creation-Date: 2026-01-07 20:48+0000\n"
-"PO-Revision-Date: 2026-01-18 21:01+0000\n"
+"PO-Revision-Date: 2026-01-20 19:01+0000\n"
 "Last-Translator: ferdinanlima <star.stalker151@gmail.com>\n"
 "Language-Team: Portuguese (Brazil) <https://hosted.weblate.org/projects/"
 "koassistant/koassistant/pt_BR/>\n"
@@ -18,7 +18,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n > 1;\n"
-"X-Generator: Weblate 5.15.2\n"
+"X-Generator: Weblate 5.16-dev\n"
 
 #: _meta.lua:4 main.lua:124 main.lua:192 main.lua:1383 main.lua:1534
 msgid "KOAssistant"
@@ -34,7 +34,7 @@ msgstr ""
 
 #: chat_history_dialog.lua:54
 msgid "Delete all chats for this book"
-msgstr "Excluir todas as conversas deste livro"
+msgstr "Excluir todas os chats deste livro"
 
 #: chat_history_dialog.lua:59
 msgid ""
@@ -42,7 +42,7 @@ msgid ""
 "\n"
 "This action cannot be undone."
 msgstr ""
-"Excluir todas as conversas de “%1”?\n"
+"Excluir todas os chats de “%1”?\n"
 "\n"
 "Esta ação não pode ser desfeita."
 
@@ -54,7 +54,7 @@ msgstr "Excluir"
 
 #: chat_history_dialog.lua:64
 msgid "Deleted %1 chat(s)"
-msgstr "%1 conversa(s) excluída(s)"
+msgstr "%1 chat(s) excluído(s)"
 
 #: chat_history_dialog.lua:81 chat_history_dialog.lua:160
 #: chat_history_dialog.lua:214 chat_history_dialog.lua:268
@@ -76,7 +76,7 @@ msgstr "Visualizar por etiqueta"
 
 #: chat_history_dialog.lua:137
 msgid "Delete all chats"
-msgstr "Excluir todas as conversas"
+msgstr "Excluir todos os chats"
 
 #: chat_history_dialog.lua:142
 msgid ""
@@ -84,22 +84,22 @@ msgid ""
 "\n"
 "This action cannot be undone."
 msgstr ""
-"Excluir todas as conversas salvas?\n"
+"Excluir todos os chats salvos?\n"
 "\n"
 "Esta ação não pode ser desfeita."
 
 #: chat_history_dialog.lua:147
 msgid "Deleted %1 chat(s) from %2 book(s)"
-msgstr "%1 conversa(s) excluída(s) de %2 livro(s)"
+msgstr "%1 chat(s) excluído(s) de %2 livro(s)"
 
 #: chat_history_dialog.lua:170
 msgid "Chat History Options"
-msgstr "Opções do histórico de conversas"
+msgstr "Opções do histórico de chat"
 
 #: chat_history_dialog.lua:200 chat_history_dialog.lua:254
 #: chat_history_dialog.lua:573 settings_schema.lua:45
 msgid "Chat History"
-msgstr "Histórico de conversas"
+msgstr "Histórico de chat"
 
 #: chat_history_dialog.lua:224 chat_history_dialog.lua:278
 msgid "Navigate"
@@ -107,111 +107,111 @@ msgstr ""
 
 #: chat_history_dialog.lua:321 chat_history_dialog.lua:503 main.lua:1420
 msgid "No saved chats found"
-msgstr ""
+msgstr "Não há chats salvos"
 
 #: chat_history_dialog.lua:334 chat_history_dialog.lua:395
 msgid "Untagged"
-msgstr ""
+msgstr "Sem etiqueta"
 
 #: chat_history_dialog.lua:345 chat_history_dialog.lua:545
 #: chat_history_dialog.lua:1484
 msgid "chat"
-msgstr ""
+msgstr "chat"
 
 #: chat_history_dialog.lua:345 chat_history_dialog.lua:545
 #: chat_history_dialog.lua:1484
 msgid "chats"
-msgstr ""
+msgstr "chats"
 
 #: chat_history_dialog.lua:361
 msgid "Chat History by Domain"
-msgstr ""
+msgstr "Histórico de chat por domínio"
 
 #: chat_history_dialog.lua:409 chat_history_dialog.lua:751
 #: chat_history_dialog.lua:851 chat_history_dialog.lua:1548
 msgid "Untitled Chat"
-msgstr ""
+msgstr "Chat sem título"
 
 #: chat_history_dialog.lua:421 chat_history_dialog.lua:1560
 msgid "General Chat"
-msgstr ""
+msgstr "Chat geral"
 
 #: chat_history_dialog.lua:424 chat_history_dialog.lua:1563
 msgid "msg"
-msgstr ""
+msgstr "msg"
 
 #: chat_history_dialog.lua:424 chat_history_dialog.lua:1563
 msgid "msgs"
-msgstr ""
+msgstr "msgs"
 
 #: chat_history_dialog.lua:435 chat_history_dialog.lua:1574
 #: chat_history_manager.lua:88
 msgid "General AI Chats"
-msgstr ""
+msgstr "Chats gerais de IA"
 
 #: chat_history_dialog.lua:538 ui/prompts_manager.lua:434
 msgid "Unknown"
-msgstr ""
+msgstr "Desconhecido"
 
 #: chat_history_dialog.lua:553
 msgid "AI conversations without book context"
-msgstr ""
+msgstr "Chats com IA sem contexto do livro"
 
 #: chat_history_dialog.lua:618
 msgid "No saved chats found for this document"
-msgstr ""
+msgstr "Não há chats salvos para este documento"
 
 #: chat_history_dialog.lua:667
 msgid "Chats: %1"
-msgstr ""
+msgstr "Chats: %1"
 
 #: chat_history_dialog.lua:731 chat_history_dialog.lua:1067
 msgid "Error: Cannot load chat data."
-msgstr ""
+msgstr "Erro: não foi possível carregar os dados do chat."
 
 #: chat_history_dialog.lua:752
 msgid "Date:"
-msgstr ""
+msgstr "Data:"
 
 #: chat_history_dialog.lua:753
 msgid "Model:"
-msgstr ""
+msgstr "Modelo:"
 
 #: chat_history_dialog.lua:754
 msgid "Messages:"
-msgstr ""
+msgstr "Mensagens:"
 
 #: chat_history_dialog.lua:775
 msgid "Continue Chat"
-msgstr ""
+msgstr "Retomar chat"
 
 #: chat_history_dialog.lua:788 chat_history_dialog.lua:862
 msgid "Rename"
-msgstr ""
+msgstr "Renomear"
 
 #: chat_history_dialog.lua:798
 msgid "Tags"
-msgstr ""
+msgstr "Etiquetas"
 
 #: chat_history_dialog.lua:808 ui/prompts_manager.lua:352
 msgid "Export"
-msgstr ""
+msgstr "Exportar"
 
 #: chat_history_dialog.lua:850
 msgid "Rename Chat"
-msgstr ""
+msgstr "Renomear chat"
 
 #: chat_history_dialog.lua:871
 msgid "Chat renamed successfully"
-msgstr ""
+msgstr "Chat renomeado com sucesso"
 
 #: chat_history_dialog.lua:880
 msgid "Failed to rename chat"
-msgstr ""
+msgstr "Falha ao renomear o chat"
 
 #: chat_history_dialog.lua:913
 msgid "Current tags:"
-msgstr ""
+msgstr "Etiquetas atuais:"
 
 #: chat_history_dialog.lua:925
 msgid "Removed tag: %1"
@@ -480,7 +480,7 @@ msgstr ""
 
 #: dialogs.lua:1417
 msgid "Type your question or additional instructions for any action..."
-msgstr ""
+msgstr "Digite uma pergunta ou instruções adicionais…"
 
 #: dialogs.lua:1444
 msgid "Unknown prompt type: "
@@ -553,7 +553,7 @@ msgstr ""
 #: main.lua:987 main.lua:1700
 #, lua-format
 msgid "Provider: %s"
-msgstr ""
+msgstr "Provedor: %s"
 
 #: main.lua:1016 main.lua:1175
 msgid "(default)"
@@ -713,7 +713,7 @@ msgstr ""
 #: main.lua:1717
 #, lua-format
 msgid "Temperature: %.1f"
-msgstr ""
+msgstr "Temperatura: %.1f"
 
 #: main.lua:1726 ui/settings_manager.lua:235
 msgid "Set"
@@ -722,7 +722,7 @@ msgstr ""
 #: main.lua:1727 settings_schema.lua:208 ui/prompts_manager.lua:465
 #: ui/prompts_manager.lua:1204 ui/prompts_manager.lua:2055
 msgid "Temperature"
-msgstr ""
+msgstr "Temperatura"
 
 #: main.lua:1742
 #, lua-format
@@ -1615,7 +1615,7 @@ msgstr ""
 
 #: ui/prompts_manager.lua:1095 ui/prompts_manager.lua:1864
 msgid "Temperature: "
-msgstr ""
+msgstr "Temperatura: "
 
 #: ui/prompts_manager.lua:1104 ui/prompts_manager.lua:1873
 msgid "Reasoning: "
@@ -1643,6 +1643,9 @@ msgid ""
 "\n"
 "Temperature: "
 msgstr ""
+"Configurações avançadas para esta ação.\n"
+"\n"
+"Temperatura: "
 
 #: ui/prompts_manager.lua:1177
 msgid "Edit Action - Advanced"
@@ -1679,6 +1682,14 @@ msgid ""
 "\n"
 "May force temperature to 1.0 for some models."
 msgstr ""
+"O raciocínio permite pensamento complexo nos modelos compatíveis.\n"
+"\n"
+"• Global: Segue as configurações por provedor no menu Configurações\n"
+"• Forçar DESLIGADO: Nunca usar raciocínio para esta ação\n"
+"• Configurar: Definir raciocínio por provedor (Orçamento do Anthropic, "
+"Esforço do OpenAI, Nível do Gemini)\n"
+"\n"
+"Pode forçar a temperatura para 1.0 em alguns modelos."
 
 #: ui/prompts_manager.lua:1317
 msgid "(global)"
