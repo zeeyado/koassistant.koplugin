@@ -6,7 +6,7 @@
 
 **Powerful AI assistant integrated into KOReader.**
 
-A highly flexible and customizable research assistant and knowledge expander.
+A highly flexible and customizable reading and research assistant and knowledge expander.
 
 You can have context free chats, chat about documents in your library, or about text highlighted in a document, with or without additional context. You can translate text, get text explained/analyzed, compare books/articles, and much more by creating advanced and elaborate custom actions, additional contexts, and instructions, all with their own highly granular settings. 
 
@@ -323,7 +323,13 @@ This means:
 - Domain sets WHAT knowledge context to apply
 - Both benefit from Anthropic's prompt caching (90% cost reduction on repeated queries)
 
-You can have very small, focused domains, or large, detailed, interdisciplinary ones. 
+You can have very small, focused domains, or large, detailed, interdisciplinary ones.
+
+### Built-in Domain
+
+One AI-generated domain is built-in: **Critical Reader** (~250 tokens) - analytical stance for evaluating arguments and evidence.
+
+This serves as an example of what domains can do. For more options/inspiration, see `domains.sample/` which includes specialized sample domains.
 
 ### Creating Domains
 
@@ -337,19 +343,23 @@ Create domains via:
 **Example**: `domains/philosophy.md`
 ```markdown
 # Philosophy
+<!--
+Tokens: ~100
+Notes: General philosophical inquiry
+-->
 
 This conversation relates to philosophical inquiry and analysis.
 Consider different schools of thought, logical arguments, and ethical implications.
 Reference relevant philosophers and their works when appropriate.
 ```
 
-**File format**:
 - Filename becomes the domain ID: `my_domain.md` → ID `my_domain`
 - First `# Heading` becomes the display name (or derived from filename)
+- Metadata in `<!-- -->` comments is optional (for tracking token costs)
 - Rest of file is the context sent to AI
 - Supported: `.md` and `.txt` files
 
-See `domains.sample/` for examples.
+See `domains.sample/` for examples including classical language support and interpretive frameworks.
 
 ### Selecting Domains
 
@@ -359,7 +369,7 @@ Domains are selected **per-chat** when starting a conversation:
 2. Select a domain from the list
 3. All messages in this chat will include that domain's context
 
-**Note**: Domains must be selected at the start of a chat (they provide context for the AI). Larger domains give better results but increase API costs. Once a domain is picked in the input window, it stays active until replaced by "None" or another domain; keep this in mind if you often use quick actions without opening the input dialog.
+**Note**: Domains must be selected at the start of a chat (they provide context for the AI). Larger domains give better results but increase API costs. Once a domain is picked in the input window, it stays active until replaced by "None" or another domain; keep this in mind if you often use quick actions without opening the input dialog. You can clear/change the domain through several settings and gestures.
 
 ### Browsing by Domain
 
