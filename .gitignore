@@ -8,7 +8,6 @@ custom_actions.lua
 CLAUDE.md
 plan.md
 /docs
-/behavior/
 .stfolder
 .stversions
 
@@ -17,6 +16,12 @@ plan.md
 
 # Keep sample domains tracked
 !/domains.sample/
+
+# User behaviors (not tracked)
+/behaviors/
+
+# Keep sample behaviors tracked
+!/behaviors.sample/
 
 # Test local configuration (user-specific paths)
 /tests/local_config.lua

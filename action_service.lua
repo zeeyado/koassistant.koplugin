@@ -319,7 +319,7 @@ end
 -- Get the behavior variant setting
 function ActionService:getBehaviorVariant()
     local features = self.settings:readSetting("features") or {}
-    return features.ai_behavior_variant or "full"
+    return features.selected_behavior or "full"
 end
 
 -- Build user message for an action

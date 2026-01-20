@@ -140,20 +140,25 @@ TestRunner:test("handles multiple chunks", function()
 end)
 
 -- Test DeepSeek format (reasoning_content)
+-- Note: extractContentFromSSE returns (content, reasoning_content) - two values
 TestRunner:suite("DeepSeek format")
 
-TestRunner:test("extracts reasoning_content", function()
+TestRunner:test("extracts reasoning_content as second return value", function()
     local event = {
         choices = { { delta = { reasoning_content = "Let me think..." } } }
     }
-    TestRunner:assertEqual(extractContentFromSSE(event), "Let me think...", "reasoning_content")
+    local content, reasoning = extractContentFromSSE(event)
+    TestRunner:assertNil(content, "content is nil when only reasoning present")
+    TestRunner:assertEqual(reasoning, "Let me think...", "reasoning_content extracted")
 end)
 
-TestRunner:test("prefers content over reasoning_content", function()
+TestRunner:test("returns both content and reasoning when both present", function()
     local event = {
         choices = { { delta = { content = "Answer", reasoning_content = "Thinking" } } }
     }
-    TestRunner:assertEqual(extractContentFromSSE(event), "Answer", "content preferred")
+    local content, reasoning = extractContentFromSSE(event)
+    TestRunner:assertEqual(content, "Answer", "content extracted")
+    TestRunner:assertEqual(reasoning, "Thinking", "reasoning also extracted")
 end)
 
 -- Test Anthropic format
