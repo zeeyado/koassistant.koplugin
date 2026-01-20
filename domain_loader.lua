@@ -1,5 +1,9 @@
 -- Domain loader for KOAssistant
--- Loads domain definitions from external files in the domains/ folder
+-- Loads domain definitions from external files
+--
+-- Sources (in priority order):
+--   1. domains/           - User domains (gitignored, can override built-in)
+--   2. prompts/domains/   - Built-in domains (tracked in git)
 --
 -- Domain file format:
 --   Filename: domain_id.md or domain_id.txt (filename becomes the domain ID)
@@ -41,9 +45,14 @@ local function filenameToDisplayName(filename)
     end)
 end
 
+-- Strip HTML/XML comments from content (used for metadata)
+local function stripMetadataComments(text)
+    return text:gsub("<!%-%-.-%-%->\n?", "")
+end
+
 -- Parse a domain file
 -- Returns: { name = "Display Name", context = "..." } or nil
-local function parseDomainFile(content, fallback_name)
+local function parseDomainFile(content, fallback_name, source)
     if not content or content == "" then
         return nil
     end
@@ -68,6 +77,9 @@ local function parseDomainFile(content, fallback_name)
         context = content
     end
 
+    -- Strip metadata comments from context
+    context = stripMetadataComments(context)
+
     -- Trim whitespace from context
     context = context:match("^%s*(.-)%s*$") or ""
 
@@ -79,33 +91,34 @@ local function parseDomainFile(content, fallback_name)
         name = name,
         context = context,
         external = true,  -- Mark as loaded from external file
-        source = "folder",
+        source = source or "folder",
     }
 end
 
--- Load all domains from the domains/ folder
--- Returns: table of domain_id -> { name, context, external }
-function DomainLoader.load()
+-- Load domains from a specific folder path
+-- @param folder_path: Full path to the folder
+-- @param source: Source identifier ("builtin" or "folder")
+-- @return table: domain_id -> { name, context, external, source }
+local function loadFromFolder(folder_path, source)
     local domains = {}
-    local domains_path = getPluginPath() .. "domains/"
 
-    -- Check if domains folder exists
-    local attr = lfs.attributes(domains_path)
+    -- Check if folder exists
+    local attr = lfs.attributes(folder_path)
     if not attr or attr.mode ~= "directory" then
-        -- No domains folder, return empty
         return domains
     end
 
-    -- Iterate through files in the domains folder
-    for file in lfs.dir(domains_path) do
-        -- Only process .md and .txt files
-        if file:match("%.md$") or file:match("%.txt$") then
+    -- Iterate through files in the folder
+    for file in lfs.dir(folder_path) do
+        -- Only process .md and .txt files, skip README files
+        local lower_file = file:lower()
+        if (file:match("%.md$") or file:match("%.txt$")) and not lower_file:match("^readme%.") then
             local id = file:gsub("%.md$", ""):gsub("%.txt$", "")
-            local content = readFile(domains_path .. file)
+            local content = readFile(folder_path .. file)
 
             if content then
                 local fallback_name = filenameToDisplayName(id)
-                local domain = parseDomainFile(content, fallback_name)
+                local domain = parseDomainFile(content, fallback_name, source)
 
                 if domain then
                     domains[id] = domain
@@ -115,6 +128,41 @@ function DomainLoader.load()
     end
 
     return domains
+end
+
+-- Load all domains from user folder only (for backward compatibility)
+-- Returns: table of domain_id -> { name, context, external, source }
+function DomainLoader.load()
+    local domains_path = getPluginPath() .. "domains/"
+    return loadFromFolder(domains_path, "folder")
+end
+
+-- Load built-in domains from prompts/domains/
+-- Returns: table of domain_id -> { name, context, external, source }
+function DomainLoader.loadBuiltin()
+    local builtin_path = getPluginPath() .. "prompts/domains/"
+    return loadFromFolder(builtin_path, "builtin")
+end
+
+-- Load all domains from all sources
+-- User domains override built-in domains with same ID
+-- Returns: table of domain_id -> { name, context, external, source }
+function DomainLoader.loadAll()
+    local all_domains = {}
+
+    -- Load built-in first (lower priority)
+    local builtin = DomainLoader.loadBuiltin()
+    for id, domain in pairs(builtin) do
+        all_domains[id] = domain
+    end
+
+    -- Load user domains (higher priority, overrides built-in)
+    local user = DomainLoader.load()
+    for id, domain in pairs(user) do
+        all_domains[id] = domain
+    end
+
+    return all_domains
 end
 
 -- Get sorted list of domain IDs for UI
@@ -140,30 +188,34 @@ function DomainLoader.hasAny(domains)
     return next(domains) ~= nil
 end
 
--- Get the domains folder path (for UI display)
+-- Get the user domains folder path (for UI display)
 function DomainLoader.getFolderPath()
     return getPluginPath() .. "domains/"
 end
 
--- Get all domains from all sources: folder and UI-created
+-- Get the built-in domains folder path
+function DomainLoader.getBuiltinPath()
+    return getPluginPath() .. "prompts/domains/"
+end
+
+-- Get all domains from all sources: builtin, folder, and UI-created
 -- @param custom_domains: Array of UI-created domains from settings (optional)
 -- @return table: { id = { id, name, context, source, display_name } }
 function DomainLoader.getAllDomains(custom_domains)
     local all_domains = {}
 
-    -- Load folder domains
-    local folder_domains = DomainLoader.load()
-    local folder_names = {}
+    -- Load all file-based domains (builtin + user folder)
+    local file_domains = DomainLoader.loadAll()
 
-    for id, domain in pairs(folder_domains) do
-        folder_names[domain.name:lower()] = true
+    for id, domain in pairs(file_domains) do
+        local display_suffix = domain.source == "builtin" and "" or " (file)"
         all_domains[id] = {
             id = id,
             name = domain.name,
             context = domain.context,
-            source = "folder",
-            display_name = domain.name,
-            external = true,
+            source = domain.source,
+            display_name = domain.name .. display_suffix,
+            external = domain.source ~= "builtin",
         }
     end
 
@@ -171,20 +223,12 @@ function DomainLoader.getAllDomains(custom_domains)
     if custom_domains and type(custom_domains) == "table" then
         for _, domain in ipairs(custom_domains) do
             if domain.id and domain.context then
-                -- Handle name conflicts with folder domains
-                local display_name = domain.name or domain.id
-                if folder_names[display_name:lower()] then
-                    display_name = display_name .. " (custom)"
-                else
-                    display_name = display_name .. " (custom)"
-                end
-
                 all_domains[domain.id] = {
                     id = domain.id,
                     name = domain.name or domain.id,
                     context = domain.context,
                     source = "ui",
-                    display_name = display_name,
+                    display_name = (domain.name or domain.id) .. " (custom)",
                 }
             end
         end
@@ -205,8 +249,8 @@ function DomainLoader.getSortedDomains(custom_domains)
     end
 
     table.sort(sorted, function(a, b)
-        -- Folder first, then UI
-        local order = { folder = 1, ui = 2 }
+        -- Built-ins first, then folders, then UI
+        local order = { builtin = 1, folder = 2, ui = 3 }
         if order[a.source] ~= order[b.source] then
             return order[a.source] < order[b.source]
         end
@@ -223,17 +267,18 @@ end
 function DomainLoader.getDomainById(id, custom_domains)
     if not id then return nil end
 
-    -- Check folder domains first
-    local folder_domains = DomainLoader.load()
-    if folder_domains[id] then
-        local domain = folder_domains[id]
+    -- Check all file-based domains (builtin + user folder)
+    local file_domains = DomainLoader.loadAll()
+    if file_domains[id] then
+        local domain = file_domains[id]
+        local display_suffix = domain.source == "builtin" and "" or " (file)"
         return {
             id = id,
             name = domain.name,
             context = domain.context,
-            source = "folder",
-            display_name = domain.name,
-            external = true,
+            source = domain.source,
+            display_name = domain.name .. display_suffix,
+            external = domain.source ~= "builtin",
         }
     end
 
