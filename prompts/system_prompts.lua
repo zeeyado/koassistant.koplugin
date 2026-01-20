@@ -2,7 +2,7 @@
 -- This module provides behavior prompts for AI interactions
 --
 -- Structure:
---   behavior = AI personality/style variants (cacheable)
+--   Behaviors are loaded from prompts/behaviors/ (built-in) and behaviors/ (user)
 --   context  = Context-specific instructions (DEPRECATED - kept for reference)
 --
 -- System Array (Anthropic):
@@ -19,48 +19,38 @@ local _ = require("koassistant_gettext")
 
 local SystemPrompts = {}
 
--- AI Behavior Variants
--- These define the AI's personality and communication style
--- Selectable via settings: features.selected_behavior
-SystemPrompts.behavior = {
-    -- Minimal: ~100 tokens, focused on key conversational behaviors
-    -- Good for: general use, lower token cost
-    minimal = [[You are a helpful AI assistant in an e-reader application.
+-- Fallback behavior text (used if no behaviors can be loaded)
+local FALLBACK_BEHAVIOR = "You are a helpful assistant."
 
-Keep responses conversational and natural. Avoid excessive formatting (bullet points, headers, bold) unless specifically helpful. Match response length to question complexity - short answers for simple questions. Use paragraphs and prose rather than lists for explanations. Be warm but not effusive; direct but not curt.
+-- Cache for loaded behaviors (cleared on reload)
+local _builtin_cache = nil
+local _all_cache = nil
 
-When discussing texts, quote sparingly and briefly. Explain concepts in your own words. Connect ideas to broader context when relevant.]],
+-- Get built-in behaviors (cached)
+local function getBuiltinBehaviors()
+    if _builtin_cache then
+        return _builtin_cache
+    end
+    local BehaviorLoader = require("behavior_loader")
+    _builtin_cache = BehaviorLoader.loadBuiltin()
+    return _builtin_cache
+end
 
-    -- Full: ~500 tokens, comprehensive Claude-style guidelines
-    -- Good for: best quality responses, complex discussions
-    full = [[<ai_behavior>
-<tone_and_formatting>
-Avoid over-formatting responses with elements like bold emphasis, headers, lists, and bullet points. Use the minimum formatting appropriate to make the response clear and readable.
+-- Get all behaviors from builtin + user folders (cached)
+local function getAllFileBehaviors()
+    if _all_cache then
+        return _all_cache
+    end
+    local BehaviorLoader = require("behavior_loader")
+    _all_cache = BehaviorLoader.loadAll()
+    return _all_cache
+end
 
-In typical conversations or when asked simple questions, keep your tone natural and respond in sentences/paragraphs rather than lists or bullet points unless explicitly asked for these. In casual conversation, responses can be relatively short, e.g. just a few sentences long.
-
-Do not use bullet points or numbered lists for reports, documents, explanations, or unless the person explicitly asks for a list or ranking. For reports, documents, technical documentation, and explanations, write in prose and paragraphs without any lists. Inside prose, write lists in natural language like "some things include: x, y, and z" with no bullet points, numbered lists, or newlines.
-
-Never use bullet points when deciding not to help with a task; the additional care and attention can help soften the blow.
-
-Generally only use lists, bullet points, and formatting if (a) the person asks for it, or (b) the response is multifaceted and bullet points and lists are essential to clearly express the information. If you provide bullet points, each should be at least 1-2 sentences long unless the person requests otherwise.
-
-In general conversation, avoid overwhelming the person with more than one question per response. Address the person's query, even if ambiguous, before asking for clarification or additional information.
-
-Do not use emojis unless the person asks for them or uses them first, and be judicious even then.
-
-Treat users with kindness and avoid making negative or condescending assumptions about their abilities, judgment, or follow-through. Be willing to push back and be honest, but do so constructively - with kindness, empathy, and the user's best interests in mind.
-</tone_and_formatting>
-
-<user_wellbeing>
-Provide emotional support alongside accurate information where relevant. Care about people's wellbeing and avoid encouraging self-destructive behaviors. In ambiguous cases, ensure the person is happy and approaching things in a healthy way.
-</user_wellbeing>
-
-<evenhandedness>
-When asked to explain, discuss, or argue for a position, do not reflexively treat this as a request for your own views but as a request to present the best case that defenders of that position would give. Be wary of producing humor or creative content based on stereotypes. Be cautious about sharing personal opinions on political topics where debate is ongoing. Engage in all moral and political questions as sincere and good faith inquiries.
-</evenhandedness>
-</ai_behavior>]],
-}
+-- Clear behavior cache (call when behaviors might have changed)
+function SystemPrompts.clearBehaviorCache()
+    _builtin_cache = nil
+    _all_cache = nil
+end
 
 -- Context Instructions
 -- These describe the specific context of the current interaction
@@ -101,9 +91,14 @@ If the chat was launched from within a book, that context may be provided, but i
 function SystemPrompts.getBehavior(variant, custom_text)
     variant = variant or "minimal"
     if variant == "custom" then
-        return custom_text or SystemPrompts.behavior.minimal
+        local builtin = getBuiltinBehaviors()
+        return custom_text or (builtin.minimal and builtin.minimal.text) or FALLBACK_BEHAVIOR
     end
-    return SystemPrompts.behavior[variant] or SystemPrompts.behavior.minimal
+    local builtin = getBuiltinBehaviors()
+    if builtin[variant] then
+        return builtin[variant].text
+    end
+    return (builtin.minimal and builtin.minimal.text) or FALLBACK_BEHAVIOR
 end
 
 -- Helper function to get context prompt by context type
@@ -131,6 +126,7 @@ end
 --   source: "override", "variant", "none", or "global"
 function SystemPrompts.resolveBehavior(config)
     config = config or {}
+    local builtin = getBuiltinBehaviors()
 
     -- Priority 1: Custom override text (per-action)
     if config.behavior_override and config.behavior_override ~= "" then
@@ -144,11 +140,11 @@ function SystemPrompts.resolveBehavior(config)
         end
         -- Legacy "custom" variant support
         if config.behavior_variant == "custom" then
-            return config.custom_ai_behavior or SystemPrompts.behavior.minimal, "variant"
+            return config.custom_ai_behavior or (builtin.minimal and builtin.minimal.text) or FALLBACK_BEHAVIOR, "variant"
         end
         -- Check built-in first
-        if SystemPrompts.behavior[config.behavior_variant] then
-            return SystemPrompts.behavior[config.behavior_variant], "variant"
+        if builtin[config.behavior_variant] then
+            return builtin[config.behavior_variant].text, "variant"
         end
         -- Check all sources (folder, UI) for custom behavior ID
         local behavior = SystemPrompts.getBehaviorById(config.behavior_variant, config.custom_behaviors)
@@ -165,19 +161,19 @@ function SystemPrompts.resolveBehavior(config)
     end
     -- Legacy "custom" support
     if global_variant == "custom" then
-        return config.custom_ai_behavior or SystemPrompts.behavior.minimal, "global"
+        return config.custom_ai_behavior or (builtin.minimal and builtin.minimal.text) or FALLBACK_BEHAVIOR, "global"
     end
     -- Check built-in first
-    if SystemPrompts.behavior[global_variant] then
-        return SystemPrompts.behavior[global_variant], "global"
+    if builtin[global_variant] then
+        return builtin[global_variant].text, "global"
     end
     -- Check all sources for behavior ID
     local behavior = SystemPrompts.getBehaviorById(global_variant, config.custom_behaviors)
     if behavior then
         return behavior.text, "global"
     end
-    -- Final fallback to "full" built-in
-    return SystemPrompts.behavior.full, "global"
+    -- Final fallback to "full" built-in or FALLBACK
+    return (builtin.full and builtin.full.text) or FALLBACK_BEHAVIOR, "global"
 end
 
 -- Get combined cacheable content (behavior + domain)
@@ -412,8 +408,9 @@ end
 -- Get list of available behavior variant names (built-in only)
 -- @return table: Array of variant names
 function SystemPrompts.getVariantNames()
+    local builtin = getBuiltinBehaviors()
     local names = {}
-    for name, _ in pairs(SystemPrompts.behavior) do
+    for name, _ in pairs(builtin) do
         table.insert(names, name)
     end
     table.sort(names)
@@ -424,33 +421,19 @@ end
 -- @param custom_behaviors: Array of UI-created behaviors from settings (optional)
 -- @return table: { id = { id, name, text, source, display_name } }
 function SystemPrompts.getAllBehaviors(custom_behaviors)
-    local BehaviorLoader = require("behavior_loader")
     local all_behaviors = {}
 
-    -- Collect built-in behavior names for conflict detection
-    local builtin_names = {}
-    for id, text in pairs(SystemPrompts.behavior) do
-        builtin_names[id:lower()] = true
-        all_behaviors[id] = {
-            id = id,
-            name = id:sub(1, 1):upper() .. id:sub(2),  -- Capitalize first letter
-            text = text,
-            source = "builtin",
-            display_name = id:sub(1, 1):upper() .. id:sub(2),
-        }
-    end
-
-    -- Load folder behaviors
-    local folder_behaviors = BehaviorLoader.load()
-    for id, behavior in pairs(folder_behaviors) do
-        -- Always show "(file)" indicator for folder behaviors
+    -- Load all file-based behaviors (builtin + user folder)
+    local file_behaviors = getAllFileBehaviors()
+    for id, behavior in pairs(file_behaviors) do
+        local display_suffix = behavior.source == "builtin" and "" or " (file)"
         all_behaviors[id] = {
             id = id,
             name = behavior.name,
             text = behavior.text,
-            source = "folder",
-            display_name = behavior.name .. " (file)",
-            external = true,
+            source = behavior.source,
+            display_name = behavior.name .. display_suffix,
+            external = behavior.source ~= "builtin",
         }
     end
 
@@ -502,29 +485,18 @@ end
 function SystemPrompts.getBehaviorById(id, custom_behaviors)
     if not id then return nil end
 
-    -- Check built-in first
-    if SystemPrompts.behavior[id] then
-        return {
-            id = id,
-            name = id:sub(1, 1):upper() .. id:sub(2),
-            text = SystemPrompts.behavior[id],
-            source = "builtin",
-            display_name = id:sub(1, 1):upper() .. id:sub(2),
-        }
-    end
-
-    -- Check folder behaviors
-    local BehaviorLoader = require("behavior_loader")
-    local folder_behaviors = BehaviorLoader.load()
-    if folder_behaviors[id] then
-        local behavior = folder_behaviors[id]
+    -- Check all file-based behaviors (builtin + user folder)
+    local file_behaviors = getAllFileBehaviors()
+    if file_behaviors[id] then
+        local behavior = file_behaviors[id]
+        local display_suffix = behavior.source == "builtin" and "" or " (file)"
         return {
             id = id,
             name = behavior.name,
             text = behavior.text,
-            source = "folder",
-            display_name = behavior.name .. " (file)",
-            external = true,
+            source = behavior.source,
+            display_name = behavior.name .. display_suffix,
+            external = behavior.source ~= "builtin",
         }
     end
 

@@ -1,5 +1,9 @@
 -- Behavior loader for KOAssistant
--- Loads behavior definitions from external files in the behaviors/ folder
+-- Loads behavior definitions from external files
+--
+-- Sources (in priority order):
+--   1. behaviors/           - User behaviors (gitignored, can override built-in)
+--   2. prompts/behaviors/   - Built-in behaviors (tracked in git)
 --
 -- Behavior file format:
 --   Filename: behavior_id.md or behavior_id.txt (filename becomes the behavior ID)
@@ -41,9 +45,17 @@ local function filenameToDisplayName(filename)
     end)
 end
 
+-- Strip HTML/XML comments from content (used for metadata)
+-- We keep the content after stripping so the AI doesn't see our metadata comments
+local function stripMetadataComments(text)
+    -- Remove HTML-style comments <!-- ... -->
+    -- Using non-greedy match to handle multiple comments
+    return text:gsub("<!%-%-.-%-%->\n?", "")
+end
+
 -- Parse a behavior file
 -- Returns: { name = "Display Name", text = "..." } or nil
-local function parseBehaviorFile(content, fallback_name)
+local function parseBehaviorFile(content, fallback_name, source)
     if not content or content == "" then
         return nil
     end
@@ -68,6 +80,9 @@ local function parseBehaviorFile(content, fallback_name)
         text = content
     end
 
+    -- Strip metadata comments from text
+    text = stripMetadataComments(text)
+
     -- Trim whitespace from text
     text = text:match("^%s*(.-)%s*$") or ""
 
@@ -79,33 +94,34 @@ local function parseBehaviorFile(content, fallback_name)
         name = name,
         text = text,
         external = true,  -- Mark as loaded from external file
-        source = "folder",
+        source = source or "folder",
     }
 end
 
--- Load all behaviors from the behaviors/ folder
--- Returns: table of behavior_id -> { name, text, external, source }
-function BehaviorLoader.load()
+-- Load behaviors from a specific folder path
+-- @param folder_path: Full path to the folder
+-- @param source: Source identifier ("builtin" or "folder")
+-- @return table: behavior_id -> { name, text, external, source }
+local function loadFromFolder(folder_path, source)
     local behaviors = {}
-    local behaviors_path = getPluginPath() .. "behaviors/"
 
-    -- Check if behaviors folder exists
-    local attr = lfs.attributes(behaviors_path)
+    -- Check if folder exists
+    local attr = lfs.attributes(folder_path)
     if not attr or attr.mode ~= "directory" then
-        -- No behaviors folder, return empty
         return behaviors
     end
 
-    -- Iterate through files in the behaviors folder
-    for file in lfs.dir(behaviors_path) do
-        -- Only process .md and .txt files
-        if file:match("%.md$") or file:match("%.txt$") then
+    -- Iterate through files in the folder
+    for file in lfs.dir(folder_path) do
+        -- Only process .md and .txt files, skip README files
+        local lower_file = file:lower()
+        if (file:match("%.md$") or file:match("%.txt$")) and not lower_file:match("^readme%.") then
             local id = file:gsub("%.md$", ""):gsub("%.txt$", "")
-            local content = readFile(behaviors_path .. file)
+            local content = readFile(folder_path .. file)
 
             if content then
                 local fallback_name = filenameToDisplayName(id)
-                local behavior = parseBehaviorFile(content, fallback_name)
+                local behavior = parseBehaviorFile(content, fallback_name, source)
 
                 if behavior then
                     behaviors[id] = behavior
@@ -115,6 +131,41 @@ function BehaviorLoader.load()
     end
 
     return behaviors
+end
+
+-- Load all behaviors from user folder only (for backward compatibility)
+-- Returns: table of behavior_id -> { name, text, external, source }
+function BehaviorLoader.load()
+    local behaviors_path = getPluginPath() .. "behaviors/"
+    return loadFromFolder(behaviors_path, "folder")
+end
+
+-- Load built-in behaviors from prompts/behaviors/
+-- Returns: table of behavior_id -> { name, text, external, source }
+function BehaviorLoader.loadBuiltin()
+    local builtin_path = getPluginPath() .. "prompts/behaviors/"
+    return loadFromFolder(builtin_path, "builtin")
+end
+
+-- Load all behaviors from all sources
+-- User behaviors override built-in behaviors with same ID
+-- Returns: table of behavior_id -> { name, text, external, source }
+function BehaviorLoader.loadAll()
+    local all_behaviors = {}
+
+    -- Load built-in first (lower priority)
+    local builtin = BehaviorLoader.loadBuiltin()
+    for id, behavior in pairs(builtin) do
+        all_behaviors[id] = behavior
+    end
+
+    -- Load user behaviors (higher priority, overrides built-in)
+    local user = BehaviorLoader.load()
+    for id, behavior in pairs(user) do
+        all_behaviors[id] = behavior
+    end
+
+    return all_behaviors
 end
 
 -- Get sorted list of behavior IDs for UI
@@ -140,9 +191,14 @@ function BehaviorLoader.hasAny(behaviors)
     return next(behaviors) ~= nil
 end
 
--- Get the behaviors folder path (for UI display)
+-- Get the user behaviors folder path (for UI display)
 function BehaviorLoader.getFolderPath()
     return getPluginPath() .. "behaviors/"
+end
+
+-- Get the built-in behaviors folder path
+function BehaviorLoader.getBuiltinPath()
+    return getPluginPath() .. "prompts/behaviors/"
 end
 
 return BehaviorLoader
