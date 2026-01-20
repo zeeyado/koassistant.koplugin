@@ -45,16 +45,33 @@ local function filenameToDisplayName(filename)
     end)
 end
 
--- Strip HTML/XML comments from content (used for metadata)
--- We keep the content after stripping so the AI doesn't see our metadata comments
-local function stripMetadataComments(text)
+-- Parse metadata from HTML comments
+-- Returns: metadata table and content with comments stripped
+local function parseMetadata(text)
+    local metadata = {}
+
+    -- Extract metadata from HTML-style comments <!-- ... -->
+    for comment in text:gmatch("<!%-%-(.-)%-%->") do
+        -- Parse key: value pairs
+        for line in comment:gmatch("[^\n]+") do
+            local key, value = line:match("^%s*([^:]+):%s*(.+)%s*$")
+            if key and value then
+                key = key:lower():gsub("^%s*", ""):gsub("%s*$", "")
+                value = value:gsub("^%s*", ""):gsub("%s*$", "")
+                metadata[key] = value
+            end
+        end
+    end
+
     -- Remove HTML-style comments <!-- ... -->
     -- Using non-greedy match to handle multiple comments
-    return text:gsub("<!%-%-.-%-%->\n?", "")
+    local stripped = text:gsub("<!%-%-.-%-%->\n?", "")
+
+    return metadata, stripped
 end
 
 -- Parse a behavior file
--- Returns: { name = "Display Name", text = "..." } or nil
+-- Returns: { name = "Display Name", text = "...", metadata = {...} } or nil
 local function parseBehaviorFile(content, fallback_name, source)
     if not content or content == "" then
         return nil
@@ -80,8 +97,9 @@ local function parseBehaviorFile(content, fallback_name, source)
         text = content
     end
 
-    -- Strip metadata comments from text
-    text = stripMetadataComments(text)
+    -- Parse and strip metadata comments from text
+    local metadata, stripped = parseMetadata(text)
+    text = stripped
 
     -- Trim whitespace from text
     text = text:match("^%s*(.-)%s*$") or ""
@@ -93,6 +111,7 @@ local function parseBehaviorFile(content, fallback_name, source)
     return {
         name = name,
         text = text,
+        metadata = metadata,  -- Source, Tokens, Notes, Date, etc.
         external = true,  -- Mark as loaded from external file
         source = source or "folder",
     }

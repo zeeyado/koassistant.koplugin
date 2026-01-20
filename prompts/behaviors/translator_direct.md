@@ -1,4 +1,4 @@
-# Translator (Direct)
+# Direct Translator
 <!--
 Source: Built-in for translation actions
 Tokens: ~85

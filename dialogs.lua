@@ -199,7 +199,7 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
         -- Behavior resolution (priority: action override > action variant > global)
         behavior_variant = action and action.behavior_variant,
         behavior_override = action and action.behavior_override,
-        global_variant = features.selected_behavior or "full",
+        global_variant = features.selected_behavior or "standard",
         custom_ai_behavior = features.custom_ai_behavior,  -- Legacy support (for migrated users)
         custom_behaviors = features.custom_behaviors,       -- NEW: array of UI-created behaviors
         -- Domain context

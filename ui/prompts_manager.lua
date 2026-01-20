@@ -10,8 +10,37 @@ local ButtonDialog = require("ui/widget/buttondialog")
 local TextViewer = require("ui/widget/textviewer")
 local UIConstants = require("ui/constants")
 local ModelConstraints = require("model_constraints")
+local SystemPrompts = require("prompts/system_prompts")
 
 local PromptsManager = {}
+
+-- Helper: Get built-in behavior options for action editing
+-- Returns array of { id, text, desc } for radio button display
+local function getBuiltinBehaviorOptions()
+    local options = {}
+    local builtin_behaviors = SystemPrompts.getSortedBehaviors(nil)  -- Only built-ins, no custom
+
+    for _, behavior in ipairs(builtin_behaviors) do
+        if behavior.source == "builtin" then
+            -- Estimate tokens from text length (rough: chars/4)
+            local tokens = behavior.text and math.floor(#behavior.text / 4) or 0
+            table.insert(options, {
+                id = behavior.id,
+                text = behavior.name,
+                desc = string.format(_("~%d tokens"), tokens),
+            })
+        end
+    end
+
+    return options
+end
+
+-- Helper: Check if a behavior_variant is a known built-in
+local function isBuiltinBehavior(variant)
+    if not variant then return false end
+    local behavior = SystemPrompts.getBehaviorById(variant, nil)
+    return behavior and behavior.source == "builtin"
+end
 
 function PromptsManager:new(plugin)
     local o = {
@@ -443,7 +472,13 @@ function PromptsManager:showPromptDetails(prompt)
     elseif prompt.behavior_variant == "none" then
         behavior_text = _("None (disabled)")
     elseif prompt.behavior_variant then
-        behavior_text = prompt.behavior_variant
+        -- Look up the behavior name from built-ins
+        local behavior = SystemPrompts.getBehaviorById(prompt.behavior_variant, nil)
+        if behavior then
+            behavior_text = behavior.name
+        else
+            behavior_text = prompt.behavior_variant  -- Fallback to ID
+        end
     else
         behavior_text = _("(Use global setting)")
     end
@@ -899,20 +934,24 @@ function PromptsManager:showStep2_Behavior(state)
         current_selection = "custom"
     elseif state.behavior_variant == "none" then
         current_selection = "none"
-    elseif state.behavior_variant == "minimal" then
-        current_selection = "minimal"
-    elseif state.behavior_variant == "full" then
-        current_selection = "full"
+    elseif isBuiltinBehavior(state.behavior_variant) then
+        current_selection = state.behavior_variant
     end
 
-    -- Build behavior options as buttons
+    -- Build behavior options dynamically from built-in behaviors
     local behavior_options = {
         { id = "global", text = _("Use global setting"), desc = _("Inherits from Settings → Advanced → AI Behavior Style") },
-        { id = "minimal", text = _("Minimal"), desc = _("Brief, focused responses (~100 tokens)") },
-        { id = "full", text = _("Full"), desc = _("Comprehensive Claude-style guidelines (~500 tokens)") },
-        { id = "none", text = _("None"), desc = _("No behavior instructions - just your action prompt") },
-        { id = "custom", text = _("Custom..."), desc = _("Define your own AI personality/role") },
     }
+
+    -- Add all built-in behaviors
+    local builtin_options = getBuiltinBehaviorOptions()
+    for _, opt in ipairs(builtin_options) do
+        table.insert(behavior_options, opt)
+    end
+
+    -- Add none and custom options
+    table.insert(behavior_options, { id = "none", text = _("None"), desc = _("No behavior instructions - just your action prompt") })
+    table.insert(behavior_options, { id = "custom", text = _("Custom..."), desc = _("Define your own AI personality/role") })
 
     local buttons = {}
 
@@ -1837,10 +1876,14 @@ function PromptsManager:showBuiltinSettingsDialog(state)
         behavior_display = _("Custom")
     elseif state.behavior_variant == "none" then
         behavior_display = _("None")
-    elseif state.behavior_variant == "minimal" then
-        behavior_display = _("Minimal")
-    elseif state.behavior_variant == "full" then
-        behavior_display = _("Full")
+    elseif state.behavior_variant then
+        -- Look up the behavior name from built-ins
+        local behavior = SystemPrompts.getBehaviorById(state.behavior_variant, nil)
+        if behavior then
+            behavior_display = behavior.name
+        else
+            behavior_display = state.behavior_variant  -- Fallback to ID
+        end
     else
         behavior_display = _("Global")
     end
@@ -1946,19 +1989,24 @@ function PromptsManager:showBuiltinBehaviorSelector(state)
         current_selection = "custom"
     elseif state.behavior_variant == "none" then
         current_selection = "none"
-    elseif state.behavior_variant == "minimal" then
-        current_selection = "minimal"
-    elseif state.behavior_variant == "full" then
-        current_selection = "full"
+    elseif isBuiltinBehavior(state.behavior_variant) then
+        current_selection = state.behavior_variant
     end
 
+    -- Build behavior options dynamically from built-in behaviors
     local behavior_options = {
         { id = "global", text = _("Use global setting") },
-        { id = "minimal", text = _("Minimal (~100 tokens)") },
-        { id = "full", text = _("Full (~500 tokens)") },
-        { id = "none", text = _("None (no behavior)") },
-        { id = "custom", text = _("Custom...") },
     }
+
+    -- Add all built-in behaviors
+    local builtin_options = getBuiltinBehaviorOptions()
+    for _, opt in ipairs(builtin_options) do
+        table.insert(behavior_options, { id = opt.id, text = opt.text .. " (" .. opt.desc .. ")" })
+    end
+
+    -- Add none and custom options
+    table.insert(behavior_options, { id = "none", text = _("None (no behavior)") })
+    table.insert(behavior_options, { id = "custom", text = _("Custom...") })
 
     local buttons = {}
     for _, option in ipairs(behavior_options) do

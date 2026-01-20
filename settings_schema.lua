@@ -202,7 +202,7 @@ local SettingsSchema = {
                     type = "action",
                     text_func = function(plugin)
                         local f = plugin.settings:readSetting("features") or {}
-                        local selected = f.selected_behavior or "full"
+                        local selected = f.selected_behavior or "standard"
                         -- Get display name for selected behavior
                         local SystemPrompts = require("prompts/system_prompts")
                         local behavior = SystemPrompts.getBehaviorById(selected, f.custom_behaviors)

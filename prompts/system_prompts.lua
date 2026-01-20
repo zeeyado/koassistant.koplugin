@@ -155,7 +155,7 @@ function SystemPrompts.resolveBehavior(config)
     end
 
     -- Priority 3: Global setting (supports behavior ID or legacy values)
-    local global_variant = config.global_variant or "full"
+    local global_variant = config.global_variant or "standard"
     if global_variant == "none" then
         return nil, "none"
     end
@@ -434,6 +434,7 @@ function SystemPrompts.getAllBehaviors(custom_behaviors)
             source = behavior.source,
             display_name = behavior.name .. display_suffix,
             external = behavior.source ~= "builtin",
+            metadata = behavior.metadata,  -- Source, Notes, Date from file comments
         }
     end
 
@@ -497,6 +498,7 @@ function SystemPrompts.getBehaviorById(id, custom_behaviors)
             source = behavior.source,
             display_name = behavior.name .. display_suffix,
             external = behavior.source ~= "builtin",
+            metadata = behavior.metadata,  -- Source, Notes, Date from file comments
         }
     end
 

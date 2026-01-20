@@ -293,7 +293,7 @@ function MessageHistory:createResultText(highlightedText, config)
                 provider = stored_debug.provider or "unknown"
                 model = stored_debug.model or "default"
                 temp = stored_debug.temperature or 0.7
-                behavior = stored_debug.behavior or "full"
+                behavior = stored_debug.behavior or "standard"
                 domain = stored_debug.domain or "none"
 
                 -- Build reasoning info from stored data
@@ -313,7 +313,7 @@ function MessageHistory:createResultText(highlightedText, config)
             else
                 -- Fall back to current config (for chats created before debug storage)
                 provider = config.provider or config.default_provider or "unknown"
-                behavior = config.features.selected_behavior or "full"
+                behavior = config.features.selected_behavior or "standard"
                 domain = config.features.selected_domain or "none"
 
                 -- Get actual model from provider settings if available

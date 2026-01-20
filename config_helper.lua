@@ -106,7 +106,7 @@ function ConfigHelper:buildDebugInfo(config)
         provider = provider,
         model = model,
         temperature = temp,
-        behavior = features.selected_behavior or "full",
+        behavior = features.selected_behavior or "standard",
         domain = features.selected_domain,
     }
 

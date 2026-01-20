@@ -26,7 +26,7 @@ end
 -- Get the currently selected behavior ID
 function BehaviorManager:getSelectedBehavior()
     local features = self.plugin.settings:readSetting("features") or {}
-    return features.selected_behavior or "full"
+    return features.selected_behavior or "standard"
 end
 
 -- Set the selected behavior ID
@@ -100,7 +100,7 @@ function BehaviorManager:deleteCustomBehavior(id)
             self:saveCustomBehaviors(custom)
             -- If deleted behavior was selected, switch to default
             if self:getSelectedBehavior() == id then
-                self:setSelectedBehavior("full")
+                self:setSelectedBehavior("standard")
             end
             return true
         end
@@ -189,10 +189,10 @@ function BehaviorManager:showBehaviorMenu()
                 text = _("Restore Defaults"),
                 callback = function()
                     UIManager:show(ConfirmBox:new{
-                        text = _("This will delete all custom behaviors and reset selection to Full. Continue?"),
+                        text = _("This will delete all custom behaviors and reset selection to Standard. Continue?"),
                         ok_callback = function()
                             self:saveCustomBehaviors({})
-                            self:setSelectedBehavior("full")
+                            self:setSelectedBehavior("standard")
                             self:refreshMenu()
                         end,
                     })
@@ -255,14 +255,33 @@ function BehaviorManager:showBehaviorDetails(behavior)
     -- Calculate approximate token count (rough estimate: 4 chars per token)
     local token_estimate = math.ceil(#behavior.text / 4)
 
-    local info_text = string.format(
-        "%s\n\n%s: %s\n%s: ~%d tokens\n\n%s:\n%s",
+    -- Build info text
+    local info_parts = {
         behavior.display_name,
-        _("Source"), source_text,
-        _("Size"), token_estimate,
-        _("Content"),
-        behavior.text
-    )
+        "",
+        _("Source") .. ": " .. source_text,
+    }
+
+    -- Add metadata if available (from file-based behaviors)
+    local metadata = behavior.metadata
+    if metadata then
+        if metadata.source then
+            table.insert(info_parts, _("Based on") .. ": " .. metadata.source)
+        end
+        if metadata.date then
+            table.insert(info_parts, _("Date") .. ": " .. metadata.date)
+        end
+        if metadata.notes then
+            table.insert(info_parts, _("Notes") .. ": " .. metadata.notes)
+        end
+    end
+
+    table.insert(info_parts, _("Size") .. ": ~" .. token_estimate .. " tokens")
+    table.insert(info_parts, "")
+    table.insert(info_parts, _("Content") .. ":")
+    table.insert(info_parts, behavior.text)
+
+    local info_text = table.concat(info_parts, "\n")
 
     local buttons = {}
 
@@ -452,15 +471,13 @@ function BehaviorManager:showBehaviorTextEditor(behavior, name, initial_text)
                     end,
                 },
                 {
-                    text = _("Load Minimal"),
+                    text = _("Load Built-in..."),
                     callback = function()
-                        text_dialog:setInputText(SystemPrompts.behavior.minimal)
-                    end,
-                },
-                {
-                    text = _("Load Full"),
-                    callback = function()
-                        text_dialog:setInputText(SystemPrompts.behavior.full)
+                        self:showBuiltinTemplateSelector(function(selected_text)
+                            if selected_text then
+                                text_dialog:setInputText(selected_text)
+                            end
+                        end)
                     end,
                 },
                 {
@@ -500,6 +517,44 @@ function BehaviorManager:showBehaviorTextEditor(behavior, name, initial_text)
     }
 
     UIManager:show(text_dialog)
+end
+
+-- Show built-in template selector (only built-in behaviors)
+function BehaviorManager:showBuiltinTemplateSelector(callback)
+    local all_behaviors = SystemPrompts.getSortedBehaviors(nil)
+    local buttons = {}
+
+    for _idx, behavior in ipairs(all_behaviors) do
+        if behavior.source == "builtin" then
+            local tokens = behavior.text and math.floor(#behavior.text / 4) or 0
+            table.insert(buttons, {
+                {
+                    text = string.format("%s (~%d tokens)", behavior.name, tokens),
+                    callback = function()
+                        UIManager:close(self.builtin_template_dialog)
+                        callback(behavior.text)
+                    end,
+                },
+            })
+        end
+    end
+
+    -- Add cancel button
+    table.insert(buttons, {
+        {
+            text = _("Cancel"),
+            callback = function()
+                UIManager:close(self.builtin_template_dialog)
+            end,
+        },
+    })
+
+    self.builtin_template_dialog = ButtonDialog:new{
+        title = _("Load Built-in Behavior"),
+        buttons = buttons,
+    }
+
+    UIManager:show(self.builtin_template_dialog)
 end
 
 -- Show template selector dialog

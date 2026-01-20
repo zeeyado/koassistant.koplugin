@@ -856,7 +856,7 @@ function AskGPT:initSettings()
       large_stream_dialog = true,  -- Default to full-screen streaming dialog
       stream_display_interval = 250,  -- ms between display updates (performance tuning)
       -- Behavior settings (new system v0.6+)
-      selected_behavior = "full",  -- Behavior ID: "minimal", "full", or custom ID
+      selected_behavior = "standard",  -- Behavior ID: "mini", "standard", "full", or custom ID
       behavior_migrated = true,    -- Mark as already on new system
     })
   end
@@ -918,7 +918,7 @@ function AskGPT:initSettings()
 
     -- Ensure selected_behavior has a value
     if not features.selected_behavior then
-      features.selected_behavior = "full"
+      features.selected_behavior = "standard"
       needs_save = true
     end
 
@@ -950,7 +950,7 @@ function AskGPT:updateConfigFromSettings()
   }
 
   -- Always show AI behavior variant
-  table.insert(config_parts, "behavior=" .. (features.selected_behavior or "full"))
+  table.insert(config_parts, "behavior=" .. (features.selected_behavior or "standard"))
 
   -- Add other relevant settings if they differ from defaults
   if features.default_temperature and features.default_temperature ~= 0.7 then
@@ -1856,7 +1856,7 @@ function AskGPT:buildBehaviorMenu()
       text = behavior_copy.display_name or behavior_copy.name,  -- display_name already includes source indicator
       checked_func = function()
         local f = self_ref.settings:readSetting("features") or {}
-        return (f.selected_behavior or "full") == behavior_copy.id
+        return (f.selected_behavior or "standard") == behavior_copy.id
       end,
       radio = true,
       callback = function()
@@ -1892,7 +1892,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
   local features = self.settings:readSetting("features") or {}
   local provider = features.provider or "anthropic"
   local model = self:getCurrentModel() or "default"
-  local behavior_id = features.selected_behavior or "full"
+  local behavior_id = features.selected_behavior or "standard"
   local temp = features.default_temperature or 0.7
   local streaming = features.enable_streaming ~= false  -- Default true
 
