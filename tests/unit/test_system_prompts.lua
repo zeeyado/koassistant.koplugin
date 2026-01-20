@@ -457,6 +457,173 @@ TestRunner:test("returns array of variant names", function()
     if not has_full then error("missing full") end
 end)
 
+-- Test getAllBehaviors()
+TestRunner:suite("getAllBehaviors()")
+
+TestRunner:test("returns built-in behaviors", function()
+    local result = SystemPrompts.getAllBehaviors(nil)
+    TestRunner:assertType(result, "table", "returns table")
+    TestRunner:assertNotNil(result["minimal"], "has minimal")
+    TestRunner:assertNotNil(result["full"], "has full")
+end)
+
+TestRunner:test("built-in behaviors have correct structure", function()
+    local result = SystemPrompts.getAllBehaviors(nil)
+    local minimal = result["minimal"]
+    TestRunner:assertEqual(minimal.id, "minimal", "id matches")
+    TestRunner:assertEqual(minimal.source, "builtin", "source is builtin")
+    TestRunner:assertNotNil(minimal.text, "has text")
+    TestRunner:assertNotNil(minimal.display_name, "has display_name")
+end)
+
+TestRunner:test("includes UI-created behaviors", function()
+    local custom = {
+        { id = "custom_1", name = "My Custom", text = "Custom behavior text" },
+    }
+    local result = SystemPrompts.getAllBehaviors(custom)
+    TestRunner:assertNotNil(result["custom_1"], "has custom behavior")
+    TestRunner:assertEqual(result["custom_1"].source, "ui", "source is ui")
+    TestRunner:assertEqual(result["custom_1"].text, "Custom behavior text", "text matches")
+end)
+
+TestRunner:test("UI-created behaviors get (custom) suffix in display_name", function()
+    local custom = {
+        { id = "custom_1", name = "My Custom", text = "Custom text" },
+    }
+    local result = SystemPrompts.getAllBehaviors(custom)
+    TestRunner:assertContains(result["custom_1"].display_name, "(custom)", "has custom suffix")
+end)
+
+TestRunner:test("handles nil custom_behaviors", function()
+    local result = SystemPrompts.getAllBehaviors(nil)
+    TestRunner:assertType(result, "table", "returns table")
+    TestRunner:assertNotNil(result["minimal"], "has built-ins")
+end)
+
+TestRunner:test("handles empty custom_behaviors array", function()
+    local result = SystemPrompts.getAllBehaviors({})
+    TestRunner:assertType(result, "table", "returns table")
+    TestRunner:assertNotNil(result["minimal"], "has built-ins")
+end)
+
+-- Test getSortedBehaviors()
+TestRunner:suite("getSortedBehaviors()")
+
+TestRunner:test("returns array sorted by source then name", function()
+    local custom = {
+        { id = "custom_1", name = "Zebra", text = "text" },
+        { id = "custom_2", name = "Alpha", text = "text" },
+    }
+    local result = SystemPrompts.getSortedBehaviors(custom)
+    TestRunner:assertType(result, "table", "returns table")
+    -- Built-ins should come first
+    local first_source = result[1].source
+    TestRunner:assertEqual(first_source, "builtin", "built-ins first")
+end)
+
+TestRunner:test("UI behaviors appear after built-ins", function()
+    local custom = {
+        { id = "custom_1", name = "My Custom", text = "text" },
+    }
+    local result = SystemPrompts.getSortedBehaviors(custom)
+    -- Find positions
+    local builtin_pos, ui_pos
+    for i, b in ipairs(result) do
+        if b.source == "builtin" and not builtin_pos then builtin_pos = i end
+        if b.source == "ui" then ui_pos = i end
+    end
+    if ui_pos and builtin_pos and ui_pos < builtin_pos then
+        error("UI should come after built-ins")
+    end
+end)
+
+TestRunner:test("returns all behaviors", function()
+    local custom = {
+        { id = "custom_1", name = "Custom 1", text = "text" },
+    }
+    local result = SystemPrompts.getSortedBehaviors(custom)
+    -- Should have at least 3: minimal, full, custom_1
+    if #result < 3 then error("expected at least 3 behaviors, got " .. #result) end
+end)
+
+-- Test getBehaviorById()
+TestRunner:suite("getBehaviorById()")
+
+TestRunner:test("returns built-in behavior by ID", function()
+    local result = SystemPrompts.getBehaviorById("minimal", nil)
+    TestRunner:assertNotNil(result, "found minimal")
+    TestRunner:assertEqual(result.id, "minimal", "id matches")
+    TestRunner:assertEqual(result.source, "builtin", "source is builtin")
+    TestRunner:assertContains(result.text, "helpful AI assistant", "text matches")
+end)
+
+TestRunner:test("returns UI-created behavior by ID", function()
+    local custom = {
+        { id = "custom_1", name = "My Custom", text = "My custom text" },
+    }
+    local result = SystemPrompts.getBehaviorById("custom_1", custom)
+    TestRunner:assertNotNil(result, "found custom")
+    TestRunner:assertEqual(result.id, "custom_1", "id matches")
+    TestRunner:assertEqual(result.source, "ui", "source is ui")
+    TestRunner:assertEqual(result.text, "My custom text", "text matches")
+end)
+
+TestRunner:test("returns nil for unknown ID", function()
+    local result = SystemPrompts.getBehaviorById("nonexistent", nil)
+    TestRunner:assertNil(result, "nil for unknown")
+end)
+
+TestRunner:test("returns nil for nil ID", function()
+    local result = SystemPrompts.getBehaviorById(nil, nil)
+    TestRunner:assertNil(result, "nil for nil ID")
+end)
+
+TestRunner:test("built-in takes priority over custom with same ID", function()
+    -- Edge case: if someone creates a custom with id="minimal"
+    local custom = {
+        { id = "minimal", name = "Fake Minimal", text = "Fake text" },
+    }
+    local result = SystemPrompts.getBehaviorById("minimal", custom)
+    -- Built-in should win
+    TestRunner:assertEqual(result.source, "builtin", "built-in wins")
+end)
+
+-- Test resolveBehavior() with custom_behaviors array
+TestRunner:suite("resolveBehavior() with custom_behaviors")
+
+TestRunner:test("resolves UI-created behavior by ID in variant", function()
+    local custom = {
+        { id = "custom_1", name = "My Custom", text = "Custom behavior text" },
+    }
+    local text, source = SystemPrompts.resolveBehavior({
+        behavior_variant = "custom_1",
+        custom_behaviors = custom,
+    })
+    TestRunner:assertEqual(text, "Custom behavior text", "custom text resolved")
+    TestRunner:assertEqual(source, "variant", "source is variant")
+end)
+
+TestRunner:test("resolves UI-created behavior by ID in global_variant", function()
+    local custom = {
+        { id = "custom_1", name = "My Custom", text = "Custom behavior text" },
+    }
+    local text, source = SystemPrompts.resolveBehavior({
+        global_variant = "custom_1",
+        custom_behaviors = custom,
+    })
+    TestRunner:assertEqual(text, "Custom behavior text", "custom text resolved")
+    TestRunner:assertEqual(source, "global", "source is global")
+end)
+
+TestRunner:test("falls back to full for unknown custom ID", function()
+    local text, source = SystemPrompts.resolveBehavior({
+        behavior_variant = "nonexistent_custom",
+        custom_behaviors = {},
+    })
+    -- Should fall through to global default (full)
+    TestRunner:assertContains(text, "ai_behavior", "falls back to full")
+end)
+
 -- Summary
 local success = TestRunner:summary()
 return success

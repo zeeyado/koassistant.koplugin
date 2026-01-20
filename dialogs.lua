@@ -199,8 +199,9 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
         -- Behavior resolution (priority: action override > action variant > global)
         behavior_variant = action and action.behavior_variant,
         behavior_override = action and action.behavior_override,
-        global_variant = features.ai_behavior_variant or "full",
-        custom_ai_behavior = features.custom_ai_behavior,
+        global_variant = features.selected_behavior or "full",
+        custom_ai_behavior = features.custom_ai_behavior,  -- Legacy support (for migrated users)
+        custom_behaviors = features.custom_behaviors,       -- NEW: array of UI-created behaviors
         -- Domain context
         domain_context = domain_context,
         -- Caching (only effective for Anthropic)
@@ -1190,9 +1191,11 @@ local function handlePredefinedPrompt(prompt_type, highlightedText, ui, configur
     local domain_id = prompt.domain or (config.features and config.features.selected_domain)
     if domain_id then
         local DomainLoader = require("domain_loader")
-        local all_domains = DomainLoader.load()
-        if all_domains[domain_id] then
-            domain_context = all_domains[domain_id].context
+        -- Get custom domains from config for lookup
+        local custom_domains = config.features and config.features.custom_domains or {}
+        local domain = DomainLoader.getDomainById(domain_id, custom_domains)
+        if domain then
+            domain_context = domain.context
         end
     end
 
@@ -1331,8 +1334,11 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         input_dialog:onCloseKeyboard()
 
         local DomainLoader = require("domain_loader")
-        local all_domains = DomainLoader.load()
-        local sorted_ids = DomainLoader.getSortedIds(all_domains)
+        -- Get custom domains from settings
+        local features = plugin and plugin.settings and plugin.settings:readSetting("features") or {}
+        local custom_domains = features.custom_domains or {}
+        -- Get all domains (folder + UI-created) sorted
+        local sorted_domains = DomainLoader.getSortedDomains(custom_domains)
 
         local buttons = {}
 
@@ -1357,19 +1363,20 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             },
         })
 
-        -- Domain options
-        for _, domain_id in ipairs(sorted_ids) do
-            local domain = all_domains[domain_id]
-            local prefix = (selected_domain == domain_id) and "● " or "○ "
+        -- Domain options with source indicators
+        for _, domain in ipairs(sorted_domains) do
+            local prefix = (selected_domain == domain.id) and "● " or "○ "
+            -- Use display_name which includes source indicator for UI-created domains
+            local display_text = prefix .. domain.display_name
             table.insert(buttons, {
                 {
-                    text = prefix .. domain.name,
+                    text = display_text,
                     callback = function()
-                        selected_domain = domain_id
+                        selected_domain = domain.id
                         configuration.features = configuration.features or {}
-                        configuration.features.selected_domain = domain_id
+                        configuration.features.selected_domain = domain.id
                         -- Persist to settings so it survives restarts
-                        persistDomainSelection(plugin, domain_id)
+                        persistDomainSelection(plugin, domain.id)
                         -- Capture current input text before closing
                         local current_input = input_dialog:getInputText()
                         UIManager:close(_G.domain_selector_dialog)
@@ -1406,9 +1413,12 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             return _("None")
         end
         local DomainLoader = require("domain_loader")
-        local all_domains = DomainLoader.load()
-        if all_domains[selected_domain] then
-            return all_domains[selected_domain].name
+        -- Get custom domains from settings for lookup
+        local features = plugin and plugin.settings and plugin.settings:readSetting("features") or {}
+        local custom_domains = features.custom_domains or {}
+        local domain = DomainLoader.getDomainById(selected_domain, custom_domains)
+        if domain then
+            return domain.display_name
         end
         return selected_domain
     end
@@ -1448,9 +1458,11 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     local domain_context = nil
                     if domain_id then
                         local DomainLoader = require("domain_loader")
-                        local all_domains = DomainLoader.load()
-                        if all_domains[domain_id] then
-                            domain_context = all_domains[domain_id].context
+                        -- Get custom domains from configuration for lookup
+                        local custom_domains = configuration and configuration.features and configuration.features.custom_domains or {}
+                        local domain = DomainLoader.getDomainById(domain_id, custom_domains)
+                        if domain then
+                            domain_context = domain.context
                         end
                     end
 

@@ -198,28 +198,26 @@ local SettingsSchema = {
             separator = true,
             items = {
                 {
-                    id = "ai_behavior_variant",
-                    type = "radio",
+                    id = "manage_behaviors",
+                    type = "action",
                     text_func = function(plugin)
                         local f = plugin.settings:readSetting("features") or {}
-                        local variant = f.ai_behavior_variant or "full"
-                        local labels = { minimal = _("Minimal"), full = _("Full"), custom = _("Custom") }
-                        return T(_("AI Behavior: %1"), labels[variant] or _("Full"))
+                        local selected = f.selected_behavior or "full"
+                        -- Get display name for selected behavior
+                        local SystemPrompts = require("prompts/system_prompts")
+                        local behavior = SystemPrompts.getBehaviorById(selected, f.custom_behaviors)
+                        local name = behavior and behavior.display_name or selected
+                        return T(_("Manage Behaviors (%1)"), name)
                     end,
-                    path = "features.ai_behavior_variant",
-                    default = "full",
-                    options = {
-                        { value = "minimal", text = _("Minimal (~100 tokens)") },
-                        { value = "full", text = _("Full (~500 tokens)") },
-                        { value = "custom", text = _("Custom") },
-                    },
+                    callback = "showBehaviorManager",
+                    info_text = _("Select or create AI behavior styles that define how the AI communicates."),
                 },
                 {
-                    id = "custom_ai_behavior",
+                    id = "manage_domains",
                     type = "action",
-                    text = _("Edit Custom Behavior..."),
-                    callback = "editCustomAIBehavior",
-                    depends_on = { id = "ai_behavior_variant", value = "custom" },
+                    text = _("Manage Domains..."),
+                    callback = "showDomainManager",
+                    info_text = _("Manage knowledge domains. Domains are selected per-chat."),
                     separator = true,
                 },
                 {
@@ -467,12 +465,6 @@ local SettingsSchema = {
             type = "action",
             text = _("Highlight Menu Actions"),
             callback = "showHighlightMenuManager",
-        },
-        {
-            id = "view_domains",
-            type = "action",
-            text = _("View Domains"),
-            callback = "showDomainsViewer",
             separator = true,
         },
 

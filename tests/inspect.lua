@@ -675,52 +675,79 @@ local function startWebServer(options)
         })
     end)
 
-    -- GET /api/domains - List available domains from domains/ folder
+    -- GET /api/domains - List available domains (uses actual DomainLoader from plugin)
     server:route("GET", "/api/domains", function(headers, body)
-        local domains_data = {}
-        local domains_path = plugin_dir .. "/domains"
+        local DomainLoader = require("domain_loader")
 
-        -- List files in domains/ folder using ls command
-        local handle = io.popen('ls -1 "' .. domains_path .. '" 2>/dev/null')
-        if handle then
-            for filename in handle:lines() do
-                if filename:match("%.md$") or filename:match("%.txt$") then
-                    local domain_id = filename:gsub("%.md$", ""):gsub("%.txt$", "")
-                    local filepath = domains_path .. "/" .. filename
-
-                    -- Read file content
-                    local file = io.open(filepath, "r")
-                    if file then
-                        local content = file:read("*a")
-                        file:close()
-
-                        -- Parse: first # heading is name, rest is context
-                        local name = domain_id:gsub("_", " "):gsub("(%a)([%w]*)", function(first, rest)
-                            return first:upper() .. rest
-                        end)
-                        local context = content
-
-                        local heading = content:match("^#%s*([^\n]+)")
-                        if heading then
-                            name = heading
-                            context = content:gsub("^#[^\n]*\n*", "")
-                        end
-
-                        table.insert(domains_data, {
-                            id = domain_id,
-                            name = name,
-                            context = context,
-                            preview = context:sub(1, 100) .. (context:len() > 100 and "..." or ""),
-                        })
-                    end
-                end
+        -- Load custom_domains from settings if available
+        local custom_domains = {}
+        local settings_path = plugin_dir .. "/../../settings/koassistant_settings.lua"
+        local file = io.open(settings_path, "r")
+        if file then
+            file:close()
+            local ok, loaded = pcall(dofile, settings_path)
+            if ok and loaded and loaded.features then
+                custom_domains = loaded.features.custom_domains or {}
             end
-            handle:close()
+        end
+
+        -- Use actual DomainLoader to get all domains (folder + UI-created)
+        local sorted_domains = DomainLoader.getSortedDomains(custom_domains)
+
+        -- Format for API response
+        local domains_data = {}
+        for _idx, domain in ipairs(sorted_domains) do
+            table.insert(domains_data, {
+                id = domain.id,
+                name = domain.name,
+                display_name = domain.display_name,
+                context = domain.context,
+                source = domain.source,
+                preview = domain.context:sub(1, 100) .. (domain.context:len() > 100 and "..." or ""),
+            })
         end
 
         return "200 OK", "application/json", json.encode({
             success = true,
             domains = domains_data,
+        })
+    end)
+
+    -- GET /api/behaviors - List available behaviors (uses actual SystemPrompts from plugin)
+    server:route("GET", "/api/behaviors", function(headers, body)
+        local SystemPrompts = require("prompts.system_prompts")
+
+        -- Load custom_behaviors from settings if available
+        local custom_behaviors = {}
+        local settings_path = plugin_dir .. "/../../settings/koassistant_settings.lua"
+        local file = io.open(settings_path, "r")
+        if file then
+            file:close()
+            local ok, loaded = pcall(dofile, settings_path)
+            if ok and loaded and loaded.features then
+                custom_behaviors = loaded.features.custom_behaviors or {}
+            end
+        end
+
+        -- Use actual SystemPrompts to get all behaviors (built-in + folder + UI-created)
+        local sorted_behaviors = SystemPrompts.getSortedBehaviors(custom_behaviors)
+
+        -- Format for API response
+        local behaviors_data = {}
+        for _idx, behavior in ipairs(sorted_behaviors) do
+            table.insert(behaviors_data, {
+                id = behavior.id,
+                name = behavior.name,
+                display_name = behavior.display_name,
+                text = behavior.text,
+                source = behavior.source,
+                preview = behavior.text:sub(1, 100) .. (behavior.text:len() > 100 and "..." or ""),
+            })
+        end
+
+        return "200 OK", "application/json", json.encode({
+            success = true,
+            behaviors = behaviors_data,
         })
     end)
 
@@ -734,8 +761,8 @@ local function startWebServer(options)
             translation_use_primary = true,
             translation_language = "English",
             -- Behavior settings
-            ai_behavior_variant = "full",
-            custom_ai_behavior = "",
+            selected_behavior = "full",
+            custom_behaviors = {},
             -- API settings
             default_temperature = 0.7,
             enable_extended_thinking = false,
@@ -755,8 +782,8 @@ local function startWebServer(options)
                 settings_data.primary_language = f.primary_language
                 settings_data.translation_use_primary = f.translation_use_primary ~= false
                 settings_data.translation_language = f.translation_language or "English"
-                settings_data.ai_behavior_variant = f.ai_behavior_variant or "full"
-                settings_data.custom_ai_behavior = f.custom_ai_behavior or ""
+                settings_data.selected_behavior = f.selected_behavior or "full"
+                settings_data.custom_behaviors = f.custom_behaviors or {}
                 settings_data.default_temperature = f.default_temperature or 0.7
                 settings_data.enable_extended_thinking = f.enable_extended_thinking or false
                 settings_data.thinking_budget_tokens = f.thinking_budget_tokens or 4096
