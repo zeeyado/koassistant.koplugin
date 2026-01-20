@@ -167,6 +167,9 @@ function ActionService:loadActions()
                     if override.reasoning_config then
                         action_data.reasoning_config = override.reasoning_config
                     end
+                    if override.skip_language_instruction ~= nil then
+                        action_data.skip_language_instruction = override.skip_language_instruction
+                    end
                 end
 
                 table.insert(self.actions_cache[context], action_data)
@@ -706,6 +709,7 @@ function ActionService:createDuplicateAction(action)
         provider = action.provider,
         model = action.model,
         include_book_context = action.include_book_context,
+        skip_language_instruction = action.skip_language_instruction,
         requires = action.requires,
         -- NOT copying: id (auto-generated), source (will be "ui"), enabled (default true)
     }

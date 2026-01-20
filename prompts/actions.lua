@@ -21,6 +21,7 @@
 --   extended_thinking- Override global thinking: "off" to disable, "on" to enable (optional)
 --   thinking_budget  - Token budget when extended_thinking="on" (1024-32000, default 4096)
 --   api_params       - Optional API parameters: { temperature, max_tokens }
+--   skip_language_instruction - Don't include user's language preferences in system prompt (optional)
 --   requires         - Optional metadata requirement: "author", "title", etc.
 --   include_book_context - Include book metadata with highlight context (optional)
 --   enabled          - Default enabled state (default: true)
@@ -190,6 +191,7 @@ Actions.special = {
         prompt = "Translate this to {translation_language}: {highlighted_text}",
         include_book_context = false,
         extended_thinking = "off",  -- Translations don't benefit from extended thinking
+        skip_language_instruction = true,  -- Target language already in prompt
         api_params = {
             temperature = 0.3,  -- Very deterministic for translations
         },

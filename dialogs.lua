@@ -209,6 +209,7 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
         -- Language settings
         user_languages = features.user_languages or "",
         primary_language = features.primary_language,
+        skip_language_instruction = action and action.skip_language_instruction,
     })
 
     config.system = system_config

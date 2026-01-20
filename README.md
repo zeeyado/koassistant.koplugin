@@ -218,13 +218,13 @@ Behavior defines the AI's personality, communication style, and response guideli
 
 ### Built-in Behaviors
 
-Four built-in behaviors are always available (based on [Anthropic Claude guidelines](https://docs.anthropic.com/en/release-notes/system-prompts)):
+Five built-in behaviors are always available (based on [Anthropic Claude guidelines](https://docs.anthropic.com/en/release-notes/system-prompts)):
 
 - **Mini** (~220 tokens): Concise guidance for e-reader conversations
 - **Standard** (~420 tokens): Balanced guidance for quality responses
 - **Full** (~1150 tokens): Comprehensive guidance for best quality responses
-- **Translator Direct** (~85 tokens): Direct translation without commentary (used by Translate action)
-- More built in ones are being tested, like **Research Standard** based on Perplexity
+- **Research Standard** (~470 tokens): Research-focused with source transparency (based on Perplexity)
+- **Translator Direct** (~80 tokens): Direct translation without commentary (used by Translate action)
 
 ### Sample Behaviors
 

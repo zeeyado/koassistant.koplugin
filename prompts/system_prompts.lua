@@ -356,6 +356,7 @@ end
 --   enable_caching: boolean (only used by Anthropic),
 --   user_languages: comma-separated languages,
 --   primary_language: explicit primary language override,
+--   skip_language_instruction: boolean, don't include language instruction (e.g., for translate)
 -- }
 -- @return table: {
 --   text: Combined system prompt string (may be empty),
@@ -375,8 +376,10 @@ function SystemPrompts.buildUnifiedSystem(config)
     })
 
     -- Build language instruction if user has configured languages
+    -- Skip if action has opted out (e.g., translate action already specifies target language)
     local language_instruction = nil
-    if config.user_languages and config.user_languages ~= "" then
+    if not config.skip_language_instruction and
+       config.user_languages and config.user_languages ~= "" then
         language_instruction = SystemPrompts.buildLanguageInstruction(
             config.user_languages, config.primary_language
         )

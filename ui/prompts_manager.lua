@@ -20,7 +20,7 @@ local function getBuiltinBehaviorOptions()
     local options = {}
     local builtin_behaviors = SystemPrompts.getSortedBehaviors(nil)  -- Only built-ins, no custom
 
-    for _, behavior in ipairs(builtin_behaviors) do
+    for _idx,behavior in ipairs(builtin_behaviors) do
         if behavior.source == "builtin" then
             -- Estimate tokens from text length (rough: chars/4)
             local tokens = behavior.text and math.floor(#behavior.text / 4) or 0
@@ -194,7 +194,7 @@ function PromptsManager:loadPrompts()
     local seen = {}
 
     -- Add highlight prompts
-    for _, prompt in ipairs(highlight_prompts) do
+    for _idx,prompt in ipairs(highlight_prompts) do
         local key = prompt.text .. "|" .. (prompt.source or "")
         if not seen[key] then
             table.insert(self.prompts, addPromptEntry(prompt, "highlight"))
@@ -203,12 +203,12 @@ function PromptsManager:loadPrompts()
     end
 
     -- Add book prompts (avoid duplicates for "both" context)
-    for _, prompt in ipairs(book_prompts) do
+    for _idx,prompt in ipairs(book_prompts) do
         local key = prompt.text .. "|" .. (prompt.source or "")
         if not seen[key] then
             -- Check if this prompt already exists in highlight context
             local exists = false
-            for _, existing in ipairs(self.prompts) do
+            for _idx,existing in ipairs(self.prompts) do
                 if existing.text == prompt.text and existing.source == prompt.source then
                     -- Change context to "both" (unless it's already a compound)
                     if existing.context ~= "all" and existing.context ~= "both" then
@@ -227,7 +227,7 @@ function PromptsManager:loadPrompts()
     end
 
     -- Add multi-book prompts
-    for _, prompt in ipairs(multi_book_prompts) do
+    for _idx,prompt in ipairs(multi_book_prompts) do
         local key = prompt.text .. "|" .. (prompt.source or "")
         if not seen[key] then
             table.insert(self.prompts, addPromptEntry(prompt, "multi_book"))
@@ -236,12 +236,12 @@ function PromptsManager:loadPrompts()
     end
 
     -- Add general prompts
-    for _, prompt in ipairs(general_prompts) do
+    for _idx,prompt in ipairs(general_prompts) do
         local key = prompt.text .. "|" .. (prompt.source or "")
         if not seen[key] then
             -- Check if this prompt already exists in other contexts
             local exists = false
-            for _, existing in ipairs(self.prompts) do
+            for _idx,existing in ipairs(self.prompts) do
                 if existing.text == prompt.text and existing.source == prompt.source then
                     -- Update context to include general (unless it's already a compound)
                     if existing.context == "highlight" then
@@ -306,9 +306,9 @@ function PromptsManager:showPromptsMenu()
         { id = "all", text = _("All Contexts") },
     }
     
-    for _, context_info in ipairs(contexts) do
+    for _idx,context_info in ipairs(contexts) do
         local context_prompts = {}
-        for _, prompt in ipairs(self.prompts) do
+        for _idx,prompt in ipairs(self.prompts) do
             if prompt.context == context_info.id then
                 table.insert(context_prompts, prompt)
             end
@@ -325,7 +325,7 @@ function PromptsManager:showPromptsMenu()
             })
             
             -- Add prompts for this context
-            for _, prompt in ipairs(context_prompts) do
+            for _idx,prompt in ipairs(context_prompts) do
                 local item_text = prompt.text
 
                 -- Add source indicator
@@ -514,6 +514,11 @@ function PromptsManager:showPromptDetails(prompt)
         info_text = info_text .. "\n\n" .. _("Include Book Info") .. ": " .. book_context_text
     end
 
+    -- Show skip_language_instruction if set
+    if prompt.skip_language_instruction then
+        info_text = info_text .. "\n" .. _("Skip Language Instruction") .. ": " .. _("Yes")
+    end
+
     if prompt.requires then
         info_text = info_text .. "\n\n" .. _("Requires") .. ": " .. prompt.requires
     end
@@ -663,6 +668,7 @@ function PromptsManager:duplicateAction(action)
         behavior_variant = duplicate.behavior_variant,
         behavior_override = duplicate.behavior_override,
         include_book_context = duplicate.include_book_context,
+        skip_language_instruction = duplicate.skip_language_instruction,
         reasoning_config = duplicate.reasoning_config,
         extended_thinking = duplicate.extended_thinking,
         thinking_budget = duplicate.thinking_budget,
@@ -709,6 +715,7 @@ function PromptsManager:showPromptEditor(existing_prompt)
         prompt = existing_prompt and existing_prompt.prompt or "",
         context = existing_prompt and existing_prompt.context or nil,
         include_book_context = existing_prompt and existing_prompt.include_book_context or (not existing_prompt and true) or false,
+        skip_language_instruction = existing_prompt and existing_prompt.skip_language_instruction or false,
         domain = existing_prompt and existing_prompt.domain or nil,
         temperature = existing_prompt and existing_prompt.temperature or nil,  -- nil = use global
         -- New format: reasoning_config (nil = global, "off" = force off, table = per-provider)
@@ -786,6 +793,20 @@ function PromptsManager:showStep1_NameAndContext(state)
             },
         })
     end
+
+    -- Row 3: Skip language instruction toggle
+    local lang_checkbox = state.skip_language_instruction and "☑ " or "☐ "
+    table.insert(button_rows, {
+        {
+            text = lang_checkbox .. _("Skip language instruction"),
+            callback = function()
+                state.name = self.step1_dialog:getInputText()
+                state.skip_language_instruction = not state.skip_language_instruction
+                UIManager:close(self.step1_dialog)
+                self:showStep1_NameAndContext(state)
+            end,
+        },
+    })
 
     -- Build description based on context
     local description = _("Example: 'Summarize', 'Explain Simply', 'Find Themes'")
@@ -881,7 +902,7 @@ function PromptsManager:showContextSelectorWizard(state)
 
     local buttons = {}
 
-    for _, option in ipairs(context_options) do
+    for _idx,option in ipairs(context_options) do
         -- For highlight context, show info based on current include_book_context setting
         local info = self:getContextInfo(option.value, state.include_book_context)
         local prefix = (state.context == option.value) and "● " or "○ "
@@ -945,7 +966,7 @@ function PromptsManager:showStep2_Behavior(state)
 
     -- Add all built-in behaviors
     local builtin_options = getBuiltinBehaviorOptions()
-    for _, opt in ipairs(builtin_options) do
+    for _idx,opt in ipairs(builtin_options) do
         table.insert(behavior_options, opt)
     end
 
@@ -955,7 +976,7 @@ function PromptsManager:showStep2_Behavior(state)
 
     local buttons = {}
 
-    for _, option in ipairs(behavior_options) do
+    for _idx,option in ipairs(behavior_options) do
         local prefix = (current_selection == option.id) and "● " or "○ "
         table.insert(buttons, {
             {
@@ -1068,7 +1089,7 @@ function PromptsManager:showStep3_ActionPrompt(state)
     -- Build description based on context
     local available_placeholders = self:getPlaceholdersForContext(state.context)
     local placeholder_list = ""
-    for _, p in ipairs(available_placeholders) do
+    for _idx,p in ipairs(available_placeholders) do
         placeholder_list = placeholder_list .. "• " .. p.text .. ": " .. p.value .. "\n"
     end
 
@@ -1714,7 +1735,7 @@ function PromptsManager:showProviderSelector(state)
     }
 
     -- Add provider options
-    for _, provider in ipairs(providers) do
+    for _idx,provider in ipairs(providers) do
         local prefix = (state.provider == provider) and "● " or "○ "
         local model_count = ModelLists[provider] and #ModelLists[provider] or 0
         table.insert(buttons, {
@@ -1763,7 +1784,7 @@ function PromptsManager:showModelSelector(state)
     local buttons = {}
 
     -- Add model options
-    for _, model in ipairs(models) do
+    for _idx,model in ipairs(models) do
         local prefix = (state.model == model) and "● " or "○ "
         table.insert(buttons, {
             {
@@ -1854,6 +1875,7 @@ function PromptsManager:showBuiltinSettingsEditor(prompt)
         behavior_variant = prompt.behavior_variant,
         behavior_override = prompt.behavior_override or "",
         temperature = prompt.temperature,
+        skip_language_instruction = prompt.skip_language_instruction or false,
         -- New format: reasoning_config
         reasoning_config = prompt.reasoning_config,
         -- Legacy format (backward compatibility)
@@ -1948,7 +1970,18 @@ function PromptsManager:showBuiltinSettingsDialog(state)
                 end,
             },
         },
-        -- Row 5: Cancel / Save
+        -- Row 5: Skip language instruction toggle
+        {
+            {
+                text = (state.skip_language_instruction and "☑ " or "☐ ") .. _("Skip language instruction"),
+                callback = function()
+                    state.skip_language_instruction = not state.skip_language_instruction
+                    UIManager:close(self.builtin_settings_dialog)
+                    self:showBuiltinSettingsDialog(state)
+                end,
+            },
+        },
+        -- Row 6: Cancel / Save
         {
             {
                 text = _("Cancel"),
@@ -2000,7 +2033,7 @@ function PromptsManager:showBuiltinBehaviorSelector(state)
 
     -- Add all built-in behaviors
     local builtin_options = getBuiltinBehaviorOptions()
-    for _, opt in ipairs(builtin_options) do
+    for _idx,opt in ipairs(builtin_options) do
         table.insert(behavior_options, { id = opt.id, text = opt.text .. " (" .. opt.desc .. ")" })
     end
 
@@ -2009,7 +2042,7 @@ function PromptsManager:showBuiltinBehaviorSelector(state)
     table.insert(behavior_options, { id = "custom", text = _("Custom...") })
 
     local buttons = {}
-    for _, option in ipairs(behavior_options) do
+    for _idx,option in ipairs(behavior_options) do
         local prefix = (current_selection == option.id) and "● " or "○ "
         table.insert(buttons, {
             {
@@ -2150,7 +2183,7 @@ function PromptsManager:showBuiltinProviderSelector(state)
         },
     }
 
-    for _, provider in ipairs(providers) do
+    for _idx,provider in ipairs(providers) do
         local prefix = (state.provider == provider) and "● " or "○ "
         local model_count = ModelLists[provider] and #ModelLists[provider] or 0
         table.insert(buttons, {
@@ -2196,7 +2229,7 @@ function PromptsManager:showBuiltinModelSelector(state)
 
     local buttons = {}
 
-    for _, model in ipairs(models) do
+    for _idx,model in ipairs(models) do
         local prefix = (state.model == model) and "● " or "○ "
         table.insert(buttons, {
             {
@@ -2319,6 +2352,10 @@ function PromptsManager:saveBuiltinOverride(prompt, state)
         override.behavior_override = state.behavior_override
         has_any = true
     end
+    if state.skip_language_instruction then
+        override.skip_language_instruction = state.skip_language_instruction
+        has_any = true
+    end
 
     if has_any then
         all_overrides[key] = override
@@ -2371,8 +2408,8 @@ function PromptsManager:getPlaceholdersForContext(context)
     }
 
     local result = {}
-    for _, p in ipairs(all_placeholders) do
-        for _, ctx in ipairs(p.contexts) do
+    for _idx,p in ipairs(all_placeholders) do
+        for _idx,ctx in ipairs(p.contexts) do
             if ctx == context then
                 table.insert(result, p)
                 break
@@ -2394,7 +2431,7 @@ function PromptsManager:showPlaceholderSelectorWizard(state)
 
     local buttons = {}
 
-    for _, placeholder in ipairs(placeholders) do
+    for _idx,placeholder in ipairs(placeholders) do
         if placeholder.value ~= "" then
             table.insert(buttons, {
                 {
@@ -2447,6 +2484,7 @@ function PromptsManager:addPrompt(state)
             prompt = state.prompt,
             context = state.context,
             include_book_context = state.include_book_context or nil,
+            skip_language_instruction = state.skip_language_instruction or nil,
             domain = state.domain,
             api_params = api_params,
             reasoning_config = state.reasoning_config,  -- nil = global, "off" = force off, table = per-provider
@@ -2490,6 +2528,7 @@ function PromptsManager:updatePrompt(existing_prompt, state)
                 prompt = state.prompt,
                 context = state.context,
                 include_book_context = state.include_book_context or nil,
+                skip_language_instruction = state.skip_language_instruction or nil,
                 domain = state.domain,
                 api_params = api_params,
                 reasoning_config = state.reasoning_config,  -- nil = global, "off" = force off, table = per-provider
@@ -2593,7 +2632,7 @@ function PromptsManager:showHighlightMenuManager()
 
     -- Count items in menu for display
     local menu_count = 0
-    for _, item in ipairs(all_actions) do
+    for _idx,item in ipairs(all_actions) do
         if item.in_menu then menu_count = menu_count + 1 end
     end
 
@@ -2606,7 +2645,7 @@ function PromptsManager:showHighlightMenuManager()
         callback = function() end,  -- No action
     })
 
-    for _, item in ipairs(all_actions) do
+    for _idx,item in ipairs(all_actions) do
         local action = item.action
         local prefix = item.in_menu and "✓ " or "  "
         local position = item.in_menu and string.format("[%d] ", item.menu_position) or ""
