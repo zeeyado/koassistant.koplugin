@@ -79,6 +79,7 @@ local function parseDomainFile(content, fallback_name)
         name = name,
         context = context,
         external = true,  -- Mark as loaded from external file
+        source = "folder",
     }
 end
 
@@ -137,6 +138,121 @@ end
 -- Check if any domains are available
 function DomainLoader.hasAny(domains)
     return next(domains) ~= nil
+end
+
+-- Get the domains folder path (for UI display)
+function DomainLoader.getFolderPath()
+    return getPluginPath() .. "domains/"
+end
+
+-- Get all domains from all sources: folder and UI-created
+-- @param custom_domains: Array of UI-created domains from settings (optional)
+-- @return table: { id = { id, name, context, source, display_name } }
+function DomainLoader.getAllDomains(custom_domains)
+    local all_domains = {}
+
+    -- Load folder domains
+    local folder_domains = DomainLoader.load()
+    local folder_names = {}
+
+    for id, domain in pairs(folder_domains) do
+        folder_names[domain.name:lower()] = true
+        all_domains[id] = {
+            id = id,
+            name = domain.name,
+            context = domain.context,
+            source = "folder",
+            display_name = domain.name,
+            external = true,
+        }
+    end
+
+    -- Add UI-created domains
+    if custom_domains and type(custom_domains) == "table" then
+        for _, domain in ipairs(custom_domains) do
+            if domain.id and domain.context then
+                -- Handle name conflicts with folder domains
+                local display_name = domain.name or domain.id
+                if folder_names[display_name:lower()] then
+                    display_name = display_name .. " (custom)"
+                else
+                    display_name = display_name .. " (custom)"
+                end
+
+                all_domains[domain.id] = {
+                    id = domain.id,
+                    name = domain.name or domain.id,
+                    context = domain.context,
+                    source = "ui",
+                    display_name = display_name,
+                }
+            end
+        end
+    end
+
+    return all_domains
+end
+
+-- Get sorted list of domain entries for UI display
+-- @param custom_domains: Array of UI-created domains from settings (optional)
+-- @return table: Array of domain entries sorted by display_name
+function DomainLoader.getSortedDomains(custom_domains)
+    local all = DomainLoader.getAllDomains(custom_domains)
+    local sorted = {}
+
+    for _, domain in pairs(all) do
+        table.insert(sorted, domain)
+    end
+
+    table.sort(sorted, function(a, b)
+        -- Folder first, then UI
+        local order = { folder = 1, ui = 2 }
+        if order[a.source] ~= order[b.source] then
+            return order[a.source] < order[b.source]
+        end
+        return (a.display_name or a.name) < (b.display_name or b.name)
+    end)
+
+    return sorted
+end
+
+-- Get a specific domain by ID
+-- @param id: Domain ID to look up
+-- @param custom_domains: Array of UI-created domains from settings (optional)
+-- @return table or nil: Domain entry or nil if not found
+function DomainLoader.getDomainById(id, custom_domains)
+    if not id then return nil end
+
+    -- Check folder domains first
+    local folder_domains = DomainLoader.load()
+    if folder_domains[id] then
+        local domain = folder_domains[id]
+        return {
+            id = id,
+            name = domain.name,
+            context = domain.context,
+            source = "folder",
+            display_name = domain.name,
+            external = true,
+        }
+    end
+
+    -- Check UI-created domains
+    if custom_domains and type(custom_domains) == "table" then
+        for _, domain in ipairs(custom_domains) do
+            if domain.id == id then
+                return {
+                    id = domain.id,
+                    name = domain.name or domain.id,
+                    context = domain.context,
+                    source = "ui",
+                    display_name = (domain.name or domain.id) .. " (custom)",
+                }
+            end
+        end
+    end
+
+    return nil
 end
 
 return DomainLoader

@@ -14,7 +14,7 @@ Chats are streamed live (like ChatGPT/Claude, etc), are automatically (or manual
 
 Most settings are configurable in the UI, including: Provider/model, AI behavior and style, user-to-AI interaction languages, translation languages, domains/project/field context, custom actions (which you can create, edit, duplicate, and adjust settings for), and advanced model settings like reasoning/thinking, temperature, and more. Most settings, additional context, and function combinations can be specified for a given action.
 
-> **Development Status**: KOAssistant is currently under heavy development, with features constantly added. 16 providers are supported (see [Supported Providers](#supported-providers)); testing and Feedback appreciated. You can open an issue, feature request, or start a discussion.
+> **Development Status**: KOAssistant is currently under heavy development, with features constantly added. 16 providers are supported (see [Supported Providers](#supported-providers)); **testing and Feedback appreciated**. You can open an issue, feature request, or start a discussion.
 
 ---
 
@@ -23,13 +23,9 @@ Most settings are configurable in the UI, including: Provider/model, AI behavior
 - [Quick Setup](#quick-setup)
 - [Recommended Setup](#recommended-setup)
 - [How to Use KOAssistant](#how-to-use-koassistant)
-  - [Highlight Mode](#highlight-mode)
-  - [Book/Document Mode](#bookdocument-mode)
-  - [Multi-Document Mode](#multi-document-mode)
-  - [General Chat](#general-chat)
+- [AI Behavior](#ai-behavior)
 - [Managing Conversations](#managing-conversations)
 - [Knowledge Domains](#knowledge-domains)
-- [Tags](#tags)
 - [Custom Actions](#custom-actions)
 - [Settings Reference](#settings-reference)
 - [Advanced Configuration](#advanced-configuration)
@@ -67,7 +63,7 @@ Linux:        ~/.config/koreader/plugins/koassistant.koplugin/
 
 1. Go to **Tools → KOAssistant → API Keys**
 2. Tap any provider to enter your API key
-3. Keys are stored securely in your settings
+3. Keys are shown semi-blurred in your settings
 
 **Option B: Via Configuration File**
 
@@ -100,7 +96,7 @@ Find KOAssistant Settings in: **Tools → Page 2 → KOAssistant**
 
 ### Configure Quick Access Gestures
 
-For easy access, assign KOAssistant actions to a gesture:
+For easy access to a list of settings, assign KOAssistant actions to a gesture:
 
 1. Go to **Settings → Gesture Manager → Tap corner → Bottom left** (or your preferred gesture)
 2. Select **General** 
@@ -114,13 +110,31 @@ For easy access, assign KOAssistant actions to a gesture:
 4. Enable **"Show as QuickMenu"**
 
 > **Tip**: Set up gestures in both **Reader View** (while reading) and **File Browser** separately.
+> 
+> **Tip**: Set other gestures for specific actions you use often, e.g. a multiswipe gesture for "Open Last Chat" if you keep going back and forth between a document and a specific chat.
+
+
+### Key Features to Explore
+
+After basic setup, explore these features to get the most out of KOAssistant:
+
+| Feature | What it does | Where to configure |
+|---------|--------------|-------------------|
+| **AI Behavior** | Control response style (concise, detailed, custom) | Settings → Advanced → Manage Behaviors |
+| **Knowledge Domains** | Add project-like context to conversations | Settings → Advanced → Manage Domains |
+| **Custom Actions** | Create your own prompts and workflows | Settings → Manage Actions |
+| **Highlight Menu** | Add actions directly to highlight popup | Manage Actions → Add to Highlight Menu |
+| **Reasoning/Thinking** | Enable deep analysis for complex questions | Settings → Advanced → Reasoning |
+| **Languages** | Configure multilingual responses | Settings → Language |
+
+See detailed sections below for each feature.
 
 ### Tips for Better Results
 
 - **Good document metadata** improves AI responses. Use Calibre, Zotero, or similar tools to ensure titles, authors, and identifiers are correct.
 - **Shorter tap duration** makes text selection in KOReader easier: Settings → Taps and Gestures → Long-press interval
-- **Choose models wisely**: Fast models (like Haiku) for quick queries; powerful models (like Sonnet, Opus) for deeper analysis. Choose an appropriate model for a given task (you can set specific models for you custom actions)
-- **Discover advanced functionality and adjust settings**: Dig into the deeper functionality available in KOAssistant, like custom knowledge domains and custom actions, temperature, extended thinking, and AI behavior settings, to enhance the plugin and tailor it to your usage.
+- **Choose models wisely**: Fast models (like Haiku) for quick queries; powerful models (like Sonnet, Opus) for deeper analysis.
+- **Tailor to your use**: Set up and pick suitable Domains and AI Behavior, as well as Actions 
 
 ---
 
@@ -187,7 +201,46 @@ A free-form conversation without specific document context. If started while a b
 - **Settings Icon (Input)**: Tap the gear icon in the input dialog title bar to quickly access AI settings (provider, model, temperature, etc.) without leaving the chat
 - **Settings Icon (Viewer)**: Tap the gear icon in the chat viewer title bar to adjust font size and text alignment (left/justified/right for RTL)
 - **Show/Hide Quote**: In the chat viewer, toggle button to show or hide the highlighted text quote (useful for long selections)
-- **Tag Button (#)**: Quick access to tag the current chat directly from the chat viewer
+- **Other**: Turn on off Text/Markdown view, Debug view mode, add Tags, Change Domain, etc
+
+---
+
+## AI Behavior
+
+Behavior defines the AI's personality, communication style, and response guidelines. It is sent **first** in the system instructions, before any domain context.
+
+### What Behavior Controls
+
+- Response tone (conversational, academic, concise)
+- Formatting preferences (when to use lists, headers, etc.)
+- Communication style (brief vs detailed explanations)
+
+### Built-in Behaviors
+
+- **Minimal** (~100 tokens): Brief guidelines, natural conversation, lower cost
+- **Full** (~500 tokens): Comprehensive guidelines for well-formatted responses
+- To be expanded with a bunch of behaviors based on Anthropic, OpenAI, etc
+
+### Custom Behaviors
+
+Create your own behaviors via:
+
+1. **Files**: Add `.md` or `.txt` files to `behaviors/` folder
+2. **UI**: Settings → Advanced → Manage Behaviors → Create New
+
+**File format** (same as domains):
+- Filename becomes the behavior ID: `concise.md` → ID `concise`
+- First `# Heading` becomes the display name
+- Rest of file is the behavior text sent to AI
+
+See `behaviors.sample/` for examples.
+
+### Per-Action Overrides
+
+Individual actions can override the global behavior:
+- Use a different variant (minimal/full/none)
+- Provide completely custom behavior text
+- Example: The built-in Translate action uses minimal behavior for direct translations
 
 ---
 
@@ -198,7 +251,7 @@ A free-form conversation without specific document context. If started while a b
 By default, all chats are automatically saved. You can disable this in Settings → Conversations.
 
 - **Auto-save All Chats**: Save every new conversation
-- **Auto-save Continued Chats**: Only save when continuing from history
+- **Auto-save Continued Chats**: Only save when continuing from history (i.e. from an already saved chat)
 
 ### Chat History
 
@@ -227,15 +280,44 @@ Select any chat to:
 - **Text**: Plain text format, good for sharing
 - **Markdown**: Formatted with headers, includes metadata
 
+### Tags
+
+Tags are simple labels for organizing chats. Unlike domains:
+- No context attached (just labels)
+- Can be added/removed anytime
+- Multiple tags per chat allowed
+
+**Adding Tags**:
+- In chat viewer: Tap the **#** button in the chat viewer
+- In chat history: Long-press a chat → Tags
+
+**Browsing by Tag**: Chat History → hamburger menu → View by Tag
+
 ---
 
 ## Knowledge Domains
 
-Domains provide **background context** to frame AI conversations. When you select a domain, its context text is included with every message. They can function similarly to the Projects-feature that many AI providers have. You can have very small, focused projects/domains, or large, detailed, interdisciplinary ones. It is up to you to tailor this. 
+Domains provide **project-like context** for AI conversations. When selected, the domain context is sent **after** the behavior instructions in the system prompt.
+
+### How It Works
+
+System instructions are built as: **Behavior + Domain + Language**
+
+This means:
+- Behavior sets HOW the AI communicates
+- Domain sets WHAT knowledge context to apply
+- Both benefit from Anthropic's prompt caching (90% cost reduction on repeated queries)
+
+You can have very small, focused domains, or large, detailed, interdisciplinary ones. 
 
 ### Creating Domains
 
-Make a `domains/` folder and create files in it:
+Create domains via:
+
+1. **Files**: Add `.md` or `.txt` files to `domains/` folder
+2. **UI**: Settings → Advanced → Manage Domains → Create New
+
+**File format**:
 
 **Example**: `domains/philosophy.md`
 ```markdown
@@ -254,42 +336,31 @@ Reference relevant philosophers and their works when appropriate.
 
 See `domains.sample/` for examples.
 
-### Using Domains
+### Selecting Domains
+
+Domains are selected **per-chat** when starting a conversation:
 
 1. In the chat dialog, tap the **Domain** button
 2. Select a domain from the list
 3. All messages in this chat will include that domain's context
 
-**Note**: Domains are knowledge tags, NOT storage locations. Chats still save to their book or "General AI Chats", but you can browse by domain in the Chat history. Domains have to be added at the beginning of a chat as they provide context for the AI. If you use large and detailed knowledge domains, you will get better results, at a higher request price.
+**Note**: Domains must be selected at the start of a chat (they provide context for the AI). Larger domains give better results but increase API costs. Once a domain is picked in the input window, it stays active until replaced by "None" or another domain; keep this in mind if you often use quick actions without opening the input dialog.
 
-### Browsing by Domain:
+### Browsing by Domain
 
 Chat History → hamburger menu → **View by Domain**
 
----
-
-## Tags
-
-Tags are simple labels for organizing chats. Unlike domains:
-- No context attached (just labels)
-- Can be added/removed anytime
-- Multiple tags per chat allowed
-
-### Adding Tags
-
-1. Open Chat History
-2. Long-press a chat → **Tags**
-3. Add new tags or select existing ones
-
-Currently being expanded to make it easier to create and add tags.
-
-### Browsing by Tag
-
-Chat History → hamburger menu → **View by Tag**
+**Note**: Domains are for context, not storage. Chats still save to their book or "General AI Chats", but you can filter by domain in Chat History.
 
 ---
 
 ## Custom Actions
+
+Actions define what you're asking the AI to do. Combined with behavior and domain, they form the complete request:
+
+**Request = Behavior (how) + Domain (context) + Action (what) + User Input (details)**
+
+When you select an action and start a chat, you can optionally add your own input (a question, additional context, or specific request) which gets combined with the action's prompt template.
 
 ### Managing Actions in the UI
 
@@ -299,6 +370,7 @@ Chat History → hamburger menu → **View by Tag**
 - Create new actions with the wizard
 - Edit or delete your custom actions (marked with ★)
 - Edit settings for built-in actions (temperature, thinking, provider/model, AI behavior)
+- Duplicate/Copy existing Actions to use them as template (e.g. to make a slightly different variant)
 
 **Action indicators:**
 - **★** = Custom action (editable)
@@ -412,8 +484,8 @@ See `custom_actions.lua.sample` for more examples.
 - **Large Stream Dialog**: Use full-screen streaming window
 
 ### Advanced
-- **AI Behavior**: Minimal (~100 tokens), Full (~500 tokens), or Custom guidelines
-- **Edit Custom Behavior**: Define your own AI behavior instructions (when Custom is selected)
+- **Manage Behaviors**: Select or create AI behavior styles (shows current selection)
+- **Manage Domains**: Create and manage knowledge domains for project-like context
 - **Temperature**: Response creativity (0.0-2.0, Anthropic max 1.0)
 - **Reasoning/Thinking**: Per-provider reasoning settings:
   - **Anthropic Extended Thinking**: Budget 1024-32000 tokens
@@ -440,10 +512,9 @@ See `custom_actions.lua.sample` for more examples.
 - `"English"` - AI always responds in English
 - `"German, English, French"` with Primary set to "English" - English by default, switches if you type in German or French
 
-### Actions & Domains
+### Actions
 - **Manage Actions**: Enable/disable built-in actions, create custom actions
 - **Highlight Menu Actions**: View and reorder actions added to the highlight popup menu
-- **View Domains**: See available knowledge domains
 
 ### Highlight Menu Actions
 
@@ -553,19 +624,6 @@ For complex questions, supported models can "think" through the problem before r
 **DeepSeek:** The `deepseek-reasoner` model automatically uses reasoning (no setting needed).
 
 Best for: Complex analysis, reasoning problems, nuanced questions
-
-### AI Behavior Variants
-
-Three styles of AI personality, configurable globally or per-action:
-
-- **Minimal** (~100 tokens): Brief guidelines, lower cost
-- **Full** (~500 tokens): Comprehensive guidelines for natural, well-formatted responses
-- **Custom**: Your own behavior instructions, fully customizable
-
-Individual actions can override the global setting:
-- Use a different variant (minimal/full/custom/none)
-- Provide completely custom behavior text per-action
-- The built-in Translate action uses minimal behavior for direct, accurate translations
 
 ---
 

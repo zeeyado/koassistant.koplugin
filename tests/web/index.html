@@ -318,14 +318,14 @@
 
             <div class="section-divider">
                 <h3>Behavior</h3>
-                <div class="btn-group" id="behavior-btns">
-                    <button class="btn" data-value="minimal">Minimal</button>
-                    <button class="btn active" data-value="full">Full</button>
-                    <button class="btn" data-value="none">None</button>
-                    <button class="btn" data-value="custom">Custom</button>
-                </div>
+                <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.5rem;">
+                    (file) = from behaviors/ folder
+                </p>
+                <select id="behavior-select" onchange="onBehaviorChange()">
+                    <option value="none">None</option>
+                </select>
                 <div id="custom-behavior-container" style="display: none; margin-top: 0.5rem;">
-                    <textarea id="custom-behavior" placeholder="Enter custom AI behavior instructions..."></textarea>
+                    <textarea id="custom-behavior" placeholder="Custom behavior text (read-only for file/builtin)..." readonly></textarea>
                 </div>
             </div>
 
@@ -547,6 +547,7 @@
         const state = {
             providers: {},
             domains: [],
+            behaviors: [],  // Loaded from /api/behaviors
             actions: { highlight: [], book: [], multi_book: [], general: [] },
             lastBuild: null,
             lastResponse: null,
@@ -568,17 +569,6 @@
                 tab.addEventListener('click', () => switchTab(tab.dataset.tab));
             });
 
-            // Behavior buttons
-            document.querySelectorAll('#behavior-btns .btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    document.querySelectorAll('#behavior-btns .btn').forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
-                    // Show/hide custom behavior textarea
-                    const customContainer = document.getElementById('custom-behavior-container');
-                    customContainer.style.display = btn.dataset.value === 'custom' ? 'block' : 'none';
-                });
-            });
-
             // User languages input - update primary language dropdown
             document.getElementById('user-languages').addEventListener('input', onUserLanguagesChange);
 
@@ -596,6 +586,7 @@
             await Promise.all([
                 loadProviders(),
                 loadDomains(),
+                loadBehaviors(),
                 loadActions(),
                 loadSettings()
             ]);
@@ -691,6 +682,62 @@
             }
         }
 
+        async function loadBehaviors() {
+            try {
+                const response = await fetch('/api/behaviors');
+                const data = await response.json();
+
+                if (data.success && Array.isArray(data.behaviors)) {
+                    state.behaviors = data.behaviors;
+
+                    const behaviorSelect = document.getElementById('behavior-select');
+                    // Build options: None + all behaviors with source indicators + Custom for testing
+                    behaviorSelect.innerHTML = '<option value="none">None</option>' +
+                        state.behaviors.map(b => {
+                            const sourceLabel = b.source === 'folder' ? ' (file)' : '';
+                            return `<option value="${b.id}">${b.name}${sourceLabel}</option>`;
+                        }).join('') +
+                        '<option value="custom">Custom (test override)</option>';
+
+                    // Default to "full" if available
+                    const fullBehavior = state.behaviors.find(b => b.id === 'full');
+                    if (fullBehavior) {
+                        behaviorSelect.value = 'full';
+                        onBehaviorChange();
+                    }
+                }
+            } catch (e) {
+                console.error('Error loading behaviors:', e);
+            }
+        }
+
+        function onBehaviorChange() {
+            const behaviorId = document.getElementById('behavior-select').value;
+            const customContainer = document.getElementById('custom-behavior-container');
+            const customTextarea = document.getElementById('custom-behavior');
+
+            if (behaviorId === 'custom') {
+                // Custom mode - editable textarea for testing behavior overrides
+                customContainer.style.display = 'block';
+                customTextarea.readOnly = false;
+                customTextarea.placeholder = 'Enter custom AI behavior instructions for testing...';
+                // Don't clear existing custom text
+            } else if (behaviorId && behaviorId !== 'none') {
+                // Selected behavior - show preview (read-only)
+                const behavior = state.behaviors.find(b => b.id === behaviorId);
+                if (behavior) {
+                    customContainer.style.display = 'block';
+                    customTextarea.value = behavior.text || '';
+                    customTextarea.readOnly = true;
+                    customTextarea.placeholder = '';
+                }
+            } else {
+                // None selected
+                customContainer.style.display = 'none';
+                customTextarea.value = '';
+            }
+        }
+
         async function loadActions() {
             try {
                 const response = await fetch('/api/actions');
@@ -737,15 +784,12 @@
                     document.getElementById('translation-language-container').style.display =
                         s.translation_use_primary !== false ? 'none' : 'block';
 
-                    // Behavior
-                    if (s.ai_behavior_variant) {
-                        document.querySelectorAll('#behavior-btns .btn').forEach(btn => {
-                            btn.classList.toggle('active', btn.dataset.value === s.ai_behavior_variant);
-                        });
-                        if (s.ai_behavior_variant === 'custom' && s.custom_ai_behavior) {
-                            document.getElementById('custom-behavior-container').style.display = 'block';
-                            document.getElementById('custom-behavior').value = s.custom_ai_behavior;
-                        }
+                    // Behavior - use selected_behavior (new) or ai_behavior_variant (legacy)
+                    const behaviorId = s.selected_behavior || s.ai_behavior_variant || 'full';
+                    const behaviorSelect = document.getElementById('behavior-select');
+                    if (behaviorSelect.querySelector(`option[value="${behaviorId}"]`)) {
+                        behaviorSelect.value = behaviorId;
+                        onBehaviorChange();
                     }
 
                     // Temperature
@@ -890,9 +934,11 @@
             if (action) {
                 // Set behavior if action specifies it
                 if (action.behavior_variant) {
-                    document.querySelectorAll('#behavior-btns .btn').forEach(btn => {
-                        btn.classList.toggle('active', btn.dataset.value === action.behavior_variant);
-                    });
+                    const behaviorSelect = document.getElementById('behavior-select');
+                    if (behaviorSelect.querySelector(`option[value="${action.behavior_variant}"]`)) {
+                        behaviorSelect.value = action.behavior_variant;
+                        onBehaviorChange();
+                    }
                 }
 
                 // Set temperature if action specifies it
@@ -938,7 +984,8 @@
         }
 
         function getConfig() {
-            const activeBehavior = document.querySelector('#behavior-btns .btn.active');
+            const behaviorSelect = document.getElementById('behavior-select');
+            const behaviorId = behaviorSelect.value;
             const contextType = document.getElementById('context-type').value;
             const actionId = document.getElementById('action-select').value;
 
@@ -989,13 +1036,17 @@
                 }
             }
 
-            const behaviorValue = activeBehavior ? activeBehavior.dataset.value : 'full';
+            // Handle behavior - for "custom", send the textarea content as override
+            let customBehavior = null;
+            if (behaviorId === 'custom') {
+                customBehavior = document.getElementById('custom-behavior').value;
+            }
 
             return {
                 provider: document.getElementById('provider').value,
                 model: document.getElementById('model').value,
-                behavior: behaviorValue,
-                custom_behavior: behaviorValue === 'custom' ? document.getElementById('custom-behavior').value : null,
+                behavior: behaviorId === 'custom' ? 'full' : (behaviorId || 'none'),  // Base variant
+                custom_behavior: customBehavior,  // Override text (only for custom mode)
                 temperature: parseFloat(document.getElementById('temperature').value),
                 domain: document.getElementById('domain').value,
                 languages: document.getElementById('user-languages').value,
@@ -1190,10 +1241,12 @@
             const p = presets[preset];
             if (!p) return;
 
-            // Set behavior
-            document.querySelectorAll('#behavior-btns .btn').forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.value === p.behavior);
-            });
+            // Set behavior using dropdown
+            const behaviorSelect = document.getElementById('behavior-select');
+            if (behaviorSelect.querySelector(`option[value="${p.behavior}"]`)) {
+                behaviorSelect.value = p.behavior;
+                onBehaviorChange();
+            }
 
             document.getElementById('temperature').value = p.temperature;
             updateTempLabel();

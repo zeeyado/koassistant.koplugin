@@ -80,6 +80,28 @@ package.loaded["gettext"] = function(str)
     return str
 end
 
+-- Mock lfs (luafilesystem - used by behavior_loader and domain_loader)
+-- Try to use real lfs if available, otherwise provide minimal mock
+local lfs_ok, real_lfs = pcall(require, "lfs")
+if lfs_ok then
+    -- Real lfs available - use it directly
+    package.loaded["libs/libkoreader-lfs"] = real_lfs
+else
+    -- Minimal mock for when lfs isn't available
+    local mock_lfs = {
+        attributes = function(path)
+            -- Return nil for non-existent paths
+            -- Tests can override this if needed
+            return nil
+        end,
+        dir = function(path)
+            -- Return empty iterator
+            return function() return nil end
+        end,
+    }
+    package.loaded["libs/libkoreader-lfs"] = mock_lfs
+end
+
 -- Mock UI widgets (for stream_handler.lua)
 -- These are not used in unit tests, but need to exist so the module loads
 package.loaded["ui/widget/inputtext"] = {

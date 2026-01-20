@@ -117,7 +117,8 @@ function TestConfig.buildFullConfig(provider, api_key, options)
         behavior_variant = options.behavior_variant,
         behavior_override = options.behavior_override,
         global_variant = options.global_variant or "full",
-        custom_ai_behavior = options.custom_ai_behavior,
+        custom_ai_behavior = options.custom_ai_behavior,  -- DEPRECATED: legacy support
+        custom_behaviors = options.custom_behaviors,      -- NEW: array of UI-created behaviors
         domain_context = options.domain_context,
         enable_caching = options.enable_caching,
         user_languages = options.user_languages,
