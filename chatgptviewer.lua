@@ -41,14 +41,18 @@ local MD = require("apps/filemanager/lib/md")
 local SpinWidget = require("ui/widget/spinwidget")
 local UIConstants = require("ui/constants")
 
--- Show link options dialog (similar to KOReader's ReaderLink)
+-- Show link options dialog (matches KOReader's ReaderLink external link dialog)
 local link_dialog  -- Forward declaration for closures
 local function showLinkDialog(link_url)
     if not link_url then return end
 
+    local QRMessage = require("ui/widget/qrmessage")
+    local Event = require("ui/event")
+
+    -- Build buttons in 2-column layout like ReaderLink
     local buttons = {}
 
-    -- Copy to clipboard
+    -- Row 1: Copy | Show QR code
     table.insert(buttons, {
         {
             text = _("Copy"),
@@ -60,38 +64,51 @@ local function showLinkDialog(link_url)
                 })
             end,
         },
-    })
-
-    -- Show QR code
-    local QRMessage = require("ui/widget/qrmessage")
-    table.insert(buttons, {
         {
-            text = _("QR Code"),
+            text = _("Show QR code"),
             callback = function()
                 UIManager:close(link_dialog)
                 UIManager:show(QRMessage:new{
                     text = link_url,
-                    width = Screen:getWidth() * 0.8,
-                    height = Screen:getWidth() * 0.8,
+                    width = Screen:getWidth(),
+                    height = Screen:getHeight(),
                 })
             end,
         },
     })
 
-    -- Open in browser (if supported)
-    if Device:canOpenLink() then
-        table.insert(buttons, {
-            {
-                text = _("Open in browser"),
-                callback = function()
-                    UIManager:close(link_dialog)
-                    Device:openLink(link_url)
-                end,
-            },
+    -- Row 2: Add to Wallabag (if available) | Open in browser
+    local row2 = {}
+
+    -- Try to add Wallabag option by broadcasting event (works if ReaderUI is active)
+    -- Check if we can reach the Wallabag plugin through ReaderUI
+    local ReaderUI = require("apps/reader/readerui")
+    local reader_ui = ReaderUI.instance
+    if reader_ui and reader_ui.wallabag then
+        table.insert(row2, {
+            text = _("Add to Wallabag"),
+            callback = function()
+                UIManager:close(link_dialog)
+                UIManager:broadcastEvent(Event:new("AddWallabagArticle", link_url))
+            end,
         })
     end
 
-    -- Cancel
+    if Device:canOpenLink() then
+        table.insert(row2, {
+            text = _("Open in browser"),
+            callback = function()
+                UIManager:close(link_dialog)
+                Device:openLink(link_url)
+            end,
+        })
+    end
+
+    if #row2 > 0 then
+        table.insert(buttons, row2)
+    end
+
+    -- Row 3: Cancel (full width)
     table.insert(buttons, {
         {
             text = _("Cancel"),
@@ -101,9 +118,9 @@ local function showLinkDialog(link_url)
         },
     })
 
+    -- Title format matches ReaderLink: "External link:\n\nURL"
     link_dialog = ButtonDialog:new{
-        title = link_url,
-        title_align = "center",
+        title = T(_("External link:\n\n%1"), BD.url(link_url)),
         buttons = buttons,
     }
     UIManager:show(link_dialog)
