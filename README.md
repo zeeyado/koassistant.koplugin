@@ -134,7 +134,8 @@ See detailed sections below for each feature.
 - **Good document metadata** improves AI responses. Use Calibre, Zotero, or similar tools to ensure titles, authors, and identifiers are correct.
 - **Shorter tap duration** makes text selection in KOReader easier: Settings → Taps and Gestures → Long-press interval
 - **Choose models wisely**: Fast models (like Haiku) for quick queries; powerful models (like Sonnet, Opus) for deeper analysis.
-- **Tailor to your use**: Set up and pick suitable Domains and AI Behavior, as well as Actions 
+- **Explore sample behaviors**: The `behaviors.sample/` folder has 25+ behaviors including provider-inspired styles (Claude, GPT, Gemini, etc.) and reading-specialized options. Copy ones you like to `behaviors/`.
+- **Combine behaviors with domains**: Behavior controls *how* the AI communicates; Domain provides *what* context. Try `scholarly_standard` + a research domain for rigorous academic analysis. 
 
 ---
 
@@ -217,10 +218,11 @@ Behavior defines the AI's personality, communication style, and response guideli
 
 ### Built-in Behaviors
 
-Three built-in behaviors are always available (based on [Anthropic Claude guidelines](https://docs.anthropic.com/en/release-notes/system-prompts)):
+Four built-in behaviors are always available (based on [Anthropic Claude guidelines](https://docs.anthropic.com/en/release-notes/system-prompts)):
 
 - **Mini** (~220 tokens): Concise guidance for e-reader conversations
 - **Standard** (~420 tokens): Balanced guidance for quality responses
+- **Full** (~1150 tokens): Comprehensive guidance for best quality responses
 - **Translator Direct** (~85 tokens): Direct translation without commentary (used by Translate action)
 
 ### Sample Behaviors

@@ -55,18 +55,20 @@ Designed specifically for book reading and literary analysis:
 
 ## Built-in Behaviors
 
-The plugin includes four built-in behaviors (always available without copying):
+Four built-in behaviors are always available (based on [Anthropic Claude guidelines](https://docs.anthropic.com/en/release-notes/system-prompts)):
 
-- **Minimal** (~100 tokens) - Conversational, natural, minimal formatting
-- **Full** (~500 tokens) - Comprehensive Claude-style guidelines
-- **Concise** (~50 tokens) - Brief, direct answers
-- **Scholarly** (~400 tokens) - Rigorous textual analysis
+- **Mini** (~220 tokens) - Concise guidance for e-reader conversations
+- **Standard** (~420 tokens) - Balanced guidance for quality responses
+- **Full** (~1150 tokens) - Comprehensive guidance for best quality responses
+- **Translator Direct** (~85 tokens) - Direct translation without commentary
+
+The samples in this folder offer alternative styles (GPT, Gemini, Grok, etc.) and specialized behaviors (scholarly, religious, creative).
 
 ## Recommendations by Use Case
 
 **General Reading & Chat**
-- Start with `claude_style_standard.md` or built-in "Full"
-- For lower token cost: `claude_style_mini.md` or built-in "Minimal"
+- Start with built-in "Standard" or `claude_style_standard.md`
+- For lower token cost: built-in "Mini" or `claude_style_mini.md`
 
 **Research & Information**
 - `perplexity_style_standard.md` - Emphasizes sources and thoroughness
@@ -74,14 +76,13 @@ The plugin includes four built-in behaviors (always available without copying):
 
 **Academic/Literary Study**
 - `scholarly_standard.md` or `scholarly_extended.md`
-- Built-in "Scholarly" for quick access
 
 **Quick Lookups**
-- Built-in "Concise" (fastest)
-- `grok_style_mini.md` - Direct, no hedging
+- Built-in "Mini" or `grok_style_mini.md` - Direct, no hedging
 
 **Translation Work**
-- `translator_standard.md` - Nuance-preserving translation
+- Built-in "Translator Direct" for simple translations
+- `translator_standard.md` for literary translation with context
 
 **Religious/Classical Texts**
 - `religious_standard.md` or `religious_extended.md`
@@ -115,6 +116,21 @@ You are a helpful assistant who...
 - **Be specific**: Define exactly how you want the AI to communicate
 - **Include negatives**: What to avoid is as important as what to do
 - **Test and iterate**: Try different approaches to find what works
+
+## Combining Behaviors with Domains
+
+Behaviors and domains work together:
+- **Behavior** = HOW the AI communicates (tone, style, formatting)
+- **Domain** = WHAT context it has (subject matter expertise)
+
+**Example combinations:**
+- `scholarly_standard` + Islamic Studies domain → Rigorous academic analysis of religious texts
+- `creative_standard` + your fiction project domain → Craft-focused discussion of your novel
+- `perplexity_style_standard` + Research domain → Source-focused research assistance
+
+**Pro tip:** Create domain-specific behaviors for specialized needs. If you have a Philosophy domain, consider a `philosophy_analytical.md` behavior that emphasizes logical argumentation, or if you're doing language learning, a behavior that explains grammar patterns.
+
+The system prompt sent to the AI is: **Behavior + Domain + Language instruction**. Experiment with different combinations to find what works best for your reading.
 
 ## Reference Folder
 
