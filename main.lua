@@ -784,6 +784,27 @@ function AskGPT:onDispatcherRegisterActions()
     event = "KOAssistantActionManager",
     title = _("KOAssistant: Action Manager"),
     general = true,
+  })
+
+  Dispatcher:registerAction("koassistant_manage_behaviors", {
+    category = "none",
+    event = "KOAssistantManageBehaviors",
+    title = _("KOAssistant: Behavior Manager"),
+    general = true,
+  })
+
+  Dispatcher:registerAction("koassistant_manage_domains", {
+    category = "none",
+    event = "KOAssistantManageDomains",
+    title = _("KOAssistant: Domain Manager"),
+    general = true,
+  })
+
+  Dispatcher:registerAction("koassistant_change_domain", {
+    category = "none",
+    event = "KOAssistantChangeDomain",
+    title = _("KOAssistant: Change Domain"),
+    general = true,
     separator = true
   })
 
@@ -1816,28 +1837,28 @@ function AskGPT:onKOAssistantChangeBehavior()
 end
 
 --- Build behavior variant menu (for gesture action)
---- Just shows the available built-in behaviors - no custom option in quick menu
+--- Loads all behaviors from all sources (builtin, folder, UI-created)
 function AskGPT:buildBehaviorMenu()
+  local SystemPrompts = require("prompts/system_prompts")
   local self_ref = self
 
-  local options = {
-    { value = "minimal", text = _("Minimal (~100 tokens)") },
-    { value = "full", text = _("Full (~500 tokens)") },
-  }
+  local features = self.settings:readSetting("features") or {}
+  local custom_behaviors = features.custom_behaviors or {}
+  local all_behaviors = SystemPrompts.getSortedBehaviors(custom_behaviors)  -- Returns sorted array
 
   local items = {}
-  for _idx, option in ipairs(options) do
-    local opt_copy = option
+  for _idx, behavior in ipairs(all_behaviors) do
+    local behavior_copy = behavior
     table.insert(items, {
-      text = opt_copy.text,
+      text = behavior_copy.display_name or behavior_copy.name,  -- display_name already includes source indicator
       checked_func = function()
         local f = self_ref.settings:readSetting("features") or {}
-        return (f.selected_behavior or "full") == opt_copy.value
+        return (f.selected_behavior or "full") == behavior_copy.id
       end,
       radio = true,
       callback = function()
         local f = self_ref.settings:readSetting("features") or {}
-        f.selected_behavior = opt_copy.value
+        f.selected_behavior = behavior_copy.id
         self_ref.settings:saveSetting("features", f)
         self_ref.settings:flush()
         self_ref:updateConfigFromSettings()
@@ -2014,6 +2035,77 @@ end
 function AskGPT:onKOAssistantActionManager()
   self:showPromptsManager()
   return true
+end
+
+--- Behavior Manager gesture handler
+function AskGPT:onKOAssistantManageBehaviors()
+  self:showBehaviorManager()
+  return true
+end
+
+--- Domain Manager gesture handler
+function AskGPT:onKOAssistantManageDomains()
+  self:showDomainManager()
+  return true
+end
+
+--- Change Domain gesture handler (quick selector popup)
+function AskGPT:onKOAssistantChangeDomain()
+  local menu_items = self:buildDomainMenu()
+  self:showQuickSettingsPopup(_("Knowledge Domain"), menu_items)
+  return true
+end
+
+--- Build domain menu (for gesture action)
+--- Shows available domains for quick selection
+function AskGPT:buildDomainMenu()
+  local DomainLoader = require("domain_loader")
+  local self_ref = self
+
+  local features = self.settings:readSetting("features") or {}
+  local custom_domains = features.custom_domains or {}
+  local all_domains = DomainLoader.getSortedDomains(custom_domains)  -- Returns sorted array
+
+  local items = {}
+
+  -- Add "None" option first
+  table.insert(items, {
+    text = _("None"),
+    checked_func = function()
+      local f = self_ref.settings:readSetting("features") or {}
+      return not f.selected_domain
+    end,
+    radio = true,
+    callback = function()
+      local f = self_ref.settings:readSetting("features") or {}
+      f.selected_domain = nil
+      self_ref.settings:saveSetting("features", f)
+      self_ref.settings:flush()
+      self_ref:updateConfigFromSettings()
+    end,
+  })
+
+  -- Add all available domains
+  for _idx, domain in ipairs(all_domains) do
+    local domain_copy = domain
+    table.insert(items, {
+      text = domain_copy.display_name or domain_copy.name or domain_copy.id,
+      checked_func = function()
+        local f = self_ref.settings:readSetting("features") or {}
+        return f.selected_domain == domain_copy.id
+      end,
+      radio = true,
+      callback = function()
+        local f = self_ref.settings:readSetting("features") or {}
+        f.selected_domain = domain_copy.id
+        self_ref.settings:saveSetting("features", f)
+        self_ref.settings:flush()
+        self_ref:updateConfigFromSettings()
+      end,
+    })
+  end
+
+  return items
 end
 
 function AskGPT:showPromptsManager()
