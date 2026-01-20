@@ -15,12 +15,12 @@ Behaviors come in different sizes to balance quality vs. token cost:
 
 | Size | Tokens | Best For |
 |------|--------|----------|
-| `_mini` | ~100-150 | Quick interactions, cost-sensitive |
-| `_standard` | ~300-500 | Good balance of guidance and efficiency |
-| `_extended` | ~1000-2000 | Richer guidance for complex discussions |
-| `_complete` | ~2000+ | Full experience with comprehensive guidelines |
+| `_mini` | ~160-190 | Quick interactions, cost-sensitive |
+| `_standard` | ~380-500 | Good balance of guidance and efficiency |
+| `_extended` | ~990-1200 | Richer guidance for complex discussions |
+| `_full` | ~1150-1325 | Most comprehensive guidelines |
 
-**Recommendation**: Start with `_standard` versions. Move to `_mini` if costs are a concern, or `_complete` for best quality.
+**Recommendation**: Start with `_standard` versions. Move to `_mini` if costs are a concern, or `_full` for richer guidance.
 
 ## Provider-Inspired Styles
 
@@ -38,9 +38,9 @@ These behaviors capture the communication style of popular AI providers, adapted
 ### Size Variants Available
 
 Each provider style has three sizes:
-- `{provider}_style_mini.md` - Core principles only
-- `{provider}_style_standard.md` - Balanced guidance
-- `{provider}_style_complete.md` - Comprehensive experience
+- `{provider}_style_mini.md` - Core principles only (~160-190 tokens)
+- `{provider}_style_standard.md` - Balanced guidance (~430-470 tokens)
+- `{provider}_style_full.md` - Comprehensive guidelines (~1150-1325 tokens)
 
 ## Reading-Specialized Behaviors
 

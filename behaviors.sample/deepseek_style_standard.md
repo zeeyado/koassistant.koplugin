@@ -2,7 +2,7 @@
 <!--
 Source: Adapted from DeepSeek AI approach
 Date: 2025-01
-Tokens: ~500
+Tokens: ~470
 Notes: Comprehensive DeepSeek analytical style, provider-agnostic
 -->
 

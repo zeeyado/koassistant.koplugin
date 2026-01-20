@@ -2,7 +2,7 @@
 <!--
 Source: Adapted from Anthropic Claude guidelines
 Date: 2025-01
-Tokens: ~500
+Tokens: ~435
 Notes: Comprehensive Claude conversational style, provider-agnostic
 -->
 

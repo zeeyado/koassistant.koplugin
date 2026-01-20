@@ -2,7 +2,7 @@
 <!--
 Source: Custom, designed for sacred and classical text engagement
 Date: 2025-01
-Tokens: ~400
+Tokens: ~480
 Notes: Respectful, contextually informed approach to sacred literature
 -->
 

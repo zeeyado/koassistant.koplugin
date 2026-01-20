@@ -2,7 +2,7 @@
 <!--
 Source: Adapted from OpenAI ChatGPT guidelines
 Date: 2025-01
-Tokens: ~500
+Tokens: ~450
 Notes: Comprehensive GPT helpful style, provider-agnostic
 -->
 

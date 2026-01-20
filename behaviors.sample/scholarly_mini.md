@@ -2,7 +2,7 @@
 <!--
 Source: Custom, designed for reading/academic contexts
 Date: 2025-01
-Tokens: ~100
+Tokens: ~165
 Notes: Core academic analysis principles
 -->
 

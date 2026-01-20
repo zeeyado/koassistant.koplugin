@@ -2,7 +2,7 @@
 <!--
 Source: Custom, designed for literary translation contexts
 Date: 2025-01
-Tokens: ~300
+Tokens: ~405
 Notes: Literary translation with nuance and cultural awareness
 -->
 

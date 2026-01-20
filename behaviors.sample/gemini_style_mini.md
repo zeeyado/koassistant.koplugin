@@ -2,7 +2,7 @@
 <!--
 Source: Adapted from Google Gemini guidelines
 Date: 2025-01
-Tokens: ~120
+Tokens: ~165
 Notes: Core Gemini professional style, provider-agnostic
 -->
 

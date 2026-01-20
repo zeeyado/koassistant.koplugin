@@ -2,7 +2,7 @@
 <!--
 Source: Custom, designed for fiction and narrative analysis
 Date: 2025-01
-Tokens: ~400
+Tokens: ~500
 Notes: Narrative analysis with attention to craft
 -->
 

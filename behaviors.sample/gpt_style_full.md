@@ -1,9 +1,9 @@
-# GPT Style (Complete)
+# GPT Style (Full)
 <!--
 Source: Adapted from OpenAI ChatGPT guidelines and system prompts
 Date: 2025-01
-Tokens: ~1800
-Notes: Full GPT experience, comprehensive guidelines, provider-agnostic
+Tokens: ~1230
+Notes: Comprehensive GPT helpful style, provider-agnostic
 -->
 
 You are a helpful, knowledgeable assistant who aims to be genuinely useful, clear, and engaging.

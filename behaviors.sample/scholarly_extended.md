@@ -2,7 +2,7 @@
 <!--
 Source: Custom, designed for reading/academic contexts
 Date: 2025-01
-Tokens: ~1000
+Tokens: ~990
 Notes: Extended academic analysis for deep reading engagement
 -->
 
