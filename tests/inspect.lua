@@ -830,6 +830,7 @@ local function startWebServer(options)
                     api_params = action.api_params,
                     include_book_context = action.include_book_context,
                     extended_thinking = action.extended_thinking,
+                    skip_language_instruction = action.skip_language_instruction,  -- Language skip flag
                     context = action.context,  -- Include original context for filtering
                     is_custom = is_custom or false,
                 })
@@ -888,6 +889,7 @@ local function startWebServer(options)
                             include_book_context = action.include_book_context,
                             extended_thinking = action.extended_thinking,
                             thinking_budget = action.thinking_budget,
+                            skip_language_instruction = action.skip_language_instruction,
                             provider = action.provider,
                             model = action.model,
                             context = action.context,
@@ -950,6 +952,10 @@ local function startWebServer(options)
             })
         end
 
+        -- Build the action/prompt object first (needed for skip_language_instruction)
+        local action = request_data.action or { prompt = request_data.message or "Say hello in exactly 5 words." }
+        local is_ask_action = action and action.id == "ask"
+
         -- Build options from request
         local build_options = {
             behavior_variant = request_data.behavior or "full",
@@ -959,6 +965,8 @@ local function startWebServer(options)
             user_languages = request_data.languages,
             primary_language = request_data.primary_language,
             model = request_data.model,
+            -- Pass skip_language_instruction from action (uses plugin code)
+            skip_language_instruction = action and action.skip_language_instruction,
         }
 
         -- Handle thinking
@@ -974,12 +982,6 @@ local function startWebServer(options)
         -- Build messages using shared MessageBuilder (same as plugin)
         local context = request_data.context or {}
         local context_type = context.type or "general"
-
-        -- Build the action/prompt object
-        -- If an action was selected, it should have a prompt field
-        -- Otherwise, use the user's message as a simple prompt
-        local action = request_data.action or { prompt = request_data.message or "Say hello in exactly 5 words." }
-        local is_ask_action = action and action.id == "ask"
 
         -- Build context data for MessageBuilder
         local context_data = {}
@@ -1001,20 +1003,32 @@ local function startWebServer(options)
         end
 
         -- For Ask action, the message IS the question (not additional input)
-        -- For other actions, the message is additional input
+        -- For actions with their own prompt template, the message is only used as additional input
+        -- if explicitly marked (to avoid duplicating the prompt)
         if request_data.action and request_data.message and request_data.message ~= "" then
             if is_ask_action then
                 context_data.user_question = request_data.message
-            else
+            elseif not action.prompt or action.prompt == "" then
+                -- Only add as additional_input if action has no prompt template
+                -- Actions like Translate have their own prompt with placeholders
+                context_data.additional_input = request_data.message
+            elseif request_data.include_message_as_additional then
+                -- Explicit flag to include message as additional input
                 context_data.additional_input = request_data.message
             end
         elseif is_ask_action then
             context_data.user_question = action.default_message or "I have a question for you."
         end
 
-        -- Add translation language if applicable
-        if request_data.translation_language then
-            context_data.translation_language = request_data.translation_language
+        -- Resolve translation language using plugin code (handles __PRIMARY__ sentinel)
+        if request_data.translation_language or action.id == "translate" then
+            local SystemPrompts = require("prompts.system_prompts")
+            context_data.translation_language = SystemPrompts.getEffectiveTranslationLanguage({
+                translation_language = request_data.translation_language,
+                translation_use_primary = request_data.translation_use_primary,
+                user_languages = request_data.languages,
+                primary_language = request_data.primary_language,
+            })
         end
 
         -- Load templates getter for template resolution
@@ -1166,6 +1180,10 @@ local function startWebServer(options)
         -- Start timing for config/message building
         local build_start = socket.gettime()
 
+        -- Build the action/prompt object first (needed for skip_language_instruction)
+        local action = request_data.action or { prompt = request_data.message or "Say hello in exactly 5 words." }
+        local is_ask_action = action and action.id == "ask"
+
         -- Build options (same as /api/build)
         local build_options = {
             behavior_variant = request_data.behavior or "full",
@@ -1175,6 +1193,8 @@ local function startWebServer(options)
             user_languages = request_data.languages,
             primary_language = request_data.primary_language,
             model = request_data.model,
+            -- Pass skip_language_instruction from action (uses plugin code)
+            skip_language_instruction = action and action.skip_language_instruction,
         }
 
         if request_data.thinking and request_data.thinking.enabled then
@@ -1187,9 +1207,6 @@ local function startWebServer(options)
         -- Build messages using shared MessageBuilder
         local context = request_data.context or {}
         local context_type = context.type or "general"
-
-        local action = request_data.action or { prompt = request_data.message or "Say hello in exactly 5 words." }
-        local is_ask_action = action and action.id == "ask"
 
         local context_data = {}
         if context_type == "highlight" then
@@ -1209,13 +1226,18 @@ local function startWebServer(options)
         end
 
         -- For Ask action, the message IS the question (not additional input)
-        -- For other actions, the message is additional input
+        -- For actions with their own prompt template, the message is only used as additional input
+        -- if explicitly marked (to avoid duplicating the prompt)
         if request_data.action and request_data.message and request_data.message ~= "" then
             if is_ask_action then
                 -- Ask: message becomes the user question (use default if empty)
                 context_data.user_question = request_data.message
-            else
-                -- Other actions: message is additional input
+            elseif not action.prompt or action.prompt == "" then
+                -- Only add as additional_input if action has no prompt template
+                -- Actions like Translate have their own prompt with placeholders
+                context_data.additional_input = request_data.message
+            elseif request_data.include_message_as_additional then
+                -- Explicit flag to include message as additional input
                 context_data.additional_input = request_data.message
             end
         elseif is_ask_action then
@@ -1223,8 +1245,15 @@ local function startWebServer(options)
             context_data.user_question = action.default_message or "I have a question for you."
         end
 
-        if request_data.translation_language then
-            context_data.translation_language = request_data.translation_language
+        -- Resolve translation language using plugin code (handles __PRIMARY__ sentinel)
+        if request_data.translation_language or action.id == "translate" then
+            local SystemPrompts = require("prompts.system_prompts")
+            context_data.translation_language = SystemPrompts.getEffectiveTranslationLanguage({
+                translation_language = request_data.translation_language,
+                translation_use_primary = request_data.translation_use_primary,
+                user_languages = request_data.languages,
+                primary_language = request_data.primary_language,
+            })
         end
 
         local templates_getter = nil

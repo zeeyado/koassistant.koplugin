@@ -123,6 +123,7 @@ function TestConfig.buildFullConfig(provider, api_key, options)
         enable_caching = options.enable_caching,
         user_languages = options.user_languages,
         primary_language = options.primary_language,
+        skip_language_instruction = options.skip_language_instruction,
     })
 
     local config = {
