@@ -207,12 +207,12 @@ function Actions.getForContext(context)
 
     -- Get context-specific actions
     local context_actions = Actions[context] or {}
-    for _, action in pairs(context_actions) do
+    for _idx,action in pairs(context_actions) do
         table.insert(result, action)
     end
 
     -- Add special actions that apply to this context
-    for _, action in pairs(Actions.special) do
+    for _idx,action in pairs(Actions.special) do
         if action.context == "all" or
            action.context == context or
            (action.context == "both" and (context == "highlight" or context == "book")) then
@@ -228,7 +228,7 @@ end
 -- @return table or nil: Action definition if found
 function Actions.getById(action_id)
     -- Search all context tables
-    for _, context_table in pairs({Actions.highlight, Actions.book, Actions.multi_book, Actions.general, Actions.special}) do
+    for _idx,context_table in pairs({Actions.highlight, Actions.book, Actions.multi_book, Actions.general, Actions.special}) do
         if context_table[action_id] then
             return context_table[action_id]
         end

@@ -591,12 +591,16 @@ end
 function SystemPrompts.getEffectiveTranslationLanguage(config)
     config = config or {}
 
-    if config.translation_use_primary ~= false then
-        local primary, _ = SystemPrompts.parseUserLanguages(config.user_languages, config.primary_language)
+    local primary, _ = SystemPrompts.parseUserLanguages(config.user_languages, config.primary_language)
+
+    -- Use primary if: toggle is on, OR translation_language is the __PRIMARY__ sentinel
+    local lang = config.translation_language
+    if config.translation_use_primary ~= false or
+       lang == "__PRIMARY__" or lang == nil or lang == "" then
         return primary
-    else
-        return config.translation_language or "English"
     end
+
+    return lang
 end
 
 return SystemPrompts

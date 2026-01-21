@@ -160,6 +160,7 @@ function PromptsManager:loadPrompts()
             requires = prompt.requires,
             id = prompt.id,
             include_book_context = prompt.include_book_context,
+            skip_language_instruction = prompt.skip_language_instruction,
             temperature = temperature,
             extended_thinking = prompt.extended_thinking,
             thinking_budget = prompt.thinking_budget,
@@ -184,6 +185,7 @@ function PromptsManager:loadPrompts()
                 if override.behavior_variant then entry.behavior_variant = override.behavior_variant end
                 if override.behavior_override then entry.behavior_override = override.behavior_override end
                 if override.reasoning_config then entry.reasoning_config = override.reasoning_config end
+                if override.skip_language_instruction ~= nil then entry.skip_language_instruction = override.skip_language_instruction end
             end
         end
 
@@ -514,10 +516,9 @@ function PromptsManager:showPromptDetails(prompt)
         info_text = info_text .. "\n\n" .. _("Include Book Info") .. ": " .. book_context_text
     end
 
-    -- Show skip_language_instruction if set
-    if prompt.skip_language_instruction then
-        info_text = info_text .. "\n" .. _("Skip Language Instruction") .. ": " .. _("Yes")
-    end
+    -- Show skip_language_instruction (always show for visibility)
+    local skip_lang_text = prompt.skip_language_instruction and _("Yes") or _("No")
+    info_text = info_text .. "\n" .. _("Skip Language Instruction") .. ": " .. skip_lang_text
 
     if prompt.requires then
         info_text = info_text .. "\n\n" .. _("Requires") .. ": " .. prompt.requires
@@ -1869,6 +1870,11 @@ end
 -- Built-in action settings editor
 -- Shows a combined dialog with behavior + advanced settings
 function PromptsManager:showBuiltinSettingsEditor(prompt)
+    -- Get base action value for skip_language_instruction (from Actions.lua, without overrides)
+    local Actions = require("prompts/actions")
+    local base_action = Actions.getById(prompt.id)
+    local base_skip_lang = base_action and base_action.skip_language_instruction or false
+
     -- Initialize state from current prompt values
     local state = {
         prompt = prompt,  -- Reference to the original prompt
@@ -1876,6 +1882,7 @@ function PromptsManager:showBuiltinSettingsEditor(prompt)
         behavior_override = prompt.behavior_override or "",
         temperature = prompt.temperature,
         skip_language_instruction = prompt.skip_language_instruction or false,
+        skip_language_instruction_base = base_skip_lang,  -- Track base for comparison on save
         -- New format: reasoning_config
         reasoning_config = prompt.reasoning_config,
         -- Legacy format (backward compatibility)
@@ -2352,7 +2359,9 @@ function PromptsManager:saveBuiltinOverride(prompt, state)
         override.behavior_override = state.behavior_override
         has_any = true
     end
-    if state.skip_language_instruction then
+    -- Save skip_language_instruction if it differs from the base action's default
+    local base_skip_lang = state.skip_language_instruction_base or false
+    if state.skip_language_instruction ~= base_skip_lang then
         override.skip_language_instruction = state.skip_language_instruction
         has_any = true
     end
