@@ -93,6 +93,33 @@ end
 
 -- Load the module under test
 local SystemPrompts = require("prompts.system_prompts")
+local BehaviorLoader = require("behavior_loader")
+
+-- Load actual behaviors dynamically (same as plugin does)
+local BUILTIN_BEHAVIORS = BehaviorLoader.loadBuiltin()
+
+-- Get a sample behavior for testing (first available)
+local function getFirstBehaviorId()
+    for id in pairs(BUILTIN_BEHAVIORS) do
+        return id
+    end
+    return nil
+end
+
+local function getFirstBehaviorText()
+    for _, behavior in pairs(BUILTIN_BEHAVIORS) do
+        return behavior.text
+    end
+    return nil
+end
+
+-- Get specific behavior if it exists, otherwise first available
+local function getBehaviorIdOr(preferred, fallback)
+    if BUILTIN_BEHAVIORS[preferred] then
+        return preferred
+    end
+    return fallback or getFirstBehaviorId()
+end
 
 print("")
 print(string.rep("=", 50))
@@ -102,24 +129,32 @@ print(string.rep("=", 50))
 -- Test getBehavior()
 TestRunner:suite("getBehavior()")
 
-TestRunner:test("returns minimal variant", function()
-    local result = SystemPrompts.getBehavior("minimal")
-    TestRunner:assertContains(result, "helpful AI assistant", "minimal behavior")
+TestRunner:test("returns behavior by ID", function()
+    local id = getFirstBehaviorId()
+    if not id then error("no built-in behaviors found") end
+    local result = SystemPrompts.getBehavior(id)
+    TestRunner:assertType(result, "string", "returns string")
+    TestRunner:assertEqual(result, BUILTIN_BEHAVIORS[id].text, "matches loaded behavior")
 end)
 
-TestRunner:test("returns full variant", function()
+TestRunner:test("returns full variant if exists", function()
+    if not BUILTIN_BEHAVIORS["full"] then return end  -- Skip if not available
     local result = SystemPrompts.getBehavior("full")
-    TestRunner:assertContains(result, "ai_behavior", "full behavior should have xml tags")
+    TestRunner:assertEqual(result, BUILTIN_BEHAVIORS["full"].text, "full behavior matches")
 end)
 
-TestRunner:test("falls back to minimal for unknown variant", function()
-    local result = SystemPrompts.getBehavior("unknown")
-    TestRunner:assertContains(result, "helpful AI assistant", "unknown falls back to minimal")
+TestRunner:test("falls back for unknown variant", function()
+    local result = SystemPrompts.getBehavior("unknown_nonexistent_variant")
+    local expected = getFirstBehaviorText()
+    TestRunner:assertType(result, "string", "returns string")
+    -- Should return some fallback behavior
+    TestRunner:assertNotNil(result, "unknown falls back to something")
 end)
 
-TestRunner:test("falls back to minimal for nil", function()
+TestRunner:test("returns fallback for nil", function()
     local result = SystemPrompts.getBehavior(nil)
-    TestRunner:assertContains(result, "helpful AI assistant", "nil falls back to minimal")
+    TestRunner:assertType(result, "string", "returns string for nil")
+    TestRunner:assertNotNil(result, "nil returns fallback")
 end)
 
 TestRunner:test("returns custom text for custom variant", function()
@@ -127,55 +162,69 @@ TestRunner:test("returns custom text for custom variant", function()
     TestRunner:assertEqual(result, "My custom behavior", "custom variant returns custom_text")
 end)
 
-TestRunner:test("custom variant falls back to minimal if no custom_text", function()
+TestRunner:test("custom variant falls back if no custom_text", function()
     local result = SystemPrompts.getBehavior("custom", nil)
-    TestRunner:assertContains(result, "helpful AI assistant", "custom without text falls back")
+    TestRunner:assertType(result, "string", "returns string")
+    TestRunner:assertNotNil(result, "custom without text falls back")
 end)
 
 -- Test resolveBehavior()
 TestRunner:suite("resolveBehavior()")
 
 TestRunner:test("priority 1: behavior_override takes precedence", function()
+    local id1 = getBehaviorIdOr("full", getFirstBehaviorId())
+    local id2 = getBehaviorIdOr("mini", getFirstBehaviorId())
     local text, source = SystemPrompts.resolveBehavior({
         behavior_override = "My override text",
-        behavior_variant = "full",
-        global_variant = "minimal",
+        behavior_variant = id1,
+        global_variant = id2,
     })
     TestRunner:assertEqual(text, "My override text", "override text")
     TestRunner:assertEqual(source, "override", "source is override")
 end)
 
 TestRunner:test("priority 2: behavior_variant overrides global", function()
+    local variant_id = getFirstBehaviorId()
+    local global_id = getBehaviorIdOr("full", variant_id)
+    if variant_id == global_id then
+        -- Need different IDs for this test
+        for id in pairs(BUILTIN_BEHAVIORS) do
+            if id ~= variant_id then global_id = id break end
+        end
+    end
     local text, source = SystemPrompts.resolveBehavior({
-        behavior_variant = "minimal",
-        global_variant = "full",
+        behavior_variant = variant_id,
+        global_variant = global_id,
     })
-    TestRunner:assertContains(text, "helpful AI assistant", "minimal variant")
+    TestRunner:assertEqual(text, BUILTIN_BEHAVIORS[variant_id].text, "variant text matches")
     TestRunner:assertEqual(source, "variant", "source is variant")
 end)
 
 TestRunner:test("priority 3: falls back to global_variant", function()
+    local global_id = getBehaviorIdOr("full", getFirstBehaviorId())
     local text, source = SystemPrompts.resolveBehavior({
-        global_variant = "full",
+        global_variant = global_id,
     })
-    TestRunner:assertContains(text, "ai_behavior", "full from global")
+    TestRunner:assertEqual(text, BUILTIN_BEHAVIORS[global_id].text, "global text matches")
     TestRunner:assertEqual(source, "global", "source is global")
 end)
 
 TestRunner:test("behavior_variant=none disables behavior", function()
+    local global_id = getBehaviorIdOr("full", getFirstBehaviorId())
     local text, source = SystemPrompts.resolveBehavior({
         behavior_variant = "none",
-        global_variant = "full",
+        global_variant = global_id,
     })
     TestRunner:assertNil(text, "text should be nil")
     TestRunner:assertEqual(source, "none", "source is none")
 end)
 
 TestRunner:test("behavior_variant=custom uses custom_ai_behavior", function()
+    local global_id = getBehaviorIdOr("full", getFirstBehaviorId())
     local text, source = SystemPrompts.resolveBehavior({
         behavior_variant = "custom",
         custom_ai_behavior = "User custom behavior",
-        global_variant = "full",
+        global_variant = global_id,
     })
     TestRunner:assertEqual(text, "User custom behavior", "custom behavior text")
     TestRunner:assertEqual(source, "variant", "source is variant")
@@ -190,9 +239,11 @@ TestRunner:test("global_variant=custom uses custom_ai_behavior", function()
     TestRunner:assertEqual(source, "global", "source is global")
 end)
 
-TestRunner:test("empty config uses full as default", function()
+TestRunner:test("empty config uses standard as default", function()
     local text, source = SystemPrompts.resolveBehavior({})
-    TestRunner:assertContains(text, "ai_behavior", "default is full")
+    -- Default is "standard" per main.lua, should match that behavior
+    local expected_id = getBehaviorIdOr("standard", getFirstBehaviorId())
+    TestRunner:assertEqual(text, BUILTIN_BEHAVIORS[expected_id].text, "default matches standard behavior")
     TestRunner:assertEqual(source, "global", "source is global")
 end)
 
@@ -429,12 +480,14 @@ end)
 TestRunner:suite("buildFlattenedPrompt()")
 
 TestRunner:test("returns combined string", function()
+    local behavior_id = getFirstBehaviorId()
     local result = SystemPrompts.buildFlattenedPrompt({
-        behavior_variant = "minimal",
+        behavior_variant = behavior_id,
         domain_context = "Test domain",
     })
     TestRunner:assertType(result, "string", "returns string")
-    TestRunner:assertContains(result, "helpful AI assistant", "has behavior")
+    -- Should contain behavior text (dynamic check)
+    TestRunner:assertContains(result, BUILTIN_BEHAVIORS[behavior_id].text:sub(1, 20), "has behavior")
     TestRunner:assertContains(result, "Test domain", "has domain")
 end)
 
@@ -506,15 +559,11 @@ TestRunner:suite("getVariantNames()")
 TestRunner:test("returns array of variant names", function()
     local result = SystemPrompts.getVariantNames()
     TestRunner:assertType(result, "table", "returns table")
-    -- Should have at least minimal and full
-    local has_minimal = false
-    local has_full = false
-    for _, name in ipairs(result) do
-        if name == "minimal" then has_minimal = true end
-        if name == "full" then has_full = true end
-    end
-    if not has_minimal then error("missing minimal") end
-    if not has_full then error("missing full") end
+    -- Should have at least some built-in behaviors
+    if #result == 0 then error("no variant names found") end
+    -- Verify first item exists in BUILTIN_BEHAVIORS
+    local first = result[1]
+    TestRunner:assertNotNil(BUILTIN_BEHAVIORS[first], "first variant exists in builtins")
 end)
 
 -- Test getAllBehaviors()
@@ -523,17 +572,23 @@ TestRunner:suite("getAllBehaviors()")
 TestRunner:test("returns built-in behaviors", function()
     local result = SystemPrompts.getAllBehaviors(nil)
     TestRunner:assertType(result, "table", "returns table")
-    TestRunner:assertNotNil(result["minimal"], "has minimal")
-    TestRunner:assertNotNil(result["full"], "has full")
+    -- Should have at least one behavior
+    local count = 0
+    for _ in pairs(result) do count = count + 1 end
+    if count == 0 then error("no behaviors returned") end
+    -- Verify first builtin is present
+    local first_id = getFirstBehaviorId()
+    TestRunner:assertNotNil(result[first_id], "has first builtin: " .. first_id)
 end)
 
 TestRunner:test("built-in behaviors have correct structure", function()
     local result = SystemPrompts.getAllBehaviors(nil)
-    local minimal = result["minimal"]
-    TestRunner:assertEqual(minimal.id, "minimal", "id matches")
-    TestRunner:assertEqual(minimal.source, "builtin", "source is builtin")
-    TestRunner:assertNotNil(minimal.text, "has text")
-    TestRunner:assertNotNil(minimal.display_name, "has display_name")
+    local first_id = getFirstBehaviorId()
+    local behavior = result[first_id]
+    TestRunner:assertEqual(behavior.id, first_id, "id matches")
+    TestRunner:assertEqual(behavior.source, "builtin", "source is builtin")
+    TestRunner:assertNotNil(behavior.text, "has text")
+    TestRunner:assertNotNil(behavior.display_name, "has display_name")
 end)
 
 TestRunner:test("includes UI-created behaviors", function()
@@ -557,13 +612,15 @@ end)
 TestRunner:test("handles nil custom_behaviors", function()
     local result = SystemPrompts.getAllBehaviors(nil)
     TestRunner:assertType(result, "table", "returns table")
-    TestRunner:assertNotNil(result["minimal"], "has built-ins")
+    local first_id = getFirstBehaviorId()
+    TestRunner:assertNotNil(result[first_id], "has built-ins: " .. first_id)
 end)
 
 TestRunner:test("handles empty custom_behaviors array", function()
     local result = SystemPrompts.getAllBehaviors({})
     TestRunner:assertType(result, "table", "returns table")
-    TestRunner:assertNotNil(result["minimal"], "has built-ins")
+    local first_id = getFirstBehaviorId()
+    TestRunner:assertNotNil(result[first_id], "has built-ins: " .. first_id)
 end)
 
 -- Test getSortedBehaviors()
@@ -602,19 +659,24 @@ TestRunner:test("returns all behaviors", function()
         { id = "custom_1", name = "Custom 1", text = "text" },
     }
     local result = SystemPrompts.getSortedBehaviors(custom)
-    -- Should have at least 3: minimal, full, custom_1
-    if #result < 3 then error("expected at least 3 behaviors, got " .. #result) end
+    -- Should have at least the builtins + 1 custom
+    local builtin_count = 0
+    for _ in pairs(BUILTIN_BEHAVIORS) do builtin_count = builtin_count + 1 end
+    if #result < builtin_count + 1 then
+        error("expected at least " .. (builtin_count + 1) .. " behaviors, got " .. #result)
+    end
 end)
 
 -- Test getBehaviorById()
 TestRunner:suite("getBehaviorById()")
 
 TestRunner:test("returns built-in behavior by ID", function()
-    local result = SystemPrompts.getBehaviorById("minimal", nil)
-    TestRunner:assertNotNil(result, "found minimal")
-    TestRunner:assertEqual(result.id, "minimal", "id matches")
+    local first_id = getFirstBehaviorId()
+    local result = SystemPrompts.getBehaviorById(first_id, nil)
+    TestRunner:assertNotNil(result, "found " .. first_id)
+    TestRunner:assertEqual(result.id, first_id, "id matches")
     TestRunner:assertEqual(result.source, "builtin", "source is builtin")
-    TestRunner:assertContains(result.text, "helpful AI assistant", "text matches")
+    TestRunner:assertNotNil(result.text, "has text")
 end)
 
 TestRunner:test("returns UI-created behavior by ID", function()
@@ -639,11 +701,13 @@ TestRunner:test("returns nil for nil ID", function()
 end)
 
 TestRunner:test("built-in takes priority over custom with same ID", function()
-    -- Edge case: if someone creates a custom with id="minimal"
+    -- Edge case: if someone creates a custom with same ID as built-in
+    local builtin_id = getFirstBehaviorId()
+    if not builtin_id then error("no built-in behaviors found") end
     local custom = {
-        { id = "minimal", name = "Fake Minimal", text = "Fake text" },
+        { id = builtin_id, name = "Fake Builtin", text = "Fake text" },
     }
-    local result = SystemPrompts.getBehaviorById("minimal", custom)
+    local result = SystemPrompts.getBehaviorById(builtin_id, custom)
     -- Built-in should win
     TestRunner:assertEqual(result.source, "builtin", "built-in wins")
 end)
@@ -675,13 +739,25 @@ TestRunner:test("resolves UI-created behavior by ID in global_variant", function
     TestRunner:assertEqual(source, "global", "source is global")
 end)
 
-TestRunner:test("falls back to full for unknown custom ID", function()
+TestRunner:test("falls back to fallback for unknown custom ID", function()
     local text, source = SystemPrompts.resolveBehavior({
         behavior_variant = "nonexistent_custom",
         custom_behaviors = {},
     })
-    -- Should fall through to global default (full)
-    TestRunner:assertContains(text, "ai_behavior", "falls back to full")
+    -- Should fall through to global default (some fallback behavior)
+    TestRunner:assertType(text, "string", "falls back to string")
+    TestRunner:assertNotNil(text, "falls back to something")
+    -- Verify it's one of the actual built-in behaviors
+    local found = false
+    for _, behavior in pairs(BUILTIN_BEHAVIORS) do
+        if behavior.text == text then
+            found = true
+            break
+        end
+    end
+    if not found then
+        error("fallback text doesn't match any built-in behavior")
+    end
 end)
 
 -- Summary

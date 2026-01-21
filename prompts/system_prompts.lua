@@ -22,6 +22,10 @@ local SystemPrompts = {}
 -- Fallback behavior text (used if no behaviors can be loaded)
 local FALLBACK_BEHAVIOR = "You are a helpful assistant."
 
+-- Preferred fallback behavior IDs (in priority order)
+-- These are checked when a requested behavior isn't found
+local FALLBACK_IDS = { "mini", "minimal", "standard", "full" }
+
 -- Cache for loaded behaviors (cleared on reload)
 local _builtin_cache = nil
 local _all_cache = nil
@@ -44,6 +48,17 @@ local function getAllFileBehaviors()
     local BehaviorLoader = require("behavior_loader")
     _all_cache = BehaviorLoader.loadAll()
     return _all_cache
+end
+
+-- Get a fallback behavior from available built-ins
+-- Tries FALLBACK_IDS in order, returns first available or FALLBACK_BEHAVIOR
+local function getFallbackBehavior(builtin)
+    for _, id in ipairs(FALLBACK_IDS) do
+        if builtin[id] and builtin[id].text then
+            return builtin[id].text
+        end
+    end
+    return FALLBACK_BEHAVIOR
 end
 
 -- Clear behavior cache (call when behaviors might have changed)
@@ -84,21 +99,23 @@ If the chat was launched from within a book, that context may be provided, but i
 }
 
 -- Helper function to get behavior prompt by variant name
--- Falls back to 'minimal' if variant not found
--- @param variant: "minimal", "full", "custom", or nil
+-- Falls back to first available built-in if variant not found
+-- @param variant: behavior ID (e.g., "mini", "standard", "full"), "custom", or nil
 -- @param custom_text: Custom behavior text (used when variant is "custom")
 -- @return string: Behavior prompt text
 function SystemPrompts.getBehavior(variant, custom_text)
-    variant = variant or "minimal"
-    if variant == "custom" then
-        local builtin = getBuiltinBehaviors()
-        return custom_text or (builtin.minimal and builtin.minimal.text) or FALLBACK_BEHAVIOR
-    end
     local builtin = getBuiltinBehaviors()
+    -- Default to first available fallback if no variant specified
+    if not variant then
+        return getFallbackBehavior(builtin)
+    end
+    if variant == "custom" then
+        return custom_text or getFallbackBehavior(builtin)
+    end
     if builtin[variant] then
         return builtin[variant].text
     end
-    return (builtin.minimal and builtin.minimal.text) or FALLBACK_BEHAVIOR
+    return getFallbackBehavior(builtin)
 end
 
 -- Helper function to get context prompt by context type
@@ -140,7 +157,7 @@ function SystemPrompts.resolveBehavior(config)
         end
         -- Legacy "custom" variant support
         if config.behavior_variant == "custom" then
-            return config.custom_ai_behavior or (builtin.minimal and builtin.minimal.text) or FALLBACK_BEHAVIOR, "variant"
+            return config.custom_ai_behavior or getFallbackBehavior(builtin), "variant"
         end
         -- Check built-in first
         if builtin[config.behavior_variant] then
@@ -161,7 +178,7 @@ function SystemPrompts.resolveBehavior(config)
     end
     -- Legacy "custom" support
     if global_variant == "custom" then
-        return config.custom_ai_behavior or (builtin.minimal and builtin.minimal.text) or FALLBACK_BEHAVIOR, "global"
+        return config.custom_ai_behavior or getFallbackBehavior(builtin), "global"
     end
     -- Check built-in first
     if builtin[global_variant] then
