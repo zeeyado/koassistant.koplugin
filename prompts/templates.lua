@@ -2,14 +2,13 @@
 -- Templates define the actual text sent to the AI
 --
 -- Template variables (substituted at runtime):
---   {highlighted_text} - Selected text from document (highlight context)
---   {title}            - Book title (book, highlight contexts)
---   {author}           - Book author (book, highlight contexts)
---   {author_clause}    - " by Author" or "" if no author
---   {count}            - Number of selected books (multi_book context)
---   {books_list}       - Formatted list of books (multi_book context)
---   {language}         - Target language for translations
---   {text}             - Text to translate
+--   {highlighted_text}     - Selected text from document (highlight context)
+--   {title}                - Book title (book, highlight contexts)
+--   {author}               - Book author (book, highlight contexts)
+--   {author_clause}        - " by Author" or "" if no author
+--   {count}                - Number of selected books (multi_book context)
+--   {books_list}           - Formatted list of books (multi_book context)
+--   {translation_language} - Target translation language from settings (all contexts)
 
 local _ = require("koassistant_gettext")
 

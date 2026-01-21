@@ -854,7 +854,7 @@ function PromptsManager:getContextInfo(context_value, include_book_context)
         general = {
             text = _("General"),
             desc = _("General chat, no specific context"),
-            includes = _("No automatic context data"),
+            includes = _("Available: translation language"),
         },
         both = {
             text = _("Highlight & Book"),
@@ -2414,6 +2414,7 @@ function PromptsManager:getPlaceholdersForContext(context)
         { value = "{author_clause}", text = _("Author Clause"), contexts = {"highlight", "book", "both", "all"} },
         { value = "{count}", text = _("Book Count"), contexts = {"multi_book", "all"} },
         { value = "{books_list}", text = _("Books List"), contexts = {"multi_book", "all"} },
+        { value = "{translation_language}", text = _("Translation Language"), contexts = {"highlight", "book", "multi_book", "general", "both", "all"} },
     }
 
     local result = {}
