@@ -1,0 +1,56 @@
+#!/bin/bash
+# Pre-commit hook for KOAssistant
+# Runs luacheck and custom checks on staged Lua files
+
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep '\.lua$')
+if [ -z "$STAGED_FILES" ]; then
+    exit 0
+fi
+
+# Check 1: Reminder about _ shadowing pattern
+# This is not a blocker, just a reminder for files that use both patterns
+echo "Checking for _ shadowing pattern..."
+WARNED=0
+for file in $STAGED_FILES; do
+    if grep -q 'local _ = require.*gettext' "$file" 2>/dev/null; then
+        if grep -q 'for _, ' "$file" 2>/dev/null; then
+            if [ $WARNED -eq 0 ]; then
+                echo ""
+                echo "REMINDER: Files using gettext _ AND 'for _, ' loops detected:"
+                WARNED=1
+            fi
+            echo "  - $file"
+        fi
+    fi
+done
+
+if [ $WARNED -eq 1 ]; then
+    echo ""
+    echo "  These files have 'for _, var in' loops with gettext."
+    echo "  Ensure _() is not called where _ is shadowed."
+    echo "  Safe pattern: use 'for _idx, var in' instead."
+    echo ""
+fi
+
+# Check 2: Luacheck (main linter)
+echo "Running luacheck..."
+luacheck $STAGED_FILES
+
+LUACHECK_EXIT=$?
+
+if [ $LUACHECK_EXIT -ne 0 ]; then
+    echo ""
+    echo "Luacheck found issues. Review above."
+
+    # Only block on errors (exit code 2), not warnings (exit code 1)
+    if [ $LUACHECK_EXIT -eq 2 ]; then
+        echo "Commit blocked due to luacheck errors."
+        echo "Use --no-verify to skip checks."
+        exit 1
+    fi
+
+    echo "Warnings present but commit allowed."
+fi
+
+echo ""
+echo "Pre-commit checks complete."
