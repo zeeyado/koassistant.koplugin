@@ -30,7 +30,7 @@ lua tests/inspect.lua --web
 Runs automated tests against providers.
 
 ```bash
-# Unit tests only (107 tests, no API calls)
+# Unit tests only (no API calls)
 lua tests/run_tests.lua --unit
 
 # Basic connectivity for all providers
@@ -117,12 +117,13 @@ lua tests/inspect.lua --web --port 3000
 
 ## Test Categories
 
-### Unit Tests (107 tests, no API calls)
+### Unit Tests (no API calls)
 
 Located in `tests/unit/`:
-- `test_system_prompts.lua` - 46 tests: behavior variants, language parsing, domain
-- `test_streaming_parser.lua` - 22 tests: SSE/NDJSON content extraction
-- `test_response_parser.lua` - 39 tests: response parsing for all 16 providers
+- `test_system_prompts.lua` - Behavior variants, language parsing, domain, skip_language_instruction
+- `test_streaming_parser.lua` - SSE/NDJSON content extraction for all providers
+- `test_response_parser.lua` - Response parsing for all 16 providers
+- `test_loaders.lua` - BehaviorLoader and DomainLoader functionality
 
 ### Integration Tests (real API calls)
 
@@ -248,9 +249,10 @@ tests/
 │   ├── test_full_provider.lua    # Comprehensive tests (--full)
 │   └── test_model_validation.lua # Model validation (--models)
 └── unit/
-    ├── test_system_prompts.lua
-    ├── test_streaming_parser.lua
-    └── test_response_parser.lua
+    ├── test_system_prompts.lua   # Behavior, language, domain tests
+    ├── test_streaming_parser.lua # SSE/NDJSON parsing tests
+    ├── test_response_parser.lua  # Provider response parsing tests
+    └── test_loaders.lua          # BehaviorLoader, DomainLoader tests
 ```
 
 ## Troubleshooting
