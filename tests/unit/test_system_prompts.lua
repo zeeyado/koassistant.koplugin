@@ -340,6 +340,38 @@ TestRunner:test("enable_caching can be disabled", function()
     TestRunner:assertEqual(result.enable_caching, false, "caching disabled")
 end)
 
+TestRunner:test("skip_language_instruction excludes language from system", function()
+    local result = SystemPrompts.buildUnifiedSystem({
+        behavior_variant = "minimal",
+        user_languages = "English, German",
+        skip_language_instruction = true,
+    })
+    TestRunner:assertNil(result.components.language, "no language component when skipped")
+    -- Text should not contain language instruction
+    if result.text:find("The user speaks:") then
+        error("language instruction should be skipped")
+    end
+end)
+
+TestRunner:test("skip_language_instruction=false includes language", function()
+    local result = SystemPrompts.buildUnifiedSystem({
+        behavior_variant = "minimal",
+        user_languages = "English, German",
+        skip_language_instruction = false,
+    })
+    TestRunner:assertNotNil(result.components.language, "has language component")
+    TestRunner:assertContains(result.text, "The user speaks:", "has language instruction")
+end)
+
+TestRunner:test("skip_language_instruction=nil includes language (default)", function()
+    local result = SystemPrompts.buildUnifiedSystem({
+        behavior_variant = "minimal",
+        user_languages = "English, German",
+        -- skip_language_instruction not set (nil)
+    })
+    TestRunner:assertNotNil(result.components.language, "has language component by default")
+end)
+
 -- Test buildAnthropicSystemArray()
 TestRunner:suite("buildAnthropicSystemArray()")
 
@@ -438,6 +470,34 @@ TestRunner:test("defaults to English if no translation_language", function()
         translation_use_primary = false,
     })
     TestRunner:assertEqual(result, "English", "defaults to English")
+end)
+
+TestRunner:test("resolves __PRIMARY__ sentinel to actual language", function()
+    local result = SystemPrompts.getEffectiveTranslationLanguage({
+        translation_use_primary = false,
+        translation_language = "__PRIMARY__",
+        user_languages = "German, English",
+    })
+    TestRunner:assertEqual(result, "German", "resolves __PRIMARY__ to primary language")
+end)
+
+TestRunner:test("resolves __PRIMARY__ with explicit primary_language override", function()
+    local result = SystemPrompts.getEffectiveTranslationLanguage({
+        translation_use_primary = false,
+        translation_language = "__PRIMARY__",
+        user_languages = "German, English",
+        primary_language = "English",
+    })
+    TestRunner:assertEqual(result, "English", "uses explicit primary override")
+end)
+
+TestRunner:test("resolves empty string to primary language", function()
+    local result = SystemPrompts.getEffectiveTranslationLanguage({
+        translation_use_primary = false,
+        translation_language = "",
+        user_languages = "French, German",
+    })
+    TestRunner:assertEqual(result, "French", "empty string uses primary")
 end)
 
 -- Test getVariantNames()
