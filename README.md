@@ -460,6 +460,7 @@ return {
 - `thinking_budget`: Legacy: Token budget when extended_thinking="on" (1024-32000)
 - `enabled`: Set to `false` to hide
 - `include_book_context`: Add book info to highlight actions
+- `skip_language_instruction`: Don't send user's language preferences to AI (default: off, except Translate action)
 - `domain`: Lock to a specific domain
 
 **Per-provider reasoning config** (new in v0.6):
@@ -536,6 +537,8 @@ See `custom_actions.lua.sample` for more examples.
 **Examples:**
 - `"English"` - AI always responds in English
 - `"German, English, French"` with Primary set to "English" - English by default, switches if you type in German or French
+
+**Note:** The built-in Translate action skips language instruction by default since it specifies the target language directly in the prompt. You can toggle this in the action's settings, and custom actions can use `skip_language_instruction` to control this behavior.
 
 ### Actions
 - **Manage Actions**: Enable/disable built-in actions, create custom actions
