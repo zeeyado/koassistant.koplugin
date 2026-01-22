@@ -472,10 +472,15 @@ function MessageHistory:createResultText(highlightedText, config)
     if show_indicator == nil then show_indicator = true end  -- Default to showing indicator
 
     -- Show conversation (non-context messages)
+    -- In compact mode (dictionary lookups), hide prefixes for cleaner display
+    local hide_prefixes = config and config.features and config.features.compact_view
     for i = 2, #self.messages do
         if not self.messages[i].is_context then
             local msg = self.messages[i]
-            local prefix = msg.role == self.ROLES.USER and "▶ User: " or "◉ KOAssistant: "
+            local prefix = ""
+            if not hide_prefixes then
+                prefix = msg.role == self.ROLES.USER and "▶ User: " or "◉ KOAssistant: "
+            end
 
             -- If this is an assistant message with reasoning, show indicator
             -- msg.reasoning can be:
