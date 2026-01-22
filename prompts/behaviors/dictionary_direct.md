@@ -1,7 +1,7 @@
 # Direct Dictionary
 <!--
 Source: Built-in for dictionary actions
-Tokens: ~100
+Tokens: ~20
 Notes: Structured word definitions with context
 -->
 

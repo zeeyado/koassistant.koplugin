@@ -600,11 +600,12 @@ function ChatGPTViewer:init()
     },
     {
       text_func = function()
-        -- Check if auto-save is enabled (use passed-in configuration)
-        -- Only show "Autosaved" if auto_save_all_chats is explicitly true
-        local auto_save = self.configuration and self.configuration.features and
-          self.configuration.features.auto_save_all_chats == true
-        return auto_save and _("Autosaved") or _("Save")
+        -- Only show "Autosaved" if auto_save_all_chats is true AND chat is not skipped/expanded-from-skip
+        local features = self.configuration and self.configuration.features
+        local auto_save = features and features.auto_save_all_chats == true
+        local skip_save = features and features.storage_key == "__SKIP__"
+        local expanded_from_skip = features and features.expanded_from_skip
+        return (auto_save and not skip_save and not expanded_from_skip) and _("Autosaved") or _("Save")
       end,
       id = "save_chat",
       callback = function()
@@ -875,80 +876,67 @@ function ChatGPTViewer:init()
     end,
   })
 
-  -- Vocab builder button (only if vocab builder plugin is active)
-  -- KOReader's vocab builder uses vocabulary_builder.enabled setting:
-  --   true = auto-add words on dictionary lookup
-  --   false = manual mode (button shown in dict popup)
-  -- When using dictionary bypass with auto-add mode, main.lua sets vocab_word_auto_added flag
-  local G_reader_settings = require("luasettings"):open(
-    require("datastorage"):getDataDir() .. "/settings.reader.lua"
-  )
-  local vocab_settings = G_reader_settings:readSetting("vocabulary_builder") or {}
-  -- Show button if vocab builder exists (regardless of auto-add mode)
-  if vocab_settings.enabled ~= nil then
-    -- Check if word was auto-added (from dictionary bypass) or manually added this session
-    local auto_added = self.configuration and self.configuration.features and
-      self.configuration.features.vocab_word_auto_added
-    local word_added = self._vocab_word_added or auto_added
-    if word_added then
-      -- Already added - show greyed button
-      table.insert(minimal_button_row, {
-        text = _("Added"),
-        id = "vocab_added",
-        enabled = false,
-        hold_callback = function()
-          UIManager:show(Notification:new{
-            text = _("Word added to vocabulary builder"),
-            timeout = 2,
-          })
-        end,
-      })
-    else
-      -- Show button to add word
-      table.insert(minimal_button_row, {
-        text = _("+Vocab"),
-        id = "vocab_add",
-        callback = function()
-          local word = self.original_highlighted_text
-          if word and word ~= "" then
-            local ReaderUI = require("apps/reader/readerui")
-            local reader_ui = ReaderUI.instance
-            if reader_ui then
-              -- Get book title for vocab builder context
-              local book_title = (reader_ui.doc_props and reader_ui.doc_props.display_title) or _("AI Dictionary lookup")
-              -- Trigger WordLookedUp event - this is how vocab builder adds words
-              local Event = require("ui/event")
-              reader_ui:handleEvent(Event:new("WordLookedUp", word, book_title, true)) -- is_manual: true
-              self._vocab_word_added = true
-              UIManager:show(Notification:new{
-                text = T(_("Added '%1' to vocabulary"), word),
-                timeout = 2,
-              })
-              -- Update button to show "Added" state
-              local button = self.button_table and self.button_table.button_by_id and self.button_table.button_by_id["vocab_add"]
-              if button then
-                button:setText(_("Added"), button.width)
-                button:disable()
-                UIManager:setDirty(self, function()
-                  return "ui", button.dimen
-                end)
-              end
-            else
-              UIManager:show(Notification:new{
-                text = _("Vocabulary builder not available"),
-                timeout = 2,
-              })
+  -- Vocab builder button for minimal view
+  -- When dictionary bypass runs with vocab builder auto-add enabled,
+  -- main.lua sets vocab_word_auto_added flag in config. Otherwise show +Vocab button.
+  local vocab_auto_added = self.configuration and self.configuration.features and
+    self.configuration.features.vocab_word_auto_added
+  if vocab_auto_added or self._vocab_word_added then
+    -- Word was auto-added or manually added - show greyed button
+    table.insert(minimal_button_row, {
+      text = _("Added"),
+      id = "vocab_added",
+      enabled = false,
+      hold_callback = function()
+        UIManager:show(Notification:new{
+          text = _("Word added to vocabulary builder"),
+          timeout = 2,
+        })
+      end,
+    })
+  else
+    -- Show button to manually add word to vocab builder
+    table.insert(minimal_button_row, {
+      text = _("+Vocab"),
+      id = "vocab_add",
+      callback = function()
+        local word = self.original_highlighted_text
+        if word and word ~= "" then
+          local ReaderUI = require("apps/reader/readerui")
+          local reader_ui = ReaderUI.instance
+          if reader_ui then
+            local book_title = (reader_ui.doc_props and reader_ui.doc_props.display_title) or _("AI Dictionary lookup")
+            local Event = require("ui/event")
+            reader_ui:handleEvent(Event:new("WordLookedUp", word, book_title, true))
+            self._vocab_word_added = true
+            UIManager:show(Notification:new{
+              text = T(_("Added '%1' to vocabulary"), word),
+              timeout = 2,
+            })
+            -- Update button to "Added" state
+            local button = self.button_table and self.button_table.button_by_id and self.button_table.button_by_id["vocab_add"]
+            if button then
+              button:setText(_("Added"), button.width)
+              button:disable()
+              UIManager:setDirty(self, function()
+                return "ui", button.dimen
+              end)
             end
+          else
+            UIManager:show(Notification:new{
+              text = _("Vocabulary builder not available"),
+              timeout = 2,
+            })
           end
-        end,
-        hold_callback = function()
-          UIManager:show(Notification:new{
-            text = _("Add word to vocabulary builder"),
-            timeout = 2,
-          })
-        end,
-      })
-    end
+        end
+      end,
+      hold_callback = function()
+        UIManager:show(Notification:new{
+          text = _("Add word to vocabulary builder"),
+          timeout = 2,
+        })
+      end,
+    })
   end
 
   -- Expand button
@@ -994,11 +982,14 @@ function ChatGPTViewer:init()
     show_parent = self,
   }
 
-  -- Disable save button if auto-save is enabled (check passed-in configuration)
-  -- Only disable if auto_save_all_chats is explicitly true
-  local auto_save_enabled = self.configuration and self.configuration.features and
-    self.configuration.features.auto_save_all_chats == true
-  if auto_save_enabled then
+  -- Disable save button if auto-save is enabled AND chat is not skipped/expanded-from-skip
+  -- Skipped chats (storage_key = "__SKIP__") should always allow manual save
+  -- Expanded-from-skip chats should also allow manual save initially
+  local features = self.configuration and self.configuration.features
+  local auto_save_enabled = features and features.auto_save_all_chats == true
+  local skip_save = features and features.storage_key == "__SKIP__"
+  local expanded_from_skip = features and features.expanded_from_skip
+  if auto_save_enabled and not skip_save and not expanded_from_skip then
     local save_button = self.button_table:getButtonById("save_chat")
     if save_button then
       save_button:disable()
@@ -1229,6 +1220,14 @@ function ChatGPTViewer:expandToFullView()
       -- Reset streaming to use large dialog (user's default setting)
       -- This is critical for replies after expand to use the full streaming dialog
       expanded_config.features.large_stream_dialog = true
+      -- Remove __SKIP__ storage_key so expanded chats become saveable
+      -- Dictionary chats with "Don't Save" can be saved after expanding
+      if expanded_config.features.storage_key == "__SKIP__" then
+        expanded_config.features.storage_key = nil
+        -- Mark as expanded from skip so save button shows "Save" (not "Autosaved")
+        -- until the user explicitly saves or a reply triggers auto-save
+        expanded_config.features.expanded_from_skip = true
+      end
       -- Enable debug display after expand (follows global setting)
       -- Compact view hides debug, but expanded view can show it
     end

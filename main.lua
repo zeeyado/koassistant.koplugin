@@ -1714,7 +1714,7 @@ function AskGPT:buildDictionarySaveModeMenu()
       help_text = mode.help,
       checked_func = function()
         local f = self_ref.settings:readSetting("features") or {}
-        local current = f.dictionary_save_mode or "default"
+        local current = f.dictionary_save_mode or "none"
         return current == mode_copy
       end,
       radio = true,
@@ -1922,7 +1922,7 @@ function AskGPT:onDictButtonsReady(dict_popup, dict_buttons)
           dict_config.features.dictionary_language = dict_language
 
           -- Determine storage_key based on dictionary_save_mode setting
-          local save_mode = features.dictionary_save_mode or "default"
+          local save_mode = features.dictionary_save_mode or "none"
           if save_mode == "none" then
             dict_config.features.storage_key = "__SKIP__"
           elseif save_mode == "dictionary" then
@@ -3069,7 +3069,7 @@ function AskGPT:syncDictionaryBypass()
         dict_config.features.dictionary_language = dict_language
 
         -- Determine storage_key based on dictionary_save_mode setting
-        local save_mode = features.dictionary_save_mode or "default"
+        local save_mode = features.dictionary_save_mode or "none"
         if save_mode == "none" then
           dict_config.features.storage_key = "__SKIP__"
         elseif save_mode == "dictionary" then
@@ -3090,10 +3090,8 @@ function AskGPT:syncDictionaryBypass()
         -- Vocab builder auto-add: if vocab builder is enabled (auto-add mode),
         -- trigger the WordLookedUp event to add the word automatically.
         -- This mirrors KOReader's behavior where lookups are auto-added.
-        local G_reader_settings = require("luasettings"):open(
-          require("datastorage"):getDataDir() .. "/settings.reader.lua"
-        )
-        local vocab_settings = G_reader_settings:readSetting("vocabulary_builder") or {}
+        -- G_reader_settings is a KOReader global (see .luacheckrc)
+        local vocab_settings = G_reader_settings and G_reader_settings:readSetting("vocabulary_builder") or {}
         if vocab_settings.enabled then
           -- Vocab builder is in auto-add mode - add the word
           local book_title = (self_ref.ui.doc_props and self_ref.ui.doc_props.display_title) or _("AI Dictionary lookup")

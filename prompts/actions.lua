@@ -212,7 +212,7 @@ Actions.special = {
 Format as a dictionary entry:
 - First line: **word** _part of speech (of **lemma**), features_
 - Definition(s) numbered if multiple
-- **In context:** Brief explanation of usage in the given passage
+- **In context:** (((If Context is non-empty, otherise ignore))) Brief explanation of usage in the given passage
 
 Context: {context}
 
@@ -224,6 +224,40 @@ Respond in {dictionary_language}. Be concise.]],
         api_params = {
             temperature = 0.3,  -- Deterministic for definitions
             max_tokens = 1024,  -- Dictionary responses are typically short
+        },
+        builtin = true,
+    },
+    dictionary_detailed = {
+        id = "dictionary_detailed",
+        text = _("Detailed Dictionary"),
+        context = "highlight",  -- Only for highlighted text
+        behavior_variant = "dictionary_detailed",  -- Use built-in detailed dictionary behavior
+        prompt = [[Deep analysis of: {highlighted_text}
+
+**Headword**: word (transliteration if non-Latin), _part of speech_
+
+**Morphological Structure**:
+- Semitic languages (Arabic, Hebrew, etc.): Root in script, pattern/wazn, verb form (bāb) if applicable, semantic contribution of the pattern
+- Indo-European languages: Base/stem, affixes, derivational components, compound structure if applicable
+- Other languages: Adapt to what is morphologically salient
+
+**Word Family**: Related words from the same root/stem with brief meanings, showing how derivation affects meaning
+
+**Etymology**: Origin, transmission path, semantic shifts
+
+**Cognates**: Related words in sister languages; notable borrowings
+
+**In context**: Usage in this passage
+
+Context: {context}
+Respond in {dictionary_language}.]],
+        include_book_context = false,
+        extended_thinking = "off",
+        skip_language_instruction = true,
+        -- storage_key set dynamically based on dictionary_save_mode setting
+        api_params = {
+            temperature = 0.3,
+            max_tokens = 2048,  -- Detailed analysis needs more space
         },
         builtin = true,
     },
