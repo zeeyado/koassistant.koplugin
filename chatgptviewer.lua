@@ -456,6 +456,9 @@ local ChatGPTViewer = InputContainer:extend {
   -- Minimal buttons mode (used for dictionary lookups)
   -- Shows only: MD/Text, Copy, Expand, Close
   minimal_buttons = false,
+
+  -- Configuration passed from dialogs.lua (must be in defaults to ensure proper option merging)
+  configuration = nil,
 }
 
 function ChatGPTViewer:init()
@@ -828,6 +831,37 @@ function ChatGPTViewer:init()
       hold_callback = self.default_hold_callback,
     },
     {
+      text = _("Wiki"),
+      id = "lookup_wikipedia",
+      callback = function()
+        local word = self.original_highlighted_text
+        if word and word ~= "" then
+          local ReaderUI = require("apps/reader/readerui")
+          local reader_ui = ReaderUI.instance
+          if reader_ui and reader_ui.wikipedia then
+            UIManager:close(self)
+            reader_ui.wikipedia:onLookupWikipedia(word, true, nil, false, nil)
+          else
+            UIManager:show(Notification:new{
+              text = _("Wikipedia not available"),
+              timeout = 2,
+            })
+          end
+        else
+          UIManager:show(Notification:new{
+            text = _("No word to look up"),
+            timeout = 2,
+          })
+        end
+      end,
+      hold_callback = function()
+        UIManager:show(Notification:new{
+          text = _("Look up word in Wikipedia"),
+          timeout = 2,
+        })
+      end,
+    },
+    {
       text = _("Expand"),
       id = "expand_view",
       callback = function()
@@ -1081,9 +1115,10 @@ function ChatGPTViewer:expandToFullView()
   -- Regenerate text from message history with prefixes (compact_view=false)
   -- This is needed because the original text was generated without prefixes
   local expanded_text = self.text
+  local expanded_config = nil  -- Will hold config with compact_view=false
   if self._message_history and self.configuration then
     -- Create a config copy with compact_view=false to regenerate with prefixes
-    local expanded_config = {}
+    expanded_config = {}
     for k, v in pairs(self.configuration) do
       if type(v) == "table" then
         expanded_config[k] = {}
@@ -1094,23 +1129,40 @@ function ChatGPTViewer:expandToFullView()
         expanded_config[k] = v
       end
     end
-    -- Ensure compact_view is false so prefixes are included
+    -- Reset ALL compact-mode settings so expanded view works correctly
     if expanded_config.features then
       expanded_config.features.compact_view = false
+      expanded_config.features.minimal_buttons = false
+      expanded_config.features.hide_highlighted_text = false
+      -- Reset streaming to use large dialog (user's default setting)
+      -- This is critical for replies after expand to use the full streaming dialog
+      expanded_config.features.large_stream_dialog = true
+      -- Enable debug display after expand (follows global setting)
+      -- Compact view hides debug, but expanded view can show it
     end
     -- Regenerate text with prefixes
     expanded_text = self._message_history:createResultText(self.original_highlighted_text, expanded_config)
   end
 
   -- Collect current state
+  -- Use expanded_config (with compact_view=false) so debug toggle and other features work correctly
+  local config_for_full_view = expanded_config or self.configuration
+
+  -- Get the message history - could be stored as _message_history or original_history
+  local message_history = self._message_history or self.original_history
+
   local current_state = {
     text = expanded_text,  -- Use regenerated text with prefixes
     title = self.title,
     title_multilines = self.title_multilines,
     title_shrink_font_to_fit = self.title_shrink_font_to_fit,
-    _message_history = self._message_history,
+    -- CRITICAL: Set BOTH property names for compatibility
+    -- _message_history is used by expandToFullView for text regeneration
+    -- original_history is used by toggleDebugDisplay, toggleHighlightVisibility, and other features
+    _message_history = message_history,
+    original_history = message_history,
     original_highlighted_text = self.original_highlighted_text,
-    configuration = self.configuration,
+    configuration = config_for_full_view,
     onAskQuestion = self.onAskQuestion,
     save_callback = self.save_callback,
     export_callback = self.export_callback,
@@ -1123,6 +1175,8 @@ function ChatGPTViewer:expandToFullView()
     show_debug_in_chat = self.show_debug_in_chat,
     hide_highlighted_text = false,  -- Show highlighted text in full view
     _recreate_func = self._recreate_func,
+    settings_callback = self.settings_callback,
+    update_debug_callback = self.update_debug_callback,
     -- Explicitly disable compact mode
     compact_view = false,
     minimal_buttons = false,
@@ -1133,7 +1187,22 @@ function ChatGPTViewer:expandToFullView()
 
   -- Schedule creation of full viewer to ensure proper cleanup
   UIManager:scheduleIn(0.1, function()
+    -- Create close callback that properly clears global reference for THIS viewer
+    local original_close_callback = current_state.close_callback
+    current_state.close_callback = function()
+      if _G.ActiveChatViewer then
+        _G.ActiveChatViewer = nil
+      end
+      if original_close_callback then
+        original_close_callback()
+      end
+    end
+
     local full_viewer = ChatGPTViewer:new(current_state)
+
+    -- CRITICAL: Set global reference so reply callbacks can find this viewer
+    -- Without this, updateViewer() checks fail and replies don't show
+    _G.ActiveChatViewer = full_viewer
     UIManager:show(full_viewer)
   end)
 end

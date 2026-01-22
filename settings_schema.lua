@@ -507,6 +507,7 @@ local SettingsSchema = {
                             sentence = _("Sentence"),
                             paragraph = _("Paragraph"),
                             characters = _("Characters"),
+                            none = _("None"),
                         }
                         return T(_("Context Mode: %1"), labels[mode] or mode)
                     end,

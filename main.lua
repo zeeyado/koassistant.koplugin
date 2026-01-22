@@ -1647,6 +1647,7 @@ function AskGPT:buildDictionaryContextModeMenu()
     { id = "sentence", text = _("Sentence"), help = _("Extract the full sentence containing the word") },
     { id = "paragraph", text = _("Paragraph"), help = _("Include more surrounding context") },
     { id = "characters", text = _("Characters"), help = _("Fixed number of characters before/after") },
+    { id = "none", text = _("None"), help = _("Only send the word, no surrounding context") },
   }
 
   for _i, mode in ipairs(modes) do
@@ -1832,19 +1833,18 @@ function AskGPT:onDictButtonsReady(dict_popup, dict_buttons)
       text = action.text .. " (AI)",
       font_bold = true,
       callback = function()
-        -- Close the dictionary popup first
-        if dict_popup.onClose then
-          dict_popup:onClose()
-        end
+        -- CRITICAL: Extract context BEFORE closing the popup
+        -- The highlight/selection is cleared when the popup closes
+        local context = ""
+        local context_mode = features.dictionary_context_mode or "sentence"
 
-        -- Ensure network is available
-        NetworkMgr:runWhenOnline(function()
-          -- Get surrounding context if available
-          local context = ""
-          local context_mode = features.dictionary_context_mode or "sentence"
+        if context_mode ~= "none" then
           local context_chars = features.dictionary_context_chars or 100
 
-          if self_ref.ui and self_ref.ui.highlight then
+          -- Method 1: Try KOReader's highlight module (works for hold-select, NOT for word tap)
+          -- Note: For single word taps, getSelectedWordContext returns nil because
+          -- no actual text selection exists - only the word at tap position is identified
+          if self_ref.ui and self_ref.ui.highlight and self_ref.ui.highlight.getSelectedWordContext then
             context = Dialogs.extractSurroundingContext(
               self_ref.ui,
               word,
@@ -1853,6 +1853,23 @@ function AskGPT:onDictButtonsReady(dict_popup, dict_buttons)
             )
           end
 
+          -- Log result (helpful for debugging)
+          if context ~= "" then
+            logger.info("KOAssistant DICT: Got context (" .. #context .. " chars)")
+          else
+            -- Context extraction failed - this is expected for word taps
+            -- For context to work, user needs to hold-select the word instead of tapping
+            logger.info("KOAssistant DICT: No context available (word tap, not selection)")
+          end
+        end
+
+        -- Now close the dictionary popup
+        if dict_popup.onClose then
+          dict_popup:onClose()
+        end
+
+        -- Ensure network is available
+        NetworkMgr:runWhenOnline(function()
           -- Get effective dictionary language
           local SystemPrompts = require("prompts.system_prompts")
           local dict_language = SystemPrompts.getEffectiveDictionaryLanguage({
@@ -2734,9 +2751,30 @@ function AskGPT:registerHighlightMenuActions()
         text = action_copy.text .. " (KOA)",
         enabled = Device:hasClipboard(),
         callback = function()
+          -- Extract context BEFORE network callback, while selection is still active
+          -- This is important for dictionary actions that need surrounding text
+          local context = ""
+          -- Check if highlight module has the getSelectedWordContext method
+          -- Note: Method is on self.ui.highlight, not _reader_highlight_instance
+          if self.ui.highlight and self.ui.highlight.getSelectedWordContext then
+            local features = self.settings:readSetting("features") or {}
+            local context_mode = features.dictionary_context_mode or "sentence"
+            -- Skip context extraction if mode is "none"
+            if context_mode ~= "none" then
+              local context_chars = features.dictionary_context_chars or 100
+              context = Dialogs.extractSurroundingContext(
+                self.ui,
+                _reader_highlight_instance.selected_text.text,
+                context_mode,
+                context_chars
+              )
+            end
+          end
+
           NetworkMgr:runWhenOnline(function()
             self:updateConfigFromSettings()
-            self:executeQuickAction(action_copy, _reader_highlight_instance.selected_text.text)
+            -- Pass extracted context to executeQuickAction
+            self:executeQuickAction(action_copy, _reader_highlight_instance.selected_text.text, context)
           end)
         end,
       }
@@ -2796,15 +2834,17 @@ function AskGPT:syncDictionaryBypass()
         -- Get surrounding context if available
         local context = ""
         local context_mode = features.dictionary_context_mode or "sentence"
-        local context_chars = features.dictionary_context_chars or 100
-
-        if self_ref.ui and self_ref.ui.highlight then
-          context = Dialogs.extractSurroundingContext(
-            self_ref.ui,
-            word,
-            context_mode,
-            context_chars
-          )
+        -- Skip context extraction if mode is "none"
+        if context_mode ~= "none" then
+          local context_chars = features.dictionary_context_chars or 100
+          if self_ref.ui and self_ref.ui.highlight then
+            context = Dialogs.extractSurroundingContext(
+              self_ref.ui,
+              word,
+              context_mode,
+              context_chars
+            )
+          end
         end
 
         -- Get effective dictionary language
@@ -2883,12 +2923,19 @@ function AskGPT:syncDictionaryBypass()
 end
 
 -- Execute a quick action directly without showing intermediate dialog
-function AskGPT:executeQuickAction(action, highlighted_text)
+-- @param action: The action to execute
+-- @param highlighted_text: The selected text
+-- @param context: Optional surrounding context (for dictionary actions)
+function AskGPT:executeQuickAction(action, highlighted_text, context)
   -- Clear context flags for highlight context (default context)
   configuration.features = configuration.features or {}
   configuration.features.is_general_context = nil
   configuration.features.is_book_context = nil
   configuration.features.is_multi_book_context = nil
+  -- Pass surrounding context if provided (for dictionary actions)
+  if context and context ~= "" then
+    configuration.features.dictionary_context = context
+  end
   Dialogs.executeDirectAction(self.ui, action, highlighted_text, configuration, self)
 end
 

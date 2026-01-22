@@ -207,8 +207,17 @@ Actions.special = {
         text = _("Dictionary"),
         context = "highlight",  -- Only for highlighted text
         behavior_variant = "dictionary_direct",  -- Use built-in dictionary behavior
-        prompt = "Define the following. Respond in {dictionary_language}:\n\n{highlighted_text}\n\nContext: {context}",
-        include_book_context = true,
+        prompt = [[Define: {highlighted_text}
+
+Format as a dictionary entry:
+- First line: **word** *(part of speech [of **lemma**], features)*
+- Definition(s) numbered if multiple
+- **In context:** Brief explanation of usage in the given passage
+
+Context: {context}
+
+Respond in {dictionary_language}. Be concise.]],
+        include_book_context = false,  -- Word definitions don't typically need book metadata
         extended_thinking = "off",  -- Dictionary lookups don't benefit from extended thinking
         skip_language_instruction = true,  -- Target language already in prompt
         -- storage_key set dynamically based on dictionary_save_mode setting
