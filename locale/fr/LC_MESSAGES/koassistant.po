@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: KOAssistant 0.6.2\n"
 "Report-Msgid-Bugs-To: https://github.com/zeeyado/koassistant.koplugin/"
 "issues\n"
-"POT-Creation-Date: 2026-01-21 14:04+0000\n"
+"POT-Creation-Date: 2026-01-22 19:41+0000\n"
 "PO-Revision-Date: 2026-01-06 18:39+0000\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: French\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: _meta.lua:4 main.lua:124 main.lua:197 main.lua:1586 main.lua:1730
+#: _meta.lua:4 main.lua:124 main.lua:202 main.lua:1806 main.lua:2105
 #, fuzzy
 msgid "KOAssistant"
 msgstr "KOAssistant"
@@ -46,7 +46,7 @@ msgstr ""
 #: chat_history_dialog.lua:60 chat_history_dialog.lua:143
 #: chat_history_dialog.lua:816 chat_history_dialog.lua:1561
 #: chat_history_dialog.lua:1599 ui/behavior_manager.lua:299
-#: ui/domain_manager.lua:312 ui/prompts_manager.lua:544
+#: ui/domain_manager.lua:312 ui/prompts_manager.lua:545
 #, fuzzy
 msgid "Delete"
 msgstr "Supprimer"
@@ -60,10 +60,11 @@ msgstr "%1 conversation(s) supprimée(s)"
 #: chat_history_dialog.lua:214 chat_history_dialog.lua:268
 #: chat_history_dialog.lua:827 chat_history_dialog.lua:855
 #: chat_history_dialog.lua:1012 chat_history_dialog.lua:1537
-#: chatgptviewer.lua:744 chatgptviewer.lua:925 chatgptviewer.lua:1602
-#: dialogs.lua:439 dialogs.lua:1395 dialogs.lua:1431 main.lua:1791
-#: main.lua:2072 ui/behavior_manager.lua:370 ui/domain_manager.lua:382
-#: ui/settings_manager.lua:183 ui/settings_manager.lua:269
+#: chatgptviewer.lua:759 chatgptviewer.lua:943 chatgptviewer.lua:1094
+#: chatgptviewer.lua:1867 dialogs.lua:543 dialogs.lua:1608 dialogs.lua:1644
+#: main.lua:2166 main.lua:2468 ui/behavior_manager.lua:370
+#: ui/domain_manager.lua:382 ui/settings_manager.lua:183
+#: ui/settings_manager.lua:269
 #, fuzzy
 msgid "Close"
 msgstr "Fermer"
@@ -115,7 +116,7 @@ msgstr "Historique des conversations"
 msgid "Navigate"
 msgstr "Naviguer"
 
-#: chat_history_dialog.lua:321 chat_history_dialog.lua:503 main.lua:1623
+#: chat_history_dialog.lua:321 chat_history_dialog.lua:503 main.lua:1998
 #, fuzzy
 msgid "No saved chats found"
 msgstr "Aucune conversation sauvegardée"
@@ -170,7 +171,7 @@ msgid "General AI Chats"
 msgstr "Conversations IA générales"
 
 #: chat_history_dialog.lua:538 ui/behavior_manager.lua:252
-#: ui/domain_manager.lua:271 ui/prompts_manager.lua:467
+#: ui/domain_manager.lua:271 ui/prompts_manager.lua:468
 #, fuzzy
 msgid "Unknown"
 msgstr "Inconnu"
@@ -225,7 +226,7 @@ msgstr "Renommer"
 msgid "Tags"
 msgstr "Étiquettes"
 
-#: chat_history_dialog.lua:808 ui/prompts_manager.lua:385
+#: chat_history_dialog.lua:808 ui/prompts_manager.lua:386
 #, fuzzy
 msgid "Export"
 msgstr "Exporter"
@@ -245,78 +246,79 @@ msgstr "Conversation renommée avec succès"
 msgid "Failed to rename chat"
 msgstr "Échec du renommage de la conversation"
 
-#: chat_history_dialog.lua:920 chat_history_dialog.lua:1107 dialogs.lua:587
+#: chat_history_dialog.lua:920 chat_history_dialog.lua:1107 dialogs.lua:691
 #, fuzzy
 msgid "Current tags:"
 msgstr "Étiquettes actuelles :"
 
-#: chat_history_dialog.lua:932 chat_history_dialog.lua:1119 dialogs.lua:599
+#: chat_history_dialog.lua:932 chat_history_dialog.lua:1119 dialogs.lua:703
 #, fuzzy
 msgid "Removed tag: %1"
 msgstr "Étiquette supprimée : %1"
 
-#: chat_history_dialog.lua:967 chat_history_dialog.lua:1154 dialogs.lua:634
+#: chat_history_dialog.lua:967 chat_history_dialog.lua:1154 dialogs.lua:738
 #, fuzzy
 msgid "Add existing tag:"
 msgstr "Ajouter une étiquette existante :"
 
 #: chat_history_dialog.lua:982 chat_history_dialog.lua:1032
-#: chat_history_dialog.lua:1169 chat_history_dialog.lua:1219 dialogs.lua:649
-#: dialogs.lua:699
+#: chat_history_dialog.lua:1169 chat_history_dialog.lua:1219 dialogs.lua:753
+#: dialogs.lua:803
 #, fuzzy
 msgid "Added tag: %1"
 msgstr "Étiquette ajoutée : %1"
 
-#: chat_history_dialog.lua:1003 chat_history_dialog.lua:1190 dialogs.lua:670
+#: chat_history_dialog.lua:1003 chat_history_dialog.lua:1190 dialogs.lua:774
 #, fuzzy
 msgid "+ Add new tag"
 msgstr "+ Ajouter une nouvelle étiquette"
 
-#: chat_history_dialog.lua:1007 chat_history_dialog.lua:1194 dialogs.lua:674
+#: chat_history_dialog.lua:1007 chat_history_dialog.lua:1194 dialogs.lua:778
 #, fuzzy
 msgid "New Tag"
 msgstr "Nouvelle étiquette"
 
-#: chat_history_dialog.lua:1008 chat_history_dialog.lua:1195 dialogs.lua:675
+#: chat_history_dialog.lua:1008 chat_history_dialog.lua:1195 dialogs.lua:779
 #, fuzzy
 msgid "Enter tag name"
 msgstr "Entrez le nom de l'étiquette"
 
-#: chat_history_dialog.lua:1020 chat_history_dialog.lua:1207 dialogs.lua:687
+#: chat_history_dialog.lua:1020 chat_history_dialog.lua:1207 dialogs.lua:791
 #, fuzzy
 msgid "Add"
 msgstr "Ajouter"
 
-#: chat_history_dialog.lua:1052 chat_history_dialog.lua:1239 dialogs.lua:719
-#: ui/prompts_manager.lua:1443
+#: chat_history_dialog.lua:1052 chat_history_dialog.lua:1239 dialogs.lua:823
+#: ui/prompts_manager.lua:1494
 #, fuzzy
 msgid "Done"
 msgstr "Terminé"
 
-#: chat_history_dialog.lua:1066 chat_history_dialog.lua:1250 dialogs.lua:730
+#: chat_history_dialog.lua:1066 chat_history_dialog.lua:1250 dialogs.lua:834
 #, fuzzy
 msgid "Manage Tags"
 msgstr "Gérer les étiquettes"
 
-#: chat_history_dialog.lua:1092 dialogs.lua:572
+#: chat_history_dialog.lua:1092 dialogs.lua:676
 #, fuzzy
 msgid "Chat not found"
 msgstr "Conversation sur le livre"
 
-#: chat_history_dialog.lua:1199 chatgptviewer.lua:114 chatgptviewer.lua:1688
-#: dialogs.lua:679 main.lua:1102 main.lua:1237 main.lua:1479 main.lua:1537
+#: chat_history_dialog.lua:1199 chatgptviewer.lua:114 chatgptviewer.lua:1953
+#: dialogs.lua:783 main.lua:1164 main.lua:1299 main.lua:1556 main.lua:1757
 #: ui/behavior_manager.lua:407 ui/behavior_manager.lua:466
 #: ui/behavior_manager.lua:545 ui/behavior_manager.lua:601
 #: ui/domain_manager.lua:419 ui/domain_manager.lua:478
-#: ui/domain_manager.lua:572 ui/prompts_manager.lua:745
-#: ui/prompts_manager.lua:932 ui/prompts_manager.lua:1345
-#: ui/prompts_manager.lua:1495 ui/prompts_manager.lua:1595
-#: ui/prompts_manager.lua:1668 ui/prompts_manager.lua:1764
-#: ui/prompts_manager.lua:1817 ui/prompts_manager.lua:1843
-#: ui/prompts_manager.lua:1994 ui/prompts_manager.lua:2081
-#: ui/prompts_manager.lua:2109 ui/prompts_manager.lua:2216
-#: ui/prompts_manager.lua:2266 ui/prompts_manager.lua:2292
-#: ui/prompts_manager.lua:2461 ui/prompts_manager.lua:2764
+#: ui/domain_manager.lua:572 ui/prompts_manager.lua:764
+#: ui/prompts_manager.lua:983 ui/prompts_manager.lua:1396
+#: ui/prompts_manager.lua:1546 ui/prompts_manager.lua:1646
+#: ui/prompts_manager.lua:1719 ui/prompts_manager.lua:1815
+#: ui/prompts_manager.lua:1868 ui/prompts_manager.lua:1894
+#: ui/prompts_manager.lua:2045 ui/prompts_manager.lua:2132
+#: ui/prompts_manager.lua:2160 ui/prompts_manager.lua:2267
+#: ui/prompts_manager.lua:2317 ui/prompts_manager.lua:2343
+#: ui/prompts_manager.lua:2513 ui/prompts_manager.lua:2836
+#: ui/prompts_manager.lua:2994
 #, fuzzy
 msgid "Cancel"
 msgstr "Annuler"
@@ -326,7 +328,7 @@ msgstr "Annuler"
 msgid "Error: Failed to load chat messages."
 msgstr "Erreur : Échec du chargement des messages."
 
-#: chat_history_dialog.lua:1342 dialogs.lua:1235 stream_handler.lua:194
+#: chat_history_dialog.lua:1342 dialogs.lua:1448 stream_handler.lua:194
 #, fuzzy
 msgid "No response received from AI"
 msgstr "Aucune réponse reçue de l'IA"
@@ -341,7 +343,7 @@ msgstr "Sans titre"
 msgid "Loading..."
 msgstr "Chargement..."
 
-#: chat_history_dialog.lua:1436 dialogs.lua:945
+#: chat_history_dialog.lua:1436 dialogs.lua:1120
 #, fuzzy
 msgid "Failed to get response: "
 msgstr "Échec de la réponse : "
@@ -366,7 +368,7 @@ msgstr "Conversation sauvegardée"
 msgid "Failed to save chat"
 msgstr "Échec de la sauvegarde"
 
-#: chat_history_dialog.lua:1474 dialogs.lua:974
+#: chat_history_dialog.lua:1474 dialogs.lua:1149
 #, fuzzy
 msgid "Chat copied to clipboard"
 msgstr "Copié dans le presse-papiers."
@@ -432,7 +434,11 @@ msgstr "Historique par étiquette"
 msgid "No chats found with this tag"
 msgstr "Aucune conversation trouvée avec cette étiquette"
 
-#: chatgptviewer.lua:58 chatgptviewer.lua:609
+#: chat_history_manager.lua:90
+msgid "Dictionary Lookups"
+msgstr ""
+
+#: chatgptviewer.lua:58 chatgptviewer.lua:624 chatgptviewer.lua:823
 msgid "Copy"
 msgstr ""
 
@@ -460,176 +466,226 @@ msgid ""
 "%1"
 msgstr ""
 
-#: chatgptviewer.lua:580 chatgptviewer.lua:911
+#: chatgptviewer.lua:595 chatgptviewer.lua:1080
 #, fuzzy
 msgid "Reply"
 msgstr "Répondre"
 
-#: chatgptviewer.lua:592
+#: chatgptviewer.lua:607
 #, fuzzy
 msgid "Autosaved"
 msgstr "Sauvegardé automatiquement"
 
-#: chatgptviewer.lua:592 dialogs.lua:447 main.lua:1109 main.lua:1260
-#: main.lua:1486 main.lua:1552 ui/behavior_manager.lua:484
-#: ui/domain_manager.lua:486 ui/prompts_manager.lua:1210
-#: ui/prompts_manager.lua:2000
+#: chatgptviewer.lua:607 dialogs.lua:551 main.lua:1171 main.lua:1322
+#: main.lua:1563 main.lua:1772 ui/behavior_manager.lua:484
+#: ui/domain_manager.lua:486 ui/prompts_manager.lua:1261
+#: ui/prompts_manager.lua:2051
 #, fuzzy
 msgid "Save"
 msgstr "Sauvegarder"
 
-#: chatgptviewer.lua:601
+#: chatgptviewer.lua:616
 #, fuzzy
 msgid "Save function not available"
 msgstr "Fonction de sauvegarde non disponible"
 
-#: chatgptviewer.lua:617
+#: chatgptviewer.lua:632 chatgptviewer.lua:830
 #, fuzzy
 msgid "Copy function not available"
 msgstr "Fonction d'export non disponible"
 
-#: chatgptviewer.lua:632
+#: chatgptviewer.lua:647
 #, fuzzy
 msgid "Tag function not available"
 msgstr "Fonction de sauvegarde non disponible"
 
-#: chatgptviewer.lua:639
+#: chatgptviewer.lua:654
 msgid "Add or manage tags for this chat"
 msgstr ""
 
-#: chatgptviewer.lua:660
+#: chatgptviewer.lua:675 chatgptviewer.lua:815
 #, fuzzy
 msgid "Toggle between markdown and plain text display"
 msgstr "Basculer entre l'affichage Markdown et texte brut"
 
-#: chatgptviewer.lua:675
+#: chatgptviewer.lua:690
 #, fuzzy
 msgid "Toggle debug display in chat viewer"
 msgstr "Basculer l'affichage du débogage dans le visualiseur"
 
-#: chatgptviewer.lua:682 chatgptviewer.lua:1384
+#: chatgptviewer.lua:697 chatgptviewer.lua:1649
 msgid "Show Quote"
 msgstr ""
 
-#: chatgptviewer.lua:682 chatgptviewer.lua:1384
+#: chatgptviewer.lua:697 chatgptviewer.lua:1649
 msgid "Hide Quote"
 msgstr ""
 
-#: chatgptviewer.lua:694
+#: chatgptviewer.lua:709
 #, fuzzy
 msgid "Toggle highlighted text display in chat"
 msgstr "Basculer l'affichage du débogage dans le visualiseur"
 
-#: chatgptviewer.lua:700
+#: chatgptviewer.lua:715
 #, fuzzy
 msgid "Show Reasoning"
 msgstr "Afficher le débogage dans la conversation"
 
-#: chatgptviewer.lua:710
+#: chatgptviewer.lua:725
 msgid "View AI reasoning/thinking content (when available)"
 msgstr ""
 
-#: chatgptviewer.lua:914
+#: chatgptviewer.lua:840
+msgid "Wiki"
+msgstr ""
+
+#: chatgptviewer.lua:852
+#, fuzzy
+msgid "Wikipedia not available"
+msgstr "Service d'actions non disponible."
+
+#: chatgptviewer.lua:858
+msgid "No word to look up"
+msgstr ""
+
+#: chatgptviewer.lua:865
+msgid "Look up word in Wikipedia"
+msgstr ""
+
+#: chatgptviewer.lua:882
+msgid "Added"
+msgstr ""
+
+#: chatgptviewer.lua:887
+msgid "Word auto-added to vocabulary builder"
+msgstr ""
+
+#: chatgptviewer.lua:895
+msgid "+Vocab"
+msgstr ""
+
+#: chatgptviewer.lua:905
+msgid "Added '%1' to vocabulary"
+msgstr ""
+
+#: chatgptviewer.lua:910
+#, fuzzy
+msgid "Vocabulary builder not available"
+msgstr "Fonction d'export non disponible"
+
+#: chatgptviewer.lua:918
+msgid "Add word to vocabulary builder"
+msgstr ""
+
+#: chatgptviewer.lua:928
+msgid "Expand"
+msgstr ""
+
+#: chatgptviewer.lua:935
+msgid "Open in full-size viewer with all options"
+msgstr ""
+
+#: chatgptviewer.lua:1083
 #, fuzzy
 msgid "Type your reply..."
 msgstr "Entrez votre réponse."
 
-#: chatgptviewer.lua:939
+#: chatgptviewer.lua:1108
 #, fuzzy
 msgid "Send"
 msgstr "Envoyer"
 
-#: chatgptviewer.lua:1097
+#: chatgptviewer.lua:1362
 #, fuzzy
 msgid "Copied to clipboard."
 msgstr "Copié dans le presse-papiers."
 
-#: chatgptviewer.lua:1339
+#: chatgptviewer.lua:1604
 #, fuzzy
 msgid "Showing debug info"
 msgstr "Affichage des infos de débogage"
 
-#: chatgptviewer.lua:1339
+#: chatgptviewer.lua:1604
 #, fuzzy
 msgid "Debug info hidden"
 msgstr "Infos de débogage masquées"
 
-#: chatgptviewer.lua:1389
+#: chatgptviewer.lua:1654
 #, fuzzy
 msgid "Quote hidden"
 msgstr "Infos de débogage masquées"
 
-#: chatgptviewer.lua:1389
+#: chatgptviewer.lua:1654
 msgid "Quote shown"
 msgstr ""
 
-#: chatgptviewer.lua:1413
+#: chatgptviewer.lua:1678
 #, fuzzy
 msgid "No conversation history available"
 msgstr "Fonction d'export non disponible"
 
-#: chatgptviewer.lua:1422
+#: chatgptviewer.lua:1687
 #, fuzzy
 msgid "No reasoning content available"
 msgstr "Fonction d'export non disponible"
 
-#: chatgptviewer.lua:1451
+#: chatgptviewer.lua:1716
 msgid "AI Reasoning"
 msgstr ""
 
-#: chatgptviewer.lua:1451
+#: chatgptviewer.lua:1716
 #, fuzzy
 msgid "Reasoning Status"
 msgstr "Afficher le débogage dans la conversation"
 
-#: chatgptviewer.lua:1561 chatgptviewer.lua:1684
+#: chatgptviewer.lua:1826 chatgptviewer.lua:1949
 msgid "Justified"
 msgstr ""
 
-#: chatgptviewer.lua:1562 chatgptviewer.lua:1685
+#: chatgptviewer.lua:1827 chatgptviewer.lua:1950
 msgid "Right (RTL)"
 msgstr ""
 
-#: chatgptviewer.lua:1563 chatgptviewer.lua:1683
+#: chatgptviewer.lua:1828 chatgptviewer.lua:1948
 msgid "Left"
 msgstr ""
 
-#: chatgptviewer.lua:1571
+#: chatgptviewer.lua:1836
 #, fuzzy
 msgid "Chat Viewer Settings"
 msgstr "Paramètres de conversation"
 
-#: chatgptviewer.lua:1575 chatgptviewer.lua:1616
+#: chatgptviewer.lua:1840 chatgptviewer.lua:1881
 msgid "Font Size"
 msgstr ""
 
-#: chatgptviewer.lua:1584
+#: chatgptviewer.lua:1849
 msgid "Alignment"
 msgstr ""
 
-#: chatgptviewer.lua:1593
+#: chatgptviewer.lua:1858
 #, fuzzy
 msgid "Reset to Defaults"
 msgstr "Réinitialiser par défaut"
 
-#: chatgptviewer.lua:1622 main.lua:1998 ui/settings_manager.lua:235
+#: chatgptviewer.lua:1887 main.lua:2382 ui/settings_manager.lua:235
 #, fuzzy
 msgid "Set"
 msgstr "Définir"
 
-#: chatgptviewer.lua:1638
+#: chatgptviewer.lua:1903
 msgid "Font size set to %1"
 msgstr ""
 
-#: chatgptviewer.lua:1663
+#: chatgptviewer.lua:1928
 msgid "Alignment: %1"
 msgstr ""
 
-#: chatgptviewer.lua:1681
+#: chatgptviewer.lua:1946
 msgid "Text Alignment"
 msgstr ""
 
-#: chatgptviewer.lua:1718
+#: chatgptviewer.lua:1983
 #, fuzzy
 msgid "Settings reset to defaults"
 msgstr "Paramètres réinitialisés par défaut"
@@ -644,332 +700,433 @@ msgstr "Afficher le débogage dans la conversation"
 msgid "Loading"
 msgstr "Chargement..."
 
-#: dialogs.lua:417
+#: dialogs.lua:521
 #, fuzzy
 msgid "Cannot save: no document context"
 msgstr "Impossible de sauvegarder : pas de contexte de document"
 
-#: dialogs.lua:434
+#: dialogs.lua:538
 #, fuzzy
 msgid "Save Chat"
 msgstr "Sauvegarder la conversation"
 
-#: dialogs.lua:499
+#: dialogs.lua:603
 #, fuzzy
 msgid "Chat saved successfully"
 msgstr "Conversation sauvegardée avec succès"
 
-#: dialogs.lua:504
+#: dialogs.lua:608
 #, fuzzy
 msgid "Failed to save chat: "
 msgstr "Échec de la sauvegarde : "
 
-#: dialogs.lua:984
+#: dialogs.lua:1159
 msgid "Save the chat first to add tags"
 msgstr ""
 
-#: dialogs.lua:998
+#: dialogs.lua:1173
 #, fuzzy
 msgid "Cannot tag: no document context"
 msgstr "Impossible de sauvegarder : pas de contexte de document"
 
-#: dialogs.lua:1310 dialogs.lua:1739
+#: dialogs.lua:1523 dialogs.lua:1952
 #, fuzzy
 msgid "Unknown Title"
 msgstr "Titre inconnu"
 
-#: dialogs.lua:1311 dialogs.lua:1740
+#: dialogs.lua:1524 dialogs.lua:1953
 #, fuzzy
 msgid "Unknown Author"
 msgstr "Auteur inconnu"
 
-#: dialogs.lua:1350 dialogs.lua:1414 main.lua:1906 main.lua:2192
-#: ui/prompts_manager.lua:975 ui/prompts_manager.lua:1907
+#: dialogs.lua:1563 dialogs.lua:1627 main.lua:1669 main.lua:2281 main.lua:2588
+#: settings_schema.lua:510 ui/prompts_manager.lua:1026
+#: ui/prompts_manager.lua:1958
 #, fuzzy
 msgid "None"
 msgstr "Aucun"
 
-#: dialogs.lua:1405
+#: dialogs.lua:1618
 #, fuzzy
 msgid "Select Domain"
 msgstr "Sélectionner le domaine"
 
-#: dialogs.lua:1439
+#: dialogs.lua:1652
 #, fuzzy
 msgid "Domain: "
 msgstr "Domaine : "
 
-#: dialogs.lua:1446
+#: dialogs.lua:1659
 #, fuzzy
 msgid "Ask"
 msgstr "Demander"
 
-#: dialogs.lua:1557
+#: dialogs.lua:1770
 #, fuzzy
 msgid "Chat"
 msgstr "Conversation"
 
-#: dialogs.lua:1561 dialogs.lua:1765
+#: dialogs.lua:1774 dialogs.lua:1978
 #, fuzzy
 msgid "Error: "
 msgstr "Erreur : "
 
-#: dialogs.lua:1618
+#: dialogs.lua:1831
 msgid "Error handling prompt: "
 msgstr ""
 
-#: dialogs.lua:1655
+#: dialogs.lua:1868
 #, fuzzy
 msgid "KOAssistant Actions"
 msgstr "Actions KOAssistant"
 
-#: dialogs.lua:1657
+#: dialogs.lua:1870
 #, fuzzy
 msgid "Type your question or additional instructions for any action..."
 msgstr "Tapez votre question ou instructions supplémentaires..."
 
-#: dialogs.lua:1701
+#: dialogs.lua:1914
 #, fuzzy
 msgid "Unknown prompt type: "
 msgstr "Type de prompt inconnu : "
 
-#: dialogs.lua:1723
+#: dialogs.lua:1936
 #, fuzzy
 msgid "Error: No action specified"
 msgstr "Erreur : Aucune action spécifiée"
 
-#: main.lua:228 main.lua:650
+#: main.lua:233 main.lua:655
 #, fuzzy
 msgid "Compare with KOAssistant"
 msgstr "Comparer avec KOAssistant"
 
-#: main.lua:504 main.lua:674
+#: main.lua:509 main.lua:679
 #, fuzzy
 msgid "No files selected for comparison"
 msgstr "Aucun fichier sélectionné pour la comparaison"
 
-#: main.lua:588
+#: main.lua:593
 #, fuzzy
 msgid "Please select at least 2 books to compare"
 msgstr "Veuillez sélectionner au moins 2 livres à comparer"
 
-#: main.lua:694
+#: main.lua:699
 #, fuzzy
 msgid "KOAssistant: Chat History"
 msgstr "KOAssistant : Historique des conversations"
 
-#: main.lua:702
+#: main.lua:707
 #, fuzzy
 msgid "KOAssistant: Continue Last Saved Chat"
 msgstr "KOAssistant : Continuer la dernière conversation sauvegardée"
 
-#: main.lua:710
+#: main.lua:715
 #, fuzzy
 msgid "KOAssistant: Continue Last Opened Chat"
 msgstr "KOAssistant : Continuer la dernière conversation ouverte"
 
-#: main.lua:719
+#: main.lua:724
 #, fuzzy
 msgid "KOAssistant: Settings"
 msgstr "KOAssistant : Paramètres"
 
-#: main.lua:727
+#: main.lua:732
 #, fuzzy
 msgid "KOAssistant: General Chat"
 msgstr "KOAssistant : Conversation générale"
 
-#: main.lua:735
+#: main.lua:740
 #, fuzzy
 msgid "KOAssistant: Chat About Book"
 msgstr "KOAssistant : Conversation sur le livre"
 
-#: main.lua:743
+#: main.lua:748
 #, fuzzy
 msgid "KOAssistant: Change Primary Language"
 msgstr "KOAssistant : Historique des conversations"
 
-#: main.lua:750
+#: main.lua:755
 #, fuzzy
 msgid "KOAssistant: Change Translation Language"
 msgstr "Langue de traduction personnalisée"
 
-#: main.lua:757
+#: main.lua:762
 #, fuzzy
 msgid "KOAssistant: Change Provider"
 msgstr "KOAssistant : Historique des conversations"
 
-#: main.lua:764
+#: main.lua:769
 #, fuzzy
 msgid "KOAssistant: Change Model"
 msgstr "Conversation KOAssistant"
 
-#: main.lua:771
+#: main.lua:776
 #, fuzzy
 msgid "KOAssistant: Change AI Behavior"
 msgstr "KOAssistant : Historique des conversations"
 
-#: main.lua:778
+#: main.lua:783
 #, fuzzy
 msgid "KOAssistant: AI Quick Settings"
 msgstr "KOAssistant : Paramètres"
 
-#: main.lua:785
+#: main.lua:790
 #, fuzzy
 msgid "KOAssistant: Action Manager"
 msgstr "Actions KOAssistant"
 
-#: main.lua:792
+#: main.lua:797
 #, fuzzy
 msgid "KOAssistant: Behavior Manager"
 msgstr "Actions KOAssistant"
 
-#: main.lua:799
+#: main.lua:804
 #, fuzzy
 msgid "KOAssistant: Domain Manager"
 msgstr "Actions KOAssistant"
 
-#: main.lua:806
+#: main.lua:811
 #, fuzzy
 msgid "KOAssistant: Change Domain"
 msgstr "Conversation KOAssistant"
 
-#: main.lua:901
+#: main.lua:819
+#, fuzzy
+msgid "KOAssistant: Dictionary Popup Manager"
+msgstr "Actions KOAssistant"
+
+#: main.lua:826
+#, fuzzy
+msgid "KOAssistant: Change Dictionary Language"
+msgstr "KOAssistant : Historique des conversations"
+
+#: main.lua:833
+#, fuzzy
+msgid "KOAssistant: Toggle Dictionary Bypass"
+msgstr "Actions KOAssistant"
+
+#: main.lua:841
+msgid "KOAssistant: Toggle Highlight Bypass"
+msgstr ""
+
+#: main.lua:849
+#, fuzzy
+msgid "KOAssistant: Translate Current Page"
+msgstr "Langue de traduction personnalisée"
+
+#: main.lua:958
 msgid "Custom (migrated)"
 msgstr ""
 
-#: main.lua:1030 main.lua:1946
+#: main.lua:1092 main.lua:2330
 #, fuzzy, lua-format
 msgid "Provider: %s"
 msgstr "Fournisseur : %1"
 
-#: main.lua:1059 main.lua:1364
+#: main.lua:1121 main.lua:1426
 #, fuzzy
 msgid "(default)"
 msgstr "(par défaut)"
 
-#: main.lua:1078 main.lua:1955
+#: main.lua:1140 main.lua:2339
 #, fuzzy, lua-format
 msgid "Model: %s"
 msgstr "Modèle : %1"
 
-#: main.lua:1088 ui/prompts_manager.lua:1806 ui/prompts_manager.lua:2256
+#: main.lua:1150 ui/prompts_manager.lua:1857 ui/prompts_manager.lua:2307
 #, fuzzy
 msgid "Custom model..."
 msgstr "Modèle personnalisé..."
 
-#: main.lua:1095
+#: main.lua:1157
 #, fuzzy
 msgid "Enter Custom Model Name"
 msgstr "Entrez le nom du modèle personnalisé"
 
-#: main.lua:1097
+#: main.lua:1159
 #, fuzzy
 msgid "e.g., claude-3-opus-20240229"
 msgstr "ex., claude-3-opus-20240229"
 
-#: main.lua:1098
+#: main.lua:1160
 #, fuzzy
 msgid "Enter the exact model identifier for this provider."
 msgstr "Entrez l'identifiant exact du modèle pour ce fournisseur."
 
-#: main.lua:1133
+#: main.lua:1195
 #, fuzzy
 msgid "No predefined models"
 msgstr "Aucun modèle prédéfini"
 
-#: main.lua:1220
+#: main.lua:1282
 #, fuzzy, lua-format
 msgid "Current: %s"
 msgstr "Étiquettes actuelles :"
 
-#: main.lua:1222
+#: main.lua:1284
 msgid "Using key from apikeys.lua"
 msgstr ""
 
-#: main.lua:1224
+#: main.lua:1286
 #, fuzzy
 msgid "Enter API key..."
 msgstr "Entrez votre réponse."
 
-#: main.lua:1230
+#: main.lua:1292
 msgid "API Key"
 msgstr ""
 
-#: main.lua:1244
+#: main.lua:1306
 msgid "Clear"
 msgstr ""
 
-#: main.lua:1254
+#: main.lua:1316
 #, lua-format
 msgid "%s API key cleared"
 msgstr ""
 
-#: main.lua:1272
+#: main.lua:1334
 #, lua-format
 msgid "%s API key saved"
 msgstr ""
 
-#: main.lua:1332
+#: main.lua:1394
 #, fuzzy
 msgid "Set your languages first"
 msgstr "Définissez d'abord vos langues"
 
-#: main.lua:1350
+#: main.lua:1412
 #, fuzzy
 msgid "No valid languages found"
 msgstr "Aucune langue valide trouvée"
 
-#: main.lua:1381
+#: main.lua:1443
 #, fuzzy, lua-format
 msgid "Primary: %s"
 msgstr "Langue principale : %1"
 
-#: main.lua:1403
+#: main.lua:1463
 #, lua-format
 msgid "Use Primary (%s)"
 msgstr ""
 
-#: main.lua:1419 main.lua:1452 main.lua:2051
+#: main.lua:1489 main.lua:1529 main.lua:2435
 #, fuzzy, lua-format
 msgid "Translate: %s"
 msgstr "Traduire"
 
-#: main.lua:1466 ui/prompts_manager.lua:976 ui/prompts_manager.lua:2049
+#: main.lua:1543 ui/prompts_manager.lua:1027 ui/prompts_manager.lua:2100
 #, fuzzy
 msgid "Custom..."
 msgstr "Personnalisé..."
 
-#: main.lua:1472
+#: main.lua:1549
 #, fuzzy
 msgid "Custom Translation Language"
 msgstr "Langue de traduction personnalisée"
 
-#: main.lua:1474
+#: main.lua:1551
 #, fuzzy
 msgid "e.g., Spanish, Japanese, French"
 msgstr "ex., espagnol, japonais, français"
 
-#: main.lua:1475
+#: main.lua:1552
 #, fuzzy
 msgid "Enter the target language for translations."
 msgstr "Entrez la langue cible pour les traductions."
 
-#: main.lua:1509
+#: main.lua:1586
 #, fuzzy
 msgid "(Set your languages for quick selection)"
 msgstr "(Définissez vos langues pour une sélection rapide)"
 
-#: main.lua:1526
+#: main.lua:1605 main.lua:2825
+#, fuzzy
+msgid "Follow Translation Language"
+msgstr "Langue de traduction personnalisée"
+
+#: main.lua:1618
+msgid "Dictionary: Follow Translation"
+msgstr ""
+
+#: main.lua:1650 main.lua:2447
+#, fuzzy, lua-format
+msgid "Dictionary: %s"
+msgstr "Langue principale : %1"
+
+#: main.lua:1666 settings_schema.lua:507
+msgid "Sentence"
+msgstr ""
+
+#: main.lua:1666
+msgid "Extract the full sentence containing the word"
+msgstr ""
+
+#: main.lua:1667 settings_schema.lua:508
+msgid "Paragraph"
+msgstr ""
+
+#: main.lua:1667
+msgid "Include more surrounding context"
+msgstr ""
+
+#: main.lua:1668 settings_schema.lua:509
+msgid "Characters"
+msgstr ""
+
+#: main.lua:1668
+msgid "Fixed number of characters before/after"
+msgstr ""
+
+#: main.lua:1669
+msgid "Only send the word, no surrounding context"
+msgstr ""
+
+#: main.lua:1689
+#, fuzzy, lua-format
+msgid "Context: %s"
+msgstr "Contexte : "
+
+#: main.lua:1705 settings_schema.lua:538
+msgid "Default (Document)"
+msgstr ""
+
+#: main.lua:1705
+msgid "Save to the current document's chat history"
+msgstr ""
+
+#: main.lua:1706 settings_schema.lua:539
+msgid "Don't Save"
+msgstr ""
+
+#: main.lua:1706
+msgid "Dictionary lookups won't be saved to history"
+msgstr ""
+
+#: main.lua:1707 settings_schema.lua:540
+msgid "Dictionary Chats"
+msgstr ""
+
+#: main.lua:1707
+msgid "Save to a dedicated Dictionary Lookups section"
+msgstr ""
+
+#: main.lua:1727
+#, fuzzy, lua-format
+msgid "Save: %s"
+msgstr "Sauvegarder"
+
+#: main.lua:1746
 #, fuzzy
 msgid "Custom AI Behavior"
 msgstr "Comportement IA personnalisé"
 
-#: main.lua:1528
+#: main.lua:1748
 #, fuzzy
 msgid "Enter custom AI behavior instructions..."
 msgstr "Entrez les instructions de comportement IA personnalisées..."
 
-#: main.lua:1529
+#: main.lua:1749
 #, fuzzy
 msgid ""
 "Define how the AI should behave. This replaces the built-in Minimal/Full "
@@ -982,12 +1139,12 @@ msgstr ""
 "\n"
 "Conseil : Commencez avec le comportement Complet comme modèle."
 
-#: main.lua:1544
+#: main.lua:1764
 #, fuzzy
 msgid "Load Full"
 msgstr "Charger Complet"
 
-#: main.lua:1599
+#: main.lua:1819
 #, fuzzy
 msgid ""
 "Model lists are now managed through the model_lists.lua file. Please edit "
@@ -996,119 +1153,124 @@ msgstr ""
 "Les listes de modèles sont maintenant gérées via le fichier model_lists.lua. "
 "Veuillez modifier ce fichier pour ajouter ou supprimer des modèles."
 
-#: main.lua:1648
+#: main.lua:2023
 #, fuzzy
 msgid "No previously opened chat found"
 msgstr "Aucune conversation précédemment ouverte trouvée"
 
-#: main.lua:1665 main.lua:2298
+#: main.lua:2040 main.lua:3320
 #, fuzzy
 msgid "Configuration not found. Please set up configuration.lua first."
 msgstr ""
 "Configuration non trouvée. Veuillez d'abord configurer configuration.lua."
 
-#: main.lua:1694
+#: main.lua:2069
 #, fuzzy
 msgid "Please open a book first"
 msgstr "Veuillez d'abord ouvrir un livre"
 
-#: main.lua:1814 main.lua:2046
+#: main.lua:2189 main.lua:2430
 #, fuzzy
 msgid "Primary Language"
 msgstr "Langue principale : %1"
 
-#: main.lua:1820 main.lua:2056
+#: main.lua:2195 main.lua:2440 ui/prompts_manager.lua:2468
 #, fuzzy
 msgid "Translation Language"
 msgstr "Langue de traduction personnalisée"
 
-#: main.lua:1826 main.lua:1951
+#: main.lua:2201 main.lua:2335
 #, fuzzy
 msgid "Provider"
 msgstr "Fournisseur : "
 
-#: main.lua:1832 main.lua:1960
+#: main.lua:2207 main.lua:2344
 #, fuzzy
 msgid "Model"
 msgstr "Modèle :"
 
-#: main.lua:1838 main.lua:1972 ui/prompts_manager.lua:507
-#: ui/prompts_manager.lua:2090
+#: main.lua:2213 main.lua:2356 ui/prompts_manager.lua:508
+#: ui/prompts_manager.lua:2141
 #, fuzzy
 msgid "AI Behavior"
 msgstr "Comportement IA"
 
-#: main.lua:1918 main.lua:1924
+#: main.lua:2293 main.lua:2299
 #, fuzzy
 msgid "Default"
 msgstr "(par défaut)"
 
-#: main.lua:1941
+#: main.lua:2325
 #, fuzzy
 msgid "AI Quick Settings"
 msgstr "Modifier les paramètres"
 
-#: main.lua:1967
+#: main.lua:2351
 #, fuzzy, lua-format
 msgid "Behavior: %s"
 msgstr "Comportement IA : %1"
 
-#: main.lua:1976
+#: main.lua:2360
 #, fuzzy, lua-format
 msgid "Domain: %s"
 msgstr "Domaine : "
 
-#: main.lua:1981 main.lua:2174
+#: main.lua:2365 main.lua:2570
 #, fuzzy
 msgid "Knowledge Domain"
 msgstr "Sélectionner le domaine"
 
-#: main.lua:1988
+#: main.lua:2372
 #, fuzzy, lua-format
 msgid "Temp: %.1f"
 msgstr "Température : "
 
-#: main.lua:1999 settings_schema.lua:226 ui/prompts_manager.lua:504
-#: ui/prompts_manager.lua:1273 ui/prompts_manager.lua:2151
+#: main.lua:2383 settings_schema.lua:226 ui/prompts_manager.lua:505
+#: ui/prompts_manager.lua:1324 ui/prompts_manager.lua:2202
 #, fuzzy
 msgid "Temperature"
 msgstr "Température"
 
-#: main.lua:2014
+#: main.lua:2398
 #, fuzzy
 msgid "Streaming: ON"
 msgstr "Activer le streaming"
 
-#: main.lua:2014
+#: main.lua:2398
 #, fuzzy
 msgid "Streaming: OFF"
 msgstr "Activer le streaming"
 
-#: main.lua:2032
+#: main.lua:2416
 #, fuzzy, lua-format
 msgid "Language: %s"
 msgstr "Langue"
 
-#: main.lua:2041
+#: main.lua:2425
 msgid "Configure your languages in Settings → Language first."
 msgstr ""
 
-#: main.lua:2063
+#: main.lua:2452 main.lua:2812
+#, fuzzy
+msgid "Dictionary Language"
+msgstr "Langue principale : %1"
+
+#: main.lua:2456
 #, fuzzy
 msgid "More Settings..."
 msgstr "Paramètres de conversation"
 
-#: main.lua:2103
+#: main.lua:2499
 #, fuzzy
 msgid "Testing connection..."
 msgstr "Test de connexion..."
 
-#: main.lua:2131
+#: main.lua:2527
 #, fuzzy
 msgid "Connection test failed:\n"
 msgstr "Échec du test de connexion :\n"
 
-#: main.lua:2137
+#: main.lua:2533
 #, fuzzy, lua-format
 msgid ""
 "Connection test successful!\n"
@@ -1125,17 +1287,56 @@ msgstr ""
 "\n"
 "Réponse : %s"
 
-#: main.lua:2145
+#: main.lua:2541
 #, fuzzy
 msgid "Connection test failed: "
 msgstr "Échec du test de connexion : "
 
-#: main.lua:2289
+#: main.lua:2644
+msgid "Dictionary bypass: ON"
+msgstr ""
+
+#: main.lua:2644
+msgid "Dictionary bypass: OFF"
+msgstr ""
+
+#: main.lua:2658
+#, fuzzy
+msgid "Highlight bypass: ON"
+msgstr "Surlignage"
+
+#: main.lua:2658
+#, fuzzy
+msgid "Highlight bypass: OFF"
+msgstr "Surlignage"
+
+#: main.lua:2673
+msgid "No document open"
+msgstr ""
+
+#: main.lua:2722
+msgid "Cannot determine current page"
+msgstr ""
+
+#: main.lua:2768
+msgid "Could not extract text from current page"
+msgstr ""
+
+#: main.lua:2779
+#, fuzzy
+msgid "Translate action not found"
+msgstr "Langue de traduction personnalisée"
+
+#: main.lua:3224 main.lua:3277
+msgid "Bypass action: %1"
+msgstr ""
+
+#: main.lua:3311
 #, fuzzy
 msgid "Default actions restored"
 msgstr "Actions par défaut restaurées"
 
-#: main.lua:2350
+#: main.lua:3372
 #, fuzzy
 msgid ""
 "KOAssistant Plugin\n"
@@ -1144,7 +1345,7 @@ msgstr ""
 "Plugin KOAssistant\n"
 "Version : "
 
-#: main.lua:2402
+#: main.lua:3424
 #, fuzzy
 msgid "Refresh cached book information"
 msgstr "Actualiser les informations du livre en cache"
@@ -1213,7 +1414,7 @@ msgstr "Sauvegarder automatiquement toutes les conversations"
 msgid "Auto-save Continued Chats"
 msgstr "Sauvegarder automatiquement les conversations continuées"
 
-#: settings_schema.lua:144
+#: settings_schema.lua:144 settings_schema.lua:549
 #, fuzzy
 msgid "Enable Streaming"
 msgstr "Activer le streaming"
@@ -1276,7 +1477,7 @@ msgstr "Domaines disponibles"
 msgid "Manage knowledge domains. Domains are selected per-chat."
 msgstr ""
 
-#: settings_schema.lua:233 ui/prompts_manager.lua:1274
+#: settings_schema.lua:233 ui/prompts_manager.lua:1325
 #, fuzzy
 msgid ""
 "Range: 0.0-2.0 (Anthropic max 1.0)\n"
@@ -1287,7 +1488,7 @@ msgstr ""
 "Plus bas = concentré, déterministe\n"
 "Plus haut = créatif, varié"
 
-#: settings_schema.lua:240 ui/prompts_manager.lua:505
+#: settings_schema.lua:240 ui/prompts_manager.lua:506
 msgid "Reasoning"
 msgstr ""
 
@@ -1295,7 +1496,7 @@ msgstr ""
 msgid "Long-press provider for supported models"
 msgstr ""
 
-#: settings_schema.lua:254 ui/prompts_manager.lua:1505
+#: settings_schema.lua:254 ui/prompts_manager.lua:1556
 #, fuzzy
 msgid "Anthropic Extended Thinking"
 msgstr "Réflexion étendue"
@@ -1326,7 +1527,7 @@ msgstr ""
 "Plus élevé = raisonnement plus complexe.\n"
 "Plage : 1024 - 32000"
 
-#: settings_schema.lua:277 ui/prompts_manager.lua:1605
+#: settings_schema.lua:277 ui/prompts_manager.lua:1656
 msgid "OpenAI Reasoning"
 msgstr ""
 
@@ -1338,16 +1539,16 @@ msgid ""
 msgstr ""
 
 #: settings_schema.lua:288 settings_schema.lua:317 settings_schema.lua:327
-#: ui/prompts_manager.lua:1638
+#: ui/prompts_manager.lua:1689
 msgid "Low"
 msgstr ""
 
 #: settings_schema.lua:288 settings_schema.lua:317 settings_schema.lua:328
-#: ui/prompts_manager.lua:1648
+#: ui/prompts_manager.lua:1699
 msgid "Medium"
 msgstr ""
 
-#: settings_schema.lua:288 settings_schema.lua:317 ui/prompts_manager.lua:1658
+#: settings_schema.lua:288 settings_schema.lua:317 ui/prompts_manager.lua:1709
 #, fuzzy
 msgid "High"
 msgstr "Surlignage"
@@ -1375,7 +1576,7 @@ msgstr ""
 msgid "High (thorough)"
 msgstr ""
 
-#: settings_schema.lua:306 ui/prompts_manager.lua:1678
+#: settings_schema.lua:306 ui/prompts_manager.lua:1729
 #, fuzzy
 msgid "Gemini Thinking"
 msgstr "Réflexion étendue"
@@ -1546,32 +1747,126 @@ msgstr ""
 "Utilisez votre langue principale comme cible de traduction. Désactivez pour "
 "choisir une cible différente."
 
-#: settings_schema.lua:447
-#, fuzzy
-msgid "English"
-msgstr "Anglais"
-
-#: settings_schema.lua:448
+#: settings_schema.lua:465
 #, fuzzy
 msgid "Translation Target: %1"
 msgstr "Cible de traduction : %1"
 
-#: settings_schema.lua:460 ui/prompts_manager.lua:415
+#: settings_schema.lua:477
 #, fuzzy
-msgid "Manage Actions"
-msgstr "Gérer les actions"
+msgid "Dictionary Settings"
+msgstr "Paramètres d'affichage"
 
-#: settings_schema.lua:466
+#: settings_schema.lua:482
+msgid "AI Button in Dictionary Popup"
+msgstr ""
+
+#: settings_schema.lua:485
+msgid "Show AI Dictionary button when tapping on a word"
+msgstr ""
+
+#: settings_schema.lua:494
+msgid "Response Language: (Follow Translation)"
+msgstr ""
+
+#: settings_schema.lua:496
+#, fuzzy
+msgid "Response Language: %1"
+msgstr "Langue"
+
+#: settings_schema.lua:512
+#, fuzzy
+msgid "Context Mode: %1"
+msgstr "Contexte : "
+
+#: settings_schema.lua:519
+#, fuzzy
+msgid "Context Characters"
+msgstr "Continuer la conversation"
+
+#: settings_schema.lua:525
+msgid ""
+"Number of characters to include before/after the word when Context Mode is "
+"'Characters'"
+msgstr ""
+
+#: settings_schema.lua:542
+#, fuzzy
+msgid "Save Mode: %1"
+msgstr "Modèle : %1"
+
+#: settings_schema.lua:552
+msgid ""
+"Stream dictionary responses in real-time. Disable to wait for complete "
+"response."
+msgstr ""
+
+#: settings_schema.lua:557
+msgid "Dictionary Popup Actions"
+msgstr ""
+
+#: settings_schema.lua:559
+msgid "Configure which actions appear in the dictionary popup"
+msgstr ""
+
+#: settings_schema.lua:564
+msgid "Bypass KOReader Dictionary"
+msgstr ""
+
+#: settings_schema.lua:567
+msgid ""
+"Skip KOReader's dictionary and go directly to AI when tapping words. Can "
+"also be toggled via gesture."
+msgstr ""
+
+#: settings_schema.lua:588 settings_schema.lua:592 settings_schema.lua:594
+#: settings_schema.lua:626 settings_schema.lua:630 settings_schema.lua:632
+msgid "Bypass Action: %1"
+msgstr ""
+
+#: settings_schema.lua:597
+msgid "Action to trigger when dictionary bypass is enabled"
+msgstr ""
+
+#: settings_schema.lua:606
+#, fuzzy
+msgid "Highlight Settings"
+msgstr "Actions du menu de surlignage"
+
+#: settings_schema.lua:611
+msgid "Enable Highlight Bypass"
+msgstr ""
+
+#: settings_schema.lua:614
+msgid ""
+"Immediately trigger an action when text is selected, skipping the highlight "
+"menu. Can also be toggled via gesture."
+msgstr ""
+
+#: settings_schema.lua:635
+msgid "Action to trigger when highlight bypass is enabled"
+msgstr ""
+
+#: settings_schema.lua:640
 #, fuzzy
 msgid "Highlight Menu Actions"
 msgstr "Actions du menu de surlignage"
 
-#: settings_schema.lua:475
+#: settings_schema.lua:642
+msgid "Choose which actions appear in the highlight menu (requires restart)"
+msgstr ""
+
+#: settings_schema.lua:651 ui/prompts_manager.lua:416
+#, fuzzy
+msgid "Manage Actions"
+msgstr "Gérer les actions"
+
+#: settings_schema.lua:660
 #, fuzzy
 msgid "About KOAssistant"
 msgstr "À propos de KOAssistant"
 
-#: settings_schema.lua:481
+#: settings_schema.lua:666
 #, fuzzy
 msgid "Check for Updates"
 msgstr "Vérifier les mises à jour"
@@ -1635,7 +1930,7 @@ msgstr ""
 msgid "Selected: %s"
 msgstr "Texte sélectionné"
 
-#: ui/behavior_manager.lua:189 ui/prompts_manager.lua:394
+#: ui/behavior_manager.lua:189 ui/prompts_manager.lua:395
 #, fuzzy
 msgid "Restore Defaults"
 msgstr "Restaurer les valeurs par défaut"
@@ -1655,7 +1950,7 @@ msgid "Manage Behaviors"
 msgstr "Comportement IA"
 
 #: ui/behavior_manager.lua:246 ui/domain_manager.lua:265
-#: ui/prompts_manager.lua:461
+#: ui/prompts_manager.lua:462
 #, fuzzy
 msgid "Built-in"
 msgstr "Intégré"
@@ -1669,7 +1964,7 @@ msgid "Custom (UI-created)"
 msgstr ""
 
 #: ui/behavior_manager.lua:262 ui/domain_manager.lua:281
-#: ui/prompts_manager.lua:502
+#: ui/prompts_manager.lua:503
 #, fuzzy
 msgid "Source"
 msgstr "Source"
@@ -1697,7 +1992,7 @@ msgid "Content"
 msgstr "Contexte"
 
 #: ui/behavior_manager.lua:292 ui/domain_manager.lua:305
-#: ui/prompts_manager.lua:534
+#: ui/prompts_manager.lua:535
 #, fuzzy
 msgid "Edit"
 msgstr "Modifier"
@@ -1968,105 +2263,105 @@ msgstr "Veuillez entrer un nom de prompt"
 msgid "(No existing domains to use as template)"
 msgstr ""
 
-#: ui/prompts_manager.lua:30
+#: ui/prompts_manager.lua:31
 #, fuzzy, lua-format
 msgid "~%d tokens"
 msgstr "Activé (%d tokens)"
 
-#: ui/prompts_manager.lua:62 ui/prompts_manager.lua:93
+#: ui/prompts_manager.lua:63 ui/prompts_manager.lua:94
 #, fuzzy
 msgid "Force OFF"
 msgstr "Forcer DÉSACTIVÉ"
 
-#: ui/prompts_manager.lua:84
+#: ui/prompts_manager.lua:85
 msgid "Configured"
 msgstr ""
 
-#: ui/prompts_manager.lua:91
+#: ui/prompts_manager.lua:92
 #, fuzzy, lua-format
 msgid "On (%d tokens)"
 msgstr "Activé (%d tokens)"
 
-#: ui/prompts_manager.lua:96 ui/prompts_manager.lua:489
-#: ui/prompts_manager.lua:495 ui/prompts_manager.lua:496
-#: ui/prompts_manager.lua:1151 ui/prompts_manager.lua:1157
-#: ui/prompts_manager.lua:1158 ui/prompts_manager.lua:1917
-#: ui/prompts_manager.lua:1921 ui/prompts_manager.lua:1927
-#: ui/prompts_manager.lua:1928
+#: ui/prompts_manager.lua:97 ui/prompts_manager.lua:490
+#: ui/prompts_manager.lua:496 ui/prompts_manager.lua:497
+#: ui/prompts_manager.lua:1202 ui/prompts_manager.lua:1208
+#: ui/prompts_manager.lua:1209 ui/prompts_manager.lua:1968
+#: ui/prompts_manager.lua:1972 ui/prompts_manager.lua:1978
+#: ui/prompts_manager.lua:1979
 #, fuzzy
 msgid "Global"
 msgstr "Global"
 
-#: ui/prompts_manager.lua:283
+#: ui/prompts_manager.lua:284
 #, fuzzy
 msgid "Tap to toggle • Hold for details • ★ = custom • ⚙ = modified"
 msgstr ""
 "Appuyez pour basculer • Maintenez pour détails • ★ = personnalisé • ⚙ = "
 "modifié"
 
-#: ui/prompts_manager.lua:290
+#: ui/prompts_manager.lua:291
 #, fuzzy
 msgid "+ Add Action"
 msgstr "+ Ajouter une action"
 
-#: ui/prompts_manager.lua:301
+#: ui/prompts_manager.lua:302
 #, fuzzy
 msgid "Highlight Context"
 msgstr "Contexte de surlignage"
 
-#: ui/prompts_manager.lua:302
+#: ui/prompts_manager.lua:303
 #, fuzzy
 msgid "Book Context (File Browser)"
 msgstr "Contexte de livre (navigateur de fichiers)"
 
-#: ui/prompts_manager.lua:303
+#: ui/prompts_manager.lua:304
 #, fuzzy
 msgid "Multi-Book Context"
 msgstr "Contexte multi-livres"
 
-#: ui/prompts_manager.lua:304
+#: ui/prompts_manager.lua:305
 #, fuzzy
 msgid "General Context"
 msgstr "Contexte général"
 
-#: ui/prompts_manager.lua:305 ui/prompts_manager.lua:860
-#: ui/prompts_manager.lua:2607
+#: ui/prompts_manager.lua:306 ui/prompts_manager.lua:911
+#: ui/prompts_manager.lua:2674
 #, fuzzy
 msgid "Highlight & Book"
 msgstr "Surlignage et livre"
 
-#: ui/prompts_manager.lua:306 ui/prompts_manager.lua:2609
+#: ui/prompts_manager.lua:307 ui/prompts_manager.lua:2676
 #, fuzzy
 msgid "Highlight & General"
 msgstr "Surlignage et général"
 
-#: ui/prompts_manager.lua:307 ui/prompts_manager.lua:2611
+#: ui/prompts_manager.lua:308 ui/prompts_manager.lua:2678
 #, fuzzy
 msgid "Book & General"
 msgstr "Livre et général"
 
-#: ui/prompts_manager.lua:308 ui/prompts_manager.lua:865
-#: ui/prompts_manager.lua:2613
+#: ui/prompts_manager.lua:309 ui/prompts_manager.lua:916
+#: ui/prompts_manager.lua:2680
 #, fuzzy
 msgid "All Contexts"
 msgstr "Tous les contextes"
 
-#: ui/prompts_manager.lua:376
+#: ui/prompts_manager.lua:377
 #, fuzzy
 msgid "Import"
 msgstr "Importer"
 
-#: ui/prompts_manager.lua:380
+#: ui/prompts_manager.lua:381
 #, fuzzy
 msgid "Import feature coming soon..."
 msgstr "Fonction d'import bientôt disponible..."
 
-#: ui/prompts_manager.lua:389
+#: ui/prompts_manager.lua:390
 #, fuzzy
 msgid "Export feature coming soon..."
 msgstr "Fonction d'export bientôt disponible..."
 
-#: ui/prompts_manager.lua:397
+#: ui/prompts_manager.lua:398
 #, fuzzy
 msgid ""
 "This will remove all custom actions and reset all action settings. Continue?"
@@ -2074,100 +2369,100 @@ msgstr ""
 "Cela supprimera toutes les actions personnalisées et réinitialisera tous les "
 "paramètres. Continuer ?"
 
-#: ui/prompts_manager.lua:463
+#: ui/prompts_manager.lua:464
 #, fuzzy
 msgid "Custom (custom_actions.lua)"
 msgstr "Personnalisé (custom_actions.lua)"
 
-#: ui/prompts_manager.lua:465
+#: ui/prompts_manager.lua:466
 #, fuzzy
 msgid "User-defined (UI)"
 msgstr "Défini par l'utilisateur (UI)"
 
-#: ui/prompts_manager.lua:473
+#: ui/prompts_manager.lua:474
 #, fuzzy
 msgid "Custom: "
 msgstr "Personnalisé : "
 
-#: ui/prompts_manager.lua:475
+#: ui/prompts_manager.lua:476
 #, fuzzy
 msgid "None (disabled)"
 msgstr "Aucun (désactivé)"
 
-#: ui/prompts_manager.lua:485
+#: ui/prompts_manager.lua:486
 #, fuzzy
 msgid "(Use global setting)"
 msgstr "(Utiliser le paramètre global)"
 
-#: ui/prompts_manager.lua:501
+#: ui/prompts_manager.lua:502
 #, fuzzy
 msgid "Context"
 msgstr "Contexte"
 
-#: ui/prompts_manager.lua:503
+#: ui/prompts_manager.lua:504
 #, fuzzy
 msgid "Status"
 msgstr "Statut"
 
-#: ui/prompts_manager.lua:503
+#: ui/prompts_manager.lua:504
 #, fuzzy
 msgid "Enabled"
 msgstr "Activé"
 
-#: ui/prompts_manager.lua:503
+#: ui/prompts_manager.lua:504
 #, fuzzy
 msgid "Disabled"
 msgstr "Désactivé"
 
-#: ui/prompts_manager.lua:506
+#: ui/prompts_manager.lua:507
 #, fuzzy
 msgid "Provider/Model"
 msgstr "Fournisseur/Modèle"
 
-#: ui/prompts_manager.lua:509
+#: ui/prompts_manager.lua:510
 #, fuzzy
 msgid "Action Prompt"
 msgstr "Prompt d'action"
 
-#: ui/prompts_manager.lua:510
+#: ui/prompts_manager.lua:511
 #, fuzzy
 msgid "(None)"
 msgstr "(Aucun)"
 
-#: ui/prompts_manager.lua:515 ui/prompts_manager.lua:520
+#: ui/prompts_manager.lua:516 ui/prompts_manager.lua:521
 msgid "Yes"
 msgstr ""
 
-#: ui/prompts_manager.lua:515 ui/prompts_manager.lua:520
+#: ui/prompts_manager.lua:516 ui/prompts_manager.lua:521
 #, fuzzy
 msgid "No"
 msgstr "Aucun"
 
-#: ui/prompts_manager.lua:516
+#: ui/prompts_manager.lua:517
 #, fuzzy
 msgid "Include Book Info"
 msgstr "Info livre"
 
-#: ui/prompts_manager.lua:521
+#: ui/prompts_manager.lua:522
 msgid "Skip Language Instruction"
 msgstr ""
 
-#: ui/prompts_manager.lua:524
+#: ui/prompts_manager.lua:525
 #, fuzzy
 msgid "Requires"
 msgstr "Requiert"
 
-#: ui/prompts_manager.lua:547
+#: ui/prompts_manager.lua:548
 #, fuzzy
 msgid "Delete this action?"
 msgstr "Supprimer cette action ?"
 
-#: ui/prompts_manager.lua:567
+#: ui/prompts_manager.lua:568
 #, fuzzy
 msgid "Edit file"
 msgstr "Modifier le fichier"
 
-#: ui/prompts_manager.lua:570 ui/prompts_manager.lua:2573
+#: ui/prompts_manager.lua:571 ui/prompts_manager.lua:2640
 #, fuzzy
 msgid ""
 "This action is defined in custom_actions.lua.\n"
@@ -2176,56 +2471,74 @@ msgstr ""
 "Cette action est définie dans custom_actions.lua.\n"
 "Veuillez modifier ce fichier directement."
 
-#: ui/prompts_manager.lua:579
+#: ui/prompts_manager.lua:580
 #, fuzzy
 msgid "Edit Settings"
 msgstr "Modifier les paramètres"
 
-#: ui/prompts_manager.lua:591
+#: ui/prompts_manager.lua:592
 #, fuzzy
 msgid "Reset to Default"
 msgstr "Réinitialiser par défaut"
 
-#: ui/prompts_manager.lua:594
+#: ui/prompts_manager.lua:595
 #, fuzzy
 msgid "Reset this action to default settings?"
 msgstr "Réinitialiser cette action aux paramètres par défaut ?"
 
-#: ui/prompts_manager.lua:616
+#: ui/prompts_manager.lua:617
 #, fuzzy
 msgid "✓ In Highlight Menu"
 msgstr "✓ Dans le menu de surlignage"
 
-#: ui/prompts_manager.lua:616
+#: ui/prompts_manager.lua:617 ui/prompts_manager.lua:836
 #, fuzzy
 msgid "Add to Highlight Menu"
 msgstr "Ajouter au menu de surlignage"
 
-#: ui/prompts_manager.lua:621
+#: ui/prompts_manager.lua:622
 #, fuzzy
 msgid "Added to highlight menu."
 msgstr "Ajouter au menu de surlignage"
 
-#: ui/prompts_manager.lua:621
+#: ui/prompts_manager.lua:622
 #, fuzzy
 msgid "Removed from highlight menu."
 msgstr "Toutes les actions retirées du menu de surlignage."
 
-#: ui/prompts_manager.lua:633
+#: ui/prompts_manager.lua:635
+msgid "✓ In Dictionary Popup"
+msgstr ""
+
+#: ui/prompts_manager.lua:635 ui/prompts_manager.lua:852
+msgid "Add to Dictionary Popup"
+msgstr ""
+
+#: ui/prompts_manager.lua:640
+msgid "Added to dictionary popup."
+msgstr ""
+
+#: ui/prompts_manager.lua:640
+#, fuzzy
+msgid "Removed from dictionary popup."
+msgstr "Toutes les actions retirées du menu de surlignage."
+
+#: ui/prompts_manager.lua:652
 msgid "Duplicate as Custom"
 msgstr ""
 
-#: ui/prompts_manager.lua:643
+#: ui/prompts_manager.lua:662
 #, fuzzy
 msgid "Action Details"
 msgstr "Détails de l'action"
 
-#: ui/prompts_manager.lua:656 ui/prompts_manager.lua:2628
+#: ui/prompts_manager.lua:675 ui/prompts_manager.lua:2695
+#: ui/prompts_manager.lua:2858
 #, fuzzy
 msgid "Action service not available."
 msgstr "Service d'actions non disponible."
 
-#: ui/prompts_manager.lua:696
+#: ui/prompts_manager.lua:715
 #, lua-format
 msgid ""
 "Created: %s\n"
@@ -2233,207 +2546,207 @@ msgid ""
 "You can find and edit it in the Actions list."
 msgstr ""
 
-#: ui/prompts_manager.lua:752
+#: ui/prompts_manager.lua:771
 #, fuzzy
 msgid "Context: "
 msgstr "Contexte : "
 
-#: ui/prompts_manager.lua:752
+#: ui/prompts_manager.lua:771
 #, fuzzy
 msgid "Not set"
 msgstr "Non défini"
 
-#: ui/prompts_manager.lua:760 ui/prompts_manager.lua:1019
-#: ui/prompts_manager.lua:1063 ui/prompts_manager.lua:1124
+#: ui/prompts_manager.lua:779 ui/prompts_manager.lua:1070
+#: ui/prompts_manager.lua:1114 ui/prompts_manager.lua:1175
 #, fuzzy
 msgid "Next →"
 msgstr "Suivant →"
 
-#: ui/prompts_manager.lua:765
+#: ui/prompts_manager.lua:784
 #, fuzzy
 msgid "Please enter a prompt name"
 msgstr "Veuillez entrer un nom de prompt"
 
-#: ui/prompts_manager.lua:771
+#: ui/prompts_manager.lua:790
 #, fuzzy
 msgid "Please select a context first"
 msgstr "Veuillez d'abord sélectionner un contexte"
 
-#: ui/prompts_manager.lua:787
+#: ui/prompts_manager.lua:806
 #, fuzzy
 msgid "Include book info (title, author)"
 msgstr "Inclure info livre (titre, auteur)"
 
-#: ui/prompts_manager.lua:802 ui/prompts_manager.lua:1983
+#: ui/prompts_manager.lua:821 ui/prompts_manager.lua:2034
 msgid "Skip language instruction"
 msgstr ""
 
-#: ui/prompts_manager.lua:813
+#: ui/prompts_manager.lua:864
 #, fuzzy
 msgid "Example: 'Summarize', 'Explain Simply', 'Find Themes'"
 msgstr "Exemple : 'Résumer', 'Expliquer simplement', 'Trouver thèmes'"
 
-#: ui/prompts_manager.lua:822
+#: ui/prompts_manager.lua:873
 #, fuzzy
 msgid "Edit Action - Name"
 msgstr "Modifier action - Nom"
 
-#: ui/prompts_manager.lua:822
+#: ui/prompts_manager.lua:873
 #, fuzzy
 msgid "Step 1/3: Name & Context"
 msgstr "Étape 1/3 : Nom et contexte"
 
-#: ui/prompts_manager.lua:824
+#: ui/prompts_manager.lua:875
 #, fuzzy
 msgid "Enter a short name (shown as button)"
 msgstr "Entrez un nom court (affiché comme bouton)"
 
-#: ui/prompts_manager.lua:837 ui/prompts_manager.lua:2599
+#: ui/prompts_manager.lua:888 ui/prompts_manager.lua:2666
 #, fuzzy
 msgid "Highlight"
 msgstr "Surlignage"
 
-#: ui/prompts_manager.lua:838
+#: ui/prompts_manager.lua:889
 #, fuzzy
 msgid "When text is selected in a book"
 msgstr "Quand du texte est sélectionné dans un livre"
 
-#: ui/prompts_manager.lua:841
+#: ui/prompts_manager.lua:892
 #, fuzzy
 msgid "Includes: selected text + book title, author"
 msgstr "Inclut : texte sélectionné + titre du livre, auteur"
 
-#: ui/prompts_manager.lua:842
+#: ui/prompts_manager.lua:893
 #, fuzzy
 msgid "Includes: selected text only"
 msgstr "Inclut : texte sélectionné uniquement"
 
-#: ui/prompts_manager.lua:845
+#: ui/prompts_manager.lua:896
 #, fuzzy
 msgid "Book"
 msgstr "Livre"
 
-#: ui/prompts_manager.lua:846
+#: ui/prompts_manager.lua:897
 #, fuzzy
 msgid "File browser selection or 'Chat about book' gesture"
 msgstr ""
 "Sélection du navigateur de fichiers ou geste 'Conversation sur le livre'"
 
-#: ui/prompts_manager.lua:847
+#: ui/prompts_manager.lua:898
 #, fuzzy
 msgid "Includes: book title, author (automatic)"
 msgstr "Inclut : titre du livre, auteur (automatique)"
 
-#: ui/prompts_manager.lua:850 ui/prompts_manager.lua:2603
+#: ui/prompts_manager.lua:901 ui/prompts_manager.lua:2670
 #, fuzzy
 msgid "Multi-Book"
 msgstr "Multi-livres"
 
-#: ui/prompts_manager.lua:851
+#: ui/prompts_manager.lua:902
 #, fuzzy
 msgid "When multiple books are selected"
 msgstr "Quand plusieurs livres sont sélectionnés"
 
-#: ui/prompts_manager.lua:852
+#: ui/prompts_manager.lua:903
 #, fuzzy
 msgid "Includes: list of books with titles/authors, count"
 msgstr "Inclut : liste de livres avec titres/auteurs, nombre"
 
-#: ui/prompts_manager.lua:855 ui/prompts_manager.lua:2605
+#: ui/prompts_manager.lua:906 ui/prompts_manager.lua:2672
 #, fuzzy
 msgid "General"
 msgstr "Général"
 
-#: ui/prompts_manager.lua:856
+#: ui/prompts_manager.lua:907
 #, fuzzy
 msgid "General chat, no specific context"
 msgstr "Conversation générale, pas de contexte spécifique"
 
-#: ui/prompts_manager.lua:857
+#: ui/prompts_manager.lua:908
 #, fuzzy
-msgid "No automatic context data"
-msgstr "Pas de données de contexte automatiques"
+msgid "Available: translation language"
+msgstr "Langue de traduction personnalisée"
 
-#: ui/prompts_manager.lua:861
+#: ui/prompts_manager.lua:912
 #, fuzzy
 msgid "Both highlight and book contexts"
 msgstr "Contextes de surlignage et de livre"
 
-#: ui/prompts_manager.lua:862
+#: ui/prompts_manager.lua:913
 #, fuzzy
 msgid "Highlight: selected text; Book: title/author"
 msgstr "Surlignage : texte sélectionné ; Livre : titre/auteur"
 
-#: ui/prompts_manager.lua:866
+#: ui/prompts_manager.lua:917
 #, fuzzy
 msgid "Available everywhere"
 msgstr "Disponible partout"
 
-#: ui/prompts_manager.lua:867
+#: ui/prompts_manager.lua:918
 #, fuzzy
 msgid "Varies by trigger"
 msgstr "Varie selon le déclencheur"
 
-#: ui/prompts_manager.lua:941
+#: ui/prompts_manager.lua:992
 #, fuzzy
 msgid "Select Context"
 msgstr "Sélectionner le contexte"
 
-#: ui/prompts_manager.lua:965 ui/prompts_manager.lua:1316
-#: ui/prompts_manager.lua:1466 ui/prompts_manager.lua:1545
-#: ui/prompts_manager.lua:1618 ui/prompts_manager.lua:1726
-#: ui/prompts_manager.lua:2038 ui/prompts_manager.lua:2181
+#: ui/prompts_manager.lua:1016 ui/prompts_manager.lua:1367
+#: ui/prompts_manager.lua:1517 ui/prompts_manager.lua:1596
+#: ui/prompts_manager.lua:1669 ui/prompts_manager.lua:1777
+#: ui/prompts_manager.lua:2089 ui/prompts_manager.lua:2232
 #, fuzzy
 msgid "Use global setting"
 msgstr "Utiliser le paramètre global"
 
-#: ui/prompts_manager.lua:965
+#: ui/prompts_manager.lua:1016
 #, fuzzy
 msgid "Inherits from Settings → Advanced → AI Behavior Style"
 msgstr "Hérite de Paramètres → Avancé → Style de comportement IA"
 
-#: ui/prompts_manager.lua:975
+#: ui/prompts_manager.lua:1026
 #, fuzzy
 msgid "No behavior instructions - just your action prompt"
 msgstr "Pas d'instructions de comportement - juste votre prompt d'action"
 
-#: ui/prompts_manager.lua:976
+#: ui/prompts_manager.lua:1027
 #, fuzzy
 msgid "Define your own AI personality/role"
 msgstr "Définissez votre propre personnalité/rôle d'IA"
 
-#: ui/prompts_manager.lua:1012 ui/prompts_manager.lua:1055
-#: ui/prompts_manager.lua:1108 ui/prompts_manager.lua:1203
+#: ui/prompts_manager.lua:1063 ui/prompts_manager.lua:1106
+#: ui/prompts_manager.lua:1159 ui/prompts_manager.lua:1254
 #, fuzzy
 msgid "← Back"
 msgstr "← Retour"
 
-#: ui/prompts_manager.lua:1029
+#: ui/prompts_manager.lua:1080
 #, fuzzy
 msgid "Edit Action - AI Behavior"
 msgstr "Modifier action - Comportement IA"
 
-#: ui/prompts_manager.lua:1029
+#: ui/prompts_manager.lua:1080
 #, fuzzy
 msgid "Step 2/3: AI Behavior"
 msgstr "Étape 2/3 : Comportement IA"
 
-#: ui/prompts_manager.lua:1042
+#: ui/prompts_manager.lua:1093
 #, fuzzy
 msgid "Edit Action - Custom Behavior"
 msgstr "Modifier action - Comportement personnalisé"
 
-#: ui/prompts_manager.lua:1042
+#: ui/prompts_manager.lua:1093
 #, fuzzy
 msgid "Step 2/3: Custom Behavior"
 msgstr "Étape 2/3 : Comportement personnalisé"
 
-#: ui/prompts_manager.lua:1044
+#: ui/prompts_manager.lua:1095
 #, fuzzy
 msgid "Describe how the AI should behave or what role it should play"
 msgstr "Décrivez comment l'IA doit se comporter ou quel rôle elle doit jouer"
 
-#: ui/prompts_manager.lua:1045
+#: ui/prompts_manager.lua:1096
 #, fuzzy
 msgid ""
 "Examples:\n"
@@ -2451,7 +2764,7 @@ msgstr ""
 "\n"
 "Cela remplace le paramètre global de comportement IA pour cette action."
 
-#: ui/prompts_manager.lua:1068
+#: ui/prompts_manager.lua:1119
 #, fuzzy
 msgid ""
 "Please enter custom behavior text, or go back and choose a different option"
@@ -2459,22 +2772,22 @@ msgstr ""
 "Veuillez entrer un texte de comportement personnalisé, ou revenez et "
 "choisissez une autre option"
 
-#: ui/prompts_manager.lua:1099
+#: ui/prompts_manager.lua:1150
 #, fuzzy
 msgid "Edit Action - Action Prompt"
 msgstr "Modifier action - Prompt d'action"
 
-#: ui/prompts_manager.lua:1099
+#: ui/prompts_manager.lua:1150
 #, fuzzy
 msgid "Step 3/4: Action Prompt"
 msgstr "Étape 3/4 : Prompt d'action"
 
-#: ui/prompts_manager.lua:1101
+#: ui/prompts_manager.lua:1152
 #, fuzzy
 msgid "What should the AI do?"
 msgstr "Que doit faire l'IA ?"
 
-#: ui/prompts_manager.lua:1102
+#: ui/prompts_manager.lua:1153
 #, fuzzy
 msgid ""
 "This is the main instruction sent to the AI. Use placeholders to include "
@@ -2485,7 +2798,7 @@ msgstr ""
 "pour inclure le contexte :\n"
 "\n"
 
-#: ui/prompts_manager.lua:1102
+#: ui/prompts_manager.lua:1153
 #, fuzzy
 msgid ""
 "\n"
@@ -2495,46 +2808,46 @@ msgstr ""
 "Conseil : Les utilisateurs peuvent ajouter une entrée supplémentaire lors de "
 "l'utilisation de cette action."
 
-#: ui/prompts_manager.lua:1116
+#: ui/prompts_manager.lua:1167
 #, fuzzy
 msgid "Insert..."
 msgstr "Insérer..."
 
-#: ui/prompts_manager.lua:1129
+#: ui/prompts_manager.lua:1180
 #, fuzzy
 msgid "Action prompt cannot be empty"
 msgstr "Le prompt d'action ne peut pas être vide"
 
-#: ui/prompts_manager.lua:1164 ui/prompts_manager.lua:1944
+#: ui/prompts_manager.lua:1215 ui/prompts_manager.lua:1995
 #, fuzzy
 msgid "Temperature: "
 msgstr "Température : "
 
-#: ui/prompts_manager.lua:1173 ui/prompts_manager.lua:1953
+#: ui/prompts_manager.lua:1224 ui/prompts_manager.lua:2004
 msgid "Reasoning: "
 msgstr ""
 
-#: ui/prompts_manager.lua:1182 ui/prompts_manager.lua:1962
+#: ui/prompts_manager.lua:1233 ui/prompts_manager.lua:2013
 #, fuzzy
 msgid "Provider: "
 msgstr "Fournisseur : "
 
-#: ui/prompts_manager.lua:1188 ui/prompts_manager.lua:1968
+#: ui/prompts_manager.lua:1239 ui/prompts_manager.lua:2019
 #, fuzzy
 msgid "Model: "
 msgstr "Modèle : "
 
-#: ui/prompts_manager.lua:1192 ui/prompts_manager.lua:1972
+#: ui/prompts_manager.lua:1243 ui/prompts_manager.lua:2023
 #, fuzzy
 msgid "Please select a provider first"
 msgstr "Veuillez d'abord sélectionner un fournisseur"
 
-#: ui/prompts_manager.lua:1210
+#: ui/prompts_manager.lua:1261
 #, fuzzy
 msgid "Create"
 msgstr "Créer"
 
-#: ui/prompts_manager.lua:1231
+#: ui/prompts_manager.lua:1282
 #, fuzzy
 msgid ""
 "Advanced settings for this action.\n"
@@ -2545,35 +2858,35 @@ msgstr ""
 "\n"
 "Température : "
 
-#: ui/prompts_manager.lua:1246
+#: ui/prompts_manager.lua:1297
 #, fuzzy
 msgid "Edit Action - Advanced"
 msgstr "Modifier action - Avancé"
 
-#: ui/prompts_manager.lua:1246
+#: ui/prompts_manager.lua:1297
 #, fuzzy
 msgid "Step 4/4: Advanced Settings"
 msgstr "Étape 4/4 : Paramètres avancés"
 
-#: ui/prompts_manager.lua:1278 ui/prompts_manager.lua:2156
+#: ui/prompts_manager.lua:1329 ui/prompts_manager.lua:2207
 #, fuzzy
 msgid "Use global"
 msgstr "Utiliser global"
 
-#: ui/prompts_manager.lua:1326
+#: ui/prompts_manager.lua:1377
 #, fuzzy
 msgid "Force OFF for all providers"
 msgstr "Forcer DÉSACTIVÉ pour cette action"
 
-#: ui/prompts_manager.lua:1336
+#: ui/prompts_manager.lua:1387
 msgid "Configure per-provider..."
 msgstr ""
 
-#: ui/prompts_manager.lua:1354
+#: ui/prompts_manager.lua:1405
 msgid "Reasoning/Thinking"
 msgstr ""
 
-#: ui/prompts_manager.lua:1355
+#: ui/prompts_manager.lua:1406
 #, fuzzy
 msgid ""
 "Reasoning enables complex thinking for supported models.\n"
@@ -2593,67 +2906,67 @@ msgstr ""
 "\n"
 "Note : Anthropic/Claude uniquement. Force la température à 1.0."
 
-#: ui/prompts_manager.lua:1386
+#: ui/prompts_manager.lua:1437
 #, fuzzy
 msgid "(global)"
 msgstr "Global"
 
-#: ui/prompts_manager.lua:1387 ui/prompts_manager.lua:1476
-#: ui/prompts_manager.lua:1555 ui/prompts_manager.lua:1628
+#: ui/prompts_manager.lua:1438 ui/prompts_manager.lua:1527
+#: ui/prompts_manager.lua:1606 ui/prompts_manager.lua:1679
 msgid "OFF"
 msgstr ""
 
-#: ui/prompts_manager.lua:1389
+#: ui/prompts_manager.lua:1440
 #, fuzzy, lua-format
 msgid "ON (%d tokens)"
 msgstr "Activé (%d tokens)"
 
-#: ui/prompts_manager.lua:1391 ui/prompts_manager.lua:1393
+#: ui/prompts_manager.lua:1442 ui/prompts_manager.lua:1444
 msgid "ON ("
 msgstr ""
 
-#: ui/prompts_manager.lua:1395
+#: ui/prompts_manager.lua:1446
 msgid "ON"
 msgstr ""
 
-#: ui/prompts_manager.lua:1416
+#: ui/prompts_manager.lua:1467
 msgid "Anthropic: "
 msgstr ""
 
-#: ui/prompts_manager.lua:1425
+#: ui/prompts_manager.lua:1476
 msgid "OpenAI: "
 msgstr ""
 
-#: ui/prompts_manager.lua:1434
+#: ui/prompts_manager.lua:1485
 msgid "Gemini: "
 msgstr ""
 
-#: ui/prompts_manager.lua:1453
+#: ui/prompts_manager.lua:1504
 msgid "Per-Provider Reasoning"
 msgstr ""
 
-#: ui/prompts_manager.lua:1454
+#: ui/prompts_manager.lua:1505
 msgid ""
 "Configure reasoning for each provider independently.\n"
 "DeepSeek reasoner model always uses reasoning automatically."
 msgstr ""
 
-#: ui/prompts_manager.lua:1486
+#: ui/prompts_manager.lua:1537
 msgid "ON (set budget)..."
 msgstr ""
 
-#: ui/prompts_manager.lua:1506
+#: ui/prompts_manager.lua:1557
 msgid ""
 "Extended thinking for Claude models.\n"
 "Supports: Sonnet 4.5, Opus 4.x, Haiku 4.5, Sonnet 3.7"
 msgstr ""
 
-#: ui/prompts_manager.lua:1522 ui/prompts_manager.lua:1694
+#: ui/prompts_manager.lua:1573 ui/prompts_manager.lua:1745
 #, fuzzy
 msgid "Thinking Budget"
 msgstr "Budget de réflexion"
 
-#: ui/prompts_manager.lua:1523
+#: ui/prompts_manager.lua:1574
 #, fuzzy, lua-format
 msgid ""
 "Token budget for extended thinking.\n"
@@ -2664,31 +2977,31 @@ msgstr ""
 "Plus élevé = raisonnement plus complexe.\n"
 "Plage : 1024 - 32000"
 
-#: ui/prompts_manager.lua:1565
+#: ui/prompts_manager.lua:1616
 msgid "Low effort"
 msgstr ""
 
-#: ui/prompts_manager.lua:1575
+#: ui/prompts_manager.lua:1626
 msgid "Medium effort"
 msgstr ""
 
-#: ui/prompts_manager.lua:1585
+#: ui/prompts_manager.lua:1636
 msgid "High effort"
 msgstr ""
 
-#: ui/prompts_manager.lua:1606
+#: ui/prompts_manager.lua:1657
 msgid ""
 "Reasoning effort for OpenAI models.\n"
 "Supports: o3, o3-mini, o4-mini, GPT-5.x"
 msgstr ""
 
-#: ui/prompts_manager.lua:1679
+#: ui/prompts_manager.lua:1730
 msgid ""
 "Thinking level for Gemini models.\n"
 "Supports: gemini-3-*-preview"
 msgstr ""
 
-#: ui/prompts_manager.lua:1695
+#: ui/prompts_manager.lua:1746
 #, fuzzy, lua-format
 msgid ""
 "Token budget for reasoning (Anthropic).\n"
@@ -2699,49 +3012,49 @@ msgstr ""
 "Plus élevé = raisonnement plus complexe.\n"
 "Plage : 1024 - 32000"
 
-#: ui/prompts_manager.lua:1772 ui/prompts_manager.lua:2224
+#: ui/prompts_manager.lua:1823 ui/prompts_manager.lua:2275
 #, fuzzy
 msgid "Select Provider"
 msgstr "Sélectionner le fournisseur"
 
-#: ui/prompts_manager.lua:1825 ui/prompts_manager.lua:2274
+#: ui/prompts_manager.lua:1876 ui/prompts_manager.lua:2325
 #, fuzzy
 msgid "Select Model for "
 msgstr "Sélectionner le modèle pour "
 
-#: ui/prompts_manager.lua:1836 ui/prompts_manager.lua:2285
+#: ui/prompts_manager.lua:1887 ui/prompts_manager.lua:2336
 #, fuzzy
 msgid "Custom Model"
 msgstr "Modèle personnalisé"
 
-#: ui/prompts_manager.lua:1838 ui/prompts_manager.lua:2287
+#: ui/prompts_manager.lua:1889 ui/prompts_manager.lua:2338
 #, fuzzy
 msgid "Enter model ID"
 msgstr "Entrez l'ID du modèle"
 
-#: ui/prompts_manager.lua:1839 ui/prompts_manager.lua:2288
+#: ui/prompts_manager.lua:1890 ui/prompts_manager.lua:2339
 #, fuzzy
 msgid "Enter the exact model ID for "
 msgstr "Entrez l'ID exact du modèle pour "
 
-#: ui/prompts_manager.lua:1851 ui/prompts_manager.lua:2116
-#: ui/prompts_manager.lua:2300 ui/settings_manager.lua:190
+#: ui/prompts_manager.lua:1902 ui/prompts_manager.lua:2167
+#: ui/prompts_manager.lua:2351 ui/settings_manager.lua:190
 #: ui/settings_manager.lua:276
 #, fuzzy
 msgid "OK"
 msgstr "OK"
 
-#: ui/prompts_manager.lua:1905
+#: ui/prompts_manager.lua:1956
 #, fuzzy
 msgid "Custom"
 msgstr "Personnalisé"
 
-#: ui/prompts_manager.lua:1934
+#: ui/prompts_manager.lua:1985
 #, fuzzy
 msgid "AI Behavior: "
 msgstr "Comportement IA : "
 
-#: ui/prompts_manager.lua:2010
+#: ui/prompts_manager.lua:2061
 #, fuzzy, lua-format
 msgid ""
 "Edit settings for: %s\n"
@@ -2755,27 +3068,27 @@ msgstr ""
 "intégrée.\n"
 "Définir sur « Global » pour utiliser le paramètre par défaut."
 
-#: ui/prompts_manager.lua:2016
+#: ui/prompts_manager.lua:2067
 #, fuzzy
 msgid "Edit Built-in Action Settings"
 msgstr "Modifier les paramètres de l'action intégrée"
 
-#: ui/prompts_manager.lua:2048
+#: ui/prompts_manager.lua:2099
 #, fuzzy
 msgid "None (no behavior)"
 msgstr "Aucun (pas de comportement)"
 
-#: ui/prompts_manager.lua:2101
+#: ui/prompts_manager.lua:2152
 #, fuzzy
 msgid "Custom Behavior"
 msgstr "Comportement personnalisé"
 
-#: ui/prompts_manager.lua:2103
+#: ui/prompts_manager.lua:2154
 #, fuzzy
 msgid "Describe how the AI should behave"
 msgstr "Décrivez comment l'IA doit se comporter"
 
-#: ui/prompts_manager.lua:2152
+#: ui/prompts_manager.lua:2203
 #, fuzzy
 msgid ""
 "Range: 0.0-2.0 (Anthropic max 1.0)\n"
@@ -2786,109 +3099,127 @@ msgstr ""
 "Plus bas = concentré\n"
 "Plus haut = créatif"
 
-#: ui/prompts_manager.lua:2384
+#: ui/prompts_manager.lua:2435
 #, fuzzy
 msgid "Settings saved"
 msgstr "Paramètres sauvegardés"
 
-#: ui/prompts_manager.lua:2384 ui/prompts_manager.lua:2404
+#: ui/prompts_manager.lua:2435 ui/prompts_manager.lua:2455
 #, fuzzy
 msgid "Settings reset to default"
 msgstr "Paramètres réinitialisés par défaut"
 
-#: ui/prompts_manager.lua:2411
+#: ui/prompts_manager.lua:2462
 #, fuzzy
 msgid "Selected Text"
 msgstr "Texte sélectionné"
 
-#: ui/prompts_manager.lua:2412
+#: ui/prompts_manager.lua:2463
 #, fuzzy
 msgid "Book Title"
 msgstr "Titre du livre"
 
-#: ui/prompts_manager.lua:2413
+#: ui/prompts_manager.lua:2464
 #, fuzzy
 msgid "Author Name"
 msgstr "Nom de l'auteur"
 
-#: ui/prompts_manager.lua:2414
+#: ui/prompts_manager.lua:2465
 #, fuzzy
 msgid "Author Clause"
 msgstr "Clause de l'auteur"
 
-#: ui/prompts_manager.lua:2415
+#: ui/prompts_manager.lua:2466
 #, fuzzy
 msgid "Book Count"
 msgstr "Nombre de livres"
 
-#: ui/prompts_manager.lua:2416
+#: ui/prompts_manager.lua:2467
 #, fuzzy
 msgid "Books List"
 msgstr "Liste des livres"
 
-#: ui/prompts_manager.lua:2431
+#: ui/prompts_manager.lua:2483
 #, fuzzy
 msgid "(No placeholders for general context)"
 msgstr "(Pas d'espaces réservés pour le contexte général)"
 
-#: ui/prompts_manager.lua:2470
+#: ui/prompts_manager.lua:2522
 #, fuzzy
 msgid "Insert Placeholder"
 msgstr "Insérer un espace réservé"
 
-#: ui/prompts_manager.lua:2509
+#: ui/prompts_manager.lua:2576
 #, fuzzy
 msgid "Action added successfully"
 msgstr "Action ajoutée avec succès"
 
-#: ui/prompts_manager.lua:2555 ui/prompts_manager.lua:2564
+#: ui/prompts_manager.lua:2622 ui/prompts_manager.lua:2631
 #, fuzzy
 msgid "Action updated successfully"
 msgstr "Action mise à jour avec succès"
 
-#: ui/prompts_manager.lua:2589
+#: ui/prompts_manager.lua:2656
 #, fuzzy
 msgid "Action deleted successfully"
 msgstr "Action supprimée avec succès"
 
-#: ui/prompts_manager.lua:2601
+#: ui/prompts_manager.lua:2668
 #, fuzzy
 msgid "Book (File Browser)"
 msgstr "Livre (navigateur de fichiers)"
 
-#: ui/prompts_manager.lua:2637
+#: ui/prompts_manager.lua:2704 ui/prompts_manager.lua:2867
 #, fuzzy
 msgid "No highlight actions available."
 msgstr "Fonction d'export non disponible"
 
-#: ui/prompts_manager.lua:2652
+#: ui/prompts_manager.lua:2719
 msgid "✓ = in menu | Tap = toggle | Hold = move"
 msgstr ""
 
-#: ui/prompts_manager.lua:2686
+#: ui/prompts_manager.lua:2745
+msgid "Changes require restart to take effect"
+msgstr ""
+
+#: ui/prompts_manager.lua:2758
 #, fuzzy, lua-format
 msgid "Highlight Menu (%d enabled)"
 msgstr "Actions du menu de surlignage"
 
-#: ui/prompts_manager.lua:2725
+#: ui/prompts_manager.lua:2797 ui/prompts_manager.lua:2955
 #, fuzzy
 msgid "↑ Move Up"
 msgstr "↑ Monter"
 
-#: ui/prompts_manager.lua:2739
+#: ui/prompts_manager.lua:2811 ui/prompts_manager.lua:2969
 #, fuzzy
 msgid "↓ Move Down"
 msgstr "↓ Descendre"
 
-#: ui/prompts_manager.lua:2752
+#: ui/prompts_manager.lua:2824
 #, fuzzy
 msgid "Remove from Menu"
 msgstr "Retirer du menu"
 
-#: ui/prompts_manager.lua:2773
+#: ui/prompts_manager.lua:2845 ui/prompts_manager.lua:3003
 #, fuzzy
 msgid "Position: "
 msgstr "Position : "
+
+#: ui/prompts_manager.lua:2882
+msgid "✓ = in popup | Tap = toggle | Hold = move"
+msgstr ""
+
+#: ui/prompts_manager.lua:2916
+#, fuzzy, lua-format
+msgid "Dictionary Popup (%d enabled)"
+msgstr "Actions du menu de surlignage"
+
+#: ui/prompts_manager.lua:2982
+#, fuzzy
+msgid "Remove from Popup"
+msgstr "Retirer du menu"
 
 #: ui/settings_manager.lua:201
 #, fuzzy
@@ -2900,69 +3231,81 @@ msgstr "Valeur invalide"
 msgid "Are you sure?"
 msgstr "Êtes-vous sûr ?"
 
-#: prompts/actions.lua:39
+#: prompts/actions.lua:44
 #, fuzzy
 msgid "Explain"
 msgstr "Expliquer"
 
-#: prompts/actions.lua:51
+#: prompts/actions.lua:56
 #, fuzzy
 msgid "ELI5"
 msgstr "Expliquer simplement"
 
-#: prompts/actions.lua:63
+#: prompts/actions.lua:68
 #, fuzzy
 msgid "Summarize"
 msgstr "Résumer"
 
-#: prompts/actions.lua:75
+#: prompts/actions.lua:80
 msgid "Elaborate"
 msgstr ""
 
-#: prompts/actions.lua:91
+#: prompts/actions.lua:96
 #, fuzzy
 msgid "Book Info"
 msgstr "Info livre"
 
-#: prompts/actions.lua:101
+#: prompts/actions.lua:106
 #, fuzzy
 msgid "Find Similar"
 msgstr "Trouver similaires"
 
-#: prompts/actions.lua:111
+#: prompts/actions.lua:116
 #, fuzzy
 msgid "About Author"
 msgstr "À propos de l'auteur"
 
-#: prompts/actions.lua:122
+#: prompts/actions.lua:127
 #, fuzzy
 msgid "Historical Context"
 msgstr "Contexte historique"
 
-#: prompts/actions.lua:136
+#: prompts/actions.lua:141
 #, fuzzy
 msgid "Compare Books"
 msgstr "Comparer les livres"
 
-#: prompts/actions.lua:147
+#: prompts/actions.lua:152
 #, fuzzy
 msgid "Find Common Themes"
 msgstr "Trouver les thèmes communs"
 
-#: prompts/actions.lua:157
+#: prompts/actions.lua:162
 #, fuzzy
 msgid "Analyze Collection"
 msgstr "Analyser la collection"
 
-#: prompts/actions.lua:167
+#: prompts/actions.lua:172
 #, fuzzy
 msgid "Quick Summaries"
 msgstr "Résumés rapides"
 
-#: prompts/actions.lua:188
+#: prompts/actions.lua:193
 #, fuzzy
 msgid "Translate"
 msgstr "Traduire"
+
+#: prompts/actions.lua:207
+msgid "Dictionary"
+msgstr ""
+
+#, fuzzy
+#~ msgid "English"
+#~ msgstr "Anglais"
+
+#, fuzzy
+#~ msgid "No automatic context data"
+#~ msgstr "Pas de données de contexte automatiques"
 
 #, fuzzy
 #~ msgid "Minimal (~100 tokens)"
