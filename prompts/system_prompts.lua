@@ -605,4 +605,44 @@ function SystemPrompts.getEffectiveTranslationLanguage(config)
     return lang
 end
 
+-- Get effective dictionary language (for Dictionary action responses)
+-- @param config: {
+--   dictionary_language: string (optional, default follows translation_language),
+--   translation_use_primary: boolean,
+--   user_languages: string (comma-separated),
+--   primary_language: string (optional explicit override),
+--   translation_language: string (fallback when not using primary)
+-- }
+-- @return string: Effective dictionary response language
+function SystemPrompts.getEffectiveDictionaryLanguage(config)
+    config = config or {}
+
+    local dict_lang = config.dictionary_language
+
+    -- If __FOLLOW_TRANSLATION__ or not set, use translation language
+    if dict_lang == "__FOLLOW_TRANSLATION__" or dict_lang == nil or dict_lang == "" then
+        return SystemPrompts.getEffectiveTranslationLanguage(config)
+    end
+
+    return dict_lang
+end
+
+-- Get effective dictionary source language (for specifying input word language)
+-- @param config: {
+--   dictionary_source_language: string (optional, default "auto")
+-- }
+-- @return string or nil: Source language or nil for auto-detect
+function SystemPrompts.getEffectiveDictionarySourceLanguage(config)
+    config = config or {}
+
+    local source_lang = config.dictionary_source_language
+
+    -- "auto" or not set means auto-detect (return nil)
+    if source_lang == "auto" or source_lang == nil or source_lang == "" then
+        return nil
+    end
+
+    return source_lang
+end
+
 return SystemPrompts

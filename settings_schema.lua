@@ -438,17 +438,102 @@ local SettingsSchema = {
                     path = "features.translation_use_primary",
                     default = true,
                     help_text = _("Use your primary language as the translation target. Disable to choose a different target."),
+                    -- Sync translation_language when toggle changes
+                    on_change = function(new_value, plugin)
+                        local f = plugin.settings:readSetting("features") or {}
+                        if new_value then
+                            -- When turning ON, set sentinel to keep in sync
+                            f.translation_language = "__PRIMARY__"
+                            plugin.settings:saveSetting("features", f)
+                            plugin.settings:flush()
+                        end
+                        -- When turning OFF, leave translation_language as is
+                        -- (user can then pick a specific language from the submenu)
+                    end,
                 },
                 {
                     id = "translation_language",
                     type = "submenu",
                     text_func = function(plugin)
                         local f = plugin.settings:readSetting("features") or {}
-                        local target = f.translation_language or _("English")
+                        local target = f.translation_language
+                        -- Show actual language, handle sentinel values
+                        if target == "__PRIMARY__" or target == nil or target == "" then
+                            local primary = plugin:getEffectivePrimaryLanguage() or "English"
+                            target = primary
+                        end
                         return T(_("Translation Target: %1"), target)
                     end,
                     callback = "buildTranslationLanguageMenu",
                     depends_on = { id = "translation_use_primary", value = false },
+                },
+            },
+        },
+
+        -- Dictionary Settings
+        {
+            id = "dictionary_settings",
+            type = "submenu",
+            text = _("Dictionary Settings"),
+            items = {
+                {
+                    id = "enable_dictionary_hook",
+                    type = "toggle",
+                    text = _("AI Button in Dictionary Popup"),
+                    path = "features.enable_dictionary_hook",
+                    default = true,
+                    help_text = _("Show AI Dictionary button when tapping on a word"),
+                },
+                {
+                    id = "dictionary_language",
+                    type = "submenu",
+                    text_func = function(plugin)
+                        local f = plugin.settings:readSetting("features") or {}
+                        local lang = f.dictionary_language or "__FOLLOW_TRANSLATION__"
+                        if lang == "__FOLLOW_TRANSLATION__" then
+                            return _("Response Language: (Follow Translation)")
+                        end
+                        return T(_("Response Language: %1"), lang)
+                    end,
+                    callback = "buildDictionaryLanguageMenu",
+                },
+                {
+                    id = "dictionary_context_mode",
+                    type = "submenu",
+                    text_func = function(plugin)
+                        local f = plugin.settings:readSetting("features") or {}
+                        local mode = f.dictionary_context_mode or "sentence"
+                        local labels = {
+                            sentence = _("Sentence"),
+                            paragraph = _("Paragraph"),
+                            characters = _("Characters"),
+                        }
+                        return T(_("Context Mode: %1"), labels[mode] or mode)
+                    end,
+                    callback = "buildDictionaryContextModeMenu",
+                },
+                {
+                    id = "dictionary_save_mode",
+                    type = "submenu",
+                    text_func = function(plugin)
+                        local f = plugin.settings:readSetting("features") or {}
+                        local mode = f.dictionary_save_mode or "default"
+                        local labels = {
+                            default = _("Default (Document)"),
+                            none = _("Don't Save"),
+                            dictionary = _("Dictionary Chats"),
+                        }
+                        return T(_("Save Mode: %1"), labels[mode] or mode)
+                    end,
+                    callback = "buildDictionarySaveModeMenu",
+                },
+                {
+                    id = "dictionary_use_compact_view",
+                    type = "toggle",
+                    text = _("Use Compact View"),
+                    path = "features.dictionary_use_compact_view",
+                    default = true,
+                    help_text = _("Show dictionary responses in a smaller window"),
                 },
             },
         },

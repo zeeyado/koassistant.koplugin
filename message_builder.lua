@@ -78,9 +78,16 @@ function MessageBuilder.build(params)
         user_prompt = ""
     end
 
-    -- Substitute translation_language early (applies to all contexts)
+    -- Substitute language placeholders early (applies to all contexts)
     if data.translation_language then
         user_prompt = user_prompt:gsub("{translation_language}", data.translation_language)
+    end
+    if data.dictionary_language then
+        user_prompt = user_prompt:gsub("{dictionary_language}", data.dictionary_language)
+    end
+    -- Substitute {context} placeholder for surrounding text (dictionary lookups)
+    if data.context then
+        user_prompt = user_prompt:gsub("{context}", data.context)
     end
 
     -- Handle different contexts
@@ -201,6 +208,12 @@ function MessageBuilder.substituteVariables(prompt_text, data)
     -- Common substitutions
     if data.translation_language then
         result = result:gsub("{translation_language}", data.translation_language)
+    end
+    if data.dictionary_language then
+        result = result:gsub("{dictionary_language}", data.dictionary_language)
+    end
+    if data.context then
+        result = result:gsub("{context}", data.context)
     end
     if data.title then
         result = result:gsub("{title}", data.title)

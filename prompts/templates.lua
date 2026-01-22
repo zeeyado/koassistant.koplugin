@@ -9,6 +9,8 @@
 --   {count}                - Number of selected books (multi_book context)
 --   {books_list}           - Formatted list of books (multi_book context)
 --   {translation_language} - Target translation language from settings (all contexts)
+--   {dictionary_language}  - Dictionary response language from settings (all contexts)
+--   {context}              - Surrounding text context for dictionary lookups (highlight context)
 
 local _ = require("koassistant_gettext")
 
