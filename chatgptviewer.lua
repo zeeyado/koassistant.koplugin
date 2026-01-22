@@ -796,6 +796,13 @@ function ChatGPTViewer:init()
     local threshold = self.configuration.features.long_highlight_threshold or 280
     self.hide_highlighted_text = self.configuration.features.hide_highlighted_text or
       (self.configuration.features.hide_long_highlights and string.len(highlight_text) > threshold)
+    -- Compact view settings (used by dictionary bypass and popup actions)
+    if self.configuration.features.compact_view then
+      self.compact_view = true
+    end
+    if self.configuration.features.minimal_buttons then
+      self.minimal_buttons = true
+    end
   end
 
   -- Minimal buttons for compact dictionary view: MD/Text, Copy, Wiki, [Vocab], Expand, Close
@@ -868,29 +875,36 @@ function ChatGPTViewer:init()
     end,
   })
 
-  -- Vocab builder button (only if enabled)
+  -- Vocab builder button (only if vocab builder plugin is active)
+  -- KOReader's vocab builder uses vocabulary_builder.enabled setting:
+  --   true = auto-add words on dictionary lookup
+  --   false = manual mode (button shown in dict popup)
+  -- When using dictionary bypass with auto-add mode, main.lua sets vocab_word_auto_added flag
   local G_reader_settings = require("luasettings"):open(
-    require("datastorage"):getSettingsDir() .. "/settings.reader.lua"
+    require("datastorage"):getDataDir() .. "/settings.reader.lua"
   )
   local vocab_settings = G_reader_settings:readSetting("vocabulary_builder") or {}
-  local vocab_enabled = vocab_settings.enabled
-  if vocab_enabled then
-    local vocab_auto_add = G_reader_settings:isTrue("vocabulary_builder_auto_add_words")
-    if vocab_auto_add then
-      -- Greyed out - word was auto-added
+  -- Show button if vocab builder exists (regardless of auto-add mode)
+  if vocab_settings.enabled ~= nil then
+    -- Check if word was auto-added (from dictionary bypass) or manually added this session
+    local auto_added = self.configuration and self.configuration.features and
+      self.configuration.features.vocab_word_auto_added
+    local word_added = self._vocab_word_added or auto_added
+    if word_added then
+      -- Already added - show greyed button
       table.insert(minimal_button_row, {
         text = _("Added"),
         id = "vocab_added",
         enabled = false,
         hold_callback = function()
           UIManager:show(Notification:new{
-            text = _("Word auto-added to vocabulary builder"),
+            text = _("Word added to vocabulary builder"),
             timeout = 2,
           })
         end,
       })
     else
-      -- Active button to manually add
+      -- Show button to add word
       table.insert(minimal_button_row, {
         text = _("+Vocab"),
         id = "vocab_add",
@@ -899,12 +913,26 @@ function ChatGPTViewer:init()
           if word and word ~= "" then
             local ReaderUI = require("apps/reader/readerui")
             local reader_ui = ReaderUI.instance
-            if reader_ui and reader_ui.vocabulary then
-              reader_ui.vocabulary:addToVocabBuilder(word)
+            if reader_ui then
+              -- Get book title for vocab builder context
+              local book_title = (reader_ui.doc_props and reader_ui.doc_props.display_title) or _("AI Dictionary lookup")
+              -- Trigger WordLookedUp event - this is how vocab builder adds words
+              local Event = require("ui/event")
+              reader_ui:handleEvent(Event:new("WordLookedUp", word, book_title, true)) -- is_manual: true
+              self._vocab_word_added = true
               UIManager:show(Notification:new{
                 text = T(_("Added '%1' to vocabulary"), word),
                 timeout = 2,
               })
+              -- Update button to show "Added" state
+              local button = self.button_table and self.button_table.button_by_id and self.button_table.button_by_id["vocab_add"]
+              if button then
+                button:setText(_("Added"), button.width)
+                button:disable()
+                UIManager:setDirty(self, function()
+                  return "ui", button.dimen
+                end)
+              end
             else
               UIManager:show(Notification:new{
                 text = _("Vocabulary builder not available"),

@@ -3087,6 +3087,23 @@ function AskGPT:syncDictionaryBypass()
           dict_config.features.enable_streaming = false
         end
 
+        -- Vocab builder auto-add: if vocab builder is enabled (auto-add mode),
+        -- trigger the WordLookedUp event to add the word automatically.
+        -- This mirrors KOReader's behavior where lookups are auto-added.
+        local G_reader_settings = require("luasettings"):open(
+          require("datastorage"):getDataDir() .. "/settings.reader.lua"
+        )
+        local vocab_settings = G_reader_settings:readSetting("vocabulary_builder") or {}
+        if vocab_settings.enabled then
+          -- Vocab builder is in auto-add mode - add the word
+          local book_title = (self_ref.ui.doc_props and self_ref.ui.doc_props.display_title) or _("AI Dictionary lookup")
+          local Event = require("ui/event")
+          self_ref.ui:handleEvent(Event:new("WordLookedUp", word, book_title, false)) -- is_manual: false (auto-add)
+          -- Mark word as auto-added so viewer shows "Added" button
+          dict_config.features.vocab_word_auto_added = true
+          logger.info("KOAssistant: Auto-added word to vocabulary builder: " .. word)
+        end
+
         -- Execute the action
         Dialogs.executeDirectAction(
           self_ref.ui,
