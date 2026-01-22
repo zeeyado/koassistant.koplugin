@@ -2819,7 +2819,29 @@ function AskGPT:syncDictionaryBypass()
         return
       end
 
-      -- Clear the selection highlight
+      -- IMPORTANT: Extract context BEFORE clearing highlight
+      -- The highlight object contains the selection state needed for context extraction.
+      -- Once cleared, getSelectedWordContext() will return nil.
+      local context = ""
+      local context_mode = features.dictionary_context_mode or "sentence"
+      if context_mode ~= "none" then
+        local context_chars = features.dictionary_context_chars or 100
+        if self_ref.ui and self_ref.ui.highlight then
+          context = Dialogs.extractSurroundingContext(
+            self_ref.ui,
+            word,
+            context_mode,
+            context_chars
+          )
+          if context and context ~= "" then
+            logger.info("KOAssistant BYPASS: Got context (" .. #context .. " chars)")
+          else
+            logger.info("KOAssistant BYPASS: No context available")
+          end
+        end
+      end
+
+      -- NOW clear the selection highlight (after context extraction)
       -- KOReader uses highlight:clear() to remove the selection highlight
       if highlight and highlight.clear then
         highlight:clear()
@@ -2829,24 +2851,8 @@ function AskGPT:syncDictionaryBypass()
         dict_close_callback()
       end
 
-      -- Execute the default action directly
+      -- Execute the default action directly (context already captured above)
       NetworkMgr:runWhenOnline(function()
-        -- Get surrounding context if available
-        local context = ""
-        local context_mode = features.dictionary_context_mode or "sentence"
-        -- Skip context extraction if mode is "none"
-        if context_mode ~= "none" then
-          local context_chars = features.dictionary_context_chars or 100
-          if self_ref.ui and self_ref.ui.highlight then
-            context = Dialogs.extractSurroundingContext(
-              self_ref.ui,
-              word,
-              context_mode,
-              context_chars
-            )
-          end
-        end
-
         -- Get effective dictionary language
         local SystemPrompts = require("prompts.system_prompts")
         local dict_language = SystemPrompts.getEffectiveDictionaryLanguage({
