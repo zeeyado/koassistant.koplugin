@@ -292,7 +292,7 @@ TestRunner:suite("buildLanguageInstruction()")
 
 TestRunner:test("builds instruction with primary", function()
     local result = SystemPrompts.buildLanguageInstruction("English, German", nil)
-    TestRunner:assertContains(result, "The user speaks:", "starts with user speaks")
+    TestRunner:assertContains(result, "The user understands:", "contains user understands")
     TestRunner:assertContains(result, "English, German", "contains languages")
     TestRunner:assertContains(result, "respond in English", "primary in response")
 end)
@@ -367,7 +367,7 @@ TestRunner:test("includes language in components", function()
         user_languages = "English, Spanish",
     })
     TestRunner:assertNotNil(result.components.language, "language component")
-    TestRunner:assertContains(result.text, "The user speaks:", "language in text")
+    TestRunner:assertContains(result.text, "The user understands:", "language in text")
 end)
 
 TestRunner:test("behavior=none excludes behavior from components", function()
@@ -399,7 +399,7 @@ TestRunner:test("skip_language_instruction excludes language from system", funct
     })
     TestRunner:assertNil(result.components.language, "no language component when skipped")
     -- Text should not contain language instruction
-    if result.text:find("The user speaks:") then
+    if result.text:find("The user understands:") then
         error("language instruction should be skipped")
     end
 end)
@@ -411,7 +411,7 @@ TestRunner:test("skip_language_instruction=false includes language", function()
         skip_language_instruction = false,
     })
     TestRunner:assertNotNil(result.components.language, "has language component")
-    TestRunner:assertContains(result.text, "The user speaks:", "has language instruction")
+    TestRunner:assertContains(result.text, "The user understands:", "has language instruction")
 end)
 
 TestRunner:test("skip_language_instruction=nil includes language (default)", function()

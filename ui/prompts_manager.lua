@@ -4,6 +4,7 @@ local DataStorage = require("datastorage")
 local UIManager = require("ui/uimanager")
 local Menu = require("ui/widget/menu")
 local InfoMessage = require("ui/widget/infomessage")
+local Notification = require("ui/widget/notification")
 local ConfirmBox = require("ui/widget/confirmbox")
 local InputDialog = require("ui/widget/inputdialog")
 local ButtonDialog = require("ui/widget/buttondialog")
@@ -626,6 +627,24 @@ function PromptsManager:showPromptDetails(prompt)
         })
     end
 
+    -- Add dictionary popup toggle for highlight-context actions that don't require input
+    if is_highlight_context and not requires_input and self.plugin.action_service then
+        local in_popup = self.plugin.action_service:isInDictionaryPopup(prompt.id)
+        table.insert(buttons, {
+            {
+                text = in_popup and _("✓ In Dictionary Popup") or _("Add to Dictionary Popup"),
+                callback = function()
+                    local now_in_popup = self.plugin.action_service:toggleDictionaryPopupAction(prompt.id)
+                    UIManager:close(self.details_dialog)
+                    UIManager:show(InfoMessage:new{
+                        text = now_in_popup and _("Added to dictionary popup.") or _("Removed from dictionary popup."),
+                        timeout = 2,
+                    })
+                end,
+            },
+        })
+    end
+
     -- Add "Duplicate as Custom" button for all action types
     if self.plugin.action_service then
         table.insert(buttons, {
@@ -808,6 +827,38 @@ function PromptsManager:showStep1_NameAndContext(state)
             end,
         },
     })
+
+    -- Row 4: Add to Highlight Menu toggle (only for highlight-compatible contexts)
+    if state.context and self:contextIncludesHighlight(state.context) then
+        local highlight_checkbox = state.add_to_highlight_menu and "☑ " or "☐ "
+        table.insert(button_rows, {
+            {
+                text = highlight_checkbox .. _("Add to Highlight Menu"),
+                callback = function()
+                    state.name = self.step1_dialog:getInputText()
+                    state.add_to_highlight_menu = not state.add_to_highlight_menu
+                    UIManager:close(self.step1_dialog)
+                    self:showStep1_NameAndContext(state)
+                end,
+            },
+        })
+    end
+
+    -- Row 5: Add to Dictionary Popup toggle (only for highlight-compatible contexts)
+    if state.context and self:contextIncludesHighlight(state.context) then
+        local dict_checkbox = state.add_to_dictionary_popup and "☑ " or "☐ "
+        table.insert(button_rows, {
+            {
+                text = dict_checkbox .. _("Add to Dictionary Popup"),
+                callback = function()
+                    state.name = self.step1_dialog:getInputText()
+                    state.add_to_dictionary_popup = not state.add_to_dictionary_popup
+                    UIManager:close(self.step1_dialog)
+                    self:showStep1_NameAndContext(state)
+                end,
+            },
+        })
+    end
 
     -- Build description based on context
     local description = _("Example: 'Summarize', 'Explain Simply', 'Find Themes'")
@@ -2487,6 +2538,11 @@ function PromptsManager:addPrompt(state)
             api_params = { temperature = state.temperature }
         end
 
+        -- Calculate the action ID that will be assigned
+        -- UI actions get IDs like "ui_1", "ui_2", etc.
+        local current_ui_actions = self.plugin.settings:readSetting("custom_actions") or {}
+        local new_action_id = "ui_" .. (#current_ui_actions + 1)
+
         service:addUserAction({
             text = state.name,
             behavior_variant = state.behavior_variant,
@@ -2505,6 +2561,16 @@ function PromptsManager:addPrompt(state)
             model = state.model,        -- nil = use global
             enabled = true,
         })
+
+        -- Add to highlight menu if requested (only for highlight-compatible contexts)
+        if state.add_to_highlight_menu and self:contextIncludesHighlight(state.context) then
+            service:addToHighlightMenu(new_action_id)
+        end
+
+        -- Add to dictionary popup if requested (only for highlight-compatible contexts)
+        if state.add_to_dictionary_popup and self:contextIncludesHighlight(state.context) then
+            service:addToDictionaryPopup(new_action_id)
+        end
 
         UIManager:show(InfoMessage:new{
             text = _("Action added successfully"),
@@ -2674,6 +2740,11 @@ function PromptsManager:showHighlightMenuManager()
             callback = function()
                 -- Toggle menu inclusion
                 self.plugin.action_service:toggleHighlightMenuAction(action.id)
+                -- Show restart reminder
+                UIManager:show(Notification:new{
+                    text = _("Changes require restart to take effect"),
+                    timeout = 2,
+                })
                 -- Refresh the menu after close completes
                 UIManager:close(self.highlight_menu)
                 UIManager:scheduleIn(0.1, function()
@@ -2756,6 +2827,164 @@ function PromptsManager:showHighlightMenuActionOptions(action, index, total)
                 UIManager:close(self.options_dialog)
                 UIManager:close(self.highlight_menu)
                 self:showHighlightMenuManager()
+            end,
+        },
+    })
+
+    table.insert(buttons, {
+        {
+            text = _("Cancel"),
+            callback = function()
+                UIManager:close(self.options_dialog)
+            end,
+        },
+    })
+
+    self.options_dialog = ButtonDialog:new{
+        title = action.text or action.id,
+        info_text = _("Position: ") .. index .. "/" .. total,
+        buttons = buttons,
+    }
+    UIManager:show(self.options_dialog)
+end
+
+-- ============================================================
+-- Dictionary Popup Actions Manager
+-- ============================================================
+
+function PromptsManager:showDictionaryPopupManager()
+    if not self.plugin.action_service then
+        UIManager:show(InfoMessage:new{
+            text = _("Action service not available."),
+        })
+        return
+    end
+
+    local all_actions = self.plugin.action_service:getAllHighlightActionsWithPopupState()
+
+    if #all_actions == 0 then
+        UIManager:show(InfoMessage:new{
+            text = _("No highlight actions available."),
+        })
+        return
+    end
+
+    -- Count items in popup for display
+    local popup_count = 0
+    for _idx,item in ipairs(all_actions) do
+        if item.in_popup then popup_count = popup_count + 1 end
+    end
+
+    local menu_items = {}
+
+    -- Help text item
+    table.insert(menu_items, {
+        text = _("✓ = in popup | Tap = toggle | Hold = move"),
+        dim = true,
+        callback = function() end,  -- No action
+    })
+
+    for _idx,item in ipairs(all_actions) do
+        local action = item.action
+        local prefix = item.in_popup and "✓ " or "  "
+        local position = item.in_popup and string.format("[%d] ", item.popup_position) or ""
+        local source_indicator = ""
+        if action.source == "ui" then
+            source_indicator = " ★"
+        elseif action.source == "config" then
+            source_indicator = " ◆"
+        end
+
+        table.insert(menu_items, {
+            text = prefix .. position .. (action.text or action.id) .. source_indicator,
+            action = action,
+            in_popup = item.in_popup,
+            popup_position = item.popup_position,
+            callback = function()
+                -- Toggle popup inclusion
+                self.plugin.action_service:toggleDictionaryPopupAction(action.id)
+                -- Refresh the menu after close completes
+                UIManager:close(self.dictionary_popup_menu)
+                UIManager:scheduleIn(0.1, function()
+                    self:showDictionaryPopupManager()
+                end)
+            end,
+        })
+    end
+
+    self.dictionary_popup_menu = Menu:new{
+        title = string.format(_("Dictionary Popup (%d enabled)"), popup_count),
+        item_table = menu_items,
+        width = self.width,
+        height = self.height,
+        covers_fullscreen = true,
+        is_borderless = true,
+        is_popout = false,
+        onMenuHold = function(menu_widget, menu_item)
+            if menu_item and menu_item.action then
+                if menu_item.in_popup then
+                    -- Show move options for items in popup
+                    self:showDictionaryPopupActionOptions(menu_item.action, menu_item.popup_position, popup_count)
+                else
+                    -- Show info for items not in popup
+                    UIManager:show(InfoMessage:new{
+                        text = string.format(
+                            "%s\n\nSource: %s\n\nTap to add to dictionary popup.",
+                            menu_item.action.text or menu_item.action.id,
+                            menu_item.action.source or "builtin"
+                        ),
+                        timeout = 3,
+                    })
+                end
+            end
+        end,
+        close_callback = function()
+            UIManager:close(self.dictionary_popup_menu)
+        end,
+    }
+    UIManager:show(self.dictionary_popup_menu)
+end
+
+-- Show options for a dictionary popup action (move up/down, remove)
+function PromptsManager:showDictionaryPopupActionOptions(action, index, total)
+    local buttons = {}
+
+    if index > 1 then
+        table.insert(buttons, {
+            {
+                text = _("↑ Move Up"),
+                callback = function()
+                    self.plugin.action_service:moveDictionaryPopupAction(action.id, "up")
+                    UIManager:close(self.options_dialog)
+                    UIManager:close(self.dictionary_popup_menu)
+                    self:showDictionaryPopupManager()
+                end,
+            },
+        })
+    end
+
+    if index < total then
+        table.insert(buttons, {
+            {
+                text = _("↓ Move Down"),
+                callback = function()
+                    self.plugin.action_service:moveDictionaryPopupAction(action.id, "down")
+                    UIManager:close(self.options_dialog)
+                    UIManager:close(self.dictionary_popup_menu)
+                    self:showDictionaryPopupManager()
+                end,
+            },
+        })
+    end
+
+    table.insert(buttons, {
+        {
+            text = _("Remove from Popup"),
+            callback = function()
+                self.plugin.action_service:removeFromDictionaryPopup(action.id)
+                UIManager:close(self.options_dialog)
+                UIManager:close(self.dictionary_popup_menu)
+                self:showDictionaryPopupManager()
             end,
         },
     })

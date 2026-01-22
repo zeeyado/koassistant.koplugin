@@ -576,9 +576,12 @@ function SystemPrompts.buildLanguageInstruction(user_languages, primary_override
     local primary, languages_list = SystemPrompts.parseUserLanguages(user_languages, primary_override)
 
     return string.format(
-        "The user speaks: %s. Always respond in %s unless the user writes in a different language from this list, in which case respond in that language.",
-        languages_list,
-        primary
+        "IMPORTANT - Response language: Always respond in %s. " ..
+        "The language of any quoted text, excerpts, or source material you are asked to analyze does NOT affect your response language. " ..
+        "The user understands: %s. " ..
+        "Only switch languages if the user explicitly writes their own question or comment in another language from this list.",
+        primary,
+        languages_list
     )
 end
 
@@ -603,6 +606,46 @@ function SystemPrompts.getEffectiveTranslationLanguage(config)
     end
 
     return lang
+end
+
+-- Get effective dictionary language (for Dictionary action responses)
+-- @param config: {
+--   dictionary_language: string (optional, default follows translation_language),
+--   translation_use_primary: boolean,
+--   user_languages: string (comma-separated),
+--   primary_language: string (optional explicit override),
+--   translation_language: string (fallback when not using primary)
+-- }
+-- @return string: Effective dictionary response language
+function SystemPrompts.getEffectiveDictionaryLanguage(config)
+    config = config or {}
+
+    local dict_lang = config.dictionary_language
+
+    -- If __FOLLOW_TRANSLATION__ or not set, use translation language
+    if dict_lang == "__FOLLOW_TRANSLATION__" or dict_lang == nil or dict_lang == "" then
+        return SystemPrompts.getEffectiveTranslationLanguage(config)
+    end
+
+    return dict_lang
+end
+
+-- Get effective dictionary source language (for specifying input word language)
+-- @param config: {
+--   dictionary_source_language: string (optional, default "auto")
+-- }
+-- @return string or nil: Source language or nil for auto-detect
+function SystemPrompts.getEffectiveDictionarySourceLanguage(config)
+    config = config or {}
+
+    local source_lang = config.dictionary_source_language
+
+    -- "auto" or not set means auto-detect (return nil)
+    if source_lang == "auto" or source_lang == nil or source_lang == "" then
+        return nil
+    end
+
+    return source_lang
 end
 
 return SystemPrompts
