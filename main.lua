@@ -2981,13 +2981,21 @@ function AskGPT:syncDictionaryBypass()
 
     local self_ref = self
     dictionary.onLookupWord = function(dict_self, word, is_sane, boxes, highlight, link, dict_close_callback)
-      -- Get the default action (first in dictionary_popup_actions list)
-      local popup_actions = self_ref.action_service:getDictionaryPopupActionObjects()
-      local default_action = popup_actions[1]
+      -- Get the bypass action from settings (default: dictionary)
+      local action_id = features.dictionary_bypass_action or "dictionary"
+      local bypass_action = self_ref.action_service:getAction("highlight", action_id)
 
-      if not default_action then
-        -- Fallback to original if no actions configured
-        logger.warn("KOAssistant: No dictionary popup actions configured, using original dictionary")
+      -- Also check special actions if not found
+      if not bypass_action then
+        local Actions = require("prompts/actions")
+        if Actions.special and Actions.special[action_id] then
+          bypass_action = Actions.special[action_id]
+        end
+      end
+
+      if not bypass_action then
+        -- Fallback to original if action not found
+        logger.warn("KOAssistant: Dictionary bypass action not found: " .. action_id .. ", using original dictionary")
         if dictionary._koassistant_original_onLookupWord then
           return dictionary._koassistant_original_onLookupWord(dict_self, word, is_sane, boxes, highlight, link, dict_close_callback)
         end
@@ -3082,7 +3090,7 @@ function AskGPT:syncDictionaryBypass()
         -- Execute the action
         Dialogs.executeDirectAction(
           self_ref.ui,
-          default_action,
+          bypass_action,
           word,
           dict_config,
           self_ref
@@ -3210,6 +3218,59 @@ function AskGPT:buildHighlightBypassActionMenu()
       callback = function()
         local f = self_ref.settings:readSetting("features") or {}
         f.highlight_bypass_action = action_id
+        self_ref.settings:saveSetting("features", f)
+        self_ref.settings:flush()
+        UIManager:show(Notification:new{
+          text = T(_("Bypass action: %1"), action_text),
+          timeout = 1.5,
+        })
+      end,
+    })
+  end
+
+  return menu_items
+end
+
+-- Build menu for selecting dictionary bypass action
+function AskGPT:buildDictionaryBypassActionMenu()
+  local self_ref = self
+  local menu_items = {}
+
+  -- Get all highlight-context actions using action_service (handles built-in + custom)
+  local all_actions = self.action_service:getAllHighlightActionsWithMenuState()
+
+  -- Also add special actions (translate, dictionary) if not already included
+  local Actions = require("prompts/actions")
+  local action_ids = {}
+  for _i, item in ipairs(all_actions) do
+    action_ids[item.action.id] = true
+  end
+
+  if Actions.special then
+    -- Dictionary should be first for this menu
+    if Actions.special.dictionary and not action_ids["dictionary"] then
+      table.insert(all_actions, 1, { action = Actions.special.dictionary })
+    end
+    if Actions.special.translate and not action_ids["translate"] then
+      table.insert(all_actions, { action = Actions.special.translate })
+    end
+  end
+
+  for _i, item in ipairs(all_actions) do
+    local action = item.action
+    local action_id = action.id
+    local action_text = action.text
+    table.insert(menu_items, {
+      text = action_text,
+      checked_func = function()
+        local f = self_ref.settings:readSetting("features") or {}
+        local current = f.dictionary_bypass_action or "dictionary"
+        return current == action_id
+      end,
+      radio = true,
+      callback = function()
+        local f = self_ref.settings:readSetting("features") or {}
+        f.dictionary_bypass_action = action_id
         self_ref.settings:saveSetting("features", f)
         self_ref.settings:flush()
         UIManager:show(Notification:new{

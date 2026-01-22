@@ -564,7 +564,7 @@ local SettingsSchema = {
                     text = _("Bypass KOReader Dictionary"),
                     path = "features.dictionary_bypass_enabled",
                     default = false,
-                    help_text = _("Skip KOReader's dictionary and go directly to AI when tapping words. Uses the first action from 'Dictionary Popup Actions' list above."),
+                    help_text = _("Skip KOReader's dictionary and go directly to AI when tapping words. Can also be toggled via gesture."),
                     on_change = function(new_value, plugin)
                         -- Re-sync the bypass when setting changes
                         if plugin.syncDictionaryBypass then
@@ -574,6 +574,27 @@ local SettingsSchema = {
                             end)
                         end
                     end,
+                },
+                {
+                    id = "dictionary_bypass_action",
+                    type = "submenu",
+                    text_func = function(plugin)
+                        local f = plugin.settings:readSetting("features") or {}
+                        local action_id = f.dictionary_bypass_action or "dictionary"
+                        -- Try to get action name
+                        local Actions = require("prompts/actions")
+                        local action = Actions.getById(action_id)
+                        if action then
+                            return T(_("Bypass Action: %1"), action.text)
+                        end
+                        -- Check special actions
+                        if Actions.special and Actions.special[action_id] then
+                            return T(_("Bypass Action: %1"), Actions.special[action_id].text)
+                        end
+                        return T(_("Bypass Action: %1"), action_id)
+                    end,
+                    callback = "buildDictionaryBypassActionMenu",
+                    help_text = _("Action to trigger when dictionary bypass is enabled"),
                 },
             },
         },
