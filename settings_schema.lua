@@ -544,14 +544,6 @@ local SettingsSchema = {
                     callback = "buildDictionarySaveModeMenu",
                 },
                 {
-                    id = "dictionary_use_compact_view",
-                    type = "toggle",
-                    text = _("Use Compact View"),
-                    path = "features.dictionary_use_compact_view",
-                    default = true,
-                    help_text = _("Show dictionary responses in a smaller window"),
-                },
-                {
                     id = "dictionary_enable_streaming",
                     type = "toggle",
                     text = _("Enable Streaming"),
@@ -586,18 +578,57 @@ local SettingsSchema = {
             },
         },
 
+        -- Highlight Settings
+        {
+            id = "highlight_settings",
+            type = "submenu",
+            text = _("Highlight Settings"),
+            items = {
+                {
+                    id = "highlight_bypass_enabled",
+                    type = "toggle",
+                    text = _("Enable Highlight Bypass"),
+                    path = "features.highlight_bypass_enabled",
+                    default = false,
+                    help_text = _("Immediately trigger an action when text is selected, skipping the highlight menu. Can also be toggled via gesture."),
+                },
+                {
+                    id = "highlight_bypass_action",
+                    type = "submenu",
+                    text_func = function(plugin)
+                        local f = plugin.settings:readSetting("features") or {}
+                        local action_id = f.highlight_bypass_action or "translate"
+                        -- Try to get action name
+                        local Actions = require("prompts/actions")
+                        local action = Actions.getById(action_id)
+                        if action then
+                            return T(_("Bypass Action: %1"), action.text)
+                        end
+                        -- Check special actions
+                        if Actions.special and Actions.special[action_id] then
+                            return T(_("Bypass Action: %1"), Actions.special[action_id].text)
+                        end
+                        return T(_("Bypass Action: %1"), action_id)
+                    end,
+                    callback = "buildHighlightBypassActionMenu",
+                    help_text = _("Action to trigger when highlight bypass is enabled"),
+                },
+                {
+                    id = "highlight_menu_actions",
+                    type = "action",
+                    text = _("Highlight Menu Actions"),
+                    callback = "showHighlightMenuManager",
+                    help_text = _("Choose which actions appear in the highlight menu (requires restart)"),
+                },
+            },
+        },
+
         -- Actions and Domains
         {
             id = "manage_actions",
             type = "action",
             text = _("Manage Actions"),
             callback = "showPromptsManager",
-        },
-        {
-            id = "highlight_menu_actions",
-            type = "action",
-            text = _("Highlight Menu Actions"),
-            callback = "showHighlightMenuManager",
             separator = true,
         },
 

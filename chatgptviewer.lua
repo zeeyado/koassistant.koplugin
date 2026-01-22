@@ -798,90 +798,154 @@ function ChatGPTViewer:init()
       (self.configuration.features.hide_long_highlights and string.len(highlight_text) > threshold)
   end
 
-  -- Minimal buttons for compact dictionary view: MD/Text, Copy, Expand, Close
-  local minimal_button_row = {
-    {
-      text_func = function()
-        return self.render_markdown and "MD" or "Text"
-      end,
-      id = "toggle_markdown",
-      callback = function()
-        self:toggleMarkdown()
-      end,
-      hold_callback = function()
+  -- Minimal buttons for compact dictionary view: MD/Text, Copy, Wiki, [Vocab], Expand, Close
+  local minimal_button_row = {}
+
+  -- MD/Text toggle
+  table.insert(minimal_button_row, {
+    text_func = function()
+      return self.render_markdown and "MD" or "Text"
+    end,
+    id = "toggle_markdown",
+    callback = function()
+      self:toggleMarkdown()
+    end,
+    hold_callback = function()
+      UIManager:show(Notification:new{
+        text = _("Toggle between markdown and plain text display"),
+        timeout = 2,
+      })
+    end,
+  })
+
+  -- Copy button
+  table.insert(minimal_button_row, {
+    text = _("Copy"),
+    id = "copy_chat",
+    callback = function()
+      if self.export_callback then
+        self.export_callback()
+      else
         UIManager:show(Notification:new{
-          text = _("Toggle between markdown and plain text display"),
+          text = _("Copy function not available"),
           timeout = 2,
         })
-      end,
-    },
-    {
-      text = _("Copy"),
-      id = "copy_chat",
-      callback = function()
-        if self.export_callback then
-          self.export_callback()
+      end
+    end,
+    hold_callback = self.default_hold_callback,
+  })
+
+  -- Wiki button
+  table.insert(minimal_button_row, {
+    text = _("Wiki"),
+    id = "lookup_wikipedia",
+    callback = function()
+      local word = self.original_highlighted_text
+      if word and word ~= "" then
+        local ReaderUI = require("apps/reader/readerui")
+        local reader_ui = ReaderUI.instance
+        if reader_ui and reader_ui.wikipedia then
+          UIManager:close(self)
+          reader_ui.wikipedia:onLookupWikipedia(word, true, nil, false, nil)
         else
           UIManager:show(Notification:new{
-            text = _("Copy function not available"),
+            text = _("Wikipedia not available"),
             timeout = 2,
           })
         end
-      end,
-      hold_callback = self.default_hold_callback,
-    },
-    {
-      text = _("Wiki"),
-      id = "lookup_wikipedia",
-      callback = function()
-        local word = self.original_highlighted_text
-        if word and word ~= "" then
-          local ReaderUI = require("apps/reader/readerui")
-          local reader_ui = ReaderUI.instance
-          if reader_ui and reader_ui.wikipedia then
-            UIManager:close(self)
-            reader_ui.wikipedia:onLookupWikipedia(word, true, nil, false, nil)
-          else
-            UIManager:show(Notification:new{
-              text = _("Wikipedia not available"),
-              timeout = 2,
-            })
+      else
+        UIManager:show(Notification:new{
+          text = _("No word to look up"),
+          timeout = 2,
+        })
+      end
+    end,
+    hold_callback = function()
+      UIManager:show(Notification:new{
+        text = _("Look up word in Wikipedia"),
+        timeout = 2,
+      })
+    end,
+  })
+
+  -- Vocab builder button (only if enabled)
+  local G_reader_settings = require("luasettings"):open(
+    require("datastorage"):getSettingsDir() .. "/settings.reader.lua"
+  )
+  local vocab_settings = G_reader_settings:readSetting("vocabulary_builder") or {}
+  local vocab_enabled = vocab_settings.enabled
+  if vocab_enabled then
+    local vocab_auto_add = G_reader_settings:isTrue("vocabulary_builder_auto_add_words")
+    if vocab_auto_add then
+      -- Greyed out - word was auto-added
+      table.insert(minimal_button_row, {
+        text = _("Added"),
+        id = "vocab_added",
+        enabled = false,
+        hold_callback = function()
+          UIManager:show(Notification:new{
+            text = _("Word auto-added to vocabulary builder"),
+            timeout = 2,
+          })
+        end,
+      })
+    else
+      -- Active button to manually add
+      table.insert(minimal_button_row, {
+        text = _("+Vocab"),
+        id = "vocab_add",
+        callback = function()
+          local word = self.original_highlighted_text
+          if word and word ~= "" then
+            local ReaderUI = require("apps/reader/readerui")
+            local reader_ui = ReaderUI.instance
+            if reader_ui and reader_ui.vocabulary then
+              reader_ui.vocabulary:addToVocabBuilder(word)
+              UIManager:show(Notification:new{
+                text = T(_("Added '%1' to vocabulary"), word),
+                timeout = 2,
+              })
+            else
+              UIManager:show(Notification:new{
+                text = _("Vocabulary builder not available"),
+                timeout = 2,
+              })
+            end
           end
-        else
+        end,
+        hold_callback = function()
           UIManager:show(Notification:new{
-            text = _("No word to look up"),
+            text = _("Add word to vocabulary builder"),
             timeout = 2,
           })
-        end
-      end,
-      hold_callback = function()
-        UIManager:show(Notification:new{
-          text = _("Look up word in Wikipedia"),
-          timeout = 2,
-        })
-      end,
-    },
-    {
-      text = _("Expand"),
-      id = "expand_view",
-      callback = function()
-        self:expandToFullView()
-      end,
-      hold_callback = function()
-        UIManager:show(Notification:new{
-          text = _("Open in full-size viewer with all options"),
-          timeout = 2,
-        })
-      end,
-    },
-    {
-      text = _("Close"),
-      callback = function()
-        self:onClose()
-      end,
-      hold_callback = self.default_hold_callback,
-    },
-  }
+        end,
+      })
+    end
+  end
+
+  -- Expand button
+  table.insert(minimal_button_row, {
+    text = _("Expand"),
+    id = "expand_view",
+    callback = function()
+      self:expandToFullView()
+    end,
+    hold_callback = function()
+      UIManager:show(Notification:new{
+        text = _("Open in full-size viewer with all options"),
+        timeout = 2,
+      })
+    end,
+  })
+
+  -- Close button
+  table.insert(minimal_button_row, {
+    text = _("Close"),
+    callback = function()
+      self:onClose()
+    end,
+    hold_callback = self.default_hold_callback,
+  })
 
   local buttons = self.buttons_table or {}
   if self.add_default_buttons or not self.buttons_table then

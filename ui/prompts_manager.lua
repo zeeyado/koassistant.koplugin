@@ -4,6 +4,7 @@ local DataStorage = require("datastorage")
 local UIManager = require("ui/uimanager")
 local Menu = require("ui/widget/menu")
 local InfoMessage = require("ui/widget/infomessage")
+local Notification = require("ui/widget/notification")
 local ConfirmBox = require("ui/widget/confirmbox")
 local InputDialog = require("ui/widget/inputdialog")
 local ButtonDialog = require("ui/widget/buttondialog")
@@ -2739,6 +2740,11 @@ function PromptsManager:showHighlightMenuManager()
             callback = function()
                 -- Toggle menu inclusion
                 self.plugin.action_service:toggleHighlightMenuAction(action.id)
+                -- Show restart reminder
+                UIManager:show(Notification:new{
+                    text = _("Changes require restart to take effect"),
+                    timeout = 2,
+                })
                 -- Refresh the menu after close completes
                 UIManager:close(self.highlight_menu)
                 UIManager:scheduleIn(0.1, function()
