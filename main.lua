@@ -145,6 +145,9 @@ function AskGPT:init()
   else
     logger.warn("Highlight feature not available, skipping highlight dialog integration")
   end
+
+  -- Sync dictionary bypass setting (override Translator if enabled)
+  self:syncDictionaryBypass()
   
   -- Register to main menu immediately
   self:registerToMainMenu()
@@ -152,6 +155,8 @@ function AskGPT:init()
   -- Also register when reader is ready as a backup
   self.onReaderReady = function()
     self:registerToMainMenu()
+    -- Sync highlight bypass (needs ui.highlight to be available)
+    self:syncHighlightBypass()
   end
   
   -- Register file dialog buttons with delays to ensure they appear at the bottom
@@ -805,6 +810,45 @@ function AskGPT:onDispatcherRegisterActions()
     event = "KOAssistantChangeDomain",
     title = _("KOAssistant: Change Domain"),
     general = true,
+  })
+
+  -- Dictionary-related gesture actions
+  Dispatcher:registerAction("koassistant_dictionary_popup_manager", {
+    category = "none",
+    event = "KOAssistantDictionaryPopupManager",
+    title = _("KOAssistant: Dictionary Popup Manager"),
+    general = true,
+  })
+
+  Dispatcher:registerAction("koassistant_change_dictionary_language", {
+    category = "none",
+    event = "KOAssistantChangeDictionaryLanguage",
+    title = _("KOAssistant: Change Dictionary Language"),
+    general = true,
+  })
+
+  Dispatcher:registerAction("koassistant_toggle_dictionary_bypass", {
+    category = "none",
+    event = "KOAssistantToggleDictionaryBypass",
+    title = _("KOAssistant: Toggle Dictionary Bypass"),
+    general = true,
+  })
+
+  -- Highlight bypass gesture actions
+  Dispatcher:registerAction("koassistant_toggle_highlight_bypass", {
+    category = "none",
+    event = "KOAssistantToggleHighlightBypass",
+    title = _("KOAssistant: Toggle Highlight Bypass"),
+    general = true,
+  })
+
+  -- Translate current page gesture
+  Dispatcher:registerAction("koassistant_translate_page", {
+    category = "none",
+    event = "KOAssistantTranslatePage",
+    title = _("KOAssistant: Translate Current Page"),
+    general = true,
+    reader = true,
     separator = true
   })
 
@@ -888,6 +932,19 @@ function AskGPT:initSettings()
       needs_save = true
     end
 
+    -- Clean up transient flags that should never be persisted
+    -- These are set at runtime for dictionary lookups but should not be saved
+    if features.compact_view ~= nil then
+      features.compact_view = nil
+      needs_save = true
+      logger.info("KOAssistant: Cleaned up stray compact_view flag")
+    end
+    if features.minimal_buttons ~= nil then
+      features.minimal_buttons = nil
+      needs_save = true
+      logger.info("KOAssistant: Cleaned up stray minimal_buttons flag")
+    end
+
     -- ONE-TIME migration to new behavior system (v0.6+)
     -- Only runs once, then sets behavior_migrated = true
     if not features.behavior_migrated then
@@ -942,6 +999,11 @@ function AskGPT:updateConfigFromSettings()
   configuration.provider = features.provider or "anthropic"
   configuration.model = features.model
   configuration.features = features
+
+  -- Ensure transient flags are cleared (these are only set at runtime for dictionary lookups)
+  -- This prevents compact_view from "leaking" to non-dictionary actions
+  configuration.features.compact_view = nil
+  configuration.features.minimal_buttons = nil
 
   -- Log the current configuration for debugging
   local config_parts = {
@@ -1392,37 +1454,47 @@ end
 -- Build translation language picker menu
 function AskGPT:buildTranslationLanguageMenu()
   local self_ref = self
-  local features = self.settings:readSetting("features") or {}
-  local user_languages = features.user_languages or ""
-  local primary_language = features.primary_language or "English"
+  local effective_primary = self:getEffectivePrimaryLanguage() or "English"
 
   local menu_items = {}
 
   -- Add "Use Primary" option at top
   table.insert(menu_items, {
-    text = string.format(_("Use Primary (%s)"), primary_language),
+    text = string.format(_("Use Primary (%s)"), effective_primary),
     checked_func = function()
       local f = self_ref.settings:readSetting("features") or {}
-      -- Check if translation_language matches primary or is empty/nil
+      -- Primary is selected when: toggle is on, OR translation_language is sentinel/nil
+      -- Prioritize the toggle as the source of truth
+      if f.translation_use_primary == true then
+        return true
+      end
+      if f.translation_use_primary == false then
+        return false
+      end
+      -- If toggle never set (nil), check translation_language
       local trans = f.translation_language
-      local prim = f.primary_language or "English"
-      return trans == nil or trans == "" or trans == prim or trans == "__PRIMARY__"
+      return trans == nil or trans == "" or trans == "__PRIMARY__"
     end,
     radio = true,
     callback = function()
       local f = self_ref.settings:readSetting("features") or {}
-      f.translation_language = "__PRIMARY__"  -- Special value meaning "use primary"
+      -- Sync BOTH mechanisms
+      f.translation_use_primary = true
+      f.translation_language = "__PRIMARY__"
       self_ref.settings:saveSetting("features", f)
       self_ref.settings:flush()
       -- Show toast confirmation
+      local prim = self_ref:getEffectivePrimaryLanguage() or "English"
       UIManager:show(Notification:new{
-        text = string.format(_("Translate: %s"), primary_language),
+        text = string.format(_("Translate: %s"), prim),
         timeout = 1.5,
       })
     end,
   })
 
   -- Parse languages from user_languages
+  local features = self.settings:readSetting("features") or {}
+  local user_languages = features.user_languages or ""
   local languages = {}
   for lang in user_languages:gmatch("([^,]+)") do
     local trimmed = lang:match("^%s*(.-)%s*$")
@@ -1438,12 +1510,17 @@ function AskGPT:buildTranslationLanguageMenu()
       text = lang,
       checked_func = function()
         local f = self_ref.settings:readSetting("features") or {}
-        local trans = f.translation_language
-        return trans == lang_copy
+        -- Only checked if toggle is OFF and this language is selected
+        if f.translation_use_primary == true then
+          return false
+        end
+        return f.translation_language == lang_copy
       end,
       radio = true,
       callback = function()
         local f = self_ref.settings:readSetting("features") or {}
+        -- Sync BOTH mechanisms
+        f.translation_use_primary = false
         f.translation_language = lang_copy
         self_ref.settings:saveSetting("features", f)
         self_ref.settings:flush()
@@ -1508,6 +1585,149 @@ function AskGPT:buildTranslationLanguageMenu()
     table.insert(menu_items, 1, {
       text = _("(Set your languages for quick selection)"),
       enabled = false,
+    })
+  end
+
+  return menu_items
+end
+
+-- Build dictionary response language picker menu
+function AskGPT:buildDictionaryLanguageMenu()
+  local self_ref = self
+  local features = self.settings:readSetting("features") or {}
+  local user_languages = features.user_languages or ""
+  local primary_language = features.primary_language or "English"
+
+  local menu_items = {}
+
+  -- Add "Follow Translation" option at top
+  table.insert(menu_items, {
+    text = _("Follow Translation Language"),
+    checked_func = function()
+      local f = self_ref.settings:readSetting("features") or {}
+      local dict_lang = f.dictionary_language
+      return dict_lang == nil or dict_lang == "" or dict_lang == "__FOLLOW_TRANSLATION__"
+    end,
+    radio = true,
+    callback = function()
+      local f = self_ref.settings:readSetting("features") or {}
+      f.dictionary_language = "__FOLLOW_TRANSLATION__"
+      self_ref.settings:saveSetting("features", f)
+      self_ref.settings:flush()
+      UIManager:show(Notification:new{
+        text = _("Dictionary: Follow Translation"),
+        timeout = 1.5,
+      })
+    end,
+    separator = true,
+  })
+
+  -- Parse user's language list
+  local languages = {}
+  for lang in user_languages:gmatch("[^,]+") do
+    local trimmed = lang:match("^%s*(.-)%s*$")
+    if trimmed ~= "" then
+      table.insert(languages, trimmed)
+    end
+  end
+
+  -- Add each language as an option
+  for _i, lang in ipairs(languages) do
+    local lang_copy = lang
+    table.insert(menu_items, {
+      text = lang,
+      checked_func = function()
+        local f = self_ref.settings:readSetting("features") or {}
+        return f.dictionary_language == lang_copy
+      end,
+      radio = true,
+      callback = function()
+        local f = self_ref.settings:readSetting("features") or {}
+        f.dictionary_language = lang_copy
+        self_ref.settings:saveSetting("features", f)
+        self_ref.settings:flush()
+        UIManager:show(Notification:new{
+          text = string.format(_("Dictionary: %s"), lang_copy),
+          timeout = 1.5,
+        })
+      end,
+    })
+  end
+
+  return menu_items
+end
+
+-- Build dictionary context mode picker menu
+function AskGPT:buildDictionaryContextModeMenu()
+  local self_ref = self
+  local menu_items = {}
+
+  local modes = {
+    { id = "sentence", text = _("Sentence"), help = _("Extract the full sentence containing the word") },
+    { id = "paragraph", text = _("Paragraph"), help = _("Include more surrounding context") },
+    { id = "characters", text = _("Characters"), help = _("Fixed number of characters before/after") },
+    { id = "none", text = _("None"), help = _("Only send the word, no surrounding context") },
+  }
+
+  for _i, mode in ipairs(modes) do
+    local mode_copy = mode.id
+    table.insert(menu_items, {
+      text = mode.text,
+      help_text = mode.help,
+      checked_func = function()
+        local f = self_ref.settings:readSetting("features") or {}
+        local current = f.dictionary_context_mode or "sentence"
+        return current == mode_copy
+      end,
+      radio = true,
+      callback = function()
+        local f = self_ref.settings:readSetting("features") or {}
+        f.dictionary_context_mode = mode_copy
+        self_ref.settings:saveSetting("features", f)
+        self_ref.settings:flush()
+        UIManager:show(Notification:new{
+          text = string.format(_("Context: %s"), mode.text),
+          timeout = 1.5,
+        })
+      end,
+    })
+  end
+
+  return menu_items
+end
+
+-- Build dictionary save mode picker menu
+function AskGPT:buildDictionarySaveModeMenu()
+  local self_ref = self
+  local menu_items = {}
+
+  local modes = {
+    { id = "default", text = _("Default (Document)"), help = _("Save to the current document's chat history") },
+    { id = "none", text = _("Don't Save"), help = _("Dictionary lookups won't be saved to history") },
+    { id = "dictionary", text = _("Dictionary Chats"), help = _("Save to a dedicated Dictionary Lookups section") },
+  }
+
+  for _i, mode in ipairs(modes) do
+    local mode_copy = mode.id
+    table.insert(menu_items, {
+      text = mode.text,
+      help_text = mode.help,
+      checked_func = function()
+        local f = self_ref.settings:readSetting("features") or {}
+        local current = f.dictionary_save_mode or "default"
+        return current == mode_copy
+      end,
+      radio = true,
+      callback = function()
+        local f = self_ref.settings:readSetting("features") or {}
+        f.dictionary_save_mode = mode_copy
+        self_ref.settings:saveSetting("features", f)
+        self_ref.settings:flush()
+        UIManager:show(Notification:new{
+          text = string.format(_("Save: %s"), mode.text),
+          timeout = 1.5,
+        })
+      end,
     })
   end
 
@@ -1602,6 +1822,161 @@ end
 
 -- showTranslationDialog() removed - translation language is now configured
 -- via Settings → Translation Language (settings_schema.lua)
+
+-- Dictionary popup hook - adds AI Dictionary button to KOReader's native dictionary popup
+-- This event is fired by KOReader when the dictionary popup is about to display
+function AskGPT:onDictButtonsReady(dict_popup, dict_buttons)
+  -- Check if the hook is enabled
+  local features = self.settings:readSetting("features") or {}
+  if features.enable_dictionary_hook == false then
+    return
+  end
+
+  local self_ref = self
+
+  -- Extract the word from the dictionary popup
+  local word = dict_popup and dict_popup.word
+  if not word or word == "" then
+    return
+  end
+
+  -- Get configured actions for dictionary popup
+  local popup_actions = self.action_service:getDictionaryPopupActionObjects()
+  if #popup_actions == 0 then
+    return  -- No actions configured
+  end
+
+  -- Helper function to create a button for an action
+  local function createActionButton(action)
+    return {
+      text = action.text .. " (AI)",
+      font_bold = true,
+      callback = function()
+        -- CRITICAL: Extract context BEFORE closing the popup
+        -- The highlight/selection is cleared when the popup closes
+        local context = ""
+        local context_mode = features.dictionary_context_mode or "sentence"
+
+        if context_mode ~= "none" then
+          local context_chars = features.dictionary_context_chars or 100
+
+          -- Method 1: Try KOReader's highlight module (works for hold-select, NOT for word tap)
+          -- Note: For single word taps, getSelectedWordContext returns nil because
+          -- no actual text selection exists - only the word at tap position is identified
+          if self_ref.ui and self_ref.ui.highlight and self_ref.ui.highlight.getSelectedWordContext then
+            context = Dialogs.extractSurroundingContext(
+              self_ref.ui,
+              word,
+              context_mode,
+              context_chars
+            )
+          end
+
+          -- Log result (helpful for debugging)
+          if context ~= "" then
+            logger.info("KOAssistant DICT: Got context (" .. #context .. " chars)")
+          else
+            -- Context extraction failed - this is expected for word taps
+            -- For context to work, user needs to hold-select the word instead of tapping
+            logger.info("KOAssistant DICT: No context available (word tap, not selection)")
+          end
+        end
+
+        -- Now close the dictionary popup
+        if dict_popup.onClose then
+          dict_popup:onClose()
+        end
+
+        -- Ensure network is available
+        NetworkMgr:runWhenOnline(function()
+          -- Get effective dictionary language
+          local SystemPrompts = require("prompts.system_prompts")
+          local dict_language = SystemPrompts.getEffectiveDictionaryLanguage({
+            dictionary_language = features.dictionary_language,
+            translation_language = features.translation_language,
+            translation_use_primary = features.translation_use_primary,
+            user_languages = features.user_languages,
+            primary_language = features.primary_language,
+          })
+
+          -- Create a shallow copy of configuration to avoid polluting global state
+          local dict_config = {}
+          for k, v in pairs(configuration) do
+            dict_config[k] = v
+          end
+          -- Deep copy features to avoid modifying global
+          dict_config.features = {}
+          if configuration.features then
+            for k, v in pairs(configuration.features) do
+              dict_config.features[k] = v
+            end
+          end
+
+          -- Clear context flags to ensure highlight context (like executeQuickAction does)
+          dict_config.features.is_general_context = nil
+          dict_config.features.is_book_context = nil
+          dict_config.features.is_multi_book_context = nil
+
+          -- Set dictionary-specific values
+          dict_config.features.dictionary_context = context
+          dict_config.features.dictionary_language = dict_language
+
+          -- Determine storage_key based on dictionary_save_mode setting
+          local save_mode = features.dictionary_save_mode or "default"
+          if save_mode == "none" then
+            dict_config.features.storage_key = "__SKIP__"
+          elseif save_mode == "dictionary" then
+            dict_config.features.storage_key = "__DICTIONARY_CHATS__"
+          end
+          -- "default" leaves storage_key nil (uses document path)
+
+          -- Always use compact view for dictionary popup actions
+          dict_config.features.compact_view = true
+          dict_config.features.hide_highlighted_text = true  -- Hide quote by default in compact mode
+          dict_config.features.minimal_buttons = true  -- Use minimal button set
+          dict_config.features.large_stream_dialog = false  -- Small streaming dialog
+
+          -- Check dictionary streaming setting
+          if features.dictionary_enable_streaming == false then
+            dict_config.features.enable_streaming = false
+          end
+
+          -- Execute the action
+          local Dialogs = require("dialogs")
+          Dialogs.executeDirectAction(
+            self_ref.ui,   -- ui
+            action,        -- action (from closure)
+            word,          -- highlighted_text
+            dict_config,   -- local config copy (not global)
+            self_ref       -- plugin
+          )
+        end)
+      end,
+    }
+  end
+
+  -- Create buttons arranged in rows of 3
+  local plugin_rows = {}
+  local current_row = {}
+
+  for _i, action in ipairs(popup_actions) do
+    table.insert(current_row, createActionButton(action))
+    if #current_row == 3 then
+      table.insert(plugin_rows, current_row)
+      current_row = {}
+    end
+  end
+  -- Add any remaining buttons in a partial row
+  if #current_row > 0 then
+    table.insert(plugin_rows, current_row)
+  end
+
+  -- Insert all rows at position 2 (after the first row of standard buttons)
+  -- Insert in reverse order so they appear in correct order
+  for i = #plugin_rows, 1, -1 do
+    table.insert(dict_buttons, 2, plugin_rows[i])
+  end
+end
 
 -- Event handlers for gesture-triggered actions
 function AskGPT:onKOAssistantChatHistory()
@@ -1933,6 +2308,15 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
     trans_display = trans_lang
   end
 
+  -- Get dictionary language display
+  local dict_lang = features.dictionary_language
+  local dict_display
+  if dict_lang == nil or dict_lang == "" or dict_lang == "__FOLLOW_TRANSLATION__" then
+    dict_display = trans_display .. " ↵"  -- Follow translation (arrow indicates "same as")
+  else
+    dict_display = dict_lang
+  end
+
   -- Flag to track if we're closing for a sub-dialog (vs true dismissal)
   local opening_subdialog = false
 
@@ -2057,8 +2441,17 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
           end,
         },
       },
-      -- Row 5: More Settings | Close
+      -- Row 5: Dictionary | More Settings
       {
+        {
+          text = string.format(_("Dictionary: %s"), dict_display),
+          callback = function()
+            opening_subdialog = true
+            UIManager:close(dialog)
+            local menu_items = self_ref:buildDictionaryLanguageMenu()
+            self_ref:showQuickSettingsPopup(_("Dictionary Language"), menu_items, true, reopenQuickSettings)
+          end,
+        },
         {
           text = _("More Settings..."),
           callback = function()
@@ -2068,6 +2461,9 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
             self_ref:onKOAssistantSettings()
           end,
         },
+      },
+      -- Row 6: Close (full width)
+      {
         {
           text = _("Close"),
           callback = function()
@@ -2227,6 +2623,272 @@ function AskGPT:buildDomainMenu()
   return items
 end
 
+-- Dictionary Popup Manager gesture handler
+function AskGPT:onKOAssistantDictionaryPopupManager()
+  self:showDictionaryPopupManager()
+  return true
+end
+
+-- Toggle Dictionary Bypass gesture handler
+function AskGPT:onKOAssistantToggleDictionaryBypass()
+  local features = self.settings:readSetting("features") or {}
+  local current_state = features.dictionary_bypass_enabled or false
+  features.dictionary_bypass_enabled = not current_state
+  self.settings:saveSetting("features", features)
+  self.settings:flush()
+
+  -- Re-sync the bypass
+  self:syncDictionaryBypass()
+
+  UIManager:show(Notification:new{
+    text = features.dictionary_bypass_enabled and _("Dictionary bypass: ON") or _("Dictionary bypass: OFF"),
+    timeout = 1.5,
+  })
+  return true
+end
+
+function AskGPT:onKOAssistantToggleHighlightBypass()
+  local features = self.settings:readSetting("features") or {}
+  local current_state = features.highlight_bypass_enabled or false
+  features.highlight_bypass_enabled = not current_state
+  self.settings:saveSetting("features", features)
+  self.settings:flush()
+
+  UIManager:show(Notification:new{
+    text = features.highlight_bypass_enabled and _("Highlight bypass: ON") or _("Highlight bypass: OFF"),
+    timeout = 1.5,
+  })
+  return true
+end
+
+-- Translate current page gesture handler
+function AskGPT:onKOAssistantTranslatePage()
+  self:translateCurrentPage()
+  return true
+end
+
+function AskGPT:translateCurrentPage()
+  if not self.ui or not self.ui.document then
+    UIManager:show(InfoMessage:new{
+      text = _("No document open"),
+      timeout = 2,
+    })
+    return
+  end
+
+  local document = self.ui.document
+  local page_text = nil
+
+  -- Detect document type: CRE (EPUB) vs PDF/DjVu
+  local is_cre_document = document.getXPointer ~= nil
+
+  if is_cre_document then
+    -- EPUB/CRE documents: use screen positions approach
+    -- getTextBoxes is not implemented for CRE, so we use getTextFromPositions
+    -- with the full screen area
+    logger.info("KOAssistant: Translate page - CRE document detected")
+
+    local view_dimen = self.ui.view and self.ui.view.dimen
+    if view_dimen then
+      -- Get text from top-left to bottom-right of visible area
+      local pos0 = { x = 0, y = 0 }
+      local pos1 = { x = view_dimen.w, y = view_dimen.h }
+
+      local result = document:getTextFromPositions(pos0, pos1, true) -- true = don't draw selection
+      if result and result.text and result.text ~= "" then
+        page_text = result.text
+        logger.info("KOAssistant: Got CRE page text:", #page_text, "chars")
+      end
+    end
+
+    -- Fallback: try getTextFromXPointer for partial content
+    if (not page_text or page_text == "") and document.getTextFromXPointer then
+      local xp = document:getXPointer()
+      if xp then
+        local text = document:getTextFromXPointer(xp)
+        if text and text ~= "" then
+          page_text = text
+          logger.info("KOAssistant: Got CRE page text via XPointer:", #page_text, "chars")
+        end
+      end
+    end
+  else
+    -- PDF/DjVu documents: use getTextBoxes approach
+    logger.info("KOAssistant: Translate page - PDF/DjVu document detected")
+
+    local current_page = self.ui:getCurrentPage()
+    if not current_page then
+      UIManager:show(InfoMessage:new{
+        text = _("Cannot determine current page"),
+        timeout = 2,
+      })
+      return
+    end
+
+    local text_boxes = document:getTextBoxes(current_page)
+    if text_boxes and #text_boxes > 0 then
+      local lines = {}
+      for _line_idx, line in ipairs(text_boxes) do
+        local words = {}
+        for _word_idx, word_box in ipairs(line) do
+          if word_box.word then
+            table.insert(words, word_box.word)
+          end
+        end
+        if #words > 0 then
+          table.insert(lines, table.concat(words, " "))
+        end
+      end
+      page_text = table.concat(lines, "\n")
+      logger.info("KOAssistant: Got PDF page text:", #page_text, "chars from", #lines, "lines")
+    end
+
+    -- Fallback: try getTextFromPositions with text box bounds
+    if (not page_text or page_text == "") and text_boxes and #text_boxes > 0 then
+      local first_line = text_boxes[1]
+      local last_line = text_boxes[#text_boxes]
+      if first_line and #first_line > 0 and last_line and #last_line > 0 then
+        local first_word = first_line[1]
+        local last_word = last_line[#last_line]
+        if first_word and last_word then
+          local pos0 = { x = first_word.x0 or 0, y = first_word.y0 or 0, page = current_page }
+          local pos1 = { x = last_word.x1 or 0, y = last_word.y1 or 0, page = current_page }
+          local result = document:getTextFromPositions(pos0, pos1)
+          if result and result.text then
+            page_text = result.text
+            logger.info("KOAssistant: Got PDF page text via positions:", #page_text, "chars")
+          end
+        end
+      end
+    end
+  end
+
+  if not page_text or page_text == "" then
+    UIManager:show(InfoMessage:new{
+      text = _("Could not extract text from current page"),
+      timeout = 2,
+    })
+    return
+  end
+
+  -- Get translate action
+  local Actions = require("prompts/actions")
+  local translate_action = Actions.special and Actions.special.translate
+  if not translate_action then
+    UIManager:show(InfoMessage:new{
+      text = _("Translate action not found"),
+      timeout = 2,
+    })
+    return
+  end
+
+  -- Build configuration (full view, not compact)
+  local config_copy = {}
+  for k, v in pairs(configuration) do
+    config_copy[k] = v
+  end
+  config_copy.features = config_copy.features or {}
+  for k, v in pairs(configuration.features or {}) do
+    config_copy.features[k] = v
+  end
+  config_copy.context = "highlight"
+  -- Explicitly ensure full view (not compact)
+  config_copy.features.compact_view = false
+  config_copy.features.minimal_buttons = false
+
+  -- Execute translation
+  Dialogs.executeDirectAction(
+    self.ui,
+    translate_action,
+    page_text,
+    config_copy,
+    self
+  )
+end
+
+-- Change Dictionary Language gesture handler
+function AskGPT:onKOAssistantChangeDictionaryLanguage()
+  local menu_items = self:buildDictionaryLanguageMenu()
+  self:showQuickSettingsPopup(_("Dictionary Language"), menu_items)
+  return true
+end
+
+-- Build dictionary language menu (for gesture action and AI Quick Settings)
+-- Shows available languages for dictionary response language
+function AskGPT:buildDictionaryLanguageMenu()
+  local self_ref = self
+  local features = self.settings:readSetting("features") or {}
+  local items = {}
+
+  -- Option to follow translation language
+  table.insert(items, {
+    text = _("Follow Translation Language"),
+    checked_func = function()
+      local f = self_ref.settings:readSetting("features") or {}
+      return f.dictionary_language == nil or f.dictionary_language == "__FOLLOW_TRANSLATION__"
+    end,
+    radio = true,
+    callback = function()
+      local f = self_ref.settings:readSetting("features") or {}
+      f.dictionary_language = "__FOLLOW_TRANSLATION__"
+      self_ref.settings:saveSetting("features", f)
+      self_ref.settings:flush()
+      self_ref:updateConfigFromSettings()
+    end,
+  })
+
+  -- Parse user languages if available
+  local user_languages = features.user_languages or ""
+  if user_languages ~= "" then
+    for lang in user_languages:gmatch("[^,]+") do
+      local trimmed = lang:match("^%s*(.-)%s*$")
+      if trimmed and trimmed ~= "" then
+        local lang_copy = trimmed
+        table.insert(items, {
+          text = lang_copy,
+          checked_func = function()
+            local f = self_ref.settings:readSetting("features") or {}
+            return f.dictionary_language == lang_copy
+          end,
+          radio = true,
+          callback = function()
+            local f = self_ref.settings:readSetting("features") or {}
+            f.dictionary_language = lang_copy
+            self_ref.settings:saveSetting("features", f)
+            self_ref.settings:flush()
+            self_ref:updateConfigFromSettings()
+          end,
+        })
+      end
+    end
+  end
+
+  -- Add common languages if no user languages configured
+  if #items == 1 then
+    local common_languages = {"English", "Spanish", "French", "German", "Chinese", "Japanese", "Korean"}
+    for _idx, lang in ipairs(common_languages) do
+      local lang_copy = lang
+      table.insert(items, {
+        text = lang_copy,
+        checked_func = function()
+          local f = self_ref.settings:readSetting("features") or {}
+          return f.dictionary_language == lang_copy
+        end,
+        radio = true,
+        callback = function()
+          local f = self_ref.settings:readSetting("features") or {}
+          f.dictionary_language = lang_copy
+          self_ref.settings:saveSetting("features", f)
+          self_ref.settings:flush()
+          self_ref:updateConfigFromSettings()
+        end,
+      })
+    end
+  end
+
+  return items
+end
+
 function AskGPT:showPromptsManager()
   local prompts_manager = PromptsManager:new(self)
   prompts_manager:show()
@@ -2235,6 +2897,11 @@ end
 function AskGPT:showHighlightMenuManager()
   local prompts_manager = PromptsManager:new(self)
   prompts_manager:showHighlightMenuManager()
+end
+
+function AskGPT:showDictionaryPopupManager()
+  local prompts_manager = PromptsManager:new(self)
+  prompts_manager:showDictionaryPopupManager()
 end
 
 -- Register quick actions for highlight menu
@@ -2259,9 +2926,30 @@ function AskGPT:registerHighlightMenuActions()
         text = action_copy.text .. " (KOA)",
         enabled = Device:hasClipboard(),
         callback = function()
+          -- Extract context BEFORE network callback, while selection is still active
+          -- This is important for dictionary actions that need surrounding text
+          local context = ""
+          -- Check if highlight module has the getSelectedWordContext method
+          -- Note: Method is on self.ui.highlight, not _reader_highlight_instance
+          if self.ui.highlight and self.ui.highlight.getSelectedWordContext then
+            local features = self.settings:readSetting("features") or {}
+            local context_mode = features.dictionary_context_mode or "sentence"
+            -- Skip context extraction if mode is "none"
+            if context_mode ~= "none" then
+              local context_chars = features.dictionary_context_chars or 100
+              context = Dialogs.extractSurroundingContext(
+                self.ui,
+                _reader_highlight_instance.selected_text.text,
+                context_mode,
+                context_chars
+              )
+            end
+          end
+
           NetworkMgr:runWhenOnline(function()
             self:updateConfigFromSettings()
-            self:executeQuickAction(action_copy, _reader_highlight_instance.selected_text.text)
+            -- Pass extracted context to executeQuickAction
+            self:executeQuickAction(action_copy, _reader_highlight_instance.selected_text.text, context)
           end)
         end,
       }
@@ -2269,13 +2957,347 @@ function AskGPT:registerHighlightMenuActions()
   end
 end
 
+-- Sync dictionary bypass based on settings
+-- When enabled, word taps go directly to the default dictionary popup action
+-- This overrides ReaderDictionary:onLookupWord to intercept word taps
+function AskGPT:syncDictionaryBypass()
+  local features = self.settings:readSetting("features") or {}
+  local bypass_enabled = features.dictionary_bypass_enabled
+
+  -- Check if we have access to the reader's dictionary module
+  if not self.ui or not self.ui.dictionary then
+    logger.warn("KOAssistant: Cannot sync dictionary bypass - reader dictionary not available")
+    return
+  end
+
+  local dictionary = self.ui.dictionary
+
+  if bypass_enabled then
+    -- Store original method if not already stored
+    if not dictionary._koassistant_original_onLookupWord then
+      dictionary._koassistant_original_onLookupWord = dictionary.onLookupWord
+      logger.info("KOAssistant: Storing original ReaderDictionary:onLookupWord")
+    end
+
+    local self_ref = self
+    dictionary.onLookupWord = function(dict_self, word, is_sane, boxes, highlight, link, dict_close_callback)
+      -- Get the bypass action from settings (default: dictionary)
+      local action_id = features.dictionary_bypass_action or "dictionary"
+      local bypass_action = self_ref.action_service:getAction("highlight", action_id)
+
+      -- Also check special actions if not found
+      if not bypass_action then
+        local Actions = require("prompts/actions")
+        if Actions.special and Actions.special[action_id] then
+          bypass_action = Actions.special[action_id]
+        end
+      end
+
+      if not bypass_action then
+        -- Fallback to original if action not found
+        logger.warn("KOAssistant: Dictionary bypass action not found: " .. action_id .. ", using original dictionary")
+        if dictionary._koassistant_original_onLookupWord then
+          return dictionary._koassistant_original_onLookupWord(dict_self, word, is_sane, boxes, highlight, link, dict_close_callback)
+        end
+        return
+      end
+
+      -- IMPORTANT: Extract context BEFORE clearing highlight
+      -- The highlight object contains the selection state needed for context extraction.
+      -- Once cleared, getSelectedWordContext() will return nil.
+      local context = ""
+      local context_mode = features.dictionary_context_mode or "sentence"
+      if context_mode ~= "none" then
+        local context_chars = features.dictionary_context_chars or 100
+        if self_ref.ui and self_ref.ui.highlight then
+          context = Dialogs.extractSurroundingContext(
+            self_ref.ui,
+            word,
+            context_mode,
+            context_chars
+          )
+          if context and context ~= "" then
+            logger.info("KOAssistant BYPASS: Got context (" .. #context .. " chars)")
+          else
+            logger.info("KOAssistant BYPASS: No context available")
+          end
+        end
+      end
+
+      -- NOW clear the selection highlight (after context extraction)
+      -- KOReader uses highlight:clear() to remove the selection highlight
+      if highlight and highlight.clear then
+        highlight:clear()
+      end
+      -- Also call the close callback if provided (for additional cleanup)
+      if dict_close_callback then
+        dict_close_callback()
+      end
+
+      -- Execute the default action directly (context already captured above)
+      NetworkMgr:runWhenOnline(function()
+        -- Get effective dictionary language
+        local SystemPrompts = require("prompts.system_prompts")
+        local dict_language = SystemPrompts.getEffectiveDictionaryLanguage({
+          dictionary_language = features.dictionary_language,
+          translation_language = features.translation_language,
+          translation_use_primary = features.translation_use_primary,
+          user_languages = features.user_languages,
+          primary_language = features.primary_language,
+        })
+
+        -- Create a shallow copy of configuration to avoid polluting global state
+        local dict_config = {}
+        for k, v in pairs(configuration) do
+          dict_config[k] = v
+        end
+        -- Deep copy features to avoid modifying global
+        dict_config.features = {}
+        if configuration.features then
+          for k, v in pairs(configuration.features) do
+            dict_config.features[k] = v
+          end
+        end
+
+        -- Clear context flags to ensure highlight context
+        dict_config.features.is_general_context = nil
+        dict_config.features.is_book_context = nil
+        dict_config.features.is_multi_book_context = nil
+
+        -- Set dictionary-specific values
+        dict_config.features.dictionary_context = context
+        dict_config.features.dictionary_language = dict_language
+
+        -- Determine storage_key based on dictionary_save_mode setting
+        local save_mode = features.dictionary_save_mode or "default"
+        if save_mode == "none" then
+          dict_config.features.storage_key = "__SKIP__"
+        elseif save_mode == "dictionary" then
+          dict_config.features.storage_key = "__DICTIONARY_CHATS__"
+        end
+
+        -- Always use compact view for dictionary bypass
+        dict_config.features.compact_view = true
+        dict_config.features.hide_highlighted_text = true
+        dict_config.features.minimal_buttons = true
+        dict_config.features.large_stream_dialog = false
+
+        -- Check dictionary streaming setting
+        if features.dictionary_enable_streaming == false then
+          dict_config.features.enable_streaming = false
+        end
+
+        -- Execute the action
+        Dialogs.executeDirectAction(
+          self_ref.ui,
+          bypass_action,
+          word,
+          dict_config,
+          self_ref
+        )
+      end)
+    end
+    logger.info("KOAssistant: Dictionary bypass enabled")
+  else
+    -- Restore original method
+    if dictionary._koassistant_original_onLookupWord then
+      dictionary.onLookupWord = dictionary._koassistant_original_onLookupWord
+      dictionary._koassistant_original_onLookupWord = nil
+      logger.info("KOAssistant: Dictionary bypass disabled, restored original dictionary lookup")
+    end
+  end
+end
+
+-- Highlight Bypass: immediately trigger an action when text is selected
+function AskGPT:syncHighlightBypass()
+  if not self.ui or not self.ui.highlight then
+    logger.info("KOAssistant: Cannot sync highlight bypass - highlight not available")
+    return
+  end
+
+  local highlight = self.ui.highlight
+  local self_ref = self
+
+  -- Store original if not already stored
+  if not highlight._koassistant_original_onShowHighlightMenu then
+    highlight._koassistant_original_onShowHighlightMenu = highlight.onShowHighlightMenu
+  end
+
+  -- Replace with our interceptor
+  highlight.onShowHighlightMenu = function(hl_self, ...)
+    local features = self_ref.settings:readSetting("features", {})
+
+    -- Check if bypass is enabled
+    if features.highlight_bypass_enabled then
+      local action_id = features.highlight_bypass_action or "translate"
+      -- Use action_service which handles built-in and custom actions
+      local action = self_ref.action_service:getAction("highlight", action_id)
+      -- Also check special actions (translate, dictionary)
+      if not action then
+        local Actions = require("prompts/actions")
+        action = Actions.special and Actions.special[action_id]
+      end
+
+      if action and hl_self.selected_text and hl_self.selected_text.text then
+        logger.info("KOAssistant: Highlight bypass active, executing action: " .. action_id)
+        -- Execute our action
+        self_ref:executeHighlightBypassAction(action, hl_self.selected_text.text, hl_self)
+        -- Clear selection without showing menu
+        hl_self:clear()
+        return true
+      else
+        logger.warn("KOAssistant: Highlight bypass - action not found or no text selected")
+      end
+    end
+
+    -- Bypass not enabled or action not found - show normal menu
+    return highlight._koassistant_original_onShowHighlightMenu(hl_self, ...)
+  end
+
+  logger.info("KOAssistant: Highlight bypass synced")
+end
+
+function AskGPT:executeHighlightBypassAction(action, selected_text, highlight_instance)
+  -- Build configuration
+  local config_copy = {}
+  for k, v in pairs(configuration) do
+    config_copy[k] = v
+  end
+  config_copy.features = config_copy.features or {}
+  for k, v in pairs(configuration.features or {}) do
+    config_copy.features[k] = v
+  end
+  config_copy.context = "highlight"
+
+  -- Execute the action
+  Dialogs.executeDirectAction(
+    self.ui,
+    action,
+    selected_text,
+    config_copy,
+    self
+  )
+end
+
+-- Build menu for selecting highlight bypass action
+function AskGPT:buildHighlightBypassActionMenu()
+  local self_ref = self
+  local menu_items = {}
+
+  -- Get all highlight-context actions using action_service (handles built-in + custom)
+  local all_actions = self.action_service:getAllHighlightActionsWithMenuState()
+
+  -- Also add special actions (translate, dictionary) if not already included
+  local Actions = require("prompts/actions")
+  local action_ids = {}
+  for _i, item in ipairs(all_actions) do
+    action_ids[item.action.id] = true
+  end
+
+  if Actions.special then
+    if Actions.special.translate and not action_ids["translate"] then
+      table.insert(all_actions, { action = Actions.special.translate })
+    end
+    if Actions.special.dictionary and not action_ids["dictionary"] then
+      table.insert(all_actions, { action = Actions.special.dictionary })
+    end
+  end
+
+  for _i, item in ipairs(all_actions) do
+    local action = item.action
+    local action_id = action.id
+    local action_text = action.text
+    table.insert(menu_items, {
+      text = action_text,
+      checked_func = function()
+        local f = self_ref.settings:readSetting("features") or {}
+        local current = f.highlight_bypass_action or "translate"
+        return current == action_id
+      end,
+      radio = true,
+      callback = function()
+        local f = self_ref.settings:readSetting("features") or {}
+        f.highlight_bypass_action = action_id
+        self_ref.settings:saveSetting("features", f)
+        self_ref.settings:flush()
+        UIManager:show(Notification:new{
+          text = T(_("Bypass action: %1"), action_text),
+          timeout = 1.5,
+        })
+      end,
+    })
+  end
+
+  return menu_items
+end
+
+-- Build menu for selecting dictionary bypass action
+function AskGPT:buildDictionaryBypassActionMenu()
+  local self_ref = self
+  local menu_items = {}
+
+  -- Get all highlight-context actions using action_service (handles built-in + custom)
+  local all_actions = self.action_service:getAllHighlightActionsWithMenuState()
+
+  -- Also add special actions (translate, dictionary) if not already included
+  local Actions = require("prompts/actions")
+  local action_ids = {}
+  for _i, item in ipairs(all_actions) do
+    action_ids[item.action.id] = true
+  end
+
+  if Actions.special then
+    -- Dictionary should be first for this menu
+    if Actions.special.dictionary and not action_ids["dictionary"] then
+      table.insert(all_actions, 1, { action = Actions.special.dictionary })
+    end
+    if Actions.special.translate and not action_ids["translate"] then
+      table.insert(all_actions, { action = Actions.special.translate })
+    end
+  end
+
+  for _i, item in ipairs(all_actions) do
+    local action = item.action
+    local action_id = action.id
+    local action_text = action.text
+    table.insert(menu_items, {
+      text = action_text,
+      checked_func = function()
+        local f = self_ref.settings:readSetting("features") or {}
+        local current = f.dictionary_bypass_action or "dictionary"
+        return current == action_id
+      end,
+      radio = true,
+      callback = function()
+        local f = self_ref.settings:readSetting("features") or {}
+        f.dictionary_bypass_action = action_id
+        self_ref.settings:saveSetting("features", f)
+        self_ref.settings:flush()
+        UIManager:show(Notification:new{
+          text = T(_("Bypass action: %1"), action_text),
+          timeout = 1.5,
+        })
+      end,
+    })
+  end
+
+  return menu_items
+end
+
 -- Execute a quick action directly without showing intermediate dialog
-function AskGPT:executeQuickAction(action, highlighted_text)
+-- @param action: The action to execute
+-- @param highlighted_text: The selected text
+-- @param context: Optional surrounding context (for dictionary actions)
+function AskGPT:executeQuickAction(action, highlighted_text, context)
   -- Clear context flags for highlight context (default context)
   configuration.features = configuration.features or {}
   configuration.features.is_general_context = nil
   configuration.features.is_book_context = nil
   configuration.features.is_multi_book_context = nil
+  -- Pass surrounding context if provided (for dictionary actions)
+  if context and context ~= "" then
+    configuration.features.dictionary_context = context
+  end
   Dialogs.executeDirectAction(self.ui, action, highlighted_text, configuration, self)
 end
 

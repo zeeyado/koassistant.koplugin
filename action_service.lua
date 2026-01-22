@@ -654,6 +654,130 @@ function ActionService:toggleHighlightMenuAction(action_id)
 end
 
 -- ============================================================
+-- Dictionary Popup Actions (similar to highlight menu)
+-- ============================================================
+
+-- Get ordered list of dictionary popup action IDs
+function ActionService:getDictionaryPopupActions()
+    return self.settings:readSetting("dictionary_popup_actions") or {"dictionary"}  -- Default to dictionary action
+end
+
+-- Check if action is in dictionary popup
+function ActionService:isInDictionaryPopup(action_id)
+    local actions = self:getDictionaryPopupActions()
+    for _i, id in ipairs(actions) do
+        if id == action_id then
+            return true
+        end
+    end
+    return false
+end
+
+-- Add action to dictionary popup
+function ActionService:addToDictionaryPopup(action_id)
+    local actions = self:getDictionaryPopupActions()
+    -- Don't add duplicates
+    if not self:isInDictionaryPopup(action_id) then
+        table.insert(actions, action_id)
+        self.settings:saveSetting("dictionary_popup_actions", actions)
+        self.settings:flush()
+    end
+end
+
+-- Remove action from dictionary popup
+function ActionService:removeFromDictionaryPopup(action_id)
+    local actions = self:getDictionaryPopupActions()
+    for i, id in ipairs(actions) do
+        if id == action_id then
+            table.remove(actions, i)
+            self.settings:saveSetting("dictionary_popup_actions", actions)
+            self.settings:flush()
+            return
+        end
+    end
+end
+
+-- Move action in dictionary popup order
+function ActionService:moveDictionaryPopupAction(action_id, direction)
+    local actions = self:getDictionaryPopupActions()
+    for i, id in ipairs(actions) do
+        if id == action_id then
+            local new_index = direction == "up" and i - 1 or i + 1
+            if new_index >= 1 and new_index <= #actions then
+                actions[i], actions[new_index] = actions[new_index], actions[i]
+                self.settings:saveSetting("dictionary_popup_actions", actions)
+                self.settings:flush()
+            end
+            return
+        end
+    end
+end
+
+-- Get full action objects for dictionary popup (resolved, in order)
+function ActionService:getDictionaryPopupActionObjects()
+    local action_ids = self:getDictionaryPopupActions()
+    local result = {}
+    for _i, id in ipairs(action_ids) do
+        local action = self:getAction("highlight", id)
+        if action and action.enabled then
+            table.insert(result, action)
+        end
+    end
+    return result
+end
+
+-- Get all highlight context actions with their dictionary popup inclusion state
+-- Returns array of { action, in_popup, popup_position }
+-- Used by the dictionary popup manager UI
+function ActionService:getAllHighlightActionsWithPopupState()
+    -- Get all highlight-context actions (including from 'both' and 'all' contexts)
+    local all_actions = self:getAllActions("highlight", true)  -- Include disabled
+    local popup_ids = self:getDictionaryPopupActions()
+
+    -- Create lookup for popup positions
+    local popup_positions = {}
+    for i, id in ipairs(popup_ids) do
+        popup_positions[id] = i
+    end
+
+    local result = {}
+    for _i, action in ipairs(all_actions) do
+        table.insert(result, {
+            action = action,
+            in_popup = popup_positions[action.id] ~= nil,
+            popup_position = popup_positions[action.id],
+        })
+    end
+
+    -- Sort: popup items first (by position), then non-popup items (alphabetically)
+    table.sort(result, function(a, b)
+        if a.in_popup and b.in_popup then
+            return a.popup_position < b.popup_position
+        elseif a.in_popup then
+            return true
+        elseif b.in_popup then
+            return false
+        else
+            return (a.action.text or "") < (b.action.text or "")
+        end
+    end)
+
+    return result
+end
+
+-- Toggle action inclusion in dictionary popup
+-- Returns: true if now in popup, false if removed from popup
+function ActionService:toggleDictionaryPopupAction(action_id)
+    if self:isInDictionaryPopup(action_id) then
+        self:removeFromDictionaryPopup(action_id)
+        return false
+    else
+        self:addToDictionaryPopup(action_id)
+        return true
+    end
+end
+
+-- ============================================================
 -- Action Duplication
 -- ============================================================
 

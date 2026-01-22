@@ -23,6 +23,8 @@ Most settings are configurable in the UI, including: Provider/model, AI behavior
 - [Quick Setup](#quick-setup)
 - [Recommended Setup](#recommended-setup)
 - [How to Use KOAssistant](#how-to-use-koassistant)
+- [Dictionary Integration](#dictionary-integration)
+- [Bypass Modes](#bypass-modes)
 - [AI Behavior](#ai-behavior)
 - [Managing Conversations](#managing-conversations)
 - [Knowledge Domains](#knowledge-domains)
@@ -99,19 +101,24 @@ Find KOAssistant Settings in: **Tools → Page 2 → KOAssistant**
 For easy access to a list of settings, assign KOAssistant actions to a gesture:
 
 1. Go to **Settings → Gesture Manager → Tap corner → Bottom left** (or your preferred gesture)
-2. Select **General** 
+2. Select **General**
 3. Add KOAssistant actions:
    - Chat History
    - Continue Last Chat
    - General Chat
    - Chat About Book
    - Settings
+   - Toggle Dictionary Bypass
+   - Toggle Highlight Bypass
+   - Translate Current Page
    - ...
 4. Enable **"Show as QuickMenu"**
 
 > **Tip**: Set up gestures in both **Reader View** (while reading) and **File Browser** separately.
-> 
+>
 > **Tip**: Set other gestures for specific actions you use often, e.g. a multiswipe gesture for "Open Last Chat" if you keep going back and forth between a document and a specific chat.
+>
+> **Tip**: Assign "Toggle Dictionary Bypass" to a quick gesture if you frequently switch between AI and regular dictionary lookups.
 
 
 ### Key Features to Explore
@@ -124,6 +131,8 @@ After basic setup, explore these features to get the most out of KOAssistant:
 | **Knowledge Domains** | Add project-like context to conversations | Settings → Advanced → Manage Domains |
 | **Custom Actions** | Create your own prompts and workflows | Settings → Manage Actions |
 | **Highlight Menu** | Add actions directly to highlight popup | Manage Actions → Add to Highlight Menu |
+| **Dictionary Integration** | AI-powered word lookups when tapping words | Settings → Dictionary Settings |
+| **Bypass Modes** | Instant AI actions without menus | Settings → Dictionary/Highlight Settings |
 | **Reasoning/Thinking** | Enable deep analysis for complex questions | Settings → Advanced → Reasoning |
 | **Languages** | Configure multilingual responses | Settings → Language |
 
@@ -149,6 +158,8 @@ KOAssistant works in **4 contexts**, each with its own set of actions, and you c
 
 **Quick Actions**: You can add frequently-used actions directly to KOReader's highlight popup menu for faster access. Instead of going through the KOAssistant dialog, actions like "KOA: Explain" or "KOA: Translate" appear as separate buttons. See [Highlight Menu Actions](#highlight-menu-actions) below.
 
+**Bypass Mode**: Skip the highlight menu entirely and trigger your chosen action immediately when selecting text. See [Highlight Bypass](#highlight-bypass) below.
+
 **Built-in Actions**:
 | Action | Description |
 |--------|-------------|
@@ -158,6 +169,7 @@ KOAssistant works in **4 contexts**, each with its own set of actions, and you c
 | **Summarize** | Concise summary of the text |
 | **Elaborate** | Expand on concepts, provide additional context and details |
 | **Translate** | Translate to your configured language |
+| **Dictionary** | Word definition with context (also accessible via word tap) |
 
 **What the AI sees**: Your highlighted text, plus Document metadata (title, author, identifiers from file properties)
 
@@ -203,6 +215,124 @@ A free-form conversation without specific document context. If started while a b
 - **Settings Icon (Viewer)**: Tap the gear icon in the chat viewer title bar to adjust font size and text alignment (left/justified/right for RTL)
 - **Show/Hide Quote**: In the chat viewer, toggle button to show or hide the highlighted text quote (useful for long selections)
 - **Other**: Turn on off Text/Markdown view, Debug view mode, add Tags, Change Domain, etc
+
+---
+
+## Dictionary Integration
+
+KOAssistant integrates with KOReader's dictionary system, providing AI-powered word lookups when you tap on words in a document.
+
+### How It Works
+
+When you tap a word in a document, KOReader normally shows its dictionary popup. With KOAssistant's dictionary integration, you can:
+
+1. **Add an AI button to the dictionary popup** - See an "AI Dictionary" button alongside KOReader's built-in dictionary results
+2. **Bypass the dictionary entirely** - Skip KOReader's dictionary and go directly to AI for word lookups
+
+### Dictionary Settings
+
+**Settings → Dictionary Settings**
+
+| Setting | Description |
+|---------|-------------|
+| **AI Button in Dictionary Popup** | Show "AI Dictionary" button in KOReader's dictionary popup |
+| **Response Language** | Language for dictionary definitions (follow translation language or set specific) |
+| **Context Mode** | How much surrounding text to include: Sentence, Surrounding (custom chars), or None |
+| **Context Characters** | Number of characters when using "Surrounding" mode (default: 100) |
+| **Save Mode** | Where to save dictionary chats: Document (default), Don't Save, or dedicated Dictionary Chats |
+| **Enable Streaming** | Stream dictionary responses in real-time |
+| **Dictionary Popup Actions** | Configure which actions appear in the dictionary popup's AI menu |
+| **Bypass KOReader Dictionary** | Skip dictionary popup, go directly to AI (see below) |
+| **Bypass Action** | Which action to trigger when bypass is enabled |
+
+### Dictionary Popup Actions
+
+When "AI Button in Dictionary Popup" is enabled, tapping the AI button shows a menu of actions. Configure this menu:
+
+1. **Settings → Dictionary Settings → Dictionary Popup Actions**
+2. Enable/disable actions and reorder them
+3. First action in the list is shown as the primary option
+
+The dictionary context (surrounding sentence/text) is automatically extracted and included with dictionary actions.
+
+### Dictionary Bypass
+
+When bypass is enabled, tapping a word skips KOReader's dictionary popup entirely and immediately triggers your chosen AI action.
+
+**To enable:**
+1. Settings → Dictionary Settings → Bypass KOReader Dictionary → ON
+2. Settings → Dictionary Settings → Bypass Action → choose action (default: Dictionary)
+
+**Toggle via gesture:** Assign "KOAssistant: Toggle Dictionary Bypass" to a gesture for quick on/off switching.
+
+**Note:** Dictionary bypass uses compact view by default for quick, focused responses.
+
+### Vocabulary Builder Integration
+
+When using dictionary lookups in compact view, KOAssistant integrates with KOReader's Vocabulary Builder:
+
+- **Auto-add enabled**: Shows greyed "Added" button indicating word was added
+- **Auto-add disabled**: Shows "+Vocab" button to manually add the word
+
+This only appears in compact/minimal buttons view (used by dictionary bypass and popup actions).
+
+---
+
+## Bypass Modes
+
+Bypass modes let you skip menus and immediately trigger AI actions. Both dictionary and highlight bypass work similarly:
+
+### Dictionary Bypass
+
+Skip KOReader's dictionary popup when tapping words. Useful for language learners who want instant AI definitions.
+
+**How it works:**
+1. Tap a word in the document
+2. Instead of dictionary popup → AI action triggers immediately
+3. Response appears in compact view
+
+**Configure:** Settings → Dictionary Settings → Bypass KOReader Dictionary
+
+### Highlight Bypass
+
+Skip the highlight menu when selecting text. Useful when you always want the same action (e.g., translate).
+
+**How it works:**
+1. Select text by long-pressing and dragging
+2. Instead of highlight menu → AI action triggers immediately
+3. Response appears based on action settings
+
+**Configure:** Settings → Highlight Settings → Enable Highlight Bypass
+
+### Bypass Action Selection
+
+Both bypass modes let you choose which action triggers:
+
+| Bypass Mode | Default Action | Where to Configure |
+|-------------|----------------|-------------------|
+| Dictionary | Dictionary | Settings → Dictionary Settings → Bypass Action |
+| Highlight | Translate | Settings → Highlight Settings → Bypass Action |
+
+You can select any highlight-context action (built-in or custom) as your bypass action.
+
+### Gesture Toggles
+
+Quick toggle bypass modes without entering settings:
+
+- **KOAssistant: Toggle Dictionary Bypass** - Assign to gesture
+- **KOAssistant: Toggle Highlight Bypass** - Assign to gesture
+
+Toggling shows a brief notification confirming the new state.
+
+### Translate Current Page
+
+A special gesture action to translate all visible text on the current page:
+
+**Gesture:** KOAssistant: Translate Current Page
+
+This extracts all text from the visible page/screen and sends it to the Translate action. Unlike dictionary/highlight bypass, this uses full view (not compact) since page translations are longer.
+
+**Works with:** PDF, EPUB, DjVu, and other supported document formats.
 
 ---
 
@@ -522,6 +652,22 @@ See `custom_actions.lua.sample` for more examples.
 - **Debug Detail Level**: Verbosity (Minimal/Names/Full)
 - **Test Connection**: Verify API credentials work
 
+### Dictionary Settings
+- **AI Button in Dictionary Popup**: Show AI Dictionary button when tapping words
+- **Response Language**: Language for definitions (Follow Translation Language or specific)
+- **Context Mode**: Surrounding text to include (Sentence, Surrounding, None)
+- **Context Characters**: Character count for Surrounding mode (default: 100)
+- **Save Mode**: Where to save dictionary chats (Document, Don't Save, Dictionary Chats)
+- **Enable Streaming**: Stream dictionary responses in real-time
+- **Dictionary Popup Actions**: Configure actions in the dictionary popup AI menu
+- **Bypass KOReader Dictionary**: Skip dictionary popup, go directly to AI
+- **Bypass Action**: Which action to trigger when bypass is enabled (default: Dictionary)
+
+### Highlight Settings
+- **Enable Highlight Bypass**: Immediately trigger action when selecting text (skip menu)
+- **Bypass Action**: Which action to trigger when bypass is enabled (default: Translate)
+- **Highlight Menu Actions**: View and reorder actions in the highlight popup menu
+
 ### Language
 - **Match KOReader UI Language**: When enabled (default), the plugin UI follows KOReader's language setting. Disable to always show English UI (useful if translations are incomplete or inaccurate). Requires restart.
 - **Your Languages**: Languages you speak, separated by commas (e.g., "German, English, French"). Leave empty for default AI behavior.
@@ -551,16 +697,16 @@ Add frequently-used highlight actions directly to KOReader's highlight popup for
 1. Go to **Manage Actions**
 2. Tap on a highlight-context action (Explain, Translate, etc.)
 3. Tap **"Add to Highlight Menu"**
-4. **Restart KOReader** for changes to take effect
+4. A notification reminds you to restart KOReader
 
 Actions appear as "KOA: Explain", "KOA: Translate", etc. in the highlight popup.
 
 **Managing quick actions**:
-- Use **Highlight Menu Actions** to view all enabled quick actions
+- Use **Settings → Highlight Settings → Highlight Menu Actions** to view all enabled quick actions
 - Tap an action to move it up/down or remove it
 - Actions requiring user input (like "Ask") cannot be added
 
-**Note**: Changes require an app restart since the highlight menu is built at startup.
+**Note**: Changes require an app restart since the highlight menu is built at startup. A notification appears when you make changes.
 
 ### About
 - **About KOAssistant**: Plugin info and gesture tips

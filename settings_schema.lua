@@ -438,17 +438,208 @@ local SettingsSchema = {
                     path = "features.translation_use_primary",
                     default = true,
                     help_text = _("Use your primary language as the translation target. Disable to choose a different target."),
+                    -- Sync translation_language when toggle changes
+                    on_change = function(new_value, plugin)
+                        local f = plugin.settings:readSetting("features") or {}
+                        if new_value then
+                            -- When turning ON, set sentinel to keep in sync
+                            f.translation_language = "__PRIMARY__"
+                            plugin.settings:saveSetting("features", f)
+                            plugin.settings:flush()
+                        end
+                        -- When turning OFF, leave translation_language as is
+                        -- (user can then pick a specific language from the submenu)
+                    end,
                 },
                 {
                     id = "translation_language",
                     type = "submenu",
                     text_func = function(plugin)
                         local f = plugin.settings:readSetting("features") or {}
-                        local target = f.translation_language or _("English")
+                        local target = f.translation_language
+                        -- Show actual language, handle sentinel values
+                        if target == "__PRIMARY__" or target == nil or target == "" then
+                            local primary = plugin:getEffectivePrimaryLanguage() or "English"
+                            target = primary
+                        end
                         return T(_("Translation Target: %1"), target)
                     end,
                     callback = "buildTranslationLanguageMenu",
                     depends_on = { id = "translation_use_primary", value = false },
+                },
+            },
+        },
+
+        -- Dictionary Settings
+        {
+            id = "dictionary_settings",
+            type = "submenu",
+            text = _("Dictionary Settings"),
+            items = {
+                {
+                    id = "enable_dictionary_hook",
+                    type = "toggle",
+                    text = _("AI Button in Dictionary Popup"),
+                    path = "features.enable_dictionary_hook",
+                    default = true,
+                    help_text = _("Show AI Dictionary button when tapping on a word"),
+                },
+                {
+                    id = "dictionary_language",
+                    type = "submenu",
+                    text_func = function(plugin)
+                        local f = plugin.settings:readSetting("features") or {}
+                        local lang = f.dictionary_language or "__FOLLOW_TRANSLATION__"
+                        if lang == "__FOLLOW_TRANSLATION__" then
+                            return _("Response Language: (Follow Translation)")
+                        end
+                        return T(_("Response Language: %1"), lang)
+                    end,
+                    callback = "buildDictionaryLanguageMenu",
+                },
+                {
+                    id = "dictionary_context_mode",
+                    type = "submenu",
+                    text_func = function(plugin)
+                        local f = plugin.settings:readSetting("features") or {}
+                        local mode = f.dictionary_context_mode or "sentence"
+                        local labels = {
+                            sentence = _("Sentence"),
+                            paragraph = _("Paragraph"),
+                            characters = _("Characters"),
+                            none = _("None"),
+                        }
+                        return T(_("Context Mode: %1"), labels[mode] or mode)
+                    end,
+                    callback = "buildDictionaryContextModeMenu",
+                },
+                {
+                    id = "dictionary_context_chars",
+                    type = "spinner",
+                    text = _("Context Characters"),
+                    path = "features.dictionary_context_chars",
+                    default = 100,
+                    min = 20,
+                    max = 500,
+                    step = 10,
+                    help_text = _("Number of characters to include before/after the word when Context Mode is 'Characters'"),
+                    enabled_func = function(plugin)
+                        local f = plugin.settings:readSetting("features") or {}
+                        return f.dictionary_context_mode == "characters"
+                    end,
+                },
+                {
+                    id = "dictionary_save_mode",
+                    type = "submenu",
+                    text_func = function(plugin)
+                        local f = plugin.settings:readSetting("features") or {}
+                        local mode = f.dictionary_save_mode or "default"
+                        local labels = {
+                            default = _("Default (Document)"),
+                            none = _("Don't Save"),
+                            dictionary = _("Dictionary Chats"),
+                        }
+                        return T(_("Save Mode: %1"), labels[mode] or mode)
+                    end,
+                    callback = "buildDictionarySaveModeMenu",
+                },
+                {
+                    id = "dictionary_enable_streaming",
+                    type = "toggle",
+                    text = _("Enable Streaming"),
+                    path = "features.dictionary_enable_streaming",
+                    default = true,
+                    help_text = _("Stream dictionary responses in real-time. Disable to wait for complete response."),
+                },
+                {
+                    id = "dictionary_popup_actions",
+                    type = "action",
+                    text = _("Dictionary Popup Actions"),
+                    callback = "showDictionaryPopupManager",
+                    help_text = _("Configure which actions appear in the dictionary popup"),
+                },
+                {
+                    id = "dictionary_bypass_enabled",
+                    type = "toggle",
+                    text = _("Bypass KOReader Dictionary"),
+                    path = "features.dictionary_bypass_enabled",
+                    default = false,
+                    help_text = _("Skip KOReader's dictionary and go directly to AI when tapping words. Can also be toggled via gesture."),
+                    on_change = function(new_value, plugin)
+                        -- Re-sync the bypass when setting changes
+                        if plugin.syncDictionaryBypass then
+                            local UIManager = require("ui/uimanager")
+                            UIManager:nextTick(function()
+                                plugin:syncDictionaryBypass()
+                            end)
+                        end
+                    end,
+                },
+                {
+                    id = "dictionary_bypass_action",
+                    type = "submenu",
+                    text_func = function(plugin)
+                        local f = plugin.settings:readSetting("features") or {}
+                        local action_id = f.dictionary_bypass_action or "dictionary"
+                        -- Try to get action name
+                        local Actions = require("prompts/actions")
+                        local action = Actions.getById(action_id)
+                        if action then
+                            return T(_("Bypass Action: %1"), action.text)
+                        end
+                        -- Check special actions
+                        if Actions.special and Actions.special[action_id] then
+                            return T(_("Bypass Action: %1"), Actions.special[action_id].text)
+                        end
+                        return T(_("Bypass Action: %1"), action_id)
+                    end,
+                    callback = "buildDictionaryBypassActionMenu",
+                    help_text = _("Action to trigger when dictionary bypass is enabled"),
+                },
+            },
+        },
+
+        -- Highlight Settings
+        {
+            id = "highlight_settings",
+            type = "submenu",
+            text = _("Highlight Settings"),
+            items = {
+                {
+                    id = "highlight_bypass_enabled",
+                    type = "toggle",
+                    text = _("Enable Highlight Bypass"),
+                    path = "features.highlight_bypass_enabled",
+                    default = false,
+                    help_text = _("Immediately trigger an action when text is selected, skipping the highlight menu. Can also be toggled via gesture."),
+                },
+                {
+                    id = "highlight_bypass_action",
+                    type = "submenu",
+                    text_func = function(plugin)
+                        local f = plugin.settings:readSetting("features") or {}
+                        local action_id = f.highlight_bypass_action or "translate"
+                        -- Try to get action name
+                        local Actions = require("prompts/actions")
+                        local action = Actions.getById(action_id)
+                        if action then
+                            return T(_("Bypass Action: %1"), action.text)
+                        end
+                        -- Check special actions
+                        if Actions.special and Actions.special[action_id] then
+                            return T(_("Bypass Action: %1"), Actions.special[action_id].text)
+                        end
+                        return T(_("Bypass Action: %1"), action_id)
+                    end,
+                    callback = "buildHighlightBypassActionMenu",
+                    help_text = _("Action to trigger when highlight bypass is enabled"),
+                },
+                {
+                    id = "highlight_menu_actions",
+                    type = "action",
+                    text = _("Highlight Menu Actions"),
+                    callback = "showHighlightMenuManager",
+                    help_text = _("Choose which actions appear in the highlight menu (requires restart)"),
                 },
             },
         },
@@ -459,12 +650,6 @@ local SettingsSchema = {
             type = "action",
             text = _("Manage Actions"),
             callback = "showPromptsManager",
-        },
-        {
-            id = "highlight_menu_actions",
-            type = "action",
-            text = _("Highlight Menu Actions"),
-            callback = "showHighlightMenuManager",
             separator = true,
         },
 
