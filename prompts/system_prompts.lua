@@ -576,9 +576,12 @@ function SystemPrompts.buildLanguageInstruction(user_languages, primary_override
     local primary, languages_list = SystemPrompts.parseUserLanguages(user_languages, primary_override)
 
     return string.format(
-        "The user speaks: %s. Always respond in %s unless the user writes in a different language from this list, in which case respond in that language.",
-        languages_list,
-        primary
+        "IMPORTANT - Response language: Always respond in %s. " ..
+        "The language of any quoted text, excerpts, or source material you are asked to analyze does NOT affect your response language. " ..
+        "The user understands: %s. " ..
+        "Only switch languages if the user explicitly writes their own question or comment in another language from this list.",
+        primary,
+        languages_list
     )
 end
 
