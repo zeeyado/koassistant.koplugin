@@ -170,6 +170,102 @@ local function persistDomainSelection(plugin, domain_id)
     plugin.settings:flush()
 end
 
+-- Extract surrounding context for dictionary lookups
+-- Uses KOReader's highlight API to get text before/after selection
+-- @param ui: KOReader UI instance with highlight module
+-- @param highlighted_text: The selected text
+-- @param mode: "sentence" (default), "paragraph", or "characters"
+-- @param char_count: Number of characters for "characters" mode (default 100)
+-- @return string: Formatted context or empty string if unavailable
+local function extractSurroundingContext(ui, highlighted_text, mode, char_count)
+    mode = mode or "sentence"
+    char_count = char_count or 100
+
+    local prev_context, next_context = nil, nil
+
+    -- Try to get context from KOReader's highlight module
+    if ui and ui.highlight and ui.highlight.getSelectedWordContext then
+        -- Get plenty of words to cover our needs (50 words should be enough)
+        prev_context, next_context = ui.highlight:getSelectedWordContext(50)
+    end
+
+    if not prev_context and not next_context then
+        return ""  -- No context available
+    end
+
+    prev_context = prev_context or ""
+    next_context = next_context or ""
+
+    -- Mark the highlighted word with >>> <<< markers
+    local word_marker = ">>>" .. (highlighted_text or "") .. "<<<"
+
+    if mode == "characters" then
+        -- Return fixed character count before/after
+        local before = prev_context:sub(-char_count)
+        local after = next_context:sub(1, char_count)
+        -- Add ellipsis if text was truncated
+        if #prev_context > char_count then
+            before = "..." .. before
+        end
+        if #next_context > char_count then
+            after = after .. "..."
+        end
+        return before .. " " .. word_marker .. " " .. after
+
+    elseif mode == "paragraph" then
+        -- Return full context with word marked
+        -- Add ellipsis to indicate this is an excerpt
+        local before = prev_context
+        local after = next_context
+        if #before > 0 then
+            before = "..." .. before
+        end
+        if #after > 0 then
+            after = after .. "..."
+        end
+        return before .. " " .. word_marker .. " " .. after
+
+    else  -- "sentence" mode (default)
+        -- Try to find sentence boundaries
+        -- Look for sentence-ending punctuation followed by space or end of string
+        local function findSentenceStart(text)
+            -- Search backwards for sentence end (.!?) followed by space
+            local last_end = text:match(".*[%.!%?]%s+()") or 1
+            return text:sub(last_end)
+        end
+
+        local function findSentenceEnd(text)
+            -- Search forwards for sentence end (.!?)
+            local end_pos = text:find("[%.!%?]%s") or text:find("[%.!%?]$")
+            if end_pos then
+                return text:sub(1, end_pos)
+            end
+            return text
+        end
+
+        local sentence_before = findSentenceStart(prev_context)
+        local sentence_after = findSentenceEnd(next_context)
+
+        -- If sentence parsing results in very little text, fall back to characters mode
+        local result = sentence_before .. " " .. word_marker .. " " .. sentence_after
+        if #result < 30 then  -- Adjusted threshold to account for marker
+            -- Fall back to characters mode
+            return extractSurroundingContext(ui, highlighted_text, "characters", char_count)
+        end
+
+        -- Add leading ellipsis if we trimmed the start
+        if #sentence_before < #prev_context then
+            result = "..." .. result
+        end
+        -- Add trailing ellipsis if we trimmed the end
+        if #sentence_after < #next_context then
+            result = result .. "..."
+        end
+
+        return result
+    end
+end
+
 -- Build unified request config for ALL providers (v0.5.2+)
 --
 -- All providers receive the same config structure:
@@ -797,11 +893,15 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
         end
     end
 
+    -- Check if compact view should be used
+    local use_compact_view = temp_config and temp_config.features and temp_config.features.compact_view
+
     chatgpt_viewer = ChatGPTViewer:new {
         title = title .. " (" .. model_info .. ")",
         text = result_text,
         configuration = temp_config or CONFIGURATION,  -- Pass configuration for debug toggle
         show_debug_in_chat = temp_config and temp_config.features and temp_config.features.show_debug_in_chat or false,
+        compact_view = use_compact_view,  -- Use compact height for dictionary lookups
         original_history = history,
         original_highlighted_text = highlightedText,
         _recreate_func = recreate_func, -- For rotation handling
@@ -921,22 +1021,42 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                             metadata.original_highlighted_text = highlightedText
                         end
 
-                        -- Determine save path: document path or general chats
-                        local save_path = document_path or (is_general_context and "__GENERAL_CHATS__" or nil)
-                        local save_result = chat_history_manager:saveChat(
-                            save_path,
-                            suggested_title,
-                            history,
-                            metadata
-                        )
-                        if save_result and save_result ~= false then
-                            -- Store the chat ID in history for future saves (prevents duplicates)
-                            if not history.chat_id then
-                                history.chat_id = save_result
-                            end
-                            logger.info("KOAssistant: Auto-saved chat after follow-up with id: " .. tostring(save_result))
+                        -- Determine save path: check for action storage_key override
+                        local storage_key = temp_config and temp_config.features and temp_config.features.storage_key
+                        local save_path
+                        local should_save = true
+
+                        if storage_key == "__SKIP__" then
+                            -- Don't save this chat
+                            should_save = false
+                            logger.info("KOAssistant: Skipping auto-save due to storage_key = __SKIP__")
+                        elseif storage_key then
+                            -- Use custom storage location
+                            save_path = storage_key
                         else
-                            logger.warn("KOAssistant: Failed to auto-save chat after follow-up")
+                            -- Default: document path or general chats
+                            save_path = document_path or (is_general_context and "__GENERAL_CHATS__" or nil)
+                        end
+
+                        if not should_save then
+                            -- Skip saving, but still consider it successful
+                            logger.info("KOAssistant: Chat not saved (storage_key = __SKIP__)")
+                        else
+                            local save_result = chat_history_manager:saveChat(
+                                save_path,
+                                suggested_title,
+                                history,
+                                metadata
+                            )
+                            if save_result and save_result ~= false then
+                                -- Store the chat ID in history for future saves (prevents duplicates)
+                                if not history.chat_id then
+                                    history.chat_id = save_result
+                                end
+                                logger.info("KOAssistant: Auto-saved chat after follow-up with id: " .. tostring(save_result))
+                            else
+                                logger.warn("KOAssistant: Failed to auto-save chat after follow-up")
+                            end
                         end
                     end
                 else
@@ -1044,23 +1164,42 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                 metadata.original_highlighted_text = highlightedText
             end
 
-            -- Determine save path: document path or general chats
-            local save_path = document_path or (is_general_context and "__GENERAL_CHATS__" or nil)
-            local result = chat_history_manager:saveChat(
-                save_path,
-                suggested_title,
-                history,
-                metadata
-            )
+            -- Determine save path: check for action storage_key override
+            local storage_key = temp_config.features and temp_config.features.storage_key
+            local save_path
+            local should_save = true
 
-            if result and result ~= false then
-                -- Store the chat ID in history for future saves (prevents duplicates)
-                if not history.chat_id then
-                    history.chat_id = result
-                end
-                logger.info("KOAssistant: Auto-saved chat with id: " .. tostring(result) .. ", title: " .. suggested_title)
+            if storage_key == "__SKIP__" then
+                -- Don't save this chat
+                should_save = false
+                logger.info("KOAssistant: Skipping auto-save due to storage_key = __SKIP__")
+            elseif storage_key then
+                -- Use custom storage location
+                save_path = storage_key
             else
-                logger.warn("KOAssistant: Failed to auto-save chat")
+                -- Default: document path or general chats
+                save_path = document_path or (is_general_context and "__GENERAL_CHATS__" or nil)
+            end
+
+            if should_save then
+                local result = chat_history_manager:saveChat(
+                    save_path,
+                    suggested_title,
+                    history,
+                    metadata
+                )
+
+                if result and result ~= false then
+                    -- Store the chat ID in history for future saves (prevents duplicates)
+                    if not history.chat_id then
+                        history.chat_id = result
+                    end
+                    logger.info("KOAssistant: Auto-saved chat with id: " .. tostring(result) .. ", title: " .. suggested_title)
+                else
+                    logger.warn("KOAssistant: Failed to auto-save chat")
+                end
+            else
+                logger.info("KOAssistant: Chat not saved (storage_key = __SKIP__)")
             end
         end)
     end
@@ -1146,6 +1285,15 @@ local function handlePredefinedPrompt(prompt_type, highlightedText, ui, configur
         translation_language = config.features.translation_language,
     })
 
+    -- Resolve effective dictionary language (for dictionary action)
+    local effective_dictionary_language = SystemPrompts.getEffectiveDictionaryLanguage({
+        dictionary_language = config.features.dictionary_language,
+        translation_use_primary = config.features.translation_use_primary,
+        user_languages = config.features.user_languages,
+        primary_language = config.features.primary_language,
+        translation_language = config.features.translation_language,
+    })
+
     -- Build data for consolidated message
     local message_data = {
         highlighted_text = highlightedText,
@@ -1153,7 +1301,10 @@ local function handlePredefinedPrompt(prompt_type, highlightedText, ui, configur
         book_metadata = config.features.book_metadata,
         books_info = config.features.books_info,
         book_context = config.features.book_context,
-        translation_language = effective_translation_language
+        translation_language = effective_translation_language,
+        dictionary_language = effective_dictionary_language,
+        -- Context from dictionary hook (surrounding text)
+        context = config.features.dictionary_context or "",
     }
 
     -- Add book info for highlight context when:
@@ -1183,6 +1334,13 @@ local function handlePredefinedPrompt(prompt_type, highlightedText, ui, configur
                 message_data.book_title = book_metadata.title
                 message_data.book_author = book_metadata.author
             end
+        end
+
+        -- Extract surrounding context for dictionary action if not already provided
+        if prompt_type == "dictionary" and (not message_data.context or message_data.context == "") then
+            local context_mode = config.features.dictionary_context_mode or "sentence"
+            local context_chars = config.features.dictionary_context_chars or 100
+            message_data.context = extractSurroundingContext(ui, highlightedText, context_mode, context_chars)
         end
     end
 
@@ -1775,4 +1933,5 @@ end
 return {
     showChatGPTDialog = showChatGPTDialog,
     executeDirectAction = executeDirectAction,
+    extractSurroundingContext = extractSurroundingContext,
 }

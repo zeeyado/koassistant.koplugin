@@ -449,6 +449,9 @@ local ChatGPTViewer = InputContainer:extend {
 
   -- Session-only toggle for hiding highlighted text (does not persist)
   hide_highlighted_text = false,
+
+  -- Compact view mode (used for dictionary lookups)
+  compact_view = false,
 }
 
 function ChatGPTViewer:init()
@@ -460,7 +463,12 @@ function ChatGPTViewer:init()
     h = Screen:getHeight(),
   }
   self.width = self.width or UIConstants.CHAT_WIDTH()
-  self.height = self.height or UIConstants.CHAT_HEIGHT()
+  -- Use compact height if compact_view is enabled
+  if self.compact_view then
+    self.height = self.height or UIConstants.COMPACT_DIALOG_HEIGHT()
+  else
+    self.height = self.height or UIConstants.CHAT_HEIGHT()
+  end
 
   self._find_next = false
   self._find_next_button = false
