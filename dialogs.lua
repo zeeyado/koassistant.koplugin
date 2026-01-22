@@ -1126,8 +1126,13 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
             -- For non-streaming, the callback was already called, viewer will be updated
         end,
         save_callback = function()
-            -- Check if auto-save all chats is enabled
-            if temp_config and temp_config.features and temp_config.features.auto_save_all_chats then
+            -- Check if auto-save all chats is enabled (but allow manual save for expanded-from-skip chats)
+            -- Must check the ACTIVE viewer's config, not temp_config, because expandToFullView
+            -- creates a new config with expanded_from_skip that temp_config doesn't have
+            local viewer = _G.ActiveChatViewer
+            local viewer_features = viewer and viewer.configuration and viewer.configuration.features
+            local expanded_from_skip = viewer_features and viewer_features.expanded_from_skip
+            if temp_config and temp_config.features and temp_config.features.auto_save_all_chats and not expanded_from_skip then
                 UIManager:show(InfoMessage:new{
                     text = T("Auto-save all chats is on - this can be changed in the settings"),
                     timeout = 3,

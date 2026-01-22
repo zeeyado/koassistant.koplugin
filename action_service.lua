@@ -537,7 +537,7 @@ end
 
 -- Get ordered list of highlight menu action IDs
 function ActionService:getHighlightMenuActions()
-    return self.settings:readSetting("highlight_menu_actions") or {}
+    return self.settings:readSetting("highlight_menu_actions") or {"dictionary"}
 end
 
 -- Check if action is in highlight menu
@@ -659,7 +659,7 @@ end
 
 -- Get ordered list of dictionary popup action IDs
 function ActionService:getDictionaryPopupActions()
-    return self.settings:readSetting("dictionary_popup_actions") or {"dictionary"}  -- Default to dictionary action
+    return self.settings:readSetting("dictionary_popup_actions") or {"dictionary", "dictionary_detailed"}  -- Default to dictionary actions
 end
 
 -- Check if action is in dictionary popup

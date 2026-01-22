@@ -85,8 +85,8 @@ function MessageBuilder.build(params)
     if data.dictionary_language then
         user_prompt = user_prompt:gsub("{dictionary_language}", data.dictionary_language)
     end
-    -- Substitute {context} placeholder for surrounding text (dictionary lookups)
     if data.context then
+
         user_prompt = user_prompt:gsub("{context}", data.context)
     end
 

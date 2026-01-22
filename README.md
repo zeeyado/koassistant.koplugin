@@ -239,7 +239,7 @@ When you tap a word in a document, KOReader normally shows its dictionary popup.
 | **Response Language** | Language for dictionary definitions (follow translation language or set specific) |
 | **Context Mode** | How much surrounding text to include: Sentence, Surrounding (custom chars), or None |
 | **Context Characters** | Number of characters when using "Surrounding" mode (default: 100) |
-| **Save Mode** | Where to save dictionary chats: Document (default), Don't Save, or dedicated Dictionary Chats |
+| **Save Mode** | Where to save dictionary chats: Don't Save (default), Document, or dedicated Dictionary Chats |
 | **Enable Streaming** | Stream dictionary responses in real-time |
 | **Dictionary Popup Actions** | Configure which actions appear in the dictionary popup's AI menu |
 | **Bypass KOReader Dictionary** | Skip dictionary popup, go directly to AI (see below) |
@@ -271,10 +271,18 @@ When bypass is enabled, tapping a word skips KOReader's dictionary popup entirel
 
 When using dictionary lookups in compact view, KOAssistant integrates with KOReader's Vocabulary Builder:
 
-- **Auto-add enabled**: Shows greyed "Added" button indicating word was added
-- **Auto-add disabled**: Shows "+Vocab" button to manually add the word
+- **Auto-add enabled** (Vocabulary Builder ON in KOReader settings): Words are automatically added to vocab builder when looked up via dictionary bypass. A greyed "Added" button confirms the word was added.
+- **Auto-add disabled** (Vocabulary Builder OFF): A "+Vocab" button appears to manually add the looked-up word to the vocabulary builder.
 
-This only appears in compact/minimal buttons view (used by dictionary bypass and popup actions).
+The vocab button appears in compact/minimal buttons view (dictionary bypass and popup actions).
+
+### Chat Saving
+
+Dictionary lookups are **not saved** by default (`Save Mode: Don't Save`). This prevents cluttering your chat history with individual word lookups. You can change this in Settings → Dictionary Settings → Save Mode:
+
+- **Don't Save** (default): Lookups are not saved. If you expand a compact view chat, the Save button becomes active so you can save if needed.
+- **Document**: Saves lookups as chats under the current document.
+- **Dictionary Chats**: Saves to a dedicated "Dictionary Lookups" category in Chat History.
 
 ---
 
@@ -657,7 +665,7 @@ See `custom_actions.lua.sample` for more examples.
 - **Response Language**: Language for definitions (Follow Translation Language or specific)
 - **Context Mode**: Surrounding text to include (Sentence, Surrounding, None)
 - **Context Characters**: Character count for Surrounding mode (default: 100)
-- **Save Mode**: Where to save dictionary chats (Document, Don't Save, Dictionary Chats)
+- **Save Mode**: Where to save dictionary chats (Don't Save (default), Document, Dictionary Chats)
 - **Enable Streaming**: Stream dictionary responses in real-time
 - **Dictionary Popup Actions**: Configure actions in the dictionary popup AI menu
 - **Bypass KOReader Dictionary**: Skip dictionary popup, go directly to AI
