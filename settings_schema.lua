@@ -513,6 +513,21 @@ local SettingsSchema = {
                     callback = "buildDictionaryContextModeMenu",
                 },
                 {
+                    id = "dictionary_context_chars",
+                    type = "spinner",
+                    text = _("Context Characters"),
+                    path = "features.dictionary_context_chars",
+                    default = 100,
+                    min = 20,
+                    max = 500,
+                    step = 10,
+                    help_text = _("Number of characters to include before/after the word when Context Mode is 'Characters'"),
+                    enabled_func = function(plugin)
+                        local f = plugin.settings:readSetting("features") or {}
+                        return f.dictionary_context_mode == "characters"
+                    end,
+                },
+                {
                     id = "dictionary_save_mode",
                     type = "submenu",
                     text_func = function(plugin)
@@ -534,6 +549,38 @@ local SettingsSchema = {
                     path = "features.dictionary_use_compact_view",
                     default = true,
                     help_text = _("Show dictionary responses in a smaller window"),
+                },
+                {
+                    id = "dictionary_enable_streaming",
+                    type = "toggle",
+                    text = _("Enable Streaming"),
+                    path = "features.dictionary_enable_streaming",
+                    default = true,
+                    help_text = _("Stream dictionary responses in real-time. Disable to wait for complete response."),
+                },
+                {
+                    id = "dictionary_popup_actions",
+                    type = "action",
+                    text = _("Dictionary Popup Actions"),
+                    callback = "showDictionaryPopupManager",
+                    help_text = _("Configure which actions appear in the dictionary popup"),
+                },
+                {
+                    id = "dictionary_bypass_enabled",
+                    type = "toggle",
+                    text = _("Bypass KOReader Dictionary"),
+                    path = "features.dictionary_bypass_enabled",
+                    default = false,
+                    help_text = _("Skip KOReader's dictionary and go directly to AI when tapping words. Uses the first action from 'Dictionary Popup Actions' list above."),
+                    on_change = function(new_value, plugin)
+                        -- Re-sync the bypass when setting changes
+                        if plugin.syncDictionaryBypass then
+                            local UIManager = require("ui/uimanager")
+                            UIManager:nextTick(function()
+                                plugin:syncDictionaryBypass()
+                            end)
+                        end
+                    end,
                 },
             },
         },

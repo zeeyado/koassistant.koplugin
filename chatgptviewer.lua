@@ -452,6 +452,10 @@ local ChatGPTViewer = InputContainer:extend {
 
   -- Compact view mode (used for dictionary lookups)
   compact_view = false,
+
+  -- Minimal buttons mode (used for dictionary lookups)
+  -- Shows only: MD/Text, Copy, Expand, Close
+  minimal_buttons = false,
 }
 
 function ChatGPTViewer:init()
@@ -791,11 +795,70 @@ function ChatGPTViewer:init()
       (self.configuration.features.hide_long_highlights and string.len(highlight_text) > threshold)
   end
 
+  -- Minimal buttons for compact dictionary view: MD/Text, Copy, Expand, Close
+  local minimal_button_row = {
+    {
+      text_func = function()
+        return self.render_markdown and "MD" or "Text"
+      end,
+      id = "toggle_markdown",
+      callback = function()
+        self:toggleMarkdown()
+      end,
+      hold_callback = function()
+        UIManager:show(Notification:new{
+          text = _("Toggle between markdown and plain text display"),
+          timeout = 2,
+        })
+      end,
+    },
+    {
+      text = _("Copy"),
+      id = "copy_chat",
+      callback = function()
+        if self.export_callback then
+          self.export_callback()
+        else
+          UIManager:show(Notification:new{
+            text = _("Copy function not available"),
+            timeout = 2,
+          })
+        end
+      end,
+      hold_callback = self.default_hold_callback,
+    },
+    {
+      text = _("Expand"),
+      id = "expand_view",
+      callback = function()
+        self:expandToFullView()
+      end,
+      hold_callback = function()
+        UIManager:show(Notification:new{
+          text = _("Open in full-size viewer with all options"),
+          timeout = 2,
+        })
+      end,
+    },
+    {
+      text = _("Close"),
+      callback = function()
+        self:onClose()
+      end,
+      hold_callback = self.default_hold_callback,
+    },
+  }
+
   local buttons = self.buttons_table or {}
   if self.add_default_buttons or not self.buttons_table then
-    -- Add both rows
-    for _, row in ipairs(default_buttons) do
-      table.insert(buttons, row)
+    -- Use minimal buttons in minimal mode, otherwise use full default buttons
+    if self.minimal_buttons then
+      table.insert(buttons, minimal_button_row)
+    else
+      -- Add both rows
+      for _, row in ipairs(default_buttons) do
+        table.insert(buttons, row)
+      end
     end
   end
   self.button_table = ButtonTable:new {
@@ -1012,6 +1075,67 @@ function ChatGPTViewer:onMultiSwipe(arg, ges_ev)
   -- multiswipe to close this widget too.
   self:onClose()
   return true
+end
+
+function ChatGPTViewer:expandToFullView()
+  -- Regenerate text from message history with prefixes (compact_view=false)
+  -- This is needed because the original text was generated without prefixes
+  local expanded_text = self.text
+  if self._message_history and self.configuration then
+    -- Create a config copy with compact_view=false to regenerate with prefixes
+    local expanded_config = {}
+    for k, v in pairs(self.configuration) do
+      if type(v) == "table" then
+        expanded_config[k] = {}
+        for k2, v2 in pairs(v) do
+          expanded_config[k][k2] = v2
+        end
+      else
+        expanded_config[k] = v
+      end
+    end
+    -- Ensure compact_view is false so prefixes are included
+    if expanded_config.features then
+      expanded_config.features.compact_view = false
+    end
+    -- Regenerate text with prefixes
+    expanded_text = self._message_history:createResultText(self.original_highlighted_text, expanded_config)
+  end
+
+  -- Collect current state
+  local current_state = {
+    text = expanded_text,  -- Use regenerated text with prefixes
+    title = self.title,
+    title_multilines = self.title_multilines,
+    title_shrink_font_to_fit = self.title_shrink_font_to_fit,
+    _message_history = self._message_history,
+    original_highlighted_text = self.original_highlighted_text,
+    configuration = self.configuration,
+    onAskQuestion = self.onAskQuestion,
+    save_callback = self.save_callback,
+    export_callback = self.export_callback,
+    tag_callback = self.tag_callback,
+    close_callback = self.close_callback,
+    add_default_buttons = true,
+    render_markdown = self.render_markdown,
+    markdown_font_size = self.markdown_font_size,
+    text_align = self.text_align,
+    show_debug_in_chat = self.show_debug_in_chat,
+    hide_highlighted_text = false,  -- Show highlighted text in full view
+    _recreate_func = self._recreate_func,
+    -- Explicitly disable compact mode
+    compact_view = false,
+    minimal_buttons = false,
+  }
+
+  -- Close current viewer
+  UIManager:close(self)
+
+  -- Schedule creation of full viewer to ensure proper cleanup
+  UIManager:scheduleIn(0.1, function()
+    local full_viewer = ChatGPTViewer:new(current_state)
+    UIManager:show(full_viewer)
+  end)
 end
 
 function ChatGPTViewer:onClose()

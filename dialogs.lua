@@ -895,6 +895,8 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
 
     -- Check if compact view should be used
     local use_compact_view = temp_config and temp_config.features and temp_config.features.compact_view
+    -- Check if minimal buttons should be used (for dictionary popup lookups)
+    local use_minimal_buttons = temp_config and temp_config.features and temp_config.features.minimal_buttons
 
     chatgpt_viewer = ChatGPTViewer:new {
         title = title .. " (" .. model_info .. ")",
@@ -902,6 +904,7 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
         configuration = temp_config or CONFIGURATION,  -- Pass configuration for debug toggle
         show_debug_in_chat = temp_config and temp_config.features and temp_config.features.show_debug_in_chat or false,
         compact_view = use_compact_view,  -- Use compact height for dictionary lookups
+        minimal_buttons = use_minimal_buttons,  -- Use minimal buttons for dictionary lookups
         original_history = history,
         original_highlighted_text = highlightedText,
         _recreate_func = recreate_func, -- For rotation handling
