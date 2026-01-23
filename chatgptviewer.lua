@@ -600,9 +600,13 @@ function ChatGPTViewer:init()
     },
     {
       text_func = function()
-        -- Only show "Autosaved" if auto_save_all_chats is true AND chat is not skipped/expanded-from-skip
+        -- Show "Autosaved" when auto-save is active for this chat:
+        -- auto_save_all_chats, OR auto_save_chats + already saved once
         local features = self.configuration and self.configuration.features
-        local auto_save = features and features.auto_save_all_chats == true
+        local auto_save = features and (
+          features.auto_save_all_chats or
+          (features.auto_save_chats ~= false and features.chat_saved)
+        )
         local skip_save = features and features.storage_key == "__SKIP__"
         local expanded_from_skip = features and features.expanded_from_skip
         return (auto_save and not skip_save and not expanded_from_skip) and _("Autosaved") or _("Save")
@@ -982,14 +986,18 @@ function ChatGPTViewer:init()
     show_parent = self,
   }
 
-  -- Disable save button if auto-save is enabled AND chat is not skipped/expanded-from-skip
+  -- Disable save button if auto-save is active for this chat:
+  -- auto_save_all_chats, OR auto_save_chats + already saved once
   -- Skipped chats (storage_key = "__SKIP__") should always allow manual save
   -- Expanded-from-skip chats should also allow manual save initially
   local features = self.configuration and self.configuration.features
-  local auto_save_enabled = features and features.auto_save_all_chats == true
+  local auto_save_active = features and (
+    features.auto_save_all_chats or
+    (features.auto_save_chats ~= false and features.chat_saved)
+  )
   local skip_save = features and features.storage_key == "__SKIP__"
   local expanded_from_skip = features and features.expanded_from_skip
-  if auto_save_enabled and not skip_save and not expanded_from_skip then
+  if auto_save_active and not skip_save and not expanded_from_skip then
     local save_button = self.button_table:getButtonById("save_chat")
     if save_button then
       save_button:disable()

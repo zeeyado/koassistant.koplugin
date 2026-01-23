@@ -29,7 +29,6 @@
 --   storage_key      - Override chat save location (optional):
 --                      nil/unset: Default (current document, or __GENERAL_CHATS__ for general context)
 --                      "__SKIP__": Don't save this chat at all
---                      "__DICTIONARY_CHATS__": Save to dedicated Dictionary chats
 --                      Custom string: Save to that pseudo-document
 
 local _ = require("koassistant_gettext")
@@ -212,7 +211,7 @@ Actions.special = {
 Format as a dictionary entry:
 - First line: **word** _part of speech (of **lemma**), features_
 - Definition(s) numbered if multiple
-- **In context:** (((If Context is non-empty, otherise ignore))) Brief explanation of usage in the given passage
+- **In context:** Brief explanation of usage in the given passage
 
 Context: {context}
 
@@ -220,7 +219,7 @@ Respond in {dictionary_language}. Be concise.]],
         include_book_context = false,  -- Word definitions don't typically need book metadata
         extended_thinking = "off",  -- Dictionary lookups don't benefit from extended thinking
         skip_language_instruction = true,  -- Target language already in prompt
-        -- storage_key set dynamically based on dictionary_save_mode setting
+        -- storage_key set dynamically based on dictionary_disable_auto_save setting
         api_params = {
             temperature = 0.3,  -- Deterministic for definitions
             max_tokens = 1024,  -- Dictionary responses are typically short
@@ -254,7 +253,7 @@ Respond in {dictionary_language}.]],
         include_book_context = false,
         extended_thinking = "off",
         skip_language_instruction = true,
-        -- storage_key set dynamically based on dictionary_save_mode setting
+        -- storage_key set dynamically based on dictionary_disable_auto_save setting
         api_params = {
             temperature = 0.3,
             max_tokens = 2048,  -- Detailed analysis needs more space

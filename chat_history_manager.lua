@@ -86,8 +86,6 @@ function ChatHistoryManager:getAllDocuments()
                             local document_title, book_author
                             if document_path == "__GENERAL_CHATS__" then
                                 document_title = _("General AI Chats")
-                            elseif document_path == "__DICTIONARY_CHATS__" then
-                                document_title = _("Dictionary Lookups")
                             else
                                 -- Try to get book metadata from one of the chats
                                 local book_title_found = nil
@@ -133,19 +131,12 @@ function ChatHistoryManager:getAllDocuments()
         end
     end
     
-    -- Sort: General AI Chats first, then Dictionary Lookups, then books alphabetically
+    -- Sort: General AI Chats first, then books alphabetically
     table.sort(documents, function(a, b)
         -- General chats always come first
         if a.path == "__GENERAL_CHATS__" then
             return true
         elseif b.path == "__GENERAL_CHATS__" then
-            return false
-        end
-
-        -- Dictionary chats come second
-        if a.path == "__DICTIONARY_CHATS__" then
-            return true
-        elseif b.path == "__DICTIONARY_CHATS__" then
             return false
         end
 

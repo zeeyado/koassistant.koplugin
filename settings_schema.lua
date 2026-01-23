@@ -529,19 +529,12 @@ local SettingsSchema = {
                     end,
                 },
                 {
-                    id = "dictionary_save_mode",
-                    type = "submenu",
-                    text_func = function(plugin)
-                        local f = plugin.settings:readSetting("features") or {}
-                        local mode = f.dictionary_save_mode or "none"
-                        local labels = {
-                            default = _("Default (Document)"),
-                            none = _("Don't Save"),
-                            dictionary = _("Dictionary Chats"),
-                        }
-                        return T(_("Save Mode: %1"), labels[mode] or mode)
-                    end,
-                    callback = "buildDictionarySaveModeMenu",
+                    id = "dictionary_disable_auto_save",
+                    type = "toggle",
+                    text = _("Disable Auto-save for Dictionary"),
+                    path = "features.dictionary_disable_auto_save",
+                    default = true,
+                    help_text = _("When enabled, dictionary lookups are not auto-saved. When disabled, dictionary chats follow your general chat saving settings. You can always save manually from an expanded view."),
                 },
                 {
                     id = "dictionary_enable_streaming",
@@ -595,6 +588,14 @@ local SettingsSchema = {
                     end,
                     callback = "buildDictionaryBypassActionMenu",
                     help_text = _("Action to trigger when dictionary bypass is enabled"),
+                },
+                {
+                    id = "dictionary_bypass_vocab_add",
+                    type = "toggle",
+                    text = _("Bypass: Follow Vocab Builder Auto-add"),
+                    path = "features.dictionary_bypass_vocab_add",
+                    default = true,
+                    help_text = _("When enabled, dictionary bypass follows KOReader's Vocabulary Builder auto-add setting. Disable if you use bypass for analysis of words you already know and don't want them added."),
                 },
             },
         },

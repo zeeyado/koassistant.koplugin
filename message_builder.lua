@@ -85,8 +85,21 @@ function MessageBuilder.build(params)
     if data.dictionary_language then
         user_prompt = user_prompt:gsub("{dictionary_language}", data.dictionary_language)
     end
-    if data.context then
-
+    if data.dictionary_context_mode == "none" then
+        -- Context explicitly disabled: strip lines with {context} and "In context" markers
+        local lines = {}
+        for line in (user_prompt .. "\n"):gmatch("([^\n]*)\n") do
+            if not line:find("{context}", 1, true) and
+               not line:find("In context", 1, true) then
+                table.insert(lines, line)
+            end
+        end
+        -- Remove trailing blank lines from stripped content
+        while #lines > 0 and lines[#lines]:match("^%s*$") do
+            table.remove(lines)
+        end
+        user_prompt = table.concat(lines, "\n")
+    elseif data.context then
         user_prompt = user_prompt:gsub("{context}", data.context)
     end
 
