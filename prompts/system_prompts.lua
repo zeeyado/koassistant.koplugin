@@ -627,6 +627,12 @@ function SystemPrompts.getEffectiveDictionaryLanguage(config)
         return SystemPrompts.getEffectiveTranslationLanguage(config)
     end
 
+    -- If __FOLLOW_PRIMARY__, use primary language directly
+    if dict_lang == "__FOLLOW_PRIMARY__" then
+        local primary, _ = SystemPrompts.parseUserLanguages(config.user_languages, config.primary_language)
+        return primary
+    end
+
     return dict_lang
 end
 

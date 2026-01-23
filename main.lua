@@ -1619,6 +1619,26 @@ function AskGPT:buildDictionaryLanguageMenu()
         timeout = 1.5,
       })
     end,
+  })
+
+  -- Add "Follow Primary Language" option
+  table.insert(menu_items, {
+    text = _("Follow Primary Language"),
+    checked_func = function()
+      local f = self_ref.settings:readSetting("features") or {}
+      return f.dictionary_language == "__FOLLOW_PRIMARY__"
+    end,
+    radio = true,
+    callback = function()
+      local f = self_ref.settings:readSetting("features") or {}
+      f.dictionary_language = "__FOLLOW_PRIMARY__"
+      self_ref.settings:saveSetting("features", f)
+      self_ref.settings:flush()
+      UIManager:show(Notification:new{
+        text = _("Dictionary: Follow Primary"),
+        timeout = 1.5,
+      })
+    end,
     separator = true,
   })
 
@@ -2268,18 +2288,23 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
 
   -- Get translation language display
   local trans_lang = features.translation_language
-  local trans_display
+  local trans_effective  -- The actual language name (for dictionary cascade)
+  local trans_display    -- What to show in the button
   if trans_lang == nil or trans_lang == "" or trans_lang == "__PRIMARY__" then
-    trans_display = lang_display  -- Use primary language
+    trans_effective = lang_display
+    trans_display = lang_display .. " ↵"  -- Follow primary (arrow indicates "same as")
   else
+    trans_effective = trans_lang
     trans_display = trans_lang
   end
 
   -- Get dictionary language display
   local dict_lang = features.dictionary_language
   local dict_display
-  if dict_lang == nil or dict_lang == "" or dict_lang == "__FOLLOW_TRANSLATION__" then
-    dict_display = trans_display .. " ↵"  -- Follow translation (arrow indicates "same as")
+  if dict_lang == "__FOLLOW_PRIMARY__" then
+    dict_display = lang_display .. " ↵"  -- Follow primary (same indicator as translation)
+  elseif dict_lang == nil or dict_lang == "" or dict_lang == "__FOLLOW_TRANSLATION__" then
+    dict_display = trans_effective .. " ↵T"  -- Follow translation (T distinguishes from primary)
   else
     dict_display = dict_lang
   end
@@ -2802,6 +2827,24 @@ function AskGPT:buildDictionaryLanguageMenu()
       self_ref.settings:flush()
       self_ref:updateConfigFromSettings()
     end,
+  })
+
+  -- Option to follow primary language directly
+  table.insert(items, {
+    text = _("Follow Primary Language"),
+    checked_func = function()
+      local f = self_ref.settings:readSetting("features") or {}
+      return f.dictionary_language == "__FOLLOW_PRIMARY__"
+    end,
+    radio = true,
+    callback = function()
+      local f = self_ref.settings:readSetting("features") or {}
+      f.dictionary_language = "__FOLLOW_PRIMARY__"
+      self_ref.settings:saveSetting("features", f)
+      self_ref.settings:flush()
+      self_ref:updateConfigFromSettings()
+    end,
+    separator = true,
   })
 
   -- Parse user languages if available

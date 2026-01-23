@@ -492,6 +492,8 @@ local SettingsSchema = {
                         local lang = f.dictionary_language or "__FOLLOW_TRANSLATION__"
                         if lang == "__FOLLOW_TRANSLATION__" then
                             return _("Response Language: (Follow Translation)")
+                        elseif lang == "__FOLLOW_PRIMARY__" then
+                            return _("Response Language: (Follow Primary)")
                         end
                         return T(_("Response Language: %1"), lang)
                     end,
