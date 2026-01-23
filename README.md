@@ -14,7 +14,7 @@ Chats are streamed live (like ChatGPT/Claude, etc), are automatically (or manual
 
 Most settings are configurable in the UI, including: Provider/model, AI behavior and style, user-to-AI interaction languages, translation languages, domains/project/field context, custom actions (which you can create, edit, duplicate, and adjust settings for), and advanced model settings like reasoning/thinking, temperature, and more. Most settings, additional context, and function combinations can be specified for a given action.
 
-> **Development Status**: KOAssistant is currently under heavy development, with features constantly added. 16 providers are supported (see [Supported Providers](#supported-providers)); **testing and Feedback appreciated**. You can open an issue, feature request, or start a discussion. If you don't want to wait for releases, you can clone the repo from main and check `_meta.lua` to see which version you are on. Some things may break when not on official releases. Running off of other branches than main is not recommended.
+> **Development Status**: KOAssistant is currently under active development, with features constantly added. 16 providers are supported (see [Supported Providers](#supported-providers)); **testing and Feedback appreciated**. You can open an issue, feature request, or start a discussion. If you don't want to wait for releases, you can clone the repo from main and check `_meta.lua` to see which version you are on. Some things may break when not on official releases. Running off of other branches than main is not recommended. Due to the current changing nature of the plugin, parts of the documentation (READMEs) may be out of sync.
 
 ---
 
@@ -237,13 +237,14 @@ When you tap a word in a document, KOReader normally shows its dictionary popup.
 |---------|-------------|
 | **AI Button in Dictionary Popup** | Show "AI Dictionary" button in KOReader's dictionary popup |
 | **Response Language** | Language for dictionary definitions (follow translation language or set specific) |
-| **Context Mode** | How much surrounding text to include: Sentence, Surrounding (custom chars), or None |
-| **Context Characters** | Number of characters when using "Surrounding" mode (default: 100) |
-| **Save Mode** | Where to save dictionary chats: Don't Save (default), Document, or dedicated Dictionary Chats |
+| **Context Mode** | How much surrounding text to include: Sentence, Paragraph, Characters (custom count), or None |
+| **Context Characters** | Number of characters when using "Characters" mode (default: 100) |
+| **Disable Auto-save** | Don't auto-save dictionary lookups (default: on). Disable to follow general chat saving settings |
 | **Enable Streaming** | Stream dictionary responses in real-time |
 | **Dictionary Popup Actions** | Configure which actions appear in the dictionary popup's AI menu |
 | **Bypass KOReader Dictionary** | Skip dictionary popup, go directly to AI (see below) |
 | **Bypass Action** | Which action to trigger when bypass is enabled |
+| **Bypass: Follow Vocab Builder Auto-add** | When enabled, bypass follows KOReader's Vocabulary Builder auto-add setting |
 
 ### Dictionary Popup Actions
 
@@ -276,13 +277,14 @@ When using dictionary lookups in compact view, KOAssistant integrates with KORea
 
 The vocab button appears in compact/minimal buttons view (dictionary bypass and popup actions).
 
+**Bypass: Follow Vocab Builder Auto-add** (Settings → Dictionary Settings): Controls whether dictionary bypass respects KOReader's Vocabulary Builder auto-add setting. Disable this if you use bypass for analyzing words you already know and don't want them added to the vocabulary builder.
+
 ### Chat Saving
 
-Dictionary lookups are **not saved** by default (`Save Mode: Don't Save`). This prevents cluttering your chat history with individual word lookups. You can change this in Settings → Dictionary Settings → Save Mode:
+Dictionary lookups are **not auto-saved** by default (`Disable Auto-save` is on). This prevents cluttering your chat history with individual word lookups.
 
-- **Don't Save** (default): Lookups are not saved. If you expand a compact view chat, the Save button becomes active so you can save if needed.
-- **Document**: Saves lookups as chats under the current document.
-- **Dictionary Chats**: Saves to a dedicated "Dictionary Lookups" category in Chat History.
+- **Auto-save disabled** (default): Lookups are not saved automatically. If you expand a compact view chat, the Save button becomes active so you can save manually to the current document.
+- **Auto-save enabled** (toggle off): Dictionary chats follow your general chat saving settings (auto-save all or auto-save continued).
 
 ---
 
@@ -561,6 +563,8 @@ Insert these in you action prompt if you want the AI to reference them.
 | `{count}` | Multi-book | Number of books |
 | `{books_list}` | Multi-book | Formatted list of books |
 | `{translation_language}` | Any | Target language from settings |
+| `{dictionary_language}` | Any | Dictionary response language from settings |
+| `{context}` | Highlight | Surrounding text context (sentence/paragraph/characters) |
 
 ### File-Based Custom Actions
 
@@ -663,13 +667,14 @@ See `custom_actions.lua.sample` for more examples.
 ### Dictionary Settings
 - **AI Button in Dictionary Popup**: Show AI Dictionary button when tapping words
 - **Response Language**: Language for definitions (Follow Translation Language or specific)
-- **Context Mode**: Surrounding text to include (Sentence, Surrounding, None)
-- **Context Characters**: Character count for Surrounding mode (default: 100)
-- **Save Mode**: Where to save dictionary chats (Don't Save (default), Document, Dictionary Chats)
+- **Context Mode**: Surrounding text to include (Sentence, Paragraph, Characters, None)
+- **Context Characters**: Character count for Characters mode (default: 100)
+- **Disable Auto-save for Dictionary**: Don't auto-save dictionary lookups (default: on)
 - **Enable Streaming**: Stream dictionary responses in real-time
 - **Dictionary Popup Actions**: Configure actions in the dictionary popup AI menu
 - **Bypass KOReader Dictionary**: Skip dictionary popup, go directly to AI
 - **Bypass Action**: Which action to trigger when bypass is enabled (default: Dictionary)
+- **Bypass: Follow Vocab Builder Auto-add**: Follow KOReader's Vocabulary Builder auto-add in bypass mode
 
 ### Highlight Settings
 - **Enable Highlight Bypass**: Immediately trigger action when selecting text (skip menu)

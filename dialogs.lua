@@ -598,7 +598,31 @@ local function createSaveDialog(document_path, history, chat_history_manager, is
                             if not history.chat_id then
                                 history.chat_id = result
                             end
-                            
+
+                            -- Mark as saved and update button on active viewer
+                            local active_viewer = _G.ActiveChatViewer
+                            if active_viewer then
+                                local features = active_viewer.configuration and active_viewer.configuration.features
+                                if features then
+                                    features.chat_saved = true
+                                end
+                                if active_viewer.button_table then
+                                    local will_auto_save = features and (
+                                        features.auto_save_all_chats or
+                                        features.auto_save_chats ~= false
+                                    )
+                                    local button_text = will_auto_save and _("Autosaved") or _("Saved")
+                                    local save_button = active_viewer.button_table:getButtonById("save_chat")
+                                    if save_button then
+                                        save_button:setText(button_text, save_button.width)
+                                        save_button:disable()
+                                        UIManager:setDirty(active_viewer, function()
+                                            return "ui", save_button.dimen
+                                        end)
+                                    end
+                                end
+                            end
+
                             UIManager:show(InfoMessage:new{
                                 text = _("Chat saved successfully"),
                                 timeout = 2,
@@ -1050,10 +1074,24 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
             queryChatGPT(history:getMessages(), cfg, function(success, answer, err, reasoning)
                 if success and answer and answer ~= "" then
                     history:addAssistantMessage(answer, ConfigHelper:getModelInfo(cfg), reasoning, ConfigHelper:buildDebugInfo(cfg))
+
+                    -- Determine if auto-save should apply:
+                    -- auto_save_all_chats = always, OR auto_save_chats + chat already saved once
+                    local should_auto_save = cfg.features and (
+                        cfg.features.auto_save_all_chats or
+                        (cfg.features.auto_save_chats ~= false and cfg.features.chat_saved)
+                    )
+
+                    -- Clear expanded_from_skip BEFORE recreating viewer, so new viewer
+                    -- renders "Autosaved" (disabled) once auto-save will handle it
+                    if cfg.features and cfg.features.expanded_from_skip and should_auto_save then
+                        cfg.features.expanded_from_skip = nil
+                    end
+
                     updateViewer()
 
                     -- Auto-save after each follow-up message if enabled
-                    if cfg.features and cfg.features.auto_save_all_chats then
+                    if should_auto_save then
                         local is_general_context = cfg.features.is_general_context or false
                         local suggested_title = history:getSuggestedTitle()
 
@@ -1108,6 +1146,10 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                                 if not history.chat_id then
                                     history.chat_id = save_result
                                 end
+                                -- Mark chat as saved so auto_save_chats applies to future replies
+                                if cfg.features then
+                                    cfg.features.chat_saved = true
+                                end
                                 logger.info("KOAssistant: Auto-saved chat after follow-up with id: " .. tostring(save_result))
                             else
                                 logger.warn("KOAssistant: Failed to auto-save chat after follow-up")
@@ -1126,19 +1168,76 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
             -- For non-streaming, the callback was already called, viewer will be updated
         end,
         save_callback = function()
-            -- Check if auto-save all chats is enabled (but allow manual save for expanded-from-skip chats)
             -- Must check the ACTIVE viewer's config, not temp_config, because expandToFullView
             -- creates a new config with expanded_from_skip that temp_config doesn't have
             local viewer = _G.ActiveChatViewer
             local viewer_features = viewer and viewer.configuration and viewer.configuration.features
             local expanded_from_skip = viewer_features and viewer_features.expanded_from_skip
-            if temp_config and temp_config.features and temp_config.features.auto_save_all_chats and not expanded_from_skip then
+
+            if expanded_from_skip or history.chat_id then
+                -- Save directly without dialog:
+                -- - expanded-from-skip: document path is known from expand
+                -- - chat already has ID: was saved before, just update it
+                local suggested_title = history:getSuggestedTitle()
+                local metadata = {}
+                if history.chat_id then
+                    metadata.id = history.chat_id
+                end
+                if book_metadata then
+                    metadata.book_title = book_metadata.title
+                    metadata.book_author = book_metadata.author
+                end
+                if launch_context then
+                    metadata.launch_context = launch_context
+                end
+                if history.domain then
+                    metadata.domain = history.domain
+                end
+                if highlightedText and highlightedText ~= "" then
+                    metadata.original_highlighted_text = highlightedText
+                end
+                local save_path = document_path or "__GENERAL_CHATS__"
+                local success, save_result = pcall(function()
+                    return chat_history_manager:saveChat(save_path, suggested_title, history, metadata)
+                end)
+                if success and save_result then
+                    if not history.chat_id then
+                        history.chat_id = save_result
+                    end
+                    -- Mark as saved so auto_save_chats applies to future replies
+                    if viewer_features then
+                        viewer_features.chat_saved = true
+                        if expanded_from_skip then
+                            viewer_features.expanded_from_skip = nil
+                        end
+                    end
+                    -- Button text: "Autosaved" if auto-save will handle future replies, else "Saved"
+                    local will_auto_save = viewer_features and (
+                        viewer_features.auto_save_all_chats or
+                        viewer_features.auto_save_chats ~= false
+                    )
+                    local button_text = will_auto_save and _("Autosaved") or _("Saved")
+                    local save_button = viewer.button_table and viewer.button_table:getButtonById("save_chat")
+                    if save_button then
+                        save_button:setText(button_text, save_button.width)
+                        save_button:disable()
+                        UIManager:setDirty(viewer, function()
+                            return "ui", save_button.dimen
+                        end)
+                    end
+                else
+                    UIManager:show(InfoMessage:new{
+                        text = _("Failed to save chat"),
+                        timeout = 2,
+                    })
+                end
+            elseif temp_config and temp_config.features and temp_config.features.auto_save_all_chats then
                 UIManager:show(InfoMessage:new{
                     text = T("Auto-save all chats is on - this can be changed in the settings"),
                     timeout = 3,
                 })
             else
-                -- Call our helper function to handle saving
+                -- First-time manual save with dialog (no chat_id yet)
                 local is_general_context = temp_config and temp_config.features and temp_config.features.is_general_context or false
                 createSaveDialog(document_path, history, chat_history_manager, is_general_context, book_metadata, launch_context, highlightedText)
             end
@@ -1254,6 +1353,8 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                     if not history.chat_id then
                         history.chat_id = result
                     end
+                    -- Mark as saved so auto_save_chats applies to future replies
+                    temp_config.features.chat_saved = true
                     logger.info("KOAssistant: Auto-saved chat with id: " .. tostring(result) .. ", title: " .. suggested_title)
                 else
                     logger.warn("KOAssistant: Failed to auto-save chat")
@@ -1365,6 +1466,7 @@ local function handlePredefinedPrompt(prompt_type, highlightedText, ui, configur
         dictionary_language = effective_dictionary_language,
         -- Context from dictionary hook (surrounding text)
         context = config.features.dictionary_context or "",
+        dictionary_context_mode = config.features.dictionary_context_mode,
     }
 
     -- Add book info for highlight context when:

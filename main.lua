@@ -1696,44 +1696,6 @@ function AskGPT:buildDictionaryContextModeMenu()
   return menu_items
 end
 
--- Build dictionary save mode picker menu
-function AskGPT:buildDictionarySaveModeMenu()
-  local self_ref = self
-  local menu_items = {}
-
-  local modes = {
-    { id = "default", text = _("Default (Document)"), help = _("Save to the current document's chat history") },
-    { id = "none", text = _("Don't Save"), help = _("Dictionary lookups won't be saved to history") },
-    { id = "dictionary", text = _("Dictionary Chats"), help = _("Save to a dedicated Dictionary Lookups section") },
-  }
-
-  for _i, mode in ipairs(modes) do
-    local mode_copy = mode.id
-    table.insert(menu_items, {
-      text = mode.text,
-      help_text = mode.help,
-      checked_func = function()
-        local f = self_ref.settings:readSetting("features") or {}
-        local current = f.dictionary_save_mode or "none"
-        return current == mode_copy
-      end,
-      radio = true,
-      callback = function()
-        local f = self_ref.settings:readSetting("features") or {}
-        f.dictionary_save_mode = mode_copy
-        self_ref.settings:saveSetting("features", f)
-        self_ref.settings:flush()
-        UIManager:show(Notification:new{
-          text = string.format(_("Save: %s"), mode.text),
-          timeout = 1.5,
-        })
-      end,
-    })
-  end
-
-  return menu_items
-end
-
 -- Edit custom AI behavior text
 function AskGPT:editCustomAIBehavior()
   local self_ref = self
@@ -1920,15 +1882,12 @@ function AskGPT:onDictButtonsReady(dict_popup, dict_buttons)
           -- Set dictionary-specific values
           dict_config.features.dictionary_context = context
           dict_config.features.dictionary_language = dict_language
+          dict_config.features.dictionary_context_mode = features.dictionary_context_mode or "sentence"
 
-          -- Determine storage_key based on dictionary_save_mode setting
-          local save_mode = features.dictionary_save_mode or "none"
-          if save_mode == "none" then
+          -- Skip auto-save for dictionary if setting is enabled (default: true)
+          if features.dictionary_disable_auto_save ~= false then
             dict_config.features.storage_key = "__SKIP__"
-          elseif save_mode == "dictionary" then
-            dict_config.features.storage_key = "__DICTIONARY_CHATS__"
           end
-          -- "default" leaves storage_key nil (uses document path)
 
           -- Always use compact view for dictionary popup actions
           dict_config.features.compact_view = true
@@ -1939,6 +1898,14 @@ function AskGPT:onDictButtonsReady(dict_popup, dict_buttons)
           -- Check dictionary streaming setting
           if features.dictionary_enable_streaming == false then
             dict_config.features.enable_streaming = false
+          end
+
+          -- In popup mode, KOReader's dictionary already triggered WordLookedUp
+          -- (the word was added/skipped by KOReader's own vocab builder settings).
+          -- We just reflect the state for our UI button — don't fire the event again.
+          local vocab_settings = G_reader_settings and G_reader_settings:readSetting("vocabulary_builder") or {}
+          if vocab_settings.enabled then
+            dict_config.features.vocab_word_auto_added = true
           end
 
           -- Execute the action
@@ -3067,13 +3034,11 @@ function AskGPT:syncDictionaryBypass()
         -- Set dictionary-specific values
         dict_config.features.dictionary_context = context
         dict_config.features.dictionary_language = dict_language
+        dict_config.features.dictionary_context_mode = features.dictionary_context_mode or "sentence"
 
-        -- Determine storage_key based on dictionary_save_mode setting
-        local save_mode = features.dictionary_save_mode or "none"
-        if save_mode == "none" then
+        -- Skip auto-save for dictionary if setting is enabled (default: true)
+        if features.dictionary_disable_auto_save ~= false then
           dict_config.features.storage_key = "__SKIP__"
-        elseif save_mode == "dictionary" then
-          dict_config.features.storage_key = "__DICTIONARY_CHATS__"
         end
 
         -- Always use compact view for dictionary bypass
@@ -3087,19 +3052,15 @@ function AskGPT:syncDictionaryBypass()
           dict_config.features.enable_streaming = false
         end
 
-        -- Vocab builder auto-add: if vocab builder is enabled (auto-add mode),
-        -- trigger the WordLookedUp event to add the word automatically.
-        -- This mirrors KOReader's behavior where lookups are auto-added.
-        -- G_reader_settings is a KOReader global (see .luacheckrc)
+        -- Vocab builder auto-add in bypass mode:
+        -- Only add if both vocab builder is enabled AND the bypass vocab setting allows it
         local vocab_settings = G_reader_settings and G_reader_settings:readSetting("vocabulary_builder") or {}
-        if vocab_settings.enabled then
-          -- Vocab builder is in auto-add mode - add the word
+        if vocab_settings.enabled and features.dictionary_bypass_vocab_add ~= false then
           local book_title = (self_ref.ui.doc_props and self_ref.ui.doc_props.display_title) or _("AI Dictionary lookup")
           local Event = require("ui/event")
-          self_ref.ui:handleEvent(Event:new("WordLookedUp", word, book_title, false)) -- is_manual: false (auto-add)
-          -- Mark word as auto-added so viewer shows "Added" button
+          self_ref.ui:handleEvent(Event:new("WordLookedUp", word, book_title, false))
           dict_config.features.vocab_word_auto_added = true
-          logger.info("KOAssistant: Auto-added word to vocabulary builder: " .. word)
+          logger.info("KOAssistant: Auto-added word to vocabulary builder (bypass): " .. word)
         end
 
         -- Execute the action
