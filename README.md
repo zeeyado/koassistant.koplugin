@@ -99,27 +99,24 @@ Find KOAssistant Settings in: **Tools → Page 2 → KOAssistant**
 
 ### Configure Quick Access Gestures
 
-For easy access to a list of settings, assign KOAssistant actions to a gesture:
+Assign KOAssistant actions to gestures for easy access. Go to **Settings → Gesture Manager**, pick a gesture (e.g. tap corner, multiswipe), then select **General** to find KOAssistant options.
 
-1. Go to **Settings → Gesture Manager → Tap corner → Bottom left** (or your preferred gesture)
-2. Select **General**
-3. Add KOAssistant actions:
-   - Chat History
-   - Continue Last Chat
-   - General Chat
-   - Chat About Book
-   - Settings
-   - Toggle Dictionary Bypass
-   - Toggle Highlight Bypass
-   - Translate Current Page
-   - ...
-4. Enable **"Show as QuickMenu"**
+**Recommended: AI Quick Settings on a gesture**
+Assign "KOAssistant: AI Quick Settings" to a gesture for one-tap access to the settings panel (provider, model, behavior, domain, language, bypass toggles, and more).
 
-> **Tip**: Set up gestures in both **Reader View** (while reading) and **File Browser** separately.
->
-> **Tip**: Set other gestures for specific actions you use often, e.g. a multiswipe gesture for "Open Last Chat" if you keep going back and forth between a document and a specific chat.
->
-> **Tip**: Assign "Toggle Dictionary Bypass" to a quick gesture if you frequently switch between AI and regular dictionary lookups.
+**Alternative: Build a QuickMenu**
+Assign multiple KOAssistant actions to one gesture and enable **"Show as QuickMenu"** to get a selection menu:
+- Chat History, Continue Last Chat, General Chat, Chat About Book
+- Toggle Dictionary Bypass, Toggle Highlight Bypass
+- Translate Current Page, Settings, etc.
+
+**Direct gesture assignments**
+You can also assign individual actions directly to their own gestures for instant access:
+- "Translate Current Page" on a multiswipe for instant page translation
+- "Toggle Dictionary Bypass" on a tap corner if you frequently switch modes
+- "Continue Last Chat" for quickly resuming conversations
+
+> **Note**: Set up gestures in both **Reader View** (while reading) and **File Browser** separately — they have independent gesture configs.
 
 
 ### Key Features to Explore
@@ -131,9 +128,9 @@ After basic setup, explore these features to get the most out of KOAssistant:
 | **[Behaviors](#behaviors)** | Control response style (concise, detailed, custom) | Settings → Advanced → Manage Behaviors |
 | **[Domains](#domains)** | Add project-like context to conversations | Settings → Advanced → Manage Domains |
 | **[Actions](#actions)** | Create your own prompts and workflows | Settings → Manage Actions |
-| **Highlight Menu** | Add actions directly to highlight popup | Manage Actions → Add to Highlight Menu |
-| **Dictionary Integration** | AI-powered word lookups when tapping words | Settings → Dictionary Settings |
-| **Bypass Modes** | Instant AI actions without menus | Settings → Dictionary/Highlight Settings |
+| **[Highlight Menu](#highlight-menu-actions)** | Add actions directly to highlight popup | Manage Actions → Add to Highlight Menu |
+| **[Dictionary Integration](#dictionary-integration)** | AI-powered word lookups when tapping words | Settings → Dictionary Settings |
+| **[Bypass Modes](#bypass-modes)** | Instant AI actions without menus | Settings → Dictionary/Highlight Settings |
 | **Reasoning/Thinking** | Enable deep analysis for complex questions | Settings → Advanced → Reasoning |
 | **Languages** | Configure multilingual responses | Settings → Language |
 
@@ -248,8 +245,8 @@ All three can contain instructions to the AI, and deciding what to put where can
 
 | Component | Scope | Best for |
 |-----------|-------|----------|
-| **Behavior** | Global (applies to all actions) | Communication style, formatting rules, verbosity level |
-| **Domain** | Per-chat (selected when starting) | Subject expertise, terminology, analytical frameworks |
+| **Behavior** | Global (one selection for all chats) | Communication style, formatting rules, verbosity level |
+| **Domain** | Sticky (persists until you change it) | Subject expertise, terminology, analytical frameworks |
 | **Action prompt** | Per-action (specific task) | Task-specific instructions, output format, what to analyze |
 
 > **Tip:** For most custom actions, using a standard behavior (like "Standard" or "Full") and putting detailed instructions in the action prompt works best. Reserve custom behaviors for broad style preferences you want across all interactions. Reserve domains for deep subject expertise you want across multiple actions.
@@ -306,7 +303,17 @@ When bypass is enabled, tapping a word skips KOReader's dictionary popup entirel
 
 **Toggle via gesture:** Assign "KOAssistant: Toggle Dictionary Bypass" to a gesture for quick on/off switching.
 
-**Note:** Dictionary bypass uses compact view by default for quick, focused responses.
+**Note:** Dictionary bypass (and the dictionary popup AI button) uses compact view by default for quick, focused responses.
+
+### Compact View Features
+
+The compact dictionary view provides two rows of buttons:
+- **Row 1:** MD/Text, Copy, Wiki, +Vocab
+- **Row 2:** Expand, Lang, Ctx, Close
+
+**Lang** — Re-run the lookup in a different language (picks from your configured languages). Closes the current view and opens a new one with the updated result.
+
+**Ctx: ON/OFF** — Toggle surrounding text context. If your lookup was done without context (mode set to "None" or no context available), you can turn it on to get a context-aware definition. If context was included, you can turn it off for a plain definition. Re-runs the lookup with the toggled setting.
 
 ### Vocabulary Builder Integration
 
@@ -330,7 +337,7 @@ Dictionary lookups are **not auto-saved** by default (`Disable Auto-save` is on)
 
 ## Bypass Modes
 
-Bypass modes let you skip menus and immediately trigger AI actions. Both dictionary and highlight bypass work similarly:
+Bypass modes let you skip menus and immediately trigger AI actions.
 
 ### Dictionary Bypass
 
@@ -339,7 +346,7 @@ Skip KOReader's dictionary popup when tapping words. Useful for language learner
 **How it works:**
 1. Tap a word in the document
 2. Instead of dictionary popup → AI action triggers immediately
-3. Response appears in compact view
+3. Response appears in **compact view** (minimal UI with Lang/Ctx/Vocab buttons — see [Compact View Features](#compact-view-features))
 
 **Configure:** Settings → Dictionary Settings → Bypass KOReader Dictionary
 
@@ -350,7 +357,7 @@ Skip the highlight menu when selecting text. Useful when you always want the sam
 **How it works:**
 1. Select text by long-pressing and dragging
 2. Instead of highlight menu → AI action triggers immediately
-3. Response appears based on action settings
+3. Response appears in **full view** (standard chat viewer)
 
 **Configure:** Settings → Highlight Settings → Enable Highlight Bypass
 
@@ -380,7 +387,7 @@ A special gesture action to translate all visible text on the current page:
 
 **Gesture:** KOAssistant: Translate Current Page
 
-This extracts all text from the visible page/screen and sends it to the Translate action. Unlike dictionary/highlight bypass, this uses full view (not compact) since page translations are longer.
+This extracts all text from the visible page/screen and sends it to the Translate action. Uses full view since page translations are longer.
 
 **Works with:** PDF, EPUB, DjVu, and other supported document formats.
 
@@ -520,17 +527,23 @@ Create domains via:
 
 **File format**:
 
-**Example**: `domains/philosophy.md`
+**Example**: `domains/synthesis.md` (from `domains.sample/`)
 ```markdown
-# Philosophy
+# Perennial Synthesis
 <!--
-Tokens: ~100
-Notes: General philosophical inquiry
+Tokens: ~450
+Notes: Interdisciplinary reading across mystical, philosophical, psychological traditions
 -->
 
-This conversation relates to philosophical inquiry and analysis.
-Consider different schools of thought, logical arguments, and ethical implications.
-Reference relevant philosophers and their works when appropriate.
+This conversation engages ideas across traditions—mystical, philosophical,
+psychological, scientific—seeking resonances without forcing false equivalences.
+
+## Orientation
+Approach texts and questions through multiple lenses simultaneously:
+- Depth Psychology: Jungian concepts as maps of inner territory
+- Contemplative Traditions: Sufism, Taoism, Buddhism, Christian mysticism
+- Philosophy: Western and non-Western traditions
+- Scientific Cosmology: Modern physics, complexity theory, emergence
 ```
 
 - Filename becomes the domain ID: `my_domain.md` → ID `my_domain`
@@ -543,13 +556,9 @@ See `domains.sample/` for examples including classical language support and inte
 
 ### Selecting Domains
 
-Domains are selected **per-chat** when starting a conversation:
+Select a domain via the **Domain** button in the chat input dialog, or through AI Quick Settings. Once selected, the domain **stays active** for all subsequent chats until you change it or select "None".
 
-1. In the chat dialog, tap the **Domain** button
-2. Select a domain from the list
-3. All messages in this chat will include that domain's context
-
-**Note**: Domains must be selected at the start of a chat (they provide context for the AI). Larger domains give better results but increase API costs. Once a domain is picked in the input window, it stays active until replaced by "None" or another domain; keep this in mind if you often use quick actions without opening the input dialog. You can clear/change the domain through several settings and gestures.
+**Note**: Keep this sticky behavior in mind — if you set a domain for one task, it will apply to all following actions (including quick actions that don't open the input dialog) until you clear it. You can change the domain through the input dialog, AI Quick Settings, or gesture actions.
 
 ### Browsing by Domain
 
@@ -663,7 +672,7 @@ return {
 - `include_book_context`: Add book info to highlight actions
 - `skip_language_instruction`: Don't include language instruction in system message (default: off; Translate/Dictionary use true since target language is in the prompt)
 - `skip_domain`: Don't include domain context in system message (default: off; Translate/Dictionary use true)
-- `domain`: Lock to a specific domain (overrides user selection)
+- `domain`: Force a specific domain by ID (overrides the user's current domain selection; file-only, no UI for this yet)
 
 **Per-provider reasoning config** (new in v0.6):
 ```lua
