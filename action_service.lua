@@ -538,9 +538,57 @@ end
 -- Highlight Menu Quick Actions
 -- ============================================================
 
+-- Build default action list from flags on action definitions
+-- Scans highlight (and special) actions for the given flag field
+-- Flag value is a number used for sort order
+local function buildDefaultFromFlags(actions_module, flag_field)
+    local result = {}
+    if not actions_module then return result end
+    -- Scan highlight actions
+    if actions_module.highlight then
+        for _id, action in pairs(actions_module.highlight) do
+            if action[flag_field] then
+                table.insert(result, { id = action.id, order = action[flag_field] })
+            end
+        end
+    end
+    -- Scan special actions (translate, etc.)
+    if actions_module.special then
+        for _id, action in pairs(actions_module.special) do
+            if action[flag_field] then
+                table.insert(result, { id = action.id, order = action[flag_field] })
+            end
+        end
+    end
+    table.sort(result, function(a, b) return a.order < b.order end)
+    local ids = {}
+    for _i, item in ipairs(result) do
+        table.insert(ids, item.id)
+    end
+    return ids
+end
+
+
 -- Get ordered list of highlight menu action IDs
 function ActionService:getHighlightMenuActions()
-    return self.settings:readSetting("highlight_menu_actions") or {"dictionary"}
+    local saved = self.settings:readSetting("highlight_menu_actions")
+    if not saved then
+        return buildDefaultFromFlags(self.Actions, "in_highlight_menu")
+    end
+    local has_valid = false
+    for _i, id in ipairs(saved) do
+        if self:getAction("highlight", id) then
+            has_valid = true
+            break
+        end
+    end
+    if not has_valid then
+        local new_list = buildDefaultFromFlags(self.Actions, "in_highlight_menu")
+        self.settings:saveSetting("highlight_menu_actions", new_list)
+        self.settings:flush()
+        return new_list
+    end
+    return saved
 end
 
 -- Check if action is in highlight menu
@@ -662,7 +710,39 @@ end
 
 -- Get ordered list of dictionary popup action IDs
 function ActionService:getDictionaryPopupActions()
-    return self.settings:readSetting("dictionary_popup_actions") or {"dictionary", "dictionary_detailed"}  -- Default to dictionary actions
+    local saved = self.settings:readSetting("dictionary_popup_actions")
+    if not saved then
+        return buildDefaultFromFlags(self.Actions, "in_dictionary_popup")
+    end
+    -- Check if any saved IDs still resolve to valid actions
+    local has_valid = false
+    for _i, id in ipairs(saved) do
+        if self:getAction("highlight", id) then
+            has_valid = true
+            break
+        end
+    end
+    -- If all saved IDs are stale (e.g. actions were renamed), reset to defaults
+    if not has_valid then
+        local new_list = buildDefaultFromFlags(self.Actions, "in_dictionary_popup")
+        self.settings:saveSetting("dictionary_popup_actions", new_list)
+        self.settings:flush()
+        return new_list
+    end
+    -- One-time migration: add "define" action for users upgrading from v0.11.0
+    if not self.settings:readSetting("_migrated_define_action") then
+        local has_define = false
+        for _i, id in ipairs(saved) do
+            if id == "define" then has_define = true; break end
+        end
+        if not has_define then
+            table.insert(saved, 2, "define")
+            self.settings:saveSetting("dictionary_popup_actions", saved)
+        end
+        self.settings:saveSetting("_migrated_define_action", true)
+        self.settings:flush()
+    end
+    return saved
 end
 
 -- Check if action is in dictionary popup
