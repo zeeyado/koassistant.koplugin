@@ -1506,10 +1506,11 @@ local function handlePredefinedPrompt(prompt_type, highlightedText, ui, configur
         end
     end
 
-    -- Get domain context if a domain is set
+    -- Get domain context if a domain is set (skip if action opts out)
     -- Priority: prompt.domain (locked) > config.features.selected_domain (user choice)
     local domain_context = nil
-    local domain_id = prompt.domain or (config.features and config.features.selected_domain)
+    local skip_domain = prompt and prompt.skip_domain
+    local domain_id = (not skip_domain) and (prompt.domain or (config.features and config.features.selected_domain))
     if domain_id then
         local DomainLoader = require("domain_loader")
         -- Get custom domains from config for lookup
@@ -2065,6 +2066,19 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
     local function onComplete(history, temp_config_or_error)
         if history then
             local temp_config = temp_config_or_error
+            -- Store rerun info for compact view buttons (context toggle, language change)
+            -- NOTE: Only store simple/serializable data in features (deepCopy would overflow on complex objects)
+            if temp_config and temp_config.features and temp_config.features.minimal_buttons then
+                -- Store complex objects at config top level (not in features, to avoid deepCopy)
+                temp_config._rerun_action = action
+                temp_config._rerun_ui = ui
+                temp_config._rerun_plugin = plugin
+                -- Preserve original context across re-runs (don't overwrite if already set)
+                if not temp_config.features._original_context then
+                    temp_config.features._original_context = temp_config.features.dictionary_context or ""
+                    temp_config.features._original_context_mode = temp_config.features.dictionary_context_mode or "sentence"
+                end
+            end
             local function addMessage(message, is_context, on_complete_msg)
                 history:addUserMessage(message, is_context)
                 local answer_result = queryChatGPT(history:getMessages(), temp_config, function(success, answer, err, reasoning)

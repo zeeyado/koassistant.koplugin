@@ -162,6 +162,7 @@ function PromptsManager:loadPrompts()
             id = prompt.id,
             include_book_context = prompt.include_book_context,
             skip_language_instruction = prompt.skip_language_instruction,
+            skip_domain = prompt.skip_domain,
             temperature = temperature,
             extended_thinking = prompt.extended_thinking,
             thinking_budget = prompt.thinking_budget,
@@ -187,6 +188,7 @@ function PromptsManager:loadPrompts()
                 if override.behavior_override then entry.behavior_override = override.behavior_override end
                 if override.reasoning_config then entry.reasoning_config = override.reasoning_config end
                 if override.skip_language_instruction ~= nil then entry.skip_language_instruction = override.skip_language_instruction end
+                if override.skip_domain ~= nil then entry.skip_domain = override.skip_domain end
             end
         end
 
@@ -521,6 +523,10 @@ function PromptsManager:showPromptDetails(prompt)
     local skip_lang_text = prompt.skip_language_instruction and _("Yes") or _("No")
     info_text = info_text .. "\n" .. _("Skip Language Instruction") .. ": " .. skip_lang_text
 
+    -- Show skip_domain
+    local skip_domain_text = prompt.skip_domain and _("Yes") or _("No")
+    info_text = info_text .. "\n" .. _("Skip Domain") .. ": " .. skip_domain_text
+
     if prompt.requires then
         info_text = info_text .. "\n\n" .. _("Requires") .. ": " .. prompt.requires
     end
@@ -689,6 +695,7 @@ function PromptsManager:duplicateAction(action)
         behavior_override = duplicate.behavior_override,
         include_book_context = duplicate.include_book_context,
         skip_language_instruction = duplicate.skip_language_instruction,
+        skip_domain = duplicate.skip_domain,
         reasoning_config = duplicate.reasoning_config,
         extended_thinking = duplicate.extended_thinking,
         thinking_budget = duplicate.thinking_budget,
@@ -736,6 +743,7 @@ function PromptsManager:showPromptEditor(existing_prompt)
         context = existing_prompt and existing_prompt.context or nil,
         include_book_context = existing_prompt and existing_prompt.include_book_context or (not existing_prompt and true) or false,
         skip_language_instruction = existing_prompt and existing_prompt.skip_language_instruction or false,
+        skip_domain = existing_prompt and existing_prompt.skip_domain or false,
         domain = existing_prompt and existing_prompt.domain or nil,
         temperature = existing_prompt and existing_prompt.temperature or nil,  -- nil = use global
         -- New format: reasoning_config (nil = global, "off" = force off, table = per-provider)
@@ -828,7 +836,21 @@ function PromptsManager:showStep1_NameAndContext(state)
         },
     })
 
-    -- Row 4: Add to Highlight Menu toggle (only for highlight-compatible contexts)
+    -- Row 4: Skip domain toggle
+    local domain_checkbox = state.skip_domain and "☑ " or "☐ "
+    table.insert(button_rows, {
+        {
+            text = domain_checkbox .. _("Skip domain"),
+            callback = function()
+                state.name = self.step1_dialog:getInputText()
+                state.skip_domain = not state.skip_domain
+                UIManager:close(self.step1_dialog)
+                self:showStep1_NameAndContext(state)
+            end,
+        },
+    })
+
+    -- Row 5: Add to Highlight Menu toggle (only for highlight-compatible contexts)
     if state.context and self:contextIncludesHighlight(state.context) then
         local highlight_checkbox = state.add_to_highlight_menu and "☑ " or "☐ "
         table.insert(button_rows, {
@@ -1921,10 +1943,11 @@ end
 -- Built-in action settings editor
 -- Shows a combined dialog with behavior + advanced settings
 function PromptsManager:showBuiltinSettingsEditor(prompt)
-    -- Get base action value for skip_language_instruction (from Actions.lua, without overrides)
+    -- Get base action values (from Actions.lua, without overrides)
     local Actions = require("prompts/actions")
     local base_action = Actions.getById(prompt.id)
     local base_skip_lang = base_action and base_action.skip_language_instruction or false
+    local base_skip_domain = base_action and base_action.skip_domain or false
 
     -- Initialize state from current prompt values
     local state = {
@@ -1934,6 +1957,8 @@ function PromptsManager:showBuiltinSettingsEditor(prompt)
         temperature = prompt.temperature,
         skip_language_instruction = prompt.skip_language_instruction or false,
         skip_language_instruction_base = base_skip_lang,  -- Track base for comparison on save
+        skip_domain = prompt.skip_domain or false,
+        skip_domain_base = base_skip_domain,  -- Track base for comparison on save
         -- New format: reasoning_config
         reasoning_config = prompt.reasoning_config,
         -- Legacy format (backward compatibility)
@@ -2039,7 +2064,18 @@ function PromptsManager:showBuiltinSettingsDialog(state)
                 end,
             },
         },
-        -- Row 6: Cancel / Save
+        -- Row 6: Skip domain toggle
+        {
+            {
+                text = (state.skip_domain and "☑ " or "☐ ") .. _("Skip domain"),
+                callback = function()
+                    state.skip_domain = not state.skip_domain
+                    UIManager:close(self.builtin_settings_dialog)
+                    self:showBuiltinSettingsDialog(state)
+                end,
+            },
+        },
+        -- Row 7: Cancel / Save
         {
             {
                 text = _("Cancel"),
@@ -2416,6 +2452,12 @@ function PromptsManager:saveBuiltinOverride(prompt, state)
         override.skip_language_instruction = state.skip_language_instruction
         has_any = true
     end
+    -- Save skip_domain if it differs from the base action's default
+    local base_skip_domain = state.skip_domain_base or false
+    if state.skip_domain ~= base_skip_domain then
+        override.skip_domain = state.skip_domain
+        has_any = true
+    end
 
     if has_any then
         all_overrides[key] = override
@@ -2551,6 +2593,7 @@ function PromptsManager:addPrompt(state)
             context = state.context,
             include_book_context = state.include_book_context or nil,
             skip_language_instruction = state.skip_language_instruction or nil,
+            skip_domain = state.skip_domain or nil,
             domain = state.domain,
             api_params = api_params,
             reasoning_config = state.reasoning_config,  -- nil = global, "off" = force off, table = per-provider
@@ -2605,6 +2648,7 @@ function PromptsManager:updatePrompt(existing_prompt, state)
                 context = state.context,
                 include_book_context = state.include_book_context or nil,
                 skip_language_instruction = state.skip_language_instruction or nil,
+                skip_domain = state.skip_domain or nil,
                 domain = state.domain,
                 api_params = api_params,
                 reasoning_config = state.reasoning_config,  -- nil = global, "off" = force off, table = per-provider

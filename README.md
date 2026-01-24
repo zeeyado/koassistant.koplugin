@@ -23,12 +23,13 @@ Most settings are configurable in the UI, including: Provider/model, AI behavior
 - [Quick Setup](#quick-setup)
 - [Recommended Setup](#recommended-setup)
 - [How to Use KOAssistant](#how-to-use-koassistant)
+- [How the AI Prompt Works](#how-the-ai-prompt-works)
 - [Dictionary Integration](#dictionary-integration)
 - [Bypass Modes](#bypass-modes)
-- [AI Behavior](#ai-behavior)
+- [Behaviors](#behaviors)
 - [Managing Conversations](#managing-conversations)
-- [Knowledge Domains](#knowledge-domains)
-- [Custom Actions](#custom-actions)
+- [Domains](#domains)
+- [Actions](#actions)
 - [Settings Reference](#settings-reference)
 - [Advanced Configuration](#advanced-configuration)
 - [Technical Features](#technical-features)
@@ -98,27 +99,24 @@ Find KOAssistant Settings in: **Tools → Page 2 → KOAssistant**
 
 ### Configure Quick Access Gestures
 
-For easy access to a list of settings, assign KOAssistant actions to a gesture:
+Assign KOAssistant actions to gestures for easy access. Go to **Settings → Gesture Manager**, pick a gesture (e.g. tap corner, multiswipe), then select **General** to find KOAssistant options.
 
-1. Go to **Settings → Gesture Manager → Tap corner → Bottom left** (or your preferred gesture)
-2. Select **General**
-3. Add KOAssistant actions:
-   - Chat History
-   - Continue Last Chat
-   - General Chat
-   - Chat About Book
-   - Settings
-   - Toggle Dictionary Bypass
-   - Toggle Highlight Bypass
-   - Translate Current Page
-   - ...
-4. Enable **"Show as QuickMenu"**
+**Recommended: AI Quick Settings on a gesture**
+Assign "KOAssistant: AI Quick Settings" to a gesture for one-tap access to the settings panel (provider, model, behavior, domain, language, bypass toggles, and more).
 
-> **Tip**: Set up gestures in both **Reader View** (while reading) and **File Browser** separately.
->
-> **Tip**: Set other gestures for specific actions you use often, e.g. a multiswipe gesture for "Open Last Chat" if you keep going back and forth between a document and a specific chat.
->
-> **Tip**: Assign "Toggle Dictionary Bypass" to a quick gesture if you frequently switch between AI and regular dictionary lookups.
+**Alternative: Build a QuickMenu**
+Assign multiple KOAssistant actions to one gesture and enable **"Show as QuickMenu"** to get a selection menu:
+- Chat History, Continue Last Chat, General Chat, Chat About Book
+- Toggle Dictionary Bypass, Toggle Highlight Bypass
+- Translate Current Page, Settings, etc.
+
+**Direct gesture assignments**
+You can also assign individual actions directly to their own gestures for instant access:
+- "Translate Current Page" on a multiswipe for instant page translation
+- "Toggle Dictionary Bypass" on a tap corner if you frequently switch modes
+- "Continue Last Chat" for quickly resuming conversations
+
+> **Note**: Set up gestures in both **Reader View** (while reading) and **File Browser** separately — they have independent gesture configs.
 
 
 ### Key Features to Explore
@@ -127,12 +125,12 @@ After basic setup, explore these features to get the most out of KOAssistant:
 
 | Feature | What it does | Where to configure |
 |---------|--------------|-------------------|
-| **AI Behavior** | Control response style (concise, detailed, custom) | Settings → Advanced → Manage Behaviors |
-| **Knowledge Domains** | Add project-like context to conversations | Settings → Advanced → Manage Domains |
-| **Custom Actions** | Create your own prompts and workflows | Settings → Manage Actions |
-| **Highlight Menu** | Add actions directly to highlight popup | Manage Actions → Add to Highlight Menu |
-| **Dictionary Integration** | AI-powered word lookups when tapping words | Settings → Dictionary Settings |
-| **Bypass Modes** | Instant AI actions without menus | Settings → Dictionary/Highlight Settings |
+| **[Behaviors](#behaviors)** | Control response style (concise, detailed, custom) | Settings → Advanced → Manage Behaviors |
+| **[Domains](#domains)** | Add project-like context to conversations | Settings → Advanced → Manage Domains |
+| **[Actions](#actions)** | Create your own prompts and workflows | Settings → Manage Actions |
+| **[Highlight Menu](#highlight-menu-actions)** | Add actions directly to highlight popup | Manage Actions → Add to Highlight Menu |
+| **[Dictionary Integration](#dictionary-integration)** | AI-powered word lookups when tapping words | Settings → Dictionary Settings |
+| **[Bypass Modes](#bypass-modes)** | Instant AI actions without menus | Settings → Dictionary/Highlight Settings |
 | **Reasoning/Thinking** | Enable deep analysis for complex questions | Settings → Advanced → Reasoning |
 | **Languages** | Configure multilingual responses | Settings → Language |
 
@@ -211,10 +209,49 @@ A free-form conversation without specific document context. If started while a b
 
 ### Quick UI Features
 
-- **Settings Icon (Input)**: Tap the gear icon in the input dialog title bar to open AI Quick Settings—a two-column panel for provider, model, behavior, domain, temperature, streaming, primary language, and translation language
-- **Settings Icon (Viewer)**: Tap the gear icon in the chat viewer title bar to adjust font size and text alignment (left/justified/right for RTL)
+- **Settings Icon (Input)**: Tap the gear icon in the input dialog title bar to open AI Quick Settings—a two-column panel for provider, model, behavior, domain, temperature, streaming, primary/translation/dictionary language, and highlight/dictionary bypass toggles
+- **Settings Icon (Viewer)**: Tap the gear icon in the chat viewer title bar to adjust font size and text alignment (cycles left/justified/right on each click)
 - **Show/Hide Quote**: In the chat viewer, toggle button to show or hide the highlighted text quote (useful for long selections)
 - **Other**: Turn on off Text/Markdown view, Debug view mode, add Tags, Change Domain, etc
+
+---
+
+## How the AI Prompt Works
+
+When you trigger an action, KOAssistant builds a complete request from several components:
+
+**System message** (sets AI context — sent once, cached for cost savings):
+1. **Behavior** — Communication style: tone, formatting, verbosity (see [Behaviors](#behaviors))
+2. **Domain** — Knowledge context: subject expertise, terminology (see [Domains](#domains))
+3. **Language instruction** — Which language to respond in (see [Language Settings](#language))
+
+**User message** (your specific request):
+1. **Context data** — Highlighted text, book metadata, surrounding sentences (automatic)
+2. **Action prompt** — The instruction template with placeholders filled in
+3. **User input** — Your optional free-form addition (the text you type)
+
+### Skipping System Components
+
+Some actions skip parts of the system message because they'd interfere:
+
+- **Translate** and **Dictionary** actions skip both **Domain** and **Language instruction** by default. Domain context can significantly alter translation/definition results since the AI follows domain instructions. The target language is already specified directly in the prompt template.
+- Custom actions can toggle these via the **"Skip domain"** and **"Skip language instruction"** checkboxes in the action wizard.
+
+> **Tip:** When creating custom actions, experiment with domain on and off to see what produces better results for your use case. For precise linguistic tasks (translation, grammar checking), skipping domain usually helps. For analytical tasks (explaining concepts in a field), domain context improves results.
+
+### Behavior vs Domain vs Action Prompt
+
+All three can contain instructions to the AI, and deciding what to put where can be confusing:
+
+| Component | Scope | Best for |
+|-----------|-------|----------|
+| **Behavior** | Global (one selection for all chats) | Communication style, formatting rules, verbosity level |
+| **Domain** | Sticky (persists until you change it) | Subject expertise, terminology, analytical frameworks |
+| **Action prompt** | Per-action (specific task) | Task-specific instructions, output format, what to analyze |
+
+> **Tip:** For most custom actions, using a standard behavior (like "Standard" or "Full") and putting detailed instructions in the action prompt works best. Reserve custom behaviors for broad style preferences you want across all interactions. Reserve domains for deep subject expertise you want across multiple actions.
+
+> **Tip:** There is natural overlap between behavior and domain — both are sent in the system message and both can influence the AI's approach. The key difference: behavior controls *manner* (how it speaks), domain controls *substance* (what it knows). A "scholarly" behavior makes the AI formal and rigorous; a "philosophy" domain makes it reference philosophers and logical frameworks.
 
 ---
 
@@ -266,7 +303,17 @@ When bypass is enabled, tapping a word skips KOReader's dictionary popup entirel
 
 **Toggle via gesture:** Assign "KOAssistant: Toggle Dictionary Bypass" to a gesture for quick on/off switching.
 
-**Note:** Dictionary bypass uses compact view by default for quick, focused responses.
+**Note:** Dictionary bypass (and the dictionary popup AI button) uses compact view by default for quick, focused responses.
+
+### Compact View Features
+
+The compact dictionary view provides two rows of buttons:
+- **Row 1:** MD/Text, Copy, Wiki, +Vocab
+- **Row 2:** Expand, Lang, Ctx, Close
+
+**Lang** — Re-run the lookup in a different language (picks from your configured languages). Closes the current view and opens a new one with the updated result.
+
+**Ctx: ON/OFF** — Toggle surrounding text context. If your lookup was done without context (mode set to "None" or no context available), you can turn it on to get a context-aware definition (Sentence by default). If context was included, you can turn it off for a plain definition. Re-runs the lookup with the toggled setting. This setting is not sticky, so context will revert to your main setting on closing the window.
 
 ### Vocabulary Builder Integration
 
@@ -290,7 +337,7 @@ Dictionary lookups are **not auto-saved** by default (`Disable Auto-save` is on)
 
 ## Bypass Modes
 
-Bypass modes let you skip menus and immediately trigger AI actions. Both dictionary and highlight bypass work similarly:
+Bypass modes let you skip menus and immediately trigger AI actions.
 
 ### Dictionary Bypass
 
@@ -299,7 +346,7 @@ Skip KOReader's dictionary popup when tapping words. Useful for language learner
 **How it works:**
 1. Tap a word in the document
 2. Instead of dictionary popup → AI action triggers immediately
-3. Response appears in compact view
+3. Response appears in **compact view** (minimal UI with Lang/Ctx/Vocab buttons — see [Compact View Features](#compact-view-features))
 
 **Configure:** Settings → Dictionary Settings → Bypass KOReader Dictionary
 
@@ -310,7 +357,7 @@ Skip the highlight menu when selecting text. Useful when you always want the sam
 **How it works:**
 1. Select text by long-pressing and dragging
 2. Instead of highlight menu → AI action triggers immediately
-3. Response appears based on action settings
+3. Response appears in **full view** (standard chat viewer)
 
 **Configure:** Settings → Highlight Settings → Enable Highlight Bypass
 
@@ -340,15 +387,15 @@ A special gesture action to translate all visible text on the current page:
 
 **Gesture:** KOAssistant: Translate Current Page
 
-This extracts all text from the visible page/screen and sends it to the Translate action. Unlike dictionary/highlight bypass, this uses full view (not compact) since page translations are longer.
+This extracts all text from the visible page/screen and sends it to the Translate action. Uses full view since page translations are longer.
 
 **Works with:** PDF, EPUB, DjVu, and other supported document formats.
 
 ---
 
-## AI Behavior
+## Behaviors
 
-Behavior defines the AI's personality, communication style, and response guidelines. It is sent **first** in the system instructions, before any domain context.
+Behavior defines the AI's personality, communication style, and response guidelines. It is sent **first** in the system message, before domain context and language instruction. See [How the AI Prompt Works](#how-the-ai-prompt-works) for the full picture.
 
 ### What Behavior Controls
 
@@ -395,7 +442,14 @@ See `behaviors.sample/README.md` for full documentation.
 Individual actions can override the global behavior:
 - Use a different variant (minimal/full/none)
 - Provide completely custom behavior text
-- Example: The built-in Translate action uses minimal behavior for direct translations
+- Example: The built-in Translate action uses a dedicated "translator_direct" behavior for direct translations
+
+### Relationship to Other Components
+
+- Behavior is the **first** component in the system message, followed by domain and language instruction
+- Individual actions can override or disable behavior (see [Actions](#actions) → Creating Actions)
+- Behavior controls *how* the AI communicates; for *what* context it applies, see [Domains](#domains)
+- There is natural overlap: a "scholarly" behavior and a "critical reader" domain both influence analytical depth, but from different angles (style vs expertise)
 
 ---
 
@@ -450,20 +504,13 @@ Tags are simple labels for organizing chats. Unlike domains:
 
 ---
 
-## Knowledge Domains
+## Domains
 
-Domains provide **project-like context** for AI conversations. When selected, the domain context is sent **after** the behavior instructions in the system prompt.
+Domains provide **project-like context** for AI conversations. When selected, the domain context is sent **after** behavior in the system message. See [How the AI Prompt Works](#how-the-ai-prompt-works) for the full picture.
 
 ### How It Works
 
-System instructions are built as: **Behavior + Domain + Language**
-
-This means:
-- Behavior sets HOW the AI communicates
-- Domain sets WHAT knowledge context to apply
-- Both benefit from Anthropic's prompt caching (90% cost reduction on repeated queries)
-
-You can have very small, focused domains, or large, detailed, interdisciplinary ones.
+The domain text is included in the system message after behavior and before language instruction. The AI uses it as background knowledge for the conversation. You can have very small, focused domains, or large, detailed, interdisciplinary ones. Both behavior and domain benefit from Anthropic's prompt caching (90% cost reduction on repeated queries).
 
 ### Built-in Domain
 
@@ -480,17 +527,23 @@ Create domains via:
 
 **File format**:
 
-**Example**: `domains/philosophy.md`
+**Example**: `domains/synthesis.md` (from `domains.sample/`)
 ```markdown
-# Philosophy
+# Perennial Synthesis
 <!--
-Tokens: ~100
-Notes: General philosophical inquiry
+Tokens: ~450
+Notes: Interdisciplinary reading across mystical, philosophical, psychological traditions
 -->
 
-This conversation relates to philosophical inquiry and analysis.
-Consider different schools of thought, logical arguments, and ethical implications.
-Reference relevant philosophers and their works when appropriate.
+This conversation engages ideas across traditions—mystical, philosophical,
+psychological, scientific—seeking resonances without forcing false equivalences.
+
+## Orientation
+Approach texts and questions through multiple lenses simultaneously:
+- Depth Psychology: Jungian concepts as maps of inner territory
+- Contemplative Traditions: Sufism, Taoism, Buddhism, Christian mysticism
+- Philosophy: Western and non-Western traditions
+- Scientific Cosmology: Modern physics, complexity theory, emergence
 ```
 
 - Filename becomes the domain ID: `my_domain.md` → ID `my_domain`
@@ -503,13 +556,9 @@ See `domains.sample/` for examples including classical language support and inte
 
 ### Selecting Domains
 
-Domains are selected **per-chat** when starting a conversation:
+Select a domain via the **Domain** button in the chat input dialog, or through AI Quick Settings. Once selected, the domain **stays active** for all subsequent chats until you change it or select "None".
 
-1. In the chat dialog, tap the **Domain** button
-2. Select a domain from the list
-3. All messages in this chat will include that domain's context
-
-**Note**: Domains must be selected at the start of a chat (they provide context for the AI). Larger domains give better results but increase API costs. Once a domain is picked in the input window, it stays active until replaced by "None" or another domain; keep this in mind if you often use quick actions without opening the input dialog. You can clear/change the domain through several settings and gestures.
+**Note**: Keep this sticky behavior in mind — if you set a domain for one task, it will apply to all following actions (including quick actions that don't open the input dialog) until you clear it. You can change the domain through the input dialog, AI Quick Settings, or gesture actions.
 
 ### Browsing by Domain
 
@@ -517,17 +566,22 @@ Chat History → hamburger menu → **View by Domain**
 
 **Note**: Domains are for context, not storage. Chats still save to their book or "General AI Chats", but you can filter by domain in Chat History.
 
+### Tips
+
+- **Domain can be skipped per-action**: Actions like Translate and Dictionary skip domain by default because domain instructions alter their output. You can toggle "Skip domain" for any custom action in the action wizard (see [Actions](#actions)).
+- **Domain vs Behavior overlap**: Both are sent in the system message. Behavior = communication style, Domain = knowledge context. Sometimes content could fit in either. Rule of thumb: if it's about *how to respond*, put it in behavior. If it's about *what to know*, put it in a domain.
+- **Domains affect all actions in a chat**: Once selected, the domain applies to every message in that conversation. If an action doesn't benefit from domain context, use "Skip domain" in that action's settings.
+- **Cost considerations**: Large domains increase token usage on every request. Keep domains focused. Use Anthropic for automatic prompt caching (90% cost reduction on repeated domain context).
+
 ---
 
-## Custom Actions
+## Actions
 
-Actions define what you're asking the AI to do. Combined with behavior and domain, they form the complete request:
-
-**Request = Behavior (how) + Domain (context) + Action (what) + User Input (details)**
+Actions define what you're asking the AI to do. Each action has a prompt template, and can optionally override behavior, domain, language, temperature, reasoning, and provider/model settings. See [How the AI Prompt Works](#how-the-ai-prompt-works) for how actions fit into the full request.
 
 When you select an action and start a chat, you can optionally add your own input (a question, additional context, or specific request) which gets combined with the action's prompt template.
 
-### Managing Actions in the UI
+### Managing Actions
 
 **Tools → KOAssistant → Manage Actions**
 
@@ -543,16 +597,22 @@ When you select an action and start a chat, you can optionally add your own inpu
 
 **Editing built-in actions:** Long-press any built-in action → "Edit Settings" to customize its advanced settings without creating a new action. Use "Reset to Default" to restore original settings.
 
-### Action Creation Wizard
+### Creating Actions
 
-1. **Name & Context**: Set button text and where/when it appears
-2. **AI Behavior**: Optional behavior override (use global, minimal, full, none, or custom)
-3. **Action Prompt**: The actual prompt template sent to the AI
+The action wizard walks through 4 steps:
+
+1. **Name & Context**: Set button text and where it appears (highlight, book, multi-book, general, both, all). Checkboxes:
+   - *Include book info* — Send title/author with highlight actions
+   - *Skip language instruction* — Don't send your language preferences (useful when prompt already specifies target language)
+   - *Skip domain* — Don't include domain context (useful for linguistic tasks like translation)
+   - *Add to Highlight Menu* / *Add to Dictionary Popup* — Quick-access placement
+2. **AI Behavior**: Optional behavior override (use global, select a built-in, none, or write custom text)
+3. **Action Prompt**: The instruction template with placeholder insertion (see [Template Variables](#template-variables))
 4. **Advanced**: Provider, Model, Temperature, and Reasoning/Thinking overrides
 
 ### Template Variables
 
-Insert these in you action prompt if you want the AI to reference them.
+Insert these in your action prompt to reference dynamic values:
 
 | Variable | Context | Description |
 |----------|---------|-------------|
@@ -566,7 +626,15 @@ Insert these in you action prompt if you want the AI to reference them.
 | `{dictionary_language}` | Any | Dictionary response language from settings |
 | `{context}` | Highlight | Surrounding text context (sentence/paragraph/characters) |
 
-### File-Based Custom Actions
+### Tips for Custom Actions
+
+- **Skip domain** for linguistic tasks: Translation, grammar checking, dictionary lookups work better without domain context influencing the output. Enable "Skip domain" in the action wizard for these.
+- **Skip language instruction** when the prompt already specifies a target language (using `{translation_language}` or `{dictionary_language}` placeholders), to avoid conflicting instructions.
+- **Put task-specific instructions in the action prompt**, not in behavior. Behavior applies globally; action prompts are specific. Use a standard behavior and detailed action prompts for most custom actions.
+- **Temperature matters**: Lower (0.3-0.5) for deterministic tasks (translation, definitions). Higher (0.7-0.9) for creative tasks (elaboration, recommendations).
+- **Experiment with domains**: Try running the same action with and without a domain to see what works for your use case. Some actions benefit from domain context (analysis, explanation), others don't (translation, grammar).
+
+### File-Based Actions
 
 For more control, create `custom_actions.lua`:
 
@@ -602,8 +670,9 @@ return {
 - `thinking_budget`: Legacy: Token budget when extended_thinking="on" (1024-32000)
 - `enabled`: Set to `false` to hide
 - `include_book_context`: Add book info to highlight actions
-- `skip_language_instruction`: Don't send user's language preferences to AI (default: off, except Translate action)
-- `domain`: Lock to a specific domain
+- `skip_language_instruction`: Don't include language instruction in system message (default: off; Translate/Dictionary use true since target language is in the prompt)
+- `skip_domain`: Don't include domain context in system message (default: off; Translate/Dictionary use true)
+- `domain`: Force a specific domain by ID (overrides the user's current domain selection; file-only, no UI for this yet)
 
 **Per-provider reasoning config** (new in v0.6):
 ```lua
@@ -616,6 +685,24 @@ reasoning_config = {
 ```
 
 See `custom_actions.lua.sample` for more examples.
+
+### Highlight Menu Actions
+
+Add frequently-used highlight actions directly to KOReader's highlight popup for faster access:
+
+1. Go to **Manage Actions**
+2. Tap on a highlight-context action (Explain, Translate, etc.)
+3. Tap **"Add to Highlight Menu"**
+4. A notification reminds you to restart KOReader
+
+Actions appear as "KOA: Explain", "KOA: Translate", etc. in the highlight popup.
+
+**Managing quick actions**:
+- Use **Settings → Highlight Settings → Highlight Menu Actions** to view all enabled quick actions
+- Tap an action to move it up/down or remove it
+- Actions requiring user input (like "Ask") cannot be added
+
+**Note**: Changes require an app restart since the highlight menu is built at startup.
 
 ---
 
@@ -652,8 +739,8 @@ See `custom_actions.lua.sample` for more examples.
 - **Large Stream Dialog**: Use full-screen streaming window
 
 ### Advanced
-- **Manage Behaviors**: Select or create AI behavior styles (shows current selection)
-- **Manage Domains**: Create and manage knowledge domains for project-like context
+- **Manage Behaviors**: Select or create AI behavior styles (see [Behaviors](#behaviors))
+- **Manage Domains**: Create and manage knowledge domains (see [Domains](#domains))
 - **Temperature**: Response creativity (0.0-2.0, Anthropic max 1.0)
 - **Reasoning/Thinking**: Per-provider reasoning settings:
   - **Anthropic Extended Thinking**: Budget 1024-32000 tokens
@@ -665,6 +752,7 @@ See `custom_actions.lua.sample` for more examples.
 - **Test Connection**: Verify API credentials work
 
 ### Dictionary Settings
+See [Dictionary Integration](#dictionary-integration) and [Bypass Modes](#bypass-modes) for details.
 - **AI Button in Dictionary Popup**: Show AI Dictionary button when tapping words
 - **Response Language**: Language for definitions (Follow Translation Language or specific)
 - **Context Mode**: Surrounding text to include (Sentence, Paragraph, Characters, None)
@@ -677,6 +765,7 @@ See `custom_actions.lua.sample` for more examples.
 - **Bypass: Follow Vocab Builder Auto-add**: Follow KOReader's Vocabulary Builder auto-add in bypass mode
 
 ### Highlight Settings
+See [Bypass Modes](#bypass-modes) and [Highlight Menu Actions](#highlight-menu-actions).
 - **Enable Highlight Bypass**: Immediately trigger action when selecting text (skip menu)
 - **Bypass Action**: Which action to trigger when bypass is enabled (default: Translate)
 - **Highlight Menu Actions**: View and reorder actions in the highlight popup menu
@@ -697,29 +786,14 @@ See `custom_actions.lua.sample` for more examples.
 - `"English"` - AI always responds in English
 - `"German, English, French"` with Primary set to "English" - English by default, switches if you type in German or French
 
-**Note:** The built-in Translate action skips language instruction by default since it specifies the target language directly in the prompt. You can toggle this in the action's settings, and custom actions can use `skip_language_instruction` to control this behavior.
+**How it works technically:** Your language preferences are sent as part of the system message (after behavior and domain). The instruction tells the AI to respond in your primary language and switch if you type in another configured language. See [How the AI Prompt Works](#how-the-ai-prompt-works).
+
+**Built-in actions that skip this:** Translate and Dictionary actions set `skip_language_instruction` because they specify the target language directly in their prompt templates (via `{translation_language}` and `{dictionary_language}` placeholders). This avoids conflicting instructions.
+
+**For custom actions:** If your action prompt already specifies a response language, enable "Skip language instruction" to prevent conflicts. If you want the AI to follow your global language preference, leave it disabled (the default).
 
 ### Actions
-- **Manage Actions**: Enable/disable built-in actions, create custom actions
-- **Highlight Menu Actions**: View and reorder actions added to the highlight popup menu
-
-### Highlight Menu Actions
-
-Add frequently-used highlight actions directly to KOReader's highlight popup for faster access:
-
-1. Go to **Manage Actions**
-2. Tap on a highlight-context action (Explain, Translate, etc.)
-3. Tap **"Add to Highlight Menu"**
-4. A notification reminds you to restart KOReader
-
-Actions appear as "KOA: Explain", "KOA: Translate", etc. in the highlight popup.
-
-**Managing quick actions**:
-- Use **Settings → Highlight Settings → Highlight Menu Actions** to view all enabled quick actions
-- Tap an action to move it up/down or remove it
-- Actions requiring user input (like "Ask") cannot be added
-
-**Note**: Changes require an app restart since the highlight menu is built at startup. A notification appears when you make changes.
+- **Manage Actions**: See [Actions](#actions) section for full details
 
 ### About
 - **About KOAssistant**: Plugin info and gesture tips
