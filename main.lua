@@ -1844,32 +1844,28 @@ function AskGPT:onDictButtonsReady(dict_popup, dict_buttons)
       callback = function()
         -- CRITICAL: Extract context BEFORE closing the popup
         -- The highlight/selection is cleared when the popup closes
+        -- Always extract context regardless of mode setting, so the compact view
+        -- toggle button can enable context even when the setting is "none"
         local context = ""
         local context_mode = features.dictionary_context_mode or "sentence"
+        local context_chars = features.dictionary_context_chars or 100
+        -- Use "sentence" as extraction mode when setting is "none" (for toggle availability)
+        local extraction_mode = (context_mode == "none") and "sentence" or context_mode
 
-        if context_mode ~= "none" then
-          local context_chars = features.dictionary_context_chars or 100
+        if self_ref.ui and self_ref.ui.highlight and self_ref.ui.highlight.getSelectedWordContext then
+          context = Dialogs.extractSurroundingContext(
+            self_ref.ui,
+            word,
+            extraction_mode,
+            context_chars
+          )
+        end
 
-          -- Method 1: Try KOReader's highlight module (works for hold-select, NOT for word tap)
-          -- Note: For single word taps, getSelectedWordContext returns nil because
-          -- no actual text selection exists - only the word at tap position is identified
-          if self_ref.ui and self_ref.ui.highlight and self_ref.ui.highlight.getSelectedWordContext then
-            context = Dialogs.extractSurroundingContext(
-              self_ref.ui,
-              word,
-              context_mode,
-              context_chars
-            )
-          end
-
-          -- Log result (helpful for debugging)
-          if context ~= "" then
-            logger.info("KOAssistant DICT: Got context (" .. #context .. " chars)")
-          else
-            -- Context extraction failed - this is expected for word taps
-            -- For context to work, user needs to hold-select the word instead of tapping
-            logger.info("KOAssistant DICT: No context available (word tap, not selection)")
-          end
+        -- Log result (helpful for debugging)
+        if context ~= "" then
+          logger.info("KOAssistant DICT: Got context (" .. #context .. " chars)")
+        else
+          logger.info("KOAssistant DICT: No context available (word tap, not selection)")
         end
 
         -- Now close the dictionary popup
@@ -1908,9 +1904,13 @@ function AskGPT:onDictButtonsReady(dict_popup, dict_buttons)
           dict_config.features.is_multi_book_context = nil
 
           -- Set dictionary-specific values
-          dict_config.features.dictionary_context = context
+          -- Only include context in the request if mode is not "none"
+          dict_config.features.dictionary_context = (context_mode ~= "none") and context or ""
           dict_config.features.dictionary_language = dict_language
           dict_config.features.dictionary_context_mode = features.dictionary_context_mode or "sentence"
+          -- Always store extracted context so compact view toggle can use it
+          dict_config.features._original_context = context
+          dict_config.features._original_context_mode = extraction_mode
 
           -- Skip auto-save for dictionary if setting is enabled (default: true)
           if features.dictionary_disable_auto_save ~= false then
@@ -3059,22 +3059,23 @@ function AskGPT:syncDictionaryBypass()
       -- IMPORTANT: Extract context BEFORE clearing highlight
       -- The highlight object contains the selection state needed for context extraction.
       -- Once cleared, getSelectedWordContext() will return nil.
+      -- Always extract regardless of mode, so compact view toggle can enable context later.
       local context = ""
       local context_mode = features.dictionary_context_mode or "sentence"
-      if context_mode ~= "none" then
-        local context_chars = features.dictionary_context_chars or 100
-        if self_ref.ui and self_ref.ui.highlight then
-          context = Dialogs.extractSurroundingContext(
-            self_ref.ui,
-            word,
-            context_mode,
-            context_chars
-          )
-          if context and context ~= "" then
-            logger.info("KOAssistant BYPASS: Got context (" .. #context .. " chars)")
-          else
-            logger.info("KOAssistant BYPASS: No context available")
-          end
+      local context_chars = features.dictionary_context_chars or 100
+      -- Use "sentence" as extraction mode when setting is "none" (for toggle availability)
+      local extraction_mode = (context_mode == "none") and "sentence" or context_mode
+      if self_ref.ui and self_ref.ui.highlight then
+        context = Dialogs.extractSurroundingContext(
+          self_ref.ui,
+          word,
+          extraction_mode,
+          context_chars
+        )
+        if context and context ~= "" then
+          logger.info("KOAssistant BYPASS: Got context (" .. #context .. " chars)")
+        else
+          logger.info("KOAssistant BYPASS: No context available")
         end
       end
 
@@ -3119,9 +3120,13 @@ function AskGPT:syncDictionaryBypass()
         dict_config.features.is_multi_book_context = nil
 
         -- Set dictionary-specific values
-        dict_config.features.dictionary_context = context
+        -- Only include context in the request if mode is not "none"
+        dict_config.features.dictionary_context = (context_mode ~= "none") and context or ""
         dict_config.features.dictionary_language = dict_language
         dict_config.features.dictionary_context_mode = features.dictionary_context_mode or "sentence"
+        -- Always store extracted context so compact view toggle can use it
+        dict_config.features._original_context = context
+        dict_config.features._original_context_mode = extraction_mode
 
         -- Skip auto-save for dictionary if setting is enabled (default: true)
         if features.dictionary_disable_auto_save ~= false then

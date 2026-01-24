@@ -313,7 +313,7 @@ The compact dictionary view provides two rows of buttons:
 
 **Lang** — Re-run the lookup in a different language (picks from your configured languages). Closes the current view and opens a new one with the updated result.
 
-**Ctx: ON/OFF** — Toggle surrounding text context. If your lookup was done without context (mode set to "None" or no context available), you can turn it on to get a context-aware definition. If context was included, you can turn it off for a plain definition. Re-runs the lookup with the toggled setting.
+**Ctx: ON/OFF** — Toggle surrounding text context. If your lookup was done without context (mode set to "None" or no context available), you can turn it on to get a context-aware definition (Sentence by default). If context was included, you can turn it off for a plain definition. Re-runs the lookup with the toggled setting. This setting is not sticky, so context will revert to your main setting on closing the window.
 
 ### Vocabulary Builder Integration
 
