@@ -210,8 +210,10 @@ Actions.special = {
         prompt = [[Define: {highlighted_text}
 
 Format as a dictionary entry:
-- First line: **word** _part of speech (of **lemma**), features_
+- First line: **word** _part of speech, features of_ **lemma**
 - Definition(s) numbered if multiple
+- Etymology + root if available, consise
+- Synonyms
 - **In context:** Brief explanation of usage in the given passage
 
 Context: {context}
