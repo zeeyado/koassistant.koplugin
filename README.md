@@ -259,6 +259,8 @@ All three can contain instructions to the AI, and deciding what to put where can
 
 KOAssistant integrates with KOReader's dictionary system, providing AI-powered word lookups when you tap on words in a document.
 
+> **Tip:** Go into Action Management and select a light model (e.g. Haiku) for faster dictionary Actions.
+
 ### How It Works
 
 When you tap a word in a document, KOReader normally shows its dictionary popup. With KOAssistant's dictionary integration, you can:
