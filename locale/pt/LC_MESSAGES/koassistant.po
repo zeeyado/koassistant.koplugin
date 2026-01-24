@@ -22,10 +22,11 @@ msgid "KOAssistant"
 msgstr "KOAssistente"
 
 #: _meta.lua:5
+#, fuzzy
 msgid ""
 "A powerful AI assistant integrated into KOReader. Technical research "
 "assistant and knowledge expander."
-msgstr ""
+msgstr "Um assistente de IA poderoso integrado no KOReader. Assistente de pesquisa técnica e expansor de conhecimento."
 
 #: chat_history_dialog.lua:54
 #, fuzzy
@@ -435,8 +436,9 @@ msgid "No chats found with this tag"
 msgstr "Nenhuma conversa encontrada com esta etiqueta"
 
 #: chatgptviewer.lua:58 chatgptviewer.lua:629 chatgptviewer.lua:838
+#, fuzzy
 msgid "Copy"
-msgstr ""
+msgstr "Copiar"
 
 #: chatgptviewer.lua:63
 #, fuzzy
@@ -444,23 +446,30 @@ msgid "Link copied to clipboard"
 msgstr "Copiado para a área de transferência."
 
 #: chatgptviewer.lua:68
+#, fuzzy
 msgid "Show QR code"
-msgstr ""
+msgstr "Mostrar código QR"
 
 #: chatgptviewer.lua:89
+#, fuzzy
 msgid "Add to Wallabag"
-msgstr ""
+msgstr "Adicionar ao Wallabag"
 
 #: chatgptviewer.lua:99
+#, fuzzy
 msgid "Open in browser"
-msgstr ""
+msgstr "Abrir no navegador"
 
 #: chatgptviewer.lua:123
+#, fuzzy
 msgid ""
 "External link:\n"
 "\n"
 "%1"
 msgstr ""
+"Ligação externa:\n"
+"\n"
+"%1"
 
 #: chatgptviewer.lua:595 chatgptviewer.lua:1227
 #, fuzzy
@@ -496,8 +505,9 @@ msgid "Tag function not available"
 msgstr "Função de salvar não disponível"
 
 #: chatgptviewer.lua:659
+#, fuzzy
 msgid "Add or manage tags for this chat"
-msgstr ""
+msgstr "Adicionar ou gerir etiquetas desta conversa"
 
 #: chatgptviewer.lua:680 chatgptviewer.lua:830
 #, fuzzy
@@ -510,12 +520,14 @@ msgid "Toggle debug display in chat viewer"
 msgstr "Alternar exibição de depuração no visualizador de conversas"
 
 #: chatgptviewer.lua:702 chatgptviewer.lua:1804
+#, fuzzy
 msgid "Show Quote"
-msgstr ""
+msgstr "Mostrar citação"
 
 #: chatgptviewer.lua:702 chatgptviewer.lua:1804
+#, fuzzy
 msgid "Hide Quote"
-msgstr ""
+msgstr "Ocultar citação"
 
 #: chatgptviewer.lua:714
 #, fuzzy
@@ -528,12 +540,14 @@ msgid "Show Reasoning"
 msgstr "Mostrar depuração na conversa"
 
 #: chatgptviewer.lua:730
+#, fuzzy
 msgid "View AI reasoning/thinking content (when available)"
-msgstr ""
+msgstr "Ver conteúdo de raciocínio/pensamento da IA (quando disponível)"
 
 #: chatgptviewer.lua:855
+#, fuzzy
 msgid "Wiki"
-msgstr ""
+msgstr "Wiki"
 
 #: chatgptviewer.lua:866
 #, fuzzy
@@ -541,24 +555,29 @@ msgid "Wikipedia not available"
 msgstr "Serviço de ações não disponível."
 
 #: chatgptviewer.lua:872
+#, fuzzy
 msgid "No word to look up"
-msgstr ""
+msgstr "Nenhuma palavra para pesquisar"
 
 #: chatgptviewer.lua:879
+#, fuzzy
 msgid "Look up word in Wikipedia"
-msgstr ""
+msgstr "Pesquisar palavra na Wikipedia"
 
 #: chatgptviewer.lua:890 chatgptviewer.lua:920
+#, fuzzy
 msgid "Added"
-msgstr ""
+msgstr "Adicionado"
 
 #: chatgptviewer.lua:895
+#, fuzzy
 msgid "Word added to vocabulary builder"
-msgstr ""
+msgstr "Palavra adicionada ao construtor de vocabulário"
 
 #: chatgptviewer.lua:902
+#, fuzzy
 msgid "+Vocab"
-msgstr ""
+msgstr "+Vocab"
 
 #: chatgptviewer.lua:910 main.lua:3151
 #, fuzzy
@@ -566,8 +585,9 @@ msgid "AI Dictionary lookup"
 msgstr "Idioma principal: %1"
 
 #: chatgptviewer.lua:915
+#, fuzzy
 msgid "Added '%1' to vocabulary"
-msgstr ""
+msgstr "'%1' adicionado ao vocabulário"
 
 #: chatgptviewer.lua:928
 #, fuzzy
@@ -575,16 +595,19 @@ msgid "Vocabulary builder not available"
 msgstr "Função de exportar não disponível"
 
 #: chatgptviewer.lua:936
+#, fuzzy
 msgid "Add word to vocabulary builder"
-msgstr ""
+msgstr "Adicionar palavra ao construtor de vocabulário"
 
 #: chatgptviewer.lua:945
+#, fuzzy
 msgid "Expand"
-msgstr ""
+msgstr "Expandir"
 
 #: chatgptviewer.lua:952
+#, fuzzy
 msgid "Open in full-size viewer with all options"
-msgstr ""
+msgstr "Abrir no visualizador em tamanho completo com todas as opções"
 
 #: chatgptviewer.lua:962
 #, fuzzy
@@ -602,24 +625,29 @@ msgid "Dictionary Language"
 msgstr "Idioma principal: %1"
 
 #: chatgptviewer.lua:1019
+#, fuzzy
 msgid "Re-run with a different dictionary language"
-msgstr ""
+msgstr "Reexecutar com um idioma de dicionário diferente"
 
 #: chatgptviewer.lua:1031
+#, fuzzy
 msgid "Ctx: ON"
-msgstr ""
+msgstr "Ctx: ON"
 
 #: chatgptviewer.lua:1031
+#, fuzzy
 msgid "Ctx: OFF"
-msgstr ""
+msgstr "Ctx: OFF"
 
 #: chatgptviewer.lua:1074
+#, fuzzy
 msgid "Re-run without surrounding context"
-msgstr ""
+msgstr "Reexecutar sem contexto envolvente"
 
 #: chatgptviewer.lua:1074
+#, fuzzy
 msgid "Re-run with surrounding context"
-msgstr ""
+msgstr "Reexecutar com contexto envolvente"
 
 #: chatgptviewer.lua:1230
 #, fuzzy
@@ -652,8 +680,9 @@ msgid "Quote hidden"
 msgstr "Informações de depuração ocultas"
 
 #: chatgptviewer.lua:1809
+#, fuzzy
 msgid "Quote shown"
-msgstr ""
+msgstr "Citação visível"
 
 #: chatgptviewer.lua:1833
 #, fuzzy
@@ -666,8 +695,9 @@ msgid "No reasoning content available"
 msgstr "Função de exportar não disponível"
 
 #: chatgptviewer.lua:1871
+#, fuzzy
 msgid "AI Reasoning"
-msgstr ""
+msgstr "Raciocínio da IA"
 
 #: chatgptviewer.lua:1871
 #, fuzzy
@@ -675,16 +705,19 @@ msgid "Reasoning Status"
 msgstr "Mostrar depuração na conversa"
 
 #: chatgptviewer.lua:1981
+#, fuzzy
 msgid "Justified"
-msgstr ""
+msgstr "Justificado"
 
 #: chatgptviewer.lua:1982
+#, fuzzy
 msgid "Right (RTL)"
-msgstr ""
+msgstr "Direita (RTL)"
 
 #: chatgptviewer.lua:1983
+#, fuzzy
 msgid "Left"
-msgstr ""
+msgstr "Esquerda"
 
 #: chatgptviewer.lua:1991
 #, fuzzy
@@ -692,16 +725,19 @@ msgid "Chat Viewer Settings"
 msgstr "Configurações de conversa"
 
 #: chatgptviewer.lua:1995 chatgptviewer.lua:2057
+#, fuzzy
 msgid "Font Size"
-msgstr ""
+msgstr "Tamanho da letra"
 
 #: chatgptviewer.lua:2004
+#, fuzzy
 msgid "Alignment"
-msgstr ""
+msgstr "Alinhamento"
 
 #: chatgptviewer.lua:2023
+#, fuzzy
 msgid "Alignment: %1"
-msgstr ""
+msgstr "Alinhamento: %1"
 
 #: chatgptviewer.lua:2034
 #, fuzzy
@@ -714,8 +750,9 @@ msgid "Set"
 msgstr "Definir"
 
 #: chatgptviewer.lua:2079
+#, fuzzy
 msgid "Font size set to %1"
-msgstr ""
+msgstr "Tamanho da letra definido para %1"
 
 #: chatgptviewer.lua:2106
 #, fuzzy
@@ -758,8 +795,9 @@ msgid "Failed to save chat: "
 msgstr "Falha ao salvar conversa: "
 
 #: dialogs.lua:1263
+#, fuzzy
 msgid "Save the chat first to add tags"
-msgstr ""
+msgstr "Guarde a conversa primeiro para adicionar etiquetas"
 
 #: dialogs.lua:1277
 #, fuzzy
@@ -809,8 +847,9 @@ msgid "Error: "
 msgstr "Erro: "
 
 #: dialogs.lua:1939
+#, fuzzy
 msgid "Error handling prompt: "
-msgstr ""
+msgstr "Erro ao processar prompt: "
 
 #: dialogs.lua:1976
 #, fuzzy
@@ -943,8 +982,9 @@ msgid "KOAssistant: Toggle Dictionary Bypass"
 msgstr "Ações do KOAssistente"
 
 #: main.lua:844
+#, fuzzy
 msgid "KOAssistant: Toggle Highlight Bypass"
-msgstr ""
+msgstr "KOAssistante: Alternar bypass de destaque"
 
 #: main.lua:852
 #, fuzzy
@@ -952,8 +992,9 @@ msgid "KOAssistant: Translate Current Page"
 msgstr "Idioma de tradução personalizado"
 
 #: main.lua:961
+#, fuzzy
 msgid "Custom (migrated)"
-msgstr ""
+msgstr "Personalizado (migrado)"
 
 #: main.lua:1095 main.lua:2334
 #, fuzzy, lua-format
@@ -1001,8 +1042,9 @@ msgid "Current: %s"
 msgstr "Etiquetas atuais:"
 
 #: main.lua:1287
+#, fuzzy
 msgid "Using key from apikeys.lua"
-msgstr ""
+msgstr "A usar chave de apikeys.lua"
 
 #: main.lua:1289
 #, fuzzy
@@ -1010,22 +1052,26 @@ msgid "Enter API key..."
 msgstr "Digite sua resposta."
 
 #: main.lua:1295
+#, fuzzy
 msgid "API Key"
-msgstr ""
+msgstr "Chave API"
 
 #: main.lua:1309
+#, fuzzy
 msgid "Clear"
-msgstr ""
+msgstr "Limpar"
 
 #: main.lua:1319
 #, lua-format
+#, fuzzy
 msgid "%s API key cleared"
-msgstr ""
+msgstr "Chave API de %s removida"
 
 #: main.lua:1337
 #, lua-format
+#, fuzzy
 msgid "%s API key saved"
-msgstr ""
+msgstr "Chave API de %s guardada"
 
 #: main.lua:1397
 #, fuzzy
@@ -1044,8 +1090,9 @@ msgstr "Idioma principal: %1"
 
 #: main.lua:1466
 #, lua-format
+#, fuzzy
 msgid "Use Primary (%s)"
-msgstr ""
+msgstr "Usar principal (%s)"
 
 #: main.lua:1492 main.lua:1532 main.lua:2439
 #, fuzzy, lua-format
@@ -1083,8 +1130,9 @@ msgid "Follow Translation Language"
 msgstr "Idioma de tradução personalizado"
 
 #: main.lua:1621
+#, fuzzy
 msgid "Dictionary: Follow Translation"
-msgstr ""
+msgstr "Dicionário: Seguir tradução"
 
 #: main.lua:1629 main.lua:2875
 #, fuzzy
@@ -1102,32 +1150,39 @@ msgid "Dictionary: %s"
 msgstr "Idioma principal: %1"
 
 #: main.lua:1689 settings_schema.lua:509
+#, fuzzy
 msgid "Sentence"
-msgstr ""
+msgstr "Frase"
 
 #: main.lua:1689
+#, fuzzy
 msgid "Extract the full sentence containing the word"
-msgstr ""
+msgstr "Extrair a frase completa que contém a palavra"
 
 #: main.lua:1690 settings_schema.lua:510
+#, fuzzy
 msgid "Paragraph"
-msgstr ""
+msgstr "Parágrafo"
 
 #: main.lua:1690
+#, fuzzy
 msgid "Include more surrounding context"
-msgstr ""
+msgstr "Incluir mais contexto envolvente"
 
 #: main.lua:1691 settings_schema.lua:511
+#, fuzzy
 msgid "Characters"
-msgstr ""
+msgstr "Caracteres"
 
 #: main.lua:1691
+#, fuzzy
 msgid "Fixed number of characters before/after"
-msgstr ""
+msgstr "Número fixo de caracteres antes/depois"
 
 #: main.lua:1692
+#, fuzzy
 msgid "Only send the word, no surrounding context"
-msgstr ""
+msgstr "Enviar apenas a palavra, sem contexto envolvente"
 
 #: main.lua:1712
 #, fuzzy, lua-format
@@ -1265,8 +1320,9 @@ msgid "Language: %s"
 msgstr "Idioma"
 
 #: main.lua:2429
+#, fuzzy
 msgid "Configure your languages in Settings → Language first."
-msgstr ""
+msgstr "Configure os seus idiomas primeiro em Configurações → Idioma."
 
 #: main.lua:2460
 #, fuzzy
@@ -1284,12 +1340,14 @@ msgid "H.Bypass: OFF"
 msgstr "Destaque"
 
 #: main.lua:2485
+#, fuzzy
 msgid "D.Bypass: ON"
-msgstr ""
+msgstr "D.Bypass: ON"
 
 #: main.lua:2485
+#, fuzzy
 msgid "D.Bypass: OFF"
-msgstr ""
+msgstr "D.Bypass: OFF"
 
 #: main.lua:2532
 #, fuzzy
@@ -1324,12 +1382,14 @@ msgid "Connection test failed: "
 msgstr "Teste de conexão falhou: "
 
 #: main.lua:2677
+#, fuzzy
 msgid "Dictionary bypass: ON"
-msgstr ""
+msgstr "Bypass de dicionário: ON"
 
 #: main.lua:2677
+#, fuzzy
 msgid "Dictionary bypass: OFF"
-msgstr ""
+msgstr "Bypass de dicionário: OFF"
 
 #: main.lua:2691
 #, fuzzy
@@ -1342,16 +1402,19 @@ msgid "Highlight bypass: OFF"
 msgstr "Destaque"
 
 #: main.lua:2706
+#, fuzzy
 msgid "No document open"
-msgstr ""
+msgstr "Nenhum documento aberto"
 
 #: main.lua:2755
+#, fuzzy
 msgid "Cannot determine current page"
-msgstr ""
+msgstr "Não foi possível determinar a página atual"
 
 #: main.lua:2801
+#, fuzzy
 msgid "Could not extract text from current page"
-msgstr ""
+msgstr "Não foi possível extrair texto da página atual"
 
 #: main.lua:2812
 #, fuzzy
@@ -1359,8 +1422,9 @@ msgid "Translate action not found"
 msgstr "Idioma de tradução personalizado"
 
 #: main.lua:3292 main.lua:3345
+#, fuzzy
 msgid "Bypass action: %1"
-msgstr ""
+msgstr "Ação de bypass: %1"
 
 #: main.lua:3379
 #, fuzzy
@@ -1402,8 +1466,9 @@ msgid "Model: %1"
 msgstr "Modelo: %1"
 
 #: settings_schema.lua:72
+#, fuzzy
 msgid "API Keys"
-msgstr ""
+msgstr "Chaves API"
 
 #: settings_schema.lua:80
 #, fuzzy
@@ -1475,14 +1540,18 @@ msgstr ""
 "Menor = mais rápido, mas usa mais bateria."
 
 #: settings_schema.lua:180
+#, fuzzy
 msgid "Display Refresh Interval (ms)"
-msgstr ""
+msgstr "Intervalo de atualização do ecrã (ms)"
 
 #: settings_schema.lua:187
+#, fuzzy
 msgid ""
 "How often to refresh the display during streaming.\n"
 "Higher = better performance on slower devices."
 msgstr ""
+"Frequência de atualização do ecrã durante o streaming.\n"
+"Maior = melhor desempenho em dispositivos mais lentos."
 
 #: settings_schema.lua:197
 #, fuzzy
@@ -1495,9 +1564,10 @@ msgid "Manage Behaviors (%1)"
 msgstr "Comportamento da IA: %1"
 
 #: settings_schema.lua:213
+#, fuzzy
 msgid ""
 "Select or create AI behavior styles that define how the AI communicates."
-msgstr ""
+msgstr "Selecionar ou criar estilos de comportamento de IA que definem como a IA comunica."
 
 #: settings_schema.lua:218
 #, fuzzy
@@ -1505,8 +1575,9 @@ msgid "Manage Domains..."
 msgstr "Domínios disponíveis"
 
 #: settings_schema.lua:220
+#, fuzzy
 msgid "Manage knowledge domains. Domains are selected per-chat."
-msgstr ""
+msgstr "Gerir domínios de conhecimento. Os domínios são selecionados por conversa."
 
 #: settings_schema.lua:233 ui/prompts_manager.lua:1347
 #, fuzzy
@@ -1520,12 +1591,14 @@ msgstr ""
 "Maior = criativo, variado"
 
 #: settings_schema.lua:240 ui/prompts_manager.lua:508
+#, fuzzy
 msgid "Reasoning"
-msgstr ""
+msgstr "Raciocínio"
 
 #: settings_schema.lua:245
+#, fuzzy
 msgid "Long-press provider for supported models"
-msgstr ""
+msgstr "Pressão longa no provedor para ver modelos suportados"
 
 #: settings_schema.lua:254 ui/prompts_manager.lua:1578
 #, fuzzy
@@ -1533,15 +1606,22 @@ msgid "Anthropic Extended Thinking"
 msgstr "Pensamento estendido"
 
 #: settings_schema.lua:255 settings_schema.lua:278 settings_schema.lua:307
+#, fuzzy
 msgid "Supported models:\n"
 msgstr ""
+"Modelos suportados:\n"
+""
 
 #: settings_schema.lua:255
+#, fuzzy
 msgid ""
 "\n"
 "\n"
 "Let Claude think through complex problems before responding."
 msgstr ""
+"\n"
+"\n"
+"Permitir que o Claude pense em problemas complexos antes de responder."
 
 #: settings_schema.lua:262
 #, fuzzy
@@ -1559,25 +1639,32 @@ msgstr ""
 "Intervalo: 1024 - 32000"
 
 #: settings_schema.lua:277 ui/prompts_manager.lua:1678
+#, fuzzy
 msgid "OpenAI Reasoning"
-msgstr ""
+msgstr "Raciocínio OpenAI"
 
 #: settings_schema.lua:278
+#, fuzzy
 msgid ""
 "\n"
 "\n"
 "Reasoning is encrypted/hidden from user."
 msgstr ""
+"\n"
+"\n"
+"O raciocínio é encriptado/oculto do utilizador."
 
 #: settings_schema.lua:288 settings_schema.lua:317 settings_schema.lua:327
 #: ui/prompts_manager.lua:1711
+#, fuzzy
 msgid "Low"
-msgstr ""
+msgstr "Baixo"
 
 #: settings_schema.lua:288 settings_schema.lua:317 settings_schema.lua:328
 #: ui/prompts_manager.lua:1721
+#, fuzzy
 msgid "Medium"
-msgstr ""
+msgstr "Médio"
 
 #: settings_schema.lua:288 settings_schema.lua:317 ui/prompts_manager.lua:1731
 #, fuzzy
@@ -1585,27 +1672,35 @@ msgid "High"
 msgstr "Destaque"
 
 #: settings_schema.lua:289
+#, fuzzy
 msgid "Reasoning Effort: %1"
-msgstr ""
+msgstr "Esforço de raciocínio: %1"
 
 #: settings_schema.lua:291
+#, fuzzy
 msgid ""
 "Low = faster, cheaper\n"
 "Medium = balanced\n"
 "High = thorough reasoning"
 msgstr ""
+"Baixo = mais rápido, mais barato\n"
+"Médio = equilibrado\n"
+"Alto = raciocínio aprofundado"
 
 #: settings_schema.lua:297
+#, fuzzy
 msgid "Low (faster, cheaper)"
-msgstr ""
+msgstr "Baixo (mais rápido, mais barato)"
 
 #: settings_schema.lua:298
+#, fuzzy
 msgid "Medium (balanced)"
-msgstr ""
+msgstr "Médio (equilibrado)"
 
 #: settings_schema.lua:299
+#, fuzzy
 msgid "High (thorough)"
-msgstr ""
+msgstr "Alto (aprofundado)"
 
 #: settings_schema.lua:306 ui/prompts_manager.lua:1751
 #, fuzzy
@@ -1613,11 +1708,15 @@ msgid "Gemini Thinking"
 msgstr "Pensamento estendido"
 
 #: settings_schema.lua:307
+#, fuzzy
 msgid ""
 "\n"
 "\n"
 "Thinking is encrypted/hidden from user."
 msgstr ""
+"\n"
+"\n"
+"O pensamento é encriptado/oculto do utilizador."
 
 #: settings_schema.lua:317 settings_schema.lua:365
 #, fuzzy
@@ -1630,11 +1729,15 @@ msgid "Thinking Depth: %1"
 msgstr "Orçamento de pensamento"
 
 #: settings_schema.lua:320
+#, fuzzy
 msgid ""
 "Minimal = fastest\n"
 "Low/Medium = balanced\n"
 "High = deepest thinking"
 msgstr ""
+"Mínimo = mais rápido\n"
+"Baixo/Médio = equilibrado\n"
+"Alto = pensamento mais profundo"
 
 #: settings_schema.lua:326
 #, fuzzy
@@ -1652,12 +1755,16 @@ msgid "Show Indicator in Chat"
 msgstr "Mostrar depuração na conversa"
 
 #: settings_schema.lua:337
+#, fuzzy
 msgid ""
 "Show '*[Reasoning was used]*' indicator in chat when reasoning is requested "
 "or used.\n"
 "\n"
 "Full reasoning content is always viewable via 'Show Reasoning' button."
 msgstr ""
+"Mostrar indicador '*[Raciocínio foi utilizado]*' na conversa quando o raciocínio é solicitado ou utilizado.\n"
+"\n"
+"O conteúdo completo do raciocínio pode ser sempre visto através do botão 'Mostrar raciocínio'."
 
 #: settings_schema.lua:346
 #, fuzzy
@@ -1721,16 +1828,19 @@ msgid "Language"
 msgstr "Idioma"
 
 #: settings_schema.lua:396
+#, fuzzy
 msgid "Disable to show English UI (requires restart)"
-msgstr ""
+msgstr "Desativar para mostrar a interface em inglês (requer reinício)"
 
 #: settings_schema.lua:401
+#, fuzzy
 msgid "Match KOReader UI Language"
-msgstr ""
+msgstr "Corresponder ao idioma da interface do KOReader"
 
 #: settings_schema.lua:409
+#, fuzzy
 msgid "Please restart KOReader for the language change to take effect."
-msgstr ""
+msgstr "Por favor, reinicie o KOReader para que a alteração de idioma tenha efeito."
 
 #: settings_schema.lua:416
 #, fuzzy
@@ -1789,16 +1899,19 @@ msgid "Dictionary Settings"
 msgstr "Configurações de exibição"
 
 #: settings_schema.lua:482
+#, fuzzy
 msgid "AI Button in Dictionary Popup"
-msgstr ""
+msgstr "Botão IA na janela do dicionário"
 
 #: settings_schema.lua:485
+#, fuzzy
 msgid "Show AI Dictionary button when tapping on a word"
-msgstr ""
+msgstr "Mostrar botão de dicionário IA ao tocar numa palavra"
 
 #: settings_schema.lua:494
+#, fuzzy
 msgid "Response Language: (Follow Translation)"
-msgstr ""
+msgstr "Idioma da resposta: (Seguir tradução)"
 
 #: settings_schema.lua:496
 #, fuzzy
@@ -1821,65 +1934,77 @@ msgid "Context Characters"
 msgstr "Continuar conversa"
 
 #: settings_schema.lua:527
+#, fuzzy
 msgid ""
 "Number of characters to include before/after the word when Context Mode is "
 "'Characters'"
-msgstr ""
+msgstr "Número de caracteres a incluir antes/depois da palavra quando o modo de contexto é 'Caracteres'"
 
 #: settings_schema.lua:536
+#, fuzzy
 msgid "Disable Auto-save for Dictionary"
-msgstr ""
+msgstr "Desativar gravação automática para o dicionário"
 
 #: settings_schema.lua:539
+#, fuzzy
 msgid ""
 "When enabled, dictionary lookups are not auto-saved. When disabled, "
 "dictionary chats follow your general chat saving settings. You can always "
 "save manually from an expanded view."
-msgstr ""
+msgstr "Quando ativado, as pesquisas de dicionário não são guardadas automaticamente. Quando desativado, as conversas de dicionário seguem as configurações gerais de gravação. Pode sempre guardar manualmente a partir de uma vista expandida."
 
 #: settings_schema.lua:547
+#, fuzzy
 msgid ""
 "Stream dictionary responses in real-time. Disable to wait for complete "
 "response."
-msgstr ""
+msgstr "Transmitir respostas do dicionário em tempo real. Desativar para aguardar a resposta completa."
 
 #: settings_schema.lua:552
+#, fuzzy
 msgid "Dictionary Popup Actions"
-msgstr ""
+msgstr "Ações da janela do dicionário"
 
 #: settings_schema.lua:554
+#, fuzzy
 msgid "Configure which actions appear in the dictionary popup"
-msgstr ""
+msgstr "Configurar quais ações aparecem na janela do dicionário"
 
 #: settings_schema.lua:559
+#, fuzzy
 msgid "Bypass KOReader Dictionary"
-msgstr ""
+msgstr "Contornar dicionário do KOReader"
 
 #: settings_schema.lua:562
+#, fuzzy
 msgid ""
 "Skip KOReader's dictionary and go directly to AI when tapping words. Can "
 "also be toggled via gesture."
-msgstr ""
+msgstr "Saltar o dicionário do KOReader e ir diretamente para a IA ao tocar em palavras. Pode também ser alternado por gesto."
 
 #: settings_schema.lua:583 settings_schema.lua:587 settings_schema.lua:589
 #: settings_schema.lua:629 settings_schema.lua:633 settings_schema.lua:635
+#, fuzzy
 msgid "Bypass Action: %1"
-msgstr ""
+msgstr "Ação de bypass: %1"
 
 #: settings_schema.lua:592
+#, fuzzy
 msgid "Action to trigger when dictionary bypass is enabled"
-msgstr ""
+msgstr "Ação a acionar quando o bypass de dicionário está ativado"
 
 #: settings_schema.lua:597
+#, fuzzy
 msgid "Bypass: Follow Vocab Builder Auto-add"
-msgstr ""
+msgstr "Bypass: Seguir adição automática do construtor de vocabulário"
 
 #: settings_schema.lua:600
+#, fuzzy
 msgid ""
 "When enabled, dictionary bypass follows KOReader's Vocabulary Builder auto-"
 "add setting. Disable if you use bypass for analysis of words you already "
 "know and don't want them added."
-msgstr ""
+msgstr "Quando ativado, o bypass de dicionário segue a configuração de adição automática do construtor de vocabulário do KOReader. Desative se usa o bypass para análise de palavras que já conhece e não quer que sejam adicionadas."
 
 #: settings_schema.lua:609
 #, fuzzy
@@ -1887,18 +2012,21 @@ msgid "Highlight Settings"
 msgstr "Ações do menu de destaque"
 
 #: settings_schema.lua:614
+#, fuzzy
 msgid "Enable Highlight Bypass"
-msgstr ""
+msgstr "Ativar bypass de destaque"
 
 #: settings_schema.lua:617
+#, fuzzy
 msgid ""
 "Immediately trigger an action when text is selected, skipping the highlight "
 "menu. Can also be toggled via gesture."
-msgstr ""
+msgstr "Acionar imediatamente uma ação quando texto é selecionado, saltando o menu de destaque. Pode também ser alternado por gesto."
 
 #: settings_schema.lua:638
+#, fuzzy
 msgid "Action to trigger when highlight bypass is enabled"
-msgstr ""
+msgstr "Ação a acionar quando o bypass de destaque está ativado"
 
 #: settings_schema.lua:643
 #, fuzzy
@@ -1906,8 +2034,9 @@ msgid "Highlight Menu Actions"
 msgstr "Ações do menu de destaque"
 
 #: settings_schema.lua:645
+#, fuzzy
 msgid "Choose which actions appear in the highlight menu (requires restart)"
-msgstr ""
+msgstr "Escolher quais ações aparecem no menu de destaque (requer reinício)"
 
 #: settings_schema.lua:654 ui/prompts_manager.lua:418
 #, fuzzy
@@ -1935,12 +2064,14 @@ msgid "No response received. Raw: "
 msgstr "Nenhuma resposta recebida. Dados brutos: "
 
 #: stream_handler.lua:263 stream_handler.lua:294
+#, fuzzy
 msgid "Autoscroll OFF ↓"
-msgstr ""
+msgstr "Deslocamento auto OFF ↓"
 
 #: stream_handler.lua:278 stream_handler.lua:294
+#, fuzzy
 msgid "Autoscroll ON ↓"
-msgstr ""
+msgstr "Deslocamento auto ON ↓"
 
 #: stream_handler.lua:288
 #, fuzzy
@@ -1958,8 +2089,9 @@ msgid "Failed to start subprocess for request"
 msgstr "Falha ao iniciar subprocesso para a solicitação"
 
 #: ui/behavior_manager.lua:122
+#, fuzzy
 msgid "Tap to select • Hold for details"
-msgstr ""
+msgstr "Toque para selecionar • Pressão longa para detalhes"
 
 #: ui/behavior_manager.lua:129
 #, fuzzy
@@ -1967,16 +2099,19 @@ msgid "+ Create New Behavior"
 msgstr "Comportamento de IA personalizado"
 
 #: ui/behavior_manager.lua:147 ui/domain_manager.lua:147
+#, fuzzy
 msgid "BUILT-IN"
-msgstr ""
+msgstr "INTEGRADO"
 
 #: ui/behavior_manager.lua:149
+#, fuzzy
 msgid "FROM BEHAVIORS/ FOLDER"
-msgstr ""
+msgstr "DA PASTA BEHAVIORS/"
 
 #: ui/behavior_manager.lua:151 ui/domain_manager.lua:151
+#, fuzzy
 msgid "CUSTOM (UI-CREATED)"
-msgstr ""
+msgstr "PERSONALIZADO (CRIADO NA UI)"
 
 #: ui/behavior_manager.lua:175
 #, fuzzy, lua-format
@@ -2009,12 +2144,14 @@ msgid "Built-in"
 msgstr "Integrado"
 
 #: ui/behavior_manager.lua:248
+#, fuzzy
 msgid "File (behaviors/ folder)"
-msgstr ""
+msgstr "Ficheiro (pasta behaviors/)"
 
 #: ui/behavior_manager.lua:250 ui/domain_manager.lua:269
+#, fuzzy
 msgid "Custom (UI-created)"
-msgstr ""
+msgstr "Personalizado (criado na UI)"
 
 #: ui/behavior_manager.lua:262 ui/domain_manager.lua:281
 #: ui/prompts_manager.lua:505
@@ -2023,8 +2160,9 @@ msgid "Source"
 msgstr "Fonte"
 
 #: ui/behavior_manager.lua:269
+#, fuzzy
 msgid "Based on"
-msgstr ""
+msgstr "Baseado em"
 
 #: ui/behavior_manager.lua:272
 #, fuzzy
@@ -2032,12 +2170,14 @@ msgid "Date"
 msgstr "Data:"
 
 #: ui/behavior_manager.lua:275 ui/domain_manager.lua:288
+#, fuzzy
 msgid "Notes"
-msgstr ""
+msgstr "Notas"
 
 #: ui/behavior_manager.lua:279 ui/domain_manager.lua:292
+#, fuzzy
 msgid "Size"
-msgstr ""
+msgstr "Tamanho"
 
 #: ui/behavior_manager.lua:281 ui/domain_manager.lua:294
 #, fuzzy
@@ -2056,19 +2196,23 @@ msgid "Delete '%s'?"
 msgstr "Excluir"
 
 #: ui/behavior_manager.lua:314 ui/domain_manager.lua:327
+#, fuzzy
 msgid "Duplicate"
-msgstr ""
+msgstr "Duplicar"
 
 #: ui/behavior_manager.lua:323
+#, fuzzy
 msgid "Behavior duplicated"
-msgstr ""
+msgstr "Comportamento duplicado"
 
 #: ui/behavior_manager.lua:333
+#, fuzzy
 msgid "About File-Based Behaviors"
-msgstr ""
+msgstr "Sobre comportamentos baseados em ficheiro"
 
 #: ui/behavior_manager.lua:338
 #, lua-format
+#, fuzzy
 msgid ""
 "This behavior is loaded from a file in:\n"
 "\n"
@@ -2076,12 +2220,18 @@ msgid ""
 "\n"
 "To edit, modify the file directly."
 msgstr ""
+"Este comportamento é carregado a partir de um ficheiro em:\n"
+"\n"
+"%s\n"
+"\n"
+"Para editar, modifique o ficheiro diretamente."
 
 #: ui/behavior_manager.lua:347 ui/behavior_manager.lua:358
 #: ui/behavior_manager.lua:609 ui/domain_manager.lua:359
 #: ui/domain_manager.lua:370 ui/domain_manager.lua:580
+#, fuzzy
 msgid "Use as Template"
-msgstr ""
+msgstr "Usar como modelo"
 
 #: ui/behavior_manager.lua:378
 #, fuzzy
@@ -2104,12 +2254,14 @@ msgid "Enter behavior name..."
 msgstr "Digite o nome da etiqueta"
 
 #: ui/behavior_manager.lua:403
+#, fuzzy
 msgid "Give this behavior a descriptive name."
-msgstr ""
+msgstr "Dê a este comportamento um nome descritivo."
 
 #: ui/behavior_manager.lua:415 ui/domain_manager.lua:427
+#, fuzzy
 msgid "Use Template..."
-msgstr ""
+msgstr "Usar modelo..."
 
 #: ui/behavior_manager.lua:427 ui/domain_manager.lua:439
 #, fuzzy
@@ -2122,12 +2274,14 @@ msgid "Please enter a name"
 msgstr "Por favor, digite um nome de prompt"
 
 #: ui/behavior_manager.lua:456
+#, fuzzy
 msgid "New Behavior - Content"
-msgstr ""
+msgstr "Novo comportamento - Conteúdo"
 
 #: ui/behavior_manager.lua:456
+#, fuzzy
 msgid "Edit Behavior - Content"
-msgstr ""
+msgstr "Editar comportamento - Conteúdo"
 
 #: ui/behavior_manager.lua:458
 #, fuzzy
@@ -2136,12 +2290,16 @@ msgstr "Digite instruções de comportamento de IA personalizadas..."
 
 #: ui/behavior_manager.lua:459
 #, lua-format
+#, fuzzy
 msgid ""
 "Name: %s\n"
 "\n"
 "Define how the AI should behave. This text is sent as part of the system "
 "prompt."
 msgstr ""
+"Nome: %s\n"
+"\n"
+"Defina como a IA deve comportar-se. Este texto é enviado como parte do prompt de sistema."
 
 #: ui/behavior_manager.lua:474
 #, fuzzy
@@ -2164,20 +2322,24 @@ msgid "Updated: %s"
 msgstr "Modelo: %1"
 
 #: ui/behavior_manager.lua:553
+#, fuzzy
 msgid "Load Built-in Behavior"
-msgstr ""
+msgstr "Carregar comportamento integrado"
 
 #: ui/behavior_manager.lua:570 ui/domain_manager.lua:534
+#, fuzzy
 msgid "Start Blank"
-msgstr ""
+msgstr "Começar em branco"
 
 #: ui/domain_manager.lua:110
+#, fuzzy
 msgid "Hold for details • Domains are selected when starting a chat"
-msgstr ""
+msgstr "Pressão longa para detalhes • Os domínios são selecionados ao iniciar uma conversa"
 
 #: ui/domain_manager.lua:117
+#, fuzzy
 msgid "+ Create New Domain"
-msgstr ""
+msgstr "+ Criar novo domínio"
 
 #: ui/domain_manager.lua:128
 #, fuzzy
@@ -2190,15 +2352,20 @@ msgid "Create custom domains here or add .md/.txt files to the domains/ folder"
 msgstr "Crie arquivos .md ou .txt na pasta domains/."
 
 #: ui/domain_manager.lua:149
+#, fuzzy
 msgid "FROM DOMAINS/ FOLDER"
-msgstr ""
+msgstr "DA PASTA DOMAINS/"
 
 #: ui/domain_manager.lua:178
+#, fuzzy
 msgid ""
 "Domains are selected when starting a chat.\n"
 "\n"
 "Hold to view details or edit."
 msgstr ""
+"Os domínios são selecionados ao iniciar uma conversa.\n"
+"\n"
+"Pressão longa para ver detalhes ou editar."
 
 #: ui/domain_manager.lua:193
 #, fuzzy
@@ -2206,6 +2373,7 @@ msgid "About Domains"
 msgstr "Domínios disponíveis"
 
 #: ui/domain_manager.lua:196
+#, fuzzy
 msgid ""
 "Domains provide specialized knowledge context to the AI.\n"
 "\n"
@@ -2215,6 +2383,11 @@ msgid ""
 "Domains are selected per-chat, not globally, making them like 'projects' you "
 "can switch between."
 msgstr ""
+"Os domínios fornecem contexto de conhecimento especializado à IA.\n"
+"\n"
+"Ao contrário dos comportamentos (que definem o estilo de comunicação), os domínios dão à IA experiência em áreas temáticas específicas.\n"
+"\n"
+"Os domínios são selecionados por conversa, não globalmente, tornando-os como 'projetos' entre os quais pode alternar."
 
 #: ui/domain_manager.lua:201
 #, fuzzy
@@ -2237,12 +2410,14 @@ msgid "Manage Domains"
 msgstr "Gerenciar etiquetas"
 
 #: ui/domain_manager.lua:267
+#, fuzzy
 msgid "File (domains/ folder)"
-msgstr ""
+msgstr "Ficheiro (pasta domains/)"
 
 #: ui/domain_manager.lua:336
+#, fuzzy
 msgid "Domain duplicated"
-msgstr ""
+msgstr "Domínio duplicado"
 
 #: ui/domain_manager.lua:346
 #, fuzzy
@@ -2251,6 +2426,7 @@ msgstr "Domínios disponíveis"
 
 #: ui/domain_manager.lua:350
 #, lua-format
+#, fuzzy
 msgid ""
 "This domain is loaded from a file in:\n"
 "\n"
@@ -2258,6 +2434,11 @@ msgid ""
 "\n"
 "To edit, modify the file directly."
 msgstr ""
+"Este domínio é carregado a partir de um ficheiro em:\n"
+"\n"
+"%s\n"
+"\n"
+"Para editar, modifique o ficheiro diretamente."
 
 #: ui/domain_manager.lua:390
 #, fuzzy
@@ -2280,14 +2461,16 @@ msgid "Enter domain name..."
 msgstr "Digite o nome da etiqueta"
 
 #: ui/domain_manager.lua:415
+#, fuzzy
 msgid ""
 "Give this domain a descriptive name (e.g., 'Research', 'Creative Writing', "
 "'Philosophy')."
-msgstr ""
+msgstr "Dê a este domínio um nome descritivo (ex., 'Investigação', 'Escrita criativa', 'Filosofia')."
 
 #: ui/domain_manager.lua:468
+#, fuzzy
 msgid "New Domain - Context"
-msgstr ""
+msgstr "Novo domínio - Contexto"
 
 #: ui/domain_manager.lua:468
 #, fuzzy
@@ -2295,17 +2478,22 @@ msgid "Edit Domain - Context"
 msgstr "Contexto histórico"
 
 #: ui/domain_manager.lua:470
+#, fuzzy
 msgid "Enter domain knowledge context..."
-msgstr ""
+msgstr "Introduza o contexto de conhecimento do domínio..."
 
 #: ui/domain_manager.lua:471
 #, lua-format
+#, fuzzy
 msgid ""
 "Name: %s\n"
 "\n"
 "Describe the knowledge area, terminology, and how the AI should approach "
 "topics in this domain."
 msgstr ""
+"Nome: %s\n"
+"\n"
+"Descreva a área de conhecimento, terminologia e como a IA deve abordar tópicos neste domínio."
 
 #: ui/domain_manager.lua:492
 #, fuzzy
@@ -2313,8 +2501,9 @@ msgid "Please enter domain context"
 msgstr "Por favor, digite um nome de prompt"
 
 #: ui/domain_manager.lua:545
+#, fuzzy
 msgid "(No existing domains to use as template)"
-msgstr ""
+msgstr "(Nenhum domínio existente para usar como modelo)"
 
 #: ui/prompts_manager.lua:31
 #, fuzzy, lua-format
@@ -2327,8 +2516,9 @@ msgid "Force OFF"
 msgstr "Forçar DESLIGADO"
 
 #: ui/prompts_manager.lua:85
+#, fuzzy
 msgid "Configured"
-msgstr ""
+msgstr "Configurado"
 
 #: ui/prompts_manager.lua:92
 #, fuzzy, lua-format
@@ -2484,8 +2674,9 @@ msgstr "(Nenhum)"
 
 #: ui/prompts_manager.lua:518 ui/prompts_manager.lua:523
 #: ui/prompts_manager.lua:527
+#, fuzzy
 msgid "Yes"
-msgstr ""
+msgstr "Sim"
 
 #: ui/prompts_manager.lua:518 ui/prompts_manager.lua:523
 #: ui/prompts_manager.lua:527
@@ -2499,8 +2690,9 @@ msgid "Include Book Info"
 msgstr "Info do livro"
 
 #: ui/prompts_manager.lua:524
+#, fuzzy
 msgid "Skip Language Instruction"
-msgstr ""
+msgstr "Ignorar instrução de idioma"
 
 #: ui/prompts_manager.lua:528
 #, fuzzy
@@ -2567,16 +2759,19 @@ msgid "Removed from highlight menu."
 msgstr "Todas as ações removidas do menu de destaque."
 
 #: ui/prompts_manager.lua:641
+#, fuzzy
 msgid "✓ In Dictionary Popup"
-msgstr ""
+msgstr "✓ Na janela do dicionário"
 
 #: ui/prompts_manager.lua:641 ui/prompts_manager.lua:874
+#, fuzzy
 msgid "Add to Dictionary Popup"
-msgstr ""
+msgstr "Adicionar à janela do dicionário"
 
 #: ui/prompts_manager.lua:646
+#, fuzzy
 msgid "Added to dictionary popup."
-msgstr ""
+msgstr "Adicionado à janela do dicionário."
 
 #: ui/prompts_manager.lua:646
 #, fuzzy
@@ -2584,8 +2779,9 @@ msgid "Removed from dictionary popup."
 msgstr "Todas as ações removidas do menu de destaque."
 
 #: ui/prompts_manager.lua:658
+#, fuzzy
 msgid "Duplicate as Custom"
-msgstr ""
+msgstr "Duplicar como personalizado"
 
 #: ui/prompts_manager.lua:668
 #, fuzzy
@@ -2600,11 +2796,15 @@ msgstr "Serviço de ações não disponível."
 
 #: ui/prompts_manager.lua:722
 #, lua-format
+#, fuzzy
 msgid ""
 "Created: %s\n"
 "\n"
 "You can find and edit it in the Actions list."
 msgstr ""
+"Criado: %s\n"
+"\n"
+"Pode encontrá-lo e editá-lo na lista de ações."
 
 #: ui/prompts_manager.lua:779
 #, fuzzy
@@ -2638,12 +2838,14 @@ msgid "Include book info (title, author)"
 msgstr "Incluir info do livro (título, autor)"
 
 #: ui/prompts_manager.lua:829 ui/prompts_manager.lua:2059
+#, fuzzy
 msgid "Skip language instruction"
-msgstr ""
+msgstr "Ignorar instrução de idioma"
 
 #: ui/prompts_manager.lua:843 ui/prompts_manager.lua:2070
+#, fuzzy
 msgid "Skip domain"
-msgstr ""
+msgstr "Ignorar domínio"
 
 #: ui/prompts_manager.lua:886
 #, fuzzy
@@ -2885,8 +3087,9 @@ msgid "Temperature: "
 msgstr "Temperatura: "
 
 #: ui/prompts_manager.lua:1246 ui/prompts_manager.lua:2029
+#, fuzzy
 msgid "Reasoning: "
-msgstr ""
+msgstr "Raciocínio: "
 
 #: ui/prompts_manager.lua:1255 ui/prompts_manager.lua:2038
 #, fuzzy
@@ -2940,12 +3143,14 @@ msgid "Force OFF for all providers"
 msgstr "Forçar DESLIGADO para esta ação"
 
 #: ui/prompts_manager.lua:1409
+#, fuzzy
 msgid "Configure per-provider..."
-msgstr ""
+msgstr "Configurar por provedor..."
 
 #: ui/prompts_manager.lua:1427
+#, fuzzy
 msgid "Reasoning/Thinking"
-msgstr ""
+msgstr "Raciocínio/Pensamento"
 
 #: ui/prompts_manager.lua:1428
 #, fuzzy
@@ -2974,8 +3179,9 @@ msgstr "Global"
 
 #: ui/prompts_manager.lua:1460 ui/prompts_manager.lua:1549
 #: ui/prompts_manager.lua:1628 ui/prompts_manager.lua:1701
+#, fuzzy
 msgid "OFF"
-msgstr ""
+msgstr "OFF"
 
 #: ui/prompts_manager.lua:1462
 #, fuzzy, lua-format
@@ -2983,44 +3189,57 @@ msgid "ON (%d tokens)"
 msgstr "Ativado (%d tokens)"
 
 #: ui/prompts_manager.lua:1464 ui/prompts_manager.lua:1466
+#, fuzzy
 msgid "ON ("
-msgstr ""
+msgstr "ON ("
 
 #: ui/prompts_manager.lua:1468
+#, fuzzy
 msgid "ON"
-msgstr ""
+msgstr "ON"
 
 #: ui/prompts_manager.lua:1489
+#, fuzzy
 msgid "Anthropic: "
-msgstr ""
+msgstr "Anthropic: "
 
 #: ui/prompts_manager.lua:1498
+#, fuzzy
 msgid "OpenAI: "
-msgstr ""
+msgstr "OpenAI: "
 
 #: ui/prompts_manager.lua:1507
+#, fuzzy
 msgid "Gemini: "
-msgstr ""
+msgstr "Gemini: "
 
 #: ui/prompts_manager.lua:1526
+#, fuzzy
 msgid "Per-Provider Reasoning"
-msgstr ""
+msgstr "Raciocínio por provedor"
 
 #: ui/prompts_manager.lua:1527
+#, fuzzy
 msgid ""
 "Configure reasoning for each provider independently.\n"
 "DeepSeek reasoner model always uses reasoning automatically."
 msgstr ""
+"Configurar raciocínio para cada provedor de forma independente.\n"
+"O modelo DeepSeek reasoner usa raciocínio automaticamente."
 
 #: ui/prompts_manager.lua:1559
+#, fuzzy
 msgid "ON (set budget)..."
-msgstr ""
+msgstr "ON (definir orçamento)..."
 
 #: ui/prompts_manager.lua:1579
+#, fuzzy
 msgid ""
 "Extended thinking for Claude models.\n"
 "Supports: Sonnet 4.5, Opus 4.x, Haiku 4.5, Sonnet 3.7"
 msgstr ""
+"Pensamento estendido para modelos Claude.\n"
+"Suporta: Sonnet 4.5, Opus 4.x, Haiku 4.5, Sonnet 3.7"
 
 #: ui/prompts_manager.lua:1595 ui/prompts_manager.lua:1767
 #, fuzzy
@@ -3039,28 +3258,37 @@ msgstr ""
 "Intervalo: 1024 - 32000"
 
 #: ui/prompts_manager.lua:1638
+#, fuzzy
 msgid "Low effort"
-msgstr ""
+msgstr "Esforço baixo"
 
 #: ui/prompts_manager.lua:1648
+#, fuzzy
 msgid "Medium effort"
-msgstr ""
+msgstr "Esforço médio"
 
 #: ui/prompts_manager.lua:1658
+#, fuzzy
 msgid "High effort"
-msgstr ""
+msgstr "Esforço alto"
 
 #: ui/prompts_manager.lua:1679
+#, fuzzy
 msgid ""
 "Reasoning effort for OpenAI models.\n"
 "Supports: o3, o3-mini, o4-mini, GPT-5.x"
 msgstr ""
+"Esforço de raciocínio para modelos OpenAI.\n"
+"Suporta: o3, o3-mini, o4-mini, GPT-5.x"
 
 #: ui/prompts_manager.lua:1752
+#, fuzzy
 msgid ""
 "Thinking level for Gemini models.\n"
 "Supports: gemini-3-*-preview"
 msgstr ""
+"Nível de pensamento para modelos Gemini.\n"
+"Suporta: gemini-3-*-preview"
 
 #: ui/prompts_manager.lua:1768
 #, fuzzy, lua-format
@@ -3235,12 +3463,14 @@ msgid "No highlight actions available."
 msgstr "Função de exportar não disponível"
 
 #: ui/prompts_manager.lua:2763
+#, fuzzy
 msgid "✓ = in menu | Tap = toggle | Hold = move"
-msgstr ""
+msgstr "✓ = no menu | Toque = alternar | Pressão longa = mover"
 
 #: ui/prompts_manager.lua:2789
+#, fuzzy
 msgid "Changes require restart to take effect"
-msgstr ""
+msgstr "As alterações requerem reinício para terem efeito"
 
 #: ui/prompts_manager.lua:2802
 #, fuzzy, lua-format
@@ -3268,8 +3498,9 @@ msgid "Position: "
 msgstr "Posição: "
 
 #: ui/prompts_manager.lua:2926
+#, fuzzy
 msgid "✓ = in popup | Tap = toggle | Hold = move"
-msgstr ""
+msgstr "✓ = na janela | Toque = alternar | Pressão longa = mover"
 
 #: ui/prompts_manager.lua:2960
 #, fuzzy, lua-format
@@ -3307,8 +3538,9 @@ msgid "Summarize"
 msgstr "Resumir"
 
 #: prompts/actions.lua:79
+#, fuzzy
 msgid "Elaborate"
-msgstr ""
+msgstr "Elaborar"
 
 #: prompts/actions.lua:95
 #, fuzzy
@@ -3356,8 +3588,9 @@ msgid "Translate"
 msgstr "Traduzir"
 
 #: prompts/actions.lua:207
+#, fuzzy
 msgid "Dictionary"
-msgstr ""
+msgstr "Dicionário"
 
 #: prompts/actions.lua:233
 #, fuzzy
