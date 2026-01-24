@@ -9,8 +9,6 @@
 # 2. Merges new strings into each language's .po file
 # 3. Reports what changed
 
-set -e
-
 # Get script directory and plugin root
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_DIR="$(dirname "$SCRIPT_DIR")"
@@ -41,13 +39,16 @@ echo ""
 
 # Step 1: Regenerate .pot file
 echo "Step 1: Extracting translatable strings..."
-xgettext --from-code=UTF-8 -L Lua \
+if ! xgettext --from-code=UTF-8 -L Lua \
     --package-name="KOAssistant" \
     --package-version="$VERSION" \
     --msgid-bugs-address="https://github.com/zeeyado/koassistant.koplugin/issues" \
     --copyright-holder="zeeyado" \
     -o locale/koassistant.pot \
-    *.lua ui/*.lua prompts/*.lua 2>/dev/null
+    *.lua ui/*.lua prompts/*.lua 2>/dev/null; then
+    echo "Error: xgettext failed"
+    exit 1
+fi
 
 # Count strings in .pot
 POT_COUNT=$(grep -c "^msgid " locale/koassistant.pot 2>/dev/null || echo "0")
@@ -56,24 +57,29 @@ echo ""
 
 # Step 2: Update each language
 echo "Step 2: Updating language files..."
-LANGUAGES="ar zh es pt fr de it"
+LANGUAGES="ar zh es pt pt_BR fr de it"
 
 for lang in $LANGUAGES; do
     PO_FILE="locale/$lang/LC_MESSAGES/koassistant.po"
 
     if [ -f "$PO_FILE" ]; then
-        # Get counts before merge
-        BEFORE_FUZZY=$(grep -c "^#, fuzzy" "$PO_FILE" 2>/dev/null || echo "0")
+        # Merge with .pot
+        if ! msgmerge -U --backup=none "$PO_FILE" locale/koassistant.pot 2>/dev/null; then
+            echo "  $lang: msgmerge failed, skipping"
+            continue
+        fi
 
-        # Merge with backup
-        msgmerge -U --backup=none "$PO_FILE" locale/koassistant.pot 2>/dev/null
+        # Remove obsolete entries
+        OBSOLETE=$(grep -c "^#~" "$PO_FILE" || true)
+        if [ "$OBSOLETE" -gt 0 ]; then
+            msgattrib --no-obsolete -o "$PO_FILE" "$PO_FILE"
+        fi
 
         # Get counts after merge
-        AFTER_FUZZY=$(grep -c "^#, fuzzy" "$PO_FILE" 2>/dev/null || echo "0")
-        UNTRANSLATED=$(msgattrib --untranslated "$PO_FILE" 2>/dev/null | grep -c "^msgid " || echo "0")
-        OBSOLETE=$(grep -c "^#~" "$PO_FILE" 2>/dev/null || echo "0")
+        AFTER_FUZZY=$(grep -c "^#, fuzzy" "$PO_FILE" || true)
+        UNTRANSLATED=$(msgattrib --untranslated "$PO_FILE" 2>/dev/null | grep -c "^msgid " || true)
 
-        echo "  $lang: fuzzy=$AFTER_FUZZY, untranslated=$UNTRANSLATED, obsolete=$OBSOLETE"
+        echo "  $lang: fuzzy=$AFTER_FUZZY, untranslated=$UNTRANSLATED, removed=$OBSOLETE obsolete"
     else
         echo "  $lang: file not found, skipping"
     fi
