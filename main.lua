@@ -124,6 +124,9 @@ function AskGPT:init()
         text = _("KOAssistant"),
         enabled = Device:hasClipboard(),
         callback = function()
+          -- Capture text and close highlight overlay to prevent darkening on saved highlights
+          local selected_text = _reader_highlight_instance.selected_text.text
+          _reader_highlight_instance:onClose()
           NetworkMgr:runWhenOnline(function()
             maybeCheckForUpdates(self)
             -- Make sure we're using the latest configuration
@@ -133,7 +136,7 @@ function AskGPT:init()
             configuration.features.is_general_context = nil
             configuration.features.is_book_context = nil
             configuration.features.is_multi_book_context = nil
-            showChatGPTDialog(self.ui, _reader_highlight_instance.selected_text.text, configuration, nil, self)
+            showChatGPTDialog(self.ui, selected_text, configuration, nil, self)
           end)
         end,
       }
@@ -1814,6 +1817,11 @@ function AskGPT:onDictButtonsReady(dict_popup, dict_buttons)
     return
   end
 
+  -- Skip Wikipedia popups - only show AI buttons in dictionary
+  if dict_popup and dict_popup.is_wiki then
+    return
+  end
+
   local self_ref = self
 
   -- Extract the word from the dictionary popup
@@ -2309,6 +2317,10 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
     dict_display = dict_lang
   end
 
+  -- Get bypass states
+  local highlight_bypass = features.highlight_bypass_enabled
+  local dict_bypass = features.dictionary_bypass_enabled
+
   -- Flag to track if we're closing for a sub-dialog (vs true dismissal)
   local opening_subdialog = false
 
@@ -2454,7 +2466,36 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
           end,
         },
       },
-      -- Row 6: Close (full width)
+      -- Row 6: Highlight Bypass | Dictionary Bypass
+      {
+        {
+          text = highlight_bypass and _("H.Bypass: ON") or _("H.Bypass: OFF"),
+          callback = function()
+            local f = self_ref.settings:readSetting("features") or {}
+            f.highlight_bypass_enabled = not f.highlight_bypass_enabled
+            self_ref.settings:saveSetting("features", f)
+            self_ref.settings:flush()
+            self_ref:syncHighlightBypass()
+            opening_subdialog = true
+            UIManager:close(dialog)
+            reopenQuickSettings()
+          end,
+        },
+        {
+          text = dict_bypass and _("D.Bypass: ON") or _("D.Bypass: OFF"),
+          callback = function()
+            local f = self_ref.settings:readSetting("features") or {}
+            f.dictionary_bypass_enabled = not f.dictionary_bypass_enabled
+            self_ref.settings:saveSetting("features", f)
+            self_ref.settings:flush()
+            self_ref:syncDictionaryBypass()
+            opening_subdialog = true
+            UIManager:close(dialog)
+            reopenQuickSettings()
+          end,
+        },
+      },
+      -- Row 7: Close (full width)
       {
         {
           text = _("Close"),
@@ -2936,8 +2977,8 @@ function AskGPT:registerHighlightMenuActions()
         text = action_copy.text .. " (KOA)",
         enabled = Device:hasClipboard(),
         callback = function()
-          -- Extract context BEFORE network callback, while selection is still active
-          -- This is important for dictionary actions that need surrounding text
+          -- Capture text and extract context BEFORE closing highlight overlay
+          local selected_text = _reader_highlight_instance.selected_text.text
           local context = ""
           -- Check if highlight module has the getSelectedWordContext method
           -- Note: Method is on self.ui.highlight, not _reader_highlight_instance
@@ -2949,17 +2990,20 @@ function AskGPT:registerHighlightMenuActions()
               local context_chars = features.dictionary_context_chars or 100
               context = Dialogs.extractSurroundingContext(
                 self.ui,
-                _reader_highlight_instance.selected_text.text,
+                selected_text,
                 context_mode,
                 context_chars
               )
             end
           end
 
+          -- Close highlight overlay to prevent darkening on saved highlights
+          _reader_highlight_instance:onClose()
+
           NetworkMgr:runWhenOnline(function()
             self:updateConfigFromSettings()
             -- Pass extracted context to executeQuickAction
-            self:executeQuickAction(action_copy, _reader_highlight_instance.selected_text.text, context)
+            self:executeQuickAction(action_copy, selected_text, context)
           end)
         end,
       }

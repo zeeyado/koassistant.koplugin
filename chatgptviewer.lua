@@ -810,11 +810,14 @@ function ChatGPTViewer:init()
     end
   end
 
-  -- Minimal buttons for compact dictionary view: MD/Text, Copy, Wiki, [Vocab], Expand, Close
-  local minimal_button_row = {}
+  -- Minimal buttons for compact dictionary view
+  -- Row 1: MD/Text, Copy, Wiki, +Vocab
+  -- Row 2: Expand, Lang, Ctx, Close
+  local minimal_button_row1 = {}
+  local minimal_button_row2 = {}
 
-  -- MD/Text toggle
-  table.insert(minimal_button_row, {
+  -- Row 1: MD/Text toggle
+  table.insert(minimal_button_row1, {
     text_func = function()
       return self.render_markdown and "MD" or "Text"
     end,
@@ -830,8 +833,8 @@ function ChatGPTViewer:init()
     end,
   })
 
-  -- Copy button
-  table.insert(minimal_button_row, {
+  -- Row 1: Copy button
+  table.insert(minimal_button_row1, {
     text = _("Copy"),
     id = "copy_chat",
     callback = function()
@@ -847,8 +850,8 @@ function ChatGPTViewer:init()
     hold_callback = self.default_hold_callback,
   })
 
-  -- Wiki button
-  table.insert(minimal_button_row, {
+  -- Row 1: Wiki button
+  table.insert(minimal_button_row1, {
     text = _("Wiki"),
     id = "lookup_wikipedia",
     callback = function()
@@ -857,7 +860,6 @@ function ChatGPTViewer:init()
         local ReaderUI = require("apps/reader/readerui")
         local reader_ui = ReaderUI.instance
         if reader_ui and reader_ui.wikipedia then
-          UIManager:close(self)
           reader_ui.wikipedia:onLookupWikipedia(word, true, nil, false, nil)
         else
           UIManager:show(Notification:new{
@@ -880,14 +882,11 @@ function ChatGPTViewer:init()
     end,
   })
 
-  -- Vocab builder button for minimal view
-  -- When dictionary bypass runs with vocab builder auto-add enabled,
-  -- main.lua sets vocab_word_auto_added flag in config. Otherwise show +Vocab button.
+  -- Row 1: Vocab builder button
   local vocab_auto_added = self.configuration and self.configuration.features and
     self.configuration.features.vocab_word_auto_added
   if vocab_auto_added or self._vocab_word_added then
-    -- Word was auto-added or manually added - show greyed button
-    table.insert(minimal_button_row, {
+    table.insert(minimal_button_row1, {
       text = _("Added"),
       id = "vocab_added",
       enabled = false,
@@ -899,8 +898,7 @@ function ChatGPTViewer:init()
       end,
     })
   else
-    -- Show button to manually add word to vocab builder
-    table.insert(minimal_button_row, {
+    table.insert(minimal_button_row1, {
       text = _("+Vocab"),
       id = "vocab_add",
       callback = function()
@@ -917,7 +915,6 @@ function ChatGPTViewer:init()
               text = T(_("Added '%1' to vocabulary"), word),
               timeout = 2,
             })
-            -- Update button to "Added" state
             local button = self.button_table and self.button_table.button_by_id and self.button_table.button_by_id["vocab_add"]
             if button then
               button:setText(_("Added"), button.width)
@@ -943,8 +940,8 @@ function ChatGPTViewer:init()
     })
   end
 
-  -- Expand button
-  table.insert(minimal_button_row, {
+  -- Row 2: Expand button
+  table.insert(minimal_button_row2, {
     text = _("Expand"),
     id = "expand_view",
     callback = function()
@@ -958,8 +955,130 @@ function ChatGPTViewer:init()
     end,
   })
 
-  -- Close button
-  table.insert(minimal_button_row, {
+  -- Row 2: Language button (re-run with different dictionary language)
+  local rerun_features = self.configuration and self.configuration.features
+  local has_rerun = self.configuration and self.configuration._rerun_action
+  table.insert(minimal_button_row2, {
+    text = _("Lang"),
+    id = "change_language",
+    enabled = has_rerun and true or false,
+    callback = function()
+      if not has_rerun then return end
+      local languages = rerun_features.user_languages
+      if not languages or languages == "" then
+        UIManager:show(Notification:new{
+          text = _("Configure languages in Settings first"),
+          timeout = 2,
+        })
+        return
+      end
+      -- Build language buttons
+      local lang_dialog
+      local lang_buttons = {}
+      for lang in languages:gmatch("[^,]+") do
+        lang = lang:match("^%s*(.-)%s*$")  -- trim
+        table.insert(lang_buttons, {{
+          text = lang,
+          callback = function()
+            UIManager:close(lang_dialog)
+            -- Build new config copy with changed language
+            -- Exclude _rerun_* keys (complex objects that can't be deep-copied)
+            local new_config = {}
+            for k, v in pairs(self.configuration) do
+              if type(k) ~= "string" or not k:match("^_rerun_") then
+                new_config[k] = v
+              end
+            end
+            new_config.features = {}
+            for k, v in pairs(self.configuration.features) do
+              new_config.features[k] = v
+            end
+            new_config.features.dictionary_language = lang
+            -- Close viewer and re-execute
+            UIManager:close(self)
+            local Dialogs = require("dialogs")
+            Dialogs.executeDirectAction(
+              self.configuration._rerun_ui, self.configuration._rerun_action,
+              self.original_highlighted_text, new_config, self.configuration._rerun_plugin
+            )
+          end,
+        }})
+      end
+      table.insert(lang_buttons, {{
+        text = _("Cancel"),
+        callback = function() UIManager:close(lang_dialog) end,
+      }})
+      lang_dialog = ButtonDialog:new{
+        title = _("Dictionary Language"),
+        buttons = lang_buttons,
+      }
+      UIManager:show(lang_dialog)
+    end,
+    hold_callback = function()
+      UIManager:show(Notification:new{
+        text = _("Re-run with a different dictionary language"),
+        timeout = 2,
+      })
+    end,
+  })
+
+  -- Row 2: Context toggle button (re-run with context ON/OFF)
+  local has_context = rerun_features and
+    rerun_features.dictionary_context_mode ~= "none" and
+    rerun_features.dictionary_context and
+    rerun_features.dictionary_context ~= ""
+  table.insert(minimal_button_row2, {
+    text = has_context and _("Ctx: ON") or _("Ctx: OFF"),
+    id = "toggle_context",
+    enabled = has_rerun and true or false,
+    callback = function()
+      if not has_rerun then return end
+      -- Build new config copy with toggled context
+      -- Exclude _rerun_* keys (complex objects that can't be deep-copied)
+      local new_config = {}
+      for k, v in pairs(self.configuration) do
+        if type(k) ~= "string" or not k:match("^_rerun_") then
+          new_config[k] = v
+        end
+      end
+      new_config.features = {}
+      for k, v in pairs(self.configuration.features) do
+        new_config.features[k] = v
+      end
+      if has_context then
+        -- Turn OFF: clear context
+        new_config.features.dictionary_context_mode = "none"
+        new_config.features.dictionary_context = ""
+      else
+        -- Turn ON: restore context mode (use user's setting or default to sentence)
+        local user_mode = rerun_features._original_context_mode or "sentence"
+        new_config.features.dictionary_context_mode = user_mode
+        -- Use stored original context if available (selection is gone by now)
+        if rerun_features._original_context and rerun_features._original_context ~= "" then
+          new_config.features.dictionary_context = rerun_features._original_context
+        else
+          -- No stored context available, let extraction try again
+          new_config.features.dictionary_context = nil
+        end
+      end
+      -- Close viewer and re-execute
+      UIManager:close(self)
+      local Dialogs = require("dialogs")
+      Dialogs.executeDirectAction(
+        self.configuration._rerun_ui, self.configuration._rerun_action,
+        self.original_highlighted_text, new_config, self.configuration._rerun_plugin
+      )
+    end,
+    hold_callback = function()
+      UIManager:show(Notification:new{
+        text = has_context and _("Re-run without surrounding context") or _("Re-run with surrounding context"),
+        timeout = 2,
+      })
+    end,
+  })
+
+  -- Row 2: Close button
+  table.insert(minimal_button_row2, {
     text = _("Close"),
     callback = function()
       self:onClose()
@@ -971,7 +1090,8 @@ function ChatGPTViewer:init()
   if self.add_default_buttons or not self.buttons_table then
     -- Use minimal buttons in minimal mode, otherwise use full default buttons
     if self.minimal_buttons then
-      table.insert(buttons, minimal_button_row)
+      table.insert(buttons, minimal_button_row1)
+      table.insert(buttons, minimal_button_row2)
     else
       -- Add both rows
       for _, row in ipairs(default_buttons) do
@@ -1883,8 +2003,29 @@ function ChatGPTViewer:showViewerSettings()
         {
           text = _("Alignment") .. ": " .. getAlignmentDisplayName(self.text_align),
           callback = function()
+            -- Cycle: left -> justify -> right -> left
+            local order = {"left", "justify", "right"}
+            local current = self.text_align or "justify"
+            local idx = 1
+            for i, v in ipairs(order) do
+              if v == current then idx = i; break end
+            end
+            local next_align = order[(idx % #order) + 1]
+            self.text_align = next_align
+            if self.configuration and self.configuration.features then
+              self.configuration.features.text_align = next_align
+            end
+            if self.settings_callback then
+              self.settings_callback("features.text_align", next_align)
+            end
+            self:refreshMarkdownDisplay()
+            UIManager:show(Notification:new{
+              text = T(_("Alignment: %1"), getAlignmentDisplayName(next_align)),
+              timeout = 2,
+            })
+            -- Reopen settings to show updated label
             UIManager:close(dialog)
-            self:showAlignmentPicker()
+            self:showViewerSettings()
           end,
         },
       },
@@ -1941,59 +2082,6 @@ function ChatGPTViewer:showFontSizeSpinner()
     end,
   }
   UIManager:show(spin_widget)
-end
-
--- Show text alignment picker with Left, Justified, Right options
-function ChatGPTViewer:showAlignmentPicker()
-  local function setAlignment(align)
-    self.text_align = align
-
-    -- Save to configuration and persist
-    if self.configuration.features then
-      self.configuration.features.text_align = align
-    end
-    if self.settings_callback then
-      self.settings_callback("features.text_align", align)
-    end
-
-    -- Refresh display
-    self:refreshMarkdownDisplay()
-
-    UIManager:show(Notification:new{
-      text = T(_("Alignment: %1"), getAlignmentDisplayName(align)),
-      timeout = 2,
-    })
-  end
-
-  local function makeButton(align, label)
-    local is_current = self.text_align == align
-    return {
-      text = is_current and ("● " .. label) or label,
-      callback = function()
-        UIManager:close(align_dialog)
-        setAlignment(align)
-      end,
-    }
-  end
-
-  local align_dialog
-  align_dialog = ButtonDialog:new{
-    title = _("Text Alignment"),
-    buttons = {
-      { makeButton("left", _("Left")) },
-      { makeButton("justify", _("Justified")) },
-      { makeButton("right", _("Right (RTL)")) },
-      {
-        {
-          text = _("Cancel"),
-          callback = function()
-            UIManager:close(align_dialog)
-          end,
-        },
-      },
-    },
-  }
-  UIManager:show(align_dialog)
 end
 
 -- Reset viewer settings to defaults

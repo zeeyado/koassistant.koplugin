@@ -170,6 +170,9 @@ function ActionService:loadActions()
                     if override.skip_language_instruction ~= nil then
                         action_data.skip_language_instruction = override.skip_language_instruction
                     end
+                    if override.skip_domain ~= nil then
+                        action_data.skip_domain = override.skip_domain
+                    end
                 end
 
                 table.insert(self.actions_cache[context], action_data)

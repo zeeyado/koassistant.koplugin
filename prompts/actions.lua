@@ -196,6 +196,7 @@ Actions.special = {
         include_book_context = false,
         extended_thinking = "off",  -- Translations don't benefit from extended thinking
         skip_language_instruction = true,  -- Target language already in prompt
+        skip_domain = true,  -- Domain context not relevant for translations
         api_params = {
             temperature = 0.3,  -- Very deterministic for translations
         },
@@ -219,6 +220,7 @@ Respond in {dictionary_language}. Be concise.]],
         include_book_context = false,  -- Word definitions don't typically need book metadata
         extended_thinking = "off",  -- Dictionary lookups don't benefit from extended thinking
         skip_language_instruction = true,  -- Target language already in prompt
+        skip_domain = true,  -- Domain context not relevant for dictionary lookups
         -- storage_key set dynamically based on dictionary_disable_auto_save setting
         api_params = {
             temperature = 0.3,  -- Deterministic for definitions
@@ -253,6 +255,7 @@ Respond in {dictionary_language}.]],
         include_book_context = false,
         extended_thinking = "off",
         skip_language_instruction = true,
+        skip_domain = true,  -- Domain context not relevant for dictionary lookups
         -- storage_key set dynamically based on dictionary_disable_auto_save setting
         api_params = {
             temperature = 0.3,
