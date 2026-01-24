@@ -241,12 +241,12 @@ Format as a compact dictionary entry (no section headers, use inline labels):
 - First line: **word** _part of speech, features of_ **lemma**
 - Definition(s) numbered if multiple
 - **Etymology:** root/origin, concise
-- **Synonyms:** if relevant
+- **Synonyms:** if relevant. Give synonyms in source language (same language as lookup word)
 - **In context:** Brief explanation of usage in the given passage
 
 Context: {context}
 
-Respond in {dictionary_language}. Be concise.]],
+Respond in {dictionary_language} except for synonyms. Be concise.]],
         include_book_context = false,  -- Word definitions don't typically need book metadata
         extended_thinking = "off",  -- Dictionary lookups don't benefit from extended thinking
         skip_language_instruction = true,  -- Target language already in prompt
