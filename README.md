@@ -97,6 +97,8 @@ Find KOAssistant Settings in: **Tools → Page 2 → KOAssistant**
 
 ## Recommended Setup
 
+> **Tip**: Edit built in action to use the provider/model of your choice; e.g. Dictionary actions would benefit from a lighter model for speed.
+
 ### Configure Quick Access Gestures
 
 Assign KOAssistant actions to gestures for easy access. Go to **Settings → Gesture Manager**, pick a gesture (e.g. tap corner, multiswipe), then select **General** to find KOAssistant options.
