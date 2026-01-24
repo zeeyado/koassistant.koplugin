@@ -202,18 +202,46 @@ Actions.special = {
         },
         builtin = true,
     },
-    dictionary = {
-        id = "dictionary",
-        text = _("Dictionary"),
+    quick_define = {
+        id = "quick_define",
+        text = _("Quick Define"),
         context = "highlight",  -- Only for highlighted text
         behavior_variant = "dictionary_direct",  -- Use built-in dictionary behavior
+        in_dictionary_popup = 2,  -- Default order in dictionary popup
         prompt = [[Define: {highlighted_text}
 
 Format as a dictionary entry:
 - First line: **word** _part of speech, features of_ **lemma**
 - Definition(s) numbered if multiple
-- Etymology + root if available, consise
-- Synonyms
+- **In context:** Brief explanation of usage in the given passage
+
+Context: {context}
+
+Respond in {dictionary_language}. Be concise.]],
+        include_book_context = false,  -- Word definitions don't typically need book metadata
+        extended_thinking = "off",  -- Dictionary lookups don't benefit from extended thinking
+        skip_language_instruction = true,  -- Target language already in prompt
+        skip_domain = true,  -- Domain context not relevant for dictionary lookups
+        -- storage_key set dynamically based on dictionary_disable_auto_save setting
+        api_params = {
+            temperature = 0.3,  -- Deterministic for definitions
+            max_tokens = 512,  -- Quick definitions are short
+        },
+        builtin = true,
+    },
+    dictionary = {
+        id = "dictionary",
+        text = _("Dictionary"),
+        context = "highlight",  -- Only for highlighted text
+        behavior_variant = "dictionary_direct",  -- Use built-in dictionary behavior
+        in_dictionary_popup = 1,  -- Default order in dictionary popup
+        prompt = [[Define: {highlighted_text}
+
+Format as a compact dictionary entry (no section headers, use inline labels):
+- First line: **word** _part of speech, features of_ **lemma**
+- Definition(s) numbered if multiple
+- **Etymology:** root/origin, concise
+- **Synonyms:** if relevant
 - **In context:** Brief explanation of usage in the given passage
 
 Context: {context}
@@ -230,11 +258,12 @@ Respond in {dictionary_language}. Be concise.]],
         },
         builtin = true,
     },
-    dictionary_detailed = {
-        id = "dictionary_detailed",
-        text = _("Detailed Dictionary"),
+    deep = {
+        id = "dictionary_deep",
+        text = _("Deep Analysis"),
         context = "highlight",  -- Only for highlighted text
         behavior_variant = "dictionary_detailed",  -- Use built-in detailed dictionary behavior
+        in_dictionary_popup = 3,  -- Default order in dictionary popup
         prompt = [[Deep analysis of: {highlighted_text}
 
 **Headword**: word (transliteration if non-Latin), _part of speech_
