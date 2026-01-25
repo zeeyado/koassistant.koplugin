@@ -53,6 +53,8 @@ loadHandler("fireworks")
 loadHandler("sambanova")
 loadHandler("cohere")
 loadHandler("doubao")
+-- Generic handler for custom OpenAI-compatible providers
+loadHandler("custom_openai")
 
 local function getApiKey(provider, settings)
     -- 1. Check GUI-entered keys first (highest priority)
@@ -106,6 +108,27 @@ local function queryChatGPT(message_history, temp_config, on_complete, settings)
 
     local provider = config.provider
     local handler = handlers[provider]
+    local is_custom_provider = false
+    local custom_provider_config = nil
+
+    -- If no built-in handler, check if it's a custom provider
+    if not handler then
+        -- Check for custom providers in settings
+        if settings then
+            local features = settings:readSetting("features") or {}
+            local custom_providers = features.custom_providers or {}
+            for _, cp in ipairs(custom_providers) do
+                if cp.id == provider then
+                    handler = handlers["custom_openai"]
+                    is_custom_provider = true
+                    custom_provider_config = cp
+                    -- Set base_url from custom provider config
+                    config.base_url = cp.base_url
+                    break
+                end
+            end
+        end
+    end
 
     if not handler then
         local err = string.format("Provider '%s' not found", provider)
@@ -118,7 +141,17 @@ local function queryChatGPT(message_history, temp_config, on_complete, settings)
 
     -- Get API key for the selected provider (GUI settings take priority over apikeys.lua)
     config.api_key = getApiKey(provider, settings)
-    if not config.api_key and provider ~= "ollama" then
+
+    -- Check if API key is required
+    local api_key_required = true
+    if provider == "ollama" then
+        api_key_required = false
+    elseif is_custom_provider and custom_provider_config then
+        -- Custom providers can optionally not require an API key (for local servers)
+        api_key_required = custom_provider_config.api_key_required ~= false
+    end
+
+    if not config.api_key and api_key_required then
         local err = string.format("No API key found for provider %s. Set it in Settings → API Keys or apikeys.lua", provider)
         if on_complete then
             on_complete(false, nil, err)

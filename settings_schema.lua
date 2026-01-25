@@ -54,7 +54,7 @@ local SettingsSchema = {
             text_func = function(plugin)
                 local f = plugin.settings:readSetting("features") or {}
                 local provider = f.provider or "anthropic"
-                return T(_("Provider: %1"), provider:gsub("^%l", string.upper))
+                return T(_("Provider: %1"), plugin:getProviderDisplayName(provider))
             end,
             callback = "buildProviderMenu",
         },
