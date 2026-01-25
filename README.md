@@ -923,6 +923,21 @@ KOAssistant supports **16 AI providers**. Anthropic (Claude) has been the primar
 | **Kimi** | Moonshot, 256K context | [platform.moonshot.cn](https://platform.moonshot.cn/) |
 | **Doubao** | ByteDance Volcano Engine | [console.volcengine.com](https://console.volcengine.com/) |
 
+### Free Tier Providers
+
+Several providers offer free tiers for testing or budget-conscious users:
+
+| Provider | Free Tier Details |
+|----------|-------------------|
+| **Groq** | All models free with rate limits (250K tokens/min, 1K requests/min) |
+| **Gemini** | `gemini-3-flash-preview` has free tier; other models have free quota |
+| **SambaNova** | Free tier available for open-source models |
+| **Ollama** | Completely free (runs locally on your hardware) |
+| **Mistral** | Open-weight models free: `open-mistral-nemo`, `magistral-small-latest` (Apache 2.0) |
+| **OpenRouter** | Some models have free tiers; check per-model pricing |
+
+**Best for testing:** Groq (fastest free inference), Gemini (generous free quota), Ollama (no API key needed).
+
 ### Adding Custom Models
 
 In the model selection menu, choose "Custom model..." to enter any model ID your provider supports.
