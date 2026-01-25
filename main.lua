@@ -1077,7 +1077,21 @@ function AskGPT:saveCustomModel(provider, model)
     end
   end
 
+  -- Check if this is the first model for this provider (especially for custom providers)
+  local is_first_model = #features.custom_models[provider] == 0
+
   table.insert(features.custom_models[provider], model)
+
+  -- If this is the first custom model for a custom provider with no default model,
+  -- automatically set it as the user's default
+  if is_first_model and self:isCustomProvider(provider) then
+    local cp = self:getCustomProvider(provider)
+    if cp and (not cp.default_model or cp.default_model == "") then
+      features.provider_default_models = features.provider_default_models or {}
+      features.provider_default_models[provider] = model
+    end
+  end
+
   self.settings:saveSetting("features", features)
   self.settings:flush()
   return true
@@ -1120,6 +1134,168 @@ function AskGPT:isCustomModel(provider, model)
   return false
 end
 
+-------------------------------------------------------------------------------
+-- CUSTOM PROVIDER HELPERS
+-------------------------------------------------------------------------------
+
+-- Helper: Get all custom providers
+function AskGPT:getCustomProviders()
+  local features = self.settings:readSetting("features") or {}
+  return features.custom_providers or {}
+end
+
+-- Helper: Get a custom provider by ID
+function AskGPT:getCustomProvider(provider_id)
+  local custom_providers = self:getCustomProviders()
+  for _idx, cp in ipairs(custom_providers) do
+    if cp.id == provider_id then
+      return cp
+    end
+  end
+  return nil
+end
+
+-- Helper: Check if a provider ID is a custom provider
+function AskGPT:isCustomProvider(provider_id)
+  return self:getCustomProvider(provider_id) ~= nil
+end
+
+-- Helper: Get display name for a provider (custom or built-in)
+function AskGPT:getProviderDisplayName(provider_id)
+  -- Check if it's a custom provider
+  local custom = self:getCustomProvider(provider_id)
+  if custom then
+    return custom.name
+  end
+  -- Built-in provider: capitalize first letter
+  return provider_id:gsub("^%l", string.upper)
+end
+
+-- Helper: Generate a unique ID for a custom provider
+function AskGPT:generateCustomProviderId(name)
+  -- Convert name to lowercase, replace spaces with underscores
+  local base_id = "custom_" .. name:lower():gsub("%s+", "_"):gsub("[^a-z0-9_]", "")
+
+  -- Check for uniqueness
+  local custom_providers = self:getCustomProviders()
+  local id = base_id
+  local counter = 1
+  while true do
+    local exists = false
+    for _idx, cp in ipairs(custom_providers) do
+      if cp.id == id then
+        exists = true
+        break
+      end
+    end
+    if not exists then
+      break
+    end
+    counter = counter + 1
+    id = base_id .. "_" .. counter
+  end
+
+  return id
+end
+
+-- Helper: Save a new custom provider
+-- @param config table: {name, base_url, default_model, api_key_required}
+-- @return boolean, string|nil: success, error message
+function AskGPT:saveCustomProvider(config)
+  if not config.name or config.name == "" then
+    return false, _("Provider name is required")
+  end
+  if not config.base_url or config.base_url == "" then
+    return false, _("Base URL is required")
+  end
+
+  local features = self.settings:readSetting("features") or {}
+  features.custom_providers = features.custom_providers or {}
+
+  -- Check for duplicate names
+  for _idx, existing in ipairs(features.custom_providers) do
+    if existing.name:lower() == config.name:lower() then
+      return false, _("A provider with this name already exists")
+    end
+  end
+
+  -- Generate unique ID
+  local id = self:generateCustomProviderId(config.name)
+
+  local new_provider = {
+    id = id,
+    name = config.name,
+    base_url = config.base_url,
+    default_model = config.default_model or "",
+    api_key_required = config.api_key_required ~= false,  -- default true
+  }
+
+  table.insert(features.custom_providers, new_provider)
+  self.settings:saveSetting("features", features)
+  self.settings:flush()
+  return true, id
+end
+
+-- Helper: Update an existing custom provider
+function AskGPT:updateCustomProvider(provider_id, updates)
+  local features = self.settings:readSetting("features") or {}
+  if not features.custom_providers then
+    return false
+  end
+
+  for i, cp in ipairs(features.custom_providers) do
+    if cp.id == provider_id then
+      -- Apply updates
+      if updates.name then cp.name = updates.name end
+      if updates.base_url then cp.base_url = updates.base_url end
+      if updates.default_model ~= nil then cp.default_model = updates.default_model end
+      if updates.api_key_required ~= nil then cp.api_key_required = updates.api_key_required end
+
+      features.custom_providers[i] = cp
+      self.settings:saveSetting("features", features)
+      self.settings:flush()
+      return true
+    end
+  end
+  return false
+end
+
+-- Helper: Remove a custom provider
+function AskGPT:removeCustomProvider(provider_id)
+  local features = self.settings:readSetting("features") or {}
+  if not features.custom_providers then
+    return false
+  end
+
+  for i, cp in ipairs(features.custom_providers) do
+    if cp.id == provider_id then
+      table.remove(features.custom_providers, i)
+
+      -- If removed provider was selected, reset to default (anthropic)
+      if features.provider == provider_id then
+        features.provider = "anthropic"
+        features.model = nil  -- Reset model too
+      end
+
+      -- Also remove any custom models for this provider
+      if features.custom_models and features.custom_models[provider_id] then
+        features.custom_models[provider_id] = nil
+      end
+
+      -- Remove API key for this provider
+      if features.api_keys and features.api_keys[provider_id] then
+        features.api_keys[provider_id] = nil
+      end
+
+      self.settings:saveSetting("features", features)
+      self.settings:flush()
+      self:updateConfigFromSettings()
+      return true
+    end
+  end
+  return false
+end
+
 -- Helper: Get user's preferred default model for a provider
 function AskGPT:getUserDefaultModel(provider)
   local features = self.settings:readSetting("features") or {}
@@ -1154,7 +1330,13 @@ function AskGPT:getEffectiveDefaultModel(provider)
     return user_default
   end
 
-  -- Fall back to system default
+  -- Check if this is a custom provider
+  local custom_provider = self:getCustomProvider(provider)
+  if custom_provider then
+    return custom_provider.default_model or ""
+  end
+
+  -- Fall back to system default for built-in providers
   local Defaults = require("api_handlers.defaults")
   local provider_defaults = Defaults.ProviderDefaults[provider]
   if provider_defaults and provider_defaults.model then
@@ -1165,45 +1347,418 @@ function AskGPT:getEffectiveDefaultModel(provider)
 end
 
 -- Helper: Build provider selection sub-menu
-function AskGPT:buildProviderMenu()
+-- @param simplified: if true, shows only provider list without management options (for quick settings)
+function AskGPT:buildProviderMenu(simplified)
   local self_ref = self
   local current = self:getCurrentProvider()
   local ModelLists = require("model_lists")
-  local providers = ModelLists.getAllProviders()
-  local Defaults = require("api_handlers.defaults")
+  local builtin_providers = ModelLists.getAllProviders()
+  local custom_providers = self:getCustomProviders()
   local items = {}
 
-  for _i, provider in ipairs(providers) do
-    local prov_copy = provider  -- Capture for closure
-    table.insert(items, {
-      text = prov_copy:gsub("^%l", string.upper),  -- Capitalize
-      checked_func = function() return self_ref:getCurrentProvider() == prov_copy end,
-      radio = true,
-      callback = function()
-        local features = self_ref.settings:readSetting("features") or {}
-        local old_provider = features.provider
+  -- Helper to create provider select callback
+  local function createProviderCallback(prov_id, display_name)
+    return function()
+      local features = self_ref.settings:readSetting("features") or {}
+      local old_provider = features.provider
 
-        -- Reset model to new provider's effective default when provider changes
-        if old_provider ~= prov_copy then
-          -- Use user's preferred default if set, otherwise system default
-          features.model = self_ref:getEffectiveDefaultModel(prov_copy)
-        end
+      -- Reset model to new provider's effective default when provider changes
+      if old_provider ~= prov_id then
+        features.model = self_ref:getEffectiveDefaultModel(prov_id)
+      end
 
-        features.provider = prov_copy
-        self_ref.settings:saveSetting("features", features)
-        self_ref.settings:flush()
-        self_ref:updateConfigFromSettings()
-        -- Show toast confirmation
-        UIManager:show(Notification:new{
-          text = T(_("Provider: %1"), prov_copy:gsub("^%l", string.upper)),
-          timeout = 1.5,
-        })
-      end,
-      keep_menu_open = true,
+      features.provider = prov_id
+      self_ref.settings:saveSetting("features", features)
+      self_ref.settings:flush()
+      self_ref:updateConfigFromSettings()
+      -- Show toast confirmation
+      UIManager:show(Notification:new{
+        text = T(_("Provider: %1"), display_name),
+        timeout = 1.5,
+      })
+    end
+  end
+
+  -- Build unified list of all providers for sorting
+  local all_providers = {}
+
+  -- Add built-in providers
+  for _i, provider in ipairs(builtin_providers) do
+    table.insert(all_providers, {
+      id = provider,
+      display_name = provider:gsub("^%l", string.upper),  -- Capitalize
+      is_custom = false,
     })
   end
 
+  -- Add custom providers
+  for _i, cp in ipairs(custom_providers) do
+    table.insert(all_providers, {
+      id = cp.id,
+      display_name = cp.name,
+      is_custom = true,
+      config = cp,
+    })
+  end
+
+  -- Sort alphabetically by display name (case-insensitive)
+  table.sort(all_providers, function(a, b)
+    return a.display_name:lower() < b.display_name:lower()
+  end)
+
+  -- Create menu items from sorted list
+  for _i, prov in ipairs(all_providers) do
+    local prov_copy = prov  -- Capture for closure
+    local text = prov.is_custom and ("★ " .. prov.display_name) or prov.display_name
+    local item = {
+      text = text,
+      checked_func = function() return self_ref:getCurrentProvider() == prov_copy.id end,
+      radio = true,
+      callback = createProviderCallback(prov_copy.id, prov_copy.display_name),
+      keep_menu_open = true,
+    }
+
+    -- Add hold callback for custom providers
+    if prov.is_custom then
+      item.hold_callback = function()
+        self_ref:showCustomProviderOptions(prov_copy.config)
+      end
+    end
+
+    table.insert(items, item)
+  end
+
+  -- Add management options (only in full mode, not quick settings)
+  if not simplified then
+    table.insert(items, {
+      text = "────────────────────",
+      enabled = false,
+      callback = function() end,
+    })
+
+    -- Add custom provider option
+    table.insert(items, {
+      text = _("Add custom provider..."),
+      callback = function()
+        self_ref:showAddCustomProviderDialog()
+      end,
+      keep_menu_open = false,  -- Close menu for dialog
+    })
+
+    -- Manage custom providers (only if there are any)
+    if #custom_providers > 0 then
+      table.insert(items, {
+        text = T(_("Manage custom providers (%1)..."), #custom_providers),
+        callback = function()
+          self_ref:showManageCustomProvidersMenu()
+        end,
+        keep_menu_open = false,
+      })
+    end
+  end
+
   return items
+end
+
+-- Helper: Show options for a custom provider (on hold)
+function AskGPT:showCustomProviderOptions(provider)
+  local self_ref = self
+  local ButtonDialog = require("ui/widget/buttondialog")
+  local ConfirmBox = require("ui/widget/confirmbox")
+
+  -- Text for API key toggle
+  local api_key_text
+  if provider.api_key_required ~= false then
+    api_key_text = _("API key: Required [tap to toggle]")
+  else
+    api_key_text = _("API key: Not required [tap to toggle]")
+  end
+
+  local buttons = {
+    {{
+      text = _("Edit provider..."),
+      callback = function()
+        UIManager:close(self_ref._provider_options_dialog)
+        self_ref:showEditCustomProviderDialog(provider)
+      end,
+    }},
+    {{
+      text = api_key_text,
+      callback = function()
+        UIManager:close(self_ref._provider_options_dialog)
+        local new_required = not (provider.api_key_required ~= false)
+        self_ref:updateCustomProvider(provider.id, {
+          api_key_required = new_required,
+        })
+        local status = new_required and _("required") or _("not required")
+        UIManager:show(Notification:new{
+          text = T(_("API key: %1"), status),
+          timeout = 1.5,
+        })
+      end,
+    }},
+    {{
+      text = _("Remove provider"),
+      callback = function()
+        UIManager:close(self_ref._provider_options_dialog)
+        UIManager:show(ConfirmBox:new{
+          text = T(_("Remove custom provider '%1'?\n\nThis will also remove any custom models and API key for this provider."), provider.name),
+          ok_callback = function()
+            self_ref:removeCustomProvider(provider.id)
+            UIManager:show(Notification:new{
+              text = T(_("Removed: %1"), provider.name),
+              timeout = 1.5,
+            })
+          end,
+        })
+      end,
+    }},
+    {{
+      text = _("Cancel"),
+      callback = function()
+        UIManager:close(self_ref._provider_options_dialog)
+      end,
+    }},
+  }
+
+  self._provider_options_dialog = ButtonDialog:new{
+    title = provider.name,
+    buttons = buttons,
+  }
+  UIManager:show(self._provider_options_dialog)
+end
+
+-- Helper: Show dialog to add a new custom provider
+function AskGPT:showAddCustomProviderDialog()
+  local self_ref = self
+  local MultiInputDialog = require("ui/widget/multiinputdialog")
+
+  local dialog
+  dialog = MultiInputDialog:new{
+    title = _("Add Custom Provider"),
+    fields = {
+      {
+        text = "",
+        hint = _("Provider name (e.g., LM Studio)"),
+      },
+      {
+        text = "",
+        hint = _("Base URL (e.g., http://localhost:1234/v1/chat/completions)"),
+      },
+      {
+        text = "",
+        hint = _("Default model name (optional)"),
+      },
+    },
+    buttons = {
+      {
+        {
+          text = _("Cancel"),
+          id = "close",
+          callback = function()
+            UIManager:close(dialog)
+          end,
+        },
+        {
+          text = _("Add"),
+          callback = function()
+            local fields = dialog:getFields()
+            local name = fields[1]
+            local base_url = fields[2]
+            local default_model = fields[3]
+
+            local success, result = self_ref:saveCustomProvider({
+              name = name,
+              base_url = base_url,
+              default_model = default_model,
+              api_key_required = true,
+            })
+
+            if success then
+              UIManager:close(dialog)
+              UIManager:show(Notification:new{
+                text = T(_("Added provider: %1"), name),
+                timeout = 1.5,
+              })
+            else
+              UIManager:show(Notification:new{
+                text = result,
+                timeout = 2,
+              })
+            end
+          end,
+        },
+      },
+    },
+  }
+  UIManager:show(dialog)
+  dialog:onShowKeyboard()
+end
+
+-- Helper: Show dialog to edit a custom provider
+function AskGPT:showEditCustomProviderDialog(provider)
+  local self_ref = self
+  local MultiInputDialog = require("ui/widget/multiinputdialog")
+
+  local dialog
+  dialog = MultiInputDialog:new{
+    title = T(_("Edit: %1"), provider.name),
+    fields = {
+      {
+        text = provider.name or "",
+        hint = _("Provider name"),
+      },
+      {
+        text = provider.base_url or "",
+        hint = _("Base URL"),
+      },
+      {
+        text = provider.default_model or "",
+        hint = _("Default model name (optional)"),
+      },
+    },
+    buttons = {
+      {
+        {
+          text = _("Cancel"),
+          id = "close",
+          callback = function()
+            UIManager:close(dialog)
+          end,
+        },
+        {
+          text = _("Save"),
+          callback = function()
+            local fields = dialog:getFields()
+            local name = fields[1]
+            local base_url = fields[2]
+            local default_model = fields[3]
+
+            if name == "" then
+              UIManager:show(Notification:new{
+                text = _("Provider name is required"),
+                timeout = 2,
+              })
+              return
+            end
+
+            if base_url == "" then
+              UIManager:show(Notification:new{
+                text = _("Base URL is required"),
+                timeout = 2,
+              })
+              return
+            end
+
+            self_ref:updateCustomProvider(provider.id, {
+              name = name,
+              base_url = base_url,
+              default_model = default_model,
+            })
+
+            UIManager:close(dialog)
+            UIManager:show(Notification:new{
+              text = T(_("Updated: %1"), name),
+              timeout = 1.5,
+            })
+          end,
+        },
+      },
+    },
+  }
+  UIManager:show(dialog)
+  dialog:onShowKeyboard()
+end
+
+-- Helper: Show menu to manage custom providers
+function AskGPT:showManageCustomProvidersMenu()
+  local self_ref = self
+  local custom_providers = self:getCustomProviders()
+
+  if #custom_providers == 0 then
+    UIManager:show(Notification:new{
+      text = _("No custom providers to manage"),
+      timeout = 1.5,
+    })
+    return
+  end
+
+  local ButtonDialog = require("ui/widget/buttondialog")
+  local ConfirmBox = require("ui/widget/confirmbox")
+  local buttons = {}
+
+  -- Add each custom provider as an option
+  for _idx, cp in ipairs(custom_providers) do
+    local cp_copy = cp
+    table.insert(buttons, {{
+      text = T(_("Edit: %1"), cp_copy.name),
+      callback = function()
+        UIManager:close(self_ref._manage_providers_dialog)
+        self_ref:showEditCustomProviderDialog(cp_copy)
+      end,
+    }})
+  end
+
+  -- Add remove all option
+  table.insert(buttons, {{
+    text = "────────────────────",
+    enabled = false,
+  }})
+
+  table.insert(buttons, {{
+    text = T(_("Remove all (%1)"), #custom_providers),
+    callback = function()
+      UIManager:close(self_ref._manage_providers_dialog)
+      UIManager:show(ConfirmBox:new{
+        text = T(_("Remove all %1 custom provider(s)?\n\nThis will also remove their custom models and API keys."), #custom_providers),
+        ok_callback = function()
+          local features = self_ref.settings:readSetting("features") or {}
+
+          -- Reset provider if current is custom
+          if self_ref:isCustomProvider(features.provider) then
+            features.provider = "anthropic"
+            features.model = nil
+          end
+
+          -- Clear all custom provider data
+          local old_providers = features.custom_providers or {}
+          for _idx, cp in ipairs(old_providers) do
+            -- Remove custom models for this provider
+            if features.custom_models and features.custom_models[cp.id] then
+              features.custom_models[cp.id] = nil
+            end
+            -- Remove API key
+            if features.api_keys and features.api_keys[cp.id] then
+              features.api_keys[cp.id] = nil
+            end
+          end
+
+          features.custom_providers = {}
+          self_ref.settings:saveSetting("features", features)
+          self_ref.settings:flush()
+          self_ref:updateConfigFromSettings()
+
+          UIManager:show(Notification:new{
+            text = _("All custom providers removed"),
+            timeout = 1.5,
+          })
+        end,
+      })
+    end,
+  }})
+
+  table.insert(buttons, {{
+    text = _("Close"),
+    callback = function()
+      UIManager:close(self_ref._manage_providers_dialog)
+    end,
+  }})
+
+  self._manage_providers_dialog = ButtonDialog:new{
+    title = _("Manage Custom Providers"),
+    buttons = buttons,
+  }
+  UIManager:show(self._manage_providers_dialog)
 end
 
 -- Helper: Build model selection sub-menu for current provider
@@ -1211,14 +1766,37 @@ end
 function AskGPT:buildModelMenu(simplified)
   local self_ref = self
   local provider = self:getCurrentProvider()
-  local models = ModelLists[provider] or {}
+  local is_custom_provider = self:isCustomProvider(provider)
+  local custom_provider_config = is_custom_provider and self:getCustomProvider(provider) or nil
+
+  -- Get models: built-in providers have model lists, custom providers only have custom models
+  local models = {}
+  if not is_custom_provider then
+    models = ModelLists[provider] or {}
+  end
+
+  -- Get defaults
   local Defaults = require("api_handlers.defaults")
   local provider_defaults = Defaults.ProviderDefaults[provider]
-  local system_default = provider_defaults and provider_defaults.model or nil
+  local system_default = nil
+  if is_custom_provider and custom_provider_config then
+    system_default = custom_provider_config.default_model
+  elseif provider_defaults then
+    system_default = provider_defaults.model
+  end
+
   local user_default = self:getUserDefaultModel(provider)
-  local effective_default = user_default or system_default
+  local effective_default = user_default or system_default or ""
   local custom_models = self:getCustomModels(provider)
   local items = {}
+
+  -- Get display name for provider (used in messages)
+  local provider_display_name
+  if is_custom_provider and custom_provider_config then
+    provider_display_name = custom_provider_config.name
+  else
+    provider_display_name = provider:gsub("^%l", string.upper)
+  end
 
   -- Helper to create hold callback for model items
   local function createHoldCallback(model, is_custom)
@@ -1230,12 +1808,12 @@ function AskGPT:buildModelMenu(simplified)
       -- Option to set as default (if not already user default)
       if model ~= current_user_default then
         table.insert(buttons, {{
-          text = T(_("Set as default for %1"), provider:gsub("^%l", string.upper)),
+          text = T(_("Set as default for %1"), provider_display_name),
           callback = function()
             UIManager:close(self_ref._model_hold_dialog)
             self_ref:setUserDefaultModel(provider, model)
             UIManager:show(Notification:new{
-              text = T(_("Default for %1: %2"), provider:gsub("^%l", string.upper), model),
+              text = T(_("Default for %1: %2"), provider_display_name, model),
               timeout = 1.5,
             })
           end,
@@ -1250,7 +1828,7 @@ function AskGPT:buildModelMenu(simplified)
             UIManager:close(self_ref._model_hold_dialog)
             self_ref:clearUserDefaultModel(provider)
             UIManager:show(Notification:new{
-              text = T(_("Cleared custom default for %1"), provider:gsub("^%l", string.upper)),
+              text = T(_("Cleared custom default for %1"), provider_display_name),
               timeout = 1.5,
             })
           end,
@@ -1331,40 +1909,37 @@ function AskGPT:buildModelMenu(simplified)
     })
   end
 
-  -- Add custom models first (with ★ prefix)
+  -- Build unified list of all models for sorting
+  local all_models = {}
+
+  -- Add custom models
   for _idx, model in ipairs(custom_models) do
-    local model_copy = model  -- Capture for closure
-    table.insert(items, {
-      text = buildDisplayName(model_copy, true),
-      checked_func = function()
-        local f = self_ref.settings:readSetting("features") or {}
-        local selected = f.model or effective_default
-        return selected == model_copy
-      end,
-      radio = true,
-      callback = function()
-        local f = self_ref.settings:readSetting("features") or {}
-        f.model = model_copy
-        self_ref.settings:saveSetting("features", f)
-        self_ref.settings:flush()
-        self_ref:updateConfigFromSettings()
-        UIManager:show(Notification:new{
-          text = T(_("Model: %1"), model_copy),
-          timeout = 1.5,
-        })
-      end,
-      hold_callback = createHoldCallback(model_copy, true),
-      keep_menu_open = true,
+    table.insert(all_models, {
+      name = model,
+      is_custom = true,
     })
   end
 
   -- Add built-in models
   for i = 1, #models do
-    local model = models[i]
-    local model_copy = model  -- Capture for closure
+    table.insert(all_models, {
+      name = models[i],
+      is_custom = false,
+    })
+  end
+
+  -- Sort alphabetically by model name (case-insensitive)
+  table.sort(all_models, function(a, b)
+    return a.name:lower() < b.name:lower()
+  end)
+
+  -- Create menu items from sorted list
+  for _idx, model_info in ipairs(all_models) do
+    local model_copy = model_info.name  -- Capture for closure
+    local is_custom = model_info.is_custom
 
     table.insert(items, {
-      text = buildDisplayName(model_copy, false),
+      text = buildDisplayName(model_copy, is_custom),
       checked_func = function()
         local f = self_ref.settings:readSetting("features") or {}
         local selected = f.model or effective_default
@@ -1382,7 +1957,7 @@ function AskGPT:buildModelMenu(simplified)
           timeout = 1.5,
         })
       end,
-      hold_callback = createHoldCallback(model_copy, false),
+      hold_callback = createHoldCallback(model_copy, is_custom),
       keep_menu_open = true,
     })
   end
@@ -1608,16 +2183,18 @@ end
 function AskGPT:buildApiKeysMenu()
   local self_ref = self
   local items = {}
-  local providers = ModelLists.getAllProviders()
+  local builtin_providers = ModelLists.getAllProviders()
+  local custom_providers = self:getCustomProviders()
   local features = self.settings:readSetting("features") or {}
   local gui_keys = features.api_keys or {}
 
-  for _i, provider in ipairs(providers) do
-    local prov_copy = provider
+  -- Build unified list of all providers for sorting
+  local all_providers = {}
+
+  -- Add built-in providers
+  for _i, provider in ipairs(builtin_providers) do
     local has_gui_key = gui_keys[provider] and gui_keys[provider] ~= ""
     local has_file_key = hasFileApiKey(provider)
-
-    -- Status indicator
     local status = ""
     if has_gui_key then
       status = " [set]"
@@ -1625,20 +2202,62 @@ function AskGPT:buildApiKeysMenu()
       status = " (file)"
     end
 
+    table.insert(all_providers, {
+      id = provider,
+      display_name = provider:gsub("^%l", string.upper),
+      status = status,
+      is_custom = false,
+    })
+  end
+
+  -- Add custom providers
+  for _i, cp in ipairs(custom_providers) do
+    local has_gui_key = gui_keys[cp.id] and gui_keys[cp.id] ~= ""
+    local status = ""
+    if has_gui_key then
+      status = " [set]"
+    elseif not cp.api_key_required then
+      status = " (not required)"
+    end
+
+    table.insert(all_providers, {
+      id = cp.id,
+      display_name = cp.name,
+      status = status,
+      is_custom = true,
+      api_key_optional = not cp.api_key_required,
+    })
+  end
+
+  -- Sort alphabetically by display name (case-insensitive)
+  table.sort(all_providers, function(a, b)
+    return a.display_name:lower() < b.display_name:lower()
+  end)
+
+  -- Create menu items from sorted list
+  for _i, prov in ipairs(all_providers) do
+    local prov_copy = prov  -- Capture for closure
+    local text = prov.is_custom and ("★ " .. prov.display_name .. prov.status) or (prov.display_name .. prov.status)
+
     table.insert(items, {
-      text = prov_copy:gsub("^%l", string.upper) .. status,
+      text = text,
       keep_menu_open = true,
       callback = function()
-        self_ref:showApiKeyDialog(prov_copy)
+        self_ref:showApiKeyDialog(prov_copy.id, prov_copy.display_name, prov_copy.api_key_optional)
       end,
     })
   end
+
   return items
 end
 
 -- Show dialog to enter/edit API key for a provider
-function AskGPT:showApiKeyDialog(provider)
+-- @param provider string: Provider ID
+-- @param display_name string: Display name (optional, defaults to capitalized provider)
+-- @param key_optional boolean: If true, shows hint that key is optional (for local servers)
+function AskGPT:showApiKeyDialog(provider, display_name, key_optional)
   local self_ref = self
+  display_name = display_name or provider:gsub("^%l", string.upper)
   local features = self.settings:readSetting("features") or {}
   local gui_keys = features.api_keys or {}
   local current_key = gui_keys[provider] or ""
@@ -1651,6 +2270,8 @@ function AskGPT:showApiKeyDialog(provider)
     hint_text = T(_("Current: %1"), masked)
   elseif has_file_key then
     hint_text = _("Using key from apikeys.lua")
+  elseif key_optional then
+    hint_text = _("Optional - leave empty for local servers")
   else
     hint_text = _("Enter API key...")
   end
@@ -1658,7 +2279,7 @@ function AskGPT:showApiKeyDialog(provider)
   local InputDialog = require("ui/widget/inputdialog")
   local input_dialog
   input_dialog = InputDialog:new{
-    title = provider:gsub("^%l", string.upper) .. " " .. _("API Key"),
+    title = display_name .. " " .. _("API Key"),
     input = "",  -- Start empty, show hint with masked value
     input_hint = hint_text,
     input_type = "text",
@@ -1682,7 +2303,7 @@ function AskGPT:showApiKeyDialog(provider)
             self_ref.settings:flush()
             UIManager:close(input_dialog)
             UIManager:show(InfoMessage:new{
-              text = T(_("%1 API key cleared"), provider:gsub("^%l", string.upper)),
+              text = T(_("%1 API key cleared"), display_name),
               timeout = 2,
             })
           end,
@@ -1700,7 +2321,7 @@ function AskGPT:showApiKeyDialog(provider)
               self_ref.settings:flush()
               UIManager:close(input_dialog)
               UIManager:show(InfoMessage:new{
-                text = T(_("%1 API key saved"), provider:gsub("^%l", string.upper)),
+                text = T(_("%1 API key saved"), display_name),
                 timeout = 2,
               })
             else
@@ -2558,7 +3179,7 @@ function AskGPT:onKOAssistantChangeTranslationLanguage()
 end
 
 function AskGPT:onKOAssistantChangeProvider()
-  local menu_items = self:buildProviderMenu()
+  local menu_items = self:buildProviderMenu(true)  -- simplified mode for quick access
   self:showQuickSettingsPopup(_("Provider"), menu_items)
   return true
 end
@@ -2627,6 +3248,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
 
   local features = self.settings:readSetting("features") or {}
   local provider = features.provider or "anthropic"
+  local provider_display = self:getProviderDisplayName(provider)
   local model = self:getCurrentModel() or "default"
   local behavior_id = features.selected_behavior or "standard"
   local temp = features.default_temperature or 0.7
@@ -2697,11 +3319,11 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
       -- Row 1: Provider | Model
       {
         {
-          text = T(_("Provider: %1"), provider:gsub("^%l", string.upper)),
+          text = T(_("Provider: %1"), provider_display),
           callback = function()
             opening_subdialog = true
             UIManager:close(dialog)
-            local menu_items = self_ref:buildProviderMenu()
+            local menu_items = self_ref:buildProviderMenu(true)  -- simplified mode for quick access
             self_ref:showQuickSettingsPopup(_("Provider"), menu_items, true, reopenQuickSettings)
           end,
         },

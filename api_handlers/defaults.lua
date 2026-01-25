@@ -178,8 +178,48 @@ local ProviderDefaults = {
     }
 }
 
+--- Build defaults for a custom provider
+--- @param custom_provider table: Custom provider config {id, name, base_url, default_model, api_key_required}
+--- @return table: Provider defaults compatible with ProviderDefaults format
+local function buildCustomProviderDefaults(custom_provider)
+    return {
+        provider = custom_provider.id,
+        model = custom_provider.default_model or "default",
+        base_url = custom_provider.base_url or "",
+        is_custom = true,
+        api_key_required = custom_provider.api_key_required ~= false,  -- default true
+        additional_parameters = {
+            temperature = 0.7,
+            max_tokens = 4096
+        }
+    }
+end
+
+--- Get defaults for a provider (built-in or custom)
+--- @param provider_id string: Provider ID
+--- @param custom_providers table: Array of custom provider configs (optional)
+--- @return table|nil: Provider defaults or nil if not found
+local function getProviderDefaults(provider_id, custom_providers)
+    -- Check built-in first
+    if ProviderDefaults[provider_id] then
+        return ProviderDefaults[provider_id]
+    end
+
+    -- Check custom providers
+    if custom_providers then
+        for _, cp in ipairs(custom_providers) do
+            if cp.id == provider_id then
+                return buildCustomProviderDefaults(cp)
+            end
+        end
+    end
+
+    return nil
+end
+
 return {
     ProviderDefaults = ProviderDefaults,
     getDefaultModel = getDefaultModel,
-    ParameterDocs = ParameterDocs
+    getProviderDefaults = getProviderDefaults,
+    buildCustomProviderDefaults = buildCustomProviderDefaults,
 }

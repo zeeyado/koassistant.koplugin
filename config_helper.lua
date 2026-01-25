@@ -5,17 +5,26 @@ local ConfigHelper = {}
 
 function ConfigHelper:mergeWithDefaults(config, provider)
     if not config then return nil end
-    
+
     -- Deep copy the config to avoid modifying the original
     local merged = {}
     for k, v in pairs(config) do
         merged[k] = type(v) == "table" and self:deepCopy(v) or v
     end
-    
+
     -- Get provider, falling back to default
     provider = provider or merged.provider or "anthropic"
     local defaults = Defaults.ProviderDefaults[provider]
-    if not defaults then return nil end
+
+    -- For custom providers (not in built-in defaults), just return merged config
+    -- The custom provider will be handled by gpt_query.lua with custom_openai handler
+    if not defaults then
+        merged.provider = provider
+        merged.provider_settings = merged.provider_settings or {}
+        merged.provider_settings[provider] = merged.provider_settings[provider] or {}
+        merged._is_custom_provider = true  -- Flag for validation
+        return merged
+    end
     
     -- Ensure provider settings exist
     merged.provider = provider
@@ -75,7 +84,8 @@ function ConfigHelper:validate(config)
         return false, "No provider specified in configuration"
     end
 
-    if not Defaults.ProviderDefaults[provider] then
+    -- Accept both built-in providers and custom providers (flagged in mergeWithDefaults)
+    if not Defaults.ProviderDefaults[provider] and not config._is_custom_provider then
         return false, "Unsupported provider: " .. provider
     end
 
