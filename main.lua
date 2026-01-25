@@ -1699,7 +1699,7 @@ function AskGPT:buildDictionaryContextModeMenu()
       help_text = mode.help,
       checked_func = function()
         local f = self_ref.settings:readSetting("features") or {}
-        local current = f.dictionary_context_mode or "sentence"
+        local current = f.dictionary_context_mode or "none"
         return current == mode_copy
       end,
       radio = true,
@@ -1847,7 +1847,7 @@ function AskGPT:onDictButtonsReady(dict_popup, dict_buttons)
         -- Always extract context regardless of mode setting, so the compact view
         -- toggle button can enable context even when the setting is "none"
         local context = ""
-        local context_mode = features.dictionary_context_mode or "sentence"
+        local context_mode = features.dictionary_context_mode or "none"
         local context_chars = features.dictionary_context_chars or 100
         -- Use "sentence" as extraction mode when setting is "none" (for toggle availability)
         local extraction_mode = (context_mode == "none") and "sentence" or context_mode
@@ -1907,7 +1907,7 @@ function AskGPT:onDictButtonsReady(dict_popup, dict_buttons)
           -- Only include context in the request if mode is not "none"
           dict_config.features.dictionary_context = (context_mode ~= "none") and context or ""
           dict_config.features.dictionary_language = dict_language
-          dict_config.features.dictionary_context_mode = features.dictionary_context_mode or "sentence"
+          dict_config.features.dictionary_context_mode = features.dictionary_context_mode or "none"
           -- Always store extracted context so compact view toggle can use it
           dict_config.features._original_context = context
           dict_config.features._original_context_mode = extraction_mode
@@ -2984,7 +2984,7 @@ function AskGPT:registerHighlightMenuActions()
           -- Note: Method is on self.ui.highlight, not _reader_highlight_instance
           if self.ui.highlight and self.ui.highlight.getSelectedWordContext then
             local features = self.settings:readSetting("features") or {}
-            local context_mode = features.dictionary_context_mode or "sentence"
+            local context_mode = features.dictionary_context_mode or "none"
             -- Skip context extraction if mode is "none"
             if context_mode ~= "none" then
               local context_chars = features.dictionary_context_chars or 100
@@ -3061,7 +3061,7 @@ function AskGPT:syncDictionaryBypass()
       -- Once cleared, getSelectedWordContext() will return nil.
       -- Always extract regardless of mode, so compact view toggle can enable context later.
       local context = ""
-      local context_mode = features.dictionary_context_mode or "sentence"
+      local context_mode = features.dictionary_context_mode or "none"
       local context_chars = features.dictionary_context_chars or 100
       -- Use "sentence" as extraction mode when setting is "none" (for toggle availability)
       local extraction_mode = (context_mode == "none") and "sentence" or context_mode
@@ -3123,7 +3123,7 @@ function AskGPT:syncDictionaryBypass()
         -- Only include context in the request if mode is not "none"
         dict_config.features.dictionary_context = (context_mode ~= "none") and context or ""
         dict_config.features.dictionary_language = dict_language
-        dict_config.features.dictionary_context_mode = features.dictionary_context_mode or "sentence"
+        dict_config.features.dictionary_context_mode = features.dictionary_context_mode or "none"
         -- Always store extracted context so compact view toggle can use it
         dict_config.features._original_context = context
         dict_config.features._original_context_mode = extraction_mode

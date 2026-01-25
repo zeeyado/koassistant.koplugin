@@ -568,6 +568,39 @@ local function buildDefaultFromFlags(actions_module, flag_field)
     return ids
 end
 
+-- Process a saved action list: prune stale IDs and inject new flagged defaults
+-- Returns the processed list (may be modified) and whether changes were made
+local function processActionList(service, saved, flag_field, dismissed_key)
+    local dismissed = service.settings:readSetting(dismissed_key) or {}
+    local dismissed_set = {}
+    for _i, id in ipairs(dismissed) do dismissed_set[id] = true end
+
+    -- Prune stale IDs (actions that no longer exist)
+    local pruned = {}
+    for _i, id in ipairs(saved) do
+        if service:getAction("highlight", id) then
+            table.insert(pruned, id)
+        end
+    end
+
+    -- Build set of current IDs for quick lookup
+    local current_set = {}
+    for _i, id in ipairs(pruned) do current_set[id] = true end
+
+    -- Inject new flagged defaults not in list and not dismissed
+    local defaults = buildDefaultFromFlags(service.Actions, flag_field)
+    for _i, id in ipairs(defaults) do
+        if not current_set[id] and not dismissed_set[id] then
+            local action = service:getAction("highlight", id)
+            local pos = action and action[flag_field] or (#pruned + 1)
+            pos = math.min(pos, #pruned + 1)
+            table.insert(pruned, pos, id)
+            current_set[id] = true
+        end
+    end
+
+    return pruned
+end
 
 -- Get ordered list of highlight menu action IDs
 function ActionService:getHighlightMenuActions()
@@ -575,20 +608,10 @@ function ActionService:getHighlightMenuActions()
     if not saved then
         return buildDefaultFromFlags(self.Actions, "in_highlight_menu")
     end
-    local has_valid = false
-    for _i, id in ipairs(saved) do
-        if self:getAction("highlight", id) then
-            has_valid = true
-            break
-        end
-    end
-    if not has_valid then
-        local new_list = buildDefaultFromFlags(self.Actions, "in_highlight_menu")
-        self.settings:saveSetting("highlight_menu_actions", new_list)
-        self.settings:flush()
-        return new_list
-    end
-    return saved
+    local processed = processActionList(self, saved, "in_highlight_menu", "_dismissed_highlight_menu_actions")
+    -- Always save processed list (handles prune and inject)
+    self.settings:saveSetting("highlight_menu_actions", processed)
+    return processed
 end
 
 -- Check if action is in highlight menu
@@ -607,6 +630,15 @@ function ActionService:addToHighlightMenu(action_id)
     if not self:isInHighlightMenu(action_id) then
         table.insert(actions, action_id)
         self.settings:saveSetting("highlight_menu_actions", actions)
+        -- Remove from dismissed list if present
+        local dismissed = self.settings:readSetting("_dismissed_highlight_menu_actions") or {}
+        for i, id in ipairs(dismissed) do
+            if id == action_id then
+                table.remove(dismissed, i)
+                self.settings:saveSetting("_dismissed_highlight_menu_actions", dismissed)
+                break
+            end
+        end
         self.settings:flush()
     end
 end
@@ -618,6 +650,10 @@ function ActionService:removeFromHighlightMenu(action_id)
         if id == action_id then
             table.remove(actions, i)
             self.settings:saveSetting("highlight_menu_actions", actions)
+            -- Add to dismissed list so it won't be auto-injected again
+            local dismissed = self.settings:readSetting("_dismissed_highlight_menu_actions") or {}
+            table.insert(dismissed, action_id)
+            self.settings:saveSetting("_dismissed_highlight_menu_actions", dismissed)
             self.settings:flush()
             return
         end
@@ -714,35 +750,10 @@ function ActionService:getDictionaryPopupActions()
     if not saved then
         return buildDefaultFromFlags(self.Actions, "in_dictionary_popup")
     end
-    -- Check if any saved IDs still resolve to valid actions
-    local has_valid = false
-    for _i, id in ipairs(saved) do
-        if self:getAction("highlight", id) then
-            has_valid = true
-            break
-        end
-    end
-    -- If all saved IDs are stale (e.g. actions were renamed), reset to defaults
-    if not has_valid then
-        local new_list = buildDefaultFromFlags(self.Actions, "in_dictionary_popup")
-        self.settings:saveSetting("dictionary_popup_actions", new_list)
-        self.settings:flush()
-        return new_list
-    end
-    -- One-time migration: add "define" action for users upgrading from v0.11.0
-    if not self.settings:readSetting("_migrated_define_action") then
-        local has_define = false
-        for _i, id in ipairs(saved) do
-            if id == "define" then has_define = true; break end
-        end
-        if not has_define then
-            table.insert(saved, 2, "define")
-            self.settings:saveSetting("dictionary_popup_actions", saved)
-        end
-        self.settings:saveSetting("_migrated_define_action", true)
-        self.settings:flush()
-    end
-    return saved
+    local processed = processActionList(self, saved, "in_dictionary_popup", "_dismissed_dictionary_popup_actions")
+    -- Always save processed list (handles prune and inject)
+    self.settings:saveSetting("dictionary_popup_actions", processed)
+    return processed
 end
 
 -- Check if action is in dictionary popup
@@ -763,6 +774,15 @@ function ActionService:addToDictionaryPopup(action_id)
     if not self:isInDictionaryPopup(action_id) then
         table.insert(actions, action_id)
         self.settings:saveSetting("dictionary_popup_actions", actions)
+        -- Remove from dismissed list if present
+        local dismissed = self.settings:readSetting("_dismissed_dictionary_popup_actions") or {}
+        for i, id in ipairs(dismissed) do
+            if id == action_id then
+                table.remove(dismissed, i)
+                self.settings:saveSetting("_dismissed_dictionary_popup_actions", dismissed)
+                break
+            end
+        end
         self.settings:flush()
     end
 end
@@ -774,6 +794,10 @@ function ActionService:removeFromDictionaryPopup(action_id)
         if id == action_id then
             table.remove(actions, i)
             self.settings:saveSetting("dictionary_popup_actions", actions)
+            -- Add to dismissed list so it won't be auto-injected again
+            local dismissed = self.settings:readSetting("_dismissed_dictionary_popup_actions") or {}
+            table.insert(dismissed, action_id)
+            self.settings:saveSetting("_dismissed_dictionary_popup_actions", dismissed)
             self.settings:flush()
             return
         end
