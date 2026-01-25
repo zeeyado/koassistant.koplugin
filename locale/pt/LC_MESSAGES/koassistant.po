@@ -1004,7 +1004,7 @@ msgstr ""
 
 #: main.lua:1198 main.lua:2700
 #, fuzzy, lua-format
-msgid "Provider: %s"
+msgid "Provider: %1"
 msgstr "Provedor: %1"
 
 #: main.lua:1233
@@ -1060,7 +1060,7 @@ msgstr ""
 
 #: main.lua:1352 main.lua:1381 main.lua:2709
 #, fuzzy, lua-format
-msgid "Model: %s"
+msgid "Model: %1"
 msgstr "Modelo: %1"
 
 #: main.lua:1400
@@ -1133,7 +1133,7 @@ msgstr "Modelo personalizado"
 
 #: main.lua:1651
 #, fuzzy, lua-format
-msgid "Current: %s"
+msgid "Current: %1"
 msgstr "Etiquetas atuais:"
 
 #: main.lua:1653
@@ -1158,12 +1158,12 @@ msgstr "Limpar"
 
 #: main.lua:1685
 #, fuzzy, lua-format
-msgid "%s API key cleared"
+msgid "%1 API key cleared"
 msgstr "Chave API de %s removida"
 
 #: main.lua:1703
 #, fuzzy, lua-format
-msgid "%s API key saved"
+msgid "%1 API key saved"
 msgstr "Chave API de %s guardada"
 
 #: main.lua:1763
@@ -1178,17 +1178,17 @@ msgstr "Nenhum idioma válido encontrado"
 
 #: main.lua:1812
 #, fuzzy, lua-format
-msgid "Primary: %s"
+msgid "Primary: %1"
 msgstr "Idioma principal: %1"
 
 #: main.lua:1832
 #, fuzzy, lua-format
-msgid "Use Primary (%s)"
+msgid "Use Primary (%1)"
 msgstr "Usar principal (%s)"
 
 #: main.lua:1858 main.lua:1898 main.lua:2805
 #, fuzzy, lua-format
-msgid "Translate: %s"
+msgid "Translate: %1"
 msgstr "Traduzir"
 
 #: main.lua:1912 ui/prompts_manager.lua:1049 ui/prompts_manager.lua:2136
@@ -1238,7 +1238,7 @@ msgstr "Idioma principal: %1"
 
 #: main.lua:2039 main.lua:2817
 #, fuzzy, lua-format
-msgid "Dictionary: %s"
+msgid "Dictionary: %1"
 msgstr "Idioma principal: %1"
 
 #: main.lua:2055 settings_schema.lua:546
@@ -1278,7 +1278,7 @@ msgstr "Enviar apenas a palavra, sem contexto envolvente"
 
 #: main.lua:2078
 #, fuzzy, lua-format
-msgid "Context: %s"
+msgid "Context: %1"
 msgstr "Contexto: "
 
 #: main.lua:2097
@@ -1372,12 +1372,12 @@ msgstr "Editar configurações"
 
 #: main.lua:2721
 #, fuzzy, lua-format
-msgid "Behavior: %s"
+msgid "Behavior: %1"
 msgstr "Comportamento da IA: %1"
 
 #: main.lua:2730
 #, fuzzy, lua-format
-msgid "Domain: %s"
+msgid "Domain: %1"
 msgstr "Domínio: "
 
 #: main.lua:2735 main.lua:2969
@@ -1387,7 +1387,7 @@ msgstr "Selecionar domínio"
 
 #: main.lua:2742
 #, fuzzy, lua-format
-msgid "Temp: %.1f"
+msgid "Temp: %1"
 msgstr "Temperatura: "
 
 #: main.lua:2753 settings_schema.lua:226 ui/prompts_manager.lua:507
@@ -1408,7 +1408,7 @@ msgstr "Ativar streaming"
 
 #: main.lua:2786
 #, fuzzy, lua-format
-msgid "Language: %s"
+msgid "Language: %1"
 msgstr "Idioma"
 
 #: main.lua:2795
@@ -1456,10 +1456,10 @@ msgstr "Teste de conexão falhou:\n"
 msgid ""
 "Connection test successful!\n"
 "\n"
-"Provider: %s\n"
-"Model: %s\n"
+"Provider: %1\n"
+"Model: %2\n"
 "\n"
-"Response: %s"
+"Response: %3"
 msgstr ""
 "Teste de conexão bem-sucedido!\n"
 "\n"
