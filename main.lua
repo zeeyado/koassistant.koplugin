@@ -1195,7 +1195,7 @@ function AskGPT:buildProviderMenu()
         self_ref:updateConfigFromSettings()
         -- Show toast confirmation
         UIManager:show(Notification:new{
-          text = string.format(_("Provider: %s"), prov_copy:gsub("^%l", string.upper)),
+          text = T(_("Provider: %1"), prov_copy:gsub("^%l", string.upper)),
           timeout = 1.5,
         })
       end,
@@ -1349,7 +1349,7 @@ function AskGPT:buildModelMenu(simplified)
         self_ref.settings:flush()
         self_ref:updateConfigFromSettings()
         UIManager:show(Notification:new{
-          text = string.format(_("Model: %s"), model_copy),
+          text = T(_("Model: %1"), model_copy),
           timeout = 1.5,
         })
       end,
@@ -1378,7 +1378,7 @@ function AskGPT:buildModelMenu(simplified)
         self_ref.settings:flush()
         self_ref:updateConfigFromSettings()
         UIManager:show(Notification:new{
-          text = string.format(_("Model: %s"), model_copy),
+          text = T(_("Model: %1"), model_copy),
           timeout = 1.5,
         })
       end,
@@ -1648,7 +1648,7 @@ function AskGPT:showApiKeyDialog(provider)
   -- Build hint text
   local hint_text
   if masked ~= "" then
-    hint_text = string.format(_("Current: %s"), masked)
+    hint_text = T(_("Current: %1"), masked)
   elseif has_file_key then
     hint_text = _("Using key from apikeys.lua")
   else
@@ -1682,7 +1682,7 @@ function AskGPT:showApiKeyDialog(provider)
             self_ref.settings:flush()
             UIManager:close(input_dialog)
             UIManager:show(InfoMessage:new{
-              text = string.format(_("%s API key cleared"), provider:gsub("^%l", string.upper)),
+              text = T(_("%1 API key cleared"), provider:gsub("^%l", string.upper)),
               timeout = 2,
             })
           end,
@@ -1700,7 +1700,7 @@ function AskGPT:showApiKeyDialog(provider)
               self_ref.settings:flush()
               UIManager:close(input_dialog)
               UIManager:show(InfoMessage:new{
-                text = string.format(_("%s API key saved"), provider:gsub("^%l", string.upper)),
+                text = T(_("%1 API key saved"), provider:gsub("^%l", string.upper)),
                 timeout = 2,
               })
             else
@@ -1809,7 +1809,7 @@ function AskGPT:buildPrimaryLanguageMenu()
         self_ref.settings:flush()
         -- Show toast confirmation
         UIManager:show(Notification:new{
-          text = string.format(_("Primary: %s"), lang_copy),
+          text = T(_("Primary: %1"), lang_copy),
           timeout = 1.5,
         })
       end,
@@ -1829,7 +1829,7 @@ function AskGPT:buildTranslationLanguageMenu()
 
   -- Add "Use Primary" option at top
   table.insert(menu_items, {
-    text = string.format(_("Use Primary (%s)"), effective_primary),
+    text = T(_("Use Primary (%1)"), effective_primary),
     checked_func = function()
       local f = self_ref.settings:readSetting("features") or {}
       -- Primary is selected when: toggle is on, OR translation_language is sentinel/nil
@@ -1855,7 +1855,7 @@ function AskGPT:buildTranslationLanguageMenu()
       -- Show toast confirmation
       local prim = self_ref:getEffectivePrimaryLanguage() or "English"
       UIManager:show(Notification:new{
-        text = string.format(_("Translate: %s"), prim),
+        text = T(_("Translate: %1"), prim),
         timeout = 1.5,
       })
     end,
@@ -1895,7 +1895,7 @@ function AskGPT:buildTranslationLanguageMenu()
         self_ref.settings:flush()
         -- Show toast confirmation
         UIManager:show(Notification:new{
-          text = string.format(_("Translate: %s"), lang_copy),
+          text = T(_("Translate: %1"), lang_copy),
           timeout = 1.5,
         })
       end,
@@ -2036,7 +2036,7 @@ function AskGPT:buildDictionaryLanguageMenu()
         self_ref.settings:saveSetting("features", f)
         self_ref.settings:flush()
         UIManager:show(Notification:new{
-          text = string.format(_("Dictionary: %s"), lang_copy),
+          text = T(_("Dictionary: %1"), lang_copy),
           timeout = 1.5,
         })
       end,
@@ -2075,7 +2075,7 @@ function AskGPT:buildDictionaryContextModeMenu()
         self_ref.settings:saveSetting("features", f)
         self_ref.settings:flush()
         UIManager:show(Notification:new{
-          text = string.format(_("Context: %s"), mode.text),
+          text = T(_("Context: %1"), mode.text),
           timeout = 1.5,
         })
       end,
@@ -2697,7 +2697,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
       -- Row 1: Provider | Model
       {
         {
-          text = string.format(_("Provider: %s"), provider:gsub("^%l", string.upper)),
+          text = T(_("Provider: %1"), provider:gsub("^%l", string.upper)),
           callback = function()
             opening_subdialog = true
             UIManager:close(dialog)
@@ -2706,7 +2706,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
           end,
         },
         {
-          text = string.format(_("Model: %s"), model),
+          text = T(_("Model: %1"), model),
           callback = function()
             opening_subdialog = true
             UIManager:close(dialog)
@@ -2718,7 +2718,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
       -- Row 2: Behavior | Domain
       {
         {
-          text = string.format(_("Behavior: %s"), behavior_display),
+          text = T(_("Behavior: %1"), behavior_display),
           callback = function()
             opening_subdialog = true
             UIManager:close(dialog)
@@ -2727,7 +2727,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
           end,
         },
         {
-          text = string.format(_("Domain: %s"), domain_display),
+          text = T(_("Domain: %1"), domain_display),
           callback = function()
             opening_subdialog = true
             UIManager:close(dialog)
@@ -2739,7 +2739,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
       -- Row 3: Temperature | Streaming
       {
         {
-          text = string.format(_("Temp: %.1f"), temp),
+          text = T(_("Temp: %1"), string.format("%.1f", temp)),
           callback = function()
             opening_subdialog = true
             UIManager:close(dialog)
@@ -2783,7 +2783,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
       -- Row 4: Language | Translation
       {
         {
-          text = string.format(_("Language: %s"), lang_display),
+          text = T(_("Language: %1"), lang_display),
           callback = function()
             opening_subdialog = true
             UIManager:close(dialog)
@@ -2802,7 +2802,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
           end,
         },
         {
-          text = string.format(_("Translate: %s"), trans_display),
+          text = T(_("Translate: %1"), trans_display),
           callback = function()
             opening_subdialog = true
             UIManager:close(dialog)
@@ -2814,7 +2814,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
       -- Row 5: Dictionary | More Settings
       {
         {
-          text = string.format(_("Dictionary: %s"), dict_display),
+          text = T(_("Dictionary: %1"), dict_display),
           callback = function()
             opening_subdialog = true
             UIManager:close(dialog)
@@ -2929,7 +2929,7 @@ function AskGPT:testProviderConnection()
         else
           -- Connection successful
           UIManager:show(InfoMessage:new{
-            text = string.format(_("Connection test successful!\n\nProvider: %s\nModel: %s\n\nResponse: %s"),
+            text = T(_("Connection test successful!\n\nProvider: %1\nModel: %2\n\nResponse: %3"),
               test_config.provider, test_config.model or "default", response:sub(1, 100)),
             timeout = 5,
           })

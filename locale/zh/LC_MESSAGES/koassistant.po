@@ -998,7 +998,7 @@ msgstr "自定义（已迁移）"
 
 #: main.lua:1095 main.lua:2334
 #, fuzzy, lua-format
-msgid "Provider: %s"
+msgid "Provider: %1"
 msgstr "提供商：%1"
 
 #: main.lua:1124 main.lua:1429
@@ -1008,7 +1008,7 @@ msgstr "（默认）"
 
 #: main.lua:1143 main.lua:2343
 #, fuzzy, lua-format
-msgid "Model: %s"
+msgid "Model: %1"
 msgstr "模型：%1"
 
 #: main.lua:1153 ui/prompts_manager.lua:1879 ui/prompts_manager.lua:2343
@@ -1038,7 +1038,7 @@ msgstr "没有预定义的模型"
 
 #: main.lua:1285
 #, fuzzy, lua-format
-msgid "Current: %s"
+msgid "Current: %1"
 msgstr "当前标签："
 
 #: main.lua:1287
@@ -1064,14 +1064,14 @@ msgstr "清除"
 #: main.lua:1319
 #, lua-format
 #, fuzzy
-msgid "%s API key cleared"
-msgstr "%s API密钥已清除"
+msgid "%1 API key cleared"
+msgstr "%1 API密钥已清除"
 
 #: main.lua:1337
 #, lua-format
 #, fuzzy
-msgid "%s API key saved"
-msgstr "%s API密钥已保存"
+msgid "%1 API key saved"
+msgstr "%1 API密钥已保存"
 
 #: main.lua:1397
 #, fuzzy
@@ -1085,18 +1085,18 @@ msgstr "未找到有效语言"
 
 #: main.lua:1446
 #, fuzzy, lua-format
-msgid "Primary: %s"
+msgid "Primary: %1"
 msgstr "主要语言：%1"
 
 #: main.lua:1466
 #, lua-format
 #, fuzzy
-msgid "Use Primary (%s)"
-msgstr "使用主要语言（%s）"
+msgid "Use Primary (%1)"
+msgstr "使用主要语言（%1）"
 
 #: main.lua:1492 main.lua:1532 main.lua:2439
 #, fuzzy, lua-format
-msgid "Translate: %s"
+msgid "Translate: %1"
 msgstr "翻译"
 
 #: main.lua:1546 ui/prompts_manager.lua:1049 ui/prompts_manager.lua:2136
@@ -1146,7 +1146,7 @@ msgstr "主要语言：%1"
 
 #: main.lua:1673 main.lua:2451
 #, fuzzy, lua-format
-msgid "Dictionary: %s"
+msgid "Dictionary: %1"
 msgstr "主要语言：%1"
 
 #: main.lua:1689 settings_schema.lua:509
@@ -1186,7 +1186,7 @@ msgstr "仅发送单词，不包含上下文"
 
 #: main.lua:1712
 #, fuzzy, lua-format
-msgid "Context: %s"
+msgid "Context: %1"
 msgstr "上下文："
 
 #: main.lua:1731
@@ -1277,12 +1277,12 @@ msgstr "编辑设置"
 
 #: main.lua:2355
 #, fuzzy, lua-format
-msgid "Behavior: %s"
+msgid "Behavior: %1"
 msgstr "AI行为：%1"
 
 #: main.lua:2364
 #, fuzzy, lua-format
-msgid "Domain: %s"
+msgid "Domain: %1"
 msgstr "领域："
 
 #: main.lua:2369 main.lua:2603
@@ -1292,7 +1292,7 @@ msgstr "选择领域"
 
 #: main.lua:2376
 #, fuzzy, lua-format
-msgid "Temp: %.1f"
+msgid "Temp: %1"
 msgstr "温度："
 
 #: main.lua:2387 settings_schema.lua:226 ui/prompts_manager.lua:507
@@ -1313,7 +1313,7 @@ msgstr "启用流式传输"
 
 #: main.lua:2420
 #, fuzzy, lua-format
-msgid "Language: %s"
+msgid "Language: %1"
 msgstr "语言"
 
 #: main.lua:2429
@@ -1361,10 +1361,10 @@ msgstr "连接测试失败：\n"
 msgid ""
 "Connection test successful!\n"
 "\n"
-"Provider: %s\n"
-"Model: %s\n"
+"Provider: %1\n"
+"Model: %2\n"
 "\n"
-"Response: %s"
+"Response: %3"
 msgstr ""
 "连接测试成功！\n"
 "\n"

@@ -963,7 +963,7 @@ msgstr "Personalizado (migrado)"
 
 #: main.lua:1095 main.lua:2334
 #, lua-format
-msgid "Provider: %s"
+msgid "Provider: %1"
 msgstr "Provedor: %s"
 
 #: main.lua:1124 main.lua:1429
@@ -974,7 +974,7 @@ msgstr "(padrão)"
 #: main.lua:1143 main.lua:2343
 #, lua-format
 #, fuzzy
-msgid "Model: %s"
+msgid "Model: %1"
 msgstr "Modelo: %s"
 
 #: main.lua:1153 ui/prompts_manager.lua:1879 ui/prompts_manager.lua:2343
@@ -1004,7 +1004,7 @@ msgstr "Nenhum modelo predefinido"
 
 #: main.lua:1285
 #, fuzzy, lua-format
-msgid "Current: %s"
+msgid "Current: %1"
 msgstr "Etiquetas atuais:"
 
 #: main.lua:1287
@@ -1030,13 +1030,13 @@ msgstr "Limpar"
 #: main.lua:1319
 #, lua-format
 #, fuzzy
-msgid "%s API key cleared"
+msgid "%1 API key cleared"
 msgstr "Chave de API %s removida"
 
 #: main.lua:1337
 #, lua-format
 #, fuzzy
-msgid "%s API key saved"
+msgid "%1 API key saved"
 msgstr "Chave de API %s salva"
 
 #: main.lua:1397
@@ -1052,19 +1052,19 @@ msgstr "Nenhum idioma válido encontrado"
 #: main.lua:1446
 #, lua-format
 #, fuzzy
-msgid "Primary: %s"
+msgid "Primary: %1"
 msgstr "Principal: %s"
 
 #: main.lua:1466
 #, lua-format
 #, fuzzy
-msgid "Use Primary (%s)"
+msgid "Use Primary (%1)"
 msgstr "Usar principal (%s)"
 
 #: main.lua:1492 main.lua:1532 main.lua:2439
 #, lua-format
 #, fuzzy
-msgid "Translate: %s"
+msgid "Translate: %1"
 msgstr "Traduzir: %s"
 
 #: main.lua:1546 ui/prompts_manager.lua:1049 ui/prompts_manager.lua:2136
@@ -1115,7 +1115,7 @@ msgstr "Dicionário: seguir principal"
 #: main.lua:1673 main.lua:2451
 #, lua-format
 #, fuzzy
-msgid "Dictionary: %s"
+msgid "Dictionary: %1"
 msgstr "Dicionário: %s"
 
 #: main.lua:1689 settings_schema.lua:509
@@ -1156,7 +1156,7 @@ msgstr "Enviar apenas a palavra, sem contexto ao redor"
 #: main.lua:1712
 #, lua-format
 #, fuzzy
-msgid "Context: %s"
+msgid "Context: %1"
 msgstr "Contexto: %s"
 
 #: main.lua:1731
@@ -1247,13 +1247,13 @@ msgstr "Configurações rápidas de IA"
 #: main.lua:2355
 #, lua-format
 #, fuzzy
-msgid "Behavior: %s"
+msgid "Behavior: %1"
 msgstr "Comportamento: %s"
 
 #: main.lua:2364
 #, lua-format
 #, fuzzy
-msgid "Domain: %s"
+msgid "Domain: %1"
 msgstr "Domínio: %s"
 
 #: main.lua:2369 main.lua:2603
@@ -1263,7 +1263,7 @@ msgstr "Domínio de conhecimento"
 
 #: main.lua:2376
 #, fuzzy, lua-format
-msgid "Temp: %.1f"
+msgid "Temp: %1"
 msgstr "Temperatura: %.1f"
 
 #: main.lua:2387 settings_schema.lua:226 ui/prompts_manager.lua:507
@@ -1284,7 +1284,7 @@ msgstr "Streaming: OFF"
 #: main.lua:2420
 #, lua-format
 #, fuzzy
-msgid "Language: %s"
+msgid "Language: %1"
 msgstr "Idioma: %s"
 
 #: main.lua:2429
@@ -1335,10 +1335,10 @@ msgstr ""
 msgid ""
 "Connection test successful!\n"
 "\n"
-"Provider: %s\n"
-"Model: %s\n"
+"Provider: %1\n"
+"Model: %2\n"
 "\n"
-"Response: %s"
+"Response: %3"
 msgstr ""
 "Teste de conexão bem-sucedido!\n"
 "\n"
