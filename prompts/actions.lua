@@ -210,14 +210,14 @@ Actions.special = {
         in_dictionary_popup = 2,  -- Default order in dictionary popup
         prompt = [[Define: {highlighted_text}
 
-Format as a dictionary entry:
-- First line: **word** _part of speech, features of_ **lemma**
-- Definition(s) numbered if multiple
-- **In context:** Brief explanation of usage in the given passage
+Format as a dictionary entry with these language rules:
+- **Headword line:** ORIGINAL language — **word** _part of speech_ of **lemma**
+- **Definition(s):** {dictionary_language}, numbered if multiple
+- **In context:** {dictionary_language}, usage in the passage
 
 Context: {context}
 
-Respond in {dictionary_language}. Be concise.]],
+No section headers. Inline bold labels. Concise.]],
         include_book_context = false,  -- Word definitions don't typically need book metadata
         extended_thinking = "off",  -- Dictionary lookups don't benefit from extended thinking
         skip_language_instruction = true,  -- Target language already in prompt
@@ -237,16 +237,16 @@ Respond in {dictionary_language}. Be concise.]],
         in_dictionary_popup = 1,  -- Default order in dictionary popup
         prompt = [[Define: {highlighted_text}
 
-Format as a compact dictionary entry (no section headers, use inline labels):
-- First line: **word** _part of speech, features of_ **lemma**
-- Definition(s) numbered if multiple
-- **Etymology:** root/origin, concise
-- **Synonyms:** if relevant. Give synonyms in source language (same language as lookup word)
-- **In context:** Brief explanation of usage in the given passage
+Format as a dictionary entry with these language rules:
+- **Headword line:** ORIGINAL language — **word** _part of speech_ of **lemma**
+- **Definition(s):** {dictionary_language}, numbered if multiple
+- **Etymology:** {dictionary_language}, brief
+- **Synonyms:** ORIGINAL language (same as lookup word)
+- **In context:** {dictionary_language}, usage in the passage
 
 Context: {context}
 
-Respond in {dictionary_language} except for synonyms. Be concise.]],
+No section headers. Inline bold labels. Concise.]],
         include_book_context = false,  -- Word definitions don't typically need book metadata
         extended_thinking = "off",  -- Dictionary lookups don't benefit from extended thinking
         skip_language_instruction = true,  -- Target language already in prompt
