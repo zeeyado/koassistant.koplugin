@@ -46,8 +46,8 @@ local ModelLists = {
     },
     gemini = {
         -- Gemini 2.5 (stable, recommended)
-        "gemini-2.5-pro",
         "gemini-2.5-flash",
+        "gemini-2.5-pro",
         "gemini-2.5-flash-lite",
         -- Gemini 3 (preview - thinking models, use more tokens)
         "gemini-3-pro-preview",
@@ -158,11 +158,11 @@ local ModelLists = {
     },
     xai = {
         -- Grok 4.1 (latest, 2025)
-        "grok-4-1-fast-reasoning",
         "grok-4-1-fast-non-reasoning",
+        "grok-4-1-fast-reasoning",
         -- Grok 4
-        "grok-4-fast-reasoning",
         "grok-4-fast-non-reasoning",
+        "grok-4-fast-reasoning",
         "grok-4-0709",
         -- Grok Code
         "grok-code-fast-1",
