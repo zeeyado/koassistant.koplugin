@@ -176,16 +176,15 @@ local ModelLists = {
 
     xai = {
         -- Grok 4.1 (latest, 2M context)
-        "grok-4-1-fast",                -- flagship (default) - alias for reasoning
-        "grok-4-1-fast-reasoning",      -- reasoning with tool calling
-        "grok-4-1-fast-non-reasoning",  -- fast without reasoning
+        "grok-4-1-fast-non-reasoning",  -- flagship (default) - best quality, no forced reasoning
+        "grok-4-1-fast-reasoning",      -- reasoning tier - explicit CoT + tool calling
         -- Grok 4.x
-        "grok-4",                       -- reasoning
+        "grok-4",
         "grok-4-fast",
         -- Grok 3 (stable)
         "grok-3",                       -- standard
         "grok-3-fast",                  -- fast
-        "grok-3-mini",                  -- thinks
+        "grok-3-mini",
         "grok-3-mini-fast",             -- ultrafast
         -- Specialized
         "grok-code-fast-1",             -- coding (256K context)
@@ -204,7 +203,7 @@ local ModelLists = {
         "deepseek/deepseek-r1",
         "mistralai/mistral-large-latest",
         "qwen/qwen3-235b-a22b",
-        "x-ai/grok-4-1-fast",
+        "x-ai/grok-4-1-fast-non-reasoning",
     },
 
     qwen = {
@@ -347,7 +346,7 @@ local ModelLists = {
             gemini = "gemini-2.5-pro",
             groq = "llama-3.3-70b-versatile",
             mistral = "mistral-large-latest",
-            xai = "grok-4-1-fast",
+            xai = "grok-4-1-fast-non-reasoning",
             cohere = "command-a-03-2025",
             ollama = "llama4:maverick",
             openrouter = "anthropic/claude-sonnet-4-5-20250929",
