@@ -211,9 +211,9 @@ Actions.special = {
         prompt = [[Define: {highlighted_text}
 
 Format as a dictionary entry with these language rules:
-- **Headword line:** ORIGINAL language — **word** _part of speech_ of **lemma**
+- **Headword line:** **word** _part of speech_ of **lemma** - do NOT translate
 - **Definition(s):** {dictionary_language}, numbered if multiple
-- **In context:** {dictionary_language}, usage in the passage
+- **In context:** In {dictionary_language}, usage in the passage
 
 Context: {context}
 
@@ -238,11 +238,11 @@ No section headers. Inline bold labels. Concise.]],
         prompt = [[Define: {highlighted_text}
 
 Format as a dictionary entry with these language rules:
-- **Headword line:** ORIGINAL language — **word** _part of speech_ of **lemma**
+- **Headword line:** **word** _part of speech_ of **lemma** - do NOT translate
 - **Definition(s):** {dictionary_language}, numbered if multiple
-- **Etymology:** {dictionary_language}, brief
-- **Synonyms:** ORIGINAL language (same as lookup word)
-- **In context:** {dictionary_language}, usage in the passage
+- **Etymology:** In {dictionary_language}, brief
+- **Synonyms:** Same language as the word (not translated)
+- **In context:** In {dictionary_language}, usage in the passage
 
 Context: {context}
 
