@@ -259,6 +259,8 @@ All three can contain instructions to the AI, and deciding what to put where can
 
 ## Dictionary Integration
 
+With help from contributions to [assistant.koplugin](https://github.com/omer-faruq/assistant.koplugin) by [plateaukao](https://github.com/plateaukao) and others
+
 KOAssistant integrates with KOReader's dictionary system, providing AI-powered word lookups when you tap on words in a document.
 
 > **Tip:** Go into Action Management and select a light model (e.g. Haiku) for faster dictionary Actions.
@@ -278,7 +280,7 @@ When you tap a word in a document, KOReader normally shows its dictionary popup.
 |---------|-------------|
 | **AI Button in Dictionary Popup** | Show "AI Dictionary" button in KOReader's dictionary popup |
 | **Response Language** | Language for dictionary definitions (follow translation language or set specific) |
-| **Context Mode** | How much surrounding text to include: Sentence, Paragraph, Characters (custom count), or None |
+| **Context Mode** | Surrounding text to include: None (default), Sentence, Paragraph, or Characters |
 | **Context Characters** | Number of characters when using "Characters" mode (default: 100) |
 | **Disable Auto-save** | Don't auto-save dictionary lookups (default: on). Disable to follow general chat saving settings |
 | **Enable Streaming** | Stream dictionary responses in real-time |
@@ -289,13 +291,19 @@ When you tap a word in a document, KOReader normally shows its dictionary popup.
 
 ### Dictionary Popup Actions
 
-When "AI Button in Dictionary Popup" is enabled, tapping the AI button shows a menu of actions. Configure this menu:
+When "AI Button in Dictionary Popup" is enabled, tapping the AI button shows a menu of actions. Three built-in dictionary actions are included by default:
+
+- **Dictionary** — Definition, etymology, synonyms, contextual usage
+- **Quick Define** — Brief definition and contextual usage only
+- **Deep Analysis** — Morphology, word family, cognates, etymology path
+
+Configure this menu:
 
 1. **Settings → Dictionary Settings → Dictionary Popup Actions**
 2. Enable/disable actions and reorder them
 3. First action in the list is shown as the primary option
 
-The dictionary context (surrounding sentence/text) is automatically extracted and included with dictionary actions.
+When Context Mode is enabled, surrounding text is included to help the AI explain word usage in context. The compact view has a **Ctx** button to toggle context on-demand.
 
 ### Dictionary Bypass
 
