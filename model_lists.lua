@@ -226,14 +226,14 @@ local ModelLists = {
 
     kimi = {
         -- K2 (latest, 256K context)
-        "kimi-k2-instruct-0905",        -- flagship (default) - updated Sep 2025
+        "kimi-k2-0905-preview",         -- flagship (default) - Sep 2025
+        "kimi-k2-turbo-preview",        -- fast (100 tok/s)
         "kimi-k2-thinking",             -- reasoning
         "kimi-k2-thinking-turbo",       -- reasoning (faster)
         -- Legacy K2
-        "kimi-k2-0711-preview",
+        "kimi-k2-0711-preview",         -- July 2025
         -- Moonshot v1 (legacy)
-        "moonshot-v1-auto",             -- standard (routes to best)
-        "moonshot-v1-8k",               -- fast
+        "moonshot-v1-8k",
         "moonshot-v1-32k",
         "moonshot-v1-128k",
     },
@@ -354,7 +354,7 @@ local ModelLists = {
             fireworks = "accounts/fireworks/models/llama4-maverick-instruct-basic",
             sambanova = "Meta-Llama-4-Maverick-17B-128E-Instruct",
             qwen = "qwen3-max",
-            kimi = "kimi-k2-instruct-0905",
+            kimi = "kimi-k2-0905-preview",
             doubao = "doubao-1.8-pro-32k",
         },
 
@@ -374,7 +374,7 @@ local ModelLists = {
             fireworks = "accounts/fireworks/models/llama-v3p3-70b-instruct",
             sambanova = "Meta-Llama-3.3-70B-Instruct",
             qwen = "qwen-plus",
-            kimi = "moonshot-v1-auto",
+            kimi = "kimi-k2-0905-preview",
             doubao = "doubao-1.5-pro-32k",
         },
 
@@ -394,7 +394,7 @@ local ModelLists = {
             fireworks = "accounts/fireworks/models/llama-v3p3-70b-instruct",
             sambanova = "Meta-Llama-3.1-8B-Instruct",
             qwen = "qwen-turbo",
-            kimi = "moonshot-v1-8k",
+            kimi = "kimi-k2-turbo-preview",
             doubao = "doubao-seed-1.6-flash",
         },
 
@@ -414,7 +414,7 @@ local ModelLists = {
             fireworks = "accounts/fireworks/models/llama-v3p3-70b-instruct",
             sambanova = "Meta-Llama-3.1-8B-Instruct",
             qwen = "qwen-turbo",
-            kimi = "moonshot-v1-8k",
+            kimi = "kimi-k2-turbo-preview",
             doubao = "doubao-lite-32k",
         },
     },
@@ -538,6 +538,34 @@ function ModelLists.getAllProviders()
     end
     table.sort(providers)
     return providers
+end
+
+-- Get sorted list of all providers including custom ones
+-- @param custom_providers table - Array of custom provider objects {id, name, base_url, ...}
+-- @return table, table - Array of provider IDs, table mapping ID -> is_custom
+function ModelLists.getAllProvidersWithCustom(custom_providers)
+    local providers = ModelLists.getAllProviders()
+    local is_custom = {}
+
+    -- Add custom providers
+    if custom_providers and type(custom_providers) == "table" then
+        for _, cp in ipairs(custom_providers) do
+            if cp.id then
+                table.insert(providers, cp.id)
+                is_custom[cp.id] = true
+            end
+        end
+    end
+
+    table.sort(providers)
+    return providers, is_custom
+end
+
+-- Check if a provider ID is a built-in provider
+-- @param provider_id string - Provider ID to check
+-- @return boolean
+function ModelLists.isBuiltInProvider(provider_id)
+    return ModelLists[provider_id] ~= nil and type(ModelLists[provider_id]) == "table"
 end
 
 -- Get model for a specific tier and provider (with fallback)
