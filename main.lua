@@ -1057,6 +1057,113 @@ function AskGPT:getCurrentModel()
   return features.model or self.configuration.model or "claude-sonnet-4-20250514"
 end
 
+-- Helper: Get custom models for a provider
+function AskGPT:getCustomModels(provider)
+  local features = self.settings:readSetting("features") or {}
+  local custom_models = features.custom_models or {}
+  return custom_models[provider] or {}
+end
+
+-- Helper: Save a custom model for a provider
+function AskGPT:saveCustomModel(provider, model)
+  local features = self.settings:readSetting("features") or {}
+  features.custom_models = features.custom_models or {}
+  features.custom_models[provider] = features.custom_models[provider] or {}
+
+  -- Check for duplicates
+  for _idx, existing in ipairs(features.custom_models[provider]) do
+    if existing == model then
+      return false, _("Model already exists")
+    end
+  end
+
+  table.insert(features.custom_models[provider], model)
+  self.settings:saveSetting("features", features)
+  self.settings:flush()
+  return true
+end
+
+-- Helper: Remove a custom model for a provider
+function AskGPT:removeCustomModel(provider, model)
+  local features = self.settings:readSetting("features") or {}
+  if not features.custom_models or not features.custom_models[provider] then
+    return false
+  end
+
+  for i, existing in ipairs(features.custom_models[provider]) do
+    if existing == model then
+      table.remove(features.custom_models[provider], i)
+      self.settings:saveSetting("features", features)
+      self.settings:flush()
+
+      -- If removed model was selected, reset to effective default
+      if self:getCurrentModel() == model then
+        features.model = self:getEffectiveDefaultModel(provider)
+        self.settings:saveSetting("features", features)
+        self.settings:flush()
+        self:updateConfigFromSettings()
+      end
+      return true
+    end
+  end
+  return false
+end
+
+-- Helper: Check if a model is a custom model for the current provider
+function AskGPT:isCustomModel(provider, model)
+  local custom_models = self:getCustomModels(provider)
+  for _idx, custom in ipairs(custom_models) do
+    if custom == model then
+      return true
+    end
+  end
+  return false
+end
+
+-- Helper: Get user's preferred default model for a provider
+function AskGPT:getUserDefaultModel(provider)
+  local features = self.settings:readSetting("features") or {}
+  local provider_defaults = features.provider_default_models or {}
+  return provider_defaults[provider]
+end
+
+-- Helper: Set user's preferred default model for a provider
+function AskGPT:setUserDefaultModel(provider, model)
+  local features = self.settings:readSetting("features") or {}
+  features.provider_default_models = features.provider_default_models or {}
+  features.provider_default_models[provider] = model
+  self.settings:saveSetting("features", features)
+  self.settings:flush()
+end
+
+-- Helper: Clear user's preferred default model for a provider
+function AskGPT:clearUserDefaultModel(provider)
+  local features = self.settings:readSetting("features") or {}
+  if features.provider_default_models then
+    features.provider_default_models[provider] = nil
+    self.settings:saveSetting("features", features)
+    self.settings:flush()
+  end
+end
+
+-- Helper: Get effective default model (user default or system default)
+function AskGPT:getEffectiveDefaultModel(provider)
+  -- First check user's preferred default
+  local user_default = self:getUserDefaultModel(provider)
+  if user_default then
+    return user_default
+  end
+
+  -- Fall back to system default
+  local Defaults = require("api_handlers.defaults")
+  local provider_defaults = Defaults.ProviderDefaults[provider]
+  if provider_defaults and provider_defaults.model then
+    return provider_defaults.model
+  end
+
+  return nil
+end
+
 -- Helper: Build provider selection sub-menu
 function AskGPT:buildProviderMenu()
   local self_ref = self
@@ -1076,14 +1183,10 @@ function AskGPT:buildProviderMenu()
         local features = self_ref.settings:readSetting("features") or {}
         local old_provider = features.provider
 
-        -- Reset model to new provider's default when provider changes
+        -- Reset model to new provider's effective default when provider changes
         if old_provider ~= prov_copy then
-          local provider_defaults = Defaults.ProviderDefaults[prov_copy]
-          if provider_defaults and provider_defaults.model then
-            features.model = provider_defaults.model
-          else
-            features.model = nil  -- Clear if no default
-          end
+          -- Use user's preferred default if set, otherwise system default
+          features.model = self_ref:getEffectiveDefaultModel(prov_copy)
         end
 
         features.provider = prov_copy
@@ -1104,96 +1207,271 @@ function AskGPT:buildProviderMenu()
 end
 
 -- Helper: Build model selection sub-menu for current provider
-function AskGPT:buildModelMenu()
+-- @param simplified: if true, shows only model list without management options (for quick settings)
+function AskGPT:buildModelMenu(simplified)
   local self_ref = self
   local provider = self:getCurrentProvider()
   local models = ModelLists[provider] or {}
   local Defaults = require("api_handlers.defaults")
   local provider_defaults = Defaults.ProviderDefaults[provider]
-  local default_model = provider_defaults and provider_defaults.model or nil
+  local system_default = provider_defaults and provider_defaults.model or nil
+  local user_default = self:getUserDefaultModel(provider)
+  local effective_default = user_default or system_default
+  local custom_models = self:getCustomModels(provider)
   local items = {}
 
-  for i = 1, #models do
-    local model = models[i]
-    -- Show full model name
-    local display_name = model
+  -- Helper to create hold callback for model items
+  local function createHoldCallback(model, is_custom)
+    return function()
+      local ButtonDialog = require("ui/widget/buttondialog")
+      local current_user_default = self_ref:getUserDefaultModel(provider)
+      local buttons = {}
 
-    -- Mark default model
-    local is_default = (model == default_model)
-    if is_default then
-      display_name = display_name .. " " .. _("(default)")
+      -- Option to set as default (if not already user default)
+      if model ~= current_user_default then
+        table.insert(buttons, {{
+          text = T(_("Set as default for %1"), provider:gsub("^%l", string.upper)),
+          callback = function()
+            UIManager:close(self_ref._model_hold_dialog)
+            self_ref:setUserDefaultModel(provider, model)
+            UIManager:show(Notification:new{
+              text = T(_("Default for %1: %2"), provider:gsub("^%l", string.upper), model),
+              timeout = 1.5,
+            })
+          end,
+        }})
+      end
+
+      -- Option to clear custom default (if this is the user default)
+      if current_user_default and model == current_user_default then
+        table.insert(buttons, {{
+          text = _("Clear custom default"),
+          callback = function()
+            UIManager:close(self_ref._model_hold_dialog)
+            self_ref:clearUserDefaultModel(provider)
+            UIManager:show(Notification:new{
+              text = T(_("Cleared custom default for %1"), provider:gsub("^%l", string.upper)),
+              timeout = 1.5,
+            })
+          end,
+        }})
+      end
+
+      -- Option to remove custom model
+      if is_custom then
+        table.insert(buttons, {{
+          text = _("Remove custom model"),
+          callback = function()
+            UIManager:close(self_ref._model_hold_dialog)
+            local ConfirmBox = require("ui/widget/confirmbox")
+            UIManager:show(ConfirmBox:new{
+              text = T(_("Remove custom model '%1'?"), model),
+              ok_callback = function()
+                self_ref:removeCustomModel(provider, model)
+                UIManager:show(Notification:new{
+                  text = T(_("Removed: %1"), model),
+                  timeout = 1.5,
+                })
+              end,
+            })
+          end,
+        }})
+      end
+
+      -- Cancel button
+      table.insert(buttons, {{
+        text = _("Cancel"),
+        callback = function()
+          UIManager:close(self_ref._model_hold_dialog)
+        end,
+      }})
+
+      if #buttons > 1 then  -- More than just cancel
+        self_ref._model_hold_dialog = ButtonDialog:new{
+          buttons = buttons,
+        }
+        UIManager:show(self_ref._model_hold_dialog)
+      end
+    end
+  end
+
+  -- Helper to build display name with default indicators
+  local function buildDisplayName(model, is_custom)
+    local display_name = model
+    if is_custom then
+      display_name = "★ " .. display_name
     end
 
+    -- Add default indicators
+    local is_system_default = (model == system_default)
+    local is_user_default = (model == user_default)
+
+    if is_user_default and user_default == system_default then
+      -- User explicitly set system default as their default - just show "(default)"
+      display_name = display_name .. " " .. _("(default)")
+    elseif is_user_default then
+      -- User has a custom default different from system default
+      display_name = display_name .. " " .. _("(your default)")
+    elseif is_system_default and not user_default then
+      -- No user default set, show system default
+      display_name = display_name .. " " .. _("(default)")
+    elseif is_system_default and user_default then
+      -- User has a different default, mark system default
+      display_name = display_name .. " " .. _("(system default)")
+    end
+
+    return display_name
+  end
+
+  -- Add helper text at the top (only in full mode)
+  if not simplified then
     table.insert(items, {
-      text = display_name,
+      text = _("Hold to manage. ★ = custom"),
+      enabled = false,
+    })
+  end
+
+  -- Add custom models first (with ★ prefix)
+  for _idx, model in ipairs(custom_models) do
+    local model_copy = model  -- Capture for closure
+    table.insert(items, {
+      text = buildDisplayName(model_copy, true),
       checked_func = function()
         local f = self_ref.settings:readSetting("features") or {}
-        local selected = f.model or default_model
-        return selected == model
+        local selected = f.model or effective_default
+        return selected == model_copy
       end,
       radio = true,
       callback = function()
         local f = self_ref.settings:readSetting("features") or {}
-        f.model = model
+        f.model = model_copy
         self_ref.settings:saveSetting("features", f)
         self_ref.settings:flush()
         self_ref:updateConfigFromSettings()
-        -- Show toast confirmation
         UIManager:show(Notification:new{
-          text = string.format(_("Model: %s"), model),
+          text = string.format(_("Model: %s"), model_copy),
           timeout = 1.5,
         })
       end,
+      hold_callback = createHoldCallback(model_copy, true),
       keep_menu_open = true,
     })
   end
 
-  -- Add custom model input option
-  table.insert(items, {
-    text = _("Custom model..."),
-    callback = function()
-      local f = self_ref.settings:readSetting("features") or {}
-      local current_model = f.model or ""
-      local InputDialog = require("ui/widget/inputdialog")
-      local input_dialog
-      input_dialog = InputDialog:new{
-        title = _("Enter Custom Model Name"),
-        input = current_model,
-        input_hint = _("e.g., claude-3-opus-20240229"),
-        description = _("Enter the exact model identifier for this provider."),
-        buttons = {
-          {
-            {
-              text = _("Cancel"),
-              id = "close",
-              callback = function()
-                UIManager:close(input_dialog)
-              end,
-            },
-            {
-              text = _("Save"),
-              is_enter_default = true,
-              callback = function()
-                local new_model = input_dialog:getInputText()
-                if new_model and new_model ~= "" then
-                  f.model = new_model
-                  self_ref.settings:saveSetting("features", f)
-                  self_ref.settings:flush()
-                  self_ref:updateConfigFromSettings()
-                end
-                UIManager:close(input_dialog)
-              end,
-            },
-          },
-        },
-      }
-      UIManager:show(input_dialog)
-      input_dialog:onShowKeyboard()
-    end,
-  })
+  -- Add built-in models
+  for i = 1, #models do
+    local model = models[i]
+    local model_copy = model  -- Capture for closure
 
-  if #items == 1 then
-    -- Only the custom option exists, add a note
+    table.insert(items, {
+      text = buildDisplayName(model_copy, false),
+      checked_func = function()
+        local f = self_ref.settings:readSetting("features") or {}
+        local selected = f.model or effective_default
+        return selected == model_copy
+      end,
+      radio = true,
+      callback = function()
+        local f = self_ref.settings:readSetting("features") or {}
+        f.model = model_copy
+        self_ref.settings:saveSetting("features", f)
+        self_ref.settings:flush()
+        self_ref:updateConfigFromSettings()
+        UIManager:show(Notification:new{
+          text = string.format(_("Model: %s"), model_copy),
+          timeout = 1.5,
+        })
+      end,
+      hold_callback = createHoldCallback(model_copy, false),
+      keep_menu_open = true,
+    })
+  end
+
+  -- Add management options (only in full mode)
+  if not simplified then
+    -- Add separator before actions
+    table.insert(items, {
+      text = "────────────",
+      enabled = false,
+    })
+
+    -- Add custom model input option (now saves to list)
+    table.insert(items, {
+      text = _("Add custom model..."),
+      keep_menu_open = false,  -- Close menu so dialog appears on top
+      callback = function()
+        -- Delay to let menu close first
+        UIManager:scheduleIn(0.1, function()
+          local InputDialog = require("ui/widget/inputdialog")
+          local input_dialog
+          input_dialog = InputDialog:new{
+            title = _("Add Custom Model"),
+            input = "",
+            input_hint = _("e.g., claude-3-opus-20240229"),
+            description = _("Enter the exact model identifier. It will be saved and selected."),
+            buttons = {
+              {
+                {
+                  text = _("Cancel"),
+                  id = "close",
+                  callback = function()
+                    UIManager:close(input_dialog)
+                  end,
+                },
+                {
+                  text = _("Add"),
+                  is_enter_default = true,
+                  callback = function()
+                    local new_model = input_dialog:getInputText()
+                    if new_model and new_model ~= "" then
+                      local success, err = self_ref:saveCustomModel(provider, new_model)
+                      if success then
+                        -- Select the new model
+                        local f = self_ref.settings:readSetting("features") or {}
+                        f.model = new_model
+                        self_ref.settings:saveSetting("features", f)
+                        self_ref.settings:flush()
+                        self_ref:updateConfigFromSettings()
+                        UIManager:show(Notification:new{
+                          text = T(_("Added: %1"), new_model),
+                          timeout = 1.5,
+                        })
+                      else
+                        UIManager:show(Notification:new{
+                          text = err or _("Failed to add model"),
+                          timeout = 2,
+                        })
+                      end
+                    end
+                    UIManager:close(input_dialog)
+                  end,
+                },
+              },
+            },
+          }
+          UIManager:show(input_dialog)
+          input_dialog:onShowKeyboard()
+        end)
+      end,
+    })
+
+    -- Add manage custom models option (only if there are custom models)
+    if #custom_models > 0 then
+      table.insert(items, {
+        text = T(_("Manage custom models (%1)..."), #custom_models),
+        keep_menu_open = false,  -- Close menu so dialog appears on top
+        callback = function()
+          -- Delay to let menu close first
+          UIManager:scheduleIn(0.1, function()
+            self_ref:showManageCustomModelsMenu(provider)
+          end)
+        end,
+      })
+    end
+  end
+
+  if #items == 0 then  -- No models at all (simplified mode with no models)
+    -- No predefined models, add a note
     table.insert(items, 1, {
       text = _("No predefined models"),
       enabled = false,
@@ -1201,6 +1479,94 @@ function AskGPT:buildModelMenu()
   end
 
   return items
+end
+
+-- Helper: Show manage custom models menu
+function AskGPT:showManageCustomModelsMenu(provider)
+  local self_ref = self
+  local custom_models = self:getCustomModels(provider)
+
+  if #custom_models == 0 then
+    UIManager:show(Notification:new{
+      text = _("No custom models to manage"),
+      timeout = 1.5,
+    })
+    return
+  end
+
+  local ButtonDialog = require("ui/widget/buttondialog")
+  local ConfirmBox = require("ui/widget/confirmbox")
+  local buttons = {}
+
+  -- Add each custom model as a remove option
+  for _idx, model in ipairs(custom_models) do
+    local model_copy = model
+    table.insert(buttons, {{
+      text = T(_("Remove: %1"), model_copy),
+      callback = function()
+        UIManager:close(self_ref._manage_models_dialog)
+        UIManager:show(ConfirmBox:new{
+          text = T(_("Remove custom model '%1'?"), model_copy),
+          ok_callback = function()
+            self_ref:removeCustomModel(provider, model_copy)
+            UIManager:show(Notification:new{
+              text = T(_("Removed: %1"), model_copy),
+              timeout = 1.5,
+            })
+          end,
+        })
+      end,
+    }})
+  end
+
+  -- Add clear all option
+  table.insert(buttons, {{
+    text = _("Clear all custom models"),
+    callback = function()
+      UIManager:close(self_ref._manage_models_dialog)
+      UIManager:show(ConfirmBox:new{
+        text = T(_("Remove all %1 custom model(s) for %2?"), #custom_models, provider:gsub("^%l", string.upper)),
+        ok_callback = function()
+          local features = self_ref.settings:readSetting("features") or {}
+          local current_model = features.model
+
+          -- Check if current model is a custom one that will be removed
+          local was_custom = self_ref:isCustomModel(provider, current_model)
+
+          features.custom_models = features.custom_models or {}
+          features.custom_models[provider] = {}
+
+          -- If current model was custom, reset to effective default
+          if was_custom then
+            features.model = self_ref:getEffectiveDefaultModel(provider)
+          end
+
+          self_ref.settings:saveSetting("features", features)
+          self_ref.settings:flush()
+          self_ref:updateConfigFromSettings()
+
+          UIManager:show(Notification:new{
+            text = _("All custom models cleared"),
+            timeout = 1.5,
+          })
+        end,
+      })
+    end,
+  }})
+
+  -- Cancel button
+  table.insert(buttons, {{
+    text = _("Cancel"),
+    callback = function()
+      UIManager:close(self_ref._manage_models_dialog)
+    end,
+  }})
+
+  self._manage_models_dialog = ButtonDialog:new{
+    title = T(_("Custom Models for %1"), provider:gsub("^%l", string.upper)),
+    buttons = buttons,
+  }
+  UIManager:show(self._manage_models_dialog)
 end
 
 -- Helper: Mask API key for display (e.g., "sk-...abc123")
@@ -2198,7 +2564,7 @@ function AskGPT:onKOAssistantChangeProvider()
 end
 
 function AskGPT:onKOAssistantChangeModel()
-  local menu_items = self:buildModelMenu()
+  local menu_items = self:buildModelMenu(true)  -- simplified mode for quick access
   self:showQuickSettingsPopup(_("Model"), menu_items)
   return true
 end
@@ -2344,7 +2710,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
           callback = function()
             opening_subdialog = true
             UIManager:close(dialog)
-            local menu_items = self_ref:buildModelMenu()
+            local menu_items = self_ref:buildModelMenu(true)  -- simplified mode for quick access
             self_ref:showQuickSettingsPopup(_("Model"), menu_items, true, reopenQuickSettings)
           end,
         },
@@ -3527,6 +3893,141 @@ function AskGPT:patchFileManagerForMultiSelect()
 
     logger.info("KOAssistant: Patched ButtonDialog.new for multi-select support")
   end
+end
+
+-- Reset feature settings to defaults (preserves API keys, custom actions/behaviors, custom models)
+function AskGPT:resetFeatureSettings()
+  local features = self.settings:readSetting("features") or {}
+
+  -- Preserve these items
+  local preserved = {
+    api_keys = features.api_keys,
+    custom_behaviors = features.custom_behaviors,
+    custom_models = features.custom_models,
+    provider_default_models = features.provider_default_models,
+  }
+
+  -- Reset features to defaults
+  local defaults = {
+    provider = "anthropic",
+    model = nil,  -- Will use provider default
+    hide_highlighted_text = false,
+    hide_long_highlights = true,
+    long_highlight_threshold = 280,
+    translation_language = "English",
+    dictionary_language = nil,
+    user_languages = nil,
+    debug = false,
+    show_debug_in_chat = false,
+    auto_save_all_chats = true,
+    auto_save_chats = true,
+    render_markdown = true,
+    enable_streaming = true,
+    stream_auto_scroll = false,
+    large_stream_dialog = true,
+    stream_display_interval = 250,
+    selected_behavior = "standard",
+    selected_domain = nil,
+    default_temperature = 0.7,
+    default_max_tokens = nil,
+    anthropic_reasoning = false,
+    anthropic_reasoning_budget = 10240,
+    openai_reasoning = false,
+    openai_reasoning_effort = "medium",
+    gemini_reasoning = false,
+    gemini_reasoning_level = "medium",
+    behavior_migrated = true,
+    prompts_migrated_v2 = true,
+  }
+
+  -- Merge preserved values back
+  for k, v in pairs(preserved) do
+    if v then defaults[k] = v end
+  end
+
+  self.settings:saveSetting("features", defaults)
+  self.settings:flush()
+  self:updateConfigFromSettings()
+
+  UIManager:show(Notification:new{
+    text = _("Feature settings reset to defaults"),
+    timeout = 2,
+  })
+end
+
+-- Reset all customizations (preserves API keys and chat history only)
+function AskGPT:resetAllCustomizations()
+  local features = self.settings:readSetting("features") or {}
+
+  -- Preserve only API keys
+  local api_keys = features.api_keys
+
+  -- Reset features to defaults (without custom behaviors, models, etc.)
+  local defaults = {
+    provider = "anthropic",
+    model = nil,
+    hide_highlighted_text = false,
+    hide_long_highlights = true,
+    long_highlight_threshold = 280,
+    translation_language = "English",
+    dictionary_language = nil,
+    user_languages = nil,
+    debug = false,
+    show_debug_in_chat = false,
+    auto_save_all_chats = true,
+    auto_save_chats = true,
+    render_markdown = true,
+    enable_streaming = true,
+    stream_auto_scroll = false,
+    large_stream_dialog = true,
+    stream_display_interval = 250,
+    selected_behavior = "standard",
+    selected_domain = nil,
+    default_temperature = 0.7,
+    default_max_tokens = nil,
+    anthropic_reasoning = false,
+    anthropic_reasoning_budget = 10240,
+    openai_reasoning = false,
+    openai_reasoning_effort = "medium",
+    gemini_reasoning = false,
+    gemini_reasoning_level = "medium",
+    behavior_migrated = true,
+    prompts_migrated_v2 = true,
+  }
+
+  -- Restore API keys
+  if api_keys then defaults.api_keys = api_keys end
+
+  self.settings:saveSetting("features", defaults)
+
+  -- Clear all other top-level settings (custom actions, overrides, menu configs)
+  self.settings:delSetting("custom_actions")
+  self.settings:delSetting("builtin_action_overrides")
+  self.settings:delSetting("highlight_menu_actions")
+  self.settings:delSetting("dictionary_popup_actions")
+  self.settings:delSetting("disabled_actions")
+  self.settings:delSetting("_dismissed_highlight_actions")
+  self.settings:delSetting("_dismissed_dictionary_actions")
+
+  self.settings:flush()
+  self:updateConfigFromSettings()
+
+  UIManager:show(Notification:new{
+    text = _("All customizations reset"),
+    timeout = 2,
+  })
+end
+
+-- Clear all chat history
+function AskGPT:clearAllChatHistory()
+  local ChatHistoryManager = require("chat_history_manager")
+  local chat_manager = ChatHistoryManager:new()
+  local total_deleted, docs_deleted = chat_manager:deleteAllChats()
+
+  UIManager:show(Notification:new{
+    text = T(_("Deleted %1 chat(s) from %2 book(s)"), total_deleted, docs_deleted),
+    timeout = 2,
+  })
 end
 
 return AskGPT
