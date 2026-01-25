@@ -7,6 +7,20 @@ local ResponseParser = require("api_handlers.response_parser")
 
 local QwenHandler = BaseHandler:new()
 
+-- Regional endpoints for Qwen/DashScope
+-- API keys are region-specific and NOT interchangeable
+local REGIONAL_ENDPOINTS = {
+    international = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions",  -- Singapore
+    china = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",               -- Beijing
+    us = "https://dashscope-us.aliyuncs.com/compatible-mode/v1/chat/completions",               -- Virginia
+}
+
+-- Get the appropriate endpoint based on region setting
+local function getRegionalEndpoint(config)
+    local region = config.features and config.features.qwen_region or "international"
+    return REGIONAL_ENDPOINTS[region] or REGIONAL_ENDPOINTS.international
+end
+
 -- Helper: Check if message has non-empty content
 local function hasContent(msg)
     if not msg or not msg.content then return false end
@@ -56,10 +70,13 @@ function QwenHandler:buildRequestBody(message_history, config)
         ["Authorization"] = "Bearer " .. (config.api_key or ""),
     }
 
+    -- Use regional endpoint: config.base_url override > region setting > default
+    local url = config.base_url or getRegionalEndpoint(config)
+
     return {
         body = request_body,
         headers = headers,
-        url = config.base_url or defaults.base_url,
+        url = url,
         model = model,
         provider = "qwen",
     }
@@ -120,7 +137,8 @@ function QwenHandler:query(message_history, config)
         ["Content-Length"] = tostring(#requestBody),
     }
 
-    local base_url = config.base_url or defaults.base_url
+    -- Use regional endpoint: config.base_url override > region setting > default
+    local base_url = config.base_url or getRegionalEndpoint(config)
 
     -- If streaming is enabled, return the background request function
     if use_streaming then
@@ -149,8 +167,13 @@ function QwenHandler:query(message_history, config)
         print("Qwen Raw Response:", table.concat(responseBody))
     end
 
-    local success, response = self:handleApiResponse(success, code, responseBody, "Qwen")
-    if not success then
+    local api_success, response = self:handleApiResponse(success, code, responseBody, "Qwen")
+    if not api_success then
+        -- Add hint for auth errors about region setting
+        local err_lower = response:lower()
+        if err_lower:find("401") or err_lower:find("auth") or err_lower:find("invalid") or err_lower:find("key") then
+            response = response .. "\n\nHint: Qwen API keys are region-specific. Check Settings → Advanced → Provider Settings → Qwen Region."
+        end
         return response
     end
 

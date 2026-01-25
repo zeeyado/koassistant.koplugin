@@ -340,6 +340,36 @@ local SettingsSchema = {
                         },
                     },
                 },
+                -- Provider-specific settings
+                {
+                    id = "provider_settings",
+                    type = "submenu",
+                    text = _("Provider Settings"),
+                    items = {
+                        {
+                            id = "qwen_region",
+                            type = "radio",
+                            text_func = function(plugin)
+                                local f = plugin.settings:readSetting("features") or {}
+                                local region = f.qwen_region or "international"
+                                local labels = {
+                                    international = _("International"),
+                                    china = _("China"),
+                                    us = _("US"),
+                                }
+                                return T(_("Qwen Region: %1"), labels[region] or region)
+                            end,
+                            help_text = _("Select your Alibaba Cloud region.\n\nAPI keys are region-specific and NOT interchangeable:\n- International: Singapore (dashscope-intl)\n- China: Beijing (dashscope)\n- US: Virginia (dashscope-us)"),
+                            path = "features.qwen_region",
+                            default = "international",
+                            options = {
+                                { value = "international", text = _("International (Singapore)") },
+                                { value = "china", text = _("China (Beijing)") },
+                                { value = "us", text = _("US (Virginia)") },
+                            },
+                        },
+                    },
+                },
                 {
                     id = "debug",
                     type = "toggle",
