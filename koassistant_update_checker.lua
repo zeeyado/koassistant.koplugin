@@ -1,13 +1,40 @@
 local http = require("socket.http")
 local ltn12 = require("ltn12")
 local json = require("json")
-local meta = require("_meta")
+local logger = require("logger")
+
+-- Load _meta.lua from the plugin's own directory to avoid conflicts with other plugins
+-- (assistant.koplugin also has _meta.lua, and require() might load the wrong one)
+local function script_path()
+   local str = debug.getinfo(2, "S").source:sub(2)
+   return str:match("(.*/)")
+end
+
+local meta
+local plugin_dir = script_path()
+if plugin_dir then
+    local meta_path = plugin_dir .. "_meta.lua"
+    local ok, result = pcall(dofile, meta_path)
+    if ok then
+        meta = result
+        logger.dbg("UpdateChecker: loaded _meta from:", meta_path, "plugin:", meta.name, "version:", meta.version)
+    else
+        logger.warn("UpdateChecker: failed to load _meta from plugin dir:", result)
+        -- Fallback to require (may load wrong plugin's _meta)
+        meta = require("_meta")
+        logger.warn("UpdateChecker: fell back to require('_meta'), got plugin:", meta.name)
+    end
+else
+    logger.warn("UpdateChecker: could not determine plugin dir, using require('_meta')")
+    meta = require("_meta")
+    logger.warn("UpdateChecker: loaded via require, got plugin:", meta.name)
+end
+
 local InfoMessage = require("ui/widget/infomessage")
 local UIManager = require("ui/uimanager")
 local ConfirmBox = require("ui/widget/confirmbox")
 local Device = require("device")
 local Screen = Device.screen
-local logger = require("logger")
 
 -- For markdown rendering
 local Blitbuffer = require("ffi/blitbuffer")
@@ -167,6 +194,10 @@ local UpdateChecker = {}
 
 local function parseVersion(versionString)
     -- Parse semantic version like "0.1.0-beta" or "1.0.0"
+    if type(versionString) ~= "string" then
+        logger.err("parseVersion: expected string, got " .. type(versionString))
+        return nil
+    end
     local major, minor, patch, prerelease = versionString:match("^(%d+)%.(%d+)%.(%d+)%-?(.*)$")
     if not major then
         return nil
@@ -268,6 +299,10 @@ function UpdateChecker.checkForUpdates(silent, include_prereleases)
         -- Helper to extract version string from tag (handles v0.4.1, v.0.4.1, 0.4.1)
         local function extractVersion(tag)
             if not tag then return nil end
+            if type(tag) ~= "string" then
+                logger.warn("extractVersion: expected string tag, got " .. type(tag))
+                return nil
+            end
             -- Remove common prefixes: "v", "v.", "V", "V."
             local version = tag:gsub("^[vV]%.?", "")
             return version
@@ -310,6 +345,29 @@ function UpdateChecker.checkForUpdates(silent, include_prereleases)
         local latest_version = latest_version_str
 
         local current_version = meta.version
+
+        -- Type validation before comparison
+        if type(current_version) ~= "string" then
+            logger.err("Update check: current_version is not a string, type=" .. type(current_version) .. ", value=" .. tostring(current_version))
+            if not silent then
+                UIManager:show(InfoMessage:new{
+                    text = "Update check failed: invalid current version format",
+                    timeout = 3
+                })
+            end
+            return false
+        end
+        if type(latest_version) ~= "string" then
+            logger.err("Update check: latest_version is not a string, type=" .. type(latest_version) .. ", value=" .. tostring(latest_version))
+            if not silent then
+                UIManager:show(InfoMessage:new{
+                    text = "Update check failed: invalid latest version format",
+                    timeout = 3
+                })
+            end
+            return false
+        end
+
         local comparison = compareVersions(current_version, latest_version)
 
         logger.info("Update check: current=" .. current_version .. ", latest=" .. latest_version .. ", comparison=" .. comparison)
