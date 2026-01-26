@@ -1396,22 +1396,29 @@ end
 --- @param on_complete function: Optional callback for async streaming - receives (history, temp_config) or (nil, error_string)
 --- @param book_metadata table: Optional book metadata {title, author} - used when ui.document is not available
 --- @return history, temp_config when not streaming; nil when streaming (result comes via callback)
-local function handlePredefinedPrompt(prompt_type, highlightedText, ui, configuration, existing_history, plugin, additional_input, on_complete, book_metadata)
+local function handlePredefinedPrompt(prompt_type_or_action, highlightedText, ui, configuration, existing_history, plugin, additional_input, on_complete, book_metadata)
     -- Use passed configuration or fall back to global
     local config = configuration or CONFIGURATION
 
-    -- Get the prompts based on context
-    local prompts, _ = getAllPrompts(config, plugin)
-
-    -- Get prompt configuration
-    local prompt = prompts[prompt_type]
-    if not prompt then
-        local err = "Prompt '" .. prompt_type .. "' not found"
-        if on_complete then
-            on_complete(nil, err)
-            return nil
+    -- Support both action object and prompt_type string
+    -- This allows executeDirectAction to pass special actions (like translate) directly
+    -- without requiring them to be in the ActionService cache
+    local prompt
+    if type(prompt_type_or_action) == "table" then
+        -- Action object passed directly - use it
+        prompt = prompt_type_or_action
+    else
+        -- String ID - look it up from ActionService
+        local prompts, _ = getAllPrompts(config, plugin)
+        prompt = prompts[prompt_type_or_action]
+        if not prompt then
+            local err = "Prompt '" .. prompt_type_or_action .. "' not found"
+            if on_complete then
+                on_complete(nil, err)
+                return nil
+            end
+            return nil, err
         end
-        return nil, err
     end
 
     -- Create a temporary configuration using the passed config as base
@@ -2102,8 +2109,9 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
         end
     end
 
-    -- Call handlePredefinedPrompt with the action ID
-    handlePredefinedPrompt(action.id, highlighted_text, ui, configuration, nil, plugin, nil, onComplete, book_metadata)
+    -- Call handlePredefinedPrompt with the action object directly
+    -- (avoids re-lookup which fails for special actions not in ActionService cache)
+    handlePredefinedPrompt(action, highlighted_text, ui, configuration, nil, plugin, nil, onComplete, book_metadata)
 end
 
 return {
