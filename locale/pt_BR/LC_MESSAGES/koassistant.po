@@ -1898,7 +1898,9 @@ msgid "Base URL"
 msgstr "Baseado em"
 
 #: main.lua:1661
-#, fuzzy
+#: koassistant_ui/behavior_manager.lua:507
+#: koassistant_ui/domain_manager.lua:509
+#, fuzzy, lua-format
 msgid "Updated: %1"
 msgstr "Atualizado: %1"
 
@@ -2715,12 +2717,6 @@ msgstr "Digite o conteúdo do comportamento"
 #, fuzzy, lua-format
 msgid "Created: %1"
 msgstr "Criado: %1"
-
-#: koassistant_ui/behavior_manager.lua:507
-#: koassistant_ui/domain_manager.lua:509
-#, fuzzy, lua-format
-msgid "Updated: %1"
-msgstr "Atualizado: %1"
 
 #: koassistant_ui/behavior_manager.lua:553
 #, fuzzy
