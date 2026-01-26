@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: KOAssistant 0.9.0\n"
 "Report-Msgid-Bugs-To: https://github.com/zeeyado/koassistant.koplugin/"
 "issues\n"
-"POT-Creation-Date: 2026-01-26 00:22+0000\n"
+"POT-Creation-Date: 2026-01-26 16:37+0000\n"
 "PO-Revision-Date: 2026-01-20 19:01+0000\n"
 "Last-Translator: ferdinanlima <star.stalker151@gmail.com>\n"
 "Language-Team: Portuguese (Brazil) <https://hosted.weblate.org/projects/"
@@ -70,7 +70,7 @@ msgstr "%1 chat(s) excluído(s)"
 #: koassistant_chat_history_dialog.lua:1537 koassistant_chatgptviewer.lua:764
 #: koassistant_chatgptviewer.lua:1082 koassistant_chatgptviewer.lua:1241
 #: koassistant_chatgptviewer.lua:2043 koassistant_dialogs.lua:543
-#: koassistant_dialogs.lua:1716 koassistant_dialogs.lua:1752 main.lua:1751
+#: koassistant_dialogs.lua:1725 koassistant_dialogs.lua:1761 main.lua:1751
 #: main.lua:3148 main.lua:3489 koassistant_ui/behavior_manager.lua:370
 #: koassistant_ui/domain_manager.lua:382
 #: koassistant_ui/settings_manager.lua:183
@@ -346,7 +346,7 @@ msgstr "Cancelar"
 msgid "Error: Failed to load chat messages."
 msgstr "Erro: falha ao carregar mensagens do chat."
 
-#: koassistant_chat_history_dialog.lua:1342 koassistant_dialogs.lua:1556
+#: koassistant_chat_history_dialog.lua:1342 koassistant_dialogs.lua:1565
 #: stream_handler.lua:194
 #, fuzzy
 msgid "No response received from AI"
@@ -830,17 +830,17 @@ msgstr "Salve o chat primeiro para adicionar etiquetas"
 msgid "Cannot tag: no document context"
 msgstr "Não é possível etiquetar: sem contexto de documento"
 
-#: koassistant_dialogs.lua:1631 koassistant_dialogs.lua:2060
+#: koassistant_dialogs.lua:1640 koassistant_dialogs.lua:2069
 #, fuzzy
 msgid "Unknown Title"
 msgstr "Título desconhecido"
 
-#: koassistant_dialogs.lua:1632 koassistant_dialogs.lua:2061
+#: koassistant_dialogs.lua:1641 koassistant_dialogs.lua:2070
 #, fuzzy
 msgid "Unknown Author"
 msgstr "Autor desconhecido"
 
-#: koassistant_dialogs.lua:1671 koassistant_dialogs.lua:1735
+#: koassistant_dialogs.lua:1680 koassistant_dialogs.lua:1744
 #: koassistant_settings_schema.lua:579 main.lua:2679 main.lua:3264
 #: main.lua:3609 koassistant_ui/prompts_manager.lua:1048
 #: koassistant_ui/prompts_manager.lua:1983
@@ -848,51 +848,51 @@ msgstr "Autor desconhecido"
 msgid "None"
 msgstr "Nenhum"
 
-#: koassistant_dialogs.lua:1726
+#: koassistant_dialogs.lua:1735
 #, fuzzy
 msgid "Select Domain"
 msgstr "Selecionar domínio"
 
-#: koassistant_dialogs.lua:1760
+#: koassistant_dialogs.lua:1769
 #, fuzzy
 msgid "Domain: "
 msgstr "Domínio: "
 
-#: koassistant_dialogs.lua:1767
+#: koassistant_dialogs.lua:1776
 #, fuzzy
 msgid "Ask"
 msgstr "Perguntar"
 
-#: koassistant_dialogs.lua:1878
+#: koassistant_dialogs.lua:1887
 #, fuzzy
 msgid "Chat"
 msgstr "Chat"
 
-#: koassistant_dialogs.lua:1882 koassistant_dialogs.lua:2099
+#: koassistant_dialogs.lua:1891 koassistant_dialogs.lua:2108
 #, fuzzy
 msgid "Error: "
 msgstr "Erro: "
 
-#: koassistant_dialogs.lua:1939
+#: koassistant_dialogs.lua:1948
 #, fuzzy
 msgid "Error handling prompt: "
 msgstr "Erro ao processar prompt: "
 
-#: koassistant_dialogs.lua:1976
+#: koassistant_dialogs.lua:1985
 #, fuzzy
 msgid "KOAssistant Actions"
 msgstr "Ações do KOAssistant"
 
-#: koassistant_dialogs.lua:1978
+#: koassistant_dialogs.lua:1987
 msgid "Type your question or additional instructions for any action..."
 msgstr "Digite uma pergunta ou instruções adicionais…"
 
-#: koassistant_dialogs.lua:2022
+#: koassistant_dialogs.lua:2031
 #, fuzzy
 msgid "Unknown prompt type: "
 msgstr "Tipo de prompt desconhecido: "
 
-#: koassistant_dialogs.lua:2044
+#: koassistant_dialogs.lua:2053
 #, fuzzy
 msgid "Error: No action specified"
 msgstr "Erro: nenhuma ação especificada"
@@ -909,12 +909,12 @@ msgstr "Novo chat geral"
 
 #: koassistant_settings_schema.lua:57 main.lua:1376 main.lua:3322
 msgid "Provider: %1"
-msgstr "Provedor: %s"
+msgstr "Provedor: %1"
 
 #: koassistant_settings_schema.lua:65 main.lua:1956 main.lua:3331
 #, fuzzy
 msgid "Model: %1"
-msgstr "Modelo: %s"
+msgstr "Modelo: %1"
 
 #: koassistant_settings_schema.lua:72
 #, fuzzy
@@ -1880,7 +1880,7 @@ msgstr ""
 #: main.lua:1580
 #, fuzzy
 msgid "Added provider: %1"
-msgstr "Provedor: %s"
+msgstr "Provedor: %1"
 
 #: main.lua:1605 main.lua:1694
 #, fuzzy
@@ -1900,7 +1900,7 @@ msgstr "Baseado em"
 #: main.lua:1661
 #, fuzzy
 msgid "Updated: %1"
-msgstr "Atualizado: %s"
+msgstr "Atualizado: %1"
 
 #: main.lua:1680
 #, fuzzy
@@ -2073,12 +2073,12 @@ msgstr "Limpar"
 #: main.lua:2306
 #, fuzzy
 msgid "%1 API key cleared"
-msgstr "Chave de API %s removida"
+msgstr "Chave de API %1 removida"
 
 #: main.lua:2324
 #, fuzzy
 msgid "%1 API key saved"
-msgstr "Chave de API %s salva"
+msgstr "Chave de API %1 salva"
 
 #: main.lua:2384
 #, fuzzy
@@ -2093,17 +2093,17 @@ msgstr "Nenhum idioma válido encontrado"
 #: main.lua:2433
 #, fuzzy
 msgid "Primary: %1"
-msgstr "Principal: %s"
+msgstr "Principal: %1"
 
 #: main.lua:2453
 #, fuzzy
 msgid "Use Primary (%1)"
-msgstr "Usar principal (%s)"
+msgstr "Usar principal (%1)"
 
 #: main.lua:2479 main.lua:2519 main.lua:3427
 #, fuzzy
 msgid "Translate: %1"
-msgstr "Traduzir: %s"
+msgstr "Traduzir: %1"
 
 #: main.lua:2533 koassistant_ui/prompts_manager.lua:1049
 #: koassistant_ui/prompts_manager.lua:2136
@@ -2154,7 +2154,7 @@ msgstr "Dicionário: seguir principal"
 #: main.lua:2660 main.lua:3439
 #, fuzzy
 msgid "Dictionary: %1"
-msgstr "Dicionário: %s"
+msgstr "Dicionário: %1"
 
 #: main.lua:2676
 #, fuzzy
@@ -2179,7 +2179,7 @@ msgstr "Enviar apenas a palavra, sem contexto ao redor"
 #: main.lua:2699
 #, fuzzy
 msgid "Context: %1"
-msgstr "Contexto: %s"
+msgstr "Contexto: %1"
 
 #: main.lua:2718
 #, fuzzy
@@ -2272,12 +2272,12 @@ msgstr "Configurações rápidas de IA"
 #: main.lua:3343
 #, fuzzy
 msgid "Behavior: %1"
-msgstr "Comportamento: %s"
+msgstr "Comportamento: %1"
 
 #: main.lua:3352
 #, fuzzy
 msgid "Domain: %1"
-msgstr "Domínio: %s"
+msgstr "Domínio: %1"
 
 #: main.lua:3357 main.lua:3591
 #, fuzzy
@@ -2302,7 +2302,7 @@ msgstr "Streaming: OFF"
 #: main.lua:3408
 #, fuzzy
 msgid "Language: %1"
-msgstr "Idioma: %s"
+msgstr "Idioma: %1"
 
 #: main.lua:3417
 #, fuzzy
@@ -2356,10 +2356,10 @@ msgid ""
 msgstr ""
 "Teste de conexão bem-sucedido!\n"
 "\n"
-"Provedor: %s\n"
-"Modelo: %s\n"
+"Provedor: %1\n"
+"Modelo: %1\n"
 "\n"
-"Resposta: %s"
+"Resposta: %1"
 
 #: main.lua:3562
 #, fuzzy
@@ -2503,8 +2503,8 @@ msgstr "PERSONALIZADO (CRIADO NA INTERFACE)"
 
 #: koassistant_ui/behavior_manager.lua:175
 #, fuzzy, lua-format
-msgid "Selected: %s"
-msgstr "Selecionado: %s"
+msgid "Selected: %1"
+msgstr "Selecionado: %1"
 
 #: koassistant_ui/behavior_manager.lua:189
 #: koassistant_ui/prompts_manager.lua:397
@@ -2586,7 +2586,7 @@ msgstr "Editar"
 #: koassistant_ui/behavior_manager.lua:303
 #: koassistant_ui/domain_manager.lua:316
 #, fuzzy, lua-format
-msgid "Delete '%s'?"
+msgid "Delete '%1'?"
 msgstr "Excluir"
 
 #: koassistant_ui/behavior_manager.lua:314
@@ -2610,13 +2610,13 @@ msgstr "Sobre comportamentos baseados em arquivo"
 msgid ""
 "This behavior is loaded from a file in:\n"
 "\n"
-"%s\n"
+"%1\n"
 "\n"
 "To edit, modify the file directly."
 msgstr ""
 "Este comportamento é carregado de um arquivo em:\n"
 "\n"
-"%s\n"
+"%1\n"
 "\n"
 "Para editar, modifique o arquivo diretamente."
 
@@ -2690,12 +2690,12 @@ msgstr "Digite instruções de comportamento para a IA..."
 #: koassistant_ui/behavior_manager.lua:459
 #, fuzzy, lua-format
 msgid ""
-"Name: %s\n"
+"Name: %1\n"
 "\n"
 "Define how the AI should behave. This text is sent as part of the system "
 "prompt."
 msgstr ""
-"Nome: %s\n"
+"Nome: %1\n"
 "\n"
 "Defina como a IA deve se comportar. Este texto é enviado como parte do "
 "prompt do sistema."
@@ -2713,14 +2713,14 @@ msgstr "Digite o conteúdo do comportamento"
 #: koassistant_ui/behavior_manager.lua:501
 #: koassistant_ui/domain_manager.lua:503
 #, fuzzy, lua-format
-msgid "Created: %s"
-msgstr "Criado: %s"
+msgid "Created: %1"
+msgstr "Criado: %1"
 
 #: koassistant_ui/behavior_manager.lua:507
 #: koassistant_ui/domain_manager.lua:509
 #, fuzzy, lua-format
-msgid "Updated: %s"
-msgstr "Atualizado: %s"
+msgid "Updated: %1"
+msgstr "Atualizado: %1"
 
 #: koassistant_ui/behavior_manager.lua:553
 #, fuzzy
@@ -2807,7 +2807,7 @@ msgstr "Nenhum domínio personalizado para excluir"
 
 #: koassistant_ui/domain_manager.lua:212
 #, fuzzy, lua-format
-msgid "Delete all %d custom domains?"
+msgid "Delete all %1 custom domains?"
 msgstr "Excluir todos os chats"
 
 #: koassistant_ui/domain_manager.lua:224
@@ -2835,13 +2835,13 @@ msgstr "Sobre domínios baseados em arquivo"
 msgid ""
 "This domain is loaded from a file in:\n"
 "\n"
-"%s\n"
+"%1\n"
 "\n"
 "To edit, modify the file directly."
 msgstr ""
 "Este domínio é carregado de um arquivo em:\n"
 "\n"
-"%s\n"
+"%1\n"
 "\n"
 "Para editar, modifique o arquivo diretamente."
 
@@ -2892,12 +2892,12 @@ msgstr "Digite o contexto de conhecimento do domínio..."
 #: koassistant_ui/domain_manager.lua:471
 #, fuzzy, lua-format
 msgid ""
-"Name: %s\n"
+"Name: %1\n"
 "\n"
 "Describe the knowledge area, terminology, and how the AI should approach "
 "topics in this domain."
 msgstr ""
-"Nome: %s\n"
+"Nome: %1\n"
 "\n"
 "Descreva a área de conhecimento, terminologia e como a IA deve abordar "
 "tópicos neste domínio."
@@ -2914,8 +2914,8 @@ msgstr "(Nenhum domínio existente para usar como modelo)"
 
 #: koassistant_ui/prompts_manager.lua:31
 #, fuzzy, lua-format
-msgid "~%d tokens"
-msgstr "~%d tokens"
+msgid "~%1 tokens"
+msgstr "~%1 tokens"
 
 #: koassistant_ui/prompts_manager.lua:63 koassistant_ui/prompts_manager.lua:94
 #, fuzzy
@@ -2929,8 +2929,8 @@ msgstr "Configurado"
 
 #: koassistant_ui/prompts_manager.lua:92
 #, fuzzy, lua-format
-msgid "On (%d tokens)"
-msgstr "On (%d tokens)"
+msgid "On (%1 tokens)"
+msgstr "On (%1 tokens)"
 
 #: koassistant_ui/prompts_manager.lua:97 koassistant_ui/prompts_manager.lua:492
 #: koassistant_ui/prompts_manager.lua:498
@@ -3218,11 +3218,11 @@ msgstr "Serviço de ações não disponível."
 #: koassistant_ui/prompts_manager.lua:722
 #, fuzzy, lua-format
 msgid ""
-"Created: %s\n"
+"Created: %1\n"
 "\n"
 "You can find and edit it in the Actions list."
 msgstr ""
-"Criado: %s\n"
+"Criado: %1\n"
 "\n"
 "Você pode encontrá-lo e editá-lo na lista de ações."
 
@@ -3624,8 +3624,8 @@ msgstr "OFF"
 
 #: koassistant_ui/prompts_manager.lua:1462
 #, fuzzy, lua-format
-msgid "ON (%d tokens)"
-msgstr "ON (%d tokens)"
+msgid "ON (%1 tokens)"
+msgstr "ON (%1 tokens)"
 
 #: koassistant_ui/prompts_manager.lua:1464
 #: koassistant_ui/prompts_manager.lua:1466
@@ -3692,11 +3692,11 @@ msgstr "Orçamento de pensamento"
 msgid ""
 "Token budget for extended thinking.\n"
 "Higher = more complex reasoning.\n"
-"Range: %d - %d"
+"Range: %1 - %1"
 msgstr ""
 "Orçamento de tokens para pensamento estendido.\n"
 "Maior = raciocínio mais complexo.\n"
-"Intervalo: %d - %d"
+"Intervalo: %1 - %1"
 
 #: koassistant_ui/prompts_manager.lua:1638
 #, fuzzy
@@ -3736,11 +3736,11 @@ msgstr ""
 msgid ""
 "Token budget for reasoning (Anthropic).\n"
 "Higher = more complex reasoning.\n"
-"Range: %d - %d"
+"Range: %1 - %1"
 msgstr ""
 "Orçamento de tokens para raciocínio (Anthropic).\n"
 "Maior = raciocínio mais complexo.\n"
-"Intervalo: %d - %d"
+"Intervalo: %1 - %1"
 
 #: koassistant_ui/prompts_manager.lua:1845
 #: koassistant_ui/prompts_manager.lua:2311
@@ -3800,12 +3800,12 @@ msgstr "Comportamento da IA: "
 #: koassistant_ui/prompts_manager.lua:2097
 #, fuzzy, lua-format
 msgid ""
-"Edit settings for: %s\n"
+"Edit settings for: %1\n"
 "\n"
 "These settings override the defaults for this built-in action.\n"
 "Set to \"Global\" to use the default setting."
 msgstr ""
-"Editar configurações de: %s\n"
+"Editar configurações de: %1\n"
 "\n"
 "Estas configurações substituem os padrões desta ação integrada.\n"
 "Defina como \"Global\" para usar a configuração padrão."
@@ -3931,8 +3931,8 @@ msgstr "Alterações requerem reinício para ter efeito"
 
 #: koassistant_ui/prompts_manager.lua:2802
 #, fuzzy, lua-format
-msgid "Highlight Menu (%d enabled)"
-msgstr "Menu de destaque (%d ativados)"
+msgid "Highlight Menu (%1 enabled)"
+msgstr "Menu de destaque (%1 ativados)"
 
 #: koassistant_ui/prompts_manager.lua:2841
 #: koassistant_ui/prompts_manager.lua:2999
@@ -3964,8 +3964,8 @@ msgstr "✓ = no popup | Toque = alternar | Segure = mover"
 
 #: koassistant_ui/prompts_manager.lua:2960
 #, fuzzy, lua-format
-msgid "Dictionary Popup (%d enabled)"
-msgstr "Popup do dicionário (%d ativados)"
+msgid "Dictionary Popup (%1 enabled)"
+msgstr "Popup do dicionário (%1 ativados)"
 
 #: koassistant_ui/prompts_manager.lua:3026
 #, fuzzy

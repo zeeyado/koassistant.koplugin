@@ -6,10 +6,10 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: KOAssistant 0.11.3\n"
+"Project-Id-Version: KOAssistant 0.11.2-dev\n"
 "Report-Msgid-Bugs-To: https://github.com/zeeyado/koassistant.koplugin/"
 "issues\n"
-"POT-Creation-Date: 2026-01-26 00:22+0000\n"
+"POT-Creation-Date: 2026-01-26 16:37+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -63,7 +63,7 @@ msgstr ""
 #: koassistant_chat_history_dialog.lua:1537 koassistant_chatgptviewer.lua:764
 #: koassistant_chatgptviewer.lua:1082 koassistant_chatgptviewer.lua:1241
 #: koassistant_chatgptviewer.lua:2043 koassistant_dialogs.lua:543
-#: koassistant_dialogs.lua:1716 koassistant_dialogs.lua:1752 main.lua:1751
+#: koassistant_dialogs.lua:1725 koassistant_dialogs.lua:1761 main.lua:1751
 #: main.lua:3148 main.lua:3489 koassistant_ui/behavior_manager.lua:370
 #: koassistant_ui/domain_manager.lua:382
 #: koassistant_ui/settings_manager.lua:183
@@ -323,7 +323,7 @@ msgstr ""
 msgid "Error: Failed to load chat messages."
 msgstr ""
 
-#: koassistant_chat_history_dialog.lua:1342 koassistant_dialogs.lua:1556
+#: koassistant_chat_history_dialog.lua:1342 koassistant_dialogs.lua:1565
 #: stream_handler.lua:194
 msgid "No response received from AI"
 msgstr ""
@@ -709,58 +709,58 @@ msgstr ""
 msgid "Cannot tag: no document context"
 msgstr ""
 
-#: koassistant_dialogs.lua:1631 koassistant_dialogs.lua:2060
+#: koassistant_dialogs.lua:1640 koassistant_dialogs.lua:2069
 msgid "Unknown Title"
 msgstr ""
 
-#: koassistant_dialogs.lua:1632 koassistant_dialogs.lua:2061
+#: koassistant_dialogs.lua:1641 koassistant_dialogs.lua:2070
 msgid "Unknown Author"
 msgstr ""
 
-#: koassistant_dialogs.lua:1671 koassistant_dialogs.lua:1735
+#: koassistant_dialogs.lua:1680 koassistant_dialogs.lua:1744
 #: koassistant_settings_schema.lua:579 main.lua:2679 main.lua:3264
 #: main.lua:3609 koassistant_ui/prompts_manager.lua:1048
 #: koassistant_ui/prompts_manager.lua:1983
 msgid "None"
 msgstr ""
 
-#: koassistant_dialogs.lua:1726
+#: koassistant_dialogs.lua:1735
 msgid "Select Domain"
 msgstr ""
 
-#: koassistant_dialogs.lua:1760
+#: koassistant_dialogs.lua:1769
 msgid "Domain: "
 msgstr ""
 
-#: koassistant_dialogs.lua:1767
+#: koassistant_dialogs.lua:1776
 msgid "Ask"
 msgstr ""
 
-#: koassistant_dialogs.lua:1878
+#: koassistant_dialogs.lua:1887
 msgid "Chat"
 msgstr ""
 
-#: koassistant_dialogs.lua:1882 koassistant_dialogs.lua:2099
+#: koassistant_dialogs.lua:1891 koassistant_dialogs.lua:2108
 msgid "Error: "
 msgstr ""
 
-#: koassistant_dialogs.lua:1939
+#: koassistant_dialogs.lua:1948
 msgid "Error handling prompt: "
 msgstr ""
 
-#: koassistant_dialogs.lua:1976
+#: koassistant_dialogs.lua:1985
 msgid "KOAssistant Actions"
 msgstr ""
 
-#: koassistant_dialogs.lua:1978
+#: koassistant_dialogs.lua:1987
 msgid "Type your question or additional instructions for any action..."
 msgstr ""
 
-#: koassistant_dialogs.lua:2022
+#: koassistant_dialogs.lua:2031
 msgid "Unknown prompt type: "
 msgstr ""
 
-#: koassistant_dialogs.lua:2044
+#: koassistant_dialogs.lua:2053
 msgid "Error: No action specified"
 msgstr ""
 

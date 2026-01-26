@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: KOAssistant 0.6.2\n"
 "Report-Msgid-Bugs-To: https://github.com/zeeyado/koassistant.koplugin/"
 "issues\n"
-"POT-Creation-Date: 2026-01-26 00:22+0000\n"
+"POT-Creation-Date: 2026-01-26 16:37+0000\n"
 "PO-Revision-Date: 2026-01-06 18:39+0000\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: Arabic\n"
@@ -70,7 +70,7 @@ msgstr "تم حذف %1 محادثة"
 #: koassistant_chat_history_dialog.lua:1537 koassistant_chatgptviewer.lua:764
 #: koassistant_chatgptviewer.lua:1082 koassistant_chatgptviewer.lua:1241
 #: koassistant_chatgptviewer.lua:2043 koassistant_dialogs.lua:543
-#: koassistant_dialogs.lua:1716 koassistant_dialogs.lua:1752 main.lua:1751
+#: koassistant_dialogs.lua:1725 koassistant_dialogs.lua:1761 main.lua:1751
 #: main.lua:3148 main.lua:3489 koassistant_ui/behavior_manager.lua:370
 #: koassistant_ui/domain_manager.lua:382
 #: koassistant_ui/settings_manager.lua:183
@@ -380,7 +380,7 @@ msgstr "إلغاء"
 msgid "Error: Failed to load chat messages."
 msgstr "خطأ: فشل في تحميل رسائل المحادثة."
 
-#: koassistant_chat_history_dialog.lua:1342 koassistant_dialogs.lua:1556
+#: koassistant_chat_history_dialog.lua:1342 koassistant_dialogs.lua:1565
 #: stream_handler.lua:194
 #, fuzzy
 msgid "No response received from AI"
@@ -864,17 +864,17 @@ msgstr "احفظ المحادثة أولاً لإضافة الوسوم"
 msgid "Cannot tag: no document context"
 msgstr "لا يمكن الحفظ: لا يوجد سياق مستند"
 
-#: koassistant_dialogs.lua:1631 koassistant_dialogs.lua:2060
+#: koassistant_dialogs.lua:1640 koassistant_dialogs.lua:2069
 #, fuzzy
 msgid "Unknown Title"
 msgstr "عنوان غير معروف"
 
-#: koassistant_dialogs.lua:1632 koassistant_dialogs.lua:2061
+#: koassistant_dialogs.lua:1641 koassistant_dialogs.lua:2070
 #, fuzzy
 msgid "Unknown Author"
 msgstr "مؤلف غير معروف"
 
-#: koassistant_dialogs.lua:1671 koassistant_dialogs.lua:1735
+#: koassistant_dialogs.lua:1680 koassistant_dialogs.lua:1744
 #: koassistant_settings_schema.lua:579 main.lua:2679 main.lua:3264
 #: main.lua:3609 koassistant_ui/prompts_manager.lua:1048
 #: koassistant_ui/prompts_manager.lua:1983
@@ -882,52 +882,52 @@ msgstr "مؤلف غير معروف"
 msgid "None"
 msgstr "لا شيء"
 
-#: koassistant_dialogs.lua:1726
+#: koassistant_dialogs.lua:1735
 #, fuzzy
 msgid "Select Domain"
 msgstr "اختر المجال"
 
-#: koassistant_dialogs.lua:1760
+#: koassistant_dialogs.lua:1769
 #, fuzzy
 msgid "Domain: "
 msgstr "المجال: "
 
-#: koassistant_dialogs.lua:1767
+#: koassistant_dialogs.lua:1776
 #, fuzzy
 msgid "Ask"
 msgstr "اسأل"
 
-#: koassistant_dialogs.lua:1878
+#: koassistant_dialogs.lua:1887
 #, fuzzy
 msgid "Chat"
 msgstr "محادثة"
 
-#: koassistant_dialogs.lua:1882 koassistant_dialogs.lua:2099
+#: koassistant_dialogs.lua:1891 koassistant_dialogs.lua:2108
 #, fuzzy
 msgid "Error: "
 msgstr "خطأ: "
 
-#: koassistant_dialogs.lua:1939
+#: koassistant_dialogs.lua:1948
 #, fuzzy
 msgid "Error handling prompt: "
 msgstr "خطأ في معالجة الموجه: "
 
-#: koassistant_dialogs.lua:1976
+#: koassistant_dialogs.lua:1985
 #, fuzzy
 msgid "KOAssistant Actions"
 msgstr "إجراءات مساعد KO"
 
-#: koassistant_dialogs.lua:1978
+#: koassistant_dialogs.lua:1987
 #, fuzzy
 msgid "Type your question or additional instructions for any action..."
 msgstr "اكتب سؤالك أو تعليمات إضافية لأي إجراء..."
 
-#: koassistant_dialogs.lua:2022
+#: koassistant_dialogs.lua:2031
 #, fuzzy
 msgid "Unknown prompt type: "
 msgstr "نوع موجه غير معروف: "
 
-#: koassistant_dialogs.lua:2044
+#: koassistant_dialogs.lua:2053
 #, fuzzy
 msgid "Error: No action specified"
 msgstr "خطأ: لم يتم تحديد إجراء"
