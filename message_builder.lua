@@ -40,6 +40,10 @@ function MessageBuilder.build(params)
     local using_new_format = params.using_new_format
     local templates_getter = params.templates_getter
 
+    if logger then
+        logger.info("MessageBuilder.build: context=", context, "data.highlighted_text=", data.highlighted_text and #data.highlighted_text or "nil/empty")
+    end
+
     local parts = {}
 
     -- Add domain context if provided (background knowledge about the topic area)
@@ -104,6 +108,9 @@ function MessageBuilder.build(params)
     end
 
     -- Handle different contexts
+    if logger then
+        logger.info("MessageBuilder: Entering context switch, context=", context)
+    end
     if context == "multi_book" or context == "multi_file_browser" then
         -- Multi-book context with {count} and {books_list} substitution
         if data.books_info then
@@ -194,7 +201,13 @@ function MessageBuilder.build(params)
                 (data.book_author and data.book_author ~= "") and (" by " .. data.book_author) or "")
         end
         if data.highlighted_text then
+            if logger then
+                logger.info("MessageBuilder: Before substitution, user_prompt contains {highlighted_text}:", user_prompt:find("{highlighted_text}", 1, true) ~= nil)
+            end
             user_prompt = user_prompt:gsub("{highlighted_text}", data.highlighted_text)
+            if logger then
+                logger.info("MessageBuilder: After substitution, user_prompt contains {highlighted_text}:", user_prompt:find("{highlighted_text}", 1, true) ~= nil)
+            end
         end
 
         table.insert(parts, "[Request]")

@@ -1463,6 +1463,7 @@ local function handlePredefinedPrompt(prompt_type_or_action, highlightedText, ui
     })
 
     -- Build data for consolidated message
+    logger.info("KOAssistant: buildConsolidatedMessage - highlightedText:", highlightedText and #highlightedText or "nil/empty")
     local message_data = {
         highlighted_text = highlightedText,
         additional_input = additional_input,
@@ -2113,6 +2114,7 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
 
     -- Call handlePredefinedPrompt with the action object directly
     -- (avoids re-lookup which fails for special actions not in ActionService cache)
+    logger.info("KOAssistant: executeDirectAction calling handlePredefinedPrompt with highlighted_text:", highlighted_text and #highlighted_text or "nil/empty")
     handlePredefinedPrompt(action, highlighted_text, ui, configuration, nil, plugin, nil, onComplete, book_metadata)
 end
 

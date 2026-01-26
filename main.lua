@@ -3813,11 +3813,16 @@ function AskGPT:translateCurrentPage()
     config_copy.features[k] = v
   end
   config_copy.context = "highlight"
+  -- Clear context flags to ensure highlight context
+  config_copy.features.is_general_context = nil
+  config_copy.features.is_book_context = nil
+  config_copy.features.is_multi_book_context = nil
   -- Explicitly ensure full view (not compact)
   config_copy.features.compact_view = false
   config_copy.features.minimal_buttons = false
 
   -- Execute translation
+  logger.info("KOAssistant: translateCurrentPage calling executeDirectAction with page_text:", page_text and #page_text or "nil/empty")
   Dialogs.executeDirectAction(
     self.ui,
     translate_action,
