@@ -14,7 +14,7 @@ Chats are streamed live (like ChatGPT/Claude, etc), are automatically (or manual
 
 Most settings are configurable in the UI, including: Provider/model, AI behavior and style, user-to-AI interaction languages, translation languages, domains/project/field context, custom actions (which you can create, edit, duplicate, and adjust settings for), and advanced model settings like reasoning/thinking, temperature, and more. Most settings, additional context, and function combinations can be specified for a given action.
 
-> **Development Status**: KOAssistant is currently under active development, with features constantly added. 16 providers are supported (see [Supported Providers](#supported-providers)); **testing and Feedback appreciated**. You can open an issue, feature request, or start a discussion. If you don't want to wait for releases, you can clone the repo from main and check `_meta.lua` to see which version you are on. Some things may break when not on official releases. Running off of other branches than main is not recommended. Due to the current changing nature of the plugin, parts of the documentation (READMEs) may be out of sync.
+> **Development Status**: KOAssistant is currently under active development, with features constantly added. 16 built-in providers are supported (plus custom OpenAI-compatible providers) — see [Supported Providers](#supported-providers); **testing and Feedback appreciated**. You can open an issue, feature request, or start a discussion. If you don't want to wait for releases, you can clone the repo from main and check `_meta.lua` to see which version you are on. Some things may break when not on official releases. Running off of other branches than main is not recommended. Due to the current changing nature of the plugin, parts of the documentation (READMEs) may be out of sync.
 
 ---
 
@@ -34,7 +34,11 @@ Most settings are configurable in the UI, including: Provider/model, AI behavior
 - [Advanced Configuration](#advanced-configuration)
 - [Technical Features](#technical-features)
 - [Supported Providers](#supported-providers)
+  - [Adding Custom Providers](#adding-custom-providers)
+  - [Adding Custom Models](#adding-custom-models)
+  - [Setting Default Models](#setting-default-models)
 - [Troubleshooting](#troubleshooting)
+- [Requirements](#requirements)
 - [Contributing](#contributing)
 - [Translations](#contributing-translations)
 - [Credits](#credits)
@@ -728,8 +732,14 @@ Actions appear as "KOA: Explain", "KOA: Translate", etc. in the highlight popup.
 - **Chat History**: Browse saved conversations
 
 ### Provider & Model
-- **Provider**: Select AI provider (16 options - see [Supported Providers](#supported-providers))
+- **Provider**: Select AI provider (16 built-in + custom providers)
+  - Tap to select from built-in providers
+  - Custom providers appear with ★ prefix (see [Adding Custom Providers](#adding-custom-providers))
+  - Long-press "Add custom provider..." to create your own
 - **Model**: Select model for the chosen provider
+  - Tap to select from available models
+  - Custom models appear with ★ prefix (see [Adding Custom Models](#adding-custom-models))
+  - Long-press any model to set it as your default for that provider (see [Setting Default Models](#setting-default-models))
 
 ### API Keys
 - Enter API keys directly via the GUI (no file editing needed)
@@ -938,9 +948,79 @@ Several providers offer free tiers for testing or budget-conscious users:
 
 **Best for testing:** Groq (fastest free inference), Gemini (generous free quota), Ollama (no API key needed).
 
+### Adding Custom Providers
+
+You can add your own OpenAI-compatible providers for local servers or cloud services not in the built-in list.
+
+**Supported endpoints:** LM Studio, vLLM, Text Generation WebUI, Ollama's OpenAI-compatible endpoint, and any API following the OpenAI chat completions format.
+
+**To add a custom provider:**
+
+1. Go to **Settings → Provider**
+2. Select **"Add custom provider..."**
+3. Fill in the details:
+   - **Name**: Display name (e.g., "LM Studio")
+   - **Base URL**: Full endpoint URL (e.g., `http://localhost:1234/v1/chat/completions`)
+   - **Default Model**: Optional model name to use by default
+   - **API Key Required**: Enable for cloud services, disable for local servers
+
+**Managing custom providers:**
+- Custom providers appear with ★ prefix in the Provider menu
+- Long-press a custom provider to **edit** or **remove** it
+- Long-press to toggle **API key requirement** on/off
+- Set API keys for custom providers in **Settings → API Keys**
+
+**Tips:**
+- For Ollama's OpenAI-compatible mode, use `http://localhost:11434/v1/chat/completions`
+- For LM Studio, the default is `http://localhost:1234/v1/chat/completions`
+- The first custom model you add becomes the default automatically
+
 ### Adding Custom Models
 
-In the model selection menu, choose "Custom model..." to enter any model ID your provider supports.
+Add models not in the built-in list for any provider (built-in or custom).
+
+**To add a custom model:**
+
+1. Go to **Settings → Model** (or tap Model in any model selection menu)
+2. Select **"Add custom model..."**
+3. Enter the model ID exactly as your provider expects it
+
+**How custom models work:**
+- Custom models are **saved per provider** and persist across sessions
+- Custom models appear with ★ prefix in the model menu
+- The first custom model added for a provider becomes your default automatically
+
+**To manage custom models:**
+
+1. In the model menu, select **"Manage custom models..."**
+2. Tap a model to remove it (with confirmation)
+
+**Tips:**
+- Use the exact model ID from your provider's documentation
+- Duplicate models are automatically detected and prevented
+- Custom models work with all provider features (streaming, reasoning, etc.)
+
+### Setting Default Models
+
+Override the system default model for any provider with your preferred choice.
+
+**To set a custom default:**
+
+1. Open the model selection menu (**Settings → Model**)
+2. **Long-press** any model (built-in or custom)
+3. Select **"Set as default for [provider]"**
+
+**How defaults work:**
+- **System default**: First model in the built-in list (no label or shows "(default)")
+- **Your default**: Model you've set via long-press (shows "(your default)")
+- When switching providers, your custom default is used instead of the system default
+
+**To clear your custom default:**
+
+1. Long-press your current default model
+2. Select **"Clear custom default"**
+
+The provider will revert to using the system default.
 
 ### Provider Quirks
 
