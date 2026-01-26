@@ -1386,7 +1386,7 @@ local function buildConsolidatedMessage(prompt, context, data, system_prompt, do
 end
 
 --- Handle a predefined prompt query
---- @param prompt_type string: The type of prompt to use
+--- @param prompt_type_or_action string|table: The prompt type string ID or action object
 --- @param highlightedText string: The highlighted text (optional)
 --- @param ui table: The UI instance
 --- @param configuration table: The configuration table
@@ -1506,7 +1506,9 @@ local function handlePredefinedPrompt(prompt_type_or_action, highlightedText, ui
         end
 
         -- Extract surrounding context for dictionary action if not already provided
-        if prompt_type == "dictionary" and (not message_data.context or message_data.context == "") then
+        -- Check both string ID and action object ID
+        local action_id = type(prompt_type_or_action) == "table" and prompt_type_or_action.id or prompt_type_or_action
+        if action_id == "dictionary" and (not message_data.context or message_data.context == "") then
             local context_mode = config.features.dictionary_context_mode or "sentence"
             local context_chars = config.features.dictionary_context_chars or 100
             message_data.context = extractSurroundingContext(ui, highlightedText, context_mode, context_chars)
