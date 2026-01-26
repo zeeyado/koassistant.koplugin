@@ -135,7 +135,7 @@ Located in `tests/unit/`:
 
 #### Model Validation (`--models`)
 
-Tests every model in `model_lists.lua` with ultra-minimal requests to discover:
+Tests every model in `koassistant_model_lists.lua` with ultra-minimal requests to discover:
 - Invalid model names (404 errors)
 - Parameter constraints (temperature, max_tokens requirements)
 - Access restrictions
