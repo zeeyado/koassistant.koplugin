@@ -345,7 +345,7 @@ local function inspectProvider(provider, options)
         print("")
         print("Supported providers: " .. table.concat(RequestInspector:getAllProviders(), ", "))
         print("")
-        print(c.dim .. "To add support, implement buildRequestBody() in api_handlers/" .. provider .. ".lua" .. c.reset)
+        print(c.dim .. "To add support, implement buildRequestBody() in koassistant_api/" .. provider .. ".lua" .. c.reset)
         print("")
         return false
     end
@@ -632,8 +632,8 @@ local function startWebServer(options)
 
     -- GET /api/providers - List all providers with models
     server:route("GET", "/api/providers", function(headers, body)
-        local Defaults = require("api_handlers.defaults")
-        local ModelLists = require("model_lists")
+        local Defaults = require("koassistant_api.defaults")
+        local ModelLists = require("koassistant_model_lists")
 
         local providers_data = {}
         for _, provider in ipairs(TestConfig.getAllProviders()) do
@@ -1390,7 +1390,7 @@ local function startWebServer(options)
             if decode_ok then
                 raw_response = decoded
                 -- Try to extract text based on provider
-                local ResponseParser = require("api_handlers.response_parser")
+                local ResponseParser = require("koassistant_api.response_parser")
                 local parse_ok, success, parsed = pcall(function()
                     return ResponseParser:parseResponse(decoded, provider)
                 end)
