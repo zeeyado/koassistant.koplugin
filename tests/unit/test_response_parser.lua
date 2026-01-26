@@ -1,4 +1,4 @@
--- Unit tests for api_handlers/response_parser.lua
+-- Unit tests for koassistant_api/response_parser.lua
 -- Tests response parsing for all 16 providers
 -- No API calls - tests with mock responses
 
@@ -86,7 +86,7 @@ function TestRunner:summary()
 end
 
 -- Load the module under test
-local ResponseParser = require("api_handlers.response_parser")
+local ResponseParser = require("koassistant_api.response_parser")
 
 print("")
 print(string.rep("=", 50))

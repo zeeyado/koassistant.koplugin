@@ -13,7 +13,7 @@ local logger = require("logger")
 local json = require("json")
 local ffi = require("ffi")
 local ffiutil = require("ffi/util")
-local UIConstants = require("ui/constants")
+local UIConstants = require("koassistant_ui.constants")
 
 local StreamHandler = {
     interrupt_stream = nil,      -- function to interrupt the stream query

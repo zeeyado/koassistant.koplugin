@@ -45,7 +45,7 @@ if ! xgettext --from-code=UTF-8 -L Lua \
     --msgid-bugs-address="https://github.com/zeeyado/koassistant.koplugin/issues" \
     --copyright-holder="zeeyado" \
     -o locale/koassistant.pot \
-    *.lua ui/*.lua prompts/*.lua 2>/dev/null; then
+    *.lua koassistant_ui/*.lua prompts/*.lua 2>/dev/null; then
     echo "Error: xgettext failed"
     exit 1
 fi
