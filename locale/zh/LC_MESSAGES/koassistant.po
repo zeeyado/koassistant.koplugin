@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: KOAssistant 0.6.2\n"
 "Report-Msgid-Bugs-To: https://github.com/zeeyado/koassistant.koplugin/"
 "issues\n"
-"POT-Creation-Date: 2026-01-24 16:48+0000\n"
+"POT-Creation-Date: 2026-01-25 23:50+0000\n"
 "PO-Revision-Date: 2026-01-06 18:39+0000\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: Chinese (Simplified)\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: _meta.lua:4 main.lua:124 main.lua:205 main.lua:1791 main.lua:2100
+#: _meta.lua:4 main.lua:124 main.lua:205 main.lua:2778 main.lua:3087
 #, fuzzy
 msgid "KOAssistant"
 msgstr "KO助手"
@@ -63,7 +63,7 @@ msgstr "已删除 %1 个聊天"
 #: chat_history_dialog.lua:1012 chat_history_dialog.lua:1537
 #: chatgptviewer.lua:764 chatgptviewer.lua:1082 chatgptviewer.lua:1241
 #: chatgptviewer.lua:2043 dialogs.lua:543 dialogs.lua:1716 dialogs.lua:1752
-#: main.lua:2161 main.lua:2501 ui/behavior_manager.lua:370
+#: main.lua:1751 main.lua:3148 main.lua:3489 ui/behavior_manager.lua:370
 #: ui/domain_manager.lua:382 ui/settings_manager.lua:183
 #: ui/settings_manager.lua:269
 #, fuzzy
@@ -96,7 +96,7 @@ msgstr ""
 "\n"
 "此操作无法撤销。"
 
-#: chat_history_dialog.lua:147
+#: chat_history_dialog.lua:147 main.lua:4650
 #, fuzzy
 msgid "Deleted %1 chat(s) from %2 book(s)"
 msgstr "已从 %2 本书中删除 %1 个聊天"
@@ -117,7 +117,7 @@ msgstr "聊天记录"
 msgid "Navigate"
 msgstr "导航"
 
-#: chat_history_dialog.lua:321 chat_history_dialog.lua:503 main.lua:1993
+#: chat_history_dialog.lua:321 chat_history_dialog.lua:503 main.lua:2980
 #, fuzzy
 msgid "No saved chats found"
 msgstr "未找到保存的聊天"
@@ -285,6 +285,7 @@ msgid "Enter tag name"
 msgstr "输入标签名称"
 
 #: chat_history_dialog.lua:1020 chat_history_dialog.lua:1207 dialogs.lua:815
+#: main.lua:1563 main.lua:1997
 #, fuzzy
 msgid "Add"
 msgstr "添加"
@@ -306,7 +307,8 @@ msgid "Chat not found"
 msgstr "关于书籍的聊天"
 
 #: chat_history_dialog.lua:1199 chatgptviewer.lua:114 chatgptviewer.lua:1008
-#: dialogs.lua:807 main.lua:1167 main.lua:1302 main.lua:1559 main.lua:1742
+#: dialogs.lua:807 main.lua:1517 main.lua:1556 main.lua:1623 main.lua:1861
+#: main.lua:1990 main.lua:2134 main.lua:2289 main.lua:2546 main.lua:2729
 #: ui/behavior_manager.lua:407 ui/behavior_manager.lua:466
 #: ui/behavior_manager.lua:545 ui/behavior_manager.lua:601
 #: ui/domain_manager.lua:419 ui/domain_manager.lua:478
@@ -481,8 +483,8 @@ msgstr "回复"
 msgid "Autosaved"
 msgstr "已自动保存"
 
-#: chatgptviewer.lua:612 dialogs.lua:551 main.lua:1174 main.lua:1325
-#: main.lua:1566 main.lua:1757 ui/behavior_manager.lua:484
+#: chatgptviewer.lua:612 dialogs.lua:551 main.lua:1630 main.lua:2312
+#: main.lua:2553 main.lua:2744 ui/behavior_manager.lua:484
 #: ui/domain_manager.lua:486 ui/prompts_manager.lua:1283
 #: ui/prompts_manager.lua:2087
 #, fuzzy
@@ -579,7 +581,7 @@ msgstr "词已添加到生词本"
 msgid "+Vocab"
 msgstr "+生词"
 
-#: chatgptviewer.lua:910 main.lua:3151
+#: chatgptviewer.lua:910 main.lua:4139
 #, fuzzy
 msgid "AI Dictionary lookup"
 msgstr "主要语言：%1"
@@ -587,7 +589,7 @@ msgstr "主要语言：%1"
 #: chatgptviewer.lua:915
 #, fuzzy
 msgid "Added '%1' to vocabulary"
-msgstr "已将"%1"添加到生词本"
+msgstr "已将「%1」添加到生词本"
 
 #: chatgptviewer.lua:928
 #, fuzzy
@@ -619,7 +621,7 @@ msgstr "语言"
 msgid "Configure languages in Settings first"
 msgstr "请先设置您的语言"
 
-#: chatgptviewer.lua:1012 main.lua:2456 main.lua:2845
+#: chatgptviewer.lua:1012 main.lua:3444 main.lua:3833
 #, fuzzy
 msgid "Dictionary Language"
 msgstr "主要语言：%1"
@@ -744,7 +746,7 @@ msgstr "对齐方式：%1"
 msgid "Reset to Defaults"
 msgstr "重置为默认"
 
-#: chatgptviewer.lua:2063 main.lua:2386 ui/settings_manager.lua:235
+#: chatgptviewer.lua:2063 main.lua:3374 ui/settings_manager.lua:235
 #, fuzzy
 msgid "Set"
 msgstr "设置"
@@ -814,8 +816,8 @@ msgstr "未知标题"
 msgid "Unknown Author"
 msgstr "未知作者"
 
-#: dialogs.lua:1671 dialogs.lua:1735 main.lua:1692 main.lua:2276 main.lua:2621
-#: settings_schema.lua:512 ui/prompts_manager.lua:1048
+#: dialogs.lua:1671 dialogs.lua:1735 main.lua:2679 main.lua:3264 main.lua:3609
+#: settings_schema.lua:579 ui/prompts_manager.lua:1048
 #: ui/prompts_manager.lua:1983
 #, fuzzy
 msgid "None"
@@ -996,210 +998,433 @@ msgstr "自定义翻译语言"
 msgid "Custom (migrated)"
 msgstr "自定义（已迁移）"
 
-#: main.lua:1095 main.lua:2334
-#, fuzzy, lua-format
+#: main.lua:1076
+msgid "Model already exists"
+msgstr ""
+
+#: main.lua:1206 main.lua:1639
+msgid "Provider name is required"
+msgstr ""
+
+#: main.lua:1209 main.lua:1647
+msgid "Base URL is required"
+msgstr ""
+
+#: main.lua:1218
+msgid "A provider with this name already exists"
+msgstr ""
+
+#: main.lua:1376 main.lua:3322 settings_schema.lua:57
+#, fuzzy
 msgid "Provider: %1"
 msgstr "提供商：%1"
 
-#: main.lua:1124 main.lua:1429
+#: main.lua:1441
+#, fuzzy
+msgid "Add custom provider..."
+msgstr "自定义模型..."
+
+#: main.lua:1451
+#, fuzzy
+msgid "Manage custom providers (%1)..."
+msgstr "AI行为：%1"
+
+#: main.lua:1472
+msgid "API key: Required [tap to toggle]"
+msgstr ""
+
+#: main.lua:1474
+msgid "API key: Not required [tap to toggle]"
+msgstr ""
+
+#: main.lua:1479
+#, fuzzy
+msgid "Edit provider..."
+msgstr "按提供商配置..."
+
+#: main.lua:1493
+#, fuzzy
+msgid "required"
+msgstr "需要"
+
+#: main.lua:1493
+#, fuzzy
+msgid "not required"
+msgstr "需要"
+
+#: main.lua:1495
+#, fuzzy
+msgid "API key: %1"
+msgstr "API密钥"
+
+#: main.lua:1501
+#, fuzzy
+msgid "Remove provider"
+msgstr "选择提供商"
+
+#: main.lua:1505
+msgid ""
+"Remove custom provider '%1'?\n"
+"\n"
+"This will also remove any custom models and API key for this provider."
+msgstr ""
+
+#: main.lua:1509 main.lua:1850 main.lua:2088
+#, fuzzy
+msgid "Removed: %1"
+msgstr "已移除标签：%1"
+
+#: main.lua:1538
+#, fuzzy
+msgid "Add Custom Provider"
+msgstr "自定义模型"
+
+#: main.lua:1542
+msgid "Provider name (e.g., LM Studio)"
+msgstr ""
+
+#: main.lua:1546
+msgid "Base URL (e.g., http://localhost:1234/v1/chat/completions)"
+msgstr ""
+
+#: main.lua:1550 main.lua:1617
+msgid "Default model name (optional)"
+msgstr ""
+
+#: main.lua:1580
+#, fuzzy
+msgid "Added provider: %1"
+msgstr "提供商：%1"
+
+#: main.lua:1605 main.lua:1694
+#, fuzzy
+msgid "Edit: %1"
+msgstr "编辑"
+
+#: main.lua:1609
+#, fuzzy
+msgid "Provider name"
+msgstr "提供商："
+
+#: main.lua:1613
+#, fuzzy
+msgid "Base URL"
+msgstr "基于"
+
+#: main.lua:1661
+#, fuzzy
+msgid "Updated: %1"
+msgstr "模型：%1"
+
+#: main.lua:1680
+#, fuzzy
+msgid "No custom providers to manage"
+msgstr "未定义领域。"
+
+#: main.lua:1709
+#, fuzzy
+msgid "Remove all (%1)"
+msgstr "已移除标签：%1"
+
+#: main.lua:1713
+msgid ""
+"Remove all %1 custom provider(s)?\n"
+"\n"
+"This will also remove their custom models and API keys."
+msgstr ""
+
+#: main.lua:1742
+msgid "All custom providers removed"
+msgstr ""
+
+#: main.lua:1758
+msgid "Manage Custom Providers"
+msgstr ""
+
+#: main.lua:1811
+#, fuzzy
+msgid "Set as default for %1"
+msgstr "为以下选择模型："
+
+#: main.lua:1816
+msgid "Default for %1: %2"
+msgstr ""
+
+#: main.lua:1826
+#, fuzzy
+msgid "Clear custom default"
+msgstr "自定义模型"
+
+#: main.lua:1831
+msgid "Cleared custom default for %1"
+msgstr ""
+
+#: main.lua:1841
+#, fuzzy
+msgid "Remove custom model"
+msgstr "自定义模型..."
+
+#: main.lua:1846 main.lua:2084
+msgid "Remove custom model '%1'?"
+msgstr ""
+
+#: main.lua:1889 main.lua:1895 main.lua:2416
 #, fuzzy
 msgid "(default)"
 msgstr "（默认）"
 
-#: main.lua:1143 main.lua:2343
-#, fuzzy, lua-format
+#: main.lua:1892
+#, fuzzy
+msgid "(your default)"
+msgstr "（默认）"
+
+#: main.lua:1898
+#, fuzzy
+msgid "(system default)"
+msgstr "（默认）"
+
+#: main.lua:1907
+msgid "Hold to manage. ★ = custom"
+msgstr ""
+
+#: main.lua:1956 main.lua:3331 settings_schema.lua:65
+#, fuzzy
 msgid "Model: %1"
 msgstr "模型：%1"
 
-#: main.lua:1153 ui/prompts_manager.lua:1879 ui/prompts_manager.lua:2343
+#: main.lua:1975
 #, fuzzy
-msgid "Custom model..."
+msgid "Add custom model..."
 msgstr "自定义模型..."
 
-#: main.lua:1160
+#: main.lua:1983
 #, fuzzy
-msgid "Enter Custom Model Name"
-msgstr "输入自定义模型名称"
+msgid "Add Custom Model"
+msgstr "自定义模型"
 
-#: main.lua:1162
+#: main.lua:1985
 #, fuzzy
 msgid "e.g., claude-3-opus-20240229"
 msgstr "例如：claude-3-opus-20240229"
 
-#: main.lua:1163
+#: main.lua:1986
 #, fuzzy
-msgid "Enter the exact model identifier for this provider."
+msgid "Enter the exact model identifier. It will be saved and selected."
 msgstr "输入此提供商的确切模型标识符。"
 
-#: main.lua:1198
+#: main.lua:2011
+#, fuzzy
+msgid "Added: %1"
+msgstr "已添加标签：%1"
+
+#: main.lua:2016
+#, fuzzy
+msgid "Failed to add model"
+msgstr "重命名聊天失败"
+
+#: main.lua:2036
+#, fuzzy
+msgid "Manage custom models (%1)..."
+msgstr "自定义模型..."
+
+#: main.lua:2051
 #, fuzzy
 msgid "No predefined models"
 msgstr "没有预定义的模型"
 
-#: main.lua:1285
-#, fuzzy, lua-format
+#: main.lua:2066
+#, fuzzy
+msgid "No custom models to manage"
+msgstr "未定义领域。"
+
+#: main.lua:2080
+#, fuzzy
+msgid "Remove: %1"
+msgstr "已移除标签：%1"
+
+#: main.lua:2099
+#, fuzzy
+msgid "Clear all custom models"
+msgstr "自定义模型..."
+
+#: main.lua:2103
+msgid "Remove all %1 custom model(s) for %2?"
+msgstr ""
+
+#: main.lua:2124
+msgid "All custom models cleared"
+msgstr ""
+
+#: main.lua:2141
+#, fuzzy
+msgid "Custom Models for %1"
+msgstr "自定义模型"
+
+#: main.lua:2270
+#, fuzzy
 msgid "Current: %1"
 msgstr "当前标签："
 
-#: main.lua:1287
+#: main.lua:2272
 #, fuzzy
 msgid "Using key from apikeys.lua"
 msgstr "使用apikeys.lua中的密钥"
 
-#: main.lua:1289
+#: main.lua:2274
+msgid "Optional - leave empty for local servers"
+msgstr ""
+
+#: main.lua:2276
 #, fuzzy
 msgid "Enter API key..."
 msgstr "输入您的回复。"
 
-#: main.lua:1295
+#: main.lua:2282
 #, fuzzy
 msgid "API Key"
 msgstr "API密钥"
 
-#: main.lua:1309
+#: main.lua:2296
 #, fuzzy
 msgid "Clear"
 msgstr "清除"
 
-#: main.lua:1319
-#, lua-format
+#: main.lua:2306
 #, fuzzy
 msgid "%1 API key cleared"
 msgstr "%1 API密钥已清除"
 
-#: main.lua:1337
-#, lua-format
+#: main.lua:2324
 #, fuzzy
 msgid "%1 API key saved"
 msgstr "%1 API密钥已保存"
 
-#: main.lua:1397
+#: main.lua:2384
 #, fuzzy
 msgid "Set your languages first"
 msgstr "请先设置您的语言"
 
-#: main.lua:1415
+#: main.lua:2402
 #, fuzzy
 msgid "No valid languages found"
 msgstr "未找到有效语言"
 
-#: main.lua:1446
-#, fuzzy, lua-format
+#: main.lua:2433
+#, fuzzy
 msgid "Primary: %1"
 msgstr "主要语言：%1"
 
-#: main.lua:1466
-#, lua-format
+#: main.lua:2453
 #, fuzzy
 msgid "Use Primary (%1)"
 msgstr "使用主要语言（%1）"
 
-#: main.lua:1492 main.lua:1532 main.lua:2439
-#, fuzzy, lua-format
+#: main.lua:2479 main.lua:2519 main.lua:3427
+#, fuzzy
 msgid "Translate: %1"
 msgstr "翻译"
 
-#: main.lua:1546 ui/prompts_manager.lua:1049 ui/prompts_manager.lua:2136
+#: main.lua:2533 ui/prompts_manager.lua:1049 ui/prompts_manager.lua:2136
 #, fuzzy
 msgid "Custom..."
 msgstr "自定义..."
 
-#: main.lua:1552
+#: main.lua:2539
 #, fuzzy
 msgid "Custom Translation Language"
 msgstr "自定义翻译语言"
 
-#: main.lua:1554
+#: main.lua:2541
 #, fuzzy
 msgid "e.g., Spanish, Japanese, French"
 msgstr "例如：西班牙语、日语、法语"
 
-#: main.lua:1555
+#: main.lua:2542
 #, fuzzy
 msgid "Enter the target language for translations."
 msgstr "输入翻译目标语言。"
 
-#: main.lua:1589
+#: main.lua:2576
 #, fuzzy
 msgid "(Set your languages for quick selection)"
 msgstr "（设置您的语言以快速选择）"
 
-#: main.lua:1608 main.lua:2858
+#: main.lua:2595 main.lua:3846
 #, fuzzy
 msgid "Follow Translation Language"
 msgstr "自定义翻译语言"
 
-#: main.lua:1621
+#: main.lua:2608
 #, fuzzy
 msgid "Dictionary: Follow Translation"
 msgstr "词典：跟随翻译语言"
 
-#: main.lua:1629 main.lua:2875
+#: main.lua:2616 main.lua:3863
 #, fuzzy
 msgid "Follow Primary Language"
 msgstr "主要语言：%1"
 
-#: main.lua:1641
+#: main.lua:2628
 #, fuzzy
 msgid "Dictionary: Follow Primary"
 msgstr "主要语言：%1"
 
-#: main.lua:1673 main.lua:2451
-#, fuzzy, lua-format
+#: main.lua:2660 main.lua:3439
+#, fuzzy
 msgid "Dictionary: %1"
 msgstr "主要语言：%1"
 
-#: main.lua:1689 settings_schema.lua:509
+#: main.lua:2676 settings_schema.lua:576
 #, fuzzy
 msgid "Sentence"
 msgstr "句子"
 
-#: main.lua:1689
+#: main.lua:2676
 #, fuzzy
 msgid "Extract the full sentence containing the word"
 msgstr "提取包含该词的完整句子"
 
-#: main.lua:1690 settings_schema.lua:510
+#: main.lua:2677 settings_schema.lua:577
 #, fuzzy
 msgid "Paragraph"
 msgstr "段落"
 
-#: main.lua:1690
+#: main.lua:2677
 #, fuzzy
 msgid "Include more surrounding context"
 msgstr "包含更多上下文"
 
-#: main.lua:1691 settings_schema.lua:511
+#: main.lua:2678 settings_schema.lua:578
 #, fuzzy
 msgid "Characters"
 msgstr "字符数"
 
-#: main.lua:1691
+#: main.lua:2678
 #, fuzzy
 msgid "Fixed number of characters before/after"
 msgstr "词前后固定字符数"
 
-#: main.lua:1692
+#: main.lua:2679
 #, fuzzy
 msgid "Only send the word, no surrounding context"
 msgstr "仅发送单词，不包含上下文"
 
-#: main.lua:1712
-#, fuzzy, lua-format
+#: main.lua:2699
+#, fuzzy
 msgid "Context: %1"
 msgstr "上下文："
 
-#: main.lua:1731
+#: main.lua:2718
 #, fuzzy
 msgid "Custom AI Behavior"
 msgstr "自定义AI行为"
 
-#: main.lua:1733
+#: main.lua:2720
 #, fuzzy
 msgid "Enter custom AI behavior instructions..."
 msgstr "输入自定义AI行为指令..."
 
-#: main.lua:1734
+#: main.lua:2721
 #, fuzzy
 msgid ""
 "Define how the AI should behave. This replaces the built-in Minimal/Full "
@@ -1211,12 +1436,12 @@ msgstr ""
 "\n"
 "提示：以完整行为作为模板开始。"
 
-#: main.lua:1749
+#: main.lua:2736
 #, fuzzy
 msgid "Load Full"
 msgstr "加载完整"
 
-#: main.lua:1804
+#: main.lua:2791
 #, fuzzy
 msgid ""
 "Model lists are now managed through the model_lists.lua file. Please edit "
@@ -1224,140 +1449,140 @@ msgid ""
 msgstr ""
 "模型列表现在通过model_lists.lua文件管理。请编辑此文件以添加或删除模型。"
 
-#: main.lua:2018
+#: main.lua:3005
 #, fuzzy
 msgid "No previously opened chat found"
 msgstr "未找到之前打开的聊天"
 
-#: main.lua:2035 main.lua:3388
+#: main.lua:3022 main.lua:4376
 #, fuzzy
 msgid "Configuration not found. Please set up configuration.lua first."
 msgstr "未找到配置。请先设置configuration.lua。"
 
-#: main.lua:2064
+#: main.lua:3051
 #, fuzzy
 msgid "Please open a book first"
 msgstr "请先打开一本书"
 
-#: main.lua:2184 main.lua:2434
+#: main.lua:3171 main.lua:3422
 #, fuzzy
 msgid "Primary Language"
 msgstr "主要语言：%1"
 
-#: main.lua:2190 main.lua:2444 ui/prompts_manager.lua:2510
+#: main.lua:3177 main.lua:3432 ui/prompts_manager.lua:2510
 #, fuzzy
 msgid "Translation Language"
 msgstr "自定义翻译语言"
 
-#: main.lua:2196 main.lua:2339
+#: main.lua:3183 main.lua:3327
 #, fuzzy
 msgid "Provider"
 msgstr "提供商："
 
-#: main.lua:2202 main.lua:2348
+#: main.lua:3189 main.lua:3336
 #, fuzzy
 msgid "Model"
 msgstr "模型："
 
-#: main.lua:2208 main.lua:2360 ui/prompts_manager.lua:510
+#: main.lua:3195 main.lua:3348 ui/prompts_manager.lua:510
 #: ui/prompts_manager.lua:2177
 #, fuzzy
 msgid "AI Behavior"
 msgstr "AI行为"
 
-#: main.lua:2288 main.lua:2294
+#: main.lua:3276 main.lua:3282
 #, fuzzy
 msgid "Default"
 msgstr "（默认）"
 
-#: main.lua:2329
+#: main.lua:3317
 #, fuzzy
 msgid "AI Quick Settings"
 msgstr "编辑设置"
 
-#: main.lua:2355
-#, fuzzy, lua-format
+#: main.lua:3343
+#, fuzzy
 msgid "Behavior: %1"
 msgstr "AI行为：%1"
 
-#: main.lua:2364
-#, fuzzy, lua-format
+#: main.lua:3352
+#, fuzzy
 msgid "Domain: %1"
 msgstr "领域："
 
-#: main.lua:2369 main.lua:2603
+#: main.lua:3357 main.lua:3591
 #, fuzzy
 msgid "Knowledge Domain"
 msgstr "选择领域"
 
-#: main.lua:2376
-#, fuzzy, lua-format
+#: main.lua:3364
+#, fuzzy
 msgid "Temp: %1"
 msgstr "温度："
 
-#: main.lua:2387 settings_schema.lua:226 ui/prompts_manager.lua:507
+#: main.lua:3375 settings_schema.lua:226 ui/prompts_manager.lua:507
 #: ui/prompts_manager.lua:1346 ui/prompts_manager.lua:2238
 #, fuzzy
 msgid "Temperature"
 msgstr "温度"
 
-#: main.lua:2402
+#: main.lua:3390
 #, fuzzy
 msgid "Streaming: ON"
 msgstr "启用流式传输"
 
-#: main.lua:2402
+#: main.lua:3390
 #, fuzzy
 msgid "Streaming: OFF"
 msgstr "启用流式传输"
 
-#: main.lua:2420
-#, fuzzy, lua-format
+#: main.lua:3408
+#, fuzzy
 msgid "Language: %1"
 msgstr "语言"
 
-#: main.lua:2429
+#: main.lua:3417
 #, fuzzy
 msgid "Configure your languages in Settings → Language first."
 msgstr "请先在设置 → 语言中配置您的语言。"
 
-#: main.lua:2460
+#: main.lua:3448
 #, fuzzy
 msgid "More Settings..."
 msgstr "聊天设置"
 
-#: main.lua:2472
+#: main.lua:3460
 #, fuzzy
 msgid "H.Bypass: ON"
 msgstr "高亮"
 
-#: main.lua:2472
+#: main.lua:3460
 #, fuzzy
 msgid "H.Bypass: OFF"
 msgstr "高亮"
 
-#: main.lua:2485
+#: main.lua:3473
 #, fuzzy
 msgid "D.Bypass: ON"
 msgstr "词典绕过: 开"
 
-#: main.lua:2485
+#: main.lua:3473
 #, fuzzy
 msgid "D.Bypass: OFF"
 msgstr "词典绕过: 关"
 
-#: main.lua:2532
+#: main.lua:3520
 #, fuzzy
 msgid "Testing connection..."
 msgstr "测试连接中..."
 
-#: main.lua:2560
+#: main.lua:3548
 #, fuzzy
 msgid "Connection test failed:\n"
 msgstr "连接测试失败：\n"
 
-#: main.lua:2566
-#, fuzzy, lua-format
+#: main.lua:3554
+#, fuzzy
 msgid ""
 "Connection test successful!\n"
 "\n"
@@ -1373,62 +1598,62 @@ msgstr ""
 "\n"
 "回复：%s"
 
-#: main.lua:2574
+#: main.lua:3562
 #, fuzzy
 msgid "Connection test failed: "
 msgstr "连接测试失败："
 
-#: main.lua:2677
+#: main.lua:3665
 #, fuzzy
 msgid "Dictionary bypass: ON"
 msgstr "词典绕过：已开启"
 
-#: main.lua:2677
+#: main.lua:3665
 #, fuzzy
 msgid "Dictionary bypass: OFF"
 msgstr "词典绕过：已关闭"
 
-#: main.lua:2691
+#: main.lua:3679
 #, fuzzy
 msgid "Highlight bypass: ON"
 msgstr "高亮"
 
-#: main.lua:2691
+#: main.lua:3679
 #, fuzzy
 msgid "Highlight bypass: OFF"
 msgstr "高亮"
 
-#: main.lua:2706
+#: main.lua:3694
 #, fuzzy
 msgid "No document open"
 msgstr "未打开文档"
 
-#: main.lua:2755
+#: main.lua:3743
 #, fuzzy
 msgid "Cannot determine current page"
 msgstr "无法确定当前页面"
 
-#: main.lua:2801
+#: main.lua:3789
 #, fuzzy
 msgid "Could not extract text from current page"
 msgstr "无法从当前页面提取文本"
 
-#: main.lua:2812
+#: main.lua:3800
 #, fuzzy
 msgid "Translate action not found"
 msgstr "自定义翻译语言"
 
-#: main.lua:3292 main.lua:3345
+#: main.lua:4280 main.lua:4333
 #, fuzzy
 msgid "Bypass action: %1"
 msgstr "绕过操作：%1"
 
-#: main.lua:3379
+#: main.lua:4367
 #, fuzzy
 msgid "Default actions restored"
 msgstr "已恢复默认操作"
 
-#: main.lua:3440
+#: main.lua:4428
 #, fuzzy
 msgid ""
 "KOAssistant Plugin\n"
@@ -1437,10 +1662,19 @@ msgstr ""
 "KO助手插件\n"
 "版本："
 
-#: main.lua:3492
+#: main.lua:4480
 #, fuzzy
 msgid "Refresh cached book information"
 msgstr "刷新缓存的书籍信息"
+
+#: main.lua:4575
+#, fuzzy
+msgid "Feature settings reset to defaults"
+msgstr "设置已重置为默认"
+
+#: main.lua:4638
+msgid "All customizations reset"
+msgstr ""
 
 #: settings_schema.lua:30
 #, fuzzy
@@ -1451,16 +1685,6 @@ msgstr "关于书籍的聊天"
 #, fuzzy
 msgid "New General Chat"
 msgstr "新建通用聊天"
-
-#: settings_schema.lua:57
-#, fuzzy
-msgid "Provider: %1"
-msgstr "提供商：%1"
-
-#: settings_schema.lua:65
-#, fuzzy
-msgid "Model: %1"
-msgstr "模型：%1"
 
 #: settings_schema.lua:72
 #, fuzzy
@@ -1507,7 +1731,7 @@ msgstr "自动保存所有聊天"
 msgid "Auto-save Continued Chats"
 msgstr "自动保存继续的聊天"
 
-#: settings_schema.lua:144 settings_schema.lua:544
+#: settings_schema.lua:144 settings_schema.lua:611
 #, fuzzy
 msgid "Enable Streaming"
 msgstr "启用流式传输"
@@ -1605,9 +1829,7 @@ msgstr "扩展思考"
 #: settings_schema.lua:255 settings_schema.lua:278 settings_schema.lua:307
 #, fuzzy
 msgid "Supported models:\n"
-msgstr ""
-"支持的模型：\n"
-""
+msgstr "支持的模型：\n"
 
 #: settings_schema.lua:255
 #, fuzzy
@@ -1715,7 +1937,7 @@ msgstr ""
 "\n"
 "思考内容已加密/对用户隐藏。"
 
-#: settings_schema.lua:317 settings_schema.lua:365
+#: settings_schema.lua:317 settings_schema.lua:395
 #, fuzzy
 msgid "Minimal"
 msgstr "最小"
@@ -1759,91 +1981,211 @@ msgid ""
 "\n"
 "Full reasoning content is always viewable via 'Show Reasoning' button."
 msgstr ""
-"当使用推理时在对话中显示"*[已使用推理]*"指示。\n"
+"当使用推理时在对话中显示「*[已使用推理]*」指示。\n"
 "\n"
-"完整推理内容始终可通过"显示推理"按钮查看。"
+"完整推理内容始终可通过「显示推理」按钮查看。"
 
-#: settings_schema.lua:346
+#: settings_schema.lua:347
+#, fuzzy
+msgid "Provider Settings"
+msgstr "聊天设置"
+
+#: settings_schema.lua:356
+msgid "International"
+msgstr ""
+
+#: settings_schema.lua:357
+msgid "China"
+msgstr ""
+
+#: settings_schema.lua:358
+msgid "US"
+msgstr ""
+
+#: settings_schema.lua:360
+msgid "Qwen Region: %1"
+msgstr ""
+
+#: settings_schema.lua:362
+msgid ""
+"Select your Alibaba Cloud region.\n"
+"\n"
+"API keys are region-specific and NOT interchangeable:\n"
+"- International: Singapore (dashscope-intl)\n"
+"- China: Beijing (dashscope)\n"
+"- US: Virginia (dashscope-us)"
+msgstr ""
+
+#: settings_schema.lua:366
+msgid "International (Singapore)"
+msgstr ""
+
+#: settings_schema.lua:367
+msgid "China (Beijing)"
+msgstr ""
+
+#: settings_schema.lua:368
+msgid "US (Virginia)"
+msgstr ""
+
+#: settings_schema.lua:376
 #, fuzzy
 msgid "Console Debug"
 msgstr "控制台调试"
 
-#: settings_schema.lua:347
+#: settings_schema.lua:377
 #, fuzzy
 msgid "Enable console/terminal debug logging (for developers)"
 msgstr "启用控制台/终端调试日志（供开发者使用）"
 
-#: settings_schema.lua:354
+#: settings_schema.lua:384
 #, fuzzy
 msgid "Show Debug in Chat"
 msgstr "在聊天中显示调试"
 
-#: settings_schema.lua:355
+#: settings_schema.lua:385
 #, fuzzy
 msgid "Display debug information in chat viewer"
 msgstr "在聊天查看器中显示调试信息"
 
-#: settings_schema.lua:365
+#: settings_schema.lua:395
 #, fuzzy
 msgid "Names"
 msgstr "名称"
 
-#: settings_schema.lua:365
+#: settings_schema.lua:395
 #, fuzzy
 msgid "Full"
 msgstr "完整"
 
-#: settings_schema.lua:366
+#: settings_schema.lua:396
 #, fuzzy
 msgid "Debug Detail Level: %1"
 msgstr "调试详细级别：%1"
 
-#: settings_schema.lua:373
+#: settings_schema.lua:403
 #, fuzzy
 msgid "Minimal (user input only)"
 msgstr "最小（仅用户输入）"
 
-#: settings_schema.lua:374
+#: settings_schema.lua:404
 #, fuzzy
 msgid "Names (config summary)"
 msgstr "名称（配置摘要）"
 
-#: settings_schema.lua:375
+#: settings_schema.lua:405
 #, fuzzy
 msgid "Full (system blocks)"
 msgstr "完整（系统块）"
 
-#: settings_schema.lua:381
+#: settings_schema.lua:411
 #, fuzzy
 msgid "Test Connection"
 msgstr "测试连接"
 
-#: settings_schema.lua:391
+#: settings_schema.lua:419
+#, fuzzy
+msgid "Reset Settings..."
+msgstr "聊天设置"
+
+#: settings_schema.lua:424
+#, fuzzy
+msgid "Reset feature settings"
+msgstr "将此操作重置为默认设置？"
+
+#: settings_schema.lua:425
+msgid ""
+"Resets provider, model, temperature, and other toggles to defaults.\n"
+"\n"
+"Preserves: API keys, custom actions, behaviors, custom models, chat history."
+msgstr ""
+
+#: settings_schema.lua:427
+msgid ""
+"Reset feature settings to defaults?\n"
+"\n"
+"This will reset provider, model, temperature, and other toggles.\n"
+"\n"
+"API keys, custom actions, behaviors, and chat history will be preserved."
+msgstr ""
+
+#: settings_schema.lua:433
+#, fuzzy
+msgid "Reset all customizations"
+msgstr "删除所有聊天"
+
+#: settings_schema.lua:434
+msgid ""
+"Resets ALL settings including custom actions, behaviors, domains, models, "
+"and action overrides.\n"
+"\n"
+"Preserves: API keys, chat history."
+msgstr ""
+
+#: settings_schema.lua:436
+msgid ""
+"Reset ALL customizations?\n"
+"\n"
+"This will reset all settings including custom actions, behaviors, domains, "
+"and models.\n"
+"\n"
+"Only API keys and chat history will be preserved.\n"
+"\n"
+"This cannot be undone."
+msgstr ""
+
+#: settings_schema.lua:443
+#, fuzzy
+msgid "Clear all chat history"
+msgstr "聊天记录"
+
+#: settings_schema.lua:444
+#, fuzzy
+msgid "Deletes all saved chat conversations across all books."
+msgstr ""
+"删除所有保存的聊天记录？\n"
+"\n"
+"此操作无法撤销。"
+
+#: settings_schema.lua:446
+#, fuzzy
+msgid ""
+"Delete all chat history?\n"
+"\n"
+"This will remove all saved conversations across all books.\n"
+"\n"
+"This cannot be undone."
+msgstr ""
+"删除\"%1\"的所有聊天记录？\n"
+"\n"
+"此操作无法撤销。"
+
+#: settings_schema.lua:458
 #, fuzzy
 msgid "Language"
 msgstr "语言"
 
-#: settings_schema.lua:396
+#: settings_schema.lua:463
 #, fuzzy
 msgid "Disable to show English UI (requires restart)"
 msgstr "禁用以显示英文界面（需要重启）"
 
-#: settings_schema.lua:401
+#: settings_schema.lua:468
 #, fuzzy
 msgid "Match KOReader UI Language"
 msgstr "匹配KOReader界面语言"
 
-#: settings_schema.lua:409
+#: settings_schema.lua:476
 #, fuzzy
 msgid "Please restart KOReader for the language change to take effect."
 msgstr "请重启KOReader以使语言更改生效。"
 
-#: settings_schema.lua:416
+#: settings_schema.lua:483
 #, fuzzy
 msgid "Your Languages"
 msgstr "您的语言"
 
-#: settings_schema.lua:419
+#: settings_schema.lua:486
 #, fuzzy
 msgid ""
 "Languages you speak, separated by commas. Leave empty for default AI "
@@ -1859,189 +2201,193 @@ msgstr ""
 "• \"英语\"\n"
 "• \"德语、英语、法语\""
 
-#: settings_schema.lua:427
+#: settings_schema.lua:494
 #, fuzzy
 msgid "Primary Language: (not set)"
 msgstr "主要语言：（未设置）"
 
-#: settings_schema.lua:429
+#: settings_schema.lua:496
 #, fuzzy
 msgid "Primary Language: %1"
 msgstr "主要语言：%1"
 
-#: settings_schema.lua:437
+#: settings_schema.lua:504
 #, fuzzy
 msgid "Translate to Primary Language"
 msgstr "翻译到主要语言"
 
-#: settings_schema.lua:440
+#: settings_schema.lua:507
 #, fuzzy
 msgid ""
 "Use your primary language as the translation target. Disable to choose a "
 "different target."
 msgstr "使用您的主要语言作为翻译目标。禁用以选择其他目标。"
 
-#: settings_schema.lua:465
+#: settings_schema.lua:532
 #, fuzzy
 msgid "Translation Target: %1"
 msgstr "翻译目标：%1"
 
-#: settings_schema.lua:477
+#: settings_schema.lua:544
 #, fuzzy
 msgid "Dictionary Settings"
 msgstr "显示设置"
 
-#: settings_schema.lua:482
+#: settings_schema.lua:549
 #, fuzzy
 msgid "AI Button in Dictionary Popup"
 msgstr "词典弹窗中的AI按钮"
 
-#: settings_schema.lua:485
+#: settings_schema.lua:552
 #, fuzzy
 msgid "Show AI Dictionary button when tapping on a word"
 msgstr "点击单词时显示AI词典按钮"
 
-#: settings_schema.lua:494
+#: settings_schema.lua:561
 #, fuzzy
 msgid "Response Language: (Follow Translation)"
 msgstr "回复语言：（跟随翻译语言）"
 
-#: settings_schema.lua:496
+#: settings_schema.lua:563
 #, fuzzy
 msgid "Response Language: (Follow Primary)"
 msgstr "语言"
 
-#: settings_schema.lua:498
+#: settings_schema.lua:565
 #, fuzzy
 msgid "Response Language: %1"
 msgstr "语言"
 
-#: settings_schema.lua:514
+#: settings_schema.lua:581
 #, fuzzy
 msgid "Context Mode: %1"
 msgstr "上下文："
 
-#: settings_schema.lua:521
+#: settings_schema.lua:588
 #, fuzzy
 msgid "Context Characters"
 msgstr "继续聊天"
 
-#: settings_schema.lua:527
+#: settings_schema.lua:594
 #, fuzzy
 msgid ""
 "Number of characters to include before/after the word when Context Mode is "
 "'Characters'"
-msgstr "上下文模式为"字符数"时在词前后包含的字符数"
+msgstr "上下文模式为「字符数」时在词前后包含的字符数"
 
-#: settings_schema.lua:536
+#: settings_schema.lua:603
 #, fuzzy
 msgid "Disable Auto-save for Dictionary"
 msgstr "禁用词典自动保存"
 
-#: settings_schema.lua:539
+#: settings_schema.lua:606
 #, fuzzy
 msgid ""
 "When enabled, dictionary lookups are not auto-saved. When disabled, "
 "dictionary chats follow your general chat saving settings. You can always "
 "save manually from an expanded view."
-msgstr "启用时，词典查询不会自动保存。禁用时，词典对话遵循通用聊天保存设置。您随时可以从展开视图手动保存。"
+msgstr ""
+"启用时，词典查询不会自动保存。禁用时，词典对话遵循通用聊天保存设置。您随时可"
+"以从展开视图手动保存。"
 
-#: settings_schema.lua:547
+#: settings_schema.lua:614
 #, fuzzy
 msgid ""
 "Stream dictionary responses in real-time. Disable to wait for complete "
 "response."
 msgstr "实时流式传输词典回复。禁用则等待完整回复。"
 
-#: settings_schema.lua:552
+#: settings_schema.lua:619
 #, fuzzy
 msgid "Dictionary Popup Actions"
 msgstr "词典弹窗操作"
 
-#: settings_schema.lua:554
+#: settings_schema.lua:621
 #, fuzzy
 msgid "Configure which actions appear in the dictionary popup"
 msgstr "配置词典弹窗中显示哪些操作"
 
-#: settings_schema.lua:559
+#: settings_schema.lua:626
 #, fuzzy
 msgid "Bypass KOReader Dictionary"
 msgstr "绕过KOReader词典"
 
-#: settings_schema.lua:562
+#: settings_schema.lua:629
 #, fuzzy
 msgid ""
 "Skip KOReader's dictionary and go directly to AI when tapping words. Can "
 "also be toggled via gesture."
 msgstr "点击单词时跳过KOReader词典直接使用AI。也可通过手势切换。"
 
-#: settings_schema.lua:583 settings_schema.lua:587 settings_schema.lua:589
-#: settings_schema.lua:629 settings_schema.lua:633 settings_schema.lua:635
+#: settings_schema.lua:650 settings_schema.lua:654 settings_schema.lua:656
+#: settings_schema.lua:696 settings_schema.lua:700 settings_schema.lua:702
 #, fuzzy
 msgid "Bypass Action: %1"
 msgstr "绕过操作：%1"
 
-#: settings_schema.lua:592
+#: settings_schema.lua:659
 #, fuzzy
 msgid "Action to trigger when dictionary bypass is enabled"
 msgstr "词典绕过启用时触发的操作"
 
-#: settings_schema.lua:597
+#: settings_schema.lua:664
 #, fuzzy
 msgid "Bypass: Follow Vocab Builder Auto-add"
 msgstr "绕过：跟随生词本自动添加"
 
-#: settings_schema.lua:600
+#: settings_schema.lua:667
 #, fuzzy
 msgid ""
 "When enabled, dictionary bypass follows KOReader's Vocabulary Builder auto-"
 "add setting. Disable if you use bypass for analysis of words you already "
 "know and don't want them added."
-msgstr "启用时，词典绕过跟随KOReader的生词本自动添加设置。如果您使用绕过功能分析已知单词且不想添加，请禁用此选项。"
+msgstr ""
+"启用时，词典绕过跟随KOReader的生词本自动添加设置。如果您使用绕过功能分析已知"
+"单词且不想添加，请禁用此选项。"
 
-#: settings_schema.lua:609
+#: settings_schema.lua:676
 #, fuzzy
 msgid "Highlight Settings"
 msgstr "高亮菜单操作"
 
-#: settings_schema.lua:614
+#: settings_schema.lua:681
 #, fuzzy
 msgid "Enable Highlight Bypass"
 msgstr "启用高亮绕过"
 
-#: settings_schema.lua:617
+#: settings_schema.lua:684
 #, fuzzy
 msgid ""
 "Immediately trigger an action when text is selected, skipping the highlight "
 "menu. Can also be toggled via gesture."
 msgstr "选中文本时立即触发操作，跳过高亮菜单。也可通过手势切换。"
 
-#: settings_schema.lua:638
+#: settings_schema.lua:705
 #, fuzzy
 msgid "Action to trigger when highlight bypass is enabled"
 msgstr "高亮绕过启用时触发的操作"
 
-#: settings_schema.lua:643
+#: settings_schema.lua:710
 #, fuzzy
 msgid "Highlight Menu Actions"
 msgstr "高亮菜单操作"
 
-#: settings_schema.lua:645
+#: settings_schema.lua:712
 #, fuzzy
 msgid "Choose which actions appear in the highlight menu (requires restart)"
 msgstr "选择高亮菜单中显示哪些操作（需要重启）"
 
-#: settings_schema.lua:654 ui/prompts_manager.lua:418
+#: settings_schema.lua:721 ui/prompts_manager.lua:418
 #, fuzzy
 msgid "Manage Actions"
 msgstr "管理操作"
 
-#: settings_schema.lua:663
+#: settings_schema.lua:730
 #, fuzzy
 msgid "About KOAssistant"
 msgstr "关于KO助手"
 
-#: settings_schema.lua:669
+#: settings_schema.lua:736
 #, fuzzy
 msgid "Check for Updates"
 msgstr "检查更新"
@@ -2202,8 +2548,7 @@ msgid "About File-Based Behaviors"
 msgstr "关于基于文件的行为风格"
 
 #: ui/behavior_manager.lua:338
-#, lua-format
-#, fuzzy
+#, fuzzy, lua-format
 msgid ""
 "This behavior is loaded from a file in:\n"
 "\n"
@@ -2280,8 +2625,7 @@ msgid "Enter behavior instructions for the AI..."
 msgstr "输入自定义AI行为指令..."
 
 #: ui/behavior_manager.lua:459
-#, lua-format
-#, fuzzy
+#, fuzzy, lua-format
 msgid ""
 "Name: %s\n"
 "\n"
@@ -2378,7 +2722,7 @@ msgstr ""
 "\n"
 "与行为风格（设置沟通方式）不同，知识领域赋予AI特定学科的专业知识。\n"
 "\n"
-"知识领域按对话选择而非全局设置，类似于可切换的"项目"。"
+"知识领域按对话选择而非全局设置，类似于可切换的「项目」。"
 
 #: ui/domain_manager.lua:201
 #, fuzzy
@@ -2416,8 +2760,7 @@ msgid "About File-Based Domains"
 msgstr "可用领域"
 
 #: ui/domain_manager.lua:350
-#, lua-format
-#, fuzzy
+#, fuzzy, lua-format
 msgid ""
 "This domain is loaded from a file in:\n"
 "\n"
@@ -2456,7 +2799,7 @@ msgstr "输入标签名称"
 msgid ""
 "Give this domain a descriptive name (e.g., 'Research', 'Creative Writing', "
 "'Philosophy')."
-msgstr "为此知识领域起一个描述性名称（如"研究"、"创意写作"、"哲学"）。"
+msgstr "为此知识领域起一个描述性名称（如「研究」、「创意写作」、「哲学」）。"
 
 #: ui/domain_manager.lua:468
 #, fuzzy
@@ -2474,8 +2817,7 @@ msgid "Enter domain knowledge context..."
 msgstr "输入知识领域上下文..."
 
 #: ui/domain_manager.lua:471
-#, lua-format
-#, fuzzy
+#, fuzzy, lua-format
 msgid ""
 "Name: %s\n"
 "\n"
@@ -2782,8 +3124,7 @@ msgid "Action service not available."
 msgstr "操作服务不可用。"
 
 #: ui/prompts_manager.lua:722
-#, lua-format
-#, fuzzy
+#, fuzzy, lua-format
 msgid ""
 "Created: %s\n"
 "\n"
@@ -3290,6 +3631,11 @@ msgstr ""
 msgid "Select Provider"
 msgstr "选择提供商"
 
+#: ui/prompts_manager.lua:1879 ui/prompts_manager.lua:2343
+#, fuzzy
+msgid "Custom model..."
+msgstr "自定义模型..."
+
 #: ui/prompts_manager.lua:1898 ui/prompts_manager.lua:2361
 #, fuzzy
 msgid "Select Model for "
@@ -3573,10 +3919,14 @@ msgstr "翻译"
 
 #: prompts/actions.lua:207
 #, fuzzy
+msgid "Quick Define"
+msgstr "编辑设置"
+
+#: prompts/actions.lua:234
+#, fuzzy
 msgid "Dictionary"
 msgstr "词典"
 
-#: prompts/actions.lua:233
-#, fuzzy
-msgid "Detailed Dictionary"
-msgstr "主要语言：%1"
+#: prompts/actions.lua:263
+msgid "Deep Analysis"
+msgstr ""

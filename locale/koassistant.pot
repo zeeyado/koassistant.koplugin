@@ -6,10 +6,10 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: KOAssistant 0.11.2-dev\n"
+"Project-Id-Version: KOAssistant 0.11.3\n"
 "Report-Msgid-Bugs-To: https://github.com/zeeyado/koassistant.koplugin/"
 "issues\n"
-"POT-Creation-Date: 2026-01-25 13:18+0000\n"
+"POT-Creation-Date: 2026-01-25 23:50+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,7 +18,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: _meta.lua:4 main.lua:124 main.lua:205 main.lua:2157 main.lua:2466
+#: _meta.lua:4 main.lua:124 main.lua:205 main.lua:2778 main.lua:3087
 msgid "KOAssistant"
 msgstr ""
 
@@ -56,7 +56,7 @@ msgstr ""
 #: chat_history_dialog.lua:1012 chat_history_dialog.lua:1537
 #: chatgptviewer.lua:764 chatgptviewer.lua:1082 chatgptviewer.lua:1241
 #: chatgptviewer.lua:2043 dialogs.lua:543 dialogs.lua:1716 dialogs.lua:1752
-#: main.lua:2527 main.lua:2867 ui/behavior_manager.lua:370
+#: main.lua:1751 main.lua:3148 main.lua:3489 ui/behavior_manager.lua:370
 #: ui/domain_manager.lua:382 ui/settings_manager.lua:183
 #: ui/settings_manager.lua:269
 msgid "Close"
@@ -81,7 +81,7 @@ msgid ""
 "This action cannot be undone."
 msgstr ""
 
-#: chat_history_dialog.lua:147 main.lua:4028
+#: chat_history_dialog.lua:147 main.lua:4650
 msgid "Deleted %1 chat(s) from %2 book(s)"
 msgstr ""
 
@@ -98,7 +98,7 @@ msgstr ""
 msgid "Navigate"
 msgstr ""
 
-#: chat_history_dialog.lua:321 chat_history_dialog.lua:503 main.lua:2359
+#: chat_history_dialog.lua:321 chat_history_dialog.lua:503 main.lua:2980
 msgid "No saved chats found"
 msgstr ""
 
@@ -234,7 +234,7 @@ msgid "Enter tag name"
 msgstr ""
 
 #: chat_history_dialog.lua:1020 chat_history_dialog.lua:1207 dialogs.lua:815
-#: main.lua:1422
+#: main.lua:1563 main.lua:1997
 msgid "Add"
 msgstr ""
 
@@ -252,20 +252,21 @@ msgid "Chat not found"
 msgstr ""
 
 #: chat_history_dialog.lua:1199 chatgptviewer.lua:114 chatgptviewer.lua:1008
-#: dialogs.lua:807 main.lua:1283 main.lua:1415 main.lua:1559 main.lua:1668
-#: main.lua:1925 main.lua:2108 ui/behavior_manager.lua:407
-#: ui/behavior_manager.lua:466 ui/behavior_manager.lua:545
-#: ui/behavior_manager.lua:601 ui/domain_manager.lua:419
-#: ui/domain_manager.lua:478 ui/domain_manager.lua:572
-#: ui/prompts_manager.lua:772 ui/prompts_manager.lua:1005
-#: ui/prompts_manager.lua:1418 ui/prompts_manager.lua:1568
-#: ui/prompts_manager.lua:1668 ui/prompts_manager.lua:1741
-#: ui/prompts_manager.lua:1837 ui/prompts_manager.lua:1890
-#: ui/prompts_manager.lua:1916 ui/prompts_manager.lua:2081
-#: ui/prompts_manager.lua:2168 ui/prompts_manager.lua:2196
-#: ui/prompts_manager.lua:2303 ui/prompts_manager.lua:2353
-#: ui/prompts_manager.lua:2379 ui/prompts_manager.lua:2555
-#: ui/prompts_manager.lua:2880 ui/prompts_manager.lua:3038
+#: dialogs.lua:807 main.lua:1517 main.lua:1556 main.lua:1623 main.lua:1861
+#: main.lua:1990 main.lua:2134 main.lua:2289 main.lua:2546 main.lua:2729
+#: ui/behavior_manager.lua:407 ui/behavior_manager.lua:466
+#: ui/behavior_manager.lua:545 ui/behavior_manager.lua:601
+#: ui/domain_manager.lua:419 ui/domain_manager.lua:478
+#: ui/domain_manager.lua:572 ui/prompts_manager.lua:772
+#: ui/prompts_manager.lua:1005 ui/prompts_manager.lua:1418
+#: ui/prompts_manager.lua:1568 ui/prompts_manager.lua:1668
+#: ui/prompts_manager.lua:1741 ui/prompts_manager.lua:1837
+#: ui/prompts_manager.lua:1890 ui/prompts_manager.lua:1916
+#: ui/prompts_manager.lua:2081 ui/prompts_manager.lua:2168
+#: ui/prompts_manager.lua:2196 ui/prompts_manager.lua:2303
+#: ui/prompts_manager.lua:2353 ui/prompts_manager.lua:2379
+#: ui/prompts_manager.lua:2555 ui/prompts_manager.lua:2880
+#: ui/prompts_manager.lua:3038
 msgid "Cancel"
 msgstr ""
 
@@ -391,9 +392,10 @@ msgstr ""
 msgid "Autosaved"
 msgstr ""
 
-#: chatgptviewer.lua:612 dialogs.lua:551 main.lua:1691 main.lua:1932
-#: main.lua:2123 ui/behavior_manager.lua:484 ui/domain_manager.lua:486
-#: ui/prompts_manager.lua:1283 ui/prompts_manager.lua:2087
+#: chatgptviewer.lua:612 dialogs.lua:551 main.lua:1630 main.lua:2312
+#: main.lua:2553 main.lua:2744 ui/behavior_manager.lua:484
+#: ui/domain_manager.lua:486 ui/prompts_manager.lua:1283
+#: ui/prompts_manager.lua:2087
 msgid "Save"
 msgstr ""
 
@@ -469,7 +471,7 @@ msgstr ""
 msgid "+Vocab"
 msgstr ""
 
-#: chatgptviewer.lua:910 main.lua:3517
+#: chatgptviewer.lua:910 main.lua:4139
 msgid "AI Dictionary lookup"
 msgstr ""
 
@@ -501,7 +503,7 @@ msgstr ""
 msgid "Configure languages in Settings first"
 msgstr ""
 
-#: chatgptviewer.lua:1012 main.lua:2822 main.lua:3211
+#: chatgptviewer.lua:1012 main.lua:3444 main.lua:3833
 msgid "Dictionary Language"
 msgstr ""
 
@@ -601,7 +603,7 @@ msgstr ""
 msgid "Reset to Defaults"
 msgstr ""
 
-#: chatgptviewer.lua:2063 main.lua:2752 ui/settings_manager.lua:235
+#: chatgptviewer.lua:2063 main.lua:3374 ui/settings_manager.lua:235
 msgid "Set"
 msgstr ""
 
@@ -657,8 +659,8 @@ msgstr ""
 msgid "Unknown Author"
 msgstr ""
 
-#: dialogs.lua:1671 dialogs.lua:1735 main.lua:2058 main.lua:2642 main.lua:2987
-#: settings_schema.lua:549 ui/prompts_manager.lua:1048
+#: dialogs.lua:1671 dialogs.lua:1735 main.lua:2679 main.lua:3264 main.lua:3609
+#: settings_schema.lua:579 ui/prompts_manager.lua:1048
 #: ui/prompts_manager.lua:1983
 msgid "None"
 msgstr ""
@@ -807,253 +809,361 @@ msgstr ""
 msgid "Model already exists"
 msgstr ""
 
-#: main.lua:1198 main.lua:2700
-#, lua-format
-msgid "Provider: %s"
+#: main.lua:1206 main.lua:1639
+msgid "Provider name is required"
 msgstr ""
 
-#: main.lua:1233
-msgid "Set as default for %1"
+#: main.lua:1209 main.lua:1647
+msgid "Base URL is required"
 msgstr ""
 
-#: main.lua:1238
-msgid "Default for %1: %2"
+#: main.lua:1218
+msgid "A provider with this name already exists"
 msgstr ""
 
-#: main.lua:1248
-msgid "Clear custom default"
-msgstr ""
-
-#: main.lua:1253
-msgid "Cleared custom default for %1"
-msgstr ""
-
-#: main.lua:1263
-msgid "Remove custom model"
-msgstr ""
-
-#: main.lua:1268 main.lua:1509
-msgid "Remove custom model '%1'?"
-msgstr ""
-
-#: main.lua:1272 main.lua:1513
-msgid "Removed: %1"
-msgstr ""
-
-#: main.lua:1311 main.lua:1317 main.lua:1795
-msgid "(default)"
-msgstr ""
-
-#: main.lua:1314
-msgid "(your default)"
-msgstr ""
-
-#: main.lua:1320
-msgid "(system default)"
-msgstr ""
-
-#: main.lua:1329
-msgid "Hold to manage. ★ = custom"
-msgstr ""
-
-#: main.lua:1352 main.lua:1381 main.lua:2709
-#, lua-format
-msgid "Model: %s"
-msgstr ""
-
-#: main.lua:1400
-msgid "Add custom model..."
-msgstr ""
-
-#: main.lua:1408
-msgid "Add Custom Model"
-msgstr ""
-
-#: main.lua:1410
-msgid "e.g., claude-3-opus-20240229"
-msgstr ""
-
-#: main.lua:1411
-msgid "Enter the exact model identifier. It will be saved and selected."
-msgstr ""
-
-#: main.lua:1436
-msgid "Added: %1"
+#: main.lua:1376 main.lua:3322 settings_schema.lua:57
+msgid "Provider: %1"
 msgstr ""
 
 #: main.lua:1441
-msgid "Failed to add model"
+msgid "Add custom provider..."
 msgstr ""
 
-#: main.lua:1461
-msgid "Manage custom models (%1)..."
+#: main.lua:1451
+msgid "Manage custom providers (%1)..."
 msgstr ""
 
-#: main.lua:1476
-msgid "No predefined models"
+#: main.lua:1472
+msgid "API key: Required [tap to toggle]"
 msgstr ""
 
-#: main.lua:1491
-msgid "No custom models to manage"
+#: main.lua:1474
+msgid "API key: Not required [tap to toggle]"
+msgstr ""
+
+#: main.lua:1479
+msgid "Edit provider..."
+msgstr ""
+
+#: main.lua:1493
+msgid "required"
+msgstr ""
+
+#: main.lua:1493
+msgid "not required"
+msgstr ""
+
+#: main.lua:1495
+msgid "API key: %1"
+msgstr ""
+
+#: main.lua:1501
+msgid "Remove provider"
 msgstr ""
 
 #: main.lua:1505
-msgid "Remove: %1"
+msgid ""
+"Remove custom provider '%1'?\n"
+"\n"
+"This will also remove any custom models and API key for this provider."
 msgstr ""
 
-#: main.lua:1524
-msgid "Clear all custom models"
+#: main.lua:1509 main.lua:1850 main.lua:2088
+msgid "Removed: %1"
 msgstr ""
 
-#: main.lua:1528
-msgid "Remove all %1 custom model(s) for %2?"
+#: main.lua:1538
+msgid "Add Custom Provider"
 msgstr ""
 
-#: main.lua:1549
-msgid "All custom models cleared"
+#: main.lua:1542
+msgid "Provider name (e.g., LM Studio)"
 msgstr ""
 
-#: main.lua:1566
-msgid "Custom Models for %1"
+#: main.lua:1546
+msgid "Base URL (e.g., http://localhost:1234/v1/chat/completions)"
 msgstr ""
 
-#: main.lua:1651
-#, lua-format
-msgid "Current: %s"
+#: main.lua:1550 main.lua:1617
+msgid "Default model name (optional)"
 msgstr ""
 
-#: main.lua:1653
-msgid "Using key from apikeys.lua"
+#: main.lua:1580
+msgid "Added provider: %1"
 msgstr ""
 
-#: main.lua:1655
-msgid "Enter API key..."
+#: main.lua:1605 main.lua:1694
+msgid "Edit: %1"
+msgstr ""
+
+#: main.lua:1609
+msgid "Provider name"
+msgstr ""
+
+#: main.lua:1613
+msgid "Base URL"
 msgstr ""
 
 #: main.lua:1661
-msgid "API Key"
+msgid "Updated: %1"
 msgstr ""
 
-#: main.lua:1675
-msgid "Clear"
+#: main.lua:1680
+msgid "No custom providers to manage"
 msgstr ""
 
-#: main.lua:1685
-#, lua-format
-msgid "%s API key cleared"
+#: main.lua:1709
+msgid "Remove all (%1)"
 msgstr ""
 
-#: main.lua:1703
-#, lua-format
-msgid "%s API key saved"
+#: main.lua:1713
+msgid ""
+"Remove all %1 custom provider(s)?\n"
+"\n"
+"This will also remove their custom models and API keys."
 msgstr ""
 
-#: main.lua:1763
-msgid "Set your languages first"
+#: main.lua:1742
+msgid "All custom providers removed"
 msgstr ""
 
-#: main.lua:1781
-msgid "No valid languages found"
+#: main.lua:1758
+msgid "Manage Custom Providers"
 msgstr ""
 
-#: main.lua:1812
-#, lua-format
-msgid "Primary: %s"
+#: main.lua:1811
+msgid "Set as default for %1"
 msgstr ""
 
-#: main.lua:1832
-#, lua-format
-msgid "Use Primary (%s)"
+#: main.lua:1816
+msgid "Default for %1: %2"
 msgstr ""
 
-#: main.lua:1858 main.lua:1898 main.lua:2805
-#, lua-format
-msgid "Translate: %s"
+#: main.lua:1826
+msgid "Clear custom default"
 msgstr ""
 
-#: main.lua:1912 ui/prompts_manager.lua:1049 ui/prompts_manager.lua:2136
-msgid "Custom..."
+#: main.lua:1831
+msgid "Cleared custom default for %1"
 msgstr ""
 
-#: main.lua:1918
-msgid "Custom Translation Language"
+#: main.lua:1841
+msgid "Remove custom model"
 msgstr ""
 
-#: main.lua:1920
-msgid "e.g., Spanish, Japanese, French"
+#: main.lua:1846 main.lua:2084
+msgid "Remove custom model '%1'?"
 msgstr ""
 
-#: main.lua:1921
-msgid "Enter the target language for translations."
+#: main.lua:1889 main.lua:1895 main.lua:2416
+msgid "(default)"
 msgstr ""
 
-#: main.lua:1955
-msgid "(Set your languages for quick selection)"
+#: main.lua:1892
+msgid "(your default)"
 msgstr ""
 
-#: main.lua:1974 main.lua:3224
-msgid "Follow Translation Language"
+#: main.lua:1898
+msgid "(system default)"
 msgstr ""
 
-#: main.lua:1987
-msgid "Dictionary: Follow Translation"
+#: main.lua:1907
+msgid "Hold to manage. ★ = custom"
 msgstr ""
 
-#: main.lua:1995 main.lua:3241
-msgid "Follow Primary Language"
+#: main.lua:1956 main.lua:3331 settings_schema.lua:65
+msgid "Model: %1"
 msgstr ""
 
-#: main.lua:2007
-msgid "Dictionary: Follow Primary"
+#: main.lua:1975
+msgid "Add custom model..."
 msgstr ""
 
-#: main.lua:2039 main.lua:2817
-#, lua-format
-msgid "Dictionary: %s"
+#: main.lua:1983
+msgid "Add Custom Model"
 msgstr ""
 
-#: main.lua:2055 settings_schema.lua:546
-msgid "Sentence"
+#: main.lua:1985
+msgid "e.g., claude-3-opus-20240229"
 msgstr ""
 
-#: main.lua:2055
-msgid "Extract the full sentence containing the word"
+#: main.lua:1986
+msgid "Enter the exact model identifier. It will be saved and selected."
 msgstr ""
 
-#: main.lua:2056 settings_schema.lua:547
-msgid "Paragraph"
+#: main.lua:2011
+msgid "Added: %1"
 msgstr ""
 
-#: main.lua:2056
-msgid "Include more surrounding context"
+#: main.lua:2016
+msgid "Failed to add model"
 msgstr ""
 
-#: main.lua:2057 settings_schema.lua:548
-msgid "Characters"
+#: main.lua:2036
+msgid "Manage custom models (%1)..."
 msgstr ""
 
-#: main.lua:2057
-msgid "Fixed number of characters before/after"
+#: main.lua:2051
+msgid "No predefined models"
 msgstr ""
 
-#: main.lua:2058
-msgid "Only send the word, no surrounding context"
+#: main.lua:2066
+msgid "No custom models to manage"
 msgstr ""
 
-#: main.lua:2078
-#, lua-format
-msgid "Context: %s"
-msgstr ""
-
-#: main.lua:2097
-msgid "Custom AI Behavior"
+#: main.lua:2080
+msgid "Remove: %1"
 msgstr ""
 
 #: main.lua:2099
+msgid "Clear all custom models"
+msgstr ""
+
+#: main.lua:2103
+msgid "Remove all %1 custom model(s) for %2?"
+msgstr ""
+
+#: main.lua:2124
+msgid "All custom models cleared"
+msgstr ""
+
+#: main.lua:2141
+msgid "Custom Models for %1"
+msgstr ""
+
+#: main.lua:2270
+msgid "Current: %1"
+msgstr ""
+
+#: main.lua:2272
+msgid "Using key from apikeys.lua"
+msgstr ""
+
+#: main.lua:2274
+msgid "Optional - leave empty for local servers"
+msgstr ""
+
+#: main.lua:2276
+msgid "Enter API key..."
+msgstr ""
+
+#: main.lua:2282
+msgid "API Key"
+msgstr ""
+
+#: main.lua:2296
+msgid "Clear"
+msgstr ""
+
+#: main.lua:2306
+msgid "%1 API key cleared"
+msgstr ""
+
+#: main.lua:2324
+msgid "%1 API key saved"
+msgstr ""
+
+#: main.lua:2384
+msgid "Set your languages first"
+msgstr ""
+
+#: main.lua:2402
+msgid "No valid languages found"
+msgstr ""
+
+#: main.lua:2433
+msgid "Primary: %1"
+msgstr ""
+
+#: main.lua:2453
+msgid "Use Primary (%1)"
+msgstr ""
+
+#: main.lua:2479 main.lua:2519 main.lua:3427
+msgid "Translate: %1"
+msgstr ""
+
+#: main.lua:2533 ui/prompts_manager.lua:1049 ui/prompts_manager.lua:2136
+msgid "Custom..."
+msgstr ""
+
+#: main.lua:2539
+msgid "Custom Translation Language"
+msgstr ""
+
+#: main.lua:2541
+msgid "e.g., Spanish, Japanese, French"
+msgstr ""
+
+#: main.lua:2542
+msgid "Enter the target language for translations."
+msgstr ""
+
+#: main.lua:2576
+msgid "(Set your languages for quick selection)"
+msgstr ""
+
+#: main.lua:2595 main.lua:3846
+msgid "Follow Translation Language"
+msgstr ""
+
+#: main.lua:2608
+msgid "Dictionary: Follow Translation"
+msgstr ""
+
+#: main.lua:2616 main.lua:3863
+msgid "Follow Primary Language"
+msgstr ""
+
+#: main.lua:2628
+msgid "Dictionary: Follow Primary"
+msgstr ""
+
+#: main.lua:2660 main.lua:3439
+msgid "Dictionary: %1"
+msgstr ""
+
+#: main.lua:2676 settings_schema.lua:576
+msgid "Sentence"
+msgstr ""
+
+#: main.lua:2676
+msgid "Extract the full sentence containing the word"
+msgstr ""
+
+#: main.lua:2677 settings_schema.lua:577
+msgid "Paragraph"
+msgstr ""
+
+#: main.lua:2677
+msgid "Include more surrounding context"
+msgstr ""
+
+#: main.lua:2678 settings_schema.lua:578
+msgid "Characters"
+msgstr ""
+
+#: main.lua:2678
+msgid "Fixed number of characters before/after"
+msgstr ""
+
+#: main.lua:2679
+msgid "Only send the word, no surrounding context"
+msgstr ""
+
+#: main.lua:2699
+msgid "Context: %1"
+msgstr ""
+
+#: main.lua:2718
+msgid "Custom AI Behavior"
+msgstr ""
+
+#: main.lua:2720
 msgid "Enter custom AI behavior instructions..."
 msgstr ""
 
-#: main.lua:2100
+#: main.lua:2721
 msgid ""
 "Define how the AI should behave. This replaces the built-in Minimal/Full "
 "behavior when 'Custom' is selected.\n"
@@ -1061,196 +1171,191 @@ msgid ""
 "Tip: Start with the Full behavior as a template."
 msgstr ""
 
-#: main.lua:2115
+#: main.lua:2736
 msgid "Load Full"
 msgstr ""
 
-#: main.lua:2170
+#: main.lua:2791
 msgid ""
 "Model lists are now managed through the model_lists.lua file. Please edit "
 "this file to add or remove models."
 msgstr ""
 
-#: main.lua:2384
+#: main.lua:3005
 msgid "No previously opened chat found"
 msgstr ""
 
-#: main.lua:2401 main.lua:3754
+#: main.lua:3022 main.lua:4376
 msgid "Configuration not found. Please set up configuration.lua first."
 msgstr ""
 
-#: main.lua:2430
+#: main.lua:3051
 msgid "Please open a book first"
 msgstr ""
 
-#: main.lua:2550 main.lua:2800
+#: main.lua:3171 main.lua:3422
 msgid "Primary Language"
 msgstr ""
 
-#: main.lua:2556 main.lua:2810 ui/prompts_manager.lua:2510
+#: main.lua:3177 main.lua:3432 ui/prompts_manager.lua:2510
 msgid "Translation Language"
 msgstr ""
 
-#: main.lua:2562 main.lua:2705
+#: main.lua:3183 main.lua:3327
 msgid "Provider"
 msgstr ""
 
-#: main.lua:2568 main.lua:2714
+#: main.lua:3189 main.lua:3336
 msgid "Model"
 msgstr ""
 
-#: main.lua:2574 main.lua:2726 ui/prompts_manager.lua:510
+#: main.lua:3195 main.lua:3348 ui/prompts_manager.lua:510
 #: ui/prompts_manager.lua:2177
 msgid "AI Behavior"
 msgstr ""
 
-#: main.lua:2654 main.lua:2660
+#: main.lua:3276 main.lua:3282
 msgid "Default"
 msgstr ""
 
-#: main.lua:2695
+#: main.lua:3317
 msgid "AI Quick Settings"
 msgstr ""
 
-#: main.lua:2721
-#, lua-format
-msgid "Behavior: %s"
+#: main.lua:3343
+msgid "Behavior: %1"
 msgstr ""
 
-#: main.lua:2730
-#, lua-format
-msgid "Domain: %s"
+#: main.lua:3352
+msgid "Domain: %1"
 msgstr ""
 
-#: main.lua:2735 main.lua:2969
+#: main.lua:3357 main.lua:3591
 msgid "Knowledge Domain"
 msgstr ""
 
-#: main.lua:2742
-#, lua-format
-msgid "Temp: %.1f"
+#: main.lua:3364
+msgid "Temp: %1"
 msgstr ""
 
-#: main.lua:2753 settings_schema.lua:226 ui/prompts_manager.lua:507
+#: main.lua:3375 settings_schema.lua:226 ui/prompts_manager.lua:507
 #: ui/prompts_manager.lua:1346 ui/prompts_manager.lua:2238
 msgid "Temperature"
 msgstr ""
 
-#: main.lua:2768
+#: main.lua:3390
 msgid "Streaming: ON"
 msgstr ""
 
-#: main.lua:2768
+#: main.lua:3390
 msgid "Streaming: OFF"
 msgstr ""
 
-#: main.lua:2786
-#, lua-format
-msgid "Language: %s"
+#: main.lua:3408
+msgid "Language: %1"
 msgstr ""
 
-#: main.lua:2795
+#: main.lua:3417
 msgid "Configure your languages in Settings → Language first."
 msgstr ""
 
-#: main.lua:2826
+#: main.lua:3448
 msgid "More Settings..."
 msgstr ""
 
-#: main.lua:2838
+#: main.lua:3460
 msgid "H.Bypass: ON"
 msgstr ""
 
-#: main.lua:2838
+#: main.lua:3460
 msgid "H.Bypass: OFF"
 msgstr ""
 
-#: main.lua:2851
+#: main.lua:3473
 msgid "D.Bypass: ON"
 msgstr ""
 
-#: main.lua:2851
+#: main.lua:3473
 msgid "D.Bypass: OFF"
 msgstr ""
 
-#: main.lua:2898
+#: main.lua:3520
 msgid "Testing connection..."
 msgstr ""
 
-#: main.lua:2926
+#: main.lua:3548
 msgid "Connection test failed:\n"
 msgstr ""
 
-#: main.lua:2932
-#, lua-format
+#: main.lua:3554
 msgid ""
 "Connection test successful!\n"
 "\n"
-"Provider: %s\n"
-"Model: %s\n"
+"Provider: %1\n"
+"Model: %2\n"
 "\n"
-"Response: %s"
+"Response: %3"
 msgstr ""
 
-#: main.lua:2940
+#: main.lua:3562
 msgid "Connection test failed: "
 msgstr ""
 
-#: main.lua:3043
+#: main.lua:3665
 msgid "Dictionary bypass: ON"
 msgstr ""
 
-#: main.lua:3043
+#: main.lua:3665
 msgid "Dictionary bypass: OFF"
 msgstr ""
 
-#: main.lua:3057
+#: main.lua:3679
 msgid "Highlight bypass: ON"
 msgstr ""
 
-#: main.lua:3057
+#: main.lua:3679
 msgid "Highlight bypass: OFF"
 msgstr ""
 
-#: main.lua:3072
+#: main.lua:3694
 msgid "No document open"
 msgstr ""
 
-#: main.lua:3121
+#: main.lua:3743
 msgid "Cannot determine current page"
 msgstr ""
 
-#: main.lua:3167
+#: main.lua:3789
 msgid "Could not extract text from current page"
 msgstr ""
 
-#: main.lua:3178
+#: main.lua:3800
 msgid "Translate action not found"
 msgstr ""
 
-#: main.lua:3658 main.lua:3711
+#: main.lua:4280 main.lua:4333
 msgid "Bypass action: %1"
 msgstr ""
 
-#: main.lua:3745
+#: main.lua:4367
 msgid "Default actions restored"
 msgstr ""
 
-#: main.lua:3806
+#: main.lua:4428
 msgid ""
 "KOAssistant Plugin\n"
 "Version: "
 msgstr ""
 
-#: main.lua:3858
+#: main.lua:4480
 msgid "Refresh cached book information"
 msgstr ""
 
-#: main.lua:3953
+#: main.lua:4575
 msgid "Feature settings reset to defaults"
 msgstr ""
 
-#: main.lua:4016
+#: main.lua:4638
 msgid "All customizations reset"
 msgstr ""
 
@@ -1260,14 +1365,6 @@ msgstr ""
 
 #: settings_schema.lua:39
 msgid "New General Chat"
-msgstr ""
-
-#: settings_schema.lua:57
-msgid "Provider: %1"
-msgstr ""
-
-#: settings_schema.lua:65
-msgid "Model: %1"
 msgstr ""
 
 #: settings_schema.lua:72
@@ -1306,7 +1403,7 @@ msgstr ""
 msgid "Auto-save Continued Chats"
 msgstr ""
 
-#: settings_schema.lua:144 settings_schema.lua:581
+#: settings_schema.lua:144 settings_schema.lua:611
 msgid "Enable Streaming"
 msgstr ""
 
@@ -1458,7 +1555,7 @@ msgid ""
 "Thinking is encrypted/hidden from user."
 msgstr ""
 
-#: settings_schema.lua:317 settings_schema.lua:365
+#: settings_schema.lua:317 settings_schema.lua:395
 msgid "Minimal"
 msgstr ""
 
@@ -1493,66 +1590,108 @@ msgid ""
 "Full reasoning content is always viewable via 'Show Reasoning' button."
 msgstr ""
 
-#: settings_schema.lua:346
-msgid "Console Debug"
-msgstr ""
-
 #: settings_schema.lua:347
-msgid "Enable console/terminal debug logging (for developers)"
+msgid "Provider Settings"
 msgstr ""
 
-#: settings_schema.lua:354
-msgid "Show Debug in Chat"
+#: settings_schema.lua:356
+msgid "International"
 msgstr ""
 
-#: settings_schema.lua:355
-msgid "Display debug information in chat viewer"
+#: settings_schema.lua:357
+msgid "China"
 msgstr ""
 
-#: settings_schema.lua:365
-msgid "Names"
+#: settings_schema.lua:358
+msgid "US"
 msgstr ""
 
-#: settings_schema.lua:365
-msgid "Full"
+#: settings_schema.lua:360
+msgid "Qwen Region: %1"
+msgstr ""
+
+#: settings_schema.lua:362
+msgid ""
+"Select your Alibaba Cloud region.\n"
+"\n"
+"API keys are region-specific and NOT interchangeable:\n"
+"- International: Singapore (dashscope-intl)\n"
+"- China: Beijing (dashscope)\n"
+"- US: Virginia (dashscope-us)"
 msgstr ""
 
 #: settings_schema.lua:366
-msgid "Debug Detail Level: %1"
+msgid "International (Singapore)"
 msgstr ""
 
-#: settings_schema.lua:373
-msgid "Minimal (user input only)"
+#: settings_schema.lua:367
+msgid "China (Beijing)"
 msgstr ""
 
-#: settings_schema.lua:374
-msgid "Names (config summary)"
+#: settings_schema.lua:368
+msgid "US (Virginia)"
 msgstr ""
 
-#: settings_schema.lua:375
-msgid "Full (system blocks)"
+#: settings_schema.lua:376
+msgid "Console Debug"
 msgstr ""
 
-#: settings_schema.lua:381
-msgid "Test Connection"
+#: settings_schema.lua:377
+msgid "Enable console/terminal debug logging (for developers)"
 msgstr ""
 
-#: settings_schema.lua:389
-msgid "Reset Settings..."
+#: settings_schema.lua:384
+msgid "Show Debug in Chat"
 msgstr ""
 
-#: settings_schema.lua:394
-msgid "Reset feature settings"
+#: settings_schema.lua:385
+msgid "Display debug information in chat viewer"
 msgstr ""
 
 #: settings_schema.lua:395
+msgid "Names"
+msgstr ""
+
+#: settings_schema.lua:395
+msgid "Full"
+msgstr ""
+
+#: settings_schema.lua:396
+msgid "Debug Detail Level: %1"
+msgstr ""
+
+#: settings_schema.lua:403
+msgid "Minimal (user input only)"
+msgstr ""
+
+#: settings_schema.lua:404
+msgid "Names (config summary)"
+msgstr ""
+
+#: settings_schema.lua:405
+msgid "Full (system blocks)"
+msgstr ""
+
+#: settings_schema.lua:411
+msgid "Test Connection"
+msgstr ""
+
+#: settings_schema.lua:419
+msgid "Reset Settings..."
+msgstr ""
+
+#: settings_schema.lua:424
+msgid "Reset feature settings"
+msgstr ""
+
+#: settings_schema.lua:425
 msgid ""
 "Resets provider, model, temperature, and other toggles to defaults.\n"
 "\n"
 "Preserves: API keys, custom actions, behaviors, custom models, chat history."
 msgstr ""
 
-#: settings_schema.lua:397
+#: settings_schema.lua:427
 msgid ""
 "Reset feature settings to defaults?\n"
 "\n"
@@ -1561,11 +1700,11 @@ msgid ""
 "API keys, custom actions, behaviors, and chat history will be preserved."
 msgstr ""
 
-#: settings_schema.lua:403
+#: settings_schema.lua:433
 msgid "Reset all customizations"
 msgstr ""
 
-#: settings_schema.lua:404
+#: settings_schema.lua:434
 msgid ""
 "Resets ALL settings including custom actions, behaviors, domains, models, "
 "and action overrides.\n"
@@ -1573,7 +1712,7 @@ msgid ""
 "Preserves: API keys, chat history."
 msgstr ""
 
-#: settings_schema.lua:406
+#: settings_schema.lua:436
 msgid ""
 "Reset ALL customizations?\n"
 "\n"
@@ -1585,15 +1724,15 @@ msgid ""
 "This cannot be undone."
 msgstr ""
 
-#: settings_schema.lua:413
+#: settings_schema.lua:443
 msgid "Clear all chat history"
 msgstr ""
 
-#: settings_schema.lua:414
+#: settings_schema.lua:444
 msgid "Deletes all saved chat conversations across all books."
 msgstr ""
 
-#: settings_schema.lua:416
+#: settings_schema.lua:446
 msgid ""
 "Delete all chat history?\n"
 "\n"
@@ -1602,27 +1741,27 @@ msgid ""
 "This cannot be undone."
 msgstr ""
 
-#: settings_schema.lua:428
+#: settings_schema.lua:458
 msgid "Language"
 msgstr ""
 
-#: settings_schema.lua:433
+#: settings_schema.lua:463
 msgid "Disable to show English UI (requires restart)"
 msgstr ""
 
-#: settings_schema.lua:438
+#: settings_schema.lua:468
 msgid "Match KOReader UI Language"
 msgstr ""
 
-#: settings_schema.lua:446
+#: settings_schema.lua:476
 msgid "Please restart KOReader for the language change to take effect."
 msgstr ""
 
-#: settings_schema.lua:453
+#: settings_schema.lua:483
 msgid "Your Languages"
 msgstr ""
 
-#: settings_schema.lua:456
+#: settings_schema.lua:486
 msgid ""
 "Languages you speak, separated by commas. Leave empty for default AI "
 "behavior.\n"
@@ -1632,156 +1771,156 @@ msgid ""
 "• \"German, English, French\""
 msgstr ""
 
-#: settings_schema.lua:464
+#: settings_schema.lua:494
 msgid "Primary Language: (not set)"
 msgstr ""
 
-#: settings_schema.lua:466
+#: settings_schema.lua:496
 msgid "Primary Language: %1"
 msgstr ""
 
-#: settings_schema.lua:474
+#: settings_schema.lua:504
 msgid "Translate to Primary Language"
 msgstr ""
 
-#: settings_schema.lua:477
+#: settings_schema.lua:507
 msgid ""
 "Use your primary language as the translation target. Disable to choose a "
 "different target."
 msgstr ""
 
-#: settings_schema.lua:502
+#: settings_schema.lua:532
 msgid "Translation Target: %1"
 msgstr ""
 
-#: settings_schema.lua:514
+#: settings_schema.lua:544
 msgid "Dictionary Settings"
 msgstr ""
 
-#: settings_schema.lua:519
+#: settings_schema.lua:549
 msgid "AI Button in Dictionary Popup"
 msgstr ""
 
-#: settings_schema.lua:522
+#: settings_schema.lua:552
 msgid "Show AI Dictionary button when tapping on a word"
 msgstr ""
 
-#: settings_schema.lua:531
+#: settings_schema.lua:561
 msgid "Response Language: (Follow Translation)"
 msgstr ""
 
-#: settings_schema.lua:533
+#: settings_schema.lua:563
 msgid "Response Language: (Follow Primary)"
 msgstr ""
 
-#: settings_schema.lua:535
+#: settings_schema.lua:565
 msgid "Response Language: %1"
 msgstr ""
 
-#: settings_schema.lua:551
+#: settings_schema.lua:581
 msgid "Context Mode: %1"
 msgstr ""
 
-#: settings_schema.lua:558
+#: settings_schema.lua:588
 msgid "Context Characters"
 msgstr ""
 
-#: settings_schema.lua:564
+#: settings_schema.lua:594
 msgid ""
 "Number of characters to include before/after the word when Context Mode is "
 "'Characters'"
 msgstr ""
 
-#: settings_schema.lua:573
+#: settings_schema.lua:603
 msgid "Disable Auto-save for Dictionary"
 msgstr ""
 
-#: settings_schema.lua:576
+#: settings_schema.lua:606
 msgid ""
 "When enabled, dictionary lookups are not auto-saved. When disabled, "
 "dictionary chats follow your general chat saving settings. You can always "
 "save manually from an expanded view."
 msgstr ""
 
-#: settings_schema.lua:584
+#: settings_schema.lua:614
 msgid ""
 "Stream dictionary responses in real-time. Disable to wait for complete "
 "response."
 msgstr ""
 
-#: settings_schema.lua:589
+#: settings_schema.lua:619
 msgid "Dictionary Popup Actions"
 msgstr ""
 
-#: settings_schema.lua:591
+#: settings_schema.lua:621
 msgid "Configure which actions appear in the dictionary popup"
 msgstr ""
 
-#: settings_schema.lua:596
+#: settings_schema.lua:626
 msgid "Bypass KOReader Dictionary"
 msgstr ""
 
-#: settings_schema.lua:599
+#: settings_schema.lua:629
 msgid ""
 "Skip KOReader's dictionary and go directly to AI when tapping words. Can "
 "also be toggled via gesture."
 msgstr ""
 
-#: settings_schema.lua:620 settings_schema.lua:624 settings_schema.lua:626
-#: settings_schema.lua:666 settings_schema.lua:670 settings_schema.lua:672
+#: settings_schema.lua:650 settings_schema.lua:654 settings_schema.lua:656
+#: settings_schema.lua:696 settings_schema.lua:700 settings_schema.lua:702
 msgid "Bypass Action: %1"
 msgstr ""
 
-#: settings_schema.lua:629
+#: settings_schema.lua:659
 msgid "Action to trigger when dictionary bypass is enabled"
 msgstr ""
 
-#: settings_schema.lua:634
+#: settings_schema.lua:664
 msgid "Bypass: Follow Vocab Builder Auto-add"
 msgstr ""
 
-#: settings_schema.lua:637
+#: settings_schema.lua:667
 msgid ""
 "When enabled, dictionary bypass follows KOReader's Vocabulary Builder auto-"
 "add setting. Disable if you use bypass for analysis of words you already "
 "know and don't want them added."
 msgstr ""
 
-#: settings_schema.lua:646
+#: settings_schema.lua:676
 msgid "Highlight Settings"
 msgstr ""
 
-#: settings_schema.lua:651
+#: settings_schema.lua:681
 msgid "Enable Highlight Bypass"
 msgstr ""
 
-#: settings_schema.lua:654
+#: settings_schema.lua:684
 msgid ""
 "Immediately trigger an action when text is selected, skipping the highlight "
 "menu. Can also be toggled via gesture."
 msgstr ""
 
-#: settings_schema.lua:675
+#: settings_schema.lua:705
 msgid "Action to trigger when highlight bypass is enabled"
 msgstr ""
 
-#: settings_schema.lua:680
+#: settings_schema.lua:710
 msgid "Highlight Menu Actions"
 msgstr ""
 
-#: settings_schema.lua:682
+#: settings_schema.lua:712
 msgid "Choose which actions appear in the highlight menu (requires restart)"
 msgstr ""
 
-#: settings_schema.lua:691 ui/prompts_manager.lua:418
+#: settings_schema.lua:721 ui/prompts_manager.lua:418
 msgid "Manage Actions"
 msgstr ""
 
-#: settings_schema.lua:700
+#: settings_schema.lua:730
 msgid "About KOAssistant"
 msgstr ""
 
-#: settings_schema.lua:706
+#: settings_schema.lua:736
 msgid "Check for Updates"
 msgstr ""
 
