@@ -16,16 +16,16 @@ local logger = require("logger")
 local util = require("util")
 local Screen = Device.screen
 
-local Dialogs = require("dialogs")
+local Dialogs = require("koassistant_dialogs")
 local showChatGPTDialog = Dialogs.showChatGPTDialog
-local UpdateChecker = require("update_checker")
-local SettingsSchema = require("settings_schema")
-local SettingsManager = require("ui/settings_manager")
-local PromptsManager = require("ui/prompts_manager")
-local UIConstants = require("ui/constants")
+local UpdateChecker = require("koassistant_update_checker")
+local SettingsSchema = require("koassistant_settings_schema")
+local SettingsManager = require("koassistant_ui.settings_manager")
+local PromptsManager = require("koassistant_ui.prompts_manager")
+local UIConstants = require("koassistant_ui.constants")
 local ActionService = require("action_service")
 
-local ModelLists = require("model_lists")
+local ModelLists = require("koassistant_model_lists")
 
 -- Load the configuration directly
 local configuration = {
@@ -1337,7 +1337,7 @@ function AskGPT:getEffectiveDefaultModel(provider)
   end
 
   -- Fall back to system default for built-in providers
-  local Defaults = require("api_handlers.defaults")
+  local Defaults = require("koassistant_api.defaults")
   local provider_defaults = Defaults.ProviderDefaults[provider]
   if provider_defaults and provider_defaults.model then
     return provider_defaults.model
@@ -1351,7 +1351,7 @@ end
 function AskGPT:buildProviderMenu(simplified)
   local self_ref = self
   local current = self:getCurrentProvider()
-  local ModelLists = require("model_lists")
+  local ModelLists = require("koassistant_model_lists")
   local builtin_providers = ModelLists.getAllProviders()
   local custom_providers = self:getCustomProviders()
   local items = {}
@@ -1776,7 +1776,7 @@ function AskGPT:buildModelMenu(simplified)
   end
 
   -- Get defaults
-  local Defaults = require("api_handlers.defaults")
+  local Defaults = require("koassistant_api.defaults")
   local provider_defaults = Defaults.ProviderDefaults[provider]
   local system_default = nil
   if is_custom_provider and custom_provider_config then
@@ -2761,14 +2761,14 @@ end
 
 -- Show behavior manager UI
 function AskGPT:showBehaviorManager()
-  local BehaviorManager = require("ui/behavior_manager")
+  local BehaviorManager = require("koassistant_ui.behavior_manager")
   local manager = BehaviorManager:new(self)
   manager:show()
 end
 
 -- Show domain manager UI
 function AskGPT:showDomainManager()
-  local DomainManager = require("ui/domain_manager")
+  local DomainManager = require("koassistant_ui.domain_manager")
   local manager = DomainManager:new(self)
   manager:show()
 end
@@ -2924,7 +2924,7 @@ function AskGPT:onDictButtonsReady(dict_popup, dict_buttons)
           end
 
           -- Execute the action
-          local Dialogs = require("dialogs")
+          local Dialogs = require("koassistant_dialogs")
           Dialogs.executeDirectAction(
             self_ref.ui,   -- ui
             action,        -- action (from closure)
@@ -2968,8 +2968,8 @@ function AskGPT:onKOAssistantChatHistory()
 end
 
 function AskGPT:onKOAssistantContinueLast()
-  local ChatHistoryManager = require("chat_history_manager")
-  local ChatHistoryDialog = require("chat_history_dialog")
+  local ChatHistoryManager = require("koassistant_chat_history_manager")
+  local ChatHistoryDialog = require("koassistant_chat_history_dialog")
 
   -- Get the most recently saved chat across all documents
   local most_recent_chat, document_path = ChatHistoryManager:getMostRecentChat()
@@ -2992,8 +2992,8 @@ function AskGPT:onKOAssistantContinueLast()
 end
 
 function AskGPT:onKOAssistantContinueLastOpened()
-  local ChatHistoryManager = require("chat_history_manager")
-  local ChatHistoryDialog = require("chat_history_dialog")
+  local ChatHistoryManager = require("koassistant_chat_history_manager")
+  local ChatHistoryDialog = require("koassistant_chat_history_dialog")
 
   -- Get the last opened chat (regardless of when it was last saved)
   local chat_history_manager = ChatHistoryManager:new()
@@ -3511,10 +3511,10 @@ end
 function AskGPT:testProviderConnection()
   local InfoMessage = require("ui/widget/infomessage")
   local UIManager = require("ui/uimanager")
-  local GptQuery = require("gpt_query")
+  local GptQuery = require("koassistant_gpt_query")
   local queryChatGPT = GptQuery.query
   local isStreamingInProgress = GptQuery.isStreamingInProgress
-  local MessageHistory = require("message_history")
+  local MessageHistory = require("koassistant_message_history")
 
   UIManager:show(InfoMessage:new{
     text = _("Testing connection..."),
@@ -4398,7 +4398,7 @@ end
 
 function AskGPT:showChatHistory()
   -- Load the chat history manager
-  local ChatHistoryManager = require("chat_history_manager")
+  local ChatHistoryManager = require("koassistant_chat_history_manager")
   local chat_history_manager = ChatHistoryManager:new()
   
   -- Get the current document path if a document is open
@@ -4408,7 +4408,7 @@ function AskGPT:showChatHistory()
   end
   
   -- Show the chat history browser
-  local ChatHistoryDialog = require("chat_history_dialog")
+  local ChatHistoryDialog = require("koassistant_chat_history_dialog")
   ChatHistoryDialog:showChatHistoryBrowser(
       self.ui, 
       document_path,
@@ -4642,7 +4642,7 @@ end
 
 -- Clear all chat history
 function AskGPT:clearAllChatHistory()
-  local ChatHistoryManager = require("chat_history_manager")
+  local ChatHistoryManager = require("koassistant_chat_history_manager")
   local chat_manager = ChatHistoryManager:new()
   local total_deleted, docs_deleted = chat_manager:deleteAllChats()
 

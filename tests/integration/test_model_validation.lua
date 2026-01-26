@@ -406,7 +406,7 @@ end
 
 -- Run validation for a single provider
 function ModelValidation:runProviderValidation(provider, api_key, verbose)
-    local ModelLists = require("model_lists")
+    local ModelLists = require("koassistant_model_lists")
     local models = ModelLists[provider]
 
     if not models or #models == 0 then
@@ -415,7 +415,7 @@ function ModelValidation:runProviderValidation(provider, api_key, verbose)
     end
 
     -- Load handler
-    local handler_ok, handler = pcall(require, "api_handlers." .. provider)
+    local handler_ok, handler = pcall(require, "koassistant_api." .. provider)
     if not handler_ok then
         print(string.format("  [%s] \27[31m? Failed to load handler\27[0m: %s", provider, tostring(handler)))
         return false

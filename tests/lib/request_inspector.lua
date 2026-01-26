@@ -10,7 +10,7 @@ local RequestInspector = {}
 -- Check if a provider is supported for inspection
 -- (dynamically checks if handler exists and has buildRequestBody method)
 function RequestInspector:isSupported(provider)
-    local ok, handler = pcall(require, "api_handlers." .. provider)
+    local ok, handler = pcall(require, "koassistant_api." .. provider)
     if not ok or not handler then return false end
     return handler.buildRequestBody ~= nil
 end
@@ -32,7 +32,7 @@ function RequestInspector:buildRequest(provider, config, messages)
     end
 
     -- Load the real handler
-    local ok, handler = pcall(require, "api_handlers." .. provider)
+    local ok, handler = pcall(require, "koassistant_api." .. provider)
     if not ok then
         return nil, string.format("Failed to load handler for '%s': %s", provider, tostring(handler))
     end

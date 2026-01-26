@@ -161,7 +161,7 @@ end
 
 -- Get list of all providers (derived from model_lists.lua - single source of truth)
 function TestConfig.getAllProviders()
-    local ModelLists = require("model_lists")
+    local ModelLists = require("koassistant_model_lists")
     -- Use the built-in function which correctly filters out non-table keys
     return ModelLists.getAllProviders()
 end
