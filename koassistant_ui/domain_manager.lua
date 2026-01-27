@@ -1,4 +1,5 @@
 local _ = require("koassistant_gettext")
+local T = require("ffi/util").template
 local logger = require("logger")
 local UIManager = require("ui/uimanager")
 local Menu = require("ui/widget/menu")
@@ -209,7 +210,7 @@ function DomainManager:showDomainMenu()
                         return
                     end
                     UIManager:show(ConfirmBox:new{
-                        text = string.format(_("Delete all %d custom domains?"), #custom),
+                        text = T(_("Delete all %1 custom domains?"), #custom),
                         ok_callback = function()
                             self:saveCustomDomains({})
                             self:refreshMenu()
@@ -313,7 +314,7 @@ function DomainManager:showDomainDetails(domain)
                 callback = function()
                     UIManager:close(self.details_dialog)
                     UIManager:show(ConfirmBox:new{
-                        text = string.format(_("Delete '%s'?"), domain.name),
+                        text = T(_("Delete '%1'?"), domain.name),
                         ok_callback = function()
                             self:deleteCustomDomain(domain.id)
                             self:refreshMenu()
@@ -468,7 +469,7 @@ function DomainManager:showDomainContextEditor(domain, name, initial_context)
         title = is_new and _("New Domain - Context") or _("Edit Domain - Context"),
         input = initial_context,
         input_hint = _("Enter domain knowledge context..."),
-        description = string.format(_("Name: %s\n\nDescribe the knowledge area, terminology, and how the AI should approach topics in this domain."), name),
+        description = T(_("Name: %1\n\nDescribe the knowledge area, terminology, and how the AI should approach topics in this domain."), name),
         input_type = "text",
         allow_newline = true,
         fullscreen = true,
@@ -500,13 +501,13 @@ function DomainManager:showDomainContextEditor(domain, name, initial_context)
                         if is_new then
                             self:addCustomDomain(name, context)
                             UIManager:show(InfoMessage:new{
-                                text = string.format(_("Created: %s"), name),
+                                text = T(_("Created: %1"), name),
                                 timeout = 1,
                             })
                         else
                             self:updateCustomDomain(domain.id, name, context)
                             UIManager:show(InfoMessage:new{
-                                text = string.format(_("Updated: %s"), name),
+                                text = T(_("Updated: %1"), name),
                                 timeout = 1,
                             })
                         end
