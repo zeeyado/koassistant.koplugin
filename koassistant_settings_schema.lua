@@ -546,7 +546,7 @@ local SettingsSchema = {
                 {
                     id = "enable_dictionary_hook",
                     type = "toggle",
-                    text = _("AI Button in Dictionary Popup"),
+                    text = _("AI Buttons in Dictionary Popup"),
                     path = "features.enable_dictionary_hook",
                     default = true,
                     help_text = _("Show AI Dictionary button when tapping on a word"),
