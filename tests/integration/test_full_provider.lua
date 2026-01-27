@@ -27,6 +27,7 @@ require("mock_koreader")
 
 -- Load test configuration
 local TestConfig = require("test_config")
+local ConstraintUtils = require("constraint_utils")
 
 -- Test Framework
 local FullProviderTests = {
@@ -51,15 +52,6 @@ function FullProviderTests:log(provider, test_name, status, message, elapsed)
         self.failed = self.failed + 1
     else
         self.skipped = self.skipped + 1
-    end
-end
-
--- Get max temperature for a provider
-local function getMaxTemperature(provider)
-    if provider == "anthropic" then
-        return 1.0  -- Anthropic caps at 1.0
-    else
-        return 2.0  -- Most others support 2.0
     end
 end
 
@@ -168,7 +160,7 @@ end
 
 -- Test 5: Temperature max
 function FullProviderTests:testTemperatureMax(provider, handler, api_key, verbose)
-    local max_temp = getMaxTemperature(provider)
+    local max_temp = ConstraintUtils.getMaxTemperature(provider)
     local config = TestConfig.buildConfig(provider, api_key, {
         temperature = max_temp,
         max_tokens = 2048,  -- Gemini 2.5+ needs more tokens at high temp

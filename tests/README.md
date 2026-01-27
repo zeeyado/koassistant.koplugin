@@ -159,6 +159,54 @@ Detected Constraints:
   openai/gpt-5-mini: requires temp=1.0 + max_tokens >= 16
 ```
 
+## Test Utilities
+
+### `tests/lib/constraint_utils.lua`
+
+Wrapper around plugin's `model_constraints.lua` module that eliminates duplicated constraint logic in tests.
+
+**Why it exists**: Tests used to duplicate temperature constraints, reasoning defaults, and error parsing logic. This caused drift when plugin constraints changed.
+
+**Functions**:
+```lua
+local ConstraintUtils = require("tests.lib.constraint_utils")
+
+-- Get max temperature for provider (1.0 for Anthropic, 2.0 for others)
+local max_temp = ConstraintUtils.getMaxTemperature("anthropic")  -- Returns 1.0
+
+-- Get default temperature from plugin's Defaults module
+local default_temp = ConstraintUtils.getDefaultTemperature("openai")  -- Returns 0.7
+
+-- Get reasoning defaults (extended thinking budgets, effort levels)
+local anthropic_reasoning = ConstraintUtils.getReasoningDefaults("anthropic")
+-- Returns: { budget = 4096, budget_min = 1024, budget_max = 32000, ... }
+
+local openai_reasoning = ConstraintUtils.getReasoningDefaults("openai")
+-- Returns: { effort = "medium", effort_options = { "low", "medium", "high" } }
+
+-- Check if model supports capability
+local supports = ConstraintUtils.supportsCapability("anthropic", "claude-sonnet-4-5", "extended_thinking")
+-- Returns: true
+
+-- Parse constraint errors from API responses
+local constraint = ConstraintUtils.parseConstraintError("Error: temperature must be 1.0")
+-- Returns: { type = "temperature", value = 1.0, reason = "..." }
+
+-- Build retry config with corrected parameters
+local new_config = ConstraintUtils.buildRetryConfig(original_config, constraint)
+```
+
+**Usage in tests**:
+- `test_full_provider.lua` - Uses `getMaxTemperature()` instead of hardcoded map
+- `test_model_validation.lua` - Uses `parseConstraintError()` instead of 67-line duplicate
+- `test_config.lua` - Uses `getDefaultTemperature()` and `getReasoningDefaults()` for config building
+
+**Benefits**:
+- ✅ Tests always reflect actual plugin constraints (single source of truth)
+- ✅ Removed 75+ lines of duplicated code
+- ✅ No drift between test expectations and plugin behavior
+- ✅ Adding new constraints automatically updates all tests
+
 ## Prerequisites
 
 Lua 5.3+ with LuaSocket, LuaSec, and dkjson.
@@ -240,6 +288,7 @@ tests/
 ├── local_config.lua.sample    # Local config template
 ├── lib/
 │   ├── mock_koreader.lua      # KOReader module mocks
+│   ├── constraint_utils.lua   # Plugin constraint utilities wrapper
 │   ├── request_inspector.lua  # Core inspection logic
 │   ├── terminal_formatter.lua # ANSI colors, formatting
 │   └── web_server.lua         # LuaSocket HTTP server
@@ -249,6 +298,8 @@ tests/
 │   ├── test_full_provider.lua    # Comprehensive tests (--full)
 │   └── test_model_validation.lua # Model validation (--models)
 └── unit/
+    ├── test_constants.lua        # Context constants, GitHub URLs tests
+    ├── test_constraint_utils.lua # Constraint utilities tests
     ├── test_system_prompts.lua   # Behavior, language, domain tests
     ├── test_streaming_parser.lua # SSE/NDJSON parsing tests
     ├── test_response_parser.lua  # Provider response parsing tests

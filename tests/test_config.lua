@@ -3,6 +3,12 @@
 
 local TestConfig = {}
 
+-- Load ConstraintUtils for temperature and reasoning defaults
+local ConstraintUtils
+pcall(function()
+    ConstraintUtils = require("tests.lib.constraint_utils")
+end)
+
 -- Local configuration (optional, gitignored)
 local local_config = nil
 pcall(function()
@@ -90,7 +96,8 @@ function TestConfig.buildConfig(provider, api_key, options)
 
         -- API parameters
         api_params = {
-            temperature = options.temperature or 0.7,
+            temperature = options.temperature or
+                         (ConstraintUtils and ConstraintUtils.getDefaultTemperature(provider) or 0.7),
             -- Use 512 tokens to accommodate thinking models (Gemini 3 uses ~60 tokens for thinking)
             max_tokens = options.max_tokens or 512,
         },
@@ -136,7 +143,8 @@ function TestConfig.buildFullConfig(provider, api_key, options)
 
         -- API parameters
         api_params = {
-            temperature = options.temperature or 0.7,
+            temperature = options.temperature or
+                         (ConstraintUtils and ConstraintUtils.getDefaultTemperature(provider) or 0.7),
             max_tokens = options.max_tokens or 512,
         },
 
@@ -149,9 +157,11 @@ function TestConfig.buildFullConfig(provider, api_key, options)
 
     -- Add extended thinking if enabled (Anthropic only)
     if options.extended_thinking then
+        local reasoning = ConstraintUtils and ConstraintUtils.getReasoningDefaults("anthropic")
         config.api_params.thinking = {
             type = "enabled",
-            budget_tokens = options.thinking_budget or 4096
+            budget_tokens = options.thinking_budget or
+                           (reasoning and reasoning.budget) or 4096
         }
         config.api_params.temperature = 1.0  -- Required for extended thinking
     end

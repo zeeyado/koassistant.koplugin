@@ -7,6 +7,8 @@ to ensure consistent message formatting.
 @module message_builder
 ]]
 
+local Constants = require("koassistant_constants")
+
 local MessageBuilder = {}
 
 -- Try to load logger, but make it optional for standalone testing
@@ -39,6 +41,12 @@ function MessageBuilder.build(params)
     local domain_context = params.domain_context
     local using_new_format = params.using_new_format
     local templates_getter = params.templates_getter
+
+    -- Validate context against known context types
+    if context and not Constants.isValidContext(context) then
+        log_warn("MessageBuilder: Invalid context '" .. tostring(context) .. "', using 'general' as fallback")
+        context = "general"
+    end
 
     if logger then
         logger.info("MessageBuilder.build: context=", context, "data.highlighted_text=", data.highlighted_text and #data.highlighted_text or "nil/empty")

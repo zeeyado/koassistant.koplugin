@@ -8,6 +8,8 @@
 --
 -- NEW ARCHITECTURE (v0.5):
 --   System array: behavior (from variant/override/none) + domain [CACHED]
+
+local Constants = require("koassistant_constants")
 --   User message: context data + action prompt (template) + runtime input
 --
 -- Action schema:
@@ -324,8 +326,15 @@ end
 -- @param action_id: The action's unique identifier
 -- @return table or nil: Action definition if found
 function Actions.getById(action_id)
-    -- Search all context tables
-    for _idx,context_table in pairs({Actions.highlight, Actions.book, Actions.multi_book, Actions.general, Actions.special}) do
+    -- Search all context tables using Constants for context names
+    local context_tables = {
+        Actions[Constants.CONTEXTS.HIGHLIGHT],
+        Actions[Constants.CONTEXTS.BOOK],
+        Actions[Constants.CONTEXTS.MULTI_BOOK],
+        Actions[Constants.CONTEXTS.GENERAL],
+        Actions.special
+    }
+    for _idx, context_table in pairs(context_tables) do
         if context_table[action_id] then
             return context_table[action_id]
         end

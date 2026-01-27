@@ -16,6 +16,7 @@
 --   - Prompt caching support for Anthropic
 
 local logger = require("logger")
+local Constants = require("koassistant_constants")
 
 local ActionService = {}
 
@@ -99,7 +100,7 @@ function ActionService:getAction(context, action_id)
         end
     else
         -- Search all contexts
-        for _, ctx in ipairs({"highlight", "book", "multi_book", "general"}) do
+        for _, ctx in ipairs(Constants.getAllContexts()) do
             local context_actions = self.actions_cache[ctx] or {}
             for _, action in ipairs(context_actions) do
                 if action.id == action_id then
@@ -128,7 +129,7 @@ function ActionService:loadActions()
 
     -- 1. Load built-in actions from prompts/actions.lua
     if self.Actions then
-        for _, context in ipairs({"highlight", "book", "multi_book", "general"}) do
+        for _, context in ipairs(Constants.getAllContexts()) do
             local builtin_actions = self.Actions.getForContext(context)
             for _, action in ipairs(builtin_actions) do
                 local key = context .. ":" .. action.id
@@ -239,17 +240,9 @@ function ActionService:addCustomAction(id, action, source, disabled_actions)
 end
 
 -- Expand context specifiers to array
+-- Delegates to Constants.expandContext() for single source of truth
 function ActionService:expandContexts(context)
-    if context == "all" then
-        return {"highlight", "book", "multi_book", "general"}
-    elseif context == "both" then
-        return {"highlight", "book"}
-    elseif context == "highlight" or context == "book" or context == "multi_book" or context == "general" then
-        return {context}
-    else
-        -- Default to highlight + book
-        return {"highlight", "book"}
-    end
+    return Constants.expandContext(context)
 end
 
 -- Log summary of loaded actions
@@ -894,7 +887,7 @@ end
 function ActionService:generateUniqueDuplicateName(base_name)
     -- Must check ALL contexts since actions can have different contexts
     local all_names = {}
-    for _i, context in ipairs({"highlight", "book", "multi_book", "general"}) do
+    for _i, context in ipairs(Constants.getAllContexts()) do
         local actions = self:getAllActions(context, true)  -- include_disabled = true
         for _j, action in ipairs(actions) do
             all_names[action.text] = true
