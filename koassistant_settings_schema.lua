@@ -412,6 +412,41 @@ local SettingsSchema = {
                     callback = "testProviderConnection",
                     separator = true,
                 },
+                -- Settings Management submenu
+                {
+                    id = "settings_management",
+                    type = "submenu",
+                    text = _("Settings Management"),
+                    items = {
+                        {
+                            id = "create_backup",
+                            type = "action",
+                            text = _("Create Backup"),
+                            info_text = _("Create a backup of your settings, API keys, and custom content."),
+                            callback = "showCreateBackupDialog",
+                        },
+                        {
+                            id = "restore_backup",
+                            type = "action",
+                            text = _("Restore from Backup"),
+                            info_text = _("Restore settings from a previous backup."),
+                            callback = "showRestoreBackupDialog",
+                        },
+                        {
+                            id = "manage_backups",
+                            type = "action",
+                            text = _("View Backups"),
+                            info_text = _("View and manage existing backups."),
+                            callback = "showBackupListDialog",
+                            separator = true,
+                        },
+                        {
+                            id = "backup_settings_info",
+                            type = "header",
+                            text = _("Backups are stored in: koassistant_backups/"),
+                        },
+                    },
+                },
                 -- Reset Settings submenu
                 {
                     id = "reset_settings",
@@ -435,6 +470,15 @@ local SettingsSchema = {
                             confirm = true,
                             confirm_text = _("Reset ALL customizations?\n\nThis will reset all settings including custom actions, behaviors, domains, and models.\n\nOnly API keys and chat history will be preserved.\n\nThis cannot be undone."),
                             callback = "resetAllCustomizations",
+                        },
+                        {
+                            id = "reset_everything",
+                            type = "action",
+                            text = _("Reset everything (nuclear)"),
+                            info_text = _("⚠️ COMPLETE RESET: Deletes ALL settings, custom content, API keys.\n\nPreserves: Chat history only.\n\nYou will need to re-enter API keys and reconfigure everything."),
+                            confirm = true,
+                            confirm_text = _("⚠️ RESET EVERYTHING?\n\nThis will DELETE:\n• All settings and configurations\n• Custom actions, behaviors, domains\n• Custom models and providers\n• API keys (you'll need to re-enter)\n• Action menu customizations\n\nOnly chat history will be preserved.\n\nThis CANNOT be undone!\n\nAre you absolutely sure?"),
+                            callback = "resetEverything",
                             separator = true,
                         },
                         {
