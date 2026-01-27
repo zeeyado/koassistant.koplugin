@@ -574,7 +574,7 @@ See `domains.sample/` for examples including classical language support and inte
 
 Select a domain via the **Domain** button in the chat input dialog, or through AI Quick Settings. Once selected, the domain **stays active** for all subsequent chats until you change it or select "None".
 
-**Note**: Keep this sticky behavior in mind — if you set a domain for one task, it will apply to all following actions (including quick actions that don't open the input dialog) until you clear it. You can change the domain through the input dialog, AI Quick Settings, or gesture actions.
+**Note**: Keep this sticky behavior in mind — if you set a domain for one task, it will apply to all following actions (including quick actions that don't open the input dialog, unless they have been set to Skip Domain) until you clear it. You can change the domain through the input dialog, AI Quick Settings, or gesture actions.
 
 ### Browsing by Domain
 
