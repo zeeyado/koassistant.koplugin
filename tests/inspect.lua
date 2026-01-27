@@ -44,8 +44,14 @@ local TestConfig = require("test_config")
 local RequestInspector = require("request_inspector")
 local TerminalFormatter = require("terminal_formatter")
 local MessageBuilder = require("message_builder")
+local Constants = require("koassistant_constants")
+local ConstraintUtils = require("tests.lib.constraint_utils")
 
 local c = TerminalFormatter.colors
+
+-- Get default reasoning budget from plugin's ModelConstraints
+local anthropic_reasoning = ConstraintUtils.getReasoningDefaults("anthropic")
+local default_thinking_budget = anthropic_reasoning and anthropic_reasoning.budget or 4096
 
 -- Presets for common configurations
 local presets = {
@@ -174,7 +180,7 @@ local function parseArgs(args)
                 i = i + 1
                 parsed.options.thinking_budget = tonumber(args[i])
             else
-                parsed.options.thinking_budget = 4096
+                parsed.options.thinking_budget = default_thinking_budget
             end
 
         elseif arg == "--model" or arg == "-m" then
@@ -766,7 +772,7 @@ local function startWebServer(options)
             -- API settings
             default_temperature = 0.7,
             enable_extended_thinking = false,
-            thinking_budget_tokens = 4096,
+            thinking_budget_tokens = default_thinking_budget,
         }
 
         -- Try to load from koassistant_settings.lua (in KOReader's settings folder)
@@ -786,7 +792,7 @@ local function startWebServer(options)
                 settings_data.custom_behaviors = f.custom_behaviors or {}
                 settings_data.default_temperature = f.default_temperature or 0.7
                 settings_data.enable_extended_thinking = f.enable_extended_thinking or false
-                settings_data.thinking_budget_tokens = f.thinking_budget_tokens or 4096
+                settings_data.thinking_budget_tokens = f.thinking_budget_tokens or default_thinking_budget
             end
         end
 
@@ -838,7 +844,13 @@ local function startWebServer(options)
         end
 
         -- Process each context (only the table properties, not methods)
-        local contexts = {"highlight", "book", "multi_book", "general", "special"}
+        -- Get standard contexts from Constants, plus "special" actions category
+        local contexts = {}
+        for _, ctx in ipairs(Constants.getAllContexts()) do
+            table.insert(contexts, ctx)
+        end
+        table.insert(contexts, "special")  -- Special actions category in Actions module
+
         for _, context in ipairs(contexts) do
             local context_actions = Actions[context]
             if context_actions and type(context_actions) == "table" then
@@ -923,7 +935,7 @@ local function startWebServer(options)
             behavior_variant = nil,  -- Uses global behavior
             available_in_all_contexts = true,
         }
-        for _, ctx in ipairs({"highlight", "book", "multi_book", "general"}) do
+        for _, ctx in ipairs(Constants.getAllContexts()) do
             table.insert(actions_data[ctx], ask_action)
         end
 
@@ -972,7 +984,7 @@ local function startWebServer(options)
         -- Handle thinking
         if request_data.thinking and request_data.thinking.enabled then
             build_options.extended_thinking = true
-            build_options.thinking_budget = request_data.thinking.budget or 4096
+            build_options.thinking_budget = request_data.thinking.budget or default_thinking_budget
         end
 
         -- Build config
@@ -1199,7 +1211,7 @@ local function startWebServer(options)
 
         if request_data.thinking and request_data.thinking.enabled then
             build_options.extended_thinking = true
-            build_options.thinking_budget = request_data.thinking.budget or 4096
+            build_options.thinking_budget = request_data.thinking.budget or default_thinking_budget
         end
 
         local config = buildConfigWithOptions(provider, api_key, build_options)

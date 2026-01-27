@@ -2,6 +2,7 @@ local http = require("socket.http")
 local ltn12 = require("ltn12")
 local json = require("json")
 local logger = require("logger")
+local Constants = require("koassistant_constants")
 
 -- Load _meta.lua from the plugin's own directory to avoid conflicts with other plugins
 -- (assistant.koplugin also has _meta.lua, and require() might load the wrong one)
@@ -273,7 +274,7 @@ function UpdateChecker.checkForUpdates(silent, include_prereleases)
     local response_body = {}
     -- Fetch all releases (not just latest) to include prereleases
     local request_result, code = http.request {
-        url = "https://api.github.com/repos/zeeyado/koassistant.koplugin/releases",
+        url = Constants.GITHUB.API_URL,
         headers = {
             ["Accept"] = "application/vnd.github.v3+json",
             ["User-Agent"] = "KOReader-KOAssistant-Plugin"

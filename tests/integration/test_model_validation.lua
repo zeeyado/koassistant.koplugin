@@ -27,6 +27,7 @@ require("mock_koreader")
 
 -- Load dependencies
 local TestConfig = require("test_config")
+local ConstraintUtils = require("constraint_utils")
 local json = require("json")
 local https = require("ssl.https")
 local http = require("socket.http")
@@ -187,76 +188,8 @@ local function getModelFetcher(provider)
 end
 
 --------------------------------------------------------------------------------
--- Constraint Error Detection
+-- Constraint Error Detection (now uses shared ConstraintUtils)
 --------------------------------------------------------------------------------
-
--- Parse error message to detect constraint type
-local function parseConstraintError(error_msg)
-    if not error_msg then return nil end
-
-    local lower = error_msg:lower()
-
-    -- Temperature constraints (various formats from different providers)
-    -- OpenAI: "Unsupported value: 'temperature' is not supported"
-    -- OpenAI: "temperature must be"
-    -- Generic: "temperature" in error
-    if lower:find("temperature") or
-       (lower:find("unsupported") and lower:find("value")) or
-       lower:find("'temperature'") then
-        -- Try to extract allowed value
-        local allowed = error_msg:match("must be (%d+%.?%d*)") or
-                       error_msg:match("should be (%d+%.?%d*)") or
-                       error_msg:match("only supports? (%d+%.?%d*)") or
-                       error_msg:match("expected (%d+%.?%d*)")
-        return {
-            type = "temperature",
-            message = error_msg,
-            allowed = allowed and tonumber(allowed) or 1.0,
-        }
-    end
-
-    -- Max tokens constraints (must check before "unsupported parameter")
-    -- Also handles Gemini thinking models: "MAX_TOKENS hit before output"
-    if lower:find("max_tokens") or lower:find("max_completion_tokens") or
-       lower:find("max_tokens hit") or lower:find("increase max_tokens") then
-        local min_value = error_msg:match("at least (%d+)") or
-                         error_msg:match("minimum.-%s(%d+)") or
-                         error_msg:match(">=%s*(%d+)") or
-                         error_msg:match("greater than (%d+)")
-        -- For Gemini thinking models (2.5+), need much higher tokens
-        -- gemini-2.5-pro especially needs more for internal reasoning
-        if lower:find("thinking") or lower:find("before output") then
-            min_value = 256  -- Gemini 2.5+ may use 50-100+ tokens for thinking
-        end
-        return {
-            type = "max_tokens",
-            message = error_msg,
-            min_value = min_value and tonumber(min_value) or 16,
-        }
-    end
-
-    -- Model not found (check before generic unsupported parameter)
-    if lower:find("not found") or lower:find("does not exist") or
-       lower:find("invalid model") or lower:find("unknown model") or
-       lower:find("not a chat model") then
-        return {
-            type = "model_not_found",
-            message = error_msg,
-        }
-    end
-
-    -- Unsupported parameter (generic - could be temperature or other)
-    -- OpenAI o-series: "Unsupported parameter: 'temperature'"
-    if lower:find("unsupported parameter") then
-        return {
-            type = "temperature",  -- Most common unsupported param
-            message = error_msg,
-            allowed = 1.0,
-        }
-    end
-
-    return nil
-end
 
 --------------------------------------------------------------------------------
 -- Minimal Test Request
@@ -327,7 +260,7 @@ function ModelValidation:testModel(provider, model, handler, api_key, verbose)
     end
 
     -- Check if it's a constraint error
-    local constraint = parseConstraintError(result)
+    local constraint = ConstraintUtils.parseConstraintError(result)
 
     if constraint then
         if constraint.type == "model_not_found" then

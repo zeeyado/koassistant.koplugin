@@ -421,13 +421,39 @@
                 </div>
             </div>
 
-            <div class="section-divider">
+            <div class="section-divider" id="anthropic-thinking-section">
                 <h3>Extended Thinking (Anthropic)</h3>
                 <div class="checkbox-group">
                     <input type="checkbox" id="thinking-enabled">
                     <label for="thinking-enabled">Enable</label>
                     <input type="number" id="thinking-budget" value="4096" min="1024" max="32000" style="width: 100px; margin-left: 1rem;">
                     <span>tokens</span>
+                </div>
+            </div>
+
+            <div class="section-divider" id="openai-reasoning-section" style="display: none;">
+                <h3>Reasoning (OpenAI)</h3>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="openai-reasoning-enabled">
+                    <label for="openai-reasoning-enabled">Enable</label>
+                    <select id="openai-reasoning-effort" style="margin-left: 1rem;">
+                        <option value="low">Low</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="high">High</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="section-divider" id="gemini-thinking-section" style="display: none;">
+                <h3>Thinking (Gemini)</h3>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="gemini-thinking-enabled">
+                    <label for="gemini-thinking-enabled">Enable</label>
+                    <select id="gemini-thinking-level" style="margin-left: 1rem;">
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high" selected>High</option>
+                    </select>
                 </div>
             </div>
 
@@ -663,6 +689,25 @@
             const provider = document.getElementById('provider').value;
             const models = state.providers[provider] || [];
             document.getElementById('model').innerHTML = models.map(m => `<option value="${m}">${m}</option>`).join('');
+
+            // Show/hide reasoning sections based on provider
+            const anthropicSection = document.getElementById('anthropic-thinking-section');
+            const openaiSection = document.getElementById('openai-reasoning-section');
+            const geminiSection = document.getElementById('gemini-thinking-section');
+
+            // Hide all reasoning sections first
+            anthropicSection.style.display = 'none';
+            openaiSection.style.display = 'none';
+            geminiSection.style.display = 'none';
+
+            // Show relevant section
+            if (provider === 'anthropic') {
+                anthropicSection.style.display = 'block';
+            } else if (provider === 'openai') {
+                openaiSection.style.display = 'block';
+            } else if (provider === 'gemini') {
+                geminiSection.style.display = 'block';
+            }
         }
 
         async function loadDomains() {
@@ -1053,8 +1098,15 @@
                 primary_language: document.getElementById('primary-language').value || null,
                 translation_language: translationLang,
                 thinking: {
+                    // Anthropic extended thinking
                     enabled: document.getElementById('thinking-enabled').checked,
-                    budget: parseInt(document.getElementById('thinking-budget').value) || 4096
+                    budget: parseInt(document.getElementById('thinking-budget').value) || 4096,
+                    // OpenAI reasoning
+                    openai_reasoning_enabled: document.getElementById('openai-reasoning-enabled').checked,
+                    openai_reasoning_effort: document.getElementById('openai-reasoning-effort').value,
+                    // Gemini thinking
+                    gemini_thinking_enabled: document.getElementById('gemini-thinking-enabled').checked,
+                    gemini_thinking_level: document.getElementById('gemini-thinking-level').value
                 },
                 message: message,
                 context: context,
@@ -1231,11 +1283,11 @@
 
         function loadPreset(preset) {
             const presets = {
-                minimal: { behavior: 'minimal', temperature: 0.7, domain: '', domainId: '', languages: '', thinking: { enabled: false } },
-                full: { behavior: 'full', temperature: 0.7, domain: '', domainId: '', languages: '', thinking: { enabled: false } },
-                domain: { behavior: 'full', temperature: 0.7, domain: '', domainId: 'first', languages: '', thinking: { enabled: false } },
-                thinking: { behavior: 'full', temperature: 1.0, domain: '', domainId: '', languages: '', thinking: { enabled: true, budget: 4096 } },
-                multilingual: { behavior: 'full', temperature: 0.7, domain: '', domainId: '', languages: 'English, Spanish, Arabic', thinking: { enabled: false } }
+                minimal: { behavior: 'minimal', temperature: 0.7, domain: '', domainId: '', languages: '', thinking: { enabled: false, openai_reasoning_enabled: false, gemini_thinking_enabled: false } },
+                full: { behavior: 'full', temperature: 0.7, domain: '', domainId: '', languages: '', thinking: { enabled: false, openai_reasoning_enabled: false, gemini_thinking_enabled: false } },
+                domain: { behavior: 'full', temperature: 0.7, domain: '', domainId: 'first', languages: '', thinking: { enabled: false, openai_reasoning_enabled: false, gemini_thinking_enabled: false } },
+                thinking: { behavior: 'full', temperature: 1.0, domain: '', domainId: '', languages: '', thinking: { enabled: true, budget: 4096, openai_reasoning_enabled: false, gemini_thinking_enabled: false } },
+                multilingual: { behavior: 'full', temperature: 0.7, domain: '', domainId: '', languages: 'English, Spanish, Arabic', thinking: { enabled: false, openai_reasoning_enabled: false, gemini_thinking_enabled: false } }
             };
 
             const p = presets[preset];
@@ -1266,10 +1318,14 @@
 
             document.getElementById('user-languages').value = p.languages;
             onUserLanguagesChange();  // Update primary/translation language dropdowns
+
+            // Set reasoning/thinking options for all providers
             document.getElementById('thinking-enabled').checked = p.thinking.enabled;
             if (p.thinking.budget) {
                 document.getElementById('thinking-budget').value = p.thinking.budget;
             }
+            document.getElementById('openai-reasoning-enabled').checked = p.thinking.openai_reasoning_enabled || false;
+            document.getElementById('gemini-thinking-enabled').checked = p.thinking.gemini_thinking_enabled || false;
 
             // If thinking preset and not anthropic, switch to anthropic
             if (preset === 'thinking' && document.getElementById('provider').value !== 'anthropic') {
@@ -1352,6 +1408,12 @@
             let modelLine = `  model=${config.model || 'default'}, temp=${config.temperature || 0.7}`;
             if (config.thinking?.enabled) {
                 modelLine += `, thinking=${config.thinking.budget}`;
+            }
+            if (config.thinking?.openai_reasoning_enabled) {
+                modelLine += `, reasoning=${config.thinking.openai_reasoning_effort}`;
+            }
+            if (config.thinking?.gemini_thinking_enabled) {
+                modelLine += `, thinking_level=${config.thinking.gemini_thinking_level}`;
             }
             debugInfo.push(modelLine);
 

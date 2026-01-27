@@ -2,12 +2,15 @@
 local ModelLists = require("koassistant_model_lists")
 
 -- Helper function to get the default model for a provider (first in the list)
+-- Uses ModelLists as the primary source of truth, with fallbacks as a safety net
 local function getDefaultModel(provider)
     local models = ModelLists[provider]
     if models and #models > 0 then
-        return models[1]
+        return models[1]  -- Primary source: koassistant_model_lists.lua
     end
-    -- Fallback models in case model_lists.lua is missing entries
+    -- Fallback models - ONLY used if ModelLists module fails to load
+    -- This is intentional duplication for reliability (don't remove!)
+    -- Primary source of truth remains: koassistant_model_lists.lua
     local fallbacks = {
         anthropic = "claude-sonnet-4-5-20250929",
         openai = "gpt-4.1",
@@ -30,6 +33,25 @@ local function getDefaultModel(provider)
     return fallbacks[provider] or "unknown"
 end
 
+--[[
+Provider API Defaults
+
+These are the base defaults for each provider. They define:
+- Base API URLs
+- Default models (via getDefaultModel from koassistant_model_lists.lua)
+- Default temperature (0.7 for most providers)
+- Default max_tokens (varies by provider)
+
+IMPORTANT: Per-action temperature/token tuning is in prompts/actions.lua
+Don't consolidate those here - they're intentional action-specific overrides.
+
+Examples of per-action tuning:
+- Dictionary: temperature = 0.3 (factual accuracy)
+- Creative Writing: temperature = 0.8 (more creative)
+- Book Summary: max_tokens = 4096 (long-form response)
+
+Each action can override these defaults based on its specific needs.
+]]
 local ProviderDefaults = {
     anthropic = {
         provider = "anthropic",

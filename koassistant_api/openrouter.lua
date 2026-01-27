@@ -4,6 +4,7 @@ local ltn12 = require("ltn12")
 local json = require("json")
 local Defaults = require("koassistant_api.defaults")
 local ResponseParser = require("koassistant_api.response_parser")
+local Constants = require("koassistant_constants")
 
 local OpenRouterHandler = BaseHandler:new()
 
@@ -55,7 +56,7 @@ function OpenRouterHandler:buildRequestBody(message_history, config)
         ["Content-Type"] = "application/json",
         ["Authorization"] = "Bearer " .. (config.api_key or ""),
         -- OpenRouter-specific headers
-        ["HTTP-Referer"] = "https://github.com/zeeyado/koassistant.koplugin",
+        ["HTTP-Referer"] = Constants.GITHUB.URL,
         ["X-Title"] = "KOAssistant",
     }
 
@@ -122,7 +123,7 @@ function OpenRouterHandler:query(message_history, config)
         ["Authorization"] = "Bearer " .. config.api_key,
         ["Content-Length"] = tostring(#requestBody),
         -- OpenRouter-specific headers
-        ["HTTP-Referer"] = "https://github.com/zeeyado/koassistant.koplugin",
+        ["HTTP-Referer"] = Constants.GITHUB.URL,
         ["X-Title"] = "KOAssistant",
     }
 
