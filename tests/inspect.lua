@@ -318,6 +318,38 @@ local function listPresets()
     print("")
 end
 
+-- Load and merge API keys from both sources (matches plugin behavior)
+-- Priority: GUI-entered keys (from settings) > apikeys.lua file
+-- Same behavior as koassistant_gpt_query.lua:getApiKey()
+local function loadMergedApiKeys()
+    -- Start with apikeys.lua (fallback)
+    local api_keys = {}
+    local file_keys_ok, file_keys = pcall(require, "apikeys")
+    if file_keys_ok and file_keys then
+        for provider, key in pairs(file_keys) do
+            api_keys[provider] = key
+        end
+    end
+
+    -- Override with GUI-entered keys from settings (highest priority)
+    local settings_path = plugin_dir .. "/../../settings/koassistant_settings.lua"
+    local settings_file = io.open(settings_path, "r")
+    if settings_file then
+        settings_file:close()
+        local ok, settings = pcall(dofile, settings_path)
+        if ok and settings and settings.features and settings.features.api_keys then
+            local gui_keys = settings.features.api_keys
+            for provider, key in pairs(gui_keys) do
+                if key and key ~= "" then
+                    api_keys[provider] = key  -- Override file key
+                end
+            end
+        end
+    end
+
+    return api_keys
+end
+
 -- Build config with options and presets
 local function buildConfigWithOptions(provider, api_key, options)
     -- Start with preset if specified
@@ -356,8 +388,8 @@ local function inspectProvider(provider, options)
         return false
     end
 
-    -- Load API keys (for headers, even if not making live requests)
-    local api_keys = TestConfig.loadApiKeys()
+    -- Load and merge API keys (GUI keys + file keys)
+    local api_keys = loadMergedApiKeys()
     local api_key = api_keys[provider] or ""
 
     -- Build config using real pipeline
@@ -395,8 +427,8 @@ local function exportProvider(provider, options)
         return false
     end
 
-    -- Load API keys
-    local api_keys = TestConfig.loadApiKeys()
+    -- Load and merge API keys (GUI keys + file keys)
+    local api_keys = loadMergedApiKeys()
     local api_key = api_keys[provider] or ""
 
     -- Build config using real pipeline
@@ -429,8 +461,8 @@ local function compareProviders(providers, options)
         return false
     end
 
-    -- Load API keys
-    local api_keys = TestConfig.loadApiKeys()
+    -- Load and merge API keys (GUI keys + file keys)
+    local api_keys = loadMergedApiKeys()
 
     -- Build test messages
     local messages = {
@@ -610,8 +642,8 @@ local function startWebServer(options)
     local WebServer = require("web_server")
     local json = require("dkjson")
 
-    -- Load API keys once
-    local api_keys = TestConfig.loadApiKeys()
+    -- Load and merge API keys (GUI keys take priority over apikeys.lua)
+    local api_keys = loadMergedApiKeys()
 
     -- Get script directory for loading index.html
     local info = debug.getinfo(1, "S")

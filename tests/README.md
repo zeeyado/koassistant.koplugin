@@ -232,13 +232,21 @@ sudo luarocks install dkjson
 
 ## Setup
 
-1. **Configure API keys** in `apikeys.lua`:
+1. **Configure API keys** - Test suite uses API keys from two sources (same priority as plugin):
 
+   **Option A: GUI-entered keys** (recommended for regular users)
+   - Keys entered via Settings → API Keys in KOReader
+   - Automatically used by test suite/web inspector
+   - **Highest priority** (overrides apikeys.lua)
+
+   **Option B: File-based keys** (recommended for development)
    ```bash
    cd /path/to/koassistant.koplugin
    cp apikeys.lua.sample apikeys.lua
    # Edit apikeys.lua and add your API keys
    ```
+
+   Both sources are merged, with GUI keys taking priority over file keys.
 
 2. **Run from the plugin directory**:
 
@@ -332,7 +340,7 @@ Some providers may be slow. Tests wait for API response without timeout. Check n
 
 ## Notes
 
-- **API Keys**: Providers without keys are skipped (not failed)
+- **API Keys**: Test suite merges keys from both GUI settings and apikeys.lua (GUI keys take priority). Providers without keys are skipped (not failed)
 - **Ollama**: Requires running Ollama instance locally
 - **Streaming**: Not fully testable standalone (requires KOReader subprocess)
 - **Token Limits**: Tests use small limits (64-512 tokens) to minimize costs
