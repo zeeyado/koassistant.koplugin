@@ -1594,9 +1594,13 @@ KOAssistant supports localization with translations managed via Weblate.
 
 **[Contribute translations on Weblate](https://hosted.weblate.org/engage/koassistant/)**
 
-**Current languages:** Arabic, Chinese, French, German, Italian, Portuguese, Spanish
+**Current languages (20):**
+- **Western European:** French, German, Italian, Spanish, Portuguese, Brazilian Portuguese, Dutch
+- **Eastern European:** Russian, Polish, Czech, Ukrainian
+- **Asian:** Chinese, Japanese, Korean, Vietnamese, Indonesian, Thai, Hindi
+- **Middle Eastern:** Arabic, Turkish
 
-**Important:** Initial translations were AI-generated and marked as "needs review" (fuzzy). They may contain inaccuracies or awkward phrasing. Human review and corrections are welcome!
+**Important:** Most translations are AI-generated and marked as "needs review" (fuzzy). They may contain inaccuracies or awkward phrasing. Human review and corrections are very welcome!
 
 **If you don't like the translations:** You can disable them in Settings → Language → disable "Match KOReader UI Language" to always show the original English UI.
 
@@ -1606,7 +1610,7 @@ KOAssistant supports localization with translations managed via Weblate.
 3. Select a language and start reviewing/translating
 4. Translations sync automatically to this repository
 
-**To add a new language:** Request it on Weblate or open a GitHub issue.
+**To add a new language:** Open a GitHub issue or request it on Weblate.
 
 **Note:** The plugin is under active development, so some strings may change between versions. Contributions are still valuable and will be maintained.
 
