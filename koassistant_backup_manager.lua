@@ -35,6 +35,8 @@ local BackupManager = {
     SETTINGS_DIR = DataStorage:getSettingsDir(),
     CHAT_DIR = DataStorage:getDataDir() .. "/koassistant_chats",
     RESTORE_POINT_RETENTION_DAYS = 7,
+    LOCK_FILE = DataStorage:getDataDir() .. "/koassistant_backups/.backup_lock",
+    LOCK_TIMEOUT = 300,  -- 5 minutes
 }
 
 function BackupManager:new()
@@ -44,6 +46,10 @@ function BackupManager:new()
 
     -- Ensure backup directory exists
     self:_ensureBackupDirectory()
+
+    -- Clean up stale temp directories and locks
+    self:_cleanupStaleTempDirs()
+    self:_cleanupStaleLocks()
 
     -- Log paths for debugging
     logger.dbg("BackupManager: PLUGIN_DIR =", self.PLUGIN_DIR)
@@ -58,6 +64,119 @@ function BackupManager:_ensureBackupDirectory()
     if not lfs.attributes(self.BACKUP_DIR, "mode") then
         logger.info("BackupManager: Creating backup directory: " .. self.BACKUP_DIR)
         lfs.mkdir(self.BACKUP_DIR)
+    end
+end
+
+-- Sanitize path for shell command usage
+-- CRITICAL: Prevents command injection via malicious filenames
+function BackupManager:_sanitizePath(path)
+    if not path then
+        return nil, "Path is nil"
+    end
+
+    -- Check for dangerous characters that could enable command injection
+    -- Double quotes, backticks, dollar signs, backslashes, semicolons
+    if path:match('["`$\\;]') then
+        logger.err("BackupManager: Dangerous characters detected in path:", path)
+        return nil, "Path contains dangerous characters"
+    end
+
+    -- Check for command substitution patterns
+    if path:match("$%(") or path:match("%$%{") then
+        logger.err("BackupManager: Command substitution detected in path:", path)
+        return nil, "Path contains command substitution"
+    end
+
+    return path
+end
+
+-- Acquire lock for backup/restore operations
+function BackupManager:_acquireLock()
+    -- Check if lock exists
+    local lock_attr = lfs.attributes(self.LOCK_FILE, "mode")
+    if lock_attr == "file" then
+        -- Check if lock is stale (older than LOCK_TIMEOUT)
+        local mtime = lfs.attributes(self.LOCK_FILE, "modification")
+        if mtime and (os.time() - mtime < self.LOCK_TIMEOUT) then
+            logger.warn("BackupManager: Another backup operation is in progress")
+            return false, "Another backup or restore operation is in progress. Please wait."
+        else
+            logger.info("BackupManager: Removing stale lock file")
+            os.remove(self.LOCK_FILE)
+        end
+    end
+
+    -- Create lock file
+    local lock_file = io.open(self.LOCK_FILE, "w")
+    if not lock_file then
+        logger.err("BackupManager: Failed to create lock file")
+        return false, "Failed to acquire lock"
+    end
+    lock_file:write(tostring(os.time()))
+    lock_file:close()
+
+    logger.dbg("BackupManager: Lock acquired")
+    return true
+end
+
+-- Release lock after backup/restore operation
+function BackupManager:_releaseLock()
+    if lfs.attributes(self.LOCK_FILE, "mode") == "file" then
+        os.remove(self.LOCK_FILE)
+        logger.dbg("BackupManager: Lock released")
+    end
+end
+
+-- Clean up stale lock files (called on init)
+function BackupManager:_cleanupStaleLocks()
+    local lock_attr = lfs.attributes(self.LOCK_FILE, "mode")
+    if lock_attr == "file" then
+        local mtime = lfs.attributes(self.LOCK_FILE, "modification")
+        if mtime and (os.time() - mtime > self.LOCK_TIMEOUT) then
+            logger.info("BackupManager: Cleaning up stale lock file")
+            os.remove(self.LOCK_FILE)
+        end
+    end
+end
+
+-- Clean up stale temporary directories (called on init)
+function BackupManager:_cleanupStaleTempDirs()
+    if not lfs.attributes(self.BACKUP_DIR, "mode") then
+        return
+    end
+
+    local current_time = os.time()
+    local TEMP_MAX_AGE = 3600  -- 1 hour
+
+    for entry in lfs.dir(self.BACKUP_DIR) do
+        if entry:match("^%.temp_") then
+            local temp_path = self.BACKUP_DIR .. "/" .. entry
+            local attr = lfs.attributes(temp_path, "mode")
+
+            if attr == "directory" then
+                local mtime = lfs.attributes(temp_path, "modification")
+                if mtime and (current_time - mtime > TEMP_MAX_AGE) then
+                    logger.info("BackupManager: Cleaning up stale temp directory:", entry)
+                    -- Use sanitized path for cleanup
+                    local safe_path, err = self:_sanitizePath(temp_path)
+                    if safe_path then
+                        os.execute(string.format('rm -rf "%s"', safe_path))
+                    else
+                        logger.err("BackupManager: Cannot clean temp dir - path sanitization failed:", err)
+                    end
+                end
+            end
+        end
+    end
+end
+
+-- Safely remove temporary directory with sanitization
+function BackupManager:_removeTempDir(temp_dir)
+    local safe_temp, err = self:_sanitizePath(temp_dir)
+    if safe_temp then
+        os.execute(string.format('rm -rf "%s"', safe_temp))
+    else
+        logger.err("BackupManager: Cannot remove temp dir - path sanitization failed:", err)
     end
 end
 
@@ -127,7 +246,20 @@ end
 
 -- Copy a single file
 function BackupManager:_copyFile(src, dest)
-    local success, err = os.execute(string.format('cp "%s" "%s"', src, dest))
+    -- Sanitize paths before shell operation
+    local safe_src, err_src = self:_sanitizePath(src)
+    if not safe_src then
+        logger.err("BackupManager: Source path sanitization failed:", err_src)
+        return false, "Invalid source path: " .. err_src
+    end
+
+    local safe_dest, err_dest = self:_sanitizePath(dest)
+    if not safe_dest then
+        logger.err("BackupManager: Destination path sanitization failed:", err_dest)
+        return false, "Invalid destination path: " .. err_dest
+    end
+
+    local success, err = os.execute(string.format('cp "%s" "%s"', safe_src, safe_dest))
     if not success then
         logger.warn("BackupManager: Failed to copy file: " .. src .. " -> " .. dest .. " : " .. (err or "unknown error"))
         return false
@@ -177,10 +309,23 @@ end
 
 -- Create tar.gz archive
 function BackupManager:_createArchive(source_dir, archive_path)
+    -- Sanitize paths before shell operation
+    local safe_source, err_source = self:_sanitizePath(source_dir)
+    if not safe_source then
+        logger.err("BackupManager: Source directory sanitization failed:", err_source)
+        return false, "Invalid source directory: " .. err_source
+    end
+
+    local safe_archive, err_archive = self:_sanitizePath(archive_path)
+    if not safe_archive then
+        logger.err("BackupManager: Archive path sanitization failed:", err_archive)
+        return false, "Invalid archive path: " .. err_archive
+    end
+
     -- Use tar to create compressed archive
     -- -czf: create, compress with gzip, file
     -- -C: change to directory
-    local cmd = string.format('cd "%s" && tar -czf "%s" .', source_dir, archive_path)
+    local cmd = string.format('cd "%s" && tar -czf "%s" .', safe_source, safe_archive)
     local success, exit_type, exit_code = os.execute(cmd)
 
     if not success or (exit_type == "exit" and exit_code ~= 0) then
@@ -191,8 +336,21 @@ function BackupManager:_createArchive(source_dir, archive_path)
     return true
 end
 
--- Extract tar.gz archive
-function BackupManager:_extractArchive(archive_path, dest_dir)
+-- Extract tar.gz archive (can extract specific files or all files)
+function BackupManager:_extractArchive(archive_path, dest_dir, specific_file)
+    -- Sanitize paths before shell operation
+    local safe_archive, err_archive = self:_sanitizePath(archive_path)
+    if not safe_archive then
+        logger.err("BackupManager: Archive path sanitization failed:", err_archive)
+        return false, "Invalid archive path: " .. err_archive
+    end
+
+    local safe_dest, err_dest = self:_sanitizePath(dest_dir)
+    if not safe_dest then
+        logger.err("BackupManager: Destination directory sanitization failed:", err_dest)
+        return false, "Invalid destination directory: " .. err_dest
+    end
+
     -- Ensure destination directory exists
     if not lfs.attributes(dest_dir, "mode") then
         local success, err = lfs.mkdir(dest_dir)
@@ -204,7 +362,14 @@ function BackupManager:_extractArchive(archive_path, dest_dir)
     -- Use tar to extract
     -- -xzf: extract, uncompress with gzip, file
     -- -C: change to directory
-    local cmd = string.format('tar -xzf "%s" -C "%s"', archive_path, dest_dir)
+    -- specific_file: optional, extract only this file (e.g., "manifest.json")
+    local cmd
+    if specific_file then
+        cmd = string.format('tar -xzf "%s" -C "%s" "%s" 2>&1', safe_archive, safe_dest, specific_file)
+    else
+        cmd = string.format('tar -xzf "%s" -C "%s"', safe_archive, safe_dest)
+    end
+
     local success, exit_type, exit_code = os.execute(cmd)
 
     if not success or (exit_type == "exit" and exit_code ~= 0) then
@@ -554,9 +719,18 @@ function BackupManager:createBackup(options)
         return { success = false, error = "No backup options selected" }
     end
 
-    -- Create temporary directory for staging
+    -- Acquire lock to prevent concurrent backups (unless skip_lock is set for internal calls)
+    if not options.skip_lock then
+        local lock_acquired, lock_err = self:_acquireLock()
+        if not lock_acquired then
+            return { success = false, error = lock_err }
+        end
+    end
+
+    -- Create temporary directory for staging (with random suffix to prevent collisions)
     local timestamp = self:_getTimestamp()
-    local temp_dir = self.BACKUP_DIR .. "/.temp_" .. timestamp
+    local random_suffix = tostring(math.random(100000, 999999))
+    local temp_dir = self.BACKUP_DIR .. "/.temp_" .. timestamp .. "_" .. random_suffix
     local backup_name = "koassistant_backup_" .. timestamp .. ".koa"
     local backup_path = self.BACKUP_DIR .. "/" .. backup_name
 
@@ -564,6 +738,9 @@ function BackupManager:createBackup(options)
     if not lfs.attributes(temp_dir, "mode") then
         local success, err = lfs.mkdir(temp_dir)
         if not success then
+            if not options.skip_lock then
+                self:_releaseLock()
+            end
             return { success = false, error = "Failed to create temporary directory: " .. (err or "unknown error") }
         end
     end
@@ -649,7 +826,10 @@ function BackupManager:createBackup(options)
             end)
             if not success then
                 -- Clean up and return error
-                os.execute(string.format('rm -rf "%s"', temp_dir))
+                self:_removeTempDir(temp_dir)
+                if not options.skip_lock then
+                    self:_releaseLock()
+                end
                 return { success = false, error = err_msg }
             end
         end
@@ -664,7 +844,10 @@ function BackupManager:createBackup(options)
             end)
             if not success then
                 -- Clean up and return error
-                os.execute(string.format('rm -rf "%s"', temp_dir))
+                self:_removeTempDir(temp_dir)
+                if not options.skip_lock then
+                    self:_releaseLock()
+                end
                 return { success = false, error = err_msg }
             end
         end
@@ -680,7 +863,10 @@ function BackupManager:createBackup(options)
             end)
             if not success then
                 -- Clean up and return error
-                os.execute(string.format('rm -rf "%s"', temp_dir))
+                self:_removeTempDir(temp_dir)
+                if not options.skip_lock then
+                    self:_releaseLock()
+                end
                 return { success = false, error = err_msg }
             end
         end
@@ -690,7 +876,10 @@ function BackupManager:createBackup(options)
     local manifest_json = self:_createManifest(options, counts)
     local manifest_file = io.open(temp_dir .. "/manifest.json", "w")
     if not manifest_file then
-        os.execute(string.format('rm -rf "%s"', temp_dir))
+        self:_removeTempDir(temp_dir)
+        if not options.skip_lock then
+            self:_releaseLock()
+        end
         return { success = false, error = "Failed to create manifest file" }
     end
     manifest_file:write(manifest_json)
@@ -700,12 +889,20 @@ function BackupManager:createBackup(options)
     local success, err_msg = self:_createArchive(temp_dir, backup_path)
     if not success then
         -- Clean up and return error
-        os.execute(string.format('rm -rf "%s"', temp_dir))
+        self:_removeTempDir(temp_dir)
+        if not options.skip_lock then
+            self:_releaseLock()
+        end
         return { success = false, error = err_msg }
     end
 
     -- Clean up temp directory
-    os.execute(string.format('rm -rf "%s"', temp_dir))
+    self:_removeTempDir(temp_dir)
+
+    -- Release lock (only if we acquired it)
+    if not options.skip_lock then
+        self:_releaseLock()
+    end
 
     -- Get backup size
     local backup_size = self:_getFileSize(backup_path)
@@ -721,16 +918,19 @@ function BackupManager:createBackup(options)
     }
 end
 
--- Validate backup file
+-- Validate backup file (optimized to extract only manifest.json)
 function BackupManager:validateBackup(backup_path)
     -- Check if file exists
     if not lfs.attributes(backup_path, "mode") then
         return { valid = false, errors = { "Backup file does not exist" } }
     end
 
-    -- Create temp directory for extraction
-    local temp_dir = self.BACKUP_DIR .. "/.temp_validate_" .. os.time()
-    local success, err_msg = self:_extractArchive(backup_path, temp_dir)
+    -- Create temp directory for extraction (with random suffix to avoid collisions)
+    local random_suffix = tostring(os.time()) .. "_" .. tostring(math.random(100000, 999999))
+    local temp_dir = self.BACKUP_DIR .. "/.temp_validate_" .. random_suffix
+
+    -- OPTIMIZATION: Extract only manifest.json, not entire archive
+    local success, err_msg = self:_extractArchive(backup_path, temp_dir, "manifest.json")
 
     if not success then
         return { valid = false, errors = { err_msg } }
@@ -739,7 +939,11 @@ function BackupManager:validateBackup(backup_path)
     -- Read and parse manifest
     local manifest_file = io.open(temp_dir .. "/manifest.json", "r")
     if not manifest_file then
-        os.execute(string.format('rm -rf "%s"', temp_dir))
+        -- Clean up and return error
+        local safe_temp, _ = self:_sanitizePath(temp_dir)
+        if safe_temp then
+            os.execute(string.format('rm -rf "%s"', safe_temp))
+        end
         return { valid = false, errors = { "Manifest file not found in backup" } }
     end
 
@@ -748,20 +952,27 @@ function BackupManager:validateBackup(backup_path)
 
     local manifest, parse_err = self:_parseManifest(manifest_text)
     if not manifest then
-        os.execute(string.format('rm -rf "%s"', temp_dir))
+        -- Clean up and return error
+        local safe_temp, _ = self:_sanitizePath(temp_dir)
+        if safe_temp then
+            os.execute(string.format('rm -rf "%s"', safe_temp))
+        end
         return { valid = false, errors = { parse_err } }
     end
 
     -- Clean up temp directory
-    os.execute(string.format('rm -rf "%s"', temp_dir))
+    local safe_temp, _ = self:_sanitizePath(temp_dir)
+    if safe_temp then
+        os.execute(string.format('rm -rf "%s"', safe_temp))
+    end
 
     -- Check version compatibility
     local warnings = {}
     if manifest.plugin_version then
         -- Get current plugin version
         local current_version = "unknown"
-        local success, meta = pcall(dofile, self.PLUGIN_DIR .. "/_meta.lua")
-        if success and meta and meta.version then
+        local pcall_ok, meta = pcall(dofile, self.PLUGIN_DIR .. "/_meta.lua")
+        if pcall_ok and meta and meta.version then
             current_version = meta.version
         end
 
@@ -882,6 +1093,8 @@ function BackupManager:createRestorePoint()
     logger.info("BackupManager: Creating restore point")
 
     -- Create backup of current state
+    -- NOTE: skip_lock is true because this is always called from within restoreBackup()
+    -- which has already acquired the lock
     local options = {
         include_settings = true,
         include_api_keys = true,
@@ -889,6 +1102,7 @@ function BackupManager:createRestorePoint()
         include_content = true,
         include_chats = false,  -- Don't include chats in restore points
         notes = "Automatic restore point",
+        skip_lock = true,  -- Don't try to acquire lock (already held by caller)
     }
 
     local result = self:createBackup(options)
@@ -900,7 +1114,16 @@ function BackupManager:createRestorePoint()
     local restore_point_name = result.backup_name:gsub("^koassistant_backup_", "koassistant_restore_point_")
     local restore_point_path = self.BACKUP_DIR .. "/" .. restore_point_name
 
-    os.execute(string.format('mv "%s" "%s"', result.backup_path, restore_point_path))
+    -- Sanitize paths before mv operation
+    local safe_src, err_src = self:_sanitizePath(result.backup_path)
+    local safe_dest, err_dest = self:_sanitizePath(restore_point_path)
+
+    if safe_src and safe_dest then
+        os.execute(string.format('mv "%s" "%s"', safe_src, safe_dest))
+    else
+        logger.err("BackupManager: Path sanitization failed for mv:", err_src or err_dest)
+        return { success = false, error = "Failed to rename backup to restore point" }
+    end
 
     logger.info("BackupManager: Created restore point: " .. restore_point_name)
 
@@ -911,13 +1134,20 @@ function BackupManager:createRestorePoint()
     }
 end
 
--- Restore from backup
+-- Restore from backup (with atomic rollback on failure)
 function BackupManager:restoreBackup(backup_path, options)
     options = options or {}
+
+    -- Acquire lock to prevent concurrent operations
+    local lock_acquired, lock_err = self:_acquireLock()
+    if not lock_acquired then
+        return { success = false, error = lock_err }
+    end
 
     -- Validate backup first
     local validation = self:validateBackup(backup_path)
     if not validation.valid then
+        self:_releaseLock()
         return {
             success = false,
             error = "Backup validation failed: " .. table.concat(validation.errors, ", "),
@@ -925,21 +1155,30 @@ function BackupManager:restoreBackup(backup_path, options)
     end
 
     local manifest = validation.manifest
+    local restore_point_path = nil
 
     -- Create restore point if not disabled
     if not options.skip_restore_point then
         local restore_result = self:createRestorePoint()
         if not restore_result.success then
             logger.warn("BackupManager: Failed to create restore point: " .. (restore_result.error or "unknown error"))
-            -- Continue anyway
+            -- Don't continue without restore point - too risky
+            self:_releaseLock()
+            return {
+                success = false,
+                error = "Failed to create restore point. Aborting restore for safety.",
+            }
         end
+        restore_point_path = restore_result.backup_path
     end
 
-    -- Extract backup to temp directory
-    local temp_dir = self.BACKUP_DIR .. "/.temp_restore_" .. os.time()
+    -- Extract backup to temp directory (with random suffix)
+    local random_suffix = tostring(os.time()) .. "_" .. tostring(math.random(100000, 999999))
+    local temp_dir = self.BACKUP_DIR .. "/.temp_restore_" .. random_suffix
     local success, err_msg = self:_extractArchive(backup_path, temp_dir)
 
     if not success then
+        self:_releaseLock()
         return {
             success = false,
             error = err_msg,
@@ -948,6 +1187,11 @@ function BackupManager:restoreBackup(backup_path, options)
 
     local conflicts = {}
     local warnings = {}
+    local restore_success = false
+    local restore_error = nil
+
+    -- Wrap restore operations in pcall for atomic rollback
+    local pcall_success, pcall_err = pcall(function()
 
     -- Restore settings
     if options.restore_settings ~= false and manifest.contents.settings then
@@ -1103,7 +1347,10 @@ function BackupManager:restoreBackup(backup_path, options)
             if not options.merge_mode then
                 -- Replace mode: clear existing domains first
                 if lfs.attributes(dest_domains, "mode") == "directory" then
-                    os.execute(string.format('rm -rf "%s"', dest_domains))
+                    local safe_path, _ = self:_sanitizePath(dest_domains)
+                    if safe_path then
+                        os.execute(string.format('rm -rf "%s"', safe_path))
+                    end
                 end
             end
             self:_copyDirectory(backup_domains, dest_domains)
@@ -1116,7 +1363,10 @@ function BackupManager:restoreBackup(backup_path, options)
             if not options.merge_mode then
                 -- Replace mode: clear existing behaviors first
                 if lfs.attributes(dest_behaviors, "mode") == "directory" then
-                    os.execute(string.format('rm -rf "%s"', dest_behaviors))
+                    local safe_path, _ = self:_sanitizePath(dest_behaviors)
+                    if safe_path then
+                        os.execute(string.format('rm -rf "%s"', safe_path))
+                    end
                 end
             end
             self:_copyDirectory(backup_behaviors, dest_behaviors)
@@ -1130,23 +1380,82 @@ function BackupManager:restoreBackup(backup_path, options)
             if not options.merge_mode then
                 -- Replace mode: clear existing chats first
                 if lfs.attributes(self.CHAT_DIR, "mode") == "directory" then
-                    os.execute(string.format('rm -rf "%s"', self.CHAT_DIR))
+                    local safe_path, _ = self:_sanitizePath(self.CHAT_DIR)
+                    if safe_path then
+                        os.execute(string.format('rm -rf "%s"', safe_path))
+                    end
                 end
             end
             self:_copyDirectory(backup_chats, self.CHAT_DIR)
         end
     end
 
+        -- Mark restore as successful
+        restore_success = true
+    end)  -- End of pcall
+
     -- Clean up temp directory
-    os.execute(string.format('rm -rf "%s"', temp_dir))
+    self:_removeTempDir(temp_dir)
 
-    logger.info("BackupManager: Restored backup: " .. backup_path)
+    -- Handle restore result
+    if pcall_success and restore_success then
+        -- Restore succeeded
+        self:_releaseLock()
+        logger.info("BackupManager: Successfully restored backup: " .. backup_path)
 
-    return {
-        success = true,
-        conflicts = conflicts,
-        warnings = warnings,
-    }
+        return {
+            success = true,
+            conflicts = conflicts,
+            warnings = warnings,
+        }
+    else
+        -- Restore failed - rollback if we have a restore point
+        logger.err("BackupManager: Restore failed:", pcall_err or "unknown error")
+        restore_error = pcall_err or "Restore operation failed"
+
+        if restore_point_path and not options.skip_restore_point then
+            logger.warn("BackupManager: Attempting rollback to restore point...")
+
+            -- Attempt rollback
+            local rollback_options = {
+                skip_restore_point = true,  -- Don't create another restore point
+                restore_settings = true,
+                restore_api_keys = true,
+                restore_configs = true,
+                restore_content = true,
+                restore_chats = false,
+                merge_mode = false,  -- Full replace for rollback
+            }
+
+            local rollback_result = self:restoreBackup(restore_point_path, rollback_options)
+
+            if rollback_result.success then
+                logger.info("BackupManager: Successfully rolled back to restore point")
+                self:_releaseLock()
+                return {
+                    success = false,
+                    error = "Restore failed and was rolled back: " .. restore_error,
+                    rolled_back = true,
+                }
+            else
+                logger.err("BackupManager: Rollback also failed:", rollback_result.error)
+                self:_releaseLock()
+                return {
+                    success = false,
+                    error = "Restore failed AND rollback failed. Manual recovery may be needed. Original error: " .. restore_error,
+                    rolled_back = false,
+                    rollback_error = rollback_result.error,
+                }
+            end
+        else
+            -- No restore point, just return error
+            self:_releaseLock()
+            return {
+                success = false,
+                error = restore_error,
+            }
+        end
+    end
 end
 
 -- List all backups
