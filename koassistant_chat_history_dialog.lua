@@ -1373,18 +1373,19 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
     end
 
     -- Function to create and show the chat viewer
-    local function showChatViewer(content_text)
+    -- state param for rotation: {text, scroll_ratio, scroll_to_bottom}
+    local function showChatViewer(content_text, state)
         -- Always close existing viewer first
         safeClose(self_ref.current_chat_viewer)
         self_ref.current_chat_viewer = nil
 
         -- Note: launch context is now included in createResultText() via history.launch_context
-        local display_text = content_text or history:createResultText(chat_highlighted_text, config)
+        local display_text = content_text or (state and state.text) or history:createResultText(chat_highlighted_text, config)
 
         local viewer = ChatGPTViewer:new{
             title = detailed_title,
             text = display_text,
-            scroll_to_bottom = true, -- Scroll to bottom to show latest messages
+            scroll_to_bottom = state and false or true, -- Scroll to bottom on initial open, preserve position on rotation
             configuration = config,
             original_history = history,
             original_highlighted_text = chat_highlighted_text,
@@ -1482,7 +1483,15 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
             end,
             close_callback = function()
                 self_ref.current_chat_viewer = nil
-            end
+            end,
+            -- Add rotation support by providing a recreation function
+            _recreate_func = function(captured_state)
+                -- Simply recreate by calling showChatViewer with state
+                -- This preserves all the same callbacks and settings through closure
+                showChatViewer(nil, captured_state)
+            end,
+            -- Restore scroll position if provided (from rotation)
+            _initial_scroll_ratio = state and state.scroll_ratio or nil,
         }
 
         self_ref.current_chat_viewer = viewer

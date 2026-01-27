@@ -638,7 +638,43 @@ local function createSaveDialog(document_path, history, chat_history_manager, is
             },
         },
     }
-    
+
+    -- Add rotation support to save dialog
+    local recreate_save_dialog  -- Forward declaration for recursive calls
+    recreate_save_dialog = function(input_text)
+        local new_dialog
+        new_dialog = InputDialog:new{
+            title = _("Save Chat"),
+            input = input_text or suggested_title,
+            buttons = save_dialog.buttons,
+        }
+        new_dialog.onScreenResize = function(self, dimen)
+            local current_input = self:getInputText()
+            UIManager:close(self)
+            UIManager:scheduleIn(0.2, function()
+                recreate_save_dialog(current_input)
+            end)
+            return true
+        end
+        new_dialog.onSetRotationMode = function(self, rotation)
+            return self:onScreenResize(nil)
+        end
+        UIManager:show(new_dialog)
+    end
+
+    save_dialog.onScreenResize = function(self, dimen)
+        local current_input = self:getInputText()
+        UIManager:close(self)
+        UIManager:scheduleIn(0.2, function()
+            recreate_save_dialog(current_input)
+        end)
+        return true
+    end
+
+    save_dialog.onSetRotationMode = function(self, rotation)
+        return self:onScreenResize(nil)
+    end
+
     -- Show the dialog now that it's fully defined
     UIManager:show(save_dialog)
 end
@@ -835,6 +871,45 @@ local function showTagsMenu(document_path, chat_id, chat_history_manager)
                         },
                     },
                 }
+
+                -- Add rotation support to tag input dialog
+                local recreate_tag_dialog
+                recreate_tag_dialog = function(input_text)
+                    local new_tag_dialog
+                    new_tag_dialog = InputDialog:new{
+                        title = _("New Tag"),
+                        input = input_text or "",
+                        input_hint = _("Enter tag name"),
+                        buttons = tag_input.buttons,
+                    }
+                    new_tag_dialog.onScreenResize = function(self, dimen)
+                        local current = self:getInputText()
+                        UIManager:close(self)
+                        UIManager:scheduleIn(0.2, function()
+                            recreate_tag_dialog(current)
+                        end)
+                        return true
+                    end
+                    new_tag_dialog.onSetRotationMode = function(self, rotation)
+                        return self:onScreenResize(nil)
+                    end
+                    UIManager:show(new_tag_dialog)
+                    new_tag_dialog:onShowKeyboard()
+                end
+
+                tag_input.onScreenResize = function(self, dimen)
+                    local current_input = self:getInputText()
+                    UIManager:close(self)
+                    UIManager:scheduleIn(0.2, function()
+                        recreate_tag_dialog(current_input)
+                    end)
+                    return true
+                end
+
+                tag_input.onSetRotationMode = function(self, rotation)
+                    return self:onScreenResize(nil)
+                end
+
                 UIManager:show(tag_input)
                 tag_input:onShowKeyboard()
             end,
@@ -2010,6 +2085,20 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             end
         end,
     }
+
+    -- Add rotation support to input dialog
+    input_dialog.onScreenResize = function(self, dimen)
+        local current_input = self:getInputText()
+        UIManager:close(self)
+        UIManager:scheduleIn(0.2, function()
+            showChatGPTDialog(ui_instance, highlighted_text, configuration, nil, plugin, book_metadata, current_input)
+        end)
+        return true
+    end
+
+    input_dialog.onSetRotationMode = function(self, rotation)
+        return self:onScreenResize(nil)
+    end
     
     -- If a prompt_type is specified, automatically trigger it after dialog is shown
     if prompt_type then
