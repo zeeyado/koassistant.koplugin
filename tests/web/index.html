@@ -1267,10 +1267,10 @@
                 // Build comparison view
                 const grid = document.getElementById('output-compare');
                 grid.innerHTML = providers.map(p => {
-                    const result = state.compareResults[p] || { error: 'No result' };
+                    const result = state.compareResults.results[p] || { error: 'No result' };
                     return `<div class="compare-card">
                         <h4>${p}</h4>
-                        <pre class="output" style="max-height: 400px;">${result.error ? result.error : syntaxHighlight(result.request?.body || {})}</pre>
+                        <pre class="output" style="max-height: 400px;">${result.error ? result.error : syntaxHighlight(result.body || {})}</pre>
                     </div>`;
                 }).join('');
 

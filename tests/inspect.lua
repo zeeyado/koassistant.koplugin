@@ -1489,23 +1489,147 @@ local function startWebServer(options)
             return "400 Bad Request", "application/json", json.encode({ success = false, error = "Invalid request" })
         end
 
+        -- Build the action/prompt object first (needed for skip_language_instruction)
+        local action = request_data.action or { prompt = request_data.message or "Say hello in exactly 5 words." }
+        local is_ask_action = action and action.id == "ask"
+
+        -- Build full options (same as /api/build and /api/send)
+        local build_options = {
+            behavior_variant = request_data.behavior or "full",
+            behavior_override = request_data.custom_behavior,
+            temperature = request_data.temperature or 0.7,
+            domain_context = request_data.domain,
+            user_languages = request_data.languages,
+            primary_language = request_data.primary_language,
+            model = request_data.model,
+            -- Pass skip_language_instruction from action (uses plugin code)
+            skip_language_instruction = action and action.skip_language_instruction,
+        }
+
+        -- Handle thinking/reasoning for all providers
+        if request_data.thinking then
+            -- Anthropic extended thinking
+            if request_data.thinking.enabled then
+                build_options.extended_thinking = true
+                build_options.thinking_budget = request_data.thinking.budget or default_thinking_budget
+            end
+            -- OpenAI reasoning
+            if request_data.thinking.openai_reasoning_enabled then
+                build_options.openai_reasoning = true
+                build_options.openai_reasoning_effort = request_data.thinking.openai_reasoning_effort or "medium"
+            end
+            -- Gemini thinking
+            if request_data.thinking.gemini_thinking_enabled then
+                build_options.gemini_thinking = true
+                build_options.gemini_thinking_level = request_data.thinking.gemini_thinking_level or "high"
+            end
+        end
+
+        -- Build context data for MessageBuilder (same as /api/build)
+        local context = request_data.context or {}
+        local context_type = context.type or "general"
+        local context_data = {}
+
+        if context_type == "highlight" then
+            context_data.highlighted_text = context.highlighted_text
+            context_data.book_title = context.book_title
+            context_data.book_author = context.book_author
+        elseif context_type == "book" then
+            if context.book_title then
+                context_data.book_metadata = {
+                    title = context.book_title,
+                    author = context.book_author,
+                    author_clause = (context.book_author and context.book_author ~= "") and (" by " .. context.book_author) or ""
+                }
+            end
+        elseif context_type == "multi_book" then
+            context_data.books_info = context.books_info or {}
+        end
+
+        -- Handle message/action (same as /api/build)
+        if request_data.action and request_data.message and request_data.message ~= "" then
+            if is_ask_action then
+                context_data.user_question = request_data.message
+            elseif not action.prompt or action.prompt == "" then
+                context_data.additional_input = request_data.message
+            elseif request_data.include_message_as_additional then
+                context_data.additional_input = request_data.message
+            end
+        elseif is_ask_action then
+            context_data.user_question = action.default_message or "I have a question for you."
+        end
+
+        -- Resolve translation language using plugin code
+        if request_data.translation_language or action.id == "translate" then
+            local SystemPrompts = require("prompts.system_prompts")
+            context_data.translation_language = SystemPrompts.getEffectiveTranslationLanguage({
+                translation_language = request_data.translation_language,
+                translation_use_primary = request_data.translation_use_primary,
+                user_languages = request_data.languages,
+                primary_language = request_data.primary_language,
+            })
+        end
+
+        -- Load templates getter for template resolution
+        local templates_getter = nil
+        pcall(function()
+            local Templates = require("prompts/templates")
+            templates_getter = function(name) return Templates.get(name) end
+        end)
+
+        -- Build the message
+        local user_content
+        if is_ask_action then
+            local parts = {}
+            if context_type == "highlight" and context_data.highlighted_text then
+                if context_data.book_title then
+                    table.insert(parts, "[Context]")
+                    local book_info = '"' .. context_data.book_title .. '"'
+                    if context_data.book_author and context_data.book_author ~= "" then
+                        book_info = book_info .. " by " .. context_data.book_author
+                    end
+                    table.insert(parts, "From " .. book_info)
+                    table.insert(parts, "Selected text: " .. context_data.highlighted_text)
+                    table.insert(parts, "")
+                else
+                    table.insert(parts, "[Context]")
+                    table.insert(parts, "Selected text: " .. context_data.highlighted_text)
+                    table.insert(parts, "")
+                end
+            elseif context_type == "book" and context_data.book_metadata then
+                table.insert(parts, "[Context]")
+                local book_info = '"' .. context_data.book_metadata.title .. '"'
+                if context_data.book_metadata.author and context_data.book_metadata.author ~= "" then
+                    book_info = book_info .. " by " .. context_data.book_metadata.author
+                end
+                table.insert(parts, "About " .. book_info)
+                table.insert(parts, "")
+            end
+            table.insert(parts, "[User Question]")
+            table.insert(parts, context_data.user_question or "I have a question for you.")
+            user_content = table.concat(parts, "\n")
+        else
+            user_content = MessageBuilder.build({
+                prompt = action,
+                context = context_type,
+                data = context_data,
+                using_new_format = true,
+                templates_getter = templates_getter,
+            })
+        end
+
+        local messages = {
+            { role = "user", content = user_content }
+        }
+
+        -- Build requests for each provider
         local results = {}
         for _, provider in ipairs(request_data.providers) do
             if RequestInspector:isSupported(provider) then
-                -- Build options
-                local build_options = {
-                    behavior_variant = request_data.behavior or "full",
-                    temperature = request_data.temperature or 0.7,
-                    domain_context = request_data.domain,
-                }
-
                 local api_key = api_keys[provider] or ""
                 local config = buildConfigWithOptions(provider, api_key, build_options)
-                local messages = {
-                    { role = "user", content = request_data.message or "Say hello in exactly 5 words." }
-                }
-
                 local request, err = RequestInspector:buildRequest(provider, config, messages)
+
                 if request then
                     results[provider] = {
                         success = true,
