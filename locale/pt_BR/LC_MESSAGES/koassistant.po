@@ -1237,22 +1237,27 @@ msgid "Provider Settings"
 msgstr "Mais configurações..."
 
 #: koassistant_settings_schema.lua:356
+#, fuzzy
 msgid "International"
-msgstr ""
+msgstr "Internacional"
 
 #: koassistant_settings_schema.lua:357
+#, fuzzy
 msgid "China"
-msgstr ""
+msgstr "China"
 
 #: koassistant_settings_schema.lua:358
+#, fuzzy
 msgid "US"
-msgstr ""
+msgstr "EUA"
 
 #: koassistant_settings_schema.lua:360
+#, fuzzy
 msgid "Qwen Region: %1"
-msgstr ""
+msgstr "Regiao Qwen: %1"
 
 #: koassistant_settings_schema.lua:362
+#, fuzzy
 msgid ""
 "Select your Alibaba Cloud region.\n"
 "\n"
@@ -1261,18 +1266,27 @@ msgid ""
 "- China: Beijing (dashscope)\n"
 "- US: Virginia (dashscope-us)"
 msgstr ""
+"Selecione sua regiao Alibaba Cloud.\n"
+"\n"
+"As chaves de API sao especificas por regiao e NAO sao intercambiaveis:\n"
+"- Internacional: Singapura (dashscope-intl)\n"
+"- China: Pequim (dashscope)\n"
+"- EUA: Virginia (dashscope-us)"
 
 #: koassistant_settings_schema.lua:366
+#, fuzzy
 msgid "International (Singapore)"
-msgstr ""
+msgstr "Internacional (Singapura)"
 
 #: koassistant_settings_schema.lua:367
+#, fuzzy
 msgid "China (Beijing)"
-msgstr ""
+msgstr "China (Pequim)"
 
 #: koassistant_settings_schema.lua:368
+#, fuzzy
 msgid "US (Virginia)"
-msgstr ""
+msgstr "EUA (Virginia)"
 
 #: koassistant_settings_schema.lua:376
 #, fuzzy
@@ -1340,8 +1354,9 @@ msgid "Create Backup"
 msgstr "Criar"
 
 #: koassistant_settings_schema.lua:425
+#, fuzzy
 msgid "Create a backup of your settings, API keys, and custom content."
-msgstr ""
+msgstr "Criar um backup de suas configuracoes, chaves de API e conteudo personalizado."
 
 #: koassistant_settings_schema.lua:431
 #, fuzzy
@@ -1349,20 +1364,24 @@ msgid "Restore from Backup"
 msgstr "Remover do popup"
 
 #: koassistant_settings_schema.lua:432
+#, fuzzy
 msgid "Restore settings from a previous backup."
-msgstr ""
+msgstr "Restaurar configuracoes de um backup anterior."
 
 #: koassistant_settings_schema.lua:438
+#, fuzzy
 msgid "View Backups"
-msgstr ""
+msgstr "Ver backups"
 
 #: koassistant_settings_schema.lua:439
+#, fuzzy
 msgid "View and manage existing backups."
-msgstr ""
+msgstr "Visualizar e gerenciar backups existentes."
 
 #: koassistant_settings_schema.lua:446
+#, fuzzy
 msgid "Backups are stored in: koassistant_backups/"
-msgstr ""
+msgstr "Os backups sao armazenados em: koassistant_backups/"
 
 #: koassistant_settings_schema.lua:454
 #, fuzzy
@@ -1375,13 +1394,18 @@ msgid "Reset feature settings"
 msgstr "Restaurar esta ação para as configurações padrão?"
 
 #: koassistant_settings_schema.lua:460
+#, fuzzy
 msgid ""
 "Resets provider, model, temperature, and other toggles to defaults.\n"
 "\n"
 "Preserves: API keys, custom actions, behaviors, custom models, chat history."
 msgstr ""
+"Redefine provedor, modelo, temperatura e outras opcoes para os padroes.\n"
+"\n"
+"Preserva: chaves de API, acoes personalizadas, comportamentos, modelos personalizados, historico de chat."
 
 #: koassistant_settings_schema.lua:462
+#, fuzzy
 msgid ""
 "Reset feature settings to defaults?\n"
 "\n"
@@ -1389,6 +1413,11 @@ msgid ""
 "\n"
 "API keys, custom actions, behaviors, and chat history will be preserved."
 msgstr ""
+"Redefinir configuracoes de recursos para os padroes?\n"
+"\n"
+"Isso redefinira provedor, modelo, temperatura e outras opcoes.\n"
+"\n"
+"Chaves de API, acoes personalizadas, comportamentos e historico de chat serao preservados."
 
 #: koassistant_settings_schema.lua:468
 #, fuzzy
@@ -1396,14 +1425,20 @@ msgid "Reset all customizations"
 msgstr "Excluir todos os chats"
 
 #: koassistant_settings_schema.lua:469
+#, fuzzy
 msgid ""
 "Resets ALL settings including custom actions, behaviors, domains, models, "
 "and action overrides.\n"
 "\n"
 "Preserves: API keys, chat history."
 msgstr ""
+"Redefine TODAS as configuracoes incluindo acoes personalizadas, comportamentos, dominios, modelos "
+"e substituicoes de acoes.\n"
+"\n"
+"Preserva: chaves de API, historico de chat."
 
 #: koassistant_settings_schema.lua:471
+#, fuzzy
 msgid ""
 "Reset ALL customizations?\n"
 "\n"
@@ -1414,12 +1449,22 @@ msgid ""
 "\n"
 "This cannot be undone."
 msgstr ""
+"Redefinir TODAS as personalizacoes?\n"
+"\n"
+"Isso redefinira todas as configuracoes incluindo acoes personalizadas, comportamentos, dominios "
+"e modelos.\n"
+"\n"
+"Apenas chaves de API e historico de chat serao preservados.\n"
+"\n"
+"Esta acao nao pode ser desfeita."
 
 #: koassistant_settings_schema.lua:477
+#, fuzzy
 msgid "Reset everything (nuclear)"
-msgstr ""
+msgstr "Redefinir tudo (nuclear)"
 
 #: koassistant_settings_schema.lua:478
+#, fuzzy
 msgid ""
 "⚠️ COMPLETE RESET: Deletes ALL settings, custom content, API keys.\n"
 "\n"
@@ -1427,8 +1472,14 @@ msgid ""
 "\n"
 "You will need to re-enter API keys and reconfigure everything."
 msgstr ""
+"REDEFINICAO COMPLETA: Exclui TODAS as configuracoes, conteudo personalizado, chaves de API.\n"
+"\n"
+"Preserva: Apenas historico de chat.\n"
+"\n"
+"Voce precisara reinserir as chaves de API e reconfigurar tudo."
 
 #: koassistant_settings_schema.lua:480
+#, fuzzy
 msgid ""
 "⚠️ RESET EVERYTHING?\n"
 "\n"
@@ -1445,6 +1496,20 @@ msgid ""
 "\n"
 "Are you absolutely sure?"
 msgstr ""
+"REDEFINIR TUDO?\n"
+"\n"
+"Isso EXCLUIRA:\n"
+"- Todas as configuracoes\n"
+"- Acoes, comportamentos e dominios personalizados\n"
+"- Modelos e provedores personalizados\n"
+"- Chaves de API (voce precisara reinserir)\n"
+"- Personalizacoes do menu de acoes\n"
+"\n"
+"Apenas o historico de chat sera preservado.\n"
+"\n"
+"Esta acao NAO pode ser desfeita!\n"
+"\n"
+"Tem certeza absoluta?"
 
 #: koassistant_settings_schema.lua:487
 #, fuzzy
@@ -1454,10 +1519,7 @@ msgstr "Histórico de chat"
 #: koassistant_settings_schema.lua:488
 #, fuzzy
 msgid "Deletes all saved chat conversations across all books."
-msgstr ""
-"Excluir todos os chats salvos?\n"
-"\n"
-"Esta ação não pode ser desfeita."
+msgstr "Exclui todas as conversas de chat salvas de todos os livros."
 
 #: koassistant_settings_schema.lua:490
 #, fuzzy
@@ -1468,9 +1530,11 @@ msgid ""
 "\n"
 "This cannot be undone."
 msgstr ""
-"Excluir todas os chats de “%1”?\n"
+"Excluir todo o historico de chat?\n"
 "\n"
-"Esta ação não pode ser desfeita."
+"Isso removera todas as conversas salvas de todos os livros.\n"
+"\n"
+"Esta acao nao pode ser desfeita."
 
 #: koassistant_settings_schema.lua:502
 #, fuzzy
@@ -1864,20 +1928,24 @@ msgid "Custom (migrated)"
 msgstr "Personalizado (migrado)"
 
 #: main.lua:1081
+#, fuzzy
 msgid "Model already exists"
-msgstr ""
+msgstr "O modelo ja existe"
 
 #: main.lua:1211 main.lua:1644
+#, fuzzy
 msgid "Provider name is required"
-msgstr ""
+msgstr "O nome do provedor e obrigatorio"
 
 #: main.lua:1214 main.lua:1652
+#, fuzzy
 msgid "Base URL is required"
-msgstr ""
+msgstr "A URL base e obrigatoria"
 
 #: main.lua:1223
+#, fuzzy
 msgid "A provider with this name already exists"
-msgstr ""
+msgstr "Ja existe um provedor com este nome"
 
 #: main.lua:1446
 #, fuzzy
@@ -1890,12 +1958,14 @@ msgid "Manage custom providers (%1)..."
 msgstr "Gerenciar comportamentos (%1)"
 
 #: main.lua:1477
+#, fuzzy
 msgid "API key: Required [tap to toggle]"
-msgstr ""
+msgstr "Chave de API: Obrigatoria [toque para alternar]"
 
 #: main.lua:1479
+#, fuzzy
 msgid "API key: Not required [tap to toggle]"
-msgstr ""
+msgstr "Chave de API: Nao obrigatoria [toque para alternar]"
 
 #: main.lua:1484
 #, fuzzy
@@ -1923,11 +1993,15 @@ msgid "Remove provider"
 msgstr "Selecionar provedor"
 
 #: main.lua:1510
+#, fuzzy
 msgid ""
 "Remove custom provider '%1'?\n"
 "\n"
 "This will also remove any custom models and API key for this provider."
 msgstr ""
+"Remover provedor personalizado '%1'?\n"
+"\n"
+"Isso tambem removera todos os modelos personalizados e a chave de API deste provedor."
 
 #: main.lua:1514 main.lua:1855 main.lua:2088
 #, fuzzy
@@ -1940,16 +2014,19 @@ msgid "Add Custom Provider"
 msgstr "Modelo personalizado"
 
 #: main.lua:1547
+#, fuzzy
 msgid "Provider name (e.g., LM Studio)"
-msgstr ""
+msgstr "Nome do provedor (ex.: LM Studio)"
 
 #: main.lua:1551
+#, fuzzy
 msgid "Base URL (e.g., http://localhost:1234/v1/chat/completions)"
-msgstr ""
+msgstr "URL base (ex.: http://localhost:1234/v1/chat/completions)"
 
 #: main.lua:1555 main.lua:1622
+#, fuzzy
 msgid "Default model name (optional)"
-msgstr ""
+msgstr "Nome do modelo padrao (opcional)"
 
 #: main.lua:1585
 #, fuzzy
@@ -1988,19 +2065,25 @@ msgid "Remove all (%1)"
 msgstr "Etiqueta removida: %1"
 
 #: main.lua:1718
+#, fuzzy
 msgid ""
 "Remove all %1 custom provider(s)?\n"
 "\n"
 "This will also remove their custom models and API keys."
 msgstr ""
+"Remover todos os %1 provedor(es) personalizado(s)?\n"
+"\n"
+"Isso tambem removera seus modelos personalizados e chaves de API."
 
 #: main.lua:1747
+#, fuzzy
 msgid "All custom providers removed"
-msgstr ""
+msgstr "Todos os provedores personalizados removidos"
 
 #: main.lua:1763
+#, fuzzy
 msgid "Manage Custom Providers"
-msgstr ""
+msgstr "Gerenciar provedores personalizados"
 
 #: main.lua:1816
 #, fuzzy
@@ -2008,8 +2091,9 @@ msgid "Set as default for %1"
 msgstr "Selecionar modelo para "
 
 #: main.lua:1821
+#, fuzzy
 msgid "Default for %1: %2"
-msgstr ""
+msgstr "Padrao para %1: %2"
 
 #: main.lua:1831
 #, fuzzy
@@ -2017,8 +2101,9 @@ msgid "Clear custom default"
 msgstr "Modelo personalizado"
 
 #: main.lua:1836
+#, fuzzy
 msgid "Cleared custom default for %1"
-msgstr ""
+msgstr "Padrao personalizado removido para %1"
 
 #: main.lua:1846
 #, fuzzy
@@ -2026,8 +2111,9 @@ msgid "Remove custom model"
 msgstr "Modelo personalizado..."
 
 #: main.lua:1851 main.lua:2084
+#, fuzzy
 msgid "Remove custom model '%1'?"
-msgstr ""
+msgstr "Remover modelo personalizado '%1'?"
 
 #: main.lua:1894 main.lua:1900 main.lua:2416
 #, fuzzy
@@ -2045,8 +2131,9 @@ msgid "(system default)"
 msgstr "(padrão)"
 
 #: main.lua:1912
+#, fuzzy
 msgid "Hold to manage. ★ = custom"
-msgstr ""
+msgstr "Segure para gerenciar. ★ = personalizado"
 
 #: main.lua:1975
 #, fuzzy
@@ -2104,12 +2191,14 @@ msgid "Clear all custom models"
 msgstr "Modelo personalizado..."
 
 #: main.lua:2103
+#, fuzzy
 msgid "Remove all %1 custom model(s) for %2?"
-msgstr ""
+msgstr "Remover todos os %1 modelo(s) personalizado(s) de %2?"
 
 #: main.lua:2124
+#, fuzzy
 msgid "All custom models cleared"
-msgstr ""
+msgstr "Todos os modelos personalizados removidos"
 
 #: main.lua:2141
 #, fuzzy
@@ -2127,8 +2216,9 @@ msgid "Using key from apikeys.lua"
 msgstr "Usando chave de apikeys.lua"
 
 #: main.lua:2274
+#, fuzzy
 msgid "Optional - leave empty for local servers"
-msgstr ""
+msgstr "Opcional - deixe vazio para servidores locais"
 
 #: main.lua:2276
 #, fuzzy
@@ -2511,40 +2601,49 @@ msgid "Feature settings reset to defaults"
 msgstr "Configurações restauradas para os padrões"
 
 #: main.lua:4652
+#, fuzzy
 msgid "All customizations reset"
-msgstr ""
+msgstr "Todas as personalizacoes redefinidas"
 
 #: main.lua:4707
+#, fuzzy
 msgid "Everything reset - please re-enter API keys"
-msgstr ""
+msgstr "Tudo redefinido - por favor reinsira as chaves de API"
 
 #: main.lua:4780
+#, fuzzy
 msgid "Core Settings: ✓ Included"
-msgstr ""
+msgstr "Configuracoes principais: ✓ Incluidas"
 
 #: main.lua:4786
+#, fuzzy
 msgid "API Keys: ✓ Include (⚠ Sensitive)"
-msgstr ""
+msgstr "Chaves de API: ✓ Incluir (Sensivel)"
 
 #: main.lua:4786
+#, fuzzy
 msgid "API Keys: ✗ Exclude"
-msgstr ""
+msgstr "Chaves de API: ✗ Excluir"
 
 #: main.lua:4801
+#, fuzzy
 msgid "Config Files: ✓ Include"
-msgstr ""
+msgstr "Arquivos de configuracao: ✓ Incluir"
 
 #: main.lua:4801
+#, fuzzy
 msgid "Config Files: ✗ Exclude"
-msgstr ""
+msgstr "Arquivos de configuracao: ✗ Excluir"
 
 #: main.lua:4816
+#, fuzzy
 msgid "Domains & Behaviors: ✓ Include"
-msgstr ""
+msgstr "Dominios e comportamentos: ✓ Incluir"
 
 #: main.lua:4816
+#, fuzzy
 msgid "Domains & Behaviors: ✗ Exclude"
-msgstr ""
+msgstr "Dominios e comportamentos: ✗ Excluir"
 
 #: main.lua:4831
 #, fuzzy
@@ -2558,20 +2657,26 @@ msgstr "Histórico de chat"
 
 #: main.lua:4846 main.lua:4998 main.lua:5209 main.lua:5231
 msgid "━━━━━━━━━━━━━━━━"
-msgstr ""
+msgstr "━━━━━━━━━━━━━━━━"
 
 #: main.lua:4872
+#, fuzzy
 msgid "What to include in backup:"
-msgstr ""
+msgstr "O que incluir no backup:"
 
 #: main.lua:4884
+#, fuzzy
 msgid ""
 "Creating backup...\n"
 "\n"
 "This may take a moment."
 msgstr ""
+"Criando backup...\n"
+"\n"
+"Isso pode levar um momento."
 
 #: main.lua:4896
+#, fuzzy
 msgid ""
 "Backup created successfully!\n"
 "\n"
@@ -2579,6 +2684,11 @@ msgid ""
 "\n"
 "Size: %2"
 msgstr ""
+"Backup criado com sucesso!\n"
+"\n"
+"Local: %1\n"
+"\n"
+"Tamanho: %2"
 
 #: main.lua:4903 main.lua:5034
 #, fuzzy
@@ -2621,15 +2731,20 @@ msgid "0 chats"
 msgstr "chats"
 
 #: main.lua:4935
+#, fuzzy
 msgid "Included:"
-msgstr ""
+msgstr "Incluido:"
 
 #: main.lua:4945
+#, fuzzy
 msgid ""
 "Backup failed:\n"
 "\n"
 "%1"
 msgstr ""
+"Falha no backup:\n"
+"\n"
+"%1"
 
 #: main.lua:4945 main.lua:5320 main.lua:5460
 #, fuzzy
@@ -2637,19 +2752,28 @@ msgid "Unknown error"
 msgstr "Autor desconhecido"
 
 #: main.lua:4962
+#, fuzzy
 msgid ""
 "No backups found.\n"
 "\n"
 "Create a backup first using:\n"
 "Settings → Advanced → Settings Management → Create Backup"
 msgstr ""
+"Nenhum backup encontrado.\n"
+"\n"
+"Crie um backup primeiro usando:\n"
+"Configuracoes -> Avancado -> Gerenciamento de configuracoes -> Criar backup"
 
 #: main.lua:5004
+#, fuzzy
 msgid ""
 "Select backup to restore\n"
 "\n"
 "Total: %1 backup(s)"
 msgstr ""
+"Selecione o backup para restaurar\n"
+"\n"
+"Total: %1 backup(s)"
 
 #: main.lua:5019 main.lua:5418
 #, fuzzy
@@ -2660,6 +2784,7 @@ msgid ""
 msgstr "Valor inválido"
 
 #: main.lua:5028
+#, fuzzy
 msgid ""
 "Backup: %1\n"
 "\n"
@@ -2668,6 +2793,12 @@ msgid ""
 "\n"
 "Contents:"
 msgstr ""
+"Backup: %1\n"
+"\n"
+"Criado: %2\n"
+"Versao do plugin: %3\n"
+"\n"
+"Conteudo:"
 
 #: main.lua:5038
 #, fuzzy
@@ -2695,8 +2826,9 @@ msgid "Warnings:"
 msgstr "Raciocínio: "
 
 #: main.lua:5087
+#, fuzzy
 msgid "Restore →"
-msgstr ""
+msgstr "Restaurar ->"
 
 #: main.lua:5124
 #, fuzzy
@@ -2704,12 +2836,14 @@ msgid "Settings: ✓ Restore"
 msgstr "Configurações salvas"
 
 #: main.lua:5124
+#, fuzzy
 msgid "Settings: ✗ Skip"
-msgstr ""
+msgstr "Configuracoes: ✗ Pular"
 
 #: main.lua:5141
+#, fuzzy
 msgid "API Keys: ✓ Restore"
-msgstr ""
+msgstr "Chaves de API: ✓ Restaurar"
 
 #: main.lua:5141
 #, fuzzy
@@ -2717,20 +2851,24 @@ msgid "API Keys: ✗ Skip"
 msgstr "Chaves de API"
 
 #: main.lua:5158
+#, fuzzy
 msgid "Config Files: ✓ Restore"
-msgstr ""
+msgstr "Arquivos de configuracao: ✓ Restaurar"
 
 #: main.lua:5158
+#, fuzzy
 msgid "Config Files: ✗ Skip"
-msgstr ""
+msgstr "Arquivos de configuracao: ✗ Pular"
 
 #: main.lua:5175
+#, fuzzy
 msgid "Domains & Behaviors: ✓ Restore"
-msgstr ""
+msgstr "Dominios e comportamentos: ✓ Restaurar"
 
 #: main.lua:5175
+#, fuzzy
 msgid "Domains & Behaviors: ✗ Skip"
-msgstr ""
+msgstr "Dominios e comportamentos: ✗ Pular"
 
 #: main.lua:5192
 #, fuzzy
@@ -2743,16 +2881,19 @@ msgid "Chat History: ✗ Skip"
 msgstr "Histórico de chat"
 
 #: main.lua:5215
+#, fuzzy
 msgid "Mode: Merge with existing"
-msgstr ""
+msgstr "Modo: Mesclar com existente"
 
 #: main.lua:5215
+#, fuzzy
 msgid "Mode: Replace existing"
-msgstr ""
+msgstr "Modo: Substituir existente"
 
 #: main.lua:5237
+#, fuzzy
 msgid "Restore Now"
-msgstr ""
+msgstr "Restaurar agora"
 
 #: main.lua:5257
 #, fuzzy
@@ -2760,6 +2901,7 @@ msgid "What to restore:"
 msgstr "Ações padrão restauradas"
 
 #: main.lua:5270
+#, fuzzy
 msgid ""
 "Restore from backup?\n"
 "\n"
@@ -2767,6 +2909,11 @@ msgid ""
 "\n"
 "⚠ KOReader should be restarted after restore for changes to take full effect."
 msgstr ""
+"Restaurar do backup?\n"
+"\n"
+"Um ponto de restauracao sera criado automaticamente.\n"
+"\n"
+"O KOReader deve ser reiniciado apos a restauracao para que as alteracoes tenham efeito total."
 
 #: main.lua:5271 main.lua:5427
 #, fuzzy
@@ -2774,11 +2921,15 @@ msgid "Restore"
 msgstr "Restaurar padrões"
 
 #: main.lua:5275
+#, fuzzy
 msgid ""
 "Restoring backup...\n"
 "\n"
 "This may take a moment."
 msgstr ""
+"Restaurando backup...\n"
+"\n"
+"Isso pode levar um momento."
 
 #: main.lua:5288
 #, fuzzy
@@ -2798,8 +2949,9 @@ msgid "OK"
 msgstr "OK"
 
 #: main.lua:5306
+#, fuzzy
 msgid "Restart Now"
-msgstr ""
+msgstr "Reiniciar agora"
 
 #: main.lua:5320
 #, fuzzy
@@ -2815,11 +2967,15 @@ msgid "No backups found."
 msgstr "Não há chats salvos"
 
 #: main.lua:5391
+#, fuzzy
 msgid ""
 "Backups (%1)\n"
 "\n"
 "Total size: %2"
 msgstr ""
+"Backups (%1)\n"
+"\n"
+"Tamanho total: %2"
 
 #: main.lua:5407
 #, fuzzy
@@ -2835,9 +2991,11 @@ msgid ""
 "\n"
 "This cannot be undone."
 msgstr ""
-"Excluir todos os chats salvos?\n"
+"Excluir backup?\n"
 "\n"
-"Esta ação não pode ser desfeita."
+"%1\n"
+"\n"
+"Esta acao nao pode ser desfeita."
 
 #: main.lua:5451
 #, fuzzy
@@ -4456,5 +4614,6 @@ msgid "Dictionary"
 msgstr "Dicionário"
 
 #: prompts/actions.lua:265
+#, fuzzy
 msgid "Deep Analysis"
-msgstr ""
+msgstr "Analise profunda"
