@@ -1914,13 +1914,11 @@ end
 -- Handle screen rotation by recreating the viewer with new dimensions
 -- This preserves state (text, scroll position, settings) across rotation
 function ChatGPTViewer:onSetRotationMode(rotation)
-  logger.dbg("ChatGPTViewer: onSetRotationMode called with rotation:", rotation)
   return self:_handleScreenChange()
 end
 
 -- Alternative handler for screen resize events (some KOReader builds use this)
 function ChatGPTViewer:onScreenResize(dimen)
-  logger.dbg("ChatGPTViewer: onScreenResize called with dimen:", dimen)
   return self:_handleScreenChange()
 end
 
