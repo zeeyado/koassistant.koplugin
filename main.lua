@@ -93,6 +93,11 @@ local function maybeCheckForUpdates(plugin_instance)
     if auto_check then
         -- Mark as shown immediately to prevent duplicate checks
         updateMessageShown = true
+        -- Show brief notification so user knows why there's a delay
+        UIManager:show(InfoMessage:new{
+            text = _("Checking for updates..."),
+            timeout = 1.5,
+        })
         -- Run update check in background after a short delay
         -- This allows the main action (chat dialog) to proceed first
         UIManager:scheduleIn(0.5, function()
