@@ -1909,18 +1909,10 @@ function AskGPT:buildModelMenu(simplified)
     })
   end
 
-  -- Build unified list of all models for sorting
+  -- Build unified list of all models (built-in first, then custom)
   local all_models = {}
 
-  -- Add custom models
-  for _idx, model in ipairs(custom_models) do
-    table.insert(all_models, {
-      name = model,
-      is_custom = true,
-    })
-  end
-
-  -- Add built-in models
+  -- Add built-in models (preserves order from model lists file)
   for i = 1, #models do
     table.insert(all_models, {
       name = models[i],
@@ -1928,12 +1920,15 @@ function AskGPT:buildModelMenu(simplified)
     })
   end
 
-  -- Sort alphabetically by model name (case-insensitive)
-  table.sort(all_models, function(a, b)
-    return a.name:lower() < b.name:lower()
-  end)
+  -- Add custom models at the end
+  for _idx, model in ipairs(custom_models) do
+    table.insert(all_models, {
+      name = model,
+      is_custom = true,
+    })
+  end
 
-  -- Create menu items from sorted list
+  -- Create menu items from model list
   for _idx, model_info in ipairs(all_models) do
     local model_copy = model_info.name  -- Capture for closure
     local is_custom = model_info.is_custom
