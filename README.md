@@ -1081,7 +1081,7 @@ Best for: Complex analysis, reasoning problems, nuanced questions
 
 ---
 
-## Supported Providers
+## Supported Providers + Settings
 
 KOAssistant supports **16 AI providers**. Anthropic (Claude) has been the primary focus and most thoroughly tested. Please test and give feedback -- fixes are quickly implemented
 
