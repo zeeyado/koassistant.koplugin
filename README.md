@@ -33,6 +33,7 @@ Most settings are configurable in the UI, including: Provider/model, AI behavior
 - [Managing Conversations](#managing-conversations)
 - [Domains](#domains)
 - [Settings Reference](#settings-reference)
+- [Update Checking](#update-checking)
 - [Advanced Configuration](#advanced-configuration)
 - [Technical Features](#technical-features)
 - [Supported Providers](#supported-providers)
@@ -130,7 +131,13 @@ Find KOAssistant Settings in: **Tools → Page 2 → KOAssistant**
 Assign KOAssistant actions to gestures for easy access. Go to **Settings → Gesture Manager**, pick a gesture (e.g. tap corner, multiswipe), then select **General** to find KOAssistant options.
 
 **Recommended: AI Quick Settings on a gesture**
-Assign "KOAssistant: AI Quick Settings" to a gesture for one-tap access to the settings panel (provider, model, behavior, domain, language, bypass toggles, and more).
+Assign "KOAssistant: AI Quick Settings" to a gesture for one-tap access to a two-column settings panel with commonly used options:
+- **Provider & Model** — Quick switching between AI providers and models
+- **Behavior & Domain** — Change communication style and knowledge context
+- **Temperature & Streaming** — Adjust creativity level and toggle real-time responses
+- **Language & Translation** — Primary response language and translation target
+- **Dictionary & Chat History** — Dictionary language settings and quick access to saved chats
+- **Highlight Bypass & Dictionary Bypass** — Toggle bypass modes on/off
 
 **Alternative: Build a QuickMenu**
 Assign multiple KOAssistant actions to one gesture and enable **"Show as QuickMenu"** to get a selection menu:
@@ -275,7 +282,7 @@ A free-form conversation without specific document context. If started while a b
 
 ### Quick UI Features
 
-- **Settings Icon (Input)**: Tap the gear icon in the input dialog title bar to open AI Quick Settings—a two-column panel for provider, model, behavior, domain, temperature, streaming, primary/translation/dictionary language, and highlight/dictionary bypass toggles
+- **Settings Icon (Input)**: Tap the gear icon in the input dialog title bar to open **AI Quick Settings**—a streamlined two-column panel providing quick access to frequently-changed settings without navigating through the full settings menu. See [Recommended Setup](#recommended-setup) for details on what's available in this panel.
 - **Settings Icon (Viewer)**: Tap the gear icon in the chat viewer title bar to adjust font size and text alignment (cycles left/justified/right on each click)
 - **Show/Hide Quote**: In the chat viewer, toggle button to show or hide the highlighted text quote (useful for long selections)
 - **Other**: Turn on off Text/Markdown view, Debug view mode, add Tags, Change Domain, etc
@@ -989,7 +996,58 @@ This setup means: AI responds in English by default, translates to Spanish, defi
 
 ### About
 - **About KOAssistant**: Plugin info and gesture tips
-- **Check for Updates**: Manual update check
+- **Check for Updates**: Manual update check (see [Update Checking](#update-checking) below)
+
+---
+
+## Update Checking
+
+KOAssistant includes both automatic and manual update checking to keep you informed about new releases.
+
+### Automatic Update Check
+
+By default, KOAssistant automatically checks for updates **once per session** when you first use a plugin feature (starting a chat, highlighting text, etc.). This happens silently in the background after your action completes.
+
+**How it works:**
+1. First time you use KOAssistant after launching KOReader, a brief "Checking for updates..." notification appears (1.5 seconds)
+2. The check runs in the background without blocking your workflow
+3. If a new version is available, a dialog appears with:
+   - Current version and latest version
+   - Full release notes in formatted markdown
+   - "Visit Release Page" button to download (opens in browser if device supports it)
+   - "Later" button to dismiss
+
+**What's checked:**
+- Compares your installed version against GitHub releases
+- Includes both stable releases and pre-releases (alpha/beta)
+- Uses semantic versioning (handles version strings like "0.6.0-beta")
+- Only checks once per session to avoid repeated notifications
+
+**To disable automatic checking:**
+- This feature is enabled by default with no current UI toggle
+- To disable, add to your `configuration.lua`:
+  ```lua
+  features = {
+      auto_check_updates = false,
+  }
+  ```
+
+### Manual Update Check
+
+You can manually check for updates any time via:
+
+**Tools → KOAssistant → Settings → About → Check for Updates**
+
+Manual checks always show a result (whether update is available or you're already on the latest version).
+
+### Version Comparison
+
+The update checker intelligently compares versions:
+- **Newer version available** → Shows release notes dialog
+- **Already on latest** → "You are running the latest version" message
+- **Development version** (newer than latest release) → "You are running a development version" message
+
+**Why the notification on first run?** The brief notification explains the slight delay you might experience when first using the plugin after launching KOReader. This ensures you're aware that the plugin is checking for updates in the background, not experiencing a bug or freeze.
 
 ---
 
