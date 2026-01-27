@@ -1270,22 +1270,27 @@ msgid "Provider Settings"
 msgstr "聊天设置"
 
 #: koassistant_settings_schema.lua:356
+#, fuzzy
 msgid "International"
-msgstr ""
+msgstr "国际"
 
 #: koassistant_settings_schema.lua:357
+#, fuzzy
 msgid "China"
-msgstr ""
+msgstr "中国"
 
 #: koassistant_settings_schema.lua:358
+#, fuzzy
 msgid "US"
-msgstr ""
+msgstr "美国"
 
 #: koassistant_settings_schema.lua:360
+#, fuzzy
 msgid "Qwen Region: %1"
-msgstr ""
+msgstr "Qwen 区域：%1"
 
 #: koassistant_settings_schema.lua:362
+#, fuzzy
 msgid ""
 "Select your Alibaba Cloud region.\n"
 "\n"
@@ -1294,18 +1299,27 @@ msgid ""
 "- China: Beijing (dashscope)\n"
 "- US: Virginia (dashscope-us)"
 msgstr ""
+"选择您的阿里云区域。\n"
+"\n"
+"API密钥是区域特定的，不可互换：\n"
+"- 国际：新加坡 (dashscope-intl)\n"
+"- 中国：北京 (dashscope)\n"
+"- 美国：弗吉尼亚 (dashscope-us)"
 
 #: koassistant_settings_schema.lua:366
+#, fuzzy
 msgid "International (Singapore)"
-msgstr ""
+msgstr "国际（新加坡）"
 
 #: koassistant_settings_schema.lua:367
+#, fuzzy
 msgid "China (Beijing)"
-msgstr ""
+msgstr "中国（北京）"
 
 #: koassistant_settings_schema.lua:368
+#, fuzzy
 msgid "US (Virginia)"
-msgstr ""
+msgstr "美国（弗吉尼亚）"
 
 #: koassistant_settings_schema.lua:376
 #, fuzzy
@@ -1373,8 +1387,9 @@ msgid "Create Backup"
 msgstr "创建"
 
 #: koassistant_settings_schema.lua:425
+#, fuzzy
 msgid "Create a backup of your settings, API keys, and custom content."
-msgstr ""
+msgstr "创建设置、API密钥和自定义内容的备份。"
 
 #: koassistant_settings_schema.lua:431
 #, fuzzy
@@ -1382,20 +1397,24 @@ msgid "Restore from Backup"
 msgstr "从菜单移除"
 
 #: koassistant_settings_schema.lua:432
+#, fuzzy
 msgid "Restore settings from a previous backup."
-msgstr ""
+msgstr "从之前的备份恢复设置。"
 
 #: koassistant_settings_schema.lua:438
+#, fuzzy
 msgid "View Backups"
-msgstr ""
+msgstr "查看备份"
 
 #: koassistant_settings_schema.lua:439
+#, fuzzy
 msgid "View and manage existing backups."
-msgstr ""
+msgstr "查看和管理现有备份。"
 
 #: koassistant_settings_schema.lua:446
+#, fuzzy
 msgid "Backups are stored in: koassistant_backups/"
-msgstr ""
+msgstr "备份存储在：koassistant_backups/"
 
 #: koassistant_settings_schema.lua:454
 #, fuzzy
@@ -1408,13 +1427,18 @@ msgid "Reset feature settings"
 msgstr "将此操作重置为默认设置？"
 
 #: koassistant_settings_schema.lua:460
+#, fuzzy
 msgid ""
 "Resets provider, model, temperature, and other toggles to defaults.\n"
 "\n"
 "Preserves: API keys, custom actions, behaviors, custom models, chat history."
 msgstr ""
+"将提供商、模型、温度和其他开关重置为默认值。\n"
+"\n"
+"保留：API密钥、自定义操作、行为风格、自定义模型、聊天记录。"
 
 #: koassistant_settings_schema.lua:462
+#, fuzzy
 msgid ""
 "Reset feature settings to defaults?\n"
 "\n"
@@ -1422,6 +1446,11 @@ msgid ""
 "\n"
 "API keys, custom actions, behaviors, and chat history will be preserved."
 msgstr ""
+"将功能设置重置为默认值？\n"
+"\n"
+"这将重置提供商、模型、温度和其他开关。\n"
+"\n"
+"API密钥、自定义操作、行为风格和聊天记录将被保留。"
 
 #: koassistant_settings_schema.lua:468
 #, fuzzy
@@ -1429,14 +1458,19 @@ msgid "Reset all customizations"
 msgstr "删除所有聊天"
 
 #: koassistant_settings_schema.lua:469
+#, fuzzy
 msgid ""
 "Resets ALL settings including custom actions, behaviors, domains, models, "
 "and action overrides.\n"
 "\n"
 "Preserves: API keys, chat history."
 msgstr ""
+"重置所有设置，包括自定义操作、行为风格、领域、模型和操作覆盖。\n"
+"\n"
+"保留：API密钥、聊天记录。"
 
 #: koassistant_settings_schema.lua:471
+#, fuzzy
 msgid ""
 "Reset ALL customizations?\n"
 "\n"
@@ -1447,12 +1481,21 @@ msgid ""
 "\n"
 "This cannot be undone."
 msgstr ""
+"重置所有自定义内容？\n"
+"\n"
+"这将重置所有设置，包括自定义操作、行为风格、领域和模型。\n"
+"\n"
+"仅API密钥和聊天记录将被保留。\n"
+"\n"
+"此操作无法撤销。"
 
 #: koassistant_settings_schema.lua:477
+#, fuzzy
 msgid "Reset everything (nuclear)"
-msgstr ""
+msgstr "重置全部（彻底清除）"
 
 #: koassistant_settings_schema.lua:478
+#, fuzzy
 msgid ""
 "⚠️ COMPLETE RESET: Deletes ALL settings, custom content, API keys.\n"
 "\n"
@@ -1460,8 +1503,14 @@ msgid ""
 "\n"
 "You will need to re-enter API keys and reconfigure everything."
 msgstr ""
+"完全重置：删除所有设置、自定义内容、API密钥。\n"
+"\n"
+"仅保留：聊天记录。\n"
+"\n"
+"您需要重新输入API密钥并重新配置所有内容。"
 
 #: koassistant_settings_schema.lua:480
+#, fuzzy
 msgid ""
 "⚠️ RESET EVERYTHING?\n"
 "\n"
@@ -1478,6 +1527,20 @@ msgid ""
 "\n"
 "Are you absolutely sure?"
 msgstr ""
+"重置全部？\n"
+"\n"
+"这将删除：\n"
+"- 所有设置和配置\n"
+"- 自定义操作、行为风格、领域\n"
+"- 自定义模型和提供商\n"
+"- API密钥（您需要重新输入）\n"
+"- 操作菜单自定义\n"
+"\n"
+"仅聊天记录将被保留。\n"
+"\n"
+"此操作无法撤销！\n"
+"\n"
+"您确定吗？"
 
 #: koassistant_settings_schema.lua:487
 #, fuzzy
@@ -1487,10 +1550,7 @@ msgstr "聊天记录"
 #: koassistant_settings_schema.lua:488
 #, fuzzy
 msgid "Deletes all saved chat conversations across all books."
-msgstr ""
-"删除所有保存的聊天记录？\n"
-"\n"
-"此操作无法撤销。"
+msgstr "删除所有书籍中保存的全部聊天对话。"
 
 #: koassistant_settings_schema.lua:490
 #, fuzzy
@@ -1884,20 +1944,24 @@ msgid "Custom (migrated)"
 msgstr "自定义（已迁移）"
 
 #: main.lua:1081
+#, fuzzy
 msgid "Model already exists"
-msgstr ""
+msgstr "模型已存在"
 
 #: main.lua:1211 main.lua:1644
+#, fuzzy
 msgid "Provider name is required"
-msgstr ""
+msgstr "需要提供商名称"
 
 #: main.lua:1214 main.lua:1652
+#, fuzzy
 msgid "Base URL is required"
-msgstr ""
+msgstr "需要基础URL"
 
 #: main.lua:1223
+#, fuzzy
 msgid "A provider with this name already exists"
-msgstr ""
+msgstr "此名称的提供商已存在"
 
 #: main.lua:1446
 #, fuzzy
@@ -1910,12 +1974,14 @@ msgid "Manage custom providers (%1)..."
 msgstr "AI行为：%1"
 
 #: main.lua:1477
+#, fuzzy
 msgid "API key: Required [tap to toggle]"
-msgstr ""
+msgstr "API密钥：必需 [点击切换]"
 
 #: main.lua:1479
+#, fuzzy
 msgid "API key: Not required [tap to toggle]"
-msgstr ""
+msgstr "API密钥：非必需 [点击切换]"
 
 #: main.lua:1484
 #, fuzzy
@@ -1943,11 +2009,15 @@ msgid "Remove provider"
 msgstr "选择提供商"
 
 #: main.lua:1510
+#, fuzzy
 msgid ""
 "Remove custom provider '%1'?\n"
 "\n"
 "This will also remove any custom models and API key for this provider."
 msgstr ""
+"移除自定义提供商「%1」？\n"
+"\n"
+"这也将移除此提供商的所有自定义模型和API密钥。"
 
 #: main.lua:1514 main.lua:1855 main.lua:2088
 #, fuzzy
@@ -1960,16 +2030,19 @@ msgid "Add Custom Provider"
 msgstr "自定义模型"
 
 #: main.lua:1547
+#, fuzzy
 msgid "Provider name (e.g., LM Studio)"
-msgstr ""
+msgstr "提供商名称（例如：LM Studio）"
 
 #: main.lua:1551
+#, fuzzy
 msgid "Base URL (e.g., http://localhost:1234/v1/chat/completions)"
-msgstr ""
+msgstr "基础URL（例如：http://localhost:1234/v1/chat/completions）"
 
 #: main.lua:1555 main.lua:1622
+#, fuzzy
 msgid "Default model name (optional)"
-msgstr ""
+msgstr "默认模型名称（可选）"
 
 #: main.lua:1585
 #, fuzzy
@@ -2008,19 +2081,25 @@ msgid "Remove all (%1)"
 msgstr "已移除标签：%1"
 
 #: main.lua:1718
+#, fuzzy
 msgid ""
 "Remove all %1 custom provider(s)?\n"
 "\n"
 "This will also remove their custom models and API keys."
 msgstr ""
+"移除全部 %1 个自定义提供商？\n"
+"\n"
+"这也将移除它们的自定义模型和API密钥。"
 
 #: main.lua:1747
+#, fuzzy
 msgid "All custom providers removed"
-msgstr ""
+msgstr "已移除所有自定义提供商"
 
 #: main.lua:1763
+#, fuzzy
 msgid "Manage Custom Providers"
-msgstr ""
+msgstr "管理自定义提供商"
 
 #: main.lua:1816
 #, fuzzy
@@ -2028,8 +2107,9 @@ msgid "Set as default for %1"
 msgstr "为以下选择模型："
 
 #: main.lua:1821
+#, fuzzy
 msgid "Default for %1: %2"
-msgstr ""
+msgstr "%1 的默认值：%2"
 
 #: main.lua:1831
 #, fuzzy
@@ -2037,8 +2117,9 @@ msgid "Clear custom default"
 msgstr "自定义模型"
 
 #: main.lua:1836
+#, fuzzy
 msgid "Cleared custom default for %1"
-msgstr ""
+msgstr "已清除 %1 的自定义默认值"
 
 #: main.lua:1846
 #, fuzzy
@@ -2046,8 +2127,9 @@ msgid "Remove custom model"
 msgstr "自定义模型..."
 
 #: main.lua:1851 main.lua:2084
+#, fuzzy
 msgid "Remove custom model '%1'?"
-msgstr ""
+msgstr "移除自定义模型「%1」？"
 
 #: main.lua:1894 main.lua:1900 main.lua:2416
 #, fuzzy
@@ -2065,8 +2147,9 @@ msgid "(system default)"
 msgstr "（默认）"
 
 #: main.lua:1912
+#, fuzzy
 msgid "Hold to manage. ★ = custom"
-msgstr ""
+msgstr "长按管理。★ = 自定义"
 
 #: main.lua:1975
 #, fuzzy
@@ -2124,12 +2207,14 @@ msgid "Clear all custom models"
 msgstr "自定义模型..."
 
 #: main.lua:2103
+#, fuzzy
 msgid "Remove all %1 custom model(s) for %2?"
-msgstr ""
+msgstr "移除 %2 的全部 %1 个自定义模型？"
 
 #: main.lua:2124
+#, fuzzy
 msgid "All custom models cleared"
-msgstr ""
+msgstr "已清除所有自定义模型"
 
 #: main.lua:2141
 #, fuzzy
@@ -2147,8 +2232,9 @@ msgid "Using key from apikeys.lua"
 msgstr "使用apikeys.lua中的密钥"
 
 #: main.lua:2274
+#, fuzzy
 msgid "Optional - leave empty for local servers"
-msgstr ""
+msgstr "可选 - 本地服务器留空"
 
 #: main.lua:2276
 #, fuzzy
@@ -2529,40 +2615,49 @@ msgid "Feature settings reset to defaults"
 msgstr "设置已重置为默认"
 
 #: main.lua:4652
+#, fuzzy
 msgid "All customizations reset"
-msgstr ""
+msgstr "已重置所有自定义内容"
 
 #: main.lua:4707
+#, fuzzy
 msgid "Everything reset - please re-enter API keys"
-msgstr ""
+msgstr "已重置全部 - 请重新输入API密钥"
 
 #: main.lua:4780
+#, fuzzy
 msgid "Core Settings: ✓ Included"
-msgstr ""
+msgstr "核心设置：✓ 包含"
 
 #: main.lua:4786
+#, fuzzy
 msgid "API Keys: ✓ Include (⚠ Sensitive)"
-msgstr ""
+msgstr "API密钥：✓ 包含（敏感）"
 
 #: main.lua:4786
+#, fuzzy
 msgid "API Keys: ✗ Exclude"
-msgstr ""
+msgstr "API密钥：✗ 排除"
 
 #: main.lua:4801
+#, fuzzy
 msgid "Config Files: ✓ Include"
-msgstr ""
+msgstr "配置文件：✓ 包含"
 
 #: main.lua:4801
+#, fuzzy
 msgid "Config Files: ✗ Exclude"
-msgstr ""
+msgstr "配置文件：✗ 排除"
 
 #: main.lua:4816
+#, fuzzy
 msgid "Domains & Behaviors: ✓ Include"
-msgstr ""
+msgstr "领域和行为风格：✓ 包含"
 
 #: main.lua:4816
+#, fuzzy
 msgid "Domains & Behaviors: ✗ Exclude"
-msgstr ""
+msgstr "领域和行为风格：✗ 排除"
 
 #: main.lua:4831
 #, fuzzy
@@ -2576,20 +2671,26 @@ msgstr "聊天记录"
 
 #: main.lua:4846 main.lua:4998 main.lua:5209 main.lua:5231
 msgid "━━━━━━━━━━━━━━━━"
-msgstr ""
+msgstr "━━━━━━━━━━━━━━━━"
 
 #: main.lua:4872
+#, fuzzy
 msgid "What to include in backup:"
-msgstr ""
+msgstr "备份中包含的内容："
 
 #: main.lua:4884
+#, fuzzy
 msgid ""
 "Creating backup...\n"
 "\n"
 "This may take a moment."
 msgstr ""
+"正在创建备份...\n"
+"\n"
+"这可能需要一些时间。"
 
 #: main.lua:4896
+#, fuzzy
 msgid ""
 "Backup created successfully!\n"
 "\n"
@@ -2597,6 +2698,11 @@ msgid ""
 "\n"
 "Size: %2"
 msgstr ""
+"备份创建成功！\n"
+"\n"
+"位置：%1\n"
+"\n"
+"大小：%2"
 
 #: main.lua:4903 main.lua:5034
 #, fuzzy
@@ -2639,15 +2745,20 @@ msgid "0 chats"
 msgstr "聊天"
 
 #: main.lua:4935
+#, fuzzy
 msgid "Included:"
-msgstr ""
+msgstr "已包含："
 
 #: main.lua:4945
+#, fuzzy
 msgid ""
 "Backup failed:\n"
 "\n"
 "%1"
 msgstr ""
+"备份失败：\n"
+"\n"
+"%1"
 
 #: main.lua:4945 main.lua:5320 main.lua:5460
 #, fuzzy
@@ -2655,19 +2766,28 @@ msgid "Unknown error"
 msgstr "未知作者"
 
 #: main.lua:4962
+#, fuzzy
 msgid ""
 "No backups found.\n"
 "\n"
 "Create a backup first using:\n"
 "Settings → Advanced → Settings Management → Create Backup"
 msgstr ""
+"未找到备份。\n"
+"\n"
+"请先创建备份：\n"
+"设置 → 高级 → 设置管理 → 创建备份"
 
 #: main.lua:5004
+#, fuzzy
 msgid ""
 "Select backup to restore\n"
 "\n"
 "Total: %1 backup(s)"
 msgstr ""
+"选择要恢复的备份\n"
+"\n"
+"共 %1 个备份"
 
 #: main.lua:5019 main.lua:5418
 #, fuzzy
@@ -2678,6 +2798,7 @@ msgid ""
 msgstr "无效值"
 
 #: main.lua:5028
+#, fuzzy
 msgid ""
 "Backup: %1\n"
 "\n"
@@ -2686,6 +2807,12 @@ msgid ""
 "\n"
 "Contents:"
 msgstr ""
+"备份：%1\n"
+"\n"
+"创建时间：%2\n"
+"插件版本：%3\n"
+"\n"
+"内容："
 
 #: main.lua:5038
 #, fuzzy
@@ -2713,8 +2840,9 @@ msgid "Warnings:"
 msgstr "推理："
 
 #: main.lua:5087
+#, fuzzy
 msgid "Restore →"
-msgstr ""
+msgstr "恢复 →"
 
 #: main.lua:5124
 #, fuzzy
@@ -2722,12 +2850,14 @@ msgid "Settings: ✓ Restore"
 msgstr "设置已保存"
 
 #: main.lua:5124
+#, fuzzy
 msgid "Settings: ✗ Skip"
-msgstr ""
+msgstr "设置：✗ 跳过"
 
 #: main.lua:5141
+#, fuzzy
 msgid "API Keys: ✓ Restore"
-msgstr ""
+msgstr "API密钥：✓ 恢复"
 
 #: main.lua:5141
 #, fuzzy
@@ -2735,20 +2865,24 @@ msgid "API Keys: ✗ Skip"
 msgstr "API密钥"
 
 #: main.lua:5158
+#, fuzzy
 msgid "Config Files: ✓ Restore"
-msgstr ""
+msgstr "配置文件：✓ 恢复"
 
 #: main.lua:5158
+#, fuzzy
 msgid "Config Files: ✗ Skip"
-msgstr ""
+msgstr "配置文件：✗ 跳过"
 
 #: main.lua:5175
+#, fuzzy
 msgid "Domains & Behaviors: ✓ Restore"
-msgstr ""
+msgstr "领域和行为风格：✓ 恢复"
 
 #: main.lua:5175
+#, fuzzy
 msgid "Domains & Behaviors: ✗ Skip"
-msgstr ""
+msgstr "领域和行为风格：✗ 跳过"
 
 #: main.lua:5192
 #, fuzzy
@@ -2761,16 +2895,19 @@ msgid "Chat History: ✗ Skip"
 msgstr "聊天记录"
 
 #: main.lua:5215
+#, fuzzy
 msgid "Mode: Merge with existing"
-msgstr ""
+msgstr "模式：与现有合并"
 
 #: main.lua:5215
+#, fuzzy
 msgid "Mode: Replace existing"
-msgstr ""
+msgstr "模式：替换现有"
 
 #: main.lua:5237
+#, fuzzy
 msgid "Restore Now"
-msgstr ""
+msgstr "立即恢复"
 
 #: main.lua:5257
 #, fuzzy
@@ -2778,6 +2915,7 @@ msgid "What to restore:"
 msgstr "已恢复默认操作"
 
 #: main.lua:5270
+#, fuzzy
 msgid ""
 "Restore from backup?\n"
 "\n"
@@ -2785,6 +2923,11 @@ msgid ""
 "\n"
 "⚠ KOReader should be restarted after restore for changes to take full effect."
 msgstr ""
+"从备份恢复？\n"
+"\n"
+"将自动创建还原点。\n"
+"\n"
+"恢复后应重启KOReader以使更改完全生效。"
 
 #: main.lua:5271 main.lua:5427
 #, fuzzy
@@ -2792,11 +2935,15 @@ msgid "Restore"
 msgstr "恢复默认"
 
 #: main.lua:5275
+#, fuzzy
 msgid ""
 "Restoring backup...\n"
 "\n"
 "This may take a moment."
 msgstr ""
+"正在恢复备份...\n"
+"\n"
+"这可能需要一些时间。"
 
 #: main.lua:5288
 #, fuzzy
@@ -2816,8 +2963,9 @@ msgid "OK"
 msgstr "确定"
 
 #: main.lua:5306
+#, fuzzy
 msgid "Restart Now"
-msgstr ""
+msgstr "立即重启"
 
 #: main.lua:5320
 #, fuzzy
@@ -2833,11 +2981,15 @@ msgid "No backups found."
 msgstr "未找到保存的聊天"
 
 #: main.lua:5391
+#, fuzzy
 msgid ""
 "Backups (%1)\n"
 "\n"
 "Total size: %2"
 msgstr ""
+"备份（%1）\n"
+"\n"
+"总大小：%2"
 
 #: main.lua:5407
 #, fuzzy
@@ -2853,7 +3005,9 @@ msgid ""
 "\n"
 "This cannot be undone."
 msgstr ""
-"删除所有保存的聊天记录？\n"
+"删除备份？\n"
+"\n"
+"%1\n"
 "\n"
 "此操作无法撤销。"
 
@@ -3330,7 +3484,7 @@ msgstr "（没有可用作模板的现有知识领域）"
 #: koassistant_ui/prompts_manager.lua:32
 #, fuzzy
 msgid "~%1 tokens"
-msgstr "开启（%d 令牌）"
+msgstr "开启（%1 令牌）"
 
 #: koassistant_ui/prompts_manager.lua:64 koassistant_ui/prompts_manager.lua:95
 #, fuzzy
@@ -3345,7 +3499,7 @@ msgstr "已配置"
 #: koassistant_ui/prompts_manager.lua:93
 #, fuzzy
 msgid "On (%1 tokens)"
-msgstr "开启（%d 令牌）"
+msgstr "开启（%1 令牌）"
 
 #: koassistant_ui/prompts_manager.lua:98 koassistant_ui/prompts_manager.lua:493
 #: koassistant_ui/prompts_manager.lua:499
@@ -4035,7 +4189,7 @@ msgstr "关"
 #: koassistant_ui/prompts_manager.lua:1463
 #, fuzzy
 msgid "ON (%1 tokens)"
-msgstr "开启（%d 令牌）"
+msgstr "开启（%1 令牌）"
 
 #: koassistant_ui/prompts_manager.lua:1465
 #: koassistant_ui/prompts_manager.lua:1467
@@ -4459,5 +4613,6 @@ msgid "Dictionary"
 msgstr "词典"
 
 #: prompts/actions.lua:265
+#, fuzzy
 msgid "Deep Analysis"
-msgstr ""
+msgstr "深度分析"
