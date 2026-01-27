@@ -26,12 +26,12 @@ Most settings are configurable in the UI, including: Provider/model, AI behavior
 - [Testing Your Setup](#testing-your-setup)
 - [How to Use KOAssistant](#how-to-use-koassistant)
 - [How the AI Prompt Works](#how-the-ai-prompt-works)
+- [Actions](#actions)
 - [Dictionary Integration](#dictionary-integration)
 - [Bypass Modes](#bypass-modes)
 - [Behaviors](#behaviors)
 - [Managing Conversations](#managing-conversations)
 - [Domains](#domains)
-- [Actions](#actions)
 - [Settings Reference](#settings-reference)
 - [Advanced Configuration](#advanced-configuration)
 - [Technical Features](#technical-features)
@@ -318,6 +318,173 @@ All three can contain instructions to the AI, and deciding what to put where can
 > **Tip:** For most custom actions, using a standard behavior (like "Standard" or "Full") and putting detailed instructions in the action prompt works best. Reserve custom behaviors for broad style preferences you want across all interactions. Reserve domains for deep subject expertise you want across multiple actions.
 
 > **Tip:** There is natural overlap between behavior and domain — both are sent in the system message and both can influence the AI's approach. The key difference: behavior controls *manner* (how it speaks), domain controls *substance* (what it knows). A "scholarly" behavior makes the AI formal and rigorous; a "philosophy" domain makes it reference philosophers and logical frameworks.
+
+---
+
+## Actions
+
+Actions define what you're asking the AI to do. Each action has a prompt template, and can optionally override behavior, domain, language, temperature, reasoning, and provider/model settings. See [How the AI Prompt Works](#how-the-ai-prompt-works) for how actions fit into the full request.
+
+When you select an action and start a chat, you can optionally add your own input (a question, additional context, or specific request) which gets combined with the action's prompt template.
+
+### Managing Actions
+
+**Tools → KOAssistant → Manage Actions**
+
+- Toggle built-in and custom actions on/off
+- Create new actions with the wizard
+- Edit or delete your custom actions (marked with ★)
+- Edit settings for built-in actions (temperature, thinking, provider/model, AI behavior)
+- Duplicate/Copy existing Actions to use them as template (e.g. to make a slightly different variant)
+
+**Action indicators:**
+- **★** = Custom action (editable)
+- **⚙** = Built-in action with modified settings
+
+**Editing built-in actions:** Long-press any built-in action → "Edit Settings" to customize its advanced settings without creating a new action. Use "Reset to Default" to restore original settings.
+
+### Tuning Built-in Actions
+
+Don't like how a built-in action behaves? Clone and customize it:
+
+**Common tweaks:**
+
+1. **Action too verbose?**
+   - **Example:** Elaborate gives you walls of text
+   - **Fix:** Duplicate the action, edit the prompt to add "Keep response under 150 words"
+   - **Why clone?** Preserves the original if you want to compare
+
+2. **Want different model for specific action?**
+   - **Example:** Dictionary lookups are slow with your main model
+   - **Fix:** Edit the Dictionary action → Advanced → Set provider to "anthropic" and model to "claude-haiku-4-5"
+   - **Why:** Different actions benefit from different models. Fast models for quick lookups, powerful models for analysis
+
+3. **Want action without domain/language?**
+   - **Example:** Translate action giving unexpected results due to your domain
+   - **Fix:** Edit action → Name & Context → Check "Skip domain"
+   - **Why:** Domain context can alter translation style/register
+
+4. **Compare different approaches?**
+   - Duplicate an action multiple times with different prompts
+   - Name them "Explain (brief)", "Explain (detailed)", "Explain (ELI5)"
+   - Test which works best for your reading style
+
+**Quick workflow:**
+1. Long-press any action in Manage Actions
+2. Select "Duplicate" or "Edit Settings"
+3. Modify prompt/settings/model
+4. Test in [web inspector](#testing-your-setup)
+5. Use on e-reader when satisfied
+
+**Tip:** Disable built-in actions you don't use (tap to toggle) — cleaner action menus.
+
+### Creating Actions
+
+The action wizard walks through 4 steps:
+
+1. **Name & Context**: Set button text and where it appears (highlight, book, multi-book, general, both, all). Checkboxes:
+   - *Include book info* — Send title/author with highlight actions
+   - *Skip language instruction* — Don't send your language preferences (useful when prompt already specifies target language)
+   - *Skip domain* — Don't include domain context (useful for linguistic tasks like translation)
+   - *Add to Highlight Menu* / *Add to Dictionary Popup* — Quick-access placement
+2. **AI Behavior**: Optional behavior override (use global, select a built-in, none, or write custom text)
+3. **Action Prompt**: The instruction template with placeholder insertion (see [Template Variables](#template-variables))
+4. **Advanced**: Provider, Model, Temperature, and Reasoning/Thinking overrides
+
+### Template Variables
+
+Insert these in your action prompt to reference dynamic values:
+
+| Variable | Context | Description |
+|----------|---------|-------------|
+| `{highlighted_text}` | Highlight | The selected text |
+| `{title}` | Book, Highlight | Book title |
+| `{author}` | Book, Highlight | Book author |
+| `{author_clause}` | Book, Highlight | " by Author" or empty |
+| `{count}` | Multi-book | Number of books |
+| `{books_list}` | Multi-book | Formatted list of books |
+| `{translation_language}` | Any | Target language from settings |
+| `{dictionary_language}` | Any | Dictionary response language from settings |
+| `{context}` | Highlight | Surrounding text context (sentence/paragraph/characters) |
+
+### Tips for Custom Actions
+
+- **Skip domain** for linguistic tasks: Translation, grammar checking, dictionary lookups work better without domain context influencing the output. Enable "Skip domain" in the action wizard for these.
+- **Skip language instruction** when the prompt already specifies a target language (using `{translation_language}` or `{dictionary_language}` placeholders), to avoid conflicting instructions.
+- **Put task-specific instructions in the action prompt**, not in behavior. Behavior applies globally; action prompts are specific. Use a standard behavior and detailed action prompts for most custom actions.
+- **Temperature matters**: Lower (0.3-0.5) for deterministic tasks (translation, definitions). Higher (0.7-0.9) for creative tasks (elaboration, recommendations).
+- **Experiment with domains**: Try running the same action with and without a domain to see what works for your use case. Some actions benefit from domain context (analysis, explanation), others don't (translation, grammar).
+- **Test before deploying**: Use the [web inspector](#testing-your-setup) to test your custom actions before using them on your e-reader. You can try different settings combinations and see exactly what's sent to the AI.
+
+### File-Based Actions
+
+For more control, create `custom_actions.lua`:
+
+```lua
+return {
+    {
+        text = "Grammar Check",
+        context = "highlight",
+        behavior_override = "You are a grammar expert. Be precise and analytical.",
+        prompt = "Check grammar: {highlighted_text}"
+    },
+    {
+        text = "Discussion Questions",
+        context = "book",
+        prompt = "Generate 5 discussion questions for '{title}'{author_clause}."
+    },
+    {
+        text = "Series Order",
+        context = "multi_book",
+        prompt = "What's the reading order for these books?\n\n{books_list}"
+    },
+}
+```
+
+**Optional fields**:
+- `behavior_variant`: Use a preset behavior ("minimal", "full", "none")
+- `behavior_override`: Custom behavior text (overrides variant)
+- `provider`: Force specific provider ("anthropic", "openai", etc.)
+- `model`: Force specific model for the provider
+- `temperature`: Override global temperature (0.0-2.0)
+- `reasoning_config`: Per-provider reasoning settings (see below)
+- `extended_thinking`: Legacy: "off" to disable, "on" to enable (Anthropic only)
+- `thinking_budget`: Legacy: Token budget when extended_thinking="on" (1024-32000)
+- `enabled`: Set to `false` to hide
+- `include_book_context`: Add book info to highlight actions
+- `skip_language_instruction`: Don't include language instruction in system message (default: off; Translate/Dictionary use true since target language is in the prompt)
+- `skip_domain`: Don't include domain context in system message (default: off; Translate/Dictionary use true)
+- `domain`: Force a specific domain by ID (overrides the user's current domain selection; file-only, no UI for this yet)
+
+**Per-provider reasoning config** (new in v0.6):
+```lua
+reasoning_config = {
+    anthropic = { budget = 4096 },      -- Extended thinking budget
+    openai = { effort = "medium" },     -- low/medium/high
+    gemini = { level = "high" },        -- low/medium/high
+}
+-- Or: reasoning_config = "off" to disable for all providers
+```
+
+See `custom_actions.lua.sample` for more examples.
+
+### Highlight Menu Actions
+
+Add frequently-used highlight actions directly to KOReader's highlight popup for faster access:
+
+1. Go to **Manage Actions**
+2. Tap on a highlight-context action (Explain, Translate, etc.)
+3. Tap **"Add to Highlight Menu"**
+4. A notification reminds you to restart KOReader
+
+Actions appear as "KOA: Explain", "KOA: Translate", etc. in the highlight popup.
+
+**Managing quick actions**:
+- Use **Settings → Highlight Settings → Highlight Menu Actions** to view all enabled quick actions
+- Tap an action to move it up/down or remove it
+- Actions requiring user input (like "Ask") cannot be added
+
+**Note**: Changes require an app restart since the highlight menu is built at startup.
 
 ---
 
@@ -697,138 +864,6 @@ Chat History → hamburger menu → **View by Domain**
 
 ---
 
-## Actions
-
-Actions define what you're asking the AI to do. Each action has a prompt template, and can optionally override behavior, domain, language, temperature, reasoning, and provider/model settings. See [How the AI Prompt Works](#how-the-ai-prompt-works) for how actions fit into the full request.
-
-When you select an action and start a chat, you can optionally add your own input (a question, additional context, or specific request) which gets combined with the action's prompt template.
-
-### Managing Actions
-
-**Tools → KOAssistant → Manage Actions**
-
-- Toggle built-in and custom actions on/off
-- Create new actions with the wizard
-- Edit or delete your custom actions (marked with ★)
-- Edit settings for built-in actions (temperature, thinking, provider/model, AI behavior)
-- Duplicate/Copy existing Actions to use them as template (e.g. to make a slightly different variant)
-
-**Action indicators:**
-- **★** = Custom action (editable)
-- **⚙** = Built-in action with modified settings
-
-**Editing built-in actions:** Long-press any built-in action → "Edit Settings" to customize its advanced settings without creating a new action. Use "Reset to Default" to restore original settings.
-
-### Creating Actions
-
-The action wizard walks through 4 steps:
-
-1. **Name & Context**: Set button text and where it appears (highlight, book, multi-book, general, both, all). Checkboxes:
-   - *Include book info* — Send title/author with highlight actions
-   - *Skip language instruction* — Don't send your language preferences (useful when prompt already specifies target language)
-   - *Skip domain* — Don't include domain context (useful for linguistic tasks like translation)
-   - *Add to Highlight Menu* / *Add to Dictionary Popup* — Quick-access placement
-2. **AI Behavior**: Optional behavior override (use global, select a built-in, none, or write custom text)
-3. **Action Prompt**: The instruction template with placeholder insertion (see [Template Variables](#template-variables))
-4. **Advanced**: Provider, Model, Temperature, and Reasoning/Thinking overrides
-
-### Template Variables
-
-Insert these in your action prompt to reference dynamic values:
-
-| Variable | Context | Description |
-|----------|---------|-------------|
-| `{highlighted_text}` | Highlight | The selected text |
-| `{title}` | Book, Highlight | Book title |
-| `{author}` | Book, Highlight | Book author |
-| `{author_clause}` | Book, Highlight | " by Author" or empty |
-| `{count}` | Multi-book | Number of books |
-| `{books_list}` | Multi-book | Formatted list of books |
-| `{translation_language}` | Any | Target language from settings |
-| `{dictionary_language}` | Any | Dictionary response language from settings |
-| `{context}` | Highlight | Surrounding text context (sentence/paragraph/characters) |
-
-### Tips for Custom Actions
-
-- **Skip domain** for linguistic tasks: Translation, grammar checking, dictionary lookups work better without domain context influencing the output. Enable "Skip domain" in the action wizard for these.
-- **Skip language instruction** when the prompt already specifies a target language (using `{translation_language}` or `{dictionary_language}` placeholders), to avoid conflicting instructions.
-- **Put task-specific instructions in the action prompt**, not in behavior. Behavior applies globally; action prompts are specific. Use a standard behavior and detailed action prompts for most custom actions.
-- **Temperature matters**: Lower (0.3-0.5) for deterministic tasks (translation, definitions). Higher (0.7-0.9) for creative tasks (elaboration, recommendations).
-- **Experiment with domains**: Try running the same action with and without a domain to see what works for your use case. Some actions benefit from domain context (analysis, explanation), others don't (translation, grammar).
-- **Test before deploying**: Use the [web inspector](#testing-your-setup) to test your custom actions before using them on your e-reader. You can try different settings combinations and see exactly what's sent to the AI.
-
-### File-Based Actions
-
-For more control, create `custom_actions.lua`:
-
-```lua
-return {
-    {
-        text = "Grammar Check",
-        context = "highlight",
-        behavior_override = "You are a grammar expert. Be precise and analytical.",
-        prompt = "Check grammar: {highlighted_text}"
-    },
-    {
-        text = "Discussion Questions",
-        context = "book",
-        prompt = "Generate 5 discussion questions for '{title}'{author_clause}."
-    },
-    {
-        text = "Series Order",
-        context = "multi_book",
-        prompt = "What's the reading order for these books?\n\n{books_list}"
-    },
-}
-```
-
-**Optional fields**:
-- `behavior_variant`: Use a preset behavior ("minimal", "full", "none")
-- `behavior_override`: Custom behavior text (overrides variant)
-- `provider`: Force specific provider ("anthropic", "openai", etc.)
-- `model`: Force specific model for the provider
-- `temperature`: Override global temperature (0.0-2.0)
-- `reasoning_config`: Per-provider reasoning settings (see below)
-- `extended_thinking`: Legacy: "off" to disable, "on" to enable (Anthropic only)
-- `thinking_budget`: Legacy: Token budget when extended_thinking="on" (1024-32000)
-- `enabled`: Set to `false` to hide
-- `include_book_context`: Add book info to highlight actions
-- `skip_language_instruction`: Don't include language instruction in system message (default: off; Translate/Dictionary use true since target language is in the prompt)
-- `skip_domain`: Don't include domain context in system message (default: off; Translate/Dictionary use true)
-- `domain`: Force a specific domain by ID (overrides the user's current domain selection; file-only, no UI for this yet)
-
-**Per-provider reasoning config** (new in v0.6):
-```lua
-reasoning_config = {
-    anthropic = { budget = 4096 },      -- Extended thinking budget
-    openai = { effort = "medium" },     -- low/medium/high
-    gemini = { level = "high" },        -- low/medium/high
-}
--- Or: reasoning_config = "off" to disable for all providers
-```
-
-See `custom_actions.lua.sample` for more examples.
-
-### Highlight Menu Actions
-
-Add frequently-used highlight actions directly to KOReader's highlight popup for faster access:
-
-1. Go to **Manage Actions**
-2. Tap on a highlight-context action (Explain, Translate, etc.)
-3. Tap **"Add to Highlight Menu"**
-4. A notification reminds you to restart KOReader
-
-Actions appear as "KOA: Explain", "KOA: Translate", etc. in the highlight popup.
-
-**Managing quick actions**:
-- Use **Settings → Highlight Settings → Highlight Menu Actions** to view all enabled quick actions
-- Tap an action to move it up/down or remove it
-- Actions requiring user input (like "Ask") cannot be added
-
-**Note**: Changes require an app restart since the highlight menu is built at startup.
-
----
-
 ## Settings Reference
 
 **Tools → KOAssistant → Settings**
@@ -1019,7 +1054,9 @@ When you have the same domain selected across multiple questions, subsequent que
 
 ### Reasoning/Thinking
 
-For complex questions, supported models can "think" through the problem before responding:
+For complex questions, supported models can "think" through the problem before responding.
+
+> **Note:** Some models always use reasoning by default (OpenAI o-series, DeepSeek Reasoner) and don't have toggles. The settings below are for models where reasoning is *optional* and can be controlled. A model tier system is being developed that will let you select provider-agnostic tiers (like "reasoning" or "ultrafast") in action settings — currently you must specify provider and model explicitly.
 
 **Anthropic Extended Thinking:**
 1. Enable in Settings → AI Response → Anthropic Extended Thinking
