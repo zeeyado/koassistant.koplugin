@@ -1,4 +1,5 @@
 local _ = require("koassistant_gettext")
+local T = require("ffi/util").template
 local logger = require("logger")
 local DataStorage = require("datastorage")
 local UIManager = require("ui/uimanager")
@@ -28,7 +29,7 @@ local function getBuiltinBehaviorOptions()
             table.insert(options, {
                 id = behavior.id,
                 text = behavior.name,
-                desc = string.format(_("~%d tokens"), tokens),
+                desc = T(_("~%1 tokens"), tokens),
             })
         end
     end
@@ -89,7 +90,7 @@ function PromptsManager:getReasoningDisplayText(obj)
     -- Legacy format: extended_thinking
     if obj.extended_thinking == "on" then
         local budget = obj.thinking_budget or ModelConstraints.reasoning_defaults.anthropic.budget
-        return string.format(_("On (%d tokens)"), budget)
+        return T(_("On (%1 tokens)"), budget)
     elseif obj.extended_thinking == "off" then
         return _("Force OFF")
     end
@@ -719,7 +720,7 @@ function PromptsManager:duplicateAction(action)
 
     -- Show success notification
     UIManager:show(InfoMessage:new{
-        text = string.format(_("Created: %s\n\nYou can find and edit it in the Actions list."), duplicate.text),
+        text = T(_("Created: %1\n\nYou can find and edit it in the Actions list."), duplicate.text),
         timeout = 2,
     })
 
@@ -1459,7 +1460,7 @@ function PromptsManager:showPerProviderReasoningMenu(state, refresh_callback)
         if cfg == nil then return _("(global)") end
         if cfg == false then return _("OFF") end
         if provider == "anthropic" and cfg.budget then
-            return string.format(_("ON (%d tokens)"), cfg.budget)
+            return T(_("ON (%1 tokens)"), cfg.budget)
         elseif provider == "openai" and cfg.effort then
             return _("ON (") .. cfg.effort .. ")"
         elseif provider == "gemini" and cfg.level then
@@ -1593,7 +1594,7 @@ function PromptsManager:showAnthropicBudgetSelector(state)
 
     local spin_widget = SpinWidget:new{
         title_text = _("Thinking Budget"),
-        info_text = string.format(_("Token budget for extended thinking.\nHigher = more complex reasoning.\nRange: %d - %d"),
+        info_text = T(_("Token budget for extended thinking.\nHigher = more complex reasoning.\nRange: %1 - %2"),
             defaults.budget_min, defaults.budget_max),
         value = current_budget,
         value_min = defaults.budget_min,
@@ -1765,7 +1766,7 @@ function PromptsManager:showThinkingBudgetSelector(state)
 
     local spin_widget = SpinWidget:new{
         title_text = _("Thinking Budget"),
-        info_text = string.format(_("Token budget for reasoning (Anthropic).\nHigher = more complex reasoning.\nRange: %d - %d"),
+        info_text = T(_("Token budget for reasoning (Anthropic).\nHigher = more complex reasoning.\nRange: %1 - %2"),
             defaults.budget_min, defaults.budget_max),
         value = current_budget,
         value_min = defaults.budget_min,
@@ -2094,7 +2095,7 @@ function PromptsManager:showBuiltinSettingsDialog(state)
         },
     }
 
-    local info = string.format(_([[Edit settings for: %s
+    local info = T(_([[Edit settings for: %1
 
 These settings override the defaults for this built-in action.
 Set to "Global" to use the default setting.]]), prompt.text)
@@ -2799,7 +2800,7 @@ function PromptsManager:showHighlightMenuManager()
     end
 
     self.highlight_menu = Menu:new{
-        title = string.format(_("Highlight Menu (%d enabled)"), menu_count),
+        title = T(_("Highlight Menu (%1 enabled)"), menu_count),
         item_table = menu_items,
         width = self.width,
         height = self.height,
@@ -2957,7 +2958,7 @@ function PromptsManager:showDictionaryPopupManager()
     end
 
     self.dictionary_popup_menu = Menu:new{
-        title = string.format(_("Dictionary Popup (%d enabled)"), popup_count),
+        title = T(_("Dictionary Popup (%1 enabled)"), popup_count),
         item_table = menu_items,
         width = self.width,
         height = self.height,

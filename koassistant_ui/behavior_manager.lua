@@ -1,4 +1,5 @@
 local _ = require("koassistant_gettext")
+local T = require("ffi/util").template
 local logger = require("logger")
 local UIManager = require("ui/uimanager")
 local Menu = require("ui/widget/menu")
@@ -172,7 +173,7 @@ function BehaviorManager:showBehaviorMenu()
                 self:setSelectedBehavior(behavior.id)
                 self:refreshMenu()
                 UIManager:show(InfoMessage:new{
-                    text = string.format(_("Selected: %s"), behavior.display_name),
+                    text = T(_("Selected: %1"), behavior.display_name),
                     timeout = 1,
                 })
             end,
@@ -300,7 +301,7 @@ function BehaviorManager:showBehaviorDetails(behavior)
                 callback = function()
                     UIManager:close(self.details_dialog)
                     UIManager:show(ConfirmBox:new{
-                        text = string.format(_("Delete '%s'?"), behavior.name),
+                        text = T(_("Delete '%1'?"), behavior.name),
                         ok_callback = function()
                             self:deleteCustomBehavior(behavior.id)
                             self:refreshMenu()
@@ -456,7 +457,7 @@ function BehaviorManager:showBehaviorTextEditor(behavior, name, initial_text)
         title = is_new and _("New Behavior - Content") or _("Edit Behavior - Content"),
         input = initial_text,
         input_hint = _("Enter behavior instructions for the AI..."),
-        description = string.format(_("Name: %s\n\nDefine how the AI should behave. This text is sent as part of the system prompt."), name),
+        description = T(_("Name: %1\n\nDefine how the AI should behave. This text is sent as part of the system prompt."), name),
         input_type = "text",
         allow_newline = true,
         fullscreen = true,
@@ -498,13 +499,13 @@ function BehaviorManager:showBehaviorTextEditor(behavior, name, initial_text)
                         if is_new then
                             local new_id = self:addCustomBehavior(name, text)
                             UIManager:show(InfoMessage:new{
-                                text = string.format(_("Created: %s"), name),
+                                text = T(_("Created: %1"), name),
                                 timeout = 1,
                             })
                         else
                             self:updateCustomBehavior(behavior.id, name, text)
                             UIManager:show(InfoMessage:new{
-                                text = string.format(_("Updated: %s"), name),
+                                text = T(_("Updated: %1"), name),
                                 timeout = 1,
                             })
                         end
