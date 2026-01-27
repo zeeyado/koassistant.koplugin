@@ -14,7 +14,7 @@ Chats are streamed live (like ChatGPT/Claude, etc), are automatically (or manual
 
 Most settings are configurable in the UI, including: Provider/model, AI behavior and style, user-to-AI interaction languages, translation languages, domains/project/field context, custom actions (which you can create, edit, duplicate, and adjust settings for), and advanced model settings like reasoning/thinking, temperature, and more. Most settings, additional context, and function combinations can be specified for a given action.
 
-> **Development Status**: KOAssistant is currently under active development, with features constantly added. 16 built-in providers are supported (plus custom OpenAI-compatible providers) — see [Supported Providers](#supported-providers); **testing and Feedback appreciated**. You can open an issue, feature request, or start a discussion. If you don't want to wait for releases, you can clone the repo from main and check `_meta.lua` to see which version you are on. Some things may break when not on official releases. Running off of other branches than main is not recommended. Due to the current changing nature of the plugin, parts of the documentation (READMEs) may be out of sync. The main README is deliberately verbose and repetitive (to make sure users see all functions) -- help making actual structured and consise docs as the plugin matures would be appreciated.
+> **Development Status**: KOAssistant is currently under active development, with features constantly added. 16 built-in providers are supported (plus custom OpenAI-compatible providers) — see [Supported Providers](#supported-providers); **testing and Feedback appreciated**. You can open an issue, feature request, or start a discussion. If you don't want to wait for releases, you can clone the repo from main and check `_meta.lua` to see which version you are on. Some things may break when not on official releases. Running off of other branches than main is not recommended, as functional changes are quickly merged to main (and added to release after testing). Due to the current changing nature of the plugin, parts of the documentation (READMEs) may be out of sync. The main README is deliberately verbose and repetitive (to make sure users see all functions) -- help making actual structured and consise docs as the plugin matures would be appreciated. Built in actions, domains, behaviors, etc, are subject to change and are in varying degrees of testing/demonstration-of-feature stages.
 
 ---
 
@@ -61,7 +61,7 @@ Most settings are configurable in the UI, including: Provider/model, AI behavior
 
 **Want to go deeper?** The rest of this README covers all features in detail.
 
-**Note:** The README is intentionally verbose and somewhat repetitive to ensure you see all features and their nuances. Use the table of contents to jump to specific topics. A more concise structured documentation system is planned (contributions welcome!).
+**Note:** The README is intentionally verbose and somewhat repetitive to ensure you see all features and their nuances. Use the table of contents to jump to specific topics. A more concise structured documentation system is planned (contributions welcome).
 
 ---
 
@@ -123,7 +123,7 @@ Find KOAssistant Settings in: **Tools → Page 2 → KOAssistant**
 
 ## Recommended Setup
 
-> **Tip**: Edit built in action to use the provider/model of your choice; e.g. Dictionary actions would benefit from a lighter model for speed.
+> **Tip**: Edit built in actions to always use the provider/model of your choice (regardless of your main settings); e.g. Dictionary actions would benefit from a lighter model for speed.
 
 ### Configure Quick Access Gestures
 
@@ -157,7 +157,7 @@ After basic setup, explore these features to get the most out of KOAssistant:
 | **[Domains](#domains)** | Add project-like context to conversations | Settings → Advanced → Manage Domains |
 | **[Actions](#actions)** | Create your own prompts and workflows | Settings → Manage Actions |
 | **[Highlight Menu](#highlight-menu-actions)** | Add actions directly to highlight popup | Manage Actions → Add to Highlight Menu |
-| **[Dictionary Integration](#dictionary-integration)** | AI-powered word lookups when tapping words | Settings → Dictionary Settings |
+| **[Dictionary Integration](#dictionary-integration)** | AI-powered word lookups when selecting single words | Settings → Dictionary Settings |
 | **[Bypass Modes](#bypass-modes)** | Instant AI actions without menus | Settings → Dictionary/Highlight Settings |
 | **Reasoning/Thinking** | Enable deep analysis for complex questions | Settings → Advanced → Reasoning |
 | **Languages** | Configure multilingual responses | Settings → Language |
@@ -186,7 +186,7 @@ The test suite includes an interactive web inspector that lets you test and expe
 - **Simulate all contexts** — Highlight text, book metadata, multi-book selections
 - **Try custom actions** — Test your action prompts before using them on your device
 - **Load your actual domains** — The inspector reads from your `domains/` folder
-- **Send multi-turn conversations** — Full chat interface with conversation history
+- **Send multi-turn conversations** — **Full chat interface** with conversation history
 
 **Requirements:**
 - Lua 5.3+ with LuaSocket, LuaSec, and dkjson
@@ -196,17 +196,19 @@ The test suite includes an interactive web inspector that lets you test and expe
 ```bash
 cd /path/to/koassistant.koplugin
 lua tests/inspect.lua --web
-# Then open http://localhost:8080
+# Then open http://localhost:8080 in a browser
 ```
 
 **Pro tip:** The web inspector reads from your actual KOAssistant settings (`koassistant_settings.lua`), so run KOReader on the same device/computer first to load your full configuration (languages, behavior, temperature, etc.).
 
 **Why use it:**
-- Test actions and prompts before deploying to your e-reader
+- Test actions and prompts comfortably on a computer before deploying to your e-reader
+- Have actual chats with your desired setup to see how it performs
 - Experiment with expensive reasoning models without UI overhead
 - Debug why a prompt isn't working as expected
 - Learn how different settings affect request structure
 - Validate custom providers and models
+- Compare model and provider performance
 
 ---
 
@@ -231,7 +233,7 @@ KOAssistant works in **4 contexts**, each with its own set of actions, and you c
 | **Summarize** | Concise summary of the text |
 | **Elaborate** | Expand on concepts, provide additional context and details |
 | **Translate** | Translate to your configured language |
-| **Dictionary** | Word definition with context (also accessible via word tap) |
+| **Dictionary** | Word definition with context (also accessible via word selection, like KOReader native behavior) |
 
 **What the AI sees**: Your highlighted text, plus Document metadata (title, author, identifiers from file properties)
 
@@ -323,13 +325,13 @@ All three can contain instructions to the AI, and deciding what to put where can
 
 With help from contributions to [assistant.koplugin](https://github.com/omer-faruq/assistant.koplugin) by [plateaukao](https://github.com/plateaukao) and others
 
-KOAssistant integrates with KOReader's dictionary system, providing AI-powered word lookups when you tap on words in a document.
+KOAssistant integrates with KOReader's dictionary system, providing AI-powered word lookups when you select words in a document.
 
 > **Tip:** Go into Action Management and select a light model (e.g. Haiku) for faster dictionary Actions.
 
 ### How It Works
 
-When you tap a word in a document, KOReader normally shows its dictionary popup. With KOAssistant's dictionary integration, you can:
+When you select a word in a document, KOReader normally shows its dictionary popup. With KOAssistant's dictionary integration, you can:
 
 1. **Add AI actions to the dictionary popup** - Tap the "AI Dictionary" button to access a menu of AI-powered word analysis options (3 actions included by default)
 2. **Bypass the dictionary entirely** - Skip KOReader's dictionary and go directly to AI for word lookups
@@ -340,7 +342,7 @@ When you tap a word in a document, KOReader normally shows its dictionary popup.
 
 | Setting | Description |
 |---------|-------------|
-| **AI Button in Dictionary Popup** | Show "AI Dictionary" button in KOReader's dictionary popup |
+| **AI Buttons in Dictionary Popup** | Show "AI Dictionary" and other action buttons in KOReader's dictionary popup |
 | **Response Language** | Language for dictionary definitions (follow translation language or set specific) |
 | **Context Mode** | Surrounding text to include: None (default), Sentence, Paragraph, or Characters |
 | **Context Characters** | Number of characters when using "Characters" mode (default: 100) |
@@ -395,7 +397,7 @@ See [How Language Settings Work Together](#how-language-settings-work-together) 
 
 ### Dictionary Bypass
 
-When bypass is enabled, tapping a word skips KOReader's dictionary popup entirely and immediately triggers your chosen AI action.
+When bypass is enabled, selecting a word skips KOReader's dictionary popup entirely and immediately triggers your chosen AI action.
 
 **To enable:**
 1. Settings → Dictionary Settings → Bypass KOReader Dictionary → ON
@@ -441,10 +443,10 @@ Bypass modes let you skip menus and immediately trigger AI actions.
 
 ### Dictionary Bypass
 
-Skip KOReader's dictionary popup when tapping words. Useful for language learners who want instant AI definitions.
+Skip KOReader's dictionary popup when selecting words. Useful for language learners who want instant AI definitions.
 
 **How it works:**
-1. Tap a word in the document
+1. Select a word in the document
 2. Instead of dictionary popup → AI action triggers immediately
 3. Response appears in **compact view** (minimal UI with Lang/Ctx/Vocab buttons — see [Compact View Features](#compact-view-features))
 
@@ -516,10 +518,12 @@ Behavior defines the AI's personality, communication style, and response guideli
 Five built-in behaviors are always available (based on [Anthropic Claude guidelines](https://docs.anthropic.com/en/release-notes/system-prompts)):
 
 - **Mini** (~220 tokens): Concise guidance for e-reader conversations
-- **Standard** (~420 tokens): Balanced guidance for quality responses
+- **Standard (default)** (~420 tokens): Balanced guidance for quality responses
 - **Full** (~1150 tokens): Comprehensive guidance for best quality responses
 - **Research Standard** (~470 tokens): Research-focused with source transparency (based on Perplexity)
 - **Translator Direct** (~80 tokens): Direct translation without commentary (used by Translate action)
+
+Note: Built in behaviors are subject to change as the plugin matures -- info may be out of date.
 
 ### Sample Behaviors
 
@@ -639,7 +643,7 @@ Create domains via:
 
 **File format**:
 
-**Example**: `domains/synthesis.md` (from `domains.sample/`)
+**Example**: Truncated part of `domains/synthesis.md` (from `domains.sample/`)
 ```markdown
 # Perennial Synthesis
 <!--
@@ -650,12 +654,17 @@ Notes: Interdisciplinary reading across mystical, philosophical, psychological t
 This conversation engages ideas across traditions—mystical, philosophical,
 psychological, scientific—seeking resonances without forcing false equivalences.
 
+...
+
 ## Orientation
 Approach texts and questions through multiple lenses simultaneously:
 - Depth Psychology: Jungian concepts as maps of inner territory
 - Contemplative Traditions: Sufism, Taoism, Buddhism, Christian mysticism
 - Philosophy: Western and non-Western traditions
 - Scientific Cosmology: Modern physics, complexity theory, emergence
+
+...
+
 ```
 
 - Filename becomes the domain ID: `my_domain.md` → ID `my_domain`
@@ -873,7 +882,7 @@ Actions appear as "KOA: Explain", "KOA: Translate", etc. in the highlight popup.
 
 ### Dictionary Settings
 See [Dictionary Integration](#dictionary-integration) and [Bypass Modes](#bypass-modes) for details.
-- **AI Button in Dictionary Popup**: Show AI Dictionary button (opens menu with 3 actions by default) when tapping words
+- **AI Button in Dictionary Popup**: Show AI Dictionary button (opens menu with 3 actions by default) when selecting words
 - **Response Language**: Language for definitions (Follow Translation Language or specific)
 - **Context Mode**: Surrounding text to include (Sentence, Paragraph, Characters, None)
 - **Context Characters**: Character count for Characters mode (default: 100)
@@ -994,8 +1003,7 @@ return {
 When enabled, responses appear in real-time as the AI generates them.
 
 - **Auto-scroll**: Follows new text as it appears
-- **Pause button**: Tap to stop auto-scrolling and read
-- **Resume button**: Jump back to bottom and continue following
+- **Auto-Scroll toggle button**: Tap to stop/start auto-scrolling
 
 Works with all providers that support streaming.
 
@@ -1312,7 +1320,7 @@ Shows:
 
 ## Requirements
 
-- KOReader 2023.04 or newer
+- KOReader
 - Internet connection
 - At least one API key
 
