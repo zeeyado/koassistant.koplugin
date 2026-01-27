@@ -255,6 +255,45 @@ sudo luarocks install dkjson
    lua tests/run_tests.lua
    ```
 
+## Testing with Real User Settings
+
+You can test with your actual KOAssistant settings by using the backup/restore feature to export settings from your main device (e.g., e-reader) and import them into a KOReader installation where you run the test suite.
+
+**How to do it:**
+
+1. **On your main device**: Settings → Advanced → Settings Management → Create Backup
+   - Choose what to include (recommend: Settings, API Keys, User Content)
+   - Exclude Chat History to keep backup small
+   - The backup will be saved to `/koassistant_backups/` folder
+
+2. **Copy the backup** (`.koa` file) from `/koassistant_backups/` to your test environment
+
+3. **On test device**: Settings → Advanced → Settings Management → Restore from Backup
+   - Select the backup file
+   - Choose what to restore (Settings, API Keys, etc.)
+   - Click "Restore Now"
+
+4. **Restart KOReader** after restore for changes to take full effect
+
+**This is useful for:**
+- Testing provider connectivity with your API keys
+- Testing custom domains/behaviors in the web inspector
+- Testing with your preferred settings configuration (languages, temperature, etc.)
+- Sharing settings between multiple KOReader installations
+
+**Example workflow:**
+```bash
+# On your e-reader: Create backup via Settings UI
+# Copy backup to test machine
+scp /mnt/onboard/.adds/koreader/koassistant_backups/koassistant_backup_*.koa \
+    ~/test-env/koassistant_backups/
+
+# On test machine: Restore via Settings UI or run tests
+cd /path/to/koassistant.koplugin
+lua tests/run_tests.lua
+lua tests/inspect.lua --web  # Will use your restored API keys
+```
+
 ## Local Configuration
 
 Create `tests/local_config.lua` for custom settings:
