@@ -4654,6 +4654,61 @@ function AskGPT:resetAllCustomizations()
   })
 end
 
+-- Reset everything (nuclear option - only preserves chat history)
+function AskGPT:resetEverything()
+  -- Reset features to defaults (no preserved values)
+  local defaults = {
+    provider = "anthropic",
+    model = nil,
+    hide_highlighted_text = false,
+    hide_long_highlights = true,
+    long_highlight_threshold = 280,
+    translation_language = "English",
+    dictionary_language = nil,
+    user_languages = nil,
+    debug = false,
+    show_debug_in_chat = false,
+    auto_save_all_chats = true,
+    auto_save_chats = true,
+    render_markdown = true,
+    enable_streaming = true,
+    stream_auto_scroll = false,
+    large_stream_dialog = true,
+    stream_display_interval = 250,
+    selected_behavior = "standard",
+    selected_domain = nil,
+    default_temperature = 0.7,
+    default_max_tokens = nil,
+    anthropic_reasoning = false,
+    anthropic_reasoning_budget = 10240,
+    openai_reasoning = false,
+    openai_reasoning_effort = "medium",
+    gemini_reasoning = false,
+    gemini_reasoning_level = "medium",
+    behavior_migrated = true,
+    prompts_migrated_v2 = true,
+  }
+
+  self.settings:saveSetting("features", defaults)
+
+  -- Clear all other top-level settings
+  self.settings:delSetting("custom_actions")
+  self.settings:delSetting("builtin_action_overrides")
+  self.settings:delSetting("highlight_menu_actions")
+  self.settings:delSetting("dictionary_popup_actions")
+  self.settings:delSetting("disabled_actions")
+  self.settings:delSetting("_dismissed_highlight_actions")
+  self.settings:delSetting("_dismissed_dictionary_actions")
+
+  self.settings:flush()
+  self:updateConfigFromSettings()
+
+  UIManager:show(Notification:new{
+    text = _("Everything reset - please re-enter API keys"),
+    timeout = 3,
+  })
+end
+
 -- Clear all chat history
 function AskGPT:clearAllChatHistory()
   local ChatHistoryManager = require("koassistant_chat_history_manager")
@@ -4664,6 +4719,757 @@ function AskGPT:clearAllChatHistory()
     text = T(_("Deleted %1 chat(s) from %2 book(s)"), total_deleted, docs_deleted),
     timeout = 2,
   })
+end
+
+-- Validate and sanitize action overrides during restore
+function AskGPT:_validateActionOverrides(overrides)
+  if not overrides or type(overrides) ~= "table" then
+    return {}, {}
+  end
+
+  local valid_overrides = {}
+  local warnings = {}
+  local Actions = require("prompts.actions")
+
+  for action_id, override_config in pairs(overrides) do
+    -- Check if the base action still exists
+    local base_action = Actions[action_id]
+    if base_action then
+      -- Action exists, keep the override
+      valid_overrides[action_id] = override_config
+    else
+      -- Action no longer exists, skip and warn
+      table.insert(warnings, string.format("Skipped override for missing action: %s", action_id))
+      logger.warn("BackupRestore: Skipped override for missing action:", action_id)
+    end
+  end
+
+  return valid_overrides, warnings
+end
+
+-- Show create backup dialog
+function AskGPT:showCreateBackupDialog()
+  local BackupManager = require("koassistant_backup_manager")
+  local backup_manager = BackupManager:new()
+
+  -- Go straight to options dialog with default states
+  self:_showBackupOptionsDialog(backup_manager, "", {
+    include_settings = true,
+    include_api_keys = false,
+    include_configs = true,
+    include_content = true,
+    include_chats = false,
+  })
+end
+
+-- Show backup options dialog (internal helper)
+function AskGPT:_showBackupOptionsDialog(backup_manager, notes, state)
+  -- Use provided state or defaults
+  local include_settings = state.include_settings
+  local include_api_keys = state.include_api_keys
+  local include_configs = state.include_configs
+  local include_content = state.include_content
+  local include_chats = state.include_chats
+
+  -- Use ButtonDialog for interactive checkbox-like behavior
+  local ButtonDialog = require("ui/widget/buttondialog")
+  local dialog
+  local buttons = {
+    {
+      {
+        text = _("Core Settings: ✓ Included"),
+        enabled = false,
+      },
+    },
+    {
+      {
+        text = include_api_keys and _("API Keys: ✓ Include (⚠ Sensitive)") or _("API Keys: ✗ Exclude"),
+        callback = function()
+          UIManager:close(dialog)
+          self:_showBackupOptionsDialog(backup_manager, notes, {
+            include_settings = include_settings,
+            include_api_keys = not include_api_keys,
+            include_configs = include_configs,
+            include_content = include_content,
+            include_chats = include_chats,
+          })
+        end,
+      },
+    },
+    {
+      {
+        text = include_configs and _("Config Files: ✓ Include") or _("Config Files: ✗ Exclude"),
+        callback = function()
+          UIManager:close(dialog)
+          self:_showBackupOptionsDialog(backup_manager, notes, {
+            include_settings = include_settings,
+            include_api_keys = include_api_keys,
+            include_configs = not include_configs,
+            include_content = include_content,
+            include_chats = include_chats,
+          })
+        end,
+      },
+    },
+    {
+      {
+        text = include_content and _("Domains & Behaviors: ✓ Include") or _("Domains & Behaviors: ✗ Exclude"),
+        callback = function()
+          UIManager:close(dialog)
+          self:_showBackupOptionsDialog(backup_manager, notes, {
+            include_settings = include_settings,
+            include_api_keys = include_api_keys,
+            include_configs = include_configs,
+            include_content = not include_content,
+            include_chats = include_chats,
+          })
+        end,
+      },
+    },
+    {
+      {
+        text = include_chats and _("Chat History: ✓ Include") or _("Chat History: ✗ Exclude"),
+        callback = function()
+          UIManager:close(dialog)
+          self:_showBackupOptionsDialog(backup_manager, notes, {
+            include_settings = include_settings,
+            include_api_keys = include_api_keys,
+            include_configs = include_configs,
+            include_content = include_content,
+            include_chats = not include_chats,
+          })
+        end,
+      },
+    },
+    {
+      {
+        text = _("━━━━━━━━━━━━━━━━"),
+        enabled = false,
+      },
+    },
+    {
+      {
+        text = _("Create Backup"),
+        callback = function()
+          UIManager:close(dialog)
+
+          local options = {
+            include_settings = include_settings,
+            include_api_keys = include_api_keys,
+            include_configs = include_configs,
+            include_content = include_content,
+            include_chats = include_chats,
+            notes = notes,
+          }
+
+          self:_performBackup(backup_manager, options)
+        end,
+      },
+    },
+  }
+
+  dialog = ButtonDialog:new{
+    title = _("What to include in backup:"),
+    buttons = buttons,
+  }
+  UIManager:show(dialog)
+end
+
+-- Perform backup (internal helper)
+function AskGPT:_performBackup(backup_manager, options)
+  local InfoMessage = require("ui/widget/infomessage")
+
+  -- Show progress message
+  local progress_msg = InfoMessage:new{
+    text = _("Creating backup...\n\nThis may take a moment."),
+  }
+  UIManager:show(progress_msg)
+  UIManager:forceRePaint()
+
+  -- Perform backup
+  local result = backup_manager:createBackup(options)
+
+  UIManager:close(progress_msg)
+
+  if result.success then
+    -- Show success message
+    local success_text = T(_("Backup created successfully!\n\nLocation: %1\n\nSize: %2"),
+      result.backup_name,
+      backup_manager:_formatSize(result.size))
+
+    -- Add what was included
+    local included = {}
+    if options.include_settings then
+      table.insert(included, _("Settings"))
+    end
+    if options.include_api_keys then
+      table.insert(included, _("API Keys"))
+    end
+    if options.include_configs then
+      table.insert(included, _("Config Files"))
+    end
+    if options.include_content then
+      -- Show count of domains and behaviors
+      local content_parts = {}
+      if result.counts.domains and result.counts.domains > 0 then
+        table.insert(content_parts, T(_("%1 domains"), result.counts.domains))
+      else
+        table.insert(content_parts, _("0 domains"))
+      end
+      if result.counts.behaviors and result.counts.behaviors > 0 then
+        table.insert(content_parts, T(_("%1 behaviors"), result.counts.behaviors))
+      else
+        table.insert(content_parts, _("0 behaviors"))
+      end
+      table.insert(included, table.concat(content_parts, ", "))
+    end
+    if options.include_chats then
+      if result.counts.chats and result.counts.chats > 0 then
+        table.insert(included, T(_("%1 chats"), result.counts.chats))
+      else
+        table.insert(included, _("0 chats"))
+      end
+    end
+
+    if #included > 0 then
+      success_text = success_text .. "\n\n" .. _("Included:") .. "\n• " .. table.concat(included, "\n• ")
+    end
+
+    UIManager:show(InfoMessage:new{
+      text = success_text,
+      timeout = 10,
+    })
+  else
+    -- Show error message
+    UIManager:show(InfoMessage:new{
+      text = T(_("Backup failed:\n\n%1"), result.error or _("Unknown error")),
+      timeout = 5,
+    })
+  end
+end
+
+-- Show restore backup dialog
+function AskGPT:showRestoreBackupDialog()
+  local BackupManager = require("koassistant_backup_manager")
+  local backup_manager = BackupManager:new()
+
+  -- List available backups
+  local backups = backup_manager:listBackups()
+
+  if #backups == 0 then
+    local InfoMessage = require("ui/widget/infomessage")
+    UIManager:show(InfoMessage:new{
+      text = _("No backups found.\n\nCreate a backup first using:\nSettings → Advanced → Settings Management → Create Backup"),
+      timeout = 5,
+    })
+    return
+  end
+
+  -- Show backup selection dialog
+  local ButtonDialog = require("ui/widget/buttondialog")
+  local dialog
+  local buttons = {}
+
+  for _idx, backup in ipairs(backups) do
+    local backup_info = backup.name
+    if backup.manifest then
+      backup_info = backup_info .. "\n" .. backup.manifest.created_date
+    end
+    backup_info = backup_info .. "\n" .. backup_manager:_formatSize(backup.size)
+
+    if backup.is_restore_point then
+      backup_info = "🔄 " .. backup_info .. " (Restore Point)"
+    end
+
+    table.insert(buttons, {
+      {
+        text = backup_info,
+        callback = function()
+          UIManager:close(dialog)
+          self:_showRestorePreviewDialog(backup_manager, backup)
+        end,
+      },
+    })
+  end
+
+  -- Add separator and cancel
+  table.insert(buttons, {
+    {
+      text = _("━━━━━━━━━━━━━━━━"),
+      enabled = false,
+    },
+  })
+
+  dialog = ButtonDialog:new{
+    title = T(_("Select backup to restore\n\nTotal: %1 backup(s)"), #backups),
+    buttons = buttons,
+  }
+  UIManager:show(dialog)
+end
+
+-- Show restore preview dialog (internal helper)
+function AskGPT:_showRestorePreviewDialog(backup_manager, backup)
+  local InfoMessage = require("ui/widget/infomessage")
+
+  -- Validate backup
+  local validation = backup_manager:validateBackup(backup.path)
+
+  if not validation.valid then
+    UIManager:show(InfoMessage:new{
+      text = T(_("Invalid backup:\n\n%1"), table.concat(validation.errors, "\n")),
+      timeout = 5,
+    })
+    return
+  end
+
+  local manifest = validation.manifest
+
+  -- Build preview text
+  local preview = T(_("Backup: %1\n\nCreated: %2\nPlugin version: %3\n\nContents:"),
+    backup.name,
+    manifest.created_date or "Unknown",
+    manifest.plugin_version or "Unknown")
+
+  local contents = {}
+  if manifest.contents.settings then table.insert(contents, "• " .. _("Settings")) end
+  if manifest.contents.api_keys then
+    table.insert(contents, "• " .. _("API Keys"))
+  else
+    table.insert(contents, "• ⚠ " .. _("No API keys"))
+  end
+  if manifest.contents.config_files then table.insert(contents, "• " .. _("Config Files")) end
+  -- Show domains and behaviors together
+  if manifest.contents.domains or manifest.contents.behaviors then
+    local content_parts = {}
+    if manifest.counts and manifest.counts.domains then
+      table.insert(content_parts, T(_("%1 domains"), manifest.counts.domains))
+    else
+      table.insert(content_parts, _("domains"))
+    end
+    if manifest.counts and manifest.counts.behaviors then
+      table.insert(content_parts, T(_("%1 behaviors"), manifest.counts.behaviors))
+    else
+      table.insert(content_parts, _("behaviors"))
+    end
+    table.insert(contents, "• " .. table.concat(content_parts, ", "))
+  end
+  if manifest.contents.chats then
+    if manifest.counts and manifest.counts.chats then
+      table.insert(contents, "• " .. T(_("%1 chats"), manifest.counts.chats))
+    else
+      table.insert(contents, "• " .. _("Chat history"))
+    end
+  end
+
+  if #contents > 0 then
+    preview = preview .. "\n" .. table.concat(contents, "\n")
+  end
+
+  -- Add warnings
+  if #validation.warnings > 0 then
+    preview = preview .. "\n\n⚠ " .. _("Warnings:") .. "\n• " .. table.concat(validation.warnings, "\n• ")
+  end
+
+  -- Show preview with restore button
+  local ButtonDialog = require("ui/widget/buttondialog")
+  local dialog
+  dialog = ButtonDialog:new{
+    title = preview,
+    buttons = {
+      {
+        {
+          text = _("Cancel"),
+          callback = function()
+            UIManager:close(dialog)
+          end,
+        },
+        {
+          text = _("Restore →"),
+          callback = function()
+            UIManager:close(dialog)
+            self:_showRestoreOptionsDialog(backup_manager, backup, manifest)
+          end,
+        },
+      },
+    },
+  }
+  UIManager:show(dialog)
+end
+
+-- Show restore options dialog (internal helper)
+function AskGPT:_showRestoreOptionsDialog(backup_manager, backup, manifest, state)
+  -- Use provided state or defaults from manifest
+  local restore_settings, restore_api_keys, restore_configs, restore_content, restore_chats, merge_mode
+  if state then
+    restore_settings = state.restore_settings
+    restore_api_keys = state.restore_api_keys
+    restore_configs = state.restore_configs
+    restore_content = state.restore_content
+    restore_chats = state.restore_chats
+    merge_mode = state.merge_mode
+  else
+    restore_settings = manifest.contents.settings or false
+    restore_api_keys = manifest.contents.api_keys or false
+    restore_configs = manifest.contents.config_files or false
+    restore_content = (manifest.contents.domains or manifest.contents.behaviors) or false
+    restore_chats = manifest.contents.chats or false
+    merge_mode = false
+  end
+
+  local ButtonDialog = require("ui/widget/buttondialog")
+  local dialog
+  local buttons = {
+    {
+      {
+        text = restore_settings and _("Settings: ✓ Restore") or _("Settings: ✗ Skip"),
+        enabled = manifest.contents.settings,
+        callback = function()
+          UIManager:close(dialog)
+          self:_showRestoreOptionsDialog(backup_manager, backup, manifest, {
+            restore_settings = not restore_settings,
+            restore_api_keys = restore_api_keys,
+            restore_configs = restore_configs,
+            restore_content = restore_content,
+            restore_chats = restore_chats,
+            merge_mode = merge_mode,
+          })
+        end,
+      },
+    },
+    {
+      {
+        text = restore_api_keys and _("API Keys: ✓ Restore") or _("API Keys: ✗ Skip"),
+        enabled = manifest.contents.api_keys,
+        callback = function()
+          UIManager:close(dialog)
+          self:_showRestoreOptionsDialog(backup_manager, backup, manifest, {
+            restore_settings = restore_settings,
+            restore_api_keys = not restore_api_keys,
+            restore_configs = restore_configs,
+            restore_content = restore_content,
+            restore_chats = restore_chats,
+            merge_mode = merge_mode,
+          })
+        end,
+      },
+    },
+    {
+      {
+        text = restore_configs and _("Config Files: ✓ Restore") or _("Config Files: ✗ Skip"),
+        enabled = manifest.contents.config_files,
+        callback = function()
+          UIManager:close(dialog)
+          self:_showRestoreOptionsDialog(backup_manager, backup, manifest, {
+            restore_settings = restore_settings,
+            restore_api_keys = restore_api_keys,
+            restore_configs = not restore_configs,
+            restore_content = restore_content,
+            restore_chats = restore_chats,
+            merge_mode = merge_mode,
+          })
+        end,
+      },
+    },
+    {
+      {
+        text = restore_content and _("Domains & Behaviors: ✓ Restore") or _("Domains & Behaviors: ✗ Skip"),
+        enabled = (manifest.contents.domains or manifest.contents.behaviors),
+        callback = function()
+          UIManager:close(dialog)
+          self:_showRestoreOptionsDialog(backup_manager, backup, manifest, {
+            restore_settings = restore_settings,
+            restore_api_keys = restore_api_keys,
+            restore_configs = restore_configs,
+            restore_content = not restore_content,
+            restore_chats = restore_chats,
+            merge_mode = merge_mode,
+          })
+        end,
+      },
+    },
+    {
+      {
+        text = restore_chats and _("Chat History: ✓ Restore") or _("Chat History: ✗ Skip"),
+        enabled = manifest.contents.chats,
+        callback = function()
+          UIManager:close(dialog)
+          self:_showRestoreOptionsDialog(backup_manager, backup, manifest, {
+            restore_settings = restore_settings,
+            restore_api_keys = restore_api_keys,
+            restore_configs = restore_configs,
+            restore_content = restore_content,
+            restore_chats = not restore_chats,
+            merge_mode = merge_mode,
+          })
+        end,
+      },
+    },
+    {
+      {
+        text = _("━━━━━━━━━━━━━━━━"),
+        enabled = false,
+      },
+    },
+    {
+      {
+        text = merge_mode and _("Mode: Merge with existing") or _("Mode: Replace existing"),
+        callback = function()
+          UIManager:close(dialog)
+          self:_showRestoreOptionsDialog(backup_manager, backup, manifest, {
+            restore_settings = restore_settings,
+            restore_api_keys = restore_api_keys,
+            restore_configs = restore_configs,
+            restore_content = restore_content,
+            restore_chats = restore_chats,
+            merge_mode = not merge_mode,
+          })
+        end,
+      },
+    },
+    {
+      {
+        text = _("━━━━━━━━━━━━━━━━"),
+        enabled = false,
+      },
+    },
+    {
+      {
+        text = _("Restore Now"),
+        callback = function()
+          UIManager:close(dialog)
+
+          local options = {
+            restore_settings = restore_settings,
+            restore_api_keys = restore_api_keys,
+            restore_configs = restore_configs,
+            restore_content = restore_content,
+            restore_chats = restore_chats,
+            merge_mode = merge_mode,
+          }
+
+          self:_performRestore(backup_manager, backup, options)
+        end,
+      },
+    },
+  }
+
+  dialog = ButtonDialog:new{
+    title = _("What to restore:"),
+    buttons = buttons,
+  }
+  UIManager:show(dialog)
+end
+
+-- Perform restore (internal helper)
+function AskGPT:_performRestore(backup_manager, backup, options)
+  local InfoMessage = require("ui/widget/infomessage")
+  local ConfirmBox = require("ui/widget/confirmbox")
+
+  -- Show confirmation
+  local confirm = ConfirmBox:new{
+    text = _("Restore from backup?\n\n⚠ A restore point will be created automatically.\n\n⚠ KOReader should be restarted after restore for changes to take full effect."),
+    ok_text = _("Restore"),
+    ok_callback = function()
+      -- Show progress
+      local progress_msg = InfoMessage:new{
+        text = _("Restoring backup...\n\nThis may take a moment."),
+      }
+      UIManager:show(progress_msg)
+      UIManager:forceRePaint()
+
+      -- Perform restore
+      local result = backup_manager:restoreBackup(backup.path, options)
+
+      UIManager:close(progress_msg)
+
+      if result.success then
+        -- Show success with restart option
+        local ButtonDialog = require("ui/widget/buttondialog")
+        local success_text = _("Restore completed successfully!\n\nIt's recommended to restart KOReader for all changes to take effect.")
+
+        if #result.warnings > 0 then
+          success_text = success_text .. "\n\n⚠ " .. _("Warnings:") .. "\n• " .. table.concat(result.warnings, "\n• ")
+        end
+
+        local dialog
+        dialog = ButtonDialog:new{
+          title = success_text,
+          buttons = {
+            {
+              {
+                text = _("OK"),
+                callback = function()
+                  UIManager:close(dialog)
+                end,
+              },
+              {
+                text = _("Restart Now"),
+                callback = function()
+                  UIManager:close(dialog)
+                  -- Trigger restart
+                  UIManager:restartKOReader()
+                end,
+              },
+            },
+          },
+        }
+        UIManager:show(dialog)
+      else
+        -- Show error
+        UIManager:show(InfoMessage:new{
+          text = T(_("Restore failed:\n\n%1"), result.error or _("Unknown error")),
+          timeout = 5,
+        })
+      end
+    end,
+  }
+  UIManager:show(confirm)
+end
+
+-- Show backup list dialog
+function AskGPT:showBackupListDialog()
+  local BackupManager = require("koassistant_backup_manager")
+  local backup_manager = BackupManager:new()
+
+  -- Clean up old restore points first
+  backup_manager:cleanupOldRestorePoints()
+
+  -- List available backups
+  local backups = backup_manager:listBackups()
+
+  if #backups == 0 then
+    local InfoMessage = require("ui/widget/infomessage")
+    UIManager:show(InfoMessage:new{
+      text = _("No backups found."),
+      timeout = 3,
+    })
+    return
+  end
+
+  -- Calculate total size
+  local total_size = 0
+  for _, backup in ipairs(backups) do
+    total_size = total_size + backup.size
+  end
+
+  -- Show backup list
+  local ButtonDialog = require("ui/widget/buttondialog")
+  local dialog
+  local buttons = {}
+
+  for _idx, backup in ipairs(backups) do
+    local backup_info = backup.name
+    if backup.manifest then
+      backup_info = backup_info .. "\n" .. backup.manifest.created_date
+    end
+    backup_info = backup_info .. " • " .. backup_manager:_formatSize(backup.size)
+
+    if backup.is_restore_point then
+      backup_info = "🔄 " .. backup_info
+    end
+
+    table.insert(buttons, {
+      {
+        text = backup_info,
+        callback = function()
+          UIManager:close(dialog)
+          self:_showBackupActionsDialog(backup_manager, backup)
+        end,
+      },
+    })
+  end
+
+  -- Add separator and total
+  table.insert(buttons, {
+    {
+      text = "━━━━━━━━━━━━━━━━",
+      enabled = false,
+    },
+  })
+
+  dialog = ButtonDialog:new{
+    title = T(_("Backups (%1)\n\nTotal size: %2"), #backups, backup_manager:_formatSize(total_size)),
+    buttons = buttons,
+  }
+  UIManager:show(dialog)
+end
+
+-- Show backup actions dialog (internal helper)
+function AskGPT:_showBackupActionsDialog(backup_manager, backup)
+  local ButtonDialog = require("ui/widget/buttondialog")
+
+  local dialog
+  dialog = ButtonDialog:new{
+    title = backup.name,
+    buttons = {
+      {
+        {
+          text = _("Info"),
+          callback = function()
+            UIManager:close(dialog)
+
+            -- Show backup info
+            local validation = backup_manager:validateBackup(backup.path)
+            if validation.valid then
+              self:_showRestorePreviewDialog(backup_manager, backup)
+            else
+              local InfoMessage = require("ui/widget/infomessage")
+              UIManager:show(InfoMessage:new{
+                text = T(_("Invalid backup:\n\n%1"), table.concat(validation.errors, "\n")),
+                timeout = 5,
+              })
+            end
+          end,
+        },
+      },
+      {
+        {
+          text = _("Restore"),
+          callback = function()
+            UIManager:close(dialog)
+            self:_showRestorePreviewDialog(backup_manager, backup)
+          end,
+        },
+      },
+      {
+        {
+          text = _("Delete"),
+          callback = function()
+            UIManager:close(dialog)
+
+            -- Confirm deletion
+            local ConfirmBox = require("ui/widget/confirmbox")
+            local confirm = ConfirmBox:new{
+              text = T(_("Delete backup?\n\n%1\n\nThis cannot be undone."), backup.name),
+              ok_text = _("Delete"),
+              ok_callback = function()
+                local result = backup_manager:deleteBackup(backup.path)
+
+                if result.success then
+                  local Notification = require("ui/widget/notification")
+                  UIManager:show(Notification:new{
+                    text = _("Backup deleted"),
+                    timeout = 2,
+                  })
+
+                  -- Refresh backup list
+                  self:showBackupListDialog()
+                else
+                  local InfoMessage = require("ui/widget/infomessage")
+                  UIManager:show(InfoMessage:new{
+                    text = T(_("Failed to delete backup:\n\n%1"), result.error or _("Unknown error")),
+                    timeout = 3,
+                  })
+                end
+              end,
+            }
+            UIManager:show(confirm)
+          end,
+        },
+      },
+    },
+  }
+  UIManager:show(dialog)
 end
 
 return AskGPT

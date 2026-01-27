@@ -35,6 +35,7 @@ Most settings are configurable in the UI, including: Provider/model, AI behavior
 - [Settings Reference](#settings-reference)
 - [Update Checking](#update-checking)
 - [Advanced Configuration](#advanced-configuration)
+- [Backup & Restore](#backup--restore)
 - [Technical Features](#technical-features)
 - [Supported Providers](#supported-providers)
   - [Free Tier Providers](#free-tier-providers)
@@ -917,6 +918,11 @@ Chat History → hamburger menu → **View by Domain**
   - **Anthropic Extended Thinking**: Budget 1024-32000 tokens
   - **OpenAI Reasoning**: Effort level (low/medium/high)
   - **Gemini Thinking**: Level (low/medium/high)
+- **Settings Management**: Backup and restore functionality (see [Backup & Restore](#backup--restore))
+  - **Create Backup**: Save settings, API keys, custom content, and chat history
+  - **Restore from Backup**: Restore from a previous backup
+  - **View Backups**: Manage existing backups and restore points
+- **Reset Settings**: Three tiers of reset (feature settings, all customizations, everything)
 - **Console Debug**: Enable terminal/console debug logging
 - **Show Debug in Chat**: Display debug info in chat viewer
 - **Debug Detail Level**: Verbosity (Minimal/Names/Full)
@@ -1086,6 +1092,145 @@ return {
     },
 }
 ```
+
+---
+
+## Backup & Restore
+
+KOAssistant includes comprehensive backup and restore functionality to protect your settings, custom content, and optionally API keys and chat history.
+
+**Access:** Tools → KOAssistant → Settings → Advanced → Settings Management
+
+### What Can Be Backed Up
+
+Backups are selective — choose what to include:
+
+| Category | What's Included | Default |
+|----------|----------------|---------|
+| **Core Settings** | Provider/model, behaviors, domains, temperature, languages, all toggles, custom providers, custom models, action menu customizations | Always included |
+| **API Keys** | Your API keys (encrypted storage planned for future) | ⚠️ Excluded by default |
+| **Configuration Files** | configuration.lua, custom_actions.lua (if they exist) | Included if files exist |
+| **Domains & Behaviors** | Custom domains and behaviors from your folders | Included |
+| **Chat History** | All saved conversations | Excluded (can be large) |
+
+**Security note:** API keys are stored in plain text in backups. Only enable "Include API Keys" if you control access to your backup files.
+
+### Creating Backups
+
+**Steps:**
+1. Settings → Advanced → Settings Management → Create Backup
+2. Choose what to include (checkboxes for each category)
+3. Tap "Create Backup"
+4. Backup saved to `koassistant_backups/` folder with timestamp
+
+**Backup format:** `.koa` files (KOAssistant Archive) are tar.gz archives containing your settings and content.
+
+**When to create backups:**
+- Before major plugin updates
+- Before experimenting with major settings changes
+- To transfer settings between devices (e.g., e-reader ↔ test environment)
+- As periodic safety snapshots
+
+### Restoring Backups
+
+**Steps:**
+1. Settings → Advanced → Settings Management → Restore from Backup
+2. Select a backup from the list (sorted newest first)
+3. Preview what the backup contains
+4. Choose what to restore (can exclude categories)
+5. Choose restore mode:
+   - **Replace** (default, safest): Completely replaces current settings
+   - **Merge** (advanced): Intelligently merges backup with current settings
+6. Tap "Restore Now"
+
+**Automatic restore point:** A restore point is automatically created before every restore operation, so you can undo if needed.
+
+**After restore:** Restart KOReader for all settings to take full effect.
+
+### Restore Modes
+
+**Replace Mode (recommended):**
+- Safest option for most users
+- Completely replaces current settings with backup
+- Creates automatic restore point first
+- What you backed up is exactly what you get
+
+**Merge Mode (advanced):**
+- Intelligently combines backup with current settings
+- Feature toggles use backup values
+- Custom content (providers, models, actions) merged by ID
+- API keys merged by provider (backup takes precedence)
+- Domains/behaviors merged by filename
+
+### Managing Backups
+
+**View all backups:** Settings → Advanced → Settings Management → View Backups
+
+**For each backup:**
+- **Info** — View manifest details (what's included, version, timestamp)
+- **Restore** — Start restore flow
+- **Delete** — Remove the backup
+
+**Restore points:** Automatic restore points (created before each restore) are shown separately and auto-delete after 7 days.
+
+**Total size:** Displayed at bottom of backup list.
+
+### Transferring Settings Between Devices
+
+You can export settings from your main device (e.g., e-reader) and import them into another KOReader installation (e.g., desktop for testing):
+
+**Example workflow:**
+```bash
+# 1. On main device: Create backup via Settings UI
+#    (Include: Settings, API Keys, Domains & Behaviors)
+#    (Exclude: Chat History to keep backup small)
+
+# 2. Copy backup from device to test machine
+scp /mnt/onboard/.adds/koreader/koassistant_backups/koassistant_backup_*.koa \
+    ~/test-env/koassistant_backups/
+
+# 3. On test device: Restore via Settings UI
+
+# 4. Restart KOReader
+```
+
+This is especially useful for:
+- Testing new plugin versions with your actual configuration
+- Using the [web inspector](#testing-your-setup) with your real settings
+- Sharing configurations across multiple e-readers
+- Synchronizing settings between work and personal devices
+
+### Graceful Restore Handling
+
+The restore system validates settings and handles edge cases:
+
+**What's validated:**
+- **Custom actions** — Skips actions with missing required fields
+- **Action overrides** — Skips overrides for actions that no longer exist or have changed
+- **Version compatibility** — Warns if backup was created with different plugin version
+
+**If issues found:** Warnings are shown after restore completes. Invalid items are skipped but valid items are restored successfully.
+
+### Reset Settings
+
+KOAssistant provides three tiers of reset functionality:
+
+**Access:** Settings → Advanced → Reset Settings
+
+**1. Reset feature settings (Safest)**
+- Resets: Provider, model, temperature, toggles
+- Preserves: API keys, custom actions, behaviors, custom models, chat history
+
+**2. Reset all customizations (Moderate)**
+- Resets: All settings including custom actions, behaviors, domains, models, action overrides
+- Preserves: API keys, chat history
+
+**3. Reset everything (nuclear) (Complete wipe)**
+- Resets: Everything including API keys
+- Preserves: Chat history only
+- You must re-enter all API keys and reconfigure from scratch
+
+**When to reset:** After problematic updates, when experiencing strange behavior, or to start fresh. See [Troubleshooting → Settings Reset](#settings-reset) for details.
 
 ---
 
