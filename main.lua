@@ -3428,7 +3428,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
           end,
         },
       },
-      -- Row 5: Dictionary | More Settings
+      -- Row 5: Dictionary | Chat History
       {
         {
           text = T(_("Dictionary: %1"), dict_display),
@@ -3440,12 +3440,12 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
           end,
         },
         {
-          text = _("More Settings..."),
+          text = _("Chat History"),
           callback = function()
             opening_subdialog = true
             UIManager:close(dialog)
-            -- Open full settings menu
-            self_ref:onKOAssistantSettings()
+            -- Open chat history
+            self_ref:showChatHistory()
           end,
         },
       },
@@ -3478,8 +3478,17 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
           end,
         },
       },
-      -- Row 7: Close (full width)
+      -- Row 7: More Settings | Close
       {
+        {
+          text = _("More Settings..."),
+          callback = function()
+            opening_subdialog = true
+            UIManager:close(dialog)
+            -- Open full settings menu
+            self_ref:onKOAssistantSettings()
+          end,
+        },
         {
           text = _("Close"),
           callback = function()
