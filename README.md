@@ -24,31 +24,40 @@ Most settings are configurable in the UI, including: Provider/model, AI behavior
 - [Quick Setup](#quick-setup)
 - [Recommended Setup](#recommended-setup)
 - [Testing Your Setup](#testing-your-setup)
-- [How to Use KOAssistant](#how-to-use-koassistant)
+- [How to Use KOAssistant](#how-to-use-koassistant) — Contexts & Built-in Actions
+  - [Highlight Mode](#highlight-mode)
+  - [Book/Document Mode](#bookdocument-mode)
+  - [Multi-Document Mode](#multi-document-mode)
+  - [General Chat](#general-chat)
 - [How the AI Prompt Works](#how-the-ai-prompt-works)
 - [Actions](#actions)
+  - [Managing Actions](#managing-actions)
+  - [Tuning Built-in Actions](#tuning-built-in-actions)
+  - [Creating Actions](#creating-actions)
+  - [Template Variables](#template-variables)
 - [Dictionary Integration](#dictionary-integration)
 - [Bypass Modes](#bypass-modes)
 - [Behaviors](#behaviors)
+  - [Built-in Behaviors](#built-in-behaviors)
+  - [Sample Behaviors](#sample-behaviors)
+  - [Custom Behaviors](#custom-behaviors)
 - [Managing Conversations](#managing-conversations)
 - [Domains](#domains)
+  - [Creating Domains](#creating-domains)
 - [Settings Reference](#settings-reference)
 - [Update Checking](#update-checking)
 - [Advanced Configuration](#advanced-configuration)
 - [Backup & Restore](#backup--restore)
 - [Technical Features](#technical-features)
+  - [Reasoning/Thinking](#reasoningthinking)
 - [Supported Providers + Settings](#supported-providers--settings)
   - [Free Tier Providers](#free-tier-providers)
   - [Adding Custom Providers](#adding-custom-providers)
   - [Adding Custom Models](#adding-custom-models)
-  - [Setting Default Models](#setting-default-models)
-- [Tips & Advanced Usage](#tips--advanced-usage)
 - [KOReader Tips](#koreader-tips)
 - [Troubleshooting](#troubleshooting)
 - [Requirements](#requirements)
 - [Contributing](#contributing)
-- [Translations](#contributing-translations)
-- [Credits](#credits)
 
 ---
 
@@ -222,7 +231,16 @@ lua tests/inspect.lua --web
 
 ## How to Use KOAssistant
 
-KOAssistant works in **4 contexts**, each with its own set of actions, and you can create custom actions for each and all contexts, and enable/disable the built in ones:
+KOAssistant works in **4 contexts**, each with its own set of built-in actions:
+
+| Context | Built-in Actions |
+|---------|------------------|
+| **Highlight** | Explain, ELI5, Summarize, Elaborate, Translate |
+| **Book** | Book Info, Similar Books, About Author, X-Ray, Recap, Analyze Highlights |
+| **Multi-book** | Compare Books, Common Themes |
+| **General** | Ask |
+
+You can customize these, create your own, or disable ones you don't use. See [Actions](#actions) for details.
 
 ### Highlight Mode
 
@@ -1489,41 +1507,15 @@ Dictionary lookups and popup actions use compact view by default (minimal UI). T
 
 ## KOReader Tips
 
-Tips for getting the most out of KOReader itself alongside KOAssistant:
+> *More tips coming soon. Contributions welcome!*
 
 ### Text Selection
 
-**Shorter tap duration** makes text selection easier. Go to **Settings → Taps and Gestures → Long-press interval** and reduce it to ~0.5s (default is often 1.0s). This makes highlighting text for KOAssistant much more responsive.
-
-### Upcoming KOReader Features
-
-The KOReader team is actively developing features that will enhance your experience:
-
-- **Native Android keyboard support** — Currently in development. Will allow easier typing with autocorrect, voice input, and pen input when composing messages to AI.
-- **Improved article view** — Better layout for academic papers, including four-way division for two-column PDFs with center anchoring.
-- **Zotero integration** — Direct syncing with Zotero libraries for better metadata management.
-
-### Complementary Plugins
-
-These KOReader plugins work well alongside KOAssistant:
-
-- **Vocabulary Builder** — Track words you look up (integrates with KOAssistant dictionary lookups via auto-add)
-- **Statistics** — Track reading time and progress
-- **Reader Progress Sync** — Sync reading progress across devices
-
-### Gesture Configuration
-
-- **Set up gestures for both Reader View and File Browser** — They have independent gesture configs. Configure the same KOAssistant actions in both for consistency.
-- **Use "Show as QuickMenu"** — When assigning multiple actions to one gesture, enable this for a selection menu instead of sequential triggering.
+**Shorter tap duration** makes text selection easier. Go to **Settings → Taps and Gestures → Long-press interval** and reduce it (default is often 1.0s). This makes highlighting text for KOAssistant much more responsive.
 
 ### Document Metadata
 
-**Good metadata improves AI responses.** Use Calibre, Zotero, or similar tools to ensure:
-- Correct titles and authors
-- ISBNs or other identifiers where available
-- Series information (planned for future KOAssistant versions)
-
-The AI uses this metadata for context in Book Mode and when "Include book info" is enabled for highlight actions.
+**Good metadata improves AI responses.** Use Calibre, Zotero, or similar tools to ensure correct titles and authors. The AI uses this metadata for context in Book Mode and when "Include book info" is enabled for highlight actions.
 
 ---
 
