@@ -511,7 +511,6 @@ local function compareProviders(providers, options)
 
     -- Build requests for each provider
     local requests = {}
-    local configs = {}
 
     for _, provider in ipairs(providers) do
         if not RequestInspector:isSupported(provider) then
@@ -523,7 +522,6 @@ local function compareProviders(providers, options)
 
             if request then
                 requests[provider] = request
-                configs[provider] = config
             else
                 print(c.yellow .. "Skipping " .. provider .. ": " .. c.reset .. (err or "unknown error"))
             end
