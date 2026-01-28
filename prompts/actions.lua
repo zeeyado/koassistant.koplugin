@@ -133,6 +133,152 @@ Actions.book = {
         },
         builtin = true,
     },
+    -- X-Ray: Structured book reference guide
+    xray = {
+        id = "xray",
+        text = _("X-Ray"),
+        context = "book",
+        behavior_variant = "reader_assistant",
+        -- Context extraction flags
+        use_book_text = true,
+        use_highlights = true,
+        use_reading_progress = true,
+        prompt = [[Create a reader's companion for "{title}" by {author}.
+
+I'm at {reading_progress} through the book.
+
+{highlights_section}
+
+{book_text_section}
+
+Build a reference guide covering ONLY what's happened up to my current position:
+
+## Cast
+For each significant character (aim for 8-12):
+**[Name]** — Role in the story. Key traits. Current allegiances or conflicts.
+
+## World
+For each important setting (aim for 5-8):
+**[Place]** — What it is. Why it matters. What happened there.
+
+## Ideas
+The main themes emerging so far (aim for 4-6):
+**[Theme]** — How it's being explored in the story.
+
+## Lexicon
+Terms, concepts, or in-world vocabulary (aim for 5-8):
+**[Term]** — Definition and significance.
+
+## Story Arc
+Major turning points so far (chronological, 6-10 events):
+- **[Event/Chapter]:** What happened and why it mattered.
+
+## Current State
+Where the story stands at {reading_progress}:
+- What just happened
+- Active conflicts or mysteries
+- The protagonist's immediate situation
+- Unanswered questions
+
+CRITICAL: Do not reveal ANYTHING beyond {reading_progress}. This must be completely spoiler-free.]],
+        skip_language_instruction = false,
+        skip_domain = true,  -- X-Ray has specific structure
+        extended_thinking = "off",
+        api_params = {
+            temperature = 0.5,
+            max_tokens = 4096,
+        },
+        builtin = true,
+    },
+    -- Recap: Story summary for re-immersion
+    recap = {
+        id = "recap",
+        text = _("Recap"),
+        context = "book",
+        behavior_variant = "reader_assistant",
+        -- Context extraction flags
+        use_book_text = true,
+        use_reading_progress = true,
+        use_reading_stats = true,
+        prompt = [[Help me get back into "{title}" by {author}.
+
+I'm at {reading_progress} and last read {time_since_last_read}.
+
+{book_text_section}
+
+Write a quick "Previously on..." style recap that:
+
+1. **Sets the scene** - Briefly remind me of the story's situation at this point
+2. **Recent events** - What happened in the last few chapters I read (prioritize recent over early)
+3. **Active threads** - What conflicts, mysteries, or goals are in play
+4. **Where I stopped** - The specific moment or scene where I paused
+
+Style guidance:
+- Write in a way that fits the book's genre (suspenseful for thrillers, whimsical for fantasy, etc.)
+- Use **bold** for character names and important terms
+- Use *italics* for key revelations or turning points
+- Keep it concise - this is a refresher, not a full summary
+- No spoilers beyond {reading_progress}
+
+Think of this as the "Last time on..." narration before a TV episode continues.]],
+        skip_language_instruction = false,
+        skip_domain = true,
+        extended_thinking = "off",
+        api_params = {
+            temperature = 0.7,
+            max_tokens = 2048,
+        },
+        builtin = true,
+    },
+    -- Analyze Highlights: Insights from user's annotations
+    analyze_highlights = {
+        id = "analyze_highlights",
+        text = _("Analyze Highlights"),
+        context = "book",
+        behavior_variant = "reader_assistant",
+        -- Context extraction flags
+        use_annotations = true,
+        use_reading_progress = true,
+        prompt = [[Reflect on my reading of "{title}" by {author} through my highlights.
+
+I'm at {reading_progress}. Here's what I've marked:
+
+{annotations_section}
+
+Analyze MY READING PATTERNS, not just the book content:
+
+## What Catches My Attention
+What types of passages do I tend to highlight? (dialogue, descriptions, ideas, emotions, plot points?)
+What does this suggest about what I find valuable in this book?
+
+## Emerging Threads
+Looking at my highlights as a collection, what themes or ideas am I tracking?
+Are there connections between highlights I might not have noticed?
+
+## My Notes Tell a Story
+If I've added notes, what do they reveal about my thinking?
+How is my understanding or reaction evolving?
+
+## Questions I Seem to Be Asking
+Based on what I highlight, what larger questions might I be exploring?
+What am I curious about or paying attention to?
+
+## Suggestions
+Based on my highlighting patterns:
+- Parts of the book I might want to revisit
+- Themes to watch for going forward
+- Connections to other ideas or books
+
+This is about understanding ME as a reader through my highlights, not summarizing the book.]],
+        skip_language_instruction = false,
+        skip_domain = true,
+        extended_thinking = "off",
+        api_params = {
+            temperature = 0.5,
+            max_tokens = 2048,
+        },
+        builtin = true,
+    },
 }
 
 -- Built-in actions for multi-book context

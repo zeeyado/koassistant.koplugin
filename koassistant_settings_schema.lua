@@ -47,6 +47,40 @@ local SettingsSchema = {
             separator = true,
         },
 
+        -- Reading Features submenu (visible only when document is open)
+        {
+            id = "reading_features",
+            type = "submenu",
+            text = _("Reading Features"),
+            visible_func = function(plugin)
+                return plugin.ui and plugin.ui.document ~= nil
+            end,
+            separator = true,
+            items = {
+                {
+                    id = "xray",
+                    type = "action",
+                    text = _("X-Ray"),
+                    info_text = _("Generate a structured reference guide for the book up to your current position. Includes characters, locations, themes, and plot events."),
+                    callback = "onKOAssistantXRay",
+                },
+                {
+                    id = "recap",
+                    type = "action",
+                    text = _("Recap"),
+                    info_text = _("Get a 'Previously on...' style summary to refresh your memory when returning to a book."),
+                    callback = "onKOAssistantRecap",
+                },
+                {
+                    id = "analyze_highlights",
+                    type = "action",
+                    text = _("Analyze Highlights"),
+                    info_text = _("Analyze your highlights and annotations to discover reading patterns and connections."),
+                    callback = "onKOAssistantAnalyzeHighlights",
+                },
+            },
+        },
+
         -- Provider, Model, Temperature (top-level)
         {
             id = "provider",
@@ -369,6 +403,54 @@ local SettingsSchema = {
                             },
                         },
                     },
+                },
+                -- Context Extraction settings
+                {
+                    id = "context_extraction",
+                    type = "submenu",
+                    text = _("Book Text Extraction"),
+                    items = {
+                        {
+                            id = "context_extraction_info",
+                            type = "header",
+                            text = _("Book text extraction is slow and uses many tokens. Enable only if needed."),
+                        },
+                        {
+                            id = "enable_book_text_extraction",
+                            type = "toggle",
+                            text = _("Allow Book Text Extraction"),
+                            path = "features.enable_book_text_extraction",
+                            default = false,
+                            help_text = _("When enabled, actions that request book text (like X-Ray, Recap) can extract and send it to the AI. This is slow and uses many tokens.\n\nNote: Lightweight data (reading progress, highlights, annotations) is always available and doesn't need this setting."),
+                        },
+                        {
+                            id = "max_book_text_chars",
+                            type = "spinner",
+                            text = _("Max Text Characters"),
+                            path = "features.max_book_text_chars",
+                            default = 50000,
+                            min = 10000,
+                            max = 500000,
+                            step = 10000,
+                            precision = "%d",
+                            help_text = _("Maximum characters to extract from the book (10,000-500,000). Higher values provide more context but use more tokens. Default: 50,000 (~12k tokens)."),
+                            depends_on = { id = "enable_book_text_extraction", value = true },
+                        },
+                        {
+                            id = "max_pdf_pages",
+                            type = "spinner",
+                            text = _("Max PDF Pages"),
+                            path = "features.max_pdf_pages",
+                            default = 250,
+                            min = 50,
+                            max = 500,
+                            step = 50,
+                            precision = "%d",
+                            help_text = _("Maximum PDF pages to extract text from (50-500). Higher values provide more context but take longer."),
+                            depends_on = { id = "enable_book_text_extraction", value = true },
+                        },
+                    },
+                    separator = true,
                 },
                 {
                     id = "debug",

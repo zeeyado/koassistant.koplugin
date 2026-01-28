@@ -174,6 +174,25 @@ function ActionService:loadActions()
                     if override.skip_domain ~= nil then
                         action_data.skip_domain = override.skip_domain
                     end
+                    if override.include_book_context ~= nil then
+                        action_data.include_book_context = override.include_book_context
+                    end
+                    -- Context extraction flag overrides
+                    if override.use_book_text ~= nil then
+                        action_data.use_book_text = override.use_book_text
+                    end
+                    if override.use_highlights ~= nil then
+                        action_data.use_highlights = override.use_highlights
+                    end
+                    if override.use_annotations ~= nil then
+                        action_data.use_annotations = override.use_annotations
+                    end
+                    if override.use_reading_progress ~= nil then
+                        action_data.use_reading_progress = override.use_reading_progress
+                    end
+                    if override.use_reading_stats ~= nil then
+                        action_data.use_reading_stats = override.use_reading_stats
+                    end
                 end
 
                 table.insert(self.actions_cache[context], action_data)

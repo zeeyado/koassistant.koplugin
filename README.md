@@ -257,8 +257,11 @@ KOAssistant works in **4 contexts**, each with its own set of actions, and you c
 | **Find Similar** | Recommendations for similar books |
 | **About Author** | Author biography and writing style |
 | **Historical Context** | When written and historical significance |
+| **X-Ray** | Structured reference guide: characters, locations, themes, timeline (spoiler-free up to your reading position) |
+| **Recap** | "Previously on..." style summary to help you resume reading after a break |
+| **Analyze Highlights** | Discover patterns and connections in your highlights and annotations |
 
-**What the AI sees**: Document metadata (title, author, identifiers from file properties)
+**What the AI sees**: Document metadata (title, author). For X-Ray/Recap, optionally: extracted book text up to your reading position (requires enabling in Settings → Advanced → Book Text Extraction). For Analyze Highlights: your annotations.
 
 ### Multi-Document Mode
 
@@ -414,6 +417,17 @@ Insert these in your action prompt to reference dynamic values:
 | `{translation_language}` | Any | Target language from settings |
 | `{dictionary_language}` | Any | Dictionary response language from settings |
 | `{context}` | Highlight | Surrounding text context (sentence/paragraph/characters) |
+| `{reading_progress}` | Book | Current reading position (e.g., "42%") |
+| `{highlights}` | Book | All highlights from the document |
+| `{annotations}` | Book | All highlights with user notes |
+| `{book_text}` | Book | Extracted book text up to current position (requires opt-in) |
+| `{book_text_section}` | Book | Same as above with "Book content so far:" label |
+| `{highlights_section}` | Book | Highlights with "My highlights so far:" label |
+| `{annotations_section}` | Book | Annotations with "My annotations:" label |
+| `{chapter_title}` | Book | Current chapter name |
+| `{time_since_last_read}` | Book | Time since last reading session (e.g., "3 days ago") |
+
+> **Note:** `{book_text}` and related placeholders require enabling book text extraction in Settings → Advanced → Book Text Extraction. This is off by default because it's slow and uses many tokens. The action must also have "Use book text" enabled.
 
 ### Tips for Custom Actions
 
@@ -450,7 +464,7 @@ return {
 ```
 
 **Optional fields**:
-- `behavior_variant`: Use a preset behavior ("minimal", "full", "none")
+- `behavior_variant`: Use a preset behavior ("minimal", "full", "none", "reader_assistant")
 - `behavior_override`: Custom behavior text (overrides variant)
 - `provider`: Force specific provider ("anthropic", "openai", etc.)
 - `model`: Force specific model for the provider
@@ -459,6 +473,11 @@ return {
 - `extended_thinking`: Legacy: "off" to disable, "on" to enable (Anthropic only)
 - `thinking_budget`: Legacy: Token budget when extended_thinking="on" (1024-32000)
 - `enabled`: Set to `false` to hide
+- `use_book_text`: Include extracted book text (requires global setting enabled)
+- `use_highlights`: Include document highlights
+- `use_annotations`: Include highlights with user notes
+- `use_reading_progress`: Include reading position and chapter info
+- `use_reading_stats`: Include time since last read and chapter count
 - `include_book_context`: Add book info to highlight actions
 - `skip_language_instruction`: Don't include language instruction in system message (default: off; Translate/Dictionary use true since target language is in the prompt)
 - `skip_domain`: Don't include domain context in system message (default: off; Translate/Dictionary use true)
@@ -910,10 +929,19 @@ Chat History → hamburger menu → **View by Domain**
 - **Auto-scroll Streaming**: Follow new text during streaming (off by default)
 - **Large Stream Dialog**: Use full-screen streaming window
 
+### Reading Features (visible when document is open)
+- **X-Ray**: Generate a structured reference guide for the book up to your current reading position
+- **Recap**: Get a "Previously on..." style summary to help you resume reading
+- **Analyze Highlights**: Discover patterns and connections in your highlights and annotations
+
 ### Advanced
 - **Manage Behaviors**: Select or create AI behavior styles (see [Behaviors](#behaviors))
 - **Manage Domains**: Create and manage knowledge domains (see [Domains](#domains))
 - **Temperature**: Response creativity (0.0-2.0, Anthropic max 1.0)
+- **Book Text Extraction**: Settings for extracting book content for AI analysis
+  - **Allow Book Text Extraction**: Enable/disable book text extraction globally (off by default)
+  - **Max Text Characters**: Maximum characters to extract (10,000-500,000, default 50,000)
+  - **Max PDF Pages**: Maximum PDF pages to process (50-500, default 250)
 - **Reasoning/Thinking**: Per-provider reasoning settings:
   - **Anthropic Extended Thinking**: Budget 1024-32000 tokens
   - **OpenAI Reasoning**: Effort level (low/medium/high)

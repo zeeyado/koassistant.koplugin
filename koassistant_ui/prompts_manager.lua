@@ -171,6 +171,12 @@ function PromptsManager:loadPrompts()
             provider = prompt.provider,
             model = prompt.model,
             has_override = false,
+            -- Context extraction flags
+            use_book_text = prompt.use_book_text,
+            use_highlights = prompt.use_highlights,
+            use_annotations = prompt.use_annotations,
+            use_reading_progress = prompt.use_reading_progress,
+            use_reading_stats = prompt.use_reading_stats,
         }
 
         -- Apply builtin action overrides if this is a builtin action
@@ -190,6 +196,13 @@ function PromptsManager:loadPrompts()
                 if override.reasoning_config then entry.reasoning_config = override.reasoning_config end
                 if override.skip_language_instruction ~= nil then entry.skip_language_instruction = override.skip_language_instruction end
                 if override.skip_domain ~= nil then entry.skip_domain = override.skip_domain end
+                if override.include_book_context ~= nil then entry.include_book_context = override.include_book_context end
+                -- Context extraction flag overrides
+                if override.use_book_text ~= nil then entry.use_book_text = override.use_book_text end
+                if override.use_highlights ~= nil then entry.use_highlights = override.use_highlights end
+                if override.use_annotations ~= nil then entry.use_annotations = override.use_annotations end
+                if override.use_reading_progress ~= nil then entry.use_reading_progress = override.use_reading_progress end
+                if override.use_reading_stats ~= nil then entry.use_reading_stats = override.use_reading_stats end
             end
         end
 
@@ -499,34 +512,47 @@ function PromptsManager:showPromptDetails(prompt)
     local provider_text = prompt.provider or _("Global")
     local model_text = prompt.model or _("Global")
 
+    -- Build info text with organized sections
+    -- Basic info
     local info_text = string.format(
-        "%s\n\n%s: %s\n%s: %s\n%s: %s\n%s: %s\n%s: %s\n%s: %s / %s\n\n%s:\n%s\n\n%s:\n%s",
+        "%s\n\n%s: %s\n%s: %s\n%s: %s",
         prompt.text,
         _("Context"), self:getContextDisplayName(prompt.context),
         _("Source"), source_text,
-        _("Status"), prompt.enabled and _("Enabled") or _("Disabled"),
-        _("Temperature"), temp_text,
-        _("Reasoning"), thinking_text,
-        _("Provider/Model"), provider_text, model_text,
-        _("AI Behavior"),
-        behavior_text,
-        _("Action Prompt"),
-        prompt.prompt or _("(None)")
+        _("Status"), prompt.enabled and _("Enabled") or _("Disabled")
     )
 
-    -- Show include_book_context for highlight-related contexts
+    -- Flags section (grouped together)
+    info_text = info_text .. "\n\n" .. _("─── Flags ───")
+
+    -- Skip language/domain
+    local skip_lang_text = prompt.skip_language_instruction and _("Yes") or _("No")
+    local skip_domain_text = prompt.skip_domain and _("Yes") or _("No")
+    info_text = info_text .. "\n" .. _("Skip Language") .. ": " .. skip_lang_text
+    info_text = info_text .. "  |  " .. _("Skip Domain") .. ": " .. skip_domain_text
+
+    -- Include book info (for highlight contexts)
     if prompt.context == "highlight" or prompt.context == "both" or prompt.context == "all" then
         local book_context_text = prompt.include_book_context and _("Yes") or _("No")
-        info_text = info_text .. "\n\n" .. _("Include Book Info") .. ": " .. book_context_text
+        info_text = info_text .. "\n" .. _("Include Book Info") .. ": " .. book_context_text
     end
 
-    -- Show skip_language_instruction (always show for visibility)
-    local skip_lang_text = prompt.skip_language_instruction and _("Yes") or _("No")
-    info_text = info_text .. "\n" .. _("Skip Language Instruction") .. ": " .. skip_lang_text
+    -- Book text extraction (for book-compatible contexts)
+    -- Note: Lightweight data (progress, highlights, annotations, stats) is always available
+    if self:contextIncludesBook(prompt.context) then
+        local book_text_status = prompt.use_book_text and _("Yes") or _("No")
+        info_text = info_text .. "\n" .. _("Use Book Text") .. ": " .. book_text_status
+    end
 
-    -- Show skip_domain
-    local skip_domain_text = prompt.skip_domain and _("Yes") or _("No")
-    info_text = info_text .. "\n" .. _("Skip Domain") .. ": " .. skip_domain_text
+    -- AI Settings section
+    info_text = info_text .. "\n\n" .. _("─── AI Settings ───")
+    info_text = info_text .. "\n" .. _("Temperature") .. ": " .. temp_text
+    info_text = info_text .. "\n" .. _("Reasoning") .. ": " .. thinking_text
+    info_text = info_text .. "\n" .. _("Provider/Model") .. ": " .. provider_text .. " / " .. model_text
+    info_text = info_text .. "\n" .. _("AI Behavior") .. ": " .. behavior_text
+
+    -- Prompt section (at the end since it's longest)
+    info_text = info_text .. "\n\n" .. _("─── Action Prompt ───") .. "\n" .. (prompt.prompt or _("(None)"))
 
     if prompt.requires then
         info_text = info_text .. "\n\n" .. _("Requires") .. ": " .. prompt.requires
@@ -539,13 +565,13 @@ function PromptsManager:showPromptDetails(prompt)
         -- Row with Edit and Delete buttons
         table.insert(buttons, {
             {
-                text = _("Edit"),
+                text = _("Quick Edit"),
                 callback = function()
                     -- Close the details dialog first
                     if self.details_dialog then
                         UIManager:close(self.details_dialog)
                     end
-                    self:showPromptEditor(prompt)
+                    self:showCustomQuickSettings(prompt)
                 end,
             },
             {
@@ -754,6 +780,12 @@ function PromptsManager:showPromptEditor(existing_prompt)
         thinking_budget = existing_prompt and existing_prompt.thinking_budget or nil,
         provider = existing_prompt and existing_prompt.provider or nil,  -- nil = use global
         model = existing_prompt and existing_prompt.model or nil,  -- nil = use global
+        -- Context extraction flags (off by default for custom actions)
+        use_book_text = existing_prompt and existing_prompt.use_book_text or false,
+        use_highlights = existing_prompt and existing_prompt.use_highlights or false,
+        use_annotations = existing_prompt and existing_prompt.use_annotations or false,
+        use_reading_progress = existing_prompt and existing_prompt.use_reading_progress or false,
+        use_reading_stats = existing_prompt and existing_prompt.use_reading_stats or false,
         existing_prompt = existing_prompt,
     }
 
@@ -812,7 +844,7 @@ function PromptsManager:showStep1_NameAndContext(state)
         local checkbox = state.include_book_context and "☑ " or "☐ "
         table.insert(button_rows, {
             {
-                text = checkbox .. _("Include book info (title, author)"),
+                text = checkbox .. _("Include book info"),
                 callback = function()
                     state.name = self.step1_dialog:getInputText()
                     state.include_book_context = not state.include_book_context
@@ -823,11 +855,12 @@ function PromptsManager:showStep1_NameAndContext(state)
         })
     end
 
-    -- Row 3: Skip language instruction toggle
+    -- Row 3: Skip language | Skip domain (two columns)
     local lang_checkbox = state.skip_language_instruction and "☑ " or "☐ "
+    local domain_checkbox = state.skip_domain and "☑ " or "☐ "
     table.insert(button_rows, {
         {
-            text = lang_checkbox .. _("Skip language instruction"),
+            text = lang_checkbox .. _("Skip language"),
             callback = function()
                 state.name = self.step1_dialog:getInputText()
                 state.skip_language_instruction = not state.skip_language_instruction
@@ -835,11 +868,6 @@ function PromptsManager:showStep1_NameAndContext(state)
                 self:showStep1_NameAndContext(state)
             end,
         },
-    })
-
-    -- Row 4: Skip domain toggle
-    local domain_checkbox = state.skip_domain and "☑ " or "☐ "
-    table.insert(button_rows, {
         {
             text = domain_checkbox .. _("Skip domain"),
             callback = function()
@@ -851,12 +879,13 @@ function PromptsManager:showStep1_NameAndContext(state)
         },
     })
 
-    -- Row 5: Add to Highlight Menu toggle (only for highlight-compatible contexts)
+    -- Row 4: Add to Highlight Menu | Add to Dictionary Popup (two columns, highlight contexts only)
     if state.context and self:contextIncludesHighlight(state.context) then
         local highlight_checkbox = state.add_to_highlight_menu and "☑ " or "☐ "
+        local dict_checkbox = state.add_to_dictionary_popup and "☑ " or "☐ "
         table.insert(button_rows, {
             {
-                text = highlight_checkbox .. _("Add to Highlight Menu"),
+                text = highlight_checkbox .. _("Highlight Menu"),
                 callback = function()
                     state.name = self.step1_dialog:getInputText()
                     state.add_to_highlight_menu = not state.add_to_highlight_menu
@@ -864,18 +893,43 @@ function PromptsManager:showStep1_NameAndContext(state)
                     self:showStep1_NameAndContext(state)
                 end,
             },
-        })
-    end
-
-    -- Row 5: Add to Dictionary Popup toggle (only for highlight-compatible contexts)
-    if state.context and self:contextIncludesHighlight(state.context) then
-        local dict_checkbox = state.add_to_dictionary_popup and "☑ " or "☐ "
-        table.insert(button_rows, {
             {
-                text = dict_checkbox .. _("Add to Dictionary Popup"),
+                text = dict_checkbox .. _("Dictionary Popup"),
                 callback = function()
                     state.name = self.step1_dialog:getInputText()
                     state.add_to_dictionary_popup = not state.add_to_dictionary_popup
+                    UIManager:close(self.step1_dialog)
+                    self:showStep1_NameAndContext(state)
+                end,
+            },
+        })
+    end
+
+    -- Book text extraction toggle (only for book-compatible contexts)
+    -- Note: Lightweight data (progress, highlights, annotations, stats) is auto-extracted
+    if state.context and self:contextIncludesBook(state.context) then
+        local book_text_checkbox = state.use_book_text and "☑ " or "☐ "
+        table.insert(button_rows, {
+            {
+                text = book_text_checkbox .. _("Use book text"),
+                callback = function()
+                    state.name = self.step1_dialog:getInputText()
+                    state.use_book_text = not state.use_book_text
+                    -- Show explanation when turning on
+                    if state.use_book_text then
+                        local features = self.plugin.settings:readSetting("features") or {}
+                        if not features.enable_book_text_extraction then
+                            UIManager:show(InfoMessage:new{
+                                text = _("This allows {book_text} placeholders to include book content.\n\nNote: Book text extraction is currently disabled in Settings → Advanced → Book Text Extraction. Enable it there for this to work."),
+                                timeout = 6,
+                            })
+                        else
+                            UIManager:show(InfoMessage:new{
+                                text = _("This allows {book_text} placeholders to include book content. The prompt must use {book_text} or {book_text_section} for this to have effect."),
+                                timeout = 4,
+                            })
+                        end
+                    end
                     UIManager:close(self.step1_dialog)
                     self:showStep1_NameAndContext(state)
                 end,
@@ -947,6 +1001,11 @@ end
 -- Check if a context includes highlight context (where include_book_context applies)
 function PromptsManager:contextIncludesHighlight(context)
     return context == "highlight" or context == "both" or context == "all"
+end
+
+-- Check if a context includes book context (where context extraction flags apply)
+function PromptsManager:contextIncludesBook(context)
+    return context == "book" or context == "both" or context == "all"
 end
 
 -- Get default system prompt for a context
@@ -1949,6 +2008,14 @@ function PromptsManager:showBuiltinSettingsEditor(prompt)
     local base_action = Actions.getById(prompt.id)
     local base_skip_lang = base_action and base_action.skip_language_instruction or false
     local base_skip_domain = base_action and base_action.skip_domain or false
+    local base_include_book_context = base_action and base_action.include_book_context or false
+
+    -- Get base action extraction flags for comparison
+    local base_use_book_text = base_action and base_action.use_book_text or false
+    local base_use_highlights = base_action and base_action.use_highlights or false
+    local base_use_annotations = base_action and base_action.use_annotations or false
+    local base_use_reading_progress = base_action and base_action.use_reading_progress or false
+    local base_use_reading_stats = base_action and base_action.use_reading_stats or false
 
     -- Initialize state from current prompt values
     local state = {
@@ -1960,6 +2027,8 @@ function PromptsManager:showBuiltinSettingsEditor(prompt)
         skip_language_instruction_base = base_skip_lang,  -- Track base for comparison on save
         skip_domain = prompt.skip_domain or false,
         skip_domain_base = base_skip_domain,  -- Track base for comparison on save
+        include_book_context = prompt.include_book_context or false,
+        include_book_context_base = base_include_book_context,
         -- New format: reasoning_config
         reasoning_config = prompt.reasoning_config,
         -- Legacy format (backward compatibility)
@@ -1967,6 +2036,17 @@ function PromptsManager:showBuiltinSettingsEditor(prompt)
         thinking_budget = prompt.thinking_budget,
         provider = prompt.provider,
         model = prompt.model,
+        -- Context extraction flags
+        use_book_text = prompt.use_book_text or false,
+        use_book_text_base = base_use_book_text,
+        use_highlights = prompt.use_highlights or false,
+        use_highlights_base = base_use_highlights,
+        use_annotations = prompt.use_annotations or false,
+        use_annotations_base = base_use_annotations,
+        use_reading_progress = prompt.use_reading_progress or false,
+        use_reading_progress_base = base_use_reading_progress,
+        use_reading_stats = prompt.use_reading_stats or false,
+        use_reading_stats_base = base_use_reading_stats,
     }
 
     self:showBuiltinSettingsDialog(state)
@@ -2015,17 +2095,14 @@ function PromptsManager:showBuiltinSettingsDialog(state)
                 end,
             },
         },
-        -- Row 2: Temperature
+        -- Row 2: Temperature | Reasoning (compacted)
         {
             {
-                text = _("Temperature: ") .. temp_display,
+                text = _("Temp: ") .. temp_display,
                 callback = function()
                     self:showBuiltinTemperatureSelector(state)
                 end,
             },
-        },
-        -- Row 3: Reasoning/Thinking
-        {
             {
                 text = _("Reasoning: ") .. thinking_display,
                 callback = function()
@@ -2033,7 +2110,7 @@ function PromptsManager:showBuiltinSettingsDialog(state)
                 end,
             },
         },
-        -- Row 4: Provider/Model
+        -- Row 3: Provider | Model
         {
             {
                 text = _("Provider: ") .. provider_display,
@@ -2054,19 +2131,16 @@ function PromptsManager:showBuiltinSettingsDialog(state)
                 end,
             },
         },
-        -- Row 5: Skip language instruction toggle
+        -- Row 4: Skip language | Skip domain (compacted)
         {
             {
-                text = (state.skip_language_instruction and "☑ " or "☐ ") .. _("Skip language instruction"),
+                text = (state.skip_language_instruction and "☑ " or "☐ ") .. _("Skip language"),
                 callback = function()
                     state.skip_language_instruction = not state.skip_language_instruction
                     UIManager:close(self.builtin_settings_dialog)
                     self:showBuiltinSettingsDialog(state)
                 end,
             },
-        },
-        -- Row 6: Skip domain toggle
-        {
             {
                 text = (state.skip_domain and "☑ " or "☐ ") .. _("Skip domain"),
                 callback = function()
@@ -2076,24 +2150,69 @@ function PromptsManager:showBuiltinSettingsDialog(state)
                 end,
             },
         },
-        -- Row 7: Cancel / Save
-        {
-            {
-                text = _("Cancel"),
-                callback = function()
-                    UIManager:close(self.builtin_settings_dialog)
-                end,
-            },
-            {
-                text = _("Save"),
-                callback = function()
-                    UIManager:close(self.builtin_settings_dialog)
-                    self:saveBuiltinOverride(prompt, state)
-                    self:refreshMenu()
-                end,
-            },
-        },
     }
+
+    -- Include book context toggle (for highlight-compatible contexts)
+    if self:contextIncludesHighlight(prompt.context) then
+        table.insert(buttons, {
+            {
+                text = (state.include_book_context and "☑ " or "☐ ") .. _("Include book info"),
+                callback = function()
+                    state.include_book_context = not state.include_book_context
+                    UIManager:close(self.builtin_settings_dialog)
+                    self:showBuiltinSettingsDialog(state)
+                end,
+            },
+        })
+    end
+
+    -- Book text extraction toggle (only for book-compatible contexts)
+    -- Note: Lightweight data (progress, highlights, annotations, stats) is auto-extracted
+    if self:contextIncludesBook(prompt.context) then
+        table.insert(buttons, {
+            {
+                text = (state.use_book_text and "☑ " or "☐ ") .. _("Use book text"),
+                callback = function()
+                    state.use_book_text = not state.use_book_text
+                    -- Show explanation when turning on
+                    if state.use_book_text then
+                        local features = self.plugin.settings:readSetting("features") or {}
+                        if not features.enable_book_text_extraction then
+                            UIManager:show(InfoMessage:new{
+                                text = _("This allows {book_text} placeholders to include book content.\n\nNote: Book text extraction is currently disabled in Settings → Advanced → Book Text Extraction. Enable it there for this to work."),
+                                timeout = 6,
+                            })
+                        else
+                            UIManager:show(InfoMessage:new{
+                                text = _("This allows {book_text} placeholders to include book content. The prompt must use {book_text} or {book_text_section} for this to have effect."),
+                                timeout = 4,
+                            })
+                        end
+                    end
+                    UIManager:close(self.builtin_settings_dialog)
+                    self:showBuiltinSettingsDialog(state)
+                end,
+            },
+        })
+    end
+
+    -- Cancel / Save row
+    table.insert(buttons, {
+        {
+            text = _("Cancel"),
+            callback = function()
+                UIManager:close(self.builtin_settings_dialog)
+            end,
+        },
+        {
+            text = _("Save"),
+            callback = function()
+                UIManager:close(self.builtin_settings_dialog)
+                self:saveBuiltinOverride(prompt, state)
+                self:refreshMenu()
+            end,
+        },
+    })
 
     local info = T(_([[Edit settings for: %1
 
@@ -2459,6 +2578,34 @@ function PromptsManager:saveBuiltinOverride(prompt, state)
         override.skip_domain = state.skip_domain
         has_any = true
     end
+    -- Save include_book_context if it differs from the base action's default
+    local base_include_book_context = state.include_book_context_base or false
+    if state.include_book_context ~= base_include_book_context then
+        override.include_book_context = state.include_book_context
+        has_any = true
+    end
+
+    -- Save context extraction flags if they differ from base
+    if state.use_book_text ~= (state.use_book_text_base or false) then
+        override.use_book_text = state.use_book_text
+        has_any = true
+    end
+    if state.use_highlights ~= (state.use_highlights_base or false) then
+        override.use_highlights = state.use_highlights
+        has_any = true
+    end
+    if state.use_annotations ~= (state.use_annotations_base or false) then
+        override.use_annotations = state.use_annotations
+        has_any = true
+    end
+    if state.use_reading_progress ~= (state.use_reading_progress_base or false) then
+        override.use_reading_progress = state.use_reading_progress
+        has_any = true
+    end
+    if state.use_reading_stats ~= (state.use_reading_stats_base or false) then
+        override.use_reading_stats = state.use_reading_stats
+        has_any = true
+    end
 
     if has_any then
         all_overrides[key] = override
@@ -2477,6 +2624,584 @@ function PromptsManager:saveBuiltinOverride(prompt, state)
     UIManager:show(InfoMessage:new{
         text = has_any and _("Settings saved") or _("Settings reset to default"),
     })
+end
+
+-- Quick settings editor for custom (UI-created) actions
+-- Shows a single dialog for quick edits, with option to go to full wizard
+function PromptsManager:showCustomQuickSettings(prompt)
+    -- Initialize state from current prompt values
+    local state = {
+        prompt_ref = prompt,  -- Reference to the original prompt
+        name = prompt.text or "",
+        behavior_variant = prompt.behavior_variant,
+        behavior_override = prompt.behavior_override or "",
+        prompt = prompt.prompt or "",
+        context = prompt.context,
+        include_book_context = prompt.include_book_context or false,
+        skip_language_instruction = prompt.skip_language_instruction or false,
+        skip_domain = prompt.skip_domain or false,
+        domain = prompt.domain,
+        temperature = prompt.temperature,
+        reasoning_config = prompt.reasoning_config,
+        extended_thinking = prompt.extended_thinking,
+        thinking_budget = prompt.thinking_budget,
+        provider = prompt.provider,
+        model = prompt.model,
+        use_book_text = prompt.use_book_text or false,
+        use_highlights = prompt.use_highlights or false,
+        use_annotations = prompt.use_annotations or false,
+        use_reading_progress = prompt.use_reading_progress or false,
+        use_reading_stats = prompt.use_reading_stats or false,
+        existing_prompt = prompt,  -- For updatePrompt compatibility
+    }
+
+    self:showCustomQuickSettingsDialog(state)
+end
+
+-- The actual dialog for custom action quick settings
+function PromptsManager:showCustomQuickSettingsDialog(state)
+    local prompt = state.prompt_ref
+
+    -- Behavior display
+    local behavior_display
+    if state.behavior_override and state.behavior_override ~= "" then
+        behavior_display = _("Custom")
+    elseif state.behavior_variant == "none" then
+        behavior_display = _("None")
+    elseif state.behavior_variant then
+        local behavior = SystemPrompts.getBehaviorById(state.behavior_variant, nil)
+        if behavior then
+            behavior_display = behavior.name
+        else
+            behavior_display = state.behavior_variant
+        end
+    else
+        behavior_display = _("Global")
+    end
+
+    -- Temperature display
+    local temp_display = state.temperature and string.format("%.1f", state.temperature) or _("Global")
+
+    -- Reasoning display
+    local thinking_display = self:getStateReasoningDisplayText(state)
+
+    -- Provider/model display
+    local provider_display = state.provider or _("Global")
+    local model_display = state.model or _("Global")
+
+    local buttons = {
+        -- Row 1: Name (editable)
+        {
+            {
+                text = _("Name: ") .. state.name,
+                callback = function()
+                    UIManager:close(self.custom_quick_dialog)
+                    self:showCustomNameEditor(state)
+                end,
+            },
+        },
+        -- Row 2: AI Behavior
+        {
+            {
+                text = _("AI Behavior: ") .. behavior_display,
+                callback = function()
+                    UIManager:close(self.custom_quick_dialog)
+                    self:showCustomBehaviorQuickSelector(state)
+                end,
+            },
+        },
+        -- Row 3: Temperature | Reasoning
+        {
+            {
+                text = _("Temp: ") .. temp_display,
+                callback = function()
+                    self:showCustomTemperatureSelector(state)
+                end,
+            },
+            {
+                text = _("Reasoning: ") .. thinking_display,
+                callback = function()
+                    self:showThinkingSelector(state, function()
+                        UIManager:close(self.custom_quick_dialog)
+                        self:showCustomQuickSettingsDialog(state)
+                    end)
+                end,
+            },
+        },
+        -- Row 4: Provider | Model
+        {
+            {
+                text = _("Provider: ") .. provider_display,
+                callback = function()
+                    self:showCustomProviderSelector(state)
+                end,
+            },
+            {
+                text = _("Model: ") .. model_display,
+                callback = function()
+                    if not state.provider then
+                        UIManager:show(InfoMessage:new{
+                            text = _("Please select a provider first"),
+                        })
+                        return
+                    end
+                    self:showCustomModelSelector(state)
+                end,
+            },
+        },
+        -- Row 5: Skip language | Skip domain
+        {
+            {
+                text = (state.skip_language_instruction and "☑ " or "☐ ") .. _("Skip language"),
+                callback = function()
+                    state.skip_language_instruction = not state.skip_language_instruction
+                    UIManager:close(self.custom_quick_dialog)
+                    self:showCustomQuickSettingsDialog(state)
+                end,
+            },
+            {
+                text = (state.skip_domain and "☑ " or "☐ ") .. _("Skip domain"),
+                callback = function()
+                    state.skip_domain = not state.skip_domain
+                    UIManager:close(self.custom_quick_dialog)
+                    self:showCustomQuickSettingsDialog(state)
+                end,
+            },
+        },
+    }
+
+    -- Include book context toggle (for highlight-compatible contexts)
+    if self:contextIncludesHighlight(state.context) then
+        table.insert(buttons, {
+            {
+                text = (state.include_book_context and "☑ " or "☐ ") .. _("Include book info"),
+                callback = function()
+                    state.include_book_context = not state.include_book_context
+                    UIManager:close(self.custom_quick_dialog)
+                    self:showCustomQuickSettingsDialog(state)
+                end,
+            },
+        })
+    end
+
+    -- Book text extraction toggle (only for book-compatible contexts)
+    -- Note: Lightweight data (progress, highlights, annotations, stats) is auto-extracted
+    if self:contextIncludesBook(state.context) then
+        table.insert(buttons, {
+            {
+                text = (state.use_book_text and "☑ " or "☐ ") .. _("Use book text"),
+                callback = function()
+                    state.use_book_text = not state.use_book_text
+                    -- Show explanation when turning on
+                    if state.use_book_text then
+                        local features = self.plugin.settings:readSetting("features") or {}
+                        if not features.enable_book_text_extraction then
+                            UIManager:show(InfoMessage:new{
+                                text = _("This allows {book_text} placeholders to include book content.\n\nNote: Book text extraction is currently disabled in Settings → Advanced → Book Text Extraction. Enable it there for this to work."),
+                                timeout = 6,
+                            })
+                        else
+                            UIManager:show(InfoMessage:new{
+                                text = _("This allows {book_text} placeholders to include book content. The prompt must use {book_text} or {book_text_section} for this to have effect."),
+                                timeout = 4,
+                            })
+                        end
+                    end
+                    UIManager:close(self.custom_quick_dialog)
+                    self:showCustomQuickSettingsDialog(state)
+                end,
+            },
+        })
+    end
+
+    -- Action row: Cancel | Full Editor | Save
+    table.insert(buttons, {
+        {
+            text = _("Cancel"),
+            callback = function()
+                UIManager:close(self.custom_quick_dialog)
+            end,
+        },
+        {
+            text = _("Full Editor"),
+            callback = function()
+                UIManager:close(self.custom_quick_dialog)
+                -- Go to full wizard with current state
+                self:showPromptEditor(state.existing_prompt)
+            end,
+        },
+        {
+            text = _("Save"),
+            callback = function()
+                UIManager:close(self.custom_quick_dialog)
+                self:updatePrompt(state.existing_prompt, state)
+                self:refreshMenu()
+            end,
+        },
+    })
+
+    local info = T(_([[Quick edit: %1
+
+For name, context, or prompt text changes, use Full Editor.]]), state.name)
+
+    self.custom_quick_dialog = ButtonDialog:new{
+        title = _("Edit Custom Action"),
+        info_text = info,
+        buttons = buttons,
+    }
+
+    UIManager:show(self.custom_quick_dialog)
+end
+
+-- Name editor for custom quick settings
+function PromptsManager:showCustomNameEditor(state)
+    local dialog
+    dialog = InputDialog:new{
+        title = _("Action Name"),
+        input = state.name,
+        input_hint = _("Enter action name"),
+        buttons = {
+            {
+                {
+                    text = _("Cancel"),
+                    id = "close",
+                    callback = function()
+                        UIManager:close(dialog)
+                        self:showCustomQuickSettingsDialog(state)
+                    end,
+                },
+                {
+                    text = _("OK"),
+                    callback = function()
+                        local name = dialog:getInputText()
+                        if name and name ~= "" then
+                            state.name = name
+                        end
+                        UIManager:close(dialog)
+                        self:showCustomQuickSettingsDialog(state)
+                    end,
+                },
+            },
+        },
+    }
+    UIManager:show(dialog)
+    dialog:onShowKeyboard()
+end
+
+-- Behavior selector for custom quick settings (reuses builtin behavior logic)
+function PromptsManager:showCustomBehaviorQuickSelector(state)
+    -- Reuse the builtin behavior selector, just change the return path
+    local current_selection = "global"
+    if state.behavior_override and state.behavior_override ~= "" then
+        current_selection = "custom"
+    elseif state.behavior_variant == "none" then
+        current_selection = "none"
+    elseif isBuiltinBehavior(state.behavior_variant) then
+        current_selection = state.behavior_variant
+    end
+
+    local buttons = {}
+
+    -- Global option
+    table.insert(buttons, {
+        {
+            text = (current_selection == "global" and "● " or "○ ") .. _("Global (use setting)"),
+            callback = function()
+                state.behavior_variant = nil
+                state.behavior_override = ""
+                UIManager:close(self.custom_behavior_dialog)
+                self:showCustomQuickSettingsDialog(state)
+            end,
+        },
+    })
+
+    -- None option
+    table.insert(buttons, {
+        {
+            text = (current_selection == "none" and "● " or "○ ") .. _("None (no behavior)"),
+            callback = function()
+                state.behavior_variant = "none"
+                state.behavior_override = ""
+                UIManager:close(self.custom_behavior_dialog)
+                self:showCustomQuickSettingsDialog(state)
+            end,
+        },
+    })
+
+    -- Built-in behaviors
+    local builtin_options = getBuiltinBehaviorOptions()
+    for _idx, opt in ipairs(builtin_options) do
+        local is_selected = current_selection == opt.id
+        table.insert(buttons, {
+            {
+                text = (is_selected and "● " or "○ ") .. opt.text .. " (" .. opt.desc .. ")",
+                callback = function()
+                    state.behavior_variant = opt.id
+                    state.behavior_override = ""
+                    UIManager:close(self.custom_behavior_dialog)
+                    self:showCustomQuickSettingsDialog(state)
+                end,
+            },
+        })
+    end
+
+    -- Custom option
+    table.insert(buttons, {
+        {
+            text = (current_selection == "custom" and "● " or "○ ") .. _("Custom behavior..."),
+            callback = function()
+                UIManager:close(self.custom_behavior_dialog)
+                self:showCustomBehaviorQuickInput(state)
+            end,
+        },
+    })
+
+    -- Cancel
+    table.insert(buttons, {
+        {
+            text = _("Cancel"),
+            callback = function()
+                UIManager:close(self.custom_behavior_dialog)
+                self:showCustomQuickSettingsDialog(state)
+            end,
+        },
+    })
+
+    self.custom_behavior_dialog = ButtonDialog:new{
+        title = _("Select AI Behavior"),
+        buttons = buttons,
+    }
+    UIManager:show(self.custom_behavior_dialog)
+end
+
+-- Custom behavior input for custom quick settings
+function PromptsManager:showCustomBehaviorQuickInput(state)
+    local dialog
+    dialog = InputDialog:new{
+        title = _("Custom AI Behavior"),
+        input = state.behavior_override or "",
+        input_hint = _("Enter custom behavior instructions..."),
+        input_type = "text",
+        allow_newline = true,
+        buttons = {
+            {
+                {
+                    text = _("Cancel"),
+                    id = "close",
+                    callback = function()
+                        UIManager:close(dialog)
+                        self:showCustomBehaviorQuickSelector(state)
+                    end,
+                },
+                {
+                    text = _("OK"),
+                    callback = function()
+                        local text = dialog:getInputText()
+                        if text and text ~= "" then
+                            state.behavior_override = text
+                            state.behavior_variant = nil
+                        end
+                        UIManager:close(dialog)
+                        self:showCustomQuickSettingsDialog(state)
+                    end,
+                },
+            },
+        },
+    }
+    UIManager:show(dialog)
+    dialog:onShowKeyboard()
+end
+
+-- Temperature selector for custom quick settings
+function PromptsManager:showCustomTemperatureSelector(state)
+    local buttons = {}
+
+    -- Global option
+    table.insert(buttons, {
+        {
+            text = (state.temperature == nil and "● " or "○ ") .. _("Global (use setting)"),
+            callback = function()
+                state.temperature = nil
+                UIManager:close(self.custom_temp_dialog)
+                UIManager:close(self.custom_quick_dialog)
+                self:showCustomQuickSettingsDialog(state)
+            end,
+        },
+    })
+
+    -- Temperature presets
+    local temps = { 0.0, 0.3, 0.5, 0.7, 1.0 }
+    for _idx, temp in ipairs(temps) do
+        local is_selected = state.temperature == temp
+        table.insert(buttons, {
+            {
+                text = (is_selected and "● " or "○ ") .. string.format("%.1f", temp),
+                callback = function()
+                    state.temperature = temp
+                    UIManager:close(self.custom_temp_dialog)
+                    UIManager:close(self.custom_quick_dialog)
+                    self:showCustomQuickSettingsDialog(state)
+                end,
+            },
+        })
+    end
+
+    -- Cancel
+    table.insert(buttons, {
+        {
+            text = _("Cancel"),
+            callback = function()
+                UIManager:close(self.custom_temp_dialog)
+            end,
+        },
+    })
+
+    self.custom_temp_dialog = ButtonDialog:new{
+        title = _("Select Temperature"),
+        buttons = buttons,
+    }
+    UIManager:show(self.custom_temp_dialog)
+end
+
+-- Provider selector for custom quick settings
+function PromptsManager:showCustomProviderSelector(state)
+    local ModelLists = require("koassistant_model_lists")
+    local buttons = {}
+
+    -- Global option
+    table.insert(buttons, {
+        {
+            text = (state.provider == nil and "● " or "○ ") .. _("Global (use setting)"),
+            callback = function()
+                state.provider = nil
+                state.model = nil
+                UIManager:close(self.custom_provider_dialog)
+                UIManager:close(self.custom_quick_dialog)
+                self:showCustomQuickSettingsDialog(state)
+            end,
+        },
+    })
+
+    -- Provider list
+    local providers = ModelLists.getAllProvidersWithCustom(self.plugin.settings)
+    for _idx, provider in ipairs(providers) do
+        local is_selected = state.provider == provider.id
+        table.insert(buttons, {
+            {
+                text = (is_selected and "● " or "○ ") .. provider.name,
+                callback = function()
+                    state.provider = provider.id
+                    state.model = nil  -- Reset model when provider changes
+                    UIManager:close(self.custom_provider_dialog)
+                    UIManager:close(self.custom_quick_dialog)
+                    self:showCustomQuickSettingsDialog(state)
+                end,
+            },
+        })
+    end
+
+    -- Cancel
+    table.insert(buttons, {
+        {
+            text = _("Cancel"),
+            callback = function()
+                UIManager:close(self.custom_provider_dialog)
+            end,
+        },
+    })
+
+    self.custom_provider_dialog = ButtonDialog:new{
+        title = _("Select Provider"),
+        buttons = buttons,
+    }
+    UIManager:show(self.custom_provider_dialog)
+end
+
+-- Model selector for custom quick settings
+function PromptsManager:showCustomModelSelector(state)
+    local ModelLists = require("koassistant_model_lists")
+    local buttons = {}
+
+    -- Get models for selected provider
+    local models = ModelLists.getModelsForProvider(state.provider, self.plugin.settings)
+
+    for _idx, model in ipairs(models) do
+        local is_selected = state.model == model
+        table.insert(buttons, {
+            {
+                text = (is_selected and "● " or "○ ") .. model,
+                callback = function()
+                    state.model = model
+                    UIManager:close(self.custom_model_dialog)
+                    UIManager:close(self.custom_quick_dialog)
+                    self:showCustomQuickSettingsDialog(state)
+                end,
+            },
+        })
+    end
+
+    -- Custom model option
+    table.insert(buttons, {
+        {
+            text = _("Custom model..."),
+            callback = function()
+                UIManager:close(self.custom_model_dialog)
+                self:showCustomModelQuickInput(state)
+            end,
+        },
+    })
+
+    -- Cancel
+    table.insert(buttons, {
+        {
+            text = _("Cancel"),
+            callback = function()
+                UIManager:close(self.custom_model_dialog)
+            end,
+        },
+    })
+
+    self.custom_model_dialog = ButtonDialog:new{
+        title = _("Select Model"),
+        buttons = buttons,
+    }
+    UIManager:show(self.custom_model_dialog)
+end
+
+-- Custom model input for custom quick settings
+function PromptsManager:showCustomModelQuickInput(state)
+    local dialog
+    dialog = InputDialog:new{
+        title = _("Custom Model"),
+        input = state.model or "",
+        input_hint = _("Enter model name"),
+        buttons = {
+            {
+                {
+                    text = _("Cancel"),
+                    id = "close",
+                    callback = function()
+                        UIManager:close(dialog)
+                        self:showCustomModelSelector(state)
+                    end,
+                },
+                {
+                    text = _("OK"),
+                    callback = function()
+                        local model = dialog:getInputText()
+                        if model and model ~= "" then
+                            state.model = model
+                        end
+                        UIManager:close(dialog)
+                        UIManager:close(self.custom_quick_dialog)
+                        self:showCustomQuickSettingsDialog(state)
+                    end,
+                },
+            },
+        },
+    }
+    UIManager:show(dialog)
+    dialog:onShowKeyboard()
 end
 
 -- Reset builtin action override
@@ -2502,6 +3227,7 @@ end
 -- Get placeholders available for a given context
 function PromptsManager:getPlaceholdersForContext(context)
     local all_placeholders = {
+        -- Basic placeholders
         { value = "{highlighted_text}", text = _("Selected Text"), contexts = {"highlight", "both", "all"} },
         { value = "{title}", text = _("Book Title"), contexts = {"highlight", "book", "both", "all"} },
         { value = "{author}", text = _("Author Name"), contexts = {"highlight", "book", "both", "all"} },
@@ -2509,6 +3235,18 @@ function PromptsManager:getPlaceholdersForContext(context)
         { value = "{count}", text = _("Book Count"), contexts = {"multi_book", "all"} },
         { value = "{books_list}", text = _("Books List"), contexts = {"multi_book", "all"} },
         { value = "{translation_language}", text = _("Translation Language"), contexts = {"highlight", "book", "multi_book", "general", "both", "all"} },
+        -- Context extraction placeholders (require extraction flags + global settings)
+        { value = "{reading_progress}", text = _("Reading Progress (%)"), contexts = {"highlight", "book", "both", "all"} },
+        { value = "{progress_decimal}", text = _("Progress (0.0-1.0)"), contexts = {"highlight", "book", "both", "all"} },
+        { value = "{book_text_section}", text = _("Book Text (with label)"), contexts = {"book", "both", "all"} },
+        { value = "{book_text}", text = _("Book Text (raw)"), contexts = {"book", "both", "all"} },
+        { value = "{highlights_section}", text = _("Highlights (with label)"), contexts = {"book", "both", "all"} },
+        { value = "{highlights}", text = _("Highlights (raw)"), contexts = {"book", "both", "all"} },
+        { value = "{annotations_section}", text = _("Annotations (with label)"), contexts = {"book", "both", "all"} },
+        { value = "{annotations}", text = _("Annotations (raw)"), contexts = {"book", "both", "all"} },
+        { value = "{chapter_title}", text = _("Current Chapter"), contexts = {"book", "both", "all"} },
+        { value = "{chapters_read}", text = _("Chapters Read Count"), contexts = {"book", "both", "all"} },
+        { value = "{time_since_last_read}", text = _("Time Since Last Read"), contexts = {"book", "both", "all"} },
     }
 
     local result = {}
@@ -2603,6 +3341,12 @@ function PromptsManager:addPrompt(state)
             thinking_budget = state.thinking_budget,
             provider = state.provider,  -- nil = use global
             model = state.model,        -- nil = use global
+            -- Context extraction flags (off by default)
+            use_book_text = state.use_book_text or nil,
+            use_highlights = state.use_highlights or nil,
+            use_annotations = state.use_annotations or nil,
+            use_reading_progress = state.use_reading_progress or nil,
+            use_reading_stats = state.use_reading_stats or nil,
             enabled = true,
         })
 
@@ -2658,6 +3402,12 @@ function PromptsManager:updatePrompt(existing_prompt, state)
                 thinking_budget = state.thinking_budget,
                 provider = state.provider,
                 model = state.model,
+                -- Context extraction flags (off by default)
+                use_book_text = state.use_book_text or nil,
+                use_highlights = state.use_highlights or nil,
+                use_annotations = state.use_annotations or nil,
+                use_reading_progress = state.use_reading_progress or nil,
+                use_reading_stats = state.use_reading_stats or nil,
                 enabled = true,
             }
 
