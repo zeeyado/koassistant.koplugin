@@ -47,7 +47,47 @@ local MessageBuilder = require("message_builder")
 local Constants = require("koassistant_constants")
 local ConstraintUtils = require("tests.lib.constraint_utils")
 
+-- Load sample context fixture for testing book-level actions (X-Ray, Recap, etc.)
+local SampleContext = require("tests.fixtures.sample_context")
+
 local c = TerminalFormatter.colors
+
+-- Check if action uses context extraction features and merge sample data
+-- This allows testing X-Ray, Recap, Analyze Highlights without a real document
+local function mergeSampleContextIfNeeded(action, context_data, context_type)
+    if not action then return end
+
+    -- Check if action uses any context extraction flags
+    local needs_sample = action.use_book_text or action.use_highlights or
+                         action.use_annotations or action.use_reading_progress or
+                         action.use_reading_stats
+
+    if not needs_sample then return end
+
+    -- For book context, also populate book_metadata from sample
+    if context_type == "book" and not context_data.book_metadata then
+        context_data.book_metadata = {
+            title = SampleContext.title,
+            author = SampleContext.author,
+            author_clause = " by " .. SampleContext.author,
+        }
+    end
+
+    -- Merge sample context data (only fields that aren't already set)
+    local sample_fields = {
+        "reading_progress", "progress_decimal", "chapter_title",
+        "chapters_read", "time_since_last_read", "highlights",
+        "annotations", "book_text"
+    }
+    for _, field in ipairs(sample_fields) do
+        if not context_data[field] and SampleContext[field] then
+            context_data[field] = SampleContext[field]
+        end
+    end
+
+    -- Mark that sample data is being used (for UI display)
+    context_data._using_sample_context = true
+end
 
 -- Get default reasoning budget from plugin's ModelConstraints
 local anthropic_reasoning = ConstraintUtils.getReasoningDefaults("anthropic")
@@ -789,6 +829,25 @@ local function startWebServer(options)
         })
     end)
 
+    -- GET /api/sample-context - Return the sample context data for viewing
+    server:route("GET", "/api/sample-context", function(headers, body)
+        return "200 OK", "application/json", json.encode({
+            success = true,
+            sample = {
+                title = SampleContext.title,
+                author = SampleContext.author,
+                reading_progress = SampleContext.reading_progress,
+                progress_decimal = SampleContext.progress_decimal,
+                chapter_title = SampleContext.chapter_title,
+                chapters_read = SampleContext.chapters_read,
+                time_since_last_read = SampleContext.time_since_last_read,
+                highlights = SampleContext.highlights,
+                annotations = SampleContext.annotations,
+                book_text = SampleContext.book_text,
+            },
+        })
+    end)
+
     -- GET /api/settings - Load plugin settings (for Web UI defaults)
     server:route("GET", "/api/settings", function(headers, body)
         -- Try to load settings from the plugin's settings file
@@ -869,8 +928,15 @@ local function startWebServer(options)
                     include_book_context = action.include_book_context,
                     extended_thinking = action.extended_thinking,
                     skip_language_instruction = action.skip_language_instruction,  -- Language skip flag
+                    skip_domain = action.skip_domain,  -- Domain skip flag
                     context = action.context,  -- Include original context for filtering
                     is_custom = is_custom or false,
+                    -- Context extraction flags (for X-Ray, Recap, Analyze Highlights)
+                    use_book_text = action.use_book_text,
+                    use_highlights = action.use_highlights,
+                    use_annotations = action.use_annotations,
+                    use_reading_progress = action.use_reading_progress,
+                    use_reading_stats = action.use_reading_stats,
                 })
             end
         end
@@ -1035,7 +1101,8 @@ local function startWebServer(options)
             context_data.book_title = context.book_title
             context_data.book_author = context.book_author
         elseif context_type == "book" then
-            if context.book_title then
+            -- Only use form data if actually filled in (empty string is truthy in Lua)
+            if context.book_title and context.book_title ~= "" then
                 context_data.book_metadata = {
                     title = context.book_title,
                     author = context.book_author,
@@ -1074,6 +1141,9 @@ local function startWebServer(options)
                 primary_language = request_data.primary_language,
             })
         end
+
+        -- Merge sample context for actions that need book text/highlights/etc.
+        mergeSampleContextIfNeeded(action, context_data, context_type)
 
         -- Load templates getter for template resolution
         local templates_getter = nil
@@ -1258,7 +1328,8 @@ local function startWebServer(options)
             context_data.book_title = context.book_title
             context_data.book_author = context.book_author
         elseif context_type == "book" then
-            if context.book_title then
+            -- Only use form data if actually filled in (empty string is truthy in Lua)
+            if context.book_title and context.book_title ~= "" then
                 context_data.book_metadata = {
                     title = context.book_title,
                     author = context.book_author,
@@ -1299,6 +1370,9 @@ local function startWebServer(options)
                 primary_language = request_data.primary_language,
             })
         end
+
+        -- Merge sample context for actions that need book text/highlights/etc.
+        mergeSampleContextIfNeeded(action, context_data, context_type)
 
         local templates_getter = nil
         pcall(function()
@@ -1535,7 +1609,8 @@ local function startWebServer(options)
             context_data.book_title = context.book_title
             context_data.book_author = context.book_author
         elseif context_type == "book" then
-            if context.book_title then
+            -- Only use form data if actually filled in (empty string is truthy in Lua)
+            if context.book_title and context.book_title ~= "" then
                 context_data.book_metadata = {
                     title = context.book_title,
                     author = context.book_author,
@@ -1569,6 +1644,9 @@ local function startWebServer(options)
                 primary_language = request_data.primary_language,
             })
         end
+
+        -- Merge sample context for actions that need book text/highlights/etc.
+        mergeSampleContextIfNeeded(action, context_data, context_type)
 
         -- Load templates getter for template resolution
         local templates_getter = nil

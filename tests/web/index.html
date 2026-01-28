@@ -356,6 +356,12 @@
                         <option value="multi_book">Multi-Book (collection)</option>
                     </select>
                 </div>
+                <div class="form-group">
+                    <button class="btn" onclick="viewSampleData()" style="font-size: 0.75rem;">View Sample Data</button>
+                    <span style="font-size: 0.7rem; color: var(--text-muted); margin-left: 0.5rem;">Auto-used for X-Ray, Recap, etc.</span>
+                </div>
+                <div id="sample-data-view" style="display: none; margin-top: 0.5rem; padding: 0.5rem; background: var(--code-bg); border-radius: 4px; max-height: 200px; overflow-y: auto; font-size: 0.75rem; font-family: monospace; color: var(--code-text);">
+                </div>
                 <div id="highlight-fields" style="display: none;">
                     <div class="form-group">
                         <label>Highlighted Text</label>
@@ -967,7 +973,7 @@
 
         function onActionChange() {
             const actionId = document.getElementById('action-select').value;
-            const contextType = document.getElementById('context-type').value;
+            let contextType = document.getElementById('context-type').value;
 
             if (!actionId) {
                 return; // Custom mode - don't change anything
@@ -977,6 +983,17 @@
             const action = findAction(actionId);
 
             if (action) {
+                // Auto-switch context type to match action's context (if specific)
+                // This ensures book actions like X-Ray get book context type
+                if (action.context && action.context !== 'all' && action.context !== 'both') {
+                    const contextSelect = document.getElementById('context-type');
+                    if (contextSelect.value !== action.context) {
+                        contextSelect.value = action.context;
+                        onContextTypeChange();
+                        contextType = action.context;  // Update local var for any checks below
+                    }
+                }
+
                 // Set behavior if action specifies it
                 if (action.behavior_variant) {
                     const behaviorSelect = document.getElementById('behavior-select');
@@ -1365,6 +1382,38 @@
 
         function deselectAllProviders() {
             document.querySelectorAll('#compare-checks input').forEach(cb => cb.checked = false);
+        }
+
+        async function viewSampleData() {
+            const sampleView = document.getElementById('sample-data-view');
+            if (sampleView.style.display === 'none') {
+                // Fetch and show sample data
+                try {
+                    const response = await fetch('/api/sample-context');
+                    const data = await response.json();
+                    if (data.success && data.sample) {
+                        const s = data.sample;
+                        let html = `<strong>Sample Book Context</strong> (used for X-Ray, Recap, Analyze Highlights)<br><br>`;
+                        html += `<strong>Title:</strong> ${s.title}<br>`;
+                        html += `<strong>Author:</strong> ${s.author}<br>`;
+                        html += `<strong>Progress:</strong> ${s.reading_progress}<br>`;
+                        html += `<strong>Chapter:</strong> ${s.chapter_title}<br>`;
+                        html += `<strong>Last read:</strong> ${s.time_since_last_read}<br><br>`;
+                        html += `<strong>Highlights:</strong> ${(s.highlights || '').split('\n').length} entries<br>`;
+                        html += `<strong>Annotations:</strong> ${(s.annotations || '').split('\n\n').length} entries<br>`;
+                        html += `<strong>Book text:</strong> ${(s.book_text || '').length} chars<br><br>`;
+                        html += `<em style="color: var(--text-muted);">This data auto-merges when using actions with context extraction flags (use_book_text, use_highlights, etc.)</em>`;
+                        sampleView.innerHTML = html;
+                    } else {
+                        sampleView.innerHTML = 'Error: ' + (data.error || 'Unknown error');
+                    }
+                } catch (e) {
+                    sampleView.innerHTML = 'Error loading sample data: ' + e.message;
+                }
+                sampleView.style.display = 'block';
+            } else {
+                sampleView.style.display = 'none';
+            }
         }
 
         function toggleChatDebug() {
