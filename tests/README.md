@@ -2,10 +2,40 @@
 
 Standalone test framework for testing KOAssistant without running KOReader's GUI.
 
+## Important: Run from a KOReader Installation
+
+The test suite must run from within a **KOReader installation** where KOAssistant is installed. This is because:
+
+- **API keys** are read from your KOAssistant settings (`koassistant_settings.lua`) or `apikeys.lua`
+- **Domains and behaviors** are loaded from your `domains/` and `behaviors/` folders
+- **Settings** (language, temperature, behavior) sync from your actual configuration
+
+### KOReader Plugin Paths by Platform
+
+| Platform | Path |
+|----------|------|
+| **Kobo/Kindle** | `/mnt/onboard/.adds/koreader/plugins/koassistant.koplugin/` |
+| **Android** | `/sdcard/koreader/plugins/koassistant.koplugin/` |
+| **macOS** | `~/Library/Application Support/koreader/plugins/koassistant.koplugin/` |
+| **Linux** | `~/.config/koreader/plugins/koassistant.koplugin/` |
+| **Windows** | `%APPDATA%\koreader\plugins\koassistant.koplugin\` |
+
+### First-Time Setup
+
+1. **Install KOReader** on your computer (download from [koreader.rocks](https://koreader.rocks))
+2. **Install KOAssistant** plugin (copy to plugins folder or use the release zip)
+3. **Launch KOReader once** to create the settings file
+4. **Add your API keys** via Settings → API Keys (or create `apikeys.lua`)
+5. **Run tests** from the plugin directory
+
+**Pro tip:** If you already have KOAssistant configured on your e-reader, use [Backup & Restore](../README.md#backup--restore) to export your settings and import them on your computer.
+
 ## Quick Start
 
 ```bash
-cd /path/to/koassistant.koplugin
+# Navigate to your KOAssistant plugin directory (see paths above)
+cd ~/Library/Application\ Support/koreader/plugins/koassistant.koplugin  # macOS
+cd ~/.config/koreader/plugins/koassistant.koplugin                       # Linux
 
 # Run unit tests (fast, no API calls)
 lua tests/run_tests.lua --unit
@@ -243,17 +273,22 @@ sudo luarocks install dkjson
 
    **Option B: File-based keys** (recommended for development)
    ```bash
-   cd /path/to/koassistant.koplugin
+   # Navigate to plugin directory (see paths in "KOReader Plugin Paths" above)
    cp apikeys.lua.sample apikeys.lua
    # Edit apikeys.lua and add your API keys
    ```
 
    Both sources are merged, with GUI keys taking priority over file keys.
 
-2. **Run from the plugin directory**:
+2. **Run from the plugin directory** (see [KOReader Plugin Paths](#koreader-plugin-paths-by-platform) above):
 
    ```bash
-   cd /path/to/koassistant.koplugin
+   # macOS example:
+   cd ~/Library/Application\ Support/koreader/plugins/koassistant.koplugin
+   lua tests/run_tests.lua
+
+   # Linux example:
+   cd ~/.config/koreader/plugins/koassistant.koplugin
    lua tests/run_tests.lua
    ```
 
