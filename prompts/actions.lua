@@ -180,7 +180,9 @@ Where the story stands at {reading_progress}:
 - The protagonist's immediate situation
 - Unanswered questions
 
-CRITICAL: Do not reveal ANYTHING beyond {reading_progress}. This must be completely spoiler-free.]],
+CRITICAL: Do not reveal ANYTHING beyond {reading_progress}. This must be completely spoiler-free.
+
+If you don't recognize this book or the title/content seems unclear, tell me honestly rather than guessing or making things up. I can provide more context if needed.]],
         skip_language_instruction = false,
         skip_domain = true,  -- X-Ray has specific structure
         extended_thinking = "off",
@@ -220,7 +222,9 @@ Style guidance:
 - Keep it concise - this is a refresher, not a full summary
 - No spoilers beyond {reading_progress}
 
-Think of this as the "Last time on..." narration before a TV episode continues.]],
+Think of this as the "Last time on..." narration before a TV episode continues.
+
+If you don't recognize this book or the title/content seems unclear, tell me honestly rather than guessing. I can provide more context if needed.]],
         skip_language_instruction = false,
         skip_domain = true,
         extended_thinking = "off",
@@ -269,7 +273,9 @@ Based on my highlighting patterns:
 - Themes to watch for going forward
 - Connections to other ideas or books
 
-This is about understanding ME as a reader through my highlights, not summarizing the book.]],
+This is about understanding ME as a reader through my highlights, not summarizing the book.
+
+If you don't recognize this book or the highlights seem insufficient for meaningful analysis, let me know honestly rather than guessing.]],
         skip_language_instruction = false,
         skip_domain = true,
         extended_thinking = "off",
