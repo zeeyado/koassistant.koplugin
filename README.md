@@ -14,7 +14,7 @@ Chats are streamed live (like ChatGPT/Claude, etc), are automatically (or manual
 
 Most settings are configurable in the UI, including: Provider/model, AI behavior and style, user-to-AI interaction languages, translation languages, domains/project/field context, custom actions (which you can create, edit, duplicate, and adjust settings for), and advanced model settings like reasoning/thinking, temperature, and more. Most settings, additional context, and function combinations can be specified for a given action.
 
-> **Development Status**: KOAssistant is currently under active development, with features constantly added. 16 built-in providers are supported (plus custom OpenAI-compatible providers) — see [Supported Providers](#supported-providers-+-settings); **testing and Feedback appreciated**. You can open an issue, feature request, or start a discussion. If you don't want to wait for releases, you can clone the repo from main and check `_meta.lua` to see which version you are on. Some things may break when not on official releases. Running off of other branches than main is not recommended, as functional changes are quickly merged to main (and added to release after testing). Due to the current changing nature of the plugin, parts of the documentation (READMEs) may be out of sync. The main README is deliberately verbose and repetitive (to make sure users see all functions) -- help making actual structured and consise docs as the plugin matures would be appreciated. Built in actions, domains, behaviors, etc, are subject to change and are in varying degrees of testing/demonstration-of-feature stages.
+> **Development Status**: KOAssistant is currently under active development, with features constantly added. 16 built-in providers are supported (plus custom OpenAI-compatible providers) — see [Supported Providers](#supported-providers--settings); **testing and Feedback appreciated**. You can open an issue, feature request, or start a discussion. If you don't want to wait for releases, you can clone the repo from main and check `_meta.lua` to see which version you are on. Some things may break when not on official releases. Running off of other branches than main is not recommended, as functional changes are quickly merged to main (and added to release after testing). Due to the current changing nature of the plugin, parts of the documentation (READMEs) may be out of sync. The main README is deliberately verbose and repetitive (to make sure users see all functions) -- help making actual structured and consise docs as the plugin matures would be appreciated. Built in actions, domains, behaviors, etc, are subject to change and are in varying degrees of testing/demonstration-of-feature stages.
 
 ---
 
@@ -37,7 +37,7 @@ Most settings are configurable in the UI, including: Provider/model, AI behavior
 - [Advanced Configuration](#advanced-configuration)
 - [Backup & Restore](#backup--restore)
 - [Technical Features](#technical-features)
-- [Supported Providers + Settings](#supported-providers-+-settings)
+- [Supported Providers + Settings](#supported-providers--settings)
   - [Free Tier Providers](#free-tier-providers)
   - [Adding Custom Providers](#adding-custom-providers)
   - [Adding Custom Models](#adding-custom-models)
