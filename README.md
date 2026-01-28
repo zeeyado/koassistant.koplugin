@@ -207,7 +207,8 @@ The test suite includes an interactive web inspector that lets you test and expe
 
 **Requirements:**
 - Lua 5.3+ with LuaSocket, LuaSec, and dkjson
-- See [tests/README.md](tests/README.md) for installation instructions
+- **Clone from GitHub** — Tests are excluded from release zips to keep downloads small
+- See [tests/README.md](tests/README.md) for full setup instructions
 
 **Quick Start:**
 ```bash
@@ -1597,7 +1598,7 @@ Contributions welcome! You can:
 
 ### For Developers
 
-A standalone test suite is available in `tests/`. See `tests/README.md` for setup and usage:
+A standalone test suite is available in `tests/`. **Note:** Tests are excluded from release zips—clone from GitHub to access them. See `tests/README.md` for setup and usage:
 
 ```bash
 lua tests/run_tests.lua --unit   # Fast unit tests (no API calls)

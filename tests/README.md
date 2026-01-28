@@ -22,9 +22,16 @@ The test suite must run from within a **KOReader installation** where KOAssistan
 
 ### First-Time Setup
 
+> **Note:** The `tests/` directory is excluded from release zips to keep downloads small. To run tests, you need to **clone the repository** from GitHub:
+> ```bash
+> git clone https://github.com/zzzsm/koassistant.git
+> ```
+> Then copy or symlink the cloned folder to your KOReader plugins directory.
+
 1. **Install KOReader** on your computer (download from [koreader.rocks](https://koreader.rocks))
-2. **Install KOAssistant** plugin (copy to plugins folder or use the release zip)
-3. **Launch KOReader once** to create the settings file
+2. **Clone KOAssistant** from GitHub (release zips don't include tests)
+3. **Copy to plugins folder** or create a symlink
+4. **Launch KOReader once** to create the settings file
 4. **Add your API keys** via Settings → API Keys (or create `apikeys.lua`)
 5. **Run tests** from the plugin directory
 
