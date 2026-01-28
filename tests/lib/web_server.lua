@@ -10,10 +10,10 @@ WebServer.__index = WebServer
 
 --- Create a new WebServer instance
 function WebServer:new()
-    local self = setmetatable({}, WebServer)
-    self.running = false
-    self.handlers = {}
-    return self
+    local o = setmetatable({}, WebServer)
+    o.running = false
+    o.handlers = {}
+    return o
 end
 
 --- Register a route handler

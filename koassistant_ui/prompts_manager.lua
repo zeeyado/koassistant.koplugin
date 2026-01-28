@@ -227,7 +227,7 @@ function PromptsManager:loadPrompts()
         if not seen[key] then
             -- Check if this prompt already exists in highlight context
             local exists = false
-            for _idx,existing in ipairs(self.prompts) do
+            for _j,existing in ipairs(self.prompts) do
                 if existing.text == prompt.text and existing.source == prompt.source then
                     -- Change context to "both" (unless it's already a compound)
                     if existing.context ~= "all" and existing.context ~= "both" then
@@ -260,7 +260,7 @@ function PromptsManager:loadPrompts()
         if not seen[key] then
             -- Check if this prompt already exists in other contexts
             local exists = false
-            for _idx,existing in ipairs(self.prompts) do
+            for _j,existing in ipairs(self.prompts) do
                 if existing.text == prompt.text and existing.source == prompt.source then
                     -- Update context to include general (unless it's already a compound)
                     if existing.context == "highlight" then
@@ -327,12 +327,12 @@ function PromptsManager:showPromptsMenu()
     
     for _idx,context_info in ipairs(contexts) do
         local context_prompts = {}
-        for _idx,prompt in ipairs(self.prompts) do
+        for _j,prompt in ipairs(self.prompts) do
             if prompt.context == context_info.id then
                 table.insert(context_prompts, prompt)
             end
         end
-        
+
         if #context_prompts > 0 then
             -- Add context header with spacing
             -- No empty line needed, the section header provides visual separation
@@ -342,9 +342,9 @@ function PromptsManager:showPromptsMenu()
                 dim = false,
                 bold = true,
             })
-            
+
             -- Add prompts for this context
-            for _idx,prompt in ipairs(context_prompts) do
+            for _k,prompt in ipairs(context_prompts) do
                 local item_text = prompt.text
 
                 -- Add source indicator
@@ -3251,7 +3251,7 @@ function PromptsManager:getPlaceholdersForContext(context)
 
     local result = {}
     for _idx,p in ipairs(all_placeholders) do
-        for _idx,ctx in ipairs(p.contexts) do
+        for _j,ctx in ipairs(p.contexts) do
             if ctx == context then
                 table.insert(result, p)
                 break

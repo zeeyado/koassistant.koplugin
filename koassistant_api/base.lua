@@ -144,8 +144,8 @@ function BaseHandler:backgroundRequest(url, headers, body)
             -- Use https.request for HTTPS URLs, http.request for HTTP
             local request_func = string.sub(url, 1, 8) == "https://" and subprocess_https.request or subprocess_http.request
 
-            local ok, code, resp_headers, status
-            ok, code, resp_headers, status = pcall(function()
+            local ok, code, _headers, status  -- _headers intentionally unused
+            ok, code, _headers, status = pcall(function()
                 return subprocess_socket.skip(1, request_func(request))
             end)
 

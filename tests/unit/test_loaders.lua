@@ -327,14 +327,15 @@ TestRunner:test("folder domain takes priority over custom with same ID", functio
     -- Load actual folder domains
     local folder_domains = DomainLoader.load()
     -- If there are any folder domains, test that they take priority
-    for id, domain in pairs(folder_domains) do
+    -- Use next() to get first element without loop warning
+    local id, domain = next(folder_domains)
+    if id and domain then
         local custom = {
             { id = id, name = "Fake " .. domain.name, context = "Fake context" },
         }
         local result = DomainLoader.getDomainById(id, custom)
         -- Folder should win
         TestRunner:assertEqual(result.source, "folder", "folder domain wins for " .. id)
-        break  -- Only need to test one
     end
     -- If no folder domains, test passes (nothing to verify)
 end)
