@@ -100,17 +100,13 @@ local BUILTIN_BEHAVIORS = BehaviorLoader.loadBuiltin()
 
 -- Get a sample behavior for testing (first available)
 local function getFirstBehaviorId()
-    for id in pairs(BUILTIN_BEHAVIORS) do
-        return id
-    end
-    return nil
+    local id = next(BUILTIN_BEHAVIORS)
+    return id
 end
 
 local function getFirstBehaviorText()
-    for _, behavior in pairs(BUILTIN_BEHAVIORS) do
-        return behavior.text
-    end
-    return nil
+    local id = next(BUILTIN_BEHAVIORS)
+    return id and BUILTIN_BEHAVIORS[id].text or nil
 end
 
 -- Get specific behavior if it exists, otherwise first available

@@ -226,7 +226,6 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
 
     local font_size = (settings and settings.response_font_size) or 20
     local auto_scroll = settings and settings.stream_auto_scroll == true
-    local scroll_paused = false  -- Track if user has paused auto-scroll
 
     -- Display throttling for performance (only affects non-auto-scroll mode)
     local display_interval_sec = ((settings and settings.display_interval_ms) or 250) / 1000
@@ -256,7 +255,6 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
     turnOffAutoScroll = function()
         if auto_scroll_active then
             auto_scroll_active = false
-            scroll_paused = true
             -- Update button to show current state (OFF)
             local btn = streamDialog.button_table:getButtonById("scroll_control")
             if btn then
@@ -269,7 +267,6 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
 
     turnOnAutoScroll = function()
         auto_scroll_active = true
-        scroll_paused = false
         -- Scroll to bottom
         streamDialog._input_widget:scrollToBottom()
         -- Update button to show current state (ON)

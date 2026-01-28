@@ -996,16 +996,17 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
             save_callback = state.save_callback,
             export_callback = state.export_callback,
             tag_callback = state.tag_callback,
-            close_callback = function()
-                if _G.ActiveChatViewer == new_viewer then
-                    _G.ActiveChatViewer = nil
-                end
-            end,
             settings_callback = state.settings_callback,
             update_debug_callback = state.update_debug_callback,
             -- Pass recreate function for subsequent rotations
             _recreate_func = recreate_func,
         }
+        -- Set close_callback after creation so new_viewer is defined
+        new_viewer.close_callback = function()
+            if _G.ActiveChatViewer == new_viewer then
+                _G.ActiveChatViewer = nil
+            end
+        end
 
         -- Set global reference
         _G.ActiveChatViewer = new_viewer
@@ -1127,12 +1128,13 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                         save_callback = viewer.save_callback,
                         export_callback = viewer.export_callback,
                         tag_callback = viewer.tag_callback,
-                        close_callback = function()
-                            if _G.ActiveChatViewer == new_viewer then
-                                _G.ActiveChatViewer = nil
-                            end
-                        end
                     }
+                    -- Set close_callback after creation so new_viewer is defined
+                    new_viewer.close_callback = function()
+                        if _G.ActiveChatViewer == new_viewer then
+                            _G.ActiveChatViewer = nil
+                        end
+                    end
 
                     -- Set global reference to new viewer
                     _G.ActiveChatViewer = new_viewer
@@ -1745,7 +1747,8 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     -- But capture launch_context so we know where the chat was started from
     local document_path = nil
     local launch_context = nil
-    local book_metadata = nil
+    -- Reset book_metadata to allow conditional assignment below
+    book_metadata = nil
 
     if is_general_context then
         -- General chat: don't associate with a document, but track launch context
@@ -2031,13 +2034,13 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     -- 3. Custom actions (including Translate, which is now a built-in action)
     local prompts, prompt_keys = getAllPrompts(configuration, plugin)
     logger.info("showChatGPTDialog: Got " .. #prompt_keys .. " custom prompts")
-    for _idx, prompt_type in ipairs(prompt_keys) do
-        local prompt = prompts[prompt_type]
+    for _idx, custom_prompt_type in ipairs(prompt_keys) do
+        local prompt = prompts[custom_prompt_type]
         if prompt and prompt.text then
-            logger.info("Adding button for prompt: " .. prompt_type .. " with text: " .. prompt.text)
+            logger.info("Adding button for prompt: " .. custom_prompt_type .. " with text: " .. prompt.text)
             table.insert(all_buttons, {
                 text = _(prompt.text),
-            prompt_type = prompt_type,
+            prompt_type = custom_prompt_type,
             callback = function()
                 local additional_input = input_dialog:getInputText()
                 UIManager:close(input_dialog)
@@ -2071,14 +2074,14 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                             closeLoadingDialog()
                             local error_msg = temp_config_or_error or "Unknown error"
                             UIManager:show(InfoMessage:new{
-                                text = _("Error handling prompt: ") .. prompt_type .. " - " .. error_msg,
+                                text = _("Error handling prompt: ") .. custom_prompt_type .. " - " .. error_msg,
                                 timeout = 2
                             })
                         end
                     end
 
                     -- Call with callback for streaming support
-                    local history, temp_config = handlePredefinedPrompt(prompt_type, highlighted_text, ui_instance, configuration, nil, plugin, additional_input, onPromptComplete, book_metadata)
+                    local history, temp_config = handlePredefinedPrompt(custom_prompt_type, highlighted_text, ui_instance, configuration, nil, plugin, additional_input, onPromptComplete, book_metadata)
 
                     -- For non-streaming, history is returned directly and callback was also called
                     -- The callback handles showing the dialog, so we don't need to do anything here
@@ -2086,7 +2089,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             end
         })
         else
-            logger.warn("Skipping prompt " .. prompt_type .. " - missing or invalid")
+            logger.warn("Skipping prompt " .. custom_prompt_type .. " - missing or invalid")
         end
     end
 

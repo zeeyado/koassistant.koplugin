@@ -372,12 +372,13 @@ function ChatHistoryDialog:showChatsByDomainBrowser(ui, chat_history_manager, co
         multilines_forced = true,
         items_font_size = 18,
         items_mandatory_font_size = 14,
-        close_callback = function()
-            if self_ref.current_menu == domain_menu then
-                self_ref.current_menu = nil
-            end
-        end,
     }
+    -- Set close_callback after creation so domain_menu is defined
+    domain_menu.close_callback = function()
+        if self_ref.current_menu == domain_menu then
+            self_ref.current_menu = nil
+        end
+    end
 
     self.current_menu = domain_menu
     UIManager:show(domain_menu)
@@ -586,16 +587,17 @@ function ChatHistoryDialog:showChatHistoryBrowser(ui, current_document_path, cha
         onLeftButtonTap = function()
             self_ref:showDocumentMenuOptions(ui, chat_history_manager, config)
         end,
-        close_callback = function()
-            -- Only clear if this menu is still the current one
-            if self_ref.current_menu == document_menu then
-                logger.info("KOAssistant: document_menu close_callback - clearing current_menu")
-                self_ref.current_menu = nil
-            else
-                logger.info("KOAssistant: document_menu close_callback - skipping, current_menu already changed")
-            end
-        end,
     }
+    -- Set close_callback after creation so document_menu is defined
+    document_menu.close_callback = function()
+        -- Only clear if this menu is still the current one
+        if self_ref.current_menu == document_menu then
+            logger.info("KOAssistant: document_menu close_callback - clearing current_menu")
+            self_ref.current_menu = nil
+        else
+            logger.info("KOAssistant: document_menu close_callback - skipping, current_menu already changed")
+        end
+    end
 
     self.current_menu = document_menu
     logger.info("KOAssistant: Set current_menu to document_menu " .. tostring(document_menu))
@@ -1730,12 +1732,13 @@ function ChatHistoryDialog:showChatsByTagBrowser(ui, chat_history_manager, confi
         multilines_forced = true,
         items_font_size = 18,
         items_mandatory_font_size = 14,
-        close_callback = function()
-            if self_ref.current_menu == tag_menu then
-                self_ref.current_menu = nil
-            end
-        end,
     }
+    -- Set close_callback after creation so tag_menu is defined
+    tag_menu.close_callback = function()
+        if self_ref.current_menu == tag_menu then
+            self_ref.current_menu = nil
+        end
+    end
 
     self.current_menu = tag_menu
     UIManager:show(tag_menu)

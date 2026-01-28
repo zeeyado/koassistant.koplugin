@@ -11,6 +11,7 @@ local ButtonDialog = require("ui/widget/buttondialog")
 local Notification = require("ui/widget/notification")
 local LuaSettings = require("luasettings")
 local DataStorage = require("datastorage")
+local FileManager = require("apps/filemanager/filemanager")
 local T = require("ffi/util").template
 local logger = require("logger")
 local util = require("util")
@@ -124,14 +125,14 @@ function AskGPT:init()
   
   -- Add to highlight dialog if highlight feature is available
   if self.ui and self.ui.highlight then
-    self.ui.highlight:addToHighlightDialog("koassistant_dialog", function(_reader_highlight_instance)
+    self.ui.highlight:addToHighlightDialog("koassistant_dialog", function(reader_highlight_instance)
       return {
         text = _("KOAssistant"),
         enabled = Device:hasClipboard(),
         callback = function()
           -- Capture text and close highlight overlay to prevent darkening on saved highlights
-          local selected_text = _reader_highlight_instance.selected_text.text
-          _reader_highlight_instance:onClose()
+          local selected_text = reader_highlight_instance.selected_text.text
+          reader_highlight_instance:onClose()
           NetworkMgr:runWhenOnline(function()
             maybeCheckForUpdates(self)
             -- Make sure we're using the latest configuration
@@ -231,7 +232,6 @@ end
 
 -- Button generator for multiple file selection
 function AskGPT:generateMultiSelectButtons(file, is_file, book_props)
-  local FileManager = require("apps/filemanager/filemanager")
   -- Check if we have multiple files selected
   if FileManager.instance and FileManager.instance.selected_files and
      next(FileManager.instance.selected_files) then
@@ -261,9 +261,7 @@ function AskGPT:addFileDialogButtons()
   end
 
   logger.info("KOAssistant: Attempting to add file dialog buttons")
-  
-  local FileManager = require("apps/filemanager/filemanager")
-  
+
   -- Load other managers carefully to avoid circular dependencies
   local FileManagerHistory, FileManagerCollection, FileManagerFileSearcher
   pcall(function()
@@ -356,8 +354,7 @@ function AskGPT:removeFileDialogButtons()
   end
 
   logger.info("KOAssistant: Removing file dialog buttons")
-  
-  local FileManager = require("apps/filemanager/filemanager")
+
   local FileManagerHistory = require("apps/filemanager/filemanagerhistory")
   local FileManagerCollection = require("apps/filemanager/filemanagercollection")
   local FileManagerFileSearcher = require("apps/filemanager/filemanagerfilesearcher")
@@ -392,8 +389,6 @@ function AskGPT:removeFileDialogButtons()
 end
 
 function AskGPT:checkButtonVisibility()
-  local FileManager = require("apps/filemanager/filemanager")
-
   -- Check instance buttons
   if FileManager.instance and FileManager.instance.file_dialog_added_buttons then
     logger.info("KOAssistant: FileManager.instance.file_dialog_added_buttons has " ..
@@ -520,7 +515,6 @@ function AskGPT:compareSelectedBooks(selected_files)
   end
   
   local DocumentRegistry = require("document/documentregistry")
-  local FileManager = require("apps/filemanager/filemanager")
   local books_info = {}
   
   -- Try to load BookInfoManager to get cached metadata
@@ -1516,7 +1510,7 @@ function AskGPT:showCustomProviderOptions(provider)
       text = api_key_text,
       callback = function()
         UIManager:close(self_ref._provider_options_dialog)
-        local new_required = not (provider.api_key_required ~= false)
+        local new_required = provider.api_key_required == false
         self_ref:updateCustomProvider(provider.id, {
           api_key_required = new_required,
         })
@@ -1561,7 +1555,6 @@ end
 -- Helper: Show dialog to add a new custom provider
 function AskGPT:showAddCustomProviderDialog()
   local self_ref = self
-  local MultiInputDialog = require("ui/widget/multiinputdialog")
 
   local dialog
   dialog = MultiInputDialog:new{
@@ -1628,7 +1621,6 @@ end
 -- Helper: Show dialog to edit a custom provider
 function AskGPT:showEditCustomProviderDialog(provider)
   local self_ref = self
-  local MultiInputDialog = require("ui/widget/multiinputdialog")
 
   local dialog
   dialog = MultiInputDialog:new{
@@ -2949,7 +2941,6 @@ function AskGPT:onDictButtonsReady(dict_popup, dict_buttons)
           end
 
           -- Execute the action
-          local Dialogs = require("koassistant_dialogs")
           Dialogs.executeDirectAction(
             self_ref.ui,   -- ui
             action,        -- action (from closure)
@@ -3487,7 +3478,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
           callback = function()
             -- Toggle streaming directly
             local f = self_ref.settings:readSetting("features") or {}
-            f.enable_streaming = not (f.enable_streaming ~= false)
+            f.enable_streaming = f.enable_streaming == false
             self_ref.settings:saveSetting("features", f)
             self_ref.settings:flush()
             self_ref:updateConfigFromSettings()
@@ -4070,16 +4061,16 @@ function AskGPT:registerHighlightMenuActions()
     local dialog_id = "koassistant_quick_" .. action.id
     local action_copy = action  -- Capture in closure
 
-    self.ui.highlight:addToHighlightDialog(dialog_id, function(_reader_highlight_instance)
+    self.ui.highlight:addToHighlightDialog(dialog_id, function(reader_highlight_instance)
       return {
         text = action_copy.text .. " (KOA)",
         enabled = Device:hasClipboard(),
         callback = function()
           -- Capture text and extract context BEFORE closing highlight overlay
-          local selected_text = _reader_highlight_instance.selected_text.text
+          local selected_text = reader_highlight_instance.selected_text.text
           local context = ""
           -- Check if highlight module has the getSelectedWordContext method
-          -- Note: Method is on self.ui.highlight, not _reader_highlight_instance
+          -- Note: Method is on self.ui.highlight, not reader_highlight_instance
           if self.ui.highlight and self.ui.highlight.getSelectedWordContext then
             local features = self.settings:readSetting("features") or {}
             local context_mode = features.dictionary_context_mode or "none"
@@ -4096,7 +4087,7 @@ function AskGPT:registerHighlightMenuActions()
           end
 
           -- Close highlight overlay to prevent darkening on saved highlights
-          _reader_highlight_instance:onClose()
+          reader_highlight_instance:onClose()
 
           NetworkMgr:runWhenOnline(function()
             self:updateConfigFromSettings()
@@ -4558,9 +4549,6 @@ end
 
 -- Patch FileManager to add our multi-select button
 function AskGPT:patchFileManagerForMultiSelect()
-  local FileManager = require("apps/filemanager/filemanager")
-  local ButtonDialog = require("ui/widget/buttondialog")
-
   if not FileManager or not ButtonDialog then
     logger.warn("KOAssistant: Could not load required modules for multi-select patching")
     return

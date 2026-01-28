@@ -22,6 +22,8 @@ globals = {
 ignore = {
     "211",      -- Unused variables (common in Lua - keeping imports for later)
     "212",      -- Unused argument
+    "231",      -- Variable is never accessed (often intentional placeholders)
+    "241",      -- Variable is mutated but never accessed
     "311",      -- Value assigned to variable is unused
     "312",      -- Value of argument is unused
     "411",      -- Variable was previously defined (redefinition in blocks)
