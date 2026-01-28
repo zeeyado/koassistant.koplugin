@@ -23,6 +23,29 @@ local function log_warn(msg)
     end
 end
 
+-- Escape % characters in replacement strings for gsub
+-- In Lua gsub, % has special meaning in the replacement string
+local function escape_replacement(str)
+    if not str then return str end
+    return str:gsub("%%", "%%%%")
+end
+
+-- Replace a placeholder using plain string operations (find+sub)
+-- This avoids gsub escaping issues with long content or special characters
+-- @param text string the text containing the placeholder
+-- @param placeholder string the placeholder to find (e.g., "{book_text_section}")
+-- @param replacement string the value to substitute
+-- @return string the text with placeholder replaced
+local function replace_placeholder(text, placeholder, replacement)
+    if not text or not placeholder then return text end
+    replacement = replacement or ""
+    local start_pos, end_pos = text:find(placeholder, 1, true)
+    if start_pos then
+        return text:sub(1, start_pos - 1) .. replacement .. text:sub(end_pos + 1)
+    end
+    return text
+end
+
 --- Build the complete user message from action prompt and context data.
 -- @param params table with fields:
 --   prompt: action object with prompt/template field
@@ -50,6 +73,10 @@ function MessageBuilder.build(params)
 
     if logger then
         logger.info("MessageBuilder.build: context=", context, "data.highlighted_text=", data.highlighted_text and #data.highlighted_text or "nil/empty")
+        logger.info("MessageBuilder.build: data.book_metadata=", data.book_metadata and "present" or "nil", "data.book_title=", data.book_title or "nil")
+        if data.book_metadata then
+            logger.info("MessageBuilder.build: book_metadata.title=", data.book_metadata.title or "nil", "author=", data.book_metadata.author or "nil")
+        end
     end
 
     local parts = {}
@@ -91,11 +118,12 @@ function MessageBuilder.build(params)
     end
 
     -- Substitute language placeholders early (applies to all contexts)
+    -- Using replace_placeholder (find+sub) to avoid gsub escaping issues
     if data.translation_language then
-        user_prompt = user_prompt:gsub("{translation_language}", data.translation_language)
+        user_prompt = replace_placeholder(user_prompt, "{translation_language}", data.translation_language)
     end
     if data.dictionary_language then
-        user_prompt = user_prompt:gsub("{dictionary_language}", data.dictionary_language)
+        user_prompt = replace_placeholder(user_prompt, "{dictionary_language}", data.dictionary_language)
     end
     if data.dictionary_context_mode == "none" then
         -- Context explicitly disabled: strip lines with {context} and "In context" markers
@@ -112,7 +140,66 @@ function MessageBuilder.build(params)
         end
         user_prompt = table.concat(lines, "\n")
     elseif data.context then
-        user_prompt = user_prompt:gsub("{context}", data.context)
+        user_prompt = replace_placeholder(user_prompt, "{context}", data.context)
+    end
+
+    -- Substitute context extraction placeholders (applies to all contexts)
+    -- Using replace_placeholder to avoid issues with % in reading_progress
+    if data.reading_progress then
+        user_prompt = replace_placeholder(user_prompt, "{reading_progress}", data.reading_progress)
+    end
+    if data.progress_decimal then
+        user_prompt = replace_placeholder(user_prompt, "{progress_decimal}", data.progress_decimal)
+    end
+
+    -- Section-aware placeholders: include label when content exists, empty string when not
+    -- Use replace_placeholder (find+sub) instead of gsub to avoid escaping issues with long content
+
+    -- {book_text_section} - includes "Book content so far:\n" label
+    local book_text_section = ""
+    if data.book_text and data.book_text ~= "" then
+        book_text_section = "Book content so far:\n" .. data.book_text
+    end
+    if logger then
+        logger.info("MessageBuilder: book_text_section len=", #book_text_section)
+    end
+    user_prompt = replace_placeholder(user_prompt, "{book_text_section}", book_text_section)
+
+    -- {highlights_section} - includes "My highlights so far:\n" label
+    local highlights_section = ""
+    if data.highlights and data.highlights ~= "" then
+        highlights_section = "My highlights so far:\n" .. data.highlights
+    end
+    if logger then
+        logger.info("MessageBuilder: highlights_section len=", #highlights_section)
+    end
+    user_prompt = replace_placeholder(user_prompt, "{highlights_section}", highlights_section)
+
+    -- {annotations_section} - includes "My annotations:\n" label
+    local annotations_section = ""
+    if data.annotations and data.annotations ~= "" then
+        annotations_section = "My annotations:\n" .. data.annotations
+    end
+    user_prompt = replace_placeholder(user_prompt, "{annotations_section}", annotations_section)
+
+    -- Raw placeholders (for custom prompts that want their own labels)
+    if data.highlights ~= nil then
+        user_prompt = replace_placeholder(user_prompt, "{highlights}", data.highlights)
+    end
+    if data.annotations ~= nil then
+        user_prompt = replace_placeholder(user_prompt, "{annotations}", data.annotations)
+    end
+    if data.book_text then
+        user_prompt = replace_placeholder(user_prompt, "{book_text}", data.book_text)
+    end
+    if data.chapter_title then
+        user_prompt = replace_placeholder(user_prompt, "{chapter_title}", data.chapter_title)
+    end
+    if data.chapters_read then
+        user_prompt = replace_placeholder(user_prompt, "{chapters_read}", data.chapters_read)
+    end
+    if data.time_since_last_read then
+        user_prompt = replace_placeholder(user_prompt, "{time_since_last_read}", data.time_since_last_read)
     end
 
     -- Handle different contexts
@@ -131,8 +218,8 @@ function MessageBuilder.build(params)
                 end
                 table.insert(books_list, book_str)
             end
-            user_prompt = user_prompt:gsub("{count}", tostring(count))
-            user_prompt = user_prompt:gsub("{books_list}", table.concat(books_list, "\n"))
+            user_prompt = replace_placeholder(user_prompt, "{count}", tostring(count))
+            user_prompt = replace_placeholder(user_prompt, "{books_list}", table.concat(books_list, "\n"))
         elseif data.book_context then
             -- Fallback: use pre-formatted book context if books_info not available
             table.insert(parts, "[Context]")
@@ -154,10 +241,13 @@ function MessageBuilder.build(params)
             end
             table.insert(parts, book_info)
             table.insert(parts, "")
-            -- Replace template variables in user prompt
-            user_prompt = user_prompt:gsub("{title}", metadata.title or "Unknown")
-            user_prompt = user_prompt:gsub("{author}", metadata.author or "")
-            user_prompt = user_prompt:gsub("{author_clause}", metadata.author_clause or "")
+            -- Replace template variables in user prompt using replace_placeholder (avoids gsub escaping issues)
+            if logger then
+                logger.info("MessageBuilder: BOOK CONTEXT - substituting {title} with:", metadata.title or "Unknown")
+            end
+            user_prompt = replace_placeholder(user_prompt, "{title}", metadata.title or "Unknown")
+            user_prompt = replace_placeholder(user_prompt, "{author}", metadata.author or "")
+            user_prompt = replace_placeholder(user_prompt, "{author_clause}", metadata.author_clause or "")
         elseif data.book_context then
             -- Fallback: use pre-formatted book context string if metadata not available
             table.insert(parts, "[Context]")
@@ -201,21 +291,15 @@ function MessageBuilder.build(params)
             table.insert(parts, "")
         end
 
-        -- Support template variables
+        -- Support template variables using replace_placeholder (avoids gsub escaping issues)
         if data.book_title then
-            user_prompt = user_prompt:gsub("{title}", data.book_title or "Unknown")
-            user_prompt = user_prompt:gsub("{author}", data.book_author or "")
-            user_prompt = user_prompt:gsub("{author_clause}",
+            user_prompt = replace_placeholder(user_prompt, "{title}", data.book_title or "Unknown")
+            user_prompt = replace_placeholder(user_prompt, "{author}", data.book_author or "")
+            user_prompt = replace_placeholder(user_prompt, "{author_clause}",
                 (data.book_author and data.book_author ~= "") and (" by " .. data.book_author) or "")
         end
         if data.highlighted_text then
-            if logger then
-                logger.info("MessageBuilder: Before substitution, user_prompt contains {highlighted_text}:", user_prompt:find("{highlighted_text}", 1, true) ~= nil)
-            end
-            user_prompt = user_prompt:gsub("{highlighted_text}", data.highlighted_text)
-            if logger then
-                logger.info("MessageBuilder: After substitution, user_prompt contains {highlighted_text}:", user_prompt:find("{highlighted_text}", 1, true) ~= nil)
-            end
+            user_prompt = replace_placeholder(user_prompt, "{highlighted_text}", data.highlighted_text)
         end
 
         table.insert(parts, "[Request]")
@@ -233,6 +317,7 @@ function MessageBuilder.build(params)
 end
 
 --- Substitute template variables in a prompt string.
+-- Uses replace_placeholder (find+sub) to avoid gsub escaping issues
 -- @param prompt_text string the prompt with placeholders
 -- @param data table with values for substitution
 -- @return string the prompt with placeholders replaced
@@ -241,31 +326,79 @@ function MessageBuilder.substituteVariables(prompt_text, data)
 
     -- Common substitutions
     if data.translation_language then
-        result = result:gsub("{translation_language}", data.translation_language)
+        result = replace_placeholder(result, "{translation_language}", data.translation_language)
     end
     if data.dictionary_language then
-        result = result:gsub("{dictionary_language}", data.dictionary_language)
+        result = replace_placeholder(result, "{dictionary_language}", data.dictionary_language)
     end
     if data.context then
-        result = result:gsub("{context}", data.context)
+        result = replace_placeholder(result, "{context}", data.context)
     end
     if data.title then
-        result = result:gsub("{title}", data.title)
+        result = replace_placeholder(result, "{title}", data.title)
     end
     if data.author then
-        result = result:gsub("{author}", data.author)
+        result = replace_placeholder(result, "{author}", data.author)
     end
     if data.author_clause then
-        result = result:gsub("{author_clause}", data.author_clause)
+        result = replace_placeholder(result, "{author_clause}", data.author_clause)
     end
     if data.highlighted_text then
-        result = result:gsub("{highlighted_text}", data.highlighted_text)
+        result = replace_placeholder(result, "{highlighted_text}", data.highlighted_text)
     end
     if data.count then
-        result = result:gsub("{count}", tostring(data.count))
+        result = replace_placeholder(result, "{count}", tostring(data.count))
     end
     if data.books_list then
-        result = result:gsub("{books_list}", data.books_list)
+        result = replace_placeholder(result, "{books_list}", data.books_list)
+    end
+
+    -- Context extraction placeholders (from koassistant_context_extractor)
+    if data.reading_progress then
+        result = replace_placeholder(result, "{reading_progress}", data.reading_progress)
+    end
+    if data.progress_decimal then
+        result = replace_placeholder(result, "{progress_decimal}", data.progress_decimal)
+    end
+
+    -- Section-aware placeholders: include label when content exists, empty string when not
+    local book_text_section = ""
+    if data.book_text and data.book_text ~= "" then
+        book_text_section = "Book content so far:\n" .. data.book_text
+    end
+    result = replace_placeholder(result, "{book_text_section}", book_text_section)
+
+    local highlights_section = ""
+    if data.highlights and data.highlights ~= "" then
+        highlights_section = "My highlights so far:\n" .. data.highlights
+    end
+    result = replace_placeholder(result, "{highlights_section}", highlights_section)
+
+    local annotations_section = ""
+    if data.annotations and data.annotations ~= "" then
+        annotations_section = "My annotations:\n" .. data.annotations
+    end
+    result = replace_placeholder(result, "{annotations_section}", annotations_section)
+
+    -- Raw placeholders (for custom prompts that want their own labels)
+    if data.highlights ~= nil then
+        result = replace_placeholder(result, "{highlights}", data.highlights)
+    end
+    if data.annotations ~= nil then
+        result = replace_placeholder(result, "{annotations}", data.annotations)
+    end
+    if data.book_text then
+        result = replace_placeholder(result, "{book_text}", data.book_text)
+    end
+    -- Reading stats (with fallbacks per hybrid approach)
+    if data.chapter_title then
+        result = replace_placeholder(result, "{chapter_title}", data.chapter_title)
+    end
+    if data.chapters_read then
+        result = replace_placeholder(result, "{chapters_read}", data.chapters_read)
+    end
+    if data.time_since_last_read then
+        result = replace_placeholder(result, "{time_since_last_read}", data.time_since_last_read)
     end
 
     return result

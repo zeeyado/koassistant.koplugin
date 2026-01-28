@@ -749,6 +749,31 @@ function AskGPT:onDispatcherRegisterActions()
     general = true
   })
 
+  -- Book-level reading features (X-Ray, Recap, Analyze Highlights)
+  Dispatcher:registerAction("koassistant_xray", {
+    category = "none",
+    event = "KOAssistantXRay",
+    title = _("KOAssistant: X-Ray"),
+    general = true,
+    reader = true,
+  })
+
+  Dispatcher:registerAction("koassistant_recap", {
+    category = "none",
+    event = "KOAssistantRecap",
+    title = _("KOAssistant: Recap"),
+    general = true,
+    reader = true,
+  })
+
+  Dispatcher:registerAction("koassistant_analyze_highlights", {
+    category = "none",
+    event = "KOAssistantAnalyzeHighlights",
+    title = _("KOAssistant: Analyze Highlights"),
+    general = true,
+    reader = true,
+  })
+
   -- Register settings change actions (for gestures)
   Dispatcher:registerAction("koassistant_change_primary_language", {
     category = "none",
@@ -3052,15 +3077,86 @@ function AskGPT:onKOAssistantBookChat()
     })
     return true
   end
-  
+
   -- Get book metadata and use the same implementation as showAssistantDialogForFile
   local doc_props = self.ui.document:getProps()
   local title = doc_props.title or "Unknown"
   local authors = doc_props.authors or ""
-  
+
   -- Call the existing function that handles file browser context properly
   self:showKOAssistantDialogForFile(self.ui.document.file, title, authors, doc_props)
   return true
+end
+
+--- Execute X-Ray action (book-level reading companion)
+function AskGPT:onKOAssistantXRay()
+  self:executeBookLevelAction("xray")
+  return true
+end
+
+--- Execute Recap action (story summary for re-immersion)
+function AskGPT:onKOAssistantRecap()
+  self:executeBookLevelAction("recap")
+  return true
+end
+
+--- Execute Analyze Highlights action (insights from user's annotations)
+function AskGPT:onKOAssistantAnalyzeHighlights()
+  self:executeBookLevelAction("analyze_highlights")
+  return true
+end
+
+--- Helper function to execute book-level actions (X-Ray, Recap, Analyze Highlights)
+--- @param action_id string: The action ID from Actions.book
+function AskGPT:executeBookLevelAction(action_id)
+  -- Check if we have a document open
+  if not self.ui or not self.ui.document then
+    UIManager:show(InfoMessage:new{
+      icon = "notice-warning",
+      text = _("Please open a book first")
+    })
+    return
+  end
+
+  -- Get the action from ActionService instance (includes user overrides)
+  local action = self.action_service:getAction("book", action_id)
+  if not action then
+    UIManager:show(InfoMessage:new{
+      icon = "notice-warning",
+      text = T(_("Action '%1' not found"), action_id)
+    })
+    return
+  end
+
+  -- Build config with book context
+  local config_copy = {}
+  for k, v in pairs(configuration or {}) do
+    config_copy[k] = v
+  end
+  config_copy.features = config_copy.features or {}
+  for k, v in pairs((configuration or {}).features or {}) do
+    config_copy.features[k] = v
+  end
+  config_copy.features.is_book_context = true  -- Signal book context to getPromptContext()
+
+  -- Get book metadata
+  local doc_props = self.ui.document:getProps()
+  config_copy.features.book_metadata = {
+    title = doc_props.title or "Unknown",
+    author = doc_props.authors or "",
+    author_clause = (doc_props.authors and doc_props.authors ~= "") and (" by " .. doc_props.authors) or "",
+  }
+
+  -- Execute the action with no highlighted text (book-level action)
+  NetworkMgr:runWhenOnline(function()
+    Dialogs.executeDirectAction(
+      self.ui,
+      action,
+      nil,  -- No highlighted text for book-level actions
+      config_copy,
+      self
+    )
+  end)
 end
 
 --- Open KOAssistant settings via menu traversal
@@ -4562,16 +4658,20 @@ function AskGPT:resetFeatureSettings()
     stream_auto_scroll = false,
     large_stream_dialog = true,
     stream_display_interval = 250,
+    stream_poll_interval = 125,
     selected_behavior = "standard",
     selected_domain = nil,
     default_temperature = 0.7,
     default_max_tokens = nil,
     anthropic_reasoning = false,
-    anthropic_reasoning_budget = 10240,
+    reasoning_budget = 10240,
     openai_reasoning = false,
-    openai_reasoning_effort = "medium",
+    reasoning_effort = "medium",
     gemini_reasoning = false,
-    gemini_reasoning_level = "medium",
+    reasoning_depth = "high",
+    enable_book_text_extraction = false,
+    max_book_text_chars = 50000,
+    max_pdf_pages = 250,
     behavior_migrated = true,
     prompts_migrated_v2 = true,
   }
@@ -4617,16 +4717,20 @@ function AskGPT:resetAllCustomizations()
     stream_auto_scroll = false,
     large_stream_dialog = true,
     stream_display_interval = 250,
+    stream_poll_interval = 125,
     selected_behavior = "standard",
     selected_domain = nil,
     default_temperature = 0.7,
     default_max_tokens = nil,
     anthropic_reasoning = false,
-    anthropic_reasoning_budget = 10240,
+    reasoning_budget = 10240,
     openai_reasoning = false,
-    openai_reasoning_effort = "medium",
+    reasoning_effort = "medium",
     gemini_reasoning = false,
-    gemini_reasoning_level = "medium",
+    reasoning_depth = "high",
+    enable_book_text_extraction = false,
+    max_book_text_chars = 50000,
+    max_pdf_pages = 250,
     behavior_migrated = true,
     prompts_migrated_v2 = true,
   }
@@ -4675,16 +4779,20 @@ function AskGPT:resetEverything()
     stream_auto_scroll = false,
     large_stream_dialog = true,
     stream_display_interval = 250,
+    stream_poll_interval = 125,
     selected_behavior = "standard",
     selected_domain = nil,
     default_temperature = 0.7,
     default_max_tokens = nil,
     anthropic_reasoning = false,
-    anthropic_reasoning_budget = 10240,
+    reasoning_budget = 10240,
     openai_reasoning = false,
-    openai_reasoning_effort = "medium",
+    reasoning_effort = "medium",
     gemini_reasoning = false,
-    gemini_reasoning_level = "medium",
+    reasoning_depth = "high",
+    enable_book_text_extraction = false,
+    max_book_text_chars = 50000,
+    max_pdf_pages = 250,
     behavior_migrated = true,
     prompts_migrated_v2 = true,
   }

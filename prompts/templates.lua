@@ -2,6 +2,8 @@
 -- Templates define the actual text sent to the AI
 --
 -- Template variables (substituted at runtime):
+--
+-- Standard placeholders (always available):
 --   {highlighted_text}     - Selected text from document (highlight context)
 --   {title}                - Book title (book, highlight contexts)
 --   {author}               - Book author (book, highlight contexts)
@@ -11,6 +13,34 @@
 --   {translation_language} - Target translation language from settings (all contexts)
 --   {dictionary_language}  - Dictionary response language from settings (all contexts)
 --   {context}              - Surrounding text context for dictionary lookups (highlight context)
+--
+-- Context extraction placeholders (require extraction flags on action + global setting enabled):
+--   {reading_progress}     - Reading progress as "42%" (highlight, book contexts)
+--   {progress_decimal}     - Reading progress as decimal "0.42" (highlight, book contexts)
+--   {highlights}           - Formatted list of highlights (text only) (highlight, book contexts)
+--   {annotations}          - Highlights with user notes attached (highlight, book contexts)
+--   {book_text}            - Extracted text up to current position (highlight, book contexts)
+--   {chapter_title}        - Current chapter name (highlight, book contexts)
+--   {chapters_read}        - Number of chapters completed (highlight, book contexts)
+--   {time_since_last_read} - Human-readable time since last read (highlight, book contexts)
+--
+-- Section-aware placeholders (include label, disappear when empty - RECOMMENDED):
+--   {book_text_section}    - "Book content so far:\n[text]" or "" if disabled/empty
+--   {highlights_section}   - "My highlights so far:\n[list]" or "" if no highlights
+--   {annotations_section}  - "My annotations:\n[list]" or "" if no annotations
+--
+-- Empty placeholder handling (hybrid approach):
+--   {reading_progress}     - Always has value (default "0%")
+--   {progress_decimal}     - Always has value (default "0")
+--   {highlights}           - Empty string "" if no highlights
+--   {annotations}          - Empty string "" if no annotations
+--   {book_text}            - Empty string "" if extraction disabled or unavailable
+--   {chapter_title}        - Fallback: "(Chapter unavailable)"
+--   {chapters_read}        - Fallback: "0"
+--   {time_since_last_read} - Fallback: "Recently"
+--
+-- Note: Book text extraction is OFF by default. Users must enable it in
+-- Settings → Advanced → Context Extraction before {book_text} placeholders work.
 
 local _ = require("koassistant_gettext")
 

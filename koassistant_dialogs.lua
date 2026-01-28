@@ -1539,6 +1539,10 @@ local function handlePredefinedPrompt(prompt_type_or_action, highlightedText, ui
 
     -- Build data for consolidated message
     logger.info("KOAssistant: buildConsolidatedMessage - highlightedText:", highlightedText and #highlightedText or "nil/empty")
+    logger.info("KOAssistant: config.features.book_metadata=", config.features and config.features.book_metadata and "present" or "nil")
+    if config.features and config.features.book_metadata then
+        logger.info("KOAssistant: book_metadata.title=", config.features.book_metadata.title or "nil")
+    end
     local message_data = {
         highlighted_text = highlightedText,
         additional_input = additional_input,
@@ -1551,6 +1555,7 @@ local function handlePredefinedPrompt(prompt_type_or_action, highlightedText, ui
         context = config.features.dictionary_context or "",
         dictionary_context_mode = config.features.dictionary_context_mode,
     }
+    logger.info("KOAssistant: message_data.book_metadata=", message_data.book_metadata and "present" or "nil")
 
     -- Add book info for highlight context when:
     -- 1. include_book_context is enabled for the prompt, OR
@@ -1588,6 +1593,51 @@ local function handlePredefinedPrompt(prompt_type_or_action, highlightedText, ui
             local context_mode = config.features.dictionary_context_mode or "sentence"
             local context_chars = config.features.dictionary_context_chars or 100
             message_data.context = extractSurroundingContext(ui, highlightedText, context_mode, context_chars)
+        end
+    end
+
+    -- For book context, ensure book_metadata is populated
+    -- This provides a fallback when config.features.book_metadata isn't set
+    if context == "book" or context == "file_browser" then
+        if not message_data.book_metadata and ui and ui.document then
+            local props = ui.document:getProps()
+            if props then
+                message_data.book_metadata = {
+                    title = props.title or "Unknown",
+                    author = props.authors or "",
+                    author_clause = (props.authors and props.authors ~= "") and (" by " .. props.authors) or "",
+                }
+                logger.info("KOAssistant: book_metadata populated from ui.document for book context")
+            end
+        end
+    end
+
+    -- Context extraction: auto-extract lightweight data when a document is open
+    -- Lightweight data (progress, highlights, annotations, stats) is always available
+    -- Book text extraction requires use_book_text flag (slow/expensive)
+    if ui and ui.document then
+        local extraction_success, ContextExtractor = pcall(require, "koassistant_context_extractor")
+        if extraction_success and ContextExtractor then
+            local extractor = ContextExtractor:new(ui, {
+                enable_book_text_extraction = config.features and config.features.enable_book_text_extraction,
+                max_book_text_chars = prompt and prompt.max_book_text_chars or (config.features and config.features.max_book_text_chars) or 50000,
+                max_pdf_pages = config.features and config.features.max_pdf_pages or 250,
+            })
+            logger.info("KOAssistant: Extractor settings - enable_book_text_extraction=",
+                       config.features and config.features.enable_book_text_extraction and "true" or "false/nil")
+            if extractor:isAvailable() then
+                logger.info("KOAssistant: Context extraction starting for action:", prompt and prompt.id or "unknown")
+                logger.info("KOAssistant: use_book_text=", prompt and prompt.use_book_text and "true" or "false")
+                local extracted = extractor:extractForAction(prompt or {})
+                -- Merge extracted data into message_data
+                for key, value in pairs(extracted) do
+                    message_data[key] = value
+                    logger.info("KOAssistant: Extracted data key=", key, "value_len=", type(value) == "string" and #value or "non-string")
+                end
+                logger.info("KOAssistant: Context extraction complete")
+            end
+        else
+            logger.warn("KOAssistant: Failed to load context extractor:", ContextExtractor)
         end
     end
 
@@ -2147,6 +2197,11 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
     end
 
     logger.info("KOAssistant: Executing quick action - " .. (action.text or action.id))
+    logger.info("KOAssistant: executeDirectAction - configuration.features.book_metadata=",
+               configuration and configuration.features and configuration.features.book_metadata and "present" or "nil")
+    if configuration and configuration.features and configuration.features.book_metadata then
+        logger.info("KOAssistant: executeDirectAction - book_metadata.title=", configuration.features.book_metadata.title or "nil")
+    end
 
     -- Get document info if available
     local document_path = nil
