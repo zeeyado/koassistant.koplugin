@@ -54,10 +54,12 @@ Most settings are configurable in the UI, including: Provider/model, AI behavior
   - [Free Tier Providers](#free-tier-providers)
   - [Adding Custom Providers](#adding-custom-providers)
   - [Adding Custom Models](#adding-custom-models)
+- [Tips & Advanced Usage](#tips--advanced-usage)
 - [KOReader Tips](#koreader-tips)
 - [Troubleshooting](#troubleshooting)
 - [Requirements](#requirements)
 - [Contributing](#contributing)
+- [Credits](#credits)
 
 ---
 
