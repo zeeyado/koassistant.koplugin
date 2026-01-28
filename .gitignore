@@ -28,3 +28,9 @@ plan.md
 
 # Compiled translation files (keep .pot and .po tracked)
 *.mo
+
+# Translation batch files (temporary extraction artifacts)
+*_batch*.json
+
+# Python bytecode cache
+scripts/__pycache__/
