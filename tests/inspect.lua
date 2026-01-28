@@ -73,15 +73,50 @@ local function mergeSampleContextIfNeeded(action, context_data, context_type)
         }
     end
 
-    -- Merge sample context data (only fields that aren't already set)
-    local sample_fields = {
-        "reading_progress", "progress_decimal", "chapter_title",
-        "chapters_read", "time_since_last_read", "highlights",
-        "annotations", "book_text"
-    }
-    for _, field in ipairs(sample_fields) do
-        if not context_data[field] and SampleContext[field] then
-            context_data[field] = SampleContext[field]
+    -- Merge sample context data based on which flags are enabled
+    -- Each flag controls which sample data gets included
+
+    -- use_reading_progress -> reading_progress, progress_decimal
+    if action.use_reading_progress then
+        if not context_data.reading_progress then
+            context_data.reading_progress = SampleContext.reading_progress
+        end
+        if not context_data.progress_decimal then
+            context_data.progress_decimal = SampleContext.progress_decimal
+        end
+    end
+
+    -- use_reading_stats -> chapter_title, chapters_read, time_since_last_read
+    if action.use_reading_stats then
+        if not context_data.chapter_title then
+            context_data.chapter_title = SampleContext.chapter_title
+        end
+        if not context_data.chapters_read then
+            context_data.chapters_read = SampleContext.chapters_read
+        end
+        if not context_data.time_since_last_read then
+            context_data.time_since_last_read = SampleContext.time_since_last_read
+        end
+    end
+
+    -- use_highlights -> highlights
+    if action.use_highlights then
+        if not context_data.highlights then
+            context_data.highlights = SampleContext.highlights
+        end
+    end
+
+    -- use_annotations -> annotations
+    if action.use_annotations then
+        if not context_data.annotations then
+            context_data.annotations = SampleContext.annotations
+        end
+    end
+
+    -- use_book_text -> book_text
+    if action.use_book_text then
+        if not context_data.book_text then
+            context_data.book_text = SampleContext.book_text
         end
     end
 
@@ -1061,7 +1096,11 @@ local function startWebServer(options)
         end
 
         -- Build the action/prompt object first (needed for skip_language_instruction)
-        local action = request_data.action or { prompt = request_data.message or "Say hello in exactly 5 words." }
+        -- If action_prompt is provided (from editor), use it as the prompt
+        local action = request_data.action or { prompt = "Say hello in exactly 5 words." }
+        if request_data.action_prompt and request_data.action_prompt ~= "" then
+            action.prompt = request_data.action_prompt
+        end
         local is_ask_action = action and action.id == "ask"
 
         -- Build options from request
@@ -1069,6 +1108,7 @@ local function startWebServer(options)
             behavior_variant = request_data.behavior or "full",
             behavior_override = request_data.custom_behavior,
             temperature = request_data.temperature or 0.7,
+            max_tokens = request_data.max_tokens or 4096,
             domain_context = request_data.domain,
             user_languages = request_data.languages,
             primary_language = request_data.primary_language,
@@ -1111,21 +1151,17 @@ local function startWebServer(options)
             context_data.books_info = context.books_info or {}
         end
 
-        -- For Ask action, the message IS the question (not additional input)
-        -- For actions with their own prompt template, the message is only used as additional input
-        -- if explicitly marked (to avoid duplicating the prompt)
-        if request_data.action and request_data.message and request_data.message ~= "" then
+        -- Handle additional_input (separate from action_prompt)
+        if request_data.additional_input and request_data.additional_input ~= "" then
             if is_ask_action then
-                context_data.user_question = request_data.message
-            elseif not action.prompt or action.prompt == "" then
-                -- Only add as additional_input if action has no prompt template
-                -- Actions like Translate have their own prompt with placeholders
-                context_data.additional_input = request_data.message
-            elseif request_data.include_message_as_additional then
-                -- Explicit flag to include message as additional input
-                context_data.additional_input = request_data.message
+                -- For Ask, additional input IS the question
+                context_data.user_question = request_data.additional_input
+            else
+                -- For other actions, it's appended as additional context
+                context_data.additional_input = request_data.additional_input
             end
         elseif is_ask_action then
+            -- Default question for Ask action when no input provided
             context_data.user_question = action.default_message or "I have a question for you."
         end
 
@@ -1293,7 +1329,11 @@ local function startWebServer(options)
         local build_start = socket.gettime()
 
         -- Build the action/prompt object first (needed for skip_language_instruction)
-        local action = request_data.action or { prompt = request_data.message or "Say hello in exactly 5 words." }
+        -- If action_prompt is provided (from editor), use it as the prompt
+        local action = request_data.action or { prompt = "Say hello in exactly 5 words." }
+        if request_data.action_prompt and request_data.action_prompt ~= "" then
+            action.prompt = request_data.action_prompt
+        end
         local is_ask_action = action and action.id == "ask"
 
         -- Build options (same as /api/build)
@@ -1301,6 +1341,7 @@ local function startWebServer(options)
             behavior_variant = request_data.behavior or "full",
             behavior_override = request_data.custom_behavior,
             temperature = request_data.temperature or 0.7,
+            max_tokens = request_data.max_tokens or 4096,
             domain_context = request_data.domain,
             user_languages = request_data.languages,
             primary_language = request_data.primary_language,
@@ -1338,23 +1379,17 @@ local function startWebServer(options)
             context_data.books_info = context.books_info or {}
         end
 
-        -- For Ask action, the message IS the question (not additional input)
-        -- For actions with their own prompt template, the message is only used as additional input
-        -- if explicitly marked (to avoid duplicating the prompt)
-        if request_data.action and request_data.message and request_data.message ~= "" then
+        -- Handle additional_input (separate from action_prompt)
+        if request_data.additional_input and request_data.additional_input ~= "" then
             if is_ask_action then
-                -- Ask: message becomes the user question (use default if empty)
-                context_data.user_question = request_data.message
-            elseif not action.prompt or action.prompt == "" then
-                -- Only add as additional_input if action has no prompt template
-                -- Actions like Translate have their own prompt with placeholders
-                context_data.additional_input = request_data.message
-            elseif request_data.include_message_as_additional then
-                -- Explicit flag to include message as additional input
-                context_data.additional_input = request_data.message
+                -- For Ask, additional input IS the question
+                context_data.user_question = request_data.additional_input
+            else
+                -- For other actions, it's appended as additional context
+                context_data.additional_input = request_data.additional_input
             end
         elseif is_ask_action then
-            -- Ask with no message: use default
+            -- Default question for Ask action when no input provided
             context_data.user_question = action.default_message or "I have a question for you."
         end
 
@@ -1562,7 +1597,11 @@ local function startWebServer(options)
         end
 
         -- Build the action/prompt object first (needed for skip_language_instruction)
-        local action = request_data.action or { prompt = request_data.message or "Say hello in exactly 5 words." }
+        -- If action_prompt is provided (from editor), use it as the prompt
+        local action = request_data.action or { prompt = "Say hello in exactly 5 words." }
+        if request_data.action_prompt and request_data.action_prompt ~= "" then
+            action.prompt = request_data.action_prompt
+        end
         local is_ask_action = action and action.id == "ask"
 
         -- Build full options (same as /api/build and /api/send)
@@ -1570,6 +1609,7 @@ local function startWebServer(options)
             behavior_variant = request_data.behavior or "full",
             behavior_override = request_data.custom_behavior,
             temperature = request_data.temperature or 0.7,
+            max_tokens = request_data.max_tokens or 4096,
             domain_context = request_data.domain,
             user_languages = request_data.languages,
             primary_language = request_data.primary_language,
@@ -1619,16 +1659,17 @@ local function startWebServer(options)
             context_data.books_info = context.books_info or {}
         end
 
-        -- Handle message/action (same as /api/build)
-        if request_data.action and request_data.message and request_data.message ~= "" then
+        -- Handle additional_input (separate from action_prompt)
+        if request_data.additional_input and request_data.additional_input ~= "" then
             if is_ask_action then
-                context_data.user_question = request_data.message
-            elseif not action.prompt or action.prompt == "" then
-                context_data.additional_input = request_data.message
-            elseif request_data.include_message_as_additional then
-                context_data.additional_input = request_data.message
+                -- For Ask, additional input IS the question
+                context_data.user_question = request_data.additional_input
+            else
+                -- For other actions, it's appended as additional context
+                context_data.additional_input = request_data.additional_input
             end
         elseif is_ask_action then
+            -- Default question for Ask action when no input provided
             context_data.user_question = action.default_message or "I have a question for you."
         end
 

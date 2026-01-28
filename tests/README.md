@@ -100,19 +100,21 @@ lua tests/inspect.lua --web --port 3000
 - Live request building (no API calls needed)
 - **Send Request** to actually call provider APIs
 - Provider/model selection with all 16 providers
-- Behavior toggles, temperature slider
+- Behavior toggles, temperature slider, **max tokens slider**
 - **Domain loading** from your actual `domains/` folder
 - **Action loading** from `prompts/actions.lua` + custom actions from settings
 - **Ask action** available in all contexts (like plugin)
 - **Settings sync** from your `koassistant_settings.lua` (languages, behavior, temperature)
 - **Context simulation** (highlight text, book title/author, multi-book)
 - Language settings with translation target dropdown
-- Extended thinking configuration
-- Syntax-highlighted JSON output
+- Extended thinking configuration (Anthropic, OpenAI, Gemini)
+- Syntax-highlighted JSON output with **per-box copy buttons**
+- **Expandable editor** with placeholder insertion for action prompts
 - **Chat tab** with conversation view (matches plugin - no system shown)
 - **Multi-turn chat** with reply input (Enter key or Reply button)
 - **Response tab** shows raw API response, metadata (status, timing) shown separately
 - **Auto-scroll** chat to bottom on new messages
+- **Reset button** to restore defaults
 - Dark mode support
 
 ## Test Categories

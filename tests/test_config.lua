@@ -145,6 +145,7 @@ function TestConfig.buildFullConfig(provider, api_key, options)
         api_params = {
             temperature = options.temperature or
                          (ConstraintUtils and ConstraintUtils.getDefaultTemperature(provider) or 0.7),
+            -- Default to 512 for unit tests (saves API costs), web UI overrides to 4096
             max_tokens = options.max_tokens or 512,
         },
 
