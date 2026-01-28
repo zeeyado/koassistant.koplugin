@@ -1765,11 +1765,22 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     elseif doc_file then
         -- Document is open, use its metadata and path
         document_path = doc_file
+
+        -- Extract filename as fallback for missing title metadata
+        local filename_fallback = nil
+        if doc_file then
+            filename_fallback = doc_file:match("([^/\\]+)$")  -- Get filename
+            if filename_fallback then
+                filename_fallback = filename_fallback:gsub("%.[^%.]+$", "")  -- Remove extension
+                filename_fallback = filename_fallback:gsub("[_-]", " ")  -- Convert separators to spaces
+            end
+        end
+
         book_metadata = {
-            title = doc_title or _("Unknown Title"),
-            author = doc_author or _("Unknown Author")
+            title = (doc_title and doc_title ~= "") and doc_title or filename_fallback or "Unknown",
+            author = (doc_author and doc_author ~= "") and doc_author or ""  -- Empty, not "Unknown"
         }
-        logger.info("KOAssistant: Document context - title: " .. (doc_title or "nil") .. ", author: " .. (doc_author or "nil"))
+        logger.info("KOAssistant: Document context - title: " .. (book_metadata.title or "nil") .. ", author: " .. (book_metadata.author or "nil"))
     elseif configuration and configuration.features and configuration.features.book_metadata then
         -- File browser context, use metadata from configuration
         book_metadata = {
@@ -2213,9 +2224,24 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
     if ui and ui.document then
         local props = ui.document:getProps()
         document_path = ui.document.file
+
+        -- Extract filename as fallback for missing title metadata
+        -- This gives AI something meaningful instead of "Unknown Title"
+        local filename_fallback = nil
+        if document_path then
+            filename_fallback = document_path:match("([^/\\]+)$")  -- Get filename (Unix or Windows path)
+            if filename_fallback then
+                filename_fallback = filename_fallback:gsub("%.[^%.]+$", "")  -- Remove extension
+                filename_fallback = filename_fallback:gsub("[_-]", " ")  -- Convert separators to spaces
+            end
+        end
+
+        -- Use actual metadata if available, filename as fallback, empty author if unknown
+        local title = props and props.title
+        local author = props and props.authors
         book_metadata = {
-            title = props and props.title or _("Unknown Title"),
-            author = props and props.authors or _("Unknown Author")
+            title = (title and title ~= "") and title or filename_fallback or "Unknown",
+            author = (author and author ~= "") and author or ""  -- Empty, not "Unknown" - less confusing for AI
         }
     end
 
