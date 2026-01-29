@@ -511,6 +511,11 @@ function Actions.getForContext(context)
         end
     end
 
+    -- Sort alphabetically by action text for predictable ordering
+    table.sort(result, function(a, b)
+        return (a.text or "") < (b.text or "")
+    end)
+
     return result
 end
 

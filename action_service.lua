@@ -84,6 +84,11 @@ function ActionService:getAllActions(context, include_disabled, has_open_book)
         end
     end
 
+    -- Sort alphabetically by action text (case-insensitive) for predictable ordering
+    table.sort(actions, function(a, b)
+        return (a.text or ""):lower() < (b.text or ""):lower()
+    end)
+
     return actions
 end
 
