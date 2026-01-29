@@ -2026,7 +2026,7 @@ end
 -- Shows a combined dialog with behavior + advanced settings
 function PromptsManager:showBuiltinSettingsEditor(prompt)
     -- Get base action values (from Actions.lua, without overrides)
-    local Actions = require("prompts/actions")
+    -- Actions is already required at file top
     local base_action = Actions.getById(prompt.id)
     local base_skip_lang = base_action and base_action.skip_language_instruction or false
     local base_skip_domain = base_action and base_action.skip_domain or false

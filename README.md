@@ -287,6 +287,8 @@ You can customize these, create your own, or disable ones you don't use. See [Ac
 
 **What the AI sees**: Document metadata (title, author). For X-Ray/Recap, optionally: extracted book text up to your reading position (requires enabling in Settings → Advanced → Book Text Extraction). For Analyze Highlights: your annotations.
 
+> **Note**: X-Ray, Recap, and Analyze Highlights are only available when **reading a book** (not from File Browser). These actions require reading position data that's only available when you're inside a document.
+
 ### Multi-Document Mode
 
 **Access**: Select multiple documents in File Browser → tap any → "Compare with KOAssistant"
