@@ -1026,8 +1026,10 @@ Chat History → hamburger menu → **View by Domain**
 
 ### Export Settings (within Chat Settings)
 - **Export Style**: Format for Copy and Note — Markdown (default) or Plain Text
-- **Copy Content**: What to include when copying — Full (metadata + chat), Question + Response, or Response only
-- **Note Content**: What to include when saving to note — Response only (default), Question + Response, or Full
+- **Copy Content**: What to include when copying — Ask every time, Full (metadata + chat), Question + Response, Response only, or Everything (debug)
+- **Note Content**: What to include when saving to note — Ask every time, Full, Question + Response, Response only (default), or Everything (debug)
+
+When "Ask every time" is selected, clicking Copy or Note shows a picker dialog letting you choose what to include before proceeding.
 
 ### Reading Features (visible when document is open)
 - **X-Ray**: Generate a structured reference guide for the book up to your current reading position
@@ -1081,8 +1083,10 @@ See [Translate View](#translate-view) for details on the specialized translation
 - **Translation Target**: Pick from your languages or enter a custom target (when above is disabled)
 - **Disable Auto-Save for Translate**: Don't auto-save translations (default: on). Save manually via → Chat button
 - **Enable Streaming**: Stream translation responses in real-time (default: on)
-- **Copy Content**: What to include when copying in translate view — Follow global setting, Full, Question + Response, or Translation only (default). Replaces the old "Copy Translation Only" toggle.
+- **Copy Content**: What to include when copying in translate view — Follow global setting, Ask every time, Full, Question + Response, or Translation only (default). Replaces the old "Copy Translation Only" toggle.
 - **Note Content**: What to include when saving to note in translate view — same options as Copy Content, defaults to Translation only
+
+When "Ask every time" is selected (or inherited from global), a picker dialog appears letting you choose what to include.
 - **Original Text**: How to handle original text visibility (Follow Global, Always Hide, Hide Long, Never Hide)
 - **Long Text Threshold**: Character count for "Hide Long" mode (default: 200)
 - **Hide for Full Page Translate**: Always hide original when translating full page (default: on)

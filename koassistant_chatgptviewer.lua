@@ -133,6 +133,47 @@ local function handleLinkTap(link)
     end
 end
 
+-- Show content picker dialog for Copy/Note "Ask every time" mode
+-- @param title string Dialog title
+-- @param is_translate boolean Whether this is for translate view (different labels)
+-- @param callback function(content) Called with selected content type
+local function showContentPicker(title, is_translate, callback)
+    local content_dialog
+    local options = {
+        { value = "full", label = _("Full (metadata + chat)") },
+        { value = "qa", label = _("Question + Response") },
+        { value = "response", label = is_translate and _("Translation only") or _("Response only") },
+        { value = "everything", label = _("Everything (debug)") },
+    }
+
+    local buttons = {}
+    for _idx, opt in ipairs(options) do
+        table.insert(buttons, {
+            {
+                text = opt.label,
+                callback = function()
+                    UIManager:close(content_dialog)
+                    callback(opt.value)
+                end,
+            },
+        })
+    end
+    table.insert(buttons, {
+        {
+            text = _("Cancel"),
+            callback = function()
+                UIManager:close(content_dialog)
+            end,
+        },
+    })
+
+    content_dialog = ButtonDialog:new{
+        title = title,
+        buttons = buttons,
+    }
+    UIManager:show(content_dialog)
+end
+
 -- Pre-process markdown tables to HTML (luamd doesn't support tables)
 local function preprocessMarkdownTables(text)
     if not text then return text end
@@ -656,15 +697,24 @@ function ChatGPTViewer:init()
         local content = features.copy_content or "full"
         local style = features.export_style or "markdown"
 
-        local Export = require("koassistant_export")
-        local data = Export.fromHistory(history, self.original_highlighted_text)
-        local text = Export.format(data, content, style)
+        -- Helper to perform the copy
+        local function doCopy(selected_content)
+          local Export = require("koassistant_export")
+          local data = Export.fromHistory(history, self.original_highlighted_text)
+          local text = Export.format(data, selected_content, style)
 
-        Device.input.setClipboardText(text)
-        UIManager:show(Notification:new{
-          text = _("Copied"),
-          timeout = 2,
-        })
+          Device.input.setClipboardText(text)
+          UIManager:show(Notification:new{
+            text = _("Copied"),
+            timeout = 2,
+          })
+        end
+
+        if content == "ask" then
+          showContentPicker(_("Copy Content"), false, doCopy)
+        else
+          doCopy(content)
+        end
       end,
       hold_callback = self.default_hold_callback,
     },
@@ -1177,15 +1227,24 @@ function ChatGPTViewer:init()
       end
       local style = features.export_style or "markdown"
 
-      local Export = require("koassistant_export")
-      local data = Export.fromHistory(history, self.original_highlighted_text)
-      local text = Export.format(data, content, style)
+      -- Helper to perform the copy
+      local function doCopy(selected_content)
+        local Export = require("koassistant_export")
+        local data = Export.fromHistory(history, self.original_highlighted_text)
+        local text = Export.format(data, selected_content, style)
 
-      Device.input.setClipboardText(text)
-      UIManager:show(Notification:new{
-        text = _("Copied"),
-        timeout = 2,
-      })
+        Device.input.setClipboardText(text)
+        UIManager:show(Notification:new{
+          text = _("Copied"),
+          timeout = 2,
+        })
+      end
+
+      if content == "ask" then
+        showContentPicker(_("Copy Content"), true, doCopy)
+      else
+        doCopy(content)
+      end
     end,
     hold_callback = self.default_hold_callback,
   })
@@ -1913,24 +1972,33 @@ function ChatGPTViewer:saveToNote()
   end
   local style = features.export_style or "markdown"
 
-  local Export = require("koassistant_export")
-  local data = Export.fromHistory(history, self.original_highlighted_text)
-  local note_text = Export.format(data, content, style)
+  -- Helper to perform the save
+  local function doSave(selected_content)
+    local Export = require("koassistant_export")
+    local data = Export.fromHistory(history, self.original_highlighted_text)
+    local note_text = Export.format(data, selected_content, style)
 
-  if note_text == "" then
-    UIManager:show(Notification:new{
-      text = _("No response to save"),
-      timeout = 2,
-    })
-    return
+    if note_text == "" then
+      UIManager:show(Notification:new{
+        text = _("No response to save"),
+        timeout = 2,
+      })
+      return
+    end
+
+    -- Restore selected_text to ReaderHighlight so addNote() can create the highlight
+    reader_ui.highlight.selected_text = self.selection_data
+
+    -- Call addNote which creates the highlight and opens the note editor
+    -- The note editor will be pre-filled with the formatted content
+    reader_ui.highlight:addNote(note_text)
   end
 
-  -- Restore selected_text to ReaderHighlight so addNote() can create the highlight
-  reader_ui.highlight.selected_text = self.selection_data
-
-  -- Call addNote which creates the highlight and opens the note editor
-  -- The note editor will be pre-filled with the formatted content
-  reader_ui.highlight:addNote(note_text)
+  if content == "ask" then
+    showContentPicker(_("Note Content"), self.translate_view, doSave)
+  else
+    doSave(content)
+  end
 end
 
 function ChatGPTViewer:toggleTranslateQuoteVisibility()

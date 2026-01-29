@@ -1472,14 +1472,58 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
                 local features = config and config.features or {}
                 local content = features.copy_content or "full"
                 local style = features.export_style or "markdown"
-                local text = chat_history_manager:exportChat(document_path, chat.id, content, style)
-                if text then
-                    Device.input.setClipboardText(text)
-                    local Notification = require("ui/widget/notification")
-                    UIManager:show(Notification:new{
-                        text = _("Chat copied to clipboard"),
-                        timeout = 2,
+
+                -- Helper to perform the copy
+                local function doCopy(selected_content)
+                    local text = chat_history_manager:exportChat(document_path, chat.id, selected_content, style)
+                    if text then
+                        Device.input.setClipboardText(text)
+                        local Notification = require("ui/widget/notification")
+                        UIManager:show(Notification:new{
+                            text = _("Chat copied to clipboard"),
+                            timeout = 2,
+                        })
+                    end
+                end
+
+                if content == "ask" then
+                    -- Show content picker dialog
+                    local content_dialog
+                    local options = {
+                        { value = "full", label = _("Full (metadata + chat)") },
+                        { value = "qa", label = _("Question + Response") },
+                        { value = "response", label = _("Response only") },
+                        { value = "everything", label = _("Everything (debug)") },
+                    }
+
+                    local buttons = {}
+                    for _idx, opt in ipairs(options) do
+                        table.insert(buttons, {
+                            {
+                                text = opt.label,
+                                callback = function()
+                                    UIManager:close(content_dialog)
+                                    doCopy(opt.value)
+                                end,
+                            },
+                        })
+                    end
+                    table.insert(buttons, {
+                        {
+                            text = _("Cancel"),
+                            callback = function()
+                                UIManager:close(content_dialog)
+                            end,
+                        },
                     })
+
+                    content_dialog = ButtonDialog:new{
+                        title = _("Copy Content"),
+                        buttons = buttons,
+                    }
+                    UIManager:show(content_dialog)
+                else
+                    doCopy(content)
                 end
             end,
             tag_callback = function()
@@ -1511,63 +1555,108 @@ function ChatHistoryDialog:showExportOptions(document_path, chat_id, chat_histor
     self.current_options_dialog = nil
 
     local self_ref = self
-    local dialog
 
     -- Get content setting from config (what to include)
     local features = config and config.features or {}
     local content = features.copy_content or "full"
 
-    local buttons = {
-        {
+    -- Helper function to show the style dialog with a specific content
+    local function showStyleDialog(selected_content)
+        local style_dialog
+        local buttons = {
             {
-                text = _("Copy as Text"),
-                callback = function()
-                    local text = chat_history_manager:exportChat(document_path, chat_id, content, "text")
-                    if text then
-                        Device.input.setClipboardText(text)
-                        UIManager:show(InfoMessage:new{
-                            text = _("Chat copied to clipboard"),
-                            timeout = 2,
-                        })
-                    end
-                    safeClose(dialog)
-                    self_ref.current_options_dialog = nil
-                end,
+                {
+                    text = _("Copy as Text"),
+                    callback = function()
+                        local text = chat_history_manager:exportChat(document_path, chat_id, selected_content, "text")
+                        if text then
+                            Device.input.setClipboardText(text)
+                            UIManager:show(InfoMessage:new{
+                                text = _("Chat copied to clipboard"),
+                                timeout = 2,
+                            })
+                        end
+                        safeClose(style_dialog)
+                        self_ref.current_options_dialog = nil
+                    end,
+                },
+                {
+                    text = _("Copy as Markdown"),
+                    callback = function()
+                        local markdown = chat_history_manager:exportChat(document_path, chat_id, selected_content, "markdown")
+                        if markdown then
+                            Device.input.setClipboardText(markdown)
+                            UIManager:show(InfoMessage:new{
+                                text = _("Chat copied to clipboard"),
+                                timeout = 2,
+                            })
+                        end
+                        safeClose(style_dialog)
+                        self_ref.current_options_dialog = nil
+                    end,
+                },
             },
             {
-                text = _("Copy as Markdown"),
-                callback = function()
-                    local markdown = chat_history_manager:exportChat(document_path, chat_id, content, "markdown")
-                    if markdown then
-                        Device.input.setClipboardText(markdown)
-                        UIManager:show(InfoMessage:new{
-                            text = _("Chat copied to clipboard"),
-                            timeout = 2,
-                        })
-                    end
-                    safeClose(dialog)
-                    self_ref.current_options_dialog = nil
-                end,
+                {
+                    text = _("Close"),
+                    callback = function()
+                        safeClose(style_dialog)
+                        self_ref.current_options_dialog = nil
+                    end,
+                },
             },
-        },
-        {
-            {
-                text = _("Close"),
-                callback = function()
-                    safeClose(dialog)
-                    self_ref.current_options_dialog = nil
-                end,
-            },
-        },
-    }
+        }
 
-    dialog = ButtonDialog:new{
-        title = _("Export Chat"),
-        buttons = buttons,
-    }
+        style_dialog = ButtonDialog:new{
+            title = _("Export Chat"),
+            buttons = buttons,
+        }
 
-    self.current_options_dialog = dialog
-    UIManager:show(dialog)
+        self_ref.current_options_dialog = style_dialog
+        UIManager:show(style_dialog)
+    end
+
+    if content == "ask" then
+        -- Show content picker first, then style dialog
+        local content_dialog
+        local options = {
+            { value = "full", label = _("Full (metadata + chat)") },
+            { value = "qa", label = _("Question + Response") },
+            { value = "response", label = _("Response only") },
+            { value = "everything", label = _("Everything (debug)") },
+        }
+
+        local buttons = {}
+        for _idx, opt in ipairs(options) do
+            table.insert(buttons, {
+                {
+                    text = opt.label,
+                    callback = function()
+                        UIManager:close(content_dialog)
+                        showStyleDialog(opt.value)
+                    end,
+                },
+            })
+        end
+        table.insert(buttons, {
+            {
+                text = _("Cancel"),
+                callback = function()
+                    UIManager:close(content_dialog)
+                    self_ref.current_options_dialog = nil
+                end,
+            },
+        })
+
+        content_dialog = ButtonDialog:new{
+            title = _("Export Content"),
+            buttons = buttons,
+        }
+        self_ref.current_options_dialog = content_dialog
+        UIManager:show(content_dialog)
+    else
+        showStyleDialog(content)
+    end
 end
 
 -- Simple delete confirmation - menu is already closed before this is called

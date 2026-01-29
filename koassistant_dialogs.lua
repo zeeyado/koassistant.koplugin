@@ -1350,16 +1350,59 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
             local content = features.copy_content or "full"
             local style = features.export_style or "markdown"
 
-            local Export = require("koassistant_export")
-            local data = Export.fromHistory(history, highlightedText)
-            local text = Export.format(data, content, style)
+            -- Helper to perform the copy
+            local function doCopy(selected_content)
+                local Export = require("koassistant_export")
+                local data = Export.fromHistory(history, highlightedText)
+                local text = Export.format(data, selected_content, style)
 
-            if text then
-                Device.input.setClipboardText(text)
-                UIManager:show(Notification:new{
-                    text = _("Copied"),
-                    timeout = 2,
+                if text then
+                    Device.input.setClipboardText(text)
+                    UIManager:show(Notification:new{
+                        text = _("Copied"),
+                        timeout = 2,
+                    })
+                end
+            end
+
+            if content == "ask" then
+                -- Show content picker dialog
+                local content_dialog
+                local options = {
+                    { value = "full", label = _("Full (metadata + chat)") },
+                    { value = "qa", label = _("Question + Response") },
+                    { value = "response", label = _("Response only") },
+                    { value = "everything", label = _("Everything (debug)") },
+                }
+
+                local buttons = {}
+                for _idx, opt in ipairs(options) do
+                    table.insert(buttons, {
+                        {
+                            text = opt.label,
+                            callback = function()
+                                UIManager:close(content_dialog)
+                                doCopy(opt.value)
+                            end,
+                        },
+                    })
+                end
+                table.insert(buttons, {
+                    {
+                        text = _("Cancel"),
+                        callback = function()
+                            UIManager:close(content_dialog)
+                        end,
+                    },
                 })
+
+                content_dialog = ButtonDialog:new{
+                    title = _("Copy Content"),
+                    buttons = buttons,
+                }
+                UIManager:show(content_dialog)
+            else
+                doCopy(content)
             end
         end,
         tag_callback = function()
