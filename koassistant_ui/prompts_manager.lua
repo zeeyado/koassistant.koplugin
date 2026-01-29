@@ -1242,19 +1242,12 @@ end
 function PromptsManager:showStep3_ActionPrompt(state)
     local is_edit = state.existing_prompt ~= nil
 
-    -- Build description based on context
-    local available_placeholders = self:getPlaceholdersForContext(state.context)
-    local placeholder_list = ""
-    for _idx,p in ipairs(available_placeholders) do
-        placeholder_list = placeholder_list .. "• " .. p.text .. ": " .. p.value .. "\n"
-    end
-
     local dialog
     dialog = InputDialog:new{
         title = is_edit and _("Edit Action - Action Prompt") or _("Step 3/4: Action Prompt"),
         input = state.prompt or "",
         input_hint = _("What should the AI do?"),
-        description = _("This is the main instruction sent to the AI. Use placeholders to include context:\n\n") .. placeholder_list .. _("\nTip: Users can add extra input when using this action."),
+        description = _("Write the AI instruction. Tap 'Help' for tips, 'Insert...' for placeholders."),
         fullscreen = true,
         allow_newline = true,
         buttons = {
@@ -1265,6 +1258,24 @@ function PromptsManager:showStep3_ActionPrompt(state)
                         state.prompt = dialog:getInputText()
                         UIManager:close(dialog)
                         self:showStep2_Behavior(state)
+                    end,
+                },
+                {
+                    text = _("Help"),
+                    callback = function()
+                        UIManager:show(InfoMessage:new{
+                            text = _([[Writing Action Prompts
+
+• Use 'Insert...' to add placeholders like {title}, {author}, {highlighted_text}
+
+• Tip: When using this action, there's an input field for optional additional context
+
+• Reading-mode placeholders ({reading_progress}, {book_text}, {highlights}, {annotations}) auto-hide this action in File Browser — it only appears when reading
+
+• Test actions with the web inspector: 'lua tests/inspect.lua --web' from the plugin folder
+
+• See README for full placeholder list and examples]]),
+                        })
                     end,
                 },
                 {
@@ -2218,12 +2229,24 @@ function PromptsManager:showBuiltinSettingsDialog(state)
         })
     end
 
-    -- Cancel / Save row
+    -- Cancel / Help / Save row
     table.insert(buttons, {
         {
             text = _("Cancel"),
             callback = function()
                 UIManager:close(self.builtin_settings_dialog)
+            end,
+        },
+        {
+            text = _("Help"),
+            callback = function()
+                UIManager:show(InfoMessage:new{
+                    text = _([[These settings override the defaults for this built-in action.
+
+Set to "Global" to use the default setting.
+
+Tip: To edit the action prompt, use 'Duplicate' to create a custom copy.]]),
+                })
             end,
         },
         {
@@ -2236,14 +2259,8 @@ function PromptsManager:showBuiltinSettingsDialog(state)
         },
     })
 
-    local info = T(_([[Edit settings for: %1
-
-These settings override the defaults for this built-in action.
-Set to "Global" to use the default setting.]]), prompt.text)
-
     self.builtin_settings_dialog = ButtonDialog:new{
-        title = _("Edit Built-in Action Settings"),
-        info_text = info,
+        title = T(_("Edit Built-in: %1"), prompt.text),
         buttons = buttons,
     }
 
