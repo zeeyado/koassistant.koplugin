@@ -39,6 +39,7 @@ Most settings are configurable in the UI, including: Provider/model, AI behavior
   - [Highlight Menu Actions](#highlight-menu-actions)
 - [Dictionary Integration](#dictionary-integration)
 - [Bypass Modes](#bypass-modes)
+  - [Translate View](#translate-view)
 - [Behaviors](#behaviors)
   - [Built-in Behaviors](#built-in-behaviors)
   - [Sample Behaviors](#sample-behaviors)
@@ -725,9 +726,25 @@ A special gesture action to translate all visible text on the current page:
 
 **Gesture:** KOAssistant: Translate Current Page
 
-This extracts all text from the visible page/screen and sends it to the Translate action. Uses full view since page translations are longer.
+This extracts all text from the visible page/screen and sends it to the Translate action. Uses Translate View (see below) for a focused translation experience.
 
 **Works with:** PDF, EPUB, DjVu, and other supported document formats.
+
+### Translate View
+
+All translation actions (Highlight Bypass with Translate, Translate Current Page, highlight menu Translate) use a specialized **Translate View** — a minimal UI focused on translations.
+
+**5-button layout:**
+- **Row 1:** MD/Text (toggle markdown), Copy
+- **Row 2:** → Chat (expand to full chat), Show/Hide Original, Close
+
+**Key features:**
+- **Auto-save disabled** by default (translations are ephemeral like dictionary lookups)
+- **Copy Translation Only** option — copies just the translation text without original or formatting
+- **Configurable original text visibility** — follow global setting, always hide, hide long text, or never hide
+- **→ Chat button** — expands to full chat view with all options (continue conversation, save, etc.)
+
+**Configure:** Settings → Translate Settings
 
 > 📖 **Quick Reference: Bypass Mode Use Cases**
 >
@@ -1017,12 +1034,23 @@ See [Bypass Modes](#bypass-modes) and [Highlight Menu Actions](#highlight-menu-a
 - **Bypass Action**: Which action to trigger when bypass is enabled (default: Translate)
 - **Highlight Menu Actions**: View and reorder actions in the highlight popup menu
 
+### Translate Settings
+See [Translate View](#translate-view) for details on the specialized translation UI.
+- **Translate to Primary Language**: Use your primary language as the translation target (default: on)
+- **Translation Target**: Pick from your languages or enter a custom target (when above is disabled)
+- **Disable Auto-Save for Translate**: Don't auto-save translations (default: on). Save manually via → Chat button
+- **Enable Streaming**: Stream translation responses in real-time (default: on)
+- **Copy Translation Only**: Copy button copies only translation text, without original or formatting (default: off)
+- **Original Text**: How to handle original text visibility (Follow Global, Always Hide, Hide Long, Never Hide)
+- **Long Text Threshold**: Character count for "Hide Long" mode (default: 200)
+- **Hide for Full Page Translate**: Always hide original when translating full page (default: on)
+
 ### Language
 - **Match KOReader UI Language**: When enabled (default), the plugin UI follows KOReader's language setting. Disable to always show English UI (useful if translations are incomplete or inaccurate). Requires restart.
 - **Your Languages**: Languages you speak, separated by commas (e.g., "German, English, French"). Leave empty for default AI behavior.
 - **Primary Language**: Pick which language AI should respond in by default. Defaults to first in your list, but can be overridden.
-- **Translate to Primary Language**: Use your primary language as the translation target.
-- **Translation Target**: Pick from your languages or enter a custom target (when above is disabled).
+
+**Note:** Translation target language settings have moved to **Settings → Translate Settings**.
 
 **How language responses work** (when Your Languages is configured):
 - AI responds in your primary language by default
