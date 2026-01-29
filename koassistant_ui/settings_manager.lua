@@ -171,6 +171,44 @@ function SettingsManager:createMenuItem(plugin, item, schema)
                 keep_menu_open = true,
             })
         end
+
+    elseif item.type == "dropdown" then
+        -- Dropdown (similar to radio but uses 'label' field and shows current value in text)
+        -- Generate text_func to show current selection
+        menu_item.text_func = function()
+            local value = self:getSettingValue(plugin, item.path or item.id)
+            if value == nil then
+                value = item.default
+            end
+            -- Find the label for current value
+            local current_label = value
+            for _, option in ipairs(item.options) do
+                if option.value == value then
+                    current_label = option.label
+                    break
+                end
+            end
+            return T(item.text .. ": %1", current_label)
+        end
+        menu_item.sub_item_table = {}
+        for _, option in ipairs(item.options) do
+            table.insert(menu_item.sub_item_table, {
+                text = option.label,
+                radio = true,
+                checked_func = function()
+                    local value = self:getSettingValue(plugin, item.path or item.id)
+                    if value == nil then
+                        value = item.default
+                    end
+                    return value == option.value
+                end,
+                callback = function()
+                    self:setSettingValue(plugin, item.path or item.id, option.value)
+                    plugin:updateConfigFromSettings()
+                end,
+                keep_menu_open = true,
+            })
+        end
         
     elseif item.type == "number" then
         menu_item.callback = function()

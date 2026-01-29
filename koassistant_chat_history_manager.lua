@@ -537,6 +537,21 @@ function ChatHistoryManager:exportChatAsMarkdown(document_path, chat_id)
     return table.concat(result, "\n")
 end
 
+-- Unified export method using Export module (respects user settings)
+-- @param document_path string document path
+-- @param chat_id string chat ID
+-- @param content string "full" | "qa" | "response" (what to include)
+-- @param style string "markdown" | "text" (how to format)
+-- @return string formatted export text
+function ChatHistoryManager:exportChat(document_path, chat_id, content, style)
+    local chat = self:getChatById(document_path, chat_id)
+    if not chat then return nil end
+
+    local Export = require("koassistant_export")
+    local data = Export.fromSavedChat(chat)
+    return Export.format(data, content, style)
+end
+
 -- Get the most recently saved chat across all documents
 function ChatHistoryManager:getMostRecentChat()
     local most_recent_chat = nil

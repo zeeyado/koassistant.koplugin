@@ -1019,6 +1019,18 @@ function AskGPT:initSettings()
       logger.info("KOAssistant: Completed behavior system migration")
     end
 
+    -- ONE-TIME migration: translate_copy_translation_only toggle → translate_copy_content dropdown
+    if features.translate_copy_translation_only ~= nil then
+      if features.translate_copy_translation_only then
+        features.translate_copy_content = "response"
+      else
+        features.translate_copy_content = "full"
+      end
+      features.translate_copy_translation_only = nil
+      needs_save = true
+      logger.info("KOAssistant: Migrated translate_copy_translation_only to translate_copy_content")
+    end
+
     -- Ensure selected_behavior has a value
     if not features.selected_behavior then
       features.selected_behavior = "standard"

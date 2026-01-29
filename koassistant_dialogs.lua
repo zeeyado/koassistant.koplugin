@@ -1343,14 +1343,21 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
             end
         end,
         export_callback = function()
-            -- Copy chat as markdown directly to clipboard
+            -- Copy chat using user's export settings
             local Device = require("device")
             local Notification = require("ui/widget/notification")
-            local markdown = createExportText(history, "markdown")
-            if markdown then
-                Device.input.setClipboardText(markdown)
+            local features = temp_config and temp_config.features or {}
+            local content = features.copy_content or "full"
+            local style = features.export_style or "markdown"
+
+            local Export = require("koassistant_export")
+            local data = Export.fromHistory(history, highlightedText)
+            local text = Export.format(data, content, style)
+
+            if text then
+                Device.input.setClipboardText(text)
                 UIManager:show(Notification:new{
-                    text = _("Chat copied to clipboard"),
+                    text = _("Copied"),
                     timeout = 2,
                 })
             end

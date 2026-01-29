@@ -643,15 +643,28 @@ function ChatGPTViewer:init()
       text = _("Copy"),
       id = "copy_chat",
       callback = function()
-        if self.export_callback then
-          self.export_callback()
-        else
-          local Notification = require("ui/widget/notification")
+        local history = self._message_history or self.original_history
+        if not history then
           UIManager:show(Notification:new{
-            text = _("Copy function not available"),
+            text = _("No chat to copy"),
             timeout = 2,
           })
+          return
         end
+
+        local features = self.configuration and self.configuration.features or {}
+        local content = features.copy_content or "full"
+        local style = features.export_style or "markdown"
+
+        local Export = require("koassistant_export")
+        local data = Export.fromHistory(history, self.original_highlighted_text)
+        local text = Export.format(data, content, style)
+
+        Device.input.setClipboardText(text)
+        UIManager:show(Notification:new{
+          text = _("Copied"),
+          timeout = 2,
+        })
       end,
       hold_callback = self.default_hold_callback,
     },
@@ -1148,35 +1161,31 @@ function ChatGPTViewer:init()
     text = _("Copy"),
     id = "copy_chat",
     callback = function()
-      local features = self.configuration and self.configuration.features
-      local copy_translation_only = features and features.translate_copy_translation_only
-
-      if copy_translation_only then
-        -- Copy only the raw translation text
-        local history = self._message_history or self.original_history
-        if history then
-          local last_msg = history:getLastMessage()
-          if last_msg and last_msg.content then
-            Device.input.setClipboardText(last_msg.content)
-            UIManager:show(Notification:new{
-              text = _("Translation copied"),
-              timeout = 2,
-            })
-            return
-          end
-        end
+      local history = self._message_history or self.original_history
+      if not history then
         UIManager:show(Notification:new{
           text = _("No translation to copy"),
           timeout = 2,
         })
-      elseif self.export_callback then
-        self.export_callback()
-      else
-        UIManager:show(Notification:new{
-          text = _("Copy function not available"),
-          timeout = 2,
-        })
+        return
       end
+
+      local features = self.configuration and self.configuration.features or {}
+      local content = features.translate_copy_content or "response"
+      if content == "global" then
+        content = features.copy_content or "full"
+      end
+      local style = features.export_style or "markdown"
+
+      local Export = require("koassistant_export")
+      local data = Export.fromHistory(history, self.original_highlighted_text)
+      local text = Export.format(data, content, style)
+
+      Device.input.setClipboardText(text)
+      UIManager:show(Notification:new{
+        text = _("Copied"),
+        timeout = 2,
+      })
     end,
     hold_callback = self.default_hold_callback,
   })
@@ -1882,17 +1891,33 @@ function ChatGPTViewer:saveToNote()
     return
   end
 
-  -- Get the AI response text (last assistant message)
-  local response_text = ""
   local history = self._message_history or self.original_history
-  if history then
-    local last_msg = history:getLastMessage()
-    if last_msg and last_msg.content then
-      response_text = last_msg.content
-    end
+  if not history then
+    UIManager:show(Notification:new{
+      text = _("No response to save"),
+      timeout = 2,
+    })
+    return
   end
 
-  if response_text == "" then
+  -- Get note content based on settings
+  local features = self.configuration and self.configuration.features or {}
+  local content
+  if self.translate_view then
+    content = features.translate_note_content or "response"
+    if content == "global" then
+      content = features.note_content or "response"
+    end
+  else
+    content = features.note_content or "response"
+  end
+  local style = features.export_style or "markdown"
+
+  local Export = require("koassistant_export")
+  local data = Export.fromHistory(history, self.original_highlighted_text)
+  local note_text = Export.format(data, content, style)
+
+  if note_text == "" then
     UIManager:show(Notification:new{
       text = _("No response to save"),
       timeout = 2,
@@ -1904,8 +1929,8 @@ function ChatGPTViewer:saveToNote()
   reader_ui.highlight.selected_text = self.selection_data
 
   -- Call addNote which creates the highlight and opens the note editor
-  -- The note editor will be pre-filled with the AI response
-  reader_ui.highlight:addNote(response_text)
+  -- The note editor will be pre-filled with the formatted content
+  reader_ui.highlight:addNote(note_text)
 end
 
 function ChatGPTViewer:toggleTranslateQuoteVisibility()

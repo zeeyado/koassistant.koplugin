@@ -811,7 +811,7 @@ function ChatHistoryDialog:showChatOptions(ui, document_path, chat, chat_history
                 callback = function()
                     safeClose(dialog)
                     self_ref.current_options_dialog = nil
-                    self_ref:showExportOptions(document_path, chat.id, chat_history_manager)
+                    self_ref:showExportOptions(document_path, chat.id, chat_history_manager, config)
                 end,
             },
             {
@@ -1468,10 +1468,13 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
                 end
             end,
             export_callback = function()
-                -- Copy chat as markdown directly to clipboard (consistent with new chats)
-                local markdown = chat_history_manager:exportChatAsMarkdown(document_path, chat.id)
-                if markdown then
-                    Device.input.setClipboardText(markdown)
+                -- Copy chat using user's export settings
+                local features = config and config.features or {}
+                local content = features.copy_content or "full"
+                local style = features.export_style or "markdown"
+                local text = chat_history_manager:exportChat(document_path, chat.id, content, style)
+                if text then
+                    Device.input.setClipboardText(text)
                     local Notification = require("ui/widget/notification")
                     UIManager:show(Notification:new{
                         text = _("Chat copied to clipboard"),
@@ -1503,23 +1506,27 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
     showChatViewer()
 end
 
-function ChatHistoryDialog:showExportOptions(document_path, chat_id, chat_history_manager)
+function ChatHistoryDialog:showExportOptions(document_path, chat_id, chat_history_manager, config)
     safeClose(self.current_options_dialog)
     self.current_options_dialog = nil
 
     local self_ref = self
     local dialog
 
+    -- Get content setting from config (what to include)
+    local features = config and config.features or {}
+    local content = features.copy_content or "full"
+
     local buttons = {
         {
             {
                 text = _("Copy as Text"),
                 callback = function()
-                    local text = chat_history_manager:exportChatAsText(document_path, chat_id)
+                    local text = chat_history_manager:exportChat(document_path, chat_id, content, "text")
                     if text then
                         Device.input.setClipboardText(text)
                         UIManager:show(InfoMessage:new{
-                            text = _("Chat copied to clipboard as text"),
+                            text = _("Chat copied to clipboard"),
                             timeout = 2,
                         })
                     end
@@ -1530,11 +1537,11 @@ function ChatHistoryDialog:showExportOptions(document_path, chat_id, chat_histor
             {
                 text = _("Copy as Markdown"),
                 callback = function()
-                    local markdown = chat_history_manager:exportChatAsMarkdown(document_path, chat_id)
+                    local markdown = chat_history_manager:exportChat(document_path, chat_id, content, "markdown")
                     if markdown then
                         Device.input.setClipboardText(markdown)
                         UIManager:show(InfoMessage:new{
-                            text = _("Chat copied to clipboard as markdown"),
+                            text = _("Chat copied to clipboard"),
                             timeout = 2,
                         })
                     end
