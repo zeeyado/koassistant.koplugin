@@ -242,6 +242,7 @@ local SettingsSchema = {
                     path = "features.copy_content",
                     default = "full",
                     options = {
+                        { value = "ask", label = _("Ask every time") },
                         { value = "full", label = _("Full (metadata + chat)") },
                         { value = "qa", label = _("Question + Response") },
                         { value = "response", label = _("Response only") },
@@ -256,6 +257,7 @@ local SettingsSchema = {
                     path = "features.note_content",
                     default = "response",
                     options = {
+                        { value = "ask", label = _("Ask every time") },
                         { value = "full", label = _("Full (metadata + chat)") },
                         { value = "qa", label = _("Question + Response") },
                         { value = "response", label = _("Response only") },
@@ -914,6 +916,7 @@ local SettingsSchema = {
                     default = "response",
                     options = {
                         { value = "global", label = _("Follow global setting") },
+                        { value = "ask", label = _("Ask every time") },
                         { value = "full", label = _("Full (metadata + chat)") },
                         { value = "qa", label = _("Question + Response") },
                         { value = "response", label = _("Translation only") },
@@ -929,6 +932,7 @@ local SettingsSchema = {
                     default = "response",
                     options = {
                         { value = "global", label = _("Follow global setting") },
+                        { value = "ask", label = _("Ask every time") },
                         { value = "full", label = _("Full (metadata + chat)") },
                         { value = "qa", label = _("Question + Response") },
                         { value = "response", label = _("Translation only") },
