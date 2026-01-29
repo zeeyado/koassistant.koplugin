@@ -265,6 +265,22 @@ local SettingsSchema = {
                     },
                     help_text = _("What to include when saving to note."),
                 },
+                {
+                    id = "history_copy_content",
+                    type = "dropdown",
+                    text = _("History Export"),
+                    path = "features.history_copy_content",
+                    default = "ask",
+                    options = {
+                        { value = "global", label = _("Follow Copy Content") },
+                        { value = "ask", label = _("Ask every time") },
+                        { value = "full", label = _("Full (metadata + chat)") },
+                        { value = "qa", label = _("Question + Response") },
+                        { value = "response", label = _("Response only") },
+                        { value = "everything", label = _("Everything (debug)") },
+                    },
+                    help_text = _("What to include when exporting from Chat History."),
+                },
             },
         },
 
