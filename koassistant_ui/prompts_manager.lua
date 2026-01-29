@@ -1590,7 +1590,7 @@ function PromptsManager:showViewModeSelector(state, refresh_callback)
     local view_modes = {
         { id = "standard", text = _("Standard"), desc = _("Full dialog with all buttons") },
         { id = "compact", text = _("Dictionary Compact"), desc = _("Compact with language buttons") },
-        { id = "translate", text = _("Translate"), desc = _("With original text toggle") },
+        { id = "translate", text = _("Translate"), desc = _("With language switch and original toggle") },
     }
 
     -- Determine current selection
@@ -1640,7 +1640,7 @@ function PromptsManager:showViewModeSelector(state, refresh_callback)
                     text = _("View modes control how results are displayed:") .. "\n\n" ..
                            "• " .. _("Standard") .. " — " .. _("Full dialog with all response action buttons") .. "\n\n" ..
                            "• " .. _("Dictionary Compact") .. " — " .. _("Smaller dialog optimized for quick lookups, with language buttons for word-by-word translation") .. "\n\n" ..
-                           "• " .. _("Translate") .. " — " .. _("Translation view with toggle to show/hide the original text alongside the translation"),
+                           "• " .. _("Translate") .. " — " .. _("Translation view with language switch button and toggle to show/hide the original text"),
                 })
             end,
         },
