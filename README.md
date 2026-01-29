@@ -673,7 +673,7 @@ The built-in dictionary actions attempt to handle many use cases with unified pr
 - **Various language pairs** with automatic source language detection (difficult from one word)
 
 This one-size-fits-all approach has limitations:
-- Models may provide definitions when translations are expected (or vice versa)
+- Dictionary provides definitions instead direct of translations to L2
 - Source language detection can fail due to limited context
 - Formatting and language consistency varies across different AI models (formatting is not currently handled programmatically, but by prompting)
 - Smaller/faster models struggle more with complex language-switching instructions
