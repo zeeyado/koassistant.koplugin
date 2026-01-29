@@ -4061,8 +4061,10 @@ function AskGPT:registerHighlightMenuActions()
 
   logger.info("KOAssistant: Registering " .. #quick_actions .. " quick actions for highlight menu")
 
-  for _i, action in ipairs(quick_actions) do
-    local dialog_id = "koassistant_quick_" .. action.id
+  for i, action in ipairs(quick_actions) do
+    -- Use numeric prefix for ordering: KOReader's orderedPairs sorts keys alphabetically
+    -- Format: "90_%02d_koassistant_%s" where 90_ comes after KOReader's built-in items (08_-11_)
+    local dialog_id = string.format("90_%02d_koassistant_%s", i, action.id)
     local action_copy = action  -- Capture in closure
 
     self.ui.highlight:addToHighlightDialog(dialog_id, function(reader_highlight_instance)
