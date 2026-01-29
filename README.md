@@ -23,6 +23,7 @@ Most settings are configurable in the UI, including: Provider/model, AI behavior
 - [User Essentials](#user-essentials)
 - [Quick Setup](#quick-setup)
 - [Recommended Setup](#recommended-setup)
+  - [Configure Quick Access Gestures](#configure-quick-access-gestures)
 - [Testing Your Setup](#testing-your-setup)
 - [How to Use KOAssistant](#how-to-use-koassistant) — Contexts & Built-in Actions
   - [Highlight Mode](#highlight-mode)
@@ -35,6 +36,7 @@ Most settings are configurable in the UI, including: Provider/model, AI behavior
   - [Tuning Built-in Actions](#tuning-built-in-actions)
   - [Creating Actions](#creating-actions)
   - [Template Variables](#template-variables)
+  - [Highlight Menu Actions](#highlight-menu-actions)
 - [Dictionary Integration](#dictionary-integration)
 - [Bypass Modes](#bypass-modes)
 - [Behaviors](#behaviors)
@@ -54,6 +56,7 @@ Most settings are configurable in the UI, including: Provider/model, AI behavior
   - [Free Tier Providers](#free-tier-providers)
   - [Adding Custom Providers](#adding-custom-providers)
   - [Adding Custom Models](#adding-custom-models)
+  - [Setting Default Models](#setting-default-models)
 - [Tips & Advanced Usage](#tips--advanced-usage)
 - [KOReader Tips](#koreader-tips)
 - [Troubleshooting](#troubleshooting)
