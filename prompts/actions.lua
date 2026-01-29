@@ -101,7 +101,7 @@ Actions.highlight = {
         api_params = {
             temperature = 0.6,
         },
-        include_book_context = false,
+        include_book_context = true,
         builtin = true,
     },
     summarize = {
@@ -126,6 +126,27 @@ Actions.highlight = {
             temperature = 0.7,  -- Balanced for expansive but coherent elaboration
         },
         include_book_context = true,
+        builtin = true,
+    },
+    connect = {
+        id = "connect",
+        text = _("Connect"),
+        context = "highlight",
+        prompt = [[Draw connections from this passage:
+
+{highlighted_text}
+
+Explore how it relates to:
+- Other themes or ideas in this work
+- Other books, thinkers, or intellectual traditions
+- Broader historical or cultural context
+
+Surface connections that enrich understanding, not tangential trivia.]],
+        include_book_context = true,
+        api_params = {
+            temperature = 0.7,
+            max_tokens = 2048,
+        },
         builtin = true,
     },
 }

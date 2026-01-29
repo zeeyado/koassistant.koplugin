@@ -48,13 +48,29 @@ local Templates = {}
 
 -- Highlight context templates
 Templates.highlight = {
-    explain = [[Please explain the following text: {highlighted_text}]],
+    explain = [[Explain this passage:
 
-    eli5 = [[Please ELI5 (Explain Like I'm 5) the following text: {highlighted_text}]],
+{highlighted_text}
 
-    summarize = [[Please provide a concise summary of the following text: {highlighted_text}]],
+Be clear and thorough. Match the book's tone - a philosophy text deserves rigor, a thriller just needs clarity.]],
 
-    elaborate = [[Please elaborate on the following text. Expand on the key concepts, provide additional context, and go deeper into the details: {highlighted_text}]],
+    eli5 = [[Explain this like I'm 5 - make it genuinely simple:
+
+{highlighted_text}
+
+Use simple words, analogies to everyday things, and concrete examples. Stay accurate - simplify the explanation, not the truth.]],
+
+    summarize = [[Summarize this passage:
+
+{highlighted_text}
+
+Capture the main point and key supporting details. A good summary is shorter than the original but loses nothing important.]],
+
+    elaborate = [[Elaborate on this passage:
+
+{highlighted_text}
+
+Unpack key concepts, add helpful context, explore implications and connections. Go deeper, but stay grounded in what the text actually says.]],
 }
 
 -- Book context templates
