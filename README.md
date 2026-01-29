@@ -243,7 +243,7 @@ KOAssistant works in **4 contexts**, each with its own set of built-in actions:
 |---------|------------------|
 | **Highlight** | Explain, ELI5, Summarize, Elaborate, Connect, Translate |
 | **Book** | Book Info, Similar Books, About Author, X-Ray, Recap, Analyze Highlights |
-| **Multi-book** | Compare Books, Common Themes |
+| **Multi-book** | Compare Books, Common Themes, Reading Order |
 | **General** | Ask |
 
 You can customize these, create your own, or disable ones you don't use. See [Actions](#actions) for details.
@@ -300,10 +300,11 @@ You can customize these, create your own, or disable ones you don't use. See [Ac
 | Action | Description |
 |--------|-------------|
 | **Ask** | Free-form question about the selected books |
-| **Compare** | Compare themes, styles, target audiences |
-| **Find Common Themes** | Identify shared topics and patterns |
-| **Analyze Collection** | What this selection reveals about reader interests |
+| **Compare** | What makes each book distinct — contrasts, not just similarities |
+| **Find Common Themes** | Shared DNA — recurring themes, influences, connections |
+| **Analyze Collection** | What this selection reveals about the reader's interests |
 | **Quick Summaries** | Brief summary of each book |
+| **Reading Order** | Suggest optimal order based on dependencies, difficulty, themes |
 
 **What the AI sees**: List of titles, authors, and identifiers 
 
