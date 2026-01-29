@@ -1054,6 +1054,7 @@ function PromptsManager:showStep1_NameAndContext(state)
                 text = _("View: ") .. self:getViewModeDisplayText(state),
                 callback = function()
                     state.name = self.step1_dialog:getInputText()
+                    self.step1_dialog:onCloseKeyboard()
                     self:showViewModeSelector(state, function()
                         UIManager:close(self.step1_dialog)
                         self:showStep1_NameAndContext(state)
@@ -1163,20 +1164,11 @@ function PromptsManager:showContextSelectorWizard(state)
     local buttons = {}
 
     for _idx,option in ipairs(context_options) do
-        -- For highlight context, show info based on current include_book_context setting
         local info = self:getContextInfo(option.value, state.include_book_context)
         local prefix = (state.context == option.value) and "● " or "○ "
-        -- Show context name on first line, description and includes on subsequent lines
-        local button_text = prefix .. info.text
-        if info.desc then
-            button_text = button_text .. "\n    " .. info.desc
-        end
-        if info.includes then
-            button_text = button_text .. "\n    " .. info.includes
-        end
         table.insert(buttons, {
             {
-                text = button_text,
+                text = prefix .. info.text,
                 callback = function()
                     state.context = option.value
                     UIManager:close(self.context_dialog)
@@ -1185,6 +1177,25 @@ function PromptsManager:showContextSelectorWizard(state)
             },
         })
     end
+
+    -- Info button
+    table.insert(buttons, {
+        {
+            text = "ⓘ " .. _("Info"),
+            callback = function()
+                local InfoMessage = require("ui/widget/infomessage")
+                UIManager:show(InfoMessage:new{
+                    text = _("Context determines when your action appears and what data is available:") .. "\n\n" ..
+                           "• " .. _("Highlight") .. " — " .. _("When text is selected. Gets: selected text, optionally book info") .. "\n\n" ..
+                           "• " .. _("Book") .. " — " .. _("File browser or 'Chat about book'. Gets: title, author") .. "\n\n" ..
+                           "• " .. _("Multi-Book") .. " — " .. _("Multiple books selected. Gets: book list with count") .. "\n\n" ..
+                           "• " .. _("General") .. " — " .. _("Standalone chat. No automatic context") .. "\n\n" ..
+                           "• " .. _("Highlight & Book") .. " — " .. _("Both highlight and single-book menus") .. "\n\n" ..
+                           "• " .. _("All Contexts") .. " — " .. _("Shows everywhere. Data varies by trigger"),
+                })
+            end,
+        },
+    })
 
     table.insert(buttons, {
         {
@@ -1577,9 +1588,9 @@ end
 -- @param refresh_callback: Callback to refresh the parent dialog after selection
 function PromptsManager:showViewModeSelector(state, refresh_callback)
     local view_modes = {
-        { id = "standard", text = _("Standard"), desc = _("Full-height dialog with all buttons") },
-        { id = "compact", text = _("Dictionary Compact"), desc = _("Compact dialog with language/context buttons") },
-        { id = "translate", text = _("Translate"), desc = _("Translation view with original text toggle") },
+        { id = "standard", text = _("Standard"), desc = _("Full dialog with all buttons") },
+        { id = "compact", text = _("Dictionary Compact"), desc = _("Compact with language buttons") },
+        { id = "translate", text = _("Translate"), desc = _("With original text toggle") },
     }
 
     -- Determine current selection
@@ -1596,7 +1607,7 @@ function PromptsManager:showViewModeSelector(state, refresh_callback)
         local prefix = (current == mode.id) and "● " or "○ "
         table.insert(buttons, {
             {
-                text = prefix .. mode.text .. "\n    " .. mode.desc,
+                text = prefix .. mode.text,
                 callback = function()
                     UIManager:close(self.view_mode_dialog)
                     -- Reset all view flags
@@ -1619,23 +1630,38 @@ function PromptsManager:showViewModeSelector(state, refresh_callback)
         })
     end
 
+    -- Info button
+    table.insert(buttons, {
+        {
+            text = "ⓘ " .. _("Info"),
+            callback = function()
+                local InfoMessage = require("ui/widget/infomessage")
+                UIManager:show(InfoMessage:new{
+                    text = _("View modes control how results are displayed:") .. "\n\n" ..
+                           "• " .. _("Standard") .. " — " .. _("Full dialog with all response action buttons") .. "\n\n" ..
+                           "• " .. _("Dictionary Compact") .. " — " .. _("Smaller dialog optimized for quick lookups, with language buttons for word-by-word translation") .. "\n\n" ..
+                           "• " .. _("Translate") .. " — " .. _("Translation view with toggle to show/hide the original text alongside the translation"),
+                })
+            end,
+        },
+    })
+
     -- Cancel button
     table.insert(buttons, {
         {
             text = _("Cancel"),
             callback = function()
                 UIManager:close(self.view_mode_dialog)
+                -- Restore parent dialog with keyboard
+                if refresh_callback then
+                    refresh_callback()
+                end
             end,
         },
     })
 
     self.view_mode_dialog = ButtonDialog:new{
         title = _("View Mode"),
-        info_text = _([[Select how results are displayed:
-
-• Standard: Full-height dialog with all chat features
-• Dictionary Compact: Smaller dialog optimized for quick lookups, with language and context toggle buttons
-• Translate: Shows translation with toggle for original text]]),
         buttons = buttons,
     }
 
