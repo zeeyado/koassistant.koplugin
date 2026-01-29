@@ -59,21 +59,35 @@ Templates.highlight = {
 
 -- Book context templates
 Templates.book = {
-    book_info = [[Tell me about the book "{title}"{author_clause}. Include information about:
-- What the book is about
-- Its significance and impact
-- Why someone might want to read it
-- Any interesting facts about it
+    book_info = [[Tell me about "{title}"{author_clause}. Include:
 
-Please be concise but informative.]],
+- What the book is about (premise for fiction, thesis for non-fiction)
+- Its significance and why it matters
+- What type of reader typically loves this book
+- Reading experience (accessible? dense? requires background?)
 
-    similar_books = [[Based on the book "{title}"{author_clause}, recommend 5-7 similar books that readers might enjoy. For each recommendation, briefly explain why it's similar or why the reader might like it.]],
+Adapt tone and focus to content type (fiction vs non-fiction vs academic). Be concise but informative.]],
+
+    similar_books = [[Based on "{title}"{author_clause}, recommend 5-7 similar works.
+
+For each recommendation, specify:
+- WHY it's similar (themes? style? subject matter? reading experience?)
+- Who would prefer the original vs the recommendation
+
+Adapt to content type:
+- Fiction: Similar narrative experience, themes, or style
+- Non-fiction: Similar arguments, perspectives, or intellectual tradition
+- Academic: Works that complement, extend, or debate this one]],
 
     explain_author = [[Tell me about the author of "{title}"{author_clause}. Include:
-- Brief biography
-- Their major works and contributions
-- Writing style and themes
-- Historical/cultural context of their work]],
+
+- Brief biography and background
+- Their major works and how their style evolved
+- Writing style and recurring themes
+- Historical/cultural context of their work
+- Suggested reading order for their works (if they have multiple)
+
+Be concise. For intellectual influences and lineage, the reader can use "Related Thinkers".]],
 
     historical_context = [[Provide historical context for "{title}"{author_clause}:
 - When was it written and what was happening at that time
