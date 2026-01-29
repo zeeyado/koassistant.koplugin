@@ -2835,7 +2835,9 @@ function AskGPT:onDictButtonsReady(dict_popup, dict_buttons)
   end
 
   -- Get configured actions for dictionary popup
-  local popup_actions = self.action_service:getDictionaryPopupActionObjects()
+  -- Filter out actions requiring open book if no book is open (should always be true for dictionary)
+  local has_open_book = self.ui and self.ui.document ~= nil
+  local popup_actions = self.action_service:getDictionaryPopupActionObjects(has_open_book)
   if #popup_actions == 0 then
     return  -- No actions configured
   end
@@ -4049,7 +4051,9 @@ end
 function AskGPT:registerHighlightMenuActions()
   if not self.ui or not self.ui.highlight then return end
 
-  local quick_actions = self.action_service:getHighlightMenuActionObjects()
+  -- Filter out actions requiring open book if no book is open (should always be true in highlight menu)
+  local has_open_book = self.ui and self.ui.document ~= nil
+  local quick_actions = self.action_service:getHighlightMenuActionObjects(has_open_book)
   if #quick_actions == 0 then
     logger.info("KOAssistant: No quick actions configured for highlight menu")
     return

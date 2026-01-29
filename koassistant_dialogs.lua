@@ -483,21 +483,24 @@ end
 local function getAllPrompts(configuration, plugin)
     local prompts = {}
     local prompt_keys = {}  -- Array to store keys in order
-    
+
     -- Use the passed configuration or the global one
     local config = configuration or CONFIGURATION
-    
+
     -- Determine context
     local context = config and getPromptContext(config) or "highlight"
-    
+
+    -- Check if a book is currently open (for filtering requires_open_book actions)
+    local has_open_book = plugin and plugin.ui and plugin.ui.document ~= nil
+
     -- Debug logging
     local logger = require("logger")
-    logger.info("getAllPrompts: context = " .. context)
-    
+    logger.info("getAllPrompts: context = " .. context .. ", has_open_book = " .. tostring(has_open_book))
+
     -- Use ActionService if available, fallback to PromptService
     local service = plugin and (plugin.action_service or plugin.prompt_service)
     if service then
-        local service_prompts = service:getAllPrompts(context)
+        local service_prompts = service:getAllPrompts(context, false, has_open_book)
         logger.info("getAllPrompts: Got " .. #service_prompts .. " prompts from " ..
                     (plugin.action_service and "ActionService" or "PromptService"))
 
@@ -510,7 +513,7 @@ local function getAllPrompts(configuration, plugin)
     else
         logger.warn("getAllPrompts: No prompt service available, no prompts returned")
     end
-    
+
     return prompts, prompt_keys
 end
 
