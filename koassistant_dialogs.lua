@@ -1615,6 +1615,33 @@ local function handlePredefinedPrompt(prompt_type_or_action, highlightedText, ui
         -- "never_hide" defaults to false (already nil/false by default)
     end
 
+    -- Apply compact dictionary view settings if action has compact_view flag
+    if prompt.compact_view then
+        temp_config.features = temp_config.features or {}
+        temp_config.features.compact_view = true
+        temp_config.features.hide_highlighted_text = true  -- Hide quote by default in compact mode
+        temp_config.features.large_stream_dialog = false  -- Small streaming dialog
+
+        -- Apply dictionary-specific settings from user preferences
+        local f = config.features or {}
+
+        -- Disable auto-save by default
+        if f.dictionary_disable_auto_save ~= false then
+            temp_config.features.storage_key = "__SKIP__"
+        end
+
+        -- Streaming setting (defaults to enabled)
+        if f.dictionary_enable_streaming == false then
+            temp_config.features.enable_streaming = false
+        end
+    end
+
+    -- Apply minimal buttons if action has minimal_buttons flag
+    if prompt.minimal_buttons then
+        temp_config.features = temp_config.features or {}
+        temp_config.features.minimal_buttons = true
+    end
+
     -- NEW ARCHITECTURE (v0.5.2+): Unified request config for all providers
     -- System prompt is built by buildUnifiedRequestConfig and passed in config.system
     -- No longer embedded in the consolidated message

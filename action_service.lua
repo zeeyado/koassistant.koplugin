@@ -1031,6 +1031,10 @@ function ActionService:createDuplicateAction(action)
         use_annotations = action.use_annotations,
         use_reading_progress = action.use_reading_progress,
         use_reading_stats = action.use_reading_stats,
+        -- View mode flags
+        translate_view = action.translate_view,
+        compact_view = action.compact_view,
+        minimal_buttons = action.minimal_buttons,
         -- NOT copying: id (auto-generated), source (will be "ui"), enabled (default true)
         -- NOT copying: requires_open_book (dynamically inferred from flags above)
     }
