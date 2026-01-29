@@ -437,8 +437,13 @@ function PromptsManager:showPromptsMenu()
         },
     }
     
+    local self_ref = self
     self.prompts_menu = Menu:new{
         title = _("Manage Actions"),
+        title_bar_left_icon = "appbar.menu",
+        onLeftButtonTap = function()
+            self_ref:showMenuOptions()
+        end,
         item_table = menu_items,
         width = self.width,
         height = self.height,
@@ -459,8 +464,75 @@ function PromptsManager:showPromptsMenu()
         end,
         buttons_table = buttons,
     }
-    
+
     UIManager:show(self.prompts_menu)
+end
+
+-- Hamburger menu options
+function PromptsManager:showMenuOptions()
+    local self_ref = self
+    local button_dialog
+    button_dialog = ButtonDialog:new{
+        title = _("Actions Menu"),
+        buttons = {
+            {
+                {
+                    text = _("Reset custom actions"),
+                    callback = function()
+                        UIManager:close(button_dialog)
+                        UIManager:show(ConfirmBox:new{
+                            text = _("Delete all custom actions?\n\nThis removes actions you created.\n\nBuilt-in actions and their edits are preserved."),
+                            ok_callback = function()
+                                self_ref.plugin:resetCustomActions()
+                                self_ref.plugin.action_service:loadActions()
+                                self_ref:refreshMenu()
+                            end,
+                        })
+                    end,
+                },
+            },
+            {
+                {
+                    text = _("Reset action edits"),
+                    callback = function()
+                        UIManager:close(button_dialog)
+                        UIManager:show(ConfirmBox:new{
+                            text = _("Reset all action edits?\n\nThis reverts any changes you made to built-in actions and re-enables disabled actions.\n\nCustom actions are preserved."),
+                            ok_callback = function()
+                                self_ref.plugin:resetActionEdits()
+                                self_ref.plugin.action_service:loadActions()
+                                self_ref:refreshMenu()
+                            end,
+                        })
+                    end,
+                },
+            },
+            {
+                {
+                    text = _("Reset action menus"),
+                    callback = function()
+                        UIManager:close(button_dialog)
+                        UIManager:show(ConfirmBox:new{
+                            text = _("Reset action menu configurations?\n\nThis resets the ordering and selection in highlight menu and dictionary popup back to defaults.\n\nYour actions (custom and built-in) are preserved."),
+                            ok_callback = function()
+                                self_ref.plugin:resetActionMenus()
+                                self_ref:refreshMenu()
+                            end,
+                        })
+                    end,
+                },
+            },
+            {
+                {
+                    text = _("Cancel"),
+                    callback = function()
+                        UIManager:close(button_dialog)
+                    end,
+                },
+            },
+        },
+    }
+    UIManager:show(button_dialog)
 end
 
 function PromptsManager:refreshMenu()

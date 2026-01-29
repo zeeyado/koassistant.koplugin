@@ -4465,13 +4465,22 @@ function AskGPT:executeQuickAction(action, highlighted_text, context)
 end
 
 function AskGPT:restoreDefaultPrompts()
-  -- Clear custom actions and disabled prompts
-  self.settings:saveSetting("custom_actions", {})
-  self.settings:saveSetting("disabled_prompts", {})
+  -- Combined reset: custom actions + edits + menus
+  -- Uses the granular reset functions internally
+  self.settings:delSetting("custom_actions")
+  self.settings:delSetting("builtin_action_overrides")
+  self.settings:delSetting("disabled_actions")
+  self.settings:delSetting("highlight_menu_actions")
+  self.settings:delSetting("dictionary_popup_actions")
+  self.settings:delSetting("_dismissed_highlight_actions")
+  self.settings:delSetting("_dismissed_dictionary_actions")
+  -- Legacy cleanup
+  self.settings:delSetting("disabled_prompts")
   self.settings:flush()
 
-  UIManager:show(InfoMessage:new{
-    text = _("Default actions restored"),
+  UIManager:show(Notification:new{
+    text = _("All action settings restored to defaults"),
+    timeout = 2,
   })
 end
 
