@@ -52,7 +52,7 @@ Templates.highlight = {
 
 {highlighted_text}
 
-Be clear and thorough. Match the book's tone - a philosophy text deserves rigor, a thriller just needs clarity.]],
+Be clear and thorough. Match the text's tone - a philosophy text deserves rigor, a thriller just needs clarity.]],
 
     eli5 = [[Explain this like I'm 5 - make it genuinely simple:
 
@@ -77,9 +77,9 @@ Unpack key concepts, add helpful context, explore implications and connections. 
 Templates.book = {
     book_info = [[Tell me about "{title}"{author_clause}. Include:
 
-- What the book is about (premise for fiction, thesis for non-fiction)
+- What it's about (premise for fiction, thesis for non-fiction)
 - Its significance and why it matters
-- What type of reader typically loves this book
+- What type of reader typically loves this work
 - Reading experience (accessible? dense? requires background?)
 
 Adapt tone and focus to content type (fiction vs non-fiction vs academic). Be concise but informative. If you don't recognize this title, say so rather than guessing.]],
@@ -110,7 +110,7 @@ Be concise. For intellectual influences and lineage, the reader can use "Related
     historical_context = [[Provide historical context for "{title}"{author_clause}:
 - When was it written and what was happening at that time
 - Historical events or movements that influenced the work
-- How the book reflects or responds to its historical moment
+- How the work reflects or responds to its historical moment
 - Its historical significance or impact
 
 If you don't recognize this title, say so rather than guessing.]],

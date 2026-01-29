@@ -206,7 +206,7 @@ Actions.book = {
         use_reading_progress = true,
         prompt = [[Create a reader's companion for "{title}" by {author}.
 
-I'm at {reading_progress} through the book.
+I'm at {reading_progress}.
 
 {highlights_section}
 
@@ -280,7 +280,7 @@ Where the argument stands at {reading_progress}:
 
 CRITICAL: Do not reveal ANYTHING beyond {reading_progress}. This must be completely spoiler-free.
 
-If you don't recognize this book or the title/content seems unclear, tell me honestly rather than guessing or making things up. I can provide more context if needed.]],
+If you don't recognize this work or the content seems unclear, tell me honestly rather than guessing or making things up. I can provide more context if needed.]],
         skip_language_instruction = false,
         skip_domain = true,  -- X-Ray has specific structure
         extended_thinking = "off",
@@ -321,13 +321,13 @@ Write a quick recap to help me re-immerse. Adapt your approach based on content 
 4. **Building toward** - What questions or arguments are being developed
 
 Style guidance:
-- Match the book's tone (suspenseful for thrillers, rigorous for academic, accessible for popular non-fiction)
+- Match the work's tone (suspenseful for thrillers, rigorous for academic, accessible for popular non-fiction)
 - Use **bold** for key names, terms, and concepts
 - Use *italics* for important revelations or claims
 - Keep it concise - this is a refresher, not a full summary
 - No spoilers beyond {reading_progress}
 
-If you don't recognize this book or the title/content seems unclear, tell me honestly rather than guessing. I can provide more context if needed.]],
+If you don't recognize this work or the title/content seems unclear, tell me honestly rather than guessing. I can provide more context if needed.]],
         skip_language_instruction = false,
         skip_domain = true,
         extended_thinking = "off",
@@ -352,11 +352,11 @@ I'm at {reading_progress}. Here's what I've marked:
 
 {annotations_section}
 
-Analyze MY READING PATTERNS, not just the book content:
+Analyze MY READING PATTERNS, not just the content:
 
 ## What Catches My Attention
 What types of passages do I tend to highlight? (dialogue, descriptions, ideas, emotions, plot points?)
-What does this suggest about what I find valuable in this book?
+What does this suggest about what I find valuable in this work?
 
 ## Emerging Threads
 Looking at my highlights as a collection, what themes or ideas am I tracking?
@@ -372,13 +372,13 @@ What am I curious about or paying attention to?
 
 ## Suggestions
 Based on my highlighting patterns:
-- Parts of the book I might want to revisit
+- Parts I might want to revisit
 - Themes to watch for going forward
-- Connections to other ideas or books
+- Connections to other ideas or works
 
-This is about understanding ME as a reader through my highlights, not summarizing the book.
+This is about understanding ME as a reader through my highlights, not summarizing the work.
 
-If you don't recognize this book or the highlights seem insufficient for meaningful analysis, let me know honestly rather than guessing.]],
+If you don't recognize this work or the highlights seem insufficient for meaningful analysis, let me know honestly rather than guessing.]],
         skip_language_instruction = false,
         skip_domain = true,
         extended_thinking = "off",
