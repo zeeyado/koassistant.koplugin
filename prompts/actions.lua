@@ -191,7 +191,11 @@ I'm at {reading_progress} through the book.
 
 {book_text_section}
 
-Build a reference guide covering ONLY what's happened up to my current position:
+First, determine if this is FICTION or NON-FICTION, then build a reference guide using the appropriate structure. Cover ONLY what's happened up to my current position.
+
+---
+
+**FOR FICTION, use this structure:**
 
 ## Cast
 For each significant character (aim for 8-12):
@@ -219,6 +223,39 @@ Where the story stands at {reading_progress}:
 - Active conflicts or mysteries
 - The protagonist's immediate situation
 - Unanswered questions
+
+---
+
+**FOR NON-FICTION, use this structure:**
+
+## Key Figures
+People discussed or referenced (aim for 8-12):
+**[Name]** — Who they are. Their role in the argument. Key ideas associated with them.
+
+## Core Concepts
+Main ideas and frameworks introduced so far (aim for 6-10):
+**[Concept]** — What it means. How the author uses it.
+
+## Arguments
+The author's key claims so far (aim for 4-6):
+**[Claim]** — The argument. Evidence or reasoning provided.
+
+## Terminology
+Technical terms or specialized vocabulary (aim for 5-8):
+**[Term]** — Definition and how it's used in this work.
+
+## Argument Development
+How the thesis has built so far (chronological, 6-10 points):
+- **[Chapter/Section]:** Key point made and how it advances the overall argument.
+
+## Current Position
+Where the argument stands at {reading_progress}:
+- What was just established
+- Questions being addressed
+- What the author seems to be building toward
+- Gaps or tensions in the argument so far
+
+---
 
 CRITICAL: Do not reveal ANYTHING beyond {reading_progress}. This must be completely spoiler-free.
 
@@ -248,21 +285,26 @@ I'm at {reading_progress} and last read {time_since_last_read}.
 
 {book_text_section}
 
-Write a quick "Previously on..." style recap that:
+Write a quick recap to help me re-immerse. Adapt your approach based on content type:
 
-1. **Sets the scene** - Briefly remind me of the story's situation at this point
-2. **Recent events** - What happened in the last few chapters I read (prioritize recent over early)
-3. **Active threads** - What conflicts, mysteries, or goals are in play
+**For FICTION** - Use a "Previously on..." narrative style:
+1. **Sets the scene** - The story's situation at this point
+2. **Recent events** - What happened recently (prioritize recent over early)
+3. **Active threads** - Conflicts, mysteries, or goals in play
 4. **Where I stopped** - The specific moment or scene where I paused
 
+**For NON-FICTION** - Use a "Where we left off..." refresher style:
+1. **Main thesis** - The author's central argument (briefly)
+2. **Recent ground covered** - Key points from recent chapters
+3. **Current focus** - What the author is currently examining
+4. **Building toward** - What questions or arguments are being developed
+
 Style guidance:
-- Write in a way that fits the book's genre (suspenseful for thrillers, whimsical for fantasy, etc.)
-- Use **bold** for character names and important terms
-- Use *italics* for key revelations or turning points
+- Match the book's tone (suspenseful for thrillers, rigorous for academic, accessible for popular non-fiction)
+- Use **bold** for key names, terms, and concepts
+- Use *italics* for important revelations or claims
 - Keep it concise - this is a refresher, not a full summary
 - No spoilers beyond {reading_progress}
-
-Think of this as the "Last time on..." narration before a TV episode continues.
 
 If you don't recognize this book or the title/content seems unclear, tell me honestly rather than guessing. I can provide more context if needed.]],
         skip_language_instruction = false,
@@ -321,6 +363,114 @@ If you don't recognize this book or the highlights seem insufficient for meaning
         extended_thinking = "off",
         api_params = {
             temperature = 0.5,
+            max_tokens = 2048,
+        },
+        builtin = true,
+    },
+    -- Related Thinkers: Intellectual landscape and influences
+    related_thinkers = {
+        id = "related_thinkers",
+        text = _("Related Thinkers"),
+        context = "book",
+        -- No behavior_variant - uses user's global behavior
+        -- No skip_domain - domain expertise helps here
+        prompt = [[For "{title}" by {author}, map the intellectual landscape:
+
+## Influences (Who shaped this author's thinking)
+- Direct mentors or acknowledged influences
+- Intellectual traditions they draw from
+- Contemporary debates they're responding to
+
+## Influenced (Who this author has shaped)
+- Notable followers or critics
+- Movements or fields impacted
+- How the ideas spread or evolved
+
+## Contemporaries (Working on similar problems)
+- Other thinkers in the same space
+- Key areas of agreement and disagreement
+- Complementary perspectives worth exploring
+
+If this is fiction, focus on literary influences, movements, and stylistic descendants instead.
+
+Be concise - aim for the most significant connections, not an exhaustive list.]],
+        api_params = {
+            temperature = 0.7,
+            max_tokens = 2048,
+        },
+        builtin = true,
+    },
+    -- Key Arguments: Thesis and argument analysis
+    key_arguments = {
+        id = "key_arguments",
+        text = _("Key Arguments"),
+        context = "book",
+        -- No behavior_variant - uses user's global behavior
+        -- No skip_domain - domain expertise shapes analysis approach
+        prompt = [[Analyze the main arguments in "{title}" by {author}:
+
+## Core Thesis
+What is the central claim or argument?
+
+## Supporting Arguments
+What are the key sub-claims that support the thesis?
+
+## Evidence & Methodology
+What types of evidence does the author use?
+What's their approach to building the argument?
+
+## Assumptions
+What does the author take for granted?
+What premises underlie the argument?
+
+## Counterarguments
+What would critics say?
+What are the strongest objections to this position?
+
+## Intellectual Context
+What debates is this work participating in?
+What's the "so what" - why does this argument matter?
+
+If this is fiction, adapt to analyze themes, messages, and the author's apparent worldview instead of formal arguments.
+
+Be concise - this is an overview, not an essay.]],
+        api_params = {
+            temperature = 0.6,
+            max_tokens = 2048,
+        },
+        builtin = true,
+    },
+    -- Discussion Questions: Book club and classroom prompts
+    discussion_questions = {
+        id = "discussion_questions",
+        text = _("Discussion Questions"),
+        context = "book",
+        -- No extraction flags - simple knowledge-based action
+        -- User can mention reading progress in follow-up if needed
+        prompt = [[Generate thoughtful discussion questions for "{title}" by {author}.
+
+Create 8-10 questions that could spark good conversation:
+
+## Comprehension Questions (2-3)
+Questions that check understanding of key points/events
+
+## Analytical Questions (3-4)
+Questions about how and why - motivations, techniques, implications
+
+## Interpretive Questions (2-3)
+Questions with multiple valid answers that invite debate
+
+## Personal Connection Questions (1-2)
+Questions that connect the work to the reader's own experience/views
+
+Adapt to content type:
+- For fiction: Focus on character decisions, themes, craft choices
+- For non-fiction: Focus on arguments, evidence, real-world applications
+- For academic: Include questions about methodology and scholarly implications
+
+Note: These are general questions for the complete work. If the reader is mid-book, they can ask for spoiler-free questions in the follow-up.]],
+        api_params = {
+            temperature = 0.7,
             max_tokens = 2048,
         },
         builtin = true,
