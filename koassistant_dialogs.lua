@@ -2381,9 +2381,9 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
     local function onComplete(history, temp_config_or_error)
         if history then
             local temp_config = temp_config_or_error
-            -- Store rerun info for compact view buttons (context toggle, language change)
+            -- Store rerun info for compact/translate view buttons (context toggle, language change)
             -- NOTE: Only store simple/serializable data in features (deepCopy would overflow on complex objects)
-            if temp_config and temp_config.features and temp_config.features.minimal_buttons then
+            if temp_config and temp_config.features and (temp_config.features.minimal_buttons or temp_config.features.translate_view) then
                 -- Store complex objects at config top level (not in features, to avoid deepCopy)
                 temp_config._rerun_action = action
                 temp_config._rerun_ui = ui
