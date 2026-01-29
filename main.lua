@@ -4823,6 +4823,62 @@ function AskGPT:clearAllChatHistory()
   })
 end
 
+-- Reset custom actions only (user-created actions)
+function AskGPT:resetCustomActions()
+  self.settings:delSetting("custom_actions")
+  self.settings:flush()
+
+  UIManager:show(Notification:new{
+    text = _("Custom actions deleted"),
+    timeout = 2,
+  })
+end
+
+-- Reset action edits only (overrides to built-in actions + disabled actions)
+function AskGPT:resetActionEdits()
+  self.settings:delSetting("builtin_action_overrides")
+  self.settings:delSetting("disabled_actions")
+  self.settings:flush()
+
+  UIManager:show(Notification:new{
+    text = _("Action edits reset to defaults"),
+    timeout = 2,
+  })
+end
+
+-- Reset action menus only (highlight/dictionary menu configs)
+function AskGPT:resetActionMenus()
+  self.settings:delSetting("highlight_menu_actions")
+  self.settings:delSetting("dictionary_popup_actions")
+  self.settings:delSetting("_dismissed_highlight_actions")
+  self.settings:delSetting("_dismissed_dictionary_actions")
+  self.settings:flush()
+
+  UIManager:show(Notification:new{
+    text = _("Action menus reset to defaults"),
+    timeout = 2,
+  })
+end
+
+-- Reset custom providers and models only
+function AskGPT:resetCustomProvidersModels()
+  local features = self.settings:readSetting("features") or {}
+
+  -- Clear custom providers, models, and default model selections
+  features.custom_providers = nil
+  features.custom_models = nil
+  features.provider_default_models = nil
+
+  self.settings:saveSetting("features", features)
+  self.settings:flush()
+  self:updateConfigFromSettings()
+
+  UIManager:show(Notification:new{
+    text = _("Custom providers and models reset"),
+    timeout = 2,
+  })
+end
+
 -- Validate and sanitize action overrides during restore
 function AskGPT:_validateActionOverrides(overrides)
   if not overrides or type(overrides) ~= "table" then
