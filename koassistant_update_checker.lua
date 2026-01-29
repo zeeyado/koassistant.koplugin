@@ -265,11 +265,19 @@ local function compareVersions(v1, v2)
     return 0
 end
 
+-- Timeout for update checks (seconds)
+-- Short timeout for background checks to avoid blocking the user
+local UPDATE_CHECK_TIMEOUT = 5
+
 function UpdateChecker.checkForUpdates(silent, include_prereleases)
     -- Default to including prereleases since we're in alpha/beta
     if include_prereleases == nil then
         include_prereleases = true
     end
+
+    -- Set timeout for HTTP request (LuaSocket defaults to 60s which is too long)
+    local old_timeout = http.TIMEOUT
+    http.TIMEOUT = UPDATE_CHECK_TIMEOUT
 
     local response_body = {}
     -- Fetch all releases (not just latest) to include prereleases
@@ -281,6 +289,9 @@ function UpdateChecker.checkForUpdates(silent, include_prereleases)
         },
         sink = ltn12.sink.table(response_body)
     }
+
+    -- Restore original timeout
+    http.TIMEOUT = old_timeout
 
     if code == 200 then
         local data = table.concat(response_body)
