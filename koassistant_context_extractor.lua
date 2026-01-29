@@ -34,6 +34,7 @@ function ContextExtractor:isAvailable()
 end
 
 --- Get reading progress as percentage.
+-- Always calculates fresh from current position for accuracy.
 -- @return table { percent = 42, formatted = "42%", decimal = 0.42 }
 function ContextExtractor:getReadingProgress()
     local result = {
@@ -46,14 +47,11 @@ function ContextExtractor:getReadingProgress()
         return result
     end
 
-    -- Try to get percent_finished from doc_settings
     local percent_finished = 0
-    if self.ui.doc_settings then
-        percent_finished = self.ui.doc_settings:readSetting("percent_finished") or 0
-    end
 
-    -- If doc_settings not available, calculate from page position
-    if percent_finished == 0 and self.ui.document then
+    -- Always calculate fresh from current position when document is open
+    -- (doc_settings:readSetting("percent_finished") can be stale until autosave)
+    if self.ui.document then
         local total_pages = self.ui.document.info and self.ui.document.info.number_of_pages
         if total_pages and total_pages > 0 then
             local current_page
@@ -71,6 +69,11 @@ function ContextExtractor:getReadingProgress()
             end
             percent_finished = current_page / total_pages
         end
+    end
+
+    -- Fallback to saved setting only if live calculation failed
+    if percent_finished == 0 and self.ui.doc_settings then
+        percent_finished = self.ui.doc_settings:readSetting("percent_finished") or 0
     end
 
     result.decimal = percent_finished
