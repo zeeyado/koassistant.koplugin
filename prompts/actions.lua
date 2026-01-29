@@ -598,6 +598,8 @@ No section headers. Inline bold labels. Concise.]],
         extended_thinking = "off",  -- Dictionary lookups don't benefit from extended thinking
         skip_language_instruction = true,  -- Target language already in prompt
         skip_domain = true,  -- Domain context not relevant for dictionary lookups
+        compact_view = true,  -- Always use compact dictionary view
+        minimal_buttons = true,  -- Use dictionary-specific buttons
         -- storage_key set dynamically based on dictionary_disable_auto_save setting
         api_params = {
             temperature = 0.3,  -- Deterministic for definitions
@@ -627,6 +629,8 @@ No section headers. Inline bold labels. Concise.]],
         extended_thinking = "off",  -- Dictionary lookups don't benefit from extended thinking
         skip_language_instruction = true,  -- Target language already in prompt
         skip_domain = true,  -- Domain context not relevant for dictionary lookups
+        compact_view = true,  -- Always use compact dictionary view
+        minimal_buttons = true,  -- Use dictionary-specific buttons
         -- storage_key set dynamically based on dictionary_disable_auto_save setting
         api_params = {
             temperature = 0.3,  -- Deterministic for definitions

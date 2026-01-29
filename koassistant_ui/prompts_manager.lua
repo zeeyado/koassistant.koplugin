@@ -180,6 +180,10 @@ function PromptsManager:loadPrompts()
             use_reading_stats = prompt.use_reading_stats,
             -- Requirement flags
             requires_open_book = prompt.requires_open_book,
+            -- View mode flags
+            translate_view = prompt.translate_view,
+            compact_view = prompt.compact_view,
+            minimal_buttons = prompt.minimal_buttons,
         }
 
         -- Apply builtin action overrides if this is a builtin action
@@ -206,6 +210,10 @@ function PromptsManager:loadPrompts()
                 if override.use_annotations ~= nil then entry.use_annotations = override.use_annotations end
                 if override.use_reading_progress ~= nil then entry.use_reading_progress = override.use_reading_progress end
                 if override.use_reading_stats ~= nil then entry.use_reading_stats = override.use_reading_stats end
+                -- View mode flag overrides
+                if override.translate_view ~= nil then entry.translate_view = override.translate_view end
+                if override.compact_view ~= nil then entry.compact_view = override.compact_view end
+                if override.minimal_buttons ~= nil then entry.minimal_buttons = override.minimal_buttons end
             end
         end
 
@@ -822,6 +830,10 @@ function PromptsManager:duplicateAction(action)
         use_annotations = duplicate.use_annotations,
         use_reading_progress = duplicate.use_reading_progress,
         use_reading_stats = duplicate.use_reading_stats,
+        -- View mode flags
+        translate_view = duplicate.translate_view,
+        compact_view = duplicate.compact_view,
+        minimal_buttons = duplicate.minimal_buttons,
     }
 
     -- Add temperature if set
@@ -880,6 +892,10 @@ function PromptsManager:showPromptEditor(existing_prompt)
         use_annotations = existing_prompt and existing_prompt.use_annotations or false,
         use_reading_progress = existing_prompt and existing_prompt.use_reading_progress or false,
         use_reading_stats = existing_prompt and existing_prompt.use_reading_stats or false,
+        -- View mode flags
+        translate_view = existing_prompt and existing_prompt.translate_view or false,
+        compact_view = existing_prompt and existing_prompt.compact_view or false,
+        minimal_buttons = existing_prompt and existing_prompt.minimal_buttons or false,
         existing_prompt = existing_prompt,
     }
 
@@ -1026,6 +1042,22 @@ function PromptsManager:showStep1_NameAndContext(state)
                     end
                     UIManager:close(self.step1_dialog)
                     self:showStep1_NameAndContext(state)
+                end,
+            },
+        })
+    end
+
+    -- View mode selector (for highlight contexts - affects result display)
+    if state.context and self:contextIncludesHighlight(state.context) then
+        table.insert(button_rows, {
+            {
+                text = _("View: ") .. self:getViewModeDisplayText(state),
+                callback = function()
+                    state.name = self.step1_dialog:getInputText()
+                    self:showViewModeSelector(state, function()
+                        UIManager:close(self.step1_dialog)
+                        self:showStep1_NameAndContext(state)
+                    end)
                 end,
             },
         })
@@ -1435,7 +1467,7 @@ function PromptsManager:showStep4_Advanced(state)
                 end,
             },
         },
-        -- Row 4: Back / Save
+        -- Row 5: Back / Save
         {
             {
                 text = _("← Back"),
@@ -1527,6 +1559,87 @@ function PromptsManager:showTemperatureSelector(state)
     }
 
     UIManager:show(spin_widget)
+end
+
+-- Get display text for current view mode
+function PromptsManager:getViewModeDisplayText(state)
+    if state.translate_view then
+        return _("Translate")
+    elseif state.compact_view then
+        return _("Dictionary Compact")
+    else
+        return _("Standard")
+    end
+end
+
+-- View mode selector dialog
+-- @param state: Action state being edited
+-- @param refresh_callback: Callback to refresh the parent dialog after selection
+function PromptsManager:showViewModeSelector(state, refresh_callback)
+    local view_modes = {
+        { id = "standard", text = _("Standard"), desc = _("Full-height dialog with all buttons") },
+        { id = "compact", text = _("Dictionary Compact"), desc = _("Compact dialog with language/context buttons") },
+        { id = "translate", text = _("Translate"), desc = _("Translation view with original text toggle") },
+    }
+
+    -- Determine current selection
+    local current = "standard"
+    if state.translate_view then
+        current = "translate"
+    elseif state.compact_view then
+        current = "compact"
+    end
+
+    local buttons = {}
+
+    for _idx, mode in ipairs(view_modes) do
+        local prefix = (current == mode.id) and "● " or "○ "
+        table.insert(buttons, {
+            {
+                text = prefix .. mode.text .. "\n    " .. mode.desc,
+                callback = function()
+                    UIManager:close(self.view_mode_dialog)
+                    -- Reset all view flags
+                    state.translate_view = false
+                    state.compact_view = false
+                    state.minimal_buttons = false
+                    -- Set based on selection
+                    if mode.id == "compact" then
+                        state.compact_view = true
+                        state.minimal_buttons = true
+                    elseif mode.id == "translate" then
+                        state.translate_view = true
+                    end
+                    -- Refresh parent dialog
+                    if refresh_callback then
+                        refresh_callback()
+                    end
+                end,
+            },
+        })
+    end
+
+    -- Cancel button
+    table.insert(buttons, {
+        {
+            text = _("Cancel"),
+            callback = function()
+                UIManager:close(self.view_mode_dialog)
+            end,
+        },
+    })
+
+    self.view_mode_dialog = ButtonDialog:new{
+        title = _("View Mode"),
+        info_text = _([[Select how results are displayed:
+
+• Standard: Full-height dialog with all chat features
+• Dictionary Compact: Smaller dialog optimized for quick lookups, with language and context toggle buttons
+• Translate: Shows translation with toggle for original text]]),
+        buttons = buttons,
+    }
+
+    UIManager:show(self.view_mode_dialog)
 end
 
 -- Extended thinking selector dialog
@@ -2122,6 +2235,11 @@ function PromptsManager:showBuiltinSettingsEditor(prompt)
     local base_use_reading_progress = base_action and base_action.use_reading_progress or false
     local base_use_reading_stats = base_action and base_action.use_reading_stats or false
 
+    -- Get base view mode flags for comparison
+    local base_translate_view = base_action and base_action.translate_view or false
+    local base_compact_view = base_action and base_action.compact_view or false
+    local base_minimal_buttons = base_action and base_action.minimal_buttons or false
+
     -- Initialize state from current prompt values
     local state = {
         prompt = prompt,  -- Reference to the original prompt
@@ -2152,6 +2270,13 @@ function PromptsManager:showBuiltinSettingsEditor(prompt)
         use_reading_progress_base = base_use_reading_progress,
         use_reading_stats = prompt.use_reading_stats or false,
         use_reading_stats_base = base_use_reading_stats,
+        -- View mode flags
+        translate_view = prompt.translate_view or false,
+        translate_view_base = base_translate_view,
+        compact_view = prompt.compact_view or false,
+        compact_view_base = base_compact_view,
+        minimal_buttons = prompt.minimal_buttons or false,
+        minimal_buttons_base = base_minimal_buttons,
     }
 
     self:showBuiltinSettingsDialog(state)
@@ -2266,6 +2391,18 @@ function PromptsManager:showBuiltinSettingsDialog(state)
                     state.include_book_context = not state.include_book_context
                     UIManager:close(self.builtin_settings_dialog)
                     self:showBuiltinSettingsDialog(state)
+                end,
+            },
+        })
+        -- View mode selector (for highlight contexts)
+        table.insert(buttons, {
+            {
+                text = _("View: ") .. self:getViewModeDisplayText(state),
+                callback = function()
+                    self:showViewModeSelector(state, function()
+                        UIManager:close(self.builtin_settings_dialog)
+                        self:showBuiltinSettingsDialog(state)
+                    end)
                 end,
             },
         })
@@ -2718,6 +2855,20 @@ function PromptsManager:saveBuiltinOverride(prompt, state)
         has_any = true
     end
 
+    -- Save view mode flags if they differ from base
+    if state.translate_view ~= (state.translate_view_base or false) then
+        override.translate_view = state.translate_view
+        has_any = true
+    end
+    if state.compact_view ~= (state.compact_view_base or false) then
+        override.compact_view = state.compact_view
+        has_any = true
+    end
+    if state.minimal_buttons ~= (state.minimal_buttons_base or false) then
+        override.minimal_buttons = state.minimal_buttons
+        has_any = true
+    end
+
     if has_any then
         all_overrides[key] = override
     else
@@ -2763,6 +2914,10 @@ function PromptsManager:showCustomQuickSettings(prompt)
         use_annotations = prompt.use_annotations or false,
         use_reading_progress = prompt.use_reading_progress or false,
         use_reading_stats = prompt.use_reading_stats or false,
+        -- View mode flags
+        translate_view = prompt.translate_view or false,
+        compact_view = prompt.compact_view or false,
+        minimal_buttons = prompt.minimal_buttons or false,
         existing_prompt = prompt,  -- For updatePrompt compatibility
     }
 
@@ -2890,6 +3045,18 @@ function PromptsManager:showCustomQuickSettingsDialog(state)
                     state.include_book_context = not state.include_book_context
                     UIManager:close(self.custom_quick_dialog)
                     self:showCustomQuickSettingsDialog(state)
+                end,
+            },
+        })
+        -- View mode selector (for highlight contexts)
+        table.insert(buttons, {
+            {
+                text = _("View: ") .. self:getViewModeDisplayText(state),
+                callback = function()
+                    self:showViewModeSelector(state, function()
+                        UIManager:close(self.custom_quick_dialog)
+                        self:showCustomQuickSettingsDialog(state)
+                    end)
                 end,
             },
         })
@@ -3458,6 +3625,10 @@ function PromptsManager:addPrompt(state)
             use_annotations = state.use_annotations or nil,
             use_reading_progress = state.use_reading_progress or nil,
             use_reading_stats = state.use_reading_stats or nil,
+            -- View mode flags
+            translate_view = state.translate_view or nil,
+            compact_view = state.compact_view or nil,
+            minimal_buttons = state.minimal_buttons or nil,
             enabled = true,
         })
 
@@ -3519,6 +3690,10 @@ function PromptsManager:updatePrompt(existing_prompt, state)
                 use_annotations = state.use_annotations or nil,
                 use_reading_progress = state.use_reading_progress or nil,
                 use_reading_stats = state.use_reading_stats or nil,
+                -- View mode flags
+                translate_view = state.translate_view or nil,
+                compact_view = state.compact_view or nil,
+                minimal_buttons = state.minimal_buttons or nil,
                 enabled = true,
             }
 
