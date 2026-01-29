@@ -665,6 +665,30 @@ The dictionary language setting shows return symbols when following other settin
 
 See [How Language Settings Work Together](#how-language-settings-work-together) for details.
 
+### Known Limitations & Workaround
+
+The built-in dictionary actions attempt to handle many use cases with unified prompts:
+- **Monolingual lookups** (e.g., English word → English definitions)
+- **Bilingual lookups** (e.g., English word → Arabic translations and meta language)
+- **Various language pairs** with automatic source language detection (difficult from one word)
+
+This one-size-fits-all approach has limitations:
+- Models may provide definitions when translations are expected (or vice versa)
+- Source language detection can fail for mixed-language texts or unusual scripts
+- Formatting and language consistency varies across different AI models
+- Smaller/faster models struggle more with complex language-switching instructions
+
+**A better solution is under development.** Including split bi-m/onolongual Dictionaries, and source language settings. In the meantime, users are advised to create custom dictionary actions tailored to their specific use case:
+
+1. **Settings → Advanced → Manage Actions**
+2. Find "Dictionary" or "Quick Define" and tap to duplicate
+3. Edit the duplicate with prompts specific to your language pair
+4. **Settings → Dictionary Settings → Dictionary Popup Actions** — add your custom action
+5. Optionally set it as the **Bypass Action** for one-tap access
+6. You can also create something from scratch, including behaviors (PRs welcome.)
+
+For example, create "EN→AR Dictionary" with explicit Arabic translation instructions, or "Monolingual English" that only provides English definitions.
+
 ### Dictionary Bypass
 
 When bypass is enabled, selecting a word skips KOReader's dictionary popup entirely and immediately triggers your chosen AI action.

@@ -642,7 +642,7 @@ No section headers. Inline bold labels. Concise.]],
         in_dictionary_popup = 3,  -- Default order in dictionary popup
         prompt = [[Deep analysis of: {highlighted_text}
 
-**Headword**: word (transliteration if non-Latin), _part of speech_
+**Headword**: word /IPA/, _part of speech_
 
 **Morphological Structure**:
 - Semitic languages (Arabic, Hebrew, etc.): Root in script, pattern/wazn, verb form (bāb) if applicable, semantic contribution of the pattern
