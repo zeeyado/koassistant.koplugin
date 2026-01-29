@@ -467,6 +467,10 @@ local ChatGPTViewer = InputContainer:extend {
   -- Original highlighted text for translate view toggle
   original_highlighted_text = nil,
 
+  -- Selection position data for "Save to Note" feature
+  -- Contains pos0, pos1, sboxes, pboxes for recreating highlight
+  selection_data = nil,
+
   -- Configuration passed from dialogs.lua (must be in defaults to ensure proper option merging)
   configuration = nil,
 }
@@ -650,6 +654,20 @@ function ChatGPTViewer:init()
         end
       end,
       hold_callback = self.default_hold_callback,
+    },
+    {
+      text = _("Note"),
+      id = "save_to_note",
+      enabled = self.selection_data ~= nil,
+      callback = function()
+        self:saveToNote()
+      end,
+      hold_callback = function()
+        UIManager:show(Notification:new{
+          text = _("Save response as note on highlighted text"),
+          timeout = 2,
+        })
+      end,
     },
     {
       text = "#",
@@ -1162,6 +1180,23 @@ function ChatGPTViewer:init()
     end,
     hold_callback = self.default_hold_callback,
   })
+
+  -- Translate Row 1: Note button (only if selection_data available)
+  if self.selection_data then
+    table.insert(translate_button_row1, {
+      text = _("Note"),
+      id = "save_to_note",
+      callback = function()
+        self:saveToNote()
+      end,
+      hold_callback = function()
+        UIManager:show(Notification:new{
+          text = _("Save translation as note on highlighted text"),
+          timeout = 2,
+        })
+      end,
+    })
+  end
 
   -- Translate Row 2: Open full chat button
   table.insert(translate_button_row2, {
@@ -1824,6 +1859,53 @@ function ChatGPTViewer:toggleMarkdown()
   UIManager:setDirty(self, function()
     return "ui", self.frame.dimen
   end)
+end
+
+function ChatGPTViewer:saveToNote()
+  -- Save AI response as a note on the highlighted text
+  if not self.selection_data then
+    UIManager:show(Notification:new{
+      text = _("No highlight selection data available"),
+      timeout = 2,
+    })
+    return
+  end
+
+  -- Get ReaderUI instance
+  local ReaderUI = require("apps/reader/readerui")
+  local reader_ui = ReaderUI.instance
+  if not reader_ui or not reader_ui.highlight then
+    UIManager:show(Notification:new{
+      text = _("No document open"),
+      timeout = 2,
+    })
+    return
+  end
+
+  -- Get the AI response text (last assistant message)
+  local response_text = ""
+  local history = self._message_history or self.original_history
+  if history then
+    local last_msg = history:getLastMessage()
+    if last_msg and last_msg.content then
+      response_text = last_msg.content
+    end
+  end
+
+  if response_text == "" then
+    UIManager:show(Notification:new{
+      text = _("No response to save"),
+      timeout = 2,
+    })
+    return
+  end
+
+  -- Restore selected_text to ReaderHighlight so addNote() can create the highlight
+  reader_ui.highlight.selected_text = self.selection_data
+
+  -- Call addNote which creates the highlight and opens the note editor
+  -- The note editor will be pre-filled with the AI response
+  reader_ui.highlight:addNote(response_text)
 end
 
 function ChatGPTViewer:toggleTranslateQuoteVisibility()

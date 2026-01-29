@@ -132,6 +132,23 @@ function AskGPT:init()
         callback = function()
           -- Capture text and close highlight overlay to prevent darkening on saved highlights
           local selected_text = reader_highlight_instance.selected_text.text
+
+          -- Capture full selection data for "Save to Note" feature (before onClose clears it)
+          local selection_data = nil
+          if reader_highlight_instance.selected_text then
+            local st = reader_highlight_instance.selected_text
+            selection_data = {
+              text = st.text,
+              pos0 = st.pos0,
+              pos1 = st.pos1,
+              sboxes = st.sboxes,
+              pboxes = st.pboxes,
+              ext = st.ext,
+              drawer = st.drawer or "lighten",
+              color = st.color or "yellow",
+            }
+          end
+
           reader_highlight_instance:onClose()
           NetworkMgr:runWhenOnline(function()
             maybeCheckForUpdates(self)
@@ -142,6 +159,8 @@ function AskGPT:init()
             configuration.features.is_general_context = nil
             configuration.features.is_book_context = nil
             configuration.features.is_multi_book_context = nil
+            -- Store selection data for "Save to Note" feature
+            configuration.features.selection_data = selection_data
             showChatGPTDialog(self.ui, selected_text, configuration, nil, self)
           end)
         end,
@@ -4098,13 +4117,29 @@ function AskGPT:registerHighlightMenuActions()
             end
           end
 
+          -- Capture full selection data for "Save to Note" feature (before onClose clears it)
+          local selection_data = nil
+          if reader_highlight_instance.selected_text then
+            local st = reader_highlight_instance.selected_text
+            selection_data = {
+              text = st.text,
+              pos0 = st.pos0,
+              pos1 = st.pos1,
+              sboxes = st.sboxes,
+              pboxes = st.pboxes,
+              ext = st.ext,
+              drawer = st.drawer or "lighten",
+              color = st.color or "yellow",
+            }
+          end
+
           -- Close highlight overlay to prevent darkening on saved highlights
           reader_highlight_instance:onClose()
 
           NetworkMgr:runWhenOnline(function()
             self:updateConfigFromSettings()
-            -- Pass extracted context to executeQuickAction
-            self:executeQuickAction(action_copy, selected_text, context)
+            -- Pass extracted context and selection data to executeQuickAction
+            self:executeQuickAction(action_copy, selected_text, context, selection_data)
           end)
         end,
       }
@@ -4457,7 +4492,8 @@ end
 -- @param action: The action to execute
 -- @param highlighted_text: The selected text
 -- @param context: Optional surrounding context (for dictionary actions)
-function AskGPT:executeQuickAction(action, highlighted_text, context)
+-- @param selection_data: Optional selection position data (for "Save to Note" feature)
+function AskGPT:executeQuickAction(action, highlighted_text, context, selection_data)
   -- Clear context flags for highlight context (default context)
   configuration.features = configuration.features or {}
   configuration.features.is_general_context = nil
@@ -4467,6 +4503,8 @@ function AskGPT:executeQuickAction(action, highlighted_text, context)
   if context and context ~= "" then
     configuration.features.dictionary_context = context
   end
+  -- Store selection data for "Save to Note" feature
+  configuration.features.selection_data = selection_data
   Dialogs.executeDirectAction(self.ui, action, highlighted_text, configuration, self)
 end
 

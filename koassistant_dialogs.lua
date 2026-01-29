@@ -1044,6 +1044,14 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
         show_debug = temp_config and temp_config.features and temp_config.features.show_debug_in_chat or false
     end
 
+    -- Get selection data for "Save to Note" feature (only for highlight context)
+    -- Must verify context is actually "highlight" to avoid stale data from previous operations
+    local selection_data = nil
+    local context = getPromptContext(temp_config)
+    if context == "highlight" and temp_config and temp_config.features then
+        selection_data = temp_config.features.selection_data
+    end
+
     chatgpt_viewer = ChatGPTViewer:new {
         title = title .. " (" .. model_info .. ")",
         text = display_text,
@@ -1053,6 +1061,7 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
         minimal_buttons = use_minimal_buttons,  -- Use minimal buttons for dictionary lookups
         translate_view = use_translate_view,  -- Use translate view for translations
         translate_hide_quote = translate_hide_quote,  -- Initial hide state for original text
+        selection_data = selection_data,  -- For "Save to Note" feature
         -- Set BOTH property names for compatibility:
         -- original_history: used by toggleDebugDisplay, toggleHighlightVisibility, etc.
         -- _message_history: used by expandToFullView for text regeneration
