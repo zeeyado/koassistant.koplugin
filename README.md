@@ -680,8 +680,12 @@ When bypass is enabled, selecting a word skips KOReader's dictionary popup entir
 ### Compact View Features
 
 The compact dictionary view provides two rows of buttons:
-- **Row 1:** MD/Text, Copy, Wiki, +Vocab
+- **Row 1:** MD/Text, Copy, [Note], Wiki, +Vocab
 - **Row 2:** Expand, Lang, Ctx, Close
+
+**Copy** — Copies the AI response only (plain text). Unlike the full chat view, compact view always copies just the response without metadata or asking for format.
+
+**Note** — Saves the AI response as a note on the highlighted word. Opens KOReader's note editor with the response pre-filled. Always saves response only (plain text). Only appears when highlight selection data is available (e.g., dictionary bypass mode with text selection, not single word taps from dictionary popup).
 
 **Lang** — Re-run the lookup in a different language (picks from your configured languages). Closes the current view and opens a new one with the updated result.
 
