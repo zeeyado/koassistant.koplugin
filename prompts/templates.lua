@@ -82,7 +82,7 @@ Templates.book = {
 - What type of reader typically loves this book
 - Reading experience (accessible? dense? requires background?)
 
-Adapt tone and focus to content type (fiction vs non-fiction vs academic). Be concise but informative.]],
+Adapt tone and focus to content type (fiction vs non-fiction vs academic). Be concise but informative. If you don't recognize this title, say so rather than guessing.]],
 
     similar_books = [[Based on "{title}"{author_clause}, recommend 5-7 similar works.
 
@@ -93,7 +93,9 @@ For each recommendation, specify:
 Adapt to content type:
 - Fiction: Similar narrative experience, themes, or style
 - Non-fiction: Similar arguments, perspectives, or intellectual tradition
-- Academic: Works that complement, extend, or debate this one]],
+- Academic: Works that complement, extend, or debate this one
+
+If you don't recognize this title, say so rather than guessing.]],
 
     explain_author = [[Tell me about the author of "{title}"{author_clause}. Include:
 
@@ -103,55 +105,69 @@ Adapt to content type:
 - Historical/cultural context of their work
 - Suggested reading order for their works (if they have multiple)
 
-Be concise. For intellectual influences and lineage, the reader can use "Related Thinkers".]],
+Be concise. For intellectual influences and lineage, the reader can use "Related Thinkers". If you're not familiar with this author, say so rather than guessing.]],
 
     historical_context = [[Provide historical context for "{title}"{author_clause}:
 - When was it written and what was happening at that time
 - Historical events or movements that influenced the work
 - How the book reflects or responds to its historical moment
-- Its historical significance or impact]],
+- Its historical significance or impact
+
+If you don't recognize this title, say so rather than guessing.]],
 }
 
 -- Multi-book context templates
 Templates.multi_book = {
-    compare_books = [[Compare and contrast these {count} books:
+    compare_books = [[Compare these {count} books:
 
 {books_list}
 
-Please analyze:
-- Common themes or topics
-- Key differences in approach or perspective
-- Target audiences
-- Writing styles (if authors are known)
-- Which readers might prefer which book and why
+Focus on what makes each one distinct:
+- Different perspectives, approaches, or conclusions
+- Unique strengths — what each does better than the others
+- Which readers would prefer which, and why
 
-Be concise but insightful.]],
+Don't just list similarities — find the meaningful contrasts. If you don't recognize a title, say so rather than guessing.]],
 
-    common_themes = [[Looking at these {count} books:
+    common_themes = [[What connects these {count} books?
 
 {books_list}
 
-What common themes, topics, or patterns can you identify across this selection? Consider:
-- Subject matter overlap
-- Shared historical contexts
-- Similar literary techniques or genres
-- Common target audiences or purposes]],
+Look for the shared DNA:
+- Recurring themes, questions, or concerns
+- Shared intellectual traditions or influences
+- Why someone might have collected these together
 
-    collection_summary = [[Analyze this collection of {count} books:
+Surface the patterns, not just surface-level genre labels. If you don't recognize a title, say so rather than guessing.]],
 
-{books_list}
-
-Provide insights about:
-- What kind of reader would have this collection
-- What the selection reveals about their interests
-- Any notable gaps or missing perspectives
-- Recommendations for what to add next]],
-
-    quick_summaries = [[For each of these {count} books, provide a 2-3 sentence summary:
+    collection_summary = [[What does this collection of {count} books reveal about its reader?
 
 {books_list}
 
-Focus on the main premise and why someone might want to read it.]],
+Consider:
+- What interests or questions drive this selection?
+- What perspective or worldview emerges?
+- What's notably absent that a complete picture might include?
+
+Be specific about the reader you infer, not generic. If you don't recognize a title, say so rather than guessing.]],
+
+    quick_summaries = [[For each of these {count} books, give a 2-3 sentence summary:
+
+{books_list}
+
+Focus on premise and appeal — why would someone read this? If you don't recognize a title, say so rather than guessing.]],
+
+    reading_order = [[Suggest a reading order for these {count} books:
+
+{books_list}
+
+Consider:
+- Conceptual dependencies (does one build on ideas from another?)
+- Chronological or historical sequence
+- Difficulty progression (easier → harder)
+- Thematic arc (what order tells a coherent story?)
+
+Explain your reasoning briefly. If order genuinely doesn't matter, say so. If you don't recognize a title, say so rather than guessing.]],
 }
 
 -- Special templates (reserved for future use)

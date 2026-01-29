@@ -414,7 +414,7 @@ If you don't recognize this book or the highlights seem insufficient for meaning
 
 If this is fiction, focus on literary influences, movements, and stylistic descendants instead.
 
-Be concise - aim for the most significant connections, not an exhaustive list.]],
+Be concise — aim for the most significant connections, not an exhaustive list. If you don't recognize this work or author, say so rather than guessing.]],
         api_params = {
             temperature = 0.7,
             max_tokens = 2048,
@@ -450,11 +450,11 @@ What are the strongest objections to this position?
 
 ## Intellectual Context
 What debates is this work participating in?
-What's the "so what" - why does this argument matter?
+What's the "so what" — why does this argument matter?
 
 If this is fiction, adapt to analyze themes, messages, and the author's apparent worldview instead of formal arguments.
 
-Be concise - this is an overview, not an essay.]],
+Be concise — this is an overview, not an essay. If you don't recognize this title, say so rather than guessing.]],
         api_params = {
             temperature = 0.6,
             max_tokens = 2048,
@@ -476,7 +476,7 @@ Create 8-10 questions that could spark good conversation:
 Questions that check understanding of key points/events
 
 ## Analytical Questions (3-4)
-Questions about how and why - motivations, techniques, implications
+Questions about how and why — motivations, techniques, implications
 
 ## Interpretive Questions (2-3)
 Questions with multiple valid answers that invite debate
@@ -489,7 +489,7 @@ Adapt to content type:
 - For non-fiction: Focus on arguments, evidence, real-world applications
 - For academic: Include questions about methodology and scholarly implications
 
-Note: These are general questions for the complete work. If the reader is mid-book, they can ask for spoiler-free questions in the follow-up.]],
+Note: These are general questions for the complete work. If the reader is mid-book, they can ask for spoiler-free questions in the follow-up. If you don't recognize this title, say so rather than guessing.]],
         api_params = {
             temperature = 0.7,
             max_tokens = 2048,
@@ -539,6 +539,16 @@ Actions.multi_book = {
         api_params = {
             temperature = 0.5,
             max_tokens = 4096,  -- Multiple summaries need space
+        },
+        builtin = true,
+    },
+    reading_order = {
+        id = "reading_order",
+        text = _("Reading Order"),
+        context = "multi_book",
+        template = "reading_order",
+        api_params = {
+            temperature = 0.6,
         },
         builtin = true,
     },
