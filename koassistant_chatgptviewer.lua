@@ -1709,6 +1709,7 @@ function ChatGPTViewer:expandToFullView()
     _recreate_func = self._recreate_func,
     settings_callback = self.settings_callback,
     update_debug_callback = self.update_debug_callback,
+    selection_data = self.selection_data,  -- Preserve for "Save to Note" feature
     -- Explicitly disable compact mode
     compact_view = false,
     minimal_buttons = false,

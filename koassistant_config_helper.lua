@@ -65,11 +65,38 @@ function ConfigHelper:getModelInfo(config)
         "default"
 end
 
-function ConfigHelper:deepCopy(t)
+-- Deep copy with circular reference detection
+-- Keys that should be passed through as-is (contain complex/circular objects):
+local SKIP_DEEP_COPY = {
+    selection_data = true,  -- KOReader geometry objects (sboxes, pboxes)
+    _rerun_action = true,   -- Action objects for re-execution
+    _rerun_ui = true,       -- UI objects for re-execution
+    _rerun_plugin = true,   -- Plugin objects for re-execution
+}
+
+function ConfigHelper:deepCopy(t, seen)
     if type(t) ~= "table" then return t end
+
+    -- Initialize seen table on first call
+    seen = seen or {}
+
+    -- Detect circular reference
+    if seen[t] then
+        return seen[t]  -- Return already-copied table
+    end
+
     local copy = {}
+    seen[t] = copy  -- Mark as seen before recursing
+
     for k, v in pairs(t) do
-        copy[k] = type(v) == "table" and self:deepCopy(v) or v
+        -- Skip known complex objects
+        if SKIP_DEEP_COPY[k] then
+            copy[k] = v  -- Pass through as-is
+        elseif type(v) == "table" then
+            copy[k] = self:deepCopy(v, seen)
+        else
+            copy[k] = v
+        end
     end
     return copy
 end
