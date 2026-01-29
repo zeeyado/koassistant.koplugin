@@ -341,6 +341,7 @@ When working with highlighted text, the **Note** button lets you save the AI res
 
 **Key features:**
 - **Native integration**: Uses KOReader's standard highlight/note system
+- **Configurable content**: Choose what to save — response only (default), question + response, or full chat with metadata. Configure in Settings → Chat Settings → Note Content
 - **Editable before saving**: Review and modify the AI response before committing
 - **Creates permanent highlight**: The selected text becomes a saved highlight with the note attached
 - **Works with translations**: Great for saving translations alongside the original text
@@ -887,8 +888,11 @@ Select any chat to:
 
 ### Export Formats
 
-- **Text**: Plain text format, good for sharing
-- **Markdown**: Formatted with headers, includes metadata
+Chat history export uses your global export settings (Settings → Chat Settings → Export):
+- **Export Style**: Markdown (headers, bold) or Plain Text
+- **Copy Content**: Full (metadata + chat), Question + Response, or Response only
+
+When exporting from chat history, the same format is used as the Copy button in active chats.
 
 ### Tags
 
@@ -1020,6 +1024,11 @@ Chat History → hamburger menu → **View by Domain**
 - **Auto-scroll Streaming**: Follow new text during streaming (off by default)
 - **Large Stream Dialog**: Use full-screen streaming window
 
+### Export Settings (within Chat Settings)
+- **Export Style**: Format for Copy and Note — Markdown (default) or Plain Text
+- **Copy Content**: What to include when copying — Full (metadata + chat), Question + Response, or Response only
+- **Note Content**: What to include when saving to note — Response only (default), Question + Response, or Full
+
 ### Reading Features (visible when document is open)
 - **X-Ray**: Generate a structured reference guide for the book up to your current reading position
 - **Recap**: Get a "Previously on..." style summary to help you resume reading
@@ -1072,7 +1081,8 @@ See [Translate View](#translate-view) for details on the specialized translation
 - **Translation Target**: Pick from your languages or enter a custom target (when above is disabled)
 - **Disable Auto-Save for Translate**: Don't auto-save translations (default: on). Save manually via → Chat button
 - **Enable Streaming**: Stream translation responses in real-time (default: on)
-- **Copy Translation Only**: Copy button copies only translation text, without original or formatting (default: off)
+- **Copy Content**: What to include when copying in translate view — Follow global setting, Full, Question + Response, or Translation only (default). Replaces the old "Copy Translation Only" toggle.
+- **Note Content**: What to include when saving to note in translate view — same options as Copy Content, defaults to Translation only
 - **Original Text**: How to handle original text visibility (Follow Global, Always Hide, Hide Long, Never Hide)
 - **Long Text Threshold**: Character count for "Hide Long" mode (default: 200)
 - **Hide for Full Page Translate**: Always hide original when translating full page (default: on)
