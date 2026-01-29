@@ -885,16 +885,17 @@ Select any chat to:
 - **Continue**: Resume the conversation
 - **Rename**: Change the chat title
 - **Tags**: Add or remove tags
-- **Export**: Copy as Text or Markdown
+- **Export**: Copy chat to clipboard
 - **Delete**: Remove the chat
 
 ### Export Formats
 
-Chat history export uses your global export settings (Settings → Chat Settings → Export):
-- **Export Style**: Markdown (headers, bold) or Plain Text
-- **Copy Content**: Full (metadata + chat), Question + Response, or Response only
+Chat history export has its own setting (Settings → Chat Settings → History Export):
+- **Ask every time** (default): Shows a picker dialog to choose what to include
+- **Follow Copy Content**: Uses the global Copy Content setting
+- **Full / Q+A / Response / Everything**: Fixed export format
 
-When exporting from chat history, the same format is used as the Copy button in active chats.
+The export uses your global Export Style setting (Markdown or Plain Text).
 
 ### Tags
 
@@ -1030,8 +1031,9 @@ Chat History → hamburger menu → **View by Domain**
 - **Export Style**: Format for Copy and Note — Markdown (default) or Plain Text
 - **Copy Content**: What to include when copying — Ask every time, Full (metadata + chat), Question + Response, Response only, or Everything (debug)
 - **Note Content**: What to include when saving to note — Ask every time, Full, Question + Response, Response only (default), or Everything (debug)
+- **History Export**: What to include when exporting from Chat History — Ask every time (default), Follow Copy Content, Full, Q+A, Response only, or Everything (debug)
 
-When "Ask every time" is selected, clicking Copy or Note shows a picker dialog letting you choose what to include before proceeding.
+When "Ask every time" is selected, a picker dialog appears letting you choose what to include before proceeding.
 
 ### Reading Features (visible when document is open)
 - **X-Ray**: Generate a structured reference guide for the book up to your current reading position
