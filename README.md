@@ -30,6 +30,7 @@ Most settings are configurable in the UI, including: Provider/model, AI behavior
   - [Book/Document Mode](#bookdocument-mode)
   - [Multi-Document Mode](#multi-document-mode)
   - [General Chat](#general-chat)
+  - [Save to Note](#save-to-note)
 - [How the AI Prompt Works](#how-the-ai-prompt-works)
 - [Actions](#actions)
   - [Managing Actions](#managing-actions)
@@ -271,6 +272,8 @@ You can customize these, create your own, or disable ones you don't use. See [Ac
 
 **What the AI sees**: Your highlighted text, plus Document metadata (title, author, identifiers from file properties)
 
+**Save to Note**: After getting an AI response, tap the **Note** button to save it directly as a KOReader highlight note attached to your selected text. See [Save to Note](#save-to-note) for details.
+
 > **Tip**: Add frequently-used actions to the highlight menu (Settings → Menu Customization → Highlight Menu) for quick access. Other enabled highlight actions remain available from the main "KOAssistant" entry in the highlight popup. From that input window, you can also add extra instructions to any action (e.g., "esp. the economic implications" or "in simple terms").
 
 ### Book/document Mode 
@@ -320,7 +323,36 @@ A free-form conversation without specific document context. If started while a b
 - **Settings Icon (Input)**: Tap the gear icon in the input dialog title bar to open **AI Quick Settings**—a streamlined two-column panel providing quick access to frequently-changed settings without navigating through the full settings menu. See [Recommended Setup](#recommended-setup) for details on what's available in this panel.
 - **Settings Icon (Viewer)**: Tap the gear icon in the chat viewer title bar to adjust font size and text alignment (cycles left/justified/right on each click)
 - **Show/Hide Quote**: In the chat viewer, toggle button to show or hide the highlighted text quote (useful for long selections)
+- **Save to Note**: For highlight context chats, save the AI response directly as a note attached to your highlighted text (see [Save to Note](#save-to-note) below)
 - **Other**: Turn on off Text/Markdown view, Debug view mode, add Tags, Change Domain, etc
+
+### Save to Note
+
+**Save AI responses directly to your KOReader highlights.**
+
+When working with highlighted text, the **Note** button lets you save the AI response as a native KOReader note attached to that highlight. This integrates AI explanations, translations, and analysis directly into your reading annotations.
+
+**How it works:**
+1. Highlight text and use any KOAssistant action (Explain, Translate, etc.)
+2. Review the AI response in the chat viewer
+3. Tap the **Note** button (appears between Copy and #)
+4. KOReader's Edit Note dialog opens with the response pre-filled
+5. Edit if desired, then save — the highlight is created with your note attached
+
+**Key features:**
+- **Native integration**: Uses KOReader's standard highlight/note system
+- **Editable before saving**: Review and modify the AI response before committing
+- **Creates permanent highlight**: The selected text becomes a saved highlight with the note attached
+- **Works with translations**: Great for saving translations alongside the original text
+- **Available in all views**: Appears in both full chat view and Translate View
+
+**Use cases:**
+- Save explanations of difficult passages for later reference
+- Keep translations alongside original foreign text
+- Build a glossary of term definitions within your book
+- Annotate with AI-generated insights that become part of your reading notes
+
+**Note:** The Note button only appears for highlight context chats (where you've selected text). It's not available for book, multi-book, or general chat contexts.
 
 ---
 
