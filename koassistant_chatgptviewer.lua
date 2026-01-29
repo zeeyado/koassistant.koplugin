@@ -1316,6 +1316,75 @@ function ChatGPTViewer:init()
     end,
   })
 
+  -- Translate Row 2: Language button (re-run with different translation language)
+  local translate_rerun_features = self.configuration and self.configuration.features
+  local translate_has_rerun = self.configuration and self.configuration._rerun_action
+  table.insert(translate_button_row2, {
+    text = _("Lang"),
+    id = "change_language",
+    enabled = translate_has_rerun and true or false,
+    callback = function()
+      if not translate_has_rerun then return end
+      local languages = translate_rerun_features.user_languages
+      if not languages or languages == "" then
+        UIManager:show(Notification:new{
+          text = _("Configure languages in Settings first"),
+          timeout = 2,
+        })
+        return
+      end
+      -- Build language buttons
+      local lang_dialog
+      local lang_buttons = {}
+      for lang in languages:gmatch("[^,]+") do
+        lang = lang:match("^%s*(.-)%s*$")  -- trim
+        table.insert(lang_buttons, {{
+          text = lang,
+          callback = function()
+            UIManager:close(lang_dialog)
+            -- Build new config copy with changed language
+            -- Exclude _rerun_* keys (complex objects that can't be deep-copied)
+            local new_config = {}
+            for k, v in pairs(self.configuration) do
+              if type(k) ~= "string" or not k:match("^_rerun_") then
+                new_config[k] = v
+              end
+            end
+            new_config.features = {}
+            for k, v in pairs(self.configuration.features) do
+              new_config.features[k] = v
+            end
+            new_config.features.translation_language = lang
+            -- Override the "use primary" toggle so the explicit selection takes effect (runtime only)
+            new_config.features.translation_use_primary = false
+            -- Close viewer and re-execute
+            UIManager:close(self)
+            local Dialogs = require("koassistant_dialogs")
+            Dialogs.executeDirectAction(
+              self.configuration._rerun_ui, self.configuration._rerun_action,
+              self.original_highlighted_text, new_config, self.configuration._rerun_plugin
+            )
+          end,
+        }})
+      end
+      table.insert(lang_buttons, {{
+        text = _("Cancel"),
+        callback = function() UIManager:close(lang_dialog) end,
+      }})
+      lang_dialog = ButtonDialog:new{
+        title = _("Translate To"),
+        buttons = lang_buttons,
+      }
+      UIManager:show(lang_dialog)
+    end,
+    hold_callback = function()
+      UIManager:show(Notification:new{
+        text = _("Re-run translation with a different target language"),
+        timeout = 2,
+      })
+    end,
+  })
+
   -- Translate Row 2: Close button
   table.insert(translate_button_row2, {
     text = _("Close"),
@@ -2000,6 +2069,11 @@ function ChatGPTViewer:saveToNote()
         timeout = 2,
       })
       return
+    end
+
+    -- Close translate view before opening note editor (so note editor appears on top of book)
+    if self.translate_view then
+      UIManager:close(self)
     end
 
     -- Restore selected_text to ReaderHighlight so addNote() can create the highlight
