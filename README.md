@@ -287,7 +287,7 @@ You can customize these, create your own, or disable ones you don't use. See [Ac
 
 **What the AI sees**: Document metadata (title, author). For X-Ray/Recap, optionally: extracted book text up to your reading position (requires enabling in Settings → Advanced → Book Text Extraction). For Analyze Highlights: your annotations.
 
-> **Note**: X-Ray, Recap, and Analyze Highlights are only available when **reading a book** (not from File Browser). These actions require reading position data that's only available when you're inside a document.
+> **Automatic Filtering**: Actions that use reading-mode data (progress, highlights, book text) are **automatically hidden** in File Browser mode and only appear when you're reading a book. This applies to built-in actions like X-Ray, Recap, and Analyze Highlights, as well as any custom actions that use placeholders like `{reading_progress}`, `{book_text}`, `{highlights}`, or `{annotations}`. The Action Manager shows a `[reading]` indicator next to such actions.
 
 ### Multi-Document Mode
 
@@ -463,6 +463,7 @@ Insert these in your action prompt to reference dynamic values:
 - **Temperature matters**: Lower (0.3-0.5) for deterministic tasks (translation, definitions). Higher (0.7-0.9) for creative tasks (elaboration, recommendations).
 - **Experiment with domains**: Try running the same action with and without a domain to see what works for your use case. Some actions benefit from domain context (analysis, explanation), others don't (translation, grammar).
 - **Test before deploying**: Use the [web inspector](#testing-your-setup) to test your custom actions before using them on your e-reader. You can try different settings combinations and see exactly what's sent to the AI.
+- **Reading-mode placeholders**: Actions using `{reading_progress}`, `{book_text}`, `{highlights}`, `{annotations}`, or `{chapter_title}` are **automatically hidden** in File Browser mode because these require an open book. This filtering is automatic—if your custom action uses these placeholders, it will only appear when reading. The action wizard shows a `[reading]` indicator for such actions.
 
 ### File-Based Actions
 
