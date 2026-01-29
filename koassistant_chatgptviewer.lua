@@ -908,7 +908,7 @@ function ChatGPTViewer:init()
   end
 
   -- Minimal buttons for compact dictionary view
-  -- Row 1: MD/Text, Copy, Wiki, +Vocab
+  -- Row 1: MD/Text, Copy, [Note], Wiki, +Vocab  (Note only if selection_data available)
   -- Row 2: Expand, Lang, Ctx, Close
   local minimal_button_row1 = {}
   local minimal_button_row2 = {}
@@ -930,22 +930,87 @@ function ChatGPTViewer:init()
     end,
   })
 
-  -- Row 1: Copy button
+  -- Row 1: Copy button (compact view always copies response only)
   table.insert(minimal_button_row1, {
     text = _("Copy"),
     id = "copy_chat",
     callback = function()
-      if self.export_callback then
-        self.export_callback()
+      -- Compact dictionary view: always copy response only
+      local history = self._message_history or self.original_history
+      if not history then
+        UIManager:show(Notification:new{
+          text = _("No response to copy"),
+          timeout = 2,
+        })
+        return
+      end
+      local Export = require("koassistant_export")
+      local data = Export.fromHistory(history, self.original_highlighted_text)
+      local text = Export.format(data, "response", "text")  -- Always response, plain text
+      if text and text ~= "" then
+        Device.input.setClipboardText(text)
+        UIManager:show(Notification:new{
+          text = _("Copied"),
+          timeout = 2,
+        })
       else
         UIManager:show(Notification:new{
-          text = _("Copy function not available"),
+          text = _("No response to copy"),
           timeout = 2,
         })
       end
     end,
     hold_callback = self.default_hold_callback,
   })
+
+  -- Row 1: Note button (compact view always saves response only)
+  -- Only show when selection_data is available (not available for dictionary popup word taps)
+  if self.selection_data then
+    table.insert(minimal_button_row1, {
+      text = _("Note"),
+      id = "save_note",
+      callback = function()
+        -- Compact dictionary view: always save response only
+        local ReaderUI = require("apps/reader/readerui")
+        local reader_ui = ReaderUI.instance
+        if not reader_ui or not reader_ui.highlight then
+          UIManager:show(Notification:new{
+            text = _("No document open"),
+            timeout = 2,
+          })
+          return
+        end
+        local history = self._message_history or self.original_history
+        if not history then
+          UIManager:show(Notification:new{
+            text = _("No response to save"),
+            timeout = 2,
+          })
+          return
+        end
+        local Export = require("koassistant_export")
+        local data = Export.fromHistory(history, self.original_highlighted_text)
+        local note_text = Export.format(data, "response", "text")  -- Always response, plain text
+        if note_text == "" then
+          UIManager:show(Notification:new{
+            text = _("No response to save"),
+            timeout = 2,
+          })
+          return
+        end
+        -- Restore selected_text to ReaderHighlight so addNote() can create the highlight
+        reader_ui.highlight.selected_text = self.selection_data
+        -- Call addNote which creates the highlight and opens the note editor
+        reader_ui.highlight:addNote(note_text)
+      end,
+      hold_callback = function()
+        UIManager:show(Notification:new{
+          text = _("Save response as note on highlighted word"),
+          timeout = 2,
+        })
+      end,
+    })
+  end
 
   -- Row 1: Wiki button
   table.insert(minimal_button_row1, {
