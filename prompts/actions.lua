@@ -572,6 +572,7 @@ Actions.special = {
         extended_thinking = "off",  -- Translations don't benefit from extended thinking
         skip_language_instruction = true,  -- Target language already in prompt
         skip_domain = true,  -- Domain context not relevant for translations
+        translate_view = true,  -- Use special translate view
         api_params = {
             temperature = 0.3,  -- Very deterministic for translations
         },

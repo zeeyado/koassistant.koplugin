@@ -672,43 +672,6 @@ local SettingsSchema = {
                         return T(_("Primary Language: %1"), primary)
                     end,
                     callback = "buildPrimaryLanguageMenu",
-                    separator = true,
-                },
-                {
-                    id = "translation_use_primary",
-                    type = "toggle",
-                    text = _("Translate to Primary Language"),
-                    path = "features.translation_use_primary",
-                    default = true,
-                    help_text = _("Use your primary language as the translation target. Disable to choose a different target."),
-                    -- Sync translation_language when toggle changes
-                    on_change = function(new_value, plugin)
-                        local f = plugin.settings:readSetting("features") or {}
-                        if new_value then
-                            -- When turning ON, set sentinel to keep in sync
-                            f.translation_language = "__PRIMARY__"
-                            plugin.settings:saveSetting("features", f)
-                            plugin.settings:flush()
-                        end
-                        -- When turning OFF, leave translation_language as is
-                        -- (user can then pick a specific language from the submenu)
-                    end,
-                },
-                {
-                    id = "translation_language",
-                    type = "submenu",
-                    text_func = function(plugin)
-                        local f = plugin.settings:readSetting("features") or {}
-                        local target = f.translation_language
-                        -- Show actual language, handle sentinel values
-                        if target == "__PRIMARY__" or target == nil or target == "" then
-                            local primary = plugin:getEffectivePrimaryLanguage() or "English"
-                            target = primary
-                        end
-                        return T(_("Translation Target: %1"), target)
-                    end,
-                    callback = "buildTranslationLanguageMenu",
-                    depends_on = { id = "translation_use_primary", value = false },
                 },
             },
         },
@@ -841,6 +804,121 @@ local SettingsSchema = {
                     path = "features.dictionary_bypass_vocab_add",
                     default = true,
                     help_text = _("When enabled, dictionary bypass follows KOReader's Vocabulary Builder auto-add setting. Disable if you use bypass for analysis of words you already know and don't want them added."),
+                },
+            },
+        },
+
+        -- Translate Settings
+        {
+            id = "translate_settings",
+            type = "submenu",
+            text = _("Translate Settings"),
+            items = {
+                -- Translation target (moved from Language Settings)
+                {
+                    id = "translation_use_primary",
+                    type = "toggle",
+                    text = _("Translate to Primary Language"),
+                    path = "features.translation_use_primary",
+                    default = true,
+                    help_text = _("Use your primary language as the translation target. Disable to choose a different target."),
+                    on_change = function(new_value, plugin)
+                        local f = plugin.settings:readSetting("features") or {}
+                        if new_value then
+                            f.translation_language = "__PRIMARY__"
+                            plugin.settings:saveSetting("features", f)
+                            plugin.settings:flush()
+                        end
+                    end,
+                },
+                {
+                    id = "translation_language",
+                    type = "submenu",
+                    text_func = function(plugin)
+                        local f = plugin.settings:readSetting("features") or {}
+                        local target = f.translation_language
+                        if target == "__PRIMARY__" or target == nil or target == "" then
+                            local primary = plugin:getEffectivePrimaryLanguage() or "English"
+                            target = primary
+                        end
+                        return T(_("Translation Target: %1"), target)
+                    end,
+                    callback = "buildTranslationLanguageMenu",
+                    depends_on = { id = "translation_use_primary", value = false },
+                    separator = true,
+                },
+                -- Translate view settings
+                {
+                    id = "translate_disable_auto_save",
+                    type = "toggle",
+                    text = _("Disable Auto-Save for Translate"),
+                    path = "features.translate_disable_auto_save",
+                    default = true,
+                    help_text = _("Translations are not auto-saved. Save manually via → Chat button."),
+                },
+                {
+                    id = "translate_enable_streaming",
+                    type = "toggle",
+                    text = _("Enable Streaming"),
+                    path = "features.translate_enable_streaming",
+                    default = true,
+                    help_text = _("Stream translation responses in real-time."),
+                },
+                {
+                    id = "translate_copy_translation_only",
+                    type = "toggle",
+                    text = _("Copy Translation Only"),
+                    path = "features.translate_copy_translation_only",
+                    default = false,
+                    help_text = _("Copy button copies only the translation text, without original text or formatting."),
+                    separator = true,
+                },
+                -- Original text visibility
+                {
+                    id = "translate_hide_highlight_mode",
+                    type = "radio",
+                    text_func = function(plugin)
+                        local f = plugin.settings:readSetting("features") or {}
+                        local mode = f.translate_hide_highlight_mode or "follow_global"
+                        local labels = {
+                            follow_global = _("Follow Global"),
+                            always_hide = _("Always Hide"),
+                            hide_long = _("Hide Long"),
+                            never_hide = _("Never Hide"),
+                        }
+                        return T(_("Original Text: %1"), labels[mode] or mode)
+                    end,
+                    path = "features.translate_hide_highlight_mode",
+                    default = "follow_global",
+                    options = {
+                        { value = "follow_global", text = _("Follow Global (Display Settings)") },
+                        { value = "always_hide", text = _("Always Hide") },
+                        { value = "hide_long", text = _("Hide Long (by character count)") },
+                        { value = "never_hide", text = _("Never Hide") },
+                    },
+                },
+                {
+                    id = "translate_long_highlight_threshold",
+                    type = "spinner",
+                    text = _("Long Text Threshold"),
+                    path = "features.translate_long_highlight_threshold",
+                    default = 200,
+                    min = 50,
+                    max = 1000,
+                    step = 10,
+                    help_text = _("Character count above which text is considered 'long'. Used when Original Text is set to 'Hide Long'."),
+                    enabled_func = function(plugin)
+                        local f = plugin.settings:readSetting("features") or {}
+                        return f.translate_hide_highlight_mode == "hide_long"
+                    end,
+                },
+                {
+                    id = "translate_hide_full_page",
+                    type = "toggle",
+                    text = _("Hide for Full Page Translate"),
+                    path = "features.translate_hide_full_page",
+                    default = true,
+                    help_text = _("Always hide original text when translating full page."),
                 },
             },
         },

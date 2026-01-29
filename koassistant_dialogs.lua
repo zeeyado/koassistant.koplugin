@@ -1027,21 +1027,32 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
     local use_compact_view = temp_config and temp_config.features and temp_config.features.compact_view
     -- Check if minimal buttons should be used (for dictionary popup lookups)
     local use_minimal_buttons = temp_config and temp_config.features and temp_config.features.minimal_buttons
+    -- Check if translate view should be used
+    local use_translate_view = temp_config and temp_config.features and temp_config.features.translate_view
+    local translate_hide_quote = temp_config and temp_config.features and temp_config.features.translate_hide_quote
 
-    -- Debug info should NEVER show in compact view (dictionary lookups)
+    -- For translate view, use special text formatting
+    local display_text = result_text
+    if use_translate_view then
+        display_text = history:createTranslateViewText(highlightedText, translate_hide_quote)
+    end
+
+    -- Debug info should NEVER show in compact/translate view
     -- regardless of the global setting
     local show_debug = false
-    if not use_compact_view then
+    if not use_compact_view and not use_translate_view then
         show_debug = temp_config and temp_config.features and temp_config.features.show_debug_in_chat or false
     end
 
     chatgpt_viewer = ChatGPTViewer:new {
         title = title .. " (" .. model_info .. ")",
-        text = result_text,
+        text = display_text,
         configuration = temp_config or CONFIGURATION,  -- Pass configuration for debug toggle
         show_debug_in_chat = show_debug,
         compact_view = use_compact_view,  -- Use compact height for dictionary lookups
         minimal_buttons = use_minimal_buttons,  -- Use minimal buttons for dictionary lookups
+        translate_view = use_translate_view,  -- Use translate view for translations
+        translate_hide_quote = translate_hide_quote,  -- Initial hide state for original text
         -- Set BOTH property names for compatibility:
         -- original_history: used by toggleDebugDisplay, toggleHighlightVisibility, etc.
         -- _message_history: used by expandToFullView for text regeneration
@@ -1511,6 +1522,38 @@ local function handlePredefinedPrompt(prompt_type_or_action, highlightedText, ui
         -- Set both provider and model at top level so they take precedence
         temp_config.provider = prompt.provider
         temp_config.model = prompt.model
+    end
+
+    -- Apply translate view settings if action has translate_view flag
+    if prompt.translate_view then
+        temp_config.features = temp_config.features or {}
+        temp_config.features.translate_view = true
+
+        -- Apply translate-specific settings from user preferences
+        local f = config.features or {}
+
+        -- Disable auto-save by default (like dictionary)
+        if f.translate_disable_auto_save ~= false then
+            temp_config.features.storage_key = "__SKIP__"
+        end
+
+        -- Streaming setting (defaults to enabled)
+        if f.translate_enable_streaming == false then
+            temp_config.features.enable_streaming = false
+        end
+
+        -- Determine initial hide state for original text
+        local hide_mode = f.translate_hide_highlight_mode or "follow_global"
+        if hide_mode == "always_hide" then
+            temp_config.features.translate_hide_quote = true
+        elseif hide_mode == "hide_long" then
+            local threshold = f.translate_long_highlight_threshold or 200
+            local text_length = highlightedText and #highlightedText or 0
+            temp_config.features.translate_hide_quote = (text_length > threshold)
+        elseif hide_mode == "follow_global" then
+            temp_config.features.translate_hide_quote = f.hide_highlighted_text
+        end
+        -- "never_hide" defaults to false (already nil/false by default)
     end
 
     -- NEW ARCHITECTURE (v0.5.2+): Unified request config for all providers

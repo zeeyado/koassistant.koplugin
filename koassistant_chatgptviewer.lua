@@ -457,6 +457,16 @@ local ChatGPTViewer = InputContainer:extend {
   -- Shows only: MD/Text, Copy, Expand, Close
   minimal_buttons = false,
 
+  -- Translate view mode (special view for translations)
+  -- Shows: MD/Text, Copy, Expand, Toggle Quote, Close
+  translate_view = false,
+
+  -- Session toggle for hiding original text in translate view
+  translate_hide_quote = false,
+
+  -- Original highlighted text for translate view toggle
+  original_highlighted_text = nil,
+
   -- Configuration passed from dialogs.lua (must be in defaults to ensure proper option merging)
   configuration = nil,
 }
@@ -808,6 +818,12 @@ function ChatGPTViewer:init()
     if self.configuration.features.minimal_buttons then
       self.minimal_buttons = true
     end
+    if self.configuration.features.translate_view then
+      self.translate_view = true
+    end
+    if self.configuration.features.translate_hide_quote then
+      self.translate_hide_quote = true
+    end
   end
 
   -- Minimal buttons for compact dictionary view
@@ -1086,12 +1102,119 @@ function ChatGPTViewer:init()
     hold_callback = self.default_hold_callback,
   })
 
+  -- Translate view buttons (5 buttons in 2 rows)
+  -- Row 1: MD/Text, Copy
+  -- Row 2: Expand, Toggle Quote, Close
+  local translate_button_row1 = {}
+  local translate_button_row2 = {}
+
+  -- Translate Row 1: MD/Text toggle
+  table.insert(translate_button_row1, {
+    text_func = function()
+      return self.render_markdown and "MD" or "Text"
+    end,
+    id = "toggle_markdown",
+    callback = function()
+      self:toggleMarkdown()
+    end,
+    hold_callback = function()
+      UIManager:show(Notification:new{
+        text = _("Toggle between markdown and plain text display"),
+        timeout = 2,
+      })
+    end,
+  })
+
+  -- Translate Row 1: Copy button
+  table.insert(translate_button_row1, {
+    text = _("Copy"),
+    id = "copy_chat",
+    callback = function()
+      local features = self.configuration and self.configuration.features
+      local copy_translation_only = features and features.translate_copy_translation_only
+
+      if copy_translation_only then
+        -- Copy only the raw translation text
+        local history = self._message_history or self.original_history
+        if history then
+          local last_msg = history:getLastMessage()
+          if last_msg and last_msg.content then
+            Device.input.setClipboardText(last_msg.content)
+            UIManager:show(Notification:new{
+              text = _("Translation copied"),
+              timeout = 2,
+            })
+            return
+          end
+        end
+        UIManager:show(Notification:new{
+          text = _("No translation to copy"),
+          timeout = 2,
+        })
+      elseif self.export_callback then
+        self.export_callback()
+      else
+        UIManager:show(Notification:new{
+          text = _("Copy function not available"),
+          timeout = 2,
+        })
+      end
+    end,
+    hold_callback = self.default_hold_callback,
+  })
+
+  -- Translate Row 2: Open full chat button
+  table.insert(translate_button_row2, {
+    text = _("→ Chat"),
+    id = "expand_view",
+    callback = function()
+      self:expandToFullView()
+    end,
+    hold_callback = function()
+      UIManager:show(Notification:new{
+        text = _("Open full chat with all options"),
+        timeout = 2,
+      })
+    end,
+  })
+
+  -- Translate Row 2: Toggle Quote button
+  local has_original = self.original_highlighted_text and self.original_highlighted_text ~= ""
+  table.insert(translate_button_row2, {
+    text_func = function()
+      return self.translate_hide_quote and _("Show Original") or _("Hide Original")
+    end,
+    id = "toggle_quote",
+    enabled = has_original,
+    callback = function()
+      self:toggleTranslateQuoteVisibility()
+    end,
+    hold_callback = function()
+      UIManager:show(Notification:new{
+        text = self.translate_hide_quote and _("Show the original text") or _("Hide the original text"),
+        timeout = 2,
+      })
+    end,
+  })
+
+  -- Translate Row 2: Close button
+  table.insert(translate_button_row2, {
+    text = _("Close"),
+    callback = function()
+      self:onClose()
+    end,
+    hold_callback = self.default_hold_callback,
+  })
+
   local buttons = self.buttons_table or {}
   if self.add_default_buttons or not self.buttons_table then
-    -- Use minimal buttons in minimal mode, otherwise use full default buttons
+    -- Use minimal buttons in minimal mode, translate buttons in translate mode, otherwise full default buttons
     if self.minimal_buttons then
       table.insert(buttons, minimal_button_row1)
       table.insert(buttons, minimal_button_row2)
+    elseif self.translate_view then
+      table.insert(buttons, translate_button_row1)
+      table.insert(buttons, translate_button_row2)
     else
       -- Add both rows
       for _, row in ipairs(default_buttons) do
@@ -1344,12 +1467,14 @@ function ChatGPTViewer:expandToFullView()
     if expanded_config.features then
       expanded_config.features.compact_view = false
       expanded_config.features.minimal_buttons = false
+      expanded_config.features.translate_view = false
+      expanded_config.features.translate_hide_quote = false
       expanded_config.features.hide_highlighted_text = false
       -- Reset streaming to use large dialog (user's default setting)
       -- This is critical for replies after expand to use the full streaming dialog
       expanded_config.features.large_stream_dialog = true
       -- Remove __SKIP__ storage_key so expanded chats become saveable
-      -- Dictionary chats with "Don't Save" can be saved after expanding
+      -- Dictionary/translate chats with "Don't Save" can be saved after expanding
       if expanded_config.features.storage_key == "__SKIP__" then
         expanded_config.features.storage_key = nil
         -- Mark as expanded from skip so save button shows "Save" (not "Autosaved")
@@ -1695,6 +1820,79 @@ function ChatGPTViewer:toggleMarkdown()
     button:setText(self.render_markdown and "MD" or "Text", button.width)
   end
   
+  -- Refresh display
+  UIManager:setDirty(self, function()
+    return "ui", self.frame.dimen
+  end)
+end
+
+function ChatGPTViewer:toggleTranslateQuoteVisibility()
+  -- Toggle visibility of original text in translate view
+  self.translate_hide_quote = not self.translate_hide_quote
+
+  -- Update configuration
+  if self.configuration.features then
+    self.configuration.features.translate_hide_quote = self.translate_hide_quote
+  end
+
+  -- Rebuild the text using translate view formatting
+  if self.original_history then
+    self.text = self.original_history:createTranslateViewText(
+      self.original_highlighted_text,
+      self.translate_hide_quote
+    )
+  end
+
+  -- Rebuild the scroll widget
+  local textw_height = self.textw:getSize().h
+
+  if self.render_markdown then
+    local auto_linked = autoLinkUrls(self.text)
+    local bracket_escaped = preprocessBrackets(auto_linked)
+    local preprocessed_text = preprocessMarkdownTables(bracket_escaped)
+    local html_body, err = MD(preprocessed_text, {})
+    if err then
+      logger.warn("ChatGPTViewer: could not generate HTML", err)
+      html_body = "<pre>" .. (self.text or "Missing text.") .. "</pre>"
+    end
+    self.scroll_text_w = ScrollHtmlWidget:new {
+      html_body = html_body,
+      css = getViewerCSS(self.text_align),
+      default_font_size = Screen:scaleBySize(self.markdown_font_size),
+      width = self.scroll_text_w.width,
+      height = self.scroll_text_w.height,
+      dialog = self,
+      highlight_text_selection = true,
+      html_link_tapped_callback = handleLinkTap,
+    }
+  else
+    self.scroll_text_w = ScrollTextWidget:new {
+      text = self.text,
+      face = self.text_face,
+      fgcolor = self.fgcolor,
+      width = self.scroll_text_w.width,
+      height = self.scroll_text_w.height,
+      dialog = self,
+      alignment = self.alignment,
+      justified = self.justified,
+      lang = self.lang,
+      para_direction_rtl = self.para_direction_rtl,
+      auto_para_direction = self.auto_para_direction,
+      alignment_strict = self.alignment_strict,
+      highlight_text_selection = true,
+    }
+  end
+
+  -- Update the frame container
+  self.textw:clear()
+  self.textw[1] = self.scroll_text_w
+
+  -- Update button text
+  local button = self.button_table:getButtonById("toggle_quote")
+  if button then
+    button:setText(self.translate_hide_quote and _("Show Original") or _("Hide Original"), button.width)
+  end
+
   -- Refresh display
   UIManager:setDirty(self, function()
     return "ui", self.frame.dimen

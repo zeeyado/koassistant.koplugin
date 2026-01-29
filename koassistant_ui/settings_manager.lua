@@ -73,6 +73,13 @@ function SettingsManager:createMenuItem(plugin, item, schema)
             return false
         end
 
+        -- Check custom enabled_func from schema
+        if item.enabled_func then
+            if not item.enabled_func(plugin) then
+                return false
+            end
+        end
+
         -- Then check dependencies
         if item.depends_on then
             if type(item.depends_on) == "table" then

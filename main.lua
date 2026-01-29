@@ -3918,6 +3918,12 @@ function AskGPT:translateCurrentPage()
   -- Explicitly ensure full view (not compact)
   config_copy.features.compact_view = false
   config_copy.features.minimal_buttons = false
+  -- Full page translate always hides original (if setting enabled, which is default)
+  -- Note: translate_view flag is set by handlePredefinedPrompt based on action.translate_view
+  -- We just need to force hide_quote for full page here
+  if config_copy.features.translate_hide_full_page ~= false then
+    config_copy.features.translate_hide_quote = true
+  end
 
   -- Execute translation
   logger.info("KOAssistant: translateCurrentPage calling executeDirectAction with page_text:", page_text and #page_text or "nil/empty")

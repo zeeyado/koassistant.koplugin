@@ -512,4 +512,28 @@ function MessageHistory:createResultText(highlightedText, config)
     return table.concat(result)
 end
 
+--- Create formatted text for translate view
+-- Shows original text and translation with minimal markers (▶ and ◉)
+-- @param highlighted_text string The original highlighted text
+-- @param hide_quote boolean Whether to hide the original text
+-- @return string Formatted text for display
+function MessageHistory:createTranslateViewText(highlighted_text, hide_quote)
+    local result = {}
+
+    -- Show original with User marker (unless hidden)
+    if not hide_quote and highlighted_text and highlighted_text ~= "" then
+        table.insert(result, "▶ " .. highlighted_text .. "\n\n")
+        table.insert(result, "---\n\n")
+    end
+
+    -- Show translation with KOAssistant marker
+    for _idx, msg in ipairs(self.messages) do
+        if msg.role == self.ROLES.ASSISTANT then
+            table.insert(result, "◉ " .. msg.content .. "\n\n")
+        end
+    end
+
+    return table.concat(result)
+end
+
 return MessageHistory 
