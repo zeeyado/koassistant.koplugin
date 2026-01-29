@@ -1268,9 +1268,20 @@ The restore system validates settings and handles edge cases:
 
 ### Reset Settings
 
-KOAssistant provides three tiers of reset functionality:
+KOAssistant provides granular reset options for different use cases.
 
 **Access:** Settings → Advanced → Reset Settings
+
+#### Quick Resets (Granular)
+
+**Reset actions submenu:**
+- **Reset custom actions**: Deletes all user-created actions. Built-in actions and their edits are preserved.
+- **Reset action edits**: Reverts changes to built-in actions (custom behavior, temperature, etc.) and re-enables disabled actions. Custom actions are preserved.
+- **Reset action menus**: Resets highlight menu and dictionary popup ordering/selection to defaults. Your actions are preserved.
+
+**Reset custom providers/models**: Removes user-defined providers and custom models added to built-in providers.
+
+#### Full Resets (Tiers)
 
 **1. Reset feature settings (Safest)**
 - Resets: Provider, model, temperature, toggles
@@ -1284,6 +1295,13 @@ KOAssistant provides three tiers of reset functionality:
 - Resets: Everything including API keys
 - Preserves: Chat history only
 - You must re-enter all API keys and reconfigure from scratch
+
+#### Action Manager Menu
+
+The Action Manager (Settings → Actions → Manage Actions) has a hamburger menu (☰) in the top-left with quick access to action-related resets:
+- Reset custom actions
+- Reset action edits
+- Reset action menus
 
 **When to reset:** After problematic updates, when experiencing strange behavior, or to start fresh. See [Troubleshooting → Settings Reset](#settings-reset) for details.
 
@@ -1554,25 +1572,20 @@ Edit `apikeys.lua` and add your key for the selected provider.
 
 If you're experiencing issues after updating the plugin, or want a fresh start with default settings:
 
-**Tools → KOAssistant → Settings → [Long-press any setting] → Reset All Settings**
+**Access:** Settings → Advanced → Reset Settings
 
-**When to reset:**
-- After major plugin updates (especially if you haven't updated in a while)
-- Strange behavior or crashes after updating
-- Want to start fresh after experimenting with many custom settings
-- Settings made before recent major changes aren't working as expected
+**For targeted fixes:**
+- **Action issues?** Try "Reset actions" → "Reset action edits" first (preserves your custom actions)
+- **Custom action problems?** Try "Reset actions" → "Reset custom actions" (removes user-created actions only)
+- **Menu ordering wrong?** Try "Reset actions" → "Reset action menus"
+- **Provider/model issues?** Try "Reset custom providers/models" or "Reset feature settings"
 
-**What's preserved:**
-- API keys
-- Custom actions (stored separately)
-- Chat history
+**For broader issues:**
+- **Strange behavior after update?** Try "Reset feature settings" (safest full reset)
+- **Many things broken?** Try "Reset all customizations" (preserves API keys)
+- **Want completely fresh start?** Use "Reset everything" (nuclear option)
 
-**What's reset:**
-- Provider/model selection
-- Behaviors, domains, temperature
-- Display settings
-- Language settings
-- Feature toggles
+See [Reset Settings](#reset-settings) for detailed descriptions of each option.
 
 **Note:** KOAssistant is under active development, so if your settings are old (created several versions ago), a reset can help ensure compatibility with new features.
 
