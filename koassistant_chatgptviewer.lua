@@ -2407,6 +2407,7 @@ function ChatGPTViewer:captureState()
     original_history = self.original_history,
     original_highlighted_text = self.original_highlighted_text,
     reply_draft = self.reply_draft,
+    selection_data = self.selection_data,  -- Preserve for "Save to Note" feature
     -- Callbacks (will be re-bound by recreate function)
     onAskQuestion = self.onAskQuestion,
     save_callback = self.save_callback,

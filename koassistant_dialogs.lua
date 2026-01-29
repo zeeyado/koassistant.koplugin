@@ -994,6 +994,7 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
             _message_history = state.original_history,
             original_highlighted_text = state.original_highlighted_text,
             reply_draft = state.reply_draft,
+            selection_data = state.selection_data,  -- Preserve for "Save to Note" feature
             -- Callbacks from captured state
             onAskQuestion = state.onAskQuestion,
             save_callback = state.save_callback,
@@ -1151,6 +1152,7 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                         save_callback = viewer.save_callback,
                         export_callback = viewer.export_callback,
                         tag_callback = viewer.tag_callback,
+                        selection_data = viewer.selection_data,  -- Preserve for "Save to Note" feature
                     }
                     -- Set close_callback after creation so new_viewer is defined
                     new_viewer.close_callback = function()
