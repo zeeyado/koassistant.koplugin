@@ -1199,9 +1199,9 @@ function ChatGPTViewer:init()
     hold_callback = self.default_hold_callback,
   })
 
-  -- Translate view buttons (5 buttons in 2 rows)
-  -- Row 1: MD/Text, Copy
-  -- Row 2: Expand, Toggle Quote, Close
+  -- Translate view buttons (2 rows)
+  -- Row 1: MD/Text, Copy, Note (if highlighting)
+  -- Row 2: → Chat, Show/Hide Original, Lang, Close
   local translate_button_row1 = {}
   local translate_button_row2 = {}
 
