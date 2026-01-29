@@ -13,6 +13,7 @@ local TextViewer = require("ui/widget/textviewer")
 local UIConstants = require("koassistant_ui.constants")
 local ModelConstraints = require("model_constraints")
 local SystemPrompts = require("prompts/system_prompts")
+local Actions = require("prompts/actions")
 
 local PromptsManager = {}
 
@@ -177,6 +178,8 @@ function PromptsManager:loadPrompts()
             use_annotations = prompt.use_annotations,
             use_reading_progress = prompt.use_reading_progress,
             use_reading_stats = prompt.use_reading_stats,
+            -- Requirement flags
+            requires_open_book = prompt.requires_open_book,
         }
 
         -- Apply builtin action overrides if this is a builtin action
@@ -316,7 +319,7 @@ function PromptsManager:showPromptsMenu()
     -- Group prompts by context
     local contexts = {
         { id = "highlight", text = _("Highlight Context") },
-        { id = "book", text = _("Book Context (File Browser)") },
+        { id = "book", text = _("Book Context") },
         { id = "multi_book", text = _("Multi-Book Context") },
         { id = "general", text = _("General Context") },
         { id = "both", text = _("Highlight & Book") },
@@ -361,6 +364,12 @@ function PromptsManager:showPromptsMenu()
                 -- Add requires indicator
                 if prompt.requires then
                     item_text = item_text .. " [" .. prompt.requires .. "]"
+                end
+
+                -- Add open book indicator (for actions only available when reading)
+                -- Uses dynamic inference from flags, not just explicit requires_open_book
+                if Actions.requiresOpenBook(prompt) then
+                    item_text = item_text .. " [reading]"
                 end
 
                 -- Add checkbox with better spacing
@@ -514,9 +523,16 @@ function PromptsManager:showPromptDetails(prompt)
 
     -- Build info text with organized sections
     -- Basic info
-    local info_text = string.format(
-        "%s\n\n%s: %s\n%s: %s\n%s: %s",
-        prompt.text,
+    local info_text = prompt.text
+
+    -- Note about open book requirement (shown prominently at top)
+    -- Uses dynamic inference from flags, not just explicit requires_open_book
+    if Actions.requiresOpenBook(prompt) then
+        info_text = info_text .. "\n" .. _("(Only available when reading, not from file browser)")
+    end
+
+    info_text = info_text .. string.format(
+        "\n\n%s: %s\n%s: %s\n%s: %s",
         _("Context"), self:getContextDisplayName(prompt.context),
         _("Source"), source_text,
         _("Status"), prompt.enabled and _("Enabled") or _("Disabled")
@@ -557,7 +573,7 @@ function PromptsManager:showPromptDetails(prompt)
     if prompt.requires then
         info_text = info_text .. "\n\n" .. _("Requires") .. ": " .. prompt.requires
     end
-    
+
     local buttons = {}
 
     -- Edit button (only for UI-created prompts)
@@ -728,6 +744,12 @@ function PromptsManager:duplicateAction(action)
         thinking_budget = duplicate.thinking_budget,
         provider = duplicate.provider,
         model = duplicate.model,
+        -- Context extraction flags (for reading-only actions)
+        use_book_text = duplicate.use_book_text,
+        use_highlights = duplicate.use_highlights,
+        use_annotations = duplicate.use_annotations,
+        use_reading_progress = duplicate.use_reading_progress,
+        use_reading_stats = duplicate.use_reading_stats,
     }
 
     -- Add temperature if set
@@ -3460,7 +3482,7 @@ function PromptsManager:getContextDisplayName(context)
     if context == "highlight" then
         return _("Highlight")
     elseif context == "book" then
-        return _("Book (File Browser)")
+        return _("Book")
     elseif context == "multi_book" then
         return _("Multi-Book")
     elseif context == "general" then

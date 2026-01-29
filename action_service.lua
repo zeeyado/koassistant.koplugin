@@ -64,18 +64,23 @@ end
 -- Get all actions for a specific context
 -- @param context: "highlight", "book", "multi_book", "general"
 -- @param include_disabled: Include disabled actions
+-- @param has_open_book: Whether a book is currently open (for filtering requires_open_book actions)
 -- @return table: Array of action definitions
-function ActionService:getAllActions(context, include_disabled)
+function ActionService:getAllActions(context, include_disabled, has_open_book)
     if not self.actions_cache then
         self:loadActions()
     end
 
     local actions = {}
     local context_actions = self.actions_cache[context] or {}
+    local metadata = { has_open_book = has_open_book }
 
     for _, action in ipairs(context_actions) do
         if include_disabled or action.enabled then
-            table.insert(actions, action)
+            -- Filter actions that require an open book when no book is open
+            if self.Actions.checkRequirements(action, metadata) then
+                table.insert(actions, action)
+            end
         end
     end
 
@@ -213,6 +218,10 @@ function ActionService:loadActions()
         end
     end
 
+    -- 2.5. Migrate custom actions (infer open book flags from prompt text)
+    -- This ensures actions created before flag inference was added get their flags set
+    self:migrateCustomActionsOpenBookFlags()
+
     -- 3. Load UI-created actions from settings
     local ui_actions = self.settings:readSetting("custom_actions") or {}
     logger.info("ActionService: Loading " .. #ui_actions .. " UI-created actions")
@@ -277,6 +286,57 @@ function ActionService:logLoadSummary()
         counts.multi_book or 0,
         counts.general or 0
     ))
+end
+
+-- Migrate custom actions to infer open book flags from prompt text
+-- This runs once per session to fix actions created before flag inference was added
+-- @return boolean: true if any actions were migrated
+function ActionService:migrateCustomActionsOpenBookFlags()
+    if not self.Actions or not self.Actions.inferOpenBookFlags then
+        return false
+    end
+
+    local custom_actions = self.settings:readSetting("custom_actions") or {}
+    if #custom_actions == 0 then
+        return false
+    end
+
+    local migrated_count = 0
+    local open_book_flags = self.Actions.OPEN_BOOK_FLAGS or {}
+
+    for _idx, action in ipairs(custom_actions) do
+        -- Check if action already has any open book flags set
+        local has_existing_flags = false
+        for _, flag in ipairs(open_book_flags) do
+            if action[flag] then
+                has_existing_flags = true
+                break
+            end
+        end
+
+        -- If no existing flags, try to infer from prompt text
+        if not has_existing_flags and action.prompt then
+            local inferred = self.Actions.inferOpenBookFlags(action.prompt)
+            local flags_added = false
+            for flag, value in pairs(inferred) do
+                if value then
+                    action[flag] = true
+                    flags_added = true
+                end
+            end
+            if flags_added then
+                migrated_count = migrated_count + 1
+            end
+        end
+    end
+
+    if migrated_count > 0 then
+        self.settings:saveSetting("custom_actions", custom_actions)
+        self.settings:flush()
+        logger.info("ActionService: Migrated " .. migrated_count .. " custom action(s) with inferred open book flags")
+    end
+
+    return migrated_count > 0
 end
 
 -- Set action enabled state
@@ -537,8 +597,9 @@ function ActionService:getTemplateText(template_id)
 end
 
 -- Adapter: getAllPrompts -> getAllActions (used by dialogs.lua, prompts_manager.lua)
-function ActionService:getAllPrompts(context, include_disabled)
-    return self:getAllActions(context, include_disabled)
+-- @param has_open_book: Whether a book is currently open (for filtering requires_open_book actions)
+function ActionService:getAllPrompts(context, include_disabled, has_open_book)
+    return self:getAllActions(context, include_disabled, has_open_book)
 end
 
 -- Adapter: getPrompt -> getAction (used by dialogs.lua)
@@ -689,12 +750,14 @@ function ActionService:moveHighlightMenuAction(action_id, direction)
 end
 
 -- Get full action objects for highlight menu (resolved, in order)
-function ActionService:getHighlightMenuActionObjects()
+-- @param has_open_book: boolean indicating if a book is currently open (for filtering)
+function ActionService:getHighlightMenuActionObjects(has_open_book)
     local action_ids = self:getHighlightMenuActions()
     local result = {}
+    local metadata = { has_open_book = has_open_book }
     for _, id in ipairs(action_ids) do
         local action = self:getAction("highlight", id)
-        if action and action.enabled then
+        if action and action.enabled and self.Actions.checkRequirements(action, metadata) then
             table.insert(result, action)
         end
     end
@@ -833,12 +896,14 @@ function ActionService:moveDictionaryPopupAction(action_id, direction)
 end
 
 -- Get full action objects for dictionary popup (resolved, in order)
-function ActionService:getDictionaryPopupActionObjects()
+-- @param has_open_book: boolean indicating if a book is currently open (for filtering)
+function ActionService:getDictionaryPopupActionObjects(has_open_book)
     local action_ids = self:getDictionaryPopupActions()
     local result = {}
+    local metadata = { has_open_book = has_open_book }
     for _i, id in ipairs(action_ids) do
         local action = self:getAction("highlight", id)
-        if action and action.enabled then
+        if action and action.enabled and self.Actions.checkRequirements(action, metadata) then
             table.insert(result, action)
         end
     end
@@ -953,8 +1018,16 @@ function ActionService:createDuplicateAction(action)
         model = action.model,
         include_book_context = action.include_book_context,
         skip_language_instruction = action.skip_language_instruction,
+        skip_domain = action.skip_domain,
         requires = action.requires,
+        -- Context extraction flags (for reading-only actions)
+        use_book_text = action.use_book_text,
+        use_highlights = action.use_highlights,
+        use_annotations = action.use_annotations,
+        use_reading_progress = action.use_reading_progress,
+        use_reading_stats = action.use_reading_stats,
         -- NOT copying: id (auto-generated), source (will be "ui"), enabled (default true)
+        -- NOT copying: requires_open_book (dynamically inferred from flags above)
     }
 
     -- Handle prompt: copy directly if exists, or resolve from template

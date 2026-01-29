@@ -37,6 +37,46 @@ local _ = require("koassistant_gettext")
 
 local Actions = {}
 
+-- ============================================================
+-- Open Book Flags - Centralized Definition
+-- ============================================================
+-- Actions that use these flags require an open book (reading mode)
+-- and won't appear in file browser context
+
+-- List of flags that indicate an action needs reading mode data
+Actions.OPEN_BOOK_FLAGS = {
+    "use_book_text",
+    "use_reading_progress",
+    "use_annotations",
+    "use_highlights",
+    "use_reading_stats",
+}
+
+-- Mapping from placeholders to the flags they require
+-- Used for automatic flag inference from prompt text
+Actions.PLACEHOLDER_TO_FLAG = {
+    -- Reading progress placeholders
+    ["{reading_progress}"] = "use_reading_progress",
+    ["{progress_decimal}"] = "use_reading_progress",
+    ["{time_since_last_read}"] = "use_reading_progress",
+
+    -- Highlights placeholders
+    ["{highlights}"] = "use_highlights",
+    ["{highlights_section}"] = "use_highlights",
+
+    -- Annotations placeholders
+    ["{annotations}"] = "use_annotations",
+    ["{annotations_section}"] = "use_annotations",
+
+    -- Book text placeholders
+    ["{book_text}"] = "use_book_text",
+    ["{book_text_section}"] = "use_book_text",
+
+    -- Reading stats placeholders
+    ["{chapter_title}"] = "use_reading_stats",
+    ["{chapters_read}"] = "use_reading_stats",
+}
+
 -- Built-in actions for highlight context
 -- These use global behavior setting (no behavior_variant override)
 Actions.highlight = {
@@ -506,21 +546,72 @@ function Actions.getAllBuiltin()
     }
 end
 
--- Check if an action's requirements are met
+-- Determine if an action requires an open book (dynamically inferred)
+-- Returns true if action uses any data that requires reading mode
+-- Uses centralized OPEN_BOOK_FLAGS list for consistency
 -- @param action: Action definition
--- @param metadata: Available metadata (title, author, etc.)
--- @return boolean: true if requirements are met
-function Actions.checkRequirements(action, metadata)
-    if not action.requires then
+-- @return boolean: true if action requires an open book
+function Actions.requiresOpenBook(action)
+    if not action then return false end
+
+    -- Explicit flag takes precedence
+    if action.requires_open_book then
         return true
     end
 
+    -- Check all centralized flags
+    for _, flag in ipairs(Actions.OPEN_BOOK_FLAGS) do
+        if action[flag] then
+            return true
+        end
+    end
+
+    return false
+end
+
+-- Infer open book flags from prompt/template text
+-- Scans for placeholders that require reading mode and returns the flags to set
+-- @param prompt_text: The action's prompt or template text
+-- @return table: Map of flag_name -> true for inferred flags (empty if none)
+function Actions.inferOpenBookFlags(prompt_text)
+    if not prompt_text or prompt_text == "" then
+        return {}
+    end
+
+    local inferred_flags = {}
+
+    -- Scan for all known placeholders
+    for placeholder, flag in pairs(Actions.PLACEHOLDER_TO_FLAG) do
+        if prompt_text:find(placeholder, 1, true) then -- plain string match
+            inferred_flags[flag] = true
+        end
+    end
+
+    return inferred_flags
+end
+
+-- Check if an action's requirements are met
+-- @param action: Action definition
+-- @param metadata: Available metadata (title, author, has_open_book, etc.)
+--   - has_open_book: nil = don't filter (management mode), false = filter, true = show all
+-- @return boolean: true if requirements are met
+function Actions.checkRequirements(action, metadata)
     metadata = metadata or {}
 
-    if action.requires == "author" then
-        return metadata.author and metadata.author ~= ""
-    elseif action.requires == "title" then
-        return metadata.title and metadata.title ~= ""
+    -- Check if action requires an open book (for reading data access)
+    -- Uses dynamic inference from flags, not just explicit requires_open_book
+    -- Only filter when has_open_book is explicitly false (not nil - nil means management mode)
+    if Actions.requiresOpenBook(action) and metadata.has_open_book == false then
+        return false
+    end
+
+    -- Check metadata requirements (author, title)
+    if action.requires then
+        if action.requires == "author" then
+            return metadata.author and metadata.author ~= ""
+        elseif action.requires == "title" then
+            return metadata.title and metadata.title ~= ""
+        end
     end
 
     return true
