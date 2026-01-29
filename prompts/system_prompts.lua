@@ -52,37 +52,6 @@ function SystemPrompts.clearBehaviorCache()
     _all_cache = nil
 end
 
--- Context Instructions
--- These describe the specific context of the current interaction
--- Added to requests but NOT cached (they provide context, not behavior)
-SystemPrompts.context = {
-    -- Default fallback
-    default = "You are a helpful assistant.",
-
-    -- When user has highlighted text in a book
-    highlight = [[The user is reading a book and has highlighted a passage they want to understand better. They may ask for explanations, summaries, context, or analysis of the highlighted text.
-
-Book context may be provided including title, author, and surrounding text. Use this information to provide more relevant and contextualized responses.]],
-
-    -- When user selects a single book from file browser
-    book = [[The user has selected a book from their library and wants to learn more about it. They may ask about the book's content, themes, author, historical context, or similar works.
-
-Book metadata will be provided including title and possibly author. Use this to provide relevant information about the specific work.]],
-
-    -- When user selects multiple books
-    multi_book = [[The user has selected multiple books from their library and wants comparative analysis or insights about the collection.
-
-A list of books with titles and authors will be provided. Consider relationships between the works, common themes, contrasts, and what the selection reveals about the reader's interests.]],
-
-    -- Standalone chat without book context
-    general = [[This is a general conversation without specific book context. The user may want to discuss ideas, ask questions, get help with tasks, or just have a conversation.
-
-If the chat was launched from within a book, that context may be provided, but it's optional background information rather than the focus of the discussion.]],
-
-    -- Note: Translation is now handled via built-in action with behavior_override
-    -- See prompts/actions.lua Actions.special.translate
-}
-
 -- Helper function to get behavior prompt by variant name
 -- Falls back to first available built-in if variant not found
 -- @param variant: behavior ID (e.g., "mini", "standard", "full"), "custom", or nil
@@ -101,17 +70,6 @@ function SystemPrompts.getBehavior(variant, custom_text)
         return builtin[variant].text
     end
     return (builtin.mini and builtin.mini.text) or FALLBACK_BEHAVIOR
-end
-
--- Helper function to get context prompt by context type
--- Falls back to 'default' if context not found
--- DEPRECATED: Context instructions are no longer added to system array
--- Kept for backwards compatibility and reference
--- @param context_type: "highlight", "book", "multi_book", "general"
--- @return string: Context prompt text
-function SystemPrompts.getContext(context_type)
-    context_type = context_type or "default"
-    return SystemPrompts.context[context_type] or SystemPrompts.context.default
 end
 
 -- Resolve behavior for an action
