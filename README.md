@@ -241,7 +241,7 @@ KOAssistant works in **4 contexts**, each with its own set of built-in actions:
 
 | Context | Built-in Actions |
 |---------|------------------|
-| **Highlight** | Explain, ELI5, Summarize, Elaborate, Translate |
+| **Highlight** | Explain, ELI5, Summarize, Elaborate, Connect, Translate |
 | **Book** | Book Info, Similar Books, About Author, X-Ray, Recap, Analyze Highlights |
 | **Multi-book** | Compare Books, Common Themes |
 | **General** | Ask |
@@ -264,10 +264,13 @@ You can customize these, create your own, or disable ones you don't use. See [Ac
 | **ELI5** | Explain Like I'm 5 - simplified explanation |
 | **Summarize** | Concise summary of the text |
 | **Elaborate** | Expand on concepts, provide additional context and details |
+| **Connect** | Draw connections to other works, thinkers, and broader context |
 | **Translate** | Translate to your configured language |
 | **Dictionary** | Word definition with context (also accessible via word selection, like KOReader native behavior) |
 
 **What the AI sees**: Your highlighted text, plus Document metadata (title, author, identifiers from file properties)
+
+> **Tip**: Add frequently-used actions to the highlight menu (Settings → Menu Customization → Highlight Menu) for quick access. Other enabled highlight actions remain available from the main "KOAssistant" entry in the highlight popup. From that input window, you can also add extra instructions to any action (e.g., "esp. the economic implications" or "in simple terms").
 
 ### Book/document Mode 
 
@@ -332,6 +335,17 @@ When you trigger an action, KOAssistant builds a complete request from several c
 1. **Context data** — Highlighted text, book metadata, surrounding sentences (automatic)
 2. **Action prompt** — The instruction template with placeholders filled in
 3. **User input** — Your optional free-form addition (the text you type)
+
+### Context Data vs Placeholders
+
+There are two ways book metadata (title, author) can be included in a request:
+
+1. **`[Context]` section** — Automatically added as a labeled section at the start of the user message. Controlled by `include_book_context` flag on actions.
+2. **Direct placeholders** — `{title}`, `{author}`, `{author_clause}` substituted directly into the prompt template.
+
+**For highlight actions:** Use `include_book_context = true` to add a `[Context]` section. The highlighted text is the main subject, so book info is supplementary context.
+
+**For book actions:** Use `{title}` and `{author_clause}` directly in the prompt (e.g., "Tell me about {title}"). The book IS the subject, so it belongs in the prompt itself. Book actions also get a `[Context]` section automatically (based on their context type), creating some redundancy—this is harmless and ensures the AI always knows which book is being discussed.
 
 ### Skipping System Components
 
