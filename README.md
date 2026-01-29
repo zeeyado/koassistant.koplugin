@@ -674,11 +674,11 @@ The built-in dictionary actions attempt to handle many use cases with unified pr
 
 This one-size-fits-all approach has limitations:
 - Models may provide definitions when translations are expected (or vice versa)
-- Source language detection can fail for mixed-language texts or unusual scripts
-- Formatting and language consistency varies across different AI models
+- Source language detection can fail due to limited context
+- Formatting and language consistency varies across different AI models (formatting is not currently handled programmatically, but by prompting)
 - Smaller/faster models struggle more with complex language-switching instructions
 
-**A better solution is under development.** Including split bi-m/onolongual Dictionaries, and source language settings. In the meantime, users are advised to create custom dictionary actions tailored to their specific use case:
+**A better solution is under development.** Including split bi-m/onolongual Dictionaries, source language settings (and detection), and structural changes to presenetation. In the meantime, users are advised to create custom dictionary actions tailored to their specific use case:
 
 1. **Settings → Advanced → Manage Actions**
 2. Find "Dictionary" or "Quick Define" and tap to duplicate
