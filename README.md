@@ -793,13 +793,15 @@ This extracts all text from the visible page/screen and sends it to the Translat
 
 All translation actions (Highlight Bypass with Translate, Translate Current Page, highlight menu Translate) use a specialized **Translate View** — a minimal UI focused on translations.
 
-**5-button layout:**
-- **Row 1:** MD/Text (toggle markdown), Copy
-- **Row 2:** → Chat (expand to full chat), Show/Hide Original, Close
+**Button layout:**
+- **Row 1:** MD/Text (toggle markdown), Copy, Note (when highlighting)
+- **Row 2:** → Chat (expand to full chat), Show/Hide Original, Lang, Close
 
 **Key features:**
+- **Lang button** — re-run translation with a different target language (picks from your configured languages)
+- **Note button** — save translation directly to a highlight note (closes translate view after save)
 - **Auto-save disabled** by default (translations are ephemeral like dictionary lookups)
-- **Copy Translation Only** option — copies just the translation text without original or formatting
+- **Copy/Note Content** options — choose what to include: full, question + response, or translation only
 - **Configurable original text visibility** — follow global setting, always hide, hide long text, or never hide
 - **→ Chat button** — expands to full chat view with all options (continue conversation, save, etc.)
 
