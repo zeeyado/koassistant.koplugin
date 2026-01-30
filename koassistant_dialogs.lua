@@ -1608,17 +1608,24 @@ local function handlePredefinedPrompt(prompt_type_or_action, highlightedText, ui
         end
 
         -- Determine initial hide state for original text
-        local hide_mode = f.translate_hide_highlight_mode or "follow_global"
-        if hide_mode == "always_hide" then
-            temp_config.features.translate_hide_quote = true
-        elseif hide_mode == "hide_long" then
-            local threshold = f.translate_long_highlight_threshold or 200
-            local text_length = highlightedText and #highlightedText or 0
-            temp_config.features.translate_hide_quote = (text_length > threshold)
-        elseif hide_mode == "follow_global" then
-            temp_config.features.translate_hide_quote = f.hide_highlighted_text
+        -- Only apply if not already set (e.g., translate_hide_full_page sets this for full page translate)
+        if temp_config.features.translate_hide_quote ~= true then
+            local hide_mode = f.translate_hide_highlight_mode or "follow_global"
+            if hide_mode == "always_hide" then
+                temp_config.features.translate_hide_quote = true
+            elseif hide_mode == "hide_long" then
+                local threshold = f.translate_long_highlight_threshold or 200
+                local text_length = highlightedText and #highlightedText or 0
+                temp_config.features.translate_hide_quote = (text_length > threshold)
+            elseif hide_mode == "follow_global" then
+                -- Replicate global hide logic: hide_highlighted_text OR (hide_long_highlights AND over threshold)
+                local text_length = highlightedText and #highlightedText or 0
+                local global_threshold = f.long_highlight_threshold or 280
+                temp_config.features.translate_hide_quote = f.hide_highlighted_text or
+                    (f.hide_long_highlights and text_length > global_threshold)
+            end
+            -- "never_hide" defaults to false (already nil/false by default)
         end
-        -- "never_hide" defaults to false (already nil/false by default)
     end
 
     -- Apply compact dictionary view settings if action has compact_view flag
