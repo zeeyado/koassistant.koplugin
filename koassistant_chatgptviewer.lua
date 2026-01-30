@@ -630,6 +630,7 @@ local ChatGPTViewer = InputContainer:extend {
 
 function ChatGPTViewer:init()
   -- calculate window dimension using shared constants
+  -- Uses Wikipedia-style dimensions: near-100% with tiny margin
   self.align = "center"
   self.region = Geom:new {
     x = 0, y = 0,
@@ -637,9 +638,17 @@ function ChatGPTViewer:init()
     h = Screen:getHeight(),
   }
   self.width = self.width or UIConstants.CHAT_WIDTH()
-  -- Use compact height if compact_view is enabled
+
+  -- Height calculation depends on view mode:
+  -- - compact_view: fixed compact height (60%)
+  -- - translate_view: dynamic height based on content, capped at max
+  -- - standard: full Wikipedia-style height
   if self.compact_view then
     self.height = self.height or UIConstants.COMPACT_DIALOG_HEIGHT()
+  elseif self.translate_view or (self.configuration and self.configuration.features and self.configuration.features.translate_view) then
+    -- Dynamic height for translate view (like Wikipedia)
+    -- Calculate based on content length, capped at max available height
+    self.height = self.height or self:calculateDynamicHeight()
   else
     self.height = self.height or UIConstants.CHAT_HEIGHT()
   end
@@ -1711,6 +1720,53 @@ function ChatGPTViewer:onCloseWidget()
   UIManager:setDirty(nil, function()
     return "partial", self.frame.dimen
   end)
+end
+
+-- Calculate dynamic height for translate view (Wikipedia-style sizing)
+-- Estimates content height based on text length and caps at max available height
+-- Returns height that fits content or max, whichever is smaller
+function ChatGPTViewer:calculateDynamicHeight()
+  local max_height = UIConstants.CHAT_HEIGHT()  -- Maximum: Wikipedia-style full height
+
+  -- Estimate chrome height (title bar + buttons + padding)
+  -- Title bar: ~50px, buttons (2 rows for translate): ~80px, padding/margins: ~40px
+  local chrome_height = Screen:scaleBySize(170)
+
+  -- If no text, use a reasonable default
+  if not self.text or self.text == "" then
+    -- Minimum height: enough for chrome + a few lines
+    return math.min(Screen:scaleBySize(300), max_height)
+  end
+
+  -- Estimate line height based on font size
+  -- Default markdown font is 20, gives roughly 1.5x for line height with spacing
+  local font_size = self.markdown_font_size or 20
+  local estimated_line_height = Screen:scaleBySize(math.floor(font_size * 1.8))
+
+  -- Estimate content width (width minus padding/margins)
+  local content_width = self.width and (self.width - Screen:scaleBySize(40)) or (Screen:getWidth() * 0.85)
+
+  -- Estimate characters per line (rough: ~0.5 of font size per character on average)
+  local chars_per_line = math.floor(content_width / (font_size * 0.6))
+  chars_per_line = math.max(chars_per_line, 20)  -- Minimum reasonable chars per line
+
+  -- Estimate number of lines from text length
+  -- Account for line breaks in text
+  local text_length = #self.text
+  local newline_count = select(2, self.text:gsub("\n", "\n"))
+  local estimated_lines = math.ceil(text_length / chars_per_line) + newline_count
+
+  -- Calculate estimated content height
+  local content_height = estimated_lines * estimated_line_height
+
+  -- Add chrome and some padding
+  local total_height = content_height + chrome_height + Screen:scaleBySize(40)
+
+  -- Minimum height: at least enough to show something useful
+  local min_height = Screen:scaleBySize(250)
+
+  -- Return clamped height
+  return math.max(min_height, math.min(total_height, max_height))
 end
 
 -- Calculate scroll ratio to show the last user question at top of viewport

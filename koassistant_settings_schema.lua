@@ -972,7 +972,8 @@ local SettingsSchema = {
                     type = "radio",
                     text_func = function(plugin)
                         local f = plugin.settings:readSetting("features") or {}
-                        local mode = f.translate_hide_highlight_mode or "follow_global"
+                        -- Default matches schema default (hide_long)
+                        local mode = f.translate_hide_highlight_mode or "hide_long"
                         local labels = {
                             follow_global = _("Follow Global"),
                             always_hide = _("Always Hide"),
@@ -1011,7 +1012,7 @@ local SettingsSchema = {
                     text = _("Hide for Full Page Translate"),
                     path = "features.translate_hide_full_page",
                     default = true,
-                    help_text = _("Always hide original text when translating full page."),
+                    help_text = _("Always hide original text for full page translations. Overrides all other visibility settings when enabled. Disable to use your normal Original Text setting above."),
                 },
             },
         },
