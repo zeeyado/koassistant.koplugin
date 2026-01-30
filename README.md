@@ -1101,6 +1101,7 @@ When "Ask every time" is selected, a picker dialog appears letting you choose wh
   - **Allow Book Text Extraction**: Enable/disable book text extraction globally (off by default)
   - **Max Text Characters**: Maximum characters to extract (10,000-500,000, default 50,000)
   - **Max PDF Pages**: Maximum PDF pages to process (50-500, default 250)
+  - **Cost Warning**: Book text extraction can significantly increase API costs. At 50k characters (~12.5k tokens), expect ~$0.04 per request with Claude Sonnet, ~$0.01 with Haiku. Higher limits multiply costs accordingly. Consider using faster/cheaper models (Haiku, Gemini Flash) for X-Ray and Recap actions. Suggestions for improving extraction efficiency are welcome—see [Contributing](#contributing).
 - **Reasoning/Thinking**: Per-provider reasoning settings:
   - **Anthropic Extended Thinking**: Budget 1024-32000 tokens
   - **OpenAI Reasoning**: Effort level (low/medium/high)
