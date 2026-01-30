@@ -168,6 +168,9 @@ You can also assign individual actions directly to their own gestures for instan
 - "Toggle Dictionary Bypass" on a tap corner if you frequently switch modes
 - "Continue Last Chat" for quickly resuming conversations
 
+**Add your own actions to gestures**
+Any book or general action (built-in or custom) can be added to the gesture menu. See [Custom Action Gestures](#custom-action-gestures) for details.
+
 > **Note**: Set up gestures in both **Reader View** (while reading) and **File Browser** separately — they have independent gesture configs.
 
 
@@ -782,6 +785,22 @@ Quick toggle bypass modes without entering settings:
 - **KOAssistant: Toggle Highlight Bypass** - Assign to gesture
 
 Toggling shows a brief notification confirming the new state.
+
+### Custom Action Gestures
+
+You can add any **book** or **general** action to KOReader's gesture menu:
+
+1. Go to **Settings → Advanced → Manage Actions**
+2. Hold any book or general action to see details
+3. Tap **"Add to Gesture Menu"**
+4. **Restart KOReader** for changes to take effect
+5. The action now appears in KOReader's gesture settings (Settings → Gesture Manager → General)
+
+Actions with gestures show a `[gesture]` indicator in the Action Manager list.
+
+**Why only book and general?** Highlight actions require selected text, and multi-book actions require file browser multi-select — neither can be triggered via gestures.
+
+**Note:** Changes require restart because KOReader's gesture system loads available actions at startup.
 
 ### Translate Current Page
 
