@@ -517,7 +517,7 @@ local function getAllPrompts(configuration, plugin)
     return prompts, prompt_keys
 end
 
-local function createSaveDialog(document_path, history, chat_history_manager, is_general_context, book_metadata, launch_context, highlighted_text)
+local function createSaveDialog(document_path, history, chat_history_manager, is_general_context, book_metadata, launch_context, highlighted_text, ui)
     -- Guard against missing document path - allow special case for general context
     if not document_path and not is_general_context then
         UIManager:show(InfoMessage:new{
@@ -587,12 +587,42 @@ local function createSaveDialog(document_path, history, chat_history_manager, is
                                 metadata.original_highlighted_text = highlighted_text
                             end
 
-                            return chat_history_manager:saveChat(
-                                document_path, 
-                                chat_title, 
-                                history,
-                                metadata
-                            )
+                            -- Check storage version and route to appropriate method
+                            if chat_history_manager:useDocSettingsStorage() then
+                                -- v2: DocSettings-based storage
+                                -- Build complete chat_data structure (matching old saveChat format)
+                                local chat_id = metadata.id or chat_history_manager:generateChatId()
+                                local chat_data = {
+                                    id = chat_id,
+                                    title = chat_title or "Conversation",
+                                    document_path = document_path,
+                                    timestamp = os.time(),
+                                    messages = history:getMessages(),
+                                    model = history:getModel(),
+                                    metadata = metadata,
+                                    book_title = metadata.book_title,
+                                    book_author = metadata.book_author,
+                                    prompt_action = history.prompt_action,
+                                    launch_context = metadata.launch_context,
+                                    domain = metadata.domain,
+                                    tags = metadata.tags or {},
+                                    original_highlighted_text = metadata.original_highlighted_text,
+                                }
+
+                                if document_path == "__GENERAL_CHATS__" then
+                                    return chat_history_manager:saveGeneralChat(chat_data)
+                                else
+                                    return chat_history_manager:saveChatToDocSettings(ui, chat_data)
+                                end
+                            else
+                                -- v1: Legacy hash-based storage
+                                return chat_history_manager:saveChat(
+                                    document_path,
+                                    chat_title,
+                                    history,
+                                    metadata
+                                )
+                            end
                         end)
                         
                         -- Show appropriate message
@@ -1241,12 +1271,43 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                             -- Skip saving, but still consider it successful
                             logger.info("KOAssistant: Chat not saved (storage_key = __SKIP__)")
                         else
-                            local save_result = chat_history_manager:saveChat(
-                                save_path,
-                                suggested_title,
-                                history,
-                                metadata
-                            )
+                            local save_result
+                            -- Check storage version and route to appropriate method
+                            if chat_history_manager:useDocSettingsStorage() then
+                                -- v2: DocSettings-based storage
+                                local chat_id = metadata.id or history.chat_id or chat_history_manager:generateChatId()
+                                local chat_data = {
+                                    id = chat_id,
+                                    title = suggested_title or "Conversation",
+                                    document_path = save_path,
+                                    timestamp = os.time(),
+                                    messages = history:getMessages(),
+                                    model = history:getModel(),
+                                    metadata = metadata,
+                                    book_title = metadata.book_title,
+                                    book_author = metadata.book_author,
+                                    prompt_action = history.prompt_action,
+                                    launch_context = metadata.launch_context,
+                                    domain = metadata.domain,
+                                    tags = metadata.tags or {},
+                                    original_highlighted_text = metadata.original_highlighted_text,
+                                }
+
+                                if save_path == "__GENERAL_CHATS__" then
+                                    save_result = chat_history_manager:saveGeneralChat(chat_data)
+                                else
+                                    save_result = chat_history_manager:saveChatToDocSettings(ui_instance, chat_data)
+                                end
+                            else
+                                -- v1: Legacy hash-based storage
+                                save_result = chat_history_manager:saveChat(
+                                    save_path,
+                                    suggested_title,
+                                    history,
+                                    metadata
+                                )
+                            end
+
                             if save_result and save_result ~= false then
                                 -- Store the chat ID in history for future saves (prevents duplicates)
                                 if not history.chat_id then
@@ -1304,7 +1365,36 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                 end
                 local save_path = document_path or "__GENERAL_CHATS__"
                 local success, save_result = pcall(function()
-                    return chat_history_manager:saveChat(save_path, suggested_title, history, metadata)
+                    -- Check storage version and route to appropriate method
+                    if chat_history_manager:useDocSettingsStorage() then
+                        -- v2: DocSettings-based storage
+                        local chat_id = metadata.id or history.chat_id or chat_history_manager:generateChatId()
+                        local chat_data = {
+                            id = chat_id,
+                            title = suggested_title or "Conversation",
+                            document_path = save_path,
+                            timestamp = os.time(),
+                            messages = history:getMessages(),
+                            model = history:getModel(),
+                            metadata = metadata,
+                            book_title = metadata.book_title,
+                            book_author = metadata.book_author,
+                            prompt_action = history.prompt_action,
+                            launch_context = metadata.launch_context,
+                            domain = metadata.domain,
+                            tags = metadata.tags or {},
+                            original_highlighted_text = metadata.original_highlighted_text,
+                        }
+
+                        if save_path == "__GENERAL_CHATS__" then
+                            return chat_history_manager:saveGeneralChat(chat_data)
+                        else
+                            return chat_history_manager:saveChatToDocSettings(ui_instance, chat_data)
+                        end
+                    else
+                        -- v1: Legacy hash-based storage
+                        return chat_history_manager:saveChat(save_path, suggested_title, history, metadata)
+                    end
                 end)
                 if success and save_result then
                     if not history.chat_id then
@@ -1345,7 +1435,7 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
             else
                 -- First-time manual save with dialog (no chat_id yet)
                 local is_general_context = temp_config and temp_config.features and temp_config.features.is_general_context or false
-                createSaveDialog(document_path, history, chat_history_manager, is_general_context, book_metadata, launch_context, highlightedText)
+                createSaveDialog(document_path, history, chat_history_manager, is_general_context, book_metadata, launch_context, highlightedText, ui_instance)
             end
         end,
         export_callback = function()
@@ -1497,12 +1587,42 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
             end
 
             if should_save then
-                local result = chat_history_manager:saveChat(
-                    save_path,
-                    suggested_title,
-                    history,
-                    metadata
-                )
+                local result
+                -- Check storage version and route to appropriate method
+                if chat_history_manager:useDocSettingsStorage() then
+                    -- v2: DocSettings-based storage
+                    local chat_id = metadata.id or history.chat_id or chat_history_manager:generateChatId()
+                    local chat_data = {
+                        id = chat_id,
+                        title = suggested_title or "Conversation",
+                        document_path = save_path,
+                        timestamp = os.time(),
+                        messages = history:getMessages(),
+                        model = history:getModel(),
+                        metadata = metadata,
+                        book_title = metadata.book_title,
+                        book_author = metadata.book_author,
+                        prompt_action = history.prompt_action,
+                        launch_context = metadata.launch_context,
+                        domain = metadata.domain,
+                        tags = metadata.tags or {},
+                        original_highlighted_text = metadata.original_highlighted_text,
+                    }
+
+                    if save_path == "__GENERAL_CHATS__" then
+                        result = chat_history_manager:saveGeneralChat(chat_data)
+                    else
+                        result = chat_history_manager:saveChatToDocSettings(ui_instance, chat_data)
+                    end
+                else
+                    -- v1: Legacy hash-based storage
+                    result = chat_history_manager:saveChat(
+                        save_path,
+                        suggested_title,
+                        history,
+                        metadata
+                    )
+                end
 
                 if result and result ~= false then
                     -- Store the chat ID in history for future saves (prevents duplicates)
