@@ -594,6 +594,7 @@ local ChatGPTViewer = InputContainer:extend {
   export_callback = nil, -- New callback for exporting chat
   tag_callback = nil, -- Callback for tagging chat (receives showTagDialog function)
   scroll_to_bottom = false, -- Whether to scroll to bottom on show
+  scroll_to_last_question = false, -- Whether to scroll to last user question on show
 
   -- Recreate function for rotation handling
   -- Set by dialogs.lua to enable window recreation on screen rotation
@@ -1712,13 +1713,80 @@ function ChatGPTViewer:onCloseWidget()
   end)
 end
 
+-- Calculate scroll ratio to show the last user question at top of viewport
+-- For plain text: uses character position for accuracy
+-- For markdown: uses line-based calculation (character positions don't match rendered content)
+function ChatGPTViewer:calculateLastQuestionRatio()
+  if not self.text then return 0 end
+
+  -- Find all "▶ User:" markers in the display text
+  local user_marker = "▶ User:"
+  local last_pos = nil
+  local search_start = 1
+
+  while true do
+    local pos = self.text:find(user_marker, search_start, true)  -- plain text search
+    if pos then
+      last_pos = pos
+      search_start = pos + 1
+    else
+      break
+    end
+  end
+
+  -- If no user marker found or at the start, no scrolling needed
+  if not last_pos or last_pos <= 1 then return 0 end
+
+  -- For markdown mode, use line-based calculation
+  -- Character positions don't match rendered positions (tables, formatting expand)
+  if self.render_markdown then
+    -- Count total lines and lines before last user marker
+    local lines_before = 0
+    local total_lines = 0
+    local pos = 1
+    while pos <= #self.text do
+      local nl = self.text:find("\n", pos, true)
+      if nl then
+        total_lines = total_lines + 1
+        if nl < last_pos then
+          lines_before = lines_before + 1
+        end
+        pos = nl + 1
+      else
+        total_lines = total_lines + 1
+        break
+      end
+    end
+
+    if total_lines <= 1 then return 0 end
+    local ratio = lines_before / total_lines
+    return math.max(0, math.min(ratio, 1))
+  else
+    -- For plain text, character position is accurate
+    local total_len = #self.text
+    local ratio = (last_pos - 1) / total_len
+    return math.max(0, math.min(ratio, 1))
+  end
+end
+
 function ChatGPTViewer:onShow()
   UIManager:setDirty(self, function()
     return "partial", self.frame.dimen
   end)
-  
-  -- Schedule scroll to bottom if requested
-  if self.scroll_to_bottom then
+
+  -- Schedule scroll after widget renders
+  if self.scroll_to_last_question then
+    UIManager:scheduleIn(0.1, function()
+      if self.scroll_text_w then
+        local ratio = self:calculateLastQuestionRatio()
+        if self.scroll_text_w.scrollToRatio then
+          self.scroll_text_w:scrollToRatio(ratio)
+        elseif self.scroll_text_w.scrollToBottom and ratio >= 0.9 then
+          self.scroll_text_w:scrollToBottom()
+        end
+      end
+    end)
+  elseif self.scroll_to_bottom then
     UIManager:scheduleIn(0.1, function()
       if self.scroll_text_w then
         if self.render_markdown then
@@ -1729,7 +1797,7 @@ function ChatGPTViewer:onShow()
       end
     end)
   end
-  
+
   return true
 end
 
@@ -2060,17 +2128,17 @@ end
 function ChatGPTViewer:toggleMarkdown()
   -- Toggle markdown rendering
   self.render_markdown = not self.render_markdown
-  
+
   -- Update configuration
   if self.configuration.features then
     self.configuration.features.render_markdown = self.render_markdown
   end
-  
+
   -- Save to settings if available
   if self.settings_callback then
     self.settings_callback("features.render_markdown", self.render_markdown)
   end
-  
+
   -- Rebuild the scroll widget with new rendering mode
   local textw_height = self.textw:getSize().h
   
@@ -2130,6 +2198,25 @@ function ChatGPTViewer:toggleMarkdown()
   UIManager:setDirty(self, function()
     return "ui", self.frame.dimen
   end)
+
+  -- Restore scroll position after widget re-renders if setting explicitly enabled
+  if self.configuration and self.configuration.features and self.configuration.features.scroll_to_last_message == true then
+    UIManager:scheduleIn(0.2, function()
+      if self.scroll_text_w then
+        local ratio = self:calculateLastQuestionRatio()
+        if ratio > 0 then
+          -- ScrollHtmlWidget has scrollToRatio, ScrollTextWidget has scrollToBottom
+          -- Use same approach as onShow: ratio-based for HTML, bottom fallback for text
+          if self.scroll_text_w.scrollToRatio then
+            self.scroll_text_w:scrollToRatio(ratio)
+          elseif ratio >= 0.9 and self.scroll_text_w.scrollToBottom then
+            self.scroll_text_w:scrollToBottom()
+          end
+          UIManager:setDirty(self, "ui")
+        end
+      end
+    end)
+  end
 end
 
 function ChatGPTViewer:saveToNote()

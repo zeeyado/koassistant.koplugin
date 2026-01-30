@@ -221,6 +221,14 @@ local SettingsSchema = {
                     precision = "%d",
                     info_text = _("How often to refresh the display during streaming.\nHigher = better performance on slower devices."),
                     depends_on = { id = "enable_streaming", value = true },
+                },
+                {
+                    id = "scroll_to_last_message",
+                    type = "toggle",
+                    text = _("Scroll to Last Message (Experimental)"),
+                    path = "features.scroll_to_last_message",
+                    default = false,
+                    help_text = _("When resuming or replying to a chat, try to scroll so your last question is visible. When off, shows top for new chats and bottom for replies."),
                     separator = true,
                 },
                 -- Export settings
