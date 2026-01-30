@@ -1045,7 +1045,11 @@ Chat History → hamburger menu → **View by Domain**
 - Tap a provider to enter, view (masked), or clear its key
 
 ### Display Settings
-- **Render Markdown**: Format responses with styling (bold, lists, etc.)
+- **View Mode**: Choose between Markdown (formatted) or Plain Text display
+  - **Markdown**: Full formatting with bold, lists, headers, etc. (default)
+  - **Plain Text**: Better font support for Arabic, CJK, Hebrew, and other non-Latin scripts
+- **Plain Text Options**: Settings for Plain Text mode
+  - **Apply Markdown Stripping**: Convert markdown syntax to readable plain text (headers become `━━ Title ━━`, lists become `•`, etc.). Disable to show raw markdown. (default: on)
 - **Hide Highlighted Text**: Don't show selection in responses
 - **Hide Long Highlights**: Collapse highlights over character threshold
 - **Long Highlight Threshold**: Character limit before collapsing (default: 280)
