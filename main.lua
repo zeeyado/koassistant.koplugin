@@ -898,6 +898,40 @@ function AskGPT:onDispatcherRegisterActions()
     separator = true
   })
 
+  -- Register user-configured action gestures
+  -- These are toggled per-action in Action Manager → hold action → "Add to Gesture Menu"
+  local features = self.settings and self.settings:readSetting("features") or {}
+  local gesture_actions = features.gesture_actions or {}
+
+  for action_key, _enabled in pairs(gesture_actions) do
+    -- Parse "context:id" format
+    local context, action_id = action_key:match("^([^:]+):(.+)$")
+    if context and action_id and self.action_service then
+      local action = self.action_service:getAction(context, action_id)
+      if action then
+        local gesture_id = "koassistant_action_" .. context .. "_" .. action_id
+        local event_name = "KOAssistantAction_" .. context .. "_" .. action_id
+
+        Dispatcher:registerAction(gesture_id, {
+          category = "none",
+          event = event_name,
+          title = _("KOAssistant: ") .. (action.text or action_id),
+          general = true,
+          reader = (context == "book" or context == "book+general"),
+        })
+
+        -- Dynamically create handler using closure
+        AskGPT["on" .. event_name] = function(self_ref)
+          self_ref:executeConfigurableAction(context, action_id)
+          return true
+        end
+        logger.dbg("KOAssistant: Registered action gesture:", gesture_id)
+      else
+        logger.dbg("KOAssistant: Skipping gesture for missing action:", context, action_id)
+      end
+    end
+  end
+
   logger.info("KOAssistant: Dispatcher actions registered successfully")
 end
 
@@ -3177,6 +3211,70 @@ function AskGPT:executeBookLevelAction(action_id)
       self.ui,
       action,
       nil,  -- No highlighted text for book-level actions
+      config_copy,
+      self
+    )
+  end)
+end
+
+--- Execute a configurable action gesture (routes to context-specific handler)
+--- @param context string: The action context ("book", "general", or "book+general")
+--- @param action_id string: The action ID
+function AskGPT:executeConfigurableAction(context, action_id)
+  -- For compound contexts like "book+general", check if we have a book open
+  -- and route to book context if so, otherwise general
+  if context == "book+general" then
+    if self.ui and self.ui.document then
+      self:executeBookLevelAction(action_id)
+    else
+      self:executeGeneralAction(action_id)
+    end
+  elseif context == "book" then
+    self:executeBookLevelAction(action_id)
+  elseif context == "general" then
+    self:executeGeneralAction(action_id)
+  else
+    UIManager:show(InfoMessage:new{
+      icon = "notice-warning",
+      text = T(_("Unknown action context: %1"), context)
+    })
+  end
+end
+
+--- Execute a general context action (no book required)
+--- @param action_id string: The action ID
+function AskGPT:executeGeneralAction(action_id)
+  -- Get the action from ActionService instance
+  local action = self.action_service:getAction("general", action_id)
+  if not action then
+    -- Also try book+general compound context
+    action = self.action_service:getAction("book+general", action_id)
+  end
+  if not action then
+    UIManager:show(InfoMessage:new{
+      icon = "notice-warning",
+      text = T(_("Action '%1' not found"), action_id)
+    })
+    return
+  end
+
+  -- Build config for general context
+  local config_copy = {}
+  for k, v in pairs(configuration or {}) do
+    config_copy[k] = v
+  end
+  config_copy.features = config_copy.features or {}
+  for k, v in pairs((configuration or {}).features or {}) do
+    config_copy.features[k] = v
+  end
+  config_copy.features.is_general_context = true
+
+  -- Execute the action
+  NetworkMgr:runWhenOnline(function()
+    Dialogs.executeDirectAction(
+      self.ui,
+      action,
+      nil,  -- No highlighted text for general actions
       config_copy,
       self
     )
