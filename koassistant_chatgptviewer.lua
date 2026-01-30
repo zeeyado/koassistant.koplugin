@@ -44,8 +44,15 @@ local UIConstants = require("koassistant_ui.constants")
 -- Strip markdown syntax for text mode (preserves readability without formatting)
 -- Used when render_markdown is false - converts markdown to plain text with visual hints
 -- Uses universal symbols that work for ALL scripts (Arabic, CJK, Hebrew, etc.)
+-- Uses PTF (Poor Text Formatting) for bold text - TextBoxWidget renders these as actual bold
 local function stripMarkdown(text)
     if not text then return "" end
+
+    -- PTF (Poor Text Formatting) markers - TextBoxWidget interprets these as bold
+    -- See frontend/ui/widget/textboxwidget.lua in KOReader
+    local PTF_HEADER = "\u{FFF1}"      -- Put at start to signal PTF is in use
+    local PTF_BOLD_START = "\u{FFF2}"  -- Start a bold sequence
+    local PTF_BOLD_END = "\u{FFF3}"    -- End a bold sequence
 
     local result = text
 
@@ -66,6 +73,7 @@ local function stripMarkdown(text)
 
     -- Headers: Use Wikipedia-style hierarchical symbols (works for all scripts)
     -- Symbols from KOReader's Wikipedia plugin (wikipedia.lua)
+    -- Header text is bolded using PTF markers for emphasis
     local header_symbols = {
         "█",   -- H1: Full Block (U+2588)
         "▉",   -- H2: Seven Eighths Block (U+2589)
@@ -80,11 +88,13 @@ local function stripMarkdown(text)
         if hashes and content and #content > 0 then
             local level = math.min(#hashes, 6)
             local symbol = header_symbols[level]
+            -- Bold the header text for emphasis
+            local bold_content = PTF_BOLD_START .. content .. PTF_BOLD_END
             -- H3+ get slight indent for hierarchy
             if level >= 3 then
-                table.insert(lines, " " .. symbol .. " " .. content)
+                table.insert(lines, " " .. symbol .. " " .. bold_content)
             else
-                table.insert(lines, symbol .. " " .. content)
+                table.insert(lines, symbol .. " " .. bold_content)
             end
         else
             table.insert(lines, line)
@@ -92,18 +102,19 @@ local function stripMarkdown(text)
     end
     result = table.concat(lines, "\n")
 
-    -- Emphasis: Remove all markers (TextBoxWidget can't render bold/italic anyway)
+    -- Emphasis: Convert to PTF bold markers (TextBoxWidget renders these as actual bold!)
     -- Order matters: bold-italic first, then bold, then italic
+    -- Italic becomes plain text (no italic support in PTF)
 
-    -- Bold-italic: ***text*** or ___text___ → text
-    result = result:gsub("%*%*%*(.-)%*%*%*", "%1")
-    result = result:gsub("___(.-)___", "%1")
+    -- Bold-italic: ***text*** or ___text___ → bold text (no italic in PTF)
+    result = result:gsub("%*%*%*(.-)%*%*%*", PTF_BOLD_START .. "%1" .. PTF_BOLD_END)
+    result = result:gsub("___(.-)___", PTF_BOLD_START .. "%1" .. PTF_BOLD_END)
 
-    -- Bold: **text** or __text__ → text
-    result = result:gsub("%*%*(.-)%*%*", "%1")
-    result = result:gsub("__(.-)__", "%1")
+    -- Bold: **text** or __text__ → bold text
+    result = result:gsub("%*%*(.-)%*%*", PTF_BOLD_START .. "%1" .. PTF_BOLD_END)
+    result = result:gsub("__(.-)__", PTF_BOLD_START .. "%1" .. PTF_BOLD_END)
 
-    -- Italic: *text* or _text_ → text
+    -- Italic: *text* or _text_ → plain text (no italic support in PTF)
     -- Be careful not to match list items (* item) or underscores in words
     result = result:gsub("(%s)%*([^%*\n]+)%*", "%1%2")
     result = result:gsub("^%*([^%*\n]+)%*", "%1")
@@ -136,7 +147,8 @@ local function stripMarkdown(text)
     -- Clean up multiple blank lines
     result = result:gsub("\n\n\n+", "\n\n")
 
-    return result
+    -- Add PTF header at start to signal TextBoxWidget to interpret PTF markers
+    return PTF_HEADER .. result
 end
 
 -- Show link options dialog (matches KOReader's ReaderLink external link dialog)
