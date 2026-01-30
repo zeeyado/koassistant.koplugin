@@ -41,6 +41,96 @@ local MD = require("apps/filemanager/lib/md")
 local SpinWidget = require("ui/widget/spinwidget")
 local UIConstants = require("koassistant_ui.constants")
 
+-- Strip markdown syntax for text mode (preserves readability without formatting)
+-- Used when render_markdown is false - converts markdown to plain text with visual hints
+-- Uses universal symbols that work for ALL scripts (Arabic, CJK, Hebrew, etc.)
+local function stripMarkdown(text)
+    if not text then return "" end
+
+    local result = text
+
+    -- Code blocks FIRST (before other transformations can affect content inside)
+    -- ```lang\ncode\n``` → indented with 4 spaces
+    result = result:gsub("```[^\n]*\n(.-)```", function(code)
+        -- Indent each line
+        local indented = code:gsub("([^\n]+)", "    %1")
+        return "\n" .. indented
+    end)
+
+    -- Inline code: `code` → 'code'
+    result = result:gsub("`([^`]+)`", "'%1'")
+
+    -- Tables: Remove separator rows (|---|---|), keep header and data rows
+    -- Separator rows contain only |, -, :, and whitespace
+    result = result:gsub("\n%s*|[%s%-:]+|[%s%-:|]*\n", "\n")
+
+    -- Headers: Use universal symbols (works for all scripts including Arabic, CJK)
+    -- # H1 or ## H2 → ━━ Header ━━
+    -- ### H3+ → ▸ Header:
+    local lines = {}
+    for line in result:gmatch("([^\n]*)\n?") do
+        local hashes, content = line:match("^(#+)%s*(.-)%s*$")
+        if hashes and content and #content > 0 then
+            if #hashes <= 2 then
+                -- H1/H2: Decorative lines around text
+                table.insert(lines, "━━ " .. content .. " ━━")
+            else
+                -- H3+: Bullet prefix with colon
+                table.insert(lines, "▸ " .. content .. ":")
+            end
+        else
+            table.insert(lines, line)
+        end
+    end
+    result = table.concat(lines, "\n")
+
+    -- Emphasis: Remove all markers (TextBoxWidget can't render bold/italic anyway)
+    -- Order matters: bold-italic first, then bold, then italic
+
+    -- Bold-italic: ***text*** or ___text___ → text
+    result = result:gsub("%*%*%*(.-)%*%*%*", "%1")
+    result = result:gsub("___(.-)___", "%1")
+
+    -- Bold: **text** or __text__ → text
+    result = result:gsub("%*%*(.-)%*%*", "%1")
+    result = result:gsub("__(.-)__", "%1")
+
+    -- Italic: *text* or _text_ → text
+    -- Be careful not to match list items (* item) or underscores in words
+    result = result:gsub("(%s)%*([^%*\n]+)%*", "%1%2")
+    result = result:gsub("^%*([^%*\n]+)%*", "%1")
+    -- For underscores, only match when surrounded by spaces or at word boundaries
+    result = result:gsub("(%s)_([^_\n]+)_(%s)", "%1%2%3")
+    result = result:gsub("^_([^_\n]+)_(%s)", "%1%2")
+    result = result:gsub("(%s)_([^_\n]+)_$", "%1%2")
+
+    -- Blockquotes: > text → │ text (box drawing character)
+    result = result:gsub("\n>%s*", "\n│ ")
+    result = result:gsub("^>%s*", "│ ")
+
+    -- Unordered lists: - item or * item → • item
+    result = result:gsub("\n[%-]%s+", "\n• ")
+    result = result:gsub("^[%-]%s+", "• ")
+    -- For * lists, only at start of line (not mid-line asterisks)
+    result = result:gsub("\n%*%s+", "\n• ")
+
+    -- Horizontal rules: --- or *** or ___ → line
+    result = result:gsub("\n%-%-%-+%s*\n", "\n──────────\n")
+    result = result:gsub("\n%*%*%*+%s*\n", "\n──────────\n")
+    result = result:gsub("\n___+%s*\n", "\n──────────\n")
+
+    -- Images: ![alt](url) → [Image: alt]
+    result = result:gsub("!%[([^%]]*)%]%([^)]+%)", "[Image: %1]")
+
+    -- Links: [text](url) → text
+    result = result:gsub("%[([^%]]+)%]%([^)]+%)", "%1")
+
+    -- Clean up multiple blank lines
+    result = result:gsub("\n\n\n+", "\n\n")
+
+    return result
+end
+
 -- Show link options dialog (matches KOReader's ReaderLink external link dialog)
 local link_dialog  -- Forward declaration for closures
 local function showLinkDialog(link_url)
@@ -458,6 +548,7 @@ local ChatGPTViewer = InputContainer:extend {
   alignment = "left",
   justified = true,
   render_markdown = true, -- Convert markdown to HTML for display
+  strip_markdown_in_text_mode = true, -- Strip markdown syntax in plain text mode
   markdown_font_size = 20, -- Font size for markdown rendering
   text_align = "justify", -- Text alignment for markdown: "justify" or "left"
   lang = nil,
@@ -873,6 +964,9 @@ function ChatGPTViewer:init()
   -- Use configuration setting if present, otherwise use instance setting
   if self.configuration.features and self.configuration.features.render_markdown ~= nil then
     self.render_markdown = self.configuration.features.render_markdown
+  end
+  if self.configuration.features and self.configuration.features.strip_markdown_in_text_mode ~= nil then
+    self.strip_markdown_in_text_mode = self.configuration.features.strip_markdown_in_text_mode
   end
   if self.configuration.features and self.configuration.features.markdown_font_size then
     self.markdown_font_size = self.configuration.features.markdown_font_size
@@ -1460,9 +1554,10 @@ function ChatGPTViewer:init()
       html_link_tapped_callback = handleLinkTap,
     }
   else
-    -- If not rendering Markdown, use the text as is
+    -- If not rendering Markdown, optionally strip markdown syntax for cleaner display
+    local display_text = self.strip_markdown_in_text_mode and stripMarkdown(self.text) or self.text
     self.scroll_text_w = ScrollTextWidget:new {
-      text = self.text,
+      text = display_text,
       face = self.text_face,
       fgcolor = self.fgcolor,
       width = self.width - 2 * self.text_padding - 2 * self.text_margin,
@@ -1878,9 +1973,10 @@ function ChatGPTViewer:update(new_text, scroll_to_bottom)
       end)
     end
   else
-    -- For plain text, recreate the widget with new text
+    -- For plain text, optionally strip markdown and recreate widget
+    local display_text = self.strip_markdown_in_text_mode and stripMarkdown(new_text) or new_text
     self.scroll_text_w = ScrollTextWidget:new {
-      text = new_text,
+      text = display_text,
       face = self.text_face,
       fgcolor = self.fgcolor,
       width = self.width - 2 * self.text_padding - 2 * self.text_margin,
@@ -1980,9 +2076,10 @@ function ChatGPTViewer:toggleMarkdown()
       html_link_tapped_callback = handleLinkTap,
     }
   else
-    -- Convert to plain text
+    -- Convert to plain text with optional markdown stripping
+    local display_text = self.strip_markdown_in_text_mode and stripMarkdown(self.text) or self.text
     self.scroll_text_w = ScrollTextWidget:new {
-      text = self.text,
+      text = display_text,
       face = self.text_face,
       fgcolor = self.fgcolor,
       width = self.width - 2 * self.text_padding - 2 * self.text_margin,
@@ -2132,8 +2229,10 @@ function ChatGPTViewer:toggleTranslateQuoteVisibility()
       html_link_tapped_callback = handleLinkTap,
     }
   else
+    -- Plain text mode with optional markdown stripping
+    local display_text = self.strip_markdown_in_text_mode and stripMarkdown(self.text) or self.text
     self.scroll_text_w = ScrollTextWidget:new {
-      text = self.text,
+      text = display_text,
       face = self.text_face,
       fgcolor = self.fgcolor,
       width = self.scroll_text_w.width,
