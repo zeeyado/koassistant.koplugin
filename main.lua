@@ -762,30 +762,23 @@ function AskGPT:onDispatcherRegisterActions()
     general = true
   })
 
-  -- Book-level reading features (X-Ray, Recap, Analyze Highlights)
-  Dispatcher:registerAction("koassistant_xray", {
-    category = "none",
-    event = "KOAssistantXRay",
-    title = _("KOAssistant: X-Ray"),
-    general = true,
-    reader = true,
-  })
+  -- Book-level reading features (dynamically from in_reading_features flag)
+  -- Actions with this flag are automatically registered as gestures
+  local reading_actions = self.action_service:getReadingFeaturesActions()
+  for _i, action in ipairs(reading_actions) do
+    -- Generate gesture ID and event name from action ID
+    -- e.g., "xray" -> "koassistant_xray", "KOAssistantXRay"
+    local gesture_id = "koassistant_" .. action.id
+    local event_name = "KOAssistant" .. action.id:gsub("_(%l)", function(c) return c:upper() end):gsub("^%l", string.upper)
 
-  Dispatcher:registerAction("koassistant_recap", {
-    category = "none",
-    event = "KOAssistantRecap",
-    title = _("KOAssistant: Recap"),
-    general = true,
-    reader = true,
-  })
-
-  Dispatcher:registerAction("koassistant_analyze_highlights", {
-    category = "none",
-    event = "KOAssistantAnalyzeHighlights",
-    title = _("KOAssistant: Analyze Highlights"),
-    general = true,
-    reader = true,
-  })
+    Dispatcher:registerAction(gesture_id, {
+      category = "none",
+      event = event_name,
+      title = T(_("KOAssistant: %1"), action.text),
+      general = true,
+      reader = true,
+    })
+  end
 
   -- Register settings change actions (for gestures)
   Dispatcher:registerAction("koassistant_change_primary_language", {
@@ -1433,6 +1426,32 @@ function AskGPT:getEffectiveDefaultModel(provider)
   end
 
   return nil
+end
+
+-- Helper: Build reading features sub-menu dynamically from actions with in_reading_features flag
+-- Used by settings schema - items are built at runtime from action definitions
+function AskGPT:buildReadingFeaturesMenu()
+  local self_ref = self
+  local items = {}
+
+  -- Get reading features actions from action service
+  local reading_actions = self.action_service:getReadingFeaturesActions()
+
+  for _i, action in ipairs(reading_actions) do
+    -- Map action ID to callback name (e.g., "xray" -> "onKOAssistantXRay")
+    -- Capitalize first letter and handle underscores (e.g., "analyze_highlights" -> "AnalyzeHighlights")
+    local callback_name = "onKOAssistant" .. action.id:gsub("_(%l)", function(c) return c:upper() end):gsub("^%l", string.upper)
+
+    table.insert(items, {
+      text = action.text,
+      info_text = action.info_text,
+      callback = function()
+        self_ref:executeBookLevelAction(action.id)
+      end,
+    })
+  end
+
+  return items
 end
 
 -- Helper: Build provider selection sub-menu
