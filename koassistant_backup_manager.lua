@@ -3,6 +3,8 @@ local LuaSettings = require("luasettings")
 local logger = require("logger")
 local lfs = require("libs/libkoreader-lfs")
 local _ = require("koassistant_gettext")
+local DocSettings = require("docsettings")
+local JSON = require("json")
 
 -- Get plugin directory by normalizing the path
 local function getPluginDir()
@@ -666,20 +668,43 @@ function BackupManager:_countItems(options)
     -- Count chats
     if options.include_chats then
         local total_chats = 0
-        if lfs.attributes(self.CHAT_DIR, "mode") == "directory" then
-            for doc_hash in lfs.dir(self.CHAT_DIR) do
-                if doc_hash ~= "." and doc_hash ~= ".." then
-                    local doc_dir = self.CHAT_DIR .. "/" .. doc_hash
-                    if lfs.attributes(doc_dir, "mode") == "directory" then
-                        for entry in lfs.dir(doc_dir) do
-                            if entry ~= "." and entry ~= ".." and not entry:match("%.old$") then
-                                total_chats = total_chats + 1
+
+        local ChatHistoryManager = require("koassistant_chat_history_manager")
+        local chat_manager = ChatHistoryManager:new()
+
+        if chat_manager:useDocSettingsStorage() then
+            -- v2: Count from chat index and general chats
+            local chat_index = chat_manager:getChatIndex()
+
+            for doc_path, info in pairs(chat_index) do
+                total_chats = total_chats + (info.count or 0)
+            end
+
+            -- Add general chats
+            local general_chats = chat_manager:getGeneralChats()
+            total_chats = total_chats + #general_chats
+
+            logger.dbg("BackupManager: Counted", total_chats, "chats (v2 storage)")
+        else
+            -- v1: Count from CHAT_DIR directory
+            if lfs.attributes(self.CHAT_DIR, "mode") == "directory" then
+                for doc_hash in lfs.dir(self.CHAT_DIR) do
+                    if doc_hash ~= "." and doc_hash ~= ".." then
+                        local doc_dir = self.CHAT_DIR .. "/" .. doc_hash
+                        if lfs.attributes(doc_dir, "mode") == "directory" then
+                            for entry in lfs.dir(doc_dir) do
+                                if entry ~= "." and entry ~= ".." and not entry:match("%.old$") then
+                                    total_chats = total_chats + 1
+                                end
                             end
                         end
                     end
                 end
             end
+
+            logger.dbg("BackupManager: Counted", total_chats, "chats (v1 storage)")
         end
+
         counts.chats = total_chats
     end
 
@@ -709,6 +734,74 @@ function BackupManager:_countItems(options)
     end
 
     return counts
+end
+
+-- Export all chats to a table structure (for v2 JSON backup)
+-- Returns a table mapping document paths to their chats and metadata
+function BackupManager:exportAllChatsToTable()
+    local ChatHistoryManager = require("koassistant_chat_history_manager")
+    local chat_manager = ChatHistoryManager:new()
+
+    -- Check if using DocSettings storage
+    if not chat_manager:useDocSettingsStorage() then
+        logger.warn("BackupManager: exportAllChatsToTable called but not using v2 storage")
+        return {}
+    end
+
+    local all_chats = {}
+
+    -- Read chat index to find all documents with chats
+    local chat_index = chat_manager:getChatIndex()
+
+    -- Export document chats
+    for doc_path, index_info in pairs(chat_index) do
+        -- Check if document still exists
+        if lfs.attributes(doc_path, "mode") then
+            local success, doc_settings = pcall(DocSettings.open, doc_path)
+            if success and doc_settings then
+                local chats = doc_settings:readSetting("koassistant_chats", {})
+
+                if next(chats) then
+                    -- Get book metadata
+                    local doc_props = doc_settings:readSetting("doc_props") or {}
+
+                    all_chats[doc_path] = {
+                        chats = chats,
+                        book_title = doc_props.title or "",
+                        book_author = doc_props.authors or "",
+                        chat_count = index_info.count or 0,
+                    }
+
+                    logger.dbg("BackupManager: Exported", index_info.count, "chats from", doc_path)
+                end
+            else
+                logger.warn("BackupManager: Could not open DocSettings for", doc_path)
+            end
+        else
+            logger.dbg("BackupManager: Skipping missing document", doc_path)
+        end
+    end
+
+    -- Export general chats (chats not tied to a specific document)
+    local general_chats = chat_manager:getGeneralChats()
+    if #general_chats > 0 then
+        -- Convert array to table keyed by ID (matching DocSettings format)
+        local general_chats_table = {}
+        for _, chat in ipairs(general_chats) do
+            general_chats_table[chat.id] = chat
+        end
+
+        all_chats["__GENERAL_CHATS__"] = {
+            chats = general_chats_table,
+            book_title = "",
+            book_author = "",
+            chat_count = #general_chats,
+        }
+
+        logger.dbg("BackupManager: Exported", #general_chats, "general chats")
+    end
+
+    return all_chats
 end
 
 -- Create backup
@@ -853,21 +946,61 @@ function BackupManager:createBackup(options)
         end
     end
 
-    -- Copy chat history
+    -- Backup chat history
     if options.include_chats then
-        if lfs.attributes(self.CHAT_DIR, "mode") == "directory" then
-            local dest_chats = temp_dir .. "/chats"
-            local success, err_msg = self:_copyDirectory(self.CHAT_DIR, dest_chats, function(entry, path)
-                -- Skip .old backup files
-                return not entry:match("%.old$")
-            end)
-            if not success then
-                -- Clean up and return error
-                self:_removeTempDir(temp_dir)
-                if not options.skip_lock then
-                    self:_releaseLock()
+        local ChatHistoryManager = require("koassistant_chat_history_manager")
+        local chat_manager = ChatHistoryManager:new()
+
+        if chat_manager:useDocSettingsStorage() then
+            -- v2: Export chats to JSON
+            local all_chats = self:exportAllChatsToTable()
+
+            if next(all_chats) then
+                local json_path = temp_dir .. "/koassistant_chats.json"
+                local success, json_string = pcall(JSON.encode, all_chats)
+
+                if not success then
+                    self:_removeTempDir(temp_dir)
+                    if not options.skip_lock then
+                        self:_releaseLock()
+                    end
+                    return { success = false, error = "Failed to encode chats to JSON: " .. tostring(json_string) }
                 end
-                return { success = false, error = err_msg }
+
+                local file = io.open(json_path, "w")
+                if not file then
+                    self:_removeTempDir(temp_dir)
+                    if not options.skip_lock then
+                        self:_releaseLock()
+                    end
+                    return { success = false, error = "Failed to create chat JSON file" }
+                end
+
+                file:write(json_string)
+                file:close()
+
+                logger.info("BackupManager: Exported chats to JSON (v2 storage)")
+            else
+                logger.info("BackupManager: No chats to backup (v2 storage)")
+            end
+        else
+            -- v1: Copy legacy CHAT_DIR directory
+            if lfs.attributes(self.CHAT_DIR, "mode") == "directory" then
+                local dest_chats = temp_dir .. "/chats"
+                local success, err_msg = self:_copyDirectory(self.CHAT_DIR, dest_chats, function(entry, path)
+                    -- Skip .old backup files
+                    return not entry:match("%.old$")
+                end)
+                if not success then
+                    -- Clean up and return error
+                    self:_removeTempDir(temp_dir)
+                    if not options.skip_lock then
+                        self:_releaseLock()
+                    end
+                    return { success = false, error = err_msg }
+                end
+
+                logger.info("BackupManager: Backed up chats directory (v1 storage)")
             end
         end
     end
@@ -1134,6 +1267,84 @@ function BackupManager:createRestorePoint()
     }
 end
 
+-- Restore chats from JSON backup (v2 storage)
+-- @param json_path Path to koassistant_chats.json file
+-- @param merge_mode If true, merge with existing chats; if false, replace
+-- @return success, error_message
+function BackupManager:restoreChatsFromJSON(json_path, merge_mode)
+    local ChatHistoryManager = require("koassistant_chat_history_manager")
+    local chat_manager = ChatHistoryManager:new()
+
+    -- Read JSON file
+    local file = io.open(json_path, "r")
+    if not file then
+        return false, "Failed to open chat JSON file: " .. json_path
+    end
+
+    local content = file:read("*all")
+    file:close()
+
+    -- Decode JSON
+    local success, all_chats = pcall(JSON.decode, content)
+    if not success then
+        return false, "Failed to decode chat JSON: " .. tostring(all_chats)
+    end
+
+    local restored_count = 0
+    local skipped_count = 0
+
+    -- Restore chats for each document
+    for doc_path, data in pairs(all_chats) do
+        if doc_path == "__GENERAL_CHATS__" then
+            -- Restore general chats
+            local settings = LuaSettings:open(chat_manager.GENERAL_CHAT_FILE)
+            local existing_chats = merge_mode and settings:readSetting("chats", {}) or {}
+
+            -- Merge or replace
+            for chat_id, chat_data in pairs(data.chats) do
+                existing_chats[chat_id] = chat_data
+                restored_count = restored_count + 1
+            end
+
+            settings:saveSetting("chats", existing_chats)
+            settings:flush()
+
+            logger.info("BackupManager: Restored", data.chat_count, "general chats")
+        else
+            -- Restore document-specific chats
+            -- Check if document exists
+            if lfs.attributes(doc_path, "mode") then
+                local doc_settings = DocSettings:open(doc_path)
+
+                -- Get existing chats (for merge mode)
+                local existing_chats = merge_mode and doc_settings:readSetting("koassistant_chats", {}) or {}
+
+                -- Merge or replace
+                for chat_id, chat_data in pairs(data.chats) do
+                    existing_chats[chat_id] = chat_data
+                    restored_count = restored_count + 1
+                end
+
+                -- Save back to doc_settings
+                doc_settings:saveSetting("koassistant_chats", existing_chats)
+                doc_settings:flush()
+
+                -- Update chat index
+                chat_manager:updateChatIndex(doc_path, "restore", nil, existing_chats)
+
+                logger.info("BackupManager: Restored", data.chat_count, "chats to", doc_path)
+            else
+                -- Document doesn't exist on this device, skip
+                logger.warn("BackupManager: Skipping chats for missing document:", doc_path)
+                skipped_count = skipped_count + (data.chat_count or 0)
+            end
+        end
+    end
+
+    logger.info("BackupManager: Restored", restored_count, "chats,", skipped_count, "skipped (missing documents)")
+    return true, nil
+end
+
 -- Restore from backup (with atomic rollback on failure)
 function BackupManager:restoreBackup(backup_path, options)
     options = options or {}
@@ -1375,8 +1586,23 @@ function BackupManager:restoreBackup(backup_path, options)
 
     -- Restore chat history
     if options.restore_chats and manifest.contents.chats then
-        local backup_chats = temp_dir .. "/chats"
-        if lfs.attributes(backup_chats, "mode") == "directory" then
+        -- Detect backup format: JSON (v2) or directory (v1)
+        local json_path = temp_dir .. "/koassistant_chats.json"
+        local backup_chats_dir = temp_dir .. "/chats"
+
+        if lfs.attributes(json_path, "mode") == "file" then
+            -- v2: JSON backup - restore to DocSettings
+            logger.info("BackupManager: Restoring chats from JSON (v2 format)")
+
+            local success, err_msg = self:restoreChatsFromJSON(json_path, options.merge_mode)
+            if not success then
+                logger.err("BackupManager: Failed to restore chats from JSON:", err_msg)
+                table.insert(warnings, "Failed to restore some chats: " .. (err_msg or "unknown error"))
+            end
+        elseif lfs.attributes(backup_chats_dir, "mode") == "directory" then
+            -- v1: Legacy directory backup - restore to CHAT_DIR
+            logger.info("BackupManager: Restoring chats from directory (v1 format)")
+
             if not options.merge_mode then
                 -- Replace mode: clear existing chats first
                 if lfs.attributes(self.CHAT_DIR, "mode") == "directory" then
@@ -1386,7 +1612,10 @@ function BackupManager:restoreBackup(backup_path, options)
                     end
                 end
             end
-            self:_copyDirectory(backup_chats, self.CHAT_DIR)
+
+            self:_copyDirectory(backup_chats_dir, self.CHAT_DIR)
+        else
+            logger.warn("BackupManager: No chat backup found in archive (neither JSON nor directory)")
         end
     end
 

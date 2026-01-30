@@ -497,7 +497,7 @@ function ChatHistoryDialog:showChatHistoryBrowser(ui, current_document_path, cha
     }
 
     -- Get all documents that have chats
-    local documents = chat_history_manager:getAllDocuments()
+    local documents = chat_history_manager:getAllDocumentsUnified(ui)
 
     if #documents == 0 then
         UIManager:show(InfoMessage:new{
@@ -526,7 +526,7 @@ function ChatHistoryDialog:showChatHistoryBrowser(ui, current_document_path, cha
     for doc_idx, doc in ipairs(documents) do
         logger.info("Chat history: Document - title: " .. (doc.title or "nil") .. ", author: " .. (doc.author or "nil"))
 
-        local chats = chat_history_manager:getChatsForDocument(doc.path)
+        local chats = chat_history_manager:getChatsUnified(ui, doc.path)
         local chat_count = #chats
 
         local latest_timestamp = 0
@@ -613,7 +613,7 @@ function ChatHistoryDialog:showChatsForDocument(ui, document, chat_history_manag
     nav_context.level = "chats"
     nav_context.current_document = document
 
-    local chats = chat_history_manager:getChatsForDocument(document.path)
+    local chats = chat_history_manager:getChatsUnified(ui, document.path)
 
     if #chats == 0 then
         UIManager:show(InfoMessage:new{
@@ -1330,7 +1330,37 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
 
                 -- Auto-save continued chats
                 if config.features.auto_save_all_chats or (config.features.auto_save_chats ~= false) then
-                    local save_ok = chat_history_manager:saveChat(document_path, chat.title, history, {id = chat.id})
+                    local save_ok
+                    -- Check storage version and route to appropriate method
+                    if chat_history_manager:useDocSettingsStorage() then
+                        -- v2: DocSettings-based storage
+                        local chat_data = {
+                            id = chat.id,
+                            title = chat.title,
+                            document_path = document_path,
+                            timestamp = os.time(),
+                            messages = history:getMessages(),
+                            model = history:getModel(),
+                            metadata = {id = chat.id},
+                            book_title = chat.book_title,
+                            book_author = chat.book_author,
+                            prompt_action = history.prompt_action,
+                            launch_context = chat.launch_context,
+                            domain = chat.domain,
+                            tags = chat.tags or {},
+                            original_highlighted_text = chat.original_highlighted_text,
+                        }
+
+                        if document_path == "__GENERAL_CHATS__" then
+                            save_ok = chat_history_manager:saveGeneralChat(chat_data)
+                        else
+                            save_ok = chat_history_manager:saveChatToDocSettings(ui, chat_data)
+                        end
+                    else
+                        -- v1: Legacy hash-based storage
+                        save_ok = chat_history_manager:saveChat(document_path, chat.title, history, {id = chat.id})
+                    end
+
                     if not save_ok then
                         logger.warn("KOAssistant: Failed to save updated chat")
                     end
@@ -1461,7 +1491,37 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
                         timeout = 2,
                     })
                 else
-                    local save_ok = chat_history_manager:saveChat(document_path, chat.title, history, {id = chat.id})
+                    local save_ok
+                    -- Check storage version and route to appropriate method
+                    if chat_history_manager:useDocSettingsStorage() then
+                        -- v2: DocSettings-based storage
+                        local chat_data = {
+                            id = chat.id,
+                            title = chat.title,
+                            document_path = document_path,
+                            timestamp = os.time(),
+                            messages = history:getMessages(),
+                            model = history:getModel(),
+                            metadata = {id = chat.id},
+                            book_title = chat.book_title,
+                            book_author = chat.book_author,
+                            prompt_action = history.prompt_action,
+                            launch_context = chat.launch_context,
+                            domain = chat.domain,
+                            tags = chat.tags or {},
+                            original_highlighted_text = chat.original_highlighted_text,
+                        }
+
+                        if document_path == "__GENERAL_CHATS__" then
+                            save_ok = chat_history_manager:saveGeneralChat(chat_data)
+                        else
+                            save_ok = chat_history_manager:saveChatToDocSettings(ui, chat_data)
+                        end
+                    else
+                        -- v1: Legacy hash-based storage
+                        save_ok = chat_history_manager:saveChat(document_path, chat.title, history, {id = chat.id})
+                    end
+
                     UIManager:show(InfoMessage:new{
                         text = save_ok and _("Chat saved") or _("Failed to save chat"),
                         timeout = 2,
@@ -1643,7 +1703,7 @@ function ChatHistoryDialog:confirmDeleteSimple(ui, document_path, chat_id, chat_
                 -- Schedule the reload with a small delay to let UI settle
                 UIManager:scheduleIn(0.1, function()
                     -- Check if there are any chats left for this document
-                    local remaining_chats = chat_history_manager:getChatsForDocument(document.path)
+                    local remaining_chats = chat_history_manager:getChatsUnified(ui, document.path)
                     if #remaining_chats == 0 then
                         -- No chats left, go back to document list
                         self_ref:showChatHistoryBrowser(ui, nil, chat_history_manager, config, nav_context)
@@ -1689,7 +1749,7 @@ function ChatHistoryDialog:confirmDeleteWithClose(ui, document_path, chat_id, ch
                 -- Schedule the reload AFTER a delay to let the close complete
                 UIManager:scheduleIn(0.2, function()
                     -- Check if there are any chats left for this document
-                    local remaining_chats = chat_history_manager:getChatsForDocument(document.path)
+                    local remaining_chats = chat_history_manager:getChatsUnified(ui, document.path)
                     if #remaining_chats == 0 then
                         -- No chats left, go back to document list
                         self_ref:showChatHistoryBrowser(ui, nil, chat_history_manager, config, nav_context)

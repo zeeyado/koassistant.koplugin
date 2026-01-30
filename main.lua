@@ -122,7 +122,10 @@ function AskGPT:init()
 
   -- Register dispatcher actions
   self:onDispatcherRegisterActions()
-  
+
+  -- Check if chat history migration is needed (v1 -> v2)
+  self:checkChatMigrationStatus()
+
   -- Add to highlight dialog if highlight feature is available
   if self.ui and self.ui.highlight then
     self.ui.highlight:addToHighlightDialog("koassistant_dialog", function(reader_highlight_instance)
@@ -5808,6 +5811,272 @@ function AskGPT:_showBackupActionsDialog(backup_manager, backup)
     },
   }
   UIManager:show(dialog)
+end
+
+--[[============================================================================
+    CHAT HISTORY MIGRATION (V1 -> V2)
+    ============================================================================
+
+    These methods handle the one-time migration from hash-based chat storage
+    to DocSettings-based storage. This fixes the critical bug where chat history
+    was lost when files were moved.
+
+    Migration process:
+    1. Check storage version on plugin init
+    2. Show migration dialog if version < 2
+    3. Scan old koassistant_chats/ directory
+    4. Group chats by document_path (stored inside each chat)
+    5. Save to each document's doc_settings or general chat file
+    6. Backup old directory to koassistant_chats.backup/
+    7. Mark migration complete (version = 2)
+--]]
+
+-- Check if chat history migration is needed
+function AskGPT:checkChatMigrationStatus()
+  local version = G_reader_settings:readSetting("chat_storage_version", 1)
+
+  -- Check if migration is already in progress
+  if G_reader_settings:readSetting("chat_migration_in_progress") then
+    logger.warn("Chat migration already in progress, skipping check")
+    return
+  end
+
+  if version < 2 then
+    -- Check if we have any old chats to migrate
+    local ChatHistoryManager = require("koassistant_chat_history_manager")
+    local old_dir = ChatHistoryManager.CHAT_DIR
+
+    if lfs.attributes(old_dir, "mode") then
+      logger.info("Chat storage needs migration from v1 to v2")
+      -- Show migration dialog after a short delay to ensure UI is ready
+      UIManager:scheduleIn(1, function()
+        self:showMigrationDialog()
+      end)
+    else
+      -- No old chats to migrate, just mark as v2
+      logger.info("No old chats found, marking storage as v2")
+      G_reader_settings:saveSetting("chat_storage_version", 2)
+      G_reader_settings:flush()
+    end
+  end
+end
+
+-- Show migration dialog to user
+function AskGPT:showMigrationDialog()
+  local ConfirmBox = require("ui/widget/confirmbox")
+  local confirm = ConfirmBox:new{
+    text = _([[Chat history storage needs to be upgraded to fix an issue where chats were lost when files were moved.
+
+This will migrate all existing chats to the new system. The process may take a few minutes for large libraries.
+
+Old chat files will be backed up to koassistant_chats.backup/]]),
+    ok_text = _("Migrate Now"),
+    cancel_text = _("Later"),
+    ok_callback = function()
+      self:migrateChatsToDocSettings()
+    end,
+    cancel_callback = function()
+      logger.info("User postponed chat migration")
+    end,
+  }
+  UIManager:show(confirm)
+end
+
+-- Migrate chats from hash directories to DocSettings
+function AskGPT:migrateChatsToDocSettings()
+  local ChatHistoryManager = require("koassistant_chat_history_manager")
+  local DocSettings = require("docsettings")
+  local InfoMessage = require("ui/widget/infomessage")
+  local T = require("ffi/util").template
+
+  -- Set migration lock
+  G_reader_settings:saveSetting("chat_migration_in_progress", true)
+  G_reader_settings:flush()
+
+  -- Track progress
+  local stats = {
+    total_chats = 0,
+    migrated = 0,
+    failed = 0,
+    skipped = 0,
+    errors = {},
+  }
+
+  -- Show progress dialog
+  local progress = InfoMessage:new{
+    text = _("Migrating chat history..."),
+  }
+  UIManager:show(progress)
+
+  -- Scan old directory structure
+  local old_dir = ChatHistoryManager.CHAT_DIR
+  if not lfs.attributes(old_dir, "mode") then
+    -- No old chats to migrate
+    G_reader_settings:saveSetting("chat_storage_version", 2)
+    G_reader_settings:delSetting("chat_migration_in_progress")
+    G_reader_settings:flush()
+    UIManager:close(progress)
+    UIManager:show(InfoMessage:new{
+      text = _("No old chats found to migrate"),
+      timeout = 3,
+    })
+    return
+  end
+
+  -- Group chats by document_path
+  local chats_by_document = {}
+
+  for doc_hash in lfs.dir(old_dir) do
+    if doc_hash ~= "." and doc_hash ~= ".." then
+      local doc_dir = old_dir .. "/" .. doc_hash
+      if lfs.attributes(doc_dir, "mode") == "directory" then
+        -- Read all chats in this directory
+        for filename in lfs.dir(doc_dir) do
+          if filename:match("%.lua$") and not filename:match("%.old$") then
+            local chat_path = doc_dir .. "/" .. filename
+            local chat = ChatHistoryManager:loadChat(chat_path)
+
+            if chat and chat.document_path then
+              stats.total_chats = stats.total_chats + 1
+
+              -- Group by document path
+              local doc_path = chat.document_path
+              if not chats_by_document[doc_path] then
+                chats_by_document[doc_path] = {}
+              end
+              table.insert(chats_by_document[doc_path], chat)
+            end
+          end
+        end
+      end
+    end
+  end
+
+  logger.info("Found " .. stats.total_chats .. " chats to migrate")
+
+  -- Migrate each document's chats
+  for doc_path, chats in pairs(chats_by_document) do
+    local success, err = pcall(function()
+      if doc_path == "__GENERAL_CHATS__" then
+        -- Migrate to general chat file
+        for _idx, chat in ipairs(chats) do
+          ChatHistoryManager:saveGeneralChat(chat)
+          stats.migrated = stats.migrated + 1
+        end
+        logger.info("Migrated " .. #chats .. " general chats")
+      else
+        -- Check if document still exists
+        if lfs.attributes(doc_path, "mode") then
+          -- Read existing chats from metadata.lua (if any)
+          local doc_settings = DocSettings:open(doc_path)
+          local existing_chats = doc_settings:readSetting("koassistant_chats", {})
+
+          -- Add all chats (keyed by ID)
+          for _idx, chat in ipairs(chats) do
+            existing_chats[chat.id] = chat
+            stats.migrated = stats.migrated + 1
+          end
+
+          -- Save to metadata.lua
+          doc_settings:saveSetting("koassistant_chats", existing_chats)
+          doc_settings:flush()
+
+          -- Update chat index
+          ChatHistoryManager:updateChatIndex(doc_path, "save", nil, existing_chats)
+
+          logger.info("Migrated " .. #chats .. " chats for: " .. doc_path)
+        else
+          -- Document no longer exists, skip these chats
+          stats.skipped = stats.skipped + #chats
+          logger.info("Skipped " .. #chats .. " chats for missing document: " .. doc_path)
+        end
+      end
+    end)
+
+    if not success then
+      stats.failed = stats.failed + #chats
+      table.insert(stats.errors, {
+        document = doc_path,
+        error = tostring(err),
+        count = #chats,
+      })
+      logger.warn("Failed to migrate chats for " .. doc_path .. ": " .. tostring(err))
+    end
+  end
+
+  -- Only backup old directory and mark complete if migration succeeded
+  if stats.failed == 0 then
+    -- Backup old directory
+    local backup_dir = old_dir .. ".backup"
+    -- Remove any existing backup first
+    if lfs.attributes(backup_dir, "mode") then
+      logger.info("Removing existing backup directory")
+      os.execute('rm -rf "' .. backup_dir .. '"')
+    end
+    local rename_ok, rename_err = os.rename(old_dir, backup_dir)
+    if not rename_ok then
+      logger.warn("Failed to backup old directory: " .. tostring(rename_err))
+      -- Don't mark as complete if we couldn't even backup
+      stats.failed = 1  -- Force retry
+    else
+      -- Mark migration complete only after successful backup
+      -- v2 = chats stored in metadata.lua for automatic move tracking
+      G_reader_settings:saveSetting("chat_storage_version", 2)
+      logger.info("Migration successful, marked as v2 storage (metadata.lua)")
+    end
+  else
+    logger.warn("Migration had " .. stats.failed .. " failures, keeping v1 storage for retry")
+  end
+
+  -- Always clear migration lock
+  G_reader_settings:delSetting("chat_migration_in_progress")
+  G_reader_settings:flush()
+
+  -- Close progress
+  UIManager:close(progress)
+
+  -- Show results
+  local result_text
+  if stats.failed > 0 then
+    -- Migration failed, will retry
+    result_text = T(_([[Migration incomplete:
+
+✓ Migrated: %1 chats
+⊗ Skipped: %2 chats (documents no longer exist)
+✗ Failed: %3 chats
+
+Migration will be retried on next startup.
+Check the console for detailed error messages.]]),
+      stats.migrated,
+      stats.skipped,
+      stats.failed
+    )
+    result_text = result_text .. "\n\n" .. _("Failed documents:") .. "\n"
+    for _idx, error_info in ipairs(stats.errors) do
+      result_text = result_text .. string.format("• %s (%d chats)\n  Error: %s\n",
+        error_info.document, error_info.count, error_info.error)
+    end
+  else
+    -- Migration succeeded
+    result_text = T(_([[Migration complete:
+
+✓ Migrated: %1 chats
+⊗ Skipped: %2 chats (documents no longer exist)
+
+Old chat files backed up to:
+koassistant_chats.backup/]]),
+      stats.migrated,
+      stats.skipped
+    )
+  end
+
+  UIManager:show(InfoMessage:new{
+    text = result_text,
+    timeout = 10,
+  })
+
+  logger.info("Chat migration complete - migrated: " .. stats.migrated ..
+              ", skipped: " .. stats.skipped .. ", failed: " .. stats.failed)
 end
 
 return AskGPT
