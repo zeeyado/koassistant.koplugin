@@ -6,8 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: KOAssistant 0.12.0-dev\n"
-"Report-Msgid-Bugs-To: https://github.com/zeeyado/koassistant.koplugin/"
-"issues\n"
+"Report-Msgid-Bugs-To: https://github.com/zeeyado/koassistant.koplugin/issues\n"
 "POT-Creation-Date: 2026-01-30 11:55+0000\n"
 "PO-Revision-Date: 2026-01-27 17:48+0000\n"
 "Last-Translator: Automatically generated\n"
@@ -26,16 +25,13 @@ msgstr "KOAssistant"
 #: _meta.lua:5
 #, fuzzy
 msgid ""
-"A powerful AI assistant integrated into KOReader. Technical research "
-"assistant and knowledge expander."
-msgstr ""
-"KOReader'a entegre güçlü bir AI asistanı. Teknik araştırma asistanı ve bilgi "
-"genişletici."
+"A powerful AI assistant integrated into KOReader. Technical research assistant and knowledge expander."
+msgstr "KOReader'a entegre guclu bir AI asistani. Teknik arastirma asistani ve bilgi genisletici."
 
 #: koassistant_chat_history_dialog.lua:54
 #, fuzzy
 msgid "Delete all chats for this book"
-msgstr "Bu kitap için tüm sohbetleri sil"
+msgstr "Bu kitap icin tum sohbetleri sil"
 
 #: koassistant_chat_history_dialog.lua:59
 #, fuzzy
@@ -44,9 +40,9 @@ msgid ""
 "\n"
 "This action cannot be undone."
 msgstr ""
-"\"%1\" için tüm sohbetler silinsin mi?\n"
+"\"%1\" icin tum sohbetler silinsin mi?\n"
 "\n"
-"Bu eylem geri alınamaz."
+"Bu islem geri alinamaz."
 
 #: koassistant_chat_history_dialog.lua:60
 #: koassistant_chat_history_dialog.lua:143
@@ -87,18 +83,18 @@ msgstr "Kapat"
 #: koassistant_chat_history_dialog.lua:240
 #, fuzzy
 msgid "View by Domain"
-msgstr "Alana göre görüntüle"
+msgstr "Alana Gore Goruntule"
 
 #: koassistant_chat_history_dialog.lua:121
 #: koassistant_chat_history_dialog.lua:186
 #, fuzzy
 msgid "View by Tag"
-msgstr "Etikete göre görüntüle"
+msgstr "Etikete Gore Goruntule"
 
 #: koassistant_chat_history_dialog.lua:137
 #, fuzzy
 msgid "Delete all chats"
-msgstr "Tüm sohbetleri sil"
+msgstr "Tum sohbetleri sil"
 
 #: koassistant_chat_history_dialog.lua:142
 #, fuzzy
@@ -107,9 +103,9 @@ msgid ""
 "\n"
 "This action cannot be undone."
 msgstr ""
-"Tüm kayıtlı sohbetler silinsin mi?\n"
+"Tum kaydedilmis sohbetler silinsin mi?\n"
 "\n"
-"Bu eylem geri alınamaz."
+"Bu islem geri alinamaz."
 
 #: koassistant_chat_history_dialog.lua:147 main.lua:4886
 #, fuzzy
@@ -119,7 +115,7 @@ msgstr "%2 kitaptan %1 sohbet silindi"
 #: koassistant_chat_history_dialog.lua:170
 #, fuzzy
 msgid "Chat History Options"
-msgstr "Sohbet Geçmişi Seçenekleri"
+msgstr "Sohbet Gecmisi Secenekleri"
 
 #: koassistant_chat_history_dialog.lua:200
 #: koassistant_chat_history_dialog.lua:254
@@ -127,19 +123,19 @@ msgstr "Sohbet Geçmişi Seçenekleri"
 #: main.lua:3568
 #, fuzzy
 msgid "Chat History"
-msgstr "Sohbet Geçmişi"
+msgstr "Sohbet Gecmisi"
 
 #: koassistant_chat_history_dialog.lua:224
 #: koassistant_chat_history_dialog.lua:278
 #, fuzzy
 msgid "Navigate"
-msgstr "Git"
+msgstr "Gezin"
 
 #: koassistant_chat_history_dialog.lua:321
 #: koassistant_chat_history_dialog.lua:504 main.lua:3029
 #, fuzzy
 msgid "No saved chats found"
-msgstr "Kayıtlı sohbet bulunamadı"
+msgstr "Kaydedilmis sohbet bulunamadi"
 
 #: koassistant_chat_history_dialog.lua:334
 #: koassistant_chat_history_dialog.lua:396
@@ -164,7 +160,7 @@ msgstr "sohbet"
 #: koassistant_chat_history_dialog.lua:361
 #, fuzzy
 msgid "Chat History by Domain"
-msgstr "Alana Göre Sohbet Geçmişi"
+msgstr "Alana Gore Sohbet Gecmisi"
 
 #: koassistant_chat_history_dialog.lua:410
 #: koassistant_chat_history_dialog.lua:753
@@ -172,7 +168,7 @@ msgstr "Alana Göre Sohbet Geçmişi"
 #: koassistant_chat_history_dialog.lua:1829
 #, fuzzy
 msgid "Untitled Chat"
-msgstr "Başlıksız Sohbet"
+msgstr "Basligi Olmayan Sohbet"
 
 #: koassistant_chat_history_dialog.lua:422
 #: koassistant_chat_history_dialog.lua:1841
@@ -184,20 +180,20 @@ msgstr "Genel Sohbet"
 #: koassistant_chat_history_dialog.lua:1844
 #, fuzzy
 msgid "msg"
-msgstr "msj"
+msgstr "mesaj"
 
 #: koassistant_chat_history_dialog.lua:425
 #: koassistant_chat_history_dialog.lua:1844
 #, fuzzy
 msgid "msgs"
-msgstr "msj"
+msgstr "mesaj"
 
 #: koassistant_chat_history_dialog.lua:436
 #: koassistant_chat_history_dialog.lua:1855
 #: koassistant_chat_history_manager.lua:88
 #, fuzzy
 msgid "General AI Chats"
-msgstr "Genel AI Sohbetleri"
+msgstr "Genel Yapay Zeka Sohbetleri"
 
 #: koassistant_chat_history_dialog.lua:539
 #: koassistant_ui/behavior_manager.lua:253
@@ -209,12 +205,12 @@ msgstr "Bilinmeyen"
 #: koassistant_chat_history_dialog.lua:554
 #, fuzzy
 msgid "AI conversations without book context"
-msgstr "Kitap bağlamı olmayan AI sohbetleri"
+msgstr "Kitap baglami olmayan yapay zeka konusmalari"
 
 #: koassistant_chat_history_dialog.lua:620
 #, fuzzy
 msgid "No saved chats found for this document"
-msgstr "Bu belge için kayıtlı sohbet bulunamadı"
+msgstr "Bu belge icin kaydedilmis sohbet bulunamadi"
 
 #: koassistant_chat_history_dialog.lua:669
 #, fuzzy
@@ -225,7 +221,7 @@ msgstr "Sohbetler: %1"
 #: koassistant_chat_history_dialog.lua:1262
 #, fuzzy
 msgid "Error: Cannot load chat data."
-msgstr "Hata: Sohbet verileri yüklenemedi."
+msgstr "Hata: Sohbet verileri yuklenemiyor."
 
 #: koassistant_chat_history_dialog.lua:754
 #, fuzzy
@@ -251,7 +247,7 @@ msgstr "Sohbete Devam Et"
 #: koassistant_chat_history_dialog.lua:862
 #, fuzzy
 msgid "Rename"
-msgstr "Yeniden Adlandır"
+msgstr "Yeniden Adlandir"
 
 #: koassistant_chat_history_dialog.lua:800
 #, fuzzy
@@ -262,22 +258,22 @@ msgstr "Etiketler"
 #: koassistant_ui/prompts_manager.lua:419
 #, fuzzy
 msgid "Export"
-msgstr "Dışa Aktar"
+msgstr "Disa Aktar"
 
 #: koassistant_chat_history_dialog.lua:850
 #, fuzzy
 msgid "Rename Chat"
-msgstr "Sohbeti Yeniden Adlandır"
+msgstr "Sohbeti Yeniden Adlandir"
 
 #: koassistant_chat_history_dialog.lua:871
 #, fuzzy
 msgid "Chat renamed successfully"
-msgstr "Sohbet başarıyla yeniden adlandırıldı"
+msgstr "Sohbet basariyla yeniden adlandirildi"
 
 #: koassistant_chat_history_dialog.lua:880
 #, fuzzy
 msgid "Failed to rename chat"
-msgstr "Sohbet yeniden adlandırılamadı"
+msgstr "Sohbet yeniden adlandirilamadi"
 
 #: koassistant_chat_history_dialog.lua:920
 #: koassistant_chat_history_dialog.lua:1107 koassistant_dialogs.lua:754
@@ -289,13 +285,13 @@ msgstr "Mevcut etiketler:"
 #: koassistant_chat_history_dialog.lua:1119 koassistant_dialogs.lua:766
 #, fuzzy
 msgid "Removed tag: %1"
-msgstr "Etiket kaldırıldı: %1"
+msgstr "Etiket kaldirildi: %1"
 
 #: koassistant_chat_history_dialog.lua:967
 #: koassistant_chat_history_dialog.lua:1154 koassistant_dialogs.lua:801
 #, fuzzy
 msgid "Add existing tag:"
-msgstr "Mevcut etiket ekle:"
+msgstr "Mevcut etiketi ekle:"
 
 #: koassistant_chat_history_dialog.lua:982
 #: koassistant_chat_history_dialog.lua:1032
@@ -324,7 +320,7 @@ msgstr "Yeni Etiket"
 #: koassistant_dialogs.lua:885
 #, fuzzy
 msgid "Enter tag name"
-msgstr "Etiket adını girin"
+msgstr "Etiket adini girin"
 
 #: koassistant_chat_history_dialog.lua:1020
 #: koassistant_chat_history_dialog.lua:1207 koassistant_dialogs.lua:854
@@ -344,12 +340,12 @@ msgstr "Tamam"
 #: koassistant_chat_history_dialog.lua:1250 koassistant_dialogs.lua:936
 #, fuzzy
 msgid "Manage Tags"
-msgstr "Etiketleri Yönet"
+msgstr "Etiketleri Yonet"
 
 #: koassistant_chat_history_dialog.lua:1092 koassistant_dialogs.lua:739
 #, fuzzy
 msgid "Chat not found"
-msgstr "Sohbet bulunamadı"
+msgstr "Sohbet bulunamadi"
 
 #: koassistant_chat_history_dialog.lua:1199
 #: koassistant_chat_history_dialog.lua:1511
@@ -393,33 +389,33 @@ msgstr "Sohbet bulunamadı"
 #: koassistant_ui/prompts_manager.lua:4101
 #, fuzzy
 msgid "Cancel"
-msgstr "İptal"
+msgstr "Iptal"
 
 #: koassistant_chat_history_dialog.lua:1296
 #, fuzzy
 msgid "Error: Failed to load chat messages."
-msgstr "Hata: Sohbet mesajları yüklenemedi."
+msgstr "Hata: Sohbet mesajlari yuklenemedi."
 
 #: koassistant_chat_history_dialog.lua:1342 koassistant_dialogs.lua:1827
 #: stream_handler.lua:194
 #, fuzzy
 msgid "No response received from AI"
-msgstr "AI'dan yanıt alınamadı"
+msgstr "Yapay zekadan yanit alinamadi"
 
 #: koassistant_chat_history_dialog.lua:1362
 #, fuzzy
 msgid "Untitled"
-msgstr "Başlıksız"
+msgstr "Basligi Olmayan"
 
 #: koassistant_chat_history_dialog.lua:1369
 #, fuzzy
 msgid "Loading..."
-msgstr "Yükleniyor..."
+msgstr "Yukleniyor..."
 
 #: koassistant_chat_history_dialog.lua:1437 koassistant_dialogs.lua:1264
 #, fuzzy
 msgid "Failed to get response: "
-msgstr "Yanıt alınamadı:"
+msgstr "Yanit alinamadi:"
 
 #: koassistant_chat_history_dialog.lua:1452
 #, fuzzy
@@ -429,7 +425,7 @@ msgstr "Otomatik kaydetme ayarlarda etkin"
 #: koassistant_chat_history_dialog.lua:1457
 #, fuzzy
 msgid "Continued chats are automatically saved"
-msgstr "Devam eden sohbetler otomatik kaydedilir"
+msgstr "Devam eden sohbetler otomatik olarak kaydedilir"
 
 #: koassistant_chat_history_dialog.lua:1463
 #, fuzzy
@@ -445,55 +441,59 @@ msgstr "Sohbet kaydedilemedi"
 #: koassistant_chat_history_dialog.lua:1573
 #, fuzzy
 msgid "Chat copied to clipboard"
-msgstr "Sohbet panoya kopyalandı"
+msgstr "Sohbet panoya kopyalandi"
 
 #: koassistant_chat_history_dialog.lua:1491
 #: koassistant_chat_history_dialog.lua:1583 koassistant_chatgptviewer.lua:241
 #: koassistant_dialogs.lua:1374 koassistant_settings_schema.lua:268
 #: koassistant_settings_schema.lua:283 koassistant_settings_schema.lua:299
 #: koassistant_settings_schema.lua:958 koassistant_settings_schema.lua:974
+#, fuzzy
 msgid "Full (metadata + chat)"
-msgstr ""
+msgstr "Tam (meta veri + sohbet)"
 
 #: koassistant_chat_history_dialog.lua:1492
 #: koassistant_chat_history_dialog.lua:1584 koassistant_chatgptviewer.lua:242
 #: koassistant_dialogs.lua:1375 koassistant_settings_schema.lua:269
 #: koassistant_settings_schema.lua:284 koassistant_settings_schema.lua:300
 #: koassistant_settings_schema.lua:959 koassistant_settings_schema.lua:975
+#, fuzzy
 msgid "Question + Response"
-msgstr ""
+msgstr "Soru + Yanit"
 
 #: koassistant_chat_history_dialog.lua:1493
 #: koassistant_chat_history_dialog.lua:1585 koassistant_chatgptviewer.lua:243
 #: koassistant_dialogs.lua:1376
+#, fuzzy
 msgid "Response only"
-msgstr ""
+msgstr "Yalnizca yanit"
 
 #: koassistant_chat_history_dialog.lua:1494
 #: koassistant_chat_history_dialog.lua:1586 koassistant_chatgptviewer.lua:244
 #: koassistant_dialogs.lua:1377 koassistant_settings_schema.lua:271
 #: koassistant_settings_schema.lua:286 koassistant_settings_schema.lua:302
 #: koassistant_settings_schema.lua:961 koassistant_settings_schema.lua:977
+#, fuzzy
 msgid "Everything (debug)"
-msgstr ""
+msgstr "Her sey (hata ayiklama)"
 
 #: koassistant_chat_history_dialog.lua:1519 koassistant_chatgptviewer.lua:813
 #: koassistant_chatgptviewer.lua:1362 koassistant_dialogs.lua:1402
 #: koassistant_settings_schema.lua:263 koassistant_settings_schema.lua:952
 #, fuzzy
 msgid "Copy Content"
-msgstr "İçerik"
+msgstr "Icerigi Kopyala"
 
 #: koassistant_chat_history_dialog.lua:1613
 #, fuzzy
 msgid "Export Content"
-msgstr "Sohbeti Dışa Aktar"
+msgstr "Icerigi Disa Aktar"
 
 #: koassistant_chat_history_dialog.lua:1629
 #: koassistant_chat_history_dialog.lua:1667
 #, fuzzy
 msgid "Are you sure you want to delete this chat?"
-msgstr "Bu sohbeti silmek istediğinizden emin misiniz?"
+msgstr "Bu sohbeti silmek istediginizden emin misiniz?"
 
 #: koassistant_chat_history_dialog.lua:1636
 #: koassistant_chat_history_dialog.lua:1682
@@ -514,19 +514,19 @@ msgid ""
 "\n"
 "You can add tags to chats from the chat options menu."
 msgstr ""
-"Etiketli sohbet bulunamadı.\n"
+"Etiketli sohbet bulunamadi.\n"
 "\n"
-"Sohbet seçenekleri menüsünden sohbetlere etiket ekleyebilirsiniz."
+"Sohbet secenekleri menusunden sohbetlere etiket ekleyebilirsiniz."
 
 #: koassistant_chat_history_dialog.lua:1779
 #, fuzzy
 msgid "Chat History by Tag"
-msgstr "Etikete Göre Sohbet Geçmişi"
+msgstr "Etikete Gore Sohbet Gecmisi"
 
 #: koassistant_chat_history_dialog.lua:1815
 #, fuzzy
 msgid "No chats found with this tag"
-msgstr "Bu etiketle sohbet bulunamadı"
+msgstr "Bu etikete sahip sohbet bulunamadi"
 
 #: koassistant_chatgptviewer.lua:156 koassistant_chatgptviewer.lua:783
 #: koassistant_chatgptviewer.lua:1037 koassistant_chatgptviewer.lua:1329
@@ -537,12 +537,12 @@ msgstr "Kopyala"
 #: koassistant_chatgptviewer.lua:161
 #, fuzzy
 msgid "Link copied to clipboard"
-msgstr "Bağlantı panoya kopyalandı"
+msgstr "Baglanti panoya kopyalandi"
 
 #: koassistant_chatgptviewer.lua:166
 #, fuzzy
 msgid "Show QR code"
-msgstr "QR kodunu göster"
+msgstr "QR kodunu goster"
 
 #: koassistant_chatgptviewer.lua:187
 #, fuzzy
@@ -552,7 +552,7 @@ msgstr "Wallabag'a ekle"
 #: koassistant_chatgptviewer.lua:197
 #, fuzzy
 msgid "Open in browser"
-msgstr "Tarayıcıda aç"
+msgstr "Tarayicida ac"
 
 #: koassistant_chatgptviewer.lua:221
 #, fuzzy
@@ -561,7 +561,7 @@ msgid ""
 "\n"
 "%1"
 msgstr ""
-"Harici bağlantı:\n"
+"Harici baglanti:\n"
 "\n"
 "%1"
 
@@ -569,12 +569,12 @@ msgstr ""
 #: koassistant_settings_schema.lua:976
 #, fuzzy
 msgid "Translation only"
-msgstr "Çeviri Dili"
+msgstr "Yalnizca ceviri"
 
 #: koassistant_chatgptviewer.lua:749 koassistant_chatgptviewer.lua:1641
 #, fuzzy
 msgid "Reply"
-msgstr "Yanıtla"
+msgstr "Yanitla"
 
 #: koassistant_chatgptviewer.lua:766 koassistant_dialogs.lua:617
 #: koassistant_dialogs.lua:1321
@@ -596,75 +596,79 @@ msgstr "Kaydet"
 #: koassistant_chatgptviewer.lua:775
 #, fuzzy
 msgid "Save function not available"
-msgstr "Kaydetme işlevi kullanılamıyor"
+msgstr "Kaydetme islevi kullanilabilir degil"
 
 #: koassistant_chatgptviewer.lua:789
+#, fuzzy
 msgid "No chat to copy"
-msgstr ""
+msgstr "Kopyalanacak sohbet yok"
 
 #: koassistant_chatgptviewer.lua:807 koassistant_chatgptviewer.lua:1055
 #: koassistant_chatgptviewer.lua:1356 koassistant_dialogs.lua:1364
+#, fuzzy
 msgid "Copied"
-msgstr ""
+msgstr "Kopyalandi"
 
 #: koassistant_chatgptviewer.lua:821 koassistant_chatgptviewer.lua:1373
 #, fuzzy
 msgid "Note"
-msgstr "Notlar"
+msgstr "Not"
 
 #: koassistant_chatgptviewer.lua:829
+#, fuzzy
 msgid "Save response as note on highlighted text"
-msgstr ""
+msgstr "Yaniti vurgulanan metin uzerine not olarak kaydet"
 
 #: koassistant_chatgptviewer.lua:842
 #, fuzzy
 msgid "Tag function not available"
-msgstr "Etiketleme işlevi kullanılamıyor"
+msgstr "Etiket islevi kullanilabilir degil"
 
 #: koassistant_chatgptviewer.lua:849
 #, fuzzy
 msgid "Add or manage tags for this chat"
-msgstr "Bu sohbet için etiket ekle veya yönet"
+msgstr "Bu sohbet icin etiket ekle veya yonet"
 
 #: koassistant_chatgptviewer.lua:870 koassistant_chatgptviewer.lua:1029
 #: koassistant_chatgptviewer.lua:1321
 #, fuzzy
 msgid "Toggle between markdown and plain text display"
-msgstr "Markdown ve düz metin görünümü arasında geçiş yap"
+msgstr "Markdown ve duz metin gorunumu arasinda gecis yap"
 
 #: koassistant_chatgptviewer.lua:885
 #, fuzzy
 msgid "Toggle debug display in chat viewer"
-msgstr "Sohbet görüntüleyicide hata ayıklama görünümünü aç/kapat"
+msgstr "Sohbet goruntuleme alaninda hata ayiklama gosterimini ac/kapat"
 
 #: koassistant_chatgptviewer.lua:892 koassistant_chatgptviewer.lua:2375
 #, fuzzy
 msgid "Show Quote"
-msgstr "Alıntıyı Göster"
+msgstr "Alintiyi Goster"
 
 #: koassistant_chatgptviewer.lua:892 koassistant_chatgptviewer.lua:2375
 #, fuzzy
 msgid "Hide Quote"
-msgstr "Alıntıyı Gizle"
+msgstr "Alintiyi Gizle"
 
 #: koassistant_chatgptviewer.lua:904
 #, fuzzy
 msgid "Toggle highlighted text display in chat"
-msgstr "Sohbette vurgulanan metin görünümünü aç/kapat"
+msgstr "Sohbette vurgulanan metin gosterimini ac/kapat"
 
 #: koassistant_chatgptviewer.lua:910
 #, fuzzy
 msgid "Show Reasoning"
-msgstr "Akıl Yürütmeyi Göster"
+msgstr "Akillamayi Goster"
 
 #: koassistant_chatgptviewer.lua:920
 #, fuzzy
 msgid "View AI reasoning/thinking content (when available)"
-msgstr "AI akıl yürütme/düşünme içeriğini görüntüle (mevcut olduğunda)"
+msgstr "AI akillama/dusunme icerigini goruntule (mevcut oldugunda)"
 
 #: koassistant_chatgptviewer.lua:1044 koassistant_chatgptviewer.lua:1060
+#, fuzzy
 msgid "No response to copy"
-msgstr ""
+msgstr "Kopyalanacak yanit yok"
 
 #: koassistant_chatgptviewer.lua:1070
 #, fuzzy
@@ -674,7 +678,7 @@ msgstr "Wiki"
 #: koassistant_chatgptviewer.lua:1081
 #, fuzzy
 msgid "Wikipedia not available"
-msgstr "Wikipedia kullanılamıyor"
+msgstr "Wikipedia kullanilabilir degil"
 
 #: koassistant_chatgptviewer.lua:1087
 #, fuzzy
@@ -694,7 +698,7 @@ msgstr "Eklendi"
 #: koassistant_chatgptviewer.lua:1110
 #, fuzzy
 msgid "Word added to vocabulary builder"
-msgstr "Kelime kelime oluşturucuya eklendi"
+msgstr "Kelime kelime hazinesine eklendi"
 
 #: koassistant_chatgptviewer.lua:1117
 #, fuzzy
@@ -704,32 +708,32 @@ msgstr "+Kelime"
 #: koassistant_chatgptviewer.lua:1125 main.lua:4299
 #, fuzzy
 msgid "AI Dictionary lookup"
-msgstr "AI Sözlük araması"
+msgstr "AI Sozluk arama"
 
 #: koassistant_chatgptviewer.lua:1130
 #, fuzzy
 msgid "Added '%1' to vocabulary"
-msgstr "'%1' kelime listesine eklendi"
+msgstr "'%1' kelime hazinesine eklendi"
 
 #: koassistant_chatgptviewer.lua:1143
 #, fuzzy
 msgid "Vocabulary builder not available"
-msgstr "Kelime oluşturucu kullanılamıyor"
+msgstr "Kelime hazinesi olusturucu kullanilabilir degil"
 
 #: koassistant_chatgptviewer.lua:1151
 #, fuzzy
 msgid "Add word to vocabulary builder"
-msgstr "Kelimeyi kelime oluşturucuya ekle"
+msgstr "Kelimeyi kelime hazinesi olusturucuya ekle"
 
 #: koassistant_chatgptviewer.lua:1160
 #, fuzzy
 msgid "Expand"
-msgstr "Genişlet"
+msgstr "Genislet"
 
 #: koassistant_chatgptviewer.lua:1167
 #, fuzzy
 msgid "Open in full-size viewer with all options"
-msgstr "Tüm seçeneklerle tam boyutlu görüntüleyicide aç"
+msgstr "Tum seceneklerle tam boyutlu goruntuleme alaninda ac"
 
 #: koassistant_chatgptviewer.lua:1177 koassistant_chatgptviewer.lua:1425
 #, fuzzy
@@ -739,118 +743,123 @@ msgstr "Dil"
 #: koassistant_chatgptviewer.lua:1185 koassistant_chatgptviewer.lua:1433
 #, fuzzy
 msgid "Configure languages in Settings first"
-msgstr "Önce Ayarlarda dilleri yapılandırın"
+msgstr "Once Ayarlar'dan dilleri yapilandirin"
 
 #: koassistant_chatgptviewer.lua:1227 main.lua:3564 main.lua:3973
 #, fuzzy
 msgid "Dictionary Language"
-msgstr "Sözlük Dili"
+msgstr "Sozluk Dili"
 
 #: koassistant_chatgptviewer.lua:1234
 #, fuzzy
 msgid "Re-run with a different dictionary language"
-msgstr "Farklı bir sözlük diliyle yeniden çalıştır"
+msgstr "Farkli bir sozluk diliyle yeniden calistir"
 
 #: koassistant_chatgptviewer.lua:1246
 #, fuzzy
 msgid "Ctx: ON"
-msgstr "Bağlam: AÇIK"
+msgstr "Bgm: ACIK"
 
 #: koassistant_chatgptviewer.lua:1246
 #, fuzzy
 msgid "Ctx: OFF"
-msgstr "Bağlam: KAPALI"
+msgstr "Bgm: KAPALI"
 
 #: koassistant_chatgptviewer.lua:1289
 #, fuzzy
 msgid "Re-run without surrounding context"
-msgstr "Çevreleyen bağlam olmadan yeniden çalıştır"
+msgstr "Cevre baglami olmadan yeniden calistir"
 
 #: koassistant_chatgptviewer.lua:1289
 #, fuzzy
 msgid "Re-run with surrounding context"
-msgstr "Çevreleyen bağlamla yeniden çalıştır"
+msgstr "Cevre baglami ile yeniden calistir"
 
 #: koassistant_chatgptviewer.lua:1335
+#, fuzzy
 msgid "No translation to copy"
-msgstr ""
+msgstr "Kopyalanacak ceviri yok"
 
 #: koassistant_chatgptviewer.lua:1380
+#, fuzzy
 msgid "Save translation as note on highlighted text"
-msgstr ""
+msgstr "Ceviriyi vurgulanan metin uzerine not olarak kaydet"
 
 #: koassistant_chatgptviewer.lua:1389
 #, fuzzy
 msgid "→ Chat"
-msgstr "Sohbet"
+msgstr "→ Sohbet"
 
 #: koassistant_chatgptviewer.lua:1396
 #, fuzzy
 msgid "Open full chat with all options"
-msgstr "Tüm seçeneklerle tam boyutlu görüntüleyicide aç"
+msgstr "Tum seceneklerle tam sohbeti ac"
 
 #: koassistant_chatgptviewer.lua:1406 koassistant_chatgptviewer.lua:2266
+#, fuzzy
 msgid "Show Original"
-msgstr ""
+msgstr "Orijinali Goster"
 
 #: koassistant_chatgptviewer.lua:1406 koassistant_chatgptviewer.lua:2266
+#, fuzzy
 msgid "Hide Original"
-msgstr ""
+msgstr "Orijinali Gizle"
 
 #: koassistant_chatgptviewer.lua:1415
+#, fuzzy
 msgid "Show the original text"
-msgstr ""
+msgstr "Orijinal metni goster"
 
 #: koassistant_chatgptviewer.lua:1415
 #, fuzzy
 msgid "Hide the original text"
-msgstr "Tarihsel Bağlam"
+msgstr "Orijinal metni gizle"
 
 #: koassistant_chatgptviewer.lua:1477
 #, fuzzy
 msgid "Translate To"
-msgstr "Çevir"
+msgstr "Cevirisi"
 
 #: koassistant_chatgptviewer.lua:1484
 #, fuzzy
 msgid "Re-run translation with a different target language"
-msgstr "Farklı bir sözlük diliyle yeniden çalıştır"
+msgstr "Farkli bir hedef dille ceviriyi yeniden calistir"
 
 #: koassistant_chatgptviewer.lua:1644
 #, fuzzy
 msgid "Type your reply..."
-msgstr "Yanıtınızı yazın..."
+msgstr "Yanitinizi yazin..."
 
 #: koassistant_chatgptviewer.lua:1669
 #, fuzzy
 msgid "Send"
-msgstr "Gönder"
+msgstr "Gonder"
 
 #: koassistant_chatgptviewer.lua:1934
 #, fuzzy
 msgid "Copied to clipboard."
-msgstr "Panoya kopyalandı."
+msgstr "Panoya kopyalandi."
 
 #: koassistant_chatgptviewer.lua:2127
 #, fuzzy
 msgid "No highlight selection data available"
-msgstr "Kullanılabilir vurgulama eylemi yok."
+msgstr "Vurgu secim verisi mevcut degil"
 
 #: koassistant_chatgptviewer.lua:2138 main.lua:3823
 #, fuzzy
 msgid "No document open"
-msgstr "Açık belge yok"
+msgstr "Acik belge yok"
 
 #: koassistant_chatgptviewer.lua:2147 koassistant_chatgptviewer.lua:2174
 #, fuzzy
 msgid "No response to save"
-msgstr "Yanıt alınamadı. Ham:"
+msgstr "Kaydedilecek yanit yok"
 
 #: koassistant_chatgptviewer.lua:2194 koassistant_settings_schema.lua:278
 #: koassistant_settings_schema.lua:968
 #, fuzzy
 msgid "Note Content"
-msgstr "İçerik"
+msgstr "Not İçeriği"
 
 #: koassistant_chatgptviewer.lua:2330
 #, fuzzy
@@ -860,22 +869,22 @@ msgstr "Hata ayıklama bilgisi gösteriliyor"
 #: koassistant_chatgptviewer.lua:2330
 #, fuzzy
 msgid "Debug info hidden"
-msgstr "Hata ayıklama bilgisi gizlendi"
+msgstr "Hata ayıklama bilgisi gizli"
 
 #: koassistant_chatgptviewer.lua:2380
 #, fuzzy
 msgid "Quote hidden"
-msgstr "Alıntı gizlendi"
+msgstr "Alıntı gizli"
 
 #: koassistant_chatgptviewer.lua:2380
 #, fuzzy
 msgid "Quote shown"
-msgstr "Alıntı gösterildi"
+msgstr "Alıntı gösteriliyor"
 
 #: koassistant_chatgptviewer.lua:2404
 #, fuzzy
 msgid "No conversation history available"
-msgstr "Sohbet geçmişi mevcut değil"
+msgstr "Konuşma geçmişi mevcut değil"
 
 #: koassistant_chatgptviewer.lua:2413
 #, fuzzy
@@ -961,7 +970,7 @@ msgstr "Yükleniyor"
 #: koassistant_dialogs.lua:524
 #, fuzzy
 msgid "Cannot save: no document context"
-msgstr "Kaydedilemiyor: belge bağlamı yok"
+msgstr "Kaydedilemedi: belge bağlamı yok"
 
 #: koassistant_dialogs.lua:541 koassistant_dialogs.lua:650
 #, fuzzy
@@ -991,7 +1000,7 @@ msgstr "Etiket eklemek için önce sohbeti kaydedin"
 #: koassistant_dialogs.lua:1429
 #, fuzzy
 msgid "Cannot tag: no document context"
-msgstr "Etiketlenemiyor: belge bağlamı yok"
+msgstr "Etiketlenemedi: belge bağlamı yok"
 
 #: koassistant_dialogs.lua:1954 koassistant_dialogs.lua:2018
 #: koassistant_settings_schema.lua:800 main.lua:2727 main.lua:3384
@@ -1030,7 +1039,7 @@ msgstr "Hata:"
 #: koassistant_dialogs.lua:2222
 #, fuzzy
 msgid "Error handling prompt: "
-msgstr "İstem işleme hatası:"
+msgstr "Komut isleme hatasi:"
 
 #: koassistant_dialogs.lua:2259
 #, fuzzy
@@ -1065,38 +1074,40 @@ msgstr "Yeni Genel Sohbet"
 #: koassistant_settings_schema.lua:54
 #, fuzzy
 msgid "Reading Features"
-msgstr "Akıl Yürütme Durumu"
+msgstr "Okuma Özellikleri"
 
 #: koassistant_settings_schema.lua:63 prompts/actions.lua:200
+#, fuzzy
 msgid "X-Ray"
-msgstr ""
+msgstr "X-Ray"
 
 #: koassistant_settings_schema.lua:64
+#, fuzzy
 msgid ""
-"Generate a structured reference guide for the book up to your current "
-"position. Includes characters, locations, themes, and plot events."
-msgstr ""
+"Generate a structured reference guide for the book up to your current position. Includes characters, locations, themes, and plot events."
+msgstr "Mevcut konumunuza kadar kitap için yapılandırılmış bir referans kılavuzu oluşturun. Karakterler, mekanlar, temalar ve olay örgüsü olaylarını içerir."
 
 #: koassistant_settings_schema.lua:70 prompts/actions.lua:296
+#, fuzzy
 msgid "Recap"
-msgstr ""
+msgstr "Özet"
 
 #: koassistant_settings_schema.lua:71
+#, fuzzy
 msgid ""
-"Get a 'Previously on...' style summary to refresh your memory when returning "
-"to a book."
-msgstr ""
+"Get a 'Previously on...' style summary to refresh your memory when returning to a book."
+msgstr "Bir kitaba döndüğünüzde hafızanızı tazelemek için 'Daha önce...' tarzında bir özet alın."
 
 #: koassistant_settings_schema.lua:77 prompts/actions.lua:343
 #, fuzzy
 msgid "Analyze Highlights"
-msgstr "Vurgulama Atlamasını Etkinleştir"
+msgstr "Vurgulamaları Analiz Et"
 
 #: koassistant_settings_schema.lua:78
+#, fuzzy
 msgid ""
-"Analyze your highlights and annotations to discover reading patterns and "
-"connections."
-msgstr ""
+"Analyze your highlights and annotations to discover reading patterns and connections."
+msgstr "Okuma örüntülerini ve bağlantıları keşfetmek için vurgularınızı ve notlarınızı analiz edin."
 
 #: koassistant_settings_schema.lua:91 main.lua:1431 main.lua:3442
 #, fuzzy
@@ -1119,37 +1130,41 @@ msgid "Display Settings"
 msgstr "Görüntü Ayarları"
 
 #: koassistant_settings_schema.lua:119 koassistant_ui/prompts_manager.lua:1664
+#, fuzzy
 msgid "View Mode"
-msgstr ""
+msgstr "Görünüm Modu"
 
 #: koassistant_settings_schema.lua:123 koassistant_settings_schema.lua:255
 #, fuzzy
 msgid "Markdown"
-msgstr "Markdown Oluştur"
+msgstr "Markdown"
 
 #: koassistant_settings_schema.lua:124 koassistant_settings_schema.lua:256
+#, fuzzy
 msgid "Plain Text"
-msgstr ""
+msgstr "Düz Metin"
 
 #: koassistant_settings_schema.lua:126
+#, fuzzy
 msgid ""
-"Markdown renders formatting. Plain Text has better font support for Arabic/"
-"CJK."
-msgstr ""
+"Markdown renders formatting. Plain Text has better font support for Arabic/CJK."
+msgstr "Markdown biçimlendirmeyi işler. Düz Metin, Arapça/ÇJK için daha iyi yazı tipi desteğine sahiptir."
 
 #: koassistant_settings_schema.lua:132
+#, fuzzy
 msgid "Plain Text Options"
-msgstr ""
+msgstr "Düz Metin Seçenekleri"
 
 #: koassistant_settings_schema.lua:138
+#, fuzzy
 msgid "Apply Markdown Stripping"
-msgstr ""
+msgstr "Markdown Temizleme Uygula"
 
 #: koassistant_settings_schema.lua:141
+#, fuzzy
 msgid ""
-"Convert markdown syntax to readable plain text (headers, lists, etc). "
-"Disable to show raw markdown."
-msgstr ""
+"Convert markdown syntax to readable plain text (headers, lists, etc). Disable to show raw markdown."
+msgstr "Markdown sözdizimini okunabilir düz metne dönüştür (başlıklar, listeler vb.). Ham markdown'ı göstermek için devre dışı bırakın."
 
 #: koassistant_settings_schema.lua:148
 #, fuzzy
@@ -1190,7 +1205,7 @@ msgstr "Akışı Etkinleştir"
 #: koassistant_settings_schema.lua:207
 #, fuzzy
 msgid "Auto-scroll Streaming"
-msgstr "Otomatik Kaydırmalı Akış"
+msgstr "Akış Sırasında Otomatik Kaydır"
 
 #: koassistant_settings_schema.lua:215
 #, fuzzy
@@ -1208,13 +1223,13 @@ msgid ""
 "How often to check for new stream data.\n"
 "Lower = snappier but uses more battery."
 msgstr ""
-"Yeni akış verilerini ne sıklıkla kontrol edeceği.\n"
-"Düşük = daha hızlı ama daha fazla pil kullanır."
+"Yeni akış verilerinin ne sıklıkta kontrol edileceği.\n"
+"Düşük = daha hızlı ama daha fazla pil tüketir."
 
 #: koassistant_settings_schema.lua:236
 #, fuzzy
 msgid "Display Refresh Interval (ms)"
-msgstr "Ekran Yenileme Aralığı (ms)"
+msgstr "Görüntü Yenileme Aralığı (ms)"
 
 #: koassistant_settings_schema.lua:243
 #, fuzzy
@@ -1222,52 +1237,57 @@ msgid ""
 "How often to refresh the display during streaming.\n"
 "Higher = better performance on slower devices."
 msgstr ""
-"Akış sırasında ekranı ne sıklıkla yenileyeceği.\n"
-"Yüksek = yavaş cihazlarda daha iyi performans."
+"Akış sırasında ekranın ne sıklıkta yenileneceği.\n"
+"Yüksek = daha yavaş cihazlarda daha iyi performans."
 
 #: koassistant_settings_schema.lua:251
 #, fuzzy
 msgid "Export Style"
-msgstr "Sohbeti Dışa Aktar"
+msgstr "Dışa Aktarma Stili"
 
 #: koassistant_settings_schema.lua:258
+#, fuzzy
 msgid ""
 "Markdown uses # headers and **bold**. Plain text uses simple formatting."
-msgstr ""
+msgstr "Markdown # başlıklar ve **kalın** kullanır. Düz metin basit biçimlendirme kullanır."
 
 #: koassistant_settings_schema.lua:267 koassistant_settings_schema.lua:282
 #: koassistant_settings_schema.lua:298 koassistant_settings_schema.lua:957
 #: koassistant_settings_schema.lua:973
+#, fuzzy
 msgid "Ask every time"
-msgstr ""
+msgstr "Her seferinde sor"
 
 #: koassistant_settings_schema.lua:270 koassistant_settings_schema.lua:285
 #: koassistant_settings_schema.lua:301
+#, fuzzy
 msgid "Last response only"
-msgstr ""
+msgstr "Yalnızca son yanıt"
 
 #: koassistant_settings_schema.lua:273
 #, fuzzy
 msgid "What to include when copying chat to clipboard."
-msgstr "Yedeğe dahil edilecekler:"
+msgstr "Sohbeti panoya kopyalarken nelerin dahil edileceği."
 
 #: koassistant_settings_schema.lua:288
 #, fuzzy
 msgid "What to include when saving to note."
-msgstr "Yedeğe dahil edilecekler:"
+msgstr "Nota kaydederken nelerin dahil edileceği."
 
 #: koassistant_settings_schema.lua:293
 #, fuzzy
 msgid "History Export"
-msgstr "Dışa Aktar"
+msgstr "Geçmiş Dışa Aktarma"
 
 #: koassistant_settings_schema.lua:297
+#, fuzzy
 msgid "Follow Copy Content"
-msgstr ""
+msgstr "Kopyalama İçeriğini Takip Et"
 
 #: koassistant_settings_schema.lua:304
+#, fuzzy
 msgid "What to include when exporting from Chat History."
-msgstr ""
+msgstr "Sohbet Geçmişinden dışa aktarırken nelerin dahil edileceği."
 
 #: koassistant_settings_schema.lua:313
 #, fuzzy
@@ -1283,9 +1303,7 @@ msgstr "Davranışları Yönet (%1)"
 #, fuzzy
 msgid ""
 "Select or create AI behavior styles that define how the AI communicates."
-msgstr ""
-"AI'ın nasıl iletişim kuracağını tanımlayan AI davranış stillerini seçin veya "
-"oluşturun."
+msgstr "Yapay zekanın nasıl iletişim kuracağını tanımlayan davranış stilleri seçin veya oluşturun."
 
 #: koassistant_settings_schema.lua:334
 #, fuzzy
@@ -1313,7 +1331,7 @@ msgid ""
 "Higher = creative, varied"
 msgstr ""
 "Aralık: 0.0-2.0 (Anthropic maks 1.0)\n"
-"Düşük = odaklanmış, belirleyici\n"
+"Düşük = odaklı, belirleyici\n"
 "Yüksek = yaratıcı, çeşitli"
 
 #: koassistant_settings_schema.lua:356 koassistant_ui/prompts_manager.lua:646
@@ -1334,8 +1352,10 @@ msgstr "Anthropic Genişletilmiş Düşünme"
 #: koassistant_settings_schema.lua:371 koassistant_settings_schema.lua:394
 #: koassistant_settings_schema.lua:423
 #, fuzzy
-msgid "Supported models:\n"
-msgstr "Desteklenen modeller:\n"
+msgid ""
+"Supported models:\n"
+msgstr ""
+"Desteklenen modeller:\n"
 
 #: koassistant_settings_schema.lua:371
 #, fuzzy
@@ -1346,7 +1366,7 @@ msgid ""
 msgstr ""
 "\n"
 "\n"
-"Karmaşık sorunları yanıtlamadan önce Claude'un düşünmesine izin verin."
+"Claude'un yanıt vermeden önce karmaşık sorunları düşünmesine izin verin."
 
 #: koassistant_settings_schema.lua:378
 #, fuzzy
@@ -1376,7 +1396,7 @@ msgid ""
 msgstr ""
 "\n"
 "\n"
-"Akıl yürütme kullanıcıdan şifrelenir/gizlenir."
+"Akıl yürütme şifrelenmiştir/kullanıcıdan gizlenir."
 
 #: koassistant_settings_schema.lua:404 koassistant_settings_schema.lua:433
 #: koassistant_settings_schema.lua:443 koassistant_ui/prompts_manager.lua:2015
@@ -1441,7 +1461,7 @@ msgid ""
 msgstr ""
 "\n"
 "\n"
-"Düşünme kullanıcıdan şifrelenir/gizlenir."
+"Düşünme şifrelenmiştir/kullanıcıdan gizlenir."
 
 #: koassistant_settings_schema.lua:433 koassistant_settings_schema.lua:559
 #, fuzzy
@@ -1482,16 +1502,13 @@ msgstr "Sohbette Gösterge Göster"
 #: koassistant_settings_schema.lua:453
 #, fuzzy
 msgid ""
-"Show '*[Reasoning was used]*' indicator in chat when reasoning is requested "
-"or used.\n"
+"Show '*[Reasoning was used]*' indicator in chat when reasoning is requested or used.\n"
 "\n"
 "Full reasoning content is always viewable via 'Show Reasoning' button."
 msgstr ""
-"Akıl yürütme istendiğinde veya kullanıldığında sohbette '*[Akıl yürütme "
-"kullanıldı]*' göstergesini göster.\n"
+"Akıl yürütme istendiğinde veya kullanıldığında sohbette '*[Akıl yürütme kullanıldı]*' göstergesi göster.\n"
 "\n"
-"Tam akıl yürütme içeriği her zaman 'Akıl Yürütmeyi Göster' düğmesiyle "
-"görüntülenebilir."
+"Tam akıl yürütme içeriği her zaman 'Akıl Yürütmeyi Göster' düğmesiyle görüntülenebilir."
 
 #: koassistant_settings_schema.lua:463
 #, fuzzy
@@ -1551,47 +1568,53 @@ msgid "US (Virginia)"
 msgstr "ABD (Virginia)"
 
 #: koassistant_settings_schema.lua:493
+#, fuzzy
 msgid "Book Text Extraction"
-msgstr ""
+msgstr "Kitap Metni Çıkarma"
 
 #: koassistant_settings_schema.lua:498
+#, fuzzy
 msgid ""
 "Book text extraction is slow and uses many tokens. Enable only if needed."
-msgstr ""
+msgstr "Kitap metni çıkarma yavaştır ve çok sayıda token kullanır. Yalnızca gerektiğinde etkinleştirin."
 
 #: koassistant_settings_schema.lua:503
+#, fuzzy
 msgid "Allow Book Text Extraction"
-msgstr ""
+msgstr "Kitap Metni Çıkarmaya İzin Ver"
 
 #: koassistant_settings_schema.lua:506
+#, fuzzy
 msgid ""
-"When enabled, actions that request book text (like X-Ray, Recap) can extract "
-"and send it to the AI. This is slow and uses many tokens.\n"
+"When enabled, actions that request book text (like X-Ray, Recap) can extract and send it to the AI. This is slow and uses many tokens.\n"
 "\n"
-"Note: Lightweight data (reading progress, highlights, annotations) is always "
-"available and doesn't need this setting."
+"Note: Lightweight data (reading progress, highlights, annotations) is always available and doesn't need this setting."
 msgstr ""
+"Etkinleştirildiğinde, kitap metni isteyen eylemler (X-Ray, Özet gibi) metni çıkarıp yapay zekaya gönderebilir. Bu yavaştır ve çok sayıda token kullanır.\n"
+"\n"
+"Not: Hafif veriler (okuma ilerlemesi, vurgulamalar, notlar) her zaman kullanılabilir ve bu ayarı gerektirmez."
 
 #: koassistant_settings_schema.lua:511
 #, fuzzy
 msgid "Max Text Characters"
-msgstr "Bağlam Karakterleri"
+msgstr "Maksimum Metin Karakteri"
 
 #: koassistant_settings_schema.lua:518
+#, fuzzy
 msgid ""
-"Maximum characters to extract from the book (10,000-500,000). Higher values "
-"provide more context but use more tokens. Default: 50,000 (~12k tokens)."
-msgstr ""
+"Maximum characters to extract from the book (10,000-500,000). Higher values provide more context but use more tokens. Default: 50,000 (~12k tokens)."
+msgstr "Kitaptan çıkarılacak maksimum karakter sayısı (10.000-500.000). Yüksek değerler daha fazla bağlam sağlar ancak daha fazla token kullanır. Varsayılan: 50.000 (~12k token)."
 
 #: koassistant_settings_schema.lua:524
+#, fuzzy
 msgid "Max PDF Pages"
-msgstr ""
+msgstr "Maksimum PDF Sayfası"
 
 #: koassistant_settings_schema.lua:531
+#, fuzzy
 msgid ""
-"Maximum PDF pages to extract text from (50-500). Higher values provide more "
-"context but take longer."
-msgstr ""
+"Maximum PDF pages to extract text from (50-500). Higher values provide more context but take longer."
+msgstr "Metin çıkarılacak maksimum PDF sayfası (50-500). Yüksek değerler daha fazla bağlam sağlar ancak daha uzun sürer."
 
 #: koassistant_settings_schema.lua:540
 #, fuzzy
@@ -1601,18 +1624,17 @@ msgstr "Konsol Hata Ayıklama"
 #: koassistant_settings_schema.lua:541
 #, fuzzy
 msgid "Enable console/terminal debug logging (for developers)"
-msgstr ""
-"Konsol/terminal hata ayıklama günlüğünü etkinleştir (geliştiriciler için)"
+msgstr "Konsol/terminal hata ayıklama günlüğünü etkinleştir (geliştiriciler için)"
 
 #: koassistant_settings_schema.lua:548
 #, fuzzy
 msgid "Show Debug in Chat"
-msgstr "Sohbette Hata Ayıklamayı Göster"
+msgstr "Sohbette Hata Ayıklama Göster"
 
 #: koassistant_settings_schema.lua:549
 #, fuzzy
 msgid "Display debug information in chat viewer"
-msgstr "Sohbet görüntüleyicide hata ayıklama bilgisini göster"
+msgstr "Sohbet görüntüleyicide hata ayıklama bilgilerini göster"
 
 #: koassistant_settings_schema.lua:559
 #, fuzzy
@@ -1632,7 +1654,7 @@ msgstr "Hata Ayıklama Ayrıntı Düzeyi: %1"
 #: koassistant_settings_schema.lua:567
 #, fuzzy
 msgid "Minimal (user input only)"
-msgstr "Minimal (yalnızca kullanıcı girişi)"
+msgstr "Minimal (yalnızca kullanıcı girdisi)"
 
 #: koassistant_settings_schema.lua:568
 #, fuzzy
@@ -1662,9 +1684,7 @@ msgstr "Yedek Oluştur"
 #: koassistant_settings_schema.lua:589
 #, fuzzy
 msgid "Create a backup of your settings, API keys, and custom content."
-msgstr ""
-"Ayarlarınızın, API anahtarlarınızın ve özel içeriklerinizin yedeğini "
-"oluşturun."
+msgstr "Ayarlarınızın, API anahtarlarınızın ve özel içeriklerinizin yedeğini oluşturun."
 
 #: koassistant_settings_schema.lua:595
 #, fuzzy
@@ -1674,7 +1694,7 @@ msgstr "Yedekten Geri Yükle"
 #: koassistant_settings_schema.lua:596
 #, fuzzy
 msgid "Restore settings from a previous backup."
-msgstr "Önceki bir yedekten ayarları geri yükleyin."
+msgstr "Ayarları önceki bir yedekten geri yükleyin."
 
 #: koassistant_settings_schema.lua:602
 #, fuzzy
@@ -1704,15 +1724,13 @@ msgstr "Özellik ayarlarını sıfırla"
 #: koassistant_settings_schema.lua:625
 #, fuzzy
 msgid ""
-"Resets provider, model, temperature, streaming, reasoning, and other "
-"toggles.\n"
+"Resets provider, model, temperature, streaming, reasoning, and other toggles.\n"
 "\n"
 "Preserves: API keys, all actions, behaviors, custom models, chat history."
 msgstr ""
-"Sağlayıcıyı, modeli, sıcaklığı ve diğer geçişleri varsayılanlara sıfırlar.\n"
+"Sağlayıcı, model, sıcaklık, akış, akıl yürütme ve diğer geçişleri sıfırlar.\n"
 "\n"
-"Korunur: API anahtarları, özel eylemler, davranışlar, özel modeller, sohbet "
-"geçmişi."
+"Korunur: API anahtarları, tüm eylemler, davranışlar, özel modeller, sohbet geçmişi."
 
 #: koassistant_settings_schema.lua:627
 #, fuzzy
@@ -1721,32 +1739,37 @@ msgid ""
 "\n"
 "Resets: Provider, model, temperature, streaming, reasoning toggles.\n"
 "\n"
-"Preserves: API keys, custom actions, action edits, behaviors, custom models, "
-"chat history."
+"Preserves: API keys, custom actions, action edits, behaviors, custom models, chat history."
 msgstr ""
-"Sağlayıcıyı, modeli, sıcaklığı ve diğer geçişleri varsayılanlara sıfırlar.\n"
+"Özellik ayarları varsayılanlara sıfırlansın mı?\n"
 "\n"
-"Korunur: API anahtarları, özel eylemler, davranışlar, özel modeller, sohbet "
-"geçmişi."
+"Sıfırlanır: Sağlayıcı, model, sıcaklık, akış, akıl yürütme geçişleri.\n"
+"\n"
+"Korunur: API anahtarları, özel eylemler, eylem düzenlemeleri, davranışlar, özel modeller, sohbet geçmişi."
 
 #: koassistant_settings_schema.lua:635
 #, fuzzy
 msgid "Reset actions..."
-msgstr "Ayarları Sıfırla..."
+msgstr "Eylemleri sıfırla..."
 
 #: koassistant_settings_schema.lua:640 koassistant_ui/prompts_manager.lua:488
 #, fuzzy
 msgid "Reset custom actions"
-msgstr "Tüm özelleştirmeleri sıfırla"
+msgstr "Özel eylemleri sıfırla"
 
 #: koassistant_settings_schema.lua:641
+#, fuzzy
 msgid ""
 "Deletes all user-created actions.\n"
 "\n"
 "Preserves: Built-in actions, action edits, menu configurations."
 msgstr ""
+"Kullanıcı tarafından oluşturulan tüm eylemleri siler.\n"
+"\n"
+"Korunan: Yerleşik eylemler, eylem düzenlemeleri, menü yapılandırmaları."
 
 #: koassistant_settings_schema.lua:643 koassistant_ui/prompts_manager.lua:492
+#, fuzzy
 msgid ""
 "Delete all custom actions?\n"
 "\n"
@@ -1754,71 +1777,92 @@ msgid ""
 "\n"
 "Built-in actions and their edits are preserved."
 msgstr ""
+"Tüm özel eylemler silinsin mi?\n"
+"\n"
+"Bu, oluşturduğunuz eylemleri kaldırır.\n"
+"\n"
+"Yerleşik eylemler ve düzenlemeleri korunur."
 
 #: koassistant_settings_schema.lua:649 koassistant_ui/prompts_manager.lua:504
 #, fuzzy
 msgid "Reset action edits"
-msgstr "Varsayılanlara Sıfırla"
+msgstr "Eylem düzenlemelerini sıfırla"
 
 #: koassistant_settings_schema.lua:650
+#, fuzzy
 msgid ""
-"Resets all edits to built-in actions back to defaults. Also re-enables any "
-"disabled actions.\n"
+"Resets all edits to built-in actions back to defaults. Also re-enables any disabled actions.\n"
 "\n"
 "Preserves: Custom actions, menu configurations."
 msgstr ""
+"Yerleşik eylemlerde yapılan tüm düzenlemeleri varsayılanlara sıfırlar. Ayrıca devre dışı bırakılan eylemleri yeniden etkinleştirir.\n"
+"\n"
+"Korunan: Özel eylemler, menü yapılandırmaları."
 
 #: koassistant_settings_schema.lua:652 koassistant_ui/prompts_manager.lua:508
+#, fuzzy
 msgid ""
 "Reset all action edits?\n"
 "\n"
-"This reverts any changes you made to built-in actions and re-enables "
-"disabled actions.\n"
+"This reverts any changes you made to built-in actions and re-enables disabled actions.\n"
 "\n"
 "Custom actions are preserved."
 msgstr ""
+"Tüm eylem düzenlemeleri sıfırlansın mı?\n"
+"\n"
+"Bu, yerleşik eylemlerde yaptığınız değişiklikleri geri alır ve devre dışı bırakılan eylemleri yeniden etkinleştirir.\n"
+"\n"
+"Özel eylemler korunur."
 
 #: koassistant_settings_schema.lua:658 koassistant_ui/prompts_manager.lua:520
 #, fuzzy
 msgid "Reset action menus"
-msgstr "Varsayılanlara Sıfırla"
+msgstr "Eylem menülerini sıfırla"
 
 #: koassistant_settings_schema.lua:659
+#, fuzzy
 msgid ""
 "Resets highlight menu and dictionary popup configurations back to defaults.\n"
 "\n"
 "Preserves: Actions themselves (both custom and built-in)."
 msgstr ""
+"Vurgu menüsü ve sözlük açılır penceresi yapılandırmalarını varsayılanlara sıfırlar.\n"
+"\n"
+"Korunan: Eylemlerin kendileri (hem özel hem de yerleşik)."
 
 #: koassistant_settings_schema.lua:661 koassistant_ui/prompts_manager.lua:524
+#, fuzzy
 msgid ""
 "Reset action menu configurations?\n"
 "\n"
-"This resets the ordering and selection in highlight menu and dictionary "
-"popup back to defaults.\n"
+"This resets the ordering and selection in highlight menu and dictionary popup back to defaults.\n"
 "\n"
 "Your actions (custom and built-in) are preserved."
 msgstr ""
+"Eylem menüsü yapılandırmaları sıfırlansın mı?\n"
+"\n"
+"Bu, vurgu menüsü ve sözlük açılır penceresindeki sıralama ve seçimi varsayılanlara sıfırlar.\n"
+"\n"
+"Eylemleriniz (özel ve yerleşik) korunur."
 
 #: koassistant_settings_schema.lua:670
 #, fuzzy
 msgid "Reset custom providers/models"
-msgstr "Tüm özel sağlayıcılar kaldırıldı"
+msgstr "Özel sağlayıcıları/modelleri sıfırla"
 
 #: koassistant_settings_schema.lua:671
 #, fuzzy
 msgid ""
-"Removes custom providers, custom models, and per-provider default model "
-"selections.\n"
+"Removes custom providers, custom models, and per-provider default model selections.\n"
 "\n"
 "Preserves: API keys, actions, behaviors."
 msgstr ""
-"Sağlayıcıyı, modeli, sıcaklığı ve diğer geçişleri varsayılanlara sıfırlar.\n"
+"Özel sağlayıcıları, özel modelleri ve sağlayıcı bazlı varsayılan model seçimlerini kaldırır.\n"
 "\n"
-"Korunur: API anahtarları, özel eylemler, davranışlar, özel modeller, sohbet "
-"geçmişi."
+"Korunan: API anahtarları, eylemler, davranışlar."
 
 #: koassistant_settings_schema.lua:673
+#, fuzzy
 msgid ""
 "Reset custom providers and models?\n"
 "\n"
@@ -1829,6 +1873,14 @@ msgid ""
 "\n"
 "API keys and actions are preserved."
 msgstr ""
+"Özel sağlayıcılar ve modeller sıfırlansın mı?\n"
+"\n"
+"Bu şunları kaldırır:\n"
+"• Eklediğiniz özel sağlayıcılar\n"
+"• Herhangi bir sağlayıcı için özel modeller\n"
+"• Sağlayıcı bazlı varsayılan model seçimleri\n"
+"\n"
+"API anahtarları ve eylemler korunur."
 
 #: koassistant_settings_schema.lua:681
 #, fuzzy
@@ -1838,15 +1890,13 @@ msgstr "Tüm özelleştirmeleri sıfırla"
 #: koassistant_settings_schema.lua:682
 #, fuzzy
 msgid ""
-"Resets ALL customizations: actions, edits, menus, behaviors, domains, "
-"providers, models.\n"
+"Resets ALL customizations: actions, edits, menus, behaviors, domains, providers, models.\n"
 "\n"
 "Preserves: API keys, chat history."
 msgstr ""
-"Özel eylemler, davranışlar, alanlar, modeller ve eylem geçersiz kılmaları "
-"dahil TÜM ayarları sıfırlar.\n"
+"TÜM özelleştirmeleri sıfırlar: eylemler, düzenlemeler, menüler, davranışlar, alan bilgileri, sağlayıcılar, modeller.\n"
 "\n"
-"Korunur: API anahtarları, sohbet geçmişi."
+"Korunan: API anahtarları, sohbet geçmişi."
 
 #: koassistant_settings_schema.lua:684
 #, fuzzy
@@ -1864,17 +1914,19 @@ msgid ""
 msgstr ""
 "TÜM özelleştirmeler sıfırlansın mı?\n"
 "\n"
-"Bu, özel eylemler, davranışlar, alanlar ve modeller dahil tüm ayarları "
-"sıfırlayacak.\n"
+"Bu şunları sıfırlar:\n"
+"• Özel eylemler ve eylem düzenlemeleri\n"
+"• Menü yapılandırmaları\n"
+"• Davranışlar ve alan bilgileri\n"
+"• Özel sağlayıcılar ve modeller\n"
+"• Özellik ayarları\n"
 "\n"
-"Sadece API anahtarları ve sohbet geçmişi korunacak.\n"
-"\n"
-"Bu geri alınamaz."
+"Sadece API anahtarları ve sohbet geçmişi korunur."
 
 #: koassistant_settings_schema.lua:690
 #, fuzzy
 msgid "Reset everything (nuclear)"
-msgstr "Her şeyi sıfırla (tam)"
+msgstr "Her şeyi sıfırla (nükleer)"
 
 #: koassistant_settings_schema.lua:691
 #, fuzzy
@@ -1883,12 +1935,9 @@ msgid ""
 "\n"
 "Preserves: Chat history only."
 msgstr ""
-"⚠️ TAM SIFIRLAMA: TÜM ayarları, özel içeriği, API anahtarlarını siler.\n"
+"⚠️ TAM SIFIRLAMA: API anahtarları dahil TÜM ayarları siler.\n"
 "\n"
-"Korunur: Yalnızca sohbet geçmişi.\n"
-"\n"
-"API anahtarlarını yeniden girmeniz ve her şeyi yeniden yapılandırmanız "
-"gerekecek."
+"Korunan: Yalnızca sohbet geçmişi."
 
 #: koassistant_settings_schema.lua:693
 #, fuzzy
@@ -1908,18 +1957,16 @@ msgid ""
 msgstr ""
 "⚠️ HER ŞEY SIFIRLANSIN MI?\n"
 "\n"
-"Bu SİLECEK:\n"
+"Bu şunları SİLECEK:\n"
 "• Tüm ayarlar ve yapılandırmalar\n"
-"• Özel eylemler, davranışlar, alanlar\n"
+"• Özel eylemler, davranışlar, alan bilgileri\n"
 "• Özel modeller ve sağlayıcılar\n"
 "• API anahtarları (yeniden girmeniz gerekecek)\n"
 "• Eylem menüsü özelleştirmeleri\n"
 "\n"
 "Sadece sohbet geçmişi korunacak.\n"
 "\n"
-"Bu GERİ ALINAMAZ!\n"
-"\n"
-"Kesinlikle emin misiniz?"
+"Bu GERİ ALINAMAZ!"
 
 #: koassistant_settings_schema.lua:701
 #, fuzzy
@@ -1929,7 +1976,7 @@ msgstr "Tüm sohbet geçmişini temizle"
 #: koassistant_settings_schema.lua:702
 #, fuzzy
 msgid "Deletes all saved conversations across all books."
-msgstr "Tüm kitaplardaki tüm kayıtlı sohbet konuşmalarını siler."
+msgstr "Tüm kitaplardaki kayıtlı tüm konuşmaları siler."
 
 #: koassistant_settings_schema.lua:704
 #, fuzzy
@@ -1942,7 +1989,7 @@ msgid ""
 msgstr ""
 "Tüm sohbet geçmişi silinsin mi?\n"
 "\n"
-"Bu, tüm kitaplardaki tüm kayıtlı konuşmaları kaldıracak.\n"
+"Bu, tüm kitaplardaki kayıtlı tüm konuşmaları kaldırır.\n"
 "\n"
 "Bu geri alınamaz."
 
@@ -1954,20 +2001,17 @@ msgstr "Dil"
 #: koassistant_settings_schema.lua:721
 #, fuzzy
 msgid "Disable to show English UI (requires restart)"
-msgstr ""
-"İngilizce arayüz göstermek için devre dışı bırakın (yeniden başlatma "
-"gerektirir)"
+msgstr "İngilizce arayüz göstermek için devre dışı bırakın (yeniden başlatma gerektirir)"
 
 #: koassistant_settings_schema.lua:726
 #, fuzzy
 msgid "Match KOReader UI Language"
-msgstr "KOReader Arayüz Diliyle Eşleştir"
+msgstr "KOReader Arayüz Dili ile Eşleştir"
 
 #: koassistant_settings_schema.lua:734
 #, fuzzy
 msgid "Please restart KOReader for the language change to take effect."
-msgstr ""
-"Dil değişikliğinin etkili olması için lütfen KOReader'ı yeniden başlatın."
+msgstr "Dil değişikliğinin etkili olması için lütfen KOReader'ı yeniden başlatın."
 
 #: koassistant_settings_schema.lua:741
 #, fuzzy
@@ -1977,15 +2021,13 @@ msgstr "Dilleriniz"
 #: koassistant_settings_schema.lua:744
 #, fuzzy
 msgid ""
-"Languages you speak, separated by commas. Leave empty for default AI "
-"behavior.\n"
+"Languages you speak, separated by commas. Leave empty for default AI behavior.\n"
 "\n"
 "Examples:\n"
 "• \"English\"\n"
 "• \"German, English, French\""
 msgstr ""
-"Konuştuğunuz diller, virgülle ayrılmış. Varsayılan AI davranışı için boş "
-"bırakın.\n"
+"Konuştuğunuz diller, virgülle ayrılmış. Varsayılan yapay zeka davranışı için boş bırakın.\n"
 "\n"
 "Örnekler:\n"
 "• \"Türkçe\"\n"
@@ -1994,12 +2036,12 @@ msgstr ""
 #: koassistant_settings_schema.lua:752
 #, fuzzy
 msgid "Primary Language: (not set)"
-msgstr "Ana Dil: (ayarlanmadı)"
+msgstr "Birincil Dil: (ayarlanmadı)"
 
 #: koassistant_settings_schema.lua:754
 #, fuzzy
 msgid "Primary Language: %1"
-msgstr "Ana Dil: %1"
+msgstr "Birincil Dil: %1"
 
 #: koassistant_settings_schema.lua:765
 #, fuzzy
@@ -2009,12 +2051,12 @@ msgstr "Sözlük Ayarları"
 #: koassistant_settings_schema.lua:770
 #, fuzzy
 msgid "AI Buttons in Dictionary Popup"
-msgstr "Sözlük Açılır Penceresinde AI Düğmeleri"
+msgstr "Sözlük Açılır Penceresinde Yapay Zeka Düğmeleri"
 
 #: koassistant_settings_schema.lua:773
 #, fuzzy
 msgid "Show AI Dictionary button when tapping on a word"
-msgstr "Bir kelimeye dokunulduğunda AI Sözlük düğmesini göster"
+msgstr "Bir kelimeye dokunulduğunda Yapay Zeka Sözlük düğmesini göster"
 
 #: koassistant_settings_schema.lua:782
 #, fuzzy
@@ -2024,7 +2066,7 @@ msgstr "Yanıt Dili: (Çeviriyi Takip Et)"
 #: koassistant_settings_schema.lua:784
 #, fuzzy
 msgid "Response Language: (Follow Primary)"
-msgstr "Yanıt Dili: (Ana Dili Takip Et)"
+msgstr "Yanıt Dili: (Birincil Dili Takip Et)"
 
 #: koassistant_settings_schema.lua:786
 #, fuzzy
@@ -2044,7 +2086,7 @@ msgstr "Paragraf"
 #: koassistant_settings_schema.lua:799 main.lua:2726
 #, fuzzy
 msgid "Characters"
-msgstr "Karakterler"
+msgstr "Karakter"
 
 #: koassistant_settings_schema.lua:802
 #, fuzzy
@@ -2059,11 +2101,8 @@ msgstr "Bağlam Karakterleri"
 #: koassistant_settings_schema.lua:815
 #, fuzzy
 msgid ""
-"Number of characters to include before/after the word when Context Mode is "
-"'Characters'"
-msgstr ""
-"Bağlam Modu 'Karakterler' olduğunda kelimenin öncesine/sonrasına eklenecek "
-"karakter sayısı"
+"Number of characters to include before/after the word when Context Mode is 'Characters'"
+msgstr "Bağlam Modu 'Karakter' olduğunda kelimenin öncesine/sonrasına dahil edilecek karakter sayısı"
 
 #: koassistant_settings_schema.lua:824
 #, fuzzy
@@ -2073,22 +2112,14 @@ msgstr "Sözlük için Otomatik Kaydetmeyi Devre Dışı Bırak"
 #: koassistant_settings_schema.lua:827
 #, fuzzy
 msgid ""
-"When enabled, dictionary lookups are not auto-saved. When disabled, "
-"dictionary chats follow your general chat saving settings. You can always "
-"save manually from an expanded view."
-msgstr ""
-"Etkinleştirildiğinde, sözlük aramaları otomatik kaydedilmez. Devre dışı "
-"bırakıldığında, sözlük sohbetleri genel sohbet kaydetme ayarlarınızı takip "
-"eder. Genişletilmiş görünümden her zaman manuel olarak kaydedebilirsiniz."
+"When enabled, dictionary lookups are not auto-saved. When disabled, dictionary chats follow your general chat saving settings. You can always save manually from an expanded view."
+msgstr "Etkinleştirildiğinde, sözlük aramaları otomatik kaydedilmez. Devre dışı bırakıldığında, sözlük sohbetleri genel sohbet kaydetme ayarlarınızı takip eder. Genişletilmiş görünümden her zaman manuel olarak kaydedebilirsiniz."
 
 #: koassistant_settings_schema.lua:835
 #, fuzzy
 msgid ""
-"Stream dictionary responses in real-time. Disable to wait for complete "
-"response."
-msgstr ""
-"Sözlük yanıtlarını gerçek zamanlı akış yapın. Tam yanıt için beklemek üzere "
-"devre dışı bırakın."
+"Stream dictionary responses in real-time. Disable to wait for complete response."
+msgstr "Sözlük yanıtlarını gerçek zamanlı olarak akış halinde göster. Tam yanıtı beklemek için devre dışı bırakın."
 
 #: koassistant_settings_schema.lua:840
 #, fuzzy
@@ -2108,11 +2139,8 @@ msgstr "KOReader Sözlüğünü Atla"
 #: koassistant_settings_schema.lua:850
 #, fuzzy
 msgid ""
-"Skip KOReader's dictionary and go directly to AI when tapping words. Can "
-"also be toggled via gesture."
-msgstr ""
-"Kelimelere dokunurken KOReader'ın sözlüğünü atlayın ve doğrudan AI'ya gidin. "
-"Hareketle de açılıp kapatılabilir."
+"Skip KOReader's dictionary and go directly to AI when tapping words. Can also be toggled via gesture."
+msgstr "Kelimelere dokunurken KOReader'ın sözlüğünü atlayıp doğrudan yapay zekaya git. Hareket ile de değiştirilebilir."
 
 #: koassistant_settings_schema.lua:871 koassistant_settings_schema.lua:875
 #: koassistant_settings_schema.lua:877 koassistant_settings_schema.lua:1056
@@ -2124,7 +2152,7 @@ msgstr "Atlama Eylemi: %1"
 #: koassistant_settings_schema.lua:880
 #, fuzzy
 msgid "Action to trigger when dictionary bypass is enabled"
-msgstr "Sözlük atlaması etkinleştirildiğinde tetiklenecek eylem"
+msgstr "Sözlük atlama etkinleştirildiğinde tetiklenecek eylem"
 
 #: koassistant_settings_schema.lua:885
 #, fuzzy
@@ -2134,32 +2162,24 @@ msgstr "Atlama: Kelime Oluşturucu Otomatik Eklemeyi Takip Et"
 #: koassistant_settings_schema.lua:888
 #, fuzzy
 msgid ""
-"When enabled, dictionary bypass follows KOReader's Vocabulary Builder auto-"
-"add setting. Disable if you use bypass for analysis of words you already "
-"know and don't want them added."
-msgstr ""
-"Etkinleştirildiğinde, sözlük atlaması KOReader'ın Kelime Oluşturucu otomatik "
-"ekleme ayarını takip eder. Zaten bildiğiniz kelimelerin analizinde atlama "
-"kullanıyorsanız ve bunların eklenmesini istemiyorsanız devre dışı bırakın."
+"When enabled, dictionary bypass follows KOReader's Vocabulary Builder auto-add setting. Disable if you use bypass for analysis of words you already know and don't want them added."
+msgstr "Etkinleştirildiğinde, sözlük atlama KOReader'ın Kelime Oluşturucu otomatik ekleme ayarını takip eder. Zaten bildiğiniz kelimelerin analizi için atlamayı kullanıyor ve bunların eklenmesini istemiyorsanız devre dışı bırakın."
 
 #: koassistant_settings_schema.lua:897
 #, fuzzy
 msgid "Translate Settings"
-msgstr "Sohbet Ayarları"
+msgstr "Çeviri Ayarları"
 
 #: koassistant_settings_schema.lua:903
 #, fuzzy
 msgid "Translate to Primary Language"
-msgstr "Ana Dile Çevir"
+msgstr "Birincil Dile Çevir"
 
 #: koassistant_settings_schema.lua:906
 #, fuzzy
 msgid ""
-"Use your primary language as the translation target. Disable to choose a "
-"different target."
-msgstr ""
-"Çeviri hedefi olarak ana dilinizi kullanın. Farklı bir hedef seçmek için "
-"devre dışı bırakın."
+"Use your primary language as the translation target. Disable to choose a different target."
+msgstr "Birincil dilinizi çeviri hedefi olarak kullanın. Farklı bir hedef seçmek için devre dışı bırakın."
 
 #: koassistant_settings_schema.lua:926
 #, fuzzy
@@ -2169,115 +2189,119 @@ msgstr "Çeviri Hedefi: %1"
 #: koassistant_settings_schema.lua:936
 #, fuzzy
 msgid "Disable Auto-Save for Translate"
-msgstr "Sözlük için Otomatik Kaydetmeyi Devre Dışı Bırak"
+msgstr "Çeviri için Otomatik Kaydetmeyi Devre Dışı Bırak"
 
 #: koassistant_settings_schema.lua:939
+#, fuzzy
 msgid "Translations are not auto-saved. Save manually via → Chat button."
-msgstr ""
+msgstr "Çeviriler otomatik kaydedilmez. → Sohbet düğmesi ile manuel olarak kaydedin."
 
 #: koassistant_settings_schema.lua:947
+#, fuzzy
 msgid "Stream translation responses in real-time."
-msgstr ""
+msgstr "Çeviri yanıtlarını gerçek zamanlı olarak akış halinde göster."
 
 #: koassistant_settings_schema.lua:956 koassistant_settings_schema.lua:972
 #, fuzzy
 msgid "Follow global setting"
-msgstr "Genel ayarı kullan"
+msgstr "Genel ayarı takip et"
 
 #: koassistant_settings_schema.lua:963
+#, fuzzy
 msgid "What to include when copying in translate view."
-msgstr ""
+msgstr "Çeviri görünümünde kopyalarken nelerin dahil edileceği."
 
 #: koassistant_settings_schema.lua:979
+#, fuzzy
 msgid "What to include when saving to note in translate view."
-msgstr ""
+msgstr "Çeviri görünümünde nota kaydederken nelerin dahil edileceği."
 
 #: koassistant_settings_schema.lua:990
 #, fuzzy
 msgid "Follow Global"
-msgstr "Genel"
+msgstr "Geneli Takip Et"
 
 #: koassistant_settings_schema.lua:991 koassistant_settings_schema.lua:1001
+#, fuzzy
 msgid "Always Hide"
-msgstr ""
+msgstr "Her Zaman Gizle"
 
 #: koassistant_settings_schema.lua:992
 #, fuzzy
 msgid "Hide Long"
-msgstr "Alıntıyı Gizle"
+msgstr "Uzunları Gizle"
 
 #: koassistant_settings_schema.lua:993 koassistant_settings_schema.lua:1003
+#, fuzzy
 msgid "Never Hide"
-msgstr ""
+msgstr "Asla Gizleme"
 
 #: koassistant_settings_schema.lua:995
 #, fuzzy
 msgid "Original Text: %1"
-msgstr "Hizalama: %1"
+msgstr "Orijinal Metin: %1"
 
 #: koassistant_settings_schema.lua:1000
 #, fuzzy
 msgid "Follow Global (Display Settings)"
-msgstr "Görüntü Ayarları"
+msgstr "Geneli Takip Et (Görüntüleme Ayarları)"
 
 #: koassistant_settings_schema.lua:1002
+#, fuzzy
 msgid "Hide Long (by character count)"
-msgstr ""
+msgstr "Uzunları Gizle (karakter sayısına göre)"
 
 #: koassistant_settings_schema.lua:1009
 #, fuzzy
 msgid "Long Text Threshold"
-msgstr "Uzun Vurgulama Eşiği"
+msgstr "Uzun Metin Eşiği"
 
 #: koassistant_settings_schema.lua:1015
+#, fuzzy
 msgid ""
-"Character count above which text is considered 'long'. Used when Original "
-"Text is set to 'Hide Long'."
-msgstr ""
+"Character count above which text is considered 'long'. Used when Original Text is set to 'Hide Long'."
+msgstr "Metnin 'uzun' sayıldığı karakter sayısı. Orijinal Metin 'Uzunları Gizle' olarak ayarlandığında kullanılır."
 
 #: koassistant_settings_schema.lua:1024
+#, fuzzy
 msgid "Hide for Full Page Translate"
-msgstr ""
+msgstr "Tam Sayfa Çeviride Gizle"
 
 #: koassistant_settings_schema.lua:1027
+#, fuzzy
 msgid "Always hide original text when translating full page."
-msgstr ""
+msgstr "Tam sayfa çevirirken orijinal metni her zaman gizle."
 
 #: koassistant_settings_schema.lua:1036
 #, fuzzy
 msgid "Highlight Settings"
-msgstr "Vurgulama Ayarları"
+msgstr "Vurgu Ayarları"
 
 #: koassistant_settings_schema.lua:1041
 #, fuzzy
 msgid "Enable Highlight Bypass"
-msgstr "Vurgulama Atlamasını Etkinleştir"
+msgstr "Vurgu Atlamayı Etkinleştir"
 
 #: koassistant_settings_schema.lua:1044
 #, fuzzy
 msgid ""
-"Immediately trigger an action when text is selected, skipping the highlight "
-"menu. Can also be toggled via gesture."
-msgstr ""
-"Metin seçildiğinde vurgulama menüsünü atlayarak hemen bir eylem tetikleyin. "
-"Hareketle de açılıp kapatılabilir."
+"Immediately trigger an action when text is selected, skipping the highlight menu. Can also be toggled via gesture."
+msgstr "Metin seçildiğinde vurgu menüsünü atlayarak hemen bir eylemi tetikle. Hareket ile de değiştirilebilir."
 
 #: koassistant_settings_schema.lua:1065
 #, fuzzy
 msgid "Action to trigger when highlight bypass is enabled"
-msgstr "Vurgulama atlaması etkinleştirildiğinde tetiklenecek eylem"
+msgstr "Vurgu atlama etkinleştirildiğinde tetiklenecek eylem"
 
 #: koassistant_settings_schema.lua:1070
 #, fuzzy
 msgid "Highlight Menu Actions"
-msgstr "Vurgulama Menüsü Eylemleri"
+msgstr "Vurgu Menüsü Eylemleri"
 
 #: koassistant_settings_schema.lua:1072
 #, fuzzy
 msgid "Choose which actions appear in the highlight menu (requires restart)"
-msgstr ""
-"Vurgulama menüsünde hangi eylemlerin görüneceğini seçin (yeniden başlatma "
-"gerektirir)"
+msgstr "Vurgu menüsünde hangi eylemlerin görüneceğini seçin (yeniden başlatma gerektirir)"
 
 #: koassistant_settings_schema.lua:1081 koassistant_ui/prompts_manager.lua:450
 #, fuzzy
@@ -2312,12 +2336,12 @@ msgstr "Karşılaştırma için dosya seçilmedi"
 #: main.lua:614
 #, fuzzy
 msgid "Please select at least 2 books to compare"
-msgstr "Karşılaştırmak için en az 2 kitap seçin"
+msgstr "Lütfen karşılaştırmak için en az 2 kitap seçin"
 
 #: main.lua:720
 #, fuzzy
 msgid "KOAssistant: Chat History"
-msgstr "KOAssistant: Sohbet Geçmişi"
+msgstr "KOAssistant: Sohbet Gecmisi"
 
 #: main.lua:728
 #, fuzzy
@@ -2327,7 +2351,7 @@ msgstr "KOAssistant: Son Kaydedilen Sohbete Devam Et"
 #: main.lua:736
 #, fuzzy
 msgid "KOAssistant: Continue Last Opened Chat"
-msgstr "KOAssistant: Son Açılan Sohbete Devam Et"
+msgstr "KOAssistant: Son Acilan Sohbete Devam Et"
 
 #: main.lua:745
 #, fuzzy
@@ -2342,97 +2366,97 @@ msgstr "KOAssistant: Genel Sohbet"
 #: main.lua:761
 #, fuzzy
 msgid "KOAssistant: Chat About Book"
-msgstr "KOAssistant: Kitap Hakkında Sohbet"
+msgstr "KOAssistant: Kitap Hakkinda Sohbet"
 
 #: main.lua:769
 #, fuzzy
 msgid "KOAssistant: X-Ray"
-msgstr "KOAssistant"
+msgstr "KOAssistant: X-Ray"
 
 #: main.lua:777
 #, fuzzy
 msgid "KOAssistant: Recap"
-msgstr "KOAssistant"
+msgstr "KOAssistant: Ozet"
 
 #: main.lua:785
 #, fuzzy
 msgid "KOAssistant: Analyze Highlights"
-msgstr "KOAssistant: Vurgulama Atlamasını Aç/Kapat"
+msgstr "KOAssistant: Vurgulari Analiz Et"
 
 #: main.lua:794
 #, fuzzy
 msgid "KOAssistant: Change Primary Language"
-msgstr "KOAssistant: Ana Dili Değiştir"
+msgstr "KOAssistant: Birincil Dili Degistir"
 
 #: main.lua:801
 #, fuzzy
 msgid "KOAssistant: Change Translation Language"
-msgstr "KOAssistant: Çeviri Dilini Değiştir"
+msgstr "KOAssistant: Ceviri Dilini Degistir"
 
 #: main.lua:808
 #, fuzzy
 msgid "KOAssistant: Change Provider"
-msgstr "KOAssistant: Sağlayıcıyı Değiştir"
+msgstr "KOAssistant: Saglayiciyi Degistir"
 
 #: main.lua:815
 #, fuzzy
 msgid "KOAssistant: Change Model"
-msgstr "KOAssistant: Modeli Değiştir"
+msgstr "KOAssistant: Modeli Degistir"
 
 #: main.lua:822
 #, fuzzy
 msgid "KOAssistant: Change AI Behavior"
-msgstr "KOAssistant: AI Davranışını Değiştir"
+msgstr "KOAssistant: Yapay Zeka Davranisini Degistir"
 
 #: main.lua:829
 #, fuzzy
 msgid "KOAssistant: AI Quick Settings"
-msgstr "KOAssistant: AI Hızlı Ayarlar"
+msgstr "KOAssistant: Yapay Zeka Hizli Ayarlari"
 
 #: main.lua:836
 #, fuzzy
 msgid "KOAssistant: Action Manager"
-msgstr "KOAssistant: Eylem Yöneticisi"
+msgstr "KOAssistant: Eylem Yoneticisi"
 
 #: main.lua:843
 #, fuzzy
 msgid "KOAssistant: Behavior Manager"
-msgstr "KOAssistant: Davranış Yöneticisi"
+msgstr "KOAssistant: Davranis Yoneticisi"
 
 #: main.lua:850
 #, fuzzy
 msgid "KOAssistant: Domain Manager"
-msgstr "KOAssistant: Alan Yöneticisi"
+msgstr "KOAssistant: Alan Yoneticisi"
 
 #: main.lua:857
 #, fuzzy
 msgid "KOAssistant: Change Domain"
-msgstr "KOAssistant: Alanı Değiştir"
+msgstr "KOAssistant: Alani Degistir"
 
 #: main.lua:865
 #, fuzzy
 msgid "KOAssistant: Dictionary Popup Manager"
-msgstr "KOAssistant: Sözlük Açılır Penceresi Yöneticisi"
+msgstr "KOAssistant: Sozluk Acilir Pencere Yoneticisi"
 
 #: main.lua:872
 #, fuzzy
 msgid "KOAssistant: Change Dictionary Language"
-msgstr "KOAssistant: Sözlük Dilini Değiştir"
+msgstr "KOAssistant: Sozluk Dilini Degistir"
 
 #: main.lua:879
 #, fuzzy
 msgid "KOAssistant: Toggle Dictionary Bypass"
-msgstr "KOAssistant: Sözlük Atlamasını Aç/Kapat"
+msgstr "KOAssistant: Sozluk Bypass'ini Ac/Kapat"
 
 #: main.lua:887
 #, fuzzy
 msgid "KOAssistant: Toggle Highlight Bypass"
-msgstr "KOAssistant: Vurgulama Atlamasını Aç/Kapat"
+msgstr "KOAssistant: Vurgu Bypass'ini Ac/Kapat"
 
 #: main.lua:895
 #, fuzzy
 msgid "KOAssistant: Translate Current Page"
-msgstr "KOAssistant: Mevcut Sayfayı Çevir"
+msgstr "KOAssistant: Mevcut Sayfayi Cevir"
 
 #: main.lua:1004
 #, fuzzy
@@ -2447,12 +2471,12 @@ msgstr "Model zaten mevcut"
 #: main.lua:1261 main.lua:1692
 #, fuzzy
 msgid "Provider name is required"
-msgstr "Sağlayıcı adı gereklidir"
+msgstr "Sağlayıcı adı gerekli"
 
 #: main.lua:1264 main.lua:1700
 #, fuzzy
 msgid "Base URL is required"
-msgstr "Temel URL gereklidir"
+msgstr "Temel URL gerekli"
 
 #: main.lua:1273
 #, fuzzy
@@ -2513,7 +2537,7 @@ msgid ""
 msgstr ""
 "'%1' özel sağlayıcısı kaldırılsın mı?\n"
 "\n"
-"Bu ayrıca bu sağlayıcı için tüm özel modelleri ve API anahtarını kaldıracak."
+"Bu, bu sağlayıcının özel modellerini ve API anahtarını da kaldıracaktır."
 
 #: main.lua:1564 main.lua:1903 main.lua:2136
 #, fuzzy
@@ -2583,9 +2607,9 @@ msgid ""
 "\n"
 "This will also remove their custom models and API keys."
 msgstr ""
-"Tüm %1 özel sağlayıcı kaldırılsın mı?\n"
+"%1 özel sağlayıcının tümü kaldırılsın mı?\n"
 "\n"
-"Bu ayrıca onların özel modellerini ve API anahtarlarını kaldıracak."
+"Bu, özel modellerini ve API anahtarlarını da kaldıracaktır."
 
 #: main.lua:1795
 #, fuzzy
@@ -2625,7 +2649,7 @@ msgstr "Özel modeli kaldır"
 #: main.lua:1899 main.lua:2132
 #, fuzzy
 msgid "Remove custom model '%1'?"
-msgstr "'%1' özel modelini kaldır?"
+msgstr "'%1' özel modeli kaldırılsın mı?"
 
 #: main.lua:1942 main.lua:1948 main.lua:2464
 #, fuzzy
@@ -2635,7 +2659,7 @@ msgstr "(varsayılan)"
 #: main.lua:1945
 #, fuzzy
 msgid "(your default)"
-msgstr "(sizin varsayılanınız)"
+msgstr "(varsayılanınız)"
 
 #: main.lua:1951
 #, fuzzy
@@ -2665,7 +2689,7 @@ msgstr "örn. claude-3-opus-20240229"
 #: main.lua:2034
 #, fuzzy
 msgid "Enter the exact model identifier. It will be saved and selected."
-msgstr "Tam model tanımlayıcısını girin. Kaydedilecek ve seçilecektir."
+msgstr "Tam model tanımlayıcısını girin. Kaydedilip seçilecektir."
 
 #: main.lua:2059
 #, fuzzy
@@ -2685,7 +2709,7 @@ msgstr "Özel modelleri yönet (%1)..."
 #: main.lua:2099
 #, fuzzy
 msgid "No predefined models"
-msgstr "Önceden tanımlanmış model yok"
+msgstr "Öntanımlı model yok"
 
 #: main.lua:2114
 #, fuzzy
@@ -2705,7 +2729,7 @@ msgstr "Tüm özel modelleri temizle"
 #: main.lua:2151
 #, fuzzy
 msgid "Remove all %1 custom model(s) for %2?"
-msgstr "%2 için tüm %1 özel modeli kaldırılsın mı?"
+msgstr "%2 için %1 özel modelin tümü kaldırılsın mı?"
 
 #: main.lua:2172
 #, fuzzy
@@ -2725,7 +2749,7 @@ msgstr "Mevcut: %1"
 #: main.lua:2320
 #, fuzzy
 msgid "Using key from apikeys.lua"
-msgstr "apikeys.lua'dan anahtar kullanılıyor"
+msgstr "apikeys.lua dosyasındaki anahtar kullanılıyor"
 
 #: main.lua:2322
 #, fuzzy
@@ -2770,17 +2794,17 @@ msgstr "Geçerli dil bulunamadı"
 #: main.lua:2481
 #, fuzzy
 msgid "Primary: %1"
-msgstr "Ana: %1"
+msgstr "Birincil: %1"
 
 #: main.lua:2501
 #, fuzzy
 msgid "Use Primary (%1)"
-msgstr "Ana Dili Kullan (%1)"
+msgstr "Birincil Kullan (%1)"
 
 #: main.lua:2527 main.lua:2567 main.lua:3547
 #, fuzzy
 msgid "Translate: %1"
-msgstr "Çevir: %1"
+msgstr "Çeviri: %1"
 
 #: main.lua:2581 koassistant_ui/prompts_manager.lua:1246
 #: koassistant_ui/prompts_manager.lua:2530
@@ -2821,12 +2845,12 @@ msgstr "Sözlük: Çeviriyi Takip Et"
 #: main.lua:2664 main.lua:4003
 #, fuzzy
 msgid "Follow Primary Language"
-msgstr "Ana Dili Takip Et"
+msgstr "Birincil Dili Takip Et"
 
 #: main.lua:2676
 #, fuzzy
 msgid "Dictionary: Follow Primary"
-msgstr "Sözlük: Ana Dili Takip Et"
+msgstr "Sözlük: Birincili Takip Et"
 
 #: main.lua:2708 main.lua:3559
 #, fuzzy
@@ -2841,17 +2865,17 @@ msgstr "Kelimeyi içeren tam cümleyi çıkar"
 #: main.lua:2725
 #, fuzzy
 msgid "Include more surrounding context"
-msgstr "Daha fazla çevreleyen bağlam ekle"
+msgstr "Daha fazla çevresel bağlam ekle"
 
 #: main.lua:2726
 #, fuzzy
 msgid "Fixed number of characters before/after"
-msgstr "Önceki/sonraki sabit karakter sayısı"
+msgstr "Öncesi/sonrası sabit karakter sayısı"
 
 #: main.lua:2727
 #, fuzzy
 msgid "Only send the word, no surrounding context"
-msgstr "Sadece kelimeyi gönder, çevreleyen bağlam yok"
+msgstr "Sadece kelimeyi gönder, çevresel bağlam yok"
 
 #: main.lua:2747
 #, fuzzy
@@ -2866,34 +2890,29 @@ msgstr "Özel AI Davranışı"
 #: main.lua:2768
 #, fuzzy
 msgid "Enter custom AI behavior instructions..."
-msgstr "Özel AI davranış talimatlarını girin..."
+msgstr "Özel AI davranış talimatları girin..."
 
 #: main.lua:2769
 #, fuzzy
 msgid ""
-"Define how the AI should behave. This replaces the built-in Minimal/Full "
-"behavior when 'Custom' is selected.\n"
+"Define how the AI should behave. This replaces the built-in Minimal/Full behavior when 'Custom' is selected.\n"
 "\n"
 "Tip: Start with the Full behavior as a template."
 msgstr ""
-"AI'ın nasıl davranması gerektiğini tanımlayın. Bu, 'Özel' seçildiğinde "
-"yerleşik Minimal/Tam davranışı değiştirir.\n"
+"AI'ın nasıl davranması gerektiğini tanımlayın. Bu, 'Özel' seçildiğinde yerleşik Minimal/Tam davranışın yerini alır.\n"
 "\n"
-"İpucu: Şablon olarak Tam davranışla başlayın."
+"İpucu: Şablon olarak Tam davranış ile başlayın."
 
 #: main.lua:2784
 #, fuzzy
 msgid "Load Full"
-msgstr "Tamamını Yükle"
+msgstr "Tam Yükle"
 
 #: main.lua:2839
 #, fuzzy
 msgid ""
-"Model lists are now managed through the model_lists.lua file. Please edit "
-"this file to add or remove models."
-msgstr ""
-"Model listeleri artık model_lists.lua dosyası aracılığıyla yönetiliyor. "
-"Model eklemek veya kaldırmak için lütfen bu dosyayı düzenleyin."
+"Model lists are now managed through the model_lists.lua file. Please edit this file to add or remove models."
+msgstr "Model listeleri artık model_lists.lua dosyası üzerinden yönetiliyor. Model eklemek veya kaldırmak için lütfen bu dosyayı düzenleyin."
 
 #: main.lua:3054
 #, fuzzy
@@ -2903,7 +2922,7 @@ msgstr "Daha önce açılmış sohbet bulunamadı"
 #: main.lua:3071 main.lua:4548
 #, fuzzy
 msgid "Configuration not found. Please set up configuration.lua first."
-msgstr "Yapılandırma bulunamadı. Lütfen önce configuration.lua'yı ayarlayın."
+msgstr "Yapılandırma bulunamadı. Lütfen önce configuration.lua dosyasını ayarlayın."
 
 #: main.lua:3100 main.lua:3140
 #, fuzzy
@@ -2913,12 +2932,12 @@ msgstr "Lütfen önce bir kitap açın"
 #: main.lua:3150
 #, fuzzy
 msgid "Action '%1' not found"
-msgstr "Çeviri eylemi bulunamadı"
+msgstr "'%1' eylemi bulunamadı"
 
 #: main.lua:3291 main.lua:3542
 #, fuzzy
 msgid "Primary Language"
-msgstr "Ana Dil"
+msgstr "Birincil Dil"
 
 #: main.lua:3297 main.lua:3552 koassistant_ui/prompts_manager.lua:3541
 #, fuzzy
@@ -2949,7 +2968,7 @@ msgstr "Varsayılan"
 #: main.lua:3437
 #, fuzzy
 msgid "AI Quick Settings"
-msgstr "AI Hızlı Ayarlar"
+msgstr "AI Hızlı Ayarları"
 
 #: main.lua:3463
 #, fuzzy
@@ -2994,22 +3013,22 @@ msgstr "Önce Ayarlar → Dil bölümünde dillerinizi yapılandırın."
 #: main.lua:3580
 #, fuzzy
 msgid "H.Bypass: ON"
-msgstr "V.Atlama: AÇIK"
+msgstr "V.Atla: AÇIK"
 
 #: main.lua:3580
 #, fuzzy
 msgid "H.Bypass: OFF"
-msgstr "V.Atlama: KAPALI"
+msgstr "V.Atla: KAPALI"
 
 #: main.lua:3593
 #, fuzzy
 msgid "D.Bypass: ON"
-msgstr "S.Atlama: AÇIK"
+msgstr "S.Atla: AÇIK"
 
 #: main.lua:3593
 #, fuzzy
 msgid "D.Bypass: OFF"
-msgstr "S.Atlama: KAPALI"
+msgstr "S.Atla: KAPALI"
 
 #: main.lua:3609
 #, fuzzy
@@ -3023,8 +3042,10 @@ msgstr "Bağlantı test ediliyor..."
 
 #: main.lua:3677
 #, fuzzy
-msgid "Connection test failed:\n"
-msgstr "Bağlantı testi başarısız:\n"
+msgid ""
+"Connection test failed:\n"
+msgstr ""
+"Baglanti testi basarisiz:\n"
 
 #: main.lua:3683
 #, fuzzy
@@ -3046,37 +3067,37 @@ msgstr ""
 #: main.lua:3691
 #, fuzzy
 msgid "Connection test failed: "
-msgstr "Bağlantı testi başarısız:"
+msgstr "Baglanti testi basarisiz:"
 
 #: main.lua:3794
 #, fuzzy
 msgid "Dictionary bypass: ON"
-msgstr "Sözlük atlaması: AÇIK"
+msgstr "Sözlük atlama: AÇIK"
 
 #: main.lua:3794
 #, fuzzy
 msgid "Dictionary bypass: OFF"
-msgstr "Sözlük atlaması: KAPALI"
+msgstr "Sözlük atlama: KAPALI"
 
 #: main.lua:3808
 #, fuzzy
 msgid "Highlight bypass: ON"
-msgstr "Vurgulama atlaması: AÇIK"
+msgstr "Vurgu atlama: AÇIK"
 
 #: main.lua:3808
 #, fuzzy
 msgid "Highlight bypass: OFF"
-msgstr "Vurgulama atlaması: KAPALI"
+msgstr "Vurgu atlama: KAPALI"
 
 #: main.lua:3872
 #, fuzzy
 msgid "Cannot determine current page"
-msgstr "Mevcut sayfa belirlenemiyor"
+msgstr "Geçerli sayfa belirlenemiyor"
 
 #: main.lua:3918
 #, fuzzy
 msgid "Could not extract text from current page"
-msgstr "Mevcut sayfadan metin çıkarılamadı"
+msgstr "Geçerli sayfadan metin çıkarılamadı"
 
 #: main.lua:3929
 #, fuzzy
@@ -3091,7 +3112,7 @@ msgstr "Atlama eylemi: %1"
 #: main.lua:4538
 #, fuzzy
 msgid "All action settings restored to defaults"
-msgstr "Özellik ayarları varsayılanlara sıfırlandı"
+msgstr "Tüm eylem ayarları varsayılanlara geri yüklendi"
 
 #: main.lua:4600
 #, fuzzy
@@ -3105,7 +3126,7 @@ msgstr ""
 #: main.lua:4649
 #, fuzzy
 msgid "Refresh cached book information"
-msgstr "Önbelleğe alınmış kitap bilgisini yenile"
+msgstr "Önbelleğe alınmış kitap bilgilerini yenile"
 
 #: main.lua:4748
 #, fuzzy
@@ -3125,22 +3146,22 @@ msgstr "Her şey sıfırlandı - lütfen API anahtarlarını yeniden girin"
 #: main.lua:4897
 #, fuzzy
 msgid "Custom actions deleted"
-msgstr "Silinecek özel alan yok"
+msgstr "Özel eylemler silindi"
 
 #: main.lua:4909
 #, fuzzy
 msgid "Action edits reset to defaults"
-msgstr "Ayarlar varsayılanlara sıfırlandı"
+msgstr "Eylem düzenlemeleri varsayılanlara sıfırlandı"
 
 #: main.lua:4923
 #, fuzzy
 msgid "Action menus reset to defaults"
-msgstr "Ayarlar varsayılanlara sıfırlandı"
+msgstr "Eylem menüleri varsayılanlara sıfırlandı"
 
 #: main.lua:4942
 #, fuzzy
 msgid "Custom providers and models reset"
-msgstr "Tüm özel sağlayıcılar kaldırıldı"
+msgstr "Özel sağlayıcılar ve modeller sıfırlandı"
 
 #: main.lua:5003
 #, fuzzy
@@ -3150,42 +3171,42 @@ msgstr "Temel Ayarlar: ✓ Dahil"
 #: main.lua:5009
 #, fuzzy
 msgid "API Keys: ✓ Include (⚠ Sensitive)"
-msgstr "API Anahtarları: ✓ Dahil Et (⚠ Hassas)"
+msgstr "API Anahtarları: ✓ Dahil (⚠ Hassas)"
 
 #: main.lua:5009
 #, fuzzy
 msgid "API Keys: ✗ Exclude"
-msgstr "API Anahtarları: ✗ Hariç Tut"
+msgstr "API Anahtarları: ✗ Hariç"
 
 #: main.lua:5024
 #, fuzzy
 msgid "Config Files: ✓ Include"
-msgstr "Yapılandırma Dosyaları: ✓ Dahil Et"
+msgstr "Yapılandırma Dosyaları: ✓ Dahil"
 
 #: main.lua:5024
 #, fuzzy
 msgid "Config Files: ✗ Exclude"
-msgstr "Yapılandırma Dosyaları: ✗ Hariç Tut"
+msgstr "Yapılandırma Dosyaları: ✗ Hariç"
 
 #: main.lua:5039
 #, fuzzy
 msgid "Domains & Behaviors: ✓ Include"
-msgstr "Alanlar ve Davranışlar: ✓ Dahil Et"
+msgstr "Alanlar ve Davranışlar: ✓ Dahil"
 
 #: main.lua:5039
 #, fuzzy
 msgid "Domains & Behaviors: ✗ Exclude"
-msgstr "Alanlar ve Davranışlar: ✗ Hariç Tut"
+msgstr "Alanlar ve Davranışlar: ✗ Hariç"
 
 #: main.lua:5054
 #, fuzzy
 msgid "Chat History: ✓ Include"
-msgstr "Sohbet Geçmişi: ✓ Dahil Et"
+msgstr "Sohbet Geçmişi: ✓ Dahil"
 
 #: main.lua:5054
 #, fuzzy
 msgid "Chat History: ✗ Exclude"
-msgstr "Sohbet Geçmişi: ✗ Hariç Tut"
+msgstr "Sohbet Geçmişi: ✗ Hariç"
 
 #: main.lua:5069 main.lua:5221 main.lua:5432 main.lua:5454
 #, fuzzy
@@ -3195,7 +3216,7 @@ msgstr "━━━━━━━━━━━━━━━━"
 #: main.lua:5095
 #, fuzzy
 msgid "What to include in backup:"
-msgstr "Yedeğe dahil edilecekler:"
+msgstr "Yedeklemeye dahil edilecekler:"
 
 #: main.lua:5107
 #, fuzzy
@@ -3204,7 +3225,7 @@ msgid ""
 "\n"
 "This may take a moment."
 msgstr ""
-"Yedek oluşturuluyor...\n"
+"Yedekleme oluşturuluyor...\n"
 "\n"
 "Bu biraz zaman alabilir."
 
@@ -3217,7 +3238,7 @@ msgid ""
 "\n"
 "Size: %2"
 msgstr ""
-"Yedek başarıyla oluşturuldu!\n"
+"Yedekleme başarıyla oluşturuldu!\n"
 "\n"
 "Konum: %1\n"
 "\n"
@@ -3266,7 +3287,7 @@ msgstr "0 sohbet"
 #: main.lua:5158
 #, fuzzy
 msgid "Included:"
-msgstr "Dahil edildi:"
+msgstr "Dahil edilenler:"
 
 #: main.lua:5168
 #, fuzzy
@@ -3275,7 +3296,7 @@ msgid ""
 "\n"
 "%1"
 msgstr ""
-"Yedekleme başarısız:\n"
+"Yedekleme basarisiz:\n"
 "\n"
 "%1"
 
@@ -3292,10 +3313,10 @@ msgid ""
 "Create a backup first using:\n"
 "Settings → Advanced → Settings Management → Create Backup"
 msgstr ""
-"Yedek bulunamadı.\n"
+"Yedekleme bulunamadı.\n"
 "\n"
-"Önce bir yedek oluşturun:\n"
-"Ayarlar → Gelişmiş → Ayar Yönetimi → Yedek Oluştur"
+"Önce şuradan bir yedekleme oluşturun:\n"
+"Ayarlar → Gelişmiş → Ayar Yönetimi → Yedekleme Oluştur"
 
 #: main.lua:5227
 #, fuzzy
@@ -3306,7 +3327,7 @@ msgid ""
 msgstr ""
 "Geri yüklenecek yedeği seçin\n"
 "\n"
-"Toplam: %1 yedek"
+"Toplam: %1 yedekleme"
 
 #: main.lua:5242 main.lua:5641
 #, fuzzy
@@ -3315,7 +3336,7 @@ msgid ""
 "\n"
 "%1"
 msgstr ""
-"Geçersiz yedek:\n"
+"Geçersiz yedekleme:\n"
 "\n"
 "%1"
 
@@ -3329,9 +3350,9 @@ msgid ""
 "\n"
 "Contents:"
 msgstr ""
-"Yedek: %1\n"
+"Yedekleme: %1\n"
 "\n"
-"Oluşturuldu: %2\n"
+"Oluşturulma: %2\n"
 "Eklenti sürümü: %3\n"
 "\n"
 "İçerik:"
@@ -3344,12 +3365,12 @@ msgstr "API anahtarı yok"
 #: main.lua:5270
 #, fuzzy
 msgid "domains"
-msgstr "alanlar"
+msgstr "alan"
 
 #: main.lua:5275
 #, fuzzy
 msgid "behaviors"
-msgstr "davranışlar"
+msgstr "davranış"
 
 #: main.lua:5283
 #, fuzzy
@@ -3445,12 +3466,11 @@ msgid ""
 "\n"
 "⚠ KOReader should be restarted after restore for changes to take full effect."
 msgstr ""
-"Yedekten geri yüklensin mi?\n"
+"Yedeklemeden geri yüklensin mi?\n"
 "\n"
 "⚠ Otomatik olarak bir geri yükleme noktası oluşturulacak.\n"
 "\n"
-"⚠ Değişikliklerin tam etkili olması için geri yüklemeden sonra KOReader "
-"yeniden başlatılmalıdır."
+"⚠ Değişikliklerin tam olarak etkili olması için KOReader yeniden başlatılmalıdır."
 
 #: main.lua:5494 main.lua:5650
 #, fuzzy
@@ -3464,7 +3484,7 @@ msgid ""
 "\n"
 "This may take a moment."
 msgstr ""
-"Yedek geri yükleniyor...\n"
+"Yedekleme geri yükleniyor...\n"
 "\n"
 "Bu biraz zaman alabilir."
 
@@ -3477,8 +3497,7 @@ msgid ""
 msgstr ""
 "Geri yükleme başarıyla tamamlandı!\n"
 "\n"
-"Tüm değişikliklerin etkili olması için KOReader'ı yeniden başlatmanız "
-"önerilir."
+"Tüm değişikliklerin etkili olması için KOReader'ı yeniden başlatmanız önerilir."
 
 #: main.lua:5523 koassistant_ui/prompts_manager.lua:2228
 #: koassistant_ui/prompts_manager.lua:2597
@@ -3504,14 +3523,14 @@ msgid ""
 "\n"
 "%1"
 msgstr ""
-"Geri yükleme başarısız:\n"
+"Geri yukleme basarisiz:\n"
 "\n"
 "%1"
 
 #: main.lua:5566
 #, fuzzy
 msgid "No backups found."
-msgstr "Yedek bulunamadı."
+msgstr "Yedekleme bulunamadı."
 
 #: main.lua:5614
 #, fuzzy
@@ -3520,7 +3539,7 @@ msgid ""
 "\n"
 "Total size: %2"
 msgstr ""
-"Yedekler (%1)\n"
+"Yedeklemeler (%1)\n"
 "\n"
 "Toplam boyut: %2"
 
@@ -3539,16 +3558,16 @@ msgid ""
 "\n"
 "This cannot be undone."
 msgstr ""
-"Yedek silinsin mi?\n"
+"Yedekleme silinsin mi?\n"
 "\n"
 "%1\n"
 "\n"
-"Bu geri alınamaz."
+"Bu işlem geri alınamaz."
 
 #: main.lua:5674
 #, fuzzy
 msgid "Backup deleted"
-msgstr "Yedek silindi"
+msgstr "Yedekleme silindi"
 
 #: main.lua:5683
 #, fuzzy
@@ -3569,7 +3588,7 @@ msgstr "İstek kullanıcı tarafından iptal edildi."
 #: stream_handler.lua:191
 #, fuzzy
 msgid "No response received. Raw: "
-msgstr "Yanıt alınamadı. Ham:"
+msgstr "Yanıt alınamadı. Ham veri:"
 
 #: stream_handler.lua:261 stream_handler.lua:291
 #, fuzzy
@@ -3594,12 +3613,12 @@ msgstr "AI yanıt veriyor"
 #: stream_handler.lua:404
 #, fuzzy
 msgid "Failed to start subprocess for request"
-msgstr "İstek için alt işlem başlatılamadı"
+msgstr "Istek icin alt islem baslatilamadi"
 
 #: koassistant_ui/behavior_manager.lua:123
 #, fuzzy
 msgid "Tap to select • Hold for details"
-msgstr "Seçmek için dokun • Ayrıntılar için basılı tut"
+msgstr "Seçmek için dokunun • Detaylar için basılı tutun"
 
 #: koassistant_ui/behavior_manager.lua:130
 #, fuzzy
@@ -3621,7 +3640,7 @@ msgstr "BEHAVIORS/ KLASÖRÜNDEN"
 #: koassistant_ui/domain_manager.lua:152
 #, fuzzy
 msgid "CUSTOM (UI-CREATED)"
-msgstr "ÖZEL (ARAYÜZDE OLUŞTURULMUŞ)"
+msgstr "ÖZEL (ARAYÜZDE OLUŞTURULAN)"
 
 #: koassistant_ui/behavior_manager.lua:176
 #, fuzzy
@@ -3632,16 +3651,13 @@ msgstr "Seçili: %1"
 #: koassistant_ui/prompts_manager.lua:428
 #, fuzzy
 msgid "Restore Defaults"
-msgstr "Varsayılanları Geri Yükle"
+msgstr "Varsayılanlara Geri Yükle"
 
 #: koassistant_ui/behavior_manager.lua:193
 #, fuzzy
 msgid ""
-"This will delete all custom behaviors and reset selection to Standard. "
-"Continue?"
-msgstr ""
-"Bu, tüm özel davranışları silecek ve seçimi Standart'a sıfırlayacak. Devam "
-"edilsin mi?"
+"This will delete all custom behaviors and reset selection to Standard. Continue?"
+msgstr "Bu, tüm özel davranışları silecek ve seçimi Standart'a sıfırlayacak. Devam edilsin mi?"
 
 #: koassistant_ui/behavior_manager.lua:206
 #, fuzzy
@@ -3657,13 +3673,13 @@ msgstr "Yerleşik"
 #: koassistant_ui/behavior_manager.lua:249
 #, fuzzy
 msgid "File (behaviors/ folder)"
-msgstr "Dosya (behaviors/ klasörü)"
+msgstr "Dosya (behaviors/ klasoru)"
 
 #: koassistant_ui/behavior_manager.lua:251
 #: koassistant_ui/domain_manager.lua:270
 #, fuzzy
 msgid "Custom (UI-created)"
-msgstr "Özel (arayüzde oluşturulmuş)"
+msgstr "Ozel (UI-olusturulmus)"
 
 #: koassistant_ui/behavior_manager.lua:263
 #: koassistant_ui/domain_manager.lua:282 koassistant_ui/prompts_manager.lua:617
@@ -3674,7 +3690,7 @@ msgstr "Kaynak"
 #: koassistant_ui/behavior_manager.lua:270
 #, fuzzy
 msgid "Based on"
-msgstr "Şuna dayalı"
+msgstr "Tabani"
 
 #: koassistant_ui/behavior_manager.lua:273
 #, fuzzy
@@ -3697,13 +3713,13 @@ msgstr "Boyut"
 #: koassistant_ui/domain_manager.lua:295
 #, fuzzy
 msgid "Content"
-msgstr "İçerik"
+msgstr "Icerik"
 
 #: koassistant_ui/behavior_manager.lua:293
 #: koassistant_ui/domain_manager.lua:306
 #, fuzzy
 msgid "Edit"
-msgstr "Düzenle"
+msgstr "Duzenle"
 
 #: koassistant_ui/behavior_manager.lua:304
 #: koassistant_ui/domain_manager.lua:317
@@ -3715,17 +3731,17 @@ msgstr "'%1' silinsin mi?"
 #: koassistant_ui/domain_manager.lua:328
 #, fuzzy
 msgid "Duplicate"
-msgstr "Çoğalt"
+msgstr "Cogalt"
 
 #: koassistant_ui/behavior_manager.lua:324
 #, fuzzy
 msgid "Behavior duplicated"
-msgstr "Davranış çoğaltıldı"
+msgstr "Davranis cogaltildi"
 
 #: koassistant_ui/behavior_manager.lua:334
 #, fuzzy
 msgid "About File-Based Behaviors"
-msgstr "Dosya Tabanlı Davranışlar Hakkında"
+msgstr "Dosya Tabanli Davranislar Hakkinda"
 
 #: koassistant_ui/behavior_manager.lua:339
 #, lua-format
@@ -3749,132 +3765,129 @@ msgstr ""
 #: koassistant_ui/domain_manager.lua:581
 #, fuzzy
 msgid "Use as Template"
-msgstr "Şablon Olarak Kullan"
+msgstr "Sablon Olarak Kullan"
 
 #: koassistant_ui/behavior_manager.lua:379
 #, fuzzy
 msgid "Behavior Details"
-msgstr "Davranış Ayrıntıları"
+msgstr "Davranis Detaylari"
 
 #: koassistant_ui/behavior_manager.lua:401
 #, fuzzy
 msgid "New Behavior - Name"
-msgstr "Yeni Davranış - Ad"
+msgstr "Yeni Davranis - Ad"
 
 #: koassistant_ui/behavior_manager.lua:401
 #, fuzzy
 msgid "Edit Behavior - Name"
-msgstr "Davranışı Düzenle - Ad"
+msgstr "Davranisi Duzenle - Ad"
 
 #: koassistant_ui/behavior_manager.lua:403
 #, fuzzy
 msgid "Enter behavior name..."
-msgstr "Davranış adını girin..."
+msgstr "Davranis adini girin..."
 
 #: koassistant_ui/behavior_manager.lua:404
 #, fuzzy
 msgid "Give this behavior a descriptive name."
-msgstr "Bu davranışa açıklayıcı bir ad verin."
+msgstr "Bu davranisa aciklayici bir ad verin."
 
 #: koassistant_ui/behavior_manager.lua:416
 #: koassistant_ui/domain_manager.lua:428
 #, fuzzy
 msgid "Use Template..."
-msgstr "Şablon Kullan..."
+msgstr "Sablon Kullan..."
 
 #: koassistant_ui/behavior_manager.lua:428
 #: koassistant_ui/domain_manager.lua:440
 #, fuzzy
 msgid "Next"
-msgstr "İleri"
+msgstr "Sonraki"
 
 #: koassistant_ui/behavior_manager.lua:434
 #: koassistant_ui/domain_manager.lua:446
 #, fuzzy
 msgid "Please enter a name"
-msgstr "Lütfen bir ad girin"
+msgstr "Lutfen bir ad girin"
 
 #: koassistant_ui/behavior_manager.lua:457
 #, fuzzy
 msgid "New Behavior - Content"
-msgstr "Yeni Davranış - İçerik"
+msgstr "Yeni Davranis - Icerik"
 
 #: koassistant_ui/behavior_manager.lua:457
 #, fuzzy
 msgid "Edit Behavior - Content"
-msgstr "Davranışı Düzenle - İçerik"
+msgstr "Davranisi Duzenle - Icerik"
 
 #: koassistant_ui/behavior_manager.lua:459
 #, fuzzy
 msgid "Enter behavior instructions for the AI..."
-msgstr "AI için davranış talimatlarını girin..."
+msgstr "Yapay zeka icin davranis talimatlari girin..."
 
 #: koassistant_ui/behavior_manager.lua:460
 #, fuzzy
 msgid ""
 "Name: %1\n"
 "\n"
-"Define how the AI should behave. This text is sent as part of the system "
-"prompt."
+"Define how the AI should behave. This text is sent as part of the system prompt."
 msgstr ""
 "Ad: %1\n"
 "\n"
-"AI'ın nasıl davranması gerektiğini tanımlayın. Bu metin sistem isteminin bir "
-"parçası olarak gönderilir."
+"Yapay zekanin nasil davranmasi gerektigini tanimlayin. Bu metin sistem istemi olarak gonderilir."
 
 #: koassistant_ui/behavior_manager.lua:475
 #, fuzzy
 msgid "Load Built-in..."
-msgstr "Yerleşik Yükle..."
+msgstr "Yerlesik Yukle..."
 
 #: koassistant_ui/behavior_manager.lua:491
 #, fuzzy
 msgid "Please enter behavior content"
-msgstr "Lütfen davranış içeriğini girin"
+msgstr "Lutfen davranis icerigi girin"
 
 #: koassistant_ui/behavior_manager.lua:502
 #: koassistant_ui/domain_manager.lua:504
 #, fuzzy
 msgid "Created: %1"
-msgstr "Oluşturuldu: %1"
+msgstr "Olusturulma: %1"
 
 #: koassistant_ui/behavior_manager.lua:554
 #, fuzzy
 msgid "Load Built-in Behavior"
-msgstr "Yerleşik Davranışı Yükle"
+msgstr "Yerlesik Davranis Yukle"
 
 #: koassistant_ui/behavior_manager.lua:571
 #: koassistant_ui/domain_manager.lua:535
 #, fuzzy
 msgid "Start Blank"
-msgstr "Boş Başla"
+msgstr "Bos Baslat"
 
 #: koassistant_ui/domain_manager.lua:111
 #, fuzzy
 msgid "Hold for details • Domains are selected when starting a chat"
-msgstr "Ayrıntılar için basılı tutun • Alanlar sohbet başlatırken seçilir"
+msgstr "Ayrintilar icin basili tutun - Alanlar sohbet baslatilirken secilir"
 
 #: koassistant_ui/domain_manager.lua:118
 #, fuzzy
 msgid "+ Create New Domain"
-msgstr "+ Yeni Alan Oluştur"
+msgstr "+ Yeni Alan Olustur"
 
 #: koassistant_ui/domain_manager.lua:129
 #, fuzzy
 msgid "No domains available"
-msgstr "Kullanılabilir alan yok"
+msgstr "Kullanilabilir alan yok"
 
 #: koassistant_ui/domain_manager.lua:134
 #, fuzzy
-msgid "Create custom domains here or add .md/.txt files to the domains/ folder"
-msgstr ""
-"Burada özel alanlar oluşturun veya domains/ klasörüne .md/.txt dosyaları "
-"ekleyin"
+msgid ""
+"Create custom domains here or add .md/.txt files to the domains/ folder"
+msgstr "Buradan ozel alanlar olusturun veya domains/ klasorune .md/.txt dosyalari ekleyin"
 
 #: koassistant_ui/domain_manager.lua:150
 #, fuzzy
 msgid "FROM DOMAINS/ FOLDER"
-msgstr "DOMAINS/ KLASÖRÜNDEN"
+msgstr "DOMAINS/ KLASORUNDEN"
 
 #: koassistant_ui/domain_manager.lua:179
 #, fuzzy
@@ -3883,68 +3896,64 @@ msgid ""
 "\n"
 "Hold to view details or edit."
 msgstr ""
-"Alanlar sohbet başlatırken seçilir.\n"
+"Alanlar sohbet baslatilirken secilir.\n"
 "\n"
-"Ayrıntıları görüntülemek veya düzenlemek için basılı tutun."
+"Ayrintilari gormek veya duzenlemek icin basili tutun."
 
 #: koassistant_ui/domain_manager.lua:194
 #, fuzzy
 msgid "About Domains"
-msgstr "Alanlar Hakkında"
+msgstr "Alanlar Hakkinda"
 
 #: koassistant_ui/domain_manager.lua:197
 #, fuzzy
 msgid ""
 "Domains provide specialized knowledge context to the AI.\n"
 "\n"
-"Unlike behaviors (which set communication style), domains give the AI "
-"expertise in specific subject areas.\n"
+"Unlike behaviors (which set communication style), domains give the AI expertise in specific subject areas.\n"
 "\n"
-"Domains are selected per-chat, not globally, making them like 'projects' you "
-"can switch between."
+"Domains are selected per-chat, not globally, making them like 'projects' you can switch between."
 msgstr ""
-"Alanlar AI'ya özel bilgi bağlamı sağlar.\n"
+"Alanlar, yapay zekaya ozel bilgi baglami saglar.\n"
 "\n"
-"Davranışların aksine (iletişim stilini belirleyen), alanlar AI'ya belirli "
-"konu alanlarında uzmanlık verir.\n"
+"Davranislardan (iletisim tarzini belirler) farkli olarak, alanlar yapay zekaya belirli konu alanlarinda uzmanlik kazandirir.\n"
 "\n"
-"Alanlar genel olarak değil, sohbet başına seçilir, bu da onları aralarında "
-"geçiş yapabileceğiniz 'projeler' gibi yapar."
+"Alanlar genel olarak degil, sohbet basina secilir, bu da onlari arasinda gecis yapabileceginiz 'projeler' gibi yapar."
 
 #: koassistant_ui/domain_manager.lua:202
 #, fuzzy
 msgid "Delete All Custom"
-msgstr "Tüm Özelleri Sil"
+msgstr "Tum Ozelleri Sil"
 
 #: koassistant_ui/domain_manager.lua:207
 #, fuzzy
 msgid "No custom domains to delete"
-msgstr "Silinecek özel alan yok"
+msgstr "Silinecek ozel alan yok"
 
 #: koassistant_ui/domain_manager.lua:213
 #, fuzzy
 msgid "Delete all %1 custom domains?"
-msgstr "Tüm %1 özel alan silinsin mi?"
+msgstr "Tum %1 ozel alan silinsin mi?"
 
 #: koassistant_ui/domain_manager.lua:225
 #, fuzzy
 msgid "Manage Domains"
-msgstr "Alanları Yönet"
+msgstr "Alanlari Yonet"
 
 #: koassistant_ui/domain_manager.lua:268
 #, fuzzy
 msgid "File (domains/ folder)"
-msgstr "Dosya (domains/ klasörü)"
+msgstr "Dosya (domains/ klasoru)"
 
 #: koassistant_ui/domain_manager.lua:337
 #, fuzzy
 msgid "Domain duplicated"
-msgstr "Alan çoğaltıldı"
+msgstr "Alan kopyalandi"
 
 #: koassistant_ui/domain_manager.lua:347
 #, fuzzy
 msgid "About File-Based Domains"
-msgstr "Dosya Tabanlı Alanlar Hakkında"
+msgstr "Dosya Tabanli Alanlar Hakkinda"
 
 #: koassistant_ui/domain_manager.lua:351
 #, lua-format
@@ -3964,7 +3973,7 @@ msgstr ""
 #: koassistant_ui/domain_manager.lua:391
 #, fuzzy
 msgid "Domain Details"
-msgstr "Alan Ayrıntıları"
+msgstr "Alan Ayrintilari"
 
 #: koassistant_ui/domain_manager.lua:413
 #, fuzzy
@@ -3974,59 +3983,54 @@ msgstr "Yeni Alan - Ad"
 #: koassistant_ui/domain_manager.lua:413
 #, fuzzy
 msgid "Edit Domain - Name"
-msgstr "Alanı Düzenle - Ad"
+msgstr "Alani Duzenle - Ad"
 
 #: koassistant_ui/domain_manager.lua:415
 #, fuzzy
 msgid "Enter domain name..."
-msgstr "Alan adını girin..."
+msgstr "Alan adi girin..."
 
 #: koassistant_ui/domain_manager.lua:416
 #, fuzzy
 msgid ""
-"Give this domain a descriptive name (e.g., 'Research', 'Creative Writing', "
-"'Philosophy')."
-msgstr ""
-"Bu alana açıklayıcı bir ad verin (örn. 'Araştırma', 'Yaratıcı Yazarlık', "
-"'Felsefe')."
+"Give this domain a descriptive name (e.g., 'Research', 'Creative Writing', 'Philosophy')."
+msgstr "Bu alana aciklayici bir ad verin (ornegin: 'Arastirma', 'Yaratici Yazarlik', 'Felsefe')."
 
 #: koassistant_ui/domain_manager.lua:469
 #, fuzzy
 msgid "New Domain - Context"
-msgstr "Yeni Alan - Bağlam"
+msgstr "Yeni Alan - Baglam"
 
 #: koassistant_ui/domain_manager.lua:469
 #, fuzzy
 msgid "Edit Domain - Context"
-msgstr "Alanı Düzenle - Bağlam"
+msgstr "Alani Duzenle - Baglam"
 
 #: koassistant_ui/domain_manager.lua:471
 #, fuzzy
 msgid "Enter domain knowledge context..."
-msgstr "Alan bilgi bağlamını girin..."
+msgstr "Alan bilgi baglami girin..."
 
 #: koassistant_ui/domain_manager.lua:472
 #, fuzzy
 msgid ""
 "Name: %1\n"
 "\n"
-"Describe the knowledge area, terminology, and how the AI should approach "
-"topics in this domain."
+"Describe the knowledge area, terminology, and how the AI should approach topics in this domain."
 msgstr ""
 "Ad: %1\n"
 "\n"
-"Bilgi alanını, terminolojiyi ve AI'ın bu alandaki konulara nasıl yaklaşması "
-"gerektiğini açıklayın."
+"Bilgi alanini, terminolojiyi ve yapay zekanin bu alandaki konulara nasil yaklasmasi gerektigini tanimlayiniz."
 
 #: koassistant_ui/domain_manager.lua:493
 #, fuzzy
 msgid "Please enter domain context"
-msgstr "Lütfen alan bağlamını girin"
+msgstr "Lutfen alan baglami girin"
 
 #: koassistant_ui/domain_manager.lua:546
 #, fuzzy
 msgid "(No existing domains to use as template)"
-msgstr "(Şablon olarak kullanılacak mevcut alan yok)"
+msgstr "(Sablon olarak kullanilacak mevcut alan yok)"
 
 #: koassistant_ui/prompts_manager.lua:33
 #, fuzzy
@@ -4036,17 +4040,17 @@ msgstr "~%1 token"
 #: koassistant_ui/prompts_manager.lua:65 koassistant_ui/prompts_manager.lua:96
 #, fuzzy
 msgid "Force OFF"
-msgstr "Zorla KAPAT"
+msgstr "Zorunlu KAPALI"
 
 #: koassistant_ui/prompts_manager.lua:87
 #, fuzzy
 msgid "Configured"
-msgstr "Yapılandırıldı"
+msgstr "Yapilandirildi"
 
 #: koassistant_ui/prompts_manager.lua:94
 #, fuzzy
 msgid "On (%1 tokens)"
-msgstr "Açık (%1 token)"
+msgstr "Acik (%1 token)"
 
 #: koassistant_ui/prompts_manager.lua:99 koassistant_ui/prompts_manager.lua:595
 #: koassistant_ui/prompts_manager.lua:601
@@ -4069,9 +4073,7 @@ msgstr "Genel"
 #: koassistant_ui/prompts_manager.lua:311
 #, fuzzy
 msgid "Tap to toggle • Hold for details • ★ = custom • ⚙ = modified"
-msgstr ""
-"Değiştirmek için dokun • Ayrıntılar için basılı tut • ★ = özel • ⚙ = "
-"değiştirilmiş"
+msgstr "Degistirmek icin dokunun - Ayrintilar icin basili tutun - * = ozel - # = degistirilmis"
 
 #: koassistant_ui/prompts_manager.lua:318
 #, fuzzy
@@ -4081,22 +4083,22 @@ msgstr "+ Eylem Ekle"
 #: koassistant_ui/prompts_manager.lua:329
 #, fuzzy
 msgid "Highlight Context"
-msgstr "Vurgulama Bağlamı"
+msgstr "Vurgulama Baglami"
 
 #: koassistant_ui/prompts_manager.lua:330
 #, fuzzy
 msgid "Book Context"
-msgstr "Kitap Sayısı"
+msgstr "Kitap Baglami"
 
 #: koassistant_ui/prompts_manager.lua:331
 #, fuzzy
 msgid "Multi-Book Context"
-msgstr "Çoklu Kitap Bağlamı"
+msgstr "Coklu Kitap Baglami"
 
 #: koassistant_ui/prompts_manager.lua:332
 #, fuzzy
 msgid "General Context"
-msgstr "Genel Bağlam"
+msgstr "Genel Baglam"
 
 #: koassistant_ui/prompts_manager.lua:333
 #: koassistant_ui/prompts_manager.lua:1115
@@ -4124,69 +4126,68 @@ msgstr "Kitap ve Genel"
 #: koassistant_ui/prompts_manager.lua:3787
 #, fuzzy
 msgid "All Contexts"
-msgstr "Tüm Bağlamlar"
+msgstr "Tum Baglamlar"
 
 #: koassistant_ui/prompts_manager.lua:410
 #, fuzzy
 msgid "Import"
-msgstr "İçe Aktar"
+msgstr "Ice Aktar"
 
 #: koassistant_ui/prompts_manager.lua:414
 #, fuzzy
 msgid "Import feature coming soon..."
-msgstr "İçe aktarma özelliği yakında..."
+msgstr "Ice aktarma ozelligi yakinda geliyor..."
 
 #: koassistant_ui/prompts_manager.lua:423
 #, fuzzy
 msgid "Export feature coming soon..."
-msgstr "Dışa aktarma özelliği yakında..."
+msgstr "Disa aktarma ozelligi yakinda geliyor..."
 
 #: koassistant_ui/prompts_manager.lua:431
 #, fuzzy
 msgid ""
 "This will remove all custom actions and reset all action settings. Continue?"
-msgstr ""
-"Bu, tüm özel eylemleri kaldıracak ve tüm eylem ayarlarını sıfırlayacak. "
-"Devam edilsin mi?"
+msgstr "Bu islem tum ozel eylemleri kaldiracak ve tum eylem ayarlarini sifirlayacak. Devam edilsin mi?"
 
 #: koassistant_ui/prompts_manager.lua:484
 #, fuzzy
 msgid "Actions Menu"
-msgstr "Eylem Ayrıntıları"
+msgstr "Eylemler Menusu"
 
 #: koassistant_ui/prompts_manager.lua:569
 #, fuzzy
 msgid "Custom (custom_actions.lua)"
-msgstr "Özel (custom_actions.lua)"
+msgstr "Ozel (custom_actions.lua)"
 
 #: koassistant_ui/prompts_manager.lua:571
 #, fuzzy
 msgid "User-defined (UI)"
-msgstr "Kullanıcı tanımlı (Arayüz)"
+msgstr "Kullanici tanimli (Arayuz)"
 
 #: koassistant_ui/prompts_manager.lua:579
 #, fuzzy
 msgid "Custom: "
-msgstr "Özel:"
+msgstr "Ozel:"
 
 #: koassistant_ui/prompts_manager.lua:581
 #, fuzzy
 msgid "None (disabled)"
-msgstr "Yok (devre dışı)"
+msgstr "Yok (devre disi)"
 
 #: koassistant_ui/prompts_manager.lua:591
 #, fuzzy
 msgid "(Use global setting)"
-msgstr "(Genel ayarı kullan)"
+msgstr "(Genel ayari kullan)"
 
 #: koassistant_ui/prompts_manager.lua:611
+#, fuzzy
 msgid "(Only available when reading, not from file browser)"
-msgstr ""
+msgstr "(Yalnizca okurken kullanilabilir, dosya tarayicisindan degil)"
 
 #: koassistant_ui/prompts_manager.lua:616
 #, fuzzy
 msgid "Context"
-msgstr "Bağlam"
+msgstr "Baglam"
 
 #: koassistant_ui/prompts_manager.lua:618
 #, fuzzy
@@ -4201,11 +4202,12 @@ msgstr "Etkin"
 #: koassistant_ui/prompts_manager.lua:618
 #, fuzzy
 msgid "Disabled"
-msgstr "Devre Dışı"
+msgstr "Devre Disi"
 
 #: koassistant_ui/prompts_manager.lua:622
+#, fuzzy
 msgid "─── Flags ───"
-msgstr ""
+msgstr "--- Isaret ---"
 
 #: koassistant_ui/prompts_manager.lua:625
 #: koassistant_ui/prompts_manager.lua:626
@@ -4221,17 +4223,17 @@ msgstr "Evet"
 #: koassistant_ui/prompts_manager.lua:639
 #, fuzzy
 msgid "No"
-msgstr "Hayır"
+msgstr "Hayir"
 
 #: koassistant_ui/prompts_manager.lua:627
 #, fuzzy
 msgid "Skip Language"
-msgstr "Dil"
+msgstr "Dili Atla"
 
 #: koassistant_ui/prompts_manager.lua:628
 #, fuzzy
 msgid "Skip Domain"
-msgstr "Alanı Atla"
+msgstr "Alani Atla"
 
 #: koassistant_ui/prompts_manager.lua:633
 #, fuzzy
@@ -4241,20 +4243,22 @@ msgstr "Kitap Bilgisini Dahil Et"
 #: koassistant_ui/prompts_manager.lua:640
 #, fuzzy
 msgid "Use Book Text"
-msgstr "Kitap Başlığı"
+msgstr "Kitap Metnini Kullan"
 
 #: koassistant_ui/prompts_manager.lua:644
+#, fuzzy
 msgid "─── AI Settings ───"
-msgstr ""
+msgstr "--- Yapay Zeka Ayarlari ---"
 
 #: koassistant_ui/prompts_manager.lua:647
 #, fuzzy
 msgid "Provider/Model"
-msgstr "Sağlayıcı/Model"
+msgstr "Saglayici/Model"
 
 #: koassistant_ui/prompts_manager.lua:651
+#, fuzzy
 msgid "─── Action Prompt ───"
-msgstr ""
+msgstr "--- Eylem Istemi ---"
 
 #: koassistant_ui/prompts_manager.lua:651
 #, fuzzy
@@ -4269,7 +4273,7 @@ msgstr "Gerektirir"
 #: koassistant_ui/prompts_manager.lua:664
 #, fuzzy
 msgid "Quick Edit"
-msgstr "Hızlı Tanım"
+msgstr "Hizli Duzenleme"
 
 #: koassistant_ui/prompts_manager.lua:677
 #, fuzzy
@@ -4279,7 +4283,7 @@ msgstr "Bu eylem silinsin mi?"
 #: koassistant_ui/prompts_manager.lua:697
 #, fuzzy
 msgid "Edit file"
-msgstr "Dosyayı düzenle"
+msgstr "Dosyayi duzenle"
 
 #: koassistant_ui/prompts_manager.lua:700
 #: koassistant_ui/prompts_manager.lua:3747
@@ -4288,80 +4292,80 @@ msgid ""
 "This action is defined in custom_actions.lua.\n"
 "Please edit that file directly to modify it."
 msgstr ""
-"Bu eylem custom_actions.lua'da tanımlı.\n"
-"Değiştirmek için lütfen bu dosyayı doğrudan düzenleyin."
+"Bu eylem custom_actions.lua dosyasinda tanimlanmis.\n"
+"Degistirmek icin lutfen o dosyayi dogrudan duzenleyin."
 
 #: koassistant_ui/prompts_manager.lua:709
 #, fuzzy
 msgid "Edit Settings"
-msgstr "Ayarları Düzenle"
+msgstr "Ayarlari Duzenle"
 
 #: koassistant_ui/prompts_manager.lua:721
 #, fuzzy
 msgid "Reset to Default"
-msgstr "Varsayılana Sıfırla"
+msgstr "Varsayilana Sifirla"
 
 #: koassistant_ui/prompts_manager.lua:724
 #, fuzzy
 msgid "Reset this action to default settings?"
-msgstr "Bu eylem varsayılan ayarlara sıfırlansın mı?"
+msgstr "Bu eylem varsayilan ayarlara sifirlansin mi?"
 
 #: koassistant_ui/prompts_manager.lua:746
 #, fuzzy
 msgid "✓ In Highlight Menu"
-msgstr "✓ Vurgulama Menüsünde"
+msgstr "# Vurgulama Menusunde"
 
 #: koassistant_ui/prompts_manager.lua:746
 #, fuzzy
 msgid "Add to Highlight Menu"
-msgstr "Vurgulama Menüsüne Ekle"
+msgstr "Vurgulama Menusune Ekle"
 
 #: koassistant_ui/prompts_manager.lua:751
 #, fuzzy
 msgid "Added to highlight menu."
-msgstr "Vurgulama menüsüne eklendi."
+msgstr "Vurgulama menusune eklendi."
 
 #: koassistant_ui/prompts_manager.lua:751
 #, fuzzy
 msgid "Removed from highlight menu."
-msgstr "Vurgulama menüsünden kaldırıldı."
+msgstr "Vurgulama menusunden kaldirildi."
 
 #: koassistant_ui/prompts_manager.lua:764
 #, fuzzy
 msgid "✓ In Dictionary Popup"
-msgstr "✓ Sözlük Açılır Penceresinde"
+msgstr "# Sozluk Acilir Penceresinde"
 
 #: koassistant_ui/prompts_manager.lua:764
 #, fuzzy
 msgid "Add to Dictionary Popup"
-msgstr "Sözlük Açılır Penceresine Ekle"
+msgstr "Sozluk Acilir Penceresine Ekle"
 
 #: koassistant_ui/prompts_manager.lua:769
 #, fuzzy
 msgid "Added to dictionary popup."
-msgstr "Sözlük açılır penceresine eklendi."
+msgstr "Sozluk acilir penceresine eklendi."
 
 #: koassistant_ui/prompts_manager.lua:769
 #, fuzzy
 msgid "Removed from dictionary popup."
-msgstr "Sözlük açılır penceresinden kaldırıldı."
+msgstr "Sozluk acilir penceresinden kaldirildi."
 
 #: koassistant_ui/prompts_manager.lua:781
 #, fuzzy
 msgid "Duplicate as Custom"
-msgstr "Özel Olarak Çoğalt"
+msgstr "Ozel Olarak Cogalt"
 
 #: koassistant_ui/prompts_manager.lua:791
 #, fuzzy
 msgid "Action Details"
-msgstr "Eylem Ayrıntıları"
+msgstr "Eylem Ayrintilari"
 
 #: koassistant_ui/prompts_manager.lua:804
 #: koassistant_ui/prompts_manager.lua:3802
 #: koassistant_ui/prompts_manager.lua:3965
 #, fuzzy
 msgid "Action service not available."
-msgstr "Eylem hizmeti kullanılamıyor."
+msgstr "Eylem servisi kulanilamiyor."
 
 #: koassistant_ui/prompts_manager.lua:855
 #, fuzzy
@@ -4370,19 +4374,19 @@ msgid ""
 "\n"
 "You can find and edit it in the Actions list."
 msgstr ""
-"Oluşturuldu: %1\n"
+"Olusturuldu: %1\n"
 "\n"
-"Eylemler listesinde bulabilir ve düzenleyebilirsiniz."
+"Eylemler listesinde bulabilir ve duzenleyebilirsiniz."
 
 #: koassistant_ui/prompts_manager.lua:922
 #, fuzzy
 msgid "Context: "
-msgstr "Bağlam:"
+msgstr "Baglam:"
 
 #: koassistant_ui/prompts_manager.lua:922
 #, fuzzy
 msgid "Not set"
-msgstr "Ayarlanmadı"
+msgstr "Ayarlanmadi"
 
 #: koassistant_ui/prompts_manager.lua:930
 #: koassistant_ui/prompts_manager.lua:1289
@@ -4390,120 +4394,125 @@ msgstr "Ayarlanmadı"
 #: koassistant_ui/prompts_manager.lua:1405
 #, fuzzy
 msgid "Next →"
-msgstr "İleri →"
+msgstr "Sonraki ->"
 
 #: koassistant_ui/prompts_manager.lua:935
 #, fuzzy
 msgid "Please enter a prompt name"
-msgstr "Lütfen bir istem adı girin"
+msgstr "Lutfen bir istem adi girin"
 
 #: koassistant_ui/prompts_manager.lua:941
 #, fuzzy
 msgid "Please select a context first"
-msgstr "Lütfen önce bir bağlam seçin"
+msgstr "Lutfen once bir baglam secin"
 
 #: koassistant_ui/prompts_manager.lua:957
 #: koassistant_ui/prompts_manager.lua:2415
 #: koassistant_ui/prompts_manager.lua:3069
 #, fuzzy
 msgid "Include book info"
-msgstr "Kitap Bilgisini Dahil Et"
+msgstr "Kitap bilgisini dahil et"
 
 #: koassistant_ui/prompts_manager.lua:973
 #: koassistant_ui/prompts_manager.lua:2393
 #: koassistant_ui/prompts_manager.lua:3047
 #, fuzzy
 msgid "Skip language"
-msgstr "Dil talimatını atla"
+msgstr "Dili atla"
 
 #: koassistant_ui/prompts_manager.lua:982
 #: koassistant_ui/prompts_manager.lua:2401
 #: koassistant_ui/prompts_manager.lua:3055
 #, fuzzy
 msgid "Skip domain"
-msgstr "Alanı atla"
+msgstr "Alani atla"
 
 #: koassistant_ui/prompts_manager.lua:998
 #, fuzzy
 msgid "Highlight Menu"
-msgstr "✓ Vurgulama Menüsünde"
+msgstr "Vurgulama Menusu"
 
 #: koassistant_ui/prompts_manager.lua:1007
 #, fuzzy
 msgid "Dictionary Popup"
-msgstr "✓ Sözlük Açılır Penceresinde"
+msgstr "Sozluk Acilir Penceresi"
 
 #: koassistant_ui/prompts_manager.lua:1024
 #: koassistant_ui/prompts_manager.lua:2442
 #: koassistant_ui/prompts_manager.lua:3096
+#, fuzzy
 msgid "Use book text"
-msgstr ""
+msgstr "Kitap metnini kullan"
 
 #: koassistant_ui/prompts_manager.lua:1033
 #: koassistant_ui/prompts_manager.lua:2450
 #: koassistant_ui/prompts_manager.lua:3104
+#, fuzzy
 msgid ""
 "This allows {book_text} placeholders to include book content.\n"
 "\n"
-"Note: Book text extraction is currently disabled in Settings → Advanced → "
-"Book Text Extraction. Enable it there for this to work."
+"Note: Book text extraction is currently disabled in Settings → Advanced → Book Text Extraction. Enable it there for this to work."
 msgstr ""
+"Bu, {book_text} yer tutucularinin kitap icerigini dahil etmesini saglar.\n"
+"\n"
+"Not: Kitap metni cikarimi su anda Ayarlar -> Gelismis -> Kitap Metni Cikarimi'nda devre disidir. Bunun calismasi icin orada etkinlestirin."
 
 #: koassistant_ui/prompts_manager.lua:1038
 #: koassistant_ui/prompts_manager.lua:2455
 #: koassistant_ui/prompts_manager.lua:3109
+#, fuzzy
 msgid ""
-"This allows {book_text} placeholders to include book content. The prompt "
-"must use {book_text} or {book_text_section} for this to have effect."
-msgstr ""
+"This allows {book_text} placeholders to include book content. The prompt must use {book_text} or {book_text_section} for this to have effect."
+msgstr "Bu, {book_text} yer tutucularinin kitap icerigini dahil etmesini saglar. Bunun etkili olmasi icin istem {book_text} veya {book_text_section} kullanmalidir."
 
 #: koassistant_ui/prompts_manager.lua:1054
 #: koassistant_ui/prompts_manager.lua:2426
 #: koassistant_ui/prompts_manager.lua:3080
+#, fuzzy
 msgid "View: "
-msgstr ""
+msgstr "Gorunum:"
 
 #: koassistant_ui/prompts_manager.lua:1068
 #, fuzzy
 msgid "Example: 'Summarize', 'Explain Simply', 'Find Themes'"
-msgstr "Örnek: 'Özetle', 'Basitçe Açıkla', 'Temaları Bul'"
+msgstr "Ornek: 'Ozetle', 'Basitce Acikla', 'Temalari Bul'"
 
 #: koassistant_ui/prompts_manager.lua:1077
 #, fuzzy
 msgid "Edit Action - Name"
-msgstr "Eylemi Düzenle - Ad"
+msgstr "Eylemi Duzenle - Ad"
 
 #: koassistant_ui/prompts_manager.lua:1077
 #, fuzzy
 msgid "Step 1/3: Name & Context"
-msgstr "Adım 1/3: Ad ve Bağlam"
+msgstr "Adim 1/3: Ad ve Baglam"
 
 #: koassistant_ui/prompts_manager.lua:1079
 #, fuzzy
 msgid "Enter a short name (shown as button)"
-msgstr "Kısa bir ad girin (düğme olarak gösterilir)"
+msgstr "Kisa bir ad girin (buton olarak gosterilir)"
 
 #: koassistant_ui/prompts_manager.lua:1092
 #: koassistant_ui/prompts_manager.lua:1189
 #: koassistant_ui/prompts_manager.lua:3773
 #, fuzzy
 msgid "Highlight"
-msgstr "Vurgulama"
+msgstr "Secili Metin"
 
 #: koassistant_ui/prompts_manager.lua:1093
 #, fuzzy
 msgid "When text is selected in a book"
-msgstr "Kitapta metin seçildiğinde"
+msgstr "Kitapta metin secildiginde"
 
 #: koassistant_ui/prompts_manager.lua:1096
 #, fuzzy
 msgid "Includes: selected text + book title, author"
-msgstr "İçerir: seçili metin + kitap başlığı, yazar"
+msgstr "Icerir: secili metin + kitap basligi, yazar"
 
 #: koassistant_ui/prompts_manager.lua:1097
 #, fuzzy
 msgid "Includes: selected text only"
-msgstr "İçerir: yalnızca seçili metin"
+msgstr "Icerir: yalnizca secili metin"
 
 #: koassistant_ui/prompts_manager.lua:1100
 #: koassistant_ui/prompts_manager.lua:1190
@@ -4515,29 +4524,29 @@ msgstr "Kitap"
 #: koassistant_ui/prompts_manager.lua:1101
 #, fuzzy
 msgid "File browser selection or 'Chat about book' gesture"
-msgstr "Dosya gezgini seçimi veya 'Kitap hakkında sohbet' hareketi"
+msgstr "Dosya tarayici secimi veya 'Kitap hakkinda sohbet' hareketi"
 
 #: koassistant_ui/prompts_manager.lua:1102
 #, fuzzy
 msgid "Includes: book title, author (automatic)"
-msgstr "İçerir: kitap başlığı, yazar (otomatik)"
+msgstr "Icerir: kitap basligi, yazar (otomatik)"
 
 #: koassistant_ui/prompts_manager.lua:1105
 #: koassistant_ui/prompts_manager.lua:1191
 #: koassistant_ui/prompts_manager.lua:3777
 #, fuzzy
 msgid "Multi-Book"
-msgstr "Çoklu Kitap"
+msgstr "Coklu Kitap"
 
 #: koassistant_ui/prompts_manager.lua:1106
 #, fuzzy
 msgid "When multiple books are selected"
-msgstr "Birden fazla kitap seçildiğinde"
+msgstr "Birden fazla kitap secildiginde"
 
 #: koassistant_ui/prompts_manager.lua:1107
 #, fuzzy
 msgid "Includes: list of books with titles/authors, count"
-msgstr "İçerir: başlık/yazar ile kitap listesi, sayı"
+msgstr "Icerir: baslik/yazar ile kitap listesi, sayi"
 
 #: koassistant_ui/prompts_manager.lua:1110
 #: koassistant_ui/prompts_manager.lua:1192
@@ -4549,69 +4558,73 @@ msgstr "Genel"
 #: koassistant_ui/prompts_manager.lua:1111
 #, fuzzy
 msgid "General chat, no specific context"
-msgstr "Genel sohbet, belirli bir bağlam yok"
+msgstr "Genel sohbet, belirli bir baglam yok"
 
 #: koassistant_ui/prompts_manager.lua:1112
 #, fuzzy
 msgid "Available: translation language"
-msgstr "Kullanılabilir: çeviri dili"
+msgstr "Mevcut: ceviri dili"
 
 #: koassistant_ui/prompts_manager.lua:1116
 #, fuzzy
 msgid "Both highlight and book contexts"
-msgstr "Hem vurgulama hem kitap bağlamları"
+msgstr "Hem secili metin hem kitap baglamlari"
 
 #: koassistant_ui/prompts_manager.lua:1117
 #, fuzzy
 msgid "Highlight: selected text; Book: title/author"
-msgstr "Vurgulama: seçili metin; Kitap: başlık/yazar"
+msgstr "Secili metin: secilen metin; Kitap: baslik/yazar"
 
 #: koassistant_ui/prompts_manager.lua:1121
 #, fuzzy
 msgid "Available everywhere"
-msgstr "Her yerde kullanılabilir"
+msgstr "Her yerde mevcut"
 
 #: koassistant_ui/prompts_manager.lua:1122
 #, fuzzy
 msgid "Varies by trigger"
-msgstr "Tetikleyiciye göre değişir"
+msgstr "Tetikleyiciye gore degisir"
 
 #: koassistant_ui/prompts_manager.lua:1188
-msgid "Context determines when your action appears and what data is available:"
-msgstr ""
+#, fuzzy
+msgid ""
+"Context determines when your action appears and what data is available:"
+msgstr "Baglam, eyleminizin ne zaman gorunecegini ve hangi verilerin mevcut olacagini belirler:"
 
 #: koassistant_ui/prompts_manager.lua:1189
 #, fuzzy
 msgid "When text is selected. Gets: selected text, optionally book info"
-msgstr "Kitapta metin seçildiğinde"
+msgstr "Metin secildiginde. Alir: secili metin, istege bagli olarak kitap bilgisi"
 
 #: koassistant_ui/prompts_manager.lua:1190
 #, fuzzy
 msgid "File browser or 'Chat about book'. Gets: title, author"
-msgstr "Dosya gezgini seçimi veya 'Kitap hakkında sohbet' hareketi"
+msgstr "Dosya tarayici veya 'Kitap hakkinda sohbet'. Alir: baslik, yazar"
 
 #: koassistant_ui/prompts_manager.lua:1191
+#, fuzzy
 msgid "Multiple books selected. Gets: book list with count"
-msgstr ""
+msgstr "Birden fazla kitap secili. Alir: sayili kitap listesi"
 
 #: koassistant_ui/prompts_manager.lua:1192
 #, fuzzy
 msgid "Standalone chat. No automatic context"
-msgstr "Genel sohbet, belirli bir bağlam yok"
+msgstr "Bagimsiz sohbet. Otomatik baglam yok"
 
 #: koassistant_ui/prompts_manager.lua:1193
 #, fuzzy
 msgid "Both highlight and single-book menus"
-msgstr "Hem vurgulama hem kitap bağlamları"
+msgstr "Hem secili metin hem tekli kitap menuleri"
 
 #: koassistant_ui/prompts_manager.lua:1194
+#, fuzzy
 msgid "Shows everywhere. Data varies by trigger"
-msgstr ""
+msgstr "Her yerde gosterilir. Veriler tetikleyiciye gore degisir"
 
 #: koassistant_ui/prompts_manager.lua:1211
 #, fuzzy
 msgid "Select Context"
-msgstr "Bağlam Seç"
+msgstr "Baglam Sec"
 
 #: koassistant_ui/prompts_manager.lua:1235
 #: koassistant_ui/prompts_manager.lua:1693
@@ -4623,22 +4636,22 @@ msgstr "Bağlam Seç"
 #: koassistant_ui/prompts_manager.lua:2662
 #, fuzzy
 msgid "Use global setting"
-msgstr "Genel ayarı kullan"
+msgstr "Genel ayari kullan"
 
 #: koassistant_ui/prompts_manager.lua:1235
 #, fuzzy
 msgid "Inherits from Settings → Advanced → AI Behavior Style"
-msgstr "Ayarlar → Gelişmiş → AI Davranış Stilinden devralır"
+msgstr "Ayarlar → Gelismis → Yapay Zeka Davranis Tarzindan miras alinir"
 
 #: koassistant_ui/prompts_manager.lua:1245
 #, fuzzy
 msgid "No behavior instructions - just your action prompt"
-msgstr "Davranış talimatı yok - sadece eylem isteminiz"
+msgstr "Davranis talimati yok - sadece eylem isteminiz"
 
 #: koassistant_ui/prompts_manager.lua:1246
 #, fuzzy
 msgid "Define your own AI personality/role"
-msgstr "Kendi AI kişiliğinizi/rolünüzü tanımlayın"
+msgstr "Kendi yapay zeka kisiligini/rolunu tanimla"
 
 #: koassistant_ui/prompts_manager.lua:1282
 #: koassistant_ui/prompts_manager.lua:1325
@@ -4651,29 +4664,27 @@ msgstr "← Geri"
 #: koassistant_ui/prompts_manager.lua:1299
 #, fuzzy
 msgid "Edit Action - AI Behavior"
-msgstr "Eylemi Düzenle - AI Davranışı"
+msgstr "Eylemi Duzenle - Yapay Zeka Davranisi"
 
 #: koassistant_ui/prompts_manager.lua:1299
 #, fuzzy
 msgid "Step 2/3: AI Behavior"
-msgstr "Adım 2/3: AI Davranışı"
+msgstr "Adim 2/3: Yapay Zeka Davranisi"
 
 #: koassistant_ui/prompts_manager.lua:1312
 #, fuzzy
 msgid "Edit Action - Custom Behavior"
-msgstr "Eylemi Düzenle - Özel Davranış"
+msgstr "Eylemi Duzenle - Ozel Davranis"
 
 #: koassistant_ui/prompts_manager.lua:1312
 #, fuzzy
 msgid "Step 2/3: Custom Behavior"
-msgstr "Adım 2/3: Özel Davranış"
+msgstr "Adim 2/3: Ozel Davranis"
 
 #: koassistant_ui/prompts_manager.lua:1314
 #, fuzzy
 msgid "Describe how the AI should behave or what role it should play"
-msgstr ""
-"AI'ın nasıl davranması gerektiğini veya hangi rolü oynaması gerektiğini "
-"açıklayın"
+msgstr "Yapay zekanin nasil davranmasi veya hangi rolu oynamasi gerektigini tanimlayin"
 
 #: koassistant_ui/prompts_manager.lua:1315
 #, fuzzy
@@ -4685,65 +4696,72 @@ msgid ""
 "\n"
 "This replaces the global AI behavior setting for this action."
 msgstr ""
-"Örnekler:\n"
-"• 'Sen bir dilbilgisi uzmanısın. Kesin ve analitik ol.'\n"
-"• 'Sen 19. yüzyıl kurgu eserlerinde uzmanlaşmış bir edebiyat "
-"eleştirmenisin.'\n"
-"• 'Kısa ve öz yanıt ver. Yararlı olduğunda madde işaretleri kullan.'\n"
+"Ornekler:\n"
+"• 'Sen bir dilbilgisi uzmanisin. Kesin ve analitik ol.'\n"
+"• 'Sen 19. yuzyil kurgu eserlerinde uzman bir edebiyat elestirmenisin.'\n"
+"• 'Kisa ve oz yanitla. Faydali oldugunda madde imleri kullan.'\n"
 "\n"
-"Bu, bu eylem için genel AI davranış ayarını değiştirir."
+"Bu eylem icin genel yapay zeka davranis ayarinin yerini alir."
 
 #: koassistant_ui/prompts_manager.lua:1338
 #, fuzzy
 msgid ""
 "Please enter custom behavior text, or go back and choose a different option"
-msgstr ""
-"Lütfen özel davranış metni girin veya geri dönüp farklı bir seçenek seçin"
+msgstr "Lutfen ozel davranis metni girin veya geri donup farkli bir secenek secin"
 
 #: koassistant_ui/prompts_manager.lua:1362
 #, fuzzy
 msgid "Edit Action - Action Prompt"
-msgstr "Eylemi Düzenle - Eylem İstemi"
+msgstr "Eylemi Duzenle - Eylem Istemi"
 
 #: koassistant_ui/prompts_manager.lua:1362
 #, fuzzy
 msgid "Step 3/4: Action Prompt"
-msgstr "Adım 3/4: Eylem İstemi"
+msgstr "Adim 3/4: Eylem Istemi"
 
 #: koassistant_ui/prompts_manager.lua:1364
 #, fuzzy
 msgid "What should the AI do?"
-msgstr "AI ne yapmalı?"
+msgstr "Yapay zeka ne yapmali?"
 
 #: koassistant_ui/prompts_manager.lua:1365
+#, fuzzy
 msgid ""
 "Write the AI instruction. Tap 'Help' for tips, 'Insert...' for placeholders."
-msgstr ""
+msgstr "Yapay zeka talimatini yazin. Ipuclari icin 'Yardim'a, yer tutucular icin 'Ekle...'ye dokunun."
 
 #: koassistant_ui/prompts_manager.lua:1379
 #: koassistant_ui/prompts_manager.lua:2476
+#, fuzzy
 msgid "Help"
-msgstr ""
+msgstr "Yardim"
 
 #: koassistant_ui/prompts_manager.lua:1382
+#, fuzzy
 msgid ""
 "Writing Action Prompts\n"
 "\n"
-"• Use 'Insert...' to add placeholders like {title}, {author}, "
-"{highlighted_text}\n"
+"• Use 'Insert...' to add placeholders like {title}, {author}, {highlighted_text}\n"
 "\n"
-"• Tip: When using this action, there's an input field for optional "
-"additional context\n"
+"• Tip: When using this action, there's an input field for optional additional context\n"
 "\n"
-"• Reading-mode placeholders ({reading_progress}, {book_text}, {highlights}, "
-"{annotations}) auto-hide this action in File Browser — it only appears when "
-"reading\n"
+"• Reading-mode placeholders ({reading_progress}, {book_text}, {highlights}, {annotations}) auto-hide this action in File Browser — it only appears when reading\n"
 "\n"
-"• Test actions with the web inspector: 'lua tests/inspect.lua --web' from "
-"the plugin folder\n"
+"• Test actions with the web inspector: 'lua tests/inspect.lua --web' from the plugin folder\n"
 "\n"
 "• See README for full placeholder list and examples"
 msgstr ""
+"Eylem Istemleri Yazma\n"
+"\n"
+"• {title}, {author}, {highlighted_text} gibi yer tutucular eklemek icin 'Ekle...' kullanin\n"
+"\n"
+"• Ipucu: Bu eylemi kullanirken, istege bagli ek baglam icin bir giris alani vardir\n"
+"\n"
+"• Okuma modu yer tutuculari ({reading_progress}, {book_text}, {highlights}, {annotations}) bu eylemi Dosya Tarayicisinda otomatik olarak gizler — yalnizca okurken gorunur\n"
+"\n"
+"• Eylemleri web denetcisiyle test edin: eklenti klasorunden 'lua tests/inspect.lua --web'\n"
+"\n"
+"• Tam yer tutucu listesi ve ornekler icin README'ye bakin"
 
 #: koassistant_ui/prompts_manager.lua:1397
 #, fuzzy
@@ -4753,26 +4771,26 @@ msgstr "Ekle..."
 #: koassistant_ui/prompts_manager.lua:1410
 #, fuzzy
 msgid "Action prompt cannot be empty"
-msgstr "Eylem istemi boş olamaz"
+msgstr "Eylem istemi bos olamaz"
 
 #: koassistant_ui/prompts_manager.lua:1445
 #, fuzzy
 msgid "Temperature: "
-msgstr "Sıcaklık:"
+msgstr "Sicaklik:"
 
 #: koassistant_ui/prompts_manager.lua:1454
 #: koassistant_ui/prompts_manager.lua:2363
 #: koassistant_ui/prompts_manager.lua:3014
 #, fuzzy
 msgid "Reasoning: "
-msgstr "Akıl Yürütme:"
+msgstr "Akil yurutme:"
 
 #: koassistant_ui/prompts_manager.lua:1463
 #: koassistant_ui/prompts_manager.lua:2372
 #: koassistant_ui/prompts_manager.lua:3026
 #, fuzzy
 msgid "Provider: "
-msgstr "Sağlayıcı:"
+msgstr "Saglayici:"
 
 #: koassistant_ui/prompts_manager.lua:1469
 #: koassistant_ui/prompts_manager.lua:2378
@@ -4786,12 +4804,12 @@ msgstr "Model:"
 #: koassistant_ui/prompts_manager.lua:3036
 #, fuzzy
 msgid "Please select a provider first"
-msgstr "Lütfen önce bir sağlayıcı seçin"
+msgstr "Lutfen once bir saglayici secin"
 
 #: koassistant_ui/prompts_manager.lua:1491
 #, fuzzy
 msgid "Create"
-msgstr "Oluştur"
+msgstr "Olustur"
 
 #: koassistant_ui/prompts_manager.lua:1512
 #, fuzzy
@@ -4800,92 +4818,98 @@ msgid ""
 "\n"
 "Temperature: "
 msgstr ""
-"Bu eylem için gelişmiş ayarlar.\n"
+"Bu eylem icin gelismis ayarlar.\n"
 "\n"
-"Sıcaklık:"
+"Sicaklik:"
 
 #: koassistant_ui/prompts_manager.lua:1527
 #, fuzzy
 msgid "Edit Action - Advanced"
-msgstr "Eylemi Düzenle - Gelişmiş"
+msgstr "Eylemi Duzenle - Gelismis"
 
 #: koassistant_ui/prompts_manager.lua:1527
 #, fuzzy
 msgid "Step 4/4: Advanced Settings"
-msgstr "Adım 4/4: Gelişmiş Ayarlar"
+msgstr "Adim 4/4: Gelismis Ayarlar"
 
 #: koassistant_ui/prompts_manager.lua:1559
 #: koassistant_ui/prompts_manager.lua:2637
 #, fuzzy
 msgid "Use global"
-msgstr "Geneli kullan"
+msgstr "Genel kullan"
 
 #: koassistant_ui/prompts_manager.lua:1578
 #: koassistant_ui/prompts_manager.lua:1593
 #: koassistant_ui/prompts_manager.lua:1643 prompts/actions.lua:567
 #, fuzzy
 msgid "Translate"
-msgstr "Çevir"
+msgstr "Cevir"
 
 #: koassistant_ui/prompts_manager.lua:1580
 #: koassistant_ui/prompts_manager.lua:1592
 #: koassistant_ui/prompts_manager.lua:1642
 #, fuzzy
 msgid "Dictionary Compact"
-msgstr "Sözlük Açılır Penceresi Eylemleri"
+msgstr "Sozluk Kompakt"
 
 #: koassistant_ui/prompts_manager.lua:1582
 #: koassistant_ui/prompts_manager.lua:1591
 #: koassistant_ui/prompts_manager.lua:1641
+#, fuzzy
 msgid "Standard"
-msgstr ""
+msgstr "Standart"
 
 #: koassistant_ui/prompts_manager.lua:1591
+#, fuzzy
 msgid "Full dialog with all buttons"
-msgstr ""
+msgstr "Tum butonlarla tam iletisim kutusu"
 
 #: koassistant_ui/prompts_manager.lua:1592
+#, fuzzy
 msgid "Compact with language buttons"
-msgstr ""
+msgstr "Dil butonlariyla kompakt"
 
 #: koassistant_ui/prompts_manager.lua:1593
+#, fuzzy
 msgid "With language switch and original toggle"
-msgstr ""
+msgstr "Dil degistirme ve orijinal metni gosterme secenegiyle"
 
 #: koassistant_ui/prompts_manager.lua:1640
+#, fuzzy
 msgid "View modes control how results are displayed:"
-msgstr ""
+msgstr "Gorunum modlari sonuclarin nasil gosterilecegini kontrol eder:"
 
 #: koassistant_ui/prompts_manager.lua:1641
+#, fuzzy
 msgid "Full dialog with all response action buttons"
-msgstr ""
+msgstr "Tum yanit eylem butonlariyla tam iletisim kutusu"
 
 #: koassistant_ui/prompts_manager.lua:1642
+#, fuzzy
 msgid ""
-"Smaller dialog optimized for quick lookups, with language buttons for word-"
-"by-word translation"
-msgstr ""
+"Smaller dialog optimized for quick lookups, with language buttons for word-by-word translation"
+msgstr "Kelime kelime ceviri icin dil butonlariyla hizli aramalar icin optimize edilmis daha kucuk iletisim kutusu"
 
 #: koassistant_ui/prompts_manager.lua:1643
+#, fuzzy
 msgid ""
-"Translation view with language switch button and toggle to show/hide the "
-"original text"
-msgstr ""
+"Translation view with language switch button and toggle to show/hide the original text"
+msgstr "Dil degistirme butonu ve orijinal metni gosterme/gizleme secenegiyle ceviri gorunumu"
 
 #: koassistant_ui/prompts_manager.lua:1703
 #, fuzzy
 msgid "Force OFF for all providers"
-msgstr "Tüm sağlayıcılar için zorla KAPAT"
+msgstr "Tum saglayicilar icin KAPALI zorla"
 
 #: koassistant_ui/prompts_manager.lua:1713
 #, fuzzy
 msgid "Configure per-provider..."
-msgstr "Sağlayıcı başına yapılandır..."
+msgstr "Saglayici basina yapilandir..."
 
 #: koassistant_ui/prompts_manager.lua:1731
 #, fuzzy
 msgid "Reasoning/Thinking"
-msgstr "Akıl Yürütme/Düşünme"
+msgstr "Akil Yurutme/Dusunme"
 
 #: koassistant_ui/prompts_manager.lua:1732
 #, fuzzy
@@ -4894,19 +4918,17 @@ msgid ""
 "\n"
 "• Global: Follow per-provider settings in Settings menu\n"
 "• Force OFF: Never use thinking for this action\n"
-"• Configure: Set per-provider reasoning (Anthropic budget, OpenAI effort, "
-"Gemini level)\n"
+"• Configure: Set per-provider reasoning (Anthropic budget, OpenAI effort, Gemini level)\n"
 "\n"
 "May force temperature to 1.0 for some models."
 msgstr ""
-"Akıl yürütme, desteklenen modeller için karmaşık düşünmeyi etkinleştirir.\n"
+"Akil yurutme, desteklenen modeller icin karmasik dusunmeyi etkinlestirir.\n"
 "\n"
-"• Genel: Ayarlar menüsündeki sağlayıcı başına ayarları takip et\n"
-"• Zorla KAPAT: Bu eylem için asla düşünme kullanma\n"
-"• Yapılandır: Sağlayıcı başına akıl yürütmeyi ayarla (Anthropic bütçesi, "
-"OpenAI çabası, Gemini seviyesi)\n"
+"• Genel: Ayarlar menusundeki saglayici basina ayarlari takip et\n"
+"• KAPALI Zorla: Bu eylem icin asla dusunme kullanma\n"
+"• Yapilandir: Saglayici basina akil yurutme ayarla (Anthropic butcesi, OpenAI cabasi, Gemini seviyesi)\n"
 "\n"
-"Bazı modeller için sıcaklığı 1.0'a zorlayabilir."
+"Bazi modeller icin sicakligi 1.0'a zorlayabilir."
 
 #: koassistant_ui/prompts_manager.lua:1763
 #, fuzzy
@@ -4924,18 +4946,18 @@ msgstr "KAPALI"
 #: koassistant_ui/prompts_manager.lua:1766
 #, fuzzy
 msgid "ON (%1 tokens)"
-msgstr "AÇIK (%1 token)"
+msgstr "ACIK (%1 token)"
 
 #: koassistant_ui/prompts_manager.lua:1768
 #: koassistant_ui/prompts_manager.lua:1770
 #, fuzzy
 msgid "ON ("
-msgstr "AÇIK ("
+msgstr "ACIK ("
 
 #: koassistant_ui/prompts_manager.lua:1772
 #, fuzzy
 msgid "ON"
-msgstr "AÇIK"
+msgstr "ACIK"
 
 #: koassistant_ui/prompts_manager.lua:1793
 #, fuzzy
@@ -4955,7 +4977,7 @@ msgstr "Gemini:"
 #: koassistant_ui/prompts_manager.lua:1830
 #, fuzzy
 msgid "Per-Provider Reasoning"
-msgstr "Sağlayıcı Başına Akıl Yürütme"
+msgstr "Saglayici Basina Akil Yurutme"
 
 #: koassistant_ui/prompts_manager.lua:1831
 #, fuzzy
@@ -4963,13 +4985,13 @@ msgid ""
 "Configure reasoning for each provider independently.\n"
 "DeepSeek reasoner model always uses reasoning automatically."
 msgstr ""
-"Her sağlayıcı için akıl yürütmeyi bağımsız olarak yapılandırın.\n"
-"DeepSeek reasoner modeli her zaman otomatik olarak akıl yürütme kullanır."
+"Her saglayici icin akil yurutmeyi bagimsiz olarak yapilandirin.\n"
+"DeepSeek reasoner modeli her zaman otomatik olarak akil yurutme kullanir."
 
 #: koassistant_ui/prompts_manager.lua:1863
 #, fuzzy
 msgid "ON (set budget)..."
-msgstr "AÇIK (bütçe ayarla)..."
+msgstr "ACIK (butce ayarla)..."
 
 #: koassistant_ui/prompts_manager.lua:1883
 #, fuzzy
@@ -4977,14 +4999,14 @@ msgid ""
 "Extended thinking for Claude models.\n"
 "Supports: Sonnet 4.5, Opus 4.x, Haiku 4.5, Sonnet 3.7"
 msgstr ""
-"Claude modelleri için genişletilmiş düşünme.\n"
+"Claude modelleri icin genisletilmis dusunme.\n"
 "Desteklenenler: Sonnet 4.5, Opus 4.x, Haiku 4.5, Sonnet 3.7"
 
 #: koassistant_ui/prompts_manager.lua:1899
 #: koassistant_ui/prompts_manager.lua:2071
 #, fuzzy
 msgid "Thinking Budget"
-msgstr "Düşünme Bütçesi"
+msgstr "Dusunme Butcesi"
 
 #: koassistant_ui/prompts_manager.lua:1900
 #, fuzzy
@@ -4993,24 +5015,24 @@ msgid ""
 "Higher = more complex reasoning.\n"
 "Range: %1 - %2"
 msgstr ""
-"Genişletilmiş düşünme için token bütçesi.\n"
-"Yüksek = daha karmaşık akıl yürütme.\n"
-"Aralık: %1 - %2"
+"Genisletilmis dusunme icin token butcesi.\n"
+"Yuksek = daha karmasik akil yurutme.\n"
+"Aralik: %1 - %2"
 
 #: koassistant_ui/prompts_manager.lua:1942
 #, fuzzy
 msgid "Low effort"
-msgstr "Düşük çaba"
+msgstr "Dusuk caba"
 
 #: koassistant_ui/prompts_manager.lua:1952
 #, fuzzy
 msgid "Medium effort"
-msgstr "Orta çaba"
+msgstr "Orta caba"
 
 #: koassistant_ui/prompts_manager.lua:1962
 #, fuzzy
 msgid "High effort"
-msgstr "Yüksek çaba"
+msgstr "Yuksek caba"
 
 #: koassistant_ui/prompts_manager.lua:1983
 #, fuzzy
@@ -5018,7 +5040,7 @@ msgid ""
 "Reasoning effort for OpenAI models.\n"
 "Supports: o3, o3-mini, o4-mini, GPT-5.x"
 msgstr ""
-"OpenAI modelleri için akıl yürütme çabası.\n"
+"OpenAI modelleri icin akil yurutme cabasi.\n"
 "Desteklenenler: o3, o3-mini, o4-mini, GPT-5.x"
 
 #: koassistant_ui/prompts_manager.lua:2056
@@ -5027,7 +5049,7 @@ msgid ""
 "Thinking level for Gemini models.\n"
 "Supports: gemini-3-*-preview"
 msgstr ""
-"Gemini modelleri için düşünme seviyesi.\n"
+"Gemini modelleri icin dusunme seviyesi.\n"
 "Desteklenenler: gemini-3-*-preview"
 
 #: koassistant_ui/prompts_manager.lua:2072
@@ -5037,66 +5059,66 @@ msgid ""
 "Higher = more complex reasoning.\n"
 "Range: %1 - %2"
 msgstr ""
-"Akıl yürütme için token bütçesi (Anthropic).\n"
-"Yüksek = daha karmaşık akıl yürütme.\n"
-"Aralık: %1 - %2"
+"Akil yurutme icin token butcesi (Anthropic).\n"
+"Yuksek = daha karmasik akil yurutme.\n"
+"Aralik: %1 - %2"
 
 #: koassistant_ui/prompts_manager.lua:2149
 #: koassistant_ui/prompts_manager.lua:2705
 #: koassistant_ui/prompts_manager.lua:3418
 #, fuzzy
 msgid "Select Provider"
-msgstr "Sağlayıcı Seç"
+msgstr "Saglayici Sec"
 
 #: koassistant_ui/prompts_manager.lua:2183
 #: koassistant_ui/prompts_manager.lua:2737
 #: koassistant_ui/prompts_manager.lua:3450
 #, fuzzy
 msgid "Custom model..."
-msgstr "Özel model..."
+msgstr "Ozel model..."
 
 #: koassistant_ui/prompts_manager.lua:2202
 #: koassistant_ui/prompts_manager.lua:2755
 #, fuzzy
 msgid "Select Model for "
-msgstr "Model Seç:"
+msgstr "Model Sec:"
 
 #: koassistant_ui/prompts_manager.lua:2213
 #: koassistant_ui/prompts_manager.lua:2766
 #: koassistant_ui/prompts_manager.lua:3479
 #, fuzzy
 msgid "Custom Model"
-msgstr "Özel Model"
+msgstr "Ozel Model"
 
 #: koassistant_ui/prompts_manager.lua:2215
 #: koassistant_ui/prompts_manager.lua:2768
 #, fuzzy
 msgid "Enter model ID"
-msgstr "Model kimliğini girin"
+msgstr "Model kimligini girin"
 
 #: koassistant_ui/prompts_manager.lua:2216
 #: koassistant_ui/prompts_manager.lua:2769
 #, fuzzy
 msgid "Enter the exact model ID for "
-msgstr "Tam model kimliğini girin:"
+msgstr "Tam model kimligini girin:"
 
 #: koassistant_ui/prompts_manager.lua:2318
 #: koassistant_ui/prompts_manager.lua:2960
 #, fuzzy
 msgid "Custom"
-msgstr "Özel"
+msgstr "Ozel"
 
 #: koassistant_ui/prompts_manager.lua:2347
 #: koassistant_ui/prompts_manager.lua:2998
 #, fuzzy
 msgid "AI Behavior: "
-msgstr "AI Davranışı:"
+msgstr "Yapay Zeka Davranisi:"
 
 #: koassistant_ui/prompts_manager.lua:2357
 #: koassistant_ui/prompts_manager.lua:3008
 #, fuzzy
 msgid "Temp: "
-msgstr "Sıcaklık: %1"
+msgstr "Sicaklik:"
 
 #: koassistant_ui/prompts_manager.lua:2479
 #, fuzzy
@@ -5107,31 +5129,32 @@ msgid ""
 "\n"
 "Tip: To edit the action prompt, use 'Duplicate' to create a custom copy."
 msgstr ""
-"Ayarları düzenle: %1\n"
+"Bu ayarlar, bu yerlesik eylem icin varsayilanlari geersiz kilar.\n"
 "\n"
-"Bu ayarlar bu yerleşik eylem için varsayılanları geçersiz kılar.\n"
-"Varsayılan ayarı kullanmak için \"Genel\" olarak ayarlayın."
+"Varsayilan ayari kullanmak icin \"Genel\" olarak ayarlayin.\n"
+"\n"
+"Ipucu: Eylem istemini duzenlemek icin, ozel bir kopya olusturmak icin 'Cogalt' kullanin."
 
 #: koassistant_ui/prompts_manager.lua:2498
 #, fuzzy
 msgid "Edit Built-in: %1"
-msgstr "Yerleşik"
+msgstr "Yerlesiki Duzenle: %1"
 
 #: koassistant_ui/prompts_manager.lua:2529
 #: koassistant_ui/prompts_manager.lua:3225
 #, fuzzy
 msgid "None (no behavior)"
-msgstr "Yok (davranış yok)"
+msgstr "Yok (davranis yok)"
 
 #: koassistant_ui/prompts_manager.lua:2582
 #, fuzzy
 msgid "Custom Behavior"
-msgstr "Özel Davranış"
+msgstr "Ozel Davranis"
 
 #: koassistant_ui/prompts_manager.lua:2584
 #, fuzzy
 msgid "Describe how the AI should behave"
-msgstr "AI'ın nasıl davranması gerektiğini açıklayın"
+msgstr "Yapay zekanin nasil davranmasi gerektigini tanimlayin"
 
 #: koassistant_ui/prompts_manager.lua:2633
 #, fuzzy
@@ -5140,9 +5163,9 @@ msgid ""
 "Lower = focused\n"
 "Higher = creative"
 msgstr ""
-"Aralık: 0.0-2.0 (Anthropic maks 1.0)\n"
-"Düşük = odaklanmış\n"
-"Yüksek = yaratıcı"
+"Aralik: 0.0-2.0 (Anthropic maks 1.0)\n"
+"Dusuk = odakli\n"
+"Yuksek = yaratici"
 
 #: koassistant_ui/prompts_manager.lua:2913
 #, fuzzy
@@ -5153,100 +5176,105 @@ msgstr "Ayarlar kaydedildi"
 #: koassistant_ui/prompts_manager.lua:3527
 #, fuzzy
 msgid "Settings reset to default"
-msgstr "Ayarlar varsayılana sıfırlandı"
+msgstr "Ayarlar varsayilana sifirlandi"
 
 #: koassistant_ui/prompts_manager.lua:2988
 #, fuzzy
 msgid "Name: "
-msgstr "İsimler"
+msgstr "Ad:"
 
 #: koassistant_ui/prompts_manager.lua:3130
+#, fuzzy
 msgid "Full Editor"
-msgstr ""
+msgstr "Tam Duzenleyici"
 
 #: koassistant_ui/prompts_manager.lua:3147
+#, fuzzy
 msgid ""
 "Quick edit: %1\n"
 "\n"
 "For name, context, or prompt text changes, use Full Editor."
 msgstr ""
+"Hizli duzenleme: %1\n"
+"\n"
+"Ad, baglam veya istem metni degisiklikleri icin Tam Duzenleyici'yi kullanin."
 
 #: koassistant_ui/prompts_manager.lua:3152
 #, fuzzy
 msgid "Edit Custom Action"
-msgstr "Eylemi Düzenle - Eylem İstemi"
+msgstr "Ozel Eylemi Duzenle"
 
 #: koassistant_ui/prompts_manager.lua:3164
 #, fuzzy
 msgid "Action Name"
-msgstr "Eylemi Düzenle - Ad"
+msgstr "Eylem Adi"
 
 #: koassistant_ui/prompts_manager.lua:3166
 #, fuzzy
 msgid "Enter action name"
-msgstr "Etiket adını girin"
+msgstr "Eylem adini girin"
 
 #: koassistant_ui/prompts_manager.lua:3212
 #: koassistant_ui/prompts_manager.lua:3326
 #: koassistant_ui/prompts_manager.lua:3378
 #, fuzzy
 msgid "Global (use setting)"
-msgstr "(Genel ayarı kullan)"
+msgstr "Genel (ayari kullan)"
 
 #: koassistant_ui/prompts_manager.lua:3255
 #, fuzzy
 msgid "Custom behavior..."
-msgstr "Özel Davranış"
+msgstr "Ozel davranis..."
 
 #: koassistant_ui/prompts_manager.lua:3275
 #, fuzzy
 msgid "Select AI Behavior"
-msgstr "AI Davranışı"
+msgstr "AI Davranisini Sec"
 
 #: koassistant_ui/prompts_manager.lua:3287
 #, fuzzy
 msgid "Enter custom behavior instructions..."
-msgstr "Özel AI davranış talimatlarını girin..."
+msgstr "Ozel davranis talimatlari girin..."
 
 #: koassistant_ui/prompts_manager.lua:3364
 #, fuzzy
 msgid "Select Temperature"
-msgstr "Sıcaklık"
+msgstr "Sicaklik Sec"
 
 #: koassistant_ui/prompts_manager.lua:3469
 #, fuzzy
 msgid "Select Model"
-msgstr "Model Seç:"
+msgstr "Model Sec"
 
 #: koassistant_ui/prompts_manager.lua:3481
 #, fuzzy
 msgid "Enter model name"
-msgstr "Model kimliğini girin"
+msgstr "Model adini girin"
 
 #: koassistant_ui/prompts_manager.lua:3535
 #, fuzzy
 msgid "Selected Text"
-msgstr "Seçili Metin"
+msgstr "Secili Metin"
 
 #: koassistant_ui/prompts_manager.lua:3536
 #, fuzzy
 msgid "Book Title"
-msgstr "Kitap Başlığı"
+msgstr "Kitap Basligi"
 
 #: koassistant_ui/prompts_manager.lua:3537
 #, fuzzy
 msgid "Author Name"
-msgstr "Yazar Adı"
+msgstr "Yazar Adi"
 
 #: koassistant_ui/prompts_manager.lua:3538
 #, fuzzy
 msgid "Author Clause"
-msgstr "Yazar İfadesi"
+msgstr "Yazar Ifadesi"
 
 #: koassistant_ui/prompts_manager.lua:3539
 #, fuzzy
 msgid "Book Count"
-msgstr "Kitap Sayısı"
+msgstr "Kitap Sayisi"
 
 #: koassistant_ui/prompts_manager.lua:3540
 #, fuzzy
@@ -5254,58 +5282,64 @@ msgid "Books List"
 msgstr "Kitap Listesi"
 
 #: koassistant_ui/prompts_manager.lua:3543
+#, fuzzy
 msgid "Reading Progress (%)"
-msgstr ""
+msgstr "Okuma Ilerlemesi (%)"
 
 #: koassistant_ui/prompts_manager.lua:3544
+#, fuzzy
 msgid "Progress (0.0-1.0)"
-msgstr ""
+msgstr "Ilerleme (0.0-1.0)"
 
 #: koassistant_ui/prompts_manager.lua:3545
 #, fuzzy
 msgid "Book Text (with label)"
-msgstr "Kitap Başlığı"
+msgstr "Kitap Metni (etiketli)"
 
 #: koassistant_ui/prompts_manager.lua:3546
 #, fuzzy
 msgid "Book Text (raw)"
-msgstr "Kitap Bağlamı (Dosya Gezgini)"
+msgstr "Kitap Metni (ham)"
 
 #: koassistant_ui/prompts_manager.lua:3547
 #, fuzzy
 msgid "Highlights (with label)"
-msgstr "Vurgulama Menüsü (%1 etkin)"
+msgstr "Vurgular (etiketli)"
 
 #: koassistant_ui/prompts_manager.lua:3548
 #, fuzzy
 msgid "Highlights (raw)"
-msgstr "Vurgulama"
+msgstr "Vurgular (ham)"
 
 #: koassistant_ui/prompts_manager.lua:3549
+#, fuzzy
 msgid "Annotations (with label)"
-msgstr ""
+msgstr "Notlar (etiketli)"
 
 #: koassistant_ui/prompts_manager.lua:3550
+#, fuzzy
 msgid "Annotations (raw)"
-msgstr ""
+msgstr "Notlar (ham)"
 
 #: koassistant_ui/prompts_manager.lua:3551
 #, fuzzy
 msgid "Current Chapter"
-msgstr "Mevcut etiketler:"
+msgstr "Mevcut Bolum"
 
 #: koassistant_ui/prompts_manager.lua:3552
+#, fuzzy
 msgid "Chapters Read Count"
-msgstr ""
+msgstr "Okunan Bolum Sayisi"
 
 #: koassistant_ui/prompts_manager.lua:3553
+#, fuzzy
 msgid "Time Since Last Read"
-msgstr ""
+msgstr "Son Okumadan Bu Yana Gecen Sure"
 
 #: koassistant_ui/prompts_manager.lua:3568
 #, fuzzy
 msgid "(No placeholders for general context)"
-msgstr "(Genel bağlam için yer tutucu yok)"
+msgstr "(Genel baglam icin yer tutucu yok)"
 
 #: koassistant_ui/prompts_manager.lua:3607
 #, fuzzy
@@ -5315,56 +5349,56 @@ msgstr "Yer Tutucu Ekle"
 #: koassistant_ui/prompts_manager.lua:3672
 #, fuzzy
 msgid "Action added successfully"
-msgstr "Eylem başarıyla eklendi"
+msgstr "Eylem basariyla eklendi"
 
 #: koassistant_ui/prompts_manager.lua:3729
 #: koassistant_ui/prompts_manager.lua:3738
 #, fuzzy
 msgid "Action updated successfully"
-msgstr "Eylem başarıyla güncellendi"
+msgstr "Eylem basariyla guncellendi"
 
 #: koassistant_ui/prompts_manager.lua:3763
 #, fuzzy
 msgid "Action deleted successfully"
-msgstr "Eylem başarıyla silindi"
+msgstr "Eylem basariyla silindi"
 
 #: koassistant_ui/prompts_manager.lua:3811
 #: koassistant_ui/prompts_manager.lua:3974
 #, fuzzy
 msgid "No highlight actions available."
-msgstr "Kullanılabilir vurgulama eylemi yok."
+msgstr "Kullanilabilir vurgu eylemi yok."
 
 #: koassistant_ui/prompts_manager.lua:3826
 #, fuzzy
 msgid "✓ = in menu | Tap = toggle | Hold = move"
-msgstr "✓ = menüde | Dokun = değiştir | Basılı tut = taşı"
+msgstr "✓ = menude | Dokun = degistir | Basili tut = tasi"
 
 #: koassistant_ui/prompts_manager.lua:3852
 #, fuzzy
 msgid "Changes require restart to take effect"
-msgstr "Değişikliklerin etkili olması için yeniden başlatma gerekir"
+msgstr "Degisikliklerin etkili olmasi icin yeniden baslatma gerekli"
 
 #: koassistant_ui/prompts_manager.lua:3865
 #, fuzzy
 msgid "Highlight Menu (%1 enabled)"
-msgstr "Vurgulama Menüsü (%1 etkin)"
+msgstr "Vurgu Menusu (%1 etkin)"
 
 #: koassistant_ui/prompts_manager.lua:3904
 #: koassistant_ui/prompts_manager.lua:4062
 #, fuzzy
 msgid "↑ Move Up"
-msgstr "↑ Yukarı Taşı"
+msgstr "↑ Yukari Tasi"
 
 #: koassistant_ui/prompts_manager.lua:3918
 #: koassistant_ui/prompts_manager.lua:4076
 #, fuzzy
 msgid "↓ Move Down"
-msgstr "↓ Aşağı Taşı"
+msgstr "↓ Asagi Tasi"
 
 #: koassistant_ui/prompts_manager.lua:3931
 #, fuzzy
 msgid "Remove from Menu"
-msgstr "Menüden Kaldır"
+msgstr "Menuden Kaldir"
 
 #: koassistant_ui/prompts_manager.lua:3952
 #: koassistant_ui/prompts_manager.lua:4110
@@ -5375,17 +5409,17 @@ msgstr "Konum:"
 #: koassistant_ui/prompts_manager.lua:3989
 #, fuzzy
 msgid "✓ = in popup | Tap = toggle | Hold = move"
-msgstr "✓ = açılır pencerede | Dokun = değiştir | Basılı tut = taşı"
+msgstr "✓ = acilir pencerede | Dokun = degistir | Basili tut = tasi"
 
 #: koassistant_ui/prompts_manager.lua:4023
 #, fuzzy
 msgid "Dictionary Popup (%1 enabled)"
-msgstr "Sözlük Açılır Penceresi (%1 etkin)"
+msgstr "Sozluk Acilir Penceresi (%1 etkin)"
 
 #: koassistant_ui/prompts_manager.lua:4089
 #, fuzzy
 msgid "Remove from Popup"
-msgstr "Açılır Pencereden Kaldır"
+msgstr "Acilir Pencereden Kaldir"
 
 #: koassistant_ui/settings_manager.lua:246
 #, fuzzy
@@ -5420,7 +5454,7 @@ msgstr "Detaylandır"
 #: prompts/actions.lua:133
 #, fuzzy
 msgid "Connect"
-msgstr "Bağlantıyı Test Et"
+msgstr "Bağlantıla"
 
 #: prompts/actions.lua:158
 #, fuzzy
@@ -5440,20 +5474,22 @@ msgstr "Yazar Hakkında"
 #: prompts/actions.lua:189
 #, fuzzy
 msgid "Historical Context"
-msgstr "Tarihsel Bağlam"
+msgstr "Tarihi Bağlam"
 
 #: prompts/actions.lua:394
+#, fuzzy
 msgid "Related Thinkers"
-msgstr ""
+msgstr "İlgili Düşünürler"
 
 #: prompts/actions.lua:427
+#, fuzzy
 msgid "Key Arguments"
-msgstr ""
+msgstr "Ana Argümanlar"
 
 #: prompts/actions.lua:467
 #, fuzzy
 msgid "Discussion Questions"
-msgstr "Sözlük Ayarları"
+msgstr "Tartışma Soruları"
 
 #: prompts/actions.lua:505
 #, fuzzy
@@ -5476,8 +5512,9 @@ msgid "Quick Summaries"
 msgstr "Hızlı Özetler"
 
 #: prompts/actions.lua:547
+#, fuzzy
 msgid "Reading Order"
-msgstr ""
+msgstr "Okuma Sırası"
 
 #: prompts/actions.lua:583
 #, fuzzy
