@@ -244,7 +244,7 @@ KOAssistant works in **4 contexts**, each with its own set of built-in actions:
 | Context | Built-in Actions |
 |---------|------------------|
 | **Highlight** | Explain, ELI5, Summarize, Elaborate, Connect, Translate |
-| **Book** | Book Info, Similar Books, About Author, X-Ray, Recap, Analyze Highlights |
+| **Book** | Book Info, Similar Books, About Author, Historical Context, Related Thinkers, Key Arguments, Discussion Questions, X-Ray, Recap, Analyze Highlights |
 | **Multi-book** | Compare Books, Common Themes, Reading Order |
 | **General** | Ask |
 
@@ -288,6 +288,9 @@ You can customize these, create your own, or disable ones you don't use. See [Ac
 | **Find Similar** | Recommendations for similar books |
 | **About Author** | Author biography and writing style |
 | **Historical Context** | When written and historical significance |
+| **Related Thinkers** | Intellectual landscape: influences, contemporaries, and connected thinkers |
+| **Key Arguments** | Thesis, evidence, assumptions, and counterarguments (non-fiction) |
+| **Discussion Questions** | Comprehension, analytical, and interpretive prompts for book clubs or study |
 | **X-Ray** | Structured reference guide: characters, locations, themes, timeline (spoiler-free up to your reading position) |
 | **Recap** | "Previously on..." style summary to help you resume reading after a break |
 | **Analyze Highlights** | Discover patterns and connections in your highlights and annotations |
@@ -468,7 +471,8 @@ Don't like how a built-in action behaves? Clone and customize it:
 
 The action wizard walks through 4 steps:
 
-1. **Name & Context**: Set button text and where it appears (highlight, book, multi-book, general, both, all). Checkboxes:
+1. **Name & Context**: Set button text and where it appears (highlight, book, multi-book, general, both, all). Options:
+   - *View Mode* — Choose how results display: Standard (full chat), Dictionary Compact (minimal popup), or Translate (translation-focused UI)
    - *Include book info* — Send title/author with highlight actions
    - *Skip language instruction* — Don't send your language preferences (useful when prompt already specifies target language)
    - *Skip domain* — Don't include domain context (useful for linguistic tasks like translation)
