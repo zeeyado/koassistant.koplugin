@@ -115,10 +115,32 @@ local SettingsSchema = {
             items = {
                 {
                     id = "render_markdown",
-                    type = "toggle",
-                    text = _("Render Markdown"),
+                    type = "dropdown",
+                    text = _("View Mode"),
                     path = "features.render_markdown",
                     default = true,
+                    options = {
+                        { value = true, label = _("Markdown") },
+                        { value = false, label = _("Plain Text") },
+                    },
+                    help_text = _("Markdown renders formatting. Plain Text has better font support for Arabic/CJK."),
+                },
+                -- Plain Text Options submenu
+                {
+                    id = "plain_text_options",
+                    type = "submenu",
+                    text = _("Plain Text Options"),
+                    separator = true,
+                    items = {
+                        {
+                            id = "strip_markdown_in_text_mode",
+                            type = "toggle",
+                            text = _("Apply Markdown Stripping"),
+                            path = "features.strip_markdown_in_text_mode",
+                            default = true,
+                            help_text = _("Convert markdown syntax to readable plain text (headers, lists, etc). Disable to show raw markdown."),
+                        },
+                    },
                 },
                 {
                     id = "hide_highlighted_text",
