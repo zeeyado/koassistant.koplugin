@@ -1079,6 +1079,7 @@ Chat History → hamburger menu → **View by Domain**
 - **Enable Streaming**: Show responses as they generate in real-time
 - **Auto-scroll Streaming**: Follow new text during streaming (off by default)
 - **Large Stream Dialog**: Use full-screen streaming window
+- **Scroll to Last Message (Experimental)**: When resuming or replying to a chat, scroll to show your last question. Off by default (old behavior: top for new chats, bottom for replies)
 
 ### Export Settings (within Chat Settings)
 - **Export Style**: Format for Copy and Note — Markdown (default) or Plain Text

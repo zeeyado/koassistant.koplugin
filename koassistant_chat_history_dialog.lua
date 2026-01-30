@@ -1373,7 +1373,7 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
     end
 
     -- Function to create and show the chat viewer
-    -- state param for rotation: {text, scroll_ratio, scroll_to_bottom}
+    -- state param for rotation: {text, scroll_ratio, scroll_to_last_question}
     local function showChatViewer(content_text, state)
         -- Always close existing viewer first
         safeClose(self_ref.current_chat_viewer)
@@ -1382,10 +1382,13 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
         -- Note: launch context is now included in createResultText() via history.launch_context
         local display_text = content_text or (state and state.text) or history:createResultText(chat_highlighted_text, config)
 
+        local scroll_setting_enabled = config and config.features and config.features.scroll_to_last_message == true
         local viewer = ChatGPTViewer:new{
             title = detailed_title,
             text = display_text,
-            scroll_to_bottom = state and false or true, -- Scroll to bottom on initial open, preserve position on rotation
+            -- Show last exchange on initial open if setting explicitly enabled, otherwise scroll to bottom (old behavior)
+            scroll_to_last_question = state == nil and scroll_setting_enabled,
+            scroll_to_bottom = state == nil and not scroll_setting_enabled,
             configuration = config,
             original_history = history,
             original_highlighted_text = chat_highlighted_text,

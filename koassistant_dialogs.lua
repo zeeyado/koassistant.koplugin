@@ -1063,6 +1063,8 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
         translate_view = use_translate_view,  -- Use translate view for translations
         translate_hide_quote = translate_hide_quote,  -- Initial hide state for original text
         selection_data = selection_data,  -- For "Save to Note" feature
+        -- Scroll to last question if setting explicitly enabled (default false)
+        scroll_to_last_question = (temp_config and temp_config.features and temp_config.features.scroll_to_last_message == true),
         -- Set BOTH property names for compatibility:
         -- original_history: used by toggleDebugDisplay, toggleHighlightVisibility, etc.
         -- _message_history: used by expandToFullView for text regeneration
@@ -1137,7 +1139,9 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                         title = title .. " (" .. model_info .. ")",
                         text = history:createResultText(highlightedText, viewer_cfg),
                         configuration = viewer_cfg,  -- Use viewer's config to maintain state after expand
-                        scroll_to_bottom = true, -- Scroll to bottom to show new question
+                        -- Scroll to last question if setting explicitly enabled, otherwise scroll to bottom (old behavior)
+                        scroll_to_last_question = (viewer_cfg and viewer_cfg.features and viewer_cfg.features.scroll_to_last_message == true),
+                        scroll_to_bottom = not (viewer_cfg and viewer_cfg.features and viewer_cfg.features.scroll_to_last_message == true),
                         show_debug_in_chat = viewer.show_debug_in_chat,
                         -- Set BOTH property names for compatibility:
                         -- original_history: used by toggleDebugDisplay, toggleHighlightVisibility, etc.
