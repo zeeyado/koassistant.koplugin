@@ -6,8 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: KOAssistant 0.12.0-dev\n"
-"Report-Msgid-Bugs-To: https://github.com/zeeyado/koassistant.koplugin/"
-"issues\n"
+"Report-Msgid-Bugs-To: https://github.com/zeeyado/koassistant.koplugin/issues\n"
 "POT-Creation-Date: 2026-01-30 11:55+0000\n"
 "PO-Revision-Date: 2026-01-27 17:48+0000\n"
 "Last-Translator: Automatically generated\n"
@@ -26,16 +25,13 @@ msgstr "KOAssistant"
 #: _meta.lua:5
 #, fuzzy
 msgid ""
-"A powerful AI assistant integrated into KOReader. Technical research "
-"assistant and knowledge expander."
-msgstr ""
-"Výkonný AI asistent integrovaný do KOReader. Technický výzkumný asistent a "
-"rozšiřovač znalostí."
+"A powerful AI assistant integrated into KOReader. Technical research assistant and knowledge expander."
+msgstr "Vykonny AI asistent integrovany do KOReader. Technicky vyzkumny asistent a rozsirovatele znalosti."
 
 #: koassistant_chat_history_dialog.lua:54
 #, fuzzy
 msgid "Delete all chats for this book"
-msgstr "Smazat všechny konverzace pro tuto knihu"
+msgstr "Smazat vsechny konverzace pro tuto knihu"
 
 #: koassistant_chat_history_dialog.lua:59
 #, fuzzy
@@ -44,9 +40,9 @@ msgid ""
 "\n"
 "This action cannot be undone."
 msgstr ""
-"Smazat všechny konverzace pro \"%1\"?\n"
+"Smazat vsechny konverzace pro \"%1\"?\n"
 "\n"
-"Tuto akci nelze vrátit zpět."
+"Tuto akci nelze vratit zpet."
 
 #: koassistant_chat_history_dialog.lua:60
 #: koassistant_chat_history_dialog.lua:143
@@ -62,7 +58,7 @@ msgstr "Smazat"
 #: koassistant_chat_history_dialog.lua:64
 #, fuzzy
 msgid "Deleted %1 chat(s)"
-msgstr "Smazáno %1 konverzací"
+msgstr "Smazano %1 konverzaci"
 
 #: koassistant_chat_history_dialog.lua:81
 #: koassistant_chat_history_dialog.lua:160
@@ -81,24 +77,24 @@ msgstr "Smazáno %1 konverzací"
 #: koassistant_ui/settings_manager.lua:314
 #, fuzzy
 msgid "Close"
-msgstr "Zavřít"
+msgstr "Zavrit"
 
 #: koassistant_chat_history_dialog.lua:107
 #: koassistant_chat_history_dialog.lua:240
 #, fuzzy
 msgid "View by Domain"
-msgstr "Zobrazit podle domény"
+msgstr "Zobrazit podle domeny"
 
 #: koassistant_chat_history_dialog.lua:121
 #: koassistant_chat_history_dialog.lua:186
 #, fuzzy
 msgid "View by Tag"
-msgstr "Zobrazit podle štítku"
+msgstr "Zobrazit podle stitku"
 
 #: koassistant_chat_history_dialog.lua:137
 #, fuzzy
 msgid "Delete all chats"
-msgstr "Smazat všechny konverzace"
+msgstr "Smazat vsechny konverzace"
 
 #: koassistant_chat_history_dialog.lua:142
 #, fuzzy
@@ -107,19 +103,19 @@ msgid ""
 "\n"
 "This action cannot be undone."
 msgstr ""
-"Smazat všechny uložené konverzace?\n"
+"Smazat vsechny ulozene konverzace?\n"
 "\n"
-"Tuto akci nelze vrátit zpět."
+"Tuto akci nelze vratit zpet."
 
 #: koassistant_chat_history_dialog.lua:147 main.lua:4886
 #, fuzzy
 msgid "Deleted %1 chat(s) from %2 book(s)"
-msgstr "Smazáno %1 konverzací z %2 knih"
+msgstr "Smazano %1 konverzaci z %2 knih"
 
 #: koassistant_chat_history_dialog.lua:170
 #, fuzzy
 msgid "Chat History Options"
-msgstr "Možnosti historie konverzací"
+msgstr "Moznosti historie konverzaci"
 
 #: koassistant_chat_history_dialog.lua:200
 #: koassistant_chat_history_dialog.lua:254
@@ -127,25 +123,25 @@ msgstr "Možnosti historie konverzací"
 #: main.lua:3568
 #, fuzzy
 msgid "Chat History"
-msgstr "Historie konverzací"
+msgstr "Historie konverzaci"
 
 #: koassistant_chat_history_dialog.lua:224
 #: koassistant_chat_history_dialog.lua:278
 #, fuzzy
 msgid "Navigate"
-msgstr "Navigovat"
+msgstr "Navigace"
 
 #: koassistant_chat_history_dialog.lua:321
 #: koassistant_chat_history_dialog.lua:504 main.lua:3029
 #, fuzzy
 msgid "No saved chats found"
-msgstr "Nebyly nalezeny žádné uložené konverzace"
+msgstr "Zadne ulozene konverzace nenalezeny"
 
 #: koassistant_chat_history_dialog.lua:334
 #: koassistant_chat_history_dialog.lua:396
 #, fuzzy
 msgid "Untagged"
-msgstr "Bez štítku"
+msgstr "Bez stitku"
 
 #: koassistant_chat_history_dialog.lua:345
 #: koassistant_chat_history_dialog.lua:546
@@ -159,12 +155,12 @@ msgstr "konverzace"
 #: koassistant_chat_history_dialog.lua:1764
 #, fuzzy
 msgid "chats"
-msgstr "konverzací"
+msgstr "konverzaci"
 
 #: koassistant_chat_history_dialog.lua:361
 #, fuzzy
 msgid "Chat History by Domain"
-msgstr "Historie konverzací podle domény"
+msgstr "Historie konverzaci podle domeny"
 
 #: koassistant_chat_history_dialog.lua:410
 #: koassistant_chat_history_dialog.lua:753
@@ -172,39 +168,39 @@ msgstr "Historie konverzací podle domény"
 #: koassistant_chat_history_dialog.lua:1829
 #, fuzzy
 msgid "Untitled Chat"
-msgstr "Konverzace bez názvu"
+msgstr "Konverzace bez nazvu"
 
 #: koassistant_chat_history_dialog.lua:422
 #: koassistant_chat_history_dialog.lua:1841
 #, fuzzy
 msgid "General Chat"
-msgstr "Obecná konverzace"
+msgstr "Obecna konverzace"
 
 #: koassistant_chat_history_dialog.lua:425
 #: koassistant_chat_history_dialog.lua:1844
 #, fuzzy
 msgid "msg"
-msgstr "zpráva"
+msgstr "zprava"
 
 #: koassistant_chat_history_dialog.lua:425
 #: koassistant_chat_history_dialog.lua:1844
 #, fuzzy
 msgid "msgs"
-msgstr "zpráv"
+msgstr "zprav"
 
 #: koassistant_chat_history_dialog.lua:436
 #: koassistant_chat_history_dialog.lua:1855
 #: koassistant_chat_history_manager.lua:88
 #, fuzzy
 msgid "General AI Chats"
-msgstr "Obecné AI konverzace"
+msgstr "Obecne AI konverzace"
 
 #: koassistant_chat_history_dialog.lua:539
 #: koassistant_ui/behavior_manager.lua:253
 #: koassistant_ui/domain_manager.lua:272 koassistant_ui/prompts_manager.lua:573
 #, fuzzy
 msgid "Unknown"
-msgstr "Neznámé"
+msgstr "Neznamy"
 
 #: koassistant_chat_history_dialog.lua:554
 #, fuzzy
@@ -214,7 +210,7 @@ msgstr "AI konverzace bez kontextu knihy"
 #: koassistant_chat_history_dialog.lua:620
 #, fuzzy
 msgid "No saved chats found for this document"
-msgstr "Pro tento dokument nebyly nalezeny žádné konverzace"
+msgstr "Zadne ulozene konverzace pro tento dokument nenalezeny"
 
 #: koassistant_chat_history_dialog.lua:669
 #, fuzzy
@@ -225,7 +221,7 @@ msgstr "Konverzace: %1"
 #: koassistant_chat_history_dialog.lua:1262
 #, fuzzy
 msgid "Error: Cannot load chat data."
-msgstr "Chyba: Nelze načíst data konverzace."
+msgstr "Chyba: Nelze nacist data konverzace."
 
 #: koassistant_chat_history_dialog.lua:754
 #, fuzzy
@@ -240,23 +236,23 @@ msgstr "Model:"
 #: koassistant_chat_history_dialog.lua:756
 #, fuzzy
 msgid "Messages:"
-msgstr "Zprávy:"
+msgstr "Zpravy:"
 
 #: koassistant_chat_history_dialog.lua:777
 #, fuzzy
 msgid "Continue Chat"
-msgstr "Pokračovat v konverzaci"
+msgstr "Pokracovat v konverzaci"
 
 #: koassistant_chat_history_dialog.lua:790
 #: koassistant_chat_history_dialog.lua:862
 #, fuzzy
 msgid "Rename"
-msgstr "Přejmenovat"
+msgstr "Prejmenovat"
 
 #: koassistant_chat_history_dialog.lua:800
 #, fuzzy
 msgid "Tags"
-msgstr "Štítky"
+msgstr "Stitky"
 
 #: koassistant_chat_history_dialog.lua:808
 #: koassistant_ui/prompts_manager.lua:419
@@ -267,35 +263,35 @@ msgstr "Exportovat"
 #: koassistant_chat_history_dialog.lua:850
 #, fuzzy
 msgid "Rename Chat"
-msgstr "Přejmenovat konverzaci"
+msgstr "Prejmenovat konverzaci"
 
 #: koassistant_chat_history_dialog.lua:871
 #, fuzzy
 msgid "Chat renamed successfully"
-msgstr "Konverzace úspěšně přejmenována"
+msgstr "Konverzace uspesne prejmenovana"
 
 #: koassistant_chat_history_dialog.lua:880
 #, fuzzy
 msgid "Failed to rename chat"
-msgstr "Nepodařilo se přejmenovat konverzaci"
+msgstr "Nepodarilo se prejmenovat konverzaci"
 
 #: koassistant_chat_history_dialog.lua:920
 #: koassistant_chat_history_dialog.lua:1107 koassistant_dialogs.lua:754
 #, fuzzy
 msgid "Current tags:"
-msgstr "Aktuální štítky:"
+msgstr "Aktualni stitky:"
 
 #: koassistant_chat_history_dialog.lua:932
 #: koassistant_chat_history_dialog.lua:1119 koassistant_dialogs.lua:766
 #, fuzzy
 msgid "Removed tag: %1"
-msgstr "Odstraněn štítek: %1"
+msgstr "Stitek odebran: %1"
 
 #: koassistant_chat_history_dialog.lua:967
 #: koassistant_chat_history_dialog.lua:1154 koassistant_dialogs.lua:801
 #, fuzzy
 msgid "Add existing tag:"
-msgstr "Přidat existující štítek:"
+msgstr "Pridat existujici stitek:"
 
 #: koassistant_chat_history_dialog.lua:982
 #: koassistant_chat_history_dialog.lua:1032
@@ -304,34 +300,34 @@ msgstr "Přidat existující štítek:"
 #: koassistant_dialogs.lua:866
 #, fuzzy
 msgid "Added tag: %1"
-msgstr "Přidán štítek: %1"
+msgstr "Stitek pridan: %1"
 
 #: koassistant_chat_history_dialog.lua:1003
 #: koassistant_chat_history_dialog.lua:1190 koassistant_dialogs.lua:837
 #, fuzzy
 msgid "+ Add new tag"
-msgstr "+ Přidat nový štítek"
+msgstr "+ Pridat novy stitek"
 
 #: koassistant_chat_history_dialog.lua:1007
 #: koassistant_chat_history_dialog.lua:1194 koassistant_dialogs.lua:841
 #: koassistant_dialogs.lua:883
 #, fuzzy
 msgid "New Tag"
-msgstr "Nový štítek"
+msgstr "Novy stitek"
 
 #: koassistant_chat_history_dialog.lua:1008
 #: koassistant_chat_history_dialog.lua:1195 koassistant_dialogs.lua:842
 #: koassistant_dialogs.lua:885
 #, fuzzy
 msgid "Enter tag name"
-msgstr "Zadejte název štítku"
+msgstr "Zadejte nazev stitku"
 
 #: koassistant_chat_history_dialog.lua:1020
 #: koassistant_chat_history_dialog.lua:1207 koassistant_dialogs.lua:854
 #: main.lua:1617 main.lua:2045
 #, fuzzy
 msgid "Add"
-msgstr "Přidat"
+msgstr "Pridat"
 
 #: koassistant_chat_history_dialog.lua:1052
 #: koassistant_chat_history_dialog.lua:1239 koassistant_dialogs.lua:925
@@ -344,7 +340,7 @@ msgstr "Hotovo"
 #: koassistant_chat_history_dialog.lua:1250 koassistant_dialogs.lua:936
 #, fuzzy
 msgid "Manage Tags"
-msgstr "Spravovat štítky"
+msgstr "Spravovat stitky"
 
 #: koassistant_chat_history_dialog.lua:1092 koassistant_dialogs.lua:739
 #, fuzzy
@@ -393,119 +389,123 @@ msgstr "Konverzace nenalezena"
 #: koassistant_ui/prompts_manager.lua:4101
 #, fuzzy
 msgid "Cancel"
-msgstr "Zrušit"
+msgstr "Zrusit"
 
 #: koassistant_chat_history_dialog.lua:1296
 #, fuzzy
 msgid "Error: Failed to load chat messages."
-msgstr "Chyba: Nepodařilo se načíst zprávy konverzace."
+msgstr "Chyba: Nepodarilo se nacist zpravy konverzace."
 
 #: koassistant_chat_history_dialog.lua:1342 koassistant_dialogs.lua:1827
 #: stream_handler.lua:194
 #, fuzzy
 msgid "No response received from AI"
-msgstr "Nebyla přijata žádná odpověď od AI"
+msgstr "Od AI nebyla prijata zadna odpoved"
 
 #: koassistant_chat_history_dialog.lua:1362
 #, fuzzy
 msgid "Untitled"
-msgstr "Bez názvu"
+msgstr "Bez nazvu"
 
 #: koassistant_chat_history_dialog.lua:1369
 #, fuzzy
 msgid "Loading..."
-msgstr "Načítání..."
+msgstr "Nacitani..."
 
 #: koassistant_chat_history_dialog.lua:1437 koassistant_dialogs.lua:1264
 #, fuzzy
 msgid "Failed to get response: "
-msgstr "Nepodařilo se získat odpověď:"
+msgstr "Nepodarilo se ziskat odpoved:"
 
 #: koassistant_chat_history_dialog.lua:1452
 #, fuzzy
 msgid "Auto-save is enabled in settings"
-msgstr "Automatické ukládání je povoleno v nastavení"
+msgstr "Automaticke ukladani je povoleno v nastaveni"
 
 #: koassistant_chat_history_dialog.lua:1457
 #, fuzzy
 msgid "Continued chats are automatically saved"
-msgstr "Pokračující konverzace jsou automaticky ukládány"
+msgstr "Pokracujici konverzace jsou automaticky ukladany"
 
 #: koassistant_chat_history_dialog.lua:1463
 #, fuzzy
 msgid "Chat saved"
-msgstr "Konverzace uložena"
+msgstr "Konverzace ulozena"
 
 #: koassistant_chat_history_dialog.lua:1463 koassistant_dialogs.lua:1332
 #, fuzzy
 msgid "Failed to save chat"
-msgstr "Nepodařilo se uložit konverzaci"
+msgstr "Nepodarilo se ulozit konverzaci"
 
 #: koassistant_chat_history_dialog.lua:1481
 #: koassistant_chat_history_dialog.lua:1573
 #, fuzzy
 msgid "Chat copied to clipboard"
-msgstr "Konverzace zkopírována do schránky"
+msgstr "Konverzace zkopirována do schránky"
 
 #: koassistant_chat_history_dialog.lua:1491
 #: koassistant_chat_history_dialog.lua:1583 koassistant_chatgptviewer.lua:241
 #: koassistant_dialogs.lua:1374 koassistant_settings_schema.lua:268
 #: koassistant_settings_schema.lua:283 koassistant_settings_schema.lua:299
 #: koassistant_settings_schema.lua:958 koassistant_settings_schema.lua:974
+#, fuzzy
 msgid "Full (metadata + chat)"
-msgstr ""
+msgstr "Uplne (metadata + chat)"
 
 #: koassistant_chat_history_dialog.lua:1492
 #: koassistant_chat_history_dialog.lua:1584 koassistant_chatgptviewer.lua:242
 #: koassistant_dialogs.lua:1375 koassistant_settings_schema.lua:269
 #: koassistant_settings_schema.lua:284 koassistant_settings_schema.lua:300
 #: koassistant_settings_schema.lua:959 koassistant_settings_schema.lua:975
+#, fuzzy
 msgid "Question + Response"
-msgstr ""
+msgstr "Otazka + odpoved"
 
 #: koassistant_chat_history_dialog.lua:1493
 #: koassistant_chat_history_dialog.lua:1585 koassistant_chatgptviewer.lua:243
 #: koassistant_dialogs.lua:1376
+#, fuzzy
 msgid "Response only"
-msgstr ""
+msgstr "Pouze odpoved"
 
 #: koassistant_chat_history_dialog.lua:1494
 #: koassistant_chat_history_dialog.lua:1586 koassistant_chatgptviewer.lua:244
 #: koassistant_dialogs.lua:1377 koassistant_settings_schema.lua:271
 #: koassistant_settings_schema.lua:286 koassistant_settings_schema.lua:302
 #: koassistant_settings_schema.lua:961 koassistant_settings_schema.lua:977
+#, fuzzy
 msgid "Everything (debug)"
-msgstr ""
+msgstr "Vse (ladeni)"
 
 #: koassistant_chat_history_dialog.lua:1519 koassistant_chatgptviewer.lua:813
 #: koassistant_chatgptviewer.lua:1362 koassistant_dialogs.lua:1402
 #: koassistant_settings_schema.lua:263 koassistant_settings_schema.lua:952
 #, fuzzy
 msgid "Copy Content"
-msgstr "Obsah"
+msgstr "Kopirovat obsah"
 
 #: koassistant_chat_history_dialog.lua:1613
 #, fuzzy
 msgid "Export Content"
-msgstr "Exportovat konverzaci"
+msgstr "Exportovat obsah"
 
 #: koassistant_chat_history_dialog.lua:1629
 #: koassistant_chat_history_dialog.lua:1667
 #, fuzzy
 msgid "Are you sure you want to delete this chat?"
-msgstr "Opravdu chcete smazat tuto konverzaci?"
+msgstr "Opravdu chcete smazat tento chat?"
 
 #: koassistant_chat_history_dialog.lua:1636
 #: koassistant_chat_history_dialog.lua:1682
 #, fuzzy
 msgid "Chat deleted"
-msgstr "Konverzace smazána"
+msgstr "Chat smazan"
 
 #: koassistant_chat_history_dialog.lua:1654
 #: koassistant_chat_history_dialog.lua:1700
 #, fuzzy
 msgid "Failed to delete chat"
-msgstr "Nepodařilo se smazat konverzaci"
+msgstr "Nepodarilo se smazat chat"
 
 #: koassistant_chat_history_dialog.lua:1747
 #, fuzzy
@@ -514,45 +514,45 @@ msgid ""
 "\n"
 "You can add tags to chats from the chat options menu."
 msgstr ""
-"Nebyly nalezeny žádné označené konverzace.\n"
+"Nebyly nalezeny zadne oznacene chaty.\n"
 "\n"
-"Štítky můžete přidávat ke konverzacím z nabídky možností konverzace."
+"Stitky muzete pridavat k chatum z nabidky moznosti chatu."
 
 #: koassistant_chat_history_dialog.lua:1779
 #, fuzzy
 msgid "Chat History by Tag"
-msgstr "Historie konverzací podle štítku"
+msgstr "Historie chatu podle stitku"
 
 #: koassistant_chat_history_dialog.lua:1815
 #, fuzzy
 msgid "No chats found with this tag"
-msgstr "S tímto štítkem nebyly nalezeny žádné konverzace"
+msgstr "S timto stitkem nebyly nalezeny zadne chaty"
 
 #: koassistant_chatgptviewer.lua:156 koassistant_chatgptviewer.lua:783
 #: koassistant_chatgptviewer.lua:1037 koassistant_chatgptviewer.lua:1329
 #, fuzzy
 msgid "Copy"
-msgstr "Kopírovat"
+msgstr "Kopirovat"
 
 #: koassistant_chatgptviewer.lua:161
 #, fuzzy
 msgid "Link copied to clipboard"
-msgstr "Odkaz zkopírován do schránky"
+msgstr "Odkaz zkopirovan do schranky"
 
 #: koassistant_chatgptviewer.lua:166
 #, fuzzy
 msgid "Show QR code"
-msgstr "Zobrazit QR kód"
+msgstr "Zobrazit QR kod"
 
 #: koassistant_chatgptviewer.lua:187
 #, fuzzy
 msgid "Add to Wallabag"
-msgstr "Přidat do Wallabag"
+msgstr "Pridat do Wallabag"
 
 #: koassistant_chatgptviewer.lua:197
 #, fuzzy
 msgid "Open in browser"
-msgstr "Otevřít v prohlížeči"
+msgstr "Otevrit v prohlizeci"
 
 #: koassistant_chatgptviewer.lua:221
 #, fuzzy
@@ -561,7 +561,7 @@ msgid ""
 "\n"
 "%1"
 msgstr ""
-"Externí odkaz:\n"
+"Externi odkaz:\n"
 "\n"
 "%1"
 
@@ -569,18 +569,18 @@ msgstr ""
 #: koassistant_settings_schema.lua:976
 #, fuzzy
 msgid "Translation only"
-msgstr "Jazyk překladu"
+msgstr "Pouze preklad"
 
 #: koassistant_chatgptviewer.lua:749 koassistant_chatgptviewer.lua:1641
 #, fuzzy
 msgid "Reply"
-msgstr "Odpovědět"
+msgstr "Odpovedet"
 
 #: koassistant_chatgptviewer.lua:766 koassistant_dialogs.lua:617
 #: koassistant_dialogs.lua:1321
 #, fuzzy
 msgid "Autosaved"
-msgstr "Automaticky uloženo"
+msgstr "Automaticky ulozeno"
 
 #: koassistant_chatgptviewer.lua:766 koassistant_dialogs.lua:554 main.lua:1683
 #: main.lua:2360 main.lua:2601 main.lua:2792
@@ -591,80 +591,84 @@ msgstr "Automaticky uloženo"
 #: koassistant_ui/prompts_manager.lua:3138
 #, fuzzy
 msgid "Save"
-msgstr "Uložit"
+msgstr "Ulozit"
 
 #: koassistant_chatgptviewer.lua:775
 #, fuzzy
 msgid "Save function not available"
-msgstr "Funkce uložení není dostupná"
+msgstr "Funkce ulozeni neni k dispozici"
 
 #: koassistant_chatgptviewer.lua:789
+#, fuzzy
 msgid "No chat to copy"
-msgstr ""
+msgstr "Zadny chat ke kopirovani"
 
 #: koassistant_chatgptviewer.lua:807 koassistant_chatgptviewer.lua:1055
 #: koassistant_chatgptviewer.lua:1356 koassistant_dialogs.lua:1364
+#, fuzzy
 msgid "Copied"
-msgstr ""
+msgstr "Zkopirovano"
 
 #: koassistant_chatgptviewer.lua:821 koassistant_chatgptviewer.lua:1373
 #, fuzzy
 msgid "Note"
-msgstr "Poznámky"
+msgstr "Poznamka"
 
 #: koassistant_chatgptviewer.lua:829
+#, fuzzy
 msgid "Save response as note on highlighted text"
-msgstr ""
+msgstr "Ulozit odpoved jako poznamku k zvyraznenemu textu"
 
 #: koassistant_chatgptviewer.lua:842
 #, fuzzy
 msgid "Tag function not available"
-msgstr "Funkce štítků není dostupná"
+msgstr "Funkce stitku neni k dispozici"
 
 #: koassistant_chatgptviewer.lua:849
 #, fuzzy
 msgid "Add or manage tags for this chat"
-msgstr "Přidat nebo spravovat štítky této konverzace"
+msgstr "Pridat nebo spravovat stitky pro tento chat"
 
 #: koassistant_chatgptviewer.lua:870 koassistant_chatgptviewer.lua:1029
 #: koassistant_chatgptviewer.lua:1321
 #, fuzzy
 msgid "Toggle between markdown and plain text display"
-msgstr "Přepnout mezi zobrazením markdown a prostého textu"
+msgstr "Prepnout mezi zobrazenim Markdown a cisty text"
 
 #: koassistant_chatgptviewer.lua:885
 #, fuzzy
 msgid "Toggle debug display in chat viewer"
-msgstr "Přepnout zobrazení ladění v prohlížeči konverzací"
+msgstr "Prepnout ladici zobrazeni v prohlizeci chatu"
 
 #: koassistant_chatgptviewer.lua:892 koassistant_chatgptviewer.lua:2375
 #, fuzzy
 msgid "Show Quote"
-msgstr "Zobrazit citát"
+msgstr "Zobrazit citat"
 
 #: koassistant_chatgptviewer.lua:892 koassistant_chatgptviewer.lua:2375
 #, fuzzy
 msgid "Hide Quote"
-msgstr "Skrýt citát"
+msgstr "Skryt citat"
 
 #: koassistant_chatgptviewer.lua:904
 #, fuzzy
 msgid "Toggle highlighted text display in chat"
-msgstr "Přepnout zobrazení zvýrazněného textu v konverzaci"
+msgstr "Prepnout zobrazeni zvyrazneneho textu v chatu"
 
 #: koassistant_chatgptviewer.lua:910
 #, fuzzy
 msgid "Show Reasoning"
-msgstr "Zobrazit uvažování"
+msgstr "Zobrazit uvazovani"
 
 #: koassistant_chatgptviewer.lua:920
 #, fuzzy
 msgid "View AI reasoning/thinking content (when available)"
-msgstr "Zobrazit obsah uvažování AI (je-li k dispozici)"
+msgstr "Zobrazit obsah uvazovani/mysleni AI (pokud je k dispozici)"
 
 #: koassistant_chatgptviewer.lua:1044 koassistant_chatgptviewer.lua:1060
+#, fuzzy
 msgid "No response to copy"
-msgstr ""
+msgstr "Zadna odpoved ke kopirovani"
 
 #: koassistant_chatgptviewer.lua:1070
 #, fuzzy
@@ -674,12 +678,12 @@ msgstr "Wiki"
 #: koassistant_chatgptviewer.lua:1081
 #, fuzzy
 msgid "Wikipedia not available"
-msgstr "Wikipedia není dostupná"
+msgstr "Wikipedie neni k dispozici"
 
 #: koassistant_chatgptviewer.lua:1087
 #, fuzzy
 msgid "No word to look up"
-msgstr "Žádné slovo k vyhledání"
+msgstr "Zadne slovo k vyhledani"
 
 #: koassistant_chatgptviewer.lua:1094
 #, fuzzy
@@ -689,37 +693,37 @@ msgstr "Vyhledat slovo na Wikipedii"
 #: koassistant_chatgptviewer.lua:1105 koassistant_chatgptviewer.lua:1135
 #, fuzzy
 msgid "Added"
-msgstr "Přidáno"
+msgstr "Pridano"
 
 #: koassistant_chatgptviewer.lua:1110
 #, fuzzy
 msgid "Word added to vocabulary builder"
-msgstr "Slovo přidáno do slovníkáře"
+msgstr "Slovo pridano do slovnicku"
 
 #: koassistant_chatgptviewer.lua:1117
 #, fuzzy
 msgid "+Vocab"
-msgstr "+Slovník"
+msgstr "+Slovnik"
 
 #: koassistant_chatgptviewer.lua:1125 main.lua:4299
 #, fuzzy
 msgid "AI Dictionary lookup"
-msgstr "AI slovníkové vyhledávání"
+msgstr "Vyhledavani v AI slovniku"
 
 #: koassistant_chatgptviewer.lua:1130
 #, fuzzy
 msgid "Added '%1' to vocabulary"
-msgstr "Přidáno '%1' do slovníku"
+msgstr "Pridano '%1' do slovnicku"
 
 #: koassistant_chatgptviewer.lua:1143
 #, fuzzy
 msgid "Vocabulary builder not available"
-msgstr "Slovníkář není dostupný"
+msgstr "Slovnicek neni k dispozici"
 
 #: koassistant_chatgptviewer.lua:1151
 #, fuzzy
 msgid "Add word to vocabulary builder"
-msgstr "Přidat slovo do slovníkáře"
+msgstr "Pridat slovo do slovnicku"
 
 #: koassistant_chatgptviewer.lua:1160
 #, fuzzy
@@ -729,7 +733,7 @@ msgstr "Rozbalit"
 #: koassistant_chatgptviewer.lua:1167
 #, fuzzy
 msgid "Open in full-size viewer with all options"
-msgstr "Otevřít v plné velikosti se všemi možnostmi"
+msgstr "Otevrit v plnohodnotnem prohlizeci se vsemi moznostmi"
 
 #: koassistant_chatgptviewer.lua:1177 koassistant_chatgptviewer.lua:1425
 #, fuzzy
@@ -739,17 +743,17 @@ msgstr "Jazyk"
 #: koassistant_chatgptviewer.lua:1185 koassistant_chatgptviewer.lua:1433
 #, fuzzy
 msgid "Configure languages in Settings first"
-msgstr "Nejprve nastavte jazyky v Nastavení"
+msgstr "Nejprve nastavte jazyky v Nastaveni"
 
 #: koassistant_chatgptviewer.lua:1227 main.lua:3564 main.lua:3973
 #, fuzzy
 msgid "Dictionary Language"
-msgstr "Jazyk slovníku"
+msgstr "Jazyk slovniku"
 
 #: koassistant_chatgptviewer.lua:1234
 #, fuzzy
 msgid "Re-run with a different dictionary language"
-msgstr "Spustit znovu s jiným jazykem slovníku"
+msgstr "Spustit znovu s jinym jazykem slovniku"
 
 #: koassistant_chatgptviewer.lua:1246
 #, fuzzy
@@ -764,62 +768,67 @@ msgstr "Kontext: VYP"
 #: koassistant_chatgptviewer.lua:1289
 #, fuzzy
 msgid "Re-run without surrounding context"
-msgstr "Spustit znovu bez okolního kontextu"
+msgstr "Spustit znovu bez okolniho kontextu"
 
 #: koassistant_chatgptviewer.lua:1289
 #, fuzzy
 msgid "Re-run with surrounding context"
-msgstr "Spustit znovu s okolním kontextem"
+msgstr "Spustit znovu s okolnim kontextem"
 
 #: koassistant_chatgptviewer.lua:1335
+#, fuzzy
 msgid "No translation to copy"
-msgstr ""
+msgstr "Zadny preklad ke kopirovani"
 
 #: koassistant_chatgptviewer.lua:1380
+#, fuzzy
 msgid "Save translation as note on highlighted text"
-msgstr ""
+msgstr "Ulozit preklad jako poznamku k zvyraznenemu textu"
 
 #: koassistant_chatgptviewer.lua:1389
 #, fuzzy
 msgid "→ Chat"
-msgstr "Konverzace"
+msgstr "→ Chat"
 
 #: koassistant_chatgptviewer.lua:1396
 #, fuzzy
 msgid "Open full chat with all options"
-msgstr "Otevřít v plné velikosti se všemi možnostmi"
+msgstr "Otevrit uplny chat se vsemi moznostmi"
 
 #: koassistant_chatgptviewer.lua:1406 koassistant_chatgptviewer.lua:2266
+#, fuzzy
 msgid "Show Original"
-msgstr ""
+msgstr "Zobrazit original"
 
 #: koassistant_chatgptviewer.lua:1406 koassistant_chatgptviewer.lua:2266
+#, fuzzy
 msgid "Hide Original"
-msgstr ""
+msgstr "Skryt original"
 
 #: koassistant_chatgptviewer.lua:1415
+#, fuzzy
 msgid "Show the original text"
-msgstr ""
+msgstr "Zobrazit puvodni text"
 
 #: koassistant_chatgptviewer.lua:1415
 #, fuzzy
 msgid "Hide the original text"
-msgstr "Historický kontext"
+msgstr "Skryt puvodni text"
 
 #: koassistant_chatgptviewer.lua:1477
 #, fuzzy
 msgid "Translate To"
-msgstr "Přeložit"
+msgstr "Prelozit do"
 
 #: koassistant_chatgptviewer.lua:1484
 #, fuzzy
 msgid "Re-run translation with a different target language"
-msgstr "Spustit znovu s jiným jazykem slovníku"
+msgstr "Spustit preklad znovu s jinym cilovym jazykem"
 
 #: koassistant_chatgptviewer.lua:1644
 #, fuzzy
 msgid "Type your reply..."
-msgstr "Napište odpověď..."
+msgstr "Napiste svou odpoved..."
 
 #: koassistant_chatgptviewer.lua:1669
 #, fuzzy
@@ -829,73 +838,73 @@ msgstr "Odeslat"
 #: koassistant_chatgptviewer.lua:1934
 #, fuzzy
 msgid "Copied to clipboard."
-msgstr "Zkopírováno do schránky."
+msgstr "Zkopirovano do schranky."
 
 #: koassistant_chatgptviewer.lua:2127
 #, fuzzy
 msgid "No highlight selection data available"
-msgstr "Žádné akce zvýraznění nejsou dostupné."
+msgstr "Zadna data vyberu zvyrazneni nejsou k dispozici"
 
 #: koassistant_chatgptviewer.lua:2138 main.lua:3823
 #, fuzzy
 msgid "No document open"
-msgstr "Není otevřen žádný dokument"
+msgstr "Zadny otevreny dokument"
 
 #: koassistant_chatgptviewer.lua:2147 koassistant_chatgptviewer.lua:2174
 #, fuzzy
 msgid "No response to save"
-msgstr "Nebyla přijata žádná odpověď. Surová data:"
+msgstr "Zadna odpoved k ulozeni"
 
 #: koassistant_chatgptviewer.lua:2194 koassistant_settings_schema.lua:278
 #: koassistant_settings_schema.lua:968
 #, fuzzy
 msgid "Note Content"
-msgstr "Obsah"
+msgstr "Obsah poznamky"
 
 #: koassistant_chatgptviewer.lua:2330
 #, fuzzy
 msgid "Showing debug info"
-msgstr "Zobrazení ladících informací"
+msgstr "Zobrazuji ladici informace"
 
 #: koassistant_chatgptviewer.lua:2330
 #, fuzzy
 msgid "Debug info hidden"
-msgstr "Ladící informace skryty"
+msgstr "Ladici informace skryty"
 
 #: koassistant_chatgptviewer.lua:2380
 #, fuzzy
 msgid "Quote hidden"
-msgstr "Citát skryt"
+msgstr "Citat skryt"
 
 #: koassistant_chatgptviewer.lua:2380
 #, fuzzy
 msgid "Quote shown"
-msgstr "Citát zobrazen"
+msgstr "Citat zobrazen"
 
 #: koassistant_chatgptviewer.lua:2404
 #, fuzzy
 msgid "No conversation history available"
-msgstr "Historie konverzací není dostupná"
+msgstr "Historie konverzace neni k dispozici"
 
 #: koassistant_chatgptviewer.lua:2413
 #, fuzzy
 msgid "No reasoning content available"
-msgstr "Obsah uvažování není dostupný"
+msgstr "Obsah uvazovani neni k dispozici"
 
 #: koassistant_chatgptviewer.lua:2442
 #, fuzzy
 msgid "AI Reasoning"
-msgstr "AI uvažování"
+msgstr "AI uvazovani"
 
 #: koassistant_chatgptviewer.lua:2442
 #, fuzzy
 msgid "Reasoning Status"
-msgstr "Stav uvažování"
+msgstr "Stav uvazovani"
 
 #: koassistant_chatgptviewer.lua:2551
 #, fuzzy
 msgid "Justified"
-msgstr "Zarovnáno do bloku"
+msgstr "Do bloku"
 
 #: koassistant_chatgptviewer.lua:2552
 #, fuzzy
@@ -910,27 +919,27 @@ msgstr "Vlevo"
 #: koassistant_chatgptviewer.lua:2561
 #, fuzzy
 msgid "Chat Viewer Settings"
-msgstr "Nastavení prohlížeče konverzací"
+msgstr "Nastaveni prohlizece chatu"
 
 #: koassistant_chatgptviewer.lua:2565 koassistant_chatgptviewer.lua:2627
 #, fuzzy
 msgid "Font Size"
-msgstr "Velikost písma"
+msgstr "Velikost pisma"
 
 #: koassistant_chatgptviewer.lua:2574
 #, fuzzy
 msgid "Alignment"
-msgstr "Zarovnání"
+msgstr "Zarovnani"
 
 #: koassistant_chatgptviewer.lua:2593
 #, fuzzy
 msgid "Alignment: %1"
-msgstr "Zarovnání: %1"
+msgstr "Zarovnani: %1"
 
 #: koassistant_chatgptviewer.lua:2604
 #, fuzzy
 msgid "Reset to Defaults"
-msgstr "Obnovit výchozí"
+msgstr "Obnovit vychozi nastaveni"
 
 #: koassistant_chatgptviewer.lua:2633 main.lua:3494
 #: koassistant_ui/settings_manager.lua:280
@@ -941,57 +950,57 @@ msgstr "Nastavit"
 #: koassistant_chatgptviewer.lua:2649
 #, fuzzy
 msgid "Font size set to %1"
-msgstr "Velikost písma nastavena na %1"
+msgstr "Velikost pisma nastavena na %1"
 
 #: koassistant_chatgptviewer.lua:2676
 #, fuzzy
 msgid "Settings reset to defaults"
-msgstr "Nastavení obnovena na výchozí hodnoty"
+msgstr "Nastaveni obnoveno na vychozi hodnoty"
 
 #: koassistant_dialogs.lua:106
 #, fuzzy
 msgid "Reasoning enabled"
-msgstr "Uvažování povoleno"
+msgstr "Uvazovani povoleno"
 
 #: koassistant_dialogs.lua:116
 #, fuzzy
 msgid "Loading"
-msgstr "Načítání"
+msgstr "Nacitani"
 
 #: koassistant_dialogs.lua:524
 #, fuzzy
 msgid "Cannot save: no document context"
-msgstr "Nelze uložit: chybí kontext dokumentu"
+msgstr "Nelze ulozit: chybi kontext dokumentu"
 
 #: koassistant_dialogs.lua:541 koassistant_dialogs.lua:650
 #, fuzzy
 msgid "Save Chat"
-msgstr "Uložit konverzaci"
+msgstr "Ulozit chat"
 
 #: koassistant_dialogs.lua:617 koassistant_dialogs.lua:1321
 #, fuzzy
 msgid "Saved"
-msgstr "Uloženo"
+msgstr "Ulozeno"
 
 #: koassistant_dialogs.lua:630
 #, fuzzy
 msgid "Chat saved successfully"
-msgstr "Konverzace úspěšně uložena"
+msgstr "Chat uspesne ulozen"
 
 #: koassistant_dialogs.lua:635
 #, fuzzy
 msgid "Failed to save chat: "
-msgstr "Nepodařilo se uložit konverzaci:"
+msgstr "Nepodarilo se ulozit chat:"
 
 #: koassistant_dialogs.lua:1415
 #, fuzzy
 msgid "Save the chat first to add tags"
-msgstr "Nejprve uložte konverzaci pro přidání štítků"
+msgstr "Pro pridani stitku nejprve ulozte chat"
 
 #: koassistant_dialogs.lua:1429
 #, fuzzy
 msgid "Cannot tag: no document context"
-msgstr "Nelze přidat štítek: chybí kontext dokumentu"
+msgstr "Nelze pridat stitek: chybi kontext dokumentu"
 
 #: koassistant_dialogs.lua:1954 koassistant_dialogs.lua:2018
 #: koassistant_settings_schema.lua:800 main.lua:2727 main.lua:3384
@@ -1000,17 +1009,17 @@ msgstr "Nelze přidat štítek: chybí kontext dokumentu"
 #: koassistant_ui/prompts_manager.lua:2962
 #, fuzzy
 msgid "None"
-msgstr "Žádné"
+msgstr "Zadna"
 
 #: koassistant_dialogs.lua:2009
 #, fuzzy
 msgid "Select Domain"
-msgstr "Vybrat doménu"
+msgstr "Vybrat domenu"
 
 #: koassistant_dialogs.lua:2043
 #, fuzzy
 msgid "Domain: "
-msgstr "Doména:"
+msgstr "Domena:"
 
 #: koassistant_dialogs.lua:2050
 #, fuzzy
@@ -1020,7 +1029,7 @@ msgstr "Zeptat se"
 #: koassistant_dialogs.lua:2161
 #, fuzzy
 msgid "Chat"
-msgstr "Konverzace"
+msgstr "Chat"
 
 #: koassistant_dialogs.lua:2165 koassistant_dialogs.lua:2416
 #, fuzzy
@@ -1030,7 +1039,7 @@ msgstr "Chyba:"
 #: koassistant_dialogs.lua:2222
 #, fuzzy
 msgid "Error handling prompt: "
-msgstr "Chyba zpracování promptu:"
+msgstr "Chyba pri zpracovani vyzvy:"
 
 #: koassistant_dialogs.lua:2259
 #, fuzzy
@@ -1040,63 +1049,65 @@ msgstr "Akce KOAssistant"
 #: koassistant_dialogs.lua:2261
 #, fuzzy
 msgid "Type your question or additional instructions for any action..."
-msgstr "Napište svou otázku nebo dodatečné instrukce pro libovolnou akci..."
+msgstr "Napiste svou otazku nebo doplnujici pokyny pro jakoukoli akci..."
 
 #: koassistant_dialogs.lua:2319
 #, fuzzy
 msgid "Unknown prompt type: "
-msgstr "Neznámý typ promptu:"
+msgstr "Neznamy typ vyzvy:"
 
 #: koassistant_dialogs.lua:2341
 #, fuzzy
 msgid "Error: No action specified"
-msgstr "Chyba: Není zadána žádná akce"
+msgstr "Chyba: Nebyla zadana zadna akce"
 
 #: koassistant_settings_schema.lua:30
 #, fuzzy
 msgid "Chat about Book"
-msgstr "Konverzace o knize"
+msgstr "Chat o knize"
 
 #: koassistant_settings_schema.lua:39
 #, fuzzy
 msgid "New General Chat"
-msgstr "Nová obecná konverzace"
+msgstr "Nový obecný chat"
 
 #: koassistant_settings_schema.lua:54
 #, fuzzy
 msgid "Reading Features"
-msgstr "Stav uvažování"
+msgstr "Funkce čtení"
 
 #: koassistant_settings_schema.lua:63 prompts/actions.lua:200
+#, fuzzy
 msgid "X-Ray"
-msgstr ""
+msgstr "X-Ray"
 
 #: koassistant_settings_schema.lua:64
+#, fuzzy
 msgid ""
-"Generate a structured reference guide for the book up to your current "
-"position. Includes characters, locations, themes, and plot events."
-msgstr ""
+"Generate a structured reference guide for the book up to your current position. Includes characters, locations, themes, and plot events."
+msgstr "Vygenerovat strukturovaného průvodce knihou až po vaši aktuální pozici. Zahrnuje postavy, místa, témata a děj."
 
 #: koassistant_settings_schema.lua:70 prompts/actions.lua:296
+#, fuzzy
 msgid "Recap"
-msgstr ""
+msgstr "Rekapitulace"
 
 #: koassistant_settings_schema.lua:71
+#, fuzzy
 msgid ""
-"Get a 'Previously on...' style summary to refresh your memory when returning "
-"to a book."
-msgstr ""
+"Get a 'Previously on...' style summary to refresh your memory when returning to a book."
+msgstr "Získat shrnutí ve stylu „Minule...\" pro osvěžení paměti při návratu ke knize."
 
 #: koassistant_settings_schema.lua:77 prompts/actions.lua:343
 #, fuzzy
 msgid "Analyze Highlights"
-msgstr "Povolit obejití zvýraznění"
+msgstr "Analyzovat zvýraznění"
 
 #: koassistant_settings_schema.lua:78
+#, fuzzy
 msgid ""
-"Analyze your highlights and annotations to discover reading patterns and "
-"connections."
-msgstr ""
+"Analyze your highlights and annotations to discover reading patterns and connections."
+msgstr "Analyzovat vaše zvýraznění a poznámky pro objevení čtenářských vzorců a souvislostí."
 
 #: koassistant_settings_schema.lua:91 main.lua:1431 main.lua:3442
 #, fuzzy
@@ -1119,37 +1130,41 @@ msgid "Display Settings"
 msgstr "Nastavení zobrazení"
 
 #: koassistant_settings_schema.lua:119 koassistant_ui/prompts_manager.lua:1664
+#, fuzzy
 msgid "View Mode"
-msgstr ""
+msgstr "Režim zobrazení"
 
 #: koassistant_settings_schema.lua:123 koassistant_settings_schema.lua:255
 #, fuzzy
 msgid "Markdown"
-msgstr "Vykreslovat Markdown"
+msgstr "Markdown"
 
 #: koassistant_settings_schema.lua:124 koassistant_settings_schema.lua:256
+#, fuzzy
 msgid "Plain Text"
-msgstr ""
+msgstr "Prostý text"
 
 #: koassistant_settings_schema.lua:126
+#, fuzzy
 msgid ""
-"Markdown renders formatting. Plain Text has better font support for Arabic/"
-"CJK."
-msgstr ""
+"Markdown renders formatting. Plain Text has better font support for Arabic/CJK."
+msgstr "Markdown zobrazuje formátování. Prostý text má lepší podporu písem pro arabštinu/CJK."
 
 #: koassistant_settings_schema.lua:132
+#, fuzzy
 msgid "Plain Text Options"
-msgstr ""
+msgstr "Možnosti prostého textu"
 
 #: koassistant_settings_schema.lua:138
+#, fuzzy
 msgid "Apply Markdown Stripping"
-msgstr ""
+msgstr "Použít odstranění Markdown"
 
 #: koassistant_settings_schema.lua:141
+#, fuzzy
 msgid ""
-"Convert markdown syntax to readable plain text (headers, lists, etc). "
-"Disable to show raw markdown."
-msgstr ""
+"Convert markdown syntax to readable plain text (headers, lists, etc). Disable to show raw markdown."
+msgstr "Převést syntaxi markdown na čitelný prostý text (nadpisy, seznamy atd.). Vypnutím zobrazíte surový markdown."
 
 #: koassistant_settings_schema.lua:148
 #, fuzzy
@@ -1169,33 +1184,33 @@ msgstr "Práh dlouhého zvýraznění"
 #: koassistant_settings_schema.lua:179
 #, fuzzy
 msgid "Chat Settings"
-msgstr "Nastavení konverzací"
+msgstr "Nastavení chatu"
 
 #: koassistant_settings_schema.lua:184
 #, fuzzy
 msgid "Auto-save All Chats"
-msgstr "Automaticky ukládat všechny konverzace"
+msgstr "Automaticky ukládat všechny chaty"
 
 #: koassistant_settings_schema.lua:191
 #, fuzzy
 msgid "Auto-save Continued Chats"
-msgstr "Automaticky ukládat pokračující konverzace"
+msgstr "Automaticky ukládat pokračující chaty"
 
 #: koassistant_settings_schema.lua:200 koassistant_settings_schema.lua:832
 #: koassistant_settings_schema.lua:944
 #, fuzzy
 msgid "Enable Streaming"
-msgstr "Povolit streaming"
+msgstr "Povolit streamování"
 
 #: koassistant_settings_schema.lua:207
 #, fuzzy
 msgid "Auto-scroll Streaming"
-msgstr "Automatické posouvání při streaming"
+msgstr "Automatické posouvání při streamování"
 
 #: koassistant_settings_schema.lua:215
 #, fuzzy
 msgid "Large Stream Dialog"
-msgstr "Velký dialog pro streaming"
+msgstr "Velký dialog streamování"
 
 #: koassistant_settings_schema.lua:223
 #, fuzzy
@@ -1208,13 +1223,13 @@ msgid ""
 "How often to check for new stream data.\n"
 "Lower = snappier but uses more battery."
 msgstr ""
-"Jak často kontrolovat nová streamovaná data.\n"
-"Nižší = pohotovější, ale spotřebuje více baterie."
+"Jak často kontrolovat nová data streamu.\n"
+"Nižší = rychlejší reakce, ale větší spotřeba baterie."
 
 #: koassistant_settings_schema.lua:236
 #, fuzzy
 msgid "Display Refresh Interval (ms)"
-msgstr "Interval obnovení zobrazení (ms)"
+msgstr "Interval obnovení displeje (ms)"
 
 #: koassistant_settings_schema.lua:243
 #, fuzzy
@@ -1222,52 +1237,57 @@ msgid ""
 "How often to refresh the display during streaming.\n"
 "Higher = better performance on slower devices."
 msgstr ""
-"Jak často obnovovat zobrazení během streaming.\n"
+"Jak často obnovovat displej během streamování.\n"
 "Vyšší = lepší výkon na pomalejších zařízeních."
 
 #: koassistant_settings_schema.lua:251
 #, fuzzy
 msgid "Export Style"
-msgstr "Exportovat konverzaci"
+msgstr "Styl exportu"
 
 #: koassistant_settings_schema.lua:258
+#, fuzzy
 msgid ""
 "Markdown uses # headers and **bold**. Plain text uses simple formatting."
-msgstr ""
+msgstr "Markdown používá # nadpisy a **tučné**. Prostý text používá jednoduché formátování."
 
 #: koassistant_settings_schema.lua:267 koassistant_settings_schema.lua:282
 #: koassistant_settings_schema.lua:298 koassistant_settings_schema.lua:957
 #: koassistant_settings_schema.lua:973
+#, fuzzy
 msgid "Ask every time"
-msgstr ""
+msgstr "Ptát se pokaždé"
 
 #: koassistant_settings_schema.lua:270 koassistant_settings_schema.lua:285
 #: koassistant_settings_schema.lua:301
+#, fuzzy
 msgid "Last response only"
-msgstr ""
+msgstr "Pouze poslední odpověď"
 
 #: koassistant_settings_schema.lua:273
 #, fuzzy
 msgid "What to include when copying chat to clipboard."
-msgstr "Co zahrnout do zálohy:"
+msgstr "Co zahrnout při kopírování chatu do schránky."
 
 #: koassistant_settings_schema.lua:288
 #, fuzzy
 msgid "What to include when saving to note."
-msgstr "Co zahrnout do zálohy:"
+msgstr "Co zahrnout při ukládání do poznámky."
 
 #: koassistant_settings_schema.lua:293
 #, fuzzy
 msgid "History Export"
-msgstr "Exportovat"
+msgstr "Export historie"
 
 #: koassistant_settings_schema.lua:297
+#, fuzzy
 msgid "Follow Copy Content"
-msgstr ""
+msgstr "Následovat obsah kopírování"
 
 #: koassistant_settings_schema.lua:304
+#, fuzzy
 msgid "What to include when exporting from Chat History."
-msgstr ""
+msgstr "Co zahrnout při exportu z historie chatů."
 
 #: koassistant_settings_schema.lua:313
 #, fuzzy
@@ -1283,8 +1303,7 @@ msgstr "Spravovat chování (%1)"
 #, fuzzy
 msgid ""
 "Select or create AI behavior styles that define how the AI communicates."
-msgstr ""
-"Vyberte nebo vytvořte styly chování AI, které definují, jak AI komunikuje."
+msgstr "Vybrat nebo vytvořit styly chování AI, které definují způsob komunikace AI."
 
 #: koassistant_settings_schema.lua:334
 #, fuzzy
@@ -1294,7 +1313,7 @@ msgstr "Spravovat domény..."
 #: koassistant_settings_schema.lua:336
 #, fuzzy
 msgid "Manage knowledge domains. Domains are selected per-chat."
-msgstr "Spravovat znalostní domény. Domény se vybírají pro každou konverzaci."
+msgstr "Spravovat znalostní domény. Domény se vybírají pro každý chat."
 
 #: koassistant_settings_schema.lua:342 main.lua:3495
 #: koassistant_ui/prompts_manager.lua:645
@@ -1323,18 +1342,20 @@ msgstr "Uvažování"
 #: koassistant_settings_schema.lua:361
 #, fuzzy
 msgid "Long-press provider for supported models"
-msgstr "Dlouze stiskněte poskytovatele pro podporované modely"
+msgstr "Dlouhým stiskem poskytovatele zobrazíte podporované modely"
 
 #: koassistant_settings_schema.lua:370 koassistant_ui/prompts_manager.lua:1882
 #, fuzzy
 msgid "Anthropic Extended Thinking"
-msgstr "Anthropic rozšířené myšlení"
+msgstr "Anthropic rozšířené uvažování"
 
 #: koassistant_settings_schema.lua:371 koassistant_settings_schema.lua:394
 #: koassistant_settings_schema.lua:423
 #, fuzzy
-msgid "Supported models:\n"
-msgstr "Podporované modely:\n"
+msgid ""
+"Supported models:\n"
+msgstr ""
+"Podporované modely:\n"
 
 #: koassistant_settings_schema.lua:371
 #, fuzzy
@@ -1345,12 +1366,12 @@ msgid ""
 msgstr ""
 "\n"
 "\n"
-"Nechte Claude promyslet složité problémy před odpovědí."
+"Umožní Claude přemýšlet o složitých problémech před odpovědí."
 
 #: koassistant_settings_schema.lua:378
 #, fuzzy
 msgid "Thinking Budget (tokens)"
-msgstr "Rozpočet myšlení (tokeny)"
+msgstr "Rozpočet uvažování (tokeny)"
 
 #: koassistant_settings_schema.lua:379
 #, fuzzy
@@ -1358,7 +1379,7 @@ msgid ""
 "Token budget for extended thinking (1024-32000)\n"
 "Higher = more thorough reasoning, slower, more expensive"
 msgstr ""
-"Rozpočet tokenů pro rozšířené myšlení (1024-32000)\n"
+"Rozpočet tokenů pro rozšířené uvažování (1024-32000)\n"
 "Vyšší = důkladnější uvažování, pomalejší, dražší"
 
 #: koassistant_settings_schema.lua:393 koassistant_ui/prompts_manager.lua:1982
@@ -1429,7 +1450,7 @@ msgstr "Vysoké (důkladné)"
 #: koassistant_settings_schema.lua:422 koassistant_ui/prompts_manager.lua:2055
 #, fuzzy
 msgid "Gemini Thinking"
-msgstr "Gemini myšlení"
+msgstr "Gemini přemýšlení"
 
 #: koassistant_settings_schema.lua:423
 #, fuzzy
@@ -1440,7 +1461,7 @@ msgid ""
 msgstr ""
 "\n"
 "\n"
-"Myšlení je šifrované/skryté před uživatelem."
+"Přemýšlení je šifrované/skryté před uživatelem."
 
 #: koassistant_settings_schema.lua:433 koassistant_settings_schema.lua:559
 #, fuzzy
@@ -1450,7 +1471,7 @@ msgstr "Minimální"
 #: koassistant_settings_schema.lua:434
 #, fuzzy
 msgid "Thinking Depth: %1"
-msgstr "Hloubka myšlení: %1"
+msgstr "Hloubka přemýšlení: %1"
 
 #: koassistant_settings_schema.lua:436
 #, fuzzy
@@ -1461,7 +1482,7 @@ msgid ""
 msgstr ""
 "Minimální = nejrychlejší\n"
 "Nízké/Střední = vyvážené\n"
-"Vysoké = nejhlubší myšlení"
+"Vysoké = nejhlubší přemýšlení"
 
 #: koassistant_settings_schema.lua:442
 #, fuzzy
@@ -1476,20 +1497,18 @@ msgstr "Vysoké (výchozí)"
 #: koassistant_settings_schema.lua:452
 #, fuzzy
 msgid "Show Indicator in Chat"
-msgstr "Zobrazit indikátor v konverzaci"
+msgstr "Zobrazit indikátor v chatu"
 
 #: koassistant_settings_schema.lua:453
 #, fuzzy
 msgid ""
-"Show '*[Reasoning was used]*' indicator in chat when reasoning is requested "
-"or used.\n"
+"Show '*[Reasoning was used]*' indicator in chat when reasoning is requested or used.\n"
 "\n"
 "Full reasoning content is always viewable via 'Show Reasoning' button."
 msgstr ""
-"Zobrazit indikátor '*[Bylo použito uvažování]*' v konverzaci, když je "
-"uvažování požadováno nebo použito.\n"
+"Zobrazit indikátor '*[Bylo použito uvažování]*' v chatu, když je uvažování požadováno nebo použito.\n"
 "\n"
-"Plný obsah uvažování je vždy dostupný přes tlačítko 'Zobrazit uvažování'."
+"Úplný obsah uvažování je vždy zobrazitelný pomocí tlačítka 'Zobrazit uvažování'."
 
 #: koassistant_settings_schema.lua:463
 #, fuzzy
@@ -1514,7 +1533,7 @@ msgstr "USA"
 #: koassistant_settings_schema.lua:476
 #, fuzzy
 msgid "Qwen Region: %1"
-msgstr "Oblast Qwen: %1"
+msgstr "Qwen region: %1"
 
 #: koassistant_settings_schema.lua:478
 #, fuzzy
@@ -1526,12 +1545,12 @@ msgid ""
 "- China: Beijing (dashscope)\n"
 "- US: Virginia (dashscope-us)"
 msgstr ""
-"Vyberte svou oblast Alibaba Cloud.\n"
+"Vyberte váš region Alibaba Cloud.\n"
 "\n"
-"API klíče jsou specifické pro oblast a NEJSOU zaměnitelné:\n"
+"API klíče jsou specifické pro region a NEJSOU zaměnitelné:\n"
 "- Mezinárodní: Singapur (dashscope-intl)\n"
 "- Čína: Peking (dashscope)\n"
-"- USA: Virginia (dashscope-us)"
+"- USA: Virginie (dashscope-us)"
 
 #: koassistant_settings_schema.lua:482
 #, fuzzy
@@ -1546,70 +1565,76 @@ msgstr "Čína (Peking)"
 #: koassistant_settings_schema.lua:484
 #, fuzzy
 msgid "US (Virginia)"
-msgstr "USA (Virginia)"
+msgstr "USA (Virginie)"
 
 #: koassistant_settings_schema.lua:493
+#, fuzzy
 msgid "Book Text Extraction"
-msgstr ""
+msgstr "Extrakce textu knihy"
 
 #: koassistant_settings_schema.lua:498
+#, fuzzy
 msgid ""
 "Book text extraction is slow and uses many tokens. Enable only if needed."
-msgstr ""
+msgstr "Extrakce textu knihy je pomalá a spotřebovává mnoho tokenů. Povolte pouze v případě potřeby."
 
 #: koassistant_settings_schema.lua:503
+#, fuzzy
 msgid "Allow Book Text Extraction"
-msgstr ""
+msgstr "Povolit extrakci textu knihy"
 
 #: koassistant_settings_schema.lua:506
+#, fuzzy
 msgid ""
-"When enabled, actions that request book text (like X-Ray, Recap) can extract "
-"and send it to the AI. This is slow and uses many tokens.\n"
+"When enabled, actions that request book text (like X-Ray, Recap) can extract and send it to the AI. This is slow and uses many tokens.\n"
 "\n"
-"Note: Lightweight data (reading progress, highlights, annotations) is always "
-"available and doesn't need this setting."
+"Note: Lightweight data (reading progress, highlights, annotations) is always available and doesn't need this setting."
 msgstr ""
+"Když je povoleno, akce požadující text knihy (jako X-Ray, Rekapitulace) mohou extrahovat a odeslat jej AI. Toto je pomalé a spotřebovává mnoho tokenů.\n"
+"\n"
+"Poznámka: Lehká data (průběh čtení, zvýraznění, poznámky) jsou vždy dostupná a toto nastavení nepotřebují."
 
 #: koassistant_settings_schema.lua:511
 #, fuzzy
 msgid "Max Text Characters"
-msgstr "Počet znaků kontextu"
+msgstr "Max. znaků textu"
 
 #: koassistant_settings_schema.lua:518
+#, fuzzy
 msgid ""
-"Maximum characters to extract from the book (10,000-500,000). Higher values "
-"provide more context but use more tokens. Default: 50,000 (~12k tokens)."
-msgstr ""
+"Maximum characters to extract from the book (10,000-500,000). Higher values provide more context but use more tokens. Default: 50,000 (~12k tokens)."
+msgstr "Maximální počet znaků k extrakci z knihy (10 000-500 000). Vyšší hodnoty poskytují více kontextu, ale spotřebovávají více tokenů. Výchozí: 50 000 (~12k tokenů)."
 
 #: koassistant_settings_schema.lua:524
+#, fuzzy
 msgid "Max PDF Pages"
-msgstr ""
+msgstr "Max. stránek PDF"
 
 #: koassistant_settings_schema.lua:531
+#, fuzzy
 msgid ""
-"Maximum PDF pages to extract text from (50-500). Higher values provide more "
-"context but take longer."
-msgstr ""
+"Maximum PDF pages to extract text from (50-500). Higher values provide more context but take longer."
+msgstr "Maximální počet stránek PDF k extrakci textu (50-500). Vyšší hodnoty poskytují více kontextu, ale trvají déle."
 
 #: koassistant_settings_schema.lua:540
 #, fuzzy
 msgid "Console Debug"
-msgstr "Ladění konzole"
+msgstr "Ladění v konzoli"
 
 #: koassistant_settings_schema.lua:541
 #, fuzzy
 msgid "Enable console/terminal debug logging (for developers)"
-msgstr "Povolit ladění v konzoli/terminálu (pro vývojáře)"
+msgstr "Povolit protokolování ladění v konzoli/terminálu (pro vývojáře)"
 
 #: koassistant_settings_schema.lua:548
 #, fuzzy
 msgid "Show Debug in Chat"
-msgstr "Zobrazit ladění v konverzaci"
+msgstr "Zobrazit ladění v chatu"
 
 #: koassistant_settings_schema.lua:549
 #, fuzzy
 msgid "Display debug information in chat viewer"
-msgstr "Zobrazit ladící informace v prohlížeči konverzací"
+msgstr "Zobrazit informace o ladění v prohlížeči chatu"
 
 #: koassistant_settings_schema.lua:559
 #, fuzzy
@@ -1619,12 +1644,12 @@ msgstr "Názvy"
 #: koassistant_settings_schema.lua:559
 #, fuzzy
 msgid "Full"
-msgstr "Plné"
+msgstr "Úplné"
 
 #: koassistant_settings_schema.lua:560
 #, fuzzy
 msgid "Debug Detail Level: %1"
-msgstr "Úroveň detailů ladění: %1"
+msgstr "Úroveň detailu ladění: %1"
 
 #: koassistant_settings_schema.lua:567
 #, fuzzy
@@ -1639,7 +1664,7 @@ msgstr "Názvy (souhrn konfigurace)"
 #: koassistant_settings_schema.lua:569
 #, fuzzy
 msgid "Full (system blocks)"
-msgstr "Plné (systémové bloky)"
+msgstr "Úplné (systémové bloky)"
 
 #: koassistant_settings_schema.lua:575
 #, fuzzy
@@ -1659,7 +1684,7 @@ msgstr "Vytvořit zálohu"
 #: koassistant_settings_schema.lua:589
 #, fuzzy
 msgid "Create a backup of your settings, API keys, and custom content."
-msgstr "Vytvořit zálohu vašeho nastavení, API klíčů a vlastního obsahu."
+msgstr "Vytvořit zálohu vašich nastavení, API klíčů a vlastního obsahu."
 
 #: koassistant_settings_schema.lua:595
 #, fuzzy
@@ -1699,15 +1724,13 @@ msgstr "Obnovit nastavení funkcí"
 #: koassistant_settings_schema.lua:625
 #, fuzzy
 msgid ""
-"Resets provider, model, temperature, streaming, reasoning, and other "
-"toggles.\n"
+"Resets provider, model, temperature, streaming, reasoning, and other toggles.\n"
 "\n"
 "Preserves: API keys, all actions, behaviors, custom models, chat history."
 msgstr ""
-"Obnoví poskytovatele, model, teplotu a další přepínače na výchozí hodnoty.\n"
+"Obnoví poskytovatele, model, teplotu, streamování, uvažování a další přepínače.\n"
 "\n"
-"Zachová: API klíče, vlastní akce, chování, vlastní modely, historii "
-"konverzací."
+"Zachová: API klíče, všechny akce, chování, vlastní modely, historii chatů."
 
 #: koassistant_settings_schema.lua:627
 #, fuzzy
@@ -1716,32 +1739,37 @@ msgid ""
 "\n"
 "Resets: Provider, model, temperature, streaming, reasoning toggles.\n"
 "\n"
-"Preserves: API keys, custom actions, action edits, behaviors, custom models, "
-"chat history."
+"Preserves: API keys, custom actions, action edits, behaviors, custom models, chat history."
 msgstr ""
-"Obnoví poskytovatele, model, teplotu a další přepínače na výchozí hodnoty.\n"
+"Obnovit nastavení funkcí na výchozí hodnoty?\n"
 "\n"
-"Zachová: API klíče, vlastní akce, chování, vlastní modely, historii "
-"konverzací."
+"Obnoví: Poskytovatele, model, teplotu, streamování, přepínače uvažování.\n"
+"\n"
+"Zachová: API klíče, vlastní akce, úpravy akcí, chování, vlastní modely, historii chatů."
 
 #: koassistant_settings_schema.lua:635
 #, fuzzy
 msgid "Reset actions..."
-msgstr "Obnovit nastavení..."
+msgstr "Resetovat akce..."
 
 #: koassistant_settings_schema.lua:640 koassistant_ui/prompts_manager.lua:488
 #, fuzzy
 msgid "Reset custom actions"
-msgstr "Obnovit všechna přizpůsobení"
+msgstr "Resetovat vlastní akce"
 
 #: koassistant_settings_schema.lua:641
+#, fuzzy
 msgid ""
 "Deletes all user-created actions.\n"
 "\n"
 "Preserves: Built-in actions, action edits, menu configurations."
 msgstr ""
+"Smaže všechny uživatelem vytvořené akce.\n"
+"\n"
+"Zachová: Vestavěné akce, úpravy akcí, konfigurace nabídek."
 
 #: koassistant_settings_schema.lua:643 koassistant_ui/prompts_manager.lua:492
+#, fuzzy
 msgid ""
 "Delete all custom actions?\n"
 "\n"
@@ -1749,71 +1777,92 @@ msgid ""
 "\n"
 "Built-in actions and their edits are preserved."
 msgstr ""
+"Smazat všechny vlastní akce?\n"
+"\n"
+"Tímto odstraníte akce, které jste vytvořili.\n"
+"\n"
+"Vestavěné akce a jejich úpravy zůstanou zachovány."
 
 #: koassistant_settings_schema.lua:649 koassistant_ui/prompts_manager.lua:504
 #, fuzzy
 msgid "Reset action edits"
-msgstr "Obnovit výchozí"
+msgstr "Resetovat úpravy akcí"
 
 #: koassistant_settings_schema.lua:650
+#, fuzzy
 msgid ""
-"Resets all edits to built-in actions back to defaults. Also re-enables any "
-"disabled actions.\n"
+"Resets all edits to built-in actions back to defaults. Also re-enables any disabled actions.\n"
 "\n"
 "Preserves: Custom actions, menu configurations."
 msgstr ""
+"Obnoví všechny úpravy vestavěných akcí na výchozí hodnoty. Také znovu povolí všechny zakázané akce.\n"
+"\n"
+"Zachová: Vlastní akce, konfigurace nabídek."
 
 #: koassistant_settings_schema.lua:652 koassistant_ui/prompts_manager.lua:508
+#, fuzzy
 msgid ""
 "Reset all action edits?\n"
 "\n"
-"This reverts any changes you made to built-in actions and re-enables "
-"disabled actions.\n"
+"This reverts any changes you made to built-in actions and re-enables disabled actions.\n"
 "\n"
 "Custom actions are preserved."
 msgstr ""
+"Resetovat všechny úpravy akcí?\n"
+"\n"
+"Tímto vrátíte všechny změny provedené na vestavěných akcích a znovu povolíte zakázané akce.\n"
+"\n"
+"Vlastní akce zůstanou zachovány."
 
 #: koassistant_settings_schema.lua:658 koassistant_ui/prompts_manager.lua:520
 #, fuzzy
 msgid "Reset action menus"
-msgstr "Obnovit výchozí"
+msgstr "Resetovat nabídky akcí"
 
 #: koassistant_settings_schema.lua:659
+#, fuzzy
 msgid ""
 "Resets highlight menu and dictionary popup configurations back to defaults.\n"
 "\n"
 "Preserves: Actions themselves (both custom and built-in)."
 msgstr ""
+"Obnoví konfigurace nabídky zvýraznění a slovníkového vyskakovacího okna na výchozí hodnoty.\n"
+"\n"
+"Zachová: Samotné akce (vlastní i vestavěné)."
 
 #: koassistant_settings_schema.lua:661 koassistant_ui/prompts_manager.lua:524
+#, fuzzy
 msgid ""
 "Reset action menu configurations?\n"
 "\n"
-"This resets the ordering and selection in highlight menu and dictionary "
-"popup back to defaults.\n"
+"This resets the ordering and selection in highlight menu and dictionary popup back to defaults.\n"
 "\n"
 "Your actions (custom and built-in) are preserved."
 msgstr ""
+"Resetovat konfigurace nabídek akcí?\n"
+"\n"
+"Tímto obnovíte pořadí a výběr v nabídce zvýraznění a slovníkovém vyskakovacím okně na výchozí hodnoty.\n"
+"\n"
+"Vaše akce (vlastní i vestavěné) zůstanou zachovány."
 
 #: koassistant_settings_schema.lua:670
 #, fuzzy
 msgid "Reset custom providers/models"
-msgstr "Všichni vlastní poskytovatelé odebráni"
+msgstr "Resetovat vlastní poskytovatele/modely"
 
 #: koassistant_settings_schema.lua:671
 #, fuzzy
 msgid ""
-"Removes custom providers, custom models, and per-provider default model "
-"selections.\n"
+"Removes custom providers, custom models, and per-provider default model selections.\n"
 "\n"
 "Preserves: API keys, actions, behaviors."
 msgstr ""
-"Obnoví poskytovatele, model, teplotu a další přepínače na výchozí hodnoty.\n"
+"Odstraní vlastní poskytovatele, vlastní modely a výchozí výběry modelů pro jednotlivé poskytovatele.\n"
 "\n"
-"Zachová: API klíče, vlastní akce, chování, vlastní modely, historii "
-"konverzací."
+"Zachová: API klíče, akce, chování."
 
 #: koassistant_settings_schema.lua:673
+#, fuzzy
 msgid ""
 "Reset custom providers and models?\n"
 "\n"
@@ -1824,24 +1873,30 @@ msgid ""
 "\n"
 "API keys and actions are preserved."
 msgstr ""
+"Resetovat vlastní poskytovatele a modely?\n"
+"\n"
+"Tímto odstraníte:\n"
+"• Vlastní poskytovatele, které jste přidali\n"
+"• Vlastní modely pro jakéhokoli poskytovatele\n"
+"• Výchozí výběry modelů pro jednotlivé poskytovatele\n"
+"\n"
+"API klíče a akce zůstanou zachovány."
 
 #: koassistant_settings_schema.lua:681
 #, fuzzy
 msgid "Reset all customizations"
-msgstr "Obnovit všechna přizpůsobení"
+msgstr "Resetovat všechna přizpůsobení"
 
 #: koassistant_settings_schema.lua:682
 #, fuzzy
 msgid ""
-"Resets ALL customizations: actions, edits, menus, behaviors, domains, "
-"providers, models.\n"
+"Resets ALL customizations: actions, edits, menus, behaviors, domains, providers, models.\n"
 "\n"
 "Preserves: API keys, chat history."
 msgstr ""
-"Obnoví VŠECHNA nastavení včetně vlastních akcí, chování, domén, modelů a "
-"přepsání akcí.\n"
+"Resetuje VŠECHNA přizpůsobení: akce, úpravy, nabídky, chování, domény, poskytovatele, modely.\n"
 "\n"
-"Zachová: API klíče, historii konverzací."
+"Zachová: API klíče, historii chatu."
 
 #: koassistant_settings_schema.lua:684
 #, fuzzy
@@ -1857,19 +1912,21 @@ msgid ""
 "\n"
 "Only API keys and chat history are preserved."
 msgstr ""
-"Obnovit VŠECHNA přizpůsobení?\n"
+"Resetovat VŠECHNA přizpůsobení?\n"
 "\n"
-"Toto obnoví všechna nastavení včetně vlastních akcí, chování, domén a "
-"modelů.\n"
+"Tímto resetujete:\n"
+"• Vlastní akce a úpravy akcí\n"
+"• Konfigurace nabídek\n"
+"• Chování a domény\n"
+"• Vlastní poskytovatele a modely\n"
+"• Nastavení funkcí\n"
 "\n"
-"Budou zachovány pouze API klíče a historie konverzací.\n"
-"\n"
-"Tuto akci nelze vrátit zpět."
+"Zůstanou zachovány pouze API klíče a historie chatu."
 
 #: koassistant_settings_schema.lua:690
 #, fuzzy
 msgid "Reset everything (nuclear)"
-msgstr "Obnovit vše (kompletní reset)"
+msgstr "Resetovat vše (totální reset)"
 
 #: koassistant_settings_schema.lua:691
 #, fuzzy
@@ -1878,11 +1935,9 @@ msgid ""
 "\n"
 "Preserves: Chat history only."
 msgstr ""
-"⚠️ KOMPLETNÍ RESET: Smaže VŠECHNA nastavení, vlastní obsah, API klíče.\n"
+"⚠️ ÚPLNÝ RESET: Smaže VŠECHNA nastavení včetně API klíčů.\n"
 "\n"
-"Zachová: Pouze historii konverzací.\n"
-"\n"
-"Budete muset znovu zadat API klíče a vše překonfigurovat."
+"Zachová: Pouze historii chatu."
 
 #: koassistant_settings_schema.lua:693
 #, fuzzy
@@ -1902,28 +1957,26 @@ msgid ""
 msgstr ""
 "⚠️ RESETOVAT VŠE?\n"
 "\n"
-"Toto SMAŽE:\n"
+"Tímto SMAŽETE:\n"
 "• Všechna nastavení a konfigurace\n"
 "• Vlastní akce, chování, domény\n"
 "• Vlastní modely a poskytovatele\n"
 "• API klíče (budete je muset znovu zadat)\n"
-"• Přizpůsobení nabídky akcí\n"
+"• Přizpůsobení nabídek akcí\n"
 "\n"
-"Bude zachována pouze historie konverzací.\n"
+"Zůstane zachována pouze historie chatu.\n"
 "\n"
-"Toto NELZE vrátit zpět!\n"
-"\n"
-"Jste si naprosto jisti?"
+"Toto NELZE vrátit zpět!"
 
 #: koassistant_settings_schema.lua:701
 #, fuzzy
 msgid "Clear all chat history"
-msgstr "Vymazat veškerou historii konverzací"
+msgstr "Vymazat celou historii chatu"
 
 #: koassistant_settings_schema.lua:702
 #, fuzzy
 msgid "Deletes all saved conversations across all books."
-msgstr "Smaže všechny uložené konverzace ze všech knih."
+msgstr "Smaže všechny uložené konverzace ve všech knihách."
 
 #: koassistant_settings_schema.lua:704
 #, fuzzy
@@ -1934,11 +1987,11 @@ msgid ""
 "\n"
 "This cannot be undone."
 msgstr ""
-"Smazat veškerou historii konverzací?\n"
+"Smazat celou historii chatu?\n"
 "\n"
-"Toto odstraní všechny uložené konverzace ze všech knih.\n"
+"Tímto odstraníte všechny uložené konverzace ve všech knihách.\n"
 "\n"
-"Tuto akci nelze vrátit zpět."
+"Toto nelze vrátit zpět."
 
 #: koassistant_settings_schema.lua:716
 #, fuzzy
@@ -1948,7 +2001,7 @@ msgstr "Jazyk"
 #: koassistant_settings_schema.lua:721
 #, fuzzy
 msgid "Disable to show English UI (requires restart)"
-msgstr "Vypněte pro zobrazení anglického rozhraní (vyžaduje restart)"
+msgstr "Zakažte pro zobrazení anglického rozhraní (vyžaduje restart)"
 
 #: koassistant_settings_schema.lua:726
 #, fuzzy
@@ -1958,7 +2011,7 @@ msgstr "Přizpůsobit jazyku rozhraní KOReader"
 #: koassistant_settings_schema.lua:734
 #, fuzzy
 msgid "Please restart KOReader for the language change to take effect."
-msgstr "Pro uplatnění změny jazyka prosím restartujte KOReader."
+msgstr "Restartujte prosím KOReader, aby se změna jazyka projevila."
 
 #: koassistant_settings_schema.lua:741
 #, fuzzy
@@ -1968,19 +2021,17 @@ msgstr "Vaše jazyky"
 #: koassistant_settings_schema.lua:744
 #, fuzzy
 msgid ""
-"Languages you speak, separated by commas. Leave empty for default AI "
-"behavior.\n"
+"Languages you speak, separated by commas. Leave empty for default AI behavior.\n"
 "\n"
 "Examples:\n"
 "• \"English\"\n"
 "• \"German, English, French\""
 msgstr ""
-"Jazyky, kterými mluvíte, oddělené čárkami. Nechte prázdné pro výchozí "
-"chování AI.\n"
+"Jazyky, kterými mluvíte, oddělené čárkami. Nechte prázdné pro výchozí chování AI.\n"
 "\n"
 "Příklady:\n"
-"• \"čeština\"\n"
-"• \"němčina, angličtina, francouzština\""
+"• \"Čeština\"\n"
+"• \"Němčina, Angličtina, Francouzština\""
 
 #: koassistant_settings_schema.lua:752
 #, fuzzy
@@ -2000,12 +2051,12 @@ msgstr "Nastavení slovníku"
 #: koassistant_settings_schema.lua:770
 #, fuzzy
 msgid "AI Buttons in Dictionary Popup"
-msgstr "AI tlačítka ve vyskakovacím slovníku"
+msgstr "AI tlačítka ve vyskakovacím okně slovníku"
 
 #: koassistant_settings_schema.lua:773
 #, fuzzy
 msgid "Show AI Dictionary button when tapping on a word"
-msgstr "Zobrazit AI slovník při klepnutí na slovo"
+msgstr "Zobrazit tlačítko AI slovníku při klepnutí na slovo"
 
 #: koassistant_settings_schema.lua:782
 #, fuzzy
@@ -2050,11 +2101,8 @@ msgstr "Počet znaků kontextu"
 #: koassistant_settings_schema.lua:815
 #, fuzzy
 msgid ""
-"Number of characters to include before/after the word when Context Mode is "
-"'Characters'"
-msgstr ""
-"Počet znaků k zahrnutí před/za slovem, když je Režim kontextu nastaven na "
-"'Znaky'"
+"Number of characters to include before/after the word when Context Mode is 'Characters'"
+msgstr "Počet znaků, které se zahrnou před/za slovem, když je Režim kontextu nastaven na 'Znaky'"
 
 #: koassistant_settings_schema.lua:824
 #, fuzzy
@@ -2064,32 +2112,24 @@ msgstr "Zakázat automatické ukládání pro slovník"
 #: koassistant_settings_schema.lua:827
 #, fuzzy
 msgid ""
-"When enabled, dictionary lookups are not auto-saved. When disabled, "
-"dictionary chats follow your general chat saving settings. You can always "
-"save manually from an expanded view."
-msgstr ""
-"Když je povoleno, slovníková vyhledávání se automaticky neukládají. Když je "
-"zakázáno, slovníkové konverzace následují vaše obecné nastavení ukládání "
-"konverzací. Vždy můžete uložit ručně z rozšířeného zobrazení."
+"When enabled, dictionary lookups are not auto-saved. When disabled, dictionary chats follow your general chat saving settings. You can always save manually from an expanded view."
+msgstr "Když je povoleno, slovníková vyhledávání se automaticky neukládají. Když je zakázáno, slovníkové chaty se řídí vaším obecným nastavením ukládání chatů. Vždy můžete uložit ručně z rozšířeného zobrazení."
 
 #: koassistant_settings_schema.lua:835
 #, fuzzy
 msgid ""
-"Stream dictionary responses in real-time. Disable to wait for complete "
-"response."
-msgstr ""
-"Streamovat slovníkové odpovědi v reálném čase. Vypněte pro čekání na "
-"kompletní odpověď."
+"Stream dictionary responses in real-time. Disable to wait for complete response."
+msgstr "Streamovat slovníkové odpovědi v reálném čase. Zakažte pro čekání na kompletní odpověď."
 
 #: koassistant_settings_schema.lua:840
 #, fuzzy
 msgid "Dictionary Popup Actions"
-msgstr "Akce vyskakovacího slovníku"
+msgstr "Akce vyskakovacího okna slovníku"
 
 #: koassistant_settings_schema.lua:842
 #, fuzzy
 msgid "Configure which actions appear in the dictionary popup"
-msgstr "Nastavit, které akce se zobrazí ve vyskakovacím slovníku"
+msgstr "Nastavte, které akce se zobrazí ve vyskakovacím okně slovníku"
 
 #: koassistant_settings_schema.lua:847
 #, fuzzy
@@ -2099,11 +2139,8 @@ msgstr "Obejít slovník KOReader"
 #: koassistant_settings_schema.lua:850
 #, fuzzy
 msgid ""
-"Skip KOReader's dictionary and go directly to AI when tapping words. Can "
-"also be toggled via gesture."
-msgstr ""
-"Přeskočit slovník KOReader a jít přímo k AI při klepnutí na slova. Lze také "
-"přepnout gestem."
+"Skip KOReader's dictionary and go directly to AI when tapping words. Can also be toggled via gesture."
+msgstr "Přeskočit slovník KOReader a přejít přímo k AI při klepnutí na slova. Lze také přepnout gestem."
 
 #: koassistant_settings_schema.lua:871 koassistant_settings_schema.lua:875
 #: koassistant_settings_schema.lua:877 koassistant_settings_schema.lua:1056
@@ -2115,28 +2152,23 @@ msgstr "Akce obejití: %1"
 #: koassistant_settings_schema.lua:880
 #, fuzzy
 msgid "Action to trigger when dictionary bypass is enabled"
-msgstr "Akce spuštěná při povoleném obejití slovníku"
+msgstr "Akce, která se spustí při povoleném obejití slovníku"
 
 #: koassistant_settings_schema.lua:885
 #, fuzzy
 msgid "Bypass: Follow Vocab Builder Auto-add"
-msgstr "Obejití: Podle automatického přidávání slovníkáře"
+msgstr "Obejití: Podle automatického přidávání do Budovatele slovní zásoby"
 
 #: koassistant_settings_schema.lua:888
 #, fuzzy
 msgid ""
-"When enabled, dictionary bypass follows KOReader's Vocabulary Builder auto-"
-"add setting. Disable if you use bypass for analysis of words you already "
-"know and don't want them added."
-msgstr ""
-"Když je povoleno, obejití slovníku následuje nastavení automatického "
-"přidávání slovníkáře KOReader. Vypněte, pokud používáte obejití pro analýzu "
-"slov, která již znáte a nechcete je přidávat."
+"When enabled, dictionary bypass follows KOReader's Vocabulary Builder auto-add setting. Disable if you use bypass for analysis of words you already know and don't want them added."
+msgstr "Když je povoleno, obejití slovníku se řídí nastavením automatického přidávání Budovatele slovní zásoby v KOReader. Zakažte, pokud používáte obejití pro analýzu slov, která již znáte, a nechcete je přidávat."
 
 #: koassistant_settings_schema.lua:897
 #, fuzzy
 msgid "Translate Settings"
-msgstr "Nastavení konverzací"
+msgstr "Nastavení překladu"
 
 #: koassistant_settings_schema.lua:903
 #, fuzzy
@@ -2146,10 +2178,8 @@ msgstr "Překládat do primárního jazyka"
 #: koassistant_settings_schema.lua:906
 #, fuzzy
 msgid ""
-"Use your primary language as the translation target. Disable to choose a "
-"different target."
-msgstr ""
-"Použít váš primární jazyk jako cíl překladu. Vypněte pro výběr jiného cíle."
+"Use your primary language as the translation target. Disable to choose a different target."
+msgstr "Použít váš primární jazyk jako cíl překladu. Zakažte pro výběr jiného cíle."
 
 #: koassistant_settings_schema.lua:926
 #, fuzzy
@@ -2159,79 +2189,88 @@ msgstr "Cíl překladu: %1"
 #: koassistant_settings_schema.lua:936
 #, fuzzy
 msgid "Disable Auto-Save for Translate"
-msgstr "Zakázat automatické ukládání pro slovník"
+msgstr "Zakázat automatické ukládání pro překlad"
 
 #: koassistant_settings_schema.lua:939
+#, fuzzy
 msgid "Translations are not auto-saved. Save manually via → Chat button."
-msgstr ""
+msgstr "Překlady se automaticky neukládají. Uložte ručně pomocí tlačítka → Chat."
 
 #: koassistant_settings_schema.lua:947
+#, fuzzy
 msgid "Stream translation responses in real-time."
-msgstr ""
+msgstr "Streamovat překladové odpovědi v reálném čase."
 
 #: koassistant_settings_schema.lua:956 koassistant_settings_schema.lua:972
 #, fuzzy
 msgid "Follow global setting"
-msgstr "Použít globální nastavení"
+msgstr "Podle globálního nastavení"
 
 #: koassistant_settings_schema.lua:963
+#, fuzzy
 msgid "What to include when copying in translate view."
-msgstr ""
+msgstr "Co zahrnout při kopírování v zobrazení překladu."
 
 #: koassistant_settings_schema.lua:979
+#, fuzzy
 msgid "What to include when saving to note in translate view."
-msgstr ""
+msgstr "Co zahrnout při ukládání do poznámky v zobrazení překladu."
 
 #: koassistant_settings_schema.lua:990
 #, fuzzy
 msgid "Follow Global"
-msgstr "Globální"
+msgstr "Podle globálního"
 
 #: koassistant_settings_schema.lua:991 koassistant_settings_schema.lua:1001
+#, fuzzy
 msgid "Always Hide"
-msgstr ""
+msgstr "Vždy skrýt"
 
 #: koassistant_settings_schema.lua:992
 #, fuzzy
 msgid "Hide Long"
-msgstr "Skrýt citát"
+msgstr "Skrýt dlouhé"
 
 #: koassistant_settings_schema.lua:993 koassistant_settings_schema.lua:1003
+#, fuzzy
 msgid "Never Hide"
-msgstr ""
+msgstr "Nikdy neskrývat"
 
 #: koassistant_settings_schema.lua:995
 #, fuzzy
 msgid "Original Text: %1"
-msgstr "Zarovnání: %1"
+msgstr "Původní text: %1"
 
 #: koassistant_settings_schema.lua:1000
 #, fuzzy
 msgid "Follow Global (Display Settings)"
-msgstr "Nastavení zobrazení"
+msgstr "Podle globálního (Nastavení zobrazení)"
 
 #: koassistant_settings_schema.lua:1002
+#, fuzzy
 msgid "Hide Long (by character count)"
-msgstr ""
+msgstr "Skrýt dlouhé (podle počtu znaků)"
 
 #: koassistant_settings_schema.lua:1009
 #, fuzzy
 msgid "Long Text Threshold"
-msgstr "Práh dlouhého zvýraznění"
+msgstr "Práh dlouhého textu"
 
 #: koassistant_settings_schema.lua:1015
+#, fuzzy
 msgid ""
-"Character count above which text is considered 'long'. Used when Original "
-"Text is set to 'Hide Long'."
-msgstr ""
+"Character count above which text is considered 'long'. Used when Original Text is set to 'Hide Long'."
+msgstr "Počet znaků, nad kterým je text považován za 'dlouhý'. Používá se, když je Původní text nastaven na 'Skrýt dlouhé'."
 
 #: koassistant_settings_schema.lua:1024
+#, fuzzy
 msgid "Hide for Full Page Translate"
-msgstr ""
+msgstr "Skrýt při překladu celé stránky"
 
 #: koassistant_settings_schema.lua:1027
+#, fuzzy
 msgid "Always hide original text when translating full page."
-msgstr ""
+msgstr "Vždy skrýt původní text při překladu celé stránky."
 
 #: koassistant_settings_schema.lua:1036
 #, fuzzy
@@ -2246,16 +2285,13 @@ msgstr "Povolit obejití zvýraznění"
 #: koassistant_settings_schema.lua:1044
 #, fuzzy
 msgid ""
-"Immediately trigger an action when text is selected, skipping the highlight "
-"menu. Can also be toggled via gesture."
-msgstr ""
-"Okamžitě spustit akci při výběru textu, přeskočením nabídky zvýraznění. Lze "
-"také přepnout gestem."
+"Immediately trigger an action when text is selected, skipping the highlight menu. Can also be toggled via gesture."
+msgstr "Okamžitě spustit akci při výběru textu, přeskočí nabídku zvýraznění. Lze také přepnout gestem."
 
 #: koassistant_settings_schema.lua:1065
 #, fuzzy
 msgid "Action to trigger when highlight bypass is enabled"
-msgstr "Akce spuštěná při povoleném obejití zvýraznění"
+msgstr "Akce, která se spustí při povoleném obejití zvýraznění"
 
 #: koassistant_settings_schema.lua:1070
 #, fuzzy
@@ -2265,7 +2301,7 @@ msgstr "Akce nabídky zvýraznění"
 #: koassistant_settings_schema.lua:1072
 #, fuzzy
 msgid "Choose which actions appear in the highlight menu (requires restart)"
-msgstr "Vyberte akce zobrazené v nabídce zvýraznění (vyžaduje restart)"
+msgstr "Vyberte, které akce se zobrazí v nabídce zvýraznění (vyžaduje restart)"
 
 #: koassistant_settings_schema.lua:1081 koassistant_ui/prompts_manager.lua:450
 #, fuzzy
@@ -2285,7 +2321,7 @@ msgstr "Zkontrolovat aktualizace"
 #: main.lua:99
 #, fuzzy
 msgid "Checking for updates..."
-msgstr "Kontrola aktualizací..."
+msgstr "Kontroluji aktualizace..."
 
 #: main.lua:260 main.lua:676
 #, fuzzy
@@ -2295,37 +2331,37 @@ msgstr "Porovnat s KOAssistant"
 #: main.lua:531 main.lua:700
 #, fuzzy
 msgid "No files selected for comparison"
-msgstr "Nebyly vybrány žádné soubory pro porovnání"
+msgstr "Nejsou vybrane zadne soubory k porovnani"
 
 #: main.lua:614
 #, fuzzy
 msgid "Please select at least 2 books to compare"
-msgstr "Vyberte prosím alespoň 2 knihy pro porovnání"
+msgstr "Vyberte prosim alespon 2 knihy k porovnani"
 
 #: main.lua:720
 #, fuzzy
 msgid "KOAssistant: Chat History"
-msgstr "KOAssistant: Historie konverzací"
+msgstr "KOAssistant: Historie konverzaci"
 
 #: main.lua:728
 #, fuzzy
 msgid "KOAssistant: Continue Last Saved Chat"
-msgstr "KOAssistant: Pokračovat v poslední uložené konverzaci"
+msgstr "KOAssistant: Pokracovat v posledni ulozene konverzaci"
 
 #: main.lua:736
 #, fuzzy
 msgid "KOAssistant: Continue Last Opened Chat"
-msgstr "KOAssistant: Pokračovat v poslední otevřené konverzaci"
+msgstr "KOAssistant: Pokracovat v posledni otevrene konverzaci"
 
 #: main.lua:745
 #, fuzzy
 msgid "KOAssistant: Settings"
-msgstr "KOAssistant: Nastavení"
+msgstr "KOAssistant: Nastaveni"
 
 #: main.lua:753
 #, fuzzy
 msgid "KOAssistant: General Chat"
-msgstr "KOAssistant: Obecná konverzace"
+msgstr "KOAssistant: Obecna konverzace"
 
 #: main.lua:761
 #, fuzzy
@@ -2335,137 +2371,137 @@ msgstr "KOAssistant: Konverzace o knize"
 #: main.lua:769
 #, fuzzy
 msgid "KOAssistant: X-Ray"
-msgstr "KOAssistant"
+msgstr "KOAssistant: X-Ray"
 
 #: main.lua:777
 #, fuzzy
 msgid "KOAssistant: Recap"
-msgstr "KOAssistant"
+msgstr "KOAssistant: Rekapitulace"
 
 #: main.lua:785
 #, fuzzy
 msgid "KOAssistant: Analyze Highlights"
-msgstr "KOAssistant: Přepnout obejití zvýraznění"
+msgstr "KOAssistant: Analyzovat zvyrazneni"
 
 #: main.lua:794
 #, fuzzy
 msgid "KOAssistant: Change Primary Language"
-msgstr "KOAssistant: Změnit primární jazyk"
+msgstr "KOAssistant: Zmenit primarni jazyk"
 
 #: main.lua:801
 #, fuzzy
 msgid "KOAssistant: Change Translation Language"
-msgstr "KOAssistant: Změnit jazyk překladu"
+msgstr "KOAssistant: Zmenit jazyk prekladu"
 
 #: main.lua:808
 #, fuzzy
 msgid "KOAssistant: Change Provider"
-msgstr "KOAssistant: Změnit poskytovatele"
+msgstr "KOAssistant: Zmenit poskytovatele"
 
 #: main.lua:815
 #, fuzzy
 msgid "KOAssistant: Change Model"
-msgstr "KOAssistant: Změnit model"
+msgstr "KOAssistant: Zmenit model"
 
 #: main.lua:822
 #, fuzzy
 msgid "KOAssistant: Change AI Behavior"
-msgstr "KOAssistant: Změnit chování AI"
+msgstr "KOAssistant: Zmenit chovani AI"
 
 #: main.lua:829
 #, fuzzy
 msgid "KOAssistant: AI Quick Settings"
-msgstr "KOAssistant: Rychlé nastavení AI"
+msgstr "KOAssistant: Rychle nastaveni AI"
 
 #: main.lua:836
 #, fuzzy
 msgid "KOAssistant: Action Manager"
-msgstr "KOAssistant: Správce akcí"
+msgstr "KOAssistant: Spravce akci"
 
 #: main.lua:843
 #, fuzzy
 msgid "KOAssistant: Behavior Manager"
-msgstr "KOAssistant: Správce chování"
+msgstr "KOAssistant: Spravce chovani"
 
 #: main.lua:850
 #, fuzzy
 msgid "KOAssistant: Domain Manager"
-msgstr "KOAssistant: Správce domén"
+msgstr "KOAssistant: Spravce domen"
 
 #: main.lua:857
 #, fuzzy
 msgid "KOAssistant: Change Domain"
-msgstr "KOAssistant: Změnit doménu"
+msgstr "KOAssistant: Zmenit domenu"
 
 #: main.lua:865
 #, fuzzy
 msgid "KOAssistant: Dictionary Popup Manager"
-msgstr "KOAssistant: Správce vyskakovacího slovníku"
+msgstr "KOAssistant: Spravce vyskakovaciho slovniku"
 
 #: main.lua:872
 #, fuzzy
 msgid "KOAssistant: Change Dictionary Language"
-msgstr "KOAssistant: Změnit jazyk slovníku"
+msgstr "KOAssistant: Zmenit jazyk slovniku"
 
 #: main.lua:879
 #, fuzzy
 msgid "KOAssistant: Toggle Dictionary Bypass"
-msgstr "KOAssistant: Přepnout obejití slovníku"
+msgstr "KOAssistant: Prepnout obejiti slovniku"
 
 #: main.lua:887
 #, fuzzy
 msgid "KOAssistant: Toggle Highlight Bypass"
-msgstr "KOAssistant: Přepnout obejití zvýraznění"
+msgstr "KOAssistant: Prepnout obejiti zvyrazneni"
 
 #: main.lua:895
 #, fuzzy
 msgid "KOAssistant: Translate Current Page"
-msgstr "KOAssistant: Přeložit aktuální stránku"
+msgstr "KOAssistant: Prelozit aktualni stranku"
 
 #: main.lua:1004
 #, fuzzy
 msgid "Custom (migrated)"
-msgstr "Vlastní (migrované)"
+msgstr "Vlastni (migrovany)"
 
 #: main.lua:1131
 #, fuzzy
 msgid "Model already exists"
-msgstr "Model již existuje"
+msgstr "Model jiz existuje"
 
 #: main.lua:1261 main.lua:1692
 #, fuzzy
 msgid "Provider name is required"
-msgstr "Název poskytovatele je povinný"
+msgstr "Je vyzadovan nazev poskytovatele"
 
 #: main.lua:1264 main.lua:1700
 #, fuzzy
 msgid "Base URL is required"
-msgstr "Základní URL je povinná"
+msgstr "Je vyzadovana zakladni URL"
 
 #: main.lua:1273
 #, fuzzy
 msgid "A provider with this name already exists"
-msgstr "Poskytovatel s tímto názvem již existuje"
+msgstr "Poskytovatel s timto nazvem jiz existuje"
 
 #: main.lua:1496
 #, fuzzy
 msgid "Add custom provider..."
-msgstr "Přidat vlastního poskytovatele..."
+msgstr "Pridat vlastniho poskytovatele..."
 
 #: main.lua:1506
 #, fuzzy
 msgid "Manage custom providers (%1)..."
-msgstr "Spravovat vlastní poskytovatele (%1)..."
+msgstr "Spravovat vlastni poskytovatele (%1)..."
 
 #: main.lua:1527
 #, fuzzy
 msgid "API key: Required [tap to toggle]"
-msgstr "API klíč: Vyžadován [klepnutím přepnete]"
+msgstr "API klic: Vyzadovan [klepnete pro prepnuti]"
 
 #: main.lua:1529
 #, fuzzy
 msgid "API key: Not required [tap to toggle]"
-msgstr "API klíč: Není vyžadován [klepnutím přepnete]"
+msgstr "API klic: Neni vyzadovan [klepnete pro prepnuti]"
 
 #: main.lua:1534
 #, fuzzy
@@ -2475,17 +2511,17 @@ msgstr "Upravit poskytovatele..."
 #: main.lua:1548
 #, fuzzy
 msgid "required"
-msgstr "vyžadován"
+msgstr "vyzadovan"
 
 #: main.lua:1548
 #, fuzzy
 msgid "not required"
-msgstr "není vyžadován"
+msgstr "neni vyzadovan"
 
 #: main.lua:1550
 #, fuzzy
 msgid "API key: %1"
-msgstr "API klíč: %1"
+msgstr "API klic: %1"
 
 #: main.lua:1556
 #, fuzzy
@@ -2499,39 +2535,39 @@ msgid ""
 "\n"
 "This will also remove any custom models and API key for this provider."
 msgstr ""
-"Odebrat vlastního poskytovatele '%1'?\n"
+"Odebrat vlastniho poskytovatele '%1'?\n"
 "\n"
-"Toto také odebere všechny vlastní modely a API klíč pro tohoto poskytovatele."
+"Toto take odebere vsechny vlastni modely a API klic pro tohoto poskytovatele."
 
 #: main.lua:1564 main.lua:1903 main.lua:2136
 #, fuzzy
 msgid "Removed: %1"
-msgstr "Odebráno: %1"
+msgstr "Odebrano: %1"
 
 #: main.lua:1592
 #, fuzzy
 msgid "Add Custom Provider"
-msgstr "Přidat vlastního poskytovatele"
+msgstr "Pridat vlastniho poskytovatele"
 
 #: main.lua:1596
 #, fuzzy
 msgid "Provider name (e.g., LM Studio)"
-msgstr "Název poskytovatele (např. LM Studio)"
+msgstr "Nazev poskytovatele (napr. LM Studio)"
 
 #: main.lua:1600
 #, fuzzy
 msgid "Base URL (e.g., http://localhost:1234/v1/chat/completions)"
-msgstr "Základní URL (např. http://localhost:1234/v1/chat/completions)"
+msgstr "Zakladni URL (napr. http://localhost:1234/v1/chat/completions)"
 
 #: main.lua:1604 main.lua:1670
 #, fuzzy
 msgid "Default model name (optional)"
-msgstr "Výchozí název modelu (volitelné)"
+msgstr "Vychozi nazev modelu (volitelne)"
 
 #: main.lua:1634
 #, fuzzy
 msgid "Added provider: %1"
-msgstr "Přidán poskytovatel: %1"
+msgstr "Pridan poskytovatel: %1"
 
 #: main.lua:1658 main.lua:1747
 #, fuzzy
@@ -2541,28 +2577,28 @@ msgstr "Upravit: %1"
 #: main.lua:1662
 #, fuzzy
 msgid "Provider name"
-msgstr "Název poskytovatele"
+msgstr "Nazev poskytovatele"
 
 #: main.lua:1666
 #, fuzzy
 msgid "Base URL"
-msgstr "Základní URL"
+msgstr "Zakladni URL"
 
 #: main.lua:1714 koassistant_ui/behavior_manager.lua:508
 #: koassistant_ui/domain_manager.lua:510
 #, fuzzy
 msgid "Updated: %1"
-msgstr "Aktualizováno: %1"
+msgstr "Aktualizovano: %1"
 
 #: main.lua:1733
 #, fuzzy
 msgid "No custom providers to manage"
-msgstr "Žádní vlastní poskytovatelé ke správě"
+msgstr "Zadni vlastni poskytovatele ke sprave"
 
 #: main.lua:1762
 #, fuzzy
 msgid "Remove all (%1)"
-msgstr "Odebrat vše (%1)"
+msgstr "Odebrat vse (%1)"
 
 #: main.lua:1766
 #, fuzzy
@@ -2571,114 +2607,114 @@ msgid ""
 "\n"
 "This will also remove their custom models and API keys."
 msgstr ""
-"Odebrat všech %1 vlastních poskytovatelů?\n"
+"Odebrat vsech %1 vlastnich poskytovatelu?\n"
 "\n"
-"Toto také odebere jejich vlastní modely a API klíče."
+"Toto take odebere jejich vlastni modely a API klice."
 
 #: main.lua:1795
 #, fuzzy
 msgid "All custom providers removed"
-msgstr "Všichni vlastní poskytovatelé odebráni"
+msgstr "Vsichni vlastni poskytovatele odebrani"
 
 #: main.lua:1811
 #, fuzzy
 msgid "Manage Custom Providers"
-msgstr "Správa vlastních poskytovatelů"
+msgstr "Spravovat vlastni poskytovatele"
 
 #: main.lua:1864
 #, fuzzy
 msgid "Set as default for %1"
-msgstr "Nastavit jako výchozí pro %1"
+msgstr "Nastavit jako vychozi pro %1"
 
 #: main.lua:1869
 #, fuzzy
 msgid "Default for %1: %2"
-msgstr "Výchozí pro %1: %2"
+msgstr "Vychozi pro %1: %2"
 
 #: main.lua:1879
 #, fuzzy
 msgid "Clear custom default"
-msgstr "Vymazat vlastní výchozí"
+msgstr "Vymazat vlastni vychozi"
 
 #: main.lua:1884
 #, fuzzy
 msgid "Cleared custom default for %1"
-msgstr "Vymazáno vlastní výchozí pro %1"
+msgstr "Vychozi nastaveni pro %1 vymazano"
 
 #: main.lua:1894
 #, fuzzy
 msgid "Remove custom model"
-msgstr "Odebrat vlastní model"
+msgstr "Odebrat vlastni model"
 
 #: main.lua:1899 main.lua:2132
 #, fuzzy
 msgid "Remove custom model '%1'?"
-msgstr "Odebrat vlastní model '%1'?"
+msgstr "Odebrat vlastni model '%1'?"
 
 #: main.lua:1942 main.lua:1948 main.lua:2464
 #, fuzzy
 msgid "(default)"
-msgstr "(výchozí)"
+msgstr "(vychozi)"
 
 #: main.lua:1945
 #, fuzzy
 msgid "(your default)"
-msgstr "(váš výchozí)"
+msgstr "(vase vychozi)"
 
 #: main.lua:1951
 #, fuzzy
 msgid "(system default)"
-msgstr "(systémový výchozí)"
+msgstr "(systemove vychozi)"
 
 #: main.lua:1960
 #, fuzzy
 msgid "Hold to manage. ★ = custom"
-msgstr "Podržte pro správu. ★ = vlastní"
+msgstr "Podrzenim spravujte. * = vlastni"
 
 #: main.lua:2023
 #, fuzzy
 msgid "Add custom model..."
-msgstr "Přidat vlastní model..."
+msgstr "Pridat vlastni model..."
 
 #: main.lua:2031
 #, fuzzy
 msgid "Add Custom Model"
-msgstr "Přidat vlastní model"
+msgstr "Pridat vlastni model"
 
 #: main.lua:2033
 #, fuzzy
 msgid "e.g., claude-3-opus-20240229"
-msgstr "např. claude-3-opus-20240229"
+msgstr "napr. claude-3-opus-20240229"
 
 #: main.lua:2034
 #, fuzzy
 msgid "Enter the exact model identifier. It will be saved and selected."
-msgstr "Zadejte přesný identifikátor modelu. Bude uložen a vybrán."
+msgstr "Zadejte presny identifikator modelu. Bude ulozen a vybran."
 
 #: main.lua:2059
 #, fuzzy
 msgid "Added: %1"
-msgstr "Přidáno: %1"
+msgstr "Pridano: %1"
 
 #: main.lua:2064
 #, fuzzy
 msgid "Failed to add model"
-msgstr "Nepodařilo se přidat model"
+msgstr "Nepodarilo se pridat model"
 
 #: main.lua:2084
 #, fuzzy
 msgid "Manage custom models (%1)..."
-msgstr "Spravovat vlastní modely (%1)..."
+msgstr "Spravovat vlastni modely (%1)..."
 
 #: main.lua:2099
 #, fuzzy
 msgid "No predefined models"
-msgstr "Žádné předdefinované modely"
+msgstr "Zadne preddefinovane modely"
 
 #: main.lua:2114
 #, fuzzy
 msgid "No custom models to manage"
-msgstr "Žádné vlastní modely ke správě"
+msgstr "Zadne vlastni modely ke sprave"
 
 #: main.lua:2128
 #, fuzzy
@@ -2688,47 +2724,47 @@ msgstr "Odebrat: %1"
 #: main.lua:2147
 #, fuzzy
 msgid "Clear all custom models"
-msgstr "Vymazat všechny vlastní modely"
+msgstr "Vymazat vsechny vlastni modely"
 
 #: main.lua:2151
 #, fuzzy
 msgid "Remove all %1 custom model(s) for %2?"
-msgstr "Odebrat všech %1 vlastních modelů pro %2?"
+msgstr "Odebrat vsech %1 vlastnich modelu pro %2?"
 
 #: main.lua:2172
 #, fuzzy
 msgid "All custom models cleared"
-msgstr "Všechny vlastní modely vymazány"
+msgstr "Vsechny vlastni modely vymazany"
 
 #: main.lua:2189
 #, fuzzy
 msgid "Custom Models for %1"
-msgstr "Vlastní modely pro %1"
+msgstr "Vlastni modely pro %1"
 
 #: main.lua:2318
 #, fuzzy
 msgid "Current: %1"
-msgstr "Aktuální: %1"
+msgstr "Aktualni: %1"
 
 #: main.lua:2320
 #, fuzzy
 msgid "Using key from apikeys.lua"
-msgstr "Používá se klíč z apikeys.lua"
+msgstr "Pouziva se klic z apikeys.lua"
 
 #: main.lua:2322
 #, fuzzy
 msgid "Optional - leave empty for local servers"
-msgstr "Volitelné - nechte prázdné pro lokální servery"
+msgstr "Volitelne - ponechte prazdne pro lokalni servery"
 
 #: main.lua:2324
 #, fuzzy
 msgid "Enter API key..."
-msgstr "Zadejte API klíč..."
+msgstr "Zadejte API klic..."
 
 #: main.lua:2330
 #, fuzzy
 msgid "API Key"
-msgstr "API klíč"
+msgstr "API klic"
 
 #: main.lua:2344
 #, fuzzy
@@ -2738,108 +2774,108 @@ msgstr "Vymazat"
 #: main.lua:2354
 #, fuzzy
 msgid "%1 API key cleared"
-msgstr "API klíč %1 vymazán"
+msgstr "API klic %1 vymazan"
 
 #: main.lua:2372
 #, fuzzy
 msgid "%1 API key saved"
-msgstr "API klíč %1 uložen"
+msgstr "API klic %1 ulozen"
 
 #: main.lua:2432
 #, fuzzy
 msgid "Set your languages first"
-msgstr "Nejprve nastavte své jazyky"
+msgstr "Nejprve nastavte sve jazyky"
 
 #: main.lua:2450
 #, fuzzy
 msgid "No valid languages found"
-msgstr "Nebyly nalezeny žádné platné jazyky"
+msgstr "Nenalezeny zadne platne jazyky"
 
 #: main.lua:2481
 #, fuzzy
 msgid "Primary: %1"
-msgstr "Primární: %1"
+msgstr "Primarni: %1"
 
 #: main.lua:2501
 #, fuzzy
 msgid "Use Primary (%1)"
-msgstr "Použít primární (%1)"
+msgstr "Pouzit primarni (%1)"
 
 #: main.lua:2527 main.lua:2567 main.lua:3547
 #, fuzzy
 msgid "Translate: %1"
-msgstr "Překlad: %1"
+msgstr "Preklad: %1"
 
 #: main.lua:2581 koassistant_ui/prompts_manager.lua:1246
 #: koassistant_ui/prompts_manager.lua:2530
 #, fuzzy
 msgid "Custom..."
-msgstr "Vlastní..."
+msgstr "Vlastni..."
 
 #: main.lua:2587
 #, fuzzy
 msgid "Custom Translation Language"
-msgstr "Vlastní jazyk překladu"
+msgstr "Vlastni jazyk prekladu"
 
 #: main.lua:2589
 #, fuzzy
 msgid "e.g., Spanish, Japanese, French"
-msgstr "např. španělština, japonština, francouzština"
+msgstr "napr. spanelstina, japonština, francouzstina"
 
 #: main.lua:2590
 #, fuzzy
 msgid "Enter the target language for translations."
-msgstr "Zadejte cílový jazyk pro překlady."
+msgstr "Zadejte cilovy jazyk pro preklady."
 
 #: main.lua:2624
 #, fuzzy
 msgid "(Set your languages for quick selection)"
-msgstr "(Nastavte své jazyky pro rychlý výběr)"
+msgstr "(Nastavte sve jazyky pro rychly vyber)"
 
 #: main.lua:2643 main.lua:3986
 #, fuzzy
 msgid "Follow Translation Language"
-msgstr "Podle jazyka překladu"
+msgstr "Podle jazyka prekladu"
 
 #: main.lua:2656
 #, fuzzy
 msgid "Dictionary: Follow Translation"
-msgstr "Slovník: Podle překladu"
+msgstr "Slovnik: Podle prekladu"
 
 #: main.lua:2664 main.lua:4003
 #, fuzzy
 msgid "Follow Primary Language"
-msgstr "Podle primárního jazyka"
+msgstr "Podle primarniho jazyka"
 
 #: main.lua:2676
 #, fuzzy
 msgid "Dictionary: Follow Primary"
-msgstr "Slovník: Podle primárního"
+msgstr "Slovnik: Podle primarniho"
 
 #: main.lua:2708 main.lua:3559
 #, fuzzy
 msgid "Dictionary: %1"
-msgstr "Slovník: %1"
+msgstr "Slovnik: %1"
 
 #: main.lua:2724
 #, fuzzy
 msgid "Extract the full sentence containing the word"
-msgstr "Extrahovat celou větu obsahující slovo"
+msgstr "Extrahovat celou vetu obsahujici slovo"
 
 #: main.lua:2725
 #, fuzzy
 msgid "Include more surrounding context"
-msgstr "Zahrnout více okolního kontextu"
+msgstr "Zahrnout vice okolniho kontextu"
 
 #: main.lua:2726
 #, fuzzy
 msgid "Fixed number of characters before/after"
-msgstr "Pevný počet znaků před/za"
+msgstr "Pevny pocet znaku pred/za"
 
 #: main.lua:2727
 #, fuzzy
 msgid "Only send the word, no surrounding context"
-msgstr "Odeslat pouze slovo, bez okolního kontextu"
+msgstr "Odeslat pouze slovo, bez okolniho kontextu"
 
 #: main.lua:2747
 #, fuzzy
@@ -2849,69 +2885,64 @@ msgstr "Kontext: %1"
 #: main.lua:2766 koassistant_ui/prompts_manager.lua:3285
 #, fuzzy
 msgid "Custom AI Behavior"
-msgstr "Vlastní chování AI"
+msgstr "Vlastni chovani AI"
 
 #: main.lua:2768
 #, fuzzy
 msgid "Enter custom AI behavior instructions..."
-msgstr "Zadejte vlastní instrukce pro chování AI..."
+msgstr "Zadejte pokyny pro vlastni chovani AI..."
 
 #: main.lua:2769
 #, fuzzy
 msgid ""
-"Define how the AI should behave. This replaces the built-in Minimal/Full "
-"behavior when 'Custom' is selected.\n"
+"Define how the AI should behave. This replaces the built-in Minimal/Full behavior when 'Custom' is selected.\n"
 "\n"
 "Tip: Start with the Full behavior as a template."
 msgstr ""
-"Definujte, jak se má AI chovat. Toto nahrazuje vestavěné Minimální/Plné "
-"chování, když je vybráno 'Vlastní'.\n"
+"Definujte, jak by se AI mela chovat. Toto nahradi vestavene Minimalni/Uplne chovani, kdyz je vybrano 'Vlastni'.\n"
 "\n"
-"Tip: Začněte s Plným chováním jako šablonou."
+"Tip: Zacnete s Uplnym chovanim jako sablonou."
 
 #: main.lua:2784
 #, fuzzy
 msgid "Load Full"
-msgstr "Načíst plné"
+msgstr "Nacist Uplne"
 
 #: main.lua:2839
 #, fuzzy
 msgid ""
-"Model lists are now managed through the model_lists.lua file. Please edit "
-"this file to add or remove models."
-msgstr ""
-"Seznamy modelů jsou nyní spravovány přes soubor model_lists.lua. Prosím "
-"upravte tento soubor pro přidání nebo odebrání modelů."
+"Model lists are now managed through the model_lists.lua file. Please edit this file to add or remove models."
+msgstr "Seznamy modelu jsou nyni spravovany prostrednictvim souboru model_lists.lua. Pro pridani nebo odebrani modelu upravte tento soubor."
 
 #: main.lua:3054
 #, fuzzy
 msgid "No previously opened chat found"
-msgstr "Nebyla nalezena žádná dříve otevřená konverzace"
+msgstr "Nebyl nalezen zadny predchozi otevreny chat"
 
 #: main.lua:3071 main.lua:4548
 #, fuzzy
 msgid "Configuration not found. Please set up configuration.lua first."
-msgstr "Konfigurace nenalezena. Nejprve prosím nastavte configuration.lua."
+msgstr "Konfigurace nenalezena. Nejprve nastavte configuration.lua."
 
 #: main.lua:3100 main.lua:3140
 #, fuzzy
 msgid "Please open a book first"
-msgstr "Nejprve prosím otevřete knihu"
+msgstr "Nejprve otevrte knihu"
 
 #: main.lua:3150
 #, fuzzy
 msgid "Action '%1' not found"
-msgstr "Akce překladu nenalezena"
+msgstr "Akce '%1' nenalezena"
 
 #: main.lua:3291 main.lua:3542
 #, fuzzy
 msgid "Primary Language"
-msgstr "Primární jazyk"
+msgstr "Primarni jazyk"
 
 #: main.lua:3297 main.lua:3552 koassistant_ui/prompts_manager.lua:3541
 #, fuzzy
 msgid "Translation Language"
-msgstr "Jazyk překladu"
+msgstr "Jazyk prekladu"
 
 #: main.lua:3303 main.lua:3447
 #, fuzzy
@@ -2927,32 +2958,32 @@ msgstr "Model"
 #: koassistant_ui/prompts_manager.lua:2571
 #, fuzzy
 msgid "AI Behavior"
-msgstr "Chování AI"
+msgstr "Chovani AI"
 
 #: main.lua:3396 main.lua:3402
 #, fuzzy
 msgid "Default"
-msgstr "Výchozí"
+msgstr "Vychozi"
 
 #: main.lua:3437
 #, fuzzy
 msgid "AI Quick Settings"
-msgstr "Rychlé nastavení AI"
+msgstr "Rychla nastaveni AI"
 
 #: main.lua:3463
 #, fuzzy
 msgid "Behavior: %1"
-msgstr "Chování: %1"
+msgstr "Chovani: %1"
 
 #: main.lua:3472
 #, fuzzy
 msgid "Domain: %1"
-msgstr "Doména: %1"
+msgstr "Domena: %1"
 
 #: main.lua:3477 main.lua:3720
 #, fuzzy
 msgid "Knowledge Domain"
-msgstr "Znalostní doména"
+msgstr "Znalostni domena"
 
 #: main.lua:3484
 #, fuzzy
@@ -2962,12 +2993,12 @@ msgstr "Teplota: %1"
 #: main.lua:3510
 #, fuzzy
 msgid "Streaming: ON"
-msgstr "Streaming: ZAP"
+msgstr "Streamovani: ZAP"
 
 #: main.lua:3510
 #, fuzzy
 msgid "Streaming: OFF"
-msgstr "Streaming: VYP"
+msgstr "Streamovani: VYP"
 
 #: main.lua:3528
 #, fuzzy
@@ -2977,42 +3008,44 @@ msgstr "Jazyk: %1"
 #: main.lua:3537
 #, fuzzy
 msgid "Configure your languages in Settings → Language first."
-msgstr "Nejprve nastavte své jazyky v Nastavení → Jazyk."
+msgstr "Nejprve nakonfigurujte sve jazyky v Nastaveni → Jazyk."
 
 #: main.lua:3580
 #, fuzzy
 msgid "H.Bypass: ON"
-msgstr "Obejít zvýr.: ZAP"
+msgstr "Obejit zvyr.: ZAP"
 
 #: main.lua:3580
 #, fuzzy
 msgid "H.Bypass: OFF"
-msgstr "Obejít zvýr.: VYP"
+msgstr "Obejit zvyr.: VYP"
 
 #: main.lua:3593
 #, fuzzy
 msgid "D.Bypass: ON"
-msgstr "Obejít slovn.: ZAP"
+msgstr "Obejit slovn.: ZAP"
 
 #: main.lua:3593
 #, fuzzy
 msgid "D.Bypass: OFF"
-msgstr "Obejít slovn.: VYP"
+msgstr "Obejit slovn.: VYP"
 
 #: main.lua:3609
 #, fuzzy
 msgid "More Settings..."
-msgstr "Další nastavení..."
+msgstr "Dalsi nastaveni..."
 
 #: main.lua:3649
 #, fuzzy
 msgid "Testing connection..."
-msgstr "Testování připojení..."
+msgstr "Testovani pripojeni..."
 
 #: main.lua:3677
 #, fuzzy
-msgid "Connection test failed:\n"
-msgstr "Test připojení selhal:\n"
+msgid ""
+"Connection test failed:\n"
+msgstr ""
+"Test pripojeni selhal:\n"
 
 #: main.lua:3683
 #, fuzzy
@@ -3024,62 +3057,62 @@ msgid ""
 "\n"
 "Response: %3"
 msgstr ""
-"Test připojení úspěšný!\n"
+"Test pripojeni uspesny!\n"
 "\n"
 "Poskytovatel: %1\n"
 "Model: %2\n"
 "\n"
-"Odpověď: %3"
+"Odpoved: %3"
 
 #: main.lua:3691
 #, fuzzy
 msgid "Connection test failed: "
-msgstr "Test připojení selhal:"
+msgstr "Test pripojeni selhal:"
 
 #: main.lua:3794
 #, fuzzy
 msgid "Dictionary bypass: ON"
-msgstr "Obejití slovníku: ZAP"
+msgstr "Obejiti slovniku: ZAP"
 
 #: main.lua:3794
 #, fuzzy
 msgid "Dictionary bypass: OFF"
-msgstr "Obejití slovníku: VYP"
+msgstr "Obejiti slovniku: VYP"
 
 #: main.lua:3808
 #, fuzzy
 msgid "Highlight bypass: ON"
-msgstr "Obejití zvýraznění: ZAP"
+msgstr "Obejiti zvyrazneni: ZAP"
 
 #: main.lua:3808
 #, fuzzy
 msgid "Highlight bypass: OFF"
-msgstr "Obejití zvýraznění: VYP"
+msgstr "Obejiti zvyrazneni: VYP"
 
 #: main.lua:3872
 #, fuzzy
 msgid "Cannot determine current page"
-msgstr "Nelze určit aktuální stránku"
+msgstr "Nelze urcit aktualni stranku"
 
 #: main.lua:3918
 #, fuzzy
 msgid "Could not extract text from current page"
-msgstr "Nepodařilo se extrahovat text z aktuální stránky"
+msgstr "Nepodarilo se extrahovat text z aktualni stranky"
 
 #: main.lua:3929
 #, fuzzy
 msgid "Translate action not found"
-msgstr "Akce překladu nenalezena"
+msgstr "Akce Prelozit nenalezena"
 
 #: main.lua:4440 main.lua:4493
 #, fuzzy
 msgid "Bypass action: %1"
-msgstr "Akce obejití: %1"
+msgstr "Akce obejiti: %1"
 
 #: main.lua:4538
 #, fuzzy
 msgid "All action settings restored to defaults"
-msgstr "Nastavení funkcí obnovena na výchozí"
+msgstr "Vsechna nastaveni akci obnovena na vychozi hodnoty"
 
 #: main.lua:4600
 #, fuzzy
@@ -3093,87 +3126,87 @@ msgstr ""
 #: main.lua:4649
 #, fuzzy
 msgid "Refresh cached book information"
-msgstr "Obnovit uložené informace o knize"
+msgstr "Obnovit ulozene informace o knize"
 
 #: main.lua:4748
 #, fuzzy
 msgid "Feature settings reset to defaults"
-msgstr "Nastavení funkcí obnovena na výchozí"
+msgstr "Nastaveni funkci obnoveno na vychozi hodnoty"
 
 #: main.lua:4815
 #, fuzzy
 msgid "All customizations reset"
-msgstr "Všechna přizpůsobení obnovena"
+msgstr "Vsechna prizpusobeni resetovana"
 
 #: main.lua:4874
 #, fuzzy
 msgid "Everything reset - please re-enter API keys"
-msgstr "Vše obnoveno - prosím znovu zadejte API klíče"
+msgstr "Vse resetovano - zadejte znovu API klice"
 
 #: main.lua:4897
 #, fuzzy
 msgid "Custom actions deleted"
-msgstr "Žádné vlastní domény ke smazání"
+msgstr "Vlastni akce smazany"
 
 #: main.lua:4909
 #, fuzzy
 msgid "Action edits reset to defaults"
-msgstr "Nastavení obnovena na výchozí hodnoty"
+msgstr "Upravy akci obnoveny na vychozi hodnoty"
 
 #: main.lua:4923
 #, fuzzy
 msgid "Action menus reset to defaults"
-msgstr "Nastavení obnovena na výchozí hodnoty"
+msgstr "Nabidky akci obnoveny na vychozi hodnoty"
 
 #: main.lua:4942
 #, fuzzy
 msgid "Custom providers and models reset"
-msgstr "Všichni vlastní poskytovatelé odebráni"
+msgstr "Vlastni poskytovatele a modely resetovany"
 
 #: main.lua:5003
 #, fuzzy
 msgid "Core Settings: ✓ Included"
-msgstr "Základní nastavení: ✓ Zahrnuto"
+msgstr "Zakladni nastaveni: ✓ Zahrnuto"
 
 #: main.lua:5009
 #, fuzzy
 msgid "API Keys: ✓ Include (⚠ Sensitive)"
-msgstr "API klíče: ✓ Zahrnout (⚠ Citlivé)"
+msgstr "API klice: ✓ Zahrnout (⚠ Citlive)"
 
 #: main.lua:5009
 #, fuzzy
 msgid "API Keys: ✗ Exclude"
-msgstr "API klíče: ✗ Vyloučit"
+msgstr "API klice: ✗ Vynechat"
 
 #: main.lua:5024
 #, fuzzy
 msgid "Config Files: ✓ Include"
-msgstr "Konfigurační soubory: ✓ Zahrnout"
+msgstr "Konfiguracni soubory: ✓ Zahrnout"
 
 #: main.lua:5024
 #, fuzzy
 msgid "Config Files: ✗ Exclude"
-msgstr "Konfigurační soubory: ✗ Vyloučit"
+msgstr "Konfiguracni soubory: ✗ Vynechat"
 
 #: main.lua:5039
 #, fuzzy
 msgid "Domains & Behaviors: ✓ Include"
-msgstr "Domény a chování: ✓ Zahrnout"
+msgstr "Domeny a chovani: ✓ Zahrnout"
 
 #: main.lua:5039
 #, fuzzy
 msgid "Domains & Behaviors: ✗ Exclude"
-msgstr "Domény a chování: ✗ Vyloučit"
+msgstr "Domeny a chovani: ✗ Vynechat"
 
 #: main.lua:5054
 #, fuzzy
 msgid "Chat History: ✓ Include"
-msgstr "Historie konverzací: ✓ Zahrnout"
+msgstr "Historie chatu: ✓ Zahrnout"
 
 #: main.lua:5054
 #, fuzzy
 msgid "Chat History: ✗ Exclude"
-msgstr "Historie konverzací: ✗ Vyloučit"
+msgstr "Historie chatu: ✗ Vynechat"
 
 #: main.lua:5069 main.lua:5221 main.lua:5432 main.lua:5454
 #, fuzzy
@@ -3183,7 +3216,7 @@ msgstr "━━━━━━━━━━━━━━━━"
 #: main.lua:5095
 #, fuzzy
 msgid "What to include in backup:"
-msgstr "Co zahrnout do zálohy:"
+msgstr "Co zahrnout do zalohy:"
 
 #: main.lua:5107
 #, fuzzy
@@ -3192,9 +3225,9 @@ msgid ""
 "\n"
 "This may take a moment."
 msgstr ""
-"Vytváření zálohy...\n"
+"Vytvareni zalohy...\n"
 "\n"
-"Toto může chvíli trvat."
+"Toto muze chvili trvat."
 
 #: main.lua:5119
 #, fuzzy
@@ -3205,51 +3238,51 @@ msgid ""
 "\n"
 "Size: %2"
 msgstr ""
-"Záloha úspěšně vytvořena!\n"
+"Zaloha uspesne vytvorena!\n"
 "\n"
-"Umístění: %1\n"
+"Umisteni: %1\n"
 "\n"
 "Velikost: %2"
 
 #: main.lua:5126 main.lua:5257
 #, fuzzy
 msgid "Settings"
-msgstr "Nastavení"
+msgstr "Nastaveni"
 
 #: main.lua:5132 main.lua:5263
 #, fuzzy
 msgid "Config Files"
-msgstr "Konfigurační soubory"
+msgstr "Konfiguracni soubory"
 
 #: main.lua:5138 main.lua:5268
 #, fuzzy
 msgid "%1 domains"
-msgstr "%1 domén"
+msgstr "%1 domen"
 
 #: main.lua:5140
 #, fuzzy
 msgid "0 domains"
-msgstr "0 domén"
+msgstr "0 domen"
 
 #: main.lua:5143 main.lua:5273
 #, fuzzy
 msgid "%1 behaviors"
-msgstr "%1 chování"
+msgstr "%1 chovani"
 
 #: main.lua:5145
 #, fuzzy
 msgid "0 behaviors"
-msgstr "0 chování"
+msgstr "0 chovani"
 
 #: main.lua:5151 main.lua:5281
 #, fuzzy
 msgid "%1 chats"
-msgstr "%1 konverzací"
+msgstr "%1 chatu"
 
 #: main.lua:5153
 #, fuzzy
 msgid "0 chats"
-msgstr "0 konverzací"
+msgstr "0 chatu"
 
 #: main.lua:5158
 #, fuzzy
@@ -3263,14 +3296,14 @@ msgid ""
 "\n"
 "%1"
 msgstr ""
-"Záloha selhala:\n"
+"Zalohovani selhalo:\n"
 "\n"
 "%1"
 
 #: main.lua:5168 main.lua:5543 main.lua:5683
 #, fuzzy
 msgid "Unknown error"
-msgstr "Neznámá chyba"
+msgstr "Neznama chyba"
 
 #: main.lua:5185
 #, fuzzy
@@ -3280,10 +3313,10 @@ msgid ""
 "Create a backup first using:\n"
 "Settings → Advanced → Settings Management → Create Backup"
 msgstr ""
-"Nebyly nalezeny žádné zálohy.\n"
+"Nebyly nalezeny zadne zalohy.\n"
 "\n"
-"Nejprve vytvořte zálohu pomocí:\n"
-"Nastavení → Pokročilé → Správa nastavení → Vytvořit zálohu"
+"Nejprve vytvorte zalohu pomoci:\n"
+"Nastaveni → Pokrocile → Sprava nastaveni → Vytvorit zalohu"
 
 #: main.lua:5227
 #, fuzzy
@@ -3292,9 +3325,9 @@ msgid ""
 "\n"
 "Total: %1 backup(s)"
 msgstr ""
-"Vyberte zálohu k obnovení\n"
+"Vyberte zalohu k obnoveni\n"
 "\n"
-"Celkem: %1 záloh"
+"Celkem: %1 zaloh(a)"
 
 #: main.lua:5242 main.lua:5641
 #, fuzzy
@@ -3303,7 +3336,7 @@ msgid ""
 "\n"
 "%1"
 msgstr ""
-"Neplatná záloha:\n"
+"Neplatna zaloha:\n"
 "\n"
 "%1"
 
@@ -3317,9 +3350,9 @@ msgid ""
 "\n"
 "Contents:"
 msgstr ""
-"Záloha: %1\n"
+"Zaloha: %1\n"
 "\n"
-"Vytvořeno: %2\n"
+"Vytvoreno: %2\n"
 "Verze pluginu: %3\n"
 "\n"
 "Obsah:"
@@ -3327,27 +3360,27 @@ msgstr ""
 #: main.lua:5261
 #, fuzzy
 msgid "No API keys"
-msgstr "Žádné API klíče"
+msgstr "Zadne API klice"
 
 #: main.lua:5270
 #, fuzzy
 msgid "domains"
-msgstr "domény"
+msgstr "domeny"
 
 #: main.lua:5275
 #, fuzzy
 msgid "behaviors"
-msgstr "chování"
+msgstr "chovani"
 
 #: main.lua:5283
 #, fuzzy
 msgid "Chat history"
-msgstr "Historie konverzací"
+msgstr "Historie chatu"
 
 #: main.lua:5293 main.lua:5514
 #, fuzzy
 msgid "Warnings:"
-msgstr "Varování:"
+msgstr "Varovani:"
 
 #: main.lua:5310
 #, fuzzy
@@ -3357,67 +3390,67 @@ msgstr "Obnovit →"
 #: main.lua:5347
 #, fuzzy
 msgid "Settings: ✓ Restore"
-msgstr "Nastavení: ✓ Obnovit"
+msgstr "Nastaveni: ✓ Obnovit"
 
 #: main.lua:5347
 #, fuzzy
 msgid "Settings: ✗ Skip"
-msgstr "Nastavení: ✗ Přeskočit"
+msgstr "Nastaveni: ✗ Preskocit"
 
 #: main.lua:5364
 #, fuzzy
 msgid "API Keys: ✓ Restore"
-msgstr "API klíče: ✓ Obnovit"
+msgstr "API klice: ✓ Obnovit"
 
 #: main.lua:5364
 #, fuzzy
 msgid "API Keys: ✗ Skip"
-msgstr "API klíče: ✗ Přeskočit"
+msgstr "API klice: ✗ Preskocit"
 
 #: main.lua:5381
 #, fuzzy
 msgid "Config Files: ✓ Restore"
-msgstr "Konfigurační soubory: ✓ Obnovit"
+msgstr "Konfiguracni soubory: ✓ Obnovit"
 
 #: main.lua:5381
 #, fuzzy
 msgid "Config Files: ✗ Skip"
-msgstr "Konfigurační soubory: ✗ Přeskočit"
+msgstr "Konfiguracni soubory: ✗ Preskocit"
 
 #: main.lua:5398
 #, fuzzy
 msgid "Domains & Behaviors: ✓ Restore"
-msgstr "Domény a chování: ✓ Obnovit"
+msgstr "Domeny a chovani: ✓ Obnovit"
 
 #: main.lua:5398
 #, fuzzy
 msgid "Domains & Behaviors: ✗ Skip"
-msgstr "Domény a chování: ✗ Přeskočit"
+msgstr "Domeny a chovani: ✗ Preskocit"
 
 #: main.lua:5415
 #, fuzzy
 msgid "Chat History: ✓ Restore"
-msgstr "Historie konverzací: ✓ Obnovit"
+msgstr "Historie chatu: ✓ Obnovit"
 
 #: main.lua:5415
 #, fuzzy
 msgid "Chat History: ✗ Skip"
-msgstr "Historie konverzací: ✗ Přeskočit"
+msgstr "Historie chatu: ✗ Preskocit"
 
 #: main.lua:5438
 #, fuzzy
 msgid "Mode: Merge with existing"
-msgstr "Režim: Sloučit s existujícím"
+msgstr "Rezim: Sloucit se stavajicim"
 
 #: main.lua:5438
 #, fuzzy
 msgid "Mode: Replace existing"
-msgstr "Režim: Nahradit existující"
+msgstr "Rezim: Nahradit stavajici"
 
 #: main.lua:5460
 #, fuzzy
 msgid "Restore Now"
-msgstr "Obnovit nyní"
+msgstr "Obnovit nyni"
 
 #: main.lua:5480
 #, fuzzy
@@ -3433,11 +3466,11 @@ msgid ""
 "\n"
 "⚠ KOReader should be restarted after restore for changes to take full effect."
 msgstr ""
-"Obnovit ze zálohy?\n"
+"Obnovit ze zalohy?\n"
 "\n"
-"⚠ Bod obnovení bude vytvořen automaticky.\n"
+"⚠ Bod obnovy bude vytvoren automaticky.\n"
 "\n"
-"⚠ KOReader by měl být po obnovení restartován, aby se změny plně projevily."
+"⚠ Po obnoveni by mel byt KOReader restarovan, aby zmeny nabyly plne ucinnosti."
 
 #: main.lua:5494 main.lua:5650
 #, fuzzy
@@ -3451,9 +3484,9 @@ msgid ""
 "\n"
 "This may take a moment."
 msgstr ""
-"Obnovování zálohy...\n"
+"Obnovovani zalohy...\n"
 "\n"
-"Toto může chvíli trvat."
+"Toto muze chvili trvat."
 
 #: main.lua:5511
 #, fuzzy
@@ -3462,9 +3495,9 @@ msgid ""
 "\n"
 "It's recommended to restart KOReader for all changes to take effect."
 msgstr ""
-"Obnovení úspěšně dokončeno!\n"
+"Obnova uspesne dokoncena!\n"
 "\n"
-"Doporučuje se restartovat KOReader, aby se všechny změny projevily."
+"Doporucuje se restartovat KOReader, aby vsechny zmeny nabyly ucinnosti."
 
 #: main.lua:5523 koassistant_ui/prompts_manager.lua:2228
 #: koassistant_ui/prompts_manager.lua:2597
@@ -3481,7 +3514,7 @@ msgstr "OK"
 #: main.lua:5529
 #, fuzzy
 msgid "Restart Now"
-msgstr "Restartovat nyní"
+msgstr "Restartovat nyni"
 
 #: main.lua:5543
 #, fuzzy
@@ -3490,14 +3523,14 @@ msgid ""
 "\n"
 "%1"
 msgstr ""
-"Obnovení selhalo:\n"
+"Obnoveni selhalo:\n"
 "\n"
 "%1"
 
 #: main.lua:5566
 #, fuzzy
 msgid "No backups found."
-msgstr "Nebyly nalezeny žádné zálohy."
+msgstr "Nebyly nalezeny zadne zalohy."
 
 #: main.lua:5614
 #, fuzzy
@@ -3506,15 +3539,15 @@ msgid ""
 "\n"
 "Total size: %2"
 msgstr ""
-"Zálohy (%1)\n"
+"Zalohy (%1)\n"
 "\n"
-"Celková velikost: %2"
+"Celkova velikost: %2"
 
 #: main.lua:5630 koassistant_ui/prompts_manager.lua:1184
 #: koassistant_ui/prompts_manager.lua:1636
 #, fuzzy
 msgid "Info"
-msgstr "Informace"
+msgstr "Info"
 
 #: main.lua:5666
 #, fuzzy
@@ -3525,16 +3558,16 @@ msgid ""
 "\n"
 "This cannot be undone."
 msgstr ""
-"Smazat zálohu?\n"
+"Smazat zalohu?\n"
 "\n"
 "%1\n"
 "\n"
-"Tuto akci nelze vrátit zpět."
+"Toto nelze vratit zpet."
 
 #: main.lua:5674
 #, fuzzy
 msgid "Backup deleted"
-msgstr "Záloha smazána"
+msgstr "Zaloha smazana"
 
 #: main.lua:5683
 #, fuzzy
@@ -3543,49 +3576,49 @@ msgid ""
 "\n"
 "%1"
 msgstr ""
-"Nepodařilo se smazat zálohu:\n"
+"Nepodarilo se smazat zalohu:\n"
 "\n"
 "%1"
 
 #: stream_handler.lua:153
 #, fuzzy
 msgid "Request cancelled by user."
-msgstr "Požadavek zrušen uživatelem."
+msgstr "Pozadavek zrusen uzivatelem."
 
 #: stream_handler.lua:191
 #, fuzzy
 msgid "No response received. Raw: "
-msgstr "Nebyla přijata žádná odpověď. Surová data:"
+msgstr "Nebyla prijata zadna odpoved. Surova data:"
 
 #: stream_handler.lua:261 stream_handler.lua:291
 #, fuzzy
 msgid "Autoscroll OFF ↓"
-msgstr "Autoposun VYP ↓"
+msgstr "Automaticke rolovani VYP ↓"
 
 #: stream_handler.lua:275 stream_handler.lua:291
 #, fuzzy
 msgid "Autoscroll ON ↓"
-msgstr "Autoposun ZAP ↓"
+msgstr "Automaticke rolovani ZAP ↓"
 
 #: stream_handler.lua:285
 #, fuzzy
 msgid "Stop"
-msgstr "Stop"
+msgstr "Zastavit"
 
 #: stream_handler.lua:299
 #, fuzzy
 msgid "AI is responding"
-msgstr "AI odpovídá"
+msgstr "AI odpovida"
 
 #: stream_handler.lua:404
 #, fuzzy
 msgid "Failed to start subprocess for request"
-msgstr "Nepodařilo se spustit podproces pro požadavek"
+msgstr "Nepodarilo se spustit podproces pro pozadavek"
 
 #: koassistant_ui/behavior_manager.lua:123
 #, fuzzy
 msgid "Tap to select • Hold for details"
-msgstr "Klepnutím vyberte • Podržením zobrazíte detaily"
+msgstr "Klepněte pro výběr • Podržte pro detaily"
 
 #: koassistant_ui/behavior_manager.lua:130
 #, fuzzy
@@ -3607,7 +3640,7 @@ msgstr "ZE SLOŽKY BEHAVIORS/"
 #: koassistant_ui/domain_manager.lua:152
 #, fuzzy
 msgid "CUSTOM (UI-CREATED)"
-msgstr "VLASTNÍ (VYTVOŘENÉ V UI)"
+msgstr "VLASTNÍ (VYTVOŘENÉ V ROZHRANÍ)"
 
 #: koassistant_ui/behavior_manager.lua:176
 #, fuzzy
@@ -3623,16 +3656,13 @@ msgstr "Obnovit výchozí"
 #: koassistant_ui/behavior_manager.lua:193
 #, fuzzy
 msgid ""
-"This will delete all custom behaviors and reset selection to Standard. "
-"Continue?"
-msgstr ""
-"Toto smaže všechna vlastní chování a resetuje výběr na Standardní. "
-"Pokračovat?"
+"This will delete all custom behaviors and reset selection to Standard. Continue?"
+msgstr "Tímto smažete všechna vlastní chování a obnovíte výběr na Standardní. Pokračovat?"
 
 #: koassistant_ui/behavior_manager.lua:206
 #, fuzzy
 msgid "Manage Behaviors"
-msgstr "Správa chování"
+msgstr "Spravovat chování"
 
 #: koassistant_ui/behavior_manager.lua:247
 #: koassistant_ui/domain_manager.lua:266 koassistant_ui/prompts_manager.lua:567
@@ -3643,13 +3673,13 @@ msgstr "Vestavěné"
 #: koassistant_ui/behavior_manager.lua:249
 #, fuzzy
 msgid "File (behaviors/ folder)"
-msgstr "Soubor (složka behaviors/)"
+msgstr "Soubor (slozka behaviors/)"
 
 #: koassistant_ui/behavior_manager.lua:251
 #: koassistant_ui/domain_manager.lua:270
 #, fuzzy
 msgid "Custom (UI-created)"
-msgstr "Vlastní (vytvořené v UI)"
+msgstr "Vlastni (vytvoreno v rozhrani)"
 
 #: koassistant_ui/behavior_manager.lua:263
 #: koassistant_ui/domain_manager.lua:282 koassistant_ui/prompts_manager.lua:617
@@ -3660,7 +3690,7 @@ msgstr "Zdroj"
 #: koassistant_ui/behavior_manager.lua:270
 #, fuzzy
 msgid "Based on"
-msgstr "Založeno na"
+msgstr "Zalozeno na"
 
 #: koassistant_ui/behavior_manager.lua:273
 #, fuzzy
@@ -3671,7 +3701,7 @@ msgstr "Datum"
 #: koassistant_ui/domain_manager.lua:289
 #, fuzzy
 msgid "Notes"
-msgstr "Poznámky"
+msgstr "Poznamky"
 
 #: koassistant_ui/behavior_manager.lua:280
 #: koassistant_ui/domain_manager.lua:293
@@ -3706,12 +3736,12 @@ msgstr "Duplikovat"
 #: koassistant_ui/behavior_manager.lua:324
 #, fuzzy
 msgid "Behavior duplicated"
-msgstr "Chování duplikováno"
+msgstr "Chovani duplikovano"
 
 #: koassistant_ui/behavior_manager.lua:334
 #, fuzzy
 msgid "About File-Based Behaviors"
-msgstr "O chování ze souborů"
+msgstr "O chovani ze souboru"
 
 #: koassistant_ui/behavior_manager.lua:339
 #, lua-format
@@ -3735,131 +3765,129 @@ msgstr ""
 #: koassistant_ui/domain_manager.lua:581
 #, fuzzy
 msgid "Use as Template"
-msgstr "Použít jako šablonu"
+msgstr "Pouzit jako sablonu"
 
 #: koassistant_ui/behavior_manager.lua:379
 #, fuzzy
 msgid "Behavior Details"
-msgstr "Detaily chování"
+msgstr "Podrobnosti chovani"
 
 #: koassistant_ui/behavior_manager.lua:401
 #, fuzzy
 msgid "New Behavior - Name"
-msgstr "Nové chování - Název"
+msgstr "Nove chovani - Nazev"
 
 #: koassistant_ui/behavior_manager.lua:401
 #, fuzzy
 msgid "Edit Behavior - Name"
-msgstr "Upravit chování - Název"
+msgstr "Upravit chovani - Nazev"
 
 #: koassistant_ui/behavior_manager.lua:403
 #, fuzzy
 msgid "Enter behavior name..."
-msgstr "Zadejte název chování..."
+msgstr "Zadejte nazev chovani..."
 
 #: koassistant_ui/behavior_manager.lua:404
 #, fuzzy
 msgid "Give this behavior a descriptive name."
-msgstr "Dejte tomuto chování popisný název."
+msgstr "Dejte tomuto chovani popisny nazev."
 
 #: koassistant_ui/behavior_manager.lua:416
 #: koassistant_ui/domain_manager.lua:428
 #, fuzzy
 msgid "Use Template..."
-msgstr "Použít šablonu..."
+msgstr "Pouzit sablonu..."
 
 #: koassistant_ui/behavior_manager.lua:428
 #: koassistant_ui/domain_manager.lua:440
 #, fuzzy
 msgid "Next"
-msgstr "Další"
+msgstr "Dalsi"
 
 #: koassistant_ui/behavior_manager.lua:434
 #: koassistant_ui/domain_manager.lua:446
 #, fuzzy
 msgid "Please enter a name"
-msgstr "Prosím zadejte název"
+msgstr "Prosim zadejte nazev"
 
 #: koassistant_ui/behavior_manager.lua:457
 #, fuzzy
 msgid "New Behavior - Content"
-msgstr "Nové chování - Obsah"
+msgstr "Nove chovani - Obsah"
 
 #: koassistant_ui/behavior_manager.lua:457
 #, fuzzy
 msgid "Edit Behavior - Content"
-msgstr "Upravit chování - Obsah"
+msgstr "Upravit chovani - Obsah"
 
 #: koassistant_ui/behavior_manager.lua:459
 #, fuzzy
 msgid "Enter behavior instructions for the AI..."
-msgstr "Zadejte instrukce pro chování AI..."
+msgstr "Zadejte instrukce chovani pro AI..."
 
 #: koassistant_ui/behavior_manager.lua:460
 #, fuzzy
 msgid ""
 "Name: %1\n"
 "\n"
-"Define how the AI should behave. This text is sent as part of the system "
-"prompt."
+"Define how the AI should behave. This text is sent as part of the system prompt."
 msgstr ""
-"Název: %1\n"
+"Nazev: %1\n"
 "\n"
-"Definujte, jak se má AI chovat. Tento text je odeslán jako součást "
-"systémového promptu."
+"Definujte, jak se ma AI chovat. Tento text je odeslan jako soucast systemove vyzvy."
 
 #: koassistant_ui/behavior_manager.lua:475
 #, fuzzy
 msgid "Load Built-in..."
-msgstr "Načíst vestavěné..."
+msgstr "Nacist vestavenou..."
 
 #: koassistant_ui/behavior_manager.lua:491
 #, fuzzy
 msgid "Please enter behavior content"
-msgstr "Prosím zadejte obsah chování"
+msgstr "Prosim zadejte obsah chovani"
 
 #: koassistant_ui/behavior_manager.lua:502
 #: koassistant_ui/domain_manager.lua:504
 #, fuzzy
 msgid "Created: %1"
-msgstr "Vytvořeno: %1"
+msgstr "Vytvoreno: %1"
 
 #: koassistant_ui/behavior_manager.lua:554
 #, fuzzy
 msgid "Load Built-in Behavior"
-msgstr "Načíst vestavěné chování"
+msgstr "Nacist vestavene chovani"
 
 #: koassistant_ui/behavior_manager.lua:571
 #: koassistant_ui/domain_manager.lua:535
 #, fuzzy
 msgid "Start Blank"
-msgstr "Začít prázdné"
+msgstr "Zacit prazdne"
 
 #: koassistant_ui/domain_manager.lua:111
 #, fuzzy
 msgid "Hold for details • Domains are selected when starting a chat"
-msgstr "Podržte pro detaily • Domény se vybírají při zahájení konverzace"
+msgstr "Podrzenim zobrazite podrobnosti - Domeny se vybiraji pri zahajeni chatu"
 
 #: koassistant_ui/domain_manager.lua:118
 #, fuzzy
 msgid "+ Create New Domain"
-msgstr "+ Vytvořit novou doménu"
+msgstr "+ Vytvorit novou domenu"
 
 #: koassistant_ui/domain_manager.lua:129
 #, fuzzy
 msgid "No domains available"
-msgstr "Žádné domény nejsou dostupné"
+msgstr "Zadne domeny nejsou k dispozici"
 
 #: koassistant_ui/domain_manager.lua:134
 #, fuzzy
-msgid "Create custom domains here or add .md/.txt files to the domains/ folder"
-msgstr ""
-"Vytvořte vlastní domény zde nebo přidejte soubory .md/.txt do složky domains/"
+msgid ""
+"Create custom domains here or add .md/.txt files to the domains/ folder"
+msgstr "Zde vytvorte vlastni domeny nebo pridejte soubory .md/.txt do slozky domains/"
 
 #: koassistant_ui/domain_manager.lua:150
 #, fuzzy
 msgid "FROM DOMAINS/ FOLDER"
-msgstr "ZE SLOŽKY DOMAINS/"
+msgstr "ZE SLOZKY DOMAINS/"
 
 #: koassistant_ui/domain_manager.lua:179
 #, fuzzy
@@ -3868,68 +3896,64 @@ msgid ""
 "\n"
 "Hold to view details or edit."
 msgstr ""
-"Domény se vybírají při zahájení konverzace.\n"
+"Domeny se vybiraji pri zahajeni chatu.\n"
 "\n"
-"Podržte pro zobrazení detailů nebo úpravu."
+"Podrzenim zobrazite podrobnosti nebo upravite."
 
 #: koassistant_ui/domain_manager.lua:194
 #, fuzzy
 msgid "About Domains"
-msgstr "O doménách"
+msgstr "O domenach"
 
 #: koassistant_ui/domain_manager.lua:197
 #, fuzzy
 msgid ""
 "Domains provide specialized knowledge context to the AI.\n"
 "\n"
-"Unlike behaviors (which set communication style), domains give the AI "
-"expertise in specific subject areas.\n"
+"Unlike behaviors (which set communication style), domains give the AI expertise in specific subject areas.\n"
 "\n"
-"Domains are selected per-chat, not globally, making them like 'projects' you "
-"can switch between."
+"Domains are selected per-chat, not globally, making them like 'projects' you can switch between."
 msgstr ""
-"Domény poskytují AI specializovaný znalostní kontext.\n"
+"Domeny poskytuje AI specializovany znalostni kontext.\n"
 "\n"
-"Na rozdíl od chování (které nastavuje styl komunikace), domény dávají AI "
-"odbornost v konkrétních oblastech.\n"
+"Na rozdil od chovani (ktere nastavuji styl komunikace) domena dava AI odbornost v konkretnich oblastech.\n"
 "\n"
-"Domény se vybírají pro každou konverzaci, ne globálně, takže jsou jako "
-"'projekty', mezi kterými můžete přepínat."
+"Domeny se vybiraji pro kazdy chat zvlast, takze jsou jako 'projekty', mezi kterymi muzete prepinat."
 
 #: koassistant_ui/domain_manager.lua:202
 #, fuzzy
 msgid "Delete All Custom"
-msgstr "Smazat všechny vlastní"
+msgstr "Smazat vsechny vlastni"
 
 #: koassistant_ui/domain_manager.lua:207
 #, fuzzy
 msgid "No custom domains to delete"
-msgstr "Žádné vlastní domény ke smazání"
+msgstr "Zadne vlastni domeny ke smazani"
 
 #: koassistant_ui/domain_manager.lua:213
 #, fuzzy
 msgid "Delete all %1 custom domains?"
-msgstr "Smazat všech %1 vlastních domén?"
+msgstr "Smazat vsech %1 vlastnich domen?"
 
 #: koassistant_ui/domain_manager.lua:225
 #, fuzzy
 msgid "Manage Domains"
-msgstr "Správa domén"
+msgstr "Spravovat domeny"
 
 #: koassistant_ui/domain_manager.lua:268
 #, fuzzy
 msgid "File (domains/ folder)"
-msgstr "Soubor (složka domains/)"
+msgstr "Soubor (slozka domains/)"
 
 #: koassistant_ui/domain_manager.lua:337
 #, fuzzy
 msgid "Domain duplicated"
-msgstr "Doména duplikována"
+msgstr "Domena duplikovana"
 
 #: koassistant_ui/domain_manager.lua:347
 #, fuzzy
 msgid "About File-Based Domains"
-msgstr "O doménách ze souborů"
+msgstr "O souborovych domenach"
 
 #: koassistant_ui/domain_manager.lua:351
 #, lua-format
@@ -3949,89 +3973,84 @@ msgstr ""
 #: koassistant_ui/domain_manager.lua:391
 #, fuzzy
 msgid "Domain Details"
-msgstr "Detaily domény"
+msgstr "Podrobnosti domeny"
 
 #: koassistant_ui/domain_manager.lua:413
 #, fuzzy
 msgid "New Domain - Name"
-msgstr "Nová doména - Název"
+msgstr "Nova domena - nazev"
 
 #: koassistant_ui/domain_manager.lua:413
 #, fuzzy
 msgid "Edit Domain - Name"
-msgstr "Upravit doménu - Název"
+msgstr "Upravit domenu - nazev"
 
 #: koassistant_ui/domain_manager.lua:415
 #, fuzzy
 msgid "Enter domain name..."
-msgstr "Zadejte název domény..."
+msgstr "Zadejte nazev domeny..."
 
 #: koassistant_ui/domain_manager.lua:416
 #, fuzzy
 msgid ""
-"Give this domain a descriptive name (e.g., 'Research', 'Creative Writing', "
-"'Philosophy')."
-msgstr ""
-"Dejte této doméně popisný název (např. 'Výzkum', 'Kreativní psaní', "
-"'Filozofie')."
+"Give this domain a descriptive name (e.g., 'Research', 'Creative Writing', 'Philosophy')."
+msgstr "Dejte teto domene popisny nazev (napr. 'Vyzkum', 'Kreativni psani', 'Filozofie')."
 
 #: koassistant_ui/domain_manager.lua:469
 #, fuzzy
 msgid "New Domain - Context"
-msgstr "Nová doména - Kontext"
+msgstr "Nova domena - kontext"
 
 #: koassistant_ui/domain_manager.lua:469
 #, fuzzy
 msgid "Edit Domain - Context"
-msgstr "Upravit doménu - Kontext"
+msgstr "Upravit domenu - kontext"
 
 #: koassistant_ui/domain_manager.lua:471
 #, fuzzy
 msgid "Enter domain knowledge context..."
-msgstr "Zadejte znalostní kontext domény..."
+msgstr "Zadejte znalostni kontext domeny..."
 
 #: koassistant_ui/domain_manager.lua:472
 #, fuzzy
 msgid ""
 "Name: %1\n"
 "\n"
-"Describe the knowledge area, terminology, and how the AI should approach "
-"topics in this domain."
+"Describe the knowledge area, terminology, and how the AI should approach topics in this domain."
 msgstr ""
-"Název: %1\n"
+"Nazev: %1\n"
 "\n"
-"Popište oblast znalostí, terminologii a jak by AI měla přistupovat k tématům "
-"v této doméně."
+"Popiste oblast znalosti, terminologii a jak by mela AI pristupovat k tematum v teto domene."
 
 #: koassistant_ui/domain_manager.lua:493
 #, fuzzy
 msgid "Please enter domain context"
-msgstr "Prosím zadejte kontext domény"
+msgstr "Prosim zadejte kontext domeny"
 
 #: koassistant_ui/domain_manager.lua:546
 #, fuzzy
 msgid "(No existing domains to use as template)"
-msgstr "(Žádné existující domény pro použití jako šablona)"
+msgstr "(Zadne existujici domeny pro pouziti jako sablona)"
 
 #: koassistant_ui/prompts_manager.lua:33
 #, fuzzy
 msgid "~%1 tokens"
-msgstr "~%1 tokenů"
+msgstr "~%1 tokenu"
 
 #: koassistant_ui/prompts_manager.lua:65 koassistant_ui/prompts_manager.lua:96
 #, fuzzy
 msgid "Force OFF"
-msgstr "Vynuceně VYP"
+msgstr "Vynutit VYPNUTO"
 
 #: koassistant_ui/prompts_manager.lua:87
 #, fuzzy
 msgid "Configured"
-msgstr "Nakonfigurováno"
+msgstr "Nakonfigurovano"
 
 #: koassistant_ui/prompts_manager.lua:94
 #, fuzzy
 msgid "On (%1 tokens)"
-msgstr "Zapnuto (%1 tokenů)"
+msgstr "Zapnuto (%1 tokenu)"
 
 #: koassistant_ui/prompts_manager.lua:99 koassistant_ui/prompts_manager.lua:595
 #: koassistant_ui/prompts_manager.lua:601
@@ -4049,38 +4068,37 @@ msgstr "Zapnuto (%1 tokenů)"
 #: koassistant_ui/prompts_manager.lua:2982
 #, fuzzy
 msgid "Global"
-msgstr "Globální"
+msgstr "Globalni"
 
 #: koassistant_ui/prompts_manager.lua:311
 #, fuzzy
 msgid "Tap to toggle • Hold for details • ★ = custom • ⚙ = modified"
-msgstr ""
-"Klepnutím přepnete • Podržením zobrazíte detaily • ★ = vlastní • ⚙ = upraveno"
+msgstr "Klepnutim prepnete - Podrzenim zobrazite podrobnosti - * = vlastni - cog = upraveno"
 
 #: koassistant_ui/prompts_manager.lua:318
 #, fuzzy
 msgid "+ Add Action"
-msgstr "+ Přidat akci"
+msgstr "+ Pridat akci"
 
 #: koassistant_ui/prompts_manager.lua:329
 #, fuzzy
 msgid "Highlight Context"
-msgstr "Kontext zvýraznění"
+msgstr "Kontext zvyrazneni"
 
 #: koassistant_ui/prompts_manager.lua:330
 #, fuzzy
 msgid "Book Context"
-msgstr "Počet knih"
+msgstr "Kontext knihy"
 
 #: koassistant_ui/prompts_manager.lua:331
 #, fuzzy
 msgid "Multi-Book Context"
-msgstr "Kontext více knih"
+msgstr "Kontext vice knih"
 
 #: koassistant_ui/prompts_manager.lua:332
 #, fuzzy
 msgid "General Context"
-msgstr "Obecný kontext"
+msgstr "Obecny kontext"
 
 #: koassistant_ui/prompts_manager.lua:333
 #: koassistant_ui/prompts_manager.lua:1115
@@ -4088,19 +4106,19 @@ msgstr "Obecný kontext"
 #: koassistant_ui/prompts_manager.lua:3781
 #, fuzzy
 msgid "Highlight & Book"
-msgstr "Zvýraznění a kniha"
+msgstr "Zvyrazneni a kniha"
 
 #: koassistant_ui/prompts_manager.lua:334
 #: koassistant_ui/prompts_manager.lua:3783
 #, fuzzy
 msgid "Highlight & General"
-msgstr "Zvýraznění a obecné"
+msgstr "Zvyrazneni a obecne"
 
 #: koassistant_ui/prompts_manager.lua:335
 #: koassistant_ui/prompts_manager.lua:3785
 #, fuzzy
 msgid "Book & General"
-msgstr "Kniha a obecné"
+msgstr "Kniha a obecne"
 
 #: koassistant_ui/prompts_manager.lua:336
 #: koassistant_ui/prompts_manager.lua:1120
@@ -4108,64 +4126,63 @@ msgstr "Kniha a obecné"
 #: koassistant_ui/prompts_manager.lua:3787
 #, fuzzy
 msgid "All Contexts"
-msgstr "Všechny kontexty"
+msgstr "Vsechny kontexty"
 
 #: koassistant_ui/prompts_manager.lua:410
 #, fuzzy
 msgid "Import"
-msgstr "Importovat"
+msgstr "Import"
 
 #: koassistant_ui/prompts_manager.lua:414
 #, fuzzy
 msgid "Import feature coming soon..."
-msgstr "Funkce importu bude brzy dostupná..."
+msgstr "Funkce importu bude brzy k dispozici..."
 
 #: koassistant_ui/prompts_manager.lua:423
 #, fuzzy
 msgid "Export feature coming soon..."
-msgstr "Funkce exportu bude brzy dostupná..."
+msgstr "Funkce exportu bude brzy k dispozici..."
 
 #: koassistant_ui/prompts_manager.lua:431
 #, fuzzy
 msgid ""
 "This will remove all custom actions and reset all action settings. Continue?"
-msgstr ""
-"Toto odebere všechny vlastní akce a resetuje všechna nastavení akcí. "
-"Pokračovat?"
+msgstr "Toto odstrani vsechny vlastni akce a obnovi vychozi nastaveni akci. Pokracovat?"
 
 #: koassistant_ui/prompts_manager.lua:484
 #, fuzzy
 msgid "Actions Menu"
-msgstr "Detaily akce"
+msgstr "Nabidka akci"
 
 #: koassistant_ui/prompts_manager.lua:569
 #, fuzzy
 msgid "Custom (custom_actions.lua)"
-msgstr "Vlastní (custom_actions.lua)"
+msgstr "Vlastni (custom_actions.lua)"
 
 #: koassistant_ui/prompts_manager.lua:571
 #, fuzzy
 msgid "User-defined (UI)"
-msgstr "Definované uživatelem (UI)"
+msgstr "Uzivatelsky definovane (UI)"
 
 #: koassistant_ui/prompts_manager.lua:579
 #, fuzzy
 msgid "Custom: "
-msgstr "Vlastní:"
+msgstr "Vlastni:"
 
 #: koassistant_ui/prompts_manager.lua:581
 #, fuzzy
 msgid "None (disabled)"
-msgstr "Žádné (zakázáno)"
+msgstr "Zadne (vypnuto)"
 
 #: koassistant_ui/prompts_manager.lua:591
 #, fuzzy
 msgid "(Use global setting)"
-msgstr "(Použít globální nastavení)"
+msgstr "(Pouzit globalni nastaveni)"
 
 #: koassistant_ui/prompts_manager.lua:611
+#, fuzzy
 msgid "(Only available when reading, not from file browser)"
-msgstr ""
+msgstr "(Dostupne pouze pri cteni, ne z prohlizece souboru)"
 
 #: koassistant_ui/prompts_manager.lua:616
 #, fuzzy
@@ -4185,11 +4202,12 @@ msgstr "Povoleno"
 #: koassistant_ui/prompts_manager.lua:618
 #, fuzzy
 msgid "Disabled"
-msgstr "Zakázáno"
+msgstr "Zakazano"
 
 #: koassistant_ui/prompts_manager.lua:622
+#, fuzzy
 msgid "─── Flags ───"
-msgstr ""
+msgstr "--- Priznaky ---"
 
 #: koassistant_ui/prompts_manager.lua:625
 #: koassistant_ui/prompts_manager.lua:626
@@ -4210,12 +4228,12 @@ msgstr "Ne"
 #: koassistant_ui/prompts_manager.lua:627
 #, fuzzy
 msgid "Skip Language"
-msgstr "Jazyk"
+msgstr "Preskocit jazyk"
 
 #: koassistant_ui/prompts_manager.lua:628
 #, fuzzy
 msgid "Skip Domain"
-msgstr "Přeskočit doménu"
+msgstr "Preskocit domenu"
 
 #: koassistant_ui/prompts_manager.lua:633
 #, fuzzy
@@ -4225,35 +4243,37 @@ msgstr "Zahrnout informace o knize"
 #: koassistant_ui/prompts_manager.lua:640
 #, fuzzy
 msgid "Use Book Text"
-msgstr "Název knihy"
+msgstr "Pouzit text knihy"
 
 #: koassistant_ui/prompts_manager.lua:644
+#, fuzzy
 msgid "─── AI Settings ───"
-msgstr ""
+msgstr "--- Nastaveni AI ---"
 
 #: koassistant_ui/prompts_manager.lua:647
 #, fuzzy
 msgid "Provider/Model"
-msgstr "Poskytovatel/Model"
+msgstr "Poskytovatel/model"
 
 #: koassistant_ui/prompts_manager.lua:651
+#, fuzzy
 msgid "─── Action Prompt ───"
-msgstr ""
+msgstr "--- Vyzva akce ---"
 
 #: koassistant_ui/prompts_manager.lua:651
 #, fuzzy
 msgid "(None)"
-msgstr "(Žádné)"
+msgstr "(Zadne)"
 
 #: koassistant_ui/prompts_manager.lua:654
 #, fuzzy
 msgid "Requires"
-msgstr "Vyžaduje"
+msgstr "Vyzaduje"
 
 #: koassistant_ui/prompts_manager.lua:664
 #, fuzzy
 msgid "Quick Edit"
-msgstr "Rychlá definice"
+msgstr "Rychla uprava"
 
 #: koassistant_ui/prompts_manager.lua:677
 #, fuzzy
@@ -4272,80 +4292,80 @@ msgid ""
 "This action is defined in custom_actions.lua.\n"
 "Please edit that file directly to modify it."
 msgstr ""
-"Tato akce je definována v custom_actions.lua.\n"
-"Prosím upravte tento soubor přímo pro její změnu."
+"Tato akce je definovana v custom_actions.lua.\n"
+"Prosim upravte primo tento soubor."
 
 #: koassistant_ui/prompts_manager.lua:709
 #, fuzzy
 msgid "Edit Settings"
-msgstr "Upravit nastavení"
+msgstr "Upravit nastaveni"
 
 #: koassistant_ui/prompts_manager.lua:721
 #, fuzzy
 msgid "Reset to Default"
-msgstr "Obnovit výchozí"
+msgstr "Obnovit vychozi"
 
 #: koassistant_ui/prompts_manager.lua:724
 #, fuzzy
 msgid "Reset this action to default settings?"
-msgstr "Obnovit výchozí nastavení této akce?"
+msgstr "Obnovit vychozi nastaveni teto akce?"
 
 #: koassistant_ui/prompts_manager.lua:746
 #, fuzzy
 msgid "✓ In Highlight Menu"
-msgstr "✓ V nabídce zvýraznění"
+msgstr "V nabidce zvyrazneni"
 
 #: koassistant_ui/prompts_manager.lua:746
 #, fuzzy
 msgid "Add to Highlight Menu"
-msgstr "Přidat do nabídky zvýraznění"
+msgstr "Pridat do nabidky zvyrazneni"
 
 #: koassistant_ui/prompts_manager.lua:751
 #, fuzzy
 msgid "Added to highlight menu."
-msgstr "Přidáno do nabídky zvýraznění."
+msgstr "Pridano do nabidky zvyrazneni."
 
 #: koassistant_ui/prompts_manager.lua:751
 #, fuzzy
 msgid "Removed from highlight menu."
-msgstr "Odebráno z nabídky zvýraznění."
+msgstr "Odebrano z nabidky zvyrazneni."
 
 #: koassistant_ui/prompts_manager.lua:764
 #, fuzzy
 msgid "✓ In Dictionary Popup"
-msgstr "✓ Ve vyskakovacím slovníku"
+msgstr "Ve vyskakovacim slovniku"
 
 #: koassistant_ui/prompts_manager.lua:764
 #, fuzzy
 msgid "Add to Dictionary Popup"
-msgstr "Přidat do vyskakovacího slovníku"
+msgstr "Pridat do vyskakovaciho slovniku"
 
 #: koassistant_ui/prompts_manager.lua:769
 #, fuzzy
 msgid "Added to dictionary popup."
-msgstr "Přidáno do vyskakovacího slovníku."
+msgstr "Pridano do vyskakovaciho slovniku."
 
 #: koassistant_ui/prompts_manager.lua:769
 #, fuzzy
 msgid "Removed from dictionary popup."
-msgstr "Odebráno z vyskakovacího slovníku."
+msgstr "Odebrano z vyskakovaciho slovniku."
 
 #: koassistant_ui/prompts_manager.lua:781
 #, fuzzy
 msgid "Duplicate as Custom"
-msgstr "Duplikovat jako vlastní"
+msgstr "Duplikovat jako vlastni"
 
 #: koassistant_ui/prompts_manager.lua:791
 #, fuzzy
 msgid "Action Details"
-msgstr "Detaily akce"
+msgstr "Podrobnosti akce"
 
 #: koassistant_ui/prompts_manager.lua:804
 #: koassistant_ui/prompts_manager.lua:3802
 #: koassistant_ui/prompts_manager.lua:3965
 #, fuzzy
 msgid "Action service not available."
-msgstr "Služba akcí není dostupná."
+msgstr "Sluzba akci neni k dispozici."
 
 #: koassistant_ui/prompts_manager.lua:855
 #, fuzzy
@@ -4354,9 +4374,9 @@ msgid ""
 "\n"
 "You can find and edit it in the Actions list."
 msgstr ""
-"Vytvořeno: %1\n"
+"Vytvoreno: %1\n"
 "\n"
-"Můžete ji najít a upravit v seznamu Akcí."
+"Muzete to najit a upravit v seznamu akci."
 
 #: koassistant_ui/prompts_manager.lua:922
 #, fuzzy
@@ -4374,17 +4394,17 @@ msgstr "Nenastaveno"
 #: koassistant_ui/prompts_manager.lua:1405
 #, fuzzy
 msgid "Next →"
-msgstr "Další →"
+msgstr "Dalsi ->"
 
 #: koassistant_ui/prompts_manager.lua:935
 #, fuzzy
 msgid "Please enter a prompt name"
-msgstr "Prosím zadejte název promptu"
+msgstr "Prosim zadejte nazev vyzvy"
 
 #: koassistant_ui/prompts_manager.lua:941
 #, fuzzy
 msgid "Please select a context first"
-msgstr "Nejprve prosím vyberte kontext"
+msgstr "Prosim nejprve vyberte kontext"
 
 #: koassistant_ui/prompts_manager.lua:957
 #: koassistant_ui/prompts_manager.lua:2415
@@ -4398,64 +4418,69 @@ msgstr "Zahrnout informace o knize"
 #: koassistant_ui/prompts_manager.lua:3047
 #, fuzzy
 msgid "Skip language"
-msgstr "Přeskočit jazykovou instrukci"
+msgstr "Preskocit jazyk"
 
 #: koassistant_ui/prompts_manager.lua:982
 #: koassistant_ui/prompts_manager.lua:2401
 #: koassistant_ui/prompts_manager.lua:3055
 #, fuzzy
 msgid "Skip domain"
-msgstr "Přeskočit doménu"
+msgstr "Preskocit domenu"
 
 #: koassistant_ui/prompts_manager.lua:998
 #, fuzzy
 msgid "Highlight Menu"
-msgstr "✓ V nabídce zvýraznění"
+msgstr "Nabidka zvyrazneni"
 
 #: koassistant_ui/prompts_manager.lua:1007
 #, fuzzy
 msgid "Dictionary Popup"
-msgstr "✓ Ve vyskakovacím slovníku"
+msgstr "Vyskakovaci slovnik"
 
 #: koassistant_ui/prompts_manager.lua:1024
 #: koassistant_ui/prompts_manager.lua:2442
 #: koassistant_ui/prompts_manager.lua:3096
+#, fuzzy
 msgid "Use book text"
-msgstr ""
+msgstr "Pouzit text knihy"
 
 #: koassistant_ui/prompts_manager.lua:1033
 #: koassistant_ui/prompts_manager.lua:2450
 #: koassistant_ui/prompts_manager.lua:3104
+#, fuzzy
 msgid ""
 "This allows {book_text} placeholders to include book content.\n"
 "\n"
-"Note: Book text extraction is currently disabled in Settings → Advanced → "
-"Book Text Extraction. Enable it there for this to work."
+"Note: Book text extraction is currently disabled in Settings → Advanced → Book Text Extraction. Enable it there for this to work."
 msgstr ""
+"Toto umoznuje zástupným znakum {book_text} zahrnout obsah knihy.\n"
+"\n"
+"Poznamka: Extrakce textu knihy je aktualne zakazana v Nastaveni -> Pokrocile -> Extrakce textu knihy. Povolte ji tam, aby toto fungovalo."
 
 #: koassistant_ui/prompts_manager.lua:1038
 #: koassistant_ui/prompts_manager.lua:2455
 #: koassistant_ui/prompts_manager.lua:3109
+#, fuzzy
 msgid ""
-"This allows {book_text} placeholders to include book content. The prompt "
-"must use {book_text} or {book_text_section} for this to have effect."
-msgstr ""
+"This allows {book_text} placeholders to include book content. The prompt must use {book_text} or {book_text_section} for this to have effect."
+msgstr "Toto umoznuje zastupnym znakum {book_text} zahrnout obsah knihy. Vyzva musi pouzivat {book_text} nebo {book_text_section}, aby to melo ucinek."
 
 #: koassistant_ui/prompts_manager.lua:1054
 #: koassistant_ui/prompts_manager.lua:2426
 #: koassistant_ui/prompts_manager.lua:3080
+#, fuzzy
 msgid "View: "
-msgstr ""
+msgstr "Zobrazeni:"
 
 #: koassistant_ui/prompts_manager.lua:1068
 #, fuzzy
 msgid "Example: 'Summarize', 'Explain Simply', 'Find Themes'"
-msgstr "Příklad: 'Shrnutí', 'Jednoduché vysvětlení', 'Najít témata'"
+msgstr "Priklad: 'Shrnout', 'Vysvetlit jednoduse', 'Najit temata'"
 
 #: koassistant_ui/prompts_manager.lua:1077
 #, fuzzy
 msgid "Edit Action - Name"
-msgstr "Upravit akci - Název"
+msgstr "Upravit akci - nazev"
 
 #: koassistant_ui/prompts_manager.lua:1077
 #, fuzzy
@@ -4465,14 +4490,14 @@ msgstr "Krok 1/3: Název a kontext"
 #: koassistant_ui/prompts_manager.lua:1079
 #, fuzzy
 msgid "Enter a short name (shown as button)"
-msgstr "Zadejte krátký název (zobrazen jako tlačítko)"
+msgstr "Zadejte krátký název (zobrazí se jako tlačítko)"
 
 #: koassistant_ui/prompts_manager.lua:1092
 #: koassistant_ui/prompts_manager.lua:1189
 #: koassistant_ui/prompts_manager.lua:3773
 #, fuzzy
 msgid "Highlight"
-msgstr "Zvýraznění"
+msgstr "Zvýrazněný text"
 
 #: koassistant_ui/prompts_manager.lua:1093
 #, fuzzy
@@ -4482,7 +4507,7 @@ msgstr "Když je v knize vybrán text"
 #: koassistant_ui/prompts_manager.lua:1096
 #, fuzzy
 msgid "Includes: selected text + book title, author"
-msgstr "Zahrnuje: vybraný text + název knihy, autor"
+msgstr "Zahrnuje: vybraný text + název knihy, autora"
 
 #: koassistant_ui/prompts_manager.lua:1097
 #, fuzzy
@@ -4499,12 +4524,12 @@ msgstr "Kniha"
 #: koassistant_ui/prompts_manager.lua:1101
 #, fuzzy
 msgid "File browser selection or 'Chat about book' gesture"
-msgstr "Výběr v prohlížeči souborů nebo gesto 'Konverzace o knize'"
+msgstr "Výběr v prohlížeči souborů nebo gesto „Chatovat o knize\""
 
 #: koassistant_ui/prompts_manager.lua:1102
 #, fuzzy
 msgid "Includes: book title, author (automatic)"
-msgstr "Zahrnuje: název knihy, autor (automaticky)"
+msgstr "Zahrnuje: název knihy, autora (automaticky)"
 
 #: koassistant_ui/prompts_manager.lua:1105
 #: koassistant_ui/prompts_manager.lua:1191
@@ -4533,7 +4558,7 @@ msgstr "Obecné"
 #: koassistant_ui/prompts_manager.lua:1111
 #, fuzzy
 msgid "General chat, no specific context"
-msgstr "Obecná konverzace, bez specifického kontextu"
+msgstr "Obecný chat, bez konkrétního kontextu"
 
 #: koassistant_ui/prompts_manager.lua:1112
 #, fuzzy
@@ -4543,12 +4568,12 @@ msgstr "Dostupné: jazyk překladu"
 #: koassistant_ui/prompts_manager.lua:1116
 #, fuzzy
 msgid "Both highlight and book contexts"
-msgstr "Kontext zvýraznění i knihy"
+msgstr "Kontexty zvýrazněného textu i knihy"
 
 #: koassistant_ui/prompts_manager.lua:1117
 #, fuzzy
 msgid "Highlight: selected text; Book: title/author"
-msgstr "Zvýraznění: vybraný text; Kniha: název/autor"
+msgstr "Zvýrazněný text: vybraný text; Kniha: název/autor"
 
 #: koassistant_ui/prompts_manager.lua:1121
 #, fuzzy
@@ -4561,36 +4586,40 @@ msgid "Varies by trigger"
 msgstr "Liší se podle spuštění"
 
 #: koassistant_ui/prompts_manager.lua:1188
-msgid "Context determines when your action appears and what data is available:"
-msgstr ""
+#, fuzzy
+msgid ""
+"Context determines when your action appears and what data is available:"
+msgstr "Kontext určuje, kdy se vaše akce zobrazí a jaká data jsou dostupná:"
 
 #: koassistant_ui/prompts_manager.lua:1189
 #, fuzzy
 msgid "When text is selected. Gets: selected text, optionally book info"
-msgstr "Když je v knize vybrán text"
+msgstr "Když je vybrán text. Získá: vybraný text, volitelně informace o knize"
 
 #: koassistant_ui/prompts_manager.lua:1190
 #, fuzzy
 msgid "File browser or 'Chat about book'. Gets: title, author"
-msgstr "Výběr v prohlížeči souborů nebo gesto 'Konverzace o knize'"
+msgstr "Prohlížeč souborů nebo „Chatovat o knize\". Získá: název, autora"
 
 #: koassistant_ui/prompts_manager.lua:1191
+#, fuzzy
 msgid "Multiple books selected. Gets: book list with count"
-msgstr ""
+msgstr "Vybráno více knih. Získá: seznam knih s počtem"
 
 #: koassistant_ui/prompts_manager.lua:1192
 #, fuzzy
 msgid "Standalone chat. No automatic context"
-msgstr "Obecná konverzace, bez specifického kontextu"
+msgstr "Samostatný chat. Žádný automatický kontext"
 
 #: koassistant_ui/prompts_manager.lua:1193
 #, fuzzy
 msgid "Both highlight and single-book menus"
-msgstr "Kontext zvýraznění i knihy"
+msgstr "Menu zvýrazněného textu i jedné knihy"
 
 #: koassistant_ui/prompts_manager.lua:1194
+#, fuzzy
 msgid "Shows everywhere. Data varies by trigger"
-msgstr ""
+msgstr "Zobrazuje se všude. Data se liší podle spuštění"
 
 #: koassistant_ui/prompts_manager.lua:1211
 #, fuzzy
@@ -4612,7 +4641,7 @@ msgstr "Použít globální nastavení"
 #: koassistant_ui/prompts_manager.lua:1235
 #, fuzzy
 msgid "Inherits from Settings → Advanced → AI Behavior Style"
-msgstr "Dědí z Nastavení → Pokročilé → Styl chování AI"
+msgstr "Přebírá z Nastavení → Pokročilé → Styl chování AI"
 
 #: koassistant_ui/prompts_manager.lua:1245
 #, fuzzy
@@ -4668,9 +4697,9 @@ msgid ""
 "This replaces the global AI behavior setting for this action."
 msgstr ""
 "Příklady:\n"
-"• 'Jsi odborník na gramatiku. Buď přesný a analytický.'\n"
-"• 'Jsi literární kritik specializující se na fikci 19. století.'\n"
-"• 'Odpovídej stručně. Používej odrážky, když je to užitečné.'\n"
+"• „Jsi gramatický expert. Buď přesný a analytický.\"\n"
+"• „Jsi literární kritik specializující se na beletrii 19. století.\"\n"
+"• „Odpovídej stručně. Používej odrážky, když je to užitečné.\"\n"
 "\n"
 "Toto nahrazuje globální nastavení chování AI pro tuto akci."
 
@@ -4678,8 +4707,7 @@ msgstr ""
 #, fuzzy
 msgid ""
 "Please enter custom behavior text, or go back and choose a different option"
-msgstr ""
-"Prosím zadejte text vlastního chování, nebo se vraťte a vyberte jinou možnost"
+msgstr "Zadejte vlastní text chování, nebo se vraťte zpět a vyberte jinou možnost"
 
 #: koassistant_ui/prompts_manager.lua:1362
 #, fuzzy
@@ -4697,34 +4725,43 @@ msgid "What should the AI do?"
 msgstr "Co má AI udělat?"
 
 #: koassistant_ui/prompts_manager.lua:1365
+#, fuzzy
 msgid ""
 "Write the AI instruction. Tap 'Help' for tips, 'Insert...' for placeholders."
-msgstr ""
+msgstr "Napište instrukci pro AI. Klepněte na „Nápověda\" pro tipy, „Vložit...\" pro zástupné znaky."
 
 #: koassistant_ui/prompts_manager.lua:1379
 #: koassistant_ui/prompts_manager.lua:2476
+#, fuzzy
 msgid "Help"
-msgstr ""
+msgstr "Nápověda"
 
 #: koassistant_ui/prompts_manager.lua:1382
+#, fuzzy
 msgid ""
 "Writing Action Prompts\n"
 "\n"
-"• Use 'Insert...' to add placeholders like {title}, {author}, "
-"{highlighted_text}\n"
+"• Use 'Insert...' to add placeholders like {title}, {author}, {highlighted_text}\n"
 "\n"
-"• Tip: When using this action, there's an input field for optional "
-"additional context\n"
+"• Tip: When using this action, there's an input field for optional additional context\n"
 "\n"
-"• Reading-mode placeholders ({reading_progress}, {book_text}, {highlights}, "
-"{annotations}) auto-hide this action in File Browser — it only appears when "
-"reading\n"
+"• Reading-mode placeholders ({reading_progress}, {book_text}, {highlights}, {annotations}) auto-hide this action in File Browser — it only appears when reading\n"
 "\n"
-"• Test actions with the web inspector: 'lua tests/inspect.lua --web' from "
-"the plugin folder\n"
+"• Test actions with the web inspector: 'lua tests/inspect.lua --web' from the plugin folder\n"
 "\n"
 "• See README for full placeholder list and examples"
 msgstr ""
+"Psaní promptů akcí\n"
+"\n"
+"• Použijte „Vložit...\" pro přidání zástupných znaků jako {title}, {author}, {highlighted_text}\n"
+"\n"
+"• Tip: Při použití této akce je k dispozici vstupní pole pro volitelný doplňující kontext\n"
+"\n"
+"• Zástupné znaky režimu čtení ({reading_progress}, {book_text}, {highlights}, {annotations}) automaticky skryjí tuto akci v Prohlížeči souborů — zobrazí se pouze při čtení\n"
+"\n"
+"• Testujte akce pomocí webového inspektoru: „lua tests/inspect.lua --web\" ze složky pluginu\n"
+"\n"
+"• Úplný seznam zástupných znaků a příklady naleznete v README"
 
 #: koassistant_ui/prompts_manager.lua:1397
 #, fuzzy
@@ -4767,7 +4804,7 @@ msgstr "Model:"
 #: koassistant_ui/prompts_manager.lua:3036
 #, fuzzy
 msgid "Please select a provider first"
-msgstr "Nejprve prosím vyberte poskytovatele"
+msgstr "Nejprve vyberte poskytovatele"
 
 #: koassistant_ui/prompts_manager.lua:1491
 #, fuzzy
@@ -4781,7 +4818,7 @@ msgid ""
 "\n"
 "Temperature: "
 msgstr ""
-"Pokročilé nastavení pro tuto akci.\n"
+"Pokročilá nastavení pro tuto akci.\n"
 "\n"
 "Teplota:"
 
@@ -4793,7 +4830,7 @@ msgstr "Upravit akci - Pokročilé"
 #: koassistant_ui/prompts_manager.lua:1527
 #, fuzzy
 msgid "Step 4/4: Advanced Settings"
-msgstr "Krok 4/4: Pokročilé nastavení"
+msgstr "Krok 4/4: Pokročilá nastavení"
 
 #: koassistant_ui/prompts_manager.lua:1559
 #: koassistant_ui/prompts_manager.lua:2637
@@ -4813,60 +4850,66 @@ msgstr "Přeložit"
 #: koassistant_ui/prompts_manager.lua:1642
 #, fuzzy
 msgid "Dictionary Compact"
-msgstr "Akce vyskakovacího slovníku"
+msgstr "Slovník kompaktní"
 
 #: koassistant_ui/prompts_manager.lua:1582
 #: koassistant_ui/prompts_manager.lua:1591
 #: koassistant_ui/prompts_manager.lua:1641
+#, fuzzy
 msgid "Standard"
-msgstr ""
+msgstr "Standardní"
 
 #: koassistant_ui/prompts_manager.lua:1591
+#, fuzzy
 msgid "Full dialog with all buttons"
-msgstr ""
+msgstr "Úplný dialog se všemi tlačítky"
 
 #: koassistant_ui/prompts_manager.lua:1592
+#, fuzzy
 msgid "Compact with language buttons"
-msgstr ""
+msgstr "Kompaktní s tlačítky jazyků"
 
 #: koassistant_ui/prompts_manager.lua:1593
+#, fuzzy
 msgid "With language switch and original toggle"
-msgstr ""
+msgstr "S přepínačem jazyka a přepínačem originálu"
 
 #: koassistant_ui/prompts_manager.lua:1640
+#, fuzzy
 msgid "View modes control how results are displayed:"
-msgstr ""
+msgstr "Režimy zobrazení ovládají, jak jsou výsledky zobrazeny:"
 
 #: koassistant_ui/prompts_manager.lua:1641
+#, fuzzy
 msgid "Full dialog with all response action buttons"
-msgstr ""
+msgstr "Úplný dialog se všemi tlačítky akcí odpovědi"
 
 #: koassistant_ui/prompts_manager.lua:1642
+#, fuzzy
 msgid ""
-"Smaller dialog optimized for quick lookups, with language buttons for word-"
-"by-word translation"
-msgstr ""
+"Smaller dialog optimized for quick lookups, with language buttons for word-by-word translation"
+msgstr "Menší dialog optimalizovaný pro rychlé vyhledávání, s tlačítky jazyků pro překlad slovo po slovu"
 
 #: koassistant_ui/prompts_manager.lua:1643
+#, fuzzy
 msgid ""
-"Translation view with language switch button and toggle to show/hide the "
-"original text"
-msgstr ""
+"Translation view with language switch button and toggle to show/hide the original text"
+msgstr "Zobrazení překladu s tlačítkem přepínače jazyka a přepínačem pro zobrazení/skrytí původního textu"
 
 #: koassistant_ui/prompts_manager.lua:1703
 #, fuzzy
 msgid "Force OFF for all providers"
-msgstr "Vynuceně VYP pro všechny poskytovatele"
+msgstr "Vynutit VYPNUTO pro všechny poskytovatele"
 
 #: koassistant_ui/prompts_manager.lua:1713
 #, fuzzy
 msgid "Configure per-provider..."
-msgstr "Konfigurovat pro jednotlivé poskytovatele..."
+msgstr "Konfigurovat podle poskytovatele..."
 
 #: koassistant_ui/prompts_manager.lua:1731
 #, fuzzy
 msgid "Reasoning/Thinking"
-msgstr "Uvažování/Myšlení"
+msgstr "Uvažování/Přemýšlení"
 
 #: koassistant_ui/prompts_manager.lua:1732
 #, fuzzy
@@ -4875,19 +4918,17 @@ msgid ""
 "\n"
 "• Global: Follow per-provider settings in Settings menu\n"
 "• Force OFF: Never use thinking for this action\n"
-"• Configure: Set per-provider reasoning (Anthropic budget, OpenAI effort, "
-"Gemini level)\n"
+"• Configure: Set per-provider reasoning (Anthropic budget, OpenAI effort, Gemini level)\n"
 "\n"
 "May force temperature to 1.0 for some models."
 msgstr ""
-"Uvažování umožňuje komplexní myšlení pro podporované modely.\n"
+"Uvažování umožňuje složité myšlení pro podporované modely.\n"
 "\n"
-"• Globální: Následovat nastavení poskytovatele v nabídce Nastavení\n"
-"• Vynuceně VYP: Nikdy nepoužívat myšlení pro tuto akci\n"
-"• Konfigurovat: Nastavit uvažování pro jednotlivé poskytovatele (rozpočet "
-"Anthropic, úsilí OpenAI, úroveň Gemini)\n"
+"• Globální: Řídit se nastavením poskytovatele v menu Nastavení\n"
+"• Vynutit VYPNUTO: Nikdy nepoužívat přemýšlení pro tuto akci\n"
+"• Konfigurovat: Nastavit uvažování podle poskytovatele (rozpočet Anthropic, úsilí OpenAI, úroveň Gemini)\n"
 "\n"
-"Může vynutit teplotu 1.0 pro některé modely."
+"Může vynutit teplotu na 1.0 pro některé modely."
 
 #: koassistant_ui/prompts_manager.lua:1763
 #, fuzzy
@@ -4900,23 +4941,23 @@ msgstr "(globální)"
 #: koassistant_ui/prompts_manager.lua:2005
 #, fuzzy
 msgid "OFF"
-msgstr "VYP"
+msgstr "VYPNUTO"
 
 #: koassistant_ui/prompts_manager.lua:1766
 #, fuzzy
 msgid "ON (%1 tokens)"
-msgstr "ZAP (%1 tokenů)"
+msgstr "ZAPNUTO (%1 tokenů)"
 
 #: koassistant_ui/prompts_manager.lua:1768
 #: koassistant_ui/prompts_manager.lua:1770
 #, fuzzy
 msgid "ON ("
-msgstr "ZAP ("
+msgstr "ZAPNUTO ("
 
 #: koassistant_ui/prompts_manager.lua:1772
 #, fuzzy
 msgid "ON"
-msgstr "ZAP"
+msgstr "ZAPNUTO"
 
 #: koassistant_ui/prompts_manager.lua:1793
 #, fuzzy
@@ -4950,7 +4991,7 @@ msgstr ""
 #: koassistant_ui/prompts_manager.lua:1863
 #, fuzzy
 msgid "ON (set budget)..."
-msgstr "ZAP (nastavit rozpočet)..."
+msgstr "ZAPNUTO (nastavit rozpočet)..."
 
 #: koassistant_ui/prompts_manager.lua:1883
 #, fuzzy
@@ -4958,14 +4999,14 @@ msgid ""
 "Extended thinking for Claude models.\n"
 "Supports: Sonnet 4.5, Opus 4.x, Haiku 4.5, Sonnet 3.7"
 msgstr ""
-"Rozšířené myšlení pro modely Claude.\n"
+"Rozšířené přemýšlení pro modely Claude.\n"
 "Podporuje: Sonnet 4.5, Opus 4.x, Haiku 4.5, Sonnet 3.7"
 
 #: koassistant_ui/prompts_manager.lua:1899
 #: koassistant_ui/prompts_manager.lua:2071
 #, fuzzy
 msgid "Thinking Budget"
-msgstr "Rozpočet myšlení"
+msgstr "Rozpočet přemýšlení"
 
 #: koassistant_ui/prompts_manager.lua:1900
 #, fuzzy
@@ -4974,7 +5015,7 @@ msgid ""
 "Higher = more complex reasoning.\n"
 "Range: %1 - %2"
 msgstr ""
-"Rozpočet tokenů pro rozšířené myšlení.\n"
+"Rozpočet tokenů pro rozšířené přemýšlení.\n"
 "Vyšší = složitější uvažování.\n"
 "Rozsah: %1 - %2"
 
@@ -5008,7 +5049,7 @@ msgid ""
 "Thinking level for Gemini models.\n"
 "Supports: gemini-3-*-preview"
 msgstr ""
-"Úroveň myšlení pro modely Gemini.\n"
+"Úroveň přemýšlení pro modely Gemini.\n"
 "Podporuje: gemini-3-*-preview"
 
 #: koassistant_ui/prompts_manager.lua:2072
@@ -5077,7 +5118,7 @@ msgstr "Chování AI:"
 #: koassistant_ui/prompts_manager.lua:3008
 #, fuzzy
 msgid "Temp: "
-msgstr "Teplota: %1"
+msgstr "Teplota:"
 
 #: koassistant_ui/prompts_manager.lua:2479
 #, fuzzy
@@ -5088,15 +5129,16 @@ msgid ""
 "\n"
 "Tip: To edit the action prompt, use 'Duplicate' to create a custom copy."
 msgstr ""
-"Upravit nastavení pro: %1\n"
+"Tato nastavení přepíší výchozí hodnoty pro tuto vestavěnou akci.\n"
 "\n"
-"Tato nastavení přepisují výchozí hodnoty pro tuto vestavěnou akci.\n"
-"Nastavte na \"Globální\" pro použití výchozího nastavení."
+"Nastavte na „Globální\" pro použití výchozího nastavení.\n"
+"\n"
+"Tip: Pro úpravu promptu akce použijte „Duplikovat\" k vytvoření vlastní kopie."
 
 #: koassistant_ui/prompts_manager.lua:2498
 #, fuzzy
 msgid "Edit Built-in: %1"
-msgstr "Vestavěné"
+msgstr "Upravit vestavěnou akci: %1"
 
 #: koassistant_ui/prompts_manager.lua:2529
 #: koassistant_ui/prompts_manager.lua:3225
@@ -5122,7 +5164,7 @@ msgid ""
 "Higher = creative"
 msgstr ""
 "Rozsah: 0.0-2.0 (Anthropic max 1.0)\n"
-"Nižší = soustředěný\n"
+"Nižší = zaměřené\n"
 "Vyšší = kreativní"
 
 #: koassistant_ui/prompts_manager.lua:2913
@@ -5139,95 +5181,100 @@ msgstr "Nastavení obnoveno na výchozí"
 #: koassistant_ui/prompts_manager.lua:2988
 #, fuzzy
 msgid "Name: "
-msgstr "Názvy"
+msgstr "Název:"
 
 #: koassistant_ui/prompts_manager.lua:3130
+#, fuzzy
 msgid "Full Editor"
-msgstr ""
+msgstr "Úplný editor"
 
 #: koassistant_ui/prompts_manager.lua:3147
+#, fuzzy
 msgid ""
 "Quick edit: %1\n"
 "\n"
 "For name, context, or prompt text changes, use Full Editor."
 msgstr ""
+"Rychlá úprava: %1\n"
+"\n"
+"Pro změny názvu, kontextu nebo textu promptu použijte Úplný editor."
 
 #: koassistant_ui/prompts_manager.lua:3152
 #, fuzzy
 msgid "Edit Custom Action"
-msgstr "Upravit akci - Prompt akce"
+msgstr "Upravit vlastní akci"
 
 #: koassistant_ui/prompts_manager.lua:3164
 #, fuzzy
 msgid "Action Name"
-msgstr "Upravit akci - Název"
+msgstr "Název akce"
 
 #: koassistant_ui/prompts_manager.lua:3166
 #, fuzzy
 msgid "Enter action name"
-msgstr "Zadejte název štítku"
+msgstr "Zadejte název akce"
 
 #: koassistant_ui/prompts_manager.lua:3212
 #: koassistant_ui/prompts_manager.lua:3326
 #: koassistant_ui/prompts_manager.lua:3378
 #, fuzzy
 msgid "Global (use setting)"
-msgstr "(Použít globální nastavení)"
+msgstr "Globální (použít nastavení)"
 
 #: koassistant_ui/prompts_manager.lua:3255
 #, fuzzy
 msgid "Custom behavior..."
-msgstr "Vlastní chování"
+msgstr "Vlastni chovani..."
 
 #: koassistant_ui/prompts_manager.lua:3275
 #, fuzzy
 msgid "Select AI Behavior"
-msgstr "Chování AI"
+msgstr "Vybrat chovani AI"
 
 #: koassistant_ui/prompts_manager.lua:3287
 #, fuzzy
 msgid "Enter custom behavior instructions..."
-msgstr "Zadejte vlastní instrukce pro chování AI..."
+msgstr "Zadejte vlastni instrukce pro chovani..."
 
 #: koassistant_ui/prompts_manager.lua:3364
 #, fuzzy
 msgid "Select Temperature"
-msgstr "Teplota"
+msgstr "Vybrat teplotu"
 
 #: koassistant_ui/prompts_manager.lua:3469
 #, fuzzy
 msgid "Select Model"
-msgstr "Vybrat model pro"
+msgstr "Vybrat model"
 
 #: koassistant_ui/prompts_manager.lua:3481
 #, fuzzy
 msgid "Enter model name"
-msgstr "Zadejte ID modelu"
+msgstr "Zadejte nazev modelu"
 
 #: koassistant_ui/prompts_manager.lua:3535
 #, fuzzy
 msgid "Selected Text"
-msgstr "Vybraný text"
+msgstr "Vybrany text"
 
 #: koassistant_ui/prompts_manager.lua:3536
 #, fuzzy
 msgid "Book Title"
-msgstr "Název knihy"
+msgstr "Nazev knihy"
 
 #: koassistant_ui/prompts_manager.lua:3537
 #, fuzzy
 msgid "Author Name"
-msgstr "Jméno autora"
+msgstr "Jmeno autora"
 
 #: koassistant_ui/prompts_manager.lua:3538
 #, fuzzy
 msgid "Author Clause"
-msgstr "Klauzule autora"
+msgstr "Autorska dolozka"
 
 #: koassistant_ui/prompts_manager.lua:3539
 #, fuzzy
 msgid "Book Count"
-msgstr "Počet knih"
+msgstr "Pocet knih"
 
 #: koassistant_ui/prompts_manager.lua:3540
 #, fuzzy
@@ -5235,117 +5282,123 @@ msgid "Books List"
 msgstr "Seznam knih"
 
 #: koassistant_ui/prompts_manager.lua:3543
+#, fuzzy
 msgid "Reading Progress (%)"
-msgstr ""
+msgstr "Postup cteni (%)"
 
 #: koassistant_ui/prompts_manager.lua:3544
+#, fuzzy
 msgid "Progress (0.0-1.0)"
-msgstr ""
+msgstr "Postup (0.0-1.0)"
 
 #: koassistant_ui/prompts_manager.lua:3545
 #, fuzzy
 msgid "Book Text (with label)"
-msgstr "Název knihy"
+msgstr "Text knihy (s popiskem)"
 
 #: koassistant_ui/prompts_manager.lua:3546
 #, fuzzy
 msgid "Book Text (raw)"
-msgstr "Kontext knihy (Prohlížeč souborů)"
+msgstr "Text knihy (surovy)"
 
 #: koassistant_ui/prompts_manager.lua:3547
 #, fuzzy
 msgid "Highlights (with label)"
-msgstr "Nabídka zvýraznění (%1 povoleno)"
+msgstr "Zvyrazneni (s popiskem)"
 
 #: koassistant_ui/prompts_manager.lua:3548
 #, fuzzy
 msgid "Highlights (raw)"
-msgstr "Zvýraznění"
+msgstr "Zvyrazneni (surove)"
 
 #: koassistant_ui/prompts_manager.lua:3549
+#, fuzzy
 msgid "Annotations (with label)"
-msgstr ""
+msgstr "Poznamky (s popiskem)"
 
 #: koassistant_ui/prompts_manager.lua:3550
+#, fuzzy
 msgid "Annotations (raw)"
-msgstr ""
+msgstr "Poznamky (surove)"
 
 #: koassistant_ui/prompts_manager.lua:3551
 #, fuzzy
 msgid "Current Chapter"
-msgstr "Aktuální štítky:"
+msgstr "Aktualni kapitola"
 
 #: koassistant_ui/prompts_manager.lua:3552
+#, fuzzy
 msgid "Chapters Read Count"
-msgstr ""
+msgstr "Pocet prectenych kapitol"
 
 #: koassistant_ui/prompts_manager.lua:3553
+#, fuzzy
 msgid "Time Since Last Read"
-msgstr ""
+msgstr "Cas od posledniho cteni"
 
 #: koassistant_ui/prompts_manager.lua:3568
 #, fuzzy
 msgid "(No placeholders for general context)"
-msgstr "(Žádné zástupné symboly pro obecný kontext)"
+msgstr "(Zadne zastupne znaky pro obecny kontext)"
 
 #: koassistant_ui/prompts_manager.lua:3607
 #, fuzzy
 msgid "Insert Placeholder"
-msgstr "Vložit zástupný symbol"
+msgstr "Vlozit zastupny znak"
 
 #: koassistant_ui/prompts_manager.lua:3672
 #, fuzzy
 msgid "Action added successfully"
-msgstr "Akce úspěšně přidána"
+msgstr "Akce uspesne pridana"
 
 #: koassistant_ui/prompts_manager.lua:3729
 #: koassistant_ui/prompts_manager.lua:3738
 #, fuzzy
 msgid "Action updated successfully"
-msgstr "Akce úspěšně aktualizována"
+msgstr "Akce uspesne aktualizovana"
 
 #: koassistant_ui/prompts_manager.lua:3763
 #, fuzzy
 msgid "Action deleted successfully"
-msgstr "Akce úspěšně smazána"
+msgstr "Akce uspesne smazana"
 
 #: koassistant_ui/prompts_manager.lua:3811
 #: koassistant_ui/prompts_manager.lua:3974
 #, fuzzy
 msgid "No highlight actions available."
-msgstr "Žádné akce zvýraznění nejsou dostupné."
+msgstr "Zadne akce zvyrazneni nejsou k dispozici."
 
 #: koassistant_ui/prompts_manager.lua:3826
 #, fuzzy
 msgid "✓ = in menu | Tap = toggle | Hold = move"
-msgstr "✓ = v nabídce | Klepnutí = přepnout | Podržení = přesunout"
+msgstr "✓ = v nabidce | Klepnuti = prepnout | Podrzeni = presunout"
 
 #: koassistant_ui/prompts_manager.lua:3852
 #, fuzzy
 msgid "Changes require restart to take effect"
-msgstr "Změny vyžadují restart pro uplatnění"
+msgstr "Zmeny se projevi az po restartu"
 
 #: koassistant_ui/prompts_manager.lua:3865
 #, fuzzy
 msgid "Highlight Menu (%1 enabled)"
-msgstr "Nabídka zvýraznění (%1 povoleno)"
+msgstr "Nabidka zvyrazneni (%1 povoleno)"
 
 #: koassistant_ui/prompts_manager.lua:3904
 #: koassistant_ui/prompts_manager.lua:4062
 #, fuzzy
 msgid "↑ Move Up"
-msgstr "↑ Posunout nahoru"
+msgstr "↑ Presunout nahoru"
 
 #: koassistant_ui/prompts_manager.lua:3918
 #: koassistant_ui/prompts_manager.lua:4076
 #, fuzzy
 msgid "↓ Move Down"
-msgstr "↓ Posunout dolů"
+msgstr "↓ Presunout dolu"
 
 #: koassistant_ui/prompts_manager.lua:3931
 #, fuzzy
 msgid "Remove from Menu"
-msgstr "Odebrat z nabídky"
+msgstr "Odebrat z nabidky"
 
 #: koassistant_ui/prompts_manager.lua:3952
 #: koassistant_ui/prompts_manager.lua:4110
@@ -5356,17 +5409,17 @@ msgstr "Pozice:"
 #: koassistant_ui/prompts_manager.lua:3989
 #, fuzzy
 msgid "✓ = in popup | Tap = toggle | Hold = move"
-msgstr "✓ = ve vyskakovacím okně | Klepnutí = přepnout | Podržení = přesunout"
+msgstr "✓ = ve vyskakovacim okne | Klepnuti = prepnout | Podrzeni = presunout"
 
 #: koassistant_ui/prompts_manager.lua:4023
 #, fuzzy
 msgid "Dictionary Popup (%1 enabled)"
-msgstr "Vyskakovací slovník (%1 povoleno)"
+msgstr "Vyskakovaci okno slovniku (%1 povoleno)"
 
 #: koassistant_ui/prompts_manager.lua:4089
 #, fuzzy
 msgid "Remove from Popup"
-msgstr "Odebrat z vyskakovacího okna"
+msgstr "Odebrat z vyskakovaciho okna"
 
 #: koassistant_ui/settings_manager.lua:246
 #, fuzzy
@@ -5386,7 +5439,7 @@ msgstr "Vysvětlit"
 #: prompts/actions.lua:97
 #, fuzzy
 msgid "ELI5"
-msgstr "Vysvětli jednoduše"
+msgstr "Vysvětlit jednoduše"
 
 #: prompts/actions.lua:109
 #, fuzzy
@@ -5396,12 +5449,12 @@ msgstr "Shrnout"
 #: prompts/actions.lua:121
 #, fuzzy
 msgid "Elaborate"
-msgstr "Rozvést"
+msgstr "Rozšířit"
 
 #: prompts/actions.lua:133
 #, fuzzy
 msgid "Connect"
-msgstr "Test připojení"
+msgstr "Propojit"
 
 #: prompts/actions.lua:158
 #, fuzzy
@@ -5424,17 +5477,19 @@ msgid "Historical Context"
 msgstr "Historický kontext"
 
 #: prompts/actions.lua:394
+#, fuzzy
 msgid "Related Thinkers"
-msgstr ""
+msgstr "Související myslitelé"
 
 #: prompts/actions.lua:427
+#, fuzzy
 msgid "Key Arguments"
-msgstr ""
+msgstr "Klíčové argumenty"
 
 #: prompts/actions.lua:467
 #, fuzzy
 msgid "Discussion Questions"
-msgstr "Nastavení slovníku"
+msgstr "Diskuzní otázky"
 
 #: prompts/actions.lua:505
 #, fuzzy
@@ -5454,11 +5509,12 @@ msgstr "Analyzovat sbírku"
 #: prompts/actions.lua:536
 #, fuzzy
 msgid "Quick Summaries"
-msgstr "Rychlá shrnutí"
+msgstr "Rychlé shrnutí"
 
 #: prompts/actions.lua:547
+#, fuzzy
 msgid "Reading Order"
-msgstr ""
+msgstr "Pořadí čtení"
 
 #: prompts/actions.lua:583
 #, fuzzy
