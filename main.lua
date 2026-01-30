@@ -1085,10 +1085,11 @@ function AskGPT:updateConfigFromSettings()
   configuration.model = features.model
   configuration.features = features
 
-  -- Ensure transient flags are cleared (these are only set at runtime for dictionary lookups)
-  -- This prevents compact_view from "leaking" to non-dictionary actions
+  -- Ensure transient flags are cleared (these are only set at runtime for specific actions)
+  -- This prevents flags from "leaking" to other actions
   configuration.features.compact_view = nil
   configuration.features.minimal_buttons = nil
+  configuration.features.is_full_page_translate = nil  -- Only set by translateCurrentPage
 
   -- Log the current configuration for debugging
   local config_parts = {
@@ -4066,12 +4067,9 @@ function AskGPT:translateCurrentPage()
   -- Explicitly ensure full view (not compact)
   config_copy.features.compact_view = false
   config_copy.features.minimal_buttons = false
-  -- Full page translate always hides original (if setting enabled, which is default)
-  -- Note: translate_view flag is set by handlePredefinedPrompt based on action.translate_view
-  -- We just need to force hide_quote for full page here
-  if config_copy.features.translate_hide_full_page ~= false then
-    config_copy.features.translate_hide_quote = true
-  end
+  -- Mark this as full page translate so handlePredefinedPrompt can apply translate_hide_full_page setting
+  -- Note: The actual hiding is handled in handlePredefinedPrompt which respects user's translate_hide_highlight_mode
+  config_copy.features.is_full_page_translate = true
 
   -- Execute translation
   logger.info("KOAssistant: translateCurrentPage calling executeDirectAction with page_text:", page_text and #page_text or "nil/empty")

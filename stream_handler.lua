@@ -209,10 +209,8 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
     local width, text_height, is_movable
     local large_dialog = settings and settings.large_stream_dialog ~= false
     if large_dialog then
-        -- Large streaming dialog (same size as chat window - 95%)
-        -- Calculate text_height to achieve ~95% total dialog height
+        -- Large streaming dialog (Wikipedia-style: near-100% with tiny margin)
         -- Streaming dialog chrome: title bar (~50px), 1 button row (~50px), borders/padding (~20px)
-        -- Note: Chat viewer has 2 button rows, so streaming has less chrome
         local chrome_height = Screen:scaleBySize(120)
         width = UIConstants.CHAT_WIDTH()
         text_height = UIConstants.CHAT_HEIGHT() - chrome_height

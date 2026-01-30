@@ -1608,23 +1608,30 @@ local function handlePredefinedPrompt(prompt_type_or_action, highlightedText, ui
         end
 
         -- Determine initial hide state for original text
-        -- Only apply if not already set (e.g., translate_hide_full_page sets this for full page translate)
-        if temp_config.features.translate_hide_quote ~= true then
-            local hide_mode = f.translate_hide_highlight_mode or "follow_global"
-            if hide_mode == "always_hide" then
-                temp_config.features.translate_hide_quote = true
-            elseif hide_mode == "hide_long" then
-                local threshold = f.translate_long_highlight_threshold or 200
-                local text_length = highlightedText and #highlightedText or 0
-                temp_config.features.translate_hide_quote = (text_length > threshold)
-            elseif hide_mode == "follow_global" then
-                -- Replicate global hide logic: hide_highlighted_text OR (hide_long_highlights AND over threshold)
-                local text_length = highlightedText and #highlightedText or 0
-                local global_threshold = f.long_highlight_threshold or 280
-                temp_config.features.translate_hide_quote = f.hide_highlighted_text or
-                    (f.hide_long_highlights and text_length > global_threshold)
-            end
-            -- "never_hide" defaults to false (already nil/false by default)
+        -- Apply user's translate_hide_highlight_mode setting (default: hide_long per schema)
+        local hide_mode = f.translate_hide_highlight_mode or "hide_long"
+        local is_full_page = temp_config.features.is_full_page_translate
+
+        if hide_mode == "always_hide" then
+            temp_config.features.translate_hide_quote = true
+        elseif hide_mode == "hide_long" then
+            local threshold = f.translate_long_highlight_threshold or 200
+            local text_length = highlightedText and #highlightedText or 0
+            temp_config.features.translate_hide_quote = (text_length > threshold)
+        elseif hide_mode == "follow_global" then
+            -- Replicate global hide logic: hide_highlighted_text OR (hide_long_highlights AND over threshold)
+            local text_length = highlightedText and #highlightedText or 0
+            local global_threshold = f.long_highlight_threshold or 280
+            temp_config.features.translate_hide_quote = f.hide_highlighted_text or
+                (f.hide_long_highlights and text_length > global_threshold)
+        elseif hide_mode == "never_hide" then
+            temp_config.features.translate_hide_quote = false
+        end
+
+        -- Full page translate override: checkbox is the ultimate override when checked
+        -- This ONLY affects full page translations, not regular highlight translations
+        if is_full_page and f.translate_hide_full_page == true then
+            temp_config.features.translate_hide_quote = true
         end
     end
 
