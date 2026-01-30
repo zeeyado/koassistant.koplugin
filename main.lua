@@ -12,6 +12,7 @@ local Notification = require("ui/widget/notification")
 local LuaSettings = require("luasettings")
 local DataStorage = require("datastorage")
 local FileManager = require("apps/filemanager/filemanager")
+local lfs = require("libs/libkoreader-lfs")
 local T = require("ffi/util").template
 local logger = require("logger")
 local util = require("util")
@@ -5886,8 +5887,6 @@ end
 function AskGPT:migrateChatsToDocSettings()
   local ChatHistoryManager = require("koassistant_chat_history_manager")
   local DocSettings = require("docsettings")
-  local InfoMessage = require("ui/widget/infomessage")
-  local T = require("ffi/util").template
 
   -- Set migration lock
   G_reader_settings:saveSetting("chat_migration_in_progress", true)
