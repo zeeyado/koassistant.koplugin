@@ -1049,7 +1049,7 @@ Chat History → hamburger menu → **View by Domain**
   - **Markdown**: Full formatting with bold, lists, headers, etc. (default)
   - **Plain Text**: Better font support for Arabic, CJK, Hebrew, and other non-Latin scripts
 - **Plain Text Options**: Settings for Plain Text mode
-  - **Apply Markdown Stripping**: Convert markdown syntax to readable plain text (headers become `━━ Title ━━`, lists become `•`, etc.). Disable to show raw markdown. (default: on)
+  - **Apply Markdown Stripping**: Convert markdown syntax to readable plain text. Headers use Wikipedia-style symbols (`█ H1`, `▉ H2`, `◤ H3`, etc.), lists become `•`, code becomes `'quoted'`. Disable to show raw markdown. (default: on)
 - **Hide Highlighted Text**: Don't show selection in responses
 - **Hide Long Highlights**: Collapse highlights over character threshold
 - **Long Highlight Threshold**: Character limit before collapsing (default: 280)
