@@ -967,6 +967,40 @@ function ActionService:toggleDictionaryPopupAction(action_id)
 end
 
 -- ============================================================
+-- Reading Features Actions (X-Ray, Recap, Analyze Highlights)
+-- ============================================================
+
+-- Get ordered list of reading features actions (from in_reading_features flag)
+-- Unlike highlight/dictionary menus, this returns full action objects
+-- Used by settings schema and gesture registration
+function ActionService:getReadingFeaturesActions()
+    if not self.Actions then
+        return {}
+    end
+
+    local result = {}
+
+    -- Scan book context actions for in_reading_features flag
+    if self.Actions.book then
+        for _id, action in pairs(self.Actions.book) do
+            if action.in_reading_features then
+                table.insert(result, {
+                    id = action.id,
+                    text = action.text,
+                    info_text = action.info_text,
+                    order = action.in_reading_features,
+                })
+            end
+        end
+    end
+
+    -- Sort by order
+    table.sort(result, function(a, b) return a.order < b.order end)
+
+    return result
+end
+
+-- ============================================================
 -- Action Duplication
 -- ============================================================
 

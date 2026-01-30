@@ -48,6 +48,7 @@ local SettingsSchema = {
         },
 
         -- Reading Features submenu (visible only when document is open)
+        -- Items built dynamically from actions with in_reading_features flag
         {
             id = "reading_features",
             type = "submenu",
@@ -56,29 +57,7 @@ local SettingsSchema = {
                 return plugin.ui and plugin.ui.document ~= nil
             end,
             separator = true,
-            items = {
-                {
-                    id = "xray",
-                    type = "action",
-                    text = _("X-Ray"),
-                    info_text = _("Generate a structured reference guide for the book up to your current position. Includes characters, locations, themes, and plot events."),
-                    callback = "onKOAssistantXRay",
-                },
-                {
-                    id = "recap",
-                    type = "action",
-                    text = _("Recap"),
-                    info_text = _("Get a 'Previously on...' style summary to refresh your memory when returning to a book."),
-                    callback = "onKOAssistantRecap",
-                },
-                {
-                    id = "analyze_highlights",
-                    type = "action",
-                    text = _("Analyze Highlights"),
-                    info_text = _("Analyze your highlights and annotations to discover reading patterns and connections."),
-                    callback = "onKOAssistantAnalyzeHighlights",
-                },
-            },
+            callback = "buildReadingFeaturesMenu",
         },
 
         -- Provider, Model, Temperature (top-level)

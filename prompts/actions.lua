@@ -289,6 +289,7 @@ If you don't recognize this work or the content seems unclear, tell me honestly 
             max_tokens = 4096,
         },
         builtin = true,
+        in_reading_features = 1,  -- Appears in Reading Features menu + default gesture
     },
     -- Recap: Story summary for re-immersion
     recap = {
@@ -336,6 +337,7 @@ If you don't recognize this work or the title/content seems unclear, tell me hon
             max_tokens = 2048,
         },
         builtin = true,
+        in_reading_features = 2,  -- Appears in Reading Features menu + default gesture
     },
     -- Analyze Highlights: Insights from user's annotations
     analyze_highlights = {
@@ -387,6 +389,7 @@ If you don't recognize this work or the highlights seem insufficient for meaning
             max_tokens = 2048,
         },
         builtin = true,
+        in_reading_features = 3,  -- Appears in Reading Features menu + default gesture
     },
     -- Related Thinkers: Intellectual landscape and influences
     related_thinkers = {
