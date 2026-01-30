@@ -295,7 +295,11 @@ def write_po_file(entries: List[POEntry], filepath: Path,
     with open(filepath, 'w', encoding='utf-8') as f:
         for i, entry in enumerate(entries):
             should_remove_fuzzy = entry.msgid in remove_fuzzy_for
-            should_add_fuzzy = entry.msgid in add_fuzzy_for and not entry.is_verified
+            # Note: Don't check entry.is_verified here - by the time write_po_file is called,
+            # entries have already been modified (msgstr set), so previously-empty strings
+            # would appear "verified" (has translation, no fuzzy yet). The caller is
+            # responsible for building correct add_fuzzy_for set (import already filters verified).
+            should_add_fuzzy = entry.msgid in add_fuzzy_for
 
             wrote_fuzzy_line = False
             for comment in entry.comments:
