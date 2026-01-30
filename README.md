@@ -1715,6 +1715,12 @@ Edit `apikeys.lua` and add your key for the selected provider.
 1. Check Settings → Conversations → Auto-save settings
 2. Manually save via the Save button in chat
 
+### Bypass or highlight menu actions not working
+KOReader has text selection settings that can interfere with KOAssistant features. Check **Settings → Taps and Gestures → Long-press on text** (only visible in reader view):
+
+- **Dictionary on single word selection** must be enabled for dictionary bypass to work. If disabled, single-word selections trigger highlight bypass instead.
+- **Highlight action** must be set to "Ask with popup dialog" for highlight menu actions to appear. If set to bypass KOReader's highlight menu, KOAssistant actions won't be accessible.
+
 ### Settings Reset
 
 If you're experiencing issues after updating the plugin, or want a fresh start with default settings:
