@@ -1594,10 +1594,10 @@ function BackupManager:restoreBackup(backup_path, options)
             -- v2: JSON backup - restore to DocSettings
             logger.info("BackupManager: Restoring chats from JSON (v2 format)")
 
-            local success, err_msg = self:restoreChatsFromJSON(json_path, options.merge_mode)
-            if not success then
-                logger.err("BackupManager: Failed to restore chats from JSON:", err_msg)
-                table.insert(warnings, "Failed to restore some chats: " .. (err_msg or "unknown error"))
+            local json_success, json_err = self:restoreChatsFromJSON(json_path, options.merge_mode)
+            if not json_success then
+                logger.err("BackupManager: Failed to restore chats from JSON:", json_err)
+                table.insert(warnings, "Failed to restore some chats: " .. (json_err or "unknown error"))
             end
         elseif lfs.attributes(backup_chats_dir, "mode") == "directory" then
             -- v1: Legacy directory backup - restore to CHAT_DIR
