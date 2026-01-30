@@ -64,19 +64,27 @@ local function stripMarkdown(text)
     -- Separator rows contain only |, -, :, and whitespace
     result = result:gsub("\n%s*|[%s%-:]+|[%s%-:|]*\n", "\n")
 
-    -- Headers: Use universal symbols (works for all scripts including Arabic, CJK)
-    -- # H1 or ## H2 → ━━ Header ━━
-    -- ### H3+ → ▸ Header:
+    -- Headers: Use Wikipedia-style hierarchical symbols (works for all scripts)
+    -- Symbols from KOReader's Wikipedia plugin (wikipedia.lua)
+    local header_symbols = {
+        "█",   -- H1: Full Block (U+2588)
+        "▉",   -- H2: Seven Eighths Block (U+2589)
+        "◤",   -- H3: Black Upper Left Triangle (U+25E4)
+        "◆",   -- H4: Black Diamond (U+25C6)
+        "✿",   -- H5: Black Florette (U+273F)
+        "❖",   -- H6: Black Diamond Minus White X (U+2756)
+    }
     local lines = {}
     for line in result:gmatch("([^\n]*)\n?") do
         local hashes, content = line:match("^(#+)%s*(.-)%s*$")
         if hashes and content and #content > 0 then
-            if #hashes <= 2 then
-                -- H1/H2: Decorative lines around text
-                table.insert(lines, "━━ " .. content .. " ━━")
+            local level = math.min(#hashes, 6)
+            local symbol = header_symbols[level]
+            -- H3+ get slight indent for hierarchy
+            if level >= 3 then
+                table.insert(lines, " " .. symbol .. " " .. content)
             else
-                -- H3+: Bullet prefix with colon
-                table.insert(lines, "▸ " .. content .. ":")
+                table.insert(lines, symbol .. " " .. content)
             end
         else
             table.insert(lines, line)
