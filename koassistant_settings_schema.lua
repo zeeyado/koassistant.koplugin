@@ -974,7 +974,7 @@ local SettingsSchema = {
                         return T(_("Original Text: %1"), labels[mode] or mode)
                     end,
                     path = "features.translate_hide_highlight_mode",
-                    default = "follow_global",
+                    default = "hide_long",
                     options = {
                         { value = "follow_global", text = _("Follow Global (Display Settings)") },
                         { value = "always_hide", text = _("Always Hide") },
@@ -987,7 +987,7 @@ local SettingsSchema = {
                     type = "spinner",
                     text = _("Long Text Threshold"),
                     path = "features.translate_long_highlight_threshold",
-                    default = 200,
+                    default = 280,
                     min = 50,
                     max = 1000,
                     step = 10,
