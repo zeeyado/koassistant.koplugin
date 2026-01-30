@@ -2156,10 +2156,10 @@ function ChatGPTViewer:saveToNote()
   if self.translate_view then
     content = features.translate_note_content or "response"
     if content == "global" then
-      content = features.note_content or "response"
+      content = features.note_content or "qa"
     end
   else
-    content = features.note_content or "response"
+    content = features.note_content or "qa"
   end
   local style = features.export_style or "markdown"
 

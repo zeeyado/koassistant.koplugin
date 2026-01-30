@@ -1555,8 +1555,8 @@ function ChatHistoryDialog:showExportOptions(document_path, chat_id, chat_histor
     local self_ref = self
     local features = config and config.features or {}
 
-    -- Get history-specific content setting, fall back to global copy_content
-    local content = features.history_copy_content or "global"
+    -- Get history-specific content setting, fall back to asking
+    local content = features.history_copy_content or "ask"
     if content == "global" then
         content = features.copy_content or "full"
     end
