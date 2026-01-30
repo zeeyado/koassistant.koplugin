@@ -104,6 +104,42 @@ function PromptsManager:getStateReasoningDisplayText(state)
     return self:getReasoningDisplayText(state)
 end
 
+-- Check if a context is gesture-compatible (can be registered as a gesture)
+-- Only book and general contexts are compatible - highlight requires text selection,
+-- multi_book requires file browser multi-select
+function PromptsManager:isGestureCompatibleContext(context)
+    return context == "book" or context == "general" or context == "book+general"
+end
+
+-- Check if an action is registered as a gesture
+function PromptsManager:isGestureEnabled(prompt)
+    if not self:isGestureCompatibleContext(prompt.context) then
+        return false
+    end
+    local features = self.plugin.settings:readSetting("features") or {}
+    local gesture_actions = features.gesture_actions or {}
+    local key = prompt.context .. ":" .. prompt.id
+    return gesture_actions[key] == true
+end
+
+-- Toggle gesture registration for an action
+function PromptsManager:setGestureEnabled(prompt, enabled)
+    if not self:isGestureCompatibleContext(prompt.context) then
+        return
+    end
+    local features = self.plugin.settings:readSetting("features") or {}
+    local gesture_actions = features.gesture_actions or {}
+    local key = prompt.context .. ":" .. prompt.id
+    if enabled then
+        gesture_actions[key] = true
+    else
+        gesture_actions[key] = nil
+    end
+    features.gesture_actions = gesture_actions
+    self.plugin.settings:saveSetting("features", features)
+    self.plugin.settings:flush()
+end
+
 function PromptsManager:show()
     self:loadPrompts()
     self:showPromptsMenu()
@@ -308,7 +344,7 @@ function PromptsManager:showPromptsMenu()
     
     -- Add help text at the top
     table.insert(menu_items, {
-        text = _("Tap to toggle • Hold for details • ★ = custom • ⚙ = modified"),
+        text = _("Tap to toggle • Hold for details • ★ = custom • ⚙ = modified • [gesture] = in gesture menu"),
         dim = true,
         enabled = false,
     })
@@ -378,6 +414,11 @@ function PromptsManager:showPromptsMenu()
                 -- Uses dynamic inference from flags, not just explicit requires_open_book
                 if Actions.requiresOpenBook(prompt) then
                     item_text = item_text .. " [reading]"
+                end
+
+                -- Add gesture indicator (only for gesture-compatible contexts)
+                if self:isGestureEnabled(prompt) then
+                    item_text = item_text .. " [gesture]"
                 end
 
                 -- Add checkbox with better spacing
@@ -766,9 +807,32 @@ function PromptsManager:showPromptDetails(prompt)
                     local now_in_popup = self.plugin.action_service:toggleDictionaryPopupAction(prompt.id)
                     UIManager:close(self.details_dialog)
                     UIManager:show(InfoMessage:new{
-                        text = now_in_popup and _("Added to dictionary popup.") or _("Removed from dictionary popup."),
+                        text = now_in_popup and _("Removed from dictionary popup.") or _("Added to dictionary popup."),
                         timeout = 2,
                     })
+                end,
+            },
+        })
+    end
+
+    -- Add gesture toggle for gesture-compatible contexts (book, general, book+general)
+    -- Only show for enabled actions (disabled actions shouldn't be in gesture menu)
+    if self:isGestureCompatibleContext(prompt.context) and prompt.enabled then
+        local in_gesture = self:isGestureEnabled(prompt)
+        table.insert(buttons, {
+            {
+                text = in_gesture and _("✓ In Gesture Menu") or _("Add to Gesture Menu"),
+                callback = function()
+                    local self_ref = self
+                    self_ref:setGestureEnabled(prompt, not in_gesture)
+                    UIManager:close(self_ref.details_dialog)
+                    UIManager:show(InfoMessage:new{
+                        text = in_gesture
+                            and _("Removed from gesture menu.\nRestart KOReader to apply.")
+                            or _("Added to gesture menu.\nRestart KOReader to apply."),
+                        timeout = 3,
+                    })
+                    self_ref:refreshMenu()
                 end,
             },
         })
