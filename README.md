@@ -922,11 +922,16 @@ By default, all chats are automatically saved. You can disable this in Settings 
 Hamburger Menu:
 
 Browse saved conversations organized by:
-- **By Document**: Chats grouped by book (including "General AI Chats")
+- **By Document**: Chats grouped by book (including "General AI Chats", "Multi-Book Chats", and individual books)
 - **By Domain**: Filter by knowledge domain (hamburger menu → View by Domain)
 - **By Tag**: Filter by tags you've added (hamburger menu → View by Tag)
 
 Delete all chats
+
+**Chat organization**: In the document view, chats are sorted as:
+1. 💬 General AI Chats
+2. 📚 Multi-Book Chats (comparisons and analyses across multiple books)
+3. Individual books (alphabetically)
 
 ### Chat Actions
 
@@ -949,8 +954,8 @@ When you tap Export on a chat, you can choose:
 - **Full / Q+A / Response / Everything**: Fixed export format
 
 **Directory options** for Save to File (Settings → Chat Settings → Save to File):
-- **Same folder as book** (default): Saves to `[book_folder]/chats/` subfolder; general chats go to exports folder
-- **Same folder (custom fallback)**: Book folder for book chats, custom path for general chats
+- **Same folder as book** (default): Saves to `[book_folder]/chats/` subfolder; general and multi-book chats go to exports folder
+- **Same folder (custom fallback)**: Book folder for book chats, custom path for general and multi-book chats
 - **Exports folder**: Central `koassistant_exports/` folder in KOReader data directory
 - **Custom path**: User-specified fixed directory
 - **Ask every time**: PathChooser dialog on each save
@@ -964,10 +969,17 @@ The export uses your global Export Style setting (Markdown or Plain Text).
 
 ### Chat Storage & File Moves
 
-**Storage System (v2)**: Chats are stored using KOReader's DocSettings system, which stores metadata alongside your books in `.sdr` folders (in `metadata.lua` itself). This means:
-- ✅ **Chats travel with books** when you move or copy files (in "doc" storage mode)
+**Storage System (v2)**: Chats are organized into three storage locations:
+
+1. **Book chats** — Stored alongside your books in `.sdr/metadata.lua` (per-book via DocSettings)
+2. **General chats** — Stored in `koassistant_general_chats.lua` (global file)
+3. **Multi-book chats** — Stored in `koassistant_multi_book_chats.lua` (global file)
+
+This means:
+- ✅ **Book chats travel with books** when you move or copy files (in "doc" storage mode)
 - ✅ **No data loss** when reorganizing your library
 - ✅ **Automatic index sync**: When you move or rename books via KOReader's file manager, the chat index automatically updates to track the new path — chats remain accessible immediately without needing to reopen books
+- ✅ **Multi-book context preserved**: Chats comparing multiple books (Compare Books, Common Themes) preserve the full list of compared books in metadata and appear in a separate section in Chat History with a 📚 icon
 
 **Storage Modes**: The v2 chat system is tested with KOReader's default **"doc" storage mode** (metadata stored alongside book files in `.sdr` folders). Other storage modes ("dir", "hash") should work via the DocSettings abstraction layer but are currently untested. Testing is in progress.
 
