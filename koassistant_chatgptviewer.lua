@@ -821,7 +821,10 @@ function ChatGPTViewer:init()
         -- Helper to perform the copy
         local function doCopy(selected_content)
           local Export = require("koassistant_export")
-          local data = Export.fromHistory(history, self.original_highlighted_text)
+          -- Extract book metadata and books_info from configuration
+          local book_metadata = features.book_metadata
+          local books_info = features.is_multi_book_context and features.books_info or nil
+          local data = Export.fromHistory(history, self.original_highlighted_text, book_metadata, books_info)
           local text = Export.format(data, selected_content, style)
 
           Device.input.setClipboardText(text)
@@ -1087,7 +1090,10 @@ function ChatGPTViewer:init()
         return
       end
       local Export = require("koassistant_export")
-      local data = Export.fromHistory(history, self.original_highlighted_text)
+      local features = self.configuration and self.configuration.features or {}
+      local book_metadata = features.book_metadata
+      local books_info = features.is_multi_book_context and features.books_info or nil
+      local data = Export.fromHistory(history, self.original_highlighted_text, book_metadata, books_info)
       local text = Export.format(data, "response", "text")  -- Always response, plain text
       if text and text ~= "" then
         Device.input.setClipboardText(text)
@@ -1388,7 +1394,9 @@ function ChatGPTViewer:init()
       -- Helper to perform the copy
       local function doCopy(selected_content)
         local Export = require("koassistant_export")
-        local data = Export.fromHistory(history, self.original_highlighted_text)
+        local book_metadata = features.book_metadata
+        local books_info = features.is_multi_book_context and features.books_info or nil
+        local data = Export.fromHistory(history, self.original_highlighted_text, book_metadata, books_info)
         local text = Export.format(data, selected_content, style)
 
         Device.input.setClipboardText(text)
@@ -2339,7 +2347,9 @@ function ChatGPTViewer:saveToNote()
   -- Helper to perform the save
   local function doSave(selected_content)
     local Export = require("koassistant_export")
-    local data = Export.fromHistory(history, self.original_highlighted_text)
+    local book_metadata = features.book_metadata
+    local books_info = features.is_multi_book_context and features.books_info or nil
+    local data = Export.fromHistory(history, self.original_highlighted_text, book_metadata, books_info)
     local note_text = Export.format(data, selected_content, style)
 
     if note_text == "" then
@@ -2402,10 +2412,12 @@ function ChatGPTViewer:showExportDialog()
 
   local Export = require("koassistant_export")
   local viewer_self = self
+  local export_book_metadata = features.book_metadata
+  local export_books_info = features.is_multi_book_context and features.books_info or nil
 
   -- Helper to perform the copy
   local function doCopy(selected_content)
-    local data = Export.fromHistory(history, viewer_self.original_highlighted_text)
+    local data = Export.fromHistory(history, viewer_self.original_highlighted_text, export_book_metadata, export_books_info)
     local text = Export.format(data, selected_content, style)
     Device.input.setClipboardText(text)
     UIManager:show(Notification:new{
@@ -2416,7 +2428,7 @@ function ChatGPTViewer:showExportDialog()
 
   -- Helper to perform save to file
   local function doSave(selected_content, target_dir)
-    local data = Export.fromHistory(history, viewer_self.original_highlighted_text)
+    local data = Export.fromHistory(history, viewer_self.original_highlighted_text, export_book_metadata, export_books_info)
     local text = Export.format(data, selected_content, style)
 
     if not text or text == "" then

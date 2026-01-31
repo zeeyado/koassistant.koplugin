@@ -14,8 +14,19 @@ local logger = require("logger")
 
 local Export = {}
 
+--- Build minimal context line for Q+A mode
+-- Format: [Action • model] - minimal since notes have implicit book context
+-- @param data table export data
+-- @return string context line
+local function buildContextLine(data)
+    local action = data.title or "Chat"
+    local model = data.model or "Unknown"
+    return string.format("[%s • %s]", action, model)
+end
+
 --- Generate formatted text based on content and style settings
--- @param data table with: messages, model, title, date, document_path, launch_context, last_response
+-- @param data table with: messages, model, title, date, book_title, book_author, books_info,
+--                         domain, tags, launch_context, last_response, document_path (fallback)
 -- @param content string: "full" | "qa" | "response" | "everything"
 -- @param style string: "markdown" | "text"
 -- @return string formatted export text
@@ -28,28 +39,122 @@ function Export.format(data, content, style)
     local is_md = (style == "markdown")
     local result = {}
 
+    -- Q+A mode: Add minimal context line before messages
+    if content == "qa" then
+        local context_line = buildContextLine(data)
+        if context_line then
+            table.insert(result, context_line)
+            table.insert(result, "")
+        end
+    end
+
     -- Full/Everything content: Include metadata header
     if content == "full" or content == "everything" then
         if is_md then
             table.insert(result, "# " .. (data.title or "Chat"))
             table.insert(result, "**Date:** " .. (data.date or "Unknown"))
-            if data.document_path and data.document_path ~= "" then
+
+            -- Smart book display: multi-book > single book > document path (fallback)
+            if data.books_info and #data.books_info > 0 then
+                -- Multi-book: numbered list
+                table.insert(result, "**Books:**")
+                for i, book in ipairs(data.books_info) do
+                    local book_line = string.format('%d. "%s"', i, book.title or "Unknown")
+                    if book.authors and book.authors ~= "" then
+                        book_line = book_line .. " by " .. book.authors
+                    end
+                    table.insert(result, book_line)
+                end
+            elseif data.book_title then
+                -- Single book: title format
+                local book_line = string.format('**Book:** "%s"', data.book_title)
+                if data.book_author and data.book_author ~= "" then
+                    book_line = book_line .. " by " .. data.book_author
+                end
+                table.insert(result, book_line)
+            elseif data.document_path and data.document_path ~= ""
+                   and data.document_path ~= "__GENERAL_CHATS__"
+                   and data.document_path ~= "__MULTI_BOOK_CHATS__" then
+                -- Fallback: show document path only if it's a real file
                 table.insert(result, "**Document:** " .. data.document_path)
             end
+
+            -- Domain and tags (Full/Everything only)
+            if data.domain and data.domain ~= "" then
+                table.insert(result, "**Domain:** " .. data.domain)
+            end
+            if data.tags and #data.tags > 0 then
+                table.insert(result, "**Tags:** " .. table.concat(data.tags, ", "))
+            end
+
             table.insert(result, "**Model:** " .. (data.model or "Unknown"))
-            if data.launch_context and data.launch_context ~= "" then
-                table.insert(result, "**Context:** " .. data.launch_context)
+
+            -- Launch context (general chats launched from a book)
+            if data.launch_context and data.launch_context.title then
+                local launch_info = string.format('**Launched from:** "%s"', data.launch_context.title)
+                if data.launch_context.author then
+                    launch_info = launch_info .. " by " .. data.launch_context.author
+                end
+                table.insert(result, launch_info)
             end
         else
+            -- Plain text version
             table.insert(result, data.title or "Chat")
             table.insert(result, "Date: " .. (data.date or "Unknown"))
-            if data.document_path and data.document_path ~= "" then
+
+            -- Smart book display: multi-book > single book > document path (fallback)
+            if data.books_info and #data.books_info > 0 then
+                table.insert(result, "Books:")
+                for i, book in ipairs(data.books_info) do
+                    local book_line = string.format('%d. "%s"', i, book.title or "Unknown")
+                    if book.authors and book.authors ~= "" then
+                        book_line = book_line .. " by " .. book.authors
+                    end
+                    table.insert(result, book_line)
+                end
+            elseif data.book_title then
+                local book_line = string.format('Book: "%s"', data.book_title)
+                if data.book_author and data.book_author ~= "" then
+                    book_line = book_line .. " by " .. data.book_author
+                end
+                table.insert(result, book_line)
+            elseif data.document_path and data.document_path ~= ""
+                   and data.document_path ~= "__GENERAL_CHATS__"
+                   and data.document_path ~= "__MULTI_BOOK_CHATS__" then
                 table.insert(result, "Document: " .. data.document_path)
             end
-            table.insert(result, "Model: " .. (data.model or "Unknown"))
-            if data.launch_context and data.launch_context ~= "" then
-                table.insert(result, "Context: " .. data.launch_context)
+
+            -- Domain and tags
+            if data.domain and data.domain ~= "" then
+                table.insert(result, "Domain: " .. data.domain)
             end
+            if data.tags and #data.tags > 0 then
+                table.insert(result, "Tags: " .. table.concat(data.tags, ", "))
+            end
+
+            table.insert(result, "Model: " .. (data.model or "Unknown"))
+
+            -- Launch context
+            if data.launch_context and data.launch_context.title then
+                local launch_info = string.format('Launched from: "%s"', data.launch_context.title)
+                if data.launch_context.author then
+                    launch_info = launch_info .. " by " .. data.launch_context.author
+                end
+                table.insert(result, launch_info)
+            end
+        end
+        table.insert(result, "")
+    end
+
+    -- For Full/Everything: Show highlighted text as the user's initial input
+    -- This represents what the user selected/requested (hidden from normal message display)
+    if (content == "full" or content == "everything") and data.highlighted_text and data.highlighted_text ~= "" then
+        if is_md then
+            table.insert(result, "### User")
+            table.insert(result, data.highlighted_text)
+        else
+            table.insert(result, "User:")
+            table.insert(result, data.highlighted_text)
         end
         table.insert(result, "")
     end
@@ -78,8 +183,10 @@ end
 --- Build export data from a MessageHistory object (live chats)
 -- @param history MessageHistory instance
 -- @param highlighted_text string optional original highlighted text
+-- @param book_metadata table optional {title, author} for current book
+-- @param books_info table optional array of {title, authors} for multi-book context
 -- @return table data suitable for Export.format()
-function Export.fromHistory(history, highlighted_text)
+function Export.fromHistory(history, highlighted_text, book_metadata, books_info)
     local messages = history:getMessages() or {}
     local last_msg = history:getLastMessage()
 
@@ -90,6 +197,9 @@ function Export.fromHistory(history, highlighted_text)
         date = os.date("%Y-%m-%d %H:%M"),
         last_response = last_msg and last_msg.content or "",
         highlighted_text = highlighted_text,
+        book_title = book_metadata and book_metadata.title,
+        book_author = book_metadata and book_metadata.author,
+        books_info = books_info,
     }
 end
 
@@ -106,6 +216,12 @@ function Export.fromSavedChat(chat)
         title = chat.title or "Chat",
         date = os.date("%Y-%m-%d %H:%M", chat.timestamp or os.time()),
         document_path = chat.document_path,
+        book_title = chat.book_title,
+        book_author = chat.book_author,
+        books_info = chat.metadata and chat.metadata.books_info,
+        highlighted_text = chat.metadata and chat.metadata.original_highlighted_text,
+        domain = chat.domain,
+        tags = chat.tags,
         launch_context = chat.launch_context,
         last_response = last_msg and last_msg.content or "",
     }

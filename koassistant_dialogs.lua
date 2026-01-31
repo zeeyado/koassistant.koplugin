@@ -1459,7 +1459,9 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
             -- Helper to perform the copy
             local function doCopy(selected_content)
                 local Export = require("koassistant_export")
-                local data = Export.fromHistory(history, highlightedText)
+                -- Extract books_info for multi-book context
+                local books_info = features.is_multi_book_context and features.books_info or nil
+                local data = Export.fromHistory(history, highlightedText, book_metadata, books_info)
                 local text = Export.format(data, selected_content, style)
 
                 if text then
