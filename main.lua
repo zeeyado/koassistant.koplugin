@@ -127,6 +127,9 @@ function AskGPT:init()
   -- Check if chat history migration is needed (v1 -> v2)
   self:checkChatMigrationStatus()
 
+  -- Patch DocSettings for chat index tracking on file moves
+  self:patchDocSettingsForChatIndex()
+
   -- Add to highlight dialog if highlight feature is available
   if self.ui and self.ui.highlight then
     self.ui.highlight:addToHighlightDialog("koassistant_dialog", function(reader_highlight_instance)
@@ -6101,6 +6104,46 @@ koassistant_chats.backup/]]),
 
   logger.info("Chat migration complete - migrated: " .. stats.migrated ..
               ", skipped: " .. stats.skipped .. ", failed: " .. stats.failed)
+end
+
+-- Patch DocSettings.updateLocation() to keep chat index in sync with file moves
+function AskGPT:patchDocSettingsForChatIndex()
+  local DocSettings = require("docsettings")
+
+  -- Only patch once
+  if DocSettings._koassistant_patched then
+    return
+  end
+
+  -- Save original function
+  DocSettings._original_updateLocation = DocSettings.updateLocation
+
+  -- Replace with patched version
+  DocSettings.updateLocation = function(old_path, new_path)
+    -- Call KOReader's original function first
+    DocSettings._original_updateLocation(old_path, new_path)
+
+    -- Update KOAssistant chat index if this book has chats
+    local index = G_reader_settings:readSetting("koassistant_chat_index", {})
+    if index[old_path] then
+      logger.info("KOAssistant: Updating chat index for moved file")
+      logger.dbg("  Old path:", old_path)
+      logger.dbg("  New path:", new_path)
+
+      -- Move index entry to new path
+      index[new_path] = index[old_path]
+      index[old_path] = nil
+
+      -- Save updated index
+      G_reader_settings:saveSetting("koassistant_chat_index", index)
+      G_reader_settings:flush()
+
+      logger.info("KOAssistant: Chat index updated successfully")
+    end
+  end
+
+  DocSettings._koassistant_patched = true
+  logger.info("KOAssistant: DocSettings.updateLocation() patched for chat index tracking")
 end
 
 return AskGPT
