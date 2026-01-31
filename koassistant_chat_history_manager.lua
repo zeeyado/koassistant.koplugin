@@ -8,6 +8,10 @@ local _ = require("koassistant_gettext")
 
 local ChatHistoryManager = {}
 
+-- Mutex flag to detect/prevent concurrent index updates
+-- Lua is single-threaded but KOReader's event loop can interleave callbacks
+local index_operation_pending = false
+
 -- Constants
 ChatHistoryManager.CHAT_DIR = DataStorage:getDataDir() .. "/koassistant_chats"
 ChatHistoryManager.GENERAL_CHAT_FILE = DataStorage:getSettingsDir() .. "/koassistant_general_chats.lua"
@@ -40,8 +44,10 @@ end
 -- Safely write chats to metadata.lua with validation and verification
 -- @param document_path: Full path to document
 -- @param chats: Table of chats keyed by chat_id
+-- @param ui_instance: Optional ReaderUI object - if provided and document matches,
+--                     uses its doc_settings to prevent race conditions with KOReader's flush
 -- @return true on success, false + error message on failure
-local function safeWriteToMetadata(document_path, chats)
+local function safeWriteToMetadata(document_path, chats, ui_instance)
     local DocSettings = require("docsettings")
 
     -- Validate each chat
@@ -52,9 +58,21 @@ local function safeWriteToMetadata(document_path, chats)
         end
     end
 
+    -- Determine which DocSettings instance to use
+    -- If we have a UI instance with the same document open, use its doc_settings
+    -- to avoid race conditions with KOReader's own flush operations
+    local doc_settings
+    local using_ui_settings = false
+    if ui_instance and ui_instance.document and ui_instance.document.file == document_path and ui_instance.doc_settings then
+        doc_settings = ui_instance.doc_settings
+        using_ui_settings = true
+        logger.dbg("safeWriteToMetadata: Using UI's doc_settings for " .. document_path)
+    else
+        doc_settings = DocSettings:open(document_path)
+    end
+
     -- Attempt atomic write with error handling
     local ok, err = pcall(function()
-        local doc_settings = DocSettings:open(document_path)
         doc_settings:saveSetting("koassistant_chats", chats)
         doc_settings:flush()
     end)
@@ -64,9 +82,15 @@ local function safeWriteToMetadata(document_path, chats)
     end
 
     -- Verify the write succeeded by reading back
+    -- Note: If using UI's settings, the data is already in memory so this is fast
     local verify_ok, verify_err = pcall(function()
-        local doc_settings = DocSettings:open(document_path)
-        local read_back = doc_settings:readSetting("koassistant_chats")
+        local verify_settings
+        if using_ui_settings then
+            verify_settings = doc_settings  -- Same instance, data is in memory
+        else
+            verify_settings = DocSettings:open(document_path)
+        end
+        local read_back = verify_settings:readSetting("koassistant_chats")
         if not read_back then
             error("Verification failed: data not found after write")
         end
@@ -1486,16 +1510,25 @@ function ChatHistoryManager:saveChatToDocSettings(ui, chat_data)
         return false
     end
 
-    -- Read existing chats from metadata.lua
+    -- Read existing chats - try to use UI's doc_settings if available to stay in sync
     local DocSettings = require("docsettings")
-    local doc_settings = DocSettings:open(chat_data.document_path)
-    local chats = doc_settings:readSetting("koassistant_chats", {})
+    local chats
+
+    if ui and ui.document and ui.document.file == chat_data.document_path and ui.doc_settings then
+        -- Use UI's doc_settings to read current state (may have unsaved changes)
+        chats = ui.doc_settings:readSetting("koassistant_chats", {})
+    else
+        -- Fallback to fresh instance from disk
+        local doc_settings = DocSettings:open(chat_data.document_path)
+        chats = doc_settings:readSetting("koassistant_chats", {})
+    end
 
     -- Add or update this chat (keyed by ID)
     chats[chat_data.id] = chat_data
 
     -- Safe write to metadata.lua with validation
-    local ok, err = safeWriteToMetadata(chat_data.document_path, chats)
+    -- Pass ui to use its doc_settings if document is open (prevents race with KOReader flush)
+    local ok, err = safeWriteToMetadata(chat_data.document_path, chats, ui)
     if not ok then
         logger.warn("saveChatToDocSettings: " .. (err or "Write failed"))
         return false
@@ -1629,7 +1662,8 @@ function ChatHistoryManager:deleteChatFromDocSettings(ui, chat_id, document_path
     chats[chat_id] = nil
 
     -- Safe write back to metadata.lua
-    local ok, err = safeWriteToMetadata(actual_doc_path, chats)
+    -- Pass ui to use its doc_settings if document is open (prevents race with KOReader flush)
+    local ok, err = safeWriteToMetadata(actual_doc_path, chats, ui)
     if not ok then
         logger.warn("deleteChatFromDocSettings: " .. (err or "Write failed"))
         return false
@@ -1690,7 +1724,8 @@ function ChatHistoryManager:updateChatInDocSettings(ui, chat_id, updates, docume
     end
 
     -- Safe write back to metadata.lua
-    local ok, err = safeWriteToMetadata(actual_doc_path, chats)
+    -- Pass ui to use its doc_settings if document is open (prevents race with KOReader flush)
+    local ok, err = safeWriteToMetadata(actual_doc_path, chats, ui)
     if not ok then
         logger.warn("updateChatInDocSettings: " .. (err or "Write failed"))
         return false
@@ -2002,6 +2037,14 @@ function ChatHistoryManager:updateChatIndex(document_path, operation, chat_id, c
         return
     end
 
+    -- Check for concurrent index operations
+    -- Lua is single-threaded but callbacks can interleave in KOReader's event loop
+    if index_operation_pending then
+        logger.warn("KOAssistant: Index update collision detected for " .. document_path ..
+                   " (operation: " .. operation .. "). Proceeding anyway but this may cause issues.")
+    end
+    index_operation_pending = true
+
     -- G_reader_settings is a global in KOReader
     local index = G_reader_settings:readSetting("koassistant_chat_index", {})
 
@@ -2056,6 +2099,9 @@ function ChatHistoryManager:updateChatIndex(document_path, operation, chat_id, c
     G_reader_settings:saveSetting("koassistant_chat_index", index)
     G_reader_settings:flush()
 
+    -- Clear mutex flag
+    index_operation_pending = false
+
     logger.info("Updated chat index for: " .. document_path .. " (operation: " .. operation .. ", count: " .. count .. ")")
 end
 
@@ -2064,6 +2110,57 @@ end
 function ChatHistoryManager:getChatIndex()
     -- G_reader_settings is a global in KOReader
     return G_reader_settings:readSetting("koassistant_chat_index", {})
+end
+
+-- Validate chat index on startup
+-- Checks each indexed document's metadata.lua to ensure counts match
+-- Removes orphan entries (documents that no longer exist or have no chats)
+-- This is NOT a full device scan - only validates existing index entries
+function ChatHistoryManager:validateChatIndex()
+    local index = G_reader_settings:readSetting("koassistant_chat_index", {})
+    local needs_update = false
+    local DocSettings = require("docsettings")
+
+    for doc_path, entry in pairs(index) do
+        -- Check if document still exists
+        if not lfs.attributes(doc_path, "mode") then
+            logger.info("KOAssistant: Removing orphan index entry (document gone): " .. doc_path)
+            index[doc_path] = nil
+            needs_update = true
+        else
+            -- Verify chat count matches metadata.lua
+            local doc_settings = DocSettings:open(doc_path)
+            local chats = doc_settings:readSetting("koassistant_chats", {})
+
+            local actual_ids = {}
+            local actual_count = 0
+            for id in pairs(chats) do
+                actual_count = actual_count + 1
+                table.insert(actual_ids, id)
+            end
+
+            if actual_count ~= entry.count then
+                logger.info("KOAssistant: Fixing index count mismatch for: " .. doc_path ..
+                           " (index=" .. entry.count .. ", actual=" .. actual_count .. ")")
+                if actual_count == 0 then
+                    index[doc_path] = nil
+                else
+                    entry.count = actual_count
+                    entry.chat_ids = actual_ids
+                    -- Preserve existing timestamp
+                end
+                needs_update = true
+            end
+        end
+    end
+
+    if needs_update then
+        G_reader_settings:saveSetting("koassistant_chat_index", index)
+        G_reader_settings:flush()
+        logger.info("KOAssistant: Chat index validated and updated")
+    else
+        logger.dbg("KOAssistant: Chat index validation complete - no changes needed")
+    end
 end
 
 -- Rebuild chat index by scanning .sdr folders (for recovery/maintenance)
@@ -2219,41 +2316,14 @@ function ChatHistoryManager:getChatsUnified(ui, document_path)
             -- Need to read chats from metadata.lua for the document
             local DocSettings = require("docsettings")
             if ui and ui.document and ui.document.file == document_path then
-                -- Current document is open
-                local chats = self:getChatsFromDocSettings(ui)
-
-                -- Self-healing: Update index if it has stale path
-                if #chats > 0 then
-                    local doc_settings = DocSettings:open(document_path)
-                    local chats_table = doc_settings:readSetting("koassistant_chats", {})
-                    self:updateChatIndex(document_path, "refresh", nil, chats_table)
-                end
-
-                return chats
+                -- Current document is open - use getChatsFromDocSettings for efficiency
+                return self:getChatsFromDocSettings(ui)
             elseif ui and ui.document and ui.document.file then
-                -- Current document is open but path is different (from index)
-                -- This means the file moved - update index with new path
-                local chats = self:getChatsFromDocSettings(ui)
-
-                if #chats > 0 then
-                    local actual_path = ui.document.file
-                    local doc_settings = DocSettings:open(actual_path)
-                    local chats_table = doc_settings:readSetting("koassistant_chats", {})
-
-                    -- Update index with actual path and remove stale entry
-                    self:updateChatIndex(actual_path, "refresh", nil, chats_table)
-                    if actual_path ~= document_path then
-                        -- Remove stale path from index
-                        -- G_reader_settings is a global in KOReader
-                        local index = G_reader_settings:readSetting("koassistant_chat_index", {})
-                        index[document_path] = nil
-                        G_reader_settings:saveSetting("koassistant_chat_index", index)
-                        G_reader_settings:flush()
-                        logger.info("Updated chat index: " .. document_path .. " → " .. actual_path)
-                    end
-                end
-
-                return chats
+                -- Current document is open but requested path differs
+                -- Note: File moves are now handled by updateLocation patch,
+                -- so this case shouldn't happen in normal operation.
+                -- Just return chats for the actually open document.
+                return self:getChatsFromDocSettings(ui)
             else
                 -- Document not currently open, read from metadata.lua manually
                 if lfs.attributes(document_path, "mode") then

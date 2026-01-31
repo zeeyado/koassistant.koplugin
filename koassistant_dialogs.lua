@@ -969,7 +969,7 @@ local function showTagsMenu(document_path, chat_id, chat_history_manager)
     UIManager:show(current_tags_dialog)
 end
 
-local function showResponseDialog(title, history, highlightedText, addMessage, temp_config, document_path, plugin, book_metadata, launch_context)
+local function showResponseDialog(title, history, highlightedText, addMessage, temp_config, document_path, plugin, book_metadata, launch_context, ui_instance)
     -- For compact view (dictionary lookups), force debug OFF regardless of global setting
     -- Create a config copy for createResultText with debug disabled
     local config_for_text = temp_config or CONFIGURATION
@@ -2316,7 +2316,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                             end
 
                             closeLoadingDialog()
-                            showResponseDialog(_("Chat"), history, highlighted_text, addMessage, configuration, document_path, plugin, book_metadata, launch_context)
+                            showResponseDialog(_("Chat"), history, highlighted_text, addMessage, configuration, document_path, plugin, book_metadata, launch_context, ui_instance)
                         else
                             closeLoadingDialog()
                             UIManager:show(InfoMessage:new{
@@ -2372,7 +2372,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                                 return nil -- Streaming will update via callback
                             end
                             closeLoadingDialog()
-                            showResponseDialog(_(prompt.text), history, highlighted_text, addMessage, temp_config, document_path, plugin, book_metadata, launch_context)
+                            showResponseDialog(_(prompt.text), history, highlighted_text, addMessage, temp_config, document_path, plugin, book_metadata, launch_context, ui)
                         else
                             closeLoadingDialog()
                             local error_msg = temp_config_or_error or "Unknown error"
@@ -2567,7 +2567,7 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
                 end
                 return nil
             end
-            showResponseDialog(action.text, history, highlighted_text, addMessage, temp_config, document_path, plugin, book_metadata, nil)
+            showResponseDialog(action.text, history, highlighted_text, addMessage, temp_config, document_path, plugin, book_metadata, nil, ui)
         else
             local error_msg = temp_config_or_error or "Unknown error"
             UIManager:show(InfoMessage:new{

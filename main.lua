@@ -160,6 +160,10 @@ function AskGPT:init()
   -- Patch DocSettings for chat index tracking on file moves
   self:patchDocSettingsForChatIndex()
 
+  -- Validate chat index on startup (fast - only checks existing index entries)
+  local chat_history_manager = require("koassistant_chat_history_manager"):new()
+  chat_history_manager:validateChatIndex()
+
   -- Add to highlight dialog if highlight feature is available
   if self.ui and self.ui.highlight then
     self.ui.highlight:addToHighlightDialog("koassistant_dialog", function(reader_highlight_instance)
