@@ -964,7 +964,7 @@ The export uses your global Export Style setting (Markdown or Plain Text).
 
 ### Chat Storage & File Moves
 
-**Storage System (v2)**: Chats are stored using KOReader's DocSettings system, which stores metadata alongside your books in `.sdr` folders. This means:
+**Storage System (v2)**: Chats are stored using KOReader's DocSettings system, which stores metadata alongside your books in `.sdr` folders (in `metadata.lua` itself). This means:
 - ✅ **Chats travel with books** when you move or copy files (in "doc" storage mode)
 - ✅ **No data loss** when reorganizing your library
 - ⚠️ **After moving a book**: Open it once to update the chat index — chats are preserved but "Browse All Chats" may not show the book until you open it
