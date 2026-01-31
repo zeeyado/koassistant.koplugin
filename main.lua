@@ -4202,6 +4202,31 @@ function AskGPT:showDictionaryPopupManager()
   prompts_manager:showDictionaryPopupManager()
 end
 
+-- Show PathChooser for custom export path
+function AskGPT:showExportPathPicker()
+  local PathChooser = require("ui/widget/pathchooser")
+
+  local features = self.settings:readSetting("features") or {}
+  -- Use KOReader's fallback chain: home_dir setting → Device.home_dir → DataStorage
+  local start_path = G_reader_settings:readSetting("home_dir") or Device.home_dir or DataStorage:getDataDir()
+  local current_path = features.export_custom_path or start_path
+
+  local path_chooser = PathChooser:new{
+    title = _("Select Export Folder"),
+    path = current_path,
+    select_directory = true,
+    onConfirm = function(selected_path)
+      features.export_custom_path = selected_path
+      self.settings:saveSetting("features", features)
+      UIManager:show(InfoMessage:new{
+        text = T(_("Export path set to:\n%1"), selected_path),
+        timeout = 3,
+      })
+    end,
+  }
+  UIManager:show(path_chooser)
+end
+
 -- Register quick actions for highlight menu
 -- Called during init to add user-configured actions directly to the highlight popup
 function AskGPT:registerHighlightMenuActions()

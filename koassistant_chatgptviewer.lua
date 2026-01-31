@@ -875,6 +875,24 @@ function ChatGPTViewer:init()
     },
   }
 
+  -- Conditionally add Export button if enabled in settings
+  local export_features = self.configuration and self.configuration.features or {}
+  if export_features.show_export_in_chat_viewer then
+    table.insert(first_row, {
+      text = _("Export"),
+      id = "export_chat",
+      callback = function()
+        self:showExportDialog()
+      end,
+      hold_callback = function()
+        UIManager:show(Notification:new{
+          text = _("Export chat to file or clipboard"),
+          timeout = 2,
+        })
+      end,
+    })
+  end
+
   local default_buttons = {
     first_row,
     -- Second row: Controls and toggles
@@ -2349,6 +2367,161 @@ function ChatGPTViewer:saveToNote()
     showContentPicker(_("Note Content"), self.translate_view, doSave)
   else
     doSave(content)
+  end
+end
+
+function ChatGPTViewer:showExportDialog()
+  -- Show export dialog with options to copy or save to file
+  local history = self._message_history or self.original_history
+  if not history then
+    UIManager:show(Notification:new{
+      text = _("No chat to export"),
+      timeout = 2,
+    })
+    return
+  end
+
+  local features = self.configuration and self.configuration.features or {}
+  local content_setting = features.copy_content or "full"
+  local style = features.export_style or "markdown"
+
+  -- Get book title and chat title for filename
+  -- For unsaved chats: use prompt_action as title, current time as timestamp
+  local book_title = nil
+  if self.configuration and self.configuration.book_title then
+    book_title = self.configuration.book_title
+  elseif self.configuration and self.configuration.document_path then
+    -- Extract filename from path
+    book_title = self.configuration.document_path:match("([^/\\]+)$") or nil
+    if book_title then
+      book_title = book_title:gsub("%.[^.]+$", "")  -- Remove extension
+    end
+  end
+  local chat_title = history.prompt_action or nil  -- Action name for unsaved chats
+  -- For unsaved chats, timestamp will be nil (uses current time)
+
+  local Export = require("koassistant_export")
+  local viewer_self = self
+
+  -- Helper to perform the copy
+  local function doCopy(selected_content)
+    local data = Export.fromHistory(history, viewer_self.original_highlighted_text)
+    local text = Export.format(data, selected_content, style)
+    Device.input.setClipboardText(text)
+    UIManager:show(Notification:new{
+      text = _("Copied"),
+      timeout = 2,
+    })
+  end
+
+  -- Helper to perform save to file
+  local function doSave(selected_content, target_dir)
+    local data = Export.fromHistory(history, viewer_self.original_highlighted_text)
+    local text = Export.format(data, selected_content, style)
+
+    if not text or text == "" then
+      UIManager:show(InfoMessage:new{
+        text = _("No content to export"),
+        timeout = 2,
+      })
+      return
+    end
+
+    local extension = (style == "markdown") and "md" or "txt"
+    local filename = Export.getFilename(book_title, chat_title, nil, extension)  -- nil = use current time
+    local filepath = target_dir .. "/" .. filename
+
+    local success, err = Export.saveToFile(text, filepath)
+    if success then
+      UIManager:show(InfoMessage:new{
+        text = T(_("Saved to:\n%1"), filepath),
+        timeout = 4,
+      })
+    else
+      UIManager:show(InfoMessage:new{
+        text = T(_("Failed to save: %1"), err or "Unknown error"),
+        timeout = 3,
+      })
+    end
+  end
+
+  -- Show action selection dialog
+  local function showActionDialog(selected_content)
+    local action_dialog
+    local dir_option = features.export_save_directory or "book_folder"
+
+    local buttons = {
+      {
+        {
+          text = _("Copy to Clipboard"),
+          callback = function()
+            UIManager:close(action_dialog)
+            doCopy(selected_content)
+          end,
+        },
+      },
+      {
+        {
+          text = _("Save to File"),
+          callback = function()
+            UIManager:close(action_dialog)
+
+            if dir_option == "ask" then
+              -- Show PathChooser
+              local PathChooser = require("ui/widget/pathchooser")
+              local DataStorage = require("datastorage")
+              -- Use KOReader's fallback chain: home_dir setting → Device.home_dir → DataStorage
+              local start_path = G_reader_settings:readSetting("home_dir") or Device.home_dir or DataStorage:getDataDir()
+              local path_chooser = PathChooser:new{
+                title = _("Select Export Directory"),
+                path = start_path,
+                select_directory = true,
+                onConfirm = function(path)
+                  doSave(selected_content, path)
+                end,
+              }
+              UIManager:show(path_chooser)
+            else
+              -- Use configured directory
+              local document_path = viewer_self.configuration and viewer_self.configuration.document_path
+              local target_dir, dir_err = Export.getDirectory(features, document_path)
+              if not target_dir then
+                UIManager:show(InfoMessage:new{
+                  text = T(_("Invalid export directory: %1"), dir_err or "Unknown error"),
+                  timeout = 3,
+                })
+                return
+              end
+              doSave(selected_content, target_dir)
+            end
+          end,
+        },
+      },
+      {
+        {
+          text = _("Cancel"),
+          callback = function()
+            UIManager:close(action_dialog)
+          end,
+        },
+      },
+    }
+
+    action_dialog = ButtonDialog:new{
+      title = _("Export Chat"),
+      buttons = buttons,
+    }
+    UIManager:show(action_dialog)
+  end
+
+  if content_setting == "ask" then
+    -- Show content picker first
+    showContentPicker(_("Export Content"), self.translate_view, function(selected_content)
+      showActionDialog(selected_content)
+    end)
+  else
+    -- Content is predetermined, show action dialog directly
+    showActionDialog(content_setting)
   end
 end
 
