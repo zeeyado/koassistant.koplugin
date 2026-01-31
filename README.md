@@ -954,14 +954,20 @@ When you tap Export on a chat, you can choose:
 - **Full / Q+A / Response / Everything**: Fixed export format
 
 **Directory options** for Save to File (Settings → Chat Settings → Save to File):
-- **Same folder as book** (default): Saves to `[book_folder]/chats/` subfolder; general and multi-book chats go to exports folder
-- **Same folder (custom fallback)**: Book folder for book chats, custom path for general and multi-book chats
-- **Exports folder**: Central `koassistant_exports/` folder in KOReader data directory
-- **Custom path**: User-specified fixed directory
+- **KOAssistant exports folder** (default): Central `koassistant_exports/` in KOReader data directory
+- **Custom folder**: User-specified fixed directory
 - **Ask every time**: PathChooser dialog on each save
 
+**Subfolder organization**: Files are automatically sorted into subfolders:
+- `book_chats/` — Chats from book context
+- `general_chats/` — Standalone AI chats
+- `multi_book_chats/` — Chats comparing multiple books
+
+**Save book chats alongside books** (checkbox, default OFF):
+When enabled, book chats go to `[book_folder]/chats/` instead of the central folder. General and multi-book chats always use the central location.
+
 **Filename format**: `[book_title]_[chat_title]_[YYYYMMDD_HHMMSS].md`
-- Book title truncated to 30 characters
+- Book title truncated to 30 characters (omitted when saving alongside book)
 - Chat title (user-editable name or action name) truncated to 25 characters
 - Uses chat's original timestamp for saved chats, export time for unsaved chats
 
@@ -1129,13 +1135,12 @@ Chat History → hamburger menu → **View by Domain**
 When "Ask every time" is selected, a picker dialog appears letting you choose what to include before proceeding.
 
 ### Save to File Settings (within Chat Settings)
-- **Save Directory**: Where to save exported files
-  - **Same folder as book** (default): Creates `chats/` subfolder in book's directory; general chats go to exports folder
-  - **Same folder (custom fallback)**: Book folder for book chats, custom path for general chats
-  - **Exports folder**: Central `koassistant_exports/` folder
-  - **Custom path**: User-specified fixed directory
+- **Save Location**: Where to save exported files
+  - **KOAssistant exports folder** (default): Central `koassistant_exports/` folder with subfolders for book/general/multi-book chats
+  - **Custom folder**: User-specified fixed directory
   - **Ask every time**: PathChooser dialog on each save
-- **Set Custom Path**: Set the custom directory path (appears when Custom path or Same folder with custom fallback is selected)
+- **Save book chats alongside books**: When enabled, book chats go to `[book_folder]/chats/` subfolder (default: OFF)
+- **Set Custom Folder**: Set the custom directory path (appears when Custom folder is selected)
 - **Show Export in Chat Viewer**: Add Export button to the chat viewer toolbar (default: off)
 
 **Filename format**: Files are named `[book_title]_[chat_title]_[timestamp].md` (or `.txt`). Book title is truncated to 30 characters, chat title to 25 characters. Timestamp uses the chat's creation time for saved chats, or export time for unsaved chats from the viewer.
