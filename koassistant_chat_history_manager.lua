@@ -2308,8 +2308,18 @@ function ChatHistoryManager:getAllDocumentsUnified(ui)
             end
         end
 
-        -- Sort by last_modified descending (newest first)
+        -- Sort: General/Multi-Book chats first, then by last_modified descending
         table.sort(documents, function(a, b)
+            -- Special paths always come first
+            local a_special = a.path == "__GENERAL_CHATS__" or a.path == "__MULTI_BOOK_CHATS__"
+            local b_special = b.path == "__GENERAL_CHATS__" or b.path == "__MULTI_BOOK_CHATS__"
+            if a_special and not b_special then return true end
+            if b_special and not a_special then return false end
+            -- If both special, General before Multi-Book
+            if a_special and b_special then
+                return a.path == "__GENERAL_CHATS__"
+            end
+            -- Both regular: sort by date (newest first)
             return (a.last_modified or 0) > (b.last_modified or 0)
         end)
 
