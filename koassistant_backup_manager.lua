@@ -684,6 +684,10 @@ function BackupManager:_countItems(options)
             local general_chats = chat_manager:getGeneralChats()
             total_chats = total_chats + #general_chats
 
+            -- Add multi-book chats
+            local multi_book_chats = chat_manager:getMultiBookChats()
+            total_chats = total_chats + #multi_book_chats
+
             logger.dbg("BackupManager: Counted", total_chats, "chats (v2 storage)")
         else
             -- v1: Count from CHAT_DIR directory
@@ -799,6 +803,25 @@ function BackupManager:exportAllChatsToTable()
         }
 
         logger.dbg("BackupManager: Exported", #general_chats, "general chats")
+    end
+
+    -- Export multi-book chats (chats comparing multiple books)
+    local multi_book_chats = chat_manager:getMultiBookChats()
+    if #multi_book_chats > 0 then
+        -- Convert array to table keyed by ID (matching DocSettings format)
+        local multi_book_chats_table = {}
+        for _idx, chat in ipairs(multi_book_chats) do
+            multi_book_chats_table[chat.id] = chat
+        end
+
+        all_chats["__MULTI_BOOK_CHATS__"] = {
+            chats = multi_book_chats_table,
+            book_title = "",
+            book_author = "",
+            chat_count = #multi_book_chats,
+        }
+
+        logger.dbg("BackupManager: Exported", #multi_book_chats, "multi-book chats")
     end
 
     return all_chats
@@ -1310,6 +1333,21 @@ function BackupManager:restoreChatsFromJSON(json_path, merge_mode)
             settings:flush()
 
             logger.info("BackupManager: Restored", data.chat_count, "general chats")
+        elseif doc_path == "__MULTI_BOOK_CHATS__" then
+            -- Restore multi-book chats
+            local settings = LuaSettings:open(chat_manager.MULTI_BOOK_CHAT_FILE)
+            local existing_chats = merge_mode and settings:readSetting("chats", {}) or {}
+
+            -- Merge or replace
+            for chat_id, chat_data in pairs(data.chats) do
+                existing_chats[chat_id] = chat_data
+                restored_count = restored_count + 1
+            end
+
+            settings:saveSetting("chats", existing_chats)
+            settings:flush()
+
+            logger.info("BackupManager: Restored", data.chat_count, "multi-book chats")
         else
             -- Restore document-specific chats
             -- Check if document exists
