@@ -1642,6 +1642,14 @@ function ChatHistoryDialog:showExportOptions(document_path, chat_id, chat_histor
     local chat_title = chat and chat.title or nil  -- User-editable title
     local chat_timestamp = chat and chat.timestamp or nil  -- Chat creation time
 
+    -- Determine chat type for subfolder routing
+    local chat_type = "book"
+    if document_path == "__GENERAL_CHATS__" then
+        chat_type = "general"
+    elseif document_path == "__MULTI_BOOK_CHATS__" then
+        chat_type = "multi_book"
+    end
+
     -- Helper to perform the copy
     local function doCopy(selected_content)
         local text = chat_history_manager:exportChat(document_path, chat_id, selected_content, style)
@@ -1655,7 +1663,7 @@ function ChatHistoryDialog:showExportOptions(document_path, chat_id, chat_histor
     end
 
     -- Helper to perform save to file
-    local function doSave(selected_content, target_dir)
+    local function doSave(selected_content, target_dir, skip_book_title)
         local Export = require("koassistant_export")
         local text = chat_history_manager:exportChat(document_path, chat_id, selected_content, style)
         if not text then
@@ -1667,7 +1675,7 @@ function ChatHistoryDialog:showExportOptions(document_path, chat_id, chat_histor
         end
 
         local extension = (style == "markdown") and "md" or "txt"
-        local filename = Export.getFilename(book_title, chat_title, chat_timestamp, extension)
+        local filename = Export.getFilename(book_title, chat_title, chat_timestamp, extension, skip_book_title)
         local filepath = target_dir .. "/" .. filename
 
         local success, err = Export.saveToFile(text, filepath)
@@ -1721,13 +1729,13 @@ function ChatHistoryDialog:showExportOptions(document_path, chat_id, chat_histor
                                 path = start_path,
                                 select_directory = true,
                                 onConfirm = function(path)
-                                    doSave(selected_content, path)
+                                    doSave(selected_content, path, false)  -- User-chosen path, don't skip book title
                                 end,
                             }
                             UIManager:show(path_chooser)
                         else
                             -- Use configured directory
-                            local target_dir, dir_err = Export.getDirectory(features, document_path)
+                            local target_dir, dir_err, skip_book_title = Export.getDirectory(features, document_path, chat_type)
                             if not target_dir then
                                 UIManager:show(InfoMessage:new{
                                     text = T(_("Invalid export directory: %1"), dir_err or "Unknown error"),
@@ -1735,7 +1743,7 @@ function ChatHistoryDialog:showExportOptions(document_path, chat_id, chat_histor
                                 })
                                 return
                             end
-                            doSave(selected_content, target_dir)
+                            doSave(selected_content, target_dir, skip_book_title)
                         end
                     end,
                 },

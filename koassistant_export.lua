@@ -266,20 +266,25 @@ end
 -- @param chat_title string|nil Chat display name (optional, e.g. "Explain", or user-renamed "My Analysis")
 -- @param chat_timestamp number|nil Unix timestamp of chat (optional, uses current time if nil)
 -- @param extension string File extension ("md" or "txt")
+-- @param skip_book_title boolean|nil If true, omit book title from filename (for saving alongside book)
 -- @return string Safe filename
 -- Format: [book]_[chat_title]_[YYYYMMDD_HHMMSS].[ext]
 -- Example: "The_Clear_Quran_Explain_20260131_123559.md"
-function Export.getFilename(book_title, chat_title, chat_timestamp, extension)
+-- Example (skip_book_title): "Explain_20260131_123559.md"
+function Export.getFilename(book_title, chat_title, chat_timestamp, extension, skip_book_title)
     extension = extension or "md"
     local timestamp = os.date("%Y%m%d_%H%M%S", chat_timestamp)
 
-    local safe_book = sanitizeForFilename(book_title, 30)
     local safe_chat = sanitizeForFilename(chat_title, 25)
 
     -- Build filename parts
     local parts = {}
-    if safe_book ~= "" then
-        table.insert(parts, safe_book)
+    -- Only include book title if not skipped (skip when saving alongside book)
+    if not skip_book_title then
+        local safe_book = sanitizeForFilename(book_title, 30)
+        if safe_book ~= "" then
+            table.insert(parts, safe_book)
+        end
     end
     if safe_chat ~= "" then
         table.insert(parts, safe_chat)
@@ -292,18 +297,29 @@ end
 --- Get the export directory based on settings
 -- @param settings table Features settings table
 -- @param book_path string|nil Path to the current book (for "book_folder" option)
+-- @param chat_type string|nil "book" | "general" | "multi_book" (default: "book")
 -- @return string|nil Directory path, or nil if "ask" mode
 -- @return string|nil Error message if path is invalid
-function Export.getDirectory(settings, book_path)
+-- @return boolean skip_book_title Whether to omit book title from filename (true when saving alongside book)
+function Export.getDirectory(settings, book_path, chat_type)
     settings = settings or {}
-    local dir_option = settings.export_save_directory or "book_folder"
+    chat_type = chat_type or "book"
+    local dir_option = settings.export_save_directory or "exports_folder"
+
+    -- Migrate old settings on the fly
+    if dir_option == "book_folder" or dir_option == "book_folder_custom" then
+        -- Treat old book_folder options as exports_folder + book checkbox
+        dir_option = "exports_folder"
+        -- Note: We check export_book_to_book_folder below, which should be true for migrated users
+    end
 
     if dir_option == "ask" then
         -- Caller should show PathChooser
-        return nil, nil
+        return nil, nil, false
     end
 
     local target_dir
+    local skip_book_title = false
     local custom_path = settings.export_custom_path
 
     -- Helper to get book's folder
@@ -318,53 +334,78 @@ function Export.getDirectory(settings, book_path)
         return nil
     end
 
-    if dir_option == "book_folder" then
-        -- Same folder as book + /chats/ subfolder, fallback to exports folder
+    -- Check if book chats should go alongside books
+    if chat_type == "book" and settings.export_book_to_book_folder then
         local book_folder = getBookFolder()
         if book_folder then
             target_dir = book_folder .. "chats"
-        else
-            target_dir = DataStorage:getDataDir() .. "/koassistant_exports"
-        end
-    elseif dir_option == "book_folder_custom" then
-        -- Same folder as book + /chats/ subfolder, fallback to custom path
-        local book_folder = getBookFolder()
-        if book_folder then
-            target_dir = book_folder .. "chats"
-        else
-            target_dir = custom_path
-            if not target_dir or target_dir == "" then
-                return nil, "Custom path not set (required for general chats)"
+            skip_book_title = true  -- Book title implied by location
+            -- Ensure directory exists
+            local attr = lfs.attributes(target_dir)
+            if not attr then
+                local ok, err = lfs.mkdir(target_dir)
+                if not ok then
+                    logger.warn("Export: Failed to create book chats directory:", target_dir, err)
+                    -- Fall through to central location
+                else
+                    return target_dir, nil, skip_book_title
+                end
+            else
+                return target_dir, nil, skip_book_title
             end
         end
-    elseif dir_option == "exports_folder" then
-        target_dir = DataStorage:getDataDir() .. "/koassistant_exports"
+        -- Fall through to central location if book path unavailable or mkdir failed
+    end
+
+    -- Determine base directory
+    local base_dir
+    if dir_option == "exports_folder" then
+        base_dir = DataStorage:getDataDir() .. "/koassistant_exports"
     elseif dir_option == "custom" then
-        target_dir = custom_path
-        if not target_dir or target_dir == "" then
-            return nil, "Custom path not set"
+        base_dir = custom_path
+        if not base_dir or base_dir == "" then
+            return nil, "Custom path not set", false
         end
     else
         -- Default fallback
-        target_dir = DataStorage:getDataDir() .. "/koassistant_exports"
+        base_dir = DataStorage:getDataDir() .. "/koassistant_exports"
     end
 
-    -- Ensure directory exists
-    if target_dir then
-        local attr = lfs.attributes(target_dir)
+    -- Add subfolder based on chat type
+    local subfolder_map = {
+        book = "book_chats",
+        general = "general_chats",
+        multi_book = "multi_book_chats",
+    }
+    target_dir = base_dir .. "/" .. (subfolder_map[chat_type] or "book_chats")
+
+    -- Ensure directories exist (base and subfolder)
+    local function ensureDir(path)
+        local attr = lfs.attributes(path)
         if not attr then
-            -- Try to create the directory
-            local ok, err = lfs.mkdir(target_dir)
+            local ok, err = lfs.mkdir(path)
             if not ok then
-                logger.warn("Export: Failed to create directory:", target_dir, err)
-                return nil, "Failed to create directory: " .. (err or "unknown error")
+                return false, err
             end
         elseif attr.mode ~= "directory" then
-            return nil, "Path exists but is not a directory"
+            return false, "Path exists but is not a directory"
         end
+        return true
     end
 
-    return target_dir, nil
+    local ok, err = ensureDir(base_dir)
+    if not ok then
+        logger.warn("Export: Failed to create base directory:", base_dir, err)
+        return nil, "Failed to create directory: " .. (err or "unknown error"), false
+    end
+
+    ok, err = ensureDir(target_dir)
+    if not ok then
+        logger.warn("Export: Failed to create subfolder:", target_dir, err)
+        return nil, "Failed to create directory: " .. (err or "unknown error"), false
+    end
+
+    return target_dir, nil, false
 end
 
 --- Save formatted export text to a file

@@ -1083,6 +1083,12 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
         selection_data = temp_config.features.selection_data
     end
 
+    -- Ensure document_path is in configuration for export functionality
+    -- This allows ChatGPTViewer to determine chat type (book/general/multi-book)
+    if temp_config and document_path then
+        temp_config.document_path = document_path
+    end
+
     chatgpt_viewer = ChatGPTViewer:new {
         title = title .. " (" .. model_info .. ")",
         text = display_text,

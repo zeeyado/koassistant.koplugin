@@ -2397,11 +2397,14 @@ function ChatGPTViewer:showExportDialog()
 
   -- Get book title and chat title for filename
   -- For unsaved chats: use prompt_action as title, current time as timestamp
+  -- Priority: book_metadata > configuration > document path extraction
   local book_title = nil
-  if self.configuration and self.configuration.book_title then
+  if features.book_metadata and features.book_metadata.title then
+    book_title = features.book_metadata.title
+  elseif self.configuration and self.configuration.book_title then
     book_title = self.configuration.book_title
   elseif self.configuration and self.configuration.document_path then
-    -- Extract filename from path
+    -- Extract filename from path as fallback
     book_title = self.configuration.document_path:match("([^/\\]+)$") or nil
     if book_title then
       book_title = book_title:gsub("%.[^.]+$", "")  -- Remove extension
@@ -2415,6 +2418,15 @@ function ChatGPTViewer:showExportDialog()
   local export_book_metadata = features.book_metadata
   local export_books_info = features.is_multi_book_context and features.books_info or nil
 
+  -- Determine chat type for subfolder routing
+  local document_path = self.configuration and self.configuration.document_path
+  local chat_type = "book"
+  if features.is_multi_book_context then
+    chat_type = "multi_book"
+  elseif not document_path or document_path == "" or document_path == "__GENERAL_CHATS__" then
+    chat_type = "general"
+  end
+
   -- Helper to perform the copy
   local function doCopy(selected_content)
     local data = Export.fromHistory(history, viewer_self.original_highlighted_text, export_book_metadata, export_books_info)
@@ -2427,7 +2439,7 @@ function ChatGPTViewer:showExportDialog()
   end
 
   -- Helper to perform save to file
-  local function doSave(selected_content, target_dir)
+  local function doSave(selected_content, target_dir, skip_book_title)
     local data = Export.fromHistory(history, viewer_self.original_highlighted_text, export_book_metadata, export_books_info)
     local text = Export.format(data, selected_content, style)
 
@@ -2440,7 +2452,7 @@ function ChatGPTViewer:showExportDialog()
     end
 
     local extension = (style == "markdown") and "md" or "txt"
-    local filename = Export.getFilename(book_title, chat_title, nil, extension)  -- nil = use current time
+    local filename = Export.getFilename(book_title, chat_title, nil, extension, skip_book_title)  -- nil = use current time
     local filepath = target_dir .. "/" .. filename
 
     local success, err = Export.saveToFile(text, filepath)
@@ -2489,14 +2501,13 @@ function ChatGPTViewer:showExportDialog()
                 path = start_path,
                 select_directory = true,
                 onConfirm = function(path)
-                  doSave(selected_content, path)
+                  doSave(selected_content, path, false)  -- User-chosen path, don't skip book title
                 end,
               }
               UIManager:show(path_chooser)
             else
               -- Use configured directory
-              local document_path = viewer_self.configuration and viewer_self.configuration.document_path
-              local target_dir, dir_err = Export.getDirectory(features, document_path)
+              local target_dir, dir_err, skip_book_title = Export.getDirectory(features, document_path, chat_type)
               if not target_dir then
                 UIManager:show(InfoMessage:new{
                   text = T(_("Invalid export directory: %1"), dir_err or "Unknown error"),
@@ -2504,7 +2515,7 @@ function ChatGPTViewer:showExportDialog()
                 })
                 return
               end
-              doSave(selected_content, target_dir)
+              doSave(selected_content, target_dir, skip_book_title)
             end
           end,
         },

@@ -295,17 +295,15 @@ local SettingsSchema = {
                 {
                     id = "export_save_directory",
                     type = "dropdown",
-                    text = _("Save to File Location"),
+                    text = _("Save Location"),
                     path = "features.export_save_directory",
-                    default = "book_folder",
+                    default = "exports_folder",
                     options = {
-                        { value = "book_folder", label = _("Same folder as book (fallback: exports folder)") },
-                        { value = "book_folder_custom", label = _("Same folder as book (fallback: custom path)") },
                         { value = "exports_folder", label = _("KOAssistant exports folder") },
-                        { value = "custom", label = _("Custom path only") },
+                        { value = "custom", label = _("Custom folder") },
                         { value = "ask", label = _("Ask every time") },
                     },
-                    help_text = _("Where to save exported chat files. 'Same folder as book' options use fallback for general chats."),
+                    help_text = _("Where to save exported chat files. Creates subfolders for book/general/multi-book chats."),
                 },
                 {
                     id = "export_custom_path",
@@ -316,18 +314,26 @@ local SettingsSchema = {
                         if path and path ~= "" then
                             -- Show shortened path for display
                             local short = path:match("([^/]+)$") or path
-                            return T(_("Custom Path: %1"), short)
+                            return T(_("Custom Folder: %1"), short)
                         end
-                        return _("Set Custom Path...")
+                        return _("Set Custom Folder...")
                     end,
                     callback = "showExportPathPicker",
-                    -- Show for all options except "ask" (which doesn't use configured paths)
+                    -- Only show when "custom" is selected
                     enabled_func = function(plugin)
                         local f = plugin.settings:readSetting("features") or {}
-                        local dir_option = f.export_save_directory or "book_folder"
-                        return dir_option ~= "ask"
+                        local dir_option = f.export_save_directory or "exports_folder"
+                        return dir_option == "custom"
                     end,
-                    help_text = _("Select directory for exported files. Used by 'custom path' and as fallback."),
+                    help_text = _("Select directory for exported files."),
+                },
+                {
+                    id = "export_book_to_book_folder",
+                    type = "toggle",
+                    text = _("Save book chats alongside books"),
+                    path = "features.export_book_to_book_folder",
+                    default = false,
+                    help_text = _("When enabled, book chats are saved to a 'chats' subfolder next to the book file instead of the central location."),
                 },
                 {
                     id = "show_export_in_chat_viewer",

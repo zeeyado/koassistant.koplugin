@@ -1105,6 +1105,21 @@ function AskGPT:initSettings()
       needs_save = true
     end
 
+    -- ONE-TIME migration: old export directory options → new simplified options
+    -- book_folder → exports_folder + checkbox
+    -- book_folder_custom → custom + checkbox
+    if features.export_save_directory == "book_folder" then
+      features.export_save_directory = "exports_folder"
+      features.export_book_to_book_folder = true
+      needs_save = true
+      logger.info("KOAssistant: Migrated export_save_directory: book_folder → exports_folder + checkbox")
+    elseif features.export_save_directory == "book_folder_custom" then
+      features.export_save_directory = "custom"
+      features.export_book_to_book_folder = true
+      needs_save = true
+      logger.info("KOAssistant: Migrated export_save_directory: book_folder_custom → custom + checkbox")
+    end
+
     if needs_save then
       self.settings:saveSetting("features", features)
       logger.info("KOAssistant: Migrated settings")
@@ -6143,7 +6158,7 @@ end
 -- Patch DocSettings.updateLocation() to keep chat index in sync and move custom sidecar files
 function AskGPT:patchDocSettingsForChatIndex()
   local DocSettings = require("docsettings")
-  local lfs = require("libs/libkoreader-lfs")
+  -- Note: lfs is already required at file scope (line 15)
 
   -- Only patch once
   if DocSettings._koassistant_patched then
@@ -6161,7 +6176,7 @@ function AskGPT:patchDocSettingsForChatIndex()
 
     -- Ensure new .sdr directory exists before moving files
     local new_sidecar_dir = DocSettings:getSidecarDir(new_path)
-    local util = require("util")
+    -- Note: util is already required at file scope (line 18)
     util.makePath(new_sidecar_dir)
 
     for _idx, filename in ipairs(KOASSISTANT_SIDECAR_FILES) do
