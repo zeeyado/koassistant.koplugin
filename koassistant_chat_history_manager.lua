@@ -1645,10 +1645,15 @@ function ChatHistoryManager:deleteChatFromDocSettings(ui, chat_id, document_path
         return false
     end
 
-    -- Read chats from metadata.lua
+    -- Read chats from UI's doc_settings if available, otherwise from disk
     local DocSettings = require("docsettings")
-    local doc_settings = DocSettings:open(actual_doc_path)
-    local chats = doc_settings:readSetting("koassistant_chats", {})
+    local chats
+    if ui and ui.document and ui.document.file == actual_doc_path and ui.doc_settings then
+        chats = ui.doc_settings:readSetting("koassistant_chats", {})
+    else
+        local doc_settings = DocSettings:open(actual_doc_path)
+        chats = doc_settings:readSetting("koassistant_chats", {})
+    end
 
     -- Check if chat exists
     if not chats[chat_id] then
@@ -1707,10 +1712,15 @@ function ChatHistoryManager:updateChatInDocSettings(ui, chat_id, updates, docume
         return false
     end
 
-    -- Read chats from metadata.lua
+    -- Read chats from UI's doc_settings if available, otherwise from disk
     local DocSettings = require("docsettings")
-    local doc_settings = DocSettings:open(actual_doc_path)
-    local chats = doc_settings:readSetting("koassistant_chats", {})
+    local chats
+    if ui and ui.document and ui.document.file == actual_doc_path and ui.doc_settings then
+        chats = ui.doc_settings:readSetting("koassistant_chats", {})
+    else
+        local doc_settings = DocSettings:open(actual_doc_path)
+        chats = doc_settings:readSetting("koassistant_chats", {})
+    end
 
     -- Check if chat exists
     if not chats[chat_id] then
