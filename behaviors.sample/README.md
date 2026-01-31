@@ -135,7 +135,20 @@ The system prompt sent to the AI is: **Behavior + Domain + Language instruction*
 
 ## Reference Folder
 
-The `reference/` subfolder contains documentation about original provider system prompts - where to find them, key characteristics, and links to sources. Use these if you want to understand the basis for the adapted styles.
+The `reference/` subfolder contains documentation about original provider system prompts - where to find them, key characteristics, and links to sources.
+
+**Why reference files instead of full prompts?**
+1. **Prompts change frequently** - Providers update regularly; static copies become outdated
+2. **Length** - Full prompts are often 20,000+ tokens, impractical for e-reader use
+3. **Provider-specific** - Original prompts reference tools/features that don't apply here
+
+**For KOAssistant**, use the adapted provider-style behaviors (e.g., `claude_style_standard.md`) instead. These extract essential communication style, are provider-agnostic, appropriately sized, and focused on reading/conversation rather than tool usage.
+
+**Finding current prompts:**
+- Anthropic: https://docs.anthropic.com/en/release-notes/system-prompts
+- Community collections: [CL4R1T4S](https://github.com/elder-plinius/CL4R1T4S), [leaked-system-prompts](https://github.com/jujumilk3/leaked-system-prompts)
+
+Each reference file describes the provider's style, where to find current prompts, and key characteristics extracted for adapted versions.
 
 ## Note
 
