@@ -71,6 +71,36 @@ local function table_count(t)
     return count
 end
 
+-- KOAssistant custom sidecar files to track during book moves
+-- These files are automatically moved when books are moved via FileManager
+-- Add new custom files here as they're implemented (e.g., notebooks, stats, annotations)
+local KOASSISTANT_SIDECAR_FILES = {
+    "koassistant_notebook.md",
+    -- Future custom files can be added here
+}
+
+-- Helper function to copy file content (fallback for cross-filesystem moves)
+-- Returns: success (boolean), error_message (string or nil)
+local function copyFileContent(src, dest)
+    local src_file = io.open(src, "rb")
+    if not src_file then
+        return false, "Cannot open source file"
+    end
+
+    local content = src_file:read("*all")
+    src_file:close()
+
+    local dest_file = io.open(dest, "wb")
+    if not dest_file then
+        return false, "Cannot open destination file"
+    end
+
+    dest_file:write(content)
+    dest_file:close()
+
+    return true
+end
+
 local AskGPT = WidgetContainer:extend{
   name = "koassistant",
   is_doc_only = false,
@@ -6106,7 +6136,7 @@ koassistant_chats.backup/]]),
               ", skipped: " .. stats.skipped .. ", failed: " .. stats.failed)
 end
 
--- Patch DocSettings.updateLocation() to keep chat index in sync with file moves
+-- Patch DocSettings.updateLocation() to keep chat index in sync and move custom sidecar files
 function AskGPT:patchDocSettingsForChatIndex()
   local DocSettings = require("docsettings")
 
@@ -6140,10 +6170,45 @@ function AskGPT:patchDocSettingsForChatIndex()
 
       logger.info("KOAssistant: Chat index updated successfully")
     end
+
+    -- Move custom sidecar files
+    -- Note: By this point, KOReader has already:
+    --   1. Moved the book file (old_path -> new_path)
+    --   2. Created new .sdr directory at new location
+    --   3. Copied metadata.lua, custom_metadata.lua, cover.*
+    -- We just need to move our custom files
+    for _idx, filename in ipairs(KOASSISTANT_SIDECAR_FILES) do
+      local old_sidecar = old_path .. ".sdr/" .. filename
+      local new_sidecar = new_path .. ".sdr/" .. filename
+
+      if lfs.attributes(old_sidecar, "mode") == "file" then
+        logger.dbg("KOAssistant: Moving sidecar file:", filename)
+
+        -- Try os.rename first (works for same filesystem)
+        local success, err = os.rename(old_sidecar, new_sidecar)
+
+        if success then
+          logger.info("KOAssistant: Moved", filename, "successfully")
+        else
+          -- Fallback: copy+delete for cross-filesystem moves
+          logger.dbg("KOAssistant: os.rename failed, trying copy+delete:", err)
+
+          local copy_ok, copy_err = copyFileContent(old_sidecar, new_sidecar)
+          if copy_ok then
+            -- Only delete source after successful copy
+            os.remove(old_sidecar)
+            logger.info("KOAssistant: Copied", filename, "successfully (cross-filesystem)")
+          else
+            -- Log error but continue - don't crash the whole move operation
+            logger.err("KOAssistant: Failed to move", filename, ":", copy_err)
+          end
+        end
+      end
+    end
   end
 
   DocSettings._koassistant_patched = true
-  logger.info("KOAssistant: DocSettings.updateLocation() patched for chat index tracking")
+  logger.info("KOAssistant: DocSettings.updateLocation() patched for sidecar file tracking")
 end
 
 return AskGPT
