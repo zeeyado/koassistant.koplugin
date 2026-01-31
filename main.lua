@@ -6139,6 +6139,7 @@ end
 -- Patch DocSettings.updateLocation() to keep chat index in sync and move custom sidecar files
 function AskGPT:patchDocSettingsForChatIndex()
   local DocSettings = require("docsettings")
+  local lfs = require("libs/libkoreader-lfs")
 
   -- Only patch once
   if DocSettings._koassistant_patched then
@@ -6150,36 +6151,18 @@ function AskGPT:patchDocSettingsForChatIndex()
 
   -- Replace with patched version
   DocSettings.updateLocation = function(old_path, new_path)
-    -- Call KOReader's original function first
-    DocSettings._original_updateLocation(old_path, new_path)
+    -- Move custom sidecar files BEFORE calling KOReader's original function
+    -- This way, when KOReader's purge() runs, our files are already gone
+    -- and the old .sdr directory will be cleaned up automatically
 
-    -- Update KOAssistant chat index if this book has chats
-    local index = G_reader_settings:readSetting("koassistant_chat_index", {})
-    if index[old_path] then
-      logger.info("KOAssistant: Updating chat index for moved file")
-      logger.dbg("  Old path:", old_path)
-      logger.dbg("  New path:", new_path)
+    -- Ensure new .sdr directory exists before moving files
+    local new_sidecar_dir = DocSettings:getSidecarDir(new_path)
+    local util = require("util")
+    util.makePath(new_sidecar_dir)
 
-      -- Move index entry to new path
-      index[new_path] = index[old_path]
-      index[old_path] = nil
-
-      -- Save updated index
-      G_reader_settings:saveSetting("koassistant_chat_index", index)
-      G_reader_settings:flush()
-
-      logger.info("KOAssistant: Chat index updated successfully")
-    end
-
-    -- Move custom sidecar files
-    -- Note: By this point, KOReader has already:
-    --   1. Moved the book file (old_path -> new_path)
-    --   2. Created new .sdr directory at new location
-    --   3. Copied metadata.lua, custom_metadata.lua, cover.*
-    -- We just need to move our custom files
     for _idx, filename in ipairs(KOASSISTANT_SIDECAR_FILES) do
-      local old_sidecar = old_path .. ".sdr/" .. filename
-      local new_sidecar = new_path .. ".sdr/" .. filename
+      local old_sidecar = DocSettings:getSidecarDir(old_path) .. "/" .. filename
+      local new_sidecar = new_sidecar_dir .. "/" .. filename
 
       if lfs.attributes(old_sidecar, "mode") == "file" then
         logger.dbg("KOAssistant: Moving sidecar file:", filename)
@@ -6188,22 +6171,34 @@ function AskGPT:patchDocSettingsForChatIndex()
         local success, err = os.rename(old_sidecar, new_sidecar)
 
         if success then
-          logger.info("KOAssistant: Moved", filename, "successfully")
+          logger.info("KOAssistant: Moved sidecar file:", filename)
         else
           -- Fallback: copy+delete for cross-filesystem moves
           logger.dbg("KOAssistant: os.rename failed, trying copy+delete:", err)
 
           local copy_ok, copy_err = copyFileContent(old_sidecar, new_sidecar)
           if copy_ok then
-            -- Only delete source after successful copy
             os.remove(old_sidecar)
-            logger.info("KOAssistant: Copied", filename, "successfully (cross-filesystem)")
+            logger.info("KOAssistant: Moved sidecar file (cross-filesystem):", filename)
           else
-            -- Log error but continue - don't crash the whole move operation
-            logger.err("KOAssistant: Failed to move", filename, ":", copy_err)
+            logger.err("KOAssistant: Failed to move sidecar file", filename, ":", copy_err)
           end
         end
       end
+    end
+
+    -- Now call KOReader's original function
+    -- Our files are gone, so purge() will successfully remove the old .sdr directory
+    DocSettings._original_updateLocation(old_path, new_path)
+
+    -- Update KOAssistant chat index (after KOReader's work is done)
+    local index = G_reader_settings:readSetting("koassistant_chat_index", {})
+    if index[old_path] then
+      index[new_path] = index[old_path]
+      index[old_path] = nil
+      G_reader_settings:saveSetting("koassistant_chat_index", index)
+      G_reader_settings:flush()
+      logger.info("KOAssistant: Updated chat index for moved file")
     end
   end
 
