@@ -842,29 +842,87 @@ function ChatHistoryManager:getChatsByDomain()
     local domains = {}
     domains["untagged"] = {}
 
-    -- Loop through all document directories
-    if not lfs.attributes(self.CHAT_DIR, "mode") then
-        return domains
-    end
+    if self:useDocSettingsStorage() then
+        -- v2: Scan metadata.lua files, general chats, and multi-book chats
+        local DocSettings = require("docsettings")
 
-    for doc_hash in lfs.dir(self.CHAT_DIR) do
-        if doc_hash ~= "." and doc_hash ~= ".." then
-            local doc_dir = self.CHAT_DIR .. "/" .. doc_hash
-            if lfs.attributes(doc_dir, "mode") == "directory" then
-                -- Get chats from this document directory
-                for filename in lfs.dir(doc_dir) do
-                    if filename ~= "." and filename ~= ".." and not filename:match("%.old$") then
-                        local chat_path = doc_dir .. "/" .. filename
-                        local chat = self:loadChat(chat_path)
-                        if chat and chat.messages and #chat.messages > 0 then
-                            local domain_key = chat.domain or "untagged"
-                            if not domains[domain_key] then
-                                domains[domain_key] = {}
+        -- 1. Scan general chats
+        local general_chats = self:getGeneralChats()
+        for _idx, chat in ipairs(general_chats) do
+            if chat and chat.messages and #chat.messages > 0 then
+                local domain_key = chat.domain or "untagged"
+                if not domains[domain_key] then
+                    domains[domain_key] = {}
+                end
+                table.insert(domains[domain_key], {
+                    chat = chat,
+                    document_path = "__GENERAL_CHATS__"
+                })
+            end
+        end
+
+        -- 2. Scan multi-book chats
+        local multi_book_chats = self:getMultiBookChats()
+        for _idx, chat in ipairs(multi_book_chats) do
+            if chat and chat.messages and #chat.messages > 0 then
+                local domain_key = chat.domain or "untagged"
+                if not domains[domain_key] then
+                    domains[domain_key] = {}
+                end
+                table.insert(domains[domain_key], {
+                    chat = chat,
+                    document_path = "__MULTI_BOOK_CHATS__"
+                })
+            end
+        end
+
+        -- 3. Scan document chats from chat index
+        local index = self:getChatIndex()
+        for doc_path, info in pairs(index) do
+            if doc_path ~= "__GENERAL_CHATS__" and lfs.attributes(doc_path, "mode") then
+                -- Read chats from metadata.lua for this document
+                local doc_settings = DocSettings:open(doc_path)
+                local chats_table = doc_settings:readSetting("koassistant_chats", {})
+
+                for chat_id, chat in pairs(chats_table) do
+                    if chat and chat.messages and #chat.messages > 0 then
+                        local domain_key = chat.domain or "untagged"
+                        if not domains[domain_key] then
+                            domains[domain_key] = {}
+                        end
+                        table.insert(domains[domain_key], {
+                            chat = chat,
+                            document_path = doc_path
+                        })
+                    end
+                end
+            end
+        end
+    else
+        -- v1: Loop through all document directories
+        if not lfs.attributes(self.CHAT_DIR, "mode") then
+            return domains
+        end
+
+        for doc_hash in lfs.dir(self.CHAT_DIR) do
+            if doc_hash ~= "." and doc_hash ~= ".." then
+                local doc_dir = self.CHAT_DIR .. "/" .. doc_hash
+                if lfs.attributes(doc_dir, "mode") == "directory" then
+                    -- Get chats from this document directory
+                    for filename in lfs.dir(doc_dir) do
+                        if filename ~= "." and filename ~= ".." and not filename:match("%.old$") then
+                            local chat_path = doc_dir .. "/" .. filename
+                            local chat = self:loadChat(chat_path)
+                            if chat and chat.messages and #chat.messages > 0 then
+                                local domain_key = chat.domain or "untagged"
+                                if not domains[domain_key] then
+                                    domains[domain_key] = {}
+                                end
+                                table.insert(domains[domain_key], {
+                                    chat = chat,
+                                    document_path = chat.document_path
+                                })
                             end
-                            table.insert(domains[domain_key], {
-                                chat = chat,
-                                document_path = chat.document_path
-                            })
                         end
                     end
                 end
@@ -1104,23 +1162,66 @@ end
 function ChatHistoryManager:getAllTags()
     local tags_set = {}
 
-    -- Loop through all document directories
-    if not lfs.attributes(self.CHAT_DIR, "mode") then
-        return {}
-    end
+    if self:useDocSettingsStorage() then
+        -- v2: Scan metadata.lua files, general chats, and multi-book chats
+        local DocSettings = require("docsettings")
 
-    for doc_hash in lfs.dir(self.CHAT_DIR) do
-        if doc_hash ~= "." and doc_hash ~= ".." then
-            local doc_dir = self.CHAT_DIR .. "/" .. doc_hash
-            if lfs.attributes(doc_dir, "mode") == "directory" then
-                -- Get chats from this document directory
-                for filename in lfs.dir(doc_dir) do
-                    if filename ~= "." and filename ~= ".." and not filename:match("%.old$") then
-                        local chat_path = doc_dir .. "/" .. filename
-                        local chat = self:loadChat(chat_path)
-                        if chat and chat.tags then
-                            for _, tag in ipairs(chat.tags) do
-                                tags_set[tag] = true
+        -- 1. Scan general chats
+        local general_chats = self:getGeneralChats()
+        for _idx, chat in ipairs(general_chats) do
+            if chat and chat.tags then
+                for _tidx, tag in ipairs(chat.tags) do
+                    tags_set[tag] = true
+                end
+            end
+        end
+
+        -- 2. Scan multi-book chats
+        local multi_book_chats = self:getMultiBookChats()
+        for _idx, chat in ipairs(multi_book_chats) do
+            if chat and chat.tags then
+                for _tidx, tag in ipairs(chat.tags) do
+                    tags_set[tag] = true
+                end
+            end
+        end
+
+        -- 3. Scan document chats from chat index
+        local index = self:getChatIndex()
+        for doc_path, info in pairs(index) do
+            if doc_path ~= "__GENERAL_CHATS__" and lfs.attributes(doc_path, "mode") then
+                -- Read chats from metadata.lua for this document
+                local doc_settings = DocSettings:open(doc_path)
+                local chats_table = doc_settings:readSetting("koassistant_chats", {})
+
+                for chat_id, chat in pairs(chats_table) do
+                    if chat and chat.tags then
+                        for _tidx, tag in ipairs(chat.tags) do
+                            tags_set[tag] = true
+                        end
+                    end
+                end
+            end
+        end
+    else
+        -- v1: Loop through all document directories
+        if not lfs.attributes(self.CHAT_DIR, "mode") then
+            return {}
+        end
+
+        for doc_hash in lfs.dir(self.CHAT_DIR) do
+            if doc_hash ~= "." and doc_hash ~= ".." then
+                local doc_dir = self.CHAT_DIR .. "/" .. doc_hash
+                if lfs.attributes(doc_dir, "mode") == "directory" then
+                    -- Get chats from this document directory
+                    for filename in lfs.dir(doc_dir) do
+                        if filename ~= "." and filename ~= ".." and not filename:match("%.old$") then
+                            local chat_path = doc_dir .. "/" .. filename
+                            local chat = self:loadChat(chat_path)
+                            if chat and chat.tags then
+                                for _tidx, tag in ipairs(chat.tags) do
+                                    tags_set[tag] = true
+                                end
                             end
                         end
                     end
@@ -1145,28 +1246,89 @@ function ChatHistoryManager:getChatsByTag(tag)
 
     if not tag then return chats end
 
-    -- Loop through all document directories
-    if not lfs.attributes(self.CHAT_DIR, "mode") then
-        return chats
-    end
+    if self:useDocSettingsStorage() then
+        -- v2: Scan metadata.lua files, general chats, and multi-book chats
+        local DocSettings = require("docsettings")
 
-    for doc_hash in lfs.dir(self.CHAT_DIR) do
-        if doc_hash ~= "." and doc_hash ~= ".." then
-            local doc_dir = self.CHAT_DIR .. "/" .. doc_hash
-            if lfs.attributes(doc_dir, "mode") == "directory" then
-                -- Get chats from this document directory
-                for filename in lfs.dir(doc_dir) do
-                    if filename ~= "." and filename ~= ".." and not filename:match("%.old$") then
-                        local chat_path = doc_dir .. "/" .. filename
-                        local chat = self:loadChat(chat_path)
-                        if chat and chat.tags and chat.messages and #chat.messages > 0 then
-                            for _, chat_tag in ipairs(chat.tags) do
-                                if chat_tag == tag then
-                                    table.insert(chats, {
-                                        chat = chat,
-                                        document_path = chat.document_path
-                                    })
-                                    break
+        -- 1. Scan general chats
+        local general_chats = self:getGeneralChats()
+        for _idx, chat in ipairs(general_chats) do
+            if chat and chat.tags and chat.messages and #chat.messages > 0 then
+                for _tidx, chat_tag in ipairs(chat.tags) do
+                    if chat_tag == tag then
+                        table.insert(chats, {
+                            chat = chat,
+                            document_path = "__GENERAL_CHATS__"
+                        })
+                        break
+                    end
+                end
+            end
+        end
+
+        -- 2. Scan multi-book chats
+        local multi_book_chats = self:getMultiBookChats()
+        for _idx, chat in ipairs(multi_book_chats) do
+            if chat and chat.tags and chat.messages and #chat.messages > 0 then
+                for _tidx, chat_tag in ipairs(chat.tags) do
+                    if chat_tag == tag then
+                        table.insert(chats, {
+                            chat = chat,
+                            document_path = "__MULTI_BOOK_CHATS__"
+                        })
+                        break
+                    end
+                end
+            end
+        end
+
+        -- 3. Scan document chats from chat index
+        local index = self:getChatIndex()
+        for doc_path, info in pairs(index) do
+            if doc_path ~= "__GENERAL_CHATS__" and lfs.attributes(doc_path, "mode") then
+                -- Read chats from metadata.lua for this document
+                local doc_settings = DocSettings:open(doc_path)
+                local chats_table = doc_settings:readSetting("koassistant_chats", {})
+
+                for chat_id, chat in pairs(chats_table) do
+                    if chat and chat.tags and chat.messages and #chat.messages > 0 then
+                        for _tidx, chat_tag in ipairs(chat.tags) do
+                            if chat_tag == tag then
+                                table.insert(chats, {
+                                    chat = chat,
+                                    document_path = doc_path
+                                })
+                                break
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    else
+        -- v1: Loop through all document directories
+        if not lfs.attributes(self.CHAT_DIR, "mode") then
+            return chats
+        end
+
+        for doc_hash in lfs.dir(self.CHAT_DIR) do
+            if doc_hash ~= "." and doc_hash ~= ".." then
+                local doc_dir = self.CHAT_DIR .. "/" .. doc_hash
+                if lfs.attributes(doc_dir, "mode") == "directory" then
+                    -- Get chats from this document directory
+                    for filename in lfs.dir(doc_dir) do
+                        if filename ~= "." and filename ~= ".." and not filename:match("%.old$") then
+                            local chat_path = doc_dir .. "/" .. filename
+                            local chat = self:loadChat(chat_path)
+                            if chat and chat.tags and chat.messages and #chat.messages > 0 then
+                                for _tidx, chat_tag in ipairs(chat.tags) do
+                                    if chat_tag == tag then
+                                        table.insert(chats, {
+                                            chat = chat,
+                                            document_path = chat.document_path
+                                        })
+                                        break
+                                    end
                                 end
                             end
                         end
@@ -1188,23 +1350,66 @@ end
 function ChatHistoryManager:getTagChatCounts()
     local counts = {}
 
-    -- Loop through all document directories
-    if not lfs.attributes(self.CHAT_DIR, "mode") then
-        return counts
-    end
+    if self:useDocSettingsStorage() then
+        -- v2: Scan metadata.lua files, general chats, and multi-book chats
+        local DocSettings = require("docsettings")
 
-    for doc_hash in lfs.dir(self.CHAT_DIR) do
-        if doc_hash ~= "." and doc_hash ~= ".." then
-            local doc_dir = self.CHAT_DIR .. "/" .. doc_hash
-            if lfs.attributes(doc_dir, "mode") == "directory" then
-                -- Get chats from this document directory
-                for filename in lfs.dir(doc_dir) do
-                    if filename ~= "." and filename ~= ".." and not filename:match("%.old$") then
-                        local chat_path = doc_dir .. "/" .. filename
-                        local chat = self:loadChat(chat_path)
-                        if chat and chat.tags and chat.messages and #chat.messages > 0 then
-                            for _, tag in ipairs(chat.tags) do
-                                counts[tag] = (counts[tag] or 0) + 1
+        -- 1. Scan general chats
+        local general_chats = self:getGeneralChats()
+        for _idx, chat in ipairs(general_chats) do
+            if chat and chat.tags and chat.messages and #chat.messages > 0 then
+                for _tidx, tag in ipairs(chat.tags) do
+                    counts[tag] = (counts[tag] or 0) + 1
+                end
+            end
+        end
+
+        -- 2. Scan multi-book chats
+        local multi_book_chats = self:getMultiBookChats()
+        for _idx, chat in ipairs(multi_book_chats) do
+            if chat and chat.tags and chat.messages and #chat.messages > 0 then
+                for _tidx, tag in ipairs(chat.tags) do
+                    counts[tag] = (counts[tag] or 0) + 1
+                end
+            end
+        end
+
+        -- 3. Scan document chats from chat index
+        local index = self:getChatIndex()
+        for doc_path, info in pairs(index) do
+            if doc_path ~= "__GENERAL_CHATS__" and lfs.attributes(doc_path, "mode") then
+                -- Read chats from metadata.lua for this document
+                local doc_settings = DocSettings:open(doc_path)
+                local chats_table = doc_settings:readSetting("koassistant_chats", {})
+
+                for chat_id, chat in pairs(chats_table) do
+                    if chat and chat.tags and chat.messages and #chat.messages > 0 then
+                        for _tidx, tag in ipairs(chat.tags) do
+                            counts[tag] = (counts[tag] or 0) + 1
+                        end
+                    end
+                end
+            end
+        end
+    else
+        -- v1: Loop through all document directories
+        if not lfs.attributes(self.CHAT_DIR, "mode") then
+            return counts
+        end
+
+        for doc_hash in lfs.dir(self.CHAT_DIR) do
+            if doc_hash ~= "." and doc_hash ~= ".." then
+                local doc_dir = self.CHAT_DIR .. "/" .. doc_hash
+                if lfs.attributes(doc_dir, "mode") == "directory" then
+                    -- Get chats from this document directory
+                    for filename in lfs.dir(doc_dir) do
+                        if filename ~= "." and filename ~= ".." and not filename:match("%.old$") then
+                            local chat_path = doc_dir .. "/" .. filename
+                            local chat = self:loadChat(chat_path)
+                            if chat and chat.tags and chat.messages and #chat.messages > 0 then
+                                for _tidx, tag in ipairs(chat.tags) do
+                                    counts[tag] = (counts[tag] or 0) + 1
+                                end
                             end
                         end
                     end
