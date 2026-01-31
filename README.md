@@ -946,6 +946,17 @@ Chat history export has its own setting (Settings → Chat Settings → History 
 
 The export uses your global Export Style setting (Markdown or Plain Text).
 
+### Chat Storage & File Moves
+
+**Storage System (v2)**: Chats are stored using KOReader's DocSettings system, which stores metadata alongside your books in `.sdr` folders. This means:
+- ✅ **Chats travel with books** when you move or copy files (in "doc" storage mode)
+- ✅ **No data loss** when reorganizing your library
+- ⚠️ **After moving a book**: Open it once to update the chat index — chats are preserved but "Browse All Chats" may not show the book until you open it
+
+**Storage Modes**: The v2 chat system is tested with KOReader's default **"doc" storage mode** (metadata stored alongside book files in `.sdr` folders). Other storage modes ("dir", "hash") should work via the DocSettings abstraction layer but are currently untested. Testing is in progress.
+
+**Migration**: If you're upgrading from an older version, your existing chats will be automatically migrated to the new storage system on first launch. The old chat files are backed up to `koassistant_chats.backup/`.
+
 ### Tags
 
 Tags are simple labels for organizing chats. Unlike domains:
