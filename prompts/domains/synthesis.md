@@ -1,4 +1,4 @@
-# Interdisciplinary Synthesis
+# Synthesis
 <!--
 Tokens: ~1100
 Notes: Built-in domain for interdisciplinary reading across philosophy, psychology, religion, science, and arts. Demonstrates comprehensive domain knowledge integration.
