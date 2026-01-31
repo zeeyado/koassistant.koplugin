@@ -1619,13 +1619,19 @@ function ChatHistoryDialog:showExportOptions(document_path, chat_id, chat_histor
     local features = config and config.features or {}
 
     -- Get history-specific content setting, fall back to asking
-    local content = features.history_copy_content or "ask"
-    if content == "global" then
-        content = features.copy_content or "full"
+    local content_setting = features.history_copy_content or "ask"
+    if content_setting == "global" then
+        content_setting = features.copy_content or "full"
     end
 
-    -- Get style setting (no more text/markdown dialog)
+    -- Get style setting
     local style = features.export_style or "markdown"
+
+    -- Get chat data for filename (book title, chat title, timestamp)
+    local chat = chat_history_manager:getChatById(document_path, chat_id)
+    local book_title = chat and chat.book_title or nil
+    local chat_title = chat and chat.title or nil  -- User-editable title
+    local chat_timestamp = chat and chat.timestamp or nil  -- Chat creation time
 
     -- Helper to perform the copy
     local function doCopy(selected_content)
@@ -1639,8 +1645,113 @@ function ChatHistoryDialog:showExportOptions(document_path, chat_id, chat_histor
         end
     end
 
-    if content == "ask" then
-        -- Show content picker dialog
+    -- Helper to perform save to file
+    local function doSave(selected_content, target_dir)
+        local Export = require("koassistant_export")
+        local text = chat_history_manager:exportChat(document_path, chat_id, selected_content, style)
+        if not text then
+            UIManager:show(InfoMessage:new{
+                text = _("Failed to generate export content"),
+                timeout = 2,
+            })
+            return
+        end
+
+        local extension = (style == "markdown") and "md" or "txt"
+        local filename = Export.getFilename(book_title, chat_title, chat_timestamp, extension)
+        local filepath = target_dir .. "/" .. filename
+
+        local success, err = Export.saveToFile(text, filepath)
+        if success then
+            UIManager:show(InfoMessage:new{
+                text = T(_("Saved to:\n%1"), filepath),
+                timeout = 4,
+            })
+        else
+            UIManager:show(InfoMessage:new{
+                text = T(_("Failed to save: %1"), err or "Unknown error"),
+                timeout = 3,
+            })
+        end
+    end
+
+    -- Show action selection dialog (Copy vs Save)
+    local function showActionDialog(selected_content)
+        local action_dialog
+        local Export = require("koassistant_export")
+
+        -- Get directory setting
+        local dir_option = features.export_save_directory or "book_folder"
+
+        local buttons = {
+            {
+                {
+                    text = _("Copy to Clipboard"),
+                    callback = function()
+                        UIManager:close(action_dialog)
+                        self_ref.current_options_dialog = nil
+                        doCopy(selected_content)
+                    end,
+                },
+            },
+            {
+                {
+                    text = _("Save to File"),
+                    callback = function()
+                        UIManager:close(action_dialog)
+                        self_ref.current_options_dialog = nil
+
+                        if dir_option == "ask" then
+                            -- Show PathChooser
+                            local PathChooser = require("ui/widget/pathchooser")
+                            local DataStorage = require("datastorage")
+                            -- Use KOReader's fallback chain: home_dir setting → Device.home_dir → DataStorage
+                            local start_path = G_reader_settings:readSetting("home_dir") or Device.home_dir or DataStorage:getDataDir()
+                            local path_chooser = PathChooser:new{
+                                title = _("Select Export Directory"),
+                                path = start_path,
+                                select_directory = true,
+                                onConfirm = function(path)
+                                    doSave(selected_content, path)
+                                end,
+                            }
+                            UIManager:show(path_chooser)
+                        else
+                            -- Use configured directory
+                            local target_dir, dir_err = Export.getDirectory(features, document_path)
+                            if not target_dir then
+                                UIManager:show(InfoMessage:new{
+                                    text = T(_("Invalid export directory: %1"), dir_err or "Unknown error"),
+                                    timeout = 3,
+                                })
+                                return
+                            end
+                            doSave(selected_content, target_dir)
+                        end
+                    end,
+                },
+            },
+            {
+                {
+                    text = _("Cancel"),
+                    callback = function()
+                        UIManager:close(action_dialog)
+                        self_ref.current_options_dialog = nil
+                    end,
+                },
+            },
+        }
+
+        action_dialog = ButtonDialog:new{
+            title = _("Export Chat"),
+            buttons = buttons,
+        }
+        self_ref.current_options_dialog = action_dialog
+        UIManager:show(action_dialog)
+    end
+
+    if content_setting == "ask" then
+        -- Show content picker dialog first
         local content_dialog
         local options = {
             { value = "full", label = _("Full (metadata + chat)") },
@@ -1657,7 +1768,8 @@ function ChatHistoryDialog:showExportOptions(document_path, chat_id, chat_histor
                     callback = function()
                         UIManager:close(content_dialog)
                         self_ref.current_options_dialog = nil
-                        doCopy(opt.value)
+                        -- Show action dialog with selected content
+                        showActionDialog(opt.value)
                     end,
                 },
             })
@@ -1679,8 +1791,8 @@ function ChatHistoryDialog:showExportOptions(document_path, chat_id, chat_histor
         self_ref.current_options_dialog = content_dialog
         UIManager:show(content_dialog)
     else
-        -- Direct copy using configured content and style
-        doCopy(content)
+        -- Content is predetermined, show action dialog directly
+        showActionDialog(content_setting)
     end
 end
 
