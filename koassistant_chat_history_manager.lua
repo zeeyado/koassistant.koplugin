@@ -2248,6 +2248,17 @@ function ChatHistoryManager:getAllDocumentsUnified(ui)
         local documents = {}
         local DocSettings = require("docsettings")
 
+        -- Helper to get max timestamp from a list of chats
+        local function getMaxTimestamp(chats)
+            local max_ts = 0
+            for _, chat in ipairs(chats) do
+                if chat.timestamp and chat.timestamp > max_ts then
+                    max_ts = chat.timestamp
+                end
+            end
+            return max_ts
+        end
+
         -- Add general chats as a pseudo-document
         local general_chats = self:getGeneralChats()
         if #general_chats > 0 then
@@ -2255,6 +2266,7 @@ function ChatHistoryManager:getAllDocumentsUnified(ui)
                 path = "__GENERAL_CHATS__",
                 title = _("General AI Chats"),
                 author = nil,
+                last_modified = getMaxTimestamp(general_chats),
             })
         end
 
@@ -2265,6 +2277,7 @@ function ChatHistoryManager:getAllDocumentsUnified(ui)
                 path = "__MULTI_BOOK_CHATS__",
                 title = _("Multi-Book Chats"),
                 author = nil,
+                last_modified = getMaxTimestamp(multi_book_chats),
             })
         end
 
@@ -2285,6 +2298,7 @@ function ChatHistoryManager:getAllDocumentsUnified(ui)
                         path = doc_path,
                         title = title,
                         author = author,
+                        last_modified = info.last_modified or 0,
                     })
                 else
                     -- Path is stale (file moved or deleted)
@@ -2293,6 +2307,11 @@ function ChatHistoryManager:getAllDocumentsUnified(ui)
                 end
             end
         end
+
+        -- Sort by last_modified descending (newest first)
+        table.sort(documents, function(a, b)
+            return (a.last_modified or 0) > (b.last_modified or 0)
+        end)
 
         return documents
     else

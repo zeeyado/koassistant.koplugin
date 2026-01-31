@@ -548,12 +548,7 @@ function ChatHistoryDialog:showChatHistoryBrowser(ui, current_document_path, cha
             display_text = display_text .. " • " .. doc.author
         end
 
-        -- Add visual indicator for special chat types
-        if doc.path == "__GENERAL_CHATS__" then
-            display_text = "💬 " .. display_text
-        elseif doc.path == "__MULTI_BOOK_CHATS__" then
-            display_text = "📚 " .. display_text
-        end
+        -- Note: Removed emoji icons (💬, 📚) - they don't render on all e-readers
 
         local right_text = tostring(chat_count) .. " " .. (chat_count == 1 and _("chat") or _("chats")) .. " • " .. date_str
 

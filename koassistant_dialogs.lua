@@ -2372,7 +2372,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                                 return nil -- Streaming will update via callback
                             end
                             closeLoadingDialog()
-                            showResponseDialog(_(prompt.text), history, highlighted_text, addMessage, temp_config, document_path, plugin, book_metadata, launch_context, ui)
+                            showResponseDialog(_(prompt.text), history, highlighted_text, addMessage, temp_config, document_path, plugin, book_metadata, launch_context, ui_instance)
                         else
                             closeLoadingDialog()
                             local error_msg = temp_config_or_error or "Unknown error"
