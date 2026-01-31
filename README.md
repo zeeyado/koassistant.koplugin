@@ -934,15 +934,31 @@ Select any chat to:
 - **Continue**: Resume the conversation
 - **Rename**: Change the chat title
 - **Tags**: Add or remove tags
-- **Export**: Copy chat to clipboard
+- **Export**: Copy to clipboard or save to file
 - **Delete**: Remove the chat
 
-### Export Formats
+### Export & Save to File
 
-Chat history export has its own setting (Settings → Chat Settings → History Export):
+When you tap Export on a chat, you can choose:
+- **Copy to Clipboard**: Copy the formatted chat text
+- **Save to File**: Save as a markdown (.md) or text (.txt) file
+
+**Content options** (Settings → Chat Settings → History Export):
 - **Ask every time** (default): Shows a picker dialog to choose what to include
 - **Follow Copy Content**: Uses the global Copy Content setting
 - **Full / Q+A / Response / Everything**: Fixed export format
+
+**Directory options** for Save to File (Settings → Chat Settings → Save to File):
+- **Same folder as book** (default): Saves to `[book_folder]/chats/` subfolder; general chats go to exports folder
+- **Same folder (custom fallback)**: Book folder for book chats, custom path for general chats
+- **Exports folder**: Central `koassistant_exports/` folder in KOReader data directory
+- **Custom path**: User-specified fixed directory
+- **Ask every time**: PathChooser dialog on each save
+
+**Filename format**: `[book_title]_[chat_title]_[YYYYMMDD_HHMMSS].md`
+- Book title truncated to 30 characters
+- Chat title (user-editable name or action name) truncated to 25 characters
+- Uses chat's original timestamp for saved chats, export time for unsaved chats
 
 The export uses your global Export Style setting (Markdown or Plain Text).
 
@@ -1093,12 +1109,24 @@ Chat History → hamburger menu → **View by Domain**
 - **Scroll to Last Message (Experimental)**: When resuming or replying to a chat, scroll to show your last question. Off by default (old behavior: top for new chats, bottom for replies)
 
 ### Export Settings (within Chat Settings)
-- **Export Style**: Format for Copy and Note — Markdown (default) or Plain Text
+- **Export Style**: Format for Copy, Note, and Save to File — Markdown (default) or Plain Text
 - **Copy Content**: What to include when copying — Ask every time, Full (metadata + chat), Question + Response, Response only, or Everything (debug)
 - **Note Content**: What to include when saving to note — Ask every time, Full, Question + Response, Response only (default), or Everything (debug)
 - **History Export**: What to include when exporting from Chat History — Ask every time (default), Follow Copy Content, Full, Q+A, Response only, or Everything (debug)
 
 When "Ask every time" is selected, a picker dialog appears letting you choose what to include before proceeding.
+
+### Save to File Settings (within Chat Settings)
+- **Save Directory**: Where to save exported files
+  - **Same folder as book** (default): Creates `chats/` subfolder in book's directory; general chats go to exports folder
+  - **Same folder (custom fallback)**: Book folder for book chats, custom path for general chats
+  - **Exports folder**: Central `koassistant_exports/` folder
+  - **Custom path**: User-specified fixed directory
+  - **Ask every time**: PathChooser dialog on each save
+- **Set Custom Path**: Set the custom directory path (appears when Custom path or Same folder with custom fallback is selected)
+- **Show Export in Chat Viewer**: Add Export button to the chat viewer toolbar (default: off)
+
+**Filename format**: Files are named `[book_title]_[chat_title]_[timestamp].md` (or `.txt`). Book title is truncated to 30 characters, chat title to 25 characters. Timestamp uses the chat's creation time for saved chats, or export time for unsaved chats from the viewer.
 
 ### Reading Features (visible when document is open)
 - **X-Ray**: Generate a structured reference guide for the book up to your current reading position
