@@ -209,7 +209,7 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
     local width, text_height, is_movable
     local large_dialog = settings and settings.large_stream_dialog ~= false
     if large_dialog then
-        -- Large streaming dialog (Wikipedia-style: near-100% with tiny margin)
+        -- Large streaming dialog (95% of screen)
         -- Streaming dialog chrome: title bar (~50px), 1 button row (~50px), borders/padding (~20px)
         local chrome_height = Screen:scaleBySize(120)
         width = UIConstants.CHAT_WIDTH()
