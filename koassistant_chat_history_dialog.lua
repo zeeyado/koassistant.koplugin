@@ -420,6 +420,8 @@ function ChatHistoryDialog:showChatsForDomain(ui, domain_key, chats, all_domains
             end
         elseif document_path == "__GENERAL_CHATS__" then
             book_info = _("General Chat")
+        elseif document_path == "__MULTI_BOOK_CHATS__" then
+            book_info = _("Multi-Book Chat")
         end
 
         local right_text = date_str .. " • " .. msg_count .. " " .. (msg_count == 1 and _("msg") or _("msgs"))
@@ -433,7 +435,10 @@ function ChatHistoryDialog:showChatsForDomain(ui, domain_key, chats, all_domains
                 -- Build a document object for compatibility with existing functions
                 local doc = {
                     path = document_path,
-                    title = chat.book_title or (document_path == "__GENERAL_CHATS__" and _("General AI Chats") or domain_name),
+                    title = chat.book_title
+                        or (document_path == "__GENERAL_CHATS__" and _("General AI Chats"))
+                        or (document_path == "__MULTI_BOOK_CHATS__" and _("Multi-Book Chats"))
+                        or domain_name,
                     author = chat.book_author,
                 }
                 self_ref:showChatOptions(ui, document_path, chat, chat_history_manager, config, doc, nil)
@@ -543,6 +548,13 @@ function ChatHistoryDialog:showChatHistoryBrowser(ui, current_document_path, cha
             display_text = display_text .. " • " .. doc.author
         end
 
+        -- Add visual indicator for special chat types
+        if doc.path == "__GENERAL_CHATS__" then
+            display_text = "💬 " .. display_text
+        elseif doc.path == "__MULTI_BOOK_CHATS__" then
+            display_text = "📚 " .. display_text
+        end
+
         local right_text = tostring(chat_count) .. " " .. (chat_count == 1 and _("chat") or _("chats")) .. " • " .. date_str
 
         -- Capture doc in closure
@@ -552,6 +564,8 @@ function ChatHistoryDialog:showChatHistoryBrowser(ui, current_document_path, cha
         local help_text
         if doc.path == "__GENERAL_CHATS__" then
             help_text = _("AI conversations without book context")
+        elseif doc.path == "__MULTI_BOOK_CHATS__" then
+            help_text = _("Comparisons and analyses across multiple books")
         else
             help_text = doc.path
         end

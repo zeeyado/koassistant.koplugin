@@ -192,7 +192,7 @@ function Export.getDirectory(settings, book_path)
 
     -- Helper to get book's folder
     local function getBookFolder()
-        if book_path and book_path ~= "" and book_path ~= "__GENERAL_CHATS__" then
+        if book_path and book_path ~= "" and book_path ~= "__GENERAL_CHATS__" and book_path ~= "__MULTI_BOOK_CHATS__" then
             local dir = book_path:match("(.*/)")
             if not dir then
                 dir = book_path:match("(.*\\)")  -- Windows path
