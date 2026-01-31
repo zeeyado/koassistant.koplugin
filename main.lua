@@ -258,13 +258,21 @@ function AskGPT:generateFileDialogButtons(file, is_file, book_props)
 
   -- Only show buttons for document files
   if is_file and self:isDocumentFile(file) then
-    logger.info("KOAssistant: File is a document, creating KOAssistant button")
-    
+    logger.info("KOAssistant: File is a document, creating KOAssistant buttons")
+
     -- Get metadata
     local title = book_props and book_props.title or file:match("([^/]+)$")
     local authors = book_props and book_props.authors or ""
-    
-    -- Return a row with the KOAssistant button
+
+    -- Get features for settings
+    local features = self.CONFIG and self.CONFIG.features or {}
+
+    -- Check notebook and chat status
+    local Notebook = require("koassistant_notebook")
+    local has_notebook = Notebook.exists(file)
+    local has_chats = self:documentHasChats(file)
+
+    -- Return a row with KOAssistant buttons
     -- FileManagerHistory expects a row (array of buttons)
     local buttons = {
       {
@@ -282,7 +290,47 @@ function AskGPT:generateFileDialogButtons(file, is_file, book_props)
       }
     }
 
-    logger.info("KOAssistant: Returning button row")
+    -- Notebook (KOA) button - respects settings
+    local show_notebook = features.show_notebook_in_file_browser ~= false  -- default true
+    local require_existing = features.notebook_button_require_existing ~= false  -- default true
+    if show_notebook and (has_notebook or not require_existing) then
+      table.insert(buttons, {
+        text = _("Notebook (KOA)"),
+        callback = function()
+          local UIManager = require("ui/uimanager")
+          local current_dialog = UIManager:getTopmostVisibleWidget()
+          if current_dialog and current_dialog.close then
+            UIManager:close(current_dialog)
+          end
+          self:openNotebookForFile(file)  -- view mode
+        end,
+        hold_callback = function()
+          local UIManager = require("ui/uimanager")
+          local current_dialog = UIManager:getTopmostVisibleWidget()
+          if current_dialog and current_dialog.close then
+            UIManager:close(current_dialog)
+          end
+          self:openNotebookForFile(file, true)  -- edit mode
+        end,
+      })
+    end
+
+    -- Chat History (KOA) button - only if chats exist
+    if has_chats then
+      table.insert(buttons, {
+        text = _("Chat History (KOA)"),
+        callback = function()
+          local UIManager = require("ui/uimanager")
+          local current_dialog = UIManager:getTopmostVisibleWidget()
+          if current_dialog and current_dialog.close then
+            UIManager:close(current_dialog)
+          end
+          self:showChatHistoryForFile(file)
+        end,
+      })
+    end
+
+    logger.info("KOAssistant: Returning " .. #buttons .. " button(s)")
     return buttons
   else
     logger.info("KOAssistant: Not a document file or is_file=false, returning nil")
@@ -930,6 +978,25 @@ function AskGPT:onDispatcherRegisterActions()
     general = true,
     reader = true,
     separator = true
+  })
+
+  -- Notebook gestures
+  -- View current book's notebook (requires open book, checked at runtime)
+  Dispatcher:registerAction("koassistant_view_notebook", {
+    category = "none",
+    event = "KOAssistantViewNotebook",
+    title = _("KOAssistant: View Notebook"),
+    general = true,
+    reader = true,
+  })
+
+  -- Browse all notebooks (general context - works from anywhere)
+  Dispatcher:registerAction("koassistant_browse_notebooks", {
+    category = "none",
+    event = "KOAssistantBrowseNotebooks",
+    title = _("KOAssistant: Browse Notebooks"),
+    general = true,
+    reader = true,
   })
 
   -- Register user-configured action gestures
@@ -3985,6 +4052,37 @@ function AskGPT:onKOAssistantToggleHighlightBypass()
   return true
 end
 
+--- View current book's notebook gesture handler
+function AskGPT:onKOAssistantViewNotebook()
+  local ReaderUI = require("apps/reader/readerui")
+  local reader_ui = ReaderUI.instance
+
+  if not reader_ui or not reader_ui.document then
+    UIManager:show(InfoMessage:new{
+      text = _("Please open a book first"),
+      timeout = 2,
+    })
+    return true
+  end
+
+  local file_path = reader_ui.document.file
+  self:openNotebookForFile(file_path)
+  return true
+end
+
+--- Browse all notebooks gesture handler
+function AskGPT:onKOAssistantBrowseNotebooks()
+  local NotebookManager = require("koassistant_notebook_manager")
+  NotebookManager:showNotebookBrowser()
+  return true
+end
+
+--- Browse notebooks (settings menu callback)
+function AskGPT:showNotebookBrowser()
+  local NotebookManager = require("koassistant_notebook_manager")
+  NotebookManager:showNotebookBrowser()
+end
+
 -- Translate current page gesture handler
 function AskGPT:onKOAssistantTranslatePage()
   self:translateCurrentPage()
@@ -6288,18 +6386,172 @@ function AskGPT:patchDocSettingsForChatIndex()
     DocSettings._original_updateLocation(old_path, new_path)
 
     -- Update KOAssistant chat index (after KOReader's work is done)
-    local index = G_reader_settings:readSetting("koassistant_chat_index", {})
-    if index[old_path] then
-      index[new_path] = index[old_path]
-      index[old_path] = nil
-      G_reader_settings:saveSetting("koassistant_chat_index", index)
-      G_reader_settings:flush()
+    local chat_index = G_reader_settings:readSetting("koassistant_chat_index", {})
+    if chat_index[old_path] then
+      chat_index[new_path] = chat_index[old_path]
+      chat_index[old_path] = nil
+      G_reader_settings:saveSetting("koassistant_chat_index", chat_index)
       logger.info("KOAssistant: Updated chat index for moved file")
     end
+
+    -- Update KOAssistant notebook index
+    local notebook_index = G_reader_settings:readSetting("koassistant_notebook_index", {})
+    if notebook_index[old_path] then
+      notebook_index[new_path] = notebook_index[old_path]
+      notebook_index[old_path] = nil
+      G_reader_settings:saveSetting("koassistant_notebook_index", notebook_index)
+      logger.info("KOAssistant: Updated notebook index for moved file")
+    end
+
+    -- Flush settings once after all index updates
+    G_reader_settings:flush()
   end
 
   DocSettings._koassistant_patched = true
   logger.info("KOAssistant: DocSettings.updateLocation() patched for sidecar file tracking")
+end
+
+--- Update notebook index for a document
+--- @param document_path string The document file path
+--- @param operation string "update" to add/update entry, "remove" to delete entry
+function AskGPT:updateNotebookIndex(document_path, operation)
+  if not document_path then return end
+
+  local index = G_reader_settings:readSetting("koassistant_notebook_index", {})
+
+  if operation == "remove" then
+    index[document_path] = nil
+  else
+    local Notebook = require("koassistant_notebook")
+    local stats = Notebook.getStats(document_path)
+    if stats then
+      index[document_path] = stats
+    else
+      -- File doesn't exist, remove from index
+      index[document_path] = nil
+    end
+  end
+
+  G_reader_settings:saveSetting("koassistant_notebook_index", index)
+  G_reader_settings:flush()
+end
+
+--- Get the notebook index
+--- @return table index Map of document_path -> {size, modified}
+function AskGPT:getNotebookIndex()
+  return G_reader_settings:readSetting("koassistant_notebook_index", {})
+end
+
+--- Check if document has saved chats
+--- @param file_path string The document file path
+--- @return boolean has_chats Whether the document has saved chats
+function AskGPT:documentHasChats(file_path)
+  local index = G_reader_settings:readSetting("koassistant_chat_index", {})
+  return index[file_path] and index[file_path].count and index[file_path].count > 0
+end
+
+--- Show chat history filtered to a specific book
+--- @param file_path string The document file path
+function AskGPT:showChatHistoryForFile(file_path)
+  local ChatHistoryDialog = require("koassistant_chat_history_dialog")
+  local ChatHistoryManager = require("koassistant_chat_history_manager")
+
+  local chat_history_manager = ChatHistoryManager:new()
+  ChatHistoryDialog:showChatHistoryBrowser(self.ui, file_path, chat_history_manager, self.CONFIG)
+end
+
+--- Open notebook for viewing or editing
+--- @param file_path string The document file path
+--- @param edit_mode boolean|nil If true, open in TextEditor (edit mode); otherwise open in reader (view mode)
+function AskGPT:openNotebookForFile(file_path, edit_mode)
+  local Notebook = require("koassistant_notebook")
+  local notebook_path = Notebook.getPath(file_path)
+
+  if not notebook_path then
+    UIManager:show(InfoMessage:new{
+      text = _("No notebook available for this document"),
+      timeout = 2,
+    })
+    return
+  end
+
+  if not Notebook.exists(file_path) then
+    -- Offer to create empty notebook
+    local ConfirmBox = require("ui/widget/confirmbox")
+    UIManager:show(ConfirmBox:new{
+      text = _("No notebook exists for this document. Create one?"),
+      ok_callback = function()
+        -- Create empty notebook with header
+        local ok, err = Notebook.create(file_path)
+        if ok then
+          self:updateNotebookIndex(file_path, "update")
+          -- Open in edit mode for new notebooks
+          self:openNotebookEditor(notebook_path, file_path)
+        else
+          UIManager:show(InfoMessage:new{
+            text = T(_("Failed to create notebook: %1"), err or "unknown"),
+            timeout = 3,
+          })
+        end
+      end,
+    })
+    return
+  end
+
+  if edit_mode then
+    self:openNotebookEditor(notebook_path, file_path)
+  else
+    self:openNotebookViewer(notebook_path)
+  end
+end
+
+--- Open notebook in KOReader reader (view mode)
+--- This enables markdown rendering and links to other books
+--- @param notebook_path string Full path to the notebook file
+function AskGPT:openNotebookViewer(notebook_path)
+  local ReaderUI = require("apps/reader/readerui")
+
+  -- Open notebook file in KOReader's reader
+  ReaderUI:showReader(notebook_path)
+end
+
+--- Open notebook in TextEditor (edit mode)
+--- @param notebook_path string Full path to the notebook file
+--- @param document_path string The original document file path (for index updates)
+function AskGPT:openNotebookEditor(notebook_path, document_path)
+  local InputDialog = require("ui/widget/inputdialog")
+  local self_ref = self
+
+  local content = util.readFromFile(notebook_path, "rb") or ""
+  local filename = notebook_path:match("([^/]+)$") or "notebook.md"
+
+  local editor = InputDialog:new{
+    title = filename,
+    input = content,
+    fullscreen = true,
+    condensed = true,
+    allow_newline = true,
+    cursor_at_end = false,
+    add_nav_bar = true,
+    keyboard_visible = false,
+    scroll_by_pan = true,
+
+    save_callback = function(edited_content, _closing)
+      local ok, err = util.writeToFile(edited_content, notebook_path)
+      if ok then
+        self_ref:updateNotebookIndex(document_path, "update")
+        return true, _("Notebook saved")
+      else
+        return false, T(_("Failed to save: %1"), err or "unknown")
+      end
+    end,
+
+    reset_callback = function(_content)
+      return util.readFromFile(notebook_path, "rb") or "", _("Reset to last saved")
+    end,
+  }
+
+  UIManager:show(editor)
 end
 
 return AskGPT

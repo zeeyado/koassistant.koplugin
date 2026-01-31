@@ -346,6 +346,57 @@ local SettingsSchema = {
             },
         },
 
+        -- Notebooks submenu
+        {
+            id = "notebooks",
+            type = "submenu",
+            text = _("Notebooks"),
+            items = {
+                {
+                    id = "browse_notebooks",
+                    type = "action",
+                    text = _("Browse Notebooks..."),
+                    callback = "showNotebookBrowser",
+                },
+                {
+                    type = "separator",
+                },
+                {
+                    id = "notebook_content_format",
+                    type = "dropdown",
+                    text = _("Content Format"),
+                    path = "features.notebook_content_format",
+                    default = "qa",
+                    options = {
+                        { value = "response", label = _("Response only") },
+                        { value = "qa", label = _("Q&A (recommended)") },
+                        { value = "full_qa", label = _("Full Q&A (with context)") },
+                    },
+                    help_text = _("What to include when saving to notebook.\nQ&A includes highlighted text + question + response."),
+                },
+                {
+                    type = "separator",
+                },
+                {
+                    id = "show_notebook_in_file_browser",
+                    type = "toggle",
+                    text = _("Show in file browser menu"),
+                    path = "features.show_notebook_in_file_browser",
+                    default = true,
+                    help_text = _("Show 'Notebook (KOA)' button when long-pressing books in the file browser."),
+                },
+                {
+                    id = "notebook_button_require_existing",
+                    type = "toggle",
+                    text = _("Only for books with notebooks"),
+                    path = "features.notebook_button_require_existing",
+                    default = true,
+                    depends_on = { id = "show_notebook_in_file_browser", value = true },
+                    help_text = _("Only show button if notebook already exists. Disable to allow creating new notebooks from file browser."),
+                },
+            },
+        },
+
         -- Advanced submenu
         {
             id = "advanced",

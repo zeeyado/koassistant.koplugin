@@ -1293,6 +1293,7 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
 
     config = config or {}
     config.features = config.features or {}
+    config.document_path = document_path  -- Needed for notebook save
 
     local history
     local ok, err = pcall(function()

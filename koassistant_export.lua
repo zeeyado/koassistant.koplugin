@@ -27,7 +27,12 @@ end
 --- Generate formatted text based on content and style settings
 -- @param data table with: messages, model, title, date, book_title, book_author, books_info,
 --                         domain, tags, launch_context, last_response, document_path (fallback)
--- @param content string: "full" | "qa" | "response" | "everything"
+-- @param content string: "full" | "qa" | "full_qa" | "response" | "everything"
+--   - response: AI response only
+--   - qa: Highlighted text + Question + Response (minimal context line)
+--   - full_qa: All context messages + Highlighted text + Question + Response (no book metadata)
+--   - full: Book metadata + Highlighted text + Question + Response (no context messages)
+--   - everything: Book metadata + All context messages + All messages
 -- @param style string: "markdown" | "text"
 -- @return string formatted export text
 function Export.format(data, content, style)
@@ -39,8 +44,8 @@ function Export.format(data, content, style)
     local is_md = (style == "markdown")
     local result = {}
 
-    -- Q+A mode: Add minimal context line before messages
-    if content == "qa" then
+    -- Q+A and Full Q+A modes: Add minimal context line before messages
+    if content == "qa" or content == "full_qa" then
         local context_line = buildContextLine(data)
         if context_line then
             table.insert(result, context_line)
@@ -146,9 +151,9 @@ function Export.format(data, content, style)
         table.insert(result, "")
     end
 
-    -- For Full/Everything: Show highlighted text as the user's initial input
+    -- For Full/Full_QA/Everything: Show highlighted text as the user's initial input
     -- This represents what the user selected/requested (hidden from normal message display)
-    if (content == "full" or content == "everything") and data.highlighted_text and data.highlighted_text ~= "" then
+    if (content == "full" or content == "full_qa" or content == "everything") and data.highlighted_text and data.highlighted_text ~= "" then
         if is_md then
             table.insert(result, "### User")
             table.insert(result, data.highlighted_text)
@@ -159,9 +164,10 @@ function Export.format(data, content, style)
         table.insert(result, "")
     end
 
-    -- Messages (for "full", "qa", and "everything" content types)
+    -- Messages (for "full", "qa", "full_qa", and "everything" content types)
     local messages = data.messages or {}
-    local include_context = (content == "everything")
+    -- Include context messages for "everything" and "full_qa" modes
+    local include_context = (content == "everything" or content == "full_qa")
     for _idx, msg in ipairs(messages) do
         -- Skip context messages unless "everything" mode
         if include_context or not msg.is_context then

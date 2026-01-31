@@ -857,6 +857,22 @@ function ChatGPTViewer:init()
       end,
     },
     {
+      text = "NB",
+      id = "save_to_notebook",
+      enabled = self.configuration and self.configuration.document_path
+                and self.configuration.document_path ~= "__GENERAL_CHATS__"
+                and self.configuration.document_path ~= "__MULTI_BOOK_CHATS__",
+      callback = function()
+        self:saveToNotebook()
+      end,
+      hold_callback = function()
+        UIManager:show(Notification:new{
+          text = _("Append chat to per-book notebook file"),
+          timeout = 2,
+        })
+      end,
+    },
+    {
       text = "#",
       id = "tag_chat",
       callback = function()
@@ -2377,6 +2393,62 @@ function ChatGPTViewer:saveToNote()
     showContentPicker(_("Note Content"), self.translate_view, doSave)
   else
     doSave(content)
+  end
+end
+
+function ChatGPTViewer:saveToNotebook()
+  -- Save chat to per-book notebook file
+  local document_path = self.configuration and self.configuration.document_path
+  if not document_path
+      or document_path == "__GENERAL_CHATS__"
+      or document_path == "__MULTI_BOOK_CHATS__" then
+    UIManager:show(Notification:new{
+      text = _("Notebooks are only available for single-book chats"),
+      timeout = 2,
+    })
+    return
+  end
+
+  local history = self._message_history or self.original_history
+  if not history then
+    UIManager:show(Notification:new{
+      text = _("No response to save"),
+      timeout = 2,
+    })
+    return
+  end
+
+  -- Get ReaderUI for page info
+  local ReaderUI = require("apps/reader/readerui")
+  local reader_ui = ReaderUI.instance
+
+  -- Get content format setting (default: qa)
+  local features = self.configuration and self.configuration.features or {}
+  local content_format = features.notebook_content_format or "qa"
+
+  -- Save to notebook
+  local Notebook = require("koassistant_notebook")
+  local ok, err = Notebook.saveChat(document_path, history, self.original_highlighted_text, reader_ui, content_format)
+
+  if ok then
+    -- Update notebook index directly (same as main.lua:updateNotebookIndex)
+    local stats = Notebook.getStats(document_path)
+    if stats then
+      local index = G_reader_settings:readSetting("koassistant_notebook_index", {})
+      index[document_path] = stats
+      G_reader_settings:saveSetting("koassistant_notebook_index", index)
+      G_reader_settings:flush()
+    end
+
+    UIManager:show(Notification:new{
+      text = _("Saved to notebook"),
+      timeout = 2,
+    })
+  else
+    UIManager:show(Notification:new{
+      text = _("Failed to save: ") .. (err or "unknown error"),
+      timeout = 3,
+    })
   end
 end
 
