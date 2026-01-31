@@ -982,7 +982,7 @@ The domain text is included in the system message after behavior and before lang
 
 ### Built-in Domain
 
-One AI-generated domain is built-in: **Critical Reader** (~250 tokens) - analytical stance for evaluating arguments and evidence.
+One domain is built-in: **Synthesis**
 
 This serves as an example of what domains can do. For more options/inspiration, see `domains.sample/` which includes specialized sample domains.
 
@@ -997,7 +997,7 @@ Create domains via:
 
 **Example**: Truncated part of `domains/synthesis.md` (from `domains.sample/`)
 ```markdown
-# Perennial Synthesis
+# Synthesis
 <!--
 Tokens: ~450
 Notes: Interdisciplinary reading across mystical, philosophical, psychological traditions
