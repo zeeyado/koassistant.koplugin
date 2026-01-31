@@ -4884,62 +4884,7 @@ end
 
 -- Reset feature settings to defaults (preserves API keys, custom actions/behaviors, custom models)
 function AskGPT:resetFeatureSettings()
-  local features = self.settings:readSetting("features") or {}
-
-  -- Preserve these items
-  local preserved = {
-    api_keys = features.api_keys,
-    custom_behaviors = features.custom_behaviors,
-    custom_models = features.custom_models,
-    provider_default_models = features.provider_default_models,
-  }
-
-  -- Reset features to defaults
-  local defaults = {
-    provider = "anthropic",
-    model = nil,  -- Will use provider default
-    hide_highlighted_text = false,
-    hide_long_highlights = true,
-    long_highlight_threshold = 280,
-    translation_language = "English",
-    dictionary_language = nil,
-    user_languages = nil,
-    debug = false,
-    show_debug_in_chat = false,
-    auto_save_all_chats = true,
-    auto_save_chats = true,
-    render_markdown = true,
-    enable_streaming = true,
-    stream_auto_scroll = false,
-    large_stream_dialog = true,
-    stream_display_interval = 250,
-    stream_poll_interval = 125,
-    selected_behavior = "standard",
-    selected_domain = nil,
-    default_temperature = 0.7,
-    default_max_tokens = nil,
-    anthropic_reasoning = false,
-    reasoning_budget = 10240,
-    openai_reasoning = false,
-    reasoning_effort = "medium",
-    gemini_reasoning = false,
-    reasoning_depth = "high",
-    enable_book_text_extraction = false,
-    max_book_text_chars = 50000,
-    max_pdf_pages = 250,
-    behavior_migrated = true,
-    prompts_migrated_v2 = true,
-  }
-
-  -- Merge preserved values back
-  for k, v in pairs(preserved) do
-    if v then defaults[k] = v end
-  end
-
-  self.settings:saveSetting("features", defaults)
-  self.settings:flush()
-  self:updateConfigFromSettings()
-
+  self:_resetFeatureSettingsInternal()
   UIManager:show(Notification:new{
     text = _("Feature settings reset to defaults"),
     timeout = 2,
@@ -4947,53 +4892,16 @@ function AskGPT:resetFeatureSettings()
 end
 
 -- Reset all customizations (preserves API keys and chat history only)
+-- Note: This function is kept for backup restore compatibility, but is no longer in the menu
 function AskGPT:resetAllCustomizations()
   local features = self.settings:readSetting("features") or {}
 
-  -- Preserve only API keys
-  local api_keys = features.api_keys
+  -- Apply defaults, preserving only API keys
+  local new_features = SettingsSchema.applyDefaults(features, {
+    "features.api_keys",
+  })
 
-  -- Reset features to defaults (without custom behaviors, models, etc.)
-  local defaults = {
-    provider = "anthropic",
-    model = nil,
-    hide_highlighted_text = false,
-    hide_long_highlights = true,
-    long_highlight_threshold = 280,
-    translation_language = "English",
-    dictionary_language = nil,
-    user_languages = nil,
-    debug = false,
-    show_debug_in_chat = false,
-    auto_save_all_chats = true,
-    auto_save_chats = true,
-    render_markdown = true,
-    enable_streaming = true,
-    stream_auto_scroll = false,
-    large_stream_dialog = true,
-    stream_display_interval = 250,
-    stream_poll_interval = 125,
-    selected_behavior = "standard",
-    selected_domain = nil,
-    default_temperature = 0.7,
-    default_max_tokens = nil,
-    anthropic_reasoning = false,
-    reasoning_budget = 10240,
-    openai_reasoning = false,
-    reasoning_effort = "medium",
-    gemini_reasoning = false,
-    reasoning_depth = "high",
-    enable_book_text_extraction = false,
-    max_book_text_chars = 50000,
-    max_pdf_pages = 250,
-    behavior_migrated = true,
-    prompts_migrated_v2 = true,
-  }
-
-  -- Restore API keys
-  if api_keys then defaults.api_keys = api_keys end
-
-  self.settings:saveSetting("features", defaults)
+  self.settings:saveSetting("features", new_features)
 
   -- Clear all other top-level settings (custom actions, overrides, menu configs)
   self.settings:delSetting("custom_actions")
@@ -5013,65 +4921,6 @@ function AskGPT:resetAllCustomizations()
   })
 end
 
--- Reset everything (nuclear option - only preserves chat history)
-function AskGPT:resetEverything()
-  -- Reset features to defaults (no preserved values)
-  local defaults = {
-    provider = "anthropic",
-    model = nil,
-    hide_highlighted_text = false,
-    hide_long_highlights = true,
-    long_highlight_threshold = 280,
-    translation_language = "English",
-    dictionary_language = nil,
-    user_languages = nil,
-    debug = false,
-    show_debug_in_chat = false,
-    auto_save_all_chats = true,
-    auto_save_chats = true,
-    render_markdown = true,
-    enable_streaming = true,
-    stream_auto_scroll = false,
-    large_stream_dialog = true,
-    stream_display_interval = 250,
-    stream_poll_interval = 125,
-    selected_behavior = "standard",
-    selected_domain = nil,
-    default_temperature = 0.7,
-    default_max_tokens = nil,
-    anthropic_reasoning = false,
-    reasoning_budget = 10240,
-    openai_reasoning = false,
-    reasoning_effort = "medium",
-    gemini_reasoning = false,
-    reasoning_depth = "high",
-    enable_book_text_extraction = false,
-    max_book_text_chars = 50000,
-    max_pdf_pages = 250,
-    behavior_migrated = true,
-    prompts_migrated_v2 = true,
-  }
-
-  self.settings:saveSetting("features", defaults)
-
-  -- Clear all other top-level settings
-  self.settings:delSetting("custom_actions")
-  self.settings:delSetting("builtin_action_overrides")
-  self.settings:delSetting("highlight_menu_actions")
-  self.settings:delSetting("dictionary_popup_actions")
-  self.settings:delSetting("disabled_actions")
-  self.settings:delSetting("_dismissed_highlight_actions")
-  self.settings:delSetting("_dismissed_dictionary_actions")
-
-  self.settings:flush()
-  self:updateConfigFromSettings()
-
-  UIManager:show(Notification:new{
-    text = _("Everything reset - please re-enter API keys"),
-    timeout = 3,
-  })
-end
-
 -- Clear all chat history
 function AskGPT:clearAllChatHistory()
   local ChatHistoryManager = require("koassistant_chat_history_manager")
@@ -5085,44 +4934,50 @@ function AskGPT:clearAllChatHistory()
 end
 
 -- Reset custom actions only (user-created actions)
-function AskGPT:resetCustomActions()
+function AskGPT:resetCustomActions(silent)
   self.settings:delSetting("custom_actions")
   self.settings:flush()
 
-  UIManager:show(Notification:new{
-    text = _("Custom actions deleted"),
-    timeout = 2,
-  })
+  if not silent then
+    UIManager:show(Notification:new{
+      text = _("Custom actions deleted"),
+      timeout = 2,
+    })
+  end
 end
 
 -- Reset action edits only (overrides to built-in actions + disabled actions)
-function AskGPT:resetActionEdits()
+function AskGPT:resetActionEdits(silent)
   self.settings:delSetting("builtin_action_overrides")
   self.settings:delSetting("disabled_actions")
   self.settings:flush()
 
-  UIManager:show(Notification:new{
-    text = _("Action edits reset to defaults"),
-    timeout = 2,
-  })
+  if not silent then
+    UIManager:show(Notification:new{
+      text = _("Action edits reset to defaults"),
+      timeout = 2,
+    })
+  end
 end
 
 -- Reset action menus only (highlight/dictionary menu configs)
-function AskGPT:resetActionMenus()
+function AskGPT:resetActionMenus(silent)
   self.settings:delSetting("highlight_menu_actions")
   self.settings:delSetting("dictionary_popup_actions")
   self.settings:delSetting("_dismissed_highlight_actions")
   self.settings:delSetting("_dismissed_dictionary_actions")
   self.settings:flush()
 
-  UIManager:show(Notification:new{
-    text = _("Action menus reset to defaults"),
-    timeout = 2,
-  })
+  if not silent then
+    UIManager:show(Notification:new{
+      text = _("Action menus reset to defaults"),
+      timeout = 2,
+    })
+  end
 end
 
 -- Reset custom providers and models only
-function AskGPT:resetCustomProvidersModels()
+function AskGPT:resetCustomProvidersModels(silent)
   local features = self.settings:readSetting("features") or {}
 
   -- Clear custom providers, models, and default model selections
@@ -5134,10 +4989,232 @@ function AskGPT:resetCustomProvidersModels()
   self.settings:flush()
   self:updateConfigFromSettings()
 
+  if not silent then
+    UIManager:show(Notification:new{
+      text = _("Custom providers and models reset"),
+      timeout = 2,
+    })
+  end
+end
+
+-- Reset behaviors and domains (custom behaviors created via UI)
+function AskGPT:resetBehaviorsDomains()
+  local features = self.settings:readSetting("features") or {}
+  features.custom_behaviors = nil
+  self.settings:saveSetting("features", features)
+  self.settings:flush()
+  self:updateConfigFromSettings()
+end
+
+-- Reset API keys
+function AskGPT:resetAPIKeys()
+  local features = self.settings:readSetting("features") or {}
+  features.api_keys = nil
+  self.settings:saveSetting("features", features)
+  self.settings:flush()
+  self:updateConfigFromSettings()
+end
+
+-- Internal: Reset feature settings using centralized defaults (no notification)
+function AskGPT:_resetFeatureSettingsInternal()
+  local features = self.settings:readSetting("features") or {}
+
+  -- Apply defaults, preserving API keys, custom content, and user customizations
+  local new_features = SettingsSchema.applyDefaults(features, {
+    "features.api_keys",
+    "features.custom_behaviors",
+    "features.custom_models",
+    "features.provider_default_models",
+    "features.custom_providers",
+    "features.gesture_actions",
+  })
+
+  self.settings:saveSetting("features", new_features)
+  self.settings:flush()
+  self:updateConfigFromSettings()
+end
+
+-- Quick reset: Settings only
+function AskGPT:quickResetSettings()
+  self:_resetFeatureSettingsInternal()
   UIManager:show(Notification:new{
-    text = _("Custom providers and models reset"),
+    text = _("Settings reset to defaults"),
     timeout = 2,
   })
+end
+
+-- Quick reset: Actions only (all action-related settings)
+function AskGPT:quickResetActions()
+  self:resetCustomActions(true)
+  self:resetActionEdits(true)
+  self:resetActionMenus(true)
+  UIManager:show(Notification:new{
+    text = _("All action settings reset"),
+    timeout = 2,
+  })
+end
+
+-- Quick reset: Fresh start (everything except API keys and chats)
+function AskGPT:quickResetFreshStart()
+  self:_resetFeatureSettingsInternal()
+  self:resetCustomActions(true)
+  self:resetActionEdits(true)
+  self:resetActionMenus(true)
+  self:resetCustomProvidersModels(true)
+  self:resetBehaviorsDomains()
+  UIManager:show(Notification:new{
+    text = _("Fresh start complete - API keys preserved"),
+    timeout = 2,
+  })
+end
+
+-- Show custom reset dialog with checklist
+function AskGPT:showCustomResetDialog()
+  self:_showCustomResetOptionsDialog({
+    reset_settings = false,
+    reset_custom_actions = false,
+    reset_action_edits = false,
+    reset_action_menus = false,
+    reset_providers_models = false,
+    reset_behaviors_domains = false,
+    reset_api_keys = false,
+  })
+end
+
+-- Internal: Show custom reset options dialog
+function AskGPT:_showCustomResetOptionsDialog(state)
+  local ButtonDialog = require("ui/widget/buttondialog")
+  local dialog
+
+  local function toggleText(label, is_reset, warning)
+    if is_reset then
+      return label .. ": " .. _("✓ Reset") .. (warning or "")
+    else
+      return label .. ": " .. _("✗ Keep")
+    end
+  end
+
+  local buttons = {
+    {{
+      text = toggleText(_("Settings"), state.reset_settings),
+      callback = function()
+        UIManager:close(dialog)
+        state.reset_settings = not state.reset_settings
+        self:_showCustomResetOptionsDialog(state)
+      end,
+    }},
+    {{
+      text = toggleText(_("Custom actions"), state.reset_custom_actions),
+      callback = function()
+        UIManager:close(dialog)
+        state.reset_custom_actions = not state.reset_custom_actions
+        self:_showCustomResetOptionsDialog(state)
+      end,
+    }},
+    {{
+      text = toggleText(_("Action edits"), state.reset_action_edits),
+      callback = function()
+        UIManager:close(dialog)
+        state.reset_action_edits = not state.reset_action_edits
+        self:_showCustomResetOptionsDialog(state)
+      end,
+    }},
+    {{
+      text = toggleText(_("Action menus"), state.reset_action_menus),
+      callback = function()
+        UIManager:close(dialog)
+        state.reset_action_menus = not state.reset_action_menus
+        self:_showCustomResetOptionsDialog(state)
+      end,
+    }},
+    {{
+      text = toggleText(_("Custom providers & models"), state.reset_providers_models),
+      callback = function()
+        UIManager:close(dialog)
+        state.reset_providers_models = not state.reset_providers_models
+        self:_showCustomResetOptionsDialog(state)
+      end,
+    }},
+    {{
+      text = toggleText(_("Behaviors & domains"), state.reset_behaviors_domains),
+      callback = function()
+        UIManager:close(dialog)
+        state.reset_behaviors_domains = not state.reset_behaviors_domains
+        self:_showCustomResetOptionsDialog(state)
+      end,
+    }},
+    {{
+      text = toggleText(_("API keys"), state.reset_api_keys, " ⚠️"),
+      callback = function()
+        UIManager:close(dialog)
+        state.reset_api_keys = not state.reset_api_keys
+        self:_showCustomResetOptionsDialog(state)
+      end,
+    }},
+    {{
+      text = "━━━━━━━━━━━━━━━━",
+      enabled = false,
+    }},
+    {{
+      text = _("Reset Selected"),
+      callback = function()
+        UIManager:close(dialog)
+        self:_performCustomReset(state)
+      end,
+    }},
+  }
+
+  dialog = ButtonDialog:new{
+    title = _("What would you like to reset?"),
+    buttons = buttons,
+  }
+  UIManager:show(dialog)
+end
+
+-- Internal: Perform custom reset based on selected options
+function AskGPT:_performCustomReset(state)
+  local reset_items = {}
+
+  if state.reset_settings then
+    self:_resetFeatureSettingsInternal()
+    table.insert(reset_items, _("settings"))
+  end
+  if state.reset_custom_actions then
+    self:resetCustomActions(true)
+    table.insert(reset_items, _("custom actions"))
+  end
+  if state.reset_action_edits then
+    self:resetActionEdits(true)
+    table.insert(reset_items, _("action edits"))
+  end
+  if state.reset_action_menus then
+    self:resetActionMenus(true)
+    table.insert(reset_items, _("action menus"))
+  end
+  if state.reset_providers_models then
+    self:resetCustomProvidersModels(true)
+    table.insert(reset_items, _("providers/models"))
+  end
+  if state.reset_behaviors_domains then
+    self:resetBehaviorsDomains()
+    table.insert(reset_items, _("behaviors/domains"))
+  end
+  if state.reset_api_keys then
+    self:resetAPIKeys()
+    table.insert(reset_items, _("API keys"))
+  end
+
+  if #reset_items > 0 then
+    UIManager:show(Notification:new{
+      text = T(_("Reset: %1"), table.concat(reset_items, ", ")),
+      timeout = 3,
+    })
+  else
+    UIManager:show(Notification:new{
+      text = _("Nothing selected to reset"),
+      timeout = 2,
+    })
+  end
 end
 
 -- Validate and sanitize action overrides during restore

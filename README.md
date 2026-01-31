@@ -1167,7 +1167,7 @@ When "Ask every time" is selected, a picker dialog appears letting you choose wh
   - **Create Backup**: Save settings, API keys, custom content, and chat history
   - **Restore from Backup**: Restore from a previous backup
   - **View Backups**: Manage existing backups and restore points
-- **Reset Settings**: Three tiers of reset (feature settings, all customizations, everything)
+- **Reset Settings**: Quick resets (Settings only, Actions only, Fresh start), Custom reset checklist, Clear chat history
 - **Console Debug**: Enable terminal/console debug logging
 - **Show Debug in Chat**: Display debug info in chat viewer
 - **Debug Detail Level**: Verbosity (Minimal/Names/Full)
@@ -1472,40 +1472,46 @@ The restore system validates settings and handles edge cases:
 
 ### Reset Settings
 
-KOAssistant provides granular reset options for different use cases.
+KOAssistant provides clear reset options for different use cases.
 
 **Access:** Settings → Advanced → Reset Settings
 
-#### Quick Resets (Granular)
+#### Quick Resets
 
-**Reset actions submenu:**
-- **Reset custom actions**: Deletes all user-created actions. Built-in actions and their edits are preserved.
-- **Reset action edits**: Reverts changes to built-in actions (custom behavior, temperature, etc.) and re-enables disabled actions. Custom actions are preserved.
-- **Reset action menus**: Resets highlight menu and dictionary popup ordering/selection to defaults. Your actions are preserved.
+Three preset options that cover most needs:
 
-**Reset custom providers/models**: Removes user-defined providers and custom models added to built-in providers.
+**Quick: Settings only**
+- Resets ALL settings in the Settings menu to defaults (provider, model, temperature, streaming, display, export, dictionary, translation, reasoning, debug, language preferences)
+- Keeps: API keys, all actions, custom behaviors/domains, custom providers/models, gesture registrations, chat history
 
-#### Full Resets (Tiers)
+**Quick: Actions only**
+- Resets all action-related settings (custom actions, edits to built-in actions, disabled actions, highlight/dictionary menu ordering)
+- Keeps: All settings, API keys, custom behaviors/domains, custom providers/models, gesture registrations, chat history
 
-**1. Reset feature settings (Safest)**
-- Resets: Provider, model, temperature, toggles
-- Preserves: API keys, custom actions, behaviors, custom models, chat history
+**Quick: Fresh start**
+- Resets everything except API keys and chat history (all settings, all actions, custom behaviors/domains, custom providers/models)
+- Keeps: API keys, gesture registrations, chat history only
 
-**2. Reset all customizations (Moderate)**
-- Resets: All settings including custom actions, behaviors, domains, models, action overrides
-- Preserves: API keys, chat history
+#### Custom Reset
 
-**3. Reset everything (nuclear) (Complete wipe)**
-- Resets: Everything including API keys
-- Preserves: Chat history only
-- You must re-enter all API keys and reconfigure from scratch
+Opens a checklist dialog to choose exactly what to reset:
+- Settings (all toggles and preferences)
+- Custom actions
+- Action edits
+- Action menus
+- Custom providers & models
+- Behaviors & domains
+- API keys (shows ⚠️ warning)
+
+Tap each item to toggle between "✗ Keep" and "✓ Reset", then tap "Reset Selected".
+
+#### Clear Chat History
+
+Separate option to delete all saved conversations across all books. This cannot be undone.
 
 #### Action Manager Menu
 
-The Action Manager (Settings → Actions → Manage Actions) has a hamburger menu (☰) in the top-left with quick access to action-related resets:
-- Reset custom actions
-- Reset action edits
-- Reset action menus
+The Action Manager (Settings → Actions → Manage Actions) has a hamburger menu (☰) in the top-left with quick access to action-related resets.
 
 **When to reset:** After problematic updates, when experiencing strange behavior, or to start fresh. See [Troubleshooting → Settings Reset](#settings-reset) for details.
 
@@ -1785,19 +1791,18 @@ If you're experiencing issues after updating the plugin, or want a fresh start w
 **Access:** Settings → Advanced → Reset Settings
 
 **For targeted fixes:**
-- **Action issues?** Try "Reset actions" → "Reset action edits" first (preserves your custom actions)
-- **Custom action problems?** Try "Reset actions" → "Reset custom actions" (removes user-created actions only)
-- **Menu ordering wrong?** Try "Reset actions" → "Reset action menus"
-- **Provider/model issues?** Try "Reset custom providers/models" or "Reset feature settings"
+- **Settings wrong?** Use "Quick: Settings only" (resets all settings, keeps actions and API keys)
+- **Action issues?** Use "Quick: Actions only" (resets all action settings, keeps everything else)
+- **Need specific control?** Use "Custom reset..." to choose exactly what to reset
 
 **For broader issues:**
-- **Strange behavior after update?** Try "Reset feature settings" (safest full reset)
-- **Many things broken?** Try "Reset all customizations" (preserves API keys)
-- **Want completely fresh start?** Use "Reset everything" (nuclear option)
+- **Strange behavior after update?** Use "Quick: Settings only" (safest)
+- **Many things broken?** Use "Quick: Fresh start" (resets everything except API keys and chats)
+- **Want full control?** Use "Custom reset..." and check everything you want to reset
 
 See [Reset Settings](#reset-settings) for detailed descriptions of each option.
 
-**Note:** KOAssistant is under active development, so if your settings are old (created several versions ago), a reset can help ensure compatibility with new features.
+**Note:** KOAssistant is under active development. If settings are old, a reset can help ensure compatibility with new features. Long-press any reset option to see exactly what it resets and preserves.
 
 ### Debug Mode
 

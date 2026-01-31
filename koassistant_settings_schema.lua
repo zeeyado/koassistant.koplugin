@@ -657,89 +657,52 @@ local SettingsSchema = {
                     type = "submenu",
                     text = _("Reset Settings..."),
                     items = {
-                        -- Feature settings (toggles only)
+                        -- Quick: Settings only
                         {
-                            id = "reset_feature_settings",
+                            id = "quick_reset_settings",
                             type = "action",
-                            text = _("Reset feature settings"),
-                            info_text = _("Resets provider, model, temperature, streaming, reasoning, and other toggles.\n\nPreserves: API keys, all actions, behaviors, custom models, chat history."),
+                            text = _("Quick: Settings only"),
+                            help_text = _("Resets ALL settings in this menu to defaults:\n• Provider, model, temperature\n• Streaming, display, export settings\n• Dictionary & translation settings\n• Reasoning & debug settings\n• Language preferences\n\nKeeps: API keys, all actions, custom behaviors/domains, custom providers/models, gesture registrations, chat history."),
                             confirm = true,
-                            confirm_text = _("Reset feature settings to defaults?\n\nResets: Provider, model, temperature, streaming, reasoning toggles.\n\nPreserves: API keys, custom actions, action edits, behaviors, custom models, chat history."),
-                            callback = "resetFeatureSettings",
+                            confirm_text = _("Reset all settings to defaults?\n\nResets ALL settings in Settings menu:\n• Provider, model, temperature\n• Streaming, display, export settings\n• Dictionary & translation settings\n• Reasoning & debug settings\n• Language preferences\n\nKeeps: API keys, all actions, custom behaviors/domains, custom providers/models, gesture registrations, chat history."),
+                            callback = "quickResetSettings",
+                        },
+                        -- Quick: Actions only
+                        {
+                            id = "quick_reset_actions",
+                            type = "action",
+                            text = _("Quick: Actions only"),
+                            help_text = _("Resets all action-related settings:\n• Custom actions you created\n• Edits to built-in actions\n• Disabled actions (re-enables all)\n• Highlight menu order & dismissed items\n• Dictionary menu order & dismissed items\n\nKeeps: All settings, API keys, custom behaviors/domains, custom providers/models, gesture registrations, chat history."),
+                            confirm = true,
+                            confirm_text = _("Reset all action settings?\n\nResets:\n• Custom actions you created\n• Edits to built-in actions\n• Disabled actions (re-enables all)\n• Highlight menu order & dismissed items\n• Dictionary menu order & dismissed items\n\nKeeps: All settings, API keys, custom behaviors/domains, custom providers/models, gesture registrations, chat history."),
+                            callback = "quickResetActions",
+                        },
+                        -- Quick: Fresh start
+                        {
+                            id = "quick_reset_fresh_start",
+                            type = "action",
+                            text = _("Quick: Fresh start"),
+                            help_text = _("Resets everything except API keys and chat history:\n• All settings (provider, model, temperature, all toggles)\n• All actions (custom, edits, menus)\n• Custom behaviors & domains\n• Custom providers & models\n\nKeeps: API keys, gesture registrations, chat history only."),
+                            confirm = true,
+                            confirm_text = _("Fresh start?\n\nResets:\n• All settings (provider, model, temperature, all toggles)\n• All actions (custom, edits, menus)\n• Custom behaviors & domains\n• Custom providers & models\n\nKeeps: API keys, gesture registrations, chat history only."),
+                            callback = "quickResetFreshStart",
                             separator = true,
                         },
-                        -- Action resets submenu
+                        -- Custom reset
                         {
-                            id = "reset_actions_submenu",
-                            type = "submenu",
-                            text = _("Reset actions..."),
-                            items = {
-                                {
-                                    id = "reset_custom_actions",
-                                    type = "action",
-                                    text = _("Reset custom actions"),
-                                    info_text = _("Deletes all user-created actions.\n\nPreserves: Built-in actions, action edits, menu configurations."),
-                                    confirm = true,
-                                    confirm_text = _("Delete all custom actions?\n\nThis removes actions you created.\n\nBuilt-in actions and their edits are preserved."),
-                                    callback = "resetCustomActions",
-                                },
-                                {
-                                    id = "reset_action_edits",
-                                    type = "action",
-                                    text = _("Reset action edits"),
-                                    info_text = _("Resets all edits to built-in actions back to defaults. Also re-enables any disabled actions.\n\nPreserves: Custom actions, menu configurations."),
-                                    confirm = true,
-                                    confirm_text = _("Reset all action edits?\n\nThis reverts any changes you made to built-in actions and re-enables disabled actions.\n\nCustom actions are preserved."),
-                                    callback = "resetActionEdits",
-                                },
-                                {
-                                    id = "reset_action_menus",
-                                    type = "action",
-                                    text = _("Reset action menus"),
-                                    info_text = _("Resets highlight menu and dictionary popup configurations back to defaults.\n\nPreserves: Actions themselves (both custom and built-in)."),
-                                    confirm = true,
-                                    confirm_text = _("Reset action menu configurations?\n\nThis resets the ordering and selection in highlight menu and dictionary popup back to defaults.\n\nYour actions (custom and built-in) are preserved."),
-                                    callback = "resetActionMenus",
-                                },
-                            },
-                        },
-                        -- Provider/model reset
-                        {
-                            id = "reset_providers_models",
+                            id = "custom_reset",
                             type = "action",
-                            text = _("Reset custom providers/models"),
-                            info_text = _("Removes custom providers, custom models, and per-provider default model selections.\n\nPreserves: API keys, actions, behaviors."),
-                            confirm = true,
-                            confirm_text = _("Reset custom providers and models?\n\nThis removes:\n• Custom providers you added\n• Custom models for any provider\n• Per-provider default model selections\n\nAPI keys and actions are preserved."),
-                            callback = "resetCustomProvidersModels",
+                            text = _("Custom reset..."),
+                            help_text = _("Opens a checklist to choose exactly what to reset:\n• Settings (all toggles and preferences)\n• Custom actions\n• Action edits\n• Action menus\n• Custom providers & models\n• Behaviors & domains\n• API keys (with warning)"),
+                            callback = "showCustomResetDialog",
                             separator = true,
                         },
-                        -- Combined resets
-                        {
-                            id = "reset_all_customizations",
-                            type = "action",
-                            text = _("Reset all customizations"),
-                            info_text = _("Resets ALL customizations: actions, edits, menus, behaviors, domains, providers, models.\n\nPreserves: API keys, chat history."),
-                            confirm = true,
-                            confirm_text = _("Reset ALL customizations?\n\nThis resets:\n• Custom actions and action edits\n• Menu configurations\n• Behaviors and domains\n• Custom providers and models\n• Feature settings\n\nOnly API keys and chat history are preserved."),
-                            callback = "resetAllCustomizations",
-                        },
-                        {
-                            id = "reset_everything",
-                            type = "action",
-                            text = _("Reset everything (nuclear)"),
-                            info_text = _("⚠️ COMPLETE RESET: Deletes ALL settings including API keys.\n\nPreserves: Chat history only."),
-                            confirm = true,
-                            confirm_text = _("⚠️ RESET EVERYTHING?\n\nThis will DELETE:\n• All settings and configurations\n• Custom actions, behaviors, domains\n• Custom models and providers\n• API keys (you'll need to re-enter)\n• Action menu customizations\n\nOnly chat history will be preserved.\n\nThis CANNOT be undone!"),
-                            callback = "resetEverything",
-                            separator = true,
-                        },
-                        -- Chat history (separate concern)
+                        -- Clear chat history (unchanged)
                         {
                             id = "clear_chat_history",
                             type = "action",
                             text = _("Clear all chat history"),
-                            info_text = _("Deletes all saved conversations across all books."),
+                            help_text = _("Deletes all saved conversations across all books."),
                             confirm = true,
                             confirm_text = _("Delete all chat history?\n\nThis removes all saved conversations across all books.\n\nThis cannot be undone."),
                             callback = "clearAllChatHistory",
@@ -1200,5 +1163,64 @@ local SettingsSchema = {
         return true -- No validation for other types
     end,
 }
+
+-- Extract all defaults from schema into a flat table
+-- Returns: { ["features.render_markdown"] = true, ["features.default_temperature"] = 0.7, ... }
+function SettingsSchema.getDefaults()
+    local defaults = {}
+
+    local function extractFromItems(items)
+        for _idx, item in ipairs(items) do
+            -- Extract default from item if it has path and default
+            if item.path and item.default ~= nil then
+                defaults[item.path] = item.default
+            end
+            -- Recurse into submenus
+            if item.items then
+                extractFromItems(item.items)
+            end
+        end
+    end
+
+    extractFromItems(SettingsSchema.items)
+    return defaults
+end
+
+-- Apply defaults to features table (used by reset functions)
+-- @param features: current features table
+-- @param preserve: table of paths to preserve (e.g., {"features.api_keys", "features.custom_behaviors"})
+-- @return: new features table with defaults applied
+function SettingsSchema.applyDefaults(features, preserve)
+    local defaults = SettingsSchema.getDefaults()
+    local preserved_values = {}
+
+    -- Save preserved values
+    for _idx, path in ipairs(preserve or {}) do
+        local key = path:match("^features%.(.+)$")
+        if key and features[key] ~= nil then
+            preserved_values[key] = features[key]
+        end
+    end
+
+    -- Build new features with defaults
+    local new_features = {}
+    for path, default in pairs(defaults) do
+        local key = path:match("^features%.(.+)$")
+        if key then
+            new_features[key] = default
+        end
+    end
+
+    -- Restore preserved values
+    for key, value in pairs(preserved_values) do
+        new_features[key] = value
+    end
+
+    -- Keep migration flags
+    new_features.behavior_migrated = true
+    new_features.prompts_migrated_v2 = true
+
+    return new_features
+end
 
 return SettingsSchema
