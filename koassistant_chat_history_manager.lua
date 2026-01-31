@@ -2008,18 +2008,46 @@ function ChatHistoryManager:updateChatIndex(document_path, operation, chat_id, c
     -- Count chats in the provided table
     local count = 0
     local chat_ids = {}
+    local max_timestamp = 0
+
     for id, chat in pairs(chats_table) do
         count = count + 1
         table.insert(chat_ids, id)
+
+        -- Track the most recent chat timestamp
+        if chat.timestamp and chat.timestamp > max_timestamp then
+            max_timestamp = chat.timestamp
+        end
     end
 
     if count > 0 then
+        -- Determine the appropriate timestamp
+        local timestamp
+        if operation == "save" then
+            -- Actual modification - use current time
+            timestamp = os.time()
+        elseif operation == "delete" or operation == "refresh" then
+            -- Preserve existing timestamp or use max chat timestamp
+            -- This prevents spurious timestamp updates on book open/refresh
+            if index[document_path] and index[document_path].last_modified then
+                timestamp = index[document_path].last_modified
+            else
+                timestamp = max_timestamp > 0 and max_timestamp or os.time()
+            end
+        else
+            -- Unknown operation - default to current time
+            timestamp = os.time()
+        end
+
         -- Document has chats, update index entry
         index[document_path] = {
             count = count,
-            last_modified = os.time(),
+            last_modified = timestamp,
             chat_ids = chat_ids,
         }
+
+        logger.dbg("Chat index update: operation=" .. operation .. ", timestamp=" ..
+                   (operation == "save" and "NEW" or "PRESERVED"))
     else
         -- No chats left, remove from index
         index[document_path] = nil
