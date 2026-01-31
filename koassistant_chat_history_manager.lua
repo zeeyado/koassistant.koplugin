@@ -2357,14 +2357,8 @@ function ChatHistoryManager:getChatsUnified(ui, document_path)
             if ui and ui.document and ui.document.file == document_path then
                 -- Current document is open - use getChatsFromDocSettings for efficiency
                 return self:getChatsFromDocSettings(ui)
-            elseif ui and ui.document and ui.document.file then
-                -- Current document is open but requested path differs
-                -- Note: File moves are now handled by updateLocation patch,
-                -- so this case shouldn't happen in normal operation.
-                -- Just return chats for the actually open document.
-                return self:getChatsFromDocSettings(ui)
             else
-                -- Document not currently open, read from metadata.lua manually
+                -- Different document or no document open - read from metadata.lua
                 if lfs.attributes(document_path, "mode") then
                     local doc_settings = DocSettings:open(document_path)
                     local chats_table = doc_settings:readSetting("koassistant_chats", {})
