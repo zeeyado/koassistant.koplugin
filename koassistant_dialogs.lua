@@ -1249,11 +1249,16 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                         if highlightedText and highlightedText ~= "" then
                             metadata.original_highlighted_text = highlightedText
                         end
+                        -- Store books_info for multi-book context
+                        if cfg.features.is_multi_book_context and cfg.features.books_info then
+                            metadata.books_info = cfg.features.books_info
+                        end
 
                         -- Determine save path: check for action storage_key override
                         local storage_key = cfg.features and cfg.features.storage_key
                         local save_path
                         local should_save = true
+                        local is_multi_book = cfg.features.is_multi_book_context or false
 
                         if storage_key == "__SKIP__" then
                             -- Don't save this chat
@@ -1263,8 +1268,11 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                             -- Use custom storage location
                             save_path = storage_key
                         else
-                            -- Default: document path or general chats
-                            save_path = document_path or (is_general_context and "__GENERAL_CHATS__" or nil)
+                            -- Default: document path, general chats, or multi-book chats
+                            save_path = document_path
+                                or (is_general_context and "__GENERAL_CHATS__")
+                                or (is_multi_book and "__MULTI_BOOK_CHATS__")
+                                or nil
                         end
 
                         if not should_save then
@@ -1295,6 +1303,8 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
 
                                 if save_path == "__GENERAL_CHATS__" then
                                     save_result = chat_history_manager:saveGeneralChat(chat_data)
+                                elseif save_path == "__MULTI_BOOK_CHATS__" then
+                                    save_result = chat_history_manager:saveMultiBookChat(chat_data)
                                 else
                                     save_result = chat_history_manager:saveChatToDocSettings(ui_instance, chat_data)
                                 end
@@ -1568,11 +1578,16 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
             if highlightedText and highlightedText ~= "" then
                 metadata.original_highlighted_text = highlightedText
             end
+            -- Store books_info for multi-book context
+            if temp_config.features.is_multi_book_context and temp_config.features.books_info then
+                metadata.books_info = temp_config.features.books_info
+            end
 
             -- Determine save path: check for action storage_key override
             local storage_key = temp_config.features and temp_config.features.storage_key
             local save_path
             local should_save = true
+            local is_multi_book = temp_config.features.is_multi_book_context or false
 
             if storage_key == "__SKIP__" then
                 -- Don't save this chat
@@ -1582,8 +1597,11 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                 -- Use custom storage location
                 save_path = storage_key
             else
-                -- Default: document path or general chats
-                save_path = document_path or (is_general_context and "__GENERAL_CHATS__" or nil)
+                -- Default: document path, general chats, or multi-book chats
+                save_path = document_path
+                    or (is_general_context and "__GENERAL_CHATS__")
+                    or (is_multi_book and "__MULTI_BOOK_CHATS__")
+                    or nil
             end
 
             if should_save then
@@ -1611,6 +1629,8 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
 
                     if save_path == "__GENERAL_CHATS__" then
                         result = chat_history_manager:saveGeneralChat(chat_data)
+                    elseif save_path == "__MULTI_BOOK_CHATS__" then
+                        result = chat_history_manager:saveMultiBookChat(chat_data)
                     else
                         result = chat_history_manager:saveChatToDocSettings(ui_instance, chat_data)
                     end
