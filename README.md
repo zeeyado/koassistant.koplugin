@@ -1018,7 +1018,7 @@ Each entry includes timestamp, page number, progress percentage, and chapter tit
 | Storage | One file per book | Multiple chats per book |
 | Content | Selected responses and notes | Complete back-and-forth |
 | Editing | Manual editing allowed | Immutable after save |
-| Format | Append-only markdown | Structured Lua data |
+| Format | Markdown | Structured Lua data |
 
 ### Chat Storage & File Moves
 
