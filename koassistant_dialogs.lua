@@ -1943,6 +1943,19 @@ local function handlePredefinedPrompt(prompt_type_or_action, highlightedText, ui
         end
     end
 
+    -- Notebook content extraction (if action has use_notebook flag)
+    if prompt and prompt.use_notebook and ui and ui.document then
+        local Notebook = require("koassistant_notebook")
+        local notebook_content = Notebook.read(ui.document.file)
+        if notebook_content and notebook_content ~= "" then
+            message_data.notebook_content = notebook_content
+            logger.info("KOAssistant: Extracted notebook content, len=", #notebook_content)
+        else
+            message_data.notebook_content = ""
+            logger.info("KOAssistant: No notebook found for this document")
+        end
+    end
+
     -- Get domain context if a domain is set (skip if action opts out)
     -- Priority: prompt.domain (locked) > config.features.selected_domain (user choice)
     local domain_context = nil

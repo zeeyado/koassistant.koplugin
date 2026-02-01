@@ -2428,7 +2428,8 @@ function ChatGPTViewer:saveToNotebook()
 
   -- Save to notebook
   local Notebook = require("koassistant_notebook")
-  local ok, err = Notebook.saveChat(document_path, history, self.original_highlighted_text, reader_ui, content_format)
+  local model_name = self.configuration and self.configuration.model
+  local ok, err = Notebook.saveChat(document_path, history, self.original_highlighted_text, reader_ui, content_format, model_name)
 
   if ok then
     -- Update notebook index directly (same as main.lua:updateNotebookIndex)

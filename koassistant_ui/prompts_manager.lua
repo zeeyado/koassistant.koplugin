@@ -214,6 +214,7 @@ function PromptsManager:loadPrompts()
             use_annotations = prompt.use_annotations,
             use_reading_progress = prompt.use_reading_progress,
             use_reading_stats = prompt.use_reading_stats,
+            use_notebook = prompt.use_notebook,
             -- Requirement flags
             requires_open_book = prompt.requires_open_book,
             -- View mode flags
@@ -246,6 +247,7 @@ function PromptsManager:loadPrompts()
                 if override.use_annotations ~= nil then entry.use_annotations = override.use_annotations end
                 if override.use_reading_progress ~= nil then entry.use_reading_progress = override.use_reading_progress end
                 if override.use_reading_stats ~= nil then entry.use_reading_stats = override.use_reading_stats end
+                if override.use_notebook ~= nil then entry.use_notebook = override.use_notebook end
                 -- View mode flag overrides
                 if override.translate_view ~= nil then entry.translate_view = override.translate_view end
                 if override.compact_view ~= nil then entry.compact_view = override.compact_view end
@@ -894,6 +896,7 @@ function PromptsManager:duplicateAction(action)
         use_annotations = duplicate.use_annotations,
         use_reading_progress = duplicate.use_reading_progress,
         use_reading_stats = duplicate.use_reading_stats,
+        use_notebook = duplicate.use_notebook,
         -- View mode flags
         translate_view = duplicate.translate_view,
         compact_view = duplicate.compact_view,
@@ -956,6 +959,7 @@ function PromptsManager:showPromptEditor(existing_prompt)
         use_annotations = existing_prompt and existing_prompt.use_annotations or false,
         use_reading_progress = existing_prompt and existing_prompt.use_reading_progress or false,
         use_reading_stats = existing_prompt and existing_prompt.use_reading_stats or false,
+        use_notebook = existing_prompt and existing_prompt.use_notebook or false,
         -- View mode flags
         translate_view = existing_prompt and existing_prompt.translate_view or false,
         compact_view = existing_prompt and existing_prompt.compact_view or false,
@@ -2324,6 +2328,7 @@ function PromptsManager:showBuiltinSettingsEditor(prompt)
     local base_use_annotations = base_action and base_action.use_annotations or false
     local base_use_reading_progress = base_action and base_action.use_reading_progress or false
     local base_use_reading_stats = base_action and base_action.use_reading_stats or false
+    local base_use_notebook = base_action and base_action.use_notebook or false
 
     -- Get base view mode flags for comparison
     local base_translate_view = base_action and base_action.translate_view or false
@@ -2360,6 +2365,8 @@ function PromptsManager:showBuiltinSettingsEditor(prompt)
         use_reading_progress_base = base_use_reading_progress,
         use_reading_stats = prompt.use_reading_stats or false,
         use_reading_stats_base = base_use_reading_stats,
+        use_notebook = prompt.use_notebook or false,
+        use_notebook_base = base_use_notebook,
         -- View mode flags
         translate_view = prompt.translate_view or false,
         translate_view_base = base_translate_view,
@@ -2944,6 +2951,10 @@ function PromptsManager:saveBuiltinOverride(prompt, state)
         override.use_reading_stats = state.use_reading_stats
         has_any = true
     end
+    if state.use_notebook ~= (state.use_notebook_base or false) then
+        override.use_notebook = state.use_notebook
+        has_any = true
+    end
 
     -- Save view mode flags if they differ from base
     if state.translate_view ~= (state.translate_view_base or false) then
@@ -3004,6 +3015,7 @@ function PromptsManager:showCustomQuickSettings(prompt)
         use_annotations = prompt.use_annotations or false,
         use_reading_progress = prompt.use_reading_progress or false,
         use_reading_stats = prompt.use_reading_stats or false,
+        use_notebook = prompt.use_notebook or false,
         -- View mode flags
         translate_view = prompt.translate_view or false,
         compact_view = prompt.compact_view or false,
@@ -3615,6 +3627,7 @@ function PromptsManager:getPlaceholdersForContext(context)
         { value = "{chapter_title}", text = _("Current Chapter"), contexts = {"book", "both", "all"} },
         { value = "{chapters_read}", text = _("Chapters Read Count"), contexts = {"book", "both", "all"} },
         { value = "{time_since_last_read}", text = _("Time Since Last Read"), contexts = {"book", "both", "all"} },
+        { value = "{notebook}", text = _("Notebook Content"), contexts = {"highlight", "book", "both", "all"} },
     }
 
     local result = {}
@@ -3715,6 +3728,7 @@ function PromptsManager:addPrompt(state)
             use_annotations = state.use_annotations or nil,
             use_reading_progress = state.use_reading_progress or nil,
             use_reading_stats = state.use_reading_stats or nil,
+            use_notebook = state.use_notebook or nil,
             -- View mode flags
             translate_view = state.translate_view or nil,
             compact_view = state.compact_view or nil,
@@ -3780,6 +3794,7 @@ function PromptsManager:updatePrompt(existing_prompt, state)
                 use_annotations = state.use_annotations or nil,
                 use_reading_progress = state.use_reading_progress or nil,
                 use_reading_stats = state.use_reading_stats or nil,
+                use_notebook = state.use_notebook or nil,
                 -- View mode flags
                 translate_view = state.translate_view or nil,
                 compact_view = state.compact_view or nil,

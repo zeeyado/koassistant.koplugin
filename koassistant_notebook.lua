@@ -17,6 +17,65 @@ local logger = require("logger")
 
 local Notebook = {}
 
+-- Helper to strip message_builder labels from content
+-- Removes [Context], [Request], [Additional user input] structural labels
+-- @param content string Raw message content
+-- @return string Cleaned content without labels
+local function cleanMessageContent(content)
+    if not content then return nil end
+    -- Remove [Context], [Request], [Additional user input] labels
+    local cleaned = content:gsub("%[Context%]%s*", "")
+    cleaned = cleaned:gsub("%[Request%]%s*", "")
+    cleaned = cleaned:gsub("%[Additional user input%]%s*", "")
+    -- Trim leading/trailing whitespace
+    return cleaned:match("^%s*(.-)%s*$")
+end
+
+-- Helper to extract just the user's additional input (follow-up question)
+-- Returns nil if no additional input was provided
+-- Handles both predefined actions ([Additional user input]) and Ask action ([User Question])
+-- @param content string Raw user message content
+-- @return string|nil The additional input text, or nil if none
+local function extractAdditionalInput(content)
+    if not content then return nil end
+    -- Try both label formats:
+    -- - [Additional user input] - used by predefined actions (ELI5, Explain, etc.)
+    -- - [User Question] - used by Ask action
+    local labels = {"%[Additional user input%]", "%[User Question%]"}
+    for _idx, label in ipairs(labels) do
+        local label_start, label_end = content:find(label)
+        if label_start then
+            local after_label = content:sub(label_end + 1)
+            -- Trim leading/trailing whitespace (including newlines)
+            local trimmed = after_label:match("^%s*(.-)%s*$")
+            if trimmed and trimmed ~= "" then
+                return trimmed
+            end
+        end
+    end
+    return nil
+end
+
+-- Helper to extract selected text from context message
+-- Handles format: Selected text:\n"the actual text"
+-- @param content string Raw context message content
+-- @return string|nil The selected text, or nil if not found
+local function extractSelectedText(content)
+    if not content then return nil end
+    -- Look for 'Selected text:' followed by quoted text on next line
+    -- Pattern: Selected text:\n"..."
+    local start_pos = content:find("Selected text:")
+    if start_pos then
+        local after_label = content:sub(start_pos + 14)  -- 14 = length of "Selected text:"
+        -- Look for quoted text (handles both single line and multi-line)
+        local quoted = after_label:match('^%s*"(.-)"')
+        if quoted and quoted ~= "" then
+            return quoted
+        end
+    end
+    return nil
+end
+
 --- Get notebook file path for a document
 --- Returns nil for general/multi-book chats (no per-book context)
 --- @param document_path string|nil The document file path
@@ -92,23 +151,31 @@ function Notebook.getPageInfo(ui)
 end
 
 --- Format a notebook entry
---- Creates a markdown-formatted entry with timestamp, page info, and content based on format setting
+--- Creates a clean, readable markdown entry optimized for external editors (Obsidian, etc.)
 ---
---- Entry format (qa - default):
----   **[2026-01-31 14:30:00]** • Page 42 (15%) • Chapter Title
----   **Explain**
+--- Entry format (each section separated by blank line for markdown paragraph breaks):
+---   **[2026-01-31 14:30:00]**
+---
+---   Page 42 (15%) • Chapter Title
+---
+---   **Explain** • claude-sonnet-4-20250514
 ---
 ---   **Highlighted:**
----   > The selected passage that triggered this action
+---   > The selected passage as blockquote
 ---
----   **Question:** User's follow-up question (if any)
+---   **User:** additional input (only if user typed something)
 ---
----   **Response:**
----   AI's response here...
+---   **KOAssistant:**
+---   AI's response here
 ---
 ---   ---
 ---
---- @param data table Entry data: action_name, highlighted_text, question, response, context_messages
+--- Content tiers:
+---   - response: Just the AI response
+---   - qa: Highlighted text + user input (if any) + response
+---   - full_qa: Same as qa (no book info - notebooks are book-specific)
+---
+--- @param data table Entry data: action_name, highlighted_text, follow_up, response, model_name
 --- @param page_info table Page info from getPageInfo()
 --- @param content_format string "response" | "qa" | "full_qa" (default: "qa")
 --- @return string entry The formatted markdown entry
@@ -116,36 +183,36 @@ function Notebook.formatEntry(data, page_info, content_format)
     content_format = content_format or "qa"
     local parts = {}
 
-    -- Entry header: compact format with bold text (no large H1/H2 headers)
-    -- Format: **[timestamp]** • Page X (Y%) • Chapter Title
-    local header_parts = { "**[" .. page_info.timestamp .. "]**" }
+    -- Line 1: Date and time (bold)
+    table.insert(parts, "**[" .. page_info.timestamp .. "]**")
+    table.insert(parts, "")  -- Blank line for markdown paragraph break
+
+    -- Line 2: Page info and chapter (if available)
+    local location_parts = {}
     if page_info.page then
         local page_str = "Page " .. page_info.page
         if page_info.progress then
             page_str = page_str .. " (" .. page_info.progress .. "%)"
         end
-        table.insert(header_parts, page_str)
+        table.insert(location_parts, page_str)
     end
     if page_info.chapter then
-        table.insert(header_parts, page_info.chapter)
+        table.insert(location_parts, page_info.chapter)
     end
-    table.insert(parts, table.concat(header_parts, " • "))
-
-    -- Action name as bold label (not header)
-    table.insert(parts, "**" .. (data.action_name or "KOAssistant Chat") .. "**")
-    table.insert(parts, "")
-
-    -- Context messages (only for full_qa)
-    if content_format == "full_qa" and data.context_messages then
-        for _idx, msg in ipairs(data.context_messages) do
-            local role = (msg.role or "context"):gsub("^%l", string.upper)
-            table.insert(parts, "**" .. role .. " (context):**")
-            table.insert(parts, msg.content or "")
-            table.insert(parts, "")
-        end
+    if #location_parts > 0 then
+        table.insert(parts, table.concat(location_parts, " • "))
+        table.insert(parts, "")  -- Blank line for markdown paragraph break
     end
 
-    -- Highlighted text (qa and full_qa only)
+    -- Line 3: Action name (bold) with optional model name
+    local action_line = "**" .. (data.action_name or "KOAssistant Chat") .. "**"
+    if data.model_name and data.model_name ~= "" then
+        action_line = action_line .. " • " .. data.model_name
+    end
+    table.insert(parts, action_line)
+    table.insert(parts, "")  -- Blank line before content
+
+    -- Highlighted text as blockquote (qa and full_qa only)
     if content_format ~= "response" and data.highlighted_text and data.highlighted_text ~= "" then
         table.insert(parts, "**Highlighted:**")
         -- Convert newlines in highlighted text to blockquote continuation
@@ -154,15 +221,15 @@ function Notebook.formatEntry(data, page_info, content_format)
         table.insert(parts, "")
     end
 
-    -- Question (qa and full_qa only)
-    if content_format ~= "response" and data.question and data.question ~= "" then
-        table.insert(parts, "**Question:** " .. data.question)
+    -- User's additional input (only if provided)
+    if content_format ~= "response" and data.follow_up and data.follow_up ~= "" then
+        table.insert(parts, "**User:** " .. data.follow_up)
         table.insert(parts, "")
     end
 
-    -- Response (always included)
+    -- AI Response with label
     if data.response and data.response ~= "" then
-        table.insert(parts, "**Response:**")
+        table.insert(parts, "**KOAssistant:**")
         table.insert(parts, data.response)
         table.insert(parts, "")
     end
@@ -205,14 +272,16 @@ end
 
 --- Save chat to notebook (convenience function)
 --- Extracts Q+A from history and formats as notebook entry
+--- Only includes follow-up if user typed additional input (not the full structured message)
 --- @param document_path string The document file path
 --- @param history table MessageHistory object
 --- @param highlighted_text string|nil Selected text (if any)
 --- @param ui table|nil ReaderUI instance
 --- @param content_format string|nil "response" | "qa" | "full_qa" (default: "qa")
+--- @param model_name string|nil Model name to include in entry (e.g. "claude-sonnet-4-20250514")
 --- @return boolean success Whether save succeeded
 --- @return string|nil error Error message if failed
-function Notebook.saveChat(document_path, history, highlighted_text, ui, content_format)
+function Notebook.saveChat(document_path, history, highlighted_text, ui, content_format, model_name)
     local notebook_path = Notebook.getPath(document_path)
     if not notebook_path then
         return false, "No document open"
@@ -222,29 +291,59 @@ function Notebook.saveChat(document_path, history, highlighted_text, ui, content
     content_format = content_format or "qa"
 
     -- Extract messages from history
+    -- The message structure is:
+    --   1. Context user message (is_context=true): Contains [Context], [Request], and [Additional user input] sections
+    --   2. Display user message (is_context=false, optional): Just the raw additional input (if any)
+    --   3. Assistant message: The AI response
+    -- We need to get [Additional user input] from the FIRST (context) user message
     local messages = history:getMessages() or {}
-    local question, response = nil, nil
-    local context_messages = {}
+    local context_user_message, response = nil, nil
 
     for _idx, msg in ipairs(messages) do
-        if msg.is_context then
-            -- Collect context messages for full_qa mode
-            table.insert(context_messages, msg)
-        else
-            if msg.role == "user" then
-                question = msg.content
-            elseif msg.role == "assistant" then
-                response = msg.content
+        if msg.role == "user" then
+            -- Get the FIRST user message (context one) which contains [Additional user input]
+            if not context_user_message then
+                context_user_message = msg.content
+            end
+        elseif msg.role == "assistant" then
+            -- Get the last assistant response
+            response = msg.content
+        end
+    end
+
+    -- Extract only the user's additional input (follow-up question)
+    -- This strips the [Context], [Request] labels that are meant for the AI
+    local follow_up = extractAdditionalInput(context_user_message)
+
+    -- Determine the actual highlighted text to use
+    -- The passed highlighted_text might be:
+    --   1. Actual selected text (good)
+    --   2. Book metadata like 'Book: "Title" by Author' (from book context)
+    --   3. nil (no selection)
+    -- For case 2, try to extract actual selected text from context message
+    local actual_highlighted = highlighted_text
+    if highlighted_text then
+        -- Check if it looks like book metadata rather than actual highlighted text
+        local looks_like_metadata = highlighted_text:match("^Book:%s*\"") or
+                                    highlighted_text:match("^From%s*\"")
+        if looks_like_metadata then
+            -- Try to extract actual selected text from context message
+            local extracted = extractSelectedText(context_user_message)
+            if extracted then
+                actual_highlighted = extracted
+            else
+                -- It's just metadata with no selection, don't show as highlighted
+                actual_highlighted = nil
             end
         end
     end
 
     local entry = Notebook.formatEntry({
-        question = question,
+        follow_up = follow_up,
         response = response or "",
         action_name = history.prompt_action,
-        highlighted_text = highlighted_text,
-        context_messages = content_format == "full_qa" and context_messages or nil,
+        highlighted_text = actual_highlighted,
+        model_name = model_name,
     }, page_info, content_format)
 
     return Notebook.append(notebook_path, entry)
