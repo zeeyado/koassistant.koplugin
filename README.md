@@ -55,7 +55,7 @@ Also check out the popular [Assistant Plugin](https://github.com/omer-faruq/assi
   - [Tags](#tags)
 - [Domains](#domains)
   - [Creating Domains](#creating-domains)
-- [Settings Reference](#settings-reference)
+- [Settings Reference](#settings-reference) ↓ includes [KOReader Integration](#koreader-integration)
 - [Update Checking](#update-checking)
 - [Advanced Configuration](#advanced-configuration)
 - [Backup & Restore](#backup--restore)
@@ -88,6 +88,8 @@ Also check out the popular [Assistant Plugin](https://github.com/omer-faruq/assi
 **Want to go deeper?** The rest of this README covers all features in detail.
 
 **Note:** The README is intentionally verbose and somewhat repetitive to ensure you see all features and their nuances. Use the table of contents to jump to specific topics. A more concise structured documentation system is planned (contributions welcome).
+
+**Prefer a minimal footprint?** KOAssistant is designed to stay out of your way. The main menu is tucked under Tools (page 2), and all default integrations (file browser buttons, highlight menu items, dictionary popup) can be disabled via **[Settings → KOReader Integration](#koreader-integration)**. Use only what you need.
 
 ---
 
@@ -718,6 +720,8 @@ Actions appear as "KOA: Explain", "KOA: Translate", etc. in the highlight popup.
 
 **Note**: Changes require an app restart since the highlight menu is built at startup.
 
+> **Prefer a cleaner menu?** You can disable KOAssistant's highlight menu integration entirely via **Settings → KOReader Integration**. The main "KOAssistant" button and quick action shortcuts (Translate, Explain, etc.) have separate toggles.
+
 ---
 
 ## Dictionary Integration
@@ -727,6 +731,8 @@ With help from contributions to [assistant.koplugin](https://github.com/omer-far
 KOAssistant integrates with KOReader's dictionary system, providing AI-powered word lookups when you select words in a document.
 
 > **Tip:** Go into Action Management and select a light model (e.g. Haiku) for faster dictionary Actions.
+
+> **Don't need dictionary integration?** Disable it entirely via **Settings → KOReader Integration → Show in Dictionary Popup**. This removes AI buttons from the dictionary popup.
 
 ### How It Works
 
@@ -1498,6 +1504,18 @@ See [Privacy & Data](#privacy--data) for background on what gets sent to AI prov
   - **Allow Reading Progress**: Send current reading position percentage
   - **Allow Reading Statistics**: Send chapter info and time since last read
 - Book text extraction settings are in Advanced → Book Text Extraction
+
+### KOReader Integration
+Control where KOAssistant appears in KOReader's menus. All toggles default to ON; disable any to reduce UI presence.
+- **Show in File Browser**: Add KOAssistant buttons to file browser context menus (requires restart)
+- **Show KOAssistant Button in Highlight Menu**: Add the main "KOAssistant" button to the highlight popup (requires restart)
+- **Show Quick Actions in Highlight Menu**: Add Explain, Translate, and other quick action shortcuts to the highlight popup (requires restart)
+- **Show in Dictionary Popup**: Add AI buttons to KOReader's dictionary popup (same as Dictionary Settings toggle)
+- **Dictionary Popup Actions...**: Configure which actions appear in the dictionary popup's AI menu
+- **Highlight Menu Actions...**: Configure which actions appear as shortcuts in the highlight menu
+- **Reset Options**: Reset Dictionary Popup Actions, Highlight Menu Actions, Quick Actions, or all at once
+
+**Note:** File browser and highlight menu changes require a KOReader restart since buttons are registered at plugin startup. Dictionary popup changes take effect immediately.
 
 ### Advanced
 - **Temperature**: Response creativity (0.0-2.0, Anthropic max 1.0)

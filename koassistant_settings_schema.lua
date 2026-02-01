@@ -953,6 +953,134 @@ local SettingsSchema = {
             },
         },
 
+        -- KOReader Integration submenu
+        {
+            id = "koreader_integration",
+            type = "submenu",
+            text = _("KOReader Integration"),
+            items = {
+                -- Info header
+                {
+                    id = "integration_info",
+                    type = "header",
+                    text = _("Control where KOAssistant appears in KOReader"),
+                },
+                -- Master toggles
+                {
+                    id = "show_in_file_browser",
+                    type = "toggle",
+                    text = _("Show in File Browser"),
+                    path = "features.show_in_file_browser",
+                    default = true,
+                    help_text = _("Add KOAssistant button to file browser context menus. Requires restart."),
+                    on_change = function()
+                        local InfoMessage = require("ui/widget/infomessage")
+                        local UIManager = require("ui/uimanager")
+                        UIManager:show(InfoMessage:new{
+                            text = _("Please restart KOReader for this change to take effect."),
+                        })
+                    end,
+                },
+                {
+                    id = "show_koassistant_in_highlight",
+                    type = "toggle",
+                    text = _("Show KOAssistant Button in Highlight Menu"),
+                    path = "features.show_koassistant_in_highlight",
+                    default = true,
+                    help_text = _("Add main KOAssistant button to highlight menu. Requires restart."),
+                    on_change = function()
+                        local InfoMessage = require("ui/widget/infomessage")
+                        local UIManager = require("ui/uimanager")
+                        UIManager:show(InfoMessage:new{
+                            text = _("Please restart KOReader for this change to take effect."),
+                        })
+                    end,
+                },
+                {
+                    id = "show_quick_actions_in_highlight",
+                    type = "toggle",
+                    text = _("Show Quick Actions in Highlight Menu"),
+                    path = "features.show_quick_actions_in_highlight",
+                    default = true,
+                    help_text = _("Add quick action shortcuts (Explain, Translate, etc.) to highlight menu. Requires restart."),
+                    on_change = function()
+                        local InfoMessage = require("ui/widget/infomessage")
+                        local UIManager = require("ui/uimanager")
+                        UIManager:show(InfoMessage:new{
+                            text = _("Please restart KOReader for this change to take effect."),
+                        })
+                    end,
+                },
+                {
+                    id = "show_in_dictionary_popup_ref",
+                    type = "toggle",
+                    text = _("Show in Dictionary Popup"),
+                    path = "features.enable_dictionary_hook",
+                    default = true,
+                    help_text = _("Add AI buttons to KOReader's dictionary popup"),
+                    separator = true,
+                },
+                -- Customization shortcuts
+                {
+                    id = "manage_header",
+                    type = "header",
+                    text = _("Customize Visible Actions"),
+                },
+                {
+                    id = "manage_dictionary_popup_integration",
+                    type = "action",
+                    text = _("Dictionary Popup Actions..."),
+                    callback = "showDictionaryPopupManager",
+                    depends_on = { id = "show_in_dictionary_popup_ref", value = true },
+                },
+                {
+                    id = "manage_highlight_menu_integration",
+                    type = "action",
+                    text = _("Highlight Menu Actions..."),
+                    callback = "showHighlightMenuManager",
+                    depends_on = { id = "show_quick_actions_in_highlight", value = true },
+                    separator = true,
+                },
+                -- Reset options
+                {
+                    id = "reset_header",
+                    type = "header",
+                    text = _("Reset to Defaults"),
+                },
+                {
+                    id = "reset_dictionary_popup_actions",
+                    type = "action",
+                    text = _("Reset Dictionary Popup Actions"),
+                    callback = "resetDictionaryPopupActions",
+                    help_text = _("Restore default dictionary popup buttons"),
+                    keep_menu_open = true,
+                },
+                {
+                    id = "reset_highlight_menu_actions",
+                    type = "action",
+                    text = _("Reset Highlight Menu Actions"),
+                    callback = "resetHighlightMenuActions",
+                    help_text = _("Restore default highlight menu items"),
+                    keep_menu_open = true,
+                },
+                {
+                    id = "reset_quick_actions",
+                    type = "action",
+                    text = _("Reset Quick Actions"),
+                    callback = "resetQuickActions",
+                    help_text = _("Restore default quick actions panel"),
+                    keep_menu_open = true,
+                },
+                {
+                    id = "reset_all_menus",
+                    type = "action",
+                    text = _("Reset All Menu Customizations"),
+                    callback = "resetActionMenus",
+                    help_text = _("Restore all menus to defaults (dictionary, highlight, quick actions)"),
+                },
+            },
+        },
+
         -- Advanced submenu
         {
             id = "advanced",

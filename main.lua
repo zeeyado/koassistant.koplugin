@@ -177,50 +177,57 @@ function AskGPT:init()
 
   -- Add to highlight dialog if highlight feature is available
   if self.ui and self.ui.highlight then
-    self.ui.highlight:addToHighlightDialog("koassistant_dialog", function(reader_highlight_instance)
-      return {
-        text = _("KOAssistant"),
-        enabled = Device:hasClipboard(),
-        callback = function()
-          -- Capture text and close highlight overlay to prevent darkening on saved highlights
-          local selected_text = reader_highlight_instance.selected_text.text
+    local highlight_features = self.settings:readSetting("features") or {}
 
-          -- Capture full selection data for "Save to Note" feature (before onClose clears it)
-          local selection_data = nil
-          if reader_highlight_instance.selected_text then
-            local st = reader_highlight_instance.selected_text
-            selection_data = {
-              text = st.text,
-              pos0 = st.pos0,
-              pos1 = st.pos1,
-              sboxes = st.sboxes,
-              pboxes = st.pboxes,
-              ext = st.ext,
-              drawer = st.drawer or "lighten",
-              color = st.color or "yellow",
-            }
-          end
+    -- Main KOAssistant button (controlled separately from quick actions)
+    if highlight_features.show_koassistant_in_highlight ~= false then
+      self.ui.highlight:addToHighlightDialog("koassistant_dialog", function(reader_highlight_instance)
+        return {
+          text = _("KOAssistant"),
+          enabled = Device:hasClipboard(),
+          callback = function()
+            -- Capture text and close highlight overlay to prevent darkening on saved highlights
+            local selected_text = reader_highlight_instance.selected_text.text
 
-          reader_highlight_instance:onClose()
-          NetworkMgr:runWhenOnline(function()
-            maybeCheckForUpdates(self)
-            -- Make sure we're using the latest configuration
-            self:updateConfigFromSettings()
-            -- Clear context flags for highlight context (default context)
-            configuration.features = configuration.features or {}
-            configuration.features.is_general_context = nil
-            configuration.features.is_book_context = nil
-            configuration.features.is_multi_book_context = nil
-            -- Store selection data for "Save to Note" feature
-            configuration.features.selection_data = selection_data
-            showChatGPTDialog(self.ui, selected_text, configuration, nil, self)
-          end)
-        end,
-      }
-    end)
-    logger.info("Added KOAssistant to highlight dialog")
+            -- Capture full selection data for "Save to Note" feature (before onClose clears it)
+            local selection_data = nil
+            if reader_highlight_instance.selected_text then
+              local st = reader_highlight_instance.selected_text
+              selection_data = {
+                text = st.text,
+                pos0 = st.pos0,
+                pos1 = st.pos1,
+                sboxes = st.sboxes,
+                pboxes = st.pboxes,
+                ext = st.ext,
+                drawer = st.drawer or "lighten",
+                color = st.color or "yellow",
+              }
+            end
 
-    -- Register quick actions for highlight menu
+            reader_highlight_instance:onClose()
+            NetworkMgr:runWhenOnline(function()
+              maybeCheckForUpdates(self)
+              -- Make sure we're using the latest configuration
+              self:updateConfigFromSettings()
+              -- Clear context flags for highlight context (default context)
+              configuration.features = configuration.features or {}
+              configuration.features.is_general_context = nil
+              configuration.features.is_book_context = nil
+              configuration.features.is_multi_book_context = nil
+              -- Store selection data for "Save to Note" feature
+              configuration.features.selection_data = selection_data
+              showChatGPTDialog(self.ui, selected_text, configuration, nil, self)
+            end)
+          end,
+        }
+      end)
+      logger.info("Added KOAssistant to highlight dialog")
+    else
+      logger.info("KOAssistant: Main highlight button disabled")
+    end
+
+    -- Register quick actions for highlight menu (has its own toggle check)
     self:registerHighlightMenuActions()
   else
     logger.warn("Highlight feature not available, skipping highlight dialog integration")
@@ -377,6 +384,13 @@ function AskGPT:addFileDialogButtons()
   if self.file_dialog_buttons_added then
     logger.info("KOAssistant: File dialog buttons already registered, skipping")
     return true
+  end
+
+  -- Check if file browser integration is disabled
+  local f = self.settings:readSetting("features") or {}
+  if f.show_in_file_browser == false then
+    logger.info("KOAssistant: File browser integration disabled")
+    return true  -- Return true to prevent retry attempts
   end
 
   logger.info("KOAssistant: Attempting to add file dialog buttons")
@@ -4976,6 +4990,11 @@ function AskGPT:showDictionaryPopupManager()
   prompts_manager:showDictionaryPopupManager()
 end
 
+function AskGPT:showHighlightMenuManager()
+  local prompts_manager = PromptsManager:new(self)
+  prompts_manager:showHighlightMenuManager()
+end
+
 -- Show PathChooser for custom export path
 function AskGPT:showExportPathPicker()
   local PathChooser = require("ui/widget/pathchooser")
@@ -5005,6 +5024,13 @@ end
 -- Called during init to add user-configured actions directly to the highlight popup
 function AskGPT:registerHighlightMenuActions()
   if not self.ui or not self.ui.highlight then return end
+
+  -- Check if highlight quick actions are disabled
+  local features = self.settings:readSetting("features") or {}
+  if features.show_quick_actions_in_highlight == false then
+    logger.info("KOAssistant: Highlight quick actions disabled")
+    return
+  end
 
   -- Filter out actions requiring open book if no book is open (should always be true in highlight menu)
   local has_open_book = self.ui and self.ui.document ~= nil
@@ -5674,12 +5700,20 @@ function AskGPT:resetActionEdits(silent)
   end
 end
 
--- Reset action menus only (highlight/dictionary menu configs)
+-- Reset action menus only (highlight/dictionary/quick actions menu configs)
 function AskGPT:resetActionMenus(silent)
+  -- Highlight menu actions
   self.settings:delSetting("highlight_menu_actions")
-  self.settings:delSetting("dictionary_popup_actions")
   self.settings:delSetting("_dismissed_highlight_actions")
+  self.settings:delSetting("_dismissed_highlight_menu_actions")
+  -- Dictionary popup actions
+  self.settings:delSetting("dictionary_popup_actions")
+  self.settings:delSetting("_dictionary_popup_actions")
   self.settings:delSetting("_dismissed_dictionary_actions")
+  self.settings:delSetting("_dismissed_dictionary_popup_actions")
+  -- Quick actions
+  self.settings:delSetting("quick_actions_list")
+  self.settings:delSetting("_dismissed_quick_actions")
   self.settings:flush()
 
   if not silent then
@@ -5688,6 +5722,45 @@ function AskGPT:resetActionMenus(silent)
       timeout = 2,
     })
   end
+end
+
+-- Reset dictionary popup actions only
+function AskGPT:resetDictionaryPopupActions(touchmenu_instance)
+  self.settings:delSetting("dictionary_popup_actions")
+  self.settings:delSetting("_dictionary_popup_actions")
+  self.settings:delSetting("_dismissed_dictionary_actions")
+  self.settings:delSetting("_dismissed_dictionary_popup_actions")
+  self.settings:flush()
+  UIManager:show(Notification:new{
+    text = _("Dictionary popup actions reset"),
+    timeout = 2,
+  })
+  if touchmenu_instance then touchmenu_instance:updateItems() end
+end
+
+-- Reset highlight menu actions only
+function AskGPT:resetHighlightMenuActions(touchmenu_instance)
+  self.settings:delSetting("highlight_menu_actions")
+  self.settings:delSetting("_dismissed_highlight_actions")
+  self.settings:delSetting("_dismissed_highlight_menu_actions")
+  self.settings:flush()
+  UIManager:show(Notification:new{
+    text = _("Highlight menu actions reset (restart to apply)"),
+    timeout = 2,
+  })
+  if touchmenu_instance then touchmenu_instance:updateItems() end
+end
+
+-- Reset quick actions only
+function AskGPT:resetQuickActions(touchmenu_instance)
+  self.settings:delSetting("quick_actions_list")
+  self.settings:delSetting("_dismissed_quick_actions")
+  self.settings:flush()
+  UIManager:show(Notification:new{
+    text = _("Quick actions reset"),
+    timeout = 2,
+  })
+  if touchmenu_instance then touchmenu_instance:updateItems() end
 end
 
 -- Reset custom providers and models only
