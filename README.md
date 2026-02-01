@@ -250,7 +250,7 @@ KOAssistant works in **4 contexts**, each with its own set of built-in actions:
 
 | Context | Built-in Actions |
 |---------|------------------|
-| **Highlight** | Explain, ELI5, Summarize, Elaborate, Connect, Translate |
+| **Highlight** | Explain, ELI5, Summarize, Elaborate, Connect, Connect (With Notes), Translate |
 | **Book** | Book Info, Similar Books, About Author, Historical Context, Related Thinkers, Key Arguments, Discussion Questions, X-Ray, Recap, Analyze Highlights |
 | **Multi-book** | Compare Books, Common Themes, Reading Order |
 | **General** | Ask |
@@ -274,6 +274,7 @@ You can customize these, create your own, or disable ones you don't use. See [Ac
 | **Summarize** | Concise summary of the text |
 | **Elaborate** | Expand on concepts, provide additional context and details |
 | **Connect** | Draw connections to other works, thinkers, and broader context |
+| **Connect (With Notes)** | Connect passage to your personal reading journey (your highlights, notes, notebook) |
 | **Translate** | Translate to your configured language |
 | **Dictionary** | Word definition with context (also accessible via word selection, like KOReader native behavior) |
 
@@ -304,7 +305,14 @@ You can customize these, create your own, or disable ones you don't use. See [Ac
 
 **What the AI sees**: Document metadata (title, author). For X-Ray/Recap, optionally: extracted book text up to your reading position (requires enabling in Settings → Advanced → Book Text Extraction). For Analyze Highlights: your annotations.
 
-> **Automatic Filtering**: Actions that use reading-mode data (progress, highlights, book text) are **automatically hidden** in File Browser mode and only appear when you're reading a book. This applies to built-in actions like X-Ray, Recap, and Analyze Highlights, as well as any custom actions that use placeholders like `{reading_progress}`, `{book_text}`, `{highlights}`, or `{annotations}`. The Action Manager shows a `[reading]` indicator next to such actions.
+**Reading Mode vs File Browser:**
+
+Book actions work in two contexts: **reading mode** (book is open) and **file browser** (long-press a book in your library).
+
+- **File browser** has access to book **metadata** only: title, author, identifiers
+- **Reading mode** additionally has access to **document state**: reading progress, highlights, annotations, notebook, extracted text
+
+Actions that need document state (X-Ray, Recap, Analyze Highlights) are **automatically hidden** in file browser because that data isn't available until you open the book. Custom actions using placeholders like `{reading_progress}`, `{book_text}`, `{highlights}`, `{annotations}`, or `{notebook}` are filtered the same way. The Action Manager shows a `[reading]` indicator for such actions.
 
 ### Multi-Document Mode
 
@@ -503,16 +511,35 @@ Insert these in your action prompt to reference dynamic values:
 | `{translation_language}` | Any | Target language from settings |
 | `{dictionary_language}` | Any | Dictionary response language from settings |
 | `{context}` | Highlight | Surrounding text context (sentence/paragraph/characters) |
-| `{reading_progress}` | Book | Current reading position (e.g., "42%") |
-| `{highlights}` | Book | All highlights from the document |
-| `{annotations}` | Book | All highlights with user notes |
-| `{notebook}` | Book, Highlight | Content from the book's KOAssistant notebook |
-| `{book_text}` | Book | Extracted book text up to current position (requires opt-in) |
-| `{book_text_section}` | Book | Same as above with "Book content so far:" label |
-| `{highlights_section}` | Book | Highlights with "My highlights so far:" label |
-| `{annotations_section}` | Book | Annotations with "My annotations:" label |
-| `{chapter_title}` | Book | Current chapter name |
-| `{time_since_last_read}` | Book | Time since last reading session (e.g., "3 days ago") |
+| `{reading_progress}` | Book (reading) | Current reading position (e.g., "42%") |
+| `{progress_decimal}` | Book (reading) | Reading position as decimal (e.g., "0.42") |
+| `{chapters_read}` | Book (reading) | Number of chapters read (e.g., "5 of 12") |
+| `{highlights}` | Book, Highlight (reading) | All highlights from the document |
+| `{annotations}` | Book, Highlight (reading) | All highlights with user notes |
+| `{notebook}` | Book, Highlight (reading) | Content from the book's KOAssistant notebook |
+| `{notebook_section}` | Book, Highlight (reading) | Notebook with "My notebook entries:" label |
+| `{book_text}` | Book (reading) | Extracted book text up to current position (requires opt-in) |
+| `{book_text_section}` | Book (reading) | Same as above with "Book content so far:" label |
+| `{highlights_section}` | Book, Highlight (reading) | Highlights with "My highlights so far:" label |
+| `{annotations_section}` | Book, Highlight (reading) | Annotations with "My annotations:" label |
+| `{chapter_title}` | Book (reading) | Current chapter name |
+| `{time_since_last_read}` | Book (reading) | Time since last reading session (e.g., "3 days ago") |
+
+**Context notes:**
+- **Book** / **Highlight** = Available in both reading mode and file browser
+- **(reading)** = Reading mode only — requires an open book. Actions using these placeholders are automatically hidden in file browser
+
+#### Section vs Raw Placeholders
+
+"Section" placeholders automatically include a label and gracefully disappear when empty:
+- `{book_text_section}` → "Book content so far:\n[content]" or "" if empty
+- `{highlights_section}` → "My highlights so far:\n[content]" or "" if empty
+- `{annotations_section}` → "My annotations:\n[content]" or "" if empty
+- `{notebook_section}` → "My notebook entries:\n[content]" or "" if empty
+
+"Raw" placeholders (`{book_text}`, `{highlights}`, `{annotations}`, `{notebook}`) give you just the content with no label, useful when you want custom labeling in your prompt.
+
+**Tip:** Use section placeholders in most cases. They prevent dangling references—if you write "Look at my highlights: {highlights}" in your prompt but highlights is empty, the AI sees confusing instructions about nonexistent content. Section placeholders include the label only when content exists.
 
 > **Note:** `{book_text}` and related placeholders require enabling book text extraction in Settings → Advanced → Book Text Extraction. This is off by default because it's slow and uses many tokens. The action must also have "Use book text" enabled.
 
@@ -997,15 +1024,15 @@ You can include notebook content in your custom actions using the `{notebook}` p
 
 Each entry includes timestamp, page number, progress percentage, and chapter title.
 
-**Browsing notebooks:**
-- **Settings → Notebooks → Browse Notebooks**: Shows all books with notebooks, sorted by last modified
-- Tap any entry for options: View, Edit, Delete
+**Accessing notebooks:**
+- **Browse all notebooks**: Settings → Notebooks → Browse Notebooks (shows all books with notebooks, sorted by last modified)
+- **From file browser**: Long-press a book → "Notebook (KOA)" button (if notebook exists)
+- **Via gestures**: Assign "View Notebook" or "Browse Notebooks" to a gesture for quick access (Settings → Gesture Manager → General → KOAssistant)
 
-**Accessing a book's notebook:**
-- **Long-press book in file browser** → "Notebook (KOA)" button (if notebook exists)
-- **Gestures**: "View Notebook" (reader mode) or "Browse Notebooks" (file manager mode)
-- **View mode** (tap): Opens in KOReader reader for markdown rendering
-- **Edit mode** (hold): Opens in TextEditor for manual editing
+**Viewing vs Editing:**
+- **Tap** a notebook → Opens in KOReader's reader (renders markdown formatting, read-only)
+- **Hold** a notebook → Opens in KOReader's TextEditor (plain text editing)
+- **External editor**: Edit `.sdr/koassistant_notebook.md` directly with any markdown editor
 
 **Key features:**
 - ✅ **Travels with books**: Notebooks automatically move when you reorganize files

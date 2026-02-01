@@ -182,6 +182,13 @@ function MessageBuilder.build(params)
     end
     user_prompt = replace_placeholder(user_prompt, "{annotations_section}", annotations_section)
 
+    -- {notebook_section} - includes "My notebook entries:\n" label
+    local notebook_section = ""
+    if data.notebook_content and data.notebook_content ~= "" then
+        notebook_section = "My notebook entries:\n" .. data.notebook_content
+    end
+    user_prompt = replace_placeholder(user_prompt, "{notebook_section}", notebook_section)
+
     -- Raw placeholders (for custom prompts that want their own labels)
     if data.highlights ~= nil then
         user_prompt = replace_placeholder(user_prompt, "{highlights}", data.highlights)
@@ -382,6 +389,12 @@ function MessageBuilder.substituteVariables(prompt_text, data)
         annotations_section = "My annotations:\n" .. data.annotations
     end
     result = replace_placeholder(result, "{annotations_section}", annotations_section)
+
+    local notebook_section = ""
+    if data.notebook_content and data.notebook_content ~= "" then
+        notebook_section = "My notebook entries:\n" .. data.notebook_content
+    end
+    result = replace_placeholder(result, "{notebook_section}", notebook_section)
 
     -- Raw placeholders (for custom prompts that want their own labels)
     if data.highlights ~= nil then

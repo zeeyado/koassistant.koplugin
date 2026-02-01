@@ -3627,7 +3627,8 @@ function PromptsManager:getPlaceholdersForContext(context)
         { value = "{chapter_title}", text = _("Current Chapter"), contexts = {"book", "both", "all"} },
         { value = "{chapters_read}", text = _("Chapters Read Count"), contexts = {"book", "both", "all"} },
         { value = "{time_since_last_read}", text = _("Time Since Last Read"), contexts = {"book", "both", "all"} },
-        { value = "{notebook}", text = _("Notebook Content"), contexts = {"highlight", "book", "both", "all"} },
+        { value = "{notebook_section}", text = _("Notebook (with label)"), contexts = {"highlight", "book", "both", "all"} },
+        { value = "{notebook}", text = _("Notebook (raw)"), contexts = {"highlight", "book", "both", "all"} },
     }
 
     local result = {}
