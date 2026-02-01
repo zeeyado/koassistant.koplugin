@@ -71,16 +71,15 @@ local function stripMarkdown(text)
     -- Separator rows contain only |, -, :, and whitespace
     result = result:gsub("\n%s*|[%s%-:]+|[%s%-:|]*\n", "\n")
 
-    -- Headers: Use Wikipedia-style hierarchical symbols (works for all scripts)
-    -- Symbols from KOReader's Wikipedia plugin (wikipedia.lua)
+    -- Headers: Hierarchical symbols (shifted from Wikipedia-style, removing heavy full block)
     -- Header text is bolded using PTF markers for emphasis
     local header_symbols = {
-        "█",   -- H1: Full Block (U+2588)
-        "▉",   -- H2: Seven Eighths Block (U+2589)
-        "◤",   -- H3: Black Upper Left Triangle (U+25E4)
-        "◆",   -- H4: Black Diamond (U+25C6)
-        "✿",   -- H5: Black Florette (U+273F)
-        "❖",   -- H6: Black Diamond Minus White X (U+2756)
+        "▉",   -- H1: Seven Eighths Block (U+2589)
+        "◤",   -- H2: Black Upper Left Triangle (U+25E4)
+        "◆",   -- H3: Black Diamond (U+25C6)
+        "✿",   -- H4: Black Florette (U+273F)
+        "❖",   -- H5: Black Diamond Minus White X (U+2756)
+        "·",   -- H6: Middle Dot (U+00B7)
     }
     local lines = {}
     for line in result:gmatch("([^\n]*)\n?") do
@@ -114,14 +113,8 @@ local function stripMarkdown(text)
     result = result:gsub("%*%*(.-)%*%*", PTF_BOLD_START .. "%1" .. PTF_BOLD_END)
     result = result:gsub("__(.-)__", PTF_BOLD_START .. "%1" .. PTF_BOLD_END)
 
-    -- Italic: *text* or _text_ → plain text (no italic support in PTF)
-    -- Be careful not to match list items (* item) or underscores in words
-    result = result:gsub("(%s)%*([^%*\n]+)%*", "%1%2")
-    result = result:gsub("^%*([^%*\n]+)%*", "%1")
-    -- For underscores, only match when surrounded by spaces or at word boundaries
-    result = result:gsub("(%s)_([^_\n]+)_(%s)", "%1%2%3")
-    result = result:gsub("^_([^_\n]+)_(%s)", "%1%2")
-    result = result:gsub("(%s)_([^_\n]+)_$", "%1%2")
+    -- Italic: *text* or _text_ → kept as-is (no italic support in PTF)
+    -- Preserves the original markdown asterisks/underscores for visual indication
 
     -- Blockquotes: > text → │ text (box drawing character)
     result = result:gsub("\n>%s*", "\n│ ")
@@ -1632,6 +1625,7 @@ function ChatGPTViewer:init()
       text = display_text,
       face = self.text_face,
       fgcolor = self.fgcolor,
+      line_height = 0.2,  -- Denser than default 0.3 to match markdown view
       width = self.width - 2 * self.text_padding - 2 * self.text_margin,
       height = textw_height - 2 * self.text_padding - 2 * self.text_margin,
       dialog = self,
@@ -2165,6 +2159,7 @@ function ChatGPTViewer:update(new_text, scroll_to_bottom)
       text = display_text,
       face = self.text_face,
       fgcolor = self.fgcolor,
+      line_height = 0.2,  -- Denser than default 0.3 to match markdown view
       width = self.width - 2 * self.text_padding - 2 * self.text_margin,
       height = self.textw:getSize().h - 2 * self.text_padding - 2 * self.text_margin,
       dialog = self,
@@ -2268,6 +2263,7 @@ function ChatGPTViewer:toggleMarkdown()
       text = display_text,
       face = self.text_face,
       fgcolor = self.fgcolor,
+      line_height = 0.2,  -- Denser than default 0.3 to match markdown view
       width = self.width - 2 * self.text_padding - 2 * self.text_margin,
       height = textw_height - 2 * self.text_padding - 2 * self.text_margin,
       dialog = self,
