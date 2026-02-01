@@ -252,6 +252,16 @@ function MessageHistory:createResultText(highlightedText, config)
         table.insert(result, string.format("*Updated from %s cache*\n\n---\n\n", self.cached_progress))
     end
 
+    -- Show book text truncation notice if extraction was limited
+    -- Helps user understand why AI might not know about earlier content
+    if self.book_text_truncated then
+        local start_pct = self.book_text_coverage_start or 0
+        local end_pct = self.book_text_coverage_end or 0
+        table.insert(result, string.format(
+            "*Book text truncated (~%d%%–%d%% coverage). Increase limit in Advanced Settings → Book Text Extraction.*\n\n---\n\n",
+            start_pct, end_pct))
+    end
+
     -- Show launch context header if this is a general chat launched from a book
     if self.launch_context and self.launch_context.title then
         local launch_note = "[Launched from: " .. self.launch_context.title

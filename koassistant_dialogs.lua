@@ -1956,7 +1956,7 @@ local function handlePredefinedPrompt(prompt_type_or_action, highlightedText, ui
                     local coverage_start = extracted.book_text_coverage_start or 0
                     local coverage_end = extracted.book_text_coverage_end or 0
                     UIManager:show(InfoMessage:new{
-                        text = T(_("Book text truncated (covers %1 %–%2 %). Increase limit in Settings."),
+                        text = T(_("Book text truncated (covers %1 %–%2 %). Increase limit in Advanced Settings."),
                                  coverage_start, coverage_end),
                         timeout = 4,
                     })
@@ -2062,7 +2062,7 @@ local function handlePredefinedPrompt(prompt_type_or_action, highlightedText, ui
                         local coverage_start = range_result.coverage_start or 0
                         local coverage_end = range_result.coverage_end or 0
                         UIManager:show(InfoMessage:new{
-                            text = T(_("New content truncated (covers %1 %–%2 %). Increase limit in Settings."),
+                            text = T(_("New content truncated (covers %1 %–%2 %). Increase limit in Advanced Settings."),
                                      coverage_start, coverage_end),
                             timeout = 4,
                         })
@@ -2129,6 +2129,13 @@ local function handlePredefinedPrompt(prompt_type_or_action, highlightedText, ui
                 history.used_cache = true
                 history.cached_progress = cached_progress_display
                 history.cache_action_id = original_action_id
+            end
+
+            -- Store book text truncation info in history for viewer to display notice
+            if message_data.book_text_truncated then
+                history.book_text_truncated = true
+                history.book_text_coverage_start = message_data.book_text_coverage_start
+                history.book_text_coverage_end = message_data.book_text_coverage_end
             end
 
             if on_complete then
