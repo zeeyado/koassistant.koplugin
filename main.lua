@@ -5125,15 +5125,6 @@ function AskGPT:patchFileManagerForMultiSelect()
         local actions_enabled = select_count > 0
         
         if actions_enabled then
-          -- Find insertion point (after coverbrowser button if present)
-          local insert_position = 7
-          for i, row in ipairs(o.buttons) do
-            if row and row[1] and row[1].text == _("Refresh cached book information") then
-              insert_position = i + 1
-              break
-            end
-          end
-          
           -- Create the close callback
           local close_callback = function()
             -- The dialog will be assigned to the variable after construction
@@ -5154,8 +5145,9 @@ function AskGPT:patchFileManagerForMultiSelect()
           )
           
           if koassistant_button then
-            table.insert(o.buttons, insert_position, koassistant_button)
-            logger.info("KOAssistant: Added multi-select button to dialog at position " .. insert_position)
+            -- Append at the very end
+            table.insert(o.buttons, koassistant_button)
+            logger.info("KOAssistant: Added multi-select button to dialog at end position " .. #o.buttons)
           end
         end
       end
