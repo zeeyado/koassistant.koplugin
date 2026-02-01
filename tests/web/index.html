@@ -652,6 +652,11 @@
                             <label for="flag-use-reading-stats">use_reading_stats</label>
                             <span style="font-size: 0.7rem; color: var(--text-muted); margin-left: 0.5rem;">Chapter, time since last read</span>
                         </div>
+                        <div>
+                            <input type="checkbox" id="flag-use-notebook">
+                            <label for="flag-use-notebook">use_notebook</label>
+                            <span style="font-size: 0.7rem; color: var(--text-muted); margin-left: 0.5rem;">Include notebook entries</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1347,6 +1352,7 @@
                 document.getElementById('flag-use-annotations').checked = !!action.use_annotations;
                 document.getElementById('flag-use-reading-progress').checked = !!action.use_reading_progress;
                 document.getElementById('flag-use-reading-stats').checked = !!action.use_reading_stats;
+                document.getElementById('flag-use-notebook').checked = !!action.use_notebook;
             }
         }
 
@@ -1422,6 +1428,7 @@
                         action.use_annotations = document.getElementById('flag-use-annotations').checked;
                         action.use_reading_progress = document.getElementById('flag-use-reading-progress').checked;
                         action.use_reading_stats = document.getElementById('flag-use-reading-stats').checked;
+                        action.use_notebook = document.getElementById('flag-use-notebook').checked;
                     }
                 }
             }

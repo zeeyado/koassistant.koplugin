@@ -1346,7 +1346,7 @@ Chat History → hamburger menu → **View by Domain**
 ### Display Settings
 - **View Mode**: Choose between Markdown (formatted) or Plain Text display
   - **Markdown**: Full formatting with bold, lists, headers, etc. (default)
-  - **Plain Text**: Better font support for Arabic, CJK, Hebrew, and other non-Latin scripts
+  - **Plain Text**: Better font support for Arabic and some other non-Latin scripts
 - **Plain Text Options**: Settings for Plain Text mode
   - **Apply Markdown Stripping**: Convert markdown syntax to readable plain text with actual bold rendering. Headers use Wikipedia-style symbols with bold text (`█ **H1**`, `▉ **H2**`, etc.), `**bold**` text renders as **bold**, lists become `•`, code becomes `'quoted'`. Disable to show raw markdown. (default: on)
 - **Hide Highlighted Text**: Don't show selection in responses

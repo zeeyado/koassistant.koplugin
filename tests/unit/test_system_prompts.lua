@@ -253,9 +253,11 @@ TestRunner:test("single language", function()
 end)
 
 TestRunner:test("multiple languages, first is primary", function()
-    local primary, list = SystemPrompts.parseUserLanguages("English, German, French", nil)
+    -- parseUserLanguages returns 3 values: (primary_id, primary_display, languages_list)
+    -- languages_list uses native script (e.g., "Deutsch" for German)
+    local primary, primary_display, list = SystemPrompts.parseUserLanguages("English, German, French", nil)
     TestRunner:assertEqual(primary, "English", "first is primary")
-    TestRunner:assertContains(list, "German", "list contains German")
+    TestRunner:assertContains(list, "Deutsch", "list contains German (in native script)")
 end)
 
 TestRunner:test("primary_override changes primary", function()
@@ -287,15 +289,17 @@ end)
 TestRunner:suite("buildLanguageInstruction()")
 
 TestRunner:test("builds instruction with primary", function()
+    -- buildLanguageInstruction uses native script display (e.g., "Deutsch" for German)
     local result = SystemPrompts.buildLanguageInstruction("English, German", nil)
     TestRunner:assertContains(result, "The user understands:", "contains user understands")
-    TestRunner:assertContains(result, "English, German", "contains languages")
+    TestRunner:assertContains(result, "English, Deutsch", "contains languages in native script")
     TestRunner:assertContains(result, "respond in English", "primary in response")
 end)
 
 TestRunner:test("respects primary_override", function()
+    -- When German is primary, it shows in native script "Deutsch"
     local result = SystemPrompts.buildLanguageInstruction("English, German", "German")
-    TestRunner:assertContains(result, "respond in German", "override primary")
+    TestRunner:assertContains(result, "respond in Deutsch", "override primary (native script)")
 end)
 
 -- Test getCacheableContent()

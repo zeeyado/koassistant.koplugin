@@ -120,6 +120,13 @@ local function mergeSampleContextIfNeeded(action, context_data, context_type)
         end
     end
 
+    -- use_notebook -> notebook_content
+    if action.use_notebook then
+        if not context_data.notebook_content then
+            context_data.notebook_content = SampleContext.notebook_content
+        end
+    end
+
     -- Mark that sample data is being used (for UI display)
     context_data._using_sample_context = true
 end

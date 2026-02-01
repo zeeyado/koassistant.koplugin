@@ -101,4 +101,14 @@ They stopped before a door of black iron, unmarked and ancient.
 "Three keys open this door. I possess one. The Crown holds another. And the third..." She smiled, thin and knowing. "The third was buried with your father. Or so the official records claim."
 
 Sera felt the cold metal in her pocket—the key she had found hidden in her father's study, tucked inside a false compartment in his favorite compass case.]],
+
+    -- Notebook entries (user's personal notes about the book)
+    notebook_content = [[Entry 1: Chapter 5 - The theme of subjective truth
+The idea that maps represent stories rather than facts reminds me of "The Map Is Not the Territory" concept from Korzybski. Elena Vasquez is playing with this idea throughout.
+
+Entry 2: Chapter 11 - Father's margin notes
+The revelation that Marcus knew about the deception changes everything. Was he complicit or trying to expose it? Need to watch for more hints.
+
+Entry 3: Chapter 13 - The Thorne interview
+Commander Thorne's quote about maps creating truth rather than recording it feels like the book's central thesis. This connects to current debates about how we construct narratives about history.]],
 }
