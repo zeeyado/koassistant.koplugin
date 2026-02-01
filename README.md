@@ -69,6 +69,7 @@ Most settings are configurable in the UI, including: Provider/model, AI behavior
 - [Requirements](#requirements)
 - [Contributing](#contributing)
 - [Credits](#credits)
+- [AI Assistance](#ai-assistance)
 
 ---
 
@@ -1987,6 +1988,10 @@ This project was originally forked from [ASKGPT by Drew Baumann](https://github.
 - Drew Baumann - Original ASKGPT plugin
 - KOReader community - Excellent plugin framework
 - All contributors and testers
+
+### AI Assistance
+
+This plugin was developed with AI assistance using [Claude Code](https://claude.ai) (Anthropic). The well-documented KOReader plugin framework and codebase made it possible for AI tools to understand the existing patterns and contribute meaningfully to development and documentation.
 
 ### License
 
