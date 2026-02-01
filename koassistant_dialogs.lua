@@ -310,7 +310,8 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
         domain_context = domain_context,
         -- Caching (only effective for Anthropic)
         enable_caching = (config.provider or config.default_provider) == "anthropic",
-        -- Language settings
+        -- Language settings (interaction_languages is new array format, user_languages is old string format)
+        interaction_languages = features.interaction_languages,
         user_languages = features.user_languages or "",
         primary_language = features.primary_language,
         skip_language_instruction = action and action.skip_language_instruction,
@@ -1825,6 +1826,7 @@ local function handlePredefinedPrompt(prompt_type_or_action, highlightedText, ui
     local SystemPrompts = require("prompts.system_prompts")
     local effective_translation_language = SystemPrompts.getEffectiveTranslationLanguage({
         translation_use_primary = config.features.translation_use_primary,
+        interaction_languages = config.features.interaction_languages,
         user_languages = config.features.user_languages,
         primary_language = config.features.primary_language,
         translation_language = config.features.translation_language,
@@ -1834,6 +1836,7 @@ local function handlePredefinedPrompt(prompt_type_or_action, highlightedText, ui
     local effective_dictionary_language = SystemPrompts.getEffectiveDictionaryLanguage({
         dictionary_language = config.features.dictionary_language,
         translation_use_primary = config.features.translation_use_primary,
+        interaction_languages = config.features.interaction_languages,
         user_languages = config.features.user_languages,
         primary_language = config.features.primary_language,
         translation_language = config.features.translation_language,

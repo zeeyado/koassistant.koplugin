@@ -16,6 +16,7 @@
 --   behavior_override = "custom text..."            (replace entirely)
 
 local _ = require("koassistant_gettext")
+local Languages = require("koassistant_languages")
 
 local SystemPrompts = {}
 
@@ -187,9 +188,11 @@ function SystemPrompts.buildAnthropicSystemArray(config)
     })
 
     -- Build language instruction if user has configured languages
+    -- Check for new array format (interaction_languages) or old string format (user_languages)
     local language_instruction = nil
-    if config.user_languages and config.user_languages ~= "" then
-        language_instruction = SystemPrompts.buildLanguageInstruction(config.user_languages, config.primary_language)
+    local langs = config.interaction_languages or config.user_languages
+    if langs and (type(langs) == "table" and #langs > 0 or type(langs) == "string" and langs ~= "") then
+        language_instruction = SystemPrompts.buildLanguageInstruction(langs, config.primary_language)
     end
 
     -- Get cacheable content (behavior + domain, or just domain if behavior disabled)
@@ -284,8 +287,10 @@ function SystemPrompts.buildFlattenedPrompt(config)
     local content = SystemPrompts.getCacheableContent(behavior_text, config.domain_context)
 
     -- Append language instruction if user has configured languages
-    if config.user_languages and config.user_languages ~= "" then
-        local language_instruction = SystemPrompts.buildLanguageInstruction(config.user_languages, config.primary_language)
+    -- Check for new array format (interaction_languages) or old string format (user_languages)
+    local langs = config.interaction_languages or config.user_languages
+    if langs and (type(langs) == "table" and #langs > 0 or type(langs) == "string" and langs ~= "") then
+        local language_instruction = SystemPrompts.buildLanguageInstruction(langs, config.primary_language)
         if content then
             content = content .. "\n\n" .. language_instruction
         else
@@ -337,11 +342,13 @@ function SystemPrompts.buildUnifiedSystem(config)
 
     -- Build language instruction if user has configured languages
     -- Skip if action has opted out (e.g., translate action already specifies target language)
+    -- Check for new array format (interaction_languages) or old string format (user_languages)
     local language_instruction = nil
+    local langs = config.interaction_languages or config.user_languages
     if not config.skip_language_instruction and
-       config.user_languages and config.user_languages ~= "" then
+       langs and (type(langs) == "table" and #langs > 0 or type(langs) == "string" and langs ~= "") then
         language_instruction = SystemPrompts.buildLanguageInstruction(
-            config.user_languages, config.primary_language
+            langs, config.primary_language
         )
     end
 
@@ -483,33 +490,39 @@ function SystemPrompts.getBehaviorById(id, custom_behaviors)
     return nil
 end
 
--- Parse user languages string into primary and full list
--- @param user_languages: Comma-separated string of languages
+-- Parse user languages into primary and full list
+-- Supports both new array format (interaction_languages) and old string format (user_languages)
+-- @param user_languages: Comma-separated string of languages (old format) OR array of languages (new format)
 -- @param primary_override: Optional explicit primary language override
--- @return primary: Primary language (override if valid, else first in list)
--- @return languages_list: Full trimmed string of all languages
+-- @return primary: Primary language ID (override if valid, else first in list)
+-- @return primary_display: Primary language in native script
+-- @return languages_list: Full comma-separated string of all languages in native script
 function SystemPrompts.parseUserLanguages(user_languages, primary_override)
-    if not user_languages or user_languages == "" then
-        return "English", "English"
-    end
-
-    -- Trim and normalize
-    local trimmed = user_languages:match("^%s*(.-)%s*$")
-    if trimmed == "" then
-        return "English", "English"
-    end
-
-    -- Parse all languages into a list
     local languages = {}
-    for lang in trimmed:gmatch("([^,]+)") do
-        local lang_trimmed = lang:match("^%s*(.-)%s*$")
-        if lang_trimmed ~= "" then
-            table.insert(languages, lang_trimmed)
+
+    -- Handle array format (new)
+    if type(user_languages) == "table" then
+        for _, lang in ipairs(user_languages) do
+            if lang and lang ~= "" then
+                table.insert(languages, lang)
+            end
+        end
+    -- Handle string format (old)
+    elseif type(user_languages) == "string" and user_languages ~= "" then
+        local trimmed = user_languages:match("^%s*(.-)%s*$")
+        if trimmed ~= "" then
+            for lang in trimmed:gmatch("([^,]+)") do
+                local lang_trimmed = lang:match("^%s*(.-)%s*$")
+                if lang_trimmed ~= "" then
+                    table.insert(languages, lang_trimmed)
+                end
+            end
         end
     end
 
+    -- Default to English if empty
     if #languages == 0 then
-        return "English", "English"
+        return "English", "English", "English"
     end
 
     -- Determine primary: override if valid, else first
@@ -523,22 +536,28 @@ function SystemPrompts.parseUserLanguages(user_languages, primary_override)
         end
     end
 
-    return primary, trimmed
+    -- Convert to native script display
+    local display_languages = {}
+    for _, lang in ipairs(languages) do
+        table.insert(display_languages, Languages.getDisplay(lang))
+    end
+
+    return primary, Languages.getDisplay(primary), table.concat(display_languages, ", ")
 end
 
 -- Build language instruction for system prompt
--- @param user_languages: Comma-separated string of languages
+-- @param user_languages: Comma-separated string or array of languages
 -- @param primary_override: Optional explicit primary language override
--- @return string: Language instruction text
+-- @return string: Language instruction text (with native script display)
 function SystemPrompts.buildLanguageInstruction(user_languages, primary_override)
-    local primary, languages_list = SystemPrompts.parseUserLanguages(user_languages, primary_override)
+    local _, primary_display, languages_list = SystemPrompts.parseUserLanguages(user_languages, primary_override)
 
     return string.format(
         "IMPORTANT - Response language: Always respond in %s. " ..
         "The language of any quoted text, excerpts, or source material you are asked to analyze does NOT affect your response language. " ..
         "The user understands: %s. " ..
         "Only switch languages if the user explicitly writes their own question or comment in another language from this list.",
-        primary,
+        primary_display,
         languages_list
     )
 end
@@ -546,7 +565,7 @@ end
 -- Get effective translation language
 -- @param config: {
 --   translation_use_primary: boolean,
---   user_languages: string (comma-separated),
+--   interaction_languages: array (new format) OR user_languages: string (old format),
 --   primary_language: string (optional explicit override),
 --   translation_language: string (fallback when not using primary)
 -- }
@@ -554,7 +573,9 @@ end
 function SystemPrompts.getEffectiveTranslationLanguage(config)
     config = config or {}
 
-    local primary, _ = SystemPrompts.parseUserLanguages(config.user_languages, config.primary_language)
+    -- Use interaction_languages (new) or user_languages (old) for primary lookup
+    local langs = config.interaction_languages or config.user_languages
+    local primary, _ = SystemPrompts.parseUserLanguages(langs, config.primary_language)
 
     -- Use primary if: toggle is on, OR translation_language is the __PRIMARY__ sentinel
     local lang = config.translation_language
@@ -570,7 +591,7 @@ end
 -- @param config: {
 --   dictionary_language: string (optional, default follows translation_language),
 --   translation_use_primary: boolean,
---   user_languages: string (comma-separated),
+--   interaction_languages: array (new format) OR user_languages: string (old format),
 --   primary_language: string (optional explicit override),
 --   translation_language: string (fallback when not using primary)
 -- }
@@ -587,7 +608,9 @@ function SystemPrompts.getEffectiveDictionaryLanguage(config)
 
     -- If __FOLLOW_PRIMARY__, use primary language directly
     if dict_lang == "__FOLLOW_PRIMARY__" then
-        local primary, _ = SystemPrompts.parseUserLanguages(config.user_languages, config.primary_language)
+        -- Use interaction_languages (new) or user_languages (old)
+        local langs = config.interaction_languages or config.user_languages
+        local primary, _ = SystemPrompts.parseUserLanguages(langs, config.primary_language)
         return primary
     end
 

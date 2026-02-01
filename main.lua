@@ -79,6 +79,17 @@ local KOASSISTANT_SIDECAR_FILES = {
     -- Future custom files can be added here
 }
 
+-- Language data (shared module)
+local Languages = require("koassistant_languages")
+local REGULAR_LANGUAGES = Languages.REGULAR
+local CLASSICAL_LANGUAGES = Languages.CLASSICAL
+local COMMON_LANGUAGES = Languages.getAllIds()
+
+-- Helper to get display name for a language (native script or as-is for classical)
+local function getLanguageDisplay(lang_id)
+    return Languages.getDisplay(lang_id)
+end
+
 -- Helper function to copy file content (fallback for cross-filesystem moves)
 -- Returns: success (boolean), error_message (string or nil)
 local function copyFileContent(src, dest)
@@ -1214,6 +1225,30 @@ function AskGPT:initSettings()
         features.ui_language = "auto"
       end
       features.ui_language_auto = nil  -- Clean up old setting
+      needs_save = true
+    end
+
+    -- ONE-TIME migration: user_languages string → interaction_languages array
+    -- Converts old comma-separated string to new array format
+    if not features.languages_migrated then
+      if features.user_languages and features.user_languages ~= "" then
+        -- Parse comma-separated string into array
+        local languages = {}
+        for lang in features.user_languages:gmatch("([^,]+)") do
+          local trimmed = lang:match("^%s*(.-)%s*$")
+          if trimmed ~= "" then
+            table.insert(languages, trimmed)
+          end
+        end
+        features.interaction_languages = languages
+        features.additional_languages = {}  -- Start empty
+        logger.info("KOAssistant: Migrated user_languages to interaction_languages array")
+      else
+        features.interaction_languages = {}
+        features.additional_languages = {}
+      end
+      -- Keep user_languages for backward compatibility during transition
+      features.languages_migrated = true
       needs_save = true
     end
 
@@ -2592,21 +2627,25 @@ function AskGPT:showApiKeyDialog(provider, display_name, key_optional)
 end
 
 -- Get the effective primary language (with override support)
+-- Supports both new array format (interaction_languages) and old string format (user_languages)
 function AskGPT:getEffectivePrimaryLanguage()
   local features = self.settings:readSetting("features") or {}
-  local user_languages = features.user_languages or ""
   local override = features.primary_language
 
-  if user_languages == "" then
-    return nil
-  end
-
-  -- Parse languages
-  local languages = {}
-  for lang in user_languages:gmatch("([^,]+)") do
-    local trimmed = lang:match("^%s*(.-)%s*$")
-    if trimmed ~= "" then
-      table.insert(languages, trimmed)
+  -- Try new array format first
+  local languages = features.interaction_languages
+  if not languages or #languages == 0 then
+    -- Fall back to old string format for backward compatibility
+    local user_languages = features.user_languages or ""
+    if user_languages == "" then
+      return nil
+    end
+    languages = {}
+    for lang in user_languages:gmatch("([^,]+)") do
+      local trimmed = lang:match("^%s*(.-)%s*$")
+      if trimmed ~= "" then
+        table.insert(languages, trimmed)
+      end
     end
   end
 
@@ -2627,13 +2666,424 @@ function AskGPT:getEffectivePrimaryLanguage()
   return languages[1]
 end
 
+-- Get display name for a language (native script for regular, English for classical)
+-- Wrapper for schema access
+function AskGPT:getLanguageDisplay(lang_id)
+  return getLanguageDisplay(lang_id)
+end
+
+-- Get combined languages list (interaction + additional, deduplicated)
+-- Used for translation/dictionary language pickers
+function AskGPT:getCombinedLanguages()
+  local features = self.settings:readSetting("features") or {}
+  local combined = {}
+  local seen = {}
+
+  -- Add interaction languages first
+  for _i, lang in ipairs(features.interaction_languages or {}) do
+    if not seen[lang] then
+      table.insert(combined, lang)
+      seen[lang] = true
+    end
+  end
+
+  -- Add additional languages
+  for _i, lang in ipairs(features.additional_languages or {}) do
+    if not seen[lang] then
+      table.insert(combined, lang)
+      seen[lang] = true
+    end
+  end
+
+  -- Fall back to old string format if arrays are empty
+  if #combined == 0 then
+    local user_languages = features.user_languages or ""
+    for lang in user_languages:gmatch("([^,]+)") do
+      local trimmed = lang:match("^%s*(.-)%s*$")
+      if trimmed ~= "" and not seen[trimmed] then
+        table.insert(combined, trimmed)
+        seen[trimmed] = true
+      end
+    end
+  end
+
+  return combined
+end
+
+-- Helper to show custom language input dialog and add to array
+local function showAddCustomLanguageDialog(self_ref, array_key, touchmenu_instance)
+    local InputDialog = require("ui/widget/inputdialog")
+    local input_dialog
+    input_dialog = InputDialog:new{
+        title = _("Add Custom Language"),
+        input = "",
+        input_hint = _("e.g., Esperanto, Swahili"),
+        description = _("Enter a language name to add."),
+        buttons = {
+            {
+                {
+                    text = _("Cancel"),
+                    id = "close",
+                    callback = function()
+                        UIManager:close(input_dialog)
+                    end,
+                },
+                {
+                    text = _("Add"),
+                    is_enter_default = true,
+                    callback = function()
+                        local new_lang = input_dialog:getInputText()
+                        if new_lang and new_lang ~= "" then
+                            new_lang = new_lang:match("^%s*(.-)%s*$")  -- Trim whitespace
+                            if new_lang ~= "" then
+                                local f = self_ref.settings:readSetting("features") or {}
+                                local langs = f[array_key] or {}
+                                -- Check if already exists
+                                local exists = false
+                                for _i, lang in ipairs(langs) do
+                                    if lang == new_lang then
+                                        exists = true
+                                        break
+                                    end
+                                end
+                                if not exists then
+                                    table.insert(langs, new_lang)
+                                    f[array_key] = langs
+                                    -- Also update user_languages for backward compatibility (interaction only)
+                                    if array_key == "interaction_languages" then
+                                        f.user_languages = table.concat(langs, ", ")
+                                    end
+                                    self_ref.settings:saveSetting("features", f)
+                                    self_ref.settings:flush()
+                                    self_ref:updateConfigFromSettings()
+                                    UIManager:show(Notification:new{
+                                        text = T(_("Added: %1"), new_lang),
+                                        timeout = 2,
+                                    })
+                                    -- Refresh the menu
+                                    if touchmenu_instance then
+                                        touchmenu_instance:updateItems()
+                                    end
+                                else
+                                    UIManager:show(Notification:new{
+                                        text = T(_("'%1' is already added"), new_lang),
+                                        timeout = 2,
+                                    })
+                                end
+                            end
+                        end
+                        UIManager:close(input_dialog)
+                    end,
+                },
+            },
+        },
+    }
+    UIManager:show(input_dialog)
+    input_dialog:onShowKeyboard()
+end
+
+-- Build interaction languages submenu (native dropdown with checkmarks)
+-- Languages the user speaks/understands - used in system prompt
+function AskGPT:buildInteractionLanguagesSubmenu()
+    local self_ref = self
+    local menu_items = {}
+
+    -- Greyed-out info header
+    table.insert(menu_items, {
+        text = _("Languages you speak. Guides AI responses."),
+        enabled = false,
+    })
+
+    -- Add custom language option at top
+    table.insert(menu_items, {
+        text = _("Add Custom Language..."),
+        keep_menu_open = true,
+        callback = function(touchmenu_instance)
+            showAddCustomLanguageDialog(self_ref, "interaction_languages", touchmenu_instance)
+        end,
+        separator = true,
+    })
+
+    -- Helper to check if language is selected
+    local function isSelected(lang_id)
+        local f = self_ref.settings:readSetting("features") or {}
+        local langs = f.interaction_languages or {}
+        for _i, l in ipairs(langs) do
+            if l == lang_id then return true end
+        end
+        return false
+    end
+
+    -- Helper to toggle language
+    local function toggleLanguage(lang_id)
+        local f = self_ref.settings:readSetting("features") or {}
+        local langs = f.interaction_languages or {}
+        local found = false
+        local new_langs = {}
+        for _i, l in ipairs(langs) do
+            if l == lang_id then
+                found = true
+                -- Skip to remove
+            else
+                table.insert(new_langs, l)
+            end
+        end
+        if not found then
+            table.insert(new_langs, lang_id)
+        end
+        f.interaction_languages = new_langs
+        -- Update backward compat
+        f.user_languages = table.concat(new_langs, ", ")
+        self_ref.settings:saveSetting("features", f)
+        self_ref.settings:flush()
+        self_ref:updateConfigFromSettings()
+    end
+
+    -- English first
+    table.insert(menu_items, {
+        text = "English",
+        checked_func = function() return isSelected("English") end,
+        keep_menu_open = true,
+        callback = function() toggleLanguage("English") end,
+    })
+
+    -- Regular languages alphabetically (excluding English), displayed in native script
+    local sorted_regular = {}
+    for _i, lang in ipairs(REGULAR_LANGUAGES) do
+        if lang.id ~= "English" then
+            table.insert(sorted_regular, lang)
+        end
+    end
+    table.sort(sorted_regular, function(a, b) return a.id:lower() < b.id:lower() end)
+
+    for _i, lang in ipairs(sorted_regular) do
+        local lang_id = lang.id
+        local lang_display = lang.display
+        table.insert(menu_items, {
+            text = lang_display,
+            checked_func = function() return isSelected(lang_id) end,
+            keep_menu_open = true,
+            callback = function() toggleLanguage(lang_id) end,
+        })
+    end
+
+    -- Add any custom languages the user has added
+    local f = self.settings:readSetting("features") or {}
+    local current_langs = f.interaction_languages or {}
+    local known_ids = {}
+    for _i, lang in ipairs(REGULAR_LANGUAGES) do
+        known_ids[lang.id] = true
+    end
+    for _i, lang in ipairs(CLASSICAL_LANGUAGES) do
+        known_ids[lang] = true
+    end
+    local custom_langs = {}
+    for _i, lang in ipairs(current_langs) do
+        if not known_ids[lang] then
+            table.insert(custom_langs, lang)
+        end
+    end
+    if #custom_langs > 0 then
+        table.sort(custom_langs, function(a, b) return a:lower() < b:lower() end)
+        for _i, lang in ipairs(custom_langs) do
+            local lang_copy = lang
+            table.insert(menu_items, {
+                text = lang_copy,
+                checked_func = function() return isSelected(lang_copy) end,
+                keep_menu_open = true,
+                callback = function() toggleLanguage(lang_copy) end,
+            })
+        end
+    end
+
+    -- Separator before classical languages
+    if #menu_items > 0 then
+        menu_items[#menu_items].separator = true
+    end
+
+    -- Classical languages (displayed in English)
+    for _i, lang in ipairs(CLASSICAL_LANGUAGES) do
+        local lang_copy = lang
+        table.insert(menu_items, {
+            text = lang_copy,
+            checked_func = function() return isSelected(lang_copy) end,
+            keep_menu_open = true,
+            callback = function() toggleLanguage(lang_copy) end,
+        })
+    end
+
+    return menu_items
+end
+
+-- Build additional languages submenu (native dropdown with checkmarks)
+-- Extra languages for translation/dictionary targets - NOT in system prompt
+function AskGPT:buildAdditionalLanguagesSubmenu()
+    local self_ref = self
+    local menu_items = {}
+
+    -- Greyed-out info header
+    table.insert(menu_items, {
+        text = _("For translation/dictionary targets only."),
+        enabled = false,
+    })
+
+    -- Add custom language option at top
+    table.insert(menu_items, {
+        text = _("Add Custom Language..."),
+        keep_menu_open = true,
+        callback = function(touchmenu_instance)
+            showAddCustomLanguageDialog(self_ref, "additional_languages", touchmenu_instance)
+        end,
+        separator = true,
+    })
+
+    -- Build set of interaction languages to show which are already in "Your Languages"
+    local f = self.settings:readSetting("features") or {}
+    local interaction_langs = f.interaction_languages or {}
+    local interaction_set = {}
+    for _i, lang in ipairs(interaction_langs) do
+        interaction_set[lang] = true
+    end
+
+    -- Helper to check if language is selected
+    local function isSelected(lang_id)
+        local features = self_ref.settings:readSetting("features") or {}
+        local langs = features.additional_languages or {}
+        for _i, l in ipairs(langs) do
+            if l == lang_id then return true end
+        end
+        return false
+    end
+
+    -- Helper to toggle language
+    local function toggleLanguage(lang_id)
+        local features = self_ref.settings:readSetting("features") or {}
+        local langs = features.additional_languages or {}
+        local found = false
+        local new_langs = {}
+        for _i, l in ipairs(langs) do
+            if l == lang_id then
+                found = true
+                -- Skip to remove
+            else
+                table.insert(new_langs, l)
+            end
+        end
+        if not found then
+            table.insert(new_langs, lang_id)
+        end
+        features.additional_languages = new_langs
+        self_ref.settings:saveSetting("features", features)
+        self_ref.settings:flush()
+        self_ref:updateConfigFromSettings()
+    end
+
+    -- English first (if not in interaction languages)
+    if not interaction_set["English"] then
+        table.insert(menu_items, {
+            text = "English",
+            checked_func = function() return isSelected("English") end,
+            keep_menu_open = true,
+            callback = function() toggleLanguage("English") end,
+        })
+    end
+
+    -- Regular languages alphabetically (excluding English and those in interaction list)
+    local sorted_regular = {}
+    for _i, lang in ipairs(REGULAR_LANGUAGES) do
+        if lang.id ~= "English" and not interaction_set[lang.id] then
+            table.insert(sorted_regular, lang)
+        end
+    end
+    table.sort(sorted_regular, function(a, b) return a.id:lower() < b.id:lower() end)
+
+    for _i, lang in ipairs(sorted_regular) do
+        local lang_id = lang.id
+        local lang_display = lang.display
+        table.insert(menu_items, {
+            text = lang_display,
+            checked_func = function() return isSelected(lang_id) end,
+            keep_menu_open = true,
+            callback = function() toggleLanguage(lang_id) end,
+        })
+    end
+
+    -- Add any custom additional languages the user has added
+    local current_langs = f.additional_languages or {}
+    local known_ids = {}
+    for _i, lang in ipairs(REGULAR_LANGUAGES) do
+        known_ids[lang.id] = true
+    end
+    for _i, lang in ipairs(CLASSICAL_LANGUAGES) do
+        known_ids[lang] = true
+    end
+    local custom_langs = {}
+    for _i, lang in ipairs(current_langs) do
+        if not known_ids[lang] then
+            table.insert(custom_langs, lang)
+        end
+    end
+    if #custom_langs > 0 then
+        table.sort(custom_langs, function(a, b) return a:lower() < b:lower() end)
+        for _i, lang in ipairs(custom_langs) do
+            local lang_copy = lang
+            table.insert(menu_items, {
+                text = lang_copy,
+                checked_func = function() return isSelected(lang_copy) end,
+                keep_menu_open = true,
+                callback = function() toggleLanguage(lang_copy) end,
+            })
+        end
+    end
+
+    -- Separator before classical languages
+    if #menu_items > 0 then
+        menu_items[#menu_items].separator = true
+    end
+
+    -- Classical languages (displayed in English, excluding those in interaction list)
+    for _i, lang in ipairs(CLASSICAL_LANGUAGES) do
+        if not interaction_set[lang] then
+            local lang_copy = lang
+            table.insert(menu_items, {
+                text = lang_copy,
+                checked_func = function() return isSelected(lang_copy) end,
+                keep_menu_open = true,
+                callback = function() toggleLanguage(lang_copy) end,
+            })
+        end
+    end
+
+    return menu_items
+end
+
 -- Build primary language picker menu
 function AskGPT:buildPrimaryLanguageMenu()
   local self_ref = self
   local features = self.settings:readSetting("features") or {}
-  local user_languages = features.user_languages or ""
 
-  if user_languages == "" then
+  -- Use new array format, fall back to old string format
+  local languages = features.interaction_languages
+  if not languages or #languages == 0 then
+    local user_languages = features.user_languages or ""
+    if user_languages == "" then
+      return {
+        {
+          text = _("Set your languages first"),
+          enabled = false,
+        },
+      }
+    end
+    languages = {}
+    for lang in user_languages:gmatch("([^,]+)") do
+      local trimmed = lang:match("^%s*(.-)%s*$")
+      if trimmed ~= "" then
+        table.insert(languages, trimmed)
+      end
+    end
+  end
+
+  if #languages == 0 then
     return {
       {
         text = _("Set your languages first"),
@@ -2642,33 +3092,15 @@ function AskGPT:buildPrimaryLanguageMenu()
     }
   end
 
-  -- Parse languages
-  local languages = {}
-  for lang in user_languages:gmatch("([^,]+)") do
-    local trimmed = lang:match("^%s*(.-)%s*$")
-    if trimmed ~= "" then
-      table.insert(languages, trimmed)
-    end
-  end
-
-  if #languages == 0 then
-    return {
-      {
-        text = _("No valid languages found"),
-        enabled = false,
-      },
-    }
-  end
-
-  local current_primary = self:getEffectivePrimaryLanguage()
   local menu_items = {}
 
   for i, lang in ipairs(languages) do
     local is_first = (i == 1)
     local lang_copy = lang  -- Capture for closure
+    local lang_display = getLanguageDisplay(lang)
 
     table.insert(menu_items, {
-      text = is_first and lang .. " " .. _("(default)") or lang,
+      text = is_first and lang_display .. " " .. _("(default)") or lang_display,
       checked_func = function()
         return lang_copy == self_ref:getEffectivePrimaryLanguage()
       end,
@@ -2685,7 +3117,7 @@ function AskGPT:buildPrimaryLanguageMenu()
         self_ref.settings:flush()
         -- Show toast confirmation
         UIManager:show(Notification:new{
-          text = T(_("Primary: %1"), lang_copy),
+          text = T(_("Primary: %1"), getLanguageDisplay(lang_copy)),
           timeout = 1.5,
         })
       end,
@@ -2705,7 +3137,7 @@ function AskGPT:buildTranslationLanguageMenu()
 
   -- Add "Use Primary" option at top
   table.insert(menu_items, {
-    text = T(_("Use Primary (%1)"), effective_primary),
+    text = T(_("Use Primary (%1)"), getLanguageDisplay(effective_primary)),
     checked_func = function()
       local f = self_ref.settings:readSetting("features") or {}
       -- Primary is selected when: toggle is on, OR translation_language is sentinel/nil
@@ -2731,28 +3163,20 @@ function AskGPT:buildTranslationLanguageMenu()
       -- Show toast confirmation
       local prim = self_ref:getEffectivePrimaryLanguage() or "English"
       UIManager:show(Notification:new{
-        text = T(_("Translate: %1"), prim),
+        text = T(_("Translate: %1"), getLanguageDisplay(prim)),
         timeout = 1.5,
       })
     end,
   })
 
-  -- Parse languages from user_languages
-  local features = self.settings:readSetting("features") or {}
-  local user_languages = features.user_languages or ""
-  local languages = {}
-  for lang in user_languages:gmatch("([^,]+)") do
-    local trimmed = lang:match("^%s*(.-)%s*$")
-    if trimmed ~= "" then
-      table.insert(languages, trimmed)
-    end
-  end
+  -- Get combined languages (interaction + additional)
+  local languages = self:getCombinedLanguages()
 
   -- Add each language as an option
   for _i, lang in ipairs(languages) do
     local lang_copy = lang  -- Capture for closure
     table.insert(menu_items, {
-      text = lang,
+      text = getLanguageDisplay(lang),
       checked_func = function()
         local f = self_ref.settings:readSetting("features") or {}
         -- Only checked if toggle is OFF and this language is selected
@@ -2771,7 +3195,7 @@ function AskGPT:buildTranslationLanguageMenu()
         self_ref.settings:flush()
         -- Show toast confirmation
         UIManager:show(Notification:new{
-          text = T(_("Translate: %1"), lang_copy),
+          text = T(_("Translate: %1"), getLanguageDisplay(lang_copy)),
           timeout = 1.5,
         })
       end,
@@ -2839,9 +3263,6 @@ end
 -- Build dictionary response language picker menu
 function AskGPT:buildDictionaryLanguageMenu()
   local self_ref = self
-  local features = self.settings:readSetting("features") or {}
-  local user_languages = features.user_languages or ""
-  local primary_language = features.primary_language or "English"
 
   local menu_items = {}
 
@@ -2887,20 +3308,14 @@ function AskGPT:buildDictionaryLanguageMenu()
     separator = true,
   })
 
-  -- Parse user's language list
-  local languages = {}
-  for lang in user_languages:gmatch("[^,]+") do
-    local trimmed = lang:match("^%s*(.-)%s*$")
-    if trimmed ~= "" then
-      table.insert(languages, trimmed)
-    end
-  end
+  -- Get combined languages (interaction + additional)
+  local languages = self:getCombinedLanguages()
 
   -- Add each language as an option
   for _i, lang in ipairs(languages) do
     local lang_copy = lang
     table.insert(menu_items, {
-      text = lang,
+      text = getLanguageDisplay(lang),
       checked_func = function()
         local f = self_ref.settings:readSetting("features") or {}
         return f.dictionary_language == lang_copy
@@ -2912,7 +3327,7 @@ function AskGPT:buildDictionaryLanguageMenu()
         self_ref.settings:saveSetting("features", f)
         self_ref.settings:flush()
         UIManager:show(Notification:new{
-          text = T(_("Dictionary: %1"), lang_copy),
+          text = T(_("Dictionary: %1"), getLanguageDisplay(lang_copy)),
           timeout = 1.5,
         })
       end,
@@ -3661,19 +4076,11 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
     end
   end
 
-  -- Get primary language display
-  local user_languages = features.user_languages or ""
-  local primary_lang = features.primary_language
-  local lang_display = _("Default")
-  if user_languages ~= "" then
-    local first_lang = user_languages:match("^%s*([^,]+)")
-    if first_lang then
-      first_lang = first_lang:match("^%s*(.-)%s*$")  -- trim
-    end
-    lang_display = primary_lang or first_lang or _("Default")
-  end
+  -- Get primary language display (use native script)
+  local primary_lang_id = self:getEffectivePrimaryLanguage()
+  local lang_display = primary_lang_id and getLanguageDisplay(primary_lang_id) or _("Default")
 
-  -- Get translation language display
+  -- Get translation language display (use native script)
   local trans_lang = features.translation_language
   local trans_effective  -- The actual language name (for dictionary cascade)
   local trans_display    -- What to show in the button
@@ -3681,11 +4088,11 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
     trans_effective = lang_display
     trans_display = lang_display .. " ↵"  -- Follow primary (arrow indicates "same as")
   else
-    trans_effective = trans_lang
-    trans_display = trans_lang
+    trans_effective = getLanguageDisplay(trans_lang)
+    trans_display = trans_effective
   end
 
-  -- Get dictionary language display
+  -- Get dictionary language display (use native script)
   local dict_lang = features.dictionary_language
   local dict_display
   if dict_lang == "__FOLLOW_PRIMARY__" then
@@ -3693,7 +4100,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
   elseif dict_lang == nil or dict_lang == "" or dict_lang == "__FOLLOW_TRANSLATION__" then
     dict_display = trans_effective .. " ↵T"  -- Follow translation (T distinguishes from primary)
   else
-    dict_display = dict_lang
+    dict_display = getLanguageDisplay(dict_lang)
   end
 
   -- Get bypass states
@@ -4446,9 +4853,9 @@ end
 
 -- Build dictionary language menu (for gesture action and AI Quick Settings)
 -- Shows available languages for dictionary response language
+-- NOTE: This overrides the earlier buildDictionaryLanguageMenu definition
 function AskGPT:buildDictionaryLanguageMenu()
   local self_ref = self
-  local features = self.settings:readSetting("features") or {}
   local items = {}
 
   -- Option to follow translation language
@@ -4486,39 +4893,36 @@ function AskGPT:buildDictionaryLanguageMenu()
     separator = true,
   })
 
-  -- Parse user languages if available
-  local user_languages = features.user_languages or ""
-  if user_languages ~= "" then
-    for lang in user_languages:gmatch("[^,]+") do
-      local trimmed = lang:match("^%s*(.-)%s*$")
-      if trimmed and trimmed ~= "" then
-        local lang_copy = trimmed
-        table.insert(items, {
-          text = lang_copy,
-          checked_func = function()
-            local f = self_ref.settings:readSetting("features") or {}
-            return f.dictionary_language == lang_copy
-          end,
-          radio = true,
-          callback = function()
-            local f = self_ref.settings:readSetting("features") or {}
-            f.dictionary_language = lang_copy
-            self_ref.settings:saveSetting("features", f)
-            self_ref.settings:flush()
-            self_ref:updateConfigFromSettings()
-          end,
-        })
-      end
-    end
+  -- Get combined languages (interaction + additional)
+  local languages = self:getCombinedLanguages()
+
+  -- Add each language as an option
+  for _i, lang in ipairs(languages) do
+    local lang_copy = lang
+    table.insert(items, {
+      text = getLanguageDisplay(lang_copy),
+      checked_func = function()
+        local f = self_ref.settings:readSetting("features") or {}
+        return f.dictionary_language == lang_copy
+      end,
+      radio = true,
+      callback = function()
+        local f = self_ref.settings:readSetting("features") or {}
+        f.dictionary_language = lang_copy
+        self_ref.settings:saveSetting("features", f)
+        self_ref.settings:flush()
+        self_ref:updateConfigFromSettings()
+      end,
+    })
   end
 
-  -- Add common languages if no user languages configured
-  if #items == 1 then
-    local common_languages = {"English", "Spanish", "French", "German", "Chinese", "Japanese", "Korean"}
-    for _idx, lang in ipairs(common_languages) do
+  -- Add common fallback if no languages configured
+  if #languages == 0 then
+    local fallback_languages = {"English", "Spanish", "French", "German", "Chinese", "Japanese", "Korean"}
+    for _idx, lang in ipairs(fallback_languages) do
       local lang_copy = lang
       table.insert(items, {
-        text = lang_copy,
+        text = getLanguageDisplay(lang_copy),
         checked_func = function()
           local f = self_ref.settings:readSetting("features") or {}
           return f.dictionary_language == lang_copy

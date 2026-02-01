@@ -213,7 +213,7 @@ After basic setup, explore these features to get the most out of KOAssistant:
 | **[Dictionary Integration](#dictionary-integration)** | AI-powered word lookups when selecting single words | Settings → Dictionary Settings |
 | **[Bypass Modes](#bypass-modes)** | Instant AI actions without menus | Settings → Dictionary/Highlight Settings |
 | **Reasoning/Thinking** | Enable deep analysis for complex questions | Settings → Advanced → Reasoning |
-| **Languages** | Configure multilingual responses | Settings → AI Language Settings |
+| **Languages** | Configure multilingual responses (native script pickers) | Settings → AI Language Settings |
 
 See detailed sections below for each feature.
 
@@ -1377,10 +1377,15 @@ When "Ask every time" is selected (or inherited from global), a picker dialog ap
 ### AI Language Settings
 These settings control what language the AI responds in.
 
-- **Your Languages**: Languages you speak, separated by commas (e.g., "German, English, French"). Leave empty for default AI behavior.
-- **Primary Language**: Pick which language AI should respond in by default. Defaults to first in your list, but can be overridden.
+- **Your Languages**: Languages you speak/understand. Opens a picker with 47 pre-loaded languages displayed in their native scripts (日本語, Français, Español, etc.). Select multiple languages. These are sent to the AI in the system prompt ("The user understands: ...").
+- **Primary Language**: Pick which of your languages the AI should respond in by default. Defaults to first in your list.
+- **Additional Languages**: Extra languages for translation/dictionary targets only (e.g., Latin, Sanskrit for scholarly work). These are NOT sent to the AI in the system prompt but appear in translation/dictionary language pickers.
 
-**Note:** Translation target language settings have moved to **Settings → Translate Settings**.
+**Native script display:** Languages appear in their native scripts everywhere—menus, settings, and AI prompts. Classical/scholarly languages (Ancient Greek, Biblical Hebrew, Classical Arabic, Latin, Sanskrit) are displayed in English only.
+
+**Custom languages:** Use "Add Custom Language..." at the top of each picker to enter languages not in the pre-loaded list. Custom languages are remembered and appear in future pickers.
+
+**Note:** Translation target language settings are in **Settings → Translate Settings**.
 
 **How language responses work** (when Your Languages is configured):
 - AI responds in your primary language by default
@@ -1388,10 +1393,11 @@ These settings control what language the AI responds in.
 - Leave empty to let AI use its default behavior
 
 **Examples:**
-- `"English"` - AI always responds in English
-- `"German, English, French"` with Primary set to "English" - English by default, switches if you type in German or French
+- Your Languages: `English` - AI always responds in English
+- Your Languages: `Deutsch, English, Français` with Primary: `English` - English by default, switches if you type in German or French
+- Additional Languages: `Latin, Sanskrit` - Available in translation/dictionary pickers but AI won't mention them in general responses
 
-**How it works technically:** Your language preferences are sent as part of the system message (after behavior and domain). The instruction tells the AI to respond in your primary language and switch if you type in another configured language. See [How the AI Prompt Works](#how-the-ai-prompt-works).
+**How it works technically:** Your interaction languages are sent as part of the system message (after behavior and domain). The instruction tells the AI to respond in your primary language (shown in native script) and switch if you type in another configured language. See [How the AI Prompt Works](#how-the-ai-prompt-works).
 
 **Built-in actions that skip this:** Translate and Dictionary actions set `skip_language_instruction` because they specify the target language directly in their prompt templates (via `{translation_language}` and `{dictionary_language}` placeholders). This avoids conflicting instructions.
 
@@ -1399,31 +1405,38 @@ These settings control what language the AI responds in.
 
 #### How Language Settings Work Together
 
-KOAssistant has three language settings that work together:
+KOAssistant has four language-related settings that work together:
 
-1. **Primary Language** — Default response language for all AI interactions
-2. **Translation Language** — Target language for Translate action
+1. **Your Languages** — Languages you speak (sent to AI in system prompt)
+2. **Primary Language** — Default response language for all AI interactions (selected from Your Languages)
+3. **Translation Language** — Target language for Translate action
    - Can be set to follow Primary (`↵` symbol) or set independently
-3. **Dictionary Language** — Response language for dictionary lookups
+   - Picker shows both Your Languages and Additional Languages
+4. **Dictionary Language** — Response language for dictionary lookups
    - Can follow Primary (`↵`) or Translation (`↵T`) or be set independently
+   - Picker shows both Your Languages and Additional Languages
 
 **Return symbols:**
 - `↵` = Following another setting
 - `↵T` = Following Translation setting specifically
 
 **Example setup:**
+- Your Languages: English, Spanish
 - Primary: English
+- Additional Languages: Latin
 - Translation: `↵` (follows Primary → English)
 - Dictionary: `↵T` (follows Translation → English)
 
-This setup means: AI responds in English, translates to English, defines words in English.
+This setup means: AI knows you understand English and Spanish, responds in English, translates to English, defines words in English. Latin is available in translation/dictionary pickers for scholarly texts.
 
 **Another example:**
+- Your Languages: English
 - Primary: English
+- Additional Languages: Spanish, Latin
 - Translation: Spanish
 - Dictionary: `↵T` (follows Translation → Spanish)
 
-This setup means: AI responds in English by default, translates to Spanish, defines words in Spanish (useful when reading Spanish texts).
+This setup means: AI responds in English by default, translates to Spanish, defines words in Spanish (useful when reading Spanish texts). Latin available for translation if needed.
 
 ### Actions
 - **Manage Actions**: See [Actions](#actions) section for full details

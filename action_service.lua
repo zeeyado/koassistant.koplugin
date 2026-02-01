@@ -466,7 +466,8 @@ function ActionService:buildAnthropicSystem(config)
 
     -- Get language settings (empty = no language instruction)
     local features = self.settings:readSetting("features") or {}
-    local user_languages = features.user_languages or ""
+    local interaction_languages = features.interaction_languages  -- New array format
+    local user_languages = features.user_languages or ""  -- Old string format (backward compat)
     local primary_language = features.primary_language  -- Optional override
     local custom_ai_behavior = features.custom_ai_behavior  -- Custom behavior text
 
@@ -476,6 +477,7 @@ function ActionService:buildAnthropicSystem(config)
         global_variant = global_variant,
         domain_context = config.domain_context,
         enable_caching = true,
+        interaction_languages = interaction_languages,
         user_languages = user_languages,
         primary_language = primary_language,
         custom_ai_behavior = custom_ai_behavior,
@@ -511,7 +513,8 @@ function ActionService:buildFlattenedSystem(config)
 
     -- Get language settings (empty = no language instruction)
     local features = self.settings:readSetting("features") or {}
-    local user_languages = features.user_languages or ""
+    local interaction_languages = features.interaction_languages  -- New array format
+    local user_languages = features.user_languages or ""  -- Old string format (backward compat)
     local primary_language = features.primary_language  -- Optional override
     local custom_ai_behavior = features.custom_ai_behavior  -- Custom behavior text
 
@@ -520,6 +523,7 @@ function ActionService:buildFlattenedSystem(config)
         behavior_override = behavior_override,
         global_variant = global_variant,
         domain_context = config.domain_context,
+        interaction_languages = interaction_languages,
         user_languages = user_languages,
         primary_language = primary_language,
         custom_ai_behavior = custom_ai_behavior,

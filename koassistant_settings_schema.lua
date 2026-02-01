@@ -904,12 +904,27 @@ local SettingsSchema = {
             text = _("AI Language Settings"),
             items = {
                 {
-                    id = "user_languages",
-                    type = "text",
-                    text = _("Your Languages"),
-                    path = "features.user_languages",
-                    default = "",
-                    help_text = _("Languages you speak, separated by commas. Leave empty for default AI behavior.\n\nExamples:\n• \"English\"\n• \"German, English, French\""),
+                    id = "interaction_languages",
+                    type = "submenu",
+                    text_func = function(plugin)
+                        local f = plugin.settings:readSetting("features") or {}
+                        local langs = f.interaction_languages or {}
+                        if #langs == 0 then
+                            -- Fall back to old format for display
+                            local old = f.user_languages or ""
+                            if old == "" then
+                                return _("Your Languages: (not set)")
+                            end
+                            return T(_("Your Languages: %1"), old)
+                        end
+                        -- Convert to native script display
+                        local display_langs = {}
+                        for _i, lang in ipairs(langs) do
+                            table.insert(display_langs, plugin:getLanguageDisplay(lang))
+                        end
+                        return T(_("Your Languages: %1"), table.concat(display_langs, ", "))
+                    end,
+                    callback = "buildInteractionLanguagesSubmenu",
                 },
                 {
                     id = "primary_language",
@@ -919,9 +934,27 @@ local SettingsSchema = {
                         if not primary or primary == "" then
                             return _("Primary Language: (not set)")
                         end
-                        return T(_("Primary Language: %1"), primary)
+                        return T(_("Primary Language: %1"), plugin:getLanguageDisplay(primary))
                     end,
                     callback = "buildPrimaryLanguageMenu",
+                },
+                {
+                    id = "additional_languages",
+                    type = "submenu",
+                    text_func = function(plugin)
+                        local f = plugin.settings:readSetting("features") or {}
+                        local langs = f.additional_languages or {}
+                        if #langs == 0 then
+                            return _("Additional Languages: (none)")
+                        end
+                        -- Convert to native script display
+                        local display_langs = {}
+                        for _i, lang in ipairs(langs) do
+                            table.insert(display_langs, plugin:getLanguageDisplay(lang))
+                        end
+                        return T(_("Additional Languages: %1"), table.concat(display_langs, ", "))
+                    end,
+                    callback = "buildAdditionalLanguagesSubmenu",
                 },
             },
         },
@@ -951,7 +984,7 @@ local SettingsSchema = {
                         elseif lang == "__FOLLOW_PRIMARY__" then
                             return _("Response Language: (Follow Primary)")
                         end
-                        return T(_("Response Language: %1"), lang)
+                        return T(_("Response Language: %1"), plugin:getLanguageDisplay(lang))
                     end,
                     callback = "buildDictionaryLanguageMenu",
                 },
@@ -1091,7 +1124,7 @@ local SettingsSchema = {
                             local primary = plugin:getEffectivePrimaryLanguage() or "English"
                             target = primary
                         end
-                        return T(_("Translation Target: %1"), target)
+                        return T(_("Translation Target: %1"), plugin:getLanguageDisplay(target))
                     end,
                     callback = "buildTranslationLanguageMenu",
                     depends_on = { id = "translation_use_primary", value = false },
