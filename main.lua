@@ -990,6 +990,15 @@ function AskGPT:onDispatcherRegisterActions()
     reader = true,
   })
 
+  -- Edit current book's notebook (requires open book, checked at runtime)
+  Dispatcher:registerAction("koassistant_edit_notebook", {
+    category = "none",
+    event = "KOAssistantEditNotebook",
+    title = _("KOAssistant: Edit Notebook"),
+    general = true,
+    reader = true,
+  })
+
   -- Browse all notebooks (general context - works from anywhere)
   Dispatcher:registerAction("koassistant_browse_notebooks", {
     category = "none",
@@ -4066,6 +4075,24 @@ function AskGPT:onKOAssistantViewNotebook()
 
   local file_path = reader_ui.document.file
   self:openNotebookForFile(file_path)
+  return true
+end
+
+--- Edit current book's notebook gesture handler
+function AskGPT:onKOAssistantEditNotebook()
+  local ReaderUI = require("apps/reader/readerui")
+  local reader_ui = ReaderUI.instance
+
+  if not reader_ui or not reader_ui.document then
+    UIManager:show(InfoMessage:new{
+      text = _("Please open a book first"),
+      timeout = 2,
+    })
+    return true
+  end
+
+  local file_path = reader_ui.document.file
+  self:openNotebookForFile(file_path, true)  -- true = edit mode
   return true
 end
 

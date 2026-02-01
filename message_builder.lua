@@ -201,6 +201,9 @@ function MessageBuilder.build(params)
     if data.time_since_last_read then
         user_prompt = replace_placeholder(user_prompt, "{time_since_last_read}", data.time_since_last_read)
     end
+    if data.notebook_content ~= nil then
+        user_prompt = replace_placeholder(user_prompt, "{notebook}", data.notebook_content)
+    end
 
     -- Handle different contexts
     if logger then
@@ -399,6 +402,9 @@ function MessageBuilder.substituteVariables(prompt_text, data)
     end
     if data.time_since_last_read then
         result = replace_placeholder(result, "{time_since_last_read}", data.time_since_last_read)
+    end
+    if data.notebook_content ~= nil then
+        result = replace_placeholder(result, "{notebook}", data.notebook_content)
     end
 
     return result

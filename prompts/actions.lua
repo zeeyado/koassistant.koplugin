@@ -50,6 +50,7 @@ Actions.OPEN_BOOK_FLAGS = {
     "use_annotations",
     "use_highlights",
     "use_reading_stats",
+    "use_notebook",
 }
 
 -- Mapping from placeholders to the flags they require
@@ -75,6 +76,9 @@ Actions.PLACEHOLDER_TO_FLAG = {
     -- Reading stats placeholders
     ["{chapter_title}"] = "use_reading_stats",
     ["{chapters_read}"] = "use_reading_stats",
+
+    -- Notebook placeholder
+    ["{notebook}"] = "use_notebook",
 }
 
 -- Built-in actions for highlight context
@@ -339,7 +343,7 @@ If you don't recognize this work or the title/content seems unclear, tell me hon
         builtin = true,
         in_reading_features = 2,  -- Appears in Reading Features menu + default gesture
     },
-    -- Analyze Highlights: Insights from user's annotations
+    -- Analyze Highlights: Insights from user's annotations and notebook
     analyze_highlights = {
         id = "analyze_highlights",
         text = _("Analyze Highlights"),
@@ -348,11 +352,14 @@ If you don't recognize this work or the title/content seems unclear, tell me hon
         -- Context extraction flags
         use_annotations = true,
         use_reading_progress = true,
-        prompt = [[Reflect on my reading of "{title}" by {author} through my highlights.
+        use_notebook = true,
+        prompt = [[Reflect on my reading of "{title}" by {author} through my highlights and notes.
 
 I'm at {reading_progress}. Here's what I've marked:
 
 {annotations_section}
+
+{notebook}
 
 Analyze MY READING PATTERNS, not just the content:
 
@@ -365,7 +372,7 @@ Looking at my highlights as a collection, what themes or ideas am I tracking?
 Are there connections between highlights I might not have noticed?
 
 ## My Notes Tell a Story
-If I've added notes, what do they reveal about my thinking?
+If I've added notes (either highlight notes or in my notebook), what do they reveal about my thinking?
 How is my understanding or reaction evolving?
 
 ## Questions I Seem to Be Asking
@@ -378,7 +385,7 @@ Based on my highlighting patterns:
 - Themes to watch for going forward
 - Connections to other ideas or works
 
-This is about understanding ME as a reader through my highlights, not summarizing the work.
+This is about understanding ME as a reader through my highlights and notes, not summarizing the work.
 
 If you don't recognize this work or the highlights seem insufficient for meaningful analysis, let me know honestly rather than guessing.]],
         skip_language_instruction = false,
