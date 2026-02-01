@@ -77,8 +77,9 @@ Actions.PLACEHOLDER_TO_FLAG = {
     ["{chapter_title}"] = "use_reading_stats",
     ["{chapters_read}"] = "use_reading_stats",
 
-    -- Notebook placeholder
+    -- Notebook placeholders
     ["{notebook}"] = "use_notebook",
+    ["{notebook_section}"] = "use_notebook",
 }
 
 -- Built-in actions for highlight context
@@ -150,6 +151,42 @@ Surface connections that enrich understanding, not tangential trivia.]],
         api_params = {
             temperature = 0.7,
             max_tokens = 2048,
+        },
+        builtin = true,
+    },
+    connect_with_notes = {
+        id = "connect_with_notes",
+        text = _("Connect (With Notes)"),
+        context = "highlight",
+        behavior_variant = "reader_assistant",
+        include_book_context = true,
+        -- Context extraction flags
+        use_annotations = true,
+        use_notebook = true,
+        prompt = [[I just highlighted this passage:
+
+"{highlighted_text}"
+
+{annotations_section}
+
+{notebook_section}
+
+Help me connect this to my reading journey:
+
+## Echoes
+Does this passage relate to anything I've already highlighted or written about? What patterns or connections do you see?
+
+## Fresh Angle
+What's new or different about this passage compared to what I've noted before?
+
+## Worth Adding
+Based on this highlight, is there anything I might want to add to my notebook? A question, connection, or thought?
+
+If I have no prior highlights or notebook entries, just reflect on this passage and suggest what might be worth noting.]],
+        skip_domain = true,
+        api_params = {
+            temperature = 0.6,
+            max_tokens = 1024,
         },
         builtin = true,
     },
@@ -359,7 +396,7 @@ I'm at {reading_progress}. Here's what I've marked:
 
 {annotations_section}
 
-{notebook}
+{notebook_section}
 
 Analyze MY READING PATTERNS, not just the content:
 
@@ -372,8 +409,7 @@ Looking at my highlights as a collection, what themes or ideas am I tracking?
 Are there connections between highlights I might not have noticed?
 
 ## My Notes Tell a Story
-If I've added notes (either highlight notes or in my notebook), what do they reveal about my thinking?
-How is my understanding or reaction evolving?
+What do my notes reveal about my thinking? How is my understanding or reaction evolving?
 
 ## Questions I Seem to Be Asking
 Based on what I highlight, what larger questions might I be exploring?
