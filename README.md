@@ -1374,7 +1374,7 @@ KOAssistant includes both automatic and manual update checking to keep you infor
 
 ### Automatic Update Check
 
-By default, KOAssistant automatically checks for updates **once per session** when you first use a plugin feature (starting a chat, highlighting text, etc.). This happens silently in the background after your action completes.
+By default, KOAssistant automatically checks for updates **once per session** when you first use a plugin feature (starting a chat, highlighting text, etc.). 1.5 sec timout. 
 
 **How it works:**
 1. First time you use KOAssistant after launching KOReader, a brief "Checking for updates..." notification appears (1.5 seconds)
