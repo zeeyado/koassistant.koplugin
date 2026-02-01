@@ -171,12 +171,13 @@ function Export.format(data, content, style)
     for _idx, msg in ipairs(messages) do
         -- Skip context messages unless "everything" mode
         if include_context or not msg.is_context then
-            local role = (msg.role or "unknown"):gsub("^%l", string.upper)
+            local role = msg.role or "unknown"
+            local display_role = (role == "assistant") and "KOAssistant" or role:gsub("^%l", string.upper)
             if is_md then
-                table.insert(result, "### " .. role)
+                table.insert(result, "### " .. display_role)
                 table.insert(result, msg.content or "")
             else
-                table.insert(result, role .. ":")
+                table.insert(result, display_role .. ":")
                 table.insert(result, msg.content or "")
             end
             table.insert(result, "")
