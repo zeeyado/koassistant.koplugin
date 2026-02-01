@@ -4,6 +4,7 @@ local ltn12 = require("ltn12")
 local json = require("json")
 local Defaults = require("koassistant_api.defaults")
 local ResponseParser = require("koassistant_api.response_parser")
+local DebugUtils = require("koassistant_debug_utils")
 
 local QwenHandler = BaseHandler:new()
 
@@ -126,7 +127,7 @@ function QwenHandler:query(message_history, config)
 
     -- Debug: Print request body
     if config and config.features and config.features.debug then
-        print("Qwen Request Body:", json.encode(request_body))
+        DebugUtils.print("Qwen Request Body:", request_body, config)
         print("Streaming enabled:", use_streaming and "yes" or "no")
     end
 
@@ -164,7 +165,7 @@ function QwenHandler:query(message_history, config)
 
     -- Debug: Print raw response
     if config and config.features and config.features.debug then
-        print("Qwen Raw Response:", table.concat(responseBody))
+        DebugUtils.print("Qwen Raw Response:", table.concat(responseBody), config)
     end
 
     local api_success, response = self:handleApiResponse(success, code, responseBody, "Qwen")
@@ -179,7 +180,7 @@ function QwenHandler:query(message_history, config)
 
     -- Debug: Print parsed response
     if config and config.features and config.features.debug then
-        print("Qwen Parsed Response:", json.encode(response))
+        DebugUtils.print("Qwen Parsed Response:", response, config)
     end
 
     local success, result = ResponseParser:parseResponse(response, "qwen")

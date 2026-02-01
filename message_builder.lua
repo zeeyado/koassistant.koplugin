@@ -212,6 +212,26 @@ function MessageBuilder.build(params)
         user_prompt = replace_placeholder(user_prompt, "{notebook}", data.notebook_content)
     end
 
+    -- Cache-related placeholders (for X-Ray/Recap incremental updates)
+    -- {cached_result} - the previous AI response
+    if data.cached_result then
+        user_prompt = replace_placeholder(user_prompt, "{cached_result}", data.cached_result)
+    end
+    -- {cached_progress} - formatted progress when cached (e.g., "30%")
+    if data.cached_progress then
+        user_prompt = replace_placeholder(user_prompt, "{cached_progress}", data.cached_progress)
+    end
+    -- {incremental_book_text_section} - text from cached position to current, with label
+    local incremental_section = ""
+    if data.incremental_book_text and data.incremental_book_text ~= "" then
+        incremental_section = "New content since your last analysis:\n" .. data.incremental_book_text
+    end
+    user_prompt = replace_placeholder(user_prompt, "{incremental_book_text_section}", incremental_section)
+    -- Raw placeholder (for custom prompts that want their own labels)
+    if data.incremental_book_text then
+        user_prompt = replace_placeholder(user_prompt, "{incremental_book_text}", data.incremental_book_text)
+    end
+
     -- Handle different contexts
     if logger then
         logger.info("MessageBuilder: Entering context switch, context=", context)
@@ -418,6 +438,22 @@ function MessageBuilder.substituteVariables(prompt_text, data)
     end
     if data.notebook_content ~= nil then
         result = replace_placeholder(result, "{notebook}", data.notebook_content)
+    end
+
+    -- Cache-related placeholders (for X-Ray/Recap incremental updates)
+    if data.cached_result then
+        result = replace_placeholder(result, "{cached_result}", data.cached_result)
+    end
+    if data.cached_progress then
+        result = replace_placeholder(result, "{cached_progress}", data.cached_progress)
+    end
+    local incremental_section = ""
+    if data.incremental_book_text and data.incremental_book_text ~= "" then
+        incremental_section = "New content since your last analysis:\n" .. data.incremental_book_text
+    end
+    result = replace_placeholder(result, "{incremental_book_text_section}", incremental_section)
+    if data.incremental_book_text then
+        result = replace_placeholder(result, "{incremental_book_text}", data.incremental_book_text)
     end
 
     return result

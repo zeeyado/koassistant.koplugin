@@ -5,6 +5,7 @@ local json = require("json")
 local Defaults = require("koassistant_api.defaults")
 local ResponseParser = require("koassistant_api.response_parser")
 local Constants = require("koassistant_constants")
+local DebugUtils = require("koassistant_debug_utils")
 
 local OpenRouterHandler = BaseHandler:new()
 
@@ -113,7 +114,7 @@ function OpenRouterHandler:query(message_history, config)
 
     -- Debug: Print request body
     if config and config.features and config.features.debug then
-        print("OpenRouter Request Body:", json.encode(request_body))
+        DebugUtils.print("OpenRouter Request Body:", request_body, config)
         print("Streaming enabled:", use_streaming and "yes" or "no")
     end
 
@@ -153,7 +154,7 @@ function OpenRouterHandler:query(message_history, config)
 
     -- Debug: Print raw response
     if config and config.features and config.features.debug then
-        print("OpenRouter Raw Response:", table.concat(responseBody))
+        DebugUtils.print("OpenRouter Raw Response:", table.concat(responseBody), config)
     end
 
     local success, response = self:handleApiResponse(success, code, responseBody, "OpenRouter")
@@ -163,7 +164,7 @@ function OpenRouterHandler:query(message_history, config)
 
     -- Debug: Print parsed response
     if config and config.features and config.features.debug then
-        print("OpenRouter Parsed Response:", json.encode(response))
+        DebugUtils.print("OpenRouter Parsed Response:", response, config)
     end
 
     local success, result = ResponseParser:parseResponse(response, "openrouter")

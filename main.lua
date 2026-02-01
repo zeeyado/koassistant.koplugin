@@ -76,7 +76,7 @@ end
 -- Add new custom files here as they're implemented (e.g., notebooks, stats, annotations)
 local KOASSISTANT_SIDECAR_FILES = {
     "koassistant_notebook.md",
-    -- Future custom files can be added here
+    "koassistant_cache.lua",  -- X-Ray/Recap response cache
 }
 
 -- Language data (shared module)
@@ -4558,6 +4558,75 @@ function AskGPT:testProviderConnection()
       end
     end)
   end)
+end
+
+--- Clear action cache for the current book
+-- Called from Settings → Advanced → Book Text Extraction → Clear Action Cache
+function AskGPT:clearActionCache()
+  local InfoMessage = require("ui/widget/infomessage")
+  local UIManager = require("ui/uimanager")
+  local ButtonDialog = require("ui/widget/buttondialog")
+  local ActionCache = require("koassistant_action_cache")
+
+  -- Check if we're in reader mode with an open book
+  local ui = self.ui
+  if not ui or not ui.document or not ui.document.file then
+    UIManager:show(InfoMessage:new{
+      text = _("No book is currently open.\n\nOpen a book first, then use this option to clear its cached X-Ray and Recap responses."),
+      timeout = 5,
+    })
+    return
+  end
+
+  local document_path = ui.document.file
+  local cache_path = ActionCache.getPath(document_path)
+
+  -- Check if cache exists
+  local lfs = require("libs/libkoreader-lfs")
+  local attr = cache_path and lfs.attributes(cache_path)
+  if not attr or attr.mode ~= "file" then
+    UIManager:show(InfoMessage:new{
+      text = _("No action cache found for this book.\n\nRun X-Ray or Recap first to create a cache."),
+      timeout = 3,
+    })
+    return
+  end
+
+  -- Confirm before clearing
+  local dialog
+  dialog = ButtonDialog:new{
+    title = _("Clear Action Cache"),
+    text = _("Clear cached X-Ray and Recap responses for this book?\n\nNext time you run these actions, they will regenerate from scratch instead of updating from the cached version."),
+    buttons = {
+      {
+        {
+          text = _("Cancel"),
+          callback = function()
+            UIManager:close(dialog)
+          end,
+        },
+        {
+          text = _("Clear Cache"),
+          callback = function()
+            UIManager:close(dialog)
+            local success = ActionCache.clearAll(document_path)
+            if success then
+              UIManager:show(InfoMessage:new{
+                text = _("Action cache cleared successfully."),
+                timeout = 2,
+              })
+            else
+              UIManager:show(InfoMessage:new{
+                text = _("Failed to clear action cache."),
+                timeout = 3,
+              })
+            end
+          end,
+        },
+      },
+    },
+  }
+  UIManager:show(dialog)
 end
 
 --- Action Manager gesture handler

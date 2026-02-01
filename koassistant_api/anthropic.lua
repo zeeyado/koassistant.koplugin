@@ -6,6 +6,7 @@ local Defaults = require("koassistant_api.defaults")
 local ResponseParser = require("koassistant_api.response_parser")
 local AnthropicRequest = require("koassistant_api.anthropic_request")
 local ModelConstraints = require("model_constraints")
+local DebugUtils = require("koassistant_debug_utils")
 
 local AnthropicHandler = BaseHandler:new()
 
@@ -68,7 +69,7 @@ function AnthropicHandler:query(message_history, config)
     -- Debug: Print constraint adjustments and request body
     if config and config.features and config.features.debug then
         ModelConstraints.logAdjustments("Anthropic", adjustments)
-        print("Anthropic Request Body:", json.encode(request_body))
+        DebugUtils.print("Anthropic Request Body:", request_body, config)
         print("Streaming enabled:", use_streaming and "yes" or "no")
     end
 
@@ -109,7 +110,7 @@ function AnthropicHandler:query(message_history, config)
 
     -- Debug: Print raw response
     if config and config.features and config.features.debug then
-        print("Anthropic Raw Response:", table.concat(responseBody))
+        DebugUtils.print("Anthropic Raw Response:", table.concat(responseBody), config)
     end
 
     local success, response = self:handleApiResponse(success, code, responseBody, "Anthropic")
@@ -119,7 +120,7 @@ function AnthropicHandler:query(message_history, config)
 
     -- Debug: Print parsed response
     if config and config.features and config.features.debug then
-        print("Anthropic Parsed Response:", json.encode(response))
+        DebugUtils.print("Anthropic Parsed Response:", response, config)
     end
 
     local success, result, reasoning = ResponseParser:parseResponse(response, "anthropic")
