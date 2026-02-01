@@ -973,6 +973,47 @@ When enabled, book chats go to `[book_folder]/chats/` instead of the central fol
 
 The export uses your global Export Style setting (Markdown or Plain Text).
 
+### Notebooks (Per-Book Notes)
+
+Notebooks are persistent markdown files stored alongside each book in its sidecar folder (`.sdr/koassistant_notebook.md`). Unlike chat history which stores full conversations, notebooks let you curate AI insights for long-term reference.
+
+**Saving to a notebook:**
+1. Have a conversation with the AI about your book
+2. Tap the **NB** button in the chat viewer toolbar
+3. The response (with context) is appended to the book's notebook
+
+**What gets saved** (Settings → Notebooks → Content Format):
+- **Response only**: Just the AI response
+- **Q&A**: Highlighted text + your question + AI response
+- **Full Q&A** (recommended): All context messages + highlighted text + question + response
+
+Each entry includes timestamp, page number, progress percentage, and chapter title.
+
+**Browsing notebooks:**
+- **Settings → Notebooks → Browse Notebooks**: Shows all books with notebooks, sorted by last modified
+- Tap any entry for options: View, Edit, Delete
+
+**Accessing a book's notebook:**
+- **Long-press book in file browser** → "Notebook (KOA)" button (if notebook exists)
+- **Gestures**: "View Notebook" (reader mode) or "Browse Notebooks" (file manager mode)
+- **View mode** (tap): Opens in KOReader reader for markdown rendering
+- **Edit mode** (hold): Opens in TextEditor for manual editing
+
+**Key features:**
+- ✅ **Travels with books**: Notebooks automatically move when you reorganize files
+- ✅ **Cumulative**: New entries append to existing content
+- ✅ **Portable markdown**: Edit or view `.sdr/koassistant_notebook.md` with any text editor
+- ✅ **Separate from chats**: Notebooks are curated excerpts; full chats remain in Chat History
+
+**Notebook vs Chat History:**
+| Feature | Notebooks | Chat History |
+|---------|-----------|--------------|
+| Purpose | Curated insights | Full conversation logs |
+| Storage | One file per book | Multiple chats per book |
+| Content | Selected responses | Complete back-and-forth |
+| Editing | Manual editing allowed | Immutable after save |
+| Format | Append-only markdown | Structured Lua data |
+
 ### Chat Storage & File Moves
 
 **Storage System (v2)**: Chats are organized into three storage locations:
@@ -1142,6 +1183,15 @@ When "Ask every time" is selected, a picker dialog appears letting you choose wh
 - **Save book chats alongside books**: When enabled, book chats go to `[book_folder]/chats/` subfolder (default: OFF)
 - **Set Custom Folder**: Set the custom directory path (appears when Custom folder is selected)
 - **Show Export in Chat Viewer**: Add Export button to the chat viewer toolbar (default: off)
+
+### Notebook Settings
+- **Browse Notebooks...**: Open the Notebook Manager to view all notebooks
+- **Content Format**: What to include when saving to notebook
+  - **Response only**: Just the AI response
+  - **Q&A**: Highlighted text + question + response
+  - **Full Q&A** (recommended, default): All context messages + highlighted text + question + response
+- **Show in file browser menu**: Show "Notebook (KOA)" button when long-pressing books (default: on)
+- **Only for books with notebooks**: Only show button if notebook already exists (default: on). Disable to allow creating notebooks from file browser.
 
 **Filename format**: Files are named `[book_title]_[chat_title]_[timestamp].md` (or `.txt`). Book title is truncated to 30 characters, chat title to 25 characters. Timestamp uses the chat's creation time for saved chats, or export time for unsaved chats from the viewer.
 
