@@ -43,15 +43,22 @@ Also check out the popular [Assistant Plugin](https://github.com/omer-faruq/assi
   - [Highlight Menu Actions](#highlight-menu-actions)
 - [Dictionary Integration](#dictionary-integration)
 - [Bypass Modes](#bypass-modes)
+  - [Dictionary Bypass](#dictionary-bypass)
+  - [Highlight Bypass](#highlight-bypass)
   - [Translate View](#translate-view)
+  - [Custom Action Gestures](#custom-action-gestures)
+  - [Available Gesture Actions](#available-gesture-actions)
+  - [Translate Current Page](#translate-current-page)
 - [Behaviors](#behaviors)
   - [Built-in Behaviors](#built-in-behaviors)
   - [Sample Behaviors](#sample-behaviors)
   - [Custom Behaviors](#custom-behaviors)
 - [Managing Conversations](#managing-conversations)
+  - [Auto-Save](#auto-save)
   - [Chat History](#chat-history)
   - [Export & Save to File](#export--save-to-file)
   - [Notebooks (Per-Book Notes)](#notebooks-per-book-notes)
+  - [Chat Storage & File Moves](#chat-storage--file-moves)
   - [Tags](#tags)
 - [Domains](#domains)
   - [Creating Domains](#creating-domains)
@@ -60,6 +67,7 @@ Also check out the popular [Assistant Plugin](https://github.com/omer-faruq/assi
 - [Advanced Configuration](#advanced-configuration)
 - [Backup & Restore](#backup--restore)
 - [Technical Features](#technical-features)
+  - [Streaming Responses](#streaming-responses)
   - [Reasoning/Thinking](#reasoningthinking)
 - [Supported Providers + Settings](#supported-providers--settings)
   - [Free Tier Providers](#free-tier-providers)
@@ -68,11 +76,16 @@ Also check out the popular [Assistant Plugin](https://github.com/omer-faruq/assi
   - [Setting Default Models](#setting-default-models)
 - [Tips & Advanced Usage](#tips--advanced-usage)
   - [View Modes: Markdown vs Plain Text](#view-modes-markdown-vs-plain-text)
+  - [Reply Draft Saving](#reply-draft-saving)
+  - [Adding Extra Instructions to Actions](#adding-extra-instructions-to-actions)
 - [KOReader Tips](#koreader-tips)
 - [Troubleshooting](#troubleshooting)
-  - [Font Issues (Arabic, CJK, Hebrew)](#font-issues-arabic-cjk-hebrew)
+  - [Font Issues (Arabic)](#font-issues-arabic)
+  - [Settings Reset](#settings-reset)
+  - [Debug Mode](#debug-mode)
 - [Requirements](#requirements)
 - [Contributing](#contributing)
+  - [Community & Feedback](#community--feedback)
 - [Credits](#credits)
 - [AI Assistance](#ai-assistance)
 
@@ -183,8 +196,10 @@ Assign "KOAssistant: AI Quick Settings" to a gesture for one-tap access to a two
 - **Translate & Dictionary** — Translation and dictionary language settings
 - **Highlight Bypass & Dictionary Bypass** — Toggle bypass modes on/off
 - **Chat History & Browse Notebooks** — Quick access to saved chats and notebooks
+- **New General Chat & Manage Actions** — Start a new chat or edit actions
 
-When in reader mode, this panel also shows a "Quick Actions..." link to the Quick Actions menu.
+In reader mode, an additional row appears:
+- **Quick Actions... & More Settings...** — Access the Quick Actions panel or full settings menu
 
 **2. Quick Actions** (reader mode only)
 Assign "KOAssistant: Quick Actions" to a gesture for fast access to reading-related actions:
@@ -333,9 +348,9 @@ KOAssistant works in **4 contexts**, each with its own set of built-in actions:
 
 | Context | Built-in Actions |
 |---------|------------------|
-| **Highlight** | Explain, ELI5, Summarize, Elaborate, Connect, Connect (With Notes), Translate |
+| **Highlight** | Explain, ELI5, Summarize, Elaborate, Connect, Connect (With Notes), Translate, Dictionary, Quick Define, Deep Analysis |
 | **Book** | Book Info, Similar Books, About Author, Historical Context, Related Thinkers, Key Arguments, Discussion Questions, X-Ray, Recap, Analyze Highlights |
-| **Multi-book** | Compare Books, Common Themes, Reading Order |
+| **Multi-book** | Compare Books, Common Themes, Analyze Collection, Quick Summaries, Reading Order |
 | **General** | Ask |
 
 You can customize these, create your own, or disable ones you don't use. See [Actions](#actions) for details.
@@ -360,6 +375,8 @@ You can customize these, create your own, or disable ones you don't use. See [Ac
 | **Connect (With Notes)** | Connect passage to your personal reading journey (your highlights, notes, notebook) |
 | **Translate** | Translate to your configured language |
 | **Dictionary** | Word definition with context (also accessible via word selection, like KOReader native behavior) |
+| **Quick Define** | Brief, concise word definition (dictionary popup) |
+| **Deep Analysis** | Comprehensive linguistic analysis: morphology, word family, cognates, etymology |
 
 **What the AI sees**: Your highlighted text, plus Document metadata (title, author, identifiers from file properties)
 
@@ -1040,15 +1057,21 @@ Behavior defines the AI's personality, communication style, and response guideli
 
 ### Built-in Behaviors
 
-Five built-in behaviors are always available (based on [Anthropic Claude guidelines](https://docs.anthropic.com/en/release-notes/system-prompts)):
+Eight built-in behaviors are always available (the main 5 are based on [Anthropic Claude guidelines](https://docs.anthropic.com/en/release-notes/system-prompts)):
 
+**Primary behaviors (user-selectable):**
 - **Mini** (~220 tokens): Concise guidance for e-reader conversations
 - **Standard (default)** (~420 tokens): Balanced guidance for quality responses
 - **Full** (~1150 tokens): Comprehensive guidance for best quality responses
 - **Research Standard** (~470 tokens): Research-focused with source transparency (based on Perplexity)
 - **Translator Direct** (~80 tokens): Direct translation without commentary (used by Translate action)
 
-Note: Built in behaviors are subject to change as the plugin matures -- info may be out of date.
+**Specialized behaviors (used by specific actions, also selectable):**
+- **Dictionary Direct** (~30 tokens): Minimal guidance for dictionary lookups (used by Dictionary action)
+- **Dictionary Detailed** (~30 tokens): Guidance for detailed linguistic analysis (used by Deep Analysis action)
+- **Reader Assistant** (~350 tokens): Reading companion persona (used by Connect with Notes action)
+
+Note: Built-in behaviors are subject to change as the plugin matures — info may be out of date.
 
 ### Sample Behaviors
 
@@ -1139,7 +1162,12 @@ When you tap Export on a chat, you can choose:
 **Content options** (Settings → Chat Settings → History Export):
 - **Ask every time** (default): Shows a picker dialog to choose what to include
 - **Follow Copy Content**: Uses the global Copy Content setting
-- **Full / Q+A / Response / Everything**: Fixed export format
+- Fixed formats (5 types):
+  - **Response only**: Just the AI response
+  - **Q+A**: Highlighted text + question + AI response (minimal context)
+  - **Full Q+A**: All context messages + Q+A (no book metadata header)
+  - **Full**: Book metadata header + Q+A (no context messages)
+  - **Everything**: Book metadata + all context messages + all messages (debug)
 
 **Directory options** for Save to File (Settings → Chat Settings → Save to File):
 - **KOAssistant exports folder** (default): Central `koassistant_exports/` in KOReader data directory
@@ -1175,7 +1203,7 @@ You can include notebook content in your custom actions using the `{notebook}` p
 **What gets saved** (Settings → Notebooks → Content Format):
 - **Response only**: Just the AI response
 - **Q&A**: Highlighted text + your question + AI response
-- **Full Q&A** (recommended): All context messages + highlighted text + question + response
+- **Full Q&A** (recommended, default): Same as Q&A for notebooks (notebooks are book-specific, so additional book context is redundant)
 
 Each entry includes timestamp, page number, progress percentage, and chapter title.
 
@@ -1362,6 +1390,8 @@ Chat History → hamburger menu → **View by Domain**
 - **Enable Streaming**: Show responses as they generate in real-time
 - **Auto-scroll Streaming**: Follow new text during streaming (off by default)
 - **Large Stream Dialog**: Use full-screen streaming window
+- **Stream Poll Interval (ms)**: How often to check for new stream data (default: 125ms, range: 25-1000ms). Lower values are snappier but use more battery.
+- **Display Refresh Interval (ms)**: How often to refresh the display during streaming (default: 250ms, range: 100-500ms). Higher values improve performance on slower devices.
 - **Scroll to Last Message (Experimental)**: When resuming or replying to a chat, scroll to show your last question. Off by default (old behavior: top for new chats, bottom for replies)
 
 ### Export Settings (within Chat Settings)
@@ -1469,7 +1499,7 @@ See [Translate View](#translate-view) for details on the specialized translation
 
 When "Ask every time" is selected (or inherited from global), a picker dialog appears letting you choose what to include.
 - **Original Text**: How to handle original text visibility (Follow Global, Always Hide, Hide Long, Never Hide)
-- **Long Text Threshold**: Character count for "Hide Long" mode (default: 200)
+- **Long Text Threshold**: Character count for "Hide Long" mode (default: 280)
 - **Hide for Full Page Translate**: Always hide original when translating full page (default: on)
 
 ### Highlight Settings
@@ -1530,6 +1560,7 @@ Control where KOAssistant appears in KOReader's menus. All toggles default to ON
   - **Anthropic Extended Thinking**: Budget 1024-32000 tokens
   - **OpenAI Reasoning**: Effort level (low/medium/high)
   - **Gemini Thinking**: Level (low/medium/high)
+  - **Show Reasoning Indicator**: Display "*[Reasoning was used]*" in chat when reasoning is active (default: on)
 - **Settings Management**: Backup and restore functionality (see [Backup & Restore](#backup--restore))
   - **Create Backup**: Save settings, API keys, custom content, and chat history
   - **Restore from Backup**: Restore from a previous backup
@@ -1998,7 +2029,7 @@ KOAssistant offers two view modes for displaying AI responses:
 
 **Plain Text View**
 - Uses KOReader's native text rendering with proper font fallback
-- **Recommended for Arabic, Chinese, Japanese, Korean, Hebrew** and other non-Latin scripts
+- **Recommended for Arabic** and some other non-Latin scripts
 - Markdown is intelligently stripped to preserve readability:
   - Headers → hierarchical symbols (`▉ **H1**`, `◤ **H2**`, `◆ **H3**`)
   - **Bold** → renders as actual bold (via PTF)
@@ -2062,9 +2093,9 @@ Dictionary lookups and popup actions use compact view by default (minimal UI). T
 
 ## Troubleshooting
 
-### Font Issues (Arabic, CJK, Hebrew)
+### Font Issues (Arabic)
 
-If text doesn't render correctly in Markdown view (especially Arabic, Chinese, Japanese, Korean, or Hebrew), switch to **Plain Text view**:
+If text doesn't render correctly in Markdown view (especially), switch to **Plain Text view**:
 
 - **On the fly**: Tap the **MD/Text** button in the chat viewer to toggle
 - **Permanently**: Settings → Display Settings → View Mode → Plain Text
@@ -2146,6 +2177,21 @@ Contributions welcome! You can:
 - Share feature ideas
 - Improve documentation
 - [Translate the plugin UI](#contributing-translations) via Weblate
+
+### Community & Feedback
+
+**Discussions** are great for:
+- Suggesting prompt improvements or sharing better results
+- Reporting findings from custom setups
+- Ideas for gestures, quick settings panels, or workflows
+- General questions and tips
+
+**Issues** are better for:
+- Bug reports with reproducible steps
+- Specific feature requests with clear use cases
+- Problems that need fixing
+
+[GitHub Discussions](https://github.com/zeeyado/koassistant.koplugin/discussions) | [GitHub Issues](https://github.com/zeeyado/koassistant.koplugin/issues)
 
 ### For Developers
 
