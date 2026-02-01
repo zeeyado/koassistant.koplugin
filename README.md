@@ -1236,6 +1236,12 @@ Chat History → hamburger menu → **View by Domain**
 - **Chat about Book**: Start a conversation about the current book (only visible when reading)
 - **New General Chat**: Start a context-free conversation
 - **Chat History**: Browse saved conversations
+- **Browse Notebooks**: Open the Notebook Manager to view all notebooks
+
+### Reading Features (visible when document is open)
+- **X-Ray**: Generate a structured reference guide for the book up to your current reading position
+- **Recap**: Get a "Previously on..." style summary to help you resume reading
+- **Analyze Highlights**: Discover patterns and connections in your highlights and annotations
 
 ### Provider & Model
 - **Provider**: Select AI provider (16 built-in + custom providers)
@@ -1386,10 +1392,10 @@ See [Bypass Modes](#bypass-modes) and [Highlight Menu Actions](#highlight-menu-a
 - **Bypass Action**: Which action to trigger when bypass is enabled (default: Translate)
 - **Highlight Menu Actions**: View and reorder actions in the highlight popup menu
 
-### Reading Features (visible when document is open)
-- **X-Ray**: Generate a structured reference guide for the book up to your current reading position
-- **Recap**: Get a "Previously on..." style summary to help you resume reading
-- **Analyze Highlights**: Discover patterns and connections in your highlights and annotations
+### Actions & Prompts
+- **Manage Actions**: See [Actions](#actions) section for full details
+- **Manage Behaviors**: Select or create AI behavior styles (see [Behaviors](#behaviors))
+- **Manage Domains**: Create and manage knowledge domains (see [Domains](#domains))
 
 ### Notebooks
 - **Browse Notebooks...**: Open the Notebook Manager to view all notebooks
@@ -1414,11 +1420,6 @@ See [Privacy & Data](#privacy--data) for background on what gets sent to AI prov
   - **Allow Reading Progress**: Send current reading position percentage
   - **Allow Reading Statistics**: Send chapter info and time since last read
 - Book text extraction settings are in Advanced → Book Text Extraction
-
-### Actions & Prompts
-- **Manage Actions**: See [Actions](#actions) section for full details
-- **Manage Behaviors**: Select or create AI behavior styles (see [Behaviors](#behaviors))
-- **Manage Domains**: Create and manage knowledge domains (see [Domains](#domains))
 
 ### Advanced
 - **Temperature**: Response creativity (0.0-2.0, Anthropic max 1.0)
