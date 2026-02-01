@@ -1329,7 +1329,7 @@ function PromptsManager:showStep2_Behavior(state)
 
     -- Build behavior options dynamically from built-in behaviors
     local behavior_options = {
-        { id = "global", text = _("Use global setting"), desc = _("Inherits from Settings → Advanced → AI Behavior Style") },
+        { id = "global", text = _("Use global setting"), desc = _("Inherits from Actions & Prompts → Manage Behaviors") },
     }
 
     -- Add all built-in behaviors

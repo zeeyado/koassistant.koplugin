@@ -500,7 +500,7 @@ When you select an action and start a chat, you can optionally add your own inpu
 
 ### Managing Actions
 
-**Tools → KOAssistant → Manage Actions**
+**Settings → Actions & Prompts → Manage Actions**
 
 - Toggle built-in and custom actions on/off
 - Create new actions with the wizard
