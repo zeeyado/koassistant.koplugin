@@ -1563,7 +1563,7 @@ Control where KOAssistant appears in KOReader's menus. All toggles default to ON
   - **Allow Book Text Extraction**: Enable/disable book text extraction globally (off by default)
   - **Max Text Characters**: Maximum characters to extract (10,000-500,000, default 100,000)
   - **Max PDF Pages**: Maximum PDF pages to process (50-500, default 250)
-  - **Clear Action Cache**: Clear cached X-Ray/Recap responses for the current book (requires a book to be open). Use this to regenerate from scratch instead of updating from cache.
+  - **Clear Action Cache**: Clear ALL cached responses (X-Ray and Recap) for the current book (requires a book to be open). To clear just one action, use the "↻ Fresh" button in the chat viewer instead.
   - **Extraction Guidelines**: Character counts vary by formatting, but roughly: ~100 pages ≈ 25,000-40,000 characters. The default (100k chars, ~25k tokens) covers approximately 250-400 pages of typical prose.
   - **Response Caching**: When enabled, X-Ray and Recap cache their responses. Running them again sends only new content since the last run, making updates faster and cheaper. See [Response Caching](#response-caching-x-rayrecap) for details.
   - **Cost Considerations**: At 100k characters (~25k tokens), expect ~$0.08 per fresh request with Claude Sonnet, ~$0.02 with Haiku. Cached updates are much cheaper (only new content sent). Consider using faster/cheaper models (Haiku, Gemini Flash) for X-Ray and Recap.
@@ -1884,8 +1884,9 @@ When book text extraction is enabled, X-Ray and Recap responses are automaticall
 - One entry per action (xray, recap)
 
 **Clearing the cache:**
-- Settings → Advanced → Book Text Extraction → Clear Action Cache
-- Forces fresh generation on next run (useful if analysis got off track)
+- **Per-action**: In the chat viewer, tap "↻ Fresh" button (appears only for cached responses) → clears that action's cache for this book, then re-run the action manually
+- **All actions for book**: Settings → Advanced → Book Text Extraction → Clear Action Cache (requires book to be open)
+- Either option forces fresh generation on next run (useful if analysis got off track)
 
 **Limitations:**
 - Only built-in X-Ray and Recap support caching currently

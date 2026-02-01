@@ -905,6 +905,24 @@ function ChatGPTViewer:init()
     })
   end
 
+  -- Conditionally add Regenerate Fresh button when response was from cache
+  local history = self._message_history or self.original_history
+  if history and history.used_cache and history.cache_action_id then
+    table.insert(first_row, {
+      text = _("↻ Fresh"),
+      id = "regenerate_fresh",
+      callback = function()
+        self:showRegenerateFreshDialog()
+      end,
+      hold_callback = function()
+        UIManager:show(Notification:new{
+          text = _("Clear cache and regenerate from scratch (extracts all book text again)"),
+          timeout = 3,
+        })
+      end,
+    })
+  end
+
   local default_buttons = {
     first_row,
     -- Second row: Controls and toggles
@@ -2447,6 +2465,77 @@ function ChatGPTViewer:saveToNotebook()
       timeout = 3,
     })
   end
+end
+
+function ChatGPTViewer:showRegenerateFreshDialog()
+  -- Show confirmation dialog for clearing cache and regenerating from scratch
+  local history = self._message_history or self.original_history
+  if not history or not history.cache_action_id then
+    UIManager:show(Notification:new{
+      text = _("No cached action to clear"),
+      timeout = 2,
+    })
+    return
+  end
+
+  local document_path = self.configuration and self.configuration.document_path
+  if not document_path or document_path == "__GENERAL_CHATS__" or document_path == "__MULTI_BOOK_CHATS__" then
+    UIManager:show(Notification:new{
+      text = _("Cache only applies to book actions"),
+      timeout = 2,
+    })
+    return
+  end
+
+  local action_id = history.cache_action_id
+  local cached_progress = history.cached_progress or "?"
+
+  local ButtonDialog = require("ui/widget/buttondialog")
+  local dialog
+  dialog = ButtonDialog:new{
+    title = _("Regenerate Fresh"),
+    text = T(_("This response was updated from a cached analysis at %1.\n\nClearing the cache will extract and send all book text again on next run, which uses more tokens.\n\nClear cache for this action?"), cached_progress),
+    buttons = {
+      {
+        {
+          text = _("Cancel"),
+          callback = function()
+            UIManager:close(dialog)
+          end,
+        },
+        {
+          text = _("Clear & Close"),
+          callback = function()
+            UIManager:close(dialog)
+            -- Clear the cache for this action
+            local ok, ActionCache = pcall(require, "koassistant_action_cache")
+            if ok and ActionCache then
+              local success = ActionCache.clear(document_path, action_id)
+              if success then
+                UIManager:show(Notification:new{
+                  text = _("Cache cleared. Run the action again for fresh analysis."),
+                  timeout = 3,
+                })
+                -- Close the viewer
+                self:onClose()
+              else
+                UIManager:show(Notification:new{
+                  text = _("Failed to clear cache"),
+                  timeout = 2,
+                })
+              end
+            else
+              UIManager:show(Notification:new{
+                text = _("Cache module not available"),
+                timeout = 2,
+              })
+            end
+          end,
+        },
+      },
+    },
+  }
+  UIManager:show(dialog)
 end
 
 function ChatGPTViewer:showExportDialog()

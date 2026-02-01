@@ -119,9 +119,11 @@ function DebugUtils.print(label, data, config)
     -- Add visual separation for large outputs (tables with > 500 chars)
     if is_table and #text > 500 then
         print("")
-        print("=== " .. label .. " ===")
+        print("--------------------------------------------------------------------------------")
+        print("-- " .. label)
+        print("--------------------------------------------------------------------------------")
         print(text)
-        print("===========================================")
+        print("--------------------------------------------------------------------------------")
         print("")
     else
         print(label, text)
