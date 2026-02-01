@@ -1561,12 +1561,13 @@ Control where KOAssistant appears in KOReader's menus. All toggles default to ON
 - **Temperature**: Response creativity (0.0-2.0, Anthropic max 1.0)
 - **Book Text Extraction**: Settings for extracting book content for AI analysis. **Required for X-Ray/Recap to use actual book content** (otherwise they rely on AI's training knowledge of the book).
   - **Allow Book Text Extraction**: Enable/disable book text extraction globally (off by default)
-  - **Max Text Characters**: Maximum characters to extract (10,000-500,000, default 100,000)
+  - **Max Text Characters**: Maximum characters to extract (10,000-1,000,000, default 250,000)
   - **Max PDF Pages**: Maximum PDF pages to process (50-500, default 250)
   - **Clear Action Cache**: Clear ALL cached responses (X-Ray and Recap) for the current book (requires a book to be open). To clear just one action, use the "↻ Fresh" button in the chat viewer instead.
-  - **Extraction Guidelines**: Character counts vary by formatting, but roughly: ~100 pages ≈ 25,000-40,000 characters. The default (100k chars, ~25k tokens) covers approximately 250-400 pages of typical prose.
+  - **Extraction Guidelines**: Character counts vary by formatting, but roughly: ~100 pages ≈ 25,000-40,000 characters. The default (250k chars, ~60k tokens) covers approximately 600-1000 pages of typical prose.
+  - **Truncation Notice**: If extraction hits the character limit, both you and the AI see a notice showing the approximate coverage range (e.g., "covers 14%-15%"). Increase the limit in Settings if you need more context.
   - **Response Caching**: When enabled, X-Ray and Recap cache their responses. Running them again sends only new content since the last run, making updates faster and cheaper. See [Response Caching](#response-caching-x-rayrecap) for details.
-  - **Cost Considerations**: At 100k characters (~25k tokens), expect ~$0.08 per fresh request with Claude Sonnet, ~$0.02 with Haiku. Cached updates are much cheaper (only new content sent). Consider using faster/cheaper models (Haiku, Gemini Flash) for X-Ray and Recap.
+  - **Cost Considerations**: At 250k characters (~60k tokens), expect ~$0.20 per fresh request with Claude Sonnet, ~$0.05 with Haiku. Cached updates are much cheaper (only new content sent). Consider using faster/cheaper models (Haiku, Gemini Flash) for X-Ray and Recap.
 - **Reasoning/Thinking**: Per-provider reasoning settings:
   - **Anthropic Extended Thinking**: Budget 1024-32000 tokens
   - **OpenAI Reasoning**: Effort level (low/medium/high)
@@ -1895,8 +1896,9 @@ When book text extraction is enabled, X-Ray and Recap responses are automaticall
 
 **Text extraction guidelines:**
 - ~100 pages ≈ 25,000-40,000 characters (varies by formatting)
-- Default setting (100,000 chars) covers ~250-400 pages
-- For longer books, consider running X-Ray/Recap periodically to keep cache current
+- Default setting (250,000 chars) covers ~600-1000 pages
+- For very long books, consider running X-Ray/Recap periodically to keep cache current
+- If truncation occurs, a notice shows the coverage range (e.g., "covers 14%-15%")
 
 ### Reasoning/Thinking
 

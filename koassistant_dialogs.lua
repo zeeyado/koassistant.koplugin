@@ -1928,7 +1928,7 @@ local function handlePredefinedPrompt(prompt_type_or_action, highlightedText, ui
             local extractor = ContextExtractor:new(ui, {
                 -- Extraction limits
                 enable_book_text_extraction = config.features and config.features.enable_book_text_extraction,
-                max_book_text_chars = prompt and prompt.max_book_text_chars or (config.features and config.features.max_book_text_chars) or 100000,
+                max_book_text_chars = prompt and prompt.max_book_text_chars or (config.features and config.features.max_book_text_chars) or 250000,
                 max_pdf_pages = config.features and config.features.max_pdf_pages or 250,
                 -- Privacy settings
                 provider = config.features and config.features.provider,
@@ -1950,6 +1950,17 @@ local function handlePredefinedPrompt(prompt_type_or_action, highlightedText, ui
                     logger.info("KOAssistant: Extracted data key=", key, "value_len=", type(value) == "string" and #value or "non-string")
                 end
                 logger.info("KOAssistant: Context extraction complete")
+
+                -- Show notification if book text was truncated (centered InfoMessage)
+                if extracted.book_text_truncated then
+                    local coverage_start = extracted.book_text_coverage_start or 0
+                    local coverage_end = extracted.book_text_coverage_end or 0
+                    UIManager:show(InfoMessage:new{
+                        text = T(_("Book text truncated (covers %1 %–%2 %). Increase limit in Settings."),
+                                 coverage_start, coverage_end),
+                        timeout = 4,
+                    })
+                end
             end
         else
             logger.warn("KOAssistant: Failed to load context extractor:", ContextExtractor)
@@ -2039,12 +2050,23 @@ local function handlePredefinedPrompt(prompt_type_or_action, highlightedText, ui
                 if extraction_success and ContextExtractor then
                     local extractor = ContextExtractor:new(ui, {
                         enable_book_text_extraction = config.features.enable_book_text_extraction,
-                        max_book_text_chars = prompt.max_book_text_chars or config.features.max_book_text_chars or 100000,
+                        max_book_text_chars = prompt.max_book_text_chars or config.features.max_book_text_chars or 250000,
                         max_pdf_pages = config.features.max_pdf_pages or 250,
                     })
                     local range_result = extractor:getBookTextRange(cached_progress, current_progress)
                     message_data.incremental_book_text = range_result.text
                     logger.info("KOAssistant: Extracted incremental book text:", range_result.char_count, "chars")
+
+                    -- Show notification if incremental text was truncated (centered InfoMessage)
+                    if range_result.truncated then
+                        local coverage_start = range_result.coverage_start or 0
+                        local coverage_end = range_result.coverage_end or 0
+                        UIManager:show(InfoMessage:new{
+                            text = T(_("New content truncated (covers %1 %–%2 %). Increase limit in Settings."),
+                                     coverage_start, coverage_end),
+                            timeout = 4,
+                        })
+                    end
                 end
             end
         end
