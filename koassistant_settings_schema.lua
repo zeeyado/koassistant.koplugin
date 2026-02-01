@@ -393,6 +393,104 @@ local SettingsSchema = {
             },
         },
 
+        -- Privacy & Data submenu
+        {
+            id = "privacy_data",
+            type = "submenu",
+            text = _("Privacy & Data"),
+            items = {
+                -- Trusted Providers
+                {
+                    id = "trusted_providers",
+                    type = "action",
+                    text_func = function(plugin)
+                        local f = plugin.settings:readSetting("features") or {}
+                        local trusted = f.trusted_providers or {}
+                        if #trusted == 0 then
+                            return _("Trusted Providers: None")
+                        else
+                            return T(_("Trusted Providers: %1"), table.concat(trusted, ", "))
+                        end
+                    end,
+                    help_text = _("Providers you trust bypass the data sharing controls below. Use for local Ollama instances or providers you fully trust."),
+                    callback = "showTrustedProvidersDialog",
+                    separator = true,
+                },
+                -- Quick Presets
+                {
+                    id = "privacy_preset_minimal",
+                    type = "action",
+                    text = _("Preset: Minimal Data"),
+                    help_text = _("Disable all extended data sharing (highlights, annotations, notebook, progress, stats). Only your question and book metadata are sent."),
+                    callback = "applyPrivacyPresetMinimal",
+                    keep_menu_open = true,
+                },
+                {
+                    id = "privacy_preset_full",
+                    type = "action",
+                    text = _("Preset: Full Features"),
+                    help_text = _("Enable all data sharing for full functionality. Does not enable book text extraction (see Advanced > Book Text Extraction)."),
+                    callback = "applyPrivacyPresetFull",
+                    keep_menu_open = true,
+                    separator = true,
+                },
+                -- Data Sharing Controls header
+                {
+                    id = "data_sharing_header",
+                    type = "header",
+                    text = _("Data Sharing Controls (for non-trusted providers)"),
+                },
+                -- Individual toggles
+                {
+                    id = "enable_highlights_sharing",
+                    type = "toggle",
+                    text = _("Allow Highlights"),
+                    path = "features.enable_highlights_sharing",
+                    default = true,
+                    help_text = _("Send highlighted passages to AI. Used by Analyze Highlights, X-Ray, and actions with {highlights} placeholder."),
+                },
+                {
+                    id = "enable_annotations_sharing",
+                    type = "toggle",
+                    text = _("Allow Annotations"),
+                    path = "features.enable_annotations_sharing",
+                    default = true,
+                    help_text = _("Send your personal notes attached to highlights. Used by Analyze Highlights, Connect with Notes."),
+                },
+                {
+                    id = "enable_notebook_sharing",
+                    type = "toggle",
+                    text = _("Allow Notebook"),
+                    path = "features.enable_notebook_sharing",
+                    default = true,
+                    help_text = _("Send notebook entries to AI. Used by Connect with Notes and actions with {notebook} placeholder."),
+                },
+                {
+                    id = "enable_progress_sharing",
+                    type = "toggle",
+                    text = _("Allow Reading Progress"),
+                    path = "features.enable_progress_sharing",
+                    default = true,
+                    help_text = _("Send current reading position (percentage). Used by X-Ray, Recap."),
+                },
+                {
+                    id = "enable_stats_sharing",
+                    type = "toggle",
+                    text = _("Allow Reading Statistics"),
+                    path = "features.enable_stats_sharing",
+                    default = true,
+                    help_text = _("Send chapter info and time since last read. Used by Recap."),
+                    separator = true,
+                },
+                -- Reference to book text extraction
+                {
+                    id = "book_text_reference",
+                    type = "header",
+                    text = _("Book text extraction: Advanced > Book Text Extraction"),
+                },
+            },
+        },
+
         -- Advanced submenu
         {
             id = "advanced",

@@ -33,6 +33,24 @@ function ContextExtractor:isAvailable()
     return self.ui and self.ui.document ~= nil
 end
 
+--- Check if current provider is trusted (bypasses privacy settings).
+-- @return boolean
+function ContextExtractor:isProviderTrusted()
+    local provider = self.settings.provider
+    local trusted_providers = self.settings.trusted_providers or {}
+
+    if not provider then
+        return false
+    end
+
+    for _idx, trusted_id in ipairs(trusted_providers) do
+        if trusted_id == provider then
+            return true
+        end
+    end
+    return false
+end
+
 --- Get reading progress as percentage.
 -- Always calculates fresh from current position for accuracy.
 -- @return table { percent = 42, formatted = "42%", decimal = 0.42 }
@@ -418,34 +436,59 @@ function ContextExtractor:getReadingStats()
 end
 
 --- Extract all context data for an action.
--- Lightweight data (progress, highlights, annotations, stats) is always extracted.
--- Book text extraction requires the use_book_text flag (because it's slow/expensive).
+-- Data extraction respects privacy settings (enable_*_sharing).
+-- Trusted providers bypass privacy settings entirely.
+-- When a data type is disabled, returns empty string (section placeholders handle gracefully).
+-- Book text extraction also requires the use_book_text flag (because it's slow/expensive).
 -- @param action table with optional use_book_text flag
 -- @return table with all available data
 function ContextExtractor:extractForAction(action)
     action = action or {}
     local data = {}
 
-    -- Always extract reading progress (instant)
-    local progress = self:getReadingProgress()
-    data.reading_progress = progress.formatted
-    data.progress_decimal = tostring(progress.decimal)
+    -- Check if current provider is trusted (bypasses all privacy settings)
+    local provider_trusted = self:isProviderTrusted()
 
-    -- Always extract highlights (fast - reads from memory)
-    local highlights = self:getHighlights()
-    data.highlights = highlights.formatted
+    -- Reading progress - check privacy setting (default: enabled)
+    if provider_trusted or self.settings.enable_progress_sharing ~= false then
+        local progress = self:getReadingProgress()
+        data.reading_progress = progress.formatted
+        data.progress_decimal = tostring(progress.decimal)
+    else
+        data.reading_progress = ""
+        data.progress_decimal = ""
+    end
 
-    -- Always extract annotations (fast - same source as highlights)
-    local annotations = self:getAnnotations()
-    data.annotations = annotations.formatted
+    -- Highlights - check privacy setting (default: enabled)
+    if provider_trusted or self.settings.enable_highlights_sharing ~= false then
+        local highlights = self:getHighlights()
+        data.highlights = highlights.formatted
+    else
+        data.highlights = ""
+    end
 
-    -- Always extract reading stats (fast - TOC lookup + file timestamp)
-    local stats = self:getReadingStats()
-    data.chapter_title = stats.chapter_title
-    data.chapters_read = stats.chapters_read
-    data.time_since_last_read = stats.time_since_last_read
+    -- Annotations - check privacy setting (default: enabled)
+    if provider_trusted or self.settings.enable_annotations_sharing ~= false then
+        local annotations = self:getAnnotations()
+        data.annotations = annotations.formatted
+    else
+        data.annotations = ""
+    end
+
+    -- Reading stats - check privacy setting (default: enabled)
+    if provider_trusted or self.settings.enable_stats_sharing ~= false then
+        local stats = self:getReadingStats()
+        data.chapter_title = stats.chapter_title
+        data.chapters_read = stats.chapters_read
+        data.time_since_last_read = stats.time_since_last_read
+    else
+        data.chapter_title = ""
+        data.chapters_read = ""
+        data.time_since_last_read = ""
+    end
 
     -- Book text extraction requires explicit flag (slow/expensive operation)
+    -- Also gated by enable_book_text_extraction setting (checked in getBookText)
     if action.use_book_text then
         local options = {}
         if action.max_book_text_chars then
