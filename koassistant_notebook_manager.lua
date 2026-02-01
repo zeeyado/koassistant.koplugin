@@ -3,8 +3,7 @@ Notebook Manager for KOAssistant
 
 Browser UI for viewing all notebooks across documents.
 - Shows list of documents with notebooks (sorted by last modified)
-- Tap to view in KOReader reader
-- Hold for options menu (View, Edit, Delete)
+- Tap for options menu (View, Edit, Delete)
 - Auto-cleanup stale index entries
 
 @module koassistant_notebook_manager
@@ -79,19 +78,7 @@ function NotebookManager:showNotebookBrowser()
             mandatory = date_str,
             mandatory_dim = true,
             callback = function()
-                -- Close menu and open notebook in view mode
-                if self_ref.current_menu then
-                    UIManager:close(self_ref.current_menu)
-                    self_ref.current_menu = nil
-                end
-                -- Get AskGPT instance to open notebook
-                local AskGPT = self_ref:getAskGPTInstance()
-                if AskGPT then
-                    AskGPT:openNotebookForFile(captured_doc.path)
-                end
-            end,
-            hold_callback = function()
-                -- Show options menu (View, Edit, Delete)
+                -- Show options menu (View, Edit, Delete) - consistent with Chat History pattern
                 self_ref:showNotebookOptions(captured_doc.path, captured_doc.title)
             end,
         })
@@ -117,7 +104,7 @@ function NotebookManager:showNotebookBrowser()
     UIManager:show(menu)
 end
 
---- Show options menu for a notebook (on hold)
+--- Show options menu for a notebook
 --- @param doc_path string The document file path
 --- @param doc_title string The document title for display
 function NotebookManager:showNotebookOptions(doc_path, doc_title)

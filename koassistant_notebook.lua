@@ -95,8 +95,8 @@ end
 --- Creates a markdown-formatted entry with timestamp, page info, and content based on format setting
 ---
 --- Entry format (qa - default):
----   # [2026-01-31 14:30:00] (Page 42 - 15%) - Chapter Title
----   ## Explain
+---   **[2026-01-31 14:30:00]** • Page 42 (15%) • Chapter Title
+---   **Explain**
 ---
 ---   **Highlighted:**
 ---   > The selected passage that triggered this action
@@ -116,22 +116,23 @@ function Notebook.formatEntry(data, page_info, content_format)
     content_format = content_format or "qa"
     local parts = {}
 
-    -- Header: timestamp + page info (always included)
-    local header = "# [" .. page_info.timestamp .. "]"
+    -- Entry header: compact format with bold text (no large H1/H2 headers)
+    -- Format: **[timestamp]** • Page X (Y%) • Chapter Title
+    local header_parts = { "**[" .. page_info.timestamp .. "]**" }
     if page_info.page then
-        header = header .. " (Page " .. page_info.page
+        local page_str = "Page " .. page_info.page
         if page_info.progress then
-            header = header .. " - " .. page_info.progress .. "%"
+            page_str = page_str .. " (" .. page_info.progress .. "%)"
         end
-        header = header .. ")"
+        table.insert(header_parts, page_str)
     end
     if page_info.chapter then
-        header = header .. " - " .. page_info.chapter
+        table.insert(header_parts, page_info.chapter)
     end
-    table.insert(parts, header)
+    table.insert(parts, table.concat(header_parts, " • "))
 
-    -- Action name as subheader (always included)
-    table.insert(parts, "## " .. (data.action_name or "KOAssistant Chat"))
+    -- Action name as bold label (not header)
+    table.insert(parts, "**" .. (data.action_name or "KOAssistant Chat") .. "**")
     table.insert(parts, "")
 
     -- Context messages (only for full_qa)

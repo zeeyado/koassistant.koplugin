@@ -357,25 +357,21 @@ local SettingsSchema = {
                     type = "action",
                     text = _("Browse Notebooks..."),
                     callback = "showNotebookBrowser",
-                },
-                {
-                    type = "separator",
+                    separator = true,
                 },
                 {
                     id = "notebook_content_format",
                     type = "dropdown",
                     text = _("Content Format"),
                     path = "features.notebook_content_format",
-                    default = "qa",
+                    default = "full_qa",
                     options = {
                         { value = "response", label = _("Response only") },
-                        { value = "qa", label = _("Q&A (recommended)") },
-                        { value = "full_qa", label = _("Full Q&A (with context)") },
+                        { value = "qa", label = _("Q&A") },
+                        { value = "full_qa", label = _("Full Q&A (recommended)") },
                     },
-                    help_text = _("What to include when saving to notebook.\nQ&A includes highlighted text + question + response."),
-                },
-                {
-                    type = "separator",
+                    help_text = _("What to include when saving to notebook.\nFull Q&A includes all context messages + highlighted text + question + response."),
+                    separator = true,
                 },
                 {
                     id = "show_notebook_in_file_browser",

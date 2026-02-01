@@ -264,8 +264,8 @@ function AskGPT:generateFileDialogButtons(file, is_file, book_props)
     local title = book_props and book_props.title or file:match("([^/]+)$")
     local authors = book_props and book_props.authors or ""
 
-    -- Get features for settings
-    local features = self.CONFIG and self.CONFIG.features or {}
+    -- Get features for settings (read fresh from settings, not stale CONFIG)
+    local features = self.settings:readSetting("features") or {}
 
     -- Check notebook and chat status
     local Notebook = require("koassistant_notebook")
@@ -995,8 +995,7 @@ function AskGPT:onDispatcherRegisterActions()
     category = "none",
     event = "KOAssistantBrowseNotebooks",
     title = _("KOAssistant: Browse Notebooks"),
-    general = true,
-    reader = true,
+    general = true,  -- Only general (no reader flag) so it's not grayed out in file browser
   })
 
   -- Register user-configured action gestures
