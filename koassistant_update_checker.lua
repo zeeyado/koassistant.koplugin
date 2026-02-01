@@ -265,9 +265,9 @@ local function compareVersions(v1, v2)
     return 0
 end
 
--- Timeout for update checks (seconds)
--- Short timeout for background checks to avoid blocking the user
-local UPDATE_CHECK_TIMEOUT = 5
+-- Timeouts for update checks (seconds)
+local AUTO_CHECK_TIMEOUT = 1.4  -- Short timeout for background checks (+ 0.1s delay = 1.5s total)
+local MANUAL_CHECK_TIMEOUT = 10 -- Longer timeout for user-initiated checks
 
 function UpdateChecker.checkForUpdates(silent, include_prereleases)
     -- Default to including prereleases since we're in alpha/beta
@@ -276,8 +276,9 @@ function UpdateChecker.checkForUpdates(silent, include_prereleases)
     end
 
     -- Set timeout for HTTP request (LuaSocket defaults to 60s which is too long)
+    -- Use shorter timeout for silent/auto checks, longer for manual checks
     local old_timeout = http.TIMEOUT
-    http.TIMEOUT = UPDATE_CHECK_TIMEOUT
+    http.TIMEOUT = silent and AUTO_CHECK_TIMEOUT or MANUAL_CHECK_TIMEOUT
 
     local response_body = {}
     -- Fetch all releases (not just latest) to include prereleases
