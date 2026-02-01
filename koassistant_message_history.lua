@@ -1,4 +1,5 @@
 local ModelConstraints = require("model_constraints")
+local DebugUtils = require("koassistant_debug_utils")
 
 local MessageHistory = {}
 
@@ -8,6 +9,18 @@ MessageHistory.ROLES = {
     USER = "user",
     ASSISTANT = "assistant"
 }
+
+-- Debug truncation settings for chat view (smaller than terminal for readability)
+local DEBUG_MAX_CONTENT = 5000  -- Total chars to show in debug
+local DEBUG_EDGE_SIZE = 2000   -- Chars to show from each end
+
+--- Truncate long text for debug display
+--- Uses shared DebugUtils for consistent truncation format across all contexts
+--- @param text string The text to truncate
+--- @return string Truncated text with notice, or original if short enough
+local function truncateForDebug(text)
+    return DebugUtils.truncate(text, DEBUG_MAX_CONTENT, DEBUG_EDGE_SIZE)
+end
 
 function MessageHistory:new(system_prompt, prompt_action)
     local history = {
@@ -232,6 +245,12 @@ end
 
 function MessageHistory:createResultText(highlightedText, config)
     local result = {}
+
+    -- Show cache notice if this response was generated from cached data
+    -- This must be first so it appears at the top and persists through debug toggle
+    if self.used_cache and self.cached_progress then
+        table.insert(result, string.format("*Updated from %s cache*\n\n---\n\n", self.cached_progress))
+    end
 
     -- Show launch context header if this is a general chat launched from a book
     if self.launch_context and self.launch_context.title then
@@ -461,7 +480,7 @@ function MessageHistory:createResultText(highlightedText, config)
             else
                 prefix = "● "  -- For system messages
             end
-            table.insert(result, prefix .. role_text .. context_tag .. ": " .. msg.content .. "\n\n")
+            table.insert(result, prefix .. role_text .. context_tag .. ": " .. truncateForDebug(msg.content) .. "\n\n")
         end
         table.insert(result, "------------------\n\n")
     end

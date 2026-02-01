@@ -1090,6 +1090,8 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
         temp_config.document_path = document_path
     end
 
+    -- Cache notice is now handled in MessageHistory:createResultText() so it persists through debug toggle
+
     chatgpt_viewer = ChatGPTViewer:new {
         title = title .. " (" .. model_info .. ")",
         text = display_text,
@@ -1926,7 +1928,7 @@ local function handlePredefinedPrompt(prompt_type_or_action, highlightedText, ui
             local extractor = ContextExtractor:new(ui, {
                 -- Extraction limits
                 enable_book_text_extraction = config.features and config.features.enable_book_text_extraction,
-                max_book_text_chars = prompt and prompt.max_book_text_chars or (config.features and config.features.max_book_text_chars) or 50000,
+                max_book_text_chars = prompt and prompt.max_book_text_chars or (config.features and config.features.max_book_text_chars) or 100000,
                 max_pdf_pages = config.features and config.features.max_pdf_pages or 250,
                 -- Privacy settings
                 provider = config.features and config.features.provider,
@@ -1997,6 +1999,57 @@ local function handlePredefinedPrompt(prompt_type_or_action, highlightedText, ui
         end
     end
 
+    -- Response caching: check for cached response and switch to update prompt if applicable
+    -- Only cache when: action supports it, uses book text, and book text extraction is enabled
+    local using_cache = false
+    local cached_progress_display = nil
+    local cache_enabled = prompt and prompt.use_response_caching
+        and prompt.use_book_text
+        and config.features and config.features.enable_book_text_extraction
+        and ui and ui.document
+
+    if cache_enabled then
+        local ActionCache = require("koassistant_action_cache")
+        local cached_entry = ActionCache.get(ui.document.file, prompt.id)
+
+        if cached_entry and message_data.progress_decimal then
+            local current_progress = tonumber(message_data.progress_decimal) or 0
+            local cached_progress = cached_entry.progress_decimal or 0
+
+            -- Use cache if we've progressed by at least 1% since last time
+            if current_progress > cached_progress + 0.01 then
+                using_cache = true
+                cached_progress_display = math.floor(cached_progress * 100) .. "%"
+                logger.info("KOAssistant: Using cached response from", cached_progress_display, "for", prompt.id)
+
+                -- Switch to update prompt (create a shallow copy to avoid modifying original)
+                local original_prompt = prompt
+                prompt = {}
+                for k, v in pairs(original_prompt) do
+                    prompt[k] = v
+                end
+                prompt.prompt = original_prompt.update_prompt
+
+                -- Add cache data for placeholder substitution
+                message_data.cached_result = cached_entry.result
+                message_data.cached_progress = cached_progress_display
+
+                -- Get incremental book text (from cached to current position)
+                local extraction_success, ContextExtractor = pcall(require, "koassistant_context_extractor")
+                if extraction_success and ContextExtractor then
+                    local extractor = ContextExtractor:new(ui, {
+                        enable_book_text_extraction = config.features.enable_book_text_extraction,
+                        max_book_text_chars = prompt.max_book_text_chars or config.features.max_book_text_chars or 100000,
+                        max_pdf_pages = config.features.max_pdf_pages or 250,
+                    })
+                    local range_result = extractor:getBookTextRange(cached_progress, current_progress)
+                    message_data.incremental_book_text = range_result.text
+                    logger.info("KOAssistant: Extracted incremental book text:", range_result.char_count, "chars")
+                end
+            end
+        end
+    end
+
     -- Build and add the consolidated message
     -- System prompt and domain are now in config.system (unified approach)
     local consolidated_message = buildConsolidatedMessage(prompt, context, message_data, nil, nil, true)
@@ -2015,6 +2068,9 @@ local function handlePredefinedPrompt(prompt_type_or_action, highlightedText, ui
     local action = prompt._action or prompt  -- Use underlying action if available
     buildUnifiedRequestConfig(temp_config, domain_context, action, plugin)
 
+    -- Capture the original action ID before any prompt modifications (for cache save)
+    local original_action_id = prompt and prompt.id
+
     -- Get response from AI with callback for async streaming
     local function handleResponse(success, answer, err, reasoning)
         if success and answer and answer ~= "" then
@@ -2023,6 +2079,36 @@ local function handlePredefinedPrompt(prompt_type_or_action, highlightedText, ui
                 history:addUserMessage(additional_input, false)
             end
             history:addAssistantMessage(answer, ConfigHelper:getModelInfo(temp_config), reasoning, ConfigHelper:buildDebugInfo(temp_config))
+
+            -- Save to response cache if enabled
+            -- Cache when: action supports it, uses book text, extraction enabled, we have progress
+            -- Skip caching if response was truncated (contains truncation notice)
+            local ResponseParser = require("koassistant_api.response_parser")
+            local is_truncated = answer:find(ResponseParser.TRUNCATION_NOTICE, 1, true) ~= nil
+
+            if cache_enabled and original_action_id and message_data.progress_decimal and not is_truncated then
+                local ActionCache = require("koassistant_action_cache")
+                local save_success = ActionCache.set(
+                    ui.document.file,
+                    original_action_id,
+                    answer,
+                    tonumber(message_data.progress_decimal) or 0,
+                    { model = ConfigHelper:getModelInfo(temp_config).model }
+                )
+                if save_success then
+                    logger.info("KOAssistant: Saved response to cache for", original_action_id, "at", message_data.progress_decimal)
+                end
+            elseif is_truncated and cache_enabled then
+                logger.info("KOAssistant: Skipping cache for", original_action_id, "- response was truncated")
+            end
+
+            -- Store cache info in history for viewer to display notice
+            if using_cache then
+                history.used_cache = true
+                history.cached_progress = cached_progress_display
+                history.cache_action_id = original_action_id
+            end
+
             if on_complete then
                 on_complete(history, temp_config)
             end

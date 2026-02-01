@@ -4,6 +4,7 @@ local ltn12 = require("ltn12")
 local json = require("json")
 local Defaults = require("koassistant_api.defaults")
 local ResponseParser = require("koassistant_api.response_parser")
+local DebugUtils = require("koassistant_debug_utils")
 
 local SambaNovaHandler = BaseHandler:new()
 
@@ -109,7 +110,7 @@ function SambaNovaHandler:query(message_history, config)
 
     -- Debug: Print request body
     if config and config.features and config.features.debug then
-        print("SambaNova Request Body:", json.encode(request_body))
+        DebugUtils.print("SambaNova Request Body:", request_body, config)
         print("Streaming enabled:", use_streaming and "yes" or "no")
     end
 
@@ -146,7 +147,7 @@ function SambaNovaHandler:query(message_history, config)
 
     -- Debug: Print raw response
     if config and config.features and config.features.debug then
-        print("SambaNova Raw Response:", table.concat(responseBody))
+        DebugUtils.print("SambaNova Raw Response:", table.concat(responseBody), config)
     end
 
     local success, response = self:handleApiResponse(success, code, responseBody, "SambaNova")
@@ -156,7 +157,7 @@ function SambaNovaHandler:query(message_history, config)
 
     -- Debug: Print parsed response
     if config and config.features and config.features.debug then
-        print("SambaNova Parsed Response:", json.encode(response))
+        DebugUtils.print("SambaNova Parsed Response:", response, config)
     end
 
     local success, result, reasoning = ResponseParser:parseResponse(response, "sambanova")

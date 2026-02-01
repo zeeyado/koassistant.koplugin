@@ -5,6 +5,7 @@ local json = require("json")
 local Defaults = require("koassistant_api.defaults")
 local ResponseParser = require("koassistant_api.response_parser")
 local ModelConstraints = require("model_constraints")
+local DebugUtils = require("koassistant_debug_utils")
 
 local GeminiHandler = BaseHandler:new()
 
@@ -126,7 +127,7 @@ function GeminiHandler:query(message_history, config)
         if adjustments and next(adjustments) then
             ModelConstraints.logAdjustments("Gemini", adjustments)
         end
-        print("Gemini Request Body:", json.encode(request_body))
+        DebugUtils.print("Gemini Request Body:", request_body, config)
         print("Streaming enabled:", use_streaming and "yes" or "no")
         print("Model:", model)
     end
@@ -165,7 +166,7 @@ function GeminiHandler:query(message_history, config)
 
     -- Debug: Print raw response
     if config and config.features and config.features.debug then
-        print("Gemini Raw Response:", table.concat(responseBody))
+        DebugUtils.print("Gemini Raw Response:", table.concat(responseBody), config)
     end
 
     local success, response = self:handleApiResponse(success, code, responseBody, "Gemini")
@@ -175,7 +176,7 @@ function GeminiHandler:query(message_history, config)
 
     -- Debug: Print parsed response
     if config and config.features and config.features.debug then
-        print("Gemini Parsed Response:", json.encode(response))
+        DebugUtils.print("Gemini Parsed Response:", response, config)
     end
 
     local success, result, reasoning = ResponseParser:parseResponse(response, "gemini")

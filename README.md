@@ -68,6 +68,8 @@ Also check out the popular [Assistant Plugin](https://github.com/omer-faruq/assi
 - [Backup & Restore](#backup--restore)
 - [Technical Features](#technical-features)
   - [Streaming Responses](#streaming-responses)
+  - [Prompt Caching (Anthropic)](#prompt-caching-anthropic)
+  - [Response Caching (X-Ray/Recap)](#response-caching-x-rayrecap)
   - [Reasoning/Thinking](#reasoningthinking)
 - [Supported Providers + Settings](#supported-providers--settings)
   - [Free Tier Providers](#free-tier-providers)
@@ -403,7 +405,13 @@ You can customize these, create your own, or disable ones you don't use. See [Ac
 | **Recap** | "Previously on..." style summary to help you resume reading after a break |
 | **Analyze Highlights** | Discover patterns and connections in your highlights and annotations |
 
-**What the AI sees**: Document metadata (title, author). For X-Ray/Recap, optionally: extracted book text up to your reading position (requires enabling in Settings → Advanced → Book Text Extraction). For Analyze Highlights: your annotations.
+**What the AI sees**: Document metadata (title, author). For Analyze Highlights: your annotations.
+
+**X-Ray/Recap**: These actions work in two modes:
+- **Without book text extraction** (default): AI uses only the title/author and relies on its training knowledge of the book. Works for well-known titles; may be inaccurate for obscure works.
+- **With book text extraction** (enable in Settings → Advanced → Book Text Extraction): AI analyzes actual book content up to your reading position. More accurate but costs more tokens. Enables response caching for incremental updates.
+
+> **📦 Response Caching (Experimental)**: When book text extraction is enabled, X-Ray and Recap responses are automatically cached per book. Running them again after reading further sends only the *new* content to update the previous analysis—faster and cheaper. This feature is experimental and feedback is welcome. See [Response Caching](#response-caching-x-rayrecap) for details.
 
 **Reading Mode vs File Browser:**
 
@@ -1551,11 +1559,14 @@ Control where KOAssistant appears in KOReader's menus. All toggles default to ON
 
 ### Advanced
 - **Temperature**: Response creativity (0.0-2.0, Anthropic max 1.0)
-- **Book Text Extraction**: Settings for extracting book content for AI analysis
+- **Book Text Extraction**: Settings for extracting book content for AI analysis. **Required for X-Ray/Recap to use actual book content** (otherwise they rely on AI's training knowledge of the book).
   - **Allow Book Text Extraction**: Enable/disable book text extraction globally (off by default)
-  - **Max Text Characters**: Maximum characters to extract (10,000-500,000, default 50,000)
+  - **Max Text Characters**: Maximum characters to extract (10,000-500,000, default 100,000)
   - **Max PDF Pages**: Maximum PDF pages to process (50-500, default 250)
-  - **Cost Warning**: Book text extraction can significantly increase API costs. At 50k characters (~12.5k tokens), expect ~$0.04 per request with Claude Sonnet, ~$0.01 with Haiku. Higher limits multiply costs accordingly. Consider using faster/cheaper models (Haiku, Gemini Flash) for X-Ray and Recap actions. Suggestions for improving extraction efficiency are welcome—see [Contributing](#contributing).
+  - **Clear Action Cache**: Clear cached X-Ray/Recap responses for the current book (requires a book to be open). Use this to regenerate from scratch instead of updating from cache.
+  - **Extraction Guidelines**: Character counts vary by formatting, but roughly: ~100 pages ≈ 25,000-40,000 characters. The default (100k chars, ~25k tokens) covers approximately 250-400 pages of typical prose.
+  - **Response Caching**: When enabled, X-Ray and Recap cache their responses. Running them again sends only new content since the last run, making updates faster and cheaper. See [Response Caching](#response-caching-x-rayrecap) for details.
+  - **Cost Considerations**: At 100k characters (~25k tokens), expect ~$0.08 per fresh request with Claude Sonnet, ~$0.02 with Haiku. Cached updates are much cheaper (only new content sent). Consider using faster/cheaper models (Haiku, Gemini Flash) for X-Ray and Recap.
 - **Reasoning/Thinking**: Per-provider reasoning settings:
   - **Anthropic Extended Thinking**: Budget 1024-32000 tokens
   - **OpenAI Reasoning**: Effort level (low/medium/high)
@@ -1849,6 +1860,42 @@ Reduces API costs by ~90% for repeated context, especially useful for large doma
 - **Automatically enabled**: No configuration needed
 
 When you have the same domain selected across multiple questions, subsequent queries use cached system instructions.
+
+### Response Caching (X-Ray/Recap)
+
+> **⚠️ Experimental Feature**: This feature is new and being tested. Currently supports only X-Ray and Recap; more actions may be added based on feedback. Please report issues or suggestions via GitHub.
+
+When book text extraction is enabled, X-Ray and Recap responses are automatically cached per book. This enables **incremental updates** as you read:
+
+**How it works:**
+1. Run X-Ray at 30% → Full analysis generated and cached
+2. Continue reading to 50%
+3. Run X-Ray again → Only the new content (30%→50%) is sent, asking the AI to update its previous analysis
+4. Result: Faster responses, lower token costs, continuity of analysis
+
+**Requirements:**
+- Book text extraction must be enabled (Settings → Advanced → Book Text Extraction)
+- You must be reading (not in file browser)
+- Progress must advance by at least 1% to use cache
+
+**Cache storage:**
+- Stored in the book's sidecar folder (`.sdr/koassistant_cache.lua`)
+- Automatically moves with the book if you reorganize your library
+- One entry per action (xray, recap)
+
+**Clearing the cache:**
+- Settings → Advanced → Book Text Extraction → Clear Action Cache
+- Forces fresh generation on next run (useful if analysis got off track)
+
+**Limitations:**
+- Only built-in X-Ray and Recap support caching currently
+- Going backward in progress doesn't use cache (fresh generation)
+- Custom actions duplicated from X-Ray/Recap will inherit caching behavior
+
+**Text extraction guidelines:**
+- ~100 pages ≈ 25,000-40,000 characters (varies by formatting)
+- Default setting (100,000 chars) covers ~250-400 pages
+- For longer books, consider running X-Ray/Recap periodically to keep cache current
 
 ### Reasoning/Thinking
 

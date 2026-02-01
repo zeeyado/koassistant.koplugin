@@ -97,6 +97,7 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
     local non200 = false
     local completed = false
     local in_reasoning_phase = false  -- Track if we're currently showing reasoning
+    local was_truncated = false  -- Track if response was truncated (max tokens)
 
     local chunksize = 1024 * 16
     local buffer = ffi.new('char[?]', chunksize, {0})
@@ -193,6 +194,12 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
             end
             if on_complete then on_complete(false, nil, _("No response received from AI")) end
             return
+        end
+
+        -- Append truncation notice if response was cut short
+        if was_truncated then
+            local ResponseParser = require("koassistant_api.response_parser")
+            result = result .. ResponseParser.TRUNCATION_NOTICE
         end
 
         -- Pass reasoning content as 4th arg (string if captured, nil otherwise)
@@ -458,6 +465,11 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
 
                         local ok, event = pcall(json.decode, json_str)
                         if ok and event then
+                            -- Check for truncation before extracting content
+                            if self:checkIfTruncated(event) then
+                                was_truncated = true
+                            end
+
                             local content, reasoning = self:extractContentFromSSE(event)
 
                             -- Handle reasoning content (displayed with header, saved separately)
@@ -523,6 +535,11 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                         -- Raw JSON line (NDJSON format - used by Ollama)
                         local ok, event = pcall(json.decode, line)
                         if ok and event then
+                            -- Check for truncation
+                            if self:checkIfTruncated(event) then
+                                was_truncated = true
+                            end
+
                             -- Check for error response
                             if event.error then
                                 local err_message = event.error.message or event.error
@@ -623,6 +640,32 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
 
     -- Start polling
     poll_task = UIManager:scheduleIn(check_interval_sec, pollForData)
+end
+
+--- Check if an SSE event indicates the response was truncated (max tokens)
+--- @param event table: Parsed JSON event
+--- @return boolean truncated
+function StreamHandler:checkIfTruncated(event)
+    -- OpenAI/DeepSeek format: finish_reason = "length"
+    local choice = event.choices and event.choices[1]
+    if choice and choice.finish_reason == "length" then
+        return true
+    end
+
+    -- Anthropic format: message_stop event with stop_reason = "max_tokens"
+    if event.type == "message_stop" or event.type == "message_delta" then
+        if event.delta and event.delta.stop_reason == "max_tokens" then
+            return true
+        end
+    end
+
+    -- Gemini format: finishReason = "MAX_TOKENS"
+    local gemini_candidate = event.candidates and event.candidates[1]
+    if gemini_candidate and gemini_candidate.finishReason == "MAX_TOKENS" then
+        return true
+    end
+
+    return false
 end
 
 --- Extract content from SSE event based on provider format

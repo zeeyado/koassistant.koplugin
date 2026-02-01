@@ -5,6 +5,7 @@ local json = require("json")
 local Defaults = require("koassistant_api.defaults")
 local ResponseParser = require("koassistant_api.response_parser")
 local ModelConstraints = require("model_constraints")
+local DebugUtils = require("koassistant_debug_utils")
 
 local OpenAIHandler = BaseHandler:new()
 
@@ -114,7 +115,7 @@ function OpenAIHandler:query(message_history, config)
     -- Debug: Print constraint adjustments and request body
     if config and config.features and config.features.debug then
         ModelConstraints.logAdjustments("OpenAI", adjustments)
-        print("OpenAI Request Body:", json.encode(request_body))
+        DebugUtils.print("OpenAI Request Body:", request_body, config)
         print("Streaming enabled:", use_streaming and "yes" or "no")
     end
 
@@ -161,7 +162,7 @@ function OpenAIHandler:query(message_history, config)
 
     -- Debug: Print raw response
     if config and config.features and config.features.debug then
-        print("OpenAI Raw Response:", table.concat(responseBody))
+        DebugUtils.print("OpenAI Raw Response:", table.concat(responseBody), config)
     end
 
     local success, response = self:handleApiResponse(success, code, responseBody, "OpenAI")
@@ -171,7 +172,7 @@ function OpenAIHandler:query(message_history, config)
 
     -- Debug: Print parsed response
     if config and config.features and config.features.debug then
-        print("OpenAI Parsed Response:", json.encode(response))
+        DebugUtils.print("OpenAI Parsed Response:", response, config)
     end
 
     local success, result = ResponseParser:parseResponse(response, "openai")

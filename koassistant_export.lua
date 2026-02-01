@@ -11,6 +11,7 @@
 local DataStorage = require("datastorage")
 local lfs = require("libs/libkoreader-lfs")
 local logger = require("logger")
+local DebugUtils = require("koassistant_debug_utils")
 
 local Export = {}
 
@@ -168,17 +169,24 @@ function Export.format(data, content, style)
     local messages = data.messages or {}
     -- Include context messages for "everything" and "full_qa" modes
     local include_context = (content == "everything" or content == "full_qa")
+    -- Truncate context messages in "everything" mode (they can contain huge book text)
+    local truncate_content = (content == "everything")
     for _idx, msg in ipairs(messages) do
         -- Skip context messages unless "everything" mode
         if include_context or not msg.is_context then
             local role = msg.role or "unknown"
             local display_role = (role == "assistant") and "KOAssistant" or role:gsub("^%l", string.upper)
+            -- Truncate context messages in "everything" mode
+            local msg_content = msg.content or ""
+            if truncate_content and msg.is_context then
+                msg_content = DebugUtils.truncate(msg_content)
+            end
             if is_md then
                 table.insert(result, "### " .. display_role)
-                table.insert(result, msg.content or "")
+                table.insert(result, msg_content)
             else
                 table.insert(result, display_role .. ":")
-                table.insert(result, msg.content or "")
+                table.insert(result, msg_content)
             end
             table.insert(result, "")
         end

@@ -1,5 +1,9 @@
 local ResponseParser = {}
 
+-- Truncation notice appended to responses that hit max tokens
+-- This marker is checked by caching logic to avoid caching incomplete responses
+ResponseParser.TRUNCATION_NOTICE = "\n\n---\n⚠️ *Response truncated: output token limit reached*"
+
 -- Helper to extract <think> tags from content (used by inference providers hosting R1)
 local function extractThinkTags(content)
     if not content or type(content) ~= "string" then
@@ -45,6 +49,11 @@ local RESPONSE_TRANSFORMERS = {
                 text_content = response.content[1].text
             end
 
+            -- Check for truncation (stop_reason: "max_tokens")
+            if text_content and response.stop_reason == "max_tokens" then
+                text_content = text_content .. ResponseParser.TRUNCATION_NOTICE
+            end
+
             if text_content then
                 return true, text_content, thinking_content
             end
@@ -57,9 +66,15 @@ local RESPONSE_TRANSFORMERS = {
         if response.error then
             return false, response.error.message or response.error.type or "Unknown error"
         end
-        
+
         if response.choices and response.choices[1] and response.choices[1].message then
-            return true, response.choices[1].message.content
+            local content = response.choices[1].message.content
+            -- Check for truncation (finish_reason: "length" means max tokens hit)
+            local finish_reason = response.choices[1].finish_reason
+            if content and content ~= "" and finish_reason == "length" then
+                content = content .. ResponseParser.TRUNCATION_NOTICE
+            end
+            return true, content
         end
         return false, "Unexpected response format"
     end,
@@ -78,8 +93,10 @@ local RESPONSE_TRANSFORMERS = {
         -- Check for standard candidates format
         if response.candidates and response.candidates[1] then
             local candidate = response.candidates[1]
+            local finish_reason = candidate.finishReason
+
             -- Check if MAX_TOKENS before content was generated (thinking models issue)
-            if candidate.finishReason == "MAX_TOKENS" and
+            if finish_reason == "MAX_TOKENS" and
                (not candidate.content or not candidate.content.parts or #candidate.content.parts == 0) then
                 return false, "No content generated (MAX_TOKENS hit before output - increase max_tokens for thinking models)"
             end
@@ -98,6 +115,12 @@ local RESPONSE_TRANSFORMERS = {
                 end
                 local content = table.concat(content_parts, "\n")
                 local thinking = #thinking_parts > 0 and table.concat(thinking_parts, "\n") or nil
+
+                -- If MAX_TOKENS with partial content, append truncation notice
+                if content ~= "" and finish_reason == "MAX_TOKENS" then
+                    content = content .. ResponseParser.TRUNCATION_NOTICE
+                end
+
                 if content ~= "" then
                     return true, content, thinking
                 end
@@ -117,6 +140,11 @@ local RESPONSE_TRANSFORMERS = {
             local message = response.choices[1].message
             local content = message.content
             local reasoning = message.reasoning_content  -- DeepSeek reasoner returns this
+            -- Check for truncation
+            local finish_reason = response.choices[1].finish_reason
+            if content and content ~= "" and finish_reason == "length" then
+                content = content .. ResponseParser.TRUNCATION_NOTICE
+            end
             return true, content, reasoning
         end
         return false, "Unexpected response format"

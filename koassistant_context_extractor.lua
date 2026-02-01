@@ -109,11 +109,11 @@ function ContextExtractor:isBookTextExtractionEnabled()
 end
 
 --- Get book text up to current reading position.
--- @param options table { max_chars = 50000, max_pages = 250 }
+-- @param options table { max_chars = 100000, max_pages = 250 }
 -- @return table { text = "...", truncated = bool, char_count = number, disabled = bool }
 function ContextExtractor:getBookText(options)
     options = options or {}
-    local max_chars = options.max_chars or self.settings.max_book_text_chars or 50000
+    local max_chars = options.max_chars or self.settings.max_book_text_chars or 100000
     local max_pages = options.max_pages or self.settings.max_pdf_pages or 250
 
     logger.info("ContextExtractor:getBookText called, enable_book_text_extraction=",
@@ -206,6 +206,139 @@ function ContextExtractor:getBookText(options)
     result.text = book_text
     result.char_count = #book_text
 
+    return result
+end
+
+--- Get book text between two progress positions (for incremental cache updates).
+-- Used to extract only the "delta" of new content since a cached position.
+-- @param from_progress number Start position as decimal (0.0-1.0)
+-- @param to_progress number End position as decimal (0.0-1.0)
+-- @param options table { max_chars = 100000, max_pages = 250 }
+-- @return table { text = "...", truncated = bool, char_count = number, disabled = bool }
+function ContextExtractor:getBookTextRange(from_progress, to_progress, options)
+    options = options or {}
+    local max_chars = options.max_chars or self.settings.max_book_text_chars or 100000
+    local max_pages = options.max_pages or self.settings.max_pdf_pages or 250
+
+    logger.info("ContextExtractor:getBookTextRange called, from=", from_progress, "to=", to_progress)
+
+    local result = {
+        text = "",
+        truncated = false,
+        char_count = 0,
+        disabled = false,
+    }
+
+    -- Validate inputs
+    if not from_progress or not to_progress or from_progress >= to_progress then
+        logger.warn("ContextExtractor:getBookTextRange - invalid range:", from_progress, "to", to_progress)
+        return result
+    end
+
+    -- Check global gate
+    if not self:isBookTextExtractionEnabled() then
+        logger.info("ContextExtractor:getBookTextRange - extraction disabled by setting")
+        result.disabled = true
+        return result
+    end
+
+    if not self:isAvailable() then
+        return result
+    end
+
+    local total_pages = self.ui.document.info and self.ui.document.info.number_of_pages
+    if not total_pages or total_pages <= 0 then
+        logger.warn("ContextExtractor:getBookTextRange - cannot determine total pages")
+        return result
+    end
+
+    local book_text = ""
+
+    if not self.ui.document.info.has_pages then
+        -- EPUB/flowing document: use XPointers
+        local success, text = pcall(function()
+            -- Save current position to restore later
+            local current_xp = self.ui.document:getXPointer()
+
+            -- Calculate page numbers from progress
+            local from_page = math.max(1, math.floor(from_progress * total_pages))
+            local to_page = math.min(total_pages, math.ceil(to_progress * total_pages))
+
+            -- Go to from_page to get start XPointer
+            self.ui.document:gotoPage(from_page)
+            local start_xp = self.ui.document:getXPointer()
+
+            -- Go to to_page to get end XPointer
+            self.ui.document:gotoPage(to_page)
+            local end_xp = self.ui.document:getXPointer()
+
+            -- Restore original position
+            if current_xp then
+                self.ui.document:gotoXPointer(current_xp)
+            end
+
+            -- Extract text between positions
+            return self.ui.document:getTextFromXPointers(start_xp, end_xp) or ""
+        end)
+
+        if success then
+            book_text = text
+        else
+            logger.warn("ContextExtractor: Failed to extract EPUB range text:", text)
+        end
+    else
+        -- PDF/page-based document: extract page by page
+        local success, text = pcall(function()
+            -- Calculate page range from progress
+            local from_page = math.max(1, math.floor(from_progress * total_pages))
+            local to_page = math.min(total_pages, math.ceil(to_progress * total_pages))
+
+            -- Limit the range to max_pages
+            if to_page - from_page > max_pages then
+                from_page = to_page - max_pages
+            end
+
+            local pages = {}
+            for page = from_page, to_page do
+                local page_text = self.ui.document:getPageText(page) or ""
+                -- Handle complex table structure
+                if type(page_text) == "table" then
+                    local words = {}
+                    for _, block in ipairs(page_text) do
+                        if type(block) == "table" then
+                            for i = 1, #block do
+                                local span = block[i]
+                                if type(span) == "table" and span.word then
+                                    table.insert(words, span.word)
+                                end
+                            end
+                        end
+                    end
+                    page_text = table.concat(words, " ")
+                end
+                table.insert(pages, page_text)
+            end
+
+            return table.concat(pages, "\n")
+        end)
+
+        if success then
+            book_text = text
+        else
+            logger.warn("ContextExtractor: Failed to extract PDF range text:", text)
+        end
+    end
+
+    -- Truncate if needed (keep most recent content)
+    if #book_text > max_chars then
+        book_text = "[Earlier content truncated for length]\n\n" .. book_text:sub(-max_chars)
+        result.truncated = true
+    end
+
+    result.text = book_text
+    result.char_count = #book_text
+
+    logger.info("ContextExtractor:getBookTextRange - extracted", result.char_count, "chars")
     return result
 end
 

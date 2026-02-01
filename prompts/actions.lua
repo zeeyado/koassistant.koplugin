@@ -320,19 +320,42 @@ Where the argument stands at {reading_progress}:
 
 ---
 
+**Length guidance:** Keep this X-Ray concise and practical as a quick reference guide. Prioritize the most significant elements in each category rather than being exhaustive. For longer works, be selective.
+
 CRITICAL: Do not reveal ANYTHING beyond {reading_progress}. This must be completely spoiler-free.
 
 If you don't recognize this work or the content seems unclear, tell me honestly rather than guessing or making things up. I can provide more context if needed.]],
         skip_language_instruction = false,
         skip_domain = true,  -- X-Ray has specific structure
-        extended_thinking = "off",
+        -- Inherits global reasoning setting (user choice)
         api_params = {
             temperature = 0.5,
-            max_tokens = 4096,
+            max_tokens = 8192,
         },
         builtin = true,
         in_reading_features = 1,  -- Appears in Reading Features menu + default gesture
         in_quick_actions = 1,     -- Appears in Quick Actions menu
+        -- Response caching: enables incremental updates as reading progresses
+        use_response_caching = true,
+        update_prompt = [[Update this X-Ray for "{title}" by {author}.
+
+Previous analysis (at {cached_progress}):
+{cached_result}
+
+New content since then (now at {reading_progress}):
+{incremental_book_text_section}
+
+Update the X-Ray to incorporate new developments. Maintain the same structure (Cast/World/Ideas/Lexicon/Story Arc/Current State for fiction, or Key Figures/Core Concepts/Arguments/Terminology/Argument Development/Current Position for non-fiction).
+
+Guidelines:
+- Add new characters, locations, themes, or concepts that appeared
+- Update the "Current State" or "Current Position" section for the new progress point
+- Keep existing entries, modify only if new information changes them
+- Do not remove anything unless clearly contradicted
+- Preserve the original tone and formatting
+- Keep total length practical - consolidate earlier content as needed to stay concise
+
+CRITICAL: This must remain spoiler-free up to {reading_progress}. Do not reveal anything beyond the current position.]],
     },
     -- Recap: Story summary for re-immersion
     recap = {
@@ -374,14 +397,35 @@ Style guidance:
 If you don't recognize this work or the title/content seems unclear, tell me honestly rather than guessing. I can provide more context if needed.]],
         skip_language_instruction = false,
         skip_domain = true,
-        extended_thinking = "off",
+        -- Inherits global reasoning setting (user choice)
         api_params = {
             temperature = 0.7,
-            max_tokens = 2048,
+            max_tokens = 4096,
         },
         builtin = true,
         in_reading_features = 2,  -- Appears in Reading Features menu + default gesture
         in_quick_actions = 2,     -- Appears in Quick Actions menu
+        -- Response caching: enables incremental updates as reading progresses
+        use_response_caching = true,
+        update_prompt = [[Update this Recap for "{title}" by {author}.
+
+Previous recap (at {cached_progress}):
+{cached_result}
+
+New content since then (now at {reading_progress}):
+{incremental_book_text_section}
+
+Update the recap to reflect where the story/argument now stands.
+
+Guidelines:
+- Build on the previous recap, don't repeat it entirely
+- Focus on what's NEW since {cached_progress}
+- Update the "Where I stopped" or "Current focus" section for the new position
+- Keep the same tone and style as the original recap
+- Maintain the appropriate structure (fiction vs non-fiction)
+- Keep total length concise - summarize earlier content more briefly as you go
+
+CRITICAL: No spoilers beyond {reading_progress}.]],
     },
     -- Analyze Highlights: Insights from user's annotations and notebook
     analyze_highlights = {
@@ -429,10 +473,10 @@ This is about understanding ME as a reader through my highlights and notes, not 
 If you don't recognize this work or the highlights seem insufficient for meaningful analysis, let me know honestly rather than guessing.]],
         skip_language_instruction = false,
         skip_domain = true,
-        extended_thinking = "off",
+        -- Inherits global reasoning setting (user choice)
         api_params = {
             temperature = 0.5,
-            max_tokens = 2048,
+            max_tokens = 4096,
         },
         builtin = true,
         in_reading_features = 3,  -- Appears in Reading Features menu + default gesture

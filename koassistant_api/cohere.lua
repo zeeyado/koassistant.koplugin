@@ -4,6 +4,7 @@ local ltn12 = require("ltn12")
 local json = require("json")
 local Defaults = require("koassistant_api.defaults")
 local ResponseParser = require("koassistant_api.response_parser")
+local DebugUtils = require("koassistant_debug_utils")
 
 local CohereHandler = BaseHandler:new()
 
@@ -110,7 +111,7 @@ function CohereHandler:query(message_history, config)
 
     -- Debug: Print request body
     if config and config.features and config.features.debug then
-        print("Cohere Request Body:", json.encode(request_body))
+        DebugUtils.print("Cohere Request Body:", request_body, config)
         print("Streaming enabled:", use_streaming and "yes" or "no")
     end
 
@@ -147,7 +148,7 @@ function CohereHandler:query(message_history, config)
 
     -- Debug: Print raw response
     if config and config.features and config.features.debug then
-        print("Cohere Raw Response:", table.concat(responseBody))
+        DebugUtils.print("Cohere Raw Response:", table.concat(responseBody), config)
     end
 
     local success, response = self:handleApiResponse(success, code, responseBody, "Cohere")
@@ -157,7 +158,7 @@ function CohereHandler:query(message_history, config)
 
     -- Debug: Print parsed response
     if config and config.features and config.features.debug then
-        print("Cohere Parsed Response:", json.encode(response))
+        DebugUtils.print("Cohere Parsed Response:", response, config)
     end
 
     local success, result = ResponseParser:parseResponse(response, "cohere")

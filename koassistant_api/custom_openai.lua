@@ -3,6 +3,7 @@ local https = require("ssl.https")
 local ltn12 = require("ltn12")
 local json = require("json")
 local ResponseParser = require("koassistant_api.response_parser")
+local DebugUtils = require("koassistant_debug_utils")
 
 --- Generic OpenAI-compatible handler for custom providers
 --- Used for user-defined providers that follow the OpenAI API format
@@ -98,7 +99,7 @@ function CustomOpenAIHandler:query(message_history, config)
 
     -- Debug: Print request body
     if config and config.features and config.features.debug then
-        print("Custom OpenAI Request Body:", json.encode(request_body))
+        DebugUtils.print("Custom OpenAI Request Body:", request_body, config)
         print("Custom OpenAI URL:", base_url)
         print("Streaming enabled:", use_streaming and "yes" or "no")
     end
@@ -138,7 +139,7 @@ function CustomOpenAIHandler:query(message_history, config)
 
     -- Debug: Print raw response
     if config and config.features and config.features.debug then
-        print("Custom OpenAI Raw Response:", table.concat(responseBody))
+        DebugUtils.print("Custom OpenAI Raw Response:", table.concat(responseBody), config)
     end
 
     local success, response = self:handleApiResponse(success, code, responseBody, "Custom Provider")
@@ -148,7 +149,7 @@ function CustomOpenAIHandler:query(message_history, config)
 
     -- Debug: Print parsed response
     if config and config.features and config.features.debug then
-        print("Custom OpenAI Parsed Response:", json.encode(response))
+        DebugUtils.print("Custom OpenAI Parsed Response:", response, config)
     end
 
     -- Parse using OpenAI format (most compatible)
