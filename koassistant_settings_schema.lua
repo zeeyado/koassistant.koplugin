@@ -147,6 +147,46 @@ local SettingsSchema = {
                     step = 10,
                     precision = "%d",
                     depends_on = { id = "hide_long_highlights", value = true },
+                    separator = true,
+                },
+                {
+                    id = "plugin_ui_language",
+                    type = "dropdown",
+                    text = _("Plugin UI Language"),
+                    path = "features.ui_language",
+                    default = "auto",
+                    help_text = _("Language for plugin menus and dialogs. Does not affect AI responses. Requires restart."),
+                    options = {
+                        { value = "auto", label = _("Match KOReader") },
+                        { value = "en", label = "English" },
+                        { value = "ar", label = "العربية (Arabic)" },
+                        { value = "cs", label = "Čeština (Czech)" },
+                        { value = "de", label = "Deutsch (German)" },
+                        { value = "es", label = "Español (Spanish)" },
+                        { value = "fr", label = "Français (French)" },
+                        { value = "hi", label = "हिन्दी (Hindi)" },
+                        { value = "id", label = "Bahasa Indonesia" },
+                        { value = "it", label = "Italiano (Italian)" },
+                        { value = "ja", label = "日本語 (Japanese)" },
+                        { value = "ko_KR", label = "한국어 (Korean)" },
+                        { value = "nl_NL", label = "Nederlands (Dutch)" },
+                        { value = "pl", label = "Polski (Polish)" },
+                        { value = "pt", label = "Português (Portuguese)" },
+                        { value = "pt_BR", label = "Português do Brasil" },
+                        { value = "ru", label = "Русский (Russian)" },
+                        { value = "th", label = "ไทย (Thai)" },
+                        { value = "tr", label = "Türkçe (Turkish)" },
+                        { value = "uk", label = "Українська (Ukrainian)" },
+                        { value = "vi", label = "Tiếng Việt (Vietnamese)" },
+                        { value = "zh", label = "中文 (Chinese)" },
+                    },
+                    on_change = function()
+                        local InfoMessage = require("ui/widget/infomessage")
+                        local UIManager = require("ui/uimanager")
+                        UIManager:show(InfoMessage:new{
+                            text = _("Please restart KOReader for the language change to take effect."),
+                        })
+                    end,
                 },
             },
         },
@@ -857,32 +897,12 @@ local SettingsSchema = {
             },
         },
 
-        -- Language Settings submenu
+        -- AI Language Settings submenu
         {
-            id = "language_settings",
+            id = "ai_language_settings",
             type = "submenu",
-            text = _("Language"),
+            text = _("AI Language Settings"),
             items = {
-                {
-                    id = "ui_language_info",
-                    type = "header",
-                    text = _("Disable to show English UI (requires restart)"),
-                },
-                {
-                    id = "ui_language_auto",
-                    type = "toggle",
-                    text = _("Match KOReader UI Language"),
-                    path = "features.ui_language_auto",
-                    default = true,
-                    separator = true,
-                    on_change = function()
-                        local InfoMessage = require("ui/widget/infomessage")
-                        local UIManager = require("ui/uimanager")
-                        UIManager:show(InfoMessage:new{
-                            text = _("Please restart KOReader for the language change to take effect."),
-                        })
-                    end,
-                },
                 {
                     id = "user_languages",
                     type = "text",

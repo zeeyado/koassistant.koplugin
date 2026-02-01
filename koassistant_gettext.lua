@@ -86,28 +86,34 @@ local function parsePOFile(filepath)
     return result
 end
 
--- Check if plugin is set to use KOReader's language or force English
-local function shouldUseKOReaderLanguage()
+-- Get the configured UI language from plugin settings
+-- Returns explicit language code, or nil for "auto" mode
+local function getConfiguredLanguage()
     local ok, result = pcall(function()
         local DataStorage = require("datastorage")
         local LuaSettings = require("luasettings")
         local settings = LuaSettings:open(DataStorage:getSettingsDir() .. "/koassistant_settings.lua")
         local features = settings:readSetting("features")
-        if features and features.ui_language_auto == false then
-            return false
+        if features then
+            -- New string setting: ui_language
+            if features.ui_language then
+                if features.ui_language == "auto" then
+                    return nil  -- Use KOReader language
+                end
+                return features.ui_language  -- Explicit language code
+            end
+            -- Legacy boolean setting: ui_language_auto
+            if features.ui_language_auto == false then
+                return "en"
+            end
         end
-        return true
+        return nil  -- Default: auto (use KOReader language)
     end)
-    return not ok or result ~= false
+    return ok and result or nil
 end
 
 -- Get KOReader's current language setting
-local function getCurrentLanguage()
-    -- Check plugin setting first
-    if not shouldUseKOReaderLanguage() then
-        return "en"
-    end
-
+local function getKOReaderLanguage()
     if G_reader_settings then
         local lang = G_reader_settings:readSetting("language")
         if lang then
@@ -128,6 +134,18 @@ local function getCurrentLanguage()
     end
 
     return "en"
+end
+
+-- Get the effective language for the plugin UI
+local function getCurrentLanguage()
+    -- Check for explicit language setting first
+    local configured = getConfiguredLanguage()
+    if configured then
+        return configured
+    end
+
+    -- Auto mode: use KOReader's language
+    return getKOReaderLanguage()
 end
 
 -- Load translations for the current language

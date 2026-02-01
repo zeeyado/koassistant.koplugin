@@ -1204,6 +1204,19 @@ function AskGPT:initSettings()
       logger.info("KOAssistant: Migrated export_save_directory: book_folder_custom → custom + checkbox")
     end
 
+    -- ONE-TIME migration: ui_language_auto boolean → ui_language string
+    -- Converts old toggle to new picker format
+    if features.ui_language == nil then
+      if features.ui_language_auto == false then
+        features.ui_language = "en"
+        logger.info("KOAssistant: Migrated ui_language_auto=false to ui_language='en'")
+      else
+        features.ui_language = "auto"
+      end
+      features.ui_language_auto = nil  -- Clean up old setting
+      needs_save = true
+    end
+
     if needs_save then
       self.settings:saveSetting("features", features)
       logger.info("KOAssistant: Migrated settings")

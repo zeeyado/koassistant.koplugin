@@ -213,7 +213,7 @@ After basic setup, explore these features to get the most out of KOAssistant:
 | **[Dictionary Integration](#dictionary-integration)** | AI-powered word lookups when selecting single words | Settings → Dictionary Settings |
 | **[Bypass Modes](#bypass-modes)** | Instant AI actions without menus | Settings → Dictionary/Highlight Settings |
 | **Reasoning/Thinking** | Enable deep analysis for complex questions | Settings → Advanced → Reasoning |
-| **Languages** | Configure multilingual responses | Settings → Language |
+| **Languages** | Configure multilingual responses | Settings → AI Language Settings |
 
 See detailed sections below for each feature.
 
@@ -449,7 +449,7 @@ When you trigger an action, KOAssistant builds a complete request from several c
 **System message** (sets AI context — sent once, cached for cost savings):
 1. **Behavior** — Communication style: tone, formatting, verbosity (see [Behaviors](#behaviors))
 2. **Domain** — Knowledge context: subject expertise, terminology (see [Domains](#domains))
-3. **Language instruction** — Which language to respond in (see [Language Settings](#language))
+3. **Language instruction** — Which language to respond in (see [AI Language Settings](#ai-language-settings))
 
 **User message** (your specific request):
 1. **Context data** — Highlighted text, book metadata, surrounding sentences (automatic)
@@ -1262,6 +1262,7 @@ Chat History → hamburger menu → **View by Domain**
 - **Hide Highlighted Text**: Don't show selection in responses
 - **Hide Long Highlights**: Collapse highlights over character threshold
 - **Long Highlight Threshold**: Character limit before collapsing (default: 280)
+- **Plugin UI Language**: Language for plugin menus and dialogs. Does not affect AI responses. Options: Match KOReader (default), English, or 20+ other translations. Requires restart.
 
 ### Chat Settings
 - **Auto-save All Chats**: Automatically save every new conversation
@@ -1373,8 +1374,9 @@ When "Ask every time" is selected (or inherited from global), a picker dialog ap
 - **Long Text Threshold**: Character count for "Hide Long" mode (default: 200)
 - **Hide for Full Page Translate**: Always hide original when translating full page (default: on)
 
-### Language
-- **Match KOReader UI Language**: When enabled (default), the plugin UI follows KOReader's language setting. Disable to always show English UI (useful if translations are incomplete or inaccurate). Requires restart.
+### AI Language Settings
+These settings control what language the AI responds in.
+
 - **Your Languages**: Languages you speak, separated by commas (e.g., "German, English, French"). Leave empty for default AI behavior.
 - **Primary Language**: Pick which language AI should respond in by default. Defaults to first in your list, but can be overridden.
 
@@ -2026,7 +2028,7 @@ KOAssistant supports localization with translations managed via Weblate.
 
 **Important:** Most translations are AI-generated and marked as "needs review" (fuzzy). They may contain inaccuracies or awkward phrasing. Human review and corrections are very welcome!
 
-**If you don't like the translations:** You can disable them in Settings → Language → disable "Match KOReader UI Language" to always show the original English UI.
+**If you don't like the translations:** You can change the plugin language in Settings → Display Settings → Plugin UI Language → select "English" to always show the original English UI.
 
 **To contribute:**
 1. Visit the [KOAssistant Weblate project](https://hosted.weblate.org/engage/koassistant/)

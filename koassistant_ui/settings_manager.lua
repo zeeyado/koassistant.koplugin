@@ -205,11 +205,15 @@ function SettingsManager:createMenuItem(plugin, item, schema)
                 callback = function()
                     self:setSettingValue(plugin, item.path or item.id, option.value)
                     plugin:updateConfigFromSettings()
+                    -- Call on_change callback if provided
+                    if item.on_change then
+                        item.on_change(option.value, plugin)
+                    end
                 end,
                 keep_menu_open = true,
             })
         end
-        
+
     elseif item.type == "number" then
         menu_item.callback = function()
             local InputDialog = require("ui/widget/inputdialog")
