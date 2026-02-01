@@ -205,9 +205,9 @@ After basic setup, explore these features to get the most out of KOAssistant:
 
 | Feature | What it does | Where to configure |
 |---------|--------------|-------------------|
-| **[Behaviors](#behaviors)** | Control response style (concise, detailed, custom) | Settings → Advanced → Manage Behaviors |
-| **[Domains](#domains)** | Add project-like context to conversations | Settings → Advanced → Manage Domains |
-| **[Actions](#actions)** | Create your own prompts and workflows | Settings → Manage Actions |
+| **[Behaviors](#behaviors)** | Control response style (concise, detailed, custom) | Settings → Actions & Prompts → Manage Behaviors |
+| **[Domains](#domains)** | Add project-like context to conversations | Settings → Actions & Prompts → Manage Domains |
+| **[Actions](#actions)** | Create your own prompts and workflows | Settings → Actions & Prompts → Manage Actions |
 | **Quick Actions** | Fast access to reading actions while in a book | Gesture → "KOAssistant: Quick Actions" |
 | **[Highlight Menu](#highlight-menu-actions)** | Add actions directly to highlight popup | Manage Actions → Add to Highlight Menu |
 | **[Dictionary Integration](#dictionary-integration)** | AI-powered word lookups when selecting single words | Settings → Dictionary Settings |
@@ -789,7 +789,7 @@ This one-size-fits-all approach has limitations:
 
 **A better solution is under development.** Including split bi-m/onolongual Dictionaries, source language settings (and detection), and structural changes to presenetation. In the meantime, users are advised to create custom dictionary actions tailored to their specific use case:
 
-1. **Settings → Advanced → Manage Actions**
+1. **Settings → Actions & Prompts → Manage Actions**
 2. Find "Dictionary" or "Quick Define" and tap to duplicate
 3. Edit the duplicate with prompts specific to your language pair
 4. **Settings → Dictionary Settings → Dictionary Popup Actions** — add your custom action
@@ -892,7 +892,7 @@ Toggling shows a brief notification confirming the new state.
 
 You can add any **book** or **general** action to KOReader's gesture menu:
 
-1. Go to **Settings → Advanced → Manage Actions**
+1. Go to **Settings → Actions & Prompts → Manage Actions**
 2. Hold any book or general action to see details
 3. Tap **"Add to Gesture Menu"**
 4. **Restart KOReader** for changes to take effect
@@ -979,7 +979,7 @@ To use: copy desired files from `behaviors.sample/` to `behaviors/` folder.
 Create your own behaviors via:
 
 1. **Files**: Add `.md` or `.txt` files to `behaviors/` folder
-2. **UI**: Settings → Advanced → Manage Behaviors → Create New
+2. **UI**: Settings → Actions & Prompts → Manage Behaviors → Create New
 
 **File format** (same as domains):
 - Filename becomes the behavior ID: `concise.md` → ID `concise`
@@ -1170,7 +1170,7 @@ This serves as an example of what domains can do. For more options/inspiration, 
 Create domains via:
 
 1. **Files**: Add `.md` or `.txt` files to `domains/` folder
-2. **UI**: Settings → Advanced → Manage Domains → Create New
+2. **UI**: Settings → Actions & Prompts → Manage Domains → Create New
 
 **File format**:
 
@@ -1289,91 +1289,6 @@ When "Ask every time" is selected, a picker dialog appears letting you choose wh
 - **Set Custom Folder**: Set the custom directory path (appears when Custom folder is selected)
 - **Show Export in Chat Viewer**: Add Export button to the chat viewer toolbar (default: off)
 
-### Notebook Settings
-- **Browse Notebooks...**: Open the Notebook Manager to view all notebooks
-- **Content Format**: What to include when saving to notebook
-  - **Response only**: Just the AI response
-  - **Q&A**: Highlighted text + question + response
-  - **Full Q&A** (recommended, default): All context messages + highlighted text + question + response
-- **Show in file browser menu**: Show "Notebook (KOA)" button when long-pressing books (default: on)
-- **Only for books with notebooks**: Only show button if notebook already exists (default: on). Disable to allow creating notebooks from file browser.
-
-**Filename format**: Files are named `[book_title]_[chat_title]_[timestamp].md` (or `.txt`). Book title is truncated to 30 characters, chat title to 25 characters. Timestamp uses the chat's creation time for saved chats, or export time for unsaved chats from the viewer.
-
-### Reading Features (visible when document is open)
-- **X-Ray**: Generate a structured reference guide for the book up to your current reading position
-- **Recap**: Get a "Previously on..." style summary to help you resume reading
-- **Analyze Highlights**: Discover patterns and connections in your highlights and annotations
-
-### Privacy & Data
-See [Privacy & Data](#privacy--data) for background on what gets sent to AI providers.
-- **Trusted Providers**: Mark providers (e.g., local Ollama) that bypass data sharing controls below
-- **Preset: Minimal Data**: Disable all extended sharing (highlights, annotations, notebook, progress, stats)
-- **Preset: Full Features**: Enable all data sharing (does not enable book text extraction)
-- **Data Sharing Controls** (for non-trusted providers):
-  - **Allow Highlights**: Send highlighted passages (used by Analyze Highlights, X-Ray, etc.)
-  - **Allow Annotations**: Send personal notes attached to highlights
-  - **Allow Notebook**: Send notebook entries (used by Connect with Notes)
-  - **Allow Reading Progress**: Send current reading position percentage
-  - **Allow Reading Statistics**: Send chapter info and time since last read
-- Book text extraction settings are in Advanced → Book Text Extraction
-
-### Advanced
-- **Manage Behaviors**: Select or create AI behavior styles (see [Behaviors](#behaviors))
-- **Manage Domains**: Create and manage knowledge domains (see [Domains](#domains))
-- **Temperature**: Response creativity (0.0-2.0, Anthropic max 1.0)
-- **Book Text Extraction**: Settings for extracting book content for AI analysis
-  - **Allow Book Text Extraction**: Enable/disable book text extraction globally (off by default)
-  - **Max Text Characters**: Maximum characters to extract (10,000-500,000, default 50,000)
-  - **Max PDF Pages**: Maximum PDF pages to process (50-500, default 250)
-  - **Cost Warning**: Book text extraction can significantly increase API costs. At 50k characters (~12.5k tokens), expect ~$0.04 per request with Claude Sonnet, ~$0.01 with Haiku. Higher limits multiply costs accordingly. Consider using faster/cheaper models (Haiku, Gemini Flash) for X-Ray and Recap actions. Suggestions for improving extraction efficiency are welcome—see [Contributing](#contributing).
-- **Reasoning/Thinking**: Per-provider reasoning settings:
-  - **Anthropic Extended Thinking**: Budget 1024-32000 tokens
-  - **OpenAI Reasoning**: Effort level (low/medium/high)
-  - **Gemini Thinking**: Level (low/medium/high)
-- **Settings Management**: Backup and restore functionality (see [Backup & Restore](#backup--restore))
-  - **Create Backup**: Save settings, API keys, custom content, and chat history
-  - **Restore from Backup**: Restore from a previous backup
-  - **View Backups**: Manage existing backups and restore points
-- **Reset Settings**: Quick resets (Settings only, Actions only, Fresh start), Custom reset checklist, Clear chat history
-- **Console Debug**: Enable terminal/console debug logging
-- **Show Debug in Chat**: Display debug info in chat viewer
-- **Debug Detail Level**: Verbosity (Minimal/Names/Full)
-- **Test Connection**: Verify API credentials work
-
-### Dictionary Settings
-See [Dictionary Integration](#dictionary-integration) and [Bypass Modes](#bypass-modes) for details.
-- **AI Button in Dictionary Popup**: Show AI Dictionary button (opens menu with 3 actions by default) when selecting words
-- **Response Language**: Language for definitions (Follow Translation Language or specific)
-- **Context Mode**: Surrounding text to include (Sentence, Paragraph, Characters, None)
-- **Context Characters**: Character count for Characters mode (default: 100)
-- **Disable Auto-save for Dictionary**: Don't auto-save dictionary lookups (default: on)
-- **Enable Streaming**: Stream dictionary responses in real-time
-- **Dictionary Popup Actions**: Configure actions in the dictionary popup AI menu
-- **Bypass KOReader Dictionary**: Skip dictionary popup, go directly to AI
-- **Bypass Action**: Which action to trigger when bypass is enabled (default: Dictionary)
-- **Bypass: Follow Vocab Builder Auto-add**: Follow KOReader's Vocabulary Builder auto-add in bypass mode
-
-### Highlight Settings
-See [Bypass Modes](#bypass-modes) and [Highlight Menu Actions](#highlight-menu-actions).
-- **Enable Highlight Bypass**: Immediately trigger action when selecting text (skip menu)
-- **Bypass Action**: Which action to trigger when bypass is enabled (default: Translate)
-- **Highlight Menu Actions**: View and reorder actions in the highlight popup menu
-
-### Translate Settings
-See [Translate View](#translate-view) for details on the specialized translation UI.
-- **Translate to Primary Language**: Use your primary language as the translation target (default: on)
-- **Translation Target**: Pick from your languages or enter a custom target (when above is disabled)
-- **Disable Auto-Save for Translate**: Don't auto-save translations (default: on). Save manually via → Chat button
-- **Enable Streaming**: Stream translation responses in real-time (default: on)
-- **Copy Content**: What to include when copying in translate view — Follow global setting, Ask every time, Full, Question + Response, or Translation only (default). Replaces the old "Copy Translation Only" toggle.
-- **Note Content**: What to include when saving to note in translate view — same options as Copy Content, defaults to Translation only
-
-When "Ask every time" is selected (or inherited from global), a picker dialog appears letting you choose what to include.
-- **Original Text**: How to handle original text visibility (Follow Global, Always Hide, Hide Long, Never Hide)
-- **Long Text Threshold**: Character count for "Hide Long" mode (default: 200)
-- **Hide for Full Page Translate**: Always hide original when translating full page (default: on)
-
 ### AI Language Settings
 These settings control what language the AI responds in.
 
@@ -1438,8 +1353,93 @@ This setup means: AI knows you understand English and Spanish, responds in Engli
 
 This setup means: AI responds in English by default, translates to Spanish, defines words in Spanish (useful when reading Spanish texts). Latin available for translation if needed.
 
-### Actions
+### Dictionary Settings
+See [Dictionary Integration](#dictionary-integration) and [Bypass Modes](#bypass-modes) for details.
+- **AI Button in Dictionary Popup**: Show AI Dictionary button (opens menu with 3 actions by default) when selecting words
+- **Response Language**: Language for definitions (Follow Translation Language or specific)
+- **Context Mode**: Surrounding text to include (Sentence, Paragraph, Characters, None)
+- **Context Characters**: Character count for Characters mode (default: 100)
+- **Disable Auto-save for Dictionary**: Don't auto-save dictionary lookups (default: on)
+- **Enable Streaming**: Stream dictionary responses in real-time
+- **Dictionary Popup Actions**: Configure actions in the dictionary popup AI menu
+- **Bypass KOReader Dictionary**: Skip dictionary popup, go directly to AI
+- **Bypass Action**: Which action to trigger when bypass is enabled (default: Dictionary)
+- **Bypass: Follow Vocab Builder Auto-add**: Follow KOReader's Vocabulary Builder auto-add in bypass mode
+
+### Translate Settings
+See [Translate View](#translate-view) for details on the specialized translation UI.
+- **Translate to Primary Language**: Use your primary language as the translation target (default: on)
+- **Translation Target**: Pick from your languages or enter a custom target (when above is disabled)
+- **Disable Auto-Save for Translate**: Don't auto-save translations (default: on). Save manually via → Chat button
+- **Enable Streaming**: Stream translation responses in real-time (default: on)
+- **Copy Content**: What to include when copying in translate view — Follow global setting, Ask every time, Full, Question + Response, or Translation only (default). Replaces the old "Copy Translation Only" toggle.
+- **Note Content**: What to include when saving to note in translate view — same options as Copy Content, defaults to Translation only
+
+When "Ask every time" is selected (or inherited from global), a picker dialog appears letting you choose what to include.
+- **Original Text**: How to handle original text visibility (Follow Global, Always Hide, Hide Long, Never Hide)
+- **Long Text Threshold**: Character count for "Hide Long" mode (default: 200)
+- **Hide for Full Page Translate**: Always hide original when translating full page (default: on)
+
+### Highlight Settings
+See [Bypass Modes](#bypass-modes) and [Highlight Menu Actions](#highlight-menu-actions).
+- **Enable Highlight Bypass**: Immediately trigger action when selecting text (skip menu)
+- **Bypass Action**: Which action to trigger when bypass is enabled (default: Translate)
+- **Highlight Menu Actions**: View and reorder actions in the highlight popup menu
+
+### Reading Features (visible when document is open)
+- **X-Ray**: Generate a structured reference guide for the book up to your current reading position
+- **Recap**: Get a "Previously on..." style summary to help you resume reading
+- **Analyze Highlights**: Discover patterns and connections in your highlights and annotations
+
+### Notebooks
+- **Browse Notebooks...**: Open the Notebook Manager to view all notebooks
+- **Content Format**: What to include when saving to notebook
+  - **Response only**: Just the AI response
+  - **Q&A**: Highlighted text + question + response
+  - **Full Q&A** (recommended, default): All context messages + highlighted text + question + response
+- **Show in file browser menu**: Show "Notebook (KOA)" button when long-pressing books (default: on)
+- **Only for books with notebooks**: Only show button if notebook already exists (default: on). Disable to allow creating notebooks from file browser.
+
+**Filename format**: Files are named `[book_title]_[chat_title]_[timestamp].md` (or `.txt`). Book title is truncated to 30 characters, chat title to 25 characters. Timestamp uses the chat's creation time for saved chats, or export time for unsaved chats from the viewer.
+
+### Privacy & Data
+See [Privacy & Data](#privacy--data) for background on what gets sent to AI providers.
+- **Trusted Providers**: Mark providers (e.g., local Ollama) that bypass data sharing controls below
+- **Preset: Minimal Data**: Disable all extended sharing (highlights, annotations, notebook, progress, stats)
+- **Preset: Full Features**: Enable all data sharing (does not enable book text extraction)
+- **Data Sharing Controls** (for non-trusted providers):
+  - **Allow Highlights**: Send highlighted passages (used by Analyze Highlights, X-Ray, etc.)
+  - **Allow Annotations**: Send personal notes attached to highlights
+  - **Allow Notebook**: Send notebook entries (used by Connect with Notes)
+  - **Allow Reading Progress**: Send current reading position percentage
+  - **Allow Reading Statistics**: Send chapter info and time since last read
+- Book text extraction settings are in Advanced → Book Text Extraction
+
+### Actions & Prompts
 - **Manage Actions**: See [Actions](#actions) section for full details
+- **Manage Behaviors**: Select or create AI behavior styles (see [Behaviors](#behaviors))
+- **Manage Domains**: Create and manage knowledge domains (see [Domains](#domains))
+
+### Advanced
+- **Temperature**: Response creativity (0.0-2.0, Anthropic max 1.0)
+- **Book Text Extraction**: Settings for extracting book content for AI analysis
+  - **Allow Book Text Extraction**: Enable/disable book text extraction globally (off by default)
+  - **Max Text Characters**: Maximum characters to extract (10,000-500,000, default 50,000)
+  - **Max PDF Pages**: Maximum PDF pages to process (50-500, default 250)
+  - **Cost Warning**: Book text extraction can significantly increase API costs. At 50k characters (~12.5k tokens), expect ~$0.04 per request with Claude Sonnet, ~$0.01 with Haiku. Higher limits multiply costs accordingly. Consider using faster/cheaper models (Haiku, Gemini Flash) for X-Ray and Recap actions. Suggestions for improving extraction efficiency are welcome—see [Contributing](#contributing).
+- **Reasoning/Thinking**: Per-provider reasoning settings:
+  - **Anthropic Extended Thinking**: Budget 1024-32000 tokens
+  - **OpenAI Reasoning**: Effort level (low/medium/high)
+  - **Gemini Thinking**: Level (low/medium/high)
+- **Settings Management**: Backup and restore functionality (see [Backup & Restore](#backup--restore))
+  - **Create Backup**: Save settings, API keys, custom content, and chat history
+  - **Restore from Backup**: Restore from a previous backup
+  - **View Backups**: Manage existing backups and restore points
+- **Reset Settings**: Quick resets (Settings only, Actions only, Fresh start), Custom reset checklist, Clear chat history
+- **Console Debug**: Enable terminal/console debug logging
+- **Show Debug in Chat**: Display debug info in chat viewer
+- **Debug Detail Level**: Verbosity (Minimal/Names/Full)
+- **Test Connection**: Verify API credentials work
 
 ### About
 - **About KOAssistant**: Plugin info and gesture tips
@@ -1693,7 +1693,7 @@ Separate option to delete all saved conversations across all books. This cannot 
 
 #### Action Manager Menu
 
-The Action Manager (Settings → Actions → Manage Actions) has a hamburger menu (☰) in the top-left with quick access to action-related resets.
+The Action Manager (Settings → Actions & Prompts → Manage Actions) has a hamburger menu (☰) in the top-left with quick access to action-related resets.
 
 **When to reset:** After problematic updates, when experiencing strange behavior, or to start fresh. See [Troubleshooting → Settings Reset](#settings-reset) for details.
 
