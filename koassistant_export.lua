@@ -151,14 +151,14 @@ function Export.format(data, content, style)
         table.insert(result, "")
     end
 
-    -- For Full/Full_QA/Everything: Show highlighted text as the user's initial input
-    -- This represents what the user selected/requested (hidden from normal message display)
+    -- For Full/Full_QA/Everything: Show highlighted text separately from user messages
+    -- This represents what the user selected (distinct from typed input)
     if (content == "full" or content == "full_qa" or content == "everything") and data.highlighted_text and data.highlighted_text ~= "" then
         if is_md then
-            table.insert(result, "### User")
+            table.insert(result, "### Highlighted")
             table.insert(result, data.highlighted_text)
         else
-            table.insert(result, "User:")
+            table.insert(result, "Highlighted:")
             table.insert(result, data.highlighted_text)
         end
         table.insert(result, "")
