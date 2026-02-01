@@ -5346,6 +5346,165 @@ function AskGPT:quickResetFreshStart()
   })
 end
 
+-- Privacy preset: Minimal Data (disable extended sharing)
+function AskGPT:applyPrivacyPresetMinimal(touchmenu_instance)
+  local f = self.settings:readSetting("features") or {}
+  -- Disable extended data sharing
+  f.enable_highlights_sharing = false
+  f.enable_annotations_sharing = false
+  f.enable_notebook_sharing = false
+  f.enable_progress_sharing = false
+  f.enable_stats_sharing = false
+  f.enable_book_text_extraction = false
+  self.settings:saveSetting("features", f)
+  self.settings:flush()
+  self:updateConfigFromSettings()
+  -- Refresh menu to show updated checkbox states
+  if touchmenu_instance then
+    touchmenu_instance:updateItems()
+  end
+  UIManager:show(Notification:new{
+    text = _("Minimal Data: Extended sharing disabled"),
+    timeout = 2,
+  })
+end
+
+-- Privacy preset: Full Features (enable all sharing except book text)
+function AskGPT:applyPrivacyPresetFull(touchmenu_instance)
+  local f = self.settings:readSetting("features") or {}
+  -- Enable all data sharing (except book text which has cost implications)
+  f.enable_highlights_sharing = true
+  f.enable_annotations_sharing = true
+  f.enable_notebook_sharing = true
+  f.enable_progress_sharing = true
+  f.enable_stats_sharing = true
+  -- Note: enable_book_text_extraction not touched - user must enable manually
+  self.settings:saveSetting("features", f)
+  self.settings:flush()
+  self:updateConfigFromSettings()
+  -- Refresh menu to show updated checkbox states
+  if touchmenu_instance then
+    touchmenu_instance:updateItems()
+  end
+  UIManager:show(Notification:new{
+    text = _("Full Features: All data sharing enabled"),
+    timeout = 2,
+  })
+end
+
+-- Show trusted providers dialog for privacy settings
+function AskGPT:showTrustedProvidersDialog()
+  local CheckButton = require("ui/widget/checkbutton")
+  local ButtonDialog = require("ui/widget/buttondialog")
+
+  local f = self.settings:readSetting("features") or {}
+  local current_trusted = f.trusted_providers or {}
+
+  -- Build list of all available providers (built-in + custom)
+  local all_providers = {}
+
+  -- Built-in providers
+  local Defaults = require("koassistant_api/defaults")
+  for provider_id, _info in pairs(Defaults.ProviderDefaults) do
+    table.insert(all_providers, {
+      id = provider_id,
+      name = self:getProviderDisplayName(provider_id),
+      is_custom = false,
+    })
+  end
+
+  -- Custom providers
+  local custom_providers = f.custom_providers or {}
+  for _idx, cp in ipairs(custom_providers) do
+    table.insert(all_providers, {
+      id = cp.id,
+      name = cp.name or cp.id,
+      is_custom = true,
+    })
+  end
+
+  -- Sort by name
+  table.sort(all_providers, function(a, b)
+    return a.name:lower() < b.name:lower()
+  end)
+
+  -- Track selection state
+  local selected = {}
+  for _idx, provider_id in ipairs(current_trusted) do
+    selected[provider_id] = true
+  end
+
+  -- Build checkbox buttons
+  local buttons = {}
+  for _idx, provider in ipairs(all_providers) do
+    local display_name = provider.name
+    if provider.is_custom then
+      display_name = display_name .. " " .. _("(custom)")
+    end
+
+    table.insert(buttons, {{
+      text = (selected[provider.id] and "☑ " or "☐ ") .. display_name,
+      align = "left",
+      callback = function()
+        selected[provider.id] = not selected[provider.id]
+        -- Rebuild dialog to show updated state
+        UIManager:close(self._trusted_providers_dialog)
+        self:showTrustedProvidersDialog()
+      end,
+    }})
+  end
+
+  -- Add save/cancel buttons
+  table.insert(buttons, {
+    {
+      text = _("Cancel"),
+      callback = function()
+        UIManager:close(self._trusted_providers_dialog)
+      end,
+    },
+    {
+      text = _("Save"),
+      callback = function()
+        -- Build new trusted list from selection
+        local new_trusted = {}
+        for provider_id, is_selected in pairs(selected) do
+          if is_selected then
+            table.insert(new_trusted, provider_id)
+          end
+        end
+        -- Sort for consistency
+        table.sort(new_trusted)
+
+        -- Save
+        f.trusted_providers = new_trusted
+        self.settings:saveSetting("features", f)
+        self.settings:flush()
+        self:updateConfigFromSettings()
+
+        UIManager:close(self._trusted_providers_dialog)
+
+        -- Show confirmation
+        local msg
+        if #new_trusted == 0 then
+          msg = _("Trusted Providers: None")
+        else
+          msg = T(_("Trusted Providers: %1"), table.concat(new_trusted, ", "))
+        end
+        UIManager:show(Notification:new{
+          text = msg,
+          timeout = 3,
+        })
+      end,
+    },
+  })
+
+  self._trusted_providers_dialog = ButtonDialog:new{
+    title = _("Select providers to trust\n\nTrusted providers bypass data sharing controls."),
+    buttons = buttons,
+  }
+  UIManager:show(self._trusted_providers_dialog)
+end
+
 -- Show custom reset dialog with checklist
 function AskGPT:showCustomResetDialog()
   self:_showCustomResetOptionsDialog({

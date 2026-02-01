@@ -14,6 +14,8 @@ Chats are streamed live (like ChatGPT/Claude, etc), are automatically (or manual
 
 Most settings are configurable in the UI, including: Provider/model, AI behavior and style, user-to-AI interaction languages, translation languages, domains/project/field context, custom actions (which you can create, edit, duplicate, and adjust settings for), and advanced model settings like reasoning/thinking, temperature, and more. Most settings, additional context, and function combinations can be specified for a given action.
 
+Also check out the popular [Assistant Plugin](https://github.com/omer-faruq/assistant.koplugin). KOAssistant can run side by side with  it without conflict.
+
 > **Development Status**: KOAssistant is currently under active development, with features constantly added. 16 built-in providers are supported (plus custom OpenAI-compatible providers) — see [Supported Providers](#supported-providers--settings); **testing and Feedback appreciated**. You can open an issue, feature request, or start a discussion. If you don't want to wait for releases, you can clone the repo from main and check `_meta.lua` to see which version you are on. Some things may break when not on official releases. Running off of other branches than main is not recommended, as functional changes are quickly merged to main (and added to release after testing). Due to the current changing nature of the plugin, parts of the documentation (READMEs) may be out of sync. The main README is deliberately verbose and repetitive (to make sure users see all functions) -- help making actual structured and consise docs as the plugin matures would be appreciated. Built in actions, domains, behaviors, etc, are subject to change and are in varying degrees of testing/demonstration-of-feature stages.
 
 ---
@@ -25,6 +27,7 @@ Most settings are configurable in the UI, including: Provider/model, AI behavior
 - [Recommended Setup](#recommended-setup)
   - [Configure Quick Access Gestures](#configure-quick-access-gestures)
 - [Testing Your Setup](#testing-your-setup)
+- [Privacy & Data](#privacy--data) — What gets sent, controls, local processing
 - [How to Use KOAssistant](#how-to-use-koassistant) — Contexts & Built-in Actions
   - [Highlight Mode](#highlight-mode)
   - [Book/Document Mode](#bookdocument-mode)
@@ -260,6 +263,51 @@ lua tests/inspect.lua --web
 - Learn how different settings affect request structure
 - Validate custom providers and models
 - Compare model and provider performance
+
+---
+
+## Privacy & Data
+
+KOAssistant sends data to AI providers to generate responses. This section explains what's shared and how to control it.
+
+### What Gets Sent
+
+**Basic (all/most actions):**
+- Your question/prompt
+- Selected text (for highlight actions)
+- Book title and author
+
+**Extended (some actions, configurable):**
+- Reading progress, highlights, annotations (Analyze Highlights, X-Ray, etc.)
+- Notebook entries (Connect with Notes)
+- Book text content (X-Ray, Recap - off by default due to token cost and content sensitivity)
+
+### Privacy Controls
+
+**Settings > Privacy & Data** lets you:
+- **Trusted Providers**: Mark providers you trust (e.g., local Ollama) to bypass data sharing controls
+- Toggle individual data types (highlights, annotations, notebook, progress, stats)
+- Use quick presets (Minimal Data, Full Features)
+
+When you disable a data type, actions gracefully adapt - section placeholders like `{highlights_section}` simply disappear from prompts, so you don't need to modify your actions. Trusted providers bypass these controls entirely.
+
+### Local Processing
+
+For maximum privacy, **Ollama** can run AI models entirely on your device(s):
+- Data never leaves your hardware
+- Works offline after model download
+- See [Supported Providers](#supported-providers--settings) for setup
+- Anyone using local LLMs is encouraged to open Issues/Feature Request/Discussion to help enhance support for local, privacy-maintaining usage.
+
+### Provider Policies
+
+Cloud providers have their own data handling practices. Check their policies on data retention and model training. Remember that API policies are often different from web interface ones.
+
+### Design Choices
+
+KOAssistant does **not** include library-wide scanning, cross-book analysis, or reading habit profiling. These were intentionally omitted - combining reading data across your collection creates a detailed personal profile that's easy to underestimate.
+
+> KOReader itself collects extensive local statistics (reading time, speed, sessions). These are valuable for personal use but would be concerning if sent to cloud services. Future KOAssistant features that expose this data will require explicit opt-in.
 
 ---
 
@@ -559,6 +607,8 @@ Insert these in your action prompt to reference dynamic values:
 "Raw" placeholders (`{book_text}`, `{highlights}`, `{annotations}`, `{notebook}`) give you just the content with no label, useful when you want custom labeling in your prompt.
 
 **Tip:** Use section placeholders in most cases. They prevent dangling references—if you write "Look at my highlights: {highlights}" in your prompt but highlights is empty, the AI sees confusing instructions about nonexistent content. Section placeholders include the label only when content exists.
+
+> **Privacy note:** Section placeholders also adapt to [privacy settings](#privacy--data). If you disable highlights sharing, `{highlights_section}` gracefully disappears from prompts without breaking your actions. You don't need to modify actions to match your privacy preferences.
 
 > **Note:** `{book_text}` and related placeholders require enabling book text extraction in Settings → Advanced → Book Text Extraction. This is off by default because it's slow and uses many tokens. The action must also have "Use book text" enabled.
 
@@ -1253,6 +1303,19 @@ When "Ask every time" is selected, a picker dialog appears letting you choose wh
 - **X-Ray**: Generate a structured reference guide for the book up to your current reading position
 - **Recap**: Get a "Previously on..." style summary to help you resume reading
 - **Analyze Highlights**: Discover patterns and connections in your highlights and annotations
+
+### Privacy & Data
+See [Privacy & Data](#privacy--data) for background on what gets sent to AI providers.
+- **Trusted Providers**: Mark providers (e.g., local Ollama) that bypass data sharing controls below
+- **Preset: Minimal Data**: Disable all extended sharing (highlights, annotations, notebook, progress, stats)
+- **Preset: Full Features**: Enable all data sharing (does not enable book text extraction)
+- **Data Sharing Controls** (for non-trusted providers):
+  - **Allow Highlights**: Send highlighted passages (used by Analyze Highlights, X-Ray, etc.)
+  - **Allow Annotations**: Send personal notes attached to highlights
+  - **Allow Notebook**: Send notebook entries (used by Connect with Notes)
+  - **Allow Reading Progress**: Send current reading position percentage
+  - **Allow Reading Statistics**: Send chapter info and time since last read
+- Book text extraction settings are in Advanced → Book Text Extraction
 
 ### Advanced
 - **Manage Behaviors**: Select or create AI behavior styles (see [Behaviors](#behaviors))

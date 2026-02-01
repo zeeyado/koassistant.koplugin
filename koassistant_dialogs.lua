@@ -1921,9 +1921,17 @@ local function handlePredefinedPrompt(prompt_type_or_action, highlightedText, ui
         local extraction_success, ContextExtractor = pcall(require, "koassistant_context_extractor")
         if extraction_success and ContextExtractor then
             local extractor = ContextExtractor:new(ui, {
+                -- Extraction limits
                 enable_book_text_extraction = config.features and config.features.enable_book_text_extraction,
                 max_book_text_chars = prompt and prompt.max_book_text_chars or (config.features and config.features.max_book_text_chars) or 50000,
                 max_pdf_pages = config.features and config.features.max_pdf_pages or 250,
+                -- Privacy settings
+                provider = config.features and config.features.provider,
+                trusted_providers = config.features and config.features.trusted_providers,
+                enable_highlights_sharing = config.features and config.features.enable_highlights_sharing,
+                enable_annotations_sharing = config.features and config.features.enable_annotations_sharing,
+                enable_progress_sharing = config.features and config.features.enable_progress_sharing,
+                enable_stats_sharing = config.features and config.features.enable_stats_sharing,
             })
             logger.info("KOAssistant: Extractor settings - enable_book_text_extraction=",
                        config.features and config.features.enable_book_text_extraction and "true" or "false/nil")
@@ -1944,7 +1952,19 @@ local function handlePredefinedPrompt(prompt_type_or_action, highlightedText, ui
     end
 
     -- Notebook content extraction (if action has use_notebook flag)
-    if prompt and prompt.use_notebook and ui and ui.document then
+    -- Respects enable_notebook_sharing privacy setting (default: enabled)
+    -- Also respects trusted providers (bypasses privacy settings)
+    local provider_trusted = false
+    if config.features and config.features.provider and config.features.trusted_providers then
+        for _idx, trusted_id in ipairs(config.features.trusted_providers) do
+            if trusted_id == config.features.provider then
+                provider_trusted = true
+                break
+            end
+        end
+    end
+    local notebook_sharing_enabled = provider_trusted or (config.features and config.features.enable_notebook_sharing ~= false)
+    if prompt and prompt.use_notebook and ui and ui.document and notebook_sharing_enabled then
         local Notebook = require("koassistant_notebook")
         local notebook_content = Notebook.read(ui.document.file)
         if notebook_content and notebook_content ~= "" then
@@ -1954,6 +1974,9 @@ local function handlePredefinedPrompt(prompt_type_or_action, highlightedText, ui
             message_data.notebook_content = ""
             logger.info("KOAssistant: No notebook found for this document")
         end
+    elseif prompt and prompt.use_notebook and not notebook_sharing_enabled then
+        message_data.notebook_content = ""
+        logger.info("KOAssistant: Notebook sharing disabled by privacy setting")
     end
 
     -- Get domain context if a domain is set (skip if action opts out)

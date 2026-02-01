@@ -337,14 +337,14 @@ function SettingsManager:createMenuItem(plugin, item, schema)
     elseif item.type == "action" then
         -- Action button
         if item.confirm then
-            menu_item.callback = function()
+            menu_item.callback = function(touchmenu_instance)
                 local ConfirmBox = require("ui/widget/confirmbox")
                 local UIManager = require("ui/uimanager")
                 UIManager:show(ConfirmBox:new{
                     text = item.confirm_text or _("Are you sure?"),
                     ok_callback = function()
                         if plugin[item.callback] then
-                            plugin[item.callback](plugin)
+                            plugin[item.callback](plugin, touchmenu_instance)
                         else
                             logger.warn("Settings action callback not found:", item.callback)
                         end
@@ -352,13 +352,17 @@ function SettingsManager:createMenuItem(plugin, item, schema)
                 })
             end
         else
-            menu_item.callback = function()
+            menu_item.callback = function(touchmenu_instance)
                 if plugin[item.callback] then
-                    plugin[item.callback](plugin)
+                    plugin[item.callback](plugin, touchmenu_instance)
                 else
                     logger.warn("Settings action callback not found:", item.callback)
                 end
             end
+        end
+        -- Support keep_menu_open for action items
+        if item.keep_menu_open then
+            menu_item.keep_menu_open = true
         end
         
     elseif item.type == "submenu" then
