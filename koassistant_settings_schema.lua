@@ -44,6 +44,12 @@ local SettingsSchema = {
             type = "action",
             text = _("Chat History"),
             callback = "showChatHistory",
+        },
+        {
+            id = "browse_notebooks",
+            type = "action",
+            text = _("Browse Notebooks"),
+            callback = "showNotebookBrowser",
             separator = true,
         },
 
@@ -765,6 +771,43 @@ local SettingsSchema = {
             },
         },
 
+        -- Actions & Prompts submenu
+        {
+            id = "actions_and_prompts",
+            type = "submenu",
+            text = _("Actions & Prompts"),
+            items = {
+                {
+                    id = "manage_actions",
+                    type = "action",
+                    text = _("Manage Actions"),
+                    callback = "showPromptsManager",
+                },
+                {
+                    id = "manage_behaviors",
+                    type = "action",
+                    text_func = function(plugin)
+                        local f = plugin.settings:readSetting("features") or {}
+                        local selected = f.selected_behavior or "standard"
+                        -- Get display name for selected behavior
+                        local SystemPrompts = require("prompts/system_prompts")
+                        local behavior = SystemPrompts.getBehaviorById(selected, f.custom_behaviors)
+                        local name = behavior and behavior.display_name or selected
+                        return T(_("Manage Behaviors (%1)"), name)
+                    end,
+                    callback = "showBehaviorManager",
+                    info_text = _("Select or create AI behavior styles that define how the AI communicates."),
+                },
+                {
+                    id = "manage_domains",
+                    type = "action",
+                    text = _("Manage Domains..."),
+                    callback = "showDomainManager",
+                    info_text = _("Manage knowledge domains. Domains are selected per-chat."),
+                },
+            },
+        },
+
         -- Notebooks submenu
         {
             id = "notebooks",
@@ -908,44 +951,6 @@ local SettingsSchema = {
                     text = _("Book text extraction: Advanced > Book Text Extraction"),
                 },
             },
-        },
-
-        -- Actions & Prompts submenu
-        {
-            id = "actions_and_prompts",
-            type = "submenu",
-            text = _("Actions & Prompts"),
-            items = {
-                {
-                    id = "manage_actions",
-                    type = "action",
-                    text = _("Manage Actions"),
-                    callback = "showPromptsManager",
-                },
-                {
-                    id = "manage_behaviors",
-                    type = "action",
-                    text_func = function(plugin)
-                        local f = plugin.settings:readSetting("features") or {}
-                        local selected = f.selected_behavior or "standard"
-                        -- Get display name for selected behavior
-                        local SystemPrompts = require("prompts/system_prompts")
-                        local behavior = SystemPrompts.getBehaviorById(selected, f.custom_behaviors)
-                        local name = behavior and behavior.display_name or selected
-                        return T(_("Manage Behaviors (%1)"), name)
-                    end,
-                    callback = "showBehaviorManager",
-                    info_text = _("Select or create AI behavior styles that define how the AI communicates."),
-                },
-                {
-                    id = "manage_domains",
-                    type = "action",
-                    text = _("Manage Domains..."),
-                    callback = "showDomainManager",
-                    info_text = _("Manage knowledge domains. Domains are selected per-chat."),
-                },
-            },
-            separator = true,
         },
 
         -- Advanced submenu

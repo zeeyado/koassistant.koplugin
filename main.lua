@@ -4272,6 +4272,25 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
         end,
       },
     },
+    -- Row 7: New General Chat | Manage Actions
+    {
+      {
+        text = _("New General Chat"),
+        callback = function()
+          opening_subdialog = true
+          UIManager:close(dialog)
+          self_ref:startGeneralChat()
+        end,
+      },
+      {
+        text = _("Manage Actions"),
+        callback = function()
+          opening_subdialog = true
+          UIManager:close(dialog)
+          self_ref:showPromptsManager()
+        end,
+      },
+    },
   }
 
   -- Add last row(s) based on whether we're in reader mode
