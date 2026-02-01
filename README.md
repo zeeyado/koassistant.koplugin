@@ -67,8 +67,10 @@ Also check out the popular [Assistant Plugin](https://github.com/omer-faruq/assi
   - [Adding Custom Models](#adding-custom-models)
   - [Setting Default Models](#setting-default-models)
 - [Tips & Advanced Usage](#tips--advanced-usage)
+  - [View Modes: Markdown vs Plain Text](#view-modes-markdown-vs-plain-text)
 - [KOReader Tips](#koreader-tips)
 - [Troubleshooting](#troubleshooting)
+  - [Font Issues (Arabic, CJK, Hebrew)](#font-issues-arabic-cjk-hebrew)
 - [Requirements](#requirements)
 - [Contributing](#contributing)
 - [Credits](#credits)
@@ -1348,7 +1350,7 @@ Chat History → hamburger menu → **View by Domain**
   - **Markdown**: Full formatting with bold, lists, headers, etc. (default)
   - **Plain Text**: Better font support for Arabic and some other non-Latin scripts
 - **Plain Text Options**: Settings for Plain Text mode
-  - **Apply Markdown Stripping**: Convert markdown syntax to readable plain text with actual bold rendering. Headers use Wikipedia-style symbols with bold text (`█ **H1**`, `▉ **H2**`, etc.), `**bold**` text renders as **bold**, lists become `•`, code becomes `'quoted'`. Disable to show raw markdown. (default: on)
+  - **Apply Markdown Stripping**: Convert markdown syntax to readable plain text. Headers use hierarchical symbols with bold text (`▉ **H1**`, `◤ **H2**`, `◆ **H3**`, etc.), `**bold**` renders as actual bold, `*italics*` are preserved as-is, lists become `•`, code becomes `'quoted'`. Disable to show raw markdown. (default: on)
 - **Hide Highlighted Text**: Don't show selection in responses
 - **Hide Long Highlights**: Collapse highlights over character threshold
 - **Long Highlight Threshold**: Character limit before collapsing (default: 280)
@@ -1986,6 +1988,29 @@ The provider will revert to using the system default.
 
 KOAssistant automatically resizes windows when you rotate your device, adapting the chat viewer and input dialog to your screen orientation.
 
+### View Modes: Markdown vs Plain Text
+
+KOAssistant offers two view modes for displaying AI responses:
+
+**Markdown View** (default)
+- Full formatting: bold, italic, headers, lists, code blocks, tables
+- Best for most users with Latin scripts
+
+**Plain Text View**
+- Uses KOReader's native text rendering with proper font fallback
+- **Recommended for Arabic, Chinese, Japanese, Korean, Hebrew** and other non-Latin scripts
+- Markdown is intelligently stripped to preserve readability:
+  - Headers → hierarchical symbols (`▉ **H1**`, `◤ **H2**`, `◆ **H3**`)
+  - **Bold** → renders as actual bold (via PTF)
+  - *Italics* → preserved as `*text*`
+  - Lists → bullet points (•)
+  - Code → `'quoted'`
+  - Optimized line spacing for visual density matching Markdown view
+
+**How to switch:**
+- **On the fly**: Tap **MD/Text** button in chat viewer (bottom row)
+- **Permanently**: Settings → Display Settings → View Mode
+
 ### Reply Draft Saving
 
 Your chat reply drafts are automatically saved as you type. This means you can:
@@ -2036,6 +2061,17 @@ Dictionary lookups and popup actions use compact view by default (minimal UI). T
 ---
 
 ## Troubleshooting
+
+### Font Issues (Arabic, CJK, Hebrew)
+
+If text doesn't render correctly in Markdown view (especially Arabic, Chinese, Japanese, Korean, or Hebrew), switch to **Plain Text view**:
+
+- **On the fly**: Tap the **MD/Text** button in the chat viewer to toggle
+- **Permanently**: Settings → Display Settings → View Mode → Plain Text
+
+This is a limitation of KOReader's MuPDF HTML renderer, which lacks per-glyph font fallback. Plain Text mode uses KOReader's native text rendering with proper font support.
+
+Plain Text mode includes markdown stripping that preserves readability: headers show with symbols and bold text, **bold** renders as actual bold, lists become bullets (•), and code is quoted. The formatting is designed to be clean and readable without the original markdown syntax.
 
 ### "API key missing" error
 Edit `apikeys.lua` and add your key for the selected provider.
