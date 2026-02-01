@@ -846,9 +846,9 @@
                     </div>
                 </div>
                 <div class="chat-reply" id="chatReplySection" style="display: none;">
-                    <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
-                        <input type="text" id="chatReplyInput" placeholder="Type a follow-up message..." style="flex: 1;" onkeypress="if(event.key==='Enter')sendReply()">
-                        <button class="btn primary" onclick="sendReply()">Reply</button>
+                    <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem; align-items: flex-end;">
+                        <textarea id="chatReplyInput" placeholder="Type a follow-up message... (Ctrl+Enter to send)" style="flex: 1; min-height: 60px; max-height: 200px; resize: vertical; font-family: inherit;" onkeydown="if((event.ctrlKey||event.metaKey)&&event.key==='Enter'){event.preventDefault();sendReply()}"></textarea>
+                        <button class="btn primary" onclick="sendReply()" style="height: fit-content;">Reply</button>
                     </div>
                 </div>
             </div>
