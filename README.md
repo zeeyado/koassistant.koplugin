@@ -506,6 +506,7 @@ Insert these in your action prompt to reference dynamic values:
 | `{reading_progress}` | Book | Current reading position (e.g., "42%") |
 | `{highlights}` | Book | All highlights from the document |
 | `{annotations}` | Book | All highlights with user notes |
+| `{notebook}` | Book, Highlight | Content from the book's KOAssistant notebook |
 | `{book_text}` | Book | Extracted book text up to current position (requires opt-in) |
 | `{book_text_section}` | Book | Same as above with "Book content so far:" label |
 | `{highlights_section}` | Book | Highlights with "My highlights so far:" label |
@@ -523,7 +524,7 @@ Insert these in your action prompt to reference dynamic values:
 - **Temperature matters**: Lower (0.3-0.5) for deterministic tasks (translation, definitions). Higher (0.7-0.9) for creative tasks (elaboration, recommendations).
 - **Experiment with domains**: Try running the same action with and without a domain to see what works for your use case. Some actions benefit from domain context (analysis, explanation), others don't (translation, grammar).
 - **Test before deploying**: Use the [web inspector](#testing-your-setup) to test your custom actions before using them on your e-reader. You can try different settings combinations and see exactly what's sent to the AI.
-- **Reading-mode placeholders**: Actions using `{reading_progress}`, `{book_text}`, `{highlights}`, `{annotations}`, or `{chapter_title}` are **automatically hidden** in File Browser mode because these require an open book. This filtering is automatic—if your custom action uses these placeholders, it will only appear when reading. The action wizard shows a `[reading]` indicator for such actions.
+- **Reading-mode placeholders**: Actions using `{reading_progress}`, `{book_text}`, `{highlights}`, `{annotations}`, `{notebook}`, or `{chapter_title}` are **automatically hidden** in File Browser mode because these require an open book. This filtering is automatic—if your custom action uses these placeholders, it will only appear when reading. The action wizard shows a `[reading]` indicator for such actions.
 
 ### File-Based Actions
 
@@ -565,6 +566,7 @@ return {
 - `use_annotations`: Include highlights with user notes
 - `use_reading_progress`: Include reading position and chapter info
 - `use_reading_stats`: Include time since last read and chapter count
+- `use_notebook`: Include content from the book's KOAssistant notebook
 - `include_book_context`: Add book info to highlight actions
 - `skip_language_instruction`: Don't include language instruction in system message (default: off; Translate/Dictionary use true since target language is in the prompt)
 - `skip_domain`: Don't include domain context in system message (default: off; Translate/Dictionary use true)
@@ -981,7 +983,7 @@ The export uses your global Export Style setting (Markdown or Plain Text).
 
 Notebooks function like book logs that you can append chat content to and edit (with TextEdit directly in KOReader or dedicated markdown editor). They are persistent markdown files stored alongside each book in its sidecar folder (`.sdr/koassistant_notebook.md`). Unlike chat history which stores full conversations, notebooks let you curate AI insights for long-term reference, along with your own notes. 
 
-You will soon be able to use your notebook content in Actions (like you can with your highlights and annotations and other reading-mode placeholders -- see [Template Variables](#template-variables))
+You can include notebook content in your custom actions using the `{notebook}` placeholder (see [Template Variables](#template-variables)). This lets actions reference your accumulated notes and insights.
 
 **Saving to a notebook:**
 1. Have a conversation with the AI about your book
