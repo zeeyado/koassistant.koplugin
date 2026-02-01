@@ -1570,7 +1570,7 @@ function AskGPT:buildReadingFeaturesMenu()
   local reading_actions = self.action_service:getReadingFeaturesActions()
 
   for _i, action in ipairs(reading_actions) do
-    -- Map action ID to callback name (e.g., "xray" -> "onKOAssistantXRay")
+    -- Map action ID to callback name (e.g., "xray" -> "onKOAssistantXray")
     -- Capitalize first letter and handle underscores (e.g., "analyze_highlights" -> "AnalyzeHighlights")
     local callback_name = "onKOAssistant" .. action.id:gsub("_(%l)", function(c) return c:upper() end):gsub("^%l", string.upper)
 
@@ -3298,7 +3298,7 @@ function AskGPT:onKOAssistantBookChat()
 end
 
 --- Execute X-Ray action (book-level reading companion)
-function AskGPT:onKOAssistantXRay()
+function AskGPT:onKOAssistantXray()
   self:executeBookLevelAction("xray")
   return true
 end
