@@ -221,6 +221,11 @@ function PromptsManager:loadPrompts()
             translate_view = prompt.translate_view,
             compact_view = prompt.compact_view,
             minimal_buttons = prompt.minimal_buttons,
+            -- Menu flags
+            in_quick_actions = prompt.in_quick_actions,
+            in_reading_features = prompt.in_reading_features,
+            in_highlight_menu = prompt.in_highlight_menu,
+            in_dictionary_popup = prompt.in_dictionary_popup,
         }
 
         -- Apply builtin action overrides if this is a builtin action
@@ -414,7 +419,8 @@ function PromptsManager:showPromptsMenu()
 
                 -- Add open book indicator (for actions only available when reading)
                 -- Uses dynamic inference from flags, not just explicit requires_open_book
-                if Actions.requiresOpenBook(prompt) then
+                -- Skip for highlight context - highlights always require reading mode
+                if prompt.context ~= "highlight" and Actions.requiresOpenBook(prompt) then
                     item_text = item_text .. " [reading]"
                 end
 
@@ -833,6 +839,29 @@ function PromptsManager:showPromptDetails(prompt)
                             and _("Removed from gesture menu.\nRestart KOReader to apply.")
                             or _("Added to gesture menu.\nRestart KOReader to apply."),
                         timeout = 3,
+                    })
+                    self_ref:refreshMenu()
+                end,
+            },
+        })
+    end
+
+    -- Add "Add to Quick Actions" button for book context actions
+    -- Quick Actions menu only supports book actions (not highlight-only actions)
+    if prompt.context == "book" and prompt.enabled and self.plugin.action_service then
+        local in_quick_actions = self.plugin.action_service:isInQuickActions(prompt.id)
+        table.insert(buttons, {
+            {
+                text = in_quick_actions and _("✓ In Quick Actions") or _("Add to Quick Actions"),
+                callback = function()
+                    local self_ref = self
+                    self.plugin.action_service:toggleQuickAction(prompt.id)
+                    UIManager:close(self_ref.details_dialog)
+                    UIManager:show(InfoMessage:new{
+                        text = in_quick_actions
+                            and _("Removed from Quick Actions.")
+                            or _("Added to Quick Actions."),
+                        timeout = 2,
                     })
                     self_ref:refreshMenu()
                 end,

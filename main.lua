@@ -912,6 +912,15 @@ function AskGPT:onDispatcherRegisterActions()
     general = true,
   })
 
+  -- Quick Actions menu - reader mode only
+  Dispatcher:registerAction("koassistant_quick_actions", {
+    category = "none",
+    event = "KOAssistantQuickActions",
+    title = _("KOAssistant: Quick Actions"),
+    general = true,
+    reader = true,  -- Only available in reader mode
+  })
+
   Dispatcher:registerAction("koassistant_action_manager", {
     category = "none",
     event = "KOAssistantActionManager",
@@ -3681,206 +3690,359 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
   -- Flag to track if we're closing for a sub-dialog (vs true dismissal)
   local opening_subdialog = false
 
-  local dialog
-  dialog = ButtonDialog:new{
-    title = _("AI Quick Settings"),
-    buttons = {
-      -- Row 1: Provider | Model
+  -- Build buttons array first, then create dialog
+  local dialog  -- Forward declaration for callbacks
+  local buttons = {
+    -- Row 1: Provider | Model
+    {
       {
-        {
-          text = T(_("Provider: %1"), provider_display),
-          callback = function()
-            opening_subdialog = true
-            UIManager:close(dialog)
-            local menu_items = self_ref:buildProviderMenu(true)  -- simplified mode for quick access
-            self_ref:showQuickSettingsPopup(_("Provider"), menu_items, true, reopenQuickSettings)
-          end,
-        },
-        {
-          text = T(_("Model: %1"), model),
-          callback = function()
-            opening_subdialog = true
-            UIManager:close(dialog)
-            local menu_items = self_ref:buildModelMenu(true)  -- simplified mode for quick access
-            self_ref:showQuickSettingsPopup(_("Model"), menu_items, true, reopenQuickSettings)
-          end,
-        },
+        text = T(_("Provider: %1"), provider_display),
+        callback = function()
+          opening_subdialog = true
+          UIManager:close(dialog)
+          local menu_items = self_ref:buildProviderMenu(true)  -- simplified mode for quick access
+          self_ref:showQuickSettingsPopup(_("Provider"), menu_items, true, reopenQuickSettings)
+        end,
       },
-      -- Row 2: Behavior | Domain
       {
-        {
-          text = T(_("Behavior: %1"), behavior_display),
-          callback = function()
-            opening_subdialog = true
-            UIManager:close(dialog)
-            local menu_items = self_ref:buildBehaviorMenu()
-            self_ref:showQuickSettingsPopup(_("AI Behavior"), menu_items, true, reopenQuickSettings)
-          end,
-        },
-        {
-          text = T(_("Domain: %1"), domain_display),
-          callback = function()
-            opening_subdialog = true
-            UIManager:close(dialog)
-            local menu_items = self_ref:buildDomainMenu()
-            self_ref:showQuickSettingsPopup(_("Knowledge Domain"), menu_items, true, reopenQuickSettings)
-          end,
-        },
-      },
-      -- Row 3: Temperature | Streaming
-      {
-        {
-          text = T(_("Temp: %1"), string.format("%.1f", temp)),
-          callback = function()
-            opening_subdialog = true
-            UIManager:close(dialog)
-            local spin = SpinWidget:new{
-              value = temp,
-              value_min = 0,
-              value_max = 2,
-              value_step = 0.1,
-              precision = "%.1f",
-              ok_text = _("Set"),
-              title_text = _("Temperature"),
-              default_value = 0.7,
-              callback = function(spin_widget)
-                local f = self_ref.settings:readSetting("features") or {}
-                f.default_temperature = spin_widget.value
-                self_ref.settings:saveSetting("features", f)
-                self_ref.settings:flush()
-                self_ref:updateConfigFromSettings()
-                reopenQuickSettings()
-              end,
-            }
-            UIManager:show(spin)
-          end,
-        },
-        {
-          text = streaming and _("Streaming: ON") or _("Streaming: OFF"),
-          callback = function()
-            -- Toggle streaming directly
-            local f = self_ref.settings:readSetting("features") or {}
-            f.enable_streaming = f.enable_streaming == false
-            self_ref.settings:saveSetting("features", f)
-            self_ref.settings:flush()
-            self_ref:updateConfigFromSettings()
-            -- Reopen to show updated state
-            opening_subdialog = true
-            UIManager:close(dialog)
-            reopenQuickSettings()
-          end,
-        },
-      },
-      -- Row 4: Language | Translation
-      {
-        {
-          text = T(_("Language: %1"), lang_display),
-          callback = function()
-            opening_subdialog = true
-            UIManager:close(dialog)
-            local menu_items = self_ref:buildPrimaryLanguageMenu()
-            if #menu_items == 0 then
-              -- No languages configured, show info
-              local InfoMessage = require("ui/widget/infomessage")
-              UIManager:show(InfoMessage:new{
-                text = _("Configure your languages in Settings → Language first."),
-                timeout = 3,
-              })
-              reopenQuickSettings()
-            else
-              self_ref:showQuickSettingsPopup(_("Primary Language"), menu_items, true, reopenQuickSettings)
-            end
-          end,
-        },
-        {
-          text = T(_("Translate: %1"), trans_display),
-          callback = function()
-            opening_subdialog = true
-            UIManager:close(dialog)
-            local menu_items = self_ref:buildTranslationLanguageMenu()
-            self_ref:showQuickSettingsPopup(_("Translation Language"), menu_items, true, reopenQuickSettings)
-          end,
-        },
-      },
-      -- Row 5: Dictionary | Chat History
-      {
-        {
-          text = T(_("Dictionary: %1"), dict_display),
-          callback = function()
-            opening_subdialog = true
-            UIManager:close(dialog)
-            local menu_items = self_ref:buildDictionaryLanguageMenu()
-            self_ref:showQuickSettingsPopup(_("Dictionary Language"), menu_items, true, reopenQuickSettings)
-          end,
-        },
-        {
-          text = _("Chat History"),
-          callback = function()
-            opening_subdialog = true
-            UIManager:close(dialog)
-            -- Open chat history
-            self_ref:showChatHistory()
-          end,
-        },
-      },
-      -- Row 6: Highlight Bypass | Dictionary Bypass
-      {
-        {
-          text = highlight_bypass and _("H.Bypass: ON") or _("H.Bypass: OFF"),
-          callback = function()
-            local f = self_ref.settings:readSetting("features") or {}
-            f.highlight_bypass_enabled = not f.highlight_bypass_enabled
-            self_ref.settings:saveSetting("features", f)
-            self_ref.settings:flush()
-            self_ref:syncHighlightBypass()
-            opening_subdialog = true
-            UIManager:close(dialog)
-            reopenQuickSettings()
-          end,
-        },
-        {
-          text = dict_bypass and _("D.Bypass: ON") or _("D.Bypass: OFF"),
-          callback = function()
-            local f = self_ref.settings:readSetting("features") or {}
-            f.dictionary_bypass_enabled = not f.dictionary_bypass_enabled
-            self_ref.settings:saveSetting("features", f)
-            self_ref.settings:flush()
-            self_ref:syncDictionaryBypass()
-            opening_subdialog = true
-            UIManager:close(dialog)
-            reopenQuickSettings()
-          end,
-        },
-      },
-      -- Row 7: More Settings | Close
-      {
-        {
-          text = _("More Settings..."),
-          callback = function()
-            opening_subdialog = true
-            UIManager:close(dialog)
-            -- Open full settings menu
-            self_ref:onKOAssistantSettings()
-          end,
-        },
-        {
-          text = _("Close"),
-          callback = function()
-            opening_subdialog = true
-            UIManager:close(dialog)
-            if on_close_callback then
-              on_close_callback()
-            end
-          end,
-        },
+        text = T(_("Model: %1"), model),
+        callback = function()
+          opening_subdialog = true
+          UIManager:close(dialog)
+          local menu_items = self_ref:buildModelMenu(true)  -- simplified mode for quick access
+          self_ref:showQuickSettingsPopup(_("Model"), menu_items, true, reopenQuickSettings)
+        end,
       },
     },
+    -- Row 2: Behavior | Domain
+    {
+      {
+        text = T(_("Behavior: %1"), behavior_display),
+        callback = function()
+          opening_subdialog = true
+          UIManager:close(dialog)
+          local menu_items = self_ref:buildBehaviorMenu()
+          self_ref:showQuickSettingsPopup(_("AI Behavior"), menu_items, true, reopenQuickSettings)
+        end,
+      },
+      {
+        text = T(_("Domain: %1"), domain_display),
+        callback = function()
+          opening_subdialog = true
+          UIManager:close(dialog)
+          local menu_items = self_ref:buildDomainMenu()
+          self_ref:showQuickSettingsPopup(_("Knowledge Domain"), menu_items, true, reopenQuickSettings)
+        end,
+      },
+    },
+    -- Row 3: Temperature | Language
+    {
+      {
+        text = T(_("Temp: %1"), string.format("%.1f", temp)),
+        callback = function()
+          opening_subdialog = true
+          UIManager:close(dialog)
+          local spin = SpinWidget:new{
+            value = temp,
+            value_min = 0,
+            value_max = 2,
+            value_step = 0.1,
+            precision = "%.1f",
+            ok_text = _("Set"),
+            title_text = _("Temperature"),
+            default_value = 0.7,
+            callback = function(spin_widget)
+              local f = self_ref.settings:readSetting("features") or {}
+              f.default_temperature = spin_widget.value
+              self_ref.settings:saveSetting("features", f)
+              self_ref.settings:flush()
+              self_ref:updateConfigFromSettings()
+              reopenQuickSettings()
+            end,
+          }
+          UIManager:show(spin)
+        end,
+      },
+      {
+        text = T(_("Language: %1"), lang_display),
+        callback = function()
+          opening_subdialog = true
+          UIManager:close(dialog)
+          local menu_items = self_ref:buildPrimaryLanguageMenu()
+          if #menu_items == 0 then
+            -- No languages configured, show info
+            local InfoMessage = require("ui/widget/infomessage")
+            UIManager:show(InfoMessage:new{
+              text = _("Configure your languages in Settings → Language first."),
+              timeout = 3,
+            })
+            reopenQuickSettings()
+          else
+            self_ref:showQuickSettingsPopup(_("Primary Language"), menu_items, true, reopenQuickSettings)
+          end
+        end,
+      },
+    },
+    -- Row 4: Translate | Dictionary
+    {
+      {
+        text = T(_("Translate: %1"), trans_display),
+        callback = function()
+          opening_subdialog = true
+          UIManager:close(dialog)
+          local menu_items = self_ref:buildTranslationLanguageMenu()
+          self_ref:showQuickSettingsPopup(_("Translation Language"), menu_items, true, reopenQuickSettings)
+        end,
+      },
+      {
+        text = T(_("Dictionary: %1"), dict_display),
+        callback = function()
+          opening_subdialog = true
+          UIManager:close(dialog)
+          local menu_items = self_ref:buildDictionaryLanguageMenu()
+          self_ref:showQuickSettingsPopup(_("Dictionary Language"), menu_items, true, reopenQuickSettings)
+        end,
+      },
+    },
+    -- Row 5: Highlight Bypass | Dictionary Bypass
+    {
+      {
+        text = highlight_bypass and _("H.Bypass: ON") or _("H.Bypass: OFF"),
+        callback = function()
+          local f = self_ref.settings:readSetting("features") or {}
+          f.highlight_bypass_enabled = not f.highlight_bypass_enabled
+          self_ref.settings:saveSetting("features", f)
+          self_ref.settings:flush()
+          self_ref:syncHighlightBypass()
+          opening_subdialog = true
+          UIManager:close(dialog)
+          reopenQuickSettings()
+        end,
+      },
+      {
+        text = dict_bypass and _("D.Bypass: ON") or _("D.Bypass: OFF"),
+        callback = function()
+          local f = self_ref.settings:readSetting("features") or {}
+          f.dictionary_bypass_enabled = not f.dictionary_bypass_enabled
+          self_ref.settings:saveSetting("features", f)
+          self_ref.settings:flush()
+          self_ref:syncDictionaryBypass()
+          opening_subdialog = true
+          UIManager:close(dialog)
+          reopenQuickSettings()
+        end,
+      },
+    },
+    -- Row 6: Chat History | Browse Notebooks
+    {
+      {
+        text = _("Chat History"),
+        callback = function()
+          opening_subdialog = true
+          UIManager:close(dialog)
+          self_ref:showChatHistory()
+        end,
+      },
+      {
+        text = _("Browse Notebooks"),
+        callback = function()
+          opening_subdialog = true
+          UIManager:close(dialog)
+          self_ref:onKOAssistantBrowseNotebooks()
+        end,
+      },
+    },
+  }
+
+  -- Add last row(s) based on whether we're in reader mode
+  local has_document = self.ui and self.ui.document
+  if has_document then
+    -- Reader mode: Quick Actions | More Settings
+    table.insert(buttons, {
+      {
+        text = _("Quick Actions..."),
+        callback = function()
+          opening_subdialog = true
+          UIManager:close(dialog)
+          self_ref:onKOAssistantQuickActions()
+        end,
+      },
+      {
+        text = _("More Settings..."),
+        callback = function()
+          opening_subdialog = true
+          UIManager:close(dialog)
+          self_ref:onKOAssistantSettings()
+        end,
+      },
+    })
+    -- Close button on separate row
+    table.insert(buttons, {
+      {
+        text = _("Close"),
+        callback = function()
+          opening_subdialog = true
+          UIManager:close(dialog)
+          if on_close_callback then
+            on_close_callback()
+          end
+        end,
+      },
+    })
+  else
+    -- File browser mode: More Settings | Close
+    table.insert(buttons, {
+      {
+        text = _("More Settings..."),
+        callback = function()
+          opening_subdialog = true
+          UIManager:close(dialog)
+          self_ref:onKOAssistantSettings()
+        end,
+      },
+      {
+        text = _("Close"),
+        callback = function()
+          opening_subdialog = true
+          UIManager:close(dialog)
+          if on_close_callback then
+            on_close_callback()
+          end
+        end,
+      },
+    })
+  end
+
+  dialog = ButtonDialog:new{
+    title = _("AI Quick Settings"),
+    buttons = buttons,
     -- Handle all forms of dismissal (back button, tap outside, etc.)
     close_callback = function()
       if not opening_subdialog and on_close_callback then
         on_close_callback()
       end
     end,
+  }
+
+  UIManager:show(dialog)
+  return true
+end
+
+-- Quick Actions menu - launch reading-related actions quickly
+-- Available only in reader mode (when a book is open)
+function AskGPT:onKOAssistantQuickActions()
+  local ButtonDialog = require("ui/widget/buttondialog")
+  local self_ref = self
+
+  -- Only available in reader mode
+  if not self.ui or not self.ui.document then
+    UIManager:show(InfoMessage:new{
+      icon = "notice-warning",
+      text = _("Quick Actions is only available while reading a book."),
+    })
+    return true
+  end
+
+  local dialog
+  local buttons = {}
+  local row = {}
+
+  -- Helper to add a button to current row, flush row when full
+  local function addButton(btn)
+    table.insert(row, btn)
+    if #row == 2 then
+      table.insert(buttons, row)
+      row = {}
+    end
+  end
+
+  -- 1. Book actions from unified quick actions list (built-in defaults + user-added)
+  local quick_action_ids = self.action_service:getQuickActions()
+  for _, action_id in ipairs(quick_action_ids) do
+    local action = self.action_service:getAction("book", action_id)
+    if action and action.enabled ~= false then
+      addButton({
+        text = action.text,
+        callback = function()
+          UIManager:close(dialog)
+          self_ref:executeBookLevelAction(action_id)
+        end,
+      })
+    end
+  end
+
+  -- 2. Hardcoded utilities (special features, not actions)
+  addButton({
+    text = _("Translate Page"),
+    callback = function()
+      UIManager:close(dialog)
+      self_ref:onKOAssistantTranslatePage()
+    end,
+  })
+
+  addButton({
+    text = _("View Notebook"),
+    callback = function()
+      UIManager:close(dialog)
+      self_ref:onKOAssistantViewNotebook()
+    end,
+  })
+
+  addButton({
+    text = _("Edit Notebook"),
+    callback = function()
+      UIManager:close(dialog)
+      self_ref:onKOAssistantEditNotebook()
+    end,
+  })
+
+  addButton({
+    text = _("Chat History"),
+    callback = function()
+      UIManager:close(dialog)
+      self_ref:onKOAssistantChatHistory()
+    end,
+  })
+
+  addButton({
+    text = _("Continue Last Chat"),
+    callback = function()
+      UIManager:close(dialog)
+      self_ref:onKOAssistantContinueLastOpened()
+    end,
+  })
+
+  addButton({
+    text = _("New Chat About Book"),
+    callback = function()
+      UIManager:close(dialog)
+      self_ref:onKOAssistantBookChat()
+    end,
+  })
+
+  -- Add Close button - pair with last row if it has only 1 item, otherwise new row
+  local close_btn = {
+    text = _("Close"),
+    callback = function()
+      UIManager:close(dialog)
+    end,
+  }
+  if #row == 1 then
+    -- Last row has one item, pair Close with it
+    table.insert(row, close_btn)
+    table.insert(buttons, row)
+  else
+    -- Flush remaining buttons in row (if any)
+    if #row > 0 then
+      table.insert(buttons, row)
+    end
+    -- Add Close on its own row
+    table.insert(buttons, { close_btn })
+  end
+
+  dialog = ButtonDialog:new{
+    title = _("Quick Actions"),
+    buttons = buttons,
   }
   UIManager:show(dialog)
   return true

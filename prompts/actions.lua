@@ -331,6 +331,7 @@ If you don't recognize this work or the content seems unclear, tell me honestly 
         },
         builtin = true,
         in_reading_features = 1,  -- Appears in Reading Features menu + default gesture
+        in_quick_actions = 1,     -- Appears in Quick Actions menu
     },
     -- Recap: Story summary for re-immersion
     recap = {
@@ -379,6 +380,7 @@ If you don't recognize this work or the title/content seems unclear, tell me hon
         },
         builtin = true,
         in_reading_features = 2,  -- Appears in Reading Features menu + default gesture
+        in_quick_actions = 2,     -- Appears in Quick Actions menu
     },
     -- Analyze Highlights: Insights from user's annotations and notebook
     analyze_highlights = {
@@ -433,6 +435,7 @@ If you don't recognize this work or the highlights seem insufficient for meaning
         },
         builtin = true,
         in_reading_features = 3,  -- Appears in Reading Features menu + default gesture
+        in_quick_actions = 3,     -- Appears in Quick Actions menu
     },
     -- Related Thinkers: Intellectual landscape and influences
     related_thinkers = {

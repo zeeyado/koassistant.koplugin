@@ -151,23 +151,40 @@ Find KOAssistant Settings in: **Tools → Page 2 → KOAssistant**
 
 Assign KOAssistant actions to gestures for easy access. Go to **Settings → Gesture Manager**, pick a gesture (e.g. tap corner, multiswipe), then select **General** to find KOAssistant options.
 
-**Recommended: AI Quick Settings on a gesture**
+**Recommended: Two Quick Access Panels**
+
+KOAssistant provides two distinct quick-access panels for different purposes:
+
+**1. AI Quick Settings** (available everywhere)
 Assign "KOAssistant: AI Quick Settings" to a gesture for one-tap access to a two-column settings panel with commonly used options:
 - **Provider & Model** — Quick switching between AI providers and models
 - **Behavior & Domain** — Change communication style and knowledge context
-- **Temperature & Streaming** — Adjust creativity level and toggle real-time responses
-- **Language & Translation** — Primary response language and translation target
-- **Dictionary & Chat History** — Dictionary language settings and quick access to saved chats
+- **Temperature & Language** — Adjust creativity level and primary response language
+- **Translate & Dictionary** — Translation and dictionary language settings
 - **Highlight Bypass & Dictionary Bypass** — Toggle bypass modes on/off
+- **Chat History & Browse Notebooks** — Quick access to saved chats and notebooks
 
-**Alternative: Build a QuickMenu**
-Assign multiple KOAssistant actions to one gesture and enable **"Show as QuickMenu"** to get a selection menu:
+When in reader mode, this panel also shows a "Quick Actions..." link to the Quick Actions menu.
+
+**2. Quick Actions** (reader mode only)
+Assign "KOAssistant: Quick Actions" to a gesture for fast access to reading-related actions:
+- **Book actions** — X-Ray, Recap, Analyze Highlights (configurable via Action Manager)
+- **Utilities** — Translate Page, View/Edit Notebook, Chat History, Continue Last Chat, New Chat About Book
+
+You can add any book action to Quick Actions via **Action Manager → hold action → "Add to Quick Actions"**. Built-in actions can also be removed from Quick Actions using the same toggle.
+
+> **Tip**: For quick access, assign AI Quick Settings and Quick Actions to their own gestures (e.g., two-finger tap, corner tap). This gives you one-tap access to these panels from anywhere. Alternatively, you can add them to a KOReader QuickMenu alongside other actions (see below).
+
+**Alternative: Build a KOReader QuickMenu**
+For full customization, assign multiple KOAssistant actions to one gesture and enable **"Show as QuickMenu"** to get a selection menu with any actions you want, in any order, mixed with non-KOAssistant actions:
 - Chat History, Continue Last Chat, General Chat, Chat About Book
 - Toggle Dictionary Bypass, Toggle Highlight Bypass
 - Translate Current Page, Settings, etc.
 
+Unlike KOAssistant's built-in panels (AI Quick Settings, Quick Actions) which show two buttons per row, KOReader's QuickMenu shows one button per row but allows mixing KOAssistant actions with any other KOReader actions.
+
 **Direct gesture assignments**
-You can also assign individual actions directly to their own gestures for instant access:
+You can also assign individual actions directly to their own gestures for instant one-tap access:
 - "Translate Current Page" on a multiswipe for instant page translation
 - "Toggle Dictionary Bypass" on a tap corner if you frequently switch modes
 - "Continue Last Chat" for quickly resuming conversations
@@ -187,6 +204,7 @@ After basic setup, explore these features to get the most out of KOAssistant:
 | **[Behaviors](#behaviors)** | Control response style (concise, detailed, custom) | Settings → Advanced → Manage Behaviors |
 | **[Domains](#domains)** | Add project-like context to conversations | Settings → Advanced → Manage Domains |
 | **[Actions](#actions)** | Create your own prompts and workflows | Settings → Manage Actions |
+| **Quick Actions** | Fast access to reading actions while in a book | Gesture → "KOAssistant: Quick Actions" |
 | **[Highlight Menu](#highlight-menu-actions)** | Add actions directly to highlight popup | Manage Actions → Add to Highlight Menu |
 | **[Dictionary Integration](#dictionary-integration)** | AI-powered word lookups when selecting single words | Settings → Dictionary Settings |
 | **[Bypass Modes](#bypass-modes)** | Instant AI actions without menus | Settings → Dictionary/Highlight Settings |
@@ -280,7 +298,7 @@ You can customize these, create your own, or disable ones you don't use. See [Ac
 
 **What the AI sees**: Your highlighted text, plus Document metadata (title, author, identifiers from file properties)
 
-**Save to Note**: After getting an AI response, tap the **Note** button to save it directly as a KOReader highlight note attached to your selected text. See [Save to Note](#save-to-note) for details.
+**Save to Note**: After getting an AI response, tap the **H.Note** button to save it directly as a KOReader highlight note attached to your selected text. See [Save to Note](#save-to-note) for details.
 
 > **Tip**: Add frequently-used actions to the highlight menu (Settings → Menu Customization → Highlight Menu) for quick access. Other enabled highlight actions remain available from the main "KOAssistant" entry in the highlight popup. From that input window, you can also add extra instructions to any action (e.g., "esp. the economic implications" or "in simple terms").
 
@@ -341,19 +359,19 @@ A free-form conversation without specific document context. If started while a b
 - **Settings Icon (Input)**: Tap the gear icon in the input dialog title bar to open **AI Quick Settings**—a streamlined two-column panel providing quick access to frequently-changed settings without navigating through the full settings menu. See [Recommended Setup](#recommended-setup) for details on what's available in this panel.
 - **Settings Icon (Viewer)**: Tap the gear icon in the chat viewer title bar to adjust font size and text alignment (cycles left/justified/right on each click)
 - **Show/Hide Quote**: In the chat viewer, toggle button to show or hide the highlighted text quote (useful for long selections)
-- **Save to Note**: For highlight context chats, save the AI response directly as a note attached to your highlighted text (see [Save to Note](#save-to-note) below)
+- **Save to Note**: For highlight context chats, tap the **H.Note** button to save the AI response directly as a note attached to your highlighted text (see [Save to Note](#save-to-note) below)
 - **Other**: Turn on off Text/Markdown view, Debug view mode, add Tags, Change Domain, etc
 
 ### Save to Note
 
 **Save AI responses directly to your KOReader highlights.**
 
-When working with highlighted text, the **Note** button lets you save the AI response as a native KOReader note attached to that highlight. This integrates AI explanations, translations, and analysis directly into your reading annotations.
+When working with highlighted text, the **H.Note** button lets you save the AI response as a native KOReader note attached to that highlight. This integrates AI explanations, translations, and analysis directly into your reading annotations.
 
 **How it works:**
 1. Highlight text and use any KOAssistant action (Explain, Translate, etc.)
 2. Review the AI response in the chat viewer
-3. Tap the **Note** button (appears between Copy and #)
+3. Tap the **H.Note** button (appears between Copy and Add to Notebook)
 4. KOReader's Edit Note dialog opens with the response pre-filled
 5. Edit if desired, then save — the highlight is created with your note attached
 
@@ -371,7 +389,7 @@ When working with highlighted text, the **Note** button lets you save the AI res
 - Build a glossary of term definitions within your book
 - Annotate with AI-generated insights that become part of your reading notes
 
-**Note:** The Note button only appears for highlight context chats (where you've selected text). It's not available for book, multi-book, or general chat contexts.
+**Note:** The H.Note button only appears for highlight context chats (where you've selected text). It's not available for book, multi-book, or general chat contexts.
 
 ---
 
@@ -850,12 +868,12 @@ This extracts all text from the visible page/screen and sends it to the Translat
 All translation actions (Highlight Bypass with Translate, Translate Current Page, highlight menu Translate) use a specialized **Translate View** — a minimal UI focused on translations.
 
 **Button layout:**
-- **Row 1:** MD/Text (toggle markdown), Copy, Note (when highlighting)
+- **Row 1:** MD/Text (toggle markdown), Copy, H.Note (when highlighting)
 - **Row 2:** → Chat (expand to full chat), Show/Hide Original, Lang, Close
 
 **Key features:**
 - **Lang button** — re-run translation with a different target language (picks from your configured languages)
-- **Note button** — save translation directly to a highlight note (closes translate view after save)
+- **H.Note button** — save translation directly to a highlight note (closes translate view after save)
 - **Auto-save disabled** by default (translations are ephemeral like dictionary lookups)
 - **Copy/Note Content** options — choose what to include: full, question + response, or translation only
 - **Configurable original text visibility** — follow global setting, always hide, hide long text, or never hide
@@ -1014,7 +1032,7 @@ You can include notebook content in your custom actions using the `{notebook}` p
 
 **Saving to a notebook:**
 1. Have a conversation with the AI about your book
-2. Tap the **NB** button in the chat viewer toolbar
+2. Tap the **Add to Notebook** button in the chat viewer toolbar
 3. The response (with context) is appended to the book's notebook
 
 **What gets saved** (Settings → Notebooks → Content Format):

@@ -843,7 +843,7 @@ function ChatGPTViewer:init()
       hold_callback = self.default_hold_callback,
     },
     {
-      text = _("Note"),
+      text = _("H.Note"),
       id = "save_to_note",
       enabled = self.selection_data ~= nil,
       callback = function()
@@ -857,7 +857,7 @@ function ChatGPTViewer:init()
       end,
     },
     {
-      text = "NB",
+      text = _("Add to Notebook"),
       id = "save_to_notebook",
       enabled = self.configuration and self.configuration.document_path
                 and self.configuration.document_path ~= "__GENERAL_CHATS__"
@@ -1431,10 +1431,10 @@ function ChatGPTViewer:init()
     hold_callback = self.default_hold_callback,
   })
 
-  -- Translate Row 1: Note button (only if selection_data available)
+  -- Translate Row 1: H.Note button (only if selection_data available)
   if self.selection_data then
     table.insert(translate_button_row1, {
-      text = _("Note"),
+      text = _("H.Note"),
       id = "save_to_note",
       callback = function()
         self:saveToNote()

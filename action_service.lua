@@ -1001,6 +1001,164 @@ function ActionService:getReadingFeaturesActions()
 end
 
 -- ============================================================
+-- Quick Actions Menu Support
+-- ============================================================
+
+-- Build default quick actions list from in_quick_actions flag (book context)
+local function buildQuickActionsDefaults(actions_module)
+    local result = {}
+    if not actions_module or not actions_module.book then return result end
+    for _id, action in pairs(actions_module.book) do
+        if action.in_quick_actions then
+            table.insert(result, { id = action.id, order = action.in_quick_actions })
+        end
+    end
+    table.sort(result, function(a, b) return a.order < b.order end)
+    local ids = {}
+    for _i, item in ipairs(result) do
+        table.insert(ids, item.id)
+    end
+    return ids
+end
+
+-- Process a saved quick actions list: prune stale IDs and inject new flagged defaults
+local function processQuickActionsList(service, saved, dismissed_key)
+    local dismissed = service.settings:readSetting(dismissed_key) or {}
+    local dismissed_set = {}
+    for _i, id in ipairs(dismissed) do dismissed_set[id] = true end
+
+    -- Prune stale IDs (actions that no longer exist)
+    local pruned = {}
+    for _i, id in ipairs(saved) do
+        if service:getAction("book", id) then
+            table.insert(pruned, id)
+        end
+    end
+
+    -- Build set of current IDs for quick lookup
+    local current_set = {}
+    for _i, id in ipairs(pruned) do current_set[id] = true end
+
+    -- Inject new flagged defaults not in list and not dismissed
+    local defaults = buildQuickActionsDefaults(service.Actions)
+    for _i, id in ipairs(defaults) do
+        if not current_set[id] and not dismissed_set[id] then
+            local action = service:getAction("book", id)
+            local pos = action and action.in_quick_actions or (#pruned + 1)
+            pos = math.min(pos, #pruned + 1)
+            table.insert(pruned, pos, id)
+            current_set[id] = true
+        end
+    end
+
+    return pruned
+end
+
+-- Get ordered list of quick action IDs
+-- Returns array of action IDs (strings), includes both built-in defaults and user-added
+-- All actions are sorted alphabetically by their display text
+function ActionService:getQuickActions()
+    local saved = self.settings:readSetting("quick_actions_list")
+    if not saved then
+        -- No saved list yet, build defaults and sort alphabetically
+        local defaults = buildQuickActionsDefaults(self.Actions)
+        local with_text = {}
+        for _i, id in ipairs(defaults) do
+            local action = self:getAction("book", id)
+            table.insert(with_text, { id = id, text = action and action.text or id })
+        end
+        table.sort(with_text, function(a, b) return (a.text or ""):lower() < (b.text or ""):lower() end)
+        local result = {}
+        for _i, item in ipairs(with_text) do table.insert(result, item.id) end
+        return result
+    end
+    local processed = processQuickActionsList(self, saved, "_dismissed_quick_actions")
+    -- Always save processed list (handles prune and inject)
+    self.settings:saveSetting("quick_actions_list", processed)
+
+    -- Build list with text for sorting
+    local with_text = {}
+    for _i, id in ipairs(processed) do
+        local action = self:getAction("book", id)
+        if action then
+            table.insert(with_text, { id = id, text = action.text or id })
+        end
+    end
+
+    -- Sort all actions alphabetically by display text
+    table.sort(with_text, function(a, b) return (a.text or ""):lower() < (b.text or ""):lower() end)
+
+    local result = {}
+    for _i, item in ipairs(with_text) do table.insert(result, item.id) end
+    return result
+end
+
+-- Check if action is in quick actions
+function ActionService:isInQuickActions(action_id)
+    local actions = self:getQuickActions()
+    for _i, id in ipairs(actions) do
+        if id == action_id then
+            return true
+        end
+    end
+    return false
+end
+
+-- Add action to quick actions (appends to end)
+function ActionService:addToQuickActions(action_id)
+    local actions = self:getQuickActions()
+    -- Don't add duplicates
+    if not self:isInQuickActions(action_id) then
+        table.insert(actions, action_id)
+        self.settings:saveSetting("quick_actions_list", actions)
+        -- Remove from dismissed list if present
+        local dismissed = self.settings:readSetting("_dismissed_quick_actions") or {}
+        for i, id in ipairs(dismissed) do
+            if id == action_id then
+                table.remove(dismissed, i)
+                self.settings:saveSetting("_dismissed_quick_actions", dismissed)
+                break
+            end
+        end
+        self.settings:flush()
+    end
+end
+
+-- Remove action from quick actions
+function ActionService:removeFromQuickActions(action_id)
+    local actions = self:getQuickActions()
+    for i, id in ipairs(actions) do
+        if id == action_id then
+            table.remove(actions, i)
+            self.settings:saveSetting("quick_actions_list", actions)
+            -- Add to dismissed list so it won't be auto-injected again
+            local dismissed = self.settings:readSetting("_dismissed_quick_actions") or {}
+            table.insert(dismissed, action_id)
+            self.settings:saveSetting("_dismissed_quick_actions", dismissed)
+            self.settings:flush()
+            return
+        end
+    end
+end
+
+-- Toggle action inclusion in quick actions
+-- Returns: true if now in quick actions, false if removed
+function ActionService:toggleQuickAction(action_id)
+    if self:isInQuickActions(action_id) then
+        self:removeFromQuickActions(action_id)
+        return false
+    else
+        self:addToQuickActions(action_id)
+        return true
+    end
+end
+
+-- Legacy method for backwards compatibility - now just calls getQuickActions
+function ActionService:getUserQuickActions()
+    return self:getQuickActions()
+end
+
+-- ============================================================
 -- Action Duplication
 -- ============================================================
 
