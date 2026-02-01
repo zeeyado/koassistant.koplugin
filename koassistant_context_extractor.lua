@@ -109,11 +109,12 @@ function ContextExtractor:isBookTextExtractionEnabled()
 end
 
 --- Get book text up to current reading position.
--- @param options table { max_chars = 100000, max_pages = 250 }
--- @return table { text = "...", truncated = bool, char_count = number, disabled = bool }
+-- @param options table { max_chars = 250000, max_pages = 250 }
+-- @return table { text, truncated, char_count, disabled, coverage_start, coverage_end }
+--   coverage_start/coverage_end are percentages (0-100) when truncated, nil otherwise
 function ContextExtractor:getBookText(options)
     options = options or {}
-    local max_chars = options.max_chars or self.settings.max_book_text_chars or 100000
+    local max_chars = options.max_chars or self.settings.max_book_text_chars or 250000
     local max_pages = options.max_pages or self.settings.max_pdf_pages or 250
 
     logger.info("ContextExtractor:getBookText called, enable_book_text_extraction=",
@@ -124,6 +125,8 @@ function ContextExtractor:getBookText(options)
         truncated = false,
         char_count = 0,
         disabled = false,
+        coverage_start = nil,  -- Percentage where extracted text starts (when truncated)
+        coverage_end = nil,    -- Percentage where extracted text ends (current progress)
     }
 
     -- Check global gate - if disabled, return empty
@@ -138,6 +141,9 @@ function ContextExtractor:getBookText(options)
     end
 
     local book_text = ""
+
+    -- Get progress BEFORE navigation (EPUB extraction temporarily moves position)
+    local saved_progress = self:getReadingProgress()
 
     if not self.ui.document.info.has_pages then
         -- EPUB/flowing document: use XPointers
@@ -197,10 +203,26 @@ function ContextExtractor:getBookText(options)
         end
     end
 
-    -- Truncate if needed (keep most recent content, add notice)
-    if #book_text > max_chars then
-        book_text = "[Earlier content truncated for length]\n\n" .. book_text:sub(-max_chars)
+    -- Truncate if needed (keep most recent content, add notice with coverage)
+    local original_length = #book_text
+    if original_length > max_chars then
+        -- Use saved_progress (captured before EPUB navigation that can affect position)
+        local kept_ratio = max_chars / original_length
+        -- coverage_start/end as decimals (0.0-1.0)
+        local coverage_start_dec = saved_progress.decimal * (1 - kept_ratio)
+        local coverage_end_dec = saved_progress.decimal
+        -- Convert to percent for display (avoid 0%-0% for low progress)
+        local coverage_start = math.max(0, math.floor(coverage_start_dec * 100))
+        local coverage_end = math.max(1, math.ceil(coverage_end_dec * 100)) -- At least 1%
+
         result.truncated = true
+        result.coverage_start = coverage_start
+        result.coverage_end = coverage_end
+
+        local notice = string.format(
+            "[Book text covers ~%d%%-%d%%. Earlier content truncated due to extraction limit.]",
+            coverage_start, coverage_end)
+        book_text = notice .. "\n\n" .. book_text:sub(-max_chars)
     end
 
     result.text = book_text
@@ -213,11 +235,12 @@ end
 -- Used to extract only the "delta" of new content since a cached position.
 -- @param from_progress number Start position as decimal (0.0-1.0)
 -- @param to_progress number End position as decimal (0.0-1.0)
--- @param options table { max_chars = 100000, max_pages = 250 }
--- @return table { text = "...", truncated = bool, char_count = number, disabled = bool }
+-- @param options table { max_chars = 250000, max_pages = 250 }
+-- @return table { text, truncated, char_count, disabled, coverage_start, coverage_end }
+--   coverage_start/coverage_end are percentages (0-100) when truncated, nil otherwise
 function ContextExtractor:getBookTextRange(from_progress, to_progress, options)
     options = options or {}
-    local max_chars = options.max_chars or self.settings.max_book_text_chars or 100000
+    local max_chars = options.max_chars or self.settings.max_book_text_chars or 250000
     local max_pages = options.max_pages or self.settings.max_pdf_pages or 250
 
     logger.info("ContextExtractor:getBookTextRange called, from=", from_progress, "to=", to_progress)
@@ -227,6 +250,8 @@ function ContextExtractor:getBookTextRange(from_progress, to_progress, options)
         truncated = false,
         char_count = 0,
         disabled = false,
+        coverage_start = nil,  -- Percentage where extracted text starts (when truncated)
+        coverage_end = nil,    -- Percentage where extracted text ends
     }
 
     -- Validate inputs
@@ -329,10 +354,25 @@ function ContextExtractor:getBookTextRange(from_progress, to_progress, options)
         end
     end
 
-    -- Truncate if needed (keep most recent content)
-    if #book_text > max_chars then
-        book_text = "[Earlier content truncated for length]\n\n" .. book_text:sub(-max_chars)
+    -- Truncate if needed (keep most recent content, add notice with coverage)
+    local original_length = #book_text
+    if original_length > max_chars then
+        -- Calculate coverage: we have from_progress to to_progress, but only kept a portion
+        local kept_ratio = max_chars / original_length
+        local range_size = to_progress - from_progress
+        -- Calculate decimals first, then convert with proper rounding
+        local coverage_start_dec = from_progress + range_size * (1 - kept_ratio)
+        local coverage_start = math.max(0, math.floor(coverage_start_dec * 100))
+        local coverage_end = math.max(1, math.ceil(to_progress * 100)) -- At least 1%
+
         result.truncated = true
+        result.coverage_start = coverage_start
+        result.coverage_end = coverage_end
+
+        local notice = string.format(
+            "[New content covers ~%d%%-%d%%. Earlier portion truncated due to extraction limit.]",
+            coverage_start, coverage_end)
+        book_text = notice .. "\n\n" .. book_text:sub(-max_chars)
     end
 
     result.text = book_text
@@ -627,8 +667,14 @@ function ContextExtractor:extractForAction(action)
         if action.max_book_text_chars then
             options.max_chars = action.max_book_text_chars
         end
-        local book_text = self:getBookText(options)
-        data.book_text = book_text.text
+        local book_text_result = self:getBookText(options)
+        data.book_text = book_text_result.text
+        -- Pass truncation metadata for UI notifications
+        if book_text_result.truncated then
+            data.book_text_truncated = true
+            data.book_text_coverage_start = book_text_result.coverage_start
+            data.book_text_coverage_end = book_text_result.coverage_end
+        end
     end
 
     return data
