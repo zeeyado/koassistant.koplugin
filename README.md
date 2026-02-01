@@ -149,7 +149,19 @@ Find KOAssistant Settings in: **Tools → Page 2 → KOAssistant**
 
 ## Recommended Setup
 
-> **Tip**: Edit built in actions to always use the provider/model of your choice (regardless of your main settings); e.g. Dictionary actions would benefit from a lighter model for speed.
+### Getting Started Checklist
+
+After setting up your API key, complete these steps for the best experience:
+
+- [ ] **Assign AI Quick Settings to a gesture** — One-tap access to provider, model, behavior, and more (Settings → Gesture Manager → General → KOAssistant: AI Quick Settings)
+- [ ] **Assign Quick Actions to a gesture** — Fast access to X-Ray, Recap, and other reading actions (reader mode only)
+- [ ] **Explore the highlight menu** — Translate and Explain are included by default; add more via Manage Actions → hold action → "Add to Highlight Menu"
+- [ ] **Try Dictionary Bypass** — Single-word selections go straight to AI dictionary (Settings → Dictionary Settings → Bypass KOReader Dictionary)
+- [ ] **Try Highlight Bypass** — Multi-word selections trigger instant translation (Settings → Highlight Settings → Enable Highlight Bypass)
+- [ ] **Set your languages** — Configure response languages with native script pickers (Settings → AI Language Settings)
+- [ ] **Add custom actions to gestures** — Any book/general action can become a gesture (Manage Actions → hold → "Add to Gesture Menu", requires restart)
+
+> **Tip**: Edit built-in actions to always use the provider/model of your choice (regardless of your main settings); e.g. Dictionary actions benefit from a lighter model for speed.
 
 ### Configure Quick Access Gestures
 
@@ -209,7 +221,7 @@ After basic setup, explore these features to get the most out of KOAssistant:
 | **[Domains](#domains)** | Add project-like context to conversations | Settings → Actions & Prompts → Manage Domains |
 | **[Actions](#actions)** | Create your own prompts and workflows | Settings → Actions & Prompts → Manage Actions |
 | **Quick Actions** | Fast access to reading actions while in a book | Gesture → "KOAssistant: Quick Actions" |
-| **[Highlight Menu](#highlight-menu-actions)** | Add actions directly to highlight popup | Manage Actions → Add to Highlight Menu |
+| **[Highlight Menu](#highlight-menu-actions)** | Actions in highlight popup (2 defaults: Translate, Explain) | Manage Actions → Add to Highlight Menu |
 | **[Dictionary Integration](#dictionary-integration)** | AI-powered word lookups when selecting single words | Settings → Dictionary Settings |
 | **[Bypass Modes](#bypass-modes)** | Instant AI actions without menus | Settings → Dictionary/Highlight Settings |
 | **Reasoning/Thinking** | Enable deep analysis for complex questions | Settings → Advanced → Reasoning |
@@ -682,18 +694,26 @@ See `custom_actions.lua.sample` for more examples.
 
 ### Highlight Menu Actions
 
-Add frequently-used highlight actions directly to KOReader's highlight popup for faster access:
+Add frequently-used highlight actions directly to KOReader's highlight popup for faster access.
 
+**Default actions** (included automatically):
+1. **Translate** — Instant translation of selected text
+2. **Explain** — Get an explanation of the passage
+
+**Other built-in actions you can add**: ELI5, Summarize, Elaborate, Connect, Connect (With Notes), Dictionary, Quick Define, Deep Analysis
+
+**Adding more actions**:
 1. Go to **Manage Actions**
-2. Tap on a highlight-context action (Explain, Translate, etc.)
+2. Hold any highlight-context action
 3. Tap **"Add to Highlight Menu"**
 4. A notification reminds you to restart KOReader
 
 Actions appear as "KOA: Explain", "KOA: Translate", etc. in the highlight popup.
 
-**Managing quick actions**:
-- Use **Settings → Highlight Settings → Highlight Menu Actions** to view all enabled quick actions
+**Managing actions**:
+- Use **Settings → Highlight Settings → Highlight Menu Actions** to view all enabled actions
 - Tap an action to move it up/down or remove it
+- Default actions can be removed (they won't auto-reappear)
 - Actions requiring user input (like "Ask") cannot be added
 
 **Note**: Changes require an app restart since the highlight menu is built at startup.
@@ -712,8 +732,15 @@ KOAssistant integrates with KOReader's dictionary system, providing AI-powered w
 
 When you select a word in a document, KOReader normally shows its dictionary popup. With KOAssistant's dictionary integration, you can:
 
-1. **Add AI actions to the dictionary popup** - Tap the "AI Dictionary" button to access a menu of AI-powered word analysis options (3 actions included by default)
-2. **Bypass the dictionary entirely** - Skip KOReader's dictionary and go directly to AI for word lookups
+1. **Add AI actions to the dictionary popup** — Tap the "AI Dictionary" button to access a menu of AI-powered word analysis options
+2. **Bypass the dictionary entirely** — Skip KOReader's dictionary and go directly to AI for word lookups
+
+**Default dictionary popup actions** (3 included):
+1. **Dictionary** — Standard definition with etymology and usage
+2. **Quick Define** — Brief, concise definition
+3. **Deep Analysis** — Comprehensive linguistic analysis
+
+You can add other highlight actions to this menu via **Manage Actions → hold action → "Add to Dictionary Popup"**.
 
 ### Dictionary Settings
 
@@ -903,6 +930,57 @@ Actions with gestures show a `[gesture]` indicator in the Action Manager list.
 **Why only book and general?** Highlight actions require selected text, and multi-book actions require file browser multi-select — neither can be triggered via gestures.
 
 **Note:** Changes require restart because KOReader's gesture system loads available actions at startup.
+
+### Available Gesture Actions
+
+All KOAssistant gesture actions are in **Settings → Gesture Manager → General**:
+
+**Quick Access Panels:**
+- KOAssistant: AI Quick Settings — Two-column settings panel
+- KOAssistant: Quick Actions — Reading actions panel (reader mode only)
+
+**Chat & History:**
+- KOAssistant: Chat History — Browse all saved chats
+- KOAssistant: Continue Last Saved Chat — Resume most recently saved chat
+- KOAssistant: Continue Last Opened Chat — Resume most recently viewed chat
+- KOAssistant: General Chat — Start a new general conversation
+- KOAssistant: Chat About Book — Start a chat about current book (reader mode)
+
+**Reading Features (default):**
+- KOAssistant: X-Ray — Generate book reference guide
+- KOAssistant: Recap — Get a story summary
+- KOAssistant: Analyze Highlights — Analyze your annotations
+
+**Settings & Configuration:**
+- KOAssistant: Settings — Open main settings menu
+- KOAssistant: Action Manager — Manage all actions
+- KOAssistant: Manage Behaviors — Select or create behaviors
+- KOAssistant: Manage Domains — Manage knowledge domains
+- KOAssistant: Dictionary Popup Manager — Configure dictionary popup actions
+
+**Language & Translation:**
+- KOAssistant: Change Primary Language — Quick language picker
+- KOAssistant: Change Translation Language — Pick translation target
+- KOAssistant: Change Dictionary Language — Pick dictionary language
+- KOAssistant: Translate Current Page — Translate visible page text
+
+**Provider & Model:**
+- KOAssistant: Change Provider — Quick provider picker
+- KOAssistant: Change Model — Quick model picker
+- KOAssistant: Change Behavior — Quick behavior picker
+- KOAssistant: Change Domain — Quick domain picker
+
+**Bypass Toggles:**
+- KOAssistant: Toggle Dictionary Bypass — Toggle dictionary bypass on/off
+- KOAssistant: Toggle Highlight Bypass — Toggle highlight bypass on/off
+
+**Notebooks:**
+- KOAssistant: View Notebook — View current book's notebook (reader mode)
+- KOAssistant: Edit Notebook — Edit current book's notebook (reader mode)
+- KOAssistant: Browse Notebooks — Open Notebook Manager
+
+**Custom Actions:**
+- Any book or general action you add via "Add to Gesture Menu"
 
 ### Translate Current Page
 
@@ -1390,7 +1468,7 @@ When "Ask every time" is selected (or inherited from global), a picker dialog ap
 See [Bypass Modes](#bypass-modes) and [Highlight Menu Actions](#highlight-menu-actions).
 - **Enable Highlight Bypass**: Immediately trigger action when selecting text (skip menu)
 - **Bypass Action**: Which action to trigger when bypass is enabled (default: Translate)
-- **Highlight Menu Actions**: View and reorder actions in the highlight popup menu
+- **Highlight Menu Actions**: View and reorder actions in the highlight popup menu (2 defaults: Translate, Explain)
 
 ### Actions & Prompts
 - **Manage Actions**: See [Actions](#actions) section for full details

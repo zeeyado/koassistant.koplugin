@@ -90,6 +90,7 @@ Actions.highlight = {
         text = _("Explain"),
         context = "highlight",
         template = "explain",
+        in_highlight_menu = 2,  -- Default in highlight menu
         -- Uses global behavior variant (full/minimal)
         api_params = {
             temperature = 0.5,  -- More focused for explanations
@@ -616,6 +617,7 @@ Actions.special = {
         text = _("Translate"),
         context = "highlight",  -- Only for highlighted text
         behavior_variant = "translator_direct",  -- Use built-in translation behavior
+        in_highlight_menu = 1,  -- Default in highlight menu
         prompt = "Translate this to {translation_language}: {highlighted_text}",
         include_book_context = false,
         extended_thinking = "off",  -- Translations don't benefit from extended thinking
