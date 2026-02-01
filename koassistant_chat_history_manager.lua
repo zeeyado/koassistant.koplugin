@@ -1537,6 +1537,9 @@ function ChatHistoryManager:saveChatToDocSettings(ui, chat_data)
     -- Update chat index
     self:updateChatIndex(chat_data.document_path, "save", chat_data.id, chats)
 
+    -- Track as last opened chat
+    self:setLastOpenedChat(chat_data.document_path, chat_data.id)
+
     logger.info("Saved chat to metadata.lua: " .. chat_data.id .. " (" .. chat_data.document_path .. ")")
     return chat_data.id
 end
@@ -1771,6 +1774,9 @@ function ChatHistoryManager:saveGeneralChat(chat_data)
     settings:saveSetting("chats", chats)
     settings:flush()
 
+    -- Track as last opened chat
+    self:setLastOpenedChat("__GENERAL_CHATS__", chat_data.id)
+
     logger.info("Saved general chat: " .. chat_data.id)
     return chat_data.id
 end
@@ -1910,6 +1916,9 @@ function ChatHistoryManager:saveMultiBookChat(chat_data)
     -- Save back to file
     settings:saveSetting("chats", chats)
     settings:flush()
+
+    -- Track as last opened chat
+    self:setLastOpenedChat("__MULTI_BOOK_CHATS__", chat_data.id)
 
     logger.info("Saved multi-book chat: " .. chat_data.id)
     return chat_data.id
