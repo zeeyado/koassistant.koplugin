@@ -979,7 +979,9 @@ The export uses your global Export Style setting (Markdown or Plain Text).
 
 ### Notebooks (Per-Book Notes)
 
-Notebooks are persistent markdown files stored alongside each book in its sidecar folder (`.sdr/koassistant_notebook.md`). Unlike chat history which stores full conversations, notebooks let you curate AI insights for long-term reference.
+Notebooks function like book logs that you can append chat content to and edit (with TextEdit directly in KOReader or dedicated markdown editor). They are persistent markdown files stored alongside each book in its sidecar folder (`.sdr/koassistant_notebook.md`). Unlike chat history which stores full conversations, notebooks let you curate AI insights for long-term reference, along with your own notes. 
+
+You will soon be able to use your notebook content in Actions (like you can with your highlights and annotations and other reading-mode placeholders -- see [Template Variables](#template-variables))
 
 **Saving to a notebook:**
 1. Have a conversation with the AI about your book
@@ -1014,7 +1016,7 @@ Each entry includes timestamp, page number, progress percentage, and chapter tit
 |---------|-----------|--------------|
 | Purpose | Curated insights | Full conversation logs |
 | Storage | One file per book | Multiple chats per book |
-| Content | Selected responses | Complete back-and-forth |
+| Content | Selected responses and notes | Complete back-and-forth |
 | Editing | Manual editing allowed | Immutable after save |
 | Format | Append-only markdown | Structured Lua data |
 
