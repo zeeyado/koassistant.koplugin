@@ -386,517 +386,6 @@ local SettingsSchema = {
             },
         },
 
-        -- Notebooks submenu
-        {
-            id = "notebooks",
-            type = "submenu",
-            text = _("Notebooks"),
-            items = {
-                {
-                    id = "browse_notebooks",
-                    type = "action",
-                    text = _("Browse Notebooks..."),
-                    callback = "showNotebookBrowser",
-                    separator = true,
-                },
-                {
-                    id = "notebook_content_format",
-                    type = "dropdown",
-                    text = _("Content Format"),
-                    path = "features.notebook_content_format",
-                    default = "full_qa",
-                    options = {
-                        { value = "response", label = _("Response only") },
-                        { value = "qa", label = _("Q&A") },
-                        { value = "full_qa", label = _("Full Q&A (recommended)") },
-                    },
-                    help_text = _("What to include when saving to notebook.\nFull Q&A includes all context messages + highlighted text + question + response."),
-                    separator = true,
-                },
-                {
-                    id = "show_notebook_in_file_browser",
-                    type = "toggle",
-                    text = _("Show in file browser menu"),
-                    path = "features.show_notebook_in_file_browser",
-                    default = true,
-                    help_text = _("Show 'Notebook (KOA)' button when long-pressing books in the file browser."),
-                },
-                {
-                    id = "notebook_button_require_existing",
-                    type = "toggle",
-                    text = _("Only for books with notebooks"),
-                    path = "features.notebook_button_require_existing",
-                    default = true,
-                    depends_on = { id = "show_notebook_in_file_browser", value = true },
-                    help_text = _("Only show button if notebook already exists. Disable to allow creating new notebooks from file browser."),
-                },
-            },
-        },
-
-        -- Privacy & Data submenu
-        {
-            id = "privacy_data",
-            type = "submenu",
-            text = _("Privacy & Data"),
-            items = {
-                -- Trusted Providers
-                {
-                    id = "trusted_providers",
-                    type = "action",
-                    text_func = function(plugin)
-                        local f = plugin.settings:readSetting("features") or {}
-                        local trusted = f.trusted_providers or {}
-                        if #trusted == 0 then
-                            return _("Trusted Providers: None")
-                        else
-                            return T(_("Trusted Providers: %1"), table.concat(trusted, ", "))
-                        end
-                    end,
-                    help_text = _("Providers you trust bypass the data sharing controls below. Use for local Ollama instances or providers you fully trust."),
-                    callback = "showTrustedProvidersDialog",
-                    separator = true,
-                },
-                -- Quick Presets
-                {
-                    id = "privacy_preset_minimal",
-                    type = "action",
-                    text = _("Preset: Minimal Data"),
-                    help_text = _("Disable all extended data sharing (highlights, annotations, notebook, progress, stats). Only your question and book metadata are sent."),
-                    callback = "applyPrivacyPresetMinimal",
-                    keep_menu_open = true,
-                },
-                {
-                    id = "privacy_preset_full",
-                    type = "action",
-                    text = _("Preset: Full Features"),
-                    help_text = _("Enable all data sharing for full functionality. Does not enable book text extraction (see Advanced > Book Text Extraction)."),
-                    callback = "applyPrivacyPresetFull",
-                    keep_menu_open = true,
-                    separator = true,
-                },
-                -- Data Sharing Controls header
-                {
-                    id = "data_sharing_header",
-                    type = "header",
-                    text = _("Data Sharing Controls (for non-trusted providers)"),
-                },
-                -- Individual toggles
-                {
-                    id = "enable_highlights_sharing",
-                    type = "toggle",
-                    text = _("Allow Highlights"),
-                    path = "features.enable_highlights_sharing",
-                    default = true,
-                    help_text = _("Send highlighted passages to AI. Used by Analyze Highlights, X-Ray, and actions with {highlights} placeholder."),
-                },
-                {
-                    id = "enable_annotations_sharing",
-                    type = "toggle",
-                    text = _("Allow Annotations"),
-                    path = "features.enable_annotations_sharing",
-                    default = true,
-                    help_text = _("Send your personal notes attached to highlights. Used by Analyze Highlights, Connect with Notes."),
-                },
-                {
-                    id = "enable_notebook_sharing",
-                    type = "toggle",
-                    text = _("Allow Notebook"),
-                    path = "features.enable_notebook_sharing",
-                    default = true,
-                    help_text = _("Send notebook entries to AI. Used by Connect with Notes and actions with {notebook} placeholder."),
-                },
-                {
-                    id = "enable_progress_sharing",
-                    type = "toggle",
-                    text = _("Allow Reading Progress"),
-                    path = "features.enable_progress_sharing",
-                    default = true,
-                    help_text = _("Send current reading position (percentage). Used by X-Ray, Recap."),
-                },
-                {
-                    id = "enable_stats_sharing",
-                    type = "toggle",
-                    text = _("Allow Reading Statistics"),
-                    path = "features.enable_stats_sharing",
-                    default = true,
-                    help_text = _("Send chapter info and time since last read. Used by Recap."),
-                    separator = true,
-                },
-                -- Reference to book text extraction
-                {
-                    id = "book_text_reference",
-                    type = "header",
-                    text = _("Book text extraction: Advanced > Book Text Extraction"),
-                },
-            },
-        },
-
-        -- Advanced submenu
-        {
-            id = "advanced",
-            type = "submenu",
-            text = _("Advanced"),
-            separator = true,
-            items = {
-                {
-                    id = "manage_behaviors",
-                    type = "action",
-                    text_func = function(plugin)
-                        local f = plugin.settings:readSetting("features") or {}
-                        local selected = f.selected_behavior or "standard"
-                        -- Get display name for selected behavior
-                        local SystemPrompts = require("prompts/system_prompts")
-                        local behavior = SystemPrompts.getBehaviorById(selected, f.custom_behaviors)
-                        local name = behavior and behavior.display_name or selected
-                        return T(_("Manage Behaviors (%1)"), name)
-                    end,
-                    callback = "showBehaviorManager",
-                    info_text = _("Select or create AI behavior styles that define how the AI communicates."),
-                },
-                {
-                    id = "manage_domains",
-                    type = "action",
-                    text = _("Manage Domains..."),
-                    callback = "showDomainManager",
-                    info_text = _("Manage knowledge domains. Domains are selected per-chat."),
-                    separator = true,
-                },
-                {
-                    id = "temperature",
-                    type = "spinner",
-                    text = _("Temperature"),
-                    path = "features.default_temperature",
-                    default = 0.7,
-                    min = 0,
-                    max = 2,
-                    step = 0.1,
-                    precision = "%.1f",
-                    info_text = _("Range: 0.0-2.0 (Anthropic max 1.0)\nLower = focused, deterministic\nHigher = creative, varied"),
-                    separator = true,
-                },
-                -- Reasoning / Thinking submenu (per-provider toggles)
-                {
-                    id = "reasoning_submenu",
-                    type = "submenu",
-                    text = _("Reasoning"),
-                    items = {
-                        -- Hint about long-press for model info
-                        {
-                            type = "info",
-                            text = _("Long-press provider for supported models"),
-                        },
-                        {
-                            type = "separator",
-                        },
-                        -- Anthropic Extended Thinking
-                        {
-                            id = "anthropic_reasoning",
-                            type = "toggle",
-                            text = _("Anthropic Extended Thinking"),
-                            help_text = _("Supported models:\n") .. getModelList("anthropic", "extended_thinking") .. _("\n\nLet Claude think through complex problems before responding."),
-                            path = "features.anthropic_reasoning",
-                            default = false,
-                        },
-                        {
-                            id = "reasoning_budget",
-                            type = "spinner",
-                            text = _("Thinking Budget (tokens)"),
-                            help_text = _("Token budget for extended thinking (1024-32000)\nHigher = more thorough reasoning, slower, more expensive"),
-                            path = "features.reasoning_budget",
-                            default = 4096,
-                            min = 1024,
-                            max = 32000,
-                            step = 1024,
-                            precision = "%d",
-                            depends_on = { id = "anthropic_reasoning", value = true },
-                            separator = true,
-                        },
-                        -- OpenAI Reasoning
-                        {
-                            id = "openai_reasoning",
-                            type = "toggle",
-                            text = _("OpenAI Reasoning"),
-                            help_text = _("Supported models:\n") .. getModelList("openai", "reasoning") .. _("\n\nReasoning is encrypted/hidden from user."),
-                            path = "features.openai_reasoning",
-                            default = false,
-                        },
-                        {
-                            id = "reasoning_effort",
-                            type = "radio",
-                            text_func = function(plugin)
-                                local f = plugin.settings:readSetting("features") or {}
-                                local effort = f.reasoning_effort or "medium"
-                                local labels = { low = _("Low"), medium = _("Medium"), high = _("High") }
-                                return T(_("Reasoning Effort: %1"), labels[effort] or effort)
-                            end,
-                            help_text = _("Low = faster, cheaper\nMedium = balanced\nHigh = thorough reasoning"),
-                            path = "features.reasoning_effort",
-                            default = "medium",
-                            depends_on = { id = "openai_reasoning", value = true },
-                            separator = true,
-                            options = {
-                                { value = "low", text = _("Low (faster, cheaper)") },
-                                { value = "medium", text = _("Medium (balanced)") },
-                                { value = "high", text = _("High (thorough)") },
-                            },
-                        },
-                        -- Gemini Thinking
-                        {
-                            id = "gemini_reasoning",
-                            type = "toggle",
-                            text = _("Gemini Thinking"),
-                            help_text = _("Supported models:\n") .. getModelList("gemini", "thinking") .. _("\n\nThinking is encrypted/hidden from user."),
-                            path = "features.gemini_reasoning",
-                            default = false,
-                        },
-                        {
-                            id = "reasoning_depth",
-                            type = "radio",
-                            text_func = function(plugin)
-                                local f = plugin.settings:readSetting("features") or {}
-                                local depth = f.reasoning_depth or "high"
-                                local labels = { minimal = _("Minimal"), low = _("Low"), medium = _("Medium"), high = _("High") }
-                                return T(_("Thinking Depth: %1"), labels[depth] or depth)
-                            end,
-                            help_text = _("Minimal = fastest\nLow/Medium = balanced\nHigh = deepest thinking"),
-                            path = "features.reasoning_depth",
-                            default = "high",
-                            depends_on = { id = "gemini_reasoning", value = true },
-                            separator = true,
-                            options = {
-                                { value = "minimal", text = _("Minimal (fastest)") },
-                                { value = "low", text = _("Low") },
-                                { value = "medium", text = _("Medium") },
-                                { value = "high", text = _("High (default)") },
-                            },
-                        },
-                        -- Indicator in chat (separate from "Show Reasoning" button)
-                        {
-                            id = "show_reasoning_indicator",
-                            type = "toggle",
-                            text = _("Show Indicator in Chat"),
-                            help_text = _("Show '*[Reasoning was used]*' indicator in chat when reasoning is requested or used.\n\nFull reasoning content is always viewable via 'Show Reasoning' button."),
-                            path = "features.show_reasoning_indicator",
-                            default = true,
-                        },
-                    },
-                },
-                -- Provider-specific settings
-                {
-                    id = "provider_settings",
-                    type = "submenu",
-                    text = _("Provider Settings"),
-                    items = {
-                        {
-                            id = "qwen_region",
-                            type = "radio",
-                            text_func = function(plugin)
-                                local f = plugin.settings:readSetting("features") or {}
-                                local region = f.qwen_region or "international"
-                                local labels = {
-                                    international = _("International"),
-                                    china = _("China"),
-                                    us = _("US"),
-                                }
-                                return T(_("Qwen Region: %1"), labels[region] or region)
-                            end,
-                            help_text = _("Select your Alibaba Cloud region.\n\nAPI keys are region-specific and NOT interchangeable:\n- International: Singapore (dashscope-intl)\n- China: Beijing (dashscope)\n- US: Virginia (dashscope-us)"),
-                            path = "features.qwen_region",
-                            default = "international",
-                            options = {
-                                { value = "international", text = _("International (Singapore)") },
-                                { value = "china", text = _("China (Beijing)") },
-                                { value = "us", text = _("US (Virginia)") },
-                            },
-                        },
-                    },
-                },
-                -- Context Extraction settings
-                {
-                    id = "context_extraction",
-                    type = "submenu",
-                    text = _("Book Text Extraction"),
-                    items = {
-                        {
-                            id = "context_extraction_info",
-                            type = "header",
-                            text = _("Book text extraction is slow and uses many tokens. Enable only if needed."),
-                        },
-                        {
-                            id = "enable_book_text_extraction",
-                            type = "toggle",
-                            text = _("Allow Book Text Extraction"),
-                            path = "features.enable_book_text_extraction",
-                            default = false,
-                            help_text = _("When enabled, actions that request book text (like X-Ray, Recap) can extract and send it to the AI. This is slow and uses many tokens.\n\nNote: Lightweight data (reading progress, highlights, annotations) is always available and doesn't need this setting."),
-                        },
-                        {
-                            id = "max_book_text_chars",
-                            type = "spinner",
-                            text = _("Max Text Characters"),
-                            path = "features.max_book_text_chars",
-                            default = 50000,
-                            min = 10000,
-                            max = 500000,
-                            step = 10000,
-                            precision = "%d",
-                            help_text = _("Maximum characters to extract from the book (10,000-500,000). Higher values provide more context but use more tokens. Default: 50,000 (~12k tokens)."),
-                            depends_on = { id = "enable_book_text_extraction", value = true },
-                        },
-                        {
-                            id = "max_pdf_pages",
-                            type = "spinner",
-                            text = _("Max PDF Pages"),
-                            path = "features.max_pdf_pages",
-                            default = 250,
-                            min = 50,
-                            max = 500,
-                            step = 50,
-                            precision = "%d",
-                            help_text = _("Maximum PDF pages to extract text from (50-500). Higher values provide more context but take longer."),
-                            depends_on = { id = "enable_book_text_extraction", value = true },
-                        },
-                    },
-                    separator = true,
-                },
-                {
-                    id = "debug",
-                    type = "toggle",
-                    text = _("Console Debug"),
-                    help_text = _("Enable console/terminal debug logging (for developers)"),
-                    path = "features.debug",
-                    default = false,
-                },
-                {
-                    id = "show_debug_in_chat",
-                    type = "toggle",
-                    text = _("Show Debug in Chat"),
-                    help_text = _("Display debug information in chat viewer"),
-                    path = "features.show_debug_in_chat",
-                    default = false,
-                },
-                {
-                    id = "debug_display_level",
-                    type = "radio",
-                    text_func = function(plugin)
-                        local f = plugin.settings:readSetting("features") or {}
-                        local level = f.debug_display_level or "names"
-                        local labels = { minimal = _("Minimal"), names = _("Names"), full = _("Full") }
-                        return T(_("Debug Detail Level: %1"), labels[level] or level)
-                    end,
-                    path = "features.debug_display_level",
-                    default = "names",
-                    depends_on = { id = "show_debug_in_chat", value = true },
-                    separator = true,
-                    options = {
-                        { value = "minimal", text = _("Minimal (user input only)") },
-                        { value = "names", text = _("Names (config summary)") },
-                        { value = "full", text = _("Full (system blocks)") },
-                    },
-                },
-                {
-                    id = "test_connection",
-                    type = "action",
-                    text = _("Test Connection"),
-                    callback = "testProviderConnection",
-                    separator = true,
-                },
-                -- Settings Management submenu
-                {
-                    id = "settings_management",
-                    type = "submenu",
-                    text = _("Settings Management"),
-                    items = {
-                        {
-                            id = "create_backup",
-                            type = "action",
-                            text = _("Create Backup"),
-                            info_text = _("Create a backup of your settings, API keys, and custom content."),
-                            callback = "showCreateBackupDialog",
-                        },
-                        {
-                            id = "restore_backup",
-                            type = "action",
-                            text = _("Restore from Backup"),
-                            info_text = _("Restore settings from a previous backup."),
-                            callback = "showRestoreBackupDialog",
-                        },
-                        {
-                            id = "manage_backups",
-                            type = "action",
-                            text = _("View Backups"),
-                            info_text = _("View and manage existing backups."),
-                            callback = "showBackupListDialog",
-                            separator = true,
-                        },
-                        {
-                            id = "backup_settings_info",
-                            type = "header",
-                            text = _("Backups are stored in: koassistant_backups/"),
-                        },
-                    },
-                },
-                -- Reset Settings submenu
-                {
-                    id = "reset_settings",
-                    type = "submenu",
-                    text = _("Reset Settings..."),
-                    items = {
-                        -- Quick: Settings only
-                        {
-                            id = "quick_reset_settings",
-                            type = "action",
-                            text = _("Quick: Settings only"),
-                            help_text = _("Resets ALL settings in this menu to defaults:\n• Provider, model, temperature\n• Streaming, display, export settings\n• Dictionary & translation settings\n• Reasoning & debug settings\n• Language preferences\n\nKeeps: API keys, all actions, custom behaviors/domains, custom providers/models, gesture registrations, chat history."),
-                            confirm = true,
-                            confirm_text = _("Reset all settings to defaults?\n\nResets ALL settings in Settings menu:\n• Provider, model, temperature\n• Streaming, display, export settings\n• Dictionary & translation settings\n• Reasoning & debug settings\n• Language preferences\n\nKeeps: API keys, all actions, custom behaviors/domains, custom providers/models, gesture registrations, chat history."),
-                            callback = "quickResetSettings",
-                        },
-                        -- Quick: Actions only
-                        {
-                            id = "quick_reset_actions",
-                            type = "action",
-                            text = _("Quick: Actions only"),
-                            help_text = _("Resets all action-related settings:\n• Custom actions you created\n• Edits to built-in actions\n• Disabled actions (re-enables all)\n• Highlight menu order & dismissed items\n• Dictionary menu order & dismissed items\n\nKeeps: All settings, API keys, custom behaviors/domains, custom providers/models, gesture registrations, chat history."),
-                            confirm = true,
-                            confirm_text = _("Reset all action settings?\n\nResets:\n• Custom actions you created\n• Edits to built-in actions\n• Disabled actions (re-enables all)\n• Highlight menu order & dismissed items\n• Dictionary menu order & dismissed items\n\nKeeps: All settings, API keys, custom behaviors/domains, custom providers/models, gesture registrations, chat history."),
-                            callback = "quickResetActions",
-                        },
-                        -- Quick: Fresh start
-                        {
-                            id = "quick_reset_fresh_start",
-                            type = "action",
-                            text = _("Quick: Fresh start"),
-                            help_text = _("Resets everything except API keys and chat history:\n• All settings (provider, model, temperature, all toggles)\n• All actions (custom, edits, menus)\n• Custom behaviors & domains\n• Custom providers & models\n\nKeeps: API keys, gesture registrations, chat history only."),
-                            confirm = true,
-                            confirm_text = _("Fresh start?\n\nResets:\n• All settings (provider, model, temperature, all toggles)\n• All actions (custom, edits, menus)\n• Custom behaviors & domains\n• Custom providers & models\n\nKeeps: API keys, gesture registrations, chat history only."),
-                            callback = "quickResetFreshStart",
-                            separator = true,
-                        },
-                        -- Custom reset
-                        {
-                            id = "custom_reset",
-                            type = "action",
-                            text = _("Custom reset..."),
-                            help_text = _("Opens a checklist to choose exactly what to reset:\n• Settings (all toggles and preferences)\n• Custom actions\n• Action edits\n• Action menus\n• Custom providers & models\n• Behaviors & domains\n• API keys (with warning)"),
-                            callback = "showCustomResetDialog",
-                            separator = true,
-                        },
-                        -- Clear chat history (unchanged)
-                        {
-                            id = "clear_chat_history",
-                            type = "action",
-                            text = _("Clear all chat history"),
-                            help_text = _("Deletes all saved conversations across all books."),
-                            confirm = true,
-                            confirm_text = _("Delete all chat history?\n\nThis removes all saved conversations across all books.\n\nThis cannot be undone."),
-                            callback = "clearAllChatHistory",
-                        },
-                    },
-                },
-            },
-        },
-
         -- AI Language Settings submenu
         {
             id = "ai_language_settings",
@@ -1276,13 +765,529 @@ local SettingsSchema = {
             },
         },
 
-        -- Actions and Domains
+        -- Notebooks submenu
         {
-            id = "manage_actions",
-            type = "action",
-            text = _("Manage Actions"),
-            callback = "showPromptsManager",
+            id = "notebooks",
+            type = "submenu",
+            text = _("Notebooks"),
+            items = {
+                {
+                    id = "browse_notebooks",
+                    type = "action",
+                    text = _("Browse Notebooks..."),
+                    callback = "showNotebookBrowser",
+                    separator = true,
+                },
+                {
+                    id = "notebook_content_format",
+                    type = "dropdown",
+                    text = _("Content Format"),
+                    path = "features.notebook_content_format",
+                    default = "full_qa",
+                    options = {
+                        { value = "response", label = _("Response only") },
+                        { value = "qa", label = _("Q&A") },
+                        { value = "full_qa", label = _("Full Q&A (recommended)") },
+                    },
+                    help_text = _("What to include when saving to notebook.\nFull Q&A includes all context messages + highlighted text + question + response."),
+                    separator = true,
+                },
+                {
+                    id = "show_notebook_in_file_browser",
+                    type = "toggle",
+                    text = _("Show in file browser menu"),
+                    path = "features.show_notebook_in_file_browser",
+                    default = true,
+                    help_text = _("Show 'Notebook (KOA)' button when long-pressing books in the file browser."),
+                },
+                {
+                    id = "notebook_button_require_existing",
+                    type = "toggle",
+                    text = _("Only for books with notebooks"),
+                    path = "features.notebook_button_require_existing",
+                    default = true,
+                    depends_on = { id = "show_notebook_in_file_browser", value = true },
+                    help_text = _("Only show button if notebook already exists. Disable to allow creating new notebooks from file browser."),
+                },
+            },
+        },
+
+        -- Privacy & Data submenu
+        {
+            id = "privacy_data",
+            type = "submenu",
+            text = _("Privacy & Data"),
+            items = {
+                -- Trusted Providers
+                {
+                    id = "trusted_providers",
+                    type = "action",
+                    text_func = function(plugin)
+                        local f = plugin.settings:readSetting("features") or {}
+                        local trusted = f.trusted_providers or {}
+                        if #trusted == 0 then
+                            return _("Trusted Providers: None")
+                        else
+                            return T(_("Trusted Providers: %1"), table.concat(trusted, ", "))
+                        end
+                    end,
+                    help_text = _("Providers you trust bypass the data sharing controls below. Use for local Ollama instances or providers you fully trust."),
+                    callback = "showTrustedProvidersDialog",
+                    separator = true,
+                },
+                -- Quick Presets
+                {
+                    id = "privacy_preset_minimal",
+                    type = "action",
+                    text = _("Preset: Minimal Data"),
+                    help_text = _("Disable all extended data sharing (highlights, annotations, notebook, progress, stats). Only your question and book metadata are sent."),
+                    callback = "applyPrivacyPresetMinimal",
+                    keep_menu_open = true,
+                },
+                {
+                    id = "privacy_preset_full",
+                    type = "action",
+                    text = _("Preset: Full Features"),
+                    help_text = _("Enable all data sharing for full functionality. Does not enable book text extraction (see Advanced > Book Text Extraction)."),
+                    callback = "applyPrivacyPresetFull",
+                    keep_menu_open = true,
+                    separator = true,
+                },
+                -- Data Sharing Controls header
+                {
+                    id = "data_sharing_header",
+                    type = "header",
+                    text = _("Data Sharing Controls (for non-trusted providers)"),
+                },
+                -- Individual toggles
+                {
+                    id = "enable_highlights_sharing",
+                    type = "toggle",
+                    text = _("Allow Highlights"),
+                    path = "features.enable_highlights_sharing",
+                    default = true,
+                    help_text = _("Send highlighted passages to AI. Used by Analyze Highlights, X-Ray, and actions with {highlights} placeholder."),
+                },
+                {
+                    id = "enable_annotations_sharing",
+                    type = "toggle",
+                    text = _("Allow Annotations"),
+                    path = "features.enable_annotations_sharing",
+                    default = true,
+                    help_text = _("Send your personal notes attached to highlights. Used by Analyze Highlights, Connect with Notes."),
+                },
+                {
+                    id = "enable_notebook_sharing",
+                    type = "toggle",
+                    text = _("Allow Notebook"),
+                    path = "features.enable_notebook_sharing",
+                    default = true,
+                    help_text = _("Send notebook entries to AI. Used by Connect with Notes and actions with {notebook} placeholder."),
+                },
+                {
+                    id = "enable_progress_sharing",
+                    type = "toggle",
+                    text = _("Allow Reading Progress"),
+                    path = "features.enable_progress_sharing",
+                    default = true,
+                    help_text = _("Send current reading position (percentage). Used by X-Ray, Recap."),
+                },
+                {
+                    id = "enable_stats_sharing",
+                    type = "toggle",
+                    text = _("Allow Reading Statistics"),
+                    path = "features.enable_stats_sharing",
+                    default = true,
+                    help_text = _("Send chapter info and time since last read. Used by Recap."),
+                    separator = true,
+                },
+                -- Reference to book text extraction
+                {
+                    id = "book_text_reference",
+                    type = "header",
+                    text = _("Book text extraction: Advanced > Book Text Extraction"),
+                },
+            },
+        },
+
+        -- Actions & Prompts submenu
+        {
+            id = "actions_and_prompts",
+            type = "submenu",
+            text = _("Actions & Prompts"),
+            items = {
+                {
+                    id = "manage_actions",
+                    type = "action",
+                    text = _("Manage Actions"),
+                    callback = "showPromptsManager",
+                },
+                {
+                    id = "manage_behaviors",
+                    type = "action",
+                    text_func = function(plugin)
+                        local f = plugin.settings:readSetting("features") or {}
+                        local selected = f.selected_behavior or "standard"
+                        -- Get display name for selected behavior
+                        local SystemPrompts = require("prompts/system_prompts")
+                        local behavior = SystemPrompts.getBehaviorById(selected, f.custom_behaviors)
+                        local name = behavior and behavior.display_name or selected
+                        return T(_("Manage Behaviors (%1)"), name)
+                    end,
+                    callback = "showBehaviorManager",
+                    info_text = _("Select or create AI behavior styles that define how the AI communicates."),
+                },
+                {
+                    id = "manage_domains",
+                    type = "action",
+                    text = _("Manage Domains..."),
+                    callback = "showDomainManager",
+                    info_text = _("Manage knowledge domains. Domains are selected per-chat."),
+                },
+            },
             separator = true,
+        },
+
+        -- Advanced submenu
+        {
+            id = "advanced",
+            type = "submenu",
+            text = _("Advanced"),
+            items = {
+                {
+                    id = "temperature",
+                    type = "spinner",
+                    text = _("Temperature"),
+                    path = "features.default_temperature",
+                    default = 0.7,
+                    min = 0,
+                    max = 2,
+                    step = 0.1,
+                    precision = "%.1f",
+                    info_text = _("Range: 0.0-2.0 (Anthropic max 1.0)\nLower = focused, deterministic\nHigher = creative, varied"),
+                    separator = true,
+                },
+                -- Reasoning / Thinking submenu (per-provider toggles)
+                {
+                    id = "reasoning_submenu",
+                    type = "submenu",
+                    text = _("Reasoning"),
+                    items = {
+                        -- Hint about long-press for model info
+                        {
+                            type = "info",
+                            text = _("Long-press provider for supported models"),
+                        },
+                        {
+                            type = "separator",
+                        },
+                        -- Anthropic Extended Thinking
+                        {
+                            id = "anthropic_reasoning",
+                            type = "toggle",
+                            text = _("Anthropic Extended Thinking"),
+                            help_text = _("Supported models:\n") .. getModelList("anthropic", "extended_thinking") .. _("\n\nLet Claude think through complex problems before responding."),
+                            path = "features.anthropic_reasoning",
+                            default = false,
+                        },
+                        {
+                            id = "reasoning_budget",
+                            type = "spinner",
+                            text = _("Thinking Budget (tokens)"),
+                            help_text = _("Token budget for extended thinking (1024-32000)\nHigher = more thorough reasoning, slower, more expensive"),
+                            path = "features.reasoning_budget",
+                            default = 4096,
+                            min = 1024,
+                            max = 32000,
+                            step = 1024,
+                            precision = "%d",
+                            depends_on = { id = "anthropic_reasoning", value = true },
+                            separator = true,
+                        },
+                        -- OpenAI Reasoning
+                        {
+                            id = "openai_reasoning",
+                            type = "toggle",
+                            text = _("OpenAI Reasoning"),
+                            help_text = _("Supported models:\n") .. getModelList("openai", "reasoning") .. _("\n\nReasoning is encrypted/hidden from user."),
+                            path = "features.openai_reasoning",
+                            default = false,
+                        },
+                        {
+                            id = "reasoning_effort",
+                            type = "radio",
+                            text_func = function(plugin)
+                                local f = plugin.settings:readSetting("features") or {}
+                                local effort = f.reasoning_effort or "medium"
+                                local labels = { low = _("Low"), medium = _("Medium"), high = _("High") }
+                                return T(_("Reasoning Effort: %1"), labels[effort] or effort)
+                            end,
+                            help_text = _("Low = faster, cheaper\nMedium = balanced\nHigh = thorough reasoning"),
+                            path = "features.reasoning_effort",
+                            default = "medium",
+                            depends_on = { id = "openai_reasoning", value = true },
+                            separator = true,
+                            options = {
+                                { value = "low", text = _("Low (faster, cheaper)") },
+                                { value = "medium", text = _("Medium (balanced)") },
+                                { value = "high", text = _("High (thorough)") },
+                            },
+                        },
+                        -- Gemini Thinking
+                        {
+                            id = "gemini_reasoning",
+                            type = "toggle",
+                            text = _("Gemini Thinking"),
+                            help_text = _("Supported models:\n") .. getModelList("gemini", "thinking") .. _("\n\nThinking is encrypted/hidden from user."),
+                            path = "features.gemini_reasoning",
+                            default = false,
+                        },
+                        {
+                            id = "reasoning_depth",
+                            type = "radio",
+                            text_func = function(plugin)
+                                local f = plugin.settings:readSetting("features") or {}
+                                local depth = f.reasoning_depth or "high"
+                                local labels = { minimal = _("Minimal"), low = _("Low"), medium = _("Medium"), high = _("High") }
+                                return T(_("Thinking Depth: %1"), labels[depth] or depth)
+                            end,
+                            help_text = _("Minimal = fastest\nLow/Medium = balanced\nHigh = deepest thinking"),
+                            path = "features.reasoning_depth",
+                            default = "high",
+                            depends_on = { id = "gemini_reasoning", value = true },
+                            separator = true,
+                            options = {
+                                { value = "minimal", text = _("Minimal (fastest)") },
+                                { value = "low", text = _("Low") },
+                                { value = "medium", text = _("Medium") },
+                                { value = "high", text = _("High (default)") },
+                            },
+                        },
+                        -- Indicator in chat (separate from "Show Reasoning" button)
+                        {
+                            id = "show_reasoning_indicator",
+                            type = "toggle",
+                            text = _("Show Indicator in Chat"),
+                            help_text = _("Show '*[Reasoning was used]*' indicator in chat when reasoning is requested or used.\n\nFull reasoning content is always viewable via 'Show Reasoning' button."),
+                            path = "features.show_reasoning_indicator",
+                            default = true,
+                        },
+                    },
+                },
+                -- Provider-specific settings
+                {
+                    id = "provider_settings",
+                    type = "submenu",
+                    text = _("Provider Settings"),
+                    items = {
+                        {
+                            id = "qwen_region",
+                            type = "radio",
+                            text_func = function(plugin)
+                                local f = plugin.settings:readSetting("features") or {}
+                                local region = f.qwen_region or "international"
+                                local labels = {
+                                    international = _("International"),
+                                    china = _("China"),
+                                    us = _("US"),
+                                }
+                                return T(_("Qwen Region: %1"), labels[region] or region)
+                            end,
+                            help_text = _("Select your Alibaba Cloud region.\n\nAPI keys are region-specific and NOT interchangeable:\n- International: Singapore (dashscope-intl)\n- China: Beijing (dashscope)\n- US: Virginia (dashscope-us)"),
+                            path = "features.qwen_region",
+                            default = "international",
+                            options = {
+                                { value = "international", text = _("International (Singapore)") },
+                                { value = "china", text = _("China (Beijing)") },
+                                { value = "us", text = _("US (Virginia)") },
+                            },
+                        },
+                    },
+                },
+                -- Context Extraction settings
+                {
+                    id = "context_extraction",
+                    type = "submenu",
+                    text = _("Book Text Extraction"),
+                    items = {
+                        {
+                            id = "context_extraction_info",
+                            type = "header",
+                            text = _("Book text extraction is slow and uses many tokens. Enable only if needed."),
+                        },
+                        {
+                            id = "enable_book_text_extraction",
+                            type = "toggle",
+                            text = _("Allow Book Text Extraction"),
+                            path = "features.enable_book_text_extraction",
+                            default = false,
+                            help_text = _("When enabled, actions that request book text (like X-Ray, Recap) can extract and send it to the AI. This is slow and uses many tokens.\n\nNote: Lightweight data (reading progress, highlights, annotations) is always available and doesn't need this setting."),
+                        },
+                        {
+                            id = "max_book_text_chars",
+                            type = "spinner",
+                            text = _("Max Text Characters"),
+                            path = "features.max_book_text_chars",
+                            default = 50000,
+                            min = 10000,
+                            max = 500000,
+                            step = 10000,
+                            precision = "%d",
+                            help_text = _("Maximum characters to extract from the book (10,000-500,000). Higher values provide more context but use more tokens. Default: 50,000 (~12k tokens)."),
+                            depends_on = { id = "enable_book_text_extraction", value = true },
+                        },
+                        {
+                            id = "max_pdf_pages",
+                            type = "spinner",
+                            text = _("Max PDF Pages"),
+                            path = "features.max_pdf_pages",
+                            default = 250,
+                            min = 50,
+                            max = 500,
+                            step = 50,
+                            precision = "%d",
+                            help_text = _("Maximum PDF pages to extract text from (50-500). Higher values provide more context but take longer."),
+                            depends_on = { id = "enable_book_text_extraction", value = true },
+                        },
+                    },
+                    separator = true,
+                },
+                {
+                    id = "debug",
+                    type = "toggle",
+                    text = _("Console Debug"),
+                    help_text = _("Enable console/terminal debug logging (for developers)"),
+                    path = "features.debug",
+                    default = false,
+                },
+                {
+                    id = "show_debug_in_chat",
+                    type = "toggle",
+                    text = _("Show Debug in Chat"),
+                    help_text = _("Display debug information in chat viewer"),
+                    path = "features.show_debug_in_chat",
+                    default = false,
+                },
+                {
+                    id = "debug_display_level",
+                    type = "radio",
+                    text_func = function(plugin)
+                        local f = plugin.settings:readSetting("features") or {}
+                        local level = f.debug_display_level or "names"
+                        local labels = { minimal = _("Minimal"), names = _("Names"), full = _("Full") }
+                        return T(_("Debug Detail Level: %1"), labels[level] or level)
+                    end,
+                    path = "features.debug_display_level",
+                    default = "names",
+                    depends_on = { id = "show_debug_in_chat", value = true },
+                    separator = true,
+                    options = {
+                        { value = "minimal", text = _("Minimal (user input only)") },
+                        { value = "names", text = _("Names (config summary)") },
+                        { value = "full", text = _("Full (system blocks)") },
+                    },
+                },
+                {
+                    id = "test_connection",
+                    type = "action",
+                    text = _("Test Connection"),
+                    callback = "testProviderConnection",
+                    separator = true,
+                },
+                -- Settings Management submenu
+                {
+                    id = "settings_management",
+                    type = "submenu",
+                    text = _("Settings Management"),
+                    items = {
+                        {
+                            id = "create_backup",
+                            type = "action",
+                            text = _("Create Backup"),
+                            info_text = _("Create a backup of your settings, API keys, and custom content."),
+                            callback = "showCreateBackupDialog",
+                        },
+                        {
+                            id = "restore_backup",
+                            type = "action",
+                            text = _("Restore from Backup"),
+                            info_text = _("Restore settings from a previous backup."),
+                            callback = "showRestoreBackupDialog",
+                        },
+                        {
+                            id = "manage_backups",
+                            type = "action",
+                            text = _("View Backups"),
+                            info_text = _("View and manage existing backups."),
+                            callback = "showBackupListDialog",
+                            separator = true,
+                        },
+                        {
+                            id = "backup_settings_info",
+                            type = "header",
+                            text = _("Backups are stored in: koassistant_backups/"),
+                        },
+                    },
+                },
+                -- Reset Settings submenu
+                {
+                    id = "reset_settings",
+                    type = "submenu",
+                    text = _("Reset Settings..."),
+                    items = {
+                        -- Quick: Settings only
+                        {
+                            id = "quick_reset_settings",
+                            type = "action",
+                            text = _("Quick: Settings only"),
+                            help_text = _("Resets ALL settings in this menu to defaults:\n• Provider, model, temperature\n• Streaming, display, export settings\n• Dictionary & translation settings\n• Reasoning & debug settings\n• Language preferences\n\nKeeps: API keys, all actions, custom behaviors/domains, custom providers/models, gesture registrations, chat history."),
+                            confirm = true,
+                            confirm_text = _("Reset all settings to defaults?\n\nResets ALL settings in Settings menu:\n• Provider, model, temperature\n• Streaming, display, export settings\n• Dictionary & translation settings\n• Reasoning & debug settings\n• Language preferences\n\nKeeps: API keys, all actions, custom behaviors/domains, custom providers/models, gesture registrations, chat history."),
+                            callback = "quickResetSettings",
+                        },
+                        -- Quick: Actions only
+                        {
+                            id = "quick_reset_actions",
+                            type = "action",
+                            text = _("Quick: Actions only"),
+                            help_text = _("Resets all action-related settings:\n• Custom actions you created\n• Edits to built-in actions\n• Disabled actions (re-enables all)\n• Highlight menu order & dismissed items\n• Dictionary menu order & dismissed items\n\nKeeps: All settings, API keys, custom behaviors/domains, custom providers/models, gesture registrations, chat history."),
+                            confirm = true,
+                            confirm_text = _("Reset all action settings?\n\nResets:\n• Custom actions you created\n• Edits to built-in actions\n• Disabled actions (re-enables all)\n• Highlight menu order & dismissed items\n• Dictionary menu order & dismissed items\n\nKeeps: All settings, API keys, custom behaviors/domains, custom providers/models, gesture registrations, chat history."),
+                            callback = "quickResetActions",
+                        },
+                        -- Quick: Fresh start
+                        {
+                            id = "quick_reset_fresh_start",
+                            type = "action",
+                            text = _("Quick: Fresh start"),
+                            help_text = _("Resets everything except API keys and chat history:\n• All settings (provider, model, temperature, all toggles)\n• All actions (custom, edits, menus)\n• Custom behaviors & domains\n• Custom providers & models\n\nKeeps: API keys, gesture registrations, chat history only."),
+                            confirm = true,
+                            confirm_text = _("Fresh start?\n\nResets:\n• All settings (provider, model, temperature, all toggles)\n• All actions (custom, edits, menus)\n• Custom behaviors & domains\n• Custom providers & models\n\nKeeps: API keys, gesture registrations, chat history only."),
+                            callback = "quickResetFreshStart",
+                            separator = true,
+                        },
+                        -- Custom reset
+                        {
+                            id = "custom_reset",
+                            type = "action",
+                            text = _("Custom reset..."),
+                            help_text = _("Opens a checklist to choose exactly what to reset:\n• Settings (all toggles and preferences)\n• Custom actions\n• Action edits\n• Action menus\n• Custom providers & models\n• Behaviors & domains\n• API keys (with warning)"),
+                            callback = "showCustomResetDialog",
+                            separator = true,
+                        },
+                        -- Clear chat history (unchanged)
+                        {
+                            id = "clear_chat_history",
+                            type = "action",
+                            text = _("Clear all chat history"),
+                            help_text = _("Deletes all saved conversations across all books."),
+                            confirm = true,
+                            confirm_text = _("Delete all chat history?\n\nThis removes all saved conversations across all books.\n\nThis cannot be undone."),
+                            callback = "clearAllChatHistory",
+                        },
+                    },
+                },
+            },
         },
 
         -- About
