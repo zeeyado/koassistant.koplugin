@@ -746,7 +746,9 @@ Actions.special = {
         in_dictionary_popup = 2,  -- Default order in dictionary popup
         prompt = [[Define "{highlighted_text}"
 
-Format: **word** _part of speech_ — definition in {dictionary_language}
+Write in {dictionary_language}. Only the headword stays in original language.
+
+**word** _part of speech_ — definition
 
 {context_section}
 
@@ -772,15 +774,17 @@ One line only. No etymology, no synonyms.]],
         in_dictionary_popup = 1,  -- Default order in dictionary popup
         prompt = [[Dictionary entry for "{highlighted_text}"
 
-Format: **word** /IPA/ _part of speech_ of **lemma**
-Definition(s) in {dictionary_language}, numbered if multiple
+Write entirely in {dictionary_language}. Only the headword, lemma, and synonyms stay in original language.
+
+**word** /IPA/ _part of speech_ of **lemma**
+Definition(s), numbered if multiple
 Etymology (brief)
 Synonyms
 
 {context_section}
 
-No section headers. Inline bold labels. Concise.
-When context provided, end with: **Here:** (how it's used in this context)]],
+All labels and explanations in {dictionary_language}. Inline bold labels. Concise.
+When context provided, end with usage note.]],
         include_book_context = false,  -- Word definitions don't typically need book metadata
         extended_thinking = "off",  -- Dictionary lookups don't benefit from extended thinking
         skip_language_instruction = true,  -- Target language already in prompt
