@@ -1370,7 +1370,7 @@ Domains provide **project-like context** for AI conversations. When selected, th
 
 ### How It Works
 
-The domain text is included in the system message after behavior and before language instruction. The AI uses it as background knowledge for the conversation. You can have very small, focused domains, or large, detailed, interdisciplinary ones. Both behavior and domain benefit from Anthropic's prompt caching (90% cost reduction on repeated queries).
+The domain text is included in the system message after behavior and before language instruction. The AI uses it as background knowledge for the conversation. You can have very small, focused domains, or large, detailed, interdisciplinary ones. Both behavior and domain benefit from prompt caching (50-90% cost reduction on repeated queries, depending on provider).
 
 ### Built-in Domain
 
@@ -1436,7 +1436,7 @@ Chat History → hamburger menu → **View by Domain**
 - **Domain can be skipped per-action**: Actions like Translate and Dictionary skip domain by default because domain instructions alter their output. You can toggle "Skip domain" for any custom action in the action wizard (see [Actions](#actions)).
 - **Domain vs Behavior overlap**: Both are sent in the system message. Behavior = communication style, Domain = knowledge context. Sometimes content could fit in either. Rule of thumb: if it's about *how to respond*, put it in behavior. If it's about *what to know*, put it in a domain.
 - **Domains affect all actions in a chat**: Once selected, the domain applies to every message in that conversation. If an action doesn't benefit from domain context, use "Skip domain" in that action's settings.
-- **Cost considerations**: Large domains increase token usage on every request. Keep domains focused. Use Anthropic for automatic prompt caching (90% cost reduction on repeated domain context).
+- **Cost considerations**: Large domains increase token usage on every request. Keep domains focused. Most major providers (Anthropic, OpenAI, Gemini, DeepSeek) cache system prompts automatically (50-90% cost reduction on repeated domain context).
 - **Preview domain effects**: Use the [web inspector](#testing-your-setup) to see how domains affect request structure and AI responses before using them on your e-reader.
 
 ---
@@ -1938,18 +1938,23 @@ When enabled, responses appear in real-time as the AI generates them.
 
 Works with all providers that support streaming.
 
-### Prompt Caching (Anthropic)
+### Prompt Caching
 
-Anthropic supports prompt caching, which can reduce costs when repeating large system prompts:
+Prompt caching reduces costs and latency by reusing previously processed prompt prefixes. Most major providers support this automatically.
 
-- **What's cached**: System message (behavior + domain + language instruction)
-- **Cache duration**: ~5 minutes (Anthropic's TTL)
-- **Automatically enabled**: No configuration needed
-- **Best for**: Large custom domains with extensive instructions
+| Provider | Type | Savings | Notes |
+|----------|------|---------|-------|
+| Anthropic | Explicit | 90% | System prompt marked with `cache_control` |
+| OpenAI | Automatic | 90% | Min 1024 tokens |
+| Gemini 2.5+ | Automatic | 90% | Min 1024-2048 tokens |
+| DeepSeek | Automatic | Up to 90% | Disk-based, min 64 tokens |
+| Groq | Automatic | 50% | Select models (Kimi K2, GPT-OSS) |
 
-When you have the same behavior and domain across multiple questions in quick succession, Anthropic may use cached system instructions. The savings are most noticeable with large custom domains.
+**What's cached**: System message (behavior + domain + language instruction)
 
-> **Note:** Other providers may have their own caching mechanisms, but these haven't been explored yet. Contributions welcome.
+**How it helps**: When you ask multiple questions in quick succession with the same behavior and domain, providers can reuse the cached system prompt instead of reprocessing it.
+
+**Best for**: Large custom domains with extensive instructions. The more tokens in your system prompt, the greater the savings.
 
 ### Response Caching (X-Ray/Recap)
 
