@@ -29,7 +29,7 @@
 - [Testing Your Setup](#testing-your-setup)
 - [Privacy & Data](#privacy--data) — ⚠️ Some features require opt-in
   - [Privacy Controls](#privacy-controls) — Presets and individual toggles
-  - [Text Extraction](#text-extraction) — Enable X-Ray/Recap book analysis (off by default)
+  - [Text Extraction](#text-extraction) — Enable book content analysis (off by default)
 - [How to Use KOAssistant](#how-to-use-koassistant) — Contexts & Built-in Actions
   - [Highlight Mode](#highlight-mode)
   - [Book/Document Mode](#bookdocument-mode)
@@ -375,7 +375,7 @@ Text extraction sends actual book content to the AI, enabling features like X-Ra
 2. Enable **"Allow Text Extraction"** (the master toggle)
 3. Built-in X-Ray and Recap actions already have the per-action flag enabled
 
-**Double-gating for safety:** Extraction requires both the global setting AND a per-action flag. Custom actions must have "Allow text extraction" checked to use text placeholders.
+**Double-gating for safety:** Extraction requires both the global setting AND a per-action flag. Custom actions (book or highlight) must have "Allow text extraction" checked to use text placeholders.
 
 **Two extraction types** (determined by placeholder in your action prompt):
 - `{book_text_section}` — Extracts from start to your current reading position (used by X-Ray, Recap)
@@ -690,7 +690,7 @@ Don't like how a built-in action behaves? Clone and customize it:
 
 The action wizard walks through 4 steps:
 
-1. **Name & Context**: Set button text and where it appears (highlight, book, multi-book, general, both, all). Options:
+1. **Name & Context**: Set button text and where it appears (highlight, book, multi-book, general, or both). Options:
    - *View Mode* — Choose how results display: Standard (full chat), Dictionary Compact (minimal popup), or Translate (translation-focused UI)
    - *Include book info* — Send title/author with highlight actions
    - *Skip language instruction* — Don't send your language preferences (useful when prompt already specifies target language)
@@ -726,14 +726,15 @@ Insert these in your action prompt to reference dynamic values:
 | `{annotations_section}` | Book, Highlight (reading) | Annotations with "My annotations:" label | Allow Highlights & Annotations |
 | `{notebook}` | Book, Highlight (reading) | Content from the book's KOAssistant notebook | Allow Notebook |
 | `{notebook_section}` | Book, Highlight (reading) | Notebook with "My notebook entries:" label | Allow Notebook |
-| `{book_text}` | Book (reading) | Extracted book text from start to current position | Allow Text Extraction |
-| `{book_text_section}` | Book (reading) | Same as above with "Book content so far:" label | Allow Text Extraction |
-| `{full_document}` | Book (reading) | Entire document text (start to end, regardless of position) | Allow Text Extraction |
-| `{full_document_section}` | Book (reading) | Same as above with "Full document:" label | Allow Text Extraction |
+| `{book_text}` | Book, Highlight (reading) | Extracted book text from start to current position | Allow Text Extraction |
+| `{book_text_section}` | Book, Highlight (reading) | Same as above with "Book content so far:" label | Allow Text Extraction |
+| `{full_document}` | Book, Highlight (reading) | Entire document text (start to end, regardless of position) | Allow Text Extraction |
+| `{full_document_section}` | Book, Highlight (reading) | Same as above with "Full document:" label | Allow Text Extraction |
 
 **Context notes:**
-- **Book** / **Highlight** = Available in both reading mode and file browser
-- **(reading)** = Reading mode only — requires an open book. Actions using these placeholders are automatically hidden in file browser
+- **Book** = Available in both reading mode and file browser
+- **Highlight** = Always reading mode (you can't highlight without an open book)
+- **(reading)** = Reading mode only — requires an open book. Book actions using these placeholders are automatically hidden in file browser
 - **Privacy Setting** = The setting that must be enabled in Settings → Privacy & Data for this variable to have content. If disabled, the variable returns empty (section placeholders disappear gracefully)
 
 #### Section vs Raw Placeholders
@@ -761,7 +762,7 @@ Insert these in your action prompt to reference dynamic values:
 - **Temperature matters**: Lower (0.3-0.5) for deterministic tasks (translation, definitions). Higher (0.7-0.9) for creative tasks (elaboration, recommendations).
 - **Experiment with domains**: Try running the same action with and without a domain to see what works for your use case. Some actions benefit from domain context (analysis, explanation), others don't (translation, grammar).
 - **Test before deploying**: Use the [web inspector](#testing-your-setup) to test your custom actions before using them on your e-reader. You can try different settings combinations and see exactly what's sent to the AI.
-- **Reading-mode placeholders**: Actions using `{reading_progress}`, `{book_text}`, `{full_document}`, `{highlights}`, `{annotations}`, `{notebook}`, or `{chapter_title}` are **automatically hidden** in File Browser mode because these require an open book. This filtering is automatic—if your custom action uses these placeholders, it will only appear when reading. The action wizard shows a `[reading]` indicator for such actions.
+- **Reading-mode placeholders**: Book actions using `{reading_progress}`, `{book_text}`, `{full_document}`, `{highlights}`, `{annotations}`, `{notebook}`, or `{chapter_title}` are **automatically hidden** in File Browser mode because these require an open book. This filtering is automatic—if your custom book action uses these placeholders, it will only appear when reading. Highlight actions are always reading-mode (you can't highlight without an open book). The action wizard shows a `[reading]` indicator for such actions.
 
 ### File-Based Actions
 
