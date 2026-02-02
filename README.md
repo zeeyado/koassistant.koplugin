@@ -533,7 +533,7 @@ When working with highlighted text, the **H.Note** button lets you save the AI r
 
 When you trigger an action, KOAssistant builds a complete request from several components:
 
-**System message** (sets AI context — sent once, cached for cost savings):
+**System message** (sets AI context):
 1. **Behavior** — Communication style: tone, formatting, verbosity (see [Behaviors](#behaviors))
 2. **Domain** — Knowledge context: subject expertise, terminology (see [Domains](#domains))
 3. **Language instruction** — Which language to respond in (see [AI Language Settings](#ai-language-settings))
@@ -552,7 +552,7 @@ There are two ways book metadata (title, author) can be included in a request:
 
 **For highlight actions:** Use `include_book_context = true` to add a `[Context]` section. The highlighted text is the main subject, so book info is supplementary context.
 
-**For book actions:** Use `{title}` and `{author_clause}` directly in the prompt (e.g., "Tell me about {title}"). The book IS the subject, so it belongs in the prompt itself. Book actions also get a `[Context]` section automatically (based on their context type), creating some redundancy—this is harmless and ensures the AI always knows which book is being discussed.
+**For book actions:** Use `{title}` and `{author_clause}` directly in the prompt (e.g., "Tell me about {title}"). The book IS the subject, so it belongs in the prompt itself.
 
 ### Skipping System Components
 
@@ -1898,13 +1898,16 @@ Works with all providers that support streaming.
 
 ### Prompt Caching (Anthropic)
 
-Reduces API costs by ~90% for repeated context, especially useful for large domains with many tokens:
+Anthropic supports prompt caching, which can reduce costs when repeating large system prompts:
 
-- **What's cached**: AI behavior instructions + domain context
-- **Cache duration**: 5 minutes (Anthropic's policy)
+- **What's cached**: System message (behavior + domain + language instruction)
+- **Cache duration**: ~5 minutes (Anthropic's TTL)
 - **Automatically enabled**: No configuration needed
+- **Best for**: Large custom domains with extensive instructions
 
-When you have the same domain selected across multiple questions, subsequent queries use cached system instructions.
+When you have the same behavior and domain across multiple questions in quick succession, Anthropic may use cached system instructions. The savings are most noticeable with large custom domains.
+
+> **Note:** Other providers may have their own caching mechanisms, but these haven't been explored yet. Contributions welcome.
 
 ### Response Caching (X-Ray/Recap)
 
