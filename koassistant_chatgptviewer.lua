@@ -971,17 +971,14 @@ function ChatGPTViewer:init()
         id = "top",
         callback = function()
           if self.render_markdown then
-            -- ScrollHtmlWidget.scrollToRatio(0) has an early return when already on page 1,
-            -- which fails for new chats. Force page 1 and re-render unconditionally.
             local htmlbox = self.scroll_text_w.htmlbox_widget
             if htmlbox then
-              htmlbox.page_number = 1
-              htmlbox.page_boxes = nil
-              htmlbox:clearHighlight()
-              htmlbox:freeBb()
-              htmlbox:_render()
-              self.scroll_text_w:_updateScrollBar()
-              UIManager:setDirty(self, "partial")
+              -- Already at top - do nothing to avoid unnecessary refresh
+              if htmlbox.page_number == 1 then
+                return
+              end
+              -- Use scrollToRatio for smooth scroll without full re-render
+              self.scroll_text_w:scrollToRatio(0)
             end
           else
             self.scroll_text_w:scrollToTop()
