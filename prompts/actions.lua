@@ -195,6 +195,59 @@ If I have no prior highlights or notebook entries, just reflect on this passage 
         },
         builtin = true,
     },
+    -- Context-aware highlight actions (use book text extraction)
+    explain_in_context = {
+        id = "explain_in_context",
+        text = _("Explain in Context"),
+        context = "highlight",
+        use_book_text = true,
+        include_book_context = true,
+        prompt = [[Explain this passage in context:
+
+"{highlighted_text}"
+
+From "{title}"{author_clause}.
+
+{book_text_section}
+
+Help me understand:
+1. What this passage means
+2. How it connects to what came before
+3. Key references or concepts it builds on]],
+        api_params = {
+            temperature = 0.5,
+            max_tokens = 2048,
+        },
+        builtin = true,
+    },
+    analyze_in_context = {
+        id = "analyze_in_context",
+        text = _("Analyze in Context"),
+        context = "highlight",
+        use_book_text = true,
+        use_annotations = true,
+        include_book_context = true,
+        prompt = [[Analyze this passage in the broader context of what I've read:
+
+"{highlighted_text}"
+
+From "{title}"{author_clause}.
+
+{book_text_section}
+
+{annotations_section}
+
+Provide deeper analysis:
+1. **Significance**: Why might this passage matter in the larger work?
+2. **Connections**: How does it relate to earlier themes, arguments, or events?
+3. **Patterns**: Does it echo or develop something from before?
+4. **My notes**: If I've highlighted related passages, show those connections.]],
+        api_params = {
+            temperature = 0.6,
+            max_tokens = 2048,
+        },
+        builtin = true,
+    },
 }
 
 -- Built-in actions for book context (single book from file browser)
