@@ -12,7 +12,7 @@
 - **Multi-document** → compare texts, find common themes, analyze your collection
 - **General chat** → AI without book context
 
-16 built-in providers (Anthropic, OpenAI, Gemini, Ollama, and more) plus custom OpenAI-compatible providers. Fully configurable: custom actions, behaviors, domains, per-action model overrides. Personal reading data (highlights, annotations, notebooks) is opt-in — not shared unless you enable it.
+16 built-in providers (Anthropic, OpenAI, Gemini, Ollama, and more) plus custom OpenAI-compatible providers. Fully configurable: custom actions, behaviors, domains, per-action model overrides. Personal reading data (highlights, annotations, notebooks) is opt-in — not sent to the AI unless you enable it.
 
 > **Status:** Active development — [issues](https://github.com/zeeyado/koassistant.koplugin/issues) and [discussions](https://github.com/zeeyado/koassistant.koplugin/discussions) welcome. Also see [Assistant Plugin](https://github.com/omer-faruq/assistant.koplugin); both run side by side.
 
