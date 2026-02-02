@@ -19,6 +19,23 @@ local ActionCache = {}
 -- Cache format version (increment if structure changes)
 local CACHE_VERSION = 1
 
+--- Find a safe long string delimiter for content that won't appear in the text
+--- Returns number of = signs needed (0 means use [[]], 1 means [=[]=], etc.)
+--- @param content string The content to wrap
+--- @return number equals Number of = signs needed for safe delimiter
+local function findSafeDelimiter(content)
+    if not content then return 2 end
+    -- Start with 2 equals (standard), check if ]]==] appears
+    -- If so, try 3, 4, etc. until safe
+    for equals = 2, 10 do
+        local closing = "]" .. string.rep("=", equals) .. "]"
+        if not content:find(closing, 1, true) then
+            return equals
+        end
+    end
+    return 10 -- Fallback (extremely unlikely to need more)
+end
+
 --- Get cache file path for a document
 --- @param document_path string The document file path
 --- @return string|nil cache_path The full path to the cache file
@@ -83,10 +100,13 @@ local function saveCache(document_path, cache)
             file:write(string.format("        timestamp = %s,\n", tostring(entry.timestamp or 0)))
             file:write(string.format("        model = %q,\n", entry.model or ""))
             file:write(string.format("        version = %s,\n", tostring(entry.version or CACHE_VERSION)))
-            -- Result may contain special characters, use long string
-            file:write("        result = [==[\n")
-            file:write(entry.result or "")
-            file:write("\n]==],\n")
+            -- Result may contain special characters, use long string with safe delimiter
+            local result_text = entry.result or ""
+            local eq_count = findSafeDelimiter(result_text)
+            local eq_str = string.rep("=", eq_count)
+            file:write(string.format("        result = [%s[\n", eq_str))
+            file:write(result_text)
+            file:write(string.format("\n]%s],\n", eq_str))
             file:write("    },\n")
         end
     end
