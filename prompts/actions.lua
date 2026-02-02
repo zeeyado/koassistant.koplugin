@@ -748,7 +748,7 @@ Actions.special = {
 
 Write in {dictionary_language}. Only the headword stays in original language.
 
-**word** _part of speech_ — definition
+**word**, part of speech — definition
 
 {context_section}
 
@@ -776,14 +776,14 @@ One line only. No etymology, no synonyms.]],
 
 Write entirely in {dictionary_language}. Only the headword, lemma, and synonyms stay in original language.
 
-**word** /IPA/ _part of speech_ of **lemma**
+**word** /IPA/ part of speech of **lemma**
 Definition(s), numbered if multiple
 Etymology (brief)
 Synonyms
 
 {context_section}
 
-All labels and explanations in {dictionary_language}. Inline bold labels. Concise.]],
+All labels and explanations in {dictionary_language}. Inline bold labels, no headers. Concise.]],
         include_book_context = false,  -- Word definitions don't typically need book metadata
         extended_thinking = "off",  -- Dictionary lookups don't benefit from extended thinking
         skip_language_instruction = true,  -- Target language already in prompt
