@@ -87,7 +87,7 @@
 - [Troubleshooting](#troubleshooting)
   - [Features Not Working / Empty Data](#features-not-working--empty-data) — Privacy settings for opt-in features
   - [Text Extraction Not Working](#text-extraction-not-working)
-  - [Font Issues (Arabic)](#font-issues-arabic)
+  - [Font Issues (Arabic/RTL Languages)](#font-issues-arabicrtl-languages)
   - [Settings Reset](#settings-reset)
   - [Debug Mode](#debug-mode)
 - [Requirements](#requirements)
@@ -925,6 +925,16 @@ The dictionary language setting shows return symbols when following other settin
 
 See [How Language Settings Work Together](#how-language-settings-work-together) for details.
 
+### RTL Language Support
+
+Dictionary actions have special handling for right-to-left (RTL) languages:
+
+- **Automatic text mode**: When your dictionary language is set to an RTL language, dictionary results automatically use Plain Text mode for proper font rendering. This can be disabled via **Settings → Display Settings → Text Mode for RTL Dictionary**.
+- **BiDi text alignment**: Dictionary entries with RTL content (headwords, definitions) display with correct bidirectional text alignment. Mixed RTL/LTR content (e.g., Arabic headwords with English pronunciation guides) renders in the correct reading order.
+- **IPA transcription handling**: Phonetic transcriptions are anchored to display correctly alongside RTL headwords.
+
+> **Note:** For best RTL rendering, Plain Text mode is recommended. The automatic RTL text mode handles this for dictionary lookups specifically, while preserving your global Markdown/Plain Text preference for other chats.
+
 ### Known Limitations & Workaround
 
 The built-in dictionary actions attempt to handle many use cases with unified prompts:
@@ -964,14 +974,18 @@ When bypass is enabled, selecting a word skips KOReader's dictionary popup entir
 ### Compact View Features
 
 The compact dictionary view provides two rows of buttons:
-- **Row 1:** MD/Text, Copy, Wiki, +Vocab
+- **Row 1:** MD ON/TXT ON, Copy, Wiki, +Vocab
 - **Row 2:** Expand, Lang, Ctx, Close
+
+**MD ON / TXT ON** — Toggle between Markdown and Plain Text view modes. Shows "MD ON" when Markdown is active, "TXT ON" when Plain Text is active. For RTL languages, this may default to TXT ON automatically based on your settings.
 
 **Copy** — Copies the AI response only (plain text). Unlike the full chat view, compact view always copies just the response without metadata or asking for format.
 
 **Lang** — Re-run the lookup in a different language (picks from your configured languages). Closes the current view and opens a new one with the updated result.
 
 **Ctx: ON/OFF** — Toggle surrounding text context. If your lookup was done without context (mode set to "None"), you can turn it on to get a context-aware definition (Sentence by default). If context was included, you can turn it off for a plain definition. Re-runs the lookup with the toggled setting. This setting is not sticky, so context will revert to your main setting on closing the window.
+
+**RTL-aware rendering**: When viewing dictionary results for RTL languages, the compact view automatically uses Plain Text mode (if enabled in settings) and applies correct bidirectional text alignment for proper display of RTL content.
 
 ### Vocabulary Builder Integration
 
@@ -1121,7 +1135,7 @@ This extracts all text from the visible page/screen and sends it to the Translat
 All translation actions (Highlight Bypass with Translate, Translate Current Page, highlight menu Translate) use a specialized **Translate View** — a minimal UI focused on translations.
 
 **Button layout:**
-- **Row 1:** MD/Text (toggle markdown), Copy, H.Note (when highlighting)
+- **Row 1:** MD ON/TXT ON (toggle markdown), Copy, H.Note (when highlighting)
 - **Row 2:** → Chat (expand to full chat), Show/Hide Original, Lang, Close
 
 **Key features:**
@@ -1478,6 +1492,8 @@ Chat History → hamburger menu → **View by Domain**
   - **Plain Text**: Better font support for Arabic and some other non-Latin scripts
 - **Plain Text Options**: Settings for Plain Text mode
   - **Apply Markdown Stripping**: Convert markdown syntax to readable plain text. Headers use hierarchical symbols with bold text (`▉ **H1**`, `◤ **H2**`, `◆ **H3**`, etc.), `**bold**` renders as actual bold, `*italics*` are preserved as-is, `_italics_` (underscores) become bold, lists become `•`, code becomes `'quoted'`. Includes BiDi support for mixed RTL/LTR content. Disable to show raw markdown. (default: on)
+- **Text Mode for Dictionary**: Always use Plain Text mode for dictionary popup, regardless of global view mode setting. Better font support for non-Latin scripts. (default: off)
+- **Text Mode for RTL Dictionary**: Automatically use Plain Text mode for dictionary popup when dictionary language is RTL. Grayed out when Text Mode for Dictionary is enabled. (default: on)
 - **Hide Highlighted Text**: Don't show selection in responses
 - **Hide Long Highlights**: Collapse highlights over character threshold
 - **Long Highlight Threshold**: Character limit before collapsing (default: 280)
@@ -2186,7 +2202,7 @@ KOAssistant offers two view modes for displaying AI responses:
 - **BiDi support**: Mixed RTL/LTR content (e.g., Arabic headwords with English definitions) displays correctly; RTL-only headers align naturally to the right
 
 **How to switch:**
-- **On the fly**: Tap **MD/Text** button in chat viewer (bottom row)
+- **On the fly**: Tap **MD ON / TXT ON** button in chat viewer (bottom row)
 - **Permanently**: Settings → Display Settings → View Mode
 
 ### Reply Draft Saving
@@ -2281,14 +2297,19 @@ If X-Ray, Recap, or custom actions with `{book_text}` / `{full_document}` placeh
 
 **Quick check:** If X-Ray/Recap responses seem to be based only on the book's title/author (generic knowledge), text extraction is not enabled.
 
-### Font Issues (Arabic)
+### Font Issues (Arabic/RTL Languages)
 
-If text doesn't render correctly in Markdown view (especially), switch to **Plain Text view**:
+If text doesn't render correctly in Markdown view, switch to **Plain Text view**:
 
-- **On the fly**: Tap the **MD/Text** button in the chat viewer to toggle
+- **On the fly**: Tap the **MD ON / TXT ON** button in the chat viewer to toggle
 - **Permanently**: Settings → Display Settings → View Mode → Plain Text
 
 This is a limitation of KOReader's MuPDF HTML renderer, which lacks per-glyph font fallback. Plain Text mode uses KOReader's native text rendering with proper font support.
+
+**For dictionary lookups**, you can enable automatic text mode for RTL languages:
+- **Settings → Display Settings → Text Mode for RTL Dictionary** (on by default)
+- When enabled, dictionary results automatically use Plain Text mode when your dictionary language is RTL
+- Your global Markdown/Plain Text preference is preserved for other chats
 
 Plain Text mode includes markdown stripping that preserves readability: headers show with symbols and bold text, **bold** renders as actual bold, lists become bullets (•), and code is quoted. Mixed RTL/LTR content (like Arabic headwords followed by English definitions) displays in the correct order, and RTL-only headers align naturally to the right.
 
