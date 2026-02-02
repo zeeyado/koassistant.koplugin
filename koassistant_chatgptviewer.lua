@@ -152,14 +152,16 @@ local function stripMarkdown(text)
 
     -- BiDi fix: Prepend LRM to lines containing RTL characters to establish LTR base direction
     -- Without this, lines starting with RTL text get RTL paragraph direction, reversing everything
-    -- Skip header lines so RTL headers can align naturally to the right
+    -- BiDi fix: Add LRM only to truly mixed RTL+Latin lines
+    -- Pure RTL lines (even with numbers/punctuation) should align right naturally
     -- UTF-8 ranges: Hebrew U+0590-U+05FF = bytes 214-215, Arabic U+0600-U+06FF = bytes 216-219
     local rtl_pattern = "[\214-\219][\128-\191]"
+    local latin_pattern = "[a-zA-Z]"  -- Latin letters indicate mixed content needing LTR base
     local header_pattern = "^%s*[▉◤◆✿❖·]"  -- Header symbols from header processing above
     local fixed_lines = {}
     for line in result:gmatch("([^\n]*)\n?") do
-        -- Add LRM to RTL lines, but skip headers (let them align naturally)
-        if line:match(rtl_pattern) and not line:match(header_pattern) then
+        -- Add LRM only to mixed RTL+Latin lines (not headers, not pure RTL)
+        if line:match(rtl_pattern) and line:match(latin_pattern) and not line:match(header_pattern) then
             table.insert(fixed_lines, LRM .. line)
         else
             table.insert(fixed_lines, line)
