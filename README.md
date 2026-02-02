@@ -388,8 +388,13 @@ See [Troubleshooting → Text Extraction Not Working](#text-extraction-not-worki
 For maximum privacy, **Ollama** can run AI models entirely on your device(s):
 - Data never leaves your hardware
 - Works offline after model download
-- See [Supported Providers](#supported-providers--settings) for setup
-- Anyone using local LLMs is encouraged to open Issues/Feature Request/Discussion to help enhance support for local, privacy-maintaining usage.
+- See [Ollama's official docs](https://github.com/ollama/ollama) for installation and [FAQ](https://github.com/ollama/ollama/blob/main/docs/faq.md) for network setup (hosting on another machine)
+- Quick start: Install Ollama → `ollama pull qwen2.5:0.5b` → Select "Ollama" as provider in KOAssistant settings
+- For network hosting, change the endpoint in Settings → Provider → Base URL (e.g., `http://192.168.1.100:11434/api/chat`)
+
+**Other local options:** LM Studio, vLLM, llama.cpp server, and Text Generation WebUI all work via [Adding Custom Providers](#adding-custom-providers) since they support OpenAI-compatible APIs. Just input the Provider name and Model name and you are set -- they will be saved for future use.
+
+Anyone using local LLMs is encouraged to open Issues/Feature Requests/Discussions to help enhance support for local, privacy-focused usage.
 
 ### Provider Policies
 
@@ -654,9 +659,13 @@ Don't like how a built-in action behaves? Clone and customize it:
    - **Why clone?** Preserves the original if you want to compare
 
 2. **Want different model for specific action?**
-   - **Example:** Dictionary lookups are slow with your main model
-   - **Fix:** Edit the Dictionary action → Advanced → Set provider to "anthropic" and model to "claude-haiku-4-5"
-   - **Why:** Different actions benefit from different models. Fast models for quick lookups, powerful models for analysis
+   - **Example:** Quick Define lookups are slow with your main model
+   - **Fix:** Edit the Quick Define action → Advanced → Set provider to "anthropic" and model to "claude-haiku-4-5"
+   - **Why:** Different actions benefit from different models:
+     - **Fast/cheap models** for Dictionary, Quick Define, Translate (speed matters, task is simple)
+     - **Standard models** for Explain, Summarize, ELI5 (balanced quality and cost)
+     - **Reasoning models** for Deep Analysis, Key Arguments, academic tasks (complex thinking)
+   - **Examples:** Haiku/GPT-4.1-nano/qwen2.5:0.5b for lookups; Sonnet/GPT-5/llama3.3 for general use; Opus/o3/deepseek-r1 for analysis
 
 3. **Want action without domain/language?**
    - **Example:** Translate action giving unexpected results due to your domain
