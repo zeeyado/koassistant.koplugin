@@ -360,9 +360,9 @@ KOAssistant sends data to AI providers to generate responses. This section expla
 
 ### Text Extraction
 
-> ⚠️ **Text extraction is OFF by default.** To use features like X-Ray and Recap with actual book content (rather than AI's training knowledge), you must enable it in **Settings → Privacy & Data → Text Extraction → Allow Text Extraction**.
+> ⚠️ **Text extraction is OFF by default.** To use features like X-Ray, Recap, and context-aware highlight actions with actual book content (rather than AI's training knowledge), you must enable it in **Settings → Privacy & Data → Text Extraction → Allow Text Extraction**.
 
-Text extraction sends actual book content to the AI, enabling features like X-Ray and Recap to analyze what you've read. Without it enabled, these features rely solely on the AI's training knowledge of the book (which works for well-known titles but may be inaccurate for obscure works).
+Text extraction sends actual book content to the AI, enabling features like X-Ray, Recap, and highlight actions like "Explain in Context" to analyze what you've read. Without it enabled, these features rely solely on the AI's training knowledge of the book (which works for well-known titles but may be inaccurate for obscure works).
 
 **Why it's off by default:**
 
@@ -373,7 +373,7 @@ Text extraction sends actual book content to the AI, enabling features like X-Ra
 **How to enable:**
 1. Go to **Settings → Privacy & Data → Text Extraction**
 2. Enable **"Allow Text Extraction"** (the master toggle)
-3. Built-in X-Ray and Recap actions already have the per-action flag enabled
+3. Built-in actions (X-Ray, Recap, Explain in Context, Analyze in Context) already have the per-action flag enabled
 
 **Double-gating for safety:** Extraction requires both the global setting AND a per-action flag. Custom actions (book or highlight) must have "Allow text extraction" checked to use text placeholders.
 
@@ -414,7 +414,7 @@ KOAssistant works in **4 contexts**, each with its own set of built-in actions:
 
 | Context | Built-in Actions |
 |---------|------------------|
-| **Highlight** | Explain, ELI5, Summarize, Elaborate, Connect, Connect (With Notes), Translate, Dictionary, Quick Define, Deep Analysis |
+| **Highlight** | Explain, ELI5, Summarize, Elaborate, Connect, Connect (With Notes), Explain in Context, Analyze in Context, Translate, Dictionary, Quick Define, Deep Analysis |
 | **Book** | Book Info, Similar Books, About Author, Historical Context, Related Thinkers, Key Arguments, Discussion Questions, X-Ray, Recap, Analyze Highlights, Analyze Document, Summarize Document, Extract Key Insights |
 | **Multi-book** | Compare Books, Common Themes, Analyze Collection, Quick Summaries, Reading Order |
 | **General** | Ask |
@@ -439,12 +439,14 @@ You can customize these, create your own, or disable ones you don't use. See [Ac
 | **Elaborate** | Expand on concepts, provide additional context and details |
 | **Connect** | Draw connections to other works, thinkers, and broader context |
 | **Connect (With Notes)** | Connect passage to your personal reading journey ⚠️ *Requires: Allow Highlights & Annotations, Allow Notebook* |
+| **Explain in Context** | Explain passage using surrounding book content ⚠️ *Requires: Allow Text Extraction* |
+| **Analyze in Context** | Deep analysis with book context and your annotations ⚠️ *Requires: Allow Text Extraction, Allow Highlights & Annotations* |
 | **Translate** | Translate to your configured language |
 | **Dictionary** | Full dictionary entry: definition, etymology, synonyms, usage (also accessible via dictionary popup) |
 | **Quick Define** | Minimal lookup: brief definition only, no etymology or synonyms |
 | **Deep Analysis** | Linguistic deep-dive: morphology, word family, cognates, etymology path |
 
-**What the AI sees**: Your highlighted text, plus document metadata (title, author). Custom actions can also access reading progress, chapter info, your highlights/annotations, notebook, and extracted book text—depending on action settings and [privacy preferences](#privacy--data). See [Prompt Variables](#prompt-variables) for details.
+**What the AI sees**: Your highlighted text, plus document metadata (title, author). Actions like "Explain in Context" and "Analyze in Context" also use extracted book text to understand the surrounding content. Custom actions can access reading progress, chapter info, your highlights/annotations, notebook, and extracted book text—depending on action settings and [privacy preferences](#privacy--data). See [Template Variables](#template-variables) for details.
 
 **Save to Note**: After getting an AI response, tap the **H.Note** button to save it directly as a KOReader highlight note attached to your selected text. See [Save to Note](#save-to-note) for details.
 
@@ -490,6 +492,8 @@ These actions analyze your actual reading content. They require specific privacy
 | **Extract Key Insights** | Entire document | Allow Text Extraction |
 
 > ⚠️ **Privacy settings required:** These actions won't have access to your reading data unless you enable the corresponding setting in **Settings → Privacy & Data**. Without the setting enabled, the AI will attempt to use only its training knowledge (works for famous books, less accurate for obscure works).
+
+> **Tip:** Highlight actions can also use text extraction. "Explain in Context" and "Analyze in Context" use `{book_text_section}` to understand your highlighted passage within the broader book context. See [Highlight Mode](#highlight-mode) for details.
 
 **X-Ray/Recap**: These actions work in two modes:
 - **Without text extraction** (default): AI uses only the title/author and relies on its training knowledge of the book. Works for well-known titles; may be inaccurate for obscure works.
@@ -830,7 +834,7 @@ Add frequently-used highlight actions directly to KOReader's highlight popup for
 1. **Translate** — Instant translation of selected text
 2. **Explain** — Get an explanation of the passage
 
-**Other built-in actions you can add**: ELI5, Summarize, Elaborate, Connect, Connect (With Notes), Dictionary, Quick Define, Deep Analysis
+**Other built-in actions you can add**: ELI5, Summarize, Elaborate, Connect, Connect (With Notes), Explain in Context, Analyze in Context, Dictionary, Quick Define, Deep Analysis
 
 **Adding more actions**:
 1. Go to **Manage Actions**
@@ -1679,7 +1683,7 @@ See [Privacy & Data](#privacy--data) for background on what gets sent to AI prov
   - **Allow Reading Progress**: Send current reading position percentage (default: ON)
   - **Allow Chapter Info**: Send chapter title, chapters read, time since last opened (default: ON)
 - **Text Extraction** (submenu): Settings for extracting book content for AI analysis
-  - **Allow Text Extraction**: Master toggle for text extraction (off by default). When enabled, actions can extract and send book text to the AI. Used by X-Ray, Recap, and actions with text placeholders (`{book_text}`, `{full_document}`, etc.). Enabling shows an informational notice about token costs.
+  - **Allow Text Extraction**: Master toggle for text extraction (off by default). When enabled, actions can extract and send book text to the AI. Used by X-Ray, Recap, Explain in Context, Analyze in Context, and actions with text placeholders (`{book_text}`, `{full_document}`, etc.). Enabling shows an informational notice about token costs.
   - **Max Text Characters**: Maximum characters to extract (10,000-1,000,000, default 250,000 ~60k tokens)
   - **Max PDF Pages**: Maximum PDF pages to process (50-500, default 250)
   - **Clear Action Cache**: Clear cached X-Ray/Recap responses for the current book (requires book to be open). To clear just one action, use the "↻ Fresh" button in the chat viewer instead.
@@ -2299,6 +2303,8 @@ If actions like Analyze Highlights, Connect with Notes, X-Ray, or Recap seem to 
 | Analyze Highlights shows nothing | Allow Highlights & Annotations |
 | Connect with Notes ignores your notes | Allow Highlights & Annotations + Allow Notebook |
 | X-Ray/Recap use only book title | Allow Text Extraction (in Text Extraction submenu) |
+| Explain/Analyze in Context use only book title | Allow Text Extraction (in Text Extraction submenu) |
+| Analyze in Context ignores your highlights | Allow Highlights & Annotations |
 | Custom action with `{highlights}` empty | Allow Highlights & Annotations |
 | Custom action with `{notebook}` empty | Allow Notebook |
 | Custom action with `{book_text}` empty | Allow Text Extraction + action's "Allow text extraction" flag |
@@ -2309,7 +2315,7 @@ If actions like Analyze Highlights, Connect with Notes, X-Ray, or Recap seem to 
 
 ### Text Extraction Not Working
 
-If X-Ray, Recap, or custom actions with `{book_text}` / `{full_document}` placeholders return empty or generic responses based only on book title:
+If X-Ray, Recap, Explain in Context, Analyze in Context, or custom actions with `{book_text}` / `{full_document}` placeholders return empty or generic responses based only on book title:
 
 **Text extraction is OFF by default.** You must enable it manually:
 
@@ -2327,7 +2333,7 @@ If X-Ray, Recap, or custom actions with `{book_text}` / `{full_document}` placeh
 - Some users prefer AI to use only its training knowledge
 - Content sensitivity — you control what gets shared
 
-**Quick check:** If X-Ray/Recap responses seem to be based only on the book's title/author (generic knowledge), text extraction is not enabled.
+**Quick check:** If X-Ray/Recap or context-aware highlight action responses seem to be based only on the book's title/author (generic knowledge), text extraction is not enabled.
 
 ### Font Issues (Arabic/RTL Languages)
 
