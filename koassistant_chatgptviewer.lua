@@ -54,6 +54,9 @@ local function stripMarkdown(text)
     local PTF_BOLD_START = "\u{FFF2}"  -- Start a bold sequence
     local PTF_BOLD_END = "\u{FFF3}"    -- End a bold sequence
 
+    -- Directional marker for BiDi text (RTL headwords followed by LTR IPA/definitions)
+    local LRM = "\u{200E}"  -- Left-to-Right Mark - resets direction after RTL text
+
     local result = text
 
     -- Code blocks FIRST (before other transformations can affect content inside)
@@ -106,15 +109,22 @@ local function stripMarkdown(text)
     -- Italic becomes plain text (no italic support in PTF)
 
     -- Bold-italic: ***text*** or ___text___ → bold text (no italic in PTF)
-    result = result:gsub("%*%*%*(.-)%*%*%*", PTF_BOLD_START .. "%1" .. PTF_BOLD_END)
-    result = result:gsub("___(.-)___", PTF_BOLD_START .. "%1" .. PTF_BOLD_END)
+    -- LRM after bold helps with RTL headwords followed by LTR content (IPA, definitions)
+    result = result:gsub("%*%*%*(.-)%*%*%*", PTF_BOLD_START .. "%1" .. PTF_BOLD_END .. LRM)
+    result = result:gsub("___(.-)___", PTF_BOLD_START .. "%1" .. PTF_BOLD_END .. LRM)
 
     -- Bold: **text** or __text__ → bold text
-    result = result:gsub("%*%*(.-)%*%*", PTF_BOLD_START .. "%1" .. PTF_BOLD_END)
-    result = result:gsub("__(.-)__", PTF_BOLD_START .. "%1" .. PTF_BOLD_END)
+    result = result:gsub("%*%*(.-)%*%*", PTF_BOLD_START .. "%1" .. PTF_BOLD_END .. LRM)
+    result = result:gsub("__(.-)__", PTF_BOLD_START .. "%1" .. PTF_BOLD_END .. LRM)
 
-    -- Italic: *text* or _text_ → kept as-is (no italic support in PTF)
-    -- Preserves the original markdown asterisks/underscores for visual indication
+    -- Italic handling:
+    -- *italic* with asterisks → kept as-is (visual hint for prose italics)
+    -- _italic_ with underscores → bold (used for part of speech in dictionary entries)
+    -- Must use word boundary patterns to avoid matching mid-word underscores (like variable_name)
+    result = result:gsub("(%s)_([^_\n]+)_([%s%p])", "%1" .. PTF_BOLD_START .. "%2" .. PTF_BOLD_END .. "%3")
+    result = result:gsub("(%s)_([^_\n]+)_$", "%1" .. PTF_BOLD_START .. "%2" .. PTF_BOLD_END)
+    result = result:gsub("^_([^_\n]+)_([%s%p])", PTF_BOLD_START .. "%1" .. PTF_BOLD_END .. "%2")
+    result = result:gsub("^_([^_\n]+)_$", PTF_BOLD_START .. "%1" .. PTF_BOLD_END)
 
     -- Blockquotes: > text → │ text (box drawing character)
     result = result:gsub("\n>%s*", "\n│ ")
@@ -139,6 +149,23 @@ local function stripMarkdown(text)
 
     -- Clean up multiple blank lines
     result = result:gsub("\n\n\n+", "\n\n")
+
+    -- BiDi fix: Prepend LRM to lines containing RTL characters to establish LTR base direction
+    -- Without this, lines starting with RTL text get RTL paragraph direction, reversing everything
+    -- Skip header lines so RTL headers can align naturally to the right
+    -- UTF-8 ranges: Hebrew U+0590-U+05FF = bytes 214-215, Arabic U+0600-U+06FF = bytes 216-219
+    local rtl_pattern = "[\214-\219][\128-\191]"
+    local header_pattern = "^%s*[▉◤◆✿❖·]"  -- Header symbols from header processing above
+    local fixed_lines = {}
+    for line in result:gmatch("([^\n]*)\n?") do
+        -- Add LRM to RTL lines, but skip headers (let them align naturally)
+        if line:match(rtl_pattern) and not line:match(header_pattern) then
+            table.insert(fixed_lines, LRM .. line)
+        else
+            table.insert(fixed_lines, line)
+        end
+    end
+    result = table.concat(fixed_lines, "\n")
 
     -- Add PTF header at start to signal TextBoxWidget to interpret PTF markers
     return PTF_HEADER .. result
