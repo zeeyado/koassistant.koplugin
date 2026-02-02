@@ -1376,7 +1376,15 @@ This means:
 - ✅ **Automatic index sync**: When you move or rename books via KOReader's file manager, the chat index automatically updates to track the new path — chats remain accessible immediately without needing to reopen books
 - ✅ **Multi-book context preserved**: Chats comparing multiple books (Compare Books, Common Themes) preserve the full list of compared books in metadata and appear in a separate section in Chat History with a 📚 icon
 
-**Storage Modes**: The v2 chat system is tested with KOReader's default **"doc" storage mode** (metadata stored alongside book files in `.sdr` folders). Other storage modes ("dir", "hash") should work via the DocSettings abstraction layer but are currently untested. Testing is in progress.
+**Storage Modes**: KOAssistant is designed for and tested with KOReader's default **"Book folder"** storage mode (metadata stored alongside book files in `.sdr` folders).
+
+> **Important**: Other storage modes ("KOReader settings folder", "Hash-based") are **not currently supported** and have known issues:
+> - **Notebook collision**: All books may share the same notebook file, causing overwrites
+> - **Cache collision**: Same issue with X-Ray/Recap cache files
+> - **Mode switching**: Changing storage modes does not migrate existing chat data
+> - **Index rebuild**: Only works with "Book folder" mode folder structure
+>
+> **Recommendation**: Use Settings → Document → Book metadata location → **"Book folder"** for full KOAssistant functionality. Full mode support is planned for a future release.
 
 **Migration**: If you're upgrading from an older version, your existing chats will be automatically migrated to the new storage system on first launch. The old chat files are backed up to `koassistant_chats.backup/`.
 
