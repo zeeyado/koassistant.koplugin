@@ -1670,7 +1670,7 @@ See [Privacy & Data](#privacy--data) for background on what gets sent to AI prov
 Control where KOAssistant appears in KOReader's menus. All toggles default to ON; disable any to reduce UI presence.
 - **Show in File Browser**: Add KOAssistant buttons to file browser context menus (requires restart)
 - **Show KOAssistant Button in Highlight Menu**: Add the main "KOAssistant" button to the highlight popup (requires restart)
-- **Show Quick Actions in Highlight Menu**: Add Explain, Translate, and other quick action shortcuts to the highlight popup (requires restart)
+- **Show Highlight Menu Actions**: Add Explain, Translate, and other action shortcuts to the highlight popup (requires restart)
 - **Show in Dictionary Popup**: Add AI buttons to KOReader's dictionary popup (same as Dictionary Settings toggle)
 - **File Browser Buttons** (sub-settings of Show in File Browser):
   - **Show Notebook Button**: Show "Notebook (KOA)" button when long-pressing books

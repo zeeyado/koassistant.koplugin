@@ -1072,10 +1072,10 @@ local SettingsSchema = {
                 {
                     id = "show_quick_actions_in_highlight",
                     type = "toggle",
-                    text = _("Show Quick Actions in Highlight Menu"),
+                    text = _("Show Highlight Menu Actions"),
                     path = "features.show_quick_actions_in_highlight",
                     default = true,
-                    help_text = _("Add quick action shortcuts (Explain, Translate, etc.) to highlight menu. Requires restart."),
+                    help_text = _("Add action shortcuts (Explain, Translate, etc.) to highlight menu. Requires restart."),
                     on_change = function()
                         local InfoMessage = require("ui/widget/infomessage")
                         local UIManager = require("ui/uimanager")
