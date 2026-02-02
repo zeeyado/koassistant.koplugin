@@ -380,7 +380,8 @@ Text extraction sends actual book content to the AI, enabling features like X-Ra
 | Data Type | Global Setting | Per-Action Flag |
 |-----------|----------------|-----------------|
 | Book text | Allow Text Extraction | "Allow text extraction" checked |
-| Analysis caches | Allow Text Extraction | "Allow text extraction" (auto-inferred from cache placeholders) |
+| X-Ray analysis cache | Allow Text Extraction + Allow Highlights | Auto-inferred (cascades to both) |
+| Analyze/Summary caches | Allow Text Extraction | Auto-inferred from placeholder |
 | Highlights | Allow Highlights & Annotations | "Include highlights" checked |
 | Annotations | Allow Highlights & Annotations | "Include annotations" checked |
 | Notebook | Allow Notebook | "Include notebook" checked |
@@ -779,7 +780,7 @@ Insert these in your action prompt to reference dynamic values:
 
 > **Privacy note:** Section placeholders adapt to [privacy settings](#privacy--data). If a data type is disabled (or not yet enabled), the corresponding placeholder returns empty and section variants disappear gracefully. For example, `{highlights_section}` is empty unless you enable **Allow Highlights & Annotations**. You don't need to modify actions to match your privacy preferences—they adapt automatically.
 
-> **Double-gating:** Sensitive data requires BOTH a global privacy setting AND a per-action permission flag. This prevents accidental data leakage—if you enable "Allow Text Extraction" globally, your custom actions still need "Allow text extraction" checked to actually use it. Built-in actions already have appropriate flags set. When you copy a built-in action, it inherits the flags. When creating from scratch, check the permissions you need. Analysis cache placeholders (`{xray_analysis}`, etc.) also require "Allow text extraction" since they derive from book text.
+> **Double-gating:** Sensitive data requires BOTH a global privacy setting AND a per-action permission flag. This prevents accidental data leakage—if you enable "Allow Text Extraction" globally, your custom actions still need "Allow text extraction" checked to actually use it. Built-in actions already have appropriate flags set. When you copy a built-in action, it inherits the flags. When creating from scratch, check the permissions you need. Analysis cache placeholders require the same permissions as their source: `{xray_analysis}` needs both text extraction AND annotations enabled, while `{analyze_analysis}` and `{summary_analysis}` only need text extraction.
 
 > **Note:** Text extraction placeholders (`{book_text}`, `{full_document}`, analysis caches, etc.) require two things: (1) the global **Allow Text Extraction** setting enabled in Settings → Privacy & Data → Text Extraction, and (2) the action must have "Allow text extraction" checked. Both are off by default—primarily to avoid unexpected token costs, and secondarily for content awareness. See [Text Extraction](#text-extraction) for details.
 
@@ -2067,9 +2068,22 @@ When X-Ray, Analyze Document, or Summary actions complete, their results are als
 - Analyze Document → saves to `_analyze_analysis` cache
 - Summary → saves to `_summary_analysis` cache
 
-Custom actions can reference these using `{xray_analysis_section}`, `{analyze_analysis_section}`, or `{summary_analysis_section}` placeholders. This lets you build on previous analysis without re-running expensive actions. For example, create a custom action that asks questions based on your previous X-Ray analysis.
+Custom actions can reference these using `{xray_analysis_section}`, `{analyze_analysis_section}`, or `{summary_analysis_section}` placeholders. This lets you build on previous analysis without re-running expensive actions.
 
-> **Permission requirement:** Since these caches contain content derived from book text extraction, using the cache placeholders requires the same permissions as the original action: text extraction must be enabled globally (Settings → Privacy & Data) AND the action must have "Allow text extraction" checked. Without both gates, the placeholder renders empty.
+**Example: Create a "Questions from X-Ray" action**
+1. Enable **Allow Text Extraction** AND **Allow Highlights & Annotations** in Settings → Privacy & Data
+2. Run **X-Ray** on a book (this populates the cache)
+3. Create a custom action with prompt: `Based on this analysis:\n\n{xray_analysis_section}\n\nWhat are the 3 most important questions I should be thinking about?`
+4. Check "Allow text extraction" and "Include highlights" in the action's permissions
+5. Run your new action—it uses the cached X-Ray without re-analyzing
+
+If you haven't run X-Ray yet (or permissions aren't enabled), the placeholder renders empty and the action still runs, just without the analysis context.
+
+> **Permission requirement:** Cache placeholders require the same permissions as the original action that generated them:
+> - `{xray_analysis_section}` requires **Allow Text Extraction** AND **Allow Highlights & Annotations** (because X-Ray uses highlights)
+> - `{analyze_analysis_section}` and `{summary_analysis_section}` require only **Allow Text Extraction**
+>
+> Without the required gates enabled (both global setting and per-action flag), the placeholder renders empty.
 
 **Clearing the cache:**
 - **Per-action**: In the chat viewer, tap "↻ Fresh" button (appears only for cached responses) → clears that action's cache for this book, then re-run the action manually
