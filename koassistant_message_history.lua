@@ -503,12 +503,21 @@ function MessageHistory:createResultText(highlightedText, config)
     -- Show conversation (non-context messages)
     -- In compact mode (dictionary lookups), hide prefixes for cleaner display
     local hide_prefixes = config and config.features and config.features.compact_view
+    local added_first_message = false
     for i = 2, #self.messages do
         if not self.messages[i].is_context then
             local msg = self.messages[i]
+
+            -- Add separator between messages (renders as <hr> in markdown, --- in plain text)
+            if added_first_message then
+                table.insert(result, "---\n\n")
+            end
+            added_first_message = true
+
             local prefix = ""
             if not hide_prefixes then
-                prefix = msg.role == self.ROLES.USER and "▶ User: " or "◉ KOAssistant: "
+                -- Paragraph break after label (works in both markdown and plain text)
+                prefix = msg.role == self.ROLES.USER and "▶ User:\n\n" or "◉ KOAssistant:\n\n"
             end
 
             -- If this is an assistant message with reasoning, show indicator
@@ -528,13 +537,7 @@ function MessageHistory:createResultText(highlightedText, config)
                 end
             end
 
-            -- Add newline before content if it starts with markdown heading
-            -- so the heading renders properly (must start at beginning of line)
-            local content_separator = ""
-            if msg.role == self.ROLES.ASSISTANT and msg.content:match("^#") then
-                content_separator = "\n\n"
-            end
-            table.insert(result, prefix .. content_separator .. msg.content .. "\n\n")
+            table.insert(result, prefix .. msg.content .. "\n\n")
         end
     end
 

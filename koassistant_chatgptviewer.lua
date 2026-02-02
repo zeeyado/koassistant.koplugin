@@ -137,10 +137,11 @@ local function stripMarkdown(text)
     -- For * lists, only at start of line (not mid-line asterisks)
     result = result:gsub("\n%*%s+", "\n• ")
 
-    -- Horizontal rules: --- or *** or ___ → line
-    result = result:gsub("\n%-%-%-+%s*\n", "\n──────────\n")
-    result = result:gsub("\n%*%*%*+%s*\n", "\n──────────\n")
-    result = result:gsub("\n___+%s*\n", "\n──────────\n")
+    -- Horizontal rules: --- or *** or ___ → line (15 chars, subtle separator)
+    local hr_line = "───────────────"
+    result = result:gsub("\n%-%-%-+%s*\n", "\n" .. hr_line .. "\n")
+    result = result:gsub("\n%*%*%*+%s*\n", "\n" .. hr_line .. "\n")
+    result = result:gsub("\n___+%s*\n", "\n" .. hr_line .. "\n")
 
     -- Images: ![alt](url) → [Image: alt]
     result = result:gsub("!%[([^%]]*)%]%([^)]+%)", "[Image: %1]")
@@ -759,6 +760,12 @@ td, th {
 th {
     background-color: #f0f0f0;
     font-weight: bold;
+}
+
+hr {
+    border: none;
+    border-top: 1px solid #999;
+    margin: 0.8em 0;
 }
 ]], text_align)
 end
@@ -2563,29 +2570,10 @@ function ChatGPTViewer:toggleMarkdown()
     button:setText(self.render_markdown and "MD ON" or "TXT ON", button.width)
   end
 
-  -- Refresh display
+  -- Refresh display (view toggle always starts at top - no scroll restoration)
   UIManager:setDirty(self, function()
     return "ui", self.frame.dimen
   end)
-
-  -- Restore scroll position after widget re-renders if setting explicitly enabled
-  if self.configuration and self.configuration.features and self.configuration.features.scroll_to_last_message == true then
-    UIManager:scheduleIn(0.2, function()
-      if self.scroll_text_w then
-        local ratio = self:calculateLastQuestionRatio()
-        if ratio > 0 then
-          -- ScrollHtmlWidget has scrollToRatio, ScrollTextWidget has scrollToBottom
-          -- Use same approach as onShow: ratio-based for HTML, bottom fallback for text
-          if self.scroll_text_w.scrollToRatio then
-            self.scroll_text_w:scrollToRatio(ratio)
-          elseif ratio >= 0.9 and self.scroll_text_w.scrollToBottom then
-            self.scroll_text_w:scrollToBottom()
-          end
-          UIManager:setDirty(self, "ui")
-        end
-      end
-    end)
-  end
 end
 
 function ChatGPTViewer:saveToNote()
