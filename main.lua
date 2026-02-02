@@ -5985,7 +5985,7 @@ function AskGPT:applyPrivacyPresetFull(touchmenu_instance)
     touchmenu_instance:updateItems()
   end
   UIManager:show(Notification:new{
-    text = _("Full: All data sharing enabled"),
+    text = _("Full: All data sharing enabled (Text extraction must be enabled separately)"),
     timeout = 2,
   })
 end
