@@ -1477,7 +1477,7 @@ Chat History → hamburger menu → **View by Domain**
   - **Markdown**: Full formatting with bold, lists, headers, etc. (default)
   - **Plain Text**: Better font support for Arabic and some other non-Latin scripts
 - **Plain Text Options**: Settings for Plain Text mode
-  - **Apply Markdown Stripping**: Convert markdown syntax to readable plain text. Headers use hierarchical symbols with bold text (`▉ **H1**`, `◤ **H2**`, `◆ **H3**`, etc.), `**bold**` renders as actual bold, `*italics*` are preserved as-is, lists become `•`, code becomes `'quoted'`. Disable to show raw markdown. (default: on)
+  - **Apply Markdown Stripping**: Convert markdown syntax to readable plain text. Headers use hierarchical symbols with bold text (`▉ **H1**`, `◤ **H2**`, `◆ **H3**`, etc.), `**bold**` renders as actual bold, `*italics*` are preserved as-is, `_italics_` (underscores) become bold, lists become `•`, code becomes `'quoted'`. Includes BiDi support for mixed RTL/LTR content. Disable to show raw markdown. (default: on)
 - **Hide Highlighted Text**: Don't show selection in responses
 - **Hide Long Highlights**: Collapse highlights over character threshold
 - **Long Highlight Threshold**: Character limit before collapsing (default: 280)
@@ -2174,14 +2174,16 @@ KOAssistant offers two view modes for displaying AI responses:
 
 **Plain Text View**
 - Uses KOReader's native text rendering with proper font fallback
-- **Recommended for Arabic** and some other non-Latin scripts
+- **Recommended for Arabic** and other RTL/non-Latin scripts
 - Markdown is intelligently stripped to preserve readability:
   - Headers → hierarchical symbols (`▉ **H1**`, `◤ **H2**`, `◆ **H3**`)
   - **Bold** → renders as actual bold (via PTF)
-  - *Italics* → preserved as `*text*`
+  - *Italics* (asterisks) → preserved as `*text*` for prose readability
+  - _Italics_ (underscores) → bold (for dictionary part of speech)
   - Lists → bullet points (•)
   - Code → `'quoted'`
   - Optimized line spacing for visual density matching Markdown view
+- **BiDi support**: Mixed RTL/LTR content (e.g., Arabic headwords with English definitions) displays correctly; RTL-only headers align naturally to the right
 
 **How to switch:**
 - **On the fly**: Tap **MD/Text** button in chat viewer (bottom row)
@@ -2288,7 +2290,7 @@ If text doesn't render correctly in Markdown view (especially), switch to **Plai
 
 This is a limitation of KOReader's MuPDF HTML renderer, which lacks per-glyph font fallback. Plain Text mode uses KOReader's native text rendering with proper font support.
 
-Plain Text mode includes markdown stripping that preserves readability: headers show with symbols and bold text, **bold** renders as actual bold, lists become bullets (•), and code is quoted. The formatting is designed to be clean and readable without the original markdown syntax.
+Plain Text mode includes markdown stripping that preserves readability: headers show with symbols and bold text, **bold** renders as actual bold, lists become bullets (•), and code is quoted. Mixed RTL/LTR content (like Arabic headwords followed by English definitions) displays in the correct order, and RTL-only headers align naturally to the right.
 
 ### "API key missing" error
 Edit `apikeys.lua` and add your key for the selected provider.
