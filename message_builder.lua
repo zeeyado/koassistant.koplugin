@@ -39,9 +39,11 @@ end
 local function replace_placeholder(text, placeholder, replacement)
     if not text or not placeholder then return text end
     replacement = replacement or ""
-    local start_pos, end_pos = text:find(placeholder, 1, true)
-    if start_pos then
-        return text:sub(1, start_pos - 1) .. replacement .. text:sub(end_pos + 1)
+    -- Replace ALL occurrences (plain text search, no pattern interpretation)
+    while true do
+        local start_pos, end_pos = text:find(placeholder, 1, true)
+        if not start_pos then break end
+        text = text:sub(1, start_pos - 1) .. replacement .. text:sub(end_pos + 1)
     end
     return text
 end

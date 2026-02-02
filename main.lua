@@ -3512,7 +3512,7 @@ function AskGPT:onDictButtonsReady(dict_popup, dict_buttons)
   -- Helper function to create a button for an action
   local function createActionButton(action)
     return {
-      text = action.text .. " (AI)",
+      text = action.text .. " (KOA)",
       font_bold = true,
       callback = function()
         -- CRITICAL: Extract context BEFORE closing the popup
@@ -3539,11 +3539,6 @@ function AskGPT:onDictButtonsReady(dict_popup, dict_buttons)
           logger.info("KOAssistant DICT: Got context (" .. #context .. " chars)")
         else
           logger.info("KOAssistant DICT: No context available (word tap, not selection)")
-        end
-
-        -- Now close the dictionary popup
-        if dict_popup.onClose then
-          dict_popup:onClose()
         end
 
         -- Ensure network is available

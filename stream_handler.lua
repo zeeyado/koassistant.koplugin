@@ -223,9 +223,10 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
         text_height = UIConstants.CHAT_HEIGHT() - chrome_height
         is_movable = false
     else
-        -- Compact streaming dialog
-        width = UIConstants.COMPACT_DIALOG_WIDTH()
-        text_height = math.floor(Screen:getHeight() * UIConstants.INPUT_HEIGHT_RATIO)
+        -- Compact streaming dialog (same size as compact chat view)
+        local chrome_height = Screen:scaleBySize(120)
+        width = UIConstants.CHAT_WIDTH()
+        text_height = UIConstants.COMPACT_DIALOG_HEIGHT() - chrome_height
         is_movable = true
     end
 
