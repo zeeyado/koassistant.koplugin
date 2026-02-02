@@ -197,8 +197,8 @@ function MessageBuilder.build(params)
     user_prompt = replace_placeholder(user_prompt, "{full_document_section}", full_document_section)
 
     -- {context_section} - includes "Context:" label (for dictionary actions)
-    -- Resolves to labeled text when context exists, empty string when not
-    -- Note: data.context is populated from config.features.dictionary_context
+    -- Resolves to labeled context when present, empty string when not
+    -- Each action's prompt structure determines how context is used
     local context_section = ""
     if data.context and data.context ~= "" and data.dictionary_context_mode ~= "none" then
         context_section = "Context: " .. data.context
