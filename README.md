@@ -444,7 +444,7 @@ You can customize these, create your own, or disable ones you don't use. See [Ac
 | **Quick Define** | Minimal lookup: brief definition only, no etymology or synonyms |
 | **Deep Analysis** | Linguistic deep-dive: morphology, word family, cognates, etymology path |
 
-**What the AI sees**: Your highlighted text, plus Document metadata (title, author, identifiers from file properties)
+**What the AI sees**: Your highlighted text, plus document metadata (title, author). Custom actions can also access reading progress, chapter info, your highlights/annotations, notebook, and extracted book text—depending on action settings and [privacy preferences](#privacy--data). See [Prompt Variables](#prompt-variables) for details.
 
 **Save to Note**: After getting an AI response, tap the **H.Note** button to save it directly as a KOReader highlight note attached to your selected text. See [Save to Note](#save-to-note) for details.
 
