@@ -445,9 +445,11 @@ You can customize these, create your own, or disable ones you don't use. See [Ac
 
 > **Tip**: Add frequently-used actions to the highlight menu (Settings → Menu Customization → Highlight Menu) for quick access. Other enabled highlight actions remain available from the main "KOAssistant" entry in the highlight popup. From that input window, you can also add extra instructions to any action (e.g., "esp. the economic implications" or "in simple terms").
 
-### Book/document Mode 
+### Book/Document Mode
 
-**Access**: Long-press a book in File Browser → "KOAssistant" or select gesture action "Chat about book/document" while in a document
+**Access**: Long-press a book in File Browser → "KOAssistant" or while reading, use gesture or menu
+
+Some actions work from the file browser (using only title/author), while others require reading mode (using document state like progress, highlights, or extracted text). Reading-only actions are automatically hidden in file browser.
 
 **Built-in Actions**:
 | Action | Description |
@@ -503,7 +505,9 @@ Book actions work in two contexts: **reading mode** (book is open) and **file br
 - **File browser** has access to book **metadata** only: title, author, identifiers
 - **Reading mode** additionally has access to **document state**: reading progress, highlights, annotations, notebook, extracted text
 
-Actions that need document state (X-Ray, Recap, Analyze Highlights) are **automatically hidden** in file browser because that data isn't available until you open the book. Custom actions using placeholders like `{reading_progress}`, `{book_text}`, `{full_document}`, `{highlights}`, `{annotations}`, or `{notebook}` are filtered the same way. The Action Manager shows a `[reading]` indicator for such actions.
+**Reading-only actions** (hidden in file browser): X-Ray, Recap, Analyze Highlights, Analyze Document, Summarize Document, Extract Key Insights. These require document state that isn't available until you open the book.
+
+Custom actions using placeholders like `{reading_progress}`, `{book_text}`, `{full_document}`, `{highlights}`, `{annotations}`, or `{notebook}` are filtered the same way. The Action Manager shows a `[reading]` indicator for such actions.
 
 ### Multi-Document Mode
 
