@@ -726,36 +726,10 @@ function ChatGPTViewer:init()
     end,
   }
 
-  -- Callback to enable/disable buttons, for at-top/at-bottom feedback
-  local prev_at_top = false -- Buttons were created enabled
-  local prev_at_bottom = false
-  local function button_update(id, enable)
-    local button = self.button_table:getButtonById(id)
-    if button then
-      if enable then
-        button:enable()
-      else
-        button:disable()
-      end
-      button:refresh()
-    end
-  end
-  self._buttons_scroll_callback = function(low, high)
-    if prev_at_top and low > 0 then
-      button_update("top", true)
-      prev_at_top = false
-    elseif not prev_at_top and low <= 0 then
-      button_update("top", false)
-      prev_at_top = true
-    end
-    if prev_at_bottom and high < 1 then
-      button_update("bottom", true)
-      prev_at_bottom = false
-    elseif not prev_at_bottom and high >= 1 then
-      button_update("bottom", false)
-      prev_at_bottom = true
-    end
-  end
+  -- Scroll buttons stay always enabled - simpler and more reliable than
+  -- tracking state across widget recreation (MD/Text mode toggle).
+  -- No-op callback kept for compatibility with ScrollTextWidget.
+  self._buttons_scroll_callback = function() end
 
   -- buttons - organize into multiple rows for better layout
   -- First row: Main actions
@@ -997,8 +971,18 @@ function ChatGPTViewer:init()
         id = "top",
         callback = function()
           if self.render_markdown then
-            -- If rendering in a ScrollHtmlWidget, use scrollToRatio
-            self.scroll_text_w:scrollToRatio(0)
+            -- ScrollHtmlWidget.scrollToRatio(0) has an early return when already on page 1,
+            -- which fails for new chats. Force page 1 and re-render unconditionally.
+            local htmlbox = self.scroll_text_w.htmlbox_widget
+            if htmlbox then
+              htmlbox.page_number = 1
+              htmlbox.page_boxes = nil
+              htmlbox:clearHighlight()
+              htmlbox:freeBb()
+              htmlbox:_render()
+              self.scroll_text_w:_updateScrollBar()
+              UIManager:setDirty(self, "partial")
+            end
           else
             self.scroll_text_w:scrollToTop()
           end
@@ -2161,7 +2145,7 @@ function ChatGPTViewer:update(new_text, scroll_to_bottom)
     -- Update the frame container with the new scroll widget
     self.textw:clear()
     self.textw[1] = self.scroll_text_w
-    
+
     -- Only scroll to bottom if requested
     if scroll_to_bottom then
       UIManager:scheduleIn(0.1, function()
@@ -2194,7 +2178,7 @@ function ChatGPTViewer:update(new_text, scroll_to_bottom)
     -- Update the frame container with the new scroll widget
     self.textw:clear()
     self.textw[1] = self.scroll_text_w
-    
+
     -- Only scroll to bottom if requested
     if scroll_to_bottom then
       UIManager:scheduleIn(0.1, function()
@@ -2204,7 +2188,7 @@ function ChatGPTViewer:update(new_text, scroll_to_bottom)
       end)
     end
   end
-  
+
   UIManager:setDirty(self, function()
     return "ui", self.frame.dimen
   end)
@@ -2299,13 +2283,13 @@ function ChatGPTViewer:toggleMarkdown()
   -- Update the frame container
   self.textw:clear()
   self.textw[1] = self.scroll_text_w
-  
+
   -- Update button text
   local button = self.button_table:getButtonById("toggle_markdown")
   if button then
     button:setText(self.render_markdown and "MD" or "Text", button.width)
   end
-  
+
   -- Refresh display
   UIManager:setDirty(self, function()
     return "ui", self.frame.dimen
