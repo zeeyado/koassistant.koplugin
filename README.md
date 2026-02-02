@@ -344,9 +344,9 @@ KOAssistant sends data to AI providers to generate responses. This section expla
 
 | Preset | What it does |
 |--------|--------------|
-| **Default** | Recommended balance. Progress and chapter info shared for context-aware features. Personal content (highlights, annotations, notebook) stays private. |
+| **Default** | Progress and chapter info shared for context-aware features. Personal content (highlights, annotations, notebook) stays private. |
 | **Minimal** | Maximum privacy. Only your question and book metadata are sent. Even progress and chapter info are disabled. |
-| **Full** | All data sharing enabled for full functionality. Does not enable text extraction (see below). |
+| **Full** | All data sharing enabled for full functionality. Does not automatically enable text extraction (see below). |
 
 **Individual toggles** (under Data Sharing Controls):
 - **Allow Highlights & Annotations** — Your saved highlights and personal notes (default: OFF)
