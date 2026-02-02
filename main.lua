@@ -3789,11 +3789,14 @@ function AskGPT:executeBookLevelAction(action_id)
   end
 
   -- Build config with book context
+  -- IMPORTANT: Create a proper shallow copy with a NEW features object
+  -- to avoid polluting the global configuration.features
   local config_copy = {}
   for k, v in pairs(configuration or {}) do
     config_copy[k] = v
   end
-  config_copy.features = config_copy.features or {}
+  -- Create NEW features table (don't share reference with global configuration)
+  config_copy.features = {}
   for k, v in pairs((configuration or {}).features or {}) do
     config_copy.features[k] = v
   end
@@ -3861,11 +3864,13 @@ function AskGPT:executeGeneralAction(action_id)
   end
 
   -- Build config for general context
+  -- IMPORTANT: Create a proper shallow copy with a NEW features object
   local config_copy = {}
   for k, v in pairs(configuration or {}) do
     config_copy[k] = v
   end
-  config_copy.features = config_copy.features or {}
+  -- Create NEW features table (don't share reference with global configuration)
+  config_copy.features = {}
   for k, v in pairs((configuration or {}).features or {}) do
     config_copy.features[k] = v
   end
@@ -4914,11 +4919,13 @@ function AskGPT:translateCurrentPage()
   end
 
   -- Build configuration (full view, not compact)
+  -- IMPORTANT: Create a proper shallow copy with a NEW features object
   local config_copy = {}
   for k, v in pairs(configuration) do
     config_copy[k] = v
   end
-  config_copy.features = config_copy.features or {}
+  -- Create NEW features table (don't share reference with global configuration)
+  config_copy.features = {}
   for k, v in pairs(configuration.features or {}) do
     config_copy.features[k] = v
   end
@@ -5386,11 +5393,13 @@ end
 
 function AskGPT:executeHighlightBypassAction(action, selected_text, highlight_instance)
   -- Build configuration
+  -- IMPORTANT: Create a proper shallow copy with a NEW features object
   local config_copy = {}
   for k, v in pairs(configuration) do
     config_copy[k] = v
   end
-  config_copy.features = config_copy.features or {}
+  -- Create NEW features table (don't share reference with global configuration)
+  config_copy.features = {}
   for k, v in pairs(configuration.features or {}) do
     config_copy.features[k] = v
   end
