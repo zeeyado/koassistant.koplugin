@@ -744,16 +744,13 @@ Actions.special = {
         context = "highlight",  -- Only for highlighted text
         behavior_variant = "dictionary_direct",  -- Use built-in dictionary behavior
         in_dictionary_popup = 2,  -- Default order in dictionary popup
-        prompt = [[Define: {highlighted_text}
+        prompt = [[Define "{highlighted_text}"
 
-Format as a dictionary entry with these language rules:
-- **Headword line:** **word** _part of speech_ of **lemma** - do NOT translate
-- **Definition(s):** {dictionary_language}, numbered if multiple
-- **In context:** In {dictionary_language}, usage in the passage
+Format: **word** _part of speech_ — definition in {dictionary_language}
 
-Context: {context}
+{context_section}
 
-No section headers. Inline bold labels. Concise.]],
+One line only. No etymology, no synonyms.]],
         include_book_context = false,  -- Word definitions don't typically need book metadata
         extended_thinking = "off",  -- Dictionary lookups don't benefit from extended thinking
         skip_language_instruction = true,  -- Target language already in prompt
@@ -773,18 +770,17 @@ No section headers. Inline bold labels. Concise.]],
         context = "highlight",  -- Only for highlighted text
         behavior_variant = "dictionary_direct",  -- Use built-in dictionary behavior
         in_dictionary_popup = 1,  -- Default order in dictionary popup
-        prompt = [[Define: {highlighted_text}
+        prompt = [[Dictionary entry for "{highlighted_text}"
 
-Format as a dictionary entry with these language rules:
-- **Headword line:** **word** _part of speech_ of **lemma** - do NOT translate
-- **Definition(s):** {dictionary_language}, numbered if multiple
-- **Etymology:** In {dictionary_language}, brief
-- **Synonyms:** Same language as the word (not translated)
-- **In context:** In {dictionary_language}, usage in the passage
+Format: **word** /IPA/ _part of speech_ of **lemma**
+Definition(s) in {dictionary_language}, numbered if multiple
+Etymology (brief)
+Synonyms
 
-Context: {context}
+{context_section}
 
-No section headers. Inline bold labels. Concise.]],
+No section headers. Inline bold labels. Concise.
+When context provided, end with: **Here:** (how it's used in this context)]],
         include_book_context = false,  -- Word definitions don't typically need book metadata
         extended_thinking = "off",  -- Dictionary lookups don't benefit from extended thinking
         skip_language_instruction = true,  -- Target language already in prompt
