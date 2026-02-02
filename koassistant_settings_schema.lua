@@ -968,7 +968,14 @@ local SettingsSchema = {
                 {
                     id = "text_extraction",
                     type = "submenu",
-                    text = _("Text Extraction"),
+                    text_func = function(plugin)
+                        local f = plugin.settings:readSetting("features") or {}
+                        if f.enable_book_text_extraction then
+                            return _("Text Extraction (enabled)")
+                        else
+                            return _("Text Extraction (disabled)")
+                        end
+                    end,
                     items = {
                         {
                             id = "enable_book_text_extraction",
