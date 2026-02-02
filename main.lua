@@ -333,8 +333,9 @@ function AskGPT:generateFileDialogButtons(file, is_file, book_props)
       })
     end
 
-    -- Chat History (KOA) button - only if chats exist
-    if has_chats then
+    -- Chat History (KOA) button - respects settings, only if chats exist
+    local show_chat_history = features.show_chat_history_in_file_browser ~= false  -- default true
+    if show_chat_history and has_chats then
       table.insert(buttons, {
         text = _("Chat History (KOA)"),
         callback = function()

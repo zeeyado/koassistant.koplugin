@@ -1672,9 +1672,13 @@ Control where KOAssistant appears in KOReader's menus. All toggles default to ON
 - **Show KOAssistant Button in Highlight Menu**: Add the main "KOAssistant" button to the highlight popup (requires restart)
 - **Show Quick Actions in Highlight Menu**: Add Explain, Translate, and other quick action shortcuts to the highlight popup (requires restart)
 - **Show in Dictionary Popup**: Add AI buttons to KOReader's dictionary popup (same as Dictionary Settings toggle)
+- **File Browser Buttons** (sub-settings of Show in File Browser):
+  - **Show Notebook Button**: Show "Notebook (KOA)" button when long-pressing books
+  - **Only for books with notebooks**: Only show notebook button if notebook already exists
+  - **Show Chat History Button**: Show "Chat History (KOA)" button when long-pressing books that have chat history
 - **Dictionary Popup Actions...**: Configure which actions appear in the dictionary popup's AI menu
 - **Highlight Menu Actions...**: Configure which actions appear as shortcuts in the highlight menu
-- **Reset Options**: Reset Dictionary Popup Actions, Highlight Menu Actions, Quick Actions, or all at once
+- **Reset Options**: Reset Dictionary Popup Actions, Highlight Menu Actions, or all at once
 
 **Note:** File browser and highlight menu changes require a KOReader restart since buttons are registered at plugin startup. Dictionary popup changes take effect immediately.
 

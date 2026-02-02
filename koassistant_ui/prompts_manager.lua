@@ -581,6 +581,21 @@ function PromptsManager:showMenuOptions()
             },
             {
                 {
+                    text = _("Reset Quick Actions"),
+                    callback = function()
+                        UIManager:close(button_dialog)
+                        UIManager:show(ConfirmBox:new{
+                            text = _("Reset Quick Actions panel?\n\nThis restores the default actions shown in the Quick Actions menu.\n\nYour actions (custom and built-in) are preserved."),
+                            ok_callback = function()
+                                self_ref.plugin:resetQuickActions()
+                                self_ref:refreshMenu()
+                            end,
+                        })
+                    end,
+                },
+            },
+            {
+                {
                     text = _("Cancel"),
                     callback = function()
                         UIManager:close(button_dialog)
