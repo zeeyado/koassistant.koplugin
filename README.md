@@ -397,9 +397,7 @@ Cloud providers have their own data handling practices. Check their policies on 
 
 ### Design Choices
 
-KOAssistant does **not** include library-wide scanning, cross-book analysis, or reading habit profiling. These were intentionally omitted — combining reading data across your collection creates a detailed personal profile that's easy to underestimate.
-
-**What "Chapter Info" actually accesses:** The current `Allow Chapter Info` setting only extracts basic structural data: current chapter title (from the table of contents), chapters read count, and file access time. This is minimal metadata, not behavioral tracking.
+KOAssistant does not include library-wide scanning or reading habit profiling.
 
 **KOReader's deeper statistics:** KOReader's Statistics plugin collects extensive local data (reading time, pages per session, reading speed, session history, daily patterns). KOAssistant does **not** access any of this. If KOAssistant ever adds features that expose this behavioral data, they will require explicit opt-in with clear warnings about how revealing such information can be. Reading patterns over time create a surprisingly detailed personal profile.
 
