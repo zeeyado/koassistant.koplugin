@@ -4582,7 +4582,6 @@ function AskGPT:clearActionCache()
   local cache_path = ActionCache.getPath(document_path)
 
   -- Check if cache exists
-  local lfs = require("libs/libkoreader-lfs")
   local attr = cache_path and lfs.attributes(cache_path)
   if not attr or attr.mode ~= "file" then
     UIManager:show(InfoMessage:new{
@@ -5128,7 +5127,6 @@ function AskGPT:registerHighlightMenuActions()
           -- Check if highlight module has the getSelectedWordContext method
           -- Note: Method is on self.ui.highlight, not reader_highlight_instance
           if self.ui.highlight and self.ui.highlight.getSelectedWordContext then
-            local features = self.settings:readSetting("features") or {}
             local context_mode = features.dictionary_context_mode or "none"
             -- Skip context extraction if mode is "none"
             if context_mode ~= "none" then
