@@ -302,8 +302,10 @@ function ChatHistoryManager:getDocumentChatDir(document_path)
 end
 
 -- Generate a unique ID for a new chat
+-- Format: timestamp_random (e.g., "1706889600_847291")
+-- Using 6-digit random for ~1/900000 collision chance per second
 function ChatHistoryManager:generateChatId()
-    return os.time() .. "_" .. math.random(1000, 9999)
+    return os.time() .. "_" .. math.random(100000, 999999)
 end
 
 -- Save a chat session
