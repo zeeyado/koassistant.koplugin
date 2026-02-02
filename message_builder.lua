@@ -207,6 +207,17 @@ function MessageBuilder.build(params)
     end
     user_prompt = replace_placeholder(user_prompt, "{context_section}", context_section)
 
+    -- {surrounding_context_section} - text around highlight, for any highlight action
+    local surrounding_context_section = ""
+    if data.surrounding_context and data.surrounding_context ~= "" then
+        surrounding_context_section = "Surrounding text:\n" .. data.surrounding_context
+    end
+    user_prompt = replace_placeholder(user_prompt, "{surrounding_context_section}", surrounding_context_section)
+    -- Raw placeholder
+    if data.surrounding_context then
+        user_prompt = replace_placeholder(user_prompt, "{surrounding_context}", data.surrounding_context)
+    end
+
     -- Raw placeholders (for custom prompts that want their own labels)
     if data.highlights ~= nil then
         user_prompt = replace_placeholder(user_prompt, "{highlights}", data.highlights)
@@ -251,6 +262,44 @@ function MessageBuilder.build(params)
     -- Raw placeholder (for custom prompts that want their own labels)
     if data.incremental_book_text then
         user_prompt = replace_placeholder(user_prompt, "{incremental_book_text}", data.incremental_book_text)
+    end
+
+    -- Analysis cache placeholders (cached AI responses from previous X-Ray/Summary)
+    -- {xray_analysis_section} - previous X-Ray analysis with progress label
+    local xray_analysis_section = ""
+    if data.xray_analysis and data.xray_analysis ~= "" then
+        local label = "Previous X-Ray analysis"
+        if data.xray_analysis_progress then
+            label = label .. " (as of " .. data.xray_analysis_progress .. ")"
+        end
+        xray_analysis_section = label .. ":\n" .. data.xray_analysis
+    end
+    user_prompt = replace_placeholder(user_prompt, "{xray_analysis_section}", xray_analysis_section)
+    -- Raw placeholder
+    if data.xray_analysis then
+        user_prompt = replace_placeholder(user_prompt, "{xray_analysis}", data.xray_analysis)
+    end
+
+    -- {analyze_analysis_section} - previous full document analysis
+    local analyze_analysis_section = ""
+    if data.analyze_analysis and data.analyze_analysis ~= "" then
+        analyze_analysis_section = "Document analysis:\n" .. data.analyze_analysis
+    end
+    user_prompt = replace_placeholder(user_prompt, "{analyze_analysis_section}", analyze_analysis_section)
+    -- Raw placeholder
+    if data.analyze_analysis then
+        user_prompt = replace_placeholder(user_prompt, "{analyze_analysis}", data.analyze_analysis)
+    end
+
+    -- {summary_analysis_section} - previous full document summary
+    local summary_analysis_section = ""
+    if data.summary_analysis and data.summary_analysis ~= "" then
+        summary_analysis_section = "Book summary:\n" .. data.summary_analysis
+    end
+    user_prompt = replace_placeholder(user_prompt, "{summary_analysis_section}", summary_analysis_section)
+    -- Raw placeholder
+    if data.summary_analysis then
+        user_prompt = replace_placeholder(user_prompt, "{summary_analysis}", data.summary_analysis)
     end
 
     -- Handle different contexts
@@ -444,6 +493,16 @@ function MessageBuilder.substituteVariables(prompt_text, data)
     end
     result = replace_placeholder(result, "{full_document_section}", full_document_section)
 
+    -- {surrounding_context_section}
+    local surrounding_context_section = ""
+    if data.surrounding_context and data.surrounding_context ~= "" then
+        surrounding_context_section = "Surrounding text:\n" .. data.surrounding_context
+    end
+    result = replace_placeholder(result, "{surrounding_context_section}", surrounding_context_section)
+    if data.surrounding_context then
+        result = replace_placeholder(result, "{surrounding_context}", data.surrounding_context)
+    end
+
     -- Raw placeholders (for custom prompts that want their own labels)
     if data.highlights ~= nil then
         result = replace_placeholder(result, "{highlights}", data.highlights)
@@ -485,6 +544,38 @@ function MessageBuilder.substituteVariables(prompt_text, data)
     result = replace_placeholder(result, "{incremental_book_text_section}", incremental_section)
     if data.incremental_book_text then
         result = replace_placeholder(result, "{incremental_book_text}", data.incremental_book_text)
+    end
+
+    -- Analysis cache placeholders
+    local xray_analysis_section = ""
+    if data.xray_analysis and data.xray_analysis ~= "" then
+        local label = "Previous X-Ray analysis"
+        if data.xray_analysis_progress then
+            label = label .. " (as of " .. data.xray_analysis_progress .. ")"
+        end
+        xray_analysis_section = label .. ":\n" .. data.xray_analysis
+    end
+    result = replace_placeholder(result, "{xray_analysis_section}", xray_analysis_section)
+    if data.xray_analysis then
+        result = replace_placeholder(result, "{xray_analysis}", data.xray_analysis)
+    end
+
+    local analyze_analysis_section = ""
+    if data.analyze_analysis and data.analyze_analysis ~= "" then
+        analyze_analysis_section = "Document analysis:\n" .. data.analyze_analysis
+    end
+    result = replace_placeholder(result, "{analyze_analysis_section}", analyze_analysis_section)
+    if data.analyze_analysis then
+        result = replace_placeholder(result, "{analyze_analysis}", data.analyze_analysis)
+    end
+
+    local summary_analysis_section = ""
+    if data.summary_analysis and data.summary_analysis ~= "" then
+        summary_analysis_section = "Book summary:\n" .. data.summary_analysis
+    end
+    result = replace_placeholder(result, "{summary_analysis_section}", summary_analysis_section)
+    if data.summary_analysis then
+        result = replace_placeholder(result, "{summary_analysis}", data.summary_analysis)
     end
 
     return result

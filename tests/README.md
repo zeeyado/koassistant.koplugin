@@ -159,6 +159,8 @@ lua tests/inspect.lua --web --port 3000
 ### Unit Tests (no API calls)
 
 Located in `tests/unit/`:
+- `test_actions.lua` - Placeholder gating, flag cascading, DOUBLE_GATED_FLAGS
+- `test_constants.lua` - Context constants, GitHub URLs
 - `test_system_prompts.lua` - Behavior variants, language parsing, domain, skip_language_instruction
 - `test_streaming_parser.lua` - SSE/NDJSON content extraction for all providers
 - `test_response_parser.lua` - Response parsing for all 16 providers
@@ -390,6 +392,7 @@ tests/
 │   ├── test_full_provider.lua    # Comprehensive tests (--full)
 │   └── test_model_validation.lua # Model validation (--models)
 └── unit/
+    ├── test_actions.lua             # Placeholder gating, flag cascading tests
     ├── test_constants.lua           # Context constants, GitHub URLs tests
     ├── test_constraint_utils.lua    # Constraint utilities tests
     ├── test_system_prompts.lua      # Behavior, language, domain tests

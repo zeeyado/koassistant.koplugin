@@ -177,6 +177,11 @@ end
 -- @param mode: "sentence" (default), "paragraph", or "characters"
 -- @param char_count: Number of characters for "characters" mode (default 100)
 -- @return string: Formatted context or empty string if unavailable
+--
+-- Hard cap: 2000 chars maximum to prevent use as book text extraction bypass.
+-- This is context for disambiguation, not document extraction.
+local SURROUNDING_CONTEXT_MAX_CHARS = 2000
+
 local function extractSurroundingContext(ui, highlighted_text, mode, char_count)
     mode = mode or "sentence"
 
@@ -186,6 +191,11 @@ local function extractSurroundingContext(ui, highlighted_text, mode, char_count)
     end
 
     char_count = char_count or 100
+    -- Enforce hard cap: char_count per side, so halve the max for characters mode
+    local max_per_side = math.floor(SURROUNDING_CONTEXT_MAX_CHARS / 2)
+    if char_count > max_per_side then
+        char_count = max_per_side
+    end
 
     local prev_context, next_context = nil, nil
 
@@ -221,10 +231,17 @@ local function extractSurroundingContext(ui, highlighted_text, mode, char_count)
         return before .. " " .. word_marker .. " " .. after
 
     elseif mode == "paragraph" then
-        -- Return full context with word marked
-        -- Add ellipsis to indicate this is an excerpt
+        -- Return full context with word marked, but enforce hard cap
         local before = prev_context
         local after = next_context
+        -- Truncate each side to half the max
+        if #before > max_per_side then
+            before = before:sub(-max_per_side)
+        end
+        if #after > max_per_side then
+            after = after:sub(1, max_per_side)
+        end
+        -- Add ellipsis to indicate this is an excerpt
         if #before > 0 then
             before = "..." .. before
         end
@@ -268,6 +285,11 @@ local function extractSurroundingContext(ui, highlighted_text, mode, char_count)
         -- Add trailing ellipsis if we trimmed the end
         if #sentence_after < #next_context then
             result = result .. "..."
+        end
+
+        -- Enforce hard cap on sentence mode result
+        if #result > SURROUNDING_CONTEXT_MAX_CHARS then
+            result = result:sub(1, SURROUNDING_CONTEXT_MAX_CHARS) .. "..."
         end
 
         return result
@@ -1904,6 +1926,13 @@ local function handlePredefinedPrompt(prompt_type_or_action, highlightedText, ui
             local context_chars = config.features.dictionary_context_chars or 100
             message_data.context = extractSurroundingContext(ui, highlightedText, context_mode, context_chars)
         end
+
+        -- Extract surrounding context for any action with use_surrounding_context flag
+        if prompt.use_surrounding_context then
+            local context_mode = prompt.context_mode or config.features.dictionary_context_mode or "sentence"
+            local context_chars = prompt.context_chars or config.features.dictionary_context_chars or 100
+            message_data.surrounding_context = extractSurroundingContext(ui, highlightedText, context_mode, context_chars)
+        end
     end
 
     -- For book context, ensure book_metadata is populated
@@ -2135,6 +2164,34 @@ local function handlePredefinedPrompt(prompt_type_or_action, highlightedText, ui
                 end
             elseif is_truncated and cache_enabled then
                 logger.info("KOAssistant: Skipping cache for", original_action_id, "- response was truncated")
+            end
+
+            -- Save to analysis caches if action has cache_as_* flags (for reuse by other actions)
+            if not is_truncated and ui.document and ui.document.file then
+                local ActionCache = require("koassistant_action_cache")
+                local progress = tonumber(message_data.progress_decimal) or 0
+                local model_info = { model = ConfigHelper:getModelInfo(temp_config).model }
+
+                if action.cache_as_xray_analysis then
+                    local xray_success = ActionCache.setXrayAnalysis(ui.document.file, answer, progress, model_info)
+                    if xray_success then
+                        logger.info("KOAssistant: Saved X-Ray analysis to reusable cache at", progress)
+                    end
+                end
+
+                if action.cache_as_analyze_analysis then
+                    local analyze_success = ActionCache.setAnalyzeAnalysis(ui.document.file, answer, 1.0, model_info)
+                    if analyze_success then
+                        logger.info("KOAssistant: Saved analyze analysis to reusable cache")
+                    end
+                end
+
+                if action.cache_as_summary_analysis then
+                    local summary_success = ActionCache.setSummaryAnalysis(ui.document.file, answer, 1.0, model_info)
+                    if summary_success then
+                        logger.info("KOAssistant: Saved summary analysis to reusable cache")
+                    end
+                end
             end
 
             -- Store cache info in history for viewer to display notice

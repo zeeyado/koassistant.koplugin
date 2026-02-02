@@ -375,7 +375,18 @@ Text extraction sends actual book content to the AI, enabling features like X-Ra
 2. Enable **"Allow Text Extraction"** (the master toggle)
 3. Built-in actions (X-Ray, Recap, Explain in Context, Analyze in Context) already have the per-action flag enabled
 
-**Double-gating for safety:** Extraction requires both the global setting AND a per-action flag. Custom actions (book or highlight) must have "Allow text extraction" checked to use text placeholders.
+**Double-gating for safety:** Sensitive data requires both a global privacy setting AND a per-action permission flag. This prevents accidental data leakage—enabling a global setting doesn't automatically expose that data in all actions.
+
+| Data Type | Global Setting | Per-Action Flag |
+|-----------|----------------|-----------------|
+| Book text | Allow Text Extraction | "Allow text extraction" checked |
+| Analysis caches | Allow Text Extraction | "Allow text extraction" (auto-inferred from cache placeholders) |
+| Highlights | Allow Highlights & Annotations | "Include highlights" checked |
+| Annotations | Allow Highlights & Annotations | "Include annotations" checked |
+| Notebook | Allow Notebook | "Include notebook" checked |
+| Surrounding context | None (hard-capped 2000 chars) | Auto-inferred from placeholder |
+
+Built-in actions already have appropriate flags set. When you copy a built-in action, it inherits the flags. When creating a custom action from scratch, check the permissions your action needs.
 
 **Two extraction types** (determined by placeholder in your action prompt):
 - `{book_text_section}` — Extracts from start to your current reading position (used by X-Ray, Recap)
@@ -734,6 +745,14 @@ Insert these in your action prompt to reference dynamic values:
 | `{book_text_section}` | Book, Highlight (reading) | Same as above with "Book content so far:" label | Allow Text Extraction |
 | `{full_document}` | Book, Highlight (reading) | Entire document text (start to end, regardless of position) | Allow Text Extraction |
 | `{full_document_section}` | Book, Highlight (reading) | Same as above with "Full document:" label | Allow Text Extraction |
+| `{surrounding_context}` | Highlight (reading) | Text surrounding the highlighted passage | — |
+| `{surrounding_context_section}` | Highlight (reading) | Same as above with "Surrounding text:" label | — |
+| `{xray_analysis}` | Book (reading) | Cached X-Ray analysis (if available) | Allow Text Extraction |
+| `{xray_analysis_section}` | Book (reading) | Same as above with progress label | Allow Text Extraction |
+| `{analyze_analysis}` | Book (reading) | Cached Analyze Document analysis (if available) | Allow Text Extraction |
+| `{analyze_analysis_section}` | Book (reading) | Same as above with label | Allow Text Extraction |
+| `{summary_analysis}` | Book (reading) | Cached Summary analysis (if available) | Allow Text Extraction |
+| `{summary_analysis_section}` | Book (reading) | Same as above with label | Allow Text Extraction |
 
 **Context notes:**
 - **Book** = Available in both reading mode and file browser
@@ -749,14 +768,20 @@ Insert these in your action prompt to reference dynamic values:
 - `{highlights_section}` → "My highlights so far:\n[content]" or "" if empty
 - `{annotations_section}` → "My annotations:\n[content]" or "" if empty
 - `{notebook_section}` → "My notebook entries:\n[content]" or "" if empty
+- `{surrounding_context_section}` → "Surrounding text:\n[content]" or "" if empty
+- `{xray_analysis_section}` → "Previous X-Ray analysis (as of X%):\n[content]" or "" if empty
+- `{analyze_analysis_section}` → "Document analysis:\n[content]" or "" if empty
+- `{summary_analysis_section}` → "Book summary:\n[content]" or "" if empty
 
-"Raw" placeholders (`{book_text}`, `{full_document}`, `{highlights}`, `{annotations}`, `{notebook}`) give you just the content with no label, useful when you want custom labeling in your prompt.
+"Raw" placeholders (`{book_text}`, `{full_document}`, `{highlights}`, `{annotations}`, `{notebook}`, `{surrounding_context}`, `{xray_analysis}`, `{analyze_analysis}`, `{summary_analysis}`) give you just the content with no label, useful when you want custom labeling in your prompt.
 
 **Tip:** Use section placeholders in most cases. They prevent dangling references—if you write "Look at my highlights: {highlights}" in your prompt but highlights is empty, the AI sees confusing instructions about nonexistent content. Section placeholders include the label only when content exists.
 
 > **Privacy note:** Section placeholders adapt to [privacy settings](#privacy--data). If a data type is disabled (or not yet enabled), the corresponding placeholder returns empty and section variants disappear gracefully. For example, `{highlights_section}` is empty unless you enable **Allow Highlights & Annotations**. You don't need to modify actions to match your privacy preferences—they adapt automatically.
 
-> **Note:** Text extraction placeholders (`{book_text}`, `{full_document}`, etc.) require two things: (1) the global **Allow Text Extraction** setting enabled in Settings → Privacy & Data → Text Extraction, and (2) the action must have "Allow text extraction" checked. Both are off by default—primarily to avoid unexpected token costs, and secondarily for content awareness. See [Text Extraction](#text-extraction) for details.
+> **Double-gating:** Sensitive data requires BOTH a global privacy setting AND a per-action permission flag. This prevents accidental data leakage—if you enable "Allow Text Extraction" globally, your custom actions still need "Allow text extraction" checked to actually use it. Built-in actions already have appropriate flags set. When you copy a built-in action, it inherits the flags. When creating from scratch, check the permissions you need. Analysis cache placeholders (`{xray_analysis}`, etc.) also require "Allow text extraction" since they derive from book text.
+
+> **Note:** Text extraction placeholders (`{book_text}`, `{full_document}`, analysis caches, etc.) require two things: (1) the global **Allow Text Extraction** setting enabled in Settings → Privacy & Data → Text Extraction, and (2) the action must have "Allow text extraction" checked. Both are off by default—primarily to avoid unexpected token costs, and secondarily for content awareness. See [Text Extraction](#text-extraction) for details.
 
 ### Tips for Custom Actions
 
@@ -767,6 +792,8 @@ Insert these in your action prompt to reference dynamic values:
 - **Experiment with domains**: Try running the same action with and without a domain to see what works for your use case. Some actions benefit from domain context (analysis, explanation), others don't (translation, grammar).
 - **Test before deploying**: Use the [web inspector](#testing-your-setup) to test your custom actions before using them on your e-reader. You can try different settings combinations and see exactly what's sent to the AI.
 - **Reading-mode placeholders**: Book actions using `{reading_progress}`, `{book_text}`, `{full_document}`, `{highlights}`, `{annotations}`, `{notebook}`, or `{chapter_title}` are **automatically hidden** in File Browser mode because these require an open book. This filtering is automatic—if your custom book action uses these placeholders, it will only appear when reading. Highlight actions are always reading-mode (you can't highlight without an open book). The action wizard shows a `[reading]` indicator for such actions.
+- **Analysis caches**: Reference previous X-Ray, Analyze Document, or Summary results without re-running them using `{xray_analysis_section}`, `{analyze_analysis_section}`, or `{summary_analysis_section}`. Useful for building on previous analysis. These require "Allow text extraction" since the cached content derives from book text.
+- **Surrounding context**: Use `{surrounding_context_section}` in highlight actions to include text around the highlighted passage (sentence, paragraph, or character count—uses dictionary context settings). Hard-capped at 2000 characters to prevent misuse as text extraction.
 
 ### File-Based Actions
 
@@ -803,13 +830,17 @@ return {
 - `extended_thinking`: Legacy: "off" to disable, "on" to enable (Anthropic only)
 - `thinking_budget`: Legacy: Token budget when extended_thinking="on" (1024-32000)
 - `enabled`: Set to `false` to hide
-- `use_book_text`: Allow text extraction for this action (acts as permission gate; also requires global "Allow Text Extraction" setting enabled). The actual extraction is triggered by placeholders in the prompt: `{book_text_section}` extracts to current position, `{full_document_section}` extracts entire document.
+- `use_book_text`: Allow text extraction for this action (acts as permission gate; also requires global "Allow Text Extraction" setting enabled). The actual extraction is triggered by placeholders in the prompt: `{book_text_section}` extracts to current position, `{full_document_section}` extracts entire document. Also gates access to analysis cache placeholders.
 - `use_highlights`: Include document highlights
 - `use_annotations`: Include highlights with user notes
 - `use_reading_progress`: Include reading position and chapter info
 - `use_reading_stats`: Include time since last read and chapter count
 - `use_notebook`: Include content from the book's KOAssistant notebook
+- `use_surrounding_context`: Include surrounding text for highlight actions (auto-inferred from `{surrounding_context}` placeholder)
 - `include_book_context`: Add book info to highlight actions
+- `cache_as_xray_analysis`: Save this action's result to the X-Ray analysis cache (for other actions to reference)
+- `cache_as_analyze_analysis`: Save this action's result to the Analyze analysis cache
+- `cache_as_summary_analysis`: Save this action's result to the Summary analysis cache
 - `skip_language_instruction`: Don't include language instruction in system message (default: off; Translate/Dictionary use true since target language is in the prompt)
 - `skip_domain`: Don't include domain context in system message (default: off; Translate/Dictionary use true)
 - `domain`: Force a specific domain by ID (overrides the user's current domain selection; file-only, no UI for this yet)
@@ -2028,7 +2059,17 @@ When text extraction is enabled, X-Ray and Recap responses are automatically cac
 **Cache storage:**
 - Stored in the book's sidecar folder (`.sdr/koassistant_cache.lua`)
 - Automatically moves with the book if you reorganize your library
-- One entry per action (xray, recap)
+- One entry per action (xray, recap) plus shared analysis caches
+
+**Shared analysis caches:**
+When X-Ray, Analyze Document, or Summary actions complete, their results are also saved to shared analysis caches that other actions can reference:
+- X-Ray → saves to `_xray_analysis` cache
+- Analyze Document → saves to `_analyze_analysis` cache
+- Summary → saves to `_summary_analysis` cache
+
+Custom actions can reference these using `{xray_analysis_section}`, `{analyze_analysis_section}`, or `{summary_analysis_section}` placeholders. This lets you build on previous analysis without re-running expensive actions. For example, create a custom action that asks questions based on your previous X-Ray analysis.
+
+> **Permission requirement:** Since these caches contain content derived from book text extraction, using the cache placeholders requires the same permissions as the original action: text extraction must be enabled globally (Settings → Privacy & Data) AND the action must have "Allow text extraction" checked. Without both gates, the placeholder renders empty.
 
 **Clearing the cache:**
 - **Per-action**: In the chat viewer, tap "↻ Fresh" button (appears only for cached responses) → clears that action's cache for this book, then re-run the action manually

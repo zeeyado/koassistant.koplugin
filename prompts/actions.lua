@@ -48,7 +48,6 @@ Actions.OPEN_BOOK_FLAGS = {
     "use_book_text",
     "use_reading_progress",
     "use_annotations",
-    "use_highlights",
     "use_reading_stats",
     "use_notebook",
 }
@@ -61,11 +60,9 @@ Actions.PLACEHOLDER_TO_FLAG = {
     ["{progress_decimal}"] = "use_reading_progress",
     ["{time_since_last_read}"] = "use_reading_progress",
 
-    -- Highlights placeholders
-    ["{highlights}"] = "use_highlights",
-    ["{highlights_section}"] = "use_highlights",
-
-    -- Annotations placeholders
+    -- Highlights/Annotations placeholders (same data, unified flag)
+    ["{highlights}"] = "use_annotations",
+    ["{highlights_section}"] = "use_annotations",
     ["{annotations}"] = "use_annotations",
     ["{annotations_section}"] = "use_annotations",
 
@@ -84,6 +81,45 @@ Actions.PLACEHOLDER_TO_FLAG = {
     -- Full document placeholders (same gate as book_text)
     ["{full_document}"] = "use_book_text",
     ["{full_document_section}"] = "use_book_text",
+
+    -- Cached analysis placeholders (double-gated: require use_book_text since content derives from book text)
+    ["{xray_analysis}"] = "use_xray_analysis",
+    ["{xray_analysis_section}"] = "use_xray_analysis",
+    ["{analyze_analysis}"] = "use_analyze_analysis",
+    ["{analyze_analysis_section}"] = "use_analyze_analysis",
+    ["{summary_analysis}"] = "use_summary_analysis",
+    ["{summary_analysis_section}"] = "use_summary_analysis",
+
+    -- Surrounding context placeholder (for highlight actions)
+    ["{surrounding_context}"] = "use_surrounding_context",
+    ["{surrounding_context_section}"] = "use_surrounding_context",
+}
+
+-- Flags that require use_book_text to be set (cascading requirement)
+-- These flags derive from book text, so accessing them needs text extraction permission
+Actions.REQUIRES_BOOK_TEXT = {
+    "use_xray_analysis",
+    "use_analyze_analysis",
+    "use_summary_analysis",
+}
+
+-- Flags that require use_annotations to be set (cascading requirement)
+-- X-Ray cache includes annotation data, so accessing it needs annotation permission
+Actions.REQUIRES_ANNOTATIONS = {
+    "use_xray_analysis",  -- X-Ray uses {highlights_section}
+}
+
+-- Flags that are double-gated (require global consent + explicit per-action checkbox)
+-- These must NEVER be auto-inferred from placeholders - user must tick checkbox
+-- Security model: prevents accidental data exposure when user adds a placeholder
+Actions.DOUBLE_GATED_FLAGS = {
+    "use_book_text",      -- gate: enable_book_text_extraction
+    "use_annotations",    -- gate: enable_annotations_sharing
+    "use_notebook",       -- gate: enable_notebook_sharing
+    -- Analysis cache flags inherit from use_book_text
+    "use_xray_analysis",
+    "use_analyze_analysis",
+    "use_summary_analysis",
 }
 
 -- Built-in actions for highlight context
@@ -301,7 +337,7 @@ Actions.book = {
         behavior_variant = "reader_assistant",
         -- Context extraction flags
         use_book_text = true,
-        use_highlights = true,
+        use_annotations = true,
         use_reading_progress = true,
         prompt = [[Create a reader's companion for "{title}" by {author}.
 
@@ -392,6 +428,8 @@ If you don't recognize this work or the content seems unclear, tell me honestly 
         builtin = true,
         in_reading_features = 1,  -- Appears in Reading Features menu + default gesture
         in_quick_actions = 1,     -- Appears in Quick Actions menu
+        -- Analysis cache: save result for other actions to reference via {xray_analysis_section}
+        cache_as_xray_analysis = true,
         -- Response caching: enables incremental updates as reading progresses
         use_response_caching = true,
         update_prompt = [[Update this X-Ray for "{title}" by {author}.
@@ -653,6 +691,7 @@ Note: These are general questions for the complete work. If the reader is mid-bo
         text = _("Analyze Document"),
         context = "book",
         use_book_text = true,  -- Permission gate (UI: "Allow text extraction")
+        cache_as_analyze_analysis = true,  -- Save for other actions via {analyze_analysis_section}
         prompt = [[Analyze this document: "{title}"{author_clause}.
 
 {full_document_section}
@@ -676,6 +715,7 @@ Provide analysis appropriate to this document's type and purpose. Address what's
         text = _("Summarize Document"),
         context = "book",
         use_book_text = true,  -- Permission gate (UI: "Allow text extraction")
+        cache_as_summary_analysis = true,  -- Save for other actions via {summary_analysis_section}
         prompt = [[Summarize: "{title}"{author_clause}.
 
 {full_document_section}
@@ -985,6 +1025,22 @@ function Actions.inferOpenBookFlags(prompt_text)
     for placeholder, flag in pairs(Actions.PLACEHOLDER_TO_FLAG) do
         if prompt_text:find(placeholder, 1, true) then -- plain string match
             inferred_flags[flag] = true
+        end
+    end
+
+    -- Cascade: flags that derive from book text also require use_book_text
+    for _idx, flag in ipairs(Actions.REQUIRES_BOOK_TEXT) do
+        if inferred_flags[flag] then
+            inferred_flags["use_book_text"] = true
+            break
+        end
+    end
+
+    -- Cascade: flags that derive from annotations also require use_annotations
+    for _idx, flag in ipairs(Actions.REQUIRES_ANNOTATIONS) do
+        if inferred_flags[flag] then
+            inferred_flags["use_annotations"] = true
+            break
         end
     end
 

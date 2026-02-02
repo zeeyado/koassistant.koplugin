@@ -191,8 +191,9 @@ function ActionService:loadActions()
                     if override.use_book_text ~= nil then
                         action_data.use_book_text = override.use_book_text
                     end
+                    -- use_highlights is deprecated, treat as use_annotations
                     if override.use_highlights ~= nil then
-                        action_data.use_highlights = override.use_highlights
+                        action_data.use_annotations = override.use_highlights
                     end
                     if override.use_annotations ~= nil then
                         action_data.use_annotations = override.use_annotations
@@ -295,6 +296,7 @@ end
 
 -- Migrate custom actions to infer open book flags from prompt text
 -- This runs once per session to fix actions created before flag inference was added
+-- SECURITY: Never infers double-gated flags - those require explicit user checkbox
 -- @return boolean: true if any actions were migrated
 function ActionService:migrateCustomActionsOpenBookFlags()
     if not self.Actions or not self.Actions.inferOpenBookFlags then
@@ -309,6 +311,12 @@ function ActionService:migrateCustomActionsOpenBookFlags()
     local migrated_count = 0
     local open_book_flags = self.Actions.OPEN_BOOK_FLAGS or {}
 
+    -- Build lookup table for double-gated flags (must never be auto-inferred)
+    local double_gated = {}
+    for _, flag in ipairs(self.Actions.DOUBLE_GATED_FLAGS or {}) do
+        double_gated[flag] = true
+    end
+
     for _idx, action in ipairs(custom_actions) do
         -- Check if action already has any open book flags set
         local has_existing_flags = false
@@ -320,11 +328,13 @@ function ActionService:migrateCustomActionsOpenBookFlags()
         end
 
         -- If no existing flags, try to infer from prompt text
+        -- But SKIP double-gated flags - those require explicit user consent
         if not has_existing_flags and action.prompt then
             local inferred = self.Actions.inferOpenBookFlags(action.prompt)
             local flags_added = false
             for flag, value in pairs(inferred) do
-                if value then
+                -- Only set non-sensitive flags (e.g., use_reading_progress, use_reading_stats)
+                if value and not double_gated[flag] then
                     action[flag] = true
                     flags_added = true
                 end
@@ -1223,8 +1233,8 @@ function ActionService:createDuplicateAction(action)
         requires = action.requires,
         -- Context extraction flags (for reading-only actions)
         use_book_text = action.use_book_text,
-        use_highlights = action.use_highlights,
-        use_annotations = action.use_annotations,
+        -- use_annotations gates both {annotations} and {highlights} placeholders
+        use_annotations = action.use_annotations or action.use_highlights,
         use_reading_progress = action.use_reading_progress,
         use_reading_stats = action.use_reading_stats,
         -- View mode flags

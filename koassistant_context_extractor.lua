@@ -737,6 +737,76 @@ function ContextExtractor:getReadingStats()
 end
 
 --- Extract all context data for an action.
+-- =============================================================================
+-- Analysis Cache Extraction
+-- Read cached analysis from previous X-Ray or Summary runs
+-- =============================================================================
+
+--- Get cached X-Ray analysis (partial book analysis to reading position).
+-- @return table { text, progress, progress_formatted }
+function ContextExtractor:getXrayAnalysis()
+    local result = { text = "", progress = nil, progress_formatted = nil }
+
+    if not self:isAvailable() or not self.ui.document or not self.ui.document.file then
+        return result
+    end
+
+    local ActionCache = require("koassistant_action_cache")
+    local entry = ActionCache.getXrayAnalysis(self.ui.document.file)
+
+    if entry then
+        result.text = entry.result or ""
+        result.progress = entry.progress_decimal
+        if entry.progress_decimal then
+            result.progress_formatted = tostring(math.floor(entry.progress_decimal * 100 + 0.5)) .. "%"
+        end
+    end
+
+    return result
+end
+
+--- Get cached analyze analysis (full document deep analysis).
+-- @return table { text }
+function ContextExtractor:getAnalyzeAnalysis()
+    local result = { text = "" }
+
+    if not self:isAvailable() or not self.ui.document or not self.ui.document.file then
+        return result
+    end
+
+    local ActionCache = require("koassistant_action_cache")
+    local entry = ActionCache.getAnalyzeAnalysis(self.ui.document.file)
+
+    if entry then
+        result.text = entry.result or ""
+    end
+
+    return result
+end
+
+--- Get cached summary analysis (full document summary).
+-- @return table { text }
+function ContextExtractor:getSummaryAnalysis()
+    local result = { text = "" }
+
+    if not self:isAvailable() or not self.ui.document or not self.ui.document.file then
+        return result
+    end
+
+    local ActionCache = require("koassistant_action_cache")
+    local entry = ActionCache.getSummaryAnalysis(self.ui.document.file)
+
+    if entry then
+        result.text = entry.result or ""
+    end
+
+    return result
+end
+
+-- =============================================================================
+-- Unified Extraction for Actions
+-- =============================================================================
+
 -- Data extraction respects privacy settings (enable_*_sharing).
 -- Trusted providers bypass privacy settings entirely.
 -- When a data type is disabled, returns empty string (section placeholders handle gracefully).
@@ -760,8 +830,12 @@ function ContextExtractor:extractForAction(action)
         data.progress_decimal = ""
     end
 
-    -- Highlights and Annotations - check combined privacy setting (default: disabled)
-    if provider_trusted or self.settings.enable_annotations_sharing == true then
+    -- Annotations/Highlights - check both global setting AND per-action flag (default: disabled)
+    -- Double-gate: user must enable sharing globally AND action must request it
+    -- Note: Both {annotations} and {highlights} placeholders use use_annotations flag
+    -- (they're the same KOReader data, just different formatting for prompt flexibility)
+    local annotations_allowed = provider_trusted or self.settings.enable_annotations_sharing == true
+    if annotations_allowed and action.use_annotations then
         local highlights = self:getHighlights()
         data.highlights = highlights.formatted
         local annotations = self:getAnnotations()
@@ -815,6 +889,33 @@ function ContextExtractor:extractForAction(action)
                 data.full_document_coverage_start = full_doc_result.coverage_start
                 data.full_document_coverage_end = full_doc_result.coverage_end
             end
+        end
+    end
+
+    -- Analysis cache extraction: double-gated like book text since cached content derives from book text
+    -- Requires both use_book_text flag AND enable_book_text_extraction global setting
+    if action.use_book_text and self:isBookTextExtractionEnabled() then
+        local prompt = action.prompt or ""
+
+        -- {xray_analysis} / {xray_analysis_section} → cached X-Ray analysis
+        -- X-Ray includes annotation data, so also requires annotation permission
+        local xray_requested = action.use_xray_analysis or prompt:find("{xray_analysis", 1, true)
+        if xray_requested and annotations_allowed and action.use_annotations then
+            local xray = self:getXrayAnalysis()
+            data.xray_analysis = xray.text
+            data.xray_analysis_progress = xray.progress_formatted
+        end
+
+        -- {analyze_analysis} / {analyze_analysis_section} → cached analyze analysis
+        if action.use_analyze_analysis or prompt:find("{analyze_analysis", 1, true) then
+            local analyze = self:getAnalyzeAnalysis()
+            data.analyze_analysis = analyze.text
+        end
+
+        -- {summary_analysis} / {summary_analysis_section} → cached summary analysis
+        if action.use_summary_analysis or prompt:find("{summary_analysis", 1, true) then
+            local summary = self:getSummaryAnalysis()
+            data.summary_analysis = summary.text
         end
     end
 
