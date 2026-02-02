@@ -12,9 +12,9 @@
 - **Multi-document** → compare texts, find common themes, analyze your collection
 - **General chat** → AI without book context
 
-16 built-in providers (Anthropic, OpenAI, Gemini, Ollama, and more) plus custom OpenAI-compatible providers. Fully configurable: custom actions, behaviors, domains, per-action model overrides. Personal reading data (highlights, annotations, notebooks) is opt-in — not shared unless you enable it.
+16 built-in providers (Anthropic, OpenAI, Gemini, Ollama, and more) plus custom OpenAI-compatible providers. Fully configurable: custom actions, behaviors, domains, per-action model overrides. Personal reading data (highlights, annotations, notebooks) is opt-in — not sent to the AI unless you enable it.
 
-> **Status:** Active development — [issues](https://github.com/zeeyado/koassistant.koplugin/issues) and [discussions](https://github.com/zeeyado/koassistant.koplugin/discussions) welcome. Also see [Assistant Plugin](https://github.com/omer-faruq/assistant.koplugin); both run side by side.
+> **Status:** Active development — [issues](https://github.com/zeeyado/koassistant.koplugin/issues) and [discussions](https://github.com/zeeyado/koassistant.koplugin/discussions) welcome. Also see [Assistant Plugin](https://github.com/omer-faruq/assistant.koplugin); both can run side by side.
 
 > **Note:** This README is intentionally detailed to help users discover all features. Use the table of contents to navigate. More concise documentation planned.
 
@@ -344,9 +344,9 @@ KOAssistant sends data to AI providers to generate responses. This section expla
 
 | Preset | What it does |
 |--------|--------------|
-| **Default** | Recommended balance. Progress and chapter info shared for context-aware features. Personal content (highlights, annotations, notebook) stays private. |
+| **Default** | Progress and chapter info shared for context-aware features. Personal content (highlights, annotations, notebook) stays private. |
 | **Minimal** | Maximum privacy. Only your question and book metadata are sent. Even progress and chapter info are disabled. |
-| **Full** | All data sharing enabled for full functionality. Does not enable text extraction (see below). |
+| **Full** | All data sharing enabled for full functionality. Does not automatically enable text extraction (see below). |
 
 **Individual toggles** (under Data Sharing Controls):
 - **Allow Highlights & Annotations** — Your saved highlights and personal notes (default: OFF)
