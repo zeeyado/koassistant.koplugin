@@ -32,6 +32,7 @@ Also check out the popular [Assistant Plugin](https://github.com/omer-faruq/assi
 - [How to Use KOAssistant](#how-to-use-koassistant) — Contexts & Built-in Actions
   - [Highlight Mode](#highlight-mode)
   - [Book/Document Mode](#bookdocument-mode)
+    - [Reading Analysis Actions](#reading-analysis-actions) — X-Ray, Recap, Full Document Analysis
   - [Multi-Document Mode](#multi-document-mode)
   - [General Chat](#general-chat)
   - [Save to Note](#save-to-note)
@@ -432,6 +433,19 @@ You can customize these, create your own, or disable ones you don't use. See [Ac
 | **Extract Key Insights** | Actionable takeaways and ideas worth remembering |
 
 **What the AI sees**: Document metadata (title, author). For Analyze Highlights: your annotations. For full document actions: entire document text.
+
+#### Reading Analysis Actions
+
+These actions use text extraction to analyze your actual reading content rather than relying on the AI's training knowledge. They require enabling text extraction (Settings → Privacy & Data → Text Extraction).
+
+| Action | What it analyzes | Best for |
+|--------|------------------|----------|
+| **X-Ray** | Book text up to current position | Structured reference guide while reading (characters, themes, timeline) |
+| **Recap** | Book text up to current position | Resuming after a reading break |
+| **Analyze Highlights** | Your highlights and annotations | Finding patterns in what you've marked |
+| **Analyze Document** | Entire document | Deep analysis of short works (papers, articles) |
+| **Summarize Document** | Entire document | Quick overview of complete short works |
+| **Extract Key Insights** | Entire document | Actionable takeaways from short works |
 
 **X-Ray/Recap**: These actions work in two modes:
 - **Without text extraction** (default): AI uses only the title/author and relies on its training knowledge of the book. Works for well-known titles; may be inaccurate for obscure works.
