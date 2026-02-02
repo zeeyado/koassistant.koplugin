@@ -103,6 +103,47 @@ local function safeWriteToMetadata(document_path, chats, ui_instance)
     return true
 end
 
+-- Safely write chats to LuaSettings file with validation and verification
+-- Used for general and multi-book chats (stored in dedicated settings files)
+-- @param file_path: Path to the LuaSettings file
+-- @param chats: Table of chats keyed by chat_id
+-- @return true on success, false + error message on failure
+local function safeWriteToLuaSettings(file_path, chats)
+    -- Validate each chat
+    for chat_id, chat in pairs(chats) do
+        local valid, err = validateChatData(chat)
+        if not valid then
+            return false, "Invalid chat " .. chat_id .. ": " .. err
+        end
+    end
+
+    -- Attempt write with error handling
+    local ok, err = pcall(function()
+        local settings = LuaSettings:open(file_path)
+        settings:saveSetting("chats", chats)
+        settings:flush()
+    end)
+
+    if not ok then
+        return false, "Write failed: " .. (err or "unknown error")
+    end
+
+    -- Verify the write succeeded by reading back
+    local verify_ok, verify_err = pcall(function()
+        local verify_settings = LuaSettings:open(file_path)
+        local read_back = verify_settings:readSetting("chats")
+        if not read_back then
+            error("Verification failed: data not found after write")
+        end
+    end)
+
+    if not verify_ok then
+        return false, "Verification failed: " .. (verify_err or "unknown error")
+    end
+
+    return true
+end
+
 function ChatHistoryManager:new()
     local manager = {}
     setmetatable(manager, self)
@@ -1761,18 +1802,19 @@ function ChatHistoryManager:saveGeneralChat(chat_data)
         return false
     end
 
-    -- Open general chats file
-    local settings = LuaSettings:open(self.GENERAL_CHAT_FILE)
-
     -- Read existing chats
+    local settings = LuaSettings:open(self.GENERAL_CHAT_FILE)
     local chats = settings:readSetting("chats", {})
 
     -- Add or update this chat (keyed by ID)
     chats[chat_data.id] = chat_data
 
-    -- Save back to file
-    settings:saveSetting("chats", chats)
-    settings:flush()
+    -- Safe write with validation and verification
+    local ok, err = safeWriteToLuaSettings(self.GENERAL_CHAT_FILE, chats)
+    if not ok then
+        logger.warn("saveGeneralChat: " .. (err or "Write failed"))
+        return false
+    end
 
     -- Track as last opened chat
     self:setLastOpenedChat("__GENERAL_CHATS__", chat_data.id)
@@ -1832,10 +1874,8 @@ function ChatHistoryManager:deleteGeneralChat(chat_id)
         return false
     end
 
-    -- Open general chats file
-    local settings = LuaSettings:open(self.GENERAL_CHAT_FILE)
-
     -- Read existing chats
+    local settings = LuaSettings:open(self.GENERAL_CHAT_FILE)
     local chats = settings:readSetting("chats", {})
 
     -- Check if chat exists
@@ -1847,9 +1887,12 @@ function ChatHistoryManager:deleteGeneralChat(chat_id)
     -- Delete the chat
     chats[chat_id] = nil
 
-    -- Save back to file
-    settings:saveSetting("chats", chats)
-    settings:flush()
+    -- Safe write with validation and verification
+    local ok, err = safeWriteToLuaSettings(self.GENERAL_CHAT_FILE, chats)
+    if not ok then
+        logger.warn("deleteGeneralChat: " .. (err or "Write failed"))
+        return false
+    end
 
     logger.info("Deleted general chat: " .. chat_id)
     return true
@@ -1865,10 +1908,8 @@ function ChatHistoryManager:updateGeneralChat(chat_id, updates)
         return false
     end
 
-    -- Open general chats file
-    local settings = LuaSettings:open(self.GENERAL_CHAT_FILE)
-
     -- Read existing chats
+    local settings = LuaSettings:open(self.GENERAL_CHAT_FILE)
     local chats = settings:readSetting("chats", {})
 
     -- Check if chat exists
@@ -1882,9 +1923,12 @@ function ChatHistoryManager:updateGeneralChat(chat_id, updates)
         chats[chat_id][key] = value
     end
 
-    -- Save back to file
-    settings:saveSetting("chats", chats)
-    settings:flush()
+    -- Safe write with validation and verification
+    local ok, err = safeWriteToLuaSettings(self.GENERAL_CHAT_FILE, chats)
+    if not ok then
+        logger.warn("updateGeneralChat: " .. (err or "Write failed"))
+        return false
+    end
 
     logger.info("Updated general chat: " .. chat_id)
     return true
@@ -1904,18 +1948,19 @@ function ChatHistoryManager:saveMultiBookChat(chat_data)
         return false
     end
 
-    -- Open multi-book chats file
-    local settings = LuaSettings:open(self.MULTI_BOOK_CHAT_FILE)
-
     -- Read existing chats
+    local settings = LuaSettings:open(self.MULTI_BOOK_CHAT_FILE)
     local chats = settings:readSetting("chats", {})
 
     -- Add or update this chat (keyed by ID)
     chats[chat_data.id] = chat_data
 
-    -- Save back to file
-    settings:saveSetting("chats", chats)
-    settings:flush()
+    -- Safe write with validation and verification
+    local ok, err = safeWriteToLuaSettings(self.MULTI_BOOK_CHAT_FILE, chats)
+    if not ok then
+        logger.warn("saveMultiBookChat: " .. (err or "Write failed"))
+        return false
+    end
 
     -- Track as last opened chat
     self:setLastOpenedChat("__MULTI_BOOK_CHATS__", chat_data.id)
@@ -1975,10 +2020,8 @@ function ChatHistoryManager:deleteMultiBookChat(chat_id)
         return false
     end
 
-    -- Open multi-book chats file
-    local settings = LuaSettings:open(self.MULTI_BOOK_CHAT_FILE)
-
     -- Read existing chats
+    local settings = LuaSettings:open(self.MULTI_BOOK_CHAT_FILE)
     local chats = settings:readSetting("chats", {})
 
     -- Check if chat exists
@@ -1990,9 +2033,12 @@ function ChatHistoryManager:deleteMultiBookChat(chat_id)
     -- Delete the chat
     chats[chat_id] = nil
 
-    -- Save back to file
-    settings:saveSetting("chats", chats)
-    settings:flush()
+    -- Safe write with validation and verification
+    local ok, err = safeWriteToLuaSettings(self.MULTI_BOOK_CHAT_FILE, chats)
+    if not ok then
+        logger.warn("deleteMultiBookChat: " .. (err or "Write failed"))
+        return false
+    end
 
     logger.info("Deleted multi-book chat: " .. chat_id)
     return true
@@ -2008,10 +2054,8 @@ function ChatHistoryManager:updateMultiBookChat(chat_id, updates)
         return false
     end
 
-    -- Open multi-book chats file
-    local settings = LuaSettings:open(self.MULTI_BOOK_CHAT_FILE)
-
     -- Read existing chats
+    local settings = LuaSettings:open(self.MULTI_BOOK_CHAT_FILE)
     local chats = settings:readSetting("chats", {})
 
     -- Check if chat exists
@@ -2025,9 +2069,12 @@ function ChatHistoryManager:updateMultiBookChat(chat_id, updates)
         chats[chat_id][key] = value
     end
 
-    -- Save back to file
-    settings:saveSetting("chats", chats)
-    settings:flush()
+    -- Safe write with validation and verification
+    local ok, err = safeWriteToLuaSettings(self.MULTI_BOOK_CHAT_FILE, chats)
+    if not ok then
+        logger.warn("updateMultiBookChat: " .. (err or "Write failed"))
+        return false
+    end
 
     logger.info("Updated multi-book chat: " .. chat_id)
     return true
