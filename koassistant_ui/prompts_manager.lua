@@ -1139,14 +1139,14 @@ function PromptsManager:showStep1_NameAndContext(state)
                     if state.use_book_text then
                         local features = self.plugin.settings:readSetting("features") or {}
                         if not features.enable_book_text_extraction then
-                            UIManager:show(InfoMessage:new{
-                                text = _("This allows {book_text} placeholders to include book content.\n\nNote: Book text extraction is currently disabled in Settings → Advanced → Book Text Extraction. Enable it there for this to work."),
-                                timeout = 6,
+                            UIManager:show(Notification:new{
+                                text = _("Text extraction enabled. Note: Enable in Settings → Advanced first."),
+                                timeout = 4,
                             })
                         else
-                            UIManager:show(InfoMessage:new{
-                                text = _("This allows {book_text} placeholders to include book content. The prompt must use {book_text} or {book_text_section} for this to have effect."),
-                                timeout = 4,
+                            UIManager:show(Notification:new{
+                                text = _("Text extraction enabled for this action."),
+                                timeout = 2,
                             })
                         end
                     end
@@ -1170,14 +1170,14 @@ function PromptsManager:showStep1_NameAndContext(state)
                     if state.use_annotations then
                         local features = self.plugin.settings:readSetting("features") or {}
                         if features.enable_annotations_sharing ~= true then
-                            UIManager:show(InfoMessage:new{
-                                text = _("This allows {annotations} and {highlights} placeholders to include your highlights.\n\nNote: Annotation sharing is currently disabled in Settings → Privacy & Data. Enable it there for this to work."),
-                                timeout = 6,
+                            UIManager:show(Notification:new{
+                                text = _("Annotation use enabled. Note: Enable in Settings → Privacy & Data first."),
+                                timeout = 4,
                             })
                         else
-                            UIManager:show(InfoMessage:new{
-                                text = _("This allows {annotations} and {highlights} placeholders to include your highlights."),
-                                timeout = 4,
+                            UIManager:show(Notification:new{
+                                text = _("Annotation use enabled for this action."),
+                                timeout = 2,
                             })
                         end
                     end
@@ -1200,14 +1200,14 @@ function PromptsManager:showStep1_NameAndContext(state)
                     if state.use_notebook then
                         local features = self.plugin.settings:readSetting("features") or {}
                         if features.enable_notebook_sharing ~= true then
-                            UIManager:show(InfoMessage:new{
-                                text = _("This allows {notebook} placeholders to include your notebook entries.\n\nNote: Notebook sharing is currently disabled in Settings → Privacy & Data. Enable it there for this to work."),
-                                timeout = 6,
+                            UIManager:show(Notification:new{
+                                text = _("Notebook use enabled. Note: Enable in Settings → Privacy & Data first."),
+                                timeout = 4,
                             })
                         else
-                            UIManager:show(InfoMessage:new{
-                                text = _("This allows {notebook} placeholders to include your notebook entries."),
-                                timeout = 4,
+                            UIManager:show(Notification:new{
+                                text = _("Notebook use enabled for this action."),
+                                timeout = 2,
                             })
                         end
                     end
@@ -2662,14 +2662,14 @@ function PromptsManager:showBuiltinSettingsDialog(state)
                     if state.use_book_text then
                         local features = self.plugin.settings:readSetting("features") or {}
                         if not features.enable_book_text_extraction then
-                            UIManager:show(InfoMessage:new{
-                                text = _("This allows {book_text} placeholders to include book content.\n\nNote: Book text extraction is currently disabled in Settings → Advanced → Book Text Extraction. Enable it there for this to work."),
-                                timeout = 6,
+                            UIManager:show(Notification:new{
+                                text = _("Text extraction enabled. Note: Enable in Settings → Advanced first."),
+                                timeout = 4,
                             })
                         else
-                            UIManager:show(InfoMessage:new{
-                                text = _("This allows {book_text} placeholders to include book content. The prompt must use {book_text} or {book_text_section} for this to have effect."),
-                                timeout = 4,
+                            UIManager:show(Notification:new{
+                                text = _("Text extraction enabled for this action."),
+                                timeout = 2,
                             })
                         end
                     end
@@ -2691,14 +2691,14 @@ function PromptsManager:showBuiltinSettingsDialog(state)
                     if state.use_annotations then
                         local features = self.plugin.settings:readSetting("features") or {}
                         if features.enable_annotations_sharing ~= true then
-                            UIManager:show(InfoMessage:new{
-                                text = _("This allows {annotations} and {highlights} placeholders to include your highlights.\n\nNote: Annotation sharing is currently disabled in Settings → Privacy & Data. Enable it there for this to work."),
-                                timeout = 6,
+                            UIManager:show(Notification:new{
+                                text = _("Annotation use enabled. Note: Enable in Settings → Privacy & Data first."),
+                                timeout = 4,
                             })
                         else
-                            UIManager:show(InfoMessage:new{
-                                text = _("This allows {annotations} and {highlights} placeholders to include your highlights."),
-                                timeout = 4,
+                            UIManager:show(Notification:new{
+                                text = _("Annotation use enabled for this action."),
+                                timeout = 2,
                             })
                         end
                     end
@@ -2719,14 +2719,14 @@ function PromptsManager:showBuiltinSettingsDialog(state)
                     if state.use_notebook then
                         local features = self.plugin.settings:readSetting("features") or {}
                         if features.enable_notebook_sharing ~= true then
-                            UIManager:show(InfoMessage:new{
-                                text = _("This allows {notebook} placeholders to include your notebook entries.\n\nNote: Notebook sharing is currently disabled in Settings → Privacy & Data. Enable it there for this to work."),
-                                timeout = 6,
+                            UIManager:show(Notification:new{
+                                text = _("Notebook use enabled. Note: Enable in Settings → Privacy & Data first."),
+                                timeout = 4,
                             })
                         else
-                            UIManager:show(InfoMessage:new{
-                                text = _("This allows {notebook} placeholders to include your notebook entries."),
-                                timeout = 4,
+                            UIManager:show(Notification:new{
+                                text = _("Notebook use enabled for this action."),
+                                timeout = 2,
                             })
                         end
                     end
@@ -3373,14 +3373,14 @@ function PromptsManager:showCustomQuickSettingsDialog(state)
                     if state.use_book_text then
                         local features = self.plugin.settings:readSetting("features") or {}
                         if not features.enable_book_text_extraction then
-                            UIManager:show(InfoMessage:new{
-                                text = _("This allows {book_text} placeholders to include book content.\n\nNote: Book text extraction is currently disabled in Settings → Advanced → Book Text Extraction. Enable it there for this to work."),
-                                timeout = 6,
+                            UIManager:show(Notification:new{
+                                text = _("Text extraction enabled. Note: Enable in Settings → Advanced first."),
+                                timeout = 4,
                             })
                         else
-                            UIManager:show(InfoMessage:new{
-                                text = _("This allows {book_text} placeholders to include book content. The prompt must use {book_text} or {book_text_section} for this to have effect."),
-                                timeout = 4,
+                            UIManager:show(Notification:new{
+                                text = _("Text extraction enabled for this action."),
+                                timeout = 2,
                             })
                         end
                     end
@@ -3402,14 +3402,14 @@ function PromptsManager:showCustomQuickSettingsDialog(state)
                     if state.use_annotations then
                         local features = self.plugin.settings:readSetting("features") or {}
                         if features.enable_annotations_sharing ~= true then
-                            UIManager:show(InfoMessage:new{
-                                text = _("This allows {annotations} and {highlights} placeholders to include your highlights.\n\nNote: Annotation sharing is currently disabled in Settings → Privacy & Data. Enable it there for this to work."),
-                                timeout = 6,
+                            UIManager:show(Notification:new{
+                                text = _("Annotation use enabled. Note: Enable in Settings → Privacy & Data first."),
+                                timeout = 4,
                             })
                         else
-                            UIManager:show(InfoMessage:new{
-                                text = _("This allows {annotations} and {highlights} placeholders to include your highlights."),
-                                timeout = 4,
+                            UIManager:show(Notification:new{
+                                text = _("Annotation use enabled for this action."),
+                                timeout = 2,
                             })
                         end
                     end
@@ -3430,14 +3430,14 @@ function PromptsManager:showCustomQuickSettingsDialog(state)
                     if state.use_notebook then
                         local features = self.plugin.settings:readSetting("features") or {}
                         if features.enable_notebook_sharing ~= true then
-                            UIManager:show(InfoMessage:new{
-                                text = _("This allows {notebook} placeholders to include your notebook entries.\n\nNote: Notebook sharing is currently disabled in Settings → Privacy & Data. Enable it there for this to work."),
-                                timeout = 6,
+                            UIManager:show(Notification:new{
+                                text = _("Notebook use enabled. Note: Enable in Settings → Privacy & Data first."),
+                                timeout = 4,
                             })
                         else
-                            UIManager:show(InfoMessage:new{
-                                text = _("This allows {notebook} placeholders to include your notebook entries."),
-                                timeout = 4,
+                            UIManager:show(Notification:new{
+                                text = _("Notebook use enabled for this action."),
+                                timeout = 2,
                             })
                         end
                     end
@@ -3951,6 +3951,9 @@ function PromptsManager:showPlaceholderSelectorWizard(state)
     self.placeholder_dialog = ButtonDialog:new{
         title = _("Insert Placeholder"),
         buttons = buttons,
+        tap_close_callback = function()
+            self:showStep3_ActionPrompt(state)
+        end,
     }
 
     UIManager:show(self.placeholder_dialog)
