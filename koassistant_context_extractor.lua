@@ -760,19 +760,14 @@ function ContextExtractor:extractForAction(action)
         data.progress_decimal = ""
     end
 
-    -- Highlights - check privacy setting (default: enabled)
-    if provider_trusted or self.settings.enable_highlights_sharing ~= false then
+    -- Highlights and Annotations - check combined privacy setting (default: disabled)
+    if provider_trusted or self.settings.enable_annotations_sharing == true then
         local highlights = self:getHighlights()
         data.highlights = highlights.formatted
-    else
-        data.highlights = ""
-    end
-
-    -- Annotations - check privacy setting (default: enabled)
-    if provider_trusted or self.settings.enable_annotations_sharing ~= false then
         local annotations = self:getAnnotations()
         data.annotations = annotations.formatted
     else
+        data.highlights = ""
         data.annotations = ""
     end
 

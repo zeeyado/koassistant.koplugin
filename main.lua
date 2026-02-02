@@ -5931,11 +5931,31 @@ function AskGPT:quickResetFreshStart()
   })
 end
 
--- Privacy preset: Minimal Data (disable extended sharing)
+-- Privacy preset: Default (recommended balance)
+function AskGPT:applyPrivacyPresetDefault(touchmenu_instance)
+  local f = self.settings:readSetting("features") or {}
+  -- Default: personal content private, basic context shared
+  f.enable_annotations_sharing = false
+  f.enable_notebook_sharing = false
+  f.enable_progress_sharing = true
+  f.enable_stats_sharing = true
+  f.enable_book_text_extraction = false
+  self.settings:saveSetting("features", f)
+  self.settings:flush()
+  self:updateConfigFromSettings()
+  if touchmenu_instance then
+    touchmenu_instance:updateItems()
+  end
+  UIManager:show(Notification:new{
+    text = _("Default: Personal content private, basic context shared"),
+    timeout = 2,
+  })
+end
+
+-- Privacy preset: Minimal (maximum privacy)
 function AskGPT:applyPrivacyPresetMinimal(touchmenu_instance)
   local f = self.settings:readSetting("features") or {}
-  -- Disable extended data sharing
-  f.enable_highlights_sharing = false
+  -- Disable all extended data sharing
   f.enable_annotations_sharing = false
   f.enable_notebook_sharing = false
   f.enable_progress_sharing = false
@@ -5944,21 +5964,19 @@ function AskGPT:applyPrivacyPresetMinimal(touchmenu_instance)
   self.settings:saveSetting("features", f)
   self.settings:flush()
   self:updateConfigFromSettings()
-  -- Refresh menu to show updated checkbox states
   if touchmenu_instance then
     touchmenu_instance:updateItems()
   end
   UIManager:show(Notification:new{
-    text = _("Minimal Data: Extended sharing disabled"),
+    text = _("Minimal: All extended sharing disabled"),
     timeout = 2,
   })
 end
 
--- Privacy preset: Full Features (enable all sharing except book text)
+-- Privacy preset: Full (enable all sharing except book text)
 function AskGPT:applyPrivacyPresetFull(touchmenu_instance)
   local f = self.settings:readSetting("features") or {}
   -- Enable all data sharing (except book text which has cost implications)
-  f.enable_highlights_sharing = true
   f.enable_annotations_sharing = true
   f.enable_notebook_sharing = true
   f.enable_progress_sharing = true
@@ -5967,12 +5985,11 @@ function AskGPT:applyPrivacyPresetFull(touchmenu_instance)
   self.settings:saveSetting("features", f)
   self.settings:flush()
   self:updateConfigFromSettings()
-  -- Refresh menu to show updated checkbox states
   if touchmenu_instance then
     touchmenu_instance:updateItems()
   end
   UIManager:show(Notification:new{
-    text = _("Full Features: All data sharing enabled"),
+    text = _("Full: All data sharing enabled"),
     timeout = 2,
   })
 end

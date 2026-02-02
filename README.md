@@ -27,7 +27,8 @@ Also check out the popular [Assistant Plugin](https://github.com/omer-faruq/assi
 - [Recommended Setup](#recommended-setup)
   - [Configure Quick Access Gestures](#configure-quick-access-gestures)
 - [Testing Your Setup](#testing-your-setup)
-- [Privacy & Data](#privacy--data) — What gets sent, controls, local processing
+- [Privacy & Data](#privacy--data) — ⚠️ Some features require opt-in
+  - [Privacy Controls](#privacy-controls) — Presets and individual toggles
   - [Text Extraction](#text-extraction) — Enable X-Ray/Recap book analysis (off by default)
 - [How to Use KOAssistant](#how-to-use-koassistant) — Contexts & Built-in Actions
   - [Highlight Mode](#highlight-mode)
@@ -84,6 +85,7 @@ Also check out the popular [Assistant Plugin](https://github.com/omer-faruq/assi
   - [Adding Extra Instructions to Actions](#adding-extra-instructions-to-actions)
 - [KOReader Tips](#koreader-tips)
 - [Troubleshooting](#troubleshooting)
+  - [Features Not Working / Empty Data](#features-not-working--empty-data) — Privacy settings for opt-in features
   - [Text Extraction Not Working](#text-extraction-not-working)
   - [Font Issues (Arabic)](#font-issues-arabic)
   - [Settings Reset](#settings-reset)
@@ -101,9 +103,10 @@ Also check out the popular [Assistant Plugin](https://github.com/omer-faruq/assi
 **New to KOAssistant?** Start here for the fastest path to productivity:
 
 1. ✅ **[Quick Setup](#quick-setup)** — Install, add API key, restart (5 minutes)
-2. 🎯 **[Recommended Setup](#recommended-setup)** — Configure gestures and explore key features (10 minutes)
-3. 🧪 **[Testing Your Setup](#testing-your-setup)** — Web inspector for experimenting (optional but highly recommended)
-4. 💰 **[Free Tiers](#free-tier-providers)** — Don't want to pay? See free provider options
+2. 🔒 **[Privacy Settings](#privacy--data)** — Some features require opt-in; configure what data you share
+3. 🎯 **[Recommended Setup](#recommended-setup)** — Configure gestures and explore key features (10 minutes)
+4. 🧪 **[Testing Your Setup](#testing-your-setup)** — Web inspector for experimenting (optional but highly recommended)
+5. 💰 **[Free Tiers](#free-tier-providers)** — Don't want to pay? See free provider options
 
 **Want to go deeper?** The rest of this README covers all features in detail.
 
@@ -167,6 +170,16 @@ See [Supported Providers](#supported-providers) for full list with links to get 
 
 Find KOAssistant Settings in: **Tools → Page 2 → KOAssistant**
 
+### 4. Configure Privacy Settings (Optional)
+
+Some features require opt-in to work:
+- **Analyze Highlights, Connect with Notes** → Enable "Allow Highlights & Annotations"
+- **X-Ray, Recap with actual book content** → Enable "Allow Text Extraction"
+
+Go to **Settings → Privacy & Data** to configure. See [Privacy & Data](#privacy--data) for details.
+
+> **Quick option:** Use **Preset: Full** to enable all data sharing at once. Or leave defaults (personal content private, basic context shared).
+
 ---
 
 ## Recommended Setup
@@ -175,6 +188,7 @@ Find KOAssistant Settings in: **Tools → Page 2 → KOAssistant**
 
 After setting up your API key, complete these steps for the best experience:
 
+- [ ] **Configure privacy settings** — Enable data sharing for features you want (Settings → Privacy & Data). See [Privacy & Data](#privacy--data)
 - [ ] **Assign AI Quick Settings to a gesture** — One-tap access to provider, model, behavior, and more (Settings → Gesture Manager → General → KOAssistant: AI Quick Settings)
 - [ ] **Assign Quick Actions to a gesture** — Fast access to X-Ray, Recap, and other reading actions (reader mode only)
 - [ ] **Explore the highlight menu** — Translate and Explain are included by default; add more via Manage Actions → hold action → "Add to Highlight Menu"
@@ -306,26 +320,43 @@ lua tests/inspect.lua --web
 
 KOAssistant sends data to AI providers to generate responses. This section explains what's shared and how to control it.
 
+> ⚠️ **Some features are opt-in.** To protect your privacy, personal reading data (highlights, annotations, notebook) is NOT sent to AI providers by default. You must enable sharing in **Settings → Privacy & Data** if you want features like Analyze Highlights or Connect with Notes to work fully. See [Privacy Controls](#privacy-controls) below.
+
 ### What Gets Sent
 
-**Basic (all/most actions):**
+**Always sent (cannot be disabled):**
 - Your question/prompt
 - Selected text (for highlight actions)
 - Book title and author
 
-**Extended (some actions, configurable):**
-- Reading progress, highlights, annotations (Analyze Highlights, X-Ray, etc.)
-- Notebook entries (Connect with Notes)
-- Book text content (X-Ray, Recap - off by default due to token cost and content sensitivity)
+**Sent by default:**
+- Reading progress (percentage)
+- Chapter info (current chapter title, chapters read count, time since last opened)
+
+**Opt-in (disabled by default):**
+- Highlights and annotations — your saved highlights and personal notes
+- Notebook entries — your KOAssistant notebook for the book
+- Book text content — actual text from the document (for X-Ray, Recap, etc.)
 
 ### Privacy Controls
 
-**Settings > Privacy & Data** lets you:
-- **Trusted Providers**: Mark providers you trust (e.g., local Ollama) to bypass data sharing controls
-- Toggle individual data types (highlights, annotations, notebook, progress, stats)
-- Use quick presets (Minimal Data, Full Features)
+**Settings → Privacy & Data** provides three quick presets:
 
-When you disable a data type, actions gracefully adapt - section placeholders like `{highlights_section}` simply disappear from prompts, so you don't need to modify your actions. Trusted providers bypass these controls entirely.
+| Preset | What it does |
+|--------|--------------|
+| **Default** | Recommended balance. Progress and chapter info shared for context-aware features. Personal content (highlights, annotations, notebook) stays private. |
+| **Minimal** | Maximum privacy. Only your question and book metadata are sent. Even progress and chapter info are disabled. |
+| **Full** | All data sharing enabled for full functionality. Does not enable text extraction (see below). |
+
+**Individual toggles** (under Data Sharing Controls):
+- **Allow Highlights & Annotations** — Your saved highlights and personal notes (default: OFF)
+- **Allow Notebook** — Notebook entries for the book (default: OFF)
+- **Allow Reading Progress** — Current reading position percentage (default: ON)
+- **Allow Chapter Info** — Chapter title, chapters read, time since last opened (default: ON)
+
+**Trusted Providers:** Mark providers you fully trust (e.g., local Ollama) to bypass all data sharing controls.
+
+**Graceful degradation:** When you disable a data type, actions adapt automatically. Section placeholders like `{highlights_section}` simply disappear from prompts, so you don't need to modify your actions.
 
 ### Text Extraction
 
@@ -333,7 +364,11 @@ When you disable a data type, actions gracefully adapt - section placeholders li
 
 Text extraction sends actual book content to the AI, enabling features like X-Ray and Recap to analyze what you've read. Without it enabled, these features rely solely on the AI's training knowledge of the book (which works for well-known titles but may be inaccurate for obscure works).
 
-**Why it's off by default:** Token costs (extracting a full book can use 60k+ tokens per request) and content sensitivity (you control what gets shared with AI providers).
+**Why it's off by default:**
+
+1. **Token costs** (primary reason) — Extracting book text uses significantly more context than you might expect. A full book can consume 60k+ tokens per request, which adds up quickly with paid APIs. Users should consciously opt into this cost.
+
+2. **Content awareness** — For most users reading mainstream books, the text itself isn't privacy-sensitive. However, if you're reading something non-standard, subversive, controversial, or otherwise sensitive, you should be aware that the actual content is being sent to cloud AI providers. This is a secondary consideration for most users but important for some.
 
 **How to enable:**
 1. Go to **Settings → Privacy & Data → Text Extraction**
@@ -362,9 +397,11 @@ Cloud providers have their own data handling practices. Check their policies on 
 
 ### Design Choices
 
-KOAssistant does **not** include library-wide scanning, cross-book analysis, or reading habit profiling. These were intentionally omitted - combining reading data across your collection creates a detailed personal profile that's easy to underestimate.
+KOAssistant does **not** include library-wide scanning, cross-book analysis, or reading habit profiling. These were intentionally omitted — combining reading data across your collection creates a detailed personal profile that's easy to underestimate.
 
-> KOReader itself collects extensive local statistics (reading time, speed, sessions). These are valuable for personal use but would be concerning if sent to cloud services. Future KOAssistant features that expose this data will require explicit opt-in.
+**What "Chapter Info" actually accesses:** The current `Allow Chapter Info` setting only extracts basic structural data: current chapter title (from the table of contents), chapters read count, and file access time. This is minimal metadata, not behavioral tracking.
+
+**KOReader's deeper statistics:** KOReader's Statistics plugin collects extensive local data (reading time, pages per session, reading speed, session history, daily patterns). KOAssistant does **not** access any of this. If KOAssistant ever adds features that expose this behavioral data, they will require explicit opt-in with clear warnings about how revealing such information can be. Reading patterns over time create a surprisingly detailed personal profile.
 
 ---
 
@@ -398,7 +435,7 @@ You can customize these, create your own, or disable ones you don't use. See [Ac
 | **Summarize** | Concise summary of the text |
 | **Elaborate** | Expand on concepts, provide additional context and details |
 | **Connect** | Draw connections to other works, thinkers, and broader context |
-| **Connect (With Notes)** | Connect passage to your personal reading journey (your highlights, notes, notebook) |
+| **Connect (With Notes)** | Connect passage to your personal reading journey ⚠️ *Requires: Allow Highlights & Annotations, Allow Notebook* |
 | **Translate** | Translate to your configured language |
 | **Dictionary** | Word definition with context (also accessible via word selection, like KOReader native behavior) |
 | **Quick Define** | Brief, concise word definition (dictionary popup) |
@@ -425,9 +462,9 @@ You can customize these, create your own, or disable ones you don't use. See [Ac
 | **Related Thinkers** | Intellectual landscape: influences, contemporaries, and connected thinkers |
 | **Key Arguments** | Thesis, evidence, assumptions, and counterarguments (non-fiction) |
 | **Discussion Questions** | Comprehension, analytical, and interpretive prompts for book clubs or study |
-| **X-Ray** | Structured reference guide: characters, locations, themes, timeline (spoiler-free up to your reading position) |
-| **Recap** | "Previously on..." style summary to help you resume reading after a break |
-| **Analyze Highlights** | Discover patterns and connections in your highlights and annotations |
+| **X-Ray** | Structured reference guide: characters, locations, themes, timeline ⚠️ *Best with: Allow Text Extraction* |
+| **Recap** | "Previously on..." style summary to help you resume reading ⚠️ *Best with: Allow Text Extraction* |
+| **Analyze Highlights** | Discover patterns and connections in your highlights ⚠️ *Requires: Allow Highlights & Annotations* |
 | **Analyze Document** | Deep analysis of complete short documents (papers, articles, notes) |
 | **Summarize Document** | Comprehensive summary of entire document |
 | **Extract Key Insights** | Actionable takeaways and ideas worth remembering |
@@ -436,16 +473,18 @@ You can customize these, create your own, or disable ones you don't use. See [Ac
 
 #### Reading Analysis Actions
 
-These actions use text extraction to analyze your actual reading content rather than relying on the AI's training knowledge. They require enabling text extraction (Settings → Privacy & Data → Text Extraction).
+These actions analyze your actual reading content. They require specific privacy settings to be enabled:
 
-| Action | What it analyzes | Best for |
-|--------|------------------|----------|
-| **X-Ray** | Book text up to current position | Structured reference guide while reading (characters, themes, timeline) |
-| **Recap** | Book text up to current position | Resuming after a reading break |
-| **Analyze Highlights** | Your highlights and annotations | Finding patterns in what you've marked |
-| **Analyze Document** | Entire document | Deep analysis of short works (papers, articles) |
-| **Summarize Document** | Entire document | Quick overview of complete short works |
-| **Extract Key Insights** | Entire document | Actionable takeaways from short works |
+| Action | What it analyzes | Privacy setting required |
+|--------|------------------|--------------------------|
+| **X-Ray** | Book text up to current position | Allow Text Extraction |
+| **Recap** | Book text up to current position | Allow Text Extraction |
+| **Analyze Highlights** | Your highlights and annotations | Allow Highlights & Annotations |
+| **Analyze Document** | Entire document | Allow Text Extraction |
+| **Summarize Document** | Entire document | Allow Text Extraction |
+| **Extract Key Insights** | Entire document | Allow Text Extraction |
+
+> ⚠️ **Privacy settings required:** These actions won't have access to your reading data unless you enable the corresponding setting in **Settings → Privacy & Data**. Without the setting enabled, the AI will attempt to use only its training knowledge (works for famous books, less accurate for obscure works).
 
 **X-Ray/Recap**: These actions work in two modes:
 - **Without text extraction** (default): AI uses only the title/author and relies on its training knowledge of the book. Works for well-known titles; may be inaccurate for obscure works.
@@ -654,36 +693,37 @@ The action wizard walks through 4 steps:
 
 Insert these in your action prompt to reference dynamic values:
 
-| Variable | Context | Description |
-|----------|---------|-------------|
-| `{highlighted_text}` | Highlight | The selected text |
-| `{title}` | Book, Highlight | Book title |
-| `{author}` | Book, Highlight | Book author |
-| `{author_clause}` | Book, Highlight | " by Author" or empty |
-| `{count}` | Multi-book | Number of books |
-| `{books_list}` | Multi-book | Formatted list of books |
-| `{translation_language}` | Any | Target language from settings |
-| `{dictionary_language}` | Any | Dictionary response language from settings |
-| `{context}` | Highlight | Surrounding text context (sentence/paragraph/characters) |
-| `{reading_progress}` | Book (reading) | Current reading position (e.g., "42%") |
-| `{progress_decimal}` | Book (reading) | Reading position as decimal (e.g., "0.42") |
-| `{chapters_read}` | Book (reading) | Number of chapters read (e.g., "5 of 12") |
-| `{highlights}` | Book, Highlight (reading) | All highlights from the document |
-| `{annotations}` | Book, Highlight (reading) | All highlights with user notes |
-| `{notebook}` | Book, Highlight (reading) | Content from the book's KOAssistant notebook |
-| `{notebook_section}` | Book, Highlight (reading) | Notebook with "My notebook entries:" label |
-| `{book_text}` | Book (reading) | Extracted book text from start to current position |
-| `{book_text_section}` | Book (reading) | Same as above with "Book content so far:" label |
-| `{full_document}` | Book (reading) | Entire document text (start to end, regardless of position) |
-| `{full_document_section}` | Book (reading) | Same as above with "Full document:" label |
-| `{highlights_section}` | Book, Highlight (reading) | Highlights with "My highlights so far:" label |
-| `{annotations_section}` | Book, Highlight (reading) | Annotations with "My annotations:" label |
-| `{chapter_title}` | Book (reading) | Current chapter name |
-| `{time_since_last_read}` | Book (reading) | Time since last reading session (e.g., "3 days ago") |
+| Variable | Context | Description | Privacy Setting |
+|----------|---------|-------------|-----------------|
+| `{highlighted_text}` | Highlight | The selected text | — |
+| `{title}` | Book, Highlight | Book title | — |
+| `{author}` | Book, Highlight | Book author | — |
+| `{author_clause}` | Book, Highlight | " by Author" or empty | — |
+| `{count}` | Multi-book | Number of books | — |
+| `{books_list}` | Multi-book | Formatted list of books | — |
+| `{translation_language}` | Any | Target language from settings | — |
+| `{dictionary_language}` | Any | Dictionary response language from settings | — |
+| `{context}` | Highlight | Surrounding text context (sentence/paragraph/characters) | — |
+| `{reading_progress}` | Book (reading) | Current reading position (e.g., "42%") | Allow Reading Progress |
+| `{progress_decimal}` | Book (reading) | Reading position as decimal (e.g., "0.42") | Allow Reading Progress |
+| `{chapter_title}` | Book (reading) | Current chapter name | Allow Chapter Info |
+| `{chapters_read}` | Book (reading) | Number of chapters read (e.g., "5 of 12") | Allow Chapter Info |
+| `{time_since_last_read}` | Book (reading) | Time since last reading session (e.g., "3 days ago") | Allow Chapter Info |
+| `{highlights}` | Book, Highlight (reading) | All highlights from the document | Allow Highlights & Annotations |
+| `{annotations}` | Book, Highlight (reading) | All highlights with user notes | Allow Highlights & Annotations |
+| `{highlights_section}` | Book, Highlight (reading) | Highlights with "My highlights so far:" label | Allow Highlights & Annotations |
+| `{annotations_section}` | Book, Highlight (reading) | Annotations with "My annotations:" label | Allow Highlights & Annotations |
+| `{notebook}` | Book, Highlight (reading) | Content from the book's KOAssistant notebook | Allow Notebook |
+| `{notebook_section}` | Book, Highlight (reading) | Notebook with "My notebook entries:" label | Allow Notebook |
+| `{book_text}` | Book (reading) | Extracted book text from start to current position | Allow Text Extraction |
+| `{book_text_section}` | Book (reading) | Same as above with "Book content so far:" label | Allow Text Extraction |
+| `{full_document}` | Book (reading) | Entire document text (start to end, regardless of position) | Allow Text Extraction |
+| `{full_document_section}` | Book (reading) | Same as above with "Full document:" label | Allow Text Extraction |
 
 **Context notes:**
 - **Book** / **Highlight** = Available in both reading mode and file browser
 - **(reading)** = Reading mode only — requires an open book. Actions using these placeholders are automatically hidden in file browser
+- **Privacy Setting** = The setting that must be enabled in Settings → Privacy & Data for this variable to have content. If disabled, the variable returns empty (section placeholders disappear gracefully)
 
 #### Section vs Raw Placeholders
 
@@ -698,9 +738,9 @@ Insert these in your action prompt to reference dynamic values:
 
 **Tip:** Use section placeholders in most cases. They prevent dangling references—if you write "Look at my highlights: {highlights}" in your prompt but highlights is empty, the AI sees confusing instructions about nonexistent content. Section placeholders include the label only when content exists.
 
-> **Privacy note:** Section placeholders also adapt to [privacy settings](#privacy--data). If you disable highlights sharing, `{highlights_section}` gracefully disappears from prompts without breaking your actions. You don't need to modify actions to match your privacy preferences.
+> **Privacy note:** Section placeholders adapt to [privacy settings](#privacy--data). If a data type is disabled (or not yet enabled), the corresponding placeholder returns empty and section variants disappear gracefully. For example, `{highlights_section}` is empty unless you enable **Allow Highlights & Annotations**. You don't need to modify actions to match your privacy preferences—they adapt automatically.
 
-> **Note:** Text extraction placeholders (`{book_text}`, `{full_document}`, etc.) require two things: (1) the global "Allow Text Extraction" setting enabled in Settings → Privacy & Data → Text Extraction, and (2) the action must have "Allow text extraction" checked. Both are off by default to avoid accidental token costs. Use `{book_text_section}` to extract text up to your current reading position (good for X-Ray/Recap), or `{full_document_section}` to extract the entire document regardless of position (good for short papers/articles).
+> **Note:** Text extraction placeholders (`{book_text}`, `{full_document}`, etc.) require two things: (1) the global **Allow Text Extraction** setting enabled in Settings → Privacy & Data → Text Extraction, and (2) the action must have "Allow text extraction" checked. Both are off by default—primarily to avoid unexpected token costs, and secondarily for content awareness. See [Text Extraction](#text-extraction) for details.
 
 ### Tips for Custom Actions
 
@@ -1582,16 +1622,16 @@ See [Bypass Modes](#bypass-modes) and [Highlight Menu Actions](#highlight-menu-a
 **Filename format**: Files are named `[book_title]_[chat_title]_[timestamp].md` (or `.txt`). Book title is truncated to 30 characters, chat title to 25 characters. Timestamp uses the chat's creation time for saved chats, or export time for unsaved chats from the viewer.
 
 ### Privacy & Data
-See [Privacy & Data](#privacy--data) for background on what gets sent to AI providers.
-- **Trusted Providers**: Mark providers (e.g., local Ollama) that bypass data sharing controls below
-- **Preset: Minimal Data**: Disable all extended sharing (highlights, annotations, notebook, progress, stats)
-- **Preset: Full Features**: Enable all data sharing for full functionality (does not enable text extraction)
+See [Privacy & Data](#privacy--data) for background on what gets sent to AI providers and the reasoning behind these defaults.
+- **Trusted Providers**: Mark providers (e.g., local Ollama) that bypass all data sharing controls
+- **Preset: Default**: Recommended balance — progress and chapter info shared, personal content private
+- **Preset: Minimal**: Maximum privacy — only question and book metadata sent
+- **Preset: Full**: Enable all data sharing for full functionality (does not enable text extraction)
 - **Data Sharing Controls** (for non-trusted providers):
-  - **Allow Highlights**: Send highlighted passages (used by Analyze Highlights, X-Ray, etc.)
-  - **Allow Annotations**: Send personal notes attached to highlights
-  - **Allow Notebook**: Send notebook entries (used by Connect with Notes)
-  - **Allow Reading Progress**: Send current reading position percentage
-  - **Allow Reading Statistics**: Send chapter info and time since last read
+  - **Allow Highlights & Annotations**: Send your saved highlights and personal notes (default: OFF)
+  - **Allow Notebook**: Send notebook entries (default: OFF)
+  - **Allow Reading Progress**: Send current reading position percentage (default: ON)
+  - **Allow Chapter Info**: Send chapter title, chapters read, time since last opened (default: ON)
 - **Text Extraction** (submenu): Settings for extracting book content for AI analysis
   - **Allow Text Extraction**: Master toggle for text extraction (off by default). When enabled, actions can extract and send book text to the AI. Used by X-Ray, Recap, and actions with text placeholders (`{book_text}`, `{full_document}`, etc.). Enabling shows an informational notice about token costs.
   - **Max Text Characters**: Maximum characters to extract (10,000-1,000,000, default 250,000 ~60k tokens)
@@ -2190,6 +2230,25 @@ Dictionary lookups and popup actions use compact view by default (minimal UI). T
 ---
 
 ## Troubleshooting
+
+### Features Not Working / Empty Data
+
+If actions like Analyze Highlights, Connect with Notes, X-Ray, or Recap seem to ignore your reading data:
+
+**Most reading data is opt-in.** Check **Settings → Privacy & Data** and enable the relevant setting:
+
+| Feature not working | Enable this setting |
+|---------------------|---------------------|
+| Analyze Highlights shows nothing | Allow Highlights & Annotations |
+| Connect with Notes ignores your notes | Allow Highlights & Annotations + Allow Notebook |
+| X-Ray/Recap use only book title | Allow Text Extraction (in Text Extraction submenu) |
+| Custom action with `{highlights}` empty | Allow Highlights & Annotations |
+| Custom action with `{notebook}` empty | Allow Notebook |
+| Custom action with `{book_text}` empty | Allow Text Extraction + action's "Allow text extraction" flag |
+
+**Why this happens:** To protect your privacy, personal data (highlights, annotations, notebook) is not shared with AI providers by default. You must explicitly opt in. See [Privacy & Data](#privacy--data) for the full explanation.
+
+**Quick fix:** Use **Preset: Full** to enable all data sharing at once, or enable individual settings as needed.
 
 ### Text Extraction Not Working
 

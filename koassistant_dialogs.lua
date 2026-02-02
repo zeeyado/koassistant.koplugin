@@ -1933,7 +1933,6 @@ local function handlePredefinedPrompt(prompt_type_or_action, highlightedText, ui
                 -- Privacy settings
                 provider = config.features and config.features.provider,
                 trusted_providers = config.features and config.features.trusted_providers,
-                enable_highlights_sharing = config.features and config.features.enable_highlights_sharing,
                 enable_annotations_sharing = config.features and config.features.enable_annotations_sharing,
                 enable_progress_sharing = config.features and config.features.enable_progress_sharing,
                 enable_stats_sharing = config.features and config.features.enable_stats_sharing,
