@@ -1092,8 +1092,8 @@ function ChatGPTViewer:init()
     id = "copy_chat",
     callback = function()
       -- Compact dictionary view: always copy response only
-      local history = self._message_history or self.original_history
-      if not history then
+      local chat_history = self._message_history or self.original_history
+      if not chat_history then
         UIManager:show(Notification:new{
           text = _("No response to copy"),
           timeout = 2,
@@ -1104,7 +1104,7 @@ function ChatGPTViewer:init()
       local features = self.configuration and self.configuration.features or {}
       local book_metadata = features.book_metadata
       local books_info = features.is_multi_book_context and features.books_info or nil
-      local data = Export.fromHistory(history, self.original_highlighted_text, book_metadata, books_info)
+      local data = Export.fromHistory(chat_history, self.original_highlighted_text, book_metadata, books_info)
       local text = Export.format(data, "response", "text")  -- Always response, plain text
       if text and text ~= "" then
         Device.input.setClipboardText(text)
@@ -1386,8 +1386,8 @@ function ChatGPTViewer:init()
     text = _("Copy"),
     id = "copy_chat",
     callback = function()
-      local history = self._message_history or self.original_history
-      if not history then
+      local chat_history = self._message_history or self.original_history
+      if not chat_history then
         UIManager:show(Notification:new{
           text = _("No translation to copy"),
           timeout = 2,
@@ -1407,7 +1407,7 @@ function ChatGPTViewer:init()
         local Export = require("koassistant_export")
         local book_metadata = features.book_metadata
         local books_info = features.is_multi_book_context and features.books_info or nil
-        local data = Export.fromHistory(history, self.original_highlighted_text, book_metadata, books_info)
+        local data = Export.fromHistory(chat_history, self.original_highlighted_text, book_metadata, books_info)
         local text = Export.format(data, selected_content, style)
 
         Device.input.setClipboardText(text)
