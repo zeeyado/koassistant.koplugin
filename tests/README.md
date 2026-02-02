@@ -163,6 +163,7 @@ Located in `tests/unit/`:
 - `test_streaming_parser.lua` - SSE/NDJSON content extraction for all providers
 - `test_response_parser.lua` - Response parsing for all 16 providers
 - `test_loaders.lua` - BehaviorLoader and DomainLoader functionality
+- `test_openai_compatible.lua` - OpenAI-compatible base class (hooks, request building)
 
 ### Integration Tests (real API calls)
 
@@ -389,12 +390,13 @@ tests/
 │   ├── test_full_provider.lua    # Comprehensive tests (--full)
 │   └── test_model_validation.lua # Model validation (--models)
 └── unit/
-    ├── test_constants.lua        # Context constants, GitHub URLs tests
-    ├── test_constraint_utils.lua # Constraint utilities tests
-    ├── test_system_prompts.lua   # Behavior, language, domain tests
-    ├── test_streaming_parser.lua # SSE/NDJSON parsing tests
-    ├── test_response_parser.lua  # Provider response parsing tests
-    └── test_loaders.lua          # BehaviorLoader, DomainLoader tests
+    ├── test_constants.lua           # Context constants, GitHub URLs tests
+    ├── test_constraint_utils.lua    # Constraint utilities tests
+    ├── test_system_prompts.lua      # Behavior, language, domain tests
+    ├── test_streaming_parser.lua    # SSE/NDJSON parsing tests
+    ├── test_response_parser.lua     # Provider response parsing tests
+    ├── test_loaders.lua             # BehaviorLoader, DomainLoader tests
+    └── test_openai_compatible.lua   # OpenAI-compatible base class tests
 ```
 
 ## Troubleshooting
