@@ -4,19 +4,19 @@
 [![License: GPL-3.0](https://img.shields.io/github/license/zeeyado/koassistant.koplugin)](LICENSE)
 [![Translation Status](https://hosted.weblate.org/widgets/koassistant/-/svg-badge.svg)](https://hosted.weblate.org/engage/koassistant/)
 
-**Powerful AI assistant integrated into KOReader.**
+**Powerful, customizable AI assistant for KOReader.**
 
-A highly flexible and customizable reading and research assistant and knowledge expander.
+- **Highlight text** → translate, explain, define words, analyze passages, connect ideas
+- **While reading** → reference guides (X-Ray, Recap), analyze your highlights/annotations, explore the book (author, context, arguments, similar works), generate discussion questions
+- **Research & analysis** → deep analysis of papers/articles, explore arguments, find connections across works
+- **Multi-document** → compare texts, find common themes, analyze your collection
+- **General chat** → AI without book context
 
-You can have context free chats, chat about documents in your library, or about text highlighted in a document, with or without additional context. You can translate text, get text explained/analyzed, compare books/articles, and much more by creating advanced and elaborate custom actions, additional contexts, and instructions, all with their own highly granular settings. 
+16 built-in providers (Anthropic, OpenAI, Gemini, Ollama, and more) plus custom OpenAI-compatible providers. Fully configurable: custom actions, behaviors, domains, per-action model overrides. Personal reading data (highlights, annotations, notebooks) is opt-in — not shared unless you enable it.
 
-Chats are streamed live (like ChatGPT/Claude, etc), are automatically (or manually) saved, and you can resume them any time, and continue chats with a different provider/model and other changed settings if you like. You can one-click export/copy whole chats to clipboard (markdown formatting), or select and copy text from chats, to then paste e.g. in a highlight note in your document. Your chat reply drafts are saved so you can re-read AI messages and resume typing, or copy and paste parts as you are structuring your reply.
+> **Status:** Active development — [issues](https://github.com/zeeyado/koassistant.koplugin/issues) and [discussions](https://github.com/zeeyado/koassistant.koplugin/discussions) welcome. Also see [Assistant Plugin](https://github.com/omer-faruq/assistant.koplugin); both run side by side.
 
-Most settings are configurable in the UI, including: Provider/model, AI behavior and style, user-to-AI interaction languages, translation languages, domains/project/field context, custom actions (which you can create, edit, duplicate, and adjust settings for), and advanced model settings like reasoning/thinking, temperature, and more. Most settings, additional context, and function combinations can be specified for a given action.
-
-Also check out the popular [Assistant Plugin](https://github.com/omer-faruq/assistant.koplugin). KOAssistant can run side by side with  it without conflict.
-
-> **Development Status**: KOAssistant is currently under active development, with features constantly added. 16 built-in providers are supported (plus custom OpenAI-compatible providers) — see [Supported Providers](#supported-providers--settings); **testing and Feedback appreciated**. You can open an issue, feature request, or start a discussion. If you don't want to wait for releases, you can clone the repo from main and check `_meta.lua` to see which version you are on. Some things may break when not on official releases. Running off of other branches than main is not recommended, as functional changes are quickly merged to main (and added to release after testing). Due to the current changing nature of the plugin, parts of the documentation (READMEs) may be out of sync. The main README is deliberately verbose and repetitive (to make sure users see all functions) -- help making actual structured and consise docs as the plugin matures would be appreciated. Built in actions, domains, behaviors, etc, are subject to change and are in varying degrees of testing/demonstration-of-feature stages.
+> **Note:** This README is intentionally detailed to help users discover all features. Use the table of contents to navigate. More concise documentation planned.
 
 ---
 
