@@ -613,7 +613,7 @@ Provide analysis appropriate to this document's type and purpose. Address what's
         -- No skip_domain, no skip_behavior - relies on user's configured settings
         api_params = {
             temperature = 0.5,
-            max_tokens = 4096,
+            max_tokens = 8192,
         },
         builtin = true,
     },
@@ -630,7 +630,7 @@ Provide analysis appropriate to this document's type and purpose. Address what's
 Provide a comprehensive summary capturing the essential content. Adjust detail based on length - shorter works warrant more granularity, longer works need higher-level synthesis.]],
         api_params = {
             temperature = 0.4,
-            max_tokens = 2048,
+            max_tokens = 8192,
         },
         builtin = true,
     },
@@ -651,7 +651,7 @@ What are the most important takeaways? Focus on:
 - Connections to broader concepts]],
         api_params = {
             temperature = 0.5,
-            max_tokens = 2048,
+            max_tokens = 8192,
         },
         builtin = true,
     },
