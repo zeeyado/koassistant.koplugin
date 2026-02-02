@@ -597,18 +597,61 @@ Note: These are general questions for the complete work. If the reader is mid-bo
     -- Analyze Full Document: Complete document analysis for short content
     analyze_full_document = {
         id = "analyze_full_document",
-        text = _("Analyze Full Document"),
+        text = _("Analyze Document"),
         context = "book",
         use_book_text = true,  -- Permission gate (UI: "Allow text extraction")
-        prompt = [[Analyze this complete document: "{title}"{author_clause}.
+        prompt = [[Analyze this document: "{title}"{author_clause}.
 
 {full_document_section}
 
-Provide analysis based on the document type and content.]],
+Provide analysis appropriate to this document's type and purpose. Address what's relevant:
+- Core thesis, argument, or narrative
+- Structure and organization of ideas
+- Key insights, findings, or themes
+- Intended audience and context
+- Strengths and areas for improvement]],
         -- No skip_domain, no skip_behavior - relies on user's configured settings
         api_params = {
             temperature = 0.5,
             max_tokens = 4096,
+        },
+        builtin = true,
+    },
+    -- Summarize Full Document: Condense content without evaluation
+    summarize_full_document = {
+        id = "summarize_full_document",
+        text = _("Summarize Document"),
+        context = "book",
+        use_book_text = true,  -- Permission gate (UI: "Allow text extraction")
+        prompt = [[Summarize: "{title}"{author_clause}.
+
+{full_document_section}
+
+Provide a comprehensive summary capturing the essential content. Adjust detail based on length - shorter works warrant more granularity, longer works need higher-level synthesis.]],
+        api_params = {
+            temperature = 0.4,
+            max_tokens = 2048,
+        },
+        builtin = true,
+    },
+    -- Extract Key Insights: Actionable takeaways worth remembering
+    extract_insights = {
+        id = "extract_insights",
+        text = _("Extract Key Insights"),
+        context = "book",
+        use_book_text = true,  -- Permission gate (UI: "Allow text extraction")
+        prompt = [[Extract key insights from: "{title}"{author_clause}.
+
+{full_document_section}
+
+What are the most important takeaways? Focus on:
+- Ideas worth remembering
+- Novel perspectives or findings
+- Actionable conclusions
+- Connections to broader concepts]],
+        api_params = {
+            temperature = 0.5,
+            max_tokens = 2048,
         },
         builtin = true,
     },

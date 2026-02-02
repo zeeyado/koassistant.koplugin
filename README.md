@@ -28,6 +28,7 @@ Also check out the popular [Assistant Plugin](https://github.com/omer-faruq/assi
   - [Configure Quick Access Gestures](#configure-quick-access-gestures)
 - [Testing Your Setup](#testing-your-setup)
 - [Privacy & Data](#privacy--data) — What gets sent, controls, local processing
+  - [Text Extraction](#text-extraction) — Enable X-Ray/Recap book analysis (off by default)
 - [How to Use KOAssistant](#how-to-use-koassistant) — Contexts & Built-in Actions
   - [Highlight Mode](#highlight-mode)
   - [Book/Document Mode](#bookdocument-mode)
@@ -82,6 +83,7 @@ Also check out the popular [Assistant Plugin](https://github.com/omer-faruq/assi
   - [Adding Extra Instructions to Actions](#adding-extra-instructions-to-actions)
 - [KOReader Tips](#koreader-tips)
 - [Troubleshooting](#troubleshooting)
+  - [Text Extraction Not Working](#text-extraction-not-working)
   - [Font Issues (Arabic)](#font-issues-arabic)
   - [Settings Reset](#settings-reset)
   - [Debug Mode](#debug-mode)
@@ -324,6 +326,27 @@ KOAssistant sends data to AI providers to generate responses. This section expla
 
 When you disable a data type, actions gracefully adapt - section placeholders like `{highlights_section}` simply disappear from prompts, so you don't need to modify your actions. Trusted providers bypass these controls entirely.
 
+### Text Extraction
+
+> ⚠️ **Text extraction is OFF by default.** To use features like X-Ray and Recap with actual book content (rather than AI's training knowledge), you must enable it in **Settings → Privacy & Data → Text Extraction → Allow Text Extraction**.
+
+Text extraction sends actual book content to the AI, enabling features like X-Ray and Recap to analyze what you've read. Without it enabled, these features rely solely on the AI's training knowledge of the book (which works for well-known titles but may be inaccurate for obscure works).
+
+**Why it's off by default:** Token costs (extracting a full book can use 60k+ tokens per request) and content sensitivity (you control what gets shared with AI providers).
+
+**How to enable:**
+1. Go to **Settings → Privacy & Data → Text Extraction**
+2. Enable **"Allow Text Extraction"** (the master toggle)
+3. Built-in X-Ray and Recap actions already have the per-action flag enabled
+
+**Double-gating for safety:** Extraction requires both the global setting AND a per-action flag. Custom actions must have "Allow text extraction" checked to use text placeholders.
+
+**Two extraction types** (determined by placeholder in your action prompt):
+- `{book_text_section}` — Extracts from start to your current reading position (used by X-Ray, Recap)
+- `{full_document_section}` — Extracts the entire document regardless of position (for short papers, articles)
+
+See [Troubleshooting → Text Extraction Not Working](#text-extraction-not-working) if you're having issues.
+
 ### Local Processing
 
 For maximum privacy, **Ollama** can run AI models entirely on your device(s):
@@ -408,10 +431,12 @@ You can customize these, create your own, or disable ones you don't use. See [Ac
 **What the AI sees**: Document metadata (title, author). For Analyze Highlights: your annotations.
 
 **X-Ray/Recap**: These actions work in two modes:
-- **Without book text extraction** (default): AI uses only the title/author and relies on its training knowledge of the book. Works for well-known titles; may be inaccurate for obscure works.
-- **With book text extraction** (enable in Settings → Advanced → Book Text Extraction): AI analyzes actual book content up to your reading position. More accurate but costs more tokens. Enables response caching for incremental updates.
+- **Without text extraction** (default): AI uses only the title/author and relies on its training knowledge of the book. Works for well-known titles; may be inaccurate for obscure works.
+- **With text extraction**: AI analyzes actual book content up to your reading position. More accurate but costs more tokens. Enables response caching for incremental updates.
 
-> **📦 Response Caching (Experimental)**: When book text extraction is enabled, X-Ray and Recap responses are automatically cached per book. Running them again after reading further sends only the *new* content to update the previous analysis—faster and cheaper. This feature is experimental and feedback is welcome. See [Response Caching](#response-caching-x-rayrecap) for details.
+> ⚠️ **To enable text extraction:** Go to Settings → Privacy & Data → Text Extraction → Allow Text Extraction. This is OFF by default to avoid unexpected token costs.
+
+> **📦 Response Caching (Experimental)**: When text extraction is enabled (Settings → Privacy & Data → Text Extraction), X-Ray and Recap responses are automatically cached per book. Running them again after reading further sends only the *new* content to update the previous analysis—faster and cheaper. This feature is experimental and feedback is welcome. See [Response Caching](#response-caching-x-rayrecap) for details.
 
 **Reading Mode vs File Browser:**
 
@@ -420,7 +445,7 @@ Book actions work in two contexts: **reading mode** (book is open) and **file br
 - **File browser** has access to book **metadata** only: title, author, identifiers
 - **Reading mode** additionally has access to **document state**: reading progress, highlights, annotations, notebook, extracted text
 
-Actions that need document state (X-Ray, Recap, Analyze Highlights) are **automatically hidden** in file browser because that data isn't available until you open the book. Custom actions using placeholders like `{reading_progress}`, `{book_text}`, `{highlights}`, `{annotations}`, or `{notebook}` are filtered the same way. The Action Manager shows a `[reading]` indicator for such actions.
+Actions that need document state (X-Ray, Recap, Analyze Highlights) are **automatically hidden** in file browser because that data isn't available until you open the book. Custom actions using placeholders like `{reading_progress}`, `{book_text}`, `{full_document}`, `{highlights}`, `{annotations}`, or `{notebook}` are filtered the same way. The Action Manager shows a `[reading]` indicator for such actions.
 
 ### Multi-Document Mode
 
@@ -626,8 +651,10 @@ Insert these in your action prompt to reference dynamic values:
 | `{annotations}` | Book, Highlight (reading) | All highlights with user notes |
 | `{notebook}` | Book, Highlight (reading) | Content from the book's KOAssistant notebook |
 | `{notebook_section}` | Book, Highlight (reading) | Notebook with "My notebook entries:" label |
-| `{book_text}` | Book (reading) | Extracted book text up to current position (requires opt-in) |
+| `{book_text}` | Book (reading) | Extracted book text from start to current position |
 | `{book_text_section}` | Book (reading) | Same as above with "Book content so far:" label |
+| `{full_document}` | Book (reading) | Entire document text (start to end, regardless of position) |
+| `{full_document_section}` | Book (reading) | Same as above with "Full document:" label |
 | `{highlights_section}` | Book, Highlight (reading) | Highlights with "My highlights so far:" label |
 | `{annotations_section}` | Book, Highlight (reading) | Annotations with "My annotations:" label |
 | `{chapter_title}` | Book (reading) | Current chapter name |
@@ -641,17 +668,18 @@ Insert these in your action prompt to reference dynamic values:
 
 "Section" placeholders automatically include a label and gracefully disappear when empty:
 - `{book_text_section}` → "Book content so far:\n[content]" or "" if empty
+- `{full_document_section}` → "Full document:\n[content]" or "" if empty
 - `{highlights_section}` → "My highlights so far:\n[content]" or "" if empty
 - `{annotations_section}` → "My annotations:\n[content]" or "" if empty
 - `{notebook_section}` → "My notebook entries:\n[content]" or "" if empty
 
-"Raw" placeholders (`{book_text}`, `{highlights}`, `{annotations}`, `{notebook}`) give you just the content with no label, useful when you want custom labeling in your prompt.
+"Raw" placeholders (`{book_text}`, `{full_document}`, `{highlights}`, `{annotations}`, `{notebook}`) give you just the content with no label, useful when you want custom labeling in your prompt.
 
 **Tip:** Use section placeholders in most cases. They prevent dangling references—if you write "Look at my highlights: {highlights}" in your prompt but highlights is empty, the AI sees confusing instructions about nonexistent content. Section placeholders include the label only when content exists.
 
 > **Privacy note:** Section placeholders also adapt to [privacy settings](#privacy--data). If you disable highlights sharing, `{highlights_section}` gracefully disappears from prompts without breaking your actions. You don't need to modify actions to match your privacy preferences.
 
-> **Note:** `{book_text}` and related placeholders require enabling book text extraction in Settings → Advanced → Book Text Extraction. This is off by default because it's slow and uses many tokens. The action must also have "Use book text" enabled.
+> **Note:** Text extraction placeholders (`{book_text}`, `{full_document}`, etc.) require two things: (1) the global "Allow Text Extraction" setting enabled in Settings → Privacy & Data → Text Extraction, and (2) the action must have "Allow text extraction" checked. Both are off by default to avoid accidental token costs. Use `{book_text_section}` to extract text up to your current reading position (good for X-Ray/Recap), or `{full_document_section}` to extract the entire document regardless of position (good for short papers/articles).
 
 ### Tips for Custom Actions
 
@@ -661,7 +689,7 @@ Insert these in your action prompt to reference dynamic values:
 - **Temperature matters**: Lower (0.3-0.5) for deterministic tasks (translation, definitions). Higher (0.7-0.9) for creative tasks (elaboration, recommendations).
 - **Experiment with domains**: Try running the same action with and without a domain to see what works for your use case. Some actions benefit from domain context (analysis, explanation), others don't (translation, grammar).
 - **Test before deploying**: Use the [web inspector](#testing-your-setup) to test your custom actions before using them on your e-reader. You can try different settings combinations and see exactly what's sent to the AI.
-- **Reading-mode placeholders**: Actions using `{reading_progress}`, `{book_text}`, `{highlights}`, `{annotations}`, `{notebook}`, or `{chapter_title}` are **automatically hidden** in File Browser mode because these require an open book. This filtering is automatic—if your custom action uses these placeholders, it will only appear when reading. The action wizard shows a `[reading]` indicator for such actions.
+- **Reading-mode placeholders**: Actions using `{reading_progress}`, `{book_text}`, `{full_document}`, `{highlights}`, `{annotations}`, `{notebook}`, or `{chapter_title}` are **automatically hidden** in File Browser mode because these require an open book. This filtering is automatic—if your custom action uses these placeholders, it will only appear when reading. The action wizard shows a `[reading]` indicator for such actions.
 
 ### File-Based Actions
 
@@ -698,7 +726,7 @@ return {
 - `extended_thinking`: Legacy: "off" to disable, "on" to enable (Anthropic only)
 - `thinking_budget`: Legacy: Token budget when extended_thinking="on" (1024-32000)
 - `enabled`: Set to `false` to hide
-- `use_book_text`: Include extracted book text (requires global setting enabled)
+- `use_book_text`: Allow text extraction for this action (acts as permission gate; also requires global "Allow Text Extraction" setting enabled). The actual extraction is triggered by placeholders in the prompt: `{book_text_section}` extracts to current position, `{full_document_section}` extracts entire document.
 - `use_highlights`: Include document highlights
 - `use_annotations`: Include highlights with user notes
 - `use_reading_progress`: Include reading position and chapter info
@@ -1536,14 +1564,18 @@ See [Bypass Modes](#bypass-modes) and [Highlight Menu Actions](#highlight-menu-a
 See [Privacy & Data](#privacy--data) for background on what gets sent to AI providers.
 - **Trusted Providers**: Mark providers (e.g., local Ollama) that bypass data sharing controls below
 - **Preset: Minimal Data**: Disable all extended sharing (highlights, annotations, notebook, progress, stats)
-- **Preset: Full Features**: Enable all data sharing (does not enable book text extraction)
+- **Preset: Full Features**: Enable all data sharing for full functionality (does not enable text extraction)
 - **Data Sharing Controls** (for non-trusted providers):
   - **Allow Highlights**: Send highlighted passages (used by Analyze Highlights, X-Ray, etc.)
   - **Allow Annotations**: Send personal notes attached to highlights
   - **Allow Notebook**: Send notebook entries (used by Connect with Notes)
   - **Allow Reading Progress**: Send current reading position percentage
   - **Allow Reading Statistics**: Send chapter info and time since last read
-- Book text extraction settings are in Advanced → Book Text Extraction
+- **Text Extraction** (submenu): Settings for extracting book content for AI analysis
+  - **Allow Text Extraction**: Master toggle for text extraction (off by default). When enabled, actions can extract and send book text to the AI. Used by X-Ray, Recap, and actions with text placeholders (`{book_text}`, `{full_document}`, etc.). Enabling shows an informational notice about token costs.
+  - **Max Text Characters**: Maximum characters to extract (10,000-1,000,000, default 250,000 ~60k tokens)
+  - **Max PDF Pages**: Maximum PDF pages to process (50-500, default 250)
+  - **Clear Action Cache**: Clear cached X-Ray/Recap responses for the current book (requires book to be open). To clear just one action, use the "↻ Fresh" button in the chat viewer instead.
 
 ### KOReader Integration
 Control where KOAssistant appears in KOReader's menus. All toggles default to ON; disable any to reduce UI presence.
@@ -1559,15 +1591,6 @@ Control where KOAssistant appears in KOReader's menus. All toggles default to ON
 
 ### Advanced
 - **Temperature**: Response creativity (0.0-2.0, Anthropic max 1.0)
-- **Book Text Extraction**: Settings for extracting book content for AI analysis. **Required for X-Ray/Recap to use actual book content** (otherwise they rely on AI's training knowledge of the book).
-  - **Allow Book Text Extraction**: Enable/disable book text extraction globally (off by default)
-  - **Max Text Characters**: Maximum characters to extract (10,000-1,000,000, default 250,000)
-  - **Max PDF Pages**: Maximum PDF pages to process (50-500, default 250)
-  - **Clear Action Cache**: Clear ALL cached responses (X-Ray and Recap) for the current book (requires a book to be open). To clear just one action, use the "↻ Fresh" button in the chat viewer instead.
-  - **Extraction Guidelines**: Character counts vary by formatting, but roughly: ~100 pages ≈ 25,000-40,000 characters. The default (250k chars, ~60k tokens) covers approximately 600-1000 pages of typical prose.
-  - **Truncation Notice**: If extraction hits the character limit, both you and the AI see a notice showing the approximate coverage range (e.g., "covers 14%-15%"). Increase the limit in Settings if you need more context.
-  - **Response Caching**: When enabled, X-Ray and Recap cache their responses. Running them again sends only new content since the last run, making updates faster and cheaper. See [Response Caching](#response-caching-x-rayrecap) for details.
-  - **Cost Considerations**: At 250k characters (~60k tokens), expect ~$0.20 per fresh request with Claude Sonnet, ~$0.05 with Haiku. Cached updates are much cheaper (only new content sent). Consider using faster/cheaper models (Haiku, Gemini Flash) for X-Ray and Recap.
 - **Reasoning/Thinking**: Per-provider reasoning settings:
   - **Anthropic Extended Thinking**: Budget 1024-32000 tokens
   - **OpenAI Reasoning**: Effort level (low/medium/high)
@@ -1866,7 +1889,7 @@ When you have the same domain selected across multiple questions, subsequent que
 
 > **⚠️ Experimental Feature**: This feature is new and being tested. Currently supports only X-Ray and Recap; more actions may be added based on feedback. Please report issues or suggestions via GitHub.
 
-When book text extraction is enabled, X-Ray and Recap responses are automatically cached per book. This enables **incremental updates** as you read:
+When text extraction is enabled, X-Ray and Recap responses are automatically cached per book. This enables **incremental updates** as you read:
 
 **How it works:**
 1. Run X-Ray at 30% → Full analysis generated and cached
@@ -1875,7 +1898,7 @@ When book text extraction is enabled, X-Ray and Recap responses are automaticall
 4. Result: Faster responses, lower token costs, continuity of analysis
 
 **Requirements:**
-- Book text extraction must be enabled (Settings → Advanced → Book Text Extraction)
+- Text extraction must be enabled (Settings → Privacy & Data → Text Extraction)
 - You must be reading (not in file browser)
 - Progress must advance by at least 1% to use cache
 
@@ -1886,7 +1909,7 @@ When book text extraction is enabled, X-Ray and Recap responses are automaticall
 
 **Clearing the cache:**
 - **Per-action**: In the chat viewer, tap "↻ Fresh" button (appears only for cached responses) → clears that action's cache for this book, then re-run the action manually
-- **All actions for book**: Settings → Advanced → Book Text Extraction → Clear Action Cache (requires book to be open)
+- **All actions for book**: Settings → Privacy & Data → Text Extraction → Clear Action Cache (requires book to be open)
 - Either option forces fresh generation on next run (useful if analysis got off track)
 
 **Limitations:**
@@ -1896,9 +1919,10 @@ When book text extraction is enabled, X-Ray and Recap responses are automaticall
 
 **Text extraction guidelines:**
 - ~100 pages ≈ 25,000-40,000 characters (varies by formatting)
-- Default setting (250,000 chars) covers ~600-1000 pages
+- Default setting (250,000 chars, ~60k tokens) covers ~600-1000 pages
 - For very long books, consider running X-Ray/Recap periodically to keep cache current
-- If truncation occurs, a notice shows the coverage range (e.g., "covers 14%-15%")
+- If truncation occurs, both you and the AI see a notice showing the coverage range (e.g., "covers 14%-100%")
+- **Two extraction types:** `{book_text_section}` extracts from start to current position (for X-Ray/Recap), `{full_document_section}` extracts the entire document regardless of position (for analyzing short papers/articles)
 
 ### Reasoning/Thinking
 
@@ -2142,6 +2166,28 @@ Dictionary lookups and popup actions use compact view by default (minimal UI). T
 ---
 
 ## Troubleshooting
+
+### Text Extraction Not Working
+
+If X-Ray, Recap, or custom actions with `{book_text}` / `{full_document}` placeholders return empty or generic responses based only on book title:
+
+**Text extraction is OFF by default.** You must enable it manually:
+
+1. Go to **Settings → Privacy & Data → Text Extraction**
+2. Enable **"Allow Text Extraction"** (the master toggle)
+3. A notice will appear explaining token costs — this is expected
+
+**For custom actions**, also ensure:
+- The action has **"Allow text extraction"** checked (in action settings)
+- The action's prompt uses a text placeholder (`{book_text_section}` or `{full_document_section}`)
+
+**Why it's off by default:**
+- Text extraction sends actual book content to AI providers
+- This significantly increases token usage (and API costs)
+- Some users prefer AI to use only its training knowledge
+- Content sensitivity — you control what gets shared
+
+**Quick check:** If X-Ray/Recap responses seem to be based only on the book's title/author (generic knowledge), text extraction is not enabled.
 
 ### Font Issues (Arabic)
 
