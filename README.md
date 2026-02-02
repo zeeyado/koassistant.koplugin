@@ -207,10 +207,10 @@ In reader mode, an additional row appears:
 
 **2. Quick Actions** (reader mode only)
 Assign "KOAssistant: Quick Actions" to a gesture for fast access to reading-related actions:
-- **Book actions** — X-Ray, Recap, Analyze Highlights (configurable via Action Manager)
+- **Default actions** — X-Ray, Recap, Analyze Highlights
 - **Utilities** — Translate Page, View/Edit Notebook, Chat History, Continue Last Chat, New Chat About Book
 
-You can add any book action to Quick Actions via **Action Manager → hold action → "Add to Quick Actions"**. Built-in actions can also be removed from Quick Actions using the same toggle.
+You can add any book action to Quick Actions via **Action Manager → hold action → "Add to Quick Actions"**. Defaults can be removed the same way.
 
 > **Tip**: For quick access, assign AI Quick Settings and Quick Actions to their own gestures (e.g., two-finger tap, corner tap). This gives you one-tap access to these panels from anywhere. Alternatively, you can add them to a KOReader QuickMenu alongside other actions (see below).
 
@@ -374,7 +374,7 @@ KOAssistant works in **4 contexts**, each with its own set of built-in actions:
 | Context | Built-in Actions |
 |---------|------------------|
 | **Highlight** | Explain, ELI5, Summarize, Elaborate, Connect, Connect (With Notes), Translate, Dictionary, Quick Define, Deep Analysis |
-| **Book** | Book Info, Similar Books, About Author, Historical Context, Related Thinkers, Key Arguments, Discussion Questions, X-Ray, Recap, Analyze Highlights |
+| **Book** | Book Info, Similar Books, About Author, Historical Context, Related Thinkers, Key Arguments, Discussion Questions, X-Ray, Recap, Analyze Highlights, Analyze Document, Summarize Document, Extract Key Insights |
 | **Multi-book** | Compare Books, Common Themes, Analyze Collection, Quick Summaries, Reading Order |
 | **General** | Ask |
 
@@ -427,14 +427,21 @@ You can customize these, create your own, or disable ones you don't use. See [Ac
 | **X-Ray** | Structured reference guide: characters, locations, themes, timeline (spoiler-free up to your reading position) |
 | **Recap** | "Previously on..." style summary to help you resume reading after a break |
 | **Analyze Highlights** | Discover patterns and connections in your highlights and annotations |
+| **Analyze Document** | Deep analysis of complete short documents (papers, articles, notes) |
+| **Summarize Document** | Comprehensive summary of entire document |
+| **Extract Key Insights** | Actionable takeaways and ideas worth remembering |
 
-**What the AI sees**: Document metadata (title, author). For Analyze Highlights: your annotations.
+**What the AI sees**: Document metadata (title, author). For Analyze Highlights: your annotations. For full document actions: entire document text.
 
 **X-Ray/Recap**: These actions work in two modes:
 - **Without text extraction** (default): AI uses only the title/author and relies on its training knowledge of the book. Works for well-known titles; may be inaccurate for obscure works.
 - **With text extraction**: AI analyzes actual book content up to your reading position. More accurate but costs more tokens. Enables response caching for incremental updates.
 
 > ⚠️ **To enable text extraction:** Go to Settings → Privacy & Data → Text Extraction → Allow Text Extraction. This is OFF by default to avoid unexpected token costs.
+
+**Full Document Actions** (Analyze, Summarize, Extract Insights): Designed for short content—research papers, articles, notes—where you want AI to see everything regardless of reading position. These general-purpose actions adapt to your content type and work especially well with [Domains](#domains). For example, with a "Linguistics" domain active, analyzing a linguistics paper will naturally focus on relevant aspects.
+
+> **Tip:** Create specialized versions for your workflow. Copy a built-in action, customize the prompt for your field (e.g., "Focus on methodology and statistical claims" for scientific papers), and pair it with a matching domain. Disable built-ins you don't use via Action Manager (tap to toggle). See [Custom Actions](#custom-actions) for details.
 
 > **📦 Response Caching (Experimental)**: When text extraction is enabled (Settings → Privacy & Data → Text Extraction), X-Ray and Recap responses are automatically cached per book. Running them again after reading further sends only the *new* content to update the previous analysis—faster and cheaper. This feature is experimental and feedback is welcome. See [Response Caching](#response-caching-x-rayrecap) for details.
 
