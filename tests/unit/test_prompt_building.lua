@@ -108,14 +108,16 @@ local function createMockExtractor(settings, mock_data)
     end
 
     extractor.getBookText = function()
-        if not extractor:isBookTextExtractionEnabled() then
+        -- Trusted provider bypasses global gate
+        if not extractor:isProviderTrusted() and not extractor:isBookTextExtractionEnabled() then
             return { text = "", disabled = true }
         end
         return mock_data.book_text or { text = "This is the book text content up to current position." }
     end
 
     extractor.getFullDocumentText = function()
-        if not extractor:isBookTextExtractionEnabled() then
+        -- Trusted provider bypasses global gate
+        if not extractor:isProviderTrusted() and not extractor:isBookTextExtractionEnabled() then
             return { text = "", disabled = true }
         end
         return mock_data.full_document or { text = "This is the full document text." }
@@ -351,6 +353,17 @@ local function runGatingTests()
         TestRunner:assertContains(data.annotations, "Test annotation")
     end)
 
+    TestRunner:test("annotations still blocked when use_annotations=false even with trusted provider", function()
+        local extractor = createMockExtractor({
+            enable_annotations_sharing = false,
+            provider = "my_trusted",
+            trusted_providers = { "my_trusted" },
+        })
+        -- Trusted provider only bypasses global gate, not action flag
+        local data = extractor:extractForAction({ use_annotations = false, prompt = "{annotations}" })
+        TestRunner:assertEquals(data.annotations, "")
+    end)
+
     print("\n--- ContextExtractor: Book Text Double-Gate ---")
 
     TestRunner:test("book_text blocked when enable_book_text_extraction=false", function()
@@ -374,6 +387,40 @@ local function runGatingTests()
     TestRunner:test("isBookTextExtractionEnabled returns false when nil", function()
         local extractor = createMockExtractor({})  -- No setting
         TestRunner:assertEquals(extractor:isBookTextExtractionEnabled(), false)
+    end)
+
+    TestRunner:test("book_text bypass with trusted provider", function()
+        local extractor = createMockExtractor({
+            enable_book_text_extraction = false,  -- Global OFF
+            provider = "local_ollama",
+            trusted_providers = { "local_ollama" },
+        })
+        local data = extractor:extractForAction({ use_book_text = true, prompt = "{book_text}" })
+        TestRunner:assertContains(data.book_text, "book text content")
+    end)
+
+    print("\n--- ContextExtractor: Full Document Double-Gate ---")
+
+    TestRunner:test("full_document blocked when enable_book_text_extraction=false", function()
+        local extractor = createMockExtractor({ enable_book_text_extraction = false })
+        local data = extractor:extractForAction({ use_book_text = true, prompt = "{full_document}" })
+        TestRunner:assertEquals(data.full_document, "")
+    end)
+
+    TestRunner:test("full_document allowed when both gates pass", function()
+        local extractor = createMockExtractor({ enable_book_text_extraction = true })
+        local data = extractor:extractForAction({ use_book_text = true, prompt = "{full_document}" })
+        TestRunner:assertContains(data.full_document, "full document text")
+    end)
+
+    TestRunner:test("full_document bypass with trusted provider", function()
+        local extractor = createMockExtractor({
+            enable_book_text_extraction = false,  -- Global OFF
+            provider = "my_trusted",
+            trusted_providers = { "my_trusted" },
+        })
+        local data = extractor:extractForAction({ use_book_text = true, prompt = "{full_document}" })
+        TestRunner:assertContains(data.full_document, "full document text")
     end)
 
     print("\n--- ContextExtractor: Progress/Stats Opt-Out Pattern ---")
@@ -438,6 +485,19 @@ local function runGatingTests()
         TestRunner:assertEquals(data.xray_analysis, nil)
     end)
 
+    TestRunner:test("xray_analysis blocked when enable_annotations_sharing=false", function()
+        local extractor = createMockExtractor({
+            enable_book_text_extraction = true,
+            enable_annotations_sharing = false,  -- Global annotations gate OFF
+        })
+        local data = extractor:extractForAction({
+            use_book_text = true,
+            use_annotations = true,  -- Action flag ON, but global gate OFF
+            prompt = "{xray_analysis}",
+        })
+        TestRunner:assertEquals(data.xray_analysis, nil)
+    end)
+
     TestRunner:test("xray_analysis allowed when all gates pass", function()
         local extractor = createMockExtractor({
             enable_book_text_extraction = true,
@@ -450,6 +510,21 @@ local function runGatingTests()
         })
         TestRunner:assertContains(data.xray_analysis, "X-Ray analysis content")
         TestRunner:assertEquals(data.xray_analysis_progress, "30%")
+    end)
+
+    TestRunner:test("xray_analysis bypass with trusted provider (both global gates off)", function()
+        local extractor = createMockExtractor({
+            enable_book_text_extraction = false,  -- OFF
+            enable_annotations_sharing = false,   -- OFF
+            provider = "local_ollama",
+            trusted_providers = { "local_ollama" },
+        })
+        local data = extractor:extractForAction({
+            use_book_text = true,
+            use_annotations = true,
+            prompt = "{xray_analysis}",
+        })
+        TestRunner:assertContains(data.xray_analysis, "X-Ray analysis content")
     end)
 
     TestRunner:test("analyze_analysis allowed with book_text gates only", function()

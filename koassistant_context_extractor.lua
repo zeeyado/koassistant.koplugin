@@ -894,7 +894,8 @@ function ContextExtractor:extractForAction(action)
 
     -- Analysis cache extraction: double-gated like book text since cached content derives from book text
     -- Requires both use_book_text flag AND enable_book_text_extraction global setting
-    if action.use_book_text and self:isBookTextExtractionEnabled() then
+    -- Trusted providers bypass the global setting (consistent with book text extraction)
+    if action.use_book_text and (provider_trusted or self:isBookTextExtractionEnabled()) then
         local prompt = action.prompt or ""
 
         -- {xray_analysis} / {xray_analysis_section} → cached X-Ray analysis
