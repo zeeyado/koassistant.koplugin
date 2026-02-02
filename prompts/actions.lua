@@ -80,6 +80,10 @@ Actions.PLACEHOLDER_TO_FLAG = {
     -- Notebook placeholders
     ["{notebook}"] = "use_notebook",
     ["{notebook_section}"] = "use_notebook",
+
+    -- Full document placeholders (same gate as book_text)
+    ["{full_document}"] = "use_book_text",
+    ["{full_document_section}"] = "use_book_text",
 }
 
 -- Built-in actions for highlight context
@@ -587,6 +591,24 @@ Note: These are general questions for the complete work. If the reader is mid-bo
         api_params = {
             temperature = 0.7,
             max_tokens = 2048,
+        },
+        builtin = true,
+    },
+    -- Analyze Full Document: Complete document analysis for short content
+    analyze_full_document = {
+        id = "analyze_full_document",
+        text = _("Analyze Full Document"),
+        context = "book",
+        use_book_text = true,  -- Permission gate (UI: "Allow text extraction")
+        prompt = [[Analyze this complete document: "{title}"{author_clause}.
+
+{full_document_section}
+
+Provide analysis based on the document type and content.]],
+        -- No skip_domain, no skip_behavior - relies on user's configured settings
+        api_params = {
+            temperature = 0.5,
+            max_tokens = 4096,
         },
         builtin = true,
     },

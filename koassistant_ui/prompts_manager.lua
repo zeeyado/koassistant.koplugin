@@ -686,7 +686,7 @@ function PromptsManager:showPromptDetails(prompt)
     -- Note: Lightweight data (progress, highlights, annotations, stats) is always available
     if self:contextIncludesBook(prompt.context) then
         local book_text_status = prompt.use_book_text and _("Yes") or _("No")
-        info_text = info_text .. "\n" .. _("Use Book Text") .. ": " .. book_text_status
+        info_text = info_text .. "\n" .. _("Allow text extraction") .. ": " .. book_text_status
     end
 
     -- AI Settings section
@@ -1118,7 +1118,7 @@ function PromptsManager:showStep1_NameAndContext(state)
         local book_text_checkbox = state.use_book_text and "☑ " or "☐ "
         table.insert(button_rows, {
             {
-                text = book_text_checkbox .. _("Use book text"),
+                text = book_text_checkbox .. _("Allow text extraction"),
                 callback = function()
                     state.name = self.step1_dialog:getInputText()
                     state.use_book_text = not state.use_book_text
@@ -2539,7 +2539,7 @@ function PromptsManager:showBuiltinSettingsDialog(state)
     if self:contextIncludesBook(prompt.context) then
         table.insert(buttons, {
             {
-                text = (state.use_book_text and "☑ " or "☐ ") .. _("Use book text"),
+                text = (state.use_book_text and "☑ " or "☐ ") .. _("Allow text extraction"),
                 callback = function()
                     state.use_book_text = not state.use_book_text
                     -- Show explanation when turning on
@@ -3198,7 +3198,7 @@ function PromptsManager:showCustomQuickSettingsDialog(state)
     if self:contextIncludesBook(state.context) then
         table.insert(buttons, {
             {
-                text = (state.use_book_text and "☑ " or "☐ ") .. _("Use book text"),
+                text = (state.use_book_text and "☑ " or "☐ ") .. _("Allow text extraction"),
                 callback = function()
                     state.use_book_text = not state.use_book_text
                     -- Show explanation when turning on

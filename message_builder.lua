@@ -189,6 +189,13 @@ function MessageBuilder.build(params)
     end
     user_prompt = replace_placeholder(user_prompt, "{notebook_section}", notebook_section)
 
+    -- {full_document_section} - includes "Full document:\n" label
+    local full_document_section = ""
+    if data.full_document and data.full_document ~= "" then
+        full_document_section = "Full document:\n" .. data.full_document
+    end
+    user_prompt = replace_placeholder(user_prompt, "{full_document_section}", full_document_section)
+
     -- Raw placeholders (for custom prompts that want their own labels)
     if data.highlights ~= nil then
         user_prompt = replace_placeholder(user_prompt, "{highlights}", data.highlights)
@@ -210,6 +217,9 @@ function MessageBuilder.build(params)
     end
     if data.notebook_content ~= nil then
         user_prompt = replace_placeholder(user_prompt, "{notebook}", data.notebook_content)
+    end
+    if data.full_document then
+        user_prompt = replace_placeholder(user_prompt, "{full_document}", data.full_document)
     end
 
     -- Cache-related placeholders (for X-Ray/Recap incremental updates)
@@ -416,6 +426,13 @@ function MessageBuilder.substituteVariables(prompt_text, data)
     end
     result = replace_placeholder(result, "{notebook_section}", notebook_section)
 
+    -- {full_document_section}
+    local full_document_section = ""
+    if data.full_document and data.full_document ~= "" then
+        full_document_section = "Full document:\n" .. data.full_document
+    end
+    result = replace_placeholder(result, "{full_document_section}", full_document_section)
+
     -- Raw placeholders (for custom prompts that want their own labels)
     if data.highlights ~= nil then
         result = replace_placeholder(result, "{highlights}", data.highlights)
@@ -438,6 +455,9 @@ function MessageBuilder.substituteVariables(prompt_text, data)
     end
     if data.notebook_content ~= nil then
         result = replace_placeholder(result, "{notebook}", data.notebook_content)
+    end
+    if data.full_document then
+        result = replace_placeholder(result, "{full_document}", data.full_document)
     end
 
     -- Cache-related placeholders (for X-Ray/Recap incremental updates)

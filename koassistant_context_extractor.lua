@@ -382,6 +382,134 @@ function ContextExtractor:getBookTextRange(from_progress, to_progress, options)
     return result
 end
 
+--- Get full document text (entire document, ignores reading position).
+-- Used for short content analysis (papers, articles) where AI should see everything.
+-- @param options table { max_chars = 250000, max_pages = 250 }
+-- @return table { text, truncated, char_count, disabled, coverage_start, coverage_end }
+function ContextExtractor:getFullDocumentText(options)
+    options = options or {}
+    local max_chars = options.max_chars or self.settings.max_book_text_chars or 250000
+    local max_pages = options.max_pages or self.settings.max_pdf_pages or 250
+
+    logger.info("ContextExtractor:getFullDocumentText called")
+
+    local result = {
+        text = "",
+        truncated = false,
+        char_count = 0,
+        disabled = false,
+        coverage_start = nil,
+        coverage_end = nil,
+    }
+
+    -- Check global gate
+    if not self:isBookTextExtractionEnabled() then
+        logger.info("ContextExtractor:getFullDocumentText - extraction disabled")
+        result.disabled = true
+        return result
+    end
+
+    if not self:isAvailable() then
+        return result
+    end
+
+    local total_pages = self.ui.document.info and self.ui.document.info.number_of_pages
+    if not total_pages or total_pages <= 0 then
+        return result
+    end
+
+    local book_text = ""
+
+    if not self.ui.document.info.has_pages then
+        -- EPUB: extract from start to END (not current position)
+        local success, text = pcall(function()
+            -- Save current position to restore later
+            local current_xp = self.ui.document:getXPointer()
+
+            -- Get start position
+            self.ui.document:gotoPos(0)
+            local start_xp = self.ui.document:getXPointer()
+
+            -- Get end position (last page)
+            self.ui.document:gotoPage(total_pages)
+            local end_xp = self.ui.document:getXPointer()
+
+            -- Restore original position
+            if current_xp then
+                self.ui.document:gotoXPointer(current_xp)
+            end
+
+            -- Extract text between start and end
+            return self.ui.document:getTextFromXPointers(start_xp, end_xp) or ""
+        end)
+
+        if success then
+            book_text = text
+        else
+            logger.warn("ContextExtractor: Failed to extract full EPUB text:", text)
+        end
+    else
+        -- PDF: extract ALL pages
+        local success, text = pcall(function()
+            local start_page = math.max(1, total_pages - max_pages + 1)
+            local pages = {}
+
+            for page = start_page, total_pages do
+                local page_text = self.ui.document:getPageText(page) or ""
+                -- Handle table structure (same as getBookText)
+                if type(page_text) == "table" then
+                    local words = {}
+                    for _idx, block in ipairs(page_text) do
+                        if type(block) == "table" then
+                            for i = 1, #block do
+                                local span = block[i]
+                                if type(span) == "table" and span.word then
+                                    table.insert(words, span.word)
+                                end
+                            end
+                        end
+                    end
+                    page_text = table.concat(words, " ")
+                end
+                table.insert(pages, page_text)
+            end
+
+            return table.concat(pages, "\n")
+        end)
+
+        if success then
+            book_text = text
+        else
+            logger.warn("ContextExtractor: Failed to extract full PDF text:", text)
+        end
+    end
+
+    -- Truncate if needed (keep end content, same pattern as getBookText)
+    local original_length = #book_text
+    if original_length > max_chars then
+        local kept_ratio = max_chars / original_length
+        -- For full document: coverage is of entire document (0% to 100%)
+        local coverage_start_dec = 1.0 * (1 - kept_ratio)
+        local coverage_start = math.max(0, math.floor(coverage_start_dec * 100))
+        local coverage_end = 100
+
+        result.truncated = true
+        result.coverage_start = coverage_start
+        result.coverage_end = coverage_end
+
+        local notice = string.format(
+            "[Document text covers ~%d%%-%d%%. Earlier content truncated due to extraction limit.]",
+            coverage_start, coverage_end)
+        book_text = notice .. "\n\n" .. book_text:sub(-max_chars)
+    end
+
+    result.text = book_text
+    result.char_count = #book_text
+
+    logger.info("ContextExtractor:getFullDocumentText - extracted", result.char_count, "chars")
+    return result
+end
+
 --- Get highlights from the document (text only, no notes).
 -- @param options table { max_count = 100, include_chapter = true }
 -- @return table { formatted = "...", count = number, items = array }
@@ -660,20 +788,38 @@ function ContextExtractor:extractForAction(action)
         data.time_since_last_read = ""
     end
 
-    -- Book text extraction requires explicit flag (slow/expensive operation)
-    -- Also gated by enable_book_text_extraction setting (checked in getBookText)
+    -- Text extraction: flag is permission gate, placeholders trigger extraction
+    -- Flag "use_book_text" renamed to "Allow text extraction" in UI
+    -- Also gated by enable_book_text_extraction setting (checked in extraction methods)
     if action.use_book_text then
+        local prompt = action.prompt or ""
         local options = {}
         if action.max_book_text_chars then
             options.max_chars = action.max_book_text_chars
         end
-        local book_text_result = self:getBookText(options)
-        data.book_text = book_text_result.text
-        -- Pass truncation metadata for UI notifications
-        if book_text_result.truncated then
-            data.book_text_truncated = true
-            data.book_text_coverage_start = book_text_result.coverage_start
-            data.book_text_coverage_end = book_text_result.coverage_end
+
+        -- {book_text} / {book_text_section} → extract to current position
+        if prompt:find("{book_text", 1, true) then
+            local book_text_result = self:getBookText(options)
+            data.book_text = book_text_result.text
+            -- Pass truncation metadata for UI notifications
+            if book_text_result.truncated then
+                data.book_text_truncated = true
+                data.book_text_coverage_start = book_text_result.coverage_start
+                data.book_text_coverage_end = book_text_result.coverage_end
+            end
+        end
+
+        -- {full_document} / {full_document_section} → extract entire document
+        if prompt:find("{full_document", 1, true) then
+            local full_doc_result = self:getFullDocumentText(options)
+            data.full_document = full_doc_result.text
+            -- Pass truncation metadata for UI notifications
+            if full_doc_result.truncated then
+                data.full_document_truncated = true
+                data.full_document_coverage_start = full_doc_result.coverage_start
+                data.full_document_coverage_end = full_doc_result.coverage_end
+            end
         end
     end
 
