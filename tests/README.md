@@ -161,7 +161,10 @@ lua tests/inspect.lua --web --port 3000
 Located in `tests/unit/`:
 - `test_actions.lua` - Placeholder gating, flag cascading, DOUBLE_GATED_FLAGS
 - `test_constants.lua` - Context constants, GitHub URLs
-- `test_prompt_building.lua` - MessageBuilder placeholder replacement, ContextExtractor privacy gating, analysis cache flow
+- `test_prompt_building.lua` - MessageBuilder placeholder replacement, ContextExtractor privacy gating, analysis cache flow (55 tests)
+  - Section placeholder tests (14): disappear when empty, include labels when present
+  - Gating tests (32): annotations/book text/notebook double-gating, trusted provider bypass, opt-out patterns
+  - Cache integration tests (9): analysis cache flow to MessageBuilder
 - `test_system_prompts.lua` - Behavior variants, language parsing, domain, skip_language_instruction
 - `test_streaming_parser.lua` - SSE/NDJSON content extraction for all providers
 - `test_response_parser.lua` - Response parsing for all 16 providers
@@ -398,7 +401,7 @@ tests/
     ├── test_constraint_utils.lua    # Constraint utilities tests
     ├── test_loaders.lua             # BehaviorLoader, DomainLoader tests
     ├── test_openai_compatible.lua   # OpenAI-compatible base class tests
-    ├── test_prompt_building.lua     # MessageBuilder, ContextExtractor gating, cache flow
+    ├── test_prompt_building.lua     # MessageBuilder, ContextExtractor gating, cache flow (55 tests)
     ├── test_response_parser.lua     # Provider response parsing tests
     ├── test_streaming_parser.lua    # SSE/NDJSON parsing tests
     └── test_system_prompts.lua      # Behavior, language, domain tests
