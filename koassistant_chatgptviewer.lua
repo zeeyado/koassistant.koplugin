@@ -173,6 +173,176 @@ local function stripMarkdown(text)
     return PTF_HEADER .. result
 end
 
+-- Post-process HTML for RTL support in markdown view
+-- Uses inline CSS text-align since MuPDF doesn't support dir attribute
+local function addHtmlBidiAttributes(html)
+    if not html then return html end
+
+    -- Normalize HTML: collapse whitespace between tags for easier pattern matching
+    local normalized = html:gsub(">%s+<", "><")
+
+    -- UTF-8 ranges for RTL scripts: Hebrew U+0590-U+05FF, Arabic U+0600-U+06FF
+    local rtl_pattern = "[\214-\219][\128-\191]"
+    local latin_pattern = "[a-zA-Z]"
+
+    -- Unicode directional marks for BiDi control
+    local RLM = "\226\128\143"  -- U+200F Right-to-Left Mark
+    local RLI = "\226\129\167"  -- U+2067 Right-to-Left Isolate
+    local PDI = "\226\129\169"  -- U+2069 Pop Directional Isolate
+
+    -- Strip HTML tags to get text content for language detection
+    local function stripTags(s)
+        return s:gsub("<[^>]+>", "")
+    end
+
+    -- Check if text is pure RTL (has RTL, no Latin)
+    local function isPureRTL(s)
+        local text = stripTags(s)
+        return text:match(rtl_pattern) and not text:match(latin_pattern)
+    end
+
+    -- Check if text starts with RTL (for bullet list handling)
+    local function startsWithRTL(s)
+        local text = stripTags(s):gsub("^%s+", "")  -- Strip tags and leading whitespace
+        return text:match("^" .. rtl_pattern) ~= nil
+    end
+
+    -- Apply BiDi formatting to pure RTL content
+    local function formatRTLContent(content, addStyle)
+        -- Add RLM before trailing period for correct visual placement
+        local fixed = content:gsub("%.(%s*)$", RLM .. ".%1")
+        -- Also handle period before closing tags
+        fixed = fixed:gsub("(%.)(%s*</[^>]+>%s*)$", RLM .. "%1%2")
+        if addStyle then
+            return string.format('<p style="text-align: right;">%s%s</p>', RLM, fixed)
+        else
+            return RLM .. fixed
+        end
+    end
+
+    -- Convert ordered lists to paragraphs with per-item RTL detection
+    -- MuPDF doesn't support RTL list markers, so we convert to paragraphs
+    -- Uses Western numerals consistently (matches text view behavior)
+    normalized = normalized:gsub("<ol>(.-)</ol>", function(list_content)
+        local items = {}
+        local num = 1
+        for item_content in list_content:gmatch("<li>(.-)</li>") do
+            local item_text = stripTags(item_content)
+            local item_has_rtl = item_text:match(rtl_pattern)
+            local item_has_latin = item_text:match(latin_pattern)
+
+            if item_has_rtl and not item_has_latin then
+                -- Pure RTL item → RLM establishes RTL base direction, number goes on right
+                table.insert(items, string.format(
+                    '<p style="text-align: right;">%s%d. %s</p>',
+                    RLM, num, item_content
+                ))
+            else
+                -- LTR or mixed item → number on left
+                table.insert(items, string.format('<p>%d. %s</p>', num, item_content))
+            end
+            num = num + 1
+        end
+        return table.concat(items, "")
+    end)
+
+    -- Convert unordered lists to paragraphs with per-item RTL detection
+    -- For bullets: RTL if text STARTS with RTL (matches text view behavior)
+    normalized = normalized:gsub("<ul>(.-)</ul>", function(list_content)
+        local items = {}
+        for item_content in list_content:gmatch("<li>(.-)</li>") do
+            if startsWithRTL(item_content) then
+                -- Starts with RTL → use BiDi isolate to maintain proper content ordering
+                -- RLI isolates the content in RTL context, bullet outside isolate goes to visual right
+                table.insert(items, string.format(
+                    '<p style="text-align: right;">%s• %s%s</p>',
+                    RLI, item_content, PDI
+                ))
+            else
+                -- Starts with LTR → bullet on left
+                table.insert(items, string.format('<p>• %s</p>', item_content))
+            end
+        end
+        return table.concat(items, "")
+    end)
+
+    -- Continue processing with normalized HTML
+    html = normalized
+
+    -- Process block-level elements: li, h1-h6 (paragraphs handled earlier)
+    -- Pattern captures: opening tag, content, closing tag
+    local function processBidiElement(tag_open, content, tag_close)
+        if isPureRTL(content) then
+            -- Pure RTL content → apply BiDi formatting
+            local fixed = formatRTLContent(content, false)  -- false = don't wrap in <p>
+            return tag_open:gsub(">$", ' style="text-align: right;">') .. fixed .. tag_close
+        else
+            -- LTR or mixed content → leave as-is (default left alignment works)
+            return tag_open .. content .. tag_close
+        end
+    end
+
+    -- Handle "fake" bullet lists: paragraphs with • at start of lines (AI often generates these)
+    -- Also apply BiDi formatting to ALL paragraphs here (including non-bullet)
+    html = html:gsub("<p>(.-)</p>", function(content)
+        -- Check if this looks like a bullet list (multiple lines starting with •)
+        if content:match("\n") and content:match("^•") then
+            local items = {}
+            for line in content:gmatch("[^\n]+") do
+                if line:match("^•") then
+                    -- Remove leading bullet and space
+                    local item_text = line:gsub("^•%s*", "")
+                    if item_text ~= "" then
+                        -- For bullets: RTL if text STARTS with RTL (matches text view)
+                        if startsWithRTL(item_text) then
+                            -- Use BiDi isolate for proper content ordering
+                            table.insert(items, string.format(
+                                '<p style="text-align: right;">%s• %s%s</p>',
+                                RLI, item_text, PDI
+                            ))
+                        else
+                            -- Starts with LTR → bullet on left
+                            table.insert(items, string.format('<p>• %s</p>', item_text))
+                        end
+                    end
+                else
+                    -- Non-bullet line - apply BiDi formatting if pure RTL
+                    if line ~= "" then
+                        if isPureRTL(line) then
+                            table.insert(items, formatRTLContent(line, true))
+                        else
+                            table.insert(items, "<p>" .. line .. "</p>")
+                        end
+                    end
+                end
+            end
+            return table.concat(items, "")
+        end
+        -- Not a bullet list - apply BiDi formatting if pure RTL
+        if isPureRTL(content) then
+            return formatRTLContent(content, true)
+        end
+        return "<p>" .. content .. "</p>"
+    end)
+
+    -- Note: Paragraphs are now fully handled above (bullet and non-bullet)
+    -- No additional paragraph processing needed
+
+    -- Process list items (for remaining non-RTL lists)
+    html = html:gsub("(<li>)(.-)(</li>)", processBidiElement)
+
+    -- Process headers h1-h6
+    for i = 1, 6 do
+        local open_tag = "<h" .. i .. ">"
+        local close_tag = "</h" .. i .. ">"
+        html = html:gsub("(" .. open_tag .. ")(.-)" .. close_tag, function(tag_open, content)
+            return processBidiElement(tag_open, content, close_tag)
+        end)
+    end
+
+    return html
+end
+
 -- Show link options dialog (matches KOReader's ReaderLink external link dialog)
 local link_dialog  -- Forward declaration for closures
 local function showLinkDialog(link_url)
@@ -1636,6 +1806,7 @@ function ChatGPTViewer:init()
       -- Fallback to plain text if HTML generation fails
       html_body = "<pre>" .. (self.text or "Missing text.") .. "</pre>"
     end
+    html_body = addHtmlBidiAttributes(html_body)
     self.scroll_text_w = ScrollHtmlWidget:new {
       html_body = html_body,
       css = getViewerCSS(self.text_align),
@@ -2155,6 +2326,7 @@ function ChatGPTViewer:update(new_text, scroll_to_bottom)
       logger.warn("ChatGPTViewer: could not generate HTML", err)
       html_body = "<pre>" .. (new_text or "Missing text.") .. "</pre>"
     end
+    html_body = addHtmlBidiAttributes(html_body)
 
     -- Recreate the ScrollHtmlWidget with new content
     self.scroll_text_w = ScrollHtmlWidget:new {
@@ -2274,6 +2446,7 @@ function ChatGPTViewer:toggleMarkdown()
       logger.warn("ChatGPTViewer: could not generate HTML", err)
       html_body = "<pre>" .. (self.text or "Missing text.") .. "</pre>"
     end
+    html_body = addHtmlBidiAttributes(html_body)
     self.scroll_text_w = ScrollHtmlWidget:new {
       html_body = html_body,
       css = getViewerCSS(self.text_align),
@@ -2745,6 +2918,7 @@ function ChatGPTViewer:toggleTranslateQuoteVisibility()
       logger.warn("ChatGPTViewer: could not generate HTML", err)
       html_body = "<pre>" .. (self.text or "Missing text.") .. "</pre>"
     end
+    html_body = addHtmlBidiAttributes(html_body)
     self.scroll_text_w = ScrollHtmlWidget:new {
       html_body = html_body,
       css = getViewerCSS(self.text_align),
@@ -3213,6 +3387,7 @@ function ChatGPTViewer:refreshMarkdownDisplay()
     logger.warn("ChatGPTViewer: could not generate HTML", err)
     html_body = "<pre>" .. (self.text or "Missing text.") .. "</pre>"
   end
+  html_body = addHtmlBidiAttributes(html_body)
 
   -- Calculate current height
   local textw_height = self.textw:getSize().h
