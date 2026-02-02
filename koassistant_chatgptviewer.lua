@@ -40,6 +40,7 @@ local Screen = Device.screen
 local MD = require("apps/filemanager/lib/md")
 local SpinWidget = require("ui/widget/spinwidget")
 local UIConstants = require("koassistant_ui.constants")
+local Languages = require("koassistant_languages")
 
 -- Strip markdown syntax for text mode (preserves readability without formatting)
 -- Used when render_markdown is false - converts markdown to plain text with visual hints
@@ -173,10 +174,23 @@ local function stripMarkdown(text)
     return PTF_HEADER .. result
 end
 
+-- Fix BiDi issues with IPA transcriptions between slashes
+-- Wraps /ipa/ patterns with LRM to anchor slashes correctly
+local function fixIPABidi(text)
+    if not text then return text end
+    local LRM = "\226\128\142"  -- U+200E Left-to-Right Mark
+    -- Wrap IPA in LRM to anchor slashes correctly
+    -- Consumes trailing space; adds space after IPA inside LRM context
+    return text:gsub("(/[^/\n]+/) ?", LRM .. "%1 " .. LRM)
+end
+
 -- Post-process HTML for RTL support in markdown view
 -- Uses inline CSS text-align since MuPDF doesn't support dir attribute
-local function addHtmlBidiAttributes(html)
+local function addHtmlBidiAttributes(html, options)
     if not html then return html end
+    options = options or {}
+    -- When true, use startsWithRTL for paragraphs (for RTL dictionary language)
+    local use_starts_with_rtl = options.use_starts_with_rtl or false
 
     -- Normalize HTML: collapse whitespace between tags for easier pattern matching
     local normalized = html:gsub(">%s+<", "><")
@@ -306,9 +320,10 @@ local function addHtmlBidiAttributes(html)
                         end
                     end
                 else
-                    -- Non-bullet line - apply BiDi formatting if pure RTL
+                    -- Non-bullet line - apply BiDi formatting based on RTL detection mode
                     if line ~= "" then
-                        if isPureRTL(line) then
+                        local line_is_rtl = use_starts_with_rtl and startsWithRTL(line) or isPureRTL(line)
+                        if line_is_rtl then
                             table.insert(items, formatRTLContent(line, true))
                         else
                             table.insert(items, "<p>" .. line .. "</p>")
@@ -318,8 +333,11 @@ local function addHtmlBidiAttributes(html)
             end
             return table.concat(items, "")
         end
-        -- Not a bullet list - apply BiDi formatting if pure RTL
-        if isPureRTL(content) then
+        -- Not a bullet list - apply BiDi formatting based on RTL detection mode
+        -- use_starts_with_rtl: for dictionary popup with RTL language, align if STARTS with RTL
+        -- default: only align if PURE RTL (no Latin characters)
+        local is_rtl = use_starts_with_rtl and startsWithRTL(content) or isPureRTL(content)
+        if is_rtl then
             return formatRTLContent(content, true)
         end
         return "<p>" .. content .. "</p>"
@@ -1102,7 +1120,7 @@ function ChatGPTViewer:init()
     {
       {
         text_func = function()
-          return self.render_markdown and "MD" or "Text"
+          return self.render_markdown and "MD ON" or "TXT ON"
         end,
         id = "toggle_markdown",
         callback = function()
@@ -1257,6 +1275,24 @@ function ChatGPTViewer:init()
     if self.configuration.features.translate_hide_quote then
       self.translate_hide_quote = true
     end
+    -- Dictionary compact view: text mode and RTL settings
+    if self.compact_view then
+      -- Check if text mode is forced for all dictionary lookups
+      if self.configuration.features.dictionary_text_mode then
+        self.render_markdown = false
+      end
+      -- Set RTL paragraph direction when dictionary language is RTL
+      local dict_lang = self.configuration.features.dictionary_language
+      if Languages.isRTL(dict_lang) then
+        self.para_direction_rtl = true
+        self.auto_para_direction = false  -- Override auto-detection with explicit RTL
+        -- Default to text mode for RTL dictionary if setting enabled (and not already forced)
+        if not self.configuration.features.dictionary_text_mode and
+           self.configuration.features.rtl_dictionary_text_mode ~= false then
+          self.render_markdown = false
+        end
+      end
+    end
   end
 
   -- Minimal buttons for compact dictionary view
@@ -1268,7 +1304,7 @@ function ChatGPTViewer:init()
   -- Row 1: MD/Text toggle
   table.insert(minimal_button_row1, {
     text_func = function()
-      return self.render_markdown and "MD" or "Text"
+      return self.render_markdown and "MD ON" or "TXT ON"
     end,
     id = "toggle_markdown",
     callback = function()
@@ -1563,7 +1599,7 @@ function ChatGPTViewer:init()
   -- Translate Row 1: MD/Text toggle
   table.insert(translate_button_row1, {
     text_func = function()
-      return self.render_markdown and "MD" or "Text"
+      return self.render_markdown and "MD ON" or "TXT ON"
     end,
     id = "toggle_markdown",
     callback = function()
@@ -1794,10 +1830,21 @@ function ChatGPTViewer:init()
 
   local textw_height = self.height - titlebar:getHeight() - self.button_table:getSize().h
 
+  -- For dictionary popup with RTL language, detect early for IPA fix
+  local dict_lang = self.configuration and self.configuration.features
+      and self.configuration.features.dictionary_language
+  local is_rtl_lang = Languages.isRTL(dict_lang)
+  local needs_rtl_fix = self.compact_view and is_rtl_lang
+
   if self.render_markdown then
     -- Convert Markdown to HTML and render in a ScrollHtmlWidget
     -- 1. Auto-linkify plain URLs, 2. Escape non-link brackets, 3. Convert tables
-    local auto_linked = autoLinkUrls(self.text)
+    local source_text = self.text
+    -- Fix IPA BiDi issues before HTML conversion when RTL dictionary language
+    if needs_rtl_fix then
+      source_text = fixIPABidi(source_text)
+    end
+    local auto_linked = autoLinkUrls(source_text)
     local bracket_escaped = preprocessBrackets(auto_linked)
     local preprocessed_text = preprocessMarkdownTables(bracket_escaped)
     local html_body, err = MD(preprocessed_text, {})
@@ -1806,7 +1853,9 @@ function ChatGPTViewer:init()
       -- Fallback to plain text if HTML generation fails
       html_body = "<pre>" .. (self.text or "Missing text.") .. "</pre>"
     end
-    html_body = addHtmlBidiAttributes(html_body)
+    -- For dictionary popup with RTL language, use "starts with RTL" detection
+    local bidi_opts = { use_starts_with_rtl = needs_rtl_fix }
+    html_body = addHtmlBidiAttributes(html_body, bidi_opts)
     self.scroll_text_w = ScrollHtmlWidget:new {
       html_body = html_body,
       css = getViewerCSS(self.text_align),
@@ -1820,6 +1869,10 @@ function ChatGPTViewer:init()
   else
     -- If not rendering Markdown, optionally strip markdown syntax for cleaner display
     local display_text = self.strip_markdown_in_text_mode and stripMarkdown(self.text) or self.text
+    -- Fix IPA BiDi issues when RTL dictionary language
+    if needs_rtl_fix then
+      display_text = fixIPABidi(display_text)
+    end
     self.scroll_text_w = ScrollTextWidget:new {
       text = display_text,
       face = self.text_face,
@@ -2326,7 +2379,11 @@ function ChatGPTViewer:update(new_text, scroll_to_bottom)
       logger.warn("ChatGPTViewer: could not generate HTML", err)
       html_body = "<pre>" .. (new_text or "Missing text.") .. "</pre>"
     end
-    html_body = addHtmlBidiAttributes(html_body)
+    -- For dictionary popup with RTL language, use "starts with RTL" detection
+    local dict_lang = self.configuration and self.configuration.features
+        and self.configuration.features.dictionary_language
+    local bidi_opts = { use_starts_with_rtl = self.compact_view and Languages.isRTL(dict_lang) }
+    html_body = addHtmlBidiAttributes(html_body, bidi_opts)
 
     -- Recreate the ScrollHtmlWidget with new content
     self.scroll_text_w = ScrollHtmlWidget:new {
@@ -2435,10 +2492,20 @@ function ChatGPTViewer:toggleMarkdown()
   -- Rebuild the scroll widget with new rendering mode
   local textw_height = self.textw:getSize().h
   
+  -- Check if RTL dictionary popup for IPA fix
+  local dict_lang = self.configuration and self.configuration.features
+      and self.configuration.features.dictionary_language
+  local needs_rtl_fix = self.compact_view and Languages.isRTL(dict_lang)
+
   if self.render_markdown then
     -- Convert to markdown
     -- 1. Auto-linkify plain URLs, 2. Escape non-link brackets, 3. Convert tables
-    local auto_linked = autoLinkUrls(self.text)
+    local source_text = self.text
+    -- Fix IPA BiDi issues before HTML conversion when RTL dictionary language
+    if needs_rtl_fix then
+      source_text = fixIPABidi(source_text)
+    end
+    local auto_linked = autoLinkUrls(source_text)
     local bracket_escaped = preprocessBrackets(auto_linked)
     local preprocessed_text = preprocessMarkdownTables(bracket_escaped)
     local html_body, err = MD(preprocessed_text, {})
@@ -2446,7 +2513,9 @@ function ChatGPTViewer:toggleMarkdown()
       logger.warn("ChatGPTViewer: could not generate HTML", err)
       html_body = "<pre>" .. (self.text or "Missing text.") .. "</pre>"
     end
-    html_body = addHtmlBidiAttributes(html_body)
+    -- For dictionary popup with RTL language, use "starts with RTL" detection
+    local bidi_opts = { use_starts_with_rtl = needs_rtl_fix }
+    html_body = addHtmlBidiAttributes(html_body, bidi_opts)
     self.scroll_text_w = ScrollHtmlWidget:new {
       html_body = html_body,
       css = getViewerCSS(self.text_align),
@@ -2460,6 +2529,10 @@ function ChatGPTViewer:toggleMarkdown()
   else
     -- Convert to plain text with optional markdown stripping
     local display_text = self.strip_markdown_in_text_mode and stripMarkdown(self.text) or self.text
+    -- Fix IPA BiDi issues when RTL dictionary language
+    if needs_rtl_fix then
+      display_text = fixIPABidi(display_text)
+    end
     self.scroll_text_w = ScrollTextWidget:new {
       text = display_text,
       face = self.text_face,
@@ -2483,10 +2556,11 @@ function ChatGPTViewer:toggleMarkdown()
   self.textw:clear()
   self.textw[1] = self.scroll_text_w
 
-  -- Update button text
+  -- Update button text (force re-init to handle truncation avoidance)
   local button = self.button_table:getButtonById("toggle_markdown")
   if button then
-    button:setText(self.render_markdown and "MD" or "Text", button.width)
+    button.did_truncation_tweaks = true  -- Force full re-init with truncation check
+    button:setText(self.render_markdown and "MD ON" or "TXT ON", button.width)
   end
 
   -- Refresh display
@@ -2918,7 +2992,11 @@ function ChatGPTViewer:toggleTranslateQuoteVisibility()
       logger.warn("ChatGPTViewer: could not generate HTML", err)
       html_body = "<pre>" .. (self.text or "Missing text.") .. "</pre>"
     end
-    html_body = addHtmlBidiAttributes(html_body)
+    -- For dictionary popup with RTL language, use "starts with RTL" detection
+    local dict_lang = self.configuration and self.configuration.features
+        and self.configuration.features.dictionary_language
+    local bidi_opts = { use_starts_with_rtl = self.compact_view and Languages.isRTL(dict_lang) }
+    html_body = addHtmlBidiAttributes(html_body, bidi_opts)
     self.scroll_text_w = ScrollHtmlWidget:new {
       html_body = html_body,
       css = getViewerCSS(self.text_align),
@@ -3387,7 +3465,11 @@ function ChatGPTViewer:refreshMarkdownDisplay()
     logger.warn("ChatGPTViewer: could not generate HTML", err)
     html_body = "<pre>" .. (self.text or "Missing text.") .. "</pre>"
   end
-  html_body = addHtmlBidiAttributes(html_body)
+  -- For dictionary popup with RTL language, use "starts with RTL" detection
+  local dict_lang = self.configuration and self.configuration.features
+      and self.configuration.features.dictionary_language
+  local bidi_opts = { use_starts_with_rtl = self.compact_view and Languages.isRTL(dict_lang) }
+  html_body = addHtmlBidiAttributes(html_body, bidi_opts)
 
   -- Calculate current height
   local textw_height = self.textw:getSize().h

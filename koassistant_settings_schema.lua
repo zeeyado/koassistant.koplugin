@@ -110,6 +110,26 @@ local SettingsSchema = {
                     },
                     help_text = _("Markdown renders formatting. Plain Text has better font support for Arabic/CJK."),
                 },
+                {
+                    id = "dictionary_text_mode",
+                    type = "toggle",
+                    text = _("Text Mode for Dictionary"),
+                    path = "features.dictionary_text_mode",
+                    default = false,
+                    help_text = _("Use Plain Text mode for dictionary popup. Better font support for non-Latin scripts."),
+                },
+                {
+                    id = "rtl_dictionary_text_mode",
+                    type = "toggle",
+                    text = _("Text Mode for RTL Dictionary"),
+                    path = "features.rtl_dictionary_text_mode",
+                    default = true,
+                    enabled_func = function(plugin)
+                        local f = plugin.settings:readSetting("features") or {}
+                        return not f.dictionary_text_mode
+                    end,
+                    help_text = _("Use Plain Text mode for dictionary popup when dictionary language is Arabic, Hebrew, Persian, or Urdu. Grayed out when Text Mode for Dictionary is enabled."),
+                },
                 -- Plain Text Options submenu
                 {
                     id = "plain_text_options",

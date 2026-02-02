@@ -66,6 +66,26 @@ Languages.CLASSICAL = {
     "Sanskrit",
 }
 
+-- RTL (Right-to-Left) languages
+-- Used for BiDi text alignment in dictionary/translation contexts
+Languages.RTL_LANGUAGES = {
+    "Arabic",
+    "Classical Arabic",
+    "Persian",
+    "Urdu",
+    "Hebrew",
+    "Biblical Hebrew",
+}
+
+-- Check if a language is RTL
+function Languages.isRTL(lang_id)
+    if not lang_id then return false end
+    for _, rtl_lang in ipairs(Languages.RTL_LANGUAGES) do
+        if lang_id == rtl_lang then return true end
+    end
+    return false
+end
+
 -- Build display name lookup for regular languages
 Languages.DISPLAY_MAP = {}
 for _, lang in ipairs(Languages.REGULAR) do
