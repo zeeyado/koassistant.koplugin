@@ -803,25 +803,23 @@ All labels and explanations in {dictionary_language}. Inline bold labels, no hea
         context = "highlight",  -- Only for highlighted text
         behavior_variant = "dictionary_detailed",  -- Use built-in detailed dictionary behavior
         in_dictionary_popup = 3,  -- Default order in dictionary popup
-        prompt = [[Deep analysis of: {highlighted_text}
+        prompt = [[Deep analysis: {highlighted_text}
 
-**Headword**: word /IPA/, _part of speech_
+**{word}** /IPA/ _part of speech_ of **lemma**
 
-**Morphological Structure**:
-- Semitic languages (Arabic, Hebrew, etc.): Root in script, pattern/wazn, verb form (bāb) if applicable, semantic contribution of the pattern
-- Indo-European languages: Base/stem, affixes, derivational components, compound structure if applicable
-- Other languages: Adapt to what is morphologically salient
+**Morphology:** [Semitic: root + pattern/wazn + verb form if applicable | IE: stem + affixes + compounds | Other: what's morphologically salient]
 
-**Word Family**: Related words from the same root/stem with brief meanings, showing how derivation affects meaning
+**Word Family:** Related forms from same root/stem, showing how derivation affects meaning
 
-**Etymology**: Origin, transmission path, semantic shifts
+**Etymology:** Origin → transmission path → semantic shifts
 
-**Cognates**: Related words in sister languages; notable borrowings
+**Cognates:** Related words in sister languages; notable borrowings
 
-**In context**: Usage in this passage
+{context_section}
 
-Context: {context}
-Respond in {dictionary_language}.]],
+When context is provided, note how this specific form or sense fits the passage, but still analyze the lemma comprehensively. Flag homographs or polysemy when relevant.
+
+Write in {dictionary_language}. Headwords, lemmas, and cognates stay in original script. Inline bold labels, no headers. Concise but thorough.]],
         include_book_context = false,
         extended_thinking = "off",
         skip_language_instruction = true,

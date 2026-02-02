@@ -435,9 +435,9 @@ You can customize these, create your own, or disable ones you don't use. See [Ac
 | **Connect** | Draw connections to other works, thinkers, and broader context |
 | **Connect (With Notes)** | Connect passage to your personal reading journey ⚠️ *Requires: Allow Highlights & Annotations, Allow Notebook* |
 | **Translate** | Translate to your configured language |
-| **Dictionary** | Word definition with context (also accessible via word selection, like KOReader native behavior) |
-| **Quick Define** | Brief, concise word definition (dictionary popup) |
-| **Deep Analysis** | Comprehensive linguistic analysis: morphology, word family, cognates, etymology |
+| **Dictionary** | Full dictionary entry: definition, etymology, synonyms, usage (also accessible via dictionary popup) |
+| **Quick Define** | Minimal lookup: brief definition only, no etymology or synonyms |
+| **Deep Analysis** | Linguistic deep-dive: morphology, word family, cognates, etymology path |
 
 **What the AI sees**: Your highlighted text, plus Document metadata (title, author, identifiers from file properties)
 
@@ -848,9 +848,9 @@ With help from contributions to [assistant.koplugin](https://github.com/omer-far
 
 KOAssistant integrates with KOReader's dictionary system, providing AI-powered word lookups when you select words in a document.
 
-> **Tip:** Go into Action Management and select a light model (e.g. Haiku) for faster dictionary Actions.
+> **Tip:** For best results, duplicate a built-in dictionary action and customize it for your language pair. Set a light model (e.g. Haiku) for speed, and make it your bypass action for one-tap lookups.
 
-> **Don't need dictionary integration?** Disable it entirely via **Settings → KOReader Integration → Show in Dictionary Popup**. This removes AI buttons from the dictionary popup.
+> **Don't need dictionary integration?** Disable it entirely via **Settings → KOReader Integration → Show in Dictionary Popup**.
 
 ### How It Works
 
@@ -860,9 +860,9 @@ When you select a word in a document, KOReader normally shows its dictionary pop
 2. **Bypass the dictionary entirely** — Skip KOReader's dictionary and go directly to AI for word lookups
 
 **Default dictionary popup actions** (3 included):
-1. **Dictionary** — Standard definition with etymology and usage
-2. **Quick Define** — Brief, concise definition
-3. **Deep Analysis** — Comprehensive linguistic analysis
+1. **Dictionary** — Full entry: definition, etymology, synonyms, usage
+2. **Quick Define** — Minimal: brief definition only
+3. **Deep Analysis** — Linguistic deep-dive: morphology, word family, cognates
 
 You can add other highlight actions to this menu via **Manage Actions → hold action → "Add to Dictionary Popup"**.
 
@@ -870,34 +870,37 @@ You can add other highlight actions to this menu via **Manage Actions → hold a
 
 **Settings → Dictionary Settings**
 
-| Setting | Description |
-|---------|-------------|
-| **AI Buttons in Dictionary Popup** | Show "AI Dictionary" and other action buttons in KOReader's dictionary popup |
-| **Response Language** | Language for dictionary definitions (follow translation language or set specific) |
-| **Context Mode** | Surrounding text to include: None (default), Sentence, Paragraph, or Characters |
-| **Context Characters** | Number of characters when using "Characters" mode (default: 100) |
-| **Disable Auto-save** | Don't auto-save dictionary lookups (default: on). Disable to follow general chat saving settings |
-| **Enable Streaming** | Stream dictionary responses in real-time |
-| **Dictionary Popup Actions** | Configure which actions appear in the dictionary popup's AI menu |
-| **Bypass KOReader Dictionary** | Skip dictionary popup, go directly to AI (see below) |
-| **Bypass Action** | Which action to trigger when bypass is enabled |
-| **Bypass: Follow Vocab Builder Auto-add** | When enabled, bypass follows KOReader's Vocabulary Builder auto-add setting |
+| Setting | Description | Default |
+|---------|-------------|---------|
+| **AI Buttons in Dictionary Popup** | Show "AI Dictionary" button in KOReader's dictionary popup | On |
+| **Response Language** | Language for definitions. Can follow Translation Language (`↵T`) or be set independently | `↵T` |
+| **Context Mode** | Surrounding text sent with lookup: None, Sentence, Paragraph, or Characters | None |
+| **Context Characters** | Character count when using "Characters" mode | 100 |
+| **Disable Auto-save** | Don't auto-save dictionary lookups to chat history | On |
+| **Enable Streaming** | Stream responses in real-time (shows text as it generates) | Off |
+| **Dictionary Popup Actions** | Configure which actions appear in the AI menu (reorder, add custom) | 3 built-in |
+| **Bypass KOReader Dictionary** | Skip native dictionary, go directly to AI action | Off |
+| **Bypass Action** | Which action triggers on bypass (try Quick Define for speed) | Dictionary |
+| **Bypass: Follow Vocab Builder** | Respect KOReader's Vocabulary Builder auto-add setting during bypass | On |
 
-> **Tip:** Test different dictionary actions and context modes in the [web inspector](#testing-your-setup) to find what works best for your reading.
+> **Tip:** Test different dictionary actions and context modes in the [web inspector](#testing-your-setup) to find what works best for your reading. Consider creating custom dictionary actions for your specific language pair.
 
 ### Dictionary Popup Actions (3 included by default)
 
 When "AI Button in Dictionary Popup" is enabled, tapping the AI button shows a menu of actions. Three built-in dictionary actions are included by default:
 
-- **Dictionary** — Definition, etymology, synonyms, contextual usage
-- **Quick Define** — Brief definition and contextual usage only
-- **Deep Analysis** — Morphology, word family, cognates, etymology path
+| Action | Purpose | Includes |
+|--------|---------|----------|
+| **Dictionary** | Standard dictionary entry | Definition, pronunciation, etymology, synonyms, usage examples |
+| **Quick Define** | Fast, minimal lookup | Brief definition only—no etymology, no synonyms |
+| **Deep Analysis** | Linguistic deep-dive | Morphology (roots, affixes), word family, etymology path, cognates |
 
-The first action in your list appears as the default when you tap the AI button.
+The **first action** in your list is the default when tapping the AI button. You can also set any action as the **Bypass Action** for instant one-tap lookups.
 
 **Configure this menu:**
 1. **Settings → Dictionary Settings → Dictionary Popup Actions**
-2. Enable/disable actions and reorder them
+2. Enable/disable actions, reorder them, or add custom actions
+3. Consider setting "Quick Define" as bypass action for faster responses
 
 ### Context Mode: When to Use It
 
@@ -935,29 +938,32 @@ Dictionary actions have special handling for right-to-left (RTL) languages:
 
 > **Note:** For best RTL rendering, Plain Text mode is recommended. The automatic RTL text mode handles this for dictionary lookups specifically, while preserving your global Markdown/Plain Text preference for other chats.
 
-### Known Limitations & Workaround
+### Custom Dictionary Actions
 
-The built-in dictionary actions attempt to handle many use cases with unified prompts:
+The built-in dictionary actions use unified prompts that work across many scenarios:
 - **Monolingual lookups** (e.g., English word → English definitions)
-- **Bilingual lookups** (e.g., English word → Arabic translations and meta language)
-- **Various language pairs** with automatic source language detection (difficult from one word)
+- **Bilingual lookups** (e.g., French word → English definitions and translations)
+- **Context-aware disambiguation** (toggle Ctx ON in compact view)
 
-This one-size-fits-all approach has limitations:
-- Dictionary provides definitions instead direct of translations to L2
-- Source language detection can fail due to limited context
-- Formatting and language consistency varies across different AI models (formatting is not currently handled programmatically, but by prompting)
-- Smaller/faster models struggle more with complex language-switching instructions
-
-**A better solution is under development.** Including split bi-m/onolongual Dictionaries, source language settings (and detection), and structural changes to presenetation. In the meantime, users are advised to create custom dictionary actions tailored to their specific use case:
+For the best results, **create custom dictionary actions tailored to your specific use case**:
 
 1. **Settings → Actions & Prompts → Manage Actions**
-2. Find "Dictionary" or "Quick Define" and tap to duplicate
-3. Edit the duplicate with prompts specific to your language pair
+2. Find "Dictionary" or "Quick Define" and tap to **duplicate**
+3. Edit the duplicate with prompts specific to your language pair or learning style
 4. **Settings → Dictionary Settings → Dictionary Popup Actions** — add your custom action
-5. Optionally set it as the **Bypass Action** for one-tap access
-6. You can also create something from scratch, including behaviors (PRs welcome.)
+5. Set it as the **Bypass Action** for one-tap access
+6. Consider changing the bypass action to "Quick Define" for faster responses, or to your custom action
 
-For example, create "EN→AR Dictionary" with explicit Arabic translation instructions, or "Monolingual English" that only provides English definitions.
+**Examples:**
+- **"EN→AR Dictionary"** — Explicit Arabic translation with English metalanguage
+- **"Monolingual French"** — Definitions only in French, no translations
+- **"Etymology Focus"** — Start from Deep Analysis, remove morphology sections
+- **"Quick Vocab"** — Minimal definition + example sentence for flashcard creation
+
+**Tips:**
+- Use a **lighter model** (e.g., Haiku) for dictionary actions via per-action model override
+- **Context OFF** (default) gives complete entries with all senses; **Context ON** disambiguates for the specific usage
+- For RTL languages, the compact view automatically uses Plain Text mode
 
 ### Dictionary Bypass
 
@@ -966,6 +972,8 @@ When bypass is enabled, selecting a word skips KOReader's dictionary popup entir
 **To enable:**
 1. Settings → Dictionary Settings → Bypass KOReader Dictionary → ON
 2. Settings → Dictionary Settings → Bypass Action → choose action (default: Dictionary)
+
+**Recommended setup:** Set "Quick Define" or a custom lightweight action as your bypass action for faster responses. Use the full "Dictionary" action when you need etymology and synonyms.
 
 **Toggle via gesture:** Assign "KOAssistant: Toggle Dictionary Bypass" to a gesture for quick on/off switching.
 
@@ -1042,7 +1050,7 @@ Both bypass modes let you choose which action triggers:
 | Dictionary | Dictionary | Settings → Dictionary Settings → Bypass Action |
 | Highlight | Translate | Settings → Highlight Settings → Bypass Action |
 
-You can select any highlight-context action (built-in or custom) as your bypass action.
+You can select any highlight-context action (built-in or custom) as your bypass action. **Recommended:** Set dictionary bypass to "Quick Define" or a custom lightweight action for faster responses.
 
 ### Gesture Toggles
 
@@ -1592,16 +1600,18 @@ This setup means: AI responds in English by default, translates to Spanish, defi
 
 ### Dictionary Settings
 See [Dictionary Integration](#dictionary-integration) and [Bypass Modes](#bypass-modes) for details.
-- **AI Button in Dictionary Popup**: Show AI Dictionary button (opens menu with 3 actions by default) when selecting words
-- **Response Language**: Language for definitions (Follow Translation Language or specific)
-- **Context Mode**: Surrounding text to include (Sentence, Paragraph, Characters, None)
+- **AI Button in Dictionary Popup**: Show AI Dictionary button (opens menu with 3 built-in actions)
+- **Response Language**: Language for definitions (`↵T` follows Translation Language by default)
+- **Context Mode**: Surrounding text to include: None (default), Sentence, Paragraph, or Characters
 - **Context Characters**: Character count for Characters mode (default: 100)
 - **Disable Auto-save for Dictionary**: Don't auto-save dictionary lookups (default: on)
 - **Enable Streaming**: Stream dictionary responses in real-time
-- **Dictionary Popup Actions**: Configure actions in the dictionary popup AI menu
+- **Dictionary Popup Actions**: Configure which actions appear in the AI menu (reorder, add custom)
 - **Bypass KOReader Dictionary**: Skip dictionary popup, go directly to AI
-- **Bypass Action**: Which action to trigger when bypass is enabled (default: Dictionary)
+- **Bypass Action**: Which action to trigger when bypass is enabled (default: Dictionary). Consider "Quick Define" or a custom action for faster responses
 - **Bypass: Follow Vocab Builder Auto-add**: Follow KOReader's Vocabulary Builder auto-add in bypass mode
+
+> **Tip:** Create custom dictionary actions tailored to your language pair for best results. See [Custom Dictionary Actions](#custom-dictionary-actions).
 
 ### Translate Settings
 See [Translate View](#translate-view) for details on the specialized translation UI.
