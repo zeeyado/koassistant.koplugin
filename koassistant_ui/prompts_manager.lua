@@ -697,9 +697,9 @@ function PromptsManager:showPromptDetails(prompt)
         info_text = info_text .. "\n" .. _("Include Book Info") .. ": " .. book_context_text
     end
 
-    -- Book text extraction (for book-compatible contexts)
+    -- Book text extraction (for contexts that can run in reading mode)
     -- Note: Lightweight data (progress, highlights, annotations, stats) is always available
-    if self:contextIncludesBook(prompt.context) then
+    if self:canUseTextExtraction(prompt) then
         local book_text_status = prompt.use_book_text and _("Yes") or _("No")
         info_text = info_text .. "\n" .. _("Allow text extraction") .. ": " .. book_text_status
     end
@@ -1127,9 +1127,9 @@ function PromptsManager:showStep1_NameAndContext(state)
         })
     end
 
-    -- Book text extraction toggle (only for book-compatible contexts)
+    -- Book text extraction toggle (for contexts that can run in reading mode)
     -- Note: Lightweight data (progress, highlights, annotations, stats) is auto-extracted
-    if state.context and self:contextIncludesBook(state.context) then
+    if state.context and self:canUseTextExtraction(state, true) then  -- is_new_action=true
         local book_text_checkbox = state.use_book_text and "☑ " or "☐ "
         table.insert(button_rows, {
             {
@@ -1247,6 +1247,47 @@ function PromptsManager:contextIncludesBook(context)
     return context == "book" or context == "both" or context == "all"
 end
 
+-- Determine if an action can use text extraction (runs in reading mode)
+-- Used to show/hide the "Allow text extraction" toggle in action settings
+-- @param action_or_context: Action table, state table, or context string
+-- @param is_new_action: boolean, true if creating a new action (more permissive)
+-- @return boolean: true if text extraction toggle should be shown
+function PromptsManager:canUseTextExtraction(action_or_context, is_new_action)
+    local context, action
+    if type(action_or_context) == "table" then
+        context = action_or_context.context
+        action = action_or_context
+    else
+        context = action_or_context
+        action = nil
+    end
+
+    -- Highlight context: always in reading mode (can't highlight without open book)
+    if context == "highlight" then
+        return true
+    end
+
+    -- "both" context: includes highlight, always in reading mode
+    if context == "both" then
+        return true
+    end
+
+    -- Book context: depends on whether action requires open book
+    if context == "book" then
+        if is_new_action then
+            -- New custom actions: show toggle (user may add text placeholders)
+            return true
+        elseif action then
+            -- Existing actions: only if it requires reading mode
+            return Actions.requiresOpenBook(action)
+        end
+        return false
+    end
+
+    -- "all", "multi_book", "general": cannot reliably extract text
+    return false
+end
+
 -- Get default system prompt for a context
 -- For compound contexts (both, all), returns nil since the actual default varies by trigger
 function PromptsManager:getDefaultSystemPrompt(context)
@@ -1270,7 +1311,6 @@ function PromptsManager:showContextSelectorWizard(state)
         { value = "multi_book" },
         { value = "general" },
         { value = "both" },
-        { value = "all" },
     }
 
     local buttons = {}
@@ -1302,8 +1342,7 @@ function PromptsManager:showContextSelectorWizard(state)
                            "• " .. _("Book") .. " — " .. _("File browser or 'Chat about book'. Gets: title, author") .. "\n\n" ..
                            "• " .. _("Multi-Book") .. " — " .. _("Multiple books selected. Gets: book list with count") .. "\n\n" ..
                            "• " .. _("General") .. " — " .. _("Standalone chat. No automatic context") .. "\n\n" ..
-                           "• " .. _("Highlight & Book") .. " — " .. _("Both highlight and single-book menus") .. "\n\n" ..
-                           "• " .. _("All Contexts") .. " — " .. _("Shows everywhere. Data varies by trigger"),
+                           "• " .. _("Highlight & Book") .. " — " .. _("Both highlight and single-book menus"),
                 })
             end,
         },
@@ -2549,9 +2588,9 @@ function PromptsManager:showBuiltinSettingsDialog(state)
         })
     end
 
-    -- Book text extraction toggle (only for book-compatible contexts)
+    -- Book text extraction toggle (for contexts that can run in reading mode)
     -- Note: Lightweight data (progress, highlights, annotations, stats) is auto-extracted
-    if self:contextIncludesBook(prompt.context) then
+    if self:canUseTextExtraction(prompt) then
         table.insert(buttons, {
             {
                 text = (state.use_book_text and "☑ " or "☐ ") .. _("Allow text extraction"),
@@ -3208,9 +3247,9 @@ function PromptsManager:showCustomQuickSettingsDialog(state)
         })
     end
 
-    -- Book text extraction toggle (only for book-compatible contexts)
+    -- Book text extraction toggle (for contexts that can run in reading mode)
     -- Note: Lightweight data (progress, highlights, annotations, stats) is auto-extracted
-    if self:contextIncludesBook(state.context) then
+    if self:canUseTextExtraction(state) then
         table.insert(buttons, {
             {
                 text = (state.use_book_text and "☑ " or "☐ ") .. _("Allow text extraction"),
@@ -3652,27 +3691,27 @@ end
 function PromptsManager:getPlaceholdersForContext(context)
     local all_placeholders = {
         -- Basic placeholders
-        { value = "{highlighted_text}", text = _("Selected Text"), contexts = {"highlight", "both", "all"} },
-        { value = "{title}", text = _("Book Title"), contexts = {"highlight", "book", "both", "all"} },
-        { value = "{author}", text = _("Author Name"), contexts = {"highlight", "book", "both", "all"} },
-        { value = "{author_clause}", text = _("Author Clause"), contexts = {"highlight", "book", "both", "all"} },
-        { value = "{count}", text = _("Book Count"), contexts = {"multi_book", "all"} },
-        { value = "{books_list}", text = _("Books List"), contexts = {"multi_book", "all"} },
-        { value = "{translation_language}", text = _("Translation Language"), contexts = {"highlight", "book", "multi_book", "general", "both", "all"} },
+        { value = "{highlighted_text}", text = _("Selected Text"), contexts = {"highlight", "both"} },
+        { value = "{title}", text = _("Book Title"), contexts = {"highlight", "book", "both"} },
+        { value = "{author}", text = _("Author Name"), contexts = {"highlight", "book", "both"} },
+        { value = "{author_clause}", text = _("Author Clause"), contexts = {"highlight", "book", "both"} },
+        { value = "{count}", text = _("Book Count"), contexts = {"multi_book"} },
+        { value = "{books_list}", text = _("Books List"), contexts = {"multi_book"} },
+        { value = "{translation_language}", text = _("Translation Language"), contexts = {"highlight", "book", "multi_book", "general", "both"} },
         -- Context extraction placeholders (require extraction flags + global settings)
-        { value = "{reading_progress}", text = _("Reading Progress (%)"), contexts = {"highlight", "book", "both", "all"} },
-        { value = "{progress_decimal}", text = _("Progress (0.0-1.0)"), contexts = {"highlight", "book", "both", "all"} },
-        { value = "{book_text_section}", text = _("Book Text (with label)"), contexts = {"book", "both", "all"} },
-        { value = "{book_text}", text = _("Book Text (raw)"), contexts = {"book", "both", "all"} },
-        { value = "{highlights_section}", text = _("Highlights (with label)"), contexts = {"book", "both", "all"} },
-        { value = "{highlights}", text = _("Highlights (raw)"), contexts = {"book", "both", "all"} },
-        { value = "{annotations_section}", text = _("Annotations (with label)"), contexts = {"book", "both", "all"} },
-        { value = "{annotations}", text = _("Annotations (raw)"), contexts = {"book", "both", "all"} },
-        { value = "{chapter_title}", text = _("Current Chapter"), contexts = {"book", "both", "all"} },
-        { value = "{chapters_read}", text = _("Chapters Read Count"), contexts = {"book", "both", "all"} },
-        { value = "{time_since_last_read}", text = _("Time Since Last Read"), contexts = {"book", "both", "all"} },
-        { value = "{notebook_section}", text = _("Notebook (with label)"), contexts = {"highlight", "book", "both", "all"} },
-        { value = "{notebook}", text = _("Notebook (raw)"), contexts = {"highlight", "book", "both", "all"} },
+        { value = "{reading_progress}", text = _("Reading Progress (%)"), contexts = {"highlight", "book", "both"} },
+        { value = "{progress_decimal}", text = _("Progress (0.0-1.0)"), contexts = {"highlight", "book", "both"} },
+        { value = "{book_text_section}", text = _("Book Text (with label)"), contexts = {"highlight", "book", "both"} },
+        { value = "{book_text}", text = _("Book Text (raw)"), contexts = {"highlight", "book", "both"} },
+        { value = "{highlights_section}", text = _("Highlights (with label)"), contexts = {"highlight", "book", "both"} },
+        { value = "{highlights}", text = _("Highlights (raw)"), contexts = {"highlight", "book", "both"} },
+        { value = "{annotations_section}", text = _("Annotations (with label)"), contexts = {"highlight", "book", "both"} },
+        { value = "{annotations}", text = _("Annotations (raw)"), contexts = {"highlight", "book", "both"} },
+        { value = "{chapter_title}", text = _("Current Chapter"), contexts = {"highlight", "book", "both"} },
+        { value = "{chapters_read}", text = _("Chapters Read Count"), contexts = {"highlight", "book", "both"} },
+        { value = "{time_since_last_read}", text = _("Time Since Last Read"), contexts = {"highlight", "book", "both"} },
+        { value = "{notebook_section}", text = _("Notebook (with label)"), contexts = {"highlight", "book", "both"} },
+        { value = "{notebook}", text = _("Notebook (raw)"), contexts = {"highlight", "book", "both"} },
     }
 
     local result = {}
