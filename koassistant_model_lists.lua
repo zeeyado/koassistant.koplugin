@@ -1,6 +1,6 @@
 -- Model lists for each provider
 -- SINGLE SOURCE OF TRUTH for all model data
--- Last updated: 2026-01-25
+-- Last updated: 2026-02-02
 --
 -- Structure:
 --   ModelLists[provider] = array of model IDs (for backward compat & dropdowns)
@@ -70,71 +70,43 @@ local ModelLists = {
     },
 
     ollama = {
-        -- Llama 4 (Meta, Apr 2025) - multimodal MoE
-        "llama4",
-        "llama4:scout",
-        "llama4:maverick",              -- flagship
-        -- Llama 3.x (Meta)
-        "llama3.3",
+        -- Llama 3.x (Meta) - most popular open models
+        "llama3.3",                     -- latest Llama 3 (default)
         "llama3.3:70b",
         "llama3.2",
-        "llama3.2:3b",                  -- fast
+        "llama3.2:3b",
         "llama3.2:1b",                  -- ultrafast
         "llama3.1",
-        "llama3.1:8b",
         "llama3.1:70b",
-        -- Qwen 3 (Alibaba, latest)
+        -- Qwen (Alibaba) - excellent multilingual
         "qwen3",
-        "qwen3:0.6b",
-        "qwen3:1.7b",
-        "qwen3:4b",
         "qwen3:8b",
-        "qwen3:14b",
-        "qwen3:30b",
-        "qwen3-coder",
-        -- Qwen 2.5 (Alibaba)
+        "qwen3:32b",
         "qwen2.5",
+        "qwen2.5:0.5b",                 -- tiny, good for testing
         "qwen2.5:7b",
-        "qwen2.5:14b",
         "qwen2.5:32b",
         "qwen2.5:72b",
-        "qwen2.5-coder",
-        -- DeepSeek (local)
+        -- DeepSeek
         "deepseek-r1",                  -- reasoning
         "deepseek-r1:8b",
-        "deepseek-r1:14b",
-        "deepseek-r1:32b",
         "deepseek-r1:70b",
-        -- Gemma 3 (Google, latest)
+        "deepseek-v3",
+        -- Gemma (Google)
         "gemma3",
-        "gemma3:1b",
         "gemma3:4b",
-        "gemma3:12b",
         "gemma3:27b",
-        -- Gemma 2 (Google)
         "gemma2",
-        "gemma2:2b",
         "gemma2:9b",
         "gemma2:27b",
-        -- Mistral/Mixtral
+        -- Mistral
         "mistral",
-        "mixtral",
-        "mixtral:8x22b",
-        -- Phi (Microsoft)
+        "mistral-nemo",                 -- Apache 2.0, 12B
+        -- Phi (Microsoft) - small but capable
         "phi4",
         "phi3",
-        "phi3:mini",
-        "phi3:medium",
-        -- Code models
-        "codellama",
-        "codellama:7b",
-        "codellama:13b",
-        "codellama:34b",
-        "starcoder2",
-        -- Other popular models
-        "command-r",
-        "neural-chat",
-        "vicuna",
+        -- Tiny models
+        "tinyllama",                    -- ~637MB, good for testing
     },
 
     groq = {
@@ -348,7 +320,7 @@ local ModelLists = {
             mistral = "mistral-large-latest",
             xai = "grok-4-1-fast-non-reasoning",
             cohere = "command-a-03-2025",
-            ollama = "llama4:maverick",
+            ollama = "llama3.3",
             openrouter = "anthropic/claude-sonnet-4-5-20250929",
             together = "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
             fireworks = "accounts/fireworks/models/llama4-maverick-instruct-basic",
@@ -408,7 +380,7 @@ local ModelLists = {
             mistral = "ministral-3b-latest",
             xai = "grok-3-mini-fast",
             cohere = "command-r7b-12-2024",
-            ollama = "llama3.2:1b",
+            ollama = "qwen2.5:0.5b",
             openrouter = "google/gemini-3-flash-preview",   -- FREE tier
             together = "Qwen/Qwen3-32B",
             fireworks = "accounts/fireworks/models/llama-v3p3-70b-instruct",
