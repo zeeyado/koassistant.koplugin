@@ -1963,6 +1963,17 @@ local function handlePredefinedPrompt(prompt_type_or_action, highlightedText, ui
                         timeout = 4,
                     })
                 end
+
+                -- Show notification if full document text was truncated
+                if extracted.full_document_truncated then
+                    local coverage_start = extracted.full_document_coverage_start or 0
+                    local coverage_end = extracted.full_document_coverage_end or 0
+                    UIManager:show(InfoMessage:new{
+                        text = T(_("Full document text truncated (covers %1 %–%2 %). Increase limit in Advanced Settings."),
+                                 coverage_start, coverage_end),
+                        timeout = 4,
+                    })
+                end
             end
         else
             logger.warn("KOAssistant: Failed to load context extractor:", ContextExtractor)
@@ -1970,7 +1981,7 @@ local function handlePredefinedPrompt(prompt_type_or_action, highlightedText, ui
     end
 
     -- Notebook content extraction (if action has use_notebook flag)
-    -- Respects enable_notebook_sharing privacy setting (default: enabled)
+    -- Respects enable_notebook_sharing privacy setting (default: disabled)
     -- Also respects trusted providers (bypasses privacy settings)
     local provider_trusted = false
     if config.features and config.features.provider and config.features.trusted_providers then
@@ -1981,7 +1992,7 @@ local function handlePredefinedPrompt(prompt_type_or_action, highlightedText, ui
             end
         end
     end
-    local notebook_sharing_enabled = provider_trusted or (config.features and config.features.enable_notebook_sharing ~= false)
+    local notebook_sharing_enabled = provider_trusted or (config.features and config.features.enable_notebook_sharing == true)
     if prompt and prompt.use_notebook and ui and ui.document and notebook_sharing_enabled then
         local Notebook = require("koassistant_notebook")
         local notebook_content = Notebook.read(ui.document.file)
