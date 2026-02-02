@@ -783,8 +783,7 @@ Synonyms
 
 {context_section}
 
-All labels and explanations in {dictionary_language}. Inline bold labels. Concise.
-When context provided, end with usage note.]],
+All labels and explanations in {dictionary_language}. Inline bold labels. Concise.]],
         include_book_context = false,  -- Word definitions don't typically need book metadata
         extended_thinking = "off",  -- Dictionary lookups don't benefit from extended thinking
         skip_language_instruction = true,  -- Target language already in prompt
