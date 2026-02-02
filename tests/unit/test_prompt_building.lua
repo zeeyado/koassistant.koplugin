@@ -147,6 +147,10 @@ local function createMockExtractor(settings, mock_data)
         return mock_data.summary_analysis or { text = "Book summary content" }
     end
 
+    extractor.getNotebookContent = function()
+        return mock_data.notebook_content or { content = "My notebook notes about this book." }
+    end
+
     return extractor
 end
 
@@ -216,6 +220,26 @@ local function runMessageBuilderTests()
         })
         TestRunner:assertContains(result, "Surrounding text:")
         TestRunner:assertContains(result, "The text around the highlight.")
+    end)
+
+    TestRunner:test("notebook_section disappears when empty", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "Notes: {notebook_section}" },
+            context = "general",
+            data = { notebook_content = "" },
+        })
+        TestRunner:assertNotContains(result, "My notebook entries:")
+        TestRunner:assertNotContains(result, "{notebook_section}")
+    end)
+
+    TestRunner:test("notebook_section includes label when present", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "{notebook_section}" },
+            context = "general",
+            data = { notebook_content = "My reading notes." },
+        })
+        TestRunner:assertContains(result, "My notebook entries:")
+        TestRunner:assertContains(result, "My reading notes.")
     end)
 
     print("\n--- MessageBuilder: Analysis Cache Placeholders ---")
@@ -455,6 +479,47 @@ local function runGatingTests()
         local data = extractor:extractForAction({})
         TestRunner:assertEquals(data.chapter_title, "")
         TestRunner:assertEquals(data.chapters_read, "")
+    end)
+
+    print("\n--- ContextExtractor: Notebook Double-Gate ---")
+
+    TestRunner:test("notebook blocked when enable_notebook_sharing=false (default)", function()
+        local extractor = createMockExtractor({})  -- nil = default disabled (opt-in)
+        local data = extractor:extractForAction({ use_notebook = true })
+        TestRunner:assertEquals(data.notebook_content, "")
+    end)
+
+    TestRunner:test("notebook blocked when use_notebook=false", function()
+        local extractor = createMockExtractor({ enable_notebook_sharing = true })
+        local data = extractor:extractForAction({ use_notebook = false })
+        TestRunner:assertEquals(data.notebook_content, nil)  -- Not extracted at all
+    end)
+
+    TestRunner:test("notebook allowed when both gates pass", function()
+        local extractor = createMockExtractor({ enable_notebook_sharing = true })
+        local data = extractor:extractForAction({ use_notebook = true })
+        TestRunner:assertContains(data.notebook_content, "notebook notes")
+    end)
+
+    TestRunner:test("notebook bypass with trusted provider", function()
+        local extractor = createMockExtractor({
+            enable_notebook_sharing = false,  -- Global OFF (default)
+            provider = "local_ollama",
+            trusted_providers = { "local_ollama" },
+        })
+        local data = extractor:extractForAction({ use_notebook = true })
+        TestRunner:assertContains(data.notebook_content, "notebook notes")
+    end)
+
+    TestRunner:test("notebook still blocked when use_notebook=false even with trusted provider", function()
+        local extractor = createMockExtractor({
+            enable_notebook_sharing = false,
+            provider = "local_ollama",
+            trusted_providers = { "local_ollama" },
+        })
+        -- Trusted provider only bypasses global gate, not action flag
+        local data = extractor:extractForAction({ use_notebook = false })
+        TestRunner:assertEquals(data.notebook_content, nil)
     end)
 
     print("\n--- ContextExtractor: Analysis Cache Gating ---")

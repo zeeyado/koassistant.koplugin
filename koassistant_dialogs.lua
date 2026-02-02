@@ -1968,6 +1968,7 @@ local function handlePredefinedPrompt(prompt_type_or_action, highlightedText, ui
                 enable_annotations_sharing = config.features and config.features.enable_annotations_sharing,
                 enable_progress_sharing = config.features and config.features.enable_progress_sharing,
                 enable_stats_sharing = config.features and config.features.enable_stats_sharing,
+                enable_notebook_sharing = config.features and config.features.enable_notebook_sharing,
             })
             logger.info("KOAssistant: Extractor settings - enable_book_text_extraction=",
                        config.features and config.features.enable_book_text_extraction and "true" or "false/nil")
@@ -2008,34 +2009,7 @@ local function handlePredefinedPrompt(prompt_type_or_action, highlightedText, ui
             logger.warn("KOAssistant: Failed to load context extractor:", ContextExtractor)
         end
     end
-
-    -- Notebook content extraction (if action has use_notebook flag)
-    -- Respects enable_notebook_sharing privacy setting (default: disabled)
-    -- Also respects trusted providers (bypasses privacy settings)
-    local provider_trusted = false
-    if config.features and config.features.provider and config.features.trusted_providers then
-        for _idx, trusted_id in ipairs(config.features.trusted_providers) do
-            if trusted_id == config.features.provider then
-                provider_trusted = true
-                break
-            end
-        end
-    end
-    local notebook_sharing_enabled = provider_trusted or (config.features and config.features.enable_notebook_sharing == true)
-    if prompt and prompt.use_notebook and ui and ui.document and notebook_sharing_enabled then
-        local Notebook = require("koassistant_notebook")
-        local notebook_content = Notebook.read(ui.document.file)
-        if notebook_content and notebook_content ~= "" then
-            message_data.notebook_content = notebook_content
-            logger.info("KOAssistant: Extracted notebook content, len=", #notebook_content)
-        else
-            message_data.notebook_content = ""
-            logger.info("KOAssistant: No notebook found for this document")
-        end
-    elseif prompt and prompt.use_notebook and not notebook_sharing_enabled then
-        message_data.notebook_content = ""
-        logger.info("KOAssistant: Notebook sharing disabled by privacy setting")
-    end
+    -- Note: Notebook extraction is now handled by ContextExtractor:extractForAction()
 
     -- Get domain context if a domain is set (skip if action opts out)
     -- Priority: prompt.domain (locked) > config.features.selected_domain (user choice)

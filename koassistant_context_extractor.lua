@@ -803,6 +803,24 @@ function ContextExtractor:getSummaryAnalysis()
     return result
 end
 
+--- Get notebook content for the current document.
+-- @return table with notebook content { content = string }
+function ContextExtractor:getNotebookContent()
+    local result = { content = "" }
+
+    if not self.ui or not self.ui.document or not self.ui.document.file then
+        return result
+    end
+
+    local Notebook = require("koassistant_notebook")
+    local content = Notebook.read(self.ui.document.file)
+    if content and content ~= "" then
+        result.content = content
+    end
+
+    return result
+end
+
 -- =============================================================================
 -- Unified Extraction for Actions
 -- =============================================================================
@@ -918,6 +936,18 @@ function ContextExtractor:extractForAction(action)
             local summary = self:getSummaryAnalysis()
             data.summary_analysis = summary.text
         end
+    end
+
+    -- Notebook content extraction: double-gated like other sensitive data
+    -- Requires both use_notebook flag AND enable_notebook_sharing global setting
+    -- Trusted providers bypass the global setting
+    local notebook_allowed = provider_trusted or self.settings.enable_notebook_sharing == true
+    if action.use_notebook and notebook_allowed then
+        local notebook = self:getNotebookContent()
+        data.notebook_content = notebook.content
+    elseif action.use_notebook and not notebook_allowed then
+        -- Explicitly set empty when gated off (for section placeholder to disappear)
+        data.notebook_content = ""
     end
 
     return data
