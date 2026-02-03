@@ -7068,7 +7068,9 @@ end
 function AskGPT:showMigrationDialog()
   local ConfirmBox = require("ui/widget/confirmbox")
   local confirm = ConfirmBox:new{
-    text = _([[Chat history storage needs to be upgraded to fix an issue where chats were lost when files were moved.
+    text = _([[KOAssistant: Chat Storage Upgrade
+
+The KOAssistant plugin needs to upgrade its chat history storage to fix an issue where chats were lost when files were moved.
 
 This will migrate all existing chats to the new system. The process may take a few minutes for large libraries.
 
@@ -7105,7 +7107,7 @@ function AskGPT:migrateChatsToDocSettings()
 
   -- Show progress dialog
   local progress = InfoMessage:new{
-    text = _("Migrating chat history..."),
+    text = _("KOAssistant: Migrating chat history..."),
   }
   UIManager:show(progress)
 
@@ -7240,7 +7242,7 @@ function AskGPT:migrateChatsToDocSettings()
   local result_text
   if stats.failed > 0 then
     -- Migration failed, will retry
-    result_text = T(_([[Migration incomplete:
+    result_text = T(_([[KOAssistant: Migration Incomplete
 
 ✓ Migrated: %1 chats
 ⊗ Skipped: %2 chats (documents no longer exist)
@@ -7259,7 +7261,7 @@ Check the console for detailed error messages.]]),
     end
   else
     -- Migration succeeded
-    result_text = T(_([[Migration complete:
+    result_text = T(_([[KOAssistant: Migration Complete
 
 ✓ Migrated: %1 chats
 ⊗ Skipped: %2 chats (documents no longer exist)
