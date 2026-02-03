@@ -138,6 +138,18 @@ local SettingsSchema = {
                     default = true,
                     help_text = _("Use Plain Text mode for translate popup when translation language is Arabic, Hebrew, Persian, or Urdu."),
                 },
+                {
+                    id = "rtl_chat_text_mode",
+                    type = "toggle",
+                    text = _("Text Mode for RTL Chat"),
+                    path = "features.rtl_chat_text_mode",
+                    default = true,
+                    enabled_func = function(plugin)
+                        local f = plugin.settings:readSetting("features") or {}
+                        return f.render_markdown ~= false
+                    end,
+                    help_text = _("Automatically switch to Plain Text mode when AI response contains significant Arabic, Hebrew, Persian, or Urdu text. Only analyzes AI responses, not highlighted text. Grayed out when markdown is disabled."),
+                },
                 -- Plain Text Options submenu
                 {
                     id = "plain_text_options",

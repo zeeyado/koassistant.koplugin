@@ -185,6 +185,34 @@ local function fixIPABidi(text)
     return text:gsub("(/[^/\n]+/) ?", LRM .. "%1 " .. LRM)
 end
 
+-- UTF-8 pattern for RTL scripts (module-level for reuse)
+-- Hebrew U+0590-U+05FF, Arabic U+0600-U+06FF
+local RTL_PATTERN = "[\214-\219][\128-\191]"
+
+-- Check if text has significant RTL content (threshold-based for general chat auto-detection)
+-- Returns true if >50 RTL chars OR >20% of text is RTL
+local function hasSignificantRTL(text)
+    if not text or text == "" then return false end
+    local rtl_count = 0
+    for _ in text:gmatch(RTL_PATTERN) do
+        rtl_count = rtl_count + 1
+    end
+    local rtl_ratio = rtl_count / math.max(#text, 1)
+    return rtl_count > 50 or rtl_ratio > 0.2
+end
+
+-- Extract response-only text from message history (excludes user input/context)
+local function getResponseText(message_history)
+    if not message_history or not message_history.messages then return "" end
+    local parts = {}
+    for _, msg in ipairs(message_history.messages) do
+        if msg.role == "assistant" and msg.content then
+            table.insert(parts, msg.content)
+        end
+    end
+    return table.concat(parts, "\n")
+end
+
 -- Post-process HTML for RTL support in markdown view
 -- Uses inline CSS text-align since MuPDF doesn't support dir attribute
 local function addHtmlBidiAttributes(html, options)
@@ -1358,6 +1386,18 @@ function ChatGPTViewer:init()
         self.auto_para_direction = false  -- Override auto-detection with explicit RTL
         -- Default to text mode for RTL translation if setting enabled
         if self.configuration.features.rtl_translate_text_mode ~= false then
+          self.render_markdown = false
+        end
+      end
+    end
+    -- Standard chat view: auto-detect RTL in AI response if setting enabled
+    -- (compact_view and translate_view have their own RTL handling via language settings)
+    if not self.compact_view and not self.translate_view then
+      if self.configuration.features.rtl_chat_text_mode ~= false then
+        local response_text = getResponseText(self._message_history or self.original_history)
+        if hasSignificantRTL(response_text) then
+          self.para_direction_rtl = true
+          self.auto_para_direction = false
           self.render_markdown = false
         end
       end
