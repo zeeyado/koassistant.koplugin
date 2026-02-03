@@ -11,7 +11,7 @@
 - **Research & analysis** → deep analysis of papers/articles, explore arguments, find connections across works
 - **Multi-document** → compare texts, find common themes, analyze your collection
 - **General chat** → AI without book context
-- **Web search** → AI can search the web for current information (Anthropic, Gemini)
+- **Web search** → AI can search the web for current information (Anthropic, Gemini, OpenRouter)
 
 16 built-in providers (Anthropic, OpenAI, Gemini, Ollama, and more) plus custom OpenAI-compatible providers. Fully configurable: custom actions, behaviors, domains, per-action model overrides. Personal reading data (highlights, annotations, notebooks) is opt-in — not sent to the AI unless you enable it.
 
@@ -75,7 +75,7 @@
   - [Prompt Caching](#prompt-caching)
   - [Response Caching (X-Ray/Recap)](#response-caching-x-rayrecap) — Incremental updates as you read
   - [Reasoning/Thinking](#reasoningthinking)
-  - [Web Search](#web-search) — AI searches the web for current information (Anthropic, Gemini)
+  - [Web Search](#web-search) — AI searches the web for current information (Anthropic, Gemini, OpenRouter)
 - [Supported Providers + Settings](#supported-providers--settings) - Choose your model, etc
   - [Free Tier Providers](#free-tier-providers)
   - [Adding Custom Providers](#adding-custom-providers)
@@ -1749,7 +1749,7 @@ Control where KOAssistant appears in KOReader's menus. All toggles default to ON
   - **Gemini Thinking**: Level (low/medium/high)
   - **Show Reasoning Indicator**: Display "*[Reasoning was used]*" in chat when reasoning is active (default: on)
 - **Web Search**: Allow AI to search the web for current information:
-  - **Enable Web Search**: Global toggle (default: off). Supported by Anthropic and Gemini.
+  - **Enable Web Search**: Global toggle (default: off). Supported by Anthropic, Gemini, and OpenRouter.
   - **Max Searches per Query**: 1-10 searches per query (Anthropic only, default: 5)
   - **Show Indicator in Chat**: Display "*[Web search was used]*" in chat when search is used (default: on)
 - **Settings Management**: Backup and restore functionality (see [Backup & Restore](#backup--restore))
