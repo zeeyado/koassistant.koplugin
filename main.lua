@@ -3749,10 +3749,12 @@ function AskGPT:onKOAssistantGeneralChat()
     -- Set context flag on the original configuration (no copy needed)
     -- This ensures settings changes are immediately visible
     configuration.features = configuration.features or {}
-    -- Clear other context flags first
+    -- Clear other context flags and book metadata
     configuration.features.is_general_context = true
     configuration.features.is_book_context = nil
     configuration.features.is_multi_book_context = nil
+    configuration.features.book_metadata = nil
+    configuration.features.books_info = nil
 
     -- Show dialog with general context
     showChatGPTDialog(self.ui, nil, configuration, nil, self)
@@ -3906,7 +3908,10 @@ function AskGPT:executeGeneralAction(action_id)
   for k, v in pairs((configuration or {}).features or {}) do
     config_copy.features[k] = v
   end
+  -- Clear book metadata for general context
   config_copy.features.is_general_context = true
+  config_copy.features.book_metadata = nil
+  config_copy.features.books_info = nil
 
   -- Execute the action
   NetworkMgr:runWhenOnline(function()
@@ -5646,10 +5651,12 @@ function AskGPT:startGeneralChat()
     -- Set context flag on the original configuration (no copy needed)
     -- This ensures settings changes are immediately visible
     configuration.features = configuration.features or {}
-    -- Clear other context flags first
+    -- Clear other context flags and book metadata
     configuration.features.is_general_context = true
     configuration.features.is_book_context = nil
     configuration.features.is_multi_book_context = nil
+    configuration.features.book_metadata = nil
+    configuration.features.books_info = nil
 
     -- Show dialog with general context
     showChatGPTDialog(self.ui, nil, configuration, nil, self)
