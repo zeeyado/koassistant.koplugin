@@ -97,6 +97,7 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
     local non200 = false
     local completed = false
     local in_reasoning_phase = false  -- Track if we're currently showing reasoning
+    local in_web_search_phase = false  -- Track if web search tool is executing
     local was_truncated = false  -- Track if response was truncated (max tokens)
 
     local chunksize = 1024 * 16
@@ -498,31 +499,49 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
 
                             -- Handle regular content
                             if type(content) == "string" and #content > 0 then
-                                -- If transitioning from reasoning to answer, add separator
-                                if in_reasoning_phase then
-                                    in_reasoning_phase = false
-                                    -- Clear the reasoning display and show answer
-                                    streamDialog._input_widget:setText("", true)
-                                end
-
-                                table.insert(result_buffer, content)
-
-                                -- Update UI
-                                if not first_content_received then
-                                    first_content_received = true
-                                    if animation_task then
-                                        UIManager:unschedule(animation_task)
-                                        animation_task = nil
+                                -- Check for web search marker
+                                if content == "__WEB_SEARCH_START__" then
+                                    in_web_search_phase = true
+                                    if not first_content_received then
+                                        first_content_received = true
+                                        if animation_task then
+                                            UIManager:unschedule(animation_task)
+                                            animation_task = nil
+                                        end
                                     end
-                                    streamDialog._input_widget:setText("", true)
-                                end
-
-                                if auto_scroll_active then
-                                    -- Normal auto-scroll: append and scroll to bottom
-                                    streamDialog:addTextToInput(content)
+                                    streamDialog._input_widget:setText(_("🔍 Searching the web..."), true)
+                                    -- Don't add to result buffer - this is just UI feedback
                                 else
-                                    -- Throttled update for performance
-                                    scheduleUIUpdate()
+                                    -- If transitioning from web search or reasoning to answer, clear display
+                                    if in_web_search_phase then
+                                        in_web_search_phase = false
+                                        streamDialog._input_widget:setText("", true)
+                                    end
+                                    if in_reasoning_phase then
+                                        in_reasoning_phase = false
+                                        -- Clear the reasoning display and show answer
+                                        streamDialog._input_widget:setText("", true)
+                                    end
+
+                                    table.insert(result_buffer, content)
+
+                                    -- Update UI
+                                    if not first_content_received then
+                                        first_content_received = true
+                                        if animation_task then
+                                            UIManager:unschedule(animation_task)
+                                            animation_task = nil
+                                        end
+                                        streamDialog._input_widget:setText("", true)
+                                    end
+
+                                    if auto_scroll_active then
+                                        -- Normal auto-scroll: append and scroll to bottom
+                                        streamDialog:addTextToInput(content)
+                                    else
+                                        -- Throttled update for performance
+                                        scheduleUIUpdate()
+                                    end
                                 end
                             end
                         else
@@ -702,6 +721,21 @@ function StreamHandler:extractContentFromSSE(event)
             local text = event.content_block.thinking
             return nil, text  -- May be nil, that's okay
         end
+        -- Web search tool use indicator
+        -- Note: Anthropic uses "server_tool_use" for built-in tools like web_search,
+        -- and "tool_use" for user-defined tools
+        local block_type = event.content_block.type
+        if block_type == "tool_use" or block_type == "server_tool_use" then
+            if event.content_block.name == "web_search" then
+                return "__WEB_SEARCH_START__", nil
+            end
+        end
+    end
+
+    -- Anthropic format: content_block_stop indicates tool finished executing
+    if event.type == "content_block_stop" then
+        -- This could be end of tool execution; caller tracks state
+        -- Return nil, nil - the next content_block_start with type="text" will clear search phase
     end
 
     -- Anthropic format: delta.text or delta.thinking

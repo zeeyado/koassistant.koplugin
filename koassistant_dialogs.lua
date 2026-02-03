@@ -471,6 +471,13 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
     -- Note: Legacy enable_extended_thinking setting removed - use per-provider toggles instead
     -- (anthropic_reasoning, openai_reasoning, gemini_reasoning in AI Response Settings)
 
+    -- Web search support (per-action override)
+    -- Global setting is in features.enable_web_search, per-action is action.enable_web_search
+    -- nil = follow global, true = force on, false = force off
+    if action and action.enable_web_search ~= nil then
+        config.enable_web_search = action.enable_web_search
+    end
+
     return true
 end
 

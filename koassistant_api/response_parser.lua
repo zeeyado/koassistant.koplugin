@@ -31,17 +31,26 @@ local RESPONSE_TRANSFORMERS = {
 
         -- Handle extended thinking responses (content array with thinking + text blocks)
         -- Also handles regular responses (content array with just text block)
+        -- Web search responses may have multiple text blocks (tool_use blocks are ignored)
         if response.content then
-            local text_content = nil
+            local text_blocks = {}
             local thinking_content = nil
 
-            -- Look for both thinking and text blocks
+            -- Look for thinking and text blocks (ignore tool_use blocks)
             for _, block in ipairs(response.content) do
                 if block.type == "thinking" and block.thinking then
                     thinking_content = block.thinking
                 elseif block.type == "text" and block.text then
-                    text_content = block.text
+                    table.insert(text_blocks, block.text)
                 end
+                -- Other blocks (tool_use, server_tool_use, web_search_tool_result) are silently ignored
+                -- Web search results are integrated into the text blocks by Anthropic
+            end
+
+            -- Concatenate all text blocks (web search may produce multiple)
+            local text_content = nil
+            if #text_blocks > 0 then
+                text_content = table.concat(text_blocks, "\n\n")
             end
 
             -- Fallback: first block with text field (legacy format)

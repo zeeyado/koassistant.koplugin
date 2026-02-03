@@ -112,6 +112,27 @@ function AnthropicRequest:build(config)
     request_body.max_tokens = params.max_tokens or AnthropicRequest.DEFAULT_PARAMS.max_tokens
     request_body.temperature = params.temperature or AnthropicRequest.DEFAULT_PARAMS.temperature
 
+    -- Add web search tool if enabled
+    -- Logic: per-action override > global setting
+    local enable_web_search = false
+    if config.enable_web_search ~= nil then
+        -- Per-action override (true = force on, false = force off)
+        enable_web_search = config.enable_web_search
+    elseif config.features and config.features.enable_web_search then
+        -- Global setting
+        enable_web_search = true
+    end
+
+    if enable_web_search then
+        request_body.tools = {
+            {
+                type = "web_search_20250305",
+                name = "web_search",
+                max_uses = 5,
+            },
+        }
+    end
+
     -- Get model for constraints and capability checking
     local model = config.model or defaults.model
 

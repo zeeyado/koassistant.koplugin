@@ -1312,6 +1312,16 @@ local SettingsSchema = {
                         },
                     },
                 },
+                -- Web Search
+                {
+                    id = "enable_web_search",
+                    type = "toggle",
+                    text = _("Web Search (Anthropic)"),
+                    help_text = _("Allow Claude to search the web for current information. Uses Anthropic's web_search tool. Increases token usage."),
+                    path = "features.enable_web_search",
+                    default = false,
+                    separator = true,
+                },
                 -- Provider-specific settings
                 {
                     id = "provider_settings",

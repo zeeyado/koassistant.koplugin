@@ -26,6 +26,8 @@ function AnthropicHandler:buildRequestBody(message_history, config)
         system = config.system,  -- Unified format from buildUnifiedRequestConfig
         api_params = config.api_params,
         additional_parameters = config.additional_parameters,
+        features = config.features,  -- For web search global setting
+        enable_web_search = config.enable_web_search,  -- Per-action override
     })
 
     local headers = {
@@ -61,6 +63,8 @@ function AnthropicHandler:query(message_history, config)
         system = config.system,  -- Unified format from buildUnifiedRequestConfig
         api_params = config.api_params,
         additional_parameters = config.additional_parameters,
+        features = config.features,  -- For web search global setting
+        enable_web_search = config.enable_web_search,  -- Per-action override
     })
 
     -- Check if streaming is enabled
