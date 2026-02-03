@@ -4961,6 +4961,9 @@ function AskGPT:translateCurrentPage()
   -- Mark this as full page translate so handlePredefinedPrompt can apply translate_hide_full_page setting
   -- Note: The actual hiding is handled in handlePredefinedPrompt which respects user's translate_hide_highlight_mode
   config_copy.features.is_full_page_translate = true
+  -- Clear selection_data - there's no actual user highlight for page translation,
+  -- so the "H.Note" button should be disabled (prevents using stale data from prior highlights)
+  config_copy.features.selection_data = nil
 
   -- Execute translation
   logger.info("KOAssistant: translateCurrentPage calling executeDirectAction with page_text:", page_text and #page_text or "nil/empty")

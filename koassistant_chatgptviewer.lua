@@ -1711,22 +1711,21 @@ function ChatGPTViewer:init()
     hold_callback = self.default_hold_callback,
   })
 
-  -- Translate Row 1: H.Note button (only if selection_data available)
-  if self.selection_data then
-    table.insert(translate_button_row1, {
-      text = _("H.Note"),
-      id = "save_to_note",
-      callback = function()
-        self:saveToNote()
-      end,
-      hold_callback = function()
-        UIManager:show(Notification:new{
-          text = _("Save translation as note on highlighted text"),
-          timeout = 2,
-        })
-      end,
-    })
-  end
+  -- Translate Row 1: H.Note button (grayed out when no selection_data)
+  table.insert(translate_button_row1, {
+    text = _("H.Note"),
+    id = "save_to_note",
+    enabled = self.selection_data ~= nil,
+    callback = function()
+      self:saveToNote()
+    end,
+    hold_callback = function()
+      UIManager:show(Notification:new{
+        text = _("Save translation as note on highlighted text"),
+        timeout = 2,
+      })
+    end,
+  })
 
   -- Translate Row 2: Open full chat button
   table.insert(translate_button_row2, {
