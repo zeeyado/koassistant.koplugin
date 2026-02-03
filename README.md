@@ -461,26 +461,32 @@ You can customize these, create your own, or disable ones you don't use. See [Ac
 | **Explain in Context** | Explain passage using surrounding book content ⚠️ *Requires: Allow Text Extraction* |
 | **Explain in Context (Smart)** | Like above, but uses cached document summary for efficiency ⚠️ *Requires: Allow Text Extraction* |
 | **Analyze in Context** | Deep analysis with book context and your annotations ⚠️ *Requires: Allow Text Extraction, Allow Highlights & Annotations* |
+| **Analyze in Context (Smart)** | Like above, but uses cached document summary ⚠️ *Requires: Allow Text Extraction, Allow Highlights & Annotations* |
 | **Translate** | Translate to your configured language |
 | **Dictionary** | Full dictionary entry: definition, etymology, synonyms, usage (also accessible via dictionary popup) |
 | **Quick Define** | Minimal lookup: brief definition only, no etymology or synonyms |
 | **Deep Analysis** | Linguistic deep-dive: morphology, word family, cognates, etymology path |
 
-**Explain in Context variants**:
+**Smart variants** (Explain in Context, Analyze in Context):
 
-Two versions of "Explain in Context" are available:
+Both "Explain in Context" and "Analyze in Context" have Smart variants that use cached summaries instead of raw book text:
 
-1. **Explain in Context** — Uses extracted book text as context
-   - Best for: Shorter texts (fewer tokens), and when exact detail matters
-   - Sends raw book text each query (higher token usage)
+| Action | Standard | Smart |
+|--------|----------|-------|
+| **Explain in Context** | Sends book text each query | Uses cached summary |
+| **Analyze in Context** | Sends book text + annotations | Uses cached summary + annotations |
 
-2. **Explain in Context (Smart)** — Uses cached document summary
-   - Best for: Longer research papers, longer works, repeated queries on same book
-   - First use: Prompts to generate a reusable summary (~30 seconds)
-   - Subsequent uses: Uses cached summary (much faster and cheaper)
-   - Ideal for academic papers and books the AI isn't trained on
+**When to use Smart variants:**
+- Longer documents (research papers, textbooks, novels)
+- Repeated queries on the same book
+- Books the AI isn't trained on (need context for every query)
 
-> **Tip**: For documents you'll query multiple times, the Smart version saves significant tokens after the initial summary generation. View the cached summary coverage (e.g., "78%" if truncated) via Quick Actions → View Cache.
+**How it works:**
+- First use: Prompts to generate a reusable summary (~30 seconds)
+- Subsequent uses: Uses cached summary (much faster and cheaper)
+- Token savings: ~100K raw text → ~8K cached summary per query
+
+> **Tip**: View the cached summary coverage (e.g., "78%" if document was truncated) via Quick Actions → View Cache.
 
 **What the AI sees**: Your highlighted text, plus document metadata (title, author). Actions like "Explain in Context" and "Analyze in Context" also use extracted book text to understand the surrounding content. Custom actions can access reading progress, chapter info, your highlights/annotations, notebook, and extracted book text—depending on action settings and [privacy preferences](#privacy--data). See [Template Variables](#template-variables) for details.
 
@@ -2147,15 +2153,17 @@ If you haven't run X-Ray yet (or permissions aren't enabled), the placeholder re
 
 **"Generate Once, Use Many Times"**
 
-For medium and long texts (possibly with many highlights), sending full document text for each `explain_in_context` call is expensive. A potential optimization:
+For medium and long texts, sending full document text for each highlight action is expensive. The Smart variants solve this:
 
 1. Run **Summarize Document** once → cached as reusable context (~2-5K tokens)
-2. Use the summary cache placeholder, and subsequent highlight actions reference the cached summary instead of raw book text (100K+ tokens)
+2. Smart actions reference the cached summary instead of raw book text (100K+ tokens)
 3. Massive token savings for users who frequently use context-dependent actions
 
-This "two-tiered"/nested pattern is being tested in Explain in Context (Smart), and custom actions can experiment with similar usage.
+Built-in Smart actions:
+- **Explain in Context (Smart)** — uses `{summary_cache_section}`
+- **Analyze in Context (Smart)** — uses `{summary_cache_section}` + `{annotations_section}`
 
-Making this more seamless in future updates is being explored. Feedback welcome via issues/discussions.
+Custom actions can use the same pattern with `requires_summary_cache = true`.
 
 **Text extraction guidelines:**
 - ~100 pages ≈ 25,000-40,000 characters (varies by formatting)
