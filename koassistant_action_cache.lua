@@ -17,7 +17,8 @@ local logger = require("logger")
 local ActionCache = {}
 
 -- Cache format version (increment if structure changes)
-local CACHE_VERSION = 1
+-- v2: Added used_annotations field to track permission state when cache was built
+local CACHE_VERSION = 2
 
 --- Find a safe long string delimiter for content that won't appear in the text
 --- Returns number of = signs needed (0 means use [[]], 1 means [=[]=], etc.)
@@ -100,6 +101,10 @@ local function saveCache(document_path, cache)
             file:write(string.format("        timestamp = %s,\n", tostring(entry.timestamp or 0)))
             file:write(string.format("        model = %q,\n", entry.model or ""))
             file:write(string.format("        version = %s,\n", tostring(entry.version or CACHE_VERSION)))
+            -- Track permission state when cache was built (for X-Ray)
+            if entry.used_annotations ~= nil then
+                file:write(string.format("        used_annotations = %s,\n", tostring(entry.used_annotations)))
+            end
             -- Result may contain special characters, use long string with safe delimiter
             local result_text = entry.result or ""
             local eq_count = findSafeDelimiter(result_text)
@@ -136,7 +141,7 @@ end
 --- @param action_id string The action ID (e.g., "xray", "recap")
 --- @param result string The AI response text
 --- @param progress_decimal number Progress as decimal (0.0-1.0)
---- @param metadata table Optional metadata: { model = "model-name" }
+--- @param metadata table Optional metadata: { model = "model-name", used_annotations = true/false }
 --- @return boolean success Whether save succeeded
 function ActionCache.set(document_path, action_id, result, progress_decimal, metadata)
     if not document_path or not action_id or not result then
@@ -150,6 +155,8 @@ function ActionCache.set(document_path, action_id, result, progress_decimal, met
         model = metadata and metadata.model or "",
         result = result,
         version = CACHE_VERSION,
+        -- Track permission state when cache was built (only for X-Ray currently)
+        used_annotations = metadata and metadata.used_annotations,
     }
 
     return saveCache(document_path, cache)
@@ -203,7 +210,9 @@ ActionCache.SUMMARY_ANALYSIS_KEY = "_summary_analysis"
 
 --- Get cached X-Ray analysis (partial book analysis to reading position)
 --- @param document_path string The document file path
---- @return table|nil entry { result, progress_decimal, timestamp, model } or nil
+--- @return table|nil entry { result, progress_decimal, timestamp, model, used_annotations } or nil
+---   used_annotations: Whether annotations were included when building this cache.
+---   Use this to determine if annotation permission is required to read the cache.
 function ActionCache.getXrayAnalysis(document_path)
     return ActionCache.get(document_path, ActionCache.XRAY_ANALYSIS_KEY)
 end
@@ -212,7 +221,9 @@ end
 --- @param document_path string The document file path
 --- @param result string The X-Ray analysis text
 --- @param progress_decimal number Progress as decimal (0.0-1.0)
---- @param metadata table Optional: { model = "model-name" }
+--- @param metadata table Optional: { model = "model-name", used_annotations = true/false }
+---   used_annotations: Track whether annotations were included when building this cache.
+---   When reading the cache, annotation permission is only required if used_annotations=true.
 --- @return boolean success
 function ActionCache.setXrayAnalysis(document_path, result, progress_decimal, metadata)
     return ActionCache.set(document_path, ActionCache.XRAY_ANALYSIS_KEY, result, progress_decimal, metadata)

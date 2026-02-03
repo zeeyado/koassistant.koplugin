@@ -743,9 +743,11 @@ end
 -- =============================================================================
 
 --- Get cached X-Ray analysis (partial book analysis to reading position).
--- @return table { text, progress, progress_formatted }
+-- @return table { text, progress, progress_formatted, used_annotations }
+--   used_annotations: Whether annotations were included when building this cache.
+--   Use this to determine if annotation permission is required to read the cache.
 function ContextExtractor:getXrayAnalysis()
-    local result = { text = "", progress = nil, progress_formatted = nil }
+    local result = { text = "", progress = nil, progress_formatted = nil, used_annotations = nil }
 
     if not self:isAvailable() or not self.ui.document or not self.ui.document.file then
         return result
@@ -757,6 +759,7 @@ function ContextExtractor:getXrayAnalysis()
     if entry then
         result.text = entry.result or ""
         result.progress = entry.progress_decimal
+        result.used_annotations = entry.used_annotations
         if entry.progress_decimal then
             result.progress_formatted = tostring(math.floor(entry.progress_decimal * 100 + 0.5)) .. "%"
         end
@@ -914,25 +917,27 @@ function ContextExtractor:extractForAction(action)
     -- Requires both use_book_text flag AND enable_book_text_extraction global setting
     -- Trusted providers bypass the global setting (consistent with book text extraction)
     if action.use_book_text and (provider_trusted or self:isBookTextExtractionEnabled()) then
-        local prompt = action.prompt or ""
-
         -- {xray_analysis} / {xray_analysis_section} → cached X-Ray analysis
-        -- X-Ray includes annotation data, so also requires annotation permission
-        local xray_requested = action.use_xray_analysis or prompt:find("{xray_analysis", 1, true)
-        if xray_requested and annotations_allowed and action.use_annotations then
+        -- X-Ray MAY include annotation data, so check cache's used_annotations flag
+        -- Only require annotation permission if the cache was built with annotations
+        if action.use_xray_analysis then
             local xray = self:getXrayAnalysis()
-            data.xray_analysis = xray.text
-            data.xray_analysis_progress = xray.progress_formatted
+            -- If cache was built with annotations, require annotation permission to read it
+            local requires_annotations = xray.used_annotations == true
+            if not requires_annotations or (annotations_allowed and action.use_annotations) then
+                data.xray_analysis = xray.text
+                data.xray_analysis_progress = xray.progress_formatted
+            end
         end
 
         -- {analyze_analysis} / {analyze_analysis_section} → cached analyze analysis
-        if action.use_analyze_analysis or prompt:find("{analyze_analysis", 1, true) then
+        if action.use_analyze_analysis then
             local analyze = self:getAnalyzeAnalysis()
             data.analyze_analysis = analyze.text
         end
 
         -- {summary_analysis} / {summary_analysis_section} → cached summary analysis
-        if action.use_summary_analysis or prompt:find("{summary_analysis", 1, true) then
+        if action.use_summary_analysis then
             local summary = self:getSummaryAnalysis()
             data.summary_analysis = summary.text
         end
