@@ -1736,6 +1736,69 @@ local function buildConsolidatedMessage(prompt, context, data, system_prompt, do
     })
 end
 
+-- Forward declaration for mutual recursion
+local handlePredefinedPrompt
+
+--- Helper to generate summary cache then continue with original action
+--- Used by actions with requires_summary_cache = true
+--- @param original_action table: The action that requires the summary cache
+--- @param highlightedText string: The highlighted text
+--- @param ui table: The UI instance
+--- @param configuration table: The configuration table
+--- @param existing_history table: Existing message history
+--- @param plugin table: The plugin instance
+--- @param additional_input string: Additional user input
+--- @param on_complete function: Callback for when action completes
+--- @param book_metadata table: Book metadata
+local function generateSummaryCacheAndContinue(
+    original_action, highlightedText, ui, configuration,
+    existing_history, plugin, additional_input, on_complete, book_metadata
+)
+    -- Load Actions module directly to avoid ActionService settings dependency
+    local ok, Actions = pcall(require, "prompts.actions")
+    local summary_action = ok and Actions and Actions.book and Actions.book.summarize_full_document
+
+    if not summary_action then
+        logger.warn("KOAssistant: summarize_full_document action not found for cache generation")
+        UIManager:show(InfoMessage:new{
+            text = _("Could not find summary action. Please try again."),
+        })
+        return
+    end
+
+    -- Show progress notification
+    local Notification = require("ui/widget/notification")
+    UIManager:show(Notification:new{
+        text = _("Generating document summary..."),
+        timeout = 2,
+    })
+
+    -- Execute summarize_full_document (which saves to _summary_cache)
+    -- Uses same handlePredefinedPrompt, so it inherits cache_as_summary behavior
+    handlePredefinedPrompt(
+        summary_action, nil, ui, configuration,
+        nil, plugin, nil,
+        function(history, _config_result)
+            if history then
+                -- Cache is now populated, run original action
+                UIManager:scheduleIn(0.3, function()
+                    handlePredefinedPrompt(
+                        original_action, highlightedText, ui, configuration,
+                        existing_history, plugin, additional_input,
+                        on_complete, book_metadata
+                    )
+                end)
+            else
+                -- Summary generation failed
+                UIManager:show(InfoMessage:new{
+                    text = _("Summary generation failed. Please try again."),
+                })
+            end
+        end,
+        book_metadata
+    )
+end
+
 --- Handle a predefined prompt query
 --- @param prompt_type_or_action string|table: The prompt type string ID or action object
 --- @param highlightedText string: The highlighted text (optional)
@@ -1747,7 +1810,7 @@ end
 --- @param on_complete function: Optional callback for async streaming - receives (history, temp_config) or (nil, error_string)
 --- @param book_metadata table: Optional book metadata {title, author} - used when ui.document is not available
 --- @return history, temp_config when not streaming; nil when streaming (result comes via callback)
-local function handlePredefinedPrompt(prompt_type_or_action, highlightedText, ui, configuration, existing_history, plugin, additional_input, on_complete, book_metadata)
+handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, configuration, existing_history, plugin, additional_input, on_complete, book_metadata)
     -- Use passed configuration or fall back to global
     local config = configuration or CONFIGURATION
 
@@ -1769,6 +1832,30 @@ local function handlePredefinedPrompt(prompt_type_or_action, highlightedText, ui
                 return nil
             end
             return nil, err
+        end
+    end
+
+    -- Pre-flight: Check if action requires summary cache
+    if prompt and prompt.requires_summary_cache and ui and ui.document and ui.document.file then
+        local ActionCache = require("koassistant_action_cache")
+        local cache_entry = ActionCache.getSummaryCache(ui.document.file)
+
+        if not cache_entry then
+            -- Cache missing - show confirmation dialog
+            local ConfirmBox = require("ui/widget/confirmbox")
+            UIManager:show(ConfirmBox:new{
+                text = _("This action uses a reusable document summary for context.\n\nGenerate summary now?\n• First time only\n• Processes up to character limit\n• Coverage shown in cache viewer"),
+                ok_text = _("Generate"),
+                cancel_text = _("Cancel"),
+                ok_callback = function()
+                    generateSummaryCacheAndContinue(
+                        prompt, highlightedText, ui, configuration,
+                        existing_history, plugin, additional_input,
+                        on_complete, book_metadata
+                    )
+                end,
+            })
+            return nil  -- Early return, handled via callback
         end
     end
 
@@ -2163,13 +2250,13 @@ local function handlePredefinedPrompt(prompt_type_or_action, highlightedText, ui
                 logger.info("KOAssistant: Skipping cache for", original_action_id, "- response was truncated")
             end
 
-            -- Save to analysis caches if action has cache_as_* flags (for reuse by other actions)
+            -- Save to document caches if action has cache_as_* flags (for reuse by other actions)
             if not is_truncated and ui.document and ui.document.file then
                 local ActionCache = require("koassistant_action_cache")
                 local progress = tonumber(message_data.progress_decimal) or 0
                 local model_info = { model = ConfigHelper:getModelInfo(temp_config).model }
 
-                if action.cache_as_xray_analysis then
+                if action.cache_as_xray then
                     -- Track whether annotations were used when building this cache
                     -- Reading the cache will only require annotation permission if annotations were included
                     local used_annotations = (message_data.highlights and message_data.highlights ~= "")
@@ -2178,23 +2265,28 @@ local function handlePredefinedPrompt(prompt_type_or_action, highlightedText, ui
                         model = model_info.model,
                         used_annotations = used_annotations,
                     }
-                    local xray_success = ActionCache.setXrayAnalysis(ui.document.file, answer, progress, xray_metadata)
+                    local xray_success = ActionCache.setXrayCache(ui.document.file, answer, progress, xray_metadata)
                     if xray_success then
-                        logger.info("KOAssistant: Saved X-Ray analysis to reusable cache at", progress, "used_annotations=", used_annotations)
+                        logger.info("KOAssistant: Saved X-Ray to reusable cache at", progress, "used_annotations=", used_annotations)
                     end
                 end
 
-                if action.cache_as_analyze_analysis then
-                    local analyze_success = ActionCache.setAnalyzeAnalysis(ui.document.file, answer, 1.0, model_info)
+                if action.cache_as_analyze then
+                    local analyze_success = ActionCache.setAnalyzeCache(ui.document.file, answer, 1.0, model_info)
                     if analyze_success then
-                        logger.info("KOAssistant: Saved analyze analysis to reusable cache")
+                        logger.info("KOAssistant: Saved document analysis to reusable cache")
                     end
                 end
 
-                if action.cache_as_summary_analysis then
-                    local summary_success = ActionCache.setSummaryAnalysis(ui.document.file, answer, 1.0, model_info)
+                if action.cache_as_summary then
+                    -- Include language in metadata for cache viewer awareness
+                    local summary_metadata = {
+                        model = model_info.model,
+                        language = temp_config.features and temp_config.features.translation_language or "English",
+                    }
+                    local summary_success = ActionCache.setSummaryCache(ui.document.file, answer, 1.0, summary_metadata)
                     if summary_success then
-                        logger.info("KOAssistant: Saved summary analysis to reusable cache")
+                        logger.info("KOAssistant: Saved document summary to reusable cache with language:", summary_metadata.language)
                     end
                 end
             end
@@ -2634,6 +2726,24 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         })
         else
             logger.warn("Skipping prompt " .. custom_prompt_type .. " - missing or invalid")
+        end
+    end
+
+    -- Add View Cache button if document has cached content
+    if ui_instance and ui_instance.document and ui_instance.document.file then
+        local ActionCache = require("koassistant_action_cache")
+        local file = ui_instance.document.file
+        local has_any_cache = ActionCache.getXrayCache(file)
+            or ActionCache.getSummaryCache(file)
+            or ActionCache.getAnalyzeCache(file)
+        if has_any_cache and plugin then
+            table.insert(all_buttons, {
+                text = _("View Cache"),
+                callback = function()
+                    UIManager:close(input_dialog)
+                    plugin:viewCache()
+                end
+            })
         end
     end
 

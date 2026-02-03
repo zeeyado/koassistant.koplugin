@@ -264,42 +264,42 @@ function MessageBuilder.build(params)
         user_prompt = replace_placeholder(user_prompt, "{incremental_book_text}", data.incremental_book_text)
     end
 
-    -- Analysis cache placeholders (cached AI responses from previous X-Ray/Summary)
-    -- {xray_analysis_section} - previous X-Ray analysis with progress label
-    local xray_analysis_section = ""
-    if data.xray_analysis and data.xray_analysis ~= "" then
-        local label = "Previous X-Ray analysis"
-        if data.xray_analysis_progress then
-            label = label .. " (as of " .. data.xray_analysis_progress .. ")"
+    -- Document cache placeholders (cached AI responses from previous X-Ray/Summary)
+    -- {xray_cache_section} - previous X-Ray with progress label
+    local xray_cache_section = ""
+    if data.xray_cache and data.xray_cache ~= "" then
+        local label = "Previous X-Ray"
+        if data.xray_cache_progress then
+            label = label .. " (as of " .. data.xray_cache_progress .. ")"
         end
-        xray_analysis_section = label .. ":\n" .. data.xray_analysis
+        xray_cache_section = label .. ":\n" .. data.xray_cache
     end
-    user_prompt = replace_placeholder(user_prompt, "{xray_analysis_section}", xray_analysis_section)
+    user_prompt = replace_placeholder(user_prompt, "{xray_cache_section}", xray_cache_section)
     -- Raw placeholder
-    if data.xray_analysis then
-        user_prompt = replace_placeholder(user_prompt, "{xray_analysis}", data.xray_analysis)
+    if data.xray_cache then
+        user_prompt = replace_placeholder(user_prompt, "{xray_cache}", data.xray_cache)
     end
 
-    -- {analyze_analysis_section} - previous full document analysis
-    local analyze_analysis_section = ""
-    if data.analyze_analysis and data.analyze_analysis ~= "" then
-        analyze_analysis_section = "Document analysis:\n" .. data.analyze_analysis
+    -- {analyze_cache_section} - previous full document analysis
+    local analyze_cache_section = ""
+    if data.analyze_cache and data.analyze_cache ~= "" then
+        analyze_cache_section = "Document analysis:\n" .. data.analyze_cache
     end
-    user_prompt = replace_placeholder(user_prompt, "{analyze_analysis_section}", analyze_analysis_section)
+    user_prompt = replace_placeholder(user_prompt, "{analyze_cache_section}", analyze_cache_section)
     -- Raw placeholder
-    if data.analyze_analysis then
-        user_prompt = replace_placeholder(user_prompt, "{analyze_analysis}", data.analyze_analysis)
+    if data.analyze_cache then
+        user_prompt = replace_placeholder(user_prompt, "{analyze_cache}", data.analyze_cache)
     end
 
-    -- {summary_analysis_section} - previous full document summary
-    local summary_analysis_section = ""
-    if data.summary_analysis and data.summary_analysis ~= "" then
-        summary_analysis_section = "Book summary:\n" .. data.summary_analysis
+    -- {summary_cache_section} - previous full document summary
+    local summary_cache_section = ""
+    if data.summary_cache and data.summary_cache ~= "" then
+        summary_cache_section = "Document summary:\n" .. data.summary_cache
     end
-    user_prompt = replace_placeholder(user_prompt, "{summary_analysis_section}", summary_analysis_section)
+    user_prompt = replace_placeholder(user_prompt, "{summary_cache_section}", summary_cache_section)
     -- Raw placeholder
-    if data.summary_analysis then
-        user_prompt = replace_placeholder(user_prompt, "{summary_analysis}", data.summary_analysis)
+    if data.summary_cache then
+        user_prompt = replace_placeholder(user_prompt, "{summary_cache}", data.summary_cache)
     end
 
     -- Handle different contexts
@@ -546,36 +546,36 @@ function MessageBuilder.substituteVariables(prompt_text, data)
         result = replace_placeholder(result, "{incremental_book_text}", data.incremental_book_text)
     end
 
-    -- Analysis cache placeholders
-    local xray_analysis_section = ""
-    if data.xray_analysis and data.xray_analysis ~= "" then
-        local label = "Previous X-Ray analysis"
-        if data.xray_analysis_progress then
-            label = label .. " (as of " .. data.xray_analysis_progress .. ")"
+    -- Document cache placeholders
+    local xray_cache_section = ""
+    if data.xray_cache and data.xray_cache ~= "" then
+        local label = "Previous X-Ray"
+        if data.xray_cache_progress then
+            label = label .. " (as of " .. data.xray_cache_progress .. ")"
         end
-        xray_analysis_section = label .. ":\n" .. data.xray_analysis
+        xray_cache_section = label .. ":\n" .. data.xray_cache
     end
-    result = replace_placeholder(result, "{xray_analysis_section}", xray_analysis_section)
-    if data.xray_analysis then
-        result = replace_placeholder(result, "{xray_analysis}", data.xray_analysis)
-    end
-
-    local analyze_analysis_section = ""
-    if data.analyze_analysis and data.analyze_analysis ~= "" then
-        analyze_analysis_section = "Document analysis:\n" .. data.analyze_analysis
-    end
-    result = replace_placeholder(result, "{analyze_analysis_section}", analyze_analysis_section)
-    if data.analyze_analysis then
-        result = replace_placeholder(result, "{analyze_analysis}", data.analyze_analysis)
+    result = replace_placeholder(result, "{xray_cache_section}", xray_cache_section)
+    if data.xray_cache then
+        result = replace_placeholder(result, "{xray_cache}", data.xray_cache)
     end
 
-    local summary_analysis_section = ""
-    if data.summary_analysis and data.summary_analysis ~= "" then
-        summary_analysis_section = "Book summary:\n" .. data.summary_analysis
+    local analyze_cache_section = ""
+    if data.analyze_cache and data.analyze_cache ~= "" then
+        analyze_cache_section = "Document analysis:\n" .. data.analyze_cache
     end
-    result = replace_placeholder(result, "{summary_analysis_section}", summary_analysis_section)
-    if data.summary_analysis then
-        result = replace_placeholder(result, "{summary_analysis}", data.summary_analysis)
+    result = replace_placeholder(result, "{analyze_cache_section}", analyze_cache_section)
+    if data.analyze_cache then
+        result = replace_placeholder(result, "{analyze_cache}", data.analyze_cache)
+    end
+
+    local summary_cache_section = ""
+    if data.summary_cache and data.summary_cache ~= "" then
+        summary_cache_section = "Document summary:\n" .. data.summary_cache
+    end
+    result = replace_placeholder(result, "{summary_cache_section}", summary_cache_section)
+    if data.summary_cache then
+        result = replace_placeholder(result, "{summary_cache}", data.summary_cache)
     end
 
     return result

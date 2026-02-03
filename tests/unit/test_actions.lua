@@ -92,53 +92,53 @@ function TestActions:runAll()
         self:assertEquals(Actions.PLACEHOLDER_TO_FLAG["{full_document}"], "use_book_text")
     end)
 
-    -- Test analysis cache placeholders
-    self:test("{xray_analysis} maps to use_xray_analysis", function()
-        self:assertEquals(Actions.PLACEHOLDER_TO_FLAG["{xray_analysis}"], "use_xray_analysis")
+    -- Test document cache placeholders
+    self:test("{xray_cache} maps to use_xray_cache", function()
+        self:assertEquals(Actions.PLACEHOLDER_TO_FLAG["{xray_cache}"], "use_xray_cache")
     end)
 
-    self:test("{analyze_analysis} maps to use_analyze_analysis", function()
-        self:assertEquals(Actions.PLACEHOLDER_TO_FLAG["{analyze_analysis}"], "use_analyze_analysis")
+    self:test("{analyze_cache} maps to use_analyze_cache", function()
+        self:assertEquals(Actions.PLACEHOLDER_TO_FLAG["{analyze_cache}"], "use_analyze_cache")
     end)
 
-    self:test("{summary_analysis} maps to use_summary_analysis", function()
-        self:assertEquals(Actions.PLACEHOLDER_TO_FLAG["{summary_analysis}"], "use_summary_analysis")
+    self:test("{summary_cache} maps to use_summary_cache", function()
+        self:assertEquals(Actions.PLACEHOLDER_TO_FLAG["{summary_cache}"], "use_summary_cache")
     end)
 
     -- Test REQUIRES_BOOK_TEXT cascading
     print("\n--- REQUIRES_BOOK_TEXT cascading ---")
 
-    self:test("REQUIRES_BOOK_TEXT includes use_xray_analysis", function()
-        self:assertContains(Actions.REQUIRES_BOOK_TEXT, "use_xray_analysis")
+    self:test("REQUIRES_BOOK_TEXT includes use_xray_cache", function()
+        self:assertContains(Actions.REQUIRES_BOOK_TEXT, "use_xray_cache")
     end)
 
-    self:test("REQUIRES_BOOK_TEXT includes use_analyze_analysis", function()
-        self:assertContains(Actions.REQUIRES_BOOK_TEXT, "use_analyze_analysis")
+    self:test("REQUIRES_BOOK_TEXT includes use_analyze_cache", function()
+        self:assertContains(Actions.REQUIRES_BOOK_TEXT, "use_analyze_cache")
     end)
 
-    self:test("REQUIRES_BOOK_TEXT includes use_summary_analysis", function()
-        self:assertContains(Actions.REQUIRES_BOOK_TEXT, "use_summary_analysis")
+    self:test("REQUIRES_BOOK_TEXT includes use_summary_cache", function()
+        self:assertContains(Actions.REQUIRES_BOOK_TEXT, "use_summary_cache")
     end)
 
     -- Test REQUIRES_ANNOTATIONS cascading
     print("\n--- REQUIRES_ANNOTATIONS cascading ---")
 
-    self:test("REQUIRES_ANNOTATIONS includes use_xray_analysis", function()
-        self:assertContains(Actions.REQUIRES_ANNOTATIONS, "use_xray_analysis")
+    self:test("REQUIRES_ANNOTATIONS includes use_xray_cache", function()
+        self:assertContains(Actions.REQUIRES_ANNOTATIONS, "use_xray_cache")
     end)
 
-    self:test("REQUIRES_ANNOTATIONS does NOT include use_analyze_analysis", function()
+    self:test("REQUIRES_ANNOTATIONS does NOT include use_analyze_cache", function()
         for _, v in ipairs(Actions.REQUIRES_ANNOTATIONS) do
-            if v == "use_analyze_analysis" then
-                error("use_analyze_analysis should NOT be in REQUIRES_ANNOTATIONS")
+            if v == "use_analyze_cache" then
+                error("use_analyze_cache should NOT be in REQUIRES_ANNOTATIONS")
             end
         end
     end)
 
-    self:test("REQUIRES_ANNOTATIONS does NOT include use_summary_analysis", function()
+    self:test("REQUIRES_ANNOTATIONS does NOT include use_summary_cache", function()
         for _, v in ipairs(Actions.REQUIRES_ANNOTATIONS) do
-            if v == "use_summary_analysis" then
-                error("use_summary_analysis should NOT be in REQUIRES_ANNOTATIONS")
+            if v == "use_summary_cache" then
+                error("use_summary_cache should NOT be in REQUIRES_ANNOTATIONS")
             end
         end
     end)
@@ -186,46 +186,46 @@ function TestActions:runAll()
         self:assertEquals(flags.use_reading_progress, true)
     end)
 
-    -- Test cascading for {xray_analysis}
-    print("\n--- inferOpenBookFlags() cascading for {xray_analysis} ---")
+    -- Test cascading for {xray_cache}
+    print("\n--- inferOpenBookFlags() cascading for {xray_cache} ---")
 
-    self:test("inferOpenBookFlags cascades use_book_text from {xray_analysis}", function()
-        local flags = Actions.inferOpenBookFlags("Use {xray_analysis_section} here")
-        self:assertEquals(flags.use_xray_analysis, true, "Should set use_xray_analysis")
+    self:test("inferOpenBookFlags cascades use_book_text from {xray_cache}", function()
+        local flags = Actions.inferOpenBookFlags("Use {xray_cache_section} here")
+        self:assertEquals(flags.use_xray_cache, true, "Should set use_xray_cache")
         self:assertEquals(flags.use_book_text, true, "Should cascade to use_book_text")
     end)
 
-    self:test("inferOpenBookFlags cascades use_annotations from {xray_analysis}", function()
-        local flags = Actions.inferOpenBookFlags("Use {xray_analysis_section} here")
-        self:assertEquals(flags.use_xray_analysis, true, "Should set use_xray_analysis")
+    self:test("inferOpenBookFlags cascades use_annotations from {xray_cache}", function()
+        local flags = Actions.inferOpenBookFlags("Use {xray_cache_section} here")
+        self:assertEquals(flags.use_xray_cache, true, "Should set use_xray_cache")
         self:assertEquals(flags.use_annotations, true, "Should cascade to use_annotations")
     end)
 
-    -- Test cascading for {analyze_analysis} (only book text, not annotations)
-    print("\n--- inferOpenBookFlags() cascading for {analyze_analysis} ---")
+    -- Test cascading for {analyze_cache} (only book text, not annotations)
+    print("\n--- inferOpenBookFlags() cascading for {analyze_cache} ---")
 
-    self:test("inferOpenBookFlags cascades use_book_text from {analyze_analysis}", function()
-        local flags = Actions.inferOpenBookFlags("Use {analyze_analysis_section} here")
-        self:assertEquals(flags.use_analyze_analysis, true, "Should set use_analyze_analysis")
+    self:test("inferOpenBookFlags cascades use_book_text from {analyze_cache}", function()
+        local flags = Actions.inferOpenBookFlags("Use {analyze_cache_section} here")
+        self:assertEquals(flags.use_analyze_cache, true, "Should set use_analyze_cache")
         self:assertEquals(flags.use_book_text, true, "Should cascade to use_book_text")
     end)
 
-    self:test("inferOpenBookFlags does NOT cascade use_annotations from {analyze_analysis}", function()
-        local flags = Actions.inferOpenBookFlags("Use {analyze_analysis_section} here")
+    self:test("inferOpenBookFlags does NOT cascade use_annotations from {analyze_cache}", function()
+        local flags = Actions.inferOpenBookFlags("Use {analyze_cache_section} here")
         self:assertEquals(flags.use_annotations, nil, "Should NOT cascade to use_annotations")
     end)
 
-    -- Test cascading for {summary_analysis} (only book text, not annotations)
-    print("\n--- inferOpenBookFlags() cascading for {summary_analysis} ---")
+    -- Test cascading for {summary_cache} (only book text, not annotations)
+    print("\n--- inferOpenBookFlags() cascading for {summary_cache} ---")
 
-    self:test("inferOpenBookFlags cascades use_book_text from {summary_analysis}", function()
-        local flags = Actions.inferOpenBookFlags("Use {summary_analysis_section} here")
-        self:assertEquals(flags.use_summary_analysis, true, "Should set use_summary_analysis")
+    self:test("inferOpenBookFlags cascades use_book_text from {summary_cache}", function()
+        local flags = Actions.inferOpenBookFlags("Use {summary_cache_section} here")
+        self:assertEquals(flags.use_summary_cache, true, "Should set use_summary_cache")
         self:assertEquals(flags.use_book_text, true, "Should cascade to use_book_text")
     end)
 
-    self:test("inferOpenBookFlags does NOT cascade use_annotations from {summary_analysis}", function()
-        local flags = Actions.inferOpenBookFlags("Use {summary_analysis_section} here")
+    self:test("inferOpenBookFlags does NOT cascade use_annotations from {summary_cache}", function()
+        local flags = Actions.inferOpenBookFlags("Use {summary_cache_section} here")
         self:assertEquals(flags.use_annotations, nil, "Should NOT cascade to use_annotations")
     end)
 
@@ -254,9 +254,9 @@ function TestActions:runAll()
         self:assertEquals(xray.use_annotations, true)
     end)
 
-    self:test("X-Ray action has cache_as_xray_analysis", function()
+    self:test("X-Ray action has cache_as_xray_cache", function()
         local xray = Actions.book.xray
-        self:assertEquals(xray.cache_as_xray_analysis, true)
+        self:assertEquals(xray.cache_as_xray_cache, true)
     end)
 
     -- Summary

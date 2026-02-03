@@ -82,13 +82,13 @@ Actions.PLACEHOLDER_TO_FLAG = {
     ["{full_document}"] = "use_book_text",
     ["{full_document_section}"] = "use_book_text",
 
-    -- Cached analysis placeholders (double-gated: require use_book_text since content derives from book text)
-    ["{xray_analysis}"] = "use_xray_analysis",
-    ["{xray_analysis_section}"] = "use_xray_analysis",
-    ["{analyze_analysis}"] = "use_analyze_analysis",
-    ["{analyze_analysis_section}"] = "use_analyze_analysis",
-    ["{summary_analysis}"] = "use_summary_analysis",
-    ["{summary_analysis_section}"] = "use_summary_analysis",
+    -- Cached content placeholders (double-gated: require use_book_text since content derives from book text)
+    ["{xray_cache}"] = "use_xray_cache",
+    ["{xray_cache_section}"] = "use_xray_cache",
+    ["{analyze_cache}"] = "use_analyze_cache",
+    ["{analyze_cache_section}"] = "use_analyze_cache",
+    ["{summary_cache}"] = "use_summary_cache",
+    ["{summary_cache_section}"] = "use_summary_cache",
 
     -- Surrounding context placeholder (for highlight actions)
     ["{surrounding_context}"] = "use_surrounding_context",
@@ -98,15 +98,15 @@ Actions.PLACEHOLDER_TO_FLAG = {
 -- Flags that require use_book_text to be set (cascading requirement)
 -- These flags derive from book text, so accessing them needs text extraction permission
 Actions.REQUIRES_BOOK_TEXT = {
-    "use_xray_analysis",
-    "use_analyze_analysis",
-    "use_summary_analysis",
+    "use_xray_cache",
+    "use_analyze_cache",
+    "use_summary_cache",
 }
 
 -- Flags that require use_annotations to be set (cascading requirement)
 -- X-Ray cache includes annotation data, so accessing it needs annotation permission
 Actions.REQUIRES_ANNOTATIONS = {
-    "use_xray_analysis",  -- X-Ray uses {highlights_section}
+    "use_xray_cache",  -- X-Ray uses {highlights_section}
 }
 
 -- Flags that are double-gated (require global consent + explicit per-action checkbox)
@@ -116,10 +116,10 @@ Actions.DOUBLE_GATED_FLAGS = {
     "use_book_text",      -- gate: enable_book_text_extraction
     "use_annotations",    -- gate: enable_annotations_sharing
     "use_notebook",       -- gate: enable_notebook_sharing
-    -- Analysis cache flags inherit from use_book_text
-    "use_xray_analysis",
-    "use_analyze_analysis",
-    "use_summary_analysis",
+    -- Document cache flags inherit from use_book_text
+    "use_xray_cache",
+    "use_analyze_cache",
+    "use_summary_cache",
 }
 
 -- Built-in actions for highlight context
@@ -284,6 +284,35 @@ Provide deeper analysis:
         },
         builtin = true,
     },
+    -- Smart context-aware action using cached summary for efficiency
+    explain_in_context_smart = {
+        id = "explain_in_context_smart",
+        text = _("Explain in Context (Smart)"),
+        context = "highlight",
+        use_book_text = true,        -- Gate for accessing _summary_cache (derives from book text)
+        use_summary_cache = true,    -- Reference the cached summary
+        include_book_context = true,
+        requires_summary_cache = true,  -- Trigger pre-flight cache check
+        prompt = [[Explain this passage in context:
+
+"{highlighted_text}"
+
+From "{title}"{author_clause}.
+
+{summary_cache_section}
+
+Using the document summary above as context, help me understand:
+1. What this passage means
+2. How it relates to the document's main themes and arguments
+3. Key concepts or references it builds on
+
+Note: The summary may be in a different language than your response language. Translate or adapt as needed.]],
+        api_params = {
+            temperature = 0.5,
+            max_tokens = 4096,
+        },
+        builtin = true,
+    },
 }
 
 -- Built-in actions for book context (single book from file browser)
@@ -428,8 +457,8 @@ If you don't recognize this work or the content seems unclear, tell me honestly 
         builtin = true,
         in_reading_features = 1,  -- Appears in Reading Features menu + default gesture
         in_quick_actions = 1,     -- Appears in Quick Actions menu
-        -- Analysis cache: save result for other actions to reference via {xray_analysis_section}
-        cache_as_xray_analysis = true,
+        -- Document cache: save result for other actions to reference via {xray_cache_section}
+        cache_as_xray = true,
         -- Response caching: enables incremental updates as reading progresses
         use_response_caching = true,
         update_prompt = [[Update this X-Ray for "{title}" by {author}.
@@ -615,11 +644,11 @@ Be concise — aim for the most significant connections, not an exhaustive list.
         id = "key_arguments",
         text = _("Key Arguments"),
         context = "book",
-        use_book_text = true,  -- Gate for accessing {analyze_analysis_section} cache
+        use_book_text = true,  -- Gate for accessing {analyze_cache_section} cache
         -- No behavior_variant - uses user's global behavior
         -- No skip_domain - domain expertise shapes analysis approach
         prompt = [[Analyze the main arguments in "{title}" by {author}.
-{analyze_analysis_section}
+{analyze_cache_section}
 
 ## Core Thesis
 What is the central claim or argument?
@@ -657,10 +686,10 @@ Be concise — this is an overview, not an essay. If you don't recognize this ti
         id = "discussion_questions",
         text = _("Discussion Questions"),
         context = "book",
-        use_book_text = true,  -- Gate for accessing {summary_analysis_section} cache
+        use_book_text = true,  -- Gate for accessing {summary_cache_section} cache
         -- User can mention reading progress in follow-up if needed
         prompt = [[Generate thoughtful discussion questions for "{title}" by {author}.
-{summary_analysis_section}
+{summary_cache_section}
 
 Create 8-10 questions that could spark good conversation:
 
@@ -694,7 +723,7 @@ Note: These are general questions for the complete work. If the reader is mid-bo
         text = _("Analyze Document"),
         context = "book",
         use_book_text = true,  -- Permission gate (UI: "Allow text extraction")
-        cache_as_analyze_analysis = true,  -- Save for other actions via {analyze_analysis_section}
+        cache_as_analyze = true,  -- Save for other actions via {analyze_cache_section}
         prompt = [[Analyze this document: "{title}"{author_clause}.
 
 {full_document_section}
@@ -718,7 +747,7 @@ Provide analysis appropriate to this document's type and purpose. Address what's
         text = _("Summarize Document"),
         context = "book",
         use_book_text = true,  -- Permission gate (UI: "Allow text extraction")
-        cache_as_summary_analysis = true,  -- Save for other actions via {summary_analysis_section}
+        cache_as_summary = true,  -- Save for other actions via {summary_cache_section}
         prompt = [[Summarize: "{title}"{author_clause}.
 
 {full_document_section}

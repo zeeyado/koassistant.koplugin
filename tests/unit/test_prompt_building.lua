@@ -135,16 +135,16 @@ local function createMockExtractor(settings, mock_data)
         }
     end
 
-    extractor.getXrayAnalysis = function()
-        return mock_data.xray_analysis or { text = "X-Ray analysis content", progress_formatted = "30%", used_annotations = true }
+    extractor.getXrayCache = function()
+        return mock_data.xray_cache or { text = "X-Ray content", progress_formatted = "30%", used_annotations = true }
     end
 
-    extractor.getAnalyzeAnalysis = function()
-        return mock_data.analyze_analysis or { text = "Deep document analysis content" }
+    extractor.getAnalyzeCache = function()
+        return mock_data.analyze_cache or { text = "Deep document analysis content" }
     end
 
-    extractor.getSummaryAnalysis = function()
-        return mock_data.summary_analysis or { text = "Book summary content" }
+    extractor.getSummaryCache = function()
+        return mock_data.summary_cache or { text = "Document summary content" }
     end
 
     extractor.getNotebookContent = function()
@@ -244,64 +244,64 @@ local function runMessageBuilderTests()
 
     print("\n--- MessageBuilder: Analysis Cache Placeholders ---")
 
-    TestRunner:test("xray_analysis_section includes progress in label", function()
+    TestRunner:test("xray_cache_section includes progress in label", function()
         local result = MessageBuilder.build({
-            prompt = { prompt = "{xray_analysis_section}" },
+            prompt = { prompt = "{xray_cache_section}" },
             context = "general",
-            data = { xray_analysis = "X-Ray content", xray_analysis_progress = "30%" },
+            data = { xray_cache = "X-Ray content", xray_cache_progress = "30%" },
         })
         TestRunner:assertContains(result, "Previous X-Ray analysis (as of 30%):")
         TestRunner:assertContains(result, "X-Ray content")
     end)
 
-    TestRunner:test("xray_analysis_section omits progress when not provided", function()
+    TestRunner:test("xray_cache_section omits progress when not provided", function()
         local result = MessageBuilder.build({
-            prompt = { prompt = "{xray_analysis_section}" },
+            prompt = { prompt = "{xray_cache_section}" },
             context = "general",
-            data = { xray_analysis = "X-Ray content" },  -- no progress
+            data = { xray_cache = "X-Ray content" },  -- no progress
         })
         TestRunner:assertContains(result, "Previous X-Ray analysis:")
         TestRunner:assertNotContains(result, "(as of")
     end)
 
-    TestRunner:test("analyze_analysis_section uses correct label", function()
+    TestRunner:test("analyze_cache_section uses correct label", function()
         local result = MessageBuilder.build({
-            prompt = { prompt = "{analyze_analysis_section}" },
+            prompt = { prompt = "{analyze_cache_section}" },
             context = "general",
-            data = { analyze_analysis = "Deep analysis." },
+            data = { analyze_cache = "Deep analysis." },
         })
         TestRunner:assertContains(result, "Document analysis:")
         TestRunner:assertContains(result, "Deep analysis.")
     end)
 
-    TestRunner:test("summary_analysis_section uses correct label", function()
+    TestRunner:test("summary_cache_section uses correct label", function()
         local result = MessageBuilder.build({
-            prompt = { prompt = "{summary_analysis_section}" },
+            prompt = { prompt = "{summary_cache_section}" },
             context = "general",
-            data = { summary_analysis = "Book summary." },
+            data = { summary_cache = "Book summary." },
         })
-        TestRunner:assertContains(result, "Book summary:")
+        TestRunner:assertContains(result, "Document summary:")
         TestRunner:assertContains(result, "Book summary.")
     end)
 
-    TestRunner:test("raw xray_analysis passes through without label", function()
+    TestRunner:test("raw xray_cache passes through without label", function()
         local result = MessageBuilder.build({
-            prompt = { prompt = "Analysis: {xray_analysis}" },
+            prompt = { prompt = "Analysis: {xray_cache}" },
             context = "general",
-            data = { xray_analysis = "Raw X-Ray" },
+            data = { xray_cache = "Raw X-Ray" },
         })
         TestRunner:assertContains(result, "Analysis: Raw X-Ray")
         TestRunner:assertNotContains(result, "Previous X-Ray analysis")
     end)
 
-    TestRunner:test("raw summary_analysis passes through without label", function()
+    TestRunner:test("raw summary_cache passes through without label", function()
         local result = MessageBuilder.build({
-            prompt = { prompt = "Summary: {summary_analysis}" },
+            prompt = { prompt = "Summary: {summary_cache}" },
             context = "general",
-            data = { summary_analysis = "Raw summary" },
+            data = { summary_cache = "Raw summary" },
         })
         TestRunner:assertContains(result, "Summary: Raw summary")
-        TestRunner:assertNotContains(result, "Book summary:")
+        TestRunner:assertNotContains(result, "Document summary:")
     end)
 
     print("\n--- MessageBuilder: Multiple Placeholders ---")
@@ -525,7 +525,7 @@ local function runGatingTests()
     print("\n--- ContextExtractor: Analysis Cache Gating ---")
 
     -- X-Ray cache with used_annotations=true (default mock) requires annotation permission
-    TestRunner:test("xray_analysis (with annotations) blocked when use_annotations=false", function()
+    TestRunner:test("xray_cache (with annotations) blocked when use_annotations=false", function()
         local extractor = createMockExtractor({
             enable_book_text_extraction = true,
             enable_annotations_sharing = true,
@@ -533,26 +533,26 @@ local function runGatingTests()
         -- Default mock has used_annotations=true, so annotation permission is required
         local data = extractor:extractForAction({
             use_book_text = true,
-            use_xray_analysis = true,
+            use_xray_cache = true,
             use_annotations = false,  -- Cache was built with annotations, so this blocks
         })
-        TestRunner:assertEquals(data.xray_analysis, nil)
+        TestRunner:assertEquals(data.xray_cache, nil)
     end)
 
-    TestRunner:test("xray_analysis blocked when enable_book_text_extraction=false", function()
+    TestRunner:test("xray_cache blocked when enable_book_text_extraction=false", function()
         local extractor = createMockExtractor({
             enable_book_text_extraction = false,  -- Global gate OFF
             enable_annotations_sharing = true,
         })
         local data = extractor:extractForAction({
             use_book_text = true,
-            use_xray_analysis = true,
+            use_xray_cache = true,
             use_annotations = true,
         })
-        TestRunner:assertEquals(data.xray_analysis, nil)
+        TestRunner:assertEquals(data.xray_cache, nil)
     end)
 
-    TestRunner:test("xray_analysis (with annotations) blocked when enable_annotations_sharing=false", function()
+    TestRunner:test("xray_cache (with annotations) blocked when enable_annotations_sharing=false", function()
         local extractor = createMockExtractor({
             enable_book_text_extraction = true,
             enable_annotations_sharing = false,  -- Global annotations gate OFF
@@ -560,27 +560,27 @@ local function runGatingTests()
         -- Default mock has used_annotations=true, so annotation permission is required
         local data = extractor:extractForAction({
             use_book_text = true,
-            use_xray_analysis = true,
+            use_xray_cache = true,
             use_annotations = true,  -- Action flag ON, but global gate OFF
         })
-        TestRunner:assertEquals(data.xray_analysis, nil)
+        TestRunner:assertEquals(data.xray_cache, nil)
     end)
 
-    TestRunner:test("xray_analysis (with annotations) allowed when all gates pass", function()
+    TestRunner:test("xray_cache (with annotations) allowed when all gates pass", function()
         local extractor = createMockExtractor({
             enable_book_text_extraction = true,
             enable_annotations_sharing = true,
         })
         local data = extractor:extractForAction({
             use_book_text = true,
-            use_xray_analysis = true,
+            use_xray_cache = true,
             use_annotations = true,
         })
-        TestRunner:assertContains(data.xray_analysis, "X-Ray analysis content")
-        TestRunner:assertEquals(data.xray_analysis_progress, "30%")
+        TestRunner:assertContains(data.xray_cache, "X-Ray analysis content")
+        TestRunner:assertEquals(data.xray_cache_progress, "30%")
     end)
 
-    TestRunner:test("xray_analysis bypass with trusted provider (both global gates off)", function()
+    TestRunner:test("xray_cache bypass with trusted provider (both global gates off)", function()
         local extractor = createMockExtractor({
             enable_book_text_extraction = false,  -- OFF
             enable_annotations_sharing = false,   -- OFF
@@ -589,111 +589,111 @@ local function runGatingTests()
         })
         local data = extractor:extractForAction({
             use_book_text = true,
-            use_xray_analysis = true,
+            use_xray_cache = true,
             use_annotations = true,
         })
-        TestRunner:assertContains(data.xray_analysis, "X-Ray analysis content")
+        TestRunner:assertContains(data.xray_cache, "X-Ray analysis content")
     end)
 
     -- X-Ray cache WITHOUT annotations does NOT require annotation permission
-    TestRunner:test("xray_analysis (without annotations) allowed even when annotations disabled", function()
+    TestRunner:test("xray_cache (without annotations) allowed even when annotations disabled", function()
         -- Create extractor with cache that was built WITHOUT annotations
         local extractor = createMockExtractor({
             enable_book_text_extraction = true,
             enable_annotations_sharing = false,  -- Annotations disabled
         }, {
-            xray_analysis = { text = "X-Ray without annotations", progress_formatted = "40%", used_annotations = false }
+            xray_cache = { text = "X-Ray without annotations", progress_formatted = "40%", used_annotations = false }
         })
         local data = extractor:extractForAction({
             use_book_text = true,
-            use_xray_analysis = true,
+            use_xray_cache = true,
             use_annotations = false,  -- OK because cache was built without annotations
         })
-        TestRunner:assertContains(data.xray_analysis, "X-Ray without annotations")
+        TestRunner:assertContains(data.xray_cache, "X-Ray without annotations")
     end)
 
-    TestRunner:test("xray_analysis (without annotations) allowed when use_annotations=false", function()
+    TestRunner:test("xray_cache (without annotations) allowed when use_annotations=false", function()
         -- Cache built without annotations doesn't require annotation permission
         local extractor = createMockExtractor({
             enable_book_text_extraction = true,
             enable_annotations_sharing = true,  -- Even with annotations enabled globally
         }, {
-            xray_analysis = { text = "X-Ray no annot", progress_formatted = "25%", used_annotations = false }
+            xray_cache = { text = "X-Ray no annot", progress_formatted = "25%", used_annotations = false }
         })
         local data = extractor:extractForAction({
             use_book_text = true,
-            use_xray_analysis = true,
+            use_xray_cache = true,
             use_annotations = false,  -- Action doesn't request annotations - OK for this cache
         })
-        TestRunner:assertContains(data.xray_analysis, "X-Ray no annot")
+        TestRunner:assertContains(data.xray_cache, "X-Ray no annot")
     end)
 
-    TestRunner:test("xray_analysis with nil used_annotations treated as no annotations required", function()
+    TestRunner:test("xray_cache with nil used_annotations treated as no annotations required", function()
         -- Legacy cache without used_annotations field (nil) - treat as not requiring annotations
         local extractor = createMockExtractor({
             enable_book_text_extraction = true,
         }, {
-            xray_analysis = { text = "Legacy X-Ray cache", progress_formatted = "20%", used_annotations = nil }
+            xray_cache = { text = "Legacy X-Ray cache", progress_formatted = "20%", used_annotations = nil }
         })
         local data = extractor:extractForAction({
             use_book_text = true,
-            use_xray_analysis = true,
+            use_xray_cache = true,
             -- No use_annotations flag
         })
-        TestRunner:assertContains(data.xray_analysis, "Legacy X-Ray cache")
+        TestRunner:assertContains(data.xray_cache, "Legacy X-Ray cache")
     end)
 
-    TestRunner:test("analyze_analysis allowed with book_text gates only", function()
+    TestRunner:test("analyze_cache allowed with book_text gates only", function()
         local extractor = createMockExtractor({
             enable_book_text_extraction = true,
             enable_annotations_sharing = false,  -- Not required for analyze
         })
         local data = extractor:extractForAction({
             use_book_text = true,
-            use_analyze_analysis = true,  -- Explicit flag required
+            use_analyze_cache = true,  -- Explicit flag required
             use_annotations = false,  -- Not required
         })
-        TestRunner:assertContains(data.analyze_analysis, "Deep document analysis")
+        TestRunner:assertContains(data.analyze_cache, "Deep document analysis")
     end)
 
-    TestRunner:test("analyze_analysis does NOT require use_annotations", function()
+    TestRunner:test("analyze_cache does NOT require use_annotations", function()
         local extractor = createMockExtractor({
             enable_book_text_extraction = true,
         })
         local data = extractor:extractForAction({
             use_book_text = true,
-            use_analyze_analysis = true,  -- Explicit flag required
+            use_analyze_cache = true,  -- Explicit flag required
             -- use_annotations not set
         })
-        TestRunner:assertContains(data.analyze_analysis, "Deep document analysis")
+        TestRunner:assertContains(data.analyze_cache, "Deep document analysis")
     end)
 
     -- Flag-only pattern: placeholders alone don't trigger extraction
-    TestRunner:test("analyze_analysis requires explicit flag (placeholder alone not enough)", function()
+    TestRunner:test("analyze_cache requires explicit flag (placeholder alone not enough)", function()
         local extractor = createMockExtractor({
             enable_book_text_extraction = true,
         })
         local data = extractor:extractForAction({
             use_book_text = true,
-            -- use_analyze_analysis NOT set
-            prompt = "{analyze_analysis}",  -- Placeholder in prompt, but no flag
+            -- use_analyze_cache NOT set
+            prompt = "{analyze_cache}",  -- Placeholder in prompt, but no flag
         })
-        TestRunner:assertEquals(data.analyze_analysis, nil)
+        TestRunner:assertEquals(data.analyze_cache, nil)
     end)
 
-    TestRunner:test("summary_analysis requires explicit flag (placeholder alone not enough)", function()
+    TestRunner:test("summary_cache requires explicit flag (placeholder alone not enough)", function()
         local extractor = createMockExtractor({
             enable_book_text_extraction = true,
         })
         local data = extractor:extractForAction({
             use_book_text = true,
-            -- use_summary_analysis NOT set
-            prompt = "{summary_analysis}",  -- Placeholder in prompt, but no flag
+            -- use_summary_cache NOT set
+            prompt = "{summary_cache}",  -- Placeholder in prompt, but no flag
         })
-        TestRunner:assertEquals(data.summary_analysis, nil)
+        TestRunner:assertEquals(data.summary_cache, nil)
     end)
 
-    TestRunner:test("xray_analysis requires explicit flag (placeholder alone not enough)", function()
+    TestRunner:test("xray_cache requires explicit flag (placeholder alone not enough)", function()
         local extractor = createMockExtractor({
             enable_book_text_extraction = true,
             enable_annotations_sharing = true,
@@ -701,21 +701,21 @@ local function runGatingTests()
         local data = extractor:extractForAction({
             use_book_text = true,
             use_annotations = true,
-            -- use_xray_analysis NOT set
-            prompt = "{xray_analysis}",  -- Placeholder in prompt, but no flag
+            -- use_xray_cache NOT set
+            prompt = "{xray_cache}",  -- Placeholder in prompt, but no flag
         })
-        TestRunner:assertEquals(data.xray_analysis, nil)
+        TestRunner:assertEquals(data.xray_cache, nil)
     end)
 
-    TestRunner:test("summary_analysis allowed with book_text gates only", function()
+    TestRunner:test("summary_cache allowed with book_text gates only", function()
         local extractor = createMockExtractor({
             enable_book_text_extraction = true,
         })
         local data = extractor:extractForAction({
             use_book_text = true,
-            use_summary_analysis = true,  -- Explicit flag required
+            use_summary_cache = true,  -- Explicit flag required
         })
-        TestRunner:assertContains(data.summary_analysis, "Book summary content")
+        TestRunner:assertContains(data.summary_cache, "Book summary content")
     end)
 
     TestRunner:test("analysis cache blocked when use_book_text=false", function()
@@ -725,14 +725,14 @@ local function runGatingTests()
         })
         local data = extractor:extractForAction({
             use_book_text = false,  -- Gate off
-            use_xray_analysis = true,
-            use_analyze_analysis = true,
-            use_summary_analysis = true,
+            use_xray_cache = true,
+            use_analyze_cache = true,
+            use_summary_cache = true,
             use_annotations = true,
         })
-        TestRunner:assertEquals(data.xray_analysis, nil)
-        TestRunner:assertEquals(data.analyze_analysis, nil)
-        TestRunner:assertEquals(data.summary_analysis, nil)
+        TestRunner:assertEquals(data.xray_cache, nil)
+        TestRunner:assertEquals(data.analyze_cache, nil)
+        TestRunner:assertEquals(data.summary_cache, nil)
     end)
 end
 
@@ -743,19 +743,19 @@ end
 local function runCacheIntegrationTests()
     print("\n--- ActionCache: Cache Data Flow ---")
 
-    TestRunner:test("xray_analysis data flows to MessageBuilder correctly", function()
+    TestRunner:test("xray_cache data flows to MessageBuilder correctly", function()
         local extractor = createMockExtractor({
             enable_book_text_extraction = true,
             enable_annotations_sharing = true,
         })
         local data = extractor:extractForAction({
             use_book_text = true,
-            use_xray_analysis = true,  -- Explicit flag required
+            use_xray_cache = true,  -- Explicit flag required
             use_annotations = true,
         })
         -- Now pass to MessageBuilder
         local result = MessageBuilder.build({
-            prompt = { prompt = "{xray_analysis_section}" },
+            prompt = { prompt = "{xray_cache_section}" },
             context = "general",
             data = data,
         })
@@ -768,14 +768,14 @@ local function runCacheIntegrationTests()
             enable_book_text_extraction = true,
             enable_annotations_sharing = true,
         }, {
-            xray_analysis = { text = "", progress_formatted = nil, used_annotations = false },  -- Empty cache
+            xray_cache = { text = "", progress_formatted = nil, used_annotations = false },  -- Empty cache
         })
         local data = extractor:extractForAction({
             use_book_text = true,
-            use_xray_analysis = true,  -- Explicit flag required
+            use_xray_cache = true,  -- Explicit flag required
         })
         local result = MessageBuilder.build({
-            prompt = { prompt = "Start{xray_analysis_section}End" },
+            prompt = { prompt = "Start{xray_cache_section}End" },
             context = "general",
             data = data,
         })
@@ -783,16 +783,16 @@ local function runCacheIntegrationTests()
         TestRunner:assertContains(result, "StartEnd")
     end)
 
-    TestRunner:test("analyze_analysis flows without progress", function()
+    TestRunner:test("analyze_cache flows without progress", function()
         local extractor = createMockExtractor({
             enable_book_text_extraction = true,
         })
         local data = extractor:extractForAction({
             use_book_text = true,
-            use_analyze_analysis = true,  -- Explicit flag required
+            use_analyze_cache = true,  -- Explicit flag required
         })
         local result = MessageBuilder.build({
-            prompt = { prompt = "{analyze_analysis_section}" },
+            prompt = { prompt = "{analyze_cache_section}" },
             context = "general",
             data = data,
         })
@@ -800,20 +800,20 @@ local function runCacheIntegrationTests()
         TestRunner:assertNotContains(result, "(as of")  -- No progress for analyze
     end)
 
-    TestRunner:test("summary_analysis flows without progress", function()
+    TestRunner:test("summary_cache flows without progress", function()
         local extractor = createMockExtractor({
             enable_book_text_extraction = true,
         })
         local data = extractor:extractForAction({
             use_book_text = true,
-            use_summary_analysis = true,  -- Explicit flag required
+            use_summary_cache = true,  -- Explicit flag required
         })
         local result = MessageBuilder.build({
-            prompt = { prompt = "{summary_analysis_section}" },
+            prompt = { prompt = "{summary_cache_section}" },
             context = "general",
             data = data,
         })
-        TestRunner:assertContains(result, "Book summary:")
+        TestRunner:assertContains(result, "Document summary:")
     end)
 
     TestRunner:test("gated-off cache results in section disappearing", function()
@@ -822,10 +822,10 @@ local function runCacheIntegrationTests()
         })
         local data = extractor:extractForAction({
             use_book_text = true,
-            use_analyze_analysis = true,  -- Explicit flag, but global gate blocks
+            use_analyze_cache = true,  -- Explicit flag, but global gate blocks
         })
         local result = MessageBuilder.build({
-            prompt = { prompt = "Before{analyze_analysis_section}After" },
+            prompt = { prompt = "Before{analyze_cache_section}After" },
             context = "general",
             data = data,
         })

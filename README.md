@@ -459,11 +459,28 @@ You can customize these, create your own, or disable ones you don't use. See [Ac
 | **Connect** | Draw connections to other works, thinkers, and broader context |
 | **Connect (With Notes)** | Connect passage to your personal reading journey ⚠️ *Requires: Allow Highlights & Annotations, Allow Notebook* |
 | **Explain in Context** | Explain passage using surrounding book content ⚠️ *Requires: Allow Text Extraction* |
+| **Explain in Context (Smart)** | Like above, but uses cached document summary for efficiency ⚠️ *Requires: Allow Text Extraction* |
 | **Analyze in Context** | Deep analysis with book context and your annotations ⚠️ *Requires: Allow Text Extraction, Allow Highlights & Annotations* |
 | **Translate** | Translate to your configured language |
 | **Dictionary** | Full dictionary entry: definition, etymology, synonyms, usage (also accessible via dictionary popup) |
 | **Quick Define** | Minimal lookup: brief definition only, no etymology or synonyms |
 | **Deep Analysis** | Linguistic deep-dive: morphology, word family, cognates, etymology path |
+
+**Explain in Context variants**:
+
+Two versions of "Explain in Context" are available:
+
+1. **Explain in Context** — Uses extracted book text as context
+   - Best for: Shorter texts (fewer tokens), and when exact detail matters
+   - Sends raw book text each query (higher token usage)
+
+2. **Explain in Context (Smart)** — Uses cached document summary
+   - Best for: Longer research papers, longer works, repeated queries on same book
+   - First use: Prompts to generate a reusable summary (~30 seconds)
+   - Subsequent uses: Uses cached summary (much faster and cheaper)
+   - Ideal for academic papers and books the AI isn't trained on
+
+> **Tip**: For documents you'll query multiple times, the Smart version saves significant tokens after the initial summary generation. View the cached summary coverage (e.g., "78%" if truncated) via Quick Actions → View Cache.
 
 **What the AI sees**: Your highlighted text, plus document metadata (title, author). Actions like "Explain in Context" and "Analyze in Context" also use extracted book text to understand the surrounding content. Custom actions can access reading progress, chapter info, your highlights/annotations, notebook, and extracted book text—depending on action settings and [privacy preferences](#privacy--data). See [Template Variables](#template-variables) for details.
 
@@ -574,7 +591,7 @@ The general input dialog shows only actions you've explicitly added. By default,
 3. Long-press any action
 4. Tap **"Add to General Input"**
 
-Actions like News Update that require [web search](#web-search) are available in the gesture menu by default but not in the input dialog—this avoids showing web-dependent actions to users who haven't configured a web-search-capable provider. Add them to the input dialog if you use Anthropic, Gemini, or OpenRouter.
+Actions like News Update that require [web search](#web-search) are available in the gesture menu by default but not in the input dialog—this avoids showing web-dependent actions to users who haven't configured a web-search-capable provider. Add them to the input dialog (Manage Actions -> long press a general context action -> Add to General Input) if you use Anthropic, Gemini, or OpenRouter, the latter of which support web search for models from other providers that KOAssistant currently doesn't have dedicated web support for, e.g. OpenAI, XAI, Perplexity models.
 
 > **Tip:** News Update demonstrates per-action web search override (`enable_web_search = true`). Even if web search is globally disabled, this action will use it. See [Web Search](#web-search) for more on per-action overrides.
 
@@ -774,12 +791,12 @@ Insert these in your action prompt to reference dynamic values:
 | `{full_document_section}` | Book, Highlight (reading) | Same as above with "Full document:" label | Allow Text Extraction |
 | `{surrounding_context}` | Highlight (reading) | Text surrounding the highlighted passage | — |
 | `{surrounding_context_section}` | Highlight (reading) | Same as above with "Surrounding text:" label | — |
-| `{xray_analysis}` | Book (reading) | Cached X-Ray analysis (if available) | Allow Text Extraction |
-| `{xray_analysis_section}` | Book (reading) | Same as above with progress label | Allow Text Extraction |
-| `{analyze_analysis}` | Book (reading) | Cached Analyze Document analysis (if available) | Allow Text Extraction |
-| `{analyze_analysis_section}` | Book (reading) | Same as above with label | Allow Text Extraction |
-| `{summary_analysis}` | Book (reading) | Cached Summary analysis (if available) | Allow Text Extraction |
-| `{summary_analysis_section}` | Book (reading) | Same as above with label | Allow Text Extraction |
+| `{xray_cache}` | Book (reading) | Cached X-Ray (if available) | Allow Text Extraction |
+| `{xray_cache_section}` | Book (reading) | Same as above with progress label | Allow Text Extraction |
+| `{analyze_cache}` | Book (reading) | Cached document analysis (if available) | Allow Text Extraction |
+| `{analyze_cache_section}` | Book (reading) | Same as above with label | Allow Text Extraction |
+| `{summary_cache}` | Book (reading) | Cached document summary (if available) | Allow Text Extraction |
+| `{summary_cache_section}` | Book (reading) | Same as above with label | Allow Text Extraction |
 
 **Context notes:**
 - **Book** = Available in both reading mode and file browser
@@ -796,17 +813,17 @@ Insert these in your action prompt to reference dynamic values:
 - `{annotations_section}` → "My annotations:\n[content]" or "" if empty
 - `{notebook_section}` → "My notebook entries:\n[content]" or "" if empty
 - `{surrounding_context_section}` → "Surrounding text:\n[content]" or "" if empty
-- `{xray_analysis_section}` → "Previous X-Ray analysis (as of X%):\n[content]" or "" if empty
-- `{analyze_analysis_section}` → "Document analysis:\n[content]" or "" if empty
-- `{summary_analysis_section}` → "Book summary:\n[content]" or "" if empty
+- `{xray_cache_section}` → "Previous X-Ray (as of X%):\n[content]" or "" if empty
+- `{analyze_cache_section}` → "Document analysis:\n[content]" or "" if empty
+- `{summary_cache_section}` → "Document summary:\n[content]" or "" if empty
 
-"Raw" placeholders (`{book_text}`, `{full_document}`, `{highlights}`, `{annotations}`, `{notebook}`, `{surrounding_context}`, `{xray_analysis}`, `{analyze_analysis}`, `{summary_analysis}`) give you just the content with no label, useful when you want custom labeling in your prompt.
+"Raw" placeholders (`{book_text}`, `{full_document}`, `{highlights}`, `{annotations}`, `{notebook}`, `{surrounding_context}`, `{xray_cache}`, `{analyze_cache}`, `{summary_cache}`) give you just the content with no label, useful when you want custom labeling in your prompt.
 
 **Tip:** Use section placeholders in most cases. They prevent dangling references—if you write "Look at my highlights: {highlights}" in your prompt but highlights is empty, the AI sees confusing instructions about nonexistent content. Section placeholders include the label only when content exists.
 
 > **Privacy note:** Section placeholders adapt to [privacy settings](#privacy--data). If a data type is disabled (or not yet enabled), the corresponding placeholder returns empty and section variants disappear gracefully. For example, `{highlights_section}` is empty unless you enable **Allow Highlights & Annotations**. You don't need to modify actions to match your privacy preferences—they adapt automatically.
 
-> **Double-gating:** Sensitive data requires BOTH a global privacy setting AND a per-action permission flag. This prevents accidental data leakage—if you enable "Allow Text Extraction" globally, your custom actions still need "Allow text extraction" checked to actually use it. Built-in actions already have appropriate flags set. When you copy a built-in action, it inherits the flags. When creating from scratch, check the permissions you need. Analysis cache placeholders require the same permissions as their source: `{xray_analysis}` needs both text extraction AND annotations enabled, while `{analyze_analysis}` and `{summary_analysis}` only need text extraction.
+> **Double-gating:** Sensitive data requires BOTH a global privacy setting AND a per-action permission flag. This prevents accidental data leakage—if you enable "Allow Text Extraction" globally, your custom actions still need "Allow text extraction" checked to actually use it. Built-in actions already have appropriate flags set. When you copy a built-in action, it inherits the flags. When creating from scratch, check the permissions you need. Document cache placeholders require the same permissions as their source: `{xray_cache}` needs both text extraction AND annotations enabled, while `{analyze_cache}` and `{summary_cache}` only need text extraction.
 
 > **Note:** Text extraction placeholders (`{book_text}`, `{full_document}`, analysis caches, etc.) require two things: (1) the global **Allow Text Extraction** setting enabled in Settings → Privacy & Data → Text Extraction, and (2) the action must have "Allow text extraction" checked. Both are off by default—primarily to avoid unexpected token costs, and secondarily for content awareness. See [Text Extraction](#text-extraction) for details.
 
@@ -819,8 +836,10 @@ Insert these in your action prompt to reference dynamic values:
 - **Experiment with domains**: Try running the same action with and without a domain to see what works for your use case. Some actions benefit from domain context (analysis, explanation), others don't (translation, grammar).
 - **Test before deploying**: Use the [web inspector](#testing-your-setup) to test your custom actions before using them on your e-reader. You can try different settings combinations and see exactly what's sent to the AI.
 - **Reading-mode placeholders**: Book actions using `{reading_progress}`, `{book_text}`, `{full_document}`, `{highlights}`, `{annotations}`, `{notebook}`, or `{chapter_title}` are **automatically hidden** in File Browser mode because these require an open book. This filtering is automatic—if your custom book action uses these placeholders, it will only appear when reading. Highlight actions are always reading-mode (you can't highlight without an open book). The action wizard shows a `[reading]` indicator for such actions.
-- **Analysis caches**: Reference previous X-Ray, Analyze Document, or Summary results without re-running them using `{xray_analysis_section}`, `{analyze_analysis_section}`, or `{summary_analysis_section}`. Useful for building on previous analysis. These require "Allow text extraction" since the cached content derives from book text.
-- **Surrounding context**: Use `{surrounding_context_section}` in highlight actions to include text around the highlighted passage (sentence, paragraph, or character count—uses dictionary context settings). Hard-capped at 2000 characters to prevent misuse as text extraction.
+- **Document caches**: Reference previous X-Ray, Analyze Document, or Summary results without re-running them using `{xray_cache_section}`, `{analyze_cache_section}`, or `{summary_cache_section}`. Useful for building on previous analysis. These require `use_book_text = true` since the cached content derives from book text (X-ray cache additionally requires use of annotations, if the cache was built with annotations in the first place). Two usage patterns:
+  - **Supplement**: Add cache reference to actions that otherwise use only title/author (like Discussion Questions or Key Arguments). The section placeholder disappears if no cache exists, so there's no major change for users without caches—just bonus context when available.
+  - **Replace**: Use cached summary INSTEAD of raw book text for token savings on long books. Not implemented in built-in actions yet, but custom actions can experiment with this. See [Response Caching](#response-caching) for vision notes.
+- **Surrounding context**: Use `{surrounding_context_section}` in highlight actions to include text around the highlighted passage. This is live extraction (not cached), hard-capped at 2000 characters. Particularly useful for **custom dictionary-like actions** that need sentence context for single-word lookups—look at the built-in `quick_define`, `dictionary`, and `deep` actions for inspiration. Uses your Dictionary Settings for context mode (sentence, paragraph, or character count).
 
 ### File-Based Actions
 
@@ -865,9 +884,9 @@ return {
 - `use_notebook`: Include content from the book's KOAssistant notebook
 - `use_surrounding_context`: Include surrounding text for highlight actions (auto-inferred from `{surrounding_context}` placeholder)
 - `include_book_context`: Add book info to highlight actions
-- `cache_as_xray_analysis`: Save this action's result to the X-Ray analysis cache (for other actions to reference)
-- `cache_as_analyze_analysis`: Save this action's result to the Analyze analysis cache
-- `cache_as_summary_analysis`: Save this action's result to the Summary analysis cache
+- `cache_as_xray`: Save this action's result to the X-Ray cache (for other actions to reference)
+- `cache_as_analyze`: Save this action's result to the document analysis cache
+- `cache_as_summary`: Save this action's result to the document summary cache
 - `skip_language_instruction`: Don't include language instruction in system message (default: off; Translate/Dictionary use true since target language is in the prompt)
 - `skip_domain`: Don't include domain context in system message (default: off; Translate/Dictionary use true)
 - `domain`: Force a specific domain by ID (overrides the user's current domain selection; file-only, no UI for this yet)
@@ -1002,13 +1021,13 @@ See [How Language Settings Work Together](#how-language-settings-work-together) 
 
 ### RTL Language Support
 
-Dictionary actions have special handling for right-to-left (RTL) languages:
+Dictionary and translate actions have special handling for right-to-left (RTL) languages:
 
-- **Automatic text mode**: When your dictionary language is set to an RTL language, dictionary results automatically use Plain Text mode for proper font rendering. This can be disabled via **Settings → Display Settings → Text Mode for RTL Dictionary**.
-- **BiDi text alignment**: Dictionary entries with RTL content (headwords, definitions) display with correct bidirectional text alignment. Mixed RTL/LTR content (e.g., Arabic headwords with English pronunciation guides) renders in the correct reading order.
+- **Automatic text mode**: When your dictionary or translation language is set to an RTL language, results automatically use Plain Text mode for proper font rendering. This can be configured via **Settings → Display Settings → Text Mode for RTL Dictionary** and **Text Mode for RTL Translate**.
+- **BiDi text alignment**: Entries with RTL content display with correct bidirectional text alignment. Mixed RTL/LTR content (e.g., Arabic headwords with English pronunciation guides) renders in the correct reading order.
 - **IPA transcription handling**: Phonetic transcriptions are anchored to display correctly alongside RTL headwords.
 
-> **Note:** For best RTL rendering, Plain Text mode is recommended. The automatic RTL text mode handles this for dictionary lookups specifically, while preserving your global Markdown/Plain Text preference for other chats.
+> **Note:** For best RTL rendering, Plain Text mode is recommended. The automatic RTL text mode handles this for dictionary and translate actions specifically, while preserving your global Markdown/Plain Text preference for other chats.
 
 ### Custom Dictionary Actions
 
@@ -1582,6 +1601,7 @@ Tags are simple labels for organizing chats. Unlike domains:
   - **Apply Markdown Stripping**: Convert markdown syntax to readable plain text. Headers use hierarchical symbols with bold text (`▉ **H1**`, `◤ **H2**`, `◆ **H3**`, etc.), `**bold**` renders as actual bold, `*italics*` are preserved as-is, `_italics_` (underscores) become bold, lists become `•`, code becomes `'quoted'`. Includes BiDi support for mixed RTL/LTR content. Disable to show raw markdown. (default: on)
 - **Text Mode for Dictionary**: Always use Plain Text mode for dictionary popup, regardless of global view mode setting. Better font support for non-Latin scripts. (default: off)
 - **Text Mode for RTL Dictionary**: Automatically use Plain Text mode for dictionary popup when dictionary language is RTL. Grayed out when Text Mode for Dictionary is enabled. (default: on)
+- **Text Mode for RTL Translate**: Automatically use Plain Text mode for translate popup when translation language is RTL. (default: on)
 - **Hide Highlighted Text**: Don't show selection in responses
 - **Hide Long Highlights**: Collapse highlights over character threshold
 - **Long Highlight Threshold**: Character limit before collapsing (default: 280)
@@ -2092,26 +2112,26 @@ When text extraction is enabled, X-Ray and Recap responses are automatically cac
 - Automatically moves with the book if you reorganize your library
 - One entry per action (xray, recap) plus shared analysis caches
 
-**Shared analysis caches:**
-When X-Ray, Analyze Document, or Summary actions complete, their results are also saved to shared analysis caches that other actions can reference:
-- X-Ray → saves to `_xray_analysis` cache
-- Analyze Document → saves to `_analyze_analysis` cache
-- Summary → saves to `_summary_analysis` cache
+**Shared document caches:**
+When X-Ray, Analyze Document, or Summary actions complete, their results are also saved to shared caches that other actions can reference:
+- X-Ray → saves to `_xray_cache`
+- Analyze Document → saves to `_analyze_cache`
+- Summary → saves to `_summary_cache`
 
-Custom actions can reference these using `{xray_analysis_section}`, `{analyze_analysis_section}`, or `{summary_analysis_section}` placeholders. This lets you build on previous analysis without re-running expensive actions.
+Custom actions can reference these using `{xray_cache_section}`, `{analyze_cache_section}`, or `{summary_cache_section}` placeholders. This lets you build on previous analysis without re-running expensive actions.
 
 **Example: Create a "Questions from X-Ray" action**
 1. Enable **Allow Text Extraction** AND **Allow Highlights & Annotations** in Settings → Privacy & Data
 2. Run **X-Ray** on a book (this populates the cache)
-3. Create a custom action with prompt: `Based on this analysis:\n\n{xray_analysis_section}\n\nWhat are the 3 most important questions I should be thinking about?`
+3. Create a custom action with prompt: `Based on this analysis:\n\n{xray_cache_section}\n\nWhat are the 3 most important questions I should be thinking about?`
 4. Check "Allow text extraction" and "Include highlights" in the action's permissions
 5. Run your new action—it uses the cached X-Ray without re-analyzing
 
 If you haven't run X-Ray yet (or permissions aren't enabled), the placeholder renders empty and the action still runs, just without the analysis context.
 
 > **Permission requirement:** Cache placeholders require the same permissions as the original action that generated them:
-> - `{xray_analysis_section}` requires **Allow Text Extraction** AND **Allow Highlights & Annotations** (because X-Ray uses highlights)
-> - `{analyze_analysis_section}` and `{summary_analysis_section}` require only **Allow Text Extraction**
+> - `{xray_cache_section}` requires **Allow Text Extraction** AND **Allow Highlights & Annotations** (because X-Ray uses highlights)
+> - `{analyze_cache_section}` and `{summary_cache_section}` require only **Allow Text Extraction**
 >
 > Without the required gates enabled (both global setting and per-action flag), the placeholder renders empty.
 
@@ -2124,6 +2144,18 @@ If you haven't run X-Ray yet (or permissions aren't enabled), the placeholder re
 - Only built-in X-Ray and Recap support caching currently
 - Going backward in progress doesn't use cache (fresh generation)
 - Custom actions duplicated from X-Ray/Recap will inherit caching behavior
+
+**"Generate Once, Use Many Times"**
+
+For medium and long texts (possibly with many highlights), sending full document text for each `explain_in_context` call is expensive. A potential optimization:
+
+1. Run **Summarize Document** once → cached as reusable context (~2-5K tokens)
+2. Use the summary cache placeholder, and subsequent highlight actions reference the cached summary instead of raw book text (100K+ tokens)
+3. Massive token savings for users who frequently use context-dependent actions
+
+This "two-tiered"/nested pattern is being tested in Explain in Context (Smart), and custom actions can experiment with similar usage.
+
+Making this more seamless in future updates is being explored. Feedback welcome via issues/discussions.
 
 **Text extraction guidelines:**
 - ~100 pages ≈ 25,000-40,000 characters (varies by formatting)
@@ -2492,9 +2524,9 @@ If text doesn't render correctly in Markdown view, switch to **Plain Text view**
 
 This is a limitation of KOReader's MuPDF HTML renderer, which lacks per-glyph font fallback. Plain Text mode uses KOReader's native text rendering with proper font support.
 
-**For dictionary lookups**, you can enable automatic text mode for RTL languages:
-- **Settings → Display Settings → Text Mode for RTL Dictionary** (on by default)
-- When enabled, dictionary results automatically use Plain Text mode when your dictionary language is RTL
+**For dictionary and translate**, automatic text mode for RTL languages is enabled by default:
+- **Settings → Display Settings → Text Mode for RTL Dictionary** / **Text Mode for RTL Translate**
+- When enabled, results automatically use Plain Text mode when the target language is RTL
 - Your global Markdown/Plain Text preference is preserved for other chats
 
 Plain Text mode includes markdown stripping that preserves readability: headers show with symbols and bold text, **bold** renders as actual bold, lists become bullets (•), and code is quoted. Mixed RTL/LTR content (like Arabic headwords followed by English definitions) displays in the correct order, and RTL-only headers align naturally to the right.

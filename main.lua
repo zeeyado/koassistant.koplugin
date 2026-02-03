@@ -1042,6 +1042,15 @@ function AskGPT:onDispatcherRegisterActions()
     general = true,  -- Only general (no reader flag) so it's not grayed out in file browser
   })
 
+  -- View document caches (X-Ray, Summary, Analysis)
+  Dispatcher:registerAction("koassistant_view_cache", {
+    category = "none",
+    event = "KOAssistantViewCache",
+    title = _("KOAssistant: View Cache"),
+    general = true,
+    reader = true,
+  })
+
   -- Register user-configured action gestures
   -- These are toggled per-action in Action Manager → hold action → "Add to Gesture Menu"
   -- Uses ActionService:getGestureActions() to inject defaults from in_gesture_menu flags
@@ -3803,6 +3812,111 @@ function AskGPT:onKOAssistantAnalyzeHighlights()
   return true
 end
 
+--- Show available cached content for current document
+function AskGPT:viewCache()
+  if not self.ui or not self.ui.document or not self.ui.document.file then
+    UIManager:show(InfoMessage:new{
+      text = _("No book open"),
+    })
+    return
+  end
+
+  local ActionCache = require("koassistant_action_cache")
+  local file = self.ui.document.file
+
+  -- Check which caches exist
+  local caches = {}
+  local xray = ActionCache.getXrayCache(file)
+  if xray and xray.result then
+    table.insert(caches, {
+      name = "X-Ray",
+      key = "_xray_cache",
+      data = xray,
+    })
+  end
+  local summary = ActionCache.getSummaryCache(file)
+  if summary and summary.result then
+    table.insert(caches, {
+      name = _("Summary"),
+      key = "_summary_cache",
+      data = summary,
+    })
+  end
+  local analyze = ActionCache.getAnalyzeCache(file)
+  if analyze and analyze.result then
+    table.insert(caches, {
+      name = _("Analysis"),
+      key = "_analyze_cache",
+      data = analyze,
+    })
+  end
+
+  if #caches == 0 then
+    UIManager:show(InfoMessage:new{
+      text = _("No cached content found for this document.\n\nRun X-Ray, Summarize Document, or Analyze Document to create reusable caches."),
+    })
+    return
+  end
+
+  -- If only one cache, open directly
+  if #caches == 1 then
+    self:showCacheViewer(caches[1])
+    return
+  end
+
+  -- Multiple caches - show selector
+  local buttons = {}
+  for _idx, cache in ipairs(caches) do
+    table.insert(buttons, {{
+      text = cache.name,
+      callback = function()
+        UIManager:close(self._cache_selector)
+        self:showCacheViewer(cache)
+      end,
+    }})
+  end
+  table.insert(buttons, {{
+    text = _("Cancel"),
+    callback = function()
+      UIManager:close(self._cache_selector)
+    end,
+  }})
+
+  self._cache_selector = ButtonDialog:new{
+    title = _("View Cache"),
+    buttons = buttons,
+  }
+  UIManager:show(self._cache_selector)
+end
+
+--- Show a specific cache in the viewer
+--- @param cache_info table: { name, key, data } where data contains result, progress_decimal, model, language
+function AskGPT:showCacheViewer(cache_info)
+  local ChatGPTViewer = require("koassistant_chatgptviewer")
+
+  -- Format title with cache info
+  local title = cache_info.name
+  if cache_info.data.progress_decimal then
+    local progress = math.floor(cache_info.data.progress_decimal * 100 + 0.5)
+    title = title .. " (" .. progress .. "%)"
+  end
+  if cache_info.data.model then
+    title = title .. " - " .. cache_info.data.model
+  end
+  -- Show language if stored (for awareness)
+  if cache_info.data.language then
+    title = title .. " [" .. cache_info.data.language .. "]"
+  end
+
+  local viewer = ChatGPTViewer:new{
+    title = title,
+    text = cache_info.data.result,
+    simple_view = true,  -- Use read-only simple view mode
+    configuration = configuration,
+  }
+  UIManager:show(viewer)
+end
+
 --- Helper function to execute book-level actions (X-Ray, Recap, Analyze Highlights)
 --- @param action_id string: The action ID from Actions.book
 function AskGPT:executeBookLevelAction(action_id)
@@ -4543,6 +4657,22 @@ function AskGPT:onKOAssistantQuickActions()
     end,
   })
 
+  -- 3. View Cache (hidden when no cache exists)
+  local ActionCache = require("koassistant_action_cache")
+  local file = self.ui.document.file
+  local has_any_cache = ActionCache.getXrayCache(file)
+    or ActionCache.getSummaryCache(file)
+    or ActionCache.getAnalyzeCache(file)
+  if has_any_cache then
+    addButton({
+      text = _("View Cache"),
+      callback = function()
+        UIManager:close(dialog)
+        self_ref:viewCache()
+      end,
+    })
+  end
+
   -- Add Close button - pair with last row if it has only 1 item, otherwise new row
   local close_btn = {
     text = _("Close"),
@@ -4853,6 +4983,12 @@ end
 function AskGPT:onKOAssistantBrowseNotebooks()
   local NotebookManager = require("koassistant_notebook_manager")
   NotebookManager:showNotebookBrowser()
+  return true
+end
+
+--- View cache gesture handler
+function AskGPT:onKOAssistantViewCache()
+  self:viewCache()
   return true
 end
 

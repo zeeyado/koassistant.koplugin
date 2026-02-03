@@ -738,15 +738,15 @@ end
 
 --- Extract all context data for an action.
 -- =============================================================================
--- Analysis Cache Extraction
--- Read cached analysis from previous X-Ray or Summary runs
+-- Document Cache Extraction
+-- Read cached content from previous X-Ray or Summary runs
 -- =============================================================================
 
---- Get cached X-Ray analysis (partial book analysis to reading position).
+--- Get cached X-Ray (partial document analysis to reading position).
 -- @return table { text, progress, progress_formatted, used_annotations }
 --   used_annotations: Whether annotations were included when building this cache.
 --   Use this to determine if annotation permission is required to read the cache.
-function ContextExtractor:getXrayAnalysis()
+function ContextExtractor:getXrayCache()
     local result = { text = "", progress = nil, progress_formatted = nil, used_annotations = nil }
 
     if not self:isAvailable() or not self.ui.document or not self.ui.document.file then
@@ -754,7 +754,7 @@ function ContextExtractor:getXrayAnalysis()
     end
 
     local ActionCache = require("koassistant_action_cache")
-    local entry = ActionCache.getXrayAnalysis(self.ui.document.file)
+    local entry = ActionCache.getXrayCache(self.ui.document.file)
 
     if entry then
         result.text = entry.result or ""
@@ -768,9 +768,9 @@ function ContextExtractor:getXrayAnalysis()
     return result
 end
 
---- Get cached analyze analysis (full document deep analysis).
+--- Get cached document analysis (full document deep analysis).
 -- @return table { text }
-function ContextExtractor:getAnalyzeAnalysis()
+function ContextExtractor:getAnalyzeCache()
     local result = { text = "" }
 
     if not self:isAvailable() or not self.ui.document or not self.ui.document.file then
@@ -778,7 +778,7 @@ function ContextExtractor:getAnalyzeAnalysis()
     end
 
     local ActionCache = require("koassistant_action_cache")
-    local entry = ActionCache.getAnalyzeAnalysis(self.ui.document.file)
+    local entry = ActionCache.getAnalyzeCache(self.ui.document.file)
 
     if entry then
         result.text = entry.result or ""
@@ -787,9 +787,9 @@ function ContextExtractor:getAnalyzeAnalysis()
     return result
 end
 
---- Get cached summary analysis (full document summary).
+--- Get cached document summary (full document summary).
 -- @return table { text }
-function ContextExtractor:getSummaryAnalysis()
+function ContextExtractor:getSummaryCache()
     local result = { text = "" }
 
     if not self:isAvailable() or not self.ui.document or not self.ui.document.file then
@@ -797,7 +797,7 @@ function ContextExtractor:getSummaryAnalysis()
     end
 
     local ActionCache = require("koassistant_action_cache")
-    local entry = ActionCache.getSummaryAnalysis(self.ui.document.file)
+    local entry = ActionCache.getSummaryCache(self.ui.document.file)
 
     if entry then
         result.text = entry.result or ""
@@ -913,33 +913,33 @@ function ContextExtractor:extractForAction(action)
         end
     end
 
-    -- Analysis cache extraction: double-gated like book text since cached content derives from book text
+    -- Document cache extraction: double-gated like book text since cached content derives from book text
     -- Requires both use_book_text flag AND enable_book_text_extraction global setting
     -- Trusted providers bypass the global setting (consistent with book text extraction)
     if action.use_book_text and (provider_trusted or self:isBookTextExtractionEnabled()) then
-        -- {xray_analysis} / {xray_analysis_section} → cached X-Ray analysis
+        -- {xray_cache} / {xray_cache_section} → cached X-Ray
         -- X-Ray MAY include annotation data, so check cache's used_annotations flag
         -- Only require annotation permission if the cache was built with annotations
-        if action.use_xray_analysis then
-            local xray = self:getXrayAnalysis()
+        if action.use_xray_cache then
+            local xray = self:getXrayCache()
             -- If cache was built with annotations, require annotation permission to read it
             local requires_annotations = xray.used_annotations == true
             if not requires_annotations or (annotations_allowed and action.use_annotations) then
-                data.xray_analysis = xray.text
-                data.xray_analysis_progress = xray.progress_formatted
+                data.xray_cache = xray.text
+                data.xray_cache_progress = xray.progress_formatted
             end
         end
 
-        -- {analyze_analysis} / {analyze_analysis_section} → cached analyze analysis
-        if action.use_analyze_analysis then
-            local analyze = self:getAnalyzeAnalysis()
-            data.analyze_analysis = analyze.text
+        -- {analyze_cache} / {analyze_cache_section} → cached document analysis
+        if action.use_analyze_cache then
+            local analyze = self:getAnalyzeCache()
+            data.analyze_cache = analyze.text
         end
 
-        -- {summary_analysis} / {summary_analysis_section} → cached summary analysis
-        if action.use_summary_analysis then
-            local summary = self:getSummaryAnalysis()
-            data.summary_analysis = summary.text
+        -- {summary_cache} / {summary_cache_section} → cached document summary
+        if action.use_summary_cache then
+            local summary = self:getSummaryCache()
+            data.summary_cache = summary.text
         end
     end
 
