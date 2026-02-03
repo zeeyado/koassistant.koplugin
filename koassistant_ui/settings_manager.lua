@@ -82,21 +82,35 @@ function SettingsManager:createMenuItem(plugin, item, schema)
 
         -- Then check dependencies
         if item.depends_on then
-            if type(item.depends_on) == "table" then
-                -- Complex dependency with id and value
-                local SettingsSchema = require("koassistant_settings_schema")
-                local dep_path = SettingsSchema:getItemPath(item.depends_on.id)
+            local SettingsSchema = require("koassistant_settings_schema")
+
+            -- Helper to check a single dependency condition
+            local function checkCondition(dep)
+                local dep_path = SettingsSchema:getItemPath(dep.id)
                 local dependency_value = self:getSettingValue(plugin, dep_path)
 
                 -- If dependency value is nil, use the default from schema
                 if dependency_value == nil then
-                    local dep_item = SettingsSchema:getItemById(item.depends_on.id)
+                    local dep_item = SettingsSchema:getItemById(dep.id)
                     if dep_item then
                         dependency_value = dep_item.default
                     end
                 end
 
-                return dependency_value == item.depends_on.value
+                return dependency_value == dep.value
+            end
+
+            -- Check if it's an array of conditions (all must be true)
+            if item.depends_on[1] then
+                for _, dep in ipairs(item.depends_on) do
+                    if not checkCondition(dep) then
+                        return false
+                    end
+                end
+                return true
+            elseif item.depends_on.id then
+                -- Single condition with id and value
+                return checkCondition(item.depends_on)
             else
                 -- Simple dependency - just check if has value
                 local dependency_value = self:getSettingValue(plugin, item.depends_on)

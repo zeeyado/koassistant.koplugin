@@ -364,8 +364,13 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
     end
 
     -- Reasoning/Thinking support (per-provider toggles)
-    -- Priority: action.reasoning_config > action.reasoning > per-provider setting
+    -- Priority: action.reasoning_config > action.reasoning > master toggle > per-provider setting
+    -- Note: Master toggle only gates Anthropic and Gemini (can actually be disabled)
+    --       OpenAI reasoning models always reason - we just control effort level
     local provider = config.provider or config.default_provider or "anthropic"
+
+    -- Master reasoning toggle (gates Anthropic and Gemini only)
+    local enable_reasoning_master = features.enable_reasoning
 
     -- Global defaults from settings (fall back to centralized defaults)
     local rd = ModelConstraints.reasoning_defaults
@@ -373,10 +378,12 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
     local reasoning_effort = features.reasoning_effort or rd.openai.effort
     local reasoning_depth = features.reasoning_depth or rd.gemini.level
 
-    -- Per-provider reasoning toggles (global settings)
-    local anthropic_reasoning = features.anthropic_reasoning
-    local openai_reasoning = features.openai_reasoning
-    local gemini_reasoning = features.gemini_reasoning
+    -- Per-provider reasoning toggles
+    -- Anthropic/Gemini: gated by master toggle + individual toggle
+    -- OpenAI: always send effort (handler checks model capability)
+    local anthropic_reasoning = enable_reasoning_master and features.anthropic_reasoning
+    local openai_reasoning = true  -- Always enabled; handler filters by model capability
+    local gemini_reasoning = enable_reasoning_master and features.gemini_reasoning
 
     -- Check for action overrides
     -- NEW format: action.reasoning_config = { anthropic: {...}, openai: {...}, gemini: {...} } or "off"
