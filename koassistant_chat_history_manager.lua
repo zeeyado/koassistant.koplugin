@@ -155,13 +155,39 @@ function ChatHistoryManager:new()
     return manager
 end
 
--- Make sure the chat storage directory exists
+-- Make sure the chat storage directory exists (only needed for v1 storage)
 function ChatHistoryManager:ensureChatDirectory()
+    -- v2 storage uses metadata.lua in book sdr folders, doesn't need this directory
+    if self:useDocSettingsStorage() then
+        return
+    end
     local dir = self.CHAT_DIR
     if not lfs.attributes(dir, "mode") then
         logger.info("Creating chat history directory: " .. dir)
         lfs.mkdir(dir)
     end
+end
+
+-- Check if there are actual v1 chats to migrate (not just empty directory)
+function ChatHistoryManager:hasV1Chats()
+    local dir = self.CHAT_DIR
+    if not lfs.attributes(dir, "mode") then
+        return false
+    end
+    -- Look for subdirectories (doc hashes) containing .lua chat files
+    for doc_hash in lfs.dir(dir) do
+        if doc_hash ~= "." and doc_hash ~= ".." then
+            local doc_dir = dir .. "/" .. doc_hash
+            if lfs.attributes(doc_dir, "mode") == "directory" then
+                for filename in lfs.dir(doc_dir) do
+                    if filename:match("%.lua$") and filename ~= "." and filename ~= ".." then
+                        return true  -- Found at least one chat file
+                    end
+                end
+            end
+        end
+    end
+    return false
 end
 
 -- Get document hash for consistent filename generation

@@ -7096,11 +7096,10 @@ function AskGPT:checkChatMigrationStatus()
   end
 
   if version < 2 then
-    -- Check if we have any old chats to migrate
+    -- Check if we have any actual old chats to migrate (not just empty directory)
     local ChatHistoryManager = require("koassistant_chat_history_manager")
-    local old_dir = ChatHistoryManager.CHAT_DIR
 
-    if lfs.attributes(old_dir, "mode") then
+    if ChatHistoryManager:hasV1Chats() then
       logger.info("Chat storage needs migration from v1 to v2")
       self:showMigrationDialog()
     else
