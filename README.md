@@ -320,7 +320,7 @@ lua tests/inspect.lua --web
 
 ## Privacy & Data
 
-KOAssistant sends data to AI providers to generate responses. This section explains what's shared and how to control it. This is not meant as security or privacy theater, as the "threat model" is simply users including sensitive data (Annotations, notes, content, etc.) without knowing. The available placeholders are substantial in this regard (amount and sensitivity of data), but none currently access KOReader's built in advanced local statistics.
+KOAssistant sends data to AI providers to generate responses. This section explains what's shared and how to control it. This is not meant as security or privacy theater, as the "threat model" is simply users including sensitive data (Annotations, notes, content, etc.) without knowing; you are already being loose with privacy by using online LLMs (especially for personal interest areas) in the first place. The available placeholders/template variables are substantial in this regard (amount and sensitivity of data), but none currently access KOReader's built in advanced local statistics. Best practice is to pick providers thoughtfully, and the very best practice is to use local or self-hosted solutions.
 
 > ⚠️ **Some features are opt-in.** To protect your privacy, personal reading data (highlights, annotations, notebook) is NOT sent to AI providers by default. You must enable sharing in **Settings → Privacy & Data** if you want features like Analyze Highlights or Connect with Notes to work fully. See [Privacy Controls](#privacy-controls) below.
 
