@@ -1887,9 +1887,10 @@ local function handlePredefinedPrompt(prompt_type_or_action, highlightedText, ui
         primary_language = config.features.primary_language,
         translation_language = config.features.translation_language,
     })
-    -- Store resolved language back to temp_config for viewer's RTL detection
+    -- Store resolved languages back to temp_config for viewer's RTL detection
     -- (temp_config.features is a separate copy from config.features)
     temp_config.features.dictionary_language = effective_dictionary_language
+    temp_config.features.translation_language = effective_translation_language
 
     -- Build data for consolidated message
     logger.info("KOAssistant: buildConsolidatedMessage - highlightedText:", highlightedText and #highlightedText or "nil/empty")

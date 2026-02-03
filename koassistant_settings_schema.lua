@@ -130,6 +130,14 @@ local SettingsSchema = {
                     end,
                     help_text = _("Use Plain Text mode for dictionary popup when dictionary language is Arabic, Hebrew, Persian, or Urdu. Grayed out when Text Mode for Dictionary is enabled."),
                 },
+                {
+                    id = "rtl_translate_text_mode",
+                    type = "toggle",
+                    text = _("Text Mode for RTL Translate"),
+                    path = "features.rtl_translate_text_mode",
+                    default = true,
+                    help_text = _("Use Plain Text mode for translate popup when translation language is Arabic, Hebrew, Persian, or Urdu."),
+                },
                 -- Plain Text Options submenu
                 {
                     id = "plain_text_options",

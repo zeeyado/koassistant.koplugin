@@ -1346,6 +1346,18 @@ function ChatGPTViewer:init()
         end
       end
     end
+    -- Translate view: RTL text mode setting
+    if self.translate_view then
+      local trans_lang = self.configuration.features.translation_language
+      if Languages.isRTL(trans_lang) then
+        self.para_direction_rtl = true
+        self.auto_para_direction = false  -- Override auto-detection with explicit RTL
+        -- Default to text mode for RTL translation if setting enabled
+        if self.configuration.features.rtl_translate_text_mode ~= false then
+          self.render_markdown = false
+        end
+      end
+    end
   end
 
   -- Minimal buttons for compact dictionary view
