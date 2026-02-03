@@ -530,9 +530,17 @@ local function getAllPrompts(configuration, plugin)
     -- Use ActionService if available, fallback to PromptService
     local service = plugin and (plugin.action_service or plugin.prompt_service)
     if service then
-        local service_prompts = service:getAllPrompts(context, false, has_open_book)
-        logger.info("getAllPrompts: Got " .. #service_prompts .. " prompts from " ..
-                    (plugin.action_service and "ActionService" or "PromptService"))
+        local service_prompts
+        -- For general context, use the filtered general menu list
+        -- (users can add/remove actions via Action Manager)
+        if context == "general" and service.getGeneralMenuActionObjects then
+            service_prompts = service:getGeneralMenuActionObjects()
+            logger.info("getAllPrompts: Got " .. #service_prompts .. " prompts from general menu list")
+        else
+            service_prompts = service:getAllPrompts(context, false, has_open_book)
+            logger.info("getAllPrompts: Got " .. #service_prompts .. " prompts from " ..
+                        (plugin.action_service and "ActionService" or "PromptService"))
+        end
 
         -- Convert from array to keyed table for compatibility
         for _, prompt in ipairs(service_prompts) do

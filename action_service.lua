@@ -981,6 +981,184 @@ function ActionService:toggleDictionaryPopupAction(action_id)
 end
 
 -- ============================================================
+-- General Menu Actions (for general context chat input dialog)
+-- ============================================================
+
+-- Build default general menu list from in_general_menu flag
+local function buildDefaultGeneralMenuFlags(actions_module)
+    local result = {}
+    if not actions_module then return result end
+    -- Scan general actions
+    if actions_module.general then
+        for _id, action in pairs(actions_module.general) do
+            if action.in_general_menu then
+                table.insert(result, { id = action.id, order = action.in_general_menu })
+            end
+        end
+    end
+    table.sort(result, function(a, b) return a.order < b.order end)
+    local ids = {}
+    for _i, item in ipairs(result) do
+        table.insert(ids, item.id)
+    end
+    return ids
+end
+
+-- Process general menu list: prune stale IDs and inject new flagged defaults
+local function processGeneralMenuList(service, saved)
+    local dismissed = service.settings:readSetting("_dismissed_general_menu_actions") or {}
+    local dismissed_set = {}
+    for _i, id in ipairs(dismissed) do dismissed_set[id] = true end
+
+    -- Prune stale IDs (actions that no longer exist)
+    local pruned = {}
+    for _i, id in ipairs(saved) do
+        if service:getAction("general", id) then
+            table.insert(pruned, id)
+        end
+    end
+
+    -- Build set of current IDs for quick lookup
+    local current_set = {}
+    for _i, id in ipairs(pruned) do current_set[id] = true end
+
+    -- Inject new flagged defaults not in list and not dismissed
+    local defaults = buildDefaultGeneralMenuFlags(service.Actions)
+    for _i, id in ipairs(defaults) do
+        if not current_set[id] and not dismissed_set[id] then
+            local action = service:getAction("general", id)
+            local pos = action and action.in_general_menu or (#pruned + 1)
+            pos = math.min(pos, #pruned + 1)
+            table.insert(pruned, pos, id)
+            current_set[id] = true
+        end
+    end
+
+    return pruned
+end
+
+-- Get ordered list of general menu action IDs
+function ActionService:getGeneralMenuActions()
+    local saved = self.settings:readSetting("general_menu_actions")
+    if not saved then
+        return buildDefaultGeneralMenuFlags(self.Actions)
+    end
+    local processed = processGeneralMenuList(self, saved)
+    -- Always save processed list (handles prune and inject)
+    self.settings:saveSetting("general_menu_actions", processed)
+    return processed
+end
+
+-- Check if action is in general menu
+function ActionService:isInGeneralMenu(action_id)
+    local actions = self:getGeneralMenuActions()
+    for _, id in ipairs(actions) do
+        if id == action_id then return true end
+    end
+    return false
+end
+
+-- Add action to general menu (appends to end)
+function ActionService:addToGeneralMenu(action_id)
+    local actions = self:getGeneralMenuActions()
+    -- Don't add duplicates
+    if not self:isInGeneralMenu(action_id) then
+        table.insert(actions, action_id)
+        self.settings:saveSetting("general_menu_actions", actions)
+        -- Remove from dismissed list if present
+        local dismissed = self.settings:readSetting("_dismissed_general_menu_actions") or {}
+        for i, id in ipairs(dismissed) do
+            if id == action_id then
+                table.remove(dismissed, i)
+                self.settings:saveSetting("_dismissed_general_menu_actions", dismissed)
+                break
+            end
+        end
+        self.settings:flush()
+    end
+end
+
+-- Remove action from general menu
+function ActionService:removeFromGeneralMenu(action_id)
+    local actions = self:getGeneralMenuActions()
+    for i, id in ipairs(actions) do
+        if id == action_id then
+            table.remove(actions, i)
+            self.settings:saveSetting("general_menu_actions", actions)
+            -- Add to dismissed list so it won't be auto-injected again
+            local dismissed = self.settings:readSetting("_dismissed_general_menu_actions") or {}
+            table.insert(dismissed, action_id)
+            self.settings:saveSetting("_dismissed_general_menu_actions", dismissed)
+            self.settings:flush()
+            return
+        end
+    end
+end
+
+-- Toggle action inclusion in general menu
+-- Returns: true if now in menu, false if removed from menu
+function ActionService:toggleGeneralMenuAction(action_id)
+    if self:isInGeneralMenu(action_id) then
+        self:removeFromGeneralMenu(action_id)
+        return false
+    else
+        self:addToGeneralMenu(action_id)
+        return true
+    end
+end
+
+-- Get full action objects for general menu (resolved, in order)
+function ActionService:getGeneralMenuActionObjects()
+    local action_ids = self:getGeneralMenuActions()
+    local result = {}
+    for _, id in ipairs(action_ids) do
+        local action = self:getAction("general", id)
+        if action and action.enabled then
+            table.insert(result, action)
+        end
+    end
+    return result
+end
+
+-- Get all general context actions with their menu inclusion state
+-- Returns array of { action, in_menu, menu_position }
+-- Used by the prompts manager UI
+function ActionService:getAllGeneralActionsWithMenuState()
+    local all_actions = self:getAllActions("general", true)  -- Include disabled
+    local menu_ids = self:getGeneralMenuActions()
+
+    -- Create lookup for menu positions
+    local menu_positions = {}
+    for i, id in ipairs(menu_ids) do
+        menu_positions[id] = i
+    end
+
+    local result = {}
+    for _, action in ipairs(all_actions) do
+        table.insert(result, {
+            action = action,
+            in_menu = menu_positions[action.id] ~= nil,
+            menu_position = menu_positions[action.id],
+        })
+    end
+
+    -- Sort: menu items first (by position), then non-menu items (alphabetically)
+    table.sort(result, function(a, b)
+        if a.in_menu and b.in_menu then
+            return a.menu_position < b.menu_position
+        elseif a.in_menu then
+            return true
+        elseif b.in_menu then
+            return false
+        else
+            return (a.action.text or ""):lower() < (b.action.text or ""):lower()
+        end
+    end)
+
+    return result
+end
+
+-- ============================================================
 -- Reading Features Actions (X-Ray, Recap, Analyze Highlights)
 -- ============================================================
 
@@ -1269,6 +1447,72 @@ function ActionService:createDuplicateAction(action)
     end
 
     return duplicate
+end
+
+-- ============================================================
+-- Gesture Menu Actions (Default Injection)
+-- ============================================================
+
+-- Build default gesture actions from in_gesture_menu flags
+-- Scans all contexts for actions with in_gesture_menu = true
+-- Returns map of "context:action_id" -> true
+local function buildDefaultGestureActions(actions_module)
+    local result = {}
+    if not actions_module then return result end
+
+    -- Contexts that support gesture menu (book and general only)
+    local gesture_contexts = { "book", "general" }
+
+    for _, context in ipairs(gesture_contexts) do
+        if actions_module[context] then
+            for _id, action in pairs(actions_module[context]) do
+                if action.in_gesture_menu then
+                    local key = context .. ":" .. action.id
+                    result[key] = true
+                end
+            end
+        end
+    end
+
+    return result
+end
+
+--- Get processed gesture actions map (with defaults injected)
+--- This should be called instead of directly reading features.gesture_actions
+--- @return table: Map of "context:action_id" -> true
+function ActionService:getGestureActions()
+    local features = self.settings:readSetting("features") or {}
+    local saved = features.gesture_actions
+
+    -- If no saved settings, inject defaults
+    if not saved then
+        local defaults = buildDefaultGestureActions(self.Actions)
+        -- Save defaults to settings
+        features.gesture_actions = defaults
+        self.settings:saveSetting("features", features)
+        self.settings:flush()
+        return defaults
+    end
+
+    -- Check if we need to inject new defaults (actions added since last save)
+    local defaults = buildDefaultGestureActions(self.Actions)
+    local changed = false
+
+    for key, _val in pairs(defaults) do
+        if saved[key] == nil then
+            -- New default action not in saved settings - add it
+            saved[key] = true
+            changed = true
+        end
+    end
+
+    if changed then
+        features.gesture_actions = saved
+        self.settings:saveSetting("features", features)
+        self.settings:flush()
+    end
+
+    return saved
 end
 
 return ActionService

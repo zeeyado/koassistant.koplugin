@@ -1044,8 +1044,11 @@ function AskGPT:onDispatcherRegisterActions()
 
   -- Register user-configured action gestures
   -- These are toggled per-action in Action Manager → hold action → "Add to Gesture Menu"
-  local features = self.settings and self.settings:readSetting("features") or {}
-  local gesture_actions = features.gesture_actions or {}
+  -- Uses ActionService:getGestureActions() to inject defaults from in_gesture_menu flags
+  local gesture_actions = {}
+  if self.action_service then
+    gesture_actions = self.action_service:getGestureActions() or {}
+  end
 
   for action_key, _enabled in pairs(gesture_actions) do
     -- Parse "context:id" format

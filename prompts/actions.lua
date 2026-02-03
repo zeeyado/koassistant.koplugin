@@ -808,8 +808,28 @@ Actions.multi_book = {
 
 -- Built-in actions for general context
 Actions.general = {
-    -- General context uses the "Ask" button directly without predefined actions
-    -- Custom prompts can target general context
+    news_update = {
+        id = "news_update",
+        text = _("News Update"),
+        context = "general",
+        prompt = [[Get me a brief news update from Al Jazeera's most important stories today.
+
+For each story provide:
+- Headline
+- 1-2 sentence summary
+- Why it matters
+- Link to the story on aljazeera.com
+
+Focus on the top 3-5 most significant global news stories. Keep it concise and factual.]],
+        enable_web_search = true,  -- Force web search even if global setting is off
+        skip_domain = true,  -- News doesn't need domain context
+        api_params = {
+            temperature = 0.3,  -- Low temp for factual reporting
+            max_tokens = 2048,
+        },
+        builtin = true,
+        in_gesture_menu = true,  -- Available in gesture menu by default
+    },
 }
 
 -- Special actions (context-specific overrides)

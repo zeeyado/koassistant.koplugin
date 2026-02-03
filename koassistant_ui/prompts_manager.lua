@@ -884,6 +884,29 @@ function PromptsManager:showPromptDetails(prompt)
         })
     end
 
+    -- Add "Add to General Input" button for general context actions
+    -- Controls whether this action appears in the general chat input dialog
+    if prompt.context == "general" and prompt.enabled and self.plugin.action_service then
+        local in_general_menu = self.plugin.action_service:isInGeneralMenu(prompt.id)
+        table.insert(buttons, {
+            {
+                text = in_general_menu and _("✓ In General Input") or _("Add to General Input"),
+                callback = function()
+                    local self_ref = self
+                    self.plugin.action_service:toggleGeneralMenuAction(prompt.id)
+                    UIManager:close(self_ref.details_dialog)
+                    UIManager:show(InfoMessage:new{
+                        text = in_general_menu
+                            and _("Removed from general input dialog.")
+                            or _("Added to general input dialog."),
+                        timeout = 2,
+                    })
+                    self_ref:refreshMenu()
+                end,
+            },
+        })
+    end
+
     -- Add "Duplicate as Custom" button for all action types
     if self.plugin.action_service then
         table.insert(buttons, {
