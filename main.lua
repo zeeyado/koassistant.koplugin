@@ -2484,6 +2484,24 @@ local function hasFileApiKey(provider)
   return not isPlaceholderKey(apikeys[provider])
 end
 
+-- Helper: Check if user has any API keys configured (GUI or file), excluding a specific provider
+local function hasAnyApiKeys(gui_keys, exclude_provider)
+  -- Check GUI keys
+  for provider, key in pairs(gui_keys or {}) do
+    if provider ~= exclude_provider and key and key ~= "" then
+      return true
+    end
+  end
+  -- Check apikeys.lua file
+  local builtin_providers = ModelLists.getAllProviders()
+  for _idx, provider in ipairs(builtin_providers) do
+    if provider ~= exclude_provider and hasFileApiKey(provider) then
+      return true
+    end
+  end
+  return false
+end
+
 -- Helper: Build API Keys management menu
 function AskGPT:buildApiKeysMenu()
   local self_ref = self
@@ -2621,12 +2639,22 @@ function AskGPT:showApiKeyDialog(provider, display_name, key_optional)
             if new_key and new_key ~= "" then
               local f = self_ref.settings:readSetting("features") or {}
               f.api_keys = f.api_keys or {}
+              -- Check if this is the user's first API key (before saving)
+              local is_first_key = not hasAnyApiKeys(f.api_keys, provider)
               f.api_keys[provider] = new_key
+              local message = T(_("%1 API key saved"), display_name)
+              -- Auto-select provider if this is the first API key
+              if is_first_key then
+                f.provider = provider
+                f.model = nil  -- Reset to new provider's default
+                message = T(_("%1 API key saved. %1 selected as provider."), display_name)
+              end
               self_ref.settings:saveSetting("features", f)
               self_ref.settings:flush()
+              self_ref:updateConfigFromSettings()
               UIManager:close(input_dialog)
               UIManager:show(InfoMessage:new{
-                text = T(_("%1 API key saved"), display_name),
+                text = message,
                 timeout = 2,
               })
             else
