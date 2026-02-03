@@ -154,7 +154,7 @@ function OpenAICompatibleHandler:buildRequestBody(message_history, config)
     local default_params = defaults.additional_parameters or {}
 
     request_body.temperature = api_params.temperature or default_params.temperature or 0.7
-    request_body.max_tokens = api_params.max_tokens or default_params.max_tokens or 4096
+    request_body.max_tokens = api_params.max_tokens or default_params.max_tokens or 16384
 
     -- Hook: Allow child classes to customize request body
     request_body = self:customizeRequestBody(request_body, config)

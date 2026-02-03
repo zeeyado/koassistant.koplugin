@@ -40,15 +40,14 @@ These are the base defaults for each provider. They define:
 - Base API URLs
 - Default models (via getDefaultModel from koassistant_model_lists.lua)
 - Default temperature (0.7 for most providers)
-- Default max_tokens (varies by provider)
+- Default max_tokens (16384 for all providers)
 
 IMPORTANT: Per-action temperature/token tuning is in prompts/actions.lua
 Don't consolidate those here - they're intentional action-specific overrides.
 
 Examples of per-action tuning:
-- Dictionary: temperature = 0.3 (factual accuracy)
-- Creative Writing: temperature = 0.8 (more creative)
-- Book Summary: max_tokens = 4096 (long-form response)
+- Dictionary: temperature = 0.3, max_tokens = 1024 (short responses)
+- X-Ray Analysis: max_tokens = 16384 (long-form response)
 
 Each action can override these defaults based on its specific needs.
 ]]
@@ -59,7 +58,7 @@ local ProviderDefaults = {
         base_url = "https://api.anthropic.com/v1/messages",
         additional_parameters = {
             anthropic_version = "2023-06-01",
-            max_tokens = 4096,
+            max_tokens = 16384,
             temperature = 0.7,  -- Added: Anthropic defaults to 1.0 without this
         }
     },
@@ -69,7 +68,7 @@ local ProviderDefaults = {
         base_url = "https://api.openai.com/v1/chat/completions",
         additional_parameters = {
             temperature = 0.7,
-            max_tokens = 4096
+            max_tokens = 16384
         }
     },
     deepseek = {
@@ -78,7 +77,7 @@ local ProviderDefaults = {
         base_url = "https://api.deepseek.com/v1/chat/completions",
         additional_parameters = {
             temperature = 0.7,
-            max_tokens = 4096
+            max_tokens = 16384
         }
     },
     ollama = {
@@ -105,7 +104,7 @@ local ProviderDefaults = {
         base_url = "https://api.groq.com/openai/v1/chat/completions",
         additional_parameters = {
             temperature = 0.7,
-            max_tokens = 4096
+            max_tokens = 16384
         }
     },
     mistral = {
@@ -114,7 +113,7 @@ local ProviderDefaults = {
         base_url = "https://api.mistral.ai/v1/chat/completions",
         additional_parameters = {
             temperature = 0.7,
-            max_tokens = 4096
+            max_tokens = 16384
         }
     },
     xai = {
@@ -123,7 +122,7 @@ local ProviderDefaults = {
         base_url = "https://api.x.ai/v1/chat/completions",
         additional_parameters = {
             temperature = 0.7,
-            max_tokens = 4096
+            max_tokens = 16384
         }
     },
     openrouter = {
@@ -132,7 +131,7 @@ local ProviderDefaults = {
         base_url = "https://openrouter.ai/api/v1/chat/completions",
         additional_parameters = {
             temperature = 0.7,
-            max_tokens = 4096
+            max_tokens = 16384
         }
     },
     qwen = {
@@ -141,7 +140,7 @@ local ProviderDefaults = {
         base_url = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions",
         additional_parameters = {
             temperature = 0.7,
-            max_tokens = 4096
+            max_tokens = 16384
         }
     },
     kimi = {
@@ -150,7 +149,7 @@ local ProviderDefaults = {
         base_url = "https://api.moonshot.cn/v1/chat/completions",
         additional_parameters = {
             temperature = 0.7,
-            max_tokens = 4096
+            max_tokens = 16384
         }
     },
     together = {
@@ -159,7 +158,7 @@ local ProviderDefaults = {
         base_url = "https://api.together.xyz/v1/chat/completions",
         additional_parameters = {
             temperature = 0.7,
-            max_tokens = 4096
+            max_tokens = 16384
         }
     },
     fireworks = {
@@ -168,7 +167,7 @@ local ProviderDefaults = {
         base_url = "https://api.fireworks.ai/inference/v1/chat/completions",
         additional_parameters = {
             temperature = 0.7,
-            max_tokens = 4096
+            max_tokens = 16384
         }
     },
     sambanova = {
@@ -177,7 +176,7 @@ local ProviderDefaults = {
         base_url = "https://api.sambanova.ai/v1/chat/completions",
         additional_parameters = {
             temperature = 0.7,
-            max_tokens = 4096
+            max_tokens = 16384
         }
     },
     cohere = {
@@ -186,7 +185,7 @@ local ProviderDefaults = {
         base_url = "https://api.cohere.com/v2/chat",
         additional_parameters = {
             temperature = 0.7,
-            max_tokens = 4096
+            max_tokens = 16384
         }
     },
     doubao = {
@@ -195,7 +194,7 @@ local ProviderDefaults = {
         base_url = "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
         additional_parameters = {
             temperature = 0.7,
-            max_tokens = 4096
+            max_tokens = 16384
         }
     }
 }
@@ -212,7 +211,7 @@ local function buildCustomProviderDefaults(custom_provider)
         api_key_required = custom_provider.api_key_required ~= false,  -- default true
         additional_parameters = {
             temperature = 0.7,
-            max_tokens = 4096
+            max_tokens = 16384
         }
     }
 end

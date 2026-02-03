@@ -17,7 +17,7 @@ AnthropicRequest.CACHE_BETA = "prompt-caching-2024-07-31"
 
 -- Default API parameters
 AnthropicRequest.DEFAULT_PARAMS = {
-    max_tokens = 4096,
+    max_tokens = 16384,
     temperature = 0.7,
 }
 

@@ -55,7 +55,7 @@ function DeepSeekHandler:buildRequestBody(message_history, config)
     local default_params = defaults.additional_parameters or {}
 
     request_body.temperature = api_params.temperature or default_params.temperature or 0.7
-    request_body.max_tokens = api_params.max_tokens or default_params.max_tokens or 4096
+    request_body.max_tokens = api_params.max_tokens or default_params.max_tokens or 16384
 
     local headers = {
         ["Content-Type"] = "application/json",
@@ -111,7 +111,7 @@ function DeepSeekHandler:query(message_history, config)
     local default_params = defaults.additional_parameters or {}
 
     request_body.temperature = api_params.temperature or default_params.temperature or 0.7
-    request_body.max_tokens = api_params.max_tokens or default_params.max_tokens or 4096
+    request_body.max_tokens = api_params.max_tokens or default_params.max_tokens or 16384
 
     -- Check if streaming is enabled
     local use_streaming = config.features and config.features.enable_streaming

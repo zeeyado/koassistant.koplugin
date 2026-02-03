@@ -72,13 +72,11 @@ function GeminiHandler:buildRequestBody(message_history, config)
     local thinking_enabled = api_params.thinking_level and
                              ModelConstraints.supportsCapability("gemini", model, "thinking")
 
-    -- Determine max_tokens
-    -- If user explicitly set max_tokens, use that
-    -- Otherwise, use higher default for thinking (16384) vs normal (4096)
-    -- Gemini thinking tokens count toward maxOutputTokens, so we need extra room
+    -- Determine max_tokens - use 16384 as base default for all modes
+    -- Gemini thinking tokens count toward maxOutputTokens, so thinking gets even more
     local max_tokens = api_params.max_tokens
     if not max_tokens then
-        max_tokens = thinking_enabled and 16384 or 4096
+        max_tokens = thinking_enabled and 32768 or 16384
     end
 
     request_body.generationConfig = {

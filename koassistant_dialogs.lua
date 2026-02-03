@@ -360,7 +360,7 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
 
     -- Apply max_tokens from defaults if not set
     if not config.api_params.max_tokens then
-        config.api_params.max_tokens = 4096
+        config.api_params.max_tokens = 16384
     end
 
     -- Reasoning/Thinking support (per-provider toggles)
