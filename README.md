@@ -11,6 +11,7 @@
 - **Research & analysis** → deep analysis of papers/articles, explore arguments, find connections across works
 - **Multi-document** → compare texts, find common themes, analyze your collection
 - **General chat** → AI without book context
+- **Web search** → AI can search the web for current information (Anthropic, Gemini)
 
 16 built-in providers (Anthropic, OpenAI, Gemini, Ollama, and more) plus custom OpenAI-compatible providers. Fully configurable: custom actions, behaviors, domains, per-action model overrides. Personal reading data (highlights, annotations, notebooks) is opt-in — not sent to the AI unless you enable it.
 
@@ -74,6 +75,7 @@
   - [Prompt Caching](#prompt-caching)
   - [Response Caching (X-Ray/Recap)](#response-caching-x-rayrecap) — Incremental updates as you read
   - [Reasoning/Thinking](#reasoningthinking)
+  - [Web Search](#web-search) — AI searches the web for current information (Anthropic, Gemini)
 - [Supported Providers + Settings](#supported-providers--settings)
   - [Free Tier Providers](#free-tier-providers)
   - [Adding Custom Providers](#adding-custom-providers)
@@ -1743,6 +1745,10 @@ Control where KOAssistant appears in KOReader's menus. All toggles default to ON
   - **OpenAI Reasoning**: Effort level (low/medium/high)
   - **Gemini Thinking**: Level (low/medium/high)
   - **Show Reasoning Indicator**: Display "*[Reasoning was used]*" in chat when reasoning is active (default: on)
+- **Web Search**: Allow AI to search the web for current information:
+  - **Enable Web Search**: Global toggle (default: off). Supported by Anthropic and Gemini.
+  - **Max Searches per Query**: 1-10 searches per query (Anthropic only, default: 5)
+  - **Show Indicator in Chat**: Display "*[Web search was used]*" in chat when search is used (default: on)
 - **Settings Management**: Backup and restore functionality (see [Backup & Restore](#backup--restore))
   - **Create Backup**: Save settings, API keys, custom content, and chat history
   - **Restore from Backup**: Restore from a previous backup
@@ -2128,6 +2134,39 @@ For complex questions, supported models can "think" through the problem before r
 **DeepSeek:** The `deepseek-reasoner` model automatically uses reasoning (no setting needed).
 
 Best for: Complex analysis, reasoning problems, nuanced questions
+
+### Web Search
+
+Supported providers can search the web to include current information in their responses.
+
+| Provider | Feature | Notes |
+|----------|---------|-------|
+| **Anthropic** | `web_search_20250305` tool | Configurable max searches (1-10) |
+| **Gemini** | Google Search grounding | Automatic search count |
+
+**How it works:**
+1. Enable in Settings → AI Response → Web Search → Enable Web Search
+2. When enabled, the AI can search the web during responses
+3. During streaming, you'll see "🔍 Searching the web..." indicator
+4. After completion, "*[Web search was used]*" appears in chat (if indicator enabled)
+
+**Settings:**
+- **Enable Web Search**: Global toggle (default: OFF)
+- **Max Searches per Query**: 1-10 (Anthropic only, default: 5)
+- **Show Indicator in Chat**: Show "*[Web search was used]*" after responses (default: ON)
+
+**Session Override:**
+The chat viewer has a 🔍 ON/OFF toggle button (first row) to override web search for the current session without changing your global setting.
+
+**Per-Action Override:**
+Custom actions can override the global setting:
+- `enable_web_search = true` → Force web search on
+- `enable_web_search = false` → Force web search off
+- `enable_web_search = nil` → Follow global setting (default)
+
+**Best for:** Questions about current events, recent developments, fact-checking, research topics.
+
+**Note:** Web search increases token usage and may add latency. Other providers silently ignore this setting.
 
 ---
 
