@@ -3955,28 +3955,11 @@ function AskGPT:onKOAssistantSettings()
 end
 
 --- Helper: Show a settings popup from menu items
---- Uses a custom dialog structure with fixed Close button that doesn't scroll
 --- @param title string: Dialog title
 --- @param menu_items table: Array of menu items from build*Menu functions
 --- @param close_on_select boolean: If true, close popup after selection (default: true)
 function AskGPT:showQuickSettingsPopup(title, menu_items, close_on_select, on_close_callback)
-  local Blitbuffer = require("ffi/blitbuffer")
-  local ButtonTable = require("ui/widget/buttontable")
-  local CenterContainer = require("ui/widget/container/centercontainer")
-  local Device = require("device")
-  local Font = require("ui/font")
-  local FrameContainer = require("ui/widget/container/framecontainer")
-  local Geom = require("ui/geometry")
-  local GestureRange = require("ui/gesturerange")
-  local InputContainer = require("ui/widget/container/inputcontainer")
-  local LineWidget = require("ui/widget/linewidget")
-  local MovableContainer = require("ui/widget/container/movablecontainer")
-  local ScrollableContainer = require("ui/widget/container/scrollablecontainer")
-  local Size = require("ui/size")
-  local TextWidget = require("ui/widget/textwidget")
-  local VerticalGroup = require("ui/widget/verticalgroup")
-  local VerticalSpan = require("ui/widget/verticalspan")
-  local Screen = Device.screen
+  local ButtonDialog = require("ui/widget/buttondialog")
   local self_ref = self
 
   -- Default to closing after selection
@@ -3984,18 +3967,7 @@ function AskGPT:showQuickSettingsPopup(title, menu_items, close_on_select, on_cl
     close_on_select = true
   end
 
-  local function closeDialog()
-    if self_ref._quick_settings_dialog then
-      UIManager:close(self_ref._quick_settings_dialog)
-      self_ref._quick_settings_dialog = nil
-      if on_close_callback then
-        on_close_callback()
-      end
-    end
-  end
-
-  -- Build content buttons (without Close)
-  local content_buttons = {}
+  local buttons = {}
   for _idx, item in ipairs(menu_items) do
     if item.text then
       local is_checked = item.checked_func and item.checked_func()
@@ -4003,7 +3975,7 @@ function AskGPT:showQuickSettingsPopup(title, menu_items, close_on_select, on_cl
       if is_checked then
         text = "✓ " .. text
       end
-      table.insert(content_buttons, {
+      table.insert(buttons, {
         {
           text = text,
           callback = function()
@@ -4017,6 +3989,7 @@ function AskGPT:showQuickSettingsPopup(title, menu_items, close_on_select, on_cl
               self_ref:showQuickSettingsPopup(title, menu_items, close_on_select, on_close_callback)
             else
               self_ref._quick_settings_dialog = nil
+              -- Call the close callback if provided (e.g., to reopen parent dialog)
               if on_close_callback then
                 on_close_callback()
               end
@@ -4027,182 +4000,32 @@ function AskGPT:showQuickSettingsPopup(title, menu_items, close_on_select, on_cl
     end
   end
 
-  -- Dialog dimensions
-  local width_factor = 0.9
-  local dialog_width = math.floor(math.min(Screen:getWidth(), Screen:getHeight()) * width_factor)
-  local content_width = dialog_width - 2 * Size.padding.default
-
-  -- Title widget
-  local title_widget = FrameContainer:new{
-    padding = Size.padding.default,
-    padding_bottom = Size.padding.default,
-    margin = 0,
-    bordersize = 0,
-    TextWidget:new{
-      text = title,
-      face = Font:getFace("x_smalltfont"),
-      max_width = content_width,
+  -- Add close button
+  table.insert(buttons, {
+    {
+      text = _("Close"),
+      callback = function()
+        UIManager:close(self_ref._quick_settings_dialog)
+        self_ref._quick_settings_dialog = nil
+        -- Call on_close_callback to return to parent dialog (e.g., AI Quick Settings)
+        if on_close_callback then
+          on_close_callback()
+        end
+      end,
     },
+  })
+
+  self._quick_settings_dialog = ButtonDialog:new{
+    title = title,
+    buttons = buttons,
+    -- Handle escape key and tap-outside to return to parent dialog
+    tap_close_callback = function()
+      self_ref._quick_settings_dialog = nil
+      if on_close_callback then
+        on_close_callback()
+      end
+    end,
   }
-
-  -- Content ButtonTable
-  local content_button_table = ButtonTable:new{
-    width = content_width,
-    buttons = content_buttons,
-    zero_sep = true,
-    show_parent = self,
-  }
-
-  -- Close button (fixed at bottom)
-  local close_button_table = ButtonTable:new{
-    width = content_width,
-    buttons = {{
-      {
-        text = _("Close"),
-        callback = closeDialog,
-      },
-    }},
-    zero_sep = true,
-    show_parent = self,
-  }
-
-  -- Calculate max height for scrollable content
-  local screen_height = Screen:getHeight()
-  local title_height = title_widget:getSize().h
-  local close_height = close_button_table:getSize().h
-  local separator_height = Size.line.medium + Size.padding.default * 2
-  local margin = Size.margin.default * 2
-  local max_content_height = screen_height - title_height - close_height - separator_height - margin - Size.padding.default * 4
-
-  local content_height = content_button_table:getSize().h
-  local scrollable_content
-
-  if content_height > max_content_height then
-    -- Need scrolling - setup scroll behavior
-    content_button_table:setupGridScrollBehaviour()
-    local step_scroll_grid = content_button_table:getStepScrollGrid()
-    local row_height = step_scroll_grid[1].bottom + 1 - step_scroll_grid[1].top
-    local fit_rows = math.floor(max_content_height / row_height)
-    local adjusted_height = row_height * fit_rows
-    local scrollbar_width = ScrollableContainer:getScrollbarWidth()
-
-    scrollable_content = ScrollableContainer:new{
-      dimen = Geom:new{
-        w = content_width + scrollbar_width,
-        h = adjusted_height,
-      },
-      show_parent = self,
-      step_scroll_grid = step_scroll_grid,
-      content_button_table,
-    }
-  else
-    -- No scrolling needed
-    scrollable_content = content_button_table
-  end
-
-  -- Separator line
-  local separator = CenterContainer:new{
-    dimen = Geom:new{ w = dialog_width, h = Size.line.medium + Size.padding.default },
-    VerticalGroup:new{
-      VerticalSpan:new{ width = Size.padding.default / 2 },
-      LineWidget:new{
-        dimen = Geom:new{ w = content_width, h = Size.line.medium },
-        background = Blitbuffer.COLOR_DARK_GRAY,
-      },
-      VerticalSpan:new{ width = Size.padding.default / 2 },
-    },
-  }
-
-  -- Build the dialog frame
-  local dialog_frame = FrameContainer:new{
-    radius = Size.radius.window,
-    bordersize = Size.border.window,
-    padding = Size.padding.default,
-    margin = 0,
-    background = Blitbuffer.COLOR_WHITE,
-    VerticalGroup:new{
-      align = "center",
-      title_widget,
-      CenterContainer:new{
-        dimen = Geom:new{ w = dialog_width - 2 * Size.padding.default, h = scrollable_content:getSize().h },
-        scrollable_content,
-      },
-      separator,
-      CenterContainer:new{
-        dimen = Geom:new{ w = dialog_width - 2 * Size.padding.default, h = close_button_table:getSize().h },
-        close_button_table,
-      },
-    },
-  }
-
-  local movable = MovableContainer:new{
-    dialog_frame,
-  }
-
-  -- Create the dialog as an InputContainer for gesture handling
-  local dialog = InputContainer:new{
-    CenterContainer:new{
-      dimen = Geom:new{
-        w = Screen:getWidth(),
-        h = Screen:getHeight(),
-      },
-      movable,
-    },
-  }
-
-  dialog.movable = movable
-  dialog.dialog_frame = dialog_frame
-  -- Store cropping_widget if scrollable for proper UI handling
-  if content_height > max_content_height then
-    dialog.cropping_widget = scrollable_content
-  end
-
-  -- Handle Back key
-  if Device:hasKeys() then
-    dialog.key_events = dialog.key_events or {}
-    dialog.key_events.Close = { { Device.input.group.Back } }
-  end
-
-  -- Handle tap outside
-  if Device:isTouchDevice() then
-    dialog.ges_events = dialog.ges_events or {}
-    dialog.ges_events.TapClose = {
-      GestureRange:new{
-        ges = "tap",
-        range = Geom:new{
-          x = 0, y = 0,
-          w = Screen:getWidth(),
-          h = Screen:getHeight(),
-        },
-      },
-    }
-  end
-
-  function dialog:onClose()
-    closeDialog()
-    return true
-  end
-
-  function dialog:onTapClose(arg, ges)
-    if ges.pos:notIntersectWith(self.movable.dimen) then
-      self:onClose()
-    end
-    return true
-  end
-
-  function dialog:onShow()
-    UIManager:setDirty(self, function()
-      return "ui", self.dialog_frame.dimen
-    end)
-  end
-
-  function dialog:onCloseWidget()
-    UIManager:setDirty(nil, function()
-      return "ui", self.movable.dimen
-    end)
-  end
-
-  self._quick_settings_dialog = dialog
   UIManager:show(self._quick_settings_dialog)
 end
 
