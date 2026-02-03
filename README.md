@@ -331,7 +331,7 @@ KOAssistant sends data to AI providers to generate responses. This section expla
 - Selected text (for highlight actions)
 
 **Sent by default: (for Actions using it)**
-- Book title and author (you can disable this in Action management by unchecking "Include book info")
+- Document metadata like title, author, identifiers (you can disable this in Action management by unchecking "Include book info")
 - Reading progress (percentage) 
 - Chapter info (current chapter title, chapters read count, time since last opened)
 - The data used to calculate this (exact date you opened the document last, etc.) is local only
