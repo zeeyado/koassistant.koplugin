@@ -191,7 +191,7 @@ Surface connections that enrich understanding, not tangential trivia.]],
         include_book_context = true,
         api_params = {
             temperature = 0.7,
-            max_tokens = 2048,
+            max_tokens = 4096,
         },
         builtin = true,
     },
@@ -227,7 +227,7 @@ If I have no prior highlights or notebook entries, just reflect on this passage 
         skip_domain = true,
         api_params = {
             temperature = 0.6,
-            max_tokens = 1024,
+            max_tokens = 4096,
         },
         builtin = true,
     },
@@ -252,7 +252,7 @@ Help me understand:
 3. Key references or concepts it builds on]],
         api_params = {
             temperature = 0.5,
-            max_tokens = 2048,
+            max_tokens = 4096,
         },
         builtin = true,
     },
@@ -280,7 +280,7 @@ Provide deeper analysis:
 4. **My notes**: If I've highlighted related passages, show those connections.]],
         api_params = {
             temperature = 0.6,
-            max_tokens = 2048,
+            max_tokens = 4096,
         },
         builtin = true,
     },
@@ -606,7 +606,7 @@ If this is fiction, focus on literary influences, movements, and stylistic desce
 Be concise — aim for the most significant connections, not an exhaustive list. If you don't recognize this work or author, say so rather than guessing.]],
         api_params = {
             temperature = 0.7,
-            max_tokens = 2048,
+            max_tokens = 4096,
         },
         builtin = true,
     },
@@ -646,7 +646,7 @@ If this is fiction, adapt to analyze themes, messages, and the author's apparent
 Be concise — this is an overview, not an essay. If you don't recognize this title, say so rather than guessing.]],
         api_params = {
             temperature = 0.6,
-            max_tokens = 2048,
+            max_tokens = 4096,
         },
         builtin = true,
     },
@@ -681,7 +681,7 @@ Adapt to content type:
 Note: These are general questions for the complete work. If the reader is mid-book, they can ask for spoiler-free questions in the follow-up. If you don't recognize this title, say so rather than guessing.]],
         api_params = {
             temperature = 0.7,
-            max_tokens = 2048,
+            max_tokens = 4096,
         },
         builtin = true,
     },
@@ -920,7 +920,7 @@ Write in {dictionary_language}. Headwords, lemmas, and cognates stay in original
         -- storage_key set dynamically based on dictionary_disable_auto_save setting
         api_params = {
             temperature = 0.3,
-            max_tokens = 2048,  -- Detailed analysis needs more space
+            max_tokens = 4096,  -- Detailed analysis needs more space
         },
         builtin = true,
     },
