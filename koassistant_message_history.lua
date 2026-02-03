@@ -91,6 +91,18 @@ function MessageHistory:getModel()
     return self.model
 end
 
+-- Count user messages (for determining if this is a multi-turn conversation)
+-- Returns the number of user messages, excluding system messages
+function MessageHistory:getUserTurnCount()
+    local count = 0
+    for _idx, msg in ipairs(self.messages) do
+        if msg.role == self.ROLES.USER then
+            count = count + 1
+        end
+    end
+    return count
+end
+
 -- Get all reasoning content from assistant messages (for "View Reasoning" feature)
 -- Returns array of { index, reasoning, has_content } for messages with reasoning
 function MessageHistory:getReasoningEntries()

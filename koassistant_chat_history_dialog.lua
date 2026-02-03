@@ -1424,12 +1424,14 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
         local display_text = content_text or (state and state.text) or history:createResultText(chat_highlighted_text, config)
 
         local scroll_setting_enabled = config and config.features and config.features.scroll_to_last_message == true
+        -- Only scroll to last question if there are multiple user turns (not for single-turn chats)
+        local has_multiple_turns = history and history.getUserTurnCount and history:getUserTurnCount() > 1
         local viewer = ChatGPTViewer:new{
             title = detailed_title,
             text = display_text,
-            -- Show last exchange on initial open if setting explicitly enabled, otherwise scroll to bottom (old behavior)
-            scroll_to_last_question = state == nil and scroll_setting_enabled,
-            scroll_to_bottom = state == nil and not scroll_setting_enabled,
+            -- Show last exchange on initial open if setting enabled AND there are multiple turns
+            scroll_to_last_question = state == nil and scroll_setting_enabled and has_multiple_turns,
+            scroll_to_bottom = state == nil and not (scroll_setting_enabled and has_multiple_turns),
             configuration = config,
             original_history = history,
             original_highlighted_text = chat_highlighted_text,
@@ -1470,11 +1472,11 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
             end,
             onAskQuestion = function(self_viewer, question)
                 -- Store session web search override before viewer is closed
-                local session_web_search = self_viewer.session_web_search_override
+                local viewer_web_search = self_viewer.session_web_search_override
 
                 -- Apply session web search override if set on the viewer
-                if session_web_search ~= nil then
-                    config.enable_web_search = session_web_search
+                if viewer_web_search ~= nil then
+                    config.enable_web_search = viewer_web_search
                 end
 
                 showLoadingDialog()
@@ -1484,7 +1486,7 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
                     local function onResponseComplete(success, answer, err)
                         if success and answer then
                             local new_content = history:createResultText(chat_highlighted_text, config)
-                            showChatViewer(new_content, nil, session_web_search)
+                            showChatViewer(new_content, nil, viewer_web_search)
                         else
                             UIManager:show(InfoMessage:new{
                                 text = _("Failed to get response: ") .. (err or "Unknown error"),
