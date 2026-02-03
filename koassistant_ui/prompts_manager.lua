@@ -3909,13 +3909,13 @@ function PromptsManager:getPlaceholdersForContext(context)
         -- Full document placeholders
         { value = "{full_document_section}", text = _("Full Document (with label)"), contexts = {"highlight", "book", "both"} },
         { value = "{full_document}", text = _("Full Document (raw)"), contexts = {"highlight", "book", "both"} },
-        -- Analysis cache placeholders (require text extraction + cache to exist)
-        { value = "{xray_analysis_section}", text = _("X-Ray Analysis (with label)"), contexts = {"book", "both"} },
-        { value = "{xray_analysis}", text = _("X-Ray Analysis (raw)"), contexts = {"book", "both"} },
-        { value = "{analyze_analysis_section}", text = _("Document Analysis (with label)"), contexts = {"book", "both"} },
-        { value = "{analyze_analysis}", text = _("Document Analysis (raw)"), contexts = {"book", "both"} },
-        { value = "{summary_analysis_section}", text = _("Summary Analysis (with label)"), contexts = {"book", "both"} },
-        { value = "{summary_analysis}", text = _("Summary Analysis (raw)"), contexts = {"book", "both"} },
+        -- Document cache placeholders (require text extraction + cache to exist)
+        { value = "{xray_cache_section}", text = _("X-Ray Cache (with label)"), contexts = {"book", "both"} },
+        { value = "{xray_cache}", text = _("X-Ray Cache (raw)"), contexts = {"book", "both"} },
+        { value = "{analyze_cache_section}", text = _("Analysis Cache (with label)"), contexts = {"book", "both"} },
+        { value = "{analyze_cache}", text = _("Analysis Cache (raw)"), contexts = {"book", "both"} },
+        { value = "{summary_cache_section}", text = _("Summary Cache (with label)"), contexts = {"book", "both"} },
+        { value = "{summary_cache}", text = _("Summary Cache (raw)"), contexts = {"book", "both"} },
         -- Surrounding context placeholder (for highlight actions)
         { value = "{surrounding_context_section}", text = _("Surrounding Context (with label)"), contexts = {"highlight", "both"} },
         { value = "{surrounding_context}", text = _("Surrounding Context (raw)"), contexts = {"highlight", "both"} },

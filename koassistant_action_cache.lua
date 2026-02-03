@@ -199,89 +199,89 @@ function ActionCache.exists(document_path, action_id)
 end
 
 -- =============================================================================
--- Analysis Cache API
--- Reserved cache keys for reusable analysis that other actions can reference
+-- Document Cache API
+-- Reserved cache keys for reusable document caches that other actions can reference
 -- =============================================================================
 
--- Reserved keys for analysis caches (prefixed with _ to avoid collision with action IDs)
-ActionCache.XRAY_ANALYSIS_KEY = "_xray_analysis"
-ActionCache.ANALYZE_ANALYSIS_KEY = "_analyze_analysis"
-ActionCache.SUMMARY_ANALYSIS_KEY = "_summary_analysis"
+-- Reserved keys for document caches (prefixed with _ to avoid collision with action IDs)
+ActionCache.XRAY_CACHE_KEY = "_xray_cache"
+ActionCache.ANALYZE_CACHE_KEY = "_analyze_cache"
+ActionCache.SUMMARY_CACHE_KEY = "_summary_cache"
 
---- Get cached X-Ray analysis (partial book analysis to reading position)
+--- Get cached X-Ray (partial document analysis to reading position)
 --- @param document_path string The document file path
 --- @return table|nil entry { result, progress_decimal, timestamp, model, used_annotations } or nil
 ---   used_annotations: Whether annotations were included when building this cache.
 ---   Use this to determine if annotation permission is required to read the cache.
-function ActionCache.getXrayAnalysis(document_path)
-    return ActionCache.get(document_path, ActionCache.XRAY_ANALYSIS_KEY)
+function ActionCache.getXrayCache(document_path)
+    return ActionCache.get(document_path, ActionCache.XRAY_CACHE_KEY)
 end
 
---- Save X-Ray analysis to reusable cache
+--- Save X-Ray to reusable cache
 --- @param document_path string The document file path
---- @param result string The X-Ray analysis text
+--- @param result string The X-Ray text
 --- @param progress_decimal number Progress as decimal (0.0-1.0)
 --- @param metadata table Optional: { model = "model-name", used_annotations = true/false }
 ---   used_annotations: Track whether annotations were included when building this cache.
 ---   When reading the cache, annotation permission is only required if used_annotations=true.
 --- @return boolean success
-function ActionCache.setXrayAnalysis(document_path, result, progress_decimal, metadata)
-    return ActionCache.set(document_path, ActionCache.XRAY_ANALYSIS_KEY, result, progress_decimal, metadata)
+function ActionCache.setXrayCache(document_path, result, progress_decimal, metadata)
+    return ActionCache.set(document_path, ActionCache.XRAY_CACHE_KEY, result, progress_decimal, metadata)
 end
 
---- Get cached analyze analysis (full document deep analysis)
+--- Get cached document analysis (full document deep analysis)
 --- @param document_path string The document file path
 --- @return table|nil entry { result, progress_decimal, timestamp, model } or nil
-function ActionCache.getAnalyzeAnalysis(document_path)
-    return ActionCache.get(document_path, ActionCache.ANALYZE_ANALYSIS_KEY)
+function ActionCache.getAnalyzeCache(document_path)
+    return ActionCache.get(document_path, ActionCache.ANALYZE_CACHE_KEY)
 end
 
---- Save analyze analysis to reusable cache
+--- Save document analysis to reusable cache
 --- @param document_path string The document file path
 --- @param result string The analysis text
 --- @param progress_decimal number Progress (typically 1.0 for full document)
 --- @param metadata table Optional: { model = "model-name" }
 --- @return boolean success
-function ActionCache.setAnalyzeAnalysis(document_path, result, progress_decimal, metadata)
-    return ActionCache.set(document_path, ActionCache.ANALYZE_ANALYSIS_KEY, result, progress_decimal, metadata)
+function ActionCache.setAnalyzeCache(document_path, result, progress_decimal, metadata)
+    return ActionCache.set(document_path, ActionCache.ANALYZE_CACHE_KEY, result, progress_decimal, metadata)
 end
 
---- Get cached summary analysis (full book summary)
+--- Get cached document summary (full document summary)
 --- @param document_path string The document file path
 --- @return table|nil entry { result, progress_decimal, timestamp, model } or nil
-function ActionCache.getSummaryAnalysis(document_path)
-    return ActionCache.get(document_path, ActionCache.SUMMARY_ANALYSIS_KEY)
+function ActionCache.getSummaryCache(document_path)
+    return ActionCache.get(document_path, ActionCache.SUMMARY_CACHE_KEY)
 end
 
---- Save summary analysis to reusable cache
+--- Save document summary to reusable cache
 --- @param document_path string The document file path
 --- @param result string The summary text
 --- @param progress_decimal number Progress (typically 1.0 for full document)
 --- @param metadata table Optional: { model = "model-name" }
 --- @return boolean success
-function ActionCache.setSummaryAnalysis(document_path, result, progress_decimal, metadata)
-    return ActionCache.set(document_path, ActionCache.SUMMARY_ANALYSIS_KEY, result, progress_decimal, metadata)
+function ActionCache.setSummaryCache(document_path, result, progress_decimal, metadata)
+    return ActionCache.set(document_path, ActionCache.SUMMARY_CACHE_KEY, result, progress_decimal, metadata)
 end
 
---- Clear X-Ray analysis cache
+--- Clear X-Ray cache
 --- @param document_path string The document file path
 --- @return boolean success
-function ActionCache.clearXrayAnalysis(document_path)
-    return ActionCache.clear(document_path, ActionCache.XRAY_ANALYSIS_KEY)
+function ActionCache.clearXrayCache(document_path)
+    return ActionCache.clear(document_path, ActionCache.XRAY_CACHE_KEY)
 end
 
---- Clear analyze analysis cache
+--- Clear document analysis cache
 --- @param document_path string The document file path
 --- @return boolean success
-function ActionCache.clearAnalyzeAnalysis(document_path)
-    return ActionCache.clear(document_path, ActionCache.ANALYZE_ANALYSIS_KEY)
+function ActionCache.clearAnalyzeCache(document_path)
+    return ActionCache.clear(document_path, ActionCache.ANALYZE_CACHE_KEY)
 end
 
---- Clear summary analysis cache
+--- Clear document summary cache
 --- @param document_path string The document file path
 --- @return boolean success
-function ActionCache.clearSummaryAnalysis(document_path)
-    return ActionCache.clear(document_path, ActionCache.SUMMARY_ANALYSIS_KEY)
+function ActionCache.clearSummaryCache(document_path)
+    return ActionCache.clear(document_path, ActionCache.SUMMARY_CACHE_KEY)
 end
 
 return ActionCache

@@ -840,6 +840,10 @@ local ChatGPTViewer = InputContainer:extend {
   -- Original highlighted text for translate view toggle
   original_highlighted_text = nil,
 
+  -- Simple view mode (read-only viewer for cached analyses)
+  -- Shows only: MD/Text, Copy, Scroll, Close
+  simple_view = false,
+
   -- Selection position data for "Save to Note" feature
   -- Contains pos0, pos1, sboxes, pboxes for recreating highlight
   selection_data = nil,
@@ -865,8 +869,8 @@ function ChatGPTViewer:init()
   -- - standard: full Wikipedia-style height
   if self.compact_view then
     self.height = self.height or UIConstants.COMPACT_DIALOG_HEIGHT()
-  elseif self.translate_view or (self.configuration and self.configuration.features and self.configuration.features.translate_view) then
-    -- Dynamic height for translate view (like Wikipedia)
+  elseif self.simple_view or self.translate_view or (self.configuration and self.configuration.features and self.configuration.features.translate_view) then
+    -- Dynamic height for simple/translate view (like Wikipedia)
     -- Calculate based on content length, capped at max available height
     self.height = self.height or self:calculateDynamicHeight()
   else
@@ -1851,12 +1855,78 @@ function ChatGPTViewer:init()
     hold_callback = self.default_hold_callback,
   })
 
+  -- Simple view buttons (single row) - read-only viewer for cached analyses
+  -- MD/Text, Copy, ⇱ (top), ⇲ (bottom), Close
+  local simple_view_buttons = {
+    {
+      text_func = function()
+        return self.render_markdown and "MD ON" or "TXT ON"
+      end,
+      id = "toggle_markdown",
+      callback = function()
+        self:toggleMarkdown()
+      end,
+      hold_callback = self.default_hold_callback,
+    },
+    {
+      text = _("Copy"),
+      id = "copy_cache",
+      callback = function()
+        Device.input.setClipboardText(self.text)
+        UIManager:show(Notification:new{
+          text = _("Copied to clipboard"),
+          timeout = 2,
+        })
+      end,
+      hold_callback = self.default_hold_callback,
+    },
+    {
+      text = "⇱",
+      id = "top",
+      callback = function()
+        if self.render_markdown then
+          local htmlbox = self.scroll_text_w.htmlbox_widget
+          if htmlbox then
+            if htmlbox.page_number == 1 then
+              return
+            end
+            self.scroll_text_w:scrollToRatio(0)
+          end
+        else
+          self.scroll_text_w:scrollToTop()
+        end
+      end,
+      hold_callback = self.default_hold_callback,
+    },
+    {
+      text = "⇲",
+      id = "bottom",
+      callback = function()
+        if self.render_markdown then
+          self.scroll_text_w:scrollToRatio(1)
+        else
+          self.scroll_text_w:scrollToBottom()
+        end
+      end,
+      hold_callback = self.default_hold_callback,
+    },
+    {
+      text = _("Close"),
+      callback = function()
+        self:onClose()
+      end,
+      hold_callback = self.default_hold_callback,
+    },
+  }
+
   local buttons = self.buttons_table or {}
   if self.add_default_buttons or not self.buttons_table then
-    -- Use minimal buttons in minimal mode, translate buttons in translate mode, otherwise full default buttons
+    -- Use minimal buttons in minimal mode, translate buttons in translate mode, simple view in simple mode, otherwise full default buttons
     if self.minimal_buttons then
       table.insert(buttons, minimal_button_row1)
       table.insert(buttons, minimal_button_row2)
+    elseif self.simple_view then
+      table.insert(buttons, simple_view_buttons)
     elseif self.translate_view then
       table.insert(buttons, translate_button_row1)
       table.insert(buttons, translate_button_row2)
@@ -2247,6 +2317,7 @@ function ChatGPTViewer:expandToFullView()
       expanded_config.features.compact_view = false
       expanded_config.features.minimal_buttons = false
       expanded_config.features.translate_view = false
+      expanded_config.features.simple_view = false
       expanded_config.features.translate_hide_quote = false
       expanded_config.features.hide_highlighted_text = false
       -- Reset streaming to use large dialog (user's default setting)
