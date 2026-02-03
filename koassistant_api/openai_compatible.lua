@@ -251,20 +251,20 @@ function OpenAICompatibleHandler:query(message_history, config)
     end
 
     local parser_key = self:getResponseParserKey()
-    local parse_success, result, reasoning = ResponseParser:parseResponse(response, parser_key)
+    local parse_success, result, reasoning, web_search_used = ResponseParser:parseResponse(response, parser_key)
     if not parse_success then
         return "Error: " .. result
     end
 
-    -- Return result with optional reasoning metadata
-    if reasoning or self:supportsReasoningExtraction() then
-        if reasoning then
-            return {
-                content = result,
-                reasoning = reasoning,
-                _has_reasoning = true,
-            }
-        end
+    -- Return result with optional metadata (reasoning and/or web_search_used)
+    local has_metadata = reasoning or web_search_used
+    if has_metadata then
+        return {
+            content = result,
+            reasoning = reasoning,
+            _has_reasoning = reasoning and true or nil,
+            web_search_used = web_search_used,
+        }
     end
 
     return result

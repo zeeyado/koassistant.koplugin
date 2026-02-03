@@ -48,6 +48,8 @@ ModelConstraints.capabilities = {
             "o3", "o3-mini", "o3-pro", "o4-mini",
             "gpt-5", "gpt-5-mini", "gpt-5-nano", "gpt-5.1", "gpt-5.2",
         },
+        -- Note: OpenAI Chat Completions API does NOT have native web search.
+        -- Web search requires Responses API or function calling with external tools.
     },
     deepseek = {
         -- deepseek-reasoner always reasons (no parameter needed)
@@ -65,6 +67,8 @@ ModelConstraints.capabilities = {
             "gemini-3-pro-preview", "gemini-3-flash-preview",
         },
     },
+    -- Note: xAI web search requires Responses API (/v1/responses) which is
+    -- not compatible with Chat Completions. Deprecated Feb 20, 2026 (410 Gone).
 }
 
 -- Default values for reasoning/thinking settings

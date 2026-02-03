@@ -470,12 +470,35 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
 
                         local ok, event = pcall(json.decode, json_str)
                         if ok and event then
+                            -- Debug: Log SSE event structure (first few events only)
+                            if settings and settings.debug and not first_content_received then
+                                local preview = json_str:sub(1, 200)
+                                if #json_str > 200 then preview = preview .. "..." end
+                                print("SSE event:", preview)
+                            end
+
+                            -- Check for error response in SSE data (OpenRouter/OpenAI format)
+                            if event.error then
+                                local err_message = event.error.message or event.error.type or json.encode(event.error)
+                                logger.warn("SSE error event received:", err_message)
+                                completed = true
+                                finishStream()
+                                if on_complete then on_complete(false, nil, err_message) end
+                                return
+                            end
+
                             -- Check for truncation before extracting content
                             if self:checkIfTruncated(event) then
                                 was_truncated = true
                             end
 
                             local content, reasoning = self:extractContentFromSSE(event)
+
+                            -- Check for Gemini groundingMetadata (web search indicator)
+                            -- Even if we return content, track that search was used
+                            if event.candidates and event.candidates[1] and event.candidates[1].groundingMetadata then
+                                web_search_used = true
+                            end
 
                             -- Handle reasoning content (displayed with header, saved separately)
                             if type(reasoning) == "string" and #reasoning > 0 then
@@ -576,6 +599,11 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                             else
                                 -- Try to extract streaming content
                                 local content, reasoning = self:extractContentFromSSE(event)
+
+                                -- Check for Gemini groundingMetadata (web search indicator)
+                                if event.candidates and event.candidates[1] and event.candidates[1].groundingMetadata then
+                                    web_search_used = true
+                                end
 
                                 -- Handle reasoning content (same logic as SSE handling)
                                 if type(reasoning) == "string" and #reasoning > 0 then
@@ -699,7 +727,7 @@ end
 ---          (nil, reasoning) for reasoning-only chunks
 ---          (content, reasoning) if both present in same event
 function StreamHandler:extractContentFromSSE(event)
-    -- OpenAI/DeepSeek format: choices[0].delta.content
+    -- OpenAI/DeepSeek/xAI format: choices[0].delta.content
     local choice = event.choices and event.choices[1]
     if choice then
         -- Check for actual stop reasons (not just truthy - JSON null can be truthy in some parsers)
@@ -709,6 +737,27 @@ function StreamHandler:extractContentFromSSE(event)
         end
         local delta = choice.delta
         if delta then
+            -- Check for web search tool calls (OpenAI/xAI)
+            -- xAI uses "live_search" type
+            if delta.tool_calls then
+                for _, tool_call in ipairs(delta.tool_calls) do
+                    if tool_call.type == "web_search" or tool_call.type == "live_search" or
+                       (tool_call["function"] and (tool_call["function"].name == "web_search" or tool_call["function"].name == "live_search")) then
+                        return "__WEB_SEARCH_START__", nil
+                    end
+                end
+            end
+
+            -- Check for OpenRouter web search annotations (url_citation)
+            -- OpenRouter uses Exa search via :online suffix, annotations appear in delta
+            if delta.annotations then
+                for _, annotation in ipairs(delta.annotations) do
+                    if annotation.type == "url_citation" then
+                        return "__WEB_SEARCH_START__", nil
+                    end
+                end
+            end
+
             -- DeepSeek: reasoning_content comes alongside regular content
             local reasoning = delta.reasoning_content
             local content = delta.content
@@ -770,6 +819,25 @@ function StreamHandler:extractContentFromSSE(event)
     local gemini_candidate = event.candidates and event.candidates[1]
     if gemini_candidate then
         local parts = gemini_candidate.content and gemini_candidate.content.parts
+
+        -- Check for Google Search grounding (web search indicator)
+        -- groundingMetadata indicates Google Search was used
+        -- Only return marker if no content in this chunk (to not lose text)
+        if gemini_candidate.groundingMetadata then
+            local has_content = false
+            if parts then
+                for _, part in ipairs(parts) do
+                    if part.text and part.text ~= "" then
+                        has_content = true
+                        break
+                    end
+                end
+            end
+            if not has_content then
+                return "__WEB_SEARCH_START__", nil
+            end
+        end
+
         if parts then
             local content_text = nil
             local reasoning_text = nil

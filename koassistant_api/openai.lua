@@ -81,6 +81,10 @@ function OpenAIHandler:buildRequestBody(message_history, config)
         end
     end
 
+    -- Note: OpenAI Chat Completions API does not support native web search.
+    -- Web search requires function calling with user-provided search tools.
+    -- For now, web search is not supported for OpenAI direct.
+
     local headers = {
         ["Content-Type"] = "application/json",
         ["Authorization"] = "Bearer " .. (config.api_key or ""),
@@ -175,13 +179,12 @@ function OpenAIHandler:query(message_history, config)
         DebugUtils.print("OpenAI Parsed Response:", response, config)
     end
 
-    local success, result = ResponseParser:parseResponse(response, "openai")
+    local success, result, reasoning = ResponseParser:parseResponse(response, "openai")
     if not success then
         return "Error: " .. result
     end
 
-    -- If we sent reasoning_effort, flag this in the result
-    -- OpenAI doesn't expose reasoning in responses, but we know we requested it
+    -- Return with metadata if we have reasoning info
     if request_body.reasoning_effort then
         return {
             content = result,
