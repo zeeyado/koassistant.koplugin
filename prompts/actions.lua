@@ -615,9 +615,11 @@ Be concise — aim for the most significant connections, not an exhaustive list.
         id = "key_arguments",
         text = _("Key Arguments"),
         context = "book",
+        use_book_text = true,  -- Gate for accessing {analyze_analysis_section} cache
         -- No behavior_variant - uses user's global behavior
         -- No skip_domain - domain expertise shapes analysis approach
-        prompt = [[Analyze the main arguments in "{title}" by {author}:
+        prompt = [[Analyze the main arguments in "{title}" by {author}.
+{analyze_analysis_section}
 
 ## Core Thesis
 What is the central claim or argument?
@@ -655,9 +657,10 @@ Be concise — this is an overview, not an essay. If you don't recognize this ti
         id = "discussion_questions",
         text = _("Discussion Questions"),
         context = "book",
-        -- No extraction flags - simple knowledge-based action
+        use_book_text = true,  -- Gate for accessing {summary_analysis_section} cache
         -- User can mention reading progress in follow-up if needed
         prompt = [[Generate thoughtful discussion questions for "{title}" by {author}.
+{summary_analysis_section}
 
 Create 8-10 questions that could spark good conversation:
 
