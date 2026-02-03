@@ -6,7 +6,7 @@
 
 **Powerful, customizable AI assistant for KOReader.**
 
-- **Highlight text** → translate, explain, define words, analyze passages, connect ideas
+- **Highlight text** → translate, explain, define words, analyze passages, connect ideas, save content directly to KOReader's highlight notes/annotations
 - **While reading** → reference guides (X-Ray, Recap), analyze your highlights/annotations, explore the book (author, context, arguments, similar works), generate discussion questions
 - **Research & analysis** → deep analysis of papers/articles, explore arguments, find connections across works
 - **Multi-document** → compare texts, find common themes, analyze your collection
@@ -15,7 +15,7 @@
 
 16 built-in providers (Anthropic, OpenAI, Gemini, Ollama, and more) plus custom OpenAI-compatible providers. Fully configurable: custom actions, behaviors, domains, per-action model overrides. Personal reading data (highlights, annotations, notebooks) is opt-in — not sent to the AI unless you enable it.
 
-**Status:** Active development — [issues](https://github.com/zeeyado/koassistant.koplugin/issues) and [discussions](https://github.com/zeeyado/koassistant.koplugin/discussions) welcome. Also see [Assistant Plugin](https://github.com/omer-faruq/assistant.koplugin); both can run side by side.
+**Status:** Active development — [issues](https://github.com/zeeyado/koassistant.koplugin/issues), [discussions](https://github.com/zeeyado/koassistant.koplugin/discussions), and [translations](https://hosted.weblate.org/engage/koassistant/) welcome. Also see [Assistant Plugin](https://github.com/omer-faruq/assistant.koplugin); both can run side by side.
 
 > **Note:** This README is intentionally detailed to help users discover all features. Use the table of contents to navigate.
 
@@ -28,9 +28,9 @@
 - [Recommended Setup](#recommended-setup)
   - [Configure Quick Access Gestures](#configure-quick-access-gestures)
 - [Testing Your Setup](#testing-your-setup)
-- [Privacy & Data](#privacy--data) — ⚠️ Some features require opt-in
-  - [Privacy Controls](#privacy-controls) — Presets and individual toggles
-  - [Text Extraction](#text-extraction) — Enable book content analysis (off by default)
+- [Privacy & Data](#privacy--data) — ⚠️ (Read this) Some features require opt-in
+  - [Privacy Controls](#privacy-controls)
+  - [Text Extraction and Double-gating](#text-extraction-and-double-gating) — Enable book content analysis (off by default)
 - [How to Use KOAssistant](#how-to-use-koassistant) — Contexts & Built-in Actions
   - [Highlight Mode](#highlight-mode)
   - [Book/Document Mode](#bookdocument-mode)
@@ -76,7 +76,7 @@
   - [Response Caching (X-Ray/Recap)](#response-caching-x-rayrecap) — Incremental updates as you read
   - [Reasoning/Thinking](#reasoningthinking)
   - [Web Search](#web-search) — AI searches the web for current information (Anthropic, Gemini)
-- [Supported Providers + Settings](#supported-providers--settings)
+- [Supported Providers + Settings](#supported-providers--settings) - Choose your model, etc
   - [Free Tier Providers](#free-tier-providers)
   - [Adding Custom Providers](#adding-custom-providers)
   - [Adding Custom Models](#adding-custom-models)
@@ -320,7 +320,7 @@ lua tests/inspect.lua --web
 
 ## Privacy & Data
 
-KOAssistant sends data to AI providers to generate responses. This section explains what's shared and how to control it.
+KOAssistant sends data to AI providers to generate responses. This section explains what's shared and how to control it. This is not meant as security or privacy theater, as the "threat model" is simply users including sensitive data (Annotations, notes, content, etc.) without knowing. The available placeholders are substantial in this regard (amount and sensitivity of data), but none currently access KOReader's built in advanced local statistics.
 
 > ⚠️ **Some features are opt-in.** To protect your privacy, personal reading data (highlights, annotations, notebook) is NOT sent to AI providers by default. You must enable sharing in **Settings → Privacy & Data** if you want features like Analyze Highlights or Connect with Notes to work fully. See [Privacy Controls](#privacy-controls) below.
 
@@ -332,12 +332,13 @@ KOAssistant sends data to AI providers to generate responses. This section expla
 - Book title and author
 
 **Sent by default:**
-- Reading progress (percentage)
+- Reading progress (percentage) 
 - Chapter info (current chapter title, chapters read count, time since last opened)
+- The data used to calculate this (exact date you opened the document last, etc.) is local only
 
 **Opt-in (disabled by default):**
-- Highlights and annotations — your saved highlights and personal notes
-- Notebook entries — your KOAssistant notebook for the book
+- Highlights and annotations — your saved highlights and personal notes, and the dates they were made
+- Notebook entries — your KOAssistant notebook for the book, with dates
 - Book text content — actual text from the document (for X-Ray, Recap, etc.)
 
 ### Privacy Controls
@@ -360,38 +361,40 @@ KOAssistant sends data to AI providers to generate responses. This section expla
 
 **Graceful degradation:** When you disable a data type, actions adapt automatically. Section placeholders like `{highlights_section}` simply disappear from prompts, so you don't need to modify your actions.
 
-### Text Extraction
+### Text Extraction and Double-gating
 
 > ⚠️ **Text extraction is OFF by default.** To use features like X-Ray, Recap, and context-aware highlight actions with actual book content (rather than AI's training knowledge), you must enable it in **Settings → Privacy & Data → Text Extraction → Allow Text Extraction**.
 
-Text extraction sends actual book content to the AI, enabling features like X-Ray, Recap, and highlight actions like "Explain in Context" to analyze what you've read. Without it enabled, these features rely solely on the AI's training knowledge of the book (which works for well-known titles but may be inaccurate for obscure works).
+Text extraction sends actual book/document content to the AI, enabling features like X-Ray, Recap, Summarize/Analyze Document, and highlight actions like "Explain in Context" to analyze what you've read. Without it enabled, these features rely solely on the AI's training knowledge of the book (which works for well-known titles but may be inaccurate for obscure works, and definitely sub-par (basically unusable) for research papers and articles).
 
 **Why it's off by default:**
 
-1. **Token costs** (primary reason) — Extracting book text uses significantly more context than you might expect. A full book can consume 60k+ tokens per request, which adds up quickly with paid APIs. Users should consciously opt into this cost.
+1. **Token costs** (primary reason, and also why it is not automatically enabled by Privacy presets, even Full) — Extracting book text uses significantly more context than you might expect. A full book can consume 60k+ tokens per request, which adds up quickly with paid APIs. Users should consciously opt into this cost.
 
-2. **Content awareness** — For most users reading mainstream books, the text itself isn't privacy-sensitive. However, if you're reading something non-standard, subversive, controversial, or otherwise sensitive, you should be aware that the actual content is being sent to cloud AI providers. This is a secondary consideration for most users but important for some.
+2. **Content awareness** (See double-gating below) — For most users reading mainstream books, the text itself isn't privacy-sensitive. However, if you're reading something non-standard, subversive, controversial, or otherwise sensitive, you should be aware that the actual content is being sent to cloud AI providers. This is a secondary consideration for most users but important for some.
 
 **How to enable:**
 1. Go to **Settings → Privacy & Data → Text Extraction**
 2. Enable **"Allow Text Extraction"** (the master toggle)
 3. Built-in actions (X-Ray, Recap, Explain in Context, Analyze in Context) already have the per-action flag enabled
 
-**Double-gating for safety:** Sensitive data requires both a global privacy setting AND a per-action permission flag. This prevents accidental data leakage—enabling a global setting doesn't automatically expose that data in all actions.
+**Double-gating for safety:** Sensitive data requires both a global privacy setting AND a per-action permission flag (enabled for built in actions that need it, and duplicates you make of those actions). This prevents accidental data leakage if you use sensitive placeholders/template variables—enabling a global setting prevents automatically exposing that data in all actions.
 
 | Data Type | Global Setting | Per-Action Flag |
 |-----------|----------------|-----------------|
 | Book text | Allow Text Extraction | "Allow text extraction" checked |
-| X-Ray analysis cache | Allow Text Extraction (+ Allow Highlights if cache was built with annotations) | Auto-inferred |
-| Analyze/Summary caches | Allow Text Extraction | Auto-inferred |
-| Highlights | Allow Highlights & Annotations | "Include highlights" checked |
-| Annotations | Allow Highlights & Annotations | "Include annotations" checked |
-| Notebook | Allow Notebook | "Include notebook" checked |
-| Surrounding context | None (hard-capped 2000 chars) | Auto-inferred from placeholder |
+| X-Ray analysis cache | Allow Text Extraction (+ Allow Highlights & Annotations if cache was built with annotations) | "Allow text extraction" and "Allow annotation use" (if cache was built with annotations) checked |
+| Analyze/Summary caches | Allow Text Extraction | "Allow text extraction" checked |
+| Highlights | Allow Highlights & Annotations | ""Allow annotation use" checked |
+| Annotations | Allow Highlights & Annotations | "Allow annotation use" checked |
+| Notebook | Allow Notebook | "Allow notebook use" checked |
+| Surrounding context* | None (hard-capped 2000 chars) | Auto-inferred from placeholder |
+
+* Surrounding context is just a text selection type for highlight context (same as highlighting text), and added here for clarity because it extracts more than you highlighted.
 
 Built-in actions already have appropriate flags set. When you copy a built-in action, it inherits the flags. When creating a custom action from scratch, check the permissions your action needs.
 
-**Two extraction types** (determined by placeholder in your action prompt):
+**Two text extraction types** (determined by placeholder in your action prompt):
 - `{book_text_section}` — Extracts from start to your current reading position (used by X-Ray, Recap)
 - `{full_document_section}` — Extracts the entire document regardless of position (for short papers, articles)
 
