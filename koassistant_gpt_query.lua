@@ -207,7 +207,7 @@ local function queryChatGPT(message_history, temp_config, on_complete, settings)
             provider,
             config.model,
             stream_settings,
-            function(stream_success, content, err, reasoning_content)
+            function(stream_success, content, err, reasoning_content, stream_web_search_used)
                 if stream_handler.user_interrupted then
                     if on_complete then on_complete(false, nil, "Request cancelled by user.") end
                     return
@@ -224,7 +224,7 @@ local function queryChatGPT(message_history, temp_config, on_complete, settings)
                 -- 3. Otherwise → nil
                 local reasoning_info = reasoning_content or stream_reasoning_requested
 
-                if on_complete then on_complete(true, content, nil, reasoning_info) end
+                if on_complete then on_complete(true, content, nil, reasoning_info, stream_web_search_used) end
             end
         )
 
@@ -232,11 +232,12 @@ local function queryChatGPT(message_history, temp_config, on_complete, settings)
         return STREAMING_IN_PROGRESS
     end
 
-    -- Non-streaming response - handle both string and structured result (with reasoning)
+    -- Non-streaming response - handle both string and structured result (with reasoning/web_search)
     local content = result
     local reasoning = nil
+    local web_search_used = nil
 
-    -- Check if result is a structured response with reasoning metadata
+    -- Check if result is a structured response with metadata
     if type(result) == "table" then
         if result._has_reasoning then
             -- Confirmed reasoning (Anthropic, DeepSeek, Gemini): actual reasoning content returned
@@ -248,11 +249,16 @@ local function queryChatGPT(message_history, temp_config, on_complete, settings)
             -- Pass special marker to indicate reasoning was requested (not confirmed)
             reasoning = { _requested = true, effort = result._reasoning_effort }
         end
+        -- Check for web search used
+        if result.web_search_used then
+            web_search_used = true
+            content = result.content or content
+        end
     end
 
     if on_complete then
-        -- Pass reasoning as fourth argument when available
-        on_complete(true, content, nil, reasoning)
+        -- Pass reasoning as 4th argument, web_search_used as 5th when available
+        on_complete(true, content, nil, reasoning, web_search_used)
     end
     return result
 end

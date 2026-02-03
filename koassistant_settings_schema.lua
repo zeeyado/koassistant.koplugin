@@ -1312,15 +1312,47 @@ local SettingsSchema = {
                         },
                     },
                 },
-                -- Web Search
+                -- Web Search submenu
                 {
-                    id = "enable_web_search",
-                    type = "toggle",
-                    text = _("Web Search (Anthropic)"),
-                    help_text = _("Allow Claude to search the web for current information. Uses Anthropic's web_search tool. Increases token usage."),
-                    path = "features.enable_web_search",
-                    default = false,
-                    separator = true,
+                    id = "web_search_submenu",
+                    type = "submenu",
+                    text = _("Web Search"),
+                    items = {
+                        {
+                            type = "info",
+                            text = _("Supported: Anthropic, Gemini"),
+                        },
+                        {
+                            id = "enable_web_search",
+                            type = "toggle",
+                            text = _("Enable Web Search"),
+                            help_text = _("Allow AI to search the web for current information.\n\nSupported: Anthropic (Claude), Gemini.\nOther providers ignore this setting.\n\nIncreases token usage."),
+                            path = "features.enable_web_search",
+                            default = false,
+                        },
+                        {
+                            id = "web_search_max_uses",
+                            type = "spinner",
+                            text = _("Max Searches per Query"),
+                            help_text = _("Maximum number of web searches per query (1-10).\nApplies to Anthropic only.\nGemini decides search count automatically."),
+                            path = "features.web_search_max_uses",
+                            default = 5,
+                            min = 1,
+                            max = 10,
+                            step = 1,
+                            precision = "%d",
+                            depends_on = { id = "enable_web_search", value = true },
+                            separator = true,
+                        },
+                        {
+                            id = "show_web_search_indicator",
+                            type = "toggle",
+                            text = _("Show Indicator in Chat"),
+                            help_text = _("Show '*[Web search was used]*' indicator in chat when web search is used.\n\nStreaming indicator ('🔍 Searching...') is always shown."),
+                            path = "features.show_web_search_indicator",
+                            default = true,
+                        },
+                    },
                 },
                 -- Provider-specific settings
                 {

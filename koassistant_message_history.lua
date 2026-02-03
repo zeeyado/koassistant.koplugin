@@ -52,7 +52,7 @@ function MessageHistory:addUserMessage(content, is_context)
     return #self.messages
 end
 
-function MessageHistory:addAssistantMessage(content, model, reasoning, debug_info)
+function MessageHistory:addAssistantMessage(content, model, reasoning, debug_info, web_search_used)
     local message = {
         role = self.ROLES.ASSISTANT,
         content = content
@@ -60,6 +60,10 @@ function MessageHistory:addAssistantMessage(content, model, reasoning, debug_inf
     -- Store reasoning if provided (for models with visible thinking)
     if reasoning then
         message.reasoning = reasoning
+    end
+    -- Store web search indicator if search was used
+    if web_search_used then
+        message.web_search_used = true
     end
     -- Store debug info for accurate historical display (NOT exported with chat)
     if debug_info then
@@ -497,8 +501,13 @@ function MessageHistory:createResultText(highlightedText, config)
 
     -- Check if reasoning indicator should be shown in chat
     -- Controlled by show_reasoning_indicator setting (default: true)
-    local show_indicator = config and config.features and config.features.show_reasoning_indicator
-    if show_indicator == nil then show_indicator = true end  -- Default to showing indicator
+    local show_reasoning_indicator = config and config.features and config.features.show_reasoning_indicator
+    if show_reasoning_indicator == nil then show_reasoning_indicator = true end  -- Default to showing indicator
+
+    -- Check if web search indicator should be shown in chat
+    -- Controlled by show_web_search_indicator setting (default: true)
+    local show_web_search_indicator = config and config.features and config.features.show_web_search_indicator
+    if show_web_search_indicator == nil then show_web_search_indicator = true end  -- Default to showing indicator
 
     -- Show conversation (non-context messages)
     -- In compact mode (dictionary lookups), hide prefixes for cleaner display
@@ -526,7 +535,7 @@ function MessageHistory:createResultText(highlightedText, config)
             --   true: reasoning detected but not captured (streaming mode)
             --   { _requested = true, effort = "..." }: requested but API doesn't expose (OpenAI)
             -- Note: Full reasoning content is viewable via "Show Reasoning" button in ChatGPTViewer
-            if show_indicator and msg.role == self.ROLES.ASSISTANT and msg.reasoning then
+            if show_reasoning_indicator and msg.role == self.ROLES.ASSISTANT and msg.reasoning then
                 if type(msg.reasoning) == "table" and msg.reasoning._requested then
                     -- OpenAI: reasoning was requested but API doesn't expose content
                     local effort = msg.reasoning.effort and (" (" .. msg.reasoning.effort .. ")") or ""
@@ -535,6 +544,11 @@ function MessageHistory:createResultText(highlightedText, config)
                     -- Reasoning confirmed (content may or may not be captured)
                     table.insert(result, "*[Reasoning/Thinking was used]*\n\n")
                 end
+            end
+
+            -- If this is an assistant message with web search used, show indicator
+            if show_web_search_indicator and msg.role == self.ROLES.ASSISTANT and msg.web_search_used then
+                table.insert(result, "*[Web search was used]*\n\n")
             end
 
             table.insert(result, prefix .. msg.content .. "\n\n")

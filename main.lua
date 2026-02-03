@@ -4082,6 +4082,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
   local behavior_id = features.selected_behavior or "standard"
   local temp = features.default_temperature or 0.7
   local streaming = features.enable_streaming ~= false  -- Default true
+  local web_search = features.enable_web_search == true  -- Default false
 
   -- Get behavior display name (with source indicator)
   local custom_behaviors = features.custom_behaviors or {}
@@ -4178,7 +4179,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
         end,
       },
     },
-    -- Row 3: Temperature | Language
+    -- Row 3: Temperature | Web Search
     {
       {
         text = T(_("Temp: %1"), string.format("%.1f", temp)),
@@ -4207,6 +4208,22 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
         end,
       },
       {
+        text = web_search and _("Web Search: ON") or _("Web Search: OFF"),
+        callback = function()
+          local f = self_ref.settings:readSetting("features") or {}
+          f.enable_web_search = not f.enable_web_search
+          self_ref.settings:saveSetting("features", f)
+          self_ref.settings:flush()
+          self_ref:updateConfigFromSettings()
+          opening_subdialog = true
+          UIManager:close(dialog)
+          reopenQuickSettings()
+        end,
+      },
+    },
+    -- Row 4: Language | Translate
+    {
+      {
         text = T(_("Language: %1"), lang_display),
         callback = function()
           opening_subdialog = true
@@ -4225,9 +4242,6 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
           end
         end,
       },
-    },
-    -- Row 4: Translate | Dictionary
-    {
       {
         text = T(_("Translate: %1"), trans_display),
         callback = function()
@@ -4237,6 +4251,9 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
           self_ref:showQuickSettingsPopup(_("Translation Language"), menu_items, true, reopenQuickSettings)
         end,
       },
+    },
+    -- Row 5: Dictionary | Highlight Bypass
+    {
       {
         text = T(_("Dictionary: %1"), dict_display),
         callback = function()
@@ -4246,9 +4263,6 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
           self_ref:showQuickSettingsPopup(_("Dictionary Language"), menu_items, true, reopenQuickSettings)
         end,
       },
-    },
-    -- Row 5: Highlight Bypass | Dictionary Bypass
-    {
       {
         text = highlight_bypass and _("H.Bypass: ON") or _("H.Bypass: OFF"),
         callback = function()
@@ -4262,6 +4276,9 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
           reopenQuickSettings()
         end,
       },
+    },
+    -- Row 6: Dictionary Bypass | Chat History
+    {
       {
         text = dict_bypass and _("D.Bypass: ON") or _("D.Bypass: OFF"),
         callback = function()
@@ -4275,9 +4292,6 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
           reopenQuickSettings()
         end,
       },
-    },
-    -- Row 6: Chat History | Browse Notebooks
-    {
       {
         text = _("Chat History"),
         callback = function()
@@ -4286,6 +4300,9 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
           self_ref:showChatHistory()
         end,
       },
+    },
+    -- Row 7: Browse Notebooks | New General Chat
+    {
       {
         text = _("Browse Notebooks"),
         callback = function()
@@ -4294,9 +4311,6 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
           self_ref:onKOAssistantBrowseNotebooks()
         end,
       },
-    },
-    -- Row 7: New General Chat | Manage Actions
-    {
       {
         text = _("New General Chat"),
         callback = function()
@@ -4305,6 +4319,9 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
           self_ref:startGeneralChat()
         end,
       },
+    },
+    -- Row 8: Manage Actions
+    {
       {
         text = _("Manage Actions"),
         callback = function()

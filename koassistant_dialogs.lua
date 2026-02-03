@@ -1184,6 +1184,12 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
             -- This is critical for compact→full view transition to work correctly
             local cfg = viewer.configuration or temp_config or CONFIGURATION
 
+            -- Apply session web search override if set on the viewer
+            -- This allows per-query toggling of web search from the Reply dialog
+            if viewer.session_web_search_override ~= nil then
+                cfg.enable_web_search = viewer.session_web_search_override
+            end
+
             -- Show loading dialog only when streaming is OFF (streaming has its own dialog)
             if not (cfg.features and cfg.features.enable_streaming) then
                 showLoadingDialog(cfg)
@@ -1225,6 +1231,7 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                         export_callback = viewer.export_callback,
                         tag_callback = viewer.tag_callback,
                         selection_data = viewer.selection_data,  -- Preserve for "Save to Note" feature
+                        session_web_search_override = viewer.session_web_search_override,  -- Preserve session override
                     }
                     -- Set close_callback after creation so new_viewer is defined
                     new_viewer.close_callback = function()
@@ -1245,9 +1252,9 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
             -- IMPORTANT: Use viewer's cfg for the query, not the closure-captured temp_config
             -- This ensures expanded views use large_stream_dialog=true
             history:addUserMessage(question, false)
-            queryChatGPT(history:getMessages(), cfg, function(success, answer, err, reasoning)
+            queryChatGPT(history:getMessages(), cfg, function(success, answer, err, reasoning, web_search_used)
                 if success and answer and answer ~= "" then
-                    history:addAssistantMessage(answer, ConfigHelper:getModelInfo(cfg), reasoning, ConfigHelper:buildDebugInfo(cfg))
+                    history:addAssistantMessage(answer, ConfigHelper:getModelInfo(cfg), reasoning, ConfigHelper:buildDebugInfo(cfg), web_search_used)
 
                     -- Determine if auto-save should apply:
                     -- auto_save_all_chats = always, OR auto_save_chats + chat already saved once
@@ -2117,13 +2124,13 @@ local function handlePredefinedPrompt(prompt_type_or_action, highlightedText, ui
     local original_action_id = prompt and prompt.id
 
     -- Get response from AI with callback for async streaming
-    local function handleResponse(success, answer, err, reasoning)
+    local function handleResponse(success, answer, err, reasoning, web_search_used)
         if success and answer and answer ~= "" then
             -- If user typed additional input, add it as a visible message before the response
             if has_additional_input then
                 history:addUserMessage(additional_input, false)
             end
-            history:addAssistantMessage(answer, ConfigHelper:getModelInfo(temp_config), reasoning, ConfigHelper:buildDebugInfo(temp_config))
+            history:addAssistantMessage(answer, ConfigHelper:getModelInfo(temp_config), reasoning, ConfigHelper:buildDebugInfo(temp_config), web_search_used)
 
             -- Save to response cache if enabled
             -- Cache when: action supports it, uses book text, extraction enabled, we have progress
@@ -2518,21 +2525,21 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     buildUnifiedRequestConfig(configuration, domain_context, nil, plugin)
 
                     -- Callback to handle response (for both streaming and non-streaming)
-                    local function onResponseReady(success, answer, err, reasoning)
+                    local function onResponseReady(success, answer, err, reasoning, web_search_used)
                         if success and answer then
                             -- If user typed a question, add it as a visible message before the response
                             if has_user_question then
                                 history:addUserMessage(question, false)
                             end
-                            history:addAssistantMessage(answer, ConfigHelper:getModelInfo(configuration), reasoning, ConfigHelper:buildDebugInfo(configuration))
+                            history:addAssistantMessage(answer, ConfigHelper:getModelInfo(configuration), reasoning, ConfigHelper:buildDebugInfo(configuration), web_search_used)
 
                             local function addMessage(message, is_context, on_complete)
                                 history:addUserMessage(message, is_context)
-                                local answer_result = queryChatGPT(history:getMessages(), configuration, function(msg_success, msg_answer, msg_err, msg_reasoning)
+                                local answer_result = queryChatGPT(history:getMessages(), configuration, function(msg_success, msg_answer, msg_err, msg_reasoning, msg_web_search_used)
                                     if msg_success and msg_answer then
-                                        history:addAssistantMessage(msg_answer, ConfigHelper:getModelInfo(configuration), msg_reasoning, ConfigHelper:buildDebugInfo(configuration))
+                                        history:addAssistantMessage(msg_answer, ConfigHelper:getModelInfo(configuration), msg_reasoning, ConfigHelper:buildDebugInfo(configuration), msg_web_search_used)
                                     end
-                                    if on_complete then on_complete(msg_success, msg_answer, msg_err, msg_reasoning) end
+                                    if on_complete then on_complete(msg_success, msg_answer, msg_err, msg_reasoning, msg_web_search_used) end
                                 end, plugin and plugin.settings)
                                 if not isStreamingInProgress(answer_result) then
                                     return answer_result
@@ -2584,11 +2591,11 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                             local function addMessage(message, is_context, on_complete)
                                 history:addUserMessage(message, is_context)
                                 -- For follow-up messages, use callback pattern too
-                                local answer_result = queryChatGPT(history:getMessages(), temp_config, function(success, answer, err, reasoning)
+                                local answer_result = queryChatGPT(history:getMessages(), temp_config, function(success, answer, err, reasoning, web_search_used)
                                     if success and answer then
-                                        history:addAssistantMessage(answer, ConfigHelper:getModelInfo(temp_config), reasoning, ConfigHelper:buildDebugInfo(temp_config))
+                                        history:addAssistantMessage(answer, ConfigHelper:getModelInfo(temp_config), reasoning, ConfigHelper:buildDebugInfo(temp_config), web_search_used)
                                     end
-                                    if on_complete then on_complete(success, answer, err, reasoning) end
+                                    if on_complete then on_complete(success, answer, err, reasoning, web_search_used) end
                                 end, plugin and plugin.settings)
                                 -- For non-streaming, return the result directly
                                 if not isStreamingInProgress(answer_result) then
@@ -2785,11 +2792,11 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
             end
             local function addMessage(message, is_context, on_complete_msg)
                 history:addUserMessage(message, is_context)
-                local answer_result = queryChatGPT(history:getMessages(), temp_config, function(success, answer, err, reasoning)
+                local answer_result = queryChatGPT(history:getMessages(), temp_config, function(success, answer, err, reasoning, web_search_used)
                     if success and answer then
-                        history:addAssistantMessage(answer, ConfigHelper:getModelInfo(temp_config), reasoning, ConfigHelper:buildDebugInfo(temp_config))
+                        history:addAssistantMessage(answer, ConfigHelper:getModelInfo(temp_config), reasoning, ConfigHelper:buildDebugInfo(temp_config), web_search_used)
                     end
-                    if on_complete_msg then on_complete_msg(success, answer, err, reasoning) end
+                    if on_complete_msg then on_complete_msg(success, answer, err, reasoning, web_search_used) end
                 end, plugin and plugin.settings)
                 if not isStreamingInProgress(answer_result) then
                     return answer_result

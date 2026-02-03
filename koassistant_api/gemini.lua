@@ -90,6 +90,29 @@ function GeminiHandler:buildRequestBody(message_history, config)
         end
     end
 
+    -- Add Google Search grounding if enabled
+    -- Logic: per-action override > global setting (same pattern as Anthropic)
+    local enable_web_search = false
+    if config.enable_web_search ~= nil then
+        -- Per-action override (true = force on, false = force off)
+        enable_web_search = config.enable_web_search
+    elseif config.features and config.features.enable_web_search then
+        -- Global setting
+        enable_web_search = true
+    end
+
+    if enable_web_search then
+        if ModelConstraints.supportsCapability("gemini", model, "google_search") then
+            request_body.tools = {
+                { googleSearch = {} }  -- Empty object enables Google Search
+            }
+        else
+            adjustments.web_search_skipped = {
+                reason = "model " .. model .. " does not support Google Search"
+            }
+        end
+    end
+
     local headers = {
         ["Content-Type"] = "application/json",
         ["x-goog-api-key"] = config.api_key or "",
@@ -179,17 +202,18 @@ function GeminiHandler:query(message_history, config)
         DebugUtils.print("Gemini Parsed Response:", response, config)
     end
 
-    local success, result, reasoning = ResponseParser:parseResponse(response, "gemini")
+    local success, result, reasoning, web_search_used = ResponseParser:parseResponse(response, "gemini")
     if not success then
         return "Error: " .. result
     end
 
-    -- Return result with optional reasoning metadata (like Anthropic)
-    if reasoning then
+    -- Return result with optional metadata (reasoning, web_search)
+    if reasoning or web_search_used then
         return {
             content = result,
             reasoning = reasoning,
-            _has_reasoning = true,
+            _has_reasoning = reasoning and true or nil,
+            web_search_used = web_search_used,
         }
     end
 

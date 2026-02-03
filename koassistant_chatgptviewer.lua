@@ -820,6 +820,9 @@ local ChatGPTViewer = InputContainer:extend {
   -- Session-only toggle for hiding highlighted text (does not persist)
   hide_highlighted_text = false,
 
+  -- Session-only web search override (nil = follow global, true = force on, false = force off)
+  session_web_search_override = nil,
+
   -- Compact view mode (used for dictionary lookups)
   compact_view = false,
 
@@ -1120,6 +1123,49 @@ function ChatGPTViewer:init()
       end,
     })
   end
+
+  -- Add web search toggle (far right of first row)
+  -- Session override > global setting
+  local function getWebSearchState()
+    if self.session_web_search_override ~= nil then
+      return self.session_web_search_override
+    end
+    -- Check global setting from configuration
+    local cfg = self.configuration
+    if cfg and cfg.features and cfg.features.enable_web_search then
+      return true
+    end
+    return false
+  end
+  table.insert(first_row, {
+    text_func = function()
+      local state = getWebSearchState()
+      return state and _("🔍 ON") or _("🔍 OFF")
+    end,
+    id = "toggle_web_search",
+    callback = function()
+      -- Toggle web search override for this session
+      local current_state = getWebSearchState()
+      self.session_web_search_override = not current_state
+      -- Update button text (force re-init to handle truncation avoidance)
+      local button = self.button_table:getButtonById("toggle_web_search")
+      if button then
+        local new_state = getWebSearchState()
+        button.did_truncation_tweaks = true  -- Force full re-init with truncation check
+        button:setText(new_state and _("🔍 ON") or _("🔍 OFF"), button.width)
+      end
+      -- Refresh display
+      UIManager:setDirty(self, function()
+        return "ui", self.frame.dimen
+      end)
+    end,
+    hold_callback = function()
+      UIManager:show(Notification:new{
+        text = _("Toggle web search for this session (Anthropic, Gemini)"),
+        timeout = 2,
+      })
+    end,
+  })
 
   local default_buttons = {
     first_row,

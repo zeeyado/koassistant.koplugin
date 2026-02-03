@@ -127,18 +127,19 @@ function AnthropicHandler:query(message_history, config)
         DebugUtils.print("Anthropic Parsed Response:", response, config)
     end
 
-    local success, result, reasoning = ResponseParser:parseResponse(response, "anthropic")
+    local success, result, reasoning, web_search_used = ResponseParser:parseResponse(response, "anthropic")
     if not success then
         return "Error: " .. result
     end
 
-    -- Return result with optional reasoning metadata
-    -- This allows callers to access reasoning if they want it
-    if reasoning then
+    -- Return result with optional metadata (reasoning, web_search)
+    -- This allows callers to access these if they want them
+    if reasoning or web_search_used then
         return {
             content = result,
             reasoning = reasoning,
-            _has_reasoning = true,  -- Marker for gpt_query to detect
+            _has_reasoning = reasoning and true or nil,  -- Marker for gpt_query to detect
+            web_search_used = web_search_used,
         }
     end
 

@@ -124,11 +124,16 @@ function AnthropicRequest:build(config)
     end
 
     if enable_web_search then
+        -- Get max_uses from settings (default 5)
+        local max_uses = 5
+        if config.features and config.features.web_search_max_uses then
+            max_uses = config.features.web_search_max_uses
+        end
         request_body.tools = {
             {
                 type = "web_search_20250305",
                 name = "web_search",
-                max_uses = 5,
+                max_uses = max_uses,
             },
         }
     end

@@ -98,6 +98,7 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
     local completed = false
     local in_reasoning_phase = false  -- Track if we're currently showing reasoning
     local in_web_search_phase = false  -- Track if web search tool is executing
+    local web_search_used = false  -- Track if web search was ever used during this stream
     local was_truncated = false  -- Track if response was truncated (max tokens)
 
     local chunksize = 1024 * 16
@@ -204,8 +205,10 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
         end
 
         -- Pass reasoning content as 4th arg (string if captured, nil otherwise)
+        -- Pass web_search_used as 5th arg (true if search was used, nil otherwise)
         local reasoning_content = #reasoning_buffer > 0 and table.concat(reasoning_buffer) or nil
-        if on_complete then on_complete(true, result, nil, reasoning_content) end
+        local search_used = web_search_used and true or nil
+        if on_complete then on_complete(true, result, nil, reasoning_content, search_used) end
     end
 
     local function _closeStreamDialog()
@@ -502,6 +505,7 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                                 -- Check for web search marker
                                 if content == "__WEB_SEARCH_START__" then
                                     in_web_search_phase = true
+                                    web_search_used = true  -- Mark that search was used
                                     if not first_content_received then
                                         first_content_received = true
                                         if animation_task then

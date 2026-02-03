@@ -35,6 +35,7 @@ local RESPONSE_TRANSFORMERS = {
         if response.content then
             local text_blocks = {}
             local thinking_content = nil
+            local web_search_used = nil
 
             -- Look for thinking and text blocks (ignore tool_use blocks)
             for _, block in ipairs(response.content) do
@@ -42,8 +43,11 @@ local RESPONSE_TRANSFORMERS = {
                     thinking_content = block.thinking
                 elseif block.type == "text" and block.text then
                     table.insert(text_blocks, block.text)
+                elseif block.type == "server_tool_use" or block.type == "web_search_tool_result" then
+                    -- Web search was used
+                    web_search_used = true
                 end
-                -- Other blocks (tool_use, server_tool_use, web_search_tool_result) are silently ignored
+                -- Other blocks (tool_use) are silently ignored
                 -- Web search results are integrated into the text blocks by Anthropic
             end
 
@@ -64,7 +68,7 @@ local RESPONSE_TRANSFORMERS = {
             end
 
             if text_content then
-                return true, text_content, thinking_content
+                return true, text_content, thinking_content, web_search_used
             end
         end
         return false, "Unexpected response format"
@@ -104,6 +108,15 @@ local RESPONSE_TRANSFORMERS = {
             local candidate = response.candidates[1]
             local finish_reason = candidate.finishReason
 
+            -- Check if web search (grounding) was used
+            -- Gemini returns groundingMetadata when Google Search grounding is enabled
+            local web_search_used = nil
+            if candidate.groundingMetadata then
+                -- groundingMetadata indicates search was used
+                -- Contains: webSearchQueries, groundingChunks, groundingSupports
+                web_search_used = true
+            end
+
             -- Check if MAX_TOKENS before content was generated (thinking models issue)
             if finish_reason == "MAX_TOKENS" and
                (not candidate.content or not candidate.content.parts or #candidate.content.parts == 0) then
@@ -131,7 +144,7 @@ local RESPONSE_TRANSFORMERS = {
                 end
 
                 if content ~= "" then
-                    return true, content, thinking
+                    return true, content, thinking, web_search_used
                 end
             end
         end
@@ -311,14 +324,15 @@ local RESPONSE_TRANSFORMERS = {
 --- @return boolean: Success flag
 --- @return string: Content (main response text) or error message
 --- @return string|nil: Reasoning content (thinking/reasoning if available, nil otherwise)
+--- @return boolean|nil: Web search used (true if web search was used, nil otherwise)
 function ResponseParser:parseResponse(response, provider)
     local transform = RESPONSE_TRANSFORMERS[provider]
     if not transform then
         return false, "No response transformer found for provider: " .. tostring(provider)
     end
 
-    -- Transform returns: success, content, reasoning (reasoning is optional)
-    local success, result, reasoning = transform(response)
+    -- Transform returns: success, content, reasoning, web_search_used (reasoning and web_search are optional)
+    local success, result, reasoning, web_search_used = transform(response)
     if not success and result == "Unexpected response format" then
         -- Provide more details about what was received (show full response for debugging)
         local json = require("json")
@@ -328,7 +342,7 @@ function ResponseParser:parseResponse(response, provider)
                                    provider, response_str)
     end
 
-    return success, result, reasoning
+    return success, result, reasoning, web_search_used
 end
 
 return ResponseParser 

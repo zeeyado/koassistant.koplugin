@@ -1331,12 +1331,12 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
 
         -- Use callback pattern for streaming support
         logger.info("KOAssistant: Calling queryChatGPT with " .. #history:getMessages() .. " messages")
-        local answer_result = queryChatGPT(history:getMessages(), config, function(success, answer, err, reasoning)
+        local answer_result = queryChatGPT(history:getMessages(), config, function(success, answer, err, reasoning, web_search_used)
             logger.info("KOAssistant: queryChatGPT callback - success: " .. tostring(success) .. ", answer length: " .. tostring(answer and #answer or 0) .. ", err: " .. tostring(err))
             -- Only save if we got a non-empty answer
             if success and answer and answer ~= "" then
                 -- Reasoning only passed for non-streaming responses when model actually used it
-                history:addAssistantMessage(answer, history:getModel() or (config and config.model), reasoning, ConfigHelper:buildDebugInfo(config))
+                history:addAssistantMessage(answer, history:getModel() or (config and config.model), reasoning, ConfigHelper:buildDebugInfo(config), web_search_used)
 
                 -- Auto-save continued chats
                 if config.features.auto_save_all_chats or (config.features.auto_save_chats ~= false) then
@@ -1414,7 +1414,8 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
 
     -- Function to create and show the chat viewer
     -- state param for rotation: {text, scroll_ratio, scroll_to_last_question}
-    local function showChatViewer(content_text, state)
+    -- session_web_search param: preserved session web search override (nil/true/false)
+    local function showChatViewer(content_text, state, session_web_search)
         -- Always close existing viewer first
         safeClose(self_ref.current_chat_viewer)
         self_ref.current_chat_viewer = nil
@@ -1432,6 +1433,7 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
             configuration = config,
             original_history = history,
             original_highlighted_text = chat_highlighted_text,
+            session_web_search_override = session_web_search,  -- Preserve session override
             settings_callback = function(path, value)
                 local plugin = ui and ui.koassistant
                 if not plugin then
@@ -1467,6 +1469,14 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
                 end
             end,
             onAskQuestion = function(self_viewer, question)
+                -- Store session web search override before viewer is closed
+                local session_web_search = self_viewer.session_web_search_override
+
+                -- Apply session web search override if set on the viewer
+                if session_web_search ~= nil then
+                    config.enable_web_search = session_web_search
+                end
+
                 showLoadingDialog()
 
                 UIManager:scheduleIn(0.1, function()
@@ -1474,7 +1484,7 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
                     local function onResponseComplete(success, answer, err)
                         if success and answer then
                             local new_content = history:createResultText(chat_highlighted_text, config)
-                            showChatViewer(new_content)
+                            showChatViewer(new_content, nil, session_web_search)
                         else
                             UIManager:show(InfoMessage:new{
                                 text = _("Failed to get response: ") .. (err or "Unknown error"),
