@@ -68,9 +68,22 @@ function GeminiHandler:buildRequestBody(message_history, config)
     local api_params = config.api_params or {}
     local default_params = defaults.additional_parameters or {}
 
+    -- Check if thinking will be enabled (affects default max_tokens)
+    local thinking_enabled = api_params.thinking_level and
+                             ModelConstraints.supportsCapability("gemini", model, "thinking")
+
+    -- Determine max_tokens
+    -- If user explicitly set max_tokens, use that
+    -- Otherwise, use higher default for thinking (16384) vs normal (4096)
+    -- Gemini thinking tokens count toward maxOutputTokens, so we need extra room
+    local max_tokens = api_params.max_tokens
+    if not max_tokens then
+        max_tokens = thinking_enabled and 16384 or 4096
+    end
+
     request_body.generationConfig = {
         temperature = api_params.temperature or default_params.temperature or 0.7,
-        maxOutputTokens = api_params.max_tokens or 4096,
+        maxOutputTokens = max_tokens,
     }
 
     -- Add thinking config for Gemini 3 preview models if enabled
@@ -78,7 +91,7 @@ function GeminiHandler:buildRequestBody(message_history, config)
     -- Gemini 3 Pro: LOW, HIGH; Gemini 3 Flash: MINIMAL, LOW, MEDIUM, HIGH
     local adjustments = {}
     if api_params.thinking_level then
-        if ModelConstraints.supportsCapability("gemini", model, "thinking") then
+        if thinking_enabled then
             request_body.generationConfig.thinkingConfig = {
                 thinkingLevel = api_params.thinking_level:upper(),
                 includeThoughts = true,  -- Required to get thinking in response

@@ -495,9 +495,15 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                             local content, reasoning = self:extractContentFromSSE(event)
 
                             -- Check for Gemini groundingMetadata (web search indicator)
-                            -- Even if we return content, track that search was used
-                            if event.candidates and event.candidates[1] and event.candidates[1].groundingMetadata then
-                                web_search_used = true
+                            -- Only set web_search_used if metadata contains actual search results
+                            local gm = event.candidates and event.candidates[1] and event.candidates[1].groundingMetadata
+                            if gm then
+                                -- Check if search was actually performed (not just enabled)
+                                if (gm.webSearchQueries and #gm.webSearchQueries > 0) or
+                                   (gm.groundingChunks and #gm.groundingChunks > 0) or
+                                   (gm.groundingSupports and #gm.groundingSupports > 0) then
+                                    web_search_used = true
+                                end
                             end
 
                             -- Handle reasoning content (displayed with header, saved separately)
@@ -821,20 +827,27 @@ function StreamHandler:extractContentFromSSE(event)
         local parts = gemini_candidate.content and gemini_candidate.content.parts
 
         -- Check for Google Search grounding (web search indicator)
-        -- groundingMetadata indicates Google Search was used
-        -- Only return marker if no content in this chunk (to not lose text)
-        if gemini_candidate.groundingMetadata then
-            local has_content = false
-            if parts then
-                for _, part in ipairs(parts) do
-                    if part.text and part.text ~= "" then
-                        has_content = true
-                        break
+        -- Only show search indicator if metadata contains actual search results
+        -- and no content in this chunk (to not lose text)
+        local gm = gemini_candidate.groundingMetadata
+        if gm then
+            -- Check if search was actually performed
+            local search_used = (gm.webSearchQueries and #gm.webSearchQueries > 0) or
+                               (gm.groundingChunks and #gm.groundingChunks > 0) or
+                               (gm.groundingSupports and #gm.groundingSupports > 0)
+            if search_used then
+                local has_content = false
+                if parts then
+                    for _, part in ipairs(parts) do
+                        if part.text and part.text ~= "" then
+                            has_content = true
+                            break
+                        end
                     end
                 end
-            end
-            if not has_content then
-                return "__WEB_SEARCH_START__", nil
+                if not has_content then
+                    return "__WEB_SEARCH_START__", nil
+                end
             end
         end
 

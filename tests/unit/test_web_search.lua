@@ -239,6 +239,91 @@ TestRunner:test("returns nil web_search_used when no tool_calls", function()
 end)
 
 --------------------------------------------------------------------------------
+-- Test: Response Parser - Gemini web_search_used detection (groundingMetadata)
+--------------------------------------------------------------------------------
+
+TestRunner:suite("Response Parser: Gemini web_search_used (groundingMetadata)")
+
+TestRunner:test("detects webSearchQueries in groundingMetadata", function()
+    local response = {
+        candidates = {
+            {
+                content = { parts = { { text = "Search result..." } } },
+                groundingMetadata = {
+                    webSearchQueries = { "what is the weather" }
+                }
+            }
+        }
+    }
+    local success, content, reasoning, web_search_used = ResponseParser:parseResponse(response, "gemini")
+    TestRunner:assertTrue(success, "success")
+    TestRunner:assertEqual(content, "Search result...", "content")
+    TestRunner:assertTrue(web_search_used, "web_search_used should be true")
+end)
+
+TestRunner:test("detects groundingChunks in groundingMetadata", function()
+    local response = {
+        candidates = {
+            {
+                content = { parts = { { text = "Grounded response" } } },
+                groundingMetadata = {
+                    groundingChunks = { { web = { uri = "https://example.com" } } }
+                }
+            }
+        }
+    }
+    local success, content, reasoning, web_search_used = ResponseParser:parseResponse(response, "gemini")
+    TestRunner:assertTrue(success, "success")
+    TestRunner:assertTrue(web_search_used, "web_search_used should be true for groundingChunks")
+end)
+
+TestRunner:test("returns nil web_search_used for empty groundingMetadata", function()
+    -- When googleSearch tool is enabled but search wasn't performed
+    local response = {
+        candidates = {
+            {
+                content = { parts = { { text = "Normal response" } } },
+                groundingMetadata = {}  -- Present but empty
+            }
+        }
+    }
+    local success, content, reasoning, web_search_used = ResponseParser:parseResponse(response, "gemini")
+    TestRunner:assertTrue(success, "success")
+    TestRunner:assertEqual(content, "Normal response", "content")
+    TestRunner:assertNil(web_search_used, "web_search_used should be nil for empty metadata")
+end)
+
+TestRunner:test("returns nil web_search_used for empty arrays in groundingMetadata", function()
+    local response = {
+        candidates = {
+            {
+                content = { parts = { { text = "Normal response" } } },
+                groundingMetadata = {
+                    webSearchQueries = {},
+                    groundingChunks = {}
+                }
+            }
+        }
+    }
+    local success, content, reasoning, web_search_used = ResponseParser:parseResponse(response, "gemini")
+    TestRunner:assertTrue(success, "success")
+    TestRunner:assertNil(web_search_used, "web_search_used should be nil for empty arrays")
+end)
+
+TestRunner:test("returns nil web_search_used when no groundingMetadata", function()
+    local response = {
+        candidates = {
+            {
+                content = { parts = { { text = "Normal Gemini response" } } }
+            }
+        }
+    }
+    local success, content, reasoning, web_search_used = ResponseParser:parseResponse(response, "gemini")
+    TestRunner:assertTrue(success, "success")
+    TestRunner:assertNil(web_search_used, "web_search_used should be nil without metadata")
+end)
+
+--------------------------------------------------------------------------------
 -- Test: Streaming Parser - Web search marker detection
 --------------------------------------------------------------------------------
 
@@ -393,6 +478,35 @@ TestRunner:test("returns content normally without groundingMetadata", function()
     }
     local content, reasoning = StreamHandler:extractContentFromSSE(event)
     TestRunner:assertEqual(content, "Normal Gemini response", "should return content normally")
+end)
+
+TestRunner:test("empty groundingMetadata does NOT trigger web search marker", function()
+    -- When googleSearch tool is enabled but search wasn't used, metadata exists but is empty
+    local event = {
+        candidates = {
+            {
+                groundingMetadata = {}  -- Empty - no search was performed
+            }
+        }
+    }
+    local content, reasoning = StreamHandler:extractContentFromSSE(event)
+    -- Should NOT return web search marker since no actual search results
+    TestRunner:assertNil(content, "should return nil for empty groundingMetadata")
+end)
+
+TestRunner:test("groundingMetadata with empty arrays does NOT trigger web search marker", function()
+    local event = {
+        candidates = {
+            {
+                groundingMetadata = {
+                    webSearchQueries = {},  -- Empty array
+                    groundingChunks = {},   -- Empty array
+                }
+            }
+        }
+    }
+    local content, reasoning = StreamHandler:extractContentFromSSE(event)
+    TestRunner:assertNil(content, "should return nil for empty arrays in groundingMetadata")
 end)
 
 --------------------------------------------------------------------------------

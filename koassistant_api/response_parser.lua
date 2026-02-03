@@ -122,13 +122,21 @@ local RESPONSE_TRANSFORMERS = {
             local candidate = response.candidates[1]
             local finish_reason = candidate.finishReason
 
-            -- Check if web search (grounding) was used
-            -- Gemini returns groundingMetadata when Google Search grounding is enabled
+            -- Check if web search (grounding) was actually used
+            -- Gemini returns groundingMetadata when Google Search grounding is enabled,
+            -- but it only contains actual results if search was performed
             local web_search_used = nil
-            if candidate.groundingMetadata then
-                -- groundingMetadata indicates search was used
-                -- Contains: webSearchQueries, groundingChunks, groundingSupports
-                web_search_used = true
+            local gm = candidate.groundingMetadata
+            if gm then
+                -- Check if any search results are present (not just metadata existence)
+                -- webSearchQueries: queries sent to Google Search
+                -- groundingChunks: web results with URLs
+                -- groundingSupports: text segments with source attribution
+                if (gm.webSearchQueries and #gm.webSearchQueries > 0) or
+                   (gm.groundingChunks and #gm.groundingChunks > 0) or
+                   (gm.groundingSupports and #gm.groundingSupports > 0) then
+                    web_search_used = true
+                end
             end
 
             -- Check if MAX_TOKENS before content was generated (thinking models issue)
