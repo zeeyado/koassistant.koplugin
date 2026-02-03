@@ -434,7 +434,9 @@ KOAssistant works in **4 contexts**, each with its own set of built-in actions:
 | **Highlight** | Explain, ELI5, Summarize, Elaborate, Connect, Connect (With Notes), Explain in Context, Analyze in Context, Translate, Dictionary, Quick Define, Deep Analysis |
 | **Book** | Book Info, Similar Books, About Author, Historical Context, Related Thinkers, Key Arguments, Discussion Questions, X-Ray, Recap, Analyze Highlights, Analyze Document, Summarize Document, Extract Key Insights |
 | **Multi-book** | Compare Books, Common Themes, Analyze Collection, Quick Summaries, Reading Order |
-| **General** | Ask |
+| **General** | Ask, News Update* |
+
+*News Update requires web search — available in gesture menu by default but not in the general input dialog. See [General Chat](#general-chat) for details.
 
 You can customize these, create your own, or disable ones you don't use. See [Actions](#actions) for details.
 
@@ -556,6 +558,25 @@ Custom actions using placeholders like `{reading_progress}`, `{book_text}`, `{fu
 **Access**: Tools → KOAssistant → New General Chat, or via gesture (easier)
 
 A free-form conversation without specific document context. If started while a book is open, that "launch context" is saved with the chat (so you know where you launched it from) but doesn't affect the conversation, i.e. the AI doesn't see that you launched it from a specific document, and the chat is saved in General chats
+
+**Built-in Actions**:
+| Action | Description |
+|--------|-------------|
+| **Ask** | Free-form question (default) |
+| **News Update** | Get today's top news stories from Al Jazeera with links ⚠️ *Requires: Web Search* |
+
+**Managing the Input Dialog:**
+
+The general input dialog shows only actions you've explicitly added. By default, it shows just "Ask". To add more actions:
+
+1. Go to **Settings → Actions → Action Manager**
+2. Switch to **General** context (at the top)
+3. Long-press any action
+4. Tap **"Add to General Input"**
+
+Actions like News Update that require [web search](#web-search) are available in the gesture menu by default but not in the input dialog—this avoids showing web-dependent actions to users who haven't configured a web-search-capable provider. Add them to the input dialog if you use Anthropic, Gemini, or OpenRouter.
+
+> **Tip:** News Update demonstrates per-action web search override (`enable_web_search = true`). Even if web search is globally disabled, this action will use it. See [Web Search](#web-search) for more on per-action overrides.
 
 ### Quick UI Features
 
@@ -2164,9 +2185,11 @@ The chat viewer has a 🔍 ON/OFF toggle button (first row) to override web sear
 
 **Per-Action Override:**
 Custom actions can override the global setting:
-- `enable_web_search = true` → Force web search on
+- `enable_web_search = true` → Force web search on (example: **News Update** built-in action)
 - `enable_web_search = false` → Force web search off
 - `enable_web_search = nil` → Follow global setting (default)
+
+The built-in **News Update** action demonstrates this—it uses `enable_web_search = true` to fetch current news even when web search is globally disabled. See [General Chat](#general-chat) for how to add it to your input dialog.
 
 **Best for:** Questions about current events, recent developments, fact-checking, research topics.
 
