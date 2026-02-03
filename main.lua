@@ -3705,6 +3705,12 @@ function AskGPT:onKOAssistantGeneralChat()
     return true
   end
 
+  -- Close any existing input dialog to prevent stacking
+  if self.current_input_dialog then
+    UIManager:close(self.current_input_dialog)
+    self.current_input_dialog = nil
+  end
+
   NetworkMgr:runWhenOnline(function()
     maybeCheckForUpdates(self)
     -- Make sure we're using the latest configuration
@@ -5564,6 +5570,13 @@ function AskGPT:startGeneralChat()
       text = _("Configuration not found. Please set up configuration.lua first.")
     })
     return
+  end
+
+  -- Close any existing input dialog to prevent stacking
+  -- (e.g., when launched from AI Quick Settings while an action dialog is open)
+  if self.current_input_dialog then
+    UIManager:close(self.current_input_dialog)
+    self.current_input_dialog = nil
   end
 
   NetworkMgr:runWhenOnline(function()

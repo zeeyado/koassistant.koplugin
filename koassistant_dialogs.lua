@@ -2407,6 +2407,10 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             id = "close",
             callback = function()
                 UIManager:close(input_dialog)
+                -- Clear reference so other dialogs know we're closed
+                if plugin then
+                    plugin.current_input_dialog = nil
+                end
             end
         },
         -- 2. Domain selector
@@ -2693,6 +2697,10 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         end)
     else
         UIManager:show(input_dialog)
+        -- Store reference so other entry points can close this dialog if needed
+        if plugin then
+            plugin.current_input_dialog = input_dialog
+        end
     end
 end
 
