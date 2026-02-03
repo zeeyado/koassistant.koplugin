@@ -380,8 +380,8 @@ Text extraction sends actual book content to the AI, enabling features like X-Ra
 | Data Type | Global Setting | Per-Action Flag |
 |-----------|----------------|-----------------|
 | Book text | Allow Text Extraction | "Allow text extraction" checked |
-| X-Ray analysis cache | Allow Text Extraction + Allow Highlights | Auto-inferred (cascades to both) |
-| Analyze/Summary caches | Allow Text Extraction | Auto-inferred from placeholder |
+| X-Ray analysis cache | Allow Text Extraction (+ Allow Highlights if cache was built with annotations) | Auto-inferred |
+| Analyze/Summary caches | Allow Text Extraction | Auto-inferred |
 | Highlights | Allow Highlights & Annotations | "Include highlights" checked |
 | Annotations | Allow Highlights & Annotations | "Include annotations" checked |
 | Notebook | Allow Notebook | "Include notebook" checked |
