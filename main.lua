@@ -165,9 +165,6 @@ function AskGPT:init()
   -- Register dispatcher actions
   self:onDispatcherRegisterActions()
 
-  -- Check if chat history migration is needed (v1 -> v2)
-  self:checkChatMigrationStatus()
-
   -- Patch DocSettings for chat index tracking on file moves
   self:patchDocSettingsForChatIndex()
 
@@ -207,6 +204,7 @@ function AskGPT:init()
 
             reader_highlight_instance:onClose()
             NetworkMgr:runWhenOnline(function()
+              self:ensureInitialized()
               maybeCheckForUpdates(self)
               -- Make sure we're using the latest configuration
               self:updateConfigFromSettings()
@@ -625,6 +623,7 @@ function AskGPT:showKOAssistantDialogForFile(file, title, authors, book_props)
   }
 
   NetworkMgr:runWhenOnline(function()
+    self:ensureInitialized()
     maybeCheckForUpdates(self)
     -- Show dialog with book context instead of highlighted text
     showChatGPTDialog(self.ui, book_context, configuration, nil, self)
@@ -776,6 +775,7 @@ function AskGPT:compareSelectedBooks(selected_files)
   end
 
   NetworkMgr:runWhenOnline(function()
+    self:ensureInitialized()
     maybeCheckForUpdates(self)
     -- Pass the prompt as book context with configuration
     -- Use FileManager.instance as the UI context
@@ -3464,6 +3464,7 @@ function AskGPT:addToMainMenu(menu_items)
     sorting_hint = "tools",
     sorting_order = 1,
     sub_item_table_func = function()
+      self:ensureInitialized()
       return SettingsManager:generateMenuFromSchema(self, SettingsSchema)
     end,
   }
@@ -3712,6 +3713,7 @@ function AskGPT:onKOAssistantGeneralChat()
   end
 
   NetworkMgr:runWhenOnline(function()
+    self:ensureInitialized()
     maybeCheckForUpdates(self)
     -- Make sure we're using the latest configuration
     self:updateConfigFromSettings()
@@ -5580,6 +5582,7 @@ function AskGPT:startGeneralChat()
   end
 
   NetworkMgr:runWhenOnline(function()
+    self:ensureInitialized()
     maybeCheckForUpdates(self)
     -- Make sure we're using the latest configuration
     self:updateConfigFromSettings()
@@ -7051,10 +7054,7 @@ function AskGPT:checkChatMigrationStatus()
 
     if lfs.attributes(old_dir, "mode") then
       logger.info("Chat storage needs migration from v1 to v2")
-      -- Show migration dialog after a short delay to ensure UI is ready
-      UIManager:scheduleIn(1, function()
-        self:showMigrationDialog()
-      end)
+      self:showMigrationDialog()
     else
       -- No old chats to migrate, just mark as v2
       logger.info("No old chats found, marking storage as v2")
@@ -7280,6 +7280,68 @@ koassistant_chats.backup/]]),
 
   logger.info("Chat migration complete - migrated: " .. stats.migrated ..
               ", skipped: " .. stats.skipped .. ", failed: " .. stats.failed)
+end
+
+--[[
+    Lazy Initialization
+    Deferred initialization that runs on first user interaction (action or settings open).
+    This avoids intrusive popups when KOReader starts.
+--]]
+
+-- Ensure plugin is initialized before first use
+-- Call this from action entry points and settings menu
+function AskGPT:ensureInitialized()
+  -- Only run once per session
+  if self._initialized then
+    return
+  end
+  self._initialized = true
+
+  -- Check migration first (may show dialog if old chats exist)
+  self:checkChatMigrationStatus()
+
+  -- Check welcome dialog (only shows if storage is v2+ and not seen before)
+  -- If migration is pending (v1), this will skip and show next time
+  self:checkWelcomeDialog()
+end
+
+--[[
+    Welcome Dialog
+    Shows once for new users to explain privacy settings and key features.
+    Only appears after storage is v2+ (skips users mid-migration).
+--]]
+
+-- Check if welcome dialog should be shown
+function AskGPT:checkWelcomeDialog()
+  local storage_version = G_reader_settings:readSetting("chat_storage_version", 1)
+  local welcome_shown = self.settings:readSetting("welcome_shown")
+
+  -- Only show for v2+ users who haven't seen welcome
+  -- This skips users mid-migration (v1) to avoid dialog collision
+  if storage_version >= 2 and not welcome_shown then
+    self:showWelcomeDialog()
+  end
+end
+
+-- Show welcome dialog to new users
+function AskGPT:showWelcomeDialog()
+  local text = _("Welcome to KOAssistant!") .. "\n\n" ..
+    _("PRIVACY SETTINGS") .. "\n" ..
+    _("Your data is protected by default. Some features (like X-Ray) need permission to access book content.") .. "\n" ..
+    _("Enable in: Settings → Privacy & Data") .. "\n\n" ..
+    _("QUICK ACCESS") .. "\n" ..
+    _("Add actions to gestures, highlight menus, or Quick Actions panel.") .. "\n\n" ..
+    _("CUSTOM ACTIONS") .. "\n" ..
+    _("Create your own prompts and actions.") .. "\n" ..
+    _("Go to: Settings → Action Manager → Add")
+
+  UIManager:show(InfoMessage:new{
+    text = text,
+    -- No timeout - user must tap to dismiss
+  })
+
+  self.settings:saveSetting("welcome_shown", true)
+  self.settings:flush()
 end
 
 -- Patch DocSettings.updateLocation() to keep chat index in sync and move custom sidecar files
