@@ -320,7 +320,7 @@ lua tests/inspect.lua --web
 
 ## Privacy & Data
 
-KOAssistant sends data to AI providers to generate responses. This section explains what's shared and how to control it. This is not meant as security or privacy theater, as the "threat model" is simply users including sensitive data (Annotations, notes, content, etc.) without knowing; you are already being loose with privacy by using online LLMs (especially for personal interest areas) in the first place. The available placeholders/template variables are substantial in this regard (amount and sensitivity of data), but none currently access KOReader's built in advanced local statistics. Best practice is to pick providers thoughtfully, and the very best practice is to use local or self-hosted solutions.
+KOAssistant sends data to AI providers to generate responses. This section explains what's shared and how to control it. This is not meant as security or privacy theater, as the "threat model" is simply users including sensitive data (Annotations, notes, content, etc.) without knowing; you are already being permissive about privacy by using online LLMs (especially for personal interest areas) in the first place. The available placeholders/template variables are substantial in this regard (amount and sensitivity of data), but none currently access KOReader's built in advanced local statistics. Best practice is to pick providers thoughtfully, and the very best practice is to use local or self-hosted solutions.
 
 > ⚠️ **Some features are opt-in.** To protect your privacy, personal reading data (highlights, annotations, notebook) is NOT sent to AI providers by default. You must enable sharing in **Settings → Privacy & Data** if you want features like Analyze Highlights or Connect with Notes to work fully. See [Privacy Controls](#privacy-controls) below.
 
@@ -2146,11 +2146,12 @@ Supported providers can search the web to include current information in their r
 |----------|---------|-------|
 | **Anthropic** | `web_search_20250305` tool | Configurable max searches (1-10) |
 | **Gemini** | Google Search grounding | Automatic search count |
+| **OpenRouter** | Exa search via `:online` suffix | Works with all models ($0.02/search) |
 
 **How it works:**
 1. Enable in Settings → AI Response → Web Search → Enable Web Search
 2. When enabled, the AI can search the web during responses
-3. During streaming, you'll see "🔍 Searching the web..." indicator
+3. During streaming, you'll see "🔍 Searching the web..." indicator (Anthropic/OpenRouter)
 4. After completion, "*[Web search was used]*" appears in chat (if indicator enabled)
 
 **Settings:**
@@ -2169,7 +2170,12 @@ Custom actions can override the global setting:
 
 **Best for:** Questions about current events, recent developments, fact-checking, research topics.
 
-**Note:** Web search increases token usage and may add latency. Other providers silently ignore this setting.
+**Note:** Web search increases token usage and may add latency. Unsupported providers silently ignore this setting.
+
+**Troubleshooting OpenRouter:**
+- OpenRouter routes requests to many different backend providers, each with their own streaming behavior
+- If you experience choppy streaming or unusual behavior with web search enabled, try disabling web search for that session (🔍 OFF toggle)
+- See [Meta-Providers Note](#meta-providers-note) for more details
 
 ---
 
@@ -2304,6 +2310,28 @@ The provider will revert to using the system default.
 - **OpenRouter**: Requires HTTP-Referer header (handled automatically)
 - **Cohere**: Uses v2/chat endpoint with different response format
 - **DeepSeek**: `deepseek-reasoner` model always reasons automatically
+
+### Meta-Providers Note
+
+**OpenRouter** is a "meta-provider" that routes requests to 500+ different backend providers (Anthropic, OpenAI, Google, xAI, Perplexity, etc.). This architecture has implications:
+
+**What OpenRouter normalizes (consistent for KOAssistant):**
+- **Response format**: Always OpenAI-compatible (`choices[0].message.content`)
+- **Web search**: When using `:online` suffix, OpenRouter uses their **own Exa search** integration—not the underlying provider's. Web search detection via `url_citation` annotations works consistently.
+- **Error format**: Standardized error responses
+
+**What varies (backend provider differences we can't control):**
+- **Streaming behavior**: Different providers send chunks at different rates and sizes. Some stream smoothly, others may appear choppy or "flashing"
+- **Response latency**: Backend providers have different speeds
+- **Model-specific quirks**: Some models (e.g., Perplexity) return structured data that may need special handling
+
+**Troubleshooting OpenRouter:**
+- If streaming appears choppy or unusual, it's likely the backend provider's characteristic, not a KOAssistant bug
+- Try a different underlying model (e.g., switch from `x-ai/grok-4` to `anthropic/claude-sonnet-4.5`)
+- Disable web search if it causes issues with specific models
+- Perplexity models through OpenRouter work but may have different streaming patterns
+
+**Why one handler works:** KOAssistant uses a single OpenRouter handler because the response format is consistent. The streaming variability is cosmetic and doesn't affect the final response.
 
 ---
 

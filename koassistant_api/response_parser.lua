@@ -81,13 +81,27 @@ local RESPONSE_TRANSFORMERS = {
         end
 
         if response.choices and response.choices[1] and response.choices[1].message then
-            local content = response.choices[1].message.content
+            local message = response.choices[1].message
+            local content = message.content
             -- Check for truncation (finish_reason: "length" means max tokens hit)
             local finish_reason = response.choices[1].finish_reason
             if content and content ~= "" and finish_reason == "length" then
                 content = content .. ResponseParser.TRUNCATION_NOTICE
             end
-            return true, content
+
+            -- Check for web search tool usage in tool_calls
+            local web_search_used = nil
+            if message.tool_calls then
+                for _, tool_call in ipairs(message.tool_calls) do
+                    if tool_call.type == "web_search" or
+                       (tool_call["function"] and tool_call["function"].name == "web_search") then
+                        web_search_used = true
+                        break
+                    end
+                end
+            end
+
+            return true, content, nil, web_search_used
         end
         return false, "Unexpected response format"
     end,
@@ -216,7 +230,23 @@ local RESPONSE_TRANSFORMERS = {
             return false, response.error.message or response.error.type or "Unknown error"
         end
         if response.choices and response.choices[1] and response.choices[1].message then
-            return true, response.choices[1].message.content
+            local message = response.choices[1].message
+            local content = message.content
+
+            -- Check for live_search tool usage in tool_calls (xAI's web search)
+            local web_search_used = nil
+            if message.tool_calls then
+                for _, tool_call in ipairs(message.tool_calls) do
+                    -- xAI uses "live_search" type (not "web_search")
+                    if tool_call.type == "live_search" or tool_call.type == "web_search" or
+                       (tool_call["function"] and tool_call["function"].name == "live_search") then
+                        web_search_used = true
+                        break
+                    end
+                end
+            end
+
+            return true, content, nil, web_search_used
         end
         return false, "Unexpected response format"
     end,
@@ -226,7 +256,22 @@ local RESPONSE_TRANSFORMERS = {
             return false, response.error.message or response.error.type or "Unknown error"
         end
         if response.choices and response.choices[1] and response.choices[1].message then
-            return true, response.choices[1].message.content
+            local message = response.choices[1].message
+            local content = message.content
+
+            -- Check for web search usage via annotations (OpenRouter uses Exa search)
+            -- When :online suffix is used, response includes annotations with url_citation type
+            local web_search_used = nil
+            if message.annotations then
+                for _, annotation in ipairs(message.annotations) do
+                    if annotation.type == "url_citation" then
+                        web_search_used = true
+                        break
+                    end
+                end
+            end
+
+            return true, content, nil, web_search_used
         end
         return false, "Unexpected response format"
     end,

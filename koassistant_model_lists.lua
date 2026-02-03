@@ -164,18 +164,87 @@ local ModelLists = {
     },
 
     openrouter = {
-        -- Special: First entry is placeholder for custom model input
-        "custom",                       -- UI shows text input
-        -- Popular models (format: provider/model-name)
-        "anthropic/claude-sonnet-4-5-20250929",
+        -- OpenRouter model naming differs from direct provider APIs
+        -- Format: provider/model-name (no "-latest" suffixes, periods not dashes)
+
+        -- Anthropic
+        "anthropic/claude-sonnet-4.5",  -- default (flagship)
+        "anthropic/claude-opus-4.5",
+        "anthropic/claude-haiku-4.5",
+        "anthropic/claude-3.7-sonnet",
+        "anthropic/claude-3.7-sonnet:thinking",
+
+        -- OpenAI
         "openai/gpt-5.2",
+        "openai/gpt-5.2-pro",
+        "openai/gpt-5.1",
+        "openai/gpt-5",
+        "openai/gpt-5-mini",
+        "openai/gpt-4o",
+        "openai/gpt-4o-mini",
+        "openai/o3",
+        "openai/o3-mini",
+        "openai/o4-mini",
+
+        -- Google
         "google/gemini-2.5-pro",
-        "google/gemini-3-flash-preview",-- FREE tier
+        "google/gemini-2.5-flash",
+        "google/gemini-3-pro-preview",
+        "google/gemini-3-flash-preview",
+        "google/gemma-3-27b-it",
+        "google/gemma-3-27b-it:free",
+
+        -- Meta Llama
         "meta-llama/llama-4-maverick",
+        "meta-llama/llama-4-scout",
+        "meta-llama/llama-3.3-70b-instruct",
+        "meta-llama/llama-3.1-405b-instruct",
+        "meta-llama/llama-3.1-405b-instruct:free",
+
+        -- DeepSeek
         "deepseek/deepseek-r1",
-        "mistralai/mistral-large-latest",
+        "deepseek/deepseek-r1-0528",
+        "deepseek/deepseek-r1-0528:free",
+        "deepseek/deepseek-v3.2",
+        "deepseek/deepseek-chat",
+
+        -- Mistral
+        "mistralai/mistral-large",
+        "mistralai/mistral-large-2512",
+        "mistralai/mistral-medium-3.1",
+        "mistralai/codestral-2508",
+        "mistralai/pixtral-large-2411",
+
+        -- xAI Grok
+        "x-ai/grok-4",
+        "x-ai/grok-4-fast",
+        "x-ai/grok-4.1-fast",
+        "x-ai/grok-3",
+        "x-ai/grok-3-mini",
+
+        -- Qwen
+        "qwen/qwen3-max",
         "qwen/qwen3-235b-a22b",
-        "x-ai/grok-4-1-fast-non-reasoning",
+        "qwen/qwen3-coder-plus",
+        "qwen/qwen-max",
+        "qwen/qwq-32b",
+
+        -- Perplexity (has built-in web search)
+        "perplexity/sonar-pro",
+        "perplexity/sonar-pro-search",
+        "perplexity/sonar-reasoning-pro",
+        "perplexity/sonar-deep-research",
+        "perplexity/sonar",
+
+        -- Cohere
+        "cohere/command-a",
+        "cohere/command-r-plus-08-2024",
+
+        -- Other notable models
+        "nvidia/llama-3.1-nemotron-ultra-253b-v1",
+        "moonshotai/kimi-k2-thinking",
+        "nousresearch/hermes-4-405b",
+        "minimax/minimax-m2.1",
     },
 
     qwen = {
@@ -321,7 +390,7 @@ local ModelLists = {
             xai = "grok-4-1-fast-non-reasoning",
             cohere = "command-a-03-2025",
             ollama = "llama3.3",
-            openrouter = "anthropic/claude-sonnet-4-5-20250929",
+            openrouter = "anthropic/claude-sonnet-4.5",
             together = "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
             fireworks = "accounts/fireworks/models/llama4-maverick-instruct-basic",
             sambanova = "Meta-Llama-4-Maverick-17B-128E-Instruct",
