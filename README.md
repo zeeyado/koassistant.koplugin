@@ -16,7 +16,7 @@
 
 **Status:** Active development — [issues](https://github.com/zeeyado/koassistant.koplugin/issues) and [discussions](https://github.com/zeeyado/koassistant.koplugin/discussions) welcome. Also see [Assistant Plugin](https://github.com/omer-faruq/assistant.koplugin); both can run side by side.
 
-> **Note:** This README is intentionally detailed to help users discover all features. Use the table of contents to navigate. More concise documentation planned.
+> **Note:** This README is intentionally detailed to help users discover all features. Use the table of contents to navigate.
 
 ---
 
@@ -37,33 +37,33 @@
   - [Multi-Document Mode](#multi-document-mode)
   - [General Chat](#general-chat)
   - [Save to Note](#save-to-note)
-- [How the AI Prompt Works](#how-the-ai-prompt-works)
+- [How the AI Prompt Works](#how-the-ai-prompt-works) — Behavior + Domain + Language system
 - [Actions](#actions)
   - [Managing Actions](#managing-actions)
   - [Tuning Built-in Actions](#tuning-built-in-actions)
-  - [Creating Actions](#creating-actions)
-  - [Template Variables](#template-variables)
+  - [Creating Actions](#creating-actions) — Wizard + template variables
+  - [Template Variables](#template-variables) — 26 placeholders for dynamic content
   - [Highlight Menu Actions](#highlight-menu-actions)
-- [Dictionary Integration](#dictionary-integration)
-- [Bypass Modes](#bypass-modes)
+- [Dictionary Integration](#dictionary-integration) — Compact view, on demand context mode
+- [Bypass Modes](#bypass-modes) — Skip menus, direct AI actions
   - [Dictionary Bypass](#dictionary-bypass)
   - [Highlight Bypass](#highlight-bypass)
   - [Translate View](#translate-view)
   - [Custom Action Gestures](#custom-action-gestures)
   - [Available Gesture Actions](#available-gesture-actions)
   - [Translate Current Page](#translate-current-page)
-- [Behaviors](#behaviors)
+- [Behaviors](#behaviors) — Customize AI personality
   - [Built-in Behaviors](#built-in-behaviors)
   - [Sample Behaviors](#sample-behaviors)
   - [Custom Behaviors](#custom-behaviors)
-- [Managing Conversations](#managing-conversations)
+- [Managing Conversations](#managing-conversations) — History, export, notebooks
   - [Auto-Save](#auto-save)
   - [Chat History](#chat-history)
-  - [Export & Save to File](#export--save-to-file)
+  - [Export & Save to File](#export--save-to-file) — Clipboard, file, multiple formats
   - [Notebooks (Per-Book Notes)](#notebooks-per-book-notes)
   - [Chat Storage & File Moves](#chat-storage--file-moves)
   - [Tags](#tags)
-- [Domains](#domains)
+- [Domains](#domains) — Add subject expertise to prompts
   - [Creating Domains](#creating-domains)
 - [Settings Reference](#settings-reference) ↓ includes [KOReader Integration](#koreader-integration)
 - [Update Checking](#update-checking)
@@ -71,8 +71,8 @@
 - [Backup & Restore](#backup--restore)
 - [Technical Features](#technical-features)
   - [Streaming Responses](#streaming-responses)
-  - [Prompt Caching (Anthropic)](#prompt-caching-anthropic)
-  - [Response Caching (X-Ray/Recap)](#response-caching-x-rayrecap)
+  - [Prompt Caching](#prompt-caching)
+  - [Response Caching (X-Ray/Recap)](#response-caching-x-rayrecap) — Incremental updates as you read
   - [Reasoning/Thinking](#reasoningthinking)
 - [Supported Providers + Settings](#supported-providers--settings)
   - [Free Tier Providers](#free-tier-providers)
