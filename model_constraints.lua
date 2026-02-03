@@ -76,7 +76,7 @@ ModelConstraints.capabilities = {
 ModelConstraints.reasoning_defaults = {
     -- Anthropic extended thinking
     anthropic = {
-        budget = 4096,       -- Default budget_tokens
+        budget = 32000,      -- Default budget_tokens (max cap, model uses what it needs)
         budget_min = 1024,   -- Minimum allowed
         budget_max = 32000,  -- Maximum allowed
         budget_step = 1024,  -- SpinWidget step

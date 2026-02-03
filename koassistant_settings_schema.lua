@@ -1235,9 +1235,17 @@ local SettingsSchema = {
                         {
                             type = "info",
                             text = _("Long-press provider for supported models"),
+                            separator = true,
                         },
+                        -- Master reasoning toggle (affects Anthropic and Gemini only)
                         {
-                            type = "separator",
+                            id = "enable_reasoning",
+                            type = "toggle",
+                            text = _("Enable Reasoning"),
+                            help_text = _("Enable extended thinking for Anthropic and Gemini.\n\nNote: OpenAI reasoning models (o3, gpt-5) always reason internally - this toggle does not affect them."),
+                            path = "features.enable_reasoning",
+                            default = false,
+                            separator = true,
                         },
                         -- Anthropic Extended Thinking
                         {
@@ -1247,49 +1255,24 @@ local SettingsSchema = {
                             help_text = _("Supported models:\n") .. getModelList("anthropic", "extended_thinking") .. _("\n\nLet Claude think through complex problems before responding."),
                             path = "features.anthropic_reasoning",
                             default = false,
+                            depends_on = { id = "enable_reasoning", value = true },
                         },
                         {
                             id = "reasoning_budget",
                             type = "spinner",
                             text = _("Thinking Budget (tokens)"),
-                            help_text = _("Token budget for extended thinking (1024-32000)\nHigher = more thorough reasoning, slower, more expensive"),
+                            help_text = _("Maximum tokens for extended thinking (1024-32000).\nThis is a cap - Claude uses what it needs up to this limit."),
                             path = "features.reasoning_budget",
-                            default = 4096,
+                            default = 32000,
                             min = 1024,
                             max = 32000,
                             step = 1024,
                             precision = "%d",
-                            depends_on = { id = "anthropic_reasoning", value = true },
-                            separator = true,
-                        },
-                        -- OpenAI Reasoning
-                        {
-                            id = "openai_reasoning",
-                            type = "toggle",
-                            text = _("OpenAI Reasoning"),
-                            help_text = _("Supported models:\n") .. getModelList("openai", "reasoning") .. _("\n\nReasoning is encrypted/hidden from user."),
-                            path = "features.openai_reasoning",
-                            default = false,
-                        },
-                        {
-                            id = "reasoning_effort",
-                            type = "radio",
-                            text_func = function(plugin)
-                                local f = plugin.settings:readSetting("features") or {}
-                                local effort = f.reasoning_effort or "medium"
-                                local labels = { low = _("Low"), medium = _("Medium"), high = _("High") }
-                                return T(_("Reasoning Effort: %1"), labels[effort] or effort)
-                            end,
-                            help_text = _("Low = faster, cheaper\nMedium = balanced\nHigh = thorough reasoning"),
-                            path = "features.reasoning_effort",
-                            default = "medium",
-                            depends_on = { id = "openai_reasoning", value = true },
-                            separator = true,
-                            options = {
-                                { value = "low", text = _("Low (faster, cheaper)") },
-                                { value = "medium", text = _("Medium (balanced)") },
-                                { value = "high", text = _("High (thorough)") },
+                            depends_on = {
+                                { id = "enable_reasoning", value = true },
+                                { id = "anthropic_reasoning", value = true },
                             },
+                            separator = true,
                         },
                         -- Gemini Thinking
                         {
@@ -1299,6 +1282,7 @@ local SettingsSchema = {
                             help_text = _("Supported models:\n") .. getModelList("gemini", "thinking") .. _("\n\nThinking is encrypted/hidden from user."),
                             path = "features.gemini_reasoning",
                             default = false,
+                            depends_on = { id = "enable_reasoning", value = true },
                         },
                         {
                             id = "reasoning_depth",
@@ -1312,13 +1296,36 @@ local SettingsSchema = {
                             help_text = _("Minimal = fastest\nLow/Medium = balanced\nHigh = deepest thinking"),
                             path = "features.reasoning_depth",
                             default = "high",
-                            depends_on = { id = "gemini_reasoning", value = true },
+                            depends_on = {
+                                { id = "enable_reasoning", value = true },
+                                { id = "gemini_reasoning", value = true },
+                            },
                             separator = true,
                             options = {
                                 { value = "minimal", text = _("Minimal (fastest)") },
                                 { value = "low", text = _("Low") },
                                 { value = "medium", text = _("Medium") },
                                 { value = "high", text = _("High (default)") },
+                            },
+                        },
+                        -- OpenAI Reasoning Effort (always visible - models reason by design)
+                        {
+                            id = "reasoning_effort",
+                            type = "radio",
+                            text_func = function(plugin)
+                                local f = plugin.settings:readSetting("features") or {}
+                                local effort = f.reasoning_effort or "medium"
+                                local labels = { low = _("Low"), medium = _("Medium"), high = _("High") }
+                                return T(_("OpenAI Reasoning Effort: %1"), labels[effort] or effort)
+                            end,
+                            help_text = _("Supported models:\n") .. getModelList("openai", "reasoning") .. _("\n\nOpenAI reasoning models always reason internally.\nThis controls the effort level (hidden from user)."),
+                            path = "features.reasoning_effort",
+                            default = "medium",
+                            separator = true,
+                            options = {
+                                { value = "low", text = _("Low (faster, cheaper)") },
+                                { value = "medium", text = _("Medium (default)") },
+                                { value = "high", text = _("High (thorough)") },
                             },
                         },
                         -- Indicator in chat (separate from "Show Reasoning" button)
