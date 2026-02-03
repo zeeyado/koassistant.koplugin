@@ -2154,9 +2154,17 @@ local function handlePredefinedPrompt(prompt_type_or_action, highlightedText, ui
                 local model_info = { model = ConfigHelper:getModelInfo(temp_config).model }
 
                 if action.cache_as_xray_analysis then
-                    local xray_success = ActionCache.setXrayAnalysis(ui.document.file, answer, progress, model_info)
+                    -- Track whether annotations were used when building this cache
+                    -- Reading the cache will only require annotation permission if annotations were included
+                    local used_annotations = (message_data.highlights and message_data.highlights ~= "")
+                        or (message_data.annotations and message_data.annotations ~= "")
+                    local xray_metadata = {
+                        model = model_info.model,
+                        used_annotations = used_annotations,
+                    }
+                    local xray_success = ActionCache.setXrayAnalysis(ui.document.file, answer, progress, xray_metadata)
                     if xray_success then
-                        logger.info("KOAssistant: Saved X-Ray analysis to reusable cache at", progress)
+                        logger.info("KOAssistant: Saved X-Ray analysis to reusable cache at", progress, "used_annotations=", used_annotations)
                     end
                 end
 
