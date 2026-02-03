@@ -57,6 +57,8 @@
   - [Built-in Behaviors](#built-in-behaviors)
   - [Sample Behaviors](#sample-behaviors)
   - [Custom Behaviors](#custom-behaviors)
+- [Domains](#domains) — Add subject expertise to prompts
+  - [Creating Domains](#creating-domains)
 - [Managing Conversations](#managing-conversations) — History, export, notebooks
   - [Auto-Save](#auto-save)
   - [Chat History](#chat-history)
@@ -64,8 +66,6 @@
   - [Notebooks (Per-Book Notes)](#notebooks-per-book-notes)
   - [Chat Storage & File Moves](#chat-storage--file-moves)
   - [Tags](#tags)
-- [Domains](#domains) — Add subject expertise to prompts
-  - [Creating Domains](#creating-domains)
 - [Settings Reference](#settings-reference) ↓ includes [KOReader Integration](#koreader-integration)
 - [Update Checking](#update-checking)
 - [Advanced Configuration](#advanced-configuration)
@@ -274,7 +274,7 @@ See detailed sections below for each feature.
 - **Good document metadata** improves AI responses. Use Calibre, Zotero, or similar tools to ensure titles, authors, and identifiers are correct.
 - **Shorter tap duration** makes text selection in KOReader easier: Settings → Taps and Gestures → Long-press interval
 - **Choose models wisely**: Fast models (like Haiku) for quick queries; powerful models (like Sonnet, Opus) for deeper analysis.
-- **Explore sample behaviors**: The `behaviors.sample/` folder has 25+ behaviors including provider-inspired styles (Claude, GPT, Gemini, etc.) and reading-specialized options. Copy ones you like to `behaviors/`.
+- **Explore sample behaviors**: The [behaviors.sample/](behaviors.sample/) folder has 25+ behaviors including provider-inspired styles (Claude, GPT, Gemini, etc.) and reading-specialized options. Copy ones you like to `behaviors/`.
 - **Combine behaviors with domains**: Behavior controls *how* the AI communicates; Domain provides *what* context. Try `scholarly_standard` + a research domain for rigorous academic analysis.
 
 ---
@@ -1247,13 +1247,13 @@ Note: Built-in behaviors are subject to change as the plugin matures — info ma
 
 ### Sample Behaviors
 
-The `behaviors.sample/` folder contains a comprehensive collection including:
+The [behaviors.sample/](behaviors.sample/) folder contains a comprehensive collection including:
 
 - **Provider-inspired styles**: Claude, GPT, Gemini, Grok, Perplexity, DeepSeek (all provider-agnostic)
 - **Reading-specialized**: Scholarly, Translator, Religious/Classical, Creative
 - **Multiple sizes**: Mini (~160-190 tokens), Standard (~400-500), Full (~1150-1325)
 
-To use: copy desired files from `behaviors.sample/` to `behaviors/` folder.
+To use: copy desired files from [behaviors.sample/](behaviors.sample/) to `behaviors/` folder.
 
 ### Custom Behaviors
 
@@ -1267,7 +1267,7 @@ Create your own behaviors via:
 - First `# Heading` becomes the display name
 - Rest of file is the behavior text sent to AI
 
-See `behaviors.sample/README.md` for full documentation.
+See [behaviors.sample/README.md](behaviors.sample/README.md) for full documentation.
 
 ### Per-Action Overrides
 
@@ -1286,6 +1286,83 @@ Individual actions can override the global behavior:
 > 🎭 **Remember:** Behavior = HOW the AI speaks | Domain = WHAT it knows
 >
 > Combine them strategically: scholarly behavior + research domain = rigorous academic analysis. Test combinations in the [web inspector](#testing-your-setup).
+
+---
+
+## Domains
+
+Domains provide **project-like context** for AI conversations. When selected, the domain context is sent **after** behavior in the system message. See [How the AI Prompt Works](#how-the-ai-prompt-works) for the full picture.
+
+### How It Works
+
+The domain text is included in the system message after behavior and before language instruction. The AI uses it as background knowledge for the conversation. You can have very small, focused domains, or large, detailed, interdisciplinary ones. Both behavior and domain benefit from prompt caching (50-90% cost reduction on repeated queries, depending on provider).
+
+### Built-in Domain
+
+One domain is built-in: **Synthesis**
+
+This serves as an example of what domains can do. For more options/inspiration, see [domains.sample/](domains.sample/) which includes specialized sample domains.
+
+### Creating Domains
+
+Create domains via:
+
+1. **Files**: Add `.md` or `.txt` files to `domains/` folder
+2. **UI**: Settings → Actions & Prompts → Manage Domains → Create New
+
+**File format**:
+
+**Example**: Truncated part of `domains/synthesis.md` (from [domains.sample/](domains.sample/))
+```markdown
+# Synthesis
+<!--
+Tokens: ~450
+Notes: Interdisciplinary reading across mystical, philosophical, psychological traditions
+-->
+
+This conversation engages ideas across traditions—mystical, philosophical,
+psychological, scientific—seeking resonances without forcing false equivalences.
+
+...
+
+## Orientation
+Approach texts and questions through multiple lenses simultaneously:
+- Depth Psychology: Jungian concepts as maps of inner territory
+- Contemplative Traditions: Sufism, Taoism, Buddhism, Christian mysticism
+- Philosophy: Western and non-Western traditions
+- Scientific Cosmology: Modern physics, complexity theory, emergence
+
+...
+
+```
+
+- Filename becomes the domain ID: `my_domain.md` → ID `my_domain`
+- First `# Heading` becomes the display name (or derived from filename)
+- Metadata in `<!-- -->` comments is optional (for tracking token costs)
+- Rest of file is the context sent to AI
+- Supported: `.md` and `.txt` files
+
+See [domains.sample/](domains.sample/) for examples including classical language support and interpretive frameworks.
+
+### Selecting Domains
+
+Select a domain via the **Domain** button in the chat input dialog, or through AI Quick Settings. Once selected, the domain **stays active** for all subsequent chats until you change it or select "None".
+
+**Note**: Keep this sticky behavior in mind — if you set a domain for one task, it will apply to all following actions (including quick actions that don't open the input dialog, unless they have been set to Skip Domain) until you clear it. You can change the domain through the input dialog, AI Quick Settings, or gesture actions.
+
+### Browsing by Domain
+
+Chat History → hamburger menu → **View by Domain**
+
+**Note**: Domains are for context, not storage. Chats still save to their book or "General AI Chats", but you can filter by domain in Chat History.
+
+### Tips
+
+- **Domain can be skipped per-action**: Actions like Translate and Dictionary skip domain by default because domain instructions alter their output. You can toggle "Skip domain" for any custom action in the action wizard (see [Actions](#actions)).
+- **Domain vs Behavior overlap**: Both are sent in the system message. Behavior = communication style, Domain = knowledge context. Sometimes content could fit in either. Rule of thumb: if it's about *how to respond*, put it in behavior. If it's about *what to know*, put it in a domain.
+- **Domains affect all actions in a chat**: Once selected, the domain applies to every message in that conversation. If an action doesn't benefit from domain context, use "Skip domain" in that action's settings.
+- **Cost considerations**: Large domains increase token usage on every request. Keep domains focused. Most major providers (Anthropic, OpenAI, Gemini, DeepSeek) cache system prompts automatically (50-90% cost reduction on repeated domain context).
+- **Preview domain effects**: Use the [web inspector](#testing-your-setup) to see how domains affect request structure and AI responses before using them on your e-reader.
 
 ---
 
@@ -1363,7 +1440,7 @@ The export uses your global Export Style setting (Markdown or Plain Text).
 
 ### Notebooks (Per-Book Notes)
 
-Notebooks function like book logs that you can append chat content to and edit (with TextEdit directly in KOReader or dedicated markdown editor). They are persistent markdown files stored alongside each book in its sidecar folder (`.sdr/koassistant_notebook.md`). Unlike chat history which stores full conversations, notebooks let you curate AI insights for long-term reference, along with your own notes. 
+Notebooks function like book logs that you can append chat content to and edit (with TextEdit directly in KOReader or dedicated markdown editor). They are persistent markdown files stored alongside each book in its sidecar folder (`.sdr/koassistant_notebook.md`). Unlike chat history which stores full conversations, notebooks let you curate AI insights for long-term reference, along with your own notes.
 
 You can include notebook content in your custom actions using the `{notebook}` placeholder (see [Template Variables](#template-variables)). This lets actions reference your accumulated notes and insights.
 
@@ -1442,83 +1519,6 @@ Tags are simple labels for organizing chats. Unlike domains:
 - In chat history: Long-press a chat → Tags
 
 **Browsing by Tag**: Chat History → hamburger menu → View by Tag
-
----
-
-## Domains
-
-Domains provide **project-like context** for AI conversations. When selected, the domain context is sent **after** behavior in the system message. See [How the AI Prompt Works](#how-the-ai-prompt-works) for the full picture.
-
-### How It Works
-
-The domain text is included in the system message after behavior and before language instruction. The AI uses it as background knowledge for the conversation. You can have very small, focused domains, or large, detailed, interdisciplinary ones. Both behavior and domain benefit from prompt caching (50-90% cost reduction on repeated queries, depending on provider).
-
-### Built-in Domain
-
-One domain is built-in: **Synthesis**
-
-This serves as an example of what domains can do. For more options/inspiration, see `domains.sample/` which includes specialized sample domains.
-
-### Creating Domains
-
-Create domains via:
-
-1. **Files**: Add `.md` or `.txt` files to `domains/` folder
-2. **UI**: Settings → Actions & Prompts → Manage Domains → Create New
-
-**File format**:
-
-**Example**: Truncated part of `domains/synthesis.md` (from `domains.sample/`)
-```markdown
-# Synthesis
-<!--
-Tokens: ~450
-Notes: Interdisciplinary reading across mystical, philosophical, psychological traditions
--->
-
-This conversation engages ideas across traditions—mystical, philosophical,
-psychological, scientific—seeking resonances without forcing false equivalences.
-
-...
-
-## Orientation
-Approach texts and questions through multiple lenses simultaneously:
-- Depth Psychology: Jungian concepts as maps of inner territory
-- Contemplative Traditions: Sufism, Taoism, Buddhism, Christian mysticism
-- Philosophy: Western and non-Western traditions
-- Scientific Cosmology: Modern physics, complexity theory, emergence
-
-...
-
-```
-
-- Filename becomes the domain ID: `my_domain.md` → ID `my_domain`
-- First `# Heading` becomes the display name (or derived from filename)
-- Metadata in `<!-- -->` comments is optional (for tracking token costs)
-- Rest of file is the context sent to AI
-- Supported: `.md` and `.txt` files
-
-See `domains.sample/` for examples including classical language support and interpretive frameworks.
-
-### Selecting Domains
-
-Select a domain via the **Domain** button in the chat input dialog, or through AI Quick Settings. Once selected, the domain **stays active** for all subsequent chats until you change it or select "None".
-
-**Note**: Keep this sticky behavior in mind — if you set a domain for one task, it will apply to all following actions (including quick actions that don't open the input dialog, unless they have been set to Skip Domain) until you clear it. You can change the domain through the input dialog, AI Quick Settings, or gesture actions.
-
-### Browsing by Domain
-
-Chat History → hamburger menu → **View by Domain**
-
-**Note**: Domains are for context, not storage. Chats still save to their book or "General AI Chats", but you can filter by domain in Chat History.
-
-### Tips
-
-- **Domain can be skipped per-action**: Actions like Translate and Dictionary skip domain by default because domain instructions alter their output. You can toggle "Skip domain" for any custom action in the action wizard (see [Actions](#actions)).
-- **Domain vs Behavior overlap**: Both are sent in the system message. Behavior = communication style, Domain = knowledge context. Sometimes content could fit in either. Rule of thumb: if it's about *how to respond*, put it in behavior. If it's about *what to know*, put it in a domain.
-- **Domains affect all actions in a chat**: Once selected, the domain applies to every message in that conversation. If an action doesn't benefit from domain context, use "Skip domain" in that action's settings.
-- **Cost considerations**: Large domains increase token usage on every request. Keep domains focused. Most major providers (Anthropic, OpenAI, Gemini, DeepSeek) cache system prompts automatically (50-90% cost reduction on repeated domain context).
-- **Preview domain effects**: Use the [web inspector](#testing-your-setup) to see how domains affect request structure and AI responses before using them on your e-reader.
 
 ---
 
