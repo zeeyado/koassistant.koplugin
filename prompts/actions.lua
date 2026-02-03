@@ -313,6 +313,39 @@ Note: The summary may be in a different language than your response language. Tr
         },
         builtin = true,
     },
+    -- Smart deep analysis using cached summary for efficiency
+    analyze_in_context_smart = {
+        id = "analyze_in_context_smart",
+        text = _("Analyze in Context (Smart)"),
+        context = "highlight",
+        use_book_text = true,        -- Gate for accessing _summary_cache (derives from book text)
+        use_summary_cache = true,    -- Reference the cached summary
+        use_annotations = true,      -- Still include user's annotations
+        include_book_context = true,
+        requires_summary_cache = true,  -- Trigger pre-flight cache check
+        prompt = [[Analyze this passage in the broader context of the document:
+
+"{highlighted_text}"
+
+From "{title}"{author_clause}.
+
+{summary_cache_section}
+
+{annotations_section}
+
+Provide deeper analysis:
+1. **Significance**: Why might this passage matter in the larger work?
+2. **Connections**: How does it relate to the document's main themes and arguments?
+3. **Patterns**: Does it echo or develop ideas mentioned in the summary?
+4. **My notes**: If I've highlighted related passages, show those connections.
+
+Note: The summary may be in a different language than your response language. Translate or adapt as needed.]],
+        api_params = {
+            temperature = 0.6,
+            max_tokens = 4096,
+        },
+        builtin = true,
+    },
 }
 
 -- Built-in actions for book context (single book from file browser)
