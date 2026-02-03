@@ -329,9 +329,9 @@ KOAssistant sends data to AI providers to generate responses. This section expla
 **Always sent (cannot be disabled):**
 - Your question/prompt
 - Selected text (for highlight actions)
-- Book title and author
 
-**Sent by default:**
+**Sent by default: (for Actions using it)**
+- Book title and author (you can disable this in Action management by unchecking "Include book info")
 - Reading progress (percentage) 
 - Chapter info (current chapter title, chapters read count, time since last opened)
 - The data used to calculate this (exact date you opened the document last, etc.) is local only
@@ -2175,7 +2175,7 @@ Custom actions can override the global setting:
 
 ## Supported Providers + Settings
 
-KOAssistant supports **16 AI providers**. Anthropic (Claude) has been the primary focus and most thoroughly tested. Please test and give feedback -- fixes are quickly implemented
+KOAssistant supports **16 AI providers**. Please test and give feedback -- fixes are quickly implemented
 
 | Provider | Description | Get API Key |
 |----------|-------------|-------------|
