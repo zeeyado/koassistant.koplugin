@@ -117,6 +117,109 @@ a {
 }
 ]]
 
+-- Strip markdown syntax for plain text display (RTL mode)
+-- Converts markdown to readable plain text with PTF bold markers for TextBoxWidget
+local function stripMarkdown(text)
+    if not text then return "" end
+
+    -- PTF (Poor Text Formatting) markers - TextBoxWidget interprets these as bold
+    local PTF_HEADER = "\u{FFF1}"
+    local PTF_BOLD_START = "\u{FFF2}"
+    local PTF_BOLD_END = "\u{FFF3}"
+
+    -- Directional marker for BiDi text
+    local LRM = "\u{200E}"  -- Left-to-Right Mark
+
+    local result = text
+
+    -- Code blocks: ```lang\ncode\n``` → indented with 4 spaces
+    result = result:gsub("```[^\n]*\n(.-)```", function(code)
+        local indented = code:gsub("([^\n]+)", "    %1")
+        return "\n" .. indented
+    end)
+
+    -- Inline code: `code` → 'code'
+    result = result:gsub("`([^`]+)`", "'%1'")
+
+    -- Tables: Remove separator rows
+    result = result:gsub("\n%s*|[%s%-:]+|[%s%-:|]*\n", "\n")
+
+    -- Headers: Hierarchical symbols with bold text
+    local header_symbols = { "▉", "◤", "◆", "✿", "❖", "·" }
+    local lines = {}
+    for line in result:gmatch("([^\n]*)\n?") do
+        local hashes, content = line:match("^(#+)%s*(.-)%s*$")
+        if hashes and content and #content > 0 then
+            local level = math.min(#hashes, 6)
+            local symbol = header_symbols[level]
+            local bold_content = PTF_BOLD_START .. content .. PTF_BOLD_END
+            if level >= 3 then
+                table.insert(lines, " " .. symbol .. " " .. bold_content)
+            else
+                table.insert(lines, symbol .. " " .. bold_content)
+            end
+        else
+            table.insert(lines, line)
+        end
+    end
+    result = table.concat(lines, "\n")
+
+    -- Emphasis: Convert to PTF bold markers
+    -- Bold-italic: ***text*** or ___text___
+    result = result:gsub("%*%*%*(.-)%*%*%*", PTF_BOLD_START .. "%1" .. PTF_BOLD_END .. LRM)
+    result = result:gsub("___(.-)___", PTF_BOLD_START .. "%1" .. PTF_BOLD_END .. LRM)
+
+    -- Bold: **text** or __text__
+    result = result:gsub("%*%*(.-)%*%*", PTF_BOLD_START .. "%1" .. PTF_BOLD_END .. LRM)
+    result = result:gsub("__(.-)__", PTF_BOLD_START .. "%1" .. PTF_BOLD_END .. LRM)
+
+    -- Italic with underscores → bold (for part of speech)
+    result = result:gsub("(%s)_([^_\n]+)_([%s%p])", "%1" .. PTF_BOLD_START .. "%2" .. PTF_BOLD_END .. "%3")
+    result = result:gsub("(%s)_([^_\n]+)_$", "%1" .. PTF_BOLD_START .. "%2" .. PTF_BOLD_END)
+    result = result:gsub("^_([^_\n]+)_([%s%p])", PTF_BOLD_START .. "%1" .. PTF_BOLD_END .. "%2")
+    result = result:gsub("^_([^_\n]+)_$", PTF_BOLD_START .. "%1" .. PTF_BOLD_END)
+
+    -- Blockquotes: > text → │ text
+    result = result:gsub("\n>%s*", "\n│ ")
+    result = result:gsub("^>%s*", "│ ")
+
+    -- Unordered lists: - item or * item → • item
+    result = result:gsub("\n[%-]%s+", "\n• ")
+    result = result:gsub("^[%-]%s+", "• ")
+    result = result:gsub("\n%*%s+", "\n• ")
+
+    -- Horizontal rules: --- or *** or ___ → line
+    local hr_line = "───────────────"
+    result = result:gsub("\n%-%-%-+%s*\n", "\n" .. hr_line .. "\n")
+    result = result:gsub("\n%*%*%*+%s*\n", "\n" .. hr_line .. "\n")
+    result = result:gsub("\n___+%s*\n", "\n" .. hr_line .. "\n")
+
+    -- Images: ![alt](url) → [Image: alt]
+    result = result:gsub("!%[([^%]]*)%]%([^)]+%)", "[Image: %1]")
+
+    -- Links: [text](url) → text
+    result = result:gsub("%[([^%]]+)%]%([^)]+%)", "%1")
+
+    -- Clean up multiple blank lines
+    result = result:gsub("\n\n\n+", "\n\n")
+
+    -- BiDi fix: Add LRM only to truly mixed RTL+Latin lines
+    local rtl_pattern = "[\216-\219][\128-\191]"
+    local latin_pattern = "[a-zA-Z]"
+    local header_pattern = "^%s*[▉◤◆✿❖·]"
+    local fixed_lines = {}
+    for line in result:gmatch("([^\n]*)\n?") do
+        if line:match(rtl_pattern) and line:match(latin_pattern) and not line:match(header_pattern) then
+            table.insert(fixed_lines, LRM .. line)
+        else
+            table.insert(fixed_lines, line)
+        end
+    end
+    result = table.concat(fixed_lines, "\n")
+
+    return PTF_HEADER .. result
+end
+
 -- Auto-linkify plain URLs that aren't already part of markdown links
 -- Converts https://example.com to [https://example.com](https://example.com)
 local function autoLinkUrls(text)
@@ -274,9 +377,9 @@ function MarkdownViewer:init()
     -- Create scrollable widget - use text mode for RTL languages
     local scroll_widget
     if self.is_rtl then
-        -- RTL mode: use plain text with RTL paragraph direction
+        -- RTL mode: use plain text with RTL paragraph direction and markdown stripping
         scroll_widget = ScrollTextWidget:new{
-            text = self.markdown_text,
+            text = stripMarkdown(self.markdown_text),
             face = Font:getFace("cfont", 20),
             width = self.width - 2 * self.text_padding,
             height = content_height,
