@@ -924,13 +924,13 @@ Actions.special = {
         in_dictionary_popup = 2,  -- Default order in dictionary popup
         prompt = [[Define "{highlighted_text}"
 
-Write in {dictionary_language}. Only the headword stays in original language.
+Write entirely in {dictionary_language}. Only the headword stays in original language.
 
 **word**, part of speech — definition
 
 {context_section}
 
-One line only. No etymology, no synonyms.]],
+One line only. No etymology, no synonyms. No headers.]],
         include_book_context = false,  -- Word definitions don't typically need book metadata
         extended_thinking = "off",  -- Dictionary lookups don't benefit from extended thinking
         skip_language_instruction = true,  -- Target language already in prompt

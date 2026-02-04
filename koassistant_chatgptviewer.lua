@@ -1708,6 +1708,101 @@ function ChatGPTViewer:init()
     end,
   })
 
+  -- Row 2: Action switcher button (re-run with different dictionary action)
+  -- Auto-abbreviate action name: first word if ≤7 chars, else truncate to 4
+  local function abbreviateActionName(text)
+    if not text then return "?" end
+    local first_word = text:match("^(%S+)")
+    if not first_word then return text:sub(1, 4) end
+    if #first_word <= 7 then
+      return first_word  -- "Quick", "Deep", "Define" etc.
+    end
+    return first_word:sub(1, 4)  -- "Dictionary" → "Dict"
+  end
+
+  -- Get current action and other dictionary popup actions
+  local current_action = self.configuration and self.configuration._rerun_action
+  local current_action_text = current_action and current_action.text or "?"
+  local other_actions = {}
+  if has_rerun and self.configuration._rerun_plugin then
+    local action_service = self.configuration._rerun_plugin.action_service
+    if action_service then
+      local all_dict_actions = action_service:getDictionaryPopupActionObjects(true)
+      for _i, action in ipairs(all_dict_actions) do
+        if not current_action or action.id ~= current_action.id then
+          table.insert(other_actions, action)
+        end
+      end
+    end
+  end
+
+  table.insert(minimal_button_row2, {
+    text = abbreviateActionName(current_action_text),
+    id = "switch_action",
+    enabled = has_rerun and #other_actions > 0,
+    callback = function()
+      if not has_rerun or #other_actions == 0 then return end
+
+      -- Helper to switch to a different action
+      local function switchToAction(action)
+        -- Build new config copy
+        local new_config = {}
+        for k, v in pairs(self.configuration) do
+          if type(k) ~= "string" or not k:match("^_rerun_") then
+            new_config[k] = v
+          end
+        end
+        new_config.features = {}
+        for k, v in pairs(self.configuration.features) do
+          new_config.features[k] = v
+        end
+        -- Close viewer and execute new action
+        UIManager:close(self)
+        local Dialogs = require("koassistant_dialogs")
+        Dialogs.executeDirectAction(
+          self.configuration._rerun_ui, action,
+          self.original_highlighted_text, new_config, self.configuration._rerun_plugin
+        )
+      end
+
+      -- If only one other action, switch directly
+      if #other_actions == 1 then
+        switchToAction(other_actions[1])
+        return
+      end
+
+      -- Show popup with other actions
+      local action_dialog
+      local action_buttons = {}
+      for _i, action in ipairs(other_actions) do
+        table.insert(action_buttons, {{
+          text = action.text,
+          callback = function()
+            UIManager:close(action_dialog)
+            switchToAction(action)
+          end,
+        }})
+      end
+      table.insert(action_buttons, {{
+        text = _("Cancel"),
+        callback = function() UIManager:close(action_dialog) end,
+      }})
+      action_dialog = ButtonDialog:new{
+        title = _("Dictionary Action"),
+        buttons = action_buttons,
+      }
+      UIManager:show(action_dialog)
+    end,
+    hold_callback = function()
+      UIManager:show(Notification:new{
+        text = #other_actions > 0
+          and _("Switch to a different dictionary action")
+          or _("No other dictionary actions available"),
+        timeout = 2,
+      })
+    end,
+  })
+
   -- Row 2: Close button
   table.insert(minimal_button_row2, {
     text = _("Close"),
