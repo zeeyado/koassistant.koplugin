@@ -1,4 +1,4 @@
-# Full
+# Claude Style (Full)
 <!--
 Source: Based on Anthropic Claude guidelines
 Tokens: ~1150

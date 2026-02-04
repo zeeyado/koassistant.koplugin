@@ -1,4 +1,4 @@
-# Standard
+# Claude Style (Standard)
 <!--
 Source: Based on Anthropic Claude guidelines
 Tokens: ~420

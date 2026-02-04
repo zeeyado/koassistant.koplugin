@@ -281,8 +281,8 @@ See detailed sections below for each feature.
 - **Good document metadata** improves AI responses. Use Calibre, Zotero, or similar tools to ensure titles, authors, and identifiers are correct.
 - **Shorter tap duration** makes text selection in KOReader easier: Settings → Taps and Gestures → Long-press interval
 - **Choose models wisely**: Fast models (like Haiku) for quick queries; powerful models (like Sonnet, Opus) for deeper analysis.
-- **Explore sample behaviors**: The [behaviors.sample/](behaviors.sample/) folder has 25+ behaviors including provider-inspired styles (Claude, GPT, Gemini, etc.) and reading-specialized options. Copy ones you like to `behaviors/`.
-- **Combine behaviors with domains**: Behavior controls *how* the AI communicates; Domain provides *what* context. Try `scholarly_standard` + a research domain for rigorous academic analysis.
+- **Try different behavior styles**: 22 built-in behaviors include provider-inspired styles (Claude, GPT, Gemini, Grok, DeepSeek, Perplexity) — all work with any provider. Change via Quick Settings or Settings → Actions & Prompts → Manage Behaviors.
+- **Combine behaviors with domains**: Behavior controls *how* the AI communicates; Domain provides *what* context. Try Perplexity Style + a research domain for source-focused academic analysis.
 
 ---
 
@@ -889,7 +889,7 @@ return {
 ```
 
 **Optional fields**:
-- `behavior_variant`: Use a preset behavior ("minimal", "full", "none", "reader_assistant")
+- `behavior_variant`: Use a preset behavior by ID (e.g., "standard", "mini", "full", "gpt_style_standard", "perplexity_style_full", "reader_assistant", "none")
 - `behavior_override`: Custom behavior text (overrides variant)
 - `provider`: Force specific provider ("anthropic", "openai", etc.)
 - `model`: Force specific model for the provider
@@ -1304,31 +1304,34 @@ Behavior defines the AI's personality, communication style, and response guideli
 
 ### Built-in Behaviors
 
-Eight built-in behaviors are always available (the main 5 are based on [Anthropic Claude guidelines](https://docs.anthropic.com/en/release-notes/system-prompts)):
+22 built-in behaviors are available, organized by provider style. Each style comes in three sizes (Mini ~160-220 tokens, Standard ~400-500 tokens, Full ~1150-1325 tokens):
 
-**Primary behaviors (user-selectable):**
-- **Mini** (~220 tokens): Concise guidance for e-reader conversations
-- **Standard (default)** (~420 tokens): Balanced guidance for quality responses
-- **Full** (~1150 tokens): Comprehensive guidance for best quality responses
-- **Research Standard** (~470 tokens): Research-focused with source transparency (based on Perplexity)
-- **Translator Direct** (~80 tokens): Direct translation without commentary (used by Translate action)
+**Provider-inspired styles (all provider-agnostic — use any style with any provider):**
+- **Claude Style** (Mini, Standard, Full) — Based on [Anthropic Claude guidelines](https://docs.anthropic.com/en/release-notes/system-prompts). **Claude Style (Standard) is the default.**
+- **DeepSeek Style** (Mini, Standard, Full) — Analytical and methodical
+- **Gemini Style** (Mini, Standard, Full) — Clear and adaptable
+- **GPT Style** (Mini, Standard, Full) — Conversational and helpful
+- **Grok Style** (Mini, Standard, Full) — Witty with dry humor
+- **Perplexity Style** (Mini, Standard, Full) — Research-focused with source transparency
 
-**Specialized behaviors (used by specific actions, also selectable):**
-- **Dictionary Direct** (~30 tokens): Minimal guidance for dictionary lookups (used by Dictionary action)
-- **Dictionary Detailed** (~30 tokens): Guidance for detailed linguistic analysis (used by Deep Analysis action)
-- **Reader Assistant** (~350 tokens): Reading companion persona (used by Connect with Notes action)
+**Reading-focused:**
+- **Reader Assistant** (~350 tokens) — Reading companion persona (used by Smart actions)
 
-Note: Built-in behaviors are subject to change as the plugin matures — info may be out of date.
+**Specialized (used by specific actions, hidden from quick pickers):**
+- **Direct Dictionary** (~30 tokens) — Minimal guidance for dictionary lookups (used by Dictionary action)
+- **Detailed Dictionary** (~30 tokens) — Guidance for detailed linguistic analysis (used by Deep Analysis action)
+- **Direct Translator** (~80 tokens) — Direct translation without commentary (used by Translate action)
+
+**Changing the default:** Settings → Actions & Prompts → Manage Behaviors, tap to select. Or use Quick Settings (gear icon or gesture) → Behavior.
 
 ### Sample Behaviors
 
-The [behaviors.sample/](behaviors.sample/) folder contains a comprehensive collection including:
+The [behaviors.sample/](behaviors.sample/) folder contains additional behaviors beyond the built-ins:
 
-- **Provider-inspired styles**: Claude, GPT, Gemini, Grok, Perplexity, DeepSeek (all provider-agnostic)
-- **Reading-specialized**: Scholarly, Translator, Religious/Classical, Creative
-- **Multiple sizes**: Mini (~160-190 tokens), Standard (~400-500), Full (~1150-1325)
+- **Reading-specialized**: Scholarly, Religious/Classical, Creative writing
+- **More provider styles**: Additional variations and experimental styles
 
-To use: copy desired files from [behaviors.sample/](behaviors.sample/) to `behaviors/` folder.
+To use: copy desired files from [behaviors.sample/](behaviors.sample/) to `behaviors/` folder. They'll appear in the behavior selector under "FROM BEHAVIORS/ FOLDER".
 
 ### Custom Behaviors
 
@@ -1360,7 +1363,7 @@ Individual actions can override the global behavior:
 
 > 🎭 **Remember:** Behavior = HOW the AI speaks | Domain = WHAT it knows
 >
-> Combine them strategically: scholarly behavior + research domain = rigorous academic analysis. Test combinations in the [web inspector](#testing-your-setup).
+> Combine them strategically: Perplexity Style + research domain = source-focused academic analysis. Test combinations in the [web inspector](#testing-your-setup).
 
 ---
 

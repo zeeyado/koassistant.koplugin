@@ -1,4 +1,4 @@
-# Mini
+# Claude Style (Mini)
 <!--
 Source: Based on Anthropic Claude guidelines
 Tokens: ~220
