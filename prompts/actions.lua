@@ -38,6 +38,17 @@ local _ = require("koassistant_gettext")
 local Actions = {}
 
 -- ============================================================
+-- Canonical Summary Prompt
+-- ============================================================
+-- The "workhorse" prompt for building reusable document summaries
+-- Used by summarize_full_document action and referenced by Smart actions
+Actions.SUMMARY_PROMPT = [[Summarize: "{title}"{author_clause}.
+
+{full_document_section}
+
+Provide a comprehensive summary capturing the essential content. Adjust detail based on length - shorter works warrant more granularity, longer works need higher-level synthesis. The summary you make may be used as a replacement for the full text, to ask questions and do analysis. Keep this goal in mind when crafting the summary.]]
+
+-- ============================================================
 -- Open Book Flags - Centralized Definition
 -- ============================================================
 -- Actions that use these flags require an open book (reading mode)
@@ -775,17 +786,14 @@ Provide analysis appropriate to this document's type and purpose. Address what's
         builtin = true,
     },
     -- Summarize Full Document: Condense content without evaluation
+    -- Uses canonical SUMMARY_PROMPT - the "workhorse" for Smart actions
     summarize_full_document = {
         id = "summarize_full_document",
         text = _("Summarize Document"),
         context = "book",
         use_book_text = true,  -- Permission gate (UI: "Allow text extraction")
         cache_as_summary = true,  -- Save for other actions via {summary_cache_section}
-        prompt = [[Summarize: "{title}"{author_clause}.
-
-{full_document_section}
-
-Provide a comprehensive summary capturing the essential content. Adjust detail based on length - shorter works warrant more granularity, longer works need higher-level synthesis.]],
+        prompt = Actions.SUMMARY_PROMPT,  -- Canonical summary prompt
         api_params = {
             temperature = 0.4,
             max_tokens = 8192,

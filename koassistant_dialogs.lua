@@ -2773,22 +2773,35 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         end
     end
 
-    -- Add View Cache button if document has cached content
-    if ui_instance and ui_instance.document and ui_instance.document.file then
+    -- Add Summary button: "View Summary" if exists, "Generate Summary" if not
+    -- Handle both reader context (ui_instance.document.file) and file browser context (book_metadata.file)
+    local summary_file = (ui_instance and ui_instance.document and ui_instance.document.file)
+                         or (book_metadata and book_metadata.file)
+    if summary_file and plugin then
         local ActionCache = require("koassistant_action_cache")
-        local file = ui_instance.document.file
-        local has_any_cache = ActionCache.getXrayCache(file)
-            or ActionCache.getSummaryCache(file)
-            or ActionCache.getAnalyzeCache(file)
-        if has_any_cache and plugin then
+        local summary_cache = ActionCache.getSummaryCache(summary_file)
+        local is_reader_context = ui_instance and ui_instance.document and ui_instance.document.file
+
+        if summary_cache then
+            -- Summary exists - show "View Summary" (works in both contexts)
             table.insert(all_buttons, {
-                text = _("View Cache"),
+                text = _("View Summary"),
                 callback = function()
                     UIManager:close(input_dialog)
-                    plugin:viewCache()
+                    plugin:showSummaryViewer(summary_cache)
+                end
+            })
+        elseif is_reader_context then
+            -- No cache but in reader context - show "Generate Summary"
+            table.insert(all_buttons, {
+                text = _("Generate Summary"),
+                callback = function()
+                    UIManager:close(input_dialog)
+                    plugin:generateSummary()
                 end
             })
         end
+        -- In file browser context with no cache: don't show button (can't generate without open book)
     end
 
     -- Organize buttons into rows of three
@@ -2982,8 +2995,148 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
     handlePredefinedPrompt(action, highlighted_text, ui, configuration, nil, plugin, nil, onComplete, book_metadata)
 end
 
+--- Generate summary as a standalone operation (no chat, no MessageHistory)
+--- Shows loading indicator, queries AI, saves to cache, calls callback with result
+--- @param ui Reader UI instance
+--- @param config Configuration table
+--- @param plugin Plugin instance (for settings)
+--- @param on_complete function(summary_data) Called with { result, progress_decimal, model, timestamp } on success, nil on error
+local function generateSummaryStandalone(ui, config, plugin, on_complete)
+    if not ui or not ui.document or not ui.document.file then
+        logger.warn("KOAssistant: generateSummaryStandalone - no document open")
+        if on_complete then on_complete(nil) end
+        return
+    end
+
+    local Actions = require("prompts.actions")
+    local action = Actions.book.summarize_full_document
+    if not action then
+        logger.err("KOAssistant: summarize_full_document action not found")
+        if on_complete then on_complete(nil) end
+        return
+    end
+
+    -- Extract document context
+    local extraction_success, ContextExtractor = pcall(require, "koassistant_context_extractor")
+    if not extraction_success then
+        logger.err("KOAssistant: Failed to load ContextExtractor")
+        UIManager:show(InfoMessage:new{
+            text = _("Failed to extract document text"),
+        })
+        if on_complete then on_complete(nil) end
+        return
+    end
+
+    local features = config.features or {}
+    local extractor = ContextExtractor:new(ui, {
+        enable_book_text_extraction = features.enable_book_text_extraction,
+        max_book_text_chars = features.max_book_text_chars or 250000,
+        max_pdf_pages = features.max_pdf_pages or 250,
+    })
+
+    -- Get full document text
+    local full_doc_result = extractor:getFullDocumentText()
+    -- Check for disabled, empty, or whitespace-only content
+    local text_content = full_doc_result and full_doc_result.text and full_doc_result.text:match("^%s*(.-)%s*$") or ""
+    if not full_doc_result or text_content == "" or full_doc_result.disabled then
+        logger.warn("KOAssistant: No document text extracted (disabled=", full_doc_result and full_doc_result.disabled or "nil", ")")
+        local message = full_doc_result and full_doc_result.disabled
+            and _("Text extraction is disabled.\n\nEnable it in Settings → Privacy & Data → Text Extraction.")
+            or _("No document text could be extracted.\n\nThis document may not support text extraction.")
+        UIManager:show(InfoMessage:new{
+            text = message,
+        })
+        if on_complete then on_complete(nil) end
+        return
+    end
+
+    -- Build message data
+    local props = ui.document:getProps()
+    local message_data = {
+        full_document = full_doc_result.text,
+        book_metadata = {
+            title = props and props.title or _("Unknown"),
+            author = props and props.authors or "",
+            author_clause = (props and props.authors and props.authors ~= "") and (" by " .. props.authors) or "",
+        },
+    }
+
+    -- Build the user prompt
+    local user_prompt = MessageBuilder.build({
+        prompt = action,  -- Pass action object (has .prompt field), not just the string
+        data = message_data,
+        context = "book",
+    })
+
+    -- Create a temporary config for the request
+    local temp_config = {}
+    for k, v in pairs(config) do
+        temp_config[k] = v
+    end
+    temp_config.features = {}
+    for k, v in pairs(features) do
+        temp_config.features[k] = v
+    end
+
+    -- Build unified request config (system prompt, api_params)
+    buildUnifiedRequestConfig(temp_config, nil, action, plugin)
+
+    -- Create minimal message array (no MessageHistory, just the query)
+    local messages = {
+        { role = "user", content = user_prompt }
+    }
+
+    -- Show loading dialog
+    showLoadingDialog(temp_config)
+
+    -- Query the AI
+    local function handleResponse(success, answer, err)
+        closeLoadingDialog()
+
+        if success and answer and answer ~= "" then
+            -- Save to summary cache
+            local ActionCache = require("koassistant_action_cache")
+            local model_info = ConfigHelper:getModelInfo(temp_config)
+            local progress = full_doc_result.truncated and (full_doc_result.coverage_end or 1.0) or 1.0
+
+            local summary_metadata = {
+                model = model_info and model_info.model or "",
+            }
+
+            local save_success = ActionCache.setSummaryCache(ui.document.file, answer, progress, summary_metadata)
+            if save_success then
+                logger.info("KOAssistant: Saved summary to cache at", progress)
+            end
+
+            -- Build summary_data for callback (matches ActionCache entry format)
+            local summary_data = {
+                result = answer,
+                progress_decimal = progress,
+                model = summary_metadata.model,
+                timestamp = os.time(),
+            }
+
+            if on_complete then
+                on_complete(summary_data)
+            end
+        else
+            local error_msg = err or _("Failed to generate summary")
+            logger.warn("KOAssistant: Summary generation failed:", error_msg)
+            UIManager:show(InfoMessage:new{
+                text = error_msg,
+            })
+            if on_complete then
+                on_complete(nil)
+            end
+        end
+    end
+
+    queryChatGPT(messages, temp_config, handleResponse, plugin and plugin.settings)
+end
+
 return {
     showChatGPTDialog = showChatGPTDialog,
     executeDirectAction = executeDirectAction,
     extractSurroundingContext = extractSurroundingContext,
+    generateSummaryStandalone = generateSummaryStandalone,
 }
