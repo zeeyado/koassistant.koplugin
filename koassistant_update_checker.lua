@@ -451,18 +451,10 @@ local function translateAndShowContent(markdown_content, target_language, title,
             markdown_font_size = saved_features.markdown_font_size or 20,
             stream_poll_interval = saved_features.stream_poll_interval or 125,
             stream_display_interval = saved_features.stream_display_interval or 250,
+            -- Custom loading message for non-streaming mode
+            loading_message = T(_("Translating to %1..."), target_language),
         },
     }
-
-    -- Show loading message only when streaming is disabled
-    local loading_msg
-    if not configuration.features.enable_streaming then
-        loading_msg = InfoMessage:new{
-            text = T(_("Translating to %1..."), target_language),
-        }
-        UIManager:show(loading_msg)
-        UIManager:forceRePaint()
-    end
 
     -- Get API key
     local apikeys = {}
@@ -478,12 +470,9 @@ local function translateAndShowContent(markdown_content, target_language, title,
     }
 
     -- Execute query - StreamHandler shows its own dialog when streaming
+    -- Non-streaming mode uses handleNonStreamingBackground with loading_message
     local GptQuery = require("koassistant_gpt_query")
     GptQuery.query(messages, configuration, function(success, answer, err)
-        if loading_msg then
-            UIManager:close(loading_msg)
-        end
-
         if success and answer and answer ~= "" then
             -- Build buttons matching original update popup
             local translated_viewer

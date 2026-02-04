@@ -154,46 +154,34 @@ function OpenAIHandler:query(message_history, config)
         return stream_fn
     end
 
-    -- Non-streaming mode: make regular request
-    local responseBody = {}
-    local success, code = https.request({
-        url = base_url,
-        method = "POST",
-        headers = headers,
-        source = ltn12.source.string(requestBody),
-        sink = ltn12.sink.table(responseBody)
-    })
+    -- Non-streaming mode: use background request for non-blocking UI
+    local reasoning_effort = request_body.reasoning_effort
+    local debug_enabled = config and config.features and config.features.debug
 
-    -- Debug: Print raw response
-    if config and config.features and config.features.debug then
-        DebugUtils.print("OpenAI Raw Response:", table.concat(responseBody), config)
+    local response_parser = function(response)
+        -- Debug: Print parsed response
+        if debug_enabled then
+            DebugUtils.print("OpenAI Parsed Response:", response, config)
+        end
+
+        local parse_success, result, reasoning = ResponseParser:parseResponse(response, "openai")
+        if not parse_success then
+            return false, "Error: " .. result
+        end
+
+        -- Return with reasoning metadata if requested
+        if reasoning_effort then
+            return true, result, { _requested = true, effort = reasoning_effort }
+        end
+
+        return true, result
     end
 
-    local success, response = self:handleApiResponse(success, code, responseBody, "OpenAI")
-    if not success then
-        return response
-    end
-
-    -- Debug: Print parsed response
-    if config and config.features and config.features.debug then
-        DebugUtils.print("OpenAI Parsed Response:", response, config)
-    end
-
-    local success, result, reasoning = ResponseParser:parseResponse(response, "openai")
-    if not success then
-        return "Error: " .. result
-    end
-
-    -- Return with metadata if we have reasoning info
-    if request_body.reasoning_effort then
-        return {
-            content = result,
-            _reasoning_requested = true,
-            _reasoning_effort = request_body.reasoning_effort,
-        }
-    end
-
-    return result
+    return {
+        _background_fn = self:backgroundRequest(base_url, headers, requestBody),
+        _non_streaming = true,
+        _response_parser = response_parser,
+    }
 end
 
 return OpenAIHandler

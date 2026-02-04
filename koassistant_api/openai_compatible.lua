@@ -224,50 +224,31 @@ function OpenAICompatibleHandler:query(message_history, config)
         return self:backgroundRequest(base_url, headers, stream_body)
     end
 
-    -- Non-streaming mode: make regular request
-    local responseBody = {}
-    local success, code = https.request({
-        url = base_url,
-        method = "POST",
-        headers = headers,
-        source = ltn12.source.string(requestBody),
-        sink = ltn12.sink.table(responseBody)
-    })
-
-    -- Debug: Print raw response
-    if config and config.features and config.features.debug then
-        DebugUtils.print(provider_name .. " Raw Response:", table.concat(responseBody), config)
-    end
-
-    local api_success, response = self:handleApiResponse(success, code, responseBody, provider_name)
-    if not api_success then
-        -- Hook: Allow child classes to enhance error messages
-        return self:enhanceErrorMessage(response, config)
-    end
-
-    -- Debug: Print parsed response
-    if config and config.features and config.features.debug then
-        DebugUtils.print(provider_name .. " Parsed Response:", response, config)
-    end
-
+    -- Non-streaming mode: use background request for non-blocking UI
     local parser_key = self:getResponseParserKey()
-    local parse_success, result, reasoning, web_search_used = ResponseParser:parseResponse(response, parser_key)
-    if not parse_success then
-        return "Error: " .. result
+    local debug_enabled = config and config.features and config.features.debug
+    local self_ref = self  -- Capture for closure
+
+    local response_parser = function(response)
+        -- Debug: Print parsed response
+        if debug_enabled then
+            DebugUtils.print(provider_name .. " Parsed Response:", response, config)
+        end
+
+        local parse_success, result, reasoning, web_search_used = ResponseParser:parseResponse(response, parser_key)
+        if not parse_success then
+            -- Hook: Allow child classes to enhance error messages
+            return false, self_ref:enhanceErrorMessage("Error: " .. result, config)
+        end
+
+        return true, result, reasoning, web_search_used
     end
 
-    -- Return result with optional metadata (reasoning and/or web_search_used)
-    local has_metadata = reasoning or web_search_used
-    if has_metadata then
-        return {
-            content = result,
-            reasoning = reasoning,
-            _has_reasoning = reasoning and true or nil,
-            web_search_used = web_search_used,
-        }
-    end
-
-    return result
+    return {
+        _background_fn = self:backgroundRequest(base_url, headers, requestBody),
+        _non_streaming = true,
+        _response_parser = response_parser,
+    }
 end
 
 return OpenAICompatibleHandler
