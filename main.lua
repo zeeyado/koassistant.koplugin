@@ -4083,7 +4083,6 @@ function AskGPT:generateSummary(options)
     })
 
     -- Execute as standalone (no chat) using the dedicated handler
-    local Dialogs = require("koassistant_dialogs")
     Dialogs.generateSummaryStandalone(self_ref.ui, configuration, self_ref, function(summary_data)
       -- On success, show in simple_view
       if summary_data then
