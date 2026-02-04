@@ -143,6 +143,9 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
 
     local function finishStream()
         cleanup()
+        -- Clear streaming flag immediately (all exit paths)
+        _G.KOAssistantStreaming = nil
+
         -- Cancel pending UI update if any
         if ui_update_task then
             UIManager:unschedule(ui_update_task)
@@ -209,6 +212,12 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
         local reasoning_content = #reasoning_buffer > 0 and table.concat(reasoning_buffer) or nil
         local search_used = web_search_used and true or nil
         if on_complete then on_complete(true, result, nil, reasoning_content, search_used) end
+
+        -- Show any pending update popup (deferred during streaming)
+        local ok, UpdateChecker = pcall(require, "koassistant_update_checker")
+        if ok and UpdateChecker and UpdateChecker.showPendingUpdate then
+            UpdateChecker.showPendingUpdate()
+        end
     end
 
     local function _closeStreamDialog()
@@ -404,11 +413,15 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
     end
     animation_task = UIManager:scheduleIn(0.4, updateAnimation)
 
+    -- Mark streaming as active (for update checker to defer popups)
+    _G.KOAssistantStreaming = true
+
     -- Start the subprocess
     pid, parent_read_fd = ffiutil.runInSubProcess(backgroundQueryFunc, true)
 
     if not pid then
         logger.warn("Failed to start background query process.")
+        _G.KOAssistantStreaming = nil  -- Clear flag on subprocess failure
         cleanup()
         UIManager:close(streamDialog)
         if on_complete then on_complete(false, nil, _("Failed to start subprocess for request")) end

@@ -215,6 +215,9 @@ end
 
 local UpdateChecker = {}
 
+-- Pending update info (deferred if streaming is active)
+UpdateChecker.pending_update = nil
+
 local function parseVersion(versionString)
     -- Parse semantic version like "0.1.0-beta" or "1.0.0"
     if type(versionString) ~= "string" then
@@ -285,6 +288,68 @@ local function compareVersions(v1, v2)
     end
     
     return 0
+end
+
+--- Show the update available popup
+--- @param update_info table: Contains current_version, latest_version, release_notes, download_url, is_prerelease
+local function showUpdatePopup(update_info)
+    -- Format as markdown with version info header
+    local markdown_content = string.format(
+        "**New %sversion available!**\n\n**Current:** %s  \n**Latest:** %s\n\n---\n\n%s",
+        update_info.is_prerelease and "pre-release " or "",
+        update_info.current_version,
+        update_info.latest_version,
+        update_info.release_notes
+    )
+
+    local update_viewer
+    update_viewer = MarkdownViewer:new{
+        title = update_info.is_prerelease and "KOAssistant Pre-release Update" or "KOAssistant Update Available",
+        markdown_text = markdown_content,
+        width = math.floor(Screen:getWidth() * 0.85),
+        height = math.floor(Screen:getHeight() * 0.85),
+        buttons_table = {
+            {
+                {
+                    text = "Later",
+                    callback = function()
+                        UIManager:close(update_viewer)
+                    end,
+                },
+                {
+                    text = "Visit Release Page",
+                    callback = function()
+                        UIManager:close(update_viewer)
+                        if Device:canOpenLink() then
+                            Device:openLink(update_info.download_url)
+                        else
+                            UIManager:show(InfoMessage:new{
+                                text = "Please visit:\n" .. update_info.download_url,
+                                timeout = 10
+                            })
+                        end
+                    end,
+                },
+            },
+        },
+    }
+    -- Dismiss any on-screen keyboard before showing the update dialog
+    UIManager:broadcastEvent(require("ui/event"):new("CloseKeyboard"))
+    UIManager:show(update_viewer)
+    UIManager:setDirty(nil, "ui")
+end
+
+--- Show pending update popup if one was deferred during streaming
+--- Called by stream_handler when streaming completes
+function UpdateChecker.showPendingUpdate()
+    if UpdateChecker.pending_update then
+        local update_info = UpdateChecker.pending_update
+        UpdateChecker.pending_update = nil
+        -- Small delay to let streaming dialog close and viewer settle
+        UIManager:scheduleIn(0.3, function()
+            showUpdatePopup(update_info)
+        end)
+    end
 end
 
 -- Absolute timeouts for update checks (seconds)
@@ -627,55 +692,21 @@ function UpdateChecker.checkForUpdates(auto, include_prereleases)
 
         if comparison < 0 then
             -- New version available
-            local release_notes = latest_release.body or "No release notes available."
-            local download_url = latest_release.html_url
-            local is_prerelease = latest_release.prerelease or false
-
-            -- Format as markdown with version info header
-            local markdown_content = string.format(
-                "**New %sversion available!**\n\n**Current:** %s  \n**Latest:** %s\n\n---\n\n%s",
-                is_prerelease and "pre-release " or "",
-                current_version,
-                latest_version,
-                release_notes
-            )
-
-            local update_viewer
-            update_viewer = MarkdownViewer:new{
-                title = is_prerelease and "KOAssistant Pre-release Update" or "KOAssistant Update Available",
-                markdown_text = markdown_content,
-                width = math.floor(Screen:getWidth() * 0.85),
-                height = math.floor(Screen:getHeight() * 0.85),
-                buttons_table = {
-                    {
-                        {
-                            text = "Later",
-                            callback = function()
-                                UIManager:close(update_viewer)
-                            end,
-                        },
-                        {
-                            text = "Visit Release Page",
-                            callback = function()
-                                UIManager:close(update_viewer)
-                                if Device:canOpenLink() then
-                                    Device:openLink(download_url)
-                                else
-                                    UIManager:show(InfoMessage:new{
-                                        text = "Please visit:\n" .. download_url,
-                                        timeout = 10
-                                    })
-                                end
-                            end,
-                        },
-                    },
-                },
+            local update_info = {
+                current_version = current_version,
+                latest_version = latest_version,
+                release_notes = latest_release.body or "No release notes available.",
+                download_url = latest_release.html_url,
+                is_prerelease = latest_release.prerelease or false,
             }
-            -- Dismiss any on-screen keyboard before showing the update dialog
-            -- (user may have started typing while the background check was running)
-            UIManager:broadcastEvent(require("ui/event"):new("CloseKeyboard"))
-            UIManager:show(update_viewer)
-            UIManager:setDirty(nil, "ui")
+
+            -- Check if streaming is active - if so, defer the popup
+            if _G.KOAssistantStreaming then
+                logger.info("Update available but streaming active, deferring popup")
+                UpdateChecker.pending_update = update_info
+            else
+                showUpdatePopup(update_info)
+            end
         elseif comparison == 0 then
             if not auto then
                 UIManager:show(InfoMessage:new{
