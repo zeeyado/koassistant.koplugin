@@ -1304,7 +1304,7 @@ Behavior defines the AI's personality, communication style, and response guideli
 
 ### Built-in Behaviors
 
-22 built-in behaviors are available, organized by provider style. Each style comes in three sizes (Mini ~160-220 tokens, Standard ~400-500 tokens, Full ~1150-1325 tokens):
+23 built-in behaviors are available, organized by provider style. Each style comes in three sizes (Mini ~160-220 tokens, Standard ~400-500 tokens, Full ~1150-1325 tokens):
 
 **Provider-inspired styles (all provider-agnostic — use any style with any provider):**
 - **Claude Style** (Mini, Standard, Full) — Based on [Anthropic Claude guidelines](https://docs.anthropic.com/en/release-notes/system-prompts). **Claude Style (Standard) is the default.**
@@ -1316,6 +1316,9 @@ Behavior defines the AI's personality, communication style, and response guideli
 
 **Reading-focused:**
 - **Reader Assistant** (~350 tokens) — Reading companion persona (used by Smart actions)
+
+**General utility:**
+- **Concise** (~55 tokens) — Brevity-focused, minimal guidance for direct responses
 
 **Specialized (used by specific actions, hidden from quick pickers):**
 - **Direct Dictionary** (~30 tokens) — Minimal guidance for dictionary lookups (used by Dictionary action)
@@ -1691,12 +1694,13 @@ These settings control what language the AI responds in.
 **How language responses work** (when Your Languages is configured):
 - AI responds in your primary language by default
 - If you type in another language from your list, AI switches to that language
+- The AI only auto-switches between Your Languages—it will never spontaneously respond in an Additional Language, even when working with content in that language. This is because Additional Languages are not included in the system-level language instruction sent to the AI; they exist solely for translation/dictionary targeting.
 - Leave empty to let AI use its default behavior
 
 **Examples:**
 - Your Languages: `English` - AI always responds in English
 - Your Languages: `Deutsch, English, Français` with Primary: `English` - English by default, switches if you type in German or French
-- Additional Languages: `Latin, Sanskrit` - Available in translation/dictionary pickers but AI won't mention them in general responses
+- Additional Languages: `Latin, Sanskrit` - Available in translation/dictionary pickers only; AI won't auto-switch to these languages even when you're reading Latin text
 
 **How it works technically:** Your interaction languages are sent as part of the system message (after behavior and domain). The instruction tells the AI to respond in your primary language and switch if you type in another configured language. Language names in system prompts use English (e.g., "Japanese" not "日本語") for more reliable AI comprehension. See [How the AI Prompt Works](#how-the-ai-prompt-works).
 
