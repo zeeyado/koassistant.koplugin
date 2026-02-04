@@ -320,9 +320,9 @@ lua tests/inspect.lua --web
 
 ## Privacy & Data
 
-KOAssistant sends data to AI providers to generate responses. This section explains what's shared and how to control it. This is not meant as security or privacy theater, as the "threat model" is simply users including sensitive data (Annotations, notes, content, etc.) without knowing; you are already being permissive about privacy by using online LLMs (especially for personal interest areas) in the first place. The available placeholders/template variables are substantial in this regard (amount and sensitivity of data), but none currently access KOReader's built in advanced local statistics. Best practice is to pick providers thoughtfully, and the very best practice is to use local or self-hosted solutions.
-
 > ⚠️ **Some features are opt-in.** To protect your privacy, personal reading data (highlights, annotations, notebook) is NOT sent to AI providers by default. You must enable sharing in **Settings → Privacy & Data** if you want features like Analyze Highlights or Connect with Notes to work fully. See [Privacy Controls](#privacy-controls) below.
+
+KOAssistant sends data to AI providers to generate responses. This section explains what's shared and how to control it. This is not meant as security or privacy theater or false reassurances of privacy, as the "threat model" here is simply users including sensitive data (Annotations, notes, content, etc.) by accident; you are already being permissive about privacy by using online LLMs (especially for personal interest areas) in the first place, and this plugin by its nature does encourage the use of LLMs to analyze your reading material. The available placeholders/template variables are substantial in this regard (amount and sensitivity of data), but none currently access KOReader's built in advanced local statistics. Best practice is to pick providers thoughtfully, and the very best practice is to use local or self-hosted solutions, e.g. Ollama.
 
 ### What Gets Sent
 
@@ -332,6 +332,7 @@ KOAssistant sends data to AI providers to generate responses. This section expla
 
 **Sent by default: (for Actions using it)**
 - Document metadata like title, author, identifiers (you can disable this in Action management by unchecking "Include book info")
+- Enabled system content, like user languages, domain, behavior, etc
 - Reading progress (percentage) 
 - Chapter info (current chapter title, chapters read count, time since last opened)
 - The data used to calculate this (exact date you opened the document last, etc.) is local only
@@ -1079,16 +1080,28 @@ When bypass is enabled, selecting a word skips KOReader's dictionary popup entir
 ### Compact View Features
 
 The compact dictionary view provides two rows of buttons:
-- **Row 1:** MD ON/TXT ON, Copy, Wiki, +Vocab
-- **Row 2:** Expand, Lang, Ctx, Close
+- **Row 1:** MD ON/TXT ON, Copy, +Note, Wiki, +Vocab
+- **Row 2:** Expand, Lang, Ctx, [Action], Close
 
 **MD ON / TXT ON** — Toggle between Markdown and Plain Text view modes. Shows "MD ON" when Markdown is active, "TXT ON" when Plain Text is active. For RTL languages, this may default to TXT ON automatically based on your settings.
 
 **Copy** — Copies the AI response only (plain text). Unlike the full chat view, compact view always copies just the response without metadata or asking for format.
 
+**+Note** — Save the AI response as a note attached to your highlighted word in KOReader's annotation system. The button is greyed out if word position data isn't available (e.g., when launched from certain contexts).
+
+**Wiki** — Look up the word in Wikipedia using KOReader's built-in Wikipedia integration.
+
+**+Vocab** — Add the looked-up word to KOReader's Vocabulary Builder. After adding, the button changes to "Added" (greyed out). See [Vocabulary Builder Integration](#vocabulary-builder-integration) below.
+
+**Expand** — Open the response in the full-size chat viewer with all options (continue conversation, save, export, etc.).
+
 **Lang** — Re-run the lookup in a different language (picks from your configured languages). Closes the current view and opens a new one with the updated result.
 
 **Ctx: ON/OFF** — Toggle surrounding text context. If your lookup was done without context (mode set to "None"), you can turn it on to get a context-aware definition (Sentence by default). If context was included, you can turn it off for a plain definition. Re-runs the lookup with the toggled setting. This setting is not sticky, so context will revert to your main setting on closing the window.
+
+**[Action]** — Shows the abbreviated name of the current dictionary action (e.g., "Dict", "Quick", "Deep"). Tap to switch to a different dictionary popup action. If only one other action is available, switches directly; otherwise shows a picker with all available dictionary actions.
+
+**Close** — Close the compact view.
 
 **RTL-aware rendering**: When viewing dictionary results for RTL languages, the compact view automatically uses Plain Text mode (if enabled in settings) and applies correct bidirectional text alignment for proper display of RTL content.
 
@@ -1123,7 +1136,7 @@ Skip KOReader's dictionary popup when selecting words. Useful for language learn
 **How it works:**
 1. Select a word in the document
 2. Instead of dictionary popup → AI action triggers immediately
-3. Response appears in **compact view** (minimal UI with Lang/Ctx/Vocab buttons — see [Compact View Features](#compact-view-features))
+3. Response appears in **compact view** (minimal UI optimized for quick lookups — see [Compact View Features](#compact-view-features))
 
 **Configure:** Settings → Dictionary Settings → Bypass KOReader Dictionary
 
@@ -1712,6 +1725,8 @@ See [Dictionary Integration](#dictionary-integration) and [Bypass Modes](#bypass
 - **Context Mode**: Surrounding text to include: None (default), Sentence, Paragraph, or Characters
 - **Context Characters**: Character count for Characters mode (default: 100)
 - **Disable Auto-save for Dictionary**: Don't auto-save dictionary lookups (default: on)
+- **Copy Content**: What to include when copying in compact dictionary view — Follow global setting, Ask every time, Full, Question + Response, or Definition only (default)
+- **Note Content**: What to include when saving dictionary results to a note via the +Note button — same options as Copy Content, defaults to Definition only
 - **Enable Streaming**: Stream dictionary responses in real-time
 - **Dictionary Popup Actions**: Configure which actions appear in the AI menu (reorder, add custom)
 - **Bypass KOReader Dictionary**: Skip dictionary popup, go directly to AI

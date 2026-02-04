@@ -143,7 +143,13 @@ function MessageHistory:clear()
 end
 
 -- Create a new instance from saved messages
-function MessageHistory:fromSavedMessages(messages, model, chat_id, prompt_action, launch_context)
+-- @param messages array The saved messages
+-- @param model string The model name
+-- @param chat_id string The chat ID
+-- @param prompt_action string The action that created this chat
+-- @param launch_context table Launch context for general chats from a book
+-- @param chat_metadata table Additional chat-level metadata (cache info, truncation info)
+function MessageHistory:fromSavedMessages(messages, model, chat_id, prompt_action, launch_context, chat_metadata)
     local history = self:new()
 
     -- Clear any default messages
@@ -174,6 +180,22 @@ function MessageHistory:fromSavedMessages(messages, model, chat_id, prompt_actio
     -- Set the launch context if provided (for general chats launched from a book)
     if launch_context then
         history.launch_context = launch_context
+    end
+
+    -- Restore chat-level metadata (cache info, truncation info)
+    if chat_metadata then
+        -- Cache continuation info (for "Updated from X% cache" notice)
+        if chat_metadata.used_cache then
+            history.used_cache = chat_metadata.used_cache
+            history.cached_progress = chat_metadata.cached_progress
+            history.cache_action_id = chat_metadata.cache_action_id
+        end
+        -- Book text truncation info
+        if chat_metadata.book_text_truncated then
+            history.book_text_truncated = chat_metadata.book_text_truncated
+            history.book_text_coverage_start = chat_metadata.book_text_coverage_start
+            history.book_text_coverage_end = chat_metadata.book_text_coverage_end
+        end
     end
 
     return history

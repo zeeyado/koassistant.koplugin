@@ -562,7 +562,7 @@ local function getAllPrompts(configuration, plugin)
     return prompts, prompt_keys
 end
 
-local function createSaveDialog(document_path, history, chat_history_manager, is_general_context, book_metadata, launch_context, highlighted_text, ui)
+local function createSaveDialog(document_path, history, chat_history_manager, is_general_context, book_metadata, launch_context, highlighted_text, ui, config)
     -- Guard against missing document path - allow special case for general context
     if not document_path and not is_general_context then
         UIManager:show(InfoMessage:new{
@@ -652,6 +652,16 @@ local function createSaveDialog(document_path, history, chat_history_manager, is
                                     domain = metadata.domain,
                                     tags = metadata.tags or {},
                                     original_highlighted_text = metadata.original_highlighted_text,
+                                    -- Store system prompt metadata for debug display
+                                    system_metadata = config and config.system,
+                                    -- Store cache continuation info (for "Updated from X% cache" notice)
+                                    used_cache = history.used_cache,
+                                    cached_progress = history.cached_progress,
+                                    cache_action_id = history.cache_action_id,
+                                    -- Store book text truncation info
+                                    book_text_truncated = history.book_text_truncated,
+                                    book_text_coverage_start = history.book_text_coverage_start,
+                                    book_text_coverage_end = history.book_text_coverage_end,
                                 }
 
                                 if document_path == "__GENERAL_CHATS__" then
@@ -1364,6 +1374,16 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                                     domain = metadata.domain,
                                     tags = metadata.tags or {},
                                     original_highlighted_text = metadata.original_highlighted_text,
+                                    -- Store system prompt metadata for debug display
+                                    system_metadata = cfg.system,
+                                    -- Store cache continuation info (for "Updated from X% cache" notice)
+                                    used_cache = history.used_cache,
+                                    cached_progress = history.cached_progress,
+                                    cache_action_id = history.cache_action_id,
+                                    -- Store book text truncation info
+                                    book_text_truncated = history.book_text_truncated,
+                                    book_text_coverage_start = history.book_text_coverage_start,
+                                    book_text_coverage_end = history.book_text_coverage_end,
                                 }
 
                                 if save_path == "__GENERAL_CHATS__" then
@@ -1439,6 +1459,8 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                     metadata.original_highlighted_text = highlightedText
                 end
                 local save_path = document_path or "__GENERAL_CHATS__"
+                -- Get config from viewer for system metadata
+                local viewer_config = viewer and viewer.configuration
                 local success, save_result = pcall(function()
                     -- Check storage version and route to appropriate method
                     if chat_history_manager:useDocSettingsStorage() then
@@ -1459,6 +1481,16 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                             domain = metadata.domain,
                             tags = metadata.tags or {},
                             original_highlighted_text = metadata.original_highlighted_text,
+                            -- Store system prompt metadata for debug display
+                            system_metadata = viewer_config and viewer_config.system,
+                            -- Store cache continuation info (for "Updated from X% cache" notice)
+                            used_cache = history.used_cache,
+                            cached_progress = history.cached_progress,
+                            cache_action_id = history.cache_action_id,
+                            -- Store book text truncation info
+                            book_text_truncated = history.book_text_truncated,
+                            book_text_coverage_start = history.book_text_coverage_start,
+                            book_text_coverage_end = history.book_text_coverage_end,
                         }
 
                         if save_path == "__GENERAL_CHATS__" then
@@ -1510,7 +1542,7 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
             else
                 -- First-time manual save with dialog (no chat_id yet)
                 local is_general_context = temp_config and temp_config.features and temp_config.features.is_general_context or false
-                createSaveDialog(document_path, history, chat_history_manager, is_general_context, book_metadata, launch_context, highlightedText, ui_instance)
+                createSaveDialog(document_path, history, chat_history_manager, is_general_context, book_metadata, launch_context, highlightedText, ui_instance, temp_config)
             end
         end,
         export_callback = function()
@@ -1692,6 +1724,16 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                         domain = metadata.domain,
                         tags = metadata.tags or {},
                         original_highlighted_text = metadata.original_highlighted_text,
+                        -- Store system prompt metadata for debug display
+                        system_metadata = temp_config.system,
+                        -- Store cache continuation info (for "Updated from X% cache" notice)
+                        used_cache = history.used_cache,
+                        cached_progress = history.cached_progress,
+                        cache_action_id = history.cache_action_id,
+                        -- Store book text truncation info
+                        book_text_truncated = history.book_text_truncated,
+                        book_text_coverage_start = history.book_text_coverage_start,
+                        book_text_coverage_end = history.book_text_coverage_end,
                     }
 
                     if save_path == "__GENERAL_CHATS__" then
