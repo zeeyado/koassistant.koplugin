@@ -191,7 +191,7 @@ Go to **Settings → Privacy & Data** to configure. See [Privacy & Data](#privac
 After setting up your API key, complete these steps for the best experience:
 
 - [ ] **Configure privacy settings** — Enable data sharing for features you want (Settings → Privacy & Data). See [Privacy & Data](#privacy--data)
-- [ ] **Assign AI Quick Settings to a gesture** — One-tap access to provider, model, behavior, and more (Settings → Gesture Manager → General → KOAssistant: AI Quick Settings)
+- [ ] **Assign Quick Settings to a gesture** — One-tap access to provider, model, behavior, and more (Settings → Gesture Manager → General → KOAssistant: Quick Settings)
 - [ ] **Assign Quick Actions to a gesture** — Fast access to X-Ray, Recap, and other reading actions (reader mode only)
 - [ ] **Explore the highlight menu** — Translate and Explain are included by default; add more via Manage Actions → hold action → "Add to Highlight Menu"
 - [ ] **Try Dictionary Bypass** — Single-word selections go straight to AI dictionary (Settings → Dictionary Settings → Bypass KOReader Dictionary)
@@ -209,8 +209,8 @@ Assign KOAssistant actions to gestures for easy access. Go to **Settings → Ges
 
 KOAssistant provides two distinct quick-access panels for different purposes:
 
-**1. AI Quick Settings** (available everywhere)
-Assign "KOAssistant: AI Quick Settings" to a gesture for one-tap access to a two-column settings panel with commonly used options:
+**1. Quick Settings** (available everywhere)
+Assign "KOAssistant: Quick Settings" to a gesture for one-tap access to a two-column settings panel with commonly used options:
 - **Provider & Model** — Quick switching between AI providers and models
 - **Behavior & Domain** — Change communication style and knowledge context
 - **Temperature & Reasoning** — Adjust creativity level and toggle Anthropic/Gemini reasoning (has no effect on other providers)
@@ -226,15 +226,17 @@ In reader mode, additional buttons appear (items naturally shift to accommodate)
 - **Quick Actions...** — Access the Quick Actions panel for reading features
 - **More Settings...** — Open the full settings menu
 
+To show/hide buttons in the Quick Settings panel, use **Settings → Quick Settings Settings → QS Panel Utilities**.
+
 **2. Quick Actions** (reader mode only)
 Assign "KOAssistant: Quick Actions" to a gesture for fast access to reading-related actions:
 - **Default actions** — X-Ray, Recap, Analyze Highlights, Book Info, About Author, Discussion Questions, Analyze Document, Find Similar
 - **Summary management** — "View Summary" (if summary exists) or "Generate Summary" (if not) for cached document summaries
-- **Utilities** — Translate Page, View/Edit Notebook, Chat History, Continue Last Chat, New Book Chat/Action, General Chat/Action, AI Quick Settings
+- **Utilities** — Translate Page, View/Edit Notebook, Chat History, Continue Last Chat, New Book Chat/Action, General Chat/Action, Quick Settings
 
-You can add any book action to Quick Actions via **Action Manager → hold action → "Add to Quick Actions"**. To reorder or remove actions, use **Settings → Quick Actions Settings → Panel Actions**. To show/hide utility buttons (Translate Page, Chat History, etc.), use **Settings → Quick Actions Settings → Panel Utilities**. Defaults can also be removed.
+You can add any book action to Quick Actions via **Action Manager → hold action → "Add to Quick Actions"**. To reorder or remove actions, use **Settings → Quick Actions Settings → Panel Actions**. To show/hide utility buttons (Translate Page, Chat History, etc.), use **Settings → Quick Actions Settings → QA Panel Utilities**. Defaults can also be removed.
 
-> **Tip**: For quick access, assign AI Quick Settings and Quick Actions to their own gestures (e.g., two-finger tap, corner tap). This gives you one-tap access to these panels from anywhere. Alternatively, you can add them to a KOReader QuickMenu alongside other actions (see below).
+> **Tip**: For quick access, assign Quick Settings and Quick Actions to their own gestures (e.g., two-finger tap, corner tap). This gives you one-tap access to these panels from anywhere. Alternatively, you can add them to a KOReader QuickMenu alongside other actions (see below).
 
 **Alternative: Build a KOReader QuickMenu**
 For full customization, assign multiple KOAssistant actions to one gesture and enable **"Show as QuickMenu"** to get a selection menu with any actions you want, in any order, mixed with non-KOAssistant actions:
@@ -242,7 +244,7 @@ For full customization, assign multiple KOAssistant actions to one gesture and e
 - Toggle Dictionary Bypass, Toggle Highlight Bypass
 - Translate Current Page, Settings, etc.
 
-Unlike KOAssistant's built-in panels (AI Quick Settings, Quick Actions) which show two buttons per row, KOReader's QuickMenu shows one button per row but allows mixing KOAssistant actions with any other KOReader actions.
+Unlike KOAssistant's built-in panels (Quick Settings, Quick Actions) which show two buttons per row, KOReader's QuickMenu shows one button per row but allows mixing KOAssistant actions with any other KOReader actions.
 
 **Direct gesture assignments**
 You can also assign individual actions directly to their own gestures for instant one-tap access:
@@ -619,7 +621,7 @@ Actions like News Update that require [web search](#web-search) are available in
 
 ### Quick UI Features
 
-- **Settings Icon (Input)**: Tap the gear icon in the input dialog title bar to open **AI Quick Settings**—a streamlined two-column panel providing quick access to frequently-changed settings without navigating through the full settings menu. See [Recommended Setup](#recommended-setup) for details on what's available in this panel.
+- **Settings Icon (Input)**: Tap the gear icon in the input dialog title bar to open **Quick Settings**—a streamlined two-column panel providing quick access to frequently-changed settings without navigating through the full settings menu. See [Recommended Setup](#recommended-setup) for details on what's available in this panel.
 - **Settings Icon (Viewer)**: Tap the gear icon in the chat viewer title bar to adjust font size and text alignment (cycles left/justified/right on each click)
 - **Show/Hide Quote**: In the chat viewer, toggle button to show or hide the highlighted text quote (useful for long selections)
 - **Save to Note**: For highlight context chats, tap the **H.Note** button to save the AI response directly as a note attached to your highlighted text (see [Save to Note](#save-to-note) below)
@@ -1205,7 +1207,7 @@ Actions with gestures show a `[gesture]` indicator in the Action Manager list.
 All KOAssistant gesture actions are in **Settings → Gesture Manager → General**:
 
 **Quick Access Panels:**
-- KOAssistant: AI Quick Settings — Two-column settings panel
+- KOAssistant: Quick Settings — Two-column settings panel
 - KOAssistant: Quick Actions — Reading actions panel (reader mode only)
 
 **Chat & History:**
@@ -1419,9 +1421,9 @@ See [domains.sample/](domains.sample/) for examples including classical language
 
 ### Selecting Domains
 
-Select a domain via the **Domain** button in the chat input dialog, or through AI Quick Settings. Once selected, the domain **stays active** for all subsequent chats until you change it or select "None".
+Select a domain via the **Domain** button in the chat input dialog, or through Quick Settings. Once selected, the domain **stays active** for all subsequent chats until you change it or select "None".
 
-**Note**: Keep this sticky behavior in mind — if you set a domain for one task, it will apply to all following actions (including quick actions that don't open the input dialog, unless they have been set to Skip Domain) until you clear it. You can change the domain through the input dialog, AI Quick Settings, or gesture actions.
+**Note**: Keep this sticky behavior in mind — if you set a domain for one task, it will apply to all following actions (including quick actions that don't open the input dialog, unless they have been set to Skip Domain) until you clear it. You can change the domain through the input dialog, Quick Settings, or gesture actions.
 
 ### Browsing by Domain
 
@@ -1602,7 +1604,7 @@ Tags are simple labels for organizing chats. Unlike domains:
 ### Quick Actions
 - **New Book Chat/Action**: Start a conversation about the current book or access book actions
 - **General Chat/Action**: Start a context-free conversation or run a general action
-- **AI Quick Settings**: Quick access to provider, model, behavior, and other settings
+- **Quick Settings**: Quick access to provider, model, behavior, and other settings
 - **Chat History**: Browse saved conversations
 - **Browse Notebooks**: Open the Notebook Manager to view all notebooks
 - **View/Generate Summary**: View cached summary (if exists) or generate one (reader mode only)
@@ -1771,12 +1773,21 @@ See [Bypass Modes](#bypass-modes) and [Highlight Menu Actions](#highlight-menu-a
 - **Bypass Action**: Which action to trigger when bypass is enabled (default: Translate)
 - **Highlight Menu Actions**: View and reorder actions in the highlight popup menu (2 defaults: Translate, Explain)
 
+### Quick Settings Settings
+Configure the Quick Settings panel (available via gesture or gear icon in input dialog).
+- **QS Panel Utilities**: Show/hide buttons in the Quick Settings panel:
+  - Provider, Model, Behavior, Domain, Temperature, Anthropic/Gemini Reasoning
+  - Web Search, Language, Translation Language, Dictionary Language
+  - H.Bypass, D.Bypass, Chat History, Browse Notebooks
+  - General Chat/Action, New Book Chat/Action, Manage Actions, Quick Actions, More Settings
+  - All buttons are enabled by default. Disable any you don't use to streamline the panel.
+
 ### Quick Actions Settings
 Configure the Quick Actions panel (available via gesture in reader mode).
 - **Panel Actions**: Reorder or remove actions from the Quick Actions panel. Add new actions via Action Manager → hold action → "Add to Quick Actions".
-- **Panel Utilities**: Show/hide utility buttons that appear below actions in the panel:
+- **QA Panel Utilities**: Show/hide utility buttons that appear below actions in the panel:
   - Translate Page, View Notebook, Edit Notebook, Chat History, Continue Last Chat
-  - New Book Chat/Action, General Chat/Action, Summary (View/Generate), AI Quick Settings
+  - New Book Chat/Action, General Chat/Action, Summary (View/Generate), Quick Settings
   - All utilities are enabled by default. Disable any you don't use to streamline the panel.
 
 ### Actions & Prompts
