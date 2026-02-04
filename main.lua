@@ -4385,22 +4385,25 @@ function AskGPT:buildBehaviorMenu()
 
   local items = {}
   for _idx, behavior in ipairs(all_behaviors) do
-    local behavior_copy = behavior
-    table.insert(items, {
-      text = behavior_copy.display_name or behavior_copy.name,  -- display_name already includes source indicator
-      checked_func = function()
-        local f = self_ref.settings:readSetting("features") or {}
-        return (f.selected_behavior or "standard") == behavior_copy.id
-      end,
-      radio = true,
-      callback = function()
-        local f = self_ref.settings:readSetting("features") or {}
-        f.selected_behavior = behavior_copy.id
-        self_ref.settings:saveSetting("features", f)
-        self_ref.settings:flush()
-        self_ref:updateConfigFromSettings()
-      end,
-    })
+    -- Skip specialized behaviors in quick picker (they're for specific actions, not general use)
+    if not behavior.specialized then
+      local behavior_copy = behavior
+      table.insert(items, {
+        text = behavior_copy.display_name or behavior_copy.name,  -- display_name already includes source indicator
+        checked_func = function()
+          local f = self_ref.settings:readSetting("features") or {}
+          return (f.selected_behavior or "standard") == behavior_copy.id
+        end,
+        radio = true,
+        callback = function()
+          local f = self_ref.settings:readSetting("features") or {}
+          f.selected_behavior = behavior_copy.id
+          self_ref.settings:saveSetting("features", f)
+          self_ref.settings:flush()
+          self_ref:updateConfigFromSettings()
+        end,
+      })
+    end
   end
 
   return items

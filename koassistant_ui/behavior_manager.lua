@@ -136,12 +136,23 @@ function BehaviorManager:showBehaviorMenu()
     -- Get all behaviors sorted
     local all_behaviors = SystemPrompts.getSortedBehaviors(custom_behaviors)
 
-    -- Group by source: built-in first, then folder, then UI
+    -- Group: regular built-in → folder → UI → specialized (at end)
     local current_source = nil
+    local in_specialized = false
 
     for _idx, behavior in ipairs(all_behaviors) do
-        -- Add section header when source changes
-        if behavior.source ~= current_source then
+        -- Check if entering specialized section (at the very end)
+        if behavior.specialized and not in_specialized then
+            in_specialized = true
+            current_source = nil  -- Reset so we don't show source headers within specialized
+            table.insert(menu_items, {
+                text = "▶ " .. _("SPECIALIZED"),
+                enabled = false,
+                dim = false,
+                bold = true,
+            })
+        -- Add section header when source changes (only for non-specialized)
+        elseif not behavior.specialized and behavior.source ~= current_source then
             current_source = behavior.source
             local header_text
             if current_source == "builtin" then

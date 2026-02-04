@@ -23,6 +23,14 @@ local SystemPrompts = {}
 -- Fallback behavior text (used if no behaviors can be loaded)
 local FALLBACK_BEHAVIOR = "You are a helpful assistant."
 
+-- Built-in behaviors that are specialized (designed for specific actions, not general use)
+-- These are sorted at the end of the built-in section in the UI
+local SPECIALIZED_BEHAVIORS = {
+    dictionary_direct = true,
+    dictionary_detailed = true,
+    translator_direct = true,
+}
+
 -- Cache for loaded behaviors (cleared on reload)
 local _builtin_cache = nil
 local _all_cache = nil
@@ -405,6 +413,7 @@ function SystemPrompts.getAllBehaviors(custom_behaviors)
             display_name = behavior.name .. display_suffix,
             external = behavior.source ~= "builtin",
             metadata = behavior.metadata,  -- Source, Notes, Date from file comments
+            specialized = behavior.source == "builtin" and SPECIALIZED_BEHAVIORS[id] or nil,
         }
     end
 
@@ -438,10 +447,21 @@ function SystemPrompts.getSortedBehaviors(custom_behaviors)
     end
 
     table.sort(sorted, function(a, b)
-        -- Built-ins first, then folders, then UI
-        local order = { builtin = 1, folder = 2, ui = 3 }
-        if order[a.source] ~= order[b.source] then
-            return order[a.source] < order[b.source]
+        -- Regular built-ins first, then folders, then UI, then specialized at the end
+        local function get_order(item)
+            if item.specialized then
+                return 4  -- Specialized always at the end
+            elseif item.source == "builtin" then
+                return 1
+            elseif item.source == "folder" then
+                return 2
+            else  -- ui
+                return 3
+            end
+        end
+        local order_a, order_b = get_order(a), get_order(b)
+        if order_a ~= order_b then
+            return order_a < order_b
         end
         return (a.display_name or a.name) < (b.display_name or b.name)
     end)
@@ -469,6 +489,7 @@ function SystemPrompts.getBehaviorById(id, custom_behaviors)
             display_name = behavior.name .. display_suffix,
             external = behavior.source ~= "builtin",
             metadata = behavior.metadata,  -- Source, Notes, Date from file comments
+            specialized = behavior.source == "builtin" and SPECIALIZED_BEHAVIORS[id] or nil,
         }
     end
 
