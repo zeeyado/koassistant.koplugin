@@ -1156,10 +1156,10 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
         translate_view = use_translate_view,  -- Use translate view for translations
         translate_hide_quote = translate_hide_quote,  -- Initial hide state for original text
         selection_data = selection_data,  -- For "Save to Note" feature
-        -- Scroll to last question if setting enabled AND there are multiple user turns
+        -- Scroll to last question if setting enabled AND this is a follow-up response
         -- First response should always start from top (user needs to read it)
         scroll_to_last_question = (temp_config and temp_config.features and temp_config.features.scroll_to_last_message == true)
-            and history and history.getUserTurnCount and history:getUserTurnCount() > 1,
+            and history and history.getAssistantTurnCount and history:getAssistantTurnCount() > 1,
         -- Set BOTH property names for compatibility:
         -- original_history: used by toggleDebugDisplay, toggleHighlightVisibility, etc.
         -- _message_history: used by expandToFullView for text regeneration
@@ -1240,12 +1240,12 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                         title = title .. " (" .. model_info .. ")",
                         text = history:createResultText(highlightedText, viewer_cfg),
                         configuration = viewer_cfg,  -- Use viewer's config to maintain state after expand
-                        -- Scroll to last question if setting enabled AND there are multiple user turns
-                        -- (This is for follow-up replies, so there should always be 2+ turns here)
+                        -- Scroll to last question if setting enabled AND this is a follow-up response
+                        -- (This is for follow-up replies, so there should always be 2+ assistant messages here)
                         scroll_to_last_question = (viewer_cfg and viewer_cfg.features and viewer_cfg.features.scroll_to_last_message == true)
-                            and history and history.getUserTurnCount and history:getUserTurnCount() > 1,
+                            and history and history.getAssistantTurnCount and history:getAssistantTurnCount() > 1,
                         scroll_to_bottom = not ((viewer_cfg and viewer_cfg.features and viewer_cfg.features.scroll_to_last_message == true)
-                            and history and history.getUserTurnCount and history:getUserTurnCount() > 1),
+                            and history and history.getAssistantTurnCount and history:getAssistantTurnCount() > 1),
                         show_debug_in_chat = viewer.show_debug_in_chat,
                         -- Set BOTH property names for compatibility:
                         -- original_history: used by toggleDebugDisplay, toggleHighlightVisibility, etc.

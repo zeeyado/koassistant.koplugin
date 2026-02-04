@@ -1481,7 +1481,7 @@ local SettingsSchema = {
                 {
                     id = "debug_truncate_content",
                     type = "toggle",
-                    text = _("Truncate Large Content"),
+                    text = _("Truncate Large Content (debug)"),
                     help_text = _("Truncate long content (book text, cached responses) in debug output. Shows first and last ~1500 characters with truncation notice."),
                     path = "features.debug_truncate_content",
                     default = true,

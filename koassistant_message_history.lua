@@ -103,6 +103,18 @@ function MessageHistory:getUserTurnCount()
     return count
 end
 
+-- Count assistant messages (responses) for scroll behavior
+-- Returns the number of AI responses, used to determine if this is a follow-up
+function MessageHistory:getAssistantTurnCount()
+    local count = 0
+    for _idx, msg in ipairs(self.messages) do
+        if msg.role == self.ROLES.ASSISTANT then
+            count = count + 1
+        end
+    end
+    return count
+end
+
 -- Get all reasoning content from assistant messages (for "View Reasoning" feature)
 -- Returns array of { index, reasoning, has_content } for messages with reasoning
 function MessageHistory:getReasoningEntries()

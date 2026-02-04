@@ -1452,8 +1452,8 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
         local display_text = content_text or (state and state.text) or history:createResultText(chat_highlighted_text, config)
 
         local scroll_setting_enabled = config and config.features and config.features.scroll_to_last_message == true
-        -- Only scroll to last question if there are multiple user turns (not for single-turn chats)
-        local has_multiple_turns = history and history.getUserTurnCount and history:getUserTurnCount() > 1
+        -- Only scroll to last question if there are multiple responses (not for single-turn chats)
+        local has_multiple_turns = history and history.getAssistantTurnCount and history:getAssistantTurnCount() > 1
         local viewer = ChatGPTViewer:new{
             title = detailed_title,
             text = display_text,
