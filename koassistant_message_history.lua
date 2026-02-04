@@ -208,6 +208,10 @@ function MessageHistory:fromSavedMessages(messages, model, chat_id, prompt_actio
             history.book_text_coverage_start = chat_metadata.book_text_coverage_start
             history.book_text_coverage_end = chat_metadata.book_text_coverage_end
         end
+        -- Unavailable data info
+        if chat_metadata.unavailable_data then
+            history.unavailable_data = chat_metadata.unavailable_data
+        end
     end
 
     return history
@@ -310,6 +314,13 @@ function MessageHistory:createResultText(highlightedText, config)
         table.insert(result, string.format(
             "*Book text truncated (~%d%%–%d%% coverage). Increase limit in Advanced Settings → Book Text Extraction.*\n\n---\n\n",
             start_pct, end_pct))
+    end
+
+    -- Show unavailable data notice if action requested data but didn't receive it
+    if self.unavailable_data and #self.unavailable_data > 0 then
+        local items = table.concat(self.unavailable_data, ", ")
+        table.insert(result, string.format(
+            "*Response generated without: %s*\n\n---\n\n", items))
     end
 
     -- Show launch context header if this is a general chat launched from a book

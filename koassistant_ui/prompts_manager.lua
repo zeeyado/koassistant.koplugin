@@ -4485,6 +4485,164 @@ function PromptsManager:showHighlightMenuActionOptions(action, index, total)
 end
 
 -- ============================================================
+-- Quick Actions Panel Manager
+-- ============================================================
+
+function PromptsManager:showQuickActionsManager()
+    if not self.plugin.action_service then
+        UIManager:show(InfoMessage:new{
+            text = _("Action service not available."),
+        })
+        return
+    end
+
+    local all_actions = self.plugin.action_service:getAllBookActionsWithQuickActionsState()
+
+    if #all_actions == 0 then
+        UIManager:show(InfoMessage:new{
+            text = _("No book actions available."),
+        })
+        return
+    end
+
+    -- Count items in quick actions for display
+    local quick_count = 0
+    for _idx, item in ipairs(all_actions) do
+        if item.in_quick_actions then quick_count = quick_count + 1 end
+    end
+
+    local menu_items = {}
+
+    -- Help text item
+    table.insert(menu_items, {
+        text = _("✓ = in panel | Tap = toggle | Hold = move"),
+        dim = true,
+        callback = function() end,  -- No action
+    })
+
+    for _idx, item in ipairs(all_actions) do
+        local action = item.action
+        local prefix = item.in_quick_actions and "✓ " or "  "
+        local position = item.in_quick_actions and string.format("[%d] ", item.quick_actions_position) or ""
+        local source_indicator = ""
+        if action.source == "ui" then
+            source_indicator = " ★"
+        elseif action.source == "config" then
+            source_indicator = " ◆"
+        end
+
+        table.insert(menu_items, {
+            text = prefix .. position .. (action.text or action.id) .. source_indicator,
+            action = action,
+            in_quick_actions = item.in_quick_actions,
+            quick_actions_position = item.quick_actions_position,
+            callback = function()
+                -- Toggle quick actions inclusion
+                self.plugin.action_service:toggleQuickAction(action.id)
+                -- Refresh the menu after close completes
+                UIManager:close(self.quick_actions_menu)
+                UIManager:scheduleIn(0.1, function()
+                    self:showQuickActionsManager()
+                end)
+            end,
+        })
+    end
+
+    self.quick_actions_menu = Menu:new{
+        title = T(_("Quick Actions (%1 enabled)"), quick_count),
+        item_table = menu_items,
+        width = self.width,
+        height = self.height,
+        covers_fullscreen = true,
+        is_borderless = true,
+        is_popout = false,
+        onMenuHold = function(menu_widget, menu_item)
+            if menu_item and menu_item.action then
+                if menu_item.in_quick_actions then
+                    -- Show move options for items in quick actions
+                    self:showQuickActionsActionOptions(menu_item.action, menu_item.quick_actions_position, quick_count)
+                else
+                    -- Show info for items not in quick actions
+                    UIManager:show(InfoMessage:new{
+                        text = string.format(
+                            "%s\n\nSource: %s\n\nTap to add to Quick Actions panel.",
+                            menu_item.action.text or menu_item.action.id,
+                            menu_item.action.source or "builtin"
+                        ),
+                        timeout = 3,
+                    })
+                end
+            end
+        end,
+        close_callback = function()
+            UIManager:close(self.quick_actions_menu)
+        end,
+    }
+    UIManager:show(self.quick_actions_menu)
+end
+
+-- Show options for a quick actions action (move up/down, remove)
+function PromptsManager:showQuickActionsActionOptions(action, index, total)
+    local buttons = {}
+
+    if index > 1 then
+        table.insert(buttons, {
+            {
+                text = _("↑ Move Up"),
+                callback = function()
+                    self.plugin.action_service:moveQuickAction(action.id, "up")
+                    UIManager:close(self.quick_options_dialog)
+                    UIManager:close(self.quick_actions_menu)
+                    self:showQuickActionsManager()
+                end,
+            },
+        })
+    end
+
+    if index < total then
+        table.insert(buttons, {
+            {
+                text = _("↓ Move Down"),
+                callback = function()
+                    self.plugin.action_service:moveQuickAction(action.id, "down")
+                    UIManager:close(self.quick_options_dialog)
+                    UIManager:close(self.quick_actions_menu)
+                    self:showQuickActionsManager()
+                end,
+            },
+        })
+    end
+
+    table.insert(buttons, {
+        {
+            text = _("Remove from Panel"),
+            callback = function()
+                self.plugin.action_service:removeFromQuickActions(action.id)
+                UIManager:close(self.quick_options_dialog)
+                UIManager:close(self.quick_actions_menu)
+                self:showQuickActionsManager()
+            end,
+        },
+    })
+
+    table.insert(buttons, {
+        {
+            text = _("Cancel"),
+            callback = function()
+                UIManager:close(self.quick_options_dialog)
+            end,
+        },
+    })
+
+    self.quick_options_dialog = ButtonDialog:new{
+        title = action.text or action.id,
+        info_text = _("Position: ") .. index .. "/" .. total,
+        buttons = buttons,
+    }
+    UIManager:show(self.quick_options_dialog)
+end
+
+-- ============================================================
 -- Dictionary Popup Actions Manager
 -- ============================================================
 

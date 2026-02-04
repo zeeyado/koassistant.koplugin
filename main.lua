@@ -5499,9 +5499,9 @@ function AskGPT:showDictionaryPopupManager()
   prompts_manager:showDictionaryPopupManager()
 end
 
-function AskGPT:showHighlightMenuManager()
+function AskGPT:showQuickActionsManager()
   local prompts_manager = PromptsManager:new(self)
-  prompts_manager:showHighlightMenuManager()
+  prompts_manager:showQuickActionsManager()
 end
 
 -- Show PathChooser for custom export path

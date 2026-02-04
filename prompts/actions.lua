@@ -370,6 +370,7 @@ Actions.book = {
             temperature = 0.7,
         },
         builtin = true,
+        in_quick_actions = 4,     -- Appears in Quick Actions menu
     },
     similar_books = {
         id = "similar_books",
@@ -380,6 +381,7 @@ Actions.book = {
             temperature = 0.8,  -- More creative for recommendations
         },
         builtin = true,
+        in_quick_actions = 8,     -- Appears in Quick Actions menu
     },
     explain_author = {
         id = "explain_author",
@@ -391,6 +393,7 @@ Actions.book = {
             temperature = 0.7,
         },
         builtin = true,
+        in_quick_actions = 5,     -- Appears in Quick Actions menu
     },
     historical_context = {
         id = "historical_context",
@@ -760,6 +763,7 @@ Note: These are general questions for the complete work. If the reader is mid-bo
             max_tokens = 4096,
         },
         builtin = true,
+        in_quick_actions = 6,     -- Appears in Quick Actions menu
     },
     -- Analyze Full Document: Complete document analysis for short content
     analyze_full_document = {
@@ -820,6 +824,7 @@ What are the most important takeaways? Focus on:
             max_tokens = 8192,
         },
         builtin = true,
+        in_quick_actions = 7,     -- Appears in Quick Actions menu
     },
 }
 

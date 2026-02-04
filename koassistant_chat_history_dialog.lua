@@ -1302,7 +1302,7 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
 
     -- Build chat_metadata for restoring cache/truncation notices
     local chat_metadata = nil
-    if chat.used_cache or chat.book_text_truncated then
+    if chat.used_cache or chat.book_text_truncated or chat.unavailable_data then
         chat_metadata = {
             used_cache = chat.used_cache,
             cached_progress = chat.cached_progress,
@@ -1310,6 +1310,7 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
             book_text_truncated = chat.book_text_truncated,
             book_text_coverage_start = chat.book_text_coverage_start,
             book_text_coverage_end = chat.book_text_coverage_end,
+            unavailable_data = chat.unavailable_data,
         }
     end
 
@@ -1387,6 +1388,8 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
                             book_text_truncated = chat.book_text_truncated,
                             book_text_coverage_start = chat.book_text_coverage_start,
                             book_text_coverage_end = chat.book_text_coverage_end,
+                            -- Preserve unavailable data info
+                            unavailable_data = chat.unavailable_data,
                         }
 
                         if document_path == "__GENERAL_CHATS__" then
@@ -1570,6 +1573,8 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
                             book_text_truncated = chat.book_text_truncated,
                             book_text_coverage_start = chat.book_text_coverage_start,
                             book_text_coverage_end = chat.book_text_coverage_end,
+                            -- Preserve unavailable data info
+                            unavailable_data = chat.unavailable_data,
                         }
 
                         if document_path == "__GENERAL_CHATS__" then

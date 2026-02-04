@@ -213,7 +213,8 @@ KOAssistant provides two distinct quick-access panels for different purposes:
 Assign "KOAssistant: AI Quick Settings" to a gesture for one-tap access to a two-column settings panel with commonly used options:
 - **Provider & Model** — Quick switching between AI providers and models
 - **Behavior & Domain** — Change communication style and knowledge context
-- **Temperature & Language** — Adjust creativity level and primary response language
+- **Temperature & Reasoning** — Adjust creativity level and toggle Anthropic/Gemini reasoning (has no effect on other providers)
+- **Web Search & Language** — Enable AI web search and set primary response language
 - **Translate & Dictionary** — Translation and dictionary language settings
 - **Highlight Bypass & Dictionary Bypass** — Toggle bypass modes on/off
 - **Chat History & Browse Notebooks** — Quick access to saved chats and notebooks
@@ -227,11 +228,11 @@ In reader mode, additional buttons appear (items naturally shift to accommodate)
 
 **2. Quick Actions** (reader mode only)
 Assign "KOAssistant: Quick Actions" to a gesture for fast access to reading-related actions:
-- **Default actions** — X-Ray, Recap, Analyze Highlights
+- **Default actions** — X-Ray, Recap, Analyze Highlights, Book Info, About Author, Discussion Questions, Analyze Document, Find Similar
 - **Summary management** — "View Summary" (if summary exists) or "Generate Summary" (if not) for cached document summaries
 - **Utilities** — Translate Page, View/Edit Notebook, Chat History, Continue Last Chat, New Book Chat/Action, General Chat/Action, AI Quick Settings
 
-You can add any book action to Quick Actions via **Action Manager → hold action → "Add to Quick Actions"**. Defaults can be removed the same way.
+You can add any book action to Quick Actions via **Action Manager → hold action → "Add to Quick Actions"**. To reorder or remove actions, use **Settings → Quick Actions Settings → Quick Actions Panel**. Defaults can also be removed.
 
 > **Tip**: For quick access, assign AI Quick Settings and Quick Actions to their own gestures (e.g., two-finger tap, corner tap). This gives you one-tap access to these panels from anywhere. Alternatively, you can add them to a KOReader QuickMenu alongside other actions (see below).
 
@@ -548,7 +549,7 @@ These actions analyze your actual reading content. They require specific privacy
 | **Summarize Document** | Entire document | Allow Text Extraction |
 | **Extract Key Insights** | Entire document | Allow Text Extraction |
 
-> ⚠️ **Privacy settings required:** These actions won't have access to your reading data unless you enable the corresponding setting in **Settings → Privacy & Data**. Without the setting enabled, the AI will attempt to use only its training knowledge (works for famous books, less accurate for obscure works).
+> ⚠️ **Privacy settings required:** These actions won't have access to your reading data unless you enable the corresponding setting in **Settings → Privacy & Data**. Without the setting enabled, the AI will attempt to use only its training knowledge (works for famous books, less accurate for obscure works). A "*Response generated without: ...*" notice will appear in the chat to indicate what data was requested but not provided.
 
 > **Tip:** Highlight actions can also use text extraction. "Explain in Context" and "Analyze in Context" use `{book_text_section}` to understand your highlighted passage within the broader book context. See [Highlight Mode](#highlight-mode) for details.
 
@@ -1823,9 +1824,10 @@ Control where KOAssistant appears in KOReader's menus. All toggles default to ON
 ### Advanced
 - **Temperature**: Response creativity (0.0-2.0, Anthropic max 1.0)
 - **Reasoning/Thinking**: Per-provider reasoning settings:
-  - **Anthropic Extended Thinking**: Budget 1024-32000 tokens
-  - **OpenAI Reasoning**: Effort level (low/medium/high)
-  - **Gemini Thinking**: Level (low/medium/high)
+  - **Enable Anthropic/Gemini Reasoning**: Master toggle for optional reasoning (default: off). Only affects Anthropic and Gemini—other providers either always reason (OpenAI o-series, DeepSeek Reasoner) or don't support it.
+  - **Anthropic Extended Thinking**: Budget 1024-32000 tokens (requires master toggle)
+  - **Gemini Thinking**: Level (minimal/low/medium/high) (requires master toggle)
+  - **OpenAI Reasoning Effort**: Effort level (low/medium/high). OpenAI reasoning models always reason—this controls depth.
   - **Show Reasoning Indicator**: Display "*[Reasoning was used]*" in chat when reasoning is active (default: on)
 - **Web Search**: Allow AI to search the web for current information:
   - **Enable Web Search**: Global toggle (default: off). Supported by Anthropic, Gemini, and OpenRouter.
@@ -2244,21 +2246,22 @@ For complex questions, supported models can "think" through the problem before r
 > **Note:** Some models always use reasoning by default (OpenAI o-series, DeepSeek Reasoner) and don't have toggles. The settings below are for models where reasoning is *optional* and can be controlled. A model tier system is being developed that will let you select provider-agnostic tiers (like "reasoning" or "ultrafast") in action settings — currently you must specify provider and model explicitly.
 
 **Anthropic Extended Thinking:**
-1. Enable in Settings → AI Response → Anthropic Extended Thinking
-2. Set token budget (1024-32000)
-3. Temperature is forced to 1.0 (API requirement)
-4. Works with: Claude Sonnet 4.5, Opus 4.x, Haiku 4.5, Sonnet 3.7
-
-**OpenAI Reasoning:**
-1. Enable in Settings → AI Response → OpenAI Reasoning
-2. Set effort level (low/medium/high)
-3. Temperature is forced to 1.0 (API requirement)
-4. Works with: o3, o3-mini, o4-mini, GPT-5.x
+1. Enable the master toggle: Settings → AI Response → Enable Anthropic/Gemini Reasoning
+2. Enable Anthropic Extended Thinking
+3. Set token budget (1024-32000)
+4. Temperature is forced to 1.0 (API requirement)
+5. Works with: Claude Sonnet 4.5, Opus 4.x, Haiku 4.5, Sonnet 3.7
 
 **Gemini Thinking:**
-1. Enable in Settings → AI Response → Gemini Thinking
-2. Set level (low/medium/high)
-3. Works with: gemini-3-*-preview models
+1. Enable the master toggle: Settings → AI Response → Enable Anthropic/Gemini Reasoning
+2. Enable Gemini Thinking
+3. Set level (minimal/low/medium/high)
+4. Works with: gemini-3-*-preview models
+
+**OpenAI Reasoning:**
+OpenAI reasoning models (o3, o3-mini, o4-mini, GPT-5.x) always reason internally—there's no toggle to turn it off. You can only control the effort level:
+1. Set effort level in Settings → AI Response → OpenAI Reasoning Effort (low/medium/high)
+2. Temperature is forced to 1.0 (API requirement)
 
 **DeepSeek:** The `deepseek-reasoner` model automatically uses reasoning (no setting needed).
 

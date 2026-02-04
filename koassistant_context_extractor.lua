@@ -955,6 +955,56 @@ function ContextExtractor:extractForAction(action)
         data.notebook_content = ""
     end
 
+    -- Track unavailable data: when action requested data but it wasn't provided
+    -- This helps users understand when AI relied on training data vs actual book content
+    -- Two cases: permission denied (setting disabled) OR data empty (no highlights, etc.)
+    local unavailable = {}
+
+    -- Book text: check if requested but not available
+    if action.use_book_text then
+        local book_text_enabled = provider_trusted or self:isBookTextExtractionEnabled()
+        if not book_text_enabled then
+            -- Permission denied
+            table.insert(unavailable, "book text (extraction disabled)")
+        elseif (not data.book_text or data.book_text == "") and
+               (not data.full_document or data.full_document == "") then
+            -- Permission granted but no text extracted (could be PDF without text layer, etc.)
+            -- Only flag if action likely expected text (has placeholder in prompt)
+            local prompt = action.prompt or ""
+            if prompt:find("{book_text", 1, true) or prompt:find("{full_document", 1, true) then
+                table.insert(unavailable, "book text (none extracted)")
+            end
+        end
+    end
+
+    -- Annotations: check if requested but not available
+    if action.use_annotations then
+        if not annotations_allowed then
+            -- Permission denied
+            table.insert(unavailable, "annotations (sharing disabled)")
+        elseif (not data.annotations or data.annotations == "") and
+               (not data.highlights or data.highlights == "") then
+            -- Permission granted but no annotations exist
+            table.insert(unavailable, "annotations (none found)")
+        end
+    end
+
+    -- Notebook: check if requested but not available
+    if action.use_notebook then
+        if not notebook_allowed then
+            -- Permission denied
+            table.insert(unavailable, "notebook (sharing disabled)")
+        elseif not data.notebook_content or data.notebook_content == "" then
+            -- Permission granted but notebook is empty
+            table.insert(unavailable, "notebook (empty)")
+        end
+    end
+
+    -- Store unavailable data list for display in chat
+    if #unavailable > 0 then
+        data._unavailable_data = unavailable
+    end
+
     return data
 end
 
