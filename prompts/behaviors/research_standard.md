@@ -1,4 +1,4 @@
-# Research Standard
+# Perplexity Style (Standard)
 <!--
 Source: Adapted from Perplexity AI approach
 Date: 2025-01
