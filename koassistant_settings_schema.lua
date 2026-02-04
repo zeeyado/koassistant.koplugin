@@ -1,6 +1,7 @@
 local _ = require("koassistant_gettext")
 local T = require("ffi/util").template
 local ModelConstraints = require("model_constraints")
+local Constants = require("koassistant_constants")
 
 -- Settings Schema Definition
 -- This file defines the structure and metadata for all KOAssistant plugin settings
@@ -362,7 +363,7 @@ local SettingsSchema = {
                 {
                     id = "history_copy_content",
                     type = "dropdown",
-                    text = _("History Export"),
+                    text = _("Chat History Export"),
                     path = "features.history_copy_content",
                     default = "ask",
                     options = {
@@ -847,15 +848,50 @@ local SettingsSchema = {
             id = "quick_actions_settings",
             type = "submenu",
             text = _("Quick Actions Settings"),
-            items = {
-                {
-                    id = "quick_actions_actions",
-                    type = "action",
-                    text = _("Quick Actions Panel"),
-                    callback = "showQuickActionsManager",
-                    help_text = _("Choose which actions appear in the Quick Actions panel and their order"),
-                },
-            },
+            items = (function()
+                -- Build items dynamically from Constants
+                local items = {
+                    {
+                        id = "quick_actions_actions",
+                        type = "action",
+                        text = _("Panel Actions"),
+                        callback = "showQuickActionsManager",
+                        help_text = _("Choose which actions appear in the Quick Actions panel and their order"),
+                    },
+                    {
+                        id = "panel_utilities_submenu",
+                        type = "submenu",
+                        text = _("Panel Utilities"),
+                        help_text = _("Show or hide utility buttons in the Quick Actions panel"),
+                        items = (function()
+                            -- Generate toggle items from Constants.QUICK_ACTION_UTILITIES
+                            local utility_items = {}
+                            local util_texts = {
+                                translate_page = _("Translate Page"),
+                                view_notebook = _("View Notebook"),
+                                edit_notebook = _("Edit Notebook"),
+                                chat_history = _("Chat History"),
+                                continue_last_chat = _("Continue Last Chat"),
+                                new_book_chat = _("New Book Chat/Action"),
+                                general_chat = _("General Chat/Action"),
+                                summary = _("Summary (View/Generate)"),
+                                ai_quick_settings = _("AI Quick Settings"),
+                            }
+                            for _, util in ipairs(Constants.QUICK_ACTION_UTILITIES) do
+                                table.insert(utility_items, {
+                                    id = "qa_show_" .. util.id,
+                                    type = "toggle",
+                                    text = util_texts[util.id] or util.id,
+                                    path = "features.qa_show_" .. util.id,
+                                    default = util.default,
+                                })
+                            end
+                            return utility_items
+                        end)(),
+                    },
+                }
+                return items
+            end)(),
         },
 
         -- Actions & Prompts submenu

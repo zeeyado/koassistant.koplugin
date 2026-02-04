@@ -90,4 +90,41 @@ Constants.GITHUB = {
     API_URL = "https://api.github.com/repos/zeeyado/koassistant.koplugin/releases",
 }
 
+-- Quick Actions Panel Utilities
+-- Non-action items shown in the Quick Actions panel (below the actions)
+-- Each utility has: id (settings key suffix), callback (method name), default (enabled by default)
+-- Display text is handled by consumers using gettext
+-- Settings path: features.qa_show_{id}
+Constants.QUICK_ACTION_UTILITIES = {
+    { id = "translate_page",     callback = "onKOAssistantTranslatePage",       default = true },
+    { id = "view_notebook",      callback = "onKOAssistantViewNotebook",        default = true },
+    { id = "edit_notebook",      callback = "onKOAssistantEditNotebook",        default = true },
+    { id = "chat_history",       callback = "onKOAssistantChatHistory",         default = true },
+    { id = "continue_last_chat", callback = "onKOAssistantContinueLastOpened",  default = true },
+    { id = "new_book_chat",      callback = "onKOAssistantBookChat",            default = true },
+    { id = "general_chat",       callback = "startGeneralChat",                 default = true },
+    { id = "summary",            callback = "handleSummary",                    default = true },  -- Special handling
+    { id = "ai_quick_settings",  callback = "onKOAssistantAISettings",          default = true },
+}
+
+--- Get display text for a Quick Action utility
+--- Must be called from a context where _ (gettext) is available
+--- @param id string: Utility ID
+--- @param _ function: gettext function
+--- @return string: Translated display text
+function Constants.getQuickActionUtilityText(id, _)
+    local texts = {
+        translate_page = _("Translate Page"),
+        view_notebook = _("View Notebook"),
+        edit_notebook = _("Edit Notebook"),
+        chat_history = _("Chat History"),
+        continue_last_chat = _("Continue Last Chat"),
+        new_book_chat = _("New Book Chat/Action"),
+        general_chat = _("General Chat/Action"),
+        summary = nil,  -- Special: dynamic text based on cache state
+        ai_quick_settings = _("AI Quick Settings"),
+    }
+    return texts[id]
+end
+
 return Constants
