@@ -193,7 +193,6 @@ local SettingsSchema = {
                     step = 10,
                     precision = "%d",
                     depends_on = { id = "hide_long_highlights", value = true },
-                    separator = true,
                 },
                 {
                     id = "plugin_ui_language",
@@ -839,6 +838,22 @@ local SettingsSchema = {
                     text = _("Highlight Menu Actions"),
                     callback = "showHighlightMenuManager",
                     help_text = _("Choose which actions appear in the highlight menu (requires restart)"),
+                },
+            },
+        },
+
+        -- Quick Actions Settings
+        {
+            id = "quick_actions_settings",
+            type = "submenu",
+            text = _("Quick Actions Settings"),
+            items = {
+                {
+                    id = "quick_actions_actions",
+                    type = "action",
+                    text = _("Quick Actions Panel"),
+                    callback = "showQuickActionsManager",
+                    help_text = _("Choose which actions appear in the Quick Actions panel and their order"),
                 },
             },
         },

@@ -1248,41 +1248,18 @@ end
 
 -- Get ordered list of quick action IDs
 -- Returns array of action IDs (strings), includes both built-in defaults and user-added
--- All actions are sorted alphabetically by their display text
+-- Preserves user-defined order (sortable via Quick Actions Settings)
 function ActionService:getQuickActions()
     local saved = self.settings:readSetting("quick_actions_list")
     if not saved then
-        -- No saved list yet, build defaults and sort alphabetically
+        -- No saved list yet, build defaults sorted by in_quick_actions flag
         local defaults = buildQuickActionsDefaults(self.Actions)
-        local with_text = {}
-        for _i, id in ipairs(defaults) do
-            local action = self:getAction("book", id)
-            table.insert(with_text, { id = id, text = action and action.text or id })
-        end
-        table.sort(with_text, function(a, b) return (a.text or ""):lower() < (b.text or ""):lower() end)
-        local result = {}
-        for _i, item in ipairs(with_text) do table.insert(result, item.id) end
-        return result
+        return defaults
     end
     local processed = processQuickActionsList(self, saved, "_dismissed_quick_actions")
     -- Always save processed list (handles prune and inject)
     self.settings:saveSetting("quick_actions_list", processed)
-
-    -- Build list with text for sorting
-    local with_text = {}
-    for _i, id in ipairs(processed) do
-        local action = self:getAction("book", id)
-        if action then
-            table.insert(with_text, { id = id, text = action.text or id })
-        end
-    end
-
-    -- Sort all actions alphabetically by display text
-    table.sort(with_text, function(a, b) return (a.text or ""):lower() < (b.text or ""):lower() end)
-
-    local result = {}
-    for _i, item in ipairs(with_text) do table.insert(result, item.id) end
-    return result
+    return processed
 end
 
 -- Check if action is in quick actions
@@ -1343,6 +1320,61 @@ function ActionService:toggleQuickAction(action_id)
         self:addToQuickActions(action_id)
         return true
     end
+end
+
+-- Move action in quick actions order
+function ActionService:moveQuickAction(action_id, direction)
+    local actions = self:getQuickActions()
+    for i, id in ipairs(actions) do
+        if id == action_id then
+            local new_index = direction == "up" and i - 1 or i + 1
+            if new_index >= 1 and new_index <= #actions then
+                actions[i], actions[new_index] = actions[new_index], actions[i]
+                self.settings:saveSetting("quick_actions_list", actions)
+                self.settings:flush()
+            end
+            return
+        end
+    end
+end
+
+-- Get all book actions with their quick actions inclusion state
+-- Returns array of { action, in_quick_actions, quick_actions_position }
+-- Used by the quick actions manager UI
+function ActionService:getAllBookActionsWithQuickActionsState()
+    -- Get all book-context actions (including from 'both' and 'all' contexts)
+    local all_actions = self:getAllActions("book", true)  -- Include disabled
+    local quick_ids = self:getQuickActions()
+
+    -- Create lookup for quick actions positions
+    local quick_positions = {}
+    for i, id in ipairs(quick_ids) do
+        quick_positions[id] = i
+    end
+
+    local result = {}
+    for _i, action in ipairs(all_actions) do
+        table.insert(result, {
+            action = action,
+            in_quick_actions = quick_positions[action.id] ~= nil,
+            quick_actions_position = quick_positions[action.id],
+        })
+    end
+
+    -- Sort: quick action items first (by position), then non-quick items (alphabetically)
+    table.sort(result, function(a, b)
+        if a.in_quick_actions and b.in_quick_actions then
+            return a.quick_actions_position < b.quick_actions_position
+        elseif a.in_quick_actions then
+            return true
+        elseif b.in_quick_actions then
+            return false
+        else
+            return (a.action.text or "") < (b.action.text or "")
+        end
+    end)
+
+    return result
 end
 
 -- Legacy method for backwards compatibility - now just calls getQuickActions

@@ -675,6 +675,8 @@ local function createSaveDialog(document_path, history, chat_history_manager, is
                                     book_text_truncated = history.book_text_truncated,
                                     book_text_coverage_start = history.book_text_coverage_start,
                                     book_text_coverage_end = history.book_text_coverage_end,
+                                    -- Store unavailable data info
+                                    unavailable_data = history.unavailable_data,
                                 }
 
                                 if document_path == "__GENERAL_CHATS__" then
@@ -1393,6 +1395,8 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                                     book_text_truncated = history.book_text_truncated,
                                     book_text_coverage_start = history.book_text_coverage_start,
                                     book_text_coverage_end = history.book_text_coverage_end,
+                                    -- Store unavailable data info
+                                    unavailable_data = history.unavailable_data,
                                 }
 
                                 if save_path == "__GENERAL_CHATS__" then
@@ -1500,6 +1504,8 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                             book_text_truncated = history.book_text_truncated,
                             book_text_coverage_start = history.book_text_coverage_start,
                             book_text_coverage_end = history.book_text_coverage_end,
+                            -- Store unavailable data info
+                            unavailable_data = history.unavailable_data,
                         }
 
                         if save_path == "__GENERAL_CHATS__" then
@@ -1743,6 +1749,8 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                         book_text_truncated = history.book_text_truncated,
                         book_text_coverage_start = history.book_text_coverage_start,
                         book_text_coverage_end = history.book_text_coverage_end,
+                        -- Store unavailable data info
+                        unavailable_data = history.unavailable_data,
                     }
 
                     if save_path == "__GENERAL_CHATS__" then
@@ -2366,6 +2374,12 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                 history.book_text_truncated = true
                 history.book_text_coverage_start = message_data.book_text_coverage_start
                 history.book_text_coverage_end = message_data.book_text_coverage_end
+            end
+
+            -- Store unavailable data info for viewer to display notice
+            -- Shows when action requested data (book text, annotations, notebook) but didn't receive it
+            if message_data._unavailable_data and #message_data._unavailable_data > 0 then
+                history.unavailable_data = message_data._unavailable_data
             end
 
             if on_complete then
