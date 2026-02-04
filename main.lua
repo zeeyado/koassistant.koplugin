@@ -117,30 +117,6 @@ local AskGPT = WidgetContainer:extend{
   is_doc_only = false,
 }
 
--- Flag to ensure the update message is shown only once per session
-local updateMessageShown = false
-
--- Helper function to check for updates if auto-check is enabled
-local function maybeCheckForUpdates(plugin_instance)
-    if updateMessageShown then
-        return
-    end
-    -- Check if auto-check is enabled (default: true)
-    local auto_check = true
-    if plugin_instance and plugin_instance.settings then
-        local features = plugin_instance.settings:readSetting("features") or {}
-        if features.auto_check_updates == false then
-            auto_check = false
-        end
-    end
-    if auto_check then
-        -- Mark as shown immediately to prevent duplicate checks
-        updateMessageShown = true
-        -- Run update check - the checker manages its own loading message
-        UpdateChecker.checkForUpdates(true) -- auto = true (silent background check)
-    end
-end
-
 function AskGPT:init()
   logger.info("KOAssistant plugin: init() called")
 
@@ -163,6 +139,15 @@ function AskGPT:init()
   -- Validate chat index on startup (fast - only checks existing index entries)
   local chat_history_manager = require("koassistant_chat_history_manager"):new()
   chat_history_manager:validateChatIndex()
+
+  -- Auto-check for updates at startup (if enabled)
+  -- Runs silently in background, only shows UI if update is available
+  local features = self.settings:readSetting("features") or {}
+  if features.auto_check_updates ~= false then
+    NetworkMgr:runWhenOnline(function()
+      UpdateChecker.checkForUpdates(true) -- auto = true (silent background check)
+    end)
+  end
 
   -- Add to highlight dialog if highlight feature is available
   if self.ui and self.ui.highlight then
@@ -197,7 +182,6 @@ function AskGPT:init()
             reader_highlight_instance:onClose()
             NetworkMgr:runWhenOnline(function()
               self:ensureInitialized()
-              maybeCheckForUpdates(self)
               -- Make sure we're using the latest configuration
               self:updateConfigFromSettings()
               -- Clear context flags for highlight context (default context)
@@ -616,7 +600,6 @@ function AskGPT:showKOAssistantDialogForFile(file, title, authors, book_props)
 
   NetworkMgr:runWhenOnline(function()
     self:ensureInitialized()
-    maybeCheckForUpdates(self)
     -- Show dialog with book context instead of highlighted text
     showChatGPTDialog(self.ui, book_context, configuration, nil, self)
   end)
@@ -768,7 +751,6 @@ function AskGPT:compareSelectedBooks(selected_files)
 
   NetworkMgr:runWhenOnline(function()
     self:ensureInitialized()
-    maybeCheckForUpdates(self)
     -- Pass the prompt as book context with configuration
     -- Use FileManager.instance as the UI context
     local ui_context = self.ui or FileManager.instance
@@ -3765,7 +3747,6 @@ function AskGPT:onKOAssistantGeneralChat()
 
   NetworkMgr:runWhenOnline(function()
     self:ensureInitialized()
-    maybeCheckForUpdates(self)
     -- Make sure we're using the latest configuration
     self:updateConfigFromSettings()
 
@@ -5826,7 +5807,6 @@ function AskGPT:startGeneralChat()
 
   NetworkMgr:runWhenOnline(function()
     self:ensureInitialized()
-    maybeCheckForUpdates(self)
     -- Make sure we're using the latest configuration
     self:updateConfigFromSettings()
 

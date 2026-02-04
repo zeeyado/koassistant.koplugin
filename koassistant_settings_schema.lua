@@ -1234,6 +1234,21 @@ local SettingsSchema = {
                     text = _("Reset All Menu Customizations"),
                     callback = "resetActionMenus",
                     help_text = _("Restore all menus to defaults (dictionary popup, highlight menu)"),
+                    separator = true,
+                },
+                -- Startup behavior
+                {
+                    id = "startup_header",
+                    type = "header",
+                    text = _("Startup Behavior"),
+                },
+                {
+                    id = "auto_check_updates_ref",
+                    type = "toggle",
+                    text = _("Auto-check for updates"),
+                    setting = "features.auto_check_updates",
+                    default = true,
+                    help_text = _("Automatically check for new versions when KOReader starts."),
                 },
             },
         },
@@ -1597,6 +1612,13 @@ local SettingsSchema = {
             type = "action",
             text = _("About KOAssistant"),
             callback = "showAbout",
+        },
+        {
+            id = "auto_check_updates",
+            type = "toggle",
+            text = _("Auto-check for updates on startup"),
+            setting = "features.auto_check_updates",
+            default = true,
         },
         {
             id = "check_updates",
