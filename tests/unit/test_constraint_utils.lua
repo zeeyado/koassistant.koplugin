@@ -93,7 +93,7 @@ function TestConstraintUtils:runAll()
         local defaults = ConstraintUtils.getReasoningDefaults("anthropic")
         self:assert(type(defaults) == "table", "Should return table")
         self:assertEquals(type(defaults.budget), "number", "Should have budget")
-        self:assertEquals(defaults.budget, 4096, "Budget should be 4096")
+        self:assertEquals(defaults.budget, 32000, "Budget should be 32000 (max cap)")
     end)
 
     self:test("getReasoningDefaults returns OpenAI config", function()

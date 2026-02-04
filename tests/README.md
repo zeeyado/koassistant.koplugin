@@ -176,6 +176,11 @@ Located in `tests/unit/`:
 - `test_response_parser.lua` - Response parsing for all 16 providers
 - `test_loaders.lua` - BehaviorLoader and DomainLoader functionality
 - `test_openai_compatible.lua` - OpenAI-compatible base class (hooks, request building)
+- `test_web_search.lua` - Web search detection across providers (44 tests)
+  - Response parser tests: OpenAI, xAI, Gemini, OpenRouter web search detection
+  - Streaming parser tests: tool_call detection, Gemini grounding metadata
+  - Model constraints: capability checks for google_search, web_search
+  - OpenRouter :online suffix handling
 
 ### Integration Tests (real API calls)
 
@@ -231,7 +236,7 @@ local default_temp = ConstraintUtils.getDefaultTemperature("openai")  -- Returns
 
 -- Get reasoning defaults (extended thinking budgets, effort levels)
 local anthropic_reasoning = ConstraintUtils.getReasoningDefaults("anthropic")
--- Returns: { budget = 4096, budget_min = 1024, budget_max = 32000, ... }
+-- Returns: { budget = 32000, budget_min = 1024, budget_max = 32000, ... }
 
 local openai_reasoning = ConstraintUtils.getReasoningDefaults("openai")
 -- Returns: { effort = "medium", effort_options = { "low", "medium", "high" } }
@@ -390,6 +395,8 @@ tests/
 ├── inspect.lua                # Request inspector (CLI + Web UI)
 ├── test_config.lua            # Config helpers (buildFullConfig)
 ├── local_config.lua.sample    # Local config template
+├── fixtures/
+│   └── sample_context.lua     # Sample context data for tests
 ├── lib/
 │   ├── mock_koreader.lua      # KOReader module mocks
 │   ├── constraint_utils.lua   # Plugin constraint utilities wrapper
@@ -402,15 +409,16 @@ tests/
 │   ├── test_full_provider.lua    # Comprehensive tests (--full)
 │   └── test_model_validation.lua # Model validation (--models)
 └── unit/
-    ├── test_actions.lua             # Placeholder gating, flag cascading tests
-    ├── test_constants.lua           # Context constants, GitHub URLs tests
-    ├── test_constraint_utils.lua    # Constraint utilities tests
-    ├── test_loaders.lua             # BehaviorLoader, DomainLoader tests
-    ├── test_openai_compatible.lua   # OpenAI-compatible base class tests
-    ├── test_prompt_building.lua     # MessageBuilder, ContextExtractor gating, cache flow (60 tests)
-    ├── test_response_parser.lua     # Provider response parsing tests
-    ├── test_streaming_parser.lua    # SSE/NDJSON parsing tests
-    └── test_system_prompts.lua      # Behavior, language, domain tests
+    ├── test_actions.lua             # Placeholder gating, flag cascading tests (34 tests)
+    ├── test_constants.lua           # Context constants, GitHub URLs tests (14 tests)
+    ├── test_constraint_utils.lua    # Constraint utilities tests (25 tests)
+    ├── test_loaders.lua             # BehaviorLoader, DomainLoader tests (26 tests)
+    ├── test_openai_compatible.lua   # OpenAI-compatible base class tests (30 tests)
+    ├── test_prompt_building.lua     # MessageBuilder, ContextExtractor gating, cache flow (90 tests)
+    ├── test_response_parser.lua     # Provider response parsing tests (42 tests)
+    ├── test_streaming_parser.lua    # SSE/NDJSON parsing tests (22 tests)
+    ├── test_system_prompts.lua      # Behavior, language, domain tests (69 tests)
+    └── test_web_search.lua          # Web search detection tests (44 tests)
 ```
 
 ## Troubleshooting

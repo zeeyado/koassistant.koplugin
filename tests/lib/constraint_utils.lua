@@ -10,7 +10,7 @@ eliminating the risk of test/plugin divergence.
 Usage:
     local ConstraintUtils = require("tests.lib.constraint_utils")
     local max_temp = ConstraintUtils.getMaxTemperature("anthropic")  -- Returns 1.0
-    local defaults = ConstraintUtils.getReasoningDefaults("anthropic")  -- Returns {budget=4096, ...}
+    local defaults = ConstraintUtils.getReasoningDefaults("anthropic")  -- Returns {budget=32000, ...}
 ]]
 
 local ModelConstraints = require("model_constraints")
