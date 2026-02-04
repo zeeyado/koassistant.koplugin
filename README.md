@@ -7,7 +7,7 @@
 **Powerful, customizable AI assistant for KOReader.**
 
 - **Highlight text** → translate, explain, define words, analyze passages, connect ideas, save content directly to KOReader's highlight notes/annotations
-- **While reading** → reference guides (X-Ray, Recap), analyze your highlights/annotations, explore the book (author, context, arguments, similar works), generate discussion questions
+- **While reading** → reference guides (Summaries, X-Ray, Recap), analyze your highlights/annotations, explore the book (author, context, arguments, similar works), generate discussion questions
 - **Research & analysis** → deep analysis of papers/articles, explore arguments, find connections across works
 - **Multi-document** → compare texts, find common themes, analyze your collection
 - **General chat** → AI without book context
@@ -1648,7 +1648,7 @@ These settings control what language the AI responds in.
 - **Primary Language**: Pick which of your languages the AI should respond in by default. Defaults to first in your list.
 - **Additional Languages**: Extra languages for translation/dictionary targets only (e.g., Latin, Sanskrit for scholarly work). These are NOT sent to the AI in the system prompt but appear in translation/dictionary language pickers.
 
-**Native script display:** Languages appear in their native scripts everywhere—menus, settings, and AI prompts. Classical/scholarly languages (Ancient Greek, Biblical Hebrew, Classical Arabic, Latin, Sanskrit) are displayed in English only.
+**Native script display:** Languages appear in their native scripts in menus and settings (日本語, Français, etc.). System prompts sent to the AI use English names for better language model comprehension. Classical/scholarly languages (Ancient Greek, Biblical Hebrew, Classical Arabic, Latin, Sanskrit) are displayed in English only.
 
 **Custom languages:** Use "Add Custom Language..." at the top of each picker to enter languages not in the pre-loaded list. Custom languages are remembered and appear in future pickers.
 
@@ -1664,7 +1664,7 @@ These settings control what language the AI responds in.
 - Your Languages: `Deutsch, English, Français` with Primary: `English` - English by default, switches if you type in German or French
 - Additional Languages: `Latin, Sanskrit` - Available in translation/dictionary pickers but AI won't mention them in general responses
 
-**How it works technically:** Your interaction languages are sent as part of the system message (after behavior and domain). The instruction tells the AI to respond in your primary language (shown in native script) and switch if you type in another configured language. See [How the AI Prompt Works](#how-the-ai-prompt-works).
+**How it works technically:** Your interaction languages are sent as part of the system message (after behavior and domain). The instruction tells the AI to respond in your primary language and switch if you type in another configured language. Language names in system prompts use English (e.g., "Japanese" not "日本語") for more reliable AI comprehension. See [How the AI Prompt Works](#how-the-ai-prompt-works).
 
 **Built-in actions that skip this:** Translate and Dictionary actions set `skip_language_instruction` because they specify the target language directly in their prompt templates (via `{translation_language}` and `{dictionary_language}` placeholders). This avoids conflicting instructions.
 

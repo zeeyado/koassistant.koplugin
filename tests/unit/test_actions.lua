@@ -254,9 +254,9 @@ function TestActions:runAll()
         self:assertEquals(xray.use_annotations, true)
     end)
 
-    self:test("X-Ray action has cache_as_xray_cache", function()
+    self:test("X-Ray action has cache_as_xray", function()
         local xray = Actions.book.xray
-        self:assertEquals(xray.cache_as_xray_cache, true)
+        self:assertEquals(xray.cache_as_xray, true)
     end)
 
     -- Summary

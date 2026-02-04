@@ -1612,13 +1612,13 @@ function ChatGPTViewer:init()
         })
         return
       end
-      -- Build language buttons
+      -- Build language buttons with native display names
       local lang_dialog
       local lang_buttons = {}
       for lang in languages:gmatch("[^,]+") do
         lang = lang:match("^%s*(.-)%s*$")  -- trim
         table.insert(lang_buttons, {{
-          text = lang,
+          text = Languages.getDisplay(lang),  -- Native script display
           callback = function()
             UIManager:close(lang_dialog)
             -- Build new config copy with changed language
@@ -1633,7 +1633,7 @@ function ChatGPTViewer:init()
             for k, v in pairs(self.configuration.features) do
               new_config.features[k] = v
             end
-            new_config.features.dictionary_language = lang
+            new_config.features.dictionary_language = lang  -- Keep English ID for RTL detection
             -- Close viewer and re-execute
             UIManager:close(self)
             local Dialogs = require("koassistant_dialogs")
@@ -1956,13 +1956,13 @@ function ChatGPTViewer:init()
         })
         return
       end
-      -- Build language buttons
+      -- Build language buttons with native display names
       local lang_dialog
       local lang_buttons = {}
       for lang in languages:gmatch("[^,]+") do
         lang = lang:match("^%s*(.-)%s*$")  -- trim
         table.insert(lang_buttons, {{
-          text = lang,
+          text = Languages.getDisplay(lang),  -- Native script display
           callback = function()
             UIManager:close(lang_dialog)
             -- Build new config copy with changed language
@@ -1977,7 +1977,7 @@ function ChatGPTViewer:init()
             for k, v in pairs(self.configuration.features) do
               new_config.features[k] = v
             end
-            new_config.features.translation_language = lang
+            new_config.features.translation_language = lang  -- Keep English ID for RTL detection
             -- Override the "use primary" toggle so the explicit selection takes effect (runtime only)
             new_config.features.translation_use_primary = false
             -- Close viewer and re-execute

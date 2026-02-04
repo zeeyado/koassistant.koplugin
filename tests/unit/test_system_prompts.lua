@@ -289,17 +289,17 @@ end)
 TestRunner:suite("buildLanguageInstruction()")
 
 TestRunner:test("builds instruction with primary", function()
-    -- buildLanguageInstruction uses native script display (e.g., "Deutsch" for German)
+    -- buildLanguageInstruction uses English names (not native script) for AI clarity
     local result = SystemPrompts.buildLanguageInstruction("English, German", nil)
     TestRunner:assertContains(result, "The user understands:", "contains user understands")
-    TestRunner:assertContains(result, "English, Deutsch", "contains languages in native script")
+    TestRunner:assertContains(result, "English, German", "contains languages in English")
     TestRunner:assertContains(result, "respond in English", "primary in response")
 end)
 
 TestRunner:test("respects primary_override", function()
-    -- When German is primary, it shows in native script "Deutsch"
+    -- Language instruction uses English names for AI clarity
     local result = SystemPrompts.buildLanguageInstruction("English, German", "German")
-    TestRunner:assertContains(result, "respond in Deutsch", "override primary (native script)")
+    TestRunner:assertContains(result, "respond in German", "override primary (English name)")
 end)
 
 -- Test getCacheableContent()

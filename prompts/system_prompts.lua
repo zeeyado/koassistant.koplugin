@@ -548,16 +548,33 @@ end
 -- Build language instruction for system prompt
 -- @param user_languages: Comma-separated string or array of languages
 -- @param primary_override: Optional explicit primary language override
--- @return string: Language instruction text (with native script display)
+-- @return string: Language instruction text (uses English names in prompts)
 function SystemPrompts.buildLanguageInstruction(user_languages, primary_override)
-    local _, primary_display, languages_list = SystemPrompts.parseUserLanguages(user_languages, primary_override)
+    -- Parse to get primary (English name) - we ignore native display values
+    local primary, _, _ = SystemPrompts.parseUserLanguages(user_languages, primary_override)
+
+    -- Build English language list (parseUserLanguages returns native, so rebuild)
+    local languages = {}
+    if type(user_languages) == "table" then
+        for _, lang in ipairs(user_languages) do
+            table.insert(languages, lang)
+        end
+    elseif type(user_languages) == "string" and user_languages ~= "" then
+        for lang in user_languages:gmatch("([^,]+)") do
+            local trimmed = lang:match("^%s*(.-)%s*$")
+            if trimmed ~= "" then
+                table.insert(languages, trimmed)
+            end
+        end
+    end
+    local languages_list = #languages > 0 and table.concat(languages, ", ") or "English"
 
     return string.format(
         "IMPORTANT - Response language: Always respond in %s. " ..
         "The language of any quoted text, excerpts, or source material you are asked to analyze does NOT affect your response language. " ..
         "The user understands: %s. " ..
         "Only switch languages if the user explicitly writes their own question or comment in another language from this list.",
-        primary_display,
+        primary,
         languages_list
     )
 end

@@ -250,7 +250,7 @@ local function runMessageBuilderTests()
             context = "general",
             data = { xray_cache = "X-Ray content", xray_cache_progress = "30%" },
         })
-        TestRunner:assertContains(result, "Previous X-Ray analysis (as of 30%):")
+        TestRunner:assertContains(result, "Previous X-Ray (as of 30%):")
         TestRunner:assertContains(result, "X-Ray content")
     end)
 
@@ -260,7 +260,7 @@ local function runMessageBuilderTests()
             context = "general",
             data = { xray_cache = "X-Ray content" },  -- no progress
         })
-        TestRunner:assertContains(result, "Previous X-Ray analysis:")
+        TestRunner:assertContains(result, "Previous X-Ray:")
         TestRunner:assertNotContains(result, "(as of")
     end)
 
@@ -576,7 +576,7 @@ local function runGatingTests()
             use_xray_cache = true,
             use_annotations = true,
         })
-        TestRunner:assertContains(data.xray_cache, "X-Ray analysis content")
+        TestRunner:assertContains(data.xray_cache, "X-Ray content")
         TestRunner:assertEquals(data.xray_cache_progress, "30%")
     end)
 
@@ -592,7 +592,7 @@ local function runGatingTests()
             use_xray_cache = true,
             use_annotations = true,
         })
-        TestRunner:assertContains(data.xray_cache, "X-Ray analysis content")
+        TestRunner:assertContains(data.xray_cache, "X-Ray content")
     end)
 
     -- X-Ray cache WITHOUT annotations does NOT require annotation permission
@@ -715,7 +715,7 @@ local function runGatingTests()
             use_book_text = true,
             use_summary_cache = true,  -- Explicit flag required
         })
-        TestRunner:assertContains(data.summary_cache, "Book summary content")
+        TestRunner:assertContains(data.summary_cache, "Document summary content")
     end)
 
     TestRunner:test("analysis cache blocked when use_book_text=false", function()
@@ -759,8 +759,8 @@ local function runCacheIntegrationTests()
             context = "general",
             data = data,
         })
-        TestRunner:assertContains(result, "Previous X-Ray analysis (as of 30%):")
-        TestRunner:assertContains(result, "X-Ray analysis content")
+        TestRunner:assertContains(result, "Previous X-Ray (as of 30%):")
+        TestRunner:assertContains(result, "X-Ray content")
     end)
 
     TestRunner:test("empty cache results in empty section placeholder", function()
@@ -835,6 +835,446 @@ local function runCacheIntegrationTests()
 end
 
 -- =============================================================================
+-- Context Type Tests
+-- =============================================================================
+
+local function runContextTypeTests()
+    print("\n--- MessageBuilder: Context Types ---")
+
+    TestRunner:test("highlight context includes book info when available", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "Explain this term" },
+            context = "highlight",
+            data = {
+                highlighted_text = "serendipity",
+                book_title = "The Art of Discovery",
+                book_author = "Jane Smith",
+            },
+        })
+        TestRunner:assertContains(result, "[Context]")
+        TestRunner:assertContains(result, "The Art of Discovery")
+        TestRunner:assertContains(result, "Jane Smith")
+        TestRunner:assertContains(result, "serendipity")
+    end)
+
+    TestRunner:test("highlight context uses {highlighted_text} placeholder", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = 'Define the word "{highlighted_text}"' },
+            context = "highlight",
+            data = {
+                highlighted_text = "ephemeral",
+            },
+        })
+        TestRunner:assertContains(result, 'Define the word "ephemeral"')
+        -- Should NOT duplicate the text in context since it's in the prompt
+        TestRunner:assertNotContains(result, "Selected text:")
+    end)
+
+    TestRunner:test("book context substitutes {title} and {author}", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "Summarize {title} by {author}" },
+            context = "book",
+            data = {
+                book_metadata = {
+                    title = "1984",
+                    author = "George Orwell",
+                },
+            },
+        })
+        TestRunner:assertContains(result, "Summarize 1984 by George Orwell")
+    end)
+
+    TestRunner:test("book context substitutes {author_clause} when author present", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "About {title}{author_clause}" },
+            context = "book",
+            data = {
+                book_metadata = {
+                    title = "Dune",
+                    author = "Frank Herbert",
+                    author_clause = " by Frank Herbert",
+                },
+            },
+        })
+        TestRunner:assertContains(result, "About Dune by Frank Herbert")
+    end)
+
+    TestRunner:test("book context with empty author", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "Review {title}" },
+            context = "book",
+            data = {
+                book_metadata = {
+                    title = "Unknown Author Book",
+                    author = "",
+                },
+            },
+        })
+        TestRunner:assertContains(result, "Review Unknown Author Book")
+    end)
+
+    TestRunner:test("multi_book context substitutes {count} and {books_list}", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "Compare these {count} books:\n{books_list}" },
+            context = "multi_book",
+            data = {
+                books_info = {
+                    { title = "Book One", authors = "Author A" },
+                    { title = "Book Two", authors = "Author B" },
+                },
+            },
+        })
+        TestRunner:assertContains(result, "Compare these 2 books:")
+        TestRunner:assertContains(result, 'Book One')
+        TestRunner:assertContains(result, 'Author A')
+        TestRunner:assertContains(result, 'Book Two')
+    end)
+
+    TestRunner:test("general context includes just the prompt", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "What is quantum computing?" },
+            context = "general",
+            data = {},
+        })
+        TestRunner:assertContains(result, "[Request]")
+        TestRunner:assertContains(result, "What is quantum computing?")
+        TestRunner:assertNotContains(result, "[Context]")
+    end)
+
+    TestRunner:test("general context validates context type", function()
+        -- Invalid context should fall back to general
+        local result = MessageBuilder.build({
+            prompt = { prompt = "Test prompt" },
+            context = "invalid_context_type",
+            data = {},
+        })
+        TestRunner:assertContains(result, "[Request]")
+        TestRunner:assertContains(result, "Test prompt")
+    end)
+end
+
+-- =============================================================================
+-- Language Placeholder Tests
+-- =============================================================================
+
+local function runLanguagePlaceholderTests()
+    print("\n--- MessageBuilder: Language Placeholders ---")
+
+    TestRunner:test("{dictionary_language} substitution", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "Define this word in {dictionary_language}" },
+            context = "highlight",
+            data = {
+                highlighted_text = "test",
+                dictionary_language = "German",
+            },
+        })
+        TestRunner:assertContains(result, "Define this word in German")
+        TestRunner:assertNotContains(result, "{dictionary_language}")
+    end)
+
+    TestRunner:test("{translation_language} substitution", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "Translate to {translation_language}" },
+            context = "highlight",
+            data = {
+                highlighted_text = "hello",
+                translation_language = "Japanese",
+            },
+        })
+        TestRunner:assertContains(result, "Translate to Japanese")
+        TestRunner:assertNotContains(result, "{translation_language}")
+    end)
+
+    TestRunner:test("both language placeholders in same prompt", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "Define in {dictionary_language} then translate to {translation_language}" },
+            context = "highlight",
+            data = {
+                highlighted_text = "word",
+                dictionary_language = "English",
+                translation_language = "French",
+            },
+        })
+        TestRunner:assertContains(result, "Define in English then translate to French")
+    end)
+end
+
+-- =============================================================================
+-- Dictionary Context Tests
+-- =============================================================================
+
+local function runDictionaryContextTests()
+    print("\n--- MessageBuilder: Dictionary Context ---")
+
+    TestRunner:test("{context_section} includes word disambiguation label", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "{context_section}\n\nDefine the word" },
+            context = "highlight",
+            data = {
+                context = "The book fell from the >>>shelf<<< with a loud crash.",
+            },
+        })
+        TestRunner:assertContains(result, "Word appears in this context:")
+        TestRunner:assertContains(result, ">>>shelf<<<")
+    end)
+
+    TestRunner:test("{context_section} disappears when context empty", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "{context_section}Define the word" },
+            context = "highlight",
+            data = {
+                context = "",
+            },
+        })
+        TestRunner:assertNotContains(result, "Word appears in this context:")
+        TestRunner:assertContains(result, "Define the word")
+    end)
+
+    TestRunner:test("{context_section} disappears when dictionary_context_mode=none", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "{context_section}Define the word" },
+            context = "highlight",
+            data = {
+                context = "Some context here",
+                dictionary_context_mode = "none",
+            },
+        })
+        TestRunner:assertNotContains(result, "Word appears in this context:")
+        TestRunner:assertNotContains(result, "Some context here")
+    end)
+
+    TestRunner:test("{context} raw placeholder works", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "Context: {context}" },
+            context = "highlight",
+            data = {
+                context = "raw context text",
+            },
+        })
+        TestRunner:assertContains(result, "Context: raw context text")
+    end)
+
+    TestRunner:test("dictionary_context_mode=none strips {context} lines", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "Define word.\nIn context: {context}\nMake it simple." },
+            context = "highlight",
+            data = {
+                context = "some context",
+                dictionary_context_mode = "none",
+            },
+        })
+        TestRunner:assertNotContains(result, "{context}")
+        TestRunner:assertNotContains(result, "In context")
+        TestRunner:assertContains(result, "Define word")
+        TestRunner:assertContains(result, "Make it simple")
+    end)
+end
+
+-- =============================================================================
+-- Surrounding Context Tests
+-- =============================================================================
+
+local function runSurroundingContextTests()
+    print("\n--- MessageBuilder: Surrounding Context ---")
+
+    TestRunner:test("{surrounding_context_section} includes label when present", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "{surrounding_context_section}\n\nAnalyze." },
+            context = "highlight",
+            data = {
+                highlighted_text = "key term",
+                surrounding_context = "Previous sentence. Key term appears here. Next sentence.",
+            },
+        })
+        TestRunner:assertContains(result, "Surrounding text:")
+        TestRunner:assertContains(result, "Key term appears here")
+    end)
+
+    TestRunner:test("{surrounding_context_section} disappears when empty", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "{surrounding_context_section}Analyze." },
+            context = "highlight",
+            data = {
+                highlighted_text = "word",
+                surrounding_context = "",
+            },
+        })
+        TestRunner:assertNotContains(result, "Surrounding text:")
+        TestRunner:assertContains(result, "Analyze.")
+    end)
+
+    TestRunner:test("{surrounding_context} raw placeholder works", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "Nearby text: {surrounding_context}" },
+            context = "highlight",
+            data = {
+                highlighted_text = "word",
+                surrounding_context = "The surrounding area.",
+            },
+        })
+        TestRunner:assertContains(result, "Nearby text: The surrounding area.")
+    end)
+end
+
+-- =============================================================================
+-- Reading Stats Placeholders Tests
+-- =============================================================================
+
+local function runReadingStatsTests()
+    print("\n--- MessageBuilder: Reading Stats Placeholders ---")
+
+    TestRunner:test("{reading_progress} substitution", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "At {reading_progress}, recap the story" },
+            context = "book",
+            data = {
+                book_metadata = { title = "Test Book", author = "" },
+                reading_progress = "45%",
+            },
+        })
+        TestRunner:assertContains(result, "At 45%, recap the story")
+    end)
+
+    TestRunner:test("{progress_decimal} substitution", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "Progress: {progress_decimal}" },
+            context = "book",
+            data = {
+                book_metadata = { title = "Test", author = "" },
+                progress_decimal = "0.45",
+            },
+        })
+        TestRunner:assertContains(result, "Progress: 0.45")
+    end)
+
+    TestRunner:test("{chapter_title} substitution", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "Current chapter: {chapter_title}" },
+            context = "book",
+            data = {
+                book_metadata = { title = "Test", author = "" },
+                chapter_title = "Chapter 5: The Discovery",
+            },
+        })
+        TestRunner:assertContains(result, "Current chapter: Chapter 5: The Discovery")
+    end)
+
+    TestRunner:test("{chapters_read} substitution", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "You have read {chapters_read} chapters" },
+            context = "book",
+            data = {
+                book_metadata = { title = "Test", author = "" },
+                chapters_read = "5",
+            },
+        })
+        TestRunner:assertContains(result, "You have read 5 chapters")
+    end)
+
+    TestRunner:test("{time_since_last_read} substitution", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "Last read: {time_since_last_read}" },
+            context = "book",
+            data = {
+                book_metadata = { title = "Test", author = "" },
+                time_since_last_read = "2 days ago",
+            },
+        })
+        TestRunner:assertContains(result, "Last read: 2 days ago")
+    end)
+end
+
+-- =============================================================================
+-- Cache Placeholder Tests
+-- =============================================================================
+
+local function runCachePlaceholderTests()
+    print("\n--- MessageBuilder: Cache/Incremental Placeholders ---")
+
+    TestRunner:test("{cached_result} substitution", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "Previous analysis:\n{cached_result}\n\nUpdate this." },
+            context = "book",
+            data = {
+                book_metadata = { title = "Test", author = "" },
+                cached_result = "Previous AI analysis text here.",
+            },
+        })
+        TestRunner:assertContains(result, "Previous AI analysis text here.")
+    end)
+
+    TestRunner:test("{cached_progress} substitution", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "At {cached_progress} you said..." },
+            context = "book",
+            data = {
+                book_metadata = { title = "Test", author = "" },
+                cached_progress = "30%",
+            },
+        })
+        TestRunner:assertContains(result, "At 30% you said...")
+    end)
+
+    TestRunner:test("{incremental_book_text_section} includes label when present", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "{incremental_book_text_section}\n\nUpdate analysis." },
+            context = "book",
+            data = {
+                book_metadata = { title = "Test", author = "" },
+                incremental_book_text = "New content since last time...",
+            },
+        })
+        TestRunner:assertContains(result, "New content since your last analysis:")
+        TestRunner:assertContains(result, "New content since last time...")
+    end)
+
+    TestRunner:test("{incremental_book_text_section} disappears when empty", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "{incremental_book_text_section}Update." },
+            context = "book",
+            data = {
+                book_metadata = { title = "Test", author = "" },
+                incremental_book_text = "",
+            },
+        })
+        TestRunner:assertNotContains(result, "New content since your last analysis:")
+        TestRunner:assertContains(result, "Update.")
+    end)
+end
+
+-- =============================================================================
+-- Additional Input Tests
+-- =============================================================================
+
+local function runAdditionalInputTests()
+    print("\n--- MessageBuilder: Additional User Input ---")
+
+    TestRunner:test("additional_input appended to message", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "Do the task" },
+            context = "general",
+            data = {
+                additional_input = "Please also consider this extra context.",
+            },
+        })
+        TestRunner:assertContains(result, "[Additional user input]")
+        TestRunner:assertContains(result, "Please also consider this extra context.")
+    end)
+
+    TestRunner:test("empty additional_input not included", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "Do the task" },
+            context = "general",
+            data = {
+                additional_input = "",
+            },
+        })
+        TestRunner:assertNotContains(result, "[Additional user input]")
+    end)
+end
+
+-- =============================================================================
 -- Run All Tests
 -- =============================================================================
 
@@ -844,6 +1284,13 @@ local function runAll()
     runMessageBuilderTests()
     runGatingTests()
     runCacheIntegrationTests()
+    runContextTypeTests()
+    runLanguagePlaceholderTests()
+    runDictionaryContextTests()
+    runSurroundingContextTests()
+    runReadingStatsTests()
+    runCachePlaceholderTests()
+    runAdditionalInputTests()
 
     print(string.format("\n=== Results: %d passed, %d failed ===\n", TestRunner.passed, TestRunner.failed))
     return TestRunner.failed == 0
