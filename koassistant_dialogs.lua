@@ -2384,7 +2384,14 @@ end
 local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_type, plugin, book_metadata, initial_input)
     -- Use the passed configuration or fall back to the global CONFIGURATION
     local configuration = config or CONFIGURATION
-    
+
+    -- Close any existing input dialog to prevent duplicates
+    -- This handles the case where a new book chat is opened while one is already open
+    if plugin and plugin.current_input_dialog then
+        UIManager:close(plugin.current_input_dialog)
+        plugin.current_input_dialog = nil
+    end
+
     -- Log which provider we're using
     local logger = require("logger")
     logger.info("Using AI provider: " .. (configuration.provider or "anthropic"))
