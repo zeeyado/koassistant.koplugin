@@ -61,6 +61,10 @@ local VerticalGroup = require("ui/widget/verticalgroup")
 local GestureRange = require("ui/gesturerange")
 local MD = require("apps/filemanager/lib/md")
 
+-- Session flag to prevent multiple auto-checks per session
+-- (NetworkMgr:runWhenOnline can fire multiple times if network state changes)
+local _session_auto_check_done = false
+
 -- CSS for markdown rendering (matches chatgptviewer style)
 local RELEASE_NOTES_CSS = [[
 @page {
@@ -815,6 +819,16 @@ local function fetchWithAbsoluteTimeout(url, timeout, callback)
 end
 
 function UpdateChecker.checkForUpdates(auto, include_prereleases)
+    -- Prevent duplicate auto-checks within same session
+    -- (NetworkMgr:runWhenOnline can fire multiple times if network state changes)
+    if auto and _session_auto_check_done then
+        logger.dbg("UpdateChecker: skipping duplicate auto-check this session")
+        return
+    end
+    if auto then
+        _session_auto_check_done = true
+    end
+
     -- Default to including prereleases since we're in alpha/beta
     if include_prereleases == nil then
         include_prereleases = true
