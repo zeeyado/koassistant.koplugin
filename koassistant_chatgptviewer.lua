@@ -875,8 +875,14 @@ local ChatGPTViewer = InputContainer:extend {
   original_highlighted_text = nil,
 
   -- Simple view mode (read-only viewer for cached analyses)
-  -- Shows only: MD/Text, Copy, Scroll, Close
+  -- Shows only: MD/Text, Copy, Scroll, Close (plus Regenerate/Delete if callbacks provided)
   simple_view = false,
+
+  -- Callbacks for simple_view regenerate/delete functionality
+  -- on_regenerate: function() called when user clicks Regenerate (should close viewer and regenerate)
+  -- on_delete: function() called when user clicks Delete (should close viewer and clear cache)
+  on_regenerate = nil,
+  on_delete = nil,
 
   -- Selection position data for "Save to Note" feature
   -- Contains pos0, pos1, sboxes, pboxes for recreating highlight
@@ -2034,9 +2040,11 @@ function ChatGPTViewer:init()
     hold_callback = self.default_hold_callback,
   })
 
-  -- Simple view buttons (single row) - read-only viewer for cached analyses
-  -- MD/Text, Copy, ⇱ (top), ⇲ (bottom), Close
-  local simple_view_buttons = {
+  -- Simple view buttons - read-only viewer for cached analyses
+  -- Row 1: MD/Text, Copy, ⇱ (top), ⇲ (bottom)
+  -- Row 2 (if callbacks provided): Regenerate, Delete, Close
+  -- Row 1 (no callbacks): MD/Text, Copy, ⇱, ⇲, Close
+  local simple_view_row1 = {
     {
       text_func = function()
         return self.render_markdown and "MD ON" or "TXT ON"
@@ -2089,14 +2097,68 @@ function ChatGPTViewer:init()
       end,
       hold_callback = self.default_hold_callback,
     },
-    {
+  }
+
+  -- Build second row based on whether callbacks are provided
+  local simple_view_row2 = {}
+  if self.on_regenerate then
+    table.insert(simple_view_row2, {
+      text = _("Regenerate"),
+      id = "regenerate_cache",
+      callback = function()
+        local ConfirmBox = require("ui/widget/confirmbox")
+        UIManager:show(ConfirmBox:new{
+          text = _("Regenerate this summary?\n\nThe current summary will be replaced."),
+          ok_text = _("Regenerate"),
+          ok_callback = function()
+            self:onClose()
+            self.on_regenerate()
+          end,
+        })
+      end,
+      hold_callback = self.default_hold_callback,
+    })
+  end
+  if self.on_delete then
+    table.insert(simple_view_row2, {
+      text = _("Delete"),
+      id = "delete_cache",
+      callback = function()
+        local ConfirmBox = require("ui/widget/confirmbox")
+        UIManager:show(ConfirmBox:new{
+          text = _("Delete this summary?\n\nYou can regenerate it later."),
+          ok_text = _("Delete"),
+          ok_callback = function()
+            self:onClose()
+            self.on_delete()
+          end,
+        })
+      end,
+      hold_callback = self.default_hold_callback,
+    })
+  end
+  table.insert(simple_view_row2, {
+    text = _("Close"),
+    callback = function()
+      self:onClose()
+    end,
+    hold_callback = self.default_hold_callback,
+  })
+
+  -- If no callbacks, put Close on row 1; otherwise use two rows
+  local simple_view_buttons
+  if self.on_regenerate or self.on_delete then
+    simple_view_buttons = { simple_view_row1, simple_view_row2 }
+  else
+    table.insert(simple_view_row1, {
       text = _("Close"),
       callback = function()
         self:onClose()
       end,
       hold_callback = self.default_hold_callback,
-    },
-  }
+    })
+    simple_view_buttons = { simple_view_row1 }
+  end
 
   local buttons = self.buttons_table or {}
   if self.add_default_buttons or not self.buttons_table then
@@ -2105,7 +2167,9 @@ function ChatGPTViewer:init()
       table.insert(buttons, minimal_button_row1)
       table.insert(buttons, minimal_button_row2)
     elseif self.simple_view then
-      table.insert(buttons, simple_view_buttons)
+      for _, row in ipairs(simple_view_buttons) do
+        table.insert(buttons, row)
+      end
     elseif self.translate_view then
       table.insert(buttons, translate_button_row1)
       table.insert(buttons, translate_button_row2)

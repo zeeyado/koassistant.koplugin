@@ -243,92 +243,120 @@ function AskGPT:init()
   self:patchFileManagerForMultiSelect()
 end
 
--- Button generator for single file actions
-function AskGPT:generateFileDialogButtons(file, is_file, book_props)
-  logger.info("KOAssistant: generateFileDialogButtons called with file=" .. tostring(file) ..
-              ", is_file=" .. tostring(is_file) .. ", has_book_props=" .. tostring(book_props ~= nil))
+-- Button generator for utility buttons (Notebook, Chat History, View Summary)
+-- These appear in a row above the main KOAssistant button
+function AskGPT:generateUtilityButtons(file, is_file, book_props)
+  logger.info("KOAssistant: generateUtilityButtons called with file=" .. tostring(file))
 
   -- Only show buttons for document files
-  if is_file and self:isDocumentFile(file) then
-    logger.info("KOAssistant: File is a document, creating KOAssistant buttons")
+  if not is_file or not self:isDocumentFile(file) then
+    return nil
+  end
 
-    -- Get metadata
-    local title = book_props and book_props.title or file:match("([^/]+)$")
-    local authors = book_props and book_props.authors or ""
+  -- Get features for settings (read fresh from settings, not stale CONFIG)
+  local features = self.settings:readSetting("features") or {}
 
-    -- Get features for settings (read fresh from settings, not stale CONFIG)
-    local features = self.settings:readSetting("features") or {}
+  -- Check notebook and chat status
+  local Notebook = require("koassistant_notebook")
+  local has_notebook = Notebook.exists(file)
+  local has_chats = self:documentHasChats(file)
 
-    -- Check notebook and chat status
-    local Notebook = require("koassistant_notebook")
-    local has_notebook = Notebook.exists(file)
-    local has_chats = self:documentHasChats(file)
+  local buttons = {}
 
-    -- Return a row with KOAssistant buttons
-    -- FileManagerHistory expects a row (array of buttons)
-    local buttons = {
-      {
-        text = _("KOAssistant"),
-        callback = function()
-          -- Close any open file dialog
-          local UIManager = require("ui/uimanager")
-          local current_dialog = UIManager:getTopmostVisibleWidget()
-          if current_dialog and current_dialog.close then
-            UIManager:close(current_dialog)
-          end
-          -- Show KOAssistant dialog with book context
-          self:showKOAssistantDialogForFile(file, title, authors, book_props)
-        end,
-      }
-    }
+  -- Notebook (KOA) button - respects settings
+  local show_notebook = features.show_notebook_in_file_browser ~= false  -- default true
+  local require_existing = features.notebook_button_require_existing ~= false  -- default true
+  if show_notebook and (has_notebook or not require_existing) then
+    table.insert(buttons, {
+      text = _("Notebook (KOA)"),
+      callback = function()
+        local UIManager = require("ui/uimanager")
+        local current_dialog = UIManager:getTopmostVisibleWidget()
+        if current_dialog and current_dialog.close then
+          UIManager:close(current_dialog)
+        end
+        self:openNotebookForFile(file)  -- view mode
+      end,
+      hold_callback = function()
+        local UIManager = require("ui/uimanager")
+        local current_dialog = UIManager:getTopmostVisibleWidget()
+        if current_dialog and current_dialog.close then
+          UIManager:close(current_dialog)
+        end
+        self:openNotebookForFile(file, true)  -- edit mode
+      end,
+    })
+  end
 
-    -- Notebook (KOA) button - respects settings
-    local show_notebook = features.show_notebook_in_file_browser ~= false  -- default true
-    local require_existing = features.notebook_button_require_existing ~= false  -- default true
-    if show_notebook and (has_notebook or not require_existing) then
-      table.insert(buttons, {
-        text = _("Notebook (KOA)"),
-        callback = function()
-          local UIManager = require("ui/uimanager")
-          local current_dialog = UIManager:getTopmostVisibleWidget()
-          if current_dialog and current_dialog.close then
-            UIManager:close(current_dialog)
-          end
-          self:openNotebookForFile(file)  -- view mode
-        end,
-        hold_callback = function()
-          local UIManager = require("ui/uimanager")
-          local current_dialog = UIManager:getTopmostVisibleWidget()
-          if current_dialog and current_dialog.close then
-            UIManager:close(current_dialog)
-          end
-          self:openNotebookForFile(file, true)  -- edit mode
-        end,
-      })
-    end
+  -- Chat History (KOA) button - respects settings, only if chats exist
+  local show_chat_history = features.show_chat_history_in_file_browser ~= false  -- default true
+  if show_chat_history and has_chats then
+    table.insert(buttons, {
+      text = _("Chat History (KOA)"),
+      callback = function()
+        local UIManager = require("ui/uimanager")
+        local current_dialog = UIManager:getTopmostVisibleWidget()
+        if current_dialog and current_dialog.close then
+          UIManager:close(current_dialog)
+        end
+        self:showChatHistoryForFile(file)
+      end,
+    })
+  end
 
-    -- Chat History (KOA) button - respects settings, only if chats exist
-    local show_chat_history = features.show_chat_history_in_file_browser ~= false  -- default true
-    if show_chat_history and has_chats then
-      table.insert(buttons, {
-        text = _("Chat History (KOA)"),
-        callback = function()
-          local UIManager = require("ui/uimanager")
-          local current_dialog = UIManager:getTopmostVisibleWidget()
-          if current_dialog and current_dialog.close then
-            UIManager:close(current_dialog)
-          end
-          self:showChatHistoryForFile(file)
-        end,
-      })
-    end
+  -- View Summary (KOA) button - only if summary cache exists for this file
+  local ActionCache = require("koassistant_action_cache")
+  local summary_cache = ActionCache.getSummaryCache(file)
+  if summary_cache then
+    table.insert(buttons, {
+      text = _("View Summary (KOA)"),
+      callback = function()
+        local UIManager = require("ui/uimanager")
+        local current_dialog = UIManager:getTopmostVisibleWidget()
+        if current_dialog and current_dialog.close then
+          UIManager:close(current_dialog)
+        end
+        self:showSummaryViewer(summary_cache)
+      end,
+    })
+  end
 
-    logger.info("KOAssistant: Returning " .. #buttons .. " button(s)")
+  -- Only return if we have at least one button
+  if #buttons > 0 then
+    logger.info("KOAssistant: Returning " .. #buttons .. " utility button(s)")
     return buttons
-  else
+  end
+  return nil
+end
+
+-- Button generator for main KOAssistant button (alone on its own row at bottom)
+function AskGPT:generateFileDialogButtons(file, is_file, book_props)
+  logger.info("KOAssistant: generateFileDialogButtons called with file=" .. tostring(file))
+
+  -- Only show buttons for document files
+  if not is_file or not self:isDocumentFile(file) then
     logger.info("KOAssistant: Not a document file or is_file=false, returning nil")
     return nil
   end
+
+  -- Get metadata
+  local title = book_props and book_props.title or file:match("([^/]+)$")
+  local authors = book_props and book_props.authors or ""
+
+  -- Return just the KOAssistant button (alone on its own row)
+  return {
+    {
+      text = _("KOAssistant"),
+      callback = function()
+        local UIManager = require("ui/uimanager")
+        local current_dialog = UIManager:getTopmostVisibleWidget()
+        if current_dialog and current_dialog.close then
+          UIManager:close(current_dialog)
+        end
+        self:showKOAssistantDialogForFile(file, title, authors, book_props)
+      end,
+    }
+  }
 end
 
 -- Button generator for multiple file selection
@@ -383,24 +411,32 @@ function AskGPT:addFileDialogButtons()
   end)
   
   -- Create closures that bind self
-  local single_file_generator = function(file, is_file, book_props)
+  -- Utility buttons (Notebook, Chat History, View Summary) - first row
+  local utility_generator = function(file, is_file, book_props)
+    return self:generateUtilityButtons(file, is_file, book_props)
+  end
+
+  -- Main KOAssistant button - second row (alone)
+  local main_button_generator = function(file, is_file, book_props)
     local buttons = self:generateFileDialogButtons(file, is_file, book_props)
     if buttons then
-      logger.info("KOAssistant: Generated buttons for file: " .. tostring(file))
+      logger.info("KOAssistant: Generated main button for file: " .. tostring(file))
     end
     return buttons
   end
-  
+
   local multi_file_generator = function(file, is_file, book_props)
     return self:generateMultiSelectButtons(file, is_file, book_props)
   end
-  
+
   local success_count = 0
-  
+
   -- Method 1: Register via instance method if available
+  -- Registration keys sorted alphabetically: 1_utilities < 2_main < multi_select
   if FileManager.instance and FileManager.instance.addFileDialogButtons then
     local success = pcall(function()
-      FileManager.instance:addFileDialogButtons("zzz_koassistant_file_actions", single_file_generator)
+      FileManager.instance:addFileDialogButtons("zzz_koassistant_1_utilities", utility_generator)
+      FileManager.instance:addFileDialogButtons("zzz_koassistant_2_main", main_button_generator)
       FileManager.instance:addFileDialogButtons("zzz_koassistant_multi_select", multi_file_generator)
     end)
 
@@ -423,7 +459,8 @@ function AskGPT:addFileDialogButtons()
     if widget_class and FileManager.addFileDialogButtons then
       logger.info("KOAssistant: Attempting to register buttons on " .. widget_name .. " class")
       local success, err = pcall(function()
-        FileManager.addFileDialogButtons(widget_class, "zzz_koassistant_file_actions", single_file_generator)
+        FileManager.addFileDialogButtons(widget_class, "zzz_koassistant_1_utilities", utility_generator)
+        FileManager.addFileDialogButtons(widget_class, "zzz_koassistant_2_main", main_button_generator)
         FileManager.addFileDialogButtons(widget_class, "zzz_koassistant_multi_select", multi_file_generator)
       end)
 
@@ -470,11 +507,12 @@ function AskGPT:removeFileDialogButtons()
   -- Remove from instance if available
   if FileManager.instance and FileManager.instance.removeFileDialogButtons then
     pcall(function()
+      FileManager.instance:removeFileDialogButtons("zzz_koassistant_1_utilities")
+      FileManager.instance:removeFileDialogButtons("zzz_koassistant_2_main")
       FileManager.instance:removeFileDialogButtons("zzz_koassistant_multi_select")
-      FileManager.instance:removeFileDialogButtons("zzz_koassistant_file_actions")
     end)
   end
-  
+
   -- Remove from all widget classes
   local widgets_to_clean = {
     filemanager = FileManager,
@@ -482,12 +520,13 @@ function AskGPT:removeFileDialogButtons()
     collections = FileManagerCollection,
     filesearcher = FileManagerFileSearcher,
   }
-  
+
   for widget_name, widget_class in pairs(widgets_to_clean) do
     if widget_class and FileManager.removeFileDialogButtons then
       pcall(function()
+        FileManager.removeFileDialogButtons(widget_class, "zzz_koassistant_1_utilities")
+        FileManager.removeFileDialogButtons(widget_class, "zzz_koassistant_2_main")
         FileManager.removeFileDialogButtons(widget_class, "zzz_koassistant_multi_select")
-        FileManager.removeFileDialogButtons(widget_class, "zzz_koassistant_file_actions")
       end)
     end
   end
@@ -601,7 +640,9 @@ function AskGPT:showKOAssistantDialogForFile(file, title, authors, book_props)
   NetworkMgr:runWhenOnline(function()
     self:ensureInitialized()
     -- Show dialog with book context instead of highlighted text
-    showChatGPTDialog(self.ui, book_context, configuration, nil, self)
+    -- Pass book_metadata so action input popup can access file path for View Summary
+    local book_metadata = configuration.features.book_metadata
+    showChatGPTDialog(self.ui, book_context, configuration, nil, self, book_metadata)
   end)
 end
 
@@ -847,7 +888,7 @@ function AskGPT:onDispatcherRegisterActions()
   Dispatcher:registerAction("koassistant_book_chat", {
     category = "none",
     event = "KOAssistantBookChat",
-    title = _("KOAssistant: Chat About Book"),
+    title = _("KOAssistant: New Book Chat/Actions"),
     general = true
   })
 
@@ -1016,11 +1057,12 @@ function AskGPT:onDispatcherRegisterActions()
     general = true,  -- Only general (no reader flag) so it's not grayed out in file browser
   })
 
-  -- View document caches (X-Ray, Summary, Analysis)
-  Dispatcher:registerAction("koassistant_view_cache", {
+  -- View Summary (replaces View Cache - summary-centric design)
+  -- Shows summary directly in simple_view, or info message if none
+  Dispatcher:registerAction("koassistant_view_summary", {
     category = "none",
-    event = "KOAssistantViewCache",
-    title = _("KOAssistant: View Cache"),
+    event = "KOAssistantViewSummary",
+    title = _("KOAssistant: View Summary"),
     general = true,
     reader = true,
   })
@@ -3909,6 +3951,162 @@ function AskGPT:showCacheViewer(cache_info)
   UIManager:show(viewer)
 end
 
+--- View the cached summary for current book
+--- Summary-centric entry point: shows summary directly without selector
+function AskGPT:viewSummary()
+  if not self.ui or not self.ui.document or not self.ui.document.file then
+    UIManager:show(InfoMessage:new{
+      text = _("No book open"),
+    })
+    return
+  end
+
+  local ActionCache = require("koassistant_action_cache")
+  local file = self.ui.document.file
+  local summary = ActionCache.getSummaryCache(file)
+
+  if not summary or not summary.result then
+    UIManager:show(InfoMessage:new{
+      text = _("No summary cached.\n\nUse Quick Actions → Generate Summary to create one."),
+    })
+    return
+  end
+
+  self:showSummaryViewer(summary)
+end
+
+--- Show the summary in a viewer with metadata in title
+--- @param summary_data table: { result, progress_decimal, model, timestamp }
+function AskGPT:showSummaryViewer(summary_data)
+  local ChatGPTViewer = require("koassistant_chatgptviewer")
+
+  -- Format title with metadata
+  local title = _("Summary")
+
+  -- Coverage percentage
+  if summary_data.progress_decimal then
+    local coverage = math.floor(summary_data.progress_decimal * 100 + 0.5)
+    title = title .. " (" .. coverage .. "%)"
+  end
+
+  -- Model used
+  if summary_data.model and summary_data.model ~= "" then
+    title = title .. " - " .. summary_data.model
+  end
+
+  -- Generation date
+  if summary_data.timestamp then
+    local date_str = os.date("%Y-%m-%d", summary_data.timestamp)
+    title = title .. " [" .. date_str .. "]"
+  end
+
+  -- Create callbacks for regenerate/delete (only if we have an open book)
+  local on_regenerate = nil
+  local on_delete = nil
+  if self.ui and self.ui.document and self.ui.document.file then
+    local file = self.ui.document.file
+    local self_ref = self
+
+    on_regenerate = function()
+      -- Regenerate (skip confirmation since user already confirmed in viewer)
+      -- Cache is cleared inside generateSummary() AFTER validation passes
+      self_ref:generateSummary({ skip_confirmation = true, skip_cache_check = true, clear_existing_cache = true })
+    end
+
+    on_delete = function()
+      local ActionCache = require("koassistant_action_cache")
+      ActionCache.clearSummaryCache(file)
+      UIManager:show(Notification:new{
+        text = _("Summary deleted"),
+        timeout = 2,
+      })
+    end
+  end
+
+  local viewer = ChatGPTViewer:new{
+    title = title,
+    text = summary_data.result,
+    simple_view = true,
+    configuration = configuration,
+    on_regenerate = on_regenerate,
+    on_delete = on_delete,
+  }
+  UIManager:show(viewer)
+end
+
+--- Generate summary cache for current book (standalone operation - no chat)
+--- Shows result in simple_view when done, saves to _summary_cache
+--- @param options table|nil: { skip_confirmation = bool, skip_cache_check = bool }
+function AskGPT:generateSummary(options)
+  options = options or {}
+
+  if not self.ui or not self.ui.document or not self.ui.document.file then
+    UIManager:show(InfoMessage:new{
+      text = _("No book open"),
+    })
+    return
+  end
+
+  local ActionCache = require("koassistant_action_cache")
+  local file = self.ui.document.file
+
+  -- Check if already exists (skip when regenerating)
+  if not options.skip_cache_check and ActionCache.getSummaryCache(file) then
+    UIManager:show(InfoMessage:new{
+      text = _("Summary already cached.\n\nUse View Summary to see it."),
+    })
+    return
+  end
+
+  -- Check if text extraction is enabled (required for summary generation)
+  local features = configuration and configuration.features or {}
+  if not features.enable_book_text_extraction then
+    UIManager:show(InfoMessage:new{
+      text = _("Text extraction is required to generate a summary.\n\nEnable it in Settings → Privacy & Data → Text Extraction."),
+    })
+    return
+  end
+
+  -- Clear existing cache if requested (for regenerate flow)
+  -- Done AFTER validation passes so we don't lose cache on failed validation
+  if options.clear_existing_cache then
+    ActionCache.clearSummaryCache(file)
+  end
+
+  -- Helper to execute the generation
+  local self_ref = self
+  local function doGenerate()
+    -- Show progress notification
+    UIManager:show(Notification:new{
+      text = _("Generating document summary..."),
+      timeout = 2,
+    })
+
+    -- Execute as standalone (no chat) using the dedicated handler
+    local Dialogs = require("koassistant_dialogs")
+    Dialogs.generateSummaryStandalone(self_ref.ui, configuration, self_ref, function(summary_data)
+      -- On success, show in simple_view
+      if summary_data then
+        self_ref:showSummaryViewer(summary_data)
+      end
+    end)
+  end
+
+  -- Skip confirmation if requested (e.g., when regenerating from viewer)
+  if options.skip_confirmation then
+    doGenerate()
+    return
+  end
+
+  -- Show confirmation dialog before generating
+  local ConfirmBox = require("ui/widget/confirmbox")
+  UIManager:show(ConfirmBox:new{
+    text = _("Generate a reusable document summary?\n\nThis will:\n• Extract and send book text to AI\n• Save the summary for future use\n• Enable Smart actions for this book"),
+    ok_text = _("Generate"),
+    ok_callback = doGenerate,
+  })
+end
+
 --- Helper function to execute book-level actions (X-Ray, Recap, Analyze Highlights)
 --- @param action_id string: The action ID from Actions.book
 function AskGPT:executeBookLevelAction(action_id)
@@ -4282,6 +4480,9 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
   local highlight_bypass = features.highlight_bypass_enabled
   local dict_bypass = features.dictionary_bypass_enabled
 
+  -- Check if we're in reader mode (book is open)
+  local has_document = self.ui and self.ui.document
+
   -- Flag to track if we're closing for a sub-dialog (vs true dismissal)
   local opening_subdialog = false
 
@@ -4476,84 +4677,86 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
         end,
       },
     },
-    -- Row 8: New General Chat | Manage Actions
-    {
-      {
-        text = _("New General Chat"),
-        callback = function()
-          opening_subdialog = true
-          UIManager:close(dialog)
-          self_ref:startGeneralChat()
-        end,
-      },
-      {
-        text = _("Manage Actions"),
-        callback = function()
-          opening_subdialog = true
-          UIManager:close(dialog)
-          self_ref:showPromptsManager()
-        end,
-      },
-    },
   }
 
-  -- Add last row(s) based on whether we're in reader mode
-  local has_document = self.ui and self.ui.document
+  -- Build remaining buttons as a flat list, then pair them into rows
+  -- This allows conditional items to naturally bump others down
+  local remaining_buttons = {}
+
+  -- New General Chat (always)
+  table.insert(remaining_buttons, {
+    text = _("New General Chat"),
+    callback = function()
+      opening_subdialog = true
+      UIManager:close(dialog)
+      self_ref:startGeneralChat()
+    end,
+  })
+
+  -- New Book Chat/Actions (only when book is open)
   if has_document then
-    -- Reader mode: Quick Actions | More Settings
-    table.insert(buttons, {
-      {
-        text = _("Quick Actions..."),
-        callback = function()
-          opening_subdialog = true
-          UIManager:close(dialog)
-          self_ref:onKOAssistantQuickActions()
-        end,
-      },
-      {
-        text = _("More Settings..."),
-        callback = function()
-          opening_subdialog = true
-          UIManager:close(dialog)
-          self_ref:onKOAssistantSettings()
-        end,
-      },
+    table.insert(remaining_buttons, {
+      text = _("New Book Chat/Actions"),
+      callback = function()
+        opening_subdialog = true
+        UIManager:close(dialog)
+        self_ref:onKOAssistantBookChat()
+      end,
     })
-    -- Close button on separate row
-    table.insert(buttons, {
-      {
-        text = _("Close"),
-        callback = function()
-          opening_subdialog = true
-          UIManager:close(dialog)
-          if on_close_callback then
-            on_close_callback()
-          end
-        end,
-      },
+  end
+
+  -- Manage Actions (always)
+  table.insert(remaining_buttons, {
+    text = _("Manage Actions"),
+    callback = function()
+      opening_subdialog = true
+      UIManager:close(dialog)
+      self_ref:showPromptsManager()
+    end,
+  })
+
+  -- Quick Actions (only when book is open)
+  if has_document then
+    table.insert(remaining_buttons, {
+      text = _("Quick Actions..."),
+      callback = function()
+        opening_subdialog = true
+        UIManager:close(dialog)
+        self_ref:onKOAssistantQuickActions()
+      end,
     })
-  else
-    -- File browser mode: More Settings | Close
-    table.insert(buttons, {
-      {
-        text = _("More Settings..."),
-        callback = function()
-          opening_subdialog = true
-          UIManager:close(dialog)
-          self_ref:onKOAssistantSettings()
-        end,
-      },
-      {
-        text = _("Close"),
-        callback = function()
-          opening_subdialog = true
-          UIManager:close(dialog)
-          if on_close_callback then
-            on_close_callback()
-          end
-        end,
-      },
-    })
+  end
+
+  -- More Settings (always)
+  table.insert(remaining_buttons, {
+    text = _("More Settings..."),
+    callback = function()
+      opening_subdialog = true
+      UIManager:close(dialog)
+      self_ref:onKOAssistantSettings()
+    end,
+  })
+
+  -- Close (always last)
+  table.insert(remaining_buttons, {
+    text = _("Close"),
+    callback = function()
+      opening_subdialog = true
+      UIManager:close(dialog)
+      if on_close_callback then
+        on_close_callback()
+      end
+    end,
+  })
+
+  -- Pair buttons into rows of 2
+  for i = 1, #remaining_buttons, 2 do
+    if remaining_buttons[i + 1] then
+      table.insert(buttons, { remaining_buttons[i], remaining_buttons[i + 1] })
+    else
+      -- Odd number: last button alone
+      table.insert(buttons, { remaining_buttons[i] })
+    end
   end
 
   dialog = ButtonDialog:new{
@@ -4656,28 +4859,29 @@ function AskGPT:onKOAssistantQuickActions()
   })
 
   addButton({
-    text = _("New Chat About Book"),
+    text = _("New Book Chat/Actions"),
     callback = function()
       UIManager:close(dialog)
       self_ref:onKOAssistantBookChat()
     end,
   })
 
-  -- 3. View Cache (hidden when no cache exists)
+  -- 3. Summary button: "View Summary" if exists, "Generate Summary" if not
   local ActionCache = require("koassistant_action_cache")
   local file = self.ui.document.file
-  local has_any_cache = ActionCache.getXrayCache(file)
-    or ActionCache.getSummaryCache(file)
-    or ActionCache.getAnalyzeCache(file)
-  if has_any_cache then
-    addButton({
-      text = _("View Cache"),
-      callback = function()
-        UIManager:close(dialog)
-        self_ref:viewCache()
-      end,
-    })
-  end
+  local summary_exists = ActionCache.getSummaryCache(file) ~= nil
+
+  addButton({
+    text = summary_exists and _("View Summary") or _("Generate Summary"),
+    callback = function()
+      UIManager:close(dialog)
+      if summary_exists then
+        self_ref:viewSummary()
+      else
+        self_ref:generateSummary()
+      end
+    end,
+  })
 
   -- Add Close button - pair with last row if it has only 1 item, otherwise new row
   local close_btn = {
@@ -4992,9 +5196,9 @@ function AskGPT:onKOAssistantBrowseNotebooks()
   return true
 end
 
---- View cache gesture handler
-function AskGPT:onKOAssistantViewCache()
-  self:viewCache()
+--- View summary gesture handler (replaces View Cache - summary-centric design)
+function AskGPT:onKOAssistantViewSummary()
+  self:viewSummary()
   return true
 end
 
