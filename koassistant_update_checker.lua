@@ -50,6 +50,7 @@ local ScrollHtmlWidget = require("ui/widget/scrollhtmlwidget")
 local Size = require("ui/size")
 local TitleBar = require("ui/widget/titlebar")
 local VerticalGroup = require("ui/widget/verticalgroup")
+local GestureRange = require("ui/gesturerange")
 local MD = require("apps/filemanager/lib/md")
 
 -- CSS for markdown rendering (matches chatgptviewer style)
@@ -185,6 +186,27 @@ function MarkdownViewer:init()
         dimen = Screen:getSize(),
         self.movable,
     }
+
+    -- Enable tap outside to close
+    self.ges_events.TapClose = {
+        GestureRange:new{
+            ges = "tap",
+            range = Geom:new{
+                x = 0, y = 0,
+                w = Screen:getWidth(),
+                h = Screen:getHeight(),
+            },
+        },
+    }
+end
+
+function MarkdownViewer:onTapClose(arg, ges)
+    -- Only close if tap is outside the dialog
+    if ges.pos:notIntersectWith(self.movable.dimen) then
+        UIManager:close(self)
+        return true
+    end
+    return false
 end
 
 function MarkdownViewer:onCloseWidget()

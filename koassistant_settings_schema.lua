@@ -1246,7 +1246,7 @@ local SettingsSchema = {
                     id = "auto_check_updates_ref",
                     type = "toggle",
                     text = _("Auto-check for updates"),
-                    setting = "features.auto_check_updates",
+                    path = "features.auto_check_updates",
                     default = true,
                     help_text = _("Automatically check for new versions when KOReader starts."),
                 },
@@ -1617,7 +1617,7 @@ local SettingsSchema = {
             id = "auto_check_updates",
             type = "toggle",
             text = _("Auto-check for updates on startup"),
-            setting = "features.auto_check_updates",
+            path = "features.auto_check_updates",
             default = true,
         },
         {
