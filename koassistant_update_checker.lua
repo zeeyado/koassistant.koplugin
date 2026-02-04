@@ -36,6 +36,14 @@ local UIManager = require("ui/uimanager")
 local ConfirmBox = require("ui/widget/confirmbox")
 local Device = require("device")
 local Screen = Device.screen
+local BD = require("ui/bidi")
+local ButtonDialog = require("ui/widget/buttondialog")
+local Notification = require("ui/widget/notification")
+local NetworkMgr = require("ui/network/manager")
+local LuaSettings = require("luasettings")
+local DataStorage = require("datastorage")
+local T = require("ffi/util").template
+local _ = require("koassistant_gettext")
 
 -- For markdown rendering
 local Blitbuffer = require("ffi/blitbuffer")
@@ -97,7 +105,116 @@ blockquote {
     padding-left: 1em;
     border-left: 3px solid #ccc;
 }
+a {
+    color: #0366d6;
+    text-decoration: underline;
+}
 ]]
+
+-- Auto-linkify plain URLs that aren't already part of markdown links
+-- Converts https://example.com to [https://example.com](https://example.com)
+local function autoLinkUrls(text)
+    if not text then return text end
+
+    -- Step 1: Protect existing markdown links by storing them
+    local links = {}
+    local link_count = 0
+    local result = text:gsub("%[([^%]]+)%]%(([^%)]+)%)", function(link_text, url)
+        link_count = link_count + 1
+        local placeholder = "XURLLINKX" .. link_count .. "XURLLINKX"
+        links[link_count] = "[" .. link_text .. "](" .. url .. ")"
+        return placeholder
+    end)
+
+    -- Step 2: Convert http:// and https:// URLs to markdown links
+    result = result:gsub("(https?://[%w%-%./_~:?#@!$&'*+,;=%%]+)", function(url)
+        -- Clean trailing punctuation
+        local clean_url = url:gsub("[.,;:!?)]+$", "")
+        local trailing = url:sub(#clean_url + 1)
+        return "[" .. clean_url .. "](" .. clean_url .. ")" .. trailing
+    end)
+
+    -- Step 3: Restore protected links
+    for i = 1, link_count do
+        local placeholder = "XURLLINKX" .. i .. "XURLLINKX"
+        result = result:gsub(placeholder, function() return links[i] end)
+    end
+
+    return result
+end
+
+-- Show link options dialog (matches KOReader's ReaderLink external link dialog)
+local link_dialog  -- Forward declaration for closures
+local function showLinkDialog(link_url)
+    if not link_url then return end
+
+    local QRMessage = require("ui/widget/qrmessage")
+
+    -- Build buttons in 2-column layout like ReaderLink
+    local buttons = {}
+
+    -- Row 1: Copy | Show QR code
+    table.insert(buttons, {
+        {
+            text = _("Copy"),
+            callback = function()
+                Device.input.setClipboardText(link_url)
+                UIManager:close(link_dialog)
+                UIManager:show(Notification:new{
+                    text = _("Link copied to clipboard"),
+                })
+            end,
+        },
+        {
+            text = _("Show QR code"),
+            callback = function()
+                UIManager:close(link_dialog)
+                UIManager:show(QRMessage:new{
+                    text = link_url,
+                    width = Screen:getWidth(),
+                    height = Screen:getHeight(),
+                })
+            end,
+        },
+    })
+
+    -- Row 2: Open in browser (if device supports it)
+    if Device:canOpenLink() then
+        table.insert(buttons, {
+            {
+                text = _("Open in browser"),
+                callback = function()
+                    UIManager:close(link_dialog)
+                    Device:openLink(link_url)
+                end,
+            },
+        })
+    end
+
+    -- Row 3: Cancel (full width)
+    table.insert(buttons, {
+        {
+            text = _("Cancel"),
+            callback = function()
+                UIManager:close(link_dialog)
+            end,
+        },
+    })
+
+    -- Title format matches ReaderLink: "External link:\n\nURL"
+    link_dialog = ButtonDialog:new{
+        title = T(_("External link:\n\n%1"), BD.url(link_url)),
+        buttons = buttons,
+    }
+    UIManager:show(link_dialog)
+end
+
+-- Handle link taps in HTML content
+local function handleLinkTap(link)
+    if link and link.uri then
+        showLinkDialog(link.uri)
+    end
+end
 
 -- Simple Markdown Viewer widget for release notes
 local MarkdownViewer = InputContainer:extend{
@@ -114,8 +231,11 @@ function MarkdownViewer:init()
     self.width = self.width or math.floor(Screen:getWidth() * 0.85)
     self.height = self.height or math.floor(Screen:getHeight() * 0.85)
 
+    -- Auto-linkify plain URLs before markdown conversion
+    local preprocessed_text = autoLinkUrls(self.markdown_text)
+
     -- Convert markdown to HTML
-    local html_body, err = MD(self.markdown_text, {})
+    local html_body, err = MD(preprocessed_text, {})
     if err then
         logger.warn("MarkdownViewer: could not generate HTML", err)
         html_body = "<pre>" .. (self.markdown_text or "No content.") .. "</pre>"
@@ -152,6 +272,7 @@ function MarkdownViewer:init()
         width = self.width - 2 * self.text_padding,
         height = content_height,
         dialog = self,
+        html_link_tapped_callback = handleLinkTap,
     }
 
     local text_container = FrameContainer:new{
@@ -290,9 +411,144 @@ local function compareVersions(v1, v2)
     return 0
 end
 
+--- Get the effective translation language from plugin settings
+local function getTranslationLanguage()
+    local settings_file = DataStorage:getSettingsDir() .. "/koassistant_settings.lua"
+    local settings = LuaSettings:open(settings_file)
+    local features = settings:readSetting("features") or {}
+
+    local SystemPrompts = require("prompts.system_prompts")
+    return SystemPrompts.getEffectiveTranslationLanguage({
+        translation_language = features.translation_language,
+        translation_use_primary = features.translation_use_primary,
+        interaction_languages = features.interaction_languages,
+        user_languages = features.user_languages,
+        primary_language = features.primary_language,
+    })
+end
+
+-- Forward declaration for mutual recursion
+local showUpdatePopup
+
+--- Translate content using the AI and show in a new viewer
+--- @param markdown_content string: The markdown content to translate
+--- @param target_language string: The target language for translation
+--- @param title string: Title for the translated viewer
+--- @param update_info table: Original update info for "Original" button
+local function translateAndShowContent(markdown_content, target_language, title, update_info)
+    -- Load settings and configuration
+    local settings_file = DataStorage:getSettingsDir() .. "/koassistant_settings.lua"
+    local settings = LuaSettings:open(settings_file)
+    local saved_features = settings:readSetting("features") or {}
+
+    -- Build configuration for translation - respect user's streaming setting
+    local configuration = {
+        provider = settings:readSetting("provider") or "anthropic",
+        model = settings:readSetting("model"),
+        features = {
+            enable_streaming = saved_features.enable_streaming ~= false,  -- Respect user setting (default true)
+            large_stream_dialog = true,  -- Use larger dialog for better readability
+            markdown_font_size = saved_features.markdown_font_size or 20,
+            stream_poll_interval = saved_features.stream_poll_interval or 125,
+            stream_display_interval = saved_features.stream_display_interval or 250,
+        },
+    }
+
+    -- Show loading message only when streaming is disabled
+    local loading_msg
+    if not configuration.features.enable_streaming then
+        loading_msg = InfoMessage:new{
+            text = T(_("Translating to %1..."), target_language),
+        }
+        UIManager:show(loading_msg)
+        UIManager:forceRePaint()
+    end
+
+    -- Get API key
+    local apikeys = {}
+    pcall(function() apikeys = require("apikeys") end)
+    configuration.api_key = apikeys[configuration.provider]
+
+    -- Build translation prompt
+    local prompt = T(_("Translate the following release notes to %1. Preserve markdown formatting:\n\n%2"), target_language, markdown_content)
+
+    -- Create simple message for query
+    local messages = {
+        { role = "user", content = prompt }
+    }
+
+    -- Execute query - StreamHandler shows its own dialog when streaming
+    local GptQuery = require("koassistant_gpt_query")
+    GptQuery.query(messages, configuration, function(success, answer, err)
+        if loading_msg then
+            UIManager:close(loading_msg)
+        end
+
+        if success and answer and answer ~= "" then
+            -- Build buttons matching original update popup
+            local translated_viewer
+            local buttons = {}
+
+            -- Row 1: Later | Visit Release Page
+            table.insert(buttons, {
+                {
+                    text = _("Later"),
+                    callback = function()
+                        UIManager:close(translated_viewer)
+                    end,
+                },
+                {
+                    text = _("Visit Release Page"),
+                    callback = function()
+                        UIManager:close(translated_viewer)
+                        if Device:canOpenLink() then
+                            Device:openLink(update_info.download_url)
+                        else
+                            UIManager:show(InfoMessage:new{
+                                text = _("Please visit:") .. "\n" .. update_info.download_url,
+                                timeout = 10
+                            })
+                        end
+                    end,
+                },
+            })
+
+            -- Row 2: Original (to go back to original release notes)
+            table.insert(buttons, {
+                {
+                    text = _("Original"),
+                    callback = function()
+                        UIManager:close(translated_viewer)
+                        showUpdatePopup(update_info)
+                    end,
+                },
+            })
+
+            -- Show translated content in MarkdownViewer
+            translated_viewer = MarkdownViewer:new{
+                title = T(_("%1 (Translated)"), title),
+                markdown_text = answer,
+                width = math.floor(Screen:getWidth() * 0.85),
+                height = math.floor(Screen:getHeight() * 0.85),
+                buttons_table = buttons,
+            }
+            UIManager:show(translated_viewer)
+            -- Force full UI refresh to properly render the new viewer
+            UIManager:setDirty(nil, "ui")
+        else
+            UIManager:show(InfoMessage:new{
+                text = T(_("Translation failed: %1"), err or _("Unknown error")),
+                timeout = 3,
+            })
+        end
+    end, settings)
+end
+
 --- Show the update available popup
 --- @param update_info table: Contains current_version, latest_version, release_notes, download_url, is_prerelease
-local function showUpdatePopup(update_info)
+showUpdatePopup = function(update_info)
+    local update_viewer  -- Forward declaration for closures
+
     -- Format as markdown with version info header
     local markdown_content = string.format(
         "**New %sversion available!**\n\n**Current:** %s  \n**Latest:** %s\n\n---\n\n%s",
@@ -302,36 +558,59 @@ local function showUpdatePopup(update_info)
         update_info.release_notes
     )
 
-    local update_viewer
+    -- Get translation language to determine if translate button should be shown
+    local translation_language = getTranslationLanguage()
+    local show_translate = translation_language and not translation_language:match("^English")
+
+    -- Build buttons
+    local buttons = {}
+
+    -- Row 1: Later | Visit Release Page
+    table.insert(buttons, {
+        {
+            text = _("Later"),
+            callback = function()
+                UIManager:close(update_viewer)
+            end,
+        },
+        {
+            text = _("Visit Release Page"),
+            callback = function()
+                UIManager:close(update_viewer)
+                if Device:canOpenLink() then
+                    Device:openLink(update_info.download_url)
+                else
+                    UIManager:show(InfoMessage:new{
+                        text = _("Please visit:") .. "\n" .. update_info.download_url,
+                        timeout = 10
+                    })
+                end
+            end,
+        },
+    })
+
+    -- Row 2: Translate (only if non-English language)
+    if show_translate then
+        table.insert(buttons, {
+            {
+                text = _("Translate"),
+                callback = function()
+                    UIManager:close(update_viewer)
+                    NetworkMgr:runWhenOnline(function()
+                        local title = update_info.is_prerelease and "KOAssistant Pre-release Update" or "KOAssistant Update Available"
+                        translateAndShowContent(markdown_content, translation_language, title, update_info)
+                    end)
+                end,
+            },
+        })
+    end
+
     update_viewer = MarkdownViewer:new{
         title = update_info.is_prerelease and "KOAssistant Pre-release Update" or "KOAssistant Update Available",
         markdown_text = markdown_content,
         width = math.floor(Screen:getWidth() * 0.85),
         height = math.floor(Screen:getHeight() * 0.85),
-        buttons_table = {
-            {
-                {
-                    text = "Later",
-                    callback = function()
-                        UIManager:close(update_viewer)
-                    end,
-                },
-                {
-                    text = "Visit Release Page",
-                    callback = function()
-                        UIManager:close(update_viewer)
-                        if Device:canOpenLink() then
-                            Device:openLink(update_info.download_url)
-                        else
-                            UIManager:show(InfoMessage:new{
-                                text = "Please visit:\n" .. update_info.download_url,
-                                timeout = 10
-                            })
-                        end
-                    end,
-                },
-            },
-        },
+        buttons_table = buttons,
     }
     -- Dismiss any on-screen keyboard before showing the update dialog
     UIManager:broadcastEvent(require("ui/event"):new("CloseKeyboard"))
