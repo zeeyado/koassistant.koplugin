@@ -95,15 +95,22 @@ local function showLoadingDialog(config)
         local model = ConfigHelper:getModelInfo(config) or "default"
         table.insert(status_lines, string.format("%s: %s", provider:gsub("^%l", string.upper), model))
 
-        -- Check for reasoning/thinking enabled
+        -- Check for reasoning/thinking enabled using computed api_params
+        -- These are set by buildUnifiedRequestConfig based on action overrides and global settings
         local reasoning_enabled = false
-        if config.features then
-            if config.features.anthropic_reasoning or config.features.openai_reasoning or config.features.gemini_reasoning then
+        if config.api_params then
+            -- Anthropic: thinking, OpenAI: reasoning, Gemini: thinking_level
+            if config.api_params.thinking or config.api_params.reasoning or config.api_params.thinking_level then
                 reasoning_enabled = true
             end
         end
         if reasoning_enabled then
             table.insert(status_lines, _("Reasoning enabled"))
+        end
+
+        -- Show action name if available
+        if config.features and config.features.loading_action_name then
+            table.insert(status_lines, config.features.loading_action_name)
         end
     end
 
@@ -483,6 +490,12 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
     -- nil = follow global, true = force on, false = force off
     if action and action.enable_web_search ~= nil then
         config.enable_web_search = action.enable_web_search
+    end
+
+    -- Set action name for loading dialog display (used by non-streaming loading dialog)
+    if action and action.text then
+        config.features = config.features or {}
+        config.features.loading_action_name = action.text
     end
 
     return true
@@ -3085,7 +3098,7 @@ local function generateSummaryStandalone(ui, config, plugin, on_complete)
         temp_config.features[k] = v
     end
 
-    -- Build unified request config (system prompt, api_params)
+    -- Build unified request config (system prompt, api_params, action name for loading dialog)
     buildUnifiedRequestConfig(temp_config, nil, action, plugin)
 
     -- Create minimal message array (no MessageHistory, just the query)
@@ -3093,12 +3106,12 @@ local function generateSummaryStandalone(ui, config, plugin, on_complete)
         { role = "user", content = user_prompt }
     }
 
-    -- Show loading dialog
-    showLoadingDialog(temp_config)
+    -- Note: Don't call showLoadingDialog() here - queryChatGPT handlers show their own dialogs:
+    -- - Streaming ON: StreamHandler shows streaming dialog
+    -- - Streaming OFF: handleNonStreamingBackground shows cancellable loading dialog
 
     -- Query the AI
     local function handleResponse(success, answer, err)
-        closeLoadingDialog()
 
         if success and answer and answer ~= "" then
             -- Save to summary cache

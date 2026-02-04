@@ -169,11 +169,18 @@ local function handleNonStreamingBackground(background_fn, provider, on_complete
         local model = ConfigHelper:getModelInfo(config) or config and config.model or "default"
         table.insert(status_lines, string.format("%s: %s", provider_name:gsub("^%l", string.upper), model))
 
-        -- Check for reasoning/thinking enabled
-        if config and config.features then
-            if config.features.anthropic_reasoning or config.features.openai_reasoning or config.features.gemini_reasoning then
+        -- Check for reasoning/thinking enabled using computed api_params
+        -- These are set by buildUnifiedRequestConfig based on action overrides and global settings
+        if config and config.api_params then
+            -- Anthropic: thinking, OpenAI: reasoning, Gemini: thinking_level
+            if config.api_params.thinking or config.api_params.reasoning or config.api_params.thinking_level then
                 table.insert(status_lines, _("Reasoning enabled"))
             end
+        end
+
+        -- Show action name if available
+        if config and config.features and config.features.loading_action_name then
+            table.insert(status_lines, config.features.loading_action_name)
         end
 
         local base_text = table.concat(status_lines, "\n") .. "\n\n"
