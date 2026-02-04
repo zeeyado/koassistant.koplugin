@@ -1427,12 +1427,11 @@ function ChatGPTViewer:init()
     end,
   })
 
-  -- Row 1: Copy button (compact view always copies response only)
+  -- Row 1: Copy button (uses dictionary_copy_content setting)
   table.insert(minimal_button_row1, {
     text = _("Copy"),
     id = "copy_chat",
     callback = function()
-      -- Compact dictionary view: always copy response only
       local chat_history = self._message_history or self.original_history
       if not chat_history then
         UIManager:show(Notification:new{
@@ -1441,23 +1440,33 @@ function ChatGPTViewer:init()
         })
         return
       end
-      local Export = require("koassistant_export")
+
       local features = self.configuration and self.configuration.features or {}
-      local book_metadata = features.book_metadata
-      local books_info = features.is_multi_book_context and features.books_info or nil
-      local data = Export.fromHistory(chat_history, self.original_highlighted_text, book_metadata, books_info)
-      local text = Export.format(data, "response", "text")  -- Always response, plain text
-      if text and text ~= "" then
+      local content = features.dictionary_copy_content or "response"
+      if content == "global" then
+        content = features.copy_content or "full"
+      end
+      local style = features.export_style or "markdown"
+
+      -- Helper to perform the copy
+      local function doCopy(selected_content)
+        local Export = require("koassistant_export")
+        local book_metadata = features.book_metadata
+        local books_info = features.is_multi_book_context and features.books_info or nil
+        local data = Export.fromHistory(chat_history, self.original_highlighted_text, book_metadata, books_info)
+        local text = Export.format(data, selected_content, style)
+
         Device.input.setClipboardText(text)
         UIManager:show(Notification:new{
           text = _("Copied"),
           timeout = 2,
         })
+      end
+
+      if content == "ask" then
+        showContentPicker(_("Copy Content"), false, doCopy)
       else
-        UIManager:show(Notification:new{
-          text = _("No response to copy"),
-          timeout = 2,
-        })
+        doCopy(content)
       end
     end,
     hold_callback = self.default_hold_callback,
@@ -2893,6 +2902,9 @@ function ChatGPTViewer:saveToNote()
   if features.minimal_buttons then
     -- Dictionary/compact view: use dictionary-specific setting
     content = features.dictionary_note_content or "response"
+    if content == "global" then
+      content = features.note_content or "qa"
+    end
   elseif self.translate_view then
     content = features.translate_note_content or "response"
     if content == "global" then
