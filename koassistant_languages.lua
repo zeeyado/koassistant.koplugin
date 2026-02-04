@@ -73,8 +73,6 @@ Languages.RTL_LANGUAGES = {
     "Classical Arabic",
     "Persian",
     "Urdu",
-    "Hebrew",
-    "Biblical Hebrew",
 }
 
 -- Check if a language is RTL

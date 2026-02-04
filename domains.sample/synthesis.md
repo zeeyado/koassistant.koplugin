@@ -9,8 +9,8 @@ This conversation engages ideas across multiple traditions and disciplines—phi
 ## Core Domains
 
 **Philosophy & Metaphysics**
-- Ancient traditions: Greek, Islamic (Falsafah), Indian, Chinese philosophical systems
-- Medieval synthesis: Scholastic, Islamic (Ibn Sīnā, Ibn Rushd), Jewish integration
+- Ancient traditions: Greek, Islamic (falsafah, kalām), Indian, Chinese philosophical systems
+- Medieval synthesis: Scholastic, Islamic (Ibn Sīnā, al-Ghazālī, Ibn Rushd), Jewish integration
 - Modern movements: Rationalism, empiricism, idealism, phenomenology, existentialism
 - Contemporary: Process philosophy, philosophy of mind, philosophy of science
 
@@ -21,7 +21,7 @@ This conversation engages ideas across multiple traditions and disciplines—phi
 - Psyche as mediator between matter and spirit
 
 **Contemplative Traditions**
-- Islamic Sufism: Fanā'/baqā', maqāmāt, nafs levels, waḥdat al-wujūd
+- Islamic Sufism: Fanā'/baqā', maqāmāt, nafs levels, orthodox mysticism (al-Ghazālī), waḥdat al-wujūd
 - Buddhist insights: Śūnyatā, dependent origination, Buddha-nature
 - Christian mysticism: Apophatic theology, theosis, contemplative prayer
 - Taoist philosophy: Wu-wei, yin-yang, spontaneity (ziran)

@@ -44,7 +44,7 @@ local Languages = require("koassistant_languages")
 
 -- Strip markdown syntax for text mode (preserves readability without formatting)
 -- Used when render_markdown is false - converts markdown to plain text with visual hints
--- Uses universal symbols that work for ALL scripts (Arabic, CJK, Hebrew, etc.)
+-- Uses universal symbols that work for ALL scripts (Arabic, CJK, etc.)
 -- Uses PTF (Poor Text Formatting) for bold text - TextBoxWidget renders these as actual bold
 local function stripMarkdown(text)
     if not text then return "" end
@@ -156,8 +156,7 @@ local function stripMarkdown(text)
     -- Without this, lines starting with RTL text get RTL paragraph direction, reversing everything
     -- BiDi fix: Add LRM only to truly mixed RTL+Latin lines
     -- Pure RTL lines (even with numbers/punctuation) should align right naturally
-    -- UTF-8 ranges: Hebrew U+0590-U+05FF = bytes 214-215, Arabic U+0600-U+06FF = bytes 216-219
-    local rtl_pattern = "[\214-\219][\128-\191]"
+    local rtl_pattern = "[\216-\219][\128-\191]"
     local latin_pattern = "[a-zA-Z]"  -- Latin letters indicate mixed content needing LTR base
     local header_pattern = "^%s*[▉◤◆✿❖·]"  -- Header symbols from header processing above
     local fixed_lines = {}
@@ -185,23 +184,24 @@ local function fixIPABidi(text)
     return text:gsub("(/[^/\n]+/) ?", LRM .. "%1 " .. LRM)
 end
 
--- UTF-8 patterns for script detection (module-level for reuse)
--- Hebrew U+0590-U+05FF, Arabic U+0600-U+06FF
-local RTL_PATTERN = "[\214-\219][\128-\191]"
+-- UTF-8 pattern for Arabic script detection (U+0600-U+06FF = bytes 216-219)
+local RTL_PATTERN = "[\216-\219][\128-\191]"
 local LATIN_PATTERN = "[a-zA-Z]"
 
 -- Check if text has dominant RTL content (for general chat auto-detection)
 -- Returns true only if RTL characters outnumber Latin characters
--- This prevents switching for English text that merely references Arabic/Hebrew
-local function hasDominantRTL(text)
+-- This prevents switching for English text that merely references e.g. Arabic
+-- Optional sample_size limits scanning to first N characters (for large content)
+local function hasDominantRTL(text, sample_size)
     if not text or text == "" then return false end
+    local check_text = sample_size and text:sub(1, sample_size) or text
     local rtl_count = 0
-    for _ in text:gmatch(RTL_PATTERN) do
+    for _ in check_text:gmatch(RTL_PATTERN) do
         rtl_count = rtl_count + 1
     end
     if rtl_count == 0 then return false end
     local latin_count = 0
-    for _ in text:gmatch(LATIN_PATTERN) do
+    for _ in check_text:gmatch(LATIN_PATTERN) do
         latin_count = latin_count + 1
     end
     return rtl_count > latin_count
@@ -231,8 +231,7 @@ local function addHtmlBidiAttributes(html, options)
     -- Normalize HTML: collapse whitespace between tags for easier pattern matching
     local normalized = html:gsub(">%s+<", "><")
 
-    -- UTF-8 ranges for RTL scripts: Hebrew U+0590-U+05FF, Arabic U+0600-U+06FF
-    local rtl_pattern = "[\214-\219][\128-\191]"
+    local rtl_pattern = "[\216-\219][\128-\191]"
     local latin_pattern = "[a-zA-Z]"
 
     -- Unicode directional marks for BiDi control
@@ -1399,10 +1398,21 @@ function ChatGPTViewer:init()
     end
     -- Standard chat view: auto-detect RTL in AI response if setting enabled
     -- (compact_view and translate_view have their own RTL handling via language settings)
-    if not self.compact_view and not self.translate_view then
+    if not self.compact_view and not self.translate_view and not self.simple_view then
       if self.configuration.features.rtl_chat_text_mode ~= false then
         local latest_response = getLatestResponse(self._message_history or self.original_history)
         if hasDominantRTL(latest_response) then
+          self.para_direction_rtl = true
+          self.auto_para_direction = false
+          self.render_markdown = false
+        end
+      end
+    end
+    -- Simple view (caches/summaries): auto-detect RTL in content
+    -- Uses sampling (first 10KB) for performance on large cached content
+    if self.simple_view and self.text then
+      if self.configuration.features.rtl_chat_text_mode ~= false then
+        if hasDominantRTL(self.text, 10000) then
           self.para_direction_rtl = true
           self.auto_para_direction = false
           self.render_markdown = false

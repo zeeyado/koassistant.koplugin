@@ -128,7 +128,7 @@ local SettingsSchema = {
                         local f = plugin.settings:readSetting("features") or {}
                         return not f.dictionary_text_mode
                     end,
-                    help_text = _("Use Plain Text mode for dictionary popup when dictionary language is Arabic, Hebrew, Persian, or Urdu. Grayed out when Text Mode for Dictionary is enabled."),
+                    help_text = _("Use Plain Text mode for dictionary popup when dictionary language is Arabic, Persian, or Urdu. Grayed out when Text Mode for Dictionary is enabled."),
                 },
                 {
                     id = "rtl_translate_text_mode",
@@ -136,7 +136,7 @@ local SettingsSchema = {
                     text = _("Text Mode for RTL Translate"),
                     path = "features.rtl_translate_text_mode",
                     default = true,
-                    help_text = _("Use Plain Text mode for translate popup when translation language is Arabic, Hebrew, Persian, or Urdu."),
+                    help_text = _("Use Plain Text mode for translate popup when translation language is Arabic, Persian, or Urdu."),
                 },
                 {
                     id = "rtl_chat_text_mode",

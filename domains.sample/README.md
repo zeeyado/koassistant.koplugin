@@ -146,7 +146,7 @@ The system prompt sent to the AI is: **Behavior + Domain + Language instruction*
 ## Example Domain Ideas
 
 ### Language & Linguistics
-- Classical languages (Greek, Latin, Hebrew, Sanskrit)
+- Classical languages (Greek, Latin, Biblical Hebrew, Sanskrit)
 - Modern language support with grammatical frameworks
 - Linguistic analysis (phonology, morphology, syntax, semantics)
 

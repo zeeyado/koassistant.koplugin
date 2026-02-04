@@ -1028,13 +1028,13 @@ See [How Language Settings Work Together](#how-language-settings-work-together) 
 
 ### RTL Language Support
 
-Dictionary, translate, and general chat have special handling for right-to-left (RTL) languages:
+Dictionary, translate, general chat, and cache viewers have special handling for right-to-left (RTL) languages:
 
-- **Automatic text mode**: When your dictionary or translation language is set to an RTL language, results automatically use Plain Text mode for proper font rendering. For general chat, the latest response is checked—if RTL characters outnumber Latin, it switches to Plain Text. This can be configured via **Settings → Display Settings → Text Mode for RTL Dictionary**, **Text Mode for RTL Translate**, and **Text Mode for RTL Chat**.
+- **Automatic RTL mode**: When your dictionary or translation language is set to an RTL language, results automatically use Plain Text mode for proper font rendering. For general chat and cache viewers (X-Ray, Analyze, Summary), the content is checked—if RTL characters outnumber Latin, it switches to RTL mode (right-aligned text + Plain Text). This can be configured via **Settings → Display Settings → Text Mode for RTL Dictionary**, **Text Mode for RTL Translate**, and **Auto RTL mode for Chat**.
 - **BiDi text alignment**: Entries with RTL content display with correct bidirectional text alignment. Mixed RTL/LTR content (e.g., Arabic headwords with English pronunciation guides) renders in the correct reading order.
 - **IPA transcription handling**: Phonetic transcriptions are anchored to display correctly alongside RTL headwords.
 
-> **Note:** For best RTL rendering, Plain Text mode is recommended. The automatic RTL text mode handles this for dictionary, translate, and general chat, while preserving your global Markdown/Plain Text preference when responses are not RTL.
+> **Note:** For best RTL rendering, Plain Text mode is recommended. The automatic RTL settings handle this for dictionary, translate, general chat, and cache viewers, while preserving your global Markdown/Plain Text preference when content is not predominantly RTL.
 
 ### Custom Dictionary Actions
 
@@ -1621,7 +1621,7 @@ Tags are simple labels for organizing chats. Unlike domains:
 - **Text Mode for Dictionary**: Always use Plain Text mode for dictionary popup, regardless of global view mode setting. Better font support for non-Latin scripts. (default: off)
 - **Text Mode for RTL Dictionary**: Automatically use Plain Text mode for dictionary popup when dictionary language is RTL. Grayed out when Text Mode for Dictionary is enabled. (default: on)
 - **Text Mode for RTL Translate**: Automatically use Plain Text mode for translate popup when translation language is RTL. (default: on)
-- **Text Mode for RTL Chat**: Automatically use Plain Text mode for general chat when the latest AI response is predominantly RTL (more RTL than Latin characters). English text referencing Arabic stays in Markdown. Grayed out when markdown is disabled. (default: on)
+- **Auto RTL mode for Chat**: Automatically detect RTL content and switch to RTL mode (right-aligned text + Plain Text) for general chat and cache viewers. Activates when the latest response has more RTL than Latin characters. English text referencing Arabic stays in Markdown. Disabling removes all automatic RTL adjustments. Grayed out when markdown is disabled. (default: on)
 - **Hide Highlighted Text**: Don't show selection in responses
 - **Hide Long Highlights**: Collapse highlights over character threshold
 - **Long Highlight Threshold**: Character limit before collapsing (default: 280)
@@ -2548,11 +2548,11 @@ If text doesn't render correctly in Markdown view, switch to **Plain Text view**
 
 This is a limitation of KOReader's MuPDF HTML renderer, which lacks per-glyph font fallback. Plain Text mode uses KOReader's native text rendering with proper font support.
 
-**Automatic text mode for RTL** is enabled by default:
-- **Settings → Display Settings → Text Mode for RTL Dictionary** / **Text Mode for RTL Translate** / **Text Mode for RTL Chat**
+**Automatic RTL mode** is enabled by default:
+- **Settings → Display Settings → Text Mode for RTL Dictionary** / **Text Mode for RTL Translate** / **Auto RTL mode for Chat**
 - Dictionary and translate switch to Plain Text when the target language is RTL
-- General chat switches when the latest response is predominantly RTL (more RTL than Latin)
-- Your global Markdown/Plain Text preference is preserved when responses are not RTL
+- General chat and cache viewers (X-Ray, Analyze, Summary) switch to RTL mode (right-aligned + Plain Text) when content is predominantly RTL (more RTL than Latin characters)
+- Your global Markdown/Plain Text preference is preserved when content is not predominantly RTL
 
 Plain Text mode includes markdown stripping that preserves readability: headers show with symbols and bold text, **bold** renders as actual bold, lists become bullets (•), and code is quoted. Mixed RTL/LTR content (like Arabic headwords followed by English definitions) displays in the correct order, and RTL-only headers align naturally to the right.
 
