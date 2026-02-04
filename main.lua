@@ -3557,6 +3557,23 @@ function AskGPT:onDictButtonsReady(dict_popup, dict_buttons)
       text = action.text .. " (KOA)",
       font_bold = true,
       callback = function()
+        -- FIRST: Capture selection_data for "Save to Note" feature (before popup closes)
+        -- The popup being open means selected_text still exists
+        local selection_data = nil
+        if self_ref.ui and self_ref.ui.highlight and self_ref.ui.highlight.selected_text then
+          local st = self_ref.ui.highlight.selected_text
+          selection_data = {
+            text = st.text,  -- Just the word
+            pos0 = st.pos0,
+            pos1 = st.pos1,
+            sboxes = st.sboxes,
+            pboxes = st.pboxes,
+            ext = st.ext,
+            drawer = st.drawer or "lighten",
+            color = st.color or "yellow",
+          }
+        end
+
         -- CRITICAL: Extract context BEFORE closing the popup
         -- The highlight/selection is cleared when the popup closes
         -- Always extract context regardless of mode setting, so the compact view
@@ -3621,6 +3638,8 @@ function AskGPT:onDictButtonsReady(dict_popup, dict_buttons)
           -- Always store extracted context so compact view toggle can use it
           dict_config.features._original_context = context
           dict_config.features._original_context_mode = extraction_mode
+          -- Store selection_data for "Save to Note" feature (word position only)
+          dict_config.features.selection_data = selection_data
 
           -- Skip auto-save for dictionary if setting is enabled (default: true)
           if features.dictionary_disable_auto_save ~= false then
@@ -5463,7 +5482,23 @@ function AskGPT:syncDictionaryBypass()
         end
       end
 
-      -- NOW clear the selection highlight (after context extraction)
+      -- BEFORE clearing highlight, capture selection_data for "Save to Note" feature
+      local selection_data = nil
+      if highlight and highlight.selected_text then
+        local st = highlight.selected_text
+        selection_data = {
+          text = st.text,
+          pos0 = st.pos0,
+          pos1 = st.pos1,
+          sboxes = st.sboxes,
+          pboxes = st.pboxes,
+          ext = st.ext,
+          drawer = st.drawer or "lighten",
+          color = st.color or "yellow",
+        }
+      end
+
+      -- NOW clear the selection highlight (after context and selection_data extraction)
       -- KOReader uses highlight:clear() to remove the selection highlight
       if highlight and highlight.clear then
         highlight:clear()
@@ -5511,6 +5546,8 @@ function AskGPT:syncDictionaryBypass()
         -- Always store extracted context so compact view toggle can use it
         dict_config.features._original_context = context
         dict_config.features._original_context_mode = extraction_mode
+        -- Store selection_data for "Save to Note" feature (word position only)
+        dict_config.features.selection_data = selection_data
 
         -- Skip auto-save for dictionary if setting is enabled (default: true)
         if features.dictionary_disable_auto_save ~= false then

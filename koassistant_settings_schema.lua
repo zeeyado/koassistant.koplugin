@@ -563,6 +563,18 @@ local SettingsSchema = {
                     help_text = _("When enabled, dictionary lookups are not auto-saved. When disabled, dictionary chats follow your general chat saving settings. You can always save manually from an expanded view."),
                 },
                 {
+                    id = "dictionary_note_content",
+                    type = "dropdown",
+                    text = _("Note Content"),
+                    path = "features.dictionary_note_content",
+                    default = "response",
+                    options = {
+                        { value = "response", label = _("Response only (Recommended)") },
+                        { value = "qa", label = _("Question + Response") },
+                    },
+                    help_text = _("What to include when saving dictionary results to a note. 'Response only' saves just the AI definition."),
+                },
+                {
                     id = "dictionary_enable_streaming",
                     type = "toggle",
                     text = _("Enable Streaming"),

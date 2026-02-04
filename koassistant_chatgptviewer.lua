@@ -1463,6 +1463,24 @@ function ChatGPTViewer:init()
     hold_callback = self.default_hold_callback,
   })
 
+  -- Row 1: +Note button (save to KOReader highlight note)
+  table.insert(minimal_button_row1, {
+    text = "+Note",
+    id = "save_to_note",
+    enabled = self.selection_data ~= nil,
+    callback = function()
+      self:saveToNote()
+    end,
+    hold_callback = function()
+      UIManager:show(Notification:new{
+        text = self.selection_data
+          and _("Save AI response as note on highlighted word")
+          or _("No selection data available (word position not captured)"),
+        timeout = 2,
+      })
+    end,
+  })
+
   -- Row 1: Wiki button
   table.insert(minimal_button_row1, {
     text = _("Wiki"),
@@ -2777,7 +2795,10 @@ function ChatGPTViewer:saveToNote()
   -- Get note content based on settings
   local features = self.configuration and self.configuration.features or {}
   local content
-  if self.translate_view then
+  if features.minimal_buttons then
+    -- Dictionary/compact view: use dictionary-specific setting
+    content = features.dictionary_note_content or "response"
+  elseif self.translate_view then
     content = features.translate_note_content or "response"
     if content == "global" then
       content = features.note_content or "qa"
@@ -2786,6 +2807,10 @@ function ChatGPTViewer:saveToNote()
     content = features.note_content or "qa"
   end
   local style = features.export_style or "markdown"
+
+  -- For dictionary/compact view: DON'T extend to sentence (word-only highlight)
+  -- For translate/highlight: extend to sentence (existing behavior)
+  local extend_to_sentence = not features.minimal_buttons
 
   -- Helper to perform the save
   local function doSave(selected_content)
@@ -2808,12 +2833,26 @@ function ChatGPTViewer:saveToNote()
       UIManager:close(self)
     end
 
-    -- Restore selected_text to ReaderHighlight so addNote() can create the highlight
+    -- Restore selected_text to ReaderHighlight so saveHighlight() can create the highlight
     reader_ui.highlight.selected_text = self.selection_data
 
-    -- Call addNote which creates the highlight and opens the note editor
-    -- The note editor will be pre-filled with the formatted content
-    reader_ui.highlight:addNote(note_text)
+    -- For dictionary: bypass addNote() which forces sentence extension
+    -- Call saveHighlight(false) directly to preserve word-only highlight
+    if not extend_to_sentence then
+      local index = reader_ui.highlight:saveHighlight(false)  -- false = no sentence extension
+      if index then
+        reader_ui.highlight:clear()
+        reader_ui.highlight:editNote(index, true, note_text)
+      else
+        UIManager:show(Notification:new{
+          text = _("Failed to create highlight"),
+          timeout = 2,
+        })
+      end
+    else
+      -- Standard flow for translate/highlight views (extends to sentence)
+      reader_ui.highlight:addNote(note_text)
+    end
   end
 
   if content == "ask" then
