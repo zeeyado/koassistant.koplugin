@@ -148,7 +148,7 @@ local SettingsSchema = {
                         local f = plugin.settings:readSetting("features") or {}
                         return f.render_markdown ~= false
                     end,
-                    help_text = _("Automatically switch to Plain Text mode when AI response contains significant Arabic, Hebrew, Persian, or Urdu text. Only analyzes AI responses, not highlighted text. Grayed out when markdown is disabled."),
+                    help_text = _("Automatically switch to Plain Text mode when the latest AI response is predominantly RTL (more RTL than Latin characters). English text referencing Arabic stays in Markdown. Grayed out when markdown is disabled."),
                 },
                 -- Plain Text Options submenu
                 {

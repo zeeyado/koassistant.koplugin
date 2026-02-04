@@ -1030,7 +1030,7 @@ See [How Language Settings Work Together](#how-language-settings-work-together) 
 
 Dictionary, translate, and general chat have special handling for right-to-left (RTL) languages:
 
-- **Automatic text mode**: When your dictionary or translation language is set to an RTL language, results automatically use Plain Text mode for proper font rendering. For general chat, RTL is auto-detected in the AI response. This can be configured via **Settings → Display Settings → Text Mode for RTL Dictionary**, **Text Mode for RTL Translate**, and **Text Mode for RTL Chat**.
+- **Automatic text mode**: When your dictionary or translation language is set to an RTL language, results automatically use Plain Text mode for proper font rendering. For general chat, the latest response is checked—if RTL characters outnumber Latin, it switches to Plain Text. This can be configured via **Settings → Display Settings → Text Mode for RTL Dictionary**, **Text Mode for RTL Translate**, and **Text Mode for RTL Chat**.
 - **BiDi text alignment**: Entries with RTL content display with correct bidirectional text alignment. Mixed RTL/LTR content (e.g., Arabic headwords with English pronunciation guides) renders in the correct reading order.
 - **IPA transcription handling**: Phonetic transcriptions are anchored to display correctly alongside RTL headwords.
 
@@ -1621,7 +1621,7 @@ Tags are simple labels for organizing chats. Unlike domains:
 - **Text Mode for Dictionary**: Always use Plain Text mode for dictionary popup, regardless of global view mode setting. Better font support for non-Latin scripts. (default: off)
 - **Text Mode for RTL Dictionary**: Automatically use Plain Text mode for dictionary popup when dictionary language is RTL. Grayed out when Text Mode for Dictionary is enabled. (default: on)
 - **Text Mode for RTL Translate**: Automatically use Plain Text mode for translate popup when translation language is RTL. (default: on)
-- **Text Mode for RTL Chat**: Automatically use Plain Text mode for general chat when AI response contains significant RTL text. Only analyzes AI responses, not highlighted text. Grayed out when markdown is disabled. (default: on)
+- **Text Mode for RTL Chat**: Automatically use Plain Text mode for general chat when the latest AI response is predominantly RTL (more RTL than Latin characters). English text referencing Arabic stays in Markdown. Grayed out when markdown is disabled. (default: on)
 - **Hide Highlighted Text**: Don't show selection in responses
 - **Hide Long Highlights**: Collapse highlights over character threshold
 - **Long Highlight Threshold**: Character limit before collapsing (default: 280)
@@ -2551,7 +2551,7 @@ This is a limitation of KOReader's MuPDF HTML renderer, which lacks per-glyph fo
 **Automatic text mode for RTL** is enabled by default:
 - **Settings → Display Settings → Text Mode for RTL Dictionary** / **Text Mode for RTL Translate** / **Text Mode for RTL Chat**
 - Dictionary and translate switch to Plain Text when the target language is RTL
-- General chat auto-detects RTL in AI responses (threshold-based, ignores highlighted text)
+- General chat switches when the latest response is predominantly RTL (more RTL than Latin)
 - Your global Markdown/Plain Text preference is preserved when responses are not RTL
 
 Plain Text mode includes markdown stripping that preserves readability: headers show with symbols and bold text, **bold** renders as actual bold, lists become bullets (•), and code is quoted. Mixed RTL/LTR content (like Arabic headwords followed by English definitions) displays in the correct order, and RTL-only headers align naturally to the right.
@@ -2610,6 +2610,8 @@ Shows:
 - Full request body sent to API
 - Raw API response
 - Configuration details (provider, model, temperature, etc.)
+
+> **Note:** Debug view and export features (particularly the "Everything (debug)" content level) are under review for consistency improvements. Some metadata may not appear as expected in exports. See [Track 0.7](https://github.com/zeeyado/koassistant.koplugin) in the development roadmap.
 
 ---
 
