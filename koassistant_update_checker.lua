@@ -55,11 +55,13 @@ local Geom = require("ui/geometry")
 local InputContainer = require("ui/widget/container/inputcontainer")
 local MovableContainer = require("ui/widget/container/movablecontainer")
 local ScrollHtmlWidget = require("ui/widget/scrollhtmlwidget")
+local ScrollTextWidget = require("ui/widget/scrolltextwidget")
 local Size = require("ui/size")
 local TitleBar = require("ui/widget/titlebar")
 local VerticalGroup = require("ui/widget/verticalgroup")
 local GestureRange = require("ui/gesturerange")
 local MD = require("apps/filemanager/lib/md")
+local Languages = require("koassistant_languages")
 
 -- Session flag to prevent multiple auto-checks per session
 -- (NetworkMgr:runWhenOnline can fire multiple times if network state changes)
@@ -229,6 +231,7 @@ local MarkdownViewer = InputContainer:extend{
     buttons_table = nil,
     text_padding = Size.padding.default,
     text_margin = 0,
+    is_rtl = false,  -- Use text mode with RTL direction when true
 }
 
 function MarkdownViewer:init()
@@ -268,16 +271,31 @@ function MarkdownViewer:init()
     -- Calculate content height (minimal margins for more content space)
     local content_height = self.height - titlebar:getHeight() - button_table:getSize().h - 2 * self.text_padding
 
-    -- Create scrollable HTML widget with GitHub-like font size
-    local scroll_widget = ScrollHtmlWidget:new{
-        html_body = html_body,
-        css = RELEASE_NOTES_CSS,
-        default_font_size = Screen:scaleBySize(16),
-        width = self.width - 2 * self.text_padding,
-        height = content_height,
-        dialog = self,
-        html_link_tapped_callback = handleLinkTap,
-    }
+    -- Create scrollable widget - use text mode for RTL languages
+    local scroll_widget
+    if self.is_rtl then
+        -- RTL mode: use plain text with RTL paragraph direction
+        scroll_widget = ScrollTextWidget:new{
+            text = self.markdown_text,
+            face = Font:getFace("cfont", 20),
+            width = self.width - 2 * self.text_padding,
+            height = content_height,
+            dialog = self,
+            para_direction_rtl = true,
+            auto_para_direction = false,
+        }
+    else
+        -- Normal mode: use HTML widget with GitHub-like font size
+        scroll_widget = ScrollHtmlWidget:new{
+            html_body = html_body,
+            css = RELEASE_NOTES_CSS,
+            default_font_size = Screen:scaleBySize(16),
+            width = self.width - 2 * self.text_padding,
+            height = content_height,
+            dialog = self,
+            html_link_tapped_callback = handleLinkTap,
+        }
+    end
 
     local text_container = FrameContainer:new{
         padding = self.text_padding,
@@ -518,12 +536,14 @@ local function translateAndShowContent(markdown_content, target_language, title,
             })
 
             -- Show translated content in MarkdownViewer
+            -- Use text mode with RTL direction for RTL languages
             translated_viewer = MarkdownViewer:new{
                 title = T(_("%1 (Translated)"), title),
                 markdown_text = answer,
                 width = math.floor(Screen:getWidth() * 0.85),
                 height = math.floor(Screen:getHeight() * 0.85),
                 buttons_table = buttons,
+                is_rtl = Languages.isRTL(target_language),
             }
             UIManager:show(translated_viewer)
             -- Force full UI refresh to properly render the new viewer
