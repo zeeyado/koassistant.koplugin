@@ -4560,7 +4560,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
         end,
       },
       {
-        text = reasoning_enabled and _("Reasoning: ON") or _("Reasoning: OFF"),
+        text = reasoning_enabled and _("Anthropic/Gemini Reasoning: ON") or _("Anthropic/Gemini Reasoning: OFF"),
         callback = function()
           local f = self_ref.settings:readSetting("features") or {}
           f.enable_reasoning = not f.enable_reasoning

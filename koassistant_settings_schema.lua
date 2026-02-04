@@ -1288,7 +1288,7 @@ local SettingsSchema = {
                         {
                             id = "enable_reasoning",
                             type = "toggle",
-                            text = _("Enable Reasoning"),
+                            text = _("Enable Anthropic/Gemini Reasoning"),
                             help_text = _("Enable extended thinking for Anthropic and Gemini.\n\nNote: OpenAI reasoning models (o3, gpt-5) always reason internally - this toggle does not affect them."),
                             path = "features.enable_reasoning",
                             default = false,
