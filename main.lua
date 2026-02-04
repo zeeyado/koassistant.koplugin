@@ -28,6 +28,7 @@ local UIConstants = require("koassistant_ui.constants")
 local ActionService = require("action_service")
 
 local ModelLists = require("koassistant_model_lists")
+local Constants = require("koassistant_constants")
 
 -- Load the configuration directly
 local configuration = {
@@ -4818,89 +4819,45 @@ function AskGPT:onKOAssistantQuickActions()
     end
   end
 
-  -- 2. Hardcoded utilities (special features, not actions)
-  addButton({
-    text = _("Translate Page"),
-    callback = function()
-      UIManager:close(dialog)
-      self_ref:onKOAssistantTranslatePage()
-    end,
-  })
-
-  addButton({
-    text = _("View Notebook"),
-    callback = function()
-      UIManager:close(dialog)
-      self_ref:onKOAssistantViewNotebook()
-    end,
-  })
-
-  addButton({
-    text = _("Edit Notebook"),
-    callback = function()
-      UIManager:close(dialog)
-      self_ref:onKOAssistantEditNotebook()
-    end,
-  })
-
-  addButton({
-    text = _("Chat History"),
-    callback = function()
-      UIManager:close(dialog)
-      self_ref:onKOAssistantChatHistory()
-    end,
-  })
-
-  addButton({
-    text = _("Continue Last Chat"),
-    callback = function()
-      UIManager:close(dialog)
-      self_ref:onKOAssistantContinueLastOpened()
-    end,
-  })
-
-  addButton({
-    text = _("New Book Chat/Action"),
-    callback = function()
-      UIManager:close(dialog)
-      self_ref:onKOAssistantBookChat()
-    end,
-  })
-
-  -- General Chat/Action (same as AI Quick Settings)
-  addButton({
-    text = _("General Chat/Action"),
-    callback = function()
-      UIManager:close(dialog)
-      self_ref:startGeneralChat()
-    end,
-  })
-
-  -- 3. Summary button: "View Summary" if exists, "Generate Summary" if not
+  -- 2. Utility items (configurable via Settings → Quick Actions Settings → Panel Utilities)
+  local features = self.settings:readSetting("features") or {}
   local ActionCache = require("koassistant_action_cache")
   local file = self.ui.document.file
   local summary_exists = ActionCache.getSummaryCache(file) ~= nil
 
-  addButton({
-    text = summary_exists and _("View Summary") or _("Generate Summary"),
-    callback = function()
-      UIManager:close(dialog)
-      if summary_exists then
-        self_ref:viewSummary()
-      else
-        self_ref:generateSummary()
-      end
-    end,
-  })
+  for _idx, util in ipairs(Constants.QUICK_ACTION_UTILITIES) do
+    -- Check if utility is enabled (default true if not set)
+    local setting_key = "qa_show_" .. util.id
+    local enabled = features[setting_key]
+    if enabled == nil then enabled = util.default end
 
-  -- AI Quick Settings (quick access from Quick Actions)
-  addButton({
-    text = _("AI Quick Settings"),
-    callback = function()
-      UIManager:close(dialog)
-      self_ref:onKOAssistantAISettings()
-    end,
-  })
+    if enabled then
+      -- Special handling for summary (dynamic text)
+      if util.id == "summary" then
+        addButton({
+          text = summary_exists and _("View Summary") or _("Generate Summary"),
+          callback = function()
+            UIManager:close(dialog)
+            if summary_exists then
+              self_ref:viewSummary()
+            else
+              self_ref:generateSummary()
+            end
+          end,
+        })
+      else
+        -- Standard utility button
+        local display_text = Constants.getQuickActionUtilityText(util.id, _)
+        addButton({
+          text = display_text,
+          callback = function()
+            UIManager:close(dialog)
+            self_ref[util.callback](self_ref)
+          end,
+        })
+      end
+    end
+  end
 
   -- Add Close button - pair with last row if it has only 1 item, otherwise new row
   local close_btn = {
@@ -7774,7 +7731,7 @@ end
 function AskGPT:showWelcomeDialog()
   local text = _("Welcome to KOAssistant!") .. "\n\n" ..
     _("PRIVACY SETTINGS") .. "\n" ..
-    _("Your data is protected by default. Some features (like X-Ray) need permission to access book content.") .. "\n" ..
+    _("Some features (like X-Ray) need permission to access book content.") .. "\n" ..
     _("Enable in: Settings → Privacy & Data") .. "\n\n" ..
     _("QUICK ACCESS") .. "\n" ..
     _("Add actions to gestures, highlight menus, or Quick Actions panel.") .. "\n\n" ..
