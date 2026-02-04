@@ -1295,9 +1295,27 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
     config.features = config.features or {}
     config.document_path = document_path  -- Needed for notebook save
 
+    -- Restore system prompt metadata for debug display (if available from saved chat)
+    if chat.system_metadata then
+        config.system = chat.system_metadata
+    end
+
+    -- Build chat_metadata for restoring cache/truncation notices
+    local chat_metadata = nil
+    if chat.used_cache or chat.book_text_truncated then
+        chat_metadata = {
+            used_cache = chat.used_cache,
+            cached_progress = chat.cached_progress,
+            cache_action_id = chat.cache_action_id,
+            book_text_truncated = chat.book_text_truncated,
+            book_text_coverage_start = chat.book_text_coverage_start,
+            book_text_coverage_end = chat.book_text_coverage_end,
+        }
+    end
+
     local history
     local ok, err = pcall(function()
-        history = MessageHistory:fromSavedMessages(chat.messages, chat.model, chat.id, chat.prompt_action, chat.launch_context)
+        history = MessageHistory:fromSavedMessages(chat.messages, chat.model, chat.id, chat.prompt_action, chat.launch_context, chat_metadata)
     end)
 
     if not ok or not history then
@@ -1359,6 +1377,16 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
                             domain = chat.domain,
                             tags = chat.tags or {},
                             original_highlighted_text = chat.original_highlighted_text,
+                            -- Preserve system prompt metadata for debug display
+                            system_metadata = chat.system_metadata,
+                            -- Preserve cache continuation info
+                            used_cache = chat.used_cache,
+                            cached_progress = chat.cached_progress,
+                            cache_action_id = chat.cache_action_id,
+                            -- Preserve book text truncation info
+                            book_text_truncated = chat.book_text_truncated,
+                            book_text_coverage_start = chat.book_text_coverage_start,
+                            book_text_coverage_end = chat.book_text_coverage_end,
                         }
 
                         if document_path == "__GENERAL_CHATS__" then
@@ -1532,6 +1560,16 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
                             domain = chat.domain,
                             tags = chat.tags or {},
                             original_highlighted_text = chat.original_highlighted_text,
+                            -- Preserve system prompt metadata for debug display
+                            system_metadata = chat.system_metadata,
+                            -- Preserve cache continuation info
+                            used_cache = chat.used_cache,
+                            cached_progress = chat.cached_progress,
+                            cache_action_id = chat.cache_action_id,
+                            -- Preserve book text truncation info
+                            book_text_truncated = chat.book_text_truncated,
+                            book_text_coverage_start = chat.book_text_coverage_start,
+                            book_text_coverage_end = chat.book_text_coverage_end,
                         }
 
                         if document_path == "__GENERAL_CHATS__" then
