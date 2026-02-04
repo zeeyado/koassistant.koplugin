@@ -1,8 +1,8 @@
-local http = require("socket.http")
-local ltn12 = require("ltn12")
 local json = require("json")
 local logger = require("logger")
 local Constants = require("koassistant_constants")
+local ffi = require("ffi")
+local ffiutil = require("ffi/util")
 
 -- Load _meta.lua from the plugin's own directory to avoid conflicts with other plugins
 -- (assistant.koplugin also has _meta.lua, and require() might load the wrong one)
@@ -265,66 +265,285 @@ local function compareVersions(v1, v2)
     return 0
 end
 
--- Timeouts for update checks (seconds)
-local AUTO_CHECK_TIMEOUT = 1.4  -- Short timeout for background checks (+ 0.1s delay = 1.5s total)
+-- Absolute timeouts for update checks (seconds)
+-- These are wall-clock timeouts that kill the subprocess regardless of connection state
+local AUTO_CHECK_TIMEOUT = 4    -- Timeout for automatic background checks (silent, non-intrusive)
 local MANUAL_CHECK_TIMEOUT = 10 -- Longer timeout for user-initiated checks
+local WARMUP_TIMEOUT = 0.5      -- Quick TCP warmup before fork (macOS fix)
 
-function UpdateChecker.checkForUpdates(silent, include_prereleases)
+--- Wrap a file descriptor for ltn12 sink
+local function wrap_fd(fd)
+    local file_object = {}
+    function file_object:write(chunk)
+        ffiutil.writeToFD(fd, chunk)
+        return self
+    end
+    function file_object:close()
+        return true
+    end
+    return file_object
+end
+
+--- Perform HTTP request in subprocess with absolute timeout
+--- @param url string URL to fetch
+--- @param timeout number Absolute timeout in seconds
+--- @param callback function Called with (success, data_or_error)
+local function fetchWithAbsoluteTimeout(url, timeout, callback)
+    local ltn12 = require("ltn12")
+    local socket = require("socket")
+
+    -- Warmup: Make a quick TCP connection in parent before fork
+    -- This fixes macOS-specific issues where subprocess connections hang intermittently
+    -- (copied from base.lua backgroundRequest)
+    if url:sub(1, 8) == "https://" then
+        local host = url:match("https://([^/:]+)")
+        if host then
+            pcall(function()
+                local sock = socket.tcp()
+                sock:settimeout(WARMUP_TIMEOUT)
+                sock:connect(host, 443)
+                sock:close()
+            end)
+        end
+    end
+
+    local pid, parent_read_fd
+    local completed = false
+    local fd_closed = false
+    local timeout_task = nil
+    local poll_task = nil
+    local accumulated_data = ""
+
+    -- Close fd safely (only once)
+    local function closeFd()
+        if not fd_closed and parent_read_fd then
+            fd_closed = true
+            -- Drain any remaining data before closing
+            pcall(function()
+                local remaining = ffiutil.readAllFromFD(parent_read_fd)
+                if remaining and #remaining > 0 then
+                    accumulated_data = accumulated_data .. remaining
+                end
+            end)
+            pcall(ffi.C.close, parent_read_fd)
+            parent_read_fd = nil
+        end
+    end
+
+    local function cleanup(skip_fd_close)
+        completed = true
+        if timeout_task then
+            UIManager:unschedule(timeout_task)
+            timeout_task = nil
+        end
+        if poll_task then
+            UIManager:unschedule(poll_task)
+            poll_task = nil
+        end
+        if pid then
+            ffiutil.terminateSubProcess(pid)
+            local captured_pid = pid
+            pid = nil
+            -- Schedule subprocess cleanup
+            local collect_and_clean
+            collect_and_clean = function()
+                if ffiutil.isSubProcessDone(captured_pid) then
+                    if not skip_fd_close then
+                        closeFd()
+                    end
+                else
+                    UIManager:scheduleIn(0.1, collect_and_clean)
+                end
+            end
+            UIManager:scheduleIn(0.1, collect_and_clean)
+        end
+    end
+
+    -- Create the subprocess function
+    local function subprocess_func(subprocess_pid, child_write_fd)
+        if not subprocess_pid or not child_write_fd then return end
+
+        local ok, err = pcall(function()
+            local subprocess_https = require("ssl.https")
+            local subprocess_ltn12 = require("ltn12")
+
+            -- Set a reasonable timeout for the HTTP request itself
+            subprocess_https.TIMEOUT = 8
+
+            local pipe_w = wrap_fd(child_write_fd)
+            local request = {
+                url = url,
+                method = "GET",
+                headers = {
+                    ["Accept"] = "application/vnd.github.v3+json",
+                    ["User-Agent"] = "KOReader-KOAssistant-Plugin"
+                },
+                sink = subprocess_ltn12.sink.file(pipe_w),
+            }
+
+            local req_ok, code = pcall(function()
+                return select(2, subprocess_https.request(request))
+            end)
+
+            if not req_ok or (code and code ~= 200) then
+                ffiutil.writeToFD(child_write_fd, "\n__UPDATE_CHECK_ERROR__:" .. tostring(code or "connection failed"))
+            end
+        end)
+
+        if not ok then
+            ffiutil.writeToFD(child_write_fd, "\n__UPDATE_CHECK_ERROR__:" .. tostring(err))
+        end
+
+        ffi.C.close(child_write_fd)
+    end
+
+    -- Set up absolute timeout watchdog - this kills the process no matter what
+    timeout_task = UIManager:scheduleIn(timeout, function()
+        if not completed then
+            logger.info("Update check: absolute timeout reached, killing subprocess")
+            cleanup()
+            callback(false, "Timeout")
+        end
+    end)
+
+    -- Start subprocess
+    pid, parent_read_fd = ffiutil.runInSubProcess(subprocess_func, true)
+
+    if not pid then
+        cleanup()
+        callback(false, "Failed to start subprocess")
+        return
+    end
+
+    -- Poll for data using pattern from stream_handler.lua
+    local chunksize = 8192
+    local buffer = ffi.new("char[?]", chunksize)
+
+    local function pollForData()
+        if completed then return end
+
+        local readsize = ffiutil.getNonBlockingReadSize(parent_read_fd)
+        if readsize and readsize > 0 then
+            local bytes_read = tonumber(ffi.C.read(parent_read_fd, buffer, chunksize))
+            if bytes_read and bytes_read > 0 then
+                accumulated_data = accumulated_data .. ffi.string(buffer, bytes_read)
+            end
+        end
+
+        -- Check if subprocess is done
+        if ffiutil.isSubProcessDone(pid) then
+            -- Read any remaining data
+            local final_read = tonumber(ffi.C.read(parent_read_fd, buffer, chunksize))
+            if final_read and final_read > 0 then
+                accumulated_data = accumulated_data .. ffi.string(buffer, final_read)
+            end
+
+            -- Close fd and cleanup
+            closeFd()
+            cleanup(true)  -- skip_fd_close since we already closed it
+
+            -- Check for error marker
+            local error_msg = accumulated_data:match("__UPDATE_CHECK_ERROR__:(.+)")
+            if error_msg then
+                callback(false, error_msg)
+            else
+                callback(true, accumulated_data)
+            end
+            return
+        end
+
+        -- Continue polling
+        poll_task = UIManager:scheduleIn(0.1, pollForData)
+    end
+
+    poll_task = UIManager:scheduleIn(0.05, pollForData)
+end
+
+function UpdateChecker.checkForUpdates(auto, include_prereleases)
     -- Default to including prereleases since we're in alpha/beta
     if include_prereleases == nil then
         include_prereleases = true
     end
 
-    -- Set timeout for HTTP request (LuaSocket defaults to 60s which is too long)
-    -- Use shorter timeout for silent/auto checks, longer for manual checks
-    local old_timeout = http.TIMEOUT
-    http.TIMEOUT = silent and AUTO_CHECK_TIMEOUT or MANUAL_CHECK_TIMEOUT
+    local timeout = auto and AUTO_CHECK_TIMEOUT or MANUAL_CHECK_TIMEOUT
 
-    local response_body = {}
-    -- Fetch all releases (not just latest) to include prereleases
-    local request_result, code = http.request {
-        url = Constants.GITHUB.API_URL,
-        headers = {
-            ["Accept"] = "application/vnd.github.v3+json",
-            ["User-Agent"] = "KOReader-KOAssistant-Plugin"
-        },
-        sink = ltn12.sink.table(response_body)
-    }
+    -- Helper to extract version string from tag (handles v0.4.1, v.0.4.1, 0.4.1)
+    local function extractVersion(tag)
+        if not tag then return nil end
+        if type(tag) ~= "string" then
+            logger.warn("extractVersion: expected string tag, got " .. type(tag))
+            return nil
+        end
+        -- Remove common prefixes: "v", "v.", "V", "V."
+        local version = tag:gsub("^[vV]%.?", "")
+        return version
+    end
 
-    -- Restore original timeout
-    http.TIMEOUT = old_timeout
+    -- Show loading message only for manual checks (auto checks are silent)
+    local loading_msg = nil
+    if not auto then
+        loading_msg = InfoMessage:new{
+            text = "Checking for updates...",
+        }
+        UIManager:show(loading_msg)
+        -- Force screen refresh to show loading message immediately
+        UIManager:forceRePaint()
+    end
 
-    if code == 200 then
-        local data = table.concat(response_body)
-        local success, releases = pcall(json.decode, data)
+    -- Helper to close loading message (no-op if auto check)
+    local function closeLoading()
+        if loading_msg then
+            UIManager:close(loading_msg)
+        end
+    end
 
-        if not success then
+    -- Use subprocess with absolute timeout
+    fetchWithAbsoluteTimeout(Constants.GITHUB.API_URL, timeout, function(fetch_success, response_data)
+        closeLoading()
+
+        if not fetch_success then
+            logger.err("Failed to check for updates:", response_data)
+            if not auto then
+                local error_text = response_data == "Timeout"
+                    and "Failed to check for updates (timed out). Please try again."
+                    or "Failed to check for updates. Please check your internet connection."
+                UIManager:show(InfoMessage:new{
+                    text = error_text,
+                    timeout = 3
+                })
+            end
+            return
+        end
+
+        local decode_success, releases = pcall(json.decode, response_data)
+
+        if not decode_success then
             logger.err("Failed to parse GitHub API response:", releases)
-            if not silent then
+            if not auto then
                 UIManager:show(InfoMessage:new{
                     text = "Failed to check for updates: Invalid response format",
                     timeout = 3
                 })
             end
-            return false
+            return
         end
 
-        -- Helper to extract version string from tag (handles v0.4.1, v.0.4.1, 0.4.1)
-        local function extractVersion(tag)
-            if not tag then return nil end
-            if type(tag) ~= "string" then
-                logger.warn("extractVersion: expected string tag, got " .. type(tag))
-                return nil
+        -- Validate releases is a table (array)
+        if type(releases) ~= "table" then
+            logger.err("Failed to parse GitHub API response: expected array, got " .. type(releases), "data:", response_data:sub(1, 200))
+            if not auto then
+                UIManager:show(InfoMessage:new{
+                    text = "Failed to check for updates: Invalid response format",
+                    timeout = 3
+                })
             end
-            -- Remove common prefixes: "v", "v.", "V", "V."
-            local version = tag:gsub("^[vV]%.?", "")
-            return version
+            return
         end
 
         -- Find the latest release by comparing versions (don't rely on array order)
         local latest_release = nil
         local latest_version_str = nil
-        for _, release in ipairs(releases) do
+        for _idx, release in ipairs(releases) do
             if not release.draft then
                 if include_prereleases or not release.prerelease then
                     local version_str = extractVersion(release.tag_name)
@@ -345,40 +564,39 @@ function UpdateChecker.checkForUpdates(silent, include_prereleases)
         end
 
         if not latest_release then
-            if not silent then
+            if not auto then
                 UIManager:show(InfoMessage:new{
                     text = "No releases found",
                     timeout = 3
                 })
             end
-            return false
+            return
         end
 
         -- Use the already-extracted version from the loop
         local latest_version = latest_version_str
-
         local current_version = meta.version
 
         -- Type validation before comparison
         if type(current_version) ~= "string" then
             logger.err("Update check: current_version is not a string, type=" .. type(current_version) .. ", value=" .. tostring(current_version))
-            if not silent then
+            if not auto then
                 UIManager:show(InfoMessage:new{
                     text = "Update check failed: invalid current version format",
                     timeout = 3
                 })
             end
-            return false
+            return
         end
         if type(latest_version) ~= "string" then
             logger.err("Update check: latest_version is not a string, type=" .. type(latest_version) .. ", value=" .. tostring(latest_version))
-            if not silent then
+            if not auto then
                 UIManager:show(InfoMessage:new{
                     text = "Update check failed: invalid latest version format",
                     timeout = 3
                 })
             end
-            return false
+            return
         end
 
         local comparison = compareVersions(current_version, latest_version)
@@ -431,37 +649,28 @@ function UpdateChecker.checkForUpdates(silent, include_prereleases)
                     },
                 },
             }
+            -- Dismiss any on-screen keyboard before showing the update dialog
+            -- (user may have started typing while the background check was running)
+            UIManager:broadcastEvent(require("ui/event"):new("CloseKeyboard"))
             UIManager:show(update_viewer)
-
-            return true, latest_version
+            UIManager:setDirty(nil, "ui")
         elseif comparison == 0 then
-            if not silent then
+            if not auto then
                 UIManager:show(InfoMessage:new{
                     text = "You are running the latest version (" .. current_version .. ")",
                     timeout = 3
                 })
             end
-            return false
         else
             -- Current version is newer (development version)
-            if not silent then
+            if not auto then
                 UIManager:show(InfoMessage:new{
                     text = "You are running a development version (" .. current_version .. ")",
                     timeout = 3
                 })
             end
-            return false
         end
-    else
-        logger.err("Failed to check for updates. HTTP code:", code)
-        if not silent then
-            UIManager:show(InfoMessage:new{
-                text = "Failed to check for updates. Please check your internet connection.",
-                timeout = 3
-            })
-        end
-        return false
-    end
+    end)
 end
 
 function UpdateChecker.getCurrentVersion()

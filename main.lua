@@ -136,16 +136,8 @@ local function maybeCheckForUpdates(plugin_instance)
     if auto_check then
         -- Mark as shown immediately to prevent duplicate checks
         updateMessageShown = true
-        -- Show notification to block interaction during update check
-        -- Timeout covers full check duration: 0.1s delay + 1.4s HTTP timeout = 1.5s
-        UIManager:show(InfoMessage:new{
-            text = _("Checking for updates..."),
-            timeout = 1.5,
-        })
-        -- Run update check after minimal delay
-        UIManager:scheduleIn(0.1, function()
-            UpdateChecker.checkForUpdates(true) -- silent = true for auto-check
-        end)
+        -- Run update check - the checker manages its own loading message
+        UpdateChecker.checkForUpdates(true) -- auto = true (silent background check)
     end
 end
 
@@ -5876,7 +5868,7 @@ end
 
 function AskGPT:checkForUpdates()
   NetworkMgr:runWhenOnline(function()
-    UpdateChecker.checkForUpdates(false) -- false = not silent
+    UpdateChecker.checkForUpdates(false) -- auto = false (manual check with UI feedback)
   end)
 end
 
