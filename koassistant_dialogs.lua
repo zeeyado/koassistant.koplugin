@@ -2322,7 +2322,10 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
             end
 
             -- Save to document caches if action has cache_as_* flags (for reuse by other actions)
-            if not is_truncated and ui.document and ui.document.file then
+            -- Only cache if book text was actually provided (prevents low-quality caches from training data)
+            local book_text_was_provided = (message_data.book_text and message_data.book_text ~= "")
+                or (message_data.full_document and message_data.full_document ~= "")
+            if not is_truncated and ui.document and ui.document.file and book_text_was_provided then
                 local ActionCache = require("koassistant_action_cache")
                 local progress = tonumber(message_data.progress_decimal) or 0
                 local model_info = { model = ConfigHelper:getModelInfo(temp_config).model }
@@ -2360,6 +2363,8 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                         logger.info("KOAssistant: Saved document summary to reusable cache with language:", summary_metadata.language)
                     end
                 end
+            elseif not book_text_was_provided and (action.cache_as_xray or action.cache_as_analyze or action.cache_as_summary) then
+                logger.info("KOAssistant: Skipping document cache - no book text was provided")
             end
 
             -- Store cache info in history for viewer to display notice

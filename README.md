@@ -2147,7 +2147,9 @@ When text extraction is enabled, X-Ray and Recap responses are automatically cac
 **Requirements:**
 - Text extraction must be enabled (Settings → Privacy & Data → Text Extraction)
 - You must be reading (not in file browser)
-- Progress must advance by at least 1% to use cache
+- Progress must advance by at least 1% to use incremental cache
+
+> **Without text extraction:** Actions still work but rely on AI training knowledge (the book's title/author only). Results are NOT cached—each run starts fresh. Running X-Ray at 30%, then again at 50%, generates two independent responses rather than an incremental update.
 
 **Cache storage:**
 - Stored in the book's sidecar folder (`.sdr/koassistant_cache.lua`)
@@ -2161,6 +2163,8 @@ When X-Ray, Analyze Document, or Summary actions complete, their results are als
 - Summary → saves to `_summary_cache`
 
 Custom actions can reference these using `{xray_cache_section}`, `{analyze_cache_section}`, or `{summary_cache_section}` placeholders. This lets you build on previous analysis without re-running expensive actions.
+
+> **Safety mechanism:** Document caches are only saved when book text was actually extracted. If you run X-Ray, Analyze Document, or Summary with text extraction disabled (or if extraction yields no content), the AI response is based solely on the book's title/author (training knowledge), and this lower-quality result is NOT cached. This prevents low-quality training-data-based responses from being stored as reusable context. Enable text extraction before running these actions to build useful caches.
 
 **Example: Create a "Questions from X-Ray" action**
 1. Enable **Allow Text Extraction** AND **Allow Highlights & Annotations** in Settings → Privacy & Data
