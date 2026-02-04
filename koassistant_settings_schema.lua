@@ -141,14 +141,14 @@ local SettingsSchema = {
                 {
                     id = "rtl_chat_text_mode",
                     type = "toggle",
-                    text = _("Text Mode for RTL Chat"),
+                    text = _("Auto RTL mode for Chat"),
                     path = "features.rtl_chat_text_mode",
                     default = true,
                     enabled_func = function(plugin)
                         local f = plugin.settings:readSetting("features") or {}
                         return f.render_markdown ~= false
                     end,
-                    help_text = _("Automatically switch to Plain Text mode when the latest AI response is predominantly RTL (more RTL than Latin characters). English text referencing Arabic stays in Markdown. Grayed out when markdown is disabled."),
+                    help_text = _("Automatically detect RTL content and switch to RTL mode (right-aligned text + Plain Text). Activates when the latest response has more RTL than Latin characters. Disabling removes all automatic RTL adjustments. Grayed out when markdown is disabled."),
                 },
                 -- Plain Text Options submenu
                 {
