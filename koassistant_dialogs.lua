@@ -1217,15 +1217,11 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                 cfg.enable_web_search = viewer.session_web_search_override
             end
 
-            -- Show loading dialog only when streaming is OFF (streaming has its own dialog)
-            if not (cfg.features and cfg.features.enable_streaming) then
-                showLoadingDialog(cfg)
-            end
+            -- Note: Loading dialog is now handled by handleNonStreamingBackground in gpt_query.lua
+            -- which shows a cancellable dialog for non-streaming requests
 
             -- Function to update the viewer with new content
             local function updateViewer()
-                -- Close loading dialog before showing response
-                closeLoadingDialog()
                 -- Check if our global reference is still the same
                 if _G.ActiveChatViewer == viewer then
                     -- Always close the existing viewer
@@ -2595,10 +2591,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             text = _("Ask"),
             callback = function()
                 UIManager:close(input_dialog)
-                -- Show loading dialog only when streaming is OFF
-                if not (configuration.features and configuration.features.enable_streaming) then
-                    showLoadingDialog(configuration)
-                end
+                -- Note: Loading dialog now handled by handleNonStreamingBackground in gpt_query.lua
                 UIManager:scheduleIn(0.1, function()
                     -- NEW ARCHITECTURE (v0.5.2+): Unified request config for all providers
                     -- System prompt and domain are built by buildUnifiedRequestConfig
@@ -2734,10 +2727,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             callback = function()
                 local additional_input = input_dialog:getInputText()
                 UIManager:close(input_dialog)
-                -- Show loading dialog only when streaming is OFF
-                if not (configuration.features and configuration.features.enable_streaming) then
-                    showLoadingDialog(configuration)
-                end
+                -- Note: Loading dialog now handled by handleNonStreamingBackground in gpt_query.lua
                 UIManager:scheduleIn(0.1, function()
                     -- Callback for when response is ready (handles both streaming and non-streaming)
                     local function onPromptComplete(history, temp_config_or_error)

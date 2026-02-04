@@ -186,49 +186,29 @@ function GeminiHandler:query(message_history, config)
         return self:backgroundRequest(stream_url, headers, requestBody)
     end
 
-    -- Non-streaming mode: make regular request
+    -- Non-streaming mode: use background request for non-blocking UI
     local url = buildGeminiUrl(base_url, model, false)
+    local debug_enabled = config and config.features and config.features.debug
 
-    local responseBody = {}
-    local success, code = https.request({
-        url = url,
-        method = "POST",
-        headers = headers,
-        source = ltn12.source.string(requestBody),
-        sink = ltn12.sink.table(responseBody)
-    })
+    local response_parser = function(response)
+        -- Debug: Print parsed response
+        if debug_enabled then
+            DebugUtils.print("Gemini Parsed Response:", response, config)
+        end
 
-    -- Debug: Print raw response
-    if config and config.features and config.features.debug then
-        DebugUtils.print("Gemini Raw Response:", table.concat(responseBody), config)
+        local parse_success, result, reasoning, web_search_used = ResponseParser:parseResponse(response, "gemini")
+        if not parse_success then
+            return false, "Error: " .. result
+        end
+
+        return true, result, reasoning, web_search_used
     end
 
-    local success, response = self:handleApiResponse(success, code, responseBody, "Gemini")
-    if not success then
-        return response
-    end
-
-    -- Debug: Print parsed response
-    if config and config.features and config.features.debug then
-        DebugUtils.print("Gemini Parsed Response:", response, config)
-    end
-
-    local success, result, reasoning, web_search_used = ResponseParser:parseResponse(response, "gemini")
-    if not success then
-        return "Error: " .. result
-    end
-
-    -- Return result with optional metadata (reasoning, web_search)
-    if reasoning or web_search_used then
-        return {
-            content = result,
-            reasoning = reasoning,
-            _has_reasoning = reasoning and true or nil,
-            web_search_used = web_search_used,
-        }
-    end
-
-    return result
+    return {
+        _background_fn = self:backgroundRequest(url, headers, requestBody),
+        _non_streaming = true,
+        _response_parser = response_parser,
+    }
 end
 
 return GeminiHandler

@@ -132,46 +132,29 @@ function OllamaHandler:query(message_history, config)
         return self:backgroundRequest(base_url, headers, requestBody)
     end
 
-    -- Non-streaming mode: make regular request
-    local responseBody = {}
-    local success, code = http.request({
-        url = base_url,
-        method = "POST",
-        headers = headers,
-        source = ltn12.source.string(requestBody),
-        sink = ltn12.sink.table(responseBody)
-    })
+    -- Non-streaming mode: use background request for non-blocking UI
+    local debug_enabled = config and config.features and config.features.debug
 
-    -- Debug: Print raw response
-    if config and config.features and config.features.debug then
-        DebugUtils.print("Ollama Raw Response:", table.concat(responseBody), config)
+    local response_parser = function(response)
+        -- Debug: Print parsed response
+        if debug_enabled then
+            DebugUtils.print("Ollama Parsed Response:", response, config)
+        end
+
+        local parse_success, result, reasoning = ResponseParser:parseResponse(response, "ollama")
+        if not parse_success then
+            return false, "Error: " .. result
+        end
+
+        -- Return with reasoning metadata if available (R1 models use <think> tags)
+        return true, result, reasoning
     end
 
-    local success, response = self:handleApiResponse(success, code, responseBody, "Ollama")
-    if not success then
-        return response
-    end
-
-    -- Debug: Print parsed response
-    if config and config.features and config.features.debug then
-        DebugUtils.print("Ollama Parsed Response:", response, config)
-    end
-
-    local success, result, reasoning = ResponseParser:parseResponse(response, "ollama")
-    if not success then
-        return "Error: " .. result
-    end
-
-    -- Return result with optional reasoning metadata (R1 models use <think> tags)
-    if reasoning then
-        return {
-            content = result,
-            reasoning = reasoning,
-            _has_reasoning = true,
-        }
-    end
-
-    return result
+    return {
+        _background_fn = self:backgroundRequest(base_url, headers, requestBody),
+        _non_streaming = true,
+        _response_parser = response_parser,
+    }
 end
 
 return OllamaHandler

@@ -102,48 +102,27 @@ function AnthropicHandler:query(message_history, config)
         return self:backgroundRequest(base_url, headers, stream_body)
     end
 
-    -- Non-streaming mode: make regular request
-    local responseBody = {}
-    local success, code = https.request({
-        url = base_url,
-        method = "POST",
-        headers = headers,
-        source = ltn12.source.string(requestBody),
-        sink = ltn12.sink.table(responseBody)
-    })
+    -- Non-streaming mode: use background request for non-blocking UI
+    -- Return function and parser for gpt_query.lua to handle
+    local response_parser = function(response)
+        -- Debug: Print parsed response
+        if config and config.features and config.features.debug then
+            DebugUtils.print("Anthropic Parsed Response:", response, config)
+        end
 
-    -- Debug: Print raw response
-    if config and config.features and config.features.debug then
-        DebugUtils.print("Anthropic Raw Response:", table.concat(responseBody), config)
+        local parse_success, result, reasoning, web_search_used = ResponseParser:parseResponse(response, "anthropic")
+        if not parse_success then
+            return false, "Error: " .. result
+        end
+
+        return true, result, reasoning, web_search_used
     end
 
-    local success, response = self:handleApiResponse(success, code, responseBody, "Anthropic")
-    if not success then
-        return response
-    end
-
-    -- Debug: Print parsed response
-    if config and config.features and config.features.debug then
-        DebugUtils.print("Anthropic Parsed Response:", response, config)
-    end
-
-    local success, result, reasoning, web_search_used = ResponseParser:parseResponse(response, "anthropic")
-    if not success then
-        return "Error: " .. result
-    end
-
-    -- Return result with optional metadata (reasoning, web_search)
-    -- This allows callers to access these if they want them
-    if reasoning or web_search_used then
-        return {
-            content = result,
-            reasoning = reasoning,
-            _has_reasoning = reasoning and true or nil,  -- Marker for gpt_query to detect
-            web_search_used = web_search_used,
-        }
-    end
-
-    return result
+    return {
+        _background_fn = self:backgroundRequest(base_url, headers, requestBody),
+        _non_streaming = true,
+        _response_parser = response_parser,
+    }
 end
 
 return AnthropicHandler
