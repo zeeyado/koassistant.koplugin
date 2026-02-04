@@ -880,7 +880,7 @@ function AskGPT:onDispatcherRegisterActions()
   Dispatcher:registerAction("koassistant_general_chat", {
     category = "none",
     event = "KOAssistantGeneralChat",
-    title = _("KOAssistant: General Chat"),
+    title = _("KOAssistant: General Chat/Action"),
     general = true
   })
 
@@ -888,7 +888,7 @@ function AskGPT:onDispatcherRegisterActions()
   Dispatcher:registerAction("koassistant_book_chat", {
     category = "none",
     event = "KOAssistantBookChat",
-    title = _("KOAssistant: New Book Chat/Actions"),
+    title = _("KOAssistant: New Book Chat/Action"),
     general = true
   })
 
@@ -4683,9 +4683,10 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
   -- This allows conditional items to naturally bump others down
   local remaining_buttons = {}
 
-  -- New General Chat (always)
+  -- General Chat/Action (always)
+  -- Note: showChatGPTDialog closes any existing input dialog, so no need to call on_close_callback
   table.insert(remaining_buttons, {
-    text = _("New General Chat"),
+    text = _("General Chat/Action"),
     callback = function()
       opening_subdialog = true
       UIManager:close(dialog)
@@ -4693,10 +4694,11 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
     end,
   })
 
-  -- New Book Chat/Actions (only when book is open)
+  -- New Book Chat/Action (only when book is open)
+  -- Note: showChatGPTDialog closes any existing input dialog, so no need to call on_close_callback
   if has_document then
     table.insert(remaining_buttons, {
-      text = _("New Book Chat/Actions"),
+      text = _("New Book Chat/Action"),
       callback = function()
         opening_subdialog = true
         UIManager:close(dialog)
@@ -4859,10 +4861,19 @@ function AskGPT:onKOAssistantQuickActions()
   })
 
   addButton({
-    text = _("New Book Chat/Actions"),
+    text = _("New Book Chat/Action"),
     callback = function()
       UIManager:close(dialog)
       self_ref:onKOAssistantBookChat()
+    end,
+  })
+
+  -- General Chat/Action (same as AI Quick Settings)
+  addButton({
+    text = _("General Chat/Action"),
+    callback = function()
+      UIManager:close(dialog)
+      self_ref:startGeneralChat()
     end,
   })
 
@@ -4880,6 +4891,15 @@ function AskGPT:onKOAssistantQuickActions()
       else
         self_ref:generateSummary()
       end
+    end,
+  })
+
+  -- AI Quick Settings (quick access from Quick Actions)
+  addButton({
+    text = _("AI Quick Settings"),
+    callback = function()
+      UIManager:close(dialog)
+      self_ref:onKOAssistantAISettings()
     end,
   })
 

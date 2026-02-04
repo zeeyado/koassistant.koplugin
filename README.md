@@ -73,7 +73,7 @@
 - [Technical Features](#technical-features)
   - [Streaming Responses](#streaming-responses)
   - [Prompt Caching](#prompt-caching)
-  - [Response Caching (X-Ray/Recap)](#response-caching-x-rayrecap) — Incremental updates as you read
+  - [Response Caching (X-Ray/Recap)](#response-caching-x-rayrecap) — Incremental updates + Summary Cache for Smart actions
   - [Reasoning/Thinking](#reasoningthinking)
   - [Web Search](#web-search) — AI searches the web for current information (Anthropic, Gemini, OpenRouter)
 - [Supported Providers + Settings](#supported-providers--settings) - Choose your model, etc
@@ -217,15 +217,19 @@ Assign "KOAssistant: AI Quick Settings" to a gesture for one-tap access to a two
 - **Translate & Dictionary** — Translation and dictionary language settings
 - **Highlight Bypass & Dictionary Bypass** — Toggle bypass modes on/off
 - **Chat History & Browse Notebooks** — Quick access to saved chats and notebooks
-- **New General Chat & Manage Actions** — Start a new chat or edit actions
+- **General Chat/Action** — Start a context-free conversation or run a general action
+- **Manage Actions** — Edit and configure your actions
 
-In reader mode, an additional row appears:
-- **Quick Actions... & More Settings...** — Access the Quick Actions panel or full settings menu
+In reader mode, additional buttons appear (items naturally shift to accommodate):
+- **New Book Chat/Action** — Start a chat about the current book or access book actions
+- **Quick Actions...** — Access the Quick Actions panel for reading features
+- **More Settings...** — Open the full settings menu
 
 **2. Quick Actions** (reader mode only)
 Assign "KOAssistant: Quick Actions" to a gesture for fast access to reading-related actions:
 - **Default actions** — X-Ray, Recap, Analyze Highlights
-- **Utilities** — Translate Page, View/Edit Notebook, Chat History, Continue Last Chat, New Chat About Book
+- **Summary management** — "View Summary" (if summary exists) or "Generate Summary" (if not) for cached document summaries
+- **Utilities** — Translate Page, View/Edit Notebook, Chat History, Continue Last Chat, New Book Chat/Action, General Chat/Action, AI Quick Settings
 
 You can add any book action to Quick Actions via **Action Manager → hold action → "Add to Quick Actions"**. Defaults can be removed the same way.
 
@@ -233,7 +237,7 @@ You can add any book action to Quick Actions via **Action Manager → hold actio
 
 **Alternative: Build a KOReader QuickMenu**
 For full customization, assign multiple KOAssistant actions to one gesture and enable **"Show as QuickMenu"** to get a selection menu with any actions you want, in any order, mixed with non-KOAssistant actions:
-- Chat History, Continue Last Chat, General Chat, Chat About Book
+- Chat History, Continue Last Chat, General Chat/Action, New Book Chat/Action
 - Toggle Dictionary Bypass, Toggle Highlight Bypass
 - Translate Current Page, Settings, etc.
 
@@ -379,21 +383,23 @@ Text extraction sends actual book/document content to the AI, enabling features 
 2. Enable **"Allow Text Extraction"** (the master toggle)
 3. Built-in actions (X-Ray, Recap, Explain in Context, Analyze in Context) already have the per-action flag enabled
 
-**Double-gating for safety:** Sensitive data requires both a global privacy setting AND a per-action permission flag (enabled for built in actions that need it, and duplicates you make of those actions). This prevents accidental data leakage if you use sensitive placeholders/template variables—enabling a global setting prevents automatically exposing that data in all actions.
+**Double-gating for custom actions:** When you create a custom action from scratch, sensitive data requires both a global privacy setting AND a per-action permission flag. This prevents accidental data leakage if you use sensitive placeholders/template variables—enabling a global setting doesn't automatically expose that data in all your custom actions.
+
+> **For built-in actions:** You only need to enable the global setting. Built-in actions already have the appropriate per-action flags set. When you copy a built-in action, it inherits those flags.
+
+The table below documents which flags are required for each data type (relevant when creating custom actions from scratch):
 
 | Data Type | Global Setting | Per-Action Flag |
 |-----------|----------------|-----------------|
 | Book text | Allow Text Extraction | "Allow text extraction" checked |
 | X-Ray analysis cache | Allow Text Extraction (+ Allow Highlights & Annotations if cache was built with annotations) | "Allow text extraction" and "Allow annotation use" (if cache was built with annotations) checked |
 | Analyze/Summary caches | Allow Text Extraction | "Allow text extraction" checked |
-| Highlights | Allow Highlights & Annotations | ""Allow annotation use" checked |
+| Highlights | Allow Highlights & Annotations | "Allow annotation use" checked |
 | Annotations | Allow Highlights & Annotations | "Allow annotation use" checked |
 | Notebook | Allow Notebook | "Allow notebook use" checked |
 | Surrounding context* | None (hard-capped 2000 chars) | Auto-inferred from placeholder |
 
-* Surrounding context is just a text selection type for highlight context (same as highlighting text), and added here for clarity because it extracts more than you highlighted.
-
-Built-in actions already have appropriate flags set. When you copy a built-in action, it inherits the flags. When creating a custom action from scratch, check the permissions your action needs.
+\* Surrounding context is a text selection type for highlight context (same as highlighting text), included here for clarity because it extracts more than you highlighted.
 
 **Two text extraction types** (determined by placeholder in your action prompt):
 - `{book_text_section}` — Extracts from start to your current reading position (used by X-Ray, Recap)
@@ -483,11 +489,19 @@ Both "Explain in Context" and "Analyze in Context" have Smart variants that use 
 - Books the AI isn't trained on (need context for every query)
 
 **How it works:**
-- First use: Prompts to generate a reusable summary (~30 seconds)
+- First use: Prompts to generate a reusable summary (generates via `summarize_full_document`)
 - Subsequent uses: Uses cached summary (much faster and cheaper)
-- Token savings: ~100K raw text → ~8K cached summary per query
+- Token savings: ~100K raw text → ~2-8K cached summary per query
 
-> **Tip**: View the cached summary coverage (e.g., "78%" if document was truncated) via Quick Actions → View Cache.
+**Managing summaries:**
+- **Generate**: Quick Actions → "Generate Summary" (when no summary exists)
+- **View**: Quick Actions → "View Summary" (when summary exists), or use the "View Summary" gesture
+- **File browser**: "View Summary (KOA)" button appears when a book has a cached summary
+- **Coverage**: The viewer title shows coverage percentage if document was truncated (e.g., "Summary (78%)")
+
+> **Tip**: For documents you'll query multiple times, generate the summary proactively via Quick Actions to save tokens on future queries.
+
+See [Response Caching → "Generate Once, Use Many Times"](#response-caching-x-rayrecap) for full details on the summary cache system.
 
 **What the AI sees**: Your highlighted text, plus document metadata (title, author). Actions like "Explain in Context" and "Analyze in Context" also use extracted book text to understand the surrounding content. Custom actions can access reading progress, chapter info, your highlights/annotations, notebook, and extracted book text—depending on action settings and [privacy preferences](#privacy--data). See [Template Variables](#template-variables) for details.
 
@@ -579,7 +593,7 @@ Custom actions using placeholders like `{reading_progress}`, `{book_text}`, `{fu
 
 ### General Chat
 
-**Access**: Tools → KOAssistant → New General Chat, or via gesture (easier)
+**Access**: Tools → KOAssistant → General Chat/Action, or via gesture (easier)
 
 A free-form conversation without specific document context. If started while a book is open, that "launch context" is saved with the chat (so you know where you launched it from) but doesn't affect the conversation, i.e. the AI doesn't see that you launched it from a specific document, and the chat is saved in General chats
 
@@ -830,9 +844,7 @@ Insert these in your action prompt to reference dynamic values:
 
 > **Privacy note:** Section placeholders adapt to [privacy settings](#privacy--data). If a data type is disabled (or not yet enabled), the corresponding placeholder returns empty and section variants disappear gracefully. For example, `{highlights_section}` is empty unless you enable **Allow Highlights & Annotations**. You don't need to modify actions to match your privacy preferences—they adapt automatically.
 
-> **Double-gating:** Sensitive data requires BOTH a global privacy setting AND a per-action permission flag. This prevents accidental data leakage—if you enable "Allow Text Extraction" globally, your custom actions still need "Allow text extraction" checked to actually use it. Built-in actions already have appropriate flags set. When you copy a built-in action, it inherits the flags. When creating from scratch, check the permissions you need. Document cache placeholders require the same permissions as their source: `{xray_cache}` needs both text extraction AND annotations enabled, while `{analyze_cache}` and `{summary_cache}` only need text extraction.
-
-> **Note:** Text extraction placeholders (`{book_text}`, `{full_document}`, analysis caches, etc.) require two things: (1) the global **Allow Text Extraction** setting enabled in Settings → Privacy & Data → Text Extraction, and (2) the action must have "Allow text extraction" checked. Both are off by default—primarily to avoid unexpected token costs, and secondarily for content awareness. See [Text Extraction](#text-extraction) for details.
+> **Double-gating (for custom actions):** When creating custom actions from scratch, sensitive data requires BOTH a global privacy setting AND a per-action permission flag. This prevents accidental data leakage—if you enable "Allow Text Extraction" globally, your new custom actions still need "Allow text extraction" checked to actually use it. Built-in actions already have appropriate flags set, and copied actions inherit them. Document cache placeholders require the same permissions as their source: `{xray_cache}` needs both text extraction AND annotations, while `{analyze_cache}` and `{summary_cache}` only need text extraction. See [Text Extraction and Double-gating](#text-extraction-and-double-gating) for the full reference table.
 
 ### Tips for Custom Actions
 
@@ -843,9 +855,9 @@ Insert these in your action prompt to reference dynamic values:
 - **Experiment with domains**: Try running the same action with and without a domain to see what works for your use case. Some actions benefit from domain context (analysis, explanation), others don't (translation, grammar).
 - **Test before deploying**: Use the [web inspector](#testing-your-setup) to test your custom actions before using them on your e-reader. You can try different settings combinations and see exactly what's sent to the AI.
 - **Reading-mode placeholders**: Book actions using `{reading_progress}`, `{book_text}`, `{full_document}`, `{highlights}`, `{annotations}`, `{notebook}`, or `{chapter_title}` are **automatically hidden** in File Browser mode because these require an open book. This filtering is automatic—if your custom book action uses these placeholders, it will only appear when reading. Highlight actions are always reading-mode (you can't highlight without an open book). The action wizard shows a `[reading]` indicator for such actions.
-- **Document caches**: Reference previous X-Ray, Analyze Document, or Summary results without re-running them using `{xray_cache_section}`, `{analyze_cache_section}`, or `{summary_cache_section}`. Useful for building on previous analysis. These require `use_book_text = true` since the cached content derives from book text (X-ray cache additionally requires use of annotations, if the cache was built with annotations in the first place). Two usage patterns:
+- **Document caches**: Reference previous X-Ray, Analyze Document, or Summary results without re-running them using `{xray_cache_section}`, `{analyze_cache_section}`, or `{summary_cache_section}`. Useful for building on previous analysis. These require `use_book_text = true` since the cached content derives from book text (X-Ray cache additionally requires use of annotations, if the cache was built with annotations in the first place). Two usage patterns:
   - **Supplement**: Add cache reference to actions that otherwise use only title/author (like Discussion Questions or Key Arguments). The section placeholder disappears if no cache exists, so there's no major change for users without caches—just bonus context when available.
-  - **Replace**: Use cached summary INSTEAD of raw book text for token savings on long books. Not implemented in built-in actions yet, but custom actions can experiment with this. See [Response Caching](#response-caching) for vision notes.
+  - **Replace**: Use cached summary INSTEAD of raw book text for token savings on long books. Built-in **Smart actions** (Explain in Context Smart, Analyze in Context Smart) implement this pattern. Add `requires_summary_cache = true` to your custom actions to trigger automatic summary generation when needed. See [Response Caching](#response-caching-x-rayrecap) for details.
 - **Surrounding context**: Use `{surrounding_context_section}` in highlight actions to include text around the highlighted passage. This is live extraction (not cached), hard-capped at 2000 characters. Particularly useful for **custom dictionary-like actions** that need sentence context for single-word lookups—look at the built-in `quick_define`, `dictionary`, and `deep` actions for inspiration. Uses your Dictionary Settings for context mode (sentence, paragraph, or character count).
 
 ### File-Based Actions
@@ -1199,8 +1211,8 @@ All KOAssistant gesture actions are in **Settings → Gesture Manager → Genera
 - KOAssistant: Chat History — Browse all saved chats
 - KOAssistant: Continue Last Saved Chat — Resume most recently saved chat
 - KOAssistant: Continue Last Opened Chat — Resume most recently viewed chat
-- KOAssistant: General Chat — Start a new general conversation
-- KOAssistant: Chat About Book — Start a chat about current book (reader mode)
+- KOAssistant: General Chat/Action — Start a new general conversation or run a general action
+- KOAssistant: New Book Chat/Action — Start a chat about current book or access book actions (reader mode)
 
 **Reading Features (default):**
 - KOAssistant: X-Ray — Generate book reference guide
@@ -1230,10 +1242,11 @@ All KOAssistant gesture actions are in **Settings → Gesture Manager → Genera
 - KOAssistant: Toggle Dictionary Bypass — Toggle dictionary bypass on/off
 - KOAssistant: Toggle Highlight Bypass — Toggle highlight bypass on/off
 
-**Notebooks:**
+**Notebooks & Summaries:**
 - KOAssistant: View Notebook — View current book's notebook (reader mode)
 - KOAssistant: Edit Notebook — Edit current book's notebook (reader mode)
 - KOAssistant: Browse Notebooks — Open Notebook Manager
+- KOAssistant: View Summary — View cached document summary (reader mode, if summary exists)
 
 **Custom Actions:**
 - Any book or general action you add via "Add to Gesture Menu"
@@ -1586,10 +1599,12 @@ Tags are simple labels for organizing chats. Unlike domains:
 **Tools → KOAssistant → Settings**
 
 ### Quick Actions
-- **Chat about Book**: Start a conversation about the current book (only visible when reading)
-- **New General Chat**: Start a context-free conversation
+- **New Book Chat/Action**: Start a conversation about the current book or access book actions
+- **General Chat/Action**: Start a context-free conversation or run a general action
+- **AI Quick Settings**: Quick access to provider, model, behavior, and other settings
 - **Chat History**: Browse saved conversations
 - **Browse Notebooks**: Open the Notebook Manager to view all notebooks
+- **View/Generate Summary**: View cached summary (if exists) or generate one (reader mode only)
 
 ### Reading Features (visible when document is open)
 - **X-Ray**: Generate a structured reference guide for the book up to your current reading position
@@ -1798,6 +1813,7 @@ Control where KOAssistant appears in KOReader's menus. All toggles default to ON
   - **Show Notebook Button**: Show "Notebook (KOA)" button when long-pressing books
   - **Only for books with notebooks**: Only show notebook button if notebook already exists
   - **Show Chat History Button**: Show "Chat History (KOA)" button when long-pressing books that have chat history
+  - **View Summary Button**: "View Summary (KOA)" appears automatically when a book has a cached summary (no setting needed)
 - **Dictionary Popup Actions...**: Configure which actions appear in the dictionary popup's AI menu
 - **Highlight Menu Actions...**: Configure which actions appear as shortcuts in the highlight menu
 - **Reset Options**: Reset Dictionary Popup Actions, Highlight Menu Actions, or all at once
@@ -2169,19 +2185,50 @@ If you haven't run X-Ray yet (or permissions aren't enabled), the placeholder re
 - Going backward in progress doesn't use cache (fresh generation)
 - Custom actions duplicated from X-Ray/Recap will inherit caching behavior
 
-**"Generate Once, Use Many Times"**
+**"Generate Once, Use Many Times" — Summary Cache**
 
-For medium and long texts, sending full document text for each highlight action is expensive. The Smart variants solve this:
+For medium and long texts, sending full document text (~100K tokens) for each highlight action is expensive. The summary cache pattern solves this:
 
-1. Run **Summarize Document** once → cached as reusable context (~2-5K tokens)
-2. Smart actions reference the cached summary instead of raw book text (100K+ tokens)
-3. Massive token savings for users who frequently use context-dependent actions
+1. **Generate a summary once** → cached as reusable context (~2-8K tokens)
+2. **Smart actions reference the cached summary** instead of raw book text
+3. **Massive token savings** for users who frequently use context-dependent actions
 
-Built-in Smart actions:
-- **Explain in Context (Smart)** — uses `{summary_cache_section}`
-- **Analyze in Context (Smart)** — uses `{summary_cache_section}` + `{annotations_section}`
+**How to generate a summary:**
+- **Quick Actions → Generate Summary** (when no summary exists)
+- **Summarize Document** action (from book actions menu)
+- **Smart actions auto-prompt** — When you use a Smart action without an existing summary, a dialog offers to generate one first
 
-Custom actions can use the same pattern with `requires_summary_cache = true`.
+**Viewing cached summaries:**
+- **Quick Actions → View Summary** (when summary exists)
+- **File Browser** → Long-press a book → "View Summary (KOA)" button (if summary exists)
+- **Gesture** → Assign "KOAssistant: View Summary" for quick access
+
+The summary viewer shows metadata: coverage percentage (e.g., "78%" if document was truncated), model used, and generation date. Buttons allow copying, regenerating, or deleting the cached summary.
+
+**Built-in Smart actions:**
+- **Explain in Context (Smart)** — Uses `{summary_cache_section}` for context
+- **Analyze in Context (Smart)** — Uses `{summary_cache_section}` + `{annotations_section}`
+
+**How Smart actions work:**
+1. User highlights text and selects a Smart action
+2. If summary cache exists → Uses cached summary immediately
+3. If no cache → Shows confirmation dialog: "Generate summary now?"
+4. User confirms → Summary generated via `summarize_full_document` action
+5. Original action continues with newly cached summary
+
+**Creating custom Smart actions:**
+Add `requires_summary_cache = true` to your action. This triggers the pre-flight cache check—if no summary exists, the user is prompted to generate one before the action proceeds.
+
+**When to use Smart variants:**
+- Longer documents (research papers, textbooks, novels)
+- Repeated queries on the same book
+- Books the AI isn't trained on (need context for every query)
+- When token cost is a concern
+
+**Token savings example:**
+- Raw book text: ~100,000 tokens per query
+- Cached summary: ~2,000-8,000 tokens per query
+- For 10 highlight queries: ~1M tokens saved
 
 **Text extraction guidelines:**
 - ~100 pages ≈ 25,000-40,000 characters (varies by formatting)

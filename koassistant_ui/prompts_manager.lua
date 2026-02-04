@@ -1292,7 +1292,7 @@ function PromptsManager:getContextInfo(context_value, include_book_context)
         },
         book = {
             text = _("Book"),
-            desc = _("File browser selection or 'New Book Chat/Actions' gesture"),
+            desc = _("File browser selection or 'New Book Chat/Action' gesture"),
             includes = _("Includes: book title, author (automatic)"),
         },
         multi_book = {
@@ -1427,7 +1427,7 @@ function PromptsManager:showContextSelectorWizard(state)
                 UIManager:show(InfoMessage:new{
                     text = _("Context determines when your action appears and what data is available:") .. "\n\n" ..
                            "• " .. _("Highlight") .. " — " .. _("When text is selected. Gets: selected text, optionally book info") .. "\n\n" ..
-                           "• " .. _("Book") .. " — " .. _("File browser or 'New Book Chat/Actions'. Gets: title, author") .. "\n\n" ..
+                           "• " .. _("Book") .. " — " .. _("File browser or 'New Book Chat/Action'. Gets: title, author") .. "\n\n" ..
                            "• " .. _("Multi-Book") .. " — " .. _("Multiple books selected. Gets: book list with count") .. "\n\n" ..
                            "• " .. _("General") .. " — " .. _("Standalone chat. No automatic context") .. "\n\n" ..
                            "• " .. _("Highlight & Book") .. " — " .. _("Both highlight and single-book menus"),

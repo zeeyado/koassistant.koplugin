@@ -36,7 +36,7 @@ local SettingsSchema = {
         {
             id = "new_general_chat",
             type = "action",
-            text = _("New General Chat"),
+            text = _("General Chat/Action"),
             callback = "startGeneralChat",
         },
         {
