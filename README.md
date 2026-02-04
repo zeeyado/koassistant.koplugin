@@ -232,7 +232,7 @@ Assign "KOAssistant: Quick Actions" to a gesture for fast access to reading-rela
 - **Summary management** — "View Summary" (if summary exists) or "Generate Summary" (if not) for cached document summaries
 - **Utilities** — Translate Page, View/Edit Notebook, Chat History, Continue Last Chat, New Book Chat/Action, General Chat/Action, AI Quick Settings
 
-You can add any book action to Quick Actions via **Action Manager → hold action → "Add to Quick Actions"**. To reorder or remove actions, use **Settings → Quick Actions Settings → Quick Actions Panel**. Defaults can also be removed.
+You can add any book action to Quick Actions via **Action Manager → hold action → "Add to Quick Actions"**. To reorder or remove actions, use **Settings → Quick Actions Settings → Panel Actions**. To show/hide utility buttons (Translate Page, Chat History, etc.), use **Settings → Quick Actions Settings → Panel Utilities**. Defaults can also be removed.
 
 > **Tip**: For quick access, assign AI Quick Settings and Quick Actions to their own gestures (e.g., two-finger tap, corner tap). This gives you one-tap access to these panels from anywhere. Alternatively, you can add them to a KOReader QuickMenu alongside other actions (see below).
 
@@ -1770,6 +1770,14 @@ See [Bypass Modes](#bypass-modes) and [Highlight Menu Actions](#highlight-menu-a
 - **Enable Highlight Bypass**: Immediately trigger action when selecting text (skip menu)
 - **Bypass Action**: Which action to trigger when bypass is enabled (default: Translate)
 - **Highlight Menu Actions**: View and reorder actions in the highlight popup menu (2 defaults: Translate, Explain)
+
+### Quick Actions Settings
+Configure the Quick Actions panel (available via gesture in reader mode).
+- **Panel Actions**: Reorder or remove actions from the Quick Actions panel. Add new actions via Action Manager → hold action → "Add to Quick Actions".
+- **Panel Utilities**: Show/hide utility buttons that appear below actions in the panel:
+  - Translate Page, View Notebook, Edit Notebook, Chat History, Continue Last Chat
+  - New Book Chat/Action, General Chat/Action, Summary (View/Generate), AI Quick Settings
+  - All utilities are enabled by default. Disable any you don't use to streamline the panel.
 
 ### Actions & Prompts
 - **Manage Actions**: See [Actions](#actions) section for full details

@@ -4825,15 +4825,15 @@ function AskGPT:onKOAssistantQuickActions()
   local file = self.ui.document.file
   local summary_exists = ActionCache.getSummaryCache(file) ~= nil
 
-  for _idx, util in ipairs(Constants.QUICK_ACTION_UTILITIES) do
+  for _idx, qa_util in ipairs(Constants.QUICK_ACTION_UTILITIES) do
     -- Check if utility is enabled (default true if not set)
-    local setting_key = "qa_show_" .. util.id
+    local setting_key = "qa_show_" .. qa_util.id
     local enabled = features[setting_key]
-    if enabled == nil then enabled = util.default end
+    if enabled == nil then enabled = qa_util.default end
 
     if enabled then
       -- Special handling for summary (dynamic text)
-      if util.id == "summary" then
+      if qa_util.id == "summary" then
         addButton({
           text = summary_exists and _("View Summary") or _("Generate Summary"),
           callback = function()
@@ -4847,12 +4847,12 @@ function AskGPT:onKOAssistantQuickActions()
         })
       else
         -- Standard utility button
-        local display_text = Constants.getQuickActionUtilityText(util.id, _)
+        local display_text = Constants.getQuickActionUtilityText(qa_util.id, _)
         addButton({
           text = display_text,
           callback = function()
             UIManager:close(dialog)
-            self_ref[util.callback](self_ref)
+            self_ref[qa_util.callback](self_ref)
           end,
         })
       end
