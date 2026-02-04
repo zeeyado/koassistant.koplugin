@@ -843,14 +843,20 @@ local SettingsSchema = {
             },
         },
 
-        -- Quick Actions Settings
+        -- Quick Panel Settings
         {
-            id = "quick_actions_settings",
+            id = "quick_panel_settings",
             type = "submenu",
-            text = _("Quick Actions Settings"),
+            text = _("Quick Panel Settings"),
             items = (function()
                 -- Build items dynamically from Constants
                 local items = {
+                    -- Quick Actions Panel section
+                    {
+                        id = "quick_actions_header",
+                        type = "header",
+                        text = _("Quick Actions Panel"),
+                    },
                     {
                         id = "quick_actions_actions",
                         type = "action",
@@ -859,10 +865,11 @@ local SettingsSchema = {
                         help_text = _("Choose which actions appear in the Quick Actions panel and their order"),
                     },
                     {
-                        id = "panel_utilities_submenu",
+                        id = "qa_panel_utilities_submenu",
                         type = "submenu",
-                        text = _("Panel Utilities"),
+                        text = _("QA Panel Utilities"),
                         help_text = _("Show or hide utility buttons in the Quick Actions panel"),
+                        separator = true,
                         items = (function()
                             -- Generate toggle items from Constants.QUICK_ACTION_UTILITIES
                             local utility_items = {}
@@ -875,7 +882,7 @@ local SettingsSchema = {
                                 new_book_chat = _("New Book Chat/Action"),
                                 general_chat = _("General Chat/Action"),
                                 summary = _("Summary (View/Generate)"),
-                                ai_quick_settings = _("AI Quick Settings"),
+                                ai_quick_settings = _("Quick Settings"),
                             }
                             for _, util in ipairs(Constants.QUICK_ACTION_UTILITIES) do
                                 table.insert(utility_items, {
@@ -888,6 +895,154 @@ local SettingsSchema = {
                             end
                             return utility_items
                         end)(),
+                    },
+
+                    -- Quick Settings Panel section
+                    {
+                        id = "quick_settings_header",
+                        type = "header",
+                        text = _("Quick Settings Panel"),
+                    },
+                    {
+                        id = "qs_panel_utilities_submenu",
+                        type = "submenu",
+                        text = _("QS Panel Utilities"),
+                        help_text = _("Show or hide controls in the Quick Settings panel"),
+                        items = {
+                            {
+                                id = "qs_show_provider",
+                                type = "toggle",
+                                text = _("Provider"),
+                                path = "features.qs_show_provider",
+                                default = true,
+                            },
+                            {
+                                id = "qs_show_model",
+                                type = "toggle",
+                                text = _("Model"),
+                                path = "features.qs_show_model",
+                                default = true,
+                            },
+                            {
+                                id = "qs_show_behavior",
+                                type = "toggle",
+                                text = _("Behavior"),
+                                path = "features.qs_show_behavior",
+                                default = true,
+                            },
+                            {
+                                id = "qs_show_domain",
+                                type = "toggle",
+                                text = _("Domain"),
+                                path = "features.qs_show_domain",
+                                default = true,
+                            },
+                            {
+                                id = "qs_show_temperature",
+                                type = "toggle",
+                                text = _("Temperature"),
+                                path = "features.qs_show_temperature",
+                                default = true,
+                            },
+                            {
+                                id = "qs_show_extended_thinking",
+                                type = "toggle",
+                                text = _("Anthropic/Gemini Reasoning"),
+                                path = "features.qs_show_extended_thinking",
+                                default = true,
+                            },
+                            {
+                                id = "qs_show_web_search",
+                                type = "toggle",
+                                text = _("Web Search"),
+                                path = "features.qs_show_web_search",
+                                default = true,
+                            },
+                            {
+                                id = "qs_show_language",
+                                type = "toggle",
+                                text = _("Language"),
+                                path = "features.qs_show_language",
+                                default = true,
+                            },
+                            {
+                                id = "qs_show_translation_language",
+                                type = "toggle",
+                                text = _("Translation Language"),
+                                path = "features.qs_show_translation_language",
+                                default = true,
+                            },
+                            {
+                                id = "qs_show_dictionary_language",
+                                type = "toggle",
+                                text = _("Dictionary Language"),
+                                path = "features.qs_show_dictionary_language",
+                                default = true,
+                            },
+                            {
+                                id = "qs_show_h_bypass",
+                                type = "toggle",
+                                text = _("H.Bypass"),
+                                path = "features.qs_show_h_bypass",
+                                default = true,
+                            },
+                            {
+                                id = "qs_show_d_bypass",
+                                type = "toggle",
+                                text = _("D.Bypass"),
+                                path = "features.qs_show_d_bypass",
+                                default = true,
+                            },
+                            {
+                                id = "qs_show_chat_history",
+                                type = "toggle",
+                                text = _("Chat History"),
+                                path = "features.qs_show_chat_history",
+                                default = true,
+                            },
+                            {
+                                id = "qs_show_browse_notebooks",
+                                type = "toggle",
+                                text = _("Browse Notebooks"),
+                                path = "features.qs_show_browse_notebooks",
+                                default = true,
+                            },
+                            {
+                                id = "qs_show_general_chat",
+                                type = "toggle",
+                                text = _("General Chat/Action"),
+                                path = "features.qs_show_general_chat",
+                                default = true,
+                            },
+                            {
+                                id = "qs_show_new_book_chat",
+                                type = "toggle",
+                                text = _("New Book Chat/Action"),
+                                path = "features.qs_show_new_book_chat",
+                                default = true,
+                            },
+                            {
+                                id = "qs_show_manage_actions",
+                                type = "toggle",
+                                text = _("Manage Actions"),
+                                path = "features.qs_show_manage_actions",
+                                default = true,
+                            },
+                            {
+                                id = "qs_show_quick_actions",
+                                type = "toggle",
+                                text = _("Quick Actions"),
+                                path = "features.qs_show_quick_actions",
+                                default = true,
+                            },
+                            {
+                                id = "qs_show_more_settings",
+                                type = "toggle",
+                                text = _("More Settings"),
+                                path = "features.qs_show_more_settings",
+                                default = true,
+                            },
+                        },
                     },
                 }
                 return items
