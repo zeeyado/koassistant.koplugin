@@ -1827,6 +1827,7 @@ Control where KOAssistant appears in KOReader's menus. All toggles default to ON
 
 ### About
 - **About KOAssistant**: Plugin info and gesture tips
+- **Auto-check for updates on startup**: Toggle automatic update checking (default: on)
 - **Check for Updates**: Manual update check (see [Update Checking](#update-checking) below)
 
 ---
@@ -1837,15 +1838,16 @@ KOAssistant includes both automatic and manual update checking to keep you infor
 
 ### Automatic Update Check
 
-By default, KOAssistant automatically checks for updates **once per session** when you first use a plugin feature (starting a chat, highlighting text, etc.). 1.5 sec timout. 
+By default, KOAssistant automatically checks for updates **once per session** when you first use a plugin feature (starting a chat, highlighting text, etc.).
 
 **How it works:**
-1. First time you use KOAssistant after launching KOReader, a brief "Checking for updates..." notification appears (1.5 seconds)
-2. The check runs in the background without blocking your workflow
+1. First time you use KOAssistant after launching KOReader, a brief "Checking for updates..." notification appears
+2. The check runs in the background without blocking your workflow (4 second timeout)
 3. If a new version is available, a dialog appears with:
    - Current version and latest version
-   - Full release notes in formatted markdown
+   - Full release notes in formatted markdown with clickable links
    - "Visit Release Page" button to download (opens in browser if device supports it)
+   - "Translate" button to translate release notes to your translation language (only shown if non-English)
    - "Later" button to dismiss
 
 **What's checked:**
@@ -1855,8 +1857,8 @@ By default, KOAssistant automatically checks for updates **once per session** wh
 - Only checks once per session to avoid repeated notifications
 
 **To disable automatic checking:**
-- This feature is enabled by default with no current UI toggle
-- To disable, add to your `configuration.lua`:
+- Go to **Settings → About → Auto-check for updates on startup** and toggle it off
+- Or add to your `configuration.lua`:
   ```lua
   features = {
       auto_check_updates = false,
