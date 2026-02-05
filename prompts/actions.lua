@@ -371,6 +371,46 @@ Note: The summary may be in a different language than your response language. Tr
         },
         builtin = true,
     },
+    -- Thematic Connection (Smart): Analyze how passage relates to larger themes
+    thematic_connection_smart = {
+        id = "thematic_connection_smart",
+        text = _("Thematic Connection (Smart)"),
+        context = "highlight",
+        use_book_text = true,        -- Gate for accessing _summary_cache
+        use_summary_cache = true,    -- Reference the cached summary
+        include_book_context = true,
+        requires_summary_cache = true,  -- Trigger pre-flight cache check
+        prompt = [[Analyze how this passage connects to the larger themes of the work:
+
+"{highlighted_text}"
+
+From "{title}"{author_clause}.
+
+{summary_cache_section}
+
+Show me the connections:
+
+## Theme Alignment
+Which major themes from the summary does this passage touch on? How does it develop, reinforce, or complicate them?
+
+## Significance
+Why might this particular passage matter in the context of the whole work? What work is it doing?
+
+## Echoes & Patterns
+Does this passage echo earlier ideas, or introduce something new? Does it resolve, extend, or subvert established patterns?
+
+## Craft
+How does the author's choice of language, structure, or placement enhance the thematic resonance?
+
+Keep analysis grounded in the specific passage while connecting to the broader context. {conciseness_nudge}
+
+Note: The summary may be in a different language than your response language. Translate or adapt as needed.]],
+        api_params = {
+            temperature = 0.6,
+            max_tokens = 4096,
+        },
+        builtin = true,
+    },
 }
 
 -- Built-in actions for book context (single book from file browser)
@@ -784,6 +824,86 @@ Note: These are general questions for the complete work. If the reader is mid-bo
         },
         builtin = true,
         in_quick_actions = 6,     -- Appears in Quick Actions menu
+    },
+    -- Discussion Questions (Smart): Generate discussion prompts using cached summary
+    discussion_questions_smart = {
+        id = "discussion_questions_smart",
+        text = _("Discussion Questions (Smart)"),
+        context = "book",
+        use_book_text = true,        -- Gate for accessing _summary_cache
+        use_summary_cache = true,    -- Reference the cached summary
+        requires_summary_cache = true,  -- Trigger pre-flight cache check
+        prompt = [[Generate thoughtful discussion questions for "{title}"{author_clause}.
+
+{summary_cache_section}
+
+Create 8-10 questions that could spark good conversation:
+
+## Comprehension Questions (2-3)
+Questions that check understanding of key points/events
+
+## Analytical Questions (3-4)
+Questions about how and why — motivations, techniques, implications
+
+## Interpretive Questions (2-3)
+Questions with multiple valid answers that invite debate
+
+## Personal Connection Questions (1-2)
+Questions that connect the work to the reader's own experience/views
+
+Adapt to content type:
+- For fiction: Focus on character decisions, themes, craft choices
+- For non-fiction: Focus on arguments, evidence, real-world applications
+
+{conciseness_nudge} {hallucination_nudge}
+
+Note: The summary may be in a different language than your response language. Translate or adapt as needed.]],
+        skip_domain = true,  -- Discussion format is standardized
+        api_params = {
+            temperature = 0.7,
+            max_tokens = 4096,
+        },
+        builtin = true,
+    },
+    -- Generate Quiz (Smart): Create comprehension questions using cached summary
+    generate_quiz_smart = {
+        id = "generate_quiz_smart",
+        text = _("Generate Quiz (Smart)"),
+        context = "book",
+        use_book_text = true,        -- Gate for accessing _summary_cache
+        use_summary_cache = true,    -- Reference the cached summary
+        requires_summary_cache = true,  -- Trigger pre-flight cache check
+        prompt = [[Create a comprehension quiz for "{title}"{author_clause}.
+
+{summary_cache_section}
+
+Generate 8-10 questions with answers to test understanding:
+
+## Multiple Choice (3-4 questions)
+Test recall of key facts, characters, or concepts.
+Format: Question, options A-D, correct answer with brief explanation.
+
+## Short Answer (3-4 questions)
+Test understanding of themes, arguments, or motivations.
+Format: Question, then model answer (2-3 sentences).
+
+## Discussion/Essay (2 questions)
+Open-ended questions requiring synthesis or analysis.
+Format: Question, then key points a good answer should cover.
+
+Adapt to content type:
+- Fiction: Focus on plot, characters, themes, narrative choices
+- Non-fiction: Focus on arguments, evidence, key concepts, implications
+
+{conciseness_nudge} {hallucination_nudge}
+
+Note: The summary may be in a different language than your response language. Translate or adapt as needed.]],
+        skip_domain = true,  -- Quiz format is standardized
+        api_params = {
+            temperature = 0.6,  -- Balanced variety
+            max_tokens = 4096,
+        },
+        builtin = true,
     },
     -- Analyze Full Document: Complete document analysis for short content
     analyze_full_document = {

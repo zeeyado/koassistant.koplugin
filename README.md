@@ -43,7 +43,7 @@
   - [Managing Actions](#managing-actions)
   - [Tuning Built-in Actions](#tuning-built-in-actions)
   - [Creating Actions](#creating-actions) — Wizard + template variables
-  - [Template Variables](#template-variables) — 26 placeholders for dynamic content
+  - [Template Variables](#template-variables) — 30+ placeholders for dynamic content
     - [Utility Placeholders](#utility-placeholders) — Reusable prompt fragments (conciseness, hallucination nudges)
   - [Highlight Menu Actions](#highlight-menu-actions)
 - [Dictionary Integration](#dictionary-integration) — Compact view, on demand context mode
@@ -799,6 +799,7 @@ Insert these in your action prompt to reference dynamic values:
 | `{translation_language}` | Any | Target language from settings | — |
 | `{dictionary_language}` | Any | Dictionary response language from settings | — |
 | `{context}` | Highlight | Surrounding text context (sentence/paragraph/characters) | — |
+| `{context_section}` | Highlight | Context with "Word appears in this context:" label | — |
 | `{reading_progress}` | Book (reading) | Current reading position (e.g., "42%") | Allow Reading Progress |
 | `{progress_decimal}` | Book (reading) | Reading position as decimal (e.g., "0.42") | Allow Reading Progress |
 | `{chapter_title}` | Book (reading) | Current chapter name | Allow Chapter Info |
@@ -816,8 +817,8 @@ Insert these in your action prompt to reference dynamic values:
 | `{full_document_section}` | Book, Highlight (reading) | Same as above with "Full document:" label | Allow Text Extraction |
 | `{surrounding_context}` | Highlight (reading) | Text surrounding the highlighted passage | — |
 | `{surrounding_context_section}` | Highlight (reading) | Same as above with "Surrounding text:" label | — |
-| `{xray_cache}` | Book (reading) | Cached X-Ray (if available) | Allow Text Extraction |
-| `{xray_cache_section}` | Book (reading) | Same as above with progress label | Allow Text Extraction |
+| `{xray_cache}` | Book (reading) | Cached X-Ray (if available) | Allow Text Extraction (+ Annotations if cache used them) |
+| `{xray_cache_section}` | Book (reading) | Same as above with progress label | Allow Text Extraction (+ Annotations if cache used them) |
 | `{analyze_cache}` | Book (reading) | Cached document analysis (if available) | Allow Text Extraction |
 | `{analyze_cache_section}` | Book (reading) | Same as above with label | Allow Text Extraction |
 | `{summary_cache}` | Book (reading) | Cached document summary (if available) | Allow Text Extraction |
@@ -834,6 +835,7 @@ Insert these in your action prompt to reference dynamic values:
 "Section" placeholders automatically include a label and gracefully disappear when empty:
 - `{book_text_section}` → "Book content so far:\n[content]" or "" if empty
 - `{full_document_section}` → "Full document:\n[content]" or "" if empty
+- `{context_section}` → "Word appears in this context: [text]" or "" if empty
 - `{highlights_section}` → "My highlights so far:\n[content]" or "" if empty
 - `{annotations_section}` → "My annotations:\n[content]" or "" if empty
 - `{notebook_section}` → "My notebook entries:\n[content]" or "" if empty
@@ -915,8 +917,7 @@ return {
 - `thinking_budget`: Legacy: Token budget when extended_thinking="on" (1024-32000)
 - `enabled`: Set to `false` to hide
 - `use_book_text`: Allow text extraction for this action (acts as permission gate; also requires global "Allow Text Extraction" setting enabled). The actual extraction is triggered by placeholders in the prompt: `{book_text_section}` extracts to current position, `{full_document_section}` extracts entire document. Also gates access to analysis cache placeholders.
-- `use_highlights`: Include document highlights
-- `use_annotations`: Include highlights with user notes
+- `use_annotations`: Include document highlights and annotations (`use_highlights` is deprecated, use this instead)
 - `use_reading_progress`: Include reading position and chapter info
 - `use_reading_stats`: Include time since last read and chapter count
 - `use_notebook`: Include content from the book's KOAssistant notebook
@@ -928,6 +929,7 @@ return {
 - `skip_language_instruction`: Don't include language instruction in system message (default: off; Translate/Dictionary use true since target language is in the prompt)
 - `skip_domain`: Don't include domain context in system message (default: off; Translate/Dictionary use true)
 - `domain`: Force a specific domain by ID (overrides the user's current domain selection; file-only, no UI for this yet)
+- `enable_web_search`: Override global web search setting (true=force on, false=force off, nil=follow global)
 
 **Per-provider reasoning config** (new in v0.6):
 ```lua
@@ -2218,7 +2220,7 @@ Custom actions can reference these using `{xray_cache_section}`, `{analyze_cache
 If you haven't run X-Ray yet (or permissions aren't enabled), the placeholder renders empty and the action still runs, just without the analysis context.
 
 > **Permission requirement:** Cache placeholders require the same permissions as the original action that generated them:
-> - `{xray_cache_section}` requires **Allow Text Extraction** AND **Allow Highlights & Annotations** (because X-Ray uses highlights)
+> - `{xray_cache_section}` requires **Allow Text Extraction**, plus **Allow Highlights & Annotations** if the cache was built with annotations
 > - `{analyze_cache_section}` and `{summary_cache_section}` require only **Allow Text Extraction**
 >
 > Without the required gates enabled (both global setting and per-action flag), the placeholder renders empty.
