@@ -910,7 +910,7 @@ function AskGPT:onDispatcherRegisterActions()
       category = "none",
       event = event_name,
       title = T(_("KOAssistant: %1"), action.text),
-      general = true,
+      general = false,  -- Book actions require open book
       reader = true,
     })
   end
@@ -963,8 +963,8 @@ function AskGPT:onDispatcherRegisterActions()
     category = "none",
     event = "KOAssistantQuickActions",
     title = _("KOAssistant: Quick Actions"),
-    general = true,
-    reader = true,  -- Only available in reader mode
+    general = false,  -- Requires open book
+    reader = true,
   })
 
   Dispatcher:registerAction("koassistant_action_manager", {
@@ -1030,27 +1030,27 @@ function AskGPT:onDispatcherRegisterActions()
     category = "none",
     event = "KOAssistantTranslatePage",
     title = _("KOAssistant: Translate Current Page"),
-    general = true,
+    general = false,  -- Requires open book
     reader = true,
     separator = true
   })
 
   -- Notebook gestures
-  -- View current book's notebook (requires open book, checked at runtime)
+  -- View current book's notebook (requires open book)
   Dispatcher:registerAction("koassistant_view_notebook", {
     category = "none",
     event = "KOAssistantViewNotebook",
     title = _("KOAssistant: View Notebook"),
-    general = true,
+    general = false,  -- Requires open book
     reader = true,
   })
 
-  -- Edit current book's notebook (requires open book, checked at runtime)
+  -- Edit current book's notebook (requires open book)
   Dispatcher:registerAction("koassistant_edit_notebook", {
     category = "none",
     event = "KOAssistantEditNotebook",
     title = _("KOAssistant: Edit Notebook"),
-    general = true,
+    general = false,  -- Requires open book
     reader = true,
   })
 
@@ -1068,7 +1068,7 @@ function AskGPT:onDispatcherRegisterActions()
     category = "none",
     event = "KOAssistantViewSummary",
     title = _("KOAssistant: View Summary"),
-    general = true,
+    general = false,  -- Requires open book
     reader = true,
   })
 
@@ -1101,7 +1101,7 @@ function AskGPT:onDispatcherRegisterActions()
           category = "none",
           event = event_name,
           title = _("KOAssistant: ") .. (action.text or action_id),
-          general = true,
+          general = (context == "general" or context == "book+general"),
           reader = (context == "book" or context == "book+general"),
         })
 
