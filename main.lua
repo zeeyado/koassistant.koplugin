@@ -20,7 +20,7 @@ local Screen = Device.screen
 
 local Dialogs = require("koassistant_dialogs")
 local showChatGPTDialog = Dialogs.showChatGPTDialog
-local UpdateChecker = require("koassistant_update_checker")
+-- UpdateChecker is lazy-loaded to speed up plugin startup (defers loading ~25 UI modules)
 local SettingsSchema = require("koassistant_settings_schema")
 local SettingsManager = require("koassistant_ui.settings_manager")
 local PromptsManager = require("koassistant_ui.prompts_manager")
@@ -146,6 +146,7 @@ function AskGPT:init()
   local features = self.settings:readSetting("features") or {}
   if features.auto_check_updates ~= false then
     NetworkMgr:runWhenOnline(function()
+      local UpdateChecker = require("koassistant_update_checker")
       UpdateChecker.checkForUpdates(true) -- auto = true (silent background check)
     end)
   end
@@ -6063,11 +6064,13 @@ end
 
 function AskGPT:checkForUpdates()
   NetworkMgr:runWhenOnline(function()
+    local UpdateChecker = require("koassistant_update_checker")
     UpdateChecker.checkForUpdates(false) -- auto = false (manual check with UI feedback)
   end)
 end
 
 function AskGPT:showAbout()
+  local UpdateChecker = require("koassistant_update_checker")
   UIManager:show(InfoMessage:new{
     text = _("KOAssistant Plugin\nVersion: ") ..
           (UpdateChecker.getCurrentVersion() or "Unknown") ..
