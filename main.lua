@@ -147,15 +147,9 @@ function AskGPT:init()
   if features.auto_check_updates ~= false then
     -- Delay check to give network time to initialize, then only proceed if already online
     UIManager:scheduleIn(1, function()
-      logger.info("KOAssistant: auto-update check scheduled, isOnline =", NetworkMgr:isOnline())
       if NetworkMgr:isOnline() then
-        logger.info("KOAssistant: online, running auto-update check")
-        local ok, UpdateChecker = pcall(require, "koassistant_update_checker")
-        if ok then
-          UpdateChecker.checkForUpdates(true) -- auto = true (silent background check)
-        else
-          logger.err("KOAssistant: Failed to load UpdateChecker:", UpdateChecker)
-        end
+        local UpdateChecker = require("koassistant_update_checker")
+        UpdateChecker.checkForUpdates(true) -- auto = true (silent background check)
       end
     end)
   end
@@ -6072,16 +6066,9 @@ function AskGPT:showChatHistory()
 end
 
 function AskGPT:checkForUpdates()
-  logger.info("KOAssistant: checkForUpdates called")
   NetworkMgr:runWhenOnline(function()
-    logger.info("KOAssistant: runWhenOnline callback fired")
-    local ok, UpdateChecker = pcall(require, "koassistant_update_checker")
-    if ok then
-      logger.info("KOAssistant: UpdateChecker loaded, calling checkForUpdates")
-      UpdateChecker.checkForUpdates(false) -- auto = false (manual check with UI feedback)
-    else
-      logger.err("KOAssistant: Failed to load UpdateChecker:", UpdateChecker)
-    end
+    local UpdateChecker = require("koassistant_update_checker")
+    UpdateChecker.checkForUpdates(false) -- auto = false (manual check with UI feedback)
   end)
 end
 
