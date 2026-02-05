@@ -41,6 +41,7 @@ local MD = require("apps/filemanager/lib/md")
 local SpinWidget = require("ui/widget/spinwidget")
 local UIConstants = require("koassistant_ui.constants")
 local Languages = require("koassistant_languages")
+local Constants = require("koassistant_constants")
 
 -- Strip markdown syntax for text mode (preserves readability without formatting)
 -- Used when render_markdown is false - converts markdown to plain text with visual hints
@@ -1185,10 +1186,18 @@ function ChatGPTViewer:init()
     end
     return false
   end
+  -- Helper to get web search button text with optional emoji
+  local function getWebSearchButtonText(state)
+    local enable_emoji = self.configuration and self.configuration.features
+                         and self.configuration.features.enable_emoji_icons
+    local label = state and _("ON") or _("OFF")
+    return Constants.getEmojiText("🔍", "Web " .. label, enable_emoji)
+  end
+
   table.insert(first_row, {
     text_func = function()
       local state = getWebSearchState()
-      return state and _("🔍 ON") or _("🔍 OFF")
+      return getWebSearchButtonText(state)
     end,
     id = "toggle_web_search",
     callback = function()
@@ -1200,7 +1209,7 @@ function ChatGPTViewer:init()
       if button then
         local new_state = getWebSearchState()
         button.did_truncation_tweaks = true  -- Force full re-init with truncation check
-        button:setText(new_state and _("🔍 ON") or _("🔍 OFF"), button.width)
+        button:setText(getWebSearchButtonText(new_state), button.width)
       end
       -- Refresh display
       UIManager:setDirty(self, function()

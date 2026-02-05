@@ -14,6 +14,7 @@ local json = require("json")
 local ffi = require("ffi")
 local ffiutil = require("ffi/util")
 local UIConstants = require("koassistant_ui.constants")
+local Constants = require("koassistant_constants")
 
 local StreamHandler = {
     interrupt_stream = nil,      -- function to interrupt the stream query
@@ -555,7 +556,8 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                                             animation_task = nil
                                         end
                                     end
-                                    streamDialog._input_widget:setText(_("🔍 Searching the web..."), true)
+                                    local search_text = Constants.getEmojiText("🔍", _("Searching the web..."), settings and settings.enable_emoji_icons)
+                                    streamDialog._input_widget:setText(search_text, true)
                                     -- Don't add to result buffer - this is just UI feedback
                                 else
                                     -- If transitioning from web search or reasoning to answer, clear display
