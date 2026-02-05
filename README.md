@@ -125,7 +125,7 @@
 
 ### 1. Install the Plugin
 
-If you are updating, follow the same steps, and just choose merge folder and replace/overwrite any matching files. An automatic updater is plannes.
+If you are updating, follow the same steps, and just choose merge folder and replace/overwrite any matching files. An automatic updater is planned.
 
 Download koassistant.koplugin.zip from latest [Release](https://github.com/zeeyado/koassistant.koplugin/releases) -> Assets or clone:
 ```bash
