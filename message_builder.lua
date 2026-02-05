@@ -114,9 +114,9 @@ function MessageBuilder.build(params)
             user_prompt = templates_getter(prompt.template)
         else
             -- Try to load Templates module (works in plugin context)
-            local ok, Templates = pcall(require, "prompts/templates")
-            if ok and Templates then
-                user_prompt = Templates.get(prompt.template)
+            local ok, _Templates = pcall(require, "prompts/templates")
+            if ok and _Templates then
+                user_prompt = _Templates.get(prompt.template)
             end
         end
     end
