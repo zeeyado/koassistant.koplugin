@@ -142,12 +142,15 @@ function AskGPT:init()
   chat_history_manager:validateChatIndex()
 
   -- Auto-check for updates at startup (if enabled)
-  -- Runs silently in background, only shows UI if update is available
+  -- Only check if already online - don't trigger WiFi connection for silent background checks
   local features = self.settings:readSetting("features") or {}
   if features.auto_check_updates ~= false then
-    NetworkMgr:runWhenOnline(function()
-      local UpdateChecker = require("koassistant_update_checker")
-      UpdateChecker.checkForUpdates(true) -- auto = true (silent background check)
+    -- Delay check to give network time to initialize, then only proceed if already online
+    UIManager:scheduleIn(1, function()
+      if NetworkMgr:isOnline() then
+        local UpdateChecker = require("koassistant_update_checker")
+        UpdateChecker.checkForUpdates(true) -- auto = true (silent background check)
+      end
     end)
   end
 
