@@ -198,7 +198,7 @@ Explore how it relates to:
 - Other books, thinkers, or intellectual traditions
 - Broader historical or cultural context
 
-Surface connections that enrich understanding, not tangential trivia. Be direct. Don't over-elaborate.]],
+Surface connections that enrich understanding, not tangential trivia. Be direct and concise. Don't over-elaborate.]],
         include_book_context = true,
         api_params = {
             temperature = 0.7,
@@ -236,7 +236,7 @@ Based on this highlight, is there anything I might want to add to my notebook? A
 
 If I have no prior highlights or notebook entries, just reflect on this passage and suggest what might be worth noting.
 
-Be direct. Don't over-elaborate.]],
+Be direct and concise. Don't over-elaborate.]],
         skip_domain = true,
         api_params = {
             temperature = 0.6,
@@ -264,7 +264,7 @@ Help me understand:
 2. How it connects to what came before
 3. Key references or concepts it builds on
 
-Be direct. Don't over-elaborate.]],
+Be direct and concise. Don't over-elaborate.]],
         api_params = {
             temperature = 0.5,
             max_tokens = 4096,
@@ -294,7 +294,7 @@ Provide deeper analysis:
 3. **Patterns**: Does it echo or develop something from before?
 4. **My notes**: If I've highlighted related passages, show those connections.
 
-Be direct. Don't over-elaborate.]],
+Be direct and concise. Don't over-elaborate.]],
         api_params = {
             temperature = 0.6,
             max_tokens = 4096,
@@ -323,7 +323,7 @@ Using the document summary above as context, help me understand:
 2. How it relates to the document's main themes and arguments
 3. Key concepts or references it builds on
 
-Be direct. Don't over-elaborate.
+Be direct and concise. Don't over-elaborate.
 
 Note: The summary may be in a different language than your response language. Translate or adapt as needed.]],
         api_params = {
@@ -358,7 +358,7 @@ Provide deeper analysis:
 3. **Patterns**: Does it echo or develop ideas mentioned in the summary?
 4. **My notes**: If I've highlighted related passages, show those connections.
 
-Be direct. Don't over-elaborate.
+Be direct and concise. Don't over-elaborate.
 
 Note: The summary may be in a different language than your response language. Translate or adapt as needed.]],
         api_params = {
