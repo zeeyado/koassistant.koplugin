@@ -41,6 +41,7 @@
 --
 -- Utility placeholders (always available):
 --   {conciseness_nudge}   - Standard conciseness instruction for verbose models
+--   {hallucination_nudge} - Standard instruction to admit uncertainty rather than guess
 --
 -- Note: Book text extraction is OFF by default. Users must enable it in
 -- Settings → Advanced → Context Extraction before {book_text} placeholders work.
@@ -52,6 +53,10 @@ local Templates = {}
 -- Conciseness nudge - standard instruction to reduce verbosity
 -- Available as {conciseness_nudge} placeholder in all contexts
 Templates.CONCISENESS_NUDGE = "Be direct and concise. Don't restate or over-elaborate."
+
+-- Hallucination nudge - standard instruction to admit uncertainty
+-- Available as {hallucination_nudge} placeholder in all contexts
+Templates.HALLUCINATION_NUDGE = "If you don't recognize this or the content seems unclear, say so rather than guessing."
 
 -- Highlight context templates
 Templates.highlight = {
@@ -89,7 +94,7 @@ Templates.book = {
 - What type of reader typically loves this work
 - Reading experience (accessible? dense? requires background?)
 
-Adapt tone and focus to content type (fiction vs non-fiction vs academic). Be concise but informative. If you don't recognize this title, say so rather than guessing.]],
+Adapt tone and focus to content type (fiction vs non-fiction vs academic). Be concise but informative. {hallucination_nudge}]],
 
     similar_books = [[Based on "{title}"{author_clause}, recommend 5-7 similar works.
 
@@ -102,7 +107,7 @@ Adapt to content type:
 - Non-fiction: Similar arguments, perspectives, or intellectual tradition
 - Academic: Works that complement, extend, or debate this one
 
-If you don't recognize this title, say so rather than guessing.]],
+{hallucination_nudge}]],
 
     explain_author = [[Tell me about the author of "{title}"{author_clause}. Include:
 
@@ -112,7 +117,7 @@ If you don't recognize this title, say so rather than guessing.]],
 - Historical/cultural context of their work
 - Suggested reading order for their works (if they have multiple)
 
-Be concise. For intellectual influences and lineage, the reader can use "Related Thinkers". If you're not familiar with this author, say so rather than guessing.]],
+Be concise. For intellectual influences and lineage, the reader can use "Related Thinkers". {hallucination_nudge}]],
 
     historical_context = [[Provide historical context for "{title}"{author_clause}:
 - When was it written and what was happening at that time
@@ -120,7 +125,7 @@ Be concise. For intellectual influences and lineage, the reader can use "Related
 - How the work reflects or responds to its historical moment
 - Its historical significance or impact
 
-If you don't recognize this title, say so rather than guessing.]],
+{hallucination_nudge}]],
 }
 
 -- Multi-book context templates
@@ -134,7 +139,7 @@ Focus on what makes each one distinct:
 - Unique strengths — what each does better than the others
 - Which readers would prefer which, and why
 
-Don't just list similarities — find the meaningful contrasts. If you don't recognize a title, say so rather than guessing.]],
+Don't just list similarities — find the meaningful contrasts. {hallucination_nudge}]],
 
     common_themes = [[What connects these {count} books?
 
@@ -145,7 +150,7 @@ Look for the shared DNA:
 - Shared intellectual traditions or influences
 - Why someone might have collected these together
 
-Surface the patterns, not just surface-level genre labels. If you don't recognize a title, say so rather than guessing.]],
+Surface the patterns, not just surface-level genre labels. {hallucination_nudge}]],
 
     collection_summary = [[What does this collection of {count} books reveal about its reader?
 
@@ -156,13 +161,13 @@ Consider:
 - What perspective or worldview emerges?
 - What's notably absent that a complete picture might include?
 
-Be specific about the reader you infer, not generic. If you don't recognize a title, say so rather than guessing.]],
+Be specific about the reader you infer, not generic. {hallucination_nudge}]],
 
     quick_summaries = [[For each of these {count} books, give a 2-3 sentence summary:
 
 {books_list}
 
-Focus on premise and appeal — why would someone read this? If you don't recognize a title, say so rather than guessing.]],
+Focus on premise and appeal — why would someone read this? {hallucination_nudge}]],
 
     reading_order = [[Suggest a reading order for these {count} books:
 
@@ -174,7 +179,7 @@ Consider:
 - Difficulty progression (easier → harder)
 - Thematic arc (what order tells a coherent story?)
 
-Explain your reasoning briefly. If order genuinely doesn't matter, say so. If you don't recognize a title, say so rather than guessing.]],
+Explain your reasoning briefly. If order genuinely doesn't matter, say so. {hallucination_nudge}]],
 }
 
 -- Special templates (reserved for future use)
@@ -226,6 +231,7 @@ function Templates.buildVariables(context_type, data)
 
     -- Utility placeholders (always available)
     vars.conciseness_nudge = Templates.CONCISENESS_NUDGE
+    vars.hallucination_nudge = Templates.HALLUCINATION_NUDGE
 
     if context_type == "highlight" then
         vars.highlighted_text = data.highlighted_text or ""

@@ -44,7 +44,7 @@
   - [Tuning Built-in Actions](#tuning-built-in-actions)
   - [Creating Actions](#creating-actions) — Wizard + template variables
   - [Template Variables](#template-variables) — 26 placeholders for dynamic content
-    - [Utility Placeholders](#utility-placeholders) — Reusable prompt fragments (conciseness nudge)
+    - [Utility Placeholders](#utility-placeholders) — Reusable prompt fragments (conciseness, hallucination nudges)
   - [Highlight Menu Actions](#highlight-menu-actions)
 - [Dictionary Integration](#dictionary-integration) — Compact view, on demand context mode
 - [Bypass Modes](#bypass-modes) — Skip menus, direct AI actions
@@ -857,12 +857,13 @@ Utility placeholders provide reusable prompt fragments that can be inserted into
 | Placeholder | Expands To |
 |-------------|------------|
 | `{conciseness_nudge}` | "Be direct and concise. Don't restate or over-elaborate." |
+| `{hallucination_nudge}` | "If you don't recognize this or the content seems unclear, say so rather than guessing." |
 
-**Why use these?** Some AI models (notably Claude Sonnet 4.5) tend to produce verbose responses. The `{conciseness_nudge}` placeholder provides a standard instruction to reduce verbosity without sacrificing quality. It's used in 14 built-in actions including Explain, Summarize, ELI5, and the context-aware analysis actions.
+**Why use these?**
+- **`{conciseness_nudge}`**: Some AI models (notably Claude Sonnet 4.5) tend to produce verbose responses. This provides a standard instruction to reduce verbosity without sacrificing quality. Used in 14 built-in actions including Explain, Summarize, ELI5, and the context-aware analysis actions.
+- **`{hallucination_nudge}`**: Prevents AI from fabricating information when it doesn't recognize a book or author. Used in 12 built-in templates including Book Info, Find Similar, Historical Context, and all multi-book actions.
 
-**For custom actions:** If your custom action produces overly long responses, add `{conciseness_nudge}` at the end of your prompt. The placeholder is replaced with the actual text at runtime, so you can also use the raw text directly if you prefer.
-
-> **Note:** This utility placeholder system is being developed. Future versions may add additional utility placeholders like `{hallucination_nudge}` for actions where AI uncertainty should be explicitly acknowledged.
+**For custom actions:** Add these placeholders at the end of your prompts where appropriate. The placeholders are replaced with the actual text at runtime, so you can also use the raw text directly if you prefer.
 
 ### Tips for Custom Actions
 

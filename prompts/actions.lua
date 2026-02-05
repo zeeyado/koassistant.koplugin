@@ -697,7 +697,7 @@ If you don't recognize this work or the highlights seem insufficient for meaning
 
 If this is fiction, focus on literary influences, movements, and stylistic descendants instead.
 
-Aim for the most significant connections, not an exhaustive list. {conciseness_nudge} If you don't recognize this work or author, say so rather than guessing.]],
+Aim for the most significant connections, not an exhaustive list. {conciseness_nudge} {hallucination_nudge}]],
         api_params = {
             temperature = 0.7,
             max_tokens = 4096,
@@ -739,7 +739,7 @@ What's the "so what" — why does this argument matter?
 
 If this is fiction, adapt to analyze themes, messages, and the author's apparent worldview instead of formal arguments.
 
-This is an overview, not an essay. {conciseness_nudge} If you don't recognize this title, say so rather than guessing.]],
+This is an overview, not an essay. {conciseness_nudge} {hallucination_nudge}]],
         api_params = {
             temperature = 0.6,
             max_tokens = 4096,
@@ -777,7 +777,7 @@ Adapt to content type:
 
 {conciseness_nudge}
 
-Note: These are general questions for the complete work. If the reader is mid-book, they can ask for spoiler-free questions in the follow-up. If you don't recognize this title, say so rather than guessing.]],
+Note: These are general questions for the complete work. If the reader is mid-book, they can ask for spoiler-free questions in the follow-up. {hallucination_nudge}]],
         api_params = {
             temperature = 0.7,
             max_tokens = 4096,
