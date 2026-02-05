@@ -69,17 +69,17 @@ for lang in $LANGUAGES; do
             continue
         fi
 
-        # Remove obsolete entries
-        OBSOLETE=$(grep -c "^#~" "$PO_FILE" || true)
+        # Remove obsolete entries (count msgid lines only, not msgstr)
+        OBSOLETE=$(grep -c "^#~ msgid" "$PO_FILE" || true)
         if [ "$OBSOLETE" -gt 0 ]; then
             msgattrib --no-obsolete -o "$PO_FILE" "$PO_FILE"
         fi
 
-        # Get counts after merge
+        # Get counts after merge (exclude header by matching non-empty msgid)
         AFTER_FUZZY=$(grep -c "^#, fuzzy" "$PO_FILE" || true)
-        UNTRANSLATED=$(msgattrib --untranslated "$PO_FILE" 2>/dev/null | grep -c "^msgid " || true)
+        UNTRANSLATED=$(msgattrib --untranslated "$PO_FILE" 2>/dev/null | grep -c '^msgid "[^"]' || true)
 
-        echo "  $lang: fuzzy=$AFTER_FUZZY, untranslated=$UNTRANSLATED, removed=$OBSOLETE obsolete"
+        echo "  $lang: fuzzy=$AFTER_FUZZY, empty=$UNTRANSLATED, removed=$OBSOLETE"
     else
         echo "  $lang: file not found, skipping"
     fi
