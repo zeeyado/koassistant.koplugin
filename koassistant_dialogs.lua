@@ -2312,7 +2312,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                     original_action_id,
                     answer,
                     tonumber(message_data.progress_decimal) or 0,
-                    { model = ConfigHelper:getModelInfo(temp_config).model }
+                    { model = ConfigHelper:getModelInfo(temp_config) }
                 )
                 if save_success then
                     logger.info("KOAssistant: Saved response to cache for", original_action_id, "at", message_data.progress_decimal)
@@ -2328,7 +2328,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
             if not is_truncated and ui.document and ui.document.file and book_text_was_provided then
                 local ActionCache = require("koassistant_action_cache")
                 local progress = tonumber(message_data.progress_decimal) or 0
-                local model_info = { model = ConfigHelper:getModelInfo(temp_config).model }
+                local model_info = { model = ConfigHelper:getModelInfo(temp_config) }
 
                 if action.cache_as_xray then
                     -- Track whether annotations were used when building this cache
@@ -3139,7 +3139,7 @@ local function generateSummaryStandalone(ui, config, plugin, on_complete)
             local progress = full_doc_result.truncated and (full_doc_result.coverage_end or 1.0) or 1.0
 
             local summary_metadata = {
-                model = model_info and model_info.model or "",
+                model = model_info or "",
             }
 
             local save_success = ActionCache.setSummaryCache(ui.document.file, answer, progress, summary_metadata)

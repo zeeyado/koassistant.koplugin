@@ -2045,25 +2045,22 @@ function ChatGPTViewer:init()
   })
 
   -- Simple view buttons - read-only viewer for cached analyses
-  -- Row 1: MD/Text, Copy, Export (if metadata), ⇱ (top), ⇲ (bottom)
-  -- Row 2 (if callbacks provided): Regenerate, Delete, Close
-  -- Row 1 (no callbacks): MD/Text, Copy, Export, ⇱, ⇲, Close
+  -- Row 1: Copy, Export (if metadata), ⇱ (top), ⇲ (bottom)
+  -- Row 2: MD/Text, Regenerate (if callback), Delete (if callback), Close
   local simple_view_row1 = {
-    {
-      text_func = function()
-        return self.render_markdown and "MD ON" or "TXT ON"
-      end,
-      id = "toggle_markdown",
-      callback = function()
-        self:toggleMarkdown()
-      end,
-      hold_callback = self.default_hold_callback,
-    },
     {
       text = _("Copy"),
       id = "copy_cache",
       callback = function()
-        Device.input.setClipboardText(self.text)
+        local copy_text
+        if self.cache_metadata then
+          -- Include metadata header like file export
+          local Export = require("koassistant_export")
+          copy_text = Export.formatCacheContent(self.text, self.cache_metadata, "markdown")
+        else
+          copy_text = self.text
+        end
+        Device.input.setClipboardText(copy_text)
         UIManager:show(Notification:new{
           text = _("Copied to clipboard"),
           timeout = 2,
@@ -2118,7 +2115,19 @@ function ChatGPTViewer:init()
   })
 
   -- Build second row based on whether callbacks are provided
-  local simple_view_row2 = {}
+  -- Always starts with MD/TXT toggle
+  local simple_view_row2 = {
+    {
+      text_func = function()
+        return self.render_markdown and "MD ON" or "TXT ON"
+      end,
+      id = "toggle_markdown",
+      callback = function()
+        self:toggleMarkdown()
+      end,
+      hold_callback = self.default_hold_callback,
+    },
+  }
   if self.on_regenerate then
     table.insert(simple_view_row2, {
       text = _("Regenerate"),
@@ -2163,20 +2172,8 @@ function ChatGPTViewer:init()
     hold_callback = self.default_hold_callback,
   })
 
-  -- If no callbacks, put Close on row 1; otherwise use two rows
-  local simple_view_buttons
-  if self.on_regenerate or self.on_delete then
-    simple_view_buttons = { simple_view_row1, simple_view_row2 }
-  else
-    table.insert(simple_view_row1, {
-      text = _("Close"),
-      callback = function()
-        self:onClose()
-      end,
-      hold_callback = self.default_hold_callback,
-    })
-    simple_view_buttons = { simple_view_row1 }
-  end
+  -- Always use two rows (row 2 has MD/TXT toggle + Close at minimum)
+  local simple_view_buttons = { simple_view_row1, simple_view_row2 }
 
   local buttons = self.buttons_table or {}
   if self.add_default_buttons or not self.buttons_table then
@@ -3378,8 +3375,18 @@ function ChatGPTViewer:exportCacheContent()
   local Export = require("koassistant_export")
   local DataStorage = require("datastorage")
 
-  -- Default to home directory or data storage
-  local default_path = DataStorage:getDataDir()
+  -- Default path from main export settings
+  local default_path
+  local features = self.configuration and self.configuration.features or {}
+  local dir_option = features.export_save_directory or "exports_folder"
+
+  if dir_option == "custom" and features.export_custom_path and features.export_custom_path ~= "" then
+    default_path = features.export_custom_path
+  elseif dir_option == "exports_folder" or dir_option == "ask" then
+    default_path = DataStorage:getDataDir() .. "/koassistant_exports"
+  else
+    default_path = DataStorage:getDataDir()
+  end
 
   local path_chooser = PathChooser:new{
     title = _("Select export folder"),
