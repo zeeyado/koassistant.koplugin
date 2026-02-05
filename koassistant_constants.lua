@@ -129,4 +129,17 @@ function Constants.getQuickActionUtilityText(id, _)
     return texts[id]
 end
 
+--- Get text with optional emoji prefix
+--- Returns emoji version if enable_emoji_icons is true, otherwise text-only version
+--- @param emoji string: The emoji to show when enabled (e.g., "🔍")
+--- @param text string: The text to show (e.g., "Web ON")
+--- @param enable_emoji boolean: Whether emoji icons are enabled
+--- @return string: Either "🔍 Web ON" or "Web ON" depending on setting
+function Constants.getEmojiText(emoji, text, enable_emoji)
+    if enable_emoji then
+        return emoji .. " " .. text
+    end
+    return text
+end
+
 return Constants

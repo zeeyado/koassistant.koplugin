@@ -151,6 +151,14 @@ local SettingsSchema = {
                     end,
                     help_text = _("Automatically detect RTL content and switch to RTL mode (right-aligned text + Plain Text). Activates when the latest response has more RTL than Latin characters. Disabling removes all automatic RTL adjustments. Grayed out when markdown is disabled."),
                 },
+                {
+                    id = "enable_emoji_icons",
+                    type = "toggle",
+                    text = _("Enable Emoji Icons"),
+                    path = "features.enable_emoji_icons",
+                    default = false,
+                    help_text = _("Show emoji icons (🔍) in buttons and status indicators. Requires emoji font support in KOReader. Does not work on all devices. If icons appear as question marks, disable this option."),
+                },
                 -- Plain Text Options submenu
                 {
                     id = "plain_text_options",
@@ -1636,7 +1644,7 @@ local SettingsSchema = {
                             id = "show_web_search_indicator",
                             type = "toggle",
                             text = _("Show Indicator in Chat"),
-                            help_text = _("Show '*[Web search was used]*' indicator in chat when web search is used.\n\nStreaming indicator ('🔍 Searching...') is always shown."),
+                            help_text = _("Show '*[Web search was used]*' indicator in chat when web search is used.\n\nStreaming indicator ('Searching the web...') is always shown."),
                             path = "features.show_web_search_indicator",
                             default = true,
                         },
