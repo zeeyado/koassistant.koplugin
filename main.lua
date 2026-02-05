@@ -889,12 +889,13 @@ function AskGPT:onDispatcherRegisterActions()
     general = true
   })
 
-  -- Register file browser context action
+  -- Register book context chat action (requires open book)
   Dispatcher:registerAction("koassistant_book_chat", {
     category = "none",
     event = "KOAssistantBookChat",
     title = _("KOAssistant: New Book Chat/Action"),
-    general = true
+    general = false,  -- Requires open book
+    reader = true,
   })
 
   -- Book-level reading features (dynamically from in_reading_features flag)

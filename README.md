@@ -192,8 +192,7 @@ Go to **Settings → Privacy & Data** to configure. See [Privacy & Data](#privac
 After setting up your API key, complete these steps for the best experience:
 
 - [ ] **Configure privacy settings** — Enable data sharing for features you want (Settings → Privacy & Data). See [Privacy & Data](#privacy--data)
-- [ ] **Assign Quick Settings to a gesture** — One-tap access to provider, model, behavior, and more (Settings → Gesture Manager → General → KOAssistant: Quick Settings)
-- [ ] **Assign Quick Actions to a gesture** — Fast access to X-Ray, Recap, and other reading actions (reader mode only)
+- [ ] **Set up gesture access** — See [Configure Quick Access Gestures](#configure-quick-access-gestures) for the recommended two-step setup (Quick Settings in file browser + Quick Actions in reader, same gesture)
 - [ ] **Explore the highlight menu** — Translate and Explain are included by default; add more via Manage Actions → hold action → "Add to Highlight Menu"
 - [ ] **Try Dictionary Bypass** — Single-word selections go straight to AI dictionary (Settings → Dictionary Settings → Bypass KOReader Dictionary)
 - [ ] **Try Highlight Bypass** — Multi-word selections trigger instant translation (Settings → Highlight Settings → Enable Highlight Bypass)
@@ -204,7 +203,12 @@ After setting up your API key, complete these steps for the best experience:
 
 ### Configure Quick Access Gestures
 
-Assign KOAssistant actions to gestures for easy access. Go to **Settings → Gesture Manager**, pick a gesture (e.g. tap corner, multiswipe), then select **General** to find KOAssistant options.
+**Recommended quick setup** (same gesture, two contexts):
+
+1. **In File Browser**: Go to Settings → Gesture Manager, pick a gesture (e.g., tap bottom-right corner), select **KOAssistant: Quick Settings**
+2. **In Reader** (open any book): Go to Settings → Gesture Manager, pick the **same gesture**, select **KOAssistant: Quick Actions**
+
+Now the same tap gives you Quick Settings in the file browser and Quick Actions while reading. Both panels include most functions you need, plus buttons to open Settings and other features. In reader mode, each panel has a button to switch to the other.
 
 **Recommended: Two Quick Access Panels**
 
@@ -256,7 +260,11 @@ You can also assign individual actions directly to their own gestures for instan
 **Add your own actions to gestures**
 Any book or general action (built-in or custom) can be added to the gesture menu. See [Custom Action Gestures](#custom-action-gestures) for details.
 
-> **Note**: Set up gestures in both **Reader View** (while reading) and **File Browser** separately — they have independent gesture configs.
+> **Important: KOReader has two separate gesture configurations:**
+> - **File Browser gestures**: Configure from the file browser (Settings → Gesture Manager)
+> - **Reader gestures**: Configure while a book is open (Settings → Gesture Manager)
+>
+> You must set up gestures in **both places** if you want access from both contexts. Reader-only gestures (like Quick Actions, X-Ray, Translate Page) will appear grayed out if you try to add them to File Browser gestures — this is expected. General gestures (like Quick Settings, Chat History) work in both contexts and can be added to either or both.
 
 
 ### Key Features to Explore
@@ -1220,9 +1228,13 @@ You can add any **book** or **general** action to KOReader's gesture menu:
 2. Hold any book or general action to see details
 3. Tap **"Add to Gesture Menu"**
 4. **Restart KOReader** for changes to take effect
-5. The action now appears in KOReader's gesture settings (Settings → Gesture Manager → General)
+5. Configure the gesture in **Settings → Gesture Manager**
 
 Actions with gestures show a `[gesture]` indicator in the Action Manager list.
+
+**Where gestures appear:**
+- **Book actions** → Reader gestures only (requires open book; grayed out in File Browser)
+- **General actions** → Available in both contexts (can add to Reader and/or File Browser gestures)
 
 **Why only book and general?** Highlight actions require selected text, and multi-book actions require file browser multi-select — neither can be triggered via gestures.
 
@@ -1230,55 +1242,43 @@ Actions with gestures show a `[gesture]` indicator in the Action Manager list.
 
 ### Available Gesture Actions
 
-All KOAssistant gesture actions are in **Settings → Gesture Manager → General**:
+**Reader Only** (require open book; grayed out in File Browser gesture settings):
+- KOAssistant: Quick Actions — Reading actions panel
+- KOAssistant: New Book Chat/Action — Start a chat about current book or access book actions
+- KOAssistant: X-Ray — Generate book reference guide
+- KOAssistant: Recap — Get a story summary
+- KOAssistant: Analyze Highlights — Analyze your annotations
+- KOAssistant: Translate Current Page — Translate visible page text
+- KOAssistant: View Notebook — View current book's notebook
+- KOAssistant: Edit Notebook — Edit current book's notebook
+- KOAssistant: View Summary — View cached document summary
+- KOAssistant: View Caches — View all document caches
 
-**Quick Access Panels:**
+**General** (available in both File Browser and Reader gesture settings):
 - KOAssistant: Quick Settings — Two-column settings panel
-- KOAssistant: Quick Actions — Reading actions panel (reader mode only)
-
-**Chat & History:**
 - KOAssistant: Chat History — Browse all saved chats
 - KOAssistant: Continue Last Saved Chat — Resume most recently saved chat
 - KOAssistant: Continue Last Opened Chat — Resume most recently viewed chat
 - KOAssistant: General Chat/Action — Start a new general conversation or run a general action
-- KOAssistant: New Book Chat/Action — Start a chat about current book or access book actions (reader mode)
-
-**Reading Features (default):**
-- KOAssistant: X-Ray — Generate book reference guide
-- KOAssistant: Recap — Get a story summary
-- KOAssistant: Analyze Highlights — Analyze your annotations
-
-**Settings & Configuration:**
 - KOAssistant: Settings — Open main settings menu
 - KOAssistant: Action Manager — Manage all actions
 - KOAssistant: Manage Behaviors — Select or create behaviors
 - KOAssistant: Manage Domains — Manage knowledge domains
 - KOAssistant: Dictionary Popup Manager — Configure dictionary popup actions
-
-**Language & Translation:**
 - KOAssistant: Change Primary Language — Quick language picker
 - KOAssistant: Change Translation Language — Pick translation target
 - KOAssistant: Change Dictionary Language — Pick dictionary language
-- KOAssistant: Translate Current Page — Translate visible page text
-
-**Provider & Model:**
 - KOAssistant: Change Provider — Quick provider picker
 - KOAssistant: Change Model — Quick model picker
 - KOAssistant: Change Behavior — Quick behavior picker
 - KOAssistant: Change Domain — Quick domain picker
-
-**Bypass Toggles:**
 - KOAssistant: Toggle Dictionary Bypass — Toggle dictionary bypass on/off
 - KOAssistant: Toggle Highlight Bypass — Toggle highlight bypass on/off
-
-**Notebooks & Summaries:**
-- KOAssistant: View Notebook — View current book's notebook (reader mode)
-- KOAssistant: Edit Notebook — Edit current book's notebook (reader mode)
 - KOAssistant: Browse Notebooks — Open Notebook Manager
-- KOAssistant: View Summary — View cached document summary (reader mode, if summary exists)
 
 **Custom Actions:**
-- Any book or general action you add via "Add to Gesture Menu"
+- Book actions you add via "Add to Gesture Menu" → Reader Only
+- General actions you add via "Add to Gesture Menu" → Available in both contexts
 
 ### Translate Current Page
 
