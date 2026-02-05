@@ -231,9 +231,9 @@ To show/hide buttons in the Quick Settings panel, use **Settings → Quick Setti
 
 **2. Quick Actions** (reader mode only)
 Assign "KOAssistant: Quick Actions" to a gesture for fast access to reading-related actions:
-- **Default actions** — X-Ray, Recap, Analyze Highlights, Book Info, About Author, Discussion Questions, Analyze Document, Find Similar
+- **Default actions** — X-Ray, Recap, Book Info
 - **Summary management** — "View Summary" (if summary exists) or "Generate Summary" (if not) for cached document summaries
-- **Utilities** — Translate Page, View/Edit Notebook, Chat History, Continue Last Chat, New Book Chat/Action, General Chat/Action, Quick Settings
+- **Utilities** — Translate Page, View/Edit Notebook, Chat History, Continue Last Chat, New Book Chat/Action, General Chat/Action, Quick Settings, View Caches
 
 You can add any book action to Quick Actions via **Action Manager → hold action → "Add to Quick Actions"**. To reorder or remove actions, use **Settings → Quick Actions Settings → Panel Actions**. To show/hide utility buttons (Translate Page, Chat History, etc.), use **Settings → Quick Actions Settings → QA Panel Utilities**. Defaults can also be removed.
 
@@ -1820,7 +1820,7 @@ Configure the Quick Actions panel (available via gesture in reader mode).
 - **Panel Actions**: Reorder or remove actions from the Quick Actions panel. Add new actions via Action Manager → hold action → "Add to Quick Actions".
 - **QA Panel Utilities**: Show/hide utility buttons that appear below actions in the panel:
   - Translate Page, View Notebook, Edit Notebook, Chat History, Continue Last Chat
-  - New Book Chat/Action, General Chat/Action, Summary (View/Generate), Quick Settings
+  - New Book Chat/Action, General Chat/Action, Summary (View/Generate), Quick Settings, View Caches
   - All utilities are enabled by default. Disable any you don't use to streamline the panel.
 
 ### Actions & Prompts
