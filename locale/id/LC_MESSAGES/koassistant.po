@@ -6,8 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: KOAssistant 0.12.0-dev\n"
-"Report-Msgid-Bugs-To: https://github.com/zeeyado/koassistant.koplugin/"
-"issues\n"
+"Report-Msgid-Bugs-To: https://github.com/zeeyado/koassistant.koplugin/issues\n"
 "POT-Creation-Date: 2026-02-04 21:31+0000\n"
 "PO-Revision-Date: 2026-01-27 17:48+0000\n"
 "Last-Translator: Automatically generated\n"
@@ -25,11 +24,8 @@ msgstr "KOAssistant"
 #: _meta.lua:5
 #, fuzzy
 msgid ""
-"A powerful AI assistant integrated into KOReader. Technical research "
-"assistant and knowledge expander."
-msgstr ""
-"Asisten AI yang kuat terintegrasi ke dalam KOReader. Asisten riset teknis "
-"dan perluas pengetahuan."
+"A powerful AI assistant integrated into KOReader. Technical research assistant and knowledge expander."
+msgstr "Asisten AI canggih yang terintegrasi ke dalam KOReader. Asisten riset teknis dan perluasan pengetahuan."
 
 #: koassistant_chat_history_dialog.lua:54
 #, fuzzy
@@ -109,7 +105,7 @@ msgid ""
 "\n"
 "This action cannot be undone."
 msgstr ""
-"Hapus semua percakapan tersimpan?\n"
+"Hapus semua percakapan yang tersimpan?\n"
 "\n"
 "Tindakan ini tidak dapat dibatalkan."
 
@@ -148,7 +144,7 @@ msgstr "Tidak ada percakapan tersimpan"
 #: koassistant_chat_history_dialog.lua:396
 #, fuzzy
 msgid "Untagged"
-msgstr "Tanpa Tag"
+msgstr "Tanpa tag"
 
 #: koassistant_chat_history_dialog.lua:345
 #: koassistant_chat_history_dialog.lua:553
@@ -186,7 +182,7 @@ msgstr "Percakapan Umum"
 #: koassistant_chat_history_dialog.lua:424
 #, fuzzy
 msgid "Multi-Book Chat"
-msgstr "Multi-Buku"
+msgstr "Percakapan Multi-Buku"
 
 #: koassistant_chat_history_dialog.lua:427
 #: koassistant_chat_history_dialog.lua:2092
@@ -213,14 +209,14 @@ msgstr "Percakapan AI Umum"
 #: koassistant_chat_history_manager.lua:2372
 #, fuzzy
 msgid "Multi-Book Chats"
-msgstr "Multi-Buku"
+msgstr "Percakapan Multi-Buku"
 
 #: koassistant_chat_history_dialog.lua:544 koassistant_dialogs.lua:3097
 #: koassistant_notebook_manager.lua:74 koassistant_ui/behavior_manager.lua:264
 #: koassistant_ui/domain_manager.lua:272 koassistant_ui/prompts_manager.lua:637
 #, fuzzy
 msgid "Unknown"
-msgstr "Tidak diketahui"
+msgstr "Tidak Diketahui"
 
 #: koassistant_chat_history_dialog.lua:561
 #, fuzzy
@@ -228,8 +224,9 @@ msgid "AI conversations without book context"
 msgstr "Percakapan AI tanpa konteks buku"
 
 #: koassistant_chat_history_dialog.lua:563
+#, fuzzy
 msgid "Comparisons and analyses across multiple books"
-msgstr ""
+msgstr "Perbandingan dan analisis lintas beberapa buku"
 
 #: koassistant_chat_history_dialog.lua:629
 #, fuzzy
@@ -292,7 +289,7 @@ msgstr "Ubah Nama Percakapan"
 #: koassistant_chat_history_dialog.lua:880
 #, fuzzy
 msgid "Chat renamed successfully"
-msgstr "Nama percakapan berhasil diubah"
+msgstr "Percakapan berhasil diubah namanya"
 
 #: koassistant_chat_history_dialog.lua:889
 #, fuzzy
@@ -315,7 +312,7 @@ msgstr "Tag dihapus: %1"
 #: koassistant_chat_history_dialog.lua:1163 koassistant_dialogs.lua:901
 #, fuzzy
 msgid "Add existing tag:"
-msgstr "Tambah tag yang ada:"
+msgstr "Tambahkan tag yang ada:"
 
 #: koassistant_chat_history_dialog.lua:991
 #: koassistant_chat_history_dialog.lua:1041
@@ -330,7 +327,7 @@ msgstr "Tag ditambahkan: %1"
 #: koassistant_chat_history_dialog.lua:1199 koassistant_dialogs.lua:937
 #, fuzzy
 msgid "+ Add new tag"
-msgstr "+ Tambah tag baru"
+msgstr "+ Tambahkan tag baru"
 
 #: koassistant_chat_history_dialog.lua:1016
 #: koassistant_chat_history_dialog.lua:1203 koassistant_dialogs.lua:941
@@ -369,7 +366,7 @@ msgstr "Kelola Tag"
 #: koassistant_chat_history_dialog.lua:1101 koassistant_dialogs.lua:839
 #, fuzzy
 msgid "Chat not found"
-msgstr "Percakapan tidak ditemukan"
+msgstr "Obrolan tidak ditemukan"
 
 #: koassistant_chat_history_dialog.lua:1208
 #: koassistant_chat_history_dialog.lua:1639
@@ -425,13 +422,13 @@ msgstr "Batal"
 #: koassistant_chat_history_dialog.lua:1325
 #, fuzzy
 msgid "Error: Failed to load chat messages."
-msgstr "Error: Gagal memuat pesan percakapan."
+msgstr "Kesalahan: Gagal memuat pesan obrolan."
 
 #: koassistant_chat_history_dialog.lua:1413 koassistant_dialogs.lua:2396
 #: stream_handler.lua:200
 #, fuzzy
 msgid "No response received from AI"
-msgstr "Tidak ada respons dari AI"
+msgstr "Tidak ada respons yang diterima dari AI"
 
 #: koassistant_chat_history_dialog.lua:1433
 #, fuzzy
@@ -456,23 +453,23 @@ msgstr "Simpan otomatis diaktifkan di pengaturan"
 #: koassistant_chat_history_dialog.lua:1543
 #, fuzzy
 msgid "Continued chats are automatically saved"
-msgstr "Percakapan yang dilanjutkan otomatis tersimpan"
+msgstr "Obrolan yang dilanjutkan disimpan secara otomatis"
 
 #: koassistant_chat_history_dialog.lua:1591
 #, fuzzy
 msgid "Chat saved"
-msgstr "Percakapan tersimpan"
+msgstr "Obrolan tersimpan"
 
 #: koassistant_chat_history_dialog.lua:1591 koassistant_dialogs.lua:1548
 #, fuzzy
 msgid "Failed to save chat"
-msgstr "Gagal menyimpan percakapan"
+msgstr "Gagal menyimpan obrolan"
 
 #: koassistant_chat_history_dialog.lua:1609
 #: koassistant_chat_history_dialog.lua:1715
 #, fuzzy
 msgid "Chat copied to clipboard"
-msgstr "Percakapan disalin ke clipboard"
+msgstr "Obrolan disalin ke papan klip"
 
 #: koassistant_chat_history_dialog.lua:1619
 #: koassistant_chat_history_dialog.lua:1830 koassistant_chatgptviewer.lua:498
@@ -499,7 +496,7 @@ msgstr "Pertanyaan + Respons"
 #: koassistant_dialogs.lua:1594 koassistant_settings_schema.lua:1109
 #, fuzzy
 msgid "Response only"
-msgstr "Respons saja"
+msgstr "Hanya respons"
 
 #: koassistant_chat_history_dialog.lua:1622
 #: koassistant_chat_history_dialog.lua:1833 koassistant_chatgptviewer.lua:501
@@ -509,7 +506,7 @@ msgstr "Respons saja"
 #: koassistant_settings_schema.lua:729 koassistant_settings_schema.lua:745
 #, fuzzy
 msgid "Everything (debug)"
-msgstr "Semua (debug)"
+msgstr "Semuanya (debug)"
 
 #: koassistant_chat_history_dialog.lua:1647 koassistant_chatgptviewer.lua:1076
 #: koassistant_chatgptviewer.lua:1490 koassistant_chatgptviewer.lua:1907
@@ -522,41 +519,47 @@ msgstr "Salin Konten"
 #: koassistant_chat_history_dialog.lua:1727
 #, fuzzy
 msgid "Failed to generate export content"
-msgstr "Gagal mendapatkan respons:"
+msgstr "Gagal membuat konten ekspor"
 
 #: koassistant_chat_history_dialog.lua:1740 koassistant_chatgptviewer.lua:3259
+#, fuzzy
 msgid ""
 "Saved to:\n"
 "%1"
 msgstr ""
+"Disimpan ke:\n"
+"%1"
 
 #: koassistant_chat_history_dialog.lua:1745 koassistant_chatgptviewer.lua:3264
 #: main.lua:7998
 #, fuzzy
 msgid "Failed to save: %1"
-msgstr "Gagal menyimpan obrolan:"
+msgstr "Gagal menyimpan: %1"
 
 #: koassistant_chat_history_dialog.lua:1762 koassistant_chatgptviewer.lua:3278
 #, fuzzy
 msgid "Copy to Clipboard"
-msgstr "Disalin ke papan klip."
+msgstr "Salin ke Papan Klip"
 
 #: koassistant_chat_history_dialog.lua:1772 koassistant_chatgptviewer.lua:3287
+#, fuzzy
 msgid "Save to File"
-msgstr ""
+msgstr "Simpan ke File"
 
 #: koassistant_chat_history_dialog.lua:1784 koassistant_chatgptviewer.lua:3298
+#, fuzzy
 msgid "Select Export Directory"
-msgstr ""
+msgstr "Pilih Direktori Ekspor"
 
 #: koassistant_chat_history_dialog.lua:1797 koassistant_chatgptviewer.lua:3311
+#, fuzzy
 msgid "Invalid export directory: %1"
-msgstr ""
+msgstr "Direktori ekspor tidak valid: %1"
 
 #: koassistant_chat_history_dialog.lua:1819 koassistant_chatgptviewer.lua:3332
 #, fuzzy
 msgid "Export Chat"
-msgstr "Ekspor Konten"
+msgstr "Ekspor Obrolan"
 
 #: koassistant_chat_history_dialog.lua:1861 koassistant_chatgptviewer.lua:3340
 #, fuzzy
@@ -588,7 +591,7 @@ msgid ""
 "\n"
 "You can add tags to chats from the chat options menu."
 msgstr ""
-"Tidak ada obrolan bertag ditemukan.\n"
+"Tidak ada obrolan dengan tag yang ditemukan.\n"
 "\n"
 "Anda dapat menambahkan tag ke obrolan dari menu opsi obrolan."
 
@@ -600,7 +603,7 @@ msgstr "Riwayat Obrolan berdasarkan Tag"
 #: koassistant_chat_history_dialog.lua:2063
 #, fuzzy
 msgid "No chats found with this tag"
-msgstr "Tidak ada obrolan ditemukan dengan tag ini"
+msgstr "Tidak ada obrolan yang ditemukan dengan tag ini"
 
 #: koassistant_chatgptviewer.lua:413 koassistant_chatgptviewer.lua:1043
 #: koassistant_chatgptviewer.lua:1455 koassistant_chatgptviewer.lua:1872
@@ -627,7 +630,7 @@ msgstr "Tambahkan ke Wallabag"
 #: koassistant_chatgptviewer.lua:454 koassistant_update_checker.lua:294
 #, fuzzy
 msgid "Open in browser"
-msgstr "Buka di browser"
+msgstr "Buka di peramban"
 
 #: koassistant_chatgptviewer.lua:478 koassistant_update_checker.lua:315
 #, fuzzy
@@ -683,12 +686,12 @@ msgstr "Tidak ada obrolan untuk disalin"
 #: koassistant_dialogs.lua:1582
 #, fuzzy
 msgid "Copied"
-msgstr "Disalin"
+msgstr "Tersalin"
 
 #: koassistant_chatgptviewer.lua:1084 koassistant_chatgptviewer.lua:1917
 #, fuzzy
 msgid "H.Note"
-msgstr "Catatan"
+msgstr "H.Note"
 
 #: koassistant_chatgptviewer.lua:1092
 #, fuzzy
@@ -696,12 +699,14 @@ msgid "Save response as note on highlighted text"
 msgstr "Simpan respons sebagai catatan pada teks yang disorot"
 
 #: koassistant_chatgptviewer.lua:1098
+#, fuzzy
 msgid "Add to Notebook"
-msgstr ""
+msgstr "Tambah ke Buku Catatan"
 
 #: koassistant_chatgptviewer.lua:1108
+#, fuzzy
 msgid "Append chat to per-book notebook file"
-msgstr ""
+msgstr "Tambahkan obrolan ke file buku catatan per-buku"
 
 #: koassistant_chatgptviewer.lua:1121
 #, fuzzy
@@ -716,27 +721,32 @@ msgstr "Tambah atau kelola tag untuk obrolan ini"
 #: koassistant_chatgptviewer.lua:1146
 #, fuzzy
 msgid "Export chat to file or clipboard"
-msgstr "Percakapan disalin ke clipboard"
+msgstr "Ekspor obrolan ke file atau clipboard"
 
 #: koassistant_chatgptviewer.lua:1157
+#, fuzzy
 msgid "↻ Fresh"
-msgstr ""
+msgstr "↻ Segar"
 
 #: koassistant_chatgptviewer.lua:1164
+#, fuzzy
 msgid "Clear cache and regenerate from scratch (extracts all book text again)"
-msgstr ""
+msgstr "Hapus cache dan buat ulang dari awal (ekstrak ulang semua teks buku)"
 
 #: koassistant_chatgptviewer.lua:1187 koassistant_chatgptviewer.lua:1199
+#, fuzzy
 msgid "🔍 ON"
-msgstr ""
+msgstr "🔍 AKTIF"
 
 #: koassistant_chatgptviewer.lua:1187 koassistant_chatgptviewer.lua:1199
+#, fuzzy
 msgid "🔍 OFF"
-msgstr ""
+msgstr "🔍 MATI"
 
 #: koassistant_chatgptviewer.lua:1208
+#, fuzzy
 msgid "Toggle web search for this session (Anthropic, Gemini)"
-msgstr ""
+msgstr "Aktifkan/nonaktifkan pencarian web untuk sesi ini (Anthropic, Gemini)"
 
 #: koassistant_chatgptviewer.lua:1228 koassistant_chatgptviewer.lua:1447
 #: koassistant_chatgptviewer.lua:1864
@@ -747,7 +757,7 @@ msgstr "Beralih antara tampilan markdown dan teks biasa"
 #: koassistant_chatgptviewer.lua:1243
 #, fuzzy
 msgid "Toggle debug display in chat viewer"
-msgstr "Alihkan tampilan debug di penampil obrolan"
+msgstr "Aktifkan/nonaktifkan tampilan debug di penampil obrolan"
 
 #: koassistant_chatgptviewer.lua:1250 koassistant_chatgptviewer.lua:3529
 #, fuzzy
@@ -762,17 +772,17 @@ msgstr "Sembunyikan Kutipan"
 #: koassistant_chatgptviewer.lua:1262
 #, fuzzy
 msgid "Toggle highlighted text display in chat"
-msgstr "Alihkan tampilan teks yang disorot dalam obrolan"
+msgstr "Aktifkan/nonaktifkan tampilan teks yang disorot dalam obrolan"
 
 #: koassistant_chatgptviewer.lua:1268
 #, fuzzy
 msgid "Show Reasoning"
-msgstr "Tampilkan Penalaran"
+msgstr "Tampilkan Pemikiran"
 
 #: koassistant_chatgptviewer.lua:1278
 #, fuzzy
 msgid "View AI reasoning/thinking content (when available)"
-msgstr "Lihat konten penalaran/pemikiran AI (jika tersedia)"
+msgstr "Lihat konten pemikiran/penalaran AI (jika tersedia)"
 
 #: koassistant_chatgptviewer.lua:1461
 #, fuzzy
@@ -782,11 +792,12 @@ msgstr "Tidak ada respons untuk disalin"
 #: koassistant_chatgptviewer.lua:1509
 #, fuzzy
 msgid "Save AI response as note on highlighted word"
-msgstr "Simpan respons sebagai catatan pada teks yang disorot"
+msgstr "Simpan respons AI sebagai catatan pada kata yang disorot"
 
 #: koassistant_chatgptviewer.lua:1510
+#, fuzzy
 msgid "No selection data available (word position not captured)"
-msgstr ""
+msgstr "Data seleksi tidak tersedia (posisi kata tidak ditangkap)"
 
 #: koassistant_chatgptviewer.lua:1518
 #, fuzzy
@@ -816,7 +827,7 @@ msgstr "Ditambahkan"
 #: koassistant_chatgptviewer.lua:1558
 #, fuzzy
 msgid "Word added to vocabulary builder"
-msgstr "Kata ditambahkan ke pembangun kosakata"
+msgstr "Kata ditambahkan ke pembuat kosakata"
 
 #: koassistant_chatgptviewer.lua:1565
 #, fuzzy
@@ -826,22 +837,22 @@ msgstr "+Kosakata"
 #: koassistant_chatgptviewer.lua:1573 main.lua:5760
 #, fuzzy
 msgid "AI Dictionary lookup"
-msgstr "Pencarian Kamus AI"
+msgstr "Pencarian kamus AI"
 
 #: koassistant_chatgptviewer.lua:1578
 #, fuzzy
 msgid "Added '%1' to vocabulary"
-msgstr "Menambahkan '%1' ke kosakata"
+msgstr "'%1' ditambahkan ke kosakata"
 
 #: koassistant_chatgptviewer.lua:1591
 #, fuzzy
 msgid "Vocabulary builder not available"
-msgstr "Pembangun kosakata tidak tersedia"
+msgstr "Pembuat kosakata tidak tersedia"
 
 #: koassistant_chatgptviewer.lua:1599
 #, fuzzy
 msgid "Add word to vocabulary builder"
-msgstr "Tambahkan kata ke pembangun kosakata"
+msgstr "Tambahkan kata ke pembuat kosakata"
 
 #: koassistant_chatgptviewer.lua:1608
 #, fuzzy
@@ -877,37 +888,37 @@ msgstr "Jalankan ulang dengan bahasa kamus yang berbeda"
 #: koassistant_chatgptviewer.lua:1694
 #, fuzzy
 msgid "Ctx: ON"
-msgstr "Konteks: AKTIF"
+msgstr "Kont: AKTIF"
 
 #: koassistant_chatgptviewer.lua:1694
 #, fuzzy
 msgid "Ctx: OFF"
-msgstr "Konteks: MATI"
+msgstr "Kont: MATI"
 
 #: koassistant_chatgptviewer.lua:1737
 #, fuzzy
 msgid "Re-run without surrounding context"
-msgstr "Jalankan ulang tanpa konteks sekitarnya"
+msgstr "Jalankan ulang tanpa konteks sekitar"
 
 #: koassistant_chatgptviewer.lua:1737
 #, fuzzy
 msgid "Re-run with surrounding context"
-msgstr "Jalankan ulang dengan konteks sekitarnya"
+msgstr "Jalankan ulang dengan konteks sekitar"
 
 #: koassistant_chatgptviewer.lua:1823
 #, fuzzy
 msgid "Dictionary Action"
-msgstr "Tindakan Popup Kamus"
+msgstr "Aksi Kamus"
 
 #: koassistant_chatgptviewer.lua:1831
 #, fuzzy
 msgid "Switch to a different dictionary action"
-msgstr "Jalankan ulang dengan bahasa kamus yang berbeda"
+msgstr "Beralih ke aksi kamus yang berbeda"
 
 #: koassistant_chatgptviewer.lua:1832
 #, fuzzy
 msgid "No other dictionary actions available"
-msgstr "Tidak ada aksi sorotan yang tersedia."
+msgstr "Tidak ada aksi kamus lain yang tersedia"
 
 #: koassistant_chatgptviewer.lua:1878
 #, fuzzy
@@ -962,25 +973,34 @@ msgstr "Jalankan ulang terjemahan dengan bahasa target yang berbeda"
 #: koassistant_chatgptviewer.lua:2064
 #, fuzzy
 msgid "Copied to clipboard"
-msgstr "Disalin ke papan klip."
+msgstr "Disalin ke papan klip"
 
 #: koassistant_chatgptviewer.lua:2106 koassistant_chatgptviewer.lua:2112
+#, fuzzy
 msgid "Regenerate"
-msgstr ""
+msgstr "Buat Ulang"
 
 #: koassistant_chatgptviewer.lua:2111
+#, fuzzy
 msgid ""
 "Regenerate this summary?\n"
 "\n"
 "The current summary will be replaced."
 msgstr ""
+"Buat ulang ringkasan ini?\n"
+"\n"
+"Ringkasan saat ini akan diganti."
 
 #: koassistant_chatgptviewer.lua:2129
+#, fuzzy
 msgid ""
 "Delete this summary?\n"
 "\n"
 "You can regenerate it later."
 msgstr ""
+"Hapus ringkasan ini?\n"
+"\n"
+"Anda dapat membuatnya ulang nanti."
 
 #: koassistant_chatgptviewer.lua:2331
 #, fuzzy
@@ -1000,12 +1020,12 @@ msgstr "Disalin ke papan klip."
 #: koassistant_chatgptviewer.lua:2954
 #, fuzzy
 msgid "No highlight selection data available"
-msgstr "Data seleksi sorotan tidak tersedia"
+msgstr "Tidak ada data pilihan sorotan tersedia"
 
 #: koassistant_chatgptviewer.lua:2965 main.lua:5231
 #, fuzzy
 msgid "No document open"
-msgstr "Tidak ada dokumen yang dibuka"
+msgstr "Tidak ada dokumen yang terbuka"
 
 #: koassistant_chatgptviewer.lua:2974 koassistant_chatgptviewer.lua:3013
 #: koassistant_chatgptviewer.lua:3069
@@ -1016,76 +1036,88 @@ msgstr "Tidak ada respons untuk disimpan"
 #: koassistant_chatgptviewer.lua:3036
 #, fuzzy
 msgid "Failed to create highlight"
-msgstr "Gagal mengubah nama percakapan"
+msgstr "Gagal membuat sorotan"
 
 #: koassistant_chatgptviewer.lua:3047 koassistant_settings_schema.lua:351
 #: koassistant_settings_schema.lua:584 koassistant_settings_schema.lua:736
 #, fuzzy
 msgid "Note Content"
-msgstr "Isi Catatan"
+msgstr "Konten Catatan"
 
 #: koassistant_chatgptviewer.lua:3060
+#, fuzzy
 msgid "Notebooks are only available for single-book chats"
-msgstr ""
+msgstr "Buku catatan hanya tersedia untuk obrolan buku tunggal"
 
 #: koassistant_chatgptviewer.lua:3099
+#, fuzzy
 msgid "Saved to notebook"
-msgstr ""
+msgstr "Disimpan ke buku catatan"
 
 #: koassistant_chatgptviewer.lua:3104
 #, fuzzy
 msgid "Failed to save: "
-msgstr "Gagal menyimpan obrolan:"
+msgstr "Gagal menyimpan:"
 
 #: koassistant_chatgptviewer.lua:3115
 #, fuzzy
 msgid "No cached action to clear"
-msgstr "Tidak ada obrolan untuk disalin"
+msgstr "Tidak ada tindakan cache untuk dihapus"
 
 #: koassistant_chatgptviewer.lua:3124
+#, fuzzy
 msgid "Cache only applies to book actions"
-msgstr ""
+msgstr "Cache hanya berlaku untuk tindakan buku"
 
 #: koassistant_chatgptviewer.lua:3136
+#, fuzzy
 msgid "Regenerate Fresh"
-msgstr ""
+msgstr "Buat Ulang Segar"
 
 #: koassistant_chatgptviewer.lua:3137
+#, fuzzy
 msgid ""
 "This response was updated from a cached analysis at %1.\n"
 "\n"
-"Clearing the cache will extract and send all book text again on next run, "
-"which uses more tokens.\n"
+"Clearing the cache will extract and send all book text again on next run, which uses more tokens.\n"
 "\n"
 "Clear cache for this action?"
 msgstr ""
+"Respons ini diperbarui dari analisis cache pada %1.\n"
+"\n"
+"Menghapus cache akan mengekstrak dan mengirim semua teks buku lagi saat dijalankan berikutnya, yang menggunakan lebih banyak token.\n"
+"\n"
+"Hapus cache untuk tindakan ini?"
 
 #: koassistant_chatgptviewer.lua:3147
+#, fuzzy
 msgid "Clear & Close"
-msgstr ""
+msgstr "Hapus & Tutup"
 
 #: koassistant_chatgptviewer.lua:3156
+#, fuzzy
 msgid "Cache cleared. Run the action again for fresh analysis."
-msgstr ""
+msgstr "Cache dihapus. Jalankan tindakan lagi untuk analisis segar."
 
 #: koassistant_chatgptviewer.lua:3163
 #, fuzzy
 msgid "Failed to clear cache"
-msgstr "Gagal mengubah nama percakapan"
+msgstr "Gagal menghapus cache"
 
 #: koassistant_chatgptviewer.lua:3169
 #, fuzzy
 msgid "Cache module not available"
-msgstr "Fungsi simpan tidak tersedia"
+msgstr "Modul cache tidak tersedia"
 
 #: koassistant_chatgptviewer.lua:3186
 #, fuzzy
 msgid "No chat to export"
-msgstr "Tidak ada obrolan untuk disalin"
+msgstr "Tidak ada obrolan untuk diekspor"
 
 #: koassistant_chatgptviewer.lua:3246
+#, fuzzy
 msgid "No content to export"
-msgstr ""
+msgstr "Tidak ada konten untuk diekspor"
 
 #: koassistant_chatgptviewer.lua:3484
 #, fuzzy
@@ -1110,12 +1142,12 @@ msgstr "Kutipan ditampilkan"
 #: koassistant_chatgptviewer.lua:3558
 #, fuzzy
 msgid "No conversation history available"
-msgstr "Tidak ada riwayat percakapan yang tersedia"
+msgstr "Tidak ada riwayat percakapan tersedia"
 
 #: koassistant_chatgptviewer.lua:3567
 #, fuzzy
 msgid "No reasoning content available"
-msgstr "Tidak ada konten penalaran yang tersedia"
+msgstr "Tidak ada konten penalaran tersedia"
 
 #: koassistant_chatgptviewer.lua:3596
 #, fuzzy
@@ -1165,7 +1197,7 @@ msgstr "Perataan: %1"
 #: koassistant_chatgptviewer.lua:3758 koassistant_settings_schema.lua:1419
 #, fuzzy
 msgid "Reset to Defaults"
-msgstr "Atur Ulang ke Default"
+msgstr "Kembalikan ke Default"
 
 #: koassistant_chatgptviewer.lua:3787 main.lua:4569
 #: koassistant_ui/settings_manager.lua:298
@@ -1181,44 +1213,46 @@ msgstr "Ukuran font diatur ke %1"
 #: koassistant_chatgptviewer.lua:3830 main.lua:6356
 #, fuzzy
 msgid "Settings reset to defaults"
-msgstr "Pengaturan diatur ulang ke default"
+msgstr "Pengaturan dikembalikan ke default"
 
 #: koassistant_constants.lua:117 koassistant_settings_schema.lua:877
 #, fuzzy
 msgid "Translate Page"
-msgstr "Terjemahkan"
+msgstr "Terjemahkan Halaman"
 
 #: koassistant_constants.lua:118 koassistant_settings_schema.lua:878
 #, fuzzy
 msgid "View Notebook"
-msgstr "Mode Tampilan"
+msgstr "Lihat Buku Catatan"
 
 #: koassistant_constants.lua:119 koassistant_settings_schema.lua:879
+#, fuzzy
 msgid "Edit Notebook"
-msgstr ""
+msgstr "Edit Buku Catatan"
 
 #: koassistant_constants.lua:121 koassistant_settings_schema.lua:881
 #, fuzzy
 msgid "Continue Last Chat"
-msgstr "Lanjutkan Percakapan"
+msgstr "Lanjutkan Obrolan Terakhir"
 
 #: koassistant_constants.lua:122 koassistant_settings_schema.lua:882
 #: koassistant_settings_schema.lua:1020 main.lua:4732
+#, fuzzy
 msgid "New Book Chat/Action"
-msgstr ""
+msgstr "Obrolan/Tindakan Buku Baru"
 
 #: koassistant_constants.lua:123 koassistant_settings_schema.lua:40
 #: koassistant_settings_schema.lua:883 koassistant_settings_schema.lua:1013
 #: main.lua:4720
 #, fuzzy
 msgid "General Chat/Action"
-msgstr "Percakapan Umum"
+msgstr "Obrolan/Tindakan Umum"
 
 #: koassistant_constants.lua:125 koassistant_settings_schema.lua:885
 #: main.lua:4800
 #, fuzzy
 msgid "Quick Settings"
-msgstr "Pengaturan Cepat AI"
+msgstr "Pengaturan Cepat"
 
 #: koassistant_dialogs.lua:108 koassistant_gpt_query.lua:177
 #, fuzzy
@@ -1266,18 +1300,22 @@ msgid "Cannot tag: no document context"
 msgstr "Tidak dapat memberi tag: tidak ada konteks dokumen"
 
 #: koassistant_dialogs.lua:1835
+#, fuzzy
 msgid "Could not find summary action. Please try again."
-msgstr ""
+msgstr "Tidak dapat menemukan tindakan ringkasan. Silakan coba lagi."
 
 #: koassistant_dialogs.lua:1843 main.lua:4082
+#, fuzzy
 msgid "Generating document summary..."
-msgstr ""
+msgstr "Membuat ringkasan dokumen..."
 
 #: koassistant_dialogs.lua:1865
+#, fuzzy
 msgid "Summary generation failed. Please try again."
-msgstr ""
+msgstr "Pembuatan ringkasan gagal. Silakan coba lagi."
 
 #: koassistant_dialogs.lua:1918
+#, fuzzy
 msgid ""
 "This action uses a reusable document summary for context.\n"
 "\n"
@@ -1286,28 +1324,35 @@ msgid ""
 "• Processes up to character limit\n"
 "• Coverage shown in cache viewer"
 msgstr ""
+"Tindakan ini menggunakan ringkasan dokumen yang dapat digunakan kembali untuk konteks.\n"
+"\n"
+"Buat ringkasan sekarang?\n"
+"• Hanya sekali\n"
+"• Memproses hingga batas karakter\n"
+"• Cakupan ditampilkan di penampil cache"
 
 #: koassistant_dialogs.lua:1919 main.lua:4105
 #, fuzzy
 msgid "Generate"
-msgstr "Umum"
+msgstr "Buat"
 
 #: koassistant_dialogs.lua:2172
+#, fuzzy
 msgid ""
 "Book text truncated (covers %1 %–%2 %). Increase limit in Advanced Settings."
-msgstr ""
+msgstr "Teks buku dipotong (mencakup %1 %–%2 %). Tingkatkan batas di Pengaturan Lanjutan."
 
 #: koassistant_dialogs.lua:2183
+#, fuzzy
 msgid ""
-"Full document text truncated (covers %1 %–%2 %). Increase limit in Advanced "
-"Settings."
-msgstr ""
+"Full document text truncated (covers %1 %–%2 %). Increase limit in Advanced Settings."
+msgstr "Teks dokumen lengkap dipotong (mencakup %1 %–%2 %). Tingkatkan batas di Pengaturan Lanjutan."
 
 #: koassistant_dialogs.lua:2262
+#, fuzzy
 msgid ""
-"New content truncated (covers %1 %–%2 %). Increase limit in Advanced "
-"Settings."
-msgstr ""
+"New content truncated (covers %1 %–%2 %). Increase limit in Advanced Settings."
+msgstr "Konten baru dipotong (mencakup %1 %–%2 %). Tingkatkan batas di Pengaturan Lanjutan."
 
 #: koassistant_dialogs.lua:2530 koassistant_dialogs.lua:2594
 #: koassistant_settings_schema.lua:536 main.lua:3421 main.lua:4446
@@ -1346,59 +1391,69 @@ msgstr "Kesalahan:"
 #: koassistant_dialogs.lua:2796
 #, fuzzy
 msgid "Error handling prompt: "
-msgstr "Kesalahan menangani prompt:"
+msgstr "Kesalahan menangani permintaan:"
 
 #: koassistant_dialogs.lua:2827 main.lua:4873
+#, fuzzy
 msgid "View Summary"
-msgstr ""
+msgstr "Lihat Ringkasan"
 
 #: koassistant_dialogs.lua:2836 main.lua:4873
+#, fuzzy
 msgid "Generate Summary"
-msgstr ""
+msgstr "Buat Ringkasan"
 
 #: koassistant_dialogs.lua:2864
 #, fuzzy
 msgid "KOAssistant Actions"
-msgstr "Aksi KOAssistant"
+msgstr "Tindakan KOAssistant"
 
 #: koassistant_dialogs.lua:2866
 #, fuzzy
 msgid "Type your question or additional instructions for any action..."
-msgstr "Ketik pertanyaan atau instruksi tambahan untuk aksi apa pun..."
+msgstr "Ketik pertanyaan atau instruksi tambahan untuk tindakan apa pun..."
 
 #: koassistant_dialogs.lua:2924
 #, fuzzy
 msgid "Unknown prompt type: "
-msgstr "Jenis prompt tidak dikenal:"
+msgstr "Jenis permintaan tidak dikenal:"
 
 #: koassistant_dialogs.lua:2950
 #, fuzzy
 msgid "Error: No action specified"
-msgstr "Kesalahan: Tidak ada aksi yang ditentukan"
+msgstr "Kesalahan: Tidak ada tindakan yang ditentukan"
 
 #: koassistant_dialogs.lua:3063
 #, fuzzy
 msgid "Failed to extract document text"
-msgstr "Gagal mengubah nama percakapan"
+msgstr "Gagal mengekstrak teks dokumen"
 
 #: koassistant_dialogs.lua:3083
+#, fuzzy
 msgid ""
 "Text extraction is disabled.\n"
 "\n"
 "Enable it in Settings → Privacy & Data → Text Extraction."
 msgstr ""
+"Ekstraksi teks dinonaktifkan.\n"
+"\n"
+"Aktifkan di Pengaturan → Privasi & Data → Ekstraksi Teks."
 
 #: koassistant_dialogs.lua:3084
+#, fuzzy
 msgid ""
 "No document text could be extracted.\n"
 "\n"
 "This document may not support text extraction."
 msgstr ""
+"Tidak ada teks dokumen yang dapat diekstrak.\n"
+"\n"
+"Dokumen ini mungkin tidak mendukung ekstraksi teks."
 
 #: koassistant_dialogs.lua:3162
 #, fuzzy
 msgid "Failed to generate summary"
-msgstr "Gagal mengubah nama percakapan"
+msgstr "Gagal membuat ringkasan"
 
 #: koassistant_gpt_query.lua:197 stream_handler.lua:159
 #, fuzzy
@@ -1411,22 +1466,25 @@ msgid "Failed to start subprocess for request"
 msgstr "Gagal memulai subproses untuk permintaan"
 
 #: koassistant_notebook_manager.lua:59
+#, fuzzy
 msgid ""
 "No notebooks yet.\n"
 "\n"
-"Use the NB button in chat viewer to save conversations to a per-book "
-"notebook."
+"Use the NB button in chat viewer to save conversations to a per-book notebook."
 msgstr ""
+"Belum ada buku catatan.\n"
+"\n"
+"Gunakan tombol NB di penampil obrolan untuk menyimpan percakapan ke buku catatan per-buku."
 
 #: koassistant_notebook_manager.lua:89 koassistant_settings_schema.lua:1093
 #, fuzzy
 msgid "Notebooks"
-msgstr "Catatan"
+msgstr "Buku Catatan"
 
 #: koassistant_notebook_manager.lua:121
 #, fuzzy
 msgid "View"
-msgstr "Tampilan:"
+msgstr "Lihat"
 
 #: koassistant_notebook_manager.lua:136 koassistant_ui/behavior_manager.lua:304
 #: koassistant_ui/domain_manager.lua:306
@@ -1441,11 +1499,9 @@ msgid ""
 "\n"
 "This cannot be undone."
 msgstr ""
-"Hapus cadangan?\n"
+"Hapus buku catatan ini?\n"
 "\n"
-"%1\n"
-"\n"
-"Ini tidak dapat dibatalkan."
+"Tindakan ini tidak dapat dibatalkan."
 
 #: koassistant_settings_schema.lua:31
 #, fuzzy
@@ -1454,8 +1510,9 @@ msgstr "Obrolan tentang Buku"
 
 #: koassistant_settings_schema.lua:52 koassistant_settings_schema.lua:1006
 #: main.lua:4708
+#, fuzzy
 msgid "Browse Notebooks"
-msgstr ""
+msgstr "Jelajahi Buku Catatan"
 
 #: koassistant_settings_schema.lua:62
 #, fuzzy
@@ -1500,56 +1557,52 @@ msgstr "Teks Biasa"
 #: koassistant_settings_schema.lua:112
 #, fuzzy
 msgid ""
-"Markdown renders formatting. Plain Text has better font support for Arabic/"
-"CJK."
-msgstr ""
-"Markdown menampilkan format. Teks Biasa memiliki dukungan font yang lebih "
-"baik untuk Arab/CJK."
+"Markdown renders formatting. Plain Text has better font support for Arabic/CJK."
+msgstr "Markdown menampilkan pemformatan. Teks Biasa memiliki dukungan font lebih baik untuk Arab/CJK."
 
 #: koassistant_settings_schema.lua:117
 #, fuzzy
 msgid "Text Mode for Dictionary"
-msgstr "Nonaktifkan Penyimpanan Otomatis untuk Kamus"
+msgstr "Mode Teks untuk Kamus"
 
 #: koassistant_settings_schema.lua:120
+#, fuzzy
 msgid ""
-"Use Plain Text mode for dictionary popup. Better font support for non-Latin "
-"scripts."
-msgstr ""
+"Use Plain Text mode for dictionary popup. Better font support for non-Latin scripts."
+msgstr "Gunakan mode Teks Biasa untuk popup kamus. Dukungan font lebih baik untuk skrip non-Latin."
 
 #: koassistant_settings_schema.lua:125
 #, fuzzy
 msgid "Text Mode for RTL Dictionary"
-msgstr "Nonaktifkan Penyimpanan Otomatis untuk Kamus"
+msgstr "Mode Teks untuk Kamus RTL"
 
 #: koassistant_settings_schema.lua:132
+#, fuzzy
 msgid ""
-"Use Plain Text mode for dictionary popup when dictionary language is Arabic, "
-"Persian, or Urdu. Grayed out when Text Mode for Dictionary is enabled."
-msgstr ""
+"Use Plain Text mode for dictionary popup when dictionary language is Arabic, Persian, or Urdu. Grayed out when Text Mode for Dictionary is enabled."
+msgstr "Gunakan mode Teks Biasa untuk popup kamus ketika bahasa kamus adalah Arab, Persia, atau Urdu. Dinonaktifkan ketika Mode Teks untuk Kamus diaktifkan."
 
 #: koassistant_settings_schema.lua:137
 #, fuzzy
 msgid "Text Mode for RTL Translate"
-msgstr "Nonaktifkan Penyimpanan Otomatis untuk Terjemahan"
+msgstr "Mode Teks untuk Terjemahan RTL"
 
 #: koassistant_settings_schema.lua:140
+#, fuzzy
 msgid ""
-"Use Plain Text mode for translate popup when translation language is Arabic, "
-"Persian, or Urdu."
-msgstr ""
+"Use Plain Text mode for translate popup when translation language is Arabic, Persian, or Urdu."
+msgstr "Gunakan mode Teks Biasa untuk popup terjemahan ketika bahasa terjemahan adalah Arab, Persia, atau Urdu."
 
 #: koassistant_settings_schema.lua:145
+#, fuzzy
 msgid "Auto RTL mode for Chat"
-msgstr ""
+msgstr "Mode RTL Otomatis untuk Chat"
 
 #: koassistant_settings_schema.lua:152
+#, fuzzy
 msgid ""
-"Automatically detect RTL content and switch to RTL mode (right-aligned text "
-"+ Plain Text). Activates when the latest response has more RTL than Latin "
-"characters. Disabling removes all automatic RTL adjustments. Grayed out when "
-"markdown is disabled."
-msgstr ""
+"Automatically detect RTL content and switch to RTL mode (right-aligned text + Plain Text). Activates when the latest response has more RTL than Latin characters. Disabling removes all automatic RTL adjustments. Grayed out when markdown is disabled."
+msgstr "Deteksi konten RTL secara otomatis dan beralih ke mode RTL (teks rata kanan + Teks Biasa). Aktif ketika respons terbaru memiliki lebih banyak karakter RTL daripada Latin. Menonaktifkan menghapus semua penyesuaian RTL otomatis. Dinonaktifkan ketika markdown dinonaktifkan."
 
 #: koassistant_settings_schema.lua:158
 #, fuzzy
@@ -1564,11 +1617,8 @@ msgstr "Terapkan Penghapusan Markdown"
 #: koassistant_settings_schema.lua:167
 #, fuzzy
 msgid ""
-"Convert markdown syntax to readable plain text (headers, lists, etc). "
-"Disable to show raw markdown."
-msgstr ""
-"Konversi sintaks markdown menjadi teks biasa yang dapat dibaca (header, "
-"daftar, dll). Nonaktifkan untuk menampilkan markdown mentah."
+"Convert markdown syntax to readable plain text (headers, lists, etc). Disable to show raw markdown."
+msgstr "Konversi sintaks markdown menjadi teks biasa yang dapat dibaca (header, daftar, dll). Nonaktifkan untuk menampilkan markdown mentah."
 
 #: koassistant_settings_schema.lua:174
 #, fuzzy
@@ -1583,43 +1633,43 @@ msgstr "Sembunyikan Sorotan Panjang"
 #: koassistant_settings_schema.lua:189
 #, fuzzy
 msgid "Long Highlight Threshold"
-msgstr "Batas Sorotan Panjang"
+msgstr "Ambang Batas Sorotan Panjang"
 
 #: koassistant_settings_schema.lua:201
 #, fuzzy
 msgid "Plugin UI Language"
-msgstr "Bahasa Utama"
+msgstr "Bahasa UI Plugin"
 
 #: koassistant_settings_schema.lua:204
+#, fuzzy
 msgid ""
-"Language for plugin menus and dialogs. Does not affect AI responses. "
-"Requires restart."
-msgstr ""
+"Language for plugin menus and dialogs. Does not affect AI responses. Requires restart."
+msgstr "Bahasa untuk menu dan dialog plugin. Tidak memengaruhi respons AI. Memerlukan restart."
 
 #: koassistant_settings_schema.lua:206
 #, fuzzy
 msgid "Match KOReader"
-msgstr "Ikuti Bahasa UI KOReader"
+msgstr "Sesuaikan KOReader"
 
 #: koassistant_settings_schema.lua:233
 #, fuzzy
 msgid "Please restart KOReader for the language change to take effect."
-msgstr "Silakan restart KOReader agar perubahan bahasa berlaku."
+msgstr "Silakan restart KOReader agar perubahan bahasa diterapkan."
 
 #: koassistant_settings_schema.lua:244
 #, fuzzy
 msgid "Chat Settings"
-msgstr "Pengaturan Obrolan"
+msgstr "Pengaturan Chat"
 
 #: koassistant_settings_schema.lua:249
 #, fuzzy
 msgid "Auto-save All Chats"
-msgstr "Simpan Otomatis Semua Obrolan"
+msgstr "Simpan Otomatis Semua Chat"
 
 #: koassistant_settings_schema.lua:256
 #, fuzzy
 msgid "Auto-save Continued Chats"
-msgstr "Simpan Otomatis Obrolan Lanjutan"
+msgstr "Simpan Otomatis Chat Berlanjut"
 
 #: koassistant_settings_schema.lua:265 koassistant_settings_schema.lua:600
 #: koassistant_settings_schema.lua:712
@@ -1649,7 +1699,7 @@ msgid ""
 "Lower = snappier but uses more battery."
 msgstr ""
 "Seberapa sering memeriksa data stream baru.\n"
-"Lebih rendah = lebih responsif tapi menggunakan lebih banyak baterai."
+"Lebih rendah = lebih responsif tapi lebih boros baterai."
 
 #: koassistant_settings_schema.lua:301
 #, fuzzy
@@ -1662,18 +1712,19 @@ msgid ""
 "How often to refresh the display during streaming.\n"
 "Higher = better performance on slower devices."
 msgstr ""
-"Seberapa sering merefresh tampilan selama streaming.\n"
-"Lebih tinggi = performa lebih baik di perangkat lambat."
+"Seberapa sering me-refresh tampilan selama streaming.\n"
+"Lebih tinggi = performa lebih baik pada perangkat lambat."
 
 #: koassistant_settings_schema.lua:314
+#, fuzzy
 msgid "Scroll to Last Message (Experimental)"
-msgstr ""
+msgstr "Gulir ke Pesan Terakhir (Eksperimental)"
 
 #: koassistant_settings_schema.lua:317
+#, fuzzy
 msgid ""
-"When resuming or replying to a chat, try to scroll so your last question is "
-"visible. When off, shows top for new chats and bottom for replies."
-msgstr ""
+"When resuming or replying to a chat, try to scroll so your last question is visible. When off, shows top for new chats and bottom for replies."
+msgstr "Saat melanjutkan atau membalas chat, coba gulir agar pertanyaan terakhir Anda terlihat. Ketika dinonaktifkan, menampilkan bagian atas untuk chat baru dan bawah untuk balasan."
 
 #: koassistant_settings_schema.lua:324
 #, fuzzy
@@ -1684,9 +1735,7 @@ msgstr "Gaya Ekspor"
 #, fuzzy
 msgid ""
 "Markdown uses # headers and **bold**. Plain text uses simple formatting."
-msgstr ""
-"Markdown menggunakan # header dan **tebal**. Teks biasa menggunakan format "
-"sederhana."
+msgstr "Markdown menggunakan header # dan **tebal**. Teks biasa menggunakan pemformatan sederhana."
 
 #: koassistant_settings_schema.lua:340 koassistant_settings_schema.lua:355
 #: koassistant_settings_schema.lua:371 koassistant_settings_schema.lua:390
@@ -1705,7 +1754,7 @@ msgstr "Hanya respons terakhir"
 #: koassistant_settings_schema.lua:346
 #, fuzzy
 msgid "What to include when copying chat to clipboard."
-msgstr "Apa yang disertakan saat menyalin obrolan ke clipboard."
+msgstr "Apa yang disertakan saat menyalin chat ke clipboard."
 
 #: koassistant_settings_schema.lua:361
 #, fuzzy
@@ -1715,7 +1764,7 @@ msgstr "Apa yang disertakan saat menyimpan ke catatan."
 #: koassistant_settings_schema.lua:366
 #, fuzzy
 msgid "Chat History Export"
-msgstr "Ekspor Riwayat"
+msgstr "Ekspor Riwayat Chat"
 
 #: koassistant_settings_schema.lua:370
 #, fuzzy
@@ -1725,81 +1774,84 @@ msgstr "Ikuti Konten Salin"
 #: koassistant_settings_schema.lua:377
 #, fuzzy
 msgid "What to include when exporting from Chat History."
-msgstr "Apa yang disertakan saat mengekspor dari Riwayat Obrolan."
+msgstr "Apa yang disertakan saat mengekspor dari Riwayat Chat."
 
 #: koassistant_settings_schema.lua:384
 #, fuzzy
 msgid "Save Location"
-msgstr "Simpan Obrolan"
+msgstr "Lokasi Penyimpanan"
 
 #: koassistant_settings_schema.lua:388
 #, fuzzy
 msgid "KOAssistant exports folder"
-msgstr "KOAssistant: Ubah Penyedia"
+msgstr "Folder ekspor KOAssistant"
 
 #: koassistant_settings_schema.lua:389
 #, fuzzy
 msgid "Custom folder"
-msgstr "Model Kustom"
+msgstr "Folder kustom"
 
 #: koassistant_settings_schema.lua:392
+#, fuzzy
 msgid ""
-"Where to save exported chat files. Creates subfolders for book/general/multi-"
-"book chats."
-msgstr ""
+"Where to save exported chat files. Creates subfolders for book/general/multi-book chats."
+msgstr "Tempat menyimpan file chat yang diekspor. Membuat subfolder untuk chat buku/umum/multi-buku."
 
 #: koassistant_settings_schema.lua:403
 #, fuzzy
 msgid "Custom Folder: %1"
-msgstr "Model Kustom untuk %1"
+msgstr "Folder Kustom: %1"
 
 #: koassistant_settings_schema.lua:405
 #, fuzzy
 msgid "Set Custom Folder..."
-msgstr "Model kustom..."
+msgstr "Atur Folder Kustom..."
 
 #: koassistant_settings_schema.lua:414
+#, fuzzy
 msgid "Select directory for exported files."
-msgstr ""
+msgstr "Pilih direktori untuk file yang diekspor."
 
 #: koassistant_settings_schema.lua:419
+#, fuzzy
 msgid "Save book chats alongside books"
-msgstr ""
+msgstr "Simpan obrolan buku bersama buku"
 
 #: koassistant_settings_schema.lua:422
+#, fuzzy
 msgid ""
-"When enabled, book chats are saved to a 'chats' subfolder next to the book "
-"file instead of the central location."
-msgstr ""
+"When enabled, book chats are saved to a 'chats' subfolder next to the book file instead of the central location."
+msgstr "Saat diaktifkan, obrolan buku disimpan ke subfolder 'chats' di sebelah file buku alih-alih lokasi pusat."
 
 #: koassistant_settings_schema.lua:427
 #, fuzzy
 msgid "Show Export in Chat Viewer"
-msgstr "Tampilkan Indikator di Obrolan"
+msgstr "Tampilkan Ekspor di Penampil Obrolan"
 
 #: koassistant_settings_schema.lua:430
+#, fuzzy
 msgid "Add Export button to the Chat Viewer (alongside Copy and Note)."
-msgstr ""
+msgstr "Tambahkan tombol Ekspor ke Penampil Obrolan (bersama Salin dan Catatan)."
 
 #: koassistant_settings_schema.lua:439
 #, fuzzy
 msgid "AI Language Settings"
-msgstr "Pengaturan Cepat AI"
+msgstr "Pengaturan Bahasa AI"
 
 #: koassistant_settings_schema.lua:451
 #, fuzzy
 msgid "Your Languages: (not set)"
-msgstr "Bahasa Utama: (tidak diatur)"
+msgstr "Bahasa Anda: (belum diatur)"
 
 #: koassistant_settings_schema.lua:453 koassistant_settings_schema.lua:460
 #, fuzzy
 msgid "Your Languages: %1"
-msgstr "Bahasa Anda"
+msgstr "Bahasa Anda: %1"
 
 #: koassistant_settings_schema.lua:470
 #, fuzzy
 msgid "Primary Language: (not set)"
-msgstr "Bahasa Utama: (tidak diatur)"
+msgstr "Bahasa Utama: (belum diatur)"
 
 #: koassistant_settings_schema.lua:472
 #, fuzzy
@@ -1809,12 +1861,12 @@ msgstr "Bahasa Utama: %1"
 #: koassistant_settings_schema.lua:483
 #, fuzzy
 msgid "Additional Languages: (none)"
-msgstr "Bahasa Utama: (tidak diatur)"
+msgstr "Bahasa Tambahan: (tidak ada)"
 
 #: koassistant_settings_schema.lua:490
 #, fuzzy
 msgid "Additional Languages: %1"
-msgstr "Bahasa Kamus"
+msgstr "Bahasa Tambahan: %1"
 
 #: koassistant_settings_schema.lua:501
 #, fuzzy
@@ -1869,32 +1921,24 @@ msgstr "Mode Konteks: %1"
 #: koassistant_settings_schema.lua:545
 #, fuzzy
 msgid "Context Characters"
-msgstr "Jumlah Karakter Konteks"
+msgstr "Karakter Konteks"
 
 #: koassistant_settings_schema.lua:551
 #, fuzzy
 msgid ""
-"Number of characters to include before/after the word when Context Mode is "
-"'Characters'"
-msgstr ""
-"Jumlah karakter yang disertakan sebelum/sesudah kata ketika Mode Konteks "
-"adalah 'Karakter'"
+"Number of characters to include before/after the word when Context Mode is 'Characters'"
+msgstr "Jumlah karakter yang disertakan sebelum/sesudah kata saat Mode Konteks adalah 'Karakter'"
 
 #: koassistant_settings_schema.lua:560
 #, fuzzy
 msgid "Disable Auto-save for Dictionary"
-msgstr "Nonaktifkan Penyimpanan Otomatis untuk Kamus"
+msgstr "Nonaktifkan Simpan Otomatis untuk Kamus"
 
 #: koassistant_settings_schema.lua:563
 #, fuzzy
 msgid ""
-"When enabled, dictionary lookups are not auto-saved. When disabled, "
-"dictionary chats follow your general chat saving settings. You can always "
-"save manually from an expanded view."
-msgstr ""
-"Saat diaktifkan, pencarian kamus tidak disimpan otomatis. Saat "
-"dinonaktifkan, obrolan kamus mengikuti pengaturan penyimpanan obrolan umum "
-"Anda. Anda selalu dapat menyimpan secara manual dari tampilan yang diperluas."
+"When enabled, dictionary lookups are not auto-saved. When disabled, dictionary chats follow your general chat saving settings. You can always save manually from an expanded view."
+msgstr "Saat diaktifkan, pencarian kamus tidak disimpan otomatis. Saat dinonaktifkan, obrolan kamus mengikuti pengaturan penyimpanan obrolan umum Anda. Anda selalu dapat menyimpan secara manual dari tampilan yang diperluas."
 
 #: koassistant_settings_schema.lua:572 koassistant_settings_schema.lua:588
 #: koassistant_settings_schema.lua:724 koassistant_settings_schema.lua:740
@@ -1903,37 +1947,35 @@ msgid "Follow global setting"
 msgstr "Ikuti pengaturan global"
 
 #: koassistant_settings_schema.lua:576 koassistant_settings_schema.lua:592
+#, fuzzy
 msgid "Definition only (Recommended)"
-msgstr ""
+msgstr "Hanya definisi (Disarankan)"
 
 #: koassistant_settings_schema.lua:579
 #, fuzzy
 msgid "What to include when copying in dictionary view."
-msgstr "Apa yang disertakan saat menyalin di tampilan terjemahan."
+msgstr "Apa yang disertakan saat menyalin di tampilan kamus."
 
 #: koassistant_settings_schema.lua:595
 #, fuzzy
 msgid "What to include when saving dictionary results to a note."
-msgstr "Apa yang disertakan saat menyimpan ke catatan."
+msgstr "Apa yang disertakan saat menyimpan hasil kamus ke catatan."
 
 #: koassistant_settings_schema.lua:603
 #, fuzzy
 msgid ""
-"Stream dictionary responses in real-time. Disable to wait for complete "
-"response."
-msgstr ""
-"Streaming respons kamus secara real-time. Nonaktifkan untuk menunggu respons "
-"lengkap."
+"Stream dictionary responses in real-time. Disable to wait for complete response."
+msgstr "Streaming respons kamus secara real-time. Nonaktifkan untuk menunggu respons lengkap."
 
 #: koassistant_settings_schema.lua:608
 #, fuzzy
 msgid "Dictionary Popup Actions"
-msgstr "Tindakan Popup Kamus"
+msgstr "Aksi Popup Kamus"
 
 #: koassistant_settings_schema.lua:610
 #, fuzzy
 msgid "Configure which actions appear in the dictionary popup"
-msgstr "Konfigurasi tindakan yang muncul di popup kamus"
+msgstr "Konfigurasi aksi mana yang muncul di popup kamus"
 
 #: koassistant_settings_schema.lua:615
 #, fuzzy
@@ -1943,39 +1985,31 @@ msgstr "Lewati Kamus KOReader"
 #: koassistant_settings_schema.lua:618
 #, fuzzy
 msgid ""
-"Skip KOReader's dictionary and go directly to AI when tapping words. Can "
-"also be toggled via gesture."
-msgstr ""
-"Lewati kamus KOReader dan langsung ke AI saat mengetuk kata. Dapat juga "
-"dialihkan melalui gestur."
+"Skip KOReader's dictionary and go directly to AI when tapping words. Can also be toggled via gesture."
+msgstr "Lewati kamus KOReader dan langsung ke AI saat mengetuk kata. Dapat juga dialihkan melalui gesture."
 
 #: koassistant_settings_schema.lua:639 koassistant_settings_schema.lua:643
 #: koassistant_settings_schema.lua:645 koassistant_settings_schema.lua:825
 #: koassistant_settings_schema.lua:829 koassistant_settings_schema.lua:831
 #, fuzzy
 msgid "Bypass Action: %1"
-msgstr "Tindakan Lewati: %1"
+msgstr "Aksi Lewati: %1"
 
 #: koassistant_settings_schema.lua:648
 #, fuzzy
 msgid "Action to trigger when dictionary bypass is enabled"
-msgstr "Tindakan yang dipicu saat lewati kamus diaktifkan"
+msgstr "Aksi yang dipicu saat lewati kamus diaktifkan"
 
 #: koassistant_settings_schema.lua:653
 #, fuzzy
 msgid "Bypass: Follow Vocab Builder Auto-add"
-msgstr "Lewati: Ikuti Penambahan Otomatis Vocab Builder"
+msgstr "Lewati: Ikuti Tambah Otomatis Vocab Builder"
 
 #: koassistant_settings_schema.lua:656
 #, fuzzy
 msgid ""
-"When enabled, dictionary bypass follows KOReader's Vocabulary Builder auto-"
-"add setting. Disable if you use bypass for analysis of words you already "
-"know and don't want them added."
-msgstr ""
-"Saat diaktifkan, lewati kamus mengikuti pengaturan penambahan otomatis "
-"Vocabulary Builder KOReader. Nonaktifkan jika Anda menggunakan lewati untuk "
-"analisis kata yang sudah Anda ketahui dan tidak ingin ditambahkan."
+"When enabled, dictionary bypass follows KOReader's Vocabulary Builder auto-add setting. Disable if you use bypass for analysis of words you already know and don't want them added."
+msgstr "Saat diaktifkan, lewati kamus mengikuti pengaturan tambah otomatis Vocabulary Builder KOReader. Nonaktifkan jika Anda menggunakan lewati untuk analisis kata yang sudah Anda ketahui dan tidak ingin ditambahkan."
 
 #: koassistant_settings_schema.lua:665
 #, fuzzy
@@ -1990,11 +2024,8 @@ msgstr "Terjemahkan ke Bahasa Utama"
 #: koassistant_settings_schema.lua:674
 #, fuzzy
 msgid ""
-"Use your primary language as the translation target. Disable to choose a "
-"different target."
-msgstr ""
-"Gunakan bahasa utama Anda sebagai target terjemahan. Nonaktifkan untuk "
-"memilih target yang berbeda."
+"Use your primary language as the translation target. Disable to choose a different target."
+msgstr "Gunakan bahasa utama Anda sebagai target terjemahan. Nonaktifkan untuk memilih target berbeda."
 
 #: koassistant_settings_schema.lua:694
 #, fuzzy
@@ -2004,14 +2035,12 @@ msgstr "Target Terjemahan: %1"
 #: koassistant_settings_schema.lua:704
 #, fuzzy
 msgid "Disable Auto-Save for Translate"
-msgstr "Nonaktifkan Penyimpanan Otomatis untuk Terjemahan"
+msgstr "Nonaktifkan Simpan Otomatis untuk Terjemahan"
 
 #: koassistant_settings_schema.lua:707
 #, fuzzy
 msgid "Translations are not auto-saved. Save manually via → Chat button."
-msgstr ""
-"Terjemahan tidak disimpan otomatis. Simpan secara manual melalui tombol → "
-"Obrolan."
+msgstr "Terjemahan tidak disimpan otomatis. Simpan secara manual melalui tombol → Obrolan."
 
 #: koassistant_settings_schema.lua:715
 #, fuzzy
@@ -2041,7 +2070,7 @@ msgstr "Selalu Sembunyikan"
 #: koassistant_settings_schema.lua:761
 #, fuzzy
 msgid "Hide Long"
-msgstr "Sembunyikan Panjang"
+msgstr "Sembunyikan yang Panjang"
 
 #: koassistant_settings_schema.lua:762 koassistant_settings_schema.lua:772
 #, fuzzy
@@ -2061,7 +2090,7 @@ msgstr "Ikuti Global (Pengaturan Tampilan)"
 #: koassistant_settings_schema.lua:771
 #, fuzzy
 msgid "Hide Long (by character count)"
-msgstr "Sembunyikan Panjang (berdasarkan jumlah karakter)"
+msgstr "Sembunyikan yang Panjang (berdasarkan jumlah karakter)"
 
 #: koassistant_settings_schema.lua:778
 #, fuzzy
@@ -2071,11 +2100,8 @@ msgstr "Ambang Batas Teks Panjang"
 #: koassistant_settings_schema.lua:784
 #, fuzzy
 msgid ""
-"Character count above which text is considered 'long'. Used when Original "
-"Text is set to 'Hide Long'."
-msgstr ""
-"Jumlah karakter di mana teks dianggap 'panjang'. Digunakan saat Teks Asli "
-"diatur ke 'Sembunyikan Panjang'."
+"Character count above which text is considered 'long'. Used when Original Text is set to 'Hide Long'."
+msgstr "Jumlah karakter di mana teks dianggap 'panjang'. Digunakan saat Teks Asli diatur ke 'Sembunyikan yang Panjang'."
 
 #: koassistant_settings_schema.lua:793
 #, fuzzy
@@ -2083,11 +2109,10 @@ msgid "Hide for Full Page Translate"
 msgstr "Sembunyikan untuk Terjemahan Halaman Penuh"
 
 #: koassistant_settings_schema.lua:796
+#, fuzzy
 msgid ""
-"Always hide original text for full page translations. Overrides all other "
-"visibility settings when enabled. Disable to use your normal Original Text "
-"setting above."
-msgstr ""
+"Always hide original text for full page translations. Overrides all other visibility settings when enabled. Disable to use your normal Original Text setting above."
+msgstr "Selalu sembunyikan teks asli untuk terjemahan halaman penuh. Menimpa semua pengaturan visibilitas lainnya saat diaktifkan. Nonaktifkan untuk menggunakan pengaturan Teks Asli normal Anda di atas."
 
 #: koassistant_settings_schema.lua:805
 #, fuzzy
@@ -2097,21 +2122,18 @@ msgstr "Pengaturan Sorotan"
 #: koassistant_settings_schema.lua:810
 #, fuzzy
 msgid "Enable Highlight Bypass"
-msgstr "Aktifkan Lewati Sorotan"
+msgstr "Aktifkan Bypass Sorotan"
 
 #: koassistant_settings_schema.lua:813
 #, fuzzy
 msgid ""
-"Immediately trigger an action when text is selected, skipping the highlight "
-"menu. Can also be toggled via gesture."
-msgstr ""
-"Langsung picu tindakan saat teks dipilih, melewati menu sorotan. Dapat juga "
-"dialihkan melalui gestur."
+"Immediately trigger an action when text is selected, skipping the highlight menu. Can also be toggled via gesture."
+msgstr "Langsung picu tindakan saat teks dipilih, melewati menu sorotan. Juga dapat dialihkan melalui gestur."
 
 #: koassistant_settings_schema.lua:834
 #, fuzzy
 msgid "Action to trigger when highlight bypass is enabled"
-msgstr "Tindakan yang dipicu saat lewati sorotan diaktifkan"
+msgstr "Tindakan yang dipicu saat bypass sorotan diaktifkan"
 
 #: koassistant_settings_schema.lua:839
 #, fuzzy
@@ -2121,52 +2143,57 @@ msgstr "Tindakan Menu Sorotan"
 #: koassistant_settings_schema.lua:841
 #, fuzzy
 msgid "Choose which actions appear in the highlight menu (requires restart)"
-msgstr "Pilih tindakan yang muncul di menu sorotan (perlu restart)"
+msgstr "Pilih tindakan mana yang muncul di menu sorotan (memerlukan restart)"
 
 #: koassistant_settings_schema.lua:850
 #, fuzzy
 msgid "Quick Panel Settings"
-msgstr "Pengaturan Cepat AI"
+msgstr "Pengaturan Panel Cepat"
 
 #: koassistant_settings_schema.lua:858
 #, fuzzy
 msgid "Quick Actions Panel"
-msgstr "Nama Aksi"
+msgstr "Panel Tindakan Cepat"
 
 #: koassistant_settings_schema.lua:863
 #, fuzzy
 msgid "Panel Actions"
-msgstr "Kelola Tindakan"
+msgstr "Tindakan Panel"
 
 #: koassistant_settings_schema.lua:865
 #, fuzzy
 msgid "Choose which actions appear in the Quick Actions panel and their order"
-msgstr "Pilih tindakan yang muncul di menu sorotan (perlu restart)"
+msgstr "Pilih tindakan mana yang muncul di panel Tindakan Cepat dan urutannya"
 
 #: koassistant_settings_schema.lua:870
+#, fuzzy
 msgid "QA Panel Utilities"
-msgstr ""
+msgstr "Utilitas Panel QA"
 
 #: koassistant_settings_schema.lua:871
+#, fuzzy
 msgid "Show or hide utility buttons in the Quick Actions panel"
-msgstr ""
+msgstr "Tampilkan atau sembunyikan tombol utilitas di panel Tindakan Cepat"
 
 #: koassistant_settings_schema.lua:884
+#, fuzzy
 msgid "Summary (View/Generate)"
-msgstr ""
+msgstr "Ringkasan (Lihat/Buat)"
 
 #: koassistant_settings_schema.lua:904
 #, fuzzy
 msgid "Quick Settings Panel"
-msgstr "Pengaturan Cepat AI"
+msgstr "Panel Pengaturan Cepat"
 
 #: koassistant_settings_schema.lua:909
+#, fuzzy
 msgid "QS Panel Utilities"
-msgstr ""
+msgstr "Utilitas Panel QS"
 
 #: koassistant_settings_schema.lua:910
+#, fuzzy
 msgid "Show or hide controls in the Quick Settings panel"
-msgstr ""
+msgstr "Tampilkan atau sembunyikan kontrol di panel Pengaturan Cepat"
 
 #: koassistant_settings_schema.lua:915 main.lua:4360 main.lua:4512
 #, fuzzy
@@ -2181,12 +2208,12 @@ msgstr "Model"
 #: koassistant_settings_schema.lua:929
 #, fuzzy
 msgid "Behavior"
-msgstr "Perilaku AI"
+msgstr "Perilaku"
 
 #: koassistant_settings_schema.lua:936
 #, fuzzy
 msgid "Domain"
-msgstr "Domain:"
+msgstr "Domain"
 
 #: koassistant_settings_schema.lua:943 koassistant_settings_schema.lua:1471
 #: main.lua:4570 koassistant_ui/prompts_manager.lua:709
@@ -2194,16 +2221,17 @@ msgstr "Domain:"
 #: koassistant_ui/prompts_manager.lua:2928
 #, fuzzy
 msgid "Temperature"
-msgstr "Temperatur"
+msgstr "Temperature"
 
 #: koassistant_settings_schema.lua:950
 #, fuzzy
 msgid "Anthropic/Gemini Reasoning"
-msgstr "OpenAI Reasoning"
+msgstr "Penalaran Anthropic/Gemini"
 
 #: koassistant_settings_schema.lua:957 koassistant_settings_schema.lua:1599
+#, fuzzy
 msgid "Web Search"
-msgstr ""
+msgstr "Pencarian Web"
 
 #: koassistant_settings_schema.lua:964
 #, fuzzy
@@ -2219,12 +2247,12 @@ msgstr "Bahasa Terjemahan"
 #: koassistant_settings_schema.lua:985
 #, fuzzy
 msgid "H.Bypass"
-msgstr "Lewati H.: AKTIF"
+msgstr "H.Bypass"
 
 #: koassistant_settings_schema.lua:992
 #, fuzzy
 msgid "D.Bypass"
-msgstr "Lewati K.: AKTIF"
+msgstr "D.Bypass"
 
 #: koassistant_settings_schema.lua:1027 koassistant_settings_schema.lua:1061
 #: main.lua:4744 koassistant_ui/prompts_manager.lua:499
@@ -2235,17 +2263,17 @@ msgstr "Kelola Tindakan"
 #: koassistant_settings_schema.lua:1034 main.lua:4918
 #, fuzzy
 msgid "Quick Actions"
-msgstr "Pengaturan Cepat AI"
+msgstr "Tindakan Cepat"
 
 #: koassistant_settings_schema.lua:1041
 #, fuzzy
 msgid "More Settings"
-msgstr "Pengaturan Lainnya..."
+msgstr "Pengaturan Lainnya"
 
 #: koassistant_settings_schema.lua:1056
 #, fuzzy
 msgid "Actions & Prompts"
-msgstr "Langkah 3/4: Prompt Aksi"
+msgstr "Tindakan & Prompt"
 
 #: koassistant_settings_schema.lua:1074
 #, fuzzy
@@ -2256,8 +2284,7 @@ msgstr "Kelola Perilaku (%1)"
 #, fuzzy
 msgid ""
 "Select or create AI behavior styles that define how the AI communicates."
-msgstr ""
-"Pilih atau buat gaya perilaku AI yang menentukan cara AI berkomunikasi."
+msgstr "Pilih atau buat gaya perilaku AI yang menentukan cara AI berkomunikasi."
 
 #: koassistant_settings_schema.lua:1082
 #, fuzzy
@@ -2267,352 +2294,364 @@ msgstr "Kelola Domain..."
 #: koassistant_settings_schema.lua:1084
 #, fuzzy
 msgid "Manage knowledge domains. Domains are selected per-chat."
-msgstr "Kelola domain pengetahuan. Domain dipilih per obrolan."
+msgstr "Kelola domain pengetahuan. Domain dipilih per-obrolan."
 
 #: koassistant_settings_schema.lua:1098
+#, fuzzy
 msgid "Browse Notebooks..."
-msgstr ""
+msgstr "Telusuri Buku Catatan..."
 
 #: koassistant_settings_schema.lua:1105
 #, fuzzy
 msgid "Content Format"
-msgstr "Konten"
+msgstr "Format Konten"
 
 #: koassistant_settings_schema.lua:1110
+#, fuzzy
 msgid "Q&A"
-msgstr ""
+msgstr "T&J"
 
 #: koassistant_settings_schema.lua:1111
+#, fuzzy
 msgid "Full Q&A (recommended)"
-msgstr ""
+msgstr "T&J Lengkap (direkomendasikan)"
 
 #: koassistant_settings_schema.lua:1113
+#, fuzzy
 msgid ""
 "What to include when saving to notebook.\n"
-"Full Q&A includes all context messages + highlighted text + question + "
-"response."
+"Full Q&A includes all context messages + highlighted text + question + response."
 msgstr ""
+"Apa yang disertakan saat menyimpan ke buku catatan.\n"
+"Q&A Lengkap mencakup semua pesan konteks + teks yang disorot + pertanyaan + respons."
 
 #: koassistant_settings_schema.lua:1119
+#, fuzzy
 msgid "Show in file browser menu"
-msgstr ""
+msgstr "Tampilkan di menu browser file"
 
 #: koassistant_settings_schema.lua:1122 koassistant_settings_schema.lua:1372
+#, fuzzy
 msgid ""
 "Show 'Notebook (KOA)' button when long-pressing books in the file browser."
-msgstr ""
+msgstr "Tampilkan tombol 'Buku Catatan (KOA)' saat menekan lama buku di browser file."
 
 #: koassistant_settings_schema.lua:1127 koassistant_settings_schema.lua:1378
+#, fuzzy
 msgid "Only for books with notebooks"
-msgstr ""
+msgstr "Hanya untuk buku dengan buku catatan"
 
 #: koassistant_settings_schema.lua:1131
+#, fuzzy
 msgid ""
-"Only show button if notebook already exists. Disable to allow creating new "
-"notebooks from file browser."
-msgstr ""
+"Only show button if notebook already exists. Disable to allow creating new notebooks from file browser."
+msgstr "Hanya tampilkan tombol jika buku catatan sudah ada. Nonaktifkan untuk membuat buku catatan baru dari browser file."
 
 #: koassistant_settings_schema.lua:1140
+#, fuzzy
 msgid "Privacy & Data"
-msgstr ""
+msgstr "Privasi & Data"
 
 #: koassistant_settings_schema.lua:1150 main.lua:6543
 #, fuzzy
 msgid "Trusted Providers: None"
-msgstr "Tidak ada penyedia kustom untuk dikelola"
+msgstr "Penyedia Tepercaya: Tidak Ada"
 
 #: koassistant_settings_schema.lua:1152 main.lua:6545
 #, fuzzy
 msgid "Trusted Providers: %1"
-msgstr "Penyedia: %1"
+msgstr "Penyedia Tepercaya: %1"
 
 #: koassistant_settings_schema.lua:1155
+#, fuzzy
 msgid ""
-"Providers you trust bypass the data sharing controls below. Use for local "
-"Ollama instances or providers you fully trust."
-msgstr ""
+"Providers you trust bypass the data sharing controls below. Use for local Ollama instances or providers you fully trust."
+msgstr "Penyedia yang Anda percayai melewati kontrol berbagi data di bawah. Gunakan untuk instance Ollama lokal atau penyedia yang sepenuhnya Anda percayai."
 
 #: koassistant_settings_schema.lua:1163
 #, fuzzy
 msgid "Preset: Default"
-msgstr "Reset ke Default"
+msgstr "Prasetel: Default"
 
 #: koassistant_settings_schema.lua:1164
+#, fuzzy
 msgid ""
-"Recommended balance. Share reading progress and chapter info for context-"
-"aware features. Personal content (highlights, annotations, notebook) stays "
-"private."
-msgstr ""
+"Recommended balance. Share reading progress and chapter info for context-aware features. Personal content (highlights, annotations, notebook) stays private."
+msgstr "Keseimbangan yang disarankan. Bagikan progres membaca dan info bab untuk fitur sadar konteks. Konten pribadi (sorotan, anotasi, buku catatan) tetap privat."
 
 #: koassistant_settings_schema.lua:1171
 #, fuzzy
 msgid "Preset: Minimal"
-msgstr "Minimal"
+msgstr "Prasetel: Minimal"
 
 #: koassistant_settings_schema.lua:1172
+#, fuzzy
 msgid ""
-"Maximum privacy. Disable all extended data sharing including progress and "
-"chapter info. Only your question and book metadata are sent."
-msgstr ""
+"Maximum privacy. Disable all extended data sharing including progress and chapter info. Only your question and book metadata are sent."
+msgstr "Privasi maksimum. Nonaktifkan semua berbagi data tambahan termasuk progres dan info bab. Hanya pertanyaan Anda dan metadata buku yang dikirim."
 
 #: koassistant_settings_schema.lua:1179
+#, fuzzy
 msgid "Preset: Full"
-msgstr ""
+msgstr "Prasetel: Penuh"
 
 #: koassistant_settings_schema.lua:1180
+#, fuzzy
 msgid ""
-"Enable all data sharing for full functionality. Does not enable text "
-"extraction (see Text Extraction submenu)."
-msgstr ""
+"Enable all data sharing for full functionality. Does not enable text extraction (see Text Extraction submenu)."
+msgstr "Aktifkan semua berbagi data untuk fungsionalitas penuh. Tidak mengaktifkan ekstraksi teks (lihat submenu Ekstraksi Teks)."
 
 #: koassistant_settings_schema.lua:1189
+#, fuzzy
 msgid "Data Sharing Controls (for non-trusted providers)"
-msgstr ""
+msgstr "Kontrol Berbagi Data (untuk penyedia tidak tepercaya)"
 
 #: koassistant_settings_schema.lua:1195
 #, fuzzy
 msgid "Allow Highlights & Annotations"
-msgstr "Tindakan Menu Sorotan"
+msgstr "Izinkan Sorotan & Anotasi"
 
 #: koassistant_settings_schema.lua:1198
+#, fuzzy
 msgid ""
-"Send your saved highlights and personal notes to the AI. Used by Analyze "
-"Highlights, X-Ray, Connect with Notes, and actions with {highlights} or "
-"{annotations} placeholders."
-msgstr ""
+"Send your saved highlights and personal notes to the AI. Used by Analyze Highlights, X-Ray, Connect with Notes, and actions with {highlights} or {annotations} placeholders."
+msgstr "Kirim sorotan tersimpan dan catatan pribadi Anda ke AI. Digunakan oleh Analisis Sorotan, X-Ray, Hubungkan dengan Catatan, dan aksi dengan placeholder {highlights} atau {annotations}."
 
 #: koassistant_settings_schema.lua:1203
+#, fuzzy
 msgid "Allow Notebook"
-msgstr ""
+msgstr "Izinkan Buku Catatan"
 
 #: koassistant_settings_schema.lua:1206
+#, fuzzy
 msgid ""
-"Send notebook entries to AI. Used by Connect with Notes and actions with "
-"{notebook} placeholder."
-msgstr ""
+"Send notebook entries to AI. Used by Connect with Notes and actions with {notebook} placeholder."
+msgstr "Kirim entri buku catatan ke AI. Digunakan oleh Hubungkan dengan Catatan dan aksi dengan placeholder {notebook}."
 
 #: koassistant_settings_schema.lua:1211
 #, fuzzy
 msgid "Allow Reading Progress"
-msgstr "Kemajuan Membaca (%)"
+msgstr "Izinkan Progres Membaca"
 
 #: koassistant_settings_schema.lua:1214
+#, fuzzy
 msgid "Send current reading position (percentage). Used by X-Ray, Recap."
-msgstr ""
+msgstr "Kirim posisi membaca saat ini (persentase). Digunakan oleh X-Ray, Rekap."
 
 #: koassistant_settings_schema.lua:1219
+#, fuzzy
 msgid "Allow Chapter Info"
-msgstr ""
+msgstr "Izinkan Info Bab"
 
 #: koassistant_settings_schema.lua:1222
+#, fuzzy
 msgid ""
-"Send current chapter title, chapters read count, and time since last opened. "
-"Used by Recap."
-msgstr ""
+"Send current chapter title, chapters read count, and time since last opened. Used by Recap."
+msgstr "Kirim judul bab saat ini, jumlah bab yang dibaca, dan waktu sejak terakhir dibuka. Digunakan oleh Rekap."
 
 #: koassistant_settings_schema.lua:1232
 #, fuzzy
 msgid "Text Extraction (enabled)"
-msgstr "Ekstraksi Teks Buku"
+msgstr "Ekstraksi Teks (diaktifkan)"
 
 #: koassistant_settings_schema.lua:1234
 #, fuzzy
 msgid "Text Extraction (disabled)"
-msgstr "Ekstraksi Teks Buku"
+msgstr "Ekstraksi Teks (dinonaktifkan)"
 
 #: koassistant_settings_schema.lua:1241
 #, fuzzy
 msgid "Allow Text Extraction"
-msgstr "Izinkan Ekstraksi Teks Buku"
+msgstr "Izinkan Ekstraksi Teks"
 
 #: koassistant_settings_schema.lua:1244
+#, fuzzy
 msgid ""
-"When enabled, actions can extract and send book text to the AI. Used by X-"
-"Ray, Recap, and actions with text placeholders."
-msgstr ""
+"When enabled, actions can extract and send book text to the AI. Used by X-Ray, Recap, and actions with text placeholders."
+msgstr "Saat diaktifkan, aksi dapat mengekstrak dan mengirim teks buku ke AI. Digunakan oleh X-Ray, Rekap, dan aksi dengan placeholder teks."
 
 #: koassistant_settings_schema.lua:1250
+#, fuzzy
 msgid ""
-"Text extraction sends actual book content to the AI. This uses tokens "
-"(increases API costs) and processing time. Features like X-Ray and Recap use "
-"this to analyze your reading progress. Be mindful of how you use this "
-"feature."
-msgstr ""
+"Text extraction sends actual book content to the AI. This uses tokens (increases API costs) and processing time. Features like X-Ray and Recap use this to analyze your reading progress. Be mindful of how you use this feature."
+msgstr "Ekstraksi teks mengirim konten buku sebenarnya ke AI. Ini menggunakan token (meningkatkan biaya API) dan waktu pemrosesan. Fitur seperti X-Ray dan Rekap menggunakan ini untuk menganalisis progres membaca Anda. Gunakan fitur ini dengan bijak."
 
 #: koassistant_settings_schema.lua:1258
 #, fuzzy
 msgid "Max Text Characters"
-msgstr "Karakter Teks Maksimum"
+msgstr "Karakter Teks Maks"
 
 #: koassistant_settings_schema.lua:1265
 #, fuzzy
 msgid ""
-"Maximum characters to extract (10,000-1,000,000). Higher = more context but "
-"more tokens. Default: 250,000 (~60k tokens)."
-msgstr ""
-"Karakter maksimum untuk diekstrak dari buku (10.000-500.000). Nilai lebih "
-"tinggi memberikan lebih banyak konteks tapi menggunakan lebih banyak token. "
-"Default: 50.000 (~12k token)."
+"Maximum characters to extract (10,000-1,000,000). Higher = more context but more tokens. Default: 250,000 (~60k tokens)."
+msgstr "Karakter maksimum untuk diekstrak (10.000-1.000.000). Lebih tinggi = lebih banyak konteks tetapi lebih banyak token. Default: 250.000 (~60k token)."
 
 #: koassistant_settings_schema.lua:1271
 #, fuzzy
 msgid "Max PDF Pages"
-msgstr "Halaman PDF Maksimum"
+msgstr "Halaman PDF Maks"
 
 #: koassistant_settings_schema.lua:1278
 #, fuzzy
 msgid ""
 "Maximum PDF pages to extract (50-500). Higher = more context but slower."
-msgstr ""
-"Halaman PDF maksimum untuk mengekstrak teks (50-500). Nilai lebih tinggi "
-"memberikan lebih banyak konteks tapi membutuhkan waktu lebih lama."
+msgstr "Halaman PDF maksimum untuk diekstrak (50-500). Lebih tinggi = lebih banyak konteks tetapi lebih lambat."
 
 #: koassistant_settings_schema.lua:1284 main.lua:5018
 #, fuzzy
 msgid "Clear Action Cache"
-msgstr "Masukkan nama aksi"
+msgstr "Hapus Cache Aksi"
 
 #: koassistant_settings_schema.lua:1285
+#, fuzzy
 msgid ""
-"Clear cached X-Ray and Recap responses for the current book. Use to "
-"regenerate from scratch."
-msgstr ""
+"Clear cached X-Ray and Recap responses for the current book. Use to regenerate from scratch."
+msgstr "Hapus respons X-Ray dan Rekap yang di-cache untuk buku saat ini. Gunakan untuk membuat ulang dari awal."
 
 #: koassistant_settings_schema.lua:1298
 #, fuzzy
 msgid "KOReader Integration"
-msgstr "Internasional"
+msgstr "Integrasi KOReader"
 
 #: koassistant_settings_schema.lua:1304
+#, fuzzy
 msgid "Control where KOAssistant appears in KOReader"
-msgstr ""
+msgstr "Kontrol di mana KOAssistant muncul di KOReader"
 
 #: koassistant_settings_schema.lua:1310
+#, fuzzy
 msgid "Show in File Browser"
-msgstr ""
+msgstr "Tampilkan di Browser File"
 
 #: koassistant_settings_schema.lua:1313
-msgid "Add KOAssistant button to file browser context menus. Requires restart."
-msgstr ""
+#, fuzzy
+msgid ""
+"Add KOAssistant button to file browser context menus. Requires restart."
+msgstr "Tambahkan tombol KOAssistant ke menu konteks browser file. Memerlukan restart."
 
 #: koassistant_settings_schema.lua:1318 koassistant_settings_schema.lua:1333
 #: koassistant_settings_schema.lua:1348
 #, fuzzy
 msgid "Please restart KOReader for this change to take effect."
-msgstr "Silakan restart KOReader agar perubahan bahasa berlaku."
+msgstr "Harap restart KOReader agar perubahan ini berlaku."
 
 #: koassistant_settings_schema.lua:1325
 #, fuzzy
 msgid "Show KOAssistant Button in Highlight Menu"
-msgstr "KOAssistant: Analisis Sorotan"
+msgstr "Tampilkan Tombol KOAssistant di Menu Sorotan"
 
 #: koassistant_settings_schema.lua:1328
 #, fuzzy
 msgid "Add main KOAssistant button to highlight menu. Requires restart."
-msgstr "Pilih tindakan yang muncul di menu sorotan (perlu restart)"
+msgstr "Tambahkan tombol KOAssistant utama ke menu sorotan. Memerlukan restart."
 
 #: koassistant_settings_schema.lua:1340
 #, fuzzy
 msgid "Show Highlight Menu Actions"
-msgstr "Tindakan Menu Sorotan"
+msgstr "Tampilkan Aksi Menu Sorotan"
 
 #: koassistant_settings_schema.lua:1343
 #, fuzzy
 msgid ""
-"Add action shortcuts (Explain, Translate, etc.) to highlight menu. Requires "
-"restart."
-msgstr "Pilih tindakan yang muncul di menu sorotan (perlu restart)"
+"Add action shortcuts (Explain, Translate, etc.) to highlight menu. Requires restart."
+msgstr "Tambahkan pintasan aksi (Jelaskan, Terjemahkan, dll.) ke menu sorotan. Memerlukan restart."
 
 #: koassistant_settings_schema.lua:1355
 #, fuzzy
 msgid "Show in Dictionary Popup"
-msgstr "✓ Di Popup Kamus"
+msgstr "Tampilkan di Popup Kamus"
 
 #: koassistant_settings_schema.lua:1358
 #, fuzzy
 msgid "Add AI buttons to KOReader's dictionary popup"
-msgstr "Tombol AI di Popup Kamus"
+msgstr "Tambahkan tombol AI ke popup kamus KOReader"
 
 #: koassistant_settings_schema.lua:1364
+#, fuzzy
 msgid "File Browser Buttons"
-msgstr ""
+msgstr "Tombol Browser File"
 
 #: koassistant_settings_schema.lua:1369
+#, fuzzy
 msgid "Show Notebook Button"
-msgstr ""
+msgstr "Tampilkan Tombol Buku Catatan"
 
 #: koassistant_settings_schema.lua:1382
+#, fuzzy
 msgid "Only show notebook button if notebook already exists."
-msgstr ""
+msgstr "Hanya tampilkan tombol buku catatan jika buku catatan sudah ada."
 
 #: koassistant_settings_schema.lua:1387
 #, fuzzy
 msgid "Show Chat History Button"
-msgstr "Opsi Riwayat Percakapan"
+msgstr "Tampilkan Tombol Riwayat Chat"
 
 #: koassistant_settings_schema.lua:1390
+#, fuzzy
 msgid ""
-"Show 'Chat History (KOA)' button when long-pressing books that have chat "
-"history."
-msgstr ""
+"Show 'Chat History (KOA)' button when long-pressing books that have chat history."
+msgstr "Tampilkan tombol 'Riwayat Obrolan (KOA)' saat menekan lama buku yang memiliki riwayat obrolan."
 
 #: koassistant_settings_schema.lua:1398
 #, fuzzy
 msgid "Customize Visible Actions"
-msgstr "Edit Aksi Kustom"
+msgstr "Sesuaikan Tindakan yang Terlihat"
 
 #: koassistant_settings_schema.lua:1403
 #, fuzzy
 msgid "Dictionary Popup Actions..."
-msgstr "Tindakan Popup Kamus"
+msgstr "Tindakan Pop-up Kamus..."
 
 #: koassistant_settings_schema.lua:1410
 #, fuzzy
 msgid "Highlight Menu Actions..."
-msgstr "Tindakan Menu Sorotan"
+msgstr "Tindakan Menu Sorotan..."
 
 #: koassistant_settings_schema.lua:1424
 #, fuzzy
 msgid "Reset Dictionary Popup Actions"
-msgstr "Tindakan Popup Kamus"
+msgstr "Atur Ulang Tindakan Pop-up Kamus"
 
 #: koassistant_settings_schema.lua:1426
 #, fuzzy
 msgid "Restore default dictionary popup buttons"
-msgstr "Dihapus dari popup kamus."
+msgstr "Kembalikan tombol pop-up kamus ke pengaturan awal"
 
 #: koassistant_settings_schema.lua:1432
 #, fuzzy
 msgid "Reset Highlight Menu Actions"
-msgstr "Tindakan Menu Sorotan"
+msgstr "Atur Ulang Tindakan Menu Sorotan"
 
 #: koassistant_settings_schema.lua:1434
 #, fuzzy
 msgid "Restore default highlight menu items"
-msgstr "Dihapus dari menu sorotan."
+msgstr "Kembalikan item menu sorotan ke pengaturan awal"
 
 #: koassistant_settings_schema.lua:1440
 #, fuzzy
 msgid "Reset All Menu Customizations"
-msgstr "Atur ulang semua kustomisasi"
+msgstr "Atur Ulang Semua Kustomisasi Menu"
 
 #: koassistant_settings_schema.lua:1442
+#, fuzzy
 msgid "Restore all menus to defaults (dictionary popup, highlight menu)"
-msgstr ""
+msgstr "Kembalikan semua menu ke pengaturan awal (pop-up kamus, menu sorotan)"
 
 #: koassistant_settings_schema.lua:1449
 #, fuzzy
 msgid "Startup Behavior"
-msgstr "Perilaku AI"
+msgstr "Perilaku Startup"
 
 #: koassistant_settings_schema.lua:1454
 #, fuzzy
 msgid "Auto-check for updates"
-msgstr "Periksa Pembaruan"
+msgstr "Periksa pembaruan otomatis"
 
 #: koassistant_settings_schema.lua:1457
+#, fuzzy
 msgid "Automatically check for new versions when KOReader starts."
-msgstr ""
+msgstr "Periksa versi baru secara otomatis saat KOReader dimulai."
 
 #: koassistant_settings_schema.lua:1466
 #, fuzzy
@@ -2641,27 +2680,33 @@ msgid "Long-press provider for supported models"
 msgstr "Tekan lama penyedia untuk model yang didukung"
 
 #: koassistant_settings_schema.lua:1497
+#, fuzzy
 msgid "Enable Anthropic/Gemini Reasoning"
-msgstr ""
+msgstr "Aktifkan Penalaran Anthropic/Gemini"
 
 #: koassistant_settings_schema.lua:1498
+#, fuzzy
 msgid ""
 "Enable extended thinking for Anthropic and Gemini.\n"
 "\n"
-"Note: OpenAI reasoning models (o3, gpt-5) always reason internally - this "
-"toggle does not affect them."
+"Note: OpenAI reasoning models (o3, gpt-5) always reason internally - this toggle does not affect them."
 msgstr ""
+"Aktifkan pemikiran mendalam untuk Anthropic dan Gemini.\n"
+"\n"
+"Catatan: Model penalaran OpenAI (o3, gpt-5) selalu bernalar secara internal - pengaturan ini tidak memengaruhi mereka."
 
 #: koassistant_settings_schema.lua:1507 koassistant_ui/prompts_manager.lua:2121
 #, fuzzy
 msgid "Anthropic Extended Thinking"
-msgstr "Anthropic Extended Thinking"
+msgstr "Pemikiran Mendalam Anthropic"
 
 #: koassistant_settings_schema.lua:1508 koassistant_settings_schema.lua:1535
 #: koassistant_settings_schema.lua:1574
 #, fuzzy
-msgid "Supported models:\n"
-msgstr "Model yang didukung:\n"
+msgid ""
+"Supported models:\n"
+msgstr ""
+"Model yang didukung:\n"
 
 #: koassistant_settings_schema.lua:1508
 #, fuzzy
@@ -2677,18 +2722,21 @@ msgstr ""
 #: koassistant_settings_schema.lua:1516
 #, fuzzy
 msgid "Thinking Budget (tokens)"
-msgstr "Anggaran Thinking (token)"
+msgstr "Anggaran Pemikiran (token)"
 
 #: koassistant_settings_schema.lua:1517
+#, fuzzy
 msgid ""
 "Maximum tokens for extended thinking (1024-32000).\n"
 "This is a cap - Claude uses what it needs up to this limit."
 msgstr ""
+"Token maksimum untuk pemikiran mendalam (1024-32000).\n"
+"Ini adalah batas - Claude menggunakan sesuai kebutuhan hingga batas ini."
 
 #: koassistant_settings_schema.lua:1534 koassistant_ui/prompts_manager.lua:2294
 #, fuzzy
 msgid "Gemini Thinking"
-msgstr "Gemini Thinking"
+msgstr "Pemikiran Gemini"
 
 #: koassistant_settings_schema.lua:1535
 #, fuzzy
@@ -2699,7 +2747,7 @@ msgid ""
 msgstr ""
 "\n"
 "\n"
-"Thinking dienkripsi/disembunyikan dari pengguna."
+"Pemikiran dienkripsi/disembunyikan dari pengguna."
 
 #: koassistant_settings_schema.lua:1546 koassistant_settings_schema.lua:1689
 #, fuzzy
@@ -2727,7 +2775,7 @@ msgstr "Tinggi"
 #: koassistant_settings_schema.lua:1547
 #, fuzzy
 msgid "Thinking Depth: %1"
-msgstr "Kedalaman Thinking: %1"
+msgstr "Kedalaman Pemikiran: %1"
 
 #: koassistant_settings_schema.lua:1549
 #, fuzzy
@@ -2738,7 +2786,7 @@ msgid ""
 msgstr ""
 "Minimal = tercepat\n"
 "Rendah/Sedang = seimbang\n"
-"Tinggi = thinking paling dalam"
+"Tinggi = pemikiran terdalam"
 
 #: koassistant_settings_schema.lua:1558
 #, fuzzy
@@ -2753,15 +2801,20 @@ msgstr "Tinggi (default)"
 #: koassistant_settings_schema.lua:1572
 #, fuzzy
 msgid "OpenAI Reasoning Effort: %1"
-msgstr "Upaya Penalaran: %1"
+msgstr "Upaya Penalaran OpenAI: %1"
 
 #: koassistant_settings_schema.lua:1574
+#, fuzzy
 msgid ""
 "\n"
 "\n"
 "OpenAI reasoning models always reason internally.\n"
 "This controls the effort level (hidden from user)."
 msgstr ""
+"\n"
+"\n"
+"Model penalaran OpenAI selalu bernalar secara internal.\n"
+"Ini mengontrol tingkat upaya (disembunyikan dari pengguna)."
 
 #: koassistant_settings_schema.lua:1579
 #, fuzzy
@@ -2771,7 +2824,7 @@ msgstr "Rendah (lebih cepat, lebih murah)"
 #: koassistant_settings_schema.lua:1580
 #, fuzzy
 msgid "Medium (default)"
-msgstr "Tinggi (default)"
+msgstr "Sedang (default)"
 
 #: koassistant_settings_schema.lua:1581
 #, fuzzy
@@ -2786,27 +2839,26 @@ msgstr "Tampilkan Indikator di Obrolan"
 #: koassistant_settings_schema.lua:1589
 #, fuzzy
 msgid ""
-"Show '*[Reasoning was used]*' indicator in chat when reasoning is requested "
-"or used.\n"
+"Show '*[Reasoning was used]*' indicator in chat when reasoning is requested or used.\n"
 "\n"
 "Full reasoning content is always viewable via 'Show Reasoning' button."
 msgstr ""
-"Tampilkan indikator '*[Penalaran digunakan]*' di obrolan saat penalaran "
-"diminta atau digunakan.\n"
+"Tampilkan indikator '*[Penalaran digunakan]*' di obrolan saat penalaran diminta atau digunakan.\n"
 "\n"
-"Konten penalaran lengkap selalu dapat dilihat melalui tombol 'Tampilkan "
-"Penalaran'."
+"Konten penalaran lengkap selalu dapat dilihat melalui tombol 'Tampilkan Penalaran'."
 
 #: koassistant_settings_schema.lua:1603
+#, fuzzy
 msgid "Supported: Anthropic, Gemini, OpenRouter"
-msgstr ""
+msgstr "Didukung: Anthropic, Gemini, OpenRouter"
 
 #: koassistant_settings_schema.lua:1608
 #, fuzzy
 msgid "Enable Web Search"
-msgstr "Aktifkan Streaming"
+msgstr "Aktifkan Pencarian Web"
 
 #: koassistant_settings_schema.lua:1609
+#, fuzzy
 msgid ""
 "Allow AI to search the web for current information.\n"
 "\n"
@@ -2819,24 +2871,43 @@ msgid ""
 "\n"
 "Increases token usage/cost."
 msgstr ""
+"Izinkan AI mencari web untuk informasi terkini.\n"
+"\n"
+"Penyedia yang didukung:\n"
+"• Anthropic (Claude)\n"
+"• Gemini\n"
+"• OpenRouter (semua model)\n"
+"\n"
+"Penyedia lain mengabaikan pengaturan ini.\n"
+"\n"
+"Meningkatkan penggunaan/biaya token."
 
 #: koassistant_settings_schema.lua:1616
+#, fuzzy
 msgid "Max Searches per Query"
-msgstr ""
+msgstr "Pencarian Maks per Query"
 
 #: koassistant_settings_schema.lua:1617
+#, fuzzy
 msgid ""
 "Maximum number of web searches per query (1-10).\n"
 "Applies to Anthropic only.\n"
 "Gemini decides search count automatically."
 msgstr ""
+"Jumlah maksimum pencarian web per query (1-10).\n"
+"Berlaku untuk Anthropic saja.\n"
+"Gemini menentukan jumlah pencarian secara otomatis."
 
 #: koassistant_settings_schema.lua:1631
+#, fuzzy
 msgid ""
 "Show '*[Web search was used]*' indicator in chat when web search is used.\n"
 "\n"
 "Streaming indicator ('🔍 Searching...') is always shown."
 msgstr ""
+"Tampilkan indikator '*[Pencarian web digunakan]*' di obrolan saat pencarian web digunakan.\n"
+"\n"
+"Indikator streaming ('🔍 Mencari...') selalu ditampilkan."
 
 #: koassistant_settings_schema.lua:1641
 #, fuzzy
@@ -2851,12 +2922,12 @@ msgstr "Internasional"
 #: koassistant_settings_schema.lua:1651
 #, fuzzy
 msgid "China"
-msgstr "China"
+msgstr "Tiongkok"
 
 #: koassistant_settings_schema.lua:1652
 #, fuzzy
 msgid "US"
-msgstr "AS"
+msgstr "US"
 
 #: koassistant_settings_schema.lua:1654
 #, fuzzy
@@ -2875,10 +2946,10 @@ msgid ""
 msgstr ""
 "Pilih wilayah Alibaba Cloud Anda.\n"
 "\n"
-"Kunci API spesifik per wilayah dan TIDAK dapat dipertukarkan:\n"
+"Kunci API bersifat spesifik wilayah dan TIDAK dapat dipertukarkan:\n"
 "- Internasional: Singapura (dashscope-intl)\n"
 "- China: Beijing (dashscope)\n"
-"- AS: Virginia (dashscope-us)"
+"- US: Virginia (dashscope-us)"
 
 #: koassistant_settings_schema.lua:1660
 #, fuzzy
@@ -2893,7 +2964,7 @@ msgstr "China (Beijing)"
 #: koassistant_settings_schema.lua:1662
 #, fuzzy
 msgid "US (Virginia)"
-msgstr "AS (Virginia)"
+msgstr "US (Virginia)"
 
 #: koassistant_settings_schema.lua:1670
 #, fuzzy
@@ -2908,12 +2979,12 @@ msgstr "Aktifkan logging debug konsol/terminal (untuk pengembang)"
 #: koassistant_settings_schema.lua:1678
 #, fuzzy
 msgid "Show Debug in Chat"
-msgstr "Tampilkan Debug di Obrolan"
+msgstr "Tampilkan Debug di Chat"
 
 #: koassistant_settings_schema.lua:1679
 #, fuzzy
 msgid "Display debug information in chat viewer"
-msgstr "Tampilkan informasi debug di penampil obrolan"
+msgstr "Tampilkan informasi debug di penampil chat"
 
 #: koassistant_settings_schema.lua:1689
 #, fuzzy
@@ -2946,19 +3017,20 @@ msgid "Full (system blocks)"
 msgstr "Lengkap (blok sistem)"
 
 #: koassistant_settings_schema.lua:1705
+#, fuzzy
 msgid "Truncate Large Content (debug)"
-msgstr ""
+msgstr "Potong Konten Besar (debug)"
 
 #: koassistant_settings_schema.lua:1706
+#, fuzzy
 msgid ""
-"Truncate long content (book text, cached responses) in debug output. Shows "
-"first and last ~1500 characters with truncation notice."
-msgstr ""
+"Truncate long content (book text, cached responses) in debug output. Shows first and last ~1500 characters with truncation notice."
+msgstr "Potong konten panjang (teks buku, respons cache) dalam output debug. Menampilkan ~1500 karakter pertama dan terakhir dengan pemberitahuan pemotongan."
 
 #: koassistant_settings_schema.lua:1715
 #, fuzzy
 msgid "Test Connection"
-msgstr "Tes Koneksi"
+msgstr "Uji Koneksi"
 
 #: koassistant_settings_schema.lua:1723
 #, fuzzy
@@ -3003,14 +3075,15 @@ msgstr "Cadangan disimpan di: koassistant_backups/"
 #: koassistant_settings_schema.lua:1758
 #, fuzzy
 msgid "Reset Settings..."
-msgstr "Reset Pengaturan..."
+msgstr "Atur Ulang Pengaturan..."
 
 #: koassistant_settings_schema.lua:1764
 #, fuzzy
 msgid "Quick: Settings only"
-msgstr "Pengaturan Cepat AI"
+msgstr "Cepat: Hanya pengaturan"
 
 #: koassistant_settings_schema.lua:1765
+#, fuzzy
 msgid ""
 "Resets ALL settings in this menu to defaults:\n"
 "• Provider, model, temperature\n"
@@ -3019,11 +3092,19 @@ msgid ""
 "• Reasoning & debug settings\n"
 "• Language preferences\n"
 "\n"
-"Keeps: API keys, all actions, custom behaviors/domains, custom providers/"
-"models, gesture registrations, chat history."
+"Keeps: API keys, all actions, custom behaviors/domains, custom providers/models, gesture registrations, chat history."
 msgstr ""
+"Mengatur ulang SEMUA pengaturan di menu ini ke default:\n"
+"• Penyedia, model, temperatur\n"
+"• Pengaturan streaming, tampilan, ekspor\n"
+"• Pengaturan kamus & terjemahan\n"
+"• Pengaturan penalaran & debug\n"
+"• Preferensi bahasa\n"
+"\n"
+"Tetap tersimpan: Kunci API, semua tindakan, perilaku/domain kustom, penyedia/model kustom, registrasi gestur, riwayat chat."
 
 #: koassistant_settings_schema.lua:1767
+#, fuzzy
 msgid ""
 "Reset all settings to defaults?\n"
 "\n"
@@ -3034,15 +3115,26 @@ msgid ""
 "• Reasoning & debug settings\n"
 "• Language preferences\n"
 "\n"
-"Keeps: API keys, all actions, custom behaviors/domains, custom providers/"
-"models, gesture registrations, chat history."
+"Keeps: API keys, all actions, custom behaviors/domains, custom providers/models, gesture registrations, chat history."
 msgstr ""
+"Atur ulang semua pengaturan ke default?\n"
+"\n"
+"Mengatur ulang SEMUA pengaturan di menu Pengaturan:\n"
+"• Penyedia, model, temperatur\n"
+"• Pengaturan streaming, tampilan, ekspor\n"
+"• Pengaturan kamus & terjemahan\n"
+"• Pengaturan penalaran & debug\n"
+"• Preferensi bahasa\n"
+"\n"
+"Tetap tersimpan: Kunci API, semua tindakan, perilaku/domain kustom, penyedia/model kustom, registrasi gestur, riwayat chat."
 
 #: koassistant_settings_schema.lua:1774
+#, fuzzy
 msgid "Quick: Actions only"
-msgstr ""
+msgstr "Cepat: Hanya tindakan"
 
 #: koassistant_settings_schema.lua:1775
+#, fuzzy
 msgid ""
 "Resets all action-related settings:\n"
 "• Custom actions you created\n"
@@ -3051,11 +3143,19 @@ msgid ""
 "• Highlight menu order & dismissed items\n"
 "• Dictionary menu order & dismissed items\n"
 "\n"
-"Keeps: All settings, API keys, custom behaviors/domains, custom providers/"
-"models, gesture registrations, chat history."
+"Keeps: All settings, API keys, custom behaviors/domains, custom providers/models, gesture registrations, chat history."
 msgstr ""
+"Mengatur ulang semua pengaturan terkait tindakan:\n"
+"• Tindakan kustom yang Anda buat\n"
+"• Edit pada tindakan bawaan\n"
+"• Tindakan yang dinonaktifkan (aktifkan kembali semua)\n"
+"• Urutan menu highlight & item yang ditolak\n"
+"• Urutan menu kamus & item yang ditolak\n"
+"\n"
+"Tetap tersimpan: Semua pengaturan, kunci API, perilaku/domain kustom, penyedia/model kustom, registrasi gestur, riwayat chat."
 
 #: koassistant_settings_schema.lua:1777
+#, fuzzy
 msgid ""
 "Reset all action settings?\n"
 "\n"
@@ -3066,15 +3166,26 @@ msgid ""
 "• Highlight menu order & dismissed items\n"
 "• Dictionary menu order & dismissed items\n"
 "\n"
-"Keeps: All settings, API keys, custom behaviors/domains, custom providers/"
-"models, gesture registrations, chat history."
+"Keeps: All settings, API keys, custom behaviors/domains, custom providers/models, gesture registrations, chat history."
 msgstr ""
+"Atur ulang semua pengaturan tindakan?\n"
+"\n"
+"Mengatur ulang:\n"
+"• Tindakan kustom yang Anda buat\n"
+"• Edit pada tindakan bawaan\n"
+"• Tindakan yang dinonaktifkan (aktifkan kembali semua)\n"
+"• Urutan menu highlight & item yang ditolak\n"
+"• Urutan menu kamus & item yang ditolak\n"
+"\n"
+"Tetap tersimpan: Semua pengaturan, kunci API, perilaku/domain kustom, penyedia/model kustom, registrasi gestur, riwayat chat."
 
 #: koassistant_settings_schema.lua:1784
+#, fuzzy
 msgid "Quick: Fresh start"
-msgstr ""
+msgstr "Cepat: Mulai segar"
 
 #: koassistant_settings_schema.lua:1785
+#, fuzzy
 msgid ""
 "Resets everything except API keys and chat history:\n"
 "• All settings (provider, model, temperature, all toggles)\n"
@@ -3084,8 +3195,16 @@ msgid ""
 "\n"
 "Keeps: API keys, gesture registrations, chat history only."
 msgstr ""
+"Mengatur ulang semuanya kecuali kunci API dan riwayat chat:\n"
+"• Semua pengaturan (penyedia, model, temperatur, semua toggle)\n"
+"• Semua tindakan (kustom, edit, menu)\n"
+"• Perilaku & domain kustom\n"
+"• Penyedia & model kustom\n"
+"\n"
+"Tetap tersimpan: Kunci API, registrasi gestur, hanya riwayat chat."
 
 #: koassistant_settings_schema.lua:1787
+#, fuzzy
 msgid ""
 "Fresh start?\n"
 "\n"
@@ -3097,13 +3216,23 @@ msgid ""
 "\n"
 "Keeps: API keys, gesture registrations, chat history only."
 msgstr ""
+"Mulai segar?\n"
+"\n"
+"Mengatur ulang:\n"
+"• Semua pengaturan (penyedia, model, temperatur, semua toggle)\n"
+"• Semua tindakan (kustom, edit, menu)\n"
+"• Perilaku & domain kustom\n"
+"• Penyedia & model kustom\n"
+"\n"
+"Tetap tersimpan: Kunci API, registrasi gestur, hanya riwayat chat."
 
 #: koassistant_settings_schema.lua:1795
 #, fuzzy
 msgid "Custom reset..."
-msgstr "Kustom..."
+msgstr "Atur ulang kustom..."
 
 #: koassistant_settings_schema.lua:1796
+#, fuzzy
 msgid ""
 "Opens a checklist to choose exactly what to reset:\n"
 "• Settings (all toggles and preferences)\n"
@@ -3114,16 +3243,24 @@ msgid ""
 "• Behaviors & domains\n"
 "• API keys (with warning)"
 msgstr ""
+"Membuka daftar centang untuk memilih dengan tepat apa yang akan diatur ulang:\n"
+"• Pengaturan (semua toggle dan preferensi)\n"
+"• Tindakan kustom\n"
+"• Edit tindakan\n"
+"• Menu tindakan\n"
+"• Penyedia & model kustom\n"
+"• Perilaku & domain\n"
+"• Kunci API (dengan peringatan)"
 
 #: koassistant_settings_schema.lua:1804
 #, fuzzy
 msgid "Clear all chat history"
-msgstr "Hapus semua riwayat obrolan"
+msgstr "Hapus semua riwayat chat"
 
 #: koassistant_settings_schema.lua:1805
 #, fuzzy
 msgid "Deletes all saved conversations across all books."
-msgstr "Menghapus semua percakapan tersimpan di semua buku."
+msgstr "Menghapus semua percakapan yang disimpan di semua buku."
 
 #: koassistant_settings_schema.lua:1807
 #, fuzzy
@@ -3134,9 +3271,9 @@ msgid ""
 "\n"
 "This cannot be undone."
 msgstr ""
-"Hapus semua riwayat obrolan?\n"
+"Hapus semua riwayat chat?\n"
 "\n"
-"Ini menghapus semua percakapan tersimpan di semua buku.\n"
+"Ini menghapus semua percakapan yang disimpan di semua buku.\n"
 "\n"
 "Ini tidak dapat dibatalkan."
 
@@ -3148,7 +3285,7 @@ msgstr "Tentang KOAssistant"
 #: koassistant_settings_schema.lua:1825
 #, fuzzy
 msgid "Auto-check for updates on startup"
-msgstr "Periksa Pembaruan"
+msgstr "Periksa pembaruan otomatis saat startup"
 
 #: koassistant_settings_schema.lua:1832
 #, fuzzy
@@ -3158,47 +3295,54 @@ msgstr "Periksa Pembaruan"
 #: koassistant_update_checker.lua:580
 #, fuzzy
 msgid "Translating to %1..."
-msgstr "Target Terjemahan: %1"
+msgstr "Menerjemahkan ke %1..."
 
 #: koassistant_update_checker.lua:590
+#, fuzzy
 msgid ""
 "Translate the following release notes to %1. Preserve markdown formatting:\n"
 "\n"
 "%2"
 msgstr ""
+"Terjemahkan catatan rilis berikut ke %1. Pertahankan format markdown:\n"
+"\n"
+"%2"
 
 #: koassistant_update_checker.lua:609 koassistant_update_checker.lua:687
 #: main.lua:7518
+#, fuzzy
 msgid "Later"
-msgstr ""
+msgstr "Nanti"
 
 #: koassistant_update_checker.lua:615 koassistant_update_checker.lua:693
+#, fuzzy
 msgid "Visit Release Page"
-msgstr ""
+msgstr "Kunjungi Halaman Rilis"
 
 #: koassistant_update_checker.lua:622 koassistant_update_checker.lua:700
+#, fuzzy
 msgid "Please visit:"
-msgstr ""
+msgstr "Silakan kunjungi:"
 
 #: koassistant_update_checker.lua:633
 #, fuzzy
 msgid "Original"
-msgstr "Tampilkan Asli"
+msgstr "Asli"
 
 #: koassistant_update_checker.lua:644
 #, fuzzy
 msgid "%1 (Translated)"
-msgstr "Terjemahkan"
+msgstr "%1 (Diterjemahkan)"
 
 #: koassistant_update_checker.lua:656
 #, fuzzy
 msgid "Translation failed: %1"
-msgstr "Target Terjemahan: %1"
+msgstr "Terjemahan gagal: %1"
 
 #: koassistant_update_checker.lua:656 main.lua:6932 main.lua:7307 main.lua:7447
 #, fuzzy
 msgid "Unknown error"
-msgstr "Kesalahan tidak dikenal"
+msgstr "Kesalahan tidak diketahui"
 
 #: koassistant_update_checker.lua:712 koassistant_ui/prompts_manager.lua:1817
 #: koassistant_ui/prompts_manager.lua:1832
@@ -3208,17 +3352,19 @@ msgid "Translate"
 msgstr "Terjemahkan"
 
 #: main.lua:272
+#, fuzzy
 msgid "Notebook (KOA)"
-msgstr ""
+msgstr "Buku Catatan (KOA)"
 
 #: main.lua:296
 #, fuzzy
 msgid "Chat History (KOA)"
-msgstr "Riwayat Percakapan"
+msgstr "Riwayat Obrolan (KOA)"
 
 #: main.lua:313
+#, fuzzy
 msgid "View Summary (KOA)"
-msgstr ""
+msgstr "Lihat Ringkasan (KOA)"
 
 #: main.lua:371 main.lua:807
 #, fuzzy
@@ -3228,27 +3374,27 @@ msgstr "Bandingkan dengan KOAssistant"
 #: main.lua:662 main.lua:831
 #, fuzzy
 msgid "No files selected for comparison"
-msgstr "Tidak ada file yang dipilih untuk perbandingan"
+msgstr "Tidak ada file yang dipilih untuk dibandingkan"
 
 #: main.lua:745
 #, fuzzy
 msgid "Please select at least 2 books to compare"
-msgstr "Silakan pilih minimal 2 buku untuk dibandingkan"
+msgstr "Pilih setidaknya 2 buku untuk dibandingkan"
 
 #: main.lua:851
 #, fuzzy
 msgid "KOAssistant: Chat History"
-msgstr "KOAssistant: Riwayat Percakapan"
+msgstr "KOAssistant: Riwayat Obrolan"
 
 #: main.lua:859
 #, fuzzy
 msgid "KOAssistant: Continue Last Saved Chat"
-msgstr "KOAssistant: Lanjutkan Percakapan Tersimpan Terakhir"
+msgstr "KOAssistant: Lanjutkan Obrolan Tersimpan Terakhir"
 
 #: main.lua:867
 #, fuzzy
 msgid "KOAssistant: Continue Last Opened Chat"
-msgstr "KOAssistant: Lanjutkan Percakapan Terbuka Terakhir"
+msgstr "KOAssistant: Lanjutkan Obrolan Terbuka Terakhir"
 
 #: main.lua:876
 #, fuzzy
@@ -3258,17 +3404,17 @@ msgstr "KOAssistant: Pengaturan"
 #: main.lua:884
 #, fuzzy
 msgid "KOAssistant: General Chat/Action"
-msgstr "KOAssistant: Percakapan Umum"
+msgstr "KOAssistant: Obrolan/Aksi Umum"
 
 #: main.lua:892
 #, fuzzy
 msgid "KOAssistant: New Book Chat/Action"
-msgstr "Aksi KOAssistant"
+msgstr "KOAssistant: Obrolan/Aksi Buku Baru"
 
 #: main.lua:908
 #, fuzzy
 msgid "KOAssistant: %1"
-msgstr "KOAssistant"
+msgstr "KOAssistant: %1"
 
 #: main.lua:918
 #, fuzzy
@@ -3298,12 +3444,12 @@ msgstr "KOAssistant: Ubah Perilaku AI"
 #: main.lua:953
 #, fuzzy
 msgid "KOAssistant: Quick Settings"
-msgstr "KOAssistant: Pengaturan Cepat AI"
+msgstr "KOAssistant: Pengaturan Cepat"
 
 #: main.lua:961
 #, fuzzy
 msgid "KOAssistant: Quick Actions"
-msgstr "Aksi KOAssistant"
+msgstr "KOAssistant: Aksi Cepat"
 
 #: main.lua:969
 #, fuzzy
@@ -3328,7 +3474,7 @@ msgstr "KOAssistant: Ubah Domain"
 #: main.lua:998
 #, fuzzy
 msgid "KOAssistant: Dictionary Popup Manager"
-msgstr "KOAssistant: Pengelola Popup Kamus"
+msgstr "KOAssistant: Pengelola Pop-up Kamus"
 
 #: main.lua:1005
 #, fuzzy
@@ -3338,12 +3484,12 @@ msgstr "KOAssistant: Ubah Bahasa Kamus"
 #: main.lua:1012
 #, fuzzy
 msgid "KOAssistant: Toggle Dictionary Bypass"
-msgstr "KOAssistant: Aktifkan/Nonaktifkan Bypass Kamus"
+msgstr "KOAssistant: Alihkan Bypass Kamus"
 
 #: main.lua:1020
 #, fuzzy
 msgid "KOAssistant: Toggle Highlight Bypass"
-msgstr "KOAssistant: Aktifkan/Nonaktifkan Bypass Sorotan"
+msgstr "KOAssistant: Alihkan Bypass Sorotan"
 
 #: main.lua:1028
 #, fuzzy
@@ -3353,32 +3499,32 @@ msgstr "KOAssistant: Terjemahkan Halaman Saat Ini"
 #: main.lua:1039
 #, fuzzy
 msgid "KOAssistant: View Notebook"
-msgstr "KOAssistant: Percakapan Tentang Buku"
+msgstr "KOAssistant: Lihat Buku Catatan"
 
 #: main.lua:1048
 #, fuzzy
 msgid "KOAssistant: Edit Notebook"
-msgstr "KOAssistant: Percakapan Tentang Buku"
+msgstr "KOAssistant: Edit Buku Catatan"
 
 #: main.lua:1057
 #, fuzzy
 msgid "KOAssistant: Browse Notebooks"
-msgstr "KOAssistant: Percakapan Tentang Buku"
+msgstr "KOAssistant: Jelajahi Buku Catatan"
 
 #: main.lua:1066
 #, fuzzy
 msgid "KOAssistant: View Summary"
-msgstr "KOAssistant: X-Ray"
+msgstr "KOAssistant: Lihat Ringkasan"
 
 #: main.lua:1091
 #, fuzzy
 msgid "KOAssistant: "
-msgstr "KOAssistant"
+msgstr "KOAssistant:"
 
 #: main.lua:1211
 #, fuzzy
 msgid "Custom (migrated)"
-msgstr "Kustom (dimigrasi)"
+msgstr "Kustom (dimigrasikan)"
 
 #: main.lua:1391
 #, fuzzy
@@ -3393,7 +3539,7 @@ msgstr "Nama penyedia diperlukan"
 #: main.lua:1524 main.lua:1986
 #, fuzzy
 msgid "Base URL is required"
-msgstr "URL Dasar diperlukan"
+msgstr "URL dasar diperlukan"
 
 #: main.lua:1533
 #, fuzzy
@@ -3413,12 +3559,12 @@ msgstr "Kelola penyedia kustom (%1)..."
 #: main.lua:1813
 #, fuzzy
 msgid "API key: Required [tap to toggle]"
-msgstr "Kunci API: Diperlukan [ketuk untuk mengubah]"
+msgstr "Kunci API: Diperlukan [ketuk untuk mengalihkan]"
 
 #: main.lua:1815
 #, fuzzy
 msgid "API key: Not required [tap to toggle]"
-msgstr "Kunci API: Tidak diperlukan [ketuk untuk mengubah]"
+msgstr "Kunci API: Tidak diperlukan [ketuk untuk mengalihkan]"
 
 #: main.lua:1820
 #, fuzzy
@@ -3454,7 +3600,7 @@ msgid ""
 msgstr ""
 "Hapus penyedia kustom '%1'?\n"
 "\n"
-"Ini juga akan menghapus model kustom dan kunci API untuk penyedia ini."
+"Ini juga akan menghapus semua model kustom dan kunci API untuk penyedia ini."
 
 #: main.lua:1850 main.lua:2189 main.lua:2422
 #, fuzzy
@@ -3541,7 +3687,7 @@ msgstr "Kelola Penyedia Kustom"
 #: main.lua:2150
 #, fuzzy
 msgid "Set as default for %1"
-msgstr "Atur sebagai default untuk %1"
+msgstr "Tetapkan sebagai default untuk %1"
 
 #: main.lua:2155
 #, fuzzy
@@ -3556,7 +3702,7 @@ msgstr "Hapus default kustom"
 #: main.lua:2170
 #, fuzzy
 msgid "Cleared custom default for %1"
-msgstr "Default kustom untuk %1 dihapus"
+msgstr "Default kustom dihapus untuk %1"
 
 #: main.lua:2180
 #, fuzzy
@@ -3606,7 +3752,7 @@ msgstr "mis., claude-3-opus-20240229"
 #: main.lua:2320
 #, fuzzy
 msgid "Enter the exact model identifier. It will be saved and selected."
-msgstr "Masukkan pengenal model yang tepat. Ini akan disimpan dan dipilih."
+msgstr "Masukkan identifikasi model yang tepat. Ini akan disimpan dan dipilih."
 
 #: main.lua:2345 main.lua:2832
 #, fuzzy
@@ -3626,7 +3772,7 @@ msgstr "Kelola model kustom (%1)..."
 #: main.lua:2385
 #, fuzzy
 msgid "No predefined models"
-msgstr "Tidak ada model yang ditentukan"
+msgstr "Tidak ada model yang telah ditentukan"
 
 #: main.lua:2400
 #, fuzzy
@@ -3696,43 +3842,47 @@ msgstr "Kunci API %1 dihapus"
 #: main.lua:2674
 #, fuzzy
 msgid "%1 API key saved"
-msgstr "Kunci API %1 disimpan"
+msgstr "Kunci API %1 tersimpan"
 
 #: main.lua:2679
 #, fuzzy
 msgid "%1 API key saved. %1 selected as provider."
-msgstr "Silakan pilih penyedia terlebih dahulu"
+msgstr "Kunci API %1 tersimpan. %1 dipilih sebagai penyedia."
 
 #: main.lua:2790
 #, fuzzy
 msgid "Add Custom Language"
-msgstr "Tambah Model Kustom"
+msgstr "Tambah Bahasa Khusus"
 
 #: main.lua:2792
+#, fuzzy
 msgid "e.g., Esperanto, Swahili"
-msgstr ""
+msgstr "mis., Esperanto, Swahili"
 
 #: main.lua:2793
 #, fuzzy
 msgid "Enter a language name to add."
-msgstr "Masukkan bahasa target untuk terjemahan."
+msgstr "Masukkan nama bahasa untuk ditambahkan."
 
 #: main.lua:2841
+#, fuzzy
 msgid "'%1' is already added"
-msgstr ""
+msgstr "'%1' sudah ditambahkan"
 
 #: main.lua:2865
+#, fuzzy
 msgid "Languages you speak. Guides AI responses."
-msgstr ""
+msgstr "Bahasa yang Anda kuasai. Memandu respons AI."
 
 #: main.lua:2871 main.lua:3004
 #, fuzzy
 msgid "Add Custom Language..."
-msgstr "Tambah model kustom..."
+msgstr "Tambah Bahasa Khusus..."
 
 #: main.lua:2998
+#, fuzzy
 msgid "For translation/dictionary targets only."
-msgstr ""
+msgstr "Hanya untuk target terjemahan/kamus."
 
 #: main.lua:3144 main.lua:3161
 #, fuzzy
@@ -3752,18 +3902,18 @@ msgstr "Gunakan Utama (%1)"
 #: main.lua:3238 main.lua:3270 main.lua:4636
 #, fuzzy
 msgid "Translate: %1"
-msgstr "Terjemahkan: %1"
+msgstr "Terjemahan: %1"
 
 #: main.lua:3284 koassistant_ui/prompts_manager.lua:1485
 #: koassistant_ui/prompts_manager.lua:2826
 #, fuzzy
 msgid "Custom..."
-msgstr "Kustom..."
+msgstr "Khusus..."
 
 #: main.lua:3290
 #, fuzzy
 msgid "Custom Translation Language"
-msgstr "Bahasa Terjemahan Kustom"
+msgstr "Bahasa Terjemahan Khusus"
 
 #: main.lua:3292
 #, fuzzy
@@ -3808,7 +3958,7 @@ msgstr "Kamus: %1"
 #: main.lua:3418
 #, fuzzy
 msgid "Extract the full sentence containing the word"
-msgstr "Ambil kalimat lengkap yang mengandung kata tersebut"
+msgstr "Ekstrak kalimat lengkap yang memuat kata tersebut"
 
 #: main.lua:3419
 #, fuzzy
@@ -3833,110 +3983,121 @@ msgstr "Konteks: %1"
 #: main.lua:3460 koassistant_ui/prompts_manager.lua:3638
 #, fuzzy
 msgid "Custom AI Behavior"
-msgstr "Perilaku AI Kustom"
+msgstr "Perilaku AI Khusus"
 
 #: main.lua:3462
 #, fuzzy
 msgid "Enter custom AI behavior instructions..."
-msgstr "Masukkan instruksi perilaku AI kustom..."
+msgstr "Masukkan instruksi perilaku AI khusus..."
 
 #: main.lua:3463
 #, fuzzy
 msgid ""
-"Define how the AI should behave. This replaces the built-in Minimal/Full "
-"behavior when 'Custom' is selected.\n"
+"Define how the AI should behave. This replaces the built-in Minimal/Full behavior when 'Custom' is selected.\n"
 "\n"
 "Tip: Start with the Full behavior as a template."
 msgstr ""
-"Tentukan bagaimana AI harus berperilaku. Ini menggantikan perilaku bawaan "
-"Minimal/Lengkap saat 'Kustom' dipilih.\n"
+"Tentukan bagaimana AI harus berperilaku. Ini menggantikan perilaku Minimal/Penuh bawaan saat 'Khusus' dipilih.\n"
 "\n"
-"Tips: Mulai dengan perilaku Lengkap sebagai templat."
+"Tip: Mulai dengan perilaku Penuh sebagai template."
 
 #: main.lua:3478
 #, fuzzy
 msgid "Load Full"
-msgstr "Muat Lengkap"
+msgstr "Muat Penuh"
 
 #: main.lua:3534
 #, fuzzy
 msgid ""
-"Model lists are now managed through the model_lists.lua file. Please edit "
-"this file to add or remove models."
-msgstr ""
-"Daftar model sekarang dikelola melalui file model_lists.lua. Silakan edit "
-"file ini untuk menambah atau menghapus model."
+"Model lists are now managed through the model_lists.lua file. Please edit this file to add or remove models."
+msgstr "Daftar model sekarang dikelola melalui file model_lists.lua. Silakan edit file ini untuk menambah atau menghapus model."
 
 #: main.lua:3763
 #, fuzzy
 msgid "No previously opened chat found"
-msgstr "Tidak ditemukan obrolan yang dibuka sebelumnya"
+msgstr "Tidak ada obrolan yang dibuka sebelumnya"
 
 #: main.lua:3780 main.lua:6011
 #, fuzzy
 msgid "Configuration not found. Please set up configuration.lua first."
-msgstr ""
-"Konfigurasi tidak ditemukan. Silakan atur configuration.lua terlebih dahulu."
+msgstr "Konfigurasi tidak ditemukan. Harap atur configuration.lua terlebih dahulu."
 
 #: main.lua:3817 main.lua:4117 main.lua:5174 main.lua:5192
 #, fuzzy
 msgid "Please open a book first"
-msgstr "Silakan buka buku terlebih dahulu"
+msgstr "Harap buka buku terlebih dahulu"
 
 #: main.lua:3854 main.lua:3960 main.lua:4046
 #, fuzzy
 msgid "No book open"
-msgstr "Tidak ada dokumen yang dibuka"
+msgstr "Tidak ada buku terbuka"
 
 #: main.lua:3875 main.lua:3985
 #, fuzzy
 msgid "Summary"
-msgstr "Ringkas"
+msgstr "Ringkasan"
 
 #: main.lua:3883
 #, fuzzy
 msgid "Analysis"
-msgstr "Analisis Mendalam"
+msgstr "Analisis"
 
 #: main.lua:3891
+#, fuzzy
 msgid ""
 "No cached content found for this document.\n"
 "\n"
 "Run X-Ray, Summarize Document, or Analyze Document to create reusable caches."
 msgstr ""
+"Tidak ada konten cache untuk dokumen ini.\n"
+"\n"
+"Jalankan X-Ray, Ringkas Dokumen, atau Analisis Dokumen untuk membuat cache yang dapat digunakan kembali."
 
 #: main.lua:3921
 #, fuzzy
 msgid "View Cache"
-msgstr "Lihat Cadangan"
+msgstr "Lihat Cache"
 
 #: main.lua:3971
+#, fuzzy
 msgid ""
 "No summary cached.\n"
 "\n"
 "Use Quick Actions → Generate Summary to create one."
 msgstr ""
+"Tidak ada ringkasan dalam cache.\n"
+"\n"
+"Gunakan Tindakan Cepat → Buat Ringkasan untuk membuatnya."
 
 #: main.lua:4021
 #, fuzzy
 msgid "Summary deleted"
-msgstr "Obrolan dihapus"
+msgstr "Ringkasan dihapus"
 
 #: main.lua:4057
+#, fuzzy
 msgid ""
 "Summary already cached.\n"
 "\n"
 "Use View Summary to see it."
 msgstr ""
+"Ringkasan sudah dalam cache.\n"
+"\n"
+"Gunakan Lihat Ringkasan untuk melihatnya."
 
 #: main.lua:4066
+#, fuzzy
 msgid ""
 "Text extraction is required to generate a summary.\n"
 "\n"
 "Enable it in Settings → Privacy & Data → Text Extraction."
 msgstr ""
+"Ekstraksi teks diperlukan untuk membuat ringkasan.\n"
+"\n"
+"Aktifkan di Pengaturan → Privasi & Data → Ekstraksi Teks."
 
 #: main.lua:4104
+#, fuzzy
 msgid ""
 "Generate a reusable document summary?\n"
 "\n"
@@ -3945,15 +4106,22 @@ msgid ""
 "• Save the summary for future use\n"
 "• Enable Smart actions for this book"
 msgstr ""
+"Buat ringkasan dokumen yang dapat digunakan kembali?\n"
+"\n"
+"Ini akan:\n"
+"• Mengekstrak dan mengirim teks buku ke AI\n"
+"• Menyimpan ringkasan untuk penggunaan masa depan\n"
+"• Mengaktifkan tindakan Smart untuk buku ini"
 
 #: main.lua:4127 main.lua:4202
 #, fuzzy
 msgid "Action '%1' not found"
-msgstr "Aksi '%1' tidak ditemukan"
+msgstr "Tindakan '%1' tidak ditemukan"
 
 #: main.lua:4185
+#, fuzzy
 msgid "Unknown action context: %1"
-msgstr ""
+msgstr "Konteks tindakan tidak dikenal: %1"
 
 #: main.lua:4348 main.lua:4628
 #, fuzzy
@@ -3989,25 +4157,27 @@ msgstr "Domain Pengetahuan"
 #: main.lua:4559
 #, fuzzy
 msgid "Temp: %1"
-msgstr "Suhu: %1"
+msgstr "Temp: %1"
 
 #: main.lua:4589
 #, fuzzy
 msgid "Extended Thinking: ON"
-msgstr "Anthropic Extended Thinking"
+msgstr "Extended Thinking: AKTIF"
 
 #: main.lua:4589
 #, fuzzy
 msgid "Extended Thinking: OFF"
-msgstr "Anthropic Extended Thinking"
+msgstr "Extended Thinking: NONAKTIF"
 
 #: main.lua:4606
+#, fuzzy
 msgid "Web Search: ON"
-msgstr ""
+msgstr "Pencarian Web: AKTIF"
 
 #: main.lua:4606
+#, fuzzy
 msgid "Web Search: OFF"
-msgstr ""
+msgstr "Pencarian Web: NONAKTIF"
 
 #: main.lua:4623
 #, fuzzy
@@ -4017,27 +4187,27 @@ msgstr "Bahasa: %1"
 #: main.lua:4662
 #, fuzzy
 msgid "H.Bypass: ON"
-msgstr "Lewati H.: AKTIF"
+msgstr "H.Bypass: AKTIF"
 
 #: main.lua:4662
 #, fuzzy
 msgid "H.Bypass: OFF"
-msgstr "Lewati H.: NONAKTIF"
+msgstr "H.Bypass: NONAKTIF"
 
 #: main.lua:4679
 #, fuzzy
 msgid "D.Bypass: ON"
-msgstr "Lewati K.: AKTIF"
+msgstr "D.Bypass: AKTIF"
 
 #: main.lua:4679
 #, fuzzy
 msgid "D.Bypass: OFF"
-msgstr "Lewati K.: NONAKTIF"
+msgstr "D.Bypass: NONAKTIF"
 
 #: main.lua:4756
 #, fuzzy
 msgid "Quick Actions..."
-msgstr "Atur ulang tindakan..."
+msgstr "Tindakan Cepat..."
 
 #: main.lua:4768
 #, fuzzy
@@ -4045,8 +4215,9 @@ msgid "More Settings..."
 msgstr "Pengaturan Lainnya..."
 
 #: main.lua:4824
+#, fuzzy
 msgid "Quick Actions is only available while reading a book."
-msgstr ""
+msgstr "Tindakan Cepat hanya tersedia saat membaca buku."
 
 #: main.lua:4934
 #, fuzzy
@@ -4055,8 +4226,10 @@ msgstr "Menguji koneksi..."
 
 #: main.lua:4962
 #, fuzzy
-msgid "Connection test failed:\n"
-msgstr "Tes koneksi gagal:\n"
+msgid ""
+"Connection test failed:\n"
+msgstr ""
+"Pengujian koneksi gagal:\n"
 
 #: main.lua:4968
 #, fuzzy
@@ -4068,7 +4241,7 @@ msgid ""
 "\n"
 "Response: %3"
 msgstr ""
-"Tes koneksi berhasil!\n"
+"Pengujian koneksi berhasil!\n"
 "\n"
 "Penyedia: %1\n"
 "Model: %2\n"
@@ -4078,65 +4251,75 @@ msgstr ""
 #: main.lua:4976
 #, fuzzy
 msgid "Connection test failed: "
-msgstr "Tes koneksi gagal:"
+msgstr "Pengujian koneksi gagal:"
 
 #: main.lua:4996
+#, fuzzy
 msgid ""
 "No book is currently open.\n"
 "\n"
-"Open a book first, then use this option to clear its cached X-Ray and Recap "
-"responses."
+"Open a book first, then use this option to clear its cached X-Ray and Recap responses."
 msgstr ""
+"Tidak ada buku yang sedang dibuka.\n"
+"\n"
+"Buka buku terlebih dahulu, lalu gunakan opsi ini untuk menghapus cache respons X-Ray dan Recap."
 
 #: main.lua:5009
+#, fuzzy
 msgid ""
 "No action cache found for this book.\n"
 "\n"
 "Run X-Ray or Recap first to create a cache."
 msgstr ""
+"Tidak ada cache tindakan untuk buku ini.\n"
+"\n"
+"Jalankan X-Ray atau Recap terlebih dahulu untuk membuat cache."
 
 #: main.lua:5019
+#, fuzzy
 msgid ""
 "Clear cached X-Ray and Recap responses for this book?\n"
 "\n"
-"Next time you run these actions, they will regenerate from scratch instead "
-"of updating from the cached version."
+"Next time you run these actions, they will regenerate from scratch instead of updating from the cached version."
 msgstr ""
+"Hapus cache respons X-Ray dan Recap untuk buku ini?\n"
+"\n"
+"Saat Anda menjalankan tindakan ini lagi, mereka akan dibuat ulang dari awal, bukan diperbarui dari versi cache."
 
 #: main.lua:5029
 #, fuzzy
 msgid "Clear Cache"
-msgstr "Hapus"
+msgstr "Hapus Cache"
 
 #: main.lua:5035
 #, fuzzy
 msgid "Action cache cleared successfully."
-msgstr "Aksi berhasil dihapus"
+msgstr "Cache tindakan berhasil dihapus."
 
 #: main.lua:5040
 #, fuzzy
 msgid "Failed to clear action cache."
-msgstr "Gagal menghapus obrolan"
+msgstr "Gagal menghapus cache tindakan."
 
 #: main.lua:5147
 #, fuzzy
 msgid "Dictionary bypass: ON"
-msgstr "Lewati kamus: AKTIF"
+msgstr "Dictionary bypass: AKTIF"
 
 #: main.lua:5147
 #, fuzzy
 msgid "Dictionary bypass: OFF"
-msgstr "Lewati kamus: NONAKTIF"
+msgstr "Dictionary bypass: NONAKTIF"
 
 #: main.lua:5161
 #, fuzzy
 msgid "Highlight bypass: ON"
-msgstr "Lewati sorotan: AKTIF"
+msgstr "Highlight bypass: AKTIF"
 
 #: main.lua:5161
 #, fuzzy
 msgid "Highlight bypass: OFF"
-msgstr "Lewati sorotan: NONAKTIF"
+msgstr "Highlight bypass: NONAKTIF"
 
 #: main.lua:5280
 #, fuzzy
@@ -4151,28 +4334,31 @@ msgstr "Tidak dapat mengekstrak teks dari halaman saat ini"
 #: main.lua:5337
 #, fuzzy
 msgid "Translate action not found"
-msgstr "Aksi terjemahan tidak ditemukan"
+msgstr "Tindakan terjemahan tidak ditemukan"
 
 #: main.lua:5508
 #, fuzzy
 msgid "Select Export Folder"
-msgstr "Pilih Penyedia"
+msgstr "Pilih Folder Ekspor"
 
 #: main.lua:5515
+#, fuzzy
 msgid ""
 "Export path set to:\n"
 "%1"
 msgstr ""
+"Jalur ekspor diatur ke:\n"
+"%1"
 
 #: main.lua:5903 main.lua:5956
 #, fuzzy
 msgid "Bypass action: %1"
-msgstr "Aksi lewati: %1"
+msgstr "Tindakan bypass: %1"
 
 #: main.lua:6001
 #, fuzzy
 msgid "All action settings restored to defaults"
-msgstr "Semua pengaturan aksi dikembalikan ke default"
+msgstr "Semua pengaturan tindakan dikembalikan ke default"
 
 #: main.lua:6072
 #, fuzzy
@@ -4186,41 +4372,42 @@ msgstr ""
 #: main.lua:6157
 #, fuzzy
 msgid "Feature settings reset to defaults"
-msgstr "Pengaturan fitur dikembalikan ke default"
+msgstr "Pengaturan fitur direset ke default"
 
 #: main.lua:6187
 #, fuzzy
 msgid "All customizations reset"
-msgstr "Semua kustomisasi dikembalikan"
+msgstr "Semua kustomisasi direset"
 
 #: main.lua:6211
 #, fuzzy
 msgid "Custom actions deleted"
-msgstr "Aksi kustom dihapus"
+msgstr "Tindakan kustom dihapus"
 
 #: main.lua:6225
 #, fuzzy
 msgid "Action edits reset to defaults"
-msgstr "Perubahan aksi dikembalikan ke default"
+msgstr "Pengeditan tindakan direset ke default"
 
 #: main.lua:6249
 #, fuzzy
 msgid "Action menus reset to defaults"
-msgstr "Menu aksi dikembalikan ke default"
+msgstr "Menu tindakan direset ke default"
 
 #: main.lua:6263
 #, fuzzy
 msgid "Dictionary popup actions reset"
-msgstr "Tindakan Popup Kamus"
+msgstr "Tindakan popup kamus direset"
 
 #: main.lua:6276
+#, fuzzy
 msgid "Highlight menu actions reset (restart to apply)"
-msgstr ""
+msgstr "Tindakan menu highlight direset (restart untuk menerapkan)"
 
 #: main.lua:6288
 #, fuzzy
 msgid "Quick actions reset"
-msgstr "Semua kustomisasi dikembalikan"
+msgstr "Tindakan cepat direset"
 
 #: main.lua:6309
 #, fuzzy
@@ -4230,44 +4417,54 @@ msgstr "Penyedia dan model kustom direset"
 #: main.lua:6367
 #, fuzzy
 msgid "All action settings reset"
-msgstr "Semua pengaturan aksi dikembalikan ke default"
+msgstr "Semua pengaturan tindakan direset"
 
 #: main.lua:6381
+#, fuzzy
 msgid "Fresh start complete - API keys preserved"
-msgstr ""
+msgstr "Fresh start selesai - kunci API dipertahankan"
 
 #: main.lua:6402
+#, fuzzy
 msgid "Default: Personal content private, basic context shared"
-msgstr ""
+msgstr "Bawaan: Konten pribadi tersembunyi, konteks dasar dibagikan"
 
 #: main.lua:6423
+#, fuzzy
 msgid "Minimal: All extended sharing disabled"
-msgstr ""
+msgstr "Minimal: Semua pembagian diperluas dinonaktifkan"
 
 #: main.lua:6444
+#, fuzzy
 msgid ""
 "Full: All data sharing enabled (Text extraction must be enabled separately)"
-msgstr ""
+msgstr "Penuh: Semua pembagian data diaktifkan (Ekstraksi teks harus diaktifkan secara terpisah)"
 
 #: main.lua:6496
 #, fuzzy
 msgid "(custom)"
-msgstr "Kustom"
+msgstr "(kustom)"
 
 #: main.lua:6556
+#, fuzzy
 msgid ""
 "Select providers to trust\n"
 "\n"
 "Trusted providers bypass data sharing controls."
 msgstr ""
+"Pilih penyedia yang dipercaya\n"
+"\n"
+"Penyedia tepercaya melewati kontrol pembagian data."
 
 #: main.lua:6582
+#, fuzzy
 msgid "✓ Reset"
-msgstr ""
+msgstr "✓ Atur Ulang"
 
 #: main.lua:6584
+#, fuzzy
 msgid "✗ Keep"
-msgstr ""
+msgstr "✗ Pertahankan"
 
 #: main.lua:6590 main.lua:6890 main.lua:7021
 #, fuzzy
@@ -4277,27 +4474,27 @@ msgstr "Pengaturan"
 #: main.lua:6598
 #, fuzzy
 msgid "Custom actions"
-msgstr "Aksi kustom dihapus"
+msgstr "Tindakan kustom"
 
 #: main.lua:6606
 #, fuzzy
 msgid "Action edits"
-msgstr "Detail Aksi"
+msgstr "Pengeditan tindakan"
 
 #: main.lua:6614
 #, fuzzy
 msgid "Action menus"
-msgstr "Menu Aksi"
+msgstr "Menu tindakan"
 
 #: main.lua:6622
 #, fuzzy
 msgid "Custom providers & models"
-msgstr "Penyedia dan model kustom direset"
+msgstr "Penyedia & model kustom"
 
 #: main.lua:6630
 #, fuzzy
 msgid "Behaviors & domains"
-msgstr "Detail Perilaku"
+msgstr "Perilaku & domain"
 
 #: main.lua:6638 main.lua:6695
 #, fuzzy
@@ -4307,50 +4504,52 @@ msgstr "Kunci API"
 #: main.lua:6650
 #, fuzzy
 msgid "Reset Selected"
-msgstr "Atur ulang pengeditan tindakan"
+msgstr "Atur Ulang yang Dipilih"
 
 #: main.lua:6659
+#, fuzzy
 msgid "What would you like to reset?"
-msgstr ""
+msgstr "Apa yang ingin Anda atur ulang?"
 
 #: main.lua:6671
 #, fuzzy
 msgid "settings"
-msgstr "Pengaturan"
+msgstr "pengaturan"
 
 #: main.lua:6675
 #, fuzzy
 msgid "custom actions"
-msgstr "Atur ulang tindakan kustom"
+msgstr "tindakan kustom"
 
 #: main.lua:6679
 #, fuzzy
 msgid "action edits"
-msgstr "Atur ulang pengeditan tindakan"
+msgstr "pengeditan tindakan"
 
 #: main.lua:6683
 #, fuzzy
 msgid "action menus"
-msgstr "Atur ulang menu tindakan"
+msgstr "menu tindakan"
 
 #: main.lua:6687
 #, fuzzy
 msgid "providers/models"
-msgstr "Penyedia/Model"
+msgstr "penyedia/model"
 
 #: main.lua:6691
 #, fuzzy
 msgid "behaviors/domains"
-msgstr "perilaku"
+msgstr "perilaku/domain"
 
 #: main.lua:6700
 #, fuzzy
 msgid "Reset: %1"
-msgstr "Hapus: %1"
+msgstr "Atur Ulang: %1"
 
 #: main.lua:6705
+#, fuzzy
 msgid "Nothing selected to reset"
-msgstr ""
+msgstr "Tidak ada yang dipilih untuk diatur ulang"
 
 #: main.lua:6767
 #, fuzzy
@@ -4390,12 +4589,12 @@ msgstr "Domain & Perilaku: ✗ Kecualikan"
 #: main.lua:6818
 #, fuzzy
 msgid "Chat History: ✓ Include"
-msgstr "Riwayat Obrolan: ✓ Sertakan"
+msgstr "Riwayat Chat: ✓ Sertakan"
 
 #: main.lua:6818
 #, fuzzy
 msgid "Chat History: ✗ Exclude"
-msgstr "Riwayat Obrolan: ✗ Kecualikan"
+msgstr "Riwayat Chat: ✗ Kecualikan"
 
 #: main.lua:6833 main.lua:6985 main.lua:7196 main.lua:7218
 #, fuzzy
@@ -4405,7 +4604,7 @@ msgstr "━━━━━━━━━━━━━━━━"
 #: main.lua:6859
 #, fuzzy
 msgid "What to include in backup:"
-msgstr "Apa yang disertakan dalam cadangan:"
+msgstr "Yang disertakan dalam cadangan:"
 
 #: main.lua:6871
 #, fuzzy
@@ -4416,7 +4615,7 @@ msgid ""
 msgstr ""
 "Membuat cadangan...\n"
 "\n"
-"Ini mungkin memerlukan waktu."
+"Ini mungkin membutuhkan waktu sebentar."
 
 #: main.lua:6883
 #, fuzzy
@@ -4461,12 +4660,12 @@ msgstr "0 perilaku"
 #: main.lua:6915 main.lua:7045
 #, fuzzy
 msgid "%1 chats"
-msgstr "%1 obrolan"
+msgstr "%1 chat"
 
 #: main.lua:6917
 #, fuzzy
 msgid "0 chats"
-msgstr "0 obrolan"
+msgstr "0 chat"
 
 #: main.lua:6922
 #, fuzzy
@@ -4480,7 +4679,7 @@ msgid ""
 "\n"
 "%1"
 msgstr ""
-"Pencadangan gagal:\n"
+"Cadangan gagal:\n"
 "\n"
 "%1"
 
@@ -4619,7 +4818,7 @@ msgstr "Riwayat Obrolan: ✗ Lewati"
 #: main.lua:7202
 #, fuzzy
 msgid "Mode: Merge with existing"
-msgstr "Mode: Gabungkan dengan yang ada"
+msgstr "Mode: Gabung dengan yang ada"
 
 #: main.lua:7202
 #, fuzzy
@@ -4634,7 +4833,7 @@ msgstr "Pulihkan Sekarang"
 #: main.lua:7244
 #, fuzzy
 msgid "What to restore:"
-msgstr "Apa yang akan dipulihkan:"
+msgstr "Yang akan dipulihkan:"
 
 #: main.lua:7257
 #, fuzzy
@@ -4649,8 +4848,7 @@ msgstr ""
 "\n"
 "⚠ Titik pemulihan akan dibuat secara otomatis.\n"
 "\n"
-"⚠ KOReader harus di-restart setelah pemulihan agar perubahan berlaku "
-"sepenuhnya."
+"⚠ KOReader sebaiknya dimulai ulang setelah pemulihan agar perubahan berlaku sepenuhnya."
 
 #: main.lua:7258 main.lua:7414
 #, fuzzy
@@ -4666,7 +4864,7 @@ msgid ""
 msgstr ""
 "Memulihkan cadangan...\n"
 "\n"
-"Ini mungkin memerlukan waktu."
+"Ini mungkin memerlukan waktu sebentar."
 
 #: main.lua:7275
 #, fuzzy
@@ -4677,7 +4875,7 @@ msgid ""
 msgstr ""
 "Pemulihan berhasil diselesaikan!\n"
 "\n"
-"Disarankan untuk me-restart KOReader agar semua perubahan berlaku."
+"Disarankan untuk memulai ulang KOReader agar semua perubahan berlaku."
 
 #: main.lua:7287 koassistant_ui/prompts_manager.lua:2467
 #: koassistant_ui/prompts_manager.lua:2893
@@ -4694,7 +4892,7 @@ msgstr "OK"
 #: main.lua:7293
 #, fuzzy
 msgid "Restart Now"
-msgstr "Restart Sekarang"
+msgstr "Mulai Ulang Sekarang"
 
 #: main.lua:7307
 #, fuzzy
@@ -4710,7 +4908,7 @@ msgstr ""
 #: main.lua:7330
 #, fuzzy
 msgid "No backups found."
-msgstr "Tidak ada cadangan ditemukan."
+msgstr "Tidak ada cadangan yang ditemukan."
 
 #: main.lua:7378
 #, fuzzy
@@ -4721,7 +4919,7 @@ msgid ""
 msgstr ""
 "Cadangan (%1)\n"
 "\n"
-"Total ukuran: %2"
+"Ukuran total: %2"
 
 #: main.lua:7394 koassistant_ui/prompts_manager.lua:1424
 #: koassistant_ui/prompts_manager.lua:1875
@@ -4761,33 +4959,41 @@ msgstr ""
 "%1"
 
 #: main.lua:7510
+#, fuzzy
 msgid ""
 "KOAssistant: Chat Storage Upgrade\n"
 "\n"
-"The KOAssistant plugin needs to upgrade its chat history storage to fix an "
-"issue where chats were lost when files were moved.\n"
+"The KOAssistant plugin needs to upgrade its chat history storage to fix an issue where chats were lost when files were moved.\n"
 "\n"
-"This will migrate all existing chats to the new system. The process may take "
-"a few minutes for large libraries.\n"
+"This will migrate all existing chats to the new system. The process may take a few minutes for large libraries.\n"
 "\n"
 "Old chat files will be backed up to koassistant_chats.backup/"
 msgstr ""
+"KOAssistant: Peningkatan Penyimpanan Obrolan\n"
+"\n"
+"Plugin KOAssistant perlu meningkatkan penyimpanan riwayat obrolan untuk memperbaiki masalah di mana obrolan hilang ketika file dipindahkan.\n"
+"\n"
+"Ini akan memigrasikan semua obrolan yang ada ke sistem baru. Prosesnya mungkin memerlukan beberapa menit untuk perpustakaan yang besar.\n"
+"\n"
+"File obrolan lama akan dicadangkan ke koassistant_chats.backup/"
 
 #: main.lua:7517
+#, fuzzy
 msgid "Migrate Now"
-msgstr ""
+msgstr "Migrasikan Sekarang"
 
 #: main.lua:7549
 #, fuzzy
 msgid "KOAssistant: Migrating chat history..."
-msgstr "KOAssistant: Riwayat Percakapan"
+msgstr "KOAssistant: Memigrasikan riwayat obrolan..."
 
 #: main.lua:7562
 #, fuzzy
 msgid "No old chats found to migrate"
-msgstr "Tidak ada obrolan ditemukan dengan tag ini"
+msgstr "Tidak ada obrolan lama yang ditemukan untuk dimigrasikan"
 
 #: main.lua:7684
+#, fuzzy
 msgid ""
 "KOAssistant: Migration Incomplete\n"
 "\n"
@@ -4798,12 +5004,22 @@ msgid ""
 "Migration will be retried on next startup.\n"
 "Check the console for detailed error messages."
 msgstr ""
+"KOAssistant: Migrasi Belum Lengkap\n"
+"\n"
+"✓ Dimigrasikan: %1 obrolan\n"
+"⊗ Dilewati: %2 obrolan (dokumen tidak ada lagi)\n"
+"✗ Gagal: %3 obrolan\n"
+"\n"
+"Migrasi akan dicoba lagi pada startup berikutnya.\n"
+"Periksa konsol untuk pesan kesalahan detail."
 
 #: main.lua:7696
+#, fuzzy
 msgid "Failed documents:"
-msgstr ""
+msgstr "Dokumen yang gagal:"
 
 #: main.lua:7703
+#, fuzzy
 msgid ""
 "KOAssistant: Migration Complete\n"
 "\n"
@@ -4813,70 +5029,83 @@ msgid ""
 "Old chat files backed up to:\n"
 "koassistant_chats.backup/"
 msgstr ""
+"KOAssistant: Migrasi Selesai\n"
+"\n"
+"✓ Dimigrasikan: %1 obrolan\n"
+"⊗ Dilewati: %2 obrolan (dokumen tidak ada lagi)\n"
+"\n"
+"File obrolan lama dicadangkan ke:\n"
+"koassistant_chats.backup/"
 
 #: main.lua:7767
 #, fuzzy
 msgid "Welcome to KOAssistant!"
-msgstr "Bandingkan dengan KOAssistant"
+msgstr "Selamat datang di KOAssistant!"
 
 #: main.lua:7768
+#, fuzzy
 msgid "PRIVACY SETTINGS"
-msgstr ""
+msgstr "PENGATURAN PRIVASI"
 
 #: main.lua:7769
+#, fuzzy
 msgid "Some features (like X-Ray) need permission to access book content."
-msgstr ""
+msgstr "Beberapa fitur (seperti X-Ray) memerlukan izin untuk mengakses konten buku."
 
 #: main.lua:7770
+#, fuzzy
 msgid "Enable in: Settings → Privacy & Data"
-msgstr ""
+msgstr "Aktifkan di: Pengaturan → Privasi & Data"
 
 #: main.lua:7771
+#, fuzzy
 msgid "QUICK ACCESS"
-msgstr ""
+msgstr "AKSES CEPAT"
 
 #: main.lua:7772
+#, fuzzy
 msgid "Add actions to gestures, highlight menus, or Quick Actions panel."
-msgstr ""
+msgstr "Tambahkan aksi ke gestur, menu sorot, atau panel Aksi Cepat."
 
 #: main.lua:7773
+#, fuzzy
 msgid "CUSTOM ACTIONS"
-msgstr ""
+msgstr "AKSI KUSTOM"
 
 #: main.lua:7774
+#, fuzzy
 msgid "Create your own prompts and actions."
-msgstr ""
+msgstr "Buat prompt dan aksi Anda sendiri."
 
 #: main.lua:7775
+#, fuzzy
 msgid "Go to: Settings → Action Manager → Add"
-msgstr ""
+msgstr "Buka: Pengaturan → Pengelola Aksi → Tambah"
 
 #: main.lua:7925
 #, fuzzy
 msgid "No notebook available for this document"
-msgstr "Tidak ada percakapan tersimpan untuk dokumen ini"
+msgstr "Tidak ada catatan yang tersedia untuk dokumen ini"
 
 #: main.lua:7935
+#, fuzzy
 msgid "No notebook exists for this document. Create one?"
-msgstr ""
+msgstr "Tidak ada buku catatan untuk dokumen ini. Buat yang baru?"
 
 #: main.lua:7945
 #, fuzzy
 msgid "Failed to create notebook: %1"
-msgstr ""
-"Gagal menghapus cadangan:\n"
-"\n"
-"%1"
+msgstr "Gagal membuat buku catatan: %1"
 
 #: main.lua:7996
 #, fuzzy
 msgid "Notebook saved"
-msgstr "Tersimpan otomatis"
+msgstr "Buku catatan disimpan"
 
 #: main.lua:8003
 #, fuzzy
 msgid "Reset to last saved"
-msgstr "Atur Ulang ke Default"
+msgstr "Kembalikan ke terakhir disimpan"
 
 #: stream_handler.lua:197
 #, fuzzy
@@ -4886,12 +5115,12 @@ msgstr "Tidak ada respons diterima. Mentah:"
 #: stream_handler.lua:280 stream_handler.lua:310
 #, fuzzy
 msgid "Autoscroll OFF ↓"
-msgstr "Gulir Otomatis NONAKTIF ↓"
+msgstr "Gulir otomatis MATI ↓"
 
 #: stream_handler.lua:294 stream_handler.lua:310
 #, fuzzy
 msgid "Autoscroll ON ↓"
-msgstr "Gulir Otomatis AKTIF ↓"
+msgstr "Gulir otomatis HIDUP ↓"
 
 #: stream_handler.lua:304
 #, fuzzy
@@ -4904,13 +5133,14 @@ msgid "AI is responding"
 msgstr "AI sedang merespons"
 
 #: stream_handler.lua:558
+#, fuzzy
 msgid "🔍 Searching the web..."
-msgstr ""
+msgstr "🔍 Mencari di web..."
 
 #: koassistant_ui/behavior_manager.lua:123
 #, fuzzy
 msgid "Tap to select • Hold for details"
-msgstr "Ketuk untuk memilih • Tahan untuk detail"
+msgstr "Ketuk untuk pilih • Tahan untuk detail"
 
 #: koassistant_ui/behavior_manager.lua:130
 #, fuzzy
@@ -4918,8 +5148,9 @@ msgid "+ Create New Behavior"
 msgstr "+ Buat Perilaku Baru"
 
 #: koassistant_ui/behavior_manager.lua:149
+#, fuzzy
 msgid "SPECIALIZED"
-msgstr ""
+msgstr "KHUSUS"
 
 #: koassistant_ui/behavior_manager.lua:159
 #: koassistant_ui/domain_manager.lua:148
@@ -4936,7 +5167,7 @@ msgstr "DARI FOLDER BEHAVIORS/"
 #: koassistant_ui/domain_manager.lua:152
 #, fuzzy
 msgid "CUSTOM (UI-CREATED)"
-msgstr "KUSTOM (DIBUAT DI UI)"
+msgstr "KUSTOM (DIBUAT UI)"
 
 #: koassistant_ui/behavior_manager.lua:187
 #, fuzzy
@@ -4947,16 +5178,13 @@ msgstr "Dipilih: %1"
 #: koassistant_ui/prompts_manager.lua:477
 #, fuzzy
 msgid "Restore Defaults"
-msgstr "Kembalikan ke Default"
+msgstr "Pulihkan Bawaan"
 
 #: koassistant_ui/behavior_manager.lua:204
 #, fuzzy
 msgid ""
-"This will delete all custom behaviors and reset selection to Standard. "
-"Continue?"
-msgstr ""
-"Ini akan menghapus semua perilaku kustom dan mengatur ulang pilihan ke "
-"Standar. Lanjutkan?"
+"This will delete all custom behaviors and reset selection to Standard. Continue?"
+msgstr "Ini akan menghapus semua perilaku kustom dan mereset pilihan ke Standar. Lanjutkan?"
 
 #: koassistant_ui/behavior_manager.lua:217
 #, fuzzy
@@ -4972,13 +5200,13 @@ msgstr "Bawaan"
 #: koassistant_ui/behavior_manager.lua:260
 #, fuzzy
 msgid "File (behaviors/ folder)"
-msgstr "Berkas (folder behaviors/)"
+msgstr "File (folder behaviors/)"
 
 #: koassistant_ui/behavior_manager.lua:262
 #: koassistant_ui/domain_manager.lua:270
 #, fuzzy
 msgid "Custom (UI-created)"
-msgstr "Kustom (dibuat lewat UI)"
+msgstr "Kustom (dibuat UI)"
 
 #: koassistant_ui/behavior_manager.lua:274
 #: koassistant_ui/domain_manager.lua:282 koassistant_ui/prompts_manager.lua:681
@@ -4989,7 +5217,7 @@ msgstr "Sumber"
 #: koassistant_ui/behavior_manager.lua:281
 #, fuzzy
 msgid "Based on"
-msgstr "Berbasis pada"
+msgstr "Berdasarkan"
 
 #: koassistant_ui/behavior_manager.lua:284
 #, fuzzy
@@ -5024,20 +5252,20 @@ msgstr "Hapus '%1'?"
 #: koassistant_ui/domain_manager.lua:328
 #, fuzzy
 msgid "Duplicate"
-msgstr "Duplikat"
+msgstr "Gandakan"
 
 #: koassistant_ui/behavior_manager.lua:335
 #, fuzzy
 msgid "Behavior duplicated"
-msgstr "Perilaku berhasil diduplikasi"
+msgstr "Perilaku digandakan"
 
 #: koassistant_ui/behavior_manager.lua:345
 #, fuzzy
 msgid "About File-Based Behaviors"
-msgstr "Tentang Perilaku Berbasis Berkas"
+msgstr "Tentang Perilaku Berbasis File"
 
 #: koassistant_ui/behavior_manager.lua:350
-#, lua-format
+#, lua-format, fuzzy
 msgid ""
 "This behavior is loaded from a file in:\n"
 "\n"
@@ -5049,7 +5277,7 @@ msgstr ""
 "\n"
 "%s\n"
 "\n"
-"Untuk mengedit, modifikasi file secara langsung."
+"Untuk mengedit, ubah file secara langsung."
 
 #: koassistant_ui/behavior_manager.lua:359
 #: koassistant_ui/behavior_manager.lua:370
@@ -5058,7 +5286,7 @@ msgstr ""
 #: koassistant_ui/domain_manager.lua:581
 #, fuzzy
 msgid "Use as Template"
-msgstr "Gunakan sebagai Template"
+msgstr "Gunakan sebagai Templat"
 
 #: koassistant_ui/behavior_manager.lua:390
 #, fuzzy
@@ -5083,19 +5311,19 @@ msgstr "Masukkan nama perilaku..."
 #: koassistant_ui/behavior_manager.lua:415
 #, fuzzy
 msgid "Give this behavior a descriptive name."
-msgstr "Beri nama deskriptif untuk perilaku ini."
+msgstr "Berikan nama deskriptif untuk perilaku ini."
 
 #: koassistant_ui/behavior_manager.lua:427
 #: koassistant_ui/domain_manager.lua:428
 #, fuzzy
 msgid "Use Template..."
-msgstr "Gunakan Template..."
+msgstr "Gunakan Templat..."
 
 #: koassistant_ui/behavior_manager.lua:439
 #: koassistant_ui/domain_manager.lua:440
 #, fuzzy
 msgid "Next"
-msgstr "Selanjutnya"
+msgstr "Lanjut"
 
 #: koassistant_ui/behavior_manager.lua:445
 #: koassistant_ui/domain_manager.lua:446
@@ -5123,13 +5351,11 @@ msgstr "Masukkan instruksi perilaku untuk AI..."
 msgid ""
 "Name: %1\n"
 "\n"
-"Define how the AI should behave. This text is sent as part of the system "
-"prompt."
+"Define how the AI should behave. This text is sent as part of the system prompt."
 msgstr ""
 "Nama: %1\n"
 "\n"
-"Tentukan bagaimana AI harus berperilaku. Teks ini dikirim sebagai bagian "
-"dari system prompt."
+"Tentukan bagaimana AI harus berperilaku. Teks ini dikirim sebagai bagian dari prompt sistem."
 
 #: koassistant_ui/behavior_manager.lua:486
 #, fuzzy
@@ -5175,9 +5401,9 @@ msgstr "Tidak ada domain tersedia"
 
 #: koassistant_ui/domain_manager.lua:134
 #, fuzzy
-msgid "Create custom domains here or add .md/.txt files to the domains/ folder"
-msgstr ""
-"Buat domain kustom di sini atau tambahkan file .md/.txt ke folder domains/"
+msgid ""
+"Create custom domains here or add .md/.txt files to the domains/ folder"
+msgstr "Buat domain kustom di sini atau tambahkan file .md/.txt ke folder domains/"
 
 #: koassistant_ui/domain_manager.lua:150
 #, fuzzy
@@ -5205,19 +5431,15 @@ msgstr "Tentang Domain"
 msgid ""
 "Domains provide specialized knowledge context to the AI.\n"
 "\n"
-"Unlike behaviors (which set communication style), domains give the AI "
-"expertise in specific subject areas.\n"
+"Unlike behaviors (which set communication style), domains give the AI expertise in specific subject areas.\n"
 "\n"
-"Domains are selected per-chat, not globally, making them like 'projects' you "
-"can switch between."
+"Domains are selected per-chat, not globally, making them like 'projects' you can switch between."
 msgstr ""
 "Domain menyediakan konteks pengetahuan khusus untuk AI.\n"
 "\n"
-"Berbeda dengan perilaku (yang mengatur gaya komunikasi), domain memberikan "
-"AI keahlian dalam bidang subjek tertentu.\n"
+"Tidak seperti perilaku (yang mengatur gaya komunikasi), domain memberikan AI keahlian dalam bidang subjek tertentu.\n"
 "\n"
-"Domain dipilih per obrolan, bukan secara global, menjadikannya seperti "
-"'proyek' yang dapat Anda ganti-ganti."
+"Domain dipilih per-obrolan, bukan global, menjadikannya seperti 'proyek' yang dapat Anda ganti."
 
 #: koassistant_ui/domain_manager.lua:202
 #, fuzzy
@@ -5255,7 +5477,7 @@ msgid "About File-Based Domains"
 msgstr "Tentang Domain Berbasis File"
 
 #: koassistant_ui/domain_manager.lua:351
-#, lua-format
+#, lua-format, fuzzy
 msgid ""
 "This domain is loaded from a file in:\n"
 "\n"
@@ -5267,7 +5489,7 @@ msgstr ""
 "\n"
 "%s\n"
 "\n"
-"Untuk mengedit, modifikasi file secara langsung."
+"Untuk mengedit, ubah file secara langsung."
 
 #: koassistant_ui/domain_manager.lua:391
 #, fuzzy
@@ -5292,11 +5514,8 @@ msgstr "Masukkan nama domain..."
 #: koassistant_ui/domain_manager.lua:416
 #, fuzzy
 msgid ""
-"Give this domain a descriptive name (e.g., 'Research', 'Creative Writing', "
-"'Philosophy')."
-msgstr ""
-"Berikan domain ini nama deskriptif (mis., 'Riset', 'Penulisan Kreatif', "
-"'Filsafat')."
+"Give this domain a descriptive name (e.g., 'Research', 'Creative Writing', 'Philosophy')."
+msgstr "Berikan domain ini nama deskriptif (mis., 'Riset', 'Penulisan Kreatif', 'Filsafat')."
 
 #: koassistant_ui/domain_manager.lua:469
 #, fuzzy
@@ -5318,18 +5537,16 @@ msgstr "Masukkan konteks pengetahuan domain..."
 msgid ""
 "Name: %1\n"
 "\n"
-"Describe the knowledge area, terminology, and how the AI should approach "
-"topics in this domain."
+"Describe the knowledge area, terminology, and how the AI should approach topics in this domain."
 msgstr ""
 "Nama: %1\n"
 "\n"
-"Jelaskan bidang pengetahuan, terminologi, dan bagaimana AI harus mendekati "
-"topik dalam domain ini."
+"Jelaskan area pengetahuan, terminologi, dan bagaimana AI harus mendekati topik dalam domain ini."
 
 #: koassistant_ui/domain_manager.lua:493
 #, fuzzy
 msgid "Please enter domain context"
-msgstr "Silakan masukkan konteks domain"
+msgstr "Harap masukkan konteks domain"
 
 #: koassistant_ui/domain_manager.lua:546
 #, fuzzy
@@ -5377,10 +5594,8 @@ msgstr "Global"
 #: koassistant_ui/prompts_manager.lua:354
 #, fuzzy
 msgid ""
-"Tap to toggle • Hold for details • ★ = custom • ⚙ = modified • [gesture] = "
-"in gesture menu"
-msgstr ""
-"Ketuk untuk beralih • Tahan untuk detail • ★ = kustom • ⚙ = dimodifikasi"
+"Tap to toggle • Hold for details • ★ = custom • ⚙ = modified • [gesture] = in gesture menu"
+msgstr "Ketuk untuk toggle • Tahan untuk detail • ★ = kustom • ⚙ = dimodifikasi • [gesture] = dalam menu gesture"
 
 #: koassistant_ui/prompts_manager.lua:361
 #, fuzzy
@@ -5453,9 +5668,7 @@ msgstr "Fitur ekspor segera hadir..."
 #, fuzzy
 msgid ""
 "This will remove all custom actions and reset all action settings. Continue?"
-msgstr ""
-"Ini akan menghapus semua aksi kustom dan mereset semua pengaturan aksi. "
-"Lanjutkan?"
+msgstr "Ini akan menghapus semua aksi kustom dan mereset semua pengaturan aksi. Lanjutkan?"
 
 #: koassistant_ui/prompts_manager.lua:533
 #, fuzzy
@@ -5465,7 +5678,7 @@ msgstr "Menu Aksi"
 #: koassistant_ui/prompts_manager.lua:537
 #, fuzzy
 msgid "Reset custom actions"
-msgstr "Atur ulang tindakan kustom"
+msgstr "Reset aksi kustom"
 
 #: koassistant_ui/prompts_manager.lua:541
 #, fuzzy
@@ -5480,56 +5693,52 @@ msgstr ""
 "\n"
 "Ini menghapus tindakan yang Anda buat.\n"
 "\n"
-"Tindakan bawaan dan hasil pengeditannya dipertahankan."
+"Tindakan bawaan dan editannya akan dipertahankan."
 
 #: koassistant_ui/prompts_manager.lua:553
 #, fuzzy
 msgid "Reset action edits"
-msgstr "Atur ulang pengeditan tindakan"
+msgstr "Reset editan tindakan"
 
 #: koassistant_ui/prompts_manager.lua:557
 #, fuzzy
 msgid ""
 "Reset all action edits?\n"
 "\n"
-"This reverts any changes you made to built-in actions and re-enables "
-"disabled actions.\n"
+"This reverts any changes you made to built-in actions and re-enables disabled actions.\n"
 "\n"
 "Custom actions are preserved."
 msgstr ""
-"Atur ulang semua pengeditan tindakan?\n"
+"Reset semua editan tindakan?\n"
 "\n"
-"Ini mengembalikan perubahan yang Anda buat pada tindakan bawaan dan "
-"mengaktifkan kembali tindakan yang dinonaktifkan.\n"
+"Ini mengembalikan semua perubahan yang Anda buat pada tindakan bawaan dan mengaktifkan kembali tindakan yang dinonaktifkan.\n"
 "\n"
-"Tindakan kustom dipertahankan."
+"Tindakan kustom akan dipertahankan."
 
 #: koassistant_ui/prompts_manager.lua:569
 #, fuzzy
 msgid "Reset action menus"
-msgstr "Atur ulang menu tindakan"
+msgstr "Reset menu tindakan"
 
 #: koassistant_ui/prompts_manager.lua:573
 #, fuzzy
 msgid ""
 "Reset action menu configurations?\n"
 "\n"
-"This resets the ordering and selection in highlight menu and dictionary "
-"popup back to defaults.\n"
+"This resets the ordering and selection in highlight menu and dictionary popup back to defaults.\n"
 "\n"
 "Your actions (custom and built-in) are preserved."
 msgstr ""
-"Atur ulang konfigurasi menu tindakan?\n"
+"Reset konfigurasi menu tindakan?\n"
 "\n"
-"Ini mengatur ulang urutan dan pilihan di menu sorotan dan popup kamus ke "
-"pengaturan awal.\n"
+"Ini mengatur ulang urutan dan pilihan di menu sorotan dan popup kamus kembali ke pengaturan default.\n"
 "\n"
-"Tindakan Anda (kustom dan bawaan) dipertahankan."
+"Tindakan Anda (kustom dan bawaan) akan dipertahankan."
 
 #: koassistant_ui/prompts_manager.lua:584
 #, fuzzy
 msgid "Reset Quick Actions"
-msgstr "Atur ulang tindakan kustom"
+msgstr "Reset Tindakan Cepat"
 
 #: koassistant_ui/prompts_manager.lua:588
 #, fuzzy
@@ -5540,12 +5749,11 @@ msgid ""
 "\n"
 "Your actions (custom and built-in) are preserved."
 msgstr ""
-"Atur ulang konfigurasi menu tindakan?\n"
+"Reset panel Tindakan Cepat?\n"
 "\n"
-"Ini mengatur ulang urutan dan pilihan di menu sorotan dan popup kamus ke "
-"pengaturan awal.\n"
+"Ini mengembalikan tindakan default yang ditampilkan di menu Tindakan Cepat.\n"
 "\n"
-"Tindakan Anda (kustom dan bawaan) dipertahankan."
+"Tindakan Anda (kustom dan bawaan) akan dipertahankan."
 
 #: koassistant_ui/prompts_manager.lua:633
 #, fuzzy
@@ -5555,7 +5763,7 @@ msgstr "Kustom (custom_actions.lua)"
 #: koassistant_ui/prompts_manager.lua:635
 #, fuzzy
 msgid "User-defined (UI)"
-msgstr "Didefinisikan pengguna (UI)"
+msgstr "Buatan pengguna (UI)"
 
 #: koassistant_ui/prompts_manager.lua:643
 #, fuzzy
@@ -5600,7 +5808,7 @@ msgstr "Dinonaktifkan"
 #: koassistant_ui/prompts_manager.lua:686
 #, fuzzy
 msgid "─── Flags ───"
-msgstr "─── Tanda ───"
+msgstr "─── Flag ───"
 
 #: koassistant_ui/prompts_manager.lua:689
 #: koassistant_ui/prompts_manager.lua:690
@@ -5639,7 +5847,7 @@ msgstr "Sertakan Info Buku"
 #: koassistant_ui/prompts_manager.lua:3392
 #, fuzzy
 msgid "Allow text extraction"
-msgstr "Izinkan Ekstraksi Teks Buku"
+msgstr "Izinkan ekstraksi teks"
 
 #: koassistant_ui/prompts_manager.lua:708
 #, fuzzy
@@ -5654,7 +5862,7 @@ msgstr "Penyedia/Model"
 #: koassistant_ui/prompts_manager.lua:715
 #, fuzzy
 msgid "─── Action Prompt ───"
-msgstr "─── Prompt Aksi ───"
+msgstr "─── Prompt Tindakan ───"
 
 #: koassistant_ui/prompts_manager.lua:715
 #, fuzzy
@@ -5674,7 +5882,7 @@ msgstr "Edit Cepat"
 #: koassistant_ui/prompts_manager.lua:741
 #, fuzzy
 msgid "Delete this action?"
-msgstr "Hapus aksi ini?"
+msgstr "Hapus tindakan ini?"
 
 #: koassistant_ui/prompts_manager.lua:761
 #, fuzzy
@@ -5688,8 +5896,8 @@ msgid ""
 "This action is defined in custom_actions.lua.\n"
 "Please edit that file directly to modify it."
 msgstr ""
-"Aksi ini didefinisikan dalam custom_actions.lua.\n"
-"Silakan edit file tersebut langsung untuk memodifikasinya."
+"Tindakan ini didefinisikan di custom_actions.lua.\n"
+"Silakan edit file tersebut secara langsung untuk memodifikasinya."
 
 #: koassistant_ui/prompts_manager.lua:773
 #, fuzzy
@@ -5704,7 +5912,7 @@ msgstr "Reset ke Default"
 #: koassistant_ui/prompts_manager.lua:788
 #, fuzzy
 msgid "Reset this action to default settings?"
-msgstr "Reset aksi ini ke pengaturan default?"
+msgstr "Reset tindakan ini ke pengaturan default?"
 
 #: koassistant_ui/prompts_manager.lua:810
 #, fuzzy
@@ -5714,7 +5922,7 @@ msgstr "✓ Di Menu Sorotan"
 #: koassistant_ui/prompts_manager.lua:810
 #, fuzzy
 msgid "Add to Highlight Menu"
-msgstr "Tambah ke Menu Sorotan"
+msgstr "Tambahkan ke Menu Sorotan"
 
 #: koassistant_ui/prompts_manager.lua:815
 #, fuzzy
@@ -5734,7 +5942,7 @@ msgstr "✓ Di Popup Kamus"
 #: koassistant_ui/prompts_manager.lua:828
 #, fuzzy
 msgid "Add to Dictionary Popup"
-msgstr "Tambah ke Popup Kamus"
+msgstr "Tambahkan ke Popup Kamus"
 
 #: koassistant_ui/prompts_manager.lua:833
 #, fuzzy
@@ -5749,71 +5957,80 @@ msgstr "Ditambahkan ke popup kamus."
 #: koassistant_ui/prompts_manager.lua:847
 #, fuzzy
 msgid "✓ In Gesture Menu"
-msgstr "✓ Di Menu Sorotan"
+msgstr "✓ Di Menu Gestur"
 
 #: koassistant_ui/prompts_manager.lua:847
 #, fuzzy
 msgid "Add to Gesture Menu"
-msgstr "Tambah ke Menu Sorotan"
+msgstr "Tambahkan ke Menu Gestur"
 
 #: koassistant_ui/prompts_manager.lua:854
+#, fuzzy
 msgid ""
 "Removed from gesture menu.\n"
 "Restart KOReader to apply."
 msgstr ""
+"Dihapus dari menu gestur.\n"
+"Restart KOReader untuk menerapkan."
 
 #: koassistant_ui/prompts_manager.lua:855
+#, fuzzy
 msgid ""
 "Added to gesture menu.\n"
 "Restart KOReader to apply."
 msgstr ""
+"Ditambahkan ke menu gestur.\n"
+"Restart KOReader untuk menerapkan."
 
 #: koassistant_ui/prompts_manager.lua:870
 #, fuzzy
 msgid "✓ In Quick Actions"
-msgstr "Pengaturan Cepat AI"
+msgstr "✓ Di Tindakan Cepat"
 
 #: koassistant_ui/prompts_manager.lua:870
 #, fuzzy
 msgid "Add to Quick Actions"
-msgstr "Pengaturan Cepat AI"
+msgstr "Tambahkan ke Tindakan Cepat"
 
 #: koassistant_ui/prompts_manager.lua:877
 #, fuzzy
 msgid "Removed from Quick Actions."
-msgstr "Dihapus dari popup kamus."
+msgstr "Dihapus dari Tindakan Cepat."
 
 #: koassistant_ui/prompts_manager.lua:878
 #, fuzzy
 msgid "Added to Quick Actions."
-msgstr "Ditambahkan ke popup kamus."
+msgstr "Ditambahkan ke Tindakan Cepat."
 
 #: koassistant_ui/prompts_manager.lua:893
+#, fuzzy
 msgid "✓ In General Input"
-msgstr ""
+msgstr "✓ Di Input Umum"
 
 #: koassistant_ui/prompts_manager.lua:893
+#, fuzzy
 msgid "Add to General Input"
-msgstr ""
+msgstr "Tambah ke Input Umum"
 
 #: koassistant_ui/prompts_manager.lua:900
 #, fuzzy
 msgid "Removed from general input dialog."
-msgstr "Dihapus dari menu sorotan."
+msgstr "Dihapus dari dialog input umum."
 
 #: koassistant_ui/prompts_manager.lua:901
+#, fuzzy
 msgid "Added to general input dialog."
-msgstr ""
+msgstr "Ditambahkan ke dialog input umum."
 
 #: koassistant_ui/prompts_manager.lua:914
 #, fuzzy
 msgid "Duplicate as Custom"
-msgstr "Duplikasi sebagai Kustom"
+msgstr "Duplikat sebagai Kustom"
 
 #: koassistant_ui/prompts_manager.lua:924
 #, fuzzy
 msgid "Action Details"
-msgstr "Detail Aksi"
+msgstr "Detail Tindakan"
 
 #: koassistant_ui/prompts_manager.lua:937
 #: koassistant_ui/prompts_manager.lua:4173
@@ -5822,7 +6039,7 @@ msgstr "Detail Aksi"
 #: koassistant_ui/prompts_manager.lua:4652
 #, fuzzy
 msgid "Action service not available."
-msgstr "Layanan aksi tidak tersedia."
+msgstr "Layanan tindakan tidak tersedia."
 
 #: koassistant_ui/prompts_manager.lua:988
 #, fuzzy
@@ -5833,7 +6050,7 @@ msgid ""
 msgstr ""
 "Dibuat: %1\n"
 "\n"
-"Anda dapat menemukan dan mengeditnya di daftar Aksi."
+"Anda dapat menemukan dan mengeditnya di daftar Tindakan."
 
 #: koassistant_ui/prompts_manager.lua:1055
 #, fuzzy
@@ -5897,52 +6114,59 @@ msgstr "Popup Kamus"
 #: koassistant_ui/prompts_manager.lua:1166
 #: koassistant_ui/prompts_manager.lua:2689
 #: koassistant_ui/prompts_manager.lua:3400
+#, fuzzy
 msgid "Text extraction enabled. Note: Enable in Settings → Advanced first."
-msgstr ""
+msgstr "Ekstraksi teks diaktifkan. Catatan: Aktifkan di Pengaturan → Lanjutan terlebih dahulu."
 
 #: koassistant_ui/prompts_manager.lua:1171
 #: koassistant_ui/prompts_manager.lua:2694
 #: koassistant_ui/prompts_manager.lua:3405
+#, fuzzy
 msgid "Text extraction enabled for this action."
-msgstr ""
+msgstr "Ekstraksi teks diaktifkan untuk tindakan ini."
 
 #: koassistant_ui/prompts_manager.lua:1189
 #: koassistant_ui/prompts_manager.lua:2711
 #: koassistant_ui/prompts_manager.lua:3422
 #, fuzzy
 msgid "Allow annotation use"
-msgstr "Ikuti Bahasa Terjemahan"
+msgstr "Izinkan penggunaan anotasi"
 
 #: koassistant_ui/prompts_manager.lua:1197
 #: koassistant_ui/prompts_manager.lua:2718
 #: koassistant_ui/prompts_manager.lua:3429
+#, fuzzy
 msgid ""
 "Annotation use enabled. Note: Enable in Settings → Privacy & Data first."
-msgstr ""
+msgstr "Penggunaan anotasi diaktifkan. Catatan: Aktifkan di Pengaturan → Privasi & Data terlebih dahulu."
 
 #: koassistant_ui/prompts_manager.lua:1202
 #: koassistant_ui/prompts_manager.lua:2723
 #: koassistant_ui/prompts_manager.lua:3434
+#, fuzzy
 msgid "Annotation use enabled for this action."
-msgstr ""
+msgstr "Penggunaan anotasi diaktifkan untuk tindakan ini."
 
 #: koassistant_ui/prompts_manager.lua:1219
 #: koassistant_ui/prompts_manager.lua:2739
 #: koassistant_ui/prompts_manager.lua:3450
+#, fuzzy
 msgid "Allow notebook use"
-msgstr ""
+msgstr "Izinkan penggunaan catatan"
 
 #: koassistant_ui/prompts_manager.lua:1227
 #: koassistant_ui/prompts_manager.lua:2746
 #: koassistant_ui/prompts_manager.lua:3457
+#, fuzzy
 msgid "Notebook use enabled. Note: Enable in Settings → Privacy & Data first."
-msgstr ""
+msgstr "Penggunaan catatan diaktifkan. Catatan: Aktifkan di Pengaturan → Privasi & Data terlebih dahulu."
 
 #: koassistant_ui/prompts_manager.lua:1232
 #: koassistant_ui/prompts_manager.lua:2751
 #: koassistant_ui/prompts_manager.lua:3462
+#, fuzzy
 msgid "Notebook use enabled for this action."
-msgstr ""
+msgstr "Penggunaan catatan diaktifkan untuk tindakan ini."
 
 #: koassistant_ui/prompts_manager.lua:1248
 #: koassistant_ui/prompts_manager.lua:2665
@@ -5954,12 +6178,12 @@ msgstr "Tampilan:"
 #: koassistant_ui/prompts_manager.lua:1262
 #, fuzzy
 msgid "Example: 'Summarize', 'Explain Simply', 'Find Themes'"
-msgstr "Contoh: 'Ringkas', 'Jelaskan Sederhana', 'Temukan Tema'"
+msgstr "Contoh: 'Rangkum', 'Jelaskan Sederhana', 'Temukan Tema'"
 
 #: koassistant_ui/prompts_manager.lua:1271
 #, fuzzy
 msgid "Edit Action - Name"
-msgstr "Edit Aksi - Nama"
+msgstr "Edit Tindakan - Nama"
 
 #: koassistant_ui/prompts_manager.lua:1271
 #, fuzzy
@@ -5986,12 +6210,12 @@ msgstr "Ketika teks dipilih dalam buku"
 #: koassistant_ui/prompts_manager.lua:1290
 #, fuzzy
 msgid "Includes: selected text + book title, author"
-msgstr "Termasuk: teks yang dipilih + judul buku, penulis"
+msgstr "Termasuk: teks terpilih + judul buku, penulis"
 
 #: koassistant_ui/prompts_manager.lua:1291
 #, fuzzy
 msgid "Includes: selected text only"
-msgstr "Termasuk: hanya teks yang dipilih"
+msgstr "Termasuk: teks terpilih saja"
 
 #: koassistant_ui/prompts_manager.lua:1294
 #: koassistant_ui/prompts_manager.lua:1430
@@ -6003,7 +6227,7 @@ msgstr "Buku"
 #: koassistant_ui/prompts_manager.lua:1295
 #, fuzzy
 msgid "File browser selection or 'New Book Chat/Action' gesture"
-msgstr "Pilihan peramban berkas atau gestur 'Obrolan tentang buku'"
+msgstr "Pilihan browser file atau gerakan 'Obrolan/Tindakan Buku Baru'"
 
 #: koassistant_ui/prompts_manager.lua:1296
 #, fuzzy
@@ -6037,7 +6261,7 @@ msgstr "Umum"
 #: koassistant_ui/prompts_manager.lua:1305
 #, fuzzy
 msgid "General chat, no specific context"
-msgstr "Obrolan umum, tanpa konteks tertentu"
+msgstr "Obrolan umum, tanpa konteks spesifik"
 
 #: koassistant_ui/prompts_manager.lua:1306
 #, fuzzy
@@ -6052,7 +6276,7 @@ msgstr "Konteks sorotan dan buku"
 #: koassistant_ui/prompts_manager.lua:1311
 #, fuzzy
 msgid "Highlight: selected text; Book: title/author"
-msgstr "Sorotan: teks yang dipilih; Buku: judul/penulis"
+msgstr "Sorotan: teks terpilih; Buku: judul/penulis"
 
 #: koassistant_ui/prompts_manager.lua:1315
 #, fuzzy
@@ -6066,18 +6290,19 @@ msgstr "Bervariasi berdasarkan pemicu"
 
 #: koassistant_ui/prompts_manager.lua:1428
 #, fuzzy
-msgid "Context determines when your action appears and what data is available:"
+msgid ""
+"Context determines when your action appears and what data is available:"
 msgstr "Konteks menentukan kapan aksi Anda muncul dan data apa yang tersedia:"
 
 #: koassistant_ui/prompts_manager.lua:1429
 #, fuzzy
 msgid "When text is selected. Gets: selected text, optionally book info"
-msgstr "Ketika teks dipilih. Mendapat: teks yang dipilih, opsional info buku"
+msgstr "Saat teks dipilih. Mendapat: teks terpilih, opsional info buku"
 
 #: koassistant_ui/prompts_manager.lua:1430
 #, fuzzy
 msgid "File browser or 'New Book Chat/Action'. Gets: title, author"
-msgstr "Peramban berkas atau 'Obrolan tentang buku'. Mendapat: judul, penulis"
+msgstr "Browser file atau 'Obrolan/Aksi Buku Baru'. Mendapat: judul, penulis"
 
 #: koassistant_ui/prompts_manager.lua:1431
 #, fuzzy
@@ -6087,7 +6312,7 @@ msgstr "Beberapa buku dipilih. Mendapat: daftar buku dengan jumlah"
 #: koassistant_ui/prompts_manager.lua:1432
 #, fuzzy
 msgid "Standalone chat. No automatic context"
-msgstr "Obrolan mandiri. Tanpa konteks otomatis"
+msgstr "Obrolan mandiri. Tidak ada konteks otomatis"
 
 #: koassistant_ui/prompts_manager.lua:1433
 #, fuzzy
@@ -6114,12 +6339,12 @@ msgstr "Gunakan pengaturan global"
 #: koassistant_ui/prompts_manager.lua:1474
 #, fuzzy
 msgid "Inherits from Actions & Prompts → Manage Behaviors"
-msgstr "Mewarisi dari Pengaturan → Lanjutan → Gaya Perilaku AI"
+msgstr "Mewarisi dari Aksi & Perintah → Kelola Perilaku"
 
 #: koassistant_ui/prompts_manager.lua:1484
 #, fuzzy
 msgid "No behavior instructions - just your action prompt"
-msgstr "Tanpa instruksi perilaku - hanya prompt aksi Anda"
+msgstr "Tanpa instruksi perilaku - hanya perintah aksi Anda"
 
 #: koassistant_ui/prompts_manager.lua:1485
 #, fuzzy
@@ -6157,8 +6382,7 @@ msgstr "Langkah 2/3: Perilaku Kustom"
 #: koassistant_ui/prompts_manager.lua:1553
 #, fuzzy
 msgid "Describe how the AI should behave or what role it should play"
-msgstr ""
-"Jelaskan bagaimana AI harus berperilaku atau peran apa yang harus dimainkan"
+msgstr "Jelaskan bagaimana AI harus berperilaku atau peran apa yang harus dimainkan"
 
 #: koassistant_ui/prompts_manager.lua:1554
 #, fuzzy
@@ -6171,10 +6395,9 @@ msgid ""
 "This replaces the global AI behavior setting for this action."
 msgstr ""
 "Contoh:\n"
-"• 'Kamu adalah ahli tata bahasa. Jadilah tepat dan analitis.'\n"
-"• 'Kamu adalah kritikus sastra yang mengkhususkan diri dalam fiksi abad "
-"ke-19.'\n"
-"• 'Jawab dengan ringkas. Gunakan poin-poin ketika membantu.'\n"
+"• 'Anda adalah ahli tata bahasa. Jadilah tepat dan analitis.'\n"
+"• 'Anda adalah kritikus sastra yang mengkhususkan diri dalam fiksi abad ke-19.'\n"
+"• 'Tanggapi secara ringkas. Gunakan poin-poin jika membantu.'\n"
 "\n"
 "Ini menggantikan pengaturan perilaku AI global untuk aksi ini."
 
@@ -6182,18 +6405,17 @@ msgstr ""
 #, fuzzy
 msgid ""
 "Please enter custom behavior text, or go back and choose a different option"
-msgstr ""
-"Silakan masukkan teks perilaku kustom, atau kembali dan pilih opsi lain"
+msgstr "Silakan masukkan teks perilaku kustom, atau kembali dan pilih opsi lain"
 
 #: koassistant_ui/prompts_manager.lua:1601
 #, fuzzy
 msgid "Edit Action - Action Prompt"
-msgstr "Edit Aksi - Prompt Aksi"
+msgstr "Edit Aksi - Perintah Aksi"
 
 #: koassistant_ui/prompts_manager.lua:1601
 #, fuzzy
 msgid "Step 3/4: Action Prompt"
-msgstr "Langkah 3/4: Prompt Aksi"
+msgstr "Langkah 3/4: Perintah Aksi"
 
 #: koassistant_ui/prompts_manager.lua:1603
 #, fuzzy
@@ -6204,9 +6426,7 @@ msgstr "Apa yang harus dilakukan AI?"
 #, fuzzy
 msgid ""
 "Write the AI instruction. Tap 'Help' for tips, 'Insert...' for placeholders."
-msgstr ""
-"Tulis instruksi AI. Ketuk 'Bantuan' untuk tips, 'Sisipkan...' untuk "
-"placeholder."
+msgstr "Tulis instruksi AI. Ketuk 'Bantuan' untuk tips, 'Sisipkan...' untuk placeholder."
 
 #: koassistant_ui/prompts_manager.lua:1618
 #: koassistant_ui/prompts_manager.lua:2772
@@ -6219,37 +6439,27 @@ msgstr "Bantuan"
 msgid ""
 "Writing Action Prompts\n"
 "\n"
-"• Use 'Insert...' to add placeholders like {title}, {author}, "
-"{highlighted_text}\n"
+"• Use 'Insert...' to add placeholders like {title}, {author}, {highlighted_text}\n"
 "\n"
-"• Tip: When using this action, there's an input field for optional "
-"additional context\n"
+"• Tip: When using this action, there's an input field for optional additional context\n"
 "\n"
-"• Reading-mode placeholders ({reading_progress}, {book_text}, {highlights}, "
-"{annotations}) auto-hide this action in File Browser — it only appears when "
-"reading\n"
+"• Reading-mode placeholders ({reading_progress}, {book_text}, {highlights}, {annotations}) auto-hide this action in File Browser — it only appears when reading\n"
 "\n"
-"• Test actions with the web inspector: 'lua tests/inspect.lua --web' from "
-"the plugin folder\n"
+"• Test actions with the web inspector: 'lua tests/inspect.lua --web' from the plugin folder\n"
 "\n"
 "• See README for full placeholder list and examples"
 msgstr ""
-"Menulis Prompt Aksi\n"
+"Menulis Perintah Aksi\n"
 "\n"
-"• Gunakan 'Sisipkan...' untuk menambahkan placeholder seperti {title}, "
-"{author}, {highlighted_text}\n"
+"• Gunakan 'Sisipkan...' untuk menambahkan placeholder seperti {title}, {author}, {highlighted_text}\n"
 "\n"
-"• Tips: Saat menggunakan aksi ini, ada kolom input untuk konteks tambahan "
-"opsional\n"
+"• Tip: Saat menggunakan aksi ini, ada kolom input untuk konteks tambahan opsional\n"
 "\n"
-"• Placeholder mode-baca ({reading_progress}, {book_text}, {highlights}, "
-"{annotations}) menyembunyikan aksi ini di Peramban Berkas — hanya muncul "
-"saat membaca\n"
+"• Placeholder mode-baca ({reading_progress}, {book_text}, {highlights}, {annotations}) otomatis menyembunyikan aksi ini di Browser File — hanya muncul saat membaca\n"
 "\n"
-"• Uji aksi dengan web inspector: 'lua tests/inspect.lua --web' dari folder "
-"plugin\n"
+"• Uji aksi dengan web inspector: 'lua tests/inspect.lua --web' dari folder plugin\n"
 "\n"
-"• Lihat README untuk daftar placeholder lengkap dan contoh"
+"• Lihat README untuk daftar lengkap placeholder dan contoh"
 
 #: koassistant_ui/prompts_manager.lua:1636
 #, fuzzy
@@ -6259,12 +6469,12 @@ msgstr "Sisipkan..."
 #: koassistant_ui/prompts_manager.lua:1649
 #, fuzzy
 msgid "Action prompt cannot be empty"
-msgstr "Prompt aksi tidak boleh kosong"
+msgstr "Perintah aksi tidak boleh kosong"
 
 #: koassistant_ui/prompts_manager.lua:1684
 #, fuzzy
 msgid "Temperature: "
-msgstr "Suhu:"
+msgstr "Temperatur:"
 
 #: koassistant_ui/prompts_manager.lua:1693
 #: koassistant_ui/prompts_manager.lua:2602
@@ -6308,7 +6518,7 @@ msgid ""
 msgstr ""
 "Pengaturan lanjutan untuk aksi ini.\n"
 "\n"
-"Suhu:"
+"Temperatur:"
 
 #: koassistant_ui/prompts_manager.lua:1766
 #, fuzzy
@@ -6331,7 +6541,7 @@ msgstr "Gunakan global"
 #: koassistant_ui/prompts_manager.lua:1881
 #, fuzzy
 msgid "Dictionary Compact"
-msgstr "Kamus Ringkas"
+msgstr "Kamus Kompak"
 
 #: koassistant_ui/prompts_manager.lua:1821
 #: koassistant_ui/prompts_manager.lua:1830
@@ -6343,17 +6553,17 @@ msgstr "Standar"
 #: koassistant_ui/prompts_manager.lua:1830
 #, fuzzy
 msgid "Full dialog with all buttons"
-msgstr "Dialog lengkap dengan semua tombol"
+msgstr "Dialog penuh dengan semua tombol"
 
 #: koassistant_ui/prompts_manager.lua:1831
 #, fuzzy
 msgid "Compact with language buttons"
-msgstr "Ringkas dengan tombol bahasa"
+msgstr "Kompak dengan tombol bahasa"
 
 #: koassistant_ui/prompts_manager.lua:1832
 #, fuzzy
 msgid "With language switch and original toggle"
-msgstr "Dengan tombol ganti bahasa dan toggle asli"
+msgstr "Dengan peralihan bahasa dan toggle asli"
 
 #: koassistant_ui/prompts_manager.lua:1879
 #, fuzzy
@@ -6363,25 +6573,19 @@ msgstr "Mode tampilan mengontrol bagaimana hasil ditampilkan:"
 #: koassistant_ui/prompts_manager.lua:1880
 #, fuzzy
 msgid "Full dialog with all response action buttons"
-msgstr "Dialog lengkap dengan semua tombol aksi respons"
+msgstr "Dialog penuh dengan semua tombol aksi respons"
 
 #: koassistant_ui/prompts_manager.lua:1881
 #, fuzzy
 msgid ""
-"Smaller dialog optimized for quick lookups, with language buttons for word-"
-"by-word translation"
-msgstr ""
-"Dialog lebih kecil dioptimalkan untuk pencarian cepat, dengan tombol bahasa "
-"untuk terjemahan kata per kata"
+"Smaller dialog optimized for quick lookups, with language buttons for word-by-word translation"
+msgstr "Dialog lebih kecil dioptimalkan untuk pencarian cepat, dengan tombol bahasa untuk terjemahan kata-per-kata"
 
 #: koassistant_ui/prompts_manager.lua:1882
 #, fuzzy
 msgid ""
-"Translation view with language switch button and toggle to show/hide the "
-"original text"
-msgstr ""
-"Tampilan terjemahan dengan tombol ganti bahasa dan toggle untuk menampilkan/"
-"menyembunyikan teks asli"
+"Translation view with language switch button and toggle to show/hide the original text"
+msgstr "Tampilan terjemahan dengan tombol peralihan bahasa dan toggle untuk menampilkan/menyembunyikan teks asli"
 
 #: koassistant_ui/prompts_manager.lua:1942
 #, fuzzy
@@ -6405,19 +6609,17 @@ msgid ""
 "\n"
 "• Global: Follow per-provider settings in Settings menu\n"
 "• Force OFF: Never use thinking for this action\n"
-"• Configure: Set per-provider reasoning (Anthropic budget, OpenAI effort, "
-"Gemini level)\n"
+"• Configure: Set per-provider reasoning (Anthropic budget, OpenAI effort, Gemini level)\n"
 "\n"
 "May force temperature to 1.0 for some models."
 msgstr ""
 "Penalaran mengaktifkan pemikiran kompleks untuk model yang didukung.\n"
 "\n"
 "• Global: Ikuti pengaturan per-penyedia di menu Pengaturan\n"
-"• Paksa MATI: Jangan pernah gunakan pemikiran untuk aksi ini\n"
-"• Konfigurasi: Atur penalaran per-penyedia (anggaran Anthropic, upaya "
-"OpenAI, level Gemini)\n"
+"• Paksa MATI: Jangan gunakan pemikiran untuk aksi ini\n"
+"• Konfigurasi: Atur penalaran per-penyedia (anggaran Anthropic, upaya OpenAI, level Gemini)\n"
 "\n"
-"Mungkin memaksa suhu ke 1.0 untuk beberapa model."
+"Mungkin memaksa temperatur ke 1.0 untuk beberapa model."
 
 #: koassistant_ui/prompts_manager.lua:2002
 #, fuzzy
@@ -6435,18 +6637,18 @@ msgstr "MATI"
 #: koassistant_ui/prompts_manager.lua:2005
 #, fuzzy
 msgid "ON (%1 tokens)"
-msgstr "AKTIF (%1 token)"
+msgstr "NYALA (%1 token)"
 
 #: koassistant_ui/prompts_manager.lua:2007
 #: koassistant_ui/prompts_manager.lua:2009
 #, fuzzy
 msgid "ON ("
-msgstr "AKTIF ("
+msgstr "NYALA ("
 
 #: koassistant_ui/prompts_manager.lua:2011
 #, fuzzy
 msgid "ON"
-msgstr "AKTIF"
+msgstr "NYALA"
 
 #: koassistant_ui/prompts_manager.lua:2032
 #, fuzzy
@@ -6474,13 +6676,13 @@ msgid ""
 "Configure reasoning for each provider independently.\n"
 "DeepSeek reasoner model always uses reasoning automatically."
 msgstr ""
-"Konfigurasi penalaran untuk setiap penyedia secara independen.\n"
+"Konfigurasikan penalaran untuk setiap penyedia secara independen.\n"
 "Model penalar DeepSeek selalu menggunakan penalaran secara otomatis."
 
 #: koassistant_ui/prompts_manager.lua:2102
 #, fuzzy
 msgid "ON (set budget)..."
-msgstr "AKTIF (atur anggaran)..."
+msgstr "NYALA (atur anggaran)..."
 
 #: koassistant_ui/prompts_manager.lua:2122
 #, fuzzy
@@ -6488,7 +6690,7 @@ msgid ""
 "Extended thinking for Claude models.\n"
 "Supports: Sonnet 4.5, Opus 4.x, Haiku 4.5, Sonnet 3.7"
 msgstr ""
-"Pemikiran yang diperluas untuk model Claude.\n"
+"Pemikiran diperluas untuk model Claude.\n"
 "Mendukung: Sonnet 4.5, Opus 4.x, Haiku 4.5, Sonnet 3.7"
 
 #: koassistant_ui/prompts_manager.lua:2138
@@ -6504,7 +6706,7 @@ msgid ""
 "Higher = more complex reasoning.\n"
 "Range: %1 - %2"
 msgstr ""
-"Anggaran token untuk pemikiran yang diperluas.\n"
+"Anggaran token untuk pemikiran diperluas.\n"
 "Lebih tinggi = penalaran lebih kompleks.\n"
 "Rentang: %1 - %2"
 
@@ -6526,7 +6728,7 @@ msgstr "Upaya tinggi"
 #: koassistant_ui/prompts_manager.lua:2221
 #, fuzzy
 msgid "OpenAI Reasoning"
-msgstr "OpenAI Reasoning"
+msgstr "Penalaran OpenAI"
 
 #: koassistant_ui/prompts_manager.lua:2222
 #, fuzzy
@@ -6543,7 +6745,7 @@ msgid ""
 "Thinking level for Gemini models.\n"
 "Supports: gemini-3-*-preview"
 msgstr ""
-"Level pemikiran untuk model Gemini.\n"
+"Tingkat pemikiran untuk model Gemini.\n"
 "Mendukung: gemini-3-*-preview"
 
 #: koassistant_ui/prompts_manager.lua:2311
@@ -6612,7 +6814,7 @@ msgstr "Perilaku AI:"
 #: koassistant_ui/prompts_manager.lua:3304
 #, fuzzy
 msgid "Temp: "
-msgstr "Suhu:"
+msgstr "Temp:"
 
 #: koassistant_ui/prompts_manager.lua:2775
 #, fuzzy
@@ -6623,12 +6825,11 @@ msgid ""
 "\n"
 "Tip: To edit the action prompt, use 'Duplicate' to create a custom copy."
 msgstr ""
-"Pengaturan ini menggantikan default untuk aksi bawaan ini.\n"
+"Pengaturan ini menimpa pengaturan bawaan untuk tindakan bawaan ini.\n"
 "\n"
-"Atur ke \"Global\" untuk menggunakan pengaturan default.\n"
+"Atur ke \"Global\" untuk menggunakan pengaturan bawaan.\n"
 "\n"
-"Tips: Untuk mengedit prompt aksi, gunakan 'Duplikat' untuk membuat salinan "
-"kustom."
+"Tips: Untuk mengedit prompt tindakan, gunakan 'Duplikat' untuk membuat salinan kustom."
 
 #: koassistant_ui/prompts_manager.lua:2794
 #, fuzzy
@@ -6658,7 +6859,7 @@ msgid ""
 "Lower = focused\n"
 "Higher = creative"
 msgstr ""
-"Rentang: 0.0-2.0 (Anthropic maks 1.0)\n"
+"Rentang: 0.0-2.0 (maks Anthropic 1.0)\n"
 "Lebih rendah = fokus\n"
 "Lebih tinggi = kreatif"
 
@@ -6671,7 +6872,7 @@ msgstr "Pengaturan disimpan"
 #: koassistant_ui/prompts_manager.lua:3880
 #, fuzzy
 msgid "Settings reset to default"
-msgstr "Pengaturan direset ke default"
+msgstr "Pengaturan dikembalikan ke bawaan"
 
 #: koassistant_ui/prompts_manager.lua:3284
 #, fuzzy
@@ -6697,17 +6898,17 @@ msgstr ""
 #: koassistant_ui/prompts_manager.lua:3505
 #, fuzzy
 msgid "Edit Custom Action"
-msgstr "Edit Aksi Kustom"
+msgstr "Edit Tindakan Kustom"
 
 #: koassistant_ui/prompts_manager.lua:3517
 #, fuzzy
 msgid "Action Name"
-msgstr "Nama Aksi"
+msgstr "Nama Tindakan"
 
 #: koassistant_ui/prompts_manager.lua:3519
 #, fuzzy
 msgid "Enter action name"
-msgstr "Masukkan nama aksi"
+msgstr "Masukkan nama tindakan"
 
 #: koassistant_ui/prompts_manager.lua:3565
 #: koassistant_ui/prompts_manager.lua:3679
@@ -6734,7 +6935,7 @@ msgstr "Masukkan instruksi perilaku kustom..."
 #: koassistant_ui/prompts_manager.lua:3717
 #, fuzzy
 msgid "Select Temperature"
-msgstr "Pilih Suhu"
+msgstr "Pilih Temperatur"
 
 #: koassistant_ui/prompts_manager.lua:3822
 #, fuzzy
@@ -6759,12 +6960,12 @@ msgstr "Judul Buku"
 #: koassistant_ui/prompts_manager.lua:3890
 #, fuzzy
 msgid "Author Name"
-msgstr "Nama Pengarang"
+msgstr "Nama Penulis"
 
 #: koassistant_ui/prompts_manager.lua:3891
 #, fuzzy
 msgid "Author Clause"
-msgstr "Klausa Pengarang"
+msgstr "Klausa Penulis"
 
 #: koassistant_ui/prompts_manager.lua:3892
 #, fuzzy
@@ -6779,12 +6980,12 @@ msgstr "Daftar Buku"
 #: koassistant_ui/prompts_manager.lua:3896
 #, fuzzy
 msgid "Reading Progress (%)"
-msgstr "Kemajuan Membaca (%)"
+msgstr "Progres Membaca (%)"
 
 #: koassistant_ui/prompts_manager.lua:3897
 #, fuzzy
 msgid "Progress (0.0-1.0)"
-msgstr "Kemajuan (0.0-1.0)"
+msgstr "Progres (0.0-1.0)"
 
 #: koassistant_ui/prompts_manager.lua:3898
 #, fuzzy
@@ -6824,68 +7025,72 @@ msgstr "Bab Saat Ini"
 #: koassistant_ui/prompts_manager.lua:3905
 #, fuzzy
 msgid "Chapters Read Count"
-msgstr "Jumlah Bab yang Dibaca"
+msgstr "Jumlah Bab Terbaca"
 
 #: koassistant_ui/prompts_manager.lua:3906
 #, fuzzy
 msgid "Time Since Last Read"
-msgstr "Waktu Sejak Terakhir Membaca"
+msgstr "Waktu Sejak Terakhir Dibaca"
 
 #: koassistant_ui/prompts_manager.lua:3907
 #, fuzzy
 msgid "Notebook (with label)"
-msgstr "Teks Buku (dengan label)"
+msgstr "Catatan (dengan label)"
 
 #: koassistant_ui/prompts_manager.lua:3908
 #, fuzzy
 msgid "Notebook (raw)"
-msgstr "Teks Buku (mentah)"
+msgstr "Catatan (mentah)"
 
 #: koassistant_ui/prompts_manager.lua:3910
 #, fuzzy
 msgid "Full Document (with label)"
-msgstr "Teks Buku (dengan label)"
+msgstr "Dokumen Lengkap (dengan label)"
 
 #: koassistant_ui/prompts_manager.lua:3911
+#, fuzzy
 msgid "Full Document (raw)"
-msgstr ""
+msgstr "Dokumen Lengkap (mentah)"
 
 #: koassistant_ui/prompts_manager.lua:3913
 #, fuzzy
 msgid "X-Ray Cache (with label)"
-msgstr "Teks Buku (dengan label)"
+msgstr "Cache X-Ray (dengan label)"
 
 #: koassistant_ui/prompts_manager.lua:3914
+#, fuzzy
 msgid "X-Ray Cache (raw)"
-msgstr ""
+msgstr "Cache X-Ray (mentah)"
 
 #: koassistant_ui/prompts_manager.lua:3915
 #, fuzzy
 msgid "Analysis Cache (with label)"
-msgstr "Anotasi (dengan label)"
+msgstr "Cache Analisis (dengan label)"
 
 #: koassistant_ui/prompts_manager.lua:3916
+#, fuzzy
 msgid "Analysis Cache (raw)"
-msgstr ""
+msgstr "Cache Analisis (mentah)"
 
 #: koassistant_ui/prompts_manager.lua:3917
 #, fuzzy
 msgid "Summary Cache (with label)"
-msgstr "Teks Buku (dengan label)"
+msgstr "Cache Ringkasan (dengan label)"
 
 #: koassistant_ui/prompts_manager.lua:3918
+#, fuzzy
 msgid "Summary Cache (raw)"
-msgstr ""
+msgstr "Cache Ringkasan (mentah)"
 
 #: koassistant_ui/prompts_manager.lua:3920
 #, fuzzy
 msgid "Surrounding Context (with label)"
-msgstr "Teks Buku (dengan label)"
+msgstr "Konteks Sekitar (dengan label)"
 
 #: koassistant_ui/prompts_manager.lua:3921
 #, fuzzy
 msgid "Surrounding Context (raw)"
-msgstr "Jalankan ulang dengan konteks sekitarnya"
+msgstr "Konteks Sekitar (mentah)"
 
 #: koassistant_ui/prompts_manager.lua:3936
 #, fuzzy
@@ -6900,25 +7105,25 @@ msgstr "Sisipkan Placeholder"
 #: koassistant_ui/prompts_manager.lua:4043
 #, fuzzy
 msgid "Action added successfully"
-msgstr "Aksi berhasil ditambahkan"
+msgstr "Tindakan berhasil ditambahkan"
 
 #: koassistant_ui/prompts_manager.lua:4100
 #: koassistant_ui/prompts_manager.lua:4109
 #, fuzzy
 msgid "Action updated successfully"
-msgstr "Aksi berhasil diperbarui"
+msgstr "Tindakan berhasil diperbarui"
 
 #: koassistant_ui/prompts_manager.lua:4134
 #, fuzzy
 msgid "Action deleted successfully"
-msgstr "Aksi berhasil dihapus"
+msgstr "Tindakan berhasil dihapus"
 
 #: koassistant_ui/prompts_manager.lua:4182
 #: koassistant_ui/prompts_manager.lua:4345
 #: koassistant_ui/prompts_manager.lua:4661
 #, fuzzy
 msgid "No highlight actions available."
-msgstr "Tidak ada aksi sorotan yang tersedia."
+msgstr "Tidak ada tindakan sorotan tersedia."
 
 #: koassistant_ui/prompts_manager.lua:4197
 #: koassistant_ui/prompts_manager.lua:4360
@@ -6929,7 +7134,7 @@ msgstr "✓ = di menu | Ketuk = alihkan | Tahan = pindahkan"
 #: koassistant_ui/prompts_manager.lua:4223
 #, fuzzy
 msgid "Changes require restart to take effect"
-msgstr "Perubahan memerlukan restart agar berlaku"
+msgstr "Perubahan memerlukan restart untuk diterapkan"
 
 #: koassistant_ui/prompts_manager.lua:4236
 #: koassistant_ui/prompts_manager.lua:4394
@@ -6943,7 +7148,7 @@ msgstr "Menu Sorotan (%1 diaktifkan)"
 #: koassistant_ui/prompts_manager.lua:4749
 #, fuzzy
 msgid "↑ Move Up"
-msgstr "↑ Pindah ke Atas"
+msgstr "↑ Pindah Ke Atas"
 
 #: koassistant_ui/prompts_manager.lua:4289
 #: koassistant_ui/prompts_manager.lua:4447
@@ -6951,7 +7156,7 @@ msgstr "↑ Pindah ke Atas"
 #: koassistant_ui/prompts_manager.lua:4763
 #, fuzzy
 msgid "↓ Move Down"
-msgstr "↓ Pindah ke Bawah"
+msgstr "↓ Pindah Ke Bawah"
 
 #: koassistant_ui/prompts_manager.lua:4302
 #: koassistant_ui/prompts_manager.lua:4460
@@ -6970,22 +7175,22 @@ msgstr "Posisi:"
 #: koassistant_ui/prompts_manager.lua:4503
 #, fuzzy
 msgid "No book actions available."
-msgstr "Tidak ada domain tersedia"
+msgstr "Tidak ada tindakan buku tersedia."
 
 #: koassistant_ui/prompts_manager.lua:4518
 #, fuzzy
 msgid "✓ = in panel | Tap = toggle | Hold = move"
-msgstr "✓ = di menu | Ketuk = alihkan | Tahan = pindahkan"
+msgstr "✓ = di panel | Ketuk = alihkan | Tahan = pindahkan"
 
 #: koassistant_ui/prompts_manager.lua:4552
 #, fuzzy
 msgid "Quick Actions (%1 enabled)"
-msgstr "Popup Kamus (%1 diaktifkan)"
+msgstr "Tindakan Cepat (%1 diaktifkan)"
 
 #: koassistant_ui/prompts_manager.lua:4618
 #, fuzzy
 msgid "Remove from Panel"
-msgstr "Hapus dari Menu"
+msgstr "Hapus dari Panel"
 
 #: koassistant_ui/prompts_manager.lua:4676
 #, fuzzy
@@ -7020,7 +7225,7 @@ msgstr "Jelaskan"
 #: prompts/actions.lua:154
 #, fuzzy
 msgid "ELI5"
-msgstr "Jelaskan Sederhana"
+msgstr "Jelaskan Secara Sederhana"
 
 #: prompts/actions.lua:166
 #, fuzzy
@@ -7030,7 +7235,7 @@ msgstr "Ringkas"
 #: prompts/actions.lua:178
 #, fuzzy
 msgid "Elaborate"
-msgstr "Uraikan"
+msgstr "Jabarkan"
 
 #: prompts/actions.lua:190
 #, fuzzy
@@ -7038,26 +7243,29 @@ msgid "Connect"
 msgstr "Hubungkan"
 
 #: prompts/actions.lua:211
+#, fuzzy
 msgid "Connect (With Notes)"
-msgstr ""
+msgstr "Hubungkan (Dengan Catatan)"
 
 #: prompts/actions.lua:248
 #, fuzzy
 msgid "Explain in Context"
-msgstr "Edit Domain - Konteks"
+msgstr "Jelaskan dalam Konteks"
 
 #: prompts/actions.lua:272
 #, fuzzy
 msgid "Analyze in Context"
-msgstr "Konteks Umum"
+msgstr "Analisis dalam Konteks"
 
 #: prompts/actions.lua:301
+#, fuzzy
 msgid "Explain in Context (Smart)"
-msgstr ""
+msgstr "Jelaskan dalam Konteks (Cerdas)"
 
 #: prompts/actions.lua:330
+#, fuzzy
 msgid "Analyze in Context (Smart)"
-msgstr ""
+msgstr "Analisis dalam Konteks (Cerdas)"
 
 #: prompts/actions.lua:366
 #, fuzzy
@@ -7067,7 +7275,7 @@ msgstr "Info Buku"
 #: prompts/actions.lua:377
 #, fuzzy
 msgid "Find Similar"
-msgstr "Temukan Serupa"
+msgstr "Cari yang Serupa"
 
 #: prompts/actions.lua:388
 #, fuzzy
@@ -7087,7 +7295,7 @@ msgstr "X-Ray"
 #: prompts/actions.lua:534
 #, fuzzy
 msgid "Recap"
-msgstr "Recap"
+msgstr "Rekap"
 
 #: prompts/actions.lua:604
 #, fuzzy
@@ -7112,16 +7320,17 @@ msgstr "Pertanyaan Diskusi"
 #: prompts/actions.lua:771
 #, fuzzy
 msgid "Analyze Document"
-msgstr "Analisis Koleksi"
+msgstr "Analisis Dokumen"
 
 #: prompts/actions.lua:796
 #, fuzzy
 msgid "Summarize Document"
-msgstr "Ringkas"
+msgstr "Ringkas Dokumen"
 
 #: prompts/actions.lua:810
+#, fuzzy
 msgid "Extract Key Insights"
-msgstr ""
+msgstr "Ekstrak Wawasan Utama"
 
 #: prompts/actions.lua:835
 #, fuzzy
@@ -7146,11 +7355,12 @@ msgstr "Ringkasan Cepat"
 #: prompts/actions.lua:877
 #, fuzzy
 msgid "Reading Order"
-msgstr "Urutan Membaca"
+msgstr "Urutan Bacaan"
 
 #: prompts/actions.lua:891
+#, fuzzy
 msgid "News Update"
-msgstr ""
+msgstr "Pembaruan Berita"
 
 #: prompts/actions.lua:934
 #, fuzzy

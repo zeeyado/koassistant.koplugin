@@ -6,8 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: KOAssistant 0.12.0-dev\n"
-"Report-Msgid-Bugs-To: https://github.com/zeeyado/koassistant.koplugin/"
-"issues\n"
+"Report-Msgid-Bugs-To: https://github.com/zeeyado/koassistant.koplugin/issues\n"
 "POT-Creation-Date: 2026-02-04 21:31+0000\n"
 "PO-Revision-Date: 2026-01-27 17:48+0000\n"
 "Last-Translator: Automatically generated\n"
@@ -26,10 +25,8 @@ msgstr "KOAssistant"
 #: _meta.lua:5
 #, fuzzy
 msgid ""
-"A powerful AI assistant integrated into KOReader. Technical research "
-"assistant and knowledge expander."
-msgstr ""
-"KOReader에 통합된 강력한 AI 어시스턴트. 기술 연구 조수 및 지식 확장 도구."
+"A powerful AI assistant integrated into KOReader. Technical research assistant and knowledge expander."
+msgstr "KOReader에 통합된 강력한 AI 어시스턴트. 기술 연구 보조 및 지식 확장 도구."
 
 #: koassistant_chat_history_dialog.lua:54
 #, fuzzy
@@ -63,7 +60,7 @@ msgstr "삭제"
 #: koassistant_chat_history_dialog.lua:64
 #, fuzzy
 msgid "Deleted %1 chat(s)"
-msgstr "%1개 대화 삭제됨"
+msgstr "%1개의 대화 삭제됨"
 
 #: koassistant_chat_history_dialog.lua:81
 #: koassistant_chat_history_dialog.lua:160
@@ -116,7 +113,7 @@ msgstr ""
 #: koassistant_chat_history_dialog.lua:147 main.lua:6199
 #, fuzzy
 msgid "Deleted %1 chat(s) from %2 book(s)"
-msgstr "%2권의 책에서 %1개 대화 삭제됨"
+msgstr "%2개 책의 %1개 대화 삭제됨"
 
 #: koassistant_chat_history_dialog.lua:170
 #, fuzzy
@@ -142,7 +139,7 @@ msgstr "탐색"
 #: koassistant_chat_history_dialog.lua:509 main.lua:3738
 #, fuzzy
 msgid "No saved chats found"
-msgstr "저장된 대화가 없습니다"
+msgstr "저장된 대화를 찾을 수 없습니다"
 
 #: koassistant_chat_history_dialog.lua:334
 #: koassistant_chat_history_dialog.lua:396
@@ -186,7 +183,7 @@ msgstr "일반 대화"
 #: koassistant_chat_history_dialog.lua:424
 #, fuzzy
 msgid "Multi-Book Chat"
-msgstr "다중 도서"
+msgstr "다중 책 대화"
 
 #: koassistant_chat_history_dialog.lua:427
 #: koassistant_chat_history_dialog.lua:2092
@@ -213,7 +210,7 @@ msgstr "일반 AI 대화"
 #: koassistant_chat_history_manager.lua:2372
 #, fuzzy
 msgid "Multi-Book Chats"
-msgstr "다중 도서"
+msgstr "다중 책 대화"
 
 #: koassistant_chat_history_dialog.lua:544 koassistant_dialogs.lua:3097
 #: koassistant_notebook_manager.lua:74 koassistant_ui/behavior_manager.lua:264
@@ -225,16 +222,17 @@ msgstr "알 수 없음"
 #: koassistant_chat_history_dialog.lua:561
 #, fuzzy
 msgid "AI conversations without book context"
-msgstr "책 컨텍스트 없는 AI 대화"
+msgstr "책 컨텍스트가 없는 AI 대화"
 
 #: koassistant_chat_history_dialog.lua:563
+#, fuzzy
 msgid "Comparisons and analyses across multiple books"
-msgstr ""
+msgstr "여러 책에 걸친 비교 및 분석"
 
 #: koassistant_chat_history_dialog.lua:629
 #, fuzzy
 msgid "No saved chats found for this document"
-msgstr "이 문서에 대한 저장된 대화가 없습니다"
+msgstr "이 문서에 대한 저장된 대화를 찾을 수 없습니다"
 
 #: koassistant_chat_history_dialog.lua:678
 #, fuzzy
@@ -265,7 +263,7 @@ msgstr "메시지:"
 #: koassistant_chat_history_dialog.lua:786
 #, fuzzy
 msgid "Continue Chat"
-msgstr "대화 계속"
+msgstr "대화 계속하기"
 
 #: koassistant_chat_history_dialog.lua:799
 #: koassistant_chat_history_dialog.lua:871
@@ -292,7 +290,7 @@ msgstr "대화 이름 변경"
 #: koassistant_chat_history_dialog.lua:880
 #, fuzzy
 msgid "Chat renamed successfully"
-msgstr "대화 이름이 변경되었습니다"
+msgstr "대화 이름이 성공적으로 변경되었습니다"
 
 #: koassistant_chat_history_dialog.lua:889
 #, fuzzy
@@ -369,7 +367,7 @@ msgstr "태그 관리"
 #: koassistant_chat_history_dialog.lua:1101 koassistant_dialogs.lua:839
 #, fuzzy
 msgid "Chat not found"
-msgstr "대화를 찾을 수 없음"
+msgstr "채팅을 찾을 수 없습니다"
 
 #: koassistant_chat_history_dialog.lua:1208
 #: koassistant_chat_history_dialog.lua:1639
@@ -425,13 +423,13 @@ msgstr "취소"
 #: koassistant_chat_history_dialog.lua:1325
 #, fuzzy
 msgid "Error: Failed to load chat messages."
-msgstr "오류: 대화 메시지를 불러오지 못했습니다."
+msgstr "오류: 채팅 메시지를 불러오지 못했습니다."
 
 #: koassistant_chat_history_dialog.lua:1413 koassistant_dialogs.lua:2396
 #: stream_handler.lua:200
 #, fuzzy
 msgid "No response received from AI"
-msgstr "AI로부터 응답이 없습니다"
+msgstr "AI로부터 응답을 받지 못했습니다"
 
 #: koassistant_chat_history_dialog.lua:1433
 #, fuzzy
@@ -441,7 +439,7 @@ msgstr "제목 없음"
 #: koassistant_chat_history_dialog.lua:1440 koassistant_gpt_query.lua:187
 #, fuzzy
 msgid "Loading..."
-msgstr "불러오는 중..."
+msgstr "로딩 중..."
 
 #: koassistant_chat_history_dialog.lua:1523 koassistant_dialogs.lua:1437
 #, fuzzy
@@ -456,23 +454,23 @@ msgstr "설정에서 자동 저장이 활성화되어 있습니다"
 #: koassistant_chat_history_dialog.lua:1543
 #, fuzzy
 msgid "Continued chats are automatically saved"
-msgstr "계속된 대화는 자동으로 저장됩니다"
+msgstr "계속된 채팅은 자동으로 저장됩니다"
 
 #: koassistant_chat_history_dialog.lua:1591
 #, fuzzy
 msgid "Chat saved"
-msgstr "대화 저장됨"
+msgstr "채팅 저장됨"
 
 #: koassistant_chat_history_dialog.lua:1591 koassistant_dialogs.lua:1548
 #, fuzzy
 msgid "Failed to save chat"
-msgstr "대화 저장 실패"
+msgstr "채팅 저장 실패"
 
 #: koassistant_chat_history_dialog.lua:1609
 #: koassistant_chat_history_dialog.lua:1715
 #, fuzzy
 msgid "Chat copied to clipboard"
-msgstr "대화가 클립보드에 복사되었습니다"
+msgstr "채팅이 클립보드에 복사되었습니다"
 
 #: koassistant_chat_history_dialog.lua:1619
 #: koassistant_chat_history_dialog.lua:1830 koassistant_chatgptviewer.lua:498
@@ -482,7 +480,7 @@ msgstr "대화가 클립보드에 복사되었습니다"
 #: koassistant_settings_schema.lua:726 koassistant_settings_schema.lua:742
 #, fuzzy
 msgid "Full (metadata + chat)"
-msgstr "전체 (메타데이터 + 대화)"
+msgstr "전체 (메타데이터 + 채팅)"
 
 #: koassistant_chat_history_dialog.lua:1620
 #: koassistant_chat_history_dialog.lua:1831 koassistant_chatgptviewer.lua:499
@@ -509,7 +507,7 @@ msgstr "응답만"
 #: koassistant_settings_schema.lua:729 koassistant_settings_schema.lua:745
 #, fuzzy
 msgid "Everything (debug)"
-msgstr "전체 (디버그)"
+msgstr "모두 (디버그)"
 
 #: koassistant_chat_history_dialog.lua:1647 koassistant_chatgptviewer.lua:1076
 #: koassistant_chatgptviewer.lua:1490 koassistant_chatgptviewer.lua:1907
@@ -522,41 +520,47 @@ msgstr "내용 복사"
 #: koassistant_chat_history_dialog.lua:1727
 #, fuzzy
 msgid "Failed to generate export content"
-msgstr "응답 받기 실패:"
+msgstr "내보내기 내용 생성 실패"
 
 #: koassistant_chat_history_dialog.lua:1740 koassistant_chatgptviewer.lua:3259
+#, fuzzy
 msgid ""
 "Saved to:\n"
 "%1"
 msgstr ""
+"저장 위치:\n"
+"%1"
 
 #: koassistant_chat_history_dialog.lua:1745 koassistant_chatgptviewer.lua:3264
 #: main.lua:7998
 #, fuzzy
 msgid "Failed to save: %1"
-msgstr "대화 저장 실패:"
+msgstr "저장 실패: %1"
 
 #: koassistant_chat_history_dialog.lua:1762 koassistant_chatgptviewer.lua:3278
 #, fuzzy
 msgid "Copy to Clipboard"
-msgstr "클립보드에 복사되었습니다."
+msgstr "클립보드에 복사"
 
 #: koassistant_chat_history_dialog.lua:1772 koassistant_chatgptviewer.lua:3287
+#, fuzzy
 msgid "Save to File"
-msgstr ""
+msgstr "파일로 저장"
 
 #: koassistant_chat_history_dialog.lua:1784 koassistant_chatgptviewer.lua:3298
+#, fuzzy
 msgid "Select Export Directory"
-msgstr ""
+msgstr "내보내기 디렉토리 선택"
 
 #: koassistant_chat_history_dialog.lua:1797 koassistant_chatgptviewer.lua:3311
+#, fuzzy
 msgid "Invalid export directory: %1"
-msgstr ""
+msgstr "잘못된 내보내기 디렉토리: %1"
 
 #: koassistant_chat_history_dialog.lua:1819 koassistant_chatgptviewer.lua:3332
 #, fuzzy
 msgid "Export Chat"
-msgstr "내용 내보내기"
+msgstr "채팅 내보내기"
 
 #: koassistant_chat_history_dialog.lua:1861 koassistant_chatgptviewer.lua:3340
 #, fuzzy
@@ -567,19 +571,19 @@ msgstr "내용 내보내기"
 #: koassistant_chat_history_dialog.lua:1915
 #, fuzzy
 msgid "Are you sure you want to delete this chat?"
-msgstr "이 대화를 삭제하시겠습니까?"
+msgstr "이 채팅을 삭제하시겠습니까?"
 
 #: koassistant_chat_history_dialog.lua:1884
 #: koassistant_chat_history_dialog.lua:1930
 #, fuzzy
 msgid "Chat deleted"
-msgstr "대화가 삭제되었습니다"
+msgstr "채팅 삭제됨"
 
 #: koassistant_chat_history_dialog.lua:1902
 #: koassistant_chat_history_dialog.lua:1948
 #, fuzzy
 msgid "Failed to delete chat"
-msgstr "대화 삭제 실패"
+msgstr "채팅 삭제 실패"
 
 #: koassistant_chat_history_dialog.lua:1995
 #, fuzzy
@@ -588,19 +592,19 @@ msgid ""
 "\n"
 "You can add tags to chats from the chat options menu."
 msgstr ""
-"태그가 지정된 대화가 없습니다.\n"
+"태그된 채팅을 찾을 수 없습니다.\n"
 "\n"
-"대화 옵션 메뉴에서 대화에 태그를 추가할 수 있습니다."
+"채팅 옵션 메뉴에서 채팅에 태그를 추가할 수 있습니다."
 
 #: koassistant_chat_history_dialog.lua:2027
 #, fuzzy
 msgid "Chat History by Tag"
-msgstr "태그별 대화 기록"
+msgstr "태그별 채팅 기록"
 
 #: koassistant_chat_history_dialog.lua:2063
 #, fuzzy
 msgid "No chats found with this tag"
-msgstr "이 태그가 지정된 대화가 없습니다"
+msgstr "이 태그가 있는 채팅을 찾을 수 없습니다"
 
 #: koassistant_chatgptviewer.lua:413 koassistant_chatgptviewer.lua:1043
 #: koassistant_chatgptviewer.lua:1455 koassistant_chatgptviewer.lua:1872
@@ -676,7 +680,7 @@ msgstr "저장 기능을 사용할 수 없습니다"
 #: koassistant_chatgptviewer.lua:1049
 #, fuzzy
 msgid "No chat to copy"
-msgstr "복사할 대화가 없습니다"
+msgstr "복사할 채팅이 없습니다"
 
 #: koassistant_chatgptviewer.lua:1070 koassistant_chatgptviewer.lua:1484
 #: koassistant_chatgptviewer.lua:1901 koassistant_chatgptviewer.lua:3234
@@ -688,20 +692,22 @@ msgstr "복사됨"
 #: koassistant_chatgptviewer.lua:1084 koassistant_chatgptviewer.lua:1917
 #, fuzzy
 msgid "H.Note"
-msgstr "노트"
+msgstr "하이라이트 노트"
 
 #: koassistant_chatgptviewer.lua:1092
 #, fuzzy
 msgid "Save response as note on highlighted text"
-msgstr "응답을 하이라이트된 텍스트에 노트로 저장"
+msgstr "하이라이트된 텍스트에 응답을 노트로 저장"
 
 #: koassistant_chatgptviewer.lua:1098
+#, fuzzy
 msgid "Add to Notebook"
-msgstr ""
+msgstr "노트북에 추가"
 
 #: koassistant_chatgptviewer.lua:1108
+#, fuzzy
 msgid "Append chat to per-book notebook file"
-msgstr ""
+msgstr "책별 노트북 파일에 채팅 추가"
 
 #: koassistant_chatgptviewer.lua:1121
 #, fuzzy
@@ -711,58 +717,63 @@ msgstr "태그 기능을 사용할 수 없습니다"
 #: koassistant_chatgptviewer.lua:1128
 #, fuzzy
 msgid "Add or manage tags for this chat"
-msgstr "이 대화의 태그 추가 또는 관리"
+msgstr "이 채팅의 태그 추가 또는 관리"
 
 #: koassistant_chatgptviewer.lua:1146
 #, fuzzy
 msgid "Export chat to file or clipboard"
-msgstr "대화가 클립보드에 복사되었습니다"
+msgstr "채팅을 파일 또는 클립보드로 내보내기"
 
 #: koassistant_chatgptviewer.lua:1157
+#, fuzzy
 msgid "↻ Fresh"
-msgstr ""
+msgstr "↻ 새로고침"
 
 #: koassistant_chatgptviewer.lua:1164
+#, fuzzy
 msgid "Clear cache and regenerate from scratch (extracts all book text again)"
-msgstr ""
+msgstr "캐시를 지우고 처음부터 다시 생성 (모든 책 텍스트를 다시 추출)"
 
 #: koassistant_chatgptviewer.lua:1187 koassistant_chatgptviewer.lua:1199
+#, fuzzy
 msgid "🔍 ON"
-msgstr ""
+msgstr "🔍 켜짐"
 
 #: koassistant_chatgptviewer.lua:1187 koassistant_chatgptviewer.lua:1199
+#, fuzzy
 msgid "🔍 OFF"
-msgstr ""
+msgstr "🔍 꺼짐"
 
 #: koassistant_chatgptviewer.lua:1208
+#, fuzzy
 msgid "Toggle web search for this session (Anthropic, Gemini)"
-msgstr ""
+msgstr "이 세션의 웹 검색 전환 (Anthropic, Gemini)"
 
 #: koassistant_chatgptviewer.lua:1228 koassistant_chatgptviewer.lua:1447
 #: koassistant_chatgptviewer.lua:1864
 #, fuzzy
 msgid "Toggle between markdown and plain text display"
-msgstr "Markdown과 일반 텍스트 표시 전환"
+msgstr "마크다운과 일반 텍스트 표시 간 전환"
 
 #: koassistant_chatgptviewer.lua:1243
 #, fuzzy
 msgid "Toggle debug display in chat viewer"
-msgstr "대화 뷰어에서 디버그 표시 전환"
+msgstr "채팅 뷰어에서 디버그 표시 전환"
 
 #: koassistant_chatgptviewer.lua:1250 koassistant_chatgptviewer.lua:3529
 #, fuzzy
 msgid "Show Quote"
-msgstr "인용문 표시"
+msgstr "인용 표시"
 
 #: koassistant_chatgptviewer.lua:1250 koassistant_chatgptviewer.lua:3529
 #, fuzzy
 msgid "Hide Quote"
-msgstr "인용문 숨기기"
+msgstr "인용 숨기기"
 
 #: koassistant_chatgptviewer.lua:1262
 #, fuzzy
 msgid "Toggle highlighted text display in chat"
-msgstr "대화에서 하이라이트된 텍스트 표시 전환"
+msgstr "채팅에서 강조 표시된 텍스트 표시 전환"
 
 #: koassistant_chatgptviewer.lua:1268
 #, fuzzy
@@ -772,7 +783,7 @@ msgstr "추론 표시"
 #: koassistant_chatgptviewer.lua:1278
 #, fuzzy
 msgid "View AI reasoning/thinking content (when available)"
-msgstr "AI 추론/사고 내용 보기 (사용 가능한 경우)"
+msgstr "AI 추론/사고 내용 보기 (가능한 경우)"
 
 #: koassistant_chatgptviewer.lua:1461
 #, fuzzy
@@ -782,11 +793,12 @@ msgstr "복사할 응답이 없습니다"
 #: koassistant_chatgptviewer.lua:1509
 #, fuzzy
 msgid "Save AI response as note on highlighted word"
-msgstr "응답을 하이라이트된 텍스트에 노트로 저장"
+msgstr "AI 응답을 강조 표시된 단어에 메모로 저장"
 
 #: koassistant_chatgptviewer.lua:1510
+#, fuzzy
 msgid "No selection data available (word position not captured)"
-msgstr ""
+msgstr "선택 데이터를 사용할 수 없습니다 (단어 위치가 캡처되지 않음)"
 
 #: koassistant_chatgptviewer.lua:1518
 #, fuzzy
@@ -816,7 +828,7 @@ msgstr "추가됨"
 #: koassistant_chatgptviewer.lua:1558
 #, fuzzy
 msgid "Word added to vocabulary builder"
-msgstr "단어가 어휘 빌더에 추가되었습니다"
+msgstr "어휘 빌더에 단어가 추가되었습니다"
 
 #: koassistant_chatgptviewer.lua:1565
 #, fuzzy
@@ -841,7 +853,7 @@ msgstr "어휘 빌더를 사용할 수 없습니다"
 #: koassistant_chatgptviewer.lua:1599
 #, fuzzy
 msgid "Add word to vocabulary builder"
-msgstr "단어를 어휘 빌더에 추가"
+msgstr "어휘 빌더에 단어 추가"
 
 #: koassistant_chatgptviewer.lua:1608
 #, fuzzy
@@ -851,7 +863,7 @@ msgstr "확장"
 #: koassistant_chatgptviewer.lua:1615
 #, fuzzy
 msgid "Open in full-size viewer with all options"
-msgstr "모든 옵션이 있는 전체 크기 뷰어에서 열기"
+msgstr "모든 옵션이 포함된 전체 크기 뷰어에서 열기"
 
 #: koassistant_chatgptviewer.lua:1625 koassistant_chatgptviewer.lua:1969
 #, fuzzy
@@ -877,37 +889,37 @@ msgstr "다른 사전 언어로 다시 실행"
 #: koassistant_chatgptviewer.lua:1694
 #, fuzzy
 msgid "Ctx: ON"
-msgstr "컨텍스트: 켜짐"
+msgstr "문맥: 켜짐"
 
 #: koassistant_chatgptviewer.lua:1694
 #, fuzzy
 msgid "Ctx: OFF"
-msgstr "컨텍스트: 꺼짐"
+msgstr "문맥: 꺼짐"
 
 #: koassistant_chatgptviewer.lua:1737
 #, fuzzy
 msgid "Re-run without surrounding context"
-msgstr "주변 컨텍스트 없이 다시 실행"
+msgstr "주변 문맥 없이 다시 실행"
 
 #: koassistant_chatgptviewer.lua:1737
 #, fuzzy
 msgid "Re-run with surrounding context"
-msgstr "주변 컨텍스트와 함께 다시 실행"
+msgstr "주변 문맥과 함께 다시 실행"
 
 #: koassistant_chatgptviewer.lua:1823
 #, fuzzy
 msgid "Dictionary Action"
-msgstr "사전 팝업 액션"
+msgstr "사전 동작"
 
 #: koassistant_chatgptviewer.lua:1831
 #, fuzzy
 msgid "Switch to a different dictionary action"
-msgstr "다른 사전 언어로 다시 실행"
+msgstr "다른 사전 동작으로 전환"
 
 #: koassistant_chatgptviewer.lua:1832
 #, fuzzy
 msgid "No other dictionary actions available"
-msgstr "사용 가능한 하이라이트 액션이 없습니다."
+msgstr "다른 사전 동작을 사용할 수 없습니다"
 
 #: koassistant_chatgptviewer.lua:1878
 #, fuzzy
@@ -917,42 +929,42 @@ msgstr "복사할 번역이 없습니다"
 #: koassistant_chatgptviewer.lua:1925
 #, fuzzy
 msgid "Save translation as note on highlighted text"
-msgstr "번역을 하이라이트된 텍스트에 노트로 저장"
+msgstr "번역을 강조 표시된 텍스트에 메모로 저장"
 
 #: koassistant_chatgptviewer.lua:1933
 #, fuzzy
 msgid "→ Chat"
-msgstr "→ 대화"
+msgstr "→ 채팅"
 
 #: koassistant_chatgptviewer.lua:1940
 #, fuzzy
 msgid "Open full chat with all options"
-msgstr "모든 옵션이 있는 전체 대화 열기"
+msgstr "모든 옵션이 포함된 전체 채팅 열기"
 
 #: koassistant_chatgptviewer.lua:1950 koassistant_chatgptviewer.lua:3420
 #, fuzzy
 msgid "Show Original"
-msgstr "원본 표시"
+msgstr "원문 표시"
 
 #: koassistant_chatgptviewer.lua:1950 koassistant_chatgptviewer.lua:3420
 #, fuzzy
 msgid "Hide Original"
-msgstr "원본 숨기기"
+msgstr "원문 숨기기"
 
 #: koassistant_chatgptviewer.lua:1959
 #, fuzzy
 msgid "Show the original text"
-msgstr "원본 텍스트 표시"
+msgstr "원문 보기"
 
 #: koassistant_chatgptviewer.lua:1959
 #, fuzzy
 msgid "Hide the original text"
-msgstr "원본 텍스트 숨기기"
+msgstr "원문 숨기기"
 
 #: koassistant_chatgptviewer.lua:2021
 #, fuzzy
 msgid "Translate To"
-msgstr "번역 대상"
+msgstr "번역 대상 언어"
 
 #: koassistant_chatgptviewer.lua:2028
 #, fuzzy
@@ -962,35 +974,44 @@ msgstr "다른 대상 언어로 번역 다시 실행"
 #: koassistant_chatgptviewer.lua:2064
 #, fuzzy
 msgid "Copied to clipboard"
-msgstr "클립보드에 복사되었습니다."
+msgstr "클립보드에 복사됨"
 
 #: koassistant_chatgptviewer.lua:2106 koassistant_chatgptviewer.lua:2112
+#, fuzzy
 msgid "Regenerate"
-msgstr ""
+msgstr "재생성"
 
 #: koassistant_chatgptviewer.lua:2111
+#, fuzzy
 msgid ""
 "Regenerate this summary?\n"
 "\n"
 "The current summary will be replaced."
 msgstr ""
+"이 요약을 재생성하시겠습니까?\n"
+"\n"
+"현재 요약이 교체됩니다."
 
 #: koassistant_chatgptviewer.lua:2129
+#, fuzzy
 msgid ""
 "Delete this summary?\n"
 "\n"
 "You can regenerate it later."
 msgstr ""
+"이 요약을 삭제하시겠습니까?\n"
+"\n"
+"나중에 다시 생성할 수 있습니다."
 
 #: koassistant_chatgptviewer.lua:2331
 #, fuzzy
 msgid "Type your reply..."
-msgstr "답변을 입력하세요..."
+msgstr "답장을 입력하세요..."
 
 #: koassistant_chatgptviewer.lua:2356
 #, fuzzy
 msgid "Send"
-msgstr "보내기"
+msgstr "전송"
 
 #: koassistant_chatgptviewer.lua:2736
 #, fuzzy
@@ -1000,7 +1021,7 @@ msgstr "클립보드에 복사되었습니다."
 #: koassistant_chatgptviewer.lua:2954
 #, fuzzy
 msgid "No highlight selection data available"
-msgstr "하이라이트 선택 데이터를 사용할 수 없습니다"
+msgstr "사용 가능한 하이라이트 선택 데이터가 없습니다"
 
 #: koassistant_chatgptviewer.lua:2965 main.lua:5231
 #, fuzzy
@@ -1016,7 +1037,7 @@ msgstr "저장할 응답이 없습니다"
 #: koassistant_chatgptviewer.lua:3036
 #, fuzzy
 msgid "Failed to create highlight"
-msgstr "대화 이름 변경 실패"
+msgstr "하이라이트 생성 실패"
 
 #: koassistant_chatgptviewer.lua:3047 koassistant_settings_schema.lua:351
 #: koassistant_settings_schema.lua:584 koassistant_settings_schema.lua:736
@@ -1025,67 +1046,79 @@ msgid "Note Content"
 msgstr "노트 내용"
 
 #: koassistant_chatgptviewer.lua:3060
+#, fuzzy
 msgid "Notebooks are only available for single-book chats"
-msgstr ""
+msgstr "노트북은 단일 책 대화에서만 사용할 수 있습니다"
 
 #: koassistant_chatgptviewer.lua:3099
+#, fuzzy
 msgid "Saved to notebook"
-msgstr ""
+msgstr "노트북에 저장됨"
 
 #: koassistant_chatgptviewer.lua:3104
 #, fuzzy
 msgid "Failed to save: "
-msgstr "대화 저장 실패:"
+msgstr "저장 실패:"
 
 #: koassistant_chatgptviewer.lua:3115
 #, fuzzy
 msgid "No cached action to clear"
-msgstr "복사할 대화가 없습니다"
+msgstr "삭제할 캐시된 작업이 없습니다"
 
 #: koassistant_chatgptviewer.lua:3124
+#, fuzzy
 msgid "Cache only applies to book actions"
-msgstr ""
+msgstr "캐시는 책 작업에만 적용됩니다"
 
 #: koassistant_chatgptviewer.lua:3136
+#, fuzzy
 msgid "Regenerate Fresh"
-msgstr ""
+msgstr "새로 재생성"
 
 #: koassistant_chatgptviewer.lua:3137
+#, fuzzy
 msgid ""
 "This response was updated from a cached analysis at %1.\n"
 "\n"
-"Clearing the cache will extract and send all book text again on next run, "
-"which uses more tokens.\n"
+"Clearing the cache will extract and send all book text again on next run, which uses more tokens.\n"
 "\n"
 "Clear cache for this action?"
 msgstr ""
+"이 응답은 %1에 캐시된 분석에서 업데이트되었습니다.\n"
+"\n"
+"캐시를 삭제하면 다음 실행 시 모든 책 텍스트를 다시 추출하고 전송하므로 더 많은 토큰을 사용합니다.\n"
+"\n"
+"이 작업의 캐시를 삭제하시겠습니까?"
 
 #: koassistant_chatgptviewer.lua:3147
+#, fuzzy
 msgid "Clear & Close"
-msgstr ""
+msgstr "삭제 및 닫기"
 
 #: koassistant_chatgptviewer.lua:3156
+#, fuzzy
 msgid "Cache cleared. Run the action again for fresh analysis."
-msgstr ""
+msgstr "캐시가 삭제되었습니다. 새로운 분석을 위해 작업을 다시 실행하세요."
 
 #: koassistant_chatgptviewer.lua:3163
 #, fuzzy
 msgid "Failed to clear cache"
-msgstr "대화 이름 변경 실패"
+msgstr "캐시 삭제 실패"
 
 #: koassistant_chatgptviewer.lua:3169
 #, fuzzy
 msgid "Cache module not available"
-msgstr "저장 기능을 사용할 수 없습니다"
+msgstr "캐시 모듈을 사용할 수 없습니다"
 
 #: koassistant_chatgptviewer.lua:3186
 #, fuzzy
 msgid "No chat to export"
-msgstr "복사할 대화가 없습니다"
+msgstr "내보낼 대화가 없습니다"
 
 #: koassistant_chatgptviewer.lua:3246
+#, fuzzy
 msgid "No content to export"
-msgstr ""
+msgstr "내보낼 콘텐츠가 없습니다"
 
 #: koassistant_chatgptviewer.lua:3484
 #, fuzzy
@@ -1100,22 +1133,22 @@ msgstr "디버그 정보 숨김"
 #: koassistant_chatgptviewer.lua:3534
 #, fuzzy
 msgid "Quote hidden"
-msgstr "인용문 숨김"
+msgstr "인용 숨김"
 
 #: koassistant_chatgptviewer.lua:3534
 #, fuzzy
 msgid "Quote shown"
-msgstr "인용문 표시 중"
+msgstr "인용 표시됨"
 
 #: koassistant_chatgptviewer.lua:3558
 #, fuzzy
 msgid "No conversation history available"
-msgstr "대화 기록이 없습니다"
+msgstr "사용 가능한 대화 기록이 없습니다"
 
 #: koassistant_chatgptviewer.lua:3567
 #, fuzzy
 msgid "No reasoning content available"
-msgstr "추론 내용이 없습니다"
+msgstr "사용 가능한 추론 내용이 없습니다"
 
 #: koassistant_chatgptviewer.lua:3596
 #, fuzzy
@@ -1145,7 +1178,7 @@ msgstr "왼쪽"
 #: koassistant_chatgptviewer.lua:3715
 #, fuzzy
 msgid "Chat Viewer Settings"
-msgstr "채팅 뷰어 설정"
+msgstr "대화 뷰어 설정"
 
 #: koassistant_chatgptviewer.lua:3719 koassistant_chatgptviewer.lua:3781
 #, fuzzy
@@ -1176,49 +1209,51 @@ msgstr "설정"
 #: koassistant_chatgptviewer.lua:3803
 #, fuzzy
 msgid "Font size set to %1"
-msgstr "글꼴 크기가 %1(으)로 설정됨"
+msgstr "글꼴 크기가 %1(으)로 설정되었습니다"
 
 #: koassistant_chatgptviewer.lua:3830 main.lua:6356
 #, fuzzy
 msgid "Settings reset to defaults"
-msgstr "설정이 기본값으로 재설정됨"
+msgstr "설정이 기본값으로 재설정되었습니다"
 
 #: koassistant_constants.lua:117 koassistant_settings_schema.lua:877
 #, fuzzy
 msgid "Translate Page"
-msgstr "번역"
+msgstr "페이지 번역"
 
 #: koassistant_constants.lua:118 koassistant_settings_schema.lua:878
 #, fuzzy
 msgid "View Notebook"
-msgstr "보기 모드"
+msgstr "노트북 보기"
 
 #: koassistant_constants.lua:119 koassistant_settings_schema.lua:879
+#, fuzzy
 msgid "Edit Notebook"
-msgstr ""
+msgstr "노트북 편집"
 
 #: koassistant_constants.lua:121 koassistant_settings_schema.lua:881
 #, fuzzy
 msgid "Continue Last Chat"
-msgstr "대화 계속"
+msgstr "마지막 채팅 계속하기"
 
 #: koassistant_constants.lua:122 koassistant_settings_schema.lua:882
 #: koassistant_settings_schema.lua:1020 main.lua:4732
+#, fuzzy
 msgid "New Book Chat/Action"
-msgstr ""
+msgstr "새 도서 채팅/작업"
 
 #: koassistant_constants.lua:123 koassistant_settings_schema.lua:40
 #: koassistant_settings_schema.lua:883 koassistant_settings_schema.lua:1013
 #: main.lua:4720
 #, fuzzy
 msgid "General Chat/Action"
-msgstr "일반 대화"
+msgstr "일반 채팅/작업"
 
 #: koassistant_constants.lua:125 koassistant_settings_schema.lua:885
 #: main.lua:4800
 #, fuzzy
 msgid "Quick Settings"
-msgstr "AI 빠른 설정"
+msgstr "빠른 설정"
 
 #: koassistant_dialogs.lua:108 koassistant_gpt_query.lua:177
 #, fuzzy
@@ -1233,7 +1268,7 @@ msgstr "로딩 중"
 #: koassistant_dialogs.lua:582
 #, fuzzy
 msgid "Cannot save: no document context"
-msgstr "저장 불가: 문서 컨텍스트 없음"
+msgstr "저장할 수 없음: 문서 컨텍스트 없음"
 
 #: koassistant_dialogs.lua:599 koassistant_dialogs.lua:750
 #, fuzzy
@@ -1253,7 +1288,7 @@ msgstr "채팅이 성공적으로 저장되었습니다"
 #: koassistant_dialogs.lua:735
 #, fuzzy
 msgid "Failed to save chat: "
-msgstr "대화 저장 실패:"
+msgstr "채팅 저장 실패:"
 
 #: koassistant_dialogs.lua:1633
 #, fuzzy
@@ -1263,21 +1298,25 @@ msgstr "태그를 추가하려면 먼저 채팅을 저장하세요"
 #: koassistant_dialogs.lua:1647
 #, fuzzy
 msgid "Cannot tag: no document context"
-msgstr "태그 불가: 문서 컨텍스트 없음"
+msgstr "태그를 지정할 수 없음: 문서 컨텍스트 없음"
 
 #: koassistant_dialogs.lua:1835
+#, fuzzy
 msgid "Could not find summary action. Please try again."
-msgstr ""
+msgstr "요약 작업을 찾을 수 없습니다. 다시 시도해주세요."
 
 #: koassistant_dialogs.lua:1843 main.lua:4082
+#, fuzzy
 msgid "Generating document summary..."
-msgstr ""
+msgstr "문서 요약 생성 중..."
 
 #: koassistant_dialogs.lua:1865
+#, fuzzy
 msgid "Summary generation failed. Please try again."
-msgstr ""
+msgstr "요약 생성에 실패했습니다. 다시 시도해주세요."
 
 #: koassistant_dialogs.lua:1918
+#, fuzzy
 msgid ""
 "This action uses a reusable document summary for context.\n"
 "\n"
@@ -1286,28 +1325,35 @@ msgid ""
 "• Processes up to character limit\n"
 "• Coverage shown in cache viewer"
 msgstr ""
+"이 작업은 재사용 가능한 문서 요약을 컨텍스트로 사용합니다.\n"
+"\n"
+"지금 요약을 생성하시겠습니까?\n"
+"• 최초 1회만\n"
+"• 문자 제한까지 처리\n"
+"• 캐시 뷰어에서 범위 표시"
 
 #: koassistant_dialogs.lua:1919 main.lua:4105
 #, fuzzy
 msgid "Generate"
-msgstr "일반"
+msgstr "생성"
 
 #: koassistant_dialogs.lua:2172
+#, fuzzy
 msgid ""
 "Book text truncated (covers %1 %–%2 %). Increase limit in Advanced Settings."
-msgstr ""
+msgstr "도서 텍스트가 잘렸습니다 (%1 %–%2 % 포함). 고급 설정에서 제한을 늘리세요."
 
 #: koassistant_dialogs.lua:2183
+#, fuzzy
 msgid ""
-"Full document text truncated (covers %1 %–%2 %). Increase limit in Advanced "
-"Settings."
-msgstr ""
+"Full document text truncated (covers %1 %–%2 %). Increase limit in Advanced Settings."
+msgstr "전체 문서 텍스트가 잘렸습니다 (%1 %–%2 % 포함). 고급 설정에서 제한을 늘리세요."
 
 #: koassistant_dialogs.lua:2262
+#, fuzzy
 msgid ""
-"New content truncated (covers %1 %–%2 %). Increase limit in Advanced "
-"Settings."
-msgstr ""
+"New content truncated (covers %1 %–%2 %). Increase limit in Advanced Settings."
+msgstr "새 콘텐츠가 잘렸습니다 (%1 %–%2 % 포함). 고급 설정에서 제한을 늘리세요."
 
 #: koassistant_dialogs.lua:2530 koassistant_dialogs.lua:2594
 #: koassistant_settings_schema.lua:536 main.lua:3421 main.lua:4446
@@ -1349,12 +1395,14 @@ msgid "Error handling prompt: "
 msgstr "프롬프트 처리 오류:"
 
 #: koassistant_dialogs.lua:2827 main.lua:4873
+#, fuzzy
 msgid "View Summary"
-msgstr ""
+msgstr "요약 보기"
 
 #: koassistant_dialogs.lua:2836 main.lua:4873
+#, fuzzy
 msgid "Generate Summary"
-msgstr ""
+msgstr "요약 생성"
 
 #: koassistant_dialogs.lua:2864
 #, fuzzy
@@ -1364,7 +1412,7 @@ msgstr "KOAssistant 작업"
 #: koassistant_dialogs.lua:2866
 #, fuzzy
 msgid "Type your question or additional instructions for any action..."
-msgstr "작업에 대한 질문이나 추가 지시사항을 입력하세요..."
+msgstr "질문 또는 추가 지침을 입력하세요..."
 
 #: koassistant_dialogs.lua:2924
 #, fuzzy
@@ -1374,31 +1422,39 @@ msgstr "알 수 없는 프롬프트 유형:"
 #: koassistant_dialogs.lua:2950
 #, fuzzy
 msgid "Error: No action specified"
-msgstr "오류: 지정된 액션이 없습니다"
+msgstr "오류: 작업이 지정되지 않음"
 
 #: koassistant_dialogs.lua:3063
 #, fuzzy
 msgid "Failed to extract document text"
-msgstr "대화 이름 변경 실패"
+msgstr "문서 텍스트 추출 실패"
 
 #: koassistant_dialogs.lua:3083
+#, fuzzy
 msgid ""
 "Text extraction is disabled.\n"
 "\n"
 "Enable it in Settings → Privacy & Data → Text Extraction."
 msgstr ""
+"텍스트 추출이 비활성화되어 있습니다.\n"
+"\n"
+"설정 → 개인정보 및 데이터 → 텍스트 추출에서 활성화하세요."
 
 #: koassistant_dialogs.lua:3084
+#, fuzzy
 msgid ""
 "No document text could be extracted.\n"
 "\n"
 "This document may not support text extraction."
 msgstr ""
+"문서 텍스트를 추출할 수 없습니다.\n"
+"\n"
+"이 문서는 텍스트 추출을 지원하지 않을 수 있습니다."
 
 #: koassistant_dialogs.lua:3162
 #, fuzzy
 msgid "Failed to generate summary"
-msgstr "대화 이름 변경 실패"
+msgstr "요약 생성 실패"
 
 #: koassistant_gpt_query.lua:197 stream_handler.lua:159
 #, fuzzy
@@ -1408,25 +1464,28 @@ msgstr "사용자가 요청을 취소했습니다."
 #: koassistant_gpt_query.lua:207 stream_handler.lua:427
 #, fuzzy
 msgid "Failed to start subprocess for request"
-msgstr "요청을 위한 서브프로세스 시작 실패"
+msgstr "요청에 대한 하위 프로세스 시작 실패"
 
 #: koassistant_notebook_manager.lua:59
+#, fuzzy
 msgid ""
 "No notebooks yet.\n"
 "\n"
-"Use the NB button in chat viewer to save conversations to a per-book "
-"notebook."
+"Use the NB button in chat viewer to save conversations to a per-book notebook."
 msgstr ""
+"아직 노트북이 없습니다.\n"
+"\n"
+"채팅 뷰어의 NB 버튼을 사용하여 대화를 도서별 노트북에 저장하세요."
 
 #: koassistant_notebook_manager.lua:89 koassistant_settings_schema.lua:1093
 #, fuzzy
 msgid "Notebooks"
-msgstr "메모"
+msgstr "노트북"
 
 #: koassistant_notebook_manager.lua:121
 #, fuzzy
 msgid "View"
-msgstr "보기:"
+msgstr "보기"
 
 #: koassistant_notebook_manager.lua:136 koassistant_ui/behavior_manager.lua:304
 #: koassistant_ui/domain_manager.lua:306
@@ -1441,21 +1500,20 @@ msgid ""
 "\n"
 "This cannot be undone."
 msgstr ""
-"백업을 삭제하시겠습니까?\n"
+"이 노트북을 삭제하시겠습니까?\n"
 "\n"
-"%1\n"
-"\n"
-"이 작업은 취소할 수 없습니다."
+"이 작업은 되돌릴 수 없습니다."
 
 #: koassistant_settings_schema.lua:31
 #, fuzzy
 msgid "Chat about Book"
-msgstr "책에 대해 대화하기"
+msgstr "도서에 대해 채팅"
 
 #: koassistant_settings_schema.lua:52 koassistant_settings_schema.lua:1006
 #: main.lua:4708
+#, fuzzy
 msgid "Browse Notebooks"
-msgstr ""
+msgstr "노트북 탐색"
 
 #: koassistant_settings_schema.lua:62
 #, fuzzy
@@ -1465,7 +1523,7 @@ msgstr "읽기 기능"
 #: koassistant_settings_schema.lua:77 main.lua:1717 main.lua:4507
 #, fuzzy
 msgid "Provider: %1"
-msgstr "공급자: %1"
+msgstr "제공자: %1"
 
 #: koassistant_settings_schema.lua:85 main.lua:2290 main.lua:4520
 #, fuzzy
@@ -1500,56 +1558,52 @@ msgstr "일반 텍스트"
 #: koassistant_settings_schema.lua:112
 #, fuzzy
 msgid ""
-"Markdown renders formatting. Plain Text has better font support for Arabic/"
-"CJK."
-msgstr ""
-"Markdown은 서식을 렌더링합니다. 일반 텍스트는 아랍어/CJK에 대한 글꼴 지원이 "
-"더 좋습니다."
+"Markdown renders formatting. Plain Text has better font support for Arabic/CJK."
+msgstr "Markdown은 서식을 렌더링합니다. 일반 텍스트는 아랍어/CJK에 대한 글꼴 지원이 더 좋습니다."
 
 #: koassistant_settings_schema.lua:117
 #, fuzzy
 msgid "Text Mode for Dictionary"
-msgstr "사전 자동 저장 비활성화"
+msgstr "사전용 텍스트 모드"
 
 #: koassistant_settings_schema.lua:120
+#, fuzzy
 msgid ""
-"Use Plain Text mode for dictionary popup. Better font support for non-Latin "
-"scripts."
-msgstr ""
+"Use Plain Text mode for dictionary popup. Better font support for non-Latin scripts."
+msgstr "사전 팝업에 일반 텍스트 모드 사용. 비라틴 문자에 대한 글꼴 지원이 더 좋습니다."
 
 #: koassistant_settings_schema.lua:125
 #, fuzzy
 msgid "Text Mode for RTL Dictionary"
-msgstr "사전 자동 저장 비활성화"
+msgstr "RTL 사전용 텍스트 모드"
 
 #: koassistant_settings_schema.lua:132
+#, fuzzy
 msgid ""
-"Use Plain Text mode for dictionary popup when dictionary language is Arabic, "
-"Persian, or Urdu. Grayed out when Text Mode for Dictionary is enabled."
-msgstr ""
+"Use Plain Text mode for dictionary popup when dictionary language is Arabic, Persian, or Urdu. Grayed out when Text Mode for Dictionary is enabled."
+msgstr "사전 언어가 아랍어, 페르시아어 또는 우르두어일 때 사전 팝업에 일반 텍스트 모드 사용. 사전용 텍스트 모드가 활성화되면 회색으로 표시됩니다."
 
 #: koassistant_settings_schema.lua:137
 #, fuzzy
 msgid "Text Mode for RTL Translate"
-msgstr "번역 자동 저장 비활성화"
+msgstr "RTL 번역용 텍스트 모드"
 
 #: koassistant_settings_schema.lua:140
+#, fuzzy
 msgid ""
-"Use Plain Text mode for translate popup when translation language is Arabic, "
-"Persian, or Urdu."
-msgstr ""
+"Use Plain Text mode for translate popup when translation language is Arabic, Persian, or Urdu."
+msgstr "번역 언어가 아랍어, 페르시아어 또는 우르두어일 때 번역 팝업에 일반 텍스트 모드 사용."
 
 #: koassistant_settings_schema.lua:145
+#, fuzzy
 msgid "Auto RTL mode for Chat"
-msgstr ""
+msgstr "채팅 자동 RTL 모드"
 
 #: koassistant_settings_schema.lua:152
+#, fuzzy
 msgid ""
-"Automatically detect RTL content and switch to RTL mode (right-aligned text "
-"+ Plain Text). Activates when the latest response has more RTL than Latin "
-"characters. Disabling removes all automatic RTL adjustments. Grayed out when "
-"markdown is disabled."
-msgstr ""
+"Automatically detect RTL content and switch to RTL mode (right-aligned text + Plain Text). Activates when the latest response has more RTL than Latin characters. Disabling removes all automatic RTL adjustments. Grayed out when markdown is disabled."
+msgstr "RTL 콘텐츠를 자동으로 감지하고 RTL 모드로 전환(오른쪽 정렬 텍스트 + 일반 텍스트). 최신 응답에 라틴 문자보다 RTL 문자가 더 많을 때 활성화됩니다. 비활성화하면 모든 자동 RTL 조정이 제거됩니다. markdown이 비활성화되면 회색으로 표시됩니다."
 
 #: koassistant_settings_schema.lua:158
 #, fuzzy
@@ -1564,42 +1618,39 @@ msgstr "Markdown 제거 적용"
 #: koassistant_settings_schema.lua:167
 #, fuzzy
 msgid ""
-"Convert markdown syntax to readable plain text (headers, lists, etc). "
-"Disable to show raw markdown."
-msgstr ""
-"Markdown 구문을 읽기 쉬운 일반 텍스트로 변환합니다(제목, 목록 등). 원시 "
-"Markdown을 표시하려면 비활성화하세요."
+"Convert markdown syntax to readable plain text (headers, lists, etc). Disable to show raw markdown."
+msgstr "markdown 구문을 읽기 쉬운 일반 텍스트로 변환(제목, 목록 등). 비활성화하면 원본 markdown을 표시합니다."
 
 #: koassistant_settings_schema.lua:174
 #, fuzzy
 msgid "Hide Highlighted Text"
-msgstr "하이라이트된 텍스트 숨기기"
+msgstr "강조 표시된 텍스트 숨기기"
 
 #: koassistant_settings_schema.lua:181
 #, fuzzy
 msgid "Hide Long Highlights"
-msgstr "긴 하이라이트 숨기기"
+msgstr "긴 강조 표시 숨기기"
 
 #: koassistant_settings_schema.lua:189
 #, fuzzy
 msgid "Long Highlight Threshold"
-msgstr "긴 하이라이트 임계값"
+msgstr "긴 강조 표시 임계값"
 
 #: koassistant_settings_schema.lua:201
 #, fuzzy
 msgid "Plugin UI Language"
-msgstr "기본 언어"
+msgstr "플러그인 UI 언어"
 
 #: koassistant_settings_schema.lua:204
+#, fuzzy
 msgid ""
-"Language for plugin menus and dialogs. Does not affect AI responses. "
-"Requires restart."
-msgstr ""
+"Language for plugin menus and dialogs. Does not affect AI responses. Requires restart."
+msgstr "플러그인 메뉴 및 대화상자 언어. AI 응답에는 영향을 주지 않습니다. 재시작이 필요합니다."
 
 #: koassistant_settings_schema.lua:206
 #, fuzzy
 msgid "Match KOReader"
-msgstr "KOReader UI 언어 따르기"
+msgstr "KOReader와 일치"
 
 #: koassistant_settings_schema.lua:233
 #, fuzzy
@@ -1609,17 +1660,17 @@ msgstr "언어 변경을 적용하려면 KOReader를 재시작하세요."
 #: koassistant_settings_schema.lua:244
 #, fuzzy
 msgid "Chat Settings"
-msgstr "대화 설정"
+msgstr "채팅 설정"
 
 #: koassistant_settings_schema.lua:249
 #, fuzzy
 msgid "Auto-save All Chats"
-msgstr "모든 대화 자동 저장"
+msgstr "모든 채팅 자동 저장"
 
 #: koassistant_settings_schema.lua:256
 #, fuzzy
 msgid "Auto-save Continued Chats"
-msgstr "계속된 대화 자동 저장"
+msgstr "계속된 채팅 자동 저장"
 
 #: koassistant_settings_schema.lua:265 koassistant_settings_schema.lua:600
 #: koassistant_settings_schema.lua:712
@@ -1635,7 +1686,7 @@ msgstr "스트리밍 자동 스크롤"
 #: koassistant_settings_schema.lua:280
 #, fuzzy
 msgid "Large Stream Dialog"
-msgstr "큰 스트림 대화 상자"
+msgstr "큰 스트림 대화상자"
 
 #: koassistant_settings_schema.lua:288
 #, fuzzy
@@ -1648,13 +1699,13 @@ msgid ""
 "How often to check for new stream data.\n"
 "Lower = snappier but uses more battery."
 msgstr ""
-"새 스트림 데이터를 확인하는 빈도입니다.\n"
-"낮을수록 = 빠르지만 배터리 소모가 많습니다."
+"새 스트림 데이터를 확인하는 빈도.\n"
+"낮을수록 = 더 빠르지만 배터리를 더 많이 사용합니다."
 
 #: koassistant_settings_schema.lua:301
 #, fuzzy
 msgid "Display Refresh Interval (ms)"
-msgstr "화면 새로고침 간격 (ms)"
+msgstr "디스플레이 새로 고침 간격 (ms)"
 
 #: koassistant_settings_schema.lua:308
 #, fuzzy
@@ -1662,18 +1713,19 @@ msgid ""
 "How often to refresh the display during streaming.\n"
 "Higher = better performance on slower devices."
 msgstr ""
-"스트리밍 중 화면을 새로 고치는 빈도입니다.\n"
-"높을수록 = 느린 기기에서 성능이 좋습니다."
+"스트리밍 중 디스플레이를 새로 고치는 빈도.\n"
+"높을수록 = 느린 기기에서 더 나은 성능."
 
 #: koassistant_settings_schema.lua:314
+#, fuzzy
 msgid "Scroll to Last Message (Experimental)"
-msgstr ""
+msgstr "마지막 메시지로 스크롤 (실험적)"
 
 #: koassistant_settings_schema.lua:317
+#, fuzzy
 msgid ""
-"When resuming or replying to a chat, try to scroll so your last question is "
-"visible. When off, shows top for new chats and bottom for replies."
-msgstr ""
+"When resuming or replying to a chat, try to scroll so your last question is visible. When off, shows top for new chats and bottom for replies."
+msgstr "채팅을 재개하거나 답장할 때 마지막 질문이 보이도록 스크롤을 시도합니다. 꺼져 있으면 새 채팅은 맨 위, 답장은 맨 아래를 표시합니다."
 
 #: koassistant_settings_schema.lua:324
 #, fuzzy
@@ -1684,9 +1736,7 @@ msgstr "내보내기 스타일"
 #, fuzzy
 msgid ""
 "Markdown uses # headers and **bold**. Plain text uses simple formatting."
-msgstr ""
-"Markdown은 # 제목과 **굵게**를 사용합니다. 일반 텍스트는 간단한 서식을 사용합"
-"니다."
+msgstr "Markdown은 # 제목과 **굵게**를 사용합니다. 일반 텍스트는 간단한 서식을 사용합니다."
 
 #: koassistant_settings_schema.lua:340 koassistant_settings_schema.lua:355
 #: koassistant_settings_schema.lua:371 koassistant_settings_schema.lua:390
@@ -1694,7 +1744,7 @@ msgstr ""
 #: koassistant_settings_schema.lua:725 koassistant_settings_schema.lua:741
 #, fuzzy
 msgid "Ask every time"
-msgstr "매번 묻기"
+msgstr "매번 물어보기"
 
 #: koassistant_settings_schema.lua:343 koassistant_settings_schema.lua:358
 #: koassistant_settings_schema.lua:374
@@ -1705,101 +1755,104 @@ msgstr "마지막 응답만"
 #: koassistant_settings_schema.lua:346
 #, fuzzy
 msgid "What to include when copying chat to clipboard."
-msgstr "클립보드에 대화를 복사할 때 포함할 내용입니다."
+msgstr "채팅을 클립보드에 복사할 때 포함할 내용."
 
 #: koassistant_settings_schema.lua:361
 #, fuzzy
 msgid "What to include when saving to note."
-msgstr "노트에 저장할 때 포함할 내용입니다."
+msgstr "노트에 저장할 때 포함할 내용."
 
 #: koassistant_settings_schema.lua:366
 #, fuzzy
 msgid "Chat History Export"
-msgstr "기록 내보내기"
+msgstr "채팅 기록 내보내기"
 
 #: koassistant_settings_schema.lua:370
 #, fuzzy
 msgid "Follow Copy Content"
-msgstr "복사 콘텐츠 따르기"
+msgstr "복사 내용 따르기"
 
 #: koassistant_settings_schema.lua:377
 #, fuzzy
 msgid "What to include when exporting from Chat History."
-msgstr "대화 기록에서 내보낼 때 포함할 내용입니다."
+msgstr "채팅 기록에서 내보낼 때 포함할 내용."
 
 #: koassistant_settings_schema.lua:384
 #, fuzzy
 msgid "Save Location"
-msgstr "채팅 저장"
+msgstr "저장 위치"
 
 #: koassistant_settings_schema.lua:388
 #, fuzzy
 msgid "KOAssistant exports folder"
-msgstr "KOAssistant: 제공자 변경"
+msgstr "KOAssistant 내보내기 폴더"
 
 #: koassistant_settings_schema.lua:389
 #, fuzzy
 msgid "Custom folder"
-msgstr "사용자 정의 모델"
+msgstr "사용자 지정 폴더"
 
 #: koassistant_settings_schema.lua:392
+#, fuzzy
 msgid ""
-"Where to save exported chat files. Creates subfolders for book/general/multi-"
-"book chats."
-msgstr ""
+"Where to save exported chat files. Creates subfolders for book/general/multi-book chats."
+msgstr "내보낸 채팅 파일을 저장할 위치. 책/일반/다중 책 채팅에 대한 하위 폴더를 생성합니다."
 
 #: koassistant_settings_schema.lua:403
 #, fuzzy
 msgid "Custom Folder: %1"
-msgstr "%1의 사용자 지정 모델"
+msgstr "사용자 지정 폴더: %1"
 
 #: koassistant_settings_schema.lua:405
 #, fuzzy
 msgid "Set Custom Folder..."
-msgstr "사용자 정의 모델..."
+msgstr "사용자 지정 폴더 설정..."
 
 #: koassistant_settings_schema.lua:414
+#, fuzzy
 msgid "Select directory for exported files."
-msgstr ""
+msgstr "내보낸 파일을 저장할 디렉토리를 선택하세요."
 
 #: koassistant_settings_schema.lua:419
+#, fuzzy
 msgid "Save book chats alongside books"
-msgstr ""
+msgstr "책 채팅을 책과 함께 저장"
 
 #: koassistant_settings_schema.lua:422
+#, fuzzy
 msgid ""
-"When enabled, book chats are saved to a 'chats' subfolder next to the book "
-"file instead of the central location."
-msgstr ""
+"When enabled, book chats are saved to a 'chats' subfolder next to the book file instead of the central location."
+msgstr "활성화하면 책 채팅이 중앙 위치 대신 책 파일 옆 'chats' 하위 폴더에 저장됩니다."
 
 #: koassistant_settings_schema.lua:427
 #, fuzzy
 msgid "Show Export in Chat Viewer"
-msgstr "대화에 표시기 표시"
+msgstr "채팅 뷰어에 내보내기 표시"
 
 #: koassistant_settings_schema.lua:430
+#, fuzzy
 msgid "Add Export button to the Chat Viewer (alongside Copy and Note)."
-msgstr ""
+msgstr "채팅 뷰어에 내보내기 버튼 추가 (복사 및 노트와 함께)."
 
 #: koassistant_settings_schema.lua:439
 #, fuzzy
 msgid "AI Language Settings"
-msgstr "AI 빠른 설정"
+msgstr "AI 언어 설정"
 
 #: koassistant_settings_schema.lua:451
 #, fuzzy
 msgid "Your Languages: (not set)"
-msgstr "기본 언어: (설정되지 않음)"
+msgstr "사용 언어: (설정 안 됨)"
 
 #: koassistant_settings_schema.lua:453 koassistant_settings_schema.lua:460
 #, fuzzy
 msgid "Your Languages: %1"
-msgstr "사용 언어"
+msgstr "사용 언어: %1"
 
 #: koassistant_settings_schema.lua:470
 #, fuzzy
 msgid "Primary Language: (not set)"
-msgstr "기본 언어: (설정되지 않음)"
+msgstr "기본 언어: (설정 안 됨)"
 
 #: koassistant_settings_schema.lua:472
 #, fuzzy
@@ -1809,12 +1862,12 @@ msgstr "기본 언어: %1"
 #: koassistant_settings_schema.lua:483
 #, fuzzy
 msgid "Additional Languages: (none)"
-msgstr "기본 언어: (설정되지 않음)"
+msgstr "추가 언어: (없음)"
 
 #: koassistant_settings_schema.lua:490
 #, fuzzy
 msgid "Additional Languages: %1"
-msgstr "사전 언어"
+msgstr "추가 언어: %1"
 
 #: koassistant_settings_schema.lua:501
 #, fuzzy
@@ -1834,12 +1887,12 @@ msgstr "단어를 탭할 때 AI 사전 버튼 표시"
 #: koassistant_settings_schema.lua:518
 #, fuzzy
 msgid "Response Language: (Follow Translation)"
-msgstr "응답 언어: (번역 언어 따르기)"
+msgstr "응답 언어: (번역 설정 따름)"
 
 #: koassistant_settings_schema.lua:520
 #, fuzzy
 msgid "Response Language: (Follow Primary)"
-msgstr "응답 언어: (기본 언어 따르기)"
+msgstr "응답 언어: (기본 언어 따름)"
 
 #: koassistant_settings_schema.lua:522
 #, fuzzy
@@ -1859,24 +1912,23 @@ msgstr "단락"
 #: koassistant_settings_schema.lua:535 main.lua:3420
 #, fuzzy
 msgid "Characters"
-msgstr "글자"
+msgstr "문자"
 
 #: koassistant_settings_schema.lua:538
 #, fuzzy
 msgid "Context Mode: %1"
-msgstr "문맥 모드: %1"
+msgstr "컨텍스트 모드: %1"
 
 #: koassistant_settings_schema.lua:545
 #, fuzzy
 msgid "Context Characters"
-msgstr "문맥 글자 수"
+msgstr "컨텍스트 문자 수"
 
 #: koassistant_settings_schema.lua:551
 #, fuzzy
 msgid ""
-"Number of characters to include before/after the word when Context Mode is "
-"'Characters'"
-msgstr "문맥 모드가 '글자'일 때 단어 앞뒤에 포함할 글자 수"
+"Number of characters to include before/after the word when Context Mode is 'Characters'"
+msgstr "컨텍스트 모드가 '문자'일 때 단어 앞뒤에 포함할 문자 수"
 
 #: koassistant_settings_schema.lua:560
 #, fuzzy
@@ -1886,13 +1938,8 @@ msgstr "사전 자동 저장 비활성화"
 #: koassistant_settings_schema.lua:563
 #, fuzzy
 msgid ""
-"When enabled, dictionary lookups are not auto-saved. When disabled, "
-"dictionary chats follow your general chat saving settings. You can always "
-"save manually from an expanded view."
-msgstr ""
-"활성화하면 사전 조회가 자동 저장되지 않습니다. 비활성화하면 사전 채팅은 일반 "
-"채팅 저장 설정을 따릅니다. 확장된 보기에서 언제든지 수동으로 저장할 수 있습니"
-"다."
+"When enabled, dictionary lookups are not auto-saved. When disabled, dictionary chats follow your general chat saving settings. You can always save manually from an expanded view."
+msgstr "활성화하면 사전 검색이 자동 저장되지 않습니다. 비활성화하면 사전 채팅이 일반 채팅 저장 설정을 따릅니다. 확장 보기에서 언제든지 수동으로 저장할 수 있습니다."
 
 #: koassistant_settings_schema.lua:572 koassistant_settings_schema.lua:588
 #: koassistant_settings_schema.lua:724 koassistant_settings_schema.lua:740
@@ -1901,36 +1948,35 @@ msgid "Follow global setting"
 msgstr "전역 설정 따르기"
 
 #: koassistant_settings_schema.lua:576 koassistant_settings_schema.lua:592
+#, fuzzy
 msgid "Definition only (Recommended)"
-msgstr ""
+msgstr "정의만 (권장)"
 
 #: koassistant_settings_schema.lua:579
 #, fuzzy
 msgid "What to include when copying in dictionary view."
-msgstr "번역 보기에서 복사할 때 포함할 내용."
+msgstr "사전 보기에서 복사할 때 포함할 내용."
 
 #: koassistant_settings_schema.lua:595
 #, fuzzy
 msgid "What to include when saving dictionary results to a note."
-msgstr "노트에 저장할 때 포함할 내용입니다."
+msgstr "사전 결과를 노트에 저장할 때 포함할 내용."
 
 #: koassistant_settings_schema.lua:603
 #, fuzzy
 msgid ""
-"Stream dictionary responses in real-time. Disable to wait for complete "
-"response."
-msgstr ""
-"사전 응답을 실시간으로 스트리밍합니다. 비활성화하면 전체 응답을 기다립니다."
+"Stream dictionary responses in real-time. Disable to wait for complete response."
+msgstr "사전 응답을 실시간으로 스트리밍합니다. 비활성화하면 전체 응답을 기다립니다."
 
 #: koassistant_settings_schema.lua:608
 #, fuzzy
 msgid "Dictionary Popup Actions"
-msgstr "사전 팝업 액션"
+msgstr "사전 팝업 동작"
 
 #: koassistant_settings_schema.lua:610
 #, fuzzy
 msgid "Configure which actions appear in the dictionary popup"
-msgstr "사전 팝업에 표시할 액션을 구성합니다"
+msgstr "사전 팝업에 표시할 동작 구성"
 
 #: koassistant_settings_schema.lua:615
 #, fuzzy
@@ -1940,38 +1986,31 @@ msgstr "KOReader 사전 우회"
 #: koassistant_settings_schema.lua:618
 #, fuzzy
 msgid ""
-"Skip KOReader's dictionary and go directly to AI when tapping words. Can "
-"also be toggled via gesture."
-msgstr ""
-"단어를 탭할 때 KOReader 사전을 건너뛰고 바로 AI로 이동합니다. 제스처로도 전환"
-"할 수 있습니다."
+"Skip KOReader's dictionary and go directly to AI when tapping words. Can also be toggled via gesture."
+msgstr "KOReader 사전을 건너뛰고 단어를 탭할 때 바로 AI로 이동합니다. 제스처로도 전환할 수 있습니다."
 
 #: koassistant_settings_schema.lua:639 koassistant_settings_schema.lua:643
 #: koassistant_settings_schema.lua:645 koassistant_settings_schema.lua:825
 #: koassistant_settings_schema.lua:829 koassistant_settings_schema.lua:831
 #, fuzzy
 msgid "Bypass Action: %1"
-msgstr "우회 액션: %1"
+msgstr "우회 동작: %1"
 
 #: koassistant_settings_schema.lua:648
 #, fuzzy
 msgid "Action to trigger when dictionary bypass is enabled"
-msgstr "사전 우회가 활성화되었을 때 실행할 액션"
+msgstr "사전 우회가 활성화되었을 때 실행할 동작"
 
 #: koassistant_settings_schema.lua:653
 #, fuzzy
 msgid "Bypass: Follow Vocab Builder Auto-add"
-msgstr "우회: 단어장 자동 추가 따르기"
+msgstr "우회: 어휘 작성기 자동 추가 따르기"
 
 #: koassistant_settings_schema.lua:656
 #, fuzzy
 msgid ""
-"When enabled, dictionary bypass follows KOReader's Vocabulary Builder auto-"
-"add setting. Disable if you use bypass for analysis of words you already "
-"know and don't want them added."
-msgstr ""
-"활성화하면 사전 우회가 KOReader의 단어장 자동 추가 설정을 따릅니다. 이미 알"
-"고 있는 단어를 분석하면서 단어장에 추가되지 않기를 원하면 비활성화하세요."
+"When enabled, dictionary bypass follows KOReader's Vocabulary Builder auto-add setting. Disable if you use bypass for analysis of words you already know and don't want them added."
+msgstr "활성화하면 사전 우회가 KOReader의 어휘 작성기 자동 추가 설정을 따릅니다. 이미 아는 단어를 분석하기 위해 우회를 사용하고 추가되지 않기를 원하면 비활성화하세요."
 
 #: koassistant_settings_schema.lua:665
 #, fuzzy
@@ -1986,10 +2025,8 @@ msgstr "기본 언어로 번역"
 #: koassistant_settings_schema.lua:674
 #, fuzzy
 msgid ""
-"Use your primary language as the translation target. Disable to choose a "
-"different target."
-msgstr ""
-"기본 언어를 번역 대상으로 사용합니다. 다른 대상을 선택하려면 비활성화하세요."
+"Use your primary language as the translation target. Disable to choose a different target."
+msgstr "기본 언어를 번역 대상으로 사용합니다. 비활성화하면 다른 대상을 선택할 수 있습니다."
 
 #: koassistant_settings_schema.lua:694
 #, fuzzy
@@ -2004,7 +2041,7 @@ msgstr "번역 자동 저장 비활성화"
 #: koassistant_settings_schema.lua:707
 #, fuzzy
 msgid "Translations are not auto-saved. Save manually via → Chat button."
-msgstr "번역은 자동 저장되지 않습니다. → 채팅 버튼을 통해 수동으로 저장하세요."
+msgstr "번역이 자동 저장되지 않습니다. → 채팅 버튼을 통해 수동으로 저장하세요."
 
 #: koassistant_settings_schema.lua:715
 #, fuzzy
@@ -2024,7 +2061,7 @@ msgstr "번역 보기에서 노트에 저장할 때 포함할 내용."
 #: koassistant_settings_schema.lua:759
 #, fuzzy
 msgid "Follow Global"
-msgstr "전역 따르기"
+msgstr "전역 설정 따르기"
 
 #: koassistant_settings_schema.lua:760 koassistant_settings_schema.lua:770
 #, fuzzy
@@ -2044,31 +2081,28 @@ msgstr "숨기지 않기"
 #: koassistant_settings_schema.lua:764
 #, fuzzy
 msgid "Original Text: %1"
-msgstr "원본 텍스트: %1"
+msgstr "원문: %1"
 
 #: koassistant_settings_schema.lua:769
 #, fuzzy
 msgid "Follow Global (Display Settings)"
-msgstr "전역 따르기 (디스플레이 설정)"
+msgstr "전역 설정 따르기 (표시 설정)"
 
 #: koassistant_settings_schema.lua:771
 #, fuzzy
 msgid "Hide Long (by character count)"
-msgstr "긴 텍스트 숨기기 (글자 수 기준)"
+msgstr "긴 텍스트 숨기기 (문자 수 기준)"
 
 #: koassistant_settings_schema.lua:778
 #, fuzzy
 msgid "Long Text Threshold"
-msgstr "긴 텍스트 기준"
+msgstr "긴 텍스트 기준값"
 
 #: koassistant_settings_schema.lua:784
 #, fuzzy
 msgid ""
-"Character count above which text is considered 'long'. Used when Original "
-"Text is set to 'Hide Long'."
-msgstr ""
-"'긴 텍스트'로 간주되는 글자 수 기준. 원본 텍스트가 '긴 텍스트 숨기기'로 설정"
-"되었을 때 사용됩니다."
+"Character count above which text is considered 'long'. Used when Original Text is set to 'Hide Long'."
+msgstr "텍스트가 '긴 텍스트'로 간주되는 문자 수입니다. 원문이 '긴 텍스트 숨기기'로 설정된 경우 사용됩니다."
 
 #: koassistant_settings_schema.lua:793
 #, fuzzy
@@ -2076,11 +2110,10 @@ msgid "Hide for Full Page Translate"
 msgstr "전체 페이지 번역 시 숨기기"
 
 #: koassistant_settings_schema.lua:796
+#, fuzzy
 msgid ""
-"Always hide original text for full page translations. Overrides all other "
-"visibility settings when enabled. Disable to use your normal Original Text "
-"setting above."
-msgstr ""
+"Always hide original text for full page translations. Overrides all other visibility settings when enabled. Disable to use your normal Original Text setting above."
+msgstr "전체 페이지 번역 시 항상 원문을 숨깁니다. 활성화 시 다른 모든 표시 설정보다 우선 적용됩니다. 비활성화하면 위의 일반 원문 설정을 사용합니다."
 
 #: koassistant_settings_schema.lua:805
 #, fuzzy
@@ -2090,76 +2123,78 @@ msgstr "하이라이트 설정"
 #: koassistant_settings_schema.lua:810
 #, fuzzy
 msgid "Enable Highlight Bypass"
-msgstr "하이라이트 우회 활성화"
+msgstr "하이라이트 바이패스 활성화"
 
 #: koassistant_settings_schema.lua:813
 #, fuzzy
 msgid ""
-"Immediately trigger an action when text is selected, skipping the highlight "
-"menu. Can also be toggled via gesture."
-msgstr ""
-"텍스트를 선택하면 하이라이트 메뉴를 건너뛰고 즉시 액션을 실행합니다. 제스처로"
-"도 전환할 수 있습니다."
+"Immediately trigger an action when text is selected, skipping the highlight menu. Can also be toggled via gesture."
+msgstr "텍스트 선택 시 하이라이트 메뉴를 건너뛰고 즉시 작업을 실행합니다. 제스처를 통해서도 전환할 수 있습니다."
 
 #: koassistant_settings_schema.lua:834
 #, fuzzy
 msgid "Action to trigger when highlight bypass is enabled"
-msgstr "하이라이트 우회가 활성화되었을 때 실행할 액션"
+msgstr "하이라이트 바이패스 활성화 시 실행할 작업"
 
 #: koassistant_settings_schema.lua:839
 #, fuzzy
 msgid "Highlight Menu Actions"
-msgstr "하이라이트 메뉴 액션"
+msgstr "하이라이트 메뉴 작업"
 
 #: koassistant_settings_schema.lua:841
 #, fuzzy
 msgid "Choose which actions appear in the highlight menu (requires restart)"
-msgstr "하이라이트 메뉴에 표시할 액션을 선택합니다 (재시작 필요)"
+msgstr "하이라이트 메뉴에 표시할 작업 선택 (재시작 필요)"
 
 #: koassistant_settings_schema.lua:850
 #, fuzzy
 msgid "Quick Panel Settings"
-msgstr "AI 빠른 설정"
+msgstr "빠른 패널 설정"
 
 #: koassistant_settings_schema.lua:858
 #, fuzzy
 msgid "Quick Actions Panel"
-msgstr "작업 이름"
+msgstr "빠른 작업 패널"
 
 #: koassistant_settings_schema.lua:863
 #, fuzzy
 msgid "Panel Actions"
-msgstr "액션 관리"
+msgstr "패널 작업"
 
 #: koassistant_settings_schema.lua:865
 #, fuzzy
 msgid "Choose which actions appear in the Quick Actions panel and their order"
-msgstr "하이라이트 메뉴에 표시할 액션을 선택합니다 (재시작 필요)"
+msgstr "빠른 작업 패널에 표시할 작업과 순서를 선택하세요"
 
 #: koassistant_settings_schema.lua:870
+#, fuzzy
 msgid "QA Panel Utilities"
-msgstr ""
+msgstr "빠른 작업 패널 유틸리티"
 
 #: koassistant_settings_schema.lua:871
+#, fuzzy
 msgid "Show or hide utility buttons in the Quick Actions panel"
-msgstr ""
+msgstr "빠른 작업 패널의 유틸리티 버튼 표시 또는 숨기기"
 
 #: koassistant_settings_schema.lua:884
+#, fuzzy
 msgid "Summary (View/Generate)"
-msgstr ""
+msgstr "요약 (보기/생성)"
 
 #: koassistant_settings_schema.lua:904
 #, fuzzy
 msgid "Quick Settings Panel"
-msgstr "AI 빠른 설정"
+msgstr "빠른 설정 패널"
 
 #: koassistant_settings_schema.lua:909
+#, fuzzy
 msgid "QS Panel Utilities"
-msgstr ""
+msgstr "빠른 설정 패널 유틸리티"
 
 #: koassistant_settings_schema.lua:910
+#, fuzzy
 msgid "Show or hide controls in the Quick Settings panel"
-msgstr ""
+msgstr "빠른 설정 패널의 컨트롤 표시 또는 숨기기"
 
 #: koassistant_settings_schema.lua:915 main.lua:4360 main.lua:4512
 #, fuzzy
@@ -2174,12 +2209,12 @@ msgstr "모델"
 #: koassistant_settings_schema.lua:929
 #, fuzzy
 msgid "Behavior"
-msgstr "AI 동작"
+msgstr "행동"
 
 #: koassistant_settings_schema.lua:936
 #, fuzzy
 msgid "Domain"
-msgstr "도메인:"
+msgstr "도메인"
 
 #: koassistant_settings_schema.lua:943 koassistant_settings_schema.lua:1471
 #: main.lua:4570 koassistant_ui/prompts_manager.lua:709
@@ -2187,16 +2222,17 @@ msgstr "도메인:"
 #: koassistant_ui/prompts_manager.lua:2928
 #, fuzzy
 msgid "Temperature"
-msgstr "온도"
+msgstr "Temperature"
 
 #: koassistant_settings_schema.lua:950
 #, fuzzy
 msgid "Anthropic/Gemini Reasoning"
-msgstr "OpenAI 추론"
+msgstr "Anthropic/Gemini 추론"
 
 #: koassistant_settings_schema.lua:957 koassistant_settings_schema.lua:1599
+#, fuzzy
 msgid "Web Search"
-msgstr ""
+msgstr "웹 검색"
 
 #: koassistant_settings_schema.lua:964
 #, fuzzy
@@ -2212,44 +2248,44 @@ msgstr "번역 언어"
 #: koassistant_settings_schema.lua:985
 #, fuzzy
 msgid "H.Bypass"
-msgstr "하이라이트 우회: 켜짐"
+msgstr "H.바이패스"
 
 #: koassistant_settings_schema.lua:992
 #, fuzzy
 msgid "D.Bypass"
-msgstr "사전 우회: 켜짐"
+msgstr "D.바이패스"
 
 #: koassistant_settings_schema.lua:1027 koassistant_settings_schema.lua:1061
 #: main.lua:4744 koassistant_ui/prompts_manager.lua:499
 #, fuzzy
 msgid "Manage Actions"
-msgstr "액션 관리"
+msgstr "작업 관리"
 
 #: koassistant_settings_schema.lua:1034 main.lua:4918
 #, fuzzy
 msgid "Quick Actions"
-msgstr "AI 빠른 설정"
+msgstr "빠른 작업"
 
 #: koassistant_settings_schema.lua:1041
 #, fuzzy
 msgid "More Settings"
-msgstr "추가 설정..."
+msgstr "추가 설정"
 
 #: koassistant_settings_schema.lua:1056
 #, fuzzy
 msgid "Actions & Prompts"
-msgstr "3/4단계: 작업 프롬프트"
+msgstr "작업 및 프롬프트"
 
 #: koassistant_settings_schema.lua:1074
 #, fuzzy
 msgid "Manage Behaviors (%1)"
-msgstr "동작 관리 (%1)"
+msgstr "행동 관리 (%1)"
 
 #: koassistant_settings_schema.lua:1077
 #, fuzzy
 msgid ""
 "Select or create AI behavior styles that define how the AI communicates."
-msgstr "AI가 소통하는 방식을 정의하는 AI 동작 스타일을 선택하거나 생성합니다."
+msgstr "AI의 의사소통 방식을 정의하는 AI 행동 스타일을 선택하거나 생성하세요."
 
 #: koassistant_settings_schema.lua:1082
 #, fuzzy
@@ -2259,177 +2295,187 @@ msgstr "도메인 관리..."
 #: koassistant_settings_schema.lua:1084
 #, fuzzy
 msgid "Manage knowledge domains. Domains are selected per-chat."
-msgstr "지식 도메인을 관리합니다. 도메인은 대화별로 선택됩니다."
+msgstr "지식 도메인을 관리합니다. 도메인은 채팅별로 선택됩니다."
 
 #: koassistant_settings_schema.lua:1098
+#, fuzzy
 msgid "Browse Notebooks..."
-msgstr ""
+msgstr "노트북 탐색..."
 
 #: koassistant_settings_schema.lua:1105
 #, fuzzy
 msgid "Content Format"
-msgstr "내용"
+msgstr "콘텐츠 형식"
 
 #: koassistant_settings_schema.lua:1110
+#, fuzzy
 msgid "Q&A"
-msgstr ""
+msgstr "Q&A"
 
 #: koassistant_settings_schema.lua:1111
+#, fuzzy
 msgid "Full Q&A (recommended)"
-msgstr ""
+msgstr "전체 Q&A (권장)"
 
 #: koassistant_settings_schema.lua:1113
+#, fuzzy
 msgid ""
 "What to include when saving to notebook.\n"
-"Full Q&A includes all context messages + highlighted text + question + "
-"response."
+"Full Q&A includes all context messages + highlighted text + question + response."
 msgstr ""
+"노트북에 저장할 때 포함할 내용.\n"
+"전체 Q&A는 모든 컨텍스트 메시지 + 하이라이트된 텍스트 + 질문 + 응답을 포함합니다."
 
 #: koassistant_settings_schema.lua:1119
+#, fuzzy
 msgid "Show in file browser menu"
-msgstr ""
+msgstr "파일 브라우저 메뉴에 표시"
 
 #: koassistant_settings_schema.lua:1122 koassistant_settings_schema.lua:1372
+#, fuzzy
 msgid ""
 "Show 'Notebook (KOA)' button when long-pressing books in the file browser."
-msgstr ""
+msgstr "파일 브라우저에서 책을 길게 눌렀을 때 '노트북 (KOA)' 버튼을 표시합니다."
 
 #: koassistant_settings_schema.lua:1127 koassistant_settings_schema.lua:1378
+#, fuzzy
 msgid "Only for books with notebooks"
-msgstr ""
+msgstr "노트북이 있는 책만"
 
 #: koassistant_settings_schema.lua:1131
+#, fuzzy
 msgid ""
-"Only show button if notebook already exists. Disable to allow creating new "
-"notebooks from file browser."
-msgstr ""
+"Only show button if notebook already exists. Disable to allow creating new notebooks from file browser."
+msgstr "노트북이 이미 존재하는 경우에만 버튼을 표시합니다. 파일 브라우저에서 새 노트북 생성을 허용하려면 비활성화하세요."
 
 #: koassistant_settings_schema.lua:1140
+#, fuzzy
 msgid "Privacy & Data"
-msgstr ""
+msgstr "개인정보 및 데이터"
 
 #: koassistant_settings_schema.lua:1150 main.lua:6543
 #, fuzzy
 msgid "Trusted Providers: None"
-msgstr "관리할 사용자 지정 제공자가 없습니다"
+msgstr "신뢰하는 제공자: 없음"
 
 #: koassistant_settings_schema.lua:1152 main.lua:6545
 #, fuzzy
 msgid "Trusted Providers: %1"
-msgstr "공급자: %1"
+msgstr "신뢰하는 제공자: %1"
 
 #: koassistant_settings_schema.lua:1155
+#, fuzzy
 msgid ""
-"Providers you trust bypass the data sharing controls below. Use for local "
-"Ollama instances or providers you fully trust."
-msgstr ""
+"Providers you trust bypass the data sharing controls below. Use for local Ollama instances or providers you fully trust."
+msgstr "신뢰하는 제공자는 아래의 데이터 공유 제어를 우회합니다. 로컬 Ollama 인스턴스 또는 완전히 신뢰하는 제공자에 사용하세요."
 
 #: koassistant_settings_schema.lua:1163
 #, fuzzy
 msgid "Preset: Default"
-msgstr "기본값으로 재설정"
+msgstr "프리셋: 기본"
 
 #: koassistant_settings_schema.lua:1164
+#, fuzzy
 msgid ""
-"Recommended balance. Share reading progress and chapter info for context-"
-"aware features. Personal content (highlights, annotations, notebook) stays "
-"private."
-msgstr ""
+"Recommended balance. Share reading progress and chapter info for context-aware features. Personal content (highlights, annotations, notebook) stays private."
+msgstr "권장 균형. 컨텍스트 인식 기능을 위해 읽기 진행률과 챕터 정보를 공유합니다. 개인 콘텐츠(하이라이트, 주석, 노트북)는 비공개로 유지됩니다."
 
 #: koassistant_settings_schema.lua:1171
 #, fuzzy
 msgid "Preset: Minimal"
-msgstr "최소"
+msgstr "프리셋: 최소"
 
 #: koassistant_settings_schema.lua:1172
+#, fuzzy
 msgid ""
-"Maximum privacy. Disable all extended data sharing including progress and "
-"chapter info. Only your question and book metadata are sent."
-msgstr ""
+"Maximum privacy. Disable all extended data sharing including progress and chapter info. Only your question and book metadata are sent."
+msgstr "최대 개인정보 보호. 진행률과 챕터 정보를 포함한 모든 확장 데이터 공유를 비활성화합니다. 질문과 책 메타데이터만 전송됩니다."
 
 #: koassistant_settings_schema.lua:1179
+#, fuzzy
 msgid "Preset: Full"
-msgstr ""
+msgstr "프리셋: 전체"
 
 #: koassistant_settings_schema.lua:1180
+#, fuzzy
 msgid ""
-"Enable all data sharing for full functionality. Does not enable text "
-"extraction (see Text Extraction submenu)."
-msgstr ""
+"Enable all data sharing for full functionality. Does not enable text extraction (see Text Extraction submenu)."
+msgstr "전체 기능을 위해 모든 데이터 공유를 활성화합니다. 텍스트 추출은 활성화하지 않습니다(텍스트 추출 하위 메뉴 참조)."
 
 #: koassistant_settings_schema.lua:1189
+#, fuzzy
 msgid "Data Sharing Controls (for non-trusted providers)"
-msgstr ""
+msgstr "데이터 공유 제어 (신뢰하지 않는 제공자용)"
 
 #: koassistant_settings_schema.lua:1195
 #, fuzzy
 msgid "Allow Highlights & Annotations"
-msgstr "하이라이트 메뉴 액션"
+msgstr "하이라이트 및 주석 허용"
 
 #: koassistant_settings_schema.lua:1198
+#, fuzzy
 msgid ""
-"Send your saved highlights and personal notes to the AI. Used by Analyze "
-"Highlights, X-Ray, Connect with Notes, and actions with {highlights} or "
-"{annotations} placeholders."
-msgstr ""
+"Send your saved highlights and personal notes to the AI. Used by Analyze Highlights, X-Ray, Connect with Notes, and actions with {highlights} or {annotations} placeholders."
+msgstr "저장된 하이라이트와 개인 메모를 AI에 전송합니다. 하이라이트 분석, X-Ray, 노트와 연결, {highlights} 또는 {annotations} 플레이스홀더가 있는 작업에서 사용됩니다."
 
 #: koassistant_settings_schema.lua:1203
+#, fuzzy
 msgid "Allow Notebook"
-msgstr ""
+msgstr "노트북 허용"
 
 #: koassistant_settings_schema.lua:1206
+#, fuzzy
 msgid ""
-"Send notebook entries to AI. Used by Connect with Notes and actions with "
-"{notebook} placeholder."
-msgstr ""
+"Send notebook entries to AI. Used by Connect with Notes and actions with {notebook} placeholder."
+msgstr "노트북 항목을 AI에 전송합니다. 노트와 연결 및 {notebook} 플레이스홀더가 있는 작업에서 사용됩니다."
 
 #: koassistant_settings_schema.lua:1211
 #, fuzzy
 msgid "Allow Reading Progress"
-msgstr "읽기 진행률 (%)"
+msgstr "읽기 진행률 허용"
 
 #: koassistant_settings_schema.lua:1214
+#, fuzzy
 msgid "Send current reading position (percentage). Used by X-Ray, Recap."
-msgstr ""
+msgstr "현재 읽기 위치(백분율)를 전송합니다. X-Ray, 요약에서 사용됩니다."
 
 #: koassistant_settings_schema.lua:1219
+#, fuzzy
 msgid "Allow Chapter Info"
-msgstr ""
+msgstr "챕터 정보 허용"
 
 #: koassistant_settings_schema.lua:1222
+#, fuzzy
 msgid ""
-"Send current chapter title, chapters read count, and time since last opened. "
-"Used by Recap."
-msgstr ""
+"Send current chapter title, chapters read count, and time since last opened. Used by Recap."
+msgstr "현재 챕터 제목, 읽은 챕터 수, 마지막으로 연 이후 경과 시간을 전송합니다. 요약에서 사용됩니다."
 
 #: koassistant_settings_schema.lua:1232
 #, fuzzy
 msgid "Text Extraction (enabled)"
-msgstr "책 텍스트 추출"
+msgstr "텍스트 추출 (활성화됨)"
 
 #: koassistant_settings_schema.lua:1234
 #, fuzzy
 msgid "Text Extraction (disabled)"
-msgstr "책 텍스트 추출"
+msgstr "텍스트 추출 (비활성화됨)"
 
 #: koassistant_settings_schema.lua:1241
 #, fuzzy
 msgid "Allow Text Extraction"
-msgstr "책 텍스트 추출 허용"
+msgstr "텍스트 추출 허용"
 
 #: koassistant_settings_schema.lua:1244
+#, fuzzy
 msgid ""
-"When enabled, actions can extract and send book text to the AI. Used by X-"
-"Ray, Recap, and actions with text placeholders."
-msgstr ""
+"When enabled, actions can extract and send book text to the AI. Used by X-Ray, Recap, and actions with text placeholders."
+msgstr "활성화하면 작업이 책 텍스트를 추출하여 AI에 전송할 수 있습니다. X-Ray, 요약 및 텍스트 플레이스홀더가 있는 작업에서 사용됩니다."
 
 #: koassistant_settings_schema.lua:1250
+#, fuzzy
 msgid ""
-"Text extraction sends actual book content to the AI. This uses tokens "
-"(increases API costs) and processing time. Features like X-Ray and Recap use "
-"this to analyze your reading progress. Be mindful of how you use this "
-"feature."
-msgstr ""
+"Text extraction sends actual book content to the AI. This uses tokens (increases API costs) and processing time. Features like X-Ray and Recap use this to analyze your reading progress. Be mindful of how you use this feature."
+msgstr "텍스트 추출은 실제 책 콘텐츠를 AI에 전송합니다. 이는 토큰을 사용하며(API 비용 증가) 처리 시간이 소요됩니다. X-Ray 및 요약과 같은 기능은 이를 사용하여 읽기 진행률을 분석합니다. 이 기능을 사용할 때 주의하세요."
 
 #: koassistant_settings_schema.lua:1258
 #, fuzzy
@@ -2439,11 +2485,8 @@ msgstr "최대 텍스트 문자 수"
 #: koassistant_settings_schema.lua:1265
 #, fuzzy
 msgid ""
-"Maximum characters to extract (10,000-1,000,000). Higher = more context but "
-"more tokens. Default: 250,000 (~60k tokens)."
-msgstr ""
-"책에서 추출할 최대 문자 수(10,000-500,000). 높은 값은 더 많은 컨텍스트를 제공"
-"하지만 더 많은 토큰을 사용합니다. 기본값: 50,000 (~12k 토큰)."
+"Maximum characters to extract (10,000-1,000,000). Higher = more context but more tokens. Default: 250,000 (~60k tokens)."
+msgstr "추출할 최대 문자 수 (10,000-1,000,000). 높을수록 더 많은 컨텍스트를 제공하지만 더 많은 토큰을 사용합니다. 기본값: 250,000 (~60k 토큰)."
 
 #: koassistant_settings_schema.lua:1271
 #, fuzzy
@@ -2454,156 +2497,162 @@ msgstr "최대 PDF 페이지"
 #, fuzzy
 msgid ""
 "Maximum PDF pages to extract (50-500). Higher = more context but slower."
-msgstr ""
-"텍스트를 추출할 최대 PDF 페이지 수(50-500). 높은 값은 더 많은 컨텍스트를 제공"
-"하지만 시간이 더 오래 걸립니다."
+msgstr "추출할 최대 PDF 페이지 (50-500). 높을수록 더 많은 컨텍스트를 제공하지만 느려집니다."
 
 #: koassistant_settings_schema.lua:1284 main.lua:5018
 #, fuzzy
 msgid "Clear Action Cache"
-msgstr "작업 이름 입력"
+msgstr "작업 캐시 지우기"
 
 #: koassistant_settings_schema.lua:1285
+#, fuzzy
 msgid ""
-"Clear cached X-Ray and Recap responses for the current book. Use to "
-"regenerate from scratch."
-msgstr ""
+"Clear cached X-Ray and Recap responses for the current book. Use to regenerate from scratch."
+msgstr "현재 책의 캐시된 X-Ray 및 요약 응답을 지웁니다. 처음부터 다시 생성하려면 사용하세요."
 
 #: koassistant_settings_schema.lua:1298
 #, fuzzy
 msgid "KOReader Integration"
-msgstr "국제"
+msgstr "KOReader 통합"
 
 #: koassistant_settings_schema.lua:1304
+#, fuzzy
 msgid "Control where KOAssistant appears in KOReader"
-msgstr ""
+msgstr "KOReader에서 KOAssistant가 표시되는 위치 제어"
 
 #: koassistant_settings_schema.lua:1310
+#, fuzzy
 msgid "Show in File Browser"
-msgstr ""
+msgstr "파일 브라우저에 표시"
 
 #: koassistant_settings_schema.lua:1313
-msgid "Add KOAssistant button to file browser context menus. Requires restart."
-msgstr ""
+#, fuzzy
+msgid ""
+"Add KOAssistant button to file browser context menus. Requires restart."
+msgstr "파일 브라우저 컨텍스트 메뉴에 KOAssistant 버튼을 추가합니다. 재시작이 필요합니다."
 
 #: koassistant_settings_schema.lua:1318 koassistant_settings_schema.lua:1333
 #: koassistant_settings_schema.lua:1348
 #, fuzzy
 msgid "Please restart KOReader for this change to take effect."
-msgstr "언어 변경을 적용하려면 KOReader를 재시작하세요."
+msgstr "이 변경 사항을 적용하려면 KOReader를 재시작하세요."
 
 #: koassistant_settings_schema.lua:1325
 #, fuzzy
 msgid "Show KOAssistant Button in Highlight Menu"
-msgstr "KOAssistant: 하이라이트 분석"
+msgstr "하이라이트 메뉴에 KOAssistant 버튼 표시"
 
 #: koassistant_settings_schema.lua:1328
 #, fuzzy
 msgid "Add main KOAssistant button to highlight menu. Requires restart."
-msgstr "하이라이트 메뉴에 표시할 액션을 선택합니다 (재시작 필요)"
+msgstr "하이라이트 메뉴에 메인 KOAssistant 버튼을 추가합니다. 재시작이 필요합니다."
 
 #: koassistant_settings_schema.lua:1340
 #, fuzzy
 msgid "Show Highlight Menu Actions"
-msgstr "하이라이트 메뉴 액션"
+msgstr "하이라이트 메뉴 작업 표시"
 
 #: koassistant_settings_schema.lua:1343
 #, fuzzy
 msgid ""
-"Add action shortcuts (Explain, Translate, etc.) to highlight menu. Requires "
-"restart."
-msgstr "하이라이트 메뉴에 표시할 액션을 선택합니다 (재시작 필요)"
+"Add action shortcuts (Explain, Translate, etc.) to highlight menu. Requires restart."
+msgstr "하이라이트 메뉴에 작업 바로가기(설명, 번역 등)를 추가합니다. 재시작이 필요합니다."
 
 #: koassistant_settings_schema.lua:1355
 #, fuzzy
 msgid "Show in Dictionary Popup"
-msgstr "✓ 사전 팝업에 있음"
+msgstr "사전 팝업에 표시"
 
 #: koassistant_settings_schema.lua:1358
 #, fuzzy
 msgid "Add AI buttons to KOReader's dictionary popup"
-msgstr "사전 팝업의 AI 버튼"
+msgstr "KOReader의 사전 팝업에 AI 버튼을 추가합니다"
 
 #: koassistant_settings_schema.lua:1364
+#, fuzzy
 msgid "File Browser Buttons"
-msgstr ""
+msgstr "파일 브라우저 버튼"
 
 #: koassistant_settings_schema.lua:1369
+#, fuzzy
 msgid "Show Notebook Button"
-msgstr ""
+msgstr "노트북 버튼 표시"
 
 #: koassistant_settings_schema.lua:1382
+#, fuzzy
 msgid "Only show notebook button if notebook already exists."
-msgstr ""
+msgstr "노트북이 이미 존재하는 경우에만 노트북 버튼을 표시합니다."
 
 #: koassistant_settings_schema.lua:1387
 #, fuzzy
 msgid "Show Chat History Button"
-msgstr "대화 기록 옵션"
+msgstr "채팅 기록 버튼 표시"
 
 #: koassistant_settings_schema.lua:1390
+#, fuzzy
 msgid ""
-"Show 'Chat History (KOA)' button when long-pressing books that have chat "
-"history."
-msgstr ""
+"Show 'Chat History (KOA)' button when long-pressing books that have chat history."
+msgstr "채팅 기록이 있는 도서를 길게 누르면 '채팅 기록 (KOA)' 버튼을 표시합니다."
 
 #: koassistant_settings_schema.lua:1398
 #, fuzzy
 msgid "Customize Visible Actions"
-msgstr "사용자 정의 작업 편집"
+msgstr "표시 작업 사용자 지정"
 
 #: koassistant_settings_schema.lua:1403
 #, fuzzy
 msgid "Dictionary Popup Actions..."
-msgstr "사전 팝업 액션"
+msgstr "사전 팝업 작업..."
 
 #: koassistant_settings_schema.lua:1410
 #, fuzzy
 msgid "Highlight Menu Actions..."
-msgstr "하이라이트 메뉴 액션"
+msgstr "하이라이트 메뉴 작업..."
 
 #: koassistant_settings_schema.lua:1424
 #, fuzzy
 msgid "Reset Dictionary Popup Actions"
-msgstr "사전 팝업 액션"
+msgstr "사전 팝업 작업 재설정"
 
 #: koassistant_settings_schema.lua:1426
 #, fuzzy
 msgid "Restore default dictionary popup buttons"
-msgstr "사전 팝업에서 제거되었습니다."
+msgstr "기본 사전 팝업 버튼 복원"
 
 #: koassistant_settings_schema.lua:1432
 #, fuzzy
 msgid "Reset Highlight Menu Actions"
-msgstr "하이라이트 메뉴 액션"
+msgstr "하이라이트 메뉴 작업 재설정"
 
 #: koassistant_settings_schema.lua:1434
 #, fuzzy
 msgid "Restore default highlight menu items"
-msgstr "하이라이트 메뉴에서 제거되었습니다."
+msgstr "기본 하이라이트 메뉴 항목 복원"
 
 #: koassistant_settings_schema.lua:1440
 #, fuzzy
 msgid "Reset All Menu Customizations"
-msgstr "모든 사용자 설정 초기화"
+msgstr "모든 메뉴 사용자 지정 재설정"
 
 #: koassistant_settings_schema.lua:1442
+#, fuzzy
 msgid "Restore all menus to defaults (dictionary popup, highlight menu)"
-msgstr ""
+msgstr "모든 메뉴를 기본값으로 복원 (사전 팝업, 하이라이트 메뉴)"
 
 #: koassistant_settings_schema.lua:1449
 #, fuzzy
 msgid "Startup Behavior"
-msgstr "AI 동작"
+msgstr "시작 동작"
 
 #: koassistant_settings_schema.lua:1454
 #, fuzzy
 msgid "Auto-check for updates"
-msgstr "업데이트 확인"
+msgstr "업데이트 자동 확인"
 
 #: koassistant_settings_schema.lua:1457
+#, fuzzy
 msgid "Automatically check for new versions when KOReader starts."
-msgstr ""
+msgstr "KOReader 시작 시 새 버전을 자동으로 확인합니다."
 
 #: koassistant_settings_schema.lua:1466
 #, fuzzy
@@ -2618,8 +2667,8 @@ msgid ""
 "Higher = creative, varied"
 msgstr ""
 "범위: 0.0-2.0 (Anthropic 최대 1.0)\n"
-"낮을수록 = 집중적, 결정적\n"
-"높을수록 = 창의적, 다양함"
+"낮음 = 집중적, 결정적\n"
+"높음 = 창의적, 다양함"
 
 #: koassistant_settings_schema.lua:1485 koassistant_ui/prompts_manager.lua:710
 #, fuzzy
@@ -2629,19 +2678,23 @@ msgstr "추론"
 #: koassistant_settings_schema.lua:1490
 #, fuzzy
 msgid "Long-press provider for supported models"
-msgstr "지원되는 모델을 보려면 공급자를 길게 누르세요"
+msgstr "지원 모델의 공급자를 길게 누르기"
 
 #: koassistant_settings_schema.lua:1497
+#, fuzzy
 msgid "Enable Anthropic/Gemini Reasoning"
-msgstr ""
+msgstr "Anthropic/Gemini 추론 활성화"
 
 #: koassistant_settings_schema.lua:1498
+#, fuzzy
 msgid ""
 "Enable extended thinking for Anthropic and Gemini.\n"
 "\n"
-"Note: OpenAI reasoning models (o3, gpt-5) always reason internally - this "
-"toggle does not affect them."
+"Note: OpenAI reasoning models (o3, gpt-5) always reason internally - this toggle does not affect them."
 msgstr ""
+"Anthropic 및 Gemini의 확장 사고를 활성화합니다.\n"
+"\n"
+"참고: OpenAI 추론 모델(o3, gpt-5)은 항상 내부적으로 추론합니다 - 이 토글은 영향을 주지 않습니다."
 
 #: koassistant_settings_schema.lua:1507 koassistant_ui/prompts_manager.lua:2121
 #, fuzzy
@@ -2651,8 +2704,10 @@ msgstr "Anthropic 확장 사고"
 #: koassistant_settings_schema.lua:1508 koassistant_settings_schema.lua:1535
 #: koassistant_settings_schema.lua:1574
 #, fuzzy
-msgid "Supported models:\n"
-msgstr "지원되는 모델:\n"
+msgid ""
+"Supported models:\n"
+msgstr ""
+"지원 모델:\n"
 
 #: koassistant_settings_schema.lua:1508
 #, fuzzy
@@ -2671,10 +2726,13 @@ msgid "Thinking Budget (tokens)"
 msgstr "사고 예산 (토큰)"
 
 #: koassistant_settings_schema.lua:1517
+#, fuzzy
 msgid ""
 "Maximum tokens for extended thinking (1024-32000).\n"
 "This is a cap - Claude uses what it needs up to this limit."
 msgstr ""
+"확장 사고를 위한 최대 토큰 (1024-32000).\n"
+"이것은 상한선입니다 - Claude는 이 한도 내에서 필요한 만큼 사용합니다."
 
 #: koassistant_settings_schema.lua:1534 koassistant_ui/prompts_manager.lua:2294
 #, fuzzy
@@ -2744,25 +2802,30 @@ msgstr "높음 (기본값)"
 #: koassistant_settings_schema.lua:1572
 #, fuzzy
 msgid "OpenAI Reasoning Effort: %1"
-msgstr "추론 노력: %1"
+msgstr "OpenAI 추론 노력: %1"
 
 #: koassistant_settings_schema.lua:1574
+#, fuzzy
 msgid ""
 "\n"
 "\n"
 "OpenAI reasoning models always reason internally.\n"
 "This controls the effort level (hidden from user)."
 msgstr ""
+"\n"
+"\n"
+"OpenAI 추론 모델은 항상 내부적으로 추론합니다.\n"
+"이것은 노력 수준을 제어합니다 (사용자에게 숨겨짐)."
 
 #: koassistant_settings_schema.lua:1579
 #, fuzzy
 msgid "Low (faster, cheaper)"
-msgstr "낮음 (빠름, 저렴)"
+msgstr "낮음 (더 빠름, 더 저렴함)"
 
 #: koassistant_settings_schema.lua:1580
 #, fuzzy
 msgid "Medium (default)"
-msgstr "높음 (기본값)"
+msgstr "중간 (기본값)"
 
 #: koassistant_settings_schema.lua:1581
 #, fuzzy
@@ -2772,30 +2835,31 @@ msgstr "높음 (철저함)"
 #: koassistant_settings_schema.lua:1588 koassistant_settings_schema.lua:1630
 #, fuzzy
 msgid "Show Indicator in Chat"
-msgstr "대화에 표시기 표시"
+msgstr "채팅에 표시기 표시"
 
 #: koassistant_settings_schema.lua:1589
 #, fuzzy
 msgid ""
-"Show '*[Reasoning was used]*' indicator in chat when reasoning is requested "
-"or used.\n"
+"Show '*[Reasoning was used]*' indicator in chat when reasoning is requested or used.\n"
 "\n"
 "Full reasoning content is always viewable via 'Show Reasoning' button."
 msgstr ""
-"추론이 요청되거나 사용될 때 대화에 '*[추론이 사용됨]*' 표시기를 표시합니다.\n"
+"추론이 요청되거나 사용될 때 채팅에 '*[추론이 사용됨]*' 표시기를 표시합니다.\n"
 "\n"
 "전체 추론 내용은 항상 '추론 표시' 버튼을 통해 볼 수 있습니다."
 
 #: koassistant_settings_schema.lua:1603
+#, fuzzy
 msgid "Supported: Anthropic, Gemini, OpenRouter"
-msgstr ""
+msgstr "지원: Anthropic, Gemini, OpenRouter"
 
 #: koassistant_settings_schema.lua:1608
 #, fuzzy
 msgid "Enable Web Search"
-msgstr "스트리밍 활성화"
+msgstr "웹 검색 활성화"
 
 #: koassistant_settings_schema.lua:1609
+#, fuzzy
 msgid ""
 "Allow AI to search the web for current information.\n"
 "\n"
@@ -2808,24 +2872,43 @@ msgid ""
 "\n"
 "Increases token usage/cost."
 msgstr ""
+"AI가 최신 정보를 위해 웹을 검색하도록 허용합니다.\n"
+"\n"
+"지원 공급자:\n"
+"• Anthropic (Claude)\n"
+"• Gemini\n"
+"• OpenRouter (모든 모델)\n"
+"\n"
+"다른 공급자는 이 설정을 무시합니다.\n"
+"\n"
+"토큰 사용량/비용이 증가합니다."
 
 #: koassistant_settings_schema.lua:1616
+#, fuzzy
 msgid "Max Searches per Query"
-msgstr ""
+msgstr "쿼리당 최대 검색 수"
 
 #: koassistant_settings_schema.lua:1617
+#, fuzzy
 msgid ""
 "Maximum number of web searches per query (1-10).\n"
 "Applies to Anthropic only.\n"
 "Gemini decides search count automatically."
 msgstr ""
+"쿼리당 최대 웹 검색 수 (1-10).\n"
+"Anthropic에만 적용됩니다.\n"
+"Gemini는 검색 횟수를 자동으로 결정합니다."
 
 #: koassistant_settings_schema.lua:1631
+#, fuzzy
 msgid ""
 "Show '*[Web search was used]*' indicator in chat when web search is used.\n"
 "\n"
 "Streaming indicator ('🔍 Searching...') is always shown."
 msgstr ""
+"웹 검색이 사용될 때 채팅에 '*[웹 검색이 사용됨]*' 표시기를 표시합니다.\n"
+"\n"
+"스트리밍 표시기 ('🔍 검색 중...')는 항상 표시됩니다."
 
 #: koassistant_settings_schema.lua:1641
 #, fuzzy
@@ -2862,27 +2945,27 @@ msgid ""
 "- China: Beijing (dashscope)\n"
 "- US: Virginia (dashscope-us)"
 msgstr ""
-"알리바바 클라우드 지역을 선택하세요.\n"
+"Alibaba Cloud 지역을 선택하세요.\n"
 "\n"
-"API 키는 지역별로 다르며 호환되지 않습니다:\n"
-"- 국제: 싱가포르 (dashscope-intl)\n"
-"- 중국: 베이징 (dashscope)\n"
-"- 미국: 버지니아 (dashscope-us)"
+"API 키는 지역별로 고유하며 상호 교환할 수 없습니다:\n"
+"- International: 싱가포르 (dashscope-intl)\n"
+"- China: 베이징 (dashscope)\n"
+"- US: 버지니아 (dashscope-us)"
 
 #: koassistant_settings_schema.lua:1660
 #, fuzzy
 msgid "International (Singapore)"
-msgstr "국제 (싱가포르)"
+msgstr "International (싱가포르)"
 
 #: koassistant_settings_schema.lua:1661
 #, fuzzy
 msgid "China (Beijing)"
-msgstr "중국 (베이징)"
+msgstr "China (베이징)"
 
 #: koassistant_settings_schema.lua:1662
 #, fuzzy
 msgid "US (Virginia)"
-msgstr "미국 (버지니아)"
+msgstr "US (버지니아)"
 
 #: koassistant_settings_schema.lua:1670
 #, fuzzy
@@ -2897,12 +2980,12 @@ msgstr "콘솔/터미널 디버그 로깅 활성화 (개발자용)"
 #: koassistant_settings_schema.lua:1678
 #, fuzzy
 msgid "Show Debug in Chat"
-msgstr "대화에 디버그 표시"
+msgstr "채팅에 디버그 표시"
 
 #: koassistant_settings_schema.lua:1679
 #, fuzzy
 msgid "Display debug information in chat viewer"
-msgstr "대화 뷰어에 디버그 정보 표시"
+msgstr "채팅 뷰어에 디버그 정보 표시"
 
 #: koassistant_settings_schema.lua:1689
 #, fuzzy
@@ -2935,14 +3018,15 @@ msgid "Full (system blocks)"
 msgstr "전체 (시스템 블록)"
 
 #: koassistant_settings_schema.lua:1705
+#, fuzzy
 msgid "Truncate Large Content (debug)"
-msgstr ""
+msgstr "긴 콘텐츠 자르기 (디버그)"
 
 #: koassistant_settings_schema.lua:1706
+#, fuzzy
 msgid ""
-"Truncate long content (book text, cached responses) in debug output. Shows "
-"first and last ~1500 characters with truncation notice."
-msgstr ""
+"Truncate long content (book text, cached responses) in debug output. Shows first and last ~1500 characters with truncation notice."
+msgstr "디버그 출력에서 긴 콘텐츠(책 텍스트, 캐시된 응답)를 자릅니다. 잘림 알림과 함께 처음과 마지막 ~1500자를 표시합니다."
 
 #: koassistant_settings_schema.lua:1715
 #, fuzzy
@@ -2962,7 +3046,7 @@ msgstr "백업 생성"
 #: koassistant_settings_schema.lua:1729
 #, fuzzy
 msgid "Create a backup of your settings, API keys, and custom content."
-msgstr "설정, API 키, 사용자 지정 콘텐츠의 백업을 생성합니다."
+msgstr "설정, API 키 및 사용자 정의 콘텐츠의 백업을 생성합니다."
 
 #: koassistant_settings_schema.lua:1735
 #, fuzzy
@@ -2997,9 +3081,10 @@ msgstr "설정 초기화..."
 #: koassistant_settings_schema.lua:1764
 #, fuzzy
 msgid "Quick: Settings only"
-msgstr "AI 빠른 설정"
+msgstr "빠른 초기화: 설정만"
 
 #: koassistant_settings_schema.lua:1765
+#, fuzzy
 msgid ""
 "Resets ALL settings in this menu to defaults:\n"
 "• Provider, model, temperature\n"
@@ -3008,11 +3093,19 @@ msgid ""
 "• Reasoning & debug settings\n"
 "• Language preferences\n"
 "\n"
-"Keeps: API keys, all actions, custom behaviors/domains, custom providers/"
-"models, gesture registrations, chat history."
+"Keeps: API keys, all actions, custom behaviors/domains, custom providers/models, gesture registrations, chat history."
 msgstr ""
+"이 메뉴의 모든 설정을 기본값으로 초기화합니다:\n"
+"• 제공자, 모델, temperature\n"
+"• 스트리밍, 표시, 내보내기 설정\n"
+"• 사전 및 번역 설정\n"
+"• 추론 및 디버그 설정\n"
+"• 언어 기본 설정\n"
+"\n"
+"유지됨: API 키, 모든 액션, 사용자 정의 동작/도메인, 사용자 정의 제공자/모델, 제스처 등록, 채팅 기록."
 
 #: koassistant_settings_schema.lua:1767
+#, fuzzy
 msgid ""
 "Reset all settings to defaults?\n"
 "\n"
@@ -3023,15 +3116,26 @@ msgid ""
 "• Reasoning & debug settings\n"
 "• Language preferences\n"
 "\n"
-"Keeps: API keys, all actions, custom behaviors/domains, custom providers/"
-"models, gesture registrations, chat history."
+"Keeps: API keys, all actions, custom behaviors/domains, custom providers/models, gesture registrations, chat history."
 msgstr ""
+"모든 설정을 기본값으로 초기화하시겠습니까?\n"
+"\n"
+"설정 메뉴의 모든 설정을 초기화합니다:\n"
+"• 제공자, 모델, temperature\n"
+"• 스트리밍, 표시, 내보내기 설정\n"
+"• 사전 및 번역 설정\n"
+"• 추론 및 디버그 설정\n"
+"• 언어 기본 설정\n"
+"\n"
+"유지됨: API 키, 모든 액션, 사용자 정의 동작/도메인, 사용자 정의 제공자/모델, 제스처 등록, 채팅 기록."
 
 #: koassistant_settings_schema.lua:1774
+#, fuzzy
 msgid "Quick: Actions only"
-msgstr ""
+msgstr "빠른 초기화: 액션만"
 
 #: koassistant_settings_schema.lua:1775
+#, fuzzy
 msgid ""
 "Resets all action-related settings:\n"
 "• Custom actions you created\n"
@@ -3040,11 +3144,19 @@ msgid ""
 "• Highlight menu order & dismissed items\n"
 "• Dictionary menu order & dismissed items\n"
 "\n"
-"Keeps: All settings, API keys, custom behaviors/domains, custom providers/"
-"models, gesture registrations, chat history."
+"Keeps: All settings, API keys, custom behaviors/domains, custom providers/models, gesture registrations, chat history."
 msgstr ""
+"모든 액션 관련 설정을 초기화합니다:\n"
+"• 생성한 사용자 정의 액션\n"
+"• 기본 액션 편집 내용\n"
+"• 비활성화된 액션 (모두 다시 활성화)\n"
+"• 하이라이트 메뉴 순서 및 숨긴 항목\n"
+"• 사전 메뉴 순서 및 숨긴 항목\n"
+"\n"
+"유지됨: 모든 설정, API 키, 사용자 정의 동작/도메인, 사용자 정의 제공자/모델, 제스처 등록, 채팅 기록."
 
 #: koassistant_settings_schema.lua:1777
+#, fuzzy
 msgid ""
 "Reset all action settings?\n"
 "\n"
@@ -3055,15 +3167,26 @@ msgid ""
 "• Highlight menu order & dismissed items\n"
 "• Dictionary menu order & dismissed items\n"
 "\n"
-"Keeps: All settings, API keys, custom behaviors/domains, custom providers/"
-"models, gesture registrations, chat history."
+"Keeps: All settings, API keys, custom behaviors/domains, custom providers/models, gesture registrations, chat history."
 msgstr ""
+"모든 액션 설정을 초기화하시겠습니까?\n"
+"\n"
+"초기화됨:\n"
+"• 생성한 사용자 정의 액션\n"
+"• 기본 액션 편집 내용\n"
+"• 비활성화된 액션 (모두 다시 활성화)\n"
+"• 하이라이트 메뉴 순서 및 숨긴 항목\n"
+"• 사전 메뉴 순서 및 숨긴 항목\n"
+"\n"
+"유지됨: 모든 설정, API 키, 사용자 정의 동작/도메인, 사용자 정의 제공자/모델, 제스처 등록, 채팅 기록."
 
 #: koassistant_settings_schema.lua:1784
+#, fuzzy
 msgid "Quick: Fresh start"
-msgstr ""
+msgstr "빠른 초기화: 처음부터"
 
 #: koassistant_settings_schema.lua:1785
+#, fuzzy
 msgid ""
 "Resets everything except API keys and chat history:\n"
 "• All settings (provider, model, temperature, all toggles)\n"
@@ -3073,8 +3196,16 @@ msgid ""
 "\n"
 "Keeps: API keys, gesture registrations, chat history only."
 msgstr ""
+"API 키와 채팅 기록을 제외한 모든 것을 초기화합니다:\n"
+"• 모든 설정 (제공자, 모델, temperature, 모든 토글)\n"
+"• 모든 액션 (사용자 정의, 편집, 메뉴)\n"
+"• 사용자 정의 동작 및 도메인\n"
+"• 사용자 정의 제공자 및 모델\n"
+"\n"
+"유지됨: API 키, 제스처 등록, 채팅 기록만."
 
 #: koassistant_settings_schema.lua:1787
+#, fuzzy
 msgid ""
 "Fresh start?\n"
 "\n"
@@ -3086,13 +3217,23 @@ msgid ""
 "\n"
 "Keeps: API keys, gesture registrations, chat history only."
 msgstr ""
+"처음부터 시작하시겠습니까?\n"
+"\n"
+"초기화됨:\n"
+"• 모든 설정 (제공자, 모델, temperature, 모든 토글)\n"
+"• 모든 액션 (사용자 정의, 편집, 메뉴)\n"
+"• 사용자 정의 동작 및 도메인\n"
+"• 사용자 정의 제공자 및 모델\n"
+"\n"
+"유지됨: API 키, 제스처 등록, 채팅 기록만."
 
 #: koassistant_settings_schema.lua:1795
 #, fuzzy
 msgid "Custom reset..."
-msgstr "사용자 지정..."
+msgstr "사용자 정의 초기화..."
 
 #: koassistant_settings_schema.lua:1796
+#, fuzzy
 msgid ""
 "Opens a checklist to choose exactly what to reset:\n"
 "• Settings (all toggles and preferences)\n"
@@ -3103,6 +3244,14 @@ msgid ""
 "• Behaviors & domains\n"
 "• API keys (with warning)"
 msgstr ""
+"정확히 무엇을 초기화할지 선택할 수 있는 체크리스트를 엽니다:\n"
+"• 설정 (모든 토글 및 기본 설정)\n"
+"• 사용자 정의 액션\n"
+"• 액션 편집\n"
+"• 액션 메뉴\n"
+"• 사용자 정의 제공자 및 모델\n"
+"• 동작 및 도메인\n"
+"• API 키 (경고 포함)"
 
 #: koassistant_settings_schema.lua:1804
 #, fuzzy
@@ -3127,7 +3276,7 @@ msgstr ""
 "\n"
 "모든 책의 저장된 대화가 제거됩니다.\n"
 "\n"
-"이 작업은 되돌릴 수 없습니다."
+"이 작업은 취소할 수 없습니다."
 
 #: koassistant_settings_schema.lua:1819
 #, fuzzy
@@ -3137,7 +3286,7 @@ msgstr "KOAssistant 정보"
 #: koassistant_settings_schema.lua:1825
 #, fuzzy
 msgid "Auto-check for updates on startup"
-msgstr "업데이트 확인"
+msgstr "시작 시 자동으로 업데이트 확인"
 
 #: koassistant_settings_schema.lua:1832
 #, fuzzy
@@ -3147,42 +3296,49 @@ msgstr "업데이트 확인"
 #: koassistant_update_checker.lua:580
 #, fuzzy
 msgid "Translating to %1..."
-msgstr "번역 대상: %1"
+msgstr "%1(으)로 번역 중..."
 
 #: koassistant_update_checker.lua:590
+#, fuzzy
 msgid ""
 "Translate the following release notes to %1. Preserve markdown formatting:\n"
 "\n"
 "%2"
 msgstr ""
+"다음 릴리스 노트를 %1(으)로 번역하세요. 마크다운 형식을 유지하세요:\n"
+"\n"
+"%2"
 
 #: koassistant_update_checker.lua:609 koassistant_update_checker.lua:687
 #: main.lua:7518
+#, fuzzy
 msgid "Later"
-msgstr ""
+msgstr "나중에"
 
 #: koassistant_update_checker.lua:615 koassistant_update_checker.lua:693
+#, fuzzy
 msgid "Visit Release Page"
-msgstr ""
+msgstr "릴리스 페이지 방문"
 
 #: koassistant_update_checker.lua:622 koassistant_update_checker.lua:700
+#, fuzzy
 msgid "Please visit:"
-msgstr ""
+msgstr "다음을 방문하세요:"
 
 #: koassistant_update_checker.lua:633
 #, fuzzy
 msgid "Original"
-msgstr "원본 표시"
+msgstr "원본"
 
 #: koassistant_update_checker.lua:644
 #, fuzzy
 msgid "%1 (Translated)"
-msgstr "번역"
+msgstr "%1 (번역됨)"
 
 #: koassistant_update_checker.lua:656
 #, fuzzy
 msgid "Translation failed: %1"
-msgstr "번역 대상: %1"
+msgstr "번역 실패: %1"
 
 #: koassistant_update_checker.lua:656 main.lua:6932 main.lua:7307 main.lua:7447
 #, fuzzy
@@ -3197,32 +3353,34 @@ msgid "Translate"
 msgstr "번역"
 
 #: main.lua:272
+#, fuzzy
 msgid "Notebook (KOA)"
-msgstr ""
+msgstr "노트북 (KOA)"
 
 #: main.lua:296
 #, fuzzy
 msgid "Chat History (KOA)"
-msgstr "대화 기록"
+msgstr "대화 기록 (KOA)"
 
 #: main.lua:313
+#, fuzzy
 msgid "View Summary (KOA)"
-msgstr ""
+msgstr "요약 보기 (KOA)"
 
 #: main.lua:371 main.lua:807
 #, fuzzy
 msgid "Compare with KOAssistant"
-msgstr "KOAssistant로 비교"
+msgstr "KOAssistant와 비교"
 
 #: main.lua:662 main.lua:831
 #, fuzzy
 msgid "No files selected for comparison"
-msgstr "비교할 파일이 선택되지 않음"
+msgstr "비교할 파일이 선택되지 않았습니다"
 
 #: main.lua:745
 #, fuzzy
 msgid "Please select at least 2 books to compare"
-msgstr "비교할 책을 최소 2권 선택하세요"
+msgstr "비교하려면 최소 2권의 책을 선택하세요"
 
 #: main.lua:851
 #, fuzzy
@@ -3232,12 +3390,12 @@ msgstr "KOAssistant: 대화 기록"
 #: main.lua:859
 #, fuzzy
 msgid "KOAssistant: Continue Last Saved Chat"
-msgstr "KOAssistant: 마지막 저장된 대화 계속"
+msgstr "KOAssistant: 마지막 저장된 대화 계속하기"
 
 #: main.lua:867
 #, fuzzy
 msgid "KOAssistant: Continue Last Opened Chat"
-msgstr "KOAssistant: 마지막 열린 대화 계속"
+msgstr "KOAssistant: 마지막 열린 대화 계속하기"
 
 #: main.lua:876
 #, fuzzy
@@ -3247,17 +3405,17 @@ msgstr "KOAssistant: 설정"
 #: main.lua:884
 #, fuzzy
 msgid "KOAssistant: General Chat/Action"
-msgstr "KOAssistant: 일반 대화"
+msgstr "KOAssistant: 일반 대화/작업"
 
 #: main.lua:892
 #, fuzzy
 msgid "KOAssistant: New Book Chat/Action"
-msgstr "KOAssistant 작업"
+msgstr "KOAssistant: 새 책 대화/작업"
 
 #: main.lua:908
 #, fuzzy
 msgid "KOAssistant: %1"
-msgstr "KOAssistant"
+msgstr "KOAssistant: %1"
 
 #: main.lua:918
 #, fuzzy
@@ -3282,27 +3440,27 @@ msgstr "KOAssistant: 모델 변경"
 #: main.lua:946
 #, fuzzy
 msgid "KOAssistant: Change AI Behavior"
-msgstr "KOAssistant: AI 행동 양식 변경"
+msgstr "KOAssistant: AI 동작 변경"
 
 #: main.lua:953
 #, fuzzy
 msgid "KOAssistant: Quick Settings"
-msgstr "KOAssistant: AI 빠른 설정"
+msgstr "KOAssistant: 빠른 설정"
 
 #: main.lua:961
 #, fuzzy
 msgid "KOAssistant: Quick Actions"
-msgstr "KOAssistant 작업"
+msgstr "KOAssistant: 빠른 작업"
 
 #: main.lua:969
 #, fuzzy
 msgid "KOAssistant: Action Manager"
-msgstr "KOAssistant: 액션 관리자"
+msgstr "KOAssistant: 작업 관리자"
 
 #: main.lua:976
 #, fuzzy
 msgid "KOAssistant: Behavior Manager"
-msgstr "KOAssistant: 행동 양식 관리자"
+msgstr "KOAssistant: 동작 관리자"
 
 #: main.lua:983
 #, fuzzy
@@ -3342,32 +3500,32 @@ msgstr "KOAssistant: 현재 페이지 번역"
 #: main.lua:1039
 #, fuzzy
 msgid "KOAssistant: View Notebook"
-msgstr "KOAssistant: 책에 대한 대화"
+msgstr "KOAssistant: 노트북 보기"
 
 #: main.lua:1048
 #, fuzzy
 msgid "KOAssistant: Edit Notebook"
-msgstr "KOAssistant: 책에 대한 대화"
+msgstr "KOAssistant: 노트북 편집"
 
 #: main.lua:1057
 #, fuzzy
 msgid "KOAssistant: Browse Notebooks"
-msgstr "KOAssistant: 책에 대한 대화"
+msgstr "KOAssistant: 노트북 탐색"
 
 #: main.lua:1066
 #, fuzzy
 msgid "KOAssistant: View Summary"
-msgstr "KOAssistant: X-Ray"
+msgstr "KOAssistant: 요약 보기"
 
 #: main.lua:1091
 #, fuzzy
 msgid "KOAssistant: "
-msgstr "KOAssistant"
+msgstr "KOAssistant:"
 
 #: main.lua:1211
 #, fuzzy
 msgid "Custom (migrated)"
-msgstr "사용자 지정 (마이그레이션됨)"
+msgstr "사용자 정의 (마이그레이션됨)"
 
 #: main.lua:1391
 #, fuzzy
@@ -3392,12 +3550,12 @@ msgstr "이 이름의 제공자가 이미 존재합니다"
 #: main.lua:1782
 #, fuzzy
 msgid "Add custom provider..."
-msgstr "사용자 지정 제공자 추가..."
+msgstr "사용자 정의 제공자 추가..."
 
 #: main.lua:1792
 #, fuzzy
 msgid "Manage custom providers (%1)..."
-msgstr "사용자 지정 제공자 관리 (%1)..."
+msgstr "사용자 정의 제공자 관리 (%1)..."
 
 #: main.lua:1813
 #, fuzzy
@@ -3407,7 +3565,7 @@ msgstr "API 키: 필수 [탭하여 전환]"
 #: main.lua:1815
 #, fuzzy
 msgid "API key: Not required [tap to toggle]"
-msgstr "API 키: 필요 없음 [탭하여 전환]"
+msgstr "API 키: 불필요 [탭하여 전환]"
 
 #: main.lua:1820
 #, fuzzy
@@ -3422,7 +3580,7 @@ msgstr "필수"
 #: main.lua:1834
 #, fuzzy
 msgid "not required"
-msgstr "필요 없음"
+msgstr "필요하지 않음"
 
 #: main.lua:1836
 #, fuzzy
@@ -3441,9 +3599,9 @@ msgid ""
 "\n"
 "This will also remove any custom models and API key for this provider."
 msgstr ""
-"사용자 지정 제공자 '%1'을(를) 제거하시겠습니까?\n"
+"사용자 정의 제공자 '%1'을(를) 제거하시겠습니까?\n"
 "\n"
-"이 제공자의 사용자 지정 모델과 API 키도 함께 제거됩니다."
+"이 제공자의 사용자 정의 모델과 API 키도 함께 제거됩니다."
 
 #: main.lua:1850 main.lua:2189 main.lua:2422
 #, fuzzy
@@ -3453,7 +3611,7 @@ msgstr "제거됨: %1"
 #: main.lua:1878
 #, fuzzy
 msgid "Add Custom Provider"
-msgstr "사용자 지정 제공자 추가"
+msgstr "사용자 정의 제공자 추가"
 
 #: main.lua:1882
 #, fuzzy
@@ -3468,7 +3626,7 @@ msgstr "기본 URL (예: http://localhost:1234/v1/chat/completions)"
 #: main.lua:1890 main.lua:1956
 #, fuzzy
 msgid "Default model name (optional)"
-msgstr "기본 모델 이름 (선택사항)"
+msgstr "기본 모델 이름 (선택 사항)"
 
 #: main.lua:1920
 #, fuzzy
@@ -3499,7 +3657,7 @@ msgstr "업데이트됨: %1"
 #: main.lua:2019
 #, fuzzy
 msgid "No custom providers to manage"
-msgstr "관리할 사용자 지정 제공자가 없습니다"
+msgstr "관리할 사용자 정의 제공자 없음"
 
 #: main.lua:2048
 #, fuzzy
@@ -3513,19 +3671,19 @@ msgid ""
 "\n"
 "This will also remove their custom models and API keys."
 msgstr ""
-"사용자 지정 제공자 %1개를 모두 제거하시겠습니까?\n"
+"%1개의 사용자 정의 제공자를 모두 제거하시겠습니까?\n"
 "\n"
-"사용자 지정 모델과 API 키도 함께 제거됩니다."
+"사용자 정의 모델과 API 키도 함께 제거됩니다."
 
 #: main.lua:2081
 #, fuzzy
 msgid "All custom providers removed"
-msgstr "모든 사용자 지정 제공자가 제거됨"
+msgstr "모든 사용자 정의 제공자 제거됨"
 
 #: main.lua:2097
 #, fuzzy
 msgid "Manage Custom Providers"
-msgstr "사용자 지정 제공자 관리"
+msgstr "사용자 정의 제공자 관리"
 
 #: main.lua:2150
 #, fuzzy
@@ -3540,22 +3698,22 @@ msgstr "%1의 기본값: %2"
 #: main.lua:2165
 #, fuzzy
 msgid "Clear custom default"
-msgstr "사용자 지정 기본값 지우기"
+msgstr "사용자 정의 기본값 지우기"
 
 #: main.lua:2170
 #, fuzzy
 msgid "Cleared custom default for %1"
-msgstr "%1의 사용자 지정 기본값 지워짐"
+msgstr "%1의 사용자 정의 기본값 지워짐"
 
 #: main.lua:2180
 #, fuzzy
 msgid "Remove custom model"
-msgstr "사용자 지정 모델 제거"
+msgstr "사용자 정의 모델 제거"
 
 #: main.lua:2185 main.lua:2418
 #, fuzzy
 msgid "Remove custom model '%1'?"
-msgstr "사용자 지정 모델 '%1'을(를) 제거하시겠습니까?"
+msgstr "사용자 정의 모델 '%1'을(를) 제거하시겠습니까?"
 
 #: main.lua:2228 main.lua:2234 main.lua:3175
 #, fuzzy
@@ -3565,7 +3723,7 @@ msgstr "(기본값)"
 #: main.lua:2231
 #, fuzzy
 msgid "(your default)"
-msgstr "(사용자 지정 기본값)"
+msgstr "(사용자 기본값)"
 
 #: main.lua:2237
 #, fuzzy
@@ -3575,17 +3733,17 @@ msgstr "(시스템 기본값)"
 #: main.lua:2246
 #, fuzzy
 msgid "Hold to manage. ★ = custom"
-msgstr "길게 눌러 관리. ★ = 사용자 지정"
+msgstr "길게 눌러서 관리. ★ = 사용자 정의"
 
 #: main.lua:2309
 #, fuzzy
 msgid "Add custom model..."
-msgstr "사용자 지정 모델 추가..."
+msgstr "사용자 정의 모델 추가..."
 
 #: main.lua:2317
 #, fuzzy
 msgid "Add Custom Model"
-msgstr "사용자 지정 모델 추가"
+msgstr "사용자 정의 모델 추가"
 
 #: main.lua:2319
 #, fuzzy
@@ -3610,17 +3768,17 @@ msgstr "모델 추가 실패"
 #: main.lua:2370
 #, fuzzy
 msgid "Manage custom models (%1)..."
-msgstr "사용자 지정 모델 관리 (%1)..."
+msgstr "사용자 정의 모델 관리 (%1)..."
 
 #: main.lua:2385
 #, fuzzy
 msgid "No predefined models"
-msgstr "사전 정의된 모델 없음"
+msgstr "미리 정의된 모델 없음"
 
 #: main.lua:2400
 #, fuzzy
 msgid "No custom models to manage"
-msgstr "관리할 사용자 지정 모델이 없습니다"
+msgstr "관리할 사용자 정의 모델 없음"
 
 #: main.lua:2414
 #, fuzzy
@@ -3630,22 +3788,22 @@ msgstr "제거: %1"
 #: main.lua:2433
 #, fuzzy
 msgid "Clear all custom models"
-msgstr "모든 사용자 지정 모델 지우기"
+msgstr "모든 사용자 정의 모델 지우기"
 
 #: main.lua:2437
 #, fuzzy
 msgid "Remove all %1 custom model(s) for %2?"
-msgstr "%2의 사용자 지정 모델 %1개를 모두 제거하시겠습니까?"
+msgstr "%2의 사용자 정의 모델 %1개를 모두 제거하시겠습니까?"
 
 #: main.lua:2458
 #, fuzzy
 msgid "All custom models cleared"
-msgstr "모든 사용자 지정 모델이 지워짐"
+msgstr "모든 사용자 정의 모델 지워짐"
 
 #: main.lua:2475
 #, fuzzy
 msgid "Custom Models for %1"
-msgstr "%1의 사용자 지정 모델"
+msgstr "%1의 사용자 정의 모델"
 
 #: main.lua:2622
 #, fuzzy
@@ -3660,7 +3818,7 @@ msgstr "apikeys.lua의 키 사용 중"
 #: main.lua:2626
 #, fuzzy
 msgid "Optional - leave empty for local servers"
-msgstr "선택사항 - 로컬 서버의 경우 비워 두세요"
+msgstr "선택 사항 - 로컬 서버의 경우 비워두기"
 
 #: main.lua:2628
 #, fuzzy
@@ -3690,38 +3848,42 @@ msgstr "%1 API 키 저장됨"
 #: main.lua:2679
 #, fuzzy
 msgid "%1 API key saved. %1 selected as provider."
-msgstr "먼저 제공자를 선택하세요"
+msgstr "%1 API 키 저장됨. %1이(가) 제공업체로 선택됨."
 
 #: main.lua:2790
 #, fuzzy
 msgid "Add Custom Language"
-msgstr "사용자 지정 모델 추가"
+msgstr "사용자 정의 언어 추가"
 
 #: main.lua:2792
+#, fuzzy
 msgid "e.g., Esperanto, Swahili"
-msgstr ""
+msgstr "예: 에스페란토, 스와힐리어"
 
 #: main.lua:2793
 #, fuzzy
 msgid "Enter a language name to add."
-msgstr "번역 대상 언어를 입력하세요."
+msgstr "추가할 언어 이름을 입력하세요."
 
 #: main.lua:2841
+#, fuzzy
 msgid "'%1' is already added"
-msgstr ""
+msgstr "'%1'은(는) 이미 추가됨"
 
 #: main.lua:2865
+#, fuzzy
 msgid "Languages you speak. Guides AI responses."
-msgstr ""
+msgstr "사용 가능한 언어. AI 응답을 안내합니다."
 
 #: main.lua:2871 main.lua:3004
 #, fuzzy
 msgid "Add Custom Language..."
-msgstr "사용자 지정 모델 추가..."
+msgstr "사용자 정의 언어 추가..."
 
 #: main.lua:2998
+#, fuzzy
 msgid "For translation/dictionary targets only."
-msgstr ""
+msgstr "번역/사전 대상 전용."
 
 #: main.lua:3144 main.lua:3161
 #, fuzzy
@@ -3731,7 +3893,7 @@ msgstr "먼저 언어를 설정하세요"
 #: main.lua:3192
 #, fuzzy
 msgid "Primary: %1"
-msgstr "기본: %1"
+msgstr "기본 언어: %1"
 
 #: main.lua:3212
 #, fuzzy
@@ -3747,12 +3909,12 @@ msgstr "번역: %1"
 #: koassistant_ui/prompts_manager.lua:2826
 #, fuzzy
 msgid "Custom..."
-msgstr "사용자 지정..."
+msgstr "사용자 정의..."
 
 #: main.lua:3290
 #, fuzzy
 msgid "Custom Translation Language"
-msgstr "사용자 지정 번역 언어"
+msgstr "사용자 정의 번역 언어"
 
 #: main.lua:3292
 #, fuzzy
@@ -3772,22 +3934,22 @@ msgstr "(빠른 선택을 위해 언어를 설정하세요)"
 #: main.lua:3343 main.lua:5396
 #, fuzzy
 msgid "Follow Translation Language"
-msgstr "번역 언어 따라가기"
+msgstr "번역 언어 따르기"
 
 #: main.lua:3356
 #, fuzzy
 msgid "Dictionary: Follow Translation"
-msgstr "사전: 번역 언어 따라가기"
+msgstr "사전: 번역 언어 따름"
 
 #: main.lua:3364 main.lua:5413
 #, fuzzy
 msgid "Follow Primary Language"
-msgstr "기본 언어 따라가기"
+msgstr "기본 언어 따르기"
 
 #: main.lua:3376
 #, fuzzy
 msgid "Dictionary: Follow Primary"
-msgstr "사전: 기본 언어 따라가기"
+msgstr "사전: 기본 언어 따름"
 
 #: main.lua:3402 main.lua:4649
 #, fuzzy
@@ -3802,12 +3964,12 @@ msgstr "단어가 포함된 전체 문장 추출"
 #: main.lua:3419
 #, fuzzy
 msgid "Include more surrounding context"
-msgstr "더 많은 주변 문맥 포함"
+msgstr "주변 문맥 더 포함"
 
 #: main.lua:3420
 #, fuzzy
 msgid "Fixed number of characters before/after"
-msgstr "앞뒤로 고정된 문자 수"
+msgstr "전후 고정 문자 수"
 
 #: main.lua:3421
 #, fuzzy
@@ -3832,99 +3994,111 @@ msgstr "사용자 정의 AI 동작 지침 입력..."
 #: main.lua:3463
 #, fuzzy
 msgid ""
-"Define how the AI should behave. This replaces the built-in Minimal/Full "
-"behavior when 'Custom' is selected.\n"
+"Define how the AI should behave. This replaces the built-in Minimal/Full behavior when 'Custom' is selected.\n"
 "\n"
 "Tip: Start with the Full behavior as a template."
 msgstr ""
-"AI가 어떻게 동작해야 하는지 정의합니다. '사용자 정의'를 선택하면 내장된 간결/"
-"상세 동작을 대체합니다.\n"
+"AI 동작 방식을 정의합니다. '사용자 정의' 선택 시 기본 제공되는 최소/전체 동작을 대체합니다.\n"
 "\n"
-"팁: 상세 동작을 템플릿으로 시작하세요."
+"팁: 전체 동작을 템플릿으로 시작하세요."
 
 #: main.lua:3478
 #, fuzzy
 msgid "Load Full"
-msgstr "상세 불러오기"
+msgstr "전체 불러오기"
 
 #: main.lua:3534
 #, fuzzy
 msgid ""
-"Model lists are now managed through the model_lists.lua file. Please edit "
-"this file to add or remove models."
-msgstr ""
-"모델 목록은 이제 model_lists.lua 파일을 통해 관리됩니다. 모델을 추가하거나 제"
-"거하려면 이 파일을 편집하세요."
+"Model lists are now managed through the model_lists.lua file. Please edit this file to add or remove models."
+msgstr "모델 목록은 이제 model_lists.lua 파일을 통해 관리됩니다. 모델을 추가하거나 제거하려면 이 파일을 편집하세요."
 
 #: main.lua:3763
 #, fuzzy
 msgid "No previously opened chat found"
-msgstr "이전에 열었던 대화를 찾을 수 없습니다"
+msgstr "이전에 열린 대화를 찾을 수 없음"
 
 #: main.lua:3780 main.lua:6011
 #, fuzzy
 msgid "Configuration not found. Please set up configuration.lua first."
-msgstr "설정을 찾을 수 없습니다. 먼저 configuration.lua를 설정해 주세요."
+msgstr "구성을 찾을 수 없습니다. 먼저 configuration.lua를 설정하세요."
 
 #: main.lua:3817 main.lua:4117 main.lua:5174 main.lua:5192
 #, fuzzy
 msgid "Please open a book first"
-msgstr "먼저 책을 열어 주세요"
+msgstr "먼저 책을 여세요"
 
 #: main.lua:3854 main.lua:3960 main.lua:4046
 #, fuzzy
 msgid "No book open"
-msgstr "열린 문서가 없습니다"
+msgstr "열린 책 없음"
 
 #: main.lua:3875 main.lua:3985
 #, fuzzy
 msgid "Summary"
-msgstr "요약하기"
+msgstr "요약"
 
 #: main.lua:3883
 #, fuzzy
 msgid "Analysis"
-msgstr "심층 분석"
+msgstr "분석"
 
 #: main.lua:3891
+#, fuzzy
 msgid ""
 "No cached content found for this document.\n"
 "\n"
 "Run X-Ray, Summarize Document, or Analyze Document to create reusable caches."
 msgstr ""
+"이 문서에 대한 캐시된 콘텐츠를 찾을 수 없음.\n"
+"\n"
+"재사용 가능한 캐시를 생성하려면 X-Ray, 문서 요약 또는 문서 분석을 실행하세요."
 
 #: main.lua:3921
 #, fuzzy
 msgid "View Cache"
-msgstr "백업 보기"
+msgstr "캐시 보기"
 
 #: main.lua:3971
+#, fuzzy
 msgid ""
 "No summary cached.\n"
 "\n"
 "Use Quick Actions → Generate Summary to create one."
 msgstr ""
+"캐시된 요약 없음.\n"
+"\n"
+"빠른 작업 → 요약 생성을 사용하여 생성하세요."
 
 #: main.lua:4021
 #, fuzzy
 msgid "Summary deleted"
-msgstr "대화가 삭제되었습니다"
+msgstr "요약 삭제됨"
 
 #: main.lua:4057
+#, fuzzy
 msgid ""
 "Summary already cached.\n"
 "\n"
 "Use View Summary to see it."
 msgstr ""
+"요약이 이미 캐시됨.\n"
+"\n"
+"요약 보기를 사용하여 확인하세요."
 
 #: main.lua:4066
+#, fuzzy
 msgid ""
 "Text extraction is required to generate a summary.\n"
 "\n"
 "Enable it in Settings → Privacy & Data → Text Extraction."
 msgstr ""
+"요약을 생성하려면 텍스트 추출이 필요함.\n"
+"\n"
+"설정 → 개인정보 및 데이터 → 텍스트 추출에서 활성화하세요."
 
 #: main.lua:4104
+#, fuzzy
 msgid ""
 "Generate a reusable document summary?\n"
 "\n"
@@ -3933,15 +4107,22 @@ msgid ""
 "• Save the summary for future use\n"
 "• Enable Smart actions for this book"
 msgstr ""
+"재사용 가능한 문서 요약을 생성하시겠습니까?\n"
+"\n"
+"다음을 수행합니다:\n"
+"• 책 텍스트를 추출하여 AI로 전송\n"
+"• 향후 사용을 위해 요약 저장\n"
+"• 이 책에 대한 스마트 작업 활성화"
 
 #: main.lua:4127 main.lua:4202
 #, fuzzy
 msgid "Action '%1' not found"
-msgstr "동작 '%1'을(를) 찾을 수 없습니다"
+msgstr "작업 '%1'을(를) 찾을 수 없음"
 
 #: main.lua:4185
+#, fuzzy
 msgid "Unknown action context: %1"
-msgstr ""
+msgstr "알 수 없는 작업 컨텍스트: %1"
 
 #: main.lua:4348 main.lua:4628
 #, fuzzy
@@ -3982,20 +4163,22 @@ msgstr "온도: %1"
 #: main.lua:4589
 #, fuzzy
 msgid "Extended Thinking: ON"
-msgstr "Anthropic 확장 사고"
+msgstr "확장 사고: 켜짐"
 
 #: main.lua:4589
 #, fuzzy
 msgid "Extended Thinking: OFF"
-msgstr "Anthropic 확장 사고"
+msgstr "확장 사고: 꺼짐"
 
 #: main.lua:4606
+#, fuzzy
 msgid "Web Search: ON"
-msgstr ""
+msgstr "웹 검색: 켜짐"
 
 #: main.lua:4606
+#, fuzzy
 msgid "Web Search: OFF"
-msgstr ""
+msgstr "웹 검색: 꺼짐"
 
 #: main.lua:4623
 #, fuzzy
@@ -4005,27 +4188,27 @@ msgstr "언어: %1"
 #: main.lua:4662
 #, fuzzy
 msgid "H.Bypass: ON"
-msgstr "하이라이트 우회: 켜짐"
+msgstr "H.우회: 켜짐"
 
 #: main.lua:4662
 #, fuzzy
 msgid "H.Bypass: OFF"
-msgstr "하이라이트 우회: 꺼짐"
+msgstr "H.우회: 꺼짐"
 
 #: main.lua:4679
 #, fuzzy
 msgid "D.Bypass: ON"
-msgstr "사전 우회: 켜짐"
+msgstr "D.우회: 켜짐"
 
 #: main.lua:4679
 #, fuzzy
 msgid "D.Bypass: OFF"
-msgstr "사전 우회: 꺼짐"
+msgstr "D.우회: 꺼짐"
 
 #: main.lua:4756
 #, fuzzy
 msgid "Quick Actions..."
-msgstr "액션 초기화..."
+msgstr "빠른 작업..."
 
 #: main.lua:4768
 #, fuzzy
@@ -4033,8 +4216,9 @@ msgid "More Settings..."
 msgstr "추가 설정..."
 
 #: main.lua:4824
+#, fuzzy
 msgid "Quick Actions is only available while reading a book."
-msgstr ""
+msgstr "빠른 작업은 책을 읽는 중에만 사용할 수 있습니다."
 
 #: main.lua:4934
 #, fuzzy
@@ -4043,8 +4227,10 @@ msgstr "연결 테스트 중..."
 
 #: main.lua:4962
 #, fuzzy
-msgid "Connection test failed:\n"
-msgstr "연결 테스트 실패:\n"
+msgid ""
+"Connection test failed:\n"
+msgstr ""
+"연결 테스트 실패:\n"
 
 #: main.lua:4968
 #, fuzzy
@@ -4069,42 +4255,52 @@ msgid "Connection test failed: "
 msgstr "연결 테스트 실패:"
 
 #: main.lua:4996
+#, fuzzy
 msgid ""
 "No book is currently open.\n"
 "\n"
-"Open a book first, then use this option to clear its cached X-Ray and Recap "
-"responses."
+"Open a book first, then use this option to clear its cached X-Ray and Recap responses."
 msgstr ""
+"현재 열린 책이 없습니다.\n"
+"\n"
+"먼저 책을 연 다음, 이 옵션을 사용하여 캐시된 X-Ray 및 요약 응답을 지우세요."
 
 #: main.lua:5009
+#, fuzzy
 msgid ""
 "No action cache found for this book.\n"
 "\n"
 "Run X-Ray or Recap first to create a cache."
 msgstr ""
+"이 책에 대한 작업 캐시를 찾을 수 없습니다.\n"
+"\n"
+"먼저 X-Ray 또는 요약을 실행하여 캐시를 생성하세요."
 
 #: main.lua:5019
+#, fuzzy
 msgid ""
 "Clear cached X-Ray and Recap responses for this book?\n"
 "\n"
-"Next time you run these actions, they will regenerate from scratch instead "
-"of updating from the cached version."
+"Next time you run these actions, they will regenerate from scratch instead of updating from the cached version."
 msgstr ""
+"이 책의 캐시된 X-Ray 및 요약 응답을 지우시겠습니까?\n"
+"\n"
+"다음에 이러한 작업을 실행하면 캐시된 버전에서 업데이트하는 대신 처음부터 다시 생성됩니다."
 
 #: main.lua:5029
 #, fuzzy
 msgid "Clear Cache"
-msgstr "지우기"
+msgstr "캐시 지우기"
 
 #: main.lua:5035
 #, fuzzy
 msgid "Action cache cleared successfully."
-msgstr "액션이 성공적으로 삭제되었습니다"
+msgstr "작업 캐시가 성공적으로 지워졌습니다."
 
 #: main.lua:5040
 #, fuzzy
 msgid "Failed to clear action cache."
-msgstr "대화 삭제 실패"
+msgstr "작업 캐시 지우기에 실패했습니다."
 
 #: main.lua:5147
 #, fuzzy
@@ -4139,28 +4335,31 @@ msgstr "현재 페이지에서 텍스트를 추출할 수 없습니다"
 #: main.lua:5337
 #, fuzzy
 msgid "Translate action not found"
-msgstr "번역 동작을 찾을 수 없습니다"
+msgstr "번역 작업을 찾을 수 없습니다"
 
 #: main.lua:5508
 #, fuzzy
 msgid "Select Export Folder"
-msgstr "제공자 선택"
+msgstr "내보내기 폴더 선택"
 
 #: main.lua:5515
+#, fuzzy
 msgid ""
 "Export path set to:\n"
 "%1"
 msgstr ""
+"내보내기 경로가 다음으로 설정되었습니다:\n"
+"%1"
 
 #: main.lua:5903 main.lua:5956
 #, fuzzy
 msgid "Bypass action: %1"
-msgstr "우회 동작: %1"
+msgstr "우회 작업: %1"
 
 #: main.lua:6001
 #, fuzzy
 msgid "All action settings restored to defaults"
-msgstr "모든 동작 설정이 기본값으로 복원되었습니다"
+msgstr "모든 작업 설정이 기본값으로 복원되었습니다"
 
 #: main.lua:6072
 #, fuzzy
@@ -4179,83 +4378,94 @@ msgstr "기능 설정이 기본값으로 재설정되었습니다"
 #: main.lua:6187
 #, fuzzy
 msgid "All customizations reset"
-msgstr "모든 사용자 정의가 재설정되었습니다"
+msgstr "모든 사용자 설정이 재설정되었습니다"
 
 #: main.lua:6211
 #, fuzzy
 msgid "Custom actions deleted"
-msgstr "사용자 정의 동작이 삭제되었습니다"
+msgstr "사용자 지정 작업이 삭제되었습니다"
 
 #: main.lua:6225
 #, fuzzy
 msgid "Action edits reset to defaults"
-msgstr "동작 편집이 기본값으로 재설정되었습니다"
+msgstr "작업 편집 내용이 기본값으로 재설정되었습니다"
 
 #: main.lua:6249
 #, fuzzy
 msgid "Action menus reset to defaults"
-msgstr "동작 메뉴가 기본값으로 재설정되었습니다"
+msgstr "작업 메뉴가 기본값으로 재설정되었습니다"
 
 #: main.lua:6263
 #, fuzzy
 msgid "Dictionary popup actions reset"
-msgstr "사전 팝업 액션"
+msgstr "사전 팝업 작업이 재설정되었습니다"
 
 #: main.lua:6276
+#, fuzzy
 msgid "Highlight menu actions reset (restart to apply)"
-msgstr ""
+msgstr "하이라이트 메뉴 작업이 재설정되었습니다 (적용하려면 재시작 필요)"
 
 #: main.lua:6288
 #, fuzzy
 msgid "Quick actions reset"
-msgstr "모든 사용자 정의가 재설정되었습니다"
+msgstr "빠른 작업이 재설정되었습니다"
 
 #: main.lua:6309
 #, fuzzy
 msgid "Custom providers and models reset"
-msgstr "사용자 정의 제공자 및 모델이 재설정되었습니다"
+msgstr "사용자 지정 제공자 및 모델이 재설정되었습니다"
 
 #: main.lua:6367
 #, fuzzy
 msgid "All action settings reset"
-msgstr "모든 동작 설정이 기본값으로 복원되었습니다"
+msgstr "모든 작업 설정이 재설정되었습니다"
 
 #: main.lua:6381
+#, fuzzy
 msgid "Fresh start complete - API keys preserved"
-msgstr ""
+msgstr "새로 시작 완료 - API 키는 보존되었습니다"
 
 #: main.lua:6402
+#, fuzzy
 msgid "Default: Personal content private, basic context shared"
-msgstr ""
+msgstr "기본: 개인 콘텐츠 비공개, 기본 컨텍스트 공유"
 
 #: main.lua:6423
+#, fuzzy
 msgid "Minimal: All extended sharing disabled"
-msgstr ""
+msgstr "최소: 모든 확장 공유 비활성화"
 
 #: main.lua:6444
+#, fuzzy
 msgid ""
 "Full: All data sharing enabled (Text extraction must be enabled separately)"
-msgstr ""
+msgstr "전체: 모든 데이터 공유 활성화 (텍스트 추출은 별도로 활성화해야 함)"
 
 #: main.lua:6496
 #, fuzzy
 msgid "(custom)"
-msgstr "사용자 정의"
+msgstr "(사용자 지정)"
 
 #: main.lua:6556
+#, fuzzy
 msgid ""
 "Select providers to trust\n"
 "\n"
 "Trusted providers bypass data sharing controls."
 msgstr ""
+"신뢰할 제공업체 선택\n"
+"\n"
+"신뢰할 수 있는 제공업체는 데이터 공유 제어를 우회합니다."
 
 #: main.lua:6582
+#, fuzzy
 msgid "✓ Reset"
-msgstr ""
+msgstr "✓ 재설정"
 
 #: main.lua:6584
+#, fuzzy
 msgid "✗ Keep"
-msgstr ""
+msgstr "✗ 유지"
 
 #: main.lua:6590 main.lua:6890 main.lua:7021
 #, fuzzy
@@ -4265,12 +4475,12 @@ msgstr "설정"
 #: main.lua:6598
 #, fuzzy
 msgid "Custom actions"
-msgstr "사용자 정의 동작이 삭제되었습니다"
+msgstr "사용자 지정 작업"
 
 #: main.lua:6606
 #, fuzzy
 msgid "Action edits"
-msgstr "작업 상세 정보"
+msgstr "작업 편집"
 
 #: main.lua:6614
 #, fuzzy
@@ -4280,12 +4490,12 @@ msgstr "작업 메뉴"
 #: main.lua:6622
 #, fuzzy
 msgid "Custom providers & models"
-msgstr "사용자 정의 제공자 및 모델이 재설정되었습니다"
+msgstr "사용자 지정 제공업체 및 모델"
 
 #: main.lua:6630
 #, fuzzy
 msgid "Behaviors & domains"
-msgstr "행동 양식 상세"
+msgstr "동작 및 도메인"
 
 #: main.lua:6638 main.lua:6695
 #, fuzzy
@@ -4295,11 +4505,12 @@ msgstr "API 키"
 #: main.lua:6650
 #, fuzzy
 msgid "Reset Selected"
-msgstr "액션 편집 초기화"
+msgstr "선택 항목 재설정"
 
 #: main.lua:6659
+#, fuzzy
 msgid "What would you like to reset?"
-msgstr ""
+msgstr "무엇을 재설정하시겠습니까?"
 
 #: main.lua:6671
 #, fuzzy
@@ -4309,36 +4520,37 @@ msgstr "설정"
 #: main.lua:6675
 #, fuzzy
 msgid "custom actions"
-msgstr "사용자 정의 액션 초기화"
+msgstr "사용자 지정 작업"
 
 #: main.lua:6679
 #, fuzzy
 msgid "action edits"
-msgstr "액션 편집 초기화"
+msgstr "작업 편집"
 
 #: main.lua:6683
 #, fuzzy
 msgid "action menus"
-msgstr "액션 메뉴 초기화"
+msgstr "작업 메뉴"
 
 #: main.lua:6687
 #, fuzzy
 msgid "providers/models"
-msgstr "제공자/모델"
+msgstr "제공업체/모델"
 
 #: main.lua:6691
 #, fuzzy
 msgid "behaviors/domains"
-msgstr "동작"
+msgstr "동작/도메인"
 
 #: main.lua:6700
 #, fuzzy
 msgid "Reset: %1"
-msgstr "제거: %1"
+msgstr "재설정: %1"
 
 #: main.lua:6705
+#, fuzzy
 msgid "Nothing selected to reset"
-msgstr ""
+msgstr "재설정할 항목이 선택되지 않음"
 
 #: main.lua:6767
 #, fuzzy
@@ -4348,7 +4560,7 @@ msgstr "핵심 설정: ✓ 포함됨"
 #: main.lua:6773
 #, fuzzy
 msgid "API Keys: ✓ Include (⚠ Sensitive)"
-msgstr "API 키: ✓ 포함 (⚠ 민감 정보)"
+msgstr "API 키: ✓ 포함 (⚠ 민감함)"
 
 #: main.lua:6773
 #, fuzzy
@@ -4358,12 +4570,12 @@ msgstr "API 키: ✗ 제외"
 #: main.lua:6788
 #, fuzzy
 msgid "Config Files: ✓ Include"
-msgstr "설정 파일: ✓ 포함"
+msgstr "구성 파일: ✓ 포함"
 
 #: main.lua:6788
 #, fuzzy
 msgid "Config Files: ✗ Exclude"
-msgstr "설정 파일: ✗ 제외"
+msgstr "구성 파일: ✗ 제외"
 
 #: main.lua:6803
 #, fuzzy
@@ -4404,7 +4616,7 @@ msgid ""
 msgstr ""
 "백업 생성 중...\n"
 "\n"
-"잠시 기다려 주세요."
+"잠시 시간이 걸릴 수 있습니다."
 
 #: main.lua:6883
 #, fuzzy
@@ -4424,37 +4636,37 @@ msgstr ""
 #: main.lua:6896 main.lua:7027
 #, fuzzy
 msgid "Config Files"
-msgstr "설정 파일"
+msgstr "구성 파일"
 
 #: main.lua:6902 main.lua:7032
 #, fuzzy
 msgid "%1 domains"
-msgstr "도메인 %1개"
+msgstr "%1개 도메인"
 
 #: main.lua:6904
 #, fuzzy
 msgid "0 domains"
-msgstr "도메인 0개"
+msgstr "0개 도메인"
 
 #: main.lua:6907 main.lua:7037
 #, fuzzy
 msgid "%1 behaviors"
-msgstr "동작 %1개"
+msgstr "%1개 동작"
 
 #: main.lua:6909
 #, fuzzy
 msgid "0 behaviors"
-msgstr "동작 0개"
+msgstr "0개 동작"
 
 #: main.lua:6915 main.lua:7045
 #, fuzzy
 msgid "%1 chats"
-msgstr "대화 %1개"
+msgstr "%1개 대화"
 
 #: main.lua:6917
 #, fuzzy
 msgid "0 chats"
-msgstr "대화 0개"
+msgstr "0개 대화"
 
 #: main.lua:6922
 #, fuzzy
@@ -4494,7 +4706,7 @@ msgid ""
 msgstr ""
 "복원할 백업 선택\n"
 "\n"
-"총: %1개의 백업"
+"전체: %1개 백업"
 
 #: main.lua:7006 main.lua:7405
 #, fuzzy
@@ -4537,12 +4749,12 @@ msgstr "도메인"
 #: main.lua:7039
 #, fuzzy
 msgid "behaviors"
-msgstr "동작"
+msgstr "행동"
 
 #: main.lua:7047
 #, fuzzy
 msgid "Chat history"
-msgstr "대화 기록"
+msgstr "채팅 기록"
 
 #: main.lua:7057 main.lua:7278
 #, fuzzy
@@ -4577,42 +4789,42 @@ msgstr "API 키: ✗ 건너뛰기"
 #: main.lua:7145
 #, fuzzy
 msgid "Config Files: ✓ Restore"
-msgstr "설정 파일: ✓ 복원"
+msgstr "구성 파일: ✓ 복원"
 
 #: main.lua:7145
 #, fuzzy
 msgid "Config Files: ✗ Skip"
-msgstr "설정 파일: ✗ 건너뛰기"
+msgstr "구성 파일: ✗ 건너뛰기"
 
 #: main.lua:7162
 #, fuzzy
 msgid "Domains & Behaviors: ✓ Restore"
-msgstr "도메인 및 동작: ✓ 복원"
+msgstr "도메인 및 행동: ✓ 복원"
 
 #: main.lua:7162
 #, fuzzy
 msgid "Domains & Behaviors: ✗ Skip"
-msgstr "도메인 및 동작: ✗ 건너뛰기"
+msgstr "도메인 및 행동: ✗ 건너뛰기"
 
 #: main.lua:7179
 #, fuzzy
 msgid "Chat History: ✓ Restore"
-msgstr "대화 기록: ✓ 복원"
+msgstr "채팅 기록: ✓ 복원"
 
 #: main.lua:7179
 #, fuzzy
 msgid "Chat History: ✗ Skip"
-msgstr "대화 기록: ✗ 건너뛰기"
+msgstr "채팅 기록: ✗ 건너뛰기"
 
 #: main.lua:7202
 #, fuzzy
 msgid "Mode: Merge with existing"
-msgstr "모드: 기존과 병합"
+msgstr "모드: 기존 항목과 병합"
 
 #: main.lua:7202
 #, fuzzy
 msgid "Mode: Replace existing"
-msgstr "모드: 기존 대체"
+msgstr "모드: 기존 항목 교체"
 
 #: main.lua:7224
 #, fuzzy
@@ -4637,7 +4849,7 @@ msgstr ""
 "\n"
 "⚠ 복원 지점이 자동으로 생성됩니다.\n"
 "\n"
-"⚠ 변경 사항을 완전히 적용하려면 복원 후 KOReader를 다시 시작해야 합니다."
+"⚠ 변경 사항이 완전히 적용되려면 복원 후 KOReader를 재시작해야 합니다."
 
 #: main.lua:7258 main.lua:7414
 #, fuzzy
@@ -4653,7 +4865,7 @@ msgid ""
 msgstr ""
 "백업 복원 중...\n"
 "\n"
-"잠시 기다려 주세요."
+"잠시 시간이 걸릴 수 있습니다."
 
 #: main.lua:7275
 #, fuzzy
@@ -4664,7 +4876,7 @@ msgid ""
 msgstr ""
 "복원이 성공적으로 완료되었습니다!\n"
 "\n"
-"모든 변경 사항을 적용하려면 KOReader를 다시 시작하는 것이 좋습니다."
+"모든 변경 사항이 적용되려면 KOReader를 재시작하는 것이 좋습니다."
 
 #: main.lua:7287 koassistant_ui/prompts_manager.lua:2467
 #: koassistant_ui/prompts_manager.lua:2893
@@ -4681,7 +4893,7 @@ msgstr "확인"
 #: main.lua:7293
 #, fuzzy
 msgid "Restart Now"
-msgstr "지금 다시 시작"
+msgstr "지금 재시작"
 
 #: main.lua:7307
 #, fuzzy
@@ -4708,7 +4920,7 @@ msgid ""
 msgstr ""
 "백업 (%1)\n"
 "\n"
-"총 크기: %2"
+"전체 크기: %2"
 
 #: main.lua:7394 koassistant_ui/prompts_manager.lua:1424
 #: koassistant_ui/prompts_manager.lua:1875
@@ -4734,7 +4946,7 @@ msgstr ""
 #: main.lua:7438
 #, fuzzy
 msgid "Backup deleted"
-msgstr "백업이 삭제되었습니다"
+msgstr "백업 삭제됨"
 
 #: main.lua:7447
 #, fuzzy
@@ -4748,33 +4960,41 @@ msgstr ""
 "%1"
 
 #: main.lua:7510
+#, fuzzy
 msgid ""
 "KOAssistant: Chat Storage Upgrade\n"
 "\n"
-"The KOAssistant plugin needs to upgrade its chat history storage to fix an "
-"issue where chats were lost when files were moved.\n"
+"The KOAssistant plugin needs to upgrade its chat history storage to fix an issue where chats were lost when files were moved.\n"
 "\n"
-"This will migrate all existing chats to the new system. The process may take "
-"a few minutes for large libraries.\n"
+"This will migrate all existing chats to the new system. The process may take a few minutes for large libraries.\n"
 "\n"
 "Old chat files will be backed up to koassistant_chats.backup/"
 msgstr ""
+"KOAssistant: 채팅 저장소 업그레이드\n"
+"\n"
+"KOAssistant 플러그인은 파일 이동 시 채팅이 손실되는 문제를 해결하기 위해 채팅 기록 저장소를 업그레이드해야 합니다.\n"
+"\n"
+"기존의 모든 채팅을 새 시스템으로 마이그레이션합니다. 대용량 라이브러리의 경우 몇 분 정도 걸릴 수 있습니다.\n"
+"\n"
+"이전 채팅 파일은 koassistant_chats.backup/에 백업됩니다."
 
 #: main.lua:7517
+#, fuzzy
 msgid "Migrate Now"
-msgstr ""
+msgstr "지금 마이그레이션"
 
 #: main.lua:7549
 #, fuzzy
 msgid "KOAssistant: Migrating chat history..."
-msgstr "KOAssistant: 대화 기록"
+msgstr "KOAssistant: 채팅 기록 마이그레이션 중..."
 
 #: main.lua:7562
 #, fuzzy
 msgid "No old chats found to migrate"
-msgstr "이 태그가 지정된 대화가 없습니다"
+msgstr "마이그레이션할 이전 채팅을 찾을 수 없음"
 
 #: main.lua:7684
+#, fuzzy
 msgid ""
 "KOAssistant: Migration Incomplete\n"
 "\n"
@@ -4785,12 +5005,22 @@ msgid ""
 "Migration will be retried on next startup.\n"
 "Check the console for detailed error messages."
 msgstr ""
+"KOAssistant: 마이그레이션 미완료\n"
+"\n"
+"✓ 마이그레이션됨: %1개 채팅\n"
+"⊗ 건너뜀: %2개 채팅 (문서가 더 이상 존재하지 않음)\n"
+"✗ 실패: %3개 채팅\n"
+"\n"
+"다음 시작 시 마이그레이션이 재시도됩니다.\n"
+"자세한 오류 메시지는 콘솔을 확인하세요."
 
 #: main.lua:7696
+#, fuzzy
 msgid "Failed documents:"
-msgstr ""
+msgstr "실패한 문서:"
 
 #: main.lua:7703
+#, fuzzy
 msgid ""
 "KOAssistant: Migration Complete\n"
 "\n"
@@ -4800,70 +5030,83 @@ msgid ""
 "Old chat files backed up to:\n"
 "koassistant_chats.backup/"
 msgstr ""
+"KOAssistant: 마이그레이션 완료\n"
+"\n"
+"✓ 마이그레이션됨: %1개 채팅\n"
+"⊗ 건너뜀: %2개 채팅 (문서가 더 이상 존재하지 않음)\n"
+"\n"
+"이전 채팅 파일 백업 위치:\n"
+"koassistant_chats.backup/"
 
 #: main.lua:7767
 #, fuzzy
 msgid "Welcome to KOAssistant!"
-msgstr "KOAssistant로 비교"
+msgstr "KOAssistant에 오신 것을 환영합니다!"
 
 #: main.lua:7768
+#, fuzzy
 msgid "PRIVACY SETTINGS"
-msgstr ""
+msgstr "개인정보 설정"
 
 #: main.lua:7769
+#, fuzzy
 msgid "Some features (like X-Ray) need permission to access book content."
-msgstr ""
+msgstr "일부 기능(X-Ray 등)은 도서 콘텐츠에 액세스할 수 있는 권한이 필요합니다."
 
 #: main.lua:7770
+#, fuzzy
 msgid "Enable in: Settings → Privacy & Data"
-msgstr ""
+msgstr "활성화 위치: 설정 → 개인정보 및 데이터"
 
 #: main.lua:7771
+#, fuzzy
 msgid "QUICK ACCESS"
-msgstr ""
+msgstr "빠른 액세스"
 
 #: main.lua:7772
+#, fuzzy
 msgid "Add actions to gestures, highlight menus, or Quick Actions panel."
-msgstr ""
+msgstr "제스처, 하이라이트 메뉴 또는 빠른 작업 패널에 작업을 추가하세요."
 
 #: main.lua:7773
+#, fuzzy
 msgid "CUSTOM ACTIONS"
-msgstr ""
+msgstr "사용자 지정 작업"
 
 #: main.lua:7774
+#, fuzzy
 msgid "Create your own prompts and actions."
-msgstr ""
+msgstr "자신만의 프롬프트와 작업을 만드세요."
 
 #: main.lua:7775
+#, fuzzy
 msgid "Go to: Settings → Action Manager → Add"
-msgstr ""
+msgstr "이동: 설정 → 작업 관리자 → 추가"
 
 #: main.lua:7925
 #, fuzzy
 msgid "No notebook available for this document"
-msgstr "이 문서에 대한 저장된 대화가 없습니다"
+msgstr "이 문서에 사용할 수 있는 노트북이 없습니다"
 
 #: main.lua:7935
+#, fuzzy
 msgid "No notebook exists for this document. Create one?"
-msgstr ""
+msgstr "이 문서에 대한 노트북이 없습니다. 새로 만드시겠습니까?"
 
 #: main.lua:7945
 #, fuzzy
 msgid "Failed to create notebook: %1"
-msgstr ""
-"백업 삭제 실패:\n"
-"\n"
-"%1"
+msgstr "노트북 생성 실패: %1"
 
 #: main.lua:7996
 #, fuzzy
 msgid "Notebook saved"
-msgstr "자동 저장됨"
+msgstr "노트북 저장됨"
 
 #: main.lua:8003
 #, fuzzy
 msgid "Reset to last saved"
-msgstr "기본값으로 재설정"
+msgstr "마지막 저장으로 되돌리기"
 
 #: stream_handler.lua:197
 #, fuzzy
@@ -4873,12 +5116,12 @@ msgstr "응답을 받지 못했습니다. 원본:"
 #: stream_handler.lua:280 stream_handler.lua:310
 #, fuzzy
 msgid "Autoscroll OFF ↓"
-msgstr "자동 스크롤 꺼짐 ↓"
+msgstr "자동 스크롤 끄기 ↓"
 
 #: stream_handler.lua:294 stream_handler.lua:310
 #, fuzzy
 msgid "Autoscroll ON ↓"
-msgstr "자동 스크롤 켜짐 ↓"
+msgstr "자동 스크롤 켜기 ↓"
 
 #: stream_handler.lua:304
 #, fuzzy
@@ -4888,42 +5131,44 @@ msgstr "중지"
 #: stream_handler.lua:318
 #, fuzzy
 msgid "AI is responding"
-msgstr "AI가 응답 중입니다"
+msgstr "AI 응답 중"
 
 #: stream_handler.lua:558
+#, fuzzy
 msgid "🔍 Searching the web..."
-msgstr ""
+msgstr "🔍 웹 검색 중..."
 
 #: koassistant_ui/behavior_manager.lua:123
 #, fuzzy
 msgid "Tap to select • Hold for details"
-msgstr "탭하여 선택 • 길게 눌러 상세 정보 보기"
+msgstr "탭하여 선택 • 길게 누르면 상세정보"
 
 #: koassistant_ui/behavior_manager.lua:130
 #, fuzzy
 msgid "+ Create New Behavior"
-msgstr "+ 새 동작 스타일 만들기"
+msgstr "+ 새 동작 생성"
 
 #: koassistant_ui/behavior_manager.lua:149
+#, fuzzy
 msgid "SPECIALIZED"
-msgstr ""
+msgstr "특화된 동작"
 
 #: koassistant_ui/behavior_manager.lua:159
 #: koassistant_ui/domain_manager.lua:148
 #, fuzzy
 msgid "BUILT-IN"
-msgstr "기본 제공"
+msgstr "내장 동작"
 
 #: koassistant_ui/behavior_manager.lua:161
 #, fuzzy
 msgid "FROM BEHAVIORS/ FOLDER"
-msgstr "BEHAVIORS/ 폴더에서"
+msgstr "BEHAVIORS/ 폴더"
 
 #: koassistant_ui/behavior_manager.lua:163
 #: koassistant_ui/domain_manager.lua:152
 #, fuzzy
 msgid "CUSTOM (UI-CREATED)"
-msgstr "사용자 정의 (UI에서 생성)"
+msgstr "사용자 정의 (UI 생성)"
 
 #: koassistant_ui/behavior_manager.lua:187
 #, fuzzy
@@ -4934,27 +5179,24 @@ msgstr "선택됨: %1"
 #: koassistant_ui/prompts_manager.lua:477
 #, fuzzy
 msgid "Restore Defaults"
-msgstr "기본값으로 복원"
+msgstr "기본값 복원"
 
 #: koassistant_ui/behavior_manager.lua:204
 #, fuzzy
 msgid ""
-"This will delete all custom behaviors and reset selection to Standard. "
-"Continue?"
-msgstr ""
-"모든 사용자 정의 동작 스타일을 삭제하고 선택을 표준으로 초기화합니다. 계속하"
-"시겠습니까?"
+"This will delete all custom behaviors and reset selection to Standard. Continue?"
+msgstr "모든 사용자 정의 동작이 삭제되고 표준으로 재설정됩니다. 계속하시겠습니까?"
 
 #: koassistant_ui/behavior_manager.lua:217
 #, fuzzy
 msgid "Manage Behaviors"
-msgstr "동작 스타일 관리"
+msgstr "동작 관리"
 
 #: koassistant_ui/behavior_manager.lua:258
 #: koassistant_ui/domain_manager.lua:266 koassistant_ui/prompts_manager.lua:631
 #, fuzzy
 msgid "Built-in"
-msgstr "기본 제공"
+msgstr "내장"
 
 #: koassistant_ui/behavior_manager.lua:260
 #, fuzzy
@@ -4965,7 +5207,7 @@ msgstr "파일 (behaviors/ 폴더)"
 #: koassistant_ui/domain_manager.lua:270
 #, fuzzy
 msgid "Custom (UI-created)"
-msgstr "사용자 정의 (UI에서 생성)"
+msgstr "사용자 정의 (UI 생성)"
 
 #: koassistant_ui/behavior_manager.lua:274
 #: koassistant_ui/domain_manager.lua:282 koassistant_ui/prompts_manager.lua:681
@@ -5005,7 +5247,7 @@ msgstr "내용"
 #: koassistant_ui/domain_manager.lua:317
 #, fuzzy
 msgid "Delete '%1'?"
-msgstr "'%1' 삭제?"
+msgstr "'%1'을(를) 삭제하시겠습니까?"
 
 #: koassistant_ui/behavior_manager.lua:326
 #: koassistant_ui/domain_manager.lua:328
@@ -5016,15 +5258,15 @@ msgstr "복제"
 #: koassistant_ui/behavior_manager.lua:335
 #, fuzzy
 msgid "Behavior duplicated"
-msgstr "행동 양식 복제됨"
+msgstr "동작이 복제됨"
 
 #: koassistant_ui/behavior_manager.lua:345
 #, fuzzy
 msgid "About File-Based Behaviors"
-msgstr "파일 기반 행동 양식 정보"
+msgstr "파일 기반 동작 정보"
 
 #: koassistant_ui/behavior_manager.lua:350
-#, lua-format
+#, lua-format, fuzzy
 msgid ""
 "This behavior is loaded from a file in:\n"
 "\n"
@@ -5032,7 +5274,7 @@ msgid ""
 "\n"
 "To edit, modify the file directly."
 msgstr ""
-"이 동작은 다음 파일에서 로드되었습니다:\n"
+"이 동작은 다음 경로의 파일에서 불러왔습니다:\n"
 "\n"
 "%s\n"
 "\n"
@@ -5050,27 +5292,27 @@ msgstr "템플릿으로 사용"
 #: koassistant_ui/behavior_manager.lua:390
 #, fuzzy
 msgid "Behavior Details"
-msgstr "행동 양식 상세"
+msgstr "동작 상세정보"
 
 #: koassistant_ui/behavior_manager.lua:412
 #, fuzzy
 msgid "New Behavior - Name"
-msgstr "새 행동 양식 - 이름"
+msgstr "새 동작 - 이름"
 
 #: koassistant_ui/behavior_manager.lua:412
 #, fuzzy
 msgid "Edit Behavior - Name"
-msgstr "행동 양식 편집 - 이름"
+msgstr "동작 편집 - 이름"
 
 #: koassistant_ui/behavior_manager.lua:414
 #, fuzzy
 msgid "Enter behavior name..."
-msgstr "행동 양식 이름 입력..."
+msgstr "동작 이름 입력..."
 
 #: koassistant_ui/behavior_manager.lua:415
 #, fuzzy
 msgid "Give this behavior a descriptive name."
-msgstr "이 행동 양식에 설명적인 이름을 지정하세요."
+msgstr "이 동작에 설명적인 이름을 지정하세요."
 
 #: koassistant_ui/behavior_manager.lua:427
 #: koassistant_ui/domain_manager.lua:428
@@ -5093,62 +5335,60 @@ msgstr "이름을 입력하세요"
 #: koassistant_ui/behavior_manager.lua:468
 #, fuzzy
 msgid "New Behavior - Content"
-msgstr "새 행동 양식 - 내용"
+msgstr "새 동작 - 내용"
 
 #: koassistant_ui/behavior_manager.lua:468
 #, fuzzy
 msgid "Edit Behavior - Content"
-msgstr "행동 양식 편집 - 내용"
+msgstr "동작 편집 - 내용"
 
 #: koassistant_ui/behavior_manager.lua:470
 #, fuzzy
 msgid "Enter behavior instructions for the AI..."
-msgstr "AI에 대한 행동 지침 입력..."
+msgstr "AI를 위한 동작 지침 입력..."
 
 #: koassistant_ui/behavior_manager.lua:471
 #, fuzzy
 msgid ""
 "Name: %1\n"
 "\n"
-"Define how the AI should behave. This text is sent as part of the system "
-"prompt."
+"Define how the AI should behave. This text is sent as part of the system prompt."
 msgstr ""
 "이름: %1\n"
 "\n"
-"AI가 어떻게 행동해야 하는지 정의하세요. 이 텍스트는 시스템 프롬프트의 일부로 "
-"전송됩니다."
+"AI가 어떻게 동작해야 하는지 정의하세요. 이 텍스트는 시스템 프롬프트의 일부로 전송됩니다."
 
 #: koassistant_ui/behavior_manager.lua:486
 #, fuzzy
 msgid "Load Built-in..."
-msgstr "기본 제공 불러오기..."
+msgstr "내장 불러오기..."
 
 #: koassistant_ui/behavior_manager.lua:502
 #, fuzzy
 msgid "Please enter behavior content"
-msgstr "행동 양식 내용을 입력하세요"
+msgstr "동작 내용을 입력하세요"
 
 #: koassistant_ui/behavior_manager.lua:513
 #: koassistant_ui/domain_manager.lua:504
 #, fuzzy
 msgid "Created: %1"
-msgstr "생성일: %1"
+msgstr "생성됨: %1"
 
 #: koassistant_ui/behavior_manager.lua:565
 #, fuzzy
 msgid "Load Built-in Behavior"
-msgstr "기본 제공 행동 양식 불러오기"
+msgstr "내장 행동 불러오기"
 
 #: koassistant_ui/behavior_manager.lua:582
 #: koassistant_ui/domain_manager.lua:535
 #, fuzzy
 msgid "Start Blank"
-msgstr "빈 상태로 시작"
+msgstr "빈 화면으로 시작"
 
 #: koassistant_ui/domain_manager.lua:111
 #, fuzzy
 msgid "Hold for details • Domains are selected when starting a chat"
-msgstr "길게 눌러 상세 정보 보기 • 도메인은 대화 시작 시 선택됩니다"
+msgstr "길게 눌러 세부정보 확인 • 도메인은 채팅 시작 시 선택됩니다"
 
 #: koassistant_ui/domain_manager.lua:118
 #, fuzzy
@@ -5158,14 +5398,13 @@ msgstr "+ 새 도메인 만들기"
 #: koassistant_ui/domain_manager.lua:129
 #, fuzzy
 msgid "No domains available"
-msgstr "사용 가능한 도메인이 없습니다"
+msgstr "사용 가능한 도메인 없음"
 
 #: koassistant_ui/domain_manager.lua:134
 #, fuzzy
-msgid "Create custom domains here or add .md/.txt files to the domains/ folder"
-msgstr ""
-"여기에서 사용자 정의 도메인을 만들거나 domains/ 폴더에 .md/.txt 파일을 추가하"
-"세요"
+msgid ""
+"Create custom domains here or add .md/.txt files to the domains/ folder"
+msgstr "여기에서 사용자 정의 도메인을 만들거나 domains/ 폴더에 .md/.txt 파일을 추가하세요"
 
 #: koassistant_ui/domain_manager.lua:150
 #, fuzzy
@@ -5179,9 +5418,9 @@ msgid ""
 "\n"
 "Hold to view details or edit."
 msgstr ""
-"도메인은 대화 시작 시 선택됩니다.\n"
+"도메인은 채팅 시작 시 선택됩니다.\n"
 "\n"
-"길게 눌러 상세 정보를 보거나 편집하세요."
+"길게 눌러 세부정보를 확인하거나 편집하세요."
 
 #: koassistant_ui/domain_manager.lua:194
 #, fuzzy
@@ -5193,19 +5432,15 @@ msgstr "도메인 정보"
 msgid ""
 "Domains provide specialized knowledge context to the AI.\n"
 "\n"
-"Unlike behaviors (which set communication style), domains give the AI "
-"expertise in specific subject areas.\n"
+"Unlike behaviors (which set communication style), domains give the AI expertise in specific subject areas.\n"
 "\n"
-"Domains are selected per-chat, not globally, making them like 'projects' you "
-"can switch between."
+"Domains are selected per-chat, not globally, making them like 'projects' you can switch between."
 msgstr ""
 "도메인은 AI에게 전문 지식 컨텍스트를 제공합니다.\n"
 "\n"
-"커뮤니케이션 스타일을 설정하는 행동과 달리, 도메인은 AI에게 특정 주제 영역의 "
-"전문 지식을 제공합니다.\n"
+"행동(의사소통 스타일 설정)과 달리, 도메인은 AI에게 특정 주제 영역의 전문성을 부여합니다.\n"
 "\n"
-"도메인은 전역이 아닌 대화별로 선택되므로 전환할 수 있는 '프로젝트'와 같습니"
-"다."
+"도메인은 전역이 아닌 채팅별로 선택되므로, 전환할 수 있는 '프로젝트'와 같습니다."
 
 #: koassistant_ui/domain_manager.lua:202
 #, fuzzy
@@ -5215,12 +5450,12 @@ msgstr "모든 사용자 정의 삭제"
 #: koassistant_ui/domain_manager.lua:207
 #, fuzzy
 msgid "No custom domains to delete"
-msgstr "삭제할 사용자 정의 도메인이 없습니다"
+msgstr "삭제할 사용자 정의 도메인 없음"
 
 #: koassistant_ui/domain_manager.lua:213
 #, fuzzy
 msgid "Delete all %1 custom domains?"
-msgstr "모든 %1개의 사용자 정의 도메인을 삭제하시겠습니까?"
+msgstr "%1개의 사용자 정의 도메인을 모두 삭제하시겠습니까?"
 
 #: koassistant_ui/domain_manager.lua:225
 #, fuzzy
@@ -5235,7 +5470,7 @@ msgstr "파일 (domains/ 폴더)"
 #: koassistant_ui/domain_manager.lua:337
 #, fuzzy
 msgid "Domain duplicated"
-msgstr "도메인이 복제되었습니다"
+msgstr "도메인 복제됨"
 
 #: koassistant_ui/domain_manager.lua:347
 #, fuzzy
@@ -5243,7 +5478,7 @@ msgid "About File-Based Domains"
 msgstr "파일 기반 도메인 정보"
 
 #: koassistant_ui/domain_manager.lua:351
-#, lua-format
+#, lua-format, fuzzy
 msgid ""
 "This domain is loaded from a file in:\n"
 "\n"
@@ -5251,7 +5486,7 @@ msgid ""
 "\n"
 "To edit, modify the file directly."
 msgstr ""
-"이 도메인은 다음 파일에서 로드되었습니다:\n"
+"이 도메인은 다음 위치의 파일에서 불러왔습니다:\n"
 "\n"
 "%s\n"
 "\n"
@@ -5260,7 +5495,7 @@ msgstr ""
 #: koassistant_ui/domain_manager.lua:391
 #, fuzzy
 msgid "Domain Details"
-msgstr "도메인 상세 정보"
+msgstr "도메인 세부정보"
 
 #: koassistant_ui/domain_manager.lua:413
 #, fuzzy
@@ -5280,10 +5515,8 @@ msgstr "도메인 이름 입력..."
 #: koassistant_ui/domain_manager.lua:416
 #, fuzzy
 msgid ""
-"Give this domain a descriptive name (e.g., 'Research', 'Creative Writing', "
-"'Philosophy')."
-msgstr ""
-"이 도메인에 설명적인 이름을 지정하세요 (예: '연구', '창작 글쓰기', '철학')."
+"Give this domain a descriptive name (e.g., 'Research', 'Creative Writing', 'Philosophy')."
+msgstr "이 도메인에 설명적인 이름을 지정하세요 (예: '연구', '창작 글쓰기', '철학')."
 
 #: koassistant_ui/domain_manager.lua:469
 #, fuzzy
@@ -5305,12 +5538,11 @@ msgstr "도메인 지식 컨텍스트 입력..."
 msgid ""
 "Name: %1\n"
 "\n"
-"Describe the knowledge area, terminology, and how the AI should approach "
-"topics in this domain."
+"Describe the knowledge area, terminology, and how the AI should approach topics in this domain."
 msgstr ""
 "이름: %1\n"
 "\n"
-"지식 영역, 용어 및 AI가 이 도메인에서 주제에 접근하는 방법을 설명하세요."
+"지식 영역, 용어, 그리고 AI가 이 도메인의 주제에 어떻게 접근해야 하는지 설명하세요."
 
 #: koassistant_ui/domain_manager.lua:493
 #, fuzzy
@@ -5320,7 +5552,7 @@ msgstr "도메인 컨텍스트를 입력하세요"
 #: koassistant_ui/domain_manager.lua:546
 #, fuzzy
 msgid "(No existing domains to use as template)"
-msgstr "(템플릿으로 사용할 기존 도메인이 없습니다)"
+msgstr "(템플릿으로 사용할 기존 도메인 없음)"
 
 #: koassistant_ui/prompts_manager.lua:33
 #, fuzzy
@@ -5330,7 +5562,7 @@ msgstr "~%1 토큰"
 #: koassistant_ui/prompts_manager.lua:65 koassistant_ui/prompts_manager.lua:96
 #, fuzzy
 msgid "Force OFF"
-msgstr "강제 끄기"
+msgstr "강제 OFF"
 
 #: koassistant_ui/prompts_manager.lua:87
 #, fuzzy
@@ -5363,9 +5595,8 @@ msgstr "전역"
 #: koassistant_ui/prompts_manager.lua:354
 #, fuzzy
 msgid ""
-"Tap to toggle • Hold for details • ★ = custom • ⚙ = modified • [gesture] = "
-"in gesture menu"
-msgstr "탭하여 전환 • 길게 눌러 상세 정보 • ★ = 사용자 정의 • ⚙ = 수정됨"
+"Tap to toggle • Hold for details • ★ = custom • ⚙ = modified • [gesture] = in gesture menu"
+msgstr "탭하여 토글 • 길게 눌러 세부정보 확인 • ★ = 사용자 정의 • ⚙ = 수정됨 • [제스처] = 제스처 메뉴에 있음"
 
 #: koassistant_ui/prompts_manager.lua:361
 #, fuzzy
@@ -5380,12 +5611,12 @@ msgstr "하이라이트 컨텍스트"
 #: koassistant_ui/prompts_manager.lua:373
 #, fuzzy
 msgid "Book Context"
-msgstr "도서 컨텍스트"
+msgstr "책 컨텍스트"
 
 #: koassistant_ui/prompts_manager.lua:374
 #, fuzzy
 msgid "Multi-Book Context"
-msgstr "다중 도서 컨텍스트"
+msgstr "다중 책 컨텍스트"
 
 #: koassistant_ui/prompts_manager.lua:375
 #, fuzzy
@@ -5398,19 +5629,19 @@ msgstr "일반 컨텍스트"
 #: koassistant_ui/prompts_manager.lua:4152
 #, fuzzy
 msgid "Highlight & Book"
-msgstr "하이라이트 & 도서"
+msgstr "하이라이트 및 책"
 
 #: koassistant_ui/prompts_manager.lua:377
 #: koassistant_ui/prompts_manager.lua:4154
 #, fuzzy
 msgid "Highlight & General"
-msgstr "하이라이트 & 일반"
+msgstr "하이라이트 및 일반"
 
 #: koassistant_ui/prompts_manager.lua:378
 #: koassistant_ui/prompts_manager.lua:4156
 #, fuzzy
 msgid "Book & General"
-msgstr "도서 & 일반"
+msgstr "책 및 일반"
 
 #: koassistant_ui/prompts_manager.lua:379
 #: koassistant_ui/prompts_manager.lua:1314
@@ -5427,20 +5658,18 @@ msgstr "가져오기"
 #: koassistant_ui/prompts_manager.lua:463
 #, fuzzy
 msgid "Import feature coming soon..."
-msgstr "가져오기 기능이 곧 제공됩니다..."
+msgstr "가져오기 기능 곧 출시..."
 
 #: koassistant_ui/prompts_manager.lua:472
 #, fuzzy
 msgid "Export feature coming soon..."
-msgstr "내보내기 기능이 곧 제공됩니다..."
+msgstr "내보내기 기능 곧 출시..."
 
 #: koassistant_ui/prompts_manager.lua:480
 #, fuzzy
 msgid ""
 "This will remove all custom actions and reset all action settings. Continue?"
-msgstr ""
-"이 작업은 모든 사용자 정의 작업을 제거하고 모든 작업 설정을 초기화합니다. 계"
-"속하시겠습니까?"
+msgstr "모든 사용자 정의 작업이 제거되고 모든 작업 설정이 초기화됩니다. 계속하시겠습니까?"
 
 #: koassistant_ui/prompts_manager.lua:533
 #, fuzzy
@@ -5450,7 +5679,7 @@ msgstr "작업 메뉴"
 #: koassistant_ui/prompts_manager.lua:537
 #, fuzzy
 msgid "Reset custom actions"
-msgstr "사용자 정의 액션 초기화"
+msgstr "사용자 정의 작업 초기화"
 
 #: koassistant_ui/prompts_manager.lua:541
 #, fuzzy
@@ -5461,59 +5690,56 @@ msgid ""
 "\n"
 "Built-in actions and their edits are preserved."
 msgstr ""
-"모든 사용자 정의 액션을 삭제하시겠습니까?\n"
+"모든 사용자 지정 작업을 삭제하시겠습니까?\n"
 "\n"
-"생성한 액션이 제거됩니다.\n"
+"이렇게 하면 생성한 작업이 제거됩니다.\n"
 "\n"
-"기본 제공 액션과 편집 내용은 유지됩니다."
+"기본 제공 작업 및 편집 내용은 보존됩니다."
 
 #: koassistant_ui/prompts_manager.lua:553
 #, fuzzy
 msgid "Reset action edits"
-msgstr "액션 편집 초기화"
+msgstr "작업 편집 초기화"
 
 #: koassistant_ui/prompts_manager.lua:557
 #, fuzzy
 msgid ""
 "Reset all action edits?\n"
 "\n"
-"This reverts any changes you made to built-in actions and re-enables "
-"disabled actions.\n"
+"This reverts any changes you made to built-in actions and re-enables disabled actions.\n"
 "\n"
 "Custom actions are preserved."
 msgstr ""
-"모든 액션 편집을 초기화하시겠습니까?\n"
+"모든 작업 편집을 초기화하시겠습니까?\n"
 "\n"
-"기본 제공 액션에 대한 변경 사항이 되돌려지고 비활성화된 액션이 다시 활성화됩"
-"니다.\n"
+"이렇게 하면 기본 제공 작업에 대한 모든 변경 사항이 되돌려지고 비활성화된 작업이 다시 활성화됩니다.\n"
 "\n"
-"사용자 정의 액션은 유지됩니다."
+"사용자 지정 작업은 보존됩니다."
 
 #: koassistant_ui/prompts_manager.lua:569
 #, fuzzy
 msgid "Reset action menus"
-msgstr "액션 메뉴 초기화"
+msgstr "작업 메뉴 초기화"
 
 #: koassistant_ui/prompts_manager.lua:573
 #, fuzzy
 msgid ""
 "Reset action menu configurations?\n"
 "\n"
-"This resets the ordering and selection in highlight menu and dictionary "
-"popup back to defaults.\n"
+"This resets the ordering and selection in highlight menu and dictionary popup back to defaults.\n"
 "\n"
 "Your actions (custom and built-in) are preserved."
 msgstr ""
-"액션 메뉴 구성을 초기화하시겠습니까?\n"
+"작업 메뉴 구성을 초기화하시겠습니까?\n"
 "\n"
-"하이라이트 메뉴와 사전 팝업의 순서 및 선택이 기본값으로 되돌려집니다.\n"
+"이렇게 하면 하이라이트 메뉴 및 사전 팝업의 순서와 선택이 기본값으로 재설정됩니다.\n"
 "\n"
-"액션 (사용자 정의 및 기본 제공)은 유지됩니다."
+"작업(사용자 지정 및 기본 제공)은 보존됩니다."
 
 #: koassistant_ui/prompts_manager.lua:584
 #, fuzzy
 msgid "Reset Quick Actions"
-msgstr "사용자 정의 액션 초기화"
+msgstr "빠른 작업 초기화"
 
 #: koassistant_ui/prompts_manager.lua:588
 #, fuzzy
@@ -5524,16 +5750,16 @@ msgid ""
 "\n"
 "Your actions (custom and built-in) are preserved."
 msgstr ""
-"액션 메뉴 구성을 초기화하시겠습니까?\n"
+"빠른 작업 패널을 초기화하시겠습니까?\n"
 "\n"
-"하이라이트 메뉴와 사전 팝업의 순서 및 선택이 기본값으로 되돌려집니다.\n"
+"이렇게 하면 빠른 작업 메뉴에 표시되는 기본 작업이 복원됩니다.\n"
 "\n"
-"액션 (사용자 정의 및 기본 제공)은 유지됩니다."
+"작업(사용자 지정 및 기본 제공)은 보존됩니다."
 
 #: koassistant_ui/prompts_manager.lua:633
 #, fuzzy
 msgid "Custom (custom_actions.lua)"
-msgstr "사용자 정의 (custom_actions.lua)"
+msgstr "사용자 지정 (custom_actions.lua)"
 
 #: koassistant_ui/prompts_manager.lua:635
 #, fuzzy
@@ -5543,7 +5769,7 @@ msgstr "사용자 정의 (UI)"
 #: koassistant_ui/prompts_manager.lua:643
 #, fuzzy
 msgid "Custom: "
-msgstr "사용자 정의:"
+msgstr "사용자 지정:"
 
 #: koassistant_ui/prompts_manager.lua:645
 #, fuzzy
@@ -5599,7 +5825,7 @@ msgstr "예"
 #: koassistant_ui/prompts_manager.lua:703
 #, fuzzy
 msgid "No"
-msgstr "아니오"
+msgstr "아니요"
 
 #: koassistant_ui/prompts_manager.lua:691
 #, fuzzy
@@ -5622,7 +5848,7 @@ msgstr "도서 정보 포함"
 #: koassistant_ui/prompts_manager.lua:3392
 #, fuzzy
 msgid "Allow text extraction"
-msgstr "책 텍스트 추출 허용"
+msgstr "텍스트 추출 허용"
 
 #: koassistant_ui/prompts_manager.lua:708
 #, fuzzy
@@ -5632,7 +5858,7 @@ msgstr "─── AI 설정 ───"
 #: koassistant_ui/prompts_manager.lua:711
 #, fuzzy
 msgid "Provider/Model"
-msgstr "제공자/모델"
+msgstr "제공업체/모델"
 
 #: koassistant_ui/prompts_manager.lua:715
 #, fuzzy
@@ -5647,7 +5873,7 @@ msgstr "(없음)"
 #: koassistant_ui/prompts_manager.lua:718
 #, fuzzy
 msgid "Requires"
-msgstr "필요"
+msgstr "필요 사항"
 
 #: koassistant_ui/prompts_manager.lua:728
 #, fuzzy
@@ -5672,7 +5898,7 @@ msgid ""
 "Please edit that file directly to modify it."
 msgstr ""
 "이 작업은 custom_actions.lua에 정의되어 있습니다.\n"
-"해당 파일을 직접 편집하여 수정하세요."
+"수정하려면 해당 파일을 직접 편집하십시오."
 
 #: koassistant_ui/prompts_manager.lua:773
 #, fuzzy
@@ -5682,12 +5908,12 @@ msgstr "설정 편집"
 #: koassistant_ui/prompts_manager.lua:785
 #, fuzzy
 msgid "Reset to Default"
-msgstr "기본값으로 재설정"
+msgstr "기본값으로 초기화"
 
 #: koassistant_ui/prompts_manager.lua:788
 #, fuzzy
 msgid "Reset this action to default settings?"
-msgstr "이 작업을 기본 설정으로 재설정하시겠습니까?"
+msgstr "이 작업을 기본 설정으로 초기화하시겠습니까?"
 
 #: koassistant_ui/prompts_manager.lua:810
 #, fuzzy
@@ -5732,61 +5958,70 @@ msgstr "사전 팝업에 추가되었습니다."
 #: koassistant_ui/prompts_manager.lua:847
 #, fuzzy
 msgid "✓ In Gesture Menu"
-msgstr "✓ 하이라이트 메뉴에 있음"
+msgstr "✓ 제스처 메뉴에 있음"
 
 #: koassistant_ui/prompts_manager.lua:847
 #, fuzzy
 msgid "Add to Gesture Menu"
-msgstr "하이라이트 메뉴에 추가"
+msgstr "제스처 메뉴에 추가"
 
 #: koassistant_ui/prompts_manager.lua:854
+#, fuzzy
 msgid ""
 "Removed from gesture menu.\n"
 "Restart KOReader to apply."
 msgstr ""
+"제스처 메뉴에서 제거되었습니다.\n"
+"적용하려면 KOReader를 다시 시작하십시오."
 
 #: koassistant_ui/prompts_manager.lua:855
+#, fuzzy
 msgid ""
 "Added to gesture menu.\n"
 "Restart KOReader to apply."
 msgstr ""
+"제스처 메뉴에 추가되었습니다.\n"
+"적용하려면 KOReader를 다시 시작하십시오."
 
 #: koassistant_ui/prompts_manager.lua:870
 #, fuzzy
 msgid "✓ In Quick Actions"
-msgstr "AI 빠른 설정"
+msgstr "✓ 빠른 작업에 있음"
 
 #: koassistant_ui/prompts_manager.lua:870
 #, fuzzy
 msgid "Add to Quick Actions"
-msgstr "AI 빠른 설정"
+msgstr "빠른 작업에 추가"
 
 #: koassistant_ui/prompts_manager.lua:877
 #, fuzzy
 msgid "Removed from Quick Actions."
-msgstr "사전 팝업에서 제거되었습니다."
+msgstr "빠른 실행에서 제거되었습니다."
 
 #: koassistant_ui/prompts_manager.lua:878
 #, fuzzy
 msgid "Added to Quick Actions."
-msgstr "사전 팝업에 추가되었습니다."
+msgstr "빠른 실행에 추가되었습니다."
 
 #: koassistant_ui/prompts_manager.lua:893
+#, fuzzy
 msgid "✓ In General Input"
-msgstr ""
+msgstr "✓ 일반 입력에 포함됨"
 
 #: koassistant_ui/prompts_manager.lua:893
+#, fuzzy
 msgid "Add to General Input"
-msgstr ""
+msgstr "일반 입력에 추가"
 
 #: koassistant_ui/prompts_manager.lua:900
 #, fuzzy
 msgid "Removed from general input dialog."
-msgstr "하이라이트 메뉴에서 제거되었습니다."
+msgstr "일반 입력 대화상자에서 제거되었습니다."
 
 #: koassistant_ui/prompts_manager.lua:901
+#, fuzzy
 msgid "Added to general input dialog."
-msgstr ""
+msgstr "일반 입력 대화상자에 추가되었습니다."
 
 #: koassistant_ui/prompts_manager.lua:914
 #, fuzzy
@@ -5796,7 +6031,7 @@ msgstr "사용자 정의로 복제"
 #: koassistant_ui/prompts_manager.lua:924
 #, fuzzy
 msgid "Action Details"
-msgstr "작업 상세 정보"
+msgstr "작업 세부정보"
 
 #: koassistant_ui/prompts_manager.lua:937
 #: koassistant_ui/prompts_manager.lua:4173
@@ -5816,7 +6051,7 @@ msgid ""
 msgstr ""
 "생성됨: %1\n"
 "\n"
-"작업 목록에서 찾아 편집할 수 있습니다."
+"작업 목록에서 찾아서 수정할 수 있습니다."
 
 #: koassistant_ui/prompts_manager.lua:1055
 #, fuzzy
@@ -5826,7 +6061,7 @@ msgstr "컨텍스트:"
 #: koassistant_ui/prompts_manager.lua:1055
 #, fuzzy
 msgid "Not set"
-msgstr "설정되지 않음"
+msgstr "설정 안 됨"
 
 #: koassistant_ui/prompts_manager.lua:1063
 #: koassistant_ui/prompts_manager.lua:1528
@@ -5880,52 +6115,59 @@ msgstr "사전 팝업"
 #: koassistant_ui/prompts_manager.lua:1166
 #: koassistant_ui/prompts_manager.lua:2689
 #: koassistant_ui/prompts_manager.lua:3400
+#, fuzzy
 msgid "Text extraction enabled. Note: Enable in Settings → Advanced first."
-msgstr ""
+msgstr "텍스트 추출이 활성화되었습니다. 참고: 먼저 설정 → 고급에서 활성화하세요."
 
 #: koassistant_ui/prompts_manager.lua:1171
 #: koassistant_ui/prompts_manager.lua:2694
 #: koassistant_ui/prompts_manager.lua:3405
+#, fuzzy
 msgid "Text extraction enabled for this action."
-msgstr ""
+msgstr "이 작업에 대해 텍스트 추출이 활성화되었습니다."
 
 #: koassistant_ui/prompts_manager.lua:1189
 #: koassistant_ui/prompts_manager.lua:2711
 #: koassistant_ui/prompts_manager.lua:3422
 #, fuzzy
 msgid "Allow annotation use"
-msgstr "번역 언어 따라가기"
+msgstr "주석 사용 허용"
 
 #: koassistant_ui/prompts_manager.lua:1197
 #: koassistant_ui/prompts_manager.lua:2718
 #: koassistant_ui/prompts_manager.lua:3429
+#, fuzzy
 msgid ""
 "Annotation use enabled. Note: Enable in Settings → Privacy & Data first."
-msgstr ""
+msgstr "주석 사용이 활성화되었습니다. 참고: 먼저 설정 → 개인정보 및 데이터에서 활성화하세요."
 
 #: koassistant_ui/prompts_manager.lua:1202
 #: koassistant_ui/prompts_manager.lua:2723
 #: koassistant_ui/prompts_manager.lua:3434
+#, fuzzy
 msgid "Annotation use enabled for this action."
-msgstr ""
+msgstr "이 작업에 대해 주석 사용이 활성화되었습니다."
 
 #: koassistant_ui/prompts_manager.lua:1219
 #: koassistant_ui/prompts_manager.lua:2739
 #: koassistant_ui/prompts_manager.lua:3450
+#, fuzzy
 msgid "Allow notebook use"
-msgstr ""
+msgstr "노트북 사용 허용"
 
 #: koassistant_ui/prompts_manager.lua:1227
 #: koassistant_ui/prompts_manager.lua:2746
 #: koassistant_ui/prompts_manager.lua:3457
+#, fuzzy
 msgid "Notebook use enabled. Note: Enable in Settings → Privacy & Data first."
-msgstr ""
+msgstr "노트북 사용이 활성화되었습니다. 참고: 먼저 설정 → 개인정보 및 데이터에서 활성화하세요."
 
 #: koassistant_ui/prompts_manager.lua:1232
 #: koassistant_ui/prompts_manager.lua:2751
 #: koassistant_ui/prompts_manager.lua:3462
+#, fuzzy
 msgid "Notebook use enabled for this action."
-msgstr ""
+msgstr "이 작업에 대해 노트북 사용이 활성화되었습니다."
 
 #: koassistant_ui/prompts_manager.lua:1248
 #: koassistant_ui/prompts_manager.lua:2665
@@ -5937,7 +6179,7 @@ msgstr "보기:"
 #: koassistant_ui/prompts_manager.lua:1262
 #, fuzzy
 msgid "Example: 'Summarize', 'Explain Simply', 'Find Themes'"
-msgstr "예: '요약', '쉽게 설명', '테마 찾기'"
+msgstr "예: '요약하기', '쉽게 설명하기', '주제 찾기'"
 
 #: koassistant_ui/prompts_manager.lua:1271
 #, fuzzy
@@ -5952,7 +6194,7 @@ msgstr "1/3단계: 이름 및 컨텍스트"
 #: koassistant_ui/prompts_manager.lua:1273
 #, fuzzy
 msgid "Enter a short name (shown as button)"
-msgstr "짧은 이름 입력 (버튼에 표시됨)"
+msgstr "짧은 이름 입력 (버튼으로 표시됨)"
 
 #: koassistant_ui/prompts_manager.lua:1286
 #: koassistant_ui/prompts_manager.lua:1429
@@ -5981,12 +6223,12 @@ msgstr "포함: 선택한 텍스트만"
 #: koassistant_ui/prompts_manager.lua:4146
 #, fuzzy
 msgid "Book"
-msgstr "책"
+msgstr "도서"
 
 #: koassistant_ui/prompts_manager.lua:1295
 #, fuzzy
 msgid "File browser selection or 'New Book Chat/Action' gesture"
-msgstr "파일 브라우저 선택 또는 '책에 대해 대화' 제스처"
+msgstr "파일 브라우저 선택 또는 '새 도서 채팅/작업' 제스처"
 
 #: koassistant_ui/prompts_manager.lua:1296
 #, fuzzy
@@ -6003,12 +6245,12 @@ msgstr "다중 도서"
 #: koassistant_ui/prompts_manager.lua:1300
 #, fuzzy
 msgid "When multiple books are selected"
-msgstr "여러 책이 선택되었을 때"
+msgstr "여러 책을 선택했을 때"
 
 #: koassistant_ui/prompts_manager.lua:1301
 #, fuzzy
 msgid "Includes: list of books with titles/authors, count"
-msgstr "포함: 제목/저자가 있는 책 목록, 개수"
+msgstr "포함: 제목/저자가 있는 도서 목록, 개수"
 
 #: koassistant_ui/prompts_manager.lua:1304
 #: koassistant_ui/prompts_manager.lua:1432
@@ -6020,7 +6262,7 @@ msgstr "일반"
 #: koassistant_ui/prompts_manager.lua:1305
 #, fuzzy
 msgid "General chat, no specific context"
-msgstr "일반 대화, 특정 컨텍스트 없음"
+msgstr "일반 채팅, 특정 컨텍스트 없음"
 
 #: koassistant_ui/prompts_manager.lua:1306
 #, fuzzy
@@ -6030,17 +6272,17 @@ msgstr "사용 가능: 번역 언어"
 #: koassistant_ui/prompts_manager.lua:1310
 #, fuzzy
 msgid "Both highlight and book contexts"
-msgstr "하이라이트 및 책 컨텍스트 모두"
+msgstr "하이라이트 및 도서 컨텍스트 모두"
 
 #: koassistant_ui/prompts_manager.lua:1311
 #, fuzzy
 msgid "Highlight: selected text; Book: title/author"
-msgstr "하이라이트: 선택한 텍스트; 책: 제목/저자"
+msgstr "하이라이트: 선택한 텍스트; 도서: 제목/저자"
 
 #: koassistant_ui/prompts_manager.lua:1315
 #, fuzzy
 msgid "Available everywhere"
-msgstr "어디서나 사용 가능"
+msgstr "모든 곳에서 사용 가능"
 
 #: koassistant_ui/prompts_manager.lua:1316
 #, fuzzy
@@ -6049,33 +6291,34 @@ msgstr "트리거에 따라 다름"
 
 #: koassistant_ui/prompts_manager.lua:1428
 #, fuzzy
-msgid "Context determines when your action appears and what data is available:"
-msgstr "컨텍스트는 작업이 표시되는 시점과 사용 가능한 데이터를 결정합니다:"
+msgid ""
+"Context determines when your action appears and what data is available:"
+msgstr "컨텍스트는 작업이 나타나는 시점과 사용 가능한 데이터를 결정합니다:"
 
 #: koassistant_ui/prompts_manager.lua:1429
 #, fuzzy
 msgid "When text is selected. Gets: selected text, optionally book info"
-msgstr "텍스트 선택 시. 얻음: 선택한 텍스트, 선택적으로 책 정보"
+msgstr "텍스트를 선택했을 때. 가져오기: 선택된 텍스트, 선택적으로 도서 정보"
 
 #: koassistant_ui/prompts_manager.lua:1430
 #, fuzzy
 msgid "File browser or 'New Book Chat/Action'. Gets: title, author"
-msgstr "파일 브라우저 또는 '책에 대해 대화'. 얻음: 제목, 저자"
+msgstr "파일 브라우저 또는 '새 도서 채팅/작업'. 가져오기: 제목, 저자"
 
 #: koassistant_ui/prompts_manager.lua:1431
 #, fuzzy
 msgid "Multiple books selected. Gets: book list with count"
-msgstr "여러 책 선택됨. 얻음: 개수가 포함된 책 목록"
+msgstr "여러 도서를 선택했을 때. 가져오기: 개수가 포함된 도서 목록"
 
 #: koassistant_ui/prompts_manager.lua:1432
 #, fuzzy
 msgid "Standalone chat. No automatic context"
-msgstr "독립형 대화. 자동 컨텍스트 없음"
+msgstr "독립 실행 채팅. 자동 컨텍스트 없음"
 
 #: koassistant_ui/prompts_manager.lua:1433
 #, fuzzy
 msgid "Both highlight and single-book menus"
-msgstr "하이라이트 및 단일 책 메뉴 모두"
+msgstr "하이라이트 및 단일 도서 메뉴 모두"
 
 #: koassistant_ui/prompts_manager.lua:1450
 #, fuzzy
@@ -6097,7 +6340,7 @@ msgstr "전역 설정 사용"
 #: koassistant_ui/prompts_manager.lua:1474
 #, fuzzy
 msgid "Inherits from Actions & Prompts → Manage Behaviors"
-msgstr "설정 → 고급 → AI 동작 스타일에서 상속"
+msgstr "작업 및 프롬프트 → 동작 관리에서 상속"
 
 #: koassistant_ui/prompts_manager.lua:1484
 #, fuzzy
@@ -6107,7 +6350,7 @@ msgstr "동작 지침 없음 - 작업 프롬프트만"
 #: koassistant_ui/prompts_manager.lua:1485
 #, fuzzy
 msgid "Define your own AI personality/role"
-msgstr "자신만의 AI 성격/역할 정의"
+msgstr "나만의 AI 성격/역할 정의"
 
 #: koassistant_ui/prompts_manager.lua:1521
 #: koassistant_ui/prompts_manager.lua:1564
@@ -6130,17 +6373,17 @@ msgstr "2/3단계: AI 동작"
 #: koassistant_ui/prompts_manager.lua:1551
 #, fuzzy
 msgid "Edit Action - Custom Behavior"
-msgstr "작업 편집 - 사용자 정의 동작"
+msgstr "작업 편집 - 사용자 지정 동작"
 
 #: koassistant_ui/prompts_manager.lua:1551
 #, fuzzy
 msgid "Step 2/3: Custom Behavior"
-msgstr "2/3단계: 사용자 정의 동작"
+msgstr "2/3단계: 사용자 지정 동작"
 
 #: koassistant_ui/prompts_manager.lua:1553
 #, fuzzy
 msgid "Describe how the AI should behave or what role it should play"
-msgstr "AI가 어떻게 행동해야 하는지 또는 어떤 역할을 수행해야 하는지 설명"
+msgstr "AI가 어떻게 행동해야 하는지 또는 어떤 역할을 해야 하는지 설명하세요"
 
 #: koassistant_ui/prompts_manager.lua:1554
 #, fuzzy
@@ -6153,17 +6396,17 @@ msgid ""
 "This replaces the global AI behavior setting for this action."
 msgstr ""
 "예시:\n"
-"• '당신은 문법 전문가입니다. 정확하고 분석적으로 답하세요.'\n"
+"• '당신은 문법 전문가입니다. 정확하고 분석적으로 답변하세요.'\n"
 "• '당신은 19세기 소설 전문 문학 비평가입니다.'\n"
-"• '간결하게 응답하세요. 도움이 될 때 글머리 기호를 사용하세요.'\n"
+"• '간결하게 답변하세요. 유용할 때는 글머리 기호를 사용하세요.'\n"
 "\n"
-"이것은 이 작업에 대한 전역 AI 동작 설정을 대체합니다."
+"이 설정은 이 작업에 대한 전역 AI 동작 설정을 대체합니다."
 
 #: koassistant_ui/prompts_manager.lua:1577
 #, fuzzy
 msgid ""
 "Please enter custom behavior text, or go back and choose a different option"
-msgstr "사용자 정의 동작 텍스트를 입력하거나, 뒤로 가서 다른 옵션을 선택하세요"
+msgstr "사용자 지정 동작 텍스트를 입력하거나, 뒤로 가서 다른 옵션을 선택하세요"
 
 #: koassistant_ui/prompts_manager.lua:1601
 #, fuzzy
@@ -6184,8 +6427,7 @@ msgstr "AI가 무엇을 해야 하나요?"
 #, fuzzy
 msgid ""
 "Write the AI instruction. Tap 'Help' for tips, 'Insert...' for placeholders."
-msgstr ""
-"AI 지침을 작성하세요. 팁은 '도움말'을, 플레이스홀더는 '삽입...'을 탭하세요."
+msgstr "AI 지침을 작성하세요. 팁을 보려면 '도움말'을, 자리 표시자는 '삽입...'을 누르세요."
 
 #: koassistant_ui/prompts_manager.lua:1618
 #: koassistant_ui/prompts_manager.lua:2772
@@ -6198,36 +6440,27 @@ msgstr "도움말"
 msgid ""
 "Writing Action Prompts\n"
 "\n"
-"• Use 'Insert...' to add placeholders like {title}, {author}, "
-"{highlighted_text}\n"
+"• Use 'Insert...' to add placeholders like {title}, {author}, {highlighted_text}\n"
 "\n"
-"• Tip: When using this action, there's an input field for optional "
-"additional context\n"
+"• Tip: When using this action, there's an input field for optional additional context\n"
 "\n"
-"• Reading-mode placeholders ({reading_progress}, {book_text}, {highlights}, "
-"{annotations}) auto-hide this action in File Browser — it only appears when "
-"reading\n"
+"• Reading-mode placeholders ({reading_progress}, {book_text}, {highlights}, {annotations}) auto-hide this action in File Browser — it only appears when reading\n"
 "\n"
-"• Test actions with the web inspector: 'lua tests/inspect.lua --web' from "
-"the plugin folder\n"
+"• Test actions with the web inspector: 'lua tests/inspect.lua --web' from the plugin folder\n"
 "\n"
 "• See README for full placeholder list and examples"
 msgstr ""
-"작업 프롬프트 작성\n"
+"작업 프롬프트 작성하기\n"
 "\n"
-"• '삽입...'을 사용하여 {title}, {author}, {highlighted_text}와 같은 플레이스"
-"홀더 추가\n"
+"• '삽입...'을 사용하여 {title}, {author}, {highlighted_text}와 같은 자리 표시자를 추가하세요\n"
 "\n"
-"• 팁: 이 작업 사용 시 추가 컨텍스트를 위한 선택적 입력 필드가 있습니다\n"
+"• 팁: 이 작업을 사용할 때 선택적 추가 컨텍스트를 위한 입력 필드가 있습니다\n"
 "\n"
-"• 독서 모드 플레이스홀더 ({reading_progress}, {book_text}, {highlights}, "
-"{annotations})는 파일 브라우저에서 이 작업을 자동으로 숨김 — 독서 중에만 표시"
-"됩니다\n"
+"• 읽기 모드 자리 표시자({reading_progress}, {book_text}, {highlights}, {annotations})는 파일 브라우저에서 이 작업을 자동으로 숨깁니다 — 읽기 중일 때만 나타납니다\n"
 "\n"
-"• 웹 인스펙터로 작업 테스트: 플러그인 폴더에서 'lua tests/inspect.lua --web' "
-"실행\n"
+"• 웹 인스펙터로 작업을 테스트하세요: 플러그인 폴더에서 'lua tests/inspect.lua --web'\n"
 "\n"
-"• 전체 플레이스홀더 목록과 예시는 README 참조"
+"• 전체 자리 표시자 목록 및 예시는 README를 참조하세요"
 
 #: koassistant_ui/prompts_manager.lua:1636
 #, fuzzy
@@ -6237,7 +6470,7 @@ msgstr "삽입..."
 #: koassistant_ui/prompts_manager.lua:1649
 #, fuzzy
 msgid "Action prompt cannot be empty"
-msgstr "작업 프롬프트는 비어 있을 수 없습니다"
+msgstr "작업 프롬프트는 비워둘 수 없습니다"
 
 #: koassistant_ui/prompts_manager.lua:1684
 #, fuzzy
@@ -6284,7 +6517,7 @@ msgid ""
 "\n"
 "Temperature: "
 msgstr ""
-"이 작업의 고급 설정입니다.\n"
+"이 작업에 대한 고급 설정.\n"
 "\n"
 "온도:"
 
@@ -6309,7 +6542,7 @@ msgstr "전역 사용"
 #: koassistant_ui/prompts_manager.lua:1881
 #, fuzzy
 msgid "Dictionary Compact"
-msgstr "사전 간편"
+msgstr "사전 간결형"
 
 #: koassistant_ui/prompts_manager.lua:1821
 #: koassistant_ui/prompts_manager.lua:1830
@@ -6321,12 +6554,12 @@ msgstr "표준"
 #: koassistant_ui/prompts_manager.lua:1830
 #, fuzzy
 msgid "Full dialog with all buttons"
-msgstr "모든 버튼이 있는 전체 대화상자"
+msgstr "모든 버튼이 있는 전체 대화 상자"
 
 #: koassistant_ui/prompts_manager.lua:1831
 #, fuzzy
 msgid "Compact with language buttons"
-msgstr "언어 버튼이 있는 간편 모드"
+msgstr "언어 버튼이 있는 간결형"
 
 #: koassistant_ui/prompts_manager.lua:1832
 #, fuzzy
@@ -6336,36 +6569,34 @@ msgstr "언어 전환 및 원문 토글 포함"
 #: koassistant_ui/prompts_manager.lua:1879
 #, fuzzy
 msgid "View modes control how results are displayed:"
-msgstr "보기 모드는 결과 표시 방식을 제어합니다:"
+msgstr "보기 모드는 결과가 표시되는 방식을 제어합니다:"
 
 #: koassistant_ui/prompts_manager.lua:1880
 #, fuzzy
 msgid "Full dialog with all response action buttons"
-msgstr "모든 응답 작업 버튼이 있는 전체 대화상자"
+msgstr "모든 응답 작업 버튼이 있는 전체 대화 상자"
 
 #: koassistant_ui/prompts_manager.lua:1881
 #, fuzzy
 msgid ""
-"Smaller dialog optimized for quick lookups, with language buttons for word-"
-"by-word translation"
-msgstr "빠른 조회에 최적화된 작은 대화상자, 단어별 번역을 위한 언어 버튼 포함"
+"Smaller dialog optimized for quick lookups, with language buttons for word-by-word translation"
+msgstr "단어별 번역을 위한 언어 버튼이 있는, 빠른 조회에 최적화된 작은 대화 상자"
 
 #: koassistant_ui/prompts_manager.lua:1882
 #, fuzzy
 msgid ""
-"Translation view with language switch button and toggle to show/hide the "
-"original text"
+"Translation view with language switch button and toggle to show/hide the original text"
 msgstr "언어 전환 버튼과 원문 표시/숨기기 토글이 있는 번역 보기"
 
 #: koassistant_ui/prompts_manager.lua:1942
 #, fuzzy
 msgid "Force OFF for all providers"
-msgstr "모든 제공자에 대해 강제 OFF"
+msgstr "모든 제공자에 대해 강제 끄기"
 
 #: koassistant_ui/prompts_manager.lua:1952
 #, fuzzy
 msgid "Configure per-provider..."
-msgstr "제공자별 설정..."
+msgstr "제공자별로 구성..."
 
 #: koassistant_ui/prompts_manager.lua:1970
 #, fuzzy
@@ -6379,16 +6610,15 @@ msgid ""
 "\n"
 "• Global: Follow per-provider settings in Settings menu\n"
 "• Force OFF: Never use thinking for this action\n"
-"• Configure: Set per-provider reasoning (Anthropic budget, OpenAI effort, "
-"Gemini level)\n"
+"• Configure: Set per-provider reasoning (Anthropic budget, OpenAI effort, Gemini level)\n"
 "\n"
 "May force temperature to 1.0 for some models."
 msgstr ""
-"추론은 지원되는 모델에 대해 복잡한 사고를 활성화합니다.\n"
+"추론은 지원되는 모델에서 복잡한 사고를 가능하게 합니다.\n"
 "\n"
-"• 전역: 설정 메뉴의 제공자별 설정을 따름\n"
-"• 강제 OFF: 이 작업에 사고를 사용하지 않음\n"
-"• 설정: 제공자별 추론 설정 (Anthropic 예산, OpenAI 노력, Gemini 레벨)\n"
+"• 전역: 설정 메뉴의 제공자별 설정을 따릅니다\n"
+"• 강제 끄기: 이 작업에 대해 사고를 사용하지 않습니다\n"
+"• 구성: 제공자별 추론 설정(Anthropic 예산, OpenAI 노력, Gemini 수준)\n"
 "\n"
 "일부 모델의 경우 온도를 1.0으로 강제할 수 있습니다."
 
@@ -6403,23 +6633,23 @@ msgstr "(전역)"
 #: koassistant_ui/prompts_manager.lua:2244
 #, fuzzy
 msgid "OFF"
-msgstr "OFF"
+msgstr "끔"
 
 #: koassistant_ui/prompts_manager.lua:2005
 #, fuzzy
 msgid "ON (%1 tokens)"
-msgstr "ON (%1 토큰)"
+msgstr "켬 (%1 토큰)"
 
 #: koassistant_ui/prompts_manager.lua:2007
 #: koassistant_ui/prompts_manager.lua:2009
 #, fuzzy
 msgid "ON ("
-msgstr "ON ("
+msgstr "켬 ("
 
 #: koassistant_ui/prompts_manager.lua:2011
 #, fuzzy
 msgid "ON"
-msgstr "ON"
+msgstr "켬"
 
 #: koassistant_ui/prompts_manager.lua:2032
 #, fuzzy
@@ -6447,13 +6677,13 @@ msgid ""
 "Configure reasoning for each provider independently.\n"
 "DeepSeek reasoner model always uses reasoning automatically."
 msgstr ""
-"각 제공자에 대해 독립적으로 추론을 설정합니다.\n"
-"DeepSeek 추론 모델은 항상 자동으로 추론을 사용합니다."
+"각 제공자의 추론을 독립적으로 구성합니다.\n"
+"DeepSeek reasoner 모델은 항상 자동으로 추론을 사용합니다."
 
 #: koassistant_ui/prompts_manager.lua:2102
 #, fuzzy
 msgid "ON (set budget)..."
-msgstr "ON (예산 설정)..."
+msgstr "켬 (예산 설정)..."
 
 #: koassistant_ui/prompts_manager.lua:2122
 #, fuzzy
@@ -6461,7 +6691,7 @@ msgid ""
 "Extended thinking for Claude models.\n"
 "Supports: Sonnet 4.5, Opus 4.x, Haiku 4.5, Sonnet 3.7"
 msgstr ""
-"Claude 모델을 위한 확장된 사고.\n"
+"Claude 모델의 확장 사고.\n"
 "지원: Sonnet 4.5, Opus 4.x, Haiku 4.5, Sonnet 3.7"
 
 #: koassistant_ui/prompts_manager.lua:2138
@@ -6477,7 +6707,7 @@ msgid ""
 "Higher = more complex reasoning.\n"
 "Range: %1 - %2"
 msgstr ""
-"확장된 사고를 위한 토큰 예산.\n"
+"확장 사고를 위한 토큰 예산.\n"
 "높을수록 = 더 복잡한 추론.\n"
 "범위: %1 - %2"
 
@@ -6507,7 +6737,7 @@ msgid ""
 "Reasoning effort for OpenAI models.\n"
 "Supports: o3, o3-mini, o4-mini, GPT-5.x"
 msgstr ""
-"OpenAI 모델을 위한 추론 노력.\n"
+"OpenAI 모델의 추론 노력.\n"
 "지원: o3, o3-mini, o4-mini, GPT-5.x"
 
 #: koassistant_ui/prompts_manager.lua:2295
@@ -6516,7 +6746,7 @@ msgid ""
 "Thinking level for Gemini models.\n"
 "Supports: gemini-3-*-preview"
 msgstr ""
-"Gemini 모델을 위한 사고 레벨.\n"
+"Gemini 모델의 사고 수준.\n"
 "지원: gemini-3-*-preview"
 
 #: koassistant_ui/prompts_manager.lua:2311
@@ -6600,8 +6830,7 @@ msgstr ""
 "\n"
 "기본 설정을 사용하려면 \"전역\"으로 설정하세요.\n"
 "\n"
-"팁: 작업 프롬프트를 편집하려면 '복제'를 사용하여 사용자 정의 복사본을 만드세"
-"요."
+"팁: 작업 프롬프트를 편집하려면 '복제'를 사용하여 사용자 정의 사본을 만드세요."
 
 #: koassistant_ui/prompts_manager.lua:2794
 #, fuzzy
@@ -6622,7 +6851,7 @@ msgstr "사용자 정의 동작"
 #: koassistant_ui/prompts_manager.lua:2880
 #, fuzzy
 msgid "Describe how the AI should behave"
-msgstr "AI가 어떻게 행동해야 하는지 설명"
+msgstr "AI가 어떻게 동작해야 하는지 설명하세요"
 
 #: koassistant_ui/prompts_manager.lua:2929
 #, fuzzy
@@ -6632,19 +6861,19 @@ msgid ""
 "Higher = creative"
 msgstr ""
 "범위: 0.0-2.0 (Anthropic 최대 1.0)\n"
-"낮음 = 집중적\n"
-"높음 = 창의적"
+"낮을수록 = 집중적\n"
+"높을수록 = 창의적"
 
 #: koassistant_ui/prompts_manager.lua:3209
 #, fuzzy
 msgid "Settings saved"
-msgstr "설정 저장됨"
+msgstr "설정이 저장되었습니다"
 
 #: koassistant_ui/prompts_manager.lua:3209
 #: koassistant_ui/prompts_manager.lua:3880
 #, fuzzy
 msgid "Settings reset to default"
-msgstr "설정이 기본값으로 초기화됨"
+msgstr "설정이 기본값으로 재설정되었습니다"
 
 #: koassistant_ui/prompts_manager.lua:3284
 #, fuzzy
@@ -6692,17 +6921,17 @@ msgstr "전역 (설정 사용)"
 #: koassistant_ui/prompts_manager.lua:3608
 #, fuzzy
 msgid "Custom behavior..."
-msgstr "사용자 정의 행동..."
+msgstr "사용자 정의 동작..."
 
 #: koassistant_ui/prompts_manager.lua:3628
 #, fuzzy
 msgid "Select AI Behavior"
-msgstr "AI 행동 선택"
+msgstr "AI 동작 선택"
 
 #: koassistant_ui/prompts_manager.lua:3640
 #, fuzzy
 msgid "Enter custom behavior instructions..."
-msgstr "사용자 정의 행동 지침 입력..."
+msgstr "사용자 정의 동작 지침 입력..."
 
 #: koassistant_ui/prompts_manager.lua:3717
 #, fuzzy
@@ -6737,12 +6966,12 @@ msgstr "저자 이름"
 #: koassistant_ui/prompts_manager.lua:3891
 #, fuzzy
 msgid "Author Clause"
-msgstr "저자 절"
+msgstr "저자 조항"
 
 #: koassistant_ui/prompts_manager.lua:3892
 #, fuzzy
 msgid "Book Count"
-msgstr "책 수"
+msgstr "책 권수"
 
 #: koassistant_ui/prompts_manager.lua:3893
 #, fuzzy
@@ -6802,73 +7031,77 @@ msgstr "읽은 챕터 수"
 #: koassistant_ui/prompts_manager.lua:3906
 #, fuzzy
 msgid "Time Since Last Read"
-msgstr "마지막 읽은 후 경과 시간"
+msgstr "마지막 읽기 이후 경과 시간"
 
 #: koassistant_ui/prompts_manager.lua:3907
 #, fuzzy
 msgid "Notebook (with label)"
-msgstr "책 텍스트 (레이블 포함)"
+msgstr "노트북 (레이블 포함)"
 
 #: koassistant_ui/prompts_manager.lua:3908
 #, fuzzy
 msgid "Notebook (raw)"
-msgstr "책 텍스트 (원본)"
+msgstr "노트북 (원본)"
 
 #: koassistant_ui/prompts_manager.lua:3910
 #, fuzzy
 msgid "Full Document (with label)"
-msgstr "책 텍스트 (레이블 포함)"
+msgstr "전체 문서 (레이블 포함)"
 
 #: koassistant_ui/prompts_manager.lua:3911
+#, fuzzy
 msgid "Full Document (raw)"
-msgstr ""
+msgstr "전체 문서 (원본)"
 
 #: koassistant_ui/prompts_manager.lua:3913
 #, fuzzy
 msgid "X-Ray Cache (with label)"
-msgstr "책 텍스트 (레이블 포함)"
+msgstr "X-Ray 캐시 (레이블 포함)"
 
 #: koassistant_ui/prompts_manager.lua:3914
+#, fuzzy
 msgid "X-Ray Cache (raw)"
-msgstr ""
+msgstr "X-Ray 캐시 (원본)"
 
 #: koassistant_ui/prompts_manager.lua:3915
 #, fuzzy
 msgid "Analysis Cache (with label)"
-msgstr "주석 (레이블 포함)"
+msgstr "분석 캐시 (레이블 포함)"
 
 #: koassistant_ui/prompts_manager.lua:3916
+#, fuzzy
 msgid "Analysis Cache (raw)"
-msgstr ""
+msgstr "분석 캐시 (원본)"
 
 #: koassistant_ui/prompts_manager.lua:3917
 #, fuzzy
 msgid "Summary Cache (with label)"
-msgstr "책 텍스트 (레이블 포함)"
+msgstr "요약 캐시 (레이블 포함)"
 
 #: koassistant_ui/prompts_manager.lua:3918
+#, fuzzy
 msgid "Summary Cache (raw)"
-msgstr ""
+msgstr "요약 캐시 (원본)"
 
 #: koassistant_ui/prompts_manager.lua:3920
 #, fuzzy
 msgid "Surrounding Context (with label)"
-msgstr "책 텍스트 (레이블 포함)"
+msgstr "주변 컨텍스트 (레이블 포함)"
 
 #: koassistant_ui/prompts_manager.lua:3921
 #, fuzzy
 msgid "Surrounding Context (raw)"
-msgstr "주변 컨텍스트와 함께 다시 실행"
+msgstr "주변 컨텍스트 (원본)"
 
 #: koassistant_ui/prompts_manager.lua:3936
 #, fuzzy
 msgid "(No placeholders for general context)"
-msgstr "(일반 컨텍스트에는 플레이스홀더 없음)"
+msgstr "(일반 컨텍스트용 자리 표시자 없음)"
 
 #: koassistant_ui/prompts_manager.lua:3975
 #, fuzzy
 msgid "Insert Placeholder"
-msgstr "플레이스홀더 삽입"
+msgstr "자리 표시자 삽입"
 
 #: koassistant_ui/prompts_manager.lua:4043
 #, fuzzy
@@ -6897,7 +7130,7 @@ msgstr "사용 가능한 하이라이트 액션이 없습니다."
 #: koassistant_ui/prompts_manager.lua:4360
 #, fuzzy
 msgid "✓ = in menu | Tap = toggle | Hold = move"
-msgstr "✓ = 메뉴에 있음 | 탭 = 전환 | 길게 누르기 = 이동"
+msgstr "✓ = 메뉴에 있음 | 탭 = 토글 | 길게 누르기 = 이동"
 
 #: koassistant_ui/prompts_manager.lua:4223
 #, fuzzy
@@ -6908,7 +7141,7 @@ msgstr "변경 사항을 적용하려면 재시작이 필요합니다"
 #: koassistant_ui/prompts_manager.lua:4394
 #, fuzzy
 msgid "Highlight Menu (%1 enabled)"
-msgstr "하이라이트 메뉴 (%1 활성화됨)"
+msgstr "하이라이트 메뉴 (%1개 활성화됨)"
 
 #: koassistant_ui/prompts_manager.lua:4275
 #: koassistant_ui/prompts_manager.lua:4433
@@ -6943,32 +7176,32 @@ msgstr "위치:"
 #: koassistant_ui/prompts_manager.lua:4503
 #, fuzzy
 msgid "No book actions available."
-msgstr "사용 가능한 도메인이 없습니다"
+msgstr "사용 가능한 책 액션이 없습니다."
 
 #: koassistant_ui/prompts_manager.lua:4518
 #, fuzzy
 msgid "✓ = in panel | Tap = toggle | Hold = move"
-msgstr "✓ = 메뉴에 있음 | 탭 = 전환 | 길게 누르기 = 이동"
+msgstr "✓ = 패널에 있음 | 탭 = 토글 | 길게 누르기 = 이동"
 
 #: koassistant_ui/prompts_manager.lua:4552
 #, fuzzy
 msgid "Quick Actions (%1 enabled)"
-msgstr "사전 팝업 (%1 활성화됨)"
+msgstr "빠른 액션 (%1개 활성화됨)"
 
 #: koassistant_ui/prompts_manager.lua:4618
 #, fuzzy
 msgid "Remove from Panel"
-msgstr "메뉴에서 제거"
+msgstr "패널에서 제거"
 
 #: koassistant_ui/prompts_manager.lua:4676
 #, fuzzy
 msgid "✓ = in popup | Tap = toggle | Hold = move"
-msgstr "✓ = 팝업에 있음 | 탭 = 전환 | 길게 누르기 = 이동"
+msgstr "✓ = 팝업에 있음 | 탭 = 토글 | 길게 누르기 = 이동"
 
 #: koassistant_ui/prompts_manager.lua:4710
 #, fuzzy
 msgid "Dictionary Popup (%1 enabled)"
-msgstr "사전 팝업 (%1 활성화됨)"
+msgstr "사전 팝업 (%1개 활성화됨)"
 
 #: koassistant_ui/prompts_manager.lua:4776
 #, fuzzy
@@ -6983,74 +7216,77 @@ msgstr "잘못된 값"
 #: koassistant_ui/settings_manager.lua:362
 #, fuzzy
 msgid "Are you sure?"
-msgstr "계속하시겠습니까?"
+msgstr "확실합니까?"
 
 #: prompts/actions.lua:141
 #, fuzzy
 msgid "Explain"
-msgstr "설명하기"
+msgstr "설명"
 
 #: prompts/actions.lua:154
 #, fuzzy
 msgid "ELI5"
-msgstr "쉽게 설명하기"
+msgstr "쉽게 설명"
 
 #: prompts/actions.lua:166
 #, fuzzy
 msgid "Summarize"
-msgstr "요약하기"
+msgstr "요약"
 
 #: prompts/actions.lua:178
 #, fuzzy
 msgid "Elaborate"
-msgstr "상세히 설명하기"
+msgstr "자세히 설명"
 
 #: prompts/actions.lua:190
 #, fuzzy
 msgid "Connect"
-msgstr "연결하기"
+msgstr "연결"
 
 #: prompts/actions.lua:211
+#, fuzzy
 msgid "Connect (With Notes)"
-msgstr ""
+msgstr "연결 (노트 포함)"
 
 #: prompts/actions.lua:248
 #, fuzzy
 msgid "Explain in Context"
-msgstr "도메인 편집 - 컨텍스트"
+msgstr "맥락에서 설명"
 
 #: prompts/actions.lua:272
 #, fuzzy
 msgid "Analyze in Context"
-msgstr "일반 컨텍스트"
+msgstr "맥락에서 분석"
 
 #: prompts/actions.lua:301
+#, fuzzy
 msgid "Explain in Context (Smart)"
-msgstr ""
+msgstr "맥락에서 설명 (스마트)"
 
 #: prompts/actions.lua:330
+#, fuzzy
 msgid "Analyze in Context (Smart)"
-msgstr ""
+msgstr "맥락에서 분석 (스마트)"
 
 #: prompts/actions.lua:366
 #, fuzzy
 msgid "Book Info"
-msgstr "책 정보"
+msgstr "도서 정보"
 
 #: prompts/actions.lua:377
 #, fuzzy
 msgid "Find Similar"
-msgstr "비슷한 책 찾기"
+msgstr "유사한 책 찾기"
 
 #: prompts/actions.lua:388
 #, fuzzy
 msgid "About Author"
-msgstr "저자 소개"
+msgstr "저자 정보"
 
 #: prompts/actions.lua:400
 #, fuzzy
 msgid "Historical Context"
-msgstr "역사적 맥락"
+msgstr "역사적 배경"
 
 #: prompts/actions.lua:411
 #, fuzzy
@@ -7060,7 +7296,7 @@ msgstr "X-Ray"
 #: prompts/actions.lua:534
 #, fuzzy
 msgid "Recap"
-msgstr "요약"
+msgstr "요점 정리"
 
 #: prompts/actions.lua:604
 #, fuzzy
@@ -7085,21 +7321,22 @@ msgstr "토론 질문"
 #: prompts/actions.lua:771
 #, fuzzy
 msgid "Analyze Document"
-msgstr "컬렉션 분석"
+msgstr "문서 분석"
 
 #: prompts/actions.lua:796
 #, fuzzy
 msgid "Summarize Document"
-msgstr "요약하기"
+msgstr "문서 요약"
 
 #: prompts/actions.lua:810
+#, fuzzy
 msgid "Extract Key Insights"
-msgstr ""
+msgstr "핵심 인사이트 추출"
 
 #: prompts/actions.lua:835
 #, fuzzy
 msgid "Compare Books"
-msgstr "책 비교"
+msgstr "도서 비교"
 
 #: prompts/actions.lua:846
 #, fuzzy
@@ -7119,11 +7356,12 @@ msgstr "빠른 요약"
 #: prompts/actions.lua:877
 #, fuzzy
 msgid "Reading Order"
-msgstr "읽기 순서"
+msgstr "독서 순서"
 
 #: prompts/actions.lua:891
+#, fuzzy
 msgid "News Update"
-msgstr ""
+msgstr "최신 소식"
 
 #: prompts/actions.lua:934
 #, fuzzy
