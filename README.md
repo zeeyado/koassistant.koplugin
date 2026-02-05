@@ -44,6 +44,7 @@
   - [Tuning Built-in Actions](#tuning-built-in-actions)
   - [Creating Actions](#creating-actions) — Wizard + template variables
   - [Template Variables](#template-variables) — 26 placeholders for dynamic content
+    - [Utility Placeholders](#utility-placeholders) — Reusable prompt fragments (conciseness nudge)
   - [Highlight Menu Actions](#highlight-menu-actions)
 - [Dictionary Integration](#dictionary-integration) — Compact view, on demand context mode
 - [Bypass Modes](#bypass-modes) — Skip menus, direct AI actions
@@ -848,6 +849,20 @@ Insert these in your action prompt to reference dynamic values:
 > **Privacy note:** Section placeholders adapt to [privacy settings](#privacy--data). If a data type is disabled (or not yet enabled), the corresponding placeholder returns empty and section variants disappear gracefully. For example, `{highlights_section}` is empty unless you enable **Allow Highlights & Annotations**. You don't need to modify actions to match your privacy preferences—they adapt automatically.
 
 > **Double-gating (for custom actions):** When creating custom actions from scratch, sensitive data requires BOTH a global privacy setting AND a per-action permission flag. This prevents accidental data leakage—if you enable "Allow Text Extraction" globally, your new custom actions still need "Allow text extraction" checked to actually use it. Built-in actions already have appropriate flags set, and copied actions inherit them. Document cache placeholders require the same permissions as their source: `{xray_cache}` needs both text extraction AND annotations, while `{analyze_cache}` and `{summary_cache}` only need text extraction. See [Text Extraction and Double-gating](#text-extraction-and-double-gating) for the full reference table.
+
+#### Utility Placeholders
+
+Utility placeholders provide reusable prompt fragments that can be inserted into any action. Currently available:
+
+| Placeholder | Expands To |
+|-------------|------------|
+| `{conciseness_nudge}` | "Be direct and concise. Don't restate or over-elaborate." |
+
+**Why use these?** Some AI models (notably Claude Sonnet 4.5) tend to produce verbose responses. The `{conciseness_nudge}` placeholder provides a standard instruction to reduce verbosity without sacrificing quality. It's used in 14 built-in actions including Explain, Summarize, ELI5, and the context-aware analysis actions.
+
+**For custom actions:** If your custom action produces overly long responses, add `{conciseness_nudge}` at the end of your prompt. The placeholder is replaced with the actual text at runtime, so you can also use the raw text directly if you prefer.
+
+> **Note:** This utility placeholder system is being developed. Future versions may add additional utility placeholders like `{hallucination_nudge}` for actions where AI uncertainty should be explicitly acknowledged.
 
 ### Tips for Custom Actions
 

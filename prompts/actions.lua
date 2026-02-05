@@ -145,6 +145,7 @@ Actions.highlight = {
         -- Uses global behavior variant (full/minimal)
         api_params = {
             temperature = 0.5,  -- More focused for explanations
+            max_tokens = 4096,
         },
         include_book_context = true,
         builtin = true,
@@ -157,6 +158,7 @@ Actions.highlight = {
         -- Uses global behavior variant
         api_params = {
             temperature = 0.6,
+            max_tokens = 4096,
         },
         include_book_context = true,
         builtin = true,
@@ -169,6 +171,7 @@ Actions.highlight = {
         -- Uses global behavior variant
         api_params = {
             temperature = 0.4,  -- More deterministic for summaries
+            max_tokens = 4096,
         },
         include_book_context = true,
         builtin = true,
@@ -181,6 +184,7 @@ Actions.highlight = {
         -- Uses global behavior variant
         api_params = {
             temperature = 0.7,  -- Balanced for expansive but coherent elaboration
+            max_tokens = 4096,
         },
         include_book_context = true,
         builtin = true,
@@ -198,7 +202,7 @@ Explore how it relates to:
 - Other books, thinkers, or intellectual traditions
 - Broader historical or cultural context
 
-Surface connections that enrich understanding, not tangential trivia. Be direct and concise. Don't restate or over-elaborate.]],
+Surface connections that enrich understanding, not tangential trivia. {conciseness_nudge}]],
         include_book_context = true,
         api_params = {
             temperature = 0.7,
@@ -236,7 +240,7 @@ Based on this highlight, is there anything I might want to add to my notebook? A
 
 If I have no prior highlights or notebook entries, just reflect on this passage and suggest what might be worth noting.
 
-Be direct and concise. Don't restate or over-elaborate.]],
+{conciseness_nudge}]],
         skip_domain = true,
         api_params = {
             temperature = 0.6,
@@ -264,7 +268,7 @@ Help me understand:
 2. How it connects to what came before
 3. Key references or concepts it builds on
 
-Be direct and concise. Don't restate or over-elaborate.]],
+{conciseness_nudge}]],
         api_params = {
             temperature = 0.5,
             max_tokens = 4096,
@@ -294,7 +298,7 @@ Provide deeper analysis:
 3. **Patterns**: Does it echo or develop something from before?
 4. **My notes**: If I've highlighted related passages, show those connections.
 
-Be direct and concise. Don't restate or over-elaborate.]],
+{conciseness_nudge}]],
         api_params = {
             temperature = 0.6,
             max_tokens = 4096,
@@ -323,7 +327,7 @@ Using the document summary above as context, help me understand:
 2. How it relates to the document's main themes and arguments
 3. Key concepts or references it builds on
 
-Be direct and concise. Don't restate or over-elaborate.
+{conciseness_nudge}
 
 Note: The summary may be in a different language than your response language. Translate or adapt as needed.]],
         api_params = {
@@ -358,7 +362,7 @@ Provide deeper analysis:
 3. **Patterns**: Does it echo or develop ideas mentioned in the summary?
 4. **My notes**: If I've highlighted related passages, show those connections.
 
-Be direct and concise. Don't restate or over-elaborate.
+{conciseness_nudge}
 
 Note: The summary may be in a different language than your response language. Translate or adapt as needed.]],
         api_params = {
@@ -378,6 +382,7 @@ Actions.book = {
         template = "book_info",
         api_params = {
             temperature = 0.7,
+            max_tokens = 4096,
         },
         builtin = true,
         in_quick_actions = 4,     -- Appears in Quick Actions menu
@@ -389,6 +394,7 @@ Actions.book = {
         template = "similar_books",
         api_params = {
             temperature = 0.8,  -- More creative for recommendations
+            max_tokens = 4096,
         },
         builtin = true,
         in_quick_actions = 8,     -- Appears in Quick Actions menu
@@ -401,6 +407,7 @@ Actions.book = {
         requires = "author",
         api_params = {
             temperature = 0.7,
+            max_tokens = 4096,
         },
         builtin = true,
         in_quick_actions = 5,     -- Appears in Quick Actions menu
@@ -412,6 +419,7 @@ Actions.book = {
         template = "historical_context",
         api_params = {
             temperature = 0.6,
+            max_tokens = 4096,
         },
         builtin = true,
     },
@@ -689,7 +697,7 @@ If you don't recognize this work or the highlights seem insufficient for meaning
 
 If this is fiction, focus on literary influences, movements, and stylistic descendants instead.
 
-Be concise — aim for the most significant connections, not an exhaustive list. If you don't recognize this work or author, say so rather than guessing.]],
+Aim for the most significant connections, not an exhaustive list. {conciseness_nudge} If you don't recognize this work or author, say so rather than guessing.]],
         api_params = {
             temperature = 0.7,
             max_tokens = 4096,
@@ -731,7 +739,7 @@ What's the "so what" — why does this argument matter?
 
 If this is fiction, adapt to analyze themes, messages, and the author's apparent worldview instead of formal arguments.
 
-Be concise — this is an overview, not an essay. If you don't recognize this title, say so rather than guessing.]],
+This is an overview, not an essay. {conciseness_nudge} If you don't recognize this title, say so rather than guessing.]],
         api_params = {
             temperature = 0.6,
             max_tokens = 4096,
@@ -766,6 +774,8 @@ Adapt to content type:
 - For fiction: Focus on character decisions, themes, craft choices
 - For non-fiction: Focus on arguments, evidence, real-world applications
 - For academic: Include questions about methodology and scholarly implications
+
+{conciseness_nudge}
 
 Note: These are general questions for the complete work. If the reader is mid-book, they can ask for spoiler-free questions in the follow-up. If you don't recognize this title, say so rather than guessing.]],
         api_params = {
@@ -858,6 +868,7 @@ Actions.multi_book = {
         template = "common_themes",
         api_params = {
             temperature = 0.7,
+            max_tokens = 4096,
         },
         builtin = true,
     },
@@ -868,6 +879,7 @@ Actions.multi_book = {
         template = "collection_summary",
         api_params = {
             temperature = 0.7,
+            max_tokens = 4096,
         },
         builtin = true,
     },
@@ -889,6 +901,7 @@ Actions.multi_book = {
         template = "reading_order",
         api_params = {
             temperature = 0.6,
+            max_tokens = 4096,
         },
         builtin = true,
     },
@@ -936,6 +949,7 @@ Actions.special = {
         translate_view = true,  -- Use special translate view
         api_params = {
             temperature = 0.3,  -- Very deterministic for translations
+            max_tokens = 8192,  -- Long passages need room
         },
         builtin = true,
     },
@@ -1020,7 +1034,7 @@ All labels and explanations in {dictionary_language}. Inline bold labels, no hea
 
 When context is provided, note how this specific form or sense fits the passage, but still analyze the lemma comprehensively. Flag homographs or polysemy when relevant.
 
-Write in {dictionary_language}. Headwords, lemmas, and cognates stay in original script. Inline bold labels, no headers. Concise but thorough.]],
+Write in {dictionary_language}. Headwords, lemmas, and cognates stay in original script. Inline bold labels, no headers. {conciseness_nudge}]],
         include_book_context = false,
         extended_thinking = "off",
         skip_language_instruction = true,

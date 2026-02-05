@@ -39,6 +39,9 @@
 --   {chapters_read}        - Fallback: "0"
 --   {time_since_last_read} - Fallback: "Recently"
 --
+-- Utility placeholders (always available):
+--   {conciseness_nudge}   - Standard conciseness instruction for verbose models
+--
 -- Note: Book text extraction is OFF by default. Users must enable it in
 -- Settings → Advanced → Context Extraction before {book_text} placeholders work.
 
@@ -46,31 +49,35 @@ local _ = require("koassistant_gettext")
 
 local Templates = {}
 
+-- Conciseness nudge - standard instruction to reduce verbosity
+-- Available as {conciseness_nudge} placeholder in all contexts
+Templates.CONCISENESS_NUDGE = "Be direct and concise. Don't restate or over-elaborate."
+
 -- Highlight context templates
 Templates.highlight = {
     explain = [[Explain this passage:
 
 {highlighted_text}
 
-Be clear and thorough. Match the text's tone - a philosophy text deserves rigor, a thriller just needs clarity. Be direct and concise. Don't restate or over-elaborate.]],
+Be clear and thorough. Match the text's tone - a philosophy text deserves rigor, a thriller just needs clarity. {conciseness_nudge}]],
 
     eli5 = [[Explain this like I'm 5 - make it genuinely simple:
 
 {highlighted_text}
 
-Use simple words, analogies to everyday things, and concrete examples. Stay accurate - simplify the explanation, not the truth. Be direct and concise. Don't restate or over-elaborate.]],
+Use simple words, analogies to everyday things, and concrete examples. Stay accurate - simplify the explanation, not the truth. {conciseness_nudge}]],
 
     summarize = [[Summarize this passage:
 
 {highlighted_text}
 
-Capture the main point and key supporting details. A good summary is shorter than the original but loses nothing important. Be direct and concise. Don't restate or over-elaborate.]],
+Capture the main point and key supporting details. A good summary is shorter than the original but loses nothing important. {conciseness_nudge}]],
 
     elaborate = [[Elaborate on this passage:
 
 {highlighted_text}
 
-Unpack key concepts, add helpful context, explore implications and connections. Go deeper, but stay grounded in what the text actually says. Be direct and concise. Don't restate or over-elaborate.]],
+Unpack key concepts, add helpful context, explore implications and connections. Go deeper, but stay grounded in what the text actually says. {conciseness_nudge}]],
 }
 
 -- Book context templates
@@ -216,6 +223,9 @@ end
 function Templates.buildVariables(context_type, data)
     data = data or {}
     local vars = {}
+
+    -- Utility placeholders (always available)
+    vars.conciseness_nudge = Templates.CONCISENESS_NUDGE
 
     if context_type == "highlight" then
         vars.highlighted_text = data.highlighted_text or ""
