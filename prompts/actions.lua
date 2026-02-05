@@ -425,7 +425,7 @@ Actions.book = {
             max_tokens = 4096,
         },
         builtin = true,
-        in_quick_actions = 4,     -- Appears in Quick Actions menu
+        in_quick_actions = 3,     -- Appears in Quick Actions menu
     },
     similar_books = {
         id = "similar_books",
@@ -437,7 +437,6 @@ Actions.book = {
             max_tokens = 4096,
         },
         builtin = true,
-        in_quick_actions = 8,     -- Appears in Quick Actions menu
     },
     explain_author = {
         id = "explain_author",
@@ -450,7 +449,6 @@ Actions.book = {
             max_tokens = 4096,
         },
         builtin = true,
-        in_quick_actions = 5,     -- Appears in Quick Actions menu
     },
     historical_context = {
         id = "historical_context",
@@ -709,7 +707,6 @@ If you don't recognize this work or the highlights seem insufficient for meaning
         },
         builtin = true,
         in_reading_features = 3,  -- Appears in Reading Features menu + default gesture
-        in_quick_actions = 3,     -- Appears in Quick Actions menu
     },
     -- Related Thinkers: Intellectual landscape and influences
     related_thinkers = {
@@ -823,7 +820,6 @@ Note: These are general questions for the complete work. If the reader is mid-bo
             max_tokens = 4096,
         },
         builtin = true,
-        in_quick_actions = 6,     -- Appears in Quick Actions menu
     },
     -- Discussion Questions (Smart): Generate discussion prompts using cached summary
     discussion_questions_smart = {
@@ -964,7 +960,6 @@ What are the most important takeaways? Focus on:
             max_tokens = 8192,
         },
         builtin = true,
-        in_quick_actions = 7,     -- Appears in Quick Actions menu
     },
 }
 
