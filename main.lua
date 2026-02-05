@@ -1,3 +1,10 @@
+-- Startup timing instrumentation (temporary - remove after profiling)
+local _profile_start = os.clock()
+local function _profile(name)
+    print(string.format("KOAssistant profile: %s at %.3fs", name, os.clock() - _profile_start))
+end
+_profile("module load start")
+
 local Device = require("device")
 local WidgetContainer = require("ui/widget/container/widgetcontainer")
 local NetworkMgr = require("ui/network/manager")
@@ -17,18 +24,25 @@ local T = require("ffi/util").template
 local logger = require("logger")
 local util = require("util")
 local Screen = Device.screen
+_profile("core modules loaded")
 
 local Dialogs = require("koassistant_dialogs")
+_profile("koassistant_dialogs loaded")
 local showChatGPTDialog = Dialogs.showChatGPTDialog
 -- UpdateChecker is lazy-loaded to speed up plugin startup (defers loading ~25 UI modules)
 local SettingsSchema = require("koassistant_settings_schema")
+_profile("settings_schema loaded")
 local SettingsManager = require("koassistant_ui.settings_manager")
+_profile("settings_manager loaded")
 local PromptsManager = require("koassistant_ui.prompts_manager")
+_profile("prompts_manager loaded")
 local UIConstants = require("koassistant_ui.constants")
 local ActionService = require("action_service")
+_profile("action_service loaded")
 
 local ModelLists = require("koassistant_model_lists")
 local Constants = require("koassistant_constants")
+_profile("all modules loaded")
 
 -- Load the configuration directly
 local configuration = {
@@ -142,12 +156,15 @@ function AskGPT:init()
   chat_history_manager:validateChatIndex()
 
   -- Auto-check for updates at startup (if enabled)
-  -- Runs silently in background, only shows UI if update is available
+  -- Only check if already online - don't trigger WiFi connection for silent background checks
   local features = self.settings:readSetting("features") or {}
   if features.auto_check_updates ~= false then
-    NetworkMgr:runWhenOnline(function()
-      local UpdateChecker = require("koassistant_update_checker")
-      UpdateChecker.checkForUpdates(true) -- auto = true (silent background check)
+    -- Delay check to give network time to initialize, then only proceed if already online
+    UIManager:scheduleIn(3, function()
+      if NetworkMgr:isOnline() then
+        local UpdateChecker = require("koassistant_update_checker")
+        UpdateChecker.checkForUpdates(true) -- auto = true (silent background check)
+      end
     end)
   end
 
