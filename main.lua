@@ -5363,7 +5363,7 @@ function AskGPT:translateCurrentPage()
   -- Note: The actual hiding is handled in handlePredefinedPrompt which respects user's translate_hide_highlight_mode
   config_copy.features.is_full_page_translate = true
   -- Clear selection_data - there's no actual user highlight for page translation,
-  -- so the "H.Note" button should be disabled (prevents using stale data from prior highlights)
+  -- so the "Save to Note" button should be disabled (prevents using stale data from prior highlights)
   config_copy.features.selection_data = nil
 
   -- Execute translation

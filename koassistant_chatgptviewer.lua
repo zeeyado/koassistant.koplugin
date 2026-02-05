@@ -1081,7 +1081,7 @@ function ChatGPTViewer:init()
       hold_callback = self.default_hold_callback,
     },
     {
-      text = _("H.Note"),
+      text = _("Save to Note"),
       id = "save_to_note",
       enabled = self.selection_data ~= nil,
       callback = function()
@@ -1912,9 +1912,9 @@ function ChatGPTViewer:init()
     hold_callback = self.default_hold_callback,
   })
 
-  -- Translate Row 1: H.Note button (grayed out when no selection_data)
+  -- Translate Row 1: Save to Note button (grayed out when no selection_data)
   table.insert(translate_button_row1, {
-    text = _("H.Note"),
+    text = _("Save to Note"),
     id = "save_to_note",
     enabled = self.selection_data ~= nil,
     callback = function()

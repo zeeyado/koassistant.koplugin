@@ -508,7 +508,7 @@ See [Response Caching → "Generate Once, Use Many Times"](#response-caching-x-r
 
 **What the AI sees**: Your highlighted text, plus document metadata (title, author). Actions like "Explain in Context" and "Analyze in Context" also use extracted book text to understand the surrounding content. Custom actions can access reading progress, chapter info, your highlights/annotations, notebook, and extracted book text—depending on action settings and [privacy preferences](#privacy--data). See [Template Variables](#template-variables) for details.
 
-**Save to Note**: After getting an AI response, tap the **H.Note** button to save it directly as a KOReader highlight note attached to your selected text. See [Save to Note](#save-to-note) for details.
+**Save to Note**: After getting an AI response, tap the **Save to Note** button to save it directly as a KOReader highlight note attached to your selected text. See [Save to Note](#save-to-note) for details.
 
 > **Tip**: Add frequently-used actions to the highlight menu (Settings → Menu Customization → Highlight Menu) for quick access. Other enabled highlight actions remain available from the main "KOAssistant" entry in the highlight popup. From that input window, you can also add extra instructions to any action (e.g., "esp. the economic implications" or "in simple terms").
 
@@ -624,19 +624,19 @@ Actions like News Update that require [web search](#web-search) are available in
 - **Settings Icon (Input)**: Tap the gear icon in the input dialog title bar to open **Quick Settings**—a streamlined two-column panel providing quick access to frequently-changed settings without navigating through the full settings menu. See [Recommended Setup](#recommended-setup) for details on what's available in this panel.
 - **Settings Icon (Viewer)**: Tap the gear icon in the chat viewer title bar to adjust font size and text alignment (cycles left/justified/right on each click)
 - **Show/Hide Quote**: In the chat viewer, toggle button to show or hide the highlighted text quote (useful for long selections)
-- **Save to Note**: For highlight context chats, tap the **H.Note** button to save the AI response directly as a note attached to your highlighted text (see [Save to Note](#save-to-note) below)
+- **Save to Note**: For highlight context chats, tap the **Save to Note** button to save the AI response directly as a note attached to your highlighted text (see [Save to Note](#save-to-note) below)
 - **Other**: Turn on off Text/Markdown view, Debug view mode, add Tags, Change Domain, etc
 
 ### Save to Note
 
 **Save AI responses directly to your KOReader highlights.**
 
-When working with highlighted text, the **H.Note** button lets you save the AI response as a native KOReader note attached to that highlight. This integrates AI explanations, translations, and analysis directly into your reading annotations.
+When working with highlighted text, the **Save to Note** button lets you save the AI response as a native KOReader note attached to that highlight. This integrates AI explanations, translations, and analysis directly into your reading annotations.
 
 **How it works:**
 1. Highlight text and use any KOAssistant action (Explain, Translate, etc.)
 2. Review the AI response in the chat viewer
-3. Tap the **H.Note** button (appears between Copy and Add to Notebook)
+3. Tap the **Save to Note** button (appears between Copy and Add to Notebook)
 4. KOReader's Edit Note dialog opens with the response pre-filled
 5. Edit if desired, then save — the highlight is created with your note attached
 
@@ -654,7 +654,7 @@ When working with highlighted text, the **H.Note** button lets you save the AI r
 - Build a glossary of term definitions within your book
 - Annotate with AI-generated insights that become part of your reading notes
 
-**Note:** The H.Note button only appears for highlight context chats (where you've selected text). It's not available for book, multi-book, or general chat contexts.
+**Note:** The Save to Note button only appears for highlight context chats (where you've selected text). It's not available for book, multi-book, or general chat contexts.
 
 ---
 
@@ -1269,12 +1269,12 @@ This extracts all text from the visible page/screen and sends it to the Translat
 All translation actions (Highlight Bypass with Translate, Translate Current Page, highlight menu Translate) use a specialized **Translate View** — a minimal UI focused on translations.
 
 **Button layout:**
-- **Row 1:** MD ON/TXT ON (toggle markdown), Copy, H.Note (when highlighting)
+- **Row 1:** MD ON/TXT ON (toggle markdown), Copy, Save to Note (when highlighting)
 - **Row 2:** → Chat (expand to full chat), Show/Hide Original, Lang, Close
 
 **Key features:**
 - **Lang button** — re-run translation with a different target language (picks from your configured languages)
-- **H.Note button** — save translation directly to a highlight note (closes translate view after save)
+- **Save to Note button** — save translation directly to a highlight note (closes translate view after save)
 - **Auto-save disabled** by default (translations are ephemeral like dictionary lookups)
 - **Copy/Note Content** options — choose what to include: full, question + response, or translation only
 - **Configurable original text visibility** — follow global setting, always hide, hide long text, or never hide
