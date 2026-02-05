@@ -4819,6 +4819,18 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
     })
   end
 
+  -- Continue Last Chat button
+  if isQsEnabled("continue_last_chat") then
+    table.insert(all_buttons, {
+      text = _("Continue Last Chat"),
+      callback = function()
+        opening_subdialog = true
+        UIManager:close(dialog)
+        self_ref:onKOAssistantContinueLastOpened()
+      end,
+    })
+  end
+
   -- New Book Chat/Action (only when book is open)
   if has_document and isQsEnabled("new_book_chat") then
     table.insert(all_buttons, {

@@ -1016,6 +1016,13 @@ local SettingsSchema = {
                                 default = true,
                             },
                             {
+                                id = "qs_show_continue_last_chat",
+                                type = "toggle",
+                                text = _("Continue Last Chat"),
+                                path = "features.qs_show_continue_last_chat",
+                                default = true,
+                            },
+                            {
                                 id = "qs_show_new_book_chat",
                                 type = "toggle",
                                 text = _("New Book Chat/Action"),
