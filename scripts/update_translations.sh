@@ -63,8 +63,8 @@ for lang in $LANGUAGES; do
     PO_FILE="locale/$lang/LC_MESSAGES/koassistant.po"
 
     if [ -f "$PO_FILE" ]; then
-        # Merge with .pot
-        if ! msgmerge -U --backup=none "$PO_FILE" locale/koassistant.pot 2>/dev/null; then
+        # Merge with .pot (-N disables fuzzy matching, only exact matches)
+        if ! msgmerge -U -N --backup=none "$PO_FILE" locale/koassistant.pot 2>/dev/null; then
             echo "  $lang: msgmerge failed, skipping"
             continue
         fi
