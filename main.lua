@@ -3929,9 +3929,10 @@ function AskGPT:viewCache()
 end
 
 --- Show a specific cache in the viewer
---- @param cache_info table: { name, key, data } where data contains result, progress_decimal, model, language
+--- @param cache_info table: { name, key, data } where data contains result, progress_decimal, model, timestamp, used_annotations
 function AskGPT:showCacheViewer(cache_info)
   local ChatGPTViewer = require("koassistant_chatgptviewer")
+  local ActionCache = require("koassistant_action_cache")
 
   -- Format title with cache info
   local title = cache_info.name
@@ -3942,16 +3943,74 @@ function AskGPT:showCacheViewer(cache_info)
   if cache_info.data.model then
     title = title .. " - " .. cache_info.data.model
   end
-  -- Show language if stored (for awareness)
-  if cache_info.data.language then
+  -- Show date if stored
+  if cache_info.data.timestamp then
+    local date_str = os.date("%Y-%m-%d", cache_info.data.timestamp)
+    title = title .. " [" .. date_str .. "]"
+  -- Fallback: show language if no timestamp
+  elseif cache_info.data.language then
     title = title .. " [" .. cache_info.data.language .. "]"
+  end
+
+  -- Get book metadata for export
+  local book_title, book_author
+  if self.ui and self.ui.document then
+    local props = self.ui.document:getProps()
+    if props then
+      book_title = props.title
+      book_author = props.authors
+    end
+  end
+
+  -- Map cache key to cache type
+  local cache_type_map = {
+    ["_xray_cache"] = "xray",
+    ["_summary_cache"] = "summary",
+    ["_analyze_cache"] = "analyze",
+  }
+  local cache_type = cache_type_map[cache_info.key] or "cache"
+
+  -- Build cache metadata for export
+  local cache_metadata = {
+    cache_type = cache_type,
+    book_title = book_title,
+    book_author = book_author,
+    progress_decimal = cache_info.data.progress_decimal,
+    model = cache_info.data.model,
+    timestamp = cache_info.data.timestamp,
+    used_annotations = cache_info.data.used_annotations,
+  }
+
+  -- Create delete callback
+  local on_delete = nil
+  if self.ui and self.ui.document and self.ui.document.file then
+    local file = self.ui.document.file
+    local cache_key = cache_info.key
+    local cache_name = cache_info.name
+
+    on_delete = function()
+      -- Clear the appropriate cache based on key
+      if cache_key == "_xray_cache" then
+        ActionCache.clearXrayCache(file)
+      elseif cache_key == "_analyze_cache" then
+        ActionCache.clearAnalyzeCache(file)
+      elseif cache_key == "_summary_cache" then
+        ActionCache.clearSummaryCache(file)
+      end
+      UIManager:show(Notification:new{
+        text = T(_("%1 deleted"), cache_name),
+        timeout = 2,
+      })
+    end
   end
 
   local viewer = ChatGPTViewer:new{
     title = title,
     text = cache_info.data.result,
-    simple_view = true,  -- Use read-only simple view mode
+    simple_view = true,
     configuration = configuration,
+    cache_metadata = cache_metadata,
+    on_delete = on_delete,
   }
   UIManager:show(viewer)
 end
@@ -4005,6 +4064,26 @@ function AskGPT:showSummaryViewer(summary_data)
     title = title .. " [" .. date_str .. "]"
   end
 
+  -- Get book metadata for export
+  local book_title, book_author
+  if self.ui and self.ui.document then
+    local props = self.ui.document:getProps()
+    if props then
+      book_title = props.title
+      book_author = props.authors
+    end
+  end
+
+  -- Build cache metadata for export
+  local cache_metadata = {
+    cache_type = "summary",
+    book_title = book_title,
+    book_author = book_author,
+    progress_decimal = summary_data.progress_decimal,
+    model = summary_data.model,
+    timestamp = summary_data.timestamp,
+  }
+
   -- Create callbacks for regenerate/delete (only if we have an open book)
   local on_regenerate = nil
   local on_delete = nil
@@ -4033,6 +4112,7 @@ function AskGPT:showSummaryViewer(summary_data)
     text = summary_data.result,
     simple_view = true,
     configuration = configuration,
+    cache_metadata = cache_metadata,
     on_regenerate = on_regenerate,
     on_delete = on_delete,
   }
@@ -4884,6 +4964,19 @@ function AskGPT:onKOAssistantQuickActions()
             end
           end,
         })
+      elseif qa_util.id == "view_caches" then
+        -- Special handling: only show if X-Ray or Analysis cache exists (not just summary)
+        local xray_exists = ActionCache.getXrayCache(file) ~= nil
+        local analyze_exists = ActionCache.getAnalyzeCache(file) ~= nil
+        if xray_exists or analyze_exists then
+          addButton({
+            text = _("View Caches"),
+            callback = function()
+              UIManager:close(dialog)
+              self_ref:viewCache()
+            end,
+          })
+        end
       else
         -- Standard utility button
         local display_text = Constants.getQuickActionUtilityText(qa_util.id, _)

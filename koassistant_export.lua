@@ -467,4 +467,148 @@ function Export.exportToFile(data, content, style, filepath)
     return Export.saveToFile(text, filepath)
 end
 
+-- =============================================================================
+-- Cache Content Export
+-- =============================================================================
+
+--- Format cached content (X-Ray, Summary, Analysis) for export
+-- @param content string The cached content (result)
+-- @param metadata table { cache_type, book_title, book_author, progress_decimal, model, timestamp, used_annotations }
+-- @param style string "markdown" or "text"
+-- @return string Formatted export content
+function Export.formatCacheContent(content, metadata, style)
+    local is_md = (style == "markdown")
+    local result = {}
+
+    -- Cache type display names
+    local type_names = {
+        xray = "X-Ray",
+        summary = "Summary",
+        analyze = "Analysis",
+    }
+    local type_name = type_names[metadata.cache_type] or metadata.cache_type or "Cache"
+
+    -- Header
+    if is_md then
+        -- Markdown: # Type: Book Title
+        local header = "# " .. type_name
+        if metadata.book_title then
+            header = header .. ": " .. metadata.book_title
+        end
+        table.insert(result, header)
+        table.insert(result, "")
+
+        -- Author
+        if metadata.book_author and metadata.book_author ~= "" then
+            table.insert(result, "**Author:** " .. metadata.book_author)
+        end
+
+        -- Generated date
+        if metadata.timestamp then
+            local date_str = os.date("%Y-%m-%d", metadata.timestamp)
+            table.insert(result, "**Generated:** " .. date_str)
+        end
+
+        -- Model
+        if metadata.model and metadata.model ~= "" then
+            table.insert(result, "**Model:** " .. metadata.model)
+        end
+
+        -- Coverage
+        if metadata.progress_decimal then
+            local coverage = math.floor(metadata.progress_decimal * 100 + 0.5)
+            table.insert(result, "**Coverage:** " .. coverage .. "%")
+        end
+
+        -- Includes annotations (X-Ray only, when true)
+        if metadata.used_annotations == true then
+            table.insert(result, "**Includes annotations:** Yes")
+        end
+
+        table.insert(result, "")
+        table.insert(result, "---")
+        table.insert(result, "")
+    else
+        -- Text mode: decorative header
+        local header_line = string.rep("=", 40)
+        table.insert(result, header_line)
+
+        local title_line = string.upper(type_name)
+        if metadata.book_title then
+            title_line = title_line .. ": " .. metadata.book_title
+        end
+        table.insert(result, title_line)
+        table.insert(result, header_line)
+        table.insert(result, "")
+
+        -- Author
+        if metadata.book_author and metadata.book_author ~= "" then
+            table.insert(result, "Author: " .. metadata.book_author)
+        end
+
+        -- Generated date
+        if metadata.timestamp then
+            local date_str = os.date("%Y-%m-%d", metadata.timestamp)
+            table.insert(result, "Generated: " .. date_str)
+        end
+
+        -- Model
+        if metadata.model and metadata.model ~= "" then
+            table.insert(result, "Model: " .. metadata.model)
+        end
+
+        -- Coverage
+        if metadata.progress_decimal then
+            local coverage = math.floor(metadata.progress_decimal * 100 + 0.5)
+            table.insert(result, "Coverage: " .. coverage .. "%")
+        end
+
+        -- Includes annotations (X-Ray only, when true)
+        if metadata.used_annotations == true then
+            table.insert(result, "Includes annotations: Yes")
+        end
+
+        table.insert(result, "")
+        table.insert(result, string.rep("-", 40))
+        table.insert(result, "")
+    end
+
+    -- Content
+    table.insert(result, content or "")
+
+    return table.concat(result, "\n")
+end
+
+--- Generate filename for cache export
+-- @param book_title string|nil Book title
+-- @param cache_type string Cache type: "xray", "summary", "analyze"
+-- @return string Safe filename with timestamp
+function Export.getCacheFilename(book_title, cache_type)
+    -- Cache type display names for filename
+    local type_names = {
+        xray = "X-Ray",
+        summary = "Summary",
+        analyze = "Analysis",
+    }
+    local type_name = type_names[cache_type] or cache_type or "Cache"
+
+    -- Sanitize book title (reuse existing logic)
+    local safe_title = ""
+    if book_title and book_title ~= "" then
+        -- Remove/replace problematic characters for filenames
+        safe_title = book_title:gsub('[<>:"/\\|?*]', "_")
+        safe_title = safe_title:gsub("%s+", "_")
+        -- Limit length
+        if #safe_title > 30 then
+            safe_title = safe_title:sub(1, 30)
+        end
+        safe_title = safe_title .. "_"
+    end
+
+    -- Timestamp
+    local timestamp = os.date("%Y%m%d_%H%M%S")
+
+    return safe_title .. type_name .. "_" .. timestamp .. ".md"
+end
+
 return Export

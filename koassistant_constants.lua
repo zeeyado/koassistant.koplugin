@@ -104,6 +104,7 @@ Constants.QUICK_ACTION_UTILITIES = {
     { id = "new_book_chat",      callback = "onKOAssistantBookChat",            default = true },
     { id = "general_chat",       callback = "startGeneralChat",                 default = true },
     { id = "summary",            callback = "handleSummary",                    default = true },  -- Special handling
+    { id = "view_caches",        callback = "handleViewCaches",                 default = true },  -- Special: only visible if X-Ray or Analysis exists
     { id = "ai_quick_settings",  callback = "onKOAssistantAISettings",          default = true },
 }
 
@@ -122,6 +123,7 @@ function Constants.getQuickActionUtilityText(id, _)
         new_book_chat = _("New Book Chat/Action"),
         general_chat = _("General Chat/Action"),
         summary = nil,  -- Special: dynamic text based on cache state
+        view_caches = _("View Caches"),
         ai_quick_settings = _("Quick Settings"),
     }
     return texts[id]

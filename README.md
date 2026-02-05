@@ -442,8 +442,8 @@ KOAssistant works in **4 contexts**, each with its own set of built-in actions:
 
 | Context | Built-in Actions |
 |---------|------------------|
-| **Highlight** | Explain, ELI5, Summarize, Elaborate, Connect, Connect (With Notes), Explain in Context, Analyze in Context, Translate, Dictionary, Quick Define, Deep Analysis |
-| **Book** | Book Info, Similar Books, About Author, Historical Context, Related Thinkers, Key Arguments, Discussion Questions, X-Ray, Recap, Analyze Highlights, Analyze Document, Summarize Document, Extract Key Insights |
+| **Highlight** | Explain, ELI5, Summarize, Elaborate, Connect, Connect (With Notes), Explain in Context, Analyze in Context, Thematic Connection (Smart), Translate, Dictionary, Quick Define, Deep Analysis |
+| **Book** | Book Info, Similar Books, About Author, Historical Context, Related Thinkers, Key Arguments, Discussion Questions, Generate Quiz (Smart), Discussion Questions (Smart), X-Ray, Recap, Analyze Highlights, Analyze Document, Summarize Document, Extract Key Insights |
 | **Multi-book** | Compare Books, Common Themes, Analyze Collection, Quick Summaries, Reading Order |
 | **General** | Ask, News Update* |
 
@@ -473,19 +473,23 @@ You can customize these, create your own, or disable ones you don't use. See [Ac
 | **Explain in Context (Smart)** | Like above, but uses cached document summary for efficiency ⚠️ *Requires: Allow Text Extraction* |
 | **Analyze in Context** | Deep analysis with book context and your annotations ⚠️ *Requires: Allow Text Extraction, Allow Highlights & Annotations* |
 | **Analyze in Context (Smart)** | Like above, but uses cached document summary ⚠️ *Requires: Allow Text Extraction, Allow Highlights & Annotations* |
+| **Thematic Connection (Smart)** | Analyze how a passage connects to the book's larger themes ⚠️ *Requires: Allow Text Extraction* |
 | **Translate** | Translate to your configured language |
 | **Dictionary** | Full dictionary entry: definition, etymology, synonyms, usage (also accessible via dictionary popup) |
 | **Quick Define** | Minimal lookup: brief definition only, no etymology or synonyms |
 | **Deep Analysis** | Linguistic deep-dive: morphology, word family, cognates, etymology path |
 
-**Smart variants** (Explain in Context, Analyze in Context):
+**Smart variants** (use cached summary):
 
-Both "Explain in Context" and "Analyze in Context" have Smart variants that use cached summaries instead of raw book text:
+Several actions have Smart variants that use cached document summaries instead of raw book text. This is faster, cheaper, and works especially well for repeated queries.
 
-| Action | Standard | Smart |
-|--------|----------|-------|
-| **Explain in Context** | Sends book text each query | Uses cached summary |
-| **Analyze in Context** | Sends book text + annotations | Uses cached summary + annotations |
+| Action | Context | What it does |
+|--------|---------|--------------|
+| **Explain in Context (Smart)** | Highlight | Explain passage using cached summary |
+| **Analyze in Context (Smart)** | Highlight | Deep analysis using cached summary + annotations |
+| **Thematic Connection (Smart)** | Highlight | Analyze how passage connects to larger themes |
+| **Discussion Questions (Smart)** | Book | Generate discussion prompts grounded in summary |
+| **Generate Quiz (Smart)** | Book | Comprehension quiz with answers using summary |
 
 **When to use Smart variants:**
 - Longer documents (research papers, textbooks, novels)
@@ -530,6 +534,8 @@ Some actions work from the file browser (using only title/author), while others 
 | **Related Thinkers** | Intellectual landscape: influences, contemporaries, and connected thinkers |
 | **Key Arguments** | Thesis, evidence, assumptions, and counterarguments (non-fiction) |
 | **Discussion Questions** | Comprehension, analytical, and interpretive prompts for book clubs or study |
+| **Discussion Questions (Smart)** | Like above, but uses cached summary for grounded questions ⚠️ *Requires: Allow Text Extraction* |
+| **Generate Quiz (Smart)** | Comprehension quiz with answers (multiple choice, short answer, essay) ⚠️ *Requires: Allow Text Extraction* |
 | **X-Ray** | Structured reference guide: characters, locations, themes, timeline ⚠️ *Best with: Allow Text Extraction* |
 | **Recap** | "Previously on..." style summary to help you resume reading ⚠️ *Best with: Allow Text Extraction* |
 | **Analyze Highlights** | Discover patterns and connections in your highlights ⚠️ *Requires: Allow Highlights & Annotations* |
@@ -551,6 +557,8 @@ These actions analyze your actual reading content. They require specific privacy
 | **Analyze Document** | Entire document | Allow Text Extraction |
 | **Summarize Document** | Entire document | Allow Text Extraction |
 | **Extract Key Insights** | Entire document | Allow Text Extraction |
+| **Discussion Questions (Smart)** | Cached summary | Allow Text Extraction |
+| **Generate Quiz (Smart)** | Cached summary | Allow Text Extraction |
 
 > ⚠️ **Privacy settings required:** These actions won't have access to your reading data unless you enable the corresponding setting in **Settings → Privacy & Data**. Without the setting enabled, the AI will attempt to use only its training knowledge (works for famous books, less accurate for obscure works). A "*Response generated without: ...*" notice will appear in the chat to indicate what data was requested but not provided.
 
@@ -575,7 +583,7 @@ Book actions work in two contexts: **reading mode** (book is open) and **file br
 - **File browser** has access to book **metadata** only: title, author, identifiers
 - **Reading mode** additionally has access to **document state**: reading progress, highlights, annotations, notebook, extracted text
 
-**Reading-only actions** (hidden in file browser): X-Ray, Recap, Analyze Highlights, Analyze Document, Summarize Document, Extract Key Insights. These require document state that isn't available until you open the book.
+**Reading-only actions** (hidden in file browser): X-Ray, Recap, Analyze Highlights, Analyze Document, Summarize Document, Extract Key Insights, Discussion Questions (Smart), Generate Quiz (Smart). These require document state that isn't available until you open the book.
 
 Custom actions using placeholders like `{reading_progress}`, `{book_text}`, `{full_document}`, `{highlights}`, `{annotations}`, or `{notebook}` are filtered the same way. The Action Manager shows a `[reading]` indicator for such actions.
 
@@ -2256,11 +2264,14 @@ For medium and long texts, sending full document text (~100K tokens) for each hi
 The summary viewer shows metadata: coverage percentage (e.g., "78%" if document was truncated), model used, and generation date. Buttons allow copying, regenerating, or deleting the cached summary.
 
 **Built-in Smart actions:**
-- **Explain in Context (Smart)** — Uses `{summary_cache_section}` for context
-- **Analyze in Context (Smart)** — Uses `{summary_cache_section}` + `{annotations_section}`
+- **Explain in Context (Smart)** — (Highlight) Uses `{summary_cache_section}` for context
+- **Analyze in Context (Smart)** — (Highlight) Uses `{summary_cache_section}` + `{annotations_section}`
+- **Thematic Connection (Smart)** — (Highlight) Analyze how passage connects to larger themes
+- **Discussion Questions (Smart)** — (Book) Generate discussion prompts grounded in summary
+- **Generate Quiz (Smart)** — (Book) Comprehension quiz with answers using summary
 
 **How Smart actions work:**
-1. User highlights text and selects a Smart action
+1. User triggers a Smart action (highlight or book context)
 2. If summary cache exists → Uses cached summary immediately
 3. If no cache → Shows confirmation dialog: "Generate summary now?"
 4. User confirms → Summary generated via `summarize_full_document` action

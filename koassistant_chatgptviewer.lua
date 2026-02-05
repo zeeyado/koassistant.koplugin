@@ -884,6 +884,10 @@ local ChatGPTViewer = InputContainer:extend {
   on_regenerate = nil,
   on_delete = nil,
 
+  -- Metadata for cache export (simple_view only)
+  -- Contains: cache_type, book_title, book_author, progress_decimal, model, timestamp, used_annotations
+  cache_metadata = nil,
+
   -- Selection position data for "Save to Note" feature
   -- Contains pos0, pos1, sboxes, pboxes for recreating highlight
   selection_data = nil,
@@ -2041,9 +2045,9 @@ function ChatGPTViewer:init()
   })
 
   -- Simple view buttons - read-only viewer for cached analyses
-  -- Row 1: MD/Text, Copy, ⇱ (top), ⇲ (bottom)
+  -- Row 1: MD/Text, Copy, Export (if metadata), ⇱ (top), ⇲ (bottom)
   -- Row 2 (if callbacks provided): Regenerate, Delete, Close
-  -- Row 1 (no callbacks): MD/Text, Copy, ⇱, ⇲, Close
+  -- Row 1 (no callbacks): MD/Text, Copy, Export, ⇱, ⇲, Close
   local simple_view_row1 = {
     {
       text_func = function()
@@ -2067,37 +2071,51 @@ function ChatGPTViewer:init()
       end,
       hold_callback = self.default_hold_callback,
     },
-    {
-      text = "⇱",
-      id = "top",
-      callback = function()
-        if self.render_markdown then
-          local htmlbox = self.scroll_text_w.htmlbox_widget
-          if htmlbox then
-            if htmlbox.page_number == 1 then
-              return
-            end
-            self.scroll_text_w:scrollToRatio(0)
-          end
-        else
-          self.scroll_text_w:scrollToTop()
-        end
-      end,
-      hold_callback = self.default_hold_callback,
-    },
-    {
-      text = "⇲",
-      id = "bottom",
-      callback = function()
-        if self.render_markdown then
-          self.scroll_text_w:scrollToRatio(1)
-        else
-          self.scroll_text_w:scrollToBottom()
-        end
-      end,
-      hold_callback = self.default_hold_callback,
-    },
   }
+
+  -- Add Export button if cache_metadata is provided
+  if self.cache_metadata then
+    table.insert(simple_view_row1, {
+      text = _("Export"),
+      id = "export_cache",
+      callback = function()
+        self:exportCacheContent()
+      end,
+      hold_callback = self.default_hold_callback,
+    })
+  end
+
+  -- Add navigation buttons
+  table.insert(simple_view_row1, {
+    text = "⇱",
+    id = "top",
+    callback = function()
+      if self.render_markdown then
+        local htmlbox = self.scroll_text_w.htmlbox_widget
+        if htmlbox then
+          if htmlbox.page_number == 1 then
+            return
+          end
+          self.scroll_text_w:scrollToRatio(0)
+        end
+      else
+        self.scroll_text_w:scrollToTop()
+      end
+    end,
+    hold_callback = self.default_hold_callback,
+  })
+  table.insert(simple_view_row1, {
+    text = "⇲",
+    id = "bottom",
+    callback = function()
+      if self.render_markdown then
+        self.scroll_text_w:scrollToRatio(1)
+      else
+        self.scroll_text_w:scrollToBottom()
+      end
+    end,
+    hold_callback = self.default_hold_callback,
+  })
 
   -- Build second row based on whether callbacks are provided
   local simple_view_row2 = {}
@@ -3344,6 +3362,61 @@ function ChatGPTViewer:showExportDialog()
     -- Content is predetermined, show action dialog directly
     showActionDialog(content_setting)
   end
+end
+
+--- Export cached content to file (simple_view only)
+-- Uses PathChooser to select directory, then saves with metadata header
+function ChatGPTViewer:exportCacheContent()
+  if not self.cache_metadata then
+    UIManager:show(InfoMessage:new{
+      text = _("No export metadata available."),
+    })
+    return
+  end
+
+  local PathChooser = require("ui/widget/pathchooser")
+  local Export = require("koassistant_export")
+  local DataStorage = require("datastorage")
+
+  -- Default to home directory or data storage
+  local default_path = DataStorage:getDataDir()
+
+  local path_chooser = PathChooser:new{
+    title = _("Select export folder"),
+    path = default_path,
+    show_hidden = false,
+    select_directory = true,
+    select_file = false,
+    onConfirm = function(selected_path)
+      -- Generate filename
+      local filename = Export.getCacheFilename(
+        self.cache_metadata.book_title,
+        self.cache_metadata.cache_type
+      )
+      local filepath = selected_path .. "/" .. filename
+
+      -- Format content with metadata
+      local formatted = Export.formatCacheContent(
+        self.text,
+        self.cache_metadata,
+        "markdown"
+      )
+
+      -- Save to file
+      local success, err = Export.saveToFile(formatted, filepath)
+      if success then
+        UIManager:show(Notification:new{
+          text = T(_("Saved to %1"), filename),
+          timeout = 3,
+        })
+      else
+        UIManager:show(InfoMessage:new{
+          text = T(_("Export failed: %1"), err or "unknown error"),
+        })
+      end
+    end,
+  }
+  UIManager:show(path_chooser)
 end
 
 function ChatGPTViewer:toggleTranslateQuoteVisibility()
