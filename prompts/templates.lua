@@ -52,25 +52,25 @@ Templates.highlight = {
 
 {highlighted_text}
 
-Be clear and thorough. Match the text's tone - a philosophy text deserves rigor, a thriller just needs clarity.]],
+Be clear and thorough. Match the text's tone - a philosophy text deserves rigor, a thriller just needs clarity. Be direct and concise. Don't restate or over-elaborate.]],
 
     eli5 = [[Explain this like I'm 5 - make it genuinely simple:
 
 {highlighted_text}
 
-Use simple words, analogies to everyday things, and concrete examples. Stay accurate - simplify the explanation, not the truth.]],
+Use simple words, analogies to everyday things, and concrete examples. Stay accurate - simplify the explanation, not the truth. Be direct and concise. Don't restate or over-elaborate.]],
 
     summarize = [[Summarize this passage:
 
 {highlighted_text}
 
-Capture the main point and key supporting details. A good summary is shorter than the original but loses nothing important.]],
+Capture the main point and key supporting details. A good summary is shorter than the original but loses nothing important. Be direct and concise. Don't restate or over-elaborate.]],
 
     elaborate = [[Elaborate on this passage:
 
 {highlighted_text}
 
-Unpack key concepts, add helpful context, explore implications and connections. Go deeper, but stay grounded in what the text actually says.]],
+Unpack key concepts, add helpful context, explore implications and connections. Go deeper, but stay grounded in what the text actually says. Be direct and concise. Don't restate or over-elaborate.]],
 }
 
 -- Book context templates
