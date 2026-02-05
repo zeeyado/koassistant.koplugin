@@ -5,8 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: KOAssistant 0.6.2\n"
-"Report-Msgid-Bugs-To: https://github.com/zeeyado/koassistant.koplugin/"
-"issues\n"
+"Report-Msgid-Bugs-To: https://github.com/zeeyado/koassistant.koplugin/issues\n"
 "POT-Creation-Date: 2026-02-04 21:31+0000\n"
 "PO-Revision-Date: 2026-01-06 18:39+0000\n"
 "Last-Translator: Automatically generated\n"
@@ -24,14 +23,13 @@ msgstr "KOAssistant"
 #: _meta.lua:5
 #, fuzzy
 msgid ""
-"A powerful AI assistant integrated into KOReader. Technical research "
-"assistant and knowledge expander."
-msgstr "集成到 KOReader 的强大 AI 助手。技术研究助手和知识拓展器。"
+"A powerful AI assistant integrated into KOReader. Technical research assistant and knowledge expander."
+msgstr "集成到 KOReader 的强大 AI 助手。技术研究助手和知识扩展器。"
 
 #: koassistant_chat_history_dialog.lua:54
 #, fuzzy
 msgid "Delete all chats for this book"
-msgstr "删除此书的所有聊天"
+msgstr "删除此书的所有对话"
 
 #: koassistant_chat_history_dialog.lua:59
 #, fuzzy
@@ -40,7 +38,7 @@ msgid ""
 "\n"
 "This action cannot be undone."
 msgstr ""
-"删除\"%1\"的所有聊天？\n"
+"删除\"%1\"的所有对话?\n"
 "\n"
 "此操作无法撤销。"
 
@@ -60,7 +58,7 @@ msgstr "删除"
 #: koassistant_chat_history_dialog.lua:64
 #, fuzzy
 msgid "Deleted %1 chat(s)"
-msgstr "已删除 %1 个聊天"
+msgstr "已删除 %1 个对话"
 
 #: koassistant_chat_history_dialog.lua:81
 #: koassistant_chat_history_dialog.lua:160
@@ -86,7 +84,7 @@ msgstr "关闭"
 #: koassistant_chat_history_dialog.lua:240
 #, fuzzy
 msgid "View by Domain"
-msgstr "按领域查看"
+msgstr "按域查看"
 
 #: koassistant_chat_history_dialog.lua:121
 #: koassistant_chat_history_dialog.lua:186
@@ -97,7 +95,7 @@ msgstr "按标签查看"
 #: koassistant_chat_history_dialog.lua:137
 #, fuzzy
 msgid "Delete all chats"
-msgstr "删除所有聊天"
+msgstr "删除所有对话"
 
 #: koassistant_chat_history_dialog.lua:142
 #, fuzzy
@@ -106,19 +104,19 @@ msgid ""
 "\n"
 "This action cannot be undone."
 msgstr ""
-"删除所有已保存的聊天？\n"
+"删除所有已保存的对话?\n"
 "\n"
 "此操作无法撤销。"
 
 #: koassistant_chat_history_dialog.lua:147 main.lua:6199
 #, fuzzy
 msgid "Deleted %1 chat(s) from %2 book(s)"
-msgstr "已从 %2 本书中删除 %1 个聊天"
+msgstr "已从 %2 本书中删除 %1 个对话"
 
 #: koassistant_chat_history_dialog.lua:170
 #, fuzzy
 msgid "Chat History Options"
-msgstr "聊天历史选项"
+msgstr "对话历史选项"
 
 #: koassistant_chat_history_dialog.lua:200
 #: koassistant_chat_history_dialog.lua:254
@@ -127,7 +125,7 @@ msgstr "聊天历史选项"
 #: koassistant_settings_schema.lua:999 main.lua:4696
 #, fuzzy
 msgid "Chat History"
-msgstr "聊天历史"
+msgstr "对话历史"
 
 #: koassistant_chat_history_dialog.lua:224
 #: koassistant_chat_history_dialog.lua:278
@@ -139,32 +137,32 @@ msgstr "导航"
 #: koassistant_chat_history_dialog.lua:509 main.lua:3738
 #, fuzzy
 msgid "No saved chats found"
-msgstr "未找到已保存的聊天"
+msgstr "未找到已保存的对话"
 
 #: koassistant_chat_history_dialog.lua:334
 #: koassistant_chat_history_dialog.lua:396
 #, fuzzy
 msgid "Untagged"
-msgstr "无标签"
+msgstr "未标记"
 
 #: koassistant_chat_history_dialog.lua:345
 #: koassistant_chat_history_dialog.lua:553
 #: koassistant_chat_history_dialog.lua:2012
 #, fuzzy
 msgid "chat"
-msgstr "个聊天"
+msgstr "个对话"
 
 #: koassistant_chat_history_dialog.lua:345
 #: koassistant_chat_history_dialog.lua:553
 #: koassistant_chat_history_dialog.lua:2012
 #, fuzzy
 msgid "chats"
-msgstr "个聊天"
+msgstr "个对话"
 
 #: koassistant_chat_history_dialog.lua:361
 #, fuzzy
 msgid "Chat History by Domain"
-msgstr "按领域查看聊天历史"
+msgstr "按域分类的对话历史"
 
 #: koassistant_chat_history_dialog.lua:410
 #: koassistant_chat_history_dialog.lua:762
@@ -172,18 +170,18 @@ msgstr "按领域查看聊天历史"
 #: koassistant_chat_history_dialog.lua:2077
 #, fuzzy
 msgid "Untitled Chat"
-msgstr "无标题聊天"
+msgstr "无标题对话"
 
 #: koassistant_chat_history_dialog.lua:422
 #: koassistant_chat_history_dialog.lua:2089
 #, fuzzy
 msgid "General Chat"
-msgstr "通用聊天"
+msgstr "通用对话"
 
 #: koassistant_chat_history_dialog.lua:424
 #, fuzzy
 msgid "Multi-Book Chat"
-msgstr "多本书"
+msgstr "多书对话"
 
 #: koassistant_chat_history_dialog.lua:427
 #: koassistant_chat_history_dialog.lua:2092
@@ -203,14 +201,14 @@ msgstr "条消息"
 #: koassistant_chat_history_manager.lua:2361
 #, fuzzy
 msgid "General AI Chats"
-msgstr "通用 AI 聊天"
+msgstr "通用 AI 对话"
 
 #: koassistant_chat_history_dialog.lua:440
 #: koassistant_chat_history_manager.lua:249
 #: koassistant_chat_history_manager.lua:2372
 #, fuzzy
 msgid "Multi-Book Chats"
-msgstr "多本书"
+msgstr "多书对话"
 
 #: koassistant_chat_history_dialog.lua:544 koassistant_dialogs.lua:3097
 #: koassistant_notebook_manager.lua:74 koassistant_ui/behavior_manager.lua:264
@@ -225,39 +223,40 @@ msgid "AI conversations without book context"
 msgstr "无书籍上下文的 AI 对话"
 
 #: koassistant_chat_history_dialog.lua:563
+#, fuzzy
 msgid "Comparisons and analyses across multiple books"
-msgstr ""
+msgstr "跨多本书的比较和分析"
 
 #: koassistant_chat_history_dialog.lua:629
 #, fuzzy
 msgid "No saved chats found for this document"
-msgstr "未找到此文档的已保存聊天"
+msgstr "未找到此文档的已保存对话"
 
 #: koassistant_chat_history_dialog.lua:678
 #, fuzzy
 msgid "Chats: %1"
-msgstr "聊天：%1"
+msgstr "对话数:%1"
 
 #: koassistant_chat_history_dialog.lua:742
 #: koassistant_chat_history_dialog.lua:1271
 #, fuzzy
 msgid "Error: Cannot load chat data."
-msgstr "错误：无法加载聊天数据。"
+msgstr "错误:无法加载对话数据。"
 
 #: koassistant_chat_history_dialog.lua:763
 #, fuzzy
 msgid "Date:"
-msgstr "日期："
+msgstr "日期:"
 
 #: koassistant_chat_history_dialog.lua:764
 #, fuzzy
 msgid "Model:"
-msgstr "模型："
+msgstr "模型:"
 
 #: koassistant_chat_history_dialog.lua:765
 #, fuzzy
 msgid "Messages:"
-msgstr "消息数："
+msgstr "消息数:"
 
 #: koassistant_chat_history_dialog.lua:786
 #, fuzzy
@@ -294,25 +293,25 @@ msgstr "对话重命名成功"
 #: koassistant_chat_history_dialog.lua:889
 #, fuzzy
 msgid "Failed to rename chat"
-msgstr "重命名对话失败"
+msgstr "对话重命名失败"
 
 #: koassistant_chat_history_dialog.lua:929
 #: koassistant_chat_history_dialog.lua:1116 koassistant_dialogs.lua:854
 #, fuzzy
 msgid "Current tags:"
-msgstr "当前标签："
+msgstr "当前标签:"
 
 #: koassistant_chat_history_dialog.lua:941
 #: koassistant_chat_history_dialog.lua:1128 koassistant_dialogs.lua:866
 #, fuzzy
 msgid "Removed tag: %1"
-msgstr "已移除标签：%1"
+msgstr "已移除标签:%1"
 
 #: koassistant_chat_history_dialog.lua:976
 #: koassistant_chat_history_dialog.lua:1163 koassistant_dialogs.lua:901
 #, fuzzy
 msgid "Add existing tag:"
-msgstr "添加已有标签："
+msgstr "添加现有标签:"
 
 #: koassistant_chat_history_dialog.lua:991
 #: koassistant_chat_history_dialog.lua:1041
@@ -321,7 +320,7 @@ msgstr "添加已有标签："
 #: koassistant_dialogs.lua:966
 #, fuzzy
 msgid "Added tag: %1"
-msgstr "已添加标签：%1"
+msgstr "已添加标签:%1"
 
 #: koassistant_chat_history_dialog.lua:1012
 #: koassistant_chat_history_dialog.lua:1199 koassistant_dialogs.lua:937
@@ -366,7 +365,7 @@ msgstr "管理标签"
 #: koassistant_chat_history_dialog.lua:1101 koassistant_dialogs.lua:839
 #, fuzzy
 msgid "Chat not found"
-msgstr "未找到对话"
+msgstr "找不到聊天记录"
 
 #: koassistant_chat_history_dialog.lua:1208
 #: koassistant_chat_history_dialog.lua:1639
@@ -422,7 +421,7 @@ msgstr "取消"
 #: koassistant_chat_history_dialog.lua:1325
 #, fuzzy
 msgid "Error: Failed to load chat messages."
-msgstr "错误：无法加载对话消息。"
+msgstr "错误：无法加载聊天消息。"
 
 #: koassistant_chat_history_dialog.lua:1413 koassistant_dialogs.lua:2396
 #: stream_handler.lua:200
@@ -453,23 +452,23 @@ msgstr "设置中已启用自动保存"
 #: koassistant_chat_history_dialog.lua:1543
 #, fuzzy
 msgid "Continued chats are automatically saved"
-msgstr "继续的对话会自动保存"
+msgstr "持续的聊天会自动保存"
 
 #: koassistant_chat_history_dialog.lua:1591
 #, fuzzy
 msgid "Chat saved"
-msgstr "对话已保存"
+msgstr "聊天已保存"
 
 #: koassistant_chat_history_dialog.lua:1591 koassistant_dialogs.lua:1548
 #, fuzzy
 msgid "Failed to save chat"
-msgstr "保存对话失败"
+msgstr "保存聊天失败"
 
 #: koassistant_chat_history_dialog.lua:1609
 #: koassistant_chat_history_dialog.lua:1715
 #, fuzzy
 msgid "Chat copied to clipboard"
-msgstr "对话已复制到剪贴板"
+msgstr "聊天已复制到剪贴板"
 
 #: koassistant_chat_history_dialog.lua:1619
 #: koassistant_chat_history_dialog.lua:1830 koassistant_chatgptviewer.lua:498
@@ -479,7 +478,7 @@ msgstr "对话已复制到剪贴板"
 #: koassistant_settings_schema.lua:726 koassistant_settings_schema.lua:742
 #, fuzzy
 msgid "Full (metadata + chat)"
-msgstr "完整（元数据 + 对话）"
+msgstr "完整（元数据 + 聊天）"
 
 #: koassistant_chat_history_dialog.lua:1620
 #: koassistant_chat_history_dialog.lua:1831 koassistant_chatgptviewer.lua:499
@@ -489,14 +488,14 @@ msgstr "完整（元数据 + 对话）"
 #: koassistant_settings_schema.lua:727 koassistant_settings_schema.lua:743
 #, fuzzy
 msgid "Question + Response"
-msgstr "问题 + 回复"
+msgstr "问题 + 响应"
 
 #: koassistant_chat_history_dialog.lua:1621
 #: koassistant_chat_history_dialog.lua:1832 koassistant_chatgptviewer.lua:500
 #: koassistant_dialogs.lua:1594 koassistant_settings_schema.lua:1109
 #, fuzzy
 msgid "Response only"
-msgstr "仅回复"
+msgstr "仅响应"
 
 #: koassistant_chat_history_dialog.lua:1622
 #: koassistant_chat_history_dialog.lua:1833 koassistant_chatgptviewer.lua:501
@@ -519,41 +518,47 @@ msgstr "复制内容"
 #: koassistant_chat_history_dialog.lua:1727
 #, fuzzy
 msgid "Failed to generate export content"
-msgstr "获取响应失败："
+msgstr "生成导出内容失败"
 
 #: koassistant_chat_history_dialog.lua:1740 koassistant_chatgptviewer.lua:3259
+#, fuzzy
 msgid ""
 "Saved to:\n"
 "%1"
 msgstr ""
+"已保存到：\n"
+"%1"
 
 #: koassistant_chat_history_dialog.lua:1745 koassistant_chatgptviewer.lua:3264
 #: main.lua:7998
 #, fuzzy
 msgid "Failed to save: %1"
-msgstr "保存聊天失败："
+msgstr "保存失败：%1"
 
 #: koassistant_chat_history_dialog.lua:1762 koassistant_chatgptviewer.lua:3278
 #, fuzzy
 msgid "Copy to Clipboard"
-msgstr "已复制到剪贴板。"
+msgstr "复制到剪贴板"
 
 #: koassistant_chat_history_dialog.lua:1772 koassistant_chatgptviewer.lua:3287
+#, fuzzy
 msgid "Save to File"
-msgstr ""
+msgstr "保存到文件"
 
 #: koassistant_chat_history_dialog.lua:1784 koassistant_chatgptviewer.lua:3298
+#, fuzzy
 msgid "Select Export Directory"
-msgstr ""
+msgstr "选择导出目录"
 
 #: koassistant_chat_history_dialog.lua:1797 koassistant_chatgptviewer.lua:3311
+#, fuzzy
 msgid "Invalid export directory: %1"
-msgstr ""
+msgstr "无效的导出目录：%1"
 
 #: koassistant_chat_history_dialog.lua:1819 koassistant_chatgptviewer.lua:3332
 #, fuzzy
 msgid "Export Chat"
-msgstr "导出内容"
+msgstr "导出聊天"
 
 #: koassistant_chat_history_dialog.lua:1861 koassistant_chatgptviewer.lua:3340
 #, fuzzy
@@ -564,19 +569,19 @@ msgstr "导出内容"
 #: koassistant_chat_history_dialog.lua:1915
 #, fuzzy
 msgid "Are you sure you want to delete this chat?"
-msgstr "确定要删除此对话吗？"
+msgstr "确定要删除此聊天记录吗？"
 
 #: koassistant_chat_history_dialog.lua:1884
 #: koassistant_chat_history_dialog.lua:1930
 #, fuzzy
 msgid "Chat deleted"
-msgstr "对话已删除"
+msgstr "聊天已删除"
 
 #: koassistant_chat_history_dialog.lua:1902
 #: koassistant_chat_history_dialog.lua:1948
 #, fuzzy
 msgid "Failed to delete chat"
-msgstr "删除对话失败"
+msgstr "删除聊天失败"
 
 #: koassistant_chat_history_dialog.lua:1995
 #, fuzzy
@@ -585,19 +590,19 @@ msgid ""
 "\n"
 "You can add tags to chats from the chat options menu."
 msgstr ""
-"未找到带标签的对话。\n"
+"未找到带标签的聊天记录。\n"
 "\n"
-"您可以在对话选项菜单中为对话添加标签。"
+"您可以从聊天选项菜单中为聊天添加标签。"
 
 #: koassistant_chat_history_dialog.lua:2027
 #, fuzzy
 msgid "Chat History by Tag"
-msgstr "按标签查看对话历史"
+msgstr "按标签查看聊天历史"
 
 #: koassistant_chat_history_dialog.lua:2063
 #, fuzzy
 msgid "No chats found with this tag"
-msgstr "未找到带此标签的对话"
+msgstr "未找到带有此标签的聊天记录"
 
 #: koassistant_chatgptviewer.lua:413 koassistant_chatgptviewer.lua:1043
 #: koassistant_chatgptviewer.lua:1455 koassistant_chatgptviewer.lua:1872
@@ -673,7 +678,7 @@ msgstr "保存功能不可用"
 #: koassistant_chatgptviewer.lua:1049
 #, fuzzy
 msgid "No chat to copy"
-msgstr "没有可复制的聊天"
+msgstr "没有可复制的聊天记录"
 
 #: koassistant_chatgptviewer.lua:1070 koassistant_chatgptviewer.lua:1484
 #: koassistant_chatgptviewer.lua:1901 koassistant_chatgptviewer.lua:3234
@@ -685,20 +690,22 @@ msgstr "已复制"
 #: koassistant_chatgptviewer.lua:1084 koassistant_chatgptviewer.lua:1917
 #, fuzzy
 msgid "H.Note"
-msgstr "笔记"
+msgstr "高亮笔记"
 
 #: koassistant_chatgptviewer.lua:1092
 #, fuzzy
 msgid "Save response as note on highlighted text"
-msgstr "将回复保存为高亮文本的笔记"
+msgstr "将响应保存为高亮文本的笔记"
 
 #: koassistant_chatgptviewer.lua:1098
+#, fuzzy
 msgid "Add to Notebook"
-msgstr ""
+msgstr "添加到笔记本"
 
 #: koassistant_chatgptviewer.lua:1108
+#, fuzzy
 msgid "Append chat to per-book notebook file"
-msgstr ""
+msgstr "将对话追加到单本书的笔记本文件"
 
 #: koassistant_chatgptviewer.lua:1121
 #, fuzzy
@@ -708,32 +715,37 @@ msgstr "标签功能不可用"
 #: koassistant_chatgptviewer.lua:1128
 #, fuzzy
 msgid "Add or manage tags for this chat"
-msgstr "添加或管理此聊天的标签"
+msgstr "为此对话添加或管理标签"
 
 #: koassistant_chatgptviewer.lua:1146
 #, fuzzy
 msgid "Export chat to file or clipboard"
-msgstr "对话已复制到剪贴板"
+msgstr "导出对话到文件或剪贴板"
 
 #: koassistant_chatgptviewer.lua:1157
+#, fuzzy
 msgid "↻ Fresh"
-msgstr ""
+msgstr "↻ 刷新"
 
 #: koassistant_chatgptviewer.lua:1164
+#, fuzzy
 msgid "Clear cache and regenerate from scratch (extracts all book text again)"
-msgstr ""
+msgstr "清除缓存并从头重新生成（重新提取所有书籍文本）"
 
 #: koassistant_chatgptviewer.lua:1187 koassistant_chatgptviewer.lua:1199
+#, fuzzy
 msgid "🔍 ON"
-msgstr ""
+msgstr "🔍 开启"
 
 #: koassistant_chatgptviewer.lua:1187 koassistant_chatgptviewer.lua:1199
+#, fuzzy
 msgid "🔍 OFF"
-msgstr ""
+msgstr "🔍 关闭"
 
 #: koassistant_chatgptviewer.lua:1208
+#, fuzzy
 msgid "Toggle web search for this session (Anthropic, Gemini)"
-msgstr ""
+msgstr "切换此会话的网页搜索功能（Anthropic、Gemini）"
 
 #: koassistant_chatgptviewer.lua:1228 koassistant_chatgptviewer.lua:1447
 #: koassistant_chatgptviewer.lua:1864
@@ -744,22 +756,22 @@ msgstr "在 Markdown 和纯文本显示之间切换"
 #: koassistant_chatgptviewer.lua:1243
 #, fuzzy
 msgid "Toggle debug display in chat viewer"
-msgstr "在聊天查看器中切换调试信息显示"
+msgstr "在对话查看器中切换调试显示"
 
 #: koassistant_chatgptviewer.lua:1250 koassistant_chatgptviewer.lua:3529
 #, fuzzy
 msgid "Show Quote"
-msgstr "显示引用"
+msgstr "显示引文"
 
 #: koassistant_chatgptviewer.lua:1250 koassistant_chatgptviewer.lua:3529
 #, fuzzy
 msgid "Hide Quote"
-msgstr "隐藏引用"
+msgstr "隐藏引文"
 
 #: koassistant_chatgptviewer.lua:1262
 #, fuzzy
 msgid "Toggle highlighted text display in chat"
-msgstr "在聊天中切换高亮文本显示"
+msgstr "在对话中切换高亮文本显示"
 
 #: koassistant_chatgptviewer.lua:1268
 #, fuzzy
@@ -769,21 +781,22 @@ msgstr "显示推理"
 #: koassistant_chatgptviewer.lua:1278
 #, fuzzy
 msgid "View AI reasoning/thinking content (when available)"
-msgstr "查看 AI 推理/思考内容（如有）"
+msgstr "查看 AI 推理/思考内容（如果可用）"
 
 #: koassistant_chatgptviewer.lua:1461
 #, fuzzy
 msgid "No response to copy"
-msgstr "没有可复制的回复"
+msgstr "无可复制的回复"
 
 #: koassistant_chatgptviewer.lua:1509
 #, fuzzy
 msgid "Save AI response as note on highlighted word"
-msgstr "将回复保存为高亮文本的笔记"
+msgstr "将 AI 回复保存为高亮词汇的笔记"
 
 #: koassistant_chatgptviewer.lua:1510
+#, fuzzy
 msgid "No selection data available (word position not captured)"
-msgstr ""
+msgstr "无可用的选择数据（未捕获词汇位置）"
 
 #: koassistant_chatgptviewer.lua:1518
 #, fuzzy
@@ -793,17 +806,17 @@ msgstr "维基"
 #: koassistant_chatgptviewer.lua:1529
 #, fuzzy
 msgid "Wikipedia not available"
-msgstr "Wikipedia 不可用"
+msgstr "维基百科不可用"
 
 #: koassistant_chatgptviewer.lua:1535
 #, fuzzy
 msgid "No word to look up"
-msgstr "没有可查询的单词"
+msgstr "无可查询的词汇"
 
 #: koassistant_chatgptviewer.lua:1542
 #, fuzzy
 msgid "Look up word in Wikipedia"
-msgstr "在 Wikipedia 中查询单词"
+msgstr "在维基百科中查询词汇"
 
 #: koassistant_chatgptviewer.lua:1553 koassistant_chatgptviewer.lua:1583
 #, fuzzy
@@ -813,7 +826,7 @@ msgstr "已添加"
 #: koassistant_chatgptviewer.lua:1558
 #, fuzzy
 msgid "Word added to vocabulary builder"
-msgstr "单词已添加到生词本"
+msgstr "词汇已添加到生词本"
 
 #: koassistant_chatgptviewer.lua:1565
 #, fuzzy
@@ -838,7 +851,7 @@ msgstr "生词本不可用"
 #: koassistant_chatgptviewer.lua:1599
 #, fuzzy
 msgid "Add word to vocabulary builder"
-msgstr "将单词添加到生词本"
+msgstr "将词汇添加到生词本"
 
 #: koassistant_chatgptviewer.lua:1608
 #, fuzzy
@@ -874,42 +887,42 @@ msgstr "使用不同的词典语言重新运行"
 #: koassistant_chatgptviewer.lua:1694
 #, fuzzy
 msgid "Ctx: ON"
-msgstr "上下文: 开"
+msgstr "上下文：开启"
 
 #: koassistant_chatgptviewer.lua:1694
 #, fuzzy
 msgid "Ctx: OFF"
-msgstr "上下文: 关"
+msgstr "上下文：关闭"
 
 #: koassistant_chatgptviewer.lua:1737
 #, fuzzy
 msgid "Re-run without surrounding context"
-msgstr "不包含周围上下文重新运行"
+msgstr "不包含上下文重新运行"
 
 #: koassistant_chatgptviewer.lua:1737
 #, fuzzy
 msgid "Re-run with surrounding context"
-msgstr "包含周围上下文重新运行"
+msgstr "包含上下文重新运行"
 
 #: koassistant_chatgptviewer.lua:1823
 #, fuzzy
 msgid "Dictionary Action"
-msgstr "字典弹窗动作"
+msgstr "词典操作"
 
 #: koassistant_chatgptviewer.lua:1831
 #, fuzzy
 msgid "Switch to a different dictionary action"
-msgstr "使用不同的词典语言重新运行"
+msgstr "切换到不同的词典操作"
 
 #: koassistant_chatgptviewer.lua:1832
 #, fuzzy
 msgid "No other dictionary actions available"
-msgstr "没有可用的高亮动作。"
+msgstr "无其他可用的词典操作"
 
 #: koassistant_chatgptviewer.lua:1878
 #, fuzzy
 msgid "No translation to copy"
-msgstr "没有可复制的翻译"
+msgstr "无可复制的翻译"
 
 #: koassistant_chatgptviewer.lua:1925
 #, fuzzy
@@ -919,12 +932,12 @@ msgstr "将翻译保存为高亮文本的笔记"
 #: koassistant_chatgptviewer.lua:1933
 #, fuzzy
 msgid "→ Chat"
-msgstr "→ 聊天"
+msgstr "→ 对话"
 
 #: koassistant_chatgptviewer.lua:1940
 #, fuzzy
 msgid "Open full chat with all options"
-msgstr "打开完整聊天并显示所有选项"
+msgstr "打开完整对话并显示所有选项"
 
 #: koassistant_chatgptviewer.lua:1950 koassistant_chatgptviewer.lua:3420
 #, fuzzy
@@ -939,12 +952,12 @@ msgstr "隐藏原文"
 #: koassistant_chatgptviewer.lua:1959
 #, fuzzy
 msgid "Show the original text"
-msgstr "显示原始文本"
+msgstr "显示原文"
 
 #: koassistant_chatgptviewer.lua:1959
 #, fuzzy
 msgid "Hide the original text"
-msgstr "隐藏原始文本"
+msgstr "隐藏原文"
 
 #: koassistant_chatgptviewer.lua:2021
 #, fuzzy
@@ -954,30 +967,39 @@ msgstr "翻译为"
 #: koassistant_chatgptviewer.lua:2028
 #, fuzzy
 msgid "Re-run translation with a different target language"
-msgstr "使用不同的目标语言重新翻译"
+msgstr "使用不同的目标语言重新运行翻译"
 
 #: koassistant_chatgptviewer.lua:2064
 #, fuzzy
 msgid "Copied to clipboard"
-msgstr "已复制到剪贴板。"
+msgstr "已复制到剪贴板"
 
 #: koassistant_chatgptviewer.lua:2106 koassistant_chatgptviewer.lua:2112
+#, fuzzy
 msgid "Regenerate"
-msgstr ""
+msgstr "重新生成"
 
 #: koassistant_chatgptviewer.lua:2111
+#, fuzzy
 msgid ""
 "Regenerate this summary?\n"
 "\n"
 "The current summary will be replaced."
 msgstr ""
+"重新生成此摘要?\n"
+"\n"
+"当前摘要将被替换。"
 
 #: koassistant_chatgptviewer.lua:2129
+#, fuzzy
 msgid ""
 "Delete this summary?\n"
 "\n"
 "You can regenerate it later."
 msgstr ""
+"删除此摘要?\n"
+"\n"
+"您可以稍后重新生成。"
 
 #: koassistant_chatgptviewer.lua:2331
 #, fuzzy
@@ -1013,7 +1035,7 @@ msgstr "没有可保存的回复"
 #: koassistant_chatgptviewer.lua:3036
 #, fuzzy
 msgid "Failed to create highlight"
-msgstr "重命名对话失败"
+msgstr "创建高亮失败"
 
 #: koassistant_chatgptviewer.lua:3047 koassistant_settings_schema.lua:351
 #: koassistant_settings_schema.lua:584 koassistant_settings_schema.lua:736
@@ -1022,67 +1044,79 @@ msgid "Note Content"
 msgstr "笔记内容"
 
 #: koassistant_chatgptviewer.lua:3060
+#, fuzzy
 msgid "Notebooks are only available for single-book chats"
-msgstr ""
+msgstr "笔记本仅适用于单本书聊天"
 
 #: koassistant_chatgptviewer.lua:3099
+#, fuzzy
 msgid "Saved to notebook"
-msgstr ""
+msgstr "已保存到笔记本"
 
 #: koassistant_chatgptviewer.lua:3104
 #, fuzzy
 msgid "Failed to save: "
-msgstr "保存聊天失败："
+msgstr "保存失败:"
 
 #: koassistant_chatgptviewer.lua:3115
 #, fuzzy
 msgid "No cached action to clear"
-msgstr "没有可复制的聊天"
+msgstr "没有可清除的缓存操作"
 
 #: koassistant_chatgptviewer.lua:3124
+#, fuzzy
 msgid "Cache only applies to book actions"
-msgstr ""
+msgstr "缓存仅适用于图书操作"
 
 #: koassistant_chatgptviewer.lua:3136
+#, fuzzy
 msgid "Regenerate Fresh"
-msgstr ""
+msgstr "重新生成(全新)"
 
 #: koassistant_chatgptviewer.lua:3137
+#, fuzzy
 msgid ""
 "This response was updated from a cached analysis at %1.\n"
 "\n"
-"Clearing the cache will extract and send all book text again on next run, "
-"which uses more tokens.\n"
+"Clearing the cache will extract and send all book text again on next run, which uses more tokens.\n"
 "\n"
 "Clear cache for this action?"
 msgstr ""
+"此回复已从 %1 的缓存分析更新。\n"
+"\n"
+"清除缓存将在下次运行时重新提取并发送所有图书文本,这会使用更多令牌。\n"
+"\n"
+"清除此操作的缓存?"
 
 #: koassistant_chatgptviewer.lua:3147
+#, fuzzy
 msgid "Clear & Close"
-msgstr ""
+msgstr "清除并关闭"
 
 #: koassistant_chatgptviewer.lua:3156
+#, fuzzy
 msgid "Cache cleared. Run the action again for fresh analysis."
-msgstr ""
+msgstr "缓存已清除。请再次运行该操作以进行全新分析。"
 
 #: koassistant_chatgptviewer.lua:3163
 #, fuzzy
 msgid "Failed to clear cache"
-msgstr "重命名对话失败"
+msgstr "清除缓存失败"
 
 #: koassistant_chatgptviewer.lua:3169
 #, fuzzy
 msgid "Cache module not available"
-msgstr "保存功能不可用"
+msgstr "缓存模块不可用"
 
 #: koassistant_chatgptviewer.lua:3186
 #, fuzzy
 msgid "No chat to export"
-msgstr "没有可复制的聊天"
+msgstr "没有可导出的聊天"
 
 #: koassistant_chatgptviewer.lua:3246
+#, fuzzy
 msgid "No content to export"
-msgstr ""
+msgstr "没有可导出的内容"
 
 #: koassistant_chatgptviewer.lua:3484
 #, fuzzy
@@ -1157,7 +1191,7 @@ msgstr "对齐方式"
 #: koassistant_chatgptviewer.lua:3747
 #, fuzzy
 msgid "Alignment: %1"
-msgstr "对齐方式: %1"
+msgstr "对齐方式:%1"
 
 #: koassistant_chatgptviewer.lua:3758 koassistant_settings_schema.lua:1419
 #, fuzzy
@@ -1183,39 +1217,41 @@ msgstr "设置已重置为默认值"
 #: koassistant_constants.lua:117 koassistant_settings_schema.lua:877
 #, fuzzy
 msgid "Translate Page"
-msgstr "翻译"
+msgstr "翻译页面"
 
 #: koassistant_constants.lua:118 koassistant_settings_schema.lua:878
 #, fuzzy
 msgid "View Notebook"
-msgstr "显示模式"
+msgstr "查看笔记本"
 
 #: koassistant_constants.lua:119 koassistant_settings_schema.lua:879
+#, fuzzy
 msgid "Edit Notebook"
-msgstr ""
+msgstr "编辑笔记本"
 
 #: koassistant_constants.lua:121 koassistant_settings_schema.lua:881
 #, fuzzy
 msgid "Continue Last Chat"
-msgstr "继续对话"
+msgstr "继续上次对话"
 
 #: koassistant_constants.lua:122 koassistant_settings_schema.lua:882
 #: koassistant_settings_schema.lua:1020 main.lua:4732
+#, fuzzy
 msgid "New Book Chat/Action"
-msgstr ""
+msgstr "新建图书对话/操作"
 
 #: koassistant_constants.lua:123 koassistant_settings_schema.lua:40
 #: koassistant_settings_schema.lua:883 koassistant_settings_schema.lua:1013
 #: main.lua:4720
 #, fuzzy
 msgid "General Chat/Action"
-msgstr "通用聊天"
+msgstr "通用对话/操作"
 
 #: koassistant_constants.lua:125 koassistant_settings_schema.lua:885
 #: main.lua:4800
 #, fuzzy
 msgid "Quick Settings"
-msgstr "AI 快速设置"
+msgstr "快速设置"
 
 #: koassistant_dialogs.lua:108 koassistant_gpt_query.lua:177
 #, fuzzy
@@ -1230,12 +1266,12 @@ msgstr "加载中"
 #: koassistant_dialogs.lua:582
 #, fuzzy
 msgid "Cannot save: no document context"
-msgstr "无法保存: 没有文档上下文"
+msgstr "无法保存：没有文档上下文"
 
 #: koassistant_dialogs.lua:599 koassistant_dialogs.lua:750
 #, fuzzy
 msgid "Save Chat"
-msgstr "保存聊天"
+msgstr "保存对话"
 
 #: koassistant_dialogs.lua:717 koassistant_dialogs.lua:1537
 #, fuzzy
@@ -1245,36 +1281,40 @@ msgstr "已保存"
 #: koassistant_dialogs.lua:730
 #, fuzzy
 msgid "Chat saved successfully"
-msgstr "聊天保存成功"
+msgstr "对话保存成功"
 
 #: koassistant_dialogs.lua:735
 #, fuzzy
 msgid "Failed to save chat: "
-msgstr "保存聊天失败："
+msgstr "保存对话失败："
 
 #: koassistant_dialogs.lua:1633
 #, fuzzy
 msgid "Save the chat first to add tags"
-msgstr "请先保存聊天再添加标签"
+msgstr "请先保存对话以添加标签"
 
 #: koassistant_dialogs.lua:1647
 #, fuzzy
 msgid "Cannot tag: no document context"
-msgstr "无法添加标签: 没有文档上下文"
+msgstr "无法添加标签：没有文档上下文"
 
 #: koassistant_dialogs.lua:1835
+#, fuzzy
 msgid "Could not find summary action. Please try again."
-msgstr ""
+msgstr "找不到摘要操作。请重试。"
 
 #: koassistant_dialogs.lua:1843 main.lua:4082
+#, fuzzy
 msgid "Generating document summary..."
-msgstr ""
+msgstr "正在生成文档摘要..."
 
 #: koassistant_dialogs.lua:1865
+#, fuzzy
 msgid "Summary generation failed. Please try again."
-msgstr ""
+msgstr "摘要生成失败。请重试。"
 
 #: koassistant_dialogs.lua:1918
+#, fuzzy
 msgid ""
 "This action uses a reusable document summary for context.\n"
 "\n"
@@ -1283,28 +1323,35 @@ msgid ""
 "• Processes up to character limit\n"
 "• Coverage shown in cache viewer"
 msgstr ""
+"此操作使用可重复使用的文档摘要作为上下文。\n"
+"\n"
+"现在生成摘要？\n"
+"• 仅首次需要\n"
+"• 处理至字符限制\n"
+"• 覆盖率显示在缓存查看器中"
 
 #: koassistant_dialogs.lua:1919 main.lua:4105
 #, fuzzy
 msgid "Generate"
-msgstr "通用"
+msgstr "生成"
 
 #: koassistant_dialogs.lua:2172
+#, fuzzy
 msgid ""
 "Book text truncated (covers %1 %–%2 %). Increase limit in Advanced Settings."
-msgstr ""
+msgstr "图书文本已截断（覆盖 %1 %–%2 %）。在高级设置中增加限制。"
 
 #: koassistant_dialogs.lua:2183
+#, fuzzy
 msgid ""
-"Full document text truncated (covers %1 %–%2 %). Increase limit in Advanced "
-"Settings."
-msgstr ""
+"Full document text truncated (covers %1 %–%2 %). Increase limit in Advanced Settings."
+msgstr "完整文档文本已截断（覆盖 %1 %–%2 %）。在高级设置中增加限制。"
 
 #: koassistant_dialogs.lua:2262
+#, fuzzy
 msgid ""
-"New content truncated (covers %1 %–%2 %). Increase limit in Advanced "
-"Settings."
-msgstr ""
+"New content truncated (covers %1 %–%2 %). Increase limit in Advanced Settings."
+msgstr "新内容已截断（覆盖 %1 %–%2 %）。在高级设置中增加限制。"
 
 #: koassistant_dialogs.lua:2530 koassistant_dialogs.lua:2594
 #: koassistant_settings_schema.lua:536 main.lua:3421 main.lua:4446
@@ -1318,22 +1365,22 @@ msgstr "无"
 #: koassistant_dialogs.lua:2585
 #, fuzzy
 msgid "Select Domain"
-msgstr "选择知识领域"
+msgstr "选择领域"
 
 #: koassistant_dialogs.lua:2623
 #, fuzzy
 msgid "Domain: "
-msgstr "领域:"
+msgstr "领域："
 
 #: koassistant_dialogs.lua:2630
 #, fuzzy
 msgid "Ask"
-msgstr "提问"
+msgstr "询问"
 
 #: koassistant_dialogs.lua:2738
 #, fuzzy
 msgid "Chat"
-msgstr "聊天"
+msgstr "对话"
 
 #: koassistant_dialogs.lua:2742 koassistant_dialogs.lua:3025
 #, fuzzy
@@ -1343,15 +1390,17 @@ msgstr "错误："
 #: koassistant_dialogs.lua:2796
 #, fuzzy
 msgid "Error handling prompt: "
-msgstr "处理提示词时出错："
+msgstr "处理提示时出错："
 
 #: koassistant_dialogs.lua:2827 main.lua:4873
+#, fuzzy
 msgid "View Summary"
-msgstr ""
+msgstr "查看摘要"
 
 #: koassistant_dialogs.lua:2836 main.lua:4873
+#, fuzzy
 msgid "Generate Summary"
-msgstr ""
+msgstr "生成摘要"
 
 #: koassistant_dialogs.lua:2864
 #, fuzzy
@@ -1366,36 +1415,44 @@ msgstr "输入您的问题或任何操作的附加说明..."
 #: koassistant_dialogs.lua:2924
 #, fuzzy
 msgid "Unknown prompt type: "
-msgstr "未知的提示类型:"
+msgstr "未知提示类型："
 
 #: koassistant_dialogs.lua:2950
 #, fuzzy
 msgid "Error: No action specified"
-msgstr "错误：未指定动作"
+msgstr "错误：未指定操作"
 
 #: koassistant_dialogs.lua:3063
 #, fuzzy
 msgid "Failed to extract document text"
-msgstr "重命名对话失败"
+msgstr "提取文档文本失败"
 
 #: koassistant_dialogs.lua:3083
+#, fuzzy
 msgid ""
 "Text extraction is disabled.\n"
 "\n"
 "Enable it in Settings → Privacy & Data → Text Extraction."
 msgstr ""
+"文本提取已禁用。\n"
+"\n"
+"在 设置 → 隐私与数据 → 文本提取 中启用。"
 
 #: koassistant_dialogs.lua:3084
+#, fuzzy
 msgid ""
 "No document text could be extracted.\n"
 "\n"
 "This document may not support text extraction."
 msgstr ""
+"无法提取文档文本。\n"
+"\n"
+"此文档可能不支持文本提取。"
 
 #: koassistant_dialogs.lua:3162
 #, fuzzy
 msgid "Failed to generate summary"
-msgstr "重命名对话失败"
+msgstr "生成摘要失败"
 
 #: koassistant_gpt_query.lua:197 stream_handler.lua:159
 #, fuzzy
@@ -1405,25 +1462,28 @@ msgstr "请求已被用户取消。"
 #: koassistant_gpt_query.lua:207 stream_handler.lua:427
 #, fuzzy
 msgid "Failed to start subprocess for request"
-msgstr "无法启动请求子进程"
+msgstr "启动请求子进程失败"
 
 #: koassistant_notebook_manager.lua:59
+#, fuzzy
 msgid ""
 "No notebooks yet.\n"
 "\n"
-"Use the NB button in chat viewer to save conversations to a per-book "
-"notebook."
+"Use the NB button in chat viewer to save conversations to a per-book notebook."
 msgstr ""
+"还没有笔记本。\n"
+"\n"
+"在对话查看器中使用 NB 按钮将对话保存到每本书的笔记本中。"
 
 #: koassistant_notebook_manager.lua:89 koassistant_settings_schema.lua:1093
 #, fuzzy
 msgid "Notebooks"
-msgstr "备注"
+msgstr "笔记本"
 
 #: koassistant_notebook_manager.lua:121
 #, fuzzy
 msgid "View"
-msgstr "视图："
+msgstr "查看"
 
 #: koassistant_notebook_manager.lua:136 koassistant_ui/behavior_manager.lua:304
 #: koassistant_ui/domain_manager.lua:306
@@ -1438,21 +1498,20 @@ msgid ""
 "\n"
 "This cannot be undone."
 msgstr ""
-"删除备份？\n"
-"\n"
-"%1\n"
+"删除此笔记本？\n"
 "\n"
 "此操作无法撤销。"
 
 #: koassistant_settings_schema.lua:31
 #, fuzzy
 msgid "Chat about Book"
-msgstr "聊书"
+msgstr "关于图书的对话"
 
 #: koassistant_settings_schema.lua:52 koassistant_settings_schema.lua:1006
 #: main.lua:4708
+#, fuzzy
 msgid "Browse Notebooks"
-msgstr ""
+msgstr "浏览笔记本"
 
 #: koassistant_settings_schema.lua:62
 #, fuzzy
@@ -1462,7 +1521,7 @@ msgstr "阅读功能"
 #: koassistant_settings_schema.lua:77 main.lua:1717 main.lua:4507
 #, fuzzy
 msgid "Provider: %1"
-msgstr "服务商：%1"
+msgstr "提供商：%1"
 
 #: koassistant_settings_schema.lua:85 main.lua:2290 main.lua:4520
 #, fuzzy
@@ -1482,7 +1541,7 @@ msgstr "显示设置"
 #: koassistant_settings_schema.lua:105 koassistant_ui/prompts_manager.lua:1903
 #, fuzzy
 msgid "View Mode"
-msgstr "显示模式"
+msgstr "查看模式"
 
 #: koassistant_settings_schema.lua:109 koassistant_settings_schema.lua:328
 #, fuzzy
@@ -1497,54 +1556,52 @@ msgstr "纯文本"
 #: koassistant_settings_schema.lua:112
 #, fuzzy
 msgid ""
-"Markdown renders formatting. Plain Text has better font support for Arabic/"
-"CJK."
+"Markdown renders formatting. Plain Text has better font support for Arabic/CJK."
 msgstr "Markdown 渲染格式。纯文本对阿拉伯语/中日韩文字有更好的字体支持。"
 
 #: koassistant_settings_schema.lua:117
 #, fuzzy
 msgid "Text Mode for Dictionary"
-msgstr "禁用字典自动保存"
+msgstr "词典文本模式"
 
 #: koassistant_settings_schema.lua:120
+#, fuzzy
 msgid ""
-"Use Plain Text mode for dictionary popup. Better font support for non-Latin "
-"scripts."
-msgstr ""
+"Use Plain Text mode for dictionary popup. Better font support for non-Latin scripts."
+msgstr "词典弹窗使用纯文本模式。对非拉丁文字有更好的字体支持。"
 
 #: koassistant_settings_schema.lua:125
 #, fuzzy
 msgid "Text Mode for RTL Dictionary"
-msgstr "禁用字典自动保存"
+msgstr "RTL 词典文本模式"
 
 #: koassistant_settings_schema.lua:132
+#, fuzzy
 msgid ""
-"Use Plain Text mode for dictionary popup when dictionary language is Arabic, "
-"Persian, or Urdu. Grayed out when Text Mode for Dictionary is enabled."
-msgstr ""
+"Use Plain Text mode for dictionary popup when dictionary language is Arabic, Persian, or Urdu. Grayed out when Text Mode for Dictionary is enabled."
+msgstr "当词典语言为阿拉伯语、波斯语或乌尔都语时，词典弹窗使用纯文本模式。当词典文本模式启用时变为灰色。"
 
 #: koassistant_settings_schema.lua:137
 #, fuzzy
 msgid "Text Mode for RTL Translate"
-msgstr "禁用翻译自动保存"
+msgstr "RTL 翻译文本模式"
 
 #: koassistant_settings_schema.lua:140
+#, fuzzy
 msgid ""
-"Use Plain Text mode for translate popup when translation language is Arabic, "
-"Persian, or Urdu."
-msgstr ""
+"Use Plain Text mode for translate popup when translation language is Arabic, Persian, or Urdu."
+msgstr "当翻译语言为阿拉伯语、波斯语或乌尔都语时，翻译弹窗使用纯文本模式。"
 
 #: koassistant_settings_schema.lua:145
+#, fuzzy
 msgid "Auto RTL mode for Chat"
-msgstr ""
+msgstr "聊天自动 RTL 模式"
 
 #: koassistant_settings_schema.lua:152
+#, fuzzy
 msgid ""
-"Automatically detect RTL content and switch to RTL mode (right-aligned text "
-"+ Plain Text). Activates when the latest response has more RTL than Latin "
-"characters. Disabling removes all automatic RTL adjustments. Grayed out when "
-"markdown is disabled."
-msgstr ""
+"Automatically detect RTL content and switch to RTL mode (right-aligned text + Plain Text). Activates when the latest response has more RTL than Latin characters. Disabling removes all automatic RTL adjustments. Grayed out when markdown is disabled."
+msgstr "自动检测 RTL 内容并切换到 RTL 模式（右对齐文本 + 纯文本）。当最新回复的 RTL 字符多于拉丁字符时激活。禁用将移除所有自动 RTL 调整。当 markdown 被禁用时变为灰色。"
 
 #: koassistant_settings_schema.lua:158
 #, fuzzy
@@ -1554,46 +1611,44 @@ msgstr "纯文本选项"
 #: koassistant_settings_schema.lua:164
 #, fuzzy
 msgid "Apply Markdown Stripping"
-msgstr "应用 Markdown 转换"
+msgstr "应用 Markdown 剥离"
 
 #: koassistant_settings_schema.lua:167
 #, fuzzy
 msgid ""
-"Convert markdown syntax to readable plain text (headers, lists, etc). "
-"Disable to show raw markdown."
-msgstr ""
-"将 Markdown 语法转换为易读的纯文本（标题、列表等）。禁用则显示原始 Markdown。"
+"Convert markdown syntax to readable plain text (headers, lists, etc). Disable to show raw markdown."
+msgstr "将 markdown 语法转换为可读纯文本（标题、列表等）。禁用则显示原始 markdown。"
 
 #: koassistant_settings_schema.lua:174
 #, fuzzy
 msgid "Hide Highlighted Text"
-msgstr "隐藏标注文本"
+msgstr "隐藏高亮文本"
 
 #: koassistant_settings_schema.lua:181
 #, fuzzy
 msgid "Hide Long Highlights"
-msgstr "隐藏长标注"
+msgstr "隐藏长高亮"
 
 #: koassistant_settings_schema.lua:189
 #, fuzzy
 msgid "Long Highlight Threshold"
-msgstr "长标注阈值"
+msgstr "长高亮阈值"
 
 #: koassistant_settings_schema.lua:201
 #, fuzzy
 msgid "Plugin UI Language"
-msgstr "主要语言"
+msgstr "插件界面语言"
 
 #: koassistant_settings_schema.lua:204
+#, fuzzy
 msgid ""
-"Language for plugin menus and dialogs. Does not affect AI responses. "
-"Requires restart."
-msgstr ""
+"Language for plugin menus and dialogs. Does not affect AI responses. Requires restart."
+msgstr "插件菜单和对话框的语言。不影响 AI 回复。需要重启。"
 
 #: koassistant_settings_schema.lua:206
 #, fuzzy
 msgid "Match KOReader"
-msgstr "跟随 KOReader 界面语言"
+msgstr "跟随 KOReader"
 
 #: koassistant_settings_schema.lua:233
 #, fuzzy
@@ -1603,17 +1658,17 @@ msgstr "请重启 KOReader 以使语言更改生效。"
 #: koassistant_settings_schema.lua:244
 #, fuzzy
 msgid "Chat Settings"
-msgstr "对话设置"
+msgstr "聊天设置"
 
 #: koassistant_settings_schema.lua:249
 #, fuzzy
 msgid "Auto-save All Chats"
-msgstr "自动保存所有对话"
+msgstr "自动保存所有聊天"
 
 #: koassistant_settings_schema.lua:256
 #, fuzzy
 msgid "Auto-save Continued Chats"
-msgstr "自动保存续接的对话"
+msgstr "自动保存续接聊天"
 
 #: koassistant_settings_schema.lua:265 koassistant_settings_schema.lua:600
 #: koassistant_settings_schema.lua:712
@@ -1624,12 +1679,12 @@ msgstr "启用流式传输"
 #: koassistant_settings_schema.lua:272
 #, fuzzy
 msgid "Auto-scroll Streaming"
-msgstr "流式传输自动滚动"
+msgstr "自动滚动流式传输"
 
 #: koassistant_settings_schema.lua:280
 #, fuzzy
 msgid "Large Stream Dialog"
-msgstr "大型流式对话框"
+msgstr "大流式对话框"
 
 #: koassistant_settings_schema.lua:288
 #, fuzzy
@@ -1642,8 +1697,8 @@ msgid ""
 "How often to check for new stream data.\n"
 "Lower = snappier but uses more battery."
 msgstr ""
-"检查新数据的频率。\n"
-"越低响应越快，但更耗电。"
+"检查新流式数据的频率。\n"
+"越低 = 越灵敏但耗电更多。"
 
 #: koassistant_settings_schema.lua:301
 #, fuzzy
@@ -1656,23 +1711,24 @@ msgid ""
 "How often to refresh the display during streaming.\n"
 "Higher = better performance on slower devices."
 msgstr ""
-"流式传输时刷新显示的频率。\n"
-"越高在较慢设备上性能越好。"
+"流式传输期间刷新显示的频率。\n"
+"越高 = 在较慢设备上性能更好。"
 
 #: koassistant_settings_schema.lua:314
+#, fuzzy
 msgid "Scroll to Last Message (Experimental)"
-msgstr ""
+msgstr "滚动到最后一条消息（实验性）"
 
 #: koassistant_settings_schema.lua:317
+#, fuzzy
 msgid ""
-"When resuming or replying to a chat, try to scroll so your last question is "
-"visible. When off, shows top for new chats and bottom for replies."
-msgstr ""
+"When resuming or replying to a chat, try to scroll so your last question is visible. When off, shows top for new chats and bottom for replies."
+msgstr "恢复或回复聊天时，尝试滚动使您的最后一个问题可见。关闭时，新聊天显示顶部，回复显示底部。"
 
 #: koassistant_settings_schema.lua:324
 #, fuzzy
 msgid "Export Style"
-msgstr "导出格式"
+msgstr "导出样式"
 
 #: koassistant_settings_schema.lua:331
 #, fuzzy
@@ -1692,12 +1748,12 @@ msgstr "每次询问"
 #: koassistant_settings_schema.lua:374
 #, fuzzy
 msgid "Last response only"
-msgstr "仅最后回复"
+msgstr "仅最后一条回复"
 
 #: koassistant_settings_schema.lua:346
 #, fuzzy
 msgid "What to include when copying chat to clipboard."
-msgstr "复制对话到剪贴板时包含的内容。"
+msgstr "将聊天复制到剪贴板时包含的内容。"
 
 #: koassistant_settings_schema.lua:361
 #, fuzzy
@@ -1707,7 +1763,7 @@ msgstr "保存到笔记时包含的内容。"
 #: koassistant_settings_schema.lua:366
 #, fuzzy
 msgid "Chat History Export"
-msgstr "历史导出"
+msgstr "聊天历史导出"
 
 #: koassistant_settings_schema.lua:370
 #, fuzzy
@@ -1717,76 +1773,79 @@ msgstr "跟随复制内容"
 #: koassistant_settings_schema.lua:377
 #, fuzzy
 msgid "What to include when exporting from Chat History."
-msgstr "从对话历史导出时包含的内容。"
+msgstr "从聊天历史导出时包含的内容。"
 
 #: koassistant_settings_schema.lua:384
 #, fuzzy
 msgid "Save Location"
-msgstr "保存聊天"
+msgstr "保存位置"
 
 #: koassistant_settings_schema.lua:388
 #, fuzzy
 msgid "KOAssistant exports folder"
-msgstr "KOAssistant：更改提供商"
+msgstr "KOAssistant 导出文件夹"
 
 #: koassistant_settings_schema.lua:389
 #, fuzzy
 msgid "Custom folder"
-msgstr "自定义模型"
+msgstr "自定义文件夹"
 
 #: koassistant_settings_schema.lua:392
+#, fuzzy
 msgid ""
-"Where to save exported chat files. Creates subfolders for book/general/multi-"
-"book chats."
-msgstr ""
+"Where to save exported chat files. Creates subfolders for book/general/multi-book chats."
+msgstr "导出聊天文件的保存位置。为书籍/常规/多书籍聊天创建子文件夹。"
 
 #: koassistant_settings_schema.lua:403
 #, fuzzy
 msgid "Custom Folder: %1"
-msgstr "%1 的自定义模型"
+msgstr "自定义文件夹：%1"
 
 #: koassistant_settings_schema.lua:405
 #, fuzzy
 msgid "Set Custom Folder..."
-msgstr "自定义模型..."
+msgstr "设置自定义文件夹..."
 
 #: koassistant_settings_schema.lua:414
+#, fuzzy
 msgid "Select directory for exported files."
-msgstr ""
+msgstr "选择导出文件的目录。"
 
 #: koassistant_settings_schema.lua:419
+#, fuzzy
 msgid "Save book chats alongside books"
-msgstr ""
+msgstr "将图书对话保存在图书旁边"
 
 #: koassistant_settings_schema.lua:422
+#, fuzzy
 msgid ""
-"When enabled, book chats are saved to a 'chats' subfolder next to the book "
-"file instead of the central location."
-msgstr ""
+"When enabled, book chats are saved to a 'chats' subfolder next to the book file instead of the central location."
+msgstr "启用后，图书对话将保存到图书文件旁边的\"chats\"子文件夹中，而不是集中位置。"
 
 #: koassistant_settings_schema.lua:427
 #, fuzzy
 msgid "Show Export in Chat Viewer"
-msgstr "在对话中显示指示器"
+msgstr "在对话查看器中显示导出"
 
 #: koassistant_settings_schema.lua:430
+#, fuzzy
 msgid "Add Export button to the Chat Viewer (alongside Copy and Note)."
-msgstr ""
+msgstr "在对话查看器中添加导出按钮（与复制和笔记并列）。"
 
 #: koassistant_settings_schema.lua:439
 #, fuzzy
 msgid "AI Language Settings"
-msgstr "AI 快速设置"
+msgstr "AI 语言设置"
 
 #: koassistant_settings_schema.lua:451
 #, fuzzy
 msgid "Your Languages: (not set)"
-msgstr "主要语言：（未设置）"
+msgstr "您的语言：（未设置）"
 
 #: koassistant_settings_schema.lua:453 koassistant_settings_schema.lua:460
 #, fuzzy
 msgid "Your Languages: %1"
-msgstr "您的语言"
+msgstr "您的语言：%1"
 
 #: koassistant_settings_schema.lua:470
 #, fuzzy
@@ -1801,42 +1860,42 @@ msgstr "主要语言：%1"
 #: koassistant_settings_schema.lua:483
 #, fuzzy
 msgid "Additional Languages: (none)"
-msgstr "主要语言：（未设置）"
+msgstr "附加语言：（无）"
 
 #: koassistant_settings_schema.lua:490
 #, fuzzy
 msgid "Additional Languages: %1"
-msgstr "词典语言"
+msgstr "附加语言：%1"
 
 #: koassistant_settings_schema.lua:501
 #, fuzzy
 msgid "Dictionary Settings"
-msgstr "字典设置"
+msgstr "词典设置"
 
 #: koassistant_settings_schema.lua:506
 #, fuzzy
 msgid "AI Buttons in Dictionary Popup"
-msgstr "字典弹窗中的 AI 按钮"
+msgstr "词典弹窗中的 AI 按钮"
 
 #: koassistant_settings_schema.lua:509
 #, fuzzy
 msgid "Show AI Dictionary button when tapping on a word"
-msgstr "点击单词时显示 AI 字典按钮"
+msgstr "点击单词时显示 AI 词典按钮"
 
 #: koassistant_settings_schema.lua:518
 #, fuzzy
 msgid "Response Language: (Follow Translation)"
-msgstr "回复语言：（跟随翻译）"
+msgstr "响应语言：（跟随翻译）"
 
 #: koassistant_settings_schema.lua:520
 #, fuzzy
 msgid "Response Language: (Follow Primary)"
-msgstr "回复语言：（跟随主要）"
+msgstr "响应语言：（跟随主要语言）"
 
 #: koassistant_settings_schema.lua:522
 #, fuzzy
 msgid "Response Language: %1"
-msgstr "回复语言：%1"
+msgstr "响应语言：%1"
 
 #: koassistant_settings_schema.lua:533 main.lua:3418
 #, fuzzy
@@ -1866,24 +1925,19 @@ msgstr "上下文字符数"
 #: koassistant_settings_schema.lua:551
 #, fuzzy
 msgid ""
-"Number of characters to include before/after the word when Context Mode is "
-"'Characters'"
-msgstr "当上下文模式为\"字符\"时，要包含在单词前后的字符数"
+"Number of characters to include before/after the word when Context Mode is 'Characters'"
+msgstr "当上下文模式为\"字符\"时，在单词前后包含的字符数"
 
 #: koassistant_settings_schema.lua:560
 #, fuzzy
 msgid "Disable Auto-save for Dictionary"
-msgstr "禁用字典自动保存"
+msgstr "禁用词典自动保存"
 
 #: koassistant_settings_schema.lua:563
 #, fuzzy
 msgid ""
-"When enabled, dictionary lookups are not auto-saved. When disabled, "
-"dictionary chats follow your general chat saving settings. You can always "
-"save manually from an expanded view."
-msgstr ""
-"启用时，字典查询不会自动保存。禁用时，字典聊天遵循您的一般聊天保存设置。您始"
-"终可以从展开视图手动保存。"
+"When enabled, dictionary lookups are not auto-saved. When disabled, dictionary chats follow your general chat saving settings. You can always save manually from an expanded view."
+msgstr "启用后，词典查询不会自动保存。禁用时，词典对话遵循您的常规对话保存设置。您始终可以从展开视图手动保存。"
 
 #: koassistant_settings_schema.lua:572 koassistant_settings_schema.lua:588
 #: koassistant_settings_schema.lua:724 koassistant_settings_schema.lua:740
@@ -1892,74 +1946,69 @@ msgid "Follow global setting"
 msgstr "跟随全局设置"
 
 #: koassistant_settings_schema.lua:576 koassistant_settings_schema.lua:592
+#, fuzzy
 msgid "Definition only (Recommended)"
-msgstr ""
+msgstr "仅定义（推荐）"
 
 #: koassistant_settings_schema.lua:579
 #, fuzzy
 msgid "What to include when copying in dictionary view."
-msgstr "在翻译视图中复制时包含的内容。"
+msgstr "在词典视图中复制时包含的内容。"
 
 #: koassistant_settings_schema.lua:595
 #, fuzzy
 msgid "What to include when saving dictionary results to a note."
-msgstr "保存到笔记时包含的内容。"
+msgstr "将词典结果保存到笔记时包含的内容。"
 
 #: koassistant_settings_schema.lua:603
 #, fuzzy
 msgid ""
-"Stream dictionary responses in real-time. Disable to wait for complete "
-"response."
-msgstr "实时流式传输字典回复。禁用以等待完整回复。"
+"Stream dictionary responses in real-time. Disable to wait for complete response."
+msgstr "实时流式传输词典响应。禁用以等待完整响应。"
 
 #: koassistant_settings_schema.lua:608
 #, fuzzy
 msgid "Dictionary Popup Actions"
-msgstr "字典弹窗动作"
+msgstr "词典弹窗操作"
 
 #: koassistant_settings_schema.lua:610
 #, fuzzy
 msgid "Configure which actions appear in the dictionary popup"
-msgstr "配置字典弹窗中显示的动作"
+msgstr "配置词典弹窗中显示的操作"
 
 #: koassistant_settings_schema.lua:615
 #, fuzzy
 msgid "Bypass KOReader Dictionary"
-msgstr "跳过 KOReader 字典"
+msgstr "绕过 KOReader 词典"
 
 #: koassistant_settings_schema.lua:618
 #, fuzzy
 msgid ""
-"Skip KOReader's dictionary and go directly to AI when tapping words. Can "
-"also be toggled via gesture."
-msgstr "点击单词时跳过 KOReader 的字典，直接使用 AI。也可通过手势切换。"
+"Skip KOReader's dictionary and go directly to AI when tapping words. Can also be toggled via gesture."
+msgstr "跳过 KOReader 的词典，点击单词时直接使用 AI。也可以通过手势切换。"
 
 #: koassistant_settings_schema.lua:639 koassistant_settings_schema.lua:643
 #: koassistant_settings_schema.lua:645 koassistant_settings_schema.lua:825
 #: koassistant_settings_schema.lua:829 koassistant_settings_schema.lua:831
 #, fuzzy
 msgid "Bypass Action: %1"
-msgstr "跳过动作：%1"
+msgstr "绕过操作：%1"
 
 #: koassistant_settings_schema.lua:648
 #, fuzzy
 msgid "Action to trigger when dictionary bypass is enabled"
-msgstr "启用字典跳过时触发的动作"
+msgstr "启用词典绕过时触发的操作"
 
 #: koassistant_settings_schema.lua:653
 #, fuzzy
 msgid "Bypass: Follow Vocab Builder Auto-add"
-msgstr "跳过：跟随生词本自动添加"
+msgstr "绕过：跟随生词本自动添加"
 
 #: koassistant_settings_schema.lua:656
 #, fuzzy
 msgid ""
-"When enabled, dictionary bypass follows KOReader's Vocabulary Builder auto-"
-"add setting. Disable if you use bypass for analysis of words you already "
-"know and don't want them added."
-msgstr ""
-"启用时，字典跳过遵循 KOReader 的生词本自动添加设置。如果您使用跳过来分析已认"
-"识的单词且不想添加到生词本，请禁用此选项。"
+"When enabled, dictionary bypass follows KOReader's Vocabulary Builder auto-add setting. Disable if you use bypass for analysis of words you already know and don't want them added."
+msgstr "启用后，词典绕过遵循 KOReader 的生词本自动添加设置。如果您使用绕过来分析已知单词且不想添加它们，请禁用。"
 
 #: koassistant_settings_schema.lua:665
 #, fuzzy
@@ -1974,9 +2023,8 @@ msgstr "翻译为主要语言"
 #: koassistant_settings_schema.lua:674
 #, fuzzy
 msgid ""
-"Use your primary language as the translation target. Disable to choose a "
-"different target."
-msgstr "使用您的主要语言作为翻译目标。禁用以选择其他目标语言。"
+"Use your primary language as the translation target. Disable to choose a different target."
+msgstr "使用您的主要语言作为翻译目标。禁用以选择不同的目标。"
 
 #: koassistant_settings_schema.lua:694
 #, fuzzy
@@ -1991,12 +2039,12 @@ msgstr "禁用翻译自动保存"
 #: koassistant_settings_schema.lua:707
 #, fuzzy
 msgid "Translations are not auto-saved. Save manually via → Chat button."
-msgstr "翻译不会自动保存。通过 → 聊天按钮手动保存。"
+msgstr "翻译不会自动保存。通过 → 对话按钮手动保存。"
 
 #: koassistant_settings_schema.lua:715
 #, fuzzy
 msgid "Stream translation responses in real-time."
-msgstr "实时流式传输翻译回复。"
+msgstr "实时流式传输翻译响应。"
 
 #: koassistant_settings_schema.lua:731
 #, fuzzy
@@ -2021,12 +2069,12 @@ msgstr "始终隐藏"
 #: koassistant_settings_schema.lua:761
 #, fuzzy
 msgid "Hide Long"
-msgstr "长文本时隐藏"
+msgstr "隐藏长文本"
 
 #: koassistant_settings_schema.lua:762 koassistant_settings_schema.lua:772
 #, fuzzy
 msgid "Never Hide"
-msgstr "永不隐藏"
+msgstr "从不隐藏"
 
 #: koassistant_settings_schema.lua:764
 #, fuzzy
@@ -2041,7 +2089,7 @@ msgstr "跟随全局（显示设置）"
 #: koassistant_settings_schema.lua:771
 #, fuzzy
 msgid "Hide Long (by character count)"
-msgstr "长文本时隐藏（按字符数）"
+msgstr "隐藏长文本（按字符数）"
 
 #: koassistant_settings_schema.lua:778
 #, fuzzy
@@ -2051,10 +2099,8 @@ msgstr "长文本阈值"
 #: koassistant_settings_schema.lua:784
 #, fuzzy
 msgid ""
-"Character count above which text is considered 'long'. Used when Original "
-"Text is set to 'Hide Long'."
-msgstr ""
-"超过此字符数的文本被视为\"长文本\"。用于\"原文\"设置为\"长文本时隐藏\"时。"
+"Character count above which text is considered 'long'. Used when Original Text is set to 'Hide Long'."
+msgstr "超过此字符数的文本被视为\"长文本\"。在原文设置为\"隐藏长文本\"时使用。"
 
 #: koassistant_settings_schema.lua:793
 #, fuzzy
@@ -2062,88 +2108,91 @@ msgid "Hide for Full Page Translate"
 msgstr "全页翻译时隐藏"
 
 #: koassistant_settings_schema.lua:796
+#, fuzzy
 msgid ""
-"Always hide original text for full page translations. Overrides all other "
-"visibility settings when enabled. Disable to use your normal Original Text "
-"setting above."
-msgstr ""
+"Always hide original text for full page translations. Overrides all other visibility settings when enabled. Disable to use your normal Original Text setting above."
+msgstr "在全页翻译时始终隐藏原文。启用后将覆盖所有其他可见性设置。禁用则使用上方的常规原文设置。"
 
 #: koassistant_settings_schema.lua:805
 #, fuzzy
 msgid "Highlight Settings"
-msgstr "划线设置"
+msgstr "高亮设置"
 
 #: koassistant_settings_schema.lua:810
 #, fuzzy
 msgid "Enable Highlight Bypass"
-msgstr "启用划线跳过"
+msgstr "启用高亮绕过"
 
 #: koassistant_settings_schema.lua:813
 #, fuzzy
 msgid ""
-"Immediately trigger an action when text is selected, skipping the highlight "
-"menu. Can also be toggled via gesture."
-msgstr "选择文本时立即触发动作，跳过划线菜单。也可通过手势切换。"
+"Immediately trigger an action when text is selected, skipping the highlight menu. Can also be toggled via gesture."
+msgstr "选择文本时立即触发操作，跳过高亮菜单。也可以通过手势切换。"
 
 #: koassistant_settings_schema.lua:834
 #, fuzzy
 msgid "Action to trigger when highlight bypass is enabled"
-msgstr "启用划线跳过时触发的动作"
+msgstr "启用高亮绕过时触发的操作"
 
 #: koassistant_settings_schema.lua:839
 #, fuzzy
 msgid "Highlight Menu Actions"
-msgstr "划线菜单动作"
+msgstr "高亮菜单操作"
 
 #: koassistant_settings_schema.lua:841
 #, fuzzy
 msgid "Choose which actions appear in the highlight menu (requires restart)"
-msgstr "选择在划线菜单中显示的动作（需要重启）"
+msgstr "选择在高亮菜单中显示的操作（需要重启）"
 
 #: koassistant_settings_schema.lua:850
 #, fuzzy
 msgid "Quick Panel Settings"
-msgstr "AI 快速设置"
+msgstr "快捷面板设置"
 
 #: koassistant_settings_schema.lua:858
 #, fuzzy
 msgid "Quick Actions Panel"
-msgstr "动作名称"
+msgstr "快捷操作面板"
 
 #: koassistant_settings_schema.lua:863
 #, fuzzy
 msgid "Panel Actions"
-msgstr "管理动作"
+msgstr "面板操作"
 
 #: koassistant_settings_schema.lua:865
 #, fuzzy
 msgid "Choose which actions appear in the Quick Actions panel and their order"
-msgstr "选择在划线菜单中显示的动作（需要重启）"
+msgstr "选择在快捷操作面板中显示的操作及其顺序"
 
 #: koassistant_settings_schema.lua:870
+#, fuzzy
 msgid "QA Panel Utilities"
-msgstr ""
+msgstr "快捷操作面板工具"
 
 #: koassistant_settings_schema.lua:871
+#, fuzzy
 msgid "Show or hide utility buttons in the Quick Actions panel"
-msgstr ""
+msgstr "在快捷操作面板中显示或隐藏工具按钮"
 
 #: koassistant_settings_schema.lua:884
+#, fuzzy
 msgid "Summary (View/Generate)"
-msgstr ""
+msgstr "摘要（查看/生成）"
 
 #: koassistant_settings_schema.lua:904
 #, fuzzy
 msgid "Quick Settings Panel"
-msgstr "AI 快速设置"
+msgstr "快捷设置面板"
 
 #: koassistant_settings_schema.lua:909
+#, fuzzy
 msgid "QS Panel Utilities"
-msgstr ""
+msgstr "快捷设置面板工具"
 
 #: koassistant_settings_schema.lua:910
+#, fuzzy
 msgid "Show or hide controls in the Quick Settings panel"
-msgstr ""
+msgstr "在快捷设置面板中显示或隐藏控件"
 
 #: koassistant_settings_schema.lua:915 main.lua:4360 main.lua:4512
 #, fuzzy
@@ -2158,12 +2207,12 @@ msgstr "模型"
 #: koassistant_settings_schema.lua:929
 #, fuzzy
 msgid "Behavior"
-msgstr "AI 行为"
+msgstr "行为"
 
 #: koassistant_settings_schema.lua:936
 #, fuzzy
 msgid "Domain"
-msgstr "领域:"
+msgstr "领域"
 
 #: koassistant_settings_schema.lua:943 koassistant_settings_schema.lua:1471
 #: main.lua:4570 koassistant_ui/prompts_manager.lua:709
@@ -2176,11 +2225,12 @@ msgstr "温度"
 #: koassistant_settings_schema.lua:950
 #, fuzzy
 msgid "Anthropic/Gemini Reasoning"
-msgstr "OpenAI 推理"
+msgstr "Anthropic/Gemini 推理"
 
 #: koassistant_settings_schema.lua:957 koassistant_settings_schema.lua:1599
+#, fuzzy
 msgid "Web Search"
-msgstr ""
+msgstr "网络搜索"
 
 #: koassistant_settings_schema.lua:964
 #, fuzzy
@@ -2196,224 +2246,234 @@ msgstr "翻译语言"
 #: koassistant_settings_schema.lua:985
 #, fuzzy
 msgid "H.Bypass"
-msgstr "高亮旁路：开启"
+msgstr "高亮绕过"
 
 #: koassistant_settings_schema.lua:992
 #, fuzzy
 msgid "D.Bypass"
-msgstr "词典旁路：开启"
+msgstr "对话绕过"
 
 #: koassistant_settings_schema.lua:1027 koassistant_settings_schema.lua:1061
 #: main.lua:4744 koassistant_ui/prompts_manager.lua:499
 #, fuzzy
 msgid "Manage Actions"
-msgstr "管理动作"
+msgstr "管理操作"
 
 #: koassistant_settings_schema.lua:1034 main.lua:4918
 #, fuzzy
 msgid "Quick Actions"
-msgstr "AI 快速设置"
+msgstr "快捷操作"
 
 #: koassistant_settings_schema.lua:1041
 #, fuzzy
 msgid "More Settings"
-msgstr "更多设置..."
+msgstr "更多设置"
 
 #: koassistant_settings_schema.lua:1056
 #, fuzzy
 msgid "Actions & Prompts"
-msgstr "步骤 3/4：动作提示词"
+msgstr "操作与提示"
 
 #: koassistant_settings_schema.lua:1074
 #, fuzzy
 msgid "Manage Behaviors (%1)"
-msgstr "管理行为风格（%1）"
+msgstr "管理行为（%1）"
 
 #: koassistant_settings_schema.lua:1077
 #, fuzzy
 msgid ""
 "Select or create AI behavior styles that define how the AI communicates."
-msgstr "选择或创建 AI 行为风格，定义 AI 的交流方式。"
+msgstr "选择或创建定义 AI 交流方式的行为风格。"
 
 #: koassistant_settings_schema.lua:1082
 #, fuzzy
 msgid "Manage Domains..."
-msgstr "管理知识领域..."
+msgstr "管理领域..."
 
 #: koassistant_settings_schema.lua:1084
 #, fuzzy
 msgid "Manage knowledge domains. Domains are selected per-chat."
-msgstr "管理知识领域。领域按对话单独选择。"
+msgstr "管理知识领域。每个对话可选择不同领域。"
 
 #: koassistant_settings_schema.lua:1098
+#, fuzzy
 msgid "Browse Notebooks..."
-msgstr ""
+msgstr "浏览笔记本..."
 
 #: koassistant_settings_schema.lua:1105
 #, fuzzy
 msgid "Content Format"
-msgstr "内容"
+msgstr "内容格式"
 
 #: koassistant_settings_schema.lua:1110
+#, fuzzy
 msgid "Q&A"
-msgstr ""
+msgstr "问答"
 
 #: koassistant_settings_schema.lua:1111
+#, fuzzy
 msgid "Full Q&A (recommended)"
-msgstr ""
+msgstr "完整问答（推荐）"
 
 #: koassistant_settings_schema.lua:1113
+#, fuzzy
 msgid ""
 "What to include when saving to notebook.\n"
-"Full Q&A includes all context messages + highlighted text + question + "
-"response."
+"Full Q&A includes all context messages + highlighted text + question + response."
 msgstr ""
+"保存到笔记本时包含的内容。\n"
+"完整问答包括所有上下文消息 + 高亮文本 + 问题 + 回复。"
 
 #: koassistant_settings_schema.lua:1119
+#, fuzzy
 msgid "Show in file browser menu"
-msgstr ""
+msgstr "在文件浏览器菜单中显示"
 
 #: koassistant_settings_schema.lua:1122 koassistant_settings_schema.lua:1372
+#, fuzzy
 msgid ""
 "Show 'Notebook (KOA)' button when long-pressing books in the file browser."
-msgstr ""
+msgstr "在文件浏览器中长按书籍时显示\"笔记本 (KOA)\"按钮。"
 
 #: koassistant_settings_schema.lua:1127 koassistant_settings_schema.lua:1378
+#, fuzzy
 msgid "Only for books with notebooks"
-msgstr ""
+msgstr "仅限有笔记本的书籍"
 
 #: koassistant_settings_schema.lua:1131
+#, fuzzy
 msgid ""
-"Only show button if notebook already exists. Disable to allow creating new "
-"notebooks from file browser."
-msgstr ""
+"Only show button if notebook already exists. Disable to allow creating new notebooks from file browser."
+msgstr "仅在笔记本已存在时显示按钮。禁用此选项可允许从文件浏览器创建新笔记本。"
 
 #: koassistant_settings_schema.lua:1140
+#, fuzzy
 msgid "Privacy & Data"
-msgstr ""
+msgstr "隐私与数据"
 
 #: koassistant_settings_schema.lua:1150 main.lua:6543
 #, fuzzy
 msgid "Trusted Providers: None"
-msgstr "没有可管理的自定义服务商"
+msgstr "受信任的提供商:无"
 
 #: koassistant_settings_schema.lua:1152 main.lua:6545
 #, fuzzy
 msgid "Trusted Providers: %1"
-msgstr "服务商：%1"
+msgstr "受信任的提供商:%1"
 
 #: koassistant_settings_schema.lua:1155
+#, fuzzy
 msgid ""
-"Providers you trust bypass the data sharing controls below. Use for local "
-"Ollama instances or providers you fully trust."
-msgstr ""
+"Providers you trust bypass the data sharing controls below. Use for local Ollama instances or providers you fully trust."
+msgstr "您信任的提供商将绕过以下数据共享控制。用于本地 Ollama 实例或您完全信任的提供商。"
 
 #: koassistant_settings_schema.lua:1163
 #, fuzzy
 msgid "Preset: Default"
-msgstr "恢复默认"
+msgstr "预设:默认"
 
 #: koassistant_settings_schema.lua:1164
+#, fuzzy
 msgid ""
-"Recommended balance. Share reading progress and chapter info for context-"
-"aware features. Personal content (highlights, annotations, notebook) stays "
-"private."
-msgstr ""
+"Recommended balance. Share reading progress and chapter info for context-aware features. Personal content (highlights, annotations, notebook) stays private."
+msgstr "推荐的平衡方案。共享阅读进度和章节信息以启用上下文感知功能。个人内容(高亮、标注、笔记本)保持私密。"
 
 #: koassistant_settings_schema.lua:1171
 #, fuzzy
 msgid "Preset: Minimal"
-msgstr "最小"
+msgstr "预设:最小化"
 
 #: koassistant_settings_schema.lua:1172
+#, fuzzy
 msgid ""
-"Maximum privacy. Disable all extended data sharing including progress and "
-"chapter info. Only your question and book metadata are sent."
-msgstr ""
+"Maximum privacy. Disable all extended data sharing including progress and chapter info. Only your question and book metadata are sent."
+msgstr "最大隐私保护。禁用所有扩展数据共享,包括进度和章节信息。仅发送您的问题和书籍元数据。"
 
 #: koassistant_settings_schema.lua:1179
+#, fuzzy
 msgid "Preset: Full"
-msgstr ""
+msgstr "预设:完整"
 
 #: koassistant_settings_schema.lua:1180
+#, fuzzy
 msgid ""
-"Enable all data sharing for full functionality. Does not enable text "
-"extraction (see Text Extraction submenu)."
-msgstr ""
+"Enable all data sharing for full functionality. Does not enable text extraction (see Text Extraction submenu)."
+msgstr "启用所有数据共享以获得完整功能。不包括文本提取(请参见文本提取子菜单)。"
 
 #: koassistant_settings_schema.lua:1189
+#, fuzzy
 msgid "Data Sharing Controls (for non-trusted providers)"
-msgstr ""
+msgstr "数据共享控制(针对非受信任提供商)"
 
 #: koassistant_settings_schema.lua:1195
 #, fuzzy
 msgid "Allow Highlights & Annotations"
-msgstr "划线菜单动作"
+msgstr "允许高亮和标注"
 
 #: koassistant_settings_schema.lua:1198
+#, fuzzy
 msgid ""
-"Send your saved highlights and personal notes to the AI. Used by Analyze "
-"Highlights, X-Ray, Connect with Notes, and actions with {highlights} or "
-"{annotations} placeholders."
-msgstr ""
+"Send your saved highlights and personal notes to the AI. Used by Analyze Highlights, X-Ray, Connect with Notes, and actions with {highlights} or {annotations} placeholders."
+msgstr "将您保存的高亮和个人笔记发送给 AI。由分析高亮、X-Ray、关联笔记以及包含 {highlights} 或 {annotations} 占位符的操作使用。"
 
 #: koassistant_settings_schema.lua:1203
+#, fuzzy
 msgid "Allow Notebook"
-msgstr ""
+msgstr "允许笔记本"
 
 #: koassistant_settings_schema.lua:1206
+#, fuzzy
 msgid ""
-"Send notebook entries to AI. Used by Connect with Notes and actions with "
-"{notebook} placeholder."
-msgstr ""
+"Send notebook entries to AI. Used by Connect with Notes and actions with {notebook} placeholder."
+msgstr "将笔记本条目发送给 AI。由关联笔记和包含 {notebook} 占位符的操作使用。"
 
 #: koassistant_settings_schema.lua:1211
 #, fuzzy
 msgid "Allow Reading Progress"
-msgstr "阅读进度 (%)"
+msgstr "允许阅读进度"
 
 #: koassistant_settings_schema.lua:1214
+#, fuzzy
 msgid "Send current reading position (percentage). Used by X-Ray, Recap."
-msgstr ""
+msgstr "发送当前阅读位置(百分比)。由 X-Ray、回顾使用。"
 
 #: koassistant_settings_schema.lua:1219
+#, fuzzy
 msgid "Allow Chapter Info"
-msgstr ""
+msgstr "允许章节信息"
 
 #: koassistant_settings_schema.lua:1222
+#, fuzzy
 msgid ""
-"Send current chapter title, chapters read count, and time since last opened. "
-"Used by Recap."
-msgstr ""
+"Send current chapter title, chapters read count, and time since last opened. Used by Recap."
+msgstr "发送当前章节标题、已读章节数和距上次打开的时间。由回顾使用。"
 
 #: koassistant_settings_schema.lua:1232
 #, fuzzy
 msgid "Text Extraction (enabled)"
-msgstr "书籍文本提取"
+msgstr "文本提取(已启用)"
 
 #: koassistant_settings_schema.lua:1234
 #, fuzzy
 msgid "Text Extraction (disabled)"
-msgstr "书籍文本提取"
+msgstr "文本提取(已禁用)"
 
 #: koassistant_settings_schema.lua:1241
 #, fuzzy
 msgid "Allow Text Extraction"
-msgstr "允许书籍文本提取"
+msgstr "允许文本提取"
 
 #: koassistant_settings_schema.lua:1244
+#, fuzzy
 msgid ""
-"When enabled, actions can extract and send book text to the AI. Used by X-"
-"Ray, Recap, and actions with text placeholders."
-msgstr ""
+"When enabled, actions can extract and send book text to the AI. Used by X-Ray, Recap, and actions with text placeholders."
+msgstr "启用后,操作可以提取并将书籍文本发送给 AI。由 X-Ray、回顾以及包含文本占位符的操作使用。"
 
 #: koassistant_settings_schema.lua:1250
+#, fuzzy
 msgid ""
-"Text extraction sends actual book content to the AI. This uses tokens "
-"(increases API costs) and processing time. Features like X-Ray and Recap use "
-"this to analyze your reading progress. Be mindful of how you use this "
-"feature."
-msgstr ""
+"Text extraction sends actual book content to the AI. This uses tokens (increases API costs) and processing time. Features like X-Ray and Recap use this to analyze your reading progress. Be mindful of how you use this feature."
+msgstr "文本提取会将实际书籍内容发送给 AI。这会消耗令牌(增加 API 成本)和处理时间。X-Ray 和回顾等功能使用此功能来分析您的阅读进度。请谨慎使用此功能。"
 
 #: koassistant_settings_schema.lua:1258
 #, fuzzy
@@ -2423,11 +2483,8 @@ msgstr "最大文本字符数"
 #: koassistant_settings_schema.lua:1265
 #, fuzzy
 msgid ""
-"Maximum characters to extract (10,000-1,000,000). Higher = more context but "
-"more tokens. Default: 250,000 (~60k tokens)."
-msgstr ""
-"从书籍提取的最大字符数（10,000-500,000）。值越高提供更多上下文，但消耗更多 "
-"tokens。默认：50,000（约 12k tokens）。"
+"Maximum characters to extract (10,000-1,000,000). Higher = more context but more tokens. Default: 250,000 (~60k tokens)."
+msgstr "最多提取字符数(10,000-1,000,000)。越高 = 更多上下文但更多令牌。默认:250,000(约 60k 令牌)。"
 
 #: koassistant_settings_schema.lua:1271
 #, fuzzy
@@ -2438,155 +2495,162 @@ msgstr "最大 PDF 页数"
 #, fuzzy
 msgid ""
 "Maximum PDF pages to extract (50-500). Higher = more context but slower."
-msgstr ""
-"从 PDF 提取文本的最大页数（50-500）。值越高提供更多上下文，但耗时更长。"
+msgstr "最多提取 PDF 页数(50-500)。越高 = 更多上下文但更慢。"
 
 #: koassistant_settings_schema.lua:1284 main.lua:5018
 #, fuzzy
 msgid "Clear Action Cache"
-msgstr "输入动作名称"
+msgstr "清除操作缓存"
 
 #: koassistant_settings_schema.lua:1285
+#, fuzzy
 msgid ""
-"Clear cached X-Ray and Recap responses for the current book. Use to "
-"regenerate from scratch."
-msgstr ""
+"Clear cached X-Ray and Recap responses for the current book. Use to regenerate from scratch."
+msgstr "清除当前书籍的缓存 X-Ray 和回顾响应。用于从头重新生成。"
 
 #: koassistant_settings_schema.lua:1298
 #, fuzzy
 msgid "KOReader Integration"
-msgstr "国际"
+msgstr "KOReader 集成"
 
 #: koassistant_settings_schema.lua:1304
+#, fuzzy
 msgid "Control where KOAssistant appears in KOReader"
-msgstr ""
+msgstr "控制 KOAssistant 在 KOReader 中的显示位置"
 
 #: koassistant_settings_schema.lua:1310
+#, fuzzy
 msgid "Show in File Browser"
-msgstr ""
+msgstr "在文件浏览器中显示"
 
 #: koassistant_settings_schema.lua:1313
-msgid "Add KOAssistant button to file browser context menus. Requires restart."
-msgstr ""
+#, fuzzy
+msgid ""
+"Add KOAssistant button to file browser context menus. Requires restart."
+msgstr "将 KOAssistant 按钮添加到文件浏览器上下文菜单。需要重启。"
 
 #: koassistant_settings_schema.lua:1318 koassistant_settings_schema.lua:1333
 #: koassistant_settings_schema.lua:1348
 #, fuzzy
 msgid "Please restart KOReader for this change to take effect."
-msgstr "请重启 KOReader 以使语言更改生效。"
+msgstr "请重启 KOReader 以使此更改生效。"
 
 #: koassistant_settings_schema.lua:1325
 #, fuzzy
 msgid "Show KOAssistant Button in Highlight Menu"
-msgstr "KOAssistant：分析标注"
+msgstr "在高亮菜单中显示 KOAssistant 按钮"
 
 #: koassistant_settings_schema.lua:1328
 #, fuzzy
 msgid "Add main KOAssistant button to highlight menu. Requires restart."
-msgstr "选择在划线菜单中显示的动作（需要重启）"
+msgstr "将主 KOAssistant 按钮添加到高亮菜单。需要重启。"
 
 #: koassistant_settings_schema.lua:1340
 #, fuzzy
 msgid "Show Highlight Menu Actions"
-msgstr "划线菜单动作"
+msgstr "显示高亮菜单操作"
 
 #: koassistant_settings_schema.lua:1343
 #, fuzzy
 msgid ""
-"Add action shortcuts (Explain, Translate, etc.) to highlight menu. Requires "
-"restart."
-msgstr "选择在划线菜单中显示的动作（需要重启）"
+"Add action shortcuts (Explain, Translate, etc.) to highlight menu. Requires restart."
+msgstr "将操作快捷方式(解释、翻译等)添加到高亮菜单。需要重启。"
 
 #: koassistant_settings_schema.lua:1355
 #, fuzzy
 msgid "Show in Dictionary Popup"
-msgstr "✓ 已添加到词典弹窗"
+msgstr "在词典弹窗中显示"
 
 #: koassistant_settings_schema.lua:1358
 #, fuzzy
 msgid "Add AI buttons to KOReader's dictionary popup"
-msgstr "字典弹窗中的 AI 按钮"
+msgstr "将 AI 按钮添加到 KOReader 的词典弹窗"
 
 #: koassistant_settings_schema.lua:1364
+#, fuzzy
 msgid "File Browser Buttons"
-msgstr ""
+msgstr "文件浏览器按钮"
 
 #: koassistant_settings_schema.lua:1369
+#, fuzzy
 msgid "Show Notebook Button"
-msgstr ""
+msgstr "显示笔记本按钮"
 
 #: koassistant_settings_schema.lua:1382
+#, fuzzy
 msgid "Only show notebook button if notebook already exists."
-msgstr ""
+msgstr "仅在笔记本已存在时显示笔记本按钮。"
 
 #: koassistant_settings_schema.lua:1387
 #, fuzzy
 msgid "Show Chat History Button"
-msgstr "聊天历史选项"
+msgstr "显示聊天历史按钮"
 
 #: koassistant_settings_schema.lua:1390
+#, fuzzy
 msgid ""
-"Show 'Chat History (KOA)' button when long-pressing books that have chat "
-"history."
-msgstr ""
+"Show 'Chat History (KOA)' button when long-pressing books that have chat history."
+msgstr "长按有聊天记录的书籍时显示\"聊天记录 (KOA)\"按钮。"
 
 #: koassistant_settings_schema.lua:1398
 #, fuzzy
 msgid "Customize Visible Actions"
-msgstr "编辑自定义动作"
+msgstr "自定义可见操作"
 
 #: koassistant_settings_schema.lua:1403
 #, fuzzy
 msgid "Dictionary Popup Actions..."
-msgstr "字典弹窗动作"
+msgstr "词典弹窗操作..."
 
 #: koassistant_settings_schema.lua:1410
 #, fuzzy
 msgid "Highlight Menu Actions..."
-msgstr "划线菜单动作"
+msgstr "高亮菜单操作..."
 
 #: koassistant_settings_schema.lua:1424
 #, fuzzy
 msgid "Reset Dictionary Popup Actions"
-msgstr "字典弹窗动作"
+msgstr "重置词典弹窗操作"
 
 #: koassistant_settings_schema.lua:1426
 #, fuzzy
 msgid "Restore default dictionary popup buttons"
-msgstr "已从词典弹窗移除。"
+msgstr "恢复默认词典弹窗按钮"
 
 #: koassistant_settings_schema.lua:1432
 #, fuzzy
 msgid "Reset Highlight Menu Actions"
-msgstr "划线菜单动作"
+msgstr "重置高亮菜单操作"
 
 #: koassistant_settings_schema.lua:1434
 #, fuzzy
 msgid "Restore default highlight menu items"
-msgstr "已从高亮菜单移除。"
+msgstr "恢复默认高亮菜单项"
 
 #: koassistant_settings_schema.lua:1440
 #, fuzzy
 msgid "Reset All Menu Customizations"
-msgstr "重置所有自定义"
+msgstr "重置所有菜单自定义"
 
 #: koassistant_settings_schema.lua:1442
+#, fuzzy
 msgid "Restore all menus to defaults (dictionary popup, highlight menu)"
-msgstr ""
+msgstr "将所有菜单恢复为默认(词典弹窗、高亮菜单)"
 
 #: koassistant_settings_schema.lua:1449
 #, fuzzy
 msgid "Startup Behavior"
-msgstr "AI 行为"
+msgstr "启动行为"
 
 #: koassistant_settings_schema.lua:1454
 #, fuzzy
 msgid "Auto-check for updates"
-msgstr "检查更新"
+msgstr "自动检查更新"
 
 #: koassistant_settings_schema.lua:1457
+#, fuzzy
 msgid "Automatically check for new versions when KOReader starts."
-msgstr ""
+msgstr "KOReader 启动时自动检查新版本。"
 
 #: koassistant_settings_schema.lua:1466
 #, fuzzy
@@ -2600,9 +2664,9 @@ msgid ""
 "Lower = focused, deterministic\n"
 "Higher = creative, varied"
 msgstr ""
-"范围：0.0-2.0（Anthropic 最高 1.0）\n"
-"越低 = 集中、确定\n"
-"越高 = 创意、多变"
+"范围:0.0-2.0(Anthropic 最大 1.0)\n"
+"较低 = 专注、确定性\n"
+"较高 = 创造性、多样性"
 
 #: koassistant_settings_schema.lua:1485 koassistant_ui/prompts_manager.lua:710
 #, fuzzy
@@ -2612,30 +2676,36 @@ msgstr "推理"
 #: koassistant_settings_schema.lua:1490
 #, fuzzy
 msgid "Long-press provider for supported models"
-msgstr "长按服务商查看支持的模型"
+msgstr "长按提供商以查看支持的模型"
 
 #: koassistant_settings_schema.lua:1497
+#, fuzzy
 msgid "Enable Anthropic/Gemini Reasoning"
-msgstr ""
+msgstr "启用 Anthropic/Gemini 推理"
 
 #: koassistant_settings_schema.lua:1498
+#, fuzzy
 msgid ""
 "Enable extended thinking for Anthropic and Gemini.\n"
 "\n"
-"Note: OpenAI reasoning models (o3, gpt-5) always reason internally - this "
-"toggle does not affect them."
+"Note: OpenAI reasoning models (o3, gpt-5) always reason internally - this toggle does not affect them."
 msgstr ""
+"为 Anthropic 和 Gemini 启用扩展思考。\n"
+"\n"
+"注意:OpenAI 推理模型(o3、gpt-5)始终内部推理 - 此开关不影响它们。"
 
 #: koassistant_settings_schema.lua:1507 koassistant_ui/prompts_manager.lua:2121
 #, fuzzy
 msgid "Anthropic Extended Thinking"
-msgstr "Anthropic 扩展思维"
+msgstr "Anthropic 扩展思考"
 
 #: koassistant_settings_schema.lua:1508 koassistant_settings_schema.lua:1535
 #: koassistant_settings_schema.lua:1574
 #, fuzzy
-msgid "Supported models:\n"
-msgstr "支持的模型：\n"
+msgid ""
+"Supported models:\n"
+msgstr ""
+"支持的模型:\n"
 
 #: koassistant_settings_schema.lua:1508
 #, fuzzy
@@ -2646,23 +2716,26 @@ msgid ""
 msgstr ""
 "\n"
 "\n"
-"让 Claude 在回复前深入思考复杂问题。"
+"让 Claude 在响应前思考复杂问题。"
 
 #: koassistant_settings_schema.lua:1516
 #, fuzzy
 msgid "Thinking Budget (tokens)"
-msgstr "思维预算（tokens）"
+msgstr "思考预算(token)"
 
 #: koassistant_settings_schema.lua:1517
+#, fuzzy
 msgid ""
 "Maximum tokens for extended thinking (1024-32000).\n"
 "This is a cap - Claude uses what it needs up to this limit."
 msgstr ""
+"扩展思考的最大 token 数(1024-32000)。\n"
+"这是上限 - Claude 根据需要使用,最多到此限制。"
 
 #: koassistant_settings_schema.lua:1534 koassistant_ui/prompts_manager.lua:2294
 #, fuzzy
 msgid "Gemini Thinking"
-msgstr "Gemini 思维"
+msgstr "Gemini 思考"
 
 #: koassistant_settings_schema.lua:1535
 #, fuzzy
@@ -2673,12 +2746,12 @@ msgid ""
 msgstr ""
 "\n"
 "\n"
-"思维内容已加密/对用户隐藏。"
+"思考过程已加密/对用户隐藏。"
 
 #: koassistant_settings_schema.lua:1546 koassistant_settings_schema.lua:1689
 #, fuzzy
 msgid "Minimal"
-msgstr "最小"
+msgstr "最少"
 
 #: koassistant_settings_schema.lua:1546 koassistant_settings_schema.lua:1559
 #: koassistant_settings_schema.lua:1571 koassistant_ui/prompts_manager.lua:2254
@@ -2701,7 +2774,7 @@ msgstr "高"
 #: koassistant_settings_schema.lua:1547
 #, fuzzy
 msgid "Thinking Depth: %1"
-msgstr "思维深度：%1"
+msgstr "思考深度:%1"
 
 #: koassistant_settings_schema.lua:1549
 #, fuzzy
@@ -2710,75 +2783,81 @@ msgid ""
 "Low/Medium = balanced\n"
 "High = deepest thinking"
 msgstr ""
-"最小 = 最快\n"
+"最少 = 最快\n"
 "低/中 = 平衡\n"
-"高 = 最深入"
+"高 = 最深度思考"
 
 #: koassistant_settings_schema.lua:1558
 #, fuzzy
 msgid "Minimal (fastest)"
-msgstr "最小（最快）"
+msgstr "最少(最快)"
 
 #: koassistant_settings_schema.lua:1561
 #, fuzzy
 msgid "High (default)"
-msgstr "高（默认）"
+msgstr "高(默认)"
 
 #: koassistant_settings_schema.lua:1572
 #, fuzzy
 msgid "OpenAI Reasoning Effort: %1"
-msgstr "推理力度：%1"
+msgstr "OpenAI 推理努力程度:%1"
 
 #: koassistant_settings_schema.lua:1574
+#, fuzzy
 msgid ""
 "\n"
 "\n"
 "OpenAI reasoning models always reason internally.\n"
 "This controls the effort level (hidden from user)."
 msgstr ""
+"\n"
+"\n"
+"OpenAI 推理模型始终内部推理。\n"
+"这控制努力程度(对用户隐藏)。"
 
 #: koassistant_settings_schema.lua:1579
 #, fuzzy
 msgid "Low (faster, cheaper)"
-msgstr "低（更快、更便宜）"
+msgstr "低(更快、更便宜)"
 
 #: koassistant_settings_schema.lua:1580
 #, fuzzy
 msgid "Medium (default)"
-msgstr "高（默认）"
+msgstr "中(默认)"
 
 #: koassistant_settings_schema.lua:1581
 #, fuzzy
 msgid "High (thorough)"
-msgstr "高（深入）"
+msgstr "高(彻底)"
 
 #: koassistant_settings_schema.lua:1588 koassistant_settings_schema.lua:1630
 #, fuzzy
 msgid "Show Indicator in Chat"
-msgstr "在对话中显示指示器"
+msgstr "在聊天中显示指示器"
 
 #: koassistant_settings_schema.lua:1589
 #, fuzzy
 msgid ""
-"Show '*[Reasoning was used]*' indicator in chat when reasoning is requested "
-"or used.\n"
+"Show '*[Reasoning was used]*' indicator in chat when reasoning is requested or used.\n"
 "\n"
 "Full reasoning content is always viewable via 'Show Reasoning' button."
 msgstr ""
-"当请求或使用推理时，在对话中显示\"*[使用了推理]*\"指示器。\n"
+"当请求或使用推理时,在聊天中显示\"*[已使用推理]*\"指示器。\n"
 "\n"
 "完整推理内容始终可通过\"显示推理\"按钮查看。"
 
 #: koassistant_settings_schema.lua:1603
+#, fuzzy
 msgid "Supported: Anthropic, Gemini, OpenRouter"
-msgstr ""
+msgstr "支持:Anthropic、Gemini、OpenRouter"
 
 #: koassistant_settings_schema.lua:1608
 #, fuzzy
 msgid "Enable Web Search"
-msgstr "启用流式传输"
+msgstr "启用网络搜索"
 
 #: koassistant_settings_schema.lua:1609
+#, fuzzy
 msgid ""
 "Allow AI to search the web for current information.\n"
 "\n"
@@ -2791,29 +2870,48 @@ msgid ""
 "\n"
 "Increases token usage/cost."
 msgstr ""
+"允许 AI 搜索网络以获取最新信息。\n"
+"\n"
+"支持的提供商:\n"
+"• Anthropic (Claude)\n"
+"• Gemini\n"
+"• OpenRouter(所有模型)\n"
+"\n"
+"其他提供商忽略此设置。\n"
+"\n"
+"会增加 token 使用量/成本。"
 
 #: koassistant_settings_schema.lua:1616
+#, fuzzy
 msgid "Max Searches per Query"
-msgstr ""
+msgstr "每次查询最大搜索次数"
 
 #: koassistant_settings_schema.lua:1617
+#, fuzzy
 msgid ""
 "Maximum number of web searches per query (1-10).\n"
 "Applies to Anthropic only.\n"
 "Gemini decides search count automatically."
 msgstr ""
+"每次查询的最大网络搜索次数(1-10)。\n"
+"仅适用于 Anthropic。\n"
+"Gemini 自动决定搜索次数。"
 
 #: koassistant_settings_schema.lua:1631
+#, fuzzy
 msgid ""
 "Show '*[Web search was used]*' indicator in chat when web search is used.\n"
 "\n"
 "Streaming indicator ('🔍 Searching...') is always shown."
 msgstr ""
+"使用网络搜索时,在聊天中显示\"*[已使用网络搜索]*\"指示器。\n"
+"\n"
+"流式指示器(\"🔍 搜索中...\")始终显示。"
 
 #: koassistant_settings_schema.lua:1641
 #, fuzzy
 msgid "Provider Settings"
-msgstr "服务商设置"
+msgstr "提供商设置"
 
 #: koassistant_settings_schema.lua:1650
 #, fuzzy
@@ -2833,7 +2931,7 @@ msgstr "美国"
 #: koassistant_settings_schema.lua:1654
 #, fuzzy
 msgid "Qwen Region: %1"
-msgstr "Qwen 区域：%1"
+msgstr "Qwen 地区：%1"
 
 #: koassistant_settings_schema.lua:1656
 #, fuzzy
@@ -2845,12 +2943,12 @@ msgid ""
 "- China: Beijing (dashscope)\n"
 "- US: Virginia (dashscope-us)"
 msgstr ""
-"选择您的阿里云区域。\n"
+"选择您的阿里云地区。\n"
 "\n"
-"API 密钥是区域特定的，不可互换：\n"
-"- 国际：新加坡（dashscope-intl）\n"
-"- 中国：北京（dashscope）\n"
-"- 美国：弗吉尼亚（dashscope-us）"
+"API 密钥是特定于地区的，不可互换：\n"
+"- 国际：新加坡 (dashscope-intl)\n"
+"- 中国：北京 (dashscope)\n"
+"- 美国：弗吉尼亚 (dashscope-us)"
 
 #: koassistant_settings_schema.lua:1660
 #, fuzzy
@@ -2880,12 +2978,12 @@ msgstr "启用控制台/终端调试日志（供开发者使用）"
 #: koassistant_settings_schema.lua:1678
 #, fuzzy
 msgid "Show Debug in Chat"
-msgstr "在对话中显示调试"
+msgstr "在聊天中显示调试信息"
 
 #: koassistant_settings_schema.lua:1679
 #, fuzzy
 msgid "Display debug information in chat viewer"
-msgstr "在对话查看器中显示调试信息"
+msgstr "在聊天查看器中显示调试信息"
 
 #: koassistant_settings_schema.lua:1689
 #, fuzzy
@@ -2905,7 +3003,7 @@ msgstr "调试详细级别：%1"
 #: koassistant_settings_schema.lua:1697
 #, fuzzy
 msgid "Minimal (user input only)"
-msgstr "最小（仅用户输入）"
+msgstr "最少（仅用户输入）"
 
 #: koassistant_settings_schema.lua:1698
 #, fuzzy
@@ -2918,14 +3016,15 @@ msgid "Full (system blocks)"
 msgstr "完整（系统块）"
 
 #: koassistant_settings_schema.lua:1705
+#, fuzzy
 msgid "Truncate Large Content (debug)"
-msgstr ""
+msgstr "截断大量内容（调试）"
 
 #: koassistant_settings_schema.lua:1706
+#, fuzzy
 msgid ""
-"Truncate long content (book text, cached responses) in debug output. Shows "
-"first and last ~1500 characters with truncation notice."
-msgstr ""
+"Truncate long content (book text, cached responses) in debug output. Shows first and last ~1500 characters with truncation notice."
+msgstr "在调试输出中截断长内容（书籍文本、缓存响应）。显示前后约 1500 个字符并附带截断提示。"
 
 #: koassistant_settings_schema.lua:1715
 #, fuzzy
@@ -2945,7 +3044,7 @@ msgstr "创建备份"
 #: koassistant_settings_schema.lua:1729
 #, fuzzy
 msgid "Create a backup of your settings, API keys, and custom content."
-msgstr "创建设置、API 密钥和自定义内容的备份。"
+msgstr "创建您的设置、API 密钥和自定义内容的备份。"
 
 #: koassistant_settings_schema.lua:1735
 #, fuzzy
@@ -2955,7 +3054,7 @@ msgstr "从备份恢复"
 #: koassistant_settings_schema.lua:1736
 #, fuzzy
 msgid "Restore settings from a previous backup."
-msgstr "从之前的备份恢复设置。"
+msgstr "从以前的备份恢复设置。"
 
 #: koassistant_settings_schema.lua:1742
 #, fuzzy
@@ -2980,9 +3079,10 @@ msgstr "重置设置..."
 #: koassistant_settings_schema.lua:1764
 #, fuzzy
 msgid "Quick: Settings only"
-msgstr "AI 快速设置"
+msgstr "快速：仅设置"
 
 #: koassistant_settings_schema.lua:1765
+#, fuzzy
 msgid ""
 "Resets ALL settings in this menu to defaults:\n"
 "• Provider, model, temperature\n"
@@ -2991,11 +3091,19 @@ msgid ""
 "• Reasoning & debug settings\n"
 "• Language preferences\n"
 "\n"
-"Keeps: API keys, all actions, custom behaviors/domains, custom providers/"
-"models, gesture registrations, chat history."
+"Keeps: API keys, all actions, custom behaviors/domains, custom providers/models, gesture registrations, chat history."
 msgstr ""
+"将此菜单中的所有设置重置为默认值：\n"
+"• 提供商、模型、温度\n"
+"• 流式传输、显示、导出设置\n"
+"• 词典和翻译设置\n"
+"• 推理和调试设置\n"
+"• 语言偏好\n"
+"\n"
+"保留：API 密钥、所有操作、自定义行为/领域、自定义提供商/模型、手势注册、聊天历史记录。"
 
 #: koassistant_settings_schema.lua:1767
+#, fuzzy
 msgid ""
 "Reset all settings to defaults?\n"
 "\n"
@@ -3006,15 +3114,26 @@ msgid ""
 "• Reasoning & debug settings\n"
 "• Language preferences\n"
 "\n"
-"Keeps: API keys, all actions, custom behaviors/domains, custom providers/"
-"models, gesture registrations, chat history."
+"Keeps: API keys, all actions, custom behaviors/domains, custom providers/models, gesture registrations, chat history."
 msgstr ""
+"将所有设置重置为默认值？\n"
+"\n"
+"重置设置菜单中的所有设置：\n"
+"• 提供商、模型、温度\n"
+"• 流式传输、显示、导出设置\n"
+"• 词典和翻译设置\n"
+"• 推理和调试设置\n"
+"• 语言偏好\n"
+"\n"
+"保留：API 密钥、所有操作、自定义行为/领域、自定义提供商/模型、手势注册、聊天历史记录。"
 
 #: koassistant_settings_schema.lua:1774
+#, fuzzy
 msgid "Quick: Actions only"
-msgstr ""
+msgstr "快速：仅操作"
 
 #: koassistant_settings_schema.lua:1775
+#, fuzzy
 msgid ""
 "Resets all action-related settings:\n"
 "• Custom actions you created\n"
@@ -3023,11 +3142,19 @@ msgid ""
 "• Highlight menu order & dismissed items\n"
 "• Dictionary menu order & dismissed items\n"
 "\n"
-"Keeps: All settings, API keys, custom behaviors/domains, custom providers/"
-"models, gesture registrations, chat history."
+"Keeps: All settings, API keys, custom behaviors/domains, custom providers/models, gesture registrations, chat history."
 msgstr ""
+"重置所有与操作相关的设置：\n"
+"• 您创建的自定义操作\n"
+"• 对内置操作的编辑\n"
+"• 已禁用的操作（重新启用所有）\n"
+"• 高亮菜单顺序和已关闭项目\n"
+"• 词典菜单顺序和已关闭项目\n"
+"\n"
+"保留：所有设置、API 密钥、自定义行为/领域、自定义提供商/模型、手势注册、聊天历史记录。"
 
 #: koassistant_settings_schema.lua:1777
+#, fuzzy
 msgid ""
 "Reset all action settings?\n"
 "\n"
@@ -3038,15 +3165,26 @@ msgid ""
 "• Highlight menu order & dismissed items\n"
 "• Dictionary menu order & dismissed items\n"
 "\n"
-"Keeps: All settings, API keys, custom behaviors/domains, custom providers/"
-"models, gesture registrations, chat history."
+"Keeps: All settings, API keys, custom behaviors/domains, custom providers/models, gesture registrations, chat history."
 msgstr ""
+"重置所有操作设置？\n"
+"\n"
+"重置：\n"
+"• 您创建的自定义操作\n"
+"• 对内置操作的编辑\n"
+"• 已禁用的操作（重新启用所有）\n"
+"• 高亮菜单顺序和已关闭项目\n"
+"• 词典菜单顺序和已关闭项目\n"
+"\n"
+"保留：所有设置、API 密钥、自定义行为/领域、自定义提供商/模型、手势注册、聊天历史记录。"
 
 #: koassistant_settings_schema.lua:1784
+#, fuzzy
 msgid "Quick: Fresh start"
-msgstr ""
+msgstr "快速：全新开始"
 
 #: koassistant_settings_schema.lua:1785
+#, fuzzy
 msgid ""
 "Resets everything except API keys and chat history:\n"
 "• All settings (provider, model, temperature, all toggles)\n"
@@ -3056,8 +3194,16 @@ msgid ""
 "\n"
 "Keeps: API keys, gesture registrations, chat history only."
 msgstr ""
+"重置除 API 密钥和聊天历史记录之外的所有内容：\n"
+"• 所有设置（提供商、模型、温度、所有开关）\n"
+"• 所有操作（自定义、编辑、菜单）\n"
+"• 自定义行为和领域\n"
+"• 自定义提供商和模型\n"
+"\n"
+"保留：仅 API 密钥、手势注册、聊天历史记录。"
 
 #: koassistant_settings_schema.lua:1787
+#, fuzzy
 msgid ""
 "Fresh start?\n"
 "\n"
@@ -3069,13 +3215,23 @@ msgid ""
 "\n"
 "Keeps: API keys, gesture registrations, chat history only."
 msgstr ""
+"全新开始？\n"
+"\n"
+"重置：\n"
+"• 所有设置（提供商、模型、温度、所有开关）\n"
+"• 所有操作（自定义、编辑、菜单）\n"
+"• 自定义行为和领域\n"
+"• 自定义提供商和模型\n"
+"\n"
+"保留：仅 API 密钥、手势注册、聊天历史记录。"
 
 #: koassistant_settings_schema.lua:1795
 #, fuzzy
 msgid "Custom reset..."
-msgstr "自定义..."
+msgstr "自定义重置..."
 
 #: koassistant_settings_schema.lua:1796
+#, fuzzy
 msgid ""
 "Opens a checklist to choose exactly what to reset:\n"
 "• Settings (all toggles and preferences)\n"
@@ -3086,16 +3242,24 @@ msgid ""
 "• Behaviors & domains\n"
 "• API keys (with warning)"
 msgstr ""
+"打开一个检查清单以选择要重置的具体内容：\n"
+"• 设置（所有开关和偏好）\n"
+"• 自定义操作\n"
+"• 操作编辑\n"
+"• 操作菜单\n"
+"• 自定义提供商和模型\n"
+"• 行为和领域\n"
+"• API 密钥（带警告）"
 
 #: koassistant_settings_schema.lua:1804
 #, fuzzy
 msgid "Clear all chat history"
-msgstr "清除所有聊天历史"
+msgstr "清除所有聊天历史记录"
 
 #: koassistant_settings_schema.lua:1805
 #, fuzzy
 msgid "Deletes all saved conversations across all books."
-msgstr "删除所有书籍的全部已保存对话。"
+msgstr "删除所有书籍中保存的所有对话。"
 
 #: koassistant_settings_schema.lua:1807
 #, fuzzy
@@ -3106,9 +3270,9 @@ msgid ""
 "\n"
 "This cannot be undone."
 msgstr ""
-"删除所有聊天历史？\n"
+"删除所有聊天历史记录？\n"
 "\n"
-"这将移除所有书籍的全部已保存对话。\n"
+"这将删除所有书籍中保存的所有对话。\n"
 "\n"
 "此操作无法撤销。"
 
@@ -3120,7 +3284,7 @@ msgstr "关于 KOAssistant"
 #: koassistant_settings_schema.lua:1825
 #, fuzzy
 msgid "Auto-check for updates on startup"
-msgstr "检查更新"
+msgstr "启动时自动检查更新"
 
 #: koassistant_settings_schema.lua:1832
 #, fuzzy
@@ -3130,42 +3294,49 @@ msgstr "检查更新"
 #: koassistant_update_checker.lua:580
 #, fuzzy
 msgid "Translating to %1..."
-msgstr "翻译目标：%1"
+msgstr "正在翻译为%1..."
 
 #: koassistant_update_checker.lua:590
+#, fuzzy
 msgid ""
 "Translate the following release notes to %1. Preserve markdown formatting:\n"
 "\n"
 "%2"
 msgstr ""
+"将以下发行说明翻译为%1。保留 markdown 格式：\n"
+"\n"
+"%2"
 
 #: koassistant_update_checker.lua:609 koassistant_update_checker.lua:687
 #: main.lua:7518
+#, fuzzy
 msgid "Later"
-msgstr ""
+msgstr "稍后"
 
 #: koassistant_update_checker.lua:615 koassistant_update_checker.lua:693
+#, fuzzy
 msgid "Visit Release Page"
-msgstr ""
+msgstr "访问发布页面"
 
 #: koassistant_update_checker.lua:622 koassistant_update_checker.lua:700
+#, fuzzy
 msgid "Please visit:"
-msgstr ""
+msgstr "请访问："
 
 #: koassistant_update_checker.lua:633
 #, fuzzy
 msgid "Original"
-msgstr "显示原文"
+msgstr "原始"
 
 #: koassistant_update_checker.lua:644
 #, fuzzy
 msgid "%1 (Translated)"
-msgstr "翻译"
+msgstr "%1（已翻译）"
 
 #: koassistant_update_checker.lua:656
 #, fuzzy
 msgid "Translation failed: %1"
-msgstr "翻译目标：%1"
+msgstr "翻译失败：%1"
 
 #: koassistant_update_checker.lua:656 main.lua:6932 main.lua:7307 main.lua:7447
 #, fuzzy
@@ -3180,22 +3351,24 @@ msgid "Translate"
 msgstr "翻译"
 
 #: main.lua:272
+#, fuzzy
 msgid "Notebook (KOA)"
-msgstr ""
+msgstr "笔记本 (KOA)"
 
 #: main.lua:296
 #, fuzzy
 msgid "Chat History (KOA)"
-msgstr "聊天历史"
+msgstr "聊天历史 (KOA)"
 
 #: main.lua:313
+#, fuzzy
 msgid "View Summary (KOA)"
-msgstr ""
+msgstr "查看摘要 (KOA)"
 
 #: main.lua:371 main.lua:807
 #, fuzzy
 msgid "Compare with KOAssistant"
-msgstr "使用 KOAssistant 比较"
+msgstr "与 KOAssistant 比较"
 
 #: main.lua:662 main.lua:831
 #, fuzzy
@@ -3205,7 +3378,7 @@ msgstr "未选择要比较的文件"
 #: main.lua:745
 #, fuzzy
 msgid "Please select at least 2 books to compare"
-msgstr "请选择至少 2 本书进行比较"
+msgstr "请至少选择 2 本书进行比较"
 
 #: main.lua:851
 #, fuzzy
@@ -3230,17 +3403,17 @@ msgstr "KOAssistant：设置"
 #: main.lua:884
 #, fuzzy
 msgid "KOAssistant: General Chat/Action"
-msgstr "KOAssistant：通用聊天"
+msgstr "KOAssistant：通用聊天/操作"
 
 #: main.lua:892
 #, fuzzy
 msgid "KOAssistant: New Book Chat/Action"
-msgstr "KOAssistant 操作"
+msgstr "KOAssistant：新建图书聊天/操作"
 
 #: main.lua:908
 #, fuzzy
 msgid "KOAssistant: %1"
-msgstr "KOAssistant"
+msgstr "KOAssistant：%1"
 
 #: main.lua:918
 #, fuzzy
@@ -3270,17 +3443,17 @@ msgstr "KOAssistant：更改 AI 行为"
 #: main.lua:953
 #, fuzzy
 msgid "KOAssistant: Quick Settings"
-msgstr "KOAssistant：AI 快速设置"
+msgstr "KOAssistant：快捷设置"
 
 #: main.lua:961
 #, fuzzy
 msgid "KOAssistant: Quick Actions"
-msgstr "KOAssistant 操作"
+msgstr "KOAssistant：快捷操作"
 
 #: main.lua:969
 #, fuzzy
 msgid "KOAssistant: Action Manager"
-msgstr "KOAssistant：动作管理器"
+msgstr "KOAssistant：操作管理器"
 
 #: main.lua:976
 #, fuzzy
@@ -3315,7 +3488,7 @@ msgstr "KOAssistant：切换词典绕过"
 #: main.lua:1020
 #, fuzzy
 msgid "KOAssistant: Toggle Highlight Bypass"
-msgstr "KOAssistant：切换标注绕过"
+msgstr "KOAssistant：切换高亮绕过"
 
 #: main.lua:1028
 #, fuzzy
@@ -3325,32 +3498,32 @@ msgstr "KOAssistant：翻译当前页面"
 #: main.lua:1039
 #, fuzzy
 msgid "KOAssistant: View Notebook"
-msgstr "KOAssistant：书籍聊天"
+msgstr "KOAssistant：查看笔记本"
 
 #: main.lua:1048
 #, fuzzy
 msgid "KOAssistant: Edit Notebook"
-msgstr "KOAssistant：书籍聊天"
+msgstr "KOAssistant：编辑笔记本"
 
 #: main.lua:1057
 #, fuzzy
 msgid "KOAssistant: Browse Notebooks"
-msgstr "KOAssistant：书籍聊天"
+msgstr "KOAssistant：浏览笔记本"
 
 #: main.lua:1066
 #, fuzzy
 msgid "KOAssistant: View Summary"
-msgstr "KOAssistant：X-Ray"
+msgstr "KOAssistant：查看摘要"
 
 #: main.lua:1091
 #, fuzzy
 msgid "KOAssistant: "
-msgstr "KOAssistant"
+msgstr "KOAssistant："
 
 #: main.lua:1211
 #, fuzzy
 msgid "Custom (migrated)"
-msgstr "自定义 (已迁移)"
+msgstr "自定义（已迁移）"
 
 #: main.lua:1391
 #, fuzzy
@@ -3360,42 +3533,42 @@ msgstr "模型已存在"
 #: main.lua:1521 main.lua:1978
 #, fuzzy
 msgid "Provider name is required"
-msgstr "需要提供服务商名称"
+msgstr "提供商名称为必填项"
 
 #: main.lua:1524 main.lua:1986
 #, fuzzy
 msgid "Base URL is required"
-msgstr "需要提供基础 URL"
+msgstr "基础 URL 为必填项"
 
 #: main.lua:1533
 #, fuzzy
 msgid "A provider with this name already exists"
-msgstr "已存在同名的服务商"
+msgstr "此名称的提供商已存在"
 
 #: main.lua:1782
 #, fuzzy
 msgid "Add custom provider..."
-msgstr "添加自定义服务商..."
+msgstr "添加自定义提供商..."
 
 #: main.lua:1792
 #, fuzzy
 msgid "Manage custom providers (%1)..."
-msgstr "管理自定义服务商 (%1)..."
+msgstr "管理自定义提供商 (%1)..."
 
 #: main.lua:1813
 #, fuzzy
 msgid "API key: Required [tap to toggle]"
-msgstr "API 密钥: 必需 [点击切换]"
+msgstr "API 密钥：必需 [点击切换]"
 
 #: main.lua:1815
 #, fuzzy
 msgid "API key: Not required [tap to toggle]"
-msgstr "API 密钥: 非必需 [点击切换]"
+msgstr "API 密钥：非必需 [点击切换]"
 
 #: main.lua:1820
 #, fuzzy
 msgid "Edit provider..."
-msgstr "编辑服务商..."
+msgstr "编辑提供商..."
 
 #: main.lua:1834
 #, fuzzy
@@ -3410,12 +3583,12 @@ msgstr "非必需"
 #: main.lua:1836
 #, fuzzy
 msgid "API key: %1"
-msgstr "API 密钥: %1"
+msgstr "API 密钥：%1"
 
 #: main.lua:1842
 #, fuzzy
 msgid "Remove provider"
-msgstr "删除服务商"
+msgstr "移除提供商"
 
 #: main.lua:1846
 #, fuzzy
@@ -3424,49 +3597,49 @@ msgid ""
 "\n"
 "This will also remove any custom models and API key for this provider."
 msgstr ""
-"删除自定义服务商 '%1'？\n"
+"移除自定义提供商 '%1'？\n"
 "\n"
-"这将同时删除该服务商的所有自定义模型和 API 密钥。"
+"这也将移除此提供商的所有自定义模型和 API 密钥。"
 
 #: main.lua:1850 main.lua:2189 main.lua:2422
 #, fuzzy
 msgid "Removed: %1"
-msgstr "已删除: %1"
+msgstr "已移除：%1"
 
 #: main.lua:1878
 #, fuzzy
 msgid "Add Custom Provider"
-msgstr "添加自定义服务商"
+msgstr "添加自定义提供商"
 
 #: main.lua:1882
 #, fuzzy
 msgid "Provider name (e.g., LM Studio)"
-msgstr "服务商名称 (例如 LM Studio)"
+msgstr "提供商名称（例如：LM Studio）"
 
 #: main.lua:1886
 #, fuzzy
 msgid "Base URL (e.g., http://localhost:1234/v1/chat/completions)"
-msgstr "基础 URL (例如 http://localhost:1234/v1/chat/completions)"
+msgstr "基础 URL（例如：http://localhost:1234/v1/chat/completions）"
 
 #: main.lua:1890 main.lua:1956
 #, fuzzy
 msgid "Default model name (optional)"
-msgstr "默认模型名称 (可选)"
+msgstr "默认模型名称（可选）"
 
 #: main.lua:1920
 #, fuzzy
 msgid "Added provider: %1"
-msgstr "已添加服务商: %1"
+msgstr "已添加提供商：%1"
 
 #: main.lua:1944 main.lua:2033
 #, fuzzy
 msgid "Edit: %1"
-msgstr "编辑: %1"
+msgstr "编辑：%1"
 
 #: main.lua:1948
 #, fuzzy
 msgid "Provider name"
-msgstr "服务商名称"
+msgstr "提供商名称"
 
 #: main.lua:1952
 #, fuzzy
@@ -3477,17 +3650,17 @@ msgstr "基础 URL"
 #: koassistant_ui/domain_manager.lua:510
 #, fuzzy
 msgid "Updated: %1"
-msgstr "已更新: %1"
+msgstr "已更新：%1"
 
 #: main.lua:2019
 #, fuzzy
 msgid "No custom providers to manage"
-msgstr "没有可管理的自定义服务商"
+msgstr "没有可管理的自定义提供商"
 
 #: main.lua:2048
 #, fuzzy
 msgid "Remove all (%1)"
-msgstr "全部删除 (%1)"
+msgstr "全部移除（%1）"
 
 #: main.lua:2052
 #, fuzzy
@@ -3496,64 +3669,64 @@ msgid ""
 "\n"
 "This will also remove their custom models and API keys."
 msgstr ""
-"删除全部 %1 个自定义服务商？\n"
+"移除全部 %1 个自定义提供商？\n"
 "\n"
-"这将同时删除它们的自定义模型和 API 密钥。"
+"这也将移除它们的自定义模型和 API 密钥。"
 
 #: main.lua:2081
 #, fuzzy
 msgid "All custom providers removed"
-msgstr "已删除所有自定义服务商"
+msgstr "所有自定义提供商已移除"
 
 #: main.lua:2097
 #, fuzzy
 msgid "Manage Custom Providers"
-msgstr "管理自定义服务商"
+msgstr "管理自定义提供商"
 
 #: main.lua:2150
 #, fuzzy
 msgid "Set as default for %1"
-msgstr "设为 %1 的默认模型"
+msgstr "设为 %1 的默认值"
 
 #: main.lua:2155
 #, fuzzy
 msgid "Default for %1: %2"
-msgstr "%1 的默认模型: %2"
+msgstr "%1 的默认值：%2"
 
 #: main.lua:2165
 #, fuzzy
 msgid "Clear custom default"
-msgstr "清除自定义默认模型"
+msgstr "清除自定义默认值"
 
 #: main.lua:2170
 #, fuzzy
 msgid "Cleared custom default for %1"
-msgstr "已清除 %1 的自定义默认模型"
+msgstr "已清除 %1 的自定义默认值"
 
 #: main.lua:2180
 #, fuzzy
 msgid "Remove custom model"
-msgstr "删除自定义模型"
+msgstr "移除自定义模型"
 
 #: main.lua:2185 main.lua:2418
 #, fuzzy
 msgid "Remove custom model '%1'?"
-msgstr "删除自定义模型 '%1'？"
+msgstr "移除自定义模型 '%1'？"
 
 #: main.lua:2228 main.lua:2234 main.lua:3175
 #, fuzzy
 msgid "(default)"
-msgstr "(默认)"
+msgstr "（默认）"
 
 #: main.lua:2231
 #, fuzzy
 msgid "(your default)"
-msgstr "(您的默认)"
+msgstr "（您的默认值）"
 
 #: main.lua:2237
 #, fuzzy
 msgid "(system default)"
-msgstr "（系统默认）"
+msgstr "（系统默认值）"
 
 #: main.lua:2246
 #, fuzzy
@@ -3598,12 +3771,12 @@ msgstr "管理自定义模型（%1）..."
 #: main.lua:2385
 #, fuzzy
 msgid "No predefined models"
-msgstr "没有预定义的模型"
+msgstr "没有预定义模型"
 
 #: main.lua:2400
 #, fuzzy
 msgid "No custom models to manage"
-msgstr "没有自定义模型可管理"
+msgstr "没有可管理的自定义模型"
 
 #: main.lua:2414
 #, fuzzy
@@ -3623,7 +3796,7 @@ msgstr "移除 %2 的全部 %1 个自定义模型？"
 #: main.lua:2458
 #, fuzzy
 msgid "All custom models cleared"
-msgstr "已清除所有自定义模型"
+msgstr "所有自定义模型已清除"
 
 #: main.lua:2475
 #, fuzzy
@@ -3638,12 +3811,12 @@ msgstr "当前：%1"
 #: main.lua:2624
 #, fuzzy
 msgid "Using key from apikeys.lua"
-msgstr "使用 apikeys.lua 中的密钥"
+msgstr "使用来自 apikeys.lua 的密钥"
 
 #: main.lua:2626
 #, fuzzy
 msgid "Optional - leave empty for local servers"
-msgstr "可选 - 本地服务器留空"
+msgstr "可选 - 本地服务器可留空"
 
 #: main.lua:2628
 #, fuzzy
@@ -3673,38 +3846,42 @@ msgstr "%1 API 密钥已保存"
 #: main.lua:2679
 #, fuzzy
 msgid "%1 API key saved. %1 selected as provider."
-msgstr "请先选择服务商"
+msgstr "%1 API 密钥已保存。已选择 %1 作为提供商。"
 
 #: main.lua:2790
 #, fuzzy
 msgid "Add Custom Language"
-msgstr "添加自定义模型"
+msgstr "添加自定义语言"
 
 #: main.lua:2792
+#, fuzzy
 msgid "e.g., Esperanto, Swahili"
-msgstr ""
+msgstr "例如:世界语、斯瓦希里语"
 
 #: main.lua:2793
 #, fuzzy
 msgid "Enter a language name to add."
-msgstr "输入翻译目标语言。"
+msgstr "输入要添加的语言名称。"
 
 #: main.lua:2841
+#, fuzzy
 msgid "'%1' is already added"
-msgstr ""
+msgstr "'%1' 已添加"
 
 #: main.lua:2865
+#, fuzzy
 msgid "Languages you speak. Guides AI responses."
-msgstr ""
+msgstr "您使用的语言。指导 AI 响应。"
 
 #: main.lua:2871 main.lua:3004
 #, fuzzy
 msgid "Add Custom Language..."
-msgstr "添加自定义模型..."
+msgstr "添加自定义语言..."
 
 #: main.lua:2998
+#, fuzzy
 msgid "For translation/dictionary targets only."
-msgstr ""
+msgstr "仅用于翻译/词典目标语言。"
 
 #: main.lua:3144 main.lua:3161
 #, fuzzy
@@ -3714,17 +3891,17 @@ msgstr "请先设置您的语言"
 #: main.lua:3192
 #, fuzzy
 msgid "Primary: %1"
-msgstr "主要：%1"
+msgstr "主要语言:%1"
 
 #: main.lua:3212
 #, fuzzy
 msgid "Use Primary (%1)"
-msgstr "使用主要语言（%1）"
+msgstr "使用主要语言 (%1)"
 
 #: main.lua:3238 main.lua:3270 main.lua:4636
 #, fuzzy
 msgid "Translate: %1"
-msgstr "翻译：%1"
+msgstr "翻译:%1"
 
 #: main.lua:3284 koassistant_ui/prompts_manager.lua:1485
 #: koassistant_ui/prompts_manager.lua:2826
@@ -3740,17 +3917,17 @@ msgstr "自定义翻译语言"
 #: main.lua:3292
 #, fuzzy
 msgid "e.g., Spanish, Japanese, French"
-msgstr "例如：西班牙语、日语、法语"
+msgstr "例如:西班牙语、日语、法语"
 
 #: main.lua:3293
 #, fuzzy
 msgid "Enter the target language for translations."
-msgstr "输入翻译目标语言。"
+msgstr "输入翻译的目标语言。"
 
 #: main.lua:3327
 #, fuzzy
 msgid "(Set your languages for quick selection)"
-msgstr "（设置您的语言以快速选择）"
+msgstr "(设置您的语言以便快速选择)"
 
 #: main.lua:3343 main.lua:5396
 #, fuzzy
@@ -3760,22 +3937,22 @@ msgstr "跟随翻译语言"
 #: main.lua:3356
 #, fuzzy
 msgid "Dictionary: Follow Translation"
-msgstr "词典：跟随翻译语言"
+msgstr "词典:跟随翻译语言"
 
 #: main.lua:3364 main.lua:5413
 #, fuzzy
 msgid "Follow Primary Language"
-msgstr "遵循主要语言"
+msgstr "跟随主要语言"
 
 #: main.lua:3376
 #, fuzzy
 msgid "Dictionary: Follow Primary"
-msgstr "词典：遵循主要语言"
+msgstr "词典:跟随主要语言"
 
 #: main.lua:3402 main.lua:4649
 #, fuzzy
 msgid "Dictionary: %1"
-msgstr "词典：%1"
+msgstr "词典:%1"
 
 #: main.lua:3418
 #, fuzzy
@@ -3790,17 +3967,17 @@ msgstr "包含更多周围上下文"
 #: main.lua:3420
 #, fuzzy
 msgid "Fixed number of characters before/after"
-msgstr "固定数量的前后字符"
+msgstr "前后固定字符数"
 
 #: main.lua:3421
 #, fuzzy
 msgid "Only send the word, no surrounding context"
-msgstr "仅发送单词，不包含周围上下文"
+msgstr "仅发送单词,不含周围上下文"
 
 #: main.lua:3441
 #, fuzzy
 msgid "Context: %1"
-msgstr "上下文：%1"
+msgstr "上下文:%1"
 
 #: main.lua:3460 koassistant_ui/prompts_manager.lua:3638
 #, fuzzy
@@ -3815,14 +3992,13 @@ msgstr "输入自定义 AI 行为指令..."
 #: main.lua:3463
 #, fuzzy
 msgid ""
-"Define how the AI should behave. This replaces the built-in Minimal/Full "
-"behavior when 'Custom' is selected.\n"
+"Define how the AI should behave. This replaces the built-in Minimal/Full behavior when 'Custom' is selected.\n"
 "\n"
 "Tip: Start with the Full behavior as a template."
 msgstr ""
-"定义 AI 应如何行为。选择\"自定义\"时，这将替代内置的简约/完整行为。\n"
+"定义 AI 的行为方式。当选择\"自定义\"时,这将替换内置的精简/完整行为。\n"
 "\n"
-"提示：以完整行为作为模板开始。"
+"提示:以完整行为作为模板开始。"
 
 #: main.lua:3478
 #, fuzzy
@@ -3832,15 +4008,13 @@ msgstr "加载完整版"
 #: main.lua:3534
 #, fuzzy
 msgid ""
-"Model lists are now managed through the model_lists.lua file. Please edit "
-"this file to add or remove models."
-msgstr ""
-"模型列表现在通过 model_lists.lua 文件管理。请编辑此文件来添加或删除模型。"
+"Model lists are now managed through the model_lists.lua file. Please edit this file to add or remove models."
+msgstr "模型列表现在通过 model_lists.lua 文件管理。请编辑此文件以添加或删除模型。"
 
 #: main.lua:3763
 #, fuzzy
 msgid "No previously opened chat found"
-msgstr "未找到之前打开的对话"
+msgstr "未找到先前打开的聊天"
 
 #: main.lua:3780 main.lua:6011
 #, fuzzy
@@ -3855,57 +4029,74 @@ msgstr "请先打开一本书"
 #: main.lua:3854 main.lua:3960 main.lua:4046
 #, fuzzy
 msgid "No book open"
-msgstr "没有打开的文档"
+msgstr "未打开书籍"
 
 #: main.lua:3875 main.lua:3985
 #, fuzzy
 msgid "Summary"
-msgstr "总结"
+msgstr "摘要"
 
 #: main.lua:3883
 #, fuzzy
 msgid "Analysis"
-msgstr "深度分析"
+msgstr "分析"
 
 #: main.lua:3891
+#, fuzzy
 msgid ""
 "No cached content found for this document.\n"
 "\n"
 "Run X-Ray, Summarize Document, or Analyze Document to create reusable caches."
 msgstr ""
+"未找到此文档的缓存内容。\n"
+"\n"
+"运行 X-Ray、摘要文档或分析文档以创建可重用的缓存。"
 
 #: main.lua:3921
 #, fuzzy
 msgid "View Cache"
-msgstr "查看备份"
+msgstr "查看缓存"
 
 #: main.lua:3971
+#, fuzzy
 msgid ""
 "No summary cached.\n"
 "\n"
 "Use Quick Actions → Generate Summary to create one."
 msgstr ""
+"未缓存摘要。\n"
+"\n"
+"使用快速操作 → 生成摘要来创建。"
 
 #: main.lua:4021
 #, fuzzy
 msgid "Summary deleted"
-msgstr "对话已删除"
+msgstr "摘要已删除"
 
 #: main.lua:4057
+#, fuzzy
 msgid ""
 "Summary already cached.\n"
 "\n"
 "Use View Summary to see it."
 msgstr ""
+"摘要已缓存。\n"
+"\n"
+"使用查看摘要来查看。"
 
 #: main.lua:4066
+#, fuzzy
 msgid ""
 "Text extraction is required to generate a summary.\n"
 "\n"
 "Enable it in Settings → Privacy & Data → Text Extraction."
 msgstr ""
+"生成摘要需要文本提取。\n"
+"\n"
+"在设置 → 隐私与数据 → 文本提取中启用。"
 
 #: main.lua:4104
+#, fuzzy
 msgid ""
 "Generate a reusable document summary?\n"
 "\n"
@@ -3914,15 +4105,22 @@ msgid ""
 "• Save the summary for future use\n"
 "• Enable Smart actions for this book"
 msgstr ""
+"生成可重用的文档摘要?\n"
+"\n"
+"这将:\n"
+"• 提取书籍文本并发送给 AI\n"
+"• 保存摘要供将来使用\n"
+"• 为本书启用智能操作"
 
 #: main.lua:4127 main.lua:4202
 #, fuzzy
 msgid "Action '%1' not found"
-msgstr "未找到动作 '%1'"
+msgstr "未找到操作 '%1'"
 
 #: main.lua:4185
+#, fuzzy
 msgid "Unknown action context: %1"
-msgstr ""
+msgstr "未知操作上下文:%1"
 
 #: main.lua:4348 main.lua:4628
 #, fuzzy
@@ -3963,20 +4161,22 @@ msgstr "温度：%1"
 #: main.lua:4589
 #, fuzzy
 msgid "Extended Thinking: ON"
-msgstr "Anthropic 扩展思维"
+msgstr "扩展思考：开启"
 
 #: main.lua:4589
 #, fuzzy
 msgid "Extended Thinking: OFF"
-msgstr "Anthropic 扩展思维"
+msgstr "扩展思考：关闭"
 
 #: main.lua:4606
+#, fuzzy
 msgid "Web Search: ON"
-msgstr ""
+msgstr "网络搜索：开启"
 
 #: main.lua:4606
+#, fuzzy
 msgid "Web Search: OFF"
-msgstr ""
+msgstr "网络搜索：关闭"
 
 #: main.lua:4623
 #, fuzzy
@@ -3986,27 +4186,27 @@ msgstr "语言：%1"
 #: main.lua:4662
 #, fuzzy
 msgid "H.Bypass: ON"
-msgstr "高亮旁路：开启"
+msgstr "高亮绕过：开启"
 
 #: main.lua:4662
 #, fuzzy
 msgid "H.Bypass: OFF"
-msgstr "高亮旁路：关闭"
+msgstr "高亮绕过：关闭"
 
 #: main.lua:4679
 #, fuzzy
 msgid "D.Bypass: ON"
-msgstr "词典旁路：开启"
+msgstr "词典绕过：开启"
 
 #: main.lua:4679
 #, fuzzy
 msgid "D.Bypass: OFF"
-msgstr "词典旁路：关闭"
+msgstr "词典绕过：关闭"
 
 #: main.lua:4756
 #, fuzzy
 msgid "Quick Actions..."
-msgstr "重置动作..."
+msgstr "快捷操作..."
 
 #: main.lua:4768
 #, fuzzy
@@ -4014,8 +4214,9 @@ msgid "More Settings..."
 msgstr "更多设置..."
 
 #: main.lua:4824
+#, fuzzy
 msgid "Quick Actions is only available while reading a book."
-msgstr ""
+msgstr "快捷操作仅在阅读书籍时可用。"
 
 #: main.lua:4934
 #, fuzzy
@@ -4024,8 +4225,10 @@ msgstr "正在测试连接..."
 
 #: main.lua:4962
 #, fuzzy
-msgid "Connection test failed:\n"
-msgstr "连接测试失败：\n"
+msgid ""
+"Connection test failed:\n"
+msgstr ""
+"连接测试失败：\n"
 
 #: main.lua:4968
 #, fuzzy
@@ -4050,62 +4253,72 @@ msgid "Connection test failed: "
 msgstr "连接测试失败："
 
 #: main.lua:4996
+#, fuzzy
 msgid ""
 "No book is currently open.\n"
 "\n"
-"Open a book first, then use this option to clear its cached X-Ray and Recap "
-"responses."
+"Open a book first, then use this option to clear its cached X-Ray and Recap responses."
 msgstr ""
+"当前没有打开的书籍。\n"
+"\n"
+"请先打开一本书，然后使用此选项清除其缓存的 X-Ray 和概要响应。"
 
 #: main.lua:5009
+#, fuzzy
 msgid ""
 "No action cache found for this book.\n"
 "\n"
 "Run X-Ray or Recap first to create a cache."
 msgstr ""
+"未找到此书籍的操作缓存。\n"
+"\n"
+"请先运行 X-Ray 或概要以创建缓存。"
 
 #: main.lua:5019
+#, fuzzy
 msgid ""
 "Clear cached X-Ray and Recap responses for this book?\n"
 "\n"
-"Next time you run these actions, they will regenerate from scratch instead "
-"of updating from the cached version."
+"Next time you run these actions, they will regenerate from scratch instead of updating from the cached version."
 msgstr ""
+"清除此书籍缓存的 X-Ray 和概要响应？\n"
+"\n"
+"下次运行这些操作时，它们将从头重新生成，而不是从缓存版本更新。"
 
 #: main.lua:5029
 #, fuzzy
 msgid "Clear Cache"
-msgstr "清除"
+msgstr "清除缓存"
 
 #: main.lua:5035
 #, fuzzy
 msgid "Action cache cleared successfully."
-msgstr "动作删除成功"
+msgstr "操作缓存已成功清除。"
 
 #: main.lua:5040
 #, fuzzy
 msgid "Failed to clear action cache."
-msgstr "删除对话失败"
+msgstr "清除操作缓存失败。"
 
 #: main.lua:5147
 #, fuzzy
 msgid "Dictionary bypass: ON"
-msgstr "词典旁路：开启"
+msgstr "词典绕过：开启"
 
 #: main.lua:5147
 #, fuzzy
 msgid "Dictionary bypass: OFF"
-msgstr "词典旁路：关闭"
+msgstr "词典绕过：关闭"
 
 #: main.lua:5161
 #, fuzzy
 msgid "Highlight bypass: ON"
-msgstr "高亮旁路：开启"
+msgstr "高亮绕过：开启"
 
 #: main.lua:5161
 #, fuzzy
 msgid "Highlight bypass: OFF"
-msgstr "高亮旁路：关闭"
+msgstr "高亮绕过：关闭"
 
 #: main.lua:5280
 #, fuzzy
@@ -4120,28 +4333,31 @@ msgstr "无法从当前页面提取文本"
 #: main.lua:5337
 #, fuzzy
 msgid "Translate action not found"
-msgstr "未找到翻译动作"
+msgstr "未找到翻译操作"
 
 #: main.lua:5508
 #, fuzzy
 msgid "Select Export Folder"
-msgstr "选择提供商"
+msgstr "选择导出文件夹"
 
 #: main.lua:5515
+#, fuzzy
 msgid ""
 "Export path set to:\n"
 "%1"
 msgstr ""
+"导出路径已设置为：\n"
+"%1"
 
 #: main.lua:5903 main.lua:5956
 #, fuzzy
 msgid "Bypass action: %1"
-msgstr "旁路动作：%1"
+msgstr "绕过操作：%1"
 
 #: main.lua:6001
 #, fuzzy
 msgid "All action settings restored to defaults"
-msgstr "所有动作设置已恢复为默认值"
+msgstr "所有操作设置已恢复为默认值"
 
 #: main.lua:6072
 #, fuzzy
@@ -4160,36 +4376,37 @@ msgstr "功能设置已重置为默认值"
 #: main.lua:6187
 #, fuzzy
 msgid "All customizations reset"
-msgstr "所有自定义项已重置"
+msgstr "所有自定义设置已重置"
 
 #: main.lua:6211
 #, fuzzy
 msgid "Custom actions deleted"
-msgstr "自定义动作已删除"
+msgstr "自定义操作已删除"
 
 #: main.lua:6225
 #, fuzzy
 msgid "Action edits reset to defaults"
-msgstr "动作编辑已重置为默认值"
+msgstr "操作编辑已重置为默认值"
 
 #: main.lua:6249
 #, fuzzy
 msgid "Action menus reset to defaults"
-msgstr "动作菜单已重置为默认值"
+msgstr "操作菜单已重置为默认值"
 
 #: main.lua:6263
 #, fuzzy
 msgid "Dictionary popup actions reset"
-msgstr "字典弹窗动作"
+msgstr "词典弹窗操作已重置"
 
 #: main.lua:6276
+#, fuzzy
 msgid "Highlight menu actions reset (restart to apply)"
-msgstr ""
+msgstr "高亮菜单操作已重置（重启后生效）"
 
 #: main.lua:6288
 #, fuzzy
 msgid "Quick actions reset"
-msgstr "所有自定义项已重置"
+msgstr "快捷操作已重置"
 
 #: main.lua:6309
 #, fuzzy
@@ -4199,44 +4416,54 @@ msgstr "自定义提供商和模型已重置"
 #: main.lua:6367
 #, fuzzy
 msgid "All action settings reset"
-msgstr "所有动作设置已恢复为默认值"
+msgstr "所有操作设置已重置"
 
 #: main.lua:6381
+#, fuzzy
 msgid "Fresh start complete - API keys preserved"
-msgstr ""
+msgstr "全新开始完成 - API 密钥已保留"
 
 #: main.lua:6402
+#, fuzzy
 msgid "Default: Personal content private, basic context shared"
-msgstr ""
+msgstr "默认：个人内容私密，共享基本上下文"
 
 #: main.lua:6423
+#, fuzzy
 msgid "Minimal: All extended sharing disabled"
-msgstr ""
+msgstr "最小：禁用所有扩展共享"
 
 #: main.lua:6444
+#, fuzzy
 msgid ""
 "Full: All data sharing enabled (Text extraction must be enabled separately)"
-msgstr ""
+msgstr "完整：启用所有数据共享（文本提取必须单独启用）"
 
 #: main.lua:6496
 #, fuzzy
 msgid "(custom)"
-msgstr "自定义"
+msgstr "（自定义）"
 
 #: main.lua:6556
+#, fuzzy
 msgid ""
 "Select providers to trust\n"
 "\n"
 "Trusted providers bypass data sharing controls."
 msgstr ""
+"选择要信任的提供商\n"
+"\n"
+"受信任的提供商将绕过数据共享控制。"
 
 #: main.lua:6582
+#, fuzzy
 msgid "✓ Reset"
-msgstr ""
+msgstr "✓ 重置"
 
 #: main.lua:6584
+#, fuzzy
 msgid "✗ Keep"
-msgstr ""
+msgstr "✗ 保留"
 
 #: main.lua:6590 main.lua:6890 main.lua:7021
 #, fuzzy
@@ -4246,27 +4473,27 @@ msgstr "设置"
 #: main.lua:6598
 #, fuzzy
 msgid "Custom actions"
-msgstr "自定义动作已删除"
+msgstr "自定义操作"
 
 #: main.lua:6606
 #, fuzzy
 msgid "Action edits"
-msgstr "动作详情"
+msgstr "操作编辑"
 
 #: main.lua:6614
 #, fuzzy
 msgid "Action menus"
-msgstr "动作菜单"
+msgstr "操作菜单"
 
 #: main.lua:6622
 #, fuzzy
 msgid "Custom providers & models"
-msgstr "自定义提供商和模型已重置"
+msgstr "自定义提供商和模型"
 
 #: main.lua:6630
 #, fuzzy
 msgid "Behaviors & domains"
-msgstr "行为详情"
+msgstr "行为和域"
 
 #: main.lua:6638 main.lua:6695
 #, fuzzy
@@ -4276,11 +4503,12 @@ msgstr "API 密钥"
 #: main.lua:6650
 #, fuzzy
 msgid "Reset Selected"
-msgstr "重置动作编辑"
+msgstr "重置选定项"
 
 #: main.lua:6659
+#, fuzzy
 msgid "What would you like to reset?"
-msgstr ""
+msgstr "您想要重置什么？"
 
 #: main.lua:6671
 #, fuzzy
@@ -4290,17 +4518,17 @@ msgstr "设置"
 #: main.lua:6675
 #, fuzzy
 msgid "custom actions"
-msgstr "重置自定义动作"
+msgstr "自定义操作"
 
 #: main.lua:6679
 #, fuzzy
 msgid "action edits"
-msgstr "重置动作编辑"
+msgstr "操作编辑"
 
 #: main.lua:6683
 #, fuzzy
 msgid "action menus"
-msgstr "重置动作菜单"
+msgstr "操作菜单"
 
 #: main.lua:6687
 #, fuzzy
@@ -4310,16 +4538,17 @@ msgstr "提供商/模型"
 #: main.lua:6691
 #, fuzzy
 msgid "behaviors/domains"
-msgstr "个行为"
+msgstr "行为/域"
 
 #: main.lua:6700
 #, fuzzy
 msgid "Reset: %1"
-msgstr "移除：%1"
+msgstr "重置：%1"
 
 #: main.lua:6705
+#, fuzzy
 msgid "Nothing selected to reset"
-msgstr ""
+msgstr "未选择要重置的项目"
 
 #: main.lua:6767
 #, fuzzy
@@ -4329,7 +4558,7 @@ msgstr "核心设置：✓ 已包含"
 #: main.lua:6773
 #, fuzzy
 msgid "API Keys: ✓ Include (⚠ Sensitive)"
-msgstr "API 密钥：✓ 包含（⚠ 敏感信息）"
+msgstr "API 密钥：✓ 包含（⚠ 敏感）"
 
 #: main.lua:6773
 #, fuzzy
@@ -4349,22 +4578,22 @@ msgstr "配置文件：✗ 排除"
 #: main.lua:6803
 #, fuzzy
 msgid "Domains & Behaviors: ✓ Include"
-msgstr "领域和行为：✓ 包含"
+msgstr "域和行为：✓ 包含"
 
 #: main.lua:6803
 #, fuzzy
 msgid "Domains & Behaviors: ✗ Exclude"
-msgstr "领域和行为：✗ 排除"
+msgstr "域和行为：✗ 排除"
 
 #: main.lua:6818
 #, fuzzy
 msgid "Chat History: ✓ Include"
-msgstr "对话历史：✓ 包含"
+msgstr "聊天历史：✓ 包含"
 
 #: main.lua:6818
 #, fuzzy
 msgid "Chat History: ✗ Exclude"
-msgstr "对话历史：✗ 排除"
+msgstr "聊天历史：✗ 排除"
 
 #: main.lua:6833 main.lua:6985 main.lua:7196 main.lua:7218
 #, fuzzy
@@ -4374,7 +4603,7 @@ msgstr "━━━━━━━━━━━━━━━━"
 #: main.lua:6859
 #, fuzzy
 msgid "What to include in backup:"
-msgstr "备份中要包含的内容："
+msgstr "备份中包含的内容："
 
 #: main.lua:6871
 #, fuzzy
@@ -4385,7 +4614,7 @@ msgid ""
 msgstr ""
 "正在创建备份...\n"
 "\n"
-"这可能需要一些时间。"
+"这可能需要一点时间。"
 
 #: main.lua:6883
 #, fuzzy
@@ -4410,12 +4639,12 @@ msgstr "配置文件"
 #: main.lua:6902 main.lua:7032
 #, fuzzy
 msgid "%1 domains"
-msgstr "%1 个领域"
+msgstr "%1 个域"
 
 #: main.lua:6904
 #, fuzzy
 msgid "0 domains"
-msgstr "0 个领域"
+msgstr "0 个域"
 
 #: main.lua:6907 main.lua:7037
 #, fuzzy
@@ -4430,12 +4659,12 @@ msgstr "0 个行为"
 #: main.lua:6915 main.lua:7045
 #, fuzzy
 msgid "%1 chats"
-msgstr "%1 个对话"
+msgstr "%1 个聊天"
 
 #: main.lua:6917
 #, fuzzy
 msgid "0 chats"
-msgstr "0 个对话"
+msgstr "0 个聊天"
 
 #: main.lua:6922
 #, fuzzy
@@ -4475,7 +4704,7 @@ msgid ""
 msgstr ""
 "选择要恢复的备份\n"
 "\n"
-"共计：%1 个备份"
+"总计：%1 个备份"
 
 #: main.lua:7006 main.lua:7405
 #, fuzzy
@@ -4513,17 +4742,17 @@ msgstr "无 API 密钥"
 #: main.lua:7034
 #, fuzzy
 msgid "domains"
-msgstr "个领域"
+msgstr "领域"
 
 #: main.lua:7039
 #, fuzzy
 msgid "behaviors"
-msgstr "个行为"
+msgstr "行为"
 
 #: main.lua:7047
 #, fuzzy
 msgid "Chat history"
-msgstr "对话历史"
+msgstr "聊天历史"
 
 #: main.lua:7057 main.lua:7278
 #, fuzzy
@@ -4568,22 +4797,22 @@ msgstr "配置文件：✗ 跳过"
 #: main.lua:7162
 #, fuzzy
 msgid "Domains & Behaviors: ✓ Restore"
-msgstr "领域和行为：✓ 恢复"
+msgstr "领域与行为：✓ 恢复"
 
 #: main.lua:7162
 #, fuzzy
 msgid "Domains & Behaviors: ✗ Skip"
-msgstr "领域和行为：✗ 跳过"
+msgstr "领域与行为：✗ 跳过"
 
 #: main.lua:7179
 #, fuzzy
 msgid "Chat History: ✓ Restore"
-msgstr "对话历史：✓ 恢复"
+msgstr "聊天历史：✓ 恢复"
 
 #: main.lua:7179
 #, fuzzy
 msgid "Chat History: ✗ Skip"
-msgstr "对话历史：✗ 跳过"
+msgstr "聊天历史：✗ 跳过"
 
 #: main.lua:7202
 #, fuzzy
@@ -4616,7 +4845,7 @@ msgid ""
 msgstr ""
 "从备份恢复？\n"
 "\n"
-"⚠ 将自动创建恢复点。\n"
+"⚠ 将自动创建还原点。\n"
 "\n"
 "⚠ 恢复后应重启 KOReader 以使更改完全生效。"
 
@@ -4687,7 +4916,7 @@ msgid ""
 "\n"
 "Total size: %2"
 msgstr ""
-"备份（%1）\n"
+"备份 (%1)\n"
 "\n"
 "总大小：%2"
 
@@ -4729,33 +4958,41 @@ msgstr ""
 "%1"
 
 #: main.lua:7510
+#, fuzzy
 msgid ""
 "KOAssistant: Chat Storage Upgrade\n"
 "\n"
-"The KOAssistant plugin needs to upgrade its chat history storage to fix an "
-"issue where chats were lost when files were moved.\n"
+"The KOAssistant plugin needs to upgrade its chat history storage to fix an issue where chats were lost when files were moved.\n"
 "\n"
-"This will migrate all existing chats to the new system. The process may take "
-"a few minutes for large libraries.\n"
+"This will migrate all existing chats to the new system. The process may take a few minutes for large libraries.\n"
 "\n"
 "Old chat files will be backed up to koassistant_chats.backup/"
 msgstr ""
+"KOAssistant：聊天存储升级\n"
+"\n"
+"KOAssistant 插件需要升级其聊天历史存储，以修复文件移动时聊天记录丢失的问题。\n"
+"\n"
+"这将把所有现有聊天迁移到新系统。对于大型库，此过程可能需要几分钟。\n"
+"\n"
+"旧聊天文件将备份到 koassistant_chats.backup/"
 
 #: main.lua:7517
+#, fuzzy
 msgid "Migrate Now"
-msgstr ""
+msgstr "立即迁移"
 
 #: main.lua:7549
 #, fuzzy
 msgid "KOAssistant: Migrating chat history..."
-msgstr "KOAssistant：聊天历史"
+msgstr "KOAssistant：正在迁移聊天历史..."
 
 #: main.lua:7562
 #, fuzzy
 msgid "No old chats found to migrate"
-msgstr "未找到带此标签的对话"
+msgstr "未找到要迁移的旧聊天记录"
 
 #: main.lua:7684
+#, fuzzy
 msgid ""
 "KOAssistant: Migration Incomplete\n"
 "\n"
@@ -4766,12 +5003,22 @@ msgid ""
 "Migration will be retried on next startup.\n"
 "Check the console for detailed error messages."
 msgstr ""
+"KOAssistant：迁移未完成\n"
+"\n"
+"✓ 已迁移：%1 个聊天\n"
+"⊗ 已跳过：%2 个聊天（文档不再存在）\n"
+"✗ 失败：%3 个聊天\n"
+"\n"
+"迁移将在下次启动时重试。\n"
+"请查看控制台以获取详细错误信息。"
 
 #: main.lua:7696
+#, fuzzy
 msgid "Failed documents:"
-msgstr ""
+msgstr "失败的文档："
 
 #: main.lua:7703
+#, fuzzy
 msgid ""
 "KOAssistant: Migration Complete\n"
 "\n"
@@ -4781,85 +5028,98 @@ msgid ""
 "Old chat files backed up to:\n"
 "koassistant_chats.backup/"
 msgstr ""
+"KOAssistant：迁移完成\n"
+"\n"
+"✓ 已迁移：%1 个聊天\n"
+"⊗ 已跳过：%2 个聊天（文档不再存在）\n"
+"\n"
+"旧聊天文件已备份到：\n"
+"koassistant_chats.backup/"
 
 #: main.lua:7767
 #, fuzzy
 msgid "Welcome to KOAssistant!"
-msgstr "使用 KOAssistant 比较"
+msgstr "欢迎使用 KOAssistant！"
 
 #: main.lua:7768
+#, fuzzy
 msgid "PRIVACY SETTINGS"
-msgstr ""
+msgstr "隐私设置"
 
 #: main.lua:7769
+#, fuzzy
 msgid "Some features (like X-Ray) need permission to access book content."
-msgstr ""
+msgstr "某些功能（如 X-Ray）需要权限才能访问图书内容。"
 
 #: main.lua:7770
+#, fuzzy
 msgid "Enable in: Settings → Privacy & Data"
-msgstr ""
+msgstr "在以下位置启用：设置 → 隐私与数据"
 
 #: main.lua:7771
+#, fuzzy
 msgid "QUICK ACCESS"
-msgstr ""
+msgstr "快速访问"
 
 #: main.lua:7772
+#, fuzzy
 msgid "Add actions to gestures, highlight menus, or Quick Actions panel."
-msgstr ""
+msgstr "将操作添加到手势、高亮菜单或快速操作面板。"
 
 #: main.lua:7773
+#, fuzzy
 msgid "CUSTOM ACTIONS"
-msgstr ""
+msgstr "自定义操作"
 
 #: main.lua:7774
+#, fuzzy
 msgid "Create your own prompts and actions."
-msgstr ""
+msgstr "创建您自己的提示和操作。"
 
 #: main.lua:7775
+#, fuzzy
 msgid "Go to: Settings → Action Manager → Add"
-msgstr ""
+msgstr "前往：设置 → 操作管理器 → 添加"
 
 #: main.lua:7925
 #, fuzzy
 msgid "No notebook available for this document"
-msgstr "未找到此文档的已保存聊天"
+msgstr "此文档没有可用的笔记本"
 
 #: main.lua:7935
+#, fuzzy
 msgid "No notebook exists for this document. Create one?"
-msgstr ""
+msgstr "此文档没有笔记本。是否创建？"
 
 #: main.lua:7945
 #, fuzzy
 msgid "Failed to create notebook: %1"
-msgstr ""
-"删除备份失败：\n"
-"\n"
-"%1"
+msgstr "创建笔记本失败：%1"
 
 #: main.lua:7996
 #, fuzzy
 msgid "Notebook saved"
-msgstr "已自动保存"
+msgstr "笔记本已保存"
 
 #: main.lua:8003
 #, fuzzy
 msgid "Reset to last saved"
-msgstr "重置为默认值"
+msgstr "重置为上次保存"
 
 #: stream_handler.lua:197
 #, fuzzy
 msgid "No response received. Raw: "
-msgstr "未收到响应。原始内容："
+msgstr "未收到响应。原始数据："
 
 #: stream_handler.lua:280 stream_handler.lua:310
 #, fuzzy
 msgid "Autoscroll OFF ↓"
-msgstr "自动滚动关闭 ↓"
+msgstr "自动滚动 关闭 ↓"
 
 #: stream_handler.lua:294 stream_handler.lua:310
 #, fuzzy
 msgid "Autoscroll ON ↓"
-msgstr "自动滚动开启 ↓"
+msgstr "自动滚动 开启 ↓"
 
 #: stream_handler.lua:304
 #, fuzzy
@@ -4872,8 +5132,9 @@ msgid "AI is responding"
 msgstr "AI 正在响应"
 
 #: stream_handler.lua:558
+#, fuzzy
 msgid "🔍 Searching the web..."
-msgstr ""
+msgstr "🔍 正在搜索网络..."
 
 #: koassistant_ui/behavior_manager.lua:123
 #, fuzzy
@@ -4886,8 +5147,9 @@ msgid "+ Create New Behavior"
 msgstr "+ 创建新行为"
 
 #: koassistant_ui/behavior_manager.lua:149
+#, fuzzy
 msgid "SPECIALIZED"
-msgstr ""
+msgstr "专业化"
 
 #: koassistant_ui/behavior_manager.lua:159
 #: koassistant_ui/domain_manager.lua:148
@@ -4904,7 +5166,7 @@ msgstr "来自 BEHAVIORS/ 文件夹"
 #: koassistant_ui/domain_manager.lua:152
 #, fuzzy
 msgid "CUSTOM (UI-CREATED)"
-msgstr "自定义（界面创建）"
+msgstr "自定义（UI创建）"
 
 #: koassistant_ui/behavior_manager.lua:187
 #, fuzzy
@@ -4920,9 +5182,8 @@ msgstr "恢复默认"
 #: koassistant_ui/behavior_manager.lua:204
 #, fuzzy
 msgid ""
-"This will delete all custom behaviors and reset selection to Standard. "
-"Continue?"
-msgstr "这将删除所有自定义行为并将选择重置为标准。继续？"
+"This will delete all custom behaviors and reset selection to Standard. Continue?"
+msgstr "这将删除所有自定义行为并将选择重置为标准。是否继续？"
 
 #: koassistant_ui/behavior_manager.lua:217
 #, fuzzy
@@ -4944,7 +5205,7 @@ msgstr "文件（behaviors/ 文件夹）"
 #: koassistant_ui/domain_manager.lua:270
 #, fuzzy
 msgid "Custom (UI-created)"
-msgstr "自定义（界面创建）"
+msgstr "自定义（UI创建）"
 
 #: koassistant_ui/behavior_manager.lua:274
 #: koassistant_ui/domain_manager.lua:282 koassistant_ui/prompts_manager.lua:681
@@ -5034,7 +5295,7 @@ msgstr "行为详情"
 #: koassistant_ui/behavior_manager.lua:412
 #, fuzzy
 msgid "New Behavior - Name"
-msgstr "新行为 - 名称"
+msgstr "新建行为 - 名称"
 
 #: koassistant_ui/behavior_manager.lua:412
 #, fuzzy
@@ -5049,7 +5310,7 @@ msgstr "输入行为名称..."
 #: koassistant_ui/behavior_manager.lua:415
 #, fuzzy
 msgid "Give this behavior a descriptive name."
-msgstr "为此行为起一个描述性名称。"
+msgstr "为此行为提供一个描述性名称。"
 
 #: koassistant_ui/behavior_manager.lua:427
 #: koassistant_ui/domain_manager.lua:428
@@ -5072,7 +5333,7 @@ msgstr "请输入名称"
 #: koassistant_ui/behavior_manager.lua:468
 #, fuzzy
 msgid "New Behavior - Content"
-msgstr "新行为 - 内容"
+msgstr "新建行为 - 内容"
 
 #: koassistant_ui/behavior_manager.lua:468
 #, fuzzy
@@ -5082,15 +5343,14 @@ msgstr "编辑行为 - 内容"
 #: koassistant_ui/behavior_manager.lua:470
 #, fuzzy
 msgid "Enter behavior instructions for the AI..."
-msgstr "输入 AI 的行为指令..."
+msgstr "为 AI 输入行为指令..."
 
 #: koassistant_ui/behavior_manager.lua:471
 #, fuzzy
 msgid ""
 "Name: %1\n"
 "\n"
-"Define how the AI should behave. This text is sent as part of the system "
-"prompt."
+"Define how the AI should behave. This text is sent as part of the system prompt."
 msgstr ""
 "名称：%1\n"
 "\n"
@@ -5126,7 +5386,7 @@ msgstr "从空白开始"
 #: koassistant_ui/domain_manager.lua:111
 #, fuzzy
 msgid "Hold for details • Domains are selected when starting a chat"
-msgstr "长按查看详情 • 知识领域在开始对话时选择"
+msgstr "长按查看详情 • 启动聊天时选择领域"
 
 #: koassistant_ui/domain_manager.lua:118
 #, fuzzy
@@ -5140,8 +5400,9 @@ msgstr "没有可用的领域"
 
 #: koassistant_ui/domain_manager.lua:134
 #, fuzzy
-msgid "Create custom domains here or add .md/.txt files to the domains/ folder"
-msgstr "在此创建自定义领域，或将 .md/.txt 文件添加到 domains/ 文件夹"
+msgid ""
+"Create custom domains here or add .md/.txt files to the domains/ folder"
+msgstr "在此创建自定义领域或将 .md/.txt 文件添加到 domains/ 文件夹"
 
 #: koassistant_ui/domain_manager.lua:150
 #, fuzzy
@@ -5155,31 +5416,29 @@ msgid ""
 "\n"
 "Hold to view details or edit."
 msgstr ""
-"知识领域在开始对话时选择。\n"
+"启动聊天时选择领域。\n"
 "\n"
 "长按查看详情或编辑。"
 
 #: koassistant_ui/domain_manager.lua:194
 #, fuzzy
 msgid "About Domains"
-msgstr "关于知识领域"
+msgstr "关于领域"
 
 #: koassistant_ui/domain_manager.lua:197
 #, fuzzy
 msgid ""
 "Domains provide specialized knowledge context to the AI.\n"
 "\n"
-"Unlike behaviors (which set communication style), domains give the AI "
-"expertise in specific subject areas.\n"
+"Unlike behaviors (which set communication style), domains give the AI expertise in specific subject areas.\n"
 "\n"
-"Domains are selected per-chat, not globally, making them like 'projects' you "
-"can switch between."
+"Domains are selected per-chat, not globally, making them like 'projects' you can switch between."
 msgstr ""
-"知识领域为 AI 提供专业的知识背景。\n"
+"领域为 AI 提供专业知识上下文。\n"
 "\n"
-"与行为风格（设置沟通方式）不同，知识领域让 AI 在特定学科领域拥有专业知识。\n"
+"与行为(设置沟通风格)不同,领域赋予 AI 特定主题领域的专业知识。\n"
 "\n"
-"知识领域按对话选择，而非全局设置，使其像可切换的\"项目\"。"
+"领域按每个聊天选择,而非全局设置,使其像可以切换的\"项目\"。"
 
 #: koassistant_ui/domain_manager.lua:202
 #, fuzzy
@@ -5189,12 +5448,12 @@ msgstr "删除所有自定义"
 #: koassistant_ui/domain_manager.lua:207
 #, fuzzy
 msgid "No custom domains to delete"
-msgstr "没有可删除的自定义领域"
+msgstr "没有要删除的自定义领域"
 
 #: koassistant_ui/domain_manager.lua:213
 #, fuzzy
 msgid "Delete all %1 custom domains?"
-msgstr "删除所有 %1 个自定义领域？"
+msgstr "删除所有 %1 个自定义领域?"
 
 #: koassistant_ui/domain_manager.lua:225
 #, fuzzy
@@ -5204,7 +5463,7 @@ msgstr "管理领域"
 #: koassistant_ui/domain_manager.lua:268
 #, fuzzy
 msgid "File (domains/ folder)"
-msgstr "文件（domains/ 文件夹）"
+msgstr "文件(domains/ 文件夹)"
 
 #: koassistant_ui/domain_manager.lua:337
 #, fuzzy
@@ -5225,11 +5484,11 @@ msgid ""
 "\n"
 "To edit, modify the file directly."
 msgstr ""
-"此领域从以下文件加载：\n"
+"此领域从以下文件加载:\n"
 "\n"
 "%s\n"
 "\n"
-"如需编辑，请直接修改该文件。"
+"要编辑,请直接修改文件。"
 
 #: koassistant_ui/domain_manager.lua:391
 #, fuzzy
@@ -5254,51 +5513,49 @@ msgstr "输入领域名称..."
 #: koassistant_ui/domain_manager.lua:416
 #, fuzzy
 msgid ""
-"Give this domain a descriptive name (e.g., 'Research', 'Creative Writing', "
-"'Philosophy')."
-msgstr "为此领域起一个描述性名称（例如\"研究\"、\"创意写作\"、\"哲学\"）。"
+"Give this domain a descriptive name (e.g., 'Research', 'Creative Writing', 'Philosophy')."
+msgstr "为此领域提供描述性名称(例如,\"研究\"、\"创意写作\"、\"哲学\")。"
 
 #: koassistant_ui/domain_manager.lua:469
 #, fuzzy
 msgid "New Domain - Context"
-msgstr "新建领域 - 内容"
+msgstr "新建领域 - 上下文"
 
 #: koassistant_ui/domain_manager.lua:469
 #, fuzzy
 msgid "Edit Domain - Context"
-msgstr "编辑领域 - 内容"
+msgstr "编辑领域 - 上下文"
 
 #: koassistant_ui/domain_manager.lua:471
 #, fuzzy
 msgid "Enter domain knowledge context..."
-msgstr "输入领域知识内容..."
+msgstr "输入领域知识上下文..."
 
 #: koassistant_ui/domain_manager.lua:472
 #, fuzzy
 msgid ""
 "Name: %1\n"
 "\n"
-"Describe the knowledge area, terminology, and how the AI should approach "
-"topics in this domain."
+"Describe the knowledge area, terminology, and how the AI should approach topics in this domain."
 msgstr ""
-"名称：%1\n"
+"名称:%1\n"
 "\n"
-"描述该知识领域、专业术语以及 AI 应如何处理此领域的话题。"
+"描述知识领域、术语以及 AI 应如何处理此领域中的主题。"
 
 #: koassistant_ui/domain_manager.lua:493
 #, fuzzy
 msgid "Please enter domain context"
-msgstr "请输入领域内容"
+msgstr "请输入领域上下文"
 
 #: koassistant_ui/domain_manager.lua:546
 #, fuzzy
 msgid "(No existing domains to use as template)"
-msgstr "（没有可用作模板的现有领域）"
+msgstr "(没有现有领域可用作模板)"
 
 #: koassistant_ui/prompts_manager.lua:33
 #, fuzzy
 msgid "~%1 tokens"
-msgstr "约 %1 个 token"
+msgstr "~%1 tokens"
 
 #: koassistant_ui/prompts_manager.lua:65 koassistant_ui/prompts_manager.lua:96
 #, fuzzy
@@ -5313,7 +5570,7 @@ msgstr "已配置"
 #: koassistant_ui/prompts_manager.lua:94
 #, fuzzy
 msgid "On (%1 tokens)"
-msgstr "开启（%1 个 token）"
+msgstr "开启(%1 tokens)"
 
 #: koassistant_ui/prompts_manager.lua:99 koassistant_ui/prompts_manager.lua:659
 #: koassistant_ui/prompts_manager.lua:665
@@ -5336,19 +5593,18 @@ msgstr "全局"
 #: koassistant_ui/prompts_manager.lua:354
 #, fuzzy
 msgid ""
-"Tap to toggle • Hold for details • ★ = custom • ⚙ = modified • [gesture] = "
-"in gesture menu"
-msgstr "点击切换 • 长按查看详情 • ★ = 自定义 • ⚙ = 已修改"
+"Tap to toggle • Hold for details • ★ = custom • ⚙ = modified • [gesture] = in gesture menu"
+msgstr "点按切换 • 长按查看详情 • ★ = 自定义 • ⚙ = 已修改 • [手势] = 在手势菜单中"
 
 #: koassistant_ui/prompts_manager.lua:361
 #, fuzzy
 msgid "+ Add Action"
-msgstr "+ 添加动作"
+msgstr "+ 添加操作"
 
 #: koassistant_ui/prompts_manager.lua:372
 #, fuzzy
 msgid "Highlight Context"
-msgstr "划线上下文"
+msgstr "高亮上下文"
 
 #: koassistant_ui/prompts_manager.lua:373
 #, fuzzy
@@ -5358,7 +5614,7 @@ msgstr "书籍上下文"
 #: koassistant_ui/prompts_manager.lua:374
 #, fuzzy
 msgid "Multi-Book Context"
-msgstr "多书上下文"
+msgstr "多书籍上下文"
 
 #: koassistant_ui/prompts_manager.lua:375
 #, fuzzy
@@ -5371,19 +5627,19 @@ msgstr "通用上下文"
 #: koassistant_ui/prompts_manager.lua:4152
 #, fuzzy
 msgid "Highlight & Book"
-msgstr "划线与书籍"
+msgstr "高亮和书籍"
 
 #: koassistant_ui/prompts_manager.lua:377
 #: koassistant_ui/prompts_manager.lua:4154
 #, fuzzy
 msgid "Highlight & General"
-msgstr "划线与通用"
+msgstr "高亮和通用"
 
 #: koassistant_ui/prompts_manager.lua:378
 #: koassistant_ui/prompts_manager.lua:4156
 #, fuzzy
 msgid "Book & General"
-msgstr "书籍与通用"
+msgstr "书籍和通用"
 
 #: koassistant_ui/prompts_manager.lua:379
 #: koassistant_ui/prompts_manager.lua:1314
@@ -5411,17 +5667,17 @@ msgstr "导出功能即将推出..."
 #, fuzzy
 msgid ""
 "This will remove all custom actions and reset all action settings. Continue?"
-msgstr "这将删除所有自定义动作并重置所有动作设置。继续？"
+msgstr "这将移除所有自定义操作并重置所有操作设置。继续?"
 
 #: koassistant_ui/prompts_manager.lua:533
 #, fuzzy
 msgid "Actions Menu"
-msgstr "动作菜单"
+msgstr "操作菜单"
 
 #: koassistant_ui/prompts_manager.lua:537
 #, fuzzy
 msgid "Reset custom actions"
-msgstr "重置自定义动作"
+msgstr "重置自定义操作"
 
 #: koassistant_ui/prompts_manager.lua:541
 #, fuzzy
@@ -5432,58 +5688,56 @@ msgid ""
 "\n"
 "Built-in actions and their edits are preserved."
 msgstr ""
-"删除所有自定义动作？\n"
+"删除所有自定义操作？\n"
 "\n"
-"这将移除您创建的动作。\n"
+"这将删除您创建的操作。\n"
 "\n"
-"内置动作及其编辑将被保留。"
+"内置操作及其编辑将被保留。"
 
 #: koassistant_ui/prompts_manager.lua:553
 #, fuzzy
 msgid "Reset action edits"
-msgstr "重置动作编辑"
+msgstr "重置操作编辑"
 
 #: koassistant_ui/prompts_manager.lua:557
 #, fuzzy
 msgid ""
 "Reset all action edits?\n"
 "\n"
-"This reverts any changes you made to built-in actions and re-enables "
-"disabled actions.\n"
+"This reverts any changes you made to built-in actions and re-enables disabled actions.\n"
 "\n"
 "Custom actions are preserved."
 msgstr ""
-"重置所有动作编辑？\n"
+"重置所有操作编辑？\n"
 "\n"
-"这将还原您对内置动作所做的所有更改，并重新启用已禁用的动作。\n"
+"这将还原您对内置操作所做的任何更改，并重新启用已禁用的操作。\n"
 "\n"
-"自定义动作将被保留。"
+"自定义操作将被保留。"
 
 #: koassistant_ui/prompts_manager.lua:569
 #, fuzzy
 msgid "Reset action menus"
-msgstr "重置动作菜单"
+msgstr "重置操作菜单"
 
 #: koassistant_ui/prompts_manager.lua:573
 #, fuzzy
 msgid ""
 "Reset action menu configurations?\n"
 "\n"
-"This resets the ordering and selection in highlight menu and dictionary "
-"popup back to defaults.\n"
+"This resets the ordering and selection in highlight menu and dictionary popup back to defaults.\n"
 "\n"
 "Your actions (custom and built-in) are preserved."
 msgstr ""
-"重置动作菜单配置？\n"
+"重置操作菜单配置？\n"
 "\n"
-"这将把划线菜单和字典弹窗的排序和选择重置为默认值。\n"
+"这将把高亮菜单和词典弹窗中的排序和选择恢复为默认设置。\n"
 "\n"
-"您的动作（自定义和内置）将被保留。"
+"您的操作（自定义和内置）将被保留。"
 
 #: koassistant_ui/prompts_manager.lua:584
 #, fuzzy
 msgid "Reset Quick Actions"
-msgstr "重置自定义动作"
+msgstr "重置快捷操作"
 
 #: koassistant_ui/prompts_manager.lua:588
 #, fuzzy
@@ -5494,21 +5748,21 @@ msgid ""
 "\n"
 "Your actions (custom and built-in) are preserved."
 msgstr ""
-"重置动作菜单配置？\n"
+"重置快捷操作面板？\n"
 "\n"
-"这将把划线菜单和字典弹窗的排序和选择重置为默认值。\n"
+"这将恢复快捷操作菜单中显示的默认操作。\n"
 "\n"
-"您的动作（自定义和内置）将被保留。"
+"您的操作（自定义和内置）将被保留。"
 
 #: koassistant_ui/prompts_manager.lua:633
 #, fuzzy
 msgid "Custom (custom_actions.lua)"
-msgstr "自定义（custom_actions.lua）"
+msgstr "自定义 (custom_actions.lua)"
 
 #: koassistant_ui/prompts_manager.lua:635
 #, fuzzy
 msgid "User-defined (UI)"
-msgstr "用户定义（界面）"
+msgstr "用户定义 (UI)"
 
 #: koassistant_ui/prompts_manager.lua:643
 #, fuzzy
@@ -5528,7 +5782,7 @@ msgstr "（使用全局设置）"
 #: koassistant_ui/prompts_manager.lua:675
 #, fuzzy
 msgid "(Only available when reading, not from file browser)"
-msgstr "（仅在阅读时可用，不适用于文件浏览器）"
+msgstr "（仅在阅读时可用，文件浏览器中不可用）"
 
 #: koassistant_ui/prompts_manager.lua:680
 #, fuzzy
@@ -5553,7 +5807,7 @@ msgstr "已禁用"
 #: koassistant_ui/prompts_manager.lua:686
 #, fuzzy
 msgid "─── Flags ───"
-msgstr "─── 标记 ───"
+msgstr "─── 标志 ───"
 
 #: koassistant_ui/prompts_manager.lua:689
 #: koassistant_ui/prompts_manager.lua:690
@@ -5579,7 +5833,7 @@ msgstr "跳过语言"
 #: koassistant_ui/prompts_manager.lua:692
 #, fuzzy
 msgid "Skip Domain"
-msgstr "跳过领域"
+msgstr "跳过域名"
 
 #: koassistant_ui/prompts_manager.lua:697
 #, fuzzy
@@ -5592,7 +5846,7 @@ msgstr "包含书籍信息"
 #: koassistant_ui/prompts_manager.lua:3392
 #, fuzzy
 msgid "Allow text extraction"
-msgstr "允许书籍文本提取"
+msgstr "允许文本提取"
 
 #: koassistant_ui/prompts_manager.lua:708
 #, fuzzy
@@ -5607,7 +5861,7 @@ msgstr "提供商/模型"
 #: koassistant_ui/prompts_manager.lua:715
 #, fuzzy
 msgid "─── Action Prompt ───"
-msgstr "─── 动作提示 ───"
+msgstr "─── 操作提示词 ───"
 
 #: koassistant_ui/prompts_manager.lua:715
 #, fuzzy
@@ -5627,7 +5881,7 @@ msgstr "快速编辑"
 #: koassistant_ui/prompts_manager.lua:741
 #, fuzzy
 msgid "Delete this action?"
-msgstr "删除此动作？"
+msgstr "删除此操作？"
 
 #: koassistant_ui/prompts_manager.lua:761
 #, fuzzy
@@ -5641,8 +5895,8 @@ msgid ""
 "This action is defined in custom_actions.lua.\n"
 "Please edit that file directly to modify it."
 msgstr ""
-"此动作定义在 custom_actions.lua 中。\n"
-"请直接编辑该文件进行修改。"
+"此操作在 custom_actions.lua 中定义。\n"
+"请直接编辑该文件来修改它。"
 
 #: koassistant_ui/prompts_manager.lua:773
 #, fuzzy
@@ -5657,12 +5911,12 @@ msgstr "恢复默认"
 #: koassistant_ui/prompts_manager.lua:788
 #, fuzzy
 msgid "Reset this action to default settings?"
-msgstr "将此动作恢复为默认设置？"
+msgstr "将此操作重置为默认设置？"
 
 #: koassistant_ui/prompts_manager.lua:810
 #, fuzzy
 msgid "✓ In Highlight Menu"
-msgstr "✓ 已添加到高亮菜单"
+msgstr "✓ 在高亮菜单中"
 
 #: koassistant_ui/prompts_manager.lua:810
 #, fuzzy
@@ -5677,12 +5931,12 @@ msgstr "已添加到高亮菜单。"
 #: koassistant_ui/prompts_manager.lua:815
 #, fuzzy
 msgid "Removed from highlight menu."
-msgstr "已从高亮菜单移除。"
+msgstr "已从高亮菜单中移除。"
 
 #: koassistant_ui/prompts_manager.lua:828
 #, fuzzy
 msgid "✓ In Dictionary Popup"
-msgstr "✓ 已添加到词典弹窗"
+msgstr "✓ 在词典弹窗中"
 
 #: koassistant_ui/prompts_manager.lua:828
 #, fuzzy
@@ -5692,7 +5946,7 @@ msgstr "添加到词典弹窗"
 #: koassistant_ui/prompts_manager.lua:833
 #, fuzzy
 msgid "Removed from dictionary popup."
-msgstr "已从词典弹窗移除。"
+msgstr "已从词典弹窗中移除。"
 
 #: koassistant_ui/prompts_manager.lua:833
 #, fuzzy
@@ -5702,71 +5956,80 @@ msgstr "已添加到词典弹窗。"
 #: koassistant_ui/prompts_manager.lua:847
 #, fuzzy
 msgid "✓ In Gesture Menu"
-msgstr "✓ 已添加到高亮菜单"
+msgstr "✓ 在手势菜单中"
 
 #: koassistant_ui/prompts_manager.lua:847
 #, fuzzy
 msgid "Add to Gesture Menu"
-msgstr "添加到高亮菜单"
+msgstr "添加到手势菜单"
 
 #: koassistant_ui/prompts_manager.lua:854
+#, fuzzy
 msgid ""
 "Removed from gesture menu.\n"
 "Restart KOReader to apply."
 msgstr ""
+"已从手势菜单中移除。\n"
+"重启 KOReader 以应用。"
 
 #: koassistant_ui/prompts_manager.lua:855
+#, fuzzy
 msgid ""
 "Added to gesture menu.\n"
 "Restart KOReader to apply."
 msgstr ""
+"已添加到手势菜单。\n"
+"重启 KOReader 以应用。"
 
 #: koassistant_ui/prompts_manager.lua:870
 #, fuzzy
 msgid "✓ In Quick Actions"
-msgstr "AI 快速设置"
+msgstr "✓ 在快捷操作中"
 
 #: koassistant_ui/prompts_manager.lua:870
 #, fuzzy
 msgid "Add to Quick Actions"
-msgstr "AI 快速设置"
+msgstr "添加到快捷操作"
 
 #: koassistant_ui/prompts_manager.lua:877
 #, fuzzy
 msgid "Removed from Quick Actions."
-msgstr "已从词典弹窗移除。"
+msgstr "已从快捷操作中移除。"
 
 #: koassistant_ui/prompts_manager.lua:878
 #, fuzzy
 msgid "Added to Quick Actions."
-msgstr "已添加到词典弹窗。"
+msgstr "已添加到快捷操作。"
 
 #: koassistant_ui/prompts_manager.lua:893
+#, fuzzy
 msgid "✓ In General Input"
-msgstr ""
+msgstr "✓ 在通用输入中"
 
 #: koassistant_ui/prompts_manager.lua:893
+#, fuzzy
 msgid "Add to General Input"
-msgstr ""
+msgstr "添加到通用输入"
 
 #: koassistant_ui/prompts_manager.lua:900
 #, fuzzy
 msgid "Removed from general input dialog."
-msgstr "已从高亮菜单移除。"
+msgstr "已从通用输入对话框中移除。"
 
 #: koassistant_ui/prompts_manager.lua:901
+#, fuzzy
 msgid "Added to general input dialog."
-msgstr ""
+msgstr "已添加到通用输入对话框。"
 
 #: koassistant_ui/prompts_manager.lua:914
 #, fuzzy
 msgid "Duplicate as Custom"
-msgstr "复制为自定义动作"
+msgstr "复制为自定义"
 
 #: koassistant_ui/prompts_manager.lua:924
 #, fuzzy
 msgid "Action Details"
-msgstr "动作详情"
+msgstr "操作详情"
 
 #: koassistant_ui/prompts_manager.lua:937
 #: koassistant_ui/prompts_manager.lua:4173
@@ -5775,7 +6038,7 @@ msgstr "动作详情"
 #: koassistant_ui/prompts_manager.lua:4652
 #, fuzzy
 msgid "Action service not available."
-msgstr "动作服务不可用。"
+msgstr "操作服务不可用。"
 
 #: koassistant_ui/prompts_manager.lua:988
 #, fuzzy
@@ -5784,14 +6047,14 @@ msgid ""
 "\n"
 "You can find and edit it in the Actions list."
 msgstr ""
-"已创建：%1\n"
+"已创建:%1\n"
 "\n"
-"您可以在动作列表中找到并编辑它。"
+"您可以在操作列表中查找和编辑它。"
 
 #: koassistant_ui/prompts_manager.lua:1055
 #, fuzzy
 msgid "Context: "
-msgstr "上下文："
+msgstr "上下文:"
 
 #: koassistant_ui/prompts_manager.lua:1055
 #, fuzzy
@@ -5821,21 +6084,21 @@ msgstr "请先选择上下文"
 #: koassistant_ui/prompts_manager.lua:3365
 #, fuzzy
 msgid "Include book info"
-msgstr "包含书籍信息"
+msgstr "包含图书信息"
 
 #: koassistant_ui/prompts_manager.lua:1106
 #: koassistant_ui/prompts_manager.lua:2632
 #: koassistant_ui/prompts_manager.lua:3343
 #, fuzzy
 msgid "Skip language"
-msgstr "跳过语言设置"
+msgstr "跳过语言"
 
 #: koassistant_ui/prompts_manager.lua:1115
 #: koassistant_ui/prompts_manager.lua:2640
 #: koassistant_ui/prompts_manager.lua:3351
 #, fuzzy
 msgid "Skip domain"
-msgstr "跳过领域知识"
+msgstr "跳过领域"
 
 #: koassistant_ui/prompts_manager.lua:1131
 #, fuzzy
@@ -5850,135 +6113,142 @@ msgstr "词典弹窗"
 #: koassistant_ui/prompts_manager.lua:1166
 #: koassistant_ui/prompts_manager.lua:2689
 #: koassistant_ui/prompts_manager.lua:3400
+#, fuzzy
 msgid "Text extraction enabled. Note: Enable in Settings → Advanced first."
-msgstr ""
+msgstr "文本提取已启用。注意:请先在设置 → 高级中启用。"
 
 #: koassistant_ui/prompts_manager.lua:1171
 #: koassistant_ui/prompts_manager.lua:2694
 #: koassistant_ui/prompts_manager.lua:3405
+#, fuzzy
 msgid "Text extraction enabled for this action."
-msgstr ""
+msgstr "已为此操作启用文本提取。"
 
 #: koassistant_ui/prompts_manager.lua:1189
 #: koassistant_ui/prompts_manager.lua:2711
 #: koassistant_ui/prompts_manager.lua:3422
 #, fuzzy
 msgid "Allow annotation use"
-msgstr "跟随翻译语言"
+msgstr "允许使用标注"
 
 #: koassistant_ui/prompts_manager.lua:1197
 #: koassistant_ui/prompts_manager.lua:2718
 #: koassistant_ui/prompts_manager.lua:3429
+#, fuzzy
 msgid ""
 "Annotation use enabled. Note: Enable in Settings → Privacy & Data first."
-msgstr ""
+msgstr "标注使用已启用。注意:请先在设置 → 隐私与数据中启用。"
 
 #: koassistant_ui/prompts_manager.lua:1202
 #: koassistant_ui/prompts_manager.lua:2723
 #: koassistant_ui/prompts_manager.lua:3434
+#, fuzzy
 msgid "Annotation use enabled for this action."
-msgstr ""
+msgstr "已为此操作启用标注使用。"
 
 #: koassistant_ui/prompts_manager.lua:1219
 #: koassistant_ui/prompts_manager.lua:2739
 #: koassistant_ui/prompts_manager.lua:3450
+#, fuzzy
 msgid "Allow notebook use"
-msgstr ""
+msgstr "允许使用笔记本"
 
 #: koassistant_ui/prompts_manager.lua:1227
 #: koassistant_ui/prompts_manager.lua:2746
 #: koassistant_ui/prompts_manager.lua:3457
+#, fuzzy
 msgid "Notebook use enabled. Note: Enable in Settings → Privacy & Data first."
-msgstr ""
+msgstr "笔记本使用已启用。注意:请先在设置 → 隐私与数据中启用。"
 
 #: koassistant_ui/prompts_manager.lua:1232
 #: koassistant_ui/prompts_manager.lua:2751
 #: koassistant_ui/prompts_manager.lua:3462
+#, fuzzy
 msgid "Notebook use enabled for this action."
-msgstr ""
+msgstr "已为此操作启用笔记本使用。"
 
 #: koassistant_ui/prompts_manager.lua:1248
 #: koassistant_ui/prompts_manager.lua:2665
 #: koassistant_ui/prompts_manager.lua:3376
 #, fuzzy
 msgid "View: "
-msgstr "视图："
+msgstr "视图:"
 
 #: koassistant_ui/prompts_manager.lua:1262
 #, fuzzy
 msgid "Example: 'Summarize', 'Explain Simply', 'Find Themes'"
-msgstr "示例：'总结'、'简单解释'、'查找主题'"
+msgstr "示例:\"总结\"、\"简单解释\"、\"查找主题\""
 
 #: koassistant_ui/prompts_manager.lua:1271
 #, fuzzy
 msgid "Edit Action - Name"
-msgstr "编辑动作 - 名称"
+msgstr "编辑操作 - 名称"
 
 #: koassistant_ui/prompts_manager.lua:1271
 #, fuzzy
 msgid "Step 1/3: Name & Context"
-msgstr "步骤 1/3：名称和上下文"
+msgstr "第 1/3 步:名称与上下文"
 
 #: koassistant_ui/prompts_manager.lua:1273
 #, fuzzy
 msgid "Enter a short name (shown as button)"
-msgstr "输入简短名称（显示为按钮）"
+msgstr "输入简短名称(显示为按钮)"
 
 #: koassistant_ui/prompts_manager.lua:1286
 #: koassistant_ui/prompts_manager.lua:1429
 #: koassistant_ui/prompts_manager.lua:4144
 #, fuzzy
 msgid "Highlight"
-msgstr "高亮文本"
+msgstr "高亮"
 
 #: koassistant_ui/prompts_manager.lua:1287
 #, fuzzy
 msgid "When text is selected in a book"
-msgstr "在书中选中文本时"
+msgstr "当在书中选择文本时"
 
 #: koassistant_ui/prompts_manager.lua:1290
 #, fuzzy
 msgid "Includes: selected text + book title, author"
-msgstr "包含：选中的文本 + 书名、作者"
+msgstr "包含:选中的文本 + 书名、作者"
 
 #: koassistant_ui/prompts_manager.lua:1291
 #, fuzzy
 msgid "Includes: selected text only"
-msgstr "包含：仅选中的文本"
+msgstr "包含:仅选中的文本"
 
 #: koassistant_ui/prompts_manager.lua:1294
 #: koassistant_ui/prompts_manager.lua:1430
 #: koassistant_ui/prompts_manager.lua:4146
 #, fuzzy
 msgid "Book"
-msgstr "书籍"
+msgstr "图书"
 
 #: koassistant_ui/prompts_manager.lua:1295
 #, fuzzy
 msgid "File browser selection or 'New Book Chat/Action' gesture"
-msgstr "文件浏览器选择或\"聊聊这本书\"手势"
+msgstr "文件浏览器选择或\"新建图书对话/操作\"手势"
 
 #: koassistant_ui/prompts_manager.lua:1296
 #, fuzzy
 msgid "Includes: book title, author (automatic)"
-msgstr "包含：书名、作者（自动）"
+msgstr "包含:书名、作者(自动)"
 
 #: koassistant_ui/prompts_manager.lua:1299
 #: koassistant_ui/prompts_manager.lua:1431
 #: koassistant_ui/prompts_manager.lua:4148
 #, fuzzy
 msgid "Multi-Book"
-msgstr "多本书"
+msgstr "多本图书"
 
 #: koassistant_ui/prompts_manager.lua:1300
 #, fuzzy
 msgid "When multiple books are selected"
-msgstr "选中多本书时"
+msgstr "当选择多本图书时"
 
 #: koassistant_ui/prompts_manager.lua:1301
 #, fuzzy
 msgid "Includes: list of books with titles/authors, count"
-msgstr "包含：带书名/作者的书籍列表、数量"
+msgstr "包含:图书列表及书名/作者、数量"
 
 #: koassistant_ui/prompts_manager.lua:1304
 #: koassistant_ui/prompts_manager.lua:1432
@@ -5990,22 +6260,22 @@ msgstr "通用"
 #: koassistant_ui/prompts_manager.lua:1305
 #, fuzzy
 msgid "General chat, no specific context"
-msgstr "通用聊天，无特定上下文"
+msgstr "通用对话,无特定上下文"
 
 #: koassistant_ui/prompts_manager.lua:1306
 #, fuzzy
 msgid "Available: translation language"
-msgstr "可用：翻译语言"
+msgstr "可用:翻译语言"
 
 #: koassistant_ui/prompts_manager.lua:1310
 #, fuzzy
 msgid "Both highlight and book contexts"
-msgstr "高亮和书籍双重上下文"
+msgstr "高亮和图书上下文均可"
 
 #: koassistant_ui/prompts_manager.lua:1311
 #, fuzzy
 msgid "Highlight: selected text; Book: title/author"
-msgstr "高亮：选中的文本；书籍：书名/作者"
+msgstr "高亮:选中的文本;图书:书名/作者"
 
 #: koassistant_ui/prompts_manager.lua:1315
 #, fuzzy
@@ -6015,37 +6285,38 @@ msgstr "随处可用"
 #: koassistant_ui/prompts_manager.lua:1316
 #, fuzzy
 msgid "Varies by trigger"
-msgstr "根据触发方式变化"
+msgstr "因触发方式而异"
 
 #: koassistant_ui/prompts_manager.lua:1428
 #, fuzzy
-msgid "Context determines when your action appears and what data is available:"
-msgstr "上下文决定您的动作何时出现以及可用的数据："
+msgid ""
+"Context determines when your action appears and what data is available:"
+msgstr "上下文决定了您的操作何时出现以及哪些数据可用:"
 
 #: koassistant_ui/prompts_manager.lua:1429
 #, fuzzy
 msgid "When text is selected. Gets: selected text, optionally book info"
-msgstr "选中文本时。获取：选中的文本，可选书籍信息"
+msgstr "当文本被选中时。获取:选中的文本,可选书籍信息"
 
 #: koassistant_ui/prompts_manager.lua:1430
 #, fuzzy
 msgid "File browser or 'New Book Chat/Action'. Gets: title, author"
-msgstr "文件浏览器或\"聊聊这本书\"。获取：书名、作者"
+msgstr "文件浏览器或\"新建书籍对话/操作\"。获取:标题、作者"
 
 #: koassistant_ui/prompts_manager.lua:1431
 #, fuzzy
 msgid "Multiple books selected. Gets: book list with count"
-msgstr "选中多本书。获取：书籍列表和数量"
+msgstr "选中多本书籍。获取:书籍列表及数量"
 
 #: koassistant_ui/prompts_manager.lua:1432
 #, fuzzy
 msgid "Standalone chat. No automatic context"
-msgstr "独立聊天。无自动上下文"
+msgstr "独立对话。无自动上下文"
 
 #: koassistant_ui/prompts_manager.lua:1433
 #, fuzzy
 msgid "Both highlight and single-book menus"
-msgstr "高亮和单本书菜单均可用"
+msgstr "高亮和单本书籍菜单"
 
 #: koassistant_ui/prompts_manager.lua:1450
 #, fuzzy
@@ -6067,12 +6338,12 @@ msgstr "使用全局设置"
 #: koassistant_ui/prompts_manager.lua:1474
 #, fuzzy
 msgid "Inherits from Actions & Prompts → Manage Behaviors"
-msgstr "继承自 设置 → 高级 → AI 行为风格"
+msgstr "继承自 操作与提示词 → 管理行为方式"
 
 #: koassistant_ui/prompts_manager.lua:1484
 #, fuzzy
 msgid "No behavior instructions - just your action prompt"
-msgstr "无行为指令 - 仅使用您的动作提示词"
+msgstr "无行为方式说明 - 仅使用您的操作提示词"
 
 #: koassistant_ui/prompts_manager.lua:1485
 #, fuzzy
@@ -6090,27 +6361,27 @@ msgstr "← 返回"
 #: koassistant_ui/prompts_manager.lua:1538
 #, fuzzy
 msgid "Edit Action - AI Behavior"
-msgstr "编辑动作 - AI 行为"
+msgstr "编辑操作 - AI 行为方式"
 
 #: koassistant_ui/prompts_manager.lua:1538
 #, fuzzy
 msgid "Step 2/3: AI Behavior"
-msgstr "步骤 2/3：AI 行为"
+msgstr "步骤 2/3: AI 行为方式"
 
 #: koassistant_ui/prompts_manager.lua:1551
 #, fuzzy
 msgid "Edit Action - Custom Behavior"
-msgstr "编辑动作 - 自定义行为"
+msgstr "编辑操作 - 自定义行为方式"
 
 #: koassistant_ui/prompts_manager.lua:1551
 #, fuzzy
 msgid "Step 2/3: Custom Behavior"
-msgstr "步骤 2/3：自定义行为"
+msgstr "步骤 2/3: 自定义行为方式"
 
 #: koassistant_ui/prompts_manager.lua:1553
 #, fuzzy
 msgid "Describe how the AI should behave or what role it should play"
-msgstr "描述 AI 应如何表现或扮演什么角色"
+msgstr "描述 AI 应该如何表现或扮演什么角色"
 
 #: koassistant_ui/prompts_manager.lua:1554
 #, fuzzy
@@ -6122,39 +6393,39 @@ msgid ""
 "\n"
 "This replaces the global AI behavior setting for this action."
 msgstr ""
-"示例：\n"
-"• '你是一位语法专家。请精确且分析性地回答。'\n"
-"• '你是一位专研19世纪小说的文学评论家。'\n"
-"• '请简洁回复。在有帮助时使用要点列表。'\n"
+"示例:\n"
+"• \"你是一位语法专家。要精确且善于分析。\"\n"
+"• \"你是专攻 19 世纪小说的文学评论家。\"\n"
+"• \"简洁回答。适当使用项目符号。\"\n"
 "\n"
-"这将替换此动作的全局 AI 行为设置。"
+"这将替换此操作的全局 AI 行为方式设置。"
 
 #: koassistant_ui/prompts_manager.lua:1577
 #, fuzzy
 msgid ""
 "Please enter custom behavior text, or go back and choose a different option"
-msgstr "请输入自定义行为文本，或返回选择其他选项"
+msgstr "请输入自定义行为方式文本,或返回并选择其他选项"
 
 #: koassistant_ui/prompts_manager.lua:1601
 #, fuzzy
 msgid "Edit Action - Action Prompt"
-msgstr "编辑动作 - 动作提示词"
+msgstr "编辑操作 - 操作提示词"
 
 #: koassistant_ui/prompts_manager.lua:1601
 #, fuzzy
 msgid "Step 3/4: Action Prompt"
-msgstr "步骤 3/4：动作提示词"
+msgstr "步骤 3/4: 操作提示词"
 
 #: koassistant_ui/prompts_manager.lua:1603
 #, fuzzy
 msgid "What should the AI do?"
-msgstr "AI 应该做什么？"
+msgstr "AI 应该做什么?"
 
 #: koassistant_ui/prompts_manager.lua:1604
 #, fuzzy
 msgid ""
 "Write the AI instruction. Tap 'Help' for tips, 'Insert...' for placeholders."
-msgstr "编写 AI 指令。点击\"帮助\"获取技巧，点击\"插入...\"添加占位符。"
+msgstr "编写 AI 指令。点击\"帮助\"获取提示,点击\"插入...\"添加占位符。"
 
 #: koassistant_ui/prompts_manager.lua:1618
 #: koassistant_ui/prompts_manager.lua:2772
@@ -6167,33 +6438,27 @@ msgstr "帮助"
 msgid ""
 "Writing Action Prompts\n"
 "\n"
-"• Use 'Insert...' to add placeholders like {title}, {author}, "
-"{highlighted_text}\n"
+"• Use 'Insert...' to add placeholders like {title}, {author}, {highlighted_text}\n"
 "\n"
-"• Tip: When using this action, there's an input field for optional "
-"additional context\n"
+"• Tip: When using this action, there's an input field for optional additional context\n"
 "\n"
-"• Reading-mode placeholders ({reading_progress}, {book_text}, {highlights}, "
-"{annotations}) auto-hide this action in File Browser — it only appears when "
-"reading\n"
+"• Reading-mode placeholders ({reading_progress}, {book_text}, {highlights}, {annotations}) auto-hide this action in File Browser — it only appears when reading\n"
 "\n"
-"• Test actions with the web inspector: 'lua tests/inspect.lua --web' from "
-"the plugin folder\n"
+"• Test actions with the web inspector: 'lua tests/inspect.lua --web' from the plugin folder\n"
 "\n"
 "• See README for full placeholder list and examples"
 msgstr ""
-"编写动作提示词\n"
+"编写操作提示词\n"
 "\n"
-"• 使用\"插入...\"添加占位符，如 {title}、{author}、{highlighted_text}\n"
+"• 使用\"插入...\"添加占位符,如 {title}、{author}、{highlighted_text}\n"
 "\n"
-"• 提示：使用此动作时，有一个输入框可添加额外的上下文\n"
+"• 提示:使用此操作时,会有一个输入字段用于可选的附加上下文\n"
 "\n"
-"• 阅读模式占位符（{reading_progress}、{book_text}、{highlights}、"
-"{annotations}）会自动隐藏文件浏览器中的此动作——它仅在阅读时显示\n"
+"• 阅读模式占位符({reading_progress}、{book_text}、{highlights}、{annotations})会在文件浏览器中自动隐藏此操作 — 它只在阅读时出现\n"
 "\n"
-"• 使用网页检查器测试动作：在插件文件夹运行 'lua tests/inspect.lua --web'\n"
+"• 使用 Web 检查器测试操作:从插件文件夹运行 'lua tests/inspect.lua --web'\n"
 "\n"
-"• 查看 README 获取完整的占位符列表和示例"
+"• 查看 README 获取完整占位符列表和示例"
 
 #: koassistant_ui/prompts_manager.lua:1636
 #, fuzzy
@@ -6203,40 +6468,40 @@ msgstr "插入..."
 #: koassistant_ui/prompts_manager.lua:1649
 #, fuzzy
 msgid "Action prompt cannot be empty"
-msgstr "动作提示词不能为空"
+msgstr "操作提示词不能为空"
 
 #: koassistant_ui/prompts_manager.lua:1684
 #, fuzzy
 msgid "Temperature: "
-msgstr "温度："
+msgstr "温度:"
 
 #: koassistant_ui/prompts_manager.lua:1693
 #: koassistant_ui/prompts_manager.lua:2602
 #: koassistant_ui/prompts_manager.lua:3310
 #, fuzzy
 msgid "Reasoning: "
-msgstr "推理："
+msgstr "推理:"
 
 #: koassistant_ui/prompts_manager.lua:1702
 #: koassistant_ui/prompts_manager.lua:2611
 #: koassistant_ui/prompts_manager.lua:3322
 #, fuzzy
 msgid "Provider: "
-msgstr "服务商："
+msgstr "提供商:"
 
 #: koassistant_ui/prompts_manager.lua:1708
 #: koassistant_ui/prompts_manager.lua:2617
 #: koassistant_ui/prompts_manager.lua:3328
 #, fuzzy
 msgid "Model: "
-msgstr "模型："
+msgstr "模型:"
 
 #: koassistant_ui/prompts_manager.lua:1712
 #: koassistant_ui/prompts_manager.lua:2621
 #: koassistant_ui/prompts_manager.lua:3332
 #, fuzzy
 msgid "Please select a provider first"
-msgstr "请先选择服务商"
+msgstr "请先选择一个提供商"
 
 #: koassistant_ui/prompts_manager.lua:1730
 #, fuzzy
@@ -6250,25 +6515,25 @@ msgid ""
 "\n"
 "Temperature: "
 msgstr ""
-"此动作的高级设置。\n"
+"此操作的高级设置。\n"
 "\n"
-"温度："
+"温度:"
 
 #: koassistant_ui/prompts_manager.lua:1766
 #, fuzzy
 msgid "Edit Action - Advanced"
-msgstr "编辑动作 - 高级设置"
+msgstr "编辑操作 - 高级"
 
 #: koassistant_ui/prompts_manager.lua:1766
 #, fuzzy
 msgid "Step 4/4: Advanced Settings"
-msgstr "步骤 4/4：高级设置"
+msgstr "步骤 4/4: 高级设置"
 
 #: koassistant_ui/prompts_manager.lua:1798
 #: koassistant_ui/prompts_manager.lua:2933
 #, fuzzy
 msgid "Use global"
-msgstr "使用全局设置"
+msgstr "使用全局"
 
 #: koassistant_ui/prompts_manager.lua:1819
 #: koassistant_ui/prompts_manager.lua:1831
@@ -6282,12 +6547,12 @@ msgstr "词典紧凑模式"
 #: koassistant_ui/prompts_manager.lua:1880
 #, fuzzy
 msgid "Standard"
-msgstr "标准"
+msgstr "标准模式"
 
 #: koassistant_ui/prompts_manager.lua:1830
 #, fuzzy
 msgid "Full dialog with all buttons"
-msgstr "带所有按钮的完整对话框"
+msgstr "包含所有按钮的完整对话框"
 
 #: koassistant_ui/prompts_manager.lua:1831
 #, fuzzy
@@ -6297,41 +6562,39 @@ msgstr "带语言按钮的紧凑模式"
 #: koassistant_ui/prompts_manager.lua:1832
 #, fuzzy
 msgid "With language switch and original toggle"
-msgstr "带语言切换和原文显示开关"
+msgstr "带语言切换和原文切换"
 
 #: koassistant_ui/prompts_manager.lua:1879
 #, fuzzy
 msgid "View modes control how results are displayed:"
-msgstr "视图模式控制结果的显示方式："
+msgstr "视图模式控制结果的显示方式:"
 
 #: koassistant_ui/prompts_manager.lua:1880
 #, fuzzy
 msgid "Full dialog with all response action buttons"
-msgstr "带所有响应操作按钮的完整对话框"
+msgstr "包含所有响应操作按钮的完整对话框"
 
 #: koassistant_ui/prompts_manager.lua:1881
 #, fuzzy
 msgid ""
-"Smaller dialog optimized for quick lookups, with language buttons for word-"
-"by-word translation"
-msgstr "针对快速查询优化的小型对话框，带逐词翻译的语言按钮"
+"Smaller dialog optimized for quick lookups, with language buttons for word-by-word translation"
+msgstr "优化用于快速查询的较小对话框,带有用于逐词翻译的语言按钮"
 
 #: koassistant_ui/prompts_manager.lua:1882
 #, fuzzy
 msgid ""
-"Translation view with language switch button and toggle to show/hide the "
-"original text"
-msgstr "带语言切换按钮和原文显示/隐藏开关的翻译视图"
+"Translation view with language switch button and toggle to show/hide the original text"
+msgstr "带语言切换按钮和显示/隐藏原文切换的翻译视图"
 
 #: koassistant_ui/prompts_manager.lua:1942
 #, fuzzy
 msgid "Force OFF for all providers"
-msgstr "为所有服务商强制关闭"
+msgstr "对所有提供商强制关闭"
 
 #: koassistant_ui/prompts_manager.lua:1952
 #, fuzzy
 msgid "Configure per-provider..."
-msgstr "按服务商配置..."
+msgstr "按提供商配置..."
 
 #: koassistant_ui/prompts_manager.lua:1970
 #, fuzzy
@@ -6345,24 +6608,22 @@ msgid ""
 "\n"
 "• Global: Follow per-provider settings in Settings menu\n"
 "• Force OFF: Never use thinking for this action\n"
-"• Configure: Set per-provider reasoning (Anthropic budget, OpenAI effort, "
-"Gemini level)\n"
+"• Configure: Set per-provider reasoning (Anthropic budget, OpenAI effort, Gemini level)\n"
 "\n"
 "May force temperature to 1.0 for some models."
 msgstr ""
-"推理为支持的模型启用复杂思考。\n"
+"推理功能为支持的模型启用复杂思考。\n"
 "\n"
-"• 全局：遵循设置菜单中的各服务商设置\n"
-"• 强制关闭：此动作永不使用思考\n"
-"• 配置：设置各服务商的推理参数（Anthropic token 预算、OpenAI 推理强度、"
-"Gemini 思考级别）\n"
+"• 全局:遵循设置菜单中的每个提供商设置\n"
+"• 强制关闭:此操作永不使用思考\n"
+"• 配置:设置每个提供商的推理(Anthropic 预算、OpenAI 努力程度、Gemini 级别)\n"
 "\n"
-"可能会强制某些模型的温度为 1.0。"
+"对于某些模型可能会强制温度为 1.0。"
 
 #: koassistant_ui/prompts_manager.lua:2002
 #, fuzzy
 msgid "(global)"
-msgstr "（全局）"
+msgstr "(全局)"
 
 #: koassistant_ui/prompts_manager.lua:2003
 #: koassistant_ui/prompts_manager.lua:2092
@@ -6375,13 +6636,13 @@ msgstr "关闭"
 #: koassistant_ui/prompts_manager.lua:2005
 #, fuzzy
 msgid "ON (%1 tokens)"
-msgstr "开启（%1 tokens）"
+msgstr "开启 (%1 tokens)"
 
 #: koassistant_ui/prompts_manager.lua:2007
 #: koassistant_ui/prompts_manager.lua:2009
 #, fuzzy
 msgid "ON ("
-msgstr "开启（"
+msgstr "开启 ("
 
 #: koassistant_ui/prompts_manager.lua:2011
 #, fuzzy
@@ -6391,22 +6652,22 @@ msgstr "开启"
 #: koassistant_ui/prompts_manager.lua:2032
 #, fuzzy
 msgid "Anthropic: "
-msgstr "Anthropic："
+msgstr "Anthropic:"
 
 #: koassistant_ui/prompts_manager.lua:2041
 #, fuzzy
 msgid "OpenAI: "
-msgstr "OpenAI："
+msgstr "OpenAI:"
 
 #: koassistant_ui/prompts_manager.lua:2050
 #, fuzzy
 msgid "Gemini: "
-msgstr "Gemini："
+msgstr "Gemini:"
 
 #: koassistant_ui/prompts_manager.lua:2069
 #, fuzzy
 msgid "Per-Provider Reasoning"
-msgstr "各服务商推理设置"
+msgstr "按提供商推理"
 
 #: koassistant_ui/prompts_manager.lua:2070
 #, fuzzy
@@ -6414,13 +6675,13 @@ msgid ""
 "Configure reasoning for each provider independently.\n"
 "DeepSeek reasoner model always uses reasoning automatically."
 msgstr ""
-"为每个服务商独立配置推理。\n"
-"DeepSeek reasoner 模型始终自动使用推理。"
+"为每个提供商独立配置推理。\n"
+"DeepSeek 推理模型始终自动使用推理。"
 
 #: koassistant_ui/prompts_manager.lua:2102
 #, fuzzy
 msgid "ON (set budget)..."
-msgstr "开启（设置预算）..."
+msgstr "开启(设置预算)..."
 
 #: koassistant_ui/prompts_manager.lua:2122
 #, fuzzy
@@ -6429,7 +6690,7 @@ msgid ""
 "Supports: Sonnet 4.5, Opus 4.x, Haiku 4.5, Sonnet 3.7"
 msgstr ""
 "Claude 模型的扩展思考。\n"
-"支持：Sonnet 4.5、Opus 4.x、Haiku 4.5、Sonnet 3.7"
+"支持:Sonnet 4.5、Opus 4.x、Haiku 4.5、Sonnet 3.7"
 
 #: koassistant_ui/prompts_manager.lua:2138
 #: koassistant_ui/prompts_manager.lua:2310
@@ -6445,8 +6706,8 @@ msgid ""
 "Range: %1 - %2"
 msgstr ""
 "扩展思考的 token 预算。\n"
-"数值越高 = 推理越复杂。\n"
-"范围：%1 - %2"
+"越高 = 推理越复杂。\n"
+"范围:%1 - %2"
 
 #: koassistant_ui/prompts_manager.lua:2181
 #, fuzzy
@@ -6456,7 +6717,7 @@ msgstr "低强度"
 #: koassistant_ui/prompts_manager.lua:2191
 #, fuzzy
 msgid "Medium effort"
-msgstr "中等强度"
+msgstr "中强度"
 
 #: koassistant_ui/prompts_manager.lua:2201
 #, fuzzy
@@ -6475,7 +6736,7 @@ msgid ""
 "Supports: o3, o3-mini, o4-mini, GPT-5.x"
 msgstr ""
 "OpenAI 模型的推理强度。\n"
-"支持：o3、o3-mini、o4-mini、GPT-5.x"
+"支持:o3、o3-mini、o4-mini、GPT-5.x"
 
 #: koassistant_ui/prompts_manager.lua:2295
 #, fuzzy
@@ -6483,8 +6744,8 @@ msgid ""
 "Thinking level for Gemini models.\n"
 "Supports: gemini-3-*-preview"
 msgstr ""
-"Gemini 模型的思考深度。\n"
-"支持：gemini-3-*-preview"
+"Gemini 模型的思考级别。\n"
+"支持:gemini-3-*-preview"
 
 #: koassistant_ui/prompts_manager.lua:2311
 #, fuzzy
@@ -6493,9 +6754,9 @@ msgid ""
 "Higher = more complex reasoning.\n"
 "Range: %1 - %2"
 msgstr ""
-"推理的 token 预算（Anthropic）。\n"
-"数值越高 = 推理越复杂。\n"
-"范围：%1 - %2"
+"推理的 token 预算 (Anthropic)。\n"
+"越高 = 推理越复杂。\n"
+"范围:%1 - %2"
 
 #: koassistant_ui/prompts_manager.lua:2388
 #: koassistant_ui/prompts_manager.lua:3001
@@ -6515,7 +6776,7 @@ msgstr "自定义模型..."
 #: koassistant_ui/prompts_manager.lua:3051
 #, fuzzy
 msgid "Select Model for "
-msgstr "为以下选择模型："
+msgstr "选择模型用于"
 
 #: koassistant_ui/prompts_manager.lua:2452
 #: koassistant_ui/prompts_manager.lua:3062
@@ -6534,7 +6795,7 @@ msgstr "输入模型 ID"
 #: koassistant_ui/prompts_manager.lua:3065
 #, fuzzy
 msgid "Enter the exact model ID for "
-msgstr "输入确切的模型ID："
+msgstr "输入确切的模型 ID 用于"
 
 #: koassistant_ui/prompts_manager.lua:2557
 #: koassistant_ui/prompts_manager.lua:3256
@@ -6546,13 +6807,13 @@ msgstr "自定义"
 #: koassistant_ui/prompts_manager.lua:3294
 #, fuzzy
 msgid "AI Behavior: "
-msgstr "AI 行为："
+msgstr "AI 行为:"
 
 #: koassistant_ui/prompts_manager.lua:2596
 #: koassistant_ui/prompts_manager.lua:3304
 #, fuzzy
 msgid "Temp: "
-msgstr "温度："
+msgstr "温度:"
 
 #: koassistant_ui/prompts_manager.lua:2775
 #, fuzzy
@@ -6563,22 +6824,22 @@ msgid ""
 "\n"
 "Tip: To edit the action prompt, use 'Duplicate' to create a custom copy."
 msgstr ""
-"这些设置会覆盖此内置动作的默认值。\n"
+"这些设置覆盖此内置操作的默认值。\n"
 "\n"
 "设置为\"全局\"以使用默认设置。\n"
 "\n"
-"提示：要编辑动作提示词，请使用\"复制\"创建自定义副本。"
+"提示:要编辑操作提示词,请使用\"复制\"创建自定义副本。"
 
 #: koassistant_ui/prompts_manager.lua:2794
 #, fuzzy
 msgid "Edit Built-in: %1"
-msgstr "编辑内置动作：%1"
+msgstr "编辑内置:%1"
 
 #: koassistant_ui/prompts_manager.lua:2825
 #: koassistant_ui/prompts_manager.lua:3578
 #, fuzzy
 msgid "None (no behavior)"
-msgstr "无（无行为）"
+msgstr "无(无行为)"
 
 #: koassistant_ui/prompts_manager.lua:2878
 #, fuzzy
@@ -6588,7 +6849,7 @@ msgstr "自定义行为"
 #: koassistant_ui/prompts_manager.lua:2880
 #, fuzzy
 msgid "Describe how the AI should behave"
-msgstr "描述 AI 应如何表现"
+msgstr "描述 AI 应如何行为"
 
 #: koassistant_ui/prompts_manager.lua:2929
 #, fuzzy
@@ -6597,9 +6858,9 @@ msgid ""
 "Lower = focused\n"
 "Higher = creative"
 msgstr ""
-"范围：0.0-2.0（Anthropic 最大 1.0）\n"
-"较低 = 专注\n"
-"较高 = 有创意"
+"范围:0.0-2.0 (Anthropic 最大 1.0)\n"
+"越低 = 越专注\n"
+"越高 = 越有创意"
 
 #: koassistant_ui/prompts_manager.lua:3209
 #, fuzzy
@@ -6610,12 +6871,12 @@ msgstr "设置已保存"
 #: koassistant_ui/prompts_manager.lua:3880
 #, fuzzy
 msgid "Settings reset to default"
-msgstr "设置已重置为默认值"
+msgstr "设置已重置为默认"
 
 #: koassistant_ui/prompts_manager.lua:3284
 #, fuzzy
 msgid "Name: "
-msgstr "名称："
+msgstr "名称:"
 
 #: koassistant_ui/prompts_manager.lua:3483
 #, fuzzy
@@ -6629,31 +6890,31 @@ msgid ""
 "\n"
 "For name, context, or prompt text changes, use Full Editor."
 msgstr ""
-"快速编辑：%1\n"
+"快速编辑:%1\n"
 "\n"
-"如需更改名称、上下文或提示词文本，请使用完整编辑器。"
+"要更改名称、上下文或提示词文本,请使用完整编辑器。"
 
 #: koassistant_ui/prompts_manager.lua:3505
 #, fuzzy
 msgid "Edit Custom Action"
-msgstr "编辑自定义动作"
+msgstr "编辑自定义操作"
 
 #: koassistant_ui/prompts_manager.lua:3517
 #, fuzzy
 msgid "Action Name"
-msgstr "动作名称"
+msgstr "操作名称"
 
 #: koassistant_ui/prompts_manager.lua:3519
 #, fuzzy
 msgid "Enter action name"
-msgstr "输入动作名称"
+msgstr "输入操作名称"
 
 #: koassistant_ui/prompts_manager.lua:3565
 #: koassistant_ui/prompts_manager.lua:3679
 #: koassistant_ui/prompts_manager.lua:3731
 #, fuzzy
 msgid "Global (use setting)"
-msgstr "全局（使用设置）"
+msgstr "全局(使用设置)"
 
 #: koassistant_ui/prompts_manager.lua:3608
 #, fuzzy
@@ -6668,7 +6929,7 @@ msgstr "选择 AI 行为"
 #: koassistant_ui/prompts_manager.lua:3640
 #, fuzzy
 msgid "Enter custom behavior instructions..."
-msgstr "输入自定义行为指令..."
+msgstr "输入自定义行为说明..."
 
 #: koassistant_ui/prompts_manager.lua:3717
 #, fuzzy
@@ -6688,22 +6949,22 @@ msgstr "输入模型名称"
 #: koassistant_ui/prompts_manager.lua:3888
 #, fuzzy
 msgid "Selected Text"
-msgstr "选中文本"
+msgstr "选中的文本"
 
 #: koassistant_ui/prompts_manager.lua:3889
 #, fuzzy
 msgid "Book Title"
-msgstr "书名"
+msgstr "书籍标题"
 
 #: koassistant_ui/prompts_manager.lua:3890
 #, fuzzy
 msgid "Author Name"
-msgstr "作者名"
+msgstr "作者姓名"
 
 #: koassistant_ui/prompts_manager.lua:3891
 #, fuzzy
 msgid "Author Clause"
-msgstr "作者从句"
+msgstr "作者条款"
 
 #: koassistant_ui/prompts_manager.lua:3892
 #, fuzzy
@@ -6728,32 +6989,32 @@ msgstr "进度 (0.0-1.0)"
 #: koassistant_ui/prompts_manager.lua:3898
 #, fuzzy
 msgid "Book Text (with label)"
-msgstr "书籍文本（带标签）"
+msgstr "书籍文本 (带标签)"
 
 #: koassistant_ui/prompts_manager.lua:3899
 #, fuzzy
 msgid "Book Text (raw)"
-msgstr "书籍文本（原始）"
+msgstr "书籍文本 (原始)"
 
 #: koassistant_ui/prompts_manager.lua:3900
 #, fuzzy
 msgid "Highlights (with label)"
-msgstr "高亮（带标签）"
+msgstr "高亮 (带标签)"
 
 #: koassistant_ui/prompts_manager.lua:3901
 #, fuzzy
 msgid "Highlights (raw)"
-msgstr "高亮（原始）"
+msgstr "高亮 (原始)"
 
 #: koassistant_ui/prompts_manager.lua:3902
 #, fuzzy
 msgid "Annotations (with label)"
-msgstr "批注（带标签）"
+msgstr "注释 (带标签)"
 
 #: koassistant_ui/prompts_manager.lua:3903
 #, fuzzy
 msgid "Annotations (raw)"
-msgstr "批注（原始）"
+msgstr "注释 (原始)"
 
 #: koassistant_ui/prompts_manager.lua:3904
 #, fuzzy
@@ -6768,68 +7029,72 @@ msgstr "已读章节数"
 #: koassistant_ui/prompts_manager.lua:3906
 #, fuzzy
 msgid "Time Since Last Read"
-msgstr "距上次阅读的时间"
+msgstr "距上次阅读时间"
 
 #: koassistant_ui/prompts_manager.lua:3907
 #, fuzzy
 msgid "Notebook (with label)"
-msgstr "书籍文本（带标签）"
+msgstr "笔记本 (带标签)"
 
 #: koassistant_ui/prompts_manager.lua:3908
 #, fuzzy
 msgid "Notebook (raw)"
-msgstr "书籍文本（原始）"
+msgstr "笔记本 (原始)"
 
 #: koassistant_ui/prompts_manager.lua:3910
 #, fuzzy
 msgid "Full Document (with label)"
-msgstr "书籍文本（带标签）"
+msgstr "完整文档 (带标签)"
 
 #: koassistant_ui/prompts_manager.lua:3911
+#, fuzzy
 msgid "Full Document (raw)"
-msgstr ""
+msgstr "完整文档 (原始)"
 
 #: koassistant_ui/prompts_manager.lua:3913
 #, fuzzy
 msgid "X-Ray Cache (with label)"
-msgstr "书籍文本（带标签）"
+msgstr "X-Ray 缓存 (带标签)"
 
 #: koassistant_ui/prompts_manager.lua:3914
+#, fuzzy
 msgid "X-Ray Cache (raw)"
-msgstr ""
+msgstr "X-Ray 缓存 (原始)"
 
 #: koassistant_ui/prompts_manager.lua:3915
 #, fuzzy
 msgid "Analysis Cache (with label)"
-msgstr "批注（带标签）"
+msgstr "分析缓存 (带标签)"
 
 #: koassistant_ui/prompts_manager.lua:3916
+#, fuzzy
 msgid "Analysis Cache (raw)"
-msgstr ""
+msgstr "分析缓存 (原始)"
 
 #: koassistant_ui/prompts_manager.lua:3917
 #, fuzzy
 msgid "Summary Cache (with label)"
-msgstr "书籍文本（带标签）"
+msgstr "摘要缓存 (带标签)"
 
 #: koassistant_ui/prompts_manager.lua:3918
+#, fuzzy
 msgid "Summary Cache (raw)"
-msgstr ""
+msgstr "摘要缓存 (原始)"
 
 #: koassistant_ui/prompts_manager.lua:3920
 #, fuzzy
 msgid "Surrounding Context (with label)"
-msgstr "书籍文本（带标签）"
+msgstr "上下文 (带标签)"
 
 #: koassistant_ui/prompts_manager.lua:3921
 #, fuzzy
 msgid "Surrounding Context (raw)"
-msgstr "包含周围上下文重新运行"
+msgstr "上下文 (原始)"
 
 #: koassistant_ui/prompts_manager.lua:3936
 #, fuzzy
 msgid "(No placeholders for general context)"
-msgstr "（通用上下文无占位符）"
+msgstr "(通用上下文无占位符)"
 
 #: koassistant_ui/prompts_manager.lua:3975
 #, fuzzy
@@ -6857,7 +7122,7 @@ msgstr "动作删除成功"
 #: koassistant_ui/prompts_manager.lua:4661
 #, fuzzy
 msgid "No highlight actions available."
-msgstr "没有可用的高亮动作。"
+msgstr "无可用的高亮动作。"
 
 #: koassistant_ui/prompts_manager.lua:4197
 #: koassistant_ui/prompts_manager.lua:4360
@@ -6868,13 +7133,13 @@ msgstr "✓ = 在菜单中 | 点击 = 切换 | 长按 = 移动"
 #: koassistant_ui/prompts_manager.lua:4223
 #, fuzzy
 msgid "Changes require restart to take effect"
-msgstr "更改需要重启才能生效"
+msgstr "更改需要重启后生效"
 
 #: koassistant_ui/prompts_manager.lua:4236
 #: koassistant_ui/prompts_manager.lua:4394
 #, fuzzy
 msgid "Highlight Menu (%1 enabled)"
-msgstr "高亮菜单（已启用 %1 个）"
+msgstr "高亮菜单 (已启用 %1 项)"
 
 #: koassistant_ui/prompts_manager.lua:4275
 #: koassistant_ui/prompts_manager.lua:4433
@@ -6896,7 +7161,7 @@ msgstr "↓ 下移"
 #: koassistant_ui/prompts_manager.lua:4460
 #, fuzzy
 msgid "Remove from Menu"
-msgstr "从菜单移除"
+msgstr "从菜单中移除"
 
 #: koassistant_ui/prompts_manager.lua:4323
 #: koassistant_ui/prompts_manager.lua:4481
@@ -6904,27 +7169,27 @@ msgstr "从菜单移除"
 #: koassistant_ui/prompts_manager.lua:4797
 #, fuzzy
 msgid "Position: "
-msgstr "位置："
+msgstr "位置:"
 
 #: koassistant_ui/prompts_manager.lua:4503
 #, fuzzy
 msgid "No book actions available."
-msgstr "没有可用的领域"
+msgstr "无可用的书籍动作。"
 
 #: koassistant_ui/prompts_manager.lua:4518
 #, fuzzy
 msgid "✓ = in panel | Tap = toggle | Hold = move"
-msgstr "✓ = 在菜单中 | 点击 = 切换 | 长按 = 移动"
+msgstr "✓ = 在面板中 | 点击 = 切换 | 长按 = 移动"
 
 #: koassistant_ui/prompts_manager.lua:4552
 #, fuzzy
 msgid "Quick Actions (%1 enabled)"
-msgstr "词典弹窗（已启用 %1 个）"
+msgstr "快捷操作 (已启用 %1 项)"
 
 #: koassistant_ui/prompts_manager.lua:4618
 #, fuzzy
 msgid "Remove from Panel"
-msgstr "从菜单移除"
+msgstr "从面板中移除"
 
 #: koassistant_ui/prompts_manager.lua:4676
 #, fuzzy
@@ -6934,12 +7199,12 @@ msgstr "✓ = 在弹窗中 | 点击 = 切换 | 长按 = 移动"
 #: koassistant_ui/prompts_manager.lua:4710
 #, fuzzy
 msgid "Dictionary Popup (%1 enabled)"
-msgstr "词典弹窗（已启用 %1 个）"
+msgstr "词典弹窗 (已启用 %1 项)"
 
 #: koassistant_ui/prompts_manager.lua:4776
 #, fuzzy
 msgid "Remove from Popup"
-msgstr "从弹窗移除"
+msgstr "从弹窗中移除"
 
 #: koassistant_ui/settings_manager.lua:264
 #, fuzzy
@@ -6949,7 +7214,7 @@ msgstr "无效值"
 #: koassistant_ui/settings_manager.lua:362
 #, fuzzy
 msgid "Are you sure?"
-msgstr "您确定吗？"
+msgstr "确定吗?"
 
 #: prompts/actions.lua:141
 #, fuzzy
@@ -6959,7 +7224,7 @@ msgstr "解释"
 #: prompts/actions.lua:154
 #, fuzzy
 msgid "ELI5"
-msgstr "简单解释"
+msgstr "通俗解释"
 
 #: prompts/actions.lua:166
 #, fuzzy
@@ -6969,7 +7234,7 @@ msgstr "总结"
 #: prompts/actions.lua:178
 #, fuzzy
 msgid "Elaborate"
-msgstr "展开"
+msgstr "详细说明"
 
 #: prompts/actions.lua:190
 #, fuzzy
@@ -6977,36 +7242,39 @@ msgid "Connect"
 msgstr "关联"
 
 #: prompts/actions.lua:211
+#, fuzzy
 msgid "Connect (With Notes)"
-msgstr ""
+msgstr "关联(含笔记)"
 
 #: prompts/actions.lua:248
 #, fuzzy
 msgid "Explain in Context"
-msgstr "编辑领域 - 内容"
+msgstr "结合上下文解释"
 
 #: prompts/actions.lua:272
 #, fuzzy
 msgid "Analyze in Context"
-msgstr "通用上下文"
+msgstr "结合上下文分析"
 
 #: prompts/actions.lua:301
+#, fuzzy
 msgid "Explain in Context (Smart)"
-msgstr ""
+msgstr "结合上下文解释(智能)"
 
 #: prompts/actions.lua:330
+#, fuzzy
 msgid "Analyze in Context (Smart)"
-msgstr ""
+msgstr "结合上下文分析(智能)"
 
 #: prompts/actions.lua:366
 #, fuzzy
 msgid "Book Info"
-msgstr "书籍信息"
+msgstr "图书信息"
 
 #: prompts/actions.lua:377
 #, fuzzy
 msgid "Find Similar"
-msgstr "查找相似"
+msgstr "查找相似内容"
 
 #: prompts/actions.lua:388
 #, fuzzy
@@ -7051,31 +7319,32 @@ msgstr "讨论问题"
 #: prompts/actions.lua:771
 #, fuzzy
 msgid "Analyze Document"
-msgstr "分析收藏"
+msgstr "分析文档"
 
 #: prompts/actions.lua:796
 #, fuzzy
 msgid "Summarize Document"
-msgstr "总结"
+msgstr "总结文档"
 
 #: prompts/actions.lua:810
+#, fuzzy
 msgid "Extract Key Insights"
-msgstr ""
+msgstr "提取关键见解"
 
 #: prompts/actions.lua:835
 #, fuzzy
 msgid "Compare Books"
-msgstr "对比书籍"
+msgstr "对比图书"
 
 #: prompts/actions.lua:846
 #, fuzzy
 msgid "Find Common Themes"
-msgstr "寻找共同主题"
+msgstr "查找共同主题"
 
 #: prompts/actions.lua:856
 #, fuzzy
 msgid "Analyze Collection"
-msgstr "分析收藏"
+msgstr "分析合集"
 
 #: prompts/actions.lua:866
 #, fuzzy
@@ -7088,8 +7357,9 @@ msgid "Reading Order"
 msgstr "阅读顺序"
 
 #: prompts/actions.lua:891
+#, fuzzy
 msgid "News Update"
-msgstr ""
+msgstr "新闻更新"
 
 #: prompts/actions.lua:934
 #, fuzzy
