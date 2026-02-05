@@ -749,9 +749,12 @@ end
 
 -- Absolute timeouts for update checks (seconds)
 -- These are wall-clock timeouts that kill the subprocess regardless of connection state
-local AUTO_CHECK_TIMEOUT = 4    -- Timeout for automatic background checks (silent, non-intrusive)
-local MANUAL_CHECK_TIMEOUT = 10 -- Longer timeout for user-initiated checks
+local AUTO_CHECK_TIMEOUT = 8    -- Timeout for automatic background checks (silent, non-intrusive)
+local MANUAL_CHECK_TIMEOUT = 15 -- Longer timeout for user-initiated checks
 local WARMUP_TIMEOUT = 0.5      -- Quick TCP warmup before fork (macOS fix)
+
+-- Detect if running on macOS (for TCP warmup which is only needed on macOS)
+local IS_MACOS = ffi.os == "OSX"
 
 --- Wrap a file descriptor for ltn12 sink
 local function wrap_fd(fd)
@@ -776,8 +779,8 @@ local function fetchWithAbsoluteTimeout(url, timeout, callback)
 
     -- Warmup: Make a quick TCP connection in parent before fork
     -- This fixes macOS-specific issues where subprocess connections hang intermittently
-    -- (copied from base.lua backgroundRequest)
-    if url:sub(1, 8) == "https://" then
+    -- Skip on e-readers to avoid wasting time on slow network connections
+    if IS_MACOS and url:sub(1, 8) == "https://" then
         local host = url:match("https://([^/:]+)")
         if host then
             pcall(function()
