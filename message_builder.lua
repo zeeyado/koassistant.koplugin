@@ -17,6 +17,12 @@ pcall(function()
     logger = require("logger")
 end)
 
+-- Try to load Templates for utility placeholder constants
+local Templates
+pcall(function()
+    Templates = require("prompts/templates")
+end)
+
 local function log_warn(msg)
     if logger then
         logger.warn(msg)
@@ -117,6 +123,13 @@ function MessageBuilder.build(params)
     if not user_prompt then
         log_warn("Action missing prompt field: " .. (prompt.text or "unknown"))
         user_prompt = ""
+    end
+
+    -- Substitute utility placeholders (conciseness/hallucination nudges)
+    -- These are defined in Templates but used in both template and direct-prompt actions
+    if Templates then
+        user_prompt = replace_placeholder(user_prompt, "{conciseness_nudge}", Templates.CONCISENESS_NUDGE or "")
+        user_prompt = replace_placeholder(user_prompt, "{hallucination_nudge}", Templates.HALLUCINATION_NUDGE or "")
     end
 
     -- Substitute language placeholders early (applies to all contexts)
@@ -423,6 +436,12 @@ end
 -- @return string the prompt with placeholders replaced
 function MessageBuilder.substituteVariables(prompt_text, data)
     local result = prompt_text
+
+    -- Utility placeholders (conciseness/hallucination nudges)
+    if Templates then
+        result = replace_placeholder(result, "{conciseness_nudge}", Templates.CONCISENESS_NUDGE or "")
+        result = replace_placeholder(result, "{hallucination_nudge}", Templates.HALLUCINATION_NUDGE or "")
+    end
 
     -- Common substitutions
     if data.translation_language then
