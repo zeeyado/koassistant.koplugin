@@ -413,6 +413,14 @@ The table below documents which flags are required for each data type (relevant 
 
 \* Surrounding context is a text selection type for highlight context (same as highlighting text), included here for clarity because it extracts more than you highlighted.
 
+**Privacy compromise for X-Ray:** If you want X-Ray to analyze actual book content but prefer not to share your personal annotations, enable **only** "Allow Text Extraction" (leave "Allow Highlights & Annotations" off). X-Ray will analyze the book text without including your highlights or notes.
+
+**Cache permission inheritance:** When the X-Ray cache is built, it records whether annotations were included. Actions that later reference `{xray_cache_section}` inherit these requirements:
+- Cache built **without** annotations → Only "Allow Text Extraction" needed to use it
+- Cache built **with** annotations → Both "Allow Text Extraction" AND "Allow Highlights & Annotations" required
+
+If you change privacy settings after building a cache (e.g., disable annotations), actions may render the cache placeholder empty. To fix: either re-enable the required permissions, or regenerate the cache with your current settings using the "↻ Fresh" button.
+
 **Two text extraction types** (determined by placeholder in your action prompt):
 - `{book_text_section}` — Extracts from start to your current reading position (used by X-Ray, Recap)
 - `{full_document_section}` — Extracts the entire document regardless of position (for short papers, articles)
