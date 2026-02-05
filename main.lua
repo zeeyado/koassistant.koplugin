@@ -1072,6 +1072,14 @@ function AskGPT:onDispatcherRegisterActions()
     reader = true,
   })
 
+  Dispatcher:registerAction("koassistant_view_caches", {
+    category = "none",
+    event = "KOAssistantViewCaches",
+    title = _("KOAssistant: View Caches"),
+    general = false,
+    reader = true,
+  })
+
   -- Register user-configured action gestures
   -- These are toggled per-action in Action Manager → hold action → "Add to Gesture Menu"
   -- Uses ActionService:getGestureActions() to inject defaults from in_gesture_menu flags
@@ -5307,6 +5315,11 @@ end
 --- View summary gesture handler (replaces View Cache - summary-centric design)
 function AskGPT:onKOAssistantViewSummary()
   self:viewSummary()
+  return true
+end
+
+function AskGPT:onKOAssistantViewCaches()
+  self:viewCache()
   return true
 end
 
