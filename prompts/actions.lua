@@ -1133,9 +1133,9 @@ All labels and explanations in {dictionary_language}. Inline bold labels, no hea
         context = "highlight",  -- Only for highlighted text
         behavior_variant = "dictionary_detailed",  -- Use built-in detailed dictionary behavior
         in_dictionary_popup = 3,  -- Default order in dictionary popup
-        prompt = [[Deep analysis: {highlighted_text}
+        prompt = [[Deep analysis of the word "{highlighted_text}":
 
-**{word}** /IPA/ _part of speech_ of **lemma**
+**{highlighted_text}** /IPA/ _part of speech_ of **lemma**
 
 **Morphology:** [Semitic: root + pattern/wazn + verb form if applicable | IE: stem + affixes + compounds | Other: what's morphologically salient]
 
