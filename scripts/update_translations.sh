@@ -37,6 +37,9 @@ VERSION=${VERSION:-0.0.0}
 echo "Plugin version: $VERSION"
 echo ""
 
+# Save old strings for comparison
+OLD_STRINGS=$(grep '^msgid "' locale/koassistant.pot 2>/dev/null | sort)
+
 # Step 1: Regenerate .pot file
 echo "Step 1: Extracting translatable strings..."
 if ! xgettext --from-code=UTF-8 -L Lua \
@@ -84,6 +87,26 @@ for lang in $LANGUAGES; do
         echo "  $lang: file not found, skipping"
     fi
 done
+
+# Show new and removed strings
+NEW_STRINGS=$(grep '^msgid "' locale/koassistant.pot 2>/dev/null | sort)
+ADDED=$(comm -13 <(echo "$OLD_STRINGS") <(echo "$NEW_STRINGS") | sed 's/^msgid "//;s/"$//')
+REMOVED=$(comm -23 <(echo "$OLD_STRINGS") <(echo "$NEW_STRINGS") | sed 's/^msgid "//;s/"$//')
+
+if [ -n "$ADDED" ]; then
+    echo ""
+    echo "=== New strings ==="
+    echo "$ADDED" | while read -r line; do echo "  + $line"; done
+fi
+if [ -n "$REMOVED" ]; then
+    echo ""
+    echo "=== Removed strings ==="
+    echo "$REMOVED" | while read -r line; do echo "  - $line"; done
+fi
+if [ -z "$ADDED" ] && [ -z "$REMOVED" ]; then
+    echo ""
+    echo "No string changes."
+fi
 
 echo ""
 echo "=== Done ==="
