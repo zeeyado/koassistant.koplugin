@@ -100,13 +100,14 @@ function BaseHandler:backgroundRequest(url, headers, body)
     -- Warmup: Make a quick TCP connection in parent before fork
     -- This fixes macOS-specific issues where subprocess connections hang intermittently
     -- The warmup establishes DNS/connection state that persists across fork
-    if string.sub(url, 1, 8) == "https://" then
+    -- Only needed on macOS; skip on e-readers to avoid blocking UI on slow networks
+    if ffi.os == "OSX" and string.sub(url, 1, 8) == "https://" then
         local parent_socket = require("socket")
         local host = url:match("https://([^/:]+)")
         if host then
             pcall(function()
                 local sock = parent_socket.tcp()
-                sock:settimeout(5)
+                sock:settimeout(0.5)
                 sock:connect(host, 443)
                 sock:close()
             end)
