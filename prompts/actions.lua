@@ -746,11 +746,11 @@ Aim for the most significant connections, not an exhaustive list. {conciseness_n
         id = "key_arguments",
         text = _("Key Arguments"),
         context = "book",
-        use_book_text = true,  -- Gate for accessing {analyze_cache_section} cache
+        use_book_text = true,  -- Permission gate for text extraction
         -- No behavior_variant - uses user's global behavior
         -- No skip_domain - domain expertise shapes analysis approach
         prompt = [[Analyze the main arguments in "{title}"{author_clause}.
-{analyze_cache_section}
+{full_document_section}
 
 ## Core Thesis
 What is the central claim or argument?
@@ -777,6 +777,52 @@ What's the "so what" — why does this argument matter?
 If this is fiction, adapt to analyze themes, messages, and the author's apparent worldview instead of formal arguments.
 
 This is an overview, not an essay. {conciseness_nudge} {hallucination_nudge}]],
+        api_params = {
+            temperature = 0.6,
+            max_tokens = 4096,
+        },
+        builtin = true,
+    },
+    -- Key Arguments (Smart): Thesis and argument analysis using cached summary
+    key_arguments_smart = {
+        id = "key_arguments_smart",
+        text = _("Key Arguments (Smart)"),
+        context = "book",
+        use_book_text = true,        -- Gate for accessing _summary_cache
+        use_summary_cache = true,    -- Reference the cached summary
+        requires_summary_cache = true,  -- Trigger pre-flight cache check
+        prompt = [[Analyze the main arguments in "{title}"{author_clause}.
+
+{summary_cache_section}
+
+## Core Thesis
+What is the central claim or argument?
+
+## Supporting Arguments
+What are the key sub-claims that support the thesis?
+
+## Evidence & Methodology
+What types of evidence does the author use?
+What's their approach to building the argument?
+
+## Assumptions
+What does the author take for granted?
+What premises underlie the argument?
+
+## Counterarguments
+What would critics say?
+What are the strongest objections to this position?
+
+## Intellectual Context
+What debates is this work participating in?
+What's the "so what" — why does this argument matter?
+
+If this is fiction, adapt to analyze themes, messages, and the author's apparent worldview instead of formal arguments.
+
+This is an overview, not an essay. {conciseness_nudge} {hallucination_nudge}
+
+Note: The summary may be in a different language than your response language. Translate or adapt as needed.]],
+        skip_domain = true,  -- Analysis format is standardized
         api_params = {
             temperature = 0.6,
             max_tokens = 4096,
@@ -857,6 +903,44 @@ Note: The summary may be in a different language than your response language. Tr
         skip_domain = true,  -- Discussion format is standardized
         api_params = {
             temperature = 0.7,
+            max_tokens = 4096,
+        },
+        builtin = true,
+    },
+    -- Generate Quiz: Create comprehension questions from full book text
+    generate_quiz = {
+        id = "generate_quiz",
+        text = _("Generate Quiz"),
+        context = "book",
+        use_book_text = true,  -- Permission gate for text extraction
+        prompt = [[Create a comprehension quiz for "{title}"{author_clause}.
+
+{full_document_section}
+
+Generate 8-10 questions with answers to test understanding:
+
+## Multiple Choice (3-4 questions)
+Test recall of key facts, characters, or concepts.
+Format: Question, options A-D, correct answer with brief explanation.
+
+## Short Answer (3-4 questions)
+Test understanding of themes, arguments, or motivations.
+Format: Question, then model answer (2-3 sentences).
+
+## Discussion/Essay (2 questions)
+Open-ended questions requiring synthesis or analysis.
+Format: Question, then key points a good answer should cover.
+
+Adapt to content type:
+- Fiction: Focus on plot, characters, themes, narrative choices
+- Non-fiction: Focus on arguments, evidence, key concepts, implications
+- Academic: Include questions about methodology and scholarly implications
+
+{conciseness_nudge}
+
+Note: These are general questions for the complete work. If the reader is mid-book, they can ask for spoiler-free questions in the follow-up. {hallucination_nudge}]],
+        api_params = {
+            temperature = 0.6,  -- Balanced variety
             max_tokens = 4096,
         },
         builtin = true,
