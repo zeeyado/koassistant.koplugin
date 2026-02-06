@@ -1640,8 +1640,9 @@ function ChatGPTViewer:init()
     enabled = has_rerun and true or false,
     callback = function()
       if not has_rerun then return end
-      local languages = rerun_features.user_languages
-      if not languages or languages == "" then
+      local plugin = self.configuration._rerun_plugin
+      local languages = plugin and plugin.getCombinedLanguages and plugin:getCombinedLanguages() or {}
+      if #languages == 0 then
         UIManager:show(Notification:new{
           text = _("Configure languages in Settings first"),
           timeout = 2,
@@ -1651,8 +1652,7 @@ function ChatGPTViewer:init()
       -- Build language buttons with native display names
       local lang_dialog
       local lang_buttons = {}
-      for lang in languages:gmatch("[^,]+") do
-        lang = lang:match("^%s*(.-)%s*$")  -- trim
+      for _i, lang in ipairs(languages) do
         table.insert(lang_buttons, {{
           text = Languages.getDisplay(lang),  -- Native script display
           callback = function()
@@ -1973,8 +1973,9 @@ function ChatGPTViewer:init()
     enabled = translate_has_rerun and true or false,
     callback = function()
       if not translate_has_rerun then return end
-      local languages = translate_rerun_features.user_languages
-      if not languages or languages == "" then
+      local plugin = self.configuration._rerun_plugin
+      local languages = plugin and plugin.getCombinedLanguages and plugin:getCombinedLanguages() or {}
+      if #languages == 0 then
         UIManager:show(Notification:new{
           text = _("Configure languages in Settings first"),
           timeout = 2,
@@ -1984,8 +1985,7 @@ function ChatGPTViewer:init()
       -- Build language buttons with native display names
       local lang_dialog
       local lang_buttons = {}
-      for lang in languages:gmatch("[^,]+") do
-        lang = lang:match("^%s*(.-)%s*$")  -- trim
+      for _i, lang in ipairs(languages) do
         table.insert(lang_buttons, {{
           text = Languages.getDisplay(lang),  -- Native script display
           callback = function()
