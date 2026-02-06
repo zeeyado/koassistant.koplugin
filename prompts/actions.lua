@@ -1078,7 +1078,7 @@ Actions.special = {
 
 Write entirely in {dictionary_language}. Only the headword stays in original language.
 
-**word**, part of speech — definition
+**{highlighted_text}**, part of speech — definition
 
 {context_section}
 
@@ -1106,7 +1106,7 @@ One line only. No etymology, no synonyms. No headers.]],
 
 Write entirely in {dictionary_language}. Only the headword, lemma, and synonyms stay in original language.
 
-**word** /IPA/ part of speech of **lemma**
+**{highlighted_text}** /IPA/ part of speech of **lemma**
 Definition(s), numbered if multiple
 Etymology (brief)
 Synonyms
