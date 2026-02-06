@@ -652,7 +652,7 @@ Actions like News Update that require [web search](#web-search) are available in
 - **Settings Icon (Viewer)**: Tap the gear icon in the chat viewer title bar to adjust font size and text alignment (cycles left/justified/right on each click)
 - **Show/Hide Quote**: In the chat viewer, toggle button to show or hide the highlighted text quote (useful for long selections)
 - **Save to Note**: For highlight context chats, tap the **Save to Note** button to save the AI response directly as a note attached to your highlighted text (see [Save to Note](#save-to-note) below)
-- **Text Selection Lookup**: Selecting 1–3 words in the chat viewer triggers a dictionary lookup — KOReader's built-in dictionary when [bypass](#dictionary-bypass) is off, or your configured bypass action when on. Selecting 4+ words copies to clipboard. See [Text Selection in Chat Viewer](#text-selection-in-chat-viewer).
+- **Text Selection Lookup**: Selecting 1–3 words in the chat viewer triggers a dictionary lookup (KOReader's built-in dictionary when [bypass](#dictionary-bypass) is off, or your configured AI action when on). Selecting 4+ words copies to clipboard. Your chat stays open underneath. See [Text Selection in Chat Viewer](#text-selection-in-chat-viewer).
 - **Other**: Turn on off Text/Markdown view, Debug view mode, add Tags, Change Domain, etc
 
 ### Save to Note
@@ -2624,14 +2624,14 @@ When you select text inside any KOAssistant chat viewer (compact, translate, ful
 | Bypass Setting | What happens on 1–3 word selection |
 |----------------|-------------------------------------|
 | **Bypass ON** | Runs your configured bypass action (e.g., Dictionary, Quick Define) as a compact AI lookup |
-| **Bypass OFF** | Opens KOReader's built-in dictionary |
+| **Bypass OFF** | Opens KOReader's built-in dictionary (offline, instant) |
 | **No dictionary available** (e.g., general chat from file browser) | Copies to clipboard |
 
-This lets you naturally chain lookups — look up a word, then select an unfamiliar word in the definition to look that up too.
+The current chat viewer stays open underneath — the dictionary popup or AI lookup opens on top, and you return to your chat when you close it. This lets you naturally chain lookups: look up a word, see an unfamiliar word in the result, select it to look that up too.
 
-**Notes:**
-- The word count threshold is currently fixed at 3 words
-- This feature is being expanded — future updates will add user-configurable selection actions and real-time action selection after highlighting
+**Why bypass matters:** With bypass off, selecting a word opens KOReader's offline dictionary — useful when reading a saved chat offline, reviewing cache results, or when you simply want a quick definition without an API call. With bypass on, you get the full AI-powered lookup instead.
+
+**Coming soon:** Configurable text selection behavior — choose what action to trigger, adjust the word count threshold, and select what to do with text after highlighting (translate, run any action, etc.).
 
 ### Document Metadata
 
