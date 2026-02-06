@@ -1686,7 +1686,8 @@ Tags are simple labels for organizing chats. Unlike domains:
 - **Hide Highlighted Text**: Don't show selection in responses
 - **Hide Long Highlights**: Collapse highlights over character threshold
 - **Long Highlight Threshold**: Character limit before collapsing (default: 280)
-- **Plugin UI Language**: Language for plugin menus and dialogs. Does not affect AI responses. Options: Match KOReader (default), English, or 20+ other translations. Requires restart.
+- **Enable Emoji Icons**: Show emoji icons (e.g., 🔍 for web search) in buttons and status indicators. Off by default. Requires emoji font support in KOReader — if icons appear as question marks, disable this option. See [KOReader wiki](https://github.com/koreader/koreader/wiki/Fonts) for adding fonts.
+- **Plugin UI Language**: Language for plugin menus and dialogs. Does not affect AI responses. Options: Match KOReader (default), English, or 20+ other translations. Use this to switch the plugin UI to a language you're learning without changing KOReader's language, or to force English if you find the translations inaccurate. Requires restart.
 
 ### Chat Settings
 - **Auto-save All Chats**: Automatically save every new conversation
@@ -1720,7 +1721,7 @@ These settings control what language the AI responds in.
 
 - **Your Languages**: Languages you speak/understand. Opens a picker with 47 pre-loaded languages displayed in their native scripts (日本語, Français, Español, etc.). Select multiple languages. These are sent to the AI in the system prompt ("The user understands: ...").
 - **Primary Language**: Pick which of your languages the AI should respond in by default. Defaults to first in your list.
-- **Additional Languages**: Extra languages for translation/dictionary targets only (e.g., Latin, Sanskrit for scholarly work). These are NOT sent to the AI in the system prompt but appear in translation/dictionary language pickers.
+- **Additional Languages**: Extra languages for translation/dictionary targets without affecting AI response language. These are NOT sent to the AI in the system prompt but appear in translation/dictionary language pickers and the Language button in compact/translate views. Use cases: scholarly work (Latin, Sanskrit, Ancient Greek), language learning (translate TO a language you're studying), or occasional use of languages you understand but don't want the AI defaulting to.
 
 **Native script display:** Languages appear in their native scripts in menus and settings (日本語, Français, etc.). System prompts sent to the AI use English names for better language model comprehension. Classical/scholarly languages (Ancient Greek, Biblical Hebrew, Classical Arabic, Latin, Sanskrit) are displayed in English only.
 

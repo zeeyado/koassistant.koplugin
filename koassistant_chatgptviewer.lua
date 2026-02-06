@@ -1191,7 +1191,10 @@ function ChatGPTViewer:init()
     local enable_emoji = self.configuration and self.configuration.features
                          and self.configuration.features.enable_emoji_icons
     local label = state and _("ON") or _("OFF")
-    return Constants.getEmojiText("🔍", "Web " .. label, enable_emoji)
+    if enable_emoji then
+      return Constants.getEmojiText("🔍", label, enable_emoji)
+    end
+    return "Web " .. label
   end
 
   table.insert(first_row, {
