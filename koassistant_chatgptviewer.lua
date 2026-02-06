@@ -1510,7 +1510,7 @@ function ChatGPTViewer:init()
 
   -- Row 1: +Note button (save to KOReader highlight note)
   table.insert(minimal_button_row1, {
-    text = "+Note",
+    text = _("+Note"),
     id = "save_to_note",
     enabled = self.selection_data ~= nil,
     callback = function()
