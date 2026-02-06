@@ -2766,34 +2766,14 @@ function ChatGPTViewer:handleTextSelection(text, hold_duration, start_idx, end_i
 
   local did_lookup = false
   if word_count >= 1 and word_count <= 3 then
-    -- Try to run dictionary bypass action on selected text
-    local plugin = self._plugin or (self.configuration and self.configuration._rerun_plugin)
+    -- Use KOReader's dictionary lookup (onLookupWord).
+    -- If bypass is ON, the installed intercept routes to KOAssistant's AI action.
+    -- If bypass is OFF, KOReader's native dictionary popup opens.
+    -- Either way, the current viewer stays open underneath.
     local ui = self._ui or (self.configuration and self.configuration._rerun_ui)
-    if plugin and plugin.action_service and plugin.settings and ui then
-      local features = plugin.settings:readSetting("features") or {}
-      local action_id = features.dictionary_bypass_action or "dictionary"
-      local bypass_action = plugin.action_service:getAction("highlight", action_id)
-      if bypass_action then
-        -- Clone config from current viewer
-        local new_config = {}
-        for k, v in pairs(self.configuration) do
-          new_config[k] = v
-        end
-        new_config.features = {}
-        for k, v in pairs(self.configuration.features or {}) do
-          new_config.features[k] = v
-        end
-        -- Ensure compact view settings for the new lookup
-        new_config.features.compact_view = true
-        new_config.features.hide_highlighted_text = true
-        new_config.features.minimal_buttons = true
-        new_config.features.large_stream_dialog = false
-        -- Close current viewer and execute lookup
-        UIManager:close(self)
-        local Dialogs = require("koassistant_dialogs")
-        Dialogs.executeDirectAction(ui, bypass_action, text, new_config, plugin)
-        did_lookup = true
-      end
+    if ui and ui.dictionary then
+      ui.dictionary:onLookupWord(text)
+      did_lookup = true
     end
   end
 

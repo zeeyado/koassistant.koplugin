@@ -652,7 +652,7 @@ Actions like News Update that require [web search](#web-search) are available in
 - **Settings Icon (Viewer)**: Tap the gear icon in the chat viewer title bar to adjust font size and text alignment (cycles left/justified/right on each click)
 - **Show/Hide Quote**: In the chat viewer, toggle button to show or hide the highlighted text quote (useful for long selections)
 - **Save to Note**: For highlight context chats, tap the **Save to Note** button to save the AI response directly as a note attached to your highlighted text (see [Save to Note](#save-to-note) below)
-- **Text Selection Lookup**: Selecting 1–3 words in the chat viewer triggers an automatic dictionary lookup (using your configured [dictionary bypass action](#dictionary-bypass)). Selecting 4+ words copies to clipboard as before. Works in all view types. See [Text Selection in Chat Viewer](#text-selection-in-chat-viewer) for details.
+- **Text Selection Lookup**: Selecting 1–3 words in the chat viewer triggers a dictionary lookup — KOReader's built-in dictionary when [bypass](#dictionary-bypass) is off, or your configured bypass action when on. Selecting 4+ words copies to clipboard. See [Text Selection in Chat Viewer](#text-selection-in-chat-viewer).
 - **Other**: Turn on off Text/Markdown view, Debug view mode, add Tags, Change Domain, etc
 
 ### Save to Note
@@ -2616,14 +2616,21 @@ When you select text inside any KOAssistant chat viewer (compact, translate, ful
 
 | Selection | Behavior |
 |-----------|----------|
-| **1–3 words** | Triggers your configured [dictionary bypass action](#dictionary-bypass) (default: Dictionary) as a compact lookup |
-| **4+ words** | Copies to clipboard (previous default behavior) |
+| **1–3 words** | Dictionary lookup (see below) |
+| **4+ words** | Copies to clipboard |
 
-This lets you naturally chain lookups — look up a word, then select an unfamiliar word in the definition to look that up too, without leaving the AI viewer.
+**Dictionary lookup behavior** depends on your [Dictionary Bypass](#dictionary-bypass) setting:
+
+| Bypass Setting | What happens on 1–3 word selection |
+|----------------|-------------------------------------|
+| **Bypass ON** | Runs your configured bypass action (e.g., Dictionary, Quick Define) as a compact AI lookup |
+| **Bypass OFF** | Opens KOReader's built-in dictionary |
+| **No dictionary available** (e.g., general chat from file browser) | Copies to clipboard |
+
+This lets you naturally chain lookups — look up a word, then select an unfamiliar word in the definition to look that up too.
 
 **Notes:**
-- The action used is always your **dictionary bypass action** setting (Settings → Dictionary → Bypass Action), regardless of whether bypass mode itself is enabled
-- Falls back to clipboard copy if the action or plugin references are unavailable
+- The word count threshold is currently fixed at 3 words
 - This feature is being expanded — future updates will add user-configurable selection actions and real-time action selection after highlighting
 
 ### Document Metadata
