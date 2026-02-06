@@ -471,7 +471,7 @@ Actions.book = {
         use_book_text = true,
         use_annotations = true,
         use_reading_progress = true,
-        prompt = [[Create a reader's companion for "{title}" by {author}.
+        prompt = [[Create a reader's companion for "{title}"{author_clause}.
 
 I'm at {reading_progress}.
 
@@ -564,7 +564,7 @@ If you don't recognize this work or the content seems unclear, tell me honestly 
         cache_as_xray = true,
         -- Response caching: enables incremental updates as reading progresses
         use_response_caching = true,
-        update_prompt = [[Update this X-Ray for "{title}" by {author}.
+        update_prompt = [[Update this X-Ray for "{title}"{author_clause}.
 
 Previous analysis (at {cached_progress}):
 {cached_result}
@@ -594,7 +594,7 @@ CRITICAL: This must remain spoiler-free up to {reading_progress}. Do not reveal 
         use_book_text = true,
         use_reading_progress = true,
         use_reading_stats = true,
-        prompt = [[Help me get back into "{title}" by {author}.
+        prompt = [[Help me get back into "{title}"{author_clause}.
 
 I'm at {reading_progress} and last read {time_since_last_read}.
 
@@ -634,7 +634,7 @@ If you don't recognize this work or the title/content seems unclear, tell me hon
         in_quick_actions = 2,     -- Appears in Quick Actions menu
         -- Response caching: enables incremental updates as reading progresses
         use_response_caching = true,
-        update_prompt = [[Update this Recap for "{title}" by {author}.
+        update_prompt = [[Update this Recap for "{title}"{author_clause}.
 
 Previous recap (at {cached_progress}):
 {cached_result}
@@ -664,7 +664,7 @@ CRITICAL: No spoilers beyond {reading_progress}.]],
         use_annotations = true,
         use_reading_progress = true,
         use_notebook = true,
-        prompt = [[Reflect on my reading of "{title}" by {author} through my highlights and notes.
+        prompt = [[Reflect on my reading of "{title}"{author_clause} through my highlights and notes.
 
 I'm at {reading_progress}. Here's what I've marked:
 
@@ -715,7 +715,7 @@ If you don't recognize this work or the highlights seem insufficient for meaning
         context = "book",
         -- No behavior_variant - uses user's global behavior
         -- No skip_domain - domain expertise helps here
-        prompt = [[For "{title}" by {author}, map the intellectual landscape:
+        prompt = [[For "{title}"{author_clause}, map the intellectual landscape:
 
 ## Influences (Who shaped this author's thinking)
 - Direct mentors or acknowledged influences
@@ -749,7 +749,7 @@ Aim for the most significant connections, not an exhaustive list. {conciseness_n
         use_book_text = true,  -- Gate for accessing {analyze_cache_section} cache
         -- No behavior_variant - uses user's global behavior
         -- No skip_domain - domain expertise shapes analysis approach
-        prompt = [[Analyze the main arguments in "{title}" by {author}.
+        prompt = [[Analyze the main arguments in "{title}"{author_clause}.
 {analyze_cache_section}
 
 ## Core Thesis
@@ -788,10 +788,10 @@ This is an overview, not an essay. {conciseness_nudge} {hallucination_nudge}]],
         id = "discussion_questions",
         text = _("Discussion Questions"),
         context = "book",
-        use_book_text = true,  -- Gate for accessing {summary_cache_section} cache
+        use_book_text = true,  -- Permission gate for text extraction
         -- User can mention reading progress in follow-up if needed
-        prompt = [[Generate thoughtful discussion questions for "{title}" by {author}.
-{summary_cache_section}
+        prompt = [[Generate thoughtful discussion questions for "{title}"{author_clause}.
+{full_document_section}
 
 Create 8-10 questions that could spark good conversation:
 
