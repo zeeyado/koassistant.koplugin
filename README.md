@@ -652,6 +652,7 @@ Actions like News Update that require [web search](#web-search) are available in
 - **Settings Icon (Viewer)**: Tap the gear icon in the chat viewer title bar to adjust font size and text alignment (cycles left/justified/right on each click)
 - **Show/Hide Quote**: In the chat viewer, toggle button to show or hide the highlighted text quote (useful for long selections)
 - **Save to Note**: For highlight context chats, tap the **Save to Note** button to save the AI response directly as a note attached to your highlighted text (see [Save to Note](#save-to-note) below)
+- **Text Selection Lookup**: Selecting 1–3 words in the chat viewer triggers an automatic dictionary lookup (using your configured [dictionary bypass action](#dictionary-bypass)). Selecting 4+ words copies to clipboard as before. Works in all view types. See [Text Selection in Chat Viewer](#text-selection-in-chat-viewer) for details.
 - **Other**: Turn on off Text/Markdown view, Debug view mode, add Tags, Change Domain, etc
 
 ### Save to Note
@@ -2608,6 +2609,22 @@ Dictionary lookups and popup actions use compact view by default (minimal UI). T
 ### Text Selection
 
 **Shorter tap duration** makes text selection easier. Go to **Settings → Taps and Gestures → Long-press interval** and reduce it (default is often 1.0s). This makes highlighting text for KOAssistant much more responsive.
+
+### Text Selection in Chat Viewer
+
+When you select text inside any KOAssistant chat viewer (compact, translate, full chat, or cache views), the behavior depends on how many words you selected:
+
+| Selection | Behavior |
+|-----------|----------|
+| **1–3 words** | Triggers your configured [dictionary bypass action](#dictionary-bypass) (default: Dictionary) as a compact lookup |
+| **4+ words** | Copies to clipboard (previous default behavior) |
+
+This lets you naturally chain lookups — look up a word, then select an unfamiliar word in the definition to look that up too, without leaving the AI viewer.
+
+**Notes:**
+- The action used is always your **dictionary bypass action** setting (Settings → Dictionary → Bypass Action), regardless of whether bypass mode itself is enabled
+- Falls back to clipboard copy if the action or plugin references are unavailable
+- This feature is being expanded — future updates will add user-configurable selection actions and real-time action selection after highlighting
 
 ### Document Metadata
 
