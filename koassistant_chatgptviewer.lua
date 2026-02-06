@@ -1754,17 +1754,6 @@ function ChatGPTViewer:init()
   })
 
   -- Row 2: Action switcher button (re-run with different dictionary action)
-  -- Auto-abbreviate action name: first word if ≤7 chars, else truncate to 4
-  local function abbreviateActionName(text)
-    if not text then return "?" end
-    local first_word = text:match("^(%S+)")
-    if not first_word then return text:sub(1, 4) end
-    if #first_word <= 7 then
-      return first_word  -- "Quick", "Deep", "Define" etc.
-    end
-    return first_word:sub(1, 4)  -- "Dictionary" → "Dict"
-  end
-
   -- Get current action and other dictionary popup actions
   local current_action = self.configuration and self.configuration._rerun_action
   local current_action_text = current_action and current_action.text or "?"
@@ -1782,7 +1771,7 @@ function ChatGPTViewer:init()
   end
 
   table.insert(minimal_button_row2, {
-    text = abbreviateActionName(current_action_text),
+    text = current_action_text,
     id = "switch_action",
     enabled = has_rerun and #other_actions > 0,
     callback = function()
