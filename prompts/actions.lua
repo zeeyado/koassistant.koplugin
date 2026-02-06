@@ -162,6 +162,7 @@ Actions.highlight = {
         },
         include_book_context = true,
         builtin = true,
+        in_highlight_menu = 3,    -- Appears in Highlight menu
     },
     summarize = {
         id = "summarize",
