@@ -42,14 +42,23 @@ if [ $LUACHECK_EXIT -ne 0 ]; then
     echo ""
     echo "Luacheck found issues. Review above."
 
-    # Only block on errors (exit code 2), not warnings (exit code 1)
+    # Exit code 2 = errors → block commit
     if [ $LUACHECK_EXIT -eq 2 ]; then
         echo "Commit blocked due to luacheck errors."
         echo "Use --no-verify to skip checks."
         exit 1
     fi
 
-    echo "Warnings present but commit allowed."
+    # Exit code 1 = warnings → ask for confirmation
+    if [ $LUACHECK_EXIT -eq 1 ]; then
+        echo ""
+        read -p "Warnings present. Continue with commit? [Y/n] " -n 1 -r
+        echo ""
+        if [[ $REPLY =~ ^[Nn]$ ]]; then
+            echo "Commit aborted."
+            exit 1
+        fi
+    fi
 fi
 
 echo ""
