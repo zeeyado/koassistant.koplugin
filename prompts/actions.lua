@@ -1041,7 +1041,7 @@ Focus on the top 3-5 most significant global news stories. Keep it concise and f
         skip_domain = true,  -- News doesn't need domain context
         api_params = {
             temperature = 0.3,  -- Low temp for factual reporting
-            max_tokens = 2048,
+            max_tokens = 4096,  -- Buffer for Gemini 2.5 thinking tokens
         },
         builtin = true,
         in_gesture_menu = true,  -- Available in gesture menu by default
@@ -1092,7 +1092,7 @@ One line only. No etymology, no synonyms. No headers.]],
         -- storage_key set dynamically based on dictionary_disable_auto_save setting
         api_params = {
             temperature = 0.3,  -- Deterministic for definitions
-            max_tokens = 512,  -- Quick definitions are short
+            max_tokens = 4096,  -- Buffer for Gemini 2.5 thinking tokens
         },
         builtin = true,
     },
@@ -1123,7 +1123,7 @@ All labels and explanations in {dictionary_language}. Inline bold labels, no hea
         -- storage_key set dynamically based on dictionary_disable_auto_save setting
         api_params = {
             temperature = 0.3,  -- Deterministic for definitions
-            max_tokens = 1024,  -- Dictionary responses are typically short
+            max_tokens = 4096,  -- Buffer for Gemini 2.5 thinking tokens
         },
         builtin = true,
     },
