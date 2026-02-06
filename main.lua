@@ -137,9 +137,8 @@ function AskGPT:init()
   -- Patch DocSettings for chat index tracking on file moves
   self:patchDocSettingsForChatIndex()
 
-  -- Validate chat index on startup (fast - only checks existing index entries)
-  local chat_history_manager = require("koassistant_chat_history_manager"):new()
-  chat_history_manager:validateChatIndex()
+  -- Chat index validation deferred to first chat history browser open
+  -- (see ChatHistoryDialog:showChatHistoryBrowser for lazy validation)
 
   -- Auto-check for updates at startup (if enabled)
   -- Only check if already online - don't trigger WiFi connection for silent background checks

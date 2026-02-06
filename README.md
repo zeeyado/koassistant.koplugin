@@ -195,7 +195,7 @@ After setting up your API key, complete these steps for the best experience:
 
 - [ ] **Configure privacy settings** — Enable data sharing for features you want (Settings → Privacy & Data). See [Privacy & Data](#privacy--data)
 - [ ] **Set up gesture access** — See [Configure Quick Access Gestures](#configure-quick-access-gestures) for the recommended two-step setup (Quick Settings in file browser + Quick Actions in reader, same gesture)
-- [ ] **Explore the highlight menu** — Translate and Explain are included by default; add more via Manage Actions → hold action → "Add to Highlight Menu"
+- [ ] **Explore the highlight menu** — Translate, Explain, and ELI5 are included by default; add more via Manage Actions → hold action → "Add to Highlight Menu"
 - [ ] **Try Dictionary Bypass** — Single-word selections go straight to AI dictionary (Settings → Dictionary Settings → Bypass KOReader Dictionary)
 - [ ] **Try Highlight Bypass** — Multi-word selections trigger instant translation (Settings → Highlight Settings → Enable Highlight Bypass)
 - [ ] **Set your languages** — Configure response languages with native script pickers (Settings → AI Language Settings)
@@ -279,7 +279,7 @@ After basic setup, explore these features to get the most out of KOAssistant:
 | **[Domains](#domains)** | Add project-like context to conversations | Settings → Actions & Prompts → Manage Domains |
 | **[Actions](#actions)** | Create your own prompts and workflows | Settings → Actions & Prompts → Manage Actions |
 | **Quick Actions** | Fast access to reading actions while in a book | Gesture → "KOAssistant: Quick Actions" |
-| **[Highlight Menu](#highlight-menu-actions)** | Actions in highlight popup (2 defaults: Translate, Explain) | Manage Actions → Add to Highlight Menu |
+| **[Highlight Menu](#highlight-menu-actions)** | Actions in highlight popup (3 defaults: Translate, Explain, ELI5) | Manage Actions → Add to Highlight Menu |
 | **[Dictionary Integration](#dictionary-integration)** | AI-powered word lookups when selecting single words | Settings → Dictionary Settings |
 | **[Bypass Modes](#bypass-modes)** | Instant AI actions without menus | Settings → Dictionary/Highlight Settings |
 | **Reasoning/Thinking** | Enable deep analysis for complex questions | Settings → Advanced → Reasoning |
@@ -461,7 +461,7 @@ KOAssistant works in **4 contexts**, each with its own set of built-in actions:
 | Context | Built-in Actions |
 |---------|------------------|
 | **Highlight** | Explain, ELI5, Summarize, Elaborate, Connect, Connect (With Notes), Explain in Context, Analyze in Context, Thematic Connection (Smart), Translate, Dictionary, Quick Define, Deep Analysis |
-| **Book** | Book Info, Similar Books, About Author, Historical Context, Related Thinkers, Key Arguments, Discussion Questions, Generate Quiz (Smart), Discussion Questions (Smart), X-Ray, Recap, Analyze Highlights, Analyze Document, Summarize Document, Extract Key Insights |
+| **Book** | Book Info, Similar Books, About Author, Historical Context, Related Thinkers, Key Arguments, Discussion Questions, Generate Quiz, X-Ray, Recap, Analyze Highlights, Analyze Document, Summarize Document, Extract Key Insights, Key Arguments (Smart), Discussion Questions (Smart), Generate Quiz (Smart) |
 | **Multi-book** | Compare Books, Common Themes, Analyze Collection, Quick Summaries, Reading Order |
 | **General** | Ask, News Update* |
 
@@ -497,24 +497,34 @@ You can customize these, create your own, or disable ones you don't use. See [Ac
 | **Quick Define** | Minimal lookup: brief definition only, no etymology or synonyms |
 | **Deep Analysis** | Linguistic deep-dive: morphology, word family, cognates, etymology path |
 
-**Smart variants** (use cached summary):
+**Regular vs Smart actions:**
 
-Several actions have Smart variants that use cached document summaries instead of raw book text. This is faster, cheaper, and works especially well for repeated queries.
+Several actions come in two variants: a **regular** version that sends full book text, and a **Smart** version that uses a cached document summary instead. Both analyze the actual content — the difference is cost and freshness:
 
-| Action | Context | What it does |
-|--------|---------|--------------|
-| **Explain in Context (Smart)** | Highlight | Explain passage using cached summary |
-| **Analyze in Context (Smart)** | Highlight | Deep analysis using cached summary + annotations |
-| **Thematic Connection (Smart)** | Highlight | Analyze how passage connects to larger themes |
-| **Discussion Questions (Smart)** | Book | Generate discussion prompts grounded in summary |
-| **Generate Quiz (Smart)** | Book | Comprehension quiz with answers using summary |
+- **Regular** (e.g., Discussion Questions) — Sends the full document text to the AI. Most accurate, but uses more tokens. Best for one-off queries or short documents.
+- **Smart** (e.g., Discussion Questions (Smart)) — Uses a pre-generated summary (~2-8K tokens) instead of raw text (~100K tokens). Much cheaper for repeated use. Best for longer documents you query often.
+
+| Regular (full text) | Smart (cached summary) | Context |
+|---------------------|------------------------|---------|
+| Explain in Context | Explain in Context (Smart) | Highlight |
+| Analyze in Context | Analyze in Context (Smart) | Highlight |
+| — | Thematic Connection (Smart) | Highlight |
+| Key Arguments | Key Arguments (Smart) | Book |
+| Discussion Questions | Discussion Questions (Smart) | Book |
+| Generate Quiz | Generate Quiz (Smart) | Book |
 
 **When to use Smart variants:**
 - Longer documents (research papers, textbooks, novels)
 - Repeated queries on the same book
 - Books the AI isn't trained on (need context for every query)
+- When token cost is a concern
 
-**How it works:**
+**When to use regular variants:**
+- Short documents where full text is cheap to send
+- One-off queries where generating a summary first isn't worth it
+- When you need the AI to work from the actual text, not a summary
+
+**How Smart actions work:**
 - First use: Prompts to generate a reusable summary (generates via `summarize_full_document`)
 - Subsequent uses: Uses cached summary (much faster and cheaper)
 - Token savings: ~100K raw text → ~2-8K cached summary per query
@@ -550,10 +560,12 @@ Some actions work from the file browser (using only title/author), while others 
 | **About Author** | Author biography and writing style |
 | **Historical Context** | When written and historical significance |
 | **Related Thinkers** | Intellectual landscape: influences, contemporaries, and connected thinkers |
-| **Key Arguments** | Thesis, evidence, assumptions, and counterarguments (non-fiction) |
-| **Discussion Questions** | Comprehension, analytical, and interpretive prompts for book clubs or study |
-| **Discussion Questions (Smart)** | Like above, but uses cached summary for grounded questions ⚠️ *Requires: Allow Text Extraction* |
-| **Generate Quiz (Smart)** | Comprehension quiz with answers (multiple choice, short answer, essay) ⚠️ *Requires: Allow Text Extraction* |
+| **Key Arguments** | Thesis, evidence, assumptions, and counterarguments using full book text ⚠️ *Requires: Allow Text Extraction* |
+| **Discussion Questions** | Comprehension, analytical, and interpretive prompts using full book text ⚠️ *Requires: Allow Text Extraction* |
+| **Generate Quiz** | Comprehension quiz with answers (multiple choice, short answer, essay) ⚠️ *Requires: Allow Text Extraction* |
+| **Key Arguments (Smart)** | Like Key Arguments, but uses cached summary ⚠️ *Requires: Allow Text Extraction* |
+| **Discussion Questions (Smart)** | Like Discussion Questions, but uses cached summary ⚠️ *Requires: Allow Text Extraction* |
+| **Generate Quiz (Smart)** | Like Generate Quiz, but uses cached summary ⚠️ *Requires: Allow Text Extraction* |
 | **X-Ray** | Structured reference guide: characters, locations, themes, timeline ⚠️ *Best with: Allow Text Extraction* |
 | **Recap** | "Previously on..." style summary to help you resume reading ⚠️ *Best with: Allow Text Extraction* |
 | **Analyze Highlights** | Discover patterns and connections in your highlights ⚠️ *Requires: Allow Highlights & Annotations* |
@@ -575,6 +587,10 @@ These actions analyze your actual reading content. They require specific privacy
 | **Analyze Document** | Entire document | Allow Text Extraction |
 | **Summarize Document** | Entire document | Allow Text Extraction |
 | **Extract Key Insights** | Entire document | Allow Text Extraction |
+| **Key Arguments** | Entire document | Allow Text Extraction |
+| **Discussion Questions** | Entire document | Allow Text Extraction |
+| **Generate Quiz** | Entire document | Allow Text Extraction |
+| **Key Arguments (Smart)** | Cached summary | Allow Text Extraction |
 | **Discussion Questions (Smart)** | Cached summary | Allow Text Extraction |
 | **Generate Quiz (Smart)** | Cached summary | Allow Text Extraction |
 
@@ -588,7 +604,7 @@ These actions analyze your actual reading content. They require specific privacy
 
 > ⚠️ **To enable text extraction:** Go to Settings → Privacy & Data → Text Extraction → Allow Text Extraction. This is OFF by default to avoid unexpected token costs.
 
-**Full Document Actions** (Analyze, Summarize, Extract Insights): Designed for short content—research papers, articles, notes—where you want AI to see everything regardless of reading position. These general-purpose actions adapt to your content type and work especially well with [Domains](#domains). For example, with a "Linguistics" domain active, analyzing a linguistics paper will naturally focus on relevant aspects.
+**Full Document Actions** (Analyze, Summarize, Extract Insights, Key Arguments, Discussion Questions, Generate Quiz): These actions send the entire document text to the AI regardless of reading position. They adapt to your content type and work especially well with [Domains](#domains). For example, with a "Linguistics" domain active, analyzing a linguistics paper will naturally focus on relevant aspects. Key Arguments, Discussion Questions, and Generate Quiz also have **Smart variants** that use a cached summary instead of full text — cheaper for repeated use on longer books.
 
 > **Tip:** Create specialized versions for your workflow. Copy a built-in action, customize the prompt for your field (e.g., "Focus on methodology and statistical claims" for scientific papers), and pair it with a matching domain. Disable built-ins you don't use via Action Manager (tap to toggle). See [Custom Actions](#custom-actions) for details.
 
@@ -601,7 +617,7 @@ Book actions work in two contexts: **reading mode** (book is open) and **file br
 - **File browser** has access to book **metadata** only: title, author, identifiers
 - **Reading mode** additionally has access to **document state**: reading progress, highlights, annotations, notebook, extracted text
 
-**Reading-only actions** (hidden in file browser): X-Ray, Recap, Analyze Highlights, Analyze Document, Summarize Document, Extract Key Insights, Discussion Questions (Smart), Generate Quiz (Smart). These require document state that isn't available until you open the book.
+**Reading-only actions** (hidden in file browser): X-Ray, Recap, Analyze Highlights, Analyze Document, Summarize Document, Extract Key Insights, Key Arguments, Discussion Questions, Generate Quiz, Key Arguments (Smart), Discussion Questions (Smart), Generate Quiz (Smart). These require document state that isn't available until you open the book.
 
 Custom actions using placeholders like `{reading_progress}`, `{book_text}`, `{full_document}`, `{highlights}`, `{annotations}`, or `{notebook}` are filtered the same way. The Action Manager shows a `[reading]` indicator for such actions.
 
@@ -903,9 +919,11 @@ Utility placeholders provide reusable prompt fragments that can be inserted into
 - **Experiment with domains**: Try running the same action with and without a domain to see what works for your use case. Some actions benefit from domain context (analysis, explanation), others don't (translation, grammar).
 - **Test before deploying**: Use the [web inspector](#testing-your-setup) to test your custom actions before using them on your e-reader. You can try different settings combinations and see exactly what's sent to the AI.
 - **Reading-mode placeholders**: Book actions using `{reading_progress}`, `{book_text}`, `{full_document}`, `{highlights}`, `{annotations}`, `{notebook}`, or `{chapter_title}` are **automatically hidden** in File Browser mode because these require an open book. This filtering is automatic—if your custom book action uses these placeholders, it will only appear when reading. Highlight actions are always reading-mode (you can't highlight without an open book). The action wizard shows a `[reading]` indicator for such actions.
-- **Document caches**: Reference previous X-Ray, Analyze Document, or Summary results without re-running them using `{xray_cache_section}`, `{analyze_cache_section}`, or `{summary_cache_section}`. Useful for building on previous analysis. These require `use_book_text = true` since the cached content derives from book text (X-Ray cache additionally requires use of annotations, if the cache was built with annotations in the first place). Two usage patterns:
-  - **Supplement**: Add cache reference to actions that otherwise use only title/author (like Discussion Questions or Key Arguments). The section placeholder disappears if no cache exists, so there's no major change for users without caches—just bonus context when available.
-  - **Replace**: Use cached summary INSTEAD of raw book text for token savings on long books. Built-in **Smart actions** (Explain in Context Smart, Analyze in Context Smart) implement this pattern. Add `requires_summary_cache = true` to your custom actions to trigger automatic summary generation when needed. See [Response Caching](#response-caching-x-rayrecap) for details.
+- **Document caches**: Three cache types are available as placeholders: `{summary_cache_section}`, `{xray_cache_section}`, and `{analyze_cache_section}`. All require `use_book_text = true` since the cached content derives from book text. The **summary cache** is the primary one for custom actions — it's a neutral, comprehensive representation of the document designed to be reused. The **X-Ray cache** can also be useful as supplementary context (structured character/concept reference). The **analyze cache** is more specialized — it's an opinionated analysis, so avoid using it as input for another analysis (you'd be analyzing an analysis, a decaying game of telephone where each layer loses nuance). Cache placeholders disappear when empty, so including them is always safe. Two usage patterns:
+  - **Replace**: Use `{summary_cache_section}` INSTEAD of raw book text for token savings on long books. Built-in **Smart actions** implement this pattern. Add `requires_summary_cache = true` to your custom actions to trigger automatic summary generation when needed. See [Response Caching](#response-caching-x-rayrecap) for details.
+  - **Supplement**: Add a cache reference as bonus context alongside other data. For example, append `{xray_cache_section}` to a custom action so the AI has the character/concept reference available if it exists. The placeholder vanishes if no cache exists, so there's no downside.
+
+  > *Planned feature: the ability to append files, caches, and other resources to chats and actions — including referencing one book's cache in an action on another book (e.g., comparing an X-Ray across volumes in a series).*
 - **Surrounding context**: Use `{surrounding_context_section}` in highlight actions to include text around the highlighted passage. This is live extraction (not cached), hard-capped at 2000 characters. Particularly useful for **custom dictionary-like actions** that need sentence context for single-word lookups—look at the built-in `quick_define`, `dictionary`, and `deep` actions for inspiration. Uses your Dictionary Settings for context mode (sentence, paragraph, or character count).
 
 ### File-Based Actions
@@ -977,8 +995,9 @@ Add frequently-used highlight actions directly to KOReader's highlight popup for
 **Default actions** (included automatically):
 1. **Translate** — Instant translation of selected text
 2. **Explain** — Get an explanation of the passage
+3. **ELI5** — Explain Like I'm 5, simplified explanation
 
-**Other built-in actions you can add**: ELI5, Summarize, Elaborate, Connect, Connect (With Notes), Explain in Context, Analyze in Context, Dictionary, Quick Define, Deep Analysis
+**Other built-in actions you can add**: Summarize, Elaborate, Connect, Connect (With Notes), Explain in Context, Analyze in Context, Dictionary, Quick Define, Deep Analysis
 
 **Adding more actions**:
 1. Go to **Manage Actions**
@@ -1816,7 +1835,7 @@ When "Ask every time" is selected (or inherited from global), a picker dialog ap
 See [Bypass Modes](#bypass-modes) and [Highlight Menu Actions](#highlight-menu-actions).
 - **Enable Highlight Bypass**: Immediately trigger action when selecting text (skip menu)
 - **Bypass Action**: Which action to trigger when bypass is enabled (default: Translate)
-- **Highlight Menu Actions**: View and reorder actions in the highlight popup menu (2 defaults: Translate, Explain)
+- **Highlight Menu Actions**: View and reorder actions in the highlight popup menu (3 defaults: Translate, Explain, ELI5)
 
 ### Quick Settings Settings
 Configure the Quick Settings panel (available via gesture or gear icon in input dialog).
@@ -2221,12 +2240,12 @@ When text extraction is enabled, X-Ray and Recap responses are automatically cac
 - One entry per action (xray, recap) plus shared analysis caches
 
 **Shared document caches:**
-When X-Ray, Analyze Document, or Summary actions complete, their results are also saved to shared caches that other actions can reference:
-- X-Ray → saves to `_xray_cache`
-- Analyze Document → saves to `_analyze_cache`
-- Summary → saves to `_summary_cache`
+When certain actions complete, their results are saved to shared caches that other actions can reference:
+- Summary → saves to `_summary_cache` — **the primary cache for reuse** (neutral, comprehensive)
+- X-Ray → saves to `_xray_cache` — useful as supplementary context (structured reference)
+- Analyze Document → saves to `_analyze_cache` — specialized; best used as additional context, not as the sole input for another analysis (analyzing an analysis loses nuance with each layer)
 
-Custom actions can reference these using `{xray_cache_section}`, `{analyze_cache_section}`, or `{summary_cache_section}` placeholders. This lets you build on previous analysis without re-running expensive actions.
+Custom actions can reference these using `{summary_cache_section}`, `{xray_cache_section}`, or `{analyze_cache_section}` placeholders. The summary cache is the recommended choice for most custom actions — it's designed as a reusable, neutral representation of the document. See [Tips for Custom Actions](#tips-for-custom-actions) for usage guidance.
 
 > **Safety mechanism:** Document caches are only saved when book text was actually extracted. If you run X-Ray, Analyze Document, or Summary with text extraction disabled (or if extraction yields no content), the AI response is based solely on the book's title/author (training knowledge), and this lower-quality result is NOT cached. This prevents low-quality training-data-based responses from being stored as reusable context. Enable text extraction before running these actions to build useful caches.
 
@@ -2279,6 +2298,7 @@ The summary viewer shows metadata: coverage percentage (e.g., "78%" if document 
 - **Explain in Context (Smart)** — (Highlight) Uses `{summary_cache_section}` for context
 - **Analyze in Context (Smart)** — (Highlight) Uses `{summary_cache_section}` + `{annotations_section}`
 - **Thematic Connection (Smart)** — (Highlight) Analyze how passage connects to larger themes
+- **Key Arguments (Smart)** — (Book) Thesis, evidence, and counterargument analysis using summary
 - **Discussion Questions (Smart)** — (Book) Generate discussion prompts grounded in summary
 - **Generate Quiz (Smart)** — (Book) Comprehension quiz with answers using summary
 

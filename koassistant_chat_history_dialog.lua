@@ -494,6 +494,16 @@ function ChatHistoryDialog:showChatHistoryBrowser(ui, current_document_path, cha
     safeClose(self.current_menu)
     self.current_menu = nil
 
+    -- Lazy chat index validation: run once per session on first browser open
+    if not ChatHistoryDialog._session_chat_index_validated then
+        local info = InfoMessage:new{ text = _("Validating chat index…") }
+        UIManager:show(info)
+        UIManager:forceRePaint()
+        chat_history_manager:validateChatIndex()
+        ChatHistoryDialog._session_chat_index_validated = true
+        UIManager:close(info)
+    end
+
     -- Initialize navigation context if not provided
     nav_context = nav_context or {
         level = "documents",
