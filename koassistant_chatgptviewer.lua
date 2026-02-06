@@ -2754,11 +2754,56 @@ function ChatGPTViewer:handleTextSelection(text, hold_duration, start_idx, end_i
     self.text_selection_callback(text, hold_duration, start_idx, end_idx, to_source_index_func)
     return
   end
-  if Device:hasClipboard() then
-    Device.input.setClipboardText(text)
-    UIManager:show(Notification:new {
-      text = _("Copied to clipboard."),
-    })
+
+  -- Count words: up to 3 words → dictionary lookup, 4+ → clipboard copy
+  local word_count = 0
+  if text then
+    for _w in text:gmatch("%S+") do
+      word_count = word_count + 1
+      if word_count > 3 then break end  -- Early exit, no need to count all
+    end
+  end
+
+  local did_lookup = false
+  if word_count >= 1 and word_count <= 3 then
+    -- Try to run dictionary bypass action on selected text
+    local plugin = self._plugin or (self.configuration and self.configuration._rerun_plugin)
+    local ui = self._ui or (self.configuration and self.configuration._rerun_ui)
+    if plugin and plugin.action_service and plugin.settings and ui then
+      local features = plugin.settings:readSetting("features") or {}
+      local action_id = features.dictionary_bypass_action or "dictionary"
+      local bypass_action = plugin.action_service:getAction("highlight", action_id)
+      if bypass_action then
+        -- Clone config from current viewer
+        local new_config = {}
+        for k, v in pairs(self.configuration) do
+          new_config[k] = v
+        end
+        new_config.features = {}
+        for k, v in pairs(self.configuration.features or {}) do
+          new_config.features[k] = v
+        end
+        -- Ensure compact view settings for the new lookup
+        new_config.features.compact_view = true
+        new_config.features.hide_highlighted_text = true
+        new_config.features.minimal_buttons = true
+        new_config.features.large_stream_dialog = false
+        -- Close current viewer and execute lookup
+        UIManager:close(self)
+        local Dialogs = require("koassistant_dialogs")
+        Dialogs.executeDirectAction(ui, bypass_action, text, new_config, plugin)
+        did_lookup = true
+      end
+    end
+  end
+
+  if not did_lookup then
+    if Device:hasClipboard() then
+      Device.input.setClipboardText(text)
+      UIManager:show(Notification:new {
+        text = _("Copied to clipboard."),
+      })
+    end
   end
 end
 
@@ -3759,6 +3804,9 @@ function ChatGPTViewer:captureState()
     original_highlighted_text = self.original_highlighted_text,
     reply_draft = self.reply_draft,
     selection_data = self.selection_data,  -- Preserve for "Save to Note" feature
+    -- Plugin/UI references for text selection dictionary lookup
+    _plugin = self._plugin,
+    _ui = self._ui,
     -- Callbacks (will be re-bound by recreate function)
     onAskQuestion = self.onAskQuestion,
     save_callback = self.save_callback,

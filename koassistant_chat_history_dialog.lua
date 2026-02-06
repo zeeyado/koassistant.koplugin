@@ -1467,6 +1467,8 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
             original_history = history,
             original_highlighted_text = chat_highlighted_text,
             session_web_search_override = session_web_search,  -- Preserve session override
+            _plugin = ui and ui.koassistant,  -- For text selection dictionary lookup
+            _ui = ui,  -- For text selection dictionary lookup
             settings_callback = function(path, value)
                 local plugin = ui and ui.koassistant
                 if not plugin then

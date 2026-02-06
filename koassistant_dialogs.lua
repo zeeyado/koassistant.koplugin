@@ -1095,6 +1095,8 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
             original_highlighted_text = state.original_highlighted_text,
             reply_draft = state.reply_draft,
             selection_data = state.selection_data,  -- Preserve for "Save to Note" feature
+            _plugin = state._plugin,  -- For text selection dictionary lookup
+            _ui = state._ui,  -- For text selection dictionary lookup
             -- Callbacks from captured state
             onAskQuestion = state.onAskQuestion,
             save_callback = state.save_callback,
@@ -1181,6 +1183,8 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
         original_history = history,
         _message_history = history,
         original_highlighted_text = highlightedText,
+        _plugin = plugin,  -- For text selection dictionary lookup
+        _ui = ui_instance,  -- For text selection dictionary lookup
         _recreate_func = recreate_func, -- For rotation handling
         settings_callback = function(path, value)
             -- Update plugin settings if plugin instance is available
@@ -1264,6 +1268,8 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                         original_history = history,
                         _message_history = history,
                         original_highlighted_text = highlightedText,
+                        _plugin = viewer._plugin,  -- For text selection dictionary lookup
+                        _ui = viewer._ui,  -- For text selection dictionary lookup
                         _recreate_func = recreate_func, -- For rotation handling
                         settings_callback = viewer.settings_callback,
                         update_debug_callback = viewer.update_debug_callback,

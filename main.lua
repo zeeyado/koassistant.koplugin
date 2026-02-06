@@ -4020,6 +4020,8 @@ function AskGPT:showCacheViewer(cache_info)
     configuration = configuration,
     cache_metadata = cache_metadata,
     on_delete = on_delete,
+    _plugin = self,
+    _ui = self.ui,
   }
   UIManager:show(viewer)
 end
@@ -4124,6 +4126,8 @@ function AskGPT:showSummaryViewer(summary_data)
     cache_metadata = cache_metadata,
     on_regenerate = on_regenerate,
     on_delete = on_delete,
+    _plugin = self,
+    _ui = self.ui,
   }
   UIManager:show(viewer)
 end
