@@ -239,7 +239,7 @@ To show/hide buttons in the Quick Settings panel, use **Settings → Quick Setti
 Assign "KOAssistant: Quick Actions" to a gesture for fast access to reading-related actions:
 - **Default actions** — X-Ray, Recap, Book Info
 - **Summary management** — "View Summary" (if summary exists) or "Generate Summary" (if not) for cached document summaries
-- **Utilities** — Translate Page, View/Edit Notebook, Chat History, Continue Last Chat, New Book Chat/Action, General Chat/Action, Quick Settings, View Caches
+- **Utilities** — Translate Page, View/Edit Notebook, Chat History, Continue Last Chat, New Book Chat/Action, General Chat/Action, Quick Settings, View Caches (browse cached X-Ray/Analyze/Summary responses)
 
 You can add any book action to Quick Actions via **Action Manager → hold action → "Add to Quick Actions"**. To reorder or remove actions, use **Settings → Quick Actions Settings → Panel Actions**. To show/hide utility buttons (Translate Page, Chat History, etc.), use **Settings → Quick Actions Settings → QA Panel Utilities**. Defaults can also be removed.
 
@@ -1282,7 +1282,7 @@ Actions with gestures show a `[gesture]` indicator in the Action Manager list.
 - KOAssistant: View Notebook — View current book's notebook
 - KOAssistant: Edit Notebook — Edit current book's notebook
 - KOAssistant: View Summary — View cached document summary
-- KOAssistant: View Caches — View all document caches
+- KOAssistant: View Caches — Browse cached X-Ray, Analyze, and Summary responses for the current book (handy for re-reading previous results without re-running the action)
 
 **General** (available in both File Browser and Reader gesture settings):
 - KOAssistant: Quick Settings — Two-column settings panel
@@ -2240,12 +2240,13 @@ When text extraction is enabled, X-Ray and Recap responses are automatically cac
 - One entry per action (xray, recap) plus shared analysis caches
 
 **Shared document caches:**
-When certain actions complete, their results are saved to shared caches that other actions can reference:
-- Summary → saves to `_summary_cache` — **the primary cache for reuse** (neutral, comprehensive)
-- X-Ray → saves to `_xray_cache` — useful as supplementary context (structured reference)
-- Analyze Document → saves to `_analyze_cache` — specialized; best used as additional context, not as the sole input for another analysis (analyzing an analysis loses nuance with each layer)
+When certain actions complete, their results are saved to shared caches. There are three cache types, but the **summary cache is the main one** — it powers the built-in Smart actions and is the recommended foundation for custom actions:
 
-Custom actions can reference these using `{summary_cache_section}`, `{xray_cache_section}`, or `{analyze_cache_section}` placeholders. The summary cache is the recommended choice for most custom actions — it's designed as a reusable, neutral representation of the document. See [Tips for Custom Actions](#tips-for-custom-actions) for usage guidance.
+- **Summary** → saves to `_summary_cache` — **the primary cache for reuse**. A neutral, comprehensive representation of the document, designed to replace raw book text in actions (massive token savings). This is what Smart actions use.
+- **X-Ray** → saves to `_xray_cache` — a structured character/concept reference. Primarily useful for re-reading via **View Caches** in the Quick Actions panel. Also available as a placeholder for custom actions that want supplementary context.
+- **Analyze Document** → saves to `_analyze_cache` — an opinionated document analysis. Like X-Ray, mainly useful for reviewing via **View Caches**. Available as a placeholder too, but avoid using it as the sole input for another analysis (analyzing an analysis loses nuance with each layer).
+
+All three caches can be referenced in custom actions using `{summary_cache_section}`, `{xray_cache_section}`, or `{analyze_cache_section}` placeholders. The summary cache is the recommended choice for most custom actions. The X-Ray and Analyze placeholders are there for advanced users who want to experiment — cache placeholders disappear when empty, so including them is always safe. See [Tips for Custom Actions](#tips-for-custom-actions) for usage guidance.
 
 > **Safety mechanism:** Document caches are only saved when book text was actually extracted. If you run X-Ray, Analyze Document, or Summary with text extraction disabled (or if extraction yields no content), the AI response is based solely on the book's title/author (training knowledge), and this lower-quality result is NOT cached. This prevents low-quality training-data-based responses from being stored as reusable context. Enable text extraction before running these actions to build useful caches.
 
