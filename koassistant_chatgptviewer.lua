@@ -1635,7 +1635,7 @@ function ChatGPTViewer:init()
   local rerun_features = self.configuration and self.configuration.features
   local has_rerun = self.configuration and self.configuration._rerun_action
   table.insert(minimal_button_row2, {
-    text = _("Lang"),
+    text = _("Language"),
     id = "change_language",
     enabled = has_rerun and true or false,
     callback = function()
@@ -1968,7 +1968,7 @@ function ChatGPTViewer:init()
   local translate_rerun_features = self.configuration and self.configuration.features
   local translate_has_rerun = self.configuration and self.configuration._rerun_action
   table.insert(translate_button_row2, {
-    text = _("Lang"),
+    text = _("Language"),
     id = "change_language",
     enabled = translate_has_rerun and true or false,
     callback = function()
