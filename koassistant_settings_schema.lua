@@ -890,7 +890,7 @@ local SettingsSchema = {
                                 new_book_chat = _("New Book Chat/Action"),
                                 general_chat = _("General Chat/Action"),
                                 summary = _("Summary (View/Generate)"),
-                                view_caches = _("View Caches"),
+                                view_caches = _("View Artifacts"),
                                 ai_quick_settings = _("Quick Settings"),
                             }
                             for _, util in ipairs(Constants.QUICK_ACTION_UTILITIES) do
