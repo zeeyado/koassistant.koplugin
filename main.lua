@@ -1367,7 +1367,17 @@ function AskGPT:updateConfigFromSettings()
 
   configuration.provider = features.provider or "anthropic"
   configuration.model = features.model
-  configuration.features = features
+
+  -- Merge settings into existing features table instead of replacing it.
+  -- This preserves runtime-only keys (context flags, book_metadata, etc.)
+  -- that callers set before the network callback fires.
+  if not configuration.features then
+    configuration.features = features
+  else
+    for k, v in pairs(features) do
+      configuration.features[k] = v
+    end
+  end
 
   -- Ensure transient flags are cleared (these are only set at runtime for specific actions)
   -- This prevents flags from "leaking" to other actions
