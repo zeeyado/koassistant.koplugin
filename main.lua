@@ -192,6 +192,8 @@ function AskGPT:init()
               configuration.features.is_general_context = nil
               configuration.features.is_book_context = nil
               configuration.features.is_multi_book_context = nil
+              configuration.features.book_metadata = nil
+              configuration.features.books_info = nil
               -- Store selection data for "Save to Note" feature
               configuration.features.selection_data = selection_data
               showChatGPTDialog(self.ui, selected_text, configuration, nil, self)
