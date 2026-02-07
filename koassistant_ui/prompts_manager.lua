@@ -2723,6 +2723,20 @@ function PromptsManager:showBuiltinSettingsDialog(state)
         end,
     })
 
+    -- Web search setting (tri-state)
+    local web_display = state.enable_web_search == true and _("Always")
+        or state.enable_web_search == false and _("Never")
+        or _("Global")
+    table.insert(items, {
+        text = _("Web: ") .. web_display,
+        callback = function()
+            self:showWebSearchSelector(state, function()
+                UIManager:close(self.builtin_settings_dialog)
+                self:showBuiltinSettingsDialog(state)
+            end)
+        end,
+    })
+
     table.insert(items, {
         text = _("Provider: ") .. provider_display,
         callback = function()
@@ -2754,20 +2768,6 @@ function PromptsManager:showBuiltinSettingsDialog(state)
             end,
         })
     end
-
-    -- Web search setting (tri-state)
-    local web_display = state.enable_web_search == true and _("Always")
-        or state.enable_web_search == false and _("Never")
-        or _("Global")
-    table.insert(items, {
-        text = _("Web: ") .. web_display,
-        callback = function()
-            self:showWebSearchSelector(state, function()
-                UIManager:close(self.builtin_settings_dialog)
-                self:showBuiltinSettingsDialog(state)
-            end)
-        end,
-    })
 
     -- Checkboxes
     table.insert(items, {
@@ -3454,6 +3454,20 @@ function PromptsManager:showCustomQuickSettingsDialog(state)
         end,
     })
 
+    -- Web search setting (tri-state)
+    local custom_web_display = state.enable_web_search == true and _("Always")
+        or state.enable_web_search == false and _("Never")
+        or _("Global")
+    table.insert(items, {
+        text = _("Web: ") .. custom_web_display,
+        callback = function()
+            self:showWebSearchSelector(state, function()
+                UIManager:close(self.custom_quick_dialog)
+                self:showCustomQuickSettingsDialog(state)
+            end)
+        end,
+    })
+
     table.insert(items, {
         text = _("Provider: ") .. provider_display,
         callback = function()
@@ -3485,20 +3499,6 @@ function PromptsManager:showCustomQuickSettingsDialog(state)
             end,
         })
     end
-
-    -- Web search setting (tri-state)
-    local custom_web_display = state.enable_web_search == true and _("Always")
-        or state.enable_web_search == false and _("Never")
-        or _("Global")
-    table.insert(items, {
-        text = _("Web: ") .. custom_web_display,
-        callback = function()
-            self:showWebSearchSelector(state, function()
-                UIManager:close(self.custom_quick_dialog)
-                self:showCustomQuickSettingsDialog(state)
-            end)
-        end,
-    })
 
     -- Checkboxes
     table.insert(items, {
