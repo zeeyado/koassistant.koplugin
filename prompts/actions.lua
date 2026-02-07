@@ -46,7 +46,7 @@ Actions.SUMMARY_PROMPT = [[Summarize: "{title}"{author_clause}.
 
 {full_document_section}
 
-Provide a comprehensive summary capturing the essential content. Adjust detail based on length - shorter works warrant more granularity, longer works need higher-level synthesis. The summary you make may be used as a replacement for the full text, to ask questions and do analysis. Keep this goal in mind when crafting the summary.]]
+Provide a comprehensive summary capturing the essential content. Cover the entire work evenly from beginning to end — do not front-load detail on early sections at the expense of later ones. This summary will be used as a stand-in for the full text in future queries and analysis, so preserve key details, arguments, and structure while being as concise as the content's length and density allow.]]
 
 -- ============================================================
 -- Open Book Flags - Centralized Definition
@@ -556,7 +556,6 @@ If you don't recognize this work or the content seems unclear, tell me honestly 
         -- Inherits global reasoning setting (user choice)
         api_params = {
             temperature = 0.5,
-            max_tokens = 8192,
         },
         builtin = true,
         in_reading_features = 1,  -- Appears in Reading Features menu + default gesture
@@ -1002,11 +1001,12 @@ Provide analysis appropriate to this document's type and purpose. Address what's
 - Structure and organization of ideas
 - Key insights, findings, or themes
 - Intended audience and context
-- Strengths and areas for improvement]],
+- Strengths and areas for improvement
+
+{conciseness_nudge}]],
         -- No skip_domain, no skip_behavior - relies on user's configured settings
         api_params = {
             temperature = 0.5,
-            max_tokens = 8192,
         },
         builtin = true,
     },
@@ -1021,7 +1021,6 @@ Provide analysis appropriate to this document's type and purpose. Address what's
         prompt = Actions.SUMMARY_PROMPT,  -- Canonical summary prompt
         api_params = {
             temperature = 0.4,
-            max_tokens = 8192,
         },
         builtin = true,
     },
@@ -1039,10 +1038,11 @@ What are the most important takeaways? Focus on:
 - Ideas worth remembering
 - Novel perspectives or findings
 - Actionable conclusions
-- Connections to broader concepts]],
+- Connections to broader concepts
+
+{conciseness_nudge}]],
         api_params = {
             temperature = 0.5,
-            max_tokens = 8192,
         },
         builtin = true,
     },
