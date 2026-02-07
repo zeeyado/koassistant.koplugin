@@ -46,10 +46,15 @@ local function replace_placeholder(text, placeholder, replacement)
     if not text or not placeholder then return text end
     replacement = replacement or ""
     -- Replace ALL occurrences (plain text search, no pattern interpretation)
+    -- search_start advances past each replacement to avoid infinite loops
+    -- when the replacement text itself contains the placeholder pattern
+    -- (e.g., summarizing a document that documents placeholder syntax)
+    local search_start = 1
     while true do
-        local start_pos, end_pos = text:find(placeholder, 1, true)
+        local start_pos, end_pos = text:find(placeholder, search_start, true)
         if not start_pos then break end
         text = text:sub(1, start_pos - 1) .. replacement .. text:sub(end_pos + 1)
+        search_start = start_pos + #replacement
     end
     return text
 end
