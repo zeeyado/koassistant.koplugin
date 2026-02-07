@@ -2597,185 +2597,177 @@ function PromptsManager:showBuiltinSettingsDialog(state)
     local provider_display = state.provider or _("Global")
     local model_display = state.model or _("Global")
 
-    local buttons = {
-        -- Row 1: AI Behavior
-        {
-            {
-                text = _("AI Behavior: ") .. behavior_display,
-                callback = function()
-                    UIManager:close(self.builtin_settings_dialog)
-                    self:showBuiltinBehaviorSelector(state)
-                end,
-            },
-        },
-        -- Row 2: Temperature | Reasoning (compacted)
-        {
-            {
-                text = _("Temp: ") .. temp_display,
-                callback = function()
-                    self:showBuiltinTemperatureSelector(state)
-                end,
-            },
-            {
-                text = _("Reasoning: ") .. thinking_display,
-                callback = function()
-                    self:showThinkingSelector(state)  -- Use shared dialog
-                end,
-            },
-        },
-        -- Row 3: Provider | Model
-        {
-            {
-                text = _("Provider: ") .. provider_display,
-                callback = function()
-                    self:showBuiltinProviderSelector(state)
-                end,
-            },
-            {
-                text = _("Model: ") .. model_display,
-                callback = function()
-                    if not state.provider then
-                        UIManager:show(InfoMessage:new{
-                            text = _("Please select a provider first"),
-                        })
-                        return
-                    end
-                    self:showBuiltinModelSelector(state)
-                end,
-            },
-        },
-        -- Row 4: Skip language | Skip domain (compacted)
-        {
-            {
-                text = (state.skip_language_instruction and "☑ " or "☐ ") .. _("Skip language"),
-                callback = function()
-                    state.skip_language_instruction = not state.skip_language_instruction
-                    UIManager:close(self.builtin_settings_dialog)
-                    self:showBuiltinSettingsDialog(state)
-                end,
-            },
-            {
-                text = (state.skip_domain and "☑ " or "☐ ") .. _("Skip domain"),
-                callback = function()
-                    state.skip_domain = not state.skip_domain
-                    UIManager:close(self.builtin_settings_dialog)
-                    self:showBuiltinSettingsDialog(state)
-                end,
-            },
-        },
-    }
+    local buttons = {}
 
-    -- Include book context toggle (for highlight-compatible contexts)
+    -- Collect all items, then lay out 2 per row
+    -- Options first, then checkboxes
+    local items = {}
+
+    -- Options
+    table.insert(items, {
+        text = _("AI Behavior: ") .. behavior_display,
+        callback = function()
+            UIManager:close(self.builtin_settings_dialog)
+            self:showBuiltinBehaviorSelector(state)
+        end,
+    })
+
+    table.insert(items, {
+        text = _("Temp: ") .. temp_display,
+        callback = function()
+            self:showBuiltinTemperatureSelector(state)
+        end,
+    })
+
+    table.insert(items, {
+        text = _("Reasoning: ") .. thinking_display,
+        callback = function()
+            self:showThinkingSelector(state)  -- Use shared dialog
+        end,
+    })
+
+    table.insert(items, {
+        text = _("Provider: ") .. provider_display,
+        callback = function()
+            self:showBuiltinProviderSelector(state)
+        end,
+    })
+
+    table.insert(items, {
+        text = _("Model: ") .. model_display,
+        callback = function()
+            if not state.provider then
+                UIManager:show(InfoMessage:new{
+                    text = _("Please select a provider first"),
+                })
+                return
+            end
+            self:showBuiltinModelSelector(state)
+        end,
+    })
+
     if self:contextIncludesHighlight(prompt.context) then
-        table.insert(buttons, {
-            {
-                text = (state.include_book_context and "☑ " or "☐ ") .. _("Include book info"),
-                callback = function()
-                    state.include_book_context = not state.include_book_context
+        table.insert(items, {
+            text = _("View: ") .. self:getViewModeDisplayText(state),
+            callback = function()
+                self:showViewModeSelector(state, function()
                     UIManager:close(self.builtin_settings_dialog)
                     self:showBuiltinSettingsDialog(state)
-                end,
-            },
-        })
-        -- View mode selector (for highlight contexts)
-        table.insert(buttons, {
-            {
-                text = _("View: ") .. self:getViewModeDisplayText(state),
-                callback = function()
-                    self:showViewModeSelector(state, function()
-                        UIManager:close(self.builtin_settings_dialog)
-                        self:showBuiltinSettingsDialog(state)
-                    end)
-                end,
-            },
+                end)
+            end,
         })
     end
 
-    -- Book text extraction toggle (for contexts that can run in reading mode)
-    -- Note: Lightweight data (progress, highlights, annotations, stats) is auto-extracted
+    -- Checkboxes
+    table.insert(items, {
+        text = (state.skip_language_instruction and "☑ " or "☐ ") .. _("Skip language"),
+        callback = function()
+            state.skip_language_instruction = not state.skip_language_instruction
+            UIManager:close(self.builtin_settings_dialog)
+            self:showBuiltinSettingsDialog(state)
+        end,
+    })
+
+    table.insert(items, {
+        text = (state.skip_domain and "☑ " or "☐ ") .. _("Skip domain"),
+        callback = function()
+            state.skip_domain = not state.skip_domain
+            UIManager:close(self.builtin_settings_dialog)
+            self:showBuiltinSettingsDialog(state)
+        end,
+    })
+
+    if self:contextIncludesHighlight(prompt.context) then
+        table.insert(items, {
+            text = (state.include_book_context and "☑ " or "☐ ") .. _("Include book info"),
+            callback = function()
+                state.include_book_context = not state.include_book_context
+                UIManager:close(self.builtin_settings_dialog)
+                self:showBuiltinSettingsDialog(state)
+            end,
+        })
+    end
+
     if self:canUseTextExtraction(prompt) then
-        table.insert(buttons, {
-            {
-                text = (state.use_book_text and "☑ " or "☐ ") .. _("Allow text extraction"),
-                callback = function()
-                    state.use_book_text = not state.use_book_text
-                    -- Show explanation when turning on
-                    if state.use_book_text then
-                        local features = self.plugin.settings:readSetting("features") or {}
-                        if not features.enable_book_text_extraction then
-                            UIManager:show(Notification:new{
-                                text = _("Text extraction enabled. Note: Enable in Settings → Advanced first."),
-                                timeout = 4,
-                            })
-                        else
-                            UIManager:show(Notification:new{
-                                text = _("Text extraction enabled for this action."),
-                                timeout = 2,
-                            })
-                        end
+        table.insert(items, {
+            text = (state.use_book_text and "☑ " or "☐ ") .. _("Allow text extraction"),
+            callback = function()
+                state.use_book_text = not state.use_book_text
+                if state.use_book_text then
+                    local features = self.plugin.settings:readSetting("features") or {}
+                    if not features.enable_book_text_extraction then
+                        UIManager:show(Notification:new{
+                            text = _("Text extraction enabled. Note: Enable in Settings → Advanced first."),
+                            timeout = 4,
+                        })
+                    else
+                        UIManager:show(Notification:new{
+                            text = _("Text extraction enabled for this action."),
+                            timeout = 2,
+                        })
                     end
-                    UIManager:close(self.builtin_settings_dialog)
-                    self:showBuiltinSettingsDialog(state)
-                end,
-            },
+                end
+                UIManager:close(self.builtin_settings_dialog)
+                self:showBuiltinSettingsDialog(state)
+            end,
         })
     end
 
-    -- Annotation use toggle (for per-book contexts)
-    -- Gates both {annotations} and {highlights} placeholders (same KOReader data)
     if prompt.context and self:canUsePerBookData(prompt.context) then
-        table.insert(buttons, {
-            {
-                text = (state.use_annotations and "☑ " or "☐ ") .. _("Allow annotation use"),
-                callback = function()
-                    state.use_annotations = not state.use_annotations
-                    if state.use_annotations then
-                        local features = self.plugin.settings:readSetting("features") or {}
-                        if features.enable_annotations_sharing ~= true then
-                            UIManager:show(Notification:new{
-                                text = _("Annotation use enabled. Note: Enable in Settings → Privacy & Data first."),
-                                timeout = 4,
-                            })
-                        else
-                            UIManager:show(Notification:new{
-                                text = _("Annotation use enabled for this action."),
-                                timeout = 2,
-                            })
-                        end
+        table.insert(items, {
+            text = (state.use_annotations and "☑ " or "☐ ") .. _("Allow annotation use"),
+            callback = function()
+                state.use_annotations = not state.use_annotations
+                if state.use_annotations then
+                    local features = self.plugin.settings:readSetting("features") or {}
+                    if features.enable_annotations_sharing ~= true then
+                        UIManager:show(Notification:new{
+                            text = _("Annotation use enabled. Note: Enable in Settings → Privacy & Data first."),
+                            timeout = 4,
+                        })
+                    else
+                        UIManager:show(Notification:new{
+                            text = _("Annotation use enabled for this action."),
+                            timeout = 2,
+                        })
                     end
-                    UIManager:close(self.builtin_settings_dialog)
-                    self:showBuiltinSettingsDialog(state)
-                end,
-            },
+                end
+                UIManager:close(self.builtin_settings_dialog)
+                self:showBuiltinSettingsDialog(state)
+            end,
+        })
+
+        table.insert(items, {
+            text = (state.use_notebook and "☑ " or "☐ ") .. _("Allow notebook use"),
+            callback = function()
+                state.use_notebook = not state.use_notebook
+                if state.use_notebook then
+                    local features = self.plugin.settings:readSetting("features") or {}
+                    if features.enable_notebook_sharing ~= true then
+                        UIManager:show(Notification:new{
+                            text = _("Notebook use enabled. Note: Enable in Settings → Privacy & Data first."),
+                            timeout = 4,
+                        })
+                    else
+                        UIManager:show(Notification:new{
+                            text = _("Notebook use enabled for this action."),
+                            timeout = 2,
+                        })
+                    end
+                end
+                UIManager:close(self.builtin_settings_dialog)
+                self:showBuiltinSettingsDialog(state)
+            end,
         })
     end
 
-    -- Notebook use toggle (for per-book contexts)
-    if prompt.context and self:canUsePerBookData(prompt.context) then
-        table.insert(buttons, {
-            {
-                text = (state.use_notebook and "☑ " or "☐ ") .. _("Allow notebook use"),
-                callback = function()
-                    state.use_notebook = not state.use_notebook
-                    if state.use_notebook then
-                        local features = self.plugin.settings:readSetting("features") or {}
-                        if features.enable_notebook_sharing ~= true then
-                            UIManager:show(Notification:new{
-                                text = _("Notebook use enabled. Note: Enable in Settings → Privacy & Data first."),
-                                timeout = 4,
-                            })
-                        else
-                            UIManager:show(Notification:new{
-                                text = _("Notebook use enabled for this action."),
-                                timeout = 2,
-                            })
-                        end
-                    end
-                    UIManager:close(self.builtin_settings_dialog)
-                    self:showBuiltinSettingsDialog(state)
-                end,
-            },
-        })
+    -- Add items in rows of 2
+    for i = 1, #items, 2 do
+        if items[i + 1] then
+            table.insert(buttons, { items[i], items[i + 1] })
+        else
+            table.insert(buttons, { items[i] })
+        end
     end
 
     -- Cancel / Help / Save row
@@ -3296,7 +3288,7 @@ function PromptsManager:showCustomQuickSettingsDialog(state)
     local model_display = state.model or _("Global")
 
     local buttons = {
-        -- Row 1: Name (editable)
+        -- Name (editable, full width)
         {
             {
                 text = _("Name: ") .. state.name,
@@ -3306,187 +3298,180 @@ function PromptsManager:showCustomQuickSettingsDialog(state)
                 end,
             },
         },
-        -- Row 2: AI Behavior
-        {
-            {
-                text = _("AI Behavior: ") .. behavior_display,
-                callback = function()
-                    UIManager:close(self.custom_quick_dialog)
-                    self:showCustomBehaviorQuickSelector(state)
-                end,
-            },
-        },
-        -- Row 3: Temperature | Reasoning
-        {
-            {
-                text = _("Temp: ") .. temp_display,
-                callback = function()
-                    self:showCustomTemperatureSelector(state)
-                end,
-            },
-            {
-                text = _("Reasoning: ") .. thinking_display,
-                callback = function()
-                    self:showThinkingSelector(state, function()
-                        UIManager:close(self.custom_quick_dialog)
-                        self:showCustomQuickSettingsDialog(state)
-                    end)
-                end,
-            },
-        },
-        -- Row 4: Provider | Model
-        {
-            {
-                text = _("Provider: ") .. provider_display,
-                callback = function()
-                    self:showCustomProviderSelector(state)
-                end,
-            },
-            {
-                text = _("Model: ") .. model_display,
-                callback = function()
-                    if not state.provider then
-                        UIManager:show(InfoMessage:new{
-                            text = _("Please select a provider first"),
-                        })
-                        return
-                    end
-                    self:showCustomModelSelector(state)
-                end,
-            },
-        },
-        -- Row 5: Skip language | Skip domain
-        {
-            {
-                text = (state.skip_language_instruction and "☑ " or "☐ ") .. _("Skip language"),
-                callback = function()
-                    state.skip_language_instruction = not state.skip_language_instruction
-                    UIManager:close(self.custom_quick_dialog)
-                    self:showCustomQuickSettingsDialog(state)
-                end,
-            },
-            {
-                text = (state.skip_domain and "☑ " or "☐ ") .. _("Skip domain"),
-                callback = function()
-                    state.skip_domain = not state.skip_domain
-                    UIManager:close(self.custom_quick_dialog)
-                    self:showCustomQuickSettingsDialog(state)
-                end,
-            },
-        },
     }
 
-    -- Include book context toggle (for highlight-compatible contexts)
+    -- Collect all items after Name, then lay out 2 per row
+    -- Options first, then checkboxes
+    local items = {}
+
+    -- Options
+    table.insert(items, {
+        text = _("AI Behavior: ") .. behavior_display,
+        callback = function()
+            UIManager:close(self.custom_quick_dialog)
+            self:showCustomBehaviorQuickSelector(state)
+        end,
+    })
+
+    table.insert(items, {
+        text = _("Temp: ") .. temp_display,
+        callback = function()
+            self:showCustomTemperatureSelector(state)
+        end,
+    })
+
+    table.insert(items, {
+        text = _("Reasoning: ") .. thinking_display,
+        callback = function()
+            self:showThinkingSelector(state, function()
+                UIManager:close(self.custom_quick_dialog)
+                self:showCustomQuickSettingsDialog(state)
+            end)
+        end,
+    })
+
+    table.insert(items, {
+        text = _("Provider: ") .. provider_display,
+        callback = function()
+            self:showCustomProviderSelector(state)
+        end,
+    })
+
+    table.insert(items, {
+        text = _("Model: ") .. model_display,
+        callback = function()
+            if not state.provider then
+                UIManager:show(InfoMessage:new{
+                    text = _("Please select a provider first"),
+                })
+                return
+            end
+            self:showCustomModelSelector(state)
+        end,
+    })
+
     if self:contextIncludesHighlight(state.context) then
-        table.insert(buttons, {
-            {
-                text = (state.include_book_context and "☑ " or "☐ ") .. _("Include book info"),
-                callback = function()
-                    state.include_book_context = not state.include_book_context
+        table.insert(items, {
+            text = _("View: ") .. self:getViewModeDisplayText(state),
+            callback = function()
+                self:showViewModeSelector(state, function()
                     UIManager:close(self.custom_quick_dialog)
                     self:showCustomQuickSettingsDialog(state)
-                end,
-            },
-        })
-        -- View mode selector (for highlight contexts)
-        table.insert(buttons, {
-            {
-                text = _("View: ") .. self:getViewModeDisplayText(state),
-                callback = function()
-                    self:showViewModeSelector(state, function()
-                        UIManager:close(self.custom_quick_dialog)
-                        self:showCustomQuickSettingsDialog(state)
-                    end)
-                end,
-            },
+                end)
+            end,
         })
     end
 
-    -- Book text extraction toggle (for contexts that can run in reading mode)
-    -- Note: Lightweight data (progress, highlights, annotations, stats) is auto-extracted
+    -- Checkboxes
+    table.insert(items, {
+        text = (state.skip_language_instruction and "☑ " or "☐ ") .. _("Skip language"),
+        callback = function()
+            state.skip_language_instruction = not state.skip_language_instruction
+            UIManager:close(self.custom_quick_dialog)
+            self:showCustomQuickSettingsDialog(state)
+        end,
+    })
+
+    table.insert(items, {
+        text = (state.skip_domain and "☑ " or "☐ ") .. _("Skip domain"),
+        callback = function()
+            state.skip_domain = not state.skip_domain
+            UIManager:close(self.custom_quick_dialog)
+            self:showCustomQuickSettingsDialog(state)
+        end,
+    })
+
+    if self:contextIncludesHighlight(state.context) then
+        table.insert(items, {
+            text = (state.include_book_context and "☑ " or "☐ ") .. _("Include book info"),
+            callback = function()
+                state.include_book_context = not state.include_book_context
+                UIManager:close(self.custom_quick_dialog)
+                self:showCustomQuickSettingsDialog(state)
+            end,
+        })
+    end
+
     if self:canUseTextExtraction(state) then
-        table.insert(buttons, {
-            {
-                text = (state.use_book_text and "☑ " or "☐ ") .. _("Allow text extraction"),
-                callback = function()
-                    state.use_book_text = not state.use_book_text
-                    -- Show explanation when turning on
-                    if state.use_book_text then
-                        local features = self.plugin.settings:readSetting("features") or {}
-                        if not features.enable_book_text_extraction then
-                            UIManager:show(Notification:new{
-                                text = _("Text extraction enabled. Note: Enable in Settings → Advanced first."),
-                                timeout = 4,
-                            })
-                        else
-                            UIManager:show(Notification:new{
-                                text = _("Text extraction enabled for this action."),
-                                timeout = 2,
-                            })
-                        end
+        table.insert(items, {
+            text = (state.use_book_text and "☑ " or "☐ ") .. _("Allow text extraction"),
+            callback = function()
+                state.use_book_text = not state.use_book_text
+                if state.use_book_text then
+                    local features = self.plugin.settings:readSetting("features") or {}
+                    if not features.enable_book_text_extraction then
+                        UIManager:show(Notification:new{
+                            text = _("Text extraction enabled. Note: Enable in Settings → Advanced first."),
+                            timeout = 4,
+                        })
+                    else
+                        UIManager:show(Notification:new{
+                            text = _("Text extraction enabled for this action."),
+                            timeout = 2,
+                        })
                     end
-                    UIManager:close(self.custom_quick_dialog)
-                    self:showCustomQuickSettingsDialog(state)
-                end,
-            },
+                end
+                UIManager:close(self.custom_quick_dialog)
+                self:showCustomQuickSettingsDialog(state)
+            end,
         })
     end
 
-    -- Annotation use toggle (for per-book contexts)
-    -- Gates both {annotations} and {highlights} placeholders (same KOReader data)
     if state.context and self:canUsePerBookData(state.context) then
-        table.insert(buttons, {
-            {
-                text = (state.use_annotations and "☑ " or "☐ ") .. _("Allow annotation use"),
-                callback = function()
-                    state.use_annotations = not state.use_annotations
-                    if state.use_annotations then
-                        local features = self.plugin.settings:readSetting("features") or {}
-                        if features.enable_annotations_sharing ~= true then
-                            UIManager:show(Notification:new{
-                                text = _("Annotation use enabled. Note: Enable in Settings → Privacy & Data first."),
-                                timeout = 4,
-                            })
-                        else
-                            UIManager:show(Notification:new{
-                                text = _("Annotation use enabled for this action."),
-                                timeout = 2,
-                            })
-                        end
+        table.insert(items, {
+            text = (state.use_annotations and "☑ " or "☐ ") .. _("Allow annotation use"),
+            callback = function()
+                state.use_annotations = not state.use_annotations
+                if state.use_annotations then
+                    local features = self.plugin.settings:readSetting("features") or {}
+                    if features.enable_annotations_sharing ~= true then
+                        UIManager:show(Notification:new{
+                            text = _("Annotation use enabled. Note: Enable in Settings → Privacy & Data first."),
+                            timeout = 4,
+                        })
+                    else
+                        UIManager:show(Notification:new{
+                            text = _("Annotation use enabled for this action."),
+                            timeout = 2,
+                        })
                     end
-                    UIManager:close(self.custom_quick_dialog)
-                    self:showCustomQuickSettingsDialog(state)
-                end,
-            },
+                end
+                UIManager:close(self.custom_quick_dialog)
+                self:showCustomQuickSettingsDialog(state)
+            end,
+        })
+
+        table.insert(items, {
+            text = (state.use_notebook and "☑ " or "☐ ") .. _("Allow notebook use"),
+            callback = function()
+                state.use_notebook = not state.use_notebook
+                if state.use_notebook then
+                    local features = self.plugin.settings:readSetting("features") or {}
+                    if features.enable_notebook_sharing ~= true then
+                        UIManager:show(Notification:new{
+                            text = _("Notebook use enabled. Note: Enable in Settings → Privacy & Data first."),
+                            timeout = 4,
+                        })
+                    else
+                        UIManager:show(Notification:new{
+                            text = _("Notebook use enabled for this action."),
+                            timeout = 2,
+                        })
+                    end
+                end
+                UIManager:close(self.custom_quick_dialog)
+                self:showCustomQuickSettingsDialog(state)
+            end,
         })
     end
 
-    -- Notebook use toggle (for per-book contexts)
-    if state.context and self:canUsePerBookData(state.context) then
-        table.insert(buttons, {
-            {
-                text = (state.use_notebook and "☑ " or "☐ ") .. _("Allow notebook use"),
-                callback = function()
-                    state.use_notebook = not state.use_notebook
-                    if state.use_notebook then
-                        local features = self.plugin.settings:readSetting("features") or {}
-                        if features.enable_notebook_sharing ~= true then
-                            UIManager:show(Notification:new{
-                                text = _("Notebook use enabled. Note: Enable in Settings → Privacy & Data first."),
-                                timeout = 4,
-                            })
-                        else
-                            UIManager:show(Notification:new{
-                                text = _("Notebook use enabled for this action."),
-                                timeout = 2,
-                            })
-                        end
-                    end
-                    UIManager:close(self.custom_quick_dialog)
-                    self:showCustomQuickSettingsDialog(state)
-                end,
-            },
-        })
+    -- Add items in rows of 2
+    for i = 1, #items, 2 do
+        if items[i + 1] then
+            table.insert(buttons, { items[i], items[i + 1] })
+        else
+            table.insert(buttons, { items[i] })
+        end
     end
 
     -- Action row: Cancel | Full Editor | Save
