@@ -691,7 +691,7 @@ function PromptsManager:showPromptDetails(prompt)
     info_text = info_text .. "  |  " .. _("Skip Domain") .. ": " .. skip_domain_text
 
     -- Include book info (for highlight contexts)
-    if prompt.context == "highlight" or prompt.context == "both" or prompt.context == "both+general" then
+    if self:contextIncludesHighlight(prompt.context) then
         local book_context_text = prompt.include_book_context and _("Yes") or _("No")
         info_text = info_text .. "\n" .. _("Include Book Info") .. ": " .. book_context_text
     end
@@ -800,7 +800,7 @@ function PromptsManager:showPromptDetails(prompt)
     end
 
     -- Add highlight menu toggle for highlight-context actions that don't require input
-    local is_highlight_context = prompt.context == "highlight" or prompt.context == "both" or prompt.context == "both+general"
+    local is_highlight_context = self:contextIncludesHighlight(prompt.context)
     local requires_input = prompt.id == "ask" or (prompt.prompt and prompt.prompt:find("{user_input}"))
     if is_highlight_context and not requires_input and self.plugin.action_service then
         local in_menu = self.plugin.action_service:isInHighlightMenu(prompt.id)
@@ -898,6 +898,30 @@ function PromptsManager:showPromptDetails(prompt)
                         text = in_general_menu
                             and _("Removed from general input dialog.")
                             or _("Added to general input dialog."),
+                        timeout = 2,
+                    })
+                    self_ref:refreshMenu()
+                end,
+            },
+        })
+    end
+
+    -- Add "Add to File Browser" button for book-context actions that don't require reading mode
+    -- These are actions available in file browser's action input (title/author only, no open book)
+    local is_book_eligible = self:contextIncludesBook(prompt.context)
+    if is_book_eligible and prompt.enabled and not Actions.requiresOpenBook(prompt) and self.plugin.action_service then
+        local in_file_browser = self.plugin.action_service:isInFileBrowser(prompt.id)
+        table.insert(buttons, {
+            {
+                text = in_file_browser and _("✓ In File Browser") or _("Add to File Browser"),
+                callback = function()
+                    local self_ref = self
+                    self.plugin.action_service:toggleFileBrowserAction(prompt.id)
+                    UIManager:close(self_ref.details_dialog)
+                    UIManager:show(InfoMessage:new{
+                        text = in_file_browser
+                            and _("Removed from file browser.")
+                            or _("Added to file browser."),
                         timeout = 2,
                     })
                     self_ref:refreshMenu()
@@ -1320,18 +1344,19 @@ end
 
 -- Check if a context includes highlight context (where include_book_context applies)
 function PromptsManager:contextIncludesHighlight(context)
-    return context == "highlight" or context == "both" or context == "both+general"
+    return context == "highlight" or context == "both" or context == "both+general" or context == "highlight+general"
 end
 
 -- Check if a context includes book context (where context extraction flags apply)
 function PromptsManager:contextIncludesBook(context)
-    return context == "book" or context == "both" or context == "both+general"
+    return context == "book" or context == "both" or context == "both+general" or context == "book+general"
 end
 
 -- Check if a context can use per-book data (annotations, notebook)
 -- These are single-book contexts where per-book data gates make sense
 function PromptsManager:canUsePerBookData(context)
-    return context == "highlight" or context == "book" or context == "both" or context == "both+general"
+    return context == "highlight" or context == "book" or context == "both"
+        or context == "both+general" or context == "highlight+general" or context == "book+general"
 end
 
 -- Determine if an action can use text extraction (runs in reading mode)
@@ -1350,17 +1375,17 @@ function PromptsManager:canUseTextExtraction(action_or_context, is_new_action)
     end
 
     -- Highlight context: always in reading mode (can't highlight without open book)
-    if context == "highlight" then
+    if context == "highlight" or context == "highlight+general" then
         return true
     end
 
     -- "both" context: includes highlight, always in reading mode
-    if context == "both" then
+    if context == "both" or context == "both+general" then
         return true
     end
 
     -- Book context: depends on whether action requires open book
-    if context == "book" then
+    if context == "book" or context == "book+general" then
         if is_new_action then
             -- New custom actions: show toggle (user may add text placeholders)
             return true
