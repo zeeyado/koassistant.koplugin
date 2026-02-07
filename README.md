@@ -240,7 +240,7 @@ To show/hide buttons in the Quick Settings panel, use **Settings → Quick Setti
 Assign "KOAssistant: Quick Actions" to a gesture for fast access to reading-related actions:
 - **Default actions** — X-Ray, Recap, Book Info
 - **Summary management** — "View Summary" (if summary exists) or "Generate Summary" (if not) for cached document summaries
-- **Utilities** — Translate Page, View/Edit Notebook, Chat History, Continue Last Chat, New Book Chat/Action, General Chat/Action, Quick Settings, View Artifacts (browse cached X-Ray/Analyze/Summary responses)
+- **Utilities** — Translate Page, View/Edit Notebook, Chat History, Continue Last Chat, New Book Chat/Action, General Chat/Action, Quick Settings, View Artifacts (browse saved X-Ray, Analysis, and Summary results)
 
 You can add any book action to Quick Actions via **Action Manager → hold action → "Add to Quick Actions"**. To reorder or remove actions, use **Settings → Quick Actions Settings → Panel Actions**. To show/hide utility buttons (Translate Page, Chat History, etc.), use **Settings → Quick Actions Settings → QA Panel Utilities**. Defaults can also be removed.
 
@@ -533,7 +533,7 @@ Several actions come in two variants: a **regular** version that sends full book
 **Managing summaries:**
 - **Generate**: Quick Actions → "Generate Summary" (when no summary exists)
 - **View**: Quick Actions → "View Summary" (when summary exists), or use the "View Summary" gesture
-- **File browser**: "View Artifacts (KOA)" button appears when a book has any cached artifacts (summary, X-Ray, or analysis) — tap to pick which one to view
+- **File browser**: "View Artifacts (KOA)" button appears when a book has any artifacts (Summary, X-Ray, or Analysis) — tap to pick which one to view
 - **Coverage**: The viewer title shows coverage percentage if document was truncated (e.g., "Summary (78%)")
 
 > **Tip**: For documents you'll query multiple times, generate the summary proactively via Quick Actions to save tokens on future queries.
@@ -1108,13 +1108,13 @@ See [How Language Settings Work Together](#how-language-settings-work-together) 
 
 ### RTL Language Support
 
-Dictionary, translate, general chat, and cache viewers have special handling for right-to-left (RTL) languages:
+Dictionary, translate, general chat, and artifact viewers have special handling for right-to-left (RTL) languages:
 
-- **Automatic RTL mode**: When your dictionary or translation language is set to an RTL language, results automatically use Plain Text mode for proper font rendering. For general chat and cache viewers (X-Ray, Analyze, Summary), the content is checked—if RTL characters outnumber Latin, it switches to RTL mode (right-aligned text + Plain Text). This can be configured via **Settings → Display Settings → Text Mode for RTL Dictionary**, **Text Mode for RTL Translate**, and **Auto RTL mode for Chat**.
+- **Automatic RTL mode**: When your dictionary or translation language is set to an RTL language, results automatically use Plain Text mode for proper font rendering. For general chat and artifact viewers (X-Ray, Analyze, Summary), the content is checked—if RTL characters outnumber Latin, it switches to RTL mode (right-aligned text + Plain Text). This can be configured via **Settings → Display Settings → Text Mode for RTL Dictionary**, **Text Mode for RTL Translate**, and **Auto RTL mode for Chat**.
 - **BiDi text alignment**: Entries with RTL content display with correct bidirectional text alignment. Mixed RTL/LTR content (e.g., Arabic headwords with English pronunciation guides) renders in the correct reading order.
 - **IPA transcription handling**: Phonetic transcriptions are anchored to display correctly alongside RTL headwords.
 
-> **Note:** For best RTL rendering, Plain Text mode is recommended. The automatic RTL settings handle this for dictionary, translate, general chat, and cache viewers, while preserving your global Markdown/Plain Text preference when content is not predominantly RTL.
+> **Note:** For best RTL rendering, Plain Text mode is recommended. The automatic RTL settings handle this for dictionary, translate, general chat, and artifact viewers, while preserving your global Markdown/Plain Text preference when content is not predominantly RTL.
 
 ### Custom Dictionary Actions
 
@@ -1282,8 +1282,8 @@ Actions with gestures show a `[gesture]` indicator in the Action Manager list.
 - KOAssistant: Translate Current Page — Translate visible page text
 - KOAssistant: View Notebook — View current book's notebook
 - KOAssistant: Edit Notebook — Edit current book's notebook
-- KOAssistant: View Summary — View cached document summary
-- KOAssistant: View Artifacts — Browse cached X-Ray, Analyze, and Summary responses for the current book (handy for re-reading previous results without re-running the action)
+- KOAssistant: View Summary — View the document summary artifact
+- KOAssistant: View Artifacts — Browse X-Ray, Analysis, and Summary artifacts for the current book (handy for re-reading previous results without re-running the action)
 
 **General** (available in both File Browser and Reader gesture settings):
 - KOAssistant: Quick Settings — Two-column settings panel
@@ -1702,7 +1702,7 @@ Tags are simple labels for organizing chats. Unlike domains:
 - **Text Mode for Dictionary**: Always use Plain Text mode for dictionary popup, regardless of global view mode setting. Better font support for non-Latin scripts. (default: off)
 - **Text Mode for RTL Dictionary**: Automatically use Plain Text mode for dictionary popup when dictionary language is RTL. Grayed out when Text Mode for Dictionary is enabled. (default: on)
 - **Text Mode for RTL Translate**: Automatically use Plain Text mode for translate popup when translation language is RTL. (default: on)
-- **Auto RTL mode for Chat**: Automatically detect RTL content and switch to RTL mode (right-aligned text + Plain Text) for general chat and cache viewers. Activates when the latest response has more RTL than Latin characters. English text referencing Arabic stays in Markdown. Disabling removes all automatic RTL adjustments. Grayed out when markdown is disabled. (default: on)
+- **Auto RTL mode for Chat**: Automatically detect RTL content and switch to RTL mode (right-aligned text + Plain Text) for general chat and artifact viewers. Activates when the latest response has more RTL than Latin characters. English text referencing Arabic stays in Markdown. Disabling removes all automatic RTL adjustments. Grayed out when markdown is disabled. (default: on)
 - **Hide Highlighted Text**: Don't show selection in responses
 - **Hide Long Highlights**: Collapse highlights over character threshold
 - **Long Highlight Threshold**: Character limit before collapsing (default: 280)
@@ -1898,7 +1898,7 @@ Control where KOAssistant appears in KOReader's menus. All toggles default to ON
   - **Show Notebook Button**: Show "Notebook (KOA)" button when long-pressing books
   - **Only for books with notebooks**: Only show notebook button if notebook already exists
   - **Show Chat History Button**: Show "Chat History (KOA)" button when long-pressing books that have chat history
-  - **Show Artifacts Button**: Show "View Artifacts (KOA)" button for books that have cached artifacts (X-Ray, Summary, Analysis). Default: on
+  - **Show Artifacts Button**: Show "View Artifacts (KOA)" button for books that have artifacts (X-Ray, Summary, Analysis). Default: on
   - **Pinned Actions**: Actions you add via Action Manager → hold → "Add to File Browser" appear as one-tap buttons. Manage order and visibility via **File Browser Actions...** manager
   - All file browser buttons are distributed across rows of up to 4 buttons, equally distributed
 - **Customize Visible Actions**:
@@ -2293,10 +2293,10 @@ For medium and long texts, sending full document text (~100K tokens) for each hi
 - **Summarize Document** action (from book actions menu)
 - **Smart actions auto-prompt** — When you use a Smart action without an existing summary, a dialog offers to generate one first
 
-**Viewing cached summaries:**
+**Viewing summaries:**
 - **Quick Actions → View Summary** (when summary exists)
 - **File Browser** → Long-press a book → "View Artifacts (KOA)" → select Summary
-- **Gesture** → Assign "KOAssistant: View Summary" for quick access, or "KOAssistant: View Artifacts" to browse all cached content
+- **Gesture** → Assign "KOAssistant: View Summary" for quick access, or "KOAssistant: View Artifacts" to browse all artifacts
 
 The summary viewer shows metadata: coverage percentage (e.g., "78%" if document was truncated), model used, and generation date. Buttons allow copying, regenerating, or deleting the cached summary.
 
@@ -2639,7 +2639,7 @@ Dictionary lookups and popup actions use compact view by default (minimal UI). T
 
 ### Text Selection in Chat Viewer
 
-When you select text inside any KOAssistant chat viewer (compact, translate, full chat, or cache views), the behavior depends on how many words you selected:
+When you select text inside any KOAssistant chat viewer (compact, translate, full chat, or artifact views), the behavior depends on how many words you selected:
 
 | Selection | Behavior |
 |-----------|----------|
@@ -2723,7 +2723,7 @@ This is a limitation of KOReader's MuPDF HTML renderer, which lacks per-glyph fo
 **Automatic RTL mode** is enabled by default:
 - **Settings → Display Settings → Text Mode for RTL Dictionary** / **Text Mode for RTL Translate** / **Auto RTL mode for Chat**
 - Dictionary and translate switch to Plain Text when the target language is RTL
-- General chat and cache viewers (X-Ray, Analyze, Summary) switch to RTL mode (right-aligned + Plain Text) when content is predominantly RTL (more RTL than Latin characters)
+- General chat and artifact viewers (X-Ray, Analyze, Summary) switch to RTL mode (right-aligned + Plain Text) when content is predominantly RTL (more RTL than Latin characters)
 - Your global Markdown/Plain Text preference is preserved when content is not predominantly RTL
 
 Plain Text mode includes markdown stripping that preserves readability: headers show with symbols and bold text, **bold** renders as actual bold, lists become bullets (•), and code is quoted. Mixed RTL/LTR content (like Arabic headwords followed by English definitions) displays in the correct order, and RTL-only headers align naturally to the right.

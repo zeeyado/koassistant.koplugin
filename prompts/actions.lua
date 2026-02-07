@@ -152,6 +152,7 @@ Actions.highlight = {
     },
     eli5 = {
         id = "eli5",
+        enable_web_search = false,
         text = _("ELI5"),
         context = "highlight",
         template = "eli5",
@@ -166,6 +167,7 @@ Actions.highlight = {
     },
     summarize = {
         id = "summarize",
+        enable_web_search = false,
         text = _("Summarize"),
         context = "highlight",
         template = "summarize",
@@ -179,6 +181,7 @@ Actions.highlight = {
     },
     elaborate = {
         id = "elaborate",
+        enable_web_search = false,
         text = _("Elaborate"),
         context = "highlight",
         template = "elaborate",
@@ -213,6 +216,7 @@ Surface connections that enrich understanding, not tangential trivia. {concisene
     },
     connect_with_notes = {
         id = "connect_with_notes",
+        enable_web_search = false,
         text = _("Connect (With Notes)"),
         context = "highlight",
         behavior_variant = "reader_assistant",
@@ -252,6 +256,7 @@ If I have no prior highlights or notebook entries, just reflect on this passage 
     -- Context-aware highlight actions (use book text extraction)
     explain_in_context = {
         id = "explain_in_context",
+        enable_web_search = false,
         text = _("Explain in Context"),
         context = "highlight",
         use_book_text = true,
@@ -278,6 +283,7 @@ Help me understand:
     },
     analyze_in_context = {
         id = "analyze_in_context",
+        enable_web_search = false,
         text = _("Analyze in Context"),
         context = "highlight",
         use_book_text = true,
@@ -309,6 +315,7 @@ Provide deeper analysis:
     -- Smart context-aware action using cached summary for efficiency
     explain_in_context_smart = {
         id = "explain_in_context_smart",
+        enable_web_search = false,
         text = _("Explain in Context (Smart)"),
         context = "highlight",
         use_book_text = true,        -- Gate for accessing _summary_cache (derives from book text)
@@ -340,6 +347,7 @@ Note: The summary may be in a different language than your response language. Tr
     -- Smart deep analysis using cached summary for efficiency
     analyze_in_context_smart = {
         id = "analyze_in_context_smart",
+        enable_web_search = false,
         text = _("Analyze in Context (Smart)"),
         context = "highlight",
         use_book_text = true,        -- Gate for accessing _summary_cache (derives from book text)
@@ -375,6 +383,7 @@ Note: The summary may be in a different language than your response language. Tr
     -- Thematic Connection (Smart): Analyze how passage relates to larger themes
     thematic_connection_smart = {
         id = "thematic_connection_smart",
+        enable_web_search = false,
         text = _("Thematic Connection (Smart)"),
         context = "highlight",
         use_book_text = true,        -- Gate for accessing _summary_cache
@@ -408,6 +417,63 @@ Keep analysis grounded in the specific passage while connecting to the broader c
 Note: The summary may be in a different language than your response language. Translate or adapt as needed.]],
         api_params = {
             temperature = 0.6,
+            max_tokens = 4096,
+        },
+        builtin = true,
+    },
+    -- Web-enhanced highlight actions (force web search on)
+    fact_check = {
+        id = "fact_check",
+        enable_web_search = true,  -- Force web search even if global setting is off
+        text = _("Fact Check"),
+        context = "highlight",
+        include_book_context = true,
+        skip_domain = true,  -- Fact-checking format is standardized
+        prompt = [[Fact-check this claim or statement:
+
+"{highlighted_text}"
+
+Search for current, reliable sources to verify accuracy. For each claim:
+
+**Verdict:** Accurate / Partially accurate / Misleading / Inaccurate / Unverifiable
+
+**Evidence:** What do current sources say? Cite specific findings.
+
+**Nuance:** Important context, caveats, or recent developments that affect the claim's accuracy.
+
+If multiple claims are present, address each separately. If the passage is opinion rather than factual claim, note that and assess the underlying factual premises instead.
+
+{conciseness_nudge} {hallucination_nudge}]],
+        api_params = {
+            temperature = 0.3,  -- Low temp for factual accuracy
+            max_tokens = 4096,
+        },
+        builtin = true,
+    },
+    current_context = {
+        id = "current_context",
+        enable_web_search = true,  -- Force web search even if global setting is off
+        text = _("Current Context"),
+        context = "highlight",
+        include_book_context = true,
+        skip_domain = true,  -- Current events format is standardized
+        prompt = [[What is the current state of this topic?
+
+"{highlighted_text}"
+
+Search for the latest information and tell me:
+
+**Current State:** What's the situation now? What has changed or developed recently?
+
+**Key Developments:** Major events, discoveries, or shifts since this was written.
+
+**Outlook:** Where are things heading? What to watch for.
+
+Focus on what's genuinely new or different from what the text describes. If the text is still fully current, say so.
+
+{conciseness_nudge} {hallucination_nudge}]],
+        api_params = {
+            temperature = 0.5,
             max_tokens = 4096,
         },
         builtin = true,
@@ -465,6 +531,7 @@ Actions.book = {
     -- X-Ray: Structured book reference guide
     xray = {
         id = "xray",
+        enable_web_search = false,
         text = _("X-Ray"),
         context = "book",
         behavior_variant = "reader_assistant",
@@ -587,6 +654,7 @@ CRITICAL: This must remain spoiler-free up to {reading_progress}. Do not reveal 
     -- Recap: Story summary for re-immersion
     recap = {
         id = "recap",
+        enable_web_search = false,
         text = _("Recap"),
         context = "book",
         behavior_variant = "reader_assistant",
@@ -657,6 +725,7 @@ CRITICAL: No spoilers beyond {reading_progress}.]],
     -- Analyze Highlights: Insights from user's annotations and notebook
     analyze_highlights = {
         id = "analyze_highlights",
+        enable_web_search = false,
         text = _("Analyze Highlights"),
         context = "book",
         behavior_variant = "reader_assistant",
@@ -744,6 +813,7 @@ Aim for the most significant connections, not an exhaustive list. {conciseness_n
     -- Key Arguments: Thesis and argument analysis
     key_arguments = {
         id = "key_arguments",
+        enable_web_search = false,
         text = _("Key Arguments"),
         context = "book",
         use_book_text = true,  -- Permission gate for text extraction
@@ -786,6 +856,7 @@ This is an overview, not an essay. {conciseness_nudge} {hallucination_nudge}]],
     -- Key Arguments (Smart): Thesis and argument analysis using cached summary
     key_arguments_smart = {
         id = "key_arguments_smart",
+        enable_web_search = false,
         text = _("Key Arguments (Smart)"),
         context = "book",
         use_book_text = true,        -- Gate for accessing _summary_cache
@@ -832,6 +903,7 @@ Note: The summary may be in a different language than your response language. Tr
     -- Discussion Questions: Book club and classroom prompts
     discussion_questions = {
         id = "discussion_questions",
+        enable_web_search = false,
         text = _("Discussion Questions"),
         context = "book",
         use_book_text = true,  -- Permission gate for text extraction
@@ -870,6 +942,7 @@ Note: These are general questions for the complete work. If the reader is mid-bo
     -- Discussion Questions (Smart): Generate discussion prompts using cached summary
     discussion_questions_smart = {
         id = "discussion_questions_smart",
+        enable_web_search = false,
         text = _("Discussion Questions (Smart)"),
         context = "book",
         use_book_text = true,        -- Gate for accessing _summary_cache
@@ -910,6 +983,7 @@ Note: The summary may be in a different language than your response language. Tr
     -- Generate Quiz: Create comprehension questions from full book text
     generate_quiz = {
         id = "generate_quiz",
+        enable_web_search = false,
         text = _("Generate Quiz"),
         context = "book",
         use_book_text = true,  -- Permission gate for text extraction
@@ -948,6 +1022,7 @@ Note: These are general questions for the complete work. If the reader is mid-bo
     -- Generate Quiz (Smart): Create comprehension questions using cached summary
     generate_quiz_smart = {
         id = "generate_quiz_smart",
+        enable_web_search = false,
         text = _("Generate Quiz (Smart)"),
         context = "book",
         use_book_text = true,        -- Gate for accessing _summary_cache
@@ -988,6 +1063,7 @@ Note: The summary may be in a different language than your response language. Tr
     -- Analyze Full Document: Complete document analysis for short content
     analyze_full_document = {
         id = "analyze_full_document",
+        enable_web_search = false,
         text = _("Analyze Document"),
         context = "book",
         use_book_text = true,  -- Permission gate (UI: "Allow text extraction")
@@ -1014,6 +1090,7 @@ Provide analysis appropriate to this document's type and purpose. Address what's
     -- Uses canonical SUMMARY_PROMPT - the "workhorse" for Smart actions
     summarize_full_document = {
         id = "summarize_full_document",
+        enable_web_search = false,
         text = _("Summarize Document"),
         context = "book",
         use_book_text = true,  -- Permission gate (UI: "Allow text extraction")
@@ -1027,6 +1104,7 @@ Provide analysis appropriate to this document's type and purpose. Address what's
     -- Extract Key Insights: Actionable takeaways worth remembering
     extract_insights = {
         id = "extract_insights",
+        enable_web_search = false,
         text = _("Extract Key Insights"),
         context = "book",
         use_book_text = true,  -- Permission gate (UI: "Allow text extraction")
@@ -1046,12 +1124,41 @@ What are the most important takeaways? Focus on:
         },
         builtin = true,
     },
+    -- Web-enhanced book actions (force web search on)
+    book_reviews = {
+        id = "book_reviews",
+        enable_web_search = true,  -- Force web search even if global setting is off
+        text = _("Book Reviews"),
+        context = "book",
+        skip_domain = true,  -- Reviews format is standardized
+        prompt = [[Find reviews and reception for "{title}"{author_clause}.
+
+Search for critical and reader responses, then summarize:
+
+**Critical Reception:** What do professional reviewers and critics say? Key praise and criticism.
+
+**Reader Response:** How do general readers respond? Common likes and dislikes.
+
+**Awards & Recognition:** Notable awards, shortlists, or cultural impact.
+
+**Controversy:** Any notable debates or divisive reactions (if applicable).
+
+Attribute opinions to their sources where possible. Distinguish between critical consensus and minority views.
+
+{conciseness_nudge} {hallucination_nudge}]],
+        api_params = {
+            temperature = 0.5,
+            max_tokens = 4096,
+        },
+        builtin = true,
+    },
 }
 
 -- Built-in actions for multi-book context
 Actions.multi_book = {
     compare_books = {
         id = "compare_books",
+        enable_web_search = false,
         text = _("Compare Books"),
         context = "multi_book",
         template = "compare_books",
@@ -1063,6 +1170,7 @@ Actions.multi_book = {
     },
     common_themes = {
         id = "common_themes",
+        enable_web_search = false,
         text = _("Find Common Themes"),
         context = "multi_book",
         template = "common_themes",
@@ -1074,6 +1182,7 @@ Actions.multi_book = {
     },
     collection_summary = {
         id = "collection_summary",
+        enable_web_search = false,
         text = _("Analyze Collection"),
         context = "multi_book",
         template = "collection_summary",
@@ -1085,6 +1194,7 @@ Actions.multi_book = {
     },
     quick_summaries = {
         id = "quick_summaries",
+        enable_web_search = false,
         text = _("Quick Summaries"),
         context = "multi_book",
         template = "quick_summaries",
@@ -1096,6 +1206,7 @@ Actions.multi_book = {
     },
     reading_order = {
         id = "reading_order",
+        enable_web_search = false,
         text = _("Reading Order"),
         context = "multi_book",
         template = "reading_order",
@@ -1137,6 +1248,7 @@ Focus on the top 3-5 most significant global news stories. Keep it concise and f
 Actions.special = {
     translate = {
         id = "translate",
+        enable_web_search = false,
         text = _("Translate"),
         context = "highlight",  -- Only for highlighted text
         behavior_variant = "translator_direct",  -- Use built-in translation behavior
@@ -1155,6 +1267,7 @@ Actions.special = {
     },
     quick_define = {
         id = "quick_define",
+        enable_web_search = false,
         text = _("Quick Define"),
         context = "highlight",  -- Only for highlighted text
         behavior_variant = "dictionary_direct",  -- Use built-in dictionary behavior
@@ -1183,6 +1296,7 @@ One line only. No etymology, no synonyms. No headers.]],
     },
     dictionary = {
         id = "dictionary",
+        enable_web_search = false,
         text = _("Dictionary"),
         context = "highlight",  -- Only for highlighted text
         behavior_variant = "dictionary_direct",  -- Use built-in dictionary behavior
@@ -1214,6 +1328,7 @@ All labels and explanations in {dictionary_language}. Inline bold labels, no hea
     },
     deep = {
         id = "dictionary_deep",
+        enable_web_search = false,
         text = _("Deep Analysis"),
         context = "highlight",  -- Only for highlighted text
         behavior_variant = "dictionary_detailed",  -- Use built-in detailed dictionary behavior
