@@ -68,7 +68,6 @@ function TestConstants:runAll()
 
     self:test("COMPOUND_CONTEXTS are defined", function()
         self:assertEquals(Constants.COMPOUND_CONTEXTS.BOTH, "both")
-        self:assertEquals(Constants.COMPOUND_CONTEXTS.ALL, "all")
     end)
 
     -- Test getAllContexts
@@ -87,13 +86,6 @@ function TestConstants:runAll()
     end)
 
     -- Test expandContext
-    self:test("expandContext handles ALL", function()
-        local expanded = Constants.expandContext("all")
-        self:assertEquals(#expanded, 4)
-        self:assertEquals(expanded[1], "highlight")
-        self:assertEquals(expanded[4], "general")
-    end)
-
     self:test("expandContext handles BOTH", function()
         local expanded = Constants.expandContext("both")
         self:assertEquals(#expanded, 2)
@@ -117,13 +109,34 @@ function TestConstants:runAll()
 
     self:test("isValidContext accepts compound contexts", function()
         self:assert(Constants.isValidContext("both"), "both should be valid")
-        self:assert(Constants.isValidContext("all"), "all should be valid")
     end)
 
     self:test("isValidContext rejects invalid contexts", function()
         self:assert(not Constants.isValidContext("invalid"), "invalid should be rejected")
         self:assert(not Constants.isValidContext(""), "empty string should be rejected")
         self:assert(not Constants.isValidContext(nil), "nil should be rejected")
+    end)
+
+    self:test("isValidContext rejects removed 'all' context", function()
+        self:assert(not Constants.isValidContext("all"), "'all' should no longer be valid")
+    end)
+
+    self:test("COMPOUND_CONTEXTS.ALL is nil (removed)", function()
+        self:assertEquals(Constants.COMPOUND_CONTEXTS.ALL, nil, "ALL should not exist")
+    end)
+
+    self:test("expandContext treats 'all' as unknown (single-item)", function()
+        local expanded = Constants.expandContext("all")
+        self:assertEquals(#expanded, 1, "Should return single-item array")
+        self:assertEquals(expanded[1], "all", "Should pass through as-is")
+    end)
+
+    self:test("expandContext handles each standard context", function()
+        for _, ctx in ipairs({"highlight", "book", "multi_book", "general"}) do
+            local expanded = Constants.expandContext(ctx)
+            self:assertEquals(#expanded, 1, ctx .. " should return 1")
+            self:assertEquals(expanded[1], ctx)
+        end
     end)
 
     -- Test GitHub constants

@@ -1000,12 +1000,6 @@ local function startWebServer(options)
                                 -- "both" means highlight AND book
                                 addActionToContext("highlight", action)
                                 addActionToContext("book", action)
-                            elseif action.context == "all" then
-                                -- "all" means ALL four contexts
-                                addActionToContext("highlight", action)
-                                addActionToContext("book", action)
-                                addActionToContext("multi_book", action)
-                                addActionToContext("general", action)
                             elseif action.context then
                                 addActionToContext(action.context, action)
                             end
@@ -1049,11 +1043,6 @@ local function startWebServer(options)
                         if action.context == "both" then
                             addActionToContext("highlight", custom_action, true)
                             addActionToContext("book", custom_action, true)
-                        elseif action.context == "all" then
-                            addActionToContext("highlight", custom_action, true)
-                            addActionToContext("book", custom_action, true)
-                            addActionToContext("multi_book", custom_action, true)
-                            addActionToContext("general", custom_action, true)
                         elseif action.context then
                             addActionToContext(action.context, custom_action, true)
                         end

@@ -146,7 +146,7 @@ function ActionService:loadActions()
                 local action_data = self:copyAction(action)
                 action_data.enabled = not disabled_actions[key]
                 action_data.source = "builtin"
-                -- Preserve original context for compound contexts (all, both)
+                -- Preserve original context for compound contexts (both)
                 action_data.original_context = action.context
 
                 -- Apply user overrides for built-in actions
@@ -267,7 +267,7 @@ function ActionService:addCustomAction(id, action, source, disabled_actions)
         action_data.enabled = not disabled_actions[key]
         action_data.source = source
         action_data.builtin = false
-        -- Preserve original context for compound contexts (all, both)
+        -- Preserve original context for compound contexts (both)
         action_data.original_context = action.context
         table.insert(self.actions_cache[context], action_data)
     end
@@ -787,7 +787,7 @@ end
 -- Returns array of { action, in_menu, menu_position }
 -- Used by the highlight menu manager UI
 function ActionService:getAllHighlightActionsWithMenuState()
-    -- Get all highlight-context actions (including from 'both' and 'all' contexts)
+    -- Get all highlight-context actions (including from 'both' contexts)
     local all_actions = self:getAllActions("highlight", true)  -- Include disabled
     local menu_ids = self:getHighlightMenuActions()
 
@@ -933,7 +933,7 @@ end
 -- Returns array of { action, in_popup, popup_position }
 -- Used by the dictionary popup manager UI
 function ActionService:getAllHighlightActionsWithPopupState()
-    -- Get all highlight-context actions (including from 'both' and 'all' contexts)
+    -- Get all highlight-context actions (including from 'both' contexts)
     local all_actions = self:getAllActions("highlight", true)  -- Include disabled
     local popup_ids = self:getDictionaryPopupActions()
 
@@ -1342,7 +1342,7 @@ end
 -- Returns array of { action, in_quick_actions, quick_actions_position }
 -- Used by the quick actions manager UI
 function ActionService:getAllBookActionsWithQuickActionsState()
-    -- Get all book-context actions (including from 'both' and 'all' contexts)
+    -- Get all book-context actions (including from 'both' contexts)
     local all_actions = self:getAllActions("book", true)  -- Include disabled
     local quick_ids = self:getQuickActions()
 

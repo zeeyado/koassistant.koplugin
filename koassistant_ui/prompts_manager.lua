@@ -164,11 +164,11 @@ function PromptsManager:loadPrompts()
     local builtin_overrides = self.plugin.settings:readSetting("builtin_action_overrides") or {}
 
     -- Helper to add prompt with new field names
-    -- Preserves compound contexts (all, both) from original_context
+    -- Preserves compound contexts (both) from original_context
     local function addPromptEntry(prompt, context_override)
-        -- Use original context if it's a compound context (all, both)
+        -- Use original context if it's a compound context (both)
         local context = prompt.original_context
-        if context == "all" or context == "both" then
+        if context == "both" then
             -- Keep compound context as-is
         else
             -- Use the override for simple contexts
@@ -284,7 +284,7 @@ function PromptsManager:loadPrompts()
             for _j,existing in ipairs(self.prompts) do
                 if existing.text == prompt.text and existing.source == prompt.source then
                     -- Change context to "both" (unless it's already a compound)
-                    if existing.context ~= "all" and existing.context ~= "both" then
+                    if existing.context ~= "both" then
                         existing.context = "both"
                     end
                     exists = true
@@ -322,9 +322,8 @@ function PromptsManager:loadPrompts()
                     elseif existing.context == "book" then
                         existing.context = "book+general"
                     elseif existing.context == "both" then
-                        existing.context = "all"
+                        existing.context = "both+general"
                     end
-                    -- Don't change if already "all"
                     exists = true
                     break
                 end
@@ -376,7 +375,7 @@ function PromptsManager:showPromptsMenu()
         { id = "both", text = _("Highlight & Book") },
         { id = "highlight+general", text = _("Highlight & General") },
         { id = "book+general", text = _("Book & General") },
-        { id = "all", text = _("All Contexts") },
+        { id = "both+general", text = _("Highlight, Book & General") },
     }
     
     for _idx,context_info in ipairs(contexts) do
@@ -692,7 +691,7 @@ function PromptsManager:showPromptDetails(prompt)
     info_text = info_text .. "  |  " .. _("Skip Domain") .. ": " .. skip_domain_text
 
     -- Include book info (for highlight contexts)
-    if prompt.context == "highlight" or prompt.context == "both" or prompt.context == "all" then
+    if prompt.context == "highlight" or prompt.context == "both" or prompt.context == "both+general" then
         local book_context_text = prompt.include_book_context and _("Yes") or _("No")
         info_text = info_text .. "\n" .. _("Include Book Info") .. ": " .. book_context_text
     end
@@ -801,7 +800,7 @@ function PromptsManager:showPromptDetails(prompt)
     end
 
     -- Add highlight menu toggle for highlight-context actions that don't require input
-    local is_highlight_context = prompt.context == "highlight" or prompt.context == "both" or prompt.context == "all"
+    local is_highlight_context = prompt.context == "highlight" or prompt.context == "both" or prompt.context == "both+general"
     local requires_input = prompt.id == "ask" or (prompt.prompt and prompt.prompt:find("{user_input}"))
     if is_highlight_context and not requires_input and self.plugin.action_service then
         local in_menu = self.plugin.action_service:isInHighlightMenu(prompt.id)
@@ -1321,18 +1320,18 @@ end
 
 -- Check if a context includes highlight context (where include_book_context applies)
 function PromptsManager:contextIncludesHighlight(context)
-    return context == "highlight" or context == "both" or context == "all"
+    return context == "highlight" or context == "both" or context == "both+general"
 end
 
 -- Check if a context includes book context (where context extraction flags apply)
 function PromptsManager:contextIncludesBook(context)
-    return context == "book" or context == "both" or context == "all"
+    return context == "book" or context == "both" or context == "both+general"
 end
 
 -- Check if a context can use per-book data (annotations, notebook)
 -- These are single-book contexts where per-book data gates make sense
 function PromptsManager:canUsePerBookData(context)
-    return context == "highlight" or context == "book" or context == "both" or context == "all"
+    return context == "highlight" or context == "book" or context == "both" or context == "both+general"
 end
 
 -- Determine if an action can use text extraction (runs in reading mode)
@@ -1372,12 +1371,12 @@ function PromptsManager:canUseTextExtraction(action_or_context, is_new_action)
         return false
     end
 
-    -- "all", "multi_book", "general": cannot reliably extract text
+    -- "multi_book", "general": cannot reliably extract text
     return false
 end
 
 -- Get default system prompt for a context
--- For compound contexts (both, all), returns nil since the actual default varies by trigger
+-- For compound contexts (both), returns nil since the actual default varies by trigger
 function PromptsManager:getDefaultSystemPrompt(context)
     local defaults = {
         highlight = "You are a helpful reading assistant. The user has highlighted text from a book and wants help understanding or exploring it.",
@@ -4154,8 +4153,8 @@ function PromptsManager:getContextDisplayName(context)
         return _("Highlight & General")
     elseif context == "book+general" then
         return _("Book & General")
-    elseif context == "all" then
-        return _("All Contexts")
+    elseif context == "both+general" then
+        return _("Highlight, Book & General")
     else
         return context
     end

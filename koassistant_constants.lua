@@ -28,7 +28,6 @@ Constants.CONTEXTS = {
 -- These are convenience values that expand to multiple standard contexts
 Constants.COMPOUND_CONTEXTS = {
     BOTH = "both",                -- highlight + book
-    ALL = "all",                  -- All four contexts
 }
 
 --- Get ordered list of all standard contexts
@@ -44,13 +43,11 @@ function Constants.getAllContexts()
 end
 
 --- Expand compound context to individual contexts
---- Handles special compound values like "all" and "both"
---- @param context string: Context name (can be compound like "all", "both", or standard)
+--- Handles special compound values like "both"
+--- @param context string: Context name (can be compound like "both", or standard)
 --- @return table: Array of individual context names
 function Constants.expandContext(context)
-    if context == Constants.COMPOUND_CONTEXTS.ALL then
-        return Constants.getAllContexts()
-    elseif context == Constants.COMPOUND_CONTEXTS.BOTH then
+    if context == Constants.COMPOUND_CONTEXTS.BOTH then
         return {
             Constants.CONTEXTS.HIGHLIGHT,
             Constants.CONTEXTS.BOOK,
@@ -72,8 +69,7 @@ function Constants.isValidContext(context)
     end
 
     -- Check compound contexts
-    if context == Constants.COMPOUND_CONTEXTS.BOTH or
-       context == Constants.COMPOUND_CONTEXTS.ALL then
+    if context == Constants.COMPOUND_CONTEXTS.BOTH then
         return true
     end
 

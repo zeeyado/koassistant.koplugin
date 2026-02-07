@@ -15,7 +15,7 @@ local Constants = require("koassistant_constants")
 -- Action schema:
 --   id               - Unique identifier (required)
 --   text             - Button display text (required)
---   context          - Where it appears: "highlight", "book", "multi_book", "general", "all", "both" (required)
+--   context          - Where it appears: "highlight", "book", "multi_book", "general", "both" (required)
 --   template         - User prompt template ID from templates.lua (required for builtin)
 --   prompt           - Direct user prompt text (for custom actions without template)
 --   behavior_variant - Override global behavior: "minimal", "full", "none" (optional)
@@ -1262,8 +1262,7 @@ function Actions.getForContext(context)
 
     -- Add special actions that apply to this context
     for _idx,action in pairs(Actions.special) do
-        if action.context == "all" or
-           action.context == context or
+        if action.context == context or
            (action.context == "both" and (context == "highlight" or context == "book")) then
             table.insert(result, action)
         end
