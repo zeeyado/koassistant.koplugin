@@ -53,8 +53,9 @@ if ! xgettext --from-code=UTF-8 -L Lua \
     exit 1
 fi
 
-# Count strings in .pot
+# Count strings in .pot (subtract 1 for the header entry)
 POT_COUNT=$(grep -c "^msgid " locale/koassistant.pot 2>/dev/null || echo "0")
+POT_COUNT=$((POT_COUNT - 1))
 echo "  Found $POT_COUNT translatable strings"
 echo ""
 
@@ -78,9 +79,12 @@ for lang in $LANGUAGES; do
             msgattrib --no-obsolete -o "$PO_FILE" "$PO_FILE"
         fi
 
-        # Get counts after merge (exclude header by matching non-empty msgid)
-        AFTER_FUZZY=$(grep -c "^#, fuzzy" "$PO_FILE" || true)
-        UNTRANSLATED=$(msgattrib --untranslated "$PO_FILE" 2>/dev/null | grep -c '^msgid "[^"]' || true)
+        # Get counts after merge using msgfmt --statistics (handles multi-line msgids)
+        STATS=$(msgfmt --statistics -o /dev/null "$PO_FILE" 2>&1)
+        AFTER_FUZZY=$(echo "$STATS" | grep -o '[0-9]* fuzzy' | grep -o '[0-9]*' || echo "0")
+        UNTRANSLATED=$(echo "$STATS" | grep -o '[0-9]* untranslated' | grep -o '[0-9]*' || echo "0")
+        AFTER_FUZZY=${AFTER_FUZZY:-0}
+        UNTRANSLATED=${UNTRANSLATED:-0}
 
         echo "  $lang: fuzzy=$AFTER_FUZZY, empty=$UNTRANSLATED, removed=$OBSOLETE"
     else
