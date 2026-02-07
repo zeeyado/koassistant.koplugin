@@ -3142,7 +3142,7 @@ local function generateSummaryStandalone(ui, config, plugin, on_complete)
             -- Save to summary cache
             local ActionCache = require("koassistant_action_cache")
             local model_info = ConfigHelper:getModelInfo(temp_config)
-            local progress = full_doc_result.truncated and (full_doc_result.coverage_end or 1.0) or 1.0
+            local progress = full_doc_result.truncated and ((full_doc_result.coverage_end or 100) / 100) or 1.0
 
             local summary_metadata = {
                 model = model_info or "",

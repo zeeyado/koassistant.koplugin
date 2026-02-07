@@ -4071,8 +4071,9 @@ function AskGPT:showCacheViewer(cache_info)
     used_annotations = cache_info.data.used_annotations,
   }
 
-  -- Create delete callback
+  -- Create delete/regenerate callbacks
   local on_delete = nil
+  local on_regenerate = nil
   if self.ui and self.ui.document and self.ui.document.file then
     local file = self.ui.document.file
     local cache_key = cache_info.key
@@ -4092,6 +4093,14 @@ function AskGPT:showCacheViewer(cache_info)
         timeout = 2,
       })
     end
+
+    -- Summary gets a regenerate button when book is open
+    if cache_key == "_summary_cache" then
+      local self_ref = self
+      on_regenerate = function()
+        self_ref:generateSummary({ skip_confirmation = true, skip_cache_check = true, clear_existing_cache = true })
+      end
+    end
   end
 
   local viewer = ChatGPTViewer:new{
@@ -4100,6 +4109,7 @@ function AskGPT:showCacheViewer(cache_info)
     simple_view = true,
     configuration = configuration,
     cache_metadata = cache_metadata,
+    on_regenerate = on_regenerate,
     on_delete = on_delete,
     _plugin = self,
     _ui = self.ui,
