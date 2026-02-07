@@ -239,7 +239,7 @@ To show/hide buttons in the Quick Settings panel, use **Settings → Quick Setti
 Assign "KOAssistant: Quick Actions" to a gesture for fast access to reading-related actions:
 - **Default actions** — X-Ray, Recap, Book Info
 - **Summary management** — "View Summary" (if summary exists) or "Generate Summary" (if not) for cached document summaries
-- **Utilities** — Translate Page, View/Edit Notebook, Chat History, Continue Last Chat, New Book Chat/Action, General Chat/Action, Quick Settings, View Caches (browse cached X-Ray/Analyze/Summary responses)
+- **Utilities** — Translate Page, View/Edit Notebook, Chat History, Continue Last Chat, New Book Chat/Action, General Chat/Action, Quick Settings, View Artifacts (browse cached X-Ray/Analyze/Summary responses)
 
 You can add any book action to Quick Actions via **Action Manager → hold action → "Add to Quick Actions"**. To reorder or remove actions, use **Settings → Quick Actions Settings → Panel Actions**. To show/hide utility buttons (Translate Page, Chat History, etc.), use **Settings → Quick Actions Settings → QA Panel Utilities**. Defaults can also be removed.
 
@@ -532,7 +532,7 @@ Several actions come in two variants: a **regular** version that sends full book
 **Managing summaries:**
 - **Generate**: Quick Actions → "Generate Summary" (when no summary exists)
 - **View**: Quick Actions → "View Summary" (when summary exists), or use the "View Summary" gesture
-- **File browser**: "View Summary (KOA)" button appears when a book has a cached summary
+- **File browser**: "View Artifacts (KOA)" button appears when a book has any cached artifacts (summary, X-Ray, or analysis) — tap to pick which one to view
 - **Coverage**: The viewer title shows coverage percentage if document was truncated (e.g., "Summary (78%)")
 
 > **Tip**: For documents you'll query multiple times, generate the summary proactively via Quick Actions to save tokens on future queries.
@@ -1282,7 +1282,7 @@ Actions with gestures show a `[gesture]` indicator in the Action Manager list.
 - KOAssistant: View Notebook — View current book's notebook
 - KOAssistant: Edit Notebook — Edit current book's notebook
 - KOAssistant: View Summary — View cached document summary
-- KOAssistant: View Caches — Browse cached X-Ray, Analyze, and Summary responses for the current book (handy for re-reading previous results without re-running the action)
+- KOAssistant: View Artifacts — Browse cached X-Ray, Analyze, and Summary responses for the current book (handy for re-reading previous results without re-running the action)
 
 **General** (available in both File Browser and Reader gesture settings):
 - KOAssistant: Quick Settings — Two-column settings panel
@@ -1851,7 +1851,7 @@ Configure the Quick Actions panel (available via gesture in reader mode).
 - **Panel Actions**: Reorder or remove actions from the Quick Actions panel. Add new actions via Action Manager → hold action → "Add to Quick Actions".
 - **QA Panel Utilities**: Show/hide utility buttons that appear below actions in the panel:
   - Translate Page, View Notebook, Edit Notebook, Chat History, Continue Last Chat
-  - New Book Chat/Action, General Chat/Action, Summary (View/Generate), Quick Settings, View Caches
+  - New Book Chat/Action, General Chat/Action, Summary (View/Generate), Quick Settings, View Artifacts
   - All utilities are enabled by default. Disable any you don't use to streamline the panel.
 
 ### Actions & Prompts
@@ -1897,7 +1897,7 @@ Control where KOAssistant appears in KOReader's menus. All toggles default to ON
   - **Show Notebook Button**: Show "Notebook (KOA)" button when long-pressing books
   - **Only for books with notebooks**: Only show notebook button if notebook already exists
   - **Show Chat History Button**: Show "Chat History (KOA)" button when long-pressing books that have chat history
-  - **View Summary Button**: "View Summary (KOA)" appears automatically when a book has a cached summary (no setting needed)
+  - **View Artifacts Button**: "View Artifacts (KOA)" appears automatically when a book has any cached artifacts — summary, X-Ray, or analysis (no setting needed)
 - **Dictionary Popup Actions...**: Configure which actions appear in the dictionary popup's AI menu
 - **Highlight Menu Actions...**: Configure which actions appear as shortcuts in the highlight menu
 - **Reset Options**: Reset Dictionary Popup Actions, Highlight Menu Actions, or all at once
@@ -2243,8 +2243,8 @@ When text extraction is enabled, X-Ray and Recap responses are automatically cac
 When certain actions complete, their results are saved to shared caches. There are three cache types, but the **summary cache is the main one** — it powers the built-in Smart actions and is the recommended foundation for custom actions:
 
 - **Summary** → saves to `_summary_cache` — **the primary cache for reuse**. A neutral, comprehensive representation of the document, designed to replace raw book text in actions (massive token savings). This is what Smart actions use.
-- **X-Ray** → saves to `_xray_cache` — a structured character/concept reference. Primarily useful for re-reading via **View Caches** in the Quick Actions panel. Also available as a placeholder for custom actions that want supplementary context.
-- **Analyze Document** → saves to `_analyze_cache` — an opinionated document analysis. Like X-Ray, mainly useful for reviewing via **View Caches**. Available as a placeholder too, but avoid using it as the sole input for another analysis (analyzing an analysis loses nuance with each layer).
+- **X-Ray** → saves to `_xray_cache` — a structured character/concept reference. Viewable anytime via **View Artifacts** (Quick Actions panel or file browser long-press). Also available as a placeholder for custom actions that want supplementary context.
+- **Analyze Document** → saves to `_analyze_cache` — an opinionated document analysis. Viewable via **View Artifacts** like X-Ray. Also available as a placeholder, but avoid using it as the sole input for another analysis (analyzing an analysis loses nuance with each layer).
 
 All three caches can be referenced in custom actions using `{summary_cache_section}`, `{xray_cache_section}`, or `{analyze_cache_section}` placeholders. The summary cache is the recommended choice for most custom actions. The X-Ray and Analyze placeholders are there for advanced users who want to experiment — cache placeholders disappear when empty, so including them is always safe. See [Tips for Custom Actions](#tips-for-custom-actions) for usage guidance.
 
@@ -2290,8 +2290,8 @@ For medium and long texts, sending full document text (~100K tokens) for each hi
 
 **Viewing cached summaries:**
 - **Quick Actions → View Summary** (when summary exists)
-- **File Browser** → Long-press a book → "View Summary (KOA)" button (if summary exists)
-- **Gesture** → Assign "KOAssistant: View Summary" for quick access
+- **File Browser** → Long-press a book → "View Artifacts (KOA)" → select Summary
+- **Gesture** → Assign "KOAssistant: View Summary" for quick access, or "KOAssistant: View Artifacts" to browse all cached content
 
 The summary viewer shows metadata: coverage percentage (e.g., "78%" if document was truncated), model used, and generation date. Buttons allow copying, regenerating, or deleting the cached summary.
 

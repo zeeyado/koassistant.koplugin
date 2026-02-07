@@ -246,7 +246,7 @@ function AskGPT:init()
   self:patchFileManagerForMultiSelect()
 end
 
--- Button generator for utility buttons (Notebook, Chat History, View Summary)
+-- Button generator for utility buttons (Notebook, Chat History, View Artifacts)
 -- These appear in a row above the main KOAssistant button
 function AskGPT:generateUtilityButtons(file, is_file, book_props)
   logger.info("KOAssistant: generateUtilityButtons called with file=" .. tostring(file))
@@ -307,19 +307,57 @@ function AskGPT:generateUtilityButtons(file, is_file, book_props)
     })
   end
 
-  -- View Summary (KOA) button - only if summary cache exists for this file
+  -- View Artifacts (KOA) button - if any document cache exists for this file
   local ActionCache = require("koassistant_action_cache")
-  local summary_cache = ActionCache.getSummaryCache(file)
-  if summary_cache then
+  local caches = {}
+  local xray = ActionCache.getXrayCache(file)
+  if xray and xray.result then
+    table.insert(caches, { name = "X-Ray", key = "_xray_cache", data = xray })
+  end
+  local summary = ActionCache.getSummaryCache(file)
+  if summary and summary.result then
+    table.insert(caches, { name = _("Summary"), key = "_summary_cache", data = summary })
+  end
+  local analyze = ActionCache.getAnalyzeCache(file)
+  if analyze and analyze.result then
+    table.insert(caches, { name = _("Analysis"), key = "_analyze_cache", data = analyze })
+  end
+  if #caches > 0 then
+    local self_ref = self
     table.insert(buttons, {
-      text = _("View Summary (KOA)"),
+      text = _("View Artifacts (KOA)"),
       callback = function()
         local UIManager = require("ui/uimanager")
         local current_dialog = UIManager:getTopmostVisibleWidget()
         if current_dialog and current_dialog.close then
           UIManager:close(current_dialog)
         end
-        self:showSummaryViewer(summary_cache)
+        if #caches == 1 then
+          self_ref:showCacheViewer(caches[1])
+        else
+          local ButtonDialog = require("ui/widget/buttondialog")
+          local btn_rows = {}
+          for _idx, cache in ipairs(caches) do
+            table.insert(btn_rows, {{
+              text = cache.name,
+              callback = function()
+                UIManager:close(self_ref._cache_selector)
+                self_ref:showCacheViewer(cache)
+              end,
+            }})
+          end
+          table.insert(btn_rows, {{
+            text = _("Cancel"),
+            callback = function()
+              UIManager:close(self_ref._cache_selector)
+            end,
+          }})
+          self_ref._cache_selector = ButtonDialog:new{
+            title = _("View Artifacts"),
+            buttons = btn_rows,
+          }
+          UIManager:show(self_ref._cache_selector)
+        end
       end,
     })
   end
@@ -414,7 +452,7 @@ function AskGPT:addFileDialogButtons()
   end)
   
   -- Create closures that bind self
-  -- Utility buttons (Notebook, Chat History, View Summary) - first row
+  -- Utility buttons (Notebook, Chat History, View Artifacts) - first row
   local utility_generator = function(file, is_file, book_props)
     return self:generateUtilityButtons(file, is_file, book_props)
   end
@@ -1065,8 +1103,7 @@ function AskGPT:onDispatcherRegisterActions()
     general = true,  -- Only general (no reader flag) so it's not grayed out in file browser
   })
 
-  -- View Summary (replaces View Cache - summary-centric design)
-  -- Shows summary directly in simple_view, or info message if none
+  -- View Summary - shows summary directly in simple_view, or info message if none
   Dispatcher:registerAction("koassistant_view_summary", {
     category = "none",
     event = "KOAssistantViewSummary",
@@ -1078,7 +1115,7 @@ function AskGPT:onDispatcherRegisterActions()
   Dispatcher:registerAction("koassistant_view_caches", {
     category = "none",
     event = "KOAssistantViewCaches",
-    title = _("KOAssistant: View Caches"),
+    title = _("KOAssistant: View Artifacts"),
     general = false,
     reader = true,
   })
@@ -3935,7 +3972,7 @@ function AskGPT:viewCache()
   }})
 
   self._cache_selector = ButtonDialog:new{
-    title = _("View Cache"),
+    title = _("View Artifacts"),
     buttons = buttons,
   }
   UIManager:show(self._cache_selector)
@@ -5005,7 +5042,7 @@ function AskGPT:onKOAssistantQuickActions()
         local analyze_exists = ActionCache.getAnalyzeCache(file) ~= nil
         if xray_exists or analyze_exists then
           addButton({
-            text = _("View Caches"),
+            text = _("View Artifacts"),
             callback = function()
               UIManager:close(dialog)
               self_ref:viewCache()
@@ -5339,7 +5376,7 @@ function AskGPT:onKOAssistantBrowseNotebooks()
   return true
 end
 
---- View summary gesture handler (replaces View Cache - summary-centric design)
+--- View summary gesture handler
 function AskGPT:onKOAssistantViewSummary()
   self:viewSummary()
   return true
