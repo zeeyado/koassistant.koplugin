@@ -703,6 +703,17 @@ function PromptsManager:showPromptDetails(prompt)
         info_text = info_text .. "\n" .. _("Allow text extraction") .. ": " .. book_text_status
     end
 
+    -- Web search override
+    local web_search_text
+    if prompt.enable_web_search == true then
+        web_search_text = _("Always")
+    elseif prompt.enable_web_search == false then
+        web_search_text = _("Never")
+    else
+        web_search_text = _("Global")
+    end
+    info_text = info_text .. "\n" .. _("Web Search") .. ": " .. web_search_text
+
     -- AI Settings section
     info_text = info_text .. "\n\n" .. _("─── AI Settings ───")
     info_text = info_text .. "\n" .. _("Temperature") .. ": " .. temp_text
@@ -1046,6 +1057,8 @@ function PromptsManager:showPromptEditor(existing_prompt)
         translate_view = existing_prompt and existing_prompt.translate_view or false,
         compact_view = existing_prompt and existing_prompt.compact_view or false,
         minimal_buttons = existing_prompt and existing_prompt.minimal_buttons or false,
+        -- Web search (tri-state: nil/true/false)
+        enable_web_search = existing_prompt and existing_prompt.enable_web_search or nil,
         existing_prompt = existing_prompt,
     }
 
@@ -1735,6 +1748,20 @@ function PromptsManager:showStep4_Advanced(state)
                 end,
             },
         },
+        -- Row 4: Web Search
+        {
+            {
+                text = _("Web Search: ") .. (state.enable_web_search == true and _("Always")
+                    or state.enable_web_search == false and _("Never")
+                    or _("Global")),
+                callback = function()
+                    self:showWebSearchSelector(state, function()
+                        UIManager:close(self.advanced_dialog)
+                        self:showStep4_Advanced(state)
+                    end)
+                end,
+            },
+        },
         -- Row 5: Back / Save
         {
             {
@@ -1923,6 +1950,70 @@ function PromptsManager:showViewModeSelector(state, refresh_callback)
     }
 
     UIManager:show(self.view_mode_dialog)
+end
+
+-- Web search selector dialog (shared between builtin and custom editors)
+-- @param state: Action state being edited (state.enable_web_search: nil/true/false)
+-- @param refresh_callback: Callback to refresh the parent dialog
+function PromptsManager:showWebSearchSelector(state, refresh_callback)
+    local options = {
+        { value = "global", text = _("Follow global setting"), desc = _("Uses your web search setting from AI Response Settings") },
+        { value = true, text = _("Always use web search"), desc = _("Force web search on, even if global setting is off") },
+        { value = false, text = _("Never use web search"), desc = _("Force web search off, even if global setting is on") },
+    }
+
+    -- Map current state to option value
+    local current
+    if state.enable_web_search == true then
+        current = true
+    elseif state.enable_web_search == false then
+        current = false
+    else
+        current = "global"
+    end
+
+    local buttons = {}
+
+    for _idx, opt in ipairs(options) do
+        local is_selected = current == opt.value
+        table.insert(buttons, {
+            {
+                text = (is_selected and "● " or "○ ") .. opt.text,
+                callback = function()
+                    -- Convert back to tri-state
+                    if opt.value == "global" then
+                        state.enable_web_search = nil
+                    else
+                        state.enable_web_search = opt.value
+                    end
+                    UIManager:close(self.web_search_dialog)
+                    if refresh_callback then
+                        refresh_callback()
+                    end
+                end,
+            },
+        })
+    end
+
+    -- Cancel button
+    table.insert(buttons, {
+        {
+            text = _("Cancel"),
+            callback = function()
+                UIManager:close(self.web_search_dialog)
+                if refresh_callback then
+                    refresh_callback()
+                end
+            end,
+        },
+    })
+
+    self.web_search_dialog = ButtonDialog:new{
+        title = _("Web Search"),
+        buttons = buttons,
+    }
+
+    UIManager:show(self.web_search_dialog)
 end
 
 -- Extended thinking selector dialog
@@ -2523,6 +2614,9 @@ function PromptsManager:showBuiltinSettingsEditor(prompt)
     local base_compact_view = base_action and base_action.compact_view or false
     local base_minimal_buttons = base_action and base_action.minimal_buttons or false
 
+    -- Get base web search setting (tri-state: nil/true/false)
+    local base_enable_web_search = base_action and base_action.enable_web_search
+
     -- Initialize state from current prompt values
     local state = {
         prompt = prompt,  -- Reference to the original prompt
@@ -2560,6 +2654,9 @@ function PromptsManager:showBuiltinSettingsEditor(prompt)
         compact_view_base = base_compact_view,
         minimal_buttons = prompt.minimal_buttons or false,
         minimal_buttons_base = base_minimal_buttons,
+        -- Web search (tri-state: nil/true/false)
+        enable_web_search = prompt.enable_web_search,
+        enable_web_search_base = base_enable_web_search,
     }
 
     self:showBuiltinSettingsDialog(state)
@@ -2657,6 +2754,20 @@ function PromptsManager:showBuiltinSettingsDialog(state)
             end,
         })
     end
+
+    -- Web search setting (tri-state)
+    local web_display = state.enable_web_search == true and _("Always")
+        or state.enable_web_search == false and _("Never")
+        or _("Global")
+    table.insert(items, {
+        text = _("Web: ") .. web_display,
+        callback = function()
+            self:showWebSearchSelector(state, function()
+                UIManager:close(self.builtin_settings_dialog)
+                self:showBuiltinSettingsDialog(state)
+            end)
+        end,
+    })
 
     -- Checkboxes
     table.insert(items, {
@@ -3187,6 +3298,17 @@ function PromptsManager:saveBuiltinOverride(prompt, state)
         has_any = true
     end
 
+    -- Save enable_web_search if it differs from base (tri-state: nil/true/false)
+    -- Use "global" sentinel to represent overriding to nil (follow global)
+    if state.enable_web_search ~= state.enable_web_search_base then
+        if state.enable_web_search == nil then
+            override.enable_web_search = "global"  -- Sentinel: reset to follow global
+        else
+            override.enable_web_search = state.enable_web_search
+        end
+        has_any = true
+    end
+
     -- Save view mode flags if they differ from base
     if state.translate_view ~= (state.translate_view_base or false) then
         override.translate_view = state.translate_view
@@ -3250,6 +3372,8 @@ function PromptsManager:showCustomQuickSettings(prompt)
         translate_view = prompt.translate_view or false,
         compact_view = prompt.compact_view or false,
         minimal_buttons = prompt.minimal_buttons or false,
+        -- Web search (tri-state: nil/true/false)
+        enable_web_search = prompt.enable_web_search,
         existing_prompt = prompt,  -- For updatePrompt compatibility
     }
 
@@ -3361,6 +3485,20 @@ function PromptsManager:showCustomQuickSettingsDialog(state)
             end,
         })
     end
+
+    -- Web search setting (tri-state)
+    local custom_web_display = state.enable_web_search == true and _("Always")
+        or state.enable_web_search == false and _("Never")
+        or _("Global")
+    table.insert(items, {
+        text = _("Web: ") .. custom_web_display,
+        callback = function()
+            self:showWebSearchSelector(state, function()
+                UIManager:close(self.custom_quick_dialog)
+                self:showCustomQuickSettingsDialog(state)
+            end)
+        end,
+    })
 
     -- Checkboxes
     table.insert(items, {
@@ -4029,6 +4167,8 @@ function PromptsManager:addPrompt(state)
             translate_view = state.translate_view or nil,
             compact_view = state.compact_view or nil,
             minimal_buttons = state.minimal_buttons or nil,
+            -- Web search (tri-state: nil/true/false - nil means follow global)
+            enable_web_search = state.enable_web_search,
             enabled = true,
         })
 
@@ -4094,6 +4234,8 @@ function PromptsManager:updatePrompt(existing_prompt, state)
                 translate_view = state.translate_view or nil,
                 compact_view = state.compact_view or nil,
                 minimal_buttons = state.minimal_buttons or nil,
+                -- Web search (tri-state: nil/true/false - nil means follow global)
+                enable_web_search = state.enable_web_search,
                 enabled = true,
             }
 
