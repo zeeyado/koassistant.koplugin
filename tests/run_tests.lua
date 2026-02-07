@@ -178,6 +178,8 @@ local function runUnitTests()
     return all_passed
 end
 
+local TestHelpers = require("test_helpers")
+
 -- Test a single provider
 local function testProvider(provider, api_key, verbose)
     -- Validate API key
@@ -190,6 +192,9 @@ local function testProvider(provider, api_key, verbose)
     if not handler_ok then
         return false, "Failed to load handler: " .. tostring(handler)
     end
+
+    -- Patch handler to make synchronous HTTP calls in test environment
+    TestHelpers.patchHandlerForSync(handler)
 
     -- Build test config
     -- Note: max_tokens defaults to 512 in test_config to handle thinking models
@@ -210,23 +215,7 @@ local function testProvider(provider, api_key, verbose)
     end)
     local elapsed = socket.gettime() - start_time
 
-    if not ok then
-        return false, "Exception: " .. tostring(result), elapsed
-    end
-
-    -- Check result
-    if type(result) == "string" then
-        if result:match("^Error:") then
-            return false, result, elapsed
-        else
-            return true, result, elapsed
-        end
-    elseif type(result) == "function" then
-        -- Handler returned streaming function (shouldn't happen with streaming disabled)
-        return false, "Handler returned streaming function (streaming should be disabled)", elapsed
-    else
-        return false, "Unexpected result type: " .. type(result), elapsed
-    end
+    return TestHelpers.handleQueryResult(ok, result, elapsed)
 end
 
 -- Run model validation tests (--models flag)

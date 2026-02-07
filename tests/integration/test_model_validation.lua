@@ -27,6 +27,7 @@ require("mock_koreader")
 
 -- Load dependencies
 local TestConfig = require("test_config")
+local TestHelpers = require("test_helpers")
 local ConstraintUtils = require("constraint_utils")
 local json = require("json")
 local https = require("ssl.https")
@@ -225,21 +226,7 @@ local function makeMinimalRequest(handler, model, api_key, config_overrides)
     end)
     local elapsed = socket.gettime() - start_time
 
-    if not ok then
-        return false, "Exception: " .. tostring(result), elapsed
-    end
-
-    if type(result) == "string" then
-        if result:match("^Error:") then
-            return false, result, elapsed
-        else
-            return true, result, elapsed
-        end
-    elseif type(result) == "function" then
-        return false, "Unexpected streaming function", elapsed
-    else
-        return false, "Unexpected result type: " .. type(result), elapsed
-    end
+    return TestHelpers.handleQueryResult(ok, result, elapsed)
 end
 
 --------------------------------------------------------------------------------
@@ -353,6 +340,9 @@ function ModelValidation:runProviderValidation(provider, api_key, verbose)
         print(string.format("  [%s] \27[31m? Failed to load handler\27[0m: %s", provider, tostring(handler)))
         return false
     end
+
+    -- Patch handler to make synchronous HTTP calls in test environment
+    TestHelpers.patchHandlerForSync(handler)
 
     print(string.format("\n  [%s] Testing %d models...", provider, #models))
 

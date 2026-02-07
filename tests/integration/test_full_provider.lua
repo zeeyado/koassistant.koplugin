@@ -55,31 +55,19 @@ function FullProviderTests:log(provider, test_name, status, message, elapsed)
     end
 end
 
+local TestHelpers = require("test_helpers")
+
 -- Make a test request and verify it succeeds
 -- Use socket.gettime() for wall-clock time (os.clock() measures CPU time, not I/O wait)
 local socket = require("socket")
-local function makeTestRequest(handler, messages, config, provider)
+local function makeTestRequest(handler, messages, config, _provider)
     local start_time = socket.gettime()
     local ok, result = pcall(function()
         return handler:query(messages, config)
     end)
     local elapsed = socket.gettime() - start_time
 
-    if not ok then
-        return false, "Exception: " .. tostring(result), elapsed
-    end
-
-    if type(result) == "string" then
-        if result:match("^Error:") then
-            return false, result, elapsed
-        else
-            return true, result, elapsed
-        end
-    elseif type(result) == "function" then
-        return false, "Unexpected streaming function", elapsed
-    else
-        return false, "Unexpected result type: " .. type(result), elapsed
-    end
+    return TestHelpers.handleQueryResult(ok, result, elapsed)
 end
 
 -- Test 1: Basic connectivity
@@ -277,6 +265,9 @@ function FullProviderTests:runAllTests(provider, api_key, verbose)
         self:log(provider, "Load handler", "fail", "Failed to load: " .. tostring(handler), 0)
         return false
     end
+
+    -- Patch handler to make synchronous HTTP calls in test environment
+    TestHelpers.patchHandlerForSync(handler)
 
     print(string.format("\n  [%s] Running comprehensive tests...", provider))
 
