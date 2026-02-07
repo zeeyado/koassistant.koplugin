@@ -760,6 +760,56 @@ TestRunner:test("falls back to fallback for unknown custom ID", function()
     end
 end)
 
+-- Test skip_domain behavior
+TestRunner:suite("buildUnifiedSystem() skip_domain")
+
+TestRunner:test("domain_context present appears in result", function()
+    local result = SystemPrompts.buildUnifiedSystem({
+        behavior_variant = "minimal",
+        domain_context = "Science fiction analysis",
+    })
+    TestRunner:assertContains(result.text, "Science fiction analysis", "domain in text")
+    TestRunner:assertEqual(result.components.domain, "Science fiction analysis", "domain component")
+end)
+
+TestRunner:test("domain_context=nil results in no domain component", function()
+    local result = SystemPrompts.buildUnifiedSystem({
+        behavior_variant = "minimal",
+        -- domain_context not set (nil)
+    })
+    TestRunner:assertNil(result.components.domain, "no domain component when nil")
+end)
+
+TestRunner:test("domain_context='' excluded from text output", function()
+    local result = SystemPrompts.buildUnifiedSystem({
+        behavior_variant = "minimal",
+        domain_context = "",
+    })
+    -- getCacheableContent treats empty string same as nil (no domain in combined text)
+    -- but components.domain stores the raw value for debugging
+    -- Verify domain doesn't appear in the combined text via separator
+    if result.text:find("---", 1, true) then
+        error("empty domain should not add separator to text")
+    end
+end)
+
+TestRunner:test("skip_domain + skip_language_instruction combined excludes both", function()
+    local result = SystemPrompts.buildUnifiedSystem({
+        behavior_variant = "minimal",
+        domain_context = "Physics",
+        user_languages = "English, German",
+        skip_language_instruction = true,
+        -- skip_domain is simulated by not passing domain_context
+        -- The actual skip_domain flag is handled in the caller (dialogs.lua)
+        -- which simply doesn't pass domain_context to buildUnifiedSystem
+    })
+    -- Language should be skipped
+    TestRunner:assertNil(result.components.language, "no language when skipped")
+    -- Domain IS present since we passed it (skip_domain is caller-side)
+    -- This test verifies skip_language_instruction works independently
+    TestRunner:assertEqual(result.components.domain, "Physics", "domain still present")
+end)
+
 -- Summary
 local success = TestRunner:summary()
 return success

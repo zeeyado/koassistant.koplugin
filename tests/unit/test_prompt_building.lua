@@ -1275,6 +1275,170 @@ local function runAdditionalInputTests()
 end
 
 -- =============================================================================
+-- MessageBuilder.substituteVariables() Tests
+-- =============================================================================
+
+local function runSubstituteVariablesTests()
+    print("\n--- MessageBuilder.substituteVariables() ---")
+
+    -- Nudges
+    TestRunner:test("substituteVariables: {conciseness_nudge} substituted", function()
+        local Templates = require("prompts.templates")
+        local result = MessageBuilder.substituteVariables("Be brief. {conciseness_nudge}", {})
+        TestRunner:assertNotContains(result, "{conciseness_nudge}")
+        TestRunner:assertContains(result, Templates.CONCISENESS_NUDGE)
+    end)
+
+    TestRunner:test("substituteVariables: {hallucination_nudge} substituted", function()
+        local Templates = require("prompts.templates")
+        local result = MessageBuilder.substituteVariables("Answer. {hallucination_nudge}", {})
+        TestRunner:assertNotContains(result, "{hallucination_nudge}")
+        TestRunner:assertContains(result, Templates.HALLUCINATION_NUDGE)
+    end)
+
+    -- Language placeholders
+    TestRunner:test("substituteVariables: {translation_language}", function()
+        local result = MessageBuilder.substituteVariables("Translate to {translation_language}", {
+            translation_language = "Spanish",
+        })
+        TestRunner:assertContains(result, "Translate to Spanish")
+    end)
+
+    TestRunner:test("substituteVariables: {dictionary_language}", function()
+        local result = MessageBuilder.substituteVariables("Define in {dictionary_language}", {
+            dictionary_language = "French",
+        })
+        TestRunner:assertContains(result, "Define in French")
+    end)
+
+    -- Metadata placeholders
+    TestRunner:test("substituteVariables: {title}", function()
+        local result = MessageBuilder.substituteVariables("About {title}", { title = "Dune" })
+        TestRunner:assertContains(result, "About Dune")
+    end)
+
+    TestRunner:test("substituteVariables: {author}", function()
+        local result = MessageBuilder.substituteVariables("By {author}", { author = "Herbert" })
+        TestRunner:assertContains(result, "By Herbert")
+    end)
+
+    TestRunner:test("substituteVariables: {author_clause}", function()
+        local result = MessageBuilder.substituteVariables("Book{author_clause}", { author_clause = " by Tolkien" })
+        TestRunner:assertContains(result, "Book by Tolkien")
+    end)
+
+    TestRunner:test("substituteVariables: {highlighted_text}", function()
+        local result = MessageBuilder.substituteVariables("Word: {highlighted_text}", { highlighted_text = "quantum" })
+        TestRunner:assertContains(result, "Word: quantum")
+    end)
+
+    TestRunner:test("substituteVariables: {count}", function()
+        local result = MessageBuilder.substituteVariables("Compare {count} books", { count = 3 })
+        TestRunner:assertContains(result, "Compare 3 books")
+    end)
+
+    TestRunner:test("substituteVariables: {books_list}", function()
+        local result = MessageBuilder.substituteVariables("Books:\n{books_list}", { books_list = "1. Book A\n2. Book B" })
+        TestRunner:assertContains(result, "1. Book A")
+    end)
+
+    -- Section placeholders: present
+    TestRunner:test("substituteVariables: {book_text_section} with data", function()
+        local result = MessageBuilder.substituteVariables("{book_text_section}", { book_text = "Chapter 1 content" })
+        TestRunner:assertContains(result, "Book content so far:")
+        TestRunner:assertContains(result, "Chapter 1 content")
+    end)
+
+    TestRunner:test("substituteVariables: {book_text_section} disappears when empty", function()
+        local result = MessageBuilder.substituteVariables("Start{book_text_section}End", { book_text = "" })
+        TestRunner:assertContains(result, "StartEnd")
+        TestRunner:assertNotContains(result, "Book content")
+    end)
+
+    TestRunner:test("substituteVariables: {highlights_section} with data", function()
+        local result = MessageBuilder.substituteVariables("{highlights_section}", { highlights = "- highlight 1" })
+        TestRunner:assertContains(result, "My highlights so far:")
+    end)
+
+    TestRunner:test("substituteVariables: {annotations_section} disappears when empty", function()
+        local result = MessageBuilder.substituteVariables("A{annotations_section}B", { annotations = "" })
+        TestRunner:assertContains(result, "AB")
+    end)
+
+    TestRunner:test("substituteVariables: {notebook_section} with data", function()
+        local result = MessageBuilder.substituteVariables("{notebook_section}", { notebook_content = "My notes" })
+        TestRunner:assertContains(result, "My notebook entries:")
+        TestRunner:assertContains(result, "My notes")
+    end)
+
+    TestRunner:test("substituteVariables: {full_document_section} with data", function()
+        local result = MessageBuilder.substituteVariables("{full_document_section}", { full_document = "Full text" })
+        TestRunner:assertContains(result, "Full document:")
+    end)
+
+    TestRunner:test("substituteVariables: {surrounding_context_section} with data", function()
+        local result = MessageBuilder.substituteVariables("{surrounding_context_section}", {
+            surrounding_context = "nearby text",
+        })
+        TestRunner:assertContains(result, "Surrounding text:")
+        TestRunner:assertContains(result, "nearby text")
+    end)
+
+    -- Cache section placeholders
+    TestRunner:test("substituteVariables: {xray_cache_section} with progress", function()
+        local result = MessageBuilder.substituteVariables("{xray_cache_section}", {
+            xray_cache = "X-Ray data",
+            xray_cache_progress = "45%",
+        })
+        TestRunner:assertContains(result, "Previous X-Ray (as of 45%):")
+        TestRunner:assertContains(result, "X-Ray data")
+    end)
+
+    TestRunner:test("substituteVariables: {analyze_cache_section} with data", function()
+        local result = MessageBuilder.substituteVariables("{analyze_cache_section}", {
+            analyze_cache = "Analysis content",
+        })
+        TestRunner:assertContains(result, "Document analysis:")
+    end)
+
+    TestRunner:test("substituteVariables: {summary_cache_section} with data", function()
+        local result = MessageBuilder.substituteVariables("{summary_cache_section}", {
+            summary_cache = "Summary content",
+        })
+        TestRunner:assertContains(result, "Document summary:")
+    end)
+
+    -- Reading stats
+    TestRunner:test("substituteVariables: {chapter_title}", function()
+        local result = MessageBuilder.substituteVariables("Ch: {chapter_title}", { chapter_title = "The Beginning" })
+        TestRunner:assertContains(result, "Ch: The Beginning")
+    end)
+
+    TestRunner:test("substituteVariables: {chapters_read}", function()
+        local result = MessageBuilder.substituteVariables("Read {chapters_read}", { chapters_read = "7" })
+        TestRunner:assertContains(result, "Read 7")
+    end)
+
+    TestRunner:test("substituteVariables: {time_since_last_read}", function()
+        local result = MessageBuilder.substituteVariables("Last: {time_since_last_read}", {
+            time_since_last_read = "3 days ago",
+        })
+        TestRunner:assertContains(result, "Last: 3 days ago")
+    end)
+
+    -- No structural wrappers
+    TestRunner:test("substituteVariables: no [Context] wrapper", function()
+        local result = MessageBuilder.substituteVariables("Explain {title}", { title = "1984" })
+        TestRunner:assertNotContains(result, "[Context]")
+    end)
+
+    TestRunner:test("substituteVariables: no [Request] wrapper", function()
+        local result = MessageBuilder.substituteVariables("Explain {title}", { title = "1984" })
+        TestRunner:assertNotContains(result, "[Request]")
+    end)
+end
+
+-- =============================================================================
 -- Run All Tests
 -- =============================================================================
 
@@ -1291,6 +1455,7 @@ local function runAll()
     runReadingStatsTests()
     runCachePlaceholderTests()
     runAdditionalInputTests()
+    runSubstituteVariablesTests()
 
     print(string.format("\n=== Results: %d passed, %d failed ===\n", TestRunner.passed, TestRunner.failed))
     return TestRunner.failed == 0
