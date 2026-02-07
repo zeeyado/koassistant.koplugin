@@ -259,6 +259,197 @@ function TestActions:runAll()
         self:assertEquals(xray.cache_as_xray, true)
     end)
 
+    -- ================================================================
+    -- Actions.requiresOpenBook() tests
+    -- ================================================================
+    print("\n--- requiresOpenBook() ---")
+
+    self:test("requiresOpenBook returns false for nil", function()
+        self:assertEquals(Actions.requiresOpenBook(nil), false)
+    end)
+
+    self:test("requiresOpenBook returns false for action with no flags", function()
+        self:assertEquals(Actions.requiresOpenBook({ id = "test", text = "Test" }), false)
+    end)
+
+    self:test("requiresOpenBook returns true for explicit requires_open_book", function()
+        self:assertEquals(Actions.requiresOpenBook({ requires_open_book = true }), true)
+    end)
+
+    self:test("requiresOpenBook returns true for use_book_text", function()
+        self:assertEquals(Actions.requiresOpenBook({ use_book_text = true }), true)
+    end)
+
+    self:test("requiresOpenBook returns true for use_reading_progress", function()
+        self:assertEquals(Actions.requiresOpenBook({ use_reading_progress = true }), true)
+    end)
+
+    self:test("requiresOpenBook returns true for use_annotations", function()
+        self:assertEquals(Actions.requiresOpenBook({ use_annotations = true }), true)
+    end)
+
+    self:test("requiresOpenBook returns true for use_reading_stats", function()
+        self:assertEquals(Actions.requiresOpenBook({ use_reading_stats = true }), true)
+    end)
+
+    self:test("requiresOpenBook returns true for use_notebook", function()
+        self:assertEquals(Actions.requiresOpenBook({ use_notebook = true }), true)
+    end)
+
+    -- ================================================================
+    -- Actions.checkRequirements() tests
+    -- ================================================================
+    print("\n--- checkRequirements() ---")
+
+    self:test("checkRequirements returns true for action with no requirements", function()
+        self:assertEquals(Actions.checkRequirements({ id = "test" }, {}), true)
+    end)
+
+    self:test("checkRequirements filters open book action when has_open_book=false", function()
+        local action = { use_book_text = true }
+        self:assertEquals(Actions.checkRequirements(action, { has_open_book = false }), false)
+    end)
+
+    self:test("checkRequirements passes open book action when has_open_book=true", function()
+        local action = { use_book_text = true }
+        self:assertEquals(Actions.checkRequirements(action, { has_open_book = true }), true)
+    end)
+
+    self:test("checkRequirements passes open book action when has_open_book=nil (management)", function()
+        local action = { use_book_text = true }
+        self:assertEquals(Actions.checkRequirements(action, {}), true)
+    end)
+
+    self:test("checkRequirements requires=author fails when no author", function()
+        self:assertEquals(Actions.checkRequirements({ requires = "author" }, {}), false)
+    end)
+
+    self:test("checkRequirements requires=author fails when empty author", function()
+        self:assertEquals(Actions.checkRequirements({ requires = "author" }, { author = "" }), false)
+    end)
+
+    self:test("checkRequirements requires=author passes when author present", function()
+        self:assertEquals(Actions.checkRequirements({ requires = "author" }, { author = "Tolkien" }), true)
+    end)
+
+    -- ================================================================
+    -- Actions.getForContext() tests
+    -- ================================================================
+    print("\n--- getForContext() ---")
+
+    self:test("getForContext('highlight') returns actions array", function()
+        local result = Actions.getForContext("highlight")
+        self:assert(type(result) == "table", "returns table")
+        self:assert(#result > 0, "has actions")
+    end)
+
+    self:test("getForContext('book') returns actions", function()
+        local result = Actions.getForContext("book")
+        self:assert(#result > 0, "has actions")
+        -- Verify xray is present
+        local found = false
+        for _, action in ipairs(result) do
+            if action.id == "xray" then found = true break end
+        end
+        self:assert(found, "xray should be in book context")
+    end)
+
+    self:test("getForContext('multi_book') returns actions", function()
+        local result = Actions.getForContext("multi_book")
+        self:assert(#result > 0, "has actions")
+    end)
+
+    self:test("getForContext('general') returns actions", function()
+        local result = Actions.getForContext("general")
+        self:assert(#result > 0, "has actions")
+    end)
+
+    self:test("getForContext returns sorted by text", function()
+        local result = Actions.getForContext("highlight")
+        for i = 2, #result do
+            self:assert((result[i-1].text or "") <= (result[i].text or ""),
+                "should be sorted: " .. (result[i-1].text or "") .. " <= " .. (result[i].text or ""))
+        end
+    end)
+
+    self:test("getForContext('highlight') includes special 'all' context actions", function()
+        -- Check if any special action with context="all" or context="highlight" is included
+        local result = Actions.getForContext("highlight")
+        local special_count = 0
+        for _, action in ipairs(result) do
+            -- translate and dictionary actions are special actions with highlight context
+            if action.id == "translate" or action.id == "quick_define" then
+                special_count = special_count + 1
+            end
+        end
+        self:assert(special_count > 0, "should include special actions")
+    end)
+
+    -- ================================================================
+    -- Actions.getById() tests
+    -- ================================================================
+    print("\n--- getById() ---")
+
+    self:test("getById finds highlight action", function()
+        local action = Actions.getById("explain")
+        self:assert(action ~= nil, "found explain")
+        self:assertEquals(action.id, "explain")
+    end)
+
+    self:test("getById finds book action", function()
+        local action = Actions.getById("xray")
+        self:assert(action ~= nil, "found xray")
+        self:assertEquals(action.id, "xray")
+    end)
+
+    self:test("getById finds multi_book action", function()
+        local action = Actions.getById("compare_books")
+        self:assert(action ~= nil, "found compare_books")
+        self:assertEquals(action.id, "compare_books")
+    end)
+
+    self:test("getById finds special action", function()
+        local action = Actions.getById("translate")
+        self:assert(action ~= nil, "found translate")
+        self:assertEquals(action.id, "translate")
+    end)
+
+    self:test("getById returns nil for unknown", function()
+        local action = Actions.getById("nonexistent_action_xyz")
+        self:assertEquals(action, nil)
+    end)
+
+    -- ================================================================
+    -- Actions.getApiParams() tests
+    -- ================================================================
+    print("\n--- getApiParams() ---")
+
+    self:test("getApiParams returns defaults when action has no api_params", function()
+        local defaults = { temperature = 0.7, max_tokens = 1024 }
+        local result = Actions.getApiParams({}, defaults)
+        self:assertEquals(result.temperature, 0.7)
+        self:assertEquals(result.max_tokens, 1024)
+    end)
+
+    self:test("getApiParams overrides with action api_params", function()
+        local defaults = { temperature = 0.7, max_tokens = 1024 }
+        local action = { api_params = { temperature = 0.3 } }
+        local result = Actions.getApiParams(action, defaults)
+        self:assertEquals(result.temperature, 0.3, "overridden")
+        self:assertEquals(result.max_tokens, 1024, "preserved")
+    end)
+
+    self:test("getApiParams handles nil defaults", function()
+        local action = { api_params = { temperature = 0.5 } }
+        local result = Actions.getApiParams(action, nil)
+        self:assertEquals(result.temperature, 0.5)
+    end)
+
+    self:test("getApiParams handles nil action", function()
+        local result = Actions.getApiParams(nil, { temperature = 0.7 })
+        self:assertEquals(result.temperature, 0.7)
+    end)
+
     -- Summary
     print(string.format("\nResults: %d passed, %d failed\n", self.passed, self.failed))
     return self.failed == 0

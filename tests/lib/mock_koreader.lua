@@ -134,6 +134,12 @@ package.loaded["ui/constants"] = {
     DIALOG_WIDTH = 600,
 }
 
+-- Mock datastorage (used by koassistant_export.lua)
+package.loaded["datastorage"] = {
+    getDataDir = function() return "/tmp/koreader" end,
+    getSettingsDir = function() return "/tmp/koreader/settings" end,
+}
+
 -- Verification message
 if VERBOSE_MOCKS then
     print("[MOCK] KOReader mocks loaded successfully")
