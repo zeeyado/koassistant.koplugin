@@ -548,9 +548,9 @@ See [Response Caching → "Generate Once, Use Many Times"](#response-caching-x-r
 
 ### Book/Document Mode
 
-**Access**: Long-press a book in File Browser → "KOAssistant" or while reading, use gesture or menu
+**Access**: Long-press a book in File Browser → "Chat/Action (KOA)" or while reading, use gesture or menu
 
-Some actions work from the file browser (using only title/author), while others require reading mode (using document state like progress, highlights, or extracted text). Reading-only actions are automatically hidden in file browser. You can pin frequently-used file browser actions directly to the long-press menu via **Action Manager → hold action → "Add to File Browser"**, so they appear as one-tap buttons without opening the action selector.
+Some actions work from the file browser (using only title/author), while others require reading mode (using document state like progress, highlights, or extracted text). Reading-only actions are automatically hidden in file browser. You can pin frequently-used file browser actions directly to the long-press menu via **Action Manager → hold action → "Add to File Browser"**, so they appear as one-tap buttons without opening the action selector. All file browser buttons (utilities + pinned actions + Chat/Action) are distributed across rows of up to 4 buttons each.
 
 **Built-in Actions**:
 | Action | Description |
@@ -1898,11 +1898,14 @@ Control where KOAssistant appears in KOReader's menus. All toggles default to ON
   - **Show Notebook Button**: Show "Notebook (KOA)" button when long-pressing books
   - **Only for books with notebooks**: Only show notebook button if notebook already exists
   - **Show Chat History Button**: Show "Chat History (KOA)" button when long-pressing books that have chat history
-  - **View Artifacts Button**: "View Artifacts (KOA)" appears automatically when a book has any cached artifacts — summary, X-Ray, or analysis (no setting needed)
-  - **Pinned Actions**: Actions you add via Action Manager → hold → "Add to File Browser" appear as one-tap buttons (no setting needed, managed from Action Manager)
-- **Dictionary Popup Actions...**: Configure which actions appear in the dictionary popup's AI menu
-- **Highlight Menu Actions...**: Configure which actions appear as shortcuts in the highlight menu
-- **Reset Options**: Reset Dictionary Popup Actions, Highlight Menu Actions, or all at once
+  - **Show Artifacts Button**: Show "View Artifacts (KOA)" button for books that have cached artifacts (X-Ray, Summary, Analysis). Default: on
+  - **Pinned Actions**: Actions you add via Action Manager → hold → "Add to File Browser" appear as one-tap buttons. Manage order and visibility via **File Browser Actions...** manager
+  - All file browser buttons are distributed across rows of up to 4 buttons, equally distributed
+- **Customize Visible Actions**:
+  - **Dictionary Popup Actions...**: Configure which actions appear in the dictionary popup's AI menu
+  - **Highlight Menu Actions...**: Configure which actions appear as shortcuts in the highlight menu
+  - **File Browser Actions...**: Reorder and manage pinned file browser actions (tap to toggle, hold to move/remove)
+- **Reset Options**: Reset Dictionary Popup Actions, Highlight Menu Actions, File Browser Actions, or all at once
 
 **Note:** File browser and highlight menu changes require a KOReader restart since buttons are registered at plugin startup. Dictionary popup changes take effect immediately.
 

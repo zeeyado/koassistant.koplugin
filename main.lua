@@ -290,6 +290,22 @@ function AskGPT:generateFileDialogRows(file, is_file, book_props)
 
   local buttons = {}
 
+  -- Main Chat/Action button (always first - primary entry point)
+  local title = book_props and book_props.title or file:match("([^/]+)$")
+  local authors = book_props and book_props.authors or ""
+  local self_ref_main = self
+  table.insert(buttons, {
+    text = _("Chat/Action (KOA)"),
+    callback = function()
+      local UIManager = require("ui/uimanager")
+      local current_dialog = UIManager:getTopmostVisibleWidget()
+      if current_dialog and current_dialog.close then
+        UIManager:close(current_dialog)
+      end
+      self_ref_main:showKOAssistantDialogForFile(file, title, authors, book_props)
+    end,
+  })
+
   -- Notebook (KOA) button - respects settings
   local show_notebook = features.show_notebook_in_file_browser ~= false  -- default true
   local require_existing = features.notebook_button_require_existing ~= false  -- default true
@@ -390,8 +406,6 @@ function AskGPT:generateFileDialogRows(file, is_file, book_props)
   -- Pinned file browser actions (user-selected via Action Manager hold menu)
   local fb_actions = self.settings:readSetting("file_browser_actions") or {}
   if #fb_actions > 0 then
-    local title = book_props and book_props.title or file:match("([^/]+)$")
-    local authors = book_props and book_props.authors or ""
     local self_ref = self
     for _idx, fb_action in ipairs(fb_actions) do
       table.insert(buttons, {
@@ -407,22 +421,6 @@ function AskGPT:generateFileDialogRows(file, is_file, book_props)
       })
     end
   end
-
-  -- Main Chat/Action button (always last - primary entry point)
-  local title = book_props and book_props.title or file:match("([^/]+)$")
-  local authors = book_props and book_props.authors or ""
-  local self_ref2 = self
-  table.insert(buttons, {
-    text = _("Chat/Action (KOA)"),
-    callback = function()
-      local UIManager = require("ui/uimanager")
-      local current_dialog = UIManager:getTopmostVisibleWidget()
-      if current_dialog and current_dialog.close then
-        UIManager:close(current_dialog)
-      end
-      self_ref2:showKOAssistantDialogForFile(file, title, authors, book_props)
-    end,
-  })
 
   -- Split into rows of max 4, equally distributed
   logger.info("KOAssistant: Returning " .. #buttons .. " button(s) in rows")
