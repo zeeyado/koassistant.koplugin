@@ -643,6 +643,8 @@ function AskGPT:showKOAssistantDialogForFile(file, title, authors, book_props)
 
   NetworkMgr:runWhenOnline(function()
     self:ensureInitialized()
+    -- Make sure we're using the latest configuration
+    self:updateConfigFromSettings()
     -- Show dialog with book context instead of highlighted text
     -- Pass book_metadata so action input popup can access file path for View Summary
     local book_metadata = configuration.features.book_metadata
@@ -796,6 +798,8 @@ function AskGPT:compareSelectedBooks(selected_files)
 
   NetworkMgr:runWhenOnline(function()
     self:ensureInitialized()
+    -- Make sure we're using the latest configuration
+    self:updateConfigFromSettings()
     -- Pass the prompt as book context with configuration
     -- Use FileManager.instance as the UI context
     local ui_context = self.ui or FileManager.instance
@@ -3631,6 +3635,8 @@ function AskGPT:onDictButtonsReady(dict_popup, dict_buttons)
 
         -- Ensure network is available
         NetworkMgr:runWhenOnline(function()
+          -- Make sure we're using the latest configuration
+          self_ref:updateConfigFromSettings()
           -- Get effective dictionary language
           local SystemPrompts = require("prompts.system_prompts")
           local dict_language = SystemPrompts.getEffectiveDictionaryLanguage({
@@ -4225,6 +4231,9 @@ function AskGPT:executeBookLevelAction(action_id)
     return
   end
 
+  -- Make sure we're using the latest configuration
+  self:updateConfigFromSettings()
+
   -- Build config with book context
   -- IMPORTANT: Create a proper shallow copy with a NEW features object
   -- to avoid polluting the global configuration.features
@@ -4299,6 +4308,9 @@ function AskGPT:executeGeneralAction(action_id)
     })
     return
   end
+
+  -- Make sure we're using the latest configuration
+  self:updateConfigFromSettings()
 
   -- Build config for general context
   -- IMPORTANT: Create a proper shallow copy with a NEW features object
@@ -5824,6 +5836,8 @@ function AskGPT:syncDictionaryBypass()
 
       -- Execute the default action directly (context already captured above)
       NetworkMgr:runWhenOnline(function()
+        -- Make sure we're using the latest configuration
+        self_ref:updateConfigFromSettings()
         -- Get effective dictionary language
         local SystemPrompts = require("prompts.system_prompts")
         local dict_language = SystemPrompts.getEffectiveDictionaryLanguage({
