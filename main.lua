@@ -248,10 +248,32 @@ function AskGPT:init()
   self:patchFileManagerForMultiSelect()
 end
 
--- Button generator for utility buttons (Notebook, Chat History, View Artifacts, pinned actions)
--- These appear in rows above the main KOAssistant button
-function AskGPT:generateUtilityButtons(file, is_file, book_props)
-  logger.info("KOAssistant: generateUtilityButtons called with file=" .. tostring(file))
+-- Split flat button list into rows of max N, equally distributed
+-- Example: 5 buttons, max 4 -> rows of 3+2; 7 buttons -> 4+3; 8 -> 4+4
+local function splitIntoRows(buttons, max_per_row)
+  if #buttons == 0 then return nil end
+  if #buttons <= max_per_row then return { buttons } end
+  local num_rows = math.ceil(#buttons / max_per_row)
+  local base = math.floor(#buttons / num_rows)
+  local extra = #buttons % num_rows  -- first 'extra' rows get base+1 items
+  local rows = {}
+  local idx = 1
+  for r = 1, num_rows do
+    local row_size = base + (r <= extra and 1 or 0)
+    local row = {}
+    for _j = 1, row_size do
+      table.insert(row, buttons[idx])
+      idx = idx + 1
+    end
+    table.insert(rows, row)
+  end
+  return rows
+end
+
+-- Button generator for all KOA file dialog buttons (utilities + main)
+-- Returns array of rows (max 4 buttons per row, equally distributed)
+function AskGPT:generateFileDialogRows(file, is_file, book_props)
+  logger.info("KOAssistant: generateFileDialogRows called with file=" .. tostring(file))
 
   -- Only show buttons for document files
   if not is_file or not self:isDocumentFile(file) then
@@ -310,6 +332,7 @@ function AskGPT:generateUtilityButtons(file, is_file, book_props)
   end
 
   -- View Artifacts (KOA) button - if any document cache exists for this file
+  local show_artifacts = features.show_artifacts_in_file_browser ~= false  -- default true
   local ActionCache = require("koassistant_action_cache")
   local caches = {}
   local xray = ActionCache.getXrayCache(file)
@@ -324,7 +347,7 @@ function AskGPT:generateUtilityButtons(file, is_file, book_props)
   if analyze and analyze.result then
     table.insert(caches, { name = _("Analysis"), key = "_analyze_cache", data = analyze })
   end
-  if #caches > 0 then
+  if show_artifacts and #caches > 0 then
     local self_ref = self
     table.insert(buttons, {
       text = _("View Artifacts (KOA)"),
@@ -385,42 +408,25 @@ function AskGPT:generateUtilityButtons(file, is_file, book_props)
     end
   end
 
-  -- Only return if we have at least one button
-  if #buttons > 0 then
-    logger.info("KOAssistant: Returning " .. #buttons .. " utility button(s)")
-    return buttons
-  end
-  return nil
-end
-
--- Button generator for main KOAssistant button (alone on its own row at bottom)
-function AskGPT:generateFileDialogButtons(file, is_file, book_props)
-  logger.info("KOAssistant: generateFileDialogButtons called with file=" .. tostring(file))
-
-  -- Only show buttons for document files
-  if not is_file or not self:isDocumentFile(file) then
-    logger.info("KOAssistant: Not a document file or is_file=false, returning nil")
-    return nil
-  end
-
-  -- Get metadata
+  -- Main Chat/Action button (always last - primary entry point)
   local title = book_props and book_props.title or file:match("([^/]+)$")
   local authors = book_props and book_props.authors or ""
+  local self_ref2 = self
+  table.insert(buttons, {
+    text = _("Chat/Action (KOA)"),
+    callback = function()
+      local UIManager = require("ui/uimanager")
+      local current_dialog = UIManager:getTopmostVisibleWidget()
+      if current_dialog and current_dialog.close then
+        UIManager:close(current_dialog)
+      end
+      self_ref2:showKOAssistantDialogForFile(file, title, authors, book_props)
+    end,
+  })
 
-  -- Return just the KOAssistant button (alone on its own row)
-  return {
-    {
-      text = _("KOAssistant"),
-      callback = function()
-        local UIManager = require("ui/uimanager")
-        local current_dialog = UIManager:getTopmostVisibleWidget()
-        if current_dialog and current_dialog.close then
-          UIManager:close(current_dialog)
-        end
-        self:showKOAssistantDialogForFile(file, title, authors, book_props)
-      end,
-    }
-  }
+  -- Split into rows of max 4, equally distributed
+  logger.info("KOAssistant: Returning " .. #buttons .. " button(s) in rows")
+  return splitIntoRows(buttons, 4)
 end
 
 -- Button generator for multiple file selection
@@ -475,18 +481,20 @@ function AskGPT:addFileDialogButtons()
   end)
   
   -- Create closures that bind self
-  -- Utility buttons (Notebook, Chat History, View Artifacts) - first row
-  local utility_generator = function(file, is_file, book_props)
-    return self:generateUtilityButtons(file, is_file, book_props)
-  end
-
-  -- Main KOAssistant button - second row (alone)
-  local main_button_generator = function(file, is_file, book_props)
-    local buttons = self:generateFileDialogButtons(file, is_file, book_props)
-    if buttons then
-      logger.info("KOAssistant: Generated main button for file: " .. tostring(file))
+  -- All KOA buttons (utilities + main) distributed across rows (max 4 per row)
+  -- Row cache avoids recomputing for each row slot in the same dialog open
+  local row_cache = { file = nil, rows = nil }
+  local row_generators = {}
+  local row_keys = { "zzz_koassistant_1a", "zzz_koassistant_1b", "zzz_koassistant_1c" }
+  for slot = 1, 3 do
+    local row_index = slot
+    row_generators[slot] = function(file, is_file, book_props)
+      if row_cache.file ~= file then
+        row_cache.file = file
+        row_cache.rows = self:generateFileDialogRows(file, is_file, book_props)
+      end
+      return row_cache.rows and row_cache.rows[row_index]
     end
-    return buttons
   end
 
   local multi_file_generator = function(file, is_file, book_props)
@@ -496,11 +504,11 @@ function AskGPT:addFileDialogButtons()
   local success_count = 0
 
   -- Method 1: Register via instance method if available
-  -- Registration keys sorted alphabetically: 1_utilities < 2_main < multi_select
   if FileManager.instance and FileManager.instance.addFileDialogButtons then
     local success = pcall(function()
-      FileManager.instance:addFileDialogButtons("zzz_koassistant_1_utilities", utility_generator)
-      FileManager.instance:addFileDialogButtons("zzz_koassistant_2_main", main_button_generator)
+      for slot = 1, 3 do
+        FileManager.instance:addFileDialogButtons(row_keys[slot], row_generators[slot])
+      end
       FileManager.instance:addFileDialogButtons("zzz_koassistant_multi_select", multi_file_generator)
     end)
 
@@ -509,7 +517,7 @@ function AskGPT:addFileDialogButtons()
       success_count = success_count + 1
     end
   end
-  
+
   -- Method 2: Register on all widget classes using static method pattern (like CoverBrowser)
   -- This ensures buttons appear in History, Collections, and Search dialogs
   local widgets_to_register = {
@@ -518,13 +526,14 @@ function AskGPT:addFileDialogButtons()
     collections = FileManagerCollection,
     filesearcher = FileManagerFileSearcher,
   }
-  
+
   for widget_name, widget_class in pairs(widgets_to_register) do
     if widget_class and FileManager.addFileDialogButtons then
       logger.info("KOAssistant: Attempting to register buttons on " .. widget_name .. " class")
       local success, err = pcall(function()
-        FileManager.addFileDialogButtons(widget_class, "zzz_koassistant_1_utilities", utility_generator)
-        FileManager.addFileDialogButtons(widget_class, "zzz_koassistant_2_main", main_button_generator)
+        for slot = 1, 3 do
+          FileManager.addFileDialogButtons(widget_class, row_keys[slot], row_generators[slot])
+        end
         FileManager.addFileDialogButtons(widget_class, "zzz_koassistant_multi_select", multi_file_generator)
       end)
 
@@ -5749,6 +5758,11 @@ function AskGPT:showQuickActionsManager()
   prompts_manager:showQuickActionsManager()
 end
 
+function AskGPT:showFileBrowserActionsManager()
+  local prompts_manager = PromptsManager:new(self)
+  prompts_manager:showFileBrowserActionsManager()
+end
+
 -- Show PathChooser for custom export path
 function AskGPT:showExportPathPicker()
   local PathChooser = require("ui/widget/pathchooser")
@@ -6500,6 +6514,9 @@ function AskGPT:resetActionMenus(silent)
   -- Quick actions
   self.settings:delSetting("quick_actions_list")
   self.settings:delSetting("_dismissed_quick_actions")
+  -- File browser actions
+  self.settings:delSetting("file_browser_actions")
+  self.settings:delSetting("_dismissed_file_browser_actions")
   self.settings:flush()
 
   if not silent then
@@ -6532,6 +6549,18 @@ function AskGPT:resetHighlightMenuActions(touchmenu_instance)
   self.settings:flush()
   UIManager:show(Notification:new{
     text = _("Highlight menu actions reset (restart to apply)"),
+    timeout = 2,
+  })
+  if touchmenu_instance then touchmenu_instance:updateItems() end
+end
+
+-- Reset file browser actions only
+function AskGPT:resetFileBrowserActions(touchmenu_instance)
+  self.settings:delSetting("file_browser_actions")
+  self.settings:delSetting("_dismissed_file_browser_actions")
+  self.settings:flush()
+  UIManager:show(Notification:new{
+    text = _("File browser actions reset"),
     timeout = 2,
   })
   if touchmenu_instance then touchmenu_instance:updateItems() end

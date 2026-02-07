@@ -1405,6 +1405,15 @@ local SettingsSchema = {
                     default = true,
                     help_text = _("Show 'Chat History (KOA)' button when long-pressing books that have chat history."),
                     depends_on = { id = "show_in_file_browser", value = true },
+                },
+                {
+                    id = "show_artifacts_in_file_browser",
+                    type = "toggle",
+                    text = _("Show Artifacts Button"),
+                    path = "features.show_artifacts_in_file_browser",
+                    default = true,
+                    help_text = _("Show 'View Artifacts (KOA)' button for books that have cached results (X-Ray, Summary, Analysis)."),
+                    depends_on = { id = "show_in_file_browser", value = true },
                     separator = true,
                 },
                 -- Customization shortcuts
@@ -1426,6 +1435,13 @@ local SettingsSchema = {
                     text = _("Highlight Menu Actions..."),
                     callback = "showHighlightMenuManager",
                     depends_on = { id = "show_quick_actions_in_highlight", value = true },
+                },
+                {
+                    id = "manage_file_browser_actions",
+                    type = "action",
+                    text = _("File Browser Actions..."),
+                    callback = "showFileBrowserActionsManager",
+                    depends_on = { id = "show_in_file_browser", value = true },
                     separator = true,
                 },
                 -- Reset options
@@ -1451,11 +1467,19 @@ local SettingsSchema = {
                     keep_menu_open = true,
                 },
                 {
+                    id = "reset_file_browser_actions",
+                    type = "action",
+                    text = _("Reset File Browser Actions"),
+                    callback = "resetFileBrowserActions",
+                    help_text = _("Remove all pinned file browser actions"),
+                    keep_menu_open = true,
+                },
+                {
                     id = "reset_all_menus",
                     type = "action",
                     text = _("Reset All Menu Customizations"),
                     callback = "resetActionMenus",
-                    help_text = _("Restore all menus to defaults (dictionary popup, highlight menu)"),
+                    help_text = _("Restore all menus to defaults (dictionary popup, highlight menu, file browser actions)"),
                     separator = true,
                 },
                 -- Startup behavior

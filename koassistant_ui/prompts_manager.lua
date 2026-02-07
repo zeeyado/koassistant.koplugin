@@ -799,148 +799,142 @@ function PromptsManager:showPromptDetails(prompt)
         table.insert(buttons, button_row)
     end
 
-    -- Add highlight menu toggle for highlight-context actions that don't require input
+    -- Collect menu/toggle buttons, then pair them 2 per row to save space
+    local toggle_buttons = {}
     local is_highlight_context = self:contextIncludesHighlight(prompt.context)
     local requires_input = prompt.id == "ask" or (prompt.prompt and prompt.prompt:find("{user_input}"))
+
+    -- Highlight menu toggle
     if is_highlight_context and not requires_input and self.plugin.action_service then
         local in_menu = self.plugin.action_service:isInHighlightMenu(prompt.id)
-        table.insert(buttons, {
-            {
-                text = in_menu and _("✓ In Highlight Menu") or _("Add to Highlight Menu"),
-                callback = function()
-                    local now_in_menu = self.plugin.action_service:toggleHighlightMenuAction(prompt.id)
-                    UIManager:close(self.details_dialog)
-                    UIManager:show(InfoMessage:new{
-                        text = now_in_menu and _("Added to highlight menu.") or _("Removed from highlight menu."),
-                        timeout = 2,
-                    })
-                end,
-            },
+        table.insert(toggle_buttons, {
+            text = in_menu and _("✓ Highlight Menu") or _("+ Highlight Menu"),
+            callback = function()
+                local now_in_menu = self.plugin.action_service:toggleHighlightMenuAction(prompt.id)
+                UIManager:close(self.details_dialog)
+                UIManager:show(InfoMessage:new{
+                    text = now_in_menu and _("Added to highlight menu.") or _("Removed from highlight menu."),
+                    timeout = 2,
+                })
+            end,
         })
     end
 
-    -- Add dictionary popup toggle for highlight-context actions that don't require input
+    -- Dictionary popup toggle
     if is_highlight_context and not requires_input and self.plugin.action_service then
         local in_popup = self.plugin.action_service:isInDictionaryPopup(prompt.id)
-        table.insert(buttons, {
-            {
-                text = in_popup and _("✓ In Dictionary Popup") or _("Add to Dictionary Popup"),
-                callback = function()
-                    local now_in_popup = self.plugin.action_service:toggleDictionaryPopupAction(prompt.id)
-                    UIManager:close(self.details_dialog)
-                    UIManager:show(InfoMessage:new{
-                        text = now_in_popup and _("Removed from dictionary popup.") or _("Added to dictionary popup."),
-                        timeout = 2,
-                    })
-                end,
-            },
+        table.insert(toggle_buttons, {
+            text = in_popup and _("✓ Dict. Popup") or _("+ Dict. Popup"),
+            callback = function()
+                local now_in_popup = self.plugin.action_service:toggleDictionaryPopupAction(prompt.id)
+                UIManager:close(self.details_dialog)
+                UIManager:show(InfoMessage:new{
+                    text = now_in_popup and _("Removed from dictionary popup.") or _("Added to dictionary popup."),
+                    timeout = 2,
+                })
+            end,
         })
     end
 
-    -- Add gesture toggle for gesture-compatible contexts (book, general, book+general)
-    -- Only show for enabled actions (disabled actions shouldn't be in gesture menu)
+    -- Gesture menu toggle
     if self:isGestureCompatibleContext(prompt.context) and prompt.enabled then
         local in_gesture = self:isGestureEnabled(prompt)
-        table.insert(buttons, {
-            {
-                text = in_gesture and _("✓ In Gesture Menu") or _("Add to Gesture Menu"),
-                callback = function()
-                    local self_ref = self
-                    self_ref:setGestureEnabled(prompt, not in_gesture)
-                    UIManager:close(self_ref.details_dialog)
-                    UIManager:show(InfoMessage:new{
-                        text = in_gesture
-                            and _("Removed from gesture menu.\nRestart KOReader to apply.")
-                            or _("Added to gesture menu.\nRestart KOReader to apply."),
-                        timeout = 3,
-                    })
-                    self_ref:refreshMenu()
-                end,
-            },
+        table.insert(toggle_buttons, {
+            text = in_gesture and _("✓ Gesture Menu") or _("+ Gesture Menu"),
+            callback = function()
+                local self_ref = self
+                self_ref:setGestureEnabled(prompt, not in_gesture)
+                UIManager:close(self_ref.details_dialog)
+                UIManager:show(InfoMessage:new{
+                    text = in_gesture
+                        and _("Removed from gesture menu.\nRestart KOReader to apply.")
+                        or _("Added to gesture menu.\nRestart KOReader to apply."),
+                    timeout = 3,
+                })
+                self_ref:refreshMenu()
+            end,
         })
     end
 
-    -- Add "Add to Quick Actions" button for book context actions
-    -- Quick Actions menu only supports book actions (not highlight-only actions)
+    -- Quick Actions toggle (book context only)
     if prompt.context == "book" and prompt.enabled and self.plugin.action_service then
         local in_quick_actions = self.plugin.action_service:isInQuickActions(prompt.id)
-        table.insert(buttons, {
-            {
-                text = in_quick_actions and _("✓ In Quick Actions") or _("Add to Quick Actions"),
-                callback = function()
-                    local self_ref = self
-                    self.plugin.action_service:toggleQuickAction(prompt.id)
-                    UIManager:close(self_ref.details_dialog)
-                    UIManager:show(InfoMessage:new{
-                        text = in_quick_actions
-                            and _("Removed from Quick Actions.")
-                            or _("Added to Quick Actions."),
-                        timeout = 2,
-                    })
-                    self_ref:refreshMenu()
-                end,
-            },
+        table.insert(toggle_buttons, {
+            text = in_quick_actions and _("✓ Quick Actions") or _("+ Quick Actions"),
+            callback = function()
+                local self_ref = self
+                self.plugin.action_service:toggleQuickAction(prompt.id)
+                UIManager:close(self_ref.details_dialog)
+                UIManager:show(InfoMessage:new{
+                    text = in_quick_actions
+                        and _("Removed from Quick Actions.")
+                        or _("Added to Quick Actions."),
+                    timeout = 2,
+                })
+                self_ref:refreshMenu()
+            end,
         })
     end
 
-    -- Add "Add to General Input" button for general context actions
-    -- Controls whether this action appears in the general chat input dialog
+    -- General Input toggle (general context only)
     if prompt.context == "general" and prompt.enabled and self.plugin.action_service then
         local in_general_menu = self.plugin.action_service:isInGeneralMenu(prompt.id)
-        table.insert(buttons, {
-            {
-                text = in_general_menu and _("✓ In General Input") or _("Add to General Input"),
-                callback = function()
-                    local self_ref = self
-                    self.plugin.action_service:toggleGeneralMenuAction(prompt.id)
-                    UIManager:close(self_ref.details_dialog)
-                    UIManager:show(InfoMessage:new{
-                        text = in_general_menu
-                            and _("Removed from general input dialog.")
-                            or _("Added to general input dialog."),
-                        timeout = 2,
-                    })
-                    self_ref:refreshMenu()
-                end,
-            },
+        table.insert(toggle_buttons, {
+            text = in_general_menu and _("✓ General Input") or _("+ General Input"),
+            callback = function()
+                local self_ref = self
+                self.plugin.action_service:toggleGeneralMenuAction(prompt.id)
+                UIManager:close(self_ref.details_dialog)
+                UIManager:show(InfoMessage:new{
+                    text = in_general_menu
+                        and _("Removed from general input dialog.")
+                        or _("Added to general input dialog."),
+                    timeout = 2,
+                })
+                self_ref:refreshMenu()
+            end,
         })
     end
 
-    -- Add "Add to File Browser" button for book-context actions that don't require reading mode
-    -- These are actions available in file browser's action input (title/author only, no open book)
+    -- File Browser toggle (book-context, non-reading actions)
     local is_book_eligible = self:contextIncludesBook(prompt.context)
     if is_book_eligible and prompt.enabled and not Actions.requiresOpenBook(prompt) and self.plugin.action_service then
         local in_file_browser = self.plugin.action_service:isInFileBrowser(prompt.id)
-        table.insert(buttons, {
-            {
-                text = in_file_browser and _("✓ In File Browser") or _("Add to File Browser"),
-                callback = function()
-                    local self_ref = self
-                    self.plugin.action_service:toggleFileBrowserAction(prompt.id)
-                    UIManager:close(self_ref.details_dialog)
-                    UIManager:show(InfoMessage:new{
-                        text = in_file_browser
-                            and _("Removed from file browser.")
-                            or _("Added to file browser."),
-                        timeout = 2,
-                    })
-                    self_ref:refreshMenu()
-                end,
-            },
+        table.insert(toggle_buttons, {
+            text = in_file_browser and _("✓ File Browser") or _("+ File Browser"),
+            callback = function()
+                local self_ref = self
+                self.plugin.action_service:toggleFileBrowserAction(prompt.id)
+                UIManager:close(self_ref.details_dialog)
+                UIManager:show(InfoMessage:new{
+                    text = in_file_browser
+                        and _("Removed from file browser.")
+                        or _("Added to file browser."),
+                    timeout = 2,
+                })
+                self_ref:refreshMenu()
+            end,
         })
     end
 
-    -- Add "Duplicate as Custom" button for all action types
+    -- Duplicate as Custom (always available)
     if self.plugin.action_service then
-        table.insert(buttons, {
-            {
-                text = _("Duplicate as Custom"),
-                callback = function()
-                    UIManager:close(self.details_dialog)
-                    self:duplicateAction(prompt)
-                end,
-            },
+        table.insert(toggle_buttons, {
+            text = _("Duplicate"),
+            callback = function()
+                UIManager:close(self.details_dialog)
+                self:duplicateAction(prompt)
+            end,
         })
+    end
+
+    -- Pair toggle buttons into rows of 2
+    for i = 1, #toggle_buttons, 2 do
+        if toggle_buttons[i + 1] then
+            table.insert(buttons, { toggle_buttons[i], toggle_buttons[i + 1] })
+        else
+            table.insert(buttons, { toggle_buttons[i] })
+        end
     end
 
     self.details_dialog = TextViewer:new{
@@ -4664,6 +4658,164 @@ function PromptsManager:showQuickActionsActionOptions(action, index, total)
         buttons = buttons,
     }
     UIManager:show(self.quick_options_dialog)
+end
+
+-- ============================================================
+-- File Browser Actions Manager
+-- ============================================================
+
+function PromptsManager:showFileBrowserActionsManager()
+    if not self.plugin.action_service then
+        UIManager:show(InfoMessage:new{
+            text = _("Action service not available."),
+        })
+        return
+    end
+
+    local all_actions = self.plugin.action_service:getAllBookActionsWithFileBrowserState()
+
+    if #all_actions == 0 then
+        UIManager:show(InfoMessage:new{
+            text = _("No eligible book actions available."),
+        })
+        return
+    end
+
+    -- Count items pinned in file browser
+    local fb_count = 0
+    for _idx, item in ipairs(all_actions) do
+        if item.in_file_browser then fb_count = fb_count + 1 end
+    end
+
+    local menu_items = {}
+
+    -- Help text item
+    table.insert(menu_items, {
+        text = _("✓ = pinned | Tap = toggle | Hold = move"),
+        dim = true,
+        callback = function() end,  -- No action
+    })
+
+    for _idx, item in ipairs(all_actions) do
+        local action = item.action
+        local prefix = item.in_file_browser and "✓ " or "  "
+        local position = item.in_file_browser and string.format("[%d] ", item.file_browser_position) or ""
+        local source_indicator = ""
+        if action.source == "ui" then
+            source_indicator = " ★"
+        elseif action.source == "config" then
+            source_indicator = " ◆"
+        end
+
+        table.insert(menu_items, {
+            text = prefix .. position .. (action.text or action.id) .. source_indicator,
+            action = action,
+            in_file_browser = item.in_file_browser,
+            file_browser_position = item.file_browser_position,
+            callback = function()
+                -- Toggle file browser inclusion
+                self.plugin.action_service:toggleFileBrowserAction(action.id)
+                -- Refresh the menu after close completes
+                UIManager:close(self.file_browser_menu)
+                UIManager:scheduleIn(0.1, function()
+                    self:showFileBrowserActionsManager()
+                end)
+            end,
+        })
+    end
+
+    self.file_browser_menu = Menu:new{
+        title = T(_("File Browser Actions (%1 pinned)"), fb_count),
+        item_table = menu_items,
+        width = self.width,
+        height = self.height,
+        covers_fullscreen = true,
+        is_borderless = true,
+        is_popout = false,
+        onMenuHold = function(_menu_widget, menu_item)
+            if menu_item and menu_item.action then
+                if menu_item.in_file_browser then
+                    -- Show move options for pinned items
+                    self:showFileBrowserActionOptions(menu_item.action, menu_item.file_browser_position, fb_count)
+                else
+                    -- Show info for non-pinned items
+                    UIManager:show(InfoMessage:new{
+                        text = string.format(
+                            "%s\n\nSource: %s\n\nTap to pin to file browser.",
+                            menu_item.action.text or menu_item.action.id,
+                            menu_item.action.source or "builtin"
+                        ),
+                        timeout = 3,
+                    })
+                end
+            end
+        end,
+        close_callback = function()
+            UIManager:close(self.file_browser_menu)
+        end,
+    }
+    UIManager:show(self.file_browser_menu)
+end
+
+-- Show options for a file browser action (move up/down, remove)
+function PromptsManager:showFileBrowserActionOptions(action, index, total)
+    local buttons = {}
+
+    if index > 1 then
+        table.insert(buttons, {
+            {
+                text = _("↑ Move Up"),
+                callback = function()
+                    self.plugin.action_service:moveFileBrowserAction(action.id, "up")
+                    UIManager:close(self.fb_options_dialog)
+                    UIManager:close(self.file_browser_menu)
+                    self:showFileBrowserActionsManager()
+                end,
+            },
+        })
+    end
+
+    if index < total then
+        table.insert(buttons, {
+            {
+                text = _("↓ Move Down"),
+                callback = function()
+                    self.plugin.action_service:moveFileBrowserAction(action.id, "down")
+                    UIManager:close(self.fb_options_dialog)
+                    UIManager:close(self.file_browser_menu)
+                    self:showFileBrowserActionsManager()
+                end,
+            },
+        })
+    end
+
+    table.insert(buttons, {
+        {
+            text = _("Remove from File Browser"),
+            callback = function()
+                self.plugin.action_service:removeFromFileBrowser(action.id)
+                UIManager:close(self.fb_options_dialog)
+                UIManager:close(self.file_browser_menu)
+                self:showFileBrowserActionsManager()
+            end,
+        },
+    })
+
+    table.insert(buttons, {
+        {
+            text = _("Cancel"),
+            callback = function()
+                UIManager:close(self.fb_options_dialog)
+            end,
+        },
+    })
+
+    self.fb_options_dialog = ButtonDialog:new{
+        title = action.text or action.id,
+        info_text = _("Position: ") .. index .. "/" .. total,
+        buttons = buttons,
+    }
+    UIManager:show(self.fb_options_dialog)
 end
 
 -- ============================================================

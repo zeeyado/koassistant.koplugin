@@ -1388,7 +1388,7 @@ end
 -- Users can pin non-reading book actions directly to the file browser
 -- long-press menu for quick access without opening the action selector.
 -- Storage: {id, text} pairs (text stored at add-time since ActionService
--- may not be initialized when generateUtilityButtons() renders buttons).
+-- may not be initialized when generateFileDialogRows() renders buttons).
 
 -- Build default file browser actions list from in_file_browser flag (book context)
 local function buildFileBrowserDefaults(actions_module)
@@ -1508,6 +1508,64 @@ function ActionService:toggleFileBrowserAction(action_id)
         self:addToFileBrowser(action_id)
         return true
     end
+end
+
+-- Move action in file browser actions order
+function ActionService:moveFileBrowserAction(action_id, direction)
+    local actions = self:getFileBrowserActions()
+    for i, item in ipairs(actions) do
+        if item.id == action_id then
+            local new_index = direction == "up" and i - 1 or i + 1
+            if new_index >= 1 and new_index <= #actions then
+                actions[i], actions[new_index] = actions[new_index], actions[i]
+                self.settings:saveSetting("file_browser_actions", actions)
+                self.settings:flush()
+            end
+            return
+        end
+    end
+end
+
+-- Get all eligible book actions with their file browser inclusion state
+-- Returns array of { action, in_file_browser, file_browser_position }
+-- Only includes non-reading actions (eligible for file browser pinning)
+function ActionService:getAllBookActionsWithFileBrowserState()
+    local Actions = require("prompts.actions")
+    local all_actions = self:getAllActions("book", true)  -- include disabled
+    local fb_list = self:getFileBrowserActions()
+
+    -- Build position lookup from {id, text} pairs
+    local fb_positions = {}
+    for i, item in ipairs(fb_list) do
+        fb_positions[item.id] = i
+    end
+
+    local result = {}
+    for _i, action in ipairs(all_actions) do
+        -- Only include non-reading actions (eligible for file browser)
+        if not Actions.requiresOpenBook(action) then
+            table.insert(result, {
+                action = action,
+                in_file_browser = fb_positions[action.id] ~= nil,
+                file_browser_position = fb_positions[action.id],
+            })
+        end
+    end
+
+    -- Sort: file browser items first (by position), then non-FB items (alphabetically)
+    table.sort(result, function(a, b)
+        if a.in_file_browser and b.in_file_browser then
+            return a.file_browser_position < b.file_browser_position
+        elseif a.in_file_browser then
+            return true
+        elseif b.in_file_browser then
+            return false
+        else
+            return (a.action.text or "") < (b.action.text or "")
+        end
+    end)
+
+    return result
 end
 
 -- ============================================================
