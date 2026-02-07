@@ -248,8 +248,8 @@ function AskGPT:init()
   self:patchFileManagerForMultiSelect()
 end
 
--- Button generator for utility buttons (Notebook, Chat History, View Artifacts)
--- These appear in a row above the main KOAssistant button
+-- Button generator for utility buttons (Notebook, Chat History, View Artifacts, pinned actions)
+-- These appear in rows above the main KOAssistant button
 function AskGPT:generateUtilityButtons(file, is_file, book_props)
   logger.info("KOAssistant: generateUtilityButtons called with file=" .. tostring(file))
 
@@ -362,6 +362,27 @@ function AskGPT:generateUtilityButtons(file, is_file, book_props)
         end
       end,
     })
+  end
+
+  -- Pinned file browser actions (user-selected via Action Manager hold menu)
+  local fb_actions = self.settings:readSetting("file_browser_actions") or {}
+  if #fb_actions > 0 then
+    local title = book_props and book_props.title or file:match("([^/]+)$")
+    local authors = book_props and book_props.authors or ""
+    local self_ref = self
+    for _idx, fb_action in ipairs(fb_actions) do
+      table.insert(buttons, {
+        text = fb_action.text .. " (KOA)",
+        callback = function()
+          local UIManager = require("ui/uimanager")
+          local current_dialog = UIManager:getTopmostVisibleWidget()
+          if current_dialog and current_dialog.close then
+            UIManager:close(current_dialog)
+          end
+          self_ref:executeFileBrowserAction(file, title, authors, book_props, fb_action.id)
+        end,
+      })
+    end
   end
 
   -- Only return if we have at least one button
@@ -4313,6 +4334,53 @@ function AskGPT:executeBookLevelAction(action_id)
       config_copy,
       self
     )
+  end)
+end
+
+--- Execute an action from the file browser long-press menu (pinned action)
+--- Sets up book metadata context and calls executeDirectAction without requiring an open document.
+--- @param file string: Path to the book file
+--- @param title string: Book title
+--- @param authors string: Book authors
+--- @param book_props table: Book properties from file manager
+--- @param action_id string: The action ID to execute
+function AskGPT:executeFileBrowserAction(file, title, authors, book_props, action_id)
+  -- Set context flags (same pattern as showKOAssistantDialogForFile)
+  configuration.features = configuration.features or {}
+  configuration.features.is_general_context = nil
+  configuration.features.is_book_context = true
+  configuration.features.is_multi_book_context = nil
+  configuration.features.book_metadata = {
+    title = title,
+    author = authors,
+    author_clause = (authors and authors ~= "") and (" by " .. authors) or "",
+    file = file,
+  }
+
+  NetworkMgr:runWhenOnline(function()
+    self:ensureInitialized()
+    self:updateConfigFromSettings()
+
+    local action = self.action_service:getAction("book", action_id)
+    if not action then
+      UIManager:show(InfoMessage:new{
+        icon = "notice-warning",
+        text = T(_("Action '%1' not found"), action_id),
+      })
+      return
+    end
+
+    -- Config copy pattern (same as executeBookLevelAction)
+    local config_copy = {}
+    for k, v in pairs(configuration or {}) do
+      config_copy[k] = v
+    end
+    config_copy.features = {}
+    for k, v in pairs((configuration or {}).features or {}) do
+      config_copy.features[k] = v
+    end
+
+    Dialogs.executeDirectAction(self.ui, action, nil, config_copy, self)
   end)
 end
 

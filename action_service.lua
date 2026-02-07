@@ -1383,6 +1383,134 @@ function ActionService:getUserQuickActions()
 end
 
 -- ============================================================
+-- File Browser Actions Support
+-- ============================================================
+-- Users can pin non-reading book actions directly to the file browser
+-- long-press menu for quick access without opening the action selector.
+-- Storage: {id, text} pairs (text stored at add-time since ActionService
+-- may not be initialized when generateUtilityButtons() renders buttons).
+
+-- Build default file browser actions list from in_file_browser flag (book context)
+local function buildFileBrowserDefaults(actions_module)
+    local result = {}
+    if not actions_module or not actions_module.book then return result end
+    for _id, action in pairs(actions_module.book) do
+        if action.in_file_browser then
+            table.insert(result, { id = action.id, text = action.text, order = action.in_file_browser })
+        end
+    end
+    table.sort(result, function(a, b) return a.order < b.order end)
+    local items = {}
+    for _i, item in ipairs(result) do
+        table.insert(items, { id = item.id, text = item.text })
+    end
+    return items
+end
+
+-- Process a saved file browser actions list: prune stale IDs and inject new flagged defaults
+local function processFileBrowserList(service, saved, dismissed_key)
+    local dismissed = service.settings:readSetting(dismissed_key) or {}
+    local dismissed_set = {}
+    for _i, id in ipairs(dismissed) do dismissed_set[id] = true end
+
+    -- Prune stale IDs (actions that no longer exist)
+    local pruned = {}
+    for _i, item in ipairs(saved) do
+        if service:getAction("book", item.id) then
+            table.insert(pruned, item)
+        end
+    end
+
+    -- Build set of current IDs for quick lookup
+    local current_set = {}
+    for _i, item in ipairs(pruned) do current_set[item.id] = true end
+
+    -- Inject new flagged defaults not in list and not dismissed
+    local defaults = buildFileBrowserDefaults(service.Actions)
+    for _i, item in ipairs(defaults) do
+        if not current_set[item.id] and not dismissed_set[item.id] then
+            table.insert(pruned, item)
+            current_set[item.id] = true
+        end
+    end
+
+    return pruned
+end
+
+-- Get ordered list of file browser action {id, text} pairs
+function ActionService:getFileBrowserActions()
+    local saved = self.settings:readSetting("file_browser_actions")
+    if not saved then
+        local defaults = buildFileBrowserDefaults(self.Actions)
+        return defaults
+    end
+    local processed = processFileBrowserList(self, saved, "_dismissed_file_browser_actions")
+    self.settings:saveSetting("file_browser_actions", processed)
+    return processed
+end
+
+-- Check if action is in file browser actions
+function ActionService:isInFileBrowser(action_id)
+    local actions = self:getFileBrowserActions()
+    for _i, item in ipairs(actions) do
+        if item.id == action_id then
+            return true
+        end
+    end
+    return false
+end
+
+-- Add action to file browser actions (appends to end)
+function ActionService:addToFileBrowser(action_id)
+    if self:isInFileBrowser(action_id) then return end
+    local actions = self:getFileBrowserActions()
+    -- Look up display text from the action object
+    local action = self:getAction("book", action_id)
+    local text = action and action.text or action_id
+    table.insert(actions, { id = action_id, text = text })
+    self.settings:saveSetting("file_browser_actions", actions)
+    -- Remove from dismissed list if present
+    local dismissed = self.settings:readSetting("_dismissed_file_browser_actions") or {}
+    for i, id in ipairs(dismissed) do
+        if id == action_id then
+            table.remove(dismissed, i)
+            self.settings:saveSetting("_dismissed_file_browser_actions", dismissed)
+            break
+        end
+    end
+    self.settings:flush()
+end
+
+-- Remove action from file browser actions
+function ActionService:removeFromFileBrowser(action_id)
+    local actions = self:getFileBrowserActions()
+    for i, item in ipairs(actions) do
+        if item.id == action_id then
+            table.remove(actions, i)
+            self.settings:saveSetting("file_browser_actions", actions)
+            -- Add to dismissed list so it won't be auto-injected again
+            local dismissed = self.settings:readSetting("_dismissed_file_browser_actions") or {}
+            table.insert(dismissed, action_id)
+            self.settings:saveSetting("_dismissed_file_browser_actions", dismissed)
+            self.settings:flush()
+            return
+        end
+    end
+end
+
+-- Toggle action inclusion in file browser actions
+-- Returns: true if now in file browser, false if removed
+function ActionService:toggleFileBrowserAction(action_id)
+    if self:isInFileBrowser(action_id) then
+        self:removeFromFileBrowser(action_id)
+        return false
+    else
+        self:addToFileBrowser(action_id)
+        return true
+    end
+end
+
+-- ============================================================
 -- Action Duplication
 -- ============================================================
 

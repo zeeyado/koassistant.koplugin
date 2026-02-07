@@ -200,6 +200,7 @@ After setting up your API key, complete these steps for the best experience:
 - [ ] **Try Highlight Bypass** — Multi-word selections trigger instant translation (Settings → Highlight Settings → Enable Highlight Bypass)
 - [ ] **Set your languages** — Configure response languages with native script pickers (Settings → AI Language Settings)
 - [ ] **Add custom actions to gestures** — Any book/general action can become a gesture (Manage Actions → hold → "Add to Gesture Menu", requires restart)
+- [ ] **Pin actions to file browser** — Add frequently-used book actions directly to the long-press menu (Manage Actions → hold → "Add to File Browser")
 
 > **Tip**: Edit built-in actions to always use the provider/model of your choice (regardless of your main settings); e.g. Dictionary actions benefit from a lighter model for speed.
 
@@ -549,7 +550,7 @@ See [Response Caching → "Generate Once, Use Many Times"](#response-caching-x-r
 
 **Access**: Long-press a book in File Browser → "KOAssistant" or while reading, use gesture or menu
 
-Some actions work from the file browser (using only title/author), while others require reading mode (using document state like progress, highlights, or extracted text). Reading-only actions are automatically hidden in file browser.
+Some actions work from the file browser (using only title/author), while others require reading mode (using document state like progress, highlights, or extracted text). Reading-only actions are automatically hidden in file browser. You can pin frequently-used file browser actions directly to the long-press menu via **Action Manager → hold action → "Add to File Browser"**, so they appear as one-tap buttons without opening the action selector.
 
 **Built-in Actions**:
 | Action | Description |
@@ -1898,6 +1899,7 @@ Control where KOAssistant appears in KOReader's menus. All toggles default to ON
   - **Only for books with notebooks**: Only show notebook button if notebook already exists
   - **Show Chat History Button**: Show "Chat History (KOA)" button when long-pressing books that have chat history
   - **View Artifacts Button**: "View Artifacts (KOA)" appears automatically when a book has any cached artifacts — summary, X-Ray, or analysis (no setting needed)
+  - **Pinned Actions**: Actions you add via Action Manager → hold → "Add to File Browser" appear as one-tap buttons (no setting needed, managed from Action Manager)
 - **Dictionary Popup Actions...**: Configure which actions appear in the dictionary popup's AI menu
 - **Highlight Menu Actions...**: Configure which actions appear as shortcuts in the highlight menu
 - **Reset Options**: Reset Dictionary Popup Actions, Highlight Menu Actions, or all at once
