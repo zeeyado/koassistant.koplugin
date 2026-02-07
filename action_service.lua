@@ -204,6 +204,14 @@ function ActionService:loadActions()
                     if override.use_reading_stats ~= nil then
                         action_data.use_reading_stats = override.use_reading_stats
                     end
+                    -- Web search override (tri-state: true/false/"global")
+                    if override.enable_web_search ~= nil then
+                        if override.enable_web_search == "global" then
+                            action_data.enable_web_search = nil  -- Reset to follow global
+                        else
+                            action_data.enable_web_search = override.enable_web_search
+                        end
+                    end
                 end
 
                 table.insert(self.actions_cache[context], action_data)
