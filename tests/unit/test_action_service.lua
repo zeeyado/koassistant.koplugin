@@ -521,6 +521,130 @@ local function runCreateDuplicateTests()
 end
 
 -- =============================================================================
+-- File Browser Actions Tests
+-- =============================================================================
+
+local function runFileBrowserTests()
+    print("\n--- File Browser Actions ---")
+
+    TestRunner:test("getFileBrowserActions returns empty when no saved and no defaults", function()
+        local service = createService({})
+        service.Actions = Actions
+        local result = service:getFileBrowserActions()
+        TestRunner:assertEqual(type(result), "table")
+        TestRunner:assertEqual(#result, 0)
+    end)
+
+    TestRunner:test("isInFileBrowser returns false for empty list", function()
+        local service = createService({})
+        service.Actions = Actions
+        local result = service:isInFileBrowser("some_action")
+        TestRunner:assertEqual(result, false)
+    end)
+
+    TestRunner:test("addToFileBrowser adds action and resolves text", function()
+        local data = { disabled_actions = {} }
+        local service = createService(data)
+        -- Find a real book action to test with
+        local test_action = nil
+        for _id, action in pairs(Actions.book) do
+            if action.id and action.text then
+                test_action = action
+                break
+            end
+        end
+        if not test_action then error("No book action found for testing") end
+
+        service:addToFileBrowser(test_action.id)
+        TestRunner:assertEqual(service:isInFileBrowser(test_action.id), true)
+        -- Check stored format is {id, text}
+        local saved = data.file_browser_actions
+        TestRunner:assertNotNil(saved)
+        TestRunner:assertEqual(#saved, 1)
+        TestRunner:assertEqual(saved[1].id, test_action.id)
+        TestRunner:assertEqual(saved[1].text, test_action.text)
+    end)
+
+    TestRunner:test("removeFromFileBrowser removes action and adds to dismissed", function()
+        -- Use a real book action so it doesn't get pruned by processFileBrowserList
+        local test_action = nil
+        for _id, action in pairs(Actions.book) do
+            if action.id and action.text then
+                test_action = action
+                break
+            end
+        end
+        if not test_action then error("No book action found for testing") end
+        local data = {
+            disabled_actions = {},
+            file_browser_actions = {{ id = test_action.id, text = test_action.text }},
+        }
+        local service = createService(data)
+        service:removeFromFileBrowser(test_action.id)
+        TestRunner:assertEqual(service:isInFileBrowser(test_action.id), false)
+        -- Should be in dismissed list
+        local dismissed = data._dismissed_file_browser_actions
+        TestRunner:assertNotNil(dismissed)
+        TestRunner:assertEqual(#dismissed, 1)
+        TestRunner:assertEqual(dismissed[1], test_action.id)
+    end)
+
+    TestRunner:test("toggleFileBrowserAction adds then removes", function()
+        local data = { disabled_actions = {} }
+        local service = createService(data)
+        -- Find a real book action
+        local test_action = nil
+        for _id, action in pairs(Actions.book) do
+            if action.id and action.text then
+                test_action = action
+                break
+            end
+        end
+        if not test_action then error("No book action found for testing") end
+
+        -- Toggle on
+        local result = service:toggleFileBrowserAction(test_action.id)
+        TestRunner:assertEqual(result, true)
+        TestRunner:assertEqual(service:isInFileBrowser(test_action.id), true)
+
+        -- Toggle off
+        result = service:toggleFileBrowserAction(test_action.id)
+        TestRunner:assertEqual(result, false)
+        TestRunner:assertEqual(service:isInFileBrowser(test_action.id), false)
+    end)
+
+    TestRunner:test("addToFileBrowser is idempotent", function()
+        local data = { disabled_actions = {} }
+        local service = createService(data)
+        local test_action = nil
+        for _id, action in pairs(Actions.book) do
+            if action.id and action.text then
+                test_action = action
+                break
+            end
+        end
+        if not test_action then error("No book action found for testing") end
+
+        service:addToFileBrowser(test_action.id)
+        service:addToFileBrowser(test_action.id)
+        local saved = data.file_browser_actions
+        TestRunner:assertEqual(#saved, 1, "should not duplicate")
+    end)
+
+    TestRunner:test("getFileBrowserActions prunes stale IDs", function()
+        local data = {
+            disabled_actions = {},
+            file_browser_actions = {
+                { id = "nonexistent_action_xyz", text = "Gone" },
+            },
+        }
+        local service = createService(data)
+        local result = service:getFileBrowserActions()
+        TestRunner:assertEqual(#result, 0, "stale action should be pruned")
+    end)
+end
+
+-- =============================================================================
 -- Run All Tests
 -- =============================================================================
 
@@ -532,6 +656,7 @@ local function runAll()
     runMigrationTests()
     runDuplicateNameTests()
     runCreateDuplicateTests()
+    runFileBrowserTests()
 
     print(string.format("\n=== Results: %d passed, %d failed ===\n", TestRunner.passed, TestRunner.failed))
     return TestRunner.failed == 0

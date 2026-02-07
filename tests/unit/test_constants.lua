@@ -68,6 +68,9 @@ function TestConstants:runAll()
 
     self:test("COMPOUND_CONTEXTS are defined", function()
         self:assertEquals(Constants.COMPOUND_CONTEXTS.BOTH, "both")
+        self:assertEquals(Constants.COMPOUND_CONTEXTS.HIGHLIGHT_GENERAL, "highlight+general")
+        self:assertEquals(Constants.COMPOUND_CONTEXTS.BOOK_GENERAL, "book+general")
+        self:assertEquals(Constants.COMPOUND_CONTEXTS.BOTH_GENERAL, "both+general")
     end)
 
     -- Test getAllContexts
@@ -93,6 +96,28 @@ function TestConstants:runAll()
         self:assertEquals(expanded[2], "book")
     end)
 
+    self:test("expandContext handles highlight+general", function()
+        local expanded = Constants.expandContext("highlight+general")
+        self:assertEquals(#expanded, 2)
+        self:assertEquals(expanded[1], "highlight")
+        self:assertEquals(expanded[2], "general")
+    end)
+
+    self:test("expandContext handles book+general", function()
+        local expanded = Constants.expandContext("book+general")
+        self:assertEquals(#expanded, 2)
+        self:assertEquals(expanded[1], "book")
+        self:assertEquals(expanded[2], "general")
+    end)
+
+    self:test("expandContext handles both+general", function()
+        local expanded = Constants.expandContext("both+general")
+        self:assertEquals(#expanded, 3)
+        self:assertEquals(expanded[1], "highlight")
+        self:assertEquals(expanded[2], "book")
+        self:assertEquals(expanded[3], "general")
+    end)
+
     self:test("expandContext handles standard context", function()
         local expanded = Constants.expandContext("highlight")
         self:assertEquals(#expanded, 1)
@@ -109,6 +134,9 @@ function TestConstants:runAll()
 
     self:test("isValidContext accepts compound contexts", function()
         self:assert(Constants.isValidContext("both"), "both should be valid")
+        self:assert(Constants.isValidContext("highlight+general"), "highlight+general should be valid")
+        self:assert(Constants.isValidContext("book+general"), "book+general should be valid")
+        self:assert(Constants.isValidContext("both+general"), "both+general should be valid")
     end)
 
     self:test("isValidContext rejects invalid contexts", function()
