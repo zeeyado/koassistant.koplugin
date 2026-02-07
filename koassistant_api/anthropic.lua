@@ -77,6 +77,27 @@ function AnthropicHandler:query(message_history, config)
         print("Streaming enabled:", use_streaming and "yes" or "no")
     end
 
+    local base_url = config.base_url or defaults.base_url
+
+    -- If streaming is enabled, return the background request function
+    if use_streaming then
+        request_body.stream = true
+        local requestBody = json.encode(request_body)
+        local headers = {
+            ["Content-Type"] = "application/json",
+            ["x-api-key"] = config.api_key,
+            ["anthropic-version"] = defaults.additional_parameters.anthropic_version,
+            ["anthropic-beta"] = AnthropicRequest.CACHE_BETA,  -- Enable prompt caching
+            ["Content-Length"] = tostring(#requestBody),
+            ["Accept"] = "text/event-stream",
+        }
+
+        -- Return the background request function for streaming
+        -- The caller (gpt_query.lua) will detect this and handle streaming
+        return self:backgroundRequest(base_url, headers, requestBody)
+    end
+
+    -- Non-streaming mode: use background request for non-blocking UI
     local requestBody = json.encode(request_body)
     local headers = {
         ["Content-Type"] = "application/json",
@@ -86,23 +107,6 @@ function AnthropicHandler:query(message_history, config)
         ["Content-Length"] = tostring(#requestBody),
     }
 
-    local base_url = config.base_url or defaults.base_url
-
-    -- If streaming is enabled, return the background request function
-    if use_streaming then
-        -- Add stream parameter to request body
-        local stream_request_body = json.decode(requestBody)
-        stream_request_body.stream = true
-        local stream_body = json.encode(stream_request_body)
-        headers["Content-Length"] = tostring(#stream_body)
-        headers["Accept"] = "text/event-stream"
-
-        -- Return the background request function for streaming
-        -- The caller (gpt_query.lua) will detect this and handle streaming
-        return self:backgroundRequest(base_url, headers, stream_body)
-    end
-
-    -- Non-streaming mode: use background request for non-blocking UI
     -- Return function and parser for gpt_query.lua to handle
     local response_parser = function(response)
         -- Debug: Print parsed response
