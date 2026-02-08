@@ -179,14 +179,28 @@ local function stripMarkdown(text, is_rtl)
     return PTF_HEADER .. result
 end
 
--- Fix BiDi issues with IPA transcriptions between slashes
--- Wraps /ipa/ patterns with LRM to anchor slashes correctly
+-- Fix BiDi issues in dictionary RTL compact view
+-- 1. Add LRM after Latin bold text to maintain LTR continuity with following IPA
+--    PTF bold markers (\uFFF2/\uFFF3) break the LTR run between headword and IPA,
+--    causing the BiDi algorithm to reverse their visual order in RTL paragraphs.
+-- 2. Wrap /ipa/ patterns with LRM to anchor slashes correctly
 local function fixIPABidi(text)
     if not text then return text end
     local LRM = "\226\128\142"  -- U+200E Left-to-Right Mark
+    local PTF_BOLD_START = "\239\191\178"  -- U+FFF2 in UTF-8
+    local PTF_BOLD_END = "\239\191\179"    -- U+FFF3 in UTF-8
+    -- Add LRM after bold markers containing Latin text (headwords like "instrumental")
+    -- This bridges the BiDi gap between the headword and following IPA transcription
+    text = text:gsub(PTF_BOLD_START .. "(.-)" .. PTF_BOLD_END, function(content)
+        if content:match("[a-zA-Z]") then
+            return PTF_BOLD_START .. content .. PTF_BOLD_END .. LRM
+        end
+        return PTF_BOLD_START .. content .. PTF_BOLD_END
+    end)
     -- Wrap IPA in LRM to anchor slashes correctly
     -- Consumes trailing space; adds space after IPA inside LRM context
-    return text:gsub("(/[^/\n]+/) ?", LRM .. "%1 " .. LRM)
+    text = text:gsub("(/[^/\n]+/) ?", LRM .. "%1 " .. LRM)
+    return text
 end
 
 -- UTF-8 pattern for Arabic script detection (U+0600-U+06FF = bytes 216-219)
@@ -2835,6 +2849,10 @@ function ChatGPTViewer:update(new_text, scroll_to_bottom)
   else
     -- For plain text, optionally strip markdown and recreate widget
     local display_text = self.strip_markdown_in_text_mode and stripMarkdown(new_text, self.para_direction_rtl) or new_text
+    -- Fix BiDi issues for RTL dictionary compact view
+    if self.compact_view and self.para_direction_rtl then
+      display_text = fixIPABidi(display_text)
+    end
     self.scroll_text_w = ScrollTextWidget:new {
       text = display_text,
       face = self.text_face,
