@@ -4825,10 +4825,10 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
     })
   end
 
-  -- Extended Thinking button
+  -- Anthropic/Gemini Reasoning button
   if isQsEnabled("extended_thinking") then
     table.insert(all_buttons, {
-      text = reasoning_enabled and _("Extended Thinking: ON") or _("Extended Thinking: OFF"),
+      text = reasoning_enabled and _("Anthropic/Gemini Reasoning: ON") or _("Anthropic/Gemini Reasoning: OFF"),
       callback = function()
         local f = self_ref.settings:readSetting("features") or {}
         f.enable_reasoning = not f.enable_reasoning
