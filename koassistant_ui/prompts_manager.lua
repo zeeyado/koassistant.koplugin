@@ -14,6 +14,7 @@ local UIConstants = require("koassistant_ui.constants")
 local ModelConstraints = require("model_constraints")
 local SystemPrompts = require("prompts/system_prompts")
 local Actions = require("prompts/actions")
+local ActionService = require("action_service")
 
 local PromptsManager = {}
 
@@ -378,6 +379,8 @@ function PromptsManager:showPromptsMenu()
         { id = "both+general", text = _("Highlight, Book & General") },
     }
     
+    local features = self.plugin.settings:readSetting("features") or {}
+
     for _idx,context_info in ipairs(contexts) do
         local context_prompts = {}
         for _j,prompt in ipairs(self.prompts) do
@@ -398,7 +401,7 @@ function PromptsManager:showPromptsMenu()
 
             -- Add prompts for this context
             for _k,prompt in ipairs(context_prompts) do
-                local item_text = prompt.text
+                local item_text = ActionService.getActionDisplayText(prompt, features)
 
                 -- Add source indicator
                 -- ★ = custom action (UI-created or from file)
@@ -4320,6 +4323,7 @@ function PromptsManager:showHighlightMenuManager()
         return
     end
 
+    local features = self.plugin.settings:readSetting("features") or {}
     local all_actions = self.plugin.action_service:getAllHighlightActionsWithMenuState()
 
     if #all_actions == 0 then
@@ -4356,7 +4360,7 @@ function PromptsManager:showHighlightMenuManager()
         end
 
         table.insert(menu_items, {
-            text = prefix .. position .. (action.text or action.id) .. source_indicator,
+            text = prefix .. position .. ActionService.getActionDisplayText(action, features) .. source_indicator,
             action = action,
             in_menu = item.in_menu,
             menu_position = item.menu_position,
@@ -4483,6 +4487,7 @@ function PromptsManager:showHighlightMenuManager()
         return
     end
 
+    local features = self.plugin.settings:readSetting("features") or {}
     local all_actions = self.plugin.action_service:getAllHighlightActionsWithMenuState()
 
     if #all_actions == 0 then
@@ -4519,7 +4524,7 @@ function PromptsManager:showHighlightMenuManager()
         end
 
         table.insert(menu_items, {
-            text = prefix .. position .. (action.text or action.id) .. source_indicator,
+            text = prefix .. position .. ActionService.getActionDisplayText(action, features) .. source_indicator,
             action = action,
             in_menu = item.in_menu,
             menu_position = item.menu_position,
@@ -4641,6 +4646,7 @@ function PromptsManager:showQuickActionsManager()
         return
     end
 
+    local features = self.plugin.settings:readSetting("features") or {}
     local all_actions = self.plugin.action_service:getAllBookActionsWithQuickActionsState()
 
     if #all_actions == 0 then
@@ -4677,7 +4683,7 @@ function PromptsManager:showQuickActionsManager()
         end
 
         table.insert(menu_items, {
-            text = prefix .. position .. (action.text or action.id) .. source_indicator,
+            text = prefix .. position .. ActionService.getActionDisplayText(action, features) .. source_indicator,
             action = action,
             in_quick_actions = item.in_quick_actions,
             quick_actions_position = item.quick_actions_position,
@@ -4799,6 +4805,7 @@ function PromptsManager:showFileBrowserActionsManager()
         return
     end
 
+    local features = self.plugin.settings:readSetting("features") or {}
     local all_actions = self.plugin.action_service:getAllBookActionsWithFileBrowserState()
 
     if #all_actions == 0 then
@@ -4835,7 +4842,7 @@ function PromptsManager:showFileBrowserActionsManager()
         end
 
         table.insert(menu_items, {
-            text = prefix .. position .. (action.text or action.id) .. source_indicator,
+            text = prefix .. position .. ActionService.getActionDisplayText(action, features) .. source_indicator,
             action = action,
             in_file_browser = item.in_file_browser,
             file_browser_position = item.file_browser_position,
@@ -4957,6 +4964,7 @@ function PromptsManager:showDictionaryPopupManager()
         return
     end
 
+    local features = self.plugin.settings:readSetting("features") or {}
     local all_actions = self.plugin.action_service:getAllHighlightActionsWithPopupState()
 
     if #all_actions == 0 then
@@ -4993,7 +5001,7 @@ function PromptsManager:showDictionaryPopupManager()
         end
 
         table.insert(menu_items, {
-            text = prefix .. position .. (action.text or action.id) .. source_indicator,
+            text = prefix .. position .. ActionService.getActionDisplayText(action, features) .. source_indicator,
             action = action,
             in_popup = item.in_popup,
             popup_position = item.popup_position,

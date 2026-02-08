@@ -1741,4 +1741,48 @@ function ActionService:getGestureActions()
     return saved
 end
 
+-- ============================================================
+-- Display Text with Data Access Indicators
+-- ============================================================
+
+-- Get action display text with data access emoji indicators (static method)
+-- When enable_emoji_icons is enabled, appends emoji showing what data the action accesses:
+--   📄 = document text (use_book_text, use_xray_cache, use_analyze_cache, use_summary_cache)
+--   📝 = annotations/highlights (use_annotations)
+--   📓 = notebook (use_notebook)
+--   🌐 = web search forced on (enable_web_search == true)
+-- @param action: Action definition table (needs flag fields)
+-- @param features: Features settings table (needs enable_emoji_icons)
+-- @return string: Display text with optional emoji suffix
+function ActionService.getActionDisplayText(action, features)
+    local text = action.text or action.id
+    if not features or features.enable_emoji_icons ~= true then
+        return text
+    end
+
+    local indicators = {}
+    -- Document text (direct or via caches derived from document text)
+    if action.use_book_text or action.use_xray_cache
+       or action.use_analyze_cache or action.use_summary_cache then
+        table.insert(indicators, "📄")
+    end
+    -- Annotations/highlights
+    if action.use_annotations then
+        table.insert(indicators, "📝")
+    end
+    -- Notebook
+    if action.use_notebook then
+        table.insert(indicators, "📓")
+    end
+    -- Web search forced on
+    if action.enable_web_search == true then
+        table.insert(indicators, "🌐")
+    end
+
+    if #indicators > 0 then
+        text = text .. " " .. table.concat(indicators)
+    end
+    return text
+end
+
 return ActionService

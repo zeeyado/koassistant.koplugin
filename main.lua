@@ -408,8 +408,9 @@ function AskGPT:generateFileDialogRows(file, is_file, book_props)
   if #fb_actions > 0 then
     local self_ref = self
     for _idx, fb_action in ipairs(fb_actions) do
+      local full_action = self.action_service and self.action_service:getAction("book", fb_action.id)
       table.insert(buttons, {
-        text = fb_action.text .. " (KOA)",
+        text = ActionService.getActionDisplayText(full_action or fb_action, features) .. " (KOA)",
         callback = function()
           local UIManager = require("ui/uimanager")
           local current_dialog = UIManager:getTopmostVisibleWidget()
@@ -1758,6 +1759,7 @@ end
 function AskGPT:buildReadingFeaturesMenu()
   local self_ref = self
   local items = {}
+  local features = self.settings:readSetting("features") or {}
 
   -- Get reading features actions from action service
   local reading_actions = self.action_service:getReadingFeaturesActions()
@@ -1767,8 +1769,10 @@ function AskGPT:buildReadingFeaturesMenu()
     -- Capitalize first letter and handle underscores (e.g., "analyze_highlights" -> "AnalyzeHighlights")
     local callback_name = "onKOAssistant" .. action.id:gsub("_(%l)", function(c) return c:upper() end):gsub("^%l", string.upper)
 
+    -- Look up full action to get data access flags for indicators
+    local full_action = self.action_service:getAction("book", action.id)
     table.insert(items, {
-      text = action.text,
+      text = ActionService.getActionDisplayText(full_action or action, features),
       info_text = action.info_text,
       callback = function()
         self_ref:executeBookLevelAction(action.id)
@@ -3663,7 +3667,7 @@ function AskGPT:onDictButtonsReady(dict_popup, dict_buttons)
   -- Helper function to create a button for an action
   local function createActionButton(action)
     return {
-      text = action.text .. " (KOA)",
+      text = ActionService.getActionDisplayText(action, features) .. " (KOA)",
       font_bold = true,
       callback = function()
         -- FIRST: Capture selection_data for "Save to Note" feature (before popup closes)
@@ -5094,12 +5098,13 @@ function AskGPT:onKOAssistantQuickActions()
   end
 
   -- 1. Book actions from unified quick actions list (built-in defaults + user-added)
+  local features = self.settings:readSetting("features") or {}
   local quick_action_ids = self.action_service:getQuickActions()
   for _, action_id in ipairs(quick_action_ids) do
     local action = self.action_service:getAction("book", action_id)
     if action and action.enabled ~= false then
       addButton({
-        text = action.text,
+        text = ActionService.getActionDisplayText(action, features),
         callback = function()
           UIManager:close(dialog)
           self_ref:executeBookLevelAction(action_id)
@@ -5109,7 +5114,6 @@ function AskGPT:onKOAssistantQuickActions()
   end
 
   -- 2. Utility items (configurable via Settings → Quick Actions Settings → Panel Utilities)
-  local features = self.settings:readSetting("features") or {}
   local ActionCache = require("koassistant_action_cache")
   local file = self.ui.document.file
   local summary_exists = ActionCache.getSummaryCache(file) ~= nil
@@ -5829,7 +5833,7 @@ function AskGPT:registerHighlightMenuActions()
 
     self.ui.highlight:addToHighlightDialog(dialog_id, function(reader_highlight_instance)
       return {
-        text = action_copy.text .. " (KOA)",
+        text = ActionService.getActionDisplayText(action_copy, features) .. " (KOA)",
         enabled = Device:hasClipboard(),
         callback = function()
           -- Capture text and extract context BEFORE closing highlight overlay
@@ -6144,6 +6148,7 @@ end
 function AskGPT:buildHighlightBypassActionMenu()
   local self_ref = self
   local menu_items = {}
+  local features = self.settings:readSetting("features") or {}
 
   -- Get all highlight-context actions using action_service (handles built-in + custom)
   local all_actions = self.action_service:getAllHighlightActionsWithMenuState()
@@ -6167,7 +6172,7 @@ function AskGPT:buildHighlightBypassActionMenu()
   for _i, item in ipairs(all_actions) do
     local action = item.action
     local action_id = action.id
-    local action_text = action.text
+    local action_text = ActionService.getActionDisplayText(action, features)
     table.insert(menu_items, {
       text = action_text,
       checked_func = function()
@@ -6196,6 +6201,7 @@ end
 function AskGPT:buildDictionaryBypassActionMenu()
   local self_ref = self
   local menu_items = {}
+  local features = self.settings:readSetting("features") or {}
 
   -- Get all highlight-context actions using action_service (handles built-in + custom)
   local all_actions = self.action_service:getAllHighlightActionsWithMenuState()
@@ -6220,7 +6226,7 @@ function AskGPT:buildDictionaryBypassActionMenu()
   for _i, item in ipairs(all_actions) do
     local action = item.action
     local action_id = action.id
-    local action_text = action.text
+    local action_text = ActionService.getActionDisplayText(action, features)
     table.insert(menu_items, {
       text = action_text,
       checked_func = function()

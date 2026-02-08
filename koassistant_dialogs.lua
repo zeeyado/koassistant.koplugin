@@ -18,6 +18,9 @@ local MessageBuilder = require("message_builder")
 local ModelConstraints = require("model_constraints")
 local logger = require("logger")
 
+-- ActionService module (for static methods like getActionDisplayText)
+local ActionServiceModule = require("action_service")
+
 -- New request format modules (Phase 3)
 local ActionService = nil
 local function getActionService(settings)
@@ -2767,7 +2770,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         if prompt and prompt.text then
             logger.info("Adding button for prompt: " .. custom_prompt_type .. " with text: " .. prompt.text)
             table.insert(all_buttons, {
-                text = _(prompt.text),
+                text = prompt.text .. (prompt.enable_web_search == true and ((configuration or {}).features or {}).enable_emoji_icons == true and " 🌐" or ""),
             prompt_type = custom_prompt_type,
             callback = function()
                 local additional_input = input_dialog:getInputText()
