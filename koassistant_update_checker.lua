@@ -117,9 +117,24 @@ a {
 }
 ]]
 
+-- Check if text has dominant RTL content (for auto-detection fallback)
+local function hasDominantRTL(text)
+    if not text or text == "" then return false end
+    local rtl_count = 0
+    for _ in text:gmatch("[\216-\219][\128-\191]") do
+        rtl_count = rtl_count + 1
+    end
+    if rtl_count == 0 then return false end
+    local latin_count = 0
+    for _ in text:gmatch("[a-zA-Z]") do
+        latin_count = latin_count + 1
+    end
+    return rtl_count > latin_count
+end
+
 -- Strip markdown syntax for plain text display (RTL mode)
 -- Converts markdown to readable plain text with PTF bold markers for TextBoxWidget
-local function stripMarkdown(text)
+local function stripMarkdown(text, is_rtl)
     if not text then return "" end
 
     -- PTF (Poor Text Formatting) markers - TextBoxWidget interprets these as bold
@@ -128,7 +143,8 @@ local function stripMarkdown(text)
     local PTF_BOLD_END = "\u{FFF3}"
 
     -- Directional marker for BiDi text
-    local LRM = "\u{200E}"  -- Left-to-Right Mark
+    -- In RTL mode, skip LRM to let para_direction_rtl control paragraph direction
+    local LRM = is_rtl and "" or "\u{200E}"  -- Left-to-Right Mark
 
     local result = text
 
@@ -204,18 +220,21 @@ local function stripMarkdown(text)
     result = result:gsub("\n\n\n+", "\n\n")
 
     -- BiDi fix: Add LRM only to truly mixed RTL+Latin lines
-    local rtl_pattern = "[\216-\219][\128-\191]"
-    local latin_pattern = "[a-zA-Z]"
-    local header_pattern = "^%s*[▉◤◆✿❖·]"
-    local fixed_lines = {}
-    for line in result:gmatch("([^\n]*)\n?") do
-        if line:match(rtl_pattern) and line:match(latin_pattern) and not line:match(header_pattern) then
-            table.insert(fixed_lines, LRM .. line)
-        else
-            table.insert(fixed_lines, line)
+    -- Skip in RTL mode: para_direction_rtl already sets the correct base direction
+    if not is_rtl then
+        local rtl_pattern = "[\216-\219][\128-\191]"
+        local latin_pattern = "[a-zA-Z]"
+        local header_pattern = "^%s*[▉◤◆✿❖·]"
+        local fixed_lines = {}
+        for line in result:gmatch("([^\n]*)\n?") do
+            if line:match(rtl_pattern) and line:match(latin_pattern) and not line:match(header_pattern) then
+                table.insert(fixed_lines, LRM .. line)
+            else
+                table.insert(fixed_lines, line)
+            end
         end
+        result = table.concat(fixed_lines, "\n")
     end
-    result = table.concat(fixed_lines, "\n")
 
     return PTF_HEADER .. result
 end
@@ -341,6 +360,11 @@ function MarkdownViewer:init()
     self.width = self.width or math.floor(Screen:getWidth() * 0.85)
     self.height = self.height or math.floor(Screen:getHeight() * 0.85)
 
+    -- Auto-detect RTL if not already set by language check
+    if not self.is_rtl and hasDominantRTL(self.markdown_text) then
+        self.is_rtl = true
+    end
+
     -- Auto-linkify plain URLs before markdown conversion
     local preprocessed_text = autoLinkUrls(self.markdown_text)
 
@@ -379,7 +403,7 @@ function MarkdownViewer:init()
     if self.is_rtl then
         -- RTL mode: use plain text with RTL paragraph direction and markdown stripping
         scroll_widget = ScrollTextWidget:new{
-            text = stripMarkdown(self.markdown_text),
+            text = stripMarkdown(self.markdown_text, true),
             face = Font:getFace("cfont", 20),
             width = self.width - 2 * self.text_padding,
             height = content_height,

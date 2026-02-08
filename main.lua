@@ -3719,6 +3719,7 @@ function AskGPT:onDictButtonsReady(dict_popup, dict_buttons)
             dictionary_language = features.dictionary_language,
             translation_language = features.translation_language,
             translation_use_primary = features.translation_use_primary,
+            interaction_languages = features.interaction_languages,
             user_languages = features.user_languages,
             primary_language = features.primary_language,
           })
@@ -5982,6 +5983,7 @@ function AskGPT:syncDictionaryBypass()
           dictionary_language = features.dictionary_language,
           translation_language = features.translation_language,
           translation_use_primary = features.translation_use_primary,
+          interaction_languages = features.interaction_languages,
           user_languages = features.user_languages,
           primary_language = features.primary_language,
         })
