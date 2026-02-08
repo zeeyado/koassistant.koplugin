@@ -7,10 +7,10 @@
 **Powerful, customizable AI assistant for KOReader.**
 
 - **Highlight text** → translate, explain, define words, analyze passages, connect ideas, save content directly to KOReader's highlight notes/annotations
-- **While reading** → reference guides (Summaries, X-Ray, Recap), analyze your highlights/annotations, explore the book (author, context, arguments, similar works), generate discussion questions
+- **While reading** → reference guides (Summaries, X-Ray, Recap), analyze your highlights/annotations, explore the book/document (author, context, arguments, similar works), generate discussion questions
 - **Research & analysis** → deep analysis of papers/articles, explore arguments, find connections across works
 - **Multi-document** → compare texts, find common themes, analyze your collection
-- **General chat** → AI without book context
+- **General chat** → AI without book/document context
 - **Web search** → AI can search the web for current information (Anthropic, Gemini, OpenRouter)
 
 16 built-in providers (Anthropic, OpenAI, Gemini, Ollama, and more) plus custom OpenAI-compatible providers. Fully configurable: custom actions, behaviors, domains, per-action model overrides. Personal reading data (highlights, annotations, notebooks) is opt-in — not sent to the AI unless you enable it.
@@ -30,7 +30,7 @@
 - [Testing Your Setup](#testing-your-setup)
 - [Privacy & Data](#privacy--data) — ⚠️ (Read this) Some features require opt-in
   - [Privacy Controls](#privacy-controls)
-  - [Text Extraction and Double-gating](#text-extraction-and-double-gating) — Enable book content analysis (off by default)
+  - [Text Extraction and Double-gating](#text-extraction-and-double-gating) — Enable document content analysis (off by default)
 - [How to Use KOAssistant](#how-to-use-koassistant) — Contexts & Built-in Actions
   - [Highlight Mode](#highlight-mode)
   - [Book/Document Mode](#bookdocument-mode)
@@ -209,7 +209,7 @@ After setting up your API key, complete these steps for the best experience:
 **Recommended quick setup** (same gesture, two contexts):
 
 1. **In File Browser**: Go to Settings → Gesture Manager, pick a gesture (e.g., tap bottom-right corner), select **KOAssistant: Quick Settings**
-2. **In Reader** (open any book): Go to Settings → Gesture Manager, pick the **same gesture**, select **KOAssistant: Quick Actions**
+2. **In Reader** (open any book or document): Go to Settings → Gesture Manager, pick the **same gesture**, select **KOAssistant: Quick Actions**
 
 Now the same tap gives you Quick Settings in the file browser and Quick Actions while reading. Both panels include most functions you need, plus buttons to open Settings and other features. In reader mode, each panel has a button to switch to the other.
 
@@ -265,7 +265,7 @@ Any book or general action (built-in or custom) can be added to the gesture menu
 
 > **Important: KOReader has two separate gesture configurations:**
 > - **File Browser gestures**: Configure from the file browser (Settings → Gesture Manager)
-> - **Reader gestures**: Configure while a book is open (Settings → Gesture Manager)
+> - **Reader gestures**: Configure while a book or document is open (Settings → Gesture Manager)
 >
 > You must set up gestures in **both places** if you want access from both contexts. Reader-only gestures (like Quick Actions, X-Ray, Translate Page) will appear grayed out if you try to add them to File Browser gestures — this is expected. General gestures (like Quick Settings, Chat History) work in both contexts and can be added to either or both.
 
@@ -279,7 +279,7 @@ After basic setup, explore these features to get the most out of KOAssistant:
 | **[Behaviors](#behaviors)** | Control response style (concise, detailed, custom) | Settings → Actions & Prompts → Manage Behaviors |
 | **[Domains](#domains)** | Add project-like context to conversations | Settings → Actions & Prompts → Manage Domains |
 | **[Actions](#actions)** | Create your own prompts and workflows | Settings → Actions & Prompts → Manage Actions |
-| **Quick Actions** | Fast access to reading actions while in a book | Gesture → "KOAssistant: Quick Actions" |
+| **Quick Actions** | Fast access to reading actions while in a book or document | Gesture → "KOAssistant: Quick Actions" |
 | **[Highlight Menu](#highlight-menu-actions)** | Actions in highlight popup (3 defaults: Translate, Explain, ELI5) | Manage Actions → Add to Highlight Menu |
 | **[Dictionary Integration](#dictionary-integration)** | AI-powered word lookups when selecting single words | Settings → Dictionary Settings |
 | **[Bypass Modes](#bypass-modes)** | Instant AI actions without menus | Settings → Dictionary/Highlight Settings |
@@ -389,7 +389,7 @@ Text extraction sends actual book/document content to the AI, enabling features 
 
 **Why it's off by default:**
 
-1. **Token costs** (primary reason, and also why it is not automatically enabled by Privacy presets, even Full) — Extracting book text uses significantly more context than you might expect. A full book can consume 60k+ tokens per request, which adds up quickly with paid APIs. Users should consciously opt into this cost.
+1. **Token costs and context window** (primary reasons, and also why it is not automatically enabled by Privacy presets, even Full) — Extracting book text uses significantly more context than you might expect. A full book can consume 60k+ tokens per request, which adds up quickly with paid APIs. Users should consciously opt into this cost. Large contexts also significantly degrade response quality, especially for follow up questions. That's why it is wise to use Document Summary caches in combination with Smart Actions, where you run your queries (e.g. Explain in Context) on a previously generated summary of the text, rather than the entire document text.
 
 2. **Content awareness** (See double-gating below) — For most users reading mainstream books, the text itself isn't privacy-sensitive. However, if you're reading something non-standard, subversive, controversial, or otherwise sensitive, you should be aware that the actual content is being sent to cloud AI providers. This is a secondary consideration for most users but important for some.
 
@@ -461,12 +461,12 @@ KOAssistant works in **4 contexts**, each with its own set of built-in actions:
 
 | Context | Built-in Actions |
 |---------|------------------|
-| **Highlight** | Explain, ELI5, Summarize, Elaborate, Connect, Connect (With Notes), Explain in Context, Analyze in Context, Thematic Connection (Smart), Translate, Dictionary, Quick Define, Deep Analysis |
-| **Book** | Book Info, Similar Books, About Author, Historical Context, Related Thinkers, Key Arguments, Discussion Questions, Generate Quiz, X-Ray, Recap, Analyze Highlights, Analyze Document, Summarize Document, Extract Key Insights, Key Arguments (Smart), Discussion Questions (Smart), Generate Quiz (Smart) |
-| **Multi-book** | Compare Books, Common Themes, Analyze Collection, Quick Summaries, Reading Order |
+| **Highlight** | Explain, ELI5, Summarize, Elaborate, Connect, Connect (With Notes), Explain in Context, Explain in Context (Smart), Analyze in Context, Analyze in Context (Smart), Thematic Connection (Smart), Fact Check*, Current Context*, Translate, Dictionary, Quick Define, Deep Analysis |
+| **Book** | Book Info, Find Similar, About Author, Historical Context, Related Thinkers, Book Reviews*, X-Ray, Recap, Analyze Highlights, Key Arguments, Key Arguments (Smart), Discussion Questions, Discussion Questions (Smart), Generate Quiz, Generate Quiz (Smart), Analyze Document, Summarize Document, Extract Key Insights |
+| **Multi-book** | Compare Books, Find Common Themes, Analyze Collection, Quick Summaries, Reading Order |
 | **General** | Ask, News Update* |
 
-*News Update requires web search — available in gesture menu by default but not in the general input dialog. See [General Chat](#general-chat) for details.
+*Requires web search (Anthropic, Gemini, OpenRouter). News Update is available in gesture menu by default but not in the general input dialog. See [Web Search](#web-search) and [General Chat](#general-chat) for details.
 
 You can customize these, create your own, or disable ones you don't use. See [Actions](#actions) for details.
 
@@ -493,6 +493,8 @@ You can customize these, create your own, or disable ones you don't use. See [Ac
 | **Analyze in Context** | Deep analysis with book context and your annotations ⚠️ *Requires: Allow Text Extraction, Allow Highlights & Annotations* |
 | **Analyze in Context (Smart)** | Like above, but uses cached document summary ⚠️ *Requires: Allow Text Extraction, Allow Highlights & Annotations* |
 | **Thematic Connection (Smart)** | Analyze how a passage connects to the book's larger themes ⚠️ *Requires: Allow Text Extraction* |
+| **Fact Check** | Verify claims using web search ⚠️ *Requires: Web Search* |
+| **Current Context** | Get latest information about a topic using web search ⚠️ *Requires: Web Search* |
 | **Translate** | Translate to your configured language |
 | **Dictionary** | Full dictionary entry: definition, etymology, synonyms, usage (also accessible via dictionary popup) |
 | **Quick Define** | Minimal lookup: brief definition only, no etymology or synonyms |
@@ -500,10 +502,10 @@ You can customize these, create your own, or disable ones you don't use. See [Ac
 
 **Regular vs Smart actions:**
 
-Several actions come in two variants: a **regular** version that sends full book text, and a **Smart** version that uses a cached document summary instead. Both analyze the actual content — the difference is cost and freshness:
+Several actions come in two variants: a **regular** version that sends full document text, and a **Smart** version that uses a cached document summary instead. Both analyze the actual content — the difference is cost and freshness, as well as the AIs performance degradation with large contexts:
 
 - **Regular** (e.g., Discussion Questions) — Sends the full document text to the AI. Most accurate, but uses more tokens. Best for one-off queries or short documents.
-- **Smart** (e.g., Discussion Questions (Smart)) — Uses a pre-generated summary (~2-8K tokens) instead of raw text (~100K tokens). Much cheaper for repeated use. Best for longer documents you query often.
+- **Smart** (e.g., Discussion Questions (Smart)) — Uses a pre-generated summary (~2-8K tokens) instead of raw text (~100K tokens). Much cheaper and performant for repeated use or follow up questions. Best for longer documents or repeated actions and follow-up queries.
 
 | Regular (full text) | Smart (cached summary) | Context |
 |---------------------|------------------------|---------|
@@ -515,19 +517,20 @@ Several actions come in two variants: a **regular** version that sends full book
 | Generate Quiz | Generate Quiz (Smart) | Book |
 
 **When to use Smart variants:**
-- Longer documents (research papers, textbooks, novels)
+- Longer documents (longer research papers, textbooks, novels)
 - Repeated queries on the same book
 - Books the AI isn't trained on (need context for every query)
 - When token cost is a concern
 
 **When to use regular variants:**
-- Short documents where full text is cheap to send
+- Short to medium length documents where full text is cheap to send and doesn't choke the context window, this degrading performance
 - One-off queries where generating a summary first isn't worth it
-- When you need the AI to work from the actual text, not a summary
+- When you need the AI to work from the actual text, not a summary, for detail and accuracy
 
 **How Smart actions work:**
-- First use: Prompts to generate a reusable summary (generates via `summarize_full_document`)
+- First use: Prompts to generate a reusable summary via a central function
 - Subsequent uses: Uses cached summary (much faster and cheaper)
+- The summary is available to other Smart actions and as a placeholder for use as you like
 - Token savings: ~100K raw text → ~2-8K cached summary per query
 
 **Managing summaries:**
@@ -536,11 +539,11 @@ Several actions come in two variants: a **regular** version that sends full book
 - **File browser**: "View Artifacts (KOA)" button appears when a book has any artifacts (Summary, X-Ray, or Analysis) — tap to pick which one to view
 - **Coverage**: The viewer title shows coverage percentage if document was truncated (e.g., "Summary (78%)")
 
-> **Tip**: For documents you'll query multiple times, generate the summary proactively via Quick Actions to save tokens on future queries.
+> **Tip**: For documents you'll query multiple times, generate the summary proactively via Quick Actions to save tokens on future queries. The caches (Summary, X-Ray, Analysis) are also convenient in themselves for viewing condensed document information.
 
 See [Response Caching → "Generate Once, Use Many Times"](#response-caching-x-rayrecap) for full details on the summary cache system.
 
-**What the AI sees**: Your highlighted text, plus document metadata (title, author). Actions like "Explain in Context" and "Analyze in Context" also use extracted book text to understand the surrounding content. Custom actions can access reading progress, chapter info, your highlights/annotations, notebook, and extracted book text—depending on action settings and [privacy preferences](#privacy--data). See [Template Variables](#template-variables) for details.
+**What the AI sees**: Your highlighted text, plus document metadata (title, author). Actions like "Explain in Context" and "Analyze in Context" also use extracted document text to understand the surrounding content. Custom actions can access reading progress, chapter info, your highlights/annotations, notebook, and extracted book text—depending on action settings and [privacy preferences](#privacy--data). See [Template Variables](#template-variables) for details.
 
 **Save to Note**: After getting an AI response, tap the **Save to Note** button to save it directly as a KOReader highlight note attached to your selected text. See [Save to Note](#save-to-note) for details.
 
@@ -550,7 +553,7 @@ See [Response Caching → "Generate Once, Use Many Times"](#response-caching-x-r
 
 **Access**: Long-press a book in File Browser → "Chat/Action (KOA)" or while reading, use gesture or menu
 
-Some actions work from the file browser (using only title/author), while others require reading mode (using document state like progress, highlights, or extracted text). Reading-only actions are automatically hidden in file browser. You can pin frequently-used file browser actions directly to the long-press menu via **Action Manager → hold action → "Add to File Browser"**, so they appear as one-tap buttons without opening the action selector. All file browser buttons (utilities + pinned actions + Chat/Action) are distributed across rows of up to 4 buttons each.
+Some actions work from the file browser (using only document metadata like title/author), while others require reading mode (using document state like progress, highlights, or extracted text). Reading-only actions are automatically hidden in file browser. You can pin frequently-used file browser actions directly to the long-press menu via **Action Manager → hold action → "Add to File Browser"**, so they appear as one-tap buttons without opening the action selector. All file browser buttons (utilities + pinned actions + Chat/Action) are distributed across rows of up to 4 buttons each.
 
 **Built-in Actions**:
 | Action | Description |
@@ -561,18 +564,19 @@ Some actions work from the file browser (using only title/author), while others 
 | **About Author** | Author biography and writing style |
 | **Historical Context** | When written and historical significance |
 | **Related Thinkers** | Intellectual landscape: influences, contemporaries, and connected thinkers |
-| **Key Arguments** | Thesis, evidence, assumptions, and counterarguments using full book text ⚠️ *Requires: Allow Text Extraction* |
-| **Discussion Questions** | Comprehension, analytical, and interpretive prompts using full book text ⚠️ *Requires: Allow Text Extraction* |
-| **Generate Quiz** | Comprehension quiz with answers (multiple choice, short answer, essay) ⚠️ *Requires: Allow Text Extraction* |
-| **Key Arguments (Smart)** | Like Key Arguments, but uses cached summary ⚠️ *Requires: Allow Text Extraction* |
-| **Discussion Questions (Smart)** | Like Discussion Questions, but uses cached summary ⚠️ *Requires: Allow Text Extraction* |
-| **Generate Quiz (Smart)** | Like Generate Quiz, but uses cached summary ⚠️ *Requires: Allow Text Extraction* |
+| **Book Reviews** | Find critical and reader reviews, awards, and reception ⚠️ *Requires: Web Search* |
 | **X-Ray** | Structured reference guide: characters, locations, themes, timeline ⚠️ *Best with: Allow Text Extraction* |
 | **Recap** | "Previously on..." style summary to help you resume reading ⚠️ *Best with: Allow Text Extraction* |
 | **Analyze Highlights** | Discover patterns and connections in your highlights ⚠️ *Requires: Allow Highlights & Annotations* |
-| **Analyze Document** | Deep analysis of complete short documents (papers, articles, notes) |
-| **Summarize Document** | Comprehensive summary of entire document |
-| **Extract Key Insights** | Actionable takeaways and ideas worth remembering |
+| **Key Arguments** | Thesis, evidence, assumptions, and counterarguments using full book text ⚠️ *Requires: Allow Text Extraction* |
+| **Key Arguments (Smart)** | Like Key Arguments, but uses cached summary ⚠️ *Requires: Allow Text Extraction* |
+| **Discussion Questions** | Comprehension, analytical, and interpretive prompts using full book text ⚠️ *Requires: Allow Text Extraction* |
+| **Discussion Questions (Smart)** | Like Discussion Questions, but uses cached summary ⚠️ *Requires: Allow Text Extraction* |
+| **Generate Quiz** | Comprehension quiz with answers (multiple choice, short answer, essay) ⚠️ *Requires: Allow Text Extraction* |
+| **Generate Quiz (Smart)** | Like Generate Quiz, but uses cached summary ⚠️ *Requires: Allow Text Extraction* |
+| **Analyze Document** | Deep analysis of complete short documents (papers, articles, notes) ⚠️ *Requires: Allow Text Extraction* |
+| **Summarize Document** | Comprehensive summary of entire document ⚠️ *Requires: Allow Text Extraction* |
+| **Extract Key Insights** | Actionable takeaways and ideas worth remembering ⚠️ *Requires: Allow Text Extraction* |
 
 **What the AI sees**: Document metadata (title, author). For Analyze Highlights: your annotations. For full document actions: entire document text.
 
@@ -585,15 +589,15 @@ These actions analyze your actual reading content. They require specific privacy
 | **X-Ray** | Book text up to current position | Allow Text Extraction |
 | **Recap** | Book text up to current position | Allow Text Extraction |
 | **Analyze Highlights** | Your highlights and annotations | Allow Highlights & Annotations |
+| **Key Arguments** | Entire document | Allow Text Extraction |
+| **Key Arguments (Smart)** | Cached summary | Allow Text Extraction |
+| **Discussion Questions** | Entire document | Allow Text Extraction |
+| **Discussion Questions (Smart)** | Cached summary | Allow Text Extraction |
+| **Generate Quiz** | Entire document | Allow Text Extraction |
+| **Generate Quiz (Smart)** | Cached summary | Allow Text Extraction |
 | **Analyze Document** | Entire document | Allow Text Extraction |
 | **Summarize Document** | Entire document | Allow Text Extraction |
 | **Extract Key Insights** | Entire document | Allow Text Extraction |
-| **Key Arguments** | Entire document | Allow Text Extraction |
-| **Discussion Questions** | Entire document | Allow Text Extraction |
-| **Generate Quiz** | Entire document | Allow Text Extraction |
-| **Key Arguments (Smart)** | Cached summary | Allow Text Extraction |
-| **Discussion Questions (Smart)** | Cached summary | Allow Text Extraction |
-| **Generate Quiz (Smart)** | Cached summary | Allow Text Extraction |
 
 > ⚠️ **Privacy settings required:** These actions won't have access to your reading data unless you enable the corresponding setting in **Settings → Privacy & Data**. Without the setting enabled, the AI will attempt to use only its training knowledge (works for famous books, less accurate for obscure works). A "*Response generated without: ...*" notice will appear in the chat to indicate what data was requested but not provided.
 
@@ -618,7 +622,7 @@ Book actions work in two contexts: **reading mode** (book is open) and **file br
 - **File browser** has access to book **metadata** only: title, author, identifiers
 - **Reading mode** additionally has access to **document state**: reading progress, highlights, annotations, notebook, extracted text
 
-**Reading-only actions** (hidden in file browser): X-Ray, Recap, Analyze Highlights, Analyze Document, Summarize Document, Extract Key Insights, Key Arguments, Discussion Questions, Generate Quiz, Key Arguments (Smart), Discussion Questions (Smart), Generate Quiz (Smart). These require document state that isn't available until you open the book.
+**Reading-only actions** (hidden in file browser): X-Ray, Recap, Analyze Highlights, Key Arguments, Key Arguments (Smart), Discussion Questions, Discussion Questions (Smart), Generate Quiz, Generate Quiz (Smart), Analyze Document, Summarize Document, Extract Key Insights. These require document state that isn't available until you open the book.
 
 Custom actions using placeholders like `{reading_progress}`, `{book_text}`, `{full_document}`, `{highlights}`, `{annotations}`, or `{notebook}` are filtered the same way. The Action Manager shows a `[reading]` indicator for such actions.
 
@@ -630,7 +634,7 @@ Custom actions using placeholders like `{reading_progress}`, `{book_text}`, `{fu
 | Action | Description |
 |--------|-------------|
 | **Ask** | Free-form question about the selected books |
-| **Compare** | What makes each book distinct — contrasts, not just similarities |
+| **Compare Books** | What makes each book distinct — contrasts, not just similarities |
 | **Find Common Themes** | Shared DNA — recurring themes, influences, connections |
 | **Analyze Collection** | What this selection reveals about the reader's interests |
 | **Quick Summaries** | Brief summary of each book |
