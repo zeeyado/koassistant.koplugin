@@ -47,7 +47,7 @@ local Constants = require("koassistant_constants")
 -- Used when render_markdown is false - converts markdown to plain text with visual hints
 -- Uses universal symbols that work for ALL scripts (Arabic, CJK, etc.)
 -- Uses PTF (Poor Text Formatting) for bold text - TextBoxWidget renders these as actual bold
-local function stripMarkdown(text)
+local function stripMarkdown(text, is_rtl)
     if not text then return "" end
 
     -- PTF (Poor Text Formatting) markers - TextBoxWidget interprets these as bold
@@ -57,7 +57,8 @@ local function stripMarkdown(text)
     local PTF_BOLD_END = "\u{FFF3}"    -- End a bold sequence
 
     -- Directional marker for BiDi text (RTL headwords followed by LTR IPA/definitions)
-    local LRM = "\u{200E}"  -- Left-to-Right Mark - resets direction after RTL text
+    -- In RTL mode, skip LRM to let para_direction_rtl control paragraph direction
+    local LRM = is_rtl and "" or "\u{200E}"  -- Left-to-Right Mark - resets direction after RTL text
 
     local result = text
 
@@ -155,21 +156,24 @@ local function stripMarkdown(text)
 
     -- BiDi fix: Prepend LRM to lines containing RTL characters to establish LTR base direction
     -- Without this, lines starting with RTL text get RTL paragraph direction, reversing everything
-    -- BiDi fix: Add LRM only to truly mixed RTL+Latin lines
-    -- Pure RTL lines (even with numbers/punctuation) should align right naturally
-    local rtl_pattern = "[\216-\219][\128-\191]"
-    local latin_pattern = "[a-zA-Z]"  -- Latin letters indicate mixed content needing LTR base
-    local header_pattern = "^%s*[▉◤◆✿❖·]"  -- Header symbols from header processing above
-    local fixed_lines = {}
-    for line in result:gmatch("([^\n]*)\n?") do
-        -- Add LRM only to mixed RTL+Latin lines (not headers, not pure RTL)
-        if line:match(rtl_pattern) and line:match(latin_pattern) and not line:match(header_pattern) then
-            table.insert(fixed_lines, LRM .. line)
-        else
-            table.insert(fixed_lines, line)
+    -- Skip in RTL mode: para_direction_rtl already sets the correct base direction
+    if not is_rtl then
+        -- Add LRM only to truly mixed RTL+Latin lines
+        -- Pure RTL lines (even with numbers/punctuation) should align right naturally
+        local rtl_pattern = "[\216-\219][\128-\191]"
+        local latin_pattern = "[a-zA-Z]"  -- Latin letters indicate mixed content needing LTR base
+        local header_pattern = "^%s*[▉◤◆✿❖·]"  -- Header symbols from header processing above
+        local fixed_lines = {}
+        for line in result:gmatch("([^\n]*)\n?") do
+            -- Add LRM only to mixed RTL+Latin lines (not headers, not pure RTL)
+            if line:match(rtl_pattern) and line:match(latin_pattern) and not line:match(header_pattern) then
+                table.insert(fixed_lines, LRM .. line)
+            else
+                table.insert(fixed_lines, line)
+            end
         end
+        result = table.concat(fixed_lines, "\n")
     end
-    result = table.concat(fixed_lines, "\n")
 
     -- Add PTF header at start to signal TextBoxWidget to interpret PTF markers
     return PTF_HEADER .. result
@@ -2261,7 +2265,7 @@ function ChatGPTViewer:init()
     }
   else
     -- If not rendering Markdown, optionally strip markdown syntax for cleaner display
-    local display_text = self.strip_markdown_in_text_mode and stripMarkdown(self.text) or self.text
+    local display_text = self.strip_markdown_in_text_mode and stripMarkdown(self.text, self.para_direction_rtl) or self.text
     -- Fix IPA BiDi issues when RTL dictionary language
     if needs_rtl_fix then
       display_text = fixIPABidi(display_text)
@@ -2830,7 +2834,7 @@ function ChatGPTViewer:update(new_text, scroll_to_bottom)
     end
   else
     -- For plain text, optionally strip markdown and recreate widget
-    local display_text = self.strip_markdown_in_text_mode and stripMarkdown(new_text) or new_text
+    local display_text = self.strip_markdown_in_text_mode and stripMarkdown(new_text, self.para_direction_rtl) or new_text
     self.scroll_text_w = ScrollTextWidget:new {
       text = display_text,
       face = self.text_face,
@@ -2947,7 +2951,7 @@ function ChatGPTViewer:toggleMarkdown()
     }
   else
     -- Convert to plain text with optional markdown stripping
-    local display_text = self.strip_markdown_in_text_mode and stripMarkdown(self.text) or self.text
+    local display_text = self.strip_markdown_in_text_mode and stripMarkdown(self.text, self.para_direction_rtl) or self.text
     -- Fix IPA BiDi issues when RTL dictionary language
     if needs_rtl_fix then
       display_text = fixIPABidi(display_text)
@@ -3498,7 +3502,7 @@ function ChatGPTViewer:toggleTranslateQuoteVisibility()
     }
   else
     -- Plain text mode with optional markdown stripping
-    local display_text = self.strip_markdown_in_text_mode and stripMarkdown(self.text) or self.text
+    local display_text = self.strip_markdown_in_text_mode and stripMarkdown(self.text, self.para_direction_rtl) or self.text
     self.scroll_text_w = ScrollTextWidget:new {
       text = display_text,
       face = self.text_face,
