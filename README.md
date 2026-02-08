@@ -913,7 +913,7 @@ Utility placeholders provide reusable prompt fragments that can be inserted into
 
 ### Tips for Custom Actions
 
-- **Skip domain** for linguistic tasks: Translation, grammar checking, dictionary lookups work better without domain context influencing the output. Enable "Skip domain" in the action wizard for these.
+- **Skip domain** for linguistic tasks: Translation, grammar checking, dictionary lookups work better without domain context influencing the output. Enable "Skip domain" in the action wizard for these, unless you are translating something that would benefit from the context added by a domain.
 - **Skip language instruction** when the prompt already specifies a target language (using `{translation_language}` or `{dictionary_language}` placeholders), to avoid conflicting instructions.
 - **Put task-specific instructions in the action prompt**, not in behavior. Behavior applies globally; action prompts are specific. Use a standard behavior and detailed action prompts for most custom actions.
 - **Temperature matters**: Lower (0.3-0.5) for deterministic tasks (translation, definitions). Higher (0.7-0.9) for creative tasks (elaboration, recommendations).
@@ -1034,15 +1034,15 @@ KOAssistant integrates with KOReader's dictionary system, providing AI-powered w
 
 When you select a word in a document, KOReader normally shows its dictionary popup. With KOAssistant's dictionary integration, you can:
 
-1. **Add AI actions to the dictionary popup** — Tap the "AI Dictionary" button to access a menu of AI-powered word analysis options
-2. **Bypass the dictionary entirely** — Skip KOReader's dictionary and go directly to AI for word lookups
+1. **Add AI actions to the dictionary popup** — Tap "Dictionary (KOA)" or another Action button from KOReader's Dictionary popup
+2. **Bypass the dictionary entirely** — Skip KOReader's dictionary and go directly to your selected KOAssistant Dictionary Action for word lookups
 
 **Default dictionary popup actions** (3 included):
 1. **Dictionary** — Full entry: definition, etymology, synonyms, usage
 2. **Quick Define** — Minimal: brief definition only
 3. **Deep Analysis** — Linguistic deep-dive: morphology, word family, cognates
 
-You can add other highlight actions to this menu via **Manage Actions → hold action → "Add to Dictionary Popup"**.
+You can add or substitute other highlight actions to this menu via **Manage Actions → hold action → "Add to Dictionary Popup"** or manage the actions centrally from Dictionary Settings.
 
 ### Dictionary Settings
 
@@ -1050,14 +1050,14 @@ You can add other highlight actions to this menu via **Manage Actions → hold a
 
 | Setting | Description | Default |
 |---------|-------------|---------|
-| **AI Buttons in Dictionary Popup** | Show "AI Dictionary" button in KOReader's dictionary popup | On |
+| **AI Buttons in Dictionary Popup** | Show selected Action buttons in KOReader's dictionary popup | On |
 | **Response Language** | Language for definitions. Can follow Translation Language (`↵T`) or be set independently | `↵T` |
-| **Context Mode** | Surrounding text sent with lookup: None, Sentence, Paragraph, or Characters | None |
+| **Context Mode** | Surrounding text sent with lookup: None, Sentence, Paragraph, or Characters | None (Context is available on the demand in the popup)|
 | **Context Characters** | Character count when using "Characters" mode | 100 |
 | **Disable Auto-save** | Don't auto-save dictionary lookups to chat history | On |
-| **Enable Streaming** | Stream responses in real-time (shows text as it generates) | Off |
+| **Enable Streaming** | Stream responses in real-time (shows text as it generates) | On |
 | **Dictionary Popup Actions** | Configure which actions appear in the AI menu (reorder, add custom) | 3 built-in |
-| **Bypass KOReader Dictionary** | Skip native dictionary, go directly to AI action | Off |
+| **Bypass KOReader Dictionary** | Skip native dictionary, go directly to your selected bypass Action | Off |
 | **Bypass Action** | Which action triggers on bypass (try Quick Define for speed) | Dictionary |
 | **Bypass: Follow Vocab Builder** | Respect KOReader's Vocabulary Builder auto-add setting during bypass | On |
 
@@ -1065,7 +1065,7 @@ You can add other highlight actions to this menu via **Manage Actions → hold a
 
 ### Dictionary Popup Actions (3 included by default)
 
-When "AI Button in Dictionary Popup" is enabled, tapping the AI button shows a menu of actions. Three built-in dictionary actions are included by default:
+When "AI Buttons in Dictionary Popup" is enabled, KOAssistant Dictionary Actions are added to KOReader's dictionary popup. Three built-in dictionary actions are included by default:
 
 | Action | Purpose | Includes |
 |--------|---------|----------|
@@ -1073,7 +1073,7 @@ When "AI Button in Dictionary Popup" is enabled, tapping the AI button shows a m
 | **Quick Define** | Fast, minimal lookup | Brief definition only—no etymology, no synonyms |
 | **Deep Analysis** | Linguistic deep-dive | Morphology (roots, affixes), word family, etymology path, cognates |
 
-The **first action** in your list is the default when tapping the AI button. You can also set any action as the **Bypass Action** for instant one-tap lookups.
+Dictionary (KOA) is the default if you turn on Bypass mode. You can set any action as the **Bypass Action** for instant one-tap lookups.
 
 **Configure this menu:**
 1. **Settings → Dictionary Settings → Dictionary Popup Actions**
@@ -1082,7 +1082,7 @@ The **first action** in your list is the default when tapping the AI button. You
 
 ### Context Mode: When to Use It
 
-Context mode sends surrounding text (sentence/paragraph/characters) with your lookup. The compact view has a **Ctx** button to toggle context on-demand.
+Context mode sends surrounding text (sentence/paragraph/characters) with your lookup. The compact view has a **Ctx** button to toggle context on-demand (it re-runs the request with/without the surrounding sentence as context).
 
 **Context OFF (default)**
 - ✅ Natural, complete dictionary response
@@ -1153,7 +1153,7 @@ When bypass is enabled, selecting a word skips KOReader's dictionary popup entir
 
 **Recommended setup:** Set "Quick Define" or a custom lightweight action as your bypass action for faster responses. Use the full "Dictionary" action when you need etymology and synonyms.
 
-**Toggle via gesture:** Assign "KOAssistant: Toggle Dictionary Bypass" to a gesture for quick on/off switching.
+**Toggle via gesture:** Assign "KOAssistant: Toggle Dictionary Bypass" to a gesture for quick on/off switching. These settings are also available in the recommended Quick Settings panel.
 
 **Note:** Dictionary bypass (and the dictionary popup AI button) uses compact view by default for quick, focused responses.
 
@@ -1161,7 +1161,7 @@ When bypass is enabled, selecting a word skips KOReader's dictionary popup entir
 
 The compact dictionary view provides two rows of buttons:
 - **Row 1:** MD ON/TXT ON, Copy, +Note, Wiki, +Vocab
-- **Row 2:** Expand, Lang, Ctx, [Action], Close
+- **Row 2:** Expand, Language, Ctx, [Action], Close
 
 **MD ON / TXT ON** — Toggle between Markdown and Plain Text view modes. Shows "MD ON" when Markdown is active, "TXT ON" when Plain Text is active. For RTL languages, this may default to TXT ON automatically based on your settings.
 
@@ -1171,15 +1171,15 @@ The compact dictionary view provides two rows of buttons:
 
 **Wiki** — Look up the word in Wikipedia using KOReader's built-in Wikipedia integration.
 
-**+Vocab** — Add the looked-up word to KOReader's Vocabulary Builder. After adding, the button changes to "Added" (greyed out). See [Vocabulary Builder Integration](#vocabulary-builder-integration) below.
+**+Vocab** — Add the looked-up word to KOReader's Vocabulary Builder. After adding, the button changes to "Added" (greyed out). See [Vocabulary Builder Integration](#vocabulary-builder-integration).
 
 **Expand** — Open the response in the full-size chat viewer with all options (continue conversation, save, export, etc.).
 
-**Lang** — Re-run the lookup in a different language (picks from your configured languages). Closes the current view and opens a new one with the updated result.
+**Language** — Re-run the lookup in a different language (picks from your configured languages). Closes the current view and opens a new one with the updated result.
 
 **Ctx: ON/OFF** — Toggle surrounding text context. If your lookup was done without context (mode set to "None"), you can turn it on to get a context-aware definition (Sentence by default). If context was included, you can turn it off for a plain definition. Re-runs the lookup with the toggled setting. This setting is not sticky, so context will revert to your main setting on closing the window.
 
-**[Action]** — Shows the abbreviated name of the current dictionary action (e.g., "Dict", "Quick", "Deep"). Tap to switch to a different dictionary popup action. If only one other action is available, switches directly; otherwise shows a picker with all available dictionary actions.
+**[Action]** — Shows the name of the current dictionary action. Tap to switch to a different dictionary popup action. If only one other action is available, switches directly; otherwise shows a picker with all available dictionary actions.
 
 **Close** — Close the compact view.
 
