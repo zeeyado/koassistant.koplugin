@@ -2818,35 +2818,49 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         end
     end
 
-    -- Add Summary button: "View Summary" if exists, "Generate Summary" if not
-    -- Handle both reader context (ui_instance.document.file) and file browser context (book_metadata.file)
-    local summary_file = (ui_instance and ui_instance.document and ui_instance.document.file)
-                         or (book_metadata and book_metadata.file)
-    if summary_file and plugin then
-        local ActionCache = require("koassistant_action_cache")
-        local summary_cache = ActionCache.getSummaryCache(summary_file)
-        local is_reader_context = ui_instance and ui_instance.document and ui_instance.document.file
+    -- Add View Artifacts button (shows cached X-Ray/Summary/Analysis)
+    -- Skip in general context - artifacts are book-specific
+    if not is_general_context and plugin then
+        local artifact_file = (ui_instance and ui_instance.document and ui_instance.document.file)
+                              or (book_metadata and book_metadata.file)
+        if artifact_file then
+            local ActionCache = require("koassistant_action_cache")
+            -- Check which caches exist
+            local caches = {}
+            local xray = ActionCache.getXrayCache(artifact_file)
+            if xray and xray.result then
+                table.insert(caches, { name = "X-Ray", key = "_xray_cache", data = xray })
+            end
+            local summary = ActionCache.getSummaryCache(artifact_file)
+            if summary and summary.result then
+                table.insert(caches, { name = _("Summary"), key = "_summary_cache", data = summary })
+            end
+            local analyze = ActionCache.getAnalyzeCache(artifact_file)
+            if analyze and analyze.result then
+                table.insert(caches, { name = _("Analysis"), key = "_analyze_cache", data = analyze })
+            end
 
-        if summary_cache then
-            -- Summary exists - show "View Summary" (works in both contexts)
-            table.insert(all_buttons, {
-                text = _("View Summary"),
-                callback = function()
-                    UIManager:close(input_dialog)
-                    plugin:showSummaryViewer(summary_cache)
-                end
-            })
-        elseif is_reader_context then
-            -- No cache but in reader context - show "Generate Summary"
-            table.insert(all_buttons, {
-                text = _("Generate Summary"),
-                callback = function()
-                    UIManager:close(input_dialog)
-                    plugin:generateSummary()
-                end
-            })
+            if #caches == 1 then
+                -- Single cache - open directly
+                local cache = caches[1]
+                table.insert(all_buttons, {
+                    text = _("View") .. " " .. cache.name,
+                    callback = function()
+                        UIManager:close(input_dialog)
+                        plugin:showCacheViewer(cache)
+                    end
+                })
+            elseif #caches > 1 then
+                -- Multiple caches - show selector
+                table.insert(all_buttons, {
+                    text = _("View Artifacts"),
+                    callback = function()
+                        UIManager:close(input_dialog)
+                        plugin:viewCache()
+                    end
+                })
+            end
         end
-        -- In file browser context with no cache: don't show button (can't generate without open book)
     end
 
     -- Organize buttons into rows of three
