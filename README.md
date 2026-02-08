@@ -74,7 +74,8 @@
 - [Technical Features](#technical-features)
   - [Streaming Responses](#streaming-responses)
   - [Prompt Caching](#prompt-caching)
-  - [Response Caching (X-Ray/Recap)](#response-caching-x-rayrecap) — Incremental updates + Summary Cache for Smart actions
+  - [Response Caching](#response-caching) — Incremental X-Ray/Recap updates as you read
+  - [Document Artifacts](#document-artifacts) — Summary, X-Ray, Analysis: viewable guides and reusable context for Smart actions
   - [Reasoning/Thinking](#reasoningthinking)
   - [Web Search](#web-search) — AI searches the web for current information (Anthropic, Gemini, OpenRouter)
 - [Supported Providers + Settings](#supported-providers--settings) - Choose your model, etc
@@ -539,9 +540,9 @@ Several actions come in two variants: a **regular** version that sends full docu
 - **File browser**: "View Artifacts (KOA)" button appears when a book has any artifacts (Summary, X-Ray, or Analysis) — tap to pick which one to view
 - **Coverage**: The viewer title shows coverage percentage if document was truncated (e.g., "Summary (78%)")
 
-> **Tip**: For documents you'll query multiple times, generate the summary proactively via Quick Actions to save tokens on future queries. The caches (Summary, X-Ray, Analysis) are also convenient in themselves for viewing condensed document information.
+> **Tip**: For documents you'll query multiple times, generate the summary proactively via Quick Actions to save tokens on future queries. The artifacts (Summary, X-Ray, Analysis) are also useful on their own as viewable reference guides — see [Document Artifacts](#document-artifacts).
 
-See [Response Caching → "Generate Once, Use Many Times"](#response-caching-x-rayrecap) for full details on the summary cache system.
+See [Document Artifacts → "Generate Once, Use Many Times"](#document-artifacts) for full details on the summary artifact and Smart actions system.
 
 **What the AI sees**: Your highlighted text, plus document metadata (title, author). Actions like "Explain in Context" and "Analyze in Context" also use extracted document text to understand the surrounding content. Custom actions can access reading progress, chapter info, your highlights/annotations, notebook, and extracted book text—depending on action settings and [privacy preferences](#privacy--data). See [Template Variables](#template-variables) for details.
 
@@ -613,7 +614,7 @@ These actions analyze your actual reading content. They require specific privacy
 
 > **Tip:** Create specialized versions for your workflow. Copy a built-in action, customize the prompt for your field (e.g., "Focus on methodology and statistical claims" for scientific papers), and pair it with a matching domain. Disable built-ins you don't use via Action Manager (tap to toggle). See [Custom Actions](#custom-actions) for details.
 
-> **📦 Response Caching (Experimental)**: When text extraction is enabled (Settings → Privacy & Data → Text Extraction), X-Ray and Recap responses are automatically cached per book. Running them again after reading further sends only the *new* content to update the previous analysis—faster and cheaper. This feature is experimental and feedback is welcome. See [Response Caching](#response-caching-x-rayrecap) for details.
+> **📦 Response Caching (Experimental)**: When text extraction is enabled (Settings → Privacy & Data → Text Extraction), X-Ray and Recap responses are automatically cached per book. Running them again after reading further sends only the *new* content to update the previous analysis—faster and cheaper. This feature is experimental and feedback is welcome. See [Response Caching](#response-caching) for details.
 
 **Reading Mode vs File Browser:**
 
@@ -925,7 +926,7 @@ Utility placeholders provide reusable prompt fragments that can be inserted into
 - **Test before deploying**: Use the [web inspector](#testing-your-setup) to test your custom actions before using them on your e-reader. You can try different settings combinations and see exactly what's sent to the AI.
 - **Reading-mode placeholders**: Book actions using `{reading_progress}`, `{book_text}`, `{full_document}`, `{highlights}`, `{annotations}`, `{notebook}`, or `{chapter_title}` are **automatically hidden** in File Browser mode because these require an open book. This filtering is automatic—if your custom book action uses these placeholders, it will only appear when reading. Highlight actions are always reading-mode (you can't highlight without an open book). The action wizard shows a `[reading]` indicator for such actions.
 - **Document caches**: Three cache types are available as placeholders: `{summary_cache_section}`, `{xray_cache_section}`, and `{analyze_cache_section}`. All require `use_book_text = true` since the cached content derives from book text. The **summary cache** is the primary one for custom actions — it's a neutral, comprehensive representation of the document designed to be reused. The **X-Ray cache** can also be useful as supplementary context (structured character/concept reference). The **analyze cache** is more specialized — it's an opinionated analysis, so avoid using it as input for another analysis (you'd be analyzing an analysis, a decaying game of telephone where each layer loses nuance). Cache placeholders disappear when empty, so including them is always safe. Two usage patterns:
-  - **Replace**: Use `{summary_cache_section}` INSTEAD of raw book text for token savings on long books. Built-in **Smart actions** implement this pattern. Add `requires_summary_cache = true` to your custom actions to trigger automatic summary generation when needed. See [Response Caching](#response-caching-x-rayrecap) for details.
+  - **Replace**: Use `{summary_cache_section}` INSTEAD of raw book text for token savings on long books. Built-in **Smart actions** implement this pattern. Add `requires_summary_cache = true` to your custom actions to trigger automatic summary generation when needed. See [Document Artifacts](#document-artifacts) for details.
   - **Supplement**: Add a cache reference as bonus context alongside other data. For example, append `{xray_cache_section}` to a custom action so the AI has the character/concept reference available if it exists. The placeholder vanishes if no cache exists, so there's no downside.
 
   > *Planned feature: the ability to append files, caches, and other resources to chats and actions — including referencing one book's cache in an action on another book (e.g., comparing an X-Ray across volumes in a series).*
@@ -2224,11 +2225,11 @@ Prompt caching reduces costs and latency by reusing previously processed prompt 
 
 **Best for**: Large custom domains with extensive instructions. The more tokens in your system prompt, the greater the savings.
 
-### Response Caching (X-Ray/Recap)
+### Response Caching
 
-> **⚠️ Experimental Feature**: This feature is new and being tested. Currently supports only X-Ray and Recap; more actions may be added based on feedback. Please report issues or suggestions via GitHub.
+> **⚠️ Experimental Feature**: Response caching currently supports X-Ray and Recap only. More actions may be added based on feedback. Please report issues or suggestions via GitHub.
 
-When text extraction is enabled, X-Ray and Recap responses are automatically cached per book. This enables **incremental updates** as you read:
+When text extraction is enabled, X-Ray and Recap responses are automatically cached per book. This enables **incremental updates** — as you read further, the AI builds on its previous analysis rather than starting from scratch:
 
 **How it works:**
 1. Run X-Ray at 30% → Full analysis generated and cached
@@ -2246,33 +2247,6 @@ When text extraction is enabled, X-Ray and Recap responses are automatically cac
 **Cache storage:**
 - Stored in the book's sidecar folder (`.sdr/koassistant_cache.lua`)
 - Automatically moves with the book if you reorganize your library
-- One entry per action (xray, recap) plus shared analysis caches
-
-**Shared document caches:**
-When certain actions complete, their results are saved to shared caches. There are three cache types, but the **summary cache is the main one** — it powers the built-in Smart actions and is the recommended foundation for custom actions:
-
-- **Summary** → saves to `_summary_cache` — **the primary cache for reuse**. A neutral, comprehensive representation of the document, designed to replace raw book text in actions (massive token savings). This is what Smart actions use.
-- **X-Ray** → saves to `_xray_cache` — a structured character/concept reference. Viewable anytime via **View Artifacts** (Quick Actions panel or file browser long-press). Also available as a placeholder for custom actions that want supplementary context.
-- **Analyze Document** → saves to `_analyze_cache` — an opinionated document analysis. Viewable via **View Artifacts** like X-Ray. Also available as a placeholder, but avoid using it as the sole input for another analysis (analyzing an analysis loses nuance with each layer).
-
-All three caches can be referenced in custom actions using `{summary_cache_section}`, `{xray_cache_section}`, or `{analyze_cache_section}` placeholders. The summary cache is the recommended choice for most custom actions. The X-Ray and Analyze placeholders are there for advanced users who want to experiment — cache placeholders disappear when empty, so including them is always safe. See [Tips for Custom Actions](#tips-for-custom-actions) for usage guidance.
-
-> **Safety mechanism:** Document caches are only saved when book text was actually extracted. If you run X-Ray, Analyze Document, or Summary with text extraction disabled (or if extraction yields no content), the AI response is based solely on the book's title/author (training knowledge), and this lower-quality result is NOT cached. This prevents low-quality training-data-based responses from being stored as reusable context. Enable text extraction before running these actions to build useful caches.
-
-**Example: Create a "Questions from X-Ray" action**
-1. Enable **Allow Text Extraction** AND **Allow Highlights & Annotations** in Settings → Privacy & Data
-2. Run **X-Ray** on a book (this populates the cache)
-3. Create a custom action with prompt: `Based on this analysis:\n\n{xray_cache_section}\n\nWhat are the 3 most important questions I should be thinking about?`
-4. Check "Allow text extraction" and "Include highlights" in the action's permissions
-5. Run your new action—it uses the cached X-Ray without re-analyzing
-
-If you haven't run X-Ray yet (or permissions aren't enabled), the placeholder renders empty and the action still runs, just without the analysis context.
-
-> **Permission requirement:** Cache placeholders require the same permissions as the original action that generated them:
-> - `{xray_cache_section}` requires **Allow Text Extraction**, plus **Allow Highlights & Annotations** if the cache was built with annotations
-> - `{analyze_cache_section}` and `{summary_cache_section}` require only **Allow Text Extraction**
->
-> Without the required gates enabled (both global setting and per-action flag), the placeholder renders empty.
 
 **Clearing the cache:**
 - **Per-action**: In the chat viewer, tap "↻ Fresh" button (appears only for cached responses) → clears that action's cache for this book, then re-run the action manually
@@ -2280,29 +2254,55 @@ If you haven't run X-Ray yet (or permissions aren't enabled), the placeholder re
 - Either option forces fresh generation on next run (useful if analysis got off track)
 
 **Limitations:**
-- Only built-in X-Ray and Recap support caching currently
+- Only built-in X-Ray and Recap support incremental caching currently
 - Going backward in progress doesn't use cache (fresh generation)
 - Custom actions duplicated from X-Ray/Recap will inherit caching behavior
 
-**"Generate Once, Use Many Times" — Summary Cache**
+X-Ray, Recap, and other actions also produce **Document Artifacts** — reusable results you can view anytime and reference in other actions. See the next section for details.
 
-For medium and long texts, sending full document text (~100K tokens) for each highlight action is expensive. The summary cache pattern solves this:
+### Document Artifacts
 
-1. **Generate a summary once** → cached as reusable context (~2-8K tokens)
+When certain actions complete, their results are saved as **document artifacts** — persistent, per-book outputs that serve two purposes:
+
+1. **Viewable as standalone reference guides.** Browse a book's Summary, X-Ray, or Analysis anytime without re-running the action. Useful for reviewing key information, refreshing your memory before a reading session, or quickly checking character details mid-read.
+2. **Reusable as context in other actions.** Instead of sending full document text (~100K tokens) every time, actions can reference a compact artifact (~2-8K tokens). This is the foundation of **Smart actions** — dramatically cheaper and often better-performing, since models handle focused context more effectively than massive text dumps.
+
+**The three artifact types:**
+
+| Artifact | Generated by | What it contains | Primary use |
+|----------|-------------|------------------|-------------|
+| **Summary** | Summarize Document, Generate Summary | Neutral, comprehensive document representation | **Primary artifact for reuse.** Powers all Smart actions — replaces raw book text with a compact summary. Also useful on its own as a reading reference. |
+| **X-Ray** | X-Ray action | Structured reference: characters, locations, themes, timeline | Viewable character/concept guide. Also available as supplementary context in custom actions. |
+| **Analysis** | Analyze Document | Opinionated deep analysis of the document | Viewable analytical overview. *Not recommended as input for further analysis* — analyzing an analysis is a decaying game of telephone where each layer loses nuance. |
+
+**Viewing artifacts:**
+- **Quick Actions** → "View Summary" (when summary exists), or "Generate Summary" (when it doesn't)
+- **File Browser** → Long-press a book → "View Artifacts (KOA)" → pick Summary, X-Ray, or Analysis
+- **Gesture** → Assign "KOAssistant: View Summary" for quick access, or "KOAssistant: View Artifacts" to browse all artifacts
+- **Coverage**: The viewer title shows coverage percentage if the document was truncated (e.g., "Summary (78%)")
+
+The artifact viewer shows metadata (coverage, model used, generation date) and provides buttons for copying, regenerating, or deleting.
+
+> **Safety mechanism:** Artifacts are only saved when book text was actually extracted. If you run an artifact-generating action with text extraction disabled (or if extraction yields no content), the AI response is based solely on the book's title/author (training knowledge), and this lower-quality result is NOT saved. This prevents training-data-based responses from being stored as reusable context. Enable text extraction before running these actions to build useful artifacts.
+
+> **Permission requirement:** Artifact placeholders require the same permissions as the original action that generated them:
+> - `{xray_cache_section}` requires **Allow Text Extraction**, plus **Allow Highlights & Annotations** if the cache was built with annotations
+> - `{analyze_cache_section}` and `{summary_cache_section}` require only **Allow Text Extraction**
+>
+> Without the required gates enabled (both global setting and per-action flag), the placeholder renders empty.
+
+**"Generate Once, Use Many Times" — Summary Artifacts and Smart Actions**
+
+The summary artifact is the centerpiece of the reuse system. For medium and long texts, sending full document text (~100K tokens) for each action is both expensive and counterproductive — models often perform worse with massive contexts than with focused summaries. The pattern:
+
+1. **Generate a summary once** → saved as a reusable artifact (~2-8K tokens)
 2. **Smart actions reference the cached summary** instead of raw book text
-3. **Massive token savings** for users who frequently use context-dependent actions
+3. **Result**: Massive token savings AND often better responses for repeated queries
 
 **How to generate a summary:**
 - **Quick Actions → Generate Summary** (when no summary exists)
 - **Summarize Document** action (from book actions menu)
 - **Smart actions auto-prompt** — When you use a Smart action without an existing summary, a dialog offers to generate one first
-
-**Viewing summaries:**
-- **Quick Actions → View Summary** (when summary exists)
-- **File Browser** → Long-press a book → "View Artifacts (KOA)" → select Summary
-- **Gesture** → Assign "KOAssistant: View Summary" for quick access, or "KOAssistant: View Artifacts" to browse all artifacts
-
-The summary viewer shows metadata: coverage percentage (e.g., "78%" if document was truncated), model used, and generation date. Buttons allow copying, regenerating, or deleting the cached summary.
 
 **Built-in Smart actions:**
 - **Explain in Context (Smart)** — (Highlight) Uses `{summary_cache_section}` for context
@@ -2312,15 +2312,17 @@ The summary viewer shows metadata: coverage percentage (e.g., "78%" if document 
 - **Discussion Questions (Smart)** — (Book) Generate discussion prompts grounded in summary
 - **Generate Quiz (Smart)** — (Book) Comprehension quiz with answers using summary
 
+Note that even the analysis-flavored Smart actions (Analyze in Context (Smart)) use the *summary* artifact, not the analysis artifact. Using an analysis as input for further analysis would be a decaying game of telephone — each layer loses nuance. The summary provides a neutral foundation for the AI to build its own fresh analysis from.
+
 **How Smart actions work:**
 1. User triggers a Smart action (highlight or book context)
-2. If summary cache exists → Uses cached summary immediately
-3. If no cache → Shows confirmation dialog: "Generate summary now?"
+2. If summary artifact exists → Uses it immediately
+3. If no artifact → Shows confirmation dialog: "Generate summary now?"
 4. User confirms → Summary generated via `summarize_full_document` action
 5. Original action continues with newly cached summary
 
 **Creating custom Smart actions:**
-Add `requires_summary_cache = true` to your action. This triggers the pre-flight cache check—if no summary exists, the user is prompted to generate one before the action proceeds.
+Add `requires_summary_cache = true` to your action. This triggers the pre-flight check — if no summary exists, the user is prompted to generate one before the action proceeds.
 
 **When to use Smart variants:**
 - Longer documents (research papers, textbooks, novels)
@@ -2332,6 +2334,21 @@ Add `requires_summary_cache = true` to your action. This triggers the pre-flight
 - Raw book text: ~100,000 tokens per query
 - Cached summary: ~2,000-8,000 tokens per query
 - For 10 highlight queries: ~1M tokens saved
+
+**Using artifacts in custom actions:**
+
+All three artifacts can be referenced in custom actions using `{summary_cache_section}`, `{xray_cache_section}`, or `{analyze_cache_section}` placeholders. The **summary** is the recommended choice for most custom actions. The X-Ray and Analyze placeholders are there for advanced users who want to experiment — artifact placeholders disappear when empty, so including them is always safe. See [Tips for Custom Actions](#tips-for-custom-actions) for usage guidance.
+
+**Example: Create a "Questions from X-Ray" action**
+1. Enable **Allow Text Extraction** AND **Allow Highlights & Annotations** in Settings → Privacy & Data
+2. Run **X-Ray** on a book (this populates the artifact)
+3. Create a custom action with prompt: `Based on this analysis:\n\n{xray_cache_section}\n\nWhat are the 3 most important questions I should be thinking about?`
+4. Check "Allow text extraction" and "Include highlights" in the action's permissions
+5. Run your new action — it uses the cached X-Ray without re-analyzing
+
+If you haven't run X-Ray yet (or permissions aren't enabled), the placeholder renders empty and the action still runs, just without the analysis context.
+
+> **Tip**: For documents you'll query multiple times, generate the summary proactively via Quick Actions. The artifacts are also convenient in themselves — browse a book's X-Ray to check character details, review the Analysis for a refresher on key arguments, or skim the Summary before resuming a book you haven't read in a while.
 
 **Text extraction guidelines:**
 - ~100 pages ≈ 25,000-40,000 characters (varies by formatting)
