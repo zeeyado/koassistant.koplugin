@@ -6,8 +6,9 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: KOAssistant 0.12.0-dev\n"
-"Report-Msgid-Bugs-To: https://github.com/zeeyado/koassistant.koplugin/issues\n"
-"POT-Creation-Date: 2026-02-07 22:05+0000\n"
+"Report-Msgid-Bugs-To: https://github.com/zeeyado/koassistant.koplugin/"
+"issues\n"
+"POT-Creation-Date: 2026-02-08 12:38+0000\n"
 "PO-Revision-Date: 2026-01-27 17:48+0000\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
@@ -15,9 +16,10 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 
-#: _meta.lua:4 main.lua:163 main.lua:3612 main.lua:4497
+#: _meta.lua:4 main.lua:163 main.lua:3612 main.lua:4498
 #, fuzzy
 msgid "KOAssistant"
 msgstr "KOAssistant"
@@ -25,8 +27,11 @@ msgstr "KOAssistant"
 #: _meta.lua:5
 #, fuzzy
 msgid ""
-"A powerful AI assistant integrated into KOReader. Technical research assistant and knowledge expander."
-msgstr "Потужний AI асистент, інтегрований у KOReader. Технічний дослідницький асистент та розширювач знань."
+"A powerful AI assistant integrated into KOReader. Technical research "
+"assistant and knowledge expander."
+msgstr ""
+"Потужний AI асистент, інтегрований у KOReader. Технічний дослідницький "
+"асистент та розширювач знань."
 
 #: koassistant_chat_history_dialog.lua:54
 #, fuzzy
@@ -48,9 +53,9 @@ msgstr ""
 #: koassistant_chat_history_dialog.lua:143
 #: koassistant_chat_history_dialog.lua:837
 #: koassistant_chat_history_dialog.lua:1890
-#: koassistant_chat_history_dialog.lua:1928 koassistant_chatgptviewer.lua:2152
-#: koassistant_chatgptviewer.lua:2158 koassistant_notebook_manager.lua:153
-#: koassistant_notebook_manager.lua:158 main.lua:7718 main.lua:7726
+#: koassistant_chat_history_dialog.lua:1928 koassistant_chatgptviewer.lua:2172
+#: koassistant_chatgptviewer.lua:2178 koassistant_notebook_manager.lua:153
+#: koassistant_notebook_manager.lua:158 main.lua:7720 main.lua:7728
 #: koassistant_ui/behavior_manager.lua:311
 #: koassistant_ui/domain_manager.lua:313 koassistant_ui/prompts_manager.lua:748
 #, fuzzy
@@ -68,12 +73,12 @@ msgstr "Видалено %1 чат(ів)"
 #: koassistant_chat_history_dialog.lua:268
 #: koassistant_chat_history_dialog.lua:846
 #: koassistant_chat_history_dialog.lua:874
-#: koassistant_chat_history_dialog.lua:1031 koassistant_chatgptviewer.lua:1335
-#: koassistant_chatgptviewer.lua:1845 koassistant_chatgptviewer.lua:2041
-#: koassistant_chatgptviewer.lua:2169 koassistant_chatgptviewer.lua:2358
-#: koassistant_chatgptviewer.lua:3876 koassistant_dialogs.lua:604
+#: koassistant_chat_history_dialog.lua:1031 koassistant_chatgptviewer.lua:1355
+#: koassistant_chatgptviewer.lua:1865 koassistant_chatgptviewer.lua:2061
+#: koassistant_chatgptviewer.lua:2189 koassistant_chatgptviewer.lua:2378
+#: koassistant_chatgptviewer.lua:3900 koassistant_dialogs.lua:604
 #: koassistant_dialogs.lua:2581 koassistant_dialogs.lua:2617 main.lua:2182
-#: main.lua:4559 main.lua:5032 main.lua:5165
+#: main.lua:4560 main.lua:5033 main.lua:5166
 #: koassistant_ui/behavior_manager.lua:382
 #: koassistant_ui/domain_manager.lua:383
 #: koassistant_ui/settings_manager.lua:246
@@ -110,7 +115,7 @@ msgstr ""
 "\n"
 "Цю дію неможливо скасувати."
 
-#: koassistant_chat_history_dialog.lua:147 main.lua:6479
+#: koassistant_chat_history_dialog.lua:147 main.lua:6481
 #, fuzzy
 msgid "Deleted %1 chat(s) from %2 book(s)"
 msgstr "Видалено %1 чат(ів) з %2 книг(и)"
@@ -124,7 +129,7 @@ msgstr "Налаштування історії чатів"
 #: koassistant_chat_history_dialog.lua:254
 #: koassistant_chat_history_dialog.lua:593 koassistant_constants.lua:123
 #: koassistant_settings_schema.lua:46 koassistant_settings_schema.lua:888
-#: koassistant_settings_schema.lua:1008 main.lua:4937
+#: koassistant_settings_schema.lua:1008 main.lua:4938
 #, fuzzy
 msgid "Chat History"
 msgstr "Історія чатів"
@@ -136,7 +141,7 @@ msgid "Navigate"
 msgstr "Навігація"
 
 #: koassistant_chat_history_dialog.lua:321
-#: koassistant_chat_history_dialog.lua:519 main.lua:3832
+#: koassistant_chat_history_dialog.lua:519 main.lua:3833
 #, fuzzy
 msgid "No saved chats found"
 msgstr "Збережені чати не знайдено"
@@ -217,7 +222,7 @@ msgstr "Мультикнижкові чати"
 msgid "Validating chat index…"
 msgstr "Перевірка індексу чату…"
 
-#: koassistant_chat_history_dialog.lua:554 koassistant_dialogs.lua:3103
+#: koassistant_chat_history_dialog.lua:554 koassistant_dialogs.lua:3117
 #: koassistant_notebook_manager.lua:74 koassistant_ui/behavior_manager.lua:264
 #: koassistant_ui/domain_manager.lua:272 koassistant_ui/prompts_manager.lua:636
 #, fuzzy
@@ -281,8 +286,8 @@ msgstr "Перейменувати"
 msgid "Tags"
 msgstr "Теги"
 
-#: koassistant_chat_history_dialog.lua:827 koassistant_chatgptviewer.lua:1144
-#: koassistant_chatgptviewer.lua:2077 koassistant_ui/prompts_manager.lua:467
+#: koassistant_chat_history_dialog.lua:827 koassistant_chatgptviewer.lua:1164
+#: koassistant_chatgptviewer.lua:2097 koassistant_ui/prompts_manager.lua:467
 #, fuzzy
 msgid "Export"
 msgstr "Експортувати"
@@ -377,16 +382,16 @@ msgstr "Чат не знайдено"
 #: koassistant_chat_history_dialog.lua:1218
 #: koassistant_chat_history_dialog.lua:1651
 #: koassistant_chat_history_dialog.lua:1821
-#: koassistant_chat_history_dialog.lua:1864 koassistant_chatgptviewer.lua:470
-#: koassistant_chatgptviewer.lua:519 koassistant_chatgptviewer.lua:1687
-#: koassistant_chatgptviewer.lua:1824 koassistant_chatgptviewer.lua:2022
-#: koassistant_chatgptviewer.lua:3182 koassistant_chatgptviewer.lua:3364
+#: koassistant_chat_history_dialog.lua:1864 koassistant_chatgptviewer.lua:490
+#: koassistant_chatgptviewer.lua:539 koassistant_chatgptviewer.lua:1707
+#: koassistant_chatgptviewer.lua:1844 koassistant_chatgptviewer.lua:2042
+#: koassistant_chatgptviewer.lua:3206 koassistant_chatgptviewer.lua:3388
 #: koassistant_dialogs.lua:946 koassistant_dialogs.lua:1618
 #: koassistant_dialogs.lua:1926 koassistant_notebook_manager.lua:179
-#: koassistant_update_checker.lua:306 main.lua:391 main.lua:1950 main.lua:1988
+#: koassistant_update_checker.lua:325 main.lua:391 main.lua:1950 main.lua:1988
 #: main.lua:2054 main.lua:2292 main.lua:2416 main.lua:2560 main.lua:2733
-#: main.lua:2889 main.lua:3389 main.lua:3563 main.lua:4008 main.lua:5289
-#: main.lua:6809 main.lua:7363 koassistant_ui/behavior_manager.lua:419
+#: main.lua:2889 main.lua:3389 main.lua:3563 main.lua:4009 main.lua:5290
+#: main.lua:6811 main.lua:7365 koassistant_ui/behavior_manager.lua:419
 #: koassistant_ui/behavior_manager.lua:478
 #: koassistant_ui/behavior_manager.lua:557
 #: koassistant_ui/behavior_manager.lua:613
@@ -480,7 +485,7 @@ msgid "Chat copied to clipboard"
 msgstr "Чат скопійовано в буфер обміну"
 
 #: koassistant_chat_history_dialog.lua:1631
-#: koassistant_chat_history_dialog.lua:1842 koassistant_chatgptviewer.lua:499
+#: koassistant_chat_history_dialog.lua:1842 koassistant_chatgptviewer.lua:519
 #: koassistant_dialogs.lua:1598 koassistant_settings_schema.lua:349
 #: koassistant_settings_schema.lua:364 koassistant_settings_schema.lua:380
 #: koassistant_settings_schema.lua:582 koassistant_settings_schema.lua:598
@@ -490,7 +495,7 @@ msgid "Full (metadata + chat)"
 msgstr "Повний (метадані + чат)"
 
 #: koassistant_chat_history_dialog.lua:1632
-#: koassistant_chat_history_dialog.lua:1843 koassistant_chatgptviewer.lua:500
+#: koassistant_chat_history_dialog.lua:1843 koassistant_chatgptviewer.lua:520
 #: koassistant_dialogs.lua:1599 koassistant_settings_schema.lua:350
 #: koassistant_settings_schema.lua:365 koassistant_settings_schema.lua:381
 #: koassistant_settings_schema.lua:583 koassistant_settings_schema.lua:599
@@ -500,14 +505,14 @@ msgid "Question + Response"
 msgstr "Запитання + Відповідь"
 
 #: koassistant_chat_history_dialog.lua:1633
-#: koassistant_chat_history_dialog.lua:1844 koassistant_chatgptviewer.lua:501
+#: koassistant_chat_history_dialog.lua:1844 koassistant_chatgptviewer.lua:521
 #: koassistant_dialogs.lua:1600 koassistant_settings_schema.lua:1125
 #, fuzzy
 msgid "Response only"
 msgstr "Лише відповідь"
 
 #: koassistant_chat_history_dialog.lua:1634
-#: koassistant_chat_history_dialog.lua:1845 koassistant_chatgptviewer.lua:502
+#: koassistant_chat_history_dialog.lua:1845 koassistant_chatgptviewer.lua:522
 #: koassistant_dialogs.lua:1601 koassistant_settings_schema.lua:352
 #: koassistant_settings_schema.lua:367 koassistant_settings_schema.lua:383
 #: koassistant_settings_schema.lua:585 koassistant_settings_schema.lua:601
@@ -516,8 +521,8 @@ msgstr "Лише відповідь"
 msgid "Everything (debug)"
 msgstr "Все (налагодження)"
 
-#: koassistant_chat_history_dialog.lua:1659 koassistant_chatgptviewer.lua:1081
-#: koassistant_chatgptviewer.lua:1506 koassistant_chatgptviewer.lua:1912
+#: koassistant_chat_history_dialog.lua:1659 koassistant_chatgptviewer.lua:1101
+#: koassistant_chatgptviewer.lua:1526 koassistant_chatgptviewer.lua:1932
 #: koassistant_dialogs.lua:1626 koassistant_settings_schema.lua:344
 #: koassistant_settings_schema.lua:576 koassistant_settings_schema.lua:728
 #, fuzzy
@@ -529,7 +534,7 @@ msgstr "Копіювати вміст"
 msgid "Failed to generate export content"
 msgstr "Не вдалося створити вміст для експорту"
 
-#: koassistant_chat_history_dialog.lua:1752 koassistant_chatgptviewer.lua:3300
+#: koassistant_chat_history_dialog.lua:1752 koassistant_chatgptviewer.lua:3324
 #, fuzzy
 msgid ""
 "Saved to:\n"
@@ -538,38 +543,38 @@ msgstr ""
 "Збережено в:\n"
 "%1"
 
-#: koassistant_chat_history_dialog.lua:1757 koassistant_chatgptviewer.lua:3305
-#: main.lua:8293
+#: koassistant_chat_history_dialog.lua:1757 koassistant_chatgptviewer.lua:3329
+#: main.lua:8295
 #, fuzzy
 msgid "Failed to save: %1"
 msgstr "Не вдалося зберегти: %1"
 
-#: koassistant_chat_history_dialog.lua:1774 koassistant_chatgptviewer.lua:3319
+#: koassistant_chat_history_dialog.lua:1774 koassistant_chatgptviewer.lua:3343
 #, fuzzy
 msgid "Copy to Clipboard"
 msgstr "Копіювати в буфер обміну"
 
-#: koassistant_chat_history_dialog.lua:1784 koassistant_chatgptviewer.lua:3328
+#: koassistant_chat_history_dialog.lua:1784 koassistant_chatgptviewer.lua:3352
 #, fuzzy
 msgid "Save to File"
 msgstr "Зберегти у файл"
 
-#: koassistant_chat_history_dialog.lua:1796 koassistant_chatgptviewer.lua:3339
+#: koassistant_chat_history_dialog.lua:1796 koassistant_chatgptviewer.lua:3363
 #, fuzzy
 msgid "Select Export Directory"
 msgstr "Виберіть каталог для експорту"
 
-#: koassistant_chat_history_dialog.lua:1809 koassistant_chatgptviewer.lua:3352
+#: koassistant_chat_history_dialog.lua:1809 koassistant_chatgptviewer.lua:3376
 #, fuzzy
 msgid "Invalid export directory: %1"
 msgstr "Недійсний каталог експорту: %1"
 
-#: koassistant_chat_history_dialog.lua:1831 koassistant_chatgptviewer.lua:3373
+#: koassistant_chat_history_dialog.lua:1831 koassistant_chatgptviewer.lua:3397
 #, fuzzy
 msgid "Export Chat"
 msgstr "Експортувати чат"
 
-#: koassistant_chat_history_dialog.lua:1873 koassistant_chatgptviewer.lua:3381
+#: koassistant_chat_history_dialog.lua:1873 koassistant_chatgptviewer.lua:3405
 #, fuzzy
 msgid "Export Content"
 msgstr "Експортувати вміст"
@@ -613,34 +618,34 @@ msgstr "Історія чатів за тегом"
 msgid "No chats found with this tag"
 msgstr "Не знайдено чатів з цим тегом"
 
-#: koassistant_chatgptviewer.lua:414 koassistant_chatgptviewer.lua:1048
-#: koassistant_chatgptviewer.lua:1471 koassistant_chatgptviewer.lua:1877
-#: koassistant_chatgptviewer.lua:2053 koassistant_update_checker.lua:268
+#: koassistant_chatgptviewer.lua:434 koassistant_chatgptviewer.lua:1068
+#: koassistant_chatgptviewer.lua:1491 koassistant_chatgptviewer.lua:1897
+#: koassistant_chatgptviewer.lua:2073 koassistant_update_checker.lua:287
 #, fuzzy
 msgid "Copy"
 msgstr "Копіювати"
 
-#: koassistant_chatgptviewer.lua:419 koassistant_update_checker.lua:273
+#: koassistant_chatgptviewer.lua:439 koassistant_update_checker.lua:292
 #, fuzzy
 msgid "Link copied to clipboard"
 msgstr "Посилання скопійовано в буфер обміну"
 
-#: koassistant_chatgptviewer.lua:424 koassistant_update_checker.lua:278
+#: koassistant_chatgptviewer.lua:444 koassistant_update_checker.lua:297
 #, fuzzy
 msgid "Show QR code"
 msgstr "Показати QR-код"
 
-#: koassistant_chatgptviewer.lua:445
+#: koassistant_chatgptviewer.lua:465
 #, fuzzy
 msgid "Add to Wallabag"
 msgstr "Додати до Wallabag"
 
-#: koassistant_chatgptviewer.lua:455 koassistant_update_checker.lua:294
+#: koassistant_chatgptviewer.lua:475 koassistant_update_checker.lua:313
 #, fuzzy
 msgid "Open in browser"
 msgstr "Відкрити в браузері"
 
-#: koassistant_chatgptviewer.lua:479 koassistant_update_checker.lua:315
+#: koassistant_chatgptviewer.lua:499 koassistant_update_checker.lua:334
 #, fuzzy
 msgid ""
 "External link:\n"
@@ -651,25 +656,25 @@ msgstr ""
 "\n"
 "%1"
 
-#: koassistant_chatgptviewer.lua:501 koassistant_settings_schema.lua:736
+#: koassistant_chatgptviewer.lua:521 koassistant_settings_schema.lua:736
 #: koassistant_settings_schema.lua:752
 #, fuzzy
 msgid "Translation only"
 msgstr "Лише переклад"
 
-#: koassistant_chatgptviewer.lua:1014 koassistant_chatgptviewer.lua:2344
+#: koassistant_chatgptviewer.lua:1034 koassistant_chatgptviewer.lua:2364
 #, fuzzy
 msgid "Reply"
 msgstr "Відповісти"
 
-#: koassistant_chatgptviewer.lua:1031 koassistant_dialogs.lua:717
+#: koassistant_chatgptviewer.lua:1051 koassistant_dialogs.lua:717
 #: koassistant_dialogs.lua:1543
 #, fuzzy
 msgid "Autosaved"
 msgstr "Автоматично збережено"
 
-#: koassistant_chatgptviewer.lua:1031 koassistant_dialogs.lua:612 main.lua:2061
-#: main.lua:2756 main.lua:3396 main.lua:3578 main.lua:6815
+#: koassistant_chatgptviewer.lua:1051 koassistant_dialogs.lua:612 main.lua:2061
+#: main.lua:2756 main.lua:3396 main.lua:3578 main.lua:6817
 #: koassistant_ui/behavior_manager.lua:496
 #: koassistant_ui/domain_manager.lua:487
 #: koassistant_ui/prompts_manager.lua:1775
@@ -679,74 +684,74 @@ msgstr "Автоматично збережено"
 msgid "Save"
 msgstr "Зберегти"
 
-#: koassistant_chatgptviewer.lua:1040
+#: koassistant_chatgptviewer.lua:1060
 #, fuzzy
 msgid "Save function not available"
 msgstr "Функція збереження недоступна"
 
-#: koassistant_chatgptviewer.lua:1054
+#: koassistant_chatgptviewer.lua:1074
 #, fuzzy
 msgid "No chat to copy"
 msgstr "Немає чату для копіювання"
 
-#: koassistant_chatgptviewer.lua:1075 koassistant_chatgptviewer.lua:1500
-#: koassistant_chatgptviewer.lua:1906 koassistant_chatgptviewer.lua:3275
+#: koassistant_chatgptviewer.lua:1095 koassistant_chatgptviewer.lua:1520
+#: koassistant_chatgptviewer.lua:1926 koassistant_chatgptviewer.lua:3299
 #: koassistant_dialogs.lua:1588
 #, fuzzy
 msgid "Copied"
 msgstr "Скопійовано"
 
-#: koassistant_chatgptviewer.lua:1089 koassistant_chatgptviewer.lua:1922
+#: koassistant_chatgptviewer.lua:1109 koassistant_chatgptviewer.lua:1942
 #, fuzzy
 msgid "Save to Note"
 msgstr "Зберегти до нотатки"
 
-#: koassistant_chatgptviewer.lua:1097
+#: koassistant_chatgptviewer.lua:1117
 #, fuzzy
 msgid "Save response as note on highlighted text"
 msgstr "Зберегти відповідь як нотатку на виділеному тексті"
 
-#: koassistant_chatgptviewer.lua:1103
+#: koassistant_chatgptviewer.lua:1123
 #, fuzzy
 msgid "Add to Notebook"
 msgstr "Додати до нотатника"
 
-#: koassistant_chatgptviewer.lua:1113
+#: koassistant_chatgptviewer.lua:1133
 #, fuzzy
 msgid "Append chat to per-book notebook file"
 msgstr "Додати чат до файлу нотатника книги"
 
-#: koassistant_chatgptviewer.lua:1126
+#: koassistant_chatgptviewer.lua:1146
 #, fuzzy
 msgid "Tag function not available"
 msgstr "Функція тегів недоступна"
 
-#: koassistant_chatgptviewer.lua:1133
+#: koassistant_chatgptviewer.lua:1153
 #, fuzzy
 msgid "Add or manage tags for this chat"
 msgstr "Додати або керувати тегами для цього чату"
 
-#: koassistant_chatgptviewer.lua:1151
+#: koassistant_chatgptviewer.lua:1171
 #, fuzzy
 msgid "Export chat to file or clipboard"
 msgstr "Експортувати чат у файл або буфер обміну"
 
-#: koassistant_chatgptviewer.lua:1162
+#: koassistant_chatgptviewer.lua:1182
 #, fuzzy
 msgid "↻ Fresh"
 msgstr "↻ Оновити"
 
-#: koassistant_chatgptviewer.lua:1169
+#: koassistant_chatgptviewer.lua:1189
 #, fuzzy
 msgid "Clear cache and regenerate from scratch (extracts all book text again)"
 msgstr "Очистити кеш і регенерувати з нуля (знову витягує весь текст книги)"
 
-#: koassistant_chatgptviewer.lua:1193 koassistant_ui/prompts_manager.lua:2120
+#: koassistant_chatgptviewer.lua:1213 koassistant_ui/prompts_manager.lua:2120
 #, fuzzy
 msgid "ON"
 msgstr "УВІМК"
 
-#: koassistant_chatgptviewer.lua:1193 koassistant_ui/prompts_manager.lua:2112
+#: koassistant_chatgptviewer.lua:1213 koassistant_ui/prompts_manager.lua:2112
 #: koassistant_ui/prompts_manager.lua:2201
 #: koassistant_ui/prompts_manager.lua:2280
 #: koassistant_ui/prompts_manager.lua:2353
@@ -754,250 +759,250 @@ msgstr "УВІМК"
 msgid "OFF"
 msgstr "ВИМК"
 
-#: koassistant_chatgptviewer.lua:1224
+#: koassistant_chatgptviewer.lua:1244
 #, fuzzy
 msgid "Toggle web search for this session (Anthropic, Gemini)"
 msgstr "Перемкнути веб-пошук для цієї сесії (Anthropic, Gemini)"
 
-#: koassistant_chatgptviewer.lua:1244 koassistant_chatgptviewer.lua:1463
-#: koassistant_chatgptviewer.lua:1869
+#: koassistant_chatgptviewer.lua:1264 koassistant_chatgptviewer.lua:1483
+#: koassistant_chatgptviewer.lua:1889
 #, fuzzy
 msgid "Toggle between markdown and plain text display"
 msgstr "Перемкнути між відображенням markdown і простого тексту"
 
-#: koassistant_chatgptviewer.lua:1259
+#: koassistant_chatgptviewer.lua:1279
 #, fuzzy
 msgid "Toggle debug display in chat viewer"
 msgstr "Перемкнути відображення налагодження у переглядачі чату"
 
-#: koassistant_chatgptviewer.lua:1266 koassistant_chatgptviewer.lua:3635
+#: koassistant_chatgptviewer.lua:1286 koassistant_chatgptviewer.lua:3659
 #, fuzzy
 msgid "Show Quote"
 msgstr "Показати цитату"
 
-#: koassistant_chatgptviewer.lua:1266 koassistant_chatgptviewer.lua:3635
+#: koassistant_chatgptviewer.lua:1286 koassistant_chatgptviewer.lua:3659
 #, fuzzy
 msgid "Hide Quote"
 msgstr "Сховати цитату"
 
-#: koassistant_chatgptviewer.lua:1278
+#: koassistant_chatgptviewer.lua:1298
 #, fuzzy
 msgid "Toggle highlighted text display in chat"
 msgstr "Перемкнути відображення виділеного тексту в чаті"
 
-#: koassistant_chatgptviewer.lua:1284
+#: koassistant_chatgptviewer.lua:1304
 #, fuzzy
 msgid "Show Reasoning"
 msgstr "Показати міркування"
 
-#: koassistant_chatgptviewer.lua:1294
+#: koassistant_chatgptviewer.lua:1314
 #, fuzzy
 msgid "View AI reasoning/thinking content (when available)"
 msgstr "Переглянути міркування/роздуми AI (коли доступно)"
 
-#: koassistant_chatgptviewer.lua:1477
+#: koassistant_chatgptviewer.lua:1497
 #, fuzzy
 msgid "No response to copy"
 msgstr "Немає відповіді для копіювання"
 
-#: koassistant_chatgptviewer.lua:1516
+#: koassistant_chatgptviewer.lua:1536
 #, fuzzy
 msgid "+Note"
 msgstr "+Нотатка"
 
-#: koassistant_chatgptviewer.lua:1525
+#: koassistant_chatgptviewer.lua:1545
 #, fuzzy
 msgid "Save AI response as note on highlighted word"
 msgstr "Зберегти відповідь AI як нотатку до виділеного слова"
 
-#: koassistant_chatgptviewer.lua:1526
+#: koassistant_chatgptviewer.lua:1546
 #, fuzzy
 msgid "No selection data available (word position not captured)"
 msgstr "Дані виділення недоступні (позиція слова не зафіксована)"
 
-#: koassistant_chatgptviewer.lua:1534
+#: koassistant_chatgptviewer.lua:1554
 #, fuzzy
 msgid "Wiki"
 msgstr "Вікі"
 
-#: koassistant_chatgptviewer.lua:1545
+#: koassistant_chatgptviewer.lua:1565
 #, fuzzy
 msgid "Wikipedia not available"
 msgstr "Wikipedia недоступна"
 
-#: koassistant_chatgptviewer.lua:1551
+#: koassistant_chatgptviewer.lua:1571
 #, fuzzy
 msgid "No word to look up"
 msgstr "Немає слова для пошуку"
 
-#: koassistant_chatgptviewer.lua:1558
+#: koassistant_chatgptviewer.lua:1578
 #, fuzzy
 msgid "Look up word in Wikipedia"
 msgstr "Знайти слово у Wikipedia"
 
-#: koassistant_chatgptviewer.lua:1569 koassistant_chatgptviewer.lua:1599
+#: koassistant_chatgptviewer.lua:1589 koassistant_chatgptviewer.lua:1619
 #, fuzzy
 msgid "Added"
 msgstr "Додано"
 
-#: koassistant_chatgptviewer.lua:1574
+#: koassistant_chatgptviewer.lua:1594
 #, fuzzy
 msgid "Word added to vocabulary builder"
 msgstr "Слово додано до конструктора словника"
 
-#: koassistant_chatgptviewer.lua:1581
+#: koassistant_chatgptviewer.lua:1601
 #, fuzzy
 msgid "+Vocab"
 msgstr "+Словник"
 
-#: koassistant_chatgptviewer.lua:1589 main.lua:6038
+#: koassistant_chatgptviewer.lua:1609 main.lua:6040
 #, fuzzy
 msgid "AI Dictionary lookup"
 msgstr "Пошук у словнику AI"
 
-#: koassistant_chatgptviewer.lua:1594
+#: koassistant_chatgptviewer.lua:1614
 #, fuzzy
 msgid "Added '%1' to vocabulary"
 msgstr "Додано '%1' до словника"
 
-#: koassistant_chatgptviewer.lua:1607
+#: koassistant_chatgptviewer.lua:1627
 #, fuzzy
 msgid "Vocabulary builder not available"
 msgstr "Конструктор словника недоступний"
 
-#: koassistant_chatgptviewer.lua:1615
+#: koassistant_chatgptviewer.lua:1635
 #, fuzzy
 msgid "Add word to vocabulary builder"
 msgstr "Додати слово до конструктора словника"
 
-#: koassistant_chatgptviewer.lua:1624
+#: koassistant_chatgptviewer.lua:1644
 #, fuzzy
 msgid "Expand"
 msgstr "Розгорнути"
 
-#: koassistant_chatgptviewer.lua:1631
+#: koassistant_chatgptviewer.lua:1651
 #, fuzzy
 msgid "Open in full-size viewer with all options"
 msgstr "Відкрити у повнорозмірному переглядачі з усіма опціями"
 
-#: koassistant_chatgptviewer.lua:1641 koassistant_chatgptviewer.lua:1974
+#: koassistant_chatgptviewer.lua:1661 koassistant_chatgptviewer.lua:1994
 #: koassistant_settings_schema.lua:973
 #, fuzzy
 msgid "Language"
 msgstr "Мова"
 
-#: koassistant_chatgptviewer.lua:1650 koassistant_chatgptviewer.lua:1983
+#: koassistant_chatgptviewer.lua:1670 koassistant_chatgptviewer.lua:2003
 #, fuzzy
 msgid "Configure languages in Settings first"
 msgstr "Спочатку налаштуйте мови в Налаштуваннях"
 
-#: koassistant_chatgptviewer.lua:1691 koassistant_settings_schema.lua:987
-#: main.lua:4895 main.lua:5654
+#: koassistant_chatgptviewer.lua:1711 koassistant_settings_schema.lua:987
+#: main.lua:4896 main.lua:5655
 #, fuzzy
 msgid "Dictionary Language"
 msgstr "Мова словника"
 
-#: koassistant_chatgptviewer.lua:1698
+#: koassistant_chatgptviewer.lua:1718
 #, fuzzy
 msgid "Re-run with a different dictionary language"
 msgstr "Повторити з іншою мовою словника"
 
-#: koassistant_chatgptviewer.lua:1710
+#: koassistant_chatgptviewer.lua:1730
 #, fuzzy
 msgid "Ctx: ON"
 msgstr "Ктх: УВМ"
 
-#: koassistant_chatgptviewer.lua:1710
+#: koassistant_chatgptviewer.lua:1730
 #, fuzzy
 msgid "Ctx: OFF"
 msgstr "Ктх: ВИМ"
 
-#: koassistant_chatgptviewer.lua:1753
+#: koassistant_chatgptviewer.lua:1773
 #, fuzzy
 msgid "Re-run without surrounding context"
 msgstr "Повторити без навколишнього контексту"
 
-#: koassistant_chatgptviewer.lua:1753
+#: koassistant_chatgptviewer.lua:1773
 #, fuzzy
 msgid "Re-run with surrounding context"
 msgstr "Повторити з навколишнім контекстом"
 
-#: koassistant_chatgptviewer.lua:1828
+#: koassistant_chatgptviewer.lua:1848
 #, fuzzy
 msgid "Dictionary Action"
 msgstr "Дія словника"
 
-#: koassistant_chatgptviewer.lua:1836
+#: koassistant_chatgptviewer.lua:1856
 #, fuzzy
 msgid "Switch to a different dictionary action"
 msgstr "Перемкнути на іншу дію словника"
 
-#: koassistant_chatgptviewer.lua:1837
+#: koassistant_chatgptviewer.lua:1857
 #, fuzzy
 msgid "No other dictionary actions available"
 msgstr "Немає інших дій словника"
 
-#: koassistant_chatgptviewer.lua:1883
+#: koassistant_chatgptviewer.lua:1903
 #, fuzzy
 msgid "No translation to copy"
 msgstr "Немає перекладу для копіювання"
 
-#: koassistant_chatgptviewer.lua:1930
+#: koassistant_chatgptviewer.lua:1950
 #, fuzzy
 msgid "Save translation as note on highlighted text"
 msgstr "Зберегти переклад як нотатку до виділеного тексту"
 
-#: koassistant_chatgptviewer.lua:1938
+#: koassistant_chatgptviewer.lua:1958
 #, fuzzy
 msgid "→ Chat"
 msgstr "→ Чат"
 
-#: koassistant_chatgptviewer.lua:1945
+#: koassistant_chatgptviewer.lua:1965
 #, fuzzy
 msgid "Open full chat with all options"
 msgstr "Відкрити повний чат з усіма опціями"
 
-#: koassistant_chatgptviewer.lua:1955 koassistant_chatgptviewer.lua:3526
+#: koassistant_chatgptviewer.lua:1975 koassistant_chatgptviewer.lua:3550
 #, fuzzy
 msgid "Show Original"
 msgstr "Показати оригінал"
 
-#: koassistant_chatgptviewer.lua:1955 koassistant_chatgptviewer.lua:3526
+#: koassistant_chatgptviewer.lua:1975 koassistant_chatgptviewer.lua:3550
 #, fuzzy
 msgid "Hide Original"
 msgstr "Сховати оригінал"
 
-#: koassistant_chatgptviewer.lua:1964
+#: koassistant_chatgptviewer.lua:1984
 #, fuzzy
 msgid "Show the original text"
 msgstr "Показати оригінальний текст"
 
-#: koassistant_chatgptviewer.lua:1964
+#: koassistant_chatgptviewer.lua:1984
 #, fuzzy
 msgid "Hide the original text"
 msgstr "Приховати оригінальний текст"
 
-#: koassistant_chatgptviewer.lua:2026
+#: koassistant_chatgptviewer.lua:2046
 #, fuzzy
 msgid "Translate To"
 msgstr "Перекласти на"
 
-#: koassistant_chatgptviewer.lua:2033
+#: koassistant_chatgptviewer.lua:2053
 #, fuzzy
 msgid "Re-run translation with a different target language"
 msgstr "Повторити переклад з іншою мовою призначення"
 
-#: koassistant_chatgptviewer.lua:2066
+#: koassistant_chatgptviewer.lua:2086
 #, fuzzy
 msgid "Copied to clipboard"
 msgstr "Скопійовано в буфер обміну"
 
-#: koassistant_chatgptviewer.lua:2134 koassistant_chatgptviewer.lua:2140
+#: koassistant_chatgptviewer.lua:2154 koassistant_chatgptviewer.lua:2160
 #, fuzzy
 msgid "Regenerate"
 msgstr "Регенерувати"
 
-#: koassistant_chatgptviewer.lua:2139
+#: koassistant_chatgptviewer.lua:2159
 #, fuzzy
 msgid ""
 "Regenerate this summary?\n"
@@ -1008,7 +1013,7 @@ msgstr ""
 "\n"
 "Поточне резюме буде замінено."
 
-#: koassistant_chatgptviewer.lua:2157
+#: koassistant_chatgptviewer.lua:2177
 #, fuzzy
 msgid ""
 "Delete this summary?\n"
@@ -1019,235 +1024,237 @@ msgstr ""
 "\n"
 "Ви зможете регенерувати його пізніше."
 
-#: koassistant_chatgptviewer.lua:2347
+#: koassistant_chatgptviewer.lua:2367
 #, fuzzy
 msgid "Type your reply..."
 msgstr "Введіть вашу відповідь..."
 
-#: koassistant_chatgptviewer.lua:2372
+#: koassistant_chatgptviewer.lua:2392
 #, fuzzy
 msgid "Send"
 msgstr "Надіслати"
 
-#: koassistant_chatgptviewer.lua:2776
+#: koassistant_chatgptviewer.lua:2796
 #, fuzzy
 msgid "Copied to clipboard."
 msgstr "Скопійовано в буфер обміну."
 
-#: koassistant_chatgptviewer.lua:2995
+#: koassistant_chatgptviewer.lua:3019
 #, fuzzy
 msgid "No highlight selection data available"
 msgstr "Дані виділення недоступні"
 
-#: koassistant_chatgptviewer.lua:3006 main.lua:5502
+#: koassistant_chatgptviewer.lua:3030 main.lua:5503
 #, fuzzy
 msgid "No document open"
 msgstr "Документ не відкрито"
 
-#: koassistant_chatgptviewer.lua:3015 koassistant_chatgptviewer.lua:3054
-#: koassistant_chatgptviewer.lua:3110
+#: koassistant_chatgptviewer.lua:3039 koassistant_chatgptviewer.lua:3078
+#: koassistant_chatgptviewer.lua:3134
 #, fuzzy
 msgid "No response to save"
 msgstr "Немає відповіді для збереження"
 
-#: koassistant_chatgptviewer.lua:3077
+#: koassistant_chatgptviewer.lua:3101
 #, fuzzy
 msgid "Failed to create highlight"
 msgstr "Не вдалося створити виділення"
 
-#: koassistant_chatgptviewer.lua:3088 koassistant_settings_schema.lua:359
+#: koassistant_chatgptviewer.lua:3112 koassistant_settings_schema.lua:359
 #: koassistant_settings_schema.lua:592 koassistant_settings_schema.lua:744
 #, fuzzy
 msgid "Note Content"
 msgstr "Вміст нотатки"
 
-#: koassistant_chatgptviewer.lua:3101
+#: koassistant_chatgptviewer.lua:3125
 #, fuzzy
 msgid "Notebooks are only available for single-book chats"
 msgstr "Записники доступні лише для чатів з однією книгою"
 
-#: koassistant_chatgptviewer.lua:3140
+#: koassistant_chatgptviewer.lua:3164
 #, fuzzy
 msgid "Saved to notebook"
 msgstr "Збережено в записник"
 
-#: koassistant_chatgptviewer.lua:3145
+#: koassistant_chatgptviewer.lua:3169
 #, fuzzy
 msgid "Failed to save: "
 msgstr "Не вдалося зберегти:"
 
-#: koassistant_chatgptviewer.lua:3156
+#: koassistant_chatgptviewer.lua:3180
 #, fuzzy
 msgid "No cached action to clear"
 msgstr "Немає кешованої дії для очищення"
 
-#: koassistant_chatgptviewer.lua:3165
+#: koassistant_chatgptviewer.lua:3189
 #, fuzzy
 msgid "Cache only applies to book actions"
 msgstr "Кеш застосовується лише до дій з книгою"
 
-#: koassistant_chatgptviewer.lua:3177
+#: koassistant_chatgptviewer.lua:3201
 #, fuzzy
 msgid "Regenerate Fresh"
 msgstr "Регенерувати заново"
 
-#: koassistant_chatgptviewer.lua:3178
+#: koassistant_chatgptviewer.lua:3202
 #, fuzzy
 msgid ""
 "This response was updated from a cached analysis at %1.\n"
 "\n"
-"Clearing the cache will extract and send all book text again on next run, which uses more tokens.\n"
+"Clearing the cache will extract and send all book text again on next run, "
+"which uses more tokens.\n"
 "\n"
 "Clear cache for this action?"
 msgstr ""
 "Ця відповідь була оновлена з кешованого аналізу о %1.\n"
 "\n"
-"Очищення кешу призведе до повторного витягування та надсилання всього тексту книги при наступному запуску, що використає більше токенів.\n"
+"Очищення кешу призведе до повторного витягування та надсилання всього тексту "
+"книги при наступному запуску, що використає більше токенів.\n"
 "\n"
 "Очистити кеш для цієї дії?"
 
-#: koassistant_chatgptviewer.lua:3188
+#: koassistant_chatgptviewer.lua:3212
 #, fuzzy
 msgid "Clear & Close"
 msgstr "Очистити та закрити"
 
-#: koassistant_chatgptviewer.lua:3197
+#: koassistant_chatgptviewer.lua:3221
 #, fuzzy
 msgid "Cache cleared. Run the action again for fresh analysis."
 msgstr "Кеш очищено. Запустіть дію знову для свіжого аналізу."
 
-#: koassistant_chatgptviewer.lua:3204
+#: koassistant_chatgptviewer.lua:3228
 #, fuzzy
 msgid "Failed to clear cache"
 msgstr "Не вдалося очистити кеш"
 
-#: koassistant_chatgptviewer.lua:3210
+#: koassistant_chatgptviewer.lua:3234
 #, fuzzy
 msgid "Cache module not available"
 msgstr "Модуль кешу недоступний"
 
-#: koassistant_chatgptviewer.lua:3227
+#: koassistant_chatgptviewer.lua:3251
 #, fuzzy
 msgid "No chat to export"
 msgstr "Немає чату для експорту"
 
-#: koassistant_chatgptviewer.lua:3287
+#: koassistant_chatgptviewer.lua:3311
 #, fuzzy
 msgid "No content to export"
 msgstr "Немає вмісту для експорту"
 
-#: koassistant_chatgptviewer.lua:3395
+#: koassistant_chatgptviewer.lua:3419
 #, fuzzy
 msgid "No export metadata available."
 msgstr "Метадані експорту недоступні."
 
-#: koassistant_chatgptviewer.lua:3418
+#: koassistant_chatgptviewer.lua:3442
 #, fuzzy
 msgid "Select export folder"
 msgstr "Виберіть папку для експорту"
 
-#: koassistant_chatgptviewer.lua:3442
+#: koassistant_chatgptviewer.lua:3466
 #, fuzzy
 msgid "Saved to %1"
 msgstr "Збережено до %1"
 
-#: koassistant_chatgptviewer.lua:3447
+#: koassistant_chatgptviewer.lua:3471
 #, fuzzy
 msgid "Export failed: %1"
 msgstr "Помилка експорту: %1"
 
-#: koassistant_chatgptviewer.lua:3590
+#: koassistant_chatgptviewer.lua:3614
 #, fuzzy
 msgid "Showing debug info"
 msgstr "Показано налагоджувальну інформацію"
 
-#: koassistant_chatgptviewer.lua:3590
+#: koassistant_chatgptviewer.lua:3614
 #, fuzzy
 msgid "Debug info hidden"
 msgstr "Налагоджувальну інформацію приховано"
 
-#: koassistant_chatgptviewer.lua:3640
+#: koassistant_chatgptviewer.lua:3664
 #, fuzzy
 msgid "Quote hidden"
 msgstr "Цитату приховано"
 
-#: koassistant_chatgptviewer.lua:3640
+#: koassistant_chatgptviewer.lua:3664
 #, fuzzy
 msgid "Quote shown"
 msgstr "Цитату показано"
 
-#: koassistant_chatgptviewer.lua:3664
+#: koassistant_chatgptviewer.lua:3688
 #, fuzzy
 msgid "No conversation history available"
 msgstr "Історія розмови недоступна"
 
-#: koassistant_chatgptviewer.lua:3673
+#: koassistant_chatgptviewer.lua:3697
 #, fuzzy
 msgid "No reasoning content available"
 msgstr "Вміст міркувань недоступний"
 
-#: koassistant_chatgptviewer.lua:3702
+#: koassistant_chatgptviewer.lua:3726
 #, fuzzy
 msgid "AI Reasoning"
 msgstr "Міркування AI"
 
-#: koassistant_chatgptviewer.lua:3702
+#: koassistant_chatgptviewer.lua:3726
 #, fuzzy
 msgid "Reasoning Status"
 msgstr "Статус міркувань"
 
-#: koassistant_chatgptviewer.lua:3814
+#: koassistant_chatgptviewer.lua:3838
 #, fuzzy
 msgid "Justified"
 msgstr "По ширині"
 
-#: koassistant_chatgptviewer.lua:3815
+#: koassistant_chatgptviewer.lua:3839
 #, fuzzy
 msgid "Right (RTL)"
 msgstr "Праворуч (RTL)"
 
-#: koassistant_chatgptviewer.lua:3816
+#: koassistant_chatgptviewer.lua:3840
 #, fuzzy
 msgid "Left"
 msgstr "Ліворуч"
 
-#: koassistant_chatgptviewer.lua:3824
+#: koassistant_chatgptviewer.lua:3848
 #, fuzzy
 msgid "Chat Viewer Settings"
 msgstr "Налаштування переглядача чату"
 
-#: koassistant_chatgptviewer.lua:3828 koassistant_chatgptviewer.lua:3890
+#: koassistant_chatgptviewer.lua:3852 koassistant_chatgptviewer.lua:3914
 #, fuzzy
 msgid "Font Size"
 msgstr "Розмір шрифту"
 
-#: koassistant_chatgptviewer.lua:3837
+#: koassistant_chatgptviewer.lua:3861
 #, fuzzy
 msgid "Alignment"
 msgstr "Вирівнювання"
 
-#: koassistant_chatgptviewer.lua:3856
+#: koassistant_chatgptviewer.lua:3880
 #, fuzzy
 msgid "Alignment: %1"
 msgstr "Вирівнювання: %1"
 
-#: koassistant_chatgptviewer.lua:3867 koassistant_settings_schema.lua:1451
+#: koassistant_chatgptviewer.lua:3891 koassistant_settings_schema.lua:1451
 #, fuzzy
 msgid "Reset to Defaults"
 msgstr "Скинути до типових"
 
-#: koassistant_chatgptviewer.lua:3896 main.lua:4810
+#: koassistant_chatgptviewer.lua:3920 main.lua:4811
 #: koassistant_ui/settings_manager.lua:298
 #, fuzzy
 msgid "Set"
 msgstr "Встановити"
 
-#: koassistant_chatgptviewer.lua:3912
+#: koassistant_chatgptviewer.lua:3936
 #, fuzzy
 msgid "Font size set to %1"
 msgstr "Розмір шрифту встановлено на %1"
 
-#: koassistant_chatgptviewer.lua:3939 main.lua:6651
+#: koassistant_chatgptviewer.lua:3963 main.lua:6653
 #, fuzzy
 msgid "Settings reset to defaults"
 msgstr "Налаштування скинуто до типових"
@@ -1268,32 +1275,32 @@ msgid "Edit Notebook"
 msgstr "Редагувати нотатник"
 
 #: koassistant_constants.lua:124 koassistant_settings_schema.lua:889
-#: koassistant_settings_schema.lua:1029 main.lua:4973
+#: koassistant_settings_schema.lua:1029 main.lua:4974
 #, fuzzy
 msgid "Continue Last Chat"
 msgstr "Продовжити останній чат"
 
 #: koassistant_constants.lua:125 koassistant_settings_schema.lua:890
-#: koassistant_settings_schema.lua:1036 main.lua:4985
+#: koassistant_settings_schema.lua:1036 main.lua:4986
 #, fuzzy
 msgid "New Book Chat/Action"
 msgstr "Новий чат/дія про книгу"
 
 #: koassistant_constants.lua:126 koassistant_settings_schema.lua:40
 #: koassistant_settings_schema.lua:891 koassistant_settings_schema.lua:1022
-#: main.lua:4961
+#: main.lua:4962
 #, fuzzy
 msgid "General Chat/Action"
 msgstr "Загальний чат/дія"
 
-#: koassistant_constants.lua:128 koassistant_settings_schema.lua:893
-#: main.lua:397 main.lua:4015 main.lua:5142
+#: koassistant_constants.lua:128 koassistant_dialogs.lua:2856
+#: koassistant_settings_schema.lua:893 main.lua:397 main.lua:4016 main.lua:5143
 #, fuzzy
 msgid "View Artifacts"
 msgstr "Переглянути артефакти"
 
 #: koassistant_constants.lua:129 koassistant_settings_schema.lua:894
-#: main.lua:5053
+#: main.lua:5054
 #, fuzzy
 msgid "Quick Settings"
 msgstr "Швидкі налаштування"
@@ -1348,7 +1355,7 @@ msgstr "Неможливо додати тег: немає контексту д
 msgid "Could not find summary action. Please try again."
 msgstr "Не вдалося знайти дію резюме. Спробуйте ще раз."
 
-#: koassistant_dialogs.lua:1849 main.lua:4270
+#: koassistant_dialogs.lua:1849 main.lua:4271
 #, fuzzy
 msgid "Generating document summary..."
 msgstr "Генерація резюме документа..."
@@ -1375,7 +1382,7 @@ msgstr ""
 "• Обробляє до ліміту символів\n"
 "• Охоплення показано у переглядачі кешу"
 
-#: koassistant_dialogs.lua:1925 main.lua:4293
+#: koassistant_dialogs.lua:1925 main.lua:4294
 #, fuzzy
 msgid "Generate"
 msgstr "Згенерувати"
@@ -1384,23 +1391,31 @@ msgstr "Згенерувати"
 #, fuzzy
 msgid ""
 "Book text truncated (covers %1 %–%2 %). Increase limit in Advanced Settings."
-msgstr "Текст книги обрізано (охоплює %1 %–%2 %). Збільште ліміт у розширених налаштуваннях."
+msgstr ""
+"Текст книги обрізано (охоплює %1 %–%2 %). Збільште ліміт у розширених "
+"налаштуваннях."
 
 #: koassistant_dialogs.lua:2189
 #, fuzzy
 msgid ""
-"Full document text truncated (covers %1 %–%2 %). Increase limit in Advanced Settings."
-msgstr "Повний текст документа обрізано (охоплює %1 %–%2 %). Збільште ліміт у розширених налаштуваннях."
+"Full document text truncated (covers %1 %–%2 %). Increase limit in Advanced "
+"Settings."
+msgstr ""
+"Повний текст документа обрізано (охоплює %1 %–%2 %). Збільште ліміт у "
+"розширених налаштуваннях."
 
 #: koassistant_dialogs.lua:2268
 #, fuzzy
 msgid ""
-"New content truncated (covers %1 %–%2 %). Increase limit in Advanced Settings."
-msgstr "Новий вміст обрізано (охоплює %1 %–%2 %). Збільште ліміт у розширених налаштуваннях."
+"New content truncated (covers %1 %–%2 %). Increase limit in Advanced "
+"Settings."
+msgstr ""
+"Новий вміст обрізано (охоплює %1 %–%2 %). Збільште ліміт у розширених "
+"налаштуваннях."
 
 #: koassistant_dialogs.lua:2536 koassistant_dialogs.lua:2600
-#: koassistant_settings_schema.lua:544 main.lua:3513 main.lua:4687
-#: main.lua:5357 koassistant_ui/prompts_manager.lua:1515
+#: koassistant_settings_schema.lua:544 main.lua:3513 main.lua:4688
+#: main.lua:5358 koassistant_ui/prompts_manager.lua:1515
 #: koassistant_ui/prompts_manager.lua:2674
 #: koassistant_ui/prompts_manager.lua:3392
 #, fuzzy
@@ -1427,7 +1442,7 @@ msgstr "Запитати"
 msgid "Chat"
 msgstr "Чат"
 
-#: koassistant_dialogs.lua:2748 koassistant_dialogs.lua:3031
+#: koassistant_dialogs.lua:2748 koassistant_dialogs.lua:3045
 #, fuzzy
 msgid "Error: "
 msgstr "Помилка:"
@@ -1437,42 +1452,47 @@ msgstr "Помилка:"
 msgid "Error handling prompt: "
 msgstr "Помилка обробки запиту:"
 
-#: koassistant_dialogs.lua:2833 main.lua:5126
+#: koassistant_dialogs.lua:2836 main.lua:360 main.lua:3970 main.lua:4151
 #, fuzzy
-msgid "View Summary"
-msgstr "Переглянути резюме"
+msgid "Summary"
+msgstr "Резюме"
 
-#: koassistant_dialogs.lua:2842 main.lua:5126
+#: koassistant_dialogs.lua:2840 main.lua:364 main.lua:3978
 #, fuzzy
-msgid "Generate Summary"
-msgstr "Згенерувати резюме"
+msgid "Analysis"
+msgstr "Аналіз"
 
-#: koassistant_dialogs.lua:2870
+#: koassistant_dialogs.lua:2847 koassistant_notebook_manager.lua:121
+#, fuzzy
+msgid "View"
+msgstr "Переглянути"
+
+#: koassistant_dialogs.lua:2884
 #, fuzzy
 msgid "KOAssistant Actions"
 msgstr "Дії KOAssistant"
 
-#: koassistant_dialogs.lua:2872
+#: koassistant_dialogs.lua:2886
 #, fuzzy
 msgid "Type your question or additional instructions for any action..."
 msgstr "Введіть своє запитання або додаткові інструкції для будь-якої дії..."
 
-#: koassistant_dialogs.lua:2930
+#: koassistant_dialogs.lua:2944
 #, fuzzy
 msgid "Unknown prompt type: "
 msgstr "Невідомий тип запиту:"
 
-#: koassistant_dialogs.lua:2956
+#: koassistant_dialogs.lua:2970
 #, fuzzy
 msgid "Error: No action specified"
 msgstr "Помилка: дію не вказано"
 
-#: koassistant_dialogs.lua:3069
+#: koassistant_dialogs.lua:3083
 #, fuzzy
 msgid "Failed to extract document text"
 msgstr "Не вдалося витягти текст документа"
 
-#: koassistant_dialogs.lua:3089
+#: koassistant_dialogs.lua:3103
 #, fuzzy
 msgid ""
 "Text extraction is disabled.\n"
@@ -1483,7 +1503,7 @@ msgstr ""
 "\n"
 "Увімкніть його в Налаштування → Конфіденційність і дані → Витягування тексту."
 
-#: koassistant_dialogs.lua:3090
+#: koassistant_dialogs.lua:3104
 #, fuzzy
 msgid ""
 "No document text could be extracted.\n"
@@ -1494,7 +1514,7 @@ msgstr ""
 "\n"
 "Цей документ може не підтримувати витягування тексту."
 
-#: koassistant_dialogs.lua:3168
+#: koassistant_dialogs.lua:3182
 #, fuzzy
 msgid "Failed to generate summary"
 msgstr "Не вдалося згенерувати резюме"
@@ -1514,21 +1534,18 @@ msgstr "Не вдалося запустити підпроцес для зап�
 msgid ""
 "No notebooks yet.\n"
 "\n"
-"Use the NB button in chat viewer to save conversations to a per-book notebook."
+"Use the NB button in chat viewer to save conversations to a per-book "
+"notebook."
 msgstr ""
 "Нотатників ще немає.\n"
 "\n"
-"Використовуйте кнопку NB у переглядачі чату, щоб зберігати розмови в нотатник для кожної книги."
+"Використовуйте кнопку NB у переглядачі чату, щоб зберігати розмови в "
+"нотатник для кожної книги."
 
 #: koassistant_notebook_manager.lua:89 koassistant_settings_schema.lua:1109
 #, fuzzy
 msgid "Notebooks"
 msgstr "Нотатники"
-
-#: koassistant_notebook_manager.lua:121
-#, fuzzy
-msgid "View"
-msgstr "Переглянути"
 
 #: koassistant_notebook_manager.lua:136 koassistant_ui/behavior_manager.lua:304
 #: koassistant_ui/domain_manager.lua:306
@@ -1553,7 +1570,7 @@ msgid "Chat about Book"
 msgstr "Чат про книгу"
 
 #: koassistant_settings_schema.lua:52 koassistant_settings_schema.lua:1015
-#: main.lua:4949
+#: main.lua:4950
 #, fuzzy
 msgid "Browse Notebooks"
 msgstr "Переглянути нотатники"
@@ -1563,17 +1580,17 @@ msgstr "Переглянути нотатники"
 msgid "Reading Features"
 msgstr "Функції читання"
 
-#: koassistant_settings_schema.lua:77 main.lua:1809 main.lua:4748
+#: koassistant_settings_schema.lua:77 main.lua:1809 main.lua:4749
 #, fuzzy
 msgid "Provider: %1"
 msgstr "Провайдер: %1"
 
-#: koassistant_settings_schema.lua:85 main.lua:2382 main.lua:4761
+#: koassistant_settings_schema.lua:85 main.lua:2382 main.lua:4762
 #, fuzzy
 msgid "Model: %1"
 msgstr "Модель: %1"
 
-#: koassistant_settings_schema.lua:92 main.lua:7188 main.lua:7318
+#: koassistant_settings_schema.lua:92 main.lua:7190 main.lua:7320
 #, fuzzy
 msgid "API Keys"
 msgstr "API-ключі"
@@ -1601,8 +1618,11 @@ msgstr "Простий текст"
 #: koassistant_settings_schema.lua:112
 #, fuzzy
 msgid ""
-"Markdown renders formatting. Plain Text has better font support for Arabic/CJK."
-msgstr "Markdown відображає форматування. Простий текст має кращу підтримку шрифтів для арабської/CJK."
+"Markdown renders formatting. Plain Text has better font support for Arabic/"
+"CJK."
+msgstr ""
+"Markdown відображає форматування. Простий текст має кращу підтримку шрифтів "
+"для арабської/CJK."
 
 #: koassistant_settings_schema.lua:117
 #, fuzzy
@@ -1612,8 +1632,11 @@ msgstr "Текстовий режим для словника"
 #: koassistant_settings_schema.lua:120
 #, fuzzy
 msgid ""
-"Use Plain Text mode for dictionary popup. Better font support for non-Latin scripts."
-msgstr "Використовувати режим простого тексту для спливаючого словника. Краща підтримка шрифтів для нелатинських скриптів."
+"Use Plain Text mode for dictionary popup. Better font support for non-Latin "
+"scripts."
+msgstr ""
+"Використовувати режим простого тексту для спливаючого словника. Краща "
+"підтримка шрифтів для нелатинських скриптів."
 
 #: koassistant_settings_schema.lua:125
 #, fuzzy
@@ -1623,8 +1646,12 @@ msgstr "Текстовий режим для RTL-словника"
 #: koassistant_settings_schema.lua:132
 #, fuzzy
 msgid ""
-"Use Plain Text mode for dictionary popup when dictionary language is Arabic, Persian, or Urdu. Grayed out when Text Mode for Dictionary is enabled."
-msgstr "Використовувати режим простого тексту для спливаючого словника, коли мова словника арабська, перська або урду. Недоступно, коли ввімкнено текстовий режим для словника."
+"Use Plain Text mode for dictionary popup when dictionary language is Arabic, "
+"Persian, or Urdu. Grayed out when Text Mode for Dictionary is enabled."
+msgstr ""
+"Використовувати режим простого тексту для спливаючого словника, коли мова "
+"словника арабська, перська або урду. Недоступно, коли ввімкнено текстовий "
+"режим для словника."
 
 #: koassistant_settings_schema.lua:137
 #, fuzzy
@@ -1634,8 +1661,11 @@ msgstr "Текстовий режим для RTL-перекладу"
 #: koassistant_settings_schema.lua:140
 #, fuzzy
 msgid ""
-"Use Plain Text mode for translate popup when translation language is Arabic, Persian, or Urdu."
-msgstr "Використовувати режим простого тексту для спливаючого перекладу, коли мова перекладу арабська, перська або урду."
+"Use Plain Text mode for translate popup when translation language is Arabic, "
+"Persian, or Urdu."
+msgstr ""
+"Використовувати режим простого тексту для спливаючого перекладу, коли мова "
+"перекладу арабська, перська або урду."
 
 #: koassistant_settings_schema.lua:145
 #, fuzzy
@@ -1645,8 +1675,15 @@ msgstr "Авто RTL-режим для чату"
 #: koassistant_settings_schema.lua:152
 #, fuzzy
 msgid ""
-"Automatically detect RTL content and switch to RTL mode (right-aligned text + Plain Text). Activates when the latest response has more RTL than Latin characters. Disabling removes all automatic RTL adjustments. Grayed out when markdown is disabled."
-msgstr "Автоматично визначати RTL-вміст і перемикатися на RTL-режим (текст вирівняний праворуч + простий текст). Активується, коли остання відповідь містить більше RTL-символів, ніж латинських. Вимкнення видаляє всі автоматичні RTL-налаштування. Недоступно, коли markdown вимкнено."
+"Automatically detect RTL content and switch to RTL mode (right-aligned text "
+"+ Plain Text). Activates when the latest response has more RTL than Latin "
+"characters. Disabling removes all automatic RTL adjustments. Grayed out when "
+"markdown is disabled."
+msgstr ""
+"Автоматично визначати RTL-вміст і перемикатися на RTL-режим (текст "
+"вирівняний праворуч + простий текст). Активується, коли остання відповідь "
+"містить більше RTL-символів, ніж латинських. Вимкнення видаляє всі "
+"автоматичні RTL-налаштування. Недоступно, коли markdown вимкнено."
 
 #: koassistant_settings_schema.lua:157
 #, fuzzy
@@ -1656,8 +1693,13 @@ msgstr "Увімкнути емодзі-іконки"
 #: koassistant_settings_schema.lua:160
 #, fuzzy
 msgid ""
-"Show emoji icons (🔍) in buttons and status indicators. Requires emoji font support in KOReader. Does not work on all devices. If icons appear as question marks, disable this option."
-msgstr "Показувати емодзі-іконки (🔍) на кнопках та індикаторах стану. Потребує підтримки шрифтів емодзі в KOReader. Працює не на всіх пристроях. Якщо іконки відображаються як знаки питання, вимкніть цю опцію."
+"Show emoji icons (🔍) in buttons and status indicators. Requires emoji font "
+"support in KOReader. Does not work on all devices. If icons appear as "
+"question marks, disable this option."
+msgstr ""
+"Показувати емодзі-іконки (🔍) на кнопках та індикаторах стану. Потребує "
+"підтримки шрифтів емодзі в KOReader. Працює не на всіх пристроях. Якщо "
+"іконки відображаються як знаки питання, вимкніть цю опцію."
 
 #: koassistant_settings_schema.lua:166
 #, fuzzy
@@ -1672,8 +1714,11 @@ msgstr "Застосовувати видалення Markdown"
 #: koassistant_settings_schema.lua:175
 #, fuzzy
 msgid ""
-"Convert markdown syntax to readable plain text (headers, lists, etc). Disable to show raw markdown."
-msgstr "Перетворювати синтаксис markdown на читабельний простий текст (заголовки, списки тощо). Вимкніть, щоб показувати необроблений markdown."
+"Convert markdown syntax to readable plain text (headers, lists, etc). "
+"Disable to show raw markdown."
+msgstr ""
+"Перетворювати синтаксис markdown на читабельний простий текст (заголовки, "
+"списки тощо). Вимкніть, щоб показувати необроблений markdown."
 
 #: koassistant_settings_schema.lua:182
 #, fuzzy
@@ -1698,8 +1743,11 @@ msgstr "Мова інтерфейсу плагіна"
 #: koassistant_settings_schema.lua:212
 #, fuzzy
 msgid ""
-"Language for plugin menus and dialogs. Does not affect AI responses. Requires restart."
-msgstr "Мова для меню та діалогів плагіна. Не впливає на відповіді AI. Потребує перезапуску."
+"Language for plugin menus and dialogs. Does not affect AI responses. "
+"Requires restart."
+msgstr ""
+"Мова для меню та діалогів плагіна. Не впливає на відповіді AI. Потребує "
+"перезапуску."
 
 #: koassistant_settings_schema.lua:214
 #, fuzzy
@@ -1778,8 +1826,12 @@ msgstr "Прокрутити до останнього повідомлення 
 #: koassistant_settings_schema.lua:325
 #, fuzzy
 msgid ""
-"When resuming or replying to a chat, try to scroll so your last question is visible. When off, shows top for new chats and bottom for replies."
-msgstr "Під час відновлення або відповіді на чат намагатися прокрутити так, щоб ваше останнє питання було видимим. Коли вимкнено, показує верх для нових чатів і низ для відповідей."
+"When resuming or replying to a chat, try to scroll so your last question is "
+"visible. When off, shows top for new chats and bottom for replies."
+msgstr ""
+"Під час відновлення або відповіді на чат намагатися прокрутити так, щоб ваше "
+"останнє питання було видимим. Коли вимкнено, показує верх для нових чатів і "
+"низ для відповідей."
 
 #: koassistant_settings_schema.lua:332
 #, fuzzy
@@ -1790,7 +1842,9 @@ msgstr "Стиль експорту"
 #, fuzzy
 msgid ""
 "Markdown uses # headers and **bold**. Plain text uses simple formatting."
-msgstr "Markdown використовує заголовки # і **жирний**. Простий текст використовує просте форматування."
+msgstr ""
+"Markdown використовує заголовки # і **жирний**. Простий текст використовує "
+"просте форматування."
 
 #: koassistant_settings_schema.lua:348 koassistant_settings_schema.lua:363
 #: koassistant_settings_schema.lua:379 koassistant_settings_schema.lua:398
@@ -1849,8 +1903,11 @@ msgstr "Власна папка"
 #: koassistant_settings_schema.lua:400
 #, fuzzy
 msgid ""
-"Where to save exported chat files. Creates subfolders for book/general/multi-book chats."
-msgstr "Куди зберігати експортовані файли чатів. Створює підпапки для книжкових/загальних/багатокнижкових чатів."
+"Where to save exported chat files. Creates subfolders for book/general/multi-"
+"book chats."
+msgstr ""
+"Куди зберігати експортовані файли чатів. Створює підпапки для книжкових/"
+"загальних/багатокнижкових чатів."
 
 #: koassistant_settings_schema.lua:411
 #, fuzzy
@@ -1875,8 +1932,11 @@ msgstr "Зберігати чати книги поруч з книгами"
 #: koassistant_settings_schema.lua:430
 #, fuzzy
 msgid ""
-"When enabled, book chats are saved to a 'chats' subfolder next to the book file instead of the central location."
-msgstr "Коли увімкнено, чати книги зберігаються в підтеці 'chats' поруч з файлом книги замість централізованого розташування."
+"When enabled, book chats are saved to a 'chats' subfolder next to the book "
+"file instead of the central location."
+msgstr ""
+"Коли увімкнено, чати книги зберігаються в підтеці 'chats' поруч з файлом "
+"книги замість централізованого розташування."
 
 #: koassistant_settings_schema.lua:435
 #, fuzzy
@@ -1886,7 +1946,9 @@ msgstr "Показувати експорт у переглядачі чатів
 #: koassistant_settings_schema.lua:438
 #, fuzzy
 msgid "Add Export button to the Chat Viewer (alongside Copy and Note)."
-msgstr "Додати кнопку експорту до переглядача чатів (поруч з копіюванням та нотатками)."
+msgstr ""
+"Додати кнопку експорту до переглядача чатів (поруч з копіюванням та "
+"нотатками)."
 
 #: koassistant_settings_schema.lua:447
 #, fuzzy
@@ -1981,8 +2043,11 @@ msgstr "Символів контексту"
 #: koassistant_settings_schema.lua:559
 #, fuzzy
 msgid ""
-"Number of characters to include before/after the word when Context Mode is 'Characters'"
-msgstr "Кількість символів до/після слова, коли режим контексту встановлено на 'Символи'"
+"Number of characters to include before/after the word when Context Mode is "
+"'Characters'"
+msgstr ""
+"Кількість символів до/після слова, коли режим контексту встановлено на "
+"'Символи'"
 
 #: koassistant_settings_schema.lua:568
 #, fuzzy
@@ -1992,8 +2057,13 @@ msgstr "Вимкнути автозбереження для словника"
 #: koassistant_settings_schema.lua:571
 #, fuzzy
 msgid ""
-"When enabled, dictionary lookups are not auto-saved. When disabled, dictionary chats follow your general chat saving settings. You can always save manually from an expanded view."
-msgstr "Коли увімкнено, пошук у словнику не зберігається автоматично. Коли вимкнено, чати словника слідують вашим загальним налаштуванням збереження чатів. Ви завжди можете зберегти вручну з розгорнутого перегляду."
+"When enabled, dictionary lookups are not auto-saved. When disabled, "
+"dictionary chats follow your general chat saving settings. You can always "
+"save manually from an expanded view."
+msgstr ""
+"Коли увімкнено, пошук у словнику не зберігається автоматично. Коли вимкнено, "
+"чати словника слідують вашим загальним налаштуванням збереження чатів. Ви "
+"завжди можете зберегти вручну з розгорнутого перегляду."
 
 #: koassistant_settings_schema.lua:580 koassistant_settings_schema.lua:596
 #: koassistant_settings_schema.lua:732 koassistant_settings_schema.lua:748
@@ -2020,8 +2090,11 @@ msgstr "Що включати при збереженні результатів
 #: koassistant_settings_schema.lua:611
 #, fuzzy
 msgid ""
-"Stream dictionary responses in real-time. Disable to wait for complete response."
-msgstr "Потокова передача відповідей словника в реальному часі. Вимкніть, щоб очікувати повну відповідь."
+"Stream dictionary responses in real-time. Disable to wait for complete "
+"response."
+msgstr ""
+"Потокова передача відповідей словника в реальному часі. Вимкніть, щоб "
+"очікувати повну відповідь."
 
 #: koassistant_settings_schema.lua:616
 #, fuzzy
@@ -2041,8 +2114,11 @@ msgstr "Обійти словник KOReader"
 #: koassistant_settings_schema.lua:626
 #, fuzzy
 msgid ""
-"Skip KOReader's dictionary and go directly to AI when tapping words. Can also be toggled via gesture."
-msgstr "Пропустити словник KOReader і перейти безпосередньо до AI при натисканні на слова. Також можна перемикати через жест."
+"Skip KOReader's dictionary and go directly to AI when tapping words. Can "
+"also be toggled via gesture."
+msgstr ""
+"Пропустити словник KOReader і перейти безпосередньо до AI при натисканні на "
+"слова. Також можна перемикати через жест."
 
 #: koassistant_settings_schema.lua:647 koassistant_settings_schema.lua:651
 #: koassistant_settings_schema.lua:653 koassistant_settings_schema.lua:833
@@ -2064,8 +2140,13 @@ msgstr "Обхід: слідувати автододаванню до конс�
 #: koassistant_settings_schema.lua:664
 #, fuzzy
 msgid ""
-"When enabled, dictionary bypass follows KOReader's Vocabulary Builder auto-add setting. Disable if you use bypass for analysis of words you already know and don't want them added."
-msgstr "Коли увімкнено, обхід словника слідує налаштуванню автододавання до конструктора словника KOReader. Вимкніть, якщо ви використовуєте обхід для аналізу слів, які вже знаєте, і не хочете їх додавати."
+"When enabled, dictionary bypass follows KOReader's Vocabulary Builder auto-"
+"add setting. Disable if you use bypass for analysis of words you already "
+"know and don't want them added."
+msgstr ""
+"Коли увімкнено, обхід словника слідує налаштуванню автододавання до "
+"конструктора словника KOReader. Вимкніть, якщо ви використовуєте обхід для "
+"аналізу слів, які вже знаєте, і не хочете їх додавати."
 
 #: koassistant_settings_schema.lua:673
 #, fuzzy
@@ -2080,8 +2161,11 @@ msgstr "Перекладати на основну мову"
 #: koassistant_settings_schema.lua:682
 #, fuzzy
 msgid ""
-"Use your primary language as the translation target. Disable to choose a different target."
-msgstr "Використовувати вашу основну мову як цільову для перекладу. Вимкніть, щоб вибрати іншу ціль."
+"Use your primary language as the translation target. Disable to choose a "
+"different target."
+msgstr ""
+"Використовувати вашу основну мову як цільову для перекладу. Вимкніть, щоб "
+"вибрати іншу ціль."
 
 #: koassistant_settings_schema.lua:702
 #, fuzzy
@@ -2096,7 +2180,8 @@ msgstr "Вимкнути автозбереження для перекладу"
 #: koassistant_settings_schema.lua:715
 #, fuzzy
 msgid "Translations are not auto-saved. Save manually via → Chat button."
-msgstr "Переклади не зберігаються автоматично. Зберігайте вручну через кнопку → Чат."
+msgstr ""
+"Переклади не зберігаються автоматично. Зберігайте вручну через кнопку → Чат."
 
 #: koassistant_settings_schema.lua:723
 #, fuzzy
@@ -2156,8 +2241,11 @@ msgstr "Поріг довгого тексту"
 #: koassistant_settings_schema.lua:792
 #, fuzzy
 msgid ""
-"Character count above which text is considered 'long'. Used when Original Text is set to 'Hide Long'."
-msgstr "Кількість символів, вище якої текст вважається «довгим». Використовується, коли для оригінального тексту встановлено «Приховувати довгий»."
+"Character count above which text is considered 'long'. Used when Original "
+"Text is set to 'Hide Long'."
+msgstr ""
+"Кількість символів, вище якої текст вважається «довгим». Використовується, "
+"коли для оригінального тексту встановлено «Приховувати довгий»."
 
 #: koassistant_settings_schema.lua:801
 #, fuzzy
@@ -2167,8 +2255,13 @@ msgstr "Приховувати для повносторінкового пер�
 #: koassistant_settings_schema.lua:804
 #, fuzzy
 msgid ""
-"Always hide original text for full page translations. Overrides all other visibility settings when enabled. Disable to use your normal Original Text setting above."
-msgstr "Завжди приховувати оригінальний текст для повносторінкових перекладів. Перевизначає всі інші налаштування видимості, коли увімкнено. Вимкніть, щоб використовувати звичайні налаштування оригінального тексту вище."
+"Always hide original text for full page translations. Overrides all other "
+"visibility settings when enabled. Disable to use your normal Original Text "
+"setting above."
+msgstr ""
+"Завжди приховувати оригінальний текст для повносторінкових перекладів. "
+"Перевизначає всі інші налаштування видимості, коли увімкнено. Вимкніть, щоб "
+"використовувати звичайні налаштування оригінального тексту вище."
 
 #: koassistant_settings_schema.lua:813
 #, fuzzy
@@ -2183,8 +2276,11 @@ msgstr "Увімкнути обхід підсвічування"
 #: koassistant_settings_schema.lua:821
 #, fuzzy
 msgid ""
-"Immediately trigger an action when text is selected, skipping the highlight menu. Can also be toggled via gesture."
-msgstr "Миттєво виконувати дію при виділенні тексту, пропускаючи меню підсвічування. Також можна перемикати через жести."
+"Immediately trigger an action when text is selected, skipping the highlight "
+"menu. Can also be toggled via gesture."
+msgstr ""
+"Миттєво виконувати дію при виділенні тексту, пропускаючи меню підсвічування. "
+"Також можна перемикати через жести."
 
 #: koassistant_settings_schema.lua:842
 #, fuzzy
@@ -2199,7 +2295,8 @@ msgstr "Дії меню підсвічування"
 #: koassistant_settings_schema.lua:849
 #, fuzzy
 msgid "Choose which actions appear in the highlight menu (requires restart)"
-msgstr "Виберіть дії, що з'являються в меню підсвічування (потребує перезапуску)"
+msgstr ""
+"Виберіть дії, що з'являються в меню підсвічування (потребує перезапуску)"
 
 #: koassistant_settings_schema.lua:858
 #, fuzzy
@@ -2249,14 +2346,15 @@ msgstr "Утиліти панелі ШН"
 #: koassistant_settings_schema.lua:919
 #, fuzzy
 msgid "Show or hide controls in the Quick Settings panel"
-msgstr "Показати або приховати елементи керування на панелі швидких налаштувань"
+msgstr ""
+"Показати або приховати елементи керування на панелі швидких налаштувань"
 
-#: koassistant_settings_schema.lua:924 main.lua:4601 main.lua:4753
+#: koassistant_settings_schema.lua:924 main.lua:4602 main.lua:4754
 #, fuzzy
 msgid "Provider"
 msgstr "Постачальник"
 
-#: koassistant_settings_schema.lua:931 main.lua:4607 main.lua:4766
+#: koassistant_settings_schema.lua:931 main.lua:4608 main.lua:4767
 #, fuzzy
 msgid "Model"
 msgstr "Модель"
@@ -2272,7 +2370,7 @@ msgid "Domain"
 msgstr "Домен"
 
 #: koassistant_settings_schema.lua:952 koassistant_settings_schema.lua:1511
-#: main.lua:4811 koassistant_ui/prompts_manager.lua:719
+#: main.lua:4812 koassistant_ui/prompts_manager.lua:719
 #: koassistant_ui/prompts_manager.lua:1838
 #: koassistant_ui/prompts_manager.lua:3049
 #, fuzzy
@@ -2291,7 +2389,7 @@ msgstr "Міркування Anthropic/Gemini"
 msgid "Web Search"
 msgstr "Веб-пошук"
 
-#: koassistant_settings_schema.lua:980 main.lua:4595 main.lua:4882
+#: koassistant_settings_schema.lua:980 main.lua:4596 main.lua:4883
 #: koassistant_ui/prompts_manager.lua:4035
 #, fuzzy
 msgid "Translation Language"
@@ -2308,12 +2406,12 @@ msgid "D.Bypass"
 msgstr "Обхід Д."
 
 #: koassistant_settings_schema.lua:1043 koassistant_settings_schema.lua:1077
-#: main.lua:4997 koassistant_ui/prompts_manager.lua:498
+#: main.lua:4998 koassistant_ui/prompts_manager.lua:498
 #, fuzzy
 msgid "Manage Actions"
 msgstr "Керування діями"
 
-#: koassistant_settings_schema.lua:1050 main.lua:5184
+#: koassistant_settings_schema.lua:1050 main.lua:5185
 #, fuzzy
 msgid "Quick Actions"
 msgstr "Швидкі дії"
@@ -2337,7 +2435,8 @@ msgstr "Керування поведінками (%1)"
 #, fuzzy
 msgid ""
 "Select or create AI behavior styles that define how the AI communicates."
-msgstr "Виберіть або створіть стилі поведінки AI, що визначають, як AI спілкується."
+msgstr ""
+"Виберіть або створіть стилі поведінки AI, що визначають, як AI спілкується."
 
 #: koassistant_settings_schema.lua:1098
 #, fuzzy
@@ -2373,10 +2472,12 @@ msgstr "Повні питання та відповіді (рекомендов�
 #, fuzzy
 msgid ""
 "What to include when saving to notebook.\n"
-"Full Q&A includes all context messages + highlighted text + question + response."
+"Full Q&A includes all context messages + highlighted text + question + "
+"response."
 msgstr ""
 "Що включати при збереженні до блокнота.\n"
-"Повне питання-відповідь включає всі контекстні повідомлення + виділений текст + питання + відповідь."
+"Повне питання-відповідь включає всі контекстні повідомлення + виділений "
+"текст + питання + відповідь."
 
 #: koassistant_settings_schema.lua:1135
 #, fuzzy
@@ -2387,7 +2488,9 @@ msgstr "Показувати в меню файлового браузера"
 #, fuzzy
 msgid ""
 "Show 'Notebook (KOA)' button when long-pressing books in the file browser."
-msgstr "Показувати кнопку 'Блокнот (KOA)' при довгому натисканні на книги в файловому браузері."
+msgstr ""
+"Показувати кнопку 'Блокнот (KOA)' при довгому натисканні на книги в "
+"файловому браузері."
 
 #: koassistant_settings_schema.lua:1143 koassistant_settings_schema.lua:1394
 #, fuzzy
@@ -2397,20 +2500,23 @@ msgstr "Тільки для книг з блокнотами"
 #: koassistant_settings_schema.lua:1147
 #, fuzzy
 msgid ""
-"Only show button if notebook already exists. Disable to allow creating new notebooks from file browser."
-msgstr "Показувати кнопку лише якщо блокнот вже існує. Вимкніть, щоб дозволити створення нових блокнотів з файлового браузера."
+"Only show button if notebook already exists. Disable to allow creating new "
+"notebooks from file browser."
+msgstr ""
+"Показувати кнопку лише якщо блокнот вже існує. Вимкніть, щоб дозволити "
+"створення нових блокнотів з файлового браузера."
 
 #: koassistant_settings_schema.lua:1156
 #, fuzzy
 msgid "Privacy & Data"
 msgstr "Конфіденційність і Дані"
 
-#: koassistant_settings_schema.lua:1166 main.lua:6838
+#: koassistant_settings_schema.lua:1166 main.lua:6840
 #, fuzzy
 msgid "Trusted Providers: None"
 msgstr "Довірені Провайдери: Немає"
 
-#: koassistant_settings_schema.lua:1168 main.lua:6840
+#: koassistant_settings_schema.lua:1168 main.lua:6842
 #, fuzzy
 msgid "Trusted Providers: %1"
 msgstr "Довірені Провайдери: %1"
@@ -2418,8 +2524,12 @@ msgstr "Довірені Провайдери: %1"
 #: koassistant_settings_schema.lua:1171
 #, fuzzy
 msgid ""
-"Providers you trust bypass the data sharing controls below. Use for local Ollama instances or providers you fully trust."
-msgstr "Провайдери, яким ви довіряєте, обходять налаштування обміну даними нижче. Використовуйте для локальних Ollama інстанцій або провайдерів, яким ви повністю довіряєте."
+"Providers you trust bypass the data sharing controls below. Use for local "
+"Ollama instances or providers you fully trust."
+msgstr ""
+"Провайдери, яким ви довіряєте, обходять налаштування обміну даними нижче. "
+"Використовуйте для локальних Ollama інстанцій або провайдерів, яким ви "
+"повністю довіряєте."
 
 #: koassistant_settings_schema.lua:1179
 #, fuzzy
@@ -2429,8 +2539,13 @@ msgstr "Пресет: Стандартний"
 #: koassistant_settings_schema.lua:1180
 #, fuzzy
 msgid ""
-"Recommended balance. Share reading progress and chapter info for context-aware features. Personal content (highlights, annotations, notebook) stays private."
-msgstr "Рекомендований баланс. Діліться прогресом читання та інформацією про розділи для функцій з урахуванням контексту. Особистий вміст (виділення, анотації, блокнот) залишається приватним."
+"Recommended balance. Share reading progress and chapter info for context-"
+"aware features. Personal content (highlights, annotations, notebook) stays "
+"private."
+msgstr ""
+"Рекомендований баланс. Діліться прогресом читання та інформацією про розділи "
+"для функцій з урахуванням контексту. Особистий вміст (виділення, анотації, "
+"блокнот) залишається приватним."
 
 #: koassistant_settings_schema.lua:1187
 #, fuzzy
@@ -2440,8 +2555,12 @@ msgstr "Пресет: Мінімальний"
 #: koassistant_settings_schema.lua:1188
 #, fuzzy
 msgid ""
-"Maximum privacy. Disable all extended data sharing including progress and chapter info. Only your question and book metadata are sent."
-msgstr "Максимальна конфіденційність. Вимкнути весь розширений обмін даними, включаючи прогрес та інформацію про розділи. Надсилається лише ваше питання та метадані книги."
+"Maximum privacy. Disable all extended data sharing including progress and "
+"chapter info. Only your question and book metadata are sent."
+msgstr ""
+"Максимальна конфіденційність. Вимкнути весь розширений обмін даними, "
+"включаючи прогрес та інформацію про розділи. Надсилається лише ваше питання "
+"та метадані книги."
 
 #: koassistant_settings_schema.lua:1195
 #, fuzzy
@@ -2451,8 +2570,11 @@ msgstr "Пресет: Повний"
 #: koassistant_settings_schema.lua:1196
 #, fuzzy
 msgid ""
-"Enable all data sharing for full functionality. Does not enable text extraction (see Text Extraction submenu)."
-msgstr "Увімкнути весь обмін даними для повної функціональності. Не вмикає вилучення тексту (див. підменю Вилучення Тексту)."
+"Enable all data sharing for full functionality. Does not enable text "
+"extraction (see Text Extraction submenu)."
+msgstr ""
+"Увімкнути весь обмін даними для повної функціональності. Не вмикає вилучення "
+"тексту (див. підменю Вилучення Тексту)."
 
 #: koassistant_settings_schema.lua:1205
 #, fuzzy
@@ -2467,8 +2589,13 @@ msgstr "Дозволити Виділення та Анотації"
 #: koassistant_settings_schema.lua:1214
 #, fuzzy
 msgid ""
-"Send your saved highlights and personal notes to the AI. Used by Analyze Highlights, X-Ray, Connect with Notes, and actions with {highlights} or {annotations} placeholders."
-msgstr "Надсилати ваші збережені виділення та особисті нотатки до AI. Використовується в Аналізі Виділень, X-Ray, З'єднанні з Нотатками та діях з {highlights} або {annotations} плейсхолдерами."
+"Send your saved highlights and personal notes to the AI. Used by Analyze "
+"Highlights, X-Ray, Connect with Notes, and actions with {highlights} or "
+"{annotations} placeholders."
+msgstr ""
+"Надсилати ваші збережені виділення та особисті нотатки до AI. "
+"Використовується в Аналізі Виділень, X-Ray, З'єднанні з Нотатками та діях з "
+"{highlights} або {annotations} плейсхолдерами."
 
 #: koassistant_settings_schema.lua:1219
 #, fuzzy
@@ -2478,8 +2605,11 @@ msgstr "Дозволити Блокнот"
 #: koassistant_settings_schema.lua:1222
 #, fuzzy
 msgid ""
-"Send notebook entries to AI. Used by Connect with Notes and actions with {notebook} placeholder."
-msgstr "Надсилати записи блокнота до AI. Використовується в З'єднанні з Нотатками та діях з {notebook} плейсхолдером."
+"Send notebook entries to AI. Used by Connect with Notes and actions with "
+"{notebook} placeholder."
+msgstr ""
+"Надсилати записи блокнота до AI. Використовується в З'єднанні з Нотатками та "
+"діях з {notebook} плейсхолдером."
 
 #: koassistant_settings_schema.lua:1227
 #, fuzzy
@@ -2489,7 +2619,9 @@ msgstr "Дозволити Прогрес Читання"
 #: koassistant_settings_schema.lua:1230
 #, fuzzy
 msgid "Send current reading position (percentage). Used by X-Ray, Recap."
-msgstr "Надсилати поточну позицію читання (відсоток). Використовується в X-Ray, Recap."
+msgstr ""
+"Надсилати поточну позицію читання (відсоток). Використовується в X-Ray, "
+"Recap."
 
 #: koassistant_settings_schema.lua:1235
 #, fuzzy
@@ -2499,8 +2631,11 @@ msgstr "Дозволити Інформацію про Розділи"
 #: koassistant_settings_schema.lua:1238
 #, fuzzy
 msgid ""
-"Send current chapter title, chapters read count, and time since last opened. Used by Recap."
-msgstr "Надсилати назву поточного розділу, кількість прочитаних розділів та час від останнього відкриття. Використовується в Recap."
+"Send current chapter title, chapters read count, and time since last opened. "
+"Used by Recap."
+msgstr ""
+"Надсилати назву поточного розділу, кількість прочитаних розділів та час від "
+"останнього відкриття. Використовується в Recap."
 
 #: koassistant_settings_schema.lua:1248
 #, fuzzy
@@ -2520,14 +2655,24 @@ msgstr "Дозволити Вилучення Тексту"
 #: koassistant_settings_schema.lua:1260
 #, fuzzy
 msgid ""
-"When enabled, actions can extract and send book text to the AI. Used by X-Ray, Recap, and actions with text placeholders."
-msgstr "Коли увімкнено, дії можуть вилучати і надсилати текст книги до AI. Використовується в X-Ray, Recap та діях з текстовими плейсхолдерами."
+"When enabled, actions can extract and send book text to the AI. Used by X-"
+"Ray, Recap, and actions with text placeholders."
+msgstr ""
+"Коли увімкнено, дії можуть вилучати і надсилати текст книги до AI. "
+"Використовується в X-Ray, Recap та діях з текстовими плейсхолдерами."
 
 #: koassistant_settings_schema.lua:1266
 #, fuzzy
 msgid ""
-"Text extraction sends actual book content to the AI. This uses tokens (increases API costs) and processing time. Features like X-Ray and Recap use this to analyze your reading progress. Be mindful of how you use this feature."
-msgstr "Вилучення тексту надсилає фактичний вміст книги до AI. Це використовує токени (збільшує витрати API) та час обробки. Функції як X-Ray та Recap використовують це для аналізу вашого прогресу читання. Будьте обережні з використанням цієї функції."
+"Text extraction sends actual book content to the AI. This uses tokens "
+"(increases API costs) and processing time. Features like X-Ray and Recap use "
+"this to analyze your reading progress. Be mindful of how you use this "
+"feature."
+msgstr ""
+"Вилучення тексту надсилає фактичний вміст книги до AI. Це використовує "
+"токени (збільшує витрати API) та час обробки. Функції як X-Ray та Recap "
+"використовують це для аналізу вашого прогресу читання. Будьте обережні з "
+"використанням цієї функції."
 
 #: koassistant_settings_schema.lua:1274
 #, fuzzy
@@ -2537,8 +2682,11 @@ msgstr "Макс. Символів Тексту"
 #: koassistant_settings_schema.lua:1281
 #, fuzzy
 msgid ""
-"Maximum characters to extract (10,000-1,000,000). Higher = more context but more tokens. Default: 250,000 (~60k tokens)."
-msgstr "Максимум символів для вилучення (10,000-1,000,000). Більше = більше контексту, але більше токенів. За замовчуванням: 250,000 (~60k токенів)."
+"Maximum characters to extract (10,000-1,000,000). Higher = more context but "
+"more tokens. Default: 250,000 (~60k tokens)."
+msgstr ""
+"Максимум символів для вилучення (10,000-1,000,000). Більше = більше "
+"контексту, але більше токенів. За замовчуванням: 250,000 (~60k токенів)."
 
 #: koassistant_settings_schema.lua:1287
 #, fuzzy
@@ -2549,9 +2697,11 @@ msgstr "Макс. Сторінок PDF"
 #, fuzzy
 msgid ""
 "Maximum PDF pages to extract (50-500). Higher = more context but slower."
-msgstr "Максимум сторінок PDF для вилучення (50-500). Більше = більше контексту, але повільніше."
+msgstr ""
+"Максимум сторінок PDF для вилучення (50-500). Більше = більше контексту, але "
+"повільніше."
 
-#: koassistant_settings_schema.lua:1300 main.lua:5284
+#: koassistant_settings_schema.lua:1300 main.lua:5285
 #, fuzzy
 msgid "Clear Action Cache"
 msgstr "Очистити Кеш Дій"
@@ -2559,8 +2709,11 @@ msgstr "Очистити Кеш Дій"
 #: koassistant_settings_schema.lua:1301
 #, fuzzy
 msgid ""
-"Clear cached X-Ray and Recap responses for the current book. Use to regenerate from scratch."
-msgstr "Очистити кешовані відповіді X-Ray та Recap для поточної книги. Використовуйте для повторної генерації з нуля."
+"Clear cached X-Ray and Recap responses for the current book. Use to "
+"regenerate from scratch."
+msgstr ""
+"Очистити кешовані відповіді X-Ray та Recap для поточної книги. "
+"Використовуйте для повторної генерації з нуля."
 
 #: koassistant_settings_schema.lua:1314
 #, fuzzy
@@ -2579,9 +2732,10 @@ msgstr "Показувати в Файловому Браузері"
 
 #: koassistant_settings_schema.lua:1329
 #, fuzzy
-msgid ""
-"Add KOAssistant button to file browser context menus. Requires restart."
-msgstr "Додати кнопку KOAssistant до контекстних меню файлового браузера. Потребує перезапуску."
+msgid "Add KOAssistant button to file browser context menus. Requires restart."
+msgstr ""
+"Додати кнопку KOAssistant до контекстних меню файлового браузера. Потребує "
+"перезапуску."
 
 #: koassistant_settings_schema.lua:1334 koassistant_settings_schema.lua:1349
 #: koassistant_settings_schema.lua:1364
@@ -2597,7 +2751,8 @@ msgstr "Показувати Кнопку KOAssistant в Меню Виділен
 #: koassistant_settings_schema.lua:1344
 #, fuzzy
 msgid "Add main KOAssistant button to highlight menu. Requires restart."
-msgstr "Додати головну кнопку KOAssistant до меню виділення. Потребує перезапуску."
+msgstr ""
+"Додати головну кнопку KOAssistant до меню виділення. Потребує перезапуску."
 
 #: koassistant_settings_schema.lua:1356
 #, fuzzy
@@ -2607,8 +2762,11 @@ msgstr "Показувати Дії Меню Виділення"
 #: koassistant_settings_schema.lua:1359
 #, fuzzy
 msgid ""
-"Add action shortcuts (Explain, Translate, etc.) to highlight menu. Requires restart."
-msgstr "Додати швидкі дії (Пояснити, Перекласти тощо) до меню виділення. Потребує перезапуску."
+"Add action shortcuts (Explain, Translate, etc.) to highlight menu. Requires "
+"restart."
+msgstr ""
+"Додати швидкі дії (Пояснити, Перекласти тощо) до меню виділення. Потребує "
+"перезапуску."
 
 #: koassistant_settings_schema.lua:1371
 #, fuzzy
@@ -2643,8 +2801,11 @@ msgstr "Показувати Кнопку Історії Чату"
 #: koassistant_settings_schema.lua:1406
 #, fuzzy
 msgid ""
-"Show 'Chat History (KOA)' button when long-pressing books that have chat history."
-msgstr "Показувати кнопку «Історія чатів (KOA)» при довгому натисканні на книги, що мають історію чатів."
+"Show 'Chat History (KOA)' button when long-pressing books that have chat "
+"history."
+msgstr ""
+"Показувати кнопку «Історія чатів (KOA)» при довгому натисканні на книги, що "
+"мають історію чатів."
 
 #: koassistant_settings_schema.lua:1412
 #, fuzzy
@@ -2654,8 +2815,11 @@ msgstr "Показати кнопку артефактів"
 #: koassistant_settings_schema.lua:1415
 #, fuzzy
 msgid ""
-"Show 'View Artifacts (KOA)' button for books that have cached results (X-Ray, Summary, Analysis)."
-msgstr "Показати кнопку «Переглянути артефакти (KOA)» для книг із кешованими результатами (X-Ray, резюме, аналіз)."
+"Show 'View Artifacts (KOA)' button for books that have cached results (X-"
+"Ray, Summary, Analysis)."
+msgstr ""
+"Показати кнопку «Переглянути артефакти (KOA)» для книг із кешованими "
+"результатами (X-Ray, резюме, аналіз)."
 
 #: koassistant_settings_schema.lua:1423
 #, fuzzy
@@ -2715,8 +2879,11 @@ msgstr "Скинути всі налаштування меню"
 #: koassistant_settings_schema.lua:1482
 #, fuzzy
 msgid ""
-"Restore all menus to defaults (dictionary popup, highlight menu, file browser actions)"
-msgstr "Відновити всі меню до типових (спливаюче вікно словника, меню виділення, дії файлового браузера)"
+"Restore all menus to defaults (dictionary popup, highlight menu, file "
+"browser actions)"
+msgstr ""
+"Відновити всі меню до типових (спливаюче вікно словника, меню виділення, дії "
+"файлового браузера)"
 
 #: koassistant_settings_schema.lua:1489
 #, fuzzy
@@ -2769,11 +2936,13 @@ msgstr "Увімкнути міркування Anthropic/Gemini"
 msgid ""
 "Enable extended thinking for Anthropic and Gemini.\n"
 "\n"
-"Note: OpenAI reasoning models (o3, gpt-5) always reason internally - this toggle does not affect them."
+"Note: OpenAI reasoning models (o3, gpt-5) always reason internally - this "
+"toggle does not affect them."
 msgstr ""
 "Увімкнути розширене мислення для Anthropic та Gemini.\n"
 "\n"
-"Примітка: моделі міркування OpenAI (o3, gpt-5) завжди міркують внутрішньо - цей перемикач не впливає на них."
+"Примітка: моделі міркування OpenAI (o3, gpt-5) завжди міркують внутрішньо - "
+"цей перемикач не впливає на них."
 
 #: koassistant_settings_schema.lua:1547 koassistant_ui/prompts_manager.lua:2230
 #, fuzzy
@@ -2783,10 +2952,8 @@ msgstr "Розширене мислення Anthropic"
 #: koassistant_settings_schema.lua:1548 koassistant_settings_schema.lua:1575
 #: koassistant_settings_schema.lua:1614
 #, fuzzy
-msgid ""
-"Supported models:\n"
-msgstr ""
-"Підтримувані моделі:\n"
+msgid "Supported models:\n"
+msgstr "Підтримувані моделі:\n"
 
 #: koassistant_settings_schema.lua:1548
 #, fuzzy
@@ -2811,7 +2978,8 @@ msgid ""
 "This is a cap - Claude uses what it needs up to this limit."
 msgstr ""
 "Максимум токенів для розширеного мислення (1024-32000).\n"
-"Це обмеження - Claude використовує стільки, скільки потрібно, до цього ліміту."
+"Це обмеження - Claude використовує стільки, скільки потрібно, до цього "
+"ліміту."
 
 #: koassistant_settings_schema.lua:1574 koassistant_ui/prompts_manager.lua:2403
 #, fuzzy
@@ -2919,11 +3087,13 @@ msgstr "Показувати індикатор у чаті"
 #: koassistant_settings_schema.lua:1629
 #, fuzzy
 msgid ""
-"Show '*[Reasoning was used]*' indicator in chat when reasoning is requested or used.\n"
+"Show '*[Reasoning was used]*' indicator in chat when reasoning is requested "
+"or used.\n"
 "\n"
 "Full reasoning content is always viewable via 'Show Reasoning' button."
 msgstr ""
-"Показувати індикатор «*[Використано міркування]*» у чаті, коли міркування запитано або використано.\n"
+"Показувати індикатор «*[Використано міркування]*» у чаті, коли міркування "
+"запитано або використано.\n"
 "\n"
 "Повний вміст міркування завжди доступний через кнопку «Показати міркування»."
 
@@ -2985,7 +3155,8 @@ msgid ""
 "\n"
 "Streaming indicator ('Searching the web...') is always shown."
 msgstr ""
-"Показувати індикатор '*[Використано веб-пошук]*' у чаті, коли використовується веб-пошук.\n"
+"Показувати індикатор '*[Використано веб-пошук]*' у чаті, коли "
+"використовується веб-пошук.\n"
 "\n"
 "Індикатор потокової передачі ('Пошук в інтернеті...') показується завжди."
 
@@ -3054,7 +3225,8 @@ msgstr "Налагодження консолі"
 #: koassistant_settings_schema.lua:1711
 #, fuzzy
 msgid "Enable console/terminal debug logging (for developers)"
-msgstr "Увімкнути налагоджувальне журналювання консолі/терміналу (для розробників)"
+msgstr ""
+"Увімкнути налагоджувальне журналювання консолі/терміналу (для розробників)"
 
 #: koassistant_settings_schema.lua:1718
 #, fuzzy
@@ -3104,8 +3276,12 @@ msgstr "Обрізати великий вміст (налагодження)"
 #: koassistant_settings_schema.lua:1746
 #, fuzzy
 msgid ""
-"Truncate long content (book text, cached responses) in debug output. Shows first and last ~1500 characters with truncation notice."
-msgstr "Обрізати довгий вміст (текст книги, кешовані відповіді) у виводі налагодження. Показує перші та останні ~1500 символів із повідомленням про обрізання."
+"Truncate long content (book text, cached responses) in debug output. Shows "
+"first and last ~1500 characters with truncation notice."
+msgstr ""
+"Обрізати довгий вміст (текст книги, кешовані відповіді) у виводі "
+"налагодження. Показує перші та останні ~1500 символів із повідомленням про "
+"обрізання."
 
 #: koassistant_settings_schema.lua:1755
 #, fuzzy
@@ -3117,7 +3293,7 @@ msgstr "Перевірити з'єднання"
 msgid "Settings Management"
 msgstr "Керування налаштуваннями"
 
-#: koassistant_settings_schema.lua:1768 main.lua:7134
+#: koassistant_settings_schema.lua:1768 main.lua:7136
 #, fuzzy
 msgid "Create Backup"
 msgstr "Створити резервну копію"
@@ -3125,7 +3301,9 @@ msgstr "Створити резервну копію"
 #: koassistant_settings_schema.lua:1769
 #, fuzzy
 msgid "Create a backup of your settings, API keys, and custom content."
-msgstr "Створити резервну копію ваших налаштувань, API ключів та користувацького вмісту."
+msgstr ""
+"Створити резервну копію ваших налаштувань, API ключів та користувацького "
+"вмісту."
 
 #: koassistant_settings_schema.lua:1775
 #, fuzzy
@@ -3172,7 +3350,8 @@ msgid ""
 "• Reasoning & debug settings\n"
 "• Language preferences\n"
 "\n"
-"Keeps: API keys, all actions, custom behaviors/domains, custom providers/models, gesture registrations, chat history."
+"Keeps: API keys, all actions, custom behaviors/domains, custom providers/"
+"models, gesture registrations, chat history."
 msgstr ""
 "Скидає ВСІ налаштування в цьому меню до типових:\n"
 "• Провайдер, модель, температура\n"
@@ -3181,7 +3360,8 @@ msgstr ""
 "• Налаштування міркувань та налагодження\n"
 "• Мовні налаштування\n"
 "\n"
-"Зберігає: API ключі, всі дії, користувацькі поведінки/домени, користувацькі провайдери/моделі, реєстрації жестів, історію чату."
+"Зберігає: API ключі, всі дії, користувацькі поведінки/домени, користувацькі "
+"провайдери/моделі, реєстрації жестів, історію чату."
 
 #: koassistant_settings_schema.lua:1807
 #, fuzzy
@@ -3195,7 +3375,8 @@ msgid ""
 "• Reasoning & debug settings\n"
 "• Language preferences\n"
 "\n"
-"Keeps: API keys, all actions, custom behaviors/domains, custom providers/models, gesture registrations, chat history."
+"Keeps: API keys, all actions, custom behaviors/domains, custom providers/"
+"models, gesture registrations, chat history."
 msgstr ""
 "Скинути всі налаштування до типових?\n"
 "\n"
@@ -3206,7 +3387,8 @@ msgstr ""
 "• Налаштування міркувань та налагодження\n"
 "• Мовні налаштування\n"
 "\n"
-"Зберігає: API ключі, всі дії, користувацькі поведінки/домени, користувацькі провайдери/моделі, реєстрації жестів, історію чату."
+"Зберігає: API ключі, всі дії, користувацькі поведінки/домени, користувацькі "
+"провайдери/моделі, реєстрації жестів, історію чату."
 
 #: koassistant_settings_schema.lua:1814
 #, fuzzy
@@ -3223,7 +3405,8 @@ msgid ""
 "• Highlight menu order & dismissed items\n"
 "• Dictionary menu order & dismissed items\n"
 "\n"
-"Keeps: All settings, API keys, custom behaviors/domains, custom providers/models, gesture registrations, chat history."
+"Keeps: All settings, API keys, custom behaviors/domains, custom providers/"
+"models, gesture registrations, chat history."
 msgstr ""
 "Скидає всі налаштування, пов'язані з діями:\n"
 "• Створені вами користувацькі дії\n"
@@ -3232,7 +3415,8 @@ msgstr ""
 "• Порядок меню виділення та приховані елементи\n"
 "• Порядок меню словника та приховані елементи\n"
 "\n"
-"Зберігає: Всі налаштування, API ключі, користувацькі поведінки/домени, користувацькі провайдери/моделі, реєстрації жестів, історію чату."
+"Зберігає: Всі налаштування, API ключі, користувацькі поведінки/домени, "
+"користувацькі провайдери/моделі, реєстрації жестів, історію чату."
 
 #: koassistant_settings_schema.lua:1817
 #, fuzzy
@@ -3246,7 +3430,8 @@ msgid ""
 "• Highlight menu order & dismissed items\n"
 "• Dictionary menu order & dismissed items\n"
 "\n"
-"Keeps: All settings, API keys, custom behaviors/domains, custom providers/models, gesture registrations, chat history."
+"Keeps: All settings, API keys, custom behaviors/domains, custom providers/"
+"models, gesture registrations, chat history."
 msgstr ""
 "Скинути всі налаштування дій?\n"
 "\n"
@@ -3257,7 +3442,8 @@ msgstr ""
 "• Порядок меню виділення та приховані елементи\n"
 "• Порядок меню словника та приховані елементи\n"
 "\n"
-"Зберігає: Всі налаштування, API ключі, користувацькі поведінки/домени, користувацькі провайдери/моделі, реєстрації жестів, історію чату."
+"Зберігає: Всі налаштування, API ключі, користувацькі поведінки/домени, "
+"користувацькі провайдери/моделі, реєстрації жестів, історію чату."
 
 #: koassistant_settings_schema.lua:1824
 #, fuzzy
@@ -3372,59 +3558,60 @@ msgstr "Автоматично перевіряти оновлення при з
 msgid "Check for Updates"
 msgstr "Перевірити оновлення"
 
-#: koassistant_update_checker.lua:580
+#: koassistant_update_checker.lua:604
 #, fuzzy
 msgid "Translating to %1..."
 msgstr "Переклад на %1..."
 
-#: koassistant_update_checker.lua:590
+#: koassistant_update_checker.lua:614
 #, fuzzy
 msgid ""
 "Translate the following release notes to %1. Preserve markdown formatting:\n"
 "\n"
 "%2"
 msgstr ""
-"Перекладіть наступні примітки до випуску на %1. Збережіть форматування markdown:\n"
+"Перекладіть наступні примітки до випуску на %1. Збережіть форматування "
+"markdown:\n"
 "\n"
 "%2"
 
-#: koassistant_update_checker.lua:609 koassistant_update_checker.lua:687
-#: main.lua:7813
+#: koassistant_update_checker.lua:633 koassistant_update_checker.lua:711
+#: main.lua:7815
 #, fuzzy
 msgid "Later"
 msgstr "Пізніше"
 
-#: koassistant_update_checker.lua:615 koassistant_update_checker.lua:693
+#: koassistant_update_checker.lua:639 koassistant_update_checker.lua:717
 #, fuzzy
 msgid "Visit Release Page"
 msgstr "Відвідати сторінку випуску"
 
-#: koassistant_update_checker.lua:622 koassistant_update_checker.lua:700
+#: koassistant_update_checker.lua:646 koassistant_update_checker.lua:724
 #, fuzzy
 msgid "Please visit:"
 msgstr "Будь ласка, відвідайте:"
 
-#: koassistant_update_checker.lua:633
+#: koassistant_update_checker.lua:657
 #, fuzzy
 msgid "Original"
 msgstr "Оригінал"
 
-#: koassistant_update_checker.lua:644
+#: koassistant_update_checker.lua:668
 #, fuzzy
 msgid "%1 (Translated)"
 msgstr "%1 (Перекладено)"
 
-#: koassistant_update_checker.lua:656
+#: koassistant_update_checker.lua:680
 #, fuzzy
 msgid "Translation failed: %1"
 msgstr "Помилка перекладу: %1"
 
-#: koassistant_update_checker.lua:656 main.lua:7227 main.lua:7602 main.lua:7742
+#: koassistant_update_checker.lua:680 main.lua:7229 main.lua:7604 main.lua:7744
 #, fuzzy
 msgid "Unknown error"
 msgstr "Невідома помилка"
 
-#: koassistant_update_checker.lua:712 koassistant_ui/prompts_manager.lua:1862
+#: koassistant_update_checker.lua:736 koassistant_ui/prompts_manager.lua:1862
 #: koassistant_ui/prompts_manager.lua:1877
 #: koassistant_ui/prompts_manager.lua:1927 prompts/actions.lua:1252
 #, fuzzy
@@ -3445,16 +3632,6 @@ msgstr "Нотатник (KOA)"
 #, fuzzy
 msgid "Chat History (KOA)"
 msgstr "Історія чату (KOA)"
-
-#: main.lua:360 main.lua:3969 main.lua:4150
-#, fuzzy
-msgid "Summary"
-msgstr "Резюме"
-
-#: main.lua:364 main.lua:3977
-#, fuzzy
-msgid "Analysis"
-msgstr "Аналіз"
 
 #: main.lua:369
 #, fuzzy
@@ -3720,7 +3897,8 @@ msgstr "Назва провайдера (наприклад, LM Studio)"
 #: main.lua:1978
 #, fuzzy
 msgid "Base URL (e.g., http://localhost:1234/v1/chat/completions)"
-msgstr "Базова URL-адреса (наприклад, http://localhost:1234/v1/chat/completions)"
+msgstr ""
+"Базова URL-адреса (наприклад, http://localhost:1234/v1/chat/completions)"
 
 #: main.lua:1982 main.lua:2048
 #, fuzzy
@@ -3999,7 +4177,7 @@ msgstr "Основна: %1"
 msgid "Use Primary (%1)"
 msgstr "Використовувати основну (%1)"
 
-#: main.lua:3330 main.lua:3362 main.lua:4877
+#: main.lua:3330 main.lua:3362 main.lua:4878
 #, fuzzy
 msgid "Translate: %1"
 msgstr "Переклад: %1"
@@ -4030,7 +4208,7 @@ msgstr "Введіть цільову мову для перекладів."
 msgid "(Set your languages for quick selection)"
 msgstr "(Встановіть ваші мови для швидкого вибору)"
 
-#: main.lua:3435 main.lua:5667
+#: main.lua:3435 main.lua:5668
 #, fuzzy
 msgid "Follow Translation Language"
 msgstr "Слідувати мові перекладу"
@@ -4040,7 +4218,7 @@ msgstr "Слідувати мові перекладу"
 msgid "Dictionary: Follow Translation"
 msgstr "Словник: слідувати перекладу"
 
-#: main.lua:3456 main.lua:5684
+#: main.lua:3456 main.lua:5685
 #, fuzzy
 msgid "Follow Primary Language"
 msgstr "Слідувати основній мові"
@@ -4050,7 +4228,7 @@ msgstr "Слідувати основній мові"
 msgid "Dictionary: Follow Primary"
 msgstr "Словник: слідувати основній"
 
-#: main.lua:3494 main.lua:4890
+#: main.lua:3494 main.lua:4891
 #, fuzzy
 msgid "Dictionary: %1"
 msgstr "Словник: %1"
@@ -4093,11 +4271,13 @@ msgstr "Введіть власні інструкції поведінки AI..
 #: main.lua:3555
 #, fuzzy
 msgid ""
-"Define how the AI should behave. This replaces the built-in Minimal/Full behavior when 'Custom' is selected.\n"
+"Define how the AI should behave. This replaces the built-in Minimal/Full "
+"behavior when 'Custom' is selected.\n"
 "\n"
 "Tip: Start with the Full behavior as a template."
 msgstr ""
-"Визначте, як повинен поводитися AI. Це замінює вбудовану поведінку Мінімальна/Повна, коли обрано 'Власна'.\n"
+"Визначте, як повинен поводитися AI. Це замінює вбудовану поведінку "
+"Мінімальна/Повна, коли обрано 'Власна'.\n"
 "\n"
 "Порада: використайте поведінку Повна як шаблон."
 
@@ -4109,30 +4289,33 @@ msgstr "Завантажити повну"
 #: main.lua:3626
 #, fuzzy
 msgid ""
-"Model lists are now managed through the model_lists.lua file. Please edit this file to add or remove models."
-msgstr "Списки моделей тепер керуються через файл model_lists.lua. Будь ласка, відредагуйте цей файл для додавання або видалення моделей."
+"Model lists are now managed through the model_lists.lua file. Please edit "
+"this file to add or remove models."
+msgstr ""
+"Списки моделей тепер керуються через файл model_lists.lua. Будь ласка, "
+"відредагуйте цей файл для додавання або видалення моделей."
 
-#: main.lua:3857
+#: main.lua:3858
 #, fuzzy
 msgid "No previously opened chat found"
 msgstr "Не знайдено раніше відкритого чату"
 
-#: main.lua:3874 main.lua:6289
+#: main.lua:3875 main.lua:6291
 #, fuzzy
 msgid "Configuration not found. Please set up configuration.lua first."
 msgstr "Конфігурацію не знайдено. Спочатку налаштуйте configuration.lua."
 
-#: main.lua:3911 main.lua:4305 main.lua:5440 main.lua:5458
+#: main.lua:3912 main.lua:4306 main.lua:5441 main.lua:5459
 #, fuzzy
 msgid "Please open a book first"
 msgstr "Спочатку відкрийте книгу"
 
-#: main.lua:3948 main.lua:4125 main.lua:4234
+#: main.lua:3949 main.lua:4126 main.lua:4235
 #, fuzzy
 msgid "No book open"
 msgstr "Немає відкритої книги"
 
-#: main.lua:3985
+#: main.lua:3986
 #, fuzzy
 msgid ""
 "No cached content found for this document.\n"
@@ -4141,14 +4324,15 @@ msgid ""
 msgstr ""
 "Не знайдено кешованого вмісту для цього документа.\n"
 "\n"
-"Запустіть X-Ray, Резюме документа або Аналіз документа для створення багаторазових кешів."
+"Запустіть X-Ray, Резюме документа або Аналіз документа для створення "
+"багаторазових кешів."
 
-#: main.lua:4092
+#: main.lua:4093
 #, fuzzy
 msgid "%1 deleted"
 msgstr "%1 видалено"
 
-#: main.lua:4136
+#: main.lua:4137
 #, fuzzy
 msgid ""
 "No summary cached.\n"
@@ -4159,12 +4343,12 @@ msgstr ""
 "\n"
 "Використайте Швидкі дії → Створити резюме, щоб створити його."
 
-#: main.lua:4206
+#: main.lua:4207
 #, fuzzy
 msgid "Summary deleted"
 msgstr "Резюме видалено"
 
-#: main.lua:4245
+#: main.lua:4246
 #, fuzzy
 msgid ""
 "Summary already cached.\n"
@@ -4175,7 +4359,7 @@ msgstr ""
 "\n"
 "Використайте Переглянути резюме для перегляду."
 
-#: main.lua:4254
+#: main.lua:4255
 #, fuzzy
 msgid ""
 "Text extraction is required to generate a summary.\n"
@@ -4186,7 +4370,7 @@ msgstr ""
 "\n"
 "Увімкніть його в Налаштування → Конфіденційність і дані → Витягування тексту."
 
-#: main.lua:4292
+#: main.lua:4293
 #, fuzzy
 msgid ""
 "Generate a reusable document summary?\n"
@@ -4203,125 +4387,133 @@ msgstr ""
 "• Збереже резюме для майбутнього використання\n"
 "• Увімкне розумні дії для цієї книги"
 
-#: main.lua:4315 main.lua:4385 main.lua:4440
+#: main.lua:4316 main.lua:4386 main.lua:4441
 #, fuzzy
 msgid "Action '%1' not found"
 msgstr "Дію '%1' не знайдено"
 
-#: main.lua:4423
+#: main.lua:4424
 #, fuzzy
 msgid "Unknown action context: %1"
 msgstr "Невідомий контекст дії: %1"
 
-#: main.lua:4589 main.lua:4869
+#: main.lua:4590 main.lua:4870
 #, fuzzy
 msgid "Primary Language"
 msgstr "Основна мова"
 
-#: main.lua:4613 main.lua:4779 koassistant_ui/prompts_manager.lua:722
+#: main.lua:4614 main.lua:4780 koassistant_ui/prompts_manager.lua:722
 #: koassistant_ui/prompts_manager.lua:2988
 #, fuzzy
 msgid "AI Behavior"
 msgstr "Поведінка AI"
 
-#: main.lua:4698
+#: main.lua:4699
 #, fuzzy
 msgid "Default"
 msgstr "За замовчуванням"
 
-#: main.lua:4774
+#: main.lua:4775
 #, fuzzy
 msgid "Behavior: %1"
 msgstr "Поведінка: %1"
 
-#: main.lua:4787
+#: main.lua:4788
 #, fuzzy
 msgid "Domain: %1"
 msgstr "Домен: %1"
 
-#: main.lua:4792 main.lua:5339
+#: main.lua:4793 main.lua:5340
 #, fuzzy
 msgid "Knowledge Domain"
 msgstr "Домен знань"
 
-#: main.lua:4800
+#: main.lua:4801
 #, fuzzy
 msgid "Temp: %1"
 msgstr "Темп: %1"
 
-#: main.lua:4830
+#: main.lua:4831
 #, fuzzy
 msgid "Extended Thinking: ON"
 msgstr "Розширене мислення: УВІМК"
 
-#: main.lua:4830
+#: main.lua:4831
 #, fuzzy
 msgid "Extended Thinking: OFF"
 msgstr "Розширене мислення: ВИМК"
 
-#: main.lua:4847
+#: main.lua:4848
 #, fuzzy
 msgid "Web Search: ON"
 msgstr "Веб-пошук: УВІМК"
 
-#: main.lua:4847
+#: main.lua:4848
 #, fuzzy
 msgid "Web Search: OFF"
 msgstr "Веб-пошук: ВИМК"
 
-#: main.lua:4864
+#: main.lua:4865
 #, fuzzy
 msgid "Language: %1"
 msgstr "Мова: %1"
 
-#: main.lua:4903
+#: main.lua:4904
 #, fuzzy
 msgid "H.Bypass: ON"
 msgstr "О.Підсвітки: УВІМК"
 
-#: main.lua:4903
+#: main.lua:4904
 #, fuzzy
 msgid "H.Bypass: OFF"
 msgstr "О.Підсвітки: ВИМК"
 
-#: main.lua:4920
+#: main.lua:4921
 #, fuzzy
 msgid "D.Bypass: ON"
 msgstr "О.Словника: УВІМК"
 
-#: main.lua:4920
+#: main.lua:4921
 #, fuzzy
 msgid "D.Bypass: OFF"
 msgstr "О.Словника: ВИМК"
 
-#: main.lua:5009
+#: main.lua:5010
 #, fuzzy
 msgid "Quick Actions..."
 msgstr "Швидкі дії..."
 
-#: main.lua:5021
+#: main.lua:5022
 #, fuzzy
 msgid "More Settings..."
 msgstr "Більше налаштувань..."
 
-#: main.lua:5077
+#: main.lua:5078
 #, fuzzy
 msgid "Quick Actions is only available while reading a book."
 msgstr "Швидкі дії доступні лише під час читання книги."
 
-#: main.lua:5200
+#: main.lua:5127
+#, fuzzy
+msgid "View Summary"
+msgstr "Переглянути резюме"
+
+#: main.lua:5127
+#, fuzzy
+msgid "Generate Summary"
+msgstr "Згенерувати резюме"
+
+#: main.lua:5201
 #, fuzzy
 msgid "Testing connection..."
 msgstr "Перевірка з'єднання..."
 
-#: main.lua:5228
+#: main.lua:5229
 #, fuzzy
-msgid ""
-"Connection test failed:\n"
-msgstr ""
-"Помилка перевірки з'єднання:\n"
+msgid "Connection test failed:\n"
+msgstr "Помилка перевірки з'єднання:\n"
 
-#: main.lua:5234
+#: main.lua:5235
 #, fuzzy
 msgid ""
 "Connection test successful!\n"
@@ -4338,23 +4530,25 @@ msgstr ""
 "\n"
 "Відповідь: %3"
 
-#: main.lua:5242
+#: main.lua:5243
 #, fuzzy
 msgid "Connection test failed: "
 msgstr "Помилка перевірки з'єднання:"
 
-#: main.lua:5262
+#: main.lua:5263
 #, fuzzy
 msgid ""
 "No book is currently open.\n"
 "\n"
-"Open a book first, then use this option to clear its cached X-Ray and Recap responses."
+"Open a book first, then use this option to clear its cached X-Ray and Recap "
+"responses."
 msgstr ""
 "Жодна книга зараз не відкрита.\n"
 "\n"
-"Спершу відкрийте книгу, потім скористайтеся цією опцією для очищення кешованих відповідей X-Ray та Recap."
+"Спершу відкрийте книгу, потім скористайтеся цією опцією для очищення "
+"кешованих відповідей X-Ray та Recap."
 
-#: main.lua:5275
+#: main.lua:5276
 #, fuzzy
 msgid ""
 "No action cache found for this book.\n"
@@ -4365,73 +4559,75 @@ msgstr ""
 "\n"
 "Спочатку запустіть X-Ray або Recap, щоб створити кеш."
 
-#: main.lua:5285
+#: main.lua:5286
 #, fuzzy
 msgid ""
 "Clear cached X-Ray and Recap responses for this book?\n"
 "\n"
-"Next time you run these actions, they will regenerate from scratch instead of updating from the cached version."
+"Next time you run these actions, they will regenerate from scratch instead "
+"of updating from the cached version."
 msgstr ""
 "Очистити кешовані відповіді X-Ray та Recap для цієї книги?\n"
 "\n"
-"Наступного разу ці дії будуть згенеровані з нуля замість оновлення з кешованої версії."
+"Наступного разу ці дії будуть згенеровані з нуля замість оновлення з "
+"кешованої версії."
 
-#: main.lua:5295
+#: main.lua:5296
 #, fuzzy
 msgid "Clear Cache"
 msgstr "Очистити кеш"
 
-#: main.lua:5301
+#: main.lua:5302
 #, fuzzy
 msgid "Action cache cleared successfully."
 msgstr "Кеш дій успішно очищено."
 
-#: main.lua:5306
+#: main.lua:5307
 #, fuzzy
 msgid "Failed to clear action cache."
 msgstr "Не вдалося очистити кеш дій."
 
-#: main.lua:5413
+#: main.lua:5414
 #, fuzzy
 msgid "Dictionary bypass: ON"
 msgstr "Обхід словника: УВІМК"
 
-#: main.lua:5413
+#: main.lua:5414
 #, fuzzy
 msgid "Dictionary bypass: OFF"
 msgstr "Обхід словника: ВИМК"
 
-#: main.lua:5427
+#: main.lua:5428
 #, fuzzy
 msgid "Highlight bypass: ON"
 msgstr "Обхід підсвітки: УВІМК"
 
-#: main.lua:5427
+#: main.lua:5428
 #, fuzzy
 msgid "Highlight bypass: OFF"
 msgstr "Обхід підсвітки: ВИМК"
 
-#: main.lua:5551
+#: main.lua:5552
 #, fuzzy
 msgid "Cannot determine current page"
 msgstr "Неможливо визначити поточну сторінку"
 
-#: main.lua:5597
+#: main.lua:5598
 #, fuzzy
 msgid "Could not extract text from current page"
 msgstr "Не вдалося отримати текст з поточної сторінки"
 
-#: main.lua:5608
+#: main.lua:5609
 #, fuzzy
 msgid "Translate action not found"
 msgstr "Дію перекладу не знайдено"
 
-#: main.lua:5784
+#: main.lua:5785
 #, fuzzy
 msgid "Select Export Folder"
 msgstr "Виберіть папку для експорту"
 
-#: main.lua:5791
+#: main.lua:5792
 #, fuzzy
 msgid ""
 "Export path set to:\n"
@@ -4440,17 +4636,17 @@ msgstr ""
 "Шлях експорту встановлено на:\n"
 "%1"
 
-#: main.lua:6181 main.lua:6234
+#: main.lua:6183 main.lua:6236
 #, fuzzy
 msgid "Bypass action: %1"
 msgstr "Дія обходу: %1"
 
-#: main.lua:6279
+#: main.lua:6281
 #, fuzzy
 msgid "All action settings restored to defaults"
 msgstr "Всі налаштування дій відновлено до значень за замовчуванням"
 
-#: main.lua:6352
+#: main.lua:6354
 #, fuzzy
 msgid ""
 "KOAssistant Plugin\n"
@@ -4459,88 +4655,91 @@ msgstr ""
 "Плагін KOAssistant\n"
 "Версія:"
 
-#: main.lua:6437
+#: main.lua:6439
 #, fuzzy
 msgid "Feature settings reset to defaults"
 msgstr "Налаштування функцій скинуто до значень за замовчуванням"
 
-#: main.lua:6467
+#: main.lua:6469
 #, fuzzy
 msgid "All customizations reset"
 msgstr "Всі налаштування скинуто"
 
-#: main.lua:6491
+#: main.lua:6493
 #, fuzzy
 msgid "Custom actions deleted"
 msgstr "Користувацькі дії видалено"
 
-#: main.lua:6505
+#: main.lua:6507
 #, fuzzy
 msgid "Action edits reset to defaults"
 msgstr "Редагування дій скинуто до значень за замовчуванням"
 
-#: main.lua:6532
+#: main.lua:6534
 #, fuzzy
 msgid "Action menus reset to defaults"
 msgstr "Меню дій скинуто до значень за замовчуванням"
 
-#: main.lua:6546
+#: main.lua:6548
 #, fuzzy
 msgid "Dictionary popup actions reset"
 msgstr "Дії спливаючого словника скинуто"
 
-#: main.lua:6559
+#: main.lua:6561
 #, fuzzy
 msgid "Highlight menu actions reset (restart to apply)"
 msgstr "Дії меню підсвітки скинуто (перезапустіть для застосування)"
 
-#: main.lua:6571
+#: main.lua:6573
 #, fuzzy
 msgid "File browser actions reset"
 msgstr "Дії файлового браузера скинуто"
 
-#: main.lua:6583
+#: main.lua:6585
 #, fuzzy
 msgid "Quick actions reset"
 msgstr "Швидкі дії скинуто"
 
-#: main.lua:6604
+#: main.lua:6606
 #, fuzzy
 msgid "Custom providers and models reset"
 msgstr "Користувацькі провайдери та моделі скинуто"
 
-#: main.lua:6662
+#: main.lua:6664
 #, fuzzy
 msgid "All action settings reset"
 msgstr "Всі налаштування дій скинуто"
 
-#: main.lua:6676
+#: main.lua:6678
 #, fuzzy
 msgid "Fresh start complete - API keys preserved"
 msgstr "Повний скид завершено - API ключі збережено"
 
-#: main.lua:6697
+#: main.lua:6699
 #, fuzzy
 msgid "Default: Personal content private, basic context shared"
-msgstr "За замовчуванням: особистий контент приватний, базовий контекст спільний"
+msgstr ""
+"За замовчуванням: особистий контент приватний, базовий контекст спільний"
 
-#: main.lua:6718
+#: main.lua:6720
 #, fuzzy
 msgid "Minimal: All extended sharing disabled"
 msgstr "Мінімальний: всі розширені функції спільного доступу вимкнено"
 
-#: main.lua:6739
+#: main.lua:6741
 #, fuzzy
 msgid ""
 "Full: All data sharing enabled (Text extraction must be enabled separately)"
-msgstr "Повний: весь спільний доступ до даних увімкнено (видобування тексту необхідно ввімкнути окремо)"
+msgstr ""
+"Повний: весь спільний доступ до даних увімкнено (видобування тексту "
+"необхідно ввімкнути окремо)"
 
-#: main.lua:6791
+#: main.lua:6793
 #, fuzzy
 msgid "(custom)"
 msgstr "(власні)"
 
-#: main.lua:6851
+#: main.lua:6853
 #, fuzzy
 msgid ""
 "Select providers to trust\n"
@@ -4551,157 +4750,157 @@ msgstr ""
 "\n"
 "Довірені провайдери обходять налаштування спільного доступу до даних."
 
-#: main.lua:6877
+#: main.lua:6879
 #, fuzzy
 msgid "✓ Reset"
 msgstr "✓ Скинути"
 
-#: main.lua:6879
+#: main.lua:6881
 #, fuzzy
 msgid "✗ Keep"
 msgstr "✗ Залишити"
 
-#: main.lua:6885 main.lua:7185 main.lua:7316
+#: main.lua:6887 main.lua:7187 main.lua:7318
 #, fuzzy
 msgid "Settings"
 msgstr "Налаштування"
 
-#: main.lua:6893
+#: main.lua:6895
 #, fuzzy
 msgid "Custom actions"
 msgstr "Власні дії"
 
-#: main.lua:6901
+#: main.lua:6903
 #, fuzzy
 msgid "Action edits"
 msgstr "Зміни дій"
 
-#: main.lua:6909
+#: main.lua:6911
 #, fuzzy
 msgid "Action menus"
 msgstr "Меню дій"
 
-#: main.lua:6917
+#: main.lua:6919
 #, fuzzy
 msgid "Custom providers & models"
 msgstr "Власні провайдери та моделі"
 
-#: main.lua:6925
+#: main.lua:6927
 #, fuzzy
 msgid "Behaviors & domains"
 msgstr "Поведінки та домени"
 
-#: main.lua:6933 main.lua:6990
+#: main.lua:6935 main.lua:6992
 #, fuzzy
 msgid "API keys"
 msgstr "API ключі"
 
-#: main.lua:6945
+#: main.lua:6947
 #, fuzzy
 msgid "Reset Selected"
 msgstr "Скинути вибране"
 
-#: main.lua:6954
+#: main.lua:6956
 #, fuzzy
 msgid "What would you like to reset?"
 msgstr "Що ви хочете скинути?"
 
-#: main.lua:6966
+#: main.lua:6968
 #, fuzzy
 msgid "settings"
 msgstr "налаштування"
 
-#: main.lua:6970
+#: main.lua:6972
 #, fuzzy
 msgid "custom actions"
 msgstr "власні дії"
 
-#: main.lua:6974
+#: main.lua:6976
 #, fuzzy
 msgid "action edits"
 msgstr "зміни дій"
 
-#: main.lua:6978
+#: main.lua:6980
 #, fuzzy
 msgid "action menus"
 msgstr "меню дій"
 
-#: main.lua:6982
+#: main.lua:6984
 #, fuzzy
 msgid "providers/models"
 msgstr "провайдери/моделі"
 
-#: main.lua:6986
+#: main.lua:6988
 #, fuzzy
 msgid "behaviors/domains"
 msgstr "поведінки/домени"
 
-#: main.lua:6995
+#: main.lua:6997
 #, fuzzy
 msgid "Reset: %1"
 msgstr "Скинути: %1"
 
-#: main.lua:7000
+#: main.lua:7002
 #, fuzzy
 msgid "Nothing selected to reset"
 msgstr "Нічого не вибрано для скидання"
 
-#: main.lua:7062
+#: main.lua:7064
 #, fuzzy
 msgid "Core Settings: ✓ Included"
 msgstr "Основні налаштування: ✓ Включено"
 
-#: main.lua:7068
+#: main.lua:7070
 #, fuzzy
 msgid "API Keys: ✓ Include (⚠ Sensitive)"
 msgstr "API ключі: ✓ Включити (⚠ Конфіденційно)"
 
-#: main.lua:7068
+#: main.lua:7070
 #, fuzzy
 msgid "API Keys: ✗ Exclude"
 msgstr "API ключі: ✗ Виключити"
 
-#: main.lua:7083
+#: main.lua:7085
 #, fuzzy
 msgid "Config Files: ✓ Include"
 msgstr "Файли конфігурації: ✓ Включити"
 
-#: main.lua:7083
+#: main.lua:7085
 #, fuzzy
 msgid "Config Files: ✗ Exclude"
 msgstr "Файли конфігурації: ✗ Виключити"
 
-#: main.lua:7098
+#: main.lua:7100
 #, fuzzy
 msgid "Domains & Behaviors: ✓ Include"
 msgstr "Домени та поведінки: ✓ Включити"
 
-#: main.lua:7098
+#: main.lua:7100
 #, fuzzy
 msgid "Domains & Behaviors: ✗ Exclude"
 msgstr "Домени та поведінки: ✗ Виключити"
 
-#: main.lua:7113
+#: main.lua:7115
 #, fuzzy
 msgid "Chat History: ✓ Include"
 msgstr "Історія чатів: ✓ Включити"
 
-#: main.lua:7113
+#: main.lua:7115
 #, fuzzy
 msgid "Chat History: ✗ Exclude"
 msgstr "Історія чатів: ✗ Виключити"
 
-#: main.lua:7128 main.lua:7280 main.lua:7491 main.lua:7513
+#: main.lua:7130 main.lua:7282 main.lua:7493 main.lua:7515
 #, fuzzy
 msgid "━━━━━━━━━━━━━━━━"
 msgstr "━━━━━━━━━━━━━━━━"
 
-#: main.lua:7154
+#: main.lua:7156
 #, fuzzy
 msgid "What to include in backup:"
 msgstr "Що включити в резервну копію:"
 
-#: main.lua:7166
+#: main.lua:7168
 #, fuzzy
 msgid ""
 "Creating backup...\n"
@@ -4712,7 +4911,7 @@ msgstr ""
 "\n"
 "Це може зайняти деякий час."
 
-#: main.lua:7178
+#: main.lua:7180
 #, fuzzy
 msgid ""
 "Backup created successfully!\n"
@@ -4727,47 +4926,47 @@ msgstr ""
 "\n"
 "Розмір: %2"
 
-#: main.lua:7191 main.lua:7322
+#: main.lua:7193 main.lua:7324
 #, fuzzy
 msgid "Config Files"
 msgstr "Файли конфігурації"
 
-#: main.lua:7197 main.lua:7327
+#: main.lua:7199 main.lua:7329
 #, fuzzy
 msgid "%1 domains"
 msgstr "%1 доменів"
 
-#: main.lua:7199
+#: main.lua:7201
 #, fuzzy
 msgid "0 domains"
 msgstr "0 доменів"
 
-#: main.lua:7202 main.lua:7332
+#: main.lua:7204 main.lua:7334
 #, fuzzy
 msgid "%1 behaviors"
 msgstr "%1 поведінок"
 
-#: main.lua:7204
+#: main.lua:7206
 #, fuzzy
 msgid "0 behaviors"
 msgstr "0 поведінок"
 
-#: main.lua:7210 main.lua:7340
+#: main.lua:7212 main.lua:7342
 #, fuzzy
 msgid "%1 chats"
 msgstr "%1 чатів"
 
-#: main.lua:7212
+#: main.lua:7214
 #, fuzzy
 msgid "0 chats"
 msgstr "0 чатів"
 
-#: main.lua:7217
+#: main.lua:7219
 #, fuzzy
 msgid "Included:"
 msgstr "Включено:"
 
-#: main.lua:7227
+#: main.lua:7229
 #, fuzzy
 msgid ""
 "Backup failed:\n"
@@ -4778,7 +4977,7 @@ msgstr ""
 "\n"
 "%1"
 
-#: main.lua:7244
+#: main.lua:7246
 #, fuzzy
 msgid ""
 "No backups found.\n"
@@ -4791,7 +4990,7 @@ msgstr ""
 "Спочатку створіть резервну копію:\n"
 "Налаштування → Додатково → Керування налаштуваннями → Створити резервну копію"
 
-#: main.lua:7286
+#: main.lua:7288
 #, fuzzy
 msgid ""
 "Select backup to restore\n"
@@ -4802,7 +5001,7 @@ msgstr ""
 "\n"
 "Всього: %1 резервних копій"
 
-#: main.lua:7301 main.lua:7700
+#: main.lua:7303 main.lua:7702
 #, fuzzy
 msgid ""
 "Invalid backup:\n"
@@ -4813,7 +5012,7 @@ msgstr ""
 "\n"
 "%1"
 
-#: main.lua:7310
+#: main.lua:7312
 #, fuzzy
 msgid ""
 "Backup: %1\n"
@@ -4830,107 +5029,107 @@ msgstr ""
 "\n"
 "Вміст:"
 
-#: main.lua:7320
+#: main.lua:7322
 #, fuzzy
 msgid "No API keys"
 msgstr "Немає ключів API"
 
-#: main.lua:7329
+#: main.lua:7331
 #, fuzzy
 msgid "domains"
 msgstr "домени"
 
-#: main.lua:7334
+#: main.lua:7336
 #, fuzzy
 msgid "behaviors"
 msgstr "поведінки"
 
-#: main.lua:7342
+#: main.lua:7344
 #, fuzzy
 msgid "Chat history"
 msgstr "Історія чатів"
 
-#: main.lua:7352 main.lua:7573
+#: main.lua:7354 main.lua:7575
 #, fuzzy
 msgid "Warnings:"
 msgstr "Попередження:"
 
-#: main.lua:7369
+#: main.lua:7371
 #, fuzzy
 msgid "Restore →"
 msgstr "Відновити →"
 
-#: main.lua:7406
+#: main.lua:7408
 #, fuzzy
 msgid "Settings: ✓ Restore"
 msgstr "Налаштування: ✓ Відновити"
 
-#: main.lua:7406
+#: main.lua:7408
 #, fuzzy
 msgid "Settings: ✗ Skip"
 msgstr "Налаштування: ✗ Пропустити"
 
-#: main.lua:7423
+#: main.lua:7425
 #, fuzzy
 msgid "API Keys: ✓ Restore"
 msgstr "Ключі API: ✓ Відновити"
 
-#: main.lua:7423
+#: main.lua:7425
 #, fuzzy
 msgid "API Keys: ✗ Skip"
 msgstr "Ключі API: ✗ Пропустити"
 
-#: main.lua:7440
+#: main.lua:7442
 #, fuzzy
 msgid "Config Files: ✓ Restore"
 msgstr "Файли конфігурації: ✓ Відновити"
 
-#: main.lua:7440
+#: main.lua:7442
 #, fuzzy
 msgid "Config Files: ✗ Skip"
 msgstr "Файли конфігурації: ✗ Пропустити"
 
-#: main.lua:7457
+#: main.lua:7459
 #, fuzzy
 msgid "Domains & Behaviors: ✓ Restore"
 msgstr "Домени та поведінки: ✓ Відновити"
 
-#: main.lua:7457
+#: main.lua:7459
 #, fuzzy
 msgid "Domains & Behaviors: ✗ Skip"
 msgstr "Домени та поведінки: ✗ Пропустити"
 
-#: main.lua:7474
+#: main.lua:7476
 #, fuzzy
 msgid "Chat History: ✓ Restore"
 msgstr "Історія чатів: ✓ Відновити"
 
-#: main.lua:7474
+#: main.lua:7476
 #, fuzzy
 msgid "Chat History: ✗ Skip"
 msgstr "Історія чатів: ✗ Пропустити"
 
-#: main.lua:7497
+#: main.lua:7499
 #, fuzzy
 msgid "Mode: Merge with existing"
 msgstr "Режим: Об'єднати з існуючими"
 
-#: main.lua:7497
+#: main.lua:7499
 #, fuzzy
 msgid "Mode: Replace existing"
 msgstr "Режим: Замінити існуючі"
 
-#: main.lua:7519
+#: main.lua:7521
 #, fuzzy
 msgid "Restore Now"
 msgstr "Відновити зараз"
 
-#: main.lua:7539
+#: main.lua:7541
 #, fuzzy
 msgid "What to restore:"
 msgstr "Що відновити:"
 
-#: main.lua:7552
+#: main.lua:7554
 #, fuzzy
 msgid ""
 "Restore from backup?\n"
@@ -4943,14 +5142,15 @@ msgstr ""
 "\n"
 "⚠ Точка відновлення буде створена автоматично.\n"
 "\n"
-"⚠ Після відновлення рекомендується перезапустити KOReader для повного застосування змін."
+"⚠ Після відновлення рекомендується перезапустити KOReader для повного "
+"застосування змін."
 
-#: main.lua:7553 main.lua:7709
+#: main.lua:7555 main.lua:7711
 #, fuzzy
 msgid "Restore"
 msgstr "Відновити"
 
-#: main.lua:7557
+#: main.lua:7559
 #, fuzzy
 msgid ""
 "Restoring backup...\n"
@@ -4961,7 +5161,7 @@ msgstr ""
 "\n"
 "Це може зайняти деякий час."
 
-#: main.lua:7570
+#: main.lua:7572
 #, fuzzy
 msgid ""
 "Restore completed successfully!\n"
@@ -4972,7 +5172,7 @@ msgstr ""
 "\n"
 "Рекомендується перезапустити KOReader для застосування всіх змін."
 
-#: main.lua:7582 koassistant_ui/prompts_manager.lua:2576
+#: main.lua:7584 koassistant_ui/prompts_manager.lua:2576
 #: koassistant_ui/prompts_manager.lua:3014
 #: koassistant_ui/prompts_manager.lua:3198
 #: koassistant_ui/prompts_manager.lua:3672
@@ -4984,12 +5184,12 @@ msgstr ""
 msgid "OK"
 msgstr "OK"
 
-#: main.lua:7588
+#: main.lua:7590
 #, fuzzy
 msgid "Restart Now"
 msgstr "Перезапустити зараз"
 
-#: main.lua:7602
+#: main.lua:7604
 #, fuzzy
 msgid ""
 "Restore failed:\n"
@@ -5000,12 +5200,12 @@ msgstr ""
 "\n"
 "%1"
 
-#: main.lua:7625
+#: main.lua:7627
 #, fuzzy
 msgid "No backups found."
 msgstr "Резервні копії не знайдено."
 
-#: main.lua:7673
+#: main.lua:7675
 #, fuzzy
 msgid ""
 "Backups (%1)\n"
@@ -5016,13 +5216,13 @@ msgstr ""
 "\n"
 "Загальний розмір: %2"
 
-#: main.lua:7689 koassistant_ui/prompts_manager.lua:1455
+#: main.lua:7691 koassistant_ui/prompts_manager.lua:1455
 #: koassistant_ui/prompts_manager.lua:1920
 #, fuzzy
 msgid "Info"
 msgstr "Інформація"
 
-#: main.lua:7725
+#: main.lua:7727
 #, fuzzy
 msgid ""
 "Delete backup?\n"
@@ -5037,12 +5237,12 @@ msgstr ""
 "\n"
 "Це неможливо скасувати."
 
-#: main.lua:7733
+#: main.lua:7735
 #, fuzzy
 msgid "Backup deleted"
 msgstr "Резервну копію видалено"
 
-#: main.lua:7742
+#: main.lua:7744
 #, fuzzy
 msgid ""
 "Failed to delete backup:\n"
@@ -5053,41 +5253,45 @@ msgstr ""
 "\n"
 "%1"
 
-#: main.lua:7805
+#: main.lua:7807
 #, fuzzy
 msgid ""
 "KOAssistant: Chat Storage Upgrade\n"
 "\n"
-"The KOAssistant plugin needs to upgrade its chat history storage to fix an issue where chats were lost when files were moved.\n"
+"The KOAssistant plugin needs to upgrade its chat history storage to fix an "
+"issue where chats were lost when files were moved.\n"
 "\n"
-"This will migrate all existing chats to the new system. The process may take a few minutes for large libraries.\n"
+"This will migrate all existing chats to the new system. The process may take "
+"a few minutes for large libraries.\n"
 "\n"
 "Old chat files will be backed up to koassistant_chats.backup/"
 msgstr ""
 "KOAssistant: Оновлення сховища чатів\n"
 "\n"
-"Плагін KOAssistant потребує оновлення сховища історії чатів для виправлення проблеми втрати чатів при переміщенні файлів.\n"
+"Плагін KOAssistant потребує оновлення сховища історії чатів для виправлення "
+"проблеми втрати чатів при переміщенні файлів.\n"
 "\n"
-"Це перенесе всі існуючі чати в нову систему. Процес може зайняти кілька хвилин для великих бібліотек.\n"
+"Це перенесе всі існуючі чати в нову систему. Процес може зайняти кілька "
+"хвилин для великих бібліотек.\n"
 "\n"
 "Старі файли чатів будуть збережено в koassistant_chats.backup/"
 
-#: main.lua:7812
+#: main.lua:7814
 #, fuzzy
 msgid "Migrate Now"
 msgstr "Мігрувати зараз"
 
-#: main.lua:7844
+#: main.lua:7846
 #, fuzzy
 msgid "KOAssistant: Migrating chat history..."
 msgstr "KOAssistant: Міграція історії чатів..."
 
-#: main.lua:7857
+#: main.lua:7859
 #, fuzzy
 msgid "No old chats found to migrate"
 msgstr "Старих чатів для міграції не знайдено"
 
-#: main.lua:7979
+#: main.lua:7981
 #, fuzzy
 msgid ""
 "KOAssistant: Migration Incomplete\n"
@@ -5108,12 +5312,12 @@ msgstr ""
 "Міграція буде повторена при наступному запуску.\n"
 "Перевірте консоль для детальних повідомлень про помилки."
 
-#: main.lua:7991
+#: main.lua:7993
 #, fuzzy
 msgid "Failed documents:"
 msgstr "Документи з помилками:"
 
-#: main.lua:7998
+#: main.lua:8000
 #, fuzzy
 msgid ""
 "KOAssistant: Migration Complete\n"
@@ -5132,72 +5336,73 @@ msgstr ""
 "Старі файли чатів збережено в:\n"
 "koassistant_chats.backup/"
 
-#: main.lua:8062
+#: main.lua:8064
 #, fuzzy
 msgid "Welcome to KOAssistant!"
 msgstr "Ласкаво просимо до KOAssistant!"
 
-#: main.lua:8063
+#: main.lua:8065
 #, fuzzy
 msgid "PRIVACY SETTINGS"
 msgstr "НАЛАШТУВАННЯ КОНФІДЕНЦІЙНОСТІ"
 
-#: main.lua:8064
+#: main.lua:8066
 #, fuzzy
 msgid "Some features (like X-Ray) need permission to access book content."
-msgstr "Деякі функції (як-от X-Ray) потребують дозволу на доступ до вмісту книги."
+msgstr ""
+"Деякі функції (як-от X-Ray) потребують дозволу на доступ до вмісту книги."
 
-#: main.lua:8065
+#: main.lua:8067
 #, fuzzy
 msgid "Enable in: Settings → Privacy & Data"
 msgstr "Увімкніть у: Налаштування → Конфіденційність та дані"
 
-#: main.lua:8066
+#: main.lua:8068
 #, fuzzy
 msgid "QUICK ACCESS"
 msgstr "ШВИДКИЙ ДОСТУП"
 
-#: main.lua:8067
+#: main.lua:8069
 #, fuzzy
 msgid "Add actions to gestures, highlight menus, or Quick Actions panel."
 msgstr "Додайте дії до жестів, меню виділення або панелі швидких дій."
 
-#: main.lua:8068
+#: main.lua:8070
 #, fuzzy
 msgid "CUSTOM ACTIONS"
 msgstr "ВЛАСНІ ДІЇ"
 
-#: main.lua:8069
+#: main.lua:8071
 #, fuzzy
 msgid "Create your own prompts and actions."
 msgstr "Створіть власні підказки та дії."
 
-#: main.lua:8070
+#: main.lua:8072
 #, fuzzy
 msgid "Go to: Settings → Action Manager → Add"
 msgstr "Перейдіть до: Налаштування → Менеджер дій → Додати"
 
-#: main.lua:8220
+#: main.lua:8222
 #, fuzzy
 msgid "No notebook available for this document"
 msgstr "Для цього документа немає доступного блокнота"
 
-#: main.lua:8230
+#: main.lua:8232
 #, fuzzy
 msgid "No notebook exists for this document. Create one?"
 msgstr "Для цього документа не існує блокнота. Створити?"
 
-#: main.lua:8240
+#: main.lua:8242
 #, fuzzy
 msgid "Failed to create notebook: %1"
 msgstr "Не вдалося створити блокнот: %1"
 
-#: main.lua:8291
+#: main.lua:8293
 #, fuzzy
 msgid "Notebook saved"
 msgstr "Блокнот збережено"
 
-#: main.lua:8298
+#: main.lua:8300
 #, fuzzy
 msgid "Reset to last saved"
 msgstr "Скинути до останнього збереженого"
@@ -5278,8 +5483,10 @@ msgstr "Відновити типові"
 #: koassistant_ui/behavior_manager.lua:204
 #, fuzzy
 msgid ""
-"This will delete all custom behaviors and reset selection to Standard. Continue?"
-msgstr "Це видалить усі власні поведінки та скине вибір на Стандартну. Продовжити?"
+"This will delete all custom behaviors and reset selection to Standard. "
+"Continue?"
+msgstr ""
+"Це видалить усі власні поведінки та скине вибір на Стандартну. Продовжити?"
 
 #: koassistant_ui/behavior_manager.lua:217
 #, fuzzy
@@ -5446,11 +5653,13 @@ msgstr "Введіть інструкції поведінки для AI..."
 msgid ""
 "Name: %1\n"
 "\n"
-"Define how the AI should behave. This text is sent as part of the system prompt."
+"Define how the AI should behave. This text is sent as part of the system "
+"prompt."
 msgstr ""
 "Назва: %1\n"
 "\n"
-"Визначте, як AI має поводитися. Цей текст надсилається як частина системного запиту."
+"Визначте, як AI має поводитися. Цей текст надсилається як частина системного "
+"запиту."
 
 #: koassistant_ui/behavior_manager.lua:486
 #, fuzzy
@@ -5496,9 +5705,9 @@ msgstr "Немає доступних доменів"
 
 #: koassistant_ui/domain_manager.lua:134
 #, fuzzy
-msgid ""
-"Create custom domains here or add .md/.txt files to the domains/ folder"
-msgstr "Створюйте власні домени тут або додавайте .md/.txt файли до теки domains/"
+msgid "Create custom domains here or add .md/.txt files to the domains/ folder"
+msgstr ""
+"Створюйте власні домени тут або додавайте .md/.txt файли до теки domains/"
 
 #: koassistant_ui/domain_manager.lua:150
 #, fuzzy
@@ -5526,15 +5735,19 @@ msgstr "Про домени"
 msgid ""
 "Domains provide specialized knowledge context to the AI.\n"
 "\n"
-"Unlike behaviors (which set communication style), domains give the AI expertise in specific subject areas.\n"
+"Unlike behaviors (which set communication style), domains give the AI "
+"expertise in specific subject areas.\n"
 "\n"
-"Domains are selected per-chat, not globally, making them like 'projects' you can switch between."
+"Domains are selected per-chat, not globally, making them like 'projects' you "
+"can switch between."
 msgstr ""
 "Домени надають AI контекст спеціалізованих знань.\n"
 "\n"
-"На відміну від поведінки (яка встановлює стиль спілкування), домени надають AI експертність у конкретних предметних галузях.\n"
+"На відміну від поведінки (яка встановлює стиль спілкування), домени надають "
+"AI експертність у конкретних предметних галузях.\n"
 "\n"
-"Домени обираються для кожного чату окремо, а не глобально, що робить їх схожими на 'проєкти', між якими можна перемикатися."
+"Домени обираються для кожного чату окремо, а не глобально, що робить їх "
+"схожими на 'проєкти', між якими можна перемикатися."
 
 #: koassistant_ui/domain_manager.lua:202
 #, fuzzy
@@ -5609,8 +5822,11 @@ msgstr "Введіть назву домену..."
 #: koassistant_ui/domain_manager.lua:416
 #, fuzzy
 msgid ""
-"Give this domain a descriptive name (e.g., 'Research', 'Creative Writing', 'Philosophy')."
-msgstr "Дайте цьому домену описову назву (наприклад, 'Дослідження', 'Креативне письмо', 'Філософія')."
+"Give this domain a descriptive name (e.g., 'Research', 'Creative Writing', "
+"'Philosophy')."
+msgstr ""
+"Дайте цьому домену описову назву (наприклад, 'Дослідження', 'Креативне "
+"письмо', 'Філософія')."
 
 #: koassistant_ui/domain_manager.lua:469
 #, fuzzy
@@ -5632,11 +5848,13 @@ msgstr "Введіть контекст знань домену..."
 msgid ""
 "Name: %1\n"
 "\n"
-"Describe the knowledge area, terminology, and how the AI should approach topics in this domain."
+"Describe the knowledge area, terminology, and how the AI should approach "
+"topics in this domain."
 msgstr ""
 "Назва: %1\n"
 "\n"
-"Опишіть область знань, термінологію та як AI має підходити до тем у цьому домені."
+"Опишіть область знань, термінологію та як AI має підходити до тем у цьому "
+"домені."
 
 #: koassistant_ui/domain_manager.lua:493
 #, fuzzy
@@ -5693,8 +5911,11 @@ msgstr "Глобально"
 #: koassistant_ui/prompts_manager.lua:353
 #, fuzzy
 msgid ""
-"Tap to toggle • Hold for details • ★ = custom • ⚙ = modified • [gesture] = in gesture menu"
-msgstr "Торкніться для перемикання • Утримуйте для деталей • ★ = власна • ⚙ = змінена • [жест] = у меню жестів"
+"Tap to toggle • Hold for details • ★ = custom • ⚙ = modified • [gesture] = "
+"in gesture menu"
+msgstr ""
+"Торкніться для перемикання • Утримуйте для деталей • ★ = власна • ⚙ = "
+"змінена • [жест] = у меню жестів"
 
 #: koassistant_ui/prompts_manager.lua:360
 #, fuzzy
@@ -5803,13 +6024,15 @@ msgstr "Скинути зміни дій"
 msgid ""
 "Reset all action edits?\n"
 "\n"
-"This reverts any changes you made to built-in actions and re-enables disabled actions.\n"
+"This reverts any changes you made to built-in actions and re-enables "
+"disabled actions.\n"
 "\n"
 "Custom actions are preserved."
 msgstr ""
 "Скинути всі зміни дій?\n"
 "\n"
-"Це відновить будь-які зміни, внесені вами до вбудованих дій, і повторно ввімкне вимкнені дії.\n"
+"Це відновить будь-які зміни, внесені вами до вбудованих дій, і повторно "
+"ввімкне вимкнені дії.\n"
 "\n"
 "Користувацькі дії будуть збережені."
 
@@ -5823,13 +6046,15 @@ msgstr "Скинути меню дій"
 msgid ""
 "Reset action menu configurations?\n"
 "\n"
-"This resets the ordering and selection in highlight menu and dictionary popup back to defaults.\n"
+"This resets the ordering and selection in highlight menu and dictionary "
+"popup back to defaults.\n"
 "\n"
 "Your actions (custom and built-in) are preserved."
 msgstr ""
 "Скинути конфігурації меню дій?\n"
 "\n"
-"Це відновить порядок і вибір у меню виділення та спливаючому словнику до стандартних налаштувань.\n"
+"Це відновить порядок і вибір у меню виділення та спливаючому словнику до "
+"стандартних налаштувань.\n"
 "\n"
 "Ваші дії (користувацькі та вбудовані) будуть збережені."
 
@@ -6246,7 +6471,9 @@ msgstr "Спливаюче вікно словника"
 #: koassistant_ui/prompts_manager.lua:3542
 #, fuzzy
 msgid "Text extraction enabled. Note: Enable in Settings → Advanced first."
-msgstr "Витягування тексту увімкнено. Примітка: Спочатку увімкніть у Налаштування → Розширені."
+msgstr ""
+"Витягування тексту увімкнено. Примітка: Спочатку увімкніть у Налаштування → "
+"Розширені."
 
 #: koassistant_ui/prompts_manager.lua:1201
 #: koassistant_ui/prompts_manager.lua:2816
@@ -6268,7 +6495,9 @@ msgstr "Дозволити використання анотацій"
 #, fuzzy
 msgid ""
 "Annotation use enabled. Note: Enable in Settings → Privacy & Data first."
-msgstr "Використання анотацій увімкнено. Примітка: Спочатку увімкніть у Налаштування → Приватність і дані."
+msgstr ""
+"Використання анотацій увімкнено. Примітка: Спочатку увімкніть у Налаштування "
+"→ Приватність і дані."
 
 #: koassistant_ui/prompts_manager.lua:1232
 #: koassistant_ui/prompts_manager.lua:2841
@@ -6289,7 +6518,9 @@ msgstr "Дозволити використання нотатника"
 #: koassistant_ui/prompts_manager.lua:3590
 #, fuzzy
 msgid "Notebook use enabled. Note: Enable in Settings → Privacy & Data first."
-msgstr "Використання нотатника увімкнено. Примітка: Спочатку увімкніть у Налаштування → Приватність і дані."
+msgstr ""
+"Використання нотатника увімкнено. Примітка: Спочатку увімкніть у "
+"Налаштування → Приватність і дані."
 
 #: koassistant_ui/prompts_manager.lua:1262
 #: koassistant_ui/prompts_manager.lua:2864
@@ -6425,14 +6656,15 @@ msgstr "Залежить від тригера"
 
 #: koassistant_ui/prompts_manager.lua:1459
 #, fuzzy
-msgid ""
-"Context determines when your action appears and what data is available:"
+msgid "Context determines when your action appears and what data is available:"
 msgstr "Контекст визначає, коли з'являється ваша дія і які дані доступні:"
 
 #: koassistant_ui/prompts_manager.lua:1460
 #, fuzzy
 msgid "When text is selected. Gets: selected text, optionally book info"
-msgstr "Коли текст виділено. Отримує: виділений текст, опціонально інформацію про книгу"
+msgstr ""
+"Коли текст виділено. Отримує: виділений текст, опціонально інформацію про "
+"книгу"
 
 #: koassistant_ui/prompts_manager.lua:1461
 #, fuzzy
@@ -6540,7 +6772,9 @@ msgstr ""
 #, fuzzy
 msgid ""
 "Please enter custom behavior text, or go back and choose a different option"
-msgstr "Будь ласка, введіть текст власної поведінки або поверніться та виберіть інший варіант"
+msgstr ""
+"Будь ласка, введіть текст власної поведінки або поверніться та виберіть "
+"інший варіант"
 
 #: koassistant_ui/prompts_manager.lua:1632
 #, fuzzy
@@ -6561,7 +6795,9 @@ msgstr "Що має робити ШІ?"
 #, fuzzy
 msgid ""
 "Write the AI instruction. Tap 'Help' for tips, 'Insert...' for placeholders."
-msgstr "Напишіть інструкцію для ШІ. Натисніть 'Довідка' для підказок, 'Вставити...' для заповнювачів."
+msgstr ""
+"Напишіть інструкцію для ШІ. Натисніть 'Довідка' для підказок, 'Вставити...' "
+"для заповнювачів."
 
 #: koassistant_ui/prompts_manager.lua:1649
 #: koassistant_ui/prompts_manager.lua:2893
@@ -6574,25 +6810,35 @@ msgstr "Довідка"
 msgid ""
 "Writing Action Prompts\n"
 "\n"
-"• Use 'Insert...' to add placeholders like {title}, {author}, {highlighted_text}\n"
+"• Use 'Insert...' to add placeholders like {title}, {author}, "
+"{highlighted_text}\n"
 "\n"
-"• Tip: When using this action, there's an input field for optional additional context\n"
+"• Tip: When using this action, there's an input field for optional "
+"additional context\n"
 "\n"
-"• Reading-mode placeholders ({reading_progress}, {book_text}, {highlights}, {annotations}) auto-hide this action in File Browser — it only appears when reading\n"
+"• Reading-mode placeholders ({reading_progress}, {book_text}, {highlights}, "
+"{annotations}) auto-hide this action in File Browser — it only appears when "
+"reading\n"
 "\n"
-"• Test actions with the web inspector: 'lua tests/inspect.lua --web' from the plugin folder\n"
+"• Test actions with the web inspector: 'lua tests/inspect.lua --web' from "
+"the plugin folder\n"
 "\n"
 "• See README for full placeholder list and examples"
 msgstr ""
 "Написання запитів дій\n"
 "\n"
-"• Використовуйте 'Вставити...', щоб додати заповнювачі як {title}, {author}, {highlighted_text}\n"
+"• Використовуйте 'Вставити...', щоб додати заповнювачі як {title}, {author}, "
+"{highlighted_text}\n"
 "\n"
-"• Порада: При використанні цієї дії є поле введення для додаткового необов'язкового контексту\n"
+"• Порада: При використанні цієї дії є поле введення для додаткового "
+"необов'язкового контексту\n"
 "\n"
-"• Заповнювачі режиму читання ({reading_progress}, {book_text}, {highlights}, {annotations}) автоматично приховують цю дію у файловому браузері — вона з'являється лише під час читання\n"
+"• Заповнювачі режиму читання ({reading_progress}, {book_text}, {highlights}, "
+"{annotations}) автоматично приховують цю дію у файловому браузері — вона "
+"з'являється лише під час читання\n"
 "\n"
-"• Тестуйте дії з веб-інспектором: 'lua tests/inspect.lua --web' з теки плагіна\n"
+"• Тестуйте дії з веб-інспектором: 'lua tests/inspect.lua --web' з теки "
+"плагіна\n"
 "\n"
 "• Див. README для повного списку заповнювачів та прикладів"
 
@@ -6718,14 +6964,20 @@ msgstr "Повне діалогове вікно з усіма кнопками 
 #: koassistant_ui/prompts_manager.lua:1926
 #, fuzzy
 msgid ""
-"Smaller dialog optimized for quick lookups, with language buttons for word-by-word translation"
-msgstr "Менше діалогове вікно, оптимізоване для швидких пошуків, з кнопками мов для пословного перекладу"
+"Smaller dialog optimized for quick lookups, with language buttons for word-"
+"by-word translation"
+msgstr ""
+"Менше діалогове вікно, оптимізоване для швидких пошуків, з кнопками мов для "
+"пословного перекладу"
 
 #: koassistant_ui/prompts_manager.lua:1927
 #, fuzzy
 msgid ""
-"Translation view with language switch button and toggle to show/hide the original text"
-msgstr "Вигляд перекладу з кнопкою перемикання мов та перемикачем показу/приховування оригінального тексту"
+"Translation view with language switch button and toggle to show/hide the "
+"original text"
+msgstr ""
+"Вигляд перекладу з кнопкою перемикання мов та перемикачем показу/"
+"приховування оригінального тексту"
 
 #: koassistant_ui/prompts_manager.lua:1960
 #, fuzzy
@@ -6740,7 +6992,8 @@ msgstr "Завжди використовувати веб-пошук"
 #: koassistant_ui/prompts_manager.lua:1961
 #, fuzzy
 msgid "Force web search on, even if global setting is off"
-msgstr "Примусово увімкнути веб-пошук, навіть якщо глобальне налаштування вимкнено"
+msgstr ""
+"Примусово увімкнути веб-пошук, навіть якщо глобальне налаштування вимкнено"
 
 #: koassistant_ui/prompts_manager.lua:1962
 #, fuzzy
@@ -6750,7 +7003,8 @@ msgstr "Ніколи не використовувати веб-пошук"
 #: koassistant_ui/prompts_manager.lua:1962
 #, fuzzy
 msgid "Force web search off, even if global setting is on"
-msgstr "Примусово вимкнути веб-пошук, навіть якщо глобальне налаштування увімкнено"
+msgstr ""
+"Примусово вимкнути веб-пошук, навіть якщо глобальне налаштування увімкнено"
 
 #: koassistant_ui/prompts_manager.lua:2051
 #, fuzzy
@@ -6774,15 +7028,18 @@ msgid ""
 "\n"
 "• Global: Follow per-provider settings in Settings menu\n"
 "• Force OFF: Never use thinking for this action\n"
-"• Configure: Set per-provider reasoning (Anthropic budget, OpenAI effort, Gemini level)\n"
+"• Configure: Set per-provider reasoning (Anthropic budget, OpenAI effort, "
+"Gemini level)\n"
 "\n"
 "May force temperature to 1.0 for some models."
 msgstr ""
 "Міркування вмикає складне мислення для підтримуваних моделей.\n"
 "\n"
-"• Глобальне: Слідувати налаштуванням для кожного провайдера в меню Налаштування\n"
+"• Глобальне: Слідувати налаштуванням для кожного провайдера в меню "
+"Налаштування\n"
 "• Примусово ВИМК: Ніколи не використовувати міркування для цієї дії\n"
-"• Налаштувати: Встановити міркування для кожного провайдера (бюджет Anthropic, зусилля OpenAI, рівень Gemini)\n"
+"• Налаштувати: Встановити міркування для кожного провайдера (бюджет "
+"Anthropic, зусилля OpenAI, рівень Gemini)\n"
 "\n"
 "Може примусово встановити температуру 1.0 для деяких моделей."
 
@@ -6987,7 +7244,8 @@ msgstr ""
 "\n"
 "Встановіть \"Глобальна\" для використання стандартного налаштування.\n"
 "\n"
-"Порада: Щоб редагувати запит дії, використайте 'Дублювати' для створення власної копії."
+"Порада: Щоб редагувати запит дії, використайте 'Дублювати' для створення "
+"власної копії."
 
 #: koassistant_ui/prompts_manager.lua:2915
 #, fuzzy
@@ -7376,7 +7634,8 @@ msgstr "Видалити з файлового браузера"
 #: koassistant_ui/prompts_manager.lua:4979
 #, fuzzy
 msgid "✓ = in popup | Tap = toggle | Hold = move"
-msgstr "✓ = у спливаючому вікні | Торкніться = перемкнути | Утримуйте = перемістити"
+msgstr ""
+"✓ = у спливаючому вікні | Торкніться = перемкнути | Утримуйте = перемістити"
 
 #: koassistant_ui/prompts_manager.lua:5013
 #, fuzzy
