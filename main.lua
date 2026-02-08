@@ -5470,7 +5470,8 @@ end
 --- Browse all notebooks gesture handler
 function AskGPT:onKOAssistantBrowseNotebooks()
   local NotebookManager = require("koassistant_notebook_manager")
-  NotebookManager:showNotebookBrowser()
+  local features = self.settings:readSetting("features") or {}
+  NotebookManager:showNotebookBrowser({ enable_emoji = features.enable_emoji_icons == true })
   return true
 end
 
@@ -5488,7 +5489,8 @@ end
 --- Browse notebooks (settings menu callback)
 function AskGPT:showNotebookBrowser()
   local NotebookManager = require("koassistant_notebook_manager")
-  NotebookManager:showNotebookBrowser()
+  local features = self.settings:readSetting("features") or {}
+  NotebookManager:showNotebookBrowser({ enable_emoji = features.enable_emoji_icons == true })
 end
 
 -- Translate current page gesture handler

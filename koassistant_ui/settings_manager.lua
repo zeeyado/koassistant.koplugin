@@ -1,4 +1,5 @@
 local _ = require("koassistant_gettext")
+local Constants = require("koassistant_constants")
 local logger = require("logger")
 local T = require("ffi/util").template
 
@@ -60,6 +61,24 @@ function SettingsManager:createMenuItem(plugin, item, schema)
         end
     else
         menu_item.text = item.text or item.id
+    end
+
+    -- Apply optional emoji prefix (gated behind enable_emoji_icons setting)
+    if item.emoji then
+        if menu_item.text_func then
+            local original_func = menu_item.text_func
+            menu_item.text_func = function()
+                local f = plugin.settings:readSetting("features") or {}
+                return Constants.getEmojiText(item.emoji, original_func(), f.enable_emoji_icons == true)
+            end
+        elseif menu_item.text then
+            local original_text = menu_item.text
+            menu_item.text_func = function()
+                local f = plugin.settings:readSetting("features") or {}
+                return Constants.getEmojiText(item.emoji, original_text, f.enable_emoji_icons == true)
+            end
+            menu_item.text = nil
+        end
     end
 
     -- Support for separator line after this item

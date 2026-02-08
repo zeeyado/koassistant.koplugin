@@ -29,6 +29,7 @@ local SettingsSchema = {
             id = "chat_about_book",
             type = "action",
             text = _("Chat about Book"),
+            emoji = "💬",
             callback = "onKOAssistantBookChat",
             visible_func = function(plugin)
                 return plugin.ui and plugin.ui.document ~= nil
@@ -38,18 +39,21 @@ local SettingsSchema = {
             id = "new_general_chat",
             type = "action",
             text = _("General Chat/Action"),
+            emoji = "🗨️",
             callback = "startGeneralChat",
         },
         {
             id = "chat_history",
             type = "action",
             text = _("Chat History"),
+            emoji = "📜",
             callback = "showChatHistory",
         },
         {
             id = "browse_notebooks",
             type = "action",
             text = _("Browse Notebooks"),
+            emoji = "📓",
             callback = "showNotebookBrowser",
             separator = true,
         },
@@ -60,6 +64,7 @@ local SettingsSchema = {
             id = "reading_features",
             type = "submenu",
             text = _("Reading Features"),
+            emoji = "📖",
             visible_func = function(plugin)
                 return plugin.ui and plugin.ui.document ~= nil
             end,
@@ -71,6 +76,7 @@ local SettingsSchema = {
         {
             id = "provider",
             type = "submenu",
+            emoji = "🔗",
             text_func = function(plugin)
                 local f = plugin.settings:readSetting("features") or {}
                 local provider = f.provider or "anthropic"
@@ -81,6 +87,7 @@ local SettingsSchema = {
         {
             id = "model",
             type = "submenu",
+            emoji = "🤖",
             text_func = function(plugin)
                 return T(_("Model: %1"), plugin:getCurrentModel())
             end,
@@ -90,6 +97,7 @@ local SettingsSchema = {
             id = "api_keys",
             type = "submenu",
             text = _("API Keys"),
+            emoji = "🔑",
             callback = "buildApiKeysMenu",
             separator = true,
         },
@@ -98,6 +106,7 @@ local SettingsSchema = {
             id = "display_settings",
             type = "submenu",
             text = _("Display Settings"),
+            emoji = "🎨",
             items = {
                 {
                     id = "render_markdown",
@@ -250,6 +259,7 @@ local SettingsSchema = {
             id = "chat_settings",
             type = "submenu",
             text = _("Chat Settings"),
+            emoji = "💬",
             items = {
                 {
                     id = "auto_save_all_chats",
@@ -445,6 +455,7 @@ local SettingsSchema = {
             id = "ai_language_settings",
             type = "submenu",
             text = _("AI Language Settings"),
+            emoji = "🌐",
             items = {
                 {
                     id = "interaction_languages",
@@ -507,6 +518,7 @@ local SettingsSchema = {
             id = "dictionary_settings",
             type = "submenu",
             text = _("Dictionary Settings"),
+            emoji = "📖",
             items = {
                 {
                     id = "enable_dictionary_hook",
@@ -671,6 +683,7 @@ local SettingsSchema = {
             id = "translate_settings",
             type = "submenu",
             text = _("Translate Settings"),
+            emoji = "🌍",
             items = {
                 -- Translation target (moved from Language Settings)
                 {
@@ -811,6 +824,7 @@ local SettingsSchema = {
             id = "highlight_settings",
             type = "submenu",
             text = _("Highlight Settings"),
+            emoji = "✏️",
             items = {
                 {
                     id = "highlight_bypass_enabled",
@@ -856,6 +870,7 @@ local SettingsSchema = {
             id = "quick_panel_settings",
             type = "submenu",
             text = _("Quick Panel Settings"),
+            emoji = "⚡",
             items = (function()
                 -- Build items dynamically from Constants
                 local items = {
@@ -1070,6 +1085,7 @@ local SettingsSchema = {
             id = "actions_and_prompts",
             type = "submenu",
             text = _("Actions & Prompts"),
+            emoji = "🔧",
             items = {
                 {
                     id = "manage_actions",
@@ -1107,6 +1123,7 @@ local SettingsSchema = {
             id = "notebooks",
             type = "submenu",
             text = _("Notebooks"),
+            emoji = "📓",
             items = {
                 {
                     id = "browse_notebooks",
@@ -1154,6 +1171,7 @@ local SettingsSchema = {
             id = "privacy_data",
             type = "submenu",
             text = _("Privacy & Data"),
+            emoji = "🔒",
             items = {
                 -- Trusted Providers
                 {
@@ -1312,6 +1330,7 @@ local SettingsSchema = {
             id = "koreader_integration",
             type = "submenu",
             text = _("KOReader Integration"),
+            emoji = "🔌",
             items = {
                 -- Info header
                 {
@@ -1504,6 +1523,7 @@ local SettingsSchema = {
             id = "advanced",
             type = "submenu",
             text = _("Advanced"),
+            emoji = "⚙️",
             items = {
                 {
                     id = "temperature",

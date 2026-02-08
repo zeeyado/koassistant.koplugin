@@ -16,12 +16,14 @@ local Menu = require("ui/widget/menu")
 local Screen = require("device").screen
 local UIManager = require("ui/uimanager")
 local logger = require("logger")
+local Constants = require("koassistant_constants")
 local _ = require("koassistant_gettext")
 
 local NotebookManager = {}
 
 --- Show the notebook browser (list of all documents with notebooks)
-function NotebookManager:showNotebookBrowser()
+--- @param opts table|nil Optional config: { enable_emoji = bool }
+function NotebookManager:showNotebookBrowser(opts)
     local Notebook = require("koassistant_notebook")
     local index = G_reader_settings:readSetting("koassistant_notebook_index", {})
     local needs_cleanup = false
@@ -69,12 +71,13 @@ function NotebookManager:showNotebookBrowser()
     local menu_items = {}
     local self_ref = self
 
+    local enable_emoji = opts and opts.enable_emoji
     for _idx, doc in ipairs(docs) do
         local captured_doc = doc
         local date_str = doc.modified > 0 and os.date("%Y-%m-%d", doc.modified) or _("Unknown")
 
         table.insert(menu_items, {
-            text = doc.title,
+            text = Constants.getEmojiText("📓", doc.title, enable_emoji),
             mandatory = date_str,
             mandatory_dim = true,
             callback = function()

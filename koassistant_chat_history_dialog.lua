@@ -13,6 +13,7 @@ local GptQuery = require("koassistant_gpt_query")
 local queryChatGPT = GptQuery.query
 local isStreamingInProgress = GptQuery.isStreamingInProgress
 local ConfigHelper = require("koassistant_config_helper")
+local Constants = require("koassistant_constants")
 local logger = require("logger")
 
 -- Helper function for string formatting with translations
@@ -558,7 +559,15 @@ function ChatHistoryDialog:showChatHistoryBrowser(ui, current_document_path, cha
             display_text = display_text .. " • " .. doc.author
         end
 
-        -- Note: Removed emoji icons (💬, 📚) - they don't render on all e-readers
+        -- Emoji icons gated behind enable_emoji_icons setting (default off for device compatibility)
+        local enable_emoji = config and config.features and config.features.enable_emoji_icons == true
+        if doc.path == "__GENERAL_CHATS__" then
+            display_text = Constants.getEmojiText("💬", display_text, enable_emoji)
+        elseif doc.path == "__MULTI_BOOK_CHATS__" then
+            display_text = Constants.getEmojiText("📚", display_text, enable_emoji)
+        else
+            display_text = Constants.getEmojiText("📖", display_text, enable_emoji)
+        end
 
         local right_text = tostring(chat_count) .. " " .. (chat_count == 1 and _("chat") or _("chats")) .. " • " .. date_str
 

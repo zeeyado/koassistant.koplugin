@@ -1028,10 +1028,12 @@ function ChatGPTViewer:init()
   self._buttons_scroll_callback = function() end
 
   -- buttons - organize into multiple rows for better layout
+  local enable_emoji = self.configuration and self.configuration.features
+                       and self.configuration.features.enable_emoji_icons
   -- First row: Main actions
   local first_row = {
     {
-      text = _("Reply"),
+      text = Constants.getEmojiText("↩️", _("Reply"), enable_emoji),
       id = "ask_another_question",
       callback = function()
         self:askAnotherQuestion()
@@ -1136,7 +1138,7 @@ function ChatGPTViewer:init()
       end,
     },
     {
-      text = "#",
+      text = Constants.getEmojiText("🏷️", "#", enable_emoji),
       id = "tag_chat",
       callback = function()
         if self.tag_callback then
@@ -1208,8 +1210,6 @@ function ChatGPTViewer:init()
   end
   -- Helper to get web search button text with optional emoji
   local function getWebSearchButtonText(state)
-    local enable_emoji = self.configuration and self.configuration.features
-                         and self.configuration.features.enable_emoji_icons
     local label = state and _("ON") or _("OFF")
     if enable_emoji then
       return Constants.getEmojiText("🔍", label, enable_emoji)
