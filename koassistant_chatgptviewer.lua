@@ -180,26 +180,28 @@ local function stripMarkdown(text, is_rtl)
 end
 
 -- Fix BiDi issues in dictionary RTL compact view
--- 1. Add LRM after Latin bold text to maintain LTR continuity with following IPA
---    PTF bold markers (\uFFF2/\uFFF3) break the LTR run between headword and IPA,
---    causing the BiDi algorithm to reverse their visual order in RTL paragraphs.
--- 2. Wrap /ipa/ patterns with LRM to anchor slashes correctly
+-- In RTL paragraphs, LTR content displays left-to-right internally, so the
+-- last element of an LTR sequence sits at the right edge (read first in RTL).
+-- For Latin headwords followed by IPA, this puts IPA rightmost (wrong).
+-- Fix: swap IPA before headword in logical order so headword ends up rightmost.
 local function fixIPABidi(text)
     if not text then return text end
-    local LRM = "\226\128\142"  -- U+200E Left-to-Right Mark
-    local PTF_BOLD_START = "\239\191\178"  -- U+FFF2 in UTF-8
-    local PTF_BOLD_END = "\239\191\179"    -- U+FFF3 in UTF-8
-    -- Add LRM after bold markers containing Latin text (headwords like "instrumental")
-    -- This bridges the BiDi gap between the headword and following IPA transcription
-    text = text:gsub(PTF_BOLD_START .. "(.-)" .. PTF_BOLD_END, function(content)
-        if content:match("[a-zA-Z]") then
-            return PTF_BOLD_START .. content .. PTF_BOLD_END .. LRM
+    local LRM = "\226\128\142"            -- U+200E Left-to-Right Mark
+    local PTF_BOLD_START = "\239\191\178" -- U+FFF2 in UTF-8
+    local PTF_BOLD_END = "\239\191\179"   -- U+FFF3 in UTF-8
+    -- For Latin headwords: swap IPA before headword in logical order
+    -- so headword appears rightmost (read first) in RTL paragraph
+    text = text:gsub(
+        PTF_BOLD_START .. "(.-)" .. PTF_BOLD_END .. " (/[^/\n]+/)",
+        function(bold_content, ipa)
+            if bold_content:match("[a-zA-Z]") then
+                return ipa .. " " .. PTF_BOLD_START .. bold_content .. PTF_BOLD_END
+            end
+            return PTF_BOLD_START .. bold_content .. PTF_BOLD_END .. " " .. ipa
         end
-        return PTF_BOLD_START .. content .. PTF_BOLD_END
-    end)
-    -- Wrap IPA in LRM to anchor slashes correctly
-    -- Consumes trailing space; adds space after IPA inside LRM context
-    text = text:gsub("(/[^/\n]+/) ?", LRM .. "%1 " .. LRM)
+    )
+    -- Wrap IPA in LRM to anchor slashes correctly (don't touch surrounding spaces)
+    text = text:gsub("(/[^/\n]+/)", LRM .. "%1" .. LRM)
     return text
 end
 
