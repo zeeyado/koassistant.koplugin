@@ -6,6 +6,7 @@
 custom_prompts.lua
 custom_actions.lua
 CLAUDE.md
+/.claude
 plan.md
 /docs
 .stfolder
