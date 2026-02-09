@@ -2898,26 +2898,29 @@ Copy the `.ttf` file to KOReader's fonts directory:
 | **Kobo** | `/.adds/koreader/fonts/` |
 | **Kindle** | `koreader/fonts/` (on USB root) |
 | **PocketBook** | `/applications/koreader/fonts/` |
-| **Android** | Enable **system fonts** in KOReader (Settings → gear icon → Font → Use system fonts) — Android already has emoji fonts. Alternatively, copy to `/koreader/fonts/` on device storage. |
+| **Android** | Copy to `/koreader/fonts/` on device storage. Alternatively, you can enable **system fonts** (see below) to use Android's built-in emoji font without copying anything. |
 
 Restart KOReader after installing the font.
+
+**Android shortcut — using system fonts instead:**
+
+Android already has emoji fonts installed. Instead of downloading Noto Emoji, you can tell KOReader to use them: open any book → tap top menu → document icon (📄) → **Font** → **Font Settings** → enable **Enable system fonts** → restart KOReader. This makes all Android system fonts (including emoji) available to KOReader.
 
 **Step 2: Enable as UI fallback font**
 
 Installing the font file alone is not enough — you must add it to KOReader's UI fallback font chain:
 
-1. Open any book in KOReader
-2. Go to the top menu → gear icon (⚙) → **Font** → **Additional UI fallback fonts**
-3. Check **Noto Emoji** in the list
-4. Restart KOReader when prompted
+1. From any KOReader screen (file browser or reader), tap the top menu → gear icon (⚙) → **Device** → **Additional UI fallback fonts**
+2. Check **Noto Emoji** in the list
+3. Restart KOReader when prompted
 
 **Step 3: Enable in KOAssistant**
 
 In KOAssistant: Settings → Display Settings → enable **Emoji Menu Icons** and/or **Emoji Data Access Indicators**.
 
 **Platform notes:**
-- **Android** is the easiest — enable system fonts and emoji should work without downloading anything
-- **Kobo/PocketBook** — follow both steps above; confirmed working with Noto Emoji
+- **Android** is the easiest — enable system fonts (see above), then enable Noto Emoji as a UI fallback font
+- **Kobo/PocketBook** — download Noto Emoji, copy to fonts directory, then enable as UI fallback
 - **Kindle** — limited emoji support. Some glyphs may still render as question marks even with the font installed. If results are poor, disable the emoji options
 
 **Still not working?**
