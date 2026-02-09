@@ -523,6 +523,10 @@ function XrayBrowser:chatAboutItem(detail_text)
     config.features.is_book_context = nil
     config.features.is_multi_book_context = nil
     config.features.book_metadata = nil
+    -- Hide artifact viewer and filter out actions that use book text / annotations / notebook
+    -- (the "highlight" here is AI-generated X-Ray content, not actual book text)
+    config.features._hide_artifacts = true
+    config.features._exclude_action_flags = { "use_book_text", "use_annotations", "use_notebook" }
     Dialogs.showChatGPTDialog(self.ui, detail_text, config, nil, self.metadata.plugin)
 end
 
