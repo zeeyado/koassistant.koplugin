@@ -127,6 +127,26 @@ local function runConstantTests()
 end
 
 -- =============================================================================
+-- Text Fallback Nudge Constant Tests
+-- =============================================================================
+
+local function runTextFallbackConstantTests()
+    print("\n--- Text Fallback Nudge Constant ---")
+
+    TestRunner:test("TEXT_FALLBACK_NUDGE is a non-empty string", function()
+        TestRunner:assertType(Templates.TEXT_FALLBACK_NUDGE, "string")
+        if Templates.TEXT_FALLBACK_NUDGE == "" then
+            error("TEXT_FALLBACK_NUDGE is empty")
+        end
+    end)
+
+    TestRunner:test("TEXT_FALLBACK_NUDGE contains {title} for late substitution", function()
+        TestRunner:assertContains(Templates.TEXT_FALLBACK_NUDGE, "{title}",
+            "Should contain {title} placeholder")
+    end)
+end
+
+-- =============================================================================
 -- Templates.get() Tests
 -- =============================================================================
 
@@ -431,6 +451,12 @@ local function runActionRegressionTests()
                     TestRunner:assertNotContains(result, "{hallucination_nudge}",
                         action_id .. " still has literal {hallucination_nudge}")
                 end)
+
+                TestRunner:test(ctx.name .. "." .. action_id .. ": no literal {text_fallback_nudge} after substitution", function()
+                    local result = MessageBuilder.substituteVariables(prompt_text, {})
+                    TestRunner:assertNotContains(result, "{text_fallback_nudge}",
+                        action_id .. " still has literal {text_fallback_nudge}")
+                end)
             end
         end
     end
@@ -444,6 +470,7 @@ local function runAll()
     print("\n=== Testing Templates & Nudge Substitution ===")
 
     runConstantTests()
+    runTextFallbackConstantTests()
     runGetTests()
     runSubstituteTests()
     runBuildVariablesTests()

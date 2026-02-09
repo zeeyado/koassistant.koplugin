@@ -383,7 +383,7 @@ KOAssistant sends data to AI providers to generate responses. This section expla
 
 **Trusted Providers:** Mark providers you fully trust (e.g., local Ollama) to bypass all data sharing controls.
 
-**Graceful degradation:** When you disable a data type, actions adapt automatically. Section placeholders like `{highlights_section}` simply disappear from prompts, so you don't need to modify your actions.
+**Graceful degradation:** When you disable a data type, actions adapt automatically. Section placeholders like `{highlights_section}` simply disappear from prompts, so you don't need to modify your actions. For text extraction specifically, actions go a step further: when document text is unavailable, the AI is explicitly guided to use its training knowledge of the work (and to say so honestly if it doesn't recognize the title). This means actions like Explain in Context, Discussion Questions, and others still produce useful results for well-known books even without text extraction enabled — see [Text Extraction and Double-gating](#text-extraction-and-double-gating) for details.
 
 **Visibility tip:** If your device supports emoji fonts, enable **[Emoji Data Access Indicators](#display-settings)** (Settings → Display Settings) to see at a glance what data each action accesses — 📄 document text, 📝 annotations, 📓 notebook, 🌐 web search — directly on action names throughout the UI.
 
@@ -391,7 +391,7 @@ KOAssistant sends data to AI providers to generate responses. This section expla
 
 > ⚠️ **Text extraction is OFF by default.** To use features like X-Ray, Recap, and context-aware highlight actions with actual book content (rather than AI's training knowledge), you must enable it in **Settings → Privacy & Data → Text Extraction → Allow Text Extraction**.
 
-Text extraction sends actual book/document content to the AI, enabling features like X-Ray, Recap, Summarize/Analyze Document, and highlight actions like "Explain in Context" to analyze what you've read. Without it enabled, these features rely solely on the AI's training knowledge of the book (which works for well-known titles but may be inaccurate for obscure works, and definitely sub-par (basically unusable) for research papers and articles).
+Text extraction sends actual book/document content to the AI, enabling features like X-Ray, Recap, Summarize/Analyze Document, and highlight actions like "Explain in Context" to analyze what you've read. Without it enabled, these actions gracefully fall back to the AI's training knowledge — the AI is explicitly told no document text was provided and asked to use what it knows about the work (or say so honestly if it doesn't recognize it). This works reasonably for well-known titles but will be inaccurate for obscure works, and basically unusable for research papers and articles the AI hasn't seen.
 
 **Why it's off by default:**
 
@@ -607,7 +607,9 @@ These actions analyze your actual reading content. They require specific privacy
 | **Summarize Document** | Entire document | Allow Text Extraction |
 | **Extract Key Insights** | Entire document | Allow Text Extraction |
 
-> ⚠️ **Privacy settings required:** These actions won't have access to your reading data unless you enable the corresponding setting in **Settings → Privacy & Data**. Without the setting enabled, the AI will attempt to use only its training knowledge (works for famous books, less accurate for obscure works). A "*Response generated without: ...*" notice will appear in the chat to indicate what data was requested but not provided.
+> ⚠️ **Privacy settings required:** These actions won't have access to your reading data unless you enable the corresponding setting in **Settings → Privacy & Data**. Without text extraction enabled, actions that use document text gracefully fall back: the AI is explicitly guided to use its training knowledge of the work and to say so if it doesn't recognize the title. This produces reasonable results for well-known books but will be less accurate for obscure works and unusable for research papers. A "*Response generated without: ...*" notice will appear in the chat to indicate what data was requested but not provided.
+>
+> **Smart actions don't fall back this way** — they require a pre-generated summary cache to function, so they prompt you to generate one first. If you decline, the action doesn't run. This is by design: Smart actions are specialized for repeated queries on a condensed summary, and running them without any document context would defeat their purpose.
 
 > **Tip:** Highlight actions can also use text extraction. "Explain in Context" and "Analyze in Context" send the full document text (`{full_document_section}`) to understand your highlighted passage within the complete work. See [Highlight Mode](#highlight-mode) for details.
 
@@ -624,7 +626,7 @@ These actions analyze your actual reading content. They require specific privacy
 > **Tip:** If your device supports emoji fonts, enable **Emoji Menu Icons** in Settings → Display Settings for visual category icons in the X-Ray browser (e.g., characters, locations, themes). See [Emoji Menu Icons](#display-settings).
 
 **X-Ray/Recap** work in two modes:
-- **Without text extraction** (default): AI uses only the title/author and relies on its training knowledge of the book. Works for well-known titles; may be inaccurate for obscure works.
+- **Without text extraction** (default): AI uses only the title/author and its training knowledge. Their prompts include specialized fallback guidance (e.g., Recap tells the AI to use what it knows; X-Ray provides format-specific error handling). Works for well-known titles; may be inaccurate for obscure works.
 - **With text extraction**: AI analyzes actual book content up to your reading position. More accurate but costs more tokens. Enables response caching for incremental updates.
 
 > **Spoiler safety:** X-Ray and Recap are the only built-in actions that limit extraction to your current reading position (`{book_text_section}`). All other text extraction actions — including "Explain in Context" and "Analyze in Context" — send the full document to give the AI complete context for its analysis. If you need a spoiler-free variant, create a custom action using `{book_text_section}` instead of `{full_document_section}`.
@@ -633,7 +635,7 @@ These actions analyze your actual reading content. They require specific privacy
 
 > ⚠️ **To enable text extraction:** Go to Settings → Privacy & Data → Text Extraction → Allow Text Extraction. This is OFF by default to avoid unexpected token costs.
 
-**Full Document Actions** (Analyze, Summarize, Extract Insights, Key Arguments, Discussion Questions, Generate Quiz, Explain in Context, Analyze in Context): These actions send the entire document text to the AI regardless of reading position. They adapt to your content type and work especially well with [Domains](#domains). For example, with a "Linguistics" domain active, analyzing a linguistics paper will naturally focus on relevant aspects. Key Arguments, Discussion Questions, and Generate Quiz also have **Smart variants** that use a cached summary instead of full text — cheaper for repeated use on longer books.
+**Full Document Actions** (Analyze, Summarize, Extract Insights, Key Arguments, Discussion Questions, Generate Quiz, Explain in Context, Analyze in Context): These actions send the entire document text to the AI regardless of reading position. When text extraction is disabled, they gracefully degrade — the AI is guided to use its training knowledge and to be honest about unrecognized works (see [Privacy Controls](#privacy-controls)). They adapt to your content type and work especially well with [Domains](#domains). For example, with a "Linguistics" domain active, analyzing a linguistics paper will naturally focus on relevant aspects. Key Arguments, Discussion Questions, and Generate Quiz also have **Smart variants** that use a cached summary instead of full text — cheaper for repeated use on longer books.
 
 > **Tip:** Create specialized versions for your workflow. Copy a built-in action, customize the prompt for your field (e.g., "Focus on methodology and statistical claims" for scientific papers), and pair it with a matching domain. Disable built-ins you don't use via Action Manager (tap to toggle). See [Custom Actions](#custom-actions) for details.
 
@@ -930,16 +932,18 @@ Insert these in your action prompt to reference dynamic values:
 
 Utility placeholders provide reusable prompt fragments that can be inserted into any action. Currently available:
 
-| Placeholder | Expands To |
-|-------------|------------|
-| `{conciseness_nudge}` | "Be direct and concise. Don't restate or over-elaborate." |
-| `{hallucination_nudge}` | "If you don't recognize this or the content seems unclear, say so rather than guessing." |
+| Placeholder | Expands To | Behavior |
+|-------------|------------|----------|
+| `{conciseness_nudge}` | "Be direct and concise. Don't restate or over-elaborate." | Always present |
+| `{hallucination_nudge}` | "If you don't recognize this or the content seems unclear, say so rather than guessing." | Always present |
+| `{text_fallback_nudge}` | "Note: No document text was provided. Use your knowledge of \"{title}\" to provide the best response you can. If you don't recognize this work, say so honestly rather than fabricating details." | **Conditional** — only appears when document text is empty; invisible when text is present |
 
 **Why use these?**
 - **`{conciseness_nudge}`**: Some AI models (notably Claude Sonnet 4.5) tend to produce verbose responses. This provides a standard instruction to reduce verbosity without sacrificing quality. Used in 14 built-in actions including Explain, Summarize, ELI5, and the context-aware analysis actions.
 - **`{hallucination_nudge}`**: Prevents AI from fabricating information when it doesn't recognize a book or author. Used in 12 built-in templates including Book Info, Find Similar, Historical Context, and all multi-book actions.
+- **`{text_fallback_nudge}`**: Enables graceful degradation for actions that use document text extraction. When text extraction is disabled or yields no content, this nudge appears to guide the AI to use its training knowledge — and to say so honestly if it doesn't recognize the work. When document text IS present, the placeholder expands to nothing (zero overhead). Used in 8 built-in actions: Explain in Context, Analyze in Context, Key Arguments, Discussion Questions, Generate Quiz, Analyze Document, Summarize Document, Extract Insights. X-Ray and Recap have their own specialized fallback guidance. Smart actions are excluded because they require a pre-generated summary cache.
 
-**For custom actions:** Add these placeholders at the end of your prompts where appropriate. The placeholders are replaced with the actual text at runtime, so you can also use the raw text directly if you prefer.
+**For custom actions:** Add these placeholders at the end of your prompts where appropriate. The placeholders are replaced with the actual text at runtime, so you can also use the raw text directly if you prefer. `{text_fallback_nudge}` is especially useful in custom actions that use `{full_document_section}` or `{book_text_section}` — it ensures your action produces useful results even when text extraction is disabled.
 
 ### Tips for Custom Actions
 
@@ -2396,7 +2400,7 @@ When certain actions complete, their results are saved as **document artifacts**
 
 The artifact viewer shows metadata (coverage, model used, generation date) and provides buttons for copying, exporting, regenerating, or deleting. X-Ray artifacts open in a **browsable category menu** (see [Reading Analysis Actions](#reading-analysis-actions) for details); legacy markdown X-Rays fall back to the text viewer.
 
-> **Safety mechanism:** Artifacts are only saved when book text was actually extracted. If you run an artifact-generating action with text extraction disabled (or if extraction yields no content), the AI response is based solely on the book's title/author (training knowledge), and this lower-quality result is NOT saved. This prevents training-data-based responses from being stored as reusable context. Enable text extraction before running these actions to build useful artifacts.
+> **Safety mechanism:** Artifacts are only saved when book text was actually extracted. If you run an artifact-generating action with text extraction disabled (or if extraction yields no content), the AI still produces a response — guided by the [text fallback nudge](#utility-placeholders) to use its training knowledge honestly — but this training-data-based result is NOT saved as an artifact. This prevents lower-quality responses from being stored as reusable context for Smart actions and other artifact-dependent workflows. Enable text extraction before running these actions to build useful, saveable artifacts.
 
 > **Permission requirement:** Artifact placeholders require the same permissions as the original action that generated them:
 > - `{xray_cache_section}` requires **Allow Text Extraction**, plus **Allow Highlights & Annotations** if the cache was built with annotations
@@ -2862,6 +2866,8 @@ If actions like Analyze Highlights, Connect with Notes, X-Ray, or Recap seem to 
 
 **Why this happens:** To protect your privacy, personal data (highlights, annotations, notebook) is not shared with AI providers by default. You must explicitly opt in. See [Privacy & Data](#privacy--data) for the full explanation.
 
+> **Note:** Actions that use document text still work when text extraction is disabled — they don't fail or return errors. Instead, the AI is explicitly guided to use its training knowledge and to be honest about what it doesn't recognize. For well-known books, this often produces reasonable results. For obscure works or research papers, enable text extraction for meaningful output.
+
 **Quick fix:** Use **Preset: Full** to enable all data sharing at once, or enable individual settings as needed.
 
 **See what actions need:** Enable **[Emoji Data Access Indicators](#display-settings)** to see emoji suffixes on action names showing what data each action accesses (📄 📝 📓 🌐).
@@ -2885,6 +2891,8 @@ If X-Ray, Recap, Explain in Context, Analyze in Context, or custom actions with 
 - This significantly increases token usage (and API costs)
 - Some users prefer AI to use only its training knowledge
 - Content sensitivity — you control what gets shared
+
+**How actions behave without text extraction:** Actions don't fail — they gracefully degrade. The AI is explicitly told no document text was provided and asked to use its training knowledge of the work (with a guard against fabricating details for unrecognized works). For well-known books, this often produces helpful results. For obscure works or research papers, results will be generic or the AI will honestly say it doesn't recognize the work. Document artifacts (Summary, X-Ray, Analysis) are NOT saved from these fallback responses — see [Document Artifacts](#document-artifacts).
 
 **Quick check:** If X-Ray/Recap or context-aware highlight action responses seem to be based only on the book's title/author (generic knowledge), text extraction is not enabled.
 

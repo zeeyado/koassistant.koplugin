@@ -340,6 +340,88 @@ local function runMessageBuilderTests()
 end
 
 -- =============================================================================
+-- Text Fallback Nudge Conditional Tests
+-- =============================================================================
+
+local function runTextFallbackNudgeTests()
+    print("\n--- MessageBuilder: Text Fallback Nudge ---")
+
+    TestRunner:test("text_fallback_nudge appears when no document text", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "Analyze {title}.\n{full_document_section}\n{text_fallback_nudge}" },
+            context = "book",
+            data = {
+                book_metadata = { title = "1984", author = "George Orwell" },
+                full_document = "",  -- Empty: extraction disabled
+            },
+        })
+        TestRunner:assertContains(result, "No document text was provided")
+        TestRunner:assertNotContains(result, "{text_fallback_nudge}")
+    end)
+
+    TestRunner:test("text_fallback_nudge invisible when full_document present", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "Analyze.\n{full_document_section}\n{text_fallback_nudge}" },
+            context = "book",
+            data = {
+                book_metadata = { title = "Test", author = "" },
+                full_document = "This is the full document content.",
+            },
+        })
+        TestRunner:assertNotContains(result, "No document text was provided")
+        TestRunner:assertNotContains(result, "{text_fallback_nudge}")
+        TestRunner:assertContains(result, "Full document:")
+    end)
+
+    TestRunner:test("text_fallback_nudge invisible when book_text present", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "Recap.\n{book_text_section}\n{text_fallback_nudge}" },
+            context = "book",
+            data = {
+                book_metadata = { title = "Test", author = "" },
+                book_text = "Book text up to current position.",
+            },
+        })
+        TestRunner:assertNotContains(result, "No document text was provided")
+        TestRunner:assertContains(result, "Book content so far:")
+    end)
+
+    TestRunner:test("text_fallback_nudge includes title via late substitution", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "Explain in context.\n{full_document_section}\n{text_fallback_nudge}" },
+            context = "book",
+            data = {
+                book_metadata = { title = "War and Peace", author = "Tolstoy" },
+                full_document = "",  -- Empty
+            },
+        })
+        TestRunner:assertContains(result, "War and Peace")
+        TestRunner:assertContains(result, "No document text was provided")
+    end)
+
+    TestRunner:test("text_fallback_nudge with both book_text and full_document empty", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "{book_text_section}{full_document_section}{text_fallback_nudge}" },
+            context = "book",
+            data = {
+                book_metadata = { title = "Test", author = "" },
+                book_text = "",
+                full_document = "",
+            },
+        })
+        TestRunner:assertContains(result, "No document text was provided")
+    end)
+
+    TestRunner:test("text_fallback_nudge cleared in substituteVariables()", function()
+        local result = MessageBuilder.substituteVariables("Test {text_fallback_nudge} end", {})
+        TestRunner:assertNotContains(result, "{text_fallback_nudge}")
+        -- substituteVariables always clears it (no extraction data available)
+        TestRunner:assertNotContains(result, "No document text")
+        TestRunner:assertContains(result, "Test  end")
+    end)
+end
+
+-- =============================================================================
 -- ContextExtractor Gating Tests
 -- =============================================================================
 
@@ -1446,6 +1528,7 @@ local function runAll()
     print("\n=== Testing Prompt Building & Gating ===")
 
     runMessageBuilderTests()
+    runTextFallbackNudgeTests()
     runGatingTests()
     runCacheIntegrationTests()
     runContextTypeTests()

@@ -8131,12 +8131,12 @@ end
 function AskGPT:showWelcomeDialog()
   local text = _("Welcome to KOAssistant!") .. "\n\n" ..
     _("PRIVACY SETTINGS") .. "\n" ..
-    _("Some features (like X-Ray) need permission to access book content.") .. "\n" ..
+    _("Some features (like X-Ray) work best when they can access document text and other content.") .. "\n" ..
     _("Enable in: Settings → Privacy & Data") .. "\n\n" ..
     _("QUICK ACCESS") .. "\n" ..
     _("Add actions to gestures, highlight menus, or Quick Actions panel.") .. "\n\n" ..
     _("CUSTOM ACTIONS") .. "\n" ..
-    _("Create your own prompts and actions.") .. "\n" ..
+    _("Create your own prompts and actions or edit built in ones.") .. "\n" ..
     _("Go to: Settings → Action Manager → Add")
 
   UIManager:show(InfoMessage:new{
