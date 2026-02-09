@@ -13,7 +13,7 @@
 - **General chat** → AI without book/document context
 - **Web search** → AI can search the web for current information (Anthropic, Gemini, OpenRouter)
 
-16 built-in providers (Anthropic, OpenAI, Gemini, Ollama, and more) plus custom OpenAI-compatible providers. Fully configurable: custom actions, behaviors, domains, per-action model overrides. Personal reading data (highlights, annotations, notebooks) is opt-in — not sent to the AI unless you enable it.
+16 built-in providers (Anthropic, OpenAI, Gemini, Ollama, and more) plus custom OpenAI-compatible providers. Fully configurable: custom actions, behaviors, domains, per-action model overrides. **One-tap auto-update** keeps the plugin current. Personal reading data (highlights, annotations, notebooks) is opt-in — not sent to the AI unless you enable it.
 
 **Status:** Active development — [issues](https://github.com/zeeyado/koassistant.koplugin/issues), [discussions](https://github.com/zeeyado/koassistant.koplugin/discussions), and [translations](https://hosted.weblate.org/engage/koassistant/) welcome. If you are somewhat technical and don't want to wait for tested releases, you can run off main branch to get the latest features. Breakage may happen. Also see [Assistant Plugin](https://github.com/omer-faruq/assistant.koplugin); both can run side by side.
 
@@ -68,7 +68,9 @@
   - [Chat Storage & File Moves](#chat-storage--file-moves)
   - [Tags](#tags)
 - [Settings Reference](#settings-reference) ↓ includes [KOReader Integration](#koreader-integration)
-- [Updating the Plugin](#updating-the-plugin) — How to install new versions
+- [Updating the Plugin](#updating-the-plugin) — Auto-update and manual methods
+  - [Automatic Update (One-Tap)](#automatic-update-one-tap)
+  - [Manual Update](#manual-update)
 - [Update Checking](#update-checking)
 - [Advanced Configuration](#advanced-configuration)
 - [Backup & Restore](#backup--restore)
@@ -141,7 +143,7 @@ macOS:        ~/Library/Application Support/koreader/plugins/koassistant.koplugi
 Linux:        ~/.config/koreader/plugins/koassistant.koplugin/
 ```
 
-> Already installed and updating? See [Updating the Plugin](#updating-the-plugin) for step-by-step instructions.
+> Already installed? KOAssistant can update itself — see [Updating the Plugin](#updating-the-plugin).
 
 ### 2. Add Your API Key
 
@@ -1998,23 +2000,40 @@ Control where KOAssistant appears in KOReader's menus. All toggles default to ON
 
 ## Updating the Plugin
 
-When KOAssistant notifies you of a new version (or you check manually via Settings → About → Check for Updates), follow these steps. An automatic updater is planned for a future release.
+KOAssistant can update itself with one tap. When a new version is available, the update dialog includes an **"Update Now"** button that downloads, installs, and preserves your configuration automatically. Your API keys, custom actions, behaviors, domains, settings, chat history, notebooks, and caches are all safe.
 
-### What's Safe
+### Automatic Update (One-Tap)
 
-Your settings and data are **not affected** by updates:
+When KOAssistant detects a new version (automatically on startup, or via a manual check), the release notes dialog includes an **"Update Now"** button. Tap it and the plugin handles everything:
+
+1. Downloads the release zip from GitHub
+2. Extracts and verifies the new version
+3. Preserves your configuration files (`apikeys.lua`, `configuration.lua`, `custom_actions.lua`, and custom `behaviors/`/`domains/` folders)
+4. Swaps in the new version
+5. Restores your configuration files
+6. Prompts you to restart KOReader
+
+The "Update Now" button appears in both the original and translated release notes viewers, so you can read the notes in your language and update from the same dialog.
+
+> **Note:** If you installed KOAssistant by cloning the git repository (developers), the "Update Now" button will not appear. Use `git pull` instead — see [Git Pull](#git-pull-for-developers) below.
+
+### What's Safe During Updates
+
+Your settings and data are **not affected** by updates (automatic or manual):
 - **All settings** (provider, model, features, privacy, etc.) are stored outside the plugin folder
 - **API keys entered via Settings menu** are stored outside the plugin folder
 - **Chat history, notebooks, caches** are all stored in KOReader's settings/sidecar files
 - **Backups** (created via Settings → Backup & Restore) are stored outside the plugin folder
 
-The only user files inside the plugin folder are optional configuration files: `apikeys.lua`, `configuration.lua`, `custom_actions.lua`, and custom `behaviors/`/`domains/` folders. These are **not included in the release zip**, so they survive extraction — as long as you don't delete the folder first.
+The auto-updater also preserves the optional configuration files that live inside the plugin folder: `apikeys.lua`, `configuration.lua`, `custom_actions.lua`, and custom `behaviors/`/`domains/` folders.
 
-### Update Steps
+### Manual Update
 
-#### Option A: Extract Over Existing (Recommended)
+If you prefer to update manually (or are updating from a version older than v1.1.0 that doesn't have auto-update):
 
-This is the safest method — new and changed files are overwritten, your configuration files are untouched.
+#### Extract Over Existing (Recommended)
+
+New and changed files are overwritten; your configuration files are untouched.
 
 1. Download `koassistant.koplugin.zip` from the [latest release](https://github.com/zeeyado/koassistant.koplugin/releases) → Assets
 2. Connect your device via USB (or use a file manager on Android)
@@ -2030,7 +2049,7 @@ This is the safest method — new and changed files are overwritten, your config
 
 > **Tip (Kobo/Kindle):** On some file managers, "extract here" into the plugins directory will automatically merge into the existing folder. On others, you may need to drag the extracted `koassistant.koplugin` folder over the existing one and confirm the overwrite.
 
-#### Option B: Clean Install (If You Have Issues)
+#### Clean Install (If You Have Issues)
 
 If you're having problems after an update, a clean install can help. This deletes the old plugin folder entirely, so back up your configuration files first.
 
@@ -2046,7 +2065,7 @@ If you're having problems after an update, a clean install can help. This delete
 
 > **Note:** If you entered your API keys via the Settings menu (not a file), you don't need to back up `apikeys.lua` — GUI keys are stored separately and will persist.
 
-#### Option C: Git Pull (For Developers)
+#### Git Pull (For Developers)
 
 If you cloned the repository:
 ```bash
@@ -2054,7 +2073,7 @@ cd /path/to/koreader/plugins/koassistant.koplugin
 git pull
 ```
 
-This gives you the latest development version (may include unreleased changes).
+This gives you the latest development version (may include unreleased changes). The auto-updater detects git-based installs and disables itself to avoid overwriting your repository.
 
 ---
 
@@ -2072,8 +2091,9 @@ By default, KOAssistant automatically checks for updates **once per session** wh
 3. If a new version is available, a dialog appears with:
    - Current version and latest version
    - Full release notes in formatted markdown with clickable links
-   - "Visit Release Page" button to download (opens in browser if device supports it)
-   - "Translate" button to translate release notes to your translation language (only shown if non-English)
+   - **"Update Now"** button to install the update directly (see [Automatic Update](#automatic-update-one-tap))
+   - "Visit Release Page" button to view on GitHub (opens in browser if device supports it)
+   - "Translate" button to translate release notes to your language (only shown if non-English)
    - "Later" button to dismiss
 
 **What's checked:**
