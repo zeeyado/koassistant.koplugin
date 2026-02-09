@@ -1931,8 +1931,8 @@ See [Privacy & Data](#privacy--data) for background on what gets sent to AI prov
   - **Allow Chapter Info**: Send chapter title, chapters read, time since last opened (default: ON)
 - **Text Extraction** (submenu): Settings for extracting book content for AI analysis
   - **Allow Text Extraction**: Master toggle for text extraction (off by default). When enabled, actions can extract and send book text to the AI. Used by X-Ray, Recap, Explain in Context, Analyze in Context, and actions with text placeholders (`{book_text}`, `{full_document}`, etc.). Enabling shows an informational notice about token costs.
-  - **Max Text Characters**: Maximum characters to extract (10,000-1,000,000, default 250,000 ~60k tokens)
-  - **Max PDF Pages**: Maximum PDF pages to process (50-500, default 250)
+  - **Max Text Characters**: Maximum characters to extract (10,000-2,000,000, default 1,000,000 ~250k tokens)
+  - **Max PDF Pages**: Maximum PDF pages to process (50-1,000, default 500)
   - **Clear Action Cache**: Clear cached X-Ray/Recap responses for the current book (requires book to be open). To clear just one action, use the "↻ Fresh" button in the chat viewer instead.
 
 ### KOReader Integration
@@ -2397,10 +2397,48 @@ If you haven't run X-Ray yet (or permissions aren't enabled), the placeholder re
 
 **Text extraction guidelines:**
 - ~100 pages ≈ 25,000-40,000 characters (varies by formatting)
-- Default setting (250,000 chars, ~60k tokens) covers ~600-1000 pages
-- For very long books, consider running X-Ray/Recap periodically to keep cache current
+- Default limit: 1,000,000 characters (~250k tokens), configurable up to 2,000,000
+- Default PDF limit: 500 pages, configurable up to 1,000
+- These defaults cover most novels (~80k-100k words ≈ 500k-600k chars). Even long fantasy novels (~200k words ≈ 1.2M chars) fit within the max setting
+- **The extraction limit is not the bottleneck — your model's context window is.** If the extracted text exceeds what your model can handle, the API will reject the request. A partial extraction that silently omits half the book produces worse results than a clear API error you can act on. See [Context Windows and Extraction Limits](#context-windows-and-extraction-limits) below
 - If truncation occurs, both you and the AI see a notice showing the coverage range (e.g., "covers 14%-100%")
 - **Two extraction types:** `{book_text_section}` extracts from start to current position (for X-Ray/Recap), `{full_document_section}` extracts the entire document regardless of position (for analyzing short papers/articles)
+
+#### Context Windows and Extraction Limits
+
+The max extraction setting is a safety cap, not a target. Your AI model's context window determines how much text it can actually process. Here's roughly what each provider supports:
+
+| Provider | Context Window | Max English Text (~4 chars/token) |
+|----------|---------------|----------------------------------|
+| Gemini 2.5/3 (Pro & Flash) | 1M tokens | ~4M chars — handles any book |
+| Claude (all models) | 200k tokens | ~800k chars — most novels |
+| OpenAI (GPT-4o, o3) | 128k-200k tokens | ~500k-800k chars |
+| DeepSeek (V3, R1) | 128k tokens | ~500k chars |
+| Others (Mistral, Qwen, etc.) | 32k-128k tokens | ~130k-500k chars |
+
+> **CJK/non-Latin text** tokenizes less efficiently (~2 chars/token), roughly halving these estimates.
+
+**Cost per request** (input only, English):
+
+| Model | 250k chars (~60k tok) | 500k chars (~125k tok) | 1M chars (~250k tok) |
+|-------|----------------------|----------------------|---------------------|
+| Gemini 2.5 Flash | $0.02 | $0.04 | $0.08 |
+| DeepSeek V3.2 | $0.02 | $0.04 | $0.07 |
+| Claude Haiku 4.5 | $0.06 | $0.13 | exceeds context |
+| GPT-4o | $0.16 | $0.31 | exceeds context |
+| Claude Sonnet 4.5 | $0.19 | $0.38 | exceeds context |
+| Gemini 2.5 Pro | $0.08 | $0.16 | $0.38 |
+| Claude Opus 4.5 | $0.31 | $0.63 | exceeds context |
+| o3 | $0.63 | $1.25 | exceeds context |
+
+> Prompt caching reduces repeated costs by 50-90% (see [Prompt Caching](#prompt-caching)). Multi-turn conversations on the same book benefit significantly.
+
+**Tips to avoid exceeding your model's context window:**
+
+- **Use response caching** — Run X-Ray/Recap early in your reading. Subsequent runs send only new content since the last cached position, not the entire book again. Starting X-Ray at 80% on a long novel sends the whole 80% at once; starting at 10% and running periodically keeps each request small
+- **Use Smart actions** — They reference the cached summary (~2k tokens) instead of raw book text (~100k+ tokens), making them work on any model regardless of context size
+- **Lower the extraction limit** if your model is small — Settings → Privacy & Data → Text Extraction → Max Text Characters. Match it to your model's context window rather than leaving it at the default
+- **The max limit (2M chars) exists for Gemini's 1M-token context.** Most other models will never need more than 500k-800k chars. You probably don't need to raise the default unless you're using Gemini with very long documents
 
 ### Reasoning/Thinking
 

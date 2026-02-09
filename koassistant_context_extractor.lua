@@ -109,13 +109,13 @@ function ContextExtractor:isBookTextExtractionEnabled()
 end
 
 --- Get book text up to current reading position.
--- @param options table { max_chars = 250000, max_pages = 250 }
+-- @param options table { max_chars = 1000000, max_pages = 500 }
 -- @return table { text, truncated, char_count, disabled, coverage_start, coverage_end }
 --   coverage_start/coverage_end are percentages (0-100) when truncated, nil otherwise
 function ContextExtractor:getBookText(options)
     options = options or {}
-    local max_chars = options.max_chars or self.settings.max_book_text_chars or 250000
-    local max_pages = options.max_pages or self.settings.max_pdf_pages or 250
+    local max_chars = options.max_chars or self.settings.max_book_text_chars or 1000000
+    local max_pages = options.max_pages or self.settings.max_pdf_pages or 500
 
     logger.info("ContextExtractor:getBookText called, enable_book_text_extraction=",
                self.settings.enable_book_text_extraction and "true" or "false/nil")
@@ -235,13 +235,13 @@ end
 -- Used to extract only the "delta" of new content since a cached position.
 -- @param from_progress number Start position as decimal (0.0-1.0)
 -- @param to_progress number End position as decimal (0.0-1.0)
--- @param options table { max_chars = 250000, max_pages = 250 }
+-- @param options table { max_chars = 1000000, max_pages = 500 }
 -- @return table { text, truncated, char_count, disabled, coverage_start, coverage_end }
 --   coverage_start/coverage_end are percentages (0-100) when truncated, nil otherwise
 function ContextExtractor:getBookTextRange(from_progress, to_progress, options)
     options = options or {}
-    local max_chars = options.max_chars or self.settings.max_book_text_chars or 250000
-    local max_pages = options.max_pages or self.settings.max_pdf_pages or 250
+    local max_chars = options.max_chars or self.settings.max_book_text_chars or 1000000
+    local max_pages = options.max_pages or self.settings.max_pdf_pages or 500
 
     logger.info("ContextExtractor:getBookTextRange called, from=", from_progress, "to=", to_progress)
 
@@ -384,12 +384,12 @@ end
 
 --- Get full document text (entire document, ignores reading position).
 -- Used for short content analysis (papers, articles) where AI should see everything.
--- @param options table { max_chars = 250000, max_pages = 250 }
+-- @param options table { max_chars = 1000000, max_pages = 500 }
 -- @return table { text, truncated, char_count, disabled, coverage_start, coverage_end }
 function ContextExtractor:getFullDocumentText(options)
     options = options or {}
-    local max_chars = options.max_chars or self.settings.max_book_text_chars or 250000
-    local max_pages = options.max_pages or self.settings.max_pdf_pages or 250
+    local max_chars = options.max_chars or self.settings.max_book_text_chars or 1000000
+    local max_pages = options.max_pages or self.settings.max_pdf_pages or 500
 
     logger.info("ContextExtractor:getFullDocumentText called")
 
