@@ -620,6 +620,7 @@ These actions analyze your actual reading content. They require specific privacy
 - **Chapter Characters** — shows which characters appear in your current chapter with mention counts, using word-boundary matching against names and aliases
 - **Search** — find any entry across all categories by name, alias, or description
 - **Full View** — rendered markdown view in the chat viewer (with export)
+- **Chat about this** — from any detail view, launch a book chat with the entry as context to ask follow-up questions (actions requiring book text or annotations are filtered out since the context is AI-generated analysis)
 - **Text selection** — hold to select text in detail views: 1-3 words opens dictionary, 4+ copies to clipboard
 - **Options menu** — info (model, progress, date, fiction/non-fiction type), delete, close
 
