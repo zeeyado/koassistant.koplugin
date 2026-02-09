@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: KOAssistant 0.12.0-dev\n"
 "Report-Msgid-Bugs-To: https://github.com/zeeyado/koassistant.koplugin/issues\n"
-"POT-Creation-Date: 2026-02-09 14:12+0000\n"
+"POT-Creation-Date: 2026-02-09 17:26+0000\n"
 "PO-Revision-Date: 2026-01-27 17:48+0000\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 
-#: _meta.lua:4 main.lua:3631 main.lua:4519
+#: _meta.lua:4 main.lua:3631 main.lua:4545
 #, fuzzy
 msgid "KOAssistant"
 msgstr "KOAssistant"
@@ -50,8 +50,8 @@ msgstr ""
 #: koassistant_chat_history_dialog.lua:1899
 #: koassistant_chat_history_dialog.lua:1937 koassistant_chatgptviewer.lua:2211
 #: koassistant_chatgptviewer.lua:2217 koassistant_notebook_manager.lua:156
-#: koassistant_notebook_manager.lua:161 main.lua:7745 main.lua:7753
-#: koassistant_ui/behavior_manager.lua:311
+#: koassistant_notebook_manager.lua:161 koassistant_xray_browser.lua:657
+#: main.lua:7788 main.lua:7796 koassistant_ui/behavior_manager.lua:311
 #: koassistant_ui/domain_manager.lua:313 koassistant_ui/prompts_manager.lua:751
 #, fuzzy
 msgid "Delete"
@@ -72,9 +72,9 @@ msgstr "Đã xóa %1 cuộc trò chuyện"
 #: koassistant_chatgptviewer.lua:1878 koassistant_chatgptviewer.lua:2074
 #: koassistant_chatgptviewer.lua:2229 koassistant_chatgptviewer.lua:2418
 #: koassistant_chatgptviewer.lua:3940 koassistant_dialogs.lua:607
-#: koassistant_dialogs.lua:2586 koassistant_dialogs.lua:2622 main.lua:2201
-#: main.lua:4581 main.lua:5054 main.lua:5187
-#: koassistant_ui/behavior_manager.lua:382
+#: koassistant_dialogs.lua:2621 koassistant_dialogs.lua:2657
+#: koassistant_xray_browser.lua:699 main.lua:2201 main.lua:4607 main.lua:5080
+#: main.lua:5230 koassistant_ui/behavior_manager.lua:382
 #: koassistant_ui/domain_manager.lua:383
 #: koassistant_ui/settings_manager.lua:265
 #: koassistant_ui/settings_manager.lua:351
@@ -110,7 +110,7 @@ msgstr ""
 "\n"
 "Hành động này không thể hoàn tác."
 
-#: koassistant_chat_history_dialog.lua:148 main.lua:6506
+#: koassistant_chat_history_dialog.lua:148 main.lua:6549
 #, fuzzy
 msgid "Deleted %1 chat(s) from %2 book(s)"
 msgstr "Đã xóa %1 cuộc trò chuyện từ %2 sách"
@@ -124,7 +124,7 @@ msgstr "Tùy chọn Lịch sử Trò chuyện"
 #: koassistant_chat_history_dialog.lua:255
 #: koassistant_chat_history_dialog.lua:602 koassistant_constants.lua:123
 #: koassistant_settings_schema.lua:48 koassistant_settings_schema.lua:911
-#: koassistant_settings_schema.lua:1031 main.lua:338 main.lua:4959
+#: koassistant_settings_schema.lua:1031 main.lua:338 main.lua:4985
 #, fuzzy
 msgid "Chat History"
 msgstr "Lịch sử Trò chuyện"
@@ -217,8 +217,13 @@ msgstr "Trò chuyện Đa Sách"
 msgid "Validating chat index…"
 msgstr "Đang xác thực chỉ mục trò chuyện…"
 
-#: koassistant_chat_history_dialog.lua:555 koassistant_dialogs.lua:3144
-#: koassistant_notebook_manager.lua:77 koassistant_ui/behavior_manager.lua:264
+#: koassistant_chat_history_dialog.lua:555 koassistant_dialogs.lua:3212
+#: koassistant_notebook_manager.lua:77 koassistant_xray_browser.lua:502
+#: koassistant_xray_parser.lua:153 koassistant_xray_parser.lua:156
+#: koassistant_xray_parser.lua:158 koassistant_xray_parser.lua:186
+#: koassistant_xray_parser.lua:210 koassistant_xray_parser.lua:222
+#: koassistant_xray_parser.lua:233 koassistant_xray_parser.lua:240
+#: koassistant_ui/behavior_manager.lua:264
 #: koassistant_ui/domain_manager.lua:272 koassistant_ui/prompts_manager.lua:639
 #, fuzzy
 msgid "Unknown"
@@ -250,12 +255,12 @@ msgstr "Trò chuyện: %1"
 msgid "Error: Cannot load chat data."
 msgstr "Lỗi: Không thể tải dữ liệu trò chuyện."
 
-#: koassistant_chat_history_dialog.lua:782
+#: koassistant_chat_history_dialog.lua:782 koassistant_xray_browser.lua:678
 #, fuzzy
 msgid "Date:"
 msgstr "Ngày:"
 
-#: koassistant_chat_history_dialog.lua:783
+#: koassistant_chat_history_dialog.lua:783 koassistant_xray_browser.lua:672
 #, fuzzy
 msgid "Model:"
 msgstr "Mô hình:"
@@ -382,12 +387,12 @@ msgstr "Không tìm thấy cuộc trò chuyện"
 #: koassistant_chatgptviewer.lua:1857 koassistant_chatgptviewer.lua:2055
 #: koassistant_chatgptviewer.lua:3246 koassistant_chatgptviewer.lua:3428
 #: koassistant_dialogs.lua:949 koassistant_dialogs.lua:1621
-#: koassistant_dialogs.lua:1929 koassistant_dialogs.lua:2875
+#: koassistant_dialogs.lua:1929 koassistant_dialogs.lua:2910
 #: koassistant_notebook_manager.lua:182 koassistant_update_checker.lua:325
-#: main.lua:391 main.lua:1969 main.lua:2007 main.lua:2073 main.lua:2311
-#: main.lua:2435 main.lua:2579 main.lua:2752 main.lua:2908 main.lua:3408
-#: main.lua:3582 main.lua:4028 main.lua:5311 main.lua:6836 main.lua:7390
-#: koassistant_ui/behavior_manager.lua:419
+#: koassistant_xray_browser.lua:540 main.lua:391 main.lua:1969 main.lua:2007
+#: main.lua:2073 main.lua:2311 main.lua:2435 main.lua:2579 main.lua:2752
+#: main.lua:2908 main.lua:3408 main.lua:3582 main.lua:4028 main.lua:5354
+#: main.lua:6879 main.lua:7433 koassistant_ui/behavior_manager.lua:419
 #: koassistant_ui/behavior_manager.lua:478
 #: koassistant_ui/behavior_manager.lua:557
 #: koassistant_ui/behavior_manager.lua:613
@@ -433,7 +438,7 @@ msgstr "Hủy"
 msgid "Error: Failed to load chat messages."
 msgstr "Lỗi: Không thể tải tin nhắn trò chuyện."
 
-#: koassistant_chat_history_dialog.lua:1432 koassistant_dialogs.lua:2404
+#: koassistant_chat_history_dialog.lua:1432 koassistant_dialogs.lua:2439
 #: stream_handler.lua:201
 #, fuzzy
 msgid "No response received from AI"
@@ -540,7 +545,7 @@ msgstr ""
 "%1"
 
 #: koassistant_chat_history_dialog.lua:1766 koassistant_chatgptviewer.lua:3369
-#: main.lua:8423
+#: main.lua:8466
 #, fuzzy
 msgid "Failed to save: %1"
 msgstr "Không thể lưu: %1"
@@ -670,7 +675,7 @@ msgid "Autosaved"
 msgstr "Đã tự động lưu"
 
 #: koassistant_chatgptviewer.lua:1066 koassistant_dialogs.lua:615 main.lua:2080
-#: main.lua:2775 main.lua:3415 main.lua:3597 main.lua:6842
+#: main.lua:2775 main.lua:3415 main.lua:3597 main.lua:6885
 #: koassistant_ui/behavior_manager.lua:496
 #: koassistant_ui/domain_manager.lua:487
 #: koassistant_ui/prompts_manager.lua:1778
@@ -851,7 +856,7 @@ msgstr "Từ đã được thêm vào trình xây dựng từ vựng"
 msgid "+Vocab"
 msgstr "+Từ vựng"
 
-#: koassistant_chatgptviewer.lua:1622 main.lua:6063
+#: koassistant_chatgptviewer.lua:1622 main.lua:6106
 #, fuzzy
 msgid "AI Dictionary lookup"
 msgstr "Tra từ điển AI"
@@ -893,7 +898,7 @@ msgid "Configure languages in Settings first"
 msgstr "Vui lòng cấu hình ngôn ngữ trong Cài đặt trước"
 
 #: koassistant_chatgptviewer.lua:1724 koassistant_settings_schema.lua:1010
-#: main.lua:4917 main.lua:5678
+#: main.lua:4943 main.lua:5721
 #, fuzzy
 msgid "Dictionary Language"
 msgstr "Ngôn ngữ từ điển"
@@ -1042,7 +1047,7 @@ msgstr "Nhập câu trả lời của bạn..."
 msgid "Send"
 msgstr "Gửi"
 
-#: koassistant_chatgptviewer.lua:2836
+#: koassistant_chatgptviewer.lua:2836 koassistant_xray_browser.lua:195
 #, fuzzy
 msgid "Copied to clipboard."
 msgstr "Đã sao chép vào clipboard."
@@ -1052,7 +1057,7 @@ msgstr "Đã sao chép vào clipboard."
 msgid "No highlight selection data available"
 msgstr "Không có dữ liệu đoạn văn được chọn"
 
-#: koassistant_chatgptviewer.lua:3070 main.lua:5526
+#: koassistant_chatgptviewer.lua:3070 main.lua:5569
 #, fuzzy
 msgid "No document open"
 msgstr "Không có tài liệu nào được mở"
@@ -1154,17 +1159,17 @@ msgstr "Không có nội dung để xuất"
 msgid "No export metadata available."
 msgstr "Không có siêu dữ liệu xuất khẩu."
 
-#: koassistant_chatgptviewer.lua:3482 main.lua:8346
+#: koassistant_chatgptviewer.lua:3482 main.lua:8389
 #, fuzzy
 msgid "Select export folder"
 msgstr "Chọn thư mục xuất khẩu"
 
-#: koassistant_chatgptviewer.lua:3506 main.lua:8368
+#: koassistant_chatgptviewer.lua:3506 main.lua:8411
 #, fuzzy
 msgid "Saved to %1"
 msgstr "Đã lưu vào %1"
 
-#: koassistant_chatgptviewer.lua:3511 main.lua:8373
+#: koassistant_chatgptviewer.lua:3511 main.lua:8416
 #, fuzzy
 msgid "Export failed: %1"
 msgstr "Xuất khẩu thất bại: %1"
@@ -1249,7 +1254,7 @@ msgstr "Căn chỉnh: %1"
 msgid "Reset to Defaults"
 msgstr "Đặt lại về mặc định"
 
-#: koassistant_chatgptviewer.lua:3960 main.lua:4832
+#: koassistant_chatgptviewer.lua:3960 main.lua:4858
 #: koassistant_ui/settings_manager.lua:317
 #, fuzzy
 msgid "Set"
@@ -1260,7 +1265,7 @@ msgstr "Đặt"
 msgid "Font size set to %1"
 msgstr "Cỡ chữ đã đặt thành %1"
 
-#: koassistant_chatgptviewer.lua:4003 main.lua:6678
+#: koassistant_chatgptviewer.lua:4003 main.lua:6721
 #, fuzzy
 msgid "Settings reset to defaults"
 msgstr "Cài đặt đã được đặt lại về mặc định"
@@ -1281,33 +1286,33 @@ msgid "Edit Notebook"
 msgstr "Chỉnh sửa Sổ tay"
 
 #: koassistant_constants.lua:124 koassistant_settings_schema.lua:912
-#: koassistant_settings_schema.lua:1052 main.lua:4995
+#: koassistant_settings_schema.lua:1052 main.lua:5021
 #, fuzzy
 msgid "Continue Last Chat"
 msgstr "Tiếp tục Trò chuyện Cuối"
 
 #: koassistant_constants.lua:125 koassistant_settings_schema.lua:913
-#: koassistant_settings_schema.lua:1059 main.lua:5007
+#: koassistant_settings_schema.lua:1059 main.lua:5033
 #, fuzzy
 msgid "New Book Chat/Action"
 msgstr "Trò chuyện/Hành động Sách Mới"
 
 #: koassistant_constants.lua:126 koassistant_settings_schema.lua:41
 #: koassistant_settings_schema.lua:914 koassistant_settings_schema.lua:1045
-#: main.lua:4983
+#: main.lua:5009
 #, fuzzy
 msgid "General Chat/Action"
 msgstr "Trò chuyện/Hành động Chung"
 
-#: koassistant_constants.lua:128 koassistant_dialogs.lua:2858
-#: koassistant_dialogs.lua:2881 koassistant_settings_schema.lua:916
-#: main.lua:369 main.lua:397 main.lua:4035 main.lua:5164
+#: koassistant_constants.lua:128 koassistant_dialogs.lua:2893
+#: koassistant_dialogs.lua:2916 koassistant_settings_schema.lua:916
+#: main.lua:369 main.lua:397 main.lua:4035
 #, fuzzy
 msgid "View Artifacts"
 msgstr "Xem Tạo phẩm"
 
 #: koassistant_constants.lua:129 koassistant_settings_schema.lua:917
-#: main.lua:5075
+#: main.lua:5101
 #, fuzzy
 msgid "Quick Settings"
 msgstr "Cài đặt Nhanh"
@@ -1362,7 +1367,7 @@ msgstr "Không thể gắn thẻ: không có ngữ cảnh tài liệu"
 msgid "Could not find summary action. Please try again."
 msgstr "Không tìm thấy hành động tóm tắt. Vui lòng thử lại."
 
-#: koassistant_dialogs.lua:1852 main.lua:4290
+#: koassistant_dialogs.lua:1852 main.lua:4316
 #, fuzzy
 msgid "Generating document summary..."
 msgstr "Đang tạo tóm tắt tài liệu..."
@@ -1389,109 +1394,114 @@ msgstr ""
 "• Xử lý đến giới hạn ký tự\n"
 "• Phạm vi hiển thị trong trình xem bộ nhớ đệm"
 
-#: koassistant_dialogs.lua:1928 main.lua:4313
+#: koassistant_dialogs.lua:1928 main.lua:4339
 #, fuzzy
 msgid "Generate"
 msgstr "Tạo"
 
-#: koassistant_dialogs.lua:2180
+#: koassistant_dialogs.lua:2186
 #, fuzzy
 msgid ""
 "Book text truncated (covers %1 %–%2 %). Increase limit in Advanced Settings."
 msgstr "Văn bản sách bị cắt bớt (bao phủ %1 %–%2 %). Tăng giới hạn trong Cài đặt Nâng cao."
 
-#: koassistant_dialogs.lua:2191
+#: koassistant_dialogs.lua:2197
 #, fuzzy
 msgid ""
 "Full document text truncated (covers %1 %–%2 %). Increase limit in Advanced Settings."
 msgstr "Văn bản tài liệu đầy đủ bị cắt bớt (bao phủ %1 %–%2 %). Tăng giới hạn trong Cài đặt Nâng cao."
 
-#: koassistant_dialogs.lua:2270
+#: koassistant_dialogs.lua:2284
 #, fuzzy
 msgid ""
 "New content truncated (covers %1 %–%2 %). Increase limit in Advanced Settings."
 msgstr "Nội dung mới bị cắt bớt (bao phủ %1 %–%2 %). Tăng giới hạn trong Cài đặt Nâng cao."
 
-#: koassistant_dialogs.lua:2541 koassistant_dialogs.lua:2605
-#: koassistant_settings_schema.lua:564 main.lua:3532 main.lua:4709
-#: main.lua:5379 koassistant_ui/prompts_manager.lua:1518
+#: koassistant_dialogs.lua:2576 koassistant_dialogs.lua:2640
+#: koassistant_settings_schema.lua:564 main.lua:3532 main.lua:4735
+#: main.lua:5422 koassistant_ui/prompts_manager.lua:1518
 #: koassistant_ui/prompts_manager.lua:2677
 #: koassistant_ui/prompts_manager.lua:3395
 #, fuzzy
 msgid "None"
 msgstr "Không có"
 
-#: koassistant_dialogs.lua:2596
+#: koassistant_dialogs.lua:2631
 #, fuzzy
 msgid "Select Domain"
 msgstr "Chọn Lĩnh vực"
 
-#: koassistant_dialogs.lua:2634
+#: koassistant_dialogs.lua:2669
 #, fuzzy
 msgid "Domain: "
 msgstr "Lĩnh vực:"
 
-#: koassistant_dialogs.lua:2641
+#: koassistant_dialogs.lua:2676
 #, fuzzy
 msgid "Ask"
 msgstr "Hỏi"
 
-#: koassistant_dialogs.lua:2749
+#: koassistant_dialogs.lua:2784
 #, fuzzy
 msgid "Chat"
 msgstr "Trò chuyện"
 
-#: koassistant_dialogs.lua:2753 koassistant_dialogs.lua:3075
+#: koassistant_dialogs.lua:2788 koassistant_dialogs.lua:3143
 #, fuzzy
 msgid "Error: "
 msgstr "Lỗi:"
 
-#: koassistant_dialogs.lua:2807
+#: koassistant_dialogs.lua:2842
 #, fuzzy
 msgid "Error handling prompt: "
 msgstr "Lỗi xử lý lời nhắc:"
 
-#: koassistant_dialogs.lua:2840 main.lua:360 main.lua:3989 main.lua:4170
+#: koassistant_dialogs.lua:2875 main.lua:360 main.lua:3989 main.lua:4196
 #, fuzzy
 msgid "Summary"
 msgstr "Tóm Tắt"
 
-#: koassistant_dialogs.lua:2844 main.lua:364 main.lua:3997
+#: koassistant_dialogs.lua:2879 main.lua:364 main.lua:3997 main.lua:5210
 #, fuzzy
 msgid "Analysis"
 msgstr "Phân Tích"
 
-#: koassistant_dialogs.lua:2850 koassistant_notebook_manager.lua:124
+#: koassistant_dialogs.lua:2885 koassistant_notebook_manager.lua:124
 #, fuzzy
 msgid "View"
 msgstr "Xem"
 
-#: koassistant_dialogs.lua:2914
+#: koassistant_dialogs.lua:2949
 #, fuzzy
 msgid "KOAssistant Actions"
 msgstr "Hành động KOAssistant"
 
-#: koassistant_dialogs.lua:2916
+#: koassistant_dialogs.lua:2951
 #, fuzzy
 msgid "Type your question or additional instructions for any action..."
 msgstr "Nhập câu hỏi hoặc hướng dẫn bổ sung cho bất kỳ hành động nào..."
 
-#: koassistant_dialogs.lua:2974
+#: koassistant_dialogs.lua:3009
 #, fuzzy
 msgid "Unknown prompt type: "
 msgstr "Loại lời nhắc không xác định:"
 
-#: koassistant_dialogs.lua:3000
+#: koassistant_dialogs.lua:3035
 #, fuzzy
 msgid "Error: No action specified"
 msgstr "Lỗi: Không có hành động được chỉ định"
 
-#: koassistant_dialogs.lua:3113
+#: koassistant_dialogs.lua:3117 main.lua:4112
+#, fuzzy
+msgid "%1 deleted"
+msgstr "Đã xóa %1"
+
+#: koassistant_dialogs.lua:3181
 #, fuzzy
 msgid "Failed to extract document text"
 msgstr "Trích xuất văn bản tài liệu thất bại"
 
-#: koassistant_dialogs.lua:3133
+#: koassistant_dialogs.lua:3201
 #, fuzzy
 msgid ""
 "Text extraction is disabled.\n"
@@ -1502,7 +1512,7 @@ msgstr ""
 "\n"
 "Bật nó trong Cài đặt → Quyền riêng tư & Dữ liệu → Trích xuất Văn bản."
 
-#: koassistant_dialogs.lua:3134
+#: koassistant_dialogs.lua:3202
 #, fuzzy
 msgid ""
 "No document text could be extracted.\n"
@@ -1513,7 +1523,7 @@ msgstr ""
 "\n"
 "Tài liệu này có thể không hỗ trợ trích xuất văn bản."
 
-#: koassistant_dialogs.lua:3214
+#: koassistant_dialogs.lua:3282
 #, fuzzy
 msgid "Failed to generate summary"
 msgstr "Tạo tóm tắt thất bại"
@@ -1561,7 +1571,7 @@ msgid "Chat about Book"
 msgstr "Trò chuyện về Sách"
 
 #: koassistant_settings_schema.lua:55 koassistant_settings_schema.lua:1038
-#: main.lua:4971
+#: main.lua:4997
 #, fuzzy
 msgid "Browse Notebooks"
 msgstr "Duyệt Sổ tay"
@@ -1571,17 +1581,17 @@ msgstr "Duyệt Sổ tay"
 msgid "Reading Features"
 msgstr "Tính năng Đọc"
 
-#: koassistant_settings_schema.lua:83 main.lua:1828 main.lua:4770
+#: koassistant_settings_schema.lua:83 main.lua:1828 main.lua:4796
 #, fuzzy
 msgid "Provider: %1"
 msgstr "Nhà cung cấp: %1"
 
-#: koassistant_settings_schema.lua:92 main.lua:2401 main.lua:4783
+#: koassistant_settings_schema.lua:92 main.lua:2401 main.lua:4809
 #, fuzzy
 msgid "Model: %1"
 msgstr "Mô hình: %1"
 
-#: koassistant_settings_schema.lua:99 main.lua:7215 main.lua:7345
+#: koassistant_settings_schema.lua:99 main.lua:7258 main.lua:7388
 #, fuzzy
 msgid "API Keys"
 msgstr "Khóa API"
@@ -2270,12 +2280,12 @@ msgstr "Tiện Ích Bảng QS"
 msgid "Show or hide controls in the Quick Settings panel"
 msgstr "Hiện hoặc ẩn các điều khiển trong bảng Cài Đặt Nhanh"
 
-#: koassistant_settings_schema.lua:947 main.lua:4623 main.lua:4775
+#: koassistant_settings_schema.lua:947 main.lua:4649 main.lua:4801
 #, fuzzy
 msgid "Provider"
 msgstr "Nhà Cung Cấp"
 
-#: koassistant_settings_schema.lua:954 main.lua:4629 main.lua:4788
+#: koassistant_settings_schema.lua:954 main.lua:4655 main.lua:4814
 #, fuzzy
 msgid "Model"
 msgstr "Mô Hình"
@@ -2291,7 +2301,7 @@ msgid "Domain"
 msgstr "Lĩnh Vực"
 
 #: koassistant_settings_schema.lua:975 koassistant_settings_schema.lua:1551
-#: main.lua:4833 koassistant_ui/prompts_manager.lua:722
+#: main.lua:4859 koassistant_ui/prompts_manager.lua:722
 #: koassistant_ui/prompts_manager.lua:1841
 #: koassistant_ui/prompts_manager.lua:3052
 #, fuzzy
@@ -2310,7 +2320,7 @@ msgstr "Lý Luận Anthropic/Gemini"
 msgid "Web Search"
 msgstr "Tìm Kiếm Web"
 
-#: koassistant_settings_schema.lua:1003 main.lua:4617 main.lua:4904
+#: koassistant_settings_schema.lua:1003 main.lua:4643 main.lua:4930
 #: koassistant_ui/prompts_manager.lua:4038
 #, fuzzy
 msgid "Translation Language"
@@ -2327,12 +2337,12 @@ msgid "D.Bypass"
 msgstr "Bỏ Q. D.Bypass"
 
 #: koassistant_settings_schema.lua:1066 koassistant_settings_schema.lua:1101
-#: main.lua:5019 koassistant_ui/prompts_manager.lua:501
+#: main.lua:5045 koassistant_ui/prompts_manager.lua:501
 #, fuzzy
 msgid "Manage Actions"
 msgstr "Quản Lý Hành Động"
 
-#: koassistant_settings_schema.lua:1073 main.lua:5206
+#: koassistant_settings_schema.lua:1073 main.lua:5249
 #, fuzzy
 msgid "Quick Actions"
 msgstr "Hành Động Nhanh"
@@ -2444,12 +2454,12 @@ msgstr "Chỉ hiển thị nút nếu sổ ghi chú đã tồn tại. Tắt đ�
 msgid "Privacy & Data"
 msgstr "Quyền riêng tư & Dữ liệu"
 
-#: koassistant_settings_schema.lua:1204 main.lua:6865
+#: koassistant_settings_schema.lua:1204 main.lua:6908
 #, fuzzy
 msgid "Trusted Providers: None"
 msgstr "Nhà cung cấp đáng tin cậy: Không có"
 
-#: koassistant_settings_schema.lua:1206 main.lua:6867
+#: koassistant_settings_schema.lua:1206 main.lua:6910
 #, fuzzy
 msgid "Trusted Providers: %1"
 msgstr "Nhà cung cấp đáng tin cậy: %1"
@@ -2590,7 +2600,7 @@ msgid ""
 "Maximum PDF pages to extract (50-500). Higher = more context but slower."
 msgstr "Số trang PDF tối đa để trích xuất (50-500). Cao hơn = nhiều ngữ cảnh hơn nhưng chậm hơn."
 
-#: koassistant_settings_schema.lua:1338 main.lua:5306
+#: koassistant_settings_schema.lua:1338 main.lua:5349
 #, fuzzy
 msgid "Clear Action Cache"
 msgstr "Xóa bộ nhớ đệm hành động"
@@ -3156,7 +3166,7 @@ msgstr "Kiểm tra Kết nối"
 msgid "Settings Management"
 msgstr "Quản lý Cài đặt"
 
-#: koassistant_settings_schema.lua:1808 main.lua:7161
+#: koassistant_settings_schema.lua:1808 main.lua:7204
 #, fuzzy
 msgid "Create Backup"
 msgstr "Tạo Bản sao lưu"
@@ -3428,7 +3438,7 @@ msgstr ""
 "%2"
 
 #: koassistant_update_checker.lua:633 koassistant_update_checker.lua:711
-#: main.lua:7840
+#: main.lua:7883
 #, fuzzy
 msgid "Later"
 msgstr "Để sau"
@@ -3458,24 +3468,266 @@ msgstr "%1 (Đã dịch)"
 msgid "Translation failed: %1"
 msgstr "Dịch thất bại: %1"
 
-#: koassistant_update_checker.lua:680 main.lua:7254 main.lua:7629 main.lua:7769
+#: koassistant_update_checker.lua:680 main.lua:7297 main.lua:7672 main.lua:7812
 #, fuzzy
 msgid "Unknown error"
 msgstr "Lỗi không xác định"
 
 #: koassistant_update_checker.lua:736 koassistant_ui/prompts_manager.lua:1865
 #: koassistant_ui/prompts_manager.lua:1880
-#: koassistant_ui/prompts_manager.lua:1930 prompts/actions.lua:1252
+#: koassistant_ui/prompts_manager.lua:1930 prompts/actions.lua:1204
 #, fuzzy
 msgid "Translate"
 msgstr "Dịch"
+
+#: koassistant_xray_browser.lua:316
+#, fuzzy
+msgid "Chapter Characters"
+msgstr "Ký tự trong Chương"
+
+#: koassistant_xray_browser.lua:325 koassistant_xray_browser.lua:547
+#, fuzzy
+msgid "Search"
+msgstr "Tìm kiếm"
+
+#: koassistant_xray_browser.lua:333
+#, fuzzy
+msgid "Full View"
+msgstr "Xem Đầy đủ"
+
+#: koassistant_xray_browser.lua:412
+#, fuzzy
+msgid "As of"
+msgstr "Tính đến"
+
+#: koassistant_xray_browser.lua:419
+#, fuzzy
+msgid "Your highlights:"
+msgstr "Đánh dấu của bạn:"
+
+#: koassistant_xray_browser.lua:433
+#, fuzzy
+msgid "Details"
+msgstr "Chi tiết"
+
+#: koassistant_xray_browser.lua:459
+#, fuzzy
+msgid "No book open."
+msgstr "Không có sách nào đang mở."
+
+#: koassistant_xray_browser.lua:467
+#, fuzzy
+msgid "Analyzing chapter..."
+msgstr "Đang phân tích chương..."
+
+#: koassistant_xray_browser.lua:478
+#, fuzzy
+msgid "Could not extract chapter text."
+msgstr "Không thể trích xuất văn bản chương."
+
+#: koassistant_xray_browser.lua:488
+#, fuzzy
+msgid "No known characters found in \"%1\"."
+msgstr "Không tìm thấy ký tự đã biết trong \"%1\"."
+
+#: koassistant_xray_browser.lua:489
+#, fuzzy
+msgid "No known characters found in current chapter."
+msgstr "Không tìm thấy ký tự đã biết trong chương hiện tại."
+
+#: koassistant_xray_browser.lua:507
+#, lua-format, fuzzy
+msgid "%1x"
+msgstr "%1x"
+
+#: koassistant_xray_browser.lua:519
+#, fuzzy
+msgid "%1 — %2 characters"
+msgstr "%1 — %2 ký tự"
+
+#: koassistant_xray_browser.lua:521
+#, fuzzy
+msgid "This Chapter — %1 characters"
+msgstr "Chương Này — %1 ký tự"
+
+#: koassistant_xray_browser.lua:534
+#, fuzzy
+msgid "Search X-Ray"
+msgstr "Tìm kiếm X-Ray"
+
+#: koassistant_xray_browser.lua:536
+#, fuzzy
+msgid "Name, term, description..."
+msgstr "Tên, thuật ngữ, mô tả..."
+
+#: koassistant_xray_browser.lua:571
+#, fuzzy
+msgid "No results for \"%1\"."
+msgstr "Không có kết quả cho \"%1\"."
+
+#: koassistant_xray_browser.lua:585
+#, fuzzy
+msgid "alias"
+msgstr "bí danh"
+
+#: koassistant_xray_browser.lua:587
+#, fuzzy
+msgid "desc."
+msgstr "mô tả"
+
+#: koassistant_xray_browser.lua:602
+#, fuzzy
+msgid "Results for \"%1\" (%2)"
+msgstr "Kết quả cho \"%1\" (%2)"
+
+#: koassistant_xray_browser.lua:647
+#, fuzzy
+msgid "Delete X-Ray"
+msgstr "Xóa X-Ray"
+
+#: koassistant_xray_browser.lua:656
+#, fuzzy
+msgid "Delete this X-Ray? This cannot be undone."
+msgstr "Xóa X-Ray này? Thao tác này không thể hoàn tác."
+
+#: koassistant_xray_browser.lua:675
+#, fuzzy
+msgid "Progress:"
+msgstr "Tiến độ:"
+
+#: koassistant_xray_browser.lua:680
+#, fuzzy
+msgid "Fiction"
+msgstr "Tiểu thuyết"
+
+#: koassistant_xray_browser.lua:680
+#, fuzzy
+msgid "Non-Fiction"
+msgstr "Phi Tiểu thuyết"
+
+#: koassistant_xray_browser.lua:681
+#, fuzzy
+msgid "Type:"
+msgstr "Thể loại:"
+
+#: koassistant_xray_browser.lua:685 main.lua:7759
+#: koassistant_ui/prompts_manager.lua:1458
+#: koassistant_ui/prompts_manager.lua:1923
+#, fuzzy
+msgid "Info"
+msgstr "Thông tin"
+
+#: koassistant_xray_parser.lua:128
+#, fuzzy
+msgid "Cast"
+msgstr "Nhân vật"
+
+#: koassistant_xray_parser.lua:129
+#, fuzzy
+msgid "World"
+msgstr "Thế giới"
+
+#: koassistant_xray_parser.lua:130
+#, fuzzy
+msgid "Ideas"
+msgstr "Ý tưởng"
+
+#: koassistant_xray_parser.lua:131
+#, fuzzy
+msgid "Lexicon"
+msgstr "Từ vựng"
+
+#: koassistant_xray_parser.lua:132
+#, fuzzy
+msgid "Story Arc"
+msgstr "Mạch Truyện"
+
+#: koassistant_xray_parser.lua:133
+#, fuzzy
+msgid "Current State"
+msgstr "Trạng thái Hiện tại"
+
+#: koassistant_xray_parser.lua:137
+#, fuzzy
+msgid "Key Figures"
+msgstr "Nhân vật Chính"
+
+#: koassistant_xray_parser.lua:138
+#, fuzzy
+msgid "Core Concepts"
+msgstr "Khái niệm Cốt lõi"
+
+#: koassistant_xray_parser.lua:139
+#, fuzzy
+msgid "Arguments"
+msgstr "Luận điểm"
+
+#: koassistant_xray_parser.lua:140
+#, fuzzy
+msgid "Terminology"
+msgstr "Thuật ngữ"
+
+#: koassistant_xray_parser.lua:141
+#, fuzzy
+msgid "Argument Development"
+msgstr "Phát triển Luận điểm"
+
+#: koassistant_xray_parser.lua:142
+#, fuzzy
+msgid "Current Position"
+msgstr "Vị trí Hiện tại"
+
+#: koassistant_xray_parser.lua:196
+#, fuzzy
+msgid "Also known as:"
+msgstr "Còn được biết đến như:"
+
+#: koassistant_xray_parser.lua:206
+#, fuzzy
+msgid "Connections:"
+msgstr "Liên kết:"
+
+#: koassistant_xray_parser.lua:218
+#, fuzzy
+msgid "Significance:"
+msgstr "Ý nghĩa:"
+
+#: koassistant_xray_parser.lua:229
+#, fuzzy
+msgid "Evidence:"
+msgstr "Bằng chứng:"
+
+#: koassistant_xray_parser.lua:253
+#, fuzzy
+msgid "Characters:"
+msgstr "Nhân vật:"
+
+#: koassistant_xray_parser.lua:263
+#, fuzzy
+msgid "Active conflicts:"
+msgstr "Xung đột đang diễn ra:"
+
+#: koassistant_xray_parser.lua:272
+#, fuzzy
+msgid "Questions addressed:"
+msgstr "Câu hỏi được giải quyết:"
+
+#: koassistant_xray_parser.lua:272
+#, fuzzy
+msgid "Unanswered questions:"
+msgstr "Câu hỏi chưa giải đáp:"
+
+#: koassistant_xray_parser.lua:280
+#, fuzzy
+msgid "Building toward:"
+msgstr "Hướng tới:"
 
 #: main.lua:163 main.lua:298
 #, fuzzy
 msgid "Chat/Action"
 msgstr "Trò chuyện/Hành động"
 
-#: main.lua:314 main.lua:8317
+#: main.lua:314 main.lua:8360
 #, fuzzy
 msgid "Notebook"
 msgstr "Sổ tay"
@@ -4018,7 +4270,7 @@ msgstr "Chính: %1"
 msgid "Use Primary (%1)"
 msgstr "Dùng Ngôn Ngữ Chính (%1)"
 
-#: main.lua:3349 main.lua:3381 main.lua:4899
+#: main.lua:3349 main.lua:3381 main.lua:4925
 #, fuzzy
 msgid "Translate: %1"
 msgstr "Dịch: %1"
@@ -4049,7 +4301,7 @@ msgstr "Nhập ngôn ngữ đích cho bản dịch."
 msgid "(Set your languages for quick selection)"
 msgstr "(Đặt ngôn ngữ của bạn để chọn nhanh)"
 
-#: main.lua:3454 main.lua:5691
+#: main.lua:3454 main.lua:5734
 #, fuzzy
 msgid "Follow Translation Language"
 msgstr "Theo Ngôn Ngữ Dịch"
@@ -4059,7 +4311,7 @@ msgstr "Theo Ngôn Ngữ Dịch"
 msgid "Dictionary: Follow Translation"
 msgstr "Từ Điển: Theo Ngôn Ngữ Dịch"
 
-#: main.lua:3475 main.lua:5708
+#: main.lua:3475 main.lua:5751
 #, fuzzy
 msgid "Follow Primary Language"
 msgstr "Theo Ngôn Ngữ Chính"
@@ -4069,7 +4321,7 @@ msgstr "Theo Ngôn Ngữ Chính"
 msgid "Dictionary: Follow Primary"
 msgstr "Từ Điển: Theo Ngôn Ngữ Chính"
 
-#: main.lua:3513 main.lua:4912
+#: main.lua:3513 main.lua:4938
 #, fuzzy
 msgid "Dictionary: %1"
 msgstr "Từ Điển: %1"
@@ -4136,17 +4388,17 @@ msgstr "Danh sách mô hình hiện được quản lý qua tệp model_lists.lu
 msgid "No previously opened chat found"
 msgstr "Không tìm thấy cuộc trò chuyện đã mở trước đó"
 
-#: main.lua:3894 main.lua:6316
+#: main.lua:3894 main.lua:6359
 #, fuzzy
 msgid "Configuration not found. Please set up configuration.lua first."
 msgstr "Không tìm thấy cấu hình. Vui lòng thiết lập configuration.lua trước."
 
-#: main.lua:3931 main.lua:4325 main.lua:5462 main.lua:5480
+#: main.lua:3931 main.lua:4351 main.lua:5505 main.lua:5523
 #, fuzzy
 msgid "Please open a book first"
 msgstr "Vui lòng mở sách trước"
 
-#: main.lua:3968 main.lua:4145 main.lua:4254
+#: main.lua:3968 main.lua:4171 main.lua:4280
 #, fuzzy
 msgid "No book open"
 msgstr "Chưa mở sách"
@@ -4162,12 +4414,7 @@ msgstr ""
 "\n"
 "Chạy X-Ray, Tóm Tắt Tài Liệu, hoặc Phân Tích Tài Liệu để tạo bộ nhớ đệm có thể tái sử dụng."
 
-#: main.lua:4112
-#, fuzzy
-msgid "%1 deleted"
-msgstr "Đã xóa %1"
-
-#: main.lua:4156
+#: main.lua:4182
 #, fuzzy
 msgid ""
 "No summary cached.\n"
@@ -4178,12 +4425,12 @@ msgstr ""
 "\n"
 "Dùng Thao Tác Nhanh → Tạo Tóm Tắt để tạo."
 
-#: main.lua:4226
+#: main.lua:4252
 #, fuzzy
 msgid "Summary deleted"
 msgstr "Đã xóa tóm tắt"
 
-#: main.lua:4265
+#: main.lua:4291
 #, fuzzy
 msgid ""
 "Summary already cached.\n"
@@ -4194,7 +4441,7 @@ msgstr ""
 "\n"
 "Dùng Xem Tóm Tắt để xem."
 
-#: main.lua:4274
+#: main.lua:4300
 #, fuzzy
 msgid ""
 "Text extraction is required to generate a summary.\n"
@@ -4205,7 +4452,7 @@ msgstr ""
 "\n"
 "Bật trong Cài Đặt → Quyền Riêng Tư & Dữ Liệu → Trích Xuất Văn Bản."
 
-#: main.lua:4312
+#: main.lua:4338
 #, fuzzy
 msgid ""
 "Generate a reusable document summary?\n"
@@ -4222,135 +4469,140 @@ msgstr ""
 "• Lưu tóm tắt để dùng sau\n"
 "• Bật các thao tác Thông Minh cho sách này"
 
-#: main.lua:4335 main.lua:4407 main.lua:4462
+#: main.lua:4361 main.lua:4433 main.lua:4488
 #, fuzzy
 msgid "Action '%1' not found"
 msgstr "Không tìm thấy thao tác '%1'"
 
-#: main.lua:4445
+#: main.lua:4471
 #, fuzzy
 msgid "Unknown action context: %1"
 msgstr "Ngữ cảnh thao tác không xác định: %1"
 
-#: main.lua:4611 main.lua:4891
+#: main.lua:4637 main.lua:4917
 #, fuzzy
 msgid "Primary Language"
 msgstr "Ngôn Ngữ Chính"
 
-#: main.lua:4635 main.lua:4801 koassistant_ui/prompts_manager.lua:725
+#: main.lua:4661 main.lua:4827 koassistant_ui/prompts_manager.lua:725
 #: koassistant_ui/prompts_manager.lua:2991
 #, fuzzy
 msgid "AI Behavior"
 msgstr "Hành Vi AI"
 
-#: main.lua:4720
+#: main.lua:4746
 #, fuzzy
 msgid "Default"
 msgstr "Mặc định"
 
-#: main.lua:4796
+#: main.lua:4822
 #, fuzzy
 msgid "Behavior: %1"
 msgstr "Hành vi: %1"
 
-#: main.lua:4809
+#: main.lua:4835
 #, fuzzy
 msgid "Domain: %1"
 msgstr "Lĩnh vực: %1"
 
-#: main.lua:4814 main.lua:5361
+#: main.lua:4840 main.lua:5404
 #, fuzzy
 msgid "Knowledge Domain"
 msgstr "Lĩnh vực kiến thức"
 
-#: main.lua:4822
+#: main.lua:4848
 #, fuzzy
 msgid "Temp: %1"
 msgstr "Temp: %1"
 
-#: main.lua:4852
+#: main.lua:4878
 #, fuzzy
 msgid "Anthropic/Gemini Reasoning: ON"
 msgstr "Anthropic/Gemini Reasoning: BẬT"
 
-#: main.lua:4852
+#: main.lua:4878
 #, fuzzy
 msgid "Anthropic/Gemini Reasoning: OFF"
 msgstr "Anthropic/Gemini Reasoning: TẮT"
 
-#: main.lua:4869
+#: main.lua:4895
 #, fuzzy
 msgid "Web Search: ON"
 msgstr "Tìm kiếm web: BẬT"
 
-#: main.lua:4869
+#: main.lua:4895
 #, fuzzy
 msgid "Web Search: OFF"
 msgstr "Tìm kiếm web: TẮT"
 
-#: main.lua:4886
+#: main.lua:4912
 #, fuzzy
 msgid "Language: %1"
 msgstr "Ngôn ngữ: %1"
 
-#: main.lua:4925
+#: main.lua:4951
 #, fuzzy
 msgid "H.Bypass: ON"
 msgstr "H.Bypass: BẬT"
 
-#: main.lua:4925
+#: main.lua:4951
 #, fuzzy
 msgid "H.Bypass: OFF"
 msgstr "H.Bypass: TẮT"
 
-#: main.lua:4942
+#: main.lua:4968
 #, fuzzy
 msgid "D.Bypass: ON"
 msgstr "D.Bypass: BẬT"
 
-#: main.lua:4942
+#: main.lua:4968
 #, fuzzy
 msgid "D.Bypass: OFF"
 msgstr "D.Bypass: TẮT"
 
-#: main.lua:5031
+#: main.lua:5057
 #, fuzzy
 msgid "Quick Actions..."
 msgstr "Thao tác nhanh..."
 
-#: main.lua:5043
+#: main.lua:5069
 #, fuzzy
 msgid "More Settings..."
 msgstr "Cài đặt thêm..."
 
-#: main.lua:5099
+#: main.lua:5125
 #, fuzzy
 msgid "Quick Actions is only available while reading a book."
 msgstr "Thao tác nhanh chỉ khả dụng khi đang đọc sách."
 
-#: main.lua:5148
+#: main.lua:5174
 #, fuzzy
 msgid "View Summary"
 msgstr "Xem Tóm tắt"
 
-#: main.lua:5148
+#: main.lua:5174
 #, fuzzy
 msgid "Generate Summary"
 msgstr "Tạo Tóm tắt"
 
-#: main.lua:5222
+#: main.lua:5202
+#, fuzzy
+msgid "View Analysis"
+msgstr "Xem Phân tích"
+
+#: main.lua:5265
 #, fuzzy
 msgid "Testing connection..."
 msgstr "Đang kiểm tra kết nối..."
 
-#: main.lua:5250
+#: main.lua:5293
 #, fuzzy
 msgid ""
 "Connection test failed:\n"
 msgstr ""
 "Kiểm tra kết nối thất bại:\n"
 
-#: main.lua:5256
+#: main.lua:5299
 #, fuzzy
 msgid ""
 "Connection test successful!\n"
@@ -4367,12 +4619,12 @@ msgstr ""
 "\n"
 "Phản hồi: %3"
 
-#: main.lua:5264
+#: main.lua:5307
 #, fuzzy
 msgid "Connection test failed: "
 msgstr "Kiểm tra kết nối thất bại:"
 
-#: main.lua:5284
+#: main.lua:5327
 #, fuzzy
 msgid ""
 "No book is currently open.\n"
@@ -4383,7 +4635,7 @@ msgstr ""
 "\n"
 "Mở một cuốn sách trước, sau đó dùng tùy chọn này để xóa các phản hồi X-Ray và Tóm tắt đã lưu."
 
-#: main.lua:5297
+#: main.lua:5340
 #, fuzzy
 msgid ""
 "No action cache found for this book.\n"
@@ -4394,7 +4646,7 @@ msgstr ""
 "\n"
 "Chạy X-Ray hoặc Tóm tắt trước để tạo bộ nhớ đệm."
 
-#: main.lua:5307
+#: main.lua:5350
 #, fuzzy
 msgid ""
 "Clear cached X-Ray and Recap responses for this book?\n"
@@ -4405,62 +4657,62 @@ msgstr ""
 "\n"
 "Lần sau khi chạy các hành động này, chúng sẽ tạo lại từ đầu thay vì cập nhật từ phiên bản đã lưu."
 
-#: main.lua:5317
+#: main.lua:5360
 #, fuzzy
 msgid "Clear Cache"
 msgstr "Xóa bộ nhớ đệm"
 
-#: main.lua:5323
+#: main.lua:5366
 #, fuzzy
 msgid "Action cache cleared successfully."
 msgstr "Đã xóa bộ nhớ đệm hành động thành công."
 
-#: main.lua:5328
+#: main.lua:5371
 #, fuzzy
 msgid "Failed to clear action cache."
 msgstr "Không thể xóa bộ nhớ đệm hành động."
 
-#: main.lua:5435
+#: main.lua:5478
 #, fuzzy
 msgid "Dictionary bypass: ON"
 msgstr "Bỏ qua từ điển: BẬT"
 
-#: main.lua:5435
+#: main.lua:5478
 #, fuzzy
 msgid "Dictionary bypass: OFF"
 msgstr "Bỏ qua từ điển: TẮT"
 
-#: main.lua:5449
+#: main.lua:5492
 #, fuzzy
 msgid "Highlight bypass: ON"
 msgstr "Bỏ qua đánh dấu: BẬT"
 
-#: main.lua:5449
+#: main.lua:5492
 #, fuzzy
 msgid "Highlight bypass: OFF"
 msgstr "Bỏ qua đánh dấu: TẮT"
 
-#: main.lua:5575
+#: main.lua:5618
 #, fuzzy
 msgid "Cannot determine current page"
 msgstr "Không thể xác định trang hiện tại"
 
-#: main.lua:5621
+#: main.lua:5664
 #, fuzzy
 msgid "Could not extract text from current page"
 msgstr "Không thể trích xuất văn bản từ trang hiện tại"
 
-#: main.lua:5632
+#: main.lua:5675
 #, fuzzy
 msgid "Translate action not found"
 msgstr "Không tìm thấy hành động dịch"
 
-#: main.lua:5808
+#: main.lua:5851
 #, fuzzy
 msgid "Select Export Folder"
 msgstr "Chọn thư mục xuất"
 
-#: main.lua:5815
+#: main.lua:5858
 #, fuzzy
 msgid ""
 "Export path set to:\n"
@@ -4469,17 +4721,17 @@ msgstr ""
 "Đường dẫn xuất đã đặt thành:\n"
 "%1"
 
-#: main.lua:6207 main.lua:6261
+#: main.lua:6250 main.lua:6304
 #, fuzzy
 msgid "Bypass action: %1"
 msgstr "Hành động bỏ qua: %1"
 
-#: main.lua:6306
+#: main.lua:6349
 #, fuzzy
 msgid "All action settings restored to defaults"
 msgstr "Tất cả cài đặt hành động đã khôi phục về mặc định"
 
-#: main.lua:6379
+#: main.lua:6422
 #, fuzzy
 msgid ""
 "KOAssistant Plugin\n"
@@ -4488,88 +4740,88 @@ msgstr ""
 "Plugin KOAssistant\n"
 "Phiên bản:"
 
-#: main.lua:6464
+#: main.lua:6507
 #, fuzzy
 msgid "Feature settings reset to defaults"
 msgstr "Cài đặt tính năng đã đặt lại về mặc định"
 
-#: main.lua:6494
+#: main.lua:6537
 #, fuzzy
 msgid "All customizations reset"
 msgstr "Đã đặt lại tất cả tùy chỉnh"
 
-#: main.lua:6518
+#: main.lua:6561
 #, fuzzy
 msgid "Custom actions deleted"
 msgstr "Đã xóa các hành động tùy chỉnh"
 
-#: main.lua:6532
+#: main.lua:6575
 #, fuzzy
 msgid "Action edits reset to defaults"
 msgstr "Chỉnh sửa hành động đã đặt lại về mặc định"
 
-#: main.lua:6559
+#: main.lua:6602
 #, fuzzy
 msgid "Action menus reset to defaults"
 msgstr "Menu hành động đã đặt lại về mặc định"
 
-#: main.lua:6573
+#: main.lua:6616
 #, fuzzy
 msgid "Dictionary popup actions reset"
 msgstr "Hành động popup từ điển đã đặt lại"
 
-#: main.lua:6586
+#: main.lua:6629
 #, fuzzy
 msgid "Highlight menu actions reset (restart to apply)"
 msgstr "Hành động menu đánh dấu đã đặt lại (khởi động lại để áp dụng)"
 
-#: main.lua:6598
+#: main.lua:6641
 #, fuzzy
 msgid "File browser actions reset"
 msgstr "Đã đặt lại thao tác trình duyệt tệp"
 
-#: main.lua:6610
+#: main.lua:6653
 #, fuzzy
 msgid "Quick actions reset"
 msgstr "Thao tác nhanh đã đặt lại"
 
-#: main.lua:6631
+#: main.lua:6674
 #, fuzzy
 msgid "Custom providers and models reset"
 msgstr "Nhà cung cấp và mô hình tùy chỉnh đã đặt lại"
 
-#: main.lua:6689
+#: main.lua:6732
 #, fuzzy
 msgid "All action settings reset"
 msgstr "Tất cả cài đặt hành động đã đặt lại"
 
-#: main.lua:6703
+#: main.lua:6746
 #, fuzzy
 msgid "Fresh start complete - API keys preserved"
 msgstr "Hoàn tất khởi động mới - đã giữ nguyên khóa API"
 
-#: main.lua:6724
+#: main.lua:6767
 #, fuzzy
 msgid "Default: Personal content private, basic context shared"
 msgstr "Mặc định: Nội dung cá nhân riêng tư, ngữ cảnh cơ bản được chia sẻ"
 
-#: main.lua:6745
+#: main.lua:6788
 #, fuzzy
 msgid "Minimal: All extended sharing disabled"
 msgstr "Tối thiểu: Tắt tất cả chia sẻ mở rộng"
 
-#: main.lua:6766
+#: main.lua:6809
 #, fuzzy
 msgid ""
 "Full: All data sharing enabled (Text extraction must be enabled separately)"
 msgstr "Đầy đủ: Bật tất cả chia sẻ dữ liệu (Trích xuất văn bản phải được bật riêng)"
 
-#: main.lua:6818
+#: main.lua:6861
 #, fuzzy
 msgid "(custom)"
 msgstr "(tùy chỉnh)"
 
-#: main.lua:6878
+#: main.lua:6921
 #, fuzzy
 msgid ""
 "Select providers to trust\n"
@@ -4580,157 +4832,157 @@ msgstr ""
 "\n"
 "Nhà cung cấp tin cậy bỏ qua kiểm soát chia sẻ dữ liệu."
 
-#: main.lua:6904
+#: main.lua:6947
 #, fuzzy
 msgid "✓ Reset"
 msgstr "✓ Đặt lại"
 
-#: main.lua:6906
+#: main.lua:6949
 #, fuzzy
 msgid "✗ Keep"
 msgstr "✗ Giữ nguyên"
 
-#: main.lua:6912 main.lua:7212 main.lua:7343
+#: main.lua:6955 main.lua:7255 main.lua:7386
 #, fuzzy
 msgid "Settings"
 msgstr "Cài đặt"
 
-#: main.lua:6920
+#: main.lua:6963
 #, fuzzy
 msgid "Custom actions"
 msgstr "Hành động tùy chỉnh"
 
-#: main.lua:6928
+#: main.lua:6971
 #, fuzzy
 msgid "Action edits"
 msgstr "Chỉnh sửa hành động"
 
-#: main.lua:6936
+#: main.lua:6979
 #, fuzzy
 msgid "Action menus"
 msgstr "Menu hành động"
 
-#: main.lua:6944
+#: main.lua:6987
 #, fuzzy
 msgid "Custom providers & models"
 msgstr "Nhà cung cấp & mô hình tùy chỉnh"
 
-#: main.lua:6952
+#: main.lua:6995
 #, fuzzy
 msgid "Behaviors & domains"
 msgstr "Hành vi & miền"
 
-#: main.lua:6960 main.lua:7017
+#: main.lua:7003 main.lua:7060
 #, fuzzy
 msgid "API keys"
 msgstr "Khóa API"
 
-#: main.lua:6972
+#: main.lua:7015
 #, fuzzy
 msgid "Reset Selected"
 msgstr "Đặt lại mục đã chọn"
 
-#: main.lua:6981
+#: main.lua:7024
 #, fuzzy
 msgid "What would you like to reset?"
 msgstr "Bạn muốn đặt lại gì?"
 
-#: main.lua:6993
+#: main.lua:7036
 #, fuzzy
 msgid "settings"
 msgstr "cài đặt"
 
-#: main.lua:6997
+#: main.lua:7040
 #, fuzzy
 msgid "custom actions"
 msgstr "hành động tùy chỉnh"
 
-#: main.lua:7001
+#: main.lua:7044
 #, fuzzy
 msgid "action edits"
 msgstr "chỉnh sửa hành động"
 
-#: main.lua:7005
+#: main.lua:7048
 #, fuzzy
 msgid "action menus"
 msgstr "menu hành động"
 
-#: main.lua:7009
+#: main.lua:7052
 #, fuzzy
 msgid "providers/models"
 msgstr "nhà cung cấp/mô hình"
 
-#: main.lua:7013
+#: main.lua:7056
 #, fuzzy
 msgid "behaviors/domains"
 msgstr "hành vi/miền"
 
-#: main.lua:7022
+#: main.lua:7065
 #, fuzzy
 msgid "Reset: %1"
 msgstr "Đặt lại: %1"
 
-#: main.lua:7027
+#: main.lua:7070
 #, fuzzy
 msgid "Nothing selected to reset"
 msgstr "Không có gì được chọn để đặt lại"
 
-#: main.lua:7089
+#: main.lua:7132
 #, fuzzy
 msgid "Core Settings: ✓ Included"
 msgstr "Cài đặt cốt lõi: ✓ Đã bao gồm"
 
-#: main.lua:7095
+#: main.lua:7138
 #, fuzzy
 msgid "API Keys: ✓ Include (⚠ Sensitive)"
 msgstr "Khóa API: ✓ Bao gồm (⚠ Nhạy cảm)"
 
-#: main.lua:7095
+#: main.lua:7138
 #, fuzzy
 msgid "API Keys: ✗ Exclude"
 msgstr "Khóa API: ✗ Loại trừ"
 
-#: main.lua:7110
+#: main.lua:7153
 #, fuzzy
 msgid "Config Files: ✓ Include"
 msgstr "Tệp cấu hình: ✓ Bao gồm"
 
-#: main.lua:7110
+#: main.lua:7153
 #, fuzzy
 msgid "Config Files: ✗ Exclude"
 msgstr "Tệp cấu hình: ✗ Loại trừ"
 
-#: main.lua:7125
+#: main.lua:7168
 #, fuzzy
 msgid "Domains & Behaviors: ✓ Include"
 msgstr "Miền & Hành vi: ✓ Bao gồm"
 
-#: main.lua:7125
+#: main.lua:7168
 #, fuzzy
 msgid "Domains & Behaviors: ✗ Exclude"
 msgstr "Miền & Hành vi: ✗ Loại trừ"
 
-#: main.lua:7140
+#: main.lua:7183
 #, fuzzy
 msgid "Chat History: ✓ Include"
 msgstr "Lịch sử trò chuyện: ✓ Bao gồm"
 
-#: main.lua:7140
+#: main.lua:7183
 #, fuzzy
 msgid "Chat History: ✗ Exclude"
 msgstr "Lịch sử trò chuyện: ✗ Loại trừ"
 
-#: main.lua:7155 main.lua:7307 main.lua:7518 main.lua:7540
+#: main.lua:7198 main.lua:7350 main.lua:7561 main.lua:7583
 #, fuzzy
 msgid "━━━━━━━━━━━━━━━━"
 msgstr "━━━━━━━━━━━━━━━━"
 
-#: main.lua:7181
+#: main.lua:7224
 #, fuzzy
 msgid "What to include in backup:"
 msgstr "Nội dung bao gồm trong bản sao lưu:"
 
-#: main.lua:7193
+#: main.lua:7236
 #, fuzzy
 msgid ""
 "Creating backup...\n"
@@ -4741,7 +4993,7 @@ msgstr ""
 "\n"
 "Có thể mất một chút thời gian."
 
-#: main.lua:7205
+#: main.lua:7248
 #, fuzzy
 msgid ""
 "Backup created successfully!\n"
@@ -4756,47 +5008,47 @@ msgstr ""
 "\n"
 "Kích thước: %2"
 
-#: main.lua:7218 main.lua:7349
+#: main.lua:7261 main.lua:7392
 #, fuzzy
 msgid "Config Files"
 msgstr "Tệp cấu hình"
 
-#: main.lua:7224 main.lua:7354
+#: main.lua:7267 main.lua:7397
 #, fuzzy
 msgid "%1 domains"
 msgstr "%1 miền"
 
-#: main.lua:7226
+#: main.lua:7269
 #, fuzzy
 msgid "0 domains"
 msgstr "0 miền"
 
-#: main.lua:7229 main.lua:7359
+#: main.lua:7272 main.lua:7402
 #, fuzzy
 msgid "%1 behaviors"
 msgstr "%1 hành vi"
 
-#: main.lua:7231
+#: main.lua:7274
 #, fuzzy
 msgid "0 behaviors"
 msgstr "0 hành vi"
 
-#: main.lua:7237 main.lua:7367
+#: main.lua:7280 main.lua:7410
 #, fuzzy
 msgid "%1 chats"
 msgstr "%1 cuộc trò chuyện"
 
-#: main.lua:7239
+#: main.lua:7282
 #, fuzzy
 msgid "0 chats"
 msgstr "0 cuộc trò chuyện"
 
-#: main.lua:7244
+#: main.lua:7287
 #, fuzzy
 msgid "Included:"
 msgstr "Đã bao gồm:"
 
-#: main.lua:7254
+#: main.lua:7297
 #, fuzzy
 msgid ""
 "Backup failed:\n"
@@ -4807,7 +5059,7 @@ msgstr ""
 "\n"
 "%1"
 
-#: main.lua:7271
+#: main.lua:7314
 #, fuzzy
 msgid ""
 "No backups found.\n"
@@ -4820,7 +5072,7 @@ msgstr ""
 "Tạo bản sao lưu trước bằng cách:\n"
 "Cài đặt → Nâng cao → Quản lý cài đặt → Tạo bản sao lưu"
 
-#: main.lua:7313
+#: main.lua:7356
 #, fuzzy
 msgid ""
 "Select backup to restore\n"
@@ -4831,7 +5083,7 @@ msgstr ""
 "\n"
 "Tổng: %1 bản sao lưu"
 
-#: main.lua:7328 main.lua:7727
+#: main.lua:7371 main.lua:7770
 #, fuzzy
 msgid ""
 "Invalid backup:\n"
@@ -4842,7 +5094,7 @@ msgstr ""
 "\n"
 "%1"
 
-#: main.lua:7337
+#: main.lua:7380
 #, fuzzy
 msgid ""
 "Backup: %1\n"
@@ -4859,107 +5111,107 @@ msgstr ""
 "\n"
 "Nội dung:"
 
-#: main.lua:7347
+#: main.lua:7390
 #, fuzzy
 msgid "No API keys"
 msgstr "Không có khóa API"
 
-#: main.lua:7356
+#: main.lua:7399
 #, fuzzy
 msgid "domains"
 msgstr "miền"
 
-#: main.lua:7361
+#: main.lua:7404
 #, fuzzy
 msgid "behaviors"
 msgstr "hành vi"
 
-#: main.lua:7369
+#: main.lua:7412
 #, fuzzy
 msgid "Chat history"
 msgstr "Lịch sử trò chuyện"
 
-#: main.lua:7379 main.lua:7600
+#: main.lua:7422 main.lua:7643
 #, fuzzy
 msgid "Warnings:"
 msgstr "Cảnh báo:"
 
-#: main.lua:7396
+#: main.lua:7439
 #, fuzzy
 msgid "Restore →"
 msgstr "Khôi phục →"
 
-#: main.lua:7433
+#: main.lua:7476
 #, fuzzy
 msgid "Settings: ✓ Restore"
 msgstr "Cài đặt: ✓ Khôi phục"
 
-#: main.lua:7433
+#: main.lua:7476
 #, fuzzy
 msgid "Settings: ✗ Skip"
 msgstr "Cài đặt: ✗ Bỏ qua"
 
-#: main.lua:7450
+#: main.lua:7493
 #, fuzzy
 msgid "API Keys: ✓ Restore"
 msgstr "Khóa API: ✓ Khôi phục"
 
-#: main.lua:7450
+#: main.lua:7493
 #, fuzzy
 msgid "API Keys: ✗ Skip"
 msgstr "Khóa API: ✗ Bỏ qua"
 
-#: main.lua:7467
+#: main.lua:7510
 #, fuzzy
 msgid "Config Files: ✓ Restore"
 msgstr "Tệp cấu hình: ✓ Khôi phục"
 
-#: main.lua:7467
+#: main.lua:7510
 #, fuzzy
 msgid "Config Files: ✗ Skip"
 msgstr "Tệp cấu hình: ✗ Bỏ qua"
 
-#: main.lua:7484
+#: main.lua:7527
 #, fuzzy
 msgid "Domains & Behaviors: ✓ Restore"
 msgstr "Miền & Hành vi: ✓ Khôi phục"
 
-#: main.lua:7484
+#: main.lua:7527
 #, fuzzy
 msgid "Domains & Behaviors: ✗ Skip"
 msgstr "Miền & Hành vi: ✗ Bỏ qua"
 
-#: main.lua:7501
+#: main.lua:7544
 #, fuzzy
 msgid "Chat History: ✓ Restore"
 msgstr "Lịch sử trò chuyện: ✓ Khôi phục"
 
-#: main.lua:7501
+#: main.lua:7544
 #, fuzzy
 msgid "Chat History: ✗ Skip"
 msgstr "Lịch sử trò chuyện: ✗ Bỏ qua"
 
-#: main.lua:7524
+#: main.lua:7567
 #, fuzzy
 msgid "Mode: Merge with existing"
 msgstr "Chế độ: Hợp nhất với dữ liệu hiện có"
 
-#: main.lua:7524
+#: main.lua:7567
 #, fuzzy
 msgid "Mode: Replace existing"
 msgstr "Chế độ: Thay thế dữ liệu hiện có"
 
-#: main.lua:7546
+#: main.lua:7589
 #, fuzzy
 msgid "Restore Now"
 msgstr "Khôi phục ngay"
 
-#: main.lua:7566
+#: main.lua:7609
 #, fuzzy
 msgid "What to restore:"
 msgstr "Nội dung cần khôi phục:"
 
-#: main.lua:7579
+#: main.lua:7622
 #, fuzzy
 msgid ""
 "Restore from backup?\n"
@@ -4974,12 +5226,12 @@ msgstr ""
 "\n"
 "⚠ Nên khởi động lại KOReader sau khi khôi phục để các thay đổi có hiệu lực đầy đủ."
 
-#: main.lua:7580 main.lua:7736
+#: main.lua:7623 main.lua:7779
 #, fuzzy
 msgid "Restore"
 msgstr "Khôi phục"
 
-#: main.lua:7584
+#: main.lua:7627
 #, fuzzy
 msgid ""
 "Restoring backup...\n"
@@ -4990,7 +5242,7 @@ msgstr ""
 "\n"
 "Quá trình này có thể mất một chút thời gian."
 
-#: main.lua:7597
+#: main.lua:7640
 #, fuzzy
 msgid ""
 "Restore completed successfully!\n"
@@ -5001,7 +5253,7 @@ msgstr ""
 "\n"
 "Nên khởi động lại KOReader để tất cả thay đổi có hiệu lực."
 
-#: main.lua:7609 koassistant_ui/prompts_manager.lua:2579
+#: main.lua:7652 koassistant_ui/prompts_manager.lua:2579
 #: koassistant_ui/prompts_manager.lua:3017
 #: koassistant_ui/prompts_manager.lua:3201
 #: koassistant_ui/prompts_manager.lua:3675
@@ -5013,12 +5265,12 @@ msgstr ""
 msgid "OK"
 msgstr "OK"
 
-#: main.lua:7615
+#: main.lua:7658
 #, fuzzy
 msgid "Restart Now"
 msgstr "Khởi động lại ngay"
 
-#: main.lua:7629
+#: main.lua:7672
 #, fuzzy
 msgid ""
 "Restore failed:\n"
@@ -5029,12 +5281,12 @@ msgstr ""
 "\n"
 "%1"
 
-#: main.lua:7652
+#: main.lua:7695
 #, fuzzy
 msgid "No backups found."
 msgstr "Không tìm thấy bản sao lưu."
 
-#: main.lua:7700
+#: main.lua:7743
 #, fuzzy
 msgid ""
 "Backups (%1)\n"
@@ -5045,13 +5297,7 @@ msgstr ""
 "\n"
 "Tổng dung lượng: %2"
 
-#: main.lua:7716 koassistant_ui/prompts_manager.lua:1458
-#: koassistant_ui/prompts_manager.lua:1923
-#, fuzzy
-msgid "Info"
-msgstr "Thông tin"
-
-#: main.lua:7752
+#: main.lua:7795
 #, fuzzy
 msgid ""
 "Delete backup?\n"
@@ -5066,12 +5312,12 @@ msgstr ""
 "\n"
 "Thao tác này không thể hoàn tác."
 
-#: main.lua:7760
+#: main.lua:7803
 #, fuzzy
 msgid "Backup deleted"
 msgstr "Đã xóa bản sao lưu"
 
-#: main.lua:7769
+#: main.lua:7812
 #, fuzzy
 msgid ""
 "Failed to delete backup:\n"
@@ -5082,7 +5328,7 @@ msgstr ""
 "\n"
 "%1"
 
-#: main.lua:7832
+#: main.lua:7875
 #, fuzzy
 msgid ""
 "KOAssistant: Chat Storage Upgrade\n"
@@ -5101,22 +5347,22 @@ msgstr ""
 "\n"
 "Các tệp trò chuyện cũ sẽ được sao lưu vào koassistant_chats.backup/"
 
-#: main.lua:7839
+#: main.lua:7882
 #, fuzzy
 msgid "Migrate Now"
 msgstr "Chuyển đổi ngay"
 
-#: main.lua:7871
+#: main.lua:7914
 #, fuzzy
 msgid "KOAssistant: Migrating chat history..."
 msgstr "KOAssistant: Đang chuyển đổi lịch sử trò chuyện..."
 
-#: main.lua:7884
+#: main.lua:7927
 #, fuzzy
 msgid "No old chats found to migrate"
 msgstr "Không tìm thấy trò chuyện cũ để chuyển đổi"
 
-#: main.lua:8006
+#: main.lua:8049
 #, fuzzy
 msgid ""
 "KOAssistant: Migration Incomplete\n"
@@ -5137,12 +5383,12 @@ msgstr ""
 "Quá trình chuyển đổi sẽ được thử lại khi khởi động lần sau.\n"
 "Kiểm tra bảng điều khiển để xem thông báo lỗi chi tiết."
 
-#: main.lua:8018
+#: main.lua:8061
 #, fuzzy
 msgid "Failed documents:"
 msgstr "Tài liệu thất bại:"
 
-#: main.lua:8025
+#: main.lua:8068
 #, fuzzy
 msgid ""
 "KOAssistant: Migration Complete\n"
@@ -5161,82 +5407,82 @@ msgstr ""
 "Các tệp trò chuyện cũ đã được sao lưu vào:\n"
 "koassistant_chats.backup/"
 
-#: main.lua:8089
+#: main.lua:8132
 #, fuzzy
 msgid "Welcome to KOAssistant!"
 msgstr "Chào mừng đến với KOAssistant!"
 
-#: main.lua:8090
+#: main.lua:8133
 #, fuzzy
 msgid "PRIVACY SETTINGS"
 msgstr "CÀI ĐẶT QUYỀN RIÊNG TƯ"
 
-#: main.lua:8091
+#: main.lua:8134
 #, fuzzy
 msgid "Some features (like X-Ray) need permission to access book content."
 msgstr "Một số tính năng (như X-Ray) cần quyền truy cập nội dung sách."
 
-#: main.lua:8092
+#: main.lua:8135
 #, fuzzy
 msgid "Enable in: Settings → Privacy & Data"
 msgstr "Bật tại: Cài đặt → Quyền riêng tư & Dữ liệu"
 
-#: main.lua:8093
+#: main.lua:8136
 #, fuzzy
 msgid "QUICK ACCESS"
 msgstr "TRUY CẬP NHANH"
 
-#: main.lua:8094
+#: main.lua:8137
 #, fuzzy
 msgid "Add actions to gestures, highlight menus, or Quick Actions panel."
 msgstr "Thêm hành động vào cử chỉ, menu đánh dấu hoặc bảng Hành động nhanh."
 
-#: main.lua:8095
+#: main.lua:8138
 #, fuzzy
 msgid "CUSTOM ACTIONS"
 msgstr "HÀNH ĐỘNG TÙY CHỈNH"
 
-#: main.lua:8096
+#: main.lua:8139
 #, fuzzy
 msgid "Create your own prompts and actions."
 msgstr "Tạo lời nhắc và hành động của riêng bạn."
 
-#: main.lua:8097
+#: main.lua:8140
 #, fuzzy
 msgid "Go to: Settings → Action Manager → Add"
 msgstr "Vào: Cài đặt → Quản lý hành động → Thêm"
 
-#: main.lua:8247
+#: main.lua:8290
 #, fuzzy
 msgid "No notebook available for this document"
 msgstr "Không có sổ tay cho tài liệu này"
 
-#: main.lua:8257
+#: main.lua:8300
 #, fuzzy
 msgid "No notebook exists for this document. Create one?"
 msgstr "Không có sổ ghi chú nào cho tài liệu này. Tạo mới?"
 
-#: main.lua:8267
+#: main.lua:8310
 #, fuzzy
 msgid "Failed to create notebook: %1"
 msgstr "Không thể tạo sổ ghi chú: %1"
 
-#: main.lua:8309
+#: main.lua:8352
 #, fuzzy
 msgid "Notebook is empty"
 msgstr "Sổ tay trống"
 
-#: main.lua:8358
+#: main.lua:8401
 #, fuzzy
 msgid "Failed to read notebook file."
 msgstr "Không thể đọc tệp sổ tay."
 
-#: main.lua:8421
+#: main.lua:8464
 #, fuzzy
 msgid "Notebook saved"
 msgstr "Đã lưu sổ ghi chú"
 
-#: main.lua:8428
+#: main.lua:8471
 #, fuzzy
 msgid "Reset to last saved"
 msgstr "Đặt lại về lần lưu cuối"
@@ -7518,97 +7764,97 @@ msgstr "Bối cảnh Lịch sử"
 msgid "X-Ray"
 msgstr "X-Ray"
 
-#: prompts/actions.lua:658
+#: prompts/actions.lua:610
 #, fuzzy
 msgid "Recap"
 msgstr "Tóm tắt lại"
 
-#: prompts/actions.lua:729
+#: prompts/actions.lua:681
 #, fuzzy
 msgid "Analyze Highlights"
 msgstr "Phân tích Đoạn đánh dấu"
 
-#: prompts/actions.lua:783
+#: prompts/actions.lua:735
 #, fuzzy
 msgid "Related Thinkers"
 msgstr "Nhà tư tưởng Liên quan"
 
-#: prompts/actions.lua:817 prompts/actions.lua:860
+#: prompts/actions.lua:769 prompts/actions.lua:812
 #, fuzzy
 msgid "Key Arguments"
 msgstr "Luận điểm Chính"
 
-#: prompts/actions.lua:907 prompts/actions.lua:946
+#: prompts/actions.lua:859 prompts/actions.lua:898
 #, fuzzy
 msgid "Discussion Questions"
 msgstr "Câu hỏi Thảo luận"
 
-#: prompts/actions.lua:987 prompts/actions.lua:1026
+#: prompts/actions.lua:939 prompts/actions.lua:978
 #, fuzzy
 msgid "Generate Quiz"
 msgstr "Tạo Bài kiểm tra"
 
-#: prompts/actions.lua:1067
+#: prompts/actions.lua:1019
 #, fuzzy
 msgid "Analyze Document"
 msgstr "Phân tích Tài liệu"
 
-#: prompts/actions.lua:1094
+#: prompts/actions.lua:1046
 #, fuzzy
 msgid "Summarize Document"
 msgstr "Tóm tắt Tài liệu"
 
-#: prompts/actions.lua:1108
+#: prompts/actions.lua:1060
 #, fuzzy
 msgid "Extract Key Insights"
 msgstr "Trích xuất Ý chính"
 
-#: prompts/actions.lua:1131
+#: prompts/actions.lua:1083
 #, fuzzy
 msgid "Book Reviews"
 msgstr "Đánh giá Sách"
 
-#: prompts/actions.lua:1162
+#: prompts/actions.lua:1114
 #, fuzzy
 msgid "Compare Books"
 msgstr "So sánh Sách"
 
-#: prompts/actions.lua:1174
+#: prompts/actions.lua:1126
 #, fuzzy
 msgid "Find Common Themes"
 msgstr "Tìm Chủ đề Chung"
 
-#: prompts/actions.lua:1186
+#: prompts/actions.lua:1138
 #, fuzzy
 msgid "Analyze Collection"
 msgstr "Phân tích Bộ sưu tập"
 
-#: prompts/actions.lua:1198
+#: prompts/actions.lua:1150
 #, fuzzy
 msgid "Quick Summaries"
 msgstr "Tóm tắt Nhanh"
 
-#: prompts/actions.lua:1210
+#: prompts/actions.lua:1162
 #, fuzzy
 msgid "Reading Order"
 msgstr "Thứ tự Đọc"
 
-#: prompts/actions.lua:1225
+#: prompts/actions.lua:1177
 #, fuzzy
 msgid "News Update"
 msgstr "Cập nhật Tin tức"
 
-#: prompts/actions.lua:1271
+#: prompts/actions.lua:1223
 #, fuzzy
 msgid "Quick Define"
 msgstr "Định nghĩa Nhanh"
 
-#: prompts/actions.lua:1300
+#: prompts/actions.lua:1252
 #, fuzzy
 msgid "Dictionary"
 msgstr "Từ điển"
 
-#: prompts/actions.lua:1332
+#: prompts/actions.lua:1284
 #, fuzzy
 msgid "Deep Analysis"
 msgstr "Phân tích Sâu"
