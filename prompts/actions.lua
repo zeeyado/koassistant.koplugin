@@ -647,7 +647,7 @@ If you don't recognize this work or the title/content seems unclear, tell me hon
         -- Inherits global reasoning setting (user choice)
         api_params = {
             temperature = 0.7,
-            max_tokens = 4096,
+            max_tokens = 8192,
         },
         builtin = true,
         in_reading_features = 2,  -- Appears in Reading Features menu + default gesture
