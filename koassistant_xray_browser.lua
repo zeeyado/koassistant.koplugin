@@ -378,12 +378,36 @@ end
 --- Show items within a category (navigates forward)
 --- @param category table {key, label, items}
 function XrayBrowser:showCategoryItems(category)
+    local Font = require("ui/font")
+    local Size = require("ui/size")
+    local TextWidget = require("ui/widget/textwidget")
+
     local items = {}
     local self_ref = self
+
+    -- Measure available width and font metrics for dynamic mandatory truncation.
+    -- Menu uses: available_width = content_width - mandatory_w - padding
+    -- We flip the priority: give name its full width, truncate mandatory to fit the rest.
+    local content_width = Screen:getWidth() - 2 * (Size.padding.fullscreen or 0)
+    local text_face = Font:getFace("smallinfofont", 18)
+    local mandatory_face = Font:getFace("infont", 14)
+    -- Measure a reference character to estimate mandatory chars per pixel
+    local ref_char_w = TextWidget:new{ text = "a", face = mandatory_face }:getSize().w
+    local padding = Screen:scaleBySize(10)
 
     for _idx, item in ipairs(category.items) do
         local name = XrayParser.getItemName(item, category.key)
         local secondary = XrayParser.getItemSecondary(item, category.key)
+
+        -- Measure actual name width in pixels, then truncate mandatory to fit remainder
+        if secondary ~= "" then
+            local name_w = TextWidget:new{ text = name, face = text_face }:getSize().w
+            local avail_for_mandatory = content_width - name_w - padding
+            local max_chars = math.max(5, math.floor(avail_for_mandatory / ref_char_w))
+            if #secondary > max_chars then
+                secondary = secondary:sub(1, max_chars - 3) .. "..."
+            end
+        end
 
         local captured_item = item
         table.insert(items, {
