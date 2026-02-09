@@ -2024,6 +2024,12 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
         temp_config.features.minimal_buttons = true
     end
 
+    -- Propagate action-level storage_key to config features (e.g., "__SKIP__" for X-Ray)
+    if prompt.storage_key then
+        temp_config.features = temp_config.features or {}
+        temp_config.features.storage_key = prompt.storage_key
+    end
+
     -- NEW ARCHITECTURE (v0.5.2+): Unified request config for all providers
     -- System prompt is built by buildUnifiedRequestConfig and passed in config.system
     -- No longer embedded in the consolidated message
@@ -2232,8 +2238,16 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
             local current_progress = tonumber(message_data.progress_decimal) or 0
             local cached_progress = cached_entry.progress_decimal or 0
 
+            -- For X-Ray: skip incremental update if cache is legacy markdown (not JSON)
+            -- Force a full regeneration to produce structured JSON output
+            local XrayParser = require("koassistant_xray_parser")
+            local skip_legacy = prompt.id == "xray" and not XrayParser.isJSON(cached_entry.result)
+            if skip_legacy then
+                logger.info("KOAssistant: Legacy markdown X-Ray cache detected, forcing full regeneration for JSON output")
+            end
+
             -- Use cache if we've progressed by at least 1% since last time
-            if current_progress > cached_progress + 0.01 then
+            if not skip_legacy and current_progress > cached_progress + 0.01 then
                 using_cache = true
                 cached_progress_display = math.floor(cached_progress * 100) .. "%"
                 logger.info("KOAssistant: Using cached response from", cached_progress_display, "for", prompt.id)
@@ -2301,11 +2315,32 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
     -- Get response from AI with callback for async streaming
     local function handleResponse(success, answer, err, reasoning, web_search_used)
         if success and answer and answer ~= "" then
+            -- For X-Ray: parse structured JSON response and prepare display/cache versions
+            -- display_answer = rendered markdown for chat history (human-readable)
+            -- cache_answer = raw response for cache storage (JSON for structured browsing)
+            local display_answer = answer
+            local cache_answer = answer
+            if action.cache_as_xray then
+                local XrayParser = require("koassistant_xray_parser")
+                local parsed = XrayParser.parse(answer)
+                if parsed then
+                    local book_meta = message_data.book_metadata or {}
+                    display_answer = XrayParser.renderToMarkdown(
+                        parsed,
+                        book_meta.title or "",
+                        message_data.reading_progress or ""
+                    )
+                    logger.info("KOAssistant: X-Ray JSON parsed successfully, rendered to markdown for display")
+                else
+                    logger.info("KOAssistant: X-Ray response is not valid JSON, using as-is")
+                end
+            end
+
             -- If user typed additional input, add it as a visible message before the response
             if has_additional_input then
                 history:addUserMessage(additional_input, false)
             end
-            history:addAssistantMessage(answer, ConfigHelper:getModelInfo(temp_config), reasoning, ConfigHelper:buildDebugInfo(temp_config), web_search_used)
+            history:addAssistantMessage(display_answer, ConfigHelper:getModelInfo(temp_config), reasoning, ConfigHelper:buildDebugInfo(temp_config), web_search_used)
 
             -- Save to response cache if enabled
             -- Cache when: action supports it, uses book text, extraction enabled, we have progress
@@ -2318,7 +2353,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                 local save_success = ActionCache.set(
                     ui.document.file,
                     original_action_id,
-                    answer,
+                    cache_answer,
                     tonumber(message_data.progress_decimal) or 0,
                     { model = ConfigHelper:getModelInfo(temp_config) }
                 )
@@ -2347,7 +2382,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                         model = model_info.model,
                         used_annotations = used_annotations,
                     }
-                    local xray_success = ActionCache.setXrayCache(ui.document.file, answer, progress, xray_metadata)
+                    local xray_success = ActionCache.setXrayCache(ui.document.file, cache_answer, progress, xray_metadata)
                     if xray_success then
                         logger.info("KOAssistant: Saved X-Ray to reusable cache at", progress, "used_annotations=", used_annotations)
                     end
@@ -3055,6 +3090,39 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
                     temp_config.features._original_context_mode = temp_config.features.dictionary_context_mode or "sentence"
                 end
             end
+            -- For X-Ray: open browser directly instead of chat viewer
+            -- The result is already saved to the X-Ray cache; the chat viewer is unnecessary
+            if action.cache_as_xray and ui and ui.document and ui.document.file then
+                local ActionCache = require("koassistant_action_cache")
+                local xray_cache = ActionCache.getXrayCache(ui.document.file)
+                if xray_cache and xray_cache.result then
+                    local XrayParser = require("koassistant_xray_parser")
+                    local parsed = XrayParser.parse(xray_cache.result)
+                    if parsed then
+                        local XrayBrowser = require("koassistant_xray_browser")
+                        local book_title = (book_metadata and book_metadata.title) or ""
+                        local Notification = require("ui/widget/notification")
+                        local config_features = (configuration or CONFIGURATION or {}).features or {}
+                        XrayBrowser:show(parsed, {
+                            title = book_title,
+                            progress = xray_cache.progress_decimal and
+                                (math.floor(xray_cache.progress_decimal * 100 + 0.5) .. "%"),
+                            model = xray_cache.model,
+                            timestamp = xray_cache.timestamp,
+                            book_file = ui.document.file,
+                            enable_emoji = config_features.enable_emoji_icons == true,
+                        }, ui, function()
+                            ActionCache.clearXrayCache(ui.document.file)
+                            UIManager:show(Notification:new{
+                                text = T(_("%1 deleted"), "X-Ray"),
+                                timeout = 2,
+                            })
+                        end)
+                        return
+                    end
+                end
+            end
+
             local function addMessage(message, is_context, on_complete_msg)
                 history:addUserMessage(message, is_context)
                 local answer_result = queryChatGPT(history:getMessages(), temp_config, function(success, answer, err, reasoning, web_search_used)

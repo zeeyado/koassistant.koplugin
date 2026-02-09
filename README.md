@@ -7,7 +7,7 @@
 **Powerful, customizable AI assistant for KOReader.**
 
 - **Highlight text** → translate, explain, define words, analyze passages, connect ideas, save content directly to KOReader's highlight notes/annotations
-- **While reading** → reference guides (Summaries, X-Ray, Recap), analyze your highlights/annotations, explore the book/document (author, context, arguments, similar works), generate discussion questions
+- **While reading** → reference guides (Summaries, browsable X-Ray with character tracking, Recap), analyze your highlights/annotations, explore the book/document (author, context, arguments, similar works), generate discussion questions
 - **Research & analysis** → deep analysis of papers/articles, explore arguments, find connections across works
 - **Multi-document** → compare texts, find common themes, analyze your collection
 - **General chat** → AI without book/document context
@@ -241,7 +241,8 @@ To show/hide buttons in the Quick Settings panel, use **Settings → Quick Setti
 Assign "KOAssistant: Quick Actions" to a gesture for fast access to reading-related actions:
 - **Default actions** — X-Ray, Recap, Book Info
 - **Summary management** — "View Summary" (if summary exists) or "Generate Summary" (if not) for cached document summaries
-- **Utilities** — Translate Page, View/Edit Notebook, Chat History, Continue Last Chat, New Book Chat/Action, General Chat/Action, Quick Settings, View Artifacts (browse saved X-Ray, Analysis, and Summary results)
+- **Artifact buttons** — "View X-Ray (35%)" and "View Analysis (40%)" appear individually when those artifacts exist (with progress percentage), opening directly without a selector dialog
+- **Utilities** — Translate Page, View/Edit Notebook, Chat History, Continue Last Chat, New Book Chat/Action, General Chat/Action, Quick Settings
 
 You can add any book action to Quick Actions via **Action Manager → hold action → "Add to Quick Actions"**. To reorder or remove actions, use **Settings → Quick Actions Settings → Panel Actions**. To show/hide utility buttons (Translate Page, Chat History, etc.), use **Settings → Quick Actions Settings → QA Panel Utilities**. Defaults can also be removed.
 
@@ -541,7 +542,7 @@ Several actions come in two variants: a **regular** version that sends full docu
 **Managing summaries:**
 - **Generate**: Quick Actions → "Generate Summary" (when no summary exists)
 - **View**: Quick Actions → "View Summary" (when summary exists), or use the "View Summary" gesture
-- **File browser**: "View Artifacts (KOA)" button appears when a book has any artifacts (Summary, X-Ray, or Analysis) — tap to pick which one to view
+- **File browser**: "View Artifacts (KOA)" button appears when a book has any artifacts (Summary, X-Ray, or Analysis) — tap to pick which one to view. X-Ray opens in a browsable category menu.
 - **Coverage**: The viewer title shows coverage percentage if document was truncated (e.g., "Summary (78%)")
 
 > **Tip**: For documents you'll query multiple times, generate the summary proactively via Quick Actions to save tokens on future queries. The artifacts (Summary, X-Ray, Analysis) are also useful on their own as viewable reference guides — see [Document Artifacts](#document-artifacts).
@@ -570,7 +571,7 @@ Some actions work from the file browser (using only document metadata like title
 | **Historical Context** | When written and historical significance |
 | **Related Thinkers** | Intellectual landscape: influences, contemporaries, and connected thinkers |
 | **Book Reviews** | Find critical and reader reviews, awards, and reception ⚠️ *Requires: Web Search* |
-| **X-Ray** | Structured reference guide: characters, locations, themes, timeline ⚠️ *Best with: Allow Text Extraction* |
+| **X-Ray** | Browsable reference guide: characters (with aliases and connections), locations, themes, lexicon, timeline — opens in a structured menu with search, chapter character tracking, and highlight integration ⚠️ *Best with: Allow Text Extraction* |
 | **Recap** | "Previously on..." style summary to help you resume reading ⚠️ *Best with: Allow Text Extraction* |
 | **Analyze Highlights** | Discover patterns and connections in your highlights ⚠️ *Requires: Allow Highlights & Annotations* |
 | **Key Arguments** | Thesis, evidence, assumptions, and counterarguments using full book text ⚠️ *Requires: Allow Text Extraction* |
@@ -608,7 +609,19 @@ These actions analyze your actual reading content. They require specific privacy
 
 > **Tip:** Highlight actions can also use text extraction. "Explain in Context" and "Analyze in Context" use `{book_text_section}` to understand your highlighted passage within the broader book context. See [Highlight Mode](#highlight-mode) for details.
 
-**X-Ray/Recap**: These actions work in two modes:
+**X-Ray**: The X-Ray action produces a structured JSON analysis that opens in a **browsable category menu** rather than a plain text document. The browser provides:
+
+- **Category navigation** — Cast, World, Ideas, Lexicon, Story Arc, Current State (fiction) or Key Figures, Core Concepts, Arguments, Terminology, Argument Development, Current Position (non-fiction) — with item counts
+- **Character detail** — descriptions, AI-provided aliases (e.g., "Lizzy", "Miss Bennet"), connections/relationships, and your highlights mentioning each character
+- **Chapter Characters** — shows which characters appear in your current chapter with mention counts, using word-boundary matching against names and aliases
+- **Search** — find any entry across all categories by name, alias, or description
+- **Full View** — rendered markdown view in the chat viewer (with export)
+- **Text selection** — hold to select text in detail views: 1-3 words opens dictionary, 4+ copies to clipboard
+- **Options menu** — info (model, progress, date, fiction/non-fiction type), delete, close
+
+> **Tip:** If your device supports emoji fonts, enable **Emoji Menu Icons** in Settings → Display Settings for visual category icons in the X-Ray browser (e.g., characters, locations, themes). See [Emoji Menu Icons](#display-settings).
+
+**X-Ray/Recap** work in two modes:
 - **Without text extraction** (default): AI uses only the title/author and relies on its training knowledge of the book. Works for well-known titles; may be inaccurate for obscure works.
 - **With text extraction**: AI analyzes actual book content up to your reading position. More accurate but costs more tokens. Enables response caching for incremental updates.
 
@@ -1287,7 +1300,7 @@ Actions with gestures show a `[gesture]` indicator in the Action Manager list.
 **Reader Only** (require open book; grayed out in File Browser gesture settings):
 - KOAssistant: Quick Actions — Reading actions panel
 - KOAssistant: New Book Chat/Action — Start a chat about current book or access book actions
-- KOAssistant: X-Ray — Generate book reference guide
+- KOAssistant: X-Ray — Generate browsable book reference guide (characters, locations, themes, timeline)
 - KOAssistant: Recap — Get a story summary
 - KOAssistant: Analyze Highlights — Analyze your annotations
 - KOAssistant: Translate Current Page — Translate visible page text
@@ -1689,7 +1702,7 @@ Tags are simple labels for organizing chats. Unlike domains:
 - **View/Generate Summary**: View cached summary (if exists) or generate one (reader mode only)
 
 ### Reading Features (visible when document is open)
-- **X-Ray**: Generate a structured reference guide for the book up to your current reading position
+- **X-Ray**: Generate a browsable reference guide for the book up to your current reading position — opens in a structured category menu with characters, locations, themes, lexicon, and timeline
 - **Recap**: Get a "Previously on..." style summary to help you resume reading
 - **Analyze Highlights**: Discover patterns and connections in your highlights and annotations
 
@@ -1726,6 +1739,7 @@ Tags are simple labels for organizing chats. Unlike domains:
   - **Settings menu**: Descriptive emojis on menu items and section headers (💬 Chat, 🔗 Provider, 🤖 Model, 📖 Reading Features, 🔒 Privacy, etc.)
   - **Chat history**: Type prefixes (💬 general, 📚 multi-book, 📖 book chats)
   - **Notebook browser**: 📓 prefix on entries
+  - **X-Ray browser**: Category icons (👥 Characters, 🌍 Locations, 💭 Themes, 📖 Lexicon, 📅 Timeline, 📍 Current State). Highly recommended for the X-Ray browser — the visual icons make browsing categories much more intuitive.
   - **Chat viewer**: ↩️ Reply, 🏷️ Tag, 🔍 Web search toggle
   - **Streaming**: 🔍 web search indicator
   - Requires **emoji font support** in KOReader. You must install an emoji-capable font (e.g., Noto Color Emoji) — see [KOReader wiki on fonts](https://github.com/koreader/koreader/wiki/Fonts). Some platforms like **Kindle have limited emoji support** and may show question marks or blank squares. If icons don't render correctly, disable this option.
@@ -1882,7 +1896,7 @@ Configure the Quick Actions panel (available via gesture in reader mode).
 - **Panel Actions**: Reorder or remove actions from the Quick Actions panel. Add new actions via Action Manager → hold action → "Add to Quick Actions".
 - **QA Panel Utilities**: Show/hide utility buttons that appear below actions in the panel:
   - Translate Page, View Notebook, Edit Notebook, Chat History, Continue Last Chat
-  - New Book Chat/Action, General Chat/Action, Summary (View/Generate), Quick Settings, View Artifacts
+  - New Book Chat/Action, General Chat/Action, Summary (View/Generate), Quick Settings, View Artifacts (X-Ray and Analysis shown as individual buttons with progress percentage when they exist)
   - All utilities are enabled by default. Disable any you don't use to streamline the panel.
 
 ### Actions & Prompts
@@ -2260,10 +2274,12 @@ Prompt caching reduces costs and latency by reusing previously processed prompt 
 When text extraction is enabled, X-Ray and Recap responses are automatically cached per book. This enables **incremental updates** — as you read further, the AI builds on its previous analysis rather than starting from scratch:
 
 **How it works:**
-1. Run X-Ray at 30% → Full analysis generated and cached
+1. Run X-Ray at 30% → Full structured JSON analysis generated and cached
 2. Continue reading to 50%
-3. Run X-Ray again → Only the new content (30%→50%) is sent, asking the AI to update its previous analysis
+3. Run X-Ray again → Only the new content (30%→50%) is sent, asking the AI to update its previous JSON analysis
 4. Result: Faster responses, lower token costs, continuity of analysis
+
+**X-Ray format:** X-Ray results are stored as structured JSON (characters with aliases/connections, locations, themes, lexicon, timeline). The JSON is rendered to readable markdown for chat display and `{xray_cache_section}` placeholders, while the raw JSON powers the browsable menu UI. Legacy markdown X-Rays from older versions are still viewable but will be replaced with JSON on the next run.
 
 **Requirements:**
 - Text extraction must be enabled (Settings → Privacy & Data → Text Extraction)
@@ -2277,7 +2293,7 @@ When text extraction is enabled, X-Ray and Recap responses are automatically cac
 - Automatically moves with the book if you reorganize your library
 
 **Clearing the cache:**
-- **Per-action**: In the chat viewer, tap "↻ Fresh" button (appears only for cached responses) → clears that action's cache for this book, then re-run the action manually
+- **Per-action**: In the artifact viewer, use the delete button (for X-Ray: options menu → "Delete X-Ray"; for others: "↻ Fresh" button in the chat viewer). This clears that action's cache for this book, then re-run the action manually.
 - **All actions for book**: Settings → Privacy & Data → Text Extraction → Clear Action Cache (requires book to be open)
 - Either option forces fresh generation on next run (useful if analysis got off track)
 
@@ -2285,6 +2301,7 @@ When text extraction is enabled, X-Ray and Recap responses are automatically cac
 - Only built-in X-Ray and Recap support incremental caching currently
 - Going backward in progress doesn't use cache (fresh generation)
 - Custom actions duplicated from X-Ray/Recap will inherit caching behavior
+- Legacy markdown X-Ray caches (from before the JSON update) are still viewable but will be fully regenerated (not incrementally updated) on the next run, producing the new JSON format
 
 X-Ray, Recap, and other actions also produce **Document Artifacts** — reusable results you can view anytime and reference in other actions. See the next section for details.
 
@@ -2292,7 +2309,7 @@ X-Ray, Recap, and other actions also produce **Document Artifacts** — reusable
 
 When certain actions complete, their results are saved as **document artifacts** — persistent, per-book outputs that serve two purposes:
 
-1. **Viewable as standalone reference guides.** Browse a book's Summary, X-Ray, or Analysis anytime without re-running the action. Useful for reviewing key information, refreshing your memory before a reading session, or quickly checking character details mid-read.
+1. **Viewable as standalone reference guides.** Browse a book's Summary, X-Ray, or Analysis anytime without re-running the action. X-Ray opens as a browsable category menu (characters, locations, themes, lexicon, timeline) with search, chapter character tracking, and your highlight mentions — useful for quickly checking character details, relationships, or who appears in the current chapter mid-read.
 2. **Reusable as context in other actions.** Instead of sending full document text (~100K tokens) every time, actions can reference a compact artifact (~2-8K tokens). This is the foundation of **Smart actions** — dramatically cheaper and often better-performing, since models handle focused context more effectively than massive text dumps.
 
 **The three artifact types:**
@@ -2300,16 +2317,16 @@ When certain actions complete, their results are saved as **document artifacts**
 | Artifact | Generated by | What it contains | Primary use |
 |----------|-------------|------------------|-------------|
 | **Summary** | Summarize Document, Generate Summary | Neutral, comprehensive document representation | **Primary artifact for reuse.** Powers all Smart actions — replaces raw book text with a compact summary. Also useful on its own as a reading reference. |
-| **X-Ray** | X-Ray action | Structured reference: characters, locations, themes, timeline | Viewable character/concept guide. Also available as supplementary context in custom actions. |
+| **X-Ray** | X-Ray action | Structured JSON: characters (with aliases, connections), locations, themes, lexicon, timeline | **Browsable menu** with categories, search, chapter character tracking, highlight integration. Also available as supplementary context in custom actions. |
 | **Analysis** | Analyze Document | Opinionated deep analysis of the document | Viewable analytical overview. *Not recommended as input for further analysis* — analyzing an analysis is a decaying game of telephone where each layer loses nuance. |
 
 **Viewing artifacts:**
-- **Quick Actions** → "View Summary" (when summary exists), or "Generate Summary" (when it doesn't)
+- **Quick Actions** → "View Summary" (when summary exists) or "Generate Summary" (when it doesn't). "View X-Ray (35%)" and "View Analysis (40%)" appear as individual buttons when those artifacts exist, showing progress percentage.
 - **File Browser** → Long-press a book → "View Artifacts (KOA)" → pick Summary, X-Ray, or Analysis
 - **Gesture** → Assign "KOAssistant: View Summary" for quick access, or "KOAssistant: View Artifacts" to browse all artifacts
 - **Coverage**: The viewer title shows coverage percentage if the document was truncated (e.g., "Summary (78%)")
 
-The artifact viewer shows metadata (coverage, model used, generation date) and provides buttons for copying, regenerating, or deleting.
+The artifact viewer shows metadata (coverage, model used, generation date) and provides buttons for copying, exporting, regenerating, or deleting. X-Ray artifacts open in a **browsable category menu** (see [Reading Analysis Actions](#reading-analysis-actions) for details); legacy markdown X-Rays fall back to the text viewer.
 
 > **Safety mechanism:** Artifacts are only saved when book text was actually extracted. If you run an artifact-generating action with text extraction disabled (or if extraction yields no content), the AI response is based solely on the book's title/author (training knowledge), and this lower-quality result is NOT saved. This prevents training-data-based responses from being stored as reusable context. Enable text extraction before running these actions to build useful artifacts.
 
@@ -2376,7 +2393,7 @@ All three artifacts can be referenced in custom actions using `{summary_cache_se
 
 If you haven't run X-Ray yet (or permissions aren't enabled), the placeholder renders empty and the action still runs, just without the analysis context.
 
-> **Tip**: For documents you'll query multiple times, generate the summary proactively via Quick Actions. The artifacts are also convenient in themselves — browse a book's X-Ray to check character details, review the Analysis for a refresher on key arguments, or skim the Summary before resuming a book you haven't read in a while.
+> **Tip**: For documents you'll query multiple times, generate the summary proactively via Quick Actions. The artifacts are also convenient in themselves — browse a book's X-Ray to look up characters (with aliases and connections), check who appears in the current chapter, search for any entry, review the Analysis for a refresher on key arguments, or skim the Summary before resuming a book you haven't read in a while.
 
 **Text extraction guidelines:**
 - ~100 pages ≈ 25,000-40,000 characters (varies by formatting)

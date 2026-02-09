@@ -284,16 +284,25 @@ function MessageBuilder.build(params)
 
     -- Document cache placeholders (cached AI responses from previous X-Ray/Summary)
     -- {xray_cache_section} - previous X-Ray with progress label
+    -- If the cache is structured JSON, render to markdown so other actions receive readable text
     local xray_cache_section = ""
     if data.xray_cache and data.xray_cache ~= "" then
+        local cache_text = data.xray_cache
+        local XrayParser = require("koassistant_xray_parser")
+        if XrayParser.isJSON(cache_text) then
+            local parsed = XrayParser.parse(cache_text)
+            if parsed then
+                cache_text = XrayParser.renderToMarkdown(parsed, "", "")
+            end
+        end
         local label = "Previous X-Ray"
         if data.xray_cache_progress then
             label = label .. " (as of " .. data.xray_cache_progress .. ")"
         end
-        xray_cache_section = label .. ":\n" .. data.xray_cache
+        xray_cache_section = label .. ":\n" .. cache_text
     end
     user_prompt = replace_placeholder(user_prompt, "{xray_cache_section}", xray_cache_section)
-    -- Raw placeholder
+    -- Raw placeholder (preserves original format - JSON or markdown)
     if data.xray_cache then
         user_prompt = replace_placeholder(user_prompt, "{xray_cache}", data.xray_cache)
     end
