@@ -316,7 +316,7 @@ Provide deeper analysis:
     explain_in_context_smart = {
         id = "explain_in_context_smart",
         enable_web_search = false,
-        text = _("Explain in Context (Smart)"),
+        text = _("Explain in Context") .. " (Smart)",
         context = "highlight",
         use_book_text = true,        -- Gate for accessing _summary_cache (derives from book text)
         use_summary_cache = true,    -- Reference the cached summary
@@ -348,7 +348,7 @@ Note: The summary may be in a different language than your response language. Tr
     analyze_in_context_smart = {
         id = "analyze_in_context_smart",
         enable_web_search = false,
-        text = _("Analyze in Context (Smart)"),
+        text = _("Analyze in Context") .. " (Smart)",
         context = "highlight",
         use_book_text = true,        -- Gate for accessing _summary_cache (derives from book text)
         use_summary_cache = true,    -- Reference the cached summary
@@ -384,7 +384,7 @@ Note: The summary may be in a different language than your response language. Tr
     thematic_connection_smart = {
         id = "thematic_connection_smart",
         enable_web_search = false,
-        text = _("Thematic Connection (Smart)"),
+        text = _("Thematic Connection") .. " (Smart)",
         context = "highlight",
         use_book_text = true,        -- Gate for accessing _summary_cache
         use_summary_cache = true,    -- Reference the cached summary
@@ -857,7 +857,7 @@ This is an overview, not an essay. {conciseness_nudge} {hallucination_nudge}]],
     key_arguments_smart = {
         id = "key_arguments_smart",
         enable_web_search = false,
-        text = _("Key Arguments (Smart)"),
+        text = _("Key Arguments") .. " (Smart)",
         context = "book",
         use_book_text = true,        -- Gate for accessing _summary_cache
         use_summary_cache = true,    -- Reference the cached summary
@@ -943,7 +943,7 @@ Note: These are general questions for the complete work. If the reader is mid-bo
     discussion_questions_smart = {
         id = "discussion_questions_smart",
         enable_web_search = false,
-        text = _("Discussion Questions (Smart)"),
+        text = _("Discussion Questions") .. " (Smart)",
         context = "book",
         use_book_text = true,        -- Gate for accessing _summary_cache
         use_summary_cache = true,    -- Reference the cached summary
@@ -1023,7 +1023,7 @@ Note: These are general questions for the complete work. If the reader is mid-bo
     generate_quiz_smart = {
         id = "generate_quiz_smart",
         enable_web_search = false,
-        text = _("Generate Quiz (Smart)"),
+        text = _("Generate Quiz") .. " (Smart)",
         context = "book",
         use_book_text = true,        -- Gate for accessing _summary_cache
         use_summary_cache = true,    -- Reference the cached summary

@@ -1754,7 +1754,7 @@ function PromptsManager:showStep4_Advanced(state)
         -- Row 4: Web Search
         {
             {
-                text = _("Web Search: ") .. (state.enable_web_search == true and _("Always")
+                text = _("Web Search:") .. " " .. (state.enable_web_search == true and _("Always")
                     or state.enable_web_search == false and _("Never")
                     or _("Global")),
                 callback = function()
@@ -2731,7 +2731,7 @@ function PromptsManager:showBuiltinSettingsDialog(state)
         or state.enable_web_search == false and _("Never")
         or _("Global")
     table.insert(items, {
-        text = _("Web: ") .. web_display,
+        text = _("Web:") .. " " .. web_display,
         callback = function()
             self:showWebSearchSelector(state, function()
                 UIManager:close(self.builtin_settings_dialog)
@@ -3462,7 +3462,7 @@ function PromptsManager:showCustomQuickSettingsDialog(state)
         or state.enable_web_search == false and _("Never")
         or _("Global")
     table.insert(items, {
-        text = _("Web: ") .. custom_web_display,
+        text = _("Web:") .. " " .. custom_web_display,
         callback = function()
             self:showWebSearchSelector(state, function()
                 UIManager:close(self.custom_quick_dialog)
