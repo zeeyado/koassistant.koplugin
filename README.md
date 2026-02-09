@@ -1613,9 +1613,12 @@ Each entry includes timestamp, page number, progress percentage, and chapter tit
 - **Via gestures**: Assign "View Notebook" or "Browse Notebooks" to a gesture for quick access (Settings → Gesture Manager → General → KOAssistant)
 
 **Viewing vs Editing:**
-- **Tap** a notebook → Opens in KOReader's reader (renders markdown formatting, read-only)
+- **Tap** a notebook → Opens in the Chat Viewer (default) with Copy, Export, MD/TXT toggle, Open in Reader, and Edit buttons
 - **Hold** a notebook → Opens in KOReader's TextEditor (plain text editing)
+- **Open in Reader** button → Opens the notebook in KOReader's full reader (markdown rendering, page navigation)
 - **External editor**: Edit `.sdr/koassistant_notebook.md` directly with any markdown editor
+
+The default viewer can be changed in Settings → Notebooks → Viewer Mode (Chat Viewer or KOReader).
 
 **Key features:**
 - ✅ **Travels with books**: Notebooks automatically move when you reorganize files
@@ -1893,6 +1896,9 @@ Configure the Quick Actions panel (available via gesture in reader mode).
   - **Response only**: Just the AI response
   - **Q&A**: Highlighted text + question + response
   - **Full Q&A** (recommended, default): All context messages + highlighted text + question + response
+- **Viewer Mode**: Choose how notebooks open (default: Chat Viewer)
+  - **Chat Viewer**: Opens in the plugin's viewer with Copy, Export, MD/TXT toggle, Open in Reader, and Edit buttons
+  - **KOReader**: Opens as a full document in KOReader's reader with page navigation
 - **Show in file browser menu**: Show "Notebook (KOA)" button when long-pressing books (default: on)
 - **Only for books with notebooks**: Only show button if notebook already exists (default: on). Disable to allow creating notebooks from file browser.
 
