@@ -2823,10 +2823,15 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
 
     -- Add View Artifacts button (shows cached X-Ray/Summary/Analysis)
     -- Skip in general context - artifacts are book-specific
+    logger.info("KOAssistant artifacts check: is_general=" .. tostring(is_general_context)
+        .. " plugin=" .. tostring(plugin ~= nil)
+        .. " document_path=" .. tostring(document_path)
+        .. " ui_doc_file=" .. tostring(ui_instance and ui_instance.document and ui_instance.document.file))
     if not is_general_context and plugin then
         local artifact_file = document_path
         if artifact_file then
             local ActionCache = require("koassistant_action_cache")
+            logger.info("KOAssistant artifacts: checking caches for " .. artifact_file)
             -- Check which caches exist
             local caches = {}
             local xray = ActionCache.getXrayCache(artifact_file)
@@ -2841,6 +2846,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             if analyze and analyze.result then
                 table.insert(caches, { name = _("Analysis"), key = "_analyze_cache", data = analyze })
             end
+            logger.info("KOAssistant artifacts: found " .. #caches .. " caches")
 
             if #caches == 1 then
                 -- Single cache - open directly
@@ -2862,10 +2868,15 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     end
                 })
             end
+        else
+            logger.info("KOAssistant artifacts: no artifact_file, skipping")
         end
+    else
+        logger.info("KOAssistant artifacts: skipped (general=" .. tostring(is_general_context) .. " plugin=" .. tostring(plugin ~= nil) .. ")")
     end
 
     -- Organize buttons into rows of three
+    logger.info("KOAssistant action input: " .. #all_buttons .. " total buttons")
     local button_rows = {}
     local current_row = {}
     for _, button in ipairs(all_buttons) do
@@ -2875,11 +2886,12 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             current_row = {}
         end
     end
-    
+
     -- Add any remaining buttons as the last row
     if #current_row > 0 then
         table.insert(button_rows, current_row)
     end
+    logger.info("KOAssistant action input: " .. #button_rows .. " button rows")
 
     -- Show the dialog with the button rows
     input_dialog = InputDialog:new{
