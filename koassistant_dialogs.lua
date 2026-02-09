@@ -2819,54 +2819,66 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     for _idx, custom_prompt_type in ipairs(prompt_keys) do
         local prompt = prompts[custom_prompt_type]
         if prompt and prompt.text then
-            logger.info("Adding button for prompt: " .. custom_prompt_type .. " with text: " .. prompt.text)
-            table.insert(all_buttons, {
-                text = prompt.text .. (prompt.enable_web_search == true and ((configuration or {}).features or {}).enable_data_access_indicators == true and " 🌐" or ""),
-            prompt_type = custom_prompt_type,
-            callback = function()
-                local additional_input = input_dialog:getInputText()
-                UIManager:close(input_dialog)
-                -- Note: Loading dialog now handled by handleNonStreamingBackground in gpt_query.lua
-                UIManager:scheduleIn(0.1, function()
-                    -- Callback for when response is ready (handles both streaming and non-streaming)
-                    local function onPromptComplete(history, temp_config_or_error)
-                        if history then
-                            local temp_config = temp_config_or_error
-                            local function addMessage(message, is_context, on_complete)
-                                history:addUserMessage(message, is_context)
-                                -- For follow-up messages, use callback pattern too
-                                local answer_result = queryChatGPT(history:getMessages(), temp_config, function(success, answer, err, reasoning, web_search_used)
-                                    if success and answer then
-                                        history:addAssistantMessage(answer, ConfigHelper:getModelInfo(temp_config), reasoning, ConfigHelper:buildDebugInfo(temp_config), web_search_used)
-                                    end
-                                    if on_complete then on_complete(success, answer, err, reasoning, web_search_used) end
-                                end, plugin and plugin.settings)
-                                -- For non-streaming, return the result directly
-                                if not isStreamingInProgress(answer_result) then
-                                    return answer_result
-                                end
-                                return nil -- Streaming will update via callback
-                            end
-                            closeLoadingDialog()
-                            showResponseDialog(_(prompt.text), history, highlighted_text, addMessage, temp_config, document_path, plugin, book_metadata, launch_context, ui_instance)
-                        else
-                            closeLoadingDialog()
-                            local error_msg = temp_config_or_error or "Unknown error"
-                            UIManager:show(InfoMessage:new{
-                                text = _("Error handling prompt: ") .. custom_prompt_type .. " - " .. error_msg,
-                                timeout = 2
-                            })
-                        end
-                    end
-
-                    -- Call with callback for streaming support
-                    local history, temp_config = handlePredefinedPrompt(custom_prompt_type, highlighted_text, ui_instance, configuration, nil, plugin, additional_input, onPromptComplete, book_metadata)
-
-                    -- For non-streaming, history is returned directly and callback was also called
-                    -- The callback handles showing the dialog, so we don't need to do anything here
-                end)
+            -- Skip actions with excluded flags (e.g., from X-Ray browser "Chat about this")
+            local exclude_flags = ((configuration or {}).features or {})._exclude_action_flags
+            local excluded = false
+            if exclude_flags then
+                for _idx2, flag in ipairs(exclude_flags) do
+                    if prompt[flag] then excluded = true; break end
+                end
             end
-        })
+            if excluded then
+                logger.info("Skipping excluded prompt: " .. custom_prompt_type)
+            else
+                logger.info("Adding button for prompt: " .. custom_prompt_type .. " with text: " .. prompt.text)
+                table.insert(all_buttons, {
+                    text = prompt.text .. (prompt.enable_web_search == true and ((configuration or {}).features or {}).enable_data_access_indicators == true and " 🌐" or ""),
+                    prompt_type = custom_prompt_type,
+                    callback = function()
+                        local additional_input = input_dialog:getInputText()
+                        UIManager:close(input_dialog)
+                        -- Note: Loading dialog now handled by handleNonStreamingBackground in gpt_query.lua
+                        UIManager:scheduleIn(0.1, function()
+                            -- Callback for when response is ready (handles both streaming and non-streaming)
+                            local function onPromptComplete(history, temp_config_or_error)
+                                if history then
+                                    local temp_config = temp_config_or_error
+                                    local function addMessage(message, is_context, on_complete)
+                                        history:addUserMessage(message, is_context)
+                                        -- For follow-up messages, use callback pattern too
+                                        local answer_result = queryChatGPT(history:getMessages(), temp_config, function(success, answer, err, reasoning, web_search_used)
+                                            if success and answer then
+                                                history:addAssistantMessage(answer, ConfigHelper:getModelInfo(temp_config), reasoning, ConfigHelper:buildDebugInfo(temp_config), web_search_used)
+                                            end
+                                            if on_complete then on_complete(success, answer, err, reasoning, web_search_used) end
+                                        end, plugin and plugin.settings)
+                                        -- For non-streaming, return the result directly
+                                        if not isStreamingInProgress(answer_result) then
+                                            return answer_result
+                                        end
+                                        return nil -- Streaming will update via callback
+                                    end
+                                    closeLoadingDialog()
+                                    showResponseDialog(_(prompt.text), history, highlighted_text, addMessage, temp_config, document_path, plugin, book_metadata, launch_context, ui_instance)
+                                else
+                                    closeLoadingDialog()
+                                    local error_msg = temp_config_or_error or "Unknown error"
+                                    UIManager:show(InfoMessage:new{
+                                        text = _("Error handling prompt: ") .. custom_prompt_type .. " - " .. error_msg,
+                                        timeout = 2
+                                    })
+                                end
+                            end
+
+                            -- Call with callback for streaming support
+                            local history, temp_config = handlePredefinedPrompt(custom_prompt_type, highlighted_text, ui_instance, configuration, nil, plugin, additional_input, onPromptComplete, book_metadata)
+
+                            -- For non-streaming, history is returned directly and callback was also called
+                            -- The callback handles showing the dialog, so we don't need to do anything here
+                        end)
+                    end
+                })
+            end
         else
             logger.warn("Skipping prompt " .. custom_prompt_type .. " - missing or invalid")
         end
@@ -2875,7 +2887,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     -- Build View Artifacts button (shows cached X-Ray/Summary/Analysis)
     -- Added as its own bottom row, separate from action buttons
     local artifact_button = nil
-    if not is_general_context and plugin then
+    if not is_general_context and plugin and not ((configuration or {}).features or {})._hide_artifacts then
         local artifact_file = document_path
         if artifact_file then
             local ActionCache = require("koassistant_action_cache")
