@@ -4123,6 +4123,28 @@ function AskGPT:showCacheViewer(cache_info)
     end
   end
 
+  -- For X-Ray: try structured JSON browser when data is JSON
+  if cache_info.key == "_xray_cache" then
+    local XrayParser = require("koassistant_xray_parser")
+    if XrayParser.isJSON(cache_info.data.result) then
+      local parsed = XrayParser.parse(cache_info.data.result)
+      if parsed then
+        local XrayBrowser = require("koassistant_xray_browser")
+        local browser_metadata = {
+          title = book_title,
+          progress = cache_info.data.progress_decimal and
+              (math.floor(cache_info.data.progress_decimal * 100 + 0.5) .. "%"),
+          model = cache_info.data.model,
+          timestamp = cache_info.data.timestamp,
+          book_file = self.ui and self.ui.document and self.ui.document.file,
+        }
+        XrayBrowser:show(parsed, browser_metadata, self.ui, on_delete)
+        return
+      end
+    end
+  end
+
+  -- Fallback: ChatGPTViewer for legacy markdown caches or non-xray caches
   local viewer = ChatGPTViewer:new{
     title = title,
     text = cache_info.data.result,
