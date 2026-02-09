@@ -92,6 +92,7 @@
 - [Troubleshooting](#troubleshooting)
   - [Features Not Working / Empty Data](#features-not-working--empty-data) — Privacy settings for opt-in features
   - [Text Extraction Not Working](#text-extraction-not-working)
+  - [Emoji Font Setup](#emoji-font-setup) — How to get emoji icons working
   - [Font Issues (Arabic/RTL Languages)](#font-issues-arabicrtl-languages)
   - [Settings Reset](#settings-reset)
   - [Debug Mode](#debug-mode)
@@ -1743,7 +1744,7 @@ Tags are simple labels for organizing chats. Unlike domains:
   - **X-Ray browser**: Category icons (👥 Characters, 🌍 Locations, 💭 Themes, 📖 Lexicon, 📅 Timeline, 📍 Current State). Highly recommended for the X-Ray browser — the visual icons make browsing categories much more intuitive.
   - **Chat viewer**: ↩️ Reply, 🏷️ Tag, 🔍 Web search toggle
   - **Streaming**: 🔍 web search indicator
-  - Requires **emoji font support** in KOReader. You must install an emoji-capable font (e.g., Noto Color Emoji) — see [KOReader wiki on fonts](https://github.com/koreader/koreader/wiki/Fonts). Some platforms like **Kindle have limited emoji support** and may show question marks or blank squares. If icons don't render correctly, disable this option.
+  - Requires **emoji font support** — see [Emoji Font Setup](#emoji-font-setup) for installation instructions. If icons appear as question marks or blank squares, your device doesn't have a compatible emoji font installed.
 - **Emoji Data Access Indicators**: Show emoji suffixes on action names indicating what sensitive data they access. Off by default. Independent from Emoji Menu Icons — you can enable either or both. When enabled:
   - 📄 = document text (book text, X-Ray/Recap/Summary caches)
   - 📝 = annotations and highlights
@@ -1751,7 +1752,7 @@ Tags are simple labels for organizing chats. Unlike domains:
   - 🌐 = web search forced on
   - Visible in: action manager, reading features menu, quick actions, highlight/dictionary menus, file browser buttons
   - Helps you see at a glance which actions send personal data to AI providers. See [Privacy & Data](#privacy--data) for details on what gets shared.
-  - Requires **emoji font support** (same as Emoji Menu Icons above).
+  - Requires **emoji font support** — see [Emoji Font Setup](#emoji-font-setup).
 - **Plugin UI Language**: Language for plugin menus and dialogs. Does not affect AI responses. Options: Match KOReader (default), English, or 20+ other translations. Use this to switch the plugin UI to a language you're learning without changing KOReader's language, or to force English if you find the translations inaccurate. Requires restart.
 
 ### Chat Settings
@@ -2879,6 +2880,51 @@ If X-Ray, Recap, Explain in Context, Analyze in Context, or custom actions with 
 - Content sensitivity — you control what gets shared
 
 **Quick check:** If X-Ray/Recap or context-aware highlight action responses seem to be based only on the book's title/author (generic knowledge), text extraction is not enabled.
+
+### Emoji Font Setup
+
+Emoji icons in plugin menus and buttons (Emoji Menu Icons, Emoji Data Access Indicators) require an emoji font installed in KOReader. KOReader does **not** ship with one by default.
+
+> **Note:** Emoji icons only work in **plugin menus and buttons** (settings, action manager, X-Ray browser, chat viewer buttons, etc.). They do **not** render in the Markdown chat viewer, which uses MuPDF's HTML renderer without per-glyph font fallback. This is a KOReader limitation, not a KOAssistant issue.
+
+**Step 1: Install the font**
+
+Download **Noto Emoji** (monochrome, `.ttf`) from [Google Fonts](https://fonts.google.com/noto/specimen/Noto+Emoji). You want `NotoEmoji-Regular.ttf` — **not** Noto Color Emoji, which is incompatible with KOReader's text renderer.
+
+Copy the `.ttf` file to KOReader's fonts directory:
+
+| Platform | Font directory |
+|----------|----------------|
+| **Kobo** | `/.adds/koreader/fonts/` |
+| **Kindle** | `koreader/fonts/` (on USB root) |
+| **PocketBook** | `/applications/koreader/fonts/` |
+| **Android** | Enable **system fonts** in KOReader (Settings → gear icon → Font → Use system fonts) — Android already has emoji fonts. Alternatively, copy to `/koreader/fonts/` on device storage. |
+
+Restart KOReader after installing the font.
+
+**Step 2: Enable as UI fallback font**
+
+Installing the font file alone is not enough — you must add it to KOReader's UI fallback font chain:
+
+1. Open any book in KOReader
+2. Go to the top menu → gear icon (⚙) → **Font** → **Additional UI fallback fonts**
+3. Check **Noto Emoji** in the list
+4. Restart KOReader when prompted
+
+**Step 3: Enable in KOAssistant**
+
+In KOAssistant: Settings → Display Settings → enable **Emoji Menu Icons** and/or **Emoji Data Access Indicators**.
+
+**Platform notes:**
+- **Android** is the easiest — enable system fonts and emoji should work without downloading anything
+- **Kobo/PocketBook** — follow both steps above; confirmed working with Noto Emoji
+- **Kindle** — limited emoji support. Some glyphs may still render as question marks even with the font installed. If results are poor, disable the emoji options
+
+**Still not working?**
+- Verify the font file is `.ttf` format (not `.woff`, `.woff2`, or `.otf`)
+- Check that you enabled it in **Additional UI fallback fonts** (Step 2), not just copied the file
+- Try restarting KOReader fully (not just closing and reopening a book)
+- As a last resort, disable Emoji Menu Icons — the plugin works fine without them
 
 ### Font Issues (Arabic/RTL Languages)
 
