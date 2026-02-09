@@ -2858,7 +2858,30 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     text = _("View Artifacts"),
                     callback = function()
                         UIManager:close(input_dialog)
-                        plugin:viewCache()
+                        -- Build selector inline using already-loaded caches
+                        -- (plugin:viewCache() requires an open document)
+                        local ButtonDialog = require("ui/widget/buttondialog")
+                        local btn_rows = {}
+                        for _idx, cache in ipairs(caches) do
+                            table.insert(btn_rows, {{
+                                text = cache.name,
+                                callback = function()
+                                    UIManager:close(plugin._cache_selector)
+                                    plugin:showCacheViewer(cache)
+                                end,
+                            }})
+                        end
+                        table.insert(btn_rows, {{
+                            text = _("Cancel"),
+                            callback = function()
+                                UIManager:close(plugin._cache_selector)
+                            end,
+                        }})
+                        plugin._cache_selector = ButtonDialog:new{
+                            title = _("View Artifacts"),
+                            buttons = btn_rows,
+                        }
+                        UIManager:show(plugin._cache_selector)
                     end
                 }
             end
