@@ -1746,7 +1746,7 @@ end
 -- ============================================================
 
 -- Get action display text with data access emoji indicators (static method)
--- When enable_emoji_icons is enabled, appends emoji showing what data the action accesses:
+-- When enable_data_access_indicators is enabled, appends emoji showing what data the action accesses:
 --   📄 = document text (use_book_text, use_xray_cache, use_analyze_cache, use_summary_cache)
 --   📝 = annotations/highlights (use_annotations)
 --   📓 = notebook (use_notebook)
@@ -1756,7 +1756,7 @@ end
 -- @return string: Display text with optional emoji suffix
 function ActionService.getActionDisplayText(action, features)
     local text = action.text or action.id
-    if not features or features.enable_emoji_icons ~= true then
+    if not features or features.enable_data_access_indicators ~= true then
         return text
     end
 

@@ -163,10 +163,18 @@ local SettingsSchema = {
                 {
                     id = "enable_emoji_icons",
                     type = "toggle",
-                    text = _("Enable Emoji Icons"),
+                    text = _("Emoji Menu Icons"),
                     path = "features.enable_emoji_icons",
                     default = false,
-                    help_text = _("Show emoji icons (🔍) in buttons and status indicators. Requires emoji font support in KOReader. Does not work on all devices. If icons appear as question marks, disable this option."),
+                    help_text = _("Show emoji icons (🔍, 📖) in UI buttons and status indicators. Requires emoji font support in KOReader. Does not work on all devices. If icons appear as question marks, disable this option."),
+                },
+                {
+                    id = "enable_data_access_indicators",
+                    type = "toggle",
+                    text = _("Emoji Data Access Indicators"),
+                    path = "features.enable_data_access_indicators",
+                    default = false,
+                    help_text = _("Show emoji indicators on action names showing what data they access: 📄 document text, 📝 annotations, 📓 notebook, 🌐 web search. Requires emoji font support."),
                 },
                 -- Plain Text Options submenu
                 {

@@ -2770,7 +2770,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         if prompt and prompt.text then
             logger.info("Adding button for prompt: " .. custom_prompt_type .. " with text: " .. prompt.text)
             table.insert(all_buttons, {
-                text = prompt.text .. (prompt.enable_web_search == true and ((configuration or {}).features or {}).enable_emoji_icons == true and " 🌐" or ""),
+                text = prompt.text .. (prompt.enable_web_search == true and ((configuration or {}).features or {}).enable_data_access_indicators == true and " 🌐" or ""),
             prompt_type = custom_prompt_type,
             callback = function()
                 local additional_input = input_dialog:getInputText()

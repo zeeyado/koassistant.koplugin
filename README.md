@@ -382,6 +382,8 @@ KOAssistant sends data to AI providers to generate responses. This section expla
 
 **Graceful degradation:** When you disable a data type, actions adapt automatically. Section placeholders like `{highlights_section}` simply disappear from prompts, so you don't need to modify your actions.
 
+**Visibility tip:** If your device supports emoji fonts, enable **[Emoji Data Access Indicators](#display-settings)** (Settings → Display Settings) to see at a glance what data each action accesses — 📄 document text, 📝 annotations, 📓 notebook, 🌐 web search — directly on action names throughout the UI.
+
 ### Text Extraction and Double-gating
 
 > ⚠️ **Text extraction is OFF by default.** To use features like X-Ray, Recap, and context-aware highlight actions with actual book content (rather than AI's training knowledge), you must enable it in **Settings → Privacy & Data → Text Extraction → Allow Text Extraction**.
@@ -416,6 +418,8 @@ The table below documents which flags are required for each data type (relevant 
 | Surrounding context* | None (hard-capped 2000 chars) | Auto-inferred from placeholder |
 
 \* Surrounding context is a text selection type for highlight context (same as highlighting text), included here for clarity because it extracts more than you highlighted.
+
+> **Tip:** Enable **[Emoji Data Access Indicators](#display-settings)** to see which flags each action has directly on its name — no need to inspect action settings manually.
 
 **Privacy compromise for X-Ray:** If you want X-Ray to analyze actual book content but prefer not to share your personal annotations, enable **only** "Allow Text Extraction" (leave "Allow Highlights & Annotations" off). X-Ray will analyze the book text without including your highlights or notes.
 
@@ -777,7 +781,7 @@ When you select an action and start a chat, you can optionally add your own inpu
 **Action indicators:**
 - **★** = Custom action (editable)
 - **⚙** = Built-in action with modified settings
-- **📄📝📓🌐** = Data access indicators (when [Emoji Icons](#display-settings) enabled): 📄 document text, 📝 annotations, 📓 notebook, 🌐 web search. These suffixes appear on action names in menus, showing at a glance what sensitive data each action accesses. Visible in action manager, reading features menu, highlight/dictionary menus, and file browser buttons.
+- **📄📝📓🌐** = Data access indicators (when [Emoji Data Access Indicators](#display-settings) enabled): 📄 document text, 📝 annotations, 📓 notebook, 🌐 web search. These suffixes appear on action names in menus, showing at a glance what sensitive data each action accesses. Visible in action manager, reading features menu, highlight/dictionary menus, and file browser buttons.
 
 **Editing built-in actions:** Long-press any built-in action → "Edit Settings" to customize its advanced settings without creating a new action. Use "Reset to Default" to restore original settings.
 
@@ -1537,7 +1541,7 @@ Delete all chats
 2. Multi-Book Chats (comparisons and analyses across multiple books)
 3. Individual books (alphabetically)
 
-With [Emoji Icons](#display-settings) enabled, each entry gets a type prefix: 💬 general, 📚 multi-book, 📖 book chats.
+With [Emoji Menu Icons](#display-settings) enabled, each entry gets a type prefix: 💬 general, 📚 multi-book, 📖 book chats.
 
 ### Chat Actions
 
@@ -1603,7 +1607,7 @@ You can include notebook content in your custom actions using the `{notebook}` p
 Each entry includes timestamp, page number, progress percentage, and chapter title.
 
 **Accessing notebooks:**
-- **Browse all notebooks**: Settings → Notebooks → Browse Notebooks (shows all books with notebooks, sorted by last modified; 📓 prefix with [Emoji Icons](#display-settings))
+- **Browse all notebooks**: Settings → Notebooks → Browse Notebooks (shows all books with notebooks, sorted by last modified; 📓 prefix with [Emoji Menu Icons](#display-settings))
 - **From file browser**: Long-press a book → "Notebook (KOA)" button (if notebook exists)
 - **Via gestures**: Assign "View Notebook" or "Browse Notebooks" to a gesture for quick access (Settings → Gesture Manager → General → KOAssistant)
 
@@ -1714,14 +1718,21 @@ Tags are simple labels for organizing chats. Unlike domains:
 - **Hide Highlighted Text**: Don't show selection in responses
 - **Hide Long Highlights**: Collapse highlights over character threshold
 - **Long Highlight Threshold**: Character limit before collapsing (default: 280)
-- **Enable Emoji Icons**: Show emoji icons throughout the plugin UI. Off by default. When enabled:
+- **Emoji Menu Icons**: Show emoji icons in plugin UI menus and buttons. Off by default. When enabled:
   - **Settings menu**: Descriptive emojis on menu items and section headers (💬 Chat, 🔗 Provider, 🤖 Model, 📖 Reading Features, 🔒 Privacy, etc.)
   - **Chat history**: Type prefixes (💬 general, 📚 multi-book, 📖 book chats)
   - **Notebook browser**: 📓 prefix on entries
   - **Chat viewer**: ↩️ Reply, 🏷️ Tag, 🔍 Web search toggle
-  - **Action names**: Data access indicators showing what sensitive data each action uses (📄 document text, 📝 annotations, 📓 notebook, 🌐 web search) — helps users see at a glance which actions send personal data
   - **Streaming**: 🔍 web search indicator
   - Requires **emoji font support** in KOReader. You must install an emoji-capable font (e.g., Noto Color Emoji) — see [KOReader wiki on fonts](https://github.com/koreader/koreader/wiki/Fonts). Some platforms like **Kindle have limited emoji support** and may show question marks or blank squares. If icons don't render correctly, disable this option.
+- **Emoji Data Access Indicators**: Show emoji suffixes on action names indicating what sensitive data they access. Off by default. Independent from Emoji Menu Icons — you can enable either or both. When enabled:
+  - 📄 = document text (book text, X-Ray/Recap/Summary caches)
+  - 📝 = annotations and highlights
+  - 📓 = notebook
+  - 🌐 = web search forced on
+  - Visible in: action manager, reading features menu, quick actions, highlight/dictionary menus, file browser buttons
+  - Helps you see at a glance which actions send personal data to AI providers. See [Privacy & Data](#privacy--data) for details on what gets shared.
+  - Requires **emoji font support** (same as Emoji Menu Icons above).
 - **Plugin UI Language**: Language for plugin menus and dialogs. Does not affect AI responses. Options: Match KOReader (default), English, or 20+ other translations. Use this to switch the plugin UI to a language you're learning without changing KOReader's language, or to force English if you find the translations inaccurate. Requires restart.
 
 ### Chat Settings
@@ -2408,7 +2419,7 @@ Supported providers can search the web to include current information in their r
 **How it works:**
 1. Enable in Settings → AI Response → Web Search → Enable Web Search
 2. When enabled, the AI can search the web during responses
-3. During streaming, you'll see "Searching the web..." indicator (with 🔍 prefix when [Emoji Icons](#display-settings) enabled)
+3. During streaming, you'll see "Searching the web..." indicator (with 🔍 prefix when [Emoji Menu Icons](#display-settings) enabled)
 4. After completion, "*[Web search was used]*" appears in chat (if indicator enabled)
 
 **Settings:**
@@ -2417,7 +2428,7 @@ Supported providers can search the web to include current information in their r
 - **Show Indicator in Chat**: Show "*[Web search was used]*" after responses (default: ON)
 
 **Session Override:**
-The chat viewer has a Web ON/OFF toggle button (first row, 🔍 prefix with [Emoji Icons](#display-settings)) to override web search for the current session without changing your global setting.
+The chat viewer has a Web ON/OFF toggle button (first row, 🔍 prefix with [Emoji Menu Icons](#display-settings)) to override web search for the current session without changing your global setting.
 
 **Per-Action Override:**
 Custom actions can override the global setting:
@@ -2719,6 +2730,8 @@ If actions like Analyze Highlights, Connect with Notes, X-Ray, or Recap seem to 
 **Why this happens:** To protect your privacy, personal data (highlights, annotations, notebook) is not shared with AI providers by default. You must explicitly opt in. See [Privacy & Data](#privacy--data) for the full explanation.
 
 **Quick fix:** Use **Preset: Full** to enable all data sharing at once, or enable individual settings as needed.
+
+**See what actions need:** Enable **[Emoji Data Access Indicators](#display-settings)** to see emoji suffixes on action names showing what data each action accesses (📄 📝 📓 🌐).
 
 ### Text Extraction Not Working
 
