@@ -653,8 +653,8 @@ local function translateAndShowContent(markdown_content, target_language, title,
                 },
             })
 
-            -- Row 2: Update Now (only if zip available and not emulator)
-            if update_info.zip_url and not Device:isEmulator() then
+            -- Row 2: Update Now (only if zip available and not a git dev install)
+            if update_info.zip_url and lfs.attributes(plugin_dir .. ".git", "mode") ~= "directory" then
                 table.insert(buttons, {
                     {
                         text = _("Update Now"),
@@ -744,8 +744,8 @@ showUpdatePopup = function(update_info)
         },
     })
 
-    -- Row 2: Update Now (only if zip available and not emulator)
-    if update_info.zip_url and not Device:isEmulator() then
+    -- Row 2: Update Now (only if zip available and not a git dev install)
+    if update_info.zip_url and lfs.attributes(plugin_dir .. ".git", "mode") ~= "directory" then
         table.insert(buttons, {
             {
                 text = _("Update Now"),
@@ -1319,10 +1319,10 @@ end
 --- Downloads, extracts, verifies, and installs the update with user file preservation.
 --- @param update_info table Contains zip_url, latest_version, and other update metadata
 performUpdate = function(update_info)
-    -- Guard: don't update in emulator (protect dev installs)
-    if Device:isEmulator() then
+    -- Guard: don't update git-based dev installs (would destroy repo)
+    if lfs.attributes(plugin_dir .. ".git", "mode") == "directory" then
         UIManager:show(InfoMessage:new{
-            text = _("Auto-update is not available in the emulator. Please update manually."),
+            text = _("Auto-update is disabled for git-based installs. Please use git pull instead."),
             timeout = 5,
         })
         return
