@@ -68,6 +68,7 @@
   - [Chat Storage & File Moves](#chat-storage--file-moves)
   - [Tags](#tags)
 - [Settings Reference](#settings-reference) ↓ includes [KOReader Integration](#koreader-integration)
+- [Updating the Plugin](#updating-the-plugin) — How to install new versions
 - [Update Checking](#update-checking)
 - [Advanced Configuration](#advanced-configuration)
 - [Backup & Restore](#backup--restore)
@@ -126,20 +127,20 @@
 
 ### 1. Install the Plugin
 
-If you are updating, follow the same steps, and just choose merge folder and replace/overwrite any matching files. An automatic updater is planned.
-
-Download koassistant.koplugin.zip from latest [Release](https://github.com/zeeyado/koassistant.koplugin/releases) -> Assets or clone:
+Download `koassistant.koplugin.zip` from the latest [Release](https://github.com/zeeyado/koassistant.koplugin/releases) → Assets, or clone the repo:
 ```bash
 git clone https://github.com/zeeyado/koassistant.koplugin
 ```
 
-Copy to your KOReader plugins directory:
+Extract or copy the `koassistant.koplugin` folder to your KOReader plugins directory:
 ```
 Kobo/Kindle:  /mnt/onboard/.adds/koreader/plugins/koassistant.koplugin/
 Android:      /sdcard/koreader/plugins/koassistant.koplugin/
 macOS:        ~/Library/Application Support/koreader/plugins/koassistant.koplugin/
 Linux:        ~/.config/koreader/plugins/koassistant.koplugin/
 ```
+
+> Already installed and updating? See [Updating the Plugin](#updating-the-plugin) for step-by-step instructions.
 
 ### 2. Add Your API Key
 
@@ -1982,6 +1983,68 @@ Control where KOAssistant appears in KOReader's menus. All toggles default to ON
 - **About KOAssistant**: Plugin info and gesture tips
 - **Auto-check for updates on startup**: Toggle automatic update checking (default: on)
 - **Check for Updates**: Manual update check (see [Update Checking](#update-checking) below)
+
+---
+
+## Updating the Plugin
+
+When KOAssistant notifies you of a new version (or you check manually via Settings → About → Check for Updates), follow these steps. An automatic updater is planned for a future release.
+
+### What's Safe
+
+Your settings and data are **not affected** by updates:
+- **All settings** (provider, model, features, privacy, etc.) are stored outside the plugin folder
+- **API keys entered via Settings menu** are stored outside the plugin folder
+- **Chat history, notebooks, caches** are all stored in KOReader's settings/sidecar files
+- **Backups** (created via Settings → Backup & Restore) are stored outside the plugin folder
+
+The only user files inside the plugin folder are optional configuration files: `apikeys.lua`, `configuration.lua`, `custom_actions.lua`, and custom `behaviors/`/`domains/` folders. These are **not included in the release zip**, so they survive extraction — as long as you don't delete the folder first.
+
+### Update Steps
+
+#### Option A: Extract Over Existing (Recommended)
+
+This is the safest method — new and changed files are overwritten, your configuration files are untouched.
+
+1. Download `koassistant.koplugin.zip` from the [latest release](https://github.com/zeeyado/koassistant.koplugin/releases) → Assets
+2. Connect your device via USB (or use a file manager on Android)
+3. Extract the zip **directly over** the existing `koassistant.koplugin` folder in your plugins directory:
+   ```
+   Kobo/Kindle:  /mnt/onboard/.adds/koreader/plugins/
+   Android:      /sdcard/koreader/plugins/
+   macOS:        ~/Library/Application Support/koreader/plugins/
+   Linux:        ~/.config/koreader/plugins/
+   ```
+   When your OS/file manager asks about existing files, choose **Replace** / **Overwrite** / **Merge**.
+4. Safely eject your device (if USB) and restart KOReader
+
+> **Tip (Kobo/Kindle):** On some file managers, "extract here" into the plugins directory will automatically merge into the existing folder. On others, you may need to drag the extracted `koassistant.koplugin` folder over the existing one and confirm the overwrite.
+
+#### Option B: Clean Install (If You Have Issues)
+
+If you're having problems after an update, a clean install can help. This deletes the old plugin folder entirely, so back up your configuration files first.
+
+1. **Back up** any files you've created inside the plugin folder:
+   - `apikeys.lua` (if you use file-based API keys instead of the Settings menu)
+   - `configuration.lua` (if you created one)
+   - `custom_actions.lua` (if you created one)
+   - `behaviors/` and `domains/` folders (if you added custom files)
+2. Delete the existing `koassistant.koplugin` folder
+3. Extract the new zip to the plugins directory
+4. Copy your backed-up files back into the new `koassistant.koplugin` folder
+5. Restart KOReader
+
+> **Note:** If you entered your API keys via the Settings menu (not a file), you don't need to back up `apikeys.lua` — GUI keys are stored separately and will persist.
+
+#### Option C: Git Pull (For Developers)
+
+If you cloned the repository:
+```bash
+cd /path/to/koreader/plugins/koassistant.koplugin
+git pull
+```
+
+This gives you the latest development version (may include unreleased changes).
 
 ---
 
