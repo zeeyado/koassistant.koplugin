@@ -558,22 +558,13 @@ function XrayParser.findCharactersInChapter(data, chapter_text)
             if count > best_count then best_count = count end
         end
 
-        -- Count mentions of each alias
+        -- Count mentions of each alias (AI provides explicit aliases like "Lizzy", "Miss Bennet")
         if char.aliases then
             for _idx2, alias in ipairs(char.aliases) do
                 if #alias > 2 then
                     local count = XrayParser._countOccurrences(text_lower, alias:lower())
                     if count > best_count then best_count = count end
                 end
-            end
-        end
-
-        -- Also try first name only (for names like "Elizabeth Bennet" → "Elizabeth")
-        if char.name then
-            local first_name = char.name:match("^(%S+)")
-            if first_name and #first_name > 2 then
-                local count = XrayParser._countOccurrences(text_lower, first_name:lower())
-                if count > best_count then best_count = count end
             end
         end
 
@@ -590,18 +581,28 @@ function XrayParser.findCharactersInChapter(data, chapter_text)
     return results
 end
 
---- Count occurrences of a substring in text (plain search, not pattern)
+--- Count word-boundary occurrences of a substring in text (plain search)
+--- Only counts matches where the needle is surrounded by non-alphanumeric characters
+--- (or string start/end), preventing "Ali" from matching inside "quality".
 --- @param text string Haystack (already lowered)
 --- @param needle string Needle (already lowered)
 --- @return number count
 function XrayParser._countOccurrences(text, needle)
     local count = 0
     local pos = 1
+    local needle_len = #needle
+    local text_len = #text
     while true do
         local start = text:find(needle, pos, true)
         if not start then break end
-        count = count + 1
-        pos = start + #needle
+        -- Check word boundaries: character before/after must be non-alphanumeric
+        local before_ok = (start == 1) or not text:sub(start - 1, start - 1):match("[%w']")
+        local after_pos = start + needle_len
+        local after_ok = (after_pos > text_len) or not text:sub(after_pos, after_pos):match("[%w']")
+        if before_ok and after_ok then
+            count = count + 1
+        end
+        pos = start + needle_len
     end
     return count
 end

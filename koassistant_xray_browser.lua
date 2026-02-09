@@ -17,6 +17,7 @@ local Device = require("device")
 local InfoMessage = require("ui/widget/infomessage")
 local InputDialog = require("ui/widget/inputdialog")
 local Menu = require("ui/widget/menu")
+local Notification = require("ui/widget/notification")
 local Screen = Device.screen
 local TextViewer = require("ui/widget/textviewer")
 local UIManager = require("ui/uimanager")
@@ -163,6 +164,38 @@ local function findCharacterHighlights(character, ui)
         end
     end
     return matches
+end
+
+--- Text selection handler matching ChatGPTViewer behavior:
+--- ≤3 words → dictionary lookup, 4+ words → clipboard copy
+--- @param text string Selected text
+--- @param ui table|nil KOReader UI instance
+local function handleTextSelection(text, ui)
+    -- Count words
+    local word_count = 0
+    if text then
+        for _w in text:gmatch("%S+") do
+            word_count = word_count + 1
+            if word_count > 3 then break end
+        end
+    end
+
+    local did_lookup = false
+    if word_count >= 1 and word_count <= 3 then
+        if ui and ui.dictionary then
+            ui.dictionary:onLookupWord(text)
+            did_lookup = true
+        end
+    end
+
+    if not did_lookup then
+        if Device:hasClipboard() then
+            Device.input.setClipboardText(text)
+            UIManager:show(Notification:new{
+                text = _("Copied to clipboard."),
+            })
+        end
+    end
 end
 
 -- Emoji mappings for category keys (used when enable_emoji_icons is on)
@@ -395,12 +428,28 @@ function XrayBrowser:showItemDetail(item, category_key, title)
         end
     end
 
-    UIManager:show(TextViewer:new{
+    local captured_ui = self.ui
+    local viewer = TextViewer:new{
         title = title or _("Details"),
         text = detail_text,
         width = Screen:getWidth(),
         height = Screen:getHeight(),
-    })
+        text_selection_callback = function(text)
+            handleTextSelection(text, captured_ui)
+        end,
+    }
+    -- Enable gray highlight on text selection (TextViewer doesn't expose this prop)
+    if viewer.scroll_text_w and viewer.scroll_text_w.text_widget then
+        viewer.scroll_text_w.text_widget.highlight_text_selection = true
+    end
+    -- Fix live highlight during drag: TextViewer uses ges="hold" for HoldPanText
+    -- (fires once) instead of ges="hold_pan" (fires continuously during drag)
+    if viewer.ges_events and viewer.ges_events.HoldPanText
+            and viewer.ges_events.HoldPanText[1] then
+        viewer.ges_events.HoldPanText[1].ges = "hold_pan"
+        viewer.ges_events.HoldPanText[1].rate = Screen.low_pan_rate and 5.0 or 30.0
+    end
+    UIManager:show(viewer)
 end
 
 --- Show characters appearing in the current chapter
