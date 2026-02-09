@@ -462,16 +462,33 @@ local function showLinkDialog(link_url)
         },
     })
 
-    if Device:canOpenLink() then
-        table.insert(buttons, {
-            {
-                text = _("Open in browser"),
-                callback = function()
-                    UIManager:close(link_dialog)
-                    Device:openLink(link_url)
-                end,
-            },
+    -- Add Wallabag if the plugin is loaded (works from file browser too)
+    local row2 = {}
+    local FileManager = require("apps/filemanager/filemanager")
+    local fm = FileManager.instance
+    if fm and fm.wallabag then
+        local Event = require("ui/event")
+        table.insert(row2, {
+            text = _("Add to Wallabag"),
+            callback = function()
+                UIManager:close(link_dialog)
+                UIManager:broadcastEvent(Event:new("AddWallabagArticle", link_url))
+            end,
         })
+    end
+
+    if Device:canOpenLink() then
+        table.insert(row2, {
+            text = _("Open in browser"),
+            callback = function()
+                UIManager:close(link_dialog)
+                Device:openLink(link_url)
+            end,
+        })
+    end
+
+    if #row2 > 0 then
+        table.insert(buttons, row2)
     end
 
     table.insert(buttons, {
