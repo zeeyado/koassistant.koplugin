@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: KOAssistant 0.9.0\n"
 "Report-Msgid-Bugs-To: https://github.com/zeeyado/koassistant.koplugin/issues\n"
-"POT-Creation-Date: 2026-02-09 17:26+0000\n"
+"POT-Creation-Date: 2026-02-09 17:45+0000\n"
 "PO-Revision-Date: 2026-01-20 19:01+0000\n"
 "Last-Translator: ferdinanlima <star.stalker151@gmail.com>\n"
 "Language-Team: Portuguese (Brazil) <https://hosted.weblate.org/projects/koassistant/koassistant/pt_BR/>\n"
@@ -3495,7 +3495,7 @@ msgid "No known characters found in current chapter."
 msgstr "Nenhum personagem conhecido encontrado no capítulo atual."
 
 #: koassistant_xray_browser.lua:507
-#, lua-format, fuzzy
+#, fuzzy, lua-format
 msgid "%1x"
 msgstr "%1x"
 
@@ -4543,6 +4543,11 @@ msgstr "Ver Resumo"
 #, fuzzy
 msgid "Generate Summary"
 msgstr "Gerar Resumo"
+
+#: main.lua:5188
+#, fuzzy
+msgid "View X-Ray"
+msgstr "Ver X-Ray"
 
 #: main.lua:5202
 #, fuzzy

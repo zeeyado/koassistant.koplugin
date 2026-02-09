@@ -2184,7 +2184,7 @@ msgstr "Schwellenwert für langen Text"
 #, fuzzy
 msgid ""
 "Character count above which text is considered 'long'. Used when Original Text is set to 'Hide Long'."
-msgstr "Zeichenanzahl, ab der Text als „lang\" gilt. Wird verwendet, wenn Originaltext auf „Lange ausblenden\" eingestellt ist."
+msgstr "Zeichenanzahl, ab der Text als „lang" gilt. Wird verwendet, wenn Originaltext auf „Lange ausblenden" eingestellt ist."
 
 #: koassistant_settings_schema.lua:822
 #, fuzzy
@@ -2434,7 +2434,7 @@ msgstr "Im Dateibrowser-Menü anzeigen"
 #: koassistant_settings_schema.lua:1175 koassistant_settings_schema.lua:1427
 #, fuzzy
 msgid "Show 'Notebook' button when long-pressing books in the file browser."
-msgstr "„Notizbuch\"-Schaltfläche beim langen Drücken von Büchern im Dateibrowser anzeigen."
+msgstr "„Notizbuch"-Schaltfläche beim langen Drücken von Büchern im Dateibrowser anzeigen."
 
 #: koassistant_settings_schema.lua:1180 koassistant_settings_schema.lua:1433
 #, fuzzy
@@ -2644,7 +2644,7 @@ msgstr "Chat/Aktion-Schaltfläche im Markierungsmenü anzeigen"
 #: koassistant_settings_schema.lua:1383
 #, fuzzy
 msgid "Add main 'Chat/Action' button to highlight menu. Requires restart."
-msgstr "Haupt-„Chat/Aktion\"-Schaltfläche zum Markierungsmenü hinzufügen. Erfordert Neustart."
+msgstr "Haupt-„Chat/Aktion"-Schaltfläche zum Markierungsmenü hinzufügen. Erfordert Neustart."
 
 #: koassistant_settings_schema.lua:1395
 #, fuzzy
@@ -2691,7 +2691,7 @@ msgstr "Chatverlauf-Schaltfläche anzeigen"
 #, fuzzy
 msgid ""
 "Show 'Chat History' button when long-pressing books that have chat history."
-msgstr "„Chatverlauf\"-Schaltfläche beim langen Drücken von Büchern mit Chatverlauf anzeigen."
+msgstr "„Chatverlauf"-Schaltfläche beim langen Drücken von Büchern mit Chatverlauf anzeigen."
 
 #: koassistant_settings_schema.lua:1451
 #, fuzzy
@@ -2702,7 +2702,7 @@ msgstr "Artefakte-Schaltfläche anzeigen"
 #, fuzzy
 msgid ""
 "Show 'View Artifacts' button for books that have cached results (X-Ray, Summary, Analysis)."
-msgstr "„Artefakte anzeigen\"-Schaltfläche für Bücher mit zwischengespeicherten Ergebnissen (X-Ray, Zusammenfassung, Analyse) anzeigen."
+msgstr "„Artefakte anzeigen"-Schaltfläche für Bücher mit zwischengespeicherten Ergebnissen (X-Ray, Zusammenfassung, Analyse) anzeigen."
 
 #: koassistant_settings_schema.lua:1462
 #, fuzzy
@@ -3526,7 +3526,7 @@ msgstr "Kapiteltext konnte nicht extrahiert werden."
 #: koassistant_xray_browser.lua:488
 #, fuzzy
 msgid "No known characters found in \"%1\"."
-msgstr "Keine bekannten Charaktere in „%1\" gefunden."
+msgstr "Keine bekannten Charaktere in „%1" gefunden."
 
 #: koassistant_xray_browser.lua:489
 #, fuzzy
@@ -3561,7 +3561,7 @@ msgstr "Name, Begriff, Beschreibung..."
 #: koassistant_xray_browser.lua:571
 #, fuzzy
 msgid "No results for \"%1\"."
-msgstr "Keine Ergebnisse für „%1\"."
+msgstr "Keine Ergebnisse für „%1"."
 
 #: koassistant_xray_browser.lua:585
 #, fuzzy
@@ -3576,7 +3576,7 @@ msgstr "Beschr."
 #: koassistant_xray_browser.lua:602
 #, fuzzy
 msgid "Results for \"%1\" (%2)"
-msgstr "Ergebnisse für „%1\" (%2)"
+msgstr "Ergebnisse für „%1" (%2)"
 
 #: koassistant_xray_browser.lua:647
 #, fuzzy
