@@ -6593,6 +6593,9 @@ function AskGPT:resetActionMenus(silent)
   -- Quick actions
   self.settings:delSetting("quick_actions_list")
   self.settings:delSetting("_dismissed_quick_actions")
+  -- General menu actions
+  self.settings:delSetting("general_menu_actions")
+  self.settings:delSetting("_dismissed_general_menu_actions")
   -- File browser actions
   self.settings:delSetting("file_browser_actions")
   self.settings:delSetting("_dismissed_file_browser_actions")
@@ -6700,7 +6703,8 @@ end
 function AskGPT:_resetFeatureSettingsInternal()
   local features = self.settings:readSetting("features") or {}
 
-  -- Apply defaults, preserving API keys, custom content, and user customizations
+  -- Apply defaults, preserving API keys, custom content, user customizations,
+  -- language/behavior/domain choices, and migration flags
   local new_features = SettingsSchema.applyDefaults(features, {
     "features.api_keys",
     "features.custom_behaviors",
@@ -6708,6 +6712,20 @@ function AskGPT:_resetFeatureSettingsInternal()
     "features.provider_default_models",
     "features.custom_providers",
     "features.gesture_actions",
+    -- User choices (not toggleable feature settings)
+    "features.selected_behavior",
+    "features.selected_domain",
+    "features.custom_domains",
+    "features.trusted_providers",
+    "features.translation_language",
+    "features.dictionary_language",
+    "features.interaction_languages",
+    "features.additional_languages",
+    "features.primary_language",
+    "features.markdown_font_size",
+    "features.export_custom_path",
+    -- Migration flags (prevent re-migration)
+    "features.languages_migrated",
   })
 
   self.settings:saveSetting("features", new_features)
@@ -6743,6 +6761,21 @@ function AskGPT:quickResetFreshStart()
   self:resetActionMenus(true)
   self:resetCustomProvidersModels(true)
   self:resetBehaviorsDomains()
+
+  -- Fresh start: also clear user choices preserved by _resetFeatureSettingsInternal
+  -- (keeps API keys, languages, and migration flags)
+  local features = self.settings:readSetting("features") or {}
+  features.selected_behavior = nil
+  features.selected_domain = nil
+  features.custom_domains = nil
+  features.trusted_providers = nil
+  features.gesture_actions = nil
+  features.markdown_font_size = nil
+  features.export_custom_path = nil
+  self.settings:saveSetting("features", features)
+  self.settings:flush()
+  self:updateConfigFromSettings()
+
   UIManager:show(Notification:new{
     text = _("Fresh start complete - API keys preserved"),
     timeout = 2,
