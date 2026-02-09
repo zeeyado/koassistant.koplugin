@@ -158,24 +158,29 @@ lua tests/inspect.lua --web --port 3000
 
 ### Unit Tests (no API calls)
 
-Located in `tests/unit/`:
-- `test_actions.lua` - Placeholder gating, flag cascading, DOUBLE_GATED_FLAGS
-- `test_constants.lua` - Context constants, GitHub URLs
-- `test_prompt_building.lua` - MessageBuilder placeholder replacement, ContextExtractor privacy gating, analysis cache flow (90 tests)
-  - Section placeholder tests (17): disappear when empty, include labels when present
-  - Gating tests (38): annotations/book text/notebook double-gating, trusted provider bypass, opt-out patterns, X-Ray cache with/without annotations, flag-only extraction
-  - Cache integration tests (5): analysis cache flow to MessageBuilder
-  - Context type tests (12): highlight, book, multi_book, general context building
-  - Language placeholder tests (4): dictionary_language, translation_language substitution
-  - Dictionary context tests (8): context_section, dictionary_context_mode handling
-  - Reading stats tests (5): reading_progress, chapter_title, etc.
-  - Cache/incremental tests (5): cached_result, incremental_book_text_section
-  - Additional input tests (2): user input appending
-- `test_system_prompts.lua` - Behavior variants, language parsing, domain, skip_language_instruction
-- `test_streaming_parser.lua` - SSE/NDJSON content extraction for all providers
-- `test_response_parser.lua` - Response parsing for all 16 providers
-- `test_loaders.lua` - BehaviorLoader and DomainLoader functionality
-- `test_openai_compatible.lua` - OpenAI-compatible base class (hooks, request building)
+Located in `tests/unit/` (767 tests total across 14 files):
+- `test_action_service.lua` - ActionService integration, action execution flow (35 tests)
+- `test_actions.lua` - Placeholder gating, flag cascading, DOUBLE_GATED_FLAGS (65 tests)
+- `test_constants.lua` - Context constants, GitHub URLs (20 tests)
+- `test_constraint_utils.lua` - Plugin constraint utilities wrapper (25 tests)
+- `test_export.lua` - Export formatting, content modes, metadata (50 tests)
+- `test_loaders.lua` - BehaviorLoader and DomainLoader functionality (26 tests)
+- `test_message_history.lua` - Conversation tracking, token estimation, reasoning entries (54 tests)
+- `test_openai_compatible.lua` - OpenAI-compatible base class, hooks, request building (30 tests)
+- `test_prompt_building.lua` - MessageBuilder placeholder replacement, ContextExtractor privacy gating, analysis cache flow (121 tests)
+  - Section placeholder tests: disappear when empty, include labels when present
+  - Text fallback nudge tests: conditional appearance, late title substitution, substituteVariables cleanup
+  - Gating tests: annotations/book text/notebook double-gating, trusted provider bypass, opt-out patterns, X-Ray cache with/without annotations, flag-only extraction
+  - Cache integration tests: analysis cache flow to MessageBuilder
+  - Context type tests: highlight, book, multi_book, general context building
+  - Language, dictionary, surrounding context, reading stats, cache/incremental, additional input tests
+- `test_response_parser.lua` - Response parsing for all 16 providers (42 tests)
+- `test_streaming_parser.lua` - SSE/NDJSON content extraction for all providers (22 tests)
+- `test_system_prompts.lua` - Behavior variants, language parsing, domain, skip_language_instruction (73 tests)
+- `test_templates.lua` - Template constants, utility placeholders, nudge substitution, action regression (160 tests)
+  - Constant tests: CONCISENESS_NUDGE, HALLUCINATION_NUDGE, TEXT_FALLBACK_NUDGE validation
+  - Templates.get() and substitution tests
+  - Action regression: verifies no literal utility placeholders remain after substitution across all built-in actions
 - `test_web_search.lua` - Web search detection across providers (44 tests)
   - Response parser tests: OpenAI, xAI, Gemini, OpenRouter web search detection
   - Streaming parser tests: tool_call detection, Gemini grounding metadata
@@ -409,15 +414,19 @@ tests/
 │   ├── test_full_provider.lua    # Comprehensive tests (--full)
 │   └── test_model_validation.lua # Model validation (--models)
 └── unit/
-    ├── test_actions.lua             # Placeholder gating, flag cascading tests (34 tests)
-    ├── test_constants.lua           # Context constants, GitHub URLs tests (14 tests)
+    ├── test_action_service.lua      # ActionService integration tests (35 tests)
+    ├── test_actions.lua             # Placeholder gating, flag cascading tests (65 tests)
+    ├── test_constants.lua           # Context constants, GitHub URLs tests (20 tests)
     ├── test_constraint_utils.lua    # Constraint utilities tests (25 tests)
+    ├── test_export.lua              # Export formatting, content modes tests (50 tests)
     ├── test_loaders.lua             # BehaviorLoader, DomainLoader tests (26 tests)
+    ├── test_message_history.lua     # Conversation tracking, token estimation tests (54 tests)
     ├── test_openai_compatible.lua   # OpenAI-compatible base class tests (30 tests)
-    ├── test_prompt_building.lua     # MessageBuilder, ContextExtractor gating, cache flow (90 tests)
+    ├── test_prompt_building.lua     # MessageBuilder, ContextExtractor gating, cache flow (121 tests)
     ├── test_response_parser.lua     # Provider response parsing tests (42 tests)
     ├── test_streaming_parser.lua    # SSE/NDJSON parsing tests (22 tests)
-    ├── test_system_prompts.lua      # Behavior, language, domain tests (69 tests)
+    ├── test_system_prompts.lua      # Behavior, language, domain tests (73 tests)
+    ├── test_templates.lua           # Template constants, nudge substitution, action regression (160 tests)
     └── test_web_search.lua          # Web search detection tests (44 tests)
 ```
 

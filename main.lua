@@ -8137,7 +8137,9 @@ function AskGPT:showWelcomeDialog()
     _("Add actions to gestures, highlight menus, or Quick Actions panel.") .. "\n\n" ..
     _("CUSTOM ACTIONS") .. "\n" ..
     _("Create your own prompts and actions or edit built in ones.") .. "\n" ..
-    _("Go to: Settings → Action Manager → Add")
+    _("Go to: Settings → Action Manager → Add") .. "\n\n" ..
+    _("MENU AND INFO ICONS") .. "\n" ..
+    _("Setup KOReader with emoji support to get informative icons in menus and more. See the emoji section in the README for details") 
 
   UIManager:show(InfoMessage:new{
     text = text,
