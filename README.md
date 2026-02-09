@@ -777,6 +777,7 @@ When you select an action and start a chat, you can optionally add your own inpu
 **Action indicators:**
 - **★** = Custom action (editable)
 - **⚙** = Built-in action with modified settings
+- **📄📝📓🌐** = Data access indicators (when [Emoji Icons](#display-settings) enabled): 📄 document text, 📝 annotations, 📓 notebook, 🌐 web search. These suffixes appear on action names in menus, showing at a glance what sensitive data each action accesses. Visible in action manager, reading features menu, highlight/dictionary menus, and file browser buttons.
 
 **Editing built-in actions:** Long-press any built-in action → "Edit Settings" to customize its advanced settings without creating a new action. Use "Reset to Default" to restore original settings.
 
@@ -1532,9 +1533,11 @@ Browse saved conversations organized by:
 Delete all chats
 
 **Chat organization**: In the document view, chats are sorted as:
-1. 💬 General AI Chats
-2. 📚 Multi-Book Chats (comparisons and analyses across multiple books)
+1. General AI Chats
+2. Multi-Book Chats (comparisons and analyses across multiple books)
 3. Individual books (alphabetically)
+
+With [Emoji Icons](#display-settings) enabled, each entry gets a type prefix: 💬 general, 📚 multi-book, 📖 book chats.
 
 ### Chat Actions
 
@@ -1600,7 +1603,7 @@ You can include notebook content in your custom actions using the `{notebook}` p
 Each entry includes timestamp, page number, progress percentage, and chapter title.
 
 **Accessing notebooks:**
-- **Browse all notebooks**: Settings → Notebooks → Browse Notebooks (shows all books with notebooks, sorted by last modified)
+- **Browse all notebooks**: Settings → Notebooks → Browse Notebooks (shows all books with notebooks, sorted by last modified; 📓 prefix with [Emoji Icons](#display-settings))
 - **From file browser**: Long-press a book → "Notebook (KOA)" button (if notebook exists)
 - **Via gestures**: Assign "View Notebook" or "Browse Notebooks" to a gesture for quick access (Settings → Gesture Manager → General → KOAssistant)
 
@@ -1636,7 +1639,7 @@ This means:
 - ✅ **Book chats travel with books** when you move or copy files (in "doc" storage mode)
 - ✅ **No data loss** when reorganizing your library
 - ✅ **Automatic index sync**: When you move or rename books via KOReader's file manager, the chat index automatically updates to track the new path — chats remain accessible immediately without needing to reopen books
-- ✅ **Multi-book context preserved**: Chats comparing multiple books (Compare Books, Common Themes) preserve the full list of compared books in metadata and appear in a separate section in Chat History with a 📚 icon
+- ✅ **Multi-book context preserved**: Chats comparing multiple books (Compare Books, Common Themes) preserve the full list of compared books in metadata and appear in a separate section in Chat History
 
 **Storage Modes**: KOAssistant is designed for and tested with KOReader's default **"Book folder"** storage mode (metadata stored alongside book files in `.sdr` folders).
 
@@ -1711,7 +1714,14 @@ Tags are simple labels for organizing chats. Unlike domains:
 - **Hide Highlighted Text**: Don't show selection in responses
 - **Hide Long Highlights**: Collapse highlights over character threshold
 - **Long Highlight Threshold**: Character limit before collapsing (default: 280)
-- **Enable Emoji Icons**: Show emoji icons (e.g., 🔍 for web search) in buttons and status indicators. Off by default. Requires emoji font support in KOReader — if icons appear as question marks, disable this option. See [KOReader wiki](https://github.com/koreader/koreader/wiki/Fonts) for adding fonts.
+- **Enable Emoji Icons**: Show emoji icons throughout the plugin UI. Off by default. When enabled:
+  - **Settings menu**: Descriptive emojis on menu items and section headers (💬 Chat, 🔗 Provider, 🤖 Model, 📖 Reading Features, 🔒 Privacy, etc.)
+  - **Chat history**: Type prefixes (💬 general, 📚 multi-book, 📖 book chats)
+  - **Notebook browser**: 📓 prefix on entries
+  - **Chat viewer**: ↩️ Reply, 🏷️ Tag, 🔍 Web search toggle
+  - **Action names**: Data access indicators showing what sensitive data each action uses (📄 document text, 📝 annotations, 📓 notebook, 🌐 web search) — helps users see at a glance which actions send personal data
+  - **Streaming**: 🔍 web search indicator
+  - Requires **emoji font support** in KOReader. You must install an emoji-capable font (e.g., Noto Color Emoji) — see [KOReader wiki on fonts](https://github.com/koreader/koreader/wiki/Fonts). Some platforms like **Kindle have limited emoji support** and may show question marks or blank squares. If icons don't render correctly, disable this option.
 - **Plugin UI Language**: Language for plugin menus and dialogs. Does not affect AI responses. Options: Match KOReader (default), English, or 20+ other translations. Use this to switch the plugin UI to a language you're learning without changing KOReader's language, or to force English if you find the translations inaccurate. Requires restart.
 
 ### Chat Settings
@@ -2398,7 +2408,7 @@ Supported providers can search the web to include current information in their r
 **How it works:**
 1. Enable in Settings → AI Response → Web Search → Enable Web Search
 2. When enabled, the AI can search the web during responses
-3. During streaming, you'll see "🔍 Searching the web..." indicator (Anthropic/OpenRouter)
+3. During streaming, you'll see "Searching the web..." indicator (with 🔍 prefix when [Emoji Icons](#display-settings) enabled)
 4. After completion, "*[Web search was used]*" appears in chat (if indicator enabled)
 
 **Settings:**
@@ -2407,7 +2417,7 @@ Supported providers can search the web to include current information in their r
 - **Show Indicator in Chat**: Show "*[Web search was used]*" after responses (default: ON)
 
 **Session Override:**
-The chat viewer has a 🔍 ON/OFF toggle button (first row) to override web search for the current session without changing your global setting.
+The chat viewer has a Web ON/OFF toggle button (first row, 🔍 prefix with [Emoji Icons](#display-settings)) to override web search for the current session without changing your global setting.
 
 **Per-Action Override:**
 Custom actions can override the global setting:
@@ -2423,7 +2433,7 @@ The built-in **News Update** action demonstrates this—it uses `enable_web_sear
 
 **Troubleshooting OpenRouter:**
 - OpenRouter routes requests to many different backend providers, each with their own streaming behavior
-- If you experience choppy streaming or unusual behavior with web search enabled, try disabling web search for that session (🔍 OFF toggle)
+- If you experience choppy streaming or unusual behavior with web search enabled, try disabling web search for that session (Web OFF toggle)
 - See [Meta-Providers Note](#meta-providers-note) for more details
 
 ---
