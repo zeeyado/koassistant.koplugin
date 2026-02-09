@@ -3125,6 +3125,8 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
                             timestamp = xray_cache.timestamp,
                             book_file = ui.document.file,
                             enable_emoji = config_features.enable_emoji_icons == true,
+                            configuration = configuration,
+                            plugin = plugin,
                         }, ui, function()
                             ActionCache.clearXrayCache(ui.document.file)
                             UIManager:show(Notification:new{

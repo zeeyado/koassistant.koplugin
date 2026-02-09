@@ -4141,6 +4141,7 @@ function AskGPT:showCacheViewer(cache_info)
           enable_emoji = features.enable_emoji_icons == true,
           cache_metadata = cache_metadata,
           configuration = configuration,
+          plugin = self,
         }
         XrayBrowser:show(parsed, browser_metadata, self.ui, on_delete)
         return

@@ -453,11 +453,48 @@ function XrayBrowser:showItemDetail(item, category_key, title)
     end
 
     local captured_ui = self.ui
-    local viewer = TextViewer:new{
+    local self_ref = self
+
+    -- Build custom button row: ← ⇱ ⇲ [Chat about this]
+    local row = {}
+    local viewer  -- forward declaration for button callbacks
+
+    table.insert(row, {
+        text = "←",
+        callback = function()
+            if viewer then viewer:onClose() end
+        end,
+    })
+    table.insert(row, {
+        text = "⇱",
+        id = "top",
+        callback = function()
+            if viewer then viewer.scroll_text_w:scrollToTop() end
+        end,
+    })
+    table.insert(row, {
+        text = "⇲",
+        id = "bottom",
+        callback = function()
+            if viewer then viewer.scroll_text_w:scrollToBottom() end
+        end,
+    })
+    if self.metadata.plugin and self.metadata.configuration then
+        table.insert(row, {
+            text = _("Chat about this"),
+            callback = function()
+                if viewer then viewer:onClose() end
+                self_ref:chatAboutItem(detail_text)
+            end,
+        })
+    end
+
+    viewer = TextViewer:new{
         title = title or _("Details"),
         text = detail_text,
         width = Screen:getWidth(),
         height = Screen:getHeight(),
+        buttons_table = { row },
         text_selection_callback = function(text)
             handleTextSelection(text, captured_ui)
         end,
@@ -474,6 +511,19 @@ function XrayBrowser:showItemDetail(item, category_key, title)
         viewer.ges_events.HoldPanText[1].rate = Screen.low_pan_rate and 5.0 or 30.0
     end
     UIManager:show(viewer)
+end
+
+--- Launch a highlight-context book chat with the given text
+--- @param detail_text string The X-Ray detail text to discuss
+function XrayBrowser:chatAboutItem(detail_text)
+    local Dialogs = require("koassistant_dialogs")  -- Lazy to avoid circular dep
+    local config = self.metadata.configuration
+    -- Clear context flags for highlight context (matches main.lua highlight pattern)
+    config.features.is_general_context = nil
+    config.features.is_book_context = nil
+    config.features.is_multi_book_context = nil
+    config.features.book_metadata = nil
+    Dialogs.showChatGPTDialog(self.ui, detail_text, config, nil, self.metadata.plugin)
 end
 
 --- Show characters appearing in the current chapter
