@@ -40,7 +40,7 @@ from typing import Dict, List, Optional, Set, Tuple
 # ============================================================================
 
 # MUST appear unchanged if in source - ERROR if missing
-BRANDS = ["KOAssistant", "KOReader", "(KOA)"]
+BRANDS = ["KOAssistant", "KOReader", "(KOA)", "(Smart)"]
 
 # Should appear unchanged - WARNING if missing
 PROVIDERS = [
