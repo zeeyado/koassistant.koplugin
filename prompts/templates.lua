@@ -58,6 +58,11 @@ Templates.CONCISENESS_NUDGE = "Be direct and concise. Don't restate or over-elab
 -- Available as {hallucination_nudge} placeholder in all contexts
 Templates.HALLUCINATION_NUDGE = "If you don't recognize this or the content seems unclear, say so rather than guessing."
 
+-- Text fallback nudge - appears only when document text extraction is empty
+-- Available as {text_fallback_nudge} conditional placeholder
+-- The {title} placeholder inside will be substituted by MessageBuilder
+Templates.TEXT_FALLBACK_NUDGE = 'Note: No document text was provided. Use your knowledge of "{title}" to provide the best response you can. If you don\'t recognize this work, say so honestly rather than fabricating details.'
+
 -- Highlight context templates
 Templates.highlight = {
     explain = [[Explain this passage:

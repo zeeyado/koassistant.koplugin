@@ -46,7 +46,9 @@ Actions.SUMMARY_PROMPT = [[Summarize: "{title}"{author_clause}.
 
 {full_document_section}
 
-Provide a comprehensive summary capturing the essential content. Cover the entire work evenly from beginning to end — do not front-load detail on early sections at the expense of later ones. This summary will be used as a stand-in for the full text in future queries and analysis, so preserve key details, arguments, and structure while being as concise as the content's length and density allow.]]
+Provide a comprehensive summary capturing the essential content. Cover the entire work evenly from beginning to end — do not front-load detail on early sections at the expense of later ones. This summary will be used as a stand-in for the full text in future queries and analysis, so preserve key details, arguments, and structure while being as concise as the content's length and density allow.
+
+{text_fallback_nudge}]]
 
 -- ============================================================
 -- Open Book Flags - Centralized Definition
@@ -274,7 +276,9 @@ Help me understand:
 2. How it connects to the broader work
 3. Key references or concepts it builds on
 
-{conciseness_nudge}]],
+{conciseness_nudge}
+
+{text_fallback_nudge}]],
         api_params = {
             temperature = 0.5,
             max_tokens = 4096,
@@ -305,7 +309,9 @@ Provide deeper analysis:
 3. **Patterns**: Does it echo or develop ideas from elsewhere in the text?
 4. **My notes**: If I've highlighted related passages, show those connections.
 
-{conciseness_nudge}]],
+{conciseness_nudge}
+
+{text_fallback_nudge}]],
         api_params = {
             temperature = 0.6,
             max_tokens = 4096,
@@ -798,7 +804,9 @@ What's the "so what" — why does this argument matter?
 
 If this is fiction, adapt to analyze themes, messages, and the author's apparent worldview instead of formal arguments.
 
-This is an overview, not an essay. {conciseness_nudge} {hallucination_nudge}]],
+This is an overview, not an essay. {conciseness_nudge} {hallucination_nudge}
+
+{text_fallback_nudge}]],
         api_params = {
             temperature = 0.6,
             max_tokens = 4096,
@@ -884,7 +892,9 @@ Adapt to content type:
 
 {conciseness_nudge}
 
-Note: These are general questions for the complete work. If the reader is mid-book, they can ask for spoiler-free questions in the follow-up. {hallucination_nudge}]],
+Note: These are general questions for the complete work. If the reader is mid-book, they can ask for spoiler-free questions in the follow-up. {hallucination_nudge}
+
+{text_fallback_nudge}]],
         api_params = {
             temperature = 0.7,
             max_tokens = 4096,
@@ -964,7 +974,9 @@ Adapt to content type:
 
 {conciseness_nudge}
 
-Note: These are general questions for the complete work. If the reader is mid-book, they can ask for spoiler-free questions in the follow-up. {hallucination_nudge}]],
+Note: These are general questions for the complete work. If the reader is mid-book, they can ask for spoiler-free questions in the follow-up. {hallucination_nudge}
+
+{text_fallback_nudge}]],
         api_params = {
             temperature = 0.6,  -- Balanced variety
             max_tokens = 4096,
@@ -1031,7 +1043,9 @@ Provide analysis appropriate to this document's type and purpose. Address what's
 - Intended audience and context
 - Strengths and areas for improvement
 
-{conciseness_nudge}]],
+{conciseness_nudge}
+
+{text_fallback_nudge}]],
         -- No skip_domain, no skip_behavior - relies on user's configured settings
         api_params = {
             temperature = 0.5,
@@ -1070,7 +1084,9 @@ What are the most important takeaways? Focus on:
 - Actionable conclusions
 - Connections to broader concepts
 
-{conciseness_nudge}]],
+{conciseness_nudge}
+
+{text_fallback_nudge}]],
         api_params = {
             temperature = 0.5,
         },

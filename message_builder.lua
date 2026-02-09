@@ -216,6 +216,15 @@ function MessageBuilder.build(params)
     end
     user_prompt = replace_placeholder(user_prompt, "{full_document_section}", full_document_section)
 
+    -- {text_fallback_nudge} - conditional: appears only when document text is empty
+    -- Helps actions degrade gracefully by telling AI to use training knowledge
+    local has_document_text = (book_text_section ~= "") or (full_document_section ~= "")
+    local text_fallback_nudge = ""
+    if not has_document_text and Templates and Templates.TEXT_FALLBACK_NUDGE then
+        text_fallback_nudge = Templates.TEXT_FALLBACK_NUDGE
+    end
+    user_prompt = replace_placeholder(user_prompt, "{text_fallback_nudge}", text_fallback_nudge)
+
     -- {context_section} - includes label (for dictionary actions)
     -- Resolves to labeled context when present, empty string when not
     -- Each action's prompt structure determines how context is used
@@ -455,6 +464,8 @@ function MessageBuilder.substituteVariables(prompt_text, data)
     if Templates then
         result = replace_placeholder(result, "{conciseness_nudge}", Templates.CONCISENESS_NUDGE or "")
         result = replace_placeholder(result, "{hallucination_nudge}", Templates.HALLUCINATION_NUDGE or "")
+        -- Text fallback nudge (always empty in preview since we don't have extraction data)
+        result = replace_placeholder(result, "{text_fallback_nudge}", "")
     end
 
     -- Common substitutions
