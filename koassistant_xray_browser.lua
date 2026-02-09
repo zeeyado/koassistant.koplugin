@@ -209,11 +209,19 @@ function XrayBrowser:show(xray_data, metadata, ui, on_delete)
         onReturn = function()
             self_ref:navigateBack()
         end,
-        close_callback = function()
-            self_ref.menu = nil
-            self_ref.nav_stack = {}
-        end,
+        -- NOTE: Do NOT use close_callback here. KOReader's Menu:onMenuSelect()
+        -- calls close_callback after every item tap, not just on widget close.
+        -- Cleanup is done via onCloseWidget instead.
     }
+    -- Hook into onCloseWidget for cleanup (only fires when widget is actually removed)
+    local orig_onCloseWidget = self.menu.onCloseWidget
+    self.menu.onCloseWidget = function(menu_self)
+        self_ref.menu = nil
+        self_ref.nav_stack = {}
+        if orig_onCloseWidget then
+            return orig_onCloseWidget(menu_self)
+        end
+    end
     UIManager:show(self.menu)
 end
 
@@ -314,10 +322,6 @@ function XrayBrowser:navigateForward(title, items)
     -- Add to paths so back arrow becomes enabled via updatePageInfo
     table.insert(self.menu.paths, true)
     self.menu:switchItemTable(title, items)
-    -- Explicitly enable (updatePageInfo should do this, but belt-and-suspenders)
-    if self.menu.page_return_arrow then
-        self.menu.page_return_arrow:enable()
-    end
 end
 
 --- Navigate back: pop state and restore, or close if at root
@@ -336,10 +340,6 @@ function XrayBrowser:navigateBack()
     -- Remove from paths so back arrow disables when we reach root
     table.remove(self.menu.paths)
     self.menu:switchItemTable(prev.title, prev.items)
-    -- Explicitly disable at root level
-    if #self.nav_stack == 0 and self.menu.page_return_arrow then
-        self.menu.page_return_arrow:disable()
-    end
 end
 
 --- Show items within a category (navigates forward)
