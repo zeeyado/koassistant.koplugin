@@ -609,7 +609,7 @@ These actions analyze your actual reading content. They require specific privacy
 
 > **Tip:** Highlight actions can also use text extraction. "Explain in Context" and "Analyze in Context" use `{book_text_section}` to understand your highlighted passage within the broader book context. See [Highlight Mode](#highlight-mode) for details.
 
-**X-Ray**: The X-Ray action produces a structured JSON analysis that opens in a **browsable category menu** rather than a plain text document. The browser provides:
+**X-Ray**: The X-Ray action produces a structured JSON analysis that opens in a **browsable category menu** rather than a plain text document. This was done with inspirations from [X-Ray Plugin for KOReader by 0zd3m1r](https://github.com/0zd3m1r/koreader-xray-plugin). The browser provides:
 
 - **Category navigation** — Cast, World, Ideas, Lexicon, Story Arc, Current State (fiction) or Key Figures, Core Concepts, Arguments, Terminology, Argument Development, Current Position (non-fiction) — with item counts
 - **Character detail** — descriptions, AI-provided aliases (e.g., "Lizzy", "Miss Bennet"), connections/relationships, and your highlights mentioning each character
