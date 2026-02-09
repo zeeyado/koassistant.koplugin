@@ -160,7 +160,7 @@ function AskGPT:init()
     if highlight_features.show_koassistant_in_highlight ~= false then
       self.ui.highlight:addToHighlightDialog("koassistant_dialog", function(reader_highlight_instance)
         return {
-          text = _("KOAssistant"),
+          text = _("Chat/Action") .. " (KOA)",
           enabled = Device:hasClipboard(),
           callback = function()
             -- Capture text and close highlight overlay to prevent darkening on saved highlights
@@ -295,7 +295,7 @@ function AskGPT:generateFileDialogRows(file, is_file, book_props)
   local authors = book_props and book_props.authors or ""
   local self_ref_main = self
   table.insert(buttons, {
-    text = _("Chat/Action (KOA)"),
+    text = _("Chat/Action") .. " (KOA)",
     callback = function()
       local UIManager = require("ui/uimanager")
       local current_dialog = UIManager:getTopmostVisibleWidget()
@@ -311,7 +311,7 @@ function AskGPT:generateFileDialogRows(file, is_file, book_props)
   local require_existing = features.notebook_button_require_existing ~= false  -- default true
   if show_notebook and (has_notebook or not require_existing) then
     table.insert(buttons, {
-      text = _("Notebook (KOA)"),
+      text = _("Notebook") .. " (KOA)",
       callback = function()
         local UIManager = require("ui/uimanager")
         local current_dialog = UIManager:getTopmostVisibleWidget()
@@ -335,7 +335,7 @@ function AskGPT:generateFileDialogRows(file, is_file, book_props)
   local show_chat_history = features.show_chat_history_in_file_browser ~= false  -- default true
   if show_chat_history and has_chats then
     table.insert(buttons, {
-      text = _("Chat History (KOA)"),
+      text = _("Chat History") .. " (KOA)",
       callback = function()
         local UIManager = require("ui/uimanager")
         local current_dialog = UIManager:getTopmostVisibleWidget()
@@ -366,7 +366,7 @@ function AskGPT:generateFileDialogRows(file, is_file, book_props)
   if show_artifacts and #caches > 0 then
     local self_ref = self
     table.insert(buttons, {
-      text = _("View Artifacts (KOA)"),
+      text = _("View Artifacts") .. " (KOA)",
       callback = function()
         local UIManager = require("ui/uimanager")
         local current_dialog = UIManager:getTopmostVisibleWidget()

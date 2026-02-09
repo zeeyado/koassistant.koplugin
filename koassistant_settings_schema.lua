@@ -1172,7 +1172,7 @@ local SettingsSchema = {
                     text = _("Show in file browser menu"),
                     path = "features.show_notebook_in_file_browser",
                     default = true,
-                    help_text = _("Show 'Notebook (KOA)' button when long-pressing books in the file browser."),
+                    help_text = _("Show 'Notebook' button when long-pressing books in the file browser."),
                 },
                 {
                     id = "notebook_button_require_existing",
@@ -1377,10 +1377,10 @@ local SettingsSchema = {
                 {
                     id = "show_koassistant_in_highlight",
                     type = "toggle",
-                    text = _("Show KOAssistant Button in Highlight Menu"),
+                    text = _("Show Chat/Action Button in Highlight Menu"),
                     path = "features.show_koassistant_in_highlight",
                     default = true,
-                    help_text = _("Add main KOAssistant button to highlight menu. Requires restart."),
+                    help_text = _("Add main 'Chat/Action' button to highlight menu. Requires restart."),
                     on_change = function()
                         local InfoMessage = require("ui/widget/infomessage")
                         local UIManager = require("ui/uimanager")
@@ -1424,7 +1424,7 @@ local SettingsSchema = {
                     text = _("Show Notebook Button"),
                     path = "features.show_notebook_in_file_browser",
                     default = true,
-                    help_text = _("Show 'Notebook (KOA)' button when long-pressing books in the file browser."),
+                    help_text = _("Show 'Notebook' button when long-pressing books in the file browser."),
                     depends_on = { id = "show_in_file_browser", value = true },
                 },
                 {
@@ -1442,7 +1442,7 @@ local SettingsSchema = {
                     text = _("Show Chat History Button"),
                     path = "features.show_chat_history_in_file_browser",
                     default = true,
-                    help_text = _("Show 'Chat History (KOA)' button when long-pressing books that have chat history."),
+                    help_text = _("Show 'Chat History' button when long-pressing books that have chat history."),
                     depends_on = { id = "show_in_file_browser", value = true },
                 },
                 {
@@ -1451,7 +1451,7 @@ local SettingsSchema = {
                     text = _("Show Artifacts Button"),
                     path = "features.show_artifacts_in_file_browser",
                     default = true,
-                    help_text = _("Show 'View Artifacts (KOA)' button for books that have cached results (X-Ray, Summary, Analysis)."),
+                    help_text = _("Show 'View Artifacts' button for books that have cached results (X-Ray, Summary, Analysis)."),
                     depends_on = { id = "show_in_file_browser", value = true },
                     separator = true,
                 },
