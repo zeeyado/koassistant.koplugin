@@ -513,7 +513,7 @@ You can customize these, create your own, or disable ones you don't use. See [Ac
 Several actions come in two variants: a **regular** version that sends full document text, and a **Smart** version that uses a cached document summary instead. Both analyze the actual content — the difference is cost and freshness, as well as the AIs performance degradation with large contexts:
 
 - **Regular** (e.g., Discussion Questions) — Sends the full document text to the AI. Most accurate, but uses more tokens. Best for one-off queries or short documents.
-- **Smart** (e.g., Discussion Questions (Smart)) — Uses a pre-generated summary (~2-8K tokens) instead of raw text (~100K tokens). Much cheaper and performant for repeated use or follow up questions. Best for longer documents or repeated actions and follow-up queries.
+- **Smart** (e.g., Discussion Questions (Smart)) — Uses a pre-generated summary (~2-8K tokens) instead of raw text (~100K tokens). Much cheaper and performant for repeated use or follow-up questions, since each follow-up resends the full conversation history to the AI. A smaller initial context means more room for extended discussions. Best for longer documents or repeated actions and follow-up queries.
 
 | Regular (full text) | Smart (cached summary) | Context |
 |---------------------|------------------------|---------|
@@ -2325,11 +2325,11 @@ Prompt caching reduces costs and latency by reusing previously processed prompt 
 | DeepSeek | Automatic | Up to 90% | Disk-based, min 64 tokens |
 | Groq | Automatic | 50% | Select models (Kimi K2, GPT-OSS) |
 
-**What's cached**: System message (behavior + domain + language instruction)
+**What's cached**: The stable prefix of each request — system message (behavior + domain + language instruction), plus conversation history from prior turns. Providers that support automatic prefix caching (OpenAI, Gemini, DeepSeek) also cache the message history, so book text embedded in the first user message is cached on subsequent follow-ups.
 
-**How it helps**: When you ask multiple questions in quick succession with the same behavior and domain, providers can reuse the cached system prompt instead of reprocessing it.
+**How it helps**: Each follow-up message resends the **entire conversation history** to the AI (system prompt + all prior messages and responses). Without caching, you'd pay full price for the entire payload every turn. With caching, previously seen content is processed at 10-50% of the normal rate.
 
-**Best for**: Large custom domains with extensive instructions. The more tokens in your system prompt, the greater the savings.
+**Best for**: Multi-turn conversations, especially those that started with large context (book text, summaries). The more stable content at the start of the conversation, the greater the savings.
 
 ### Response Caching
 
@@ -2444,6 +2444,8 @@ Add `requires_summary_cache = true` to your action. This triggers the pre-flight
 - Cached summary: ~2,000-8,000 tokens per query
 - For 10 highlight queries: ~1M tokens saved
 
+**Multi-turn savings:** The difference compounds in conversations. Each follow-up resends the full history, so starting at 100K vs 5K tokens means every subsequent turn is 95K tokens cheaper — even before accounting for provider prompt caching.
+
 **Using artifacts in custom actions:**
 
 All three artifacts can be referenced in custom actions using `{summary_cache_section}`, `{xray_cache_section}`, or `{analyze_cache_section}` placeholders. The **summary** is the recommended choice for most custom actions. The X-Ray and Analyze placeholders are there for advanced users who want to experiment — artifact placeholders disappear when empty, so including them is always safe. See [Tips for Custom Actions](#tips-for-custom-actions) for usage guidance.
@@ -2495,14 +2497,15 @@ The max extraction setting is a safety cap, not a target. Your AI model's contex
 | Claude Opus 4.5 | $0.31 | $0.63 | exceeds context |
 | o3 | $0.63 | $1.25 | exceeds context |
 
-> Prompt caching reduces repeated costs by 50-90% (see [Prompt Caching](#prompt-caching)). Multi-turn conversations on the same book benefit significantly.
+> Prompt caching reduces repeated costs by 50-90% on cached portions (see [Prompt Caching](#prompt-caching)). Each follow-up in a conversation resends the full history, but providers cache the stable prefix (system prompt + prior messages), so you pay reduced rates for previously seen content. New content each turn (your latest question + the AI's response from the previous turn) is charged at full rate.
 
 **Tips to avoid exceeding your model's context window:**
 
 - **Use response caching** — Run X-Ray/Recap early in your reading. Subsequent runs send only new content since the last cached position, not the entire book again. Starting X-Ray at 80% on a long novel sends the whole 80% at once; starting at 10% and running periodically keeps each request small
-- **Use Smart actions** — They reference the cached summary (~2k tokens) instead of raw book text (~100k+ tokens), making them work on any model regardless of context size
+- **Use Smart actions for conversations** — They reference the cached summary (~2-8K tokens) instead of raw book text (~100K+ tokens). Since each follow-up resends the full conversation history, a smaller initial context leaves much more room for extended discussions and keeps per-turn costs low
 - **Lower the extraction limit** if your model is small — Settings → Privacy & Data → Text Extraction → Max Text Characters. Match it to your model's context window rather than leaving it at the default
 - **The max limit (2M chars) exists for Gemini's 1M-token context.** Most other models will never need more than 500k-800k chars. You probably don't need to raise the default unless you're using Gemini with very long documents
+- **Keep conversations focused** — Each follow-up adds the AI's previous response and your new message to the history, and the entire history is resent every turn. For actions that used large context (full book text), consider starting a new chat rather than extending a very long conversation. The plugin warns you when conversation context exceeds ~50K tokens
 
 ### Reasoning/Thinking
 
