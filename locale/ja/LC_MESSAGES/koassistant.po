@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: KOAssistant 0.12.0-dev\n"
 "Report-Msgid-Bugs-To: https://github.com/zeeyado/koassistant.koplugin/issues\n"
-"POT-Creation-Date: 2026-02-09 17:45+0000\n"
+"POT-Creation-Date: 2026-02-09 23:02+0000\n"
 "PO-Revision-Date: 2026-01-27 17:48+0000\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 
-#: _meta.lua:4 main.lua:3631 main.lua:4545
+#: _meta.lua:4 main.lua:3631 main.lua:4546
 #, fuzzy
 msgid "KOAssistant"
 msgstr "KOAssistant"
@@ -50,8 +50,8 @@ msgstr ""
 #: koassistant_chat_history_dialog.lua:1899
 #: koassistant_chat_history_dialog.lua:1937 koassistant_chatgptviewer.lua:2211
 #: koassistant_chatgptviewer.lua:2217 koassistant_notebook_manager.lua:156
-#: koassistant_notebook_manager.lua:161 koassistant_xray_browser.lua:657
-#: main.lua:7788 main.lua:7796 koassistant_ui/behavior_manager.lua:311
+#: koassistant_notebook_manager.lua:161 koassistant_xray_browser.lua:735
+#: main.lua:7822 main.lua:7830 koassistant_ui/behavior_manager.lua:311
 #: koassistant_ui/domain_manager.lua:313 koassistant_ui/prompts_manager.lua:751
 #, fuzzy
 msgid "Delete"
@@ -72,9 +72,9 @@ msgstr "%1件のチャットを削除しました"
 #: koassistant_chatgptviewer.lua:1878 koassistant_chatgptviewer.lua:2074
 #: koassistant_chatgptviewer.lua:2229 koassistant_chatgptviewer.lua:2418
 #: koassistant_chatgptviewer.lua:3940 koassistant_dialogs.lua:607
-#: koassistant_dialogs.lua:2621 koassistant_dialogs.lua:2657
-#: koassistant_xray_browser.lua:699 main.lua:2201 main.lua:4607 main.lua:5080
-#: main.lua:5230 koassistant_ui/behavior_manager.lua:382
+#: koassistant_dialogs.lua:2635 koassistant_dialogs.lua:2671
+#: koassistant_xray_browser.lua:777 main.lua:2201 main.lua:4608 main.lua:5081
+#: main.lua:5231 koassistant_ui/behavior_manager.lua:382
 #: koassistant_ui/domain_manager.lua:383
 #: koassistant_ui/settings_manager.lua:265
 #: koassistant_ui/settings_manager.lua:351
@@ -110,7 +110,7 @@ msgstr ""
 "\n"
 "この操作は元に戻せません。"
 
-#: koassistant_chat_history_dialog.lua:148 main.lua:6549
+#: koassistant_chat_history_dialog.lua:148 main.lua:6550
 #, fuzzy
 msgid "Deleted %1 chat(s) from %2 book(s)"
 msgstr "%2冊の本から%1件のチャットを削除しました"
@@ -124,7 +124,7 @@ msgstr "チャット履歴オプション"
 #: koassistant_chat_history_dialog.lua:255
 #: koassistant_chat_history_dialog.lua:602 koassistant_constants.lua:123
 #: koassistant_settings_schema.lua:48 koassistant_settings_schema.lua:911
-#: koassistant_settings_schema.lua:1031 main.lua:338 main.lua:4985
+#: koassistant_settings_schema.lua:1031 main.lua:338 main.lua:4986
 #, fuzzy
 msgid "Chat History"
 msgstr "チャット履歴"
@@ -217,12 +217,12 @@ msgstr "複数書籍チャット"
 msgid "Validating chat index…"
 msgstr "チャットインデックスを検証中…"
 
-#: koassistant_chat_history_dialog.lua:555 koassistant_dialogs.lua:3212
-#: koassistant_notebook_manager.lua:77 koassistant_xray_browser.lua:502
-#: koassistant_xray_parser.lua:153 koassistant_xray_parser.lua:156
-#: koassistant_xray_parser.lua:158 koassistant_xray_parser.lua:186
-#: koassistant_xray_parser.lua:210 koassistant_xray_parser.lua:222
-#: koassistant_xray_parser.lua:233 koassistant_xray_parser.lua:240
+#: koassistant_chat_history_dialog.lua:555 koassistant_dialogs.lua:3240
+#: koassistant_notebook_manager.lua:77 koassistant_xray_browser.lua:580
+#: koassistant_xray_parser.lua:160 koassistant_xray_parser.lua:163
+#: koassistant_xray_parser.lua:165 koassistant_xray_parser.lua:193
+#: koassistant_xray_parser.lua:219 koassistant_xray_parser.lua:231
+#: koassistant_xray_parser.lua:242 koassistant_xray_parser.lua:249
 #: koassistant_ui/behavior_manager.lua:264
 #: koassistant_ui/domain_manager.lua:272 koassistant_ui/prompts_manager.lua:639
 #, fuzzy
@@ -255,12 +255,12 @@ msgstr "チャット: %1"
 msgid "Error: Cannot load chat data."
 msgstr "エラー: チャットデータを読み込めません。"
 
-#: koassistant_chat_history_dialog.lua:782 koassistant_xray_browser.lua:678
+#: koassistant_chat_history_dialog.lua:782 koassistant_xray_browser.lua:756
 #, fuzzy
 msgid "Date:"
 msgstr "日付:"
 
-#: koassistant_chat_history_dialog.lua:783 koassistant_xray_browser.lua:672
+#: koassistant_chat_history_dialog.lua:783 koassistant_xray_browser.lua:750
 #, fuzzy
 msgid "Model:"
 msgstr "モデル:"
@@ -386,13 +386,13 @@ msgstr "チャットが見つかりません"
 #: koassistant_chatgptviewer.lua:544 koassistant_chatgptviewer.lua:1720
 #: koassistant_chatgptviewer.lua:1857 koassistant_chatgptviewer.lua:2055
 #: koassistant_chatgptviewer.lua:3246 koassistant_chatgptviewer.lua:3428
-#: koassistant_dialogs.lua:949 koassistant_dialogs.lua:1621
-#: koassistant_dialogs.lua:1929 koassistant_dialogs.lua:2910
-#: koassistant_notebook_manager.lua:182 koassistant_update_checker.lua:325
-#: koassistant_xray_browser.lua:540 main.lua:391 main.lua:1969 main.lua:2007
+#: koassistant_dialogs.lua:949 koassistant_dialogs.lua:1635
+#: koassistant_dialogs.lua:1943 koassistant_dialogs.lua:2936
+#: koassistant_notebook_manager.lua:182 koassistant_update_checker.lua:326
+#: koassistant_xray_browser.lua:618 main.lua:391 main.lua:1969 main.lua:2007
 #: main.lua:2073 main.lua:2311 main.lua:2435 main.lua:2579 main.lua:2752
-#: main.lua:2908 main.lua:3408 main.lua:3582 main.lua:4028 main.lua:5354
-#: main.lua:6879 main.lua:7433 koassistant_ui/behavior_manager.lua:419
+#: main.lua:2908 main.lua:3408 main.lua:3582 main.lua:4028 main.lua:5355
+#: main.lua:6913 main.lua:7467 koassistant_ui/behavior_manager.lua:419
 #: koassistant_ui/behavior_manager.lua:478
 #: koassistant_ui/behavior_manager.lua:557
 #: koassistant_ui/behavior_manager.lua:613
@@ -438,7 +438,7 @@ msgstr "キャンセル"
 msgid "Error: Failed to load chat messages."
 msgstr "エラー: チャットメッセージの読み込みに失敗しました。"
 
-#: koassistant_chat_history_dialog.lua:1432 koassistant_dialogs.lua:2439
+#: koassistant_chat_history_dialog.lua:1432 koassistant_dialogs.lua:2453
 #: stream_handler.lua:201
 #, fuzzy
 msgid "No response received from AI"
@@ -454,7 +454,7 @@ msgstr "無題"
 msgid "Loading..."
 msgstr "読み込み中..."
 
-#: koassistant_chat_history_dialog.lua:1544 koassistant_dialogs.lua:1446
+#: koassistant_chat_history_dialog.lua:1544 koassistant_dialogs.lua:1460
 #, fuzzy
 msgid "Failed to get response: "
 msgstr "応答の取得に失敗しました:"
@@ -474,7 +474,7 @@ msgstr "継続したチャットは自動的に保存されます"
 msgid "Chat saved"
 msgstr "チャットを保存しました"
 
-#: koassistant_chat_history_dialog.lua:1612 koassistant_dialogs.lua:1557
+#: koassistant_chat_history_dialog.lua:1612 koassistant_dialogs.lua:1571
 #, fuzzy
 msgid "Failed to save chat"
 msgstr "チャットの保存に失敗しました"
@@ -487,7 +487,7 @@ msgstr "チャットをクリップボードにコピーしました"
 
 #: koassistant_chat_history_dialog.lua:1640
 #: koassistant_chat_history_dialog.lua:1851 koassistant_chatgptviewer.lua:524
-#: koassistant_dialogs.lua:1601 koassistant_settings_schema.lua:367
+#: koassistant_dialogs.lua:1615 koassistant_settings_schema.lua:367
 #: koassistant_settings_schema.lua:382 koassistant_settings_schema.lua:398
 #: koassistant_settings_schema.lua:602 koassistant_settings_schema.lua:618
 #: koassistant_settings_schema.lua:755 koassistant_settings_schema.lua:771
@@ -497,7 +497,7 @@ msgstr "完全版（メタデータ + チャット）"
 
 #: koassistant_chat_history_dialog.lua:1641
 #: koassistant_chat_history_dialog.lua:1852 koassistant_chatgptviewer.lua:525
-#: koassistant_dialogs.lua:1602 koassistant_settings_schema.lua:368
+#: koassistant_dialogs.lua:1616 koassistant_settings_schema.lua:368
 #: koassistant_settings_schema.lua:383 koassistant_settings_schema.lua:399
 #: koassistant_settings_schema.lua:603 koassistant_settings_schema.lua:619
 #: koassistant_settings_schema.lua:756 koassistant_settings_schema.lua:772
@@ -507,14 +507,14 @@ msgstr "質問 + 応答"
 
 #: koassistant_chat_history_dialog.lua:1642
 #: koassistant_chat_history_dialog.lua:1853 koassistant_chatgptviewer.lua:526
-#: koassistant_dialogs.lua:1603 koassistant_settings_schema.lua:1150
+#: koassistant_dialogs.lua:1617 koassistant_settings_schema.lua:1150
 #, fuzzy
 msgid "Response only"
 msgstr "応答のみ"
 
 #: koassistant_chat_history_dialog.lua:1643
 #: koassistant_chat_history_dialog.lua:1854 koassistant_chatgptviewer.lua:527
-#: koassistant_dialogs.lua:1604 koassistant_settings_schema.lua:370
+#: koassistant_dialogs.lua:1618 koassistant_settings_schema.lua:370
 #: koassistant_settings_schema.lua:385 koassistant_settings_schema.lua:401
 #: koassistant_settings_schema.lua:605 koassistant_settings_schema.lua:621
 #: koassistant_settings_schema.lua:758 koassistant_settings_schema.lua:774
@@ -524,7 +524,7 @@ msgstr "すべて（デバッグ）"
 
 #: koassistant_chat_history_dialog.lua:1668 koassistant_chatgptviewer.lua:1116
 #: koassistant_chatgptviewer.lua:1539 koassistant_chatgptviewer.lua:1945
-#: koassistant_dialogs.lua:1629 koassistant_settings_schema.lua:362
+#: koassistant_dialogs.lua:1643 koassistant_settings_schema.lua:362
 #: koassistant_settings_schema.lua:596 koassistant_settings_schema.lua:749
 #, fuzzy
 msgid "Copy Content"
@@ -545,7 +545,7 @@ msgstr ""
 "%1"
 
 #: koassistant_chat_history_dialog.lua:1766 koassistant_chatgptviewer.lua:3369
-#: main.lua:8466
+#: main.lua:8502
 #, fuzzy
 msgid "Failed to save: %1"
 msgstr "保存に失敗しました: %1"
@@ -621,17 +621,17 @@ msgstr "このタグのチャットが見つかりません"
 
 #: koassistant_chatgptviewer.lua:443 koassistant_chatgptviewer.lua:1083
 #: koassistant_chatgptviewer.lua:1504 koassistant_chatgptviewer.lua:1910
-#: koassistant_chatgptviewer.lua:2086 koassistant_update_checker.lua:287
+#: koassistant_chatgptviewer.lua:2086 koassistant_update_checker.lua:288
 #, fuzzy
 msgid "Copy"
 msgstr "コピー"
 
-#: koassistant_chatgptviewer.lua:448 koassistant_update_checker.lua:292
+#: koassistant_chatgptviewer.lua:448 koassistant_update_checker.lua:293
 #, fuzzy
 msgid "Link copied to clipboard"
 msgstr "リンクをクリップボードにコピーしました"
 
-#: koassistant_chatgptviewer.lua:453 koassistant_update_checker.lua:297
+#: koassistant_chatgptviewer.lua:453 koassistant_update_checker.lua:298
 #, fuzzy
 msgid "Show QR code"
 msgstr "QRコードを表示"
@@ -641,12 +641,12 @@ msgstr "QRコードを表示"
 msgid "Add to Wallabag"
 msgstr "Wallabagに追加"
 
-#: koassistant_chatgptviewer.lua:482 koassistant_update_checker.lua:313
+#: koassistant_chatgptviewer.lua:482 koassistant_update_checker.lua:314
 #, fuzzy
 msgid "Open in browser"
 msgstr "ブラウザで開く"
 
-#: koassistant_chatgptviewer.lua:504 koassistant_update_checker.lua:334
+#: koassistant_chatgptviewer.lua:504 koassistant_update_checker.lua:335
 #, fuzzy
 msgid ""
 "External link:\n"
@@ -669,13 +669,13 @@ msgid "Reply"
 msgstr "返信"
 
 #: koassistant_chatgptviewer.lua:1066 koassistant_dialogs.lua:720
-#: koassistant_dialogs.lua:1546
+#: koassistant_dialogs.lua:1560
 #, fuzzy
 msgid "Autosaved"
 msgstr "自動保存済み"
 
 #: koassistant_chatgptviewer.lua:1066 koassistant_dialogs.lua:615 main.lua:2080
-#: main.lua:2775 main.lua:3415 main.lua:3597 main.lua:6885
+#: main.lua:2775 main.lua:3415 main.lua:3597 main.lua:6919
 #: koassistant_ui/behavior_manager.lua:496
 #: koassistant_ui/domain_manager.lua:487
 #: koassistant_ui/prompts_manager.lua:1778
@@ -697,7 +697,7 @@ msgstr "コピーするチャットがありません"
 
 #: koassistant_chatgptviewer.lua:1110 koassistant_chatgptviewer.lua:1533
 #: koassistant_chatgptviewer.lua:1939 koassistant_chatgptviewer.lua:3339
-#: koassistant_dialogs.lua:1591
+#: koassistant_dialogs.lua:1605
 #, fuzzy
 msgid "Copied"
 msgstr "コピーしました"
@@ -856,7 +856,7 @@ msgstr "単語を語彙ビルダーに追加しました"
 msgid "+Vocab"
 msgstr "+語彙"
 
-#: koassistant_chatgptviewer.lua:1622 main.lua:6106
+#: koassistant_chatgptviewer.lua:1622 main.lua:6107
 #, fuzzy
 msgid "AI Dictionary lookup"
 msgstr "AI辞書検索"
@@ -898,7 +898,7 @@ msgid "Configure languages in Settings first"
 msgstr "まず設定で言語を設定してください"
 
 #: koassistant_chatgptviewer.lua:1724 koassistant_settings_schema.lua:1010
-#: main.lua:4943 main.lua:5721
+#: main.lua:4944 main.lua:5722
 #, fuzzy
 msgid "Dictionary Language"
 msgstr "辞書言語"
@@ -1057,7 +1057,7 @@ msgstr "クリップボードにコピーしました。"
 msgid "No highlight selection data available"
 msgstr "ハイライト選択データがありません"
 
-#: koassistant_chatgptviewer.lua:3070 main.lua:5569
+#: koassistant_chatgptviewer.lua:3070 main.lua:5570
 #, fuzzy
 msgid "No document open"
 msgstr "ドキュメントが開かれていません"
@@ -1159,17 +1159,17 @@ msgstr "エクスポートする内容がありません"
 msgid "No export metadata available."
 msgstr "エクスポートメタデータがありません。"
 
-#: koassistant_chatgptviewer.lua:3482 main.lua:8389
+#: koassistant_chatgptviewer.lua:3482 main.lua:8425
 #, fuzzy
 msgid "Select export folder"
 msgstr "エクスポートフォルダを選択"
 
-#: koassistant_chatgptviewer.lua:3506 main.lua:8411
+#: koassistant_chatgptviewer.lua:3506 main.lua:8447
 #, fuzzy
 msgid "Saved to %1"
 msgstr "%1に保存しました"
 
-#: koassistant_chatgptviewer.lua:3511 main.lua:8416
+#: koassistant_chatgptviewer.lua:3511 main.lua:8452
 #, fuzzy
 msgid "Export failed: %1"
 msgstr "エクスポート失敗: %1"
@@ -1254,7 +1254,7 @@ msgstr "配置: %1"
 msgid "Reset to Defaults"
 msgstr "デフォルトにリセット"
 
-#: koassistant_chatgptviewer.lua:3960 main.lua:4858
+#: koassistant_chatgptviewer.lua:3960 main.lua:4859
 #: koassistant_ui/settings_manager.lua:317
 #, fuzzy
 msgid "Set"
@@ -1265,7 +1265,7 @@ msgstr "設定"
 msgid "Font size set to %1"
 msgstr "フォントサイズを %1 に設定しました"
 
-#: koassistant_chatgptviewer.lua:4003 main.lua:6721
+#: koassistant_chatgptviewer.lua:4003 main.lua:6740
 #, fuzzy
 msgid "Settings reset to defaults"
 msgstr "設定をデフォルトにリセットしました"
@@ -1286,33 +1286,33 @@ msgid "Edit Notebook"
 msgstr "ノートブックを編集"
 
 #: koassistant_constants.lua:124 koassistant_settings_schema.lua:912
-#: koassistant_settings_schema.lua:1052 main.lua:5021
+#: koassistant_settings_schema.lua:1052 main.lua:5022
 #, fuzzy
 msgid "Continue Last Chat"
 msgstr "最後のチャットを続ける"
 
 #: koassistant_constants.lua:125 koassistant_settings_schema.lua:913
-#: koassistant_settings_schema.lua:1059 main.lua:5033
+#: koassistant_settings_schema.lua:1059 main.lua:5034
 #, fuzzy
 msgid "New Book Chat/Action"
 msgstr "新規ブックチャット/アクション"
 
 #: koassistant_constants.lua:126 koassistant_settings_schema.lua:41
 #: koassistant_settings_schema.lua:914 koassistant_settings_schema.lua:1045
-#: main.lua:5009
+#: main.lua:5010
 #, fuzzy
 msgid "General Chat/Action"
 msgstr "一般チャット/アクション"
 
-#: koassistant_constants.lua:128 koassistant_dialogs.lua:2893
-#: koassistant_dialogs.lua:2916 koassistant_settings_schema.lua:916
+#: koassistant_constants.lua:128 koassistant_dialogs.lua:2919
+#: koassistant_dialogs.lua:2942 koassistant_settings_schema.lua:916
 #: main.lua:369 main.lua:397 main.lua:4035
 #, fuzzy
 msgid "View Artifacts"
 msgstr "アーティファクトを表示"
 
 #: koassistant_constants.lua:129 koassistant_settings_schema.lua:917
-#: main.lua:5101
+#: main.lua:5102
 #, fuzzy
 msgid "Quick Settings"
 msgstr "クイック設定"
@@ -1337,7 +1337,7 @@ msgstr "保存できません：ドキュメントコンテキストがありま
 msgid "Save Chat"
 msgstr "チャットを保存"
 
-#: koassistant_dialogs.lua:720 koassistant_dialogs.lua:1546
+#: koassistant_dialogs.lua:720 koassistant_dialogs.lua:1560
 #, fuzzy
 msgid "Saved"
 msgstr "保存しました"
@@ -1352,32 +1352,38 @@ msgstr "チャットを正常に保存しました"
 msgid "Failed to save chat: "
 msgstr "チャットの保存に失敗しました："
 
-#: koassistant_dialogs.lua:1642
+#: koassistant_dialogs.lua:1333
+#, fuzzy
+msgid ""
+"This conversation is using approximately %1K tokens. Each follow-up resends the full history. Consider starting a new chat to reduce costs and maintain quality."
+msgstr "この会話は約%1Kトークンを使用しています。フォローアップのたびに全履歴が再送信されます。コストを削減し品質を維持するため、新しいチャットを開始することをご検討ください。"
+
+#: koassistant_dialogs.lua:1656
 #, fuzzy
 msgid "Save the chat first to add tags"
 msgstr "タグを追加するには、まずチャットを保存してください"
 
-#: koassistant_dialogs.lua:1656
+#: koassistant_dialogs.lua:1670
 #, fuzzy
 msgid "Cannot tag: no document context"
 msgstr "タグ付けできません：ドキュメントコンテキストがありません"
 
-#: koassistant_dialogs.lua:1844
+#: koassistant_dialogs.lua:1858
 #, fuzzy
 msgid "Could not find summary action. Please try again."
 msgstr "要約アクションが見つかりませんでした。もう一度お試しください。"
 
-#: koassistant_dialogs.lua:1852 main.lua:4316
+#: koassistant_dialogs.lua:1866 main.lua:4317
 #, fuzzy
 msgid "Generating document summary..."
 msgstr "ドキュメント要約を生成中..."
 
-#: koassistant_dialogs.lua:1874
+#: koassistant_dialogs.lua:1888
 #, fuzzy
 msgid "Summary generation failed. Please try again."
 msgstr "要約の生成に失敗しました。もう一度お試しください。"
 
-#: koassistant_dialogs.lua:1927
+#: koassistant_dialogs.lua:1941
 #, fuzzy
 msgid ""
 "This action uses a reusable document summary for context.\n"
@@ -1394,114 +1400,114 @@ msgstr ""
 "• 文字数制限まで処理\n"
 "• カバレッジはキャッシュビューアに表示"
 
-#: koassistant_dialogs.lua:1928 main.lua:4339
+#: koassistant_dialogs.lua:1942 main.lua:4340
 #, fuzzy
 msgid "Generate"
 msgstr "生成"
 
-#: koassistant_dialogs.lua:2186
+#: koassistant_dialogs.lua:2200
 #, fuzzy
 msgid ""
 "Book text truncated (covers %1 %–%2 %). Increase limit in Advanced Settings."
 msgstr "ブックテキストが切り詰められました（%1 %–%2 %をカバー）。詳細設定で制限を増やしてください。"
 
-#: koassistant_dialogs.lua:2197
+#: koassistant_dialogs.lua:2211
 #, fuzzy
 msgid ""
 "Full document text truncated (covers %1 %–%2 %). Increase limit in Advanced Settings."
 msgstr "完全なドキュメントテキストが切り詰められました（%1 %–%2 %をカバー）。詳細設定で制限を増やしてください。"
 
-#: koassistant_dialogs.lua:2284
+#: koassistant_dialogs.lua:2298
 #, fuzzy
 msgid ""
 "New content truncated (covers %1 %–%2 %). Increase limit in Advanced Settings."
 msgstr "新しいコンテンツが切り詰められました（%1 %–%2 %をカバー）。詳細設定で制限を増やしてください。"
 
-#: koassistant_dialogs.lua:2576 koassistant_dialogs.lua:2640
-#: koassistant_settings_schema.lua:564 main.lua:3532 main.lua:4735
-#: main.lua:5422 koassistant_ui/prompts_manager.lua:1518
+#: koassistant_dialogs.lua:2590 koassistant_dialogs.lua:2654
+#: koassistant_settings_schema.lua:564 main.lua:3532 main.lua:4736
+#: main.lua:5423 koassistant_ui/prompts_manager.lua:1518
 #: koassistant_ui/prompts_manager.lua:2677
 #: koassistant_ui/prompts_manager.lua:3395
 #, fuzzy
 msgid "None"
 msgstr "なし"
 
-#: koassistant_dialogs.lua:2631
+#: koassistant_dialogs.lua:2645
 #, fuzzy
 msgid "Select Domain"
 msgstr "ドメインを選択"
 
-#: koassistant_dialogs.lua:2669
+#: koassistant_dialogs.lua:2683
 #, fuzzy
 msgid "Domain: "
 msgstr "ドメイン："
 
-#: koassistant_dialogs.lua:2676
+#: koassistant_dialogs.lua:2690
 #, fuzzy
 msgid "Ask"
 msgstr "質問"
 
-#: koassistant_dialogs.lua:2784
+#: koassistant_dialogs.lua:2798
 #, fuzzy
 msgid "Chat"
 msgstr "チャット"
 
-#: koassistant_dialogs.lua:2788 koassistant_dialogs.lua:3143
+#: koassistant_dialogs.lua:2802 koassistant_dialogs.lua:3171
 #, fuzzy
 msgid "Error: "
 msgstr "エラー："
 
-#: koassistant_dialogs.lua:2842
+#: koassistant_dialogs.lua:2867
 #, fuzzy
 msgid "Error handling prompt: "
 msgstr "プロンプト処理エラー："
 
-#: koassistant_dialogs.lua:2875 main.lua:360 main.lua:3989 main.lua:4196
+#: koassistant_dialogs.lua:2901 main.lua:360 main.lua:3989 main.lua:4197
 #, fuzzy
 msgid "Summary"
 msgstr "要約"
 
-#: koassistant_dialogs.lua:2879 main.lua:364 main.lua:3997 main.lua:5210
+#: koassistant_dialogs.lua:2905 main.lua:364 main.lua:3997 main.lua:5211
 #, fuzzy
 msgid "Analysis"
 msgstr "分析"
 
-#: koassistant_dialogs.lua:2885 koassistant_notebook_manager.lua:124
+#: koassistant_dialogs.lua:2911 koassistant_notebook_manager.lua:124
 #, fuzzy
 msgid "View"
 msgstr "表示"
 
-#: koassistant_dialogs.lua:2949
+#: koassistant_dialogs.lua:2975
 #, fuzzy
 msgid "KOAssistant Actions"
 msgstr "KOAssistant アクション"
 
-#: koassistant_dialogs.lua:2951
+#: koassistant_dialogs.lua:2977
 #, fuzzy
 msgid "Type your question or additional instructions for any action..."
 msgstr "質問または追加の指示を入力してください..."
 
-#: koassistant_dialogs.lua:3009
+#: koassistant_dialogs.lua:3035
 #, fuzzy
 msgid "Unknown prompt type: "
 msgstr "不明なプロンプトタイプ："
 
-#: koassistant_dialogs.lua:3035
+#: koassistant_dialogs.lua:3061
 #, fuzzy
 msgid "Error: No action specified"
 msgstr "エラー：アクションが指定されていません"
 
-#: koassistant_dialogs.lua:3117 main.lua:4112
+#: koassistant_dialogs.lua:3145 main.lua:4112
 #, fuzzy
 msgid "%1 deleted"
 msgstr "%1を削除しました"
 
-#: koassistant_dialogs.lua:3181
+#: koassistant_dialogs.lua:3209
 #, fuzzy
 msgid "Failed to extract document text"
 msgstr "ドキュメントテキストの抽出に失敗しました"
 
-#: koassistant_dialogs.lua:3201
+#: koassistant_dialogs.lua:3229
 #, fuzzy
 msgid ""
 "Text extraction is disabled.\n"
@@ -1512,7 +1518,7 @@ msgstr ""
 "\n"
 "設定→プライバシーとデータ→テキスト抽出で有効にしてください。"
 
-#: koassistant_dialogs.lua:3202
+#: koassistant_dialogs.lua:3230
 #, fuzzy
 msgid ""
 "No document text could be extracted.\n"
@@ -1523,7 +1529,7 @@ msgstr ""
 "\n"
 "このドキュメントはテキスト抽出に対応していない可能性があります。"
 
-#: koassistant_dialogs.lua:3282
+#: koassistant_dialogs.lua:3310
 #, fuzzy
 msgid "Failed to generate summary"
 msgstr "要約の生成に失敗しました"
@@ -1571,7 +1577,7 @@ msgid "Chat about Book"
 msgstr "ブックについてチャット"
 
 #: koassistant_settings_schema.lua:55 koassistant_settings_schema.lua:1038
-#: main.lua:4997
+#: main.lua:4998
 #, fuzzy
 msgid "Browse Notebooks"
 msgstr "ノートブックを閲覧"
@@ -1581,17 +1587,17 @@ msgstr "ノートブックを閲覧"
 msgid "Reading Features"
 msgstr "読書機能"
 
-#: koassistant_settings_schema.lua:83 main.lua:1828 main.lua:4796
+#: koassistant_settings_schema.lua:83 main.lua:1828 main.lua:4797
 #, fuzzy
 msgid "Provider: %1"
 msgstr "プロバイダー：%1"
 
-#: koassistant_settings_schema.lua:92 main.lua:2401 main.lua:4809
+#: koassistant_settings_schema.lua:92 main.lua:2401 main.lua:4810
 #, fuzzy
 msgid "Model: %1"
 msgstr "モデル: %1"
 
-#: koassistant_settings_schema.lua:99 main.lua:7258 main.lua:7388
+#: koassistant_settings_schema.lua:99 main.lua:7292 main.lua:7422
 #, fuzzy
 msgid "API Keys"
 msgstr "APIキー"
@@ -2280,12 +2286,12 @@ msgstr "QSパネルユーティリティ"
 msgid "Show or hide controls in the Quick Settings panel"
 msgstr "クイック設定パネルのコントロールの表示/非表示"
 
-#: koassistant_settings_schema.lua:947 main.lua:4649 main.lua:4801
+#: koassistant_settings_schema.lua:947 main.lua:4650 main.lua:4802
 #, fuzzy
 msgid "Provider"
 msgstr "プロバイダー"
 
-#: koassistant_settings_schema.lua:954 main.lua:4655 main.lua:4814
+#: koassistant_settings_schema.lua:954 main.lua:4656 main.lua:4815
 #, fuzzy
 msgid "Model"
 msgstr "モデル"
@@ -2301,7 +2307,7 @@ msgid "Domain"
 msgstr "ドメイン"
 
 #: koassistant_settings_schema.lua:975 koassistant_settings_schema.lua:1551
-#: main.lua:4859 koassistant_ui/prompts_manager.lua:722
+#: main.lua:4860 koassistant_ui/prompts_manager.lua:722
 #: koassistant_ui/prompts_manager.lua:1841
 #: koassistant_ui/prompts_manager.lua:3052
 #, fuzzy
@@ -2320,7 +2326,7 @@ msgstr "Anthropic/Gemini推論"
 msgid "Web Search"
 msgstr "Web検索"
 
-#: koassistant_settings_schema.lua:1003 main.lua:4643 main.lua:4930
+#: koassistant_settings_schema.lua:1003 main.lua:4644 main.lua:4931
 #: koassistant_ui/prompts_manager.lua:4038
 #, fuzzy
 msgid "Translation Language"
@@ -2337,12 +2343,12 @@ msgid "D.Bypass"
 msgstr "D.バイパス"
 
 #: koassistant_settings_schema.lua:1066 koassistant_settings_schema.lua:1101
-#: main.lua:5045 koassistant_ui/prompts_manager.lua:501
+#: main.lua:5046 koassistant_ui/prompts_manager.lua:501
 #, fuzzy
 msgid "Manage Actions"
 msgstr "アクション管理"
 
-#: koassistant_settings_schema.lua:1073 main.lua:5249
+#: koassistant_settings_schema.lua:1073 main.lua:5250
 #, fuzzy
 msgid "Quick Actions"
 msgstr "クイックアクション"
@@ -2454,12 +2460,12 @@ msgstr "ノートブックが既に存在する場合にのみボタンを表示
 msgid "Privacy & Data"
 msgstr "プライバシーとデータ"
 
-#: koassistant_settings_schema.lua:1204 main.lua:6908
+#: koassistant_settings_schema.lua:1204 main.lua:6942
 #, fuzzy
 msgid "Trusted Providers: None"
 msgstr "信頼できるプロバイダー: なし"
 
-#: koassistant_settings_schema.lua:1206 main.lua:6910
+#: koassistant_settings_schema.lua:1206 main.lua:6944
 #, fuzzy
 msgid "Trusted Providers: %1"
 msgstr "信頼できるプロバイダー: %1"
@@ -2586,8 +2592,8 @@ msgstr "最大テキスト文字数"
 #: koassistant_settings_schema.lua:1319
 #, fuzzy
 msgid ""
-"Maximum characters to extract (10,000-1,000,000). Higher = more context but more tokens. Default: 250,000 (~60k tokens)."
-msgstr "抽出する最大文字数(10,000-1,000,000)。高いほどコンテキストが増えますが、トークンも増えます。デフォルト: 250,000(約60kトークン)。"
+"Maximum characters to extract (10,000-2,000,000). Higher = more context but more tokens. Default: 1,000,000 (~250k tokens). Most models have smaller context windows — the API will reject requests that exceed them. See the README for guidance."
+msgstr "抽出する最大文字数（10,000〜2,000,000）。大きいほどコンテキストが増えますが、トークン数も増加します。デフォルト：1,000,000（約250kトークン）。ほとんどのモデルはコンテキストウィンドウが小さいため、APIは上限を超えるリクエストを拒否します。詳細はREADMEをご覧ください。"
 
 #: koassistant_settings_schema.lua:1325
 #, fuzzy
@@ -2597,10 +2603,10 @@ msgstr "最大PDFページ数"
 #: koassistant_settings_schema.lua:1332
 #, fuzzy
 msgid ""
-"Maximum PDF pages to extract (50-500). Higher = more context but slower."
-msgstr "抽出する最大PDFページ数(50-500)。高いほどコンテキストが増えますが、遅くなります。"
+"Maximum PDF pages to extract (50-1,000). Higher = more context but slower. Default: 500 (~1M characters)."
+msgstr "抽出する最大PDFページ数（50〜1,000）。大きいほどコンテキストが増えますが、処理が遅くなります。デフォルト：500（約1M文字）。"
 
-#: koassistant_settings_schema.lua:1338 main.lua:5349
+#: koassistant_settings_schema.lua:1338 main.lua:5350
 #, fuzzy
 msgid "Clear Action Cache"
 msgstr "アクションキャッシュをクリア"
@@ -3166,7 +3172,7 @@ msgstr "接続テスト"
 msgid "Settings Management"
 msgstr "設定管理"
 
-#: koassistant_settings_schema.lua:1808 main.lua:7204
+#: koassistant_settings_schema.lua:1808 main.lua:7238
 #, fuzzy
 msgid "Create Backup"
 msgstr "バックアップを作成"
@@ -3421,12 +3427,12 @@ msgstr "起動時に自動的に更新を確認"
 msgid "Check for Updates"
 msgstr "更新を確認"
 
-#: koassistant_update_checker.lua:604
+#: koassistant_update_checker.lua:606
 #, fuzzy
 msgid "Translating to %1..."
 msgstr "%1に翻訳中..."
 
-#: koassistant_update_checker.lua:614
+#: koassistant_update_checker.lua:616
 #, fuzzy
 msgid ""
 "Translate the following release notes to %1. Preserve markdown formatting:\n"
@@ -3437,55 +3443,143 @@ msgstr ""
 "\n"
 "%2"
 
-#: koassistant_update_checker.lua:633 koassistant_update_checker.lua:711
-#: main.lua:7883
+#: koassistant_update_checker.lua:635 koassistant_update_checker.lua:726
+#: main.lua:7917
 #, fuzzy
 msgid "Later"
 msgstr "後で"
 
-#: koassistant_update_checker.lua:639 koassistant_update_checker.lua:717
+#: koassistant_update_checker.lua:641 koassistant_update_checker.lua:732
 #, fuzzy
 msgid "Visit Release Page"
 msgstr "リリースページを開く"
 
-#: koassistant_update_checker.lua:646 koassistant_update_checker.lua:724
+#: koassistant_update_checker.lua:648 koassistant_update_checker.lua:739
 #, fuzzy
 msgid "Please visit:"
 msgstr "次のページをご覧ください:"
 
-#: koassistant_update_checker.lua:657
+#: koassistant_update_checker.lua:660 koassistant_update_checker.lua:751
+#, fuzzy
+msgid "Update Now"
+msgstr "今すぐ更新"
+
+#: koassistant_update_checker.lua:672
 #, fuzzy
 msgid "Original"
 msgstr "原文"
 
-#: koassistant_update_checker.lua:668
+#: koassistant_update_checker.lua:683
 #, fuzzy
 msgid "%1 (Translated)"
 msgstr "%1 (翻訳済み)"
 
-#: koassistant_update_checker.lua:680
+#: koassistant_update_checker.lua:695
 #, fuzzy
 msgid "Translation failed: %1"
 msgstr "翻訳に失敗しました: %1"
 
-#: koassistant_update_checker.lua:680 main.lua:7297 main.lua:7672 main.lua:7812
+#: koassistant_update_checker.lua:695 main.lua:7331 main.lua:7706 main.lua:7846
 #, fuzzy
 msgid "Unknown error"
 msgstr "不明なエラー"
 
-#: koassistant_update_checker.lua:736 koassistant_ui/prompts_manager.lua:1865
+#: koassistant_update_checker.lua:764 koassistant_ui/prompts_manager.lua:1865
 #: koassistant_ui/prompts_manager.lua:1880
-#: koassistant_ui/prompts_manager.lua:1930 prompts/actions.lua:1204
+#: koassistant_ui/prompts_manager.lua:1930 prompts/actions.lua:1220
 #, fuzzy
 msgid "Translate"
 msgstr "翻訳"
+
+#: koassistant_update_checker.lua:1090
+#, fuzzy
+msgid "Download timed out"
+msgstr "ダウンロードがタイムアウトしました"
+
+#: koassistant_update_checker.lua:1138
+#, fuzzy
+msgid "Failed to start download"
+msgstr "ダウンロードの開始に失敗しました"
+
+#: koassistant_update_checker.lua:1175
+#, fuzzy
+msgid "Downloaded file is empty"
+msgstr "ダウンロードしたファイルが空です"
+
+#: koassistant_update_checker.lua:1325
+#, fuzzy
+msgid ""
+"Auto-update is disabled for git-based installs. Please use git pull instead."
+msgstr "gitベースのインストールでは自動更新が無効になっています。代わりにgit pullを使用してください。"
+
+#: koassistant_update_checker.lua:1333
+#, fuzzy
+msgid "No download URL available for this release. Please update manually."
+msgstr "このリリースで利用可能なダウンロードURLがありません。手動で更新してください。"
+
+#: koassistant_update_checker.lua:1342
+#, fuzzy
+msgid "No network connection. Please connect and try again."
+msgstr "ネットワーク接続がありません。接続してから再試行してください。"
+
+#: koassistant_update_checker.lua:1367
+#, fuzzy
+msgid "Update failed: %1"
+msgstr "更新に失敗しました：%1"
+
+#: koassistant_update_checker.lua:1374
+#, fuzzy
+msgid "Downloading update %1..."
+msgstr "更新%1をダウンロード中..."
+
+#: koassistant_update_checker.lua:1384
+#, fuzzy
+msgid "Download failed"
+msgstr "ダウンロードに失敗しました"
+
+#: koassistant_update_checker.lua:1390
+#, fuzzy
+msgid "Installing update %1..."
+msgstr "更新%1をインストール中..."
+
+#: koassistant_update_checker.lua:1405
+#, fuzzy
+msgid "Failed to extract update archive"
+msgstr "更新アーカイブの展開に失敗しました"
+
+#: koassistant_update_checker.lua:1433
+#, fuzzy
+msgid "Failed to move current plugin to backup"
+msgstr "現在のプラグインをバックアップに移動できませんでした"
+
+#: koassistant_update_checker.lua:1444
+#, fuzzy
+msgid "Failed to install new plugin version. Previous version restored."
+msgstr "新しいプラグインバージョンのインストールに失敗しました。以前のバージョンを復元しました。"
+
+#: koassistant_update_checker.lua:1462
+#, fuzzy
+msgid ""
+"KOAssistant updated to version %1.\n"
+"\n"
+"Please restart KOReader to use the new version."
+msgstr ""
+"KOAssistantがバージョン%1に更新されました。\n"
+"\n"
+"新しいバージョンを使用するにはKOReaderを再起動してください。"
+
+#: koassistant_update_checker.lua:1464
+#, fuzzy
+msgid ""
+"Note: Some user files (API keys, custom actions) may need to be reconfigured."
+msgstr "注意：一部のユーザーファイル（APIキー、カスタムアクション）の再設定が必要な場合があります。"
 
 #: koassistant_xray_browser.lua:316
 #, fuzzy
 msgid "Chapter Characters"
 msgstr "章の登場人物"
 
-#: koassistant_xray_browser.lua:325 koassistant_xray_browser.lua:547
+#: koassistant_xray_browser.lua:325 koassistant_xray_browser.lua:625
 #, fuzzy
 msgid "Search"
 msgstr "検索"
@@ -3495,229 +3589,234 @@ msgstr "検索"
 msgid "Full View"
 msgstr "全体表示"
 
-#: koassistant_xray_browser.lua:412
+#: koassistant_xray_browser.lua:436
 #, fuzzy
 msgid "As of"
 msgstr "時点"
 
-#: koassistant_xray_browser.lua:419
+#: koassistant_xray_browser.lua:443
 #, fuzzy
 msgid "Your highlights:"
 msgstr "あなたのハイライト:"
 
-#: koassistant_xray_browser.lua:433
+#: koassistant_xray_browser.lua:484
+#, fuzzy
+msgid "Chat about this"
+msgstr "これについてチャット"
+
+#: koassistant_xray_browser.lua:493
 #, fuzzy
 msgid "Details"
 msgstr "詳細"
 
-#: koassistant_xray_browser.lua:459
+#: koassistant_xray_browser.lua:537
 #, fuzzy
 msgid "No book open."
 msgstr "開いている本がありません。"
 
-#: koassistant_xray_browser.lua:467
+#: koassistant_xray_browser.lua:545
 #, fuzzy
 msgid "Analyzing chapter..."
 msgstr "章を分析中..."
 
-#: koassistant_xray_browser.lua:478
+#: koassistant_xray_browser.lua:556
 #, fuzzy
 msgid "Could not extract chapter text."
 msgstr "章のテキストを抽出できませんでした。"
 
-#: koassistant_xray_browser.lua:488
+#: koassistant_xray_browser.lua:566
 #, fuzzy
 msgid "No known characters found in \"%1\"."
 msgstr "\"%1\"に既知の登場人物が見つかりませんでした。"
 
-#: koassistant_xray_browser.lua:489
+#: koassistant_xray_browser.lua:567
 #, fuzzy
 msgid "No known characters found in current chapter."
 msgstr "現在の章に既知の登場人物が見つかりませんでした。"
 
-#: koassistant_xray_browser.lua:507
+#: koassistant_xray_browser.lua:585
 #, fuzzy, lua-format
 msgid "%1x"
 msgstr "%1回"
 
-#: koassistant_xray_browser.lua:519
+#: koassistant_xray_browser.lua:597
 #, fuzzy
 msgid "%1 — %2 characters"
 msgstr "%1 — %2人の登場人物"
 
-#: koassistant_xray_browser.lua:521
+#: koassistant_xray_browser.lua:599
 #, fuzzy
 msgid "This Chapter — %1 characters"
 msgstr "この章 — %1人の登場人物"
 
-#: koassistant_xray_browser.lua:534
+#: koassistant_xray_browser.lua:612
 #, fuzzy
 msgid "Search X-Ray"
 msgstr "X-Rayを検索"
 
-#: koassistant_xray_browser.lua:536
+#: koassistant_xray_browser.lua:614
 #, fuzzy
 msgid "Name, term, description..."
 msgstr "名前、用語、説明..."
 
-#: koassistant_xray_browser.lua:571
+#: koassistant_xray_browser.lua:649
 #, fuzzy
 msgid "No results for \"%1\"."
 msgstr "\"%1\"の検索結果はありません。"
 
-#: koassistant_xray_browser.lua:585
+#: koassistant_xray_browser.lua:663
 #, fuzzy
 msgid "alias"
 msgstr "別名"
 
-#: koassistant_xray_browser.lua:587
+#: koassistant_xray_browser.lua:665
 #, fuzzy
 msgid "desc."
 msgstr "説明"
 
-#: koassistant_xray_browser.lua:602
+#: koassistant_xray_browser.lua:680
 #, fuzzy
 msgid "Results for \"%1\" (%2)"
 msgstr "\"%1\"の検索結果 (%2)"
 
-#: koassistant_xray_browser.lua:647
+#: koassistant_xray_browser.lua:725
 #, fuzzy
 msgid "Delete X-Ray"
 msgstr "X-Rayを削除"
 
-#: koassistant_xray_browser.lua:656
+#: koassistant_xray_browser.lua:734
 #, fuzzy
 msgid "Delete this X-Ray? This cannot be undone."
 msgstr "このX-Rayを削除しますか?この操作は取り消せません。"
 
-#: koassistant_xray_browser.lua:675
+#: koassistant_xray_browser.lua:753
 #, fuzzy
 msgid "Progress:"
 msgstr "進行状況:"
 
-#: koassistant_xray_browser.lua:680
+#: koassistant_xray_browser.lua:758
 #, fuzzy
 msgid "Fiction"
 msgstr "フィクション"
 
-#: koassistant_xray_browser.lua:680
+#: koassistant_xray_browser.lua:758
 #, fuzzy
 msgid "Non-Fiction"
 msgstr "ノンフィクション"
 
-#: koassistant_xray_browser.lua:681
+#: koassistant_xray_browser.lua:759
 #, fuzzy
 msgid "Type:"
 msgstr "タイプ:"
 
-#: koassistant_xray_browser.lua:685 main.lua:7759
+#: koassistant_xray_browser.lua:763 main.lua:7793
 #: koassistant_ui/prompts_manager.lua:1458
 #: koassistant_ui/prompts_manager.lua:1923
 #, fuzzy
 msgid "Info"
 msgstr "情報"
 
-#: koassistant_xray_parser.lua:128
+#: koassistant_xray_parser.lua:135
 #, fuzzy
 msgid "Cast"
 msgstr "登場人物"
 
-#: koassistant_xray_parser.lua:129
+#: koassistant_xray_parser.lua:136
 #, fuzzy
 msgid "World"
 msgstr "世界観"
 
-#: koassistant_xray_parser.lua:130
+#: koassistant_xray_parser.lua:137
 #, fuzzy
 msgid "Ideas"
 msgstr "アイデア"
 
-#: koassistant_xray_parser.lua:131
+#: koassistant_xray_parser.lua:138
 #, fuzzy
 msgid "Lexicon"
 msgstr "用語集"
 
-#: koassistant_xray_parser.lua:132
+#: koassistant_xray_parser.lua:139
 #, fuzzy
 msgid "Story Arc"
 msgstr "ストーリー展開"
 
-#: koassistant_xray_parser.lua:133
+#: koassistant_xray_parser.lua:140
 #, fuzzy
 msgid "Current State"
 msgstr "現在の状況"
 
-#: koassistant_xray_parser.lua:137
+#: koassistant_xray_parser.lua:144
 #, fuzzy
 msgid "Key Figures"
 msgstr "主要人物"
 
-#: koassistant_xray_parser.lua:138
+#: koassistant_xray_parser.lua:145
 #, fuzzy
 msgid "Core Concepts"
 msgstr "中心概念"
 
-#: koassistant_xray_parser.lua:139
+#: koassistant_xray_parser.lua:146
 #, fuzzy
 msgid "Arguments"
 msgstr "論点"
 
-#: koassistant_xray_parser.lua:140
+#: koassistant_xray_parser.lua:147
 #, fuzzy
 msgid "Terminology"
 msgstr "専門用語"
 
-#: koassistant_xray_parser.lua:141
+#: koassistant_xray_parser.lua:148
 #, fuzzy
 msgid "Argument Development"
 msgstr "論証の展開"
 
-#: koassistant_xray_parser.lua:142
+#: koassistant_xray_parser.lua:149
 #, fuzzy
 msgid "Current Position"
 msgstr "現在の立場"
 
-#: koassistant_xray_parser.lua:196
+#: koassistant_xray_parser.lua:204
 #, fuzzy
 msgid "Also known as:"
 msgstr "別名:"
 
-#: koassistant_xray_parser.lua:206
+#: koassistant_xray_parser.lua:215
 #, fuzzy
 msgid "Connections:"
 msgstr "関連性:"
 
-#: koassistant_xray_parser.lua:218
+#: koassistant_xray_parser.lua:227
 #, fuzzy
 msgid "Significance:"
 msgstr "重要性:"
 
-#: koassistant_xray_parser.lua:229
+#: koassistant_xray_parser.lua:238
 #, fuzzy
 msgid "Evidence:"
 msgstr "根拠:"
 
-#: koassistant_xray_parser.lua:253
+#: koassistant_xray_parser.lua:263
 #, fuzzy
 msgid "Characters:"
 msgstr "登場人物:"
 
-#: koassistant_xray_parser.lua:263
+#: koassistant_xray_parser.lua:273
 #, fuzzy
 msgid "Active conflicts:"
 msgstr "進行中の対立:"
 
-#: koassistant_xray_parser.lua:272
+#: koassistant_xray_parser.lua:282
 #, fuzzy
 msgid "Questions addressed:"
 msgstr "扱われている問題:"
 
-#: koassistant_xray_parser.lua:272
+#: koassistant_xray_parser.lua:282
 #, fuzzy
 msgid "Unanswered questions:"
 msgstr "未解決の問題:"
 
-#: koassistant_xray_parser.lua:280
+#: koassistant_xray_parser.lua:291
 #, fuzzy
 msgid "Building toward:"
 msgstr "展開の方向:"
@@ -3727,7 +3826,7 @@ msgstr "展開の方向:"
 msgid "Chat/Action"
 msgstr "チャット/アクション"
 
-#: main.lua:314 main.lua:8360
+#: main.lua:314 main.lua:8396
 #, fuzzy
 msgid "Notebook"
 msgstr "ノートブック"
@@ -4270,7 +4369,7 @@ msgstr "主要言語：%1"
 msgid "Use Primary (%1)"
 msgstr "主要言語を使用（%1）"
 
-#: main.lua:3349 main.lua:3381 main.lua:4925
+#: main.lua:3349 main.lua:3381 main.lua:4926
 #, fuzzy
 msgid "Translate: %1"
 msgstr "翻訳：%1"
@@ -4301,7 +4400,7 @@ msgstr "翻訳のターゲット言語を入力してください。"
 msgid "(Set your languages for quick selection)"
 msgstr "（クイック選択のために言語を設定してください）"
 
-#: main.lua:3454 main.lua:5734
+#: main.lua:3454 main.lua:5735
 #, fuzzy
 msgid "Follow Translation Language"
 msgstr "翻訳言語に従う"
@@ -4311,7 +4410,7 @@ msgstr "翻訳言語に従う"
 msgid "Dictionary: Follow Translation"
 msgstr "辞書：翻訳に従う"
 
-#: main.lua:3475 main.lua:5751
+#: main.lua:3475 main.lua:5752
 #, fuzzy
 msgid "Follow Primary Language"
 msgstr "主要言語に従う"
@@ -4321,7 +4420,7 @@ msgstr "主要言語に従う"
 msgid "Dictionary: Follow Primary"
 msgstr "辞書：主要言語に従う"
 
-#: main.lua:3513 main.lua:4938
+#: main.lua:3513 main.lua:4939
 #, fuzzy
 msgid "Dictionary: %1"
 msgstr "辞書：%1"
@@ -4388,17 +4487,17 @@ msgstr "モデルリストはmodel_lists.luaファイルを通じて管理され
 msgid "No previously opened chat found"
 msgstr "以前に開いたチャットが見つかりません"
 
-#: main.lua:3894 main.lua:6359
+#: main.lua:3894 main.lua:6360
 #, fuzzy
 msgid "Configuration not found. Please set up configuration.lua first."
 msgstr "設定が見つかりません。最初にconfiguration.luaを設定してください。"
 
-#: main.lua:3931 main.lua:4351 main.lua:5505 main.lua:5523
+#: main.lua:3931 main.lua:4352 main.lua:5506 main.lua:5524
 #, fuzzy
 msgid "Please open a book first"
 msgstr "最初に本を開いてください"
 
-#: main.lua:3968 main.lua:4171 main.lua:4280
+#: main.lua:3968 main.lua:4172 main.lua:4281
 #, fuzzy
 msgid "No book open"
 msgstr "本が開かれていません"
@@ -4414,7 +4513,7 @@ msgstr ""
 "\n"
 "X-Ray、ドキュメント要約、またはドキュメント分析を実行して、再利用可能なキャッシュを作成してください。"
 
-#: main.lua:4182
+#: main.lua:4183
 #, fuzzy
 msgid ""
 "No summary cached.\n"
@@ -4425,12 +4524,12 @@ msgstr ""
 "\n"
 "クイックアクション→要約を生成を使用して作成してください。"
 
-#: main.lua:4252
+#: main.lua:4253
 #, fuzzy
 msgid "Summary deleted"
 msgstr "要約が削除されました"
 
-#: main.lua:4291
+#: main.lua:4292
 #, fuzzy
 msgid ""
 "Summary already cached.\n"
@@ -4441,7 +4540,7 @@ msgstr ""
 "\n"
 "表示するには要約を表示を使用してください。"
 
-#: main.lua:4300
+#: main.lua:4301
 #, fuzzy
 msgid ""
 "Text extraction is required to generate a summary.\n"
@@ -4452,7 +4551,7 @@ msgstr ""
 "\n"
 "設定→プライバシーとデータ→テキスト抽出で有効にしてください。"
 
-#: main.lua:4338
+#: main.lua:4339
 #, fuzzy
 msgid ""
 "Generate a reusable document summary?\n"
@@ -4469,145 +4568,145 @@ msgstr ""
 "• 将来の使用のために要約を保存\n"
 "• この本のスマートアクションを有効化"
 
-#: main.lua:4361 main.lua:4433 main.lua:4488
+#: main.lua:4362 main.lua:4434 main.lua:4489
 #, fuzzy
 msgid "Action '%1' not found"
 msgstr "アクション'%1'が見つかりません"
 
-#: main.lua:4471
+#: main.lua:4472
 #, fuzzy
 msgid "Unknown action context: %1"
 msgstr "不明なアクションコンテキスト：%1"
 
-#: main.lua:4637 main.lua:4917
+#: main.lua:4638 main.lua:4918
 #, fuzzy
 msgid "Primary Language"
 msgstr "主要言語"
 
-#: main.lua:4661 main.lua:4827 koassistant_ui/prompts_manager.lua:725
+#: main.lua:4662 main.lua:4828 koassistant_ui/prompts_manager.lua:725
 #: koassistant_ui/prompts_manager.lua:2991
 #, fuzzy
 msgid "AI Behavior"
 msgstr "AI動作"
 
-#: main.lua:4746
+#: main.lua:4747
 #, fuzzy
 msgid "Default"
 msgstr "デフォルト"
 
-#: main.lua:4822
+#: main.lua:4823
 #, fuzzy
 msgid "Behavior: %1"
 msgstr "動作: %1"
 
-#: main.lua:4835
+#: main.lua:4836
 #, fuzzy
 msgid "Domain: %1"
 msgstr "ドメイン: %1"
 
-#: main.lua:4840 main.lua:5404
+#: main.lua:4841 main.lua:5405
 #, fuzzy
 msgid "Knowledge Domain"
 msgstr "知識ドメイン"
 
-#: main.lua:4848
+#: main.lua:4849
 #, fuzzy
 msgid "Temp: %1"
 msgstr "温度: %1"
 
-#: main.lua:4878
+#: main.lua:4879
 #, fuzzy
 msgid "Anthropic/Gemini Reasoning: ON"
 msgstr "Anthropic/Gemini 推論：ON"
 
-#: main.lua:4878
+#: main.lua:4879
 #, fuzzy
 msgid "Anthropic/Gemini Reasoning: OFF"
 msgstr "Anthropic/Gemini 推論：OFF"
 
-#: main.lua:4895
+#: main.lua:4896
 #, fuzzy
 msgid "Web Search: ON"
 msgstr "Web検索: ON"
 
-#: main.lua:4895
+#: main.lua:4896
 #, fuzzy
 msgid "Web Search: OFF"
 msgstr "Web検索: OFF"
 
-#: main.lua:4912
+#: main.lua:4913
 #, fuzzy
 msgid "Language: %1"
 msgstr "言語: %1"
 
-#: main.lua:4951
+#: main.lua:4952
 #, fuzzy
 msgid "H.Bypass: ON"
 msgstr "H.バイパス: ON"
 
-#: main.lua:4951
+#: main.lua:4952
 #, fuzzy
 msgid "H.Bypass: OFF"
 msgstr "H.バイパス: OFF"
 
-#: main.lua:4968
+#: main.lua:4969
 #, fuzzy
 msgid "D.Bypass: ON"
 msgstr "D.バイパス: ON"
 
-#: main.lua:4968
+#: main.lua:4969
 #, fuzzy
 msgid "D.Bypass: OFF"
 msgstr "D.バイパス: OFF"
 
-#: main.lua:5057
+#: main.lua:5058
 #, fuzzy
 msgid "Quick Actions..."
 msgstr "クイックアクション..."
 
-#: main.lua:5069
+#: main.lua:5070
 #, fuzzy
 msgid "More Settings..."
 msgstr "その他の設定..."
 
-#: main.lua:5125
+#: main.lua:5126
 #, fuzzy
 msgid "Quick Actions is only available while reading a book."
 msgstr "クイックアクションは書籍を読んでいる時のみ使用できます。"
 
-#: main.lua:5174
+#: main.lua:5175
 #, fuzzy
 msgid "View Summary"
 msgstr "要約を表示"
 
-#: main.lua:5174
+#: main.lua:5175
 #, fuzzy
 msgid "Generate Summary"
 msgstr "要約を生成"
 
-#: main.lua:5188
+#: main.lua:5189
 #, fuzzy
 msgid "View X-Ray"
 msgstr "X-Rayを表示"
 
-#: main.lua:5202
+#: main.lua:5203
 #, fuzzy
 msgid "View Analysis"
 msgstr "分析を表示"
 
-#: main.lua:5265
+#: main.lua:5266
 #, fuzzy
 msgid "Testing connection..."
 msgstr "接続テスト中..."
 
-#: main.lua:5293
+#: main.lua:5294
 #, fuzzy
 msgid ""
 "Connection test failed:\n"
 msgstr ""
 "接続テストに失敗しました:\n"
 
-#: main.lua:5299
+#: main.lua:5300
 #, fuzzy
 msgid ""
 "Connection test successful!\n"
@@ -4624,12 +4723,12 @@ msgstr ""
 "\n"
 "応答: %3"
 
-#: main.lua:5307
+#: main.lua:5308
 #, fuzzy
 msgid "Connection test failed: "
 msgstr "接続テストに失敗しました:"
 
-#: main.lua:5327
+#: main.lua:5328
 #, fuzzy
 msgid ""
 "No book is currently open.\n"
@@ -4640,7 +4739,7 @@ msgstr ""
 "\n"
 "まず書籍を開いてから、このオプションでキャッシュされたX-RayとRecap応答をクリアしてください。"
 
-#: main.lua:5340
+#: main.lua:5341
 #, fuzzy
 msgid ""
 "No action cache found for this book.\n"
@@ -4651,7 +4750,7 @@ msgstr ""
 "\n"
 "まずX-RayまたはRecapを実行してキャッシュを作成してください。"
 
-#: main.lua:5350
+#: main.lua:5351
 #, fuzzy
 msgid ""
 "Clear cached X-Ray and Recap responses for this book?\n"
@@ -4662,62 +4761,62 @@ msgstr ""
 "\n"
 "次回これらのアクションを実行すると、キャッシュされたバージョンから更新するのではなく、最初から再生成されます。"
 
-#: main.lua:5360
+#: main.lua:5361
 #, fuzzy
 msgid "Clear Cache"
 msgstr "キャッシュをクリア"
 
-#: main.lua:5366
+#: main.lua:5367
 #, fuzzy
 msgid "Action cache cleared successfully."
 msgstr "アクションキャッシュを正常にクリアしました。"
 
-#: main.lua:5371
+#: main.lua:5372
 #, fuzzy
 msgid "Failed to clear action cache."
 msgstr "アクションキャッシュのクリアに失敗しました。"
 
-#: main.lua:5478
+#: main.lua:5479
 #, fuzzy
 msgid "Dictionary bypass: ON"
 msgstr "辞書バイパス: ON"
 
-#: main.lua:5478
+#: main.lua:5479
 #, fuzzy
 msgid "Dictionary bypass: OFF"
 msgstr "辞書バイパス: OFF"
 
-#: main.lua:5492
+#: main.lua:5493
 #, fuzzy
 msgid "Highlight bypass: ON"
 msgstr "ハイライトバイパス: ON"
 
-#: main.lua:5492
+#: main.lua:5493
 #, fuzzy
 msgid "Highlight bypass: OFF"
 msgstr "ハイライトバイパス: OFF"
 
-#: main.lua:5618
+#: main.lua:5619
 #, fuzzy
 msgid "Cannot determine current page"
 msgstr "現在のページを特定できません"
 
-#: main.lua:5664
+#: main.lua:5665
 #, fuzzy
 msgid "Could not extract text from current page"
 msgstr "現在のページからテキストを抽出できませんでした"
 
-#: main.lua:5675
+#: main.lua:5676
 #, fuzzy
 msgid "Translate action not found"
 msgstr "翻訳アクションが見つかりません"
 
-#: main.lua:5851
+#: main.lua:5852
 #, fuzzy
 msgid "Select Export Folder"
 msgstr "エクスポートフォルダを選択"
 
-#: main.lua:5858
+#: main.lua:5859
 #, fuzzy
 msgid ""
 "Export path set to:\n"
@@ -4726,17 +4825,17 @@ msgstr ""
 "エクスポートパスが設定されました:\n"
 "%1"
 
-#: main.lua:6250 main.lua:6304
+#: main.lua:6251 main.lua:6305
 #, fuzzy
 msgid "Bypass action: %1"
 msgstr "バイパスアクション: %1"
 
-#: main.lua:6349
+#: main.lua:6350
 #, fuzzy
 msgid "All action settings restored to defaults"
 msgstr "すべてのアクション設定をデフォルトに戻しました"
 
-#: main.lua:6422
+#: main.lua:6423
 #, fuzzy
 msgid ""
 "KOAssistant Plugin\n"
@@ -4745,88 +4844,88 @@ msgstr ""
 "KOAssistant プラグイン\n"
 "バージョン:"
 
-#: main.lua:6507
+#: main.lua:6508
 #, fuzzy
 msgid "Feature settings reset to defaults"
 msgstr "機能設定をデフォルトにリセットしました"
 
-#: main.lua:6537
+#: main.lua:6538
 #, fuzzy
 msgid "All customizations reset"
 msgstr "すべてのカスタマイズをリセットしました"
 
-#: main.lua:6561
+#: main.lua:6562
 #, fuzzy
 msgid "Custom actions deleted"
 msgstr "カスタムアクションを削除しました"
 
-#: main.lua:6575
+#: main.lua:6576
 #, fuzzy
 msgid "Action edits reset to defaults"
 msgstr "アクションの編集をデフォルトにリセットしました"
 
-#: main.lua:6602
+#: main.lua:6606
 #, fuzzy
 msgid "Action menus reset to defaults"
 msgstr "アクションメニューをデフォルトにリセットしました"
 
-#: main.lua:6616
+#: main.lua:6620
 #, fuzzy
 msgid "Dictionary popup actions reset"
 msgstr "辞書ポップアップアクションをリセットしました"
 
-#: main.lua:6629
+#: main.lua:6633
 #, fuzzy
 msgid "Highlight menu actions reset (restart to apply)"
 msgstr "ハイライトメニューアクションをリセットしました(適用には再起動が必要)"
 
-#: main.lua:6641
+#: main.lua:6645
 #, fuzzy
 msgid "File browser actions reset"
 msgstr "ファイルブラウザアクションをリセットしました"
 
-#: main.lua:6653
+#: main.lua:6657
 #, fuzzy
 msgid "Quick actions reset"
 msgstr "クイックアクションをリセットしました"
 
-#: main.lua:6674
+#: main.lua:6678
 #, fuzzy
 msgid "Custom providers and models reset"
 msgstr "カスタムプロバイダーとモデルをリセットしました"
 
-#: main.lua:6732
+#: main.lua:6751
 #, fuzzy
 msgid "All action settings reset"
 msgstr "すべてのアクション設定をリセットしました"
 
-#: main.lua:6746
+#: main.lua:6780
 #, fuzzy
 msgid "Fresh start complete - API keys preserved"
 msgstr "初期化が完了しました - APIキーは保持されています"
 
-#: main.lua:6767
+#: main.lua:6801
 #, fuzzy
 msgid "Default: Personal content private, basic context shared"
 msgstr "デフォルト：個人コンテンツは非公開、基本的なコンテキストは共有"
 
-#: main.lua:6788
+#: main.lua:6822
 #, fuzzy
 msgid "Minimal: All extended sharing disabled"
 msgstr "最小：すべての拡張共有を無効化"
 
-#: main.lua:6809
+#: main.lua:6843
 #, fuzzy
 msgid ""
 "Full: All data sharing enabled (Text extraction must be enabled separately)"
 msgstr "完全：すべてのデータ共有を有効化（テキスト抽出は別途有効化が必要）"
 
-#: main.lua:6861
+#: main.lua:6895
 #, fuzzy
 msgid "(custom)"
 msgstr "（カスタム）"
 
-#: main.lua:6921
+#: main.lua:6955
 #, fuzzy
 msgid ""
 "Select providers to trust\n"
@@ -4837,157 +4936,157 @@ msgstr ""
 "\n"
 "信頼されたプロバイダーはデータ共有制御をバイパスします。"
 
-#: main.lua:6947
+#: main.lua:6981
 #, fuzzy
 msgid "✓ Reset"
 msgstr "✓ リセット"
 
-#: main.lua:6949
+#: main.lua:6983
 #, fuzzy
 msgid "✗ Keep"
 msgstr "✗ 保持"
 
-#: main.lua:6955 main.lua:7255 main.lua:7386
+#: main.lua:6989 main.lua:7289 main.lua:7420
 #, fuzzy
 msgid "Settings"
 msgstr "設定"
 
-#: main.lua:6963
+#: main.lua:6997
 #, fuzzy
 msgid "Custom actions"
 msgstr "カスタムアクション"
 
-#: main.lua:6971
+#: main.lua:7005
 #, fuzzy
 msgid "Action edits"
 msgstr "アクション編集"
 
-#: main.lua:6979
+#: main.lua:7013
 #, fuzzy
 msgid "Action menus"
 msgstr "アクションメニュー"
 
-#: main.lua:6987
+#: main.lua:7021
 #, fuzzy
 msgid "Custom providers & models"
 msgstr "カスタムプロバイダーとモデル"
 
-#: main.lua:6995
+#: main.lua:7029
 #, fuzzy
 msgid "Behaviors & domains"
 msgstr "動作とドメイン"
 
-#: main.lua:7003 main.lua:7060
+#: main.lua:7037 main.lua:7094
 #, fuzzy
 msgid "API keys"
 msgstr "APIキー"
 
-#: main.lua:7015
+#: main.lua:7049
 #, fuzzy
 msgid "Reset Selected"
 msgstr "選択項目をリセット"
 
-#: main.lua:7024
+#: main.lua:7058
 #, fuzzy
 msgid "What would you like to reset?"
 msgstr "何をリセットしますか？"
 
-#: main.lua:7036
+#: main.lua:7070
 #, fuzzy
 msgid "settings"
 msgstr "設定"
 
-#: main.lua:7040
+#: main.lua:7074
 #, fuzzy
 msgid "custom actions"
 msgstr "カスタムアクション"
 
-#: main.lua:7044
+#: main.lua:7078
 #, fuzzy
 msgid "action edits"
 msgstr "アクション編集"
 
-#: main.lua:7048
+#: main.lua:7082
 #, fuzzy
 msgid "action menus"
 msgstr "アクションメニュー"
 
-#: main.lua:7052
+#: main.lua:7086
 #, fuzzy
 msgid "providers/models"
 msgstr "プロバイダー/モデル"
 
-#: main.lua:7056
+#: main.lua:7090
 #, fuzzy
 msgid "behaviors/domains"
 msgstr "動作/ドメイン"
 
-#: main.lua:7065
+#: main.lua:7099
 #, fuzzy
 msgid "Reset: %1"
 msgstr "リセット：%1"
 
-#: main.lua:7070
+#: main.lua:7104
 #, fuzzy
 msgid "Nothing selected to reset"
 msgstr "リセットする項目が選択されていません"
 
-#: main.lua:7132
+#: main.lua:7166
 #, fuzzy
 msgid "Core Settings: ✓ Included"
 msgstr "コア設定：✓ 含める"
 
-#: main.lua:7138
+#: main.lua:7172
 #, fuzzy
 msgid "API Keys: ✓ Include (⚠ Sensitive)"
 msgstr "APIキー：✓ 含める（⚠ 機密情報）"
 
-#: main.lua:7138
+#: main.lua:7172
 #, fuzzy
 msgid "API Keys: ✗ Exclude"
 msgstr "APIキー：✗ 除外"
 
-#: main.lua:7153
+#: main.lua:7187
 #, fuzzy
 msgid "Config Files: ✓ Include"
 msgstr "設定ファイル：✓ 含める"
 
-#: main.lua:7153
+#: main.lua:7187
 #, fuzzy
 msgid "Config Files: ✗ Exclude"
 msgstr "設定ファイル：✗ 除外"
 
-#: main.lua:7168
+#: main.lua:7202
 #, fuzzy
 msgid "Domains & Behaviors: ✓ Include"
 msgstr "ドメインと動作：✓ 含める"
 
-#: main.lua:7168
+#: main.lua:7202
 #, fuzzy
 msgid "Domains & Behaviors: ✗ Exclude"
 msgstr "ドメインと動作：✗ 除外"
 
-#: main.lua:7183
+#: main.lua:7217
 #, fuzzy
 msgid "Chat History: ✓ Include"
 msgstr "チャット履歴：✓ 含める"
 
-#: main.lua:7183
+#: main.lua:7217
 #, fuzzy
 msgid "Chat History: ✗ Exclude"
 msgstr "チャット履歴：✗ 除外"
 
-#: main.lua:7198 main.lua:7350 main.lua:7561 main.lua:7583
+#: main.lua:7232 main.lua:7384 main.lua:7595 main.lua:7617
 #, fuzzy
 msgid "━━━━━━━━━━━━━━━━"
 msgstr "━━━━━━━━━━━━━━━━"
 
-#: main.lua:7224
+#: main.lua:7258
 #, fuzzy
 msgid "What to include in backup:"
 msgstr "バックアップに含める項目："
 
-#: main.lua:7236
+#: main.lua:7270
 #, fuzzy
 msgid ""
 "Creating backup...\n"
@@ -4998,7 +5097,7 @@ msgstr ""
 "\n"
 "しばらくお待ちください。"
 
-#: main.lua:7248
+#: main.lua:7282
 #, fuzzy
 msgid ""
 "Backup created successfully!\n"
@@ -5013,47 +5112,47 @@ msgstr ""
 "\n"
 "サイズ：%2"
 
-#: main.lua:7261 main.lua:7392
+#: main.lua:7295 main.lua:7426
 #, fuzzy
 msgid "Config Files"
 msgstr "設定ファイル"
 
-#: main.lua:7267 main.lua:7397
+#: main.lua:7301 main.lua:7431
 #, fuzzy
 msgid "%1 domains"
 msgstr "%1個のドメイン"
 
-#: main.lua:7269
+#: main.lua:7303
 #, fuzzy
 msgid "0 domains"
 msgstr "0個のドメイン"
 
-#: main.lua:7272 main.lua:7402
+#: main.lua:7306 main.lua:7436
 #, fuzzy
 msgid "%1 behaviors"
 msgstr "%1個の動作"
 
-#: main.lua:7274
+#: main.lua:7308
 #, fuzzy
 msgid "0 behaviors"
 msgstr "0個の動作"
 
-#: main.lua:7280 main.lua:7410
+#: main.lua:7314 main.lua:7444
 #, fuzzy
 msgid "%1 chats"
 msgstr "%1個のチャット"
 
-#: main.lua:7282
+#: main.lua:7316
 #, fuzzy
 msgid "0 chats"
 msgstr "0個のチャット"
 
-#: main.lua:7287
+#: main.lua:7321
 #, fuzzy
 msgid "Included:"
 msgstr "含まれる項目："
 
-#: main.lua:7297
+#: main.lua:7331
 #, fuzzy
 msgid ""
 "Backup failed:\n"
@@ -5064,7 +5163,7 @@ msgstr ""
 "\n"
 "%1"
 
-#: main.lua:7314
+#: main.lua:7348
 #, fuzzy
 msgid ""
 "No backups found.\n"
@@ -5077,7 +5176,7 @@ msgstr ""
 "まずバックアップを作成してください：\n"
 "設定 → 詳細 → 設定管理 → バックアップを作成"
 
-#: main.lua:7356
+#: main.lua:7390
 #, fuzzy
 msgid ""
 "Select backup to restore\n"
@@ -5088,7 +5187,7 @@ msgstr ""
 "\n"
 "合計：%1個のバックアップ"
 
-#: main.lua:7371 main.lua:7770
+#: main.lua:7405 main.lua:7804
 #, fuzzy
 msgid ""
 "Invalid backup:\n"
@@ -5099,7 +5198,7 @@ msgstr ""
 "\n"
 "%1"
 
-#: main.lua:7380
+#: main.lua:7414
 #, fuzzy
 msgid ""
 "Backup: %1\n"
@@ -5116,107 +5215,107 @@ msgstr ""
 "\n"
 "内容："
 
-#: main.lua:7390
+#: main.lua:7424
 #, fuzzy
 msgid "No API keys"
 msgstr "APIキーなし"
 
-#: main.lua:7399
+#: main.lua:7433
 #, fuzzy
 msgid "domains"
 msgstr "ドメイン"
 
-#: main.lua:7404
+#: main.lua:7438
 #, fuzzy
 msgid "behaviors"
 msgstr "ビヘイビア"
 
-#: main.lua:7412
+#: main.lua:7446
 #, fuzzy
 msgid "Chat history"
 msgstr "チャット履歴"
 
-#: main.lua:7422 main.lua:7643
+#: main.lua:7456 main.lua:7677
 #, fuzzy
 msgid "Warnings:"
 msgstr "警告:"
 
-#: main.lua:7439
+#: main.lua:7473
 #, fuzzy
 msgid "Restore →"
 msgstr "復元 →"
 
-#: main.lua:7476
+#: main.lua:7510
 #, fuzzy
 msgid "Settings: ✓ Restore"
 msgstr "設定: ✓ 復元"
 
-#: main.lua:7476
+#: main.lua:7510
 #, fuzzy
 msgid "Settings: ✗ Skip"
 msgstr "設定: ✗ スキップ"
 
-#: main.lua:7493
+#: main.lua:7527
 #, fuzzy
 msgid "API Keys: ✓ Restore"
 msgstr "APIキー: ✓ 復元"
 
-#: main.lua:7493
+#: main.lua:7527
 #, fuzzy
 msgid "API Keys: ✗ Skip"
 msgstr "APIキー: ✗ スキップ"
 
-#: main.lua:7510
+#: main.lua:7544
 #, fuzzy
 msgid "Config Files: ✓ Restore"
 msgstr "設定ファイル: ✓ 復元"
 
-#: main.lua:7510
+#: main.lua:7544
 #, fuzzy
 msgid "Config Files: ✗ Skip"
 msgstr "設定ファイル: ✗ スキップ"
 
-#: main.lua:7527
+#: main.lua:7561
 #, fuzzy
 msgid "Domains & Behaviors: ✓ Restore"
 msgstr "ドメインとビヘイビア: ✓ 復元"
 
-#: main.lua:7527
+#: main.lua:7561
 #, fuzzy
 msgid "Domains & Behaviors: ✗ Skip"
 msgstr "ドメインとビヘイビア: ✗ スキップ"
 
-#: main.lua:7544
+#: main.lua:7578
 #, fuzzy
 msgid "Chat History: ✓ Restore"
 msgstr "チャット履歴: ✓ 復元"
 
-#: main.lua:7544
+#: main.lua:7578
 #, fuzzy
 msgid "Chat History: ✗ Skip"
 msgstr "チャット履歴: ✗ スキップ"
 
-#: main.lua:7567
+#: main.lua:7601
 #, fuzzy
 msgid "Mode: Merge with existing"
 msgstr "モード: 既存とマージ"
 
-#: main.lua:7567
+#: main.lua:7601
 #, fuzzy
 msgid "Mode: Replace existing"
 msgstr "モード: 既存を置換"
 
-#: main.lua:7589
+#: main.lua:7623
 #, fuzzy
 msgid "Restore Now"
 msgstr "今すぐ復元"
 
-#: main.lua:7609
+#: main.lua:7643
 #, fuzzy
 msgid "What to restore:"
 msgstr "復元する項目:"
 
-#: main.lua:7622
+#: main.lua:7656
 #, fuzzy
 msgid ""
 "Restore from backup?\n"
@@ -5231,12 +5330,12 @@ msgstr ""
 "\n"
 "⚠ 変更を完全に反映するには、復元後にKOReaderを再起動する必要があります。"
 
-#: main.lua:7623 main.lua:7779
+#: main.lua:7657 main.lua:7813
 #, fuzzy
 msgid "Restore"
 msgstr "復元"
 
-#: main.lua:7627
+#: main.lua:7661
 #, fuzzy
 msgid ""
 "Restoring backup...\n"
@@ -5247,7 +5346,7 @@ msgstr ""
 "\n"
 "しばらくお待ちください。"
 
-#: main.lua:7640
+#: main.lua:7674
 #, fuzzy
 msgid ""
 "Restore completed successfully!\n"
@@ -5258,7 +5357,7 @@ msgstr ""
 "\n"
 "すべての変更を反映するには、KOReaderの再起動を推奨します。"
 
-#: main.lua:7652 koassistant_ui/prompts_manager.lua:2579
+#: main.lua:7686 koassistant_ui/prompts_manager.lua:2579
 #: koassistant_ui/prompts_manager.lua:3017
 #: koassistant_ui/prompts_manager.lua:3201
 #: koassistant_ui/prompts_manager.lua:3675
@@ -5270,12 +5369,12 @@ msgstr ""
 msgid "OK"
 msgstr "OK"
 
-#: main.lua:7658
+#: main.lua:7692
 #, fuzzy
 msgid "Restart Now"
 msgstr "今すぐ再起動"
 
-#: main.lua:7672
+#: main.lua:7706
 #, fuzzy
 msgid ""
 "Restore failed:\n"
@@ -5286,12 +5385,12 @@ msgstr ""
 "\n"
 "%1"
 
-#: main.lua:7695
+#: main.lua:7729
 #, fuzzy
 msgid "No backups found."
 msgstr "バックアップが見つかりません。"
 
-#: main.lua:7743
+#: main.lua:7777
 #, fuzzy
 msgid ""
 "Backups (%1)\n"
@@ -5302,7 +5401,7 @@ msgstr ""
 "\n"
 "合計サイズ: %2"
 
-#: main.lua:7795
+#: main.lua:7829
 #, fuzzy
 msgid ""
 "Delete backup?\n"
@@ -5317,12 +5416,12 @@ msgstr ""
 "\n"
 "この操作は元に戻せません。"
 
-#: main.lua:7803
+#: main.lua:7837
 #, fuzzy
 msgid "Backup deleted"
 msgstr "バックアップを削除しました"
 
-#: main.lua:7812
+#: main.lua:7846
 #, fuzzy
 msgid ""
 "Failed to delete backup:\n"
@@ -5333,7 +5432,7 @@ msgstr ""
 "\n"
 "%1"
 
-#: main.lua:7875
+#: main.lua:7909
 #, fuzzy
 msgid ""
 "KOAssistant: Chat Storage Upgrade\n"
@@ -5352,22 +5451,22 @@ msgstr ""
 "\n"
 "古いチャットファイルは koassistant_chats.backup/ にバックアップされます。"
 
-#: main.lua:7882
+#: main.lua:7916
 #, fuzzy
 msgid "Migrate Now"
 msgstr "今すぐ移行"
 
-#: main.lua:7914
+#: main.lua:7948
 #, fuzzy
 msgid "KOAssistant: Migrating chat history..."
 msgstr "KOAssistant: チャット履歴を移行中..."
 
-#: main.lua:7927
+#: main.lua:7961
 #, fuzzy
 msgid "No old chats found to migrate"
 msgstr "移行する古いチャットが見つかりません"
 
-#: main.lua:8049
+#: main.lua:8083
 #, fuzzy
 msgid ""
 "KOAssistant: Migration Incomplete\n"
@@ -5388,12 +5487,12 @@ msgstr ""
 "次回起動時に移行を再試行します。\n"
 "詳細なエラーメッセージはコンソールを確認してください。"
 
-#: main.lua:8061
+#: main.lua:8095
 #, fuzzy
 msgid "Failed documents:"
 msgstr "失敗したドキュメント:"
 
-#: main.lua:8068
+#: main.lua:8102
 #, fuzzy
 msgid ""
 "KOAssistant: Migration Complete\n"
@@ -5412,82 +5511,95 @@ msgstr ""
 "古いチャットファイルのバックアップ先:\n"
 "koassistant_chats.backup/"
 
-#: main.lua:8132
+#: main.lua:8166
 #, fuzzy
 msgid "Welcome to KOAssistant!"
 msgstr "KOAssistantへようこそ!"
 
-#: main.lua:8133
+#: main.lua:8167
 #, fuzzy
 msgid "PRIVACY SETTINGS"
 msgstr "プライバシー設定"
 
-#: main.lua:8134
+#: main.lua:8168
 #, fuzzy
-msgid "Some features (like X-Ray) need permission to access book content."
-msgstr "X-Rayなどの機能を使用するには、書籍コンテンツへのアクセス許可が必要です。"
+msgid ""
+"Some features (like X-Ray) work best when they can access document text and other content."
+msgstr "一部の機能（X-Rayなど）は、ドキュメントのテキストやその他のコンテンツにアクセスできると最適に動作します。"
 
-#: main.lua:8135
+#: main.lua:8169
 #, fuzzy
 msgid "Enable in: Settings → Privacy & Data"
 msgstr "有効化: 設定 → プライバシーとデータ"
 
-#: main.lua:8136
+#: main.lua:8170
 #, fuzzy
 msgid "QUICK ACCESS"
 msgstr "クイックアクセス"
 
-#: main.lua:8137
+#: main.lua:8171
 #, fuzzy
-msgid "Add actions to gestures, highlight menus, or Quick Actions panel."
-msgstr "ジェスチャー、ハイライトメニュー、またはクイックアクションパネルにアクションを追加できます。"
+msgid ""
+"Add Quick Actions panels and more to gestures in KOReader's gesture settings."
+msgstr "KOReaderのジェスチャー設定で、ジェスチャーにクイックアクションパネルなどを追加できます。"
 
-#: main.lua:8138
+#: main.lua:8172
 #, fuzzy
 msgid "CUSTOM ACTIONS"
 msgstr "カスタムアクション"
 
-#: main.lua:8139
+#: main.lua:8173
 #, fuzzy
-msgid "Create your own prompts and actions."
-msgstr "独自のプロンプトとアクションを作成できます。"
+msgid "Create your own prompts and actions or edit built in ones."
+msgstr "独自のプロンプトやアクションを作成するか、組み込みのものを編集できます。"
 
-#: main.lua:8140
+#: main.lua:8174
 #, fuzzy
 msgid "Go to: Settings → Action Manager → Add"
 msgstr "移動先: 設定 → アクションマネージャー → 追加"
 
-#: main.lua:8290
+#: main.lua:8175
+#, fuzzy
+msgid "MENU AND INFO ICONS"
+msgstr "メニューと情報アイコン"
+
+#: main.lua:8176
+#, fuzzy
+msgid ""
+"Setup KOReader with emoji support to get informative icons in menus and more. See the emoji section in the README for details."
+msgstr "絵文字サポートでKOReaderを設定すると、メニューなどに情報的なアイコンが表示されます。詳細はREADMEの絵文字セクションをご覧ください。"
+
+#: main.lua:8326
 #, fuzzy
 msgid "No notebook available for this document"
 msgstr "このドキュメントのノートブックはありません"
 
-#: main.lua:8300
+#: main.lua:8336
 #, fuzzy
 msgid "No notebook exists for this document. Create one?"
 msgstr "この文書のノートブックが存在しません。作成しますか？"
 
-#: main.lua:8310
+#: main.lua:8346
 #, fuzzy
 msgid "Failed to create notebook: %1"
 msgstr "ノートブックの作成に失敗しました: %1"
 
-#: main.lua:8352
+#: main.lua:8388
 #, fuzzy
 msgid "Notebook is empty"
 msgstr "ノートブックは空です"
 
-#: main.lua:8401
+#: main.lua:8437
 #, fuzzy
 msgid "Failed to read notebook file."
 msgstr "ノートブックファイルの読み取りに失敗しました。"
 
-#: main.lua:8464
+#: main.lua:8500
 #, fuzzy
 msgid "Notebook saved"
 msgstr "ノートブックを保存しました"
 
-#: main.lua:8471
+#: main.lua:8507
 #, fuzzy
 msgid "Reset to last saved"
 msgstr "最後の保存状態に戻す"
@@ -7689,177 +7801,177 @@ msgstr "無効な値"
 msgid "Are you sure?"
 msgstr "よろしいですか?"
 
-#: prompts/actions.lua:141
+#: prompts/actions.lua:143
 #, fuzzy
 msgid "Explain"
 msgstr "説明"
 
-#: prompts/actions.lua:156
+#: prompts/actions.lua:158
 #, fuzzy
 msgid "ELI5"
 msgstr "簡単に説明"
 
-#: prompts/actions.lua:171
+#: prompts/actions.lua:173
 #, fuzzy
 msgid "Summarize"
 msgstr "要約"
 
-#: prompts/actions.lua:185
+#: prompts/actions.lua:187
 #, fuzzy
 msgid "Elaborate"
 msgstr "詳しく説明"
 
-#: prompts/actions.lua:198
+#: prompts/actions.lua:200
 #, fuzzy
 msgid "Connect"
 msgstr "関連付け"
 
-#: prompts/actions.lua:220
+#: prompts/actions.lua:222
 #, fuzzy
 msgid "Connect (With Notes)"
 msgstr "関連付け(メモ付き)"
 
-#: prompts/actions.lua:260 prompts/actions.lua:319
+#: prompts/actions.lua:262 prompts/actions.lua:325
 #, fuzzy
 msgid "Explain in Context"
 msgstr "文脈で説明"
 
-#: prompts/actions.lua:287 prompts/actions.lua:351
+#: prompts/actions.lua:291 prompts/actions.lua:357
 #, fuzzy
 msgid "Analyze in Context"
 msgstr "文脈で分析"
 
-#: prompts/actions.lua:387
+#: prompts/actions.lua:393
 #, fuzzy
 msgid "Thematic Connection"
 msgstr "テーマ的つながり"
 
-#: prompts/actions.lua:428
+#: prompts/actions.lua:434
 #, fuzzy
 msgid "Fact Check"
 msgstr "ファクトチェック"
 
-#: prompts/actions.lua:456
+#: prompts/actions.lua:462
 #, fuzzy
 msgid "Current Context"
 msgstr "現在のコンテキスト"
 
-#: prompts/actions.lua:487
+#: prompts/actions.lua:493
 #, fuzzy
 msgid "Book Info"
 msgstr "本の情報"
 
-#: prompts/actions.lua:499
+#: prompts/actions.lua:505
 #, fuzzy
 msgid "Find Similar"
 msgstr "類似作品を探す"
 
-#: prompts/actions.lua:510
+#: prompts/actions.lua:516
 #, fuzzy
 msgid "About Author"
 msgstr "著者について"
 
-#: prompts/actions.lua:522
+#: prompts/actions.lua:528
 #, fuzzy
 msgid "Historical Context"
 msgstr "歴史的背景"
 
-#: prompts/actions.lua:535
+#: prompts/actions.lua:541
 #, fuzzy
 msgid "X-Ray"
 msgstr "X-Ray"
 
-#: prompts/actions.lua:610
+#: prompts/actions.lua:616
 #, fuzzy
 msgid "Recap"
 msgstr "要点の振り返り"
 
-#: prompts/actions.lua:681
+#: prompts/actions.lua:687
 #, fuzzy
 msgid "Analyze Highlights"
 msgstr "ハイライトを分析"
 
-#: prompts/actions.lua:735
+#: prompts/actions.lua:741
 #, fuzzy
 msgid "Related Thinkers"
 msgstr "関連する思想家"
 
-#: prompts/actions.lua:769 prompts/actions.lua:812
+#: prompts/actions.lua:775 prompts/actions.lua:820
 #, fuzzy
 msgid "Key Arguments"
 msgstr "主要な論点"
 
-#: prompts/actions.lua:859 prompts/actions.lua:898
+#: prompts/actions.lua:867 prompts/actions.lua:908
 #, fuzzy
 msgid "Discussion Questions"
 msgstr "議論のための質問"
 
-#: prompts/actions.lua:939 prompts/actions.lua:978
+#: prompts/actions.lua:949 prompts/actions.lua:990
 #, fuzzy
 msgid "Generate Quiz"
 msgstr "クイズを生成"
 
-#: prompts/actions.lua:1019
+#: prompts/actions.lua:1031
 #, fuzzy
 msgid "Analyze Document"
 msgstr "文書を分析"
 
-#: prompts/actions.lua:1046
+#: prompts/actions.lua:1060
 #, fuzzy
 msgid "Summarize Document"
 msgstr "文書を要約"
 
-#: prompts/actions.lua:1060
+#: prompts/actions.lua:1074
 #, fuzzy
 msgid "Extract Key Insights"
 msgstr "重要な洞察を抽出"
 
-#: prompts/actions.lua:1083
+#: prompts/actions.lua:1099
 #, fuzzy
 msgid "Book Reviews"
 msgstr "書籍レビュー"
 
-#: prompts/actions.lua:1114
+#: prompts/actions.lua:1130
 #, fuzzy
 msgid "Compare Books"
 msgstr "本を比較"
 
-#: prompts/actions.lua:1126
+#: prompts/actions.lua:1142
 #, fuzzy
 msgid "Find Common Themes"
 msgstr "共通テーマを探す"
 
-#: prompts/actions.lua:1138
+#: prompts/actions.lua:1154
 #, fuzzy
 msgid "Analyze Collection"
 msgstr "コレクションを分析"
 
-#: prompts/actions.lua:1150
+#: prompts/actions.lua:1166
 #, fuzzy
 msgid "Quick Summaries"
 msgstr "クイック要約"
 
-#: prompts/actions.lua:1162
+#: prompts/actions.lua:1178
 #, fuzzy
 msgid "Reading Order"
 msgstr "読書順序"
 
-#: prompts/actions.lua:1177
+#: prompts/actions.lua:1193
 #, fuzzy
 msgid "News Update"
 msgstr "ニュース更新"
 
-#: prompts/actions.lua:1223
+#: prompts/actions.lua:1239
 #, fuzzy
 msgid "Quick Define"
 msgstr "クイック定義"
 
-#: prompts/actions.lua:1252
+#: prompts/actions.lua:1268
 #, fuzzy
 msgid "Dictionary"
 msgstr "辞書"
 
-#: prompts/actions.lua:1284
+#: prompts/actions.lua:1300
 #, fuzzy
 msgid "Deep Analysis"
 msgstr "詳細分析"
