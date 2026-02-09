@@ -2283,8 +2283,8 @@ Three preset options that cover most needs:
 - Keeps: All settings, API keys, custom behaviors/domains, custom providers/models, gesture registrations, chat history
 
 **Quick: Fresh start**
-- Resets everything except API keys and chat history (all settings, all actions, custom behaviors/domains, custom providers/models)
-- Keeps: API keys, gesture registrations, chat history only
+- Resets everything except API keys, language preferences, and chat history (all settings, all actions, custom behaviors/domains, custom providers/models, gesture registrations)
+- Keeps: API keys, language preferences, chat history only
 
 #### Custom Reset
 
