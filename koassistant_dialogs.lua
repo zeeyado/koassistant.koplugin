@@ -2455,7 +2455,9 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     end
     
     -- Check if this is a general context chat (no book association)
-    local is_general_context = configuration and configuration.features and configuration.features.is_general_context
+    -- Use getPromptContext() which properly prioritizes: multi_book > book > general > highlight
+    -- This prevents stale is_general_context flags from affecting book context dialogs
+    local is_general_context = getPromptContext(configuration) == "general"
 
     -- Capture book info from document if available (for launch_context even in general chats)
     local doc_title = ui_instance and ui_instance.document and ui_instance.document:getProps().title or nil

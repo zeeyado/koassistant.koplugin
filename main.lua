@@ -1402,11 +1402,26 @@ function AskGPT:updateConfigFromSettings()
   -- Merge settings into existing features table instead of replacing it.
   -- This preserves runtime-only keys (context flags, book_metadata, etc.)
   -- that callers set before the network callback fires.
+  -- Skip runtime-only keys that may have leaked into saved settings.
+  local runtime_only_keys = {
+    is_general_context = true,
+    is_book_context = true,
+    is_multi_book_context = true,
+    book_metadata = true,
+    book_context = true,
+    books_info = true,
+    selection_data = true,
+    compact_view = true,
+    minimal_buttons = true,
+    is_full_page_translate = true,
+  }
   if not configuration.features then
     configuration.features = features
   else
     for k, v in pairs(features) do
-      configuration.features[k] = v
+      if not runtime_only_keys[k] then
+        configuration.features[k] = v
+      end
     end
   end
 
