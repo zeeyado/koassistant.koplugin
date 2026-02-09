@@ -4,7 +4,10 @@ X-Ray Browser for KOAssistant
 Browsable menu UI for structured X-Ray data.
 Presents categories (Cast, World, Ideas, etc.) with item counts,
 drill-down into category items, detail views, chapter character tracking,
-and character search.
+and search.
+
+Uses a single Menu instance with switchItemTable() for navigation,
+maintaining a stack for back-arrow support.
 
 @module koassistant_xray_browser
 ]]
@@ -17,24 +20,13 @@ local Menu = require("ui/widget/menu")
 local Screen = Device.screen
 local TextViewer = require("ui/widget/textviewer")
 local UIManager = require("ui/uimanager")
-local logger = require("logger")
 local _ = require("koassistant_gettext")
 local T = require("ffi/util").template
 
+local Constants = require("koassistant_constants")
 local XrayParser = require("koassistant_xray_parser")
 
-local XrayBrowser = {
-    current_menu = nil,
-    current_detail = nil,
-    current_options = nil,
-}
-
--- Helper to safely close a widget
-local function safeClose(widget)
-    if widget then
-        UIManager:close(widget)
-    end
-end
+local XrayBrowser = {}
 
 --- Extract text for the current chapter from the open document
 --- @param ui table KOReader UI instance
@@ -173,9 +165,19 @@ local function findCharacterHighlights(character, ui)
     return matches
 end
 
+-- Emoji mappings for category keys (used when enable_emoji_icons is on)
+local CATEGORY_EMOJIS = {
+    characters = "👥", key_figures = "👥",
+    locations = "🌍", core_concepts = "💡",
+    themes = "💭", arguments = "⚖️",
+    lexicon = "📖", terminology = "📖",
+    timeline = "📅", argument_development = "📅",
+    current_state = "📍", current_position = "📍",
+}
+
 --- Show the top-level X-Ray category menu
 --- @param xray_data table Parsed JSON structure
---- @param metadata table { title, progress, model, timestamp, book_file }
+--- @param metadata table { title, progress, model, timestamp, book_file, enable_emoji }
 --- @param ui table|nil KOReader UI instance (nil when book not open)
 --- @param on_delete function|nil Callback to delete this cache
 function XrayBrowser:show(xray_data, metadata, ui, on_delete)
@@ -183,87 +185,16 @@ function XrayBrowser:show(xray_data, metadata, ui, on_delete)
     self.metadata = metadata
     self.ui = ui
     self.on_delete = on_delete
-    self:showCategoryMenu()
-end
+    self.nav_stack = {}
 
---- Show the category menu (top-level browsing)
-function XrayBrowser:showCategoryMenu()
-    local categories = XrayParser.getCategories(self.xray_data)
-
-    local menu_items = {}
-
-    -- Category items with counts
-    for _idx, cat in ipairs(categories) do
-        local count = #cat.items
-        if count > 0 then
-            local mandatory_text = ""
-            -- Don't show count for current_state/current_position (always 1)
-            if cat.key ~= "current_state" and cat.key ~= "current_position" then
-                mandatory_text = tostring(count)
-            end
-
-            local captured_cat = cat
-            table.insert(menu_items, {
-                text = cat.label,
-                mandatory = mandatory_text,
-                callback = function()
-                    if captured_cat.key == "current_state" or captured_cat.key == "current_position" then
-                        self:showItemDetail(captured_cat.items[1], captured_cat.key, captured_cat.label)
-                    else
-                        self:showCategoryItems(captured_cat)
-                    end
-                end,
-            })
-        end
-    end
-
-    -- Separator before utility items
-    if #menu_items > 0 then
-        menu_items[#menu_items].separator = true
-    end
-
-    -- Chapter Characters (only when book is open and we have characters)
-    local char_key = XrayParser.getCharacterKey(self.xray_data)
-    local has_characters = self.xray_data[char_key] and #self.xray_data[char_key] > 0
-    if self.ui and self.ui.document and has_characters then
-        table.insert(menu_items, {
-            text = _("Chapter Characters"),
-            callback = function()
-                self:showChapterCharacters()
-            end,
-        })
-    end
-
-    -- Search (only if we have characters/figures)
-    if has_characters then
-        table.insert(menu_items, {
-            text = _("Search"),
-            callback = function()
-                self:showSearch()
-            end,
-        })
-    end
-
-    -- Full View
-    table.insert(menu_items, {
-        text = _("Full View"),
-        callback = function()
-            self:showFullView()
-        end,
-    })
-
-    -- Build title
-    local title = "X-Ray"
-    if self.metadata.progress then
-        title = title .. " (" .. self.metadata.progress .. ")"
-    end
-
-    safeClose(self.current_menu)
+    local items = self:buildCategoryItems()
+    local title = self:buildMainTitle()
+    self.current_title = title
 
     local self_ref = self
-    local menu = Menu:new{
+    self.menu = Menu:new{
         title = title,
-        item_table = menu_items,
+        item_table = items,
         is_borderless = true,
         is_popout = false,
         width = Screen:getWidth(),
@@ -275,72 +206,178 @@ function XrayBrowser:showCategoryMenu()
         onLeftButtonTap = function()
             self_ref:showOptions()
         end,
+        onReturn = function()
+            self_ref:navigateBack()
+        end,
         close_callback = function()
-            self_ref.current_menu = nil
+            self_ref.menu = nil
+            self_ref.nav_stack = {}
         end,
     }
-
-    self.current_menu = menu
-    UIManager:show(menu)
+    UIManager:show(self.menu)
 end
 
---- Show items within a category
+--- Build the main title for the browser
+--- @return string title
+function XrayBrowser:buildMainTitle()
+    local title = "X-Ray"
+    if self.metadata.progress then
+        title = title .. " (" .. self.metadata.progress .. ")"
+    end
+    return title
+end
+
+--- Build item table for the top-level category menu
+--- @return table items Menu item table
+function XrayBrowser:buildCategoryItems()
+    local categories = XrayParser.getCategories(self.xray_data)
+    local enable_emoji = self.metadata.enable_emoji
+    local self_ref = self
+
+    local items = {}
+
+    -- Category items with counts
+    for _idx, cat in ipairs(categories) do
+        local count = #cat.items
+        if count > 0 then
+            local mandatory_text = ""
+            -- Don't show count for current_state/current_position (always 1)
+            if cat.key ~= "current_state" and cat.key ~= "current_position" then
+                mandatory_text = tostring(count)
+            end
+
+            local label = Constants.getEmojiText(CATEGORY_EMOJIS[cat.key] or "", cat.label, enable_emoji)
+            local captured_cat = cat
+            table.insert(items, {
+                text = label,
+                mandatory = mandatory_text,
+                callback = function()
+                    if captured_cat.key == "current_state" or captured_cat.key == "current_position" then
+                        self_ref:showItemDetail(captured_cat.items[1], captured_cat.key, captured_cat.label)
+                    else
+                        self_ref:showCategoryItems(captured_cat)
+                    end
+                end,
+            })
+        end
+    end
+
+    -- Separator before utility items
+    if #items > 0 then
+        items[#items].separator = true
+    end
+
+    -- Chapter Characters (only when book is open and we have characters)
+    local char_key = XrayParser.getCharacterKey(self.xray_data)
+    local has_characters = self.xray_data[char_key] and #self.xray_data[char_key] > 0
+    if self.ui and self.ui.document and has_characters then
+        table.insert(items, {
+            text = Constants.getEmojiText("📑", _("Chapter Characters"), enable_emoji),
+            callback = function()
+                self_ref:showChapterCharacters()
+            end,
+        })
+    end
+
+    -- Search
+    table.insert(items, {
+        text = Constants.getEmojiText("🔍", _("Search"), enable_emoji),
+        callback = function()
+            self_ref:showSearch()
+        end,
+    })
+
+    -- Full View
+    table.insert(items, {
+        text = Constants.getEmojiText("📄", _("Full View"), enable_emoji),
+        callback = function()
+            self_ref:showFullView()
+        end,
+    })
+
+    return items
+end
+
+--- Navigate forward: push current state and switch to new items
+--- @param title string New menu title
+--- @param items table New menu items
+function XrayBrowser:navigateForward(title, items)
+    if not self.menu then return end
+
+    -- Save current state
+    table.insert(self.nav_stack, {
+        title = self.current_title,
+        items = self.menu.item_table,
+    })
+    self.current_title = title
+
+    -- Add to paths so back arrow becomes enabled via updatePageInfo
+    table.insert(self.menu.paths, true)
+    self.menu:switchItemTable(title, items)
+    -- Explicitly enable (updatePageInfo should do this, but belt-and-suspenders)
+    if self.menu.page_return_arrow then
+        self.menu.page_return_arrow:enable()
+    end
+end
+
+--- Navigate back: pop state and restore, or close if at root
+function XrayBrowser:navigateBack()
+    if not self.menu then return end
+
+    if #self.nav_stack == 0 then
+        -- At root level — close the browser
+        UIManager:close(self.menu)
+        return
+    end
+
+    local prev = table.remove(self.nav_stack)
+    self.current_title = prev.title
+
+    -- Remove from paths so back arrow disables when we reach root
+    table.remove(self.menu.paths)
+    self.menu:switchItemTable(prev.title, prev.items)
+    -- Explicitly disable at root level
+    if #self.nav_stack == 0 and self.menu.page_return_arrow then
+        self.menu.page_return_arrow:disable()
+    end
+end
+
+--- Show items within a category (navigates forward)
 --- @param category table {key, label, items}
 function XrayBrowser:showCategoryItems(category)
-    local menu_items = {}
+    local items = {}
+    local self_ref = self
 
     for _idx, item in ipairs(category.items) do
         local name = XrayParser.getItemName(item, category.key)
         local secondary = XrayParser.getItemSecondary(item, category.key)
 
         local captured_item = item
-        table.insert(menu_items, {
+        table.insert(items, {
             text = name,
             mandatory = secondary,
             mandatory_dim = true,
             callback = function()
-                self:showItemDetail(captured_item, category.key, name)
+                self_ref:showItemDetail(captured_item, category.key, name)
             end,
         })
     end
 
-    safeClose(self.current_menu)
-
-    local self_ref = self
     local title = category.label .. " (" .. #category.items .. ")"
-    local menu = Menu:new{
-        title = title,
-        item_table = menu_items,
-        is_borderless = true,
-        is_popout = false,
-        width = Screen:getWidth(),
-        height = Screen:getHeight(),
-        single_line = true,
-        items_font_size = 18,
-        items_mandatory_font_size = 14,
-        onReturn = function()
-            -- Go back to category menu
-            UIManager:close(self_ref.current_menu)
-            self_ref.current_menu = nil
-            UIManager:scheduleIn(0.1, function()
-                self_ref:showCategoryMenu()
-            end)
-        end,
-        close_callback = function()
-            self_ref.current_menu = nil
-        end,
-    }
-
-    self.current_menu = menu
-    UIManager:show(menu)
+    self:navigateForward(title, items)
 end
 
---- Show detail view for a single item
+--- Show detail view for a single item (overlays as TextViewer)
 --- @param item table The item data
 --- @param category_key string The category key
 --- @param title string Display title
 function XrayBrowser:showItemDetail(item, category_key, title)
     local detail_text = XrayParser.formatItemDetail(item, category_key)
+
+    -- For current state/position: prepend reading progress for clarity
+    if (category_key == "current_state" or category_key == "current_position") and self.metadata.progress then
+        detail_text = _("As of") .. " " .. self.metadata.progress .. "\n\n" .. detail_text
+    end
 
     -- For characters: append matching highlights if available
     if (category_key == "characters" or category_key == "key_figures") and self.ui then
@@ -358,15 +395,12 @@ function XrayBrowser:showItemDetail(item, category_key, title)
         end
     end
 
-    safeClose(self.current_detail)
-
-    self.current_detail = TextViewer:new{
+    UIManager:show(TextViewer:new{
         title = title or _("Details"),
         text = detail_text,
         width = Screen:getWidth(),
         height = Screen:getHeight(),
-    }
-    UIManager:show(self.current_detail)
+    })
 end
 
 --- Show characters appearing in the current chapter
@@ -411,15 +445,15 @@ function XrayBrowser:showChapterCharacters()
             return
         end
 
-        -- Build menu
-        local menu_items = {}
+        -- Build menu items
+        local items = {}
         for _idx, entry in ipairs(found) do
             local char = entry.item
             local count = entry.count
             local name = char.name or _("Unknown")
 
             local captured_char = char
-            table.insert(menu_items, {
+            table.insert(items, {
                 text = name,
                 mandatory = T(_("%1x"), count),
                 mandatory_dim = true,
@@ -438,46 +472,19 @@ function XrayBrowser:showChapterCharacters()
             title = T(_("This Chapter — %1 characters"), #found)
         end
 
-        safeClose(self_ref.current_menu)
-
-        local menu = Menu:new{
-            title = title,
-            item_table = menu_items,
-            is_borderless = true,
-            is_popout = false,
-            width = Screen:getWidth(),
-            height = Screen:getHeight(),
-            single_line = true,
-            items_font_size = 18,
-            items_mandatory_font_size = 14,
-            onReturn = function()
-                UIManager:close(self_ref.current_menu)
-                self_ref.current_menu = nil
-                UIManager:scheduleIn(0.1, function()
-                    self_ref:showCategoryMenu()
-                end)
-            end,
-            close_callback = function()
-                self_ref.current_menu = nil
-            end,
-        }
-
-        self_ref.current_menu = menu
-        UIManager:show(menu)
+        self_ref:navigateForward(title, items)
     end)
 end
 
---- Show character search dialog
+--- Show search dialog (overlays as InputDialog)
 function XrayBrowser:showSearch()
     local self_ref = self
 
-    safeClose(self.current_detail)
-
     local input_dialog
     input_dialog = InputDialog:new{
-        title = _("Search Characters"),
+        title = _("Search X-Ray"),
         input = "",
-        input_hint = _("Name, alias, or description..."),
+        input_hint = _("Name, term, description..."),
         buttons = {
             {
                 {
@@ -501,15 +508,14 @@ function XrayBrowser:showSearch()
             },
         },
     }
-    self.current_detail = input_dialog
     UIManager:show(input_dialog)
     input_dialog:onShowKeyboard()
 end
 
---- Show search results
+--- Show search results (navigates forward)
 --- @param query string The search query
 function XrayBrowser:showSearchResults(query)
-    local results = XrayParser.searchCharacters(self.xray_data, query)
+    local results = XrayParser.searchAll(self.xray_data, query)
 
     if #results == 0 then
         UIManager:show(InfoMessage:new{
@@ -519,60 +525,36 @@ function XrayBrowser:showSearchResults(query)
         return
     end
 
-    local menu_items = {}
-    local char_key = XrayParser.getCharacterKey(self.xray_data)
+    local items = {}
+    local self_ref = self
 
     for _idx, result in ipairs(results) do
-        local char = result.item
-        local name = char.name or _("Unknown")
-        local match_label = ""
+        local item = result.item
+        local name = XrayParser.getItemName(item, result.category_key)
+        local match_label = result.category_label
         if result.match_field == "alias" then
-            match_label = _("alias")
+            match_label = match_label .. " (" .. _("alias") .. ")"
         elseif result.match_field == "description" then
-            match_label = _("desc.")
+            match_label = match_label .. " (" .. _("desc.") .. ")"
         end
 
-        local captured_char = char
-        table.insert(menu_items, {
+        local captured_item = item
+        local captured_key = result.category_key
+        table.insert(items, {
             text = name,
             mandatory = match_label,
             mandatory_dim = true,
             callback = function()
-                self:showItemDetail(captured_char, char_key, name)
+                self_ref:showItemDetail(captured_item, captured_key, name)
             end,
         })
     end
 
-    safeClose(self.current_menu)
-
-    local self_ref = self
-    local menu = Menu:new{
-        title = T(_("Results for \"%1\" (%2)"), query, #results),
-        item_table = menu_items,
-        is_borderless = true,
-        is_popout = false,
-        width = Screen:getWidth(),
-        height = Screen:getHeight(),
-        single_line = true,
-        items_font_size = 18,
-        items_mandatory_font_size = 14,
-        onReturn = function()
-            UIManager:close(self_ref.current_menu)
-            self_ref.current_menu = nil
-            UIManager:scheduleIn(0.1, function()
-                self_ref:showCategoryMenu()
-            end)
-        end,
-        close_callback = function()
-            self_ref.current_menu = nil
-        end,
-    }
-
-    self.current_menu = menu
-    UIManager:show(menu)
+    local title = T(_("Results for \"%1\" (%2)"), query, #results)
+    self:navigateForward(title, items)
 end
 
---- Show full rendered markdown view in ChatGPTViewer
+--- Show full rendered markdown view in ChatGPTViewer (overlays on menu)
 function XrayBrowser:showFullView()
     local ChatGPTViewer = require("koassistant_chatgptviewer")
 
@@ -595,30 +577,28 @@ function XrayBrowser:showFullView()
         title = title .. " [" .. date_str .. "]"
     end
 
-    -- Close the browser menu first
-    safeClose(self.current_menu)
-    self.current_menu = nil
-
-    local viewer = ChatGPTViewer:new{
+    -- Overlay on top of the menu — closing the viewer returns to the browser
+    UIManager:show(ChatGPTViewer:new{
         title = title,
         text = markdown,
         simple_view = true,
-    }
-    UIManager:show(viewer)
+    })
 end
 
 --- Show options menu (hamburger button)
 function XrayBrowser:showOptions()
+    local self_ref = self
     local buttons = {}
 
     -- Delete option
     if self.on_delete then
-        local self_ref = self
         table.insert(buttons, {{
             text = _("Delete X-Ray"),
             callback = function()
-                safeClose(self_ref.current_options)
-                self_ref.current_options = nil
+                if self_ref.options_dialog then
+                    UIManager:close(self_ref.options_dialog)
+                    self_ref.options_dialog = nil
+                end
 
                 local ConfirmBox = require("ui/widget/confirmbox")
                 UIManager:show(ConfirmBox:new{
@@ -626,8 +606,9 @@ function XrayBrowser:showOptions()
                     ok_text = _("Delete"),
                     ok_callback = function()
                         self_ref.on_delete()
-                        safeClose(self_ref.current_menu)
-                        self_ref.current_menu = nil
+                        if self_ref.menu then
+                            UIManager:close(self_ref.menu)
+                        end
                     end,
                 })
             end,
@@ -652,8 +633,10 @@ function XrayBrowser:showOptions()
         table.insert(buttons, {{
             text = _("Info"),
             callback = function()
-                safeClose(self.current_options)
-                self.current_options = nil
+                if self_ref.options_dialog then
+                    UIManager:close(self_ref.options_dialog)
+                    self_ref.options_dialog = nil
+                end
                 UIManager:show(InfoMessage:new{
                     text = table.concat(info_parts, "\n"),
                 })
@@ -664,16 +647,20 @@ function XrayBrowser:showOptions()
     table.insert(buttons, {{
         text = _("Close"),
         callback = function()
-            safeClose(self.current_options)
-            self.current_options = nil
+            if self_ref.options_dialog then
+                UIManager:close(self_ref.options_dialog)
+                self_ref.options_dialog = nil
+            end
         end,
     }})
 
-    safeClose(self.current_options)
-    self.current_options = ButtonDialog:new{
+    if self.options_dialog then
+        UIManager:close(self.options_dialog)
+    end
+    self.options_dialog = ButtonDialog:new{
         buttons = buttons,
     }
-    UIManager:show(self.current_options)
+    UIManager:show(self.options_dialog)
 end
 
 return XrayBrowser

@@ -4130,6 +4130,7 @@ function AskGPT:showCacheViewer(cache_info)
       local parsed = XrayParser.parse(cache_info.data.result)
       if parsed then
         local XrayBrowser = require("koassistant_xray_browser")
+        local features = configuration and configuration.features or {}
         local browser_metadata = {
           title = book_title,
           progress = cache_info.data.progress_decimal and
@@ -4137,6 +4138,7 @@ function AskGPT:showCacheViewer(cache_info)
           model = cache_info.data.model,
           timestamp = cache_info.data.timestamp,
           book_file = self.ui and self.ui.document and self.ui.document.file,
+          enable_emoji = features.enable_emoji_icons == true,
         }
         XrayBrowser:show(parsed, browser_metadata, self.ui, on_delete)
         return

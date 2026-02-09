@@ -579,6 +579,7 @@ If you don't recognize this work or the content seems unclear, output: {"error":
         in_quick_actions = 1,     -- Appears in Quick Actions menu
         -- Document cache: save result for other actions to reference via {xray_cache_section}
         cache_as_xray = true,
+        storage_key = "__SKIP__",  -- Result lives in X-Ray cache, not chat history
         -- Response caching: enables incremental updates as reading progresses
         use_response_caching = true,
         update_prompt = [[Update this X-Ray for "{title}"{author_clause}.

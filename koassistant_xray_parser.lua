@@ -9,15 +9,53 @@ local _ = require("koassistant_gettext")
 local XrayParser = {}
 
 --- Detect whether a cache result string is JSON or legacy markdown
+--- Checks for raw JSON, code-fenced JSON, and JSON preceded by text
 --- @param result string The cached result text
 --- @return boolean is_json True if result appears to be JSON
 function XrayParser.isJSON(result)
     if type(result) ~= "string" then return false end
-    return result:match("^%s*{") ~= nil
+    -- Raw JSON starting with {
+    if result:match("^%s*{") then return true end
+    -- Code-fenced JSON (```json ... ``` or ``` { ... ```)
+    if result:match("```json%s*{") or result:match("```%s*{") then return true end
+    -- JSON embedded after some preamble text (look for { within first 200 chars)
+    local first_brace = result:find("{")
+    if first_brace and first_brace <= 200 then return true end
+    return false
+end
+
+-- Known category keys for validating parsed X-Ray data
+local FICTION_KEYS = { "characters", "locations", "themes", "lexicon", "timeline", "current_state" }
+local NONFICTION_KEYS = { "key_figures", "core_concepts", "arguments", "terminology", "argument_development", "current_position" }
+
+--- Check if a table looks like valid X-Ray data (has at least one recognized category key)
+--- Also infers and sets the type field if missing.
+--- @param data table Candidate parsed data
+--- @return boolean valid True if data has recognized X-Ray structure
+local function isValidXrayData(data)
+    if type(data) ~= "table" then return false end
+    -- Check for error response
+    if data.error then return true end
+    -- Check for fiction keys
+    for _idx, key in ipairs(FICTION_KEYS) do
+        if data[key] then
+            if not data.type then data.type = "fiction" end
+            return true
+        end
+    end
+    -- Check for non-fiction keys
+    for _idx, key in ipairs(NONFICTION_KEYS) do
+        if data[key] then
+            if not data.type then data.type = "nonfiction" end
+            return true
+        end
+    end
+    return false
 end
 
 --- Attempt to extract valid JSON from a potentially wrapped response
 --- Tries: raw decode, code fence stripping, first-brace-to-last-brace extraction
+--- Accepts any table with recognized X-Ray category keys (type field inferred if missing).
 --- @param text string The raw AI response
 --- @return table|nil data Parsed Lua table, or nil on failure
 --- @return string|nil err Error message if all attempts failed
@@ -28,7 +66,7 @@ function XrayParser.parse(text)
 
     -- Attempt 1: direct decode
     local ok, data = pcall(json.decode, text)
-    if ok and type(data) == "table" and data.type then
+    if ok and isValidXrayData(data) then
         return data, nil
     end
 
@@ -37,7 +75,7 @@ function XrayParser.parse(text)
         or text:match("```%s*({.+})%s*```")
     if stripped then
         ok, data = pcall(json.decode, stripped)
-        if ok and type(data) == "table" and data.type then
+        if ok and isValidXrayData(data) then
             return data, nil
         end
     end
@@ -48,7 +86,7 @@ function XrayParser.parse(text)
     if first_brace and last_brace and last_brace > first_brace then
         local extracted = text:sub(first_brace, last_brace)
         ok, data = pcall(json.decode, extracted)
-        if ok and type(data) == "table" and data.type then
+        if ok and isValidXrayData(data) then
             return data, nil
         end
     end
@@ -57,10 +95,13 @@ function XrayParser.parse(text)
 end
 
 --- Check if X-Ray data is fiction type
+--- Falls back to key-based detection if type field is missing
 --- @param data table Parsed X-Ray data
 --- @return boolean
 function XrayParser.isFiction(data)
-    return data.type == "fiction"
+    if data.type then return data.type == "fiction" end
+    -- Infer from keys: fiction has "characters", nonfiction has "key_figures"
+    return data.characters ~= nil
 end
 
 --- Get the key used for characters/figures in this X-Ray type
@@ -425,6 +466,64 @@ function XrayParser.searchCharacters(data, query)
 
         if match_field then
             table.insert(results, { item = char, match_field = match_field })
+        end
+    end
+
+    -- Sort: name matches first, then alias, then description
+    local priority = { name = 1, alias = 2, description = 3 }
+    table.sort(results, function(a, b)
+        return (priority[a.match_field] or 9) < (priority[b.match_field] or 9)
+    end)
+
+    return results
+end
+
+--- Search across all categories (name, term, event, description, etc.)
+--- @param data table Parsed X-Ray data
+--- @param query string Search query
+--- @return table results Array of {item, category_key, category_label, match_field}
+function XrayParser.searchAll(data, query)
+    if not query or query == "" then return {} end
+
+    local categories = XrayParser.getCategories(data)
+    local query_lower = query:lower()
+    local results = {}
+
+    for _idx, cat in ipairs(categories) do
+        -- Skip current_state/current_position (not useful in search)
+        if cat.key ~= "current_state" and cat.key ~= "current_position" then
+            for _idx2, item in ipairs(cat.items) do
+                local match_field = nil
+                -- Check primary name/term/event
+                local name = item.name or item.term or item.event or ""
+                if name ~= "" and name:lower():find(query_lower, 1, true) then
+                    match_field = "name"
+                end
+                -- Check aliases
+                if not match_field and item.aliases then
+                    for _idx3, alias in ipairs(item.aliases) do
+                        if alias:lower():find(query_lower, 1, true) then
+                            match_field = "alias"
+                            break
+                        end
+                    end
+                end
+                -- Check description/definition/significance
+                if not match_field then
+                    local desc = item.description or item.definition or item.significance or ""
+                    if desc ~= "" and desc:lower():find(query_lower, 1, true) then
+                        match_field = "description"
+                    end
+                end
+                if match_field then
+                    table.insert(results, {
+                        item = item,
+                        category_key = cat.key,
+                        category_label = cat.label,
+                        match_field = match_field,
+                    })
+                end
+            end
         end
     end
 

@@ -2024,6 +2024,12 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
         temp_config.features.minimal_buttons = true
     end
 
+    -- Propagate action-level storage_key to config features (e.g., "__SKIP__" for X-Ray)
+    if prompt.storage_key then
+        temp_config.features = temp_config.features or {}
+        temp_config.features.storage_key = prompt.storage_key
+    end
+
     -- NEW ARCHITECTURE (v0.5.2+): Unified request config for all providers
     -- System prompt is built by buildUnifiedRequestConfig and passed in config.system
     -- No longer embedded in the consolidated message
@@ -3084,6 +3090,39 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
                     temp_config.features._original_context_mode = temp_config.features.dictionary_context_mode or "sentence"
                 end
             end
+            -- For X-Ray: open browser directly instead of chat viewer
+            -- The result is already saved to the X-Ray cache; the chat viewer is unnecessary
+            if action.cache_as_xray and ui and ui.document and ui.document.file then
+                local ActionCache = require("koassistant_action_cache")
+                local xray_cache = ActionCache.getXrayCache(ui.document.file)
+                if xray_cache and xray_cache.result then
+                    local XrayParser = require("koassistant_xray_parser")
+                    local parsed = XrayParser.parse(xray_cache.result)
+                    if parsed then
+                        local XrayBrowser = require("koassistant_xray_browser")
+                        local book_title = (book_metadata and book_metadata.title) or ""
+                        local Notification = require("ui/widget/notification")
+                        local config_features = (configuration or CONFIGURATION or {}).features or {}
+                        XrayBrowser:show(parsed, {
+                            title = book_title,
+                            progress = xray_cache.progress_decimal and
+                                (math.floor(xray_cache.progress_decimal * 100 + 0.5) .. "%"),
+                            model = xray_cache.model,
+                            timestamp = xray_cache.timestamp,
+                            book_file = ui.document.file,
+                            enable_emoji = config_features.enable_emoji_icons == true,
+                        }, ui, function()
+                            ActionCache.clearXrayCache(ui.document.file)
+                            UIManager:show(Notification:new{
+                                text = T(_("%1 deleted"), "X-Ray"),
+                                timeout = 2,
+                            })
+                        end)
+                        return
+                    end
+                end
+            end
+
             local function addMessage(message, is_context, on_complete_msg)
                 history:addUserMessage(message, is_context)
                 local answer_result = queryChatGPT(history:getMessages(), temp_config, function(success, answer, err, reasoning, web_search_used)
