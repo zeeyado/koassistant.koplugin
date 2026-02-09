@@ -417,18 +417,27 @@ local function addHtmlBidiAttributes(html, options)
     return html
 end
 
--- Show link options dialog (matches KOReader's ReaderLink external link dialog)
+-- Show link options dialog
+-- Delegates to KOReader's ReaderLink when available (gets all registered plugin
+-- buttons like Wallabag, Wikipedia, etc.), falls back to basic dialog otherwise.
 local link_dialog  -- Forward declaration for closures
 local function showLinkDialog(link_url)
     if not link_url then return end
 
-    local QRMessage = require("ui/widget/qrmessage")
-    local Event = require("ui/event")
+    -- When a book is open, delegate to ReaderLink's external link dialog.
+    -- This gives us all registered plugin buttons (Wallabag, Wikipedia, etc.)
+    local ReaderUI = require("apps/reader/readerui")
+    local reader_ui = ReaderUI.instance
+    if reader_ui and reader_ui.link then
+        reader_ui.link:onGoToExternalLink(link_url)
+        return
+    end
 
-    -- Build buttons in 2-column layout like ReaderLink
+    -- Fallback: basic dialog when no book is open (file browser, general chat)
+    local QRMessage = require("ui/widget/qrmessage")
+
     local buttons = {}
 
-    -- Row 1: Copy | Show QR code
     table.insert(buttons, {
         {
             text = _("Copy"),
@@ -453,38 +462,18 @@ local function showLinkDialog(link_url)
         },
     })
 
-    -- Row 2: Add to Wallabag (if available) | Open in browser
-    local row2 = {}
-
-    -- Try to add Wallabag option by broadcasting event (works if ReaderUI is active)
-    -- Check if we can reach the Wallabag plugin through ReaderUI
-    local ReaderUI = require("apps/reader/readerui")
-    local reader_ui = ReaderUI.instance
-    if reader_ui and reader_ui.wallabag then
-        table.insert(row2, {
-            text = _("Add to Wallabag"),
-            callback = function()
-                UIManager:close(link_dialog)
-                UIManager:broadcastEvent(Event:new("AddWallabagArticle", link_url))
-            end,
-        })
-    end
-
     if Device:canOpenLink() then
-        table.insert(row2, {
-            text = _("Open in browser"),
-            callback = function()
-                UIManager:close(link_dialog)
-                Device:openLink(link_url)
-            end,
+        table.insert(buttons, {
+            {
+                text = _("Open in browser"),
+                callback = function()
+                    UIManager:close(link_dialog)
+                    Device:openLink(link_url)
+                end,
+            },
         })
     end
 
-    if #row2 > 0 then
-        table.insert(buttons, row2)
-    end
-
-    -- Row 3: Cancel (full width)
     table.insert(buttons, {
         {
             text = _("Cancel"),
@@ -494,7 +483,6 @@ local function showLinkDialog(link_url)
         },
     })
 
-    -- Title format matches ReaderLink: "External link:\n\nURL"
     link_dialog = ButtonDialog:new{
         title = T(_("External link:\n\n%1"), BD.url(link_url)),
         buttons = buttons,
