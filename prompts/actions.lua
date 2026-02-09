@@ -267,11 +267,11 @@ If I have no prior highlights or notebook entries, just reflect on this passage 
 
 From "{title}"{author_clause}.
 
-{book_text_section}
+{full_document_section}
 
 Help me understand:
 1. What this passage means
-2. How it connects to what came before
+2. How it connects to the broader work
 3. Key references or concepts it builds on
 
 {conciseness_nudge}]],
@@ -289,20 +289,20 @@ Help me understand:
         use_book_text = true,
         use_annotations = true,
         include_book_context = true,
-        prompt = [[Analyze this passage in the broader context of what I've read:
+        prompt = [[Analyze this passage in the broader context of the work:
 
 "{highlighted_text}"
 
 From "{title}"{author_clause}.
 
-{book_text_section}
+{full_document_section}
 
 {annotations_section}
 
 Provide deeper analysis:
 1. **Significance**: Why might this passage matter in the larger work?
-2. **Connections**: How does it relate to earlier themes, arguments, or events?
-3. **Patterns**: Does it echo or develop something from before?
+2. **Connections**: How does it relate to the work's themes, arguments, or events?
+3. **Patterns**: Does it echo or develop ideas from elsewhere in the text?
 4. **My notes**: If I've highlighted related passages, show those connections.
 
 {conciseness_nudge}]],
