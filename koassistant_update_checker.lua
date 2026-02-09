@@ -3,6 +3,7 @@ local logger = require("logger")
 local Constants = require("koassistant_constants")
 local ffi = require("ffi")
 local ffiutil = require("ffi/util")
+local lfs = require("libs/libkoreader-lfs")
 
 -- Load _meta.lua from the plugin's own directory to avoid conflicts with other plugins
 -- (assistant.koplugin also has _meta.lua, and require() might load the wrong one)
@@ -576,8 +577,9 @@ local function getTranslationLanguage()
     })
 end
 
--- Forward declaration for mutual recursion
+-- Forward declarations for mutual recursion
 local showUpdatePopup
+local performUpdate
 
 --- Translate content using the AI and show in a new viewer
 --- @param markdown_content string: The markdown content to translate
@@ -651,7 +653,20 @@ local function translateAndShowContent(markdown_content, target_language, title,
                 },
             })
 
-            -- Row 2: Original (to go back to original release notes)
+            -- Row 2: Update Now (only if zip available and not emulator)
+            if update_info.zip_url and not Device:isEmulator() then
+                table.insert(buttons, {
+                    {
+                        text = _("Update Now"),
+                        callback = function()
+                            UIManager:close(translated_viewer)
+                            performUpdate(update_info)
+                        end,
+                    },
+                })
+            end
+
+            -- Row 3: Original (to go back to original release notes)
             table.insert(buttons, {
                 {
                     text = _("Original"),
@@ -729,7 +744,20 @@ showUpdatePopup = function(update_info)
         },
     })
 
-    -- Row 2: Translate (only if non-English language)
+    -- Row 2: Update Now (only if zip available and not emulator)
+    if update_info.zip_url and not Device:isEmulator() then
+        table.insert(buttons, {
+            {
+                text = _("Update Now"),
+                callback = function()
+                    UIManager:close(update_viewer)
+                    performUpdate(update_info)
+                end,
+            },
+        })
+    end
+
+    -- Row 3: Translate (only if non-English language)
     if show_translate then
         table.insert(buttons, {
             {
@@ -776,9 +804,19 @@ end
 local AUTO_CHECK_TIMEOUT = 8    -- Timeout for automatic background checks (silent, non-intrusive)
 local MANUAL_CHECK_TIMEOUT = 15 -- Longer timeout for user-initiated checks
 local WARMUP_TIMEOUT = 0.5      -- Quick TCP warmup before fork (macOS fix)
+local DOWNLOAD_TIMEOUT = 120    -- 2 minutes for ~1.4MB zip on slow WiFi
+
+-- User-owned files and directories that must survive auto-updates
+-- Keep in sync with koassistant_backup_manager.lua's backup lists
+local USER_FILES = { "apikeys.lua", "configuration.lua", "custom_actions.lua" }
+local USER_DIRS = { "behaviors", "domains" }
 
 -- Detect if running on macOS (for TCP warmup which is only needed on macOS)
 local IS_MACOS = ffi.os == "OSX"
+
+-- Platform-specific binary paths (same pattern as KOReader's FileManager)
+local mv_bin = Device:isAndroid() and "/system/bin/mv" or "/bin/mv"
+local cp_bin = Device:isAndroid() and "/system/bin/cp" or "/bin/cp"
 
 --- Wrap a file descriptor for ltn12 sink
 local function wrap_fd(fd)
@@ -968,6 +1006,468 @@ local function fetchWithAbsoluteTimeout(url, timeout, callback)
     poll_task = UIManager:scheduleIn(0.05, pollForData)
 end
 
+-- ============================================================================
+-- Auto-Update Functions
+-- ============================================================================
+
+--- Download a file via HTTPS in subprocess, writing directly to disk
+--- Uses the same subprocess pattern as fetchWithAbsoluteTimeout but writes
+--- binary data to file instead of piping through FD (avoids binary data issues)
+--- @param url string URL to download
+--- @param dest_path string Path to write the downloaded file
+--- @param callback function Called with (success, error_msg_or_nil)
+local function downloadFile(url, dest_path, callback)
+    local socket = require("socket")
+
+    -- Warmup: Quick TCP connection in parent before fork (macOS fix)
+    if IS_MACOS and url:sub(1, 8) == "https://" then
+        local host = url:match("https://([^/:]+)")
+        if host then
+            pcall(function()
+                local sock = socket.tcp()
+                sock:settimeout(WARMUP_TIMEOUT)
+                sock:connect(host, 443)
+                sock:close()
+            end)
+        end
+    end
+
+    local pid, parent_read_fd
+    local completed = false
+    local fd_closed = false
+    local timeout_task = nil
+    local poll_task = nil
+    local status_data = ""
+
+    local function closeFd()
+        if not fd_closed and parent_read_fd then
+            fd_closed = true
+            pcall(function()
+                local remaining = ffiutil.readAllFromFD(parent_read_fd)
+                if remaining and #remaining > 0 then
+                    status_data = status_data .. remaining
+                end
+            end)
+            pcall(ffi.C.close, parent_read_fd)
+            parent_read_fd = nil
+        end
+    end
+
+    local function cleanup(skip_fd_close)
+        completed = true
+        if timeout_task then
+            UIManager:unschedule(timeout_task)
+            timeout_task = nil
+        end
+        if poll_task then
+            UIManager:unschedule(poll_task)
+            poll_task = nil
+        end
+        if pid then
+            ffiutil.terminateSubProcess(pid)
+            local captured_pid = pid
+            pid = nil
+            local collect_and_clean
+            collect_and_clean = function()
+                if ffiutil.isSubProcessDone(captured_pid) then
+                    if not skip_fd_close then
+                        closeFd()
+                    end
+                else
+                    UIManager:scheduleIn(0.1, collect_and_clean)
+                end
+            end
+            UIManager:scheduleIn(0.1, collect_and_clean)
+        end
+    end
+
+    -- Set up absolute timeout watchdog
+    timeout_task = UIManager:scheduleIn(DOWNLOAD_TIMEOUT, function()
+        if not completed then
+            logger.info("UpdateChecker: download timeout reached, killing subprocess")
+            cleanup()
+            os.remove(dest_path)
+            callback(false, _("Download timed out"))
+        end
+    end)
+
+    -- Start subprocess - writes zip directly to disk, pipe carries status only
+    pid, parent_read_fd = ffiutil.runInSubProcess(function(subprocess_pid, child_write_fd)
+        if not subprocess_pid or not child_write_fd then return end
+
+        local ok, sub_err = pcall(function()
+            local subprocess_https = require("ssl.https")
+            local subprocess_ltn12 = require("ltn12")
+            subprocess_https.TIMEOUT = DOWNLOAD_TIMEOUT - 5
+
+            local output_file = io.open(dest_path, "wb")
+            if not output_file then
+                ffiutil.writeToFD(child_write_fd, "ERROR:Failed to create file")
+                return
+            end
+
+            local req_ok, code = pcall(function()
+                return select(2, subprocess_https.request{
+                    url = url,
+                    method = "GET",
+                    headers = {
+                        ["User-Agent"] = "KOReader-KOAssistant-Plugin",
+                    },
+                    sink = subprocess_ltn12.sink.file(output_file),
+                })
+            end)
+
+            if not req_ok or (code and code ~= 200) then
+                os.remove(dest_path)
+                ffiutil.writeToFD(child_write_fd, "ERROR:" .. tostring(code or "connection failed"))
+            else
+                ffiutil.writeToFD(child_write_fd, "OK")
+            end
+        end)
+
+        if not ok then
+            os.remove(dest_path)
+            ffiutil.writeToFD(child_write_fd, "ERROR:" .. tostring(sub_err))
+        end
+
+        ffi.C.close(child_write_fd)
+    end, true)
+
+    if not pid then
+        cleanup()
+        callback(false, _("Failed to start download"))
+        return
+    end
+
+    -- Poll for subprocess completion (small buffer - pipe only carries status)
+    local chunksize = 256
+    local buffer = ffi.new("char[?]", chunksize)
+
+    local function pollForData()
+        if completed then return end
+
+        local readsize = ffiutil.getNonBlockingReadSize(parent_read_fd)
+        if readsize and readsize > 0 then
+            local bytes_read = tonumber(ffi.C.read(parent_read_fd, buffer, chunksize))
+            if bytes_read and bytes_read > 0 then
+                status_data = status_data .. ffi.string(buffer, bytes_read)
+            end
+        end
+
+        if ffiutil.isSubProcessDone(pid) then
+            local final_read = tonumber(ffi.C.read(parent_read_fd, buffer, chunksize))
+            if final_read and final_read > 0 then
+                status_data = status_data .. ffi.string(buffer, final_read)
+            end
+
+            closeFd()
+            cleanup(true)
+
+            local error_msg = status_data:match("^ERROR:(.+)")
+            if error_msg then
+                os.remove(dest_path)
+                callback(false, error_msg)
+            else
+                -- Verify file exists and is non-empty
+                local attr = lfs.attributes(dest_path)
+                if not attr or attr.size == 0 then
+                    os.remove(dest_path)
+                    callback(false, _("Downloaded file is empty"))
+                else
+                    callback(true)
+                end
+            end
+            return
+        end
+
+        poll_task = UIManager:scheduleIn(0.1, pollForData)
+    end
+
+    poll_task = UIManager:scheduleIn(0.05, pollForData)
+end
+
+--- Verify that an extracted plugin directory is valid
+--- @param staging_dir string Path to the extracted plugin directory
+--- @param expected_version string Expected version string from the release
+--- @return boolean success, string|nil error_msg
+local function verifyExtractedPlugin(staging_dir, expected_version)
+    -- Check _meta.lua exists
+    local meta_path = staging_dir .. "/_meta.lua"
+    if lfs.attributes(meta_path, "mode") ~= "file" then
+        return false, "_meta.lua not found in extracted plugin"
+    end
+
+    -- Check main.lua exists
+    if lfs.attributes(staging_dir .. "/main.lua", "mode") ~= "file" then
+        return false, "main.lua not found in extracted plugin"
+    end
+
+    -- Load and verify version
+    local load_ok, loaded_meta = pcall(dofile, meta_path)
+    if not load_ok then
+        return false, "Failed to load _meta.lua: " .. tostring(loaded_meta)
+    end
+
+    if not loaded_meta or not loaded_meta.version then
+        return false, "_meta.lua does not contain version"
+    end
+
+    if loaded_meta.version ~= expected_version then
+        return false, "Version mismatch: expected " .. expected_version .. ", got " .. loaded_meta.version
+    end
+
+    return true
+end
+
+--- Preserve user-owned files from the current plugin directory
+--- @param src_dir string Current plugin directory
+--- @param preserve_dir string Temporary directory to hold user files
+--- @return boolean success, string|nil error_msg
+local function preserveUserFiles(src_dir, preserve_dir)
+    lfs.mkdir(preserve_dir)
+
+    for _idx, filename in ipairs(USER_FILES) do
+        local src_path = src_dir .. "/" .. filename
+        if lfs.attributes(src_path, "mode") == "file" then
+            local err = ffiutil.copyFile(src_path, preserve_dir .. "/" .. filename)
+            if err then
+                logger.warn("UpdateChecker: failed to preserve", filename, ":", err)
+            end
+        end
+    end
+
+    for _idx, dirname in ipairs(USER_DIRS) do
+        local src_path = src_dir .. "/" .. dirname
+        if lfs.attributes(src_path, "mode") == "directory" then
+            local ret = ffiutil.execute(cp_bin, "-r", src_path, preserve_dir .. "/" .. dirname)
+            if ret ~= 0 then
+                logger.warn("UpdateChecker: failed to preserve directory", dirname)
+            end
+        end
+    end
+
+    return true
+end
+
+--- Restore user-owned files into the newly installed plugin directory
+--- Non-fatal: plugin works even if user files aren't restored
+--- @param preserve_dir string Directory containing preserved user files
+--- @param target_dir string New plugin directory
+--- @return boolean success, string|nil error_msg
+local function restoreUserFiles(preserve_dir, target_dir)
+    if lfs.attributes(preserve_dir, "mode") ~= "directory" then
+        return false, "Preserve directory not found"
+    end
+
+    for _idx, filename in ipairs(USER_FILES) do
+        local src_path = preserve_dir .. "/" .. filename
+        if lfs.attributes(src_path, "mode") == "file" then
+            local ret = ffiutil.execute(mv_bin, src_path, target_dir .. "/" .. filename)
+            if ret ~= 0 then
+                -- Fallback: try copy + delete
+                local err = ffiutil.copyFile(src_path, target_dir .. "/" .. filename)
+                if not err then
+                    os.remove(src_path)
+                else
+                    logger.warn("UpdateChecker: failed to restore", filename)
+                end
+            end
+        end
+    end
+
+    for _idx, dirname in ipairs(USER_DIRS) do
+        local src_path = preserve_dir .. "/" .. dirname
+        if lfs.attributes(src_path, "mode") == "directory" then
+            local target_path = target_dir .. "/" .. dirname
+            -- Remove target if it exists (shouldn't for user dirs, but be safe)
+            if lfs.attributes(target_path, "mode") == "directory" then
+                ffiutil.purgeDir(target_path)
+            end
+            local ret = ffiutil.execute(mv_bin, src_path, target_path)
+            if ret ~= 0 then
+                logger.warn("UpdateChecker: failed to restore directory", dirname)
+            end
+        end
+    end
+
+    return true
+end
+
+--- Find an available backup directory path (handles collisions from leftover backups)
+--- @param base_path string Base path for the backup directory
+--- @return string available_path
+local function findAvailableBackupPath(base_path)
+    if lfs.attributes(base_path, "mode") ~= "directory" then
+        return base_path
+    end
+
+    -- Try numbered suffixes
+    for i = 2, 10 do
+        local numbered_path = base_path .. "_" .. i
+        if lfs.attributes(numbered_path, "mode") ~= "directory" then
+            return numbered_path
+        end
+    end
+
+    -- Last resort: purge the original and reuse it
+    logger.warn("UpdateChecker: too many leftover backups, purging", base_path)
+    ffiutil.purgeDir(base_path)
+    return base_path
+end
+
+--- Main auto-update orchestrator. Called when user taps "Update Now".
+--- Downloads, extracts, verifies, and installs the update with user file preservation.
+--- @param update_info table Contains zip_url, latest_version, and other update metadata
+performUpdate = function(update_info)
+    -- Guard: don't update in emulator (protect dev installs)
+    if Device:isEmulator() then
+        UIManager:show(InfoMessage:new{
+            text = _("Auto-update is not available in the emulator. Please update manually."),
+            timeout = 5,
+        })
+        return
+    end
+
+    if not update_info.zip_url then
+        UIManager:show(InfoMessage:new{
+            text = _("No download URL available for this release. Please update manually."),
+            timeout = 5,
+        })
+        return
+    end
+
+    -- Guard: need network
+    if not NetworkMgr:isOnline() then
+        UIManager:show(InfoMessage:new{
+            text = _("No network connection. Please connect and try again."),
+            timeout = 3,
+        })
+        return
+    end
+
+    -- Compute paths - all siblings in plugins/ directory for atomic renames
+    local plugin_path = plugin_dir:gsub("/$", "")  -- Remove trailing slash
+    local plugins_parent = plugin_path:match("(.*/)")  -- Parent directory
+    local archive_path = plugins_parent .. "koassistant.koplugin_update.zip"
+    local staging_path = plugins_parent .. "koassistant.koplugin_staging"
+    local preserve_path = plugins_parent .. "koassistant.koplugin_userfiles"
+    local backup_base = plugins_parent .. "koassistant.koplugin.backup"
+
+    -- Helper to clean up temp files and show error
+    local function updateFailed(msg, cleanup_paths)
+        for _idx, path in ipairs(cleanup_paths or {}) do
+            local attr = lfs.attributes(path, "mode")
+            if attr == "file" then
+                os.remove(path)
+            elseif attr == "directory" then
+                ffiutil.purgeDir(path)
+            end
+        end
+        UIManager:show(InfoMessage:new{
+            text = T(_("Update failed: %1"), msg),
+            timeout = 8,
+        })
+    end
+
+    -- Show download progress
+    local progress_msg = InfoMessage:new{
+        text = T(_("Downloading update %1..."), update_info.latest_version),
+    }
+    UIManager:show(progress_msg)
+    UIManager:forceRePaint()
+
+    -- Step 1: Download
+    downloadFile(update_info.zip_url, archive_path, function(dl_success, dl_error)
+        UIManager:close(progress_msg)
+
+        if not dl_success then
+            updateFailed(dl_error or _("Download failed"), { archive_path })
+            return
+        end
+
+        -- Show install progress
+        local install_msg = InfoMessage:new{
+            text = T(_("Installing update %1..."), update_info.latest_version),
+        }
+        UIManager:show(install_msg)
+        UIManager:forceRePaint()
+
+        -- Step 2: Extract to staging directory
+        -- Clean up any leftover staging dir
+        if lfs.attributes(staging_path, "mode") == "directory" then
+            ffiutil.purgeDir(staging_path)
+        end
+        lfs.mkdir(staging_path)
+
+        local extract_ok = Device:unpackArchive(archive_path, staging_path, true)
+        if not extract_ok then
+            UIManager:close(install_msg)
+            updateFailed(_("Failed to extract update archive"), { archive_path, staging_path })
+            return
+        end
+
+        -- Step 3: Verify extracted plugin
+        local verify_ok, verify_err = verifyExtractedPlugin(staging_path, update_info.latest_version)
+        if not verify_ok then
+            UIManager:close(install_msg)
+            updateFailed(verify_err, { archive_path, staging_path })
+            return
+        end
+
+        -- Step 4: Preserve user files
+        if lfs.attributes(preserve_path, "mode") == "directory" then
+            ffiutil.purgeDir(preserve_path)
+        end
+        local preserve_ok, preserve_err = preserveUserFiles(plugin_path, preserve_path)
+        if not preserve_ok then
+            UIManager:close(install_msg)
+            updateFailed(preserve_err, { archive_path, staging_path, preserve_path })
+            return
+        end
+
+        -- Step 5: Atomic swap - old plugin -> backup
+        local backup_path = findAvailableBackupPath(backup_base)
+        local mv_ret = ffiutil.execute(mv_bin, plugin_path, backup_path)
+        if mv_ret ~= 0 then
+            UIManager:close(install_msg)
+            updateFailed(_("Failed to move current plugin to backup"), { archive_path, staging_path, preserve_path })
+            return
+        end
+
+        -- Step 6: Atomic swap - staging -> plugin dir
+        mv_ret = ffiutil.execute(mv_bin, staging_path, plugin_path)
+        if mv_ret ~= 0 then
+            -- CRITICAL: Restore from backup
+            logger.err("UpdateChecker: CRITICAL - staging move failed, restoring backup")
+            ffiutil.execute(mv_bin, backup_path, plugin_path)
+            UIManager:close(install_msg)
+            updateFailed(_("Failed to install new plugin version. Previous version restored."), { archive_path, preserve_path })
+            return
+        end
+
+        -- Step 7: Restore user files (non-fatal)
+        local restore_ok, restore_err = restoreUserFiles(preserve_path, plugin_path)
+        if not restore_ok then
+            logger.warn("UpdateChecker: user file restore issue:", restore_err)
+        end
+
+        -- Step 8: Cleanup (non-fatal)
+        pcall(os.remove, archive_path)
+        pcall(ffiutil.purgeDir, backup_path)
+        pcall(ffiutil.purgeDir, preserve_path)
+
+        UIManager:close(install_msg)
+
+        -- Show success and ask for restart
+        local restart_msg = T(_("KOAssistant updated to version %1.\n\nPlease restart KOReader to use the new version."), update_info.latest_version)
+        if not restore_ok then
+            restart_msg = restart_msg .. "\n\n" .. _("Note: Some user files (API keys, custom actions) may need to be reconfigured.")
+        end
+
+        UIManager:askForRestart(restart_msg)
+    end)
+end
+
 function UpdateChecker.checkForUpdates(auto, include_prereleases)
     -- Prevent duplicate auto-checks within same session
     -- (NetworkMgr:runWhenOnline can fire multiple times if network state changes)
@@ -1123,6 +1623,17 @@ function UpdateChecker.checkForUpdates(auto, include_prereleases)
         logger.info("Update check: current=" .. current_version .. ", latest=" .. latest_version .. ", comparison=" .. comparison)
 
         if comparison < 0 then
+            -- Extract zip asset URL for auto-update
+            local zip_url = nil
+            if latest_release.assets then
+                for _idx, asset in ipairs(latest_release.assets) do
+                    if asset.name and asset.name:match("%.zip$") then
+                        zip_url = asset.browser_download_url
+                        break
+                    end
+                end
+            end
+
             -- New version available
             local update_info = {
                 current_version = current_version,
@@ -1130,6 +1641,7 @@ function UpdateChecker.checkForUpdates(auto, include_prereleases)
                 release_notes = latest_release.body or "No release notes available.",
                 download_url = latest_release.html_url,
                 is_prerelease = latest_release.prerelease or false,
+                zip_url = zip_url,
             }
 
             -- Check if streaming is active - if so, defer the popup
