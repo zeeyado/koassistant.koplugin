@@ -1152,6 +1152,18 @@ local SettingsSchema = {
                         { value = "full_qa", label = _("Full Q&A (recommended)") },
                     },
                     help_text = _("What to include when saving to notebook.\nFull Q&A includes all context messages + highlighted text + question + response."),
+                },
+                {
+                    id = "notebook_viewer",
+                    type = "dropdown",
+                    text = _("Viewer Mode"),
+                    path = "features.notebook_viewer",
+                    default = "chatviewer",
+                    options = {
+                        { value = "chatviewer", label = _("Chat Viewer") },
+                        { value = "reader", label = _("KOReader") },
+                    },
+                    help_text = _("Chat Viewer shows notebook with editing and export buttons. KOReader opens as a full document with navigation."),
                     separator = true,
                 },
                 {

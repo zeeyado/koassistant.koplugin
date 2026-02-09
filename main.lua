@@ -8274,18 +8274,121 @@ function AskGPT:openNotebookForFile(file_path, edit_mode)
   if edit_mode then
     self:openNotebookEditor(notebook_path, file_path)
   else
-    self:openNotebookViewer(notebook_path)
+    self:openNotebookViewer(notebook_path, file_path)
   end
 end
 
---- Open notebook in KOReader reader (view mode)
---- This enables markdown rendering and links to other books
+--- Open notebook in viewer (mode determined by settings)
 --- @param notebook_path string Full path to the notebook file
-function AskGPT:openNotebookViewer(notebook_path)
-  local ReaderUI = require("apps/reader/readerui")
+--- @param document_path string The original document file path (for callbacks)
+function AskGPT:openNotebookViewer(notebook_path, document_path)
+  local features = self.settings:readSetting("features") or {}
+  local viewer_mode = features.notebook_viewer or "chatviewer"
 
-  -- Open notebook file in KOReader's reader
-  ReaderUI:showReader(notebook_path)
+  if viewer_mode == "reader" then
+    local ReaderUI = require("apps/reader/readerui")
+    ReaderUI:showReader(notebook_path)
+  else
+    self:openNotebookInChatViewer(notebook_path, document_path)
+  end
+end
+
+--- Open notebook in ChatGPTViewer simple_view mode
+--- @param notebook_path string Full path to the notebook file
+--- @param document_path string The original document file path (for edit callback)
+function AskGPT:openNotebookInChatViewer(notebook_path, document_path)
+  local ChatGPTViewer = require("koassistant_chatgptviewer")
+  local Notebook = require("koassistant_notebook")
+  local PathChooser = require("ui/widget/pathchooser")
+
+  local content = Notebook.read(document_path)
+  if not content or content == "" then
+    UIManager:show(InfoMessage:new{
+      text = _("Notebook is empty"),
+      timeout = 2,
+    })
+    return
+  end
+
+  -- Build title from document filename
+  local book_name = document_path:match("([^/]+)%.[^%.]+$") or document_path:match("([^/]+)$") or ""
+  local title = _("Notebook") .. " - " .. book_name
+
+  local features = self.settings:readSetting("features") or {}
+  local viewer_config = { features = features }
+
+  local self_ref = self
+
+  local on_edit = function()
+    self_ref:openNotebookEditor(notebook_path, document_path)
+  end
+
+  local on_open_reader = function()
+    local ReaderUI = require("apps/reader/readerui")
+    ReaderUI:showReader(notebook_path)
+  end
+
+  local on_export = function()
+    -- Default export path from settings
+    local default_path
+    local dir_option = features.export_save_directory or "exports_folder"
+    if dir_option == "custom" and features.export_custom_path and features.export_custom_path ~= "" then
+      default_path = features.export_custom_path
+    elseif dir_option == "exports_folder" or dir_option == "ask" then
+      default_path = DataStorage:getDataDir() .. "/koassistant_exports"
+    else
+      default_path = DataStorage:getDataDir()
+    end
+
+    local path_chooser = PathChooser:new{
+      title = _("Select export folder"),
+      path = default_path,
+      show_hidden = false,
+      select_directory = true,
+      select_file = false,
+      onConfirm = function(selected_path)
+        local filename = notebook_path:match("([^/]+)$") or "notebook.md"
+        local filepath = selected_path .. "/" .. filename
+
+        local input_file = io.open(notebook_path, "rb")
+        if not input_file then
+          UIManager:show(InfoMessage:new{
+            text = _("Failed to read notebook file."),
+          })
+          return
+        end
+        local file_content = input_file:read("*all")
+        input_file:close()
+
+        local ok, err = util.writeToFile(file_content, filepath)
+        if ok then
+          UIManager:show(Notification:new{
+            text = T(_("Saved to %1"), filename),
+            timeout = 3,
+          })
+        else
+          UIManager:show(InfoMessage:new{
+            text = T(_("Export failed: %1"), err or "unknown error"),
+          })
+        end
+      end,
+    }
+    UIManager:show(path_chooser)
+  end
+
+  local viewer = ChatGPTViewer:new{
+    title = title,
+    text = content,
+    simple_view = true,
+    configuration = viewer_config,
+    on_edit = on_edit,
+    on_open_reader = on_open_reader,
+    on_export = on_export,
+    _plugin = self_ref,
+    _ui = self_ref.ui,
+  }
+
+  UIManager:show(viewer)
 end
 
 --- Open notebook in TextEditor (edit mode)

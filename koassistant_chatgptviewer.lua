@@ -910,6 +910,14 @@ local ChatGPTViewer = InputContainer:extend {
   on_regenerate = nil,
   on_delete = nil,
 
+  -- Callbacks for notebook viewer (simple_view for notebooks)
+  -- on_edit: function() called when user clicks Edit (should close viewer and open editor)
+  -- on_open_reader: function() called when user clicks Open in Reader (should close viewer and open ReaderUI)
+  -- on_export: function() called when user clicks Export (for non-cache content like notebooks)
+  on_edit = nil,
+  on_open_reader = nil,
+  on_export = nil,
+
   -- Metadata for cache export (simple_view only)
   -- Contains: cache_type, book_title, book_author, progress_decimal, model, timestamp, used_annotations
   cache_metadata = nil,
@@ -2096,13 +2104,17 @@ function ChatGPTViewer:init()
     },
   }
 
-  -- Add Export button if cache_metadata is provided
-  if self.cache_metadata then
+  -- Add Export button if cache_metadata or on_export callback is provided
+  if self.cache_metadata or self.on_export then
     table.insert(simple_view_row1, {
       text = _("Export"),
       id = "export_cache",
       callback = function()
-        self:exportCacheContent()
+        if self.on_export then
+          self.on_export()
+        else
+          self:exportCacheContent()
+        end
       end,
       hold_callback = self.default_hold_callback,
     })
@@ -2154,41 +2166,64 @@ function ChatGPTViewer:init()
       hold_callback = self.default_hold_callback,
     },
   }
-  if self.on_regenerate then
+  if self.on_open_reader and self.on_edit then
+    -- Notebook mode: Open in Reader + Edit buttons
     table.insert(simple_view_row2, {
-      text = _("Regenerate"),
-      id = "regenerate_cache",
+      text = _("Open in Reader"),
+      id = "open_reader",
       callback = function()
-        local ConfirmBox = require("ui/widget/confirmbox")
-        UIManager:show(ConfirmBox:new{
-          text = _("Regenerate this summary?\n\nThe current summary will be replaced."),
-          ok_text = _("Regenerate"),
-          ok_callback = function()
-            self:onClose()
-            self.on_regenerate()
-          end,
-        })
+        self:onClose()
+        self.on_open_reader()
       end,
       hold_callback = self.default_hold_callback,
     })
-  end
-  if self.on_delete then
     table.insert(simple_view_row2, {
-      text = _("Delete"),
-      id = "delete_cache",
+      text = _("Edit"),
+      id = "edit_notebook",
       callback = function()
-        local ConfirmBox = require("ui/widget/confirmbox")
-        UIManager:show(ConfirmBox:new{
-          text = _("Delete this summary?\n\nYou can regenerate it later."),
-          ok_text = _("Delete"),
-          ok_callback = function()
-            self:onClose()
-            self.on_delete()
-          end,
-        })
+        self:onClose()
+        self.on_edit()
       end,
       hold_callback = self.default_hold_callback,
     })
+  else
+    -- Cache mode: Regenerate + Delete buttons
+    if self.on_regenerate then
+      table.insert(simple_view_row2, {
+        text = _("Regenerate"),
+        id = "regenerate_cache",
+        callback = function()
+          local ConfirmBox = require("ui/widget/confirmbox")
+          UIManager:show(ConfirmBox:new{
+            text = _("Regenerate this summary?\n\nThe current summary will be replaced."),
+            ok_text = _("Regenerate"),
+            ok_callback = function()
+              self:onClose()
+              self.on_regenerate()
+            end,
+          })
+        end,
+        hold_callback = self.default_hold_callback,
+      })
+    end
+    if self.on_delete then
+      table.insert(simple_view_row2, {
+        text = _("Delete"),
+        id = "delete_cache",
+        callback = function()
+          local ConfirmBox = require("ui/widget/confirmbox")
+          UIManager:show(ConfirmBox:new{
+            text = _("Delete this summary?\n\nYou can regenerate it later."),
+            ok_text = _("Delete"),
+            ok_callback = function()
+              self:onClose()
+              self.on_delete()
+            end,
+          })
+        end,
+        hold_callback = self.default_hold_callback,
+      })
+    end
   end
   table.insert(simple_view_row2, {
     text = _("Close"),
