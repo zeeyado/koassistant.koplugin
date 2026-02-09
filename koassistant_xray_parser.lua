@@ -8,6 +8,13 @@ local _ = require("koassistant_gettext")
 
 local XrayParser = {}
 
+-- AI responses sometimes return strings for array fields. Normalize to table.
+local function ensure_array(val)
+    if type(val) == "table" then return val end
+    if type(val) == "string" and val ~= "" then return { val } end
+    return nil
+end
+
 --- Detect whether a cache result string is JSON or legacy markdown
 --- Checks for raw JSON, code-fenced JSON, and JSON preceded by text
 --- @param result string The cached result text
@@ -192,8 +199,9 @@ function XrayParser.formatItemDetail(item, category_key)
         end
         table.insert(parts, "")
 
-        if item.aliases and #item.aliases > 0 then
-            table.insert(parts, _("Also known as:") .. " " .. table.concat(item.aliases, ", "))
+        local aliases = ensure_array(item.aliases)
+        if aliases and #aliases > 0 then
+            table.insert(parts, _("Also known as:") .. " " .. table.concat(aliases, ", "))
             table.insert(parts, "")
         end
 
@@ -202,8 +210,9 @@ function XrayParser.formatItemDetail(item, category_key)
             table.insert(parts, "")
         end
 
-        if item.connections and #item.connections > 0 then
-            table.insert(parts, _("Connections:") .. " " .. table.concat(item.connections, ", "))
+        local connections = ensure_array(item.connections)
+        if connections and #connections > 0 then
+            table.insert(parts, _("Connections:") .. " " .. table.concat(connections, ", "))
         end
 
     elseif category_key == "locations" or category_key == "core_concepts" then
@@ -249,8 +258,9 @@ function XrayParser.formatItemDetail(item, category_key)
             table.insert(parts, item.significance)
             table.insert(parts, "")
         end
-        if item.characters and #item.characters > 0 then
-            table.insert(parts, _("Characters:") .. " " .. table.concat(item.characters, ", "))
+        local characters = ensure_array(item.characters)
+        if characters and #characters > 0 then
+            table.insert(parts, _("Characters:") .. " " .. table.concat(characters, ", "))
         end
 
     elseif category_key == "current_state" or category_key == "current_position" then
@@ -258,7 +268,7 @@ function XrayParser.formatItemDetail(item, category_key)
             table.insert(parts, item.summary)
             table.insert(parts, "")
         end
-        local conflicts = item.conflicts
+        local conflicts = ensure_array(item.conflicts)
         if conflicts and #conflicts > 0 then
             table.insert(parts, _("Active conflicts:"))
             for _idx, c in ipairs(conflicts) do
@@ -266,7 +276,7 @@ function XrayParser.formatItemDetail(item, category_key)
             end
             table.insert(parts, "")
         end
-        local questions = item.questions or item.questions_addressed
+        local questions = ensure_array(item.questions) or ensure_array(item.questions_addressed)
         if questions and #questions > 0 then
             local label = category_key == "current_position"
                 and _("Questions addressed:") or _("Unanswered questions:")
@@ -276,9 +286,10 @@ function XrayParser.formatItemDetail(item, category_key)
             end
             table.insert(parts, "")
         end
-        if item.building_toward and #item.building_toward > 0 then
+        local building = ensure_array(item.building_toward)
+        if building and #building > 0 then
             table.insert(parts, _("Building toward:"))
-            for _idx, b in ipairs(item.building_toward) do
+            for _idx, b in ipairs(building) do
                 table.insert(parts, "- " .. b)
             end
         end
@@ -323,21 +334,23 @@ function XrayParser.renderToMarkdown(data, title, progress)
                     table.insert(lines, state.summary)
                     table.insert(lines, "")
                 end
-                if state.conflicts and #state.conflicts > 0 then
-                    for _idx2, c in ipairs(state.conflicts) do
+                local s_conflicts = ensure_array(state.conflicts)
+                if s_conflicts and #s_conflicts > 0 then
+                    for _idx2, c in ipairs(s_conflicts) do
                         table.insert(lines, "- " .. c)
                     end
                     table.insert(lines, "")
                 end
-                local questions = state.questions or state.questions_addressed
-                if questions and #questions > 0 then
-                    for _idx2, q in ipairs(questions) do
+                local s_questions = ensure_array(state.questions) or ensure_array(state.questions_addressed)
+                if s_questions and #s_questions > 0 then
+                    for _idx2, q in ipairs(s_questions) do
                         table.insert(lines, "- " .. q)
                     end
                     table.insert(lines, "")
                 end
-                if state.building_toward and #state.building_toward > 0 then
-                    for _idx2, b in ipairs(state.building_toward) do
+                local s_building = ensure_array(state.building_toward)
+                if s_building and #s_building > 0 then
+                    for _idx2, b in ipairs(s_building) do
                         table.insert(lines, "- " .. b)
                     end
                     table.insert(lines, "")
@@ -357,11 +370,13 @@ function XrayParser.renderToMarkdown(data, title, progress)
                     end
                     table.insert(lines, entry)
 
-                    if char.aliases and #char.aliases > 0 then
-                        table.insert(lines, "*(Also known as: " .. table.concat(char.aliases, ", ") .. ")*")
+                    local c_aliases = ensure_array(char.aliases)
+                    if c_aliases and #c_aliases > 0 then
+                        table.insert(lines, "*(Also known as: " .. table.concat(c_aliases, ", ") .. ")*")
                     end
-                    if char.connections and #char.connections > 0 then
-                        table.insert(lines, "*Connections: " .. table.concat(char.connections, ", ") .. "*")
+                    local c_connections = ensure_array(char.connections)
+                    if c_connections and #c_connections > 0 then
+                        table.insert(lines, "*Connections: " .. table.concat(c_connections, ", ") .. "*")
                     end
                     table.insert(lines, "")
                 end
@@ -412,8 +427,9 @@ function XrayParser.renderToMarkdown(data, title, progress)
                     if event.significance and event.significance ~= "" then
                         entry = entry .. " — " .. event.significance
                     end
-                    if event.characters and #event.characters > 0 then
-                        entry = entry .. " [" .. table.concat(event.characters, ", ") .. "]"
+                    local e_characters = ensure_array(event.characters)
+                    if e_characters and #e_characters > 0 then
+                        entry = entry .. " [" .. table.concat(e_characters, ", ") .. "]"
                     end
                     table.insert(lines, "- " .. entry)
                 end
@@ -448,8 +464,9 @@ function XrayParser.searchCharacters(data, query)
         end
 
         -- Check aliases
-        if not match_field and char.aliases then
-            for _idx2, alias in ipairs(char.aliases) do
+        local s_aliases = ensure_array(char.aliases)
+        if not match_field and s_aliases then
+            for _idx2, alias in ipairs(s_aliases) do
                 if alias:lower():find(query_lower, 1, true) then
                     match_field = "alias"
                     break
@@ -500,8 +517,9 @@ function XrayParser.searchAll(data, query)
                     match_field = "name"
                 end
                 -- Check aliases
-                if not match_field and item.aliases then
-                    for _idx3, alias in ipairs(item.aliases) do
+                local i_aliases = ensure_array(item.aliases)
+                if not match_field and i_aliases then
+                    for _idx3, alias in ipairs(i_aliases) do
                         if alias:lower():find(query_lower, 1, true) then
                             match_field = "alias"
                             break
@@ -559,8 +577,9 @@ function XrayParser.findCharactersInChapter(data, chapter_text)
         end
 
         -- Count mentions of each alias (AI provides explicit aliases like "Lizzy", "Miss Bennet")
-        if char.aliases then
-            for _idx2, alias in ipairs(char.aliases) do
+        local ch_aliases = ensure_array(char.aliases)
+        if ch_aliases then
+            for _idx2, alias in ipairs(ch_aliases) do
                 if #alias > 2 then
                     local count = XrayParser._countOccurrences(text_lower, alias:lower())
                     if count > best_count then best_count = count end
