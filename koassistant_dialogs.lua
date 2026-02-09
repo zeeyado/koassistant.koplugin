@@ -2455,7 +2455,9 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     end
     
     -- Check if this is a general context chat (no book association)
-    local is_general_context = configuration and configuration.features and configuration.features.is_general_context
+    -- Use getPromptContext() which properly prioritizes: multi_book > book > general > highlight
+    -- This prevents stale is_general_context flags from affecting book context dialogs
+    local is_general_context = getPromptContext(configuration) == "general"
 
     -- Capture book info from document if available (for launch_context even in general chats)
     local doc_title = ui_instance and ui_instance.document and ui_instance.document:getProps().title or nil
@@ -2821,13 +2823,13 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         end
     end
 
-    -- Add View Artifacts button (shows cached X-Ray/Summary/Analysis)
-    -- Skip in general context - artifacts are book-specific
+    -- Build View Artifacts button (shows cached X-Ray/Summary/Analysis)
+    -- Added as its own bottom row, separate from action buttons
+    local artifact_button = nil
     if not is_general_context and plugin then
         local artifact_file = document_path
         if artifact_file then
             local ActionCache = require("koassistant_action_cache")
-            -- Check which caches exist
             local caches = {}
             local xray = ActionCache.getXrayCache(artifact_file)
             if xray and xray.result then
@@ -2843,29 +2845,50 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             end
 
             if #caches == 1 then
-                -- Single cache - open directly
                 local cache = caches[1]
-                table.insert(all_buttons, {
+                artifact_button = {
                     text = _("View") .. " " .. cache.name,
                     callback = function()
                         UIManager:close(input_dialog)
                         plugin:showCacheViewer(cache)
                     end
-                })
+                }
             elseif #caches > 1 then
-                -- Multiple caches - show selector
-                table.insert(all_buttons, {
+                artifact_button = {
                     text = _("View Artifacts"),
                     callback = function()
                         UIManager:close(input_dialog)
-                        plugin:viewCache()
+                        -- Build selector inline using already-loaded caches
+                        -- (plugin:viewCache() requires an open document)
+                        local ButtonDialog = require("ui/widget/buttondialog")
+                        local btn_rows = {}
+                        for _idx, cache in ipairs(caches) do
+                            table.insert(btn_rows, {{
+                                text = cache.name,
+                                callback = function()
+                                    UIManager:close(plugin._cache_selector)
+                                    plugin:showCacheViewer(cache)
+                                end,
+                            }})
+                        end
+                        table.insert(btn_rows, {{
+                            text = _("Cancel"),
+                            callback = function()
+                                UIManager:close(plugin._cache_selector)
+                            end,
+                        }})
+                        plugin._cache_selector = ButtonDialog:new{
+                            title = _("View Artifacts"),
+                            buttons = btn_rows,
+                        }
+                        UIManager:show(plugin._cache_selector)
                     end
-                })
+                }
             end
         end
     end
 
-    -- Organize buttons into rows of three
+    -- Organize action buttons into rows of three
     local button_rows = {}
     local current_row = {}
     for _, button in ipairs(all_buttons) do
@@ -2875,10 +2898,15 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             current_row = {}
         end
     end
-    
-    -- Add any remaining buttons as the last row
+
+    -- Add any remaining action buttons as the last row
     if #current_row > 0 then
         table.insert(button_rows, current_row)
+    end
+
+    -- Add artifact button as its own bottom row
+    if artifact_button then
+        table.insert(button_rows, { artifact_button })
     end
 
     -- Show the dialog with the button rows
