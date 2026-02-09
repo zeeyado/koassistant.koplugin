@@ -631,6 +631,8 @@ function XrayBrowser:showFullView()
         title = title,
         text = markdown,
         simple_view = true,
+        cache_metadata = self.metadata.cache_metadata,
+        configuration = self.metadata.configuration,
     })
 end
 

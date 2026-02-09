@@ -4139,6 +4139,8 @@ function AskGPT:showCacheViewer(cache_info)
           timestamp = cache_info.data.timestamp,
           book_file = self.ui and self.ui.document and self.ui.document.file,
           enable_emoji = features.enable_emoji_icons == true,
+          cache_metadata = cache_metadata,
+          configuration = configuration,
         }
         XrayBrowser:show(parsed, browser_metadata, self.ui, on_delete)
         return
@@ -5180,15 +5182,32 @@ function AskGPT:onKOAssistantQuickActions()
           end,
         })
       elseif qa_util.id == "view_caches" then
-        -- Special handling: only show if X-Ray or Analysis cache exists (not just summary)
-        local xray_exists = ActionCache.getXrayCache(file) ~= nil
-        local analyze_exists = ActionCache.getAnalyzeCache(file) ~= nil
-        if xray_exists or analyze_exists then
+        -- Individual artifact buttons (each shown only when that cache exists)
+        local xray = ActionCache.getXrayCache(file)
+        if xray and xray.result then
+          local xray_label = "View X-Ray"
+          if xray.progress_decimal then
+            xray_label = xray_label .. " (" .. math.floor(xray.progress_decimal * 100 + 0.5) .. "%)"
+          end
           addButton({
-            text = _("View Artifacts"),
+            text = xray_label,
             callback = function()
               UIManager:close(dialog)
-              self_ref:viewCache()
+              self_ref:showCacheViewer({ name = "X-Ray", key = "_xray_cache", data = xray })
+            end,
+          })
+        end
+        local analyze = ActionCache.getAnalyzeCache(file)
+        if analyze and analyze.result then
+          local analyze_label = _("View Analysis")
+          if analyze.progress_decimal then
+            analyze_label = analyze_label .. " (" .. math.floor(analyze.progress_decimal * 100 + 0.5) .. "%)"
+          end
+          addButton({
+            text = analyze_label,
+            callback = function()
+              UIManager:close(dialog)
+              self_ref:showCacheViewer({ name = _("Analysis"), key = "_analyze_cache", data = analyze })
             end,
           })
         end
