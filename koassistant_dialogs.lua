@@ -1321,6 +1321,20 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
 
                     updateViewer()
 
+                    -- Warn once if conversation context is getting large
+                    if history:getAssistantTurnCount() > 1
+                        and not history._context_warning_shown then
+                        local system_text = cfg.system and cfg.system.text or ""
+                        local token_estimate = history:estimateTokens(system_text)
+                        if token_estimate > 50000 then
+                            history._context_warning_shown = true
+                            local token_k = math.floor(token_estimate / 1000)
+                            UIManager:show(InfoMessage:new{
+                                text = T(_("This conversation is using approximately %1K tokens. Each follow-up resends the full history. Consider starting a new chat to reduce costs and maintain quality."), token_k),
+                            })
+                        end
+                    end
+
                     -- Auto-save after each follow-up message if enabled
                     if should_auto_save then
                         local is_general_context = cfg.features.is_general_context or false

@@ -115,6 +115,23 @@ function MessageHistory:getAssistantTurnCount()
     return count
 end
 
+-- Estimate total tokens in conversation (messages + system prompt)
+-- Uses rough heuristic: 1 token ≈ 4 characters
+-- @param system_text string Optional system prompt text to include
+-- @return number Estimated token count
+function MessageHistory:estimateTokens(system_text)
+    local total_chars = 0
+    for _idx, msg in ipairs(self.messages) do
+        if msg.content then
+            total_chars = total_chars + #msg.content
+        end
+    end
+    if system_text then
+        total_chars = total_chars + #system_text
+    end
+    return math.floor(total_chars / 4)
+end
+
 -- Get all reasoning content from assistant messages (for "View Reasoning" feature)
 -- Returns array of { index, reasoning, has_content } for messages with reasoning
 function MessageHistory:getReasoningEntries()
