@@ -539,7 +539,7 @@ Actions.book = {
         use_book_text = true,
         use_annotations = true,
         use_reading_progress = true,
-        prompt = [[Create a reader's companion for "{title}"{author_clause}.
+        prompt = [[Create a structured reader's companion for "{title}"{author_clause}.
 
 I'm at {reading_progress}.
 
@@ -547,77 +547,27 @@ I'm at {reading_progress}.
 
 {book_text_section}
 
-First, determine if this is FICTION or NON-FICTION, then build a reference guide using the appropriate structure. Cover ONLY what's happened up to my current position.
+First, determine if this is FICTION or NON-FICTION. Then output ONLY a valid JSON object (no markdown, no code fences, no explanation) using the appropriate schema below. Cover ONLY what's happened up to my current position. Order characters by narrative importance.
 
 ---
 
-**FOR FICTION, use this structure:**
+FOR FICTION, use this JSON schema:
+{"type":"fiction","characters":[{"name":"Full Name","aliases":["Nickname","Title","Shortened Name"],"role":"Protagonist / Supporting / Antagonist","description":"Key traits, current situation, allegiances.","connections":["Other Character (relationship)"]}],"locations":[{"name":"Place Name","description":"What it is.","significance":"Why it matters, what happened there."}],"themes":[{"name":"Theme Name","description":"How it's being explored in the story."}],"lexicon":[{"term":"Term","definition":"Definition and significance."}],"timeline":[{"event":"What happened","chapter":"Chapter/Section reference","significance":"Why it mattered","characters":["Names involved"]}],"current_state":{"summary":"Where the story stands now.","conflicts":["Active conflict or mystery"],"questions":["Unanswered question"]}}
 
-## Cast
-For each significant character (aim for 8-12):
-**[Name]** — Role in the story. Key traits. Current allegiances or conflicts.
-
-## World
-For each important setting (aim for 5-8):
-**[Place]** — What it is. Why it matters. What happened there.
-
-## Ideas
-The main themes emerging so far (aim for 4-6):
-**[Theme]** — How it's being explored in the story.
-
-## Lexicon
-Terms, concepts, or in-world vocabulary (aim for 5-8):
-**[Term]** — Definition and significance.
-
-## Story Arc
-Major turning points so far (chronological, 6-10 events):
-- **[Event/Chapter]:** What happened and why it mattered.
-
-## Current State
-Where the story stands at {reading_progress}:
-- What just happened
-- Active conflicts or mysteries
-- The protagonist's immediate situation
-- Unanswered questions
+Guidance for fiction: Aim for 8-12 characters (with aliases/nicknames and connections to each other), 5-8 locations, 4-6 themes, 5-8 lexicon terms, 6-10 timeline events (chronological, with characters involved), and a current state section.
 
 ---
 
-**FOR NON-FICTION, use this structure:**
+FOR NON-FICTION, use this JSON schema:
+{"type":"nonfiction","key_figures":[{"name":"Person Name","role":"Their role in the argument.","description":"Key ideas associated with them.","connections":["Related Person (relationship)"]}],"core_concepts":[{"name":"Concept","description":"What it means.","significance":"How the author uses it."}],"arguments":[{"name":"Claim","description":"The argument.","evidence":"Evidence or reasoning provided."}],"terminology":[{"term":"Term","definition":"Definition and usage."}],"argument_development":[{"event":"Key point made","chapter":"Chapter/Section","significance":"How it advances the overall argument"}],"current_position":{"summary":"Where the argument stands now.","questions_addressed":["Question being addressed"],"building_toward":["What the author seems to build toward"]}}
 
-## Key Figures
-People discussed or referenced (aim for 8-12):
-**[Name]** — Who they are. Their role in the argument. Key ideas associated with them.
-
-## Core Concepts
-Main ideas and frameworks introduced so far (aim for 6-10):
-**[Concept]** — What it means. How the author uses it.
-
-## Arguments
-The author's key claims so far (aim for 4-6):
-**[Claim]** — The argument. Evidence or reasoning provided.
-
-## Terminology
-Technical terms or specialized vocabulary (aim for 5-8):
-**[Term]** — Definition and how it's used in this work.
-
-## Argument Development
-How the thesis has built so far (chronological, 6-10 points):
-- **[Chapter/Section]:** Key point made and how it advances the overall argument.
-
-## Current Position
-Where the argument stands at {reading_progress}:
-- What was just established
-- Questions being addressed
-- What the author seems to be building toward
-- Gaps or tensions in the argument so far
+Guidance for non-fiction: Aim for 8-12 key figures, 6-10 core concepts, 4-6 arguments, 5-8 terminology terms, 6-10 argument development points (chronological), and a current position section.
 
 ---
 
-**Length guidance:** Keep this X-Ray concise and practical as a quick reference guide. Prioritize the most significant elements in each category rather than being exhaustive. For longer works, be selective.
+CRITICAL: Do not reveal ANYTHING beyond {reading_progress}. This must be completely spoiler-free. Output ONLY valid JSON — no other text.
 
-CRITICAL: Do not reveal ANYTHING beyond {reading_progress}. This must be completely spoiler-free.
-
-If you don't recognize this work or the content seems unclear, tell me honestly rather than guessing or making things up. I can provide more context if needed.]],
+If you don't recognize this work or the content seems unclear, output: {"error": "I don't recognize this work. Please provide more context."}]],
         skip_language_instruction = false,
         skip_domain = true,  -- X-Ray has specific structure
         -- Inherits global reasoning setting (user choice)
@@ -629,6 +579,7 @@ If you don't recognize this work or the content seems unclear, tell me honestly 
         in_quick_actions = 1,     -- Appears in Quick Actions menu
         -- Document cache: save result for other actions to reference via {xray_cache_section}
         cache_as_xray = true,
+        storage_key = "__SKIP__",  -- Result lives in X-Ray cache, not chat history
         -- Response caching: enables incremental updates as reading progresses
         use_response_caching = true,
         update_prompt = [[Update this X-Ray for "{title}"{author_clause}.
@@ -639,17 +590,18 @@ Previous analysis (at {cached_progress}):
 New content since then (now at {reading_progress}):
 {incremental_book_text_section}
 
-Update the X-Ray to incorporate new developments. Maintain the same structure (Cast/World/Ideas/Lexicon/Story Arc/Current State for fiction, or Key Figures/Core Concepts/Arguments/Terminology/Argument Development/Current Position for non-fiction).
+Output an updated JSON object using the same schema as the previous analysis. If the previous analysis is in plain text rather than JSON, produce a fresh JSON analysis using the appropriate schema for the content type (fiction or nonfiction).
 
 Guidelines:
 - Add new characters, locations, themes, or concepts that appeared
-- Update the "Current State" or "Current Position" section for the new progress point
+- Add aliases and connections for new characters
+- Update timeline with new events (include characters involved)
+- Update "current_state" or "current_position" for the new progress point
 - Keep existing entries, modify only if new information changes them
 - Do not remove anything unless clearly contradicted
-- Preserve the original tone and formatting
-- Keep total length practical - consolidate earlier content as needed to stay concise
+- Keep total length practical — consolidate earlier entries as needed
 
-CRITICAL: This must remain spoiler-free up to {reading_progress}. Do not reveal anything beyond the current position.]],
+CRITICAL: This must remain spoiler-free up to {reading_progress}. Output ONLY valid JSON — no other text.]],
     },
     -- Recap: Story summary for re-immersion
     recap = {
@@ -695,7 +647,7 @@ If you don't recognize this work or the title/content seems unclear, tell me hon
         -- Inherits global reasoning setting (user choice)
         api_params = {
             temperature = 0.7,
-            max_tokens = 4096,
+            max_tokens = 8192,
         },
         builtin = true,
         in_reading_features = 2,  -- Appears in Reading Features menu + default gesture
