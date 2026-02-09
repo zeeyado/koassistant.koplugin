@@ -434,7 +434,7 @@ If you change privacy settings after building a cache (e.g., disable annotations
 
 **Two text extraction types** (determined by placeholder in your action prompt):
 - `{book_text_section}` — Extracts from start to your current reading position (used by X-Ray, Recap)
-- `{full_document_section}` — Extracts the entire document regardless of position (for short papers, articles)
+- `{full_document_section}` — Extracts the entire document regardless of position (used by most text extraction actions including Explain in Context, Analyze in Context, Summarize, Analyze Document, and more)
 
 See [Troubleshooting → Text Extraction Not Working](#text-extraction-not-working) if you're having issues.
 
@@ -496,9 +496,9 @@ You can customize these, create your own, or disable ones you don't use. See [Ac
 | **Elaborate** | Expand on concepts, provide additional context and details |
 | **Connect** | Draw connections to other works, thinkers, and broader context |
 | **Connect (With Notes)** | Connect passage to your personal reading journey ⚠️ *Requires: Allow Highlights & Annotations, Allow Notebook* |
-| **Explain in Context** | Explain passage using surrounding book content ⚠️ *Requires: Allow Text Extraction* |
+| **Explain in Context** | Explain passage using full document text as context ⚠️ *Requires: Allow Text Extraction* |
 | **Explain in Context (Smart)** | Like above, but uses cached document summary for efficiency ⚠️ *Requires: Allow Text Extraction* |
-| **Analyze in Context** | Deep analysis with book context and your annotations ⚠️ *Requires: Allow Text Extraction, Allow Highlights & Annotations* |
+| **Analyze in Context** | Deep analysis using full document text and your annotations ⚠️ *Requires: Allow Text Extraction, Allow Highlights & Annotations* |
 | **Analyze in Context (Smart)** | Like above, but uses cached document summary ⚠️ *Requires: Allow Text Extraction, Allow Highlights & Annotations* |
 | **Thematic Connection (Smart)** | Analyze how a passage connects to the book's larger themes ⚠️ *Requires: Allow Text Extraction* |
 | **Fact Check** | Verify claims using web search ⚠️ *Requires: Web Search* |
@@ -922,7 +922,7 @@ Insert these in your action prompt to reference dynamic values:
 
 > **Privacy note:** Section placeholders adapt to [privacy settings](#privacy--data). If a data type is disabled (or not yet enabled), the corresponding placeholder returns empty and section variants disappear gracefully. For example, `{highlights_section}` is empty unless you enable **Allow Highlights & Annotations**. You don't need to modify actions to match your privacy preferences—they adapt automatically.
 
-> **Double-gating (for custom actions):** When creating custom actions from scratch, sensitive data requires BOTH a global privacy setting AND a per-action permission flag. This prevents accidental data leakage—if you enable "Allow Text Extraction" globally, your new custom actions still need "Allow text extraction" checked to actually use it. Built-in actions already have appropriate flags set, and copied actions inherit them. Document cache placeholders require the same permissions as their source: `{xray_cache}` needs both text extraction AND annotations, while `{analyze_cache}` and `{summary_cache}` only need text extraction. See [Text Extraction and Double-gating](#text-extraction-and-double-gating) for the full reference table.
+> **Double-gating (for custom actions):** When creating custom actions from scratch, sensitive data requires BOTH a global privacy setting AND a per-action permission flag. This prevents accidental data leakage—if you enable "Allow Text Extraction" globally, your new custom actions still need "Allow text extraction" checked to actually use it. Built-in actions already have appropriate flags set, and copied actions inherit them. Document cache placeholders require the same permissions as their source: `{xray_cache}` needs text extraction, plus annotations only if the cache was built with annotations included; `{analyze_cache}` and `{summary_cache}` only need text extraction. See [Text Extraction and Double-gating](#text-extraction-and-double-gating) for the full reference table.
 
 #### Utility Placeholders
 
@@ -1026,7 +1026,7 @@ Add frequently-used highlight actions directly to KOReader's highlight popup for
 2. **Explain** — Get an explanation of the passage
 3. **ELI5** — Explain Like I'm 5, simplified explanation
 
-**Other built-in actions you can add**: Summarize, Elaborate, Connect, Connect (With Notes), Explain in Context, Analyze in Context, Dictionary, Quick Define, Deep Analysis
+**Other built-in actions you can add**: Summarize, Elaborate, Connect, Connect (With Notes), Explain in Context, Explain in Context (Smart), Analyze in Context, Analyze in Context (Smart), Thematic Connection (Smart), Fact Check, Current Context, Dictionary, Quick Define, Deep Analysis
 
 **Adding more actions**:
 1. Go to **Manage Actions**
@@ -1400,7 +1400,7 @@ Behavior defines the AI's personality, communication style, and response guideli
 - **Perplexity Style** (Mini, Standard, Full) — Research-focused with source transparency
 
 **Reading-focused:**
-- **Reader Assistant** (~350 tokens) — Reading companion persona (used by Smart actions)
+- **Reader Assistant** (~350 tokens) — Reading companion persona (used by X-Ray, Recap, Analyze Highlights, Connect with Notes)
 
 **General utility:**
 - **Concise** (~55 tokens) — Brevity-focused, minimal guidance for direct responses
