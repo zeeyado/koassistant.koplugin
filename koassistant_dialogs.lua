@@ -2095,11 +2095,10 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
         end
 
         if should_include_book then
-            -- Try ui.document first
-            if ui and ui.document then
-                local props = ui.document:getProps()
-                message_data.book_title = props and props.title
-                message_data.book_author = props and props.authors
+            -- Try KOReader's merged props first (includes user edits from Book Info dialog)
+            if ui and ui.doc_props then
+                message_data.book_title = ui.doc_props.display_title or ui.doc_props.title
+                message_data.book_author = ui.doc_props.authors
             end
             -- Fall back to passed book_metadata if not available
             if not message_data.book_title and book_metadata then
@@ -2128,16 +2127,16 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
     -- For book context, ensure book_metadata is populated
     -- This provides a fallback when config.features.book_metadata isn't set
     if context == "book" or context == "file_browser" then
-        if not message_data.book_metadata and ui and ui.document then
-            local props = ui.document:getProps()
-            if props then
-                message_data.book_metadata = {
-                    title = props.title or "Unknown",
-                    author = props.authors or "",
-                    author_clause = (props.authors and props.authors ~= "") and (" by " .. props.authors) or "",
-                }
-                logger.info("KOAssistant: book_metadata populated from ui.document for book context")
-            end
+        if not message_data.book_metadata and ui and ui.doc_props then
+            local props = ui.doc_props
+            local title = props.display_title or props.title or "Unknown"
+            local authors = props.authors or ""
+            message_data.book_metadata = {
+                title = title,
+                author = authors,
+                author_clause = (authors ~= "") and (" by " .. authors) or "",
+            }
+            logger.info("KOAssistant: book_metadata populated from ui.doc_props for book context")
         end
     end
 
@@ -2459,9 +2458,10 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     -- This prevents stale is_general_context flags from affecting book context dialogs
     local is_general_context = getPromptContext(configuration) == "general"
 
-    -- Capture book info from document if available (for launch_context even in general chats)
-    local doc_title = ui_instance and ui_instance.document and ui_instance.document:getProps().title or nil
-    local doc_author = ui_instance and ui_instance.document and ui_instance.document:getProps().authors or nil
+    -- Capture book info from KOReader's merged props (includes user edits from Book Info dialog)
+    local ui_doc_props = ui_instance and ui_instance.doc_props
+    local doc_title = ui_doc_props and (ui_doc_props.display_title or ui_doc_props.title) or nil
+    local doc_author = ui_doc_props and ui_doc_props.authors or nil
     local doc_file = ui_instance and ui_instance.document and ui_instance.document.file or nil
 
     -- For general context, don't use document_path - these chats are context-free
@@ -3015,7 +3015,7 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
     local book_metadata = nil
 
     if ui and ui.document then
-        local props = ui.document:getProps()
+        local props = ui.doc_props or {}
         document_path = ui.document.file
 
         -- Extract filename as fallback for missing title metadata
@@ -3029,9 +3029,9 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
             end
         end
 
-        -- Use actual metadata if available, filename as fallback, empty author if unknown
-        local title = props and props.title
-        local author = props and props.authors
+        -- Use KOReader's merged metadata (includes user edits), filename as fallback
+        local title = props.display_title or props.title
+        local author = props.authors
         book_metadata = {
             title = (title and title ~= "") and title or filename_fallback or "Unknown",
             author = (author and author ~= "") and author or ""  -- Empty, not "Unknown" - less confusing for AI
@@ -3139,14 +3139,16 @@ local function generateSummaryStandalone(ui, config, plugin, on_complete)
         return
     end
 
-    -- Build message data
-    local props = ui.document:getProps()
+    -- Build message data using KOReader's merged props (includes user edits from Book Info dialog)
+    local props = ui.doc_props or {}
+    local title = props.display_title or props.title or _("Unknown")
+    local authors = props.authors or ""
     local message_data = {
         full_document = full_doc_result.text,
         book_metadata = {
-            title = props and props.title or _("Unknown"),
-            author = props and props.authors or "",
-            author_clause = (props and props.authors and props.authors ~= "") and (" by " .. props.authors) or "",
+            title = title,
+            author = authors,
+            author_clause = (authors ~= "") and (" by " .. authors) or "",
         },
     }
 

@@ -3933,9 +3933,9 @@ function AskGPT:onKOAssistantBookChat()
     return true
   end
 
-  -- Get book metadata and use the same implementation as showAssistantDialogForFile
-  local doc_props = self.ui.document:getProps()
-  local title = doc_props.title or "Unknown"
+  -- Get book metadata from KOReader's merged props (includes user edits from Book Info dialog)
+  local doc_props = self.ui.doc_props or {}
+  local title = doc_props.display_title or doc_props.title or "Unknown"
   local authors = doc_props.authors or ""
 
   -- Call the existing function that handles file browser context properly
@@ -4062,12 +4062,12 @@ function AskGPT:showCacheViewer(cache_info)
     title = title .. " [" .. cache_info.data.language .. "]"
   end
 
-  -- Get book metadata for export
+  -- Get book metadata from KOReader's merged props (includes user edits from Book Info dialog)
   local book_title, book_author
-  if self.ui and self.ui.document then
-    local props = self.ui.document:getProps()
+  if self.ui then
+    local props = self.ui.doc_props
     if props then
-      book_title = props.title
+      book_title = props.display_title or props.title
       book_author = props.authors
     end
   end
@@ -4186,12 +4186,12 @@ function AskGPT:showSummaryViewer(summary_data)
     title = title .. " [" .. date_str .. "]"
   end
 
-  -- Get book metadata for export
+  -- Get book metadata from KOReader's merged props (includes user edits from Book Info dialog)
   local book_title, book_author
-  if self.ui and self.ui.document then
-    local props = self.ui.document:getProps()
+  if self.ui then
+    local props = self.ui.doc_props
     if props then
-      book_title = props.title
+      book_title = props.display_title or props.title
       book_author = props.authors
     end
   end
@@ -4354,12 +4354,14 @@ function AskGPT:executeBookLevelAction(action_id)
   end
   config_copy.features.is_book_context = true  -- Signal book context to getPromptContext()
 
-  -- Get book metadata
-  local doc_props = self.ui.document:getProps()
+  -- Get book metadata from KOReader's merged props (includes user edits from Book Info dialog)
+  local doc_props = self.ui.doc_props or {}
+  local title = doc_props.display_title or doc_props.title or "Unknown"
+  local authors = doc_props.authors or ""
   config_copy.features.book_metadata = {
-    title = doc_props.title or "Unknown",
-    author = doc_props.authors or "",
-    author_clause = (doc_props.authors and doc_props.authors ~= "") and (" by " .. doc_props.authors) or "",
+    title = title,
+    author = authors,
+    author_clause = (authors ~= "") and (" by " .. authors) or "",
   }
 
   -- Execute the action with no highlighted text (book-level action)
