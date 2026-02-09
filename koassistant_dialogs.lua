@@ -2824,8 +2824,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     -- Add View Artifacts button (shows cached X-Ray/Summary/Analysis)
     -- Skip in general context - artifacts are book-specific
     if not is_general_context and plugin then
-        local artifact_file = (ui_instance and ui_instance.document and ui_instance.document.file)
-                              or (book_metadata and book_metadata.file)
+        local artifact_file = document_path
         if artifact_file then
             local ActionCache = require("koassistant_action_cache")
             -- Check which caches exist
