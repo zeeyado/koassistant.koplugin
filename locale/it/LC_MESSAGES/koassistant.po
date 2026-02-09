@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: KOAssistant 0.6.2\n"
 "Report-Msgid-Bugs-To: https://github.com/zeeyado/koassistant.koplugin/issues\n"
-"POT-Creation-Date: 2026-02-09 17:26+0000\n"
+"POT-Creation-Date: 2026-02-09 17:45+0000\n"
 "PO-Revision-Date: 2026-01-27 00:00+0000\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: Italian\n"
@@ -3535,7 +3535,7 @@ msgid "No known characters found in current chapter."
 msgstr "Nessun personaggio noto trovato nel capitolo corrente."
 
 #: koassistant_xray_browser.lua:507
-#, lua-format, fuzzy
+#, fuzzy, lua-format
 msgid "%1x"
 msgstr "%1x"
 
@@ -4583,6 +4583,11 @@ msgstr "Visualizza riepilogo"
 #, fuzzy
 msgid "Generate Summary"
 msgstr "Genera riepilogo"
+
+#: main.lua:5188
+#, fuzzy
+msgid "View X-Ray"
+msgstr "Visualizza X-Ray"
 
 #: main.lua:5202
 #, fuzzy

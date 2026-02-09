@@ -5185,7 +5185,7 @@ function AskGPT:onKOAssistantQuickActions()
         -- Individual artifact buttons (each shown only when that cache exists)
         local xray = ActionCache.getXrayCache(file)
         if xray and xray.result then
-          local xray_label = "View X-Ray"
+          local xray_label = _("View X-Ray")
           if xray.progress_decimal then
             xray_label = xray_label .. " (" .. math.floor(xray.progress_decimal * 100 + 0.5) .. "%)"
           end

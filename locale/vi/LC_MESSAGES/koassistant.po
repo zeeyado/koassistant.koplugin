@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: KOAssistant 0.12.0-dev\n"
 "Report-Msgid-Bugs-To: https://github.com/zeeyado/koassistant.koplugin/issues\n"
-"POT-Creation-Date: 2026-02-09 17:26+0000\n"
+"POT-Creation-Date: 2026-02-09 17:45+0000\n"
 "PO-Revision-Date: 2026-01-27 17:48+0000\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
@@ -3536,7 +3536,7 @@ msgid "No known characters found in current chapter."
 msgstr "Không tìm thấy ký tự đã biết trong chương hiện tại."
 
 #: koassistant_xray_browser.lua:507
-#, lua-format, fuzzy
+#, fuzzy, lua-format
 msgid "%1x"
 msgstr "%1x"
 
@@ -4584,6 +4584,11 @@ msgstr "Xem Tóm tắt"
 #, fuzzy
 msgid "Generate Summary"
 msgstr "Tạo Tóm tắt"
+
+#: main.lua:5188
+#, fuzzy
+msgid "View X-Ray"
+msgstr "Xem X-Ray"
 
 #: main.lua:5202
 #, fuzzy
