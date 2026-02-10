@@ -5,7 +5,9 @@ Enables incremental updates: when user runs X-Ray at 30%, then again at 50%,
 the second request sends only the new content (30%-50%) plus the cached response.
 
 Cache is stored in sidecar directory (auto-moves with books).
-Only caches when book text extraction is enabled AND used.
+Caches results regardless of text extraction. Tracks used_book_text metadata
+for dynamic permission gating (caches built without text don't require
+text extraction permission to read).
 
 @module koassistant_action_cache
 ]]
@@ -17,7 +19,7 @@ local logger = require("logger")
 local ActionCache = {}
 
 -- Cache format version (increment if structure changes)
--- v2: Added used_annotations field to track permission state when cache was built
+-- v2: Added used_annotations and used_book_text fields to track permission state when cache was built
 local CACHE_VERSION = 2
 
 --- Find a safe long string delimiter for content that won't appear in the text
@@ -101,9 +103,15 @@ local function saveCache(document_path, cache)
             file:write(string.format("        timestamp = %s,\n", tostring(entry.timestamp or 0)))
             file:write(string.format("        model = %q,\n", entry.model or ""))
             file:write(string.format("        version = %s,\n", tostring(entry.version or CACHE_VERSION)))
-            -- Track permission state when cache was built (for X-Ray)
+            -- Track permission state when cache was built
             if entry.used_annotations ~= nil then
                 file:write(string.format("        used_annotations = %s,\n", tostring(entry.used_annotations)))
+            end
+            if entry.used_book_text ~= nil then
+                file:write(string.format("        used_book_text = %s,\n", tostring(entry.used_book_text)))
+            end
+            if entry.previous_progress_decimal then
+                file:write(string.format("        previous_progress_decimal = %s,\n", tostring(entry.previous_progress_decimal)))
             end
             -- Result may contain special characters, use long string with safe delimiter
             local result_text = entry.result or ""
@@ -141,7 +149,7 @@ end
 --- @param action_id string The action ID (e.g., "xray", "recap")
 --- @param result string The AI response text
 --- @param progress_decimal number Progress as decimal (0.0-1.0)
---- @param metadata table Optional metadata: { model = "model-name", used_annotations = true/false }
+--- @param metadata table Optional metadata: { model = "model-name", used_annotations = true/false, used_book_text = true/false, previous_progress_decimal = number }
 --- @return boolean success Whether save succeeded
 function ActionCache.set(document_path, action_id, result, progress_decimal, metadata)
     if not document_path or not action_id or not result then
@@ -155,8 +163,11 @@ function ActionCache.set(document_path, action_id, result, progress_decimal, met
         model = metadata and metadata.model or "",
         result = result,
         version = CACHE_VERSION,
-        -- Track permission state when cache was built (only for X-Ray currently)
+        -- Track permission state when cache was built
         used_annotations = metadata and metadata.used_annotations,
+        used_book_text = metadata and metadata.used_book_text,
+        -- Track incremental update origin
+        previous_progress_decimal = metadata and metadata.previous_progress_decimal,
     }
 
     return saveCache(document_path, cache)
@@ -210,9 +221,10 @@ ActionCache.SUMMARY_CACHE_KEY = "_summary_cache"
 
 --- Get cached X-Ray (partial document analysis to reading position)
 --- @param document_path string The document file path
---- @return table|nil entry { result, progress_decimal, timestamp, model, used_annotations } or nil
+--- @return table|nil entry { result, progress_decimal, timestamp, model, used_annotations, used_book_text } or nil
 ---   used_annotations: Whether annotations were included when building this cache.
----   Use this to determine if annotation permission is required to read the cache.
+---   used_book_text: Whether book text extraction was used. false = AI training data only.
+---   Use these to determine what permissions are required to read the cache.
 function ActionCache.getXrayCache(document_path)
     return ActionCache.get(document_path, ActionCache.XRAY_CACHE_KEY)
 end
@@ -221,9 +233,10 @@ end
 --- @param document_path string The document file path
 --- @param result string The X-Ray text
 --- @param progress_decimal number Progress as decimal (0.0-1.0)
---- @param metadata table Optional: { model = "model-name", used_annotations = true/false }
+--- @param metadata table Optional: { model = "model-name", used_annotations = true/false, used_book_text = true/false }
 ---   used_annotations: Track whether annotations were included when building this cache.
----   When reading the cache, annotation permission is only required if used_annotations=true.
+---   used_book_text: Track whether book text extraction was used. false = AI training data only.
+---   When reading the cache, permissions are only required for data that was actually used.
 --- @return boolean success
 function ActionCache.setXrayCache(document_path, result, progress_decimal, metadata)
     return ActionCache.set(document_path, ActionCache.XRAY_CACHE_KEY, result, progress_decimal, metadata)
@@ -231,7 +244,8 @@ end
 
 --- Get cached document analysis (full document deep analysis)
 --- @param document_path string The document file path
---- @return table|nil entry { result, progress_decimal, timestamp, model } or nil
+--- @return table|nil entry { result, progress_decimal, timestamp, model, used_book_text } or nil
+---   used_book_text: Whether book text extraction was used. false = AI training data only.
 function ActionCache.getAnalyzeCache(document_path)
     return ActionCache.get(document_path, ActionCache.ANALYZE_CACHE_KEY)
 end
@@ -240,7 +254,7 @@ end
 --- @param document_path string The document file path
 --- @param result string The analysis text
 --- @param progress_decimal number Progress (typically 1.0 for full document)
---- @param metadata table Optional: { model = "model-name" }
+--- @param metadata table Optional: { model = "model-name", used_book_text = true/false }
 --- @return boolean success
 function ActionCache.setAnalyzeCache(document_path, result, progress_decimal, metadata)
     return ActionCache.set(document_path, ActionCache.ANALYZE_CACHE_KEY, result, progress_decimal, metadata)
@@ -248,7 +262,8 @@ end
 
 --- Get cached document summary (full document summary)
 --- @param document_path string The document file path
---- @return table|nil entry { result, progress_decimal, timestamp, model } or nil
+--- @return table|nil entry { result, progress_decimal, timestamp, model, used_book_text } or nil
+---   used_book_text: Whether book text extraction was used. false = AI training data only.
 function ActionCache.getSummaryCache(document_path)
     return ActionCache.get(document_path, ActionCache.SUMMARY_CACHE_KEY)
 end
@@ -257,7 +272,7 @@ end
 --- @param document_path string The document file path
 --- @param result string The summary text
 --- @param progress_decimal number Progress (typically 1.0 for full document)
---- @param metadata table Optional: { model = "model-name" }
+--- @param metadata table Optional: { model = "model-name", used_book_text = true/false }
 --- @return boolean success
 function ActionCache.setSummaryCache(document_path, result, progress_decimal, metadata)
     return ActionCache.set(document_path, ActionCache.SUMMARY_CACHE_KEY, result, progress_decimal, metadata)

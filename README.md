@@ -415,8 +415,8 @@ The table below documents which flags are required for each data type (relevant 
 | Data Type | Global Setting | Per-Action Flag |
 |-----------|----------------|-----------------|
 | Book text | Allow Text Extraction | "Allow text extraction" checked |
-| X-Ray analysis cache | Allow Text Extraction (+ Allow Highlights & Annotations if cache was built with annotations) | "Allow text extraction" and "Allow annotation use" (if cache was built with annotations) checked |
-| Analyze/Summary caches | Allow Text Extraction | "Allow text extraction" checked |
+| X-Ray analysis cache | Allow Text Extraction if cache was built with text (+ Allow Highlights & Annotations if cache was built with annotations) | "Allow text extraction" (if cache used text) and "Allow annotation use" (if cache used annotations) checked |
+| Analyze/Summary caches | Allow Text Extraction if cache was built with text | "Allow text extraction" (if cache used text) checked |
 | Highlights | Allow Highlights & Annotations | "Allow annotation use" checked |
 | Annotations | Allow Highlights & Annotations | "Allow annotation use" checked |
 | Notebook | Allow Notebook | "Allow notebook use" checked |
@@ -428,11 +428,13 @@ The table below documents which flags are required for each data type (relevant 
 
 **Privacy compromise for X-Ray:** If you want X-Ray to analyze actual book content but prefer not to share your personal annotations, enable **only** "Allow Text Extraction" (leave "Allow Highlights & Annotations" off). X-Ray will analyze the book text without including your highlights or notes.
 
-**Cache permission inheritance:** When the X-Ray cache is built, it records whether annotations were included. Actions that later reference `{xray_cache_section}` inherit these requirements:
-- Cache built **without** annotations → Only "Allow Text Extraction" needed to use it
-- Cache built **with** annotations → Both "Allow Text Extraction" AND "Allow Highlights & Annotations" required
+**Cache permission inheritance:** When caches are built, they record what data was used. Actions that later reference cache placeholders inherit requirements based on what the cache actually contains:
+- Cache built **without text extraction** → No "Allow Text Extraction" needed (AI used training knowledge only)
+- Cache built **with text extraction** → "Allow Text Extraction" needed
+- X-Ray cache built **without annotations** → No "Allow Highlights & Annotations" needed
+- X-Ray cache built **with annotations** → Both "Allow Text Extraction" AND "Allow Highlights & Annotations" required
 
-If you change privacy settings after building a cache (e.g., disable annotations), actions may render the cache placeholder empty. To fix: either re-enable the required permissions, or regenerate the cache with your current settings using the "↻ Fresh" button.
+The artifact viewer shows "Based on AI training data knowledge" or "Based on extracted document text" so you always know what a cache contains. If you change privacy settings after building a cache (e.g., disable text extraction), actions may render the cache placeholder empty. To fix: either re-enable the required permissions, or regenerate the cache with your current settings.
 
 **Two text extraction types** (determined by placeholder in your action prompt):
 - `{book_text_section}` — Extracts from start to your current reading position (used by X-Ray, Recap)
@@ -629,8 +631,10 @@ These actions analyze your actual reading content. They require specific privacy
 > **Tip:** If your device supports emoji fonts, enable **Emoji Menu Icons** in Settings → Display Settings for visual category icons in the X-Ray browser (e.g., characters, locations, themes). See [Emoji Menu Icons](#display-settings).
 
 **X-Ray/Recap** work in two modes:
-- **Without text extraction** (default): AI uses only the title/author and its training knowledge. Their prompts include specialized fallback guidance (e.g., Recap tells the AI to use what it knows; X-Ray provides format-specific error handling). Works for well-known titles; may be inaccurate for obscure works.
-- **With text extraction**: AI analyzes actual book content up to your reading position. More accurate but costs more tokens. Enables response caching for incremental updates.
+- **Without text extraction** (default): AI uses only the title/author and its training knowledge. Their prompts include specialized fallback guidance (e.g., Recap tells the AI to use what it knows; X-Ray provides format-specific error handling). Works for well-known titles; may be inaccurate for obscure works. Results are cached and labeled "Based on AI training data knowledge."
+- **With text extraction**: AI analyzes actual book content up to your reading position. More accurate but costs more tokens. Results are cached and labeled "Based on extracted document text."
+
+Both modes support response caching and incremental updates — running X-Ray again after reading further builds on the previous analysis rather than starting from scratch.
 
 > **Spoiler safety:** X-Ray and Recap are the only built-in actions that limit extraction to your current reading position (`{book_text_section}`). All other text extraction actions — including "Explain in Context" and "Analyze in Context" — send the full document to give the AI complete context for its analysis. If you need a spoiler-free variant, create a custom action using `{book_text_section}` instead of `{full_document_section}`.
 
@@ -642,7 +646,7 @@ These actions analyze your actual reading content. They require specific privacy
 
 > **Tip:** Create specialized versions for your workflow. Copy a built-in action, customize the prompt for your field (e.g., "Focus on methodology and statistical claims" for scientific papers), and pair it with a matching domain. Disable built-ins you don't use via Action Manager (tap to toggle). See [Custom Actions](#custom-actions) for details.
 
-> **📦 Response Caching (Experimental)**: When text extraction is enabled (Settings → Privacy & Data → Text Extraction), X-Ray and Recap responses are automatically cached per book. Running them again after reading further sends only the *new* content to update the previous analysis—faster and cheaper. This feature is experimental and feedback is welcome. See [Response Caching](#response-caching) for details.
+> **📦 Response Caching**: X-Ray and Recap responses are automatically cached per book. Running them again after reading further triggers an incremental update — only new content (if text extraction is enabled) is sent to update the previous analysis. Without text extraction, the AI updates from training knowledge. See [Response Caching](#response-caching) for details.
 
 **Reading Mode vs File Browser:**
 
@@ -2362,9 +2366,7 @@ Prompt caching reduces costs and latency by reusing previously processed prompt 
 
 ### Response Caching
 
-> **⚠️ Experimental Feature**: Response caching currently supports X-Ray and Recap only. More actions may be added based on feedback. Please report issues or suggestions via GitHub.
-
-When text extraction is enabled, X-Ray and Recap responses are automatically cached per book. This enables **incremental updates** — as you read further, the AI builds on its previous analysis rather than starting from scratch:
+X-Ray and Recap responses are automatically cached per book. This enables **incremental updates** — as you read further, the AI builds on its previous analysis rather than starting from scratch:
 
 **How it works:**
 1. Run X-Ray at 30% → Full structured JSON analysis generated and cached
@@ -2375,11 +2377,10 @@ When text extraction is enabled, X-Ray and Recap responses are automatically cac
 **X-Ray format:** X-Ray results are stored as structured JSON (characters with aliases/connections, locations, themes, lexicon, timeline). The JSON is rendered to readable markdown for chat display and `{xray_cache_section}` placeholders, while the raw JSON powers the browsable menu UI. Legacy markdown X-Rays from older versions are still viewable but will be replaced with JSON on the next run.
 
 **Requirements:**
-- Text extraction must be enabled (Settings → Privacy & Data → Text Extraction)
 - You must be reading (not in file browser)
-- Progress must advance by at least 1% to use incremental cache
+- Progress must advance by at least 1% to trigger an incremental update
 
-> **Without text extraction:** Actions still work but rely on AI training knowledge (the book's title/author only). Results are NOT cached—each run starts fresh. Running X-Ray at 30%, then again at 50%, generates two independent responses rather than an incremental update.
+> **With vs without text extraction:** When text extraction is enabled, incremental updates include new book content (e.g., text from 30% to 50%). Without text extraction, the AI updates from training knowledge using only the title, author, and reading position. Both modes cache results and support incremental updates. Caches are labeled "Based on extracted document text" or "Based on AI training data knowledge" so you know what they contain.
 
 **Cache storage:**
 - Stored in the book's sidecar folder (`.sdr/koassistant_cache.lua`)
@@ -2419,15 +2420,15 @@ When certain actions complete, their results are saved as **document artifacts**
 - **Gesture** → Assign "KOAssistant: View Summary" for quick access, or "KOAssistant: View Artifacts" to browse all artifacts
 - **Coverage**: The viewer title shows coverage percentage if the document was truncated (e.g., "Summary (78%)")
 
-The artifact viewer shows metadata (coverage, model used, generation date) and provides buttons for copying, exporting, regenerating, or deleting. X-Ray artifacts open in a **browsable category menu** (see [Reading Analysis Actions](#reading-analysis-actions) for details); legacy markdown X-Rays fall back to the text viewer.
+The artifact viewer shows metadata (coverage, data source, model used, generation date with relative time) and provides buttons for copying, exporting, regenerating, or deleting. X-Ray artifacts open in a **browsable category menu** (see [Reading Analysis Actions](#reading-analysis-actions) for details); legacy markdown X-Rays fall back to the text viewer.
 
-> **Safety mechanism:** Artifacts are only saved when book text was actually extracted. If you run an artifact-generating action with text extraction disabled (or if extraction yields no content), the AI still produces a response — guided by the [text fallback nudge](#utility-placeholders) to use its training knowledge honestly — but this training-data-based result is NOT saved as an artifact. This prevents lower-quality responses from being stored as reusable context for Smart actions and other artifact-dependent workflows. Enable text extraction before running these actions to build useful, saveable artifacts.
+> **Cache source tracking:** Each artifact records whether it was built with actual document text or AI training knowledge. The artifact viewer displays "Based on extracted document text" or "Based on AI training data knowledge" so you always know what an artifact contains. Artifacts built without text extraction use the AI's training knowledge — this works well for popular books but may be less accurate for obscure works. You can always regenerate with text extraction enabled for higher quality.
 
-> **Permission requirement:** Artifact placeholders require the same permissions as the original action that generated them:
-> - `{xray_cache_section}` requires **Allow Text Extraction**, plus **Allow Highlights & Annotations** if the cache was built with annotations
-> - `{analyze_cache_section}` and `{summary_cache_section}` require only **Allow Text Extraction**
+> **Permission requirements for artifact placeholders:** Dynamic based on how the artifact was built:
+> - Artifact built **with text extraction**: `{xray_cache_section}` requires **Allow Text Extraction** (plus **Allow Highlights & Annotations** if built with annotations). `{analyze_cache_section}` and `{summary_cache_section}` require **Allow Text Extraction**.
+> - Artifact built **without text extraction**: No text extraction permission needed — the artifact contains only AI training knowledge.
 >
-> Without the required gates enabled (both global setting and per-action flag), the placeholder renders empty.
+> Without the required gates enabled, the placeholder renders empty.
 
 **"Generate Once, Use Many Times" — Summary Artifacts and Smart Actions**
 
@@ -2486,7 +2487,7 @@ All three artifacts can be referenced in custom actions using `{summary_cache_se
 4. Check "Allow text extraction" and "Include highlights" in the action's permissions
 5. Run your new action — it uses the cached X-Ray without re-analyzing
 
-If you haven't run X-Ray yet (or permissions aren't enabled), the placeholder renders empty and the action still runs, just without the analysis context.
+If you haven't run X-Ray yet, the placeholder renders empty and the action still runs, just without the analysis context. Permission requirements for the placeholder depend on how the X-Ray was built — see [Cache permission inheritance](#text-extraction-and-double-gating) above.
 
 > **Tip**: For documents you'll query multiple times, generate the summary proactively via Quick Actions. The artifacts are also convenient in themselves — browse a book's X-Ray to look up characters (with aliases and connections), check who appears in the current chapter, search for any entry, review the Analysis for a refresher on key arguments, or skim the Summary before resuming a book you haven't read in a while.
 

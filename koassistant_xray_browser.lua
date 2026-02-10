@@ -706,12 +706,21 @@ function XrayBrowser:showFullView()
     -- Build metadata info line for display at top of content
     local info_parts = { "X-Ray" }
     if self.metadata.progress then
-        table.insert(info_parts, self.metadata.progress)
+        local progress_label = self.metadata.progress
+        if self.metadata.previous_progress then
+            progress_label = progress_label .. " (" .. _("updated from") .. " " .. self.metadata.previous_progress .. ")"
+        end
+        table.insert(info_parts, progress_label)
+    end
+    if self.metadata.source_label then
+        table.insert(info_parts, self.metadata.source_label)
     end
     if self.metadata.model then
         table.insert(info_parts, _("Model:") .. " " .. self.metadata.model)
     end
-    if self.metadata.timestamp then
+    if self.metadata.formatted_date then
+        table.insert(info_parts, _("Date:") .. " " .. self.metadata.formatted_date)
+    elseif self.metadata.timestamp then
         table.insert(info_parts, _("Date:") .. " " .. os.date("%Y-%m-%d", self.metadata.timestamp))
     end
     local cache_info_text = table.concat(info_parts, ". ") .. "."
@@ -763,13 +772,22 @@ function XrayBrowser:showOptions()
         table.insert(info_parts, _("Model:") .. " " .. self.metadata.model)
     end
     if self.metadata.progress then
-        table.insert(info_parts, _("Progress:") .. " " .. self.metadata.progress)
+        local progress_label = self.metadata.progress
+        if self.metadata.previous_progress then
+            progress_label = progress_label .. " (" .. _("updated from") .. " " .. self.metadata.previous_progress .. ")"
+        end
+        table.insert(info_parts, _("Progress:") .. " " .. progress_label)
     end
-    if self.metadata.timestamp then
+    if self.metadata.formatted_date then
+        table.insert(info_parts, _("Date:") .. " " .. self.metadata.formatted_date)
+    elseif self.metadata.timestamp then
         table.insert(info_parts, _("Date:") .. " " .. os.date("%Y-%m-%d %H:%M", self.metadata.timestamp))
     end
     local type_label = XrayParser.isFiction(self.xray_data) and _("Fiction") or _("Non-Fiction")
     table.insert(info_parts, _("Type:") .. " " .. type_label)
+    if self.metadata.source_label then
+        table.insert(info_parts, _("Source:") .. " " .. self.metadata.source_label)
+    end
 
     if #info_parts > 0 then
         table.insert(buttons, {{

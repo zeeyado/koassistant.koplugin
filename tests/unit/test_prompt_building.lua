@@ -140,11 +140,11 @@ local function createMockExtractor(settings, mock_data)
     end
 
     extractor.getAnalyzeCache = function()
-        return mock_data.analyze_cache or { text = "Deep document analysis content" }
+        return mock_data.analyze_cache or { text = "Deep document analysis content", used_book_text = true }
     end
 
     extractor.getSummaryCache = function()
-        return mock_data.summary_cache or { text = "Document summary content" }
+        return mock_data.summary_cache or { text = "Document summary content", used_book_text = true }
     end
 
     extractor.getNotebookContent = function()
@@ -800,21 +800,129 @@ local function runGatingTests()
         TestRunner:assertContains(data.summary_cache, "Document summary content")
     end)
 
-    TestRunner:test("analysis cache blocked when use_book_text=false", function()
+    -- use_book_text on the action no longer gates cache reading
+    -- (caches are now self-gated via used_book_text metadata)
+    TestRunner:test("caches accessible without use_book_text flag on action", function()
         local extractor = createMockExtractor({
             enable_book_text_extraction = true,
             enable_annotations_sharing = true,
         })
         local data = extractor:extractForAction({
-            use_book_text = false,  -- Gate off
+            use_book_text = false,  -- Action doesn't use text, but cache reading is independent
             use_xray_cache = true,
             use_analyze_cache = true,
             use_summary_cache = true,
             use_annotations = true,
         })
+        TestRunner:assertContains(data.xray_cache, "X-Ray content")
+        TestRunner:assertContains(data.analyze_cache, "Deep document analysis")
+        TestRunner:assertContains(data.summary_cache, "Document summary content")
+    end)
+
+    print("\n--- ContextExtractor: Dynamic used_book_text Gating ---")
+
+    -- Cache built WITHOUT text extraction — accessible even when text extraction is off
+    TestRunner:test("xray_cache (used_book_text=false) allowed when text extraction disabled", function()
+        local extractor = createMockExtractor({
+            enable_book_text_extraction = false,
+        }, {
+            xray_cache = { text = "AI knowledge X-Ray", progress_formatted = "30%", used_annotations = false, used_book_text = false }
+        })
+        local data = extractor:extractForAction({
+            use_xray_cache = true,
+        })
+        TestRunner:assertContains(data.xray_cache, "AI knowledge X-Ray")
+    end)
+
+    TestRunner:test("analyze_cache (used_book_text=false) allowed when text extraction disabled", function()
+        local extractor = createMockExtractor({
+            enable_book_text_extraction = false,
+        }, {
+            analyze_cache = { text = "AI knowledge analysis", used_book_text = false }
+        })
+        local data = extractor:extractForAction({
+            use_analyze_cache = true,
+        })
+        TestRunner:assertContains(data.analyze_cache, "AI knowledge analysis")
+    end)
+
+    TestRunner:test("summary_cache (used_book_text=false) allowed when text extraction disabled", function()
+        local extractor = createMockExtractor({
+            enable_book_text_extraction = false,
+        }, {
+            summary_cache = { text = "AI knowledge summary", used_book_text = false }
+        })
+        local data = extractor:extractForAction({
+            use_summary_cache = true,
+        })
+        TestRunner:assertContains(data.summary_cache, "AI knowledge summary")
+    end)
+
+    -- Cache built WITH text extraction — still requires text extraction permission
+    TestRunner:test("xray_cache (used_book_text=true) blocked when text extraction disabled", function()
+        local extractor = createMockExtractor({
+            enable_book_text_extraction = false,
+        }, {
+            xray_cache = { text = "Text-based X-Ray", progress_formatted = "30%", used_annotations = false, used_book_text = true }
+        })
+        local data = extractor:extractForAction({
+            use_xray_cache = true,
+        })
         TestRunner:assertEquals(data.xray_cache, nil)
+    end)
+
+    TestRunner:test("analyze_cache (used_book_text=true) blocked when text extraction disabled", function()
+        local extractor = createMockExtractor({
+            enable_book_text_extraction = false,
+        }, {
+            analyze_cache = { text = "Text-based analysis", used_book_text = true }
+        })
+        local data = extractor:extractForAction({
+            use_analyze_cache = true,
+        })
         TestRunner:assertEquals(data.analyze_cache, nil)
-        TestRunner:assertEquals(data.summary_cache, nil)
+    end)
+
+    -- Legacy cache (used_book_text=nil) treated as text-based — requires permission
+    TestRunner:test("xray_cache (used_book_text=nil/legacy) blocked when text extraction disabled", function()
+        local extractor = createMockExtractor({
+            enable_book_text_extraction = false,
+        }, {
+            xray_cache = { text = "Legacy X-Ray", progress_formatted = "20%", used_annotations = nil, used_book_text = nil }
+        })
+        local data = extractor:extractForAction({
+            use_xray_cache = true,
+        })
+        TestRunner:assertEquals(data.xray_cache, nil)
+    end)
+
+    -- Combined: used_book_text=false but used_annotations=true — annotations gate still applies
+    TestRunner:test("xray_cache (no text, with annotations) requires annotation permission", function()
+        local extractor = createMockExtractor({
+            enable_book_text_extraction = false,
+            enable_annotations_sharing = false,
+        }, {
+            xray_cache = { text = "AI X-Ray with annotations", progress_formatted = "25%", used_annotations = true, used_book_text = false }
+        })
+        local data = extractor:extractForAction({
+            use_xray_cache = true,
+            use_annotations = true,
+        })
+        TestRunner:assertEquals(data.xray_cache, nil)
+    end)
+
+    TestRunner:test("xray_cache (no text, with annotations) allowed when annotations enabled", function()
+        local extractor = createMockExtractor({
+            enable_book_text_extraction = false,
+            enable_annotations_sharing = true,
+        }, {
+            xray_cache = { text = "AI X-Ray with annotations", progress_formatted = "25%", used_annotations = true, used_book_text = false }
+        })
+        local data = extractor:extractForAction({
+            use_xray_cache = true,
+            use_annotations = true,
+        })
+        TestRunner:assertContains(data.xray_cache, "AI X-Ray with annotations")
     end)
 end
 

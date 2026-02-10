@@ -4047,8 +4047,65 @@ function AskGPT:viewCache()
   UIManager:show(self._cache_selector)
 end
 
+--- Format a timestamp as relative time string (e.g., "3d ago", "1m2d ago")
+--- @param timestamp number Unix timestamp
+--- @return string Relative time string, or empty if invalid
+local function formatRelativeTime(timestamp)
+  if not timestamp then return "" end
+  local diff = os.time() - timestamp
+  if diff < 0 then return "" end
+  local days = math.floor(diff / 86400)
+  if days == 0 then
+    return _("today")
+  elseif days < 30 then
+    return string.format(_("%dd ago"), days)
+  else
+    local months = math.floor(days / 30)
+    local years = math.floor(days / 365)
+    if years == 0 then
+      local rd = days - (months * 30)
+      if rd > 0 then
+        return string.format(_("%dm%dd ago"), months, rd)
+      else
+        return string.format(_("%dm ago"), months)
+      end
+    else
+      local rm = months - (years * 12)
+      if rm > 0 then
+        return string.format(_("%dy%dm ago"), years, rm)
+      else
+        return string.format(_("%dy ago"), years)
+      end
+    end
+  end
+end
+
+--- Format the source label for cache viewers (AI training data vs extracted text)
+--- @param used_book_text boolean|nil Whether book text was used to build the cache
+--- @return string Label text
+local function formatCacheSourceLabel(used_book_text)
+  if used_book_text == false then
+    return _("Based on AI training data knowledge")
+  else
+    return _("Based on extracted document text")
+  end
+end
+
+--- Format a date with optional relative time suffix
+--- @param timestamp number Unix timestamp
+--- @return string Formatted date string (e.g., "2026-02-10 (3d ago)")
+local function formatDateWithRelative(timestamp)
+  if not timestamp then return "" end
+  local date_str = os.date("%Y-%m-%d", timestamp)
+  local relative = formatRelativeTime(timestamp)
+  if relative ~= "" then
+    date_str = date_str .. " (" .. relative .. ")"
+  end
+  return date_str
+end
+
 --- Show a specific cache in the viewer
---- @param cache_info table: { name, key, data } where data contains result, progress_decimal, model, timestamp, used_annotations
+--- @param cache_info table: { name, key, data } where data contains result, progress_decimal, model, timestamp, used_annotations, used_book_text
 function AskGPT:showCacheViewer(cache_info)
   local ChatGPTViewer = require("koassistant_chatgptviewer")
   local ActionCache = require("koassistant_action_cache")
@@ -4082,13 +4139,19 @@ function AskGPT:showCacheViewer(cache_info)
   -- Build metadata info line for display at top of content
   local info_parts = { cache_info.name }
   if progress_str then
-    table.insert(info_parts, progress_str)
+    local progress_label = progress_str
+    if cache_info.data.previous_progress_decimal then
+      progress_label = progress_label .. " (" .. _("updated from") .. " "
+          .. math.floor(cache_info.data.previous_progress_decimal * 100 + 0.5) .. "%)"
+    end
+    table.insert(info_parts, progress_label)
   end
+  table.insert(info_parts, formatCacheSourceLabel(cache_info.data.used_book_text))
   if cache_info.data.model then
     table.insert(info_parts, _("Model:") .. " " .. cache_info.data.model)
   end
   if cache_info.data.timestamp then
-    table.insert(info_parts, _("Date:") .. " " .. os.date("%Y-%m-%d", cache_info.data.timestamp))
+    table.insert(info_parts, _("Date:") .. " " .. formatDateWithRelative(cache_info.data.timestamp))
   elseif cache_info.data.language then
     table.insert(info_parts, cache_info.data.language)
   end
@@ -4111,6 +4174,7 @@ function AskGPT:showCacheViewer(cache_info)
     model = cache_info.data.model,
     timestamp = cache_info.data.timestamp,
     used_annotations = cache_info.data.used_annotations,
+    used_book_text = cache_info.data.used_book_text,
   }
 
   -- Create delete/regenerate callbacks
@@ -4164,6 +4228,11 @@ function AskGPT:showCacheViewer(cache_info)
           cache_metadata = cache_metadata,
           configuration = configuration,
           plugin = self,
+          -- Pre-computed display strings for Full View and Info dialog
+          source_label = formatCacheSourceLabel(cache_info.data.used_book_text),
+          formatted_date = cache_info.data.timestamp and formatDateWithRelative(cache_info.data.timestamp),
+          previous_progress = cache_info.data.previous_progress_decimal and
+              (math.floor(cache_info.data.previous_progress_decimal * 100 + 0.5) .. "%"),
         }
         XrayBrowser:show(parsed, browser_metadata, self.ui, on_delete)
         return
@@ -4245,11 +4314,12 @@ function AskGPT:showSummaryViewer(summary_data)
   if progress_str then
     table.insert(info_parts, progress_str)
   end
+  table.insert(info_parts, formatCacheSourceLabel(summary_data.used_book_text))
   if summary_data.model and summary_data.model ~= "" then
     table.insert(info_parts, _("Model:") .. " " .. summary_data.model)
   end
   if summary_data.timestamp then
-    table.insert(info_parts, _("Date:") .. " " .. os.date("%Y-%m-%d", summary_data.timestamp))
+    table.insert(info_parts, _("Date:") .. " " .. formatDateWithRelative(summary_data.timestamp))
   end
   local cache_info_text = table.concat(info_parts, ". ") .. "."
 
@@ -4261,6 +4331,7 @@ function AskGPT:showSummaryViewer(summary_data)
     progress_decimal = summary_data.progress_decimal,
     model = summary_data.model,
     timestamp = summary_data.timestamp,
+    used_book_text = summary_data.used_book_text,
   }
 
   -- Create callbacks for regenerate/delete (only if we have an open book)
