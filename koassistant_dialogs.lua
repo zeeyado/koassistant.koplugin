@@ -3108,6 +3108,18 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
         }
     end
 
+    -- Fallback for file browser actions: no open document but book metadata has file path
+    local cfg_metadata = configuration and configuration.features and configuration.features.book_metadata
+    if not document_path and cfg_metadata and cfg_metadata.file then
+        document_path = cfg_metadata.file
+    end
+    if not book_metadata and cfg_metadata then
+        book_metadata = {
+            title = cfg_metadata.title or "Unknown",
+            author = cfg_metadata.author or "",
+        }
+    end
+
     -- Callback for when response is ready
     local function onComplete(history, temp_config_or_error)
         if history then
