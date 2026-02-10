@@ -353,15 +353,15 @@ function AskGPT:generateFileDialogRows(file, is_file, book_props)
   local caches = {}
   local xray = ActionCache.getXrayCache(file)
   if xray and xray.result then
-    table.insert(caches, { name = "X-Ray", key = "_xray_cache", data = xray })
+    table.insert(caches, { name = "X-Ray", key = "_xray_cache", data = xray, book_title = title, book_author = authors })
   end
   local summary = ActionCache.getSummaryCache(file)
   if summary and summary.result then
-    table.insert(caches, { name = _("Summary"), key = "_summary_cache", data = summary })
+    table.insert(caches, { name = _("Summary"), key = "_summary_cache", data = summary, book_title = title, book_author = authors })
   end
   local analyze = ActionCache.getAnalyzeCache(file)
   if analyze and analyze.result then
-    table.insert(caches, { name = _("Analysis"), key = "_analyze_cache", data = analyze })
+    table.insert(caches, { name = _("Analysis"), key = "_analyze_cache", data = analyze, book_title = title, book_author = authors })
   end
   if show_artifacts and #caches > 0 then
     local self_ref = self
@@ -4053,25 +4053,8 @@ function AskGPT:showCacheViewer(cache_info)
   local ChatGPTViewer = require("koassistant_chatgptviewer")
   local ActionCache = require("koassistant_action_cache")
 
-  -- Format title with cache info
-  local title = cache_info.name
-  if cache_info.data.progress_decimal then
-    local progress = math.floor(cache_info.data.progress_decimal * 100 + 0.5)
-    title = title .. " (" .. progress .. "%)"
-  end
-  if cache_info.data.model then
-    title = title .. " - " .. cache_info.data.model
-  end
-  -- Show date if stored
-  if cache_info.data.timestamp then
-    local date_str = os.date("%Y-%m-%d", cache_info.data.timestamp)
-    title = title .. " [" .. date_str .. "]"
-  -- Fallback: show language if no timestamp
-  elseif cache_info.data.language then
-    title = title .. " [" .. cache_info.data.language .. "]"
-  end
-
   -- Get book metadata from KOReader's merged props (includes user edits from Book Info dialog)
+  -- Falls back to cache_info.book_title/book_author (set by file browser when book isn't open)
   local book_title, book_author
   if self.ui then
     local props = self.ui.doc_props
@@ -4080,6 +4063,36 @@ function AskGPT:showCacheViewer(cache_info)
       book_author = props.authors
     end
   end
+  book_title = book_title or cache_info.book_title
+  book_author = book_author or cache_info.book_author
+
+  -- Format title: Type (XX%) - Book Title
+  local progress_str
+  if cache_info.data.progress_decimal then
+    progress_str = math.floor(cache_info.data.progress_decimal * 100 + 0.5) .. "%"
+  end
+  local title = cache_info.name
+  if progress_str then
+    title = title .. " (" .. progress_str .. ")"
+  end
+  if book_title then
+    title = title .. " - " .. book_title
+  end
+
+  -- Build metadata info line for display at top of content
+  local info_parts = { cache_info.name }
+  if progress_str then
+    table.insert(info_parts, progress_str)
+  end
+  if cache_info.data.model then
+    table.insert(info_parts, _("Model:") .. " " .. cache_info.data.model)
+  end
+  if cache_info.data.timestamp then
+    table.insert(info_parts, _("Date:") .. " " .. os.date("%Y-%m-%d", cache_info.data.timestamp))
+  elseif cache_info.data.language then
+    table.insert(info_parts, cache_info.data.language)
+  end
+  local cache_info_text = table.concat(info_parts, ". ") .. "."
 
   -- Map cache key to cache type
   local cache_type_map = {
@@ -4161,7 +4174,8 @@ function AskGPT:showCacheViewer(cache_info)
   -- Fallback: ChatGPTViewer for legacy markdown caches or non-xray caches
   local viewer = ChatGPTViewer:new{
     title = title,
-    text = cache_info.data.result,
+    text = cache_info_text .. "\n\n" .. cache_info.data.result,
+    _cache_content = cache_info.data.result,
     simple_view = true,
     configuration = configuration,
     cache_metadata = cache_metadata,
@@ -4202,26 +4216,6 @@ end
 function AskGPT:showSummaryViewer(summary_data)
   local ChatGPTViewer = require("koassistant_chatgptviewer")
 
-  -- Format title with metadata
-  local title = _("Summary")
-
-  -- Coverage percentage
-  if summary_data.progress_decimal then
-    local coverage = math.floor(summary_data.progress_decimal * 100 + 0.5)
-    title = title .. " (" .. coverage .. "%)"
-  end
-
-  -- Model used
-  if summary_data.model and summary_data.model ~= "" then
-    title = title .. " - " .. summary_data.model
-  end
-
-  -- Generation date
-  if summary_data.timestamp then
-    local date_str = os.date("%Y-%m-%d", summary_data.timestamp)
-    title = title .. " [" .. date_str .. "]"
-  end
-
   -- Get book metadata from KOReader's merged props (includes user edits from Book Info dialog)
   local book_title, book_author
   if self.ui then
@@ -4231,6 +4225,33 @@ function AskGPT:showSummaryViewer(summary_data)
       book_author = props.authors
     end
   end
+
+  -- Format title: Summary (XX%) - Book Title
+  local summary_name = _("Summary")
+  local progress_str
+  if summary_data.progress_decimal then
+    progress_str = math.floor(summary_data.progress_decimal * 100 + 0.5) .. "%"
+  end
+  local title = summary_name
+  if progress_str then
+    title = title .. " (" .. progress_str .. ")"
+  end
+  if book_title then
+    title = title .. " - " .. book_title
+  end
+
+  -- Build metadata info line for display at top of content
+  local info_parts = { summary_name }
+  if progress_str then
+    table.insert(info_parts, progress_str)
+  end
+  if summary_data.model and summary_data.model ~= "" then
+    table.insert(info_parts, _("Model:") .. " " .. summary_data.model)
+  end
+  if summary_data.timestamp then
+    table.insert(info_parts, _("Date:") .. " " .. os.date("%Y-%m-%d", summary_data.timestamp))
+  end
+  local cache_info_text = table.concat(info_parts, ". ") .. "."
 
   -- Build cache metadata for export
   local cache_metadata = {
@@ -4267,7 +4288,8 @@ function AskGPT:showSummaryViewer(summary_data)
 
   local viewer = ChatGPTViewer:new{
     title = title,
-    text = summary_data.result,
+    text = cache_info_text .. "\n\n" .. summary_data.result,
+    _cache_content = summary_data.result,
     simple_view = true,
     configuration = configuration,
     cache_metadata = cache_metadata,

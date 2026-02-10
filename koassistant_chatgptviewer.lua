@@ -922,6 +922,10 @@ local ChatGPTViewer = InputContainer:extend {
   -- Contains: cache_type, book_title, book_author, progress_decimal, model, timestamp, used_annotations
   cache_metadata = nil,
 
+  -- Original cache content without metadata header (simple_view only)
+  -- Used by copy/export to avoid duplicating metadata already added by Export.formatCacheContent()
+  _cache_content = nil,
+
   -- Selection position data for "Save to Note" feature
   -- Contains pos0, pos1, sboxes, pboxes for recreating highlight
   selection_data = nil,
@@ -1403,11 +1407,14 @@ function ChatGPTViewer:init()
   -- Initialize hide_highlighted_text based on settings and text length
   -- This determines initial button state (Show Quote vs Hide Quote)
   -- Must happen BEFORE button table creation so text_func sees correct value
+  -- Simple view has its own info header that should always be visible (no quote toggle)
   if self.configuration.features then
-    local highlight_text = self.original_highlighted_text or ""
-    local threshold = self.configuration.features.long_highlight_threshold or 280
-    self.hide_highlighted_text = self.configuration.features.hide_highlighted_text or
-      (self.configuration.features.hide_long_highlights and string.len(highlight_text) > threshold)
+    if not self.simple_view then
+      local highlight_text = self.original_highlighted_text or ""
+      local threshold = self.configuration.features.long_highlight_threshold or 280
+      self.hide_highlighted_text = self.configuration.features.hide_highlighted_text or
+        (self.configuration.features.hide_long_highlights and string.len(highlight_text) > threshold)
+    end
     -- Compact view settings (used by dictionary bypass and popup actions)
     if self.configuration.features.compact_view then
       self.compact_view = true
@@ -2089,8 +2096,9 @@ function ChatGPTViewer:init()
         local copy_text
         if self.cache_metadata then
           -- Include metadata header like file export
+          -- Use _cache_content (original text without info header) to avoid duplicating metadata
           local Export = require("koassistant_export")
-          copy_text = Export.formatCacheContent(self.text, self.cache_metadata, "markdown")
+          copy_text = Export.formatCacheContent(self._cache_content or self.text, self.cache_metadata, "markdown")
         else
           copy_text = self.text
         end
@@ -3493,8 +3501,9 @@ function ChatGPTViewer:exportCacheContent()
       local filepath = selected_path .. "/" .. filename
 
       -- Format content with metadata
+      -- Use _cache_content (original text without info header) to avoid duplicating metadata
       local formatted = Export.formatCacheContent(
-        self.text,
+        self._cache_content or self.text,
         self.cache_metadata,
         "markdown"
       )

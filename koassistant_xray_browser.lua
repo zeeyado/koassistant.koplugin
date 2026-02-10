@@ -694,23 +694,33 @@ function XrayBrowser:showFullView()
         self.metadata.progress or ""
     )
 
-    -- Build title matching existing cache viewer format
+    -- Build title: X-Ray (XX%) - Book Title
     local title = "X-Ray"
     if self.metadata.progress then
         title = title .. " (" .. self.metadata.progress .. ")"
     end
+    if self.metadata.title then
+        title = title .. " - " .. self.metadata.title
+    end
+
+    -- Build metadata info line for display at top of content
+    local info_parts = { "X-Ray" }
+    if self.metadata.progress then
+        table.insert(info_parts, self.metadata.progress)
+    end
     if self.metadata.model then
-        title = title .. " - " .. self.metadata.model
+        table.insert(info_parts, _("Model:") .. " " .. self.metadata.model)
     end
     if self.metadata.timestamp then
-        local date_str = os.date("%Y-%m-%d", self.metadata.timestamp)
-        title = title .. " [" .. date_str .. "]"
+        table.insert(info_parts, _("Date:") .. " " .. os.date("%Y-%m-%d", self.metadata.timestamp))
     end
+    local cache_info_text = table.concat(info_parts, ". ") .. "."
 
     -- Overlay on top of the menu — closing the viewer returns to the browser
     UIManager:show(ChatGPTViewer:new{
         title = title,
-        text = markdown,
+        text = cache_info_text .. "\n\n" .. markdown,
+        _cache_content = markdown,
         simple_view = true,
         cache_metadata = self.metadata.cache_metadata,
         configuration = self.metadata.configuration,
