@@ -25,6 +25,7 @@ local json = require("json")
 local Defaults = require("koassistant_api.defaults")
 local ResponseParser = require("koassistant_api.response_parser")
 local DebugUtils = require("koassistant_debug_utils")
+local ModelConstraints = require("model_constraints")
 
 local OpenAICompatibleHandler = BaseHandler:new()
 
@@ -155,6 +156,7 @@ function OpenAICompatibleHandler:buildRequestBody(message_history, config)
 
     request_body.temperature = api_params.temperature or default_params.temperature or 0.7
     request_body.max_tokens = api_params.max_tokens or default_params.max_tokens or 16384
+    request_body.max_tokens = ModelConstraints.clampMaxTokens(self:getProviderKey(), model, request_body.max_tokens)
 
     -- Hook: Allow child classes to customize request body
     request_body = self:customizeRequestBody(request_body, config)

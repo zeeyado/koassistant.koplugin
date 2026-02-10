@@ -5,6 +5,7 @@ local json = require("json")
 local Defaults = require("koassistant_api.defaults")
 local ResponseParser = require("koassistant_api.response_parser")
 local DebugUtils = require("koassistant_debug_utils")
+local ModelConstraints = require("model_constraints")
 
 local DeepSeekHandler = BaseHandler:new()
 
@@ -56,6 +57,7 @@ function DeepSeekHandler:buildRequestBody(message_history, config)
 
     request_body.temperature = api_params.temperature or default_params.temperature or 0.7
     request_body.max_tokens = api_params.max_tokens or default_params.max_tokens or 16384
+    request_body.max_tokens = ModelConstraints.clampMaxTokens("deepseek", model, request_body.max_tokens)
 
     local headers = {
         ["Content-Type"] = "application/json",
@@ -112,6 +114,7 @@ function DeepSeekHandler:query(message_history, config)
 
     request_body.temperature = api_params.temperature or default_params.temperature or 0.7
     request_body.max_tokens = api_params.max_tokens or default_params.max_tokens or 16384
+    request_body.max_tokens = ModelConstraints.clampMaxTokens("deepseek", model, request_body.max_tokens)
 
     -- Check if streaming is enabled
     local use_streaming = config.features and config.features.enable_streaming
