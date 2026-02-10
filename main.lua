@@ -3694,6 +3694,14 @@ function AskGPT:onDictButtonsReady(dict_popup, dict_buttons)
     return
   end
 
+  -- Check if this is a non-reader lookup (e.g., from ChatGPT viewer).
+  -- Capture early so button callbacks (fired later) can use it via closure.
+  local non_reader_lookup = self.ui and self.ui.dictionary
+      and self.ui.dictionary._koassistant_non_reader_lookup
+  if non_reader_lookup then
+    self.ui.dictionary._koassistant_non_reader_lookup = nil  -- Consume flag
+  end
+
   -- Get configured actions for dictionary popup
   -- Filter out actions requiring open book if no book is open (should always be true for dictionary)
   local has_open_book = self.ui and self.ui.document ~= nil
@@ -3727,28 +3735,29 @@ function AskGPT:onDictButtonsReady(dict_popup, dict_buttons)
 
         -- CRITICAL: Extract context BEFORE closing the popup
         -- The highlight/selection is cleared when the popup closes
-        -- Always extract context regardless of mode setting, so the compact view
-        -- toggle button can enable context even when the setting is "none"
+        -- Extract context only for reader-originated lookups.
+        -- Non-reader lookups (ChatGPT viewer, nested dictionary) have no meaningful
+        -- book context to extract — the word came from AI-generated or dictionary text.
         local context = ""
         local context_mode = features.dictionary_context_mode or "none"
         local context_chars = features.dictionary_context_chars or 100
-        -- Use "sentence" as extraction mode when setting is "none" (for toggle availability)
         local extraction_mode = (context_mode == "none") and "sentence" or context_mode
 
-        if self_ref.ui and self_ref.ui.highlight and self_ref.ui.highlight.getSelectedWordContext then
-          context = Dialogs.extractSurroundingContext(
-            self_ref.ui,
-            word,
-            extraction_mode,
-            context_chars
-          )
-        end
+        if not non_reader_lookup then
+          if self_ref.ui and self_ref.ui.highlight and self_ref.ui.highlight.getSelectedWordContext then
+            context = Dialogs.extractSurroundingContext(
+              self_ref.ui,
+              word,
+              extraction_mode,
+              context_chars
+            )
+          end
 
-        -- Log result (helpful for debugging)
-        if context ~= "" then
-          logger.info("KOAssistant DICT: Got context (" .. #context .. " chars)")
-        else
-          logger.info("KOAssistant DICT: No context available (word tap, not selection)")
+          if context ~= "" then
+            logger.info("KOAssistant DICT: Got context (" .. #context .. " chars)")
+          else
+            logger.info("KOAssistant DICT: No context available (word tap, not selection)")
+          end
         end
 
         -- Ensure network is available
@@ -3785,13 +3794,20 @@ function AskGPT:onDictButtonsReady(dict_popup, dict_buttons)
           dict_config.features.is_multi_book_context = nil
 
           -- Set dictionary-specific values
-          -- Only include context in the request if mode is not "none"
-          dict_config.features.dictionary_context = (context_mode ~= "none") and context or ""
+          if non_reader_lookup then
+            -- Non-reader lookup: no context available, disable CTX toggle
+            dict_config.features.dictionary_context = ""
+            dict_config.features._original_context = ""
+            dict_config.features._no_context_available = true
+          else
+            -- Only include context in the request if mode is not "none"
+            dict_config.features.dictionary_context = (context_mode ~= "none") and context or ""
+            -- Always store extracted context so compact view toggle can use it
+            dict_config.features._original_context = context
+            dict_config.features._original_context_mode = extraction_mode
+          end
           dict_config.features.dictionary_language = dict_language
           dict_config.features.dictionary_context_mode = features.dictionary_context_mode or "none"
-          -- Always store extracted context so compact view toggle can use it
-          dict_config.features._original_context = context
-          dict_config.features._original_context_mode = extraction_mode
           -- Store selection_data for "Save to Note" feature (word position only)
           dict_config.features.selection_data = selection_data
 
@@ -6364,6 +6380,11 @@ function AskGPT:syncDictionaryBypass()
         return
       end
 
+      -- Check if this is a non-reader lookup (e.g., from ChatGPT viewer or nested dictionary).
+      -- Context extraction from the book page would be irrelevant in these cases.
+      local non_reader_lookup = dict_self._koassistant_non_reader_lookup
+      dict_self._koassistant_non_reader_lookup = nil  -- Consume flag
+
       -- IMPORTANT: Extract context BEFORE clearing highlight
       -- The highlight object contains the selection state needed for context extraction.
       -- Once cleared, getSelectedWordContext() will return nil.
@@ -6373,7 +6394,7 @@ function AskGPT:syncDictionaryBypass()
       local context_chars = features.dictionary_context_chars or 100
       -- Use "sentence" as extraction mode when setting is "none" (for toggle availability)
       local extraction_mode = (context_mode == "none") and "sentence" or context_mode
-      if self_ref.ui and self_ref.ui.highlight then
+      if not non_reader_lookup and self_ref.ui and self_ref.ui.highlight then
         context = Dialogs.extractSurroundingContext(
           self_ref.ui,
           word,
@@ -6447,13 +6468,20 @@ function AskGPT:syncDictionaryBypass()
         dict_config.features.is_multi_book_context = nil
 
         -- Set dictionary-specific values
-        -- Only include context in the request if mode is not "none"
-        dict_config.features.dictionary_context = (context_mode ~= "none") and context or ""
+        if non_reader_lookup then
+          -- Non-reader lookup: no context available, disable CTX toggle
+          dict_config.features.dictionary_context = ""
+          dict_config.features._original_context = ""
+          dict_config.features._no_context_available = true
+        else
+          -- Only include context in the request if mode is not "none"
+          dict_config.features.dictionary_context = (context_mode ~= "none") and context or ""
+          -- Always store extracted context so compact view toggle can use it
+          dict_config.features._original_context = context
+          dict_config.features._original_context_mode = extraction_mode
+        end
         dict_config.features.dictionary_language = dict_language
         dict_config.features.dictionary_context_mode = features.dictionary_context_mode or "none"
-        -- Always store extracted context so compact view toggle can use it
-        dict_config.features._original_context = context
-        dict_config.features._original_context_mode = extraction_mode
         -- Store selection_data for "Save to Note" feature (word position only)
         dict_config.features.selection_data = selection_data
 

@@ -1744,14 +1744,17 @@ function ChatGPTViewer:init()
   })
 
   -- Row 2: Context toggle button (re-run with context ON/OFF)
-  local has_context = rerun_features and
+  -- Disable entirely for non-reader lookups (ChatGPT viewer, nested dictionary)
+  -- where book page context would be irrelevant
+  local no_context_available = rerun_features and rerun_features._no_context_available
+  local has_context = not no_context_available and rerun_features and
     rerun_features.dictionary_context_mode ~= "none" and
     rerun_features.dictionary_context and
     rerun_features.dictionary_context ~= ""
   table.insert(minimal_button_row2, {
     text = has_context and _("Ctx: ON") or _("Ctx: OFF"),
     id = "toggle_context",
-    enabled = has_rerun and true or false,
+    enabled = has_rerun and not no_context_available or false,
     callback = function()
       if not has_rerun then return end
       -- Build new config copy with toggled context
@@ -2834,6 +2837,9 @@ function ChatGPTViewer:handleTextSelection(text, hold_duration, start_idx, end_i
     -- Either way, the current viewer stays open underneath.
     local ui = self._ui or (self.configuration and self.configuration._rerun_ui)
     if ui and ui.dictionary then
+      -- Signal that this lookup originates from a non-reader context (AI response text).
+      -- Context extraction from the book page would be irrelevant/misleading.
+      ui.dictionary._koassistant_non_reader_lookup = true
       ui.dictionary:onLookupWord(text)
       did_lookup = true
     end
