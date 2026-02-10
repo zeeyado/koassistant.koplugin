@@ -454,20 +454,28 @@ local function runFormatCacheContentTests()
         TestRunner:assertContains(result, "**Coverage:** 46%")
     end)
 
-    TestRunner:test("used_annotations=true shown for xray", function()
+    TestRunner:test("used_highlights=true shown for xray", function()
+        local result = Export.formatCacheContent("content", {
+            cache_type = "xray",
+            used_highlights = true,
+        }, "markdown")
+        TestRunner:assertContains(result, "Includes highlights")
+    end)
+
+    TestRunner:test("used_highlights=false not shown", function()
+        local result = Export.formatCacheContent("content", {
+            cache_type = "xray",
+            used_highlights = false,
+        }, "markdown")
+        TestRunner:assertNotContains(result, "Includes highlights")
+    end)
+
+    TestRunner:test("legacy used_annotations=true shown as highlights for xray", function()
         local result = Export.formatCacheContent("content", {
             cache_type = "xray",
             used_annotations = true,
         }, "markdown")
-        TestRunner:assertContains(result, "Includes annotations")
-    end)
-
-    TestRunner:test("used_annotations=false not shown", function()
-        local result = Export.formatCacheContent("content", {
-            cache_type = "xray",
-            used_annotations = false,
-        }, "markdown")
-        TestRunner:assertNotContains(result, "Includes annotations")
+        TestRunner:assertContains(result, "Includes highlights")
     end)
 
     TestRunner:test("unknown cache type uses raw name", function()

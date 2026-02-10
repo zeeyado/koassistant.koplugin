@@ -191,9 +191,8 @@ function ActionService:loadActions()
                     if override.use_book_text ~= nil then
                         action_data.use_book_text = override.use_book_text
                     end
-                    -- use_highlights is deprecated, treat as use_annotations
                     if override.use_highlights ~= nil then
-                        action_data.use_annotations = override.use_highlights
+                        action_data.use_highlights = override.use_highlights
                     end
                     if override.use_annotations ~= nil then
                         action_data.use_annotations = override.use_annotations
@@ -1637,8 +1636,8 @@ function ActionService:createDuplicateAction(action)
         requires = action.requires,
         -- Context extraction flags (for reading-only actions)
         use_book_text = action.use_book_text,
-        -- use_annotations gates both {annotations} and {highlights} placeholders
-        use_annotations = action.use_annotations or action.use_highlights,
+        use_highlights = action.use_highlights,
+        use_annotations = action.use_annotations,
         use_reading_progress = action.use_reading_progress,
         use_reading_stats = action.use_reading_stats,
         -- View mode flags
@@ -1766,7 +1765,11 @@ function ActionService.getActionDisplayText(action, features)
        or action.use_analyze_cache or action.use_summary_cache then
         table.insert(indicators, "📄")
     end
-    -- Annotations/highlights
+    -- Highlights only (no annotations)
+    if action.use_highlights and not action.use_annotations then
+        table.insert(indicators, "🔖")
+    end
+    -- Annotations (implies highlights — show single icon)
     if action.use_annotations then
         table.insert(indicators, "📝")
     end

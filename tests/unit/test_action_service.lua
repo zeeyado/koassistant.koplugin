@@ -449,11 +449,13 @@ local function runCreateDuplicateTests()
             context = "book",
             prompt = "test",
             use_book_text = true,
+            use_highlights = true,
             use_annotations = true,
             use_reading_progress = true,
         }
         local dup = service:createDuplicateAction(action)
         TestRunner:assertEqual(dup.use_book_text, true)
+        TestRunner:assertEqual(dup.use_highlights, true)
         TestRunner:assertEqual(dup.use_annotations, true)
         TestRunner:assertEqual(dup.use_reading_progress, true)
     end)
@@ -505,7 +507,7 @@ local function runCreateDuplicateTests()
         TestRunner:assertNotNil(dup.reasoning_config)
     end)
 
-    TestRunner:test("migrates use_highlights to use_annotations", function()
+    TestRunner:test("copies use_highlights as independent flag", function()
         local service = createService({ disabled_actions = {} })
         service.actions_cache = { highlight = {}, book = {}, multi_book = {}, general = {} }
         local action = {
@@ -513,10 +515,11 @@ local function runCreateDuplicateTests()
             text = "Test",
             context = "highlight",
             prompt = "test",
-            use_highlights = true,  -- deprecated field
+            use_highlights = true,
         }
         local dup = service:createDuplicateAction(action)
-        TestRunner:assertEqual(dup.use_annotations, true, "use_highlights mapped to use_annotations")
+        TestRunner:assertEqual(dup.use_highlights, true, "use_highlights should be its own field")
+        TestRunner:assertEqual(dup.use_annotations, nil, "use_highlights should NOT set use_annotations")
     end)
 end
 

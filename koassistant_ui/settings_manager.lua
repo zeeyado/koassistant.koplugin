@@ -168,7 +168,7 @@ function SettingsManager:createMenuItem(plugin, item, schema)
             end
 
             -- If this toggle affects dependencies, refresh the menu
-            if item.id == "auto_save_all_chats" then
+            if item.refresh_menu or item.id == "auto_save_all_chats" then
                 if touchmenu_instance then
                     touchmenu_instance:updateItems()
                 end

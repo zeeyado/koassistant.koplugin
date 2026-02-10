@@ -211,7 +211,8 @@ function PromptsManager:loadPrompts()
             has_override = false,
             -- Context extraction flags
             use_book_text = prompt.use_book_text,
-            use_annotations = prompt.use_annotations or prompt.use_highlights,  -- unified flag
+            use_highlights = prompt.use_highlights,
+            use_annotations = prompt.use_annotations,
             use_reading_progress = prompt.use_reading_progress,
             use_reading_stats = prompt.use_reading_stats,
             use_notebook = prompt.use_notebook,
@@ -248,8 +249,7 @@ function PromptsManager:loadPrompts()
                 if override.include_book_context ~= nil then entry.include_book_context = override.include_book_context end
                 -- Context extraction flag overrides
                 if override.use_book_text ~= nil then entry.use_book_text = override.use_book_text end
-                -- use_highlights deprecated, treat as use_annotations
-                if override.use_highlights ~= nil then entry.use_annotations = override.use_highlights end
+                if override.use_highlights ~= nil then entry.use_highlights = override.use_highlights end
                 if override.use_annotations ~= nil then entry.use_annotations = override.use_annotations end
                 if override.use_reading_progress ~= nil then entry.use_reading_progress = override.use_reading_progress end
                 if override.use_reading_stats ~= nil then entry.use_reading_stats = override.use_reading_stats end
@@ -990,7 +990,8 @@ function PromptsManager:duplicateAction(action)
         model = duplicate.model,
         -- Context extraction flags (for reading-only actions)
         use_book_text = duplicate.use_book_text,
-        use_annotations = duplicate.use_annotations or duplicate.use_highlights,  -- unified flag
+        use_highlights = duplicate.use_highlights,
+        use_annotations = duplicate.use_annotations,
         use_reading_progress = duplicate.use_reading_progress,
         use_reading_stats = duplicate.use_reading_stats,
         use_notebook = duplicate.use_notebook,
@@ -1052,7 +1053,8 @@ function PromptsManager:showPromptEditor(existing_prompt)
         model = existing_prompt and existing_prompt.model or nil,  -- nil = use global
         -- Context extraction flags (off by default for custom actions)
         use_book_text = existing_prompt and existing_prompt.use_book_text or false,
-        use_annotations = existing_prompt and (existing_prompt.use_annotations or existing_prompt.use_highlights) or false,
+        use_highlights = existing_prompt and existing_prompt.use_highlights or false,
+        use_annotations = existing_prompt and existing_prompt.use_annotations or false,
         use_reading_progress = existing_prompt and existing_prompt.use_reading_progress or false,
         use_reading_stats = existing_prompt and existing_prompt.use_reading_stats or false,
         use_notebook = existing_prompt and existing_prompt.use_notebook or false,
@@ -1213,27 +1215,53 @@ function PromptsManager:showStep1_NameAndContext(state)
         })
     end
 
-    -- Annotation use toggle (for per-book contexts)
-    -- Gates both {annotations} and {highlights} placeholders (same KOReader data)
+    -- Highlight and annotation use toggles (for per-book contexts)
     if state.context and self:canUsePerBookData(state.context) then
+        local highlights_checkbox = state.use_highlights and "☑ " or "☐ "
+        table.insert(button_rows, {
+            {
+                text = highlights_checkbox .. _("Allow highlight use"),
+                callback = function()
+                    state.name = self.step1_dialog:getInputText()
+                    state.use_highlights = not state.use_highlights
+                    if state.use_highlights then
+                        local features = self.plugin.settings:readSetting("features") or {}
+                        if features.enable_highlights_sharing ~= true and features.enable_annotations_sharing ~= true then
+                            UIManager:show(Notification:new{
+                                text = _("Highlight use enabled. Note: Enable in Settings → Privacy & Data first."),
+                                timeout = 4,
+                            })
+                        end
+                    else
+                        -- Unchecking highlights also unchecks annotations (prerequisite)
+                        if state.use_annotations then
+                            state.use_annotations = false
+                            UIManager:show(Notification:new{
+                                text = _("Annotation use also disabled."),
+                                timeout = 2,
+                            })
+                        end
+                    end
+                    UIManager:close(self.step1_dialog)
+                    self:showStep1_NameAndContext(state)
+                end,
+            },
+        })
         local annotation_checkbox = state.use_annotations and "☑ " or "☐ "
         table.insert(button_rows, {
             {
-                text = annotation_checkbox .. _("Allow annotation use"),
+                text = annotation_checkbox .. _("Allow annotation use (notes)"),
                 callback = function()
                     state.name = self.step1_dialog:getInputText()
                     state.use_annotations = not state.use_annotations
                     if state.use_annotations then
+                        -- Annotations imply highlights
+                        state.use_highlights = true
                         local features = self.plugin.settings:readSetting("features") or {}
                         if features.enable_annotations_sharing ~= true then
                             UIManager:show(Notification:new{
                                 text = _("Annotation use enabled. Note: Enable in Settings → Privacy & Data first."),
                                 timeout = 4,
-                            })
-                        else
-                            UIManager:show(Notification:new{
-                                text = _("Annotation use enabled for this action."),
-                                timeout = 2,
                             })
                         end
                     end
@@ -2607,7 +2635,8 @@ function PromptsManager:showBuiltinSettingsEditor(prompt)
 
     -- Get base action extraction flags for comparison
     local base_use_book_text = base_action and base_action.use_book_text or false
-    local base_use_annotations = base_action and (base_action.use_annotations or base_action.use_highlights) or false
+    local base_use_highlights = base_action and base_action.use_highlights or false
+    local base_use_annotations = base_action and base_action.use_annotations or false
     local base_use_reading_progress = base_action and base_action.use_reading_progress or false
     local base_use_reading_stats = base_action and base_action.use_reading_stats or false
     local base_use_notebook = base_action and base_action.use_notebook or false
@@ -2642,7 +2671,9 @@ function PromptsManager:showBuiltinSettingsEditor(prompt)
         -- Context extraction flags
         use_book_text = prompt.use_book_text or false,
         use_book_text_base = base_use_book_text,
-        use_annotations = (prompt.use_annotations or prompt.use_highlights) or false,
+        use_highlights = prompt.use_highlights or false,
+        use_highlights_base = base_use_highlights,
+        use_annotations = prompt.use_annotations or false,
         use_annotations_base = base_use_annotations,
         use_reading_progress = prompt.use_reading_progress or false,
         use_reading_progress_base = base_use_reading_progress,
@@ -2829,20 +2860,41 @@ function PromptsManager:showBuiltinSettingsDialog(state)
 
     if prompt.context and self:canUsePerBookData(prompt.context) then
         table.insert(items, {
-            text = (state.use_annotations and "☑ " or "☐ ") .. _("Allow annotation use"),
+            text = (state.use_highlights and "☑ " or "☐ ") .. _("Allow highlight use"),
+            callback = function()
+                state.use_highlights = not state.use_highlights
+                if state.use_highlights then
+                    local features = self.plugin.settings:readSetting("features") or {}
+                    if features.enable_highlights_sharing ~= true and features.enable_annotations_sharing ~= true then
+                        UIManager:show(Notification:new{
+                            text = _("Highlight use enabled. Note: Enable in Settings → Privacy & Data first."),
+                            timeout = 4,
+                        })
+                    end
+                else
+                    if state.use_annotations then
+                        state.use_annotations = false
+                        UIManager:show(Notification:new{
+                            text = _("Annotation use also disabled."),
+                            timeout = 2,
+                        })
+                    end
+                end
+                UIManager:close(self.builtin_settings_dialog)
+                self:showBuiltinSettingsDialog(state)
+            end,
+        })
+        table.insert(items, {
+            text = (state.use_annotations and "☑ " or "☐ ") .. _("Allow annotation use (notes)"),
             callback = function()
                 state.use_annotations = not state.use_annotations
                 if state.use_annotations then
+                    state.use_highlights = true
                     local features = self.plugin.settings:readSetting("features") or {}
                     if features.enable_annotations_sharing ~= true then
                         UIManager:show(Notification:new{
                             text = _("Annotation use enabled. Note: Enable in Settings → Privacy & Data first."),
                             timeout = 4,
-                        })
-                    else
-                        UIManager:show(Notification:new{
-                            text = _("Annotation use enabled for this action."),
-                            timeout = 2,
                         })
                     end
                 end
@@ -3284,6 +3336,10 @@ function PromptsManager:saveBuiltinOverride(prompt, state)
         override.use_book_text = state.use_book_text
         has_any = true
     end
+    if state.use_highlights ~= (state.use_highlights_base or false) then
+        override.use_highlights = state.use_highlights
+        has_any = true
+    end
     if state.use_annotations ~= (state.use_annotations_base or false) then
         override.use_annotations = state.use_annotations
         has_any = true
@@ -3367,7 +3423,8 @@ function PromptsManager:showCustomQuickSettings(prompt)
         provider = prompt.provider,
         model = prompt.model,
         use_book_text = prompt.use_book_text or false,
-        use_annotations = (prompt.use_annotations or prompt.use_highlights) or false,
+        use_highlights = prompt.use_highlights or false,
+        use_annotations = prompt.use_annotations or false,
         use_reading_progress = prompt.use_reading_progress or false,
         use_reading_stats = prompt.use_reading_stats or false,
         use_notebook = prompt.use_notebook or false,
@@ -3560,20 +3617,41 @@ function PromptsManager:showCustomQuickSettingsDialog(state)
 
     if state.context and self:canUsePerBookData(state.context) then
         table.insert(items, {
-            text = (state.use_annotations and "☑ " or "☐ ") .. _("Allow annotation use"),
+            text = (state.use_highlights and "☑ " or "☐ ") .. _("Allow highlight use"),
+            callback = function()
+                state.use_highlights = not state.use_highlights
+                if state.use_highlights then
+                    local features = self.plugin.settings:readSetting("features") or {}
+                    if features.enable_highlights_sharing ~= true and features.enable_annotations_sharing ~= true then
+                        UIManager:show(Notification:new{
+                            text = _("Highlight use enabled. Note: Enable in Settings → Privacy & Data first."),
+                            timeout = 4,
+                        })
+                    end
+                else
+                    if state.use_annotations then
+                        state.use_annotations = false
+                        UIManager:show(Notification:new{
+                            text = _("Annotation use also disabled."),
+                            timeout = 2,
+                        })
+                    end
+                end
+                UIManager:close(self.custom_quick_dialog)
+                self:showCustomQuickSettingsDialog(state)
+            end,
+        })
+        table.insert(items, {
+            text = (state.use_annotations and "☑ " or "☐ ") .. _("Allow annotation use (notes)"),
             callback = function()
                 state.use_annotations = not state.use_annotations
                 if state.use_annotations then
+                    state.use_highlights = true
                     local features = self.plugin.settings:readSetting("features") or {}
                     if features.enable_annotations_sharing ~= true then
                         UIManager:show(Notification:new{
                             text = _("Annotation use enabled. Note: Enable in Settings → Privacy & Data first."),
                             timeout = 4,
-                        })
-                    else
-                        UIManager:show(Notification:new{
-                            text = _("Annotation use enabled for this action."),
-                            timeout = 2,
                         })
                     end
                 end
@@ -4162,6 +4240,7 @@ function PromptsManager:addPrompt(state)
             model = state.model,        -- nil = use global
             -- Context extraction flags (off by default)
             use_book_text = state.use_book_text or nil,
+            use_highlights = state.use_highlights or nil,
             use_annotations = state.use_annotations or nil,
             use_reading_progress = state.use_reading_progress or nil,
             use_reading_stats = state.use_reading_stats or nil,
@@ -4229,6 +4308,7 @@ function PromptsManager:updatePrompt(existing_prompt, state)
                 model = state.model,
                 -- Context extraction flags (off by default)
                 use_book_text = state.use_book_text or nil,
+                use_highlights = state.use_highlights or nil,
                 use_annotations = state.use_annotations or nil,
                 use_reading_progress = state.use_reading_progress or nil,
                 use_reading_stats = state.use_reading_stats or nil,

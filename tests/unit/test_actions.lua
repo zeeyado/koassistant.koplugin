@@ -6,7 +6,7 @@ Tests the placeholder gating and flag cascading logic:
 - inferOpenBookFlags() cascading for book text
 - inferOpenBookFlags() cascading for annotations
 - DOUBLE_GATED_FLAGS definition
-- REQUIRES_BOOK_TEXT and REQUIRES_ANNOTATIONS cascading
+- REQUIRES_BOOK_TEXT and REQUIRES_HIGHLIGHTS cascading
 
 Run: lua tests/run_tests.lua --unit
 ]]
@@ -66,6 +66,15 @@ function TestActions:runAll()
         self:assertEquals(type(Actions.PLACEHOLDER_TO_FLAG), "table")
     end)
 
+    -- Test highlight placeholders map to use_highlights
+    self:test("{highlights} maps to use_highlights", function()
+        self:assertEquals(Actions.PLACEHOLDER_TO_FLAG["{highlights}"], "use_highlights")
+    end)
+
+    self:test("{highlights_section} maps to use_highlights", function()
+        self:assertEquals(Actions.PLACEHOLDER_TO_FLAG["{highlights_section}"], "use_highlights")
+    end)
+
     -- Test annotation placeholders map to use_annotations
     self:test("{annotations} maps to use_annotations", function()
         self:assertEquals(Actions.PLACEHOLDER_TO_FLAG["{annotations}"], "use_annotations")
@@ -73,14 +82,6 @@ function TestActions:runAll()
 
     self:test("{annotations_section} maps to use_annotations", function()
         self:assertEquals(Actions.PLACEHOLDER_TO_FLAG["{annotations_section}"], "use_annotations")
-    end)
-
-    self:test("{highlights} maps to use_annotations (unified)", function()
-        self:assertEquals(Actions.PLACEHOLDER_TO_FLAG["{highlights}"], "use_annotations")
-    end)
-
-    self:test("{highlights_section} maps to use_annotations (unified)", function()
-        self:assertEquals(Actions.PLACEHOLDER_TO_FLAG["{highlights_section}"], "use_annotations")
     end)
 
     -- Test book text placeholders
@@ -120,25 +121,25 @@ function TestActions:runAll()
         self:assertContains(Actions.REQUIRES_BOOK_TEXT, "use_summary_cache")
     end)
 
-    -- Test REQUIRES_ANNOTATIONS cascading
-    print("\n--- REQUIRES_ANNOTATIONS cascading ---")
+    -- Test REQUIRES_HIGHLIGHTS cascading
+    print("\n--- REQUIRES_HIGHLIGHTS cascading ---")
 
-    self:test("REQUIRES_ANNOTATIONS includes use_xray_cache", function()
-        self:assertContains(Actions.REQUIRES_ANNOTATIONS, "use_xray_cache")
+    self:test("REQUIRES_HIGHLIGHTS includes use_xray_cache", function()
+        self:assertContains(Actions.REQUIRES_HIGHLIGHTS, "use_xray_cache")
     end)
 
-    self:test("REQUIRES_ANNOTATIONS does NOT include use_analyze_cache", function()
-        for _, v in ipairs(Actions.REQUIRES_ANNOTATIONS) do
+    self:test("REQUIRES_HIGHLIGHTS does NOT include use_analyze_cache", function()
+        for _, v in ipairs(Actions.REQUIRES_HIGHLIGHTS) do
             if v == "use_analyze_cache" then
-                error("use_analyze_cache should NOT be in REQUIRES_ANNOTATIONS")
+                error("use_analyze_cache should NOT be in REQUIRES_HIGHLIGHTS")
             end
         end
     end)
 
-    self:test("REQUIRES_ANNOTATIONS does NOT include use_summary_cache", function()
-        for _, v in ipairs(Actions.REQUIRES_ANNOTATIONS) do
+    self:test("REQUIRES_HIGHLIGHTS does NOT include use_summary_cache", function()
+        for _, v in ipairs(Actions.REQUIRES_HIGHLIGHTS) do
             if v == "use_summary_cache" then
-                error("use_summary_cache should NOT be in REQUIRES_ANNOTATIONS")
+                error("use_summary_cache should NOT be in REQUIRES_HIGHLIGHTS")
             end
         end
     end)
@@ -148,6 +149,10 @@ function TestActions:runAll()
 
     self:test("DOUBLE_GATED_FLAGS includes use_book_text", function()
         self:assertContains(Actions.DOUBLE_GATED_FLAGS, "use_book_text")
+    end)
+
+    self:test("DOUBLE_GATED_FLAGS includes use_highlights", function()
+        self:assertContains(Actions.DOUBLE_GATED_FLAGS, "use_highlights")
     end)
 
     self:test("DOUBLE_GATED_FLAGS includes use_annotations", function()
@@ -171,9 +176,16 @@ function TestActions:runAll()
         self:assertEquals(next(flags), nil, "Should return empty table")
     end)
 
-    self:test("inferOpenBookFlags detects {annotations}", function()
+    self:test("inferOpenBookFlags detects {annotations} and cascades to use_highlights", function()
         local flags = Actions.inferOpenBookFlags("Use {annotations} here")
         self:assertEquals(flags.use_annotations, true)
+        self:assertEquals(flags.use_highlights, true, "annotations should cascade to use_highlights")
+    end)
+
+    self:test("inferOpenBookFlags detects {highlights}", function()
+        local flags = Actions.inferOpenBookFlags("Use {highlights} here")
+        self:assertEquals(flags.use_highlights, true)
+        self:assertEquals(flags.use_annotations, nil, "highlights should NOT cascade to use_annotations")
     end)
 
     self:test("inferOpenBookFlags detects {book_text}", function()
@@ -195,10 +207,11 @@ function TestActions:runAll()
         self:assertEquals(flags.use_book_text, true, "Should cascade to use_book_text")
     end)
 
-    self:test("inferOpenBookFlags cascades use_annotations from {xray_cache}", function()
+    self:test("inferOpenBookFlags cascades use_highlights from {xray_cache}", function()
         local flags = Actions.inferOpenBookFlags("Use {xray_cache_section} here")
         self:assertEquals(flags.use_xray_cache, true, "Should set use_xray_cache")
-        self:assertEquals(flags.use_annotations, true, "Should cascade to use_annotations")
+        self:assertEquals(flags.use_highlights, true, "Should cascade to use_highlights")
+        self:assertEquals(flags.use_annotations, nil, "Should NOT cascade to use_annotations")
     end)
 
     -- Test cascading for {analyze_cache} (only book text, not annotations)
@@ -210,8 +223,9 @@ function TestActions:runAll()
         self:assertEquals(flags.use_book_text, true, "Should cascade to use_book_text")
     end)
 
-    self:test("inferOpenBookFlags does NOT cascade use_annotations from {analyze_cache}", function()
+    self:test("inferOpenBookFlags does NOT cascade use_highlights from {analyze_cache}", function()
         local flags = Actions.inferOpenBookFlags("Use {analyze_cache_section} here")
+        self:assertEquals(flags.use_highlights, nil, "Should NOT cascade to use_highlights")
         self:assertEquals(flags.use_annotations, nil, "Should NOT cascade to use_annotations")
     end)
 
@@ -224,8 +238,9 @@ function TestActions:runAll()
         self:assertEquals(flags.use_book_text, true, "Should cascade to use_book_text")
     end)
 
-    self:test("inferOpenBookFlags does NOT cascade use_annotations from {summary_cache}", function()
+    self:test("inferOpenBookFlags does NOT cascade use_highlights from {summary_cache}", function()
         local flags = Actions.inferOpenBookFlags("Use {summary_cache_section} here")
+        self:assertEquals(flags.use_highlights, nil, "Should NOT cascade to use_highlights")
         self:assertEquals(flags.use_annotations, nil, "Should NOT cascade to use_annotations")
     end)
 
@@ -238,6 +253,7 @@ function TestActions:runAll()
         self:assertEquals(flags.use_reading_progress, true)
         self:assertEquals(flags.use_book_text, true)
         self:assertEquals(flags.use_annotations, true)
+        self:assertEquals(flags.use_highlights, true, "annotations should cascade to use_highlights")
     end)
 
     -- Test X-Ray action has correct flags
@@ -249,9 +265,10 @@ function TestActions:runAll()
         self:assertEquals(xray.use_book_text, true)
     end)
 
-    self:test("X-Ray action has use_annotations", function()
+    self:test("X-Ray action has use_highlights (not use_annotations)", function()
         local xray = Actions.book.xray
-        self:assertEquals(xray.use_annotations, true)
+        self:assertEquals(xray.use_highlights, true)
+        self:assertEquals(xray.use_annotations, nil, "X-Ray should not use annotations")
     end)
 
     self:test("X-Ray action has cache_as_xray", function()
@@ -282,6 +299,10 @@ function TestActions:runAll()
 
     self:test("requiresOpenBook returns true for use_reading_progress", function()
         self:assertEquals(Actions.requiresOpenBook({ use_reading_progress = true }), true)
+    end)
+
+    self:test("requiresOpenBook returns true for use_highlights", function()
+        self:assertEquals(Actions.requiresOpenBook({ use_highlights = true }), true)
     end)
 
     self:test("requiresOpenBook returns true for use_annotations", function()

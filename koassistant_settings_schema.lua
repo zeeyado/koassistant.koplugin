@@ -1236,20 +1236,38 @@ local SettingsSchema = {
                     keep_menu_open = true,
                     separator = true,
                 },
-                -- Data Sharing Controls header
-                {
-                    id = "data_sharing_header",
-                    type = "header",
-                    text = _("Data Sharing Controls (for non-trusted providers)"),
-                },
                 -- Individual toggles
                 {
                     id = "enable_annotations_sharing",
                     type = "toggle",
-                    text = _("Allow Highlights & Annotations"),
+                    text = _("Allow Annotation Notes"),
                     path = "features.enable_annotations_sharing",
                     default = false,
-                    help_text = _("Send your saved highlights and personal notes to the AI. Used by Analyze Highlights, X-Ray, Connect with Notes, and actions with {highlights} or {annotations} placeholders."),
+                    help_text = _("Share your personal notes attached to highlights with the AI. Automatically enables highlight sharing. Used by Analyze Highlights, Connect with Notes, and actions with {annotations} placeholders."),
+                    on_change = function(new_value, plugin)
+                        if new_value then
+                            -- Auto-enable highlights (annotations implies highlights)
+                            local f = plugin.settings:readSetting("features") or {}
+                            f.enable_highlights_sharing = true
+                            plugin.settings:saveSetting("features", f)
+                            plugin.settings:flush()
+                            plugin:updateConfigFromSettings()
+                        end
+                    end,
+                    refresh_menu = true,
+                },
+                {
+                    id = "enable_highlights_sharing",
+                    type = "toggle",
+                    text = _("Allow Highlights"),
+                    path = "features.enable_highlights_sharing",
+                    default = false,
+                    help_text = _("Share your highlighted text passages with the AI. Used by X-Ray, Recap, and actions with {highlights} placeholders. Does not include personal notes."),
+                    enabled_func = function(plugin)
+                        -- Grayed out when annotations is enabled (annotations implies highlights)
+                        local f = plugin.settings:readSetting("features") or {}
+                        return f.enable_annotations_sharing ~= true
+                    end,
                 },
                 {
                     id = "enable_notebook_sharing",

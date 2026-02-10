@@ -136,7 +136,7 @@ local function createMockExtractor(settings, mock_data)
     end
 
     extractor.getXrayCache = function()
-        return mock_data.xray_cache or { text = "X-Ray content", progress_formatted = "30%", used_annotations = true }
+        return mock_data.xray_cache or { text = "X-Ray content", progress_formatted = "30%", used_highlights = true }
     end
 
     extractor.getAnalyzeCache = function()
@@ -426,27 +426,61 @@ end
 -- =============================================================================
 
 local function runGatingTests()
+    print("\n--- ContextExtractor: Highlights Double-Gate ---")
+
+    TestRunner:test("highlights blocked when both sharing settings are false", function()
+        local extractor = createMockExtractor({ enable_highlights_sharing = false, enable_annotations_sharing = false })
+        local data = extractor:extractForAction({ use_highlights = true, prompt = "{highlights}" })
+        TestRunner:assertEquals(data.highlights, "")
+    end)
+
+    TestRunner:test("highlights allowed when enable_highlights_sharing=true", function()
+        local extractor = createMockExtractor({ enable_highlights_sharing = true })
+        local data = extractor:extractForAction({ use_highlights = true, prompt = "{highlights}" })
+        TestRunner:assertContains(data.highlights, "Test highlight")
+    end)
+
+    TestRunner:test("highlights allowed when enable_annotations_sharing=true (implies highlights)", function()
+        local extractor = createMockExtractor({ enable_highlights_sharing = false, enable_annotations_sharing = true })
+        local data = extractor:extractForAction({ use_highlights = true, prompt = "{highlights}" })
+        TestRunner:assertContains(data.highlights, "Test highlight")
+    end)
+
+    TestRunner:test("highlights blocked when use_highlights=false even with sharing enabled", function()
+        local extractor = createMockExtractor({ enable_highlights_sharing = true })
+        local data = extractor:extractForAction({ use_highlights = false, prompt = "{highlights}" })
+        TestRunner:assertEquals(data.highlights, "")
+    end)
+
+    TestRunner:test("highlights bypass with trusted provider", function()
+        local extractor = createMockExtractor({
+            enable_highlights_sharing = false,
+            enable_annotations_sharing = false,
+            provider = "my_trusted",
+            trusted_providers = { "my_trusted" },
+        })
+        local data = extractor:extractForAction({ use_highlights = true, prompt = "{highlights}" })
+        TestRunner:assertContains(data.highlights, "Test highlight")
+    end)
+
     print("\n--- ContextExtractor: Annotations Double-Gate ---")
 
     TestRunner:test("annotations blocked when enable_annotations_sharing=false", function()
         local extractor = createMockExtractor({ enable_annotations_sharing = false })
         local data = extractor:extractForAction({ use_annotations = true, prompt = "{annotations}" })
         TestRunner:assertEquals(data.annotations, "")
-        TestRunner:assertEquals(data.highlights, "")
     end)
 
     TestRunner:test("annotations blocked when use_annotations=false", function()
         local extractor = createMockExtractor({ enable_annotations_sharing = true })
         local data = extractor:extractForAction({ use_annotations = false, prompt = "{annotations}" })
         TestRunner:assertEquals(data.annotations, "")
-        TestRunner:assertEquals(data.highlights, "")
     end)
 
     TestRunner:test("annotations allowed when both gates pass", function()
         local extractor = createMockExtractor({ enable_annotations_sharing = true })
         local data = extractor:extractForAction({ use_annotations = true, prompt = "{annotations}" })
         TestRunner:assertContains(data.annotations, "Test annotation")
-        TestRunner:assertContains(data.highlights, "Test highlight")
     end)
 
     TestRunner:test("annotations bypass with trusted provider", function()
@@ -606,17 +640,17 @@ local function runGatingTests()
 
     print("\n--- ContextExtractor: Analysis Cache Gating ---")
 
-    -- X-Ray cache with used_annotations=true (default mock) requires annotation permission
-    TestRunner:test("xray_cache (with annotations) blocked when use_annotations=false", function()
+    -- X-Ray cache with used_highlights=true (default mock) requires highlight permission
+    TestRunner:test("xray_cache (with highlights) blocked when use_highlights=false", function()
         local extractor = createMockExtractor({
             enable_book_text_extraction = true,
-            enable_annotations_sharing = true,
+            enable_highlights_sharing = true,
         })
-        -- Default mock has used_annotations=true, so annotation permission is required
+        -- Default mock has used_highlights=true, so highlight permission is required
         local data = extractor:extractForAction({
             use_book_text = true,
             use_xray_cache = true,
-            use_annotations = false,  -- Cache was built with annotations, so this blocks
+            use_highlights = false,  -- Cache was built with highlights, so this blocks
         })
         TestRunner:assertEquals(data.xray_cache, nil)
     end)
@@ -624,39 +658,54 @@ local function runGatingTests()
     TestRunner:test("xray_cache blocked when enable_book_text_extraction=false", function()
         local extractor = createMockExtractor({
             enable_book_text_extraction = false,  -- Global gate OFF
-            enable_annotations_sharing = true,
+            enable_highlights_sharing = true,
         })
         local data = extractor:extractForAction({
             use_book_text = true,
             use_xray_cache = true,
-            use_annotations = true,
+            use_highlights = true,
         })
         TestRunner:assertEquals(data.xray_cache, nil)
     end)
 
-    TestRunner:test("xray_cache (with annotations) blocked when enable_annotations_sharing=false", function()
+    TestRunner:test("xray_cache (with highlights) blocked when highlights sharing disabled", function()
         local extractor = createMockExtractor({
             enable_book_text_extraction = true,
-            enable_annotations_sharing = false,  -- Global annotations gate OFF
+            enable_highlights_sharing = false,
+            enable_annotations_sharing = false,
         })
-        -- Default mock has used_annotations=true, so annotation permission is required
+        -- Default mock has used_highlights=true, so highlight permission is required
         local data = extractor:extractForAction({
             use_book_text = true,
             use_xray_cache = true,
-            use_annotations = true,  -- Action flag ON, but global gate OFF
+            use_highlights = true,  -- Action flag ON, but global gate OFF
         })
         TestRunner:assertEquals(data.xray_cache, nil)
     end)
 
-    TestRunner:test("xray_cache (with annotations) allowed when all gates pass", function()
+    TestRunner:test("xray_cache (with highlights) allowed via annotations sharing (implies highlights)", function()
         local extractor = createMockExtractor({
             enable_book_text_extraction = true,
-            enable_annotations_sharing = true,
+            enable_highlights_sharing = false,
+            enable_annotations_sharing = true,  -- Implies highlights
         })
         local data = extractor:extractForAction({
             use_book_text = true,
             use_xray_cache = true,
-            use_annotations = true,
+            use_highlights = true,
+        })
+        TestRunner:assertContains(data.xray_cache, "X-Ray content")
+    end)
+
+    TestRunner:test("xray_cache (with highlights) allowed when all gates pass", function()
+        local extractor = createMockExtractor({
+            enable_book_text_extraction = true,
+            enable_highlights_sharing = true,
+        })
+        local data = extractor:extractForAction({
+            use_book_text = true,
+            use_xray_cache = true,
+            use_highlights = true,
         })
         TestRunner:assertContains(data.xray_cache, "X-Ray content")
         TestRunner:assertEquals(data.xray_cache_progress, "30%")
@@ -665,62 +714,87 @@ local function runGatingTests()
     TestRunner:test("xray_cache bypass with trusted provider (both global gates off)", function()
         local extractor = createMockExtractor({
             enable_book_text_extraction = false,  -- OFF
-            enable_annotations_sharing = false,   -- OFF
+            enable_highlights_sharing = false,     -- OFF
             provider = "local_ollama",
             trusted_providers = { "local_ollama" },
         })
         local data = extractor:extractForAction({
             use_book_text = true,
             use_xray_cache = true,
-            use_annotations = true,
+            use_highlights = true,
         })
         TestRunner:assertContains(data.xray_cache, "X-Ray content")
     end)
 
-    -- X-Ray cache WITHOUT annotations does NOT require annotation permission
-    TestRunner:test("xray_cache (without annotations) allowed even when annotations disabled", function()
-        -- Create extractor with cache that was built WITHOUT annotations
+    -- X-Ray cache WITHOUT highlights does NOT require highlight permission
+    TestRunner:test("xray_cache (without highlights) allowed even when highlights disabled", function()
         local extractor = createMockExtractor({
             enable_book_text_extraction = true,
-            enable_annotations_sharing = false,  -- Annotations disabled
+            enable_highlights_sharing = false,
         }, {
-            xray_cache = { text = "X-Ray without annotations", progress_formatted = "40%", used_annotations = false }
+            xray_cache = { text = "X-Ray without highlights", progress_formatted = "40%", used_highlights = false }
         })
         local data = extractor:extractForAction({
             use_book_text = true,
             use_xray_cache = true,
-            use_annotations = false,  -- OK because cache was built without annotations
         })
-        TestRunner:assertContains(data.xray_cache, "X-Ray without annotations")
+        TestRunner:assertContains(data.xray_cache, "X-Ray without highlights")
     end)
 
-    TestRunner:test("xray_cache (without annotations) allowed when use_annotations=false", function()
-        -- Cache built without annotations doesn't require annotation permission
+    TestRunner:test("xray_cache (without highlights) allowed when use_highlights=false", function()
         local extractor = createMockExtractor({
             enable_book_text_extraction = true,
-            enable_annotations_sharing = true,  -- Even with annotations enabled globally
+            enable_highlights_sharing = true,
         }, {
-            xray_cache = { text = "X-Ray no annot", progress_formatted = "25%", used_annotations = false }
+            xray_cache = { text = "X-Ray no highlights", progress_formatted = "25%", used_highlights = false }
         })
         local data = extractor:extractForAction({
             use_book_text = true,
             use_xray_cache = true,
-            use_annotations = false,  -- Action doesn't request annotations - OK for this cache
+            use_highlights = false,
         })
-        TestRunner:assertContains(data.xray_cache, "X-Ray no annot")
+        TestRunner:assertContains(data.xray_cache, "X-Ray no highlights")
     end)
 
-    TestRunner:test("xray_cache with nil used_annotations treated as no annotations required", function()
-        -- Legacy cache without used_annotations field (nil) - treat as not requiring annotations
+    -- Legacy cache: used_annotations=true but no used_highlights field → treat as requiring highlights
+    TestRunner:test("xray_cache legacy (used_annotations=true, no used_highlights) requires highlight permission", function()
+        local extractor = createMockExtractor({
+            enable_book_text_extraction = true,
+            enable_highlights_sharing = false,
+            enable_annotations_sharing = false,
+        }, {
+            xray_cache = { text = "Legacy annotated X-Ray", progress_formatted = "20%", used_annotations = true }
+        })
+        local data = extractor:extractForAction({
+            use_xray_cache = true,
+            use_highlights = true,
+        })
+        TestRunner:assertEquals(data.xray_cache, nil, "Legacy used_annotations should require highlights")
+    end)
+
+    TestRunner:test("xray_cache legacy (used_annotations=true) allowed with highlight sharing", function()
+        local extractor = createMockExtractor({
+            enable_book_text_extraction = true,
+            enable_highlights_sharing = true,
+        }, {
+            xray_cache = { text = "Legacy annotated X-Ray", progress_formatted = "20%", used_annotations = true }
+        })
+        local data = extractor:extractForAction({
+            use_xray_cache = true,
+            use_highlights = true,
+        })
+        TestRunner:assertContains(data.xray_cache, "Legacy annotated X-Ray")
+    end)
+
+    TestRunner:test("xray_cache with nil used_highlights and nil used_annotations treated as no highlights required", function()
         local extractor = createMockExtractor({
             enable_book_text_extraction = true,
         }, {
-            xray_cache = { text = "Legacy X-Ray cache", progress_formatted = "20%", used_annotations = nil }
+            xray_cache = { text = "Legacy X-Ray cache", progress_formatted = "20%" }
         })
         local data = extractor:extractForAction({
             use_book_text = true,
             use_xray_cache = true,
-            -- No use_annotations flag
         })
         TestRunner:assertContains(data.xray_cache, "Legacy X-Ray cache")
     end)
@@ -805,14 +879,14 @@ local function runGatingTests()
     TestRunner:test("caches accessible without use_book_text flag on action", function()
         local extractor = createMockExtractor({
             enable_book_text_extraction = true,
-            enable_annotations_sharing = true,
+            enable_highlights_sharing = true,
         })
         local data = extractor:extractForAction({
             use_book_text = false,  -- Action doesn't use text, but cache reading is independent
             use_xray_cache = true,
             use_analyze_cache = true,
             use_summary_cache = true,
-            use_annotations = true,
+            use_highlights = true,
         })
         TestRunner:assertContains(data.xray_cache, "X-Ray content")
         TestRunner:assertContains(data.analyze_cache, "Deep document analysis")
@@ -826,7 +900,7 @@ local function runGatingTests()
         local extractor = createMockExtractor({
             enable_book_text_extraction = false,
         }, {
-            xray_cache = { text = "AI knowledge X-Ray", progress_formatted = "30%", used_annotations = false, used_book_text = false }
+            xray_cache = { text = "AI knowledge X-Ray", progress_formatted = "30%", used_highlights = false, used_book_text = false }
         })
         local data = extractor:extractForAction({
             use_xray_cache = true,
@@ -863,7 +937,7 @@ local function runGatingTests()
         local extractor = createMockExtractor({
             enable_book_text_extraction = false,
         }, {
-            xray_cache = { text = "Text-based X-Ray", progress_formatted = "30%", used_annotations = false, used_book_text = true }
+            xray_cache = { text = "Text-based X-Ray", progress_formatted = "30%", used_highlights = false, used_book_text = true }
         })
         local data = extractor:extractForAction({
             use_xray_cache = true,
@@ -888,7 +962,7 @@ local function runGatingTests()
         local extractor = createMockExtractor({
             enable_book_text_extraction = false,
         }, {
-            xray_cache = { text = "Legacy X-Ray", progress_formatted = "20%", used_annotations = nil, used_book_text = nil }
+            xray_cache = { text = "Legacy X-Ray", progress_formatted = "20%", used_book_text = nil }
         })
         local data = extractor:extractForAction({
             use_xray_cache = true,
@@ -896,33 +970,34 @@ local function runGatingTests()
         TestRunner:assertEquals(data.xray_cache, nil)
     end)
 
-    -- Combined: used_book_text=false but used_annotations=true — annotations gate still applies
-    TestRunner:test("xray_cache (no text, with annotations) requires annotation permission", function()
+    -- Combined: used_book_text=false but used_highlights=true — highlights gate still applies
+    TestRunner:test("xray_cache (no text, with highlights) requires highlight permission", function()
         local extractor = createMockExtractor({
             enable_book_text_extraction = false,
+            enable_highlights_sharing = false,
             enable_annotations_sharing = false,
         }, {
-            xray_cache = { text = "AI X-Ray with annotations", progress_formatted = "25%", used_annotations = true, used_book_text = false }
+            xray_cache = { text = "AI X-Ray with highlights", progress_formatted = "25%", used_highlights = true, used_book_text = false }
         })
         local data = extractor:extractForAction({
             use_xray_cache = true,
-            use_annotations = true,
+            use_highlights = true,
         })
         TestRunner:assertEquals(data.xray_cache, nil)
     end)
 
-    TestRunner:test("xray_cache (no text, with annotations) allowed when annotations enabled", function()
+    TestRunner:test("xray_cache (no text, with highlights) allowed when highlights enabled", function()
         local extractor = createMockExtractor({
             enable_book_text_extraction = false,
-            enable_annotations_sharing = true,
+            enable_highlights_sharing = true,
         }, {
-            xray_cache = { text = "AI X-Ray with annotations", progress_formatted = "25%", used_annotations = true, used_book_text = false }
+            xray_cache = { text = "AI X-Ray with highlights", progress_formatted = "25%", used_highlights = true, used_book_text = false }
         })
         local data = extractor:extractForAction({
             use_xray_cache = true,
-            use_annotations = true,
+            use_highlights = true,
         })
-        TestRunner:assertContains(data.xray_cache, "AI X-Ray with annotations")
+        TestRunner:assertContains(data.xray_cache, "AI X-Ray with highlights")
     end)
 end
 
@@ -936,12 +1011,12 @@ local function runCacheIntegrationTests()
     TestRunner:test("xray_cache data flows to MessageBuilder correctly", function()
         local extractor = createMockExtractor({
             enable_book_text_extraction = true,
-            enable_annotations_sharing = true,
+            enable_highlights_sharing = true,
         })
         local data = extractor:extractForAction({
             use_book_text = true,
             use_xray_cache = true,  -- Explicit flag required
-            use_annotations = true,
+            use_highlights = true,
         })
         -- Now pass to MessageBuilder
         local result = MessageBuilder.build({

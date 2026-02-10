@@ -60,6 +60,7 @@ Provide a comprehensive summary capturing the essential content. Cover the entir
 Actions.OPEN_BOOK_FLAGS = {
     "use_book_text",
     "use_reading_progress",
+    "use_highlights",
     "use_annotations",
     "use_reading_stats",
     "use_notebook",
@@ -73,9 +74,11 @@ Actions.PLACEHOLDER_TO_FLAG = {
     ["{progress_decimal}"] = "use_reading_progress",
     ["{time_since_last_read}"] = "use_reading_progress",
 
-    -- Highlights/Annotations placeholders (same data, unified flag)
-    ["{highlights}"] = "use_annotations",
-    ["{highlights_section}"] = "use_annotations",
+    -- Highlights placeholders (just highlighted text, no notes)
+    ["{highlights}"] = "use_highlights",
+    ["{highlights_section}"] = "use_highlights",
+
+    -- Annotations placeholders (highlights + user notes)
     ["{annotations}"] = "use_annotations",
     ["{annotations_section}"] = "use_annotations",
 
@@ -116,9 +119,9 @@ Actions.REQUIRES_BOOK_TEXT = {
     "use_summary_cache",
 }
 
--- Flags that require use_annotations to be set (cascading requirement)
--- X-Ray cache includes annotation data, so accessing it needs annotation permission
-Actions.REQUIRES_ANNOTATIONS = {
+-- Flags that require use_highlights to be set (cascading requirement)
+-- X-Ray cache includes highlight data, so accessing it needs highlight permission
+Actions.REQUIRES_HIGHLIGHTS = {
     "use_xray_cache",  -- X-Ray uses {highlights_section}
 }
 
@@ -127,6 +130,7 @@ Actions.REQUIRES_ANNOTATIONS = {
 -- Security model: prevents accidental data exposure when user adds a placeholder
 Actions.DOUBLE_GATED_FLAGS = {
     "use_book_text",      -- gate: enable_book_text_extraction
+    "use_highlights",     -- gate: enable_highlights_sharing
     "use_annotations",    -- gate: enable_annotations_sharing
     "use_notebook",       -- gate: enable_notebook_sharing
     -- Document cache flags inherit from use_book_text
@@ -543,7 +547,7 @@ Actions.book = {
         behavior_variant = "reader_assistant",
         -- Context extraction flags
         use_book_text = true,
-        use_annotations = true,
+        use_highlights = true,
         use_reading_progress = true,
         prompt = [[Create a structured reader's companion for "{title}"{author_clause}.
 
@@ -573,6 +577,8 @@ Guidance for non-fiction: Aim for 8-12 key figures, 6-10 core concepts, 4-6 argu
 
 ---
 
+{highlight_analysis_nudge}
+
 CRITICAL: Do not reveal ANYTHING beyond {reading_progress}. This must be completely spoiler-free. Output ONLY valid JSON — no other text.
 
 If you don't recognize this work or lack sufficient detail to provide accurate information, respond with ONLY this JSON:
@@ -600,6 +606,8 @@ Previous analysis (at {cached_progress}):
 New content since then (now at {reading_progress}):
 {incremental_book_text_section}
 
+{highlights_section}
+
 Output an updated JSON object using the same schema as the previous analysis. If the previous analysis is in plain text rather than JSON, produce a fresh JSON analysis using the appropriate schema for the content type (fiction or nonfiction).
 
 Guidelines:
@@ -610,6 +618,9 @@ Guidelines:
 - Keep existing entries, modify only if new information changes them
 - Do not remove anything unless clearly contradicted
 - Keep total length practical — consolidate earlier entries as needed
+- If highlights are provided, consider what the reader found notable
+
+{highlight_analysis_nudge}
 
 CRITICAL: This must remain spoiler-free up to {reading_progress}. Output ONLY valid JSON — no other text.]],
     },
@@ -622,6 +633,7 @@ CRITICAL: This must remain spoiler-free up to {reading_progress}. Output ONLY va
         behavior_variant = "reader_assistant",
         -- Context extraction flags
         use_book_text = true,
+        use_highlights = true,
         use_reading_progress = true,
         use_reading_stats = true,
         prompt = [[Help me get back into "{title}"{author_clause}.
@@ -629,6 +641,8 @@ CRITICAL: This must remain spoiler-free up to {reading_progress}. Output ONLY va
 I'm at {reading_progress} and last read {time_since_last_read}.
 
 {book_text_section}
+
+{highlights_section}
 
 {text_fallback_nudge}
 
@@ -651,6 +665,7 @@ Style guidance:
 - Use **bold** for key names, terms, and concepts
 - Use *italics* for important revelations or claims
 - Keep it concise - this is a refresher, not a full summary
+- If the reader has highlighted passages, note what they found notable
 - No spoilers beyond {reading_progress}
 
 If you don't recognize this work or the title/content seems unclear, tell me honestly rather than guessing. I can provide more context if needed.]],
@@ -674,6 +689,8 @@ Previous recap (at {cached_progress}):
 New content since then (now at {reading_progress}):
 {incremental_book_text_section}
 
+{highlights_section}
+
 Update the recap to reflect where the story/argument now stands.
 
 Guidelines:
@@ -683,6 +700,7 @@ Guidelines:
 - Keep the same tone and style as the original recap
 - Maintain the appropriate structure (fiction vs non-fiction)
 - Keep total length concise - summarize earlier content more briefly as you go
+- If the reader has highlighted passages, note what they found notable
 
 CRITICAL: No spoilers beyond {reading_progress}.]],
     },
@@ -1446,12 +1464,17 @@ function Actions.inferOpenBookFlags(prompt_text)
         end
     end
 
-    -- Cascade: flags that derive from annotations also require use_annotations
-    for _idx, flag in ipairs(Actions.REQUIRES_ANNOTATIONS) do
+    -- Cascade: flags that derive from highlights also require use_highlights
+    for _idx, flag in ipairs(Actions.REQUIRES_HIGHLIGHTS) do
         if inferred_flags[flag] then
-            inferred_flags["use_annotations"] = true
+            inferred_flags["use_highlights"] = true
             break
         end
+    end
+
+    -- Cascade: annotations imply highlights (you can't have notes without highlighted text)
+    if inferred_flags["use_annotations"] then
+        inferred_flags["use_highlights"] = true
     end
 
     return inferred_flags

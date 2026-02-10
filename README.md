@@ -190,7 +190,8 @@ Find KOAssistant Settings in: **Tools → Page 2 → KOAssistant**
 ### 4. Configure Privacy Settings (Optional)
 
 Some features require opt-in to work:
-- **Analyze Highlights, Connect with Notes** → Enable "Allow Highlights & Annotations"
+- **Analyze Highlights, Connect with Notes** → Enable "Allow Annotation Notes"
+- **X-Ray, Recap with your highlights** → Enable "Allow Highlights"
 - **X-Ray, Recap with actual book content** → Enable "Allow Text Extraction"
 
 Go to **Settings → Privacy & Data** to configure. See [Privacy & Data](#privacy--data) for details.
@@ -376,7 +377,8 @@ KOAssistant sends data to AI providers to generate responses. This section expla
 - The data used to calculate this (exact date you opened the document last, etc.) is local only
 
 **Opt-in (disabled by default):**
-- Highlights and annotations — your saved highlights and personal notes, and the dates they were made
+- Highlights — your highlighted text passages (separate from annotations)
+- Annotations — your highlighted text with personal notes attached, and the dates they were made
 - Notebook entries — your KOAssistant notebook for the book, with dates
 - Book text content — actual text from the document (for X-Ray, Recap, etc.)
 
@@ -391,7 +393,8 @@ KOAssistant sends data to AI providers to generate responses. This section expla
 | **Full** | All data sharing enabled for full functionality. Does not automatically enable text extraction (see below). |
 
 **Individual toggles** (under Data Sharing Controls):
-- **Allow Highlights & Annotations** — Your saved highlights and personal notes (default: OFF)
+- **Allow Annotation Notes** — Your personal notes attached to highlights (default: OFF). Automatically enables Allow Highlights.
+- **Allow Highlights** — Your highlighted text passages (default: OFF). Used by X-Ray, Recap, and actions with `{highlights}` placeholders. Does not include personal notes. Grayed out when annotations is enabled (annotations implies highlights).
 - **Allow Notebook** — Notebook entries for the book (default: OFF)
 - **Allow Reading Progress** — Current reading position percentage (default: ON)
 - **Allow Chapter Info** — Chapter title, chapters read, time since last opened (default: ON)
@@ -400,7 +403,7 @@ KOAssistant sends data to AI providers to generate responses. This section expla
 
 **Graceful degradation:** When you disable a data type, actions adapt automatically. Section placeholders like `{highlights_section}` simply disappear from prompts, so you don't need to modify your actions. For text extraction specifically, actions go a step further: when document text is unavailable, the AI is explicitly guided to use its training knowledge of the work (and to say so honestly if it doesn't recognize the title). This means actions like Explain in Context, Discussion Questions, and others still produce useful results for well-known books even without text extraction enabled — see [Text Extraction and Double-gating](#text-extraction-and-double-gating) for details.
 
-**Visibility tip:** If your device supports emoji fonts, enable **[Emoji Data Access Indicators](#display-settings)** (Settings → Display Settings) to see at a glance what data each action accesses — 📄 document text, 📝 annotations, 📓 notebook, 🌐 web search — directly on action names throughout the UI.
+**Visibility tip:** If your device supports emoji fonts, enable **[Emoji Data Access Indicators](#display-settings)** (Settings → Display Settings) to see at a glance what data each action accesses — 📄 document text, 🔖 highlights, 📝 annotations, 📓 notebook, 🌐 web search — directly on action names throughout the UI.
 
 ### Text Extraction and Double-gating
 
@@ -428,10 +431,10 @@ The table below documents which flags are required for each data type (relevant 
 | Data Type | Global Setting | Per-Action Flag |
 |-----------|----------------|-----------------|
 | Book text | Allow Text Extraction | "Allow text extraction" checked |
-| X-Ray analysis cache | Allow Text Extraction if cache was built with text (+ Allow Highlights & Annotations if cache was built with annotations) | "Allow text extraction" (if cache used text) and "Allow annotation use" (if cache used annotations) checked |
+| X-Ray analysis cache | Allow Text Extraction if cache was built with text (+ Allow Highlights if cache was built with highlights) | "Allow text extraction" (if cache used text) and "Allow highlight use" (if cache used highlights) checked |
 | Analyze/Summary caches | Allow Text Extraction if cache was built with text | "Allow text extraction" (if cache used text) checked |
-| Highlights | Allow Highlights & Annotations | "Allow annotation use" checked |
-| Annotations | Allow Highlights & Annotations | "Allow annotation use" checked |
+| Highlights | Allow Highlights (or Allow Annotation Notes) | "Allow highlight use" checked |
+| Annotations | Allow Annotation Notes | "Allow annotation use (notes)" checked |
 | Notebook | Allow Notebook | "Allow notebook use" checked |
 | Surrounding context* | None (hard-capped 2000 chars) | Auto-inferred from placeholder |
 
@@ -439,13 +442,13 @@ The table below documents which flags are required for each data type (relevant 
 
 > **Tip:** Enable **[Emoji Data Access Indicators](#display-settings)** to see which flags each action has directly on its name — no need to inspect action settings manually.
 
-**Privacy compromise for X-Ray:** If you want X-Ray to analyze actual book content but prefer not to share your personal annotations, enable **only** "Allow Text Extraction" (leave "Allow Highlights & Annotations" off). X-Ray will analyze the book text without including your highlights or notes.
+**Privacy compromise for X-Ray:** X-Ray and Recap now use highlights (not annotations). If you want them to see your highlighted passages but not personal notes, enable **Allow Highlights** only (leave **Allow Annotation Notes** off). If you prefer no personal data at all, leave both off — X-Ray and Recap analyze the book text alone.
 
 **Cache permission inheritance:** When caches are built, they record what data was used. Actions that later reference cache placeholders inherit requirements based on what the cache actually contains:
 - Cache built **without text extraction** → No "Allow Text Extraction" needed (AI used training knowledge only)
 - Cache built **with text extraction** → "Allow Text Extraction" needed
-- X-Ray cache built **without annotations** → No "Allow Highlights & Annotations" needed
-- X-Ray cache built **with annotations** → Both "Allow Text Extraction" AND "Allow Highlights & Annotations" required
+- X-Ray/Recap cache built **without highlights** → No "Allow Highlights" needed
+- X-Ray/Recap cache built **with highlights** → "Allow Highlights" (or "Allow Annotation Notes") also required
 
 The artifact viewer shows "Based on AI training data knowledge" or "Based on extracted document text" so you always know what a cache contains. If you change privacy settings after building a cache (e.g., disable text extraction), actions may render the cache placeholder empty. To fix: either re-enable the required permissions, or regenerate the cache with your current settings.
 
@@ -514,11 +517,11 @@ You can customize these, create your own, or disable ones you don't use. See [Ac
 | **Summarize** | Concise summary of the text |
 | **Elaborate** | Expand on concepts, provide additional context and details |
 | **Connect** | Draw connections to other works, thinkers, and broader context |
-| **Connect (With Notes)** | Connect passage to your personal reading journey ⚠️ *Requires: Allow Highlights & Annotations, Allow Notebook* |
+| **Connect (With Notes)** | Connect passage to your personal reading journey ⚠️ *Requires: Allow Annotation Notes, Allow Notebook* |
 | **Explain in Context** | Explain passage using full document text as context ⚠️ *Requires: Allow Text Extraction* |
 | **Explain in Context (Smart)** | Like above, but uses cached document summary for efficiency ⚠️ *Requires: Allow Text Extraction* |
-| **Analyze in Context** | Deep analysis using full document text and your annotations ⚠️ *Requires: Allow Text Extraction, Allow Highlights & Annotations* |
-| **Analyze in Context (Smart)** | Like above, but uses cached document summary ⚠️ *Requires: Allow Text Extraction, Allow Highlights & Annotations* |
+| **Analyze in Context** | Deep analysis using full document text and your annotations ⚠️ *Requires: Allow Text Extraction, Allow Annotation Notes* |
+| **Analyze in Context (Smart)** | Like above, but uses cached document summary ⚠️ *Requires: Allow Text Extraction, Allow Annotation Notes* |
 | **Thematic Connection (Smart)** | Analyze how a passage connects to the book's larger themes ⚠️ *Requires: Allow Text Extraction* |
 | **Fact Check** | Verify claims using web search ⚠️ *Requires: Web Search* |
 | **Current Context** | Get latest information about a topic using web search ⚠️ *Requires: Web Search* |
@@ -596,7 +599,7 @@ Some actions work from the file browser (using only document metadata like title
 | **Book Reviews** | Find critical and reader reviews, awards, and reception ⚠️ *Requires: Web Search* |
 | **X-Ray** | Browsable reference guide: characters (with aliases and connections), locations, themes, lexicon, timeline — opens in a structured menu with search, chapter character tracking, and highlight integration ⚠️ *Best with: Allow Text Extraction* |
 | **Recap** | "Previously on..." style summary to help you resume reading ⚠️ *Best with: Allow Text Extraction* |
-| **Analyze Highlights** | Discover patterns and connections in your highlights ⚠️ *Requires: Allow Highlights & Annotations* |
+| **Analyze Highlights** | Discover patterns and connections in your highlights ⚠️ *Requires: Allow Annotation Notes* |
 | **Key Arguments** | Thesis, evidence, assumptions, and counterarguments using full book text ⚠️ *Requires: Allow Text Extraction* |
 | **Key Arguments (Smart)** | Like Key Arguments, but uses cached summary ⚠️ *Requires: Allow Text Extraction* |
 | **Discussion Questions** | Comprehension, analytical, and interpretive prompts using full book text ⚠️ *Requires: Allow Text Extraction* |
@@ -615,9 +618,9 @@ These actions analyze your actual reading content. They require specific privacy
 
 | Action | What it analyzes | Privacy setting required |
 |--------|------------------|--------------------------|
-| **X-Ray** | Book text up to current position | Allow Text Extraction |
-| **Recap** | Book text up to current position | Allow Text Extraction |
-| **Analyze Highlights** | Your highlights and annotations | Allow Highlights & Annotations |
+| **X-Ray** | Book text + highlights up to current position | Allow Text Extraction, Allow Highlights |
+| **Recap** | Book text + highlights up to current position | Allow Text Extraction, Allow Highlights |
+| **Analyze Highlights** | Your highlights and annotations | Allow Annotation Notes |
 | **Key Arguments** | Entire document | Allow Text Extraction |
 | **Key Arguments (Smart)** | Cached summary | Allow Text Extraction |
 | **Discussion Questions** | Entire document | Allow Text Extraction |
@@ -636,7 +639,7 @@ These actions analyze your actual reading content. They require specific privacy
 
 **X-Ray**: The X-Ray action produces a structured JSON analysis that opens in a **browsable category menu** rather than a plain text document. This was done with inspiration from [X-Ray Plugin for KOReader by 0zd3m1r](https://github.com/0zd3m1r/koreader-xray-plugin). The browser provides:
 
-- **Category navigation** — Cast, World, Ideas, Lexicon, Story Arc, Current State (fiction) or Key Figures, Core Concepts, Arguments, Terminology, Argument Development, Current Position (non-fiction) — with item counts
+- **Category navigation** — Cast, World, Ideas, Lexicon, Story Arc, Reader Engagement, Current State (fiction) or Key Figures, Core Concepts, Arguments, Terminology, Argument Development, Reader Engagement, Current Position (non-fiction) — with item counts. Reader Engagement appears only when highlights were provided during generation.
 - **Character detail** — descriptions, AI-provided aliases (e.g., "Lizzy", "Miss Bennet"), connections/relationships, and your highlights mentioning each character
 - **Chapter Characters** — shows which characters appear in your current chapter with mention counts, using word-boundary matching against names and aliases
 - **Search** — find any entry across all categories by name, alias, or description
@@ -829,7 +832,7 @@ When you select an action and start a chat, you can optionally add your own inpu
 **Action indicators:**
 - **★** = Custom action (editable)
 - **⚙** = Built-in action with modified settings
-- **📄📝📓🌐** = Data access indicators (when [Emoji Data Access Indicators](#display-settings) enabled): 📄 document text, 📝 annotations, 📓 notebook, 🌐 web search. These suffixes appear on action names in menus, showing at a glance what sensitive data each action accesses. Visible in action manager, reading features menu, highlight/dictionary menus, and file browser buttons.
+- **📄🔖📝📓🌐** = Data access indicators (when [Emoji Data Access Indicators](#display-settings) enabled): 📄 document text, 🔖 highlights only, 📝 annotations (includes highlights), 📓 notebook, 🌐 web search. These suffixes appear on action names in menus, showing at a glance what sensitive data each action accesses. Visible in action manager, reading features menu, highlight/dictionary menus, and file browser buttons.
 
 **Editing built-in actions:** Long-press any built-in action → "Edit Settings" to customize its advanced settings without creating a new action. Use "Reset to Default" to restore original settings.
 
@@ -907,10 +910,10 @@ Insert these in your action prompt to reference dynamic values:
 | `{chapter_title}` | Book (reading) | Current chapter name | Allow Chapter Info |
 | `{chapters_read}` | Book (reading) | Number of chapters read (e.g., "5 of 12") | Allow Chapter Info |
 | `{time_since_last_read}` | Book (reading) | Time since last reading session (e.g., "3 days ago") | Allow Chapter Info |
-| `{highlights}` | Book, Highlight (reading) | All highlights from the document | Allow Highlights & Annotations |
-| `{annotations}` | Book, Highlight (reading) | All highlights with user notes | Allow Highlights & Annotations |
-| `{highlights_section}` | Book, Highlight (reading) | Highlights with "My highlights so far:" label | Allow Highlights & Annotations |
-| `{annotations_section}` | Book, Highlight (reading) | Annotations with "My annotations:" label | Allow Highlights & Annotations |
+| `{highlights}` | Book, Highlight (reading) | All highlights from the document | Allow Highlights (or Allow Annotation Notes) |
+| `{annotations}` | Book, Highlight (reading) | All highlights with user notes | Allow Annotation Notes |
+| `{highlights_section}` | Book, Highlight (reading) | Highlights with "My highlights so far:" label | Allow Highlights (or Allow Annotation Notes) |
+| `{annotations_section}` | Book, Highlight (reading) | Annotations with "My annotations:" label | Allow Annotation Notes |
 | `{notebook}` | Book, Highlight (reading) | Content from the book's KOAssistant notebook | Allow Notebook |
 | `{notebook_section}` | Book, Highlight (reading) | Notebook with "My notebook entries:" label | Allow Notebook |
 | `{book_text}` | Book, Highlight (reading) | Extracted book text from start to current position | Allow Text Extraction |
@@ -919,8 +922,8 @@ Insert these in your action prompt to reference dynamic values:
 | `{full_document_section}` | Book, Highlight (reading) | Same as above with "Full document:" label | Allow Text Extraction |
 | `{surrounding_context}` | Highlight (reading) | Text surrounding the highlighted passage | — |
 | `{surrounding_context_section}` | Highlight (reading) | Same as above with "Surrounding text:" label | — |
-| `{xray_cache}` | Book (reading) | Cached X-Ray (if available) | Allow Text Extraction (+ Annotations if cache used them) |
-| `{xray_cache_section}` | Book (reading) | Same as above with progress label | Allow Text Extraction (+ Annotations if cache used them) |
+| `{xray_cache}` | Book (reading) | Cached X-Ray (if available) | Allow Text Extraction (+ Allow Highlights if cache used them) |
+| `{xray_cache_section}` | Book (reading) | Same as above with progress label | Allow Text Extraction (+ Allow Highlights if cache used them) |
 | `{analyze_cache}` | Book (reading) | Cached document analysis (if available) | Allow Text Extraction |
 | `{analyze_cache_section}` | Book (reading) | Same as above with label | Allow Text Extraction |
 | `{summary_cache}` | Book (reading) | Cached document summary (if available) | Allow Text Extraction |
@@ -950,9 +953,9 @@ Insert these in your action prompt to reference dynamic values:
 
 **Tip:** Use section placeholders in most cases. They prevent dangling references—if you write "Look at my highlights: {highlights}" in your prompt but highlights is empty, the AI sees confusing instructions about nonexistent content. Section placeholders include the label only when content exists.
 
-> **Privacy note:** Section placeholders adapt to [privacy settings](#privacy--data). If a data type is disabled (or not yet enabled), the corresponding placeholder returns empty and section variants disappear gracefully. For example, `{highlights_section}` is empty unless you enable **Allow Highlights & Annotations**. You don't need to modify actions to match your privacy preferences—they adapt automatically.
+> **Privacy note:** Section placeholders adapt to [privacy settings](#privacy--data). If a data type is disabled (or not yet enabled), the corresponding placeholder returns empty and section variants disappear gracefully. For example, `{highlights_section}` is empty unless you enable **Allow Highlights** (or **Allow Annotation Notes**, which implies highlights). You don't need to modify actions to match your privacy preferences—they adapt automatically.
 
-> **Double-gating (for custom actions):** When creating custom actions from scratch, sensitive data requires BOTH a global privacy setting AND a per-action permission flag. This prevents accidental data leakage—if you enable "Allow Text Extraction" globally, your new custom actions still need "Allow text extraction" checked to actually use it. Built-in actions already have appropriate flags set, and copied actions inherit them. Document cache placeholders require the same permissions as their source: `{xray_cache}` needs text extraction, plus annotations only if the cache was built with annotations included; `{analyze_cache}` and `{summary_cache}` only need text extraction. See [Text Extraction and Double-gating](#text-extraction-and-double-gating) for the full reference table.
+> **Double-gating (for custom actions):** When creating custom actions from scratch, sensitive data requires BOTH a global privacy setting AND a per-action permission flag. This prevents accidental data leakage—if you enable "Allow Text Extraction" globally, your new custom actions still need "Allow text extraction" checked to actually use it. Built-in actions already have appropriate flags set, and copied actions inherit them. Document cache placeholders require the same permissions as their source: `{xray_cache}` needs text extraction, plus highlights only if the cache was built with highlights included; `{analyze_cache}` and `{summary_cache}` only need text extraction. See [Text Extraction and Double-gating](#text-extraction-and-double-gating) for the full reference table.
 
 #### Utility Placeholders
 
@@ -1023,7 +1026,8 @@ return {
 - `thinking_budget`: Legacy: Token budget when extended_thinking="on" (1024-32000)
 - `enabled`: Set to `false` to hide
 - `use_book_text`: Allow text extraction for this action (acts as permission gate; also requires global "Allow Text Extraction" setting enabled). The actual extraction is triggered by placeholders in the prompt: `{book_text_section}` extracts to current position, `{full_document_section}` extracts entire document. Also gates access to analysis cache placeholders.
-- `use_annotations`: Include document highlights and annotations (`use_highlights` is deprecated, use this instead)
+- `use_highlights`: Include document highlights (text only, no notes). Requires Allow Highlights or Allow Annotation Notes.
+- `use_annotations`: Include document annotations (highlights with user notes). Requires Allow Annotation Notes.
 - `use_reading_progress`: Include reading position and chapter info
 - `use_reading_stats`: Include time since last read and chapter count
 - `use_notebook`: Include content from the book's KOAssistant notebook
@@ -1777,13 +1781,14 @@ Tags are simple labels for organizing chats. Unlike domains:
   - **Settings menu**: Descriptive emojis on menu items and section headers (💬 Chat, 🔗 Provider, 🤖 Model, 📖 Reading Features, 🔒 Privacy, etc.)
   - **Chat history**: Type prefixes (💬 general, 📚 multi-book, 📖 book chats)
   - **Notebook browser**: 📓 prefix on entries
-  - **X-Ray browser**: Category icons (👥 Characters, 🌍 Locations, 💭 Themes, 📖 Lexicon, 📅 Timeline, 📍 Current State). Highly recommended for the X-Ray browser — the visual icons make browsing categories much more intuitive.
+  - **X-Ray browser**: Category icons (👥 Characters, 🌍 Locations, 💭 Themes, 📖 Lexicon, 📅 Timeline, 📌 Reader Engagement, 📍 Current State). Highly recommended for the X-Ray browser — the visual icons make browsing categories much more intuitive.
   - **Chat viewer**: ↩️ Reply, 🏷️ Tag, 🔍 Web search toggle
   - **Streaming**: 🔍 web search indicator
   - Requires **emoji font support** — see [Emoji Font Setup](#emoji-font-setup) for installation instructions. If icons appear as question marks or blank squares, your device doesn't have a compatible emoji font installed.
 - **Emoji Data Access Indicators**: Show emoji suffixes on action names indicating what sensitive data they access. Off by default. Independent from Emoji Menu Icons — you can enable either or both. When enabled:
   - 📄 = document text (book text, X-Ray/Recap/Summary caches)
-  - 📝 = annotations and highlights
+  - 🔖 = highlights only (no personal notes)
+  - 📝 = annotations (highlights with personal notes)
   - 📓 = notebook
   - 🌐 = web search forced on
   - Visible in: action manager, reading features menu, quick actions, highlight/dictionary menus, file browser buttons
@@ -1964,7 +1969,8 @@ See [Privacy & Data](#privacy--data) for background on what gets sent to AI prov
 - **Preset: Minimal**: Maximum privacy — only question and book metadata sent
 - **Preset: Full**: Enable all data sharing for full functionality (does not enable text extraction)
 - **Data Sharing Controls** (for non-trusted providers):
-  - **Allow Highlights & Annotations**: Send your saved highlights and personal notes (default: OFF)
+  - **Allow Annotation Notes**: Send your personal notes attached to highlights (default: OFF). Auto-enables Allow Highlights.
+  - **Allow Highlights**: Send your highlighted text passages without notes (default: OFF). Grayed out when annotations enabled.
   - **Allow Notebook**: Send notebook entries (default: OFF)
   - **Allow Reading Progress**: Send current reading position percentage (default: ON)
   - **Allow Chapter Info**: Send chapter title, chapters read, time since last opened (default: ON)
@@ -2452,7 +2458,7 @@ The artifact viewer shows metadata (coverage, data source, model used, generatio
 > **Cache source tracking:** Each artifact records whether it was built with actual document text or AI training knowledge. The artifact viewer displays "Based on extracted document text" or "Based on AI training data knowledge" so you always know what an artifact contains. Artifacts built without text extraction use the AI's training knowledge — this works well for popular books but may be less accurate for obscure works. You can always regenerate with text extraction enabled for higher quality.
 
 > **Permission requirements for artifact placeholders:** Dynamic based on how the artifact was built:
-> - Artifact built **with text extraction**: `{xray_cache_section}` requires **Allow Text Extraction** (plus **Allow Highlights & Annotations** if built with annotations). `{analyze_cache_section}` and `{summary_cache_section}` require **Allow Text Extraction**.
+> - Artifact built **with text extraction**: `{xray_cache_section}` requires **Allow Text Extraction** (plus **Allow Highlights** if built with highlights). `{analyze_cache_section}` and `{summary_cache_section}` require **Allow Text Extraction**.
 > - Artifact built **without text extraction**: No text extraction permission needed — the artifact contains only AI training knowledge.
 >
 > Without the required gates enabled, the placeholder renders empty.
@@ -2508,7 +2514,7 @@ Add `requires_summary_cache = true` to your action. This triggers the pre-flight
 All three artifacts can be referenced in custom actions using `{summary_cache_section}`, `{xray_cache_section}`, or `{analyze_cache_section}` placeholders. The **summary** is the recommended choice for most custom actions. The X-Ray and Analyze placeholders are there for advanced users who want to experiment — artifact placeholders disappear when empty, so including them is always safe. See [Tips for Custom Actions](#tips-for-custom-actions) for usage guidance.
 
 **Example: Create a "Questions from X-Ray" action**
-1. Enable **Allow Text Extraction** AND **Allow Highlights & Annotations** in Settings → Privacy & Data
+1. Enable **Allow Text Extraction** (and optionally **Allow Highlights**) in Settings → Privacy & Data
 2. Run **X-Ray** on a book (this populates the artifact)
 3. Create a custom action with prompt: `Based on this analysis:\n\n{xray_cache_section}\n\nWhat are the 3 most important questions I should be thinking about?`
 4. Check "Allow text extraction" and "Include highlights" in the action's permissions
@@ -2904,12 +2910,13 @@ If actions like Analyze Highlights, Connect with Notes, X-Ray, or Recap seem to 
 
 | Feature not working | Enable this setting |
 |---------------------|---------------------|
-| Analyze Highlights shows nothing | Allow Highlights & Annotations |
-| Connect with Notes ignores your notes | Allow Highlights & Annotations + Allow Notebook |
+| Analyze Highlights shows nothing | Allow Annotation Notes |
+| Connect with Notes ignores your notes | Allow Annotation Notes + Allow Notebook |
+| X-Ray/Recap missing your highlights | Allow Highlights (or Allow Annotation Notes) |
 | X-Ray/Recap use only book title | Allow Text Extraction (in Text Extraction submenu) |
 | Explain/Analyze in Context use only book title | Allow Text Extraction (in Text Extraction submenu) |
-| Analyze in Context ignores your highlights | Allow Highlights & Annotations |
-| Custom action with `{highlights}` empty | Allow Highlights & Annotations |
+| Analyze in Context ignores your highlights | Allow Annotation Notes |
+| Custom action with `{highlights}` empty | Allow Highlights (or Allow Annotation Notes) |
 | Custom action with `{notebook}` empty | Allow Notebook |
 | Custom action with `{book_text}` empty | Allow Text Extraction + action's "Allow text extraction" flag |
 
@@ -2919,7 +2926,7 @@ If actions like Analyze Highlights, Connect with Notes, X-Ray, or Recap seem to 
 
 **Quick fix:** Use **Preset: Full** to enable all data sharing at once, or enable individual settings as needed.
 
-**See what actions need:** Enable **[Emoji Data Access Indicators](#display-settings)** to see emoji suffixes on action names showing what data each action accesses (📄 📝 📓 🌐).
+**See what actions need:** Enable **[Emoji Data Access Indicators](#display-settings)** to see emoji suffixes on action names showing what data each action accesses (📄 🔖 📝 📓 🌐).
 
 ### Text Extraction Not Working
 

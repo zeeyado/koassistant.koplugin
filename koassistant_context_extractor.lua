@@ -854,18 +854,24 @@ function ContextExtractor:extractForAction(action)
         data.progress_decimal = ""
     end
 
-    -- Annotations/Highlights - check both global setting AND per-action flag (default: disabled)
+    -- Highlights - check both global setting AND per-action flag (default: disabled)
     -- Double-gate: user must enable sharing globally AND action must request it
-    -- Note: Both {annotations} and {highlights} placeholders use use_annotations flag
-    -- (they're the same KOReader data, just different formatting for prompt flexibility)
-    local annotations_allowed = provider_trusted or self.settings.enable_annotations_sharing == true
-    if annotations_allowed and action.use_annotations then
-        local highlights = self:getHighlights()
-        data.highlights = highlights.formatted
-        local annotations = self:getAnnotations()
-        data.annotations = annotations.formatted
+    -- Annotations implies highlights: enable_annotations_sharing grants highlight access too
+    local highlights_allowed = provider_trusted
+        or self.settings.enable_highlights_sharing == true
+        or self.settings.enable_annotations_sharing == true
+    if highlights_allowed and action.use_highlights then
+        data.highlights = self:getHighlights().formatted
     else
         data.highlights = ""
+    end
+
+    -- Annotations - stricter gate: only annotations setting (includes highlight text + user notes)
+    local annotations_allowed = provider_trusted
+        or self.settings.enable_annotations_sharing == true
+    if annotations_allowed and action.use_annotations then
+        data.annotations = self:getAnnotations().formatted
+    else
         data.annotations = ""
     end
 
@@ -928,10 +934,19 @@ function ContextExtractor:extractForAction(action)
         -- Dynamic text extraction gate: only require if cache used text (nil/legacy = requires)
         local requires_text = xray.used_book_text ~= false
         local text_ok = not requires_text or text_extraction_allowed
-        -- Dynamic annotation gate: only require if cache used annotations
+        -- Dynamic highlight gate: only require if cache used highlights
+        -- Legacy compat: old caches have used_annotations but no used_highlights field
+        local requires_highlights = xray.used_highlights == true
+            or (xray.used_highlights == nil and xray.used_annotations == true)
+        local highlights_ok = not requires_highlights
+            or (highlights_allowed and action.use_highlights)
+        -- Dynamic annotation gate: only for NEW caches that explicitly tracked annotations
+        -- (old caches used used_annotations to mean highlights, handled above)
         local requires_annotations = xray.used_annotations == true
-        local annotations_ok = not requires_annotations or (annotations_allowed and action.use_annotations)
-        if text_ok and annotations_ok then
+            and xray.used_highlights ~= nil
+        local annotations_ok = not requires_annotations
+            or (annotations_allowed and action.use_annotations)
+        if text_ok and highlights_ok and annotations_ok then
             data.xray_cache = xray.text
             data.xray_cache_progress = xray.progress_formatted
         end
@@ -989,14 +1004,20 @@ function ContextExtractor:extractForAction(action)
         end
     end
 
+    -- Highlights: check if requested but not available
+    if action.use_highlights then
+        if not highlights_allowed then
+            table.insert(unavailable, "highlights (sharing disabled)")
+        elseif not data.highlights or data.highlights == "" then
+            table.insert(unavailable, "highlights (none found)")
+        end
+    end
+
     -- Annotations: check if requested but not available
     if action.use_annotations then
         if not annotations_allowed then
-            -- Permission denied
             table.insert(unavailable, "annotations (sharing disabled)")
-        elseif (not data.annotations or data.annotations == "") and
-               (not data.highlights or data.highlights == "") then
-            -- Permission granted but no annotations exist
+        elseif not data.annotations or data.annotations == "" then
             table.insert(unavailable, "annotations (none found)")
         end
     end

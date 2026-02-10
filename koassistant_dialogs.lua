@@ -2284,6 +2284,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                 message_data.cached_progress_decimal = cached_progress
                 -- Stash previous cache's metadata for sticky-true inheritance
                 message_data.cached_used_book_text = cached_entry.used_book_text
+                message_data.cached_used_highlights = cached_entry.used_highlights
                 message_data.cached_used_annotations = cached_entry.used_annotations
 
                 -- Get incremental book text (from cached to current position)
@@ -2387,16 +2388,22 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
             -- Skip caching if response was truncated or was an error response (cache_answer set to nil)
             if cache_enabled and original_action_id and message_data.progress_decimal and not is_truncated and cache_answer then
                 local ActionCache = require("koassistant_action_cache")
+                -- Track highlights for response cache (e.g., Recap uses highlights)
+                local highlights_were_provided = (message_data.highlights and message_data.highlights ~= "")
+                if using_cache and message_data.cached_used_highlights == true then
+                    highlights_were_provided = true
+                end
                 local save_success = ActionCache.set(
                     ui.document.file,
                     original_action_id,
                     cache_answer,
                     tonumber(message_data.progress_decimal) or 0,
                     { model = ConfigHelper:getModelInfo(temp_config), used_book_text = book_text_was_provided,
+                      used_highlights = highlights_were_provided,
                       previous_progress_decimal = message_data.cached_progress_decimal }
                 )
                 if save_success then
-                    logger.info("KOAssistant: Saved response to cache for", original_action_id, "at", message_data.progress_decimal, "used_book_text=", book_text_was_provided)
+                    logger.info("KOAssistant: Saved response to cache for", original_action_id, "at", message_data.progress_decimal, "used_book_text=", book_text_was_provided, "used_highlights=", highlights_were_provided)
                 end
             elseif is_truncated and cache_enabled then
                 logger.info("KOAssistant: Skipping cache for", original_action_id, "- response was truncated")
@@ -2412,21 +2419,22 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                 if action.cache_as_xray then
                     -- Track what data was used when building this cache
                     -- Reading the cache will only require permissions for data that was actually used
-                    local used_annotations = (message_data.highlights and message_data.highlights ~= "")
-                        or (message_data.annotations and message_data.annotations ~= "")
-                    -- Sticky-true: if previous cache used annotations, keep it true even if this update didn't
-                    if using_cache and message_data.cached_used_annotations == true then
-                        used_annotations = true
+                    local used_highlights = (message_data.highlights and message_data.highlights ~= "")
+                    -- Sticky-true: if previous cache used highlights, keep it true even if this update didn't
+                    -- Legacy compat: old caches used used_annotations to mean highlights
+                    if using_cache and (message_data.cached_used_highlights == true
+                        or (message_data.cached_used_highlights == nil and message_data.cached_used_annotations == true)) then
+                        used_highlights = true
                     end
                     local xray_metadata = {
                         model = model_name,
-                        used_annotations = used_annotations,
+                        used_highlights = used_highlights,
                         used_book_text = book_text_was_provided,
                         previous_progress_decimal = message_data.cached_progress_decimal,
                     }
                     local xray_success = ActionCache.setXrayCache(ui.document.file, cache_answer, progress, xray_metadata)
                     if xray_success then
-                        logger.info("KOAssistant: Saved X-Ray to reusable cache at", progress, "used_annotations=", used_annotations, "used_book_text=", book_text_was_provided)
+                        logger.info("KOAssistant: Saved X-Ray to reusable cache at", progress, "used_highlights=", used_highlights, "used_book_text=", book_text_was_provided)
                     end
                 end
 

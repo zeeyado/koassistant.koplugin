@@ -473,7 +473,7 @@ end
 
 --- Format cached content (X-Ray, Summary, Analysis) for export
 -- @param content string The cached content (result)
--- @param metadata table { cache_type, book_title, book_author, progress_decimal, model, timestamp, used_annotations }
+-- @param metadata table { cache_type, book_title, book_author, progress_decimal, model, timestamp, used_highlights, used_annotations }
 -- @param style string "markdown" or "text"
 -- @return string Formatted export content
 function Export.formatCacheContent(content, metadata, style)
@@ -520,9 +520,9 @@ function Export.formatCacheContent(content, metadata, style)
             table.insert(result, "**Coverage:** " .. coverage .. "%")
         end
 
-        -- Includes annotations (X-Ray only, when true)
-        if metadata.used_annotations == true then
-            table.insert(result, "**Includes annotations:** Yes")
+        -- Includes highlights (X-Ray only, when true)
+        if metadata.used_highlights == true or metadata.used_annotations == true then
+            table.insert(result, "**Includes highlights:** Yes")
         end
 
         table.insert(result, "")
@@ -563,9 +563,9 @@ function Export.formatCacheContent(content, metadata, style)
             table.insert(result, "Coverage: " .. coverage .. "%")
         end
 
-        -- Includes annotations (X-Ray only, when true)
-        if metadata.used_annotations == true then
-            table.insert(result, "Includes annotations: Yes")
+        -- Includes highlights (X-Ray only, when true)
+        if metadata.used_highlights == true or metadata.used_annotations == true then
+            table.insert(result, "Includes highlights: Yes")
         end
 
         table.insert(result, "")
