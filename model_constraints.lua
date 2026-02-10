@@ -71,6 +71,22 @@ ModelConstraints.capabilities = {
     -- not compatible with Chat Completions. Deprecated Feb 20, 2026 (410 Gone).
 }
 
+-- Maximum output token limits per model
+-- Used by handlers to clamp max_tokens before sending requests
+-- Only models with limits below the universal 16384 default need entries
+ModelConstraints._max_output_tokens = {
+    deepseek = {
+        ["deepseek-chat"] = 8192,
+        -- deepseek-reasoner: no cap needed (64K limit)
+    },
+    groq = {
+        ["groq/compound"] = 8192,
+        ["groq/compound-mini"] = 8192,
+        ["meta-llama/llama-4-maverick"] = 8192,
+        ["meta-llama/llama-4-scout"] = 8192,
+    },
+}
+
 -- Default values for reasoning/thinking settings
 -- Use these instead of hardcoding values throughout the codebase
 ModelConstraints.reasoning_defaults = {
@@ -191,6 +207,27 @@ function ModelConstraints.logAdjustments(provider, adjustments)
             tostring(adj.to),
             reason_str))
     end
+end
+
+--- Clamp max_tokens to model-specific ceiling (if any)
+--- Acts as a ceiling: values below the cap pass through unchanged.
+--- @param provider string: Provider name (e.g., "deepseek", "groq")
+--- @param model string: Model name (e.g., "deepseek-chat")
+--- @param value number|nil: The max_tokens value to clamp
+--- @return number|nil: Clamped value, or original if no cap applies
+function ModelConstraints.clampMaxTokens(provider, model, value)
+    if not value then return value end
+    local provider_caps = ModelConstraints._max_output_tokens[provider]
+    if not provider_caps then return value end
+
+    for cap_model, max_val in pairs(provider_caps) do
+        -- Prefix match (e.g., "deepseek-chat" matches "deepseek-chat-v2")
+        if model == cap_model or model:match("^" .. cap_model:gsub("%-", "%%-")) then
+            return math.min(value, max_val)
+        end
+    end
+
+    return value
 end
 
 return ModelConstraints
