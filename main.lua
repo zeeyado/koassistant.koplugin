@@ -366,7 +366,7 @@ function AskGPT:generateFileDialogRows(file, is_file, book_props)
   if show_artifacts and #caches > 0 then
     local self_ref = self
     table.insert(buttons, {
-      text = _("View Artifacts") .. " (KOA)",
+      text = (#caches == 1 and (_("View") .. " " .. caches[1].name) or _("View Artifacts")) .. " (KOA)",
       callback = function()
         local UIManager = require("ui/uimanager")
         local current_dialog = UIManager:getTopmostVisibleWidget()
