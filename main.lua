@@ -353,15 +353,15 @@ function AskGPT:generateFileDialogRows(file, is_file, book_props)
   local caches = {}
   local xray = ActionCache.getXrayCache(file)
   if xray and xray.result then
-    table.insert(caches, { name = "X-Ray", key = "_xray_cache", data = xray, book_title = title, book_author = authors })
+    table.insert(caches, { name = "X-Ray", key = "_xray_cache", data = xray, book_title = title, book_author = authors, file = file })
   end
   local summary = ActionCache.getSummaryCache(file)
   if summary and summary.result then
-    table.insert(caches, { name = _("Summary"), key = "_summary_cache", data = summary, book_title = title, book_author = authors })
+    table.insert(caches, { name = _("Summary"), key = "_summary_cache", data = summary, book_title = title, book_author = authors, file = file })
   end
   local analyze = ActionCache.getAnalyzeCache(file)
   if analyze and analyze.result then
-    table.insert(caches, { name = _("Analysis"), key = "_analyze_cache", data = analyze, book_title = title, book_author = authors })
+    table.insert(caches, { name = _("Analysis"), key = "_analyze_cache", data = analyze, book_title = title, book_author = authors, file = file })
   end
   if show_artifacts and #caches > 0 then
     local self_ref = self
@@ -4178,10 +4178,11 @@ function AskGPT:showCacheViewer(cache_info)
   }
 
   -- Create delete/regenerate callbacks
+  -- Delete works from both open book and file browser (via cache_info.file fallback)
   local on_delete = nil
   local on_regenerate = nil
-  if self.ui and self.ui.document and self.ui.document.file then
-    local file = self.ui.document.file
+  local file = self.ui and self.ui.document and self.ui.document.file or cache_info.file
+  if file then
     local cache_key = cache_info.key
     local cache_name = cache_info.name
 
@@ -4200,8 +4201,8 @@ function AskGPT:showCacheViewer(cache_info)
       })
     end
 
-    -- Summary gets a regenerate button when book is open
-    if cache_key == "_summary_cache" then
+    -- Summary gets a regenerate button when book is open (needs ui.document for generation)
+    if cache_key == "_summary_cache" and self.ui and self.ui.document then
       local self_ref = self
       on_regenerate = function()
         self_ref:generateSummary({ skip_confirmation = true, skip_cache_check = true, clear_existing_cache = true })
@@ -4248,6 +4249,7 @@ function AskGPT:showCacheViewer(cache_info)
     simple_view = true,
     configuration = configuration,
     cache_metadata = cache_metadata,
+    cache_type_name = cache_info.name,
     on_regenerate = on_regenerate,
     on_delete = on_delete,
     _plugin = self,
@@ -4364,6 +4366,7 @@ function AskGPT:showSummaryViewer(summary_data)
     simple_view = true,
     configuration = configuration,
     cache_metadata = cache_metadata,
+    cache_type_name = summary_name,
     on_regenerate = on_regenerate,
     on_delete = on_delete,
     _plugin = self,

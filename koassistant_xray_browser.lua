@@ -725,6 +725,18 @@ function XrayBrowser:showFullView()
     end
     local cache_info_text = table.concat(info_parts, ". ") .. "."
 
+    -- Wrap on_delete to also close the browser since the cache is gone
+    local on_delete_fullview
+    if self.on_delete then
+        local self_ref = self
+        on_delete_fullview = function()
+            self_ref.on_delete()
+            if self_ref.menu then
+                UIManager:close(self_ref.menu)
+            end
+        end
+    end
+
     -- Overlay on top of the menu — closing the viewer returns to the browser
     UIManager:show(ChatGPTViewer:new{
         title = title,
@@ -732,6 +744,8 @@ function XrayBrowser:showFullView()
         _cache_content = markdown,
         simple_view = true,
         cache_metadata = self.metadata.cache_metadata,
+        cache_type_name = "X-Ray",
+        on_delete = on_delete_fullview,
         configuration = self.metadata.configuration,
     })
 end

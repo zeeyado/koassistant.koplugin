@@ -907,8 +907,10 @@ local ChatGPTViewer = InputContainer:extend {
   -- Callbacks for simple_view regenerate/delete functionality
   -- on_regenerate: function() called when user clicks Regenerate (should close viewer and regenerate)
   -- on_delete: function() called when user clicks Delete (should close viewer and clear cache)
+  -- cache_type_name: display name for confirmation dialogs (e.g., "X-Ray", "Summary", "Analysis")
   on_regenerate = nil,
   on_delete = nil,
+  cache_type_name = nil,
 
   -- Callbacks for notebook viewer (simple_view for notebooks)
   -- on_edit: function() called when user clicks Edit (should close viewer and open editor)
@@ -2203,7 +2205,7 @@ function ChatGPTViewer:init()
         callback = function()
           local ConfirmBox = require("ui/widget/confirmbox")
           UIManager:show(ConfirmBox:new{
-            text = _("Regenerate this summary?\n\nThe current summary will be replaced."),
+            text = T(_("Regenerate this %1?\n\nThe current %1 will be replaced."), self.cache_type_name or _("summary")),
             ok_text = _("Regenerate"),
             ok_callback = function()
               self:onClose()
@@ -2221,7 +2223,7 @@ function ChatGPTViewer:init()
         callback = function()
           local ConfirmBox = require("ui/widget/confirmbox")
           UIManager:show(ConfirmBox:new{
-            text = _("Delete this summary?\n\nYou can regenerate it later."),
+            text = T(_("Delete this %1?"), self.cache_type_name or _("summary")),
             ok_text = _("Delete"),
             ok_callback = function()
               self:onClose()
