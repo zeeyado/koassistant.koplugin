@@ -363,6 +363,10 @@ function AskGPT:generateFileDialogRows(file, is_file, book_props)
   if analyze and analyze.result then
     table.insert(caches, { name = _("Analysis"), key = "_analyze_cache", data = analyze, book_title = title, book_author = authors, file = file })
   end
+  local recap = ActionCache.get(file, "recap")
+  if recap and recap.result then
+    table.insert(caches, { name = _("Recap"), key = "recap", data = recap, book_title = title, book_author = authors, file = file, is_per_action = true })
+  end
   if show_artifacts and #caches > 0 then
     local self_ref = self
     table.insert(buttons, {
@@ -374,7 +378,12 @@ function AskGPT:generateFileDialogRows(file, is_file, book_props)
           UIManager:close(current_dialog)
         end
         if #caches == 1 then
-          self_ref:showCacheViewer(caches[1])
+          local c = caches[1]
+          if c.is_per_action then
+            self_ref:viewCachedAction({ text = c.name }, c.key, c.data, { file = c.file, book_title = c.book_title, book_author = c.book_author })
+          else
+            self_ref:showCacheViewer(c)
+          end
         else
           local ButtonDialog = require("ui/widget/buttondialog")
           local btn_rows = {}
@@ -383,7 +392,11 @@ function AskGPT:generateFileDialogRows(file, is_file, book_props)
               text = cache.name,
               callback = function()
                 UIManager:close(self_ref._cache_selector)
-                self_ref:showCacheViewer(cache)
+                if cache.is_per_action then
+                  self_ref:viewCachedAction({ text = cache.name }, cache.key, cache.data, { file = cache.file, book_title = cache.book_title, book_author = cache.book_author })
+                else
+                  self_ref:showCacheViewer(cache)
+                end
               end,
             }})
           end
@@ -4008,28 +4021,46 @@ function AskGPT:viewCache()
       data = analyze,
     })
   end
+  local recap = ActionCache.get(file, "recap")
+  if recap and recap.result then
+    table.insert(caches, {
+      name = _("Recap"),
+      key = "recap",
+      data = recap,
+      is_per_action = true,
+    })
+  end
 
   if #caches == 0 then
     UIManager:show(InfoMessage:new{
-      text = _("No cached content found for this document.\n\nRun X-Ray, Summarize Document, or Analyze Document to create reusable caches."),
+      text = _("No cached content found for this document.\n\nRun X-Ray, Recap, Summarize Document, or Analyze Document to create reusable caches."),
     })
     return
   end
 
   -- If only one cache, open directly
   if #caches == 1 then
-    self:showCacheViewer(caches[1])
+    if caches[1].is_per_action then
+      self:viewCachedAction({ text = caches[1].name }, caches[1].key, caches[1].data)
+    else
+      self:showCacheViewer(caches[1])
+    end
     return
   end
 
   -- Multiple caches - show selector
+  local self_ref = self
   local buttons = {}
   for _idx, cache in ipairs(caches) do
     table.insert(buttons, {{
       text = cache.name,
       callback = function()
-        UIManager:close(self._cache_selector)
-        self:showCacheViewer(cache)
+        UIManager:close(self_ref._cache_selector)
+        if cache.is_per_action then
+          self_ref:viewCachedAction({ text = cache.name }, cache.key, cache.data)
+        else
+          self_ref:showCacheViewer(cache)
+        end
       end,
     }})
   end
@@ -4536,21 +4567,28 @@ end
 --- View a cached action result, routing to the appropriate viewer.
 --- For actions with cache_as_xray/analyze/summary, uses the document cache viewer.
 --- For other cacheable actions (e.g., Recap), shows in ChatGPTViewer simple_view.
---- @param action table: The action definition
+--- @param action table: The action definition (or minimal { text = "Name" } for picker use)
 --- @param action_id string: The action ID
 --- @param cached_entry table: The cached entry from ActionCache.get()
-function AskGPT:viewCachedAction(action, action_id, cached_entry)
+--- @param opts table|nil: Optional overrides { file = path, book_title = title } for file browser context
+function AskGPT:viewCachedAction(action, action_id, cached_entry, opts)
   -- Route to document cache viewer for actions that write to document caches
   if action.cache_as_xray then
-    self:showCacheViewer({ name = "X-Ray", key = "_xray_cache", data = cached_entry })
+    local info = { name = "X-Ray", key = "_xray_cache", data = cached_entry }
+    if opts then info.file = opts.file; info.book_title = opts.book_title; info.book_author = opts.book_author end
+    self:showCacheViewer(info)
     return
   end
   if action.cache_as_analyze then
-    self:showCacheViewer({ name = _("Analysis"), key = "_analyze_cache", data = cached_entry })
+    local info = { name = _("Analysis"), key = "_analyze_cache", data = cached_entry }
+    if opts then info.file = opts.file; info.book_title = opts.book_title; info.book_author = opts.book_author end
+    self:showCacheViewer(info)
     return
   end
   if action.cache_as_summary then
-    self:showCacheViewer({ name = _("Summary"), key = "_summary_cache", data = cached_entry })
+    local info = { name = _("Summary"), key = "_summary_cache", data = cached_entry }
+    if opts then info.file = opts.file; info.book_title = opts.book_title; info.book_author = opts.book_author end
+    self:showCacheViewer(info)
     return
   end
 
@@ -4567,12 +4605,16 @@ function AskGPT:viewCachedAction(action, action_id, cached_entry)
   if progress_str then
     title = title .. " (" .. progress_str .. ")"
   end
+  -- Book title: from open book or opts fallback (file browser)
   local book_title
   if self.ui then
     local props = self.ui.doc_props
     if props then
       book_title = props.display_title or props.title
     end
+  end
+  if not book_title and opts then
+    book_title = opts.book_title
   end
   if book_title then
     title = title .. " - " .. book_title
@@ -4596,9 +4638,9 @@ function AskGPT:viewCachedAction(action, action_id, cached_entry)
   end
   local cache_info_text = table.concat(info_parts, ". ") .. "."
 
-  -- Delete callback
+  -- Delete callback (open book or file browser via opts.file)
   local on_delete
-  local file = self.ui and self.ui.document and self.ui.document.file
+  local file = self.ui and self.ui.document and self.ui.document.file or (opts and opts.file)
   if file then
     local ActionCache = require("koassistant_action_cache")
     on_delete = function()
@@ -5515,6 +5557,7 @@ function AskGPT:onKOAssistantQuickActions()
         local has_any_cache = ActionCache.getXrayCache(file)
             or ActionCache.getAnalyzeCache(file)
             or ActionCache.getSummaryCache(file)
+            or ActionCache.get(file, "recap")
         if has_any_cache then
           addButton({
             text = _("View Artifacts"),
