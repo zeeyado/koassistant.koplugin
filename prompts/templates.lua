@@ -207,7 +207,7 @@ Templates.special = {
 -- @return string or nil: Template text if found
 function Templates.get(template_id)
     -- Search all template tables
-    for _, context_table in pairs({Templates.highlight, Templates.book, Templates.multi_book, Templates.special}) do
+    for _idx, context_table in pairs({Templates.highlight, Templates.book, Templates.multi_book, Templates.special}) do
         if context_table[template_id] then
             return context_table[template_id]
         end

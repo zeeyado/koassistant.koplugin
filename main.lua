@@ -5546,7 +5546,7 @@ function AskGPT:onKOAssistantQuickActions()
   -- 1. Book actions from unified quick actions list (built-in defaults + user-added)
   local features = self.settings:readSetting("features") or {}
   local quick_action_ids = self.action_service:getQuickActions()
-  for _, action_id in ipairs(quick_action_ids) do
+  for _idx, action_id in ipairs(quick_action_ids) do
     local action = self.action_service:getAction("book", action_id)
     if action and action.enabled ~= false then
       addButton({
@@ -8138,7 +8138,7 @@ function AskGPT:showBackupListDialog()
 
   -- Calculate total size
   local total_size = 0
-  for _, backup in ipairs(backups) do
+  for _idx, backup in ipairs(backups) do
     total_size = total_size + backup.size
   end
 

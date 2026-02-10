@@ -13,7 +13,7 @@ local function getModelList(provider, capability)
     if not caps or not caps[capability] then return "" end
 
     local models = {}
-    for _, model in ipairs(caps[capability]) do
+    for _idx, model in ipairs(caps[capability]) do
         -- Shorten model names for display (remove date suffixes)
         local short = model:gsub("%-20%d%d%d%d%d%d$", "-*")
         table.insert(models, "- " .. short)
@@ -916,7 +916,7 @@ local SettingsSchema = {
                                 view_caches = _("View Artifacts"),
                                 ai_quick_settings = _("Quick Settings"),
                             }
-                            for _, util in ipairs(Constants.QUICK_ACTION_UTILITIES) do
+                            for _idx, util in ipairs(Constants.QUICK_ACTION_UTILITIES) do
                                 table.insert(utility_items, {
                                     id = "qa_show_" .. util.id,
                                     type = "toggle",
@@ -1935,7 +1935,7 @@ local SettingsSchema = {
     -- Helper functions for schema usage
     getItemById = function(self, item_id, items_list)
         items_list = items_list or self.items
-        for _, item in ipairs(items_list) do
+        for _idx, item in ipairs(items_list) do
             if item.id == item_id then
                 return item
             end
@@ -1982,7 +1982,7 @@ local SettingsSchema = {
         elseif item.type == "text" then
             return type(value) == "string", "Value must be text"
         elseif item.type == "radio" then
-            for _, option in ipairs(item.options) do
+            for _idx, option in ipairs(item.options) do
                 if option.value == value then
                     return true
                 end

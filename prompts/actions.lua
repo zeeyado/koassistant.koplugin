@@ -1429,7 +1429,7 @@ function Actions.requiresOpenBook(action)
     end
 
     -- Check all centralized flags
-    for _, flag in ipairs(Actions.OPEN_BOOK_FLAGS) do
+    for _idx, flag in ipairs(Actions.OPEN_BOOK_FLAGS) do
         if action[flag] then
             return true
         end
