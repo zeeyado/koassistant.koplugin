@@ -4426,12 +4426,22 @@ function AskGPT:executeBookLevelAction(action_id)
     author_clause = (authors ~= "") and (" by " .. authors) or "",
   }
 
-  -- Execute the action with no highlighted text (book-level action)
+  -- Build book context string for display at top of chat viewer
+  local book_context = string.format("Title: %s.", title)
+  if authors ~= "" then
+    book_context = book_context .. string.format(" Author: %s.", authors)
+  end
+  if doc_props.language then
+    book_context = book_context .. string.format(" Language: %s.", doc_props.language)
+  end
+  config_copy.features.book_context = book_context
+
+  -- Execute the action with book context as highlighted text
   NetworkMgr:runWhenOnline(function()
     Dialogs.executeDirectAction(
       self.ui,
       action,
-      nil,  -- No highlighted text for book-level actions
+      book_context,
       config_copy,
       self
     )
@@ -4462,6 +4472,18 @@ function AskGPT:executeFileBrowserAction(file, title, authors, book_props, actio
     file = file,
   }
 
+  -- Build book context string for display at top of chat viewer
+  local book_context = string.format("Title: %s.", title)
+  if authors and authors ~= "" then
+    book_context = book_context .. string.format(" Author: %s.", authors)
+  end
+  if book_props then
+    if book_props.language then
+      book_context = book_context .. string.format(" Language: %s.", book_props.language)
+    end
+  end
+  configuration.features.book_context = book_context
+
   NetworkMgr:runWhenOnline(function()
     self:ensureInitialized()
     self:updateConfigFromSettings()
@@ -4485,7 +4507,7 @@ function AskGPT:executeFileBrowserAction(file, title, authors, book_props, actio
       config_copy.features[k] = v
     end
 
-    Dialogs.executeDirectAction(self.ui, action, nil, config_copy, self)
+    Dialogs.executeDirectAction(self.ui, action, book_context, config_copy, self)
   end)
 end
 
