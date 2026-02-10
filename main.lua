@@ -4468,20 +4468,43 @@ function AskGPT:showCacheActionPopup(action, action_id, on_update)
   end
 
   local action_name = action.text or action_id
-  local progress_str = ""
-  if cached.progress_decimal then
-    progress_str = " (" .. math.floor(cached.progress_decimal * 100 + 0.5) .. "%)"
+
+  -- View detail: cached progress + relative time, e.g. "View X-Ray (29%, today)"
+  local view_detail = ""
+  if cached.progress_decimal or cached.timestamp then
+    local parts = {}
+    if cached.progress_decimal then
+      table.insert(parts, math.floor(cached.progress_decimal * 100 + 0.5) .. "%")
+    end
+    local rel_time = formatRelativeTime(cached.timestamp)
+    if rel_time ~= "" then
+      table.insert(parts, rel_time)
+    end
+    if #parts > 0 then
+      view_detail = " (" .. table.concat(parts, ", ") .. ")"
+    end
+  end
+
+  -- Update detail: current reading position, e.g. "Update X-Ray (to 45%)"
+  local update_detail = ""
+  if self.ui and self.ui.document then
+    local ContextExtractor = require("koassistant_context_extractor")
+    local extractor = ContextExtractor:new(self.ui)
+    local progress = extractor:getReadingProgress()
+    if progress.percent > 0 then
+      update_detail = " (" .. T(_("to %1"), progress.formatted) .. ")"
+    end
   end
 
   local ButtonDialog = require("ui/widget/buttondialog")
   local self_ref = self
   local dialog
   dialog = ButtonDialog:new{
-    title = action_name .. progress_str,
+    title = action_name .. view_detail,
     buttons = {
       {
         {
-          text = T(_("View %1"), action_name .. progress_str),
+          text = T(_("View %1"), action_name .. view_detail),
           callback = function()
             UIManager:close(dialog)
             self_ref:viewCachedAction(action, action_id, cached)
@@ -4490,7 +4513,7 @@ function AskGPT:showCacheActionPopup(action, action_id, on_update)
       },
       {
         {
-          text = T(_("Update %1"), action_name),
+          text = T(_("Update %1"), action_name .. update_detail),
           callback = function()
             UIManager:close(dialog)
             on_update()
