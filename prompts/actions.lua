@@ -553,6 +553,8 @@ I'm at {reading_progress}.
 
 {book_text_section}
 
+{text_fallback_nudge}
+
 First, determine if this is FICTION or NON-FICTION. Then output ONLY a valid JSON object (no markdown, no code fences, no explanation) using the appropriate schema below. Cover ONLY what's happened up to my current position. Order characters by narrative importance.
 
 ---
@@ -625,6 +627,8 @@ CRITICAL: This must remain spoiler-free up to {reading_progress}. Output ONLY va
 I'm at {reading_progress} and last read {time_since_last_read}.
 
 {book_text_section}
+
+{text_fallback_nudge}
 
 Write a quick recap to help me re-immerse. Adapt your approach based on content type:
 

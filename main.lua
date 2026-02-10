@@ -495,17 +495,18 @@ function AskGPT:addFileDialogButtons()
   -- Create closures that bind self
   -- All KOA buttons (utilities + main) distributed across rows (max 4 per row)
   -- Row cache avoids recomputing for each row slot in the same dialog open
-  local row_cache = { file = nil, rows = nil }
+  -- Stored on self so delete callbacks can invalidate it
+  self._file_dialog_row_cache = { file = nil, rows = nil }
   local row_generators = {}
   local row_keys = { "zzz_koassistant_1a", "zzz_koassistant_1b", "zzz_koassistant_1c" }
   for slot = 1, 3 do
     local row_index = slot
     row_generators[slot] = function(file, is_file, book_props)
-      if row_cache.file ~= file then
-        row_cache.file = file
-        row_cache.rows = self:generateFileDialogRows(file, is_file, book_props)
+      if self._file_dialog_row_cache.file ~= file then
+        self._file_dialog_row_cache.file = file
+        self._file_dialog_row_cache.rows = self:generateFileDialogRows(file, is_file, book_props)
       end
-      return row_cache.rows and row_cache.rows[row_index]
+      return self._file_dialog_row_cache.rows and self._file_dialog_row_cache.rows[row_index]
     end
   end
 
@@ -4221,11 +4222,15 @@ function AskGPT:showCacheViewer(cache_info)
       -- Clear the appropriate cache based on key
       if cache_key == "_xray_cache" then
         ActionCache.clearXrayCache(file)
+        -- Also clear per-action cache (X-Ray saves to both document and per-action cache)
+        ActionCache.clear(file, "xray")
       elseif cache_key == "_analyze_cache" then
         ActionCache.clearAnalyzeCache(file)
       elseif cache_key == "_summary_cache" then
         ActionCache.clearSummaryCache(file)
       end
+      -- Invalidate file browser row cache so deleted artifacts don't reappear
+      self._file_dialog_row_cache = { file = nil, rows = nil }
       UIManager:show(Notification:new{
         text = T(_("%1 deleted"), cache_name),
         timeout = 2,
@@ -4383,6 +4388,8 @@ function AskGPT:showSummaryViewer(summary_data)
     on_delete = function()
       local ActionCache = require("koassistant_action_cache")
       ActionCache.clearSummaryCache(file)
+      -- Invalidate file browser row cache so deleted artifacts don't reappear
+      self._file_dialog_row_cache = { file = nil, rows = nil }
       UIManager:show(Notification:new{
         text = _("Summary deleted"),
         timeout = 2,
@@ -4645,6 +4652,8 @@ function AskGPT:viewCachedAction(action, action_id, cached_entry, opts)
     local ActionCache = require("koassistant_action_cache")
     on_delete = function()
       ActionCache.clear(file, action_id)
+      -- Invalidate file browser row cache so deleted artifacts don't reappear
+      self._file_dialog_row_cache = { file = nil, rows = nil }
       UIManager:show(require("ui/widget/notification"):new{
         text = T(_("%1 deleted"), action_name),
         timeout = 2,
@@ -5717,6 +5726,8 @@ function AskGPT:clearActionCache()
           callback = function()
             UIManager:close(dialog)
             local success = ActionCache.clearAll(document_path)
+            -- Invalidate file browser row cache
+            self._file_dialog_row_cache = { file = nil, rows = nil }
             if success then
               UIManager:show(InfoMessage:new{
                 text = _("Action cache cleared successfully."),

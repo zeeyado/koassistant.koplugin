@@ -2346,7 +2346,12 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
             if action.cache_as_xray then
                 local XrayParser = require("koassistant_xray_parser")
                 local parsed = XrayParser.parse(answer)
-                if parsed then
+                if parsed and parsed.error then
+                    -- AI returned error (e.g., "I don't recognize this work") — show as plain text, skip caching
+                    display_answer = parsed.error
+                    cache_answer = nil  -- Signal to skip caching below
+                    logger.info("KOAssistant: X-Ray returned error response, skipping cache:", parsed.error)
+                elseif parsed then
                     local book_meta = message_data.book_metadata or {}
                     display_answer = XrayParser.renderToMarkdown(
                         parsed,
@@ -2372,14 +2377,15 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
             local book_text_was_provided = (message_data.book_text and message_data.book_text ~= "")
                 or (message_data.full_document and message_data.full_document ~= "")
                 or (message_data.incremental_book_text and message_data.incremental_book_text ~= "")
+                or false
             -- Sticky-true: if previous cache used text, keep it true even if this update didn't
             if using_cache and message_data.cached_used_book_text == true then
                 book_text_was_provided = true
             end
 
             -- Save to response cache if enabled (for incremental updates)
-            -- Skip caching if response was truncated (contains truncation notice)
-            if cache_enabled and original_action_id and message_data.progress_decimal and not is_truncated then
+            -- Skip caching if response was truncated or was an error response (cache_answer set to nil)
+            if cache_enabled and original_action_id and message_data.progress_decimal and not is_truncated and cache_answer then
                 local ActionCache = require("koassistant_action_cache")
                 local save_success = ActionCache.set(
                     ui.document.file,
