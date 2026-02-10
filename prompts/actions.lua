@@ -575,7 +575,9 @@ Guidance for non-fiction: Aim for 8-12 key figures, 6-10 core concepts, 4-6 argu
 
 CRITICAL: Do not reveal ANYTHING beyond {reading_progress}. This must be completely spoiler-free. Output ONLY valid JSON — no other text.
 
-If you don't recognize this work or the content seems unclear, output: {"error": "I don't recognize this work. Please provide more context."}]],
+If you don't recognize this work or lack sufficient detail to provide accurate information, respond with ONLY this JSON:
+{"error": "I don't recognize this work. Please enable text extraction or provide more context."}
+Do NOT attempt to construct an X-Ray with fabricated or uncertain details.]],
         skip_language_instruction = false,
         skip_domain = true,  -- X-Ray has specific structure
         -- Inherits global reasoning setting (user choice)
