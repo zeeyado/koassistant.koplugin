@@ -2871,45 +2871,56 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     callback = function()
                         local additional_input = input_dialog:getInputText()
                         UIManager:close(input_dialog)
-                        -- Note: Loading dialog now handled by handleNonStreamingBackground in gpt_query.lua
-                        UIManager:scheduleIn(0.1, function()
-                            -- Callback for when response is ready (handles both streaming and non-streaming)
-                            local function onPromptComplete(history, temp_config_or_error)
-                                if history then
-                                    local temp_config = temp_config_or_error
-                                    local function addMessage(message, is_context, on_complete)
-                                        history:addUserMessage(message, is_context)
-                                        -- For follow-up messages, use callback pattern too
-                                        local answer_result = queryChatGPT(history:getMessages(), temp_config, function(success, answer, err, reasoning, web_search_used)
-                                            if success and answer then
-                                                history:addAssistantMessage(answer, ConfigHelper:getModelInfo(temp_config), reasoning, ConfigHelper:buildDebugInfo(temp_config), web_search_used)
+
+                        local function runAction()
+                            -- Note: Loading dialog now handled by handleNonStreamingBackground in gpt_query.lua
+                            UIManager:scheduleIn(0.1, function()
+                                -- Callback for when response is ready (handles both streaming and non-streaming)
+                                local function onPromptComplete(history, temp_config_or_error)
+                                    if history then
+                                        local temp_config = temp_config_or_error
+                                        local function addMessage(message, is_context, on_complete)
+                                            history:addUserMessage(message, is_context)
+                                            -- For follow-up messages, use callback pattern too
+                                            local answer_result = queryChatGPT(history:getMessages(), temp_config, function(success, answer, err, reasoning, web_search_used)
+                                                if success and answer then
+                                                    history:addAssistantMessage(answer, ConfigHelper:getModelInfo(temp_config), reasoning, ConfigHelper:buildDebugInfo(temp_config), web_search_used)
+                                                end
+                                                if on_complete then on_complete(success, answer, err, reasoning, web_search_used) end
+                                            end, plugin and plugin.settings)
+                                            -- For non-streaming, return the result directly
+                                            if not isStreamingInProgress(answer_result) then
+                                                return answer_result
                                             end
-                                            if on_complete then on_complete(success, answer, err, reasoning, web_search_used) end
-                                        end, plugin and plugin.settings)
-                                        -- For non-streaming, return the result directly
-                                        if not isStreamingInProgress(answer_result) then
-                                            return answer_result
+                                            return nil -- Streaming will update via callback
                                         end
-                                        return nil -- Streaming will update via callback
+                                        closeLoadingDialog()
+                                        showResponseDialog(_(prompt.text), history, highlighted_text, addMessage, temp_config, document_path, plugin, book_metadata, launch_context, ui_instance)
+                                    else
+                                        closeLoadingDialog()
+                                        local error_msg = temp_config_or_error or "Unknown error"
+                                        UIManager:show(InfoMessage:new{
+                                            text = _("Error handling prompt: ") .. custom_prompt_type .. " - " .. error_msg,
+                                            timeout = 2
+                                        })
                                     end
-                                    closeLoadingDialog()
-                                    showResponseDialog(_(prompt.text), history, highlighted_text, addMessage, temp_config, document_path, plugin, book_metadata, launch_context, ui_instance)
-                                else
-                                    closeLoadingDialog()
-                                    local error_msg = temp_config_or_error or "Unknown error"
-                                    UIManager:show(InfoMessage:new{
-                                        text = _("Error handling prompt: ") .. custom_prompt_type .. " - " .. error_msg,
-                                        timeout = 2
-                                    })
                                 end
-                            end
 
-                            -- Call with callback for streaming support
-                            local history, temp_config = handlePredefinedPrompt(custom_prompt_type, highlighted_text, ui_instance, configuration, nil, plugin, additional_input, onPromptComplete, book_metadata)
+                                -- Call with callback for streaming support
+                                local history, temp_config = handlePredefinedPrompt(custom_prompt_type, highlighted_text, ui_instance, configuration, nil, plugin, additional_input, onPromptComplete, book_metadata)
 
-                            -- For non-streaming, history is returned directly and callback was also called
-                            -- The callback handles showing the dialog, so we don't need to do anything here
-                        end)
+                                -- For non-streaming, history is returned directly and callback was also called
+                                -- The callback handles showing the dialog, so we don't need to do anything here
+                            end)
+                        end
+
+                        -- For incremental actions with cache: show View/Update popup
+                        if prompt.use_response_caching and plugin and plugin.showCacheActionPopup then
+                            plugin:showCacheActionPopup(prompt, custom_prompt_type, runAction)
+                            return
+                        end
+
+                        runAction()
                     end
                 })
             end

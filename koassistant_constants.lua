@@ -106,7 +106,7 @@ Constants.QUICK_ACTION_UTILITIES = {
     { id = "new_book_chat",      callback = "onKOAssistantBookChat",            default = true },
     { id = "general_chat",       callback = "startGeneralChat",                 default = true },
     { id = "summary",            callback = "handleSummary",                    default = true },  -- Special handling
-    { id = "view_caches",        callback = "handleViewCaches",                 default = true },  -- "View Artifacts": only visible if X-Ray or Analysis exists
+    { id = "view_caches",        callback = "viewCache",                        default = true },  -- "View Artifacts": single button, opens cache picker
     { id = "ai_quick_settings",  callback = "onKOAssistantAISettings",          default = true },
 }
 
