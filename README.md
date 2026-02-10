@@ -245,7 +245,7 @@ To show/hide buttons in the Quick Settings panel, use **Settings → Quick Setti
 Assign "KOAssistant: Quick Actions" to a gesture for fast access to reading-related actions:
 - **Default actions** — X-Ray, Recap, Book Info
 - **Summary management** — "View Summary" (if summary exists) or "Generate Summary" (if not) for cached document summaries
-- **Artifact buttons** — "View X-Ray (35%)" and "View Analysis (40%)" appear individually when those artifacts exist (with progress percentage), opening directly without a selector dialog
+- **Artifact button** — "View Artifacts" appears when any artifacts exist (X-Ray, Analysis, Summary), opening a picker to choose which one to view
 - **Utilities** — Translate Page, View/Edit Notebook, Chat History, Continue Last Chat, New Book Chat/Action, General Chat/Action, Quick Settings
 
 You can add any book action to Quick Actions via **Action Manager → hold action → "Add to Quick Actions"**. To reorder or remove actions, use **Settings → Quick Actions Settings → Panel Actions**. To show/hide utility buttons (Translate Page, Chat History, etc.), use **Settings → Quick Actions Settings → QA Panel Utilities**. Defaults can also be removed.
@@ -646,7 +646,7 @@ Both modes support response caching and incremental updates — running X-Ray ag
 
 > **Tip:** Create specialized versions for your workflow. Copy a built-in action, customize the prompt for your field (e.g., "Focus on methodology and statistical claims" for scientific papers), and pair it with a matching domain. Disable built-ins you don't use via Action Manager (tap to toggle). See [Custom Actions](#custom-actions) for details.
 
-> **📦 Response Caching**: X-Ray and Recap responses are automatically cached per book. Running them again after reading further triggers an incremental update — only new content (if text extraction is enabled) is sent to update the previous analysis. Without text extraction, the AI updates from training knowledge. See [Response Caching](#response-caching) for details.
+> **📦 Response Caching**: X-Ray and Recap responses are automatically cached per book. When you tap X-Ray or Recap with an existing cache, a popup lets you **View** the cached result (with coverage and age) or **Update** it (showing what percentage it would update to). Choosing Update triggers an incremental update — only new content is sent to build on the previous analysis. See [Response Caching](#response-caching) for details.
 
 **Reading Mode vs File Browser:**
 
@@ -1913,7 +1913,7 @@ Configure the Quick Actions panel (available via gesture in reader mode).
 - **Panel Actions**: Reorder or remove actions from the Quick Actions panel. Add new actions via Action Manager → hold action → "Add to Quick Actions".
 - **QA Panel Utilities**: Show/hide utility buttons that appear below actions in the panel:
   - Translate Page, View Notebook, Edit Notebook, Chat History, Continue Last Chat
-  - New Book Chat/Action, General Chat/Action, Summary (View/Generate), Quick Settings, View Artifacts (X-Ray and Analysis shown as individual buttons with progress percentage when they exist)
+  - New Book Chat/Action, General Chat/Action, Summary (View/Generate), Quick Settings, View Artifacts (opens picker when any artifacts exist)
   - All utilities are enabled by default. Disable any you don't use to streamline the panel.
 
 ### Actions & Prompts
@@ -1950,7 +1950,7 @@ See [Privacy & Data](#privacy--data) for background on what gets sent to AI prov
   - **Allow Text Extraction**: Master toggle for text extraction (off by default). When enabled, actions can extract and send book text to the AI. Used by X-Ray, Recap, Explain in Context, Analyze in Context, and actions with text placeholders (`{book_text}`, `{full_document}`, etc.). Enabling shows an informational notice about token costs.
   - **Max Text Characters**: Maximum characters to extract (10,000-2,000,000, default 1,000,000 ~250k tokens)
   - **Max PDF Pages**: Maximum PDF pages to process (50-1,000, default 500)
-  - **Clear Action Cache**: Clear cached X-Ray/Recap responses for the current book (requires book to be open). To clear just one action, use the "↻ Fresh" button in the chat viewer instead.
+  - **Clear Action Cache**: Clear cached X-Ray/Recap responses for the current book (requires book to be open). To clear just one action, use the delete button in the artifact viewer instead.
 
 ### KOReader Integration
 Control where KOAssistant appears in KOReader's menus. All toggles default to ON; disable any to reduce UI presence.
@@ -2371,8 +2371,11 @@ X-Ray and Recap responses are automatically cached per book. This enables **incr
 **How it works:**
 1. Run X-Ray at 30% → Full structured JSON analysis generated and cached
 2. Continue reading to 50%
-3. Run X-Ray again → Only the new content (30%→50%) is sent, asking the AI to update its previous JSON analysis
-4. Result: Faster responses, lower token costs, continuity of analysis
+3. Tap X-Ray again → A popup shows: **View X-Ray (30%, today)** or **Update X-Ray (to 50%)**
+4. Choose Update → Only the new content (30%→50%) is sent, asking the AI to update its previous JSON analysis
+5. Result: Faster responses, lower token costs, continuity of analysis
+
+The View/Update popup appears everywhere you can trigger X-Ray or Recap: Quick Actions panel, Reading Features menu, gestures, and the book chat input field action picker. If no cache exists yet, the action runs directly (no popup).
 
 **X-Ray format:** X-Ray results are stored as structured JSON (characters with aliases/connections, locations, themes, lexicon, timeline). The JSON is rendered to readable markdown for chat display and `{xray_cache_section}` placeholders, while the raw JSON powers the browsable menu UI. Legacy markdown X-Rays from older versions are still viewable but will be replaced with JSON on the next run.
 
@@ -2387,7 +2390,7 @@ X-Ray and Recap responses are automatically cached per book. This enables **incr
 - Automatically moves with the book if you reorganize your library
 
 **Clearing the cache:**
-- **Per-action**: In the artifact viewer, use the delete button (for X-Ray: options menu → "Delete X-Ray"; for others: "↻ Fresh" button in the chat viewer). This clears that action's cache for this book, then re-run the action manually.
+- **Per-action**: In the artifact viewer, use the delete button (for X-Ray: options menu → "Delete X-Ray"; for Analysis/Summary/Recap: delete button in the chat viewer). This clears that action's cache for this book, then re-run the action manually.
 - **All actions for book**: Settings → Privacy & Data → Text Extraction → Clear Action Cache (requires book to be open)
 - Either option forces fresh generation on next run (useful if analysis got off track)
 
@@ -2415,7 +2418,7 @@ When certain actions complete, their results are saved as **document artifacts**
 | **Analysis** | Analyze Document | Opinionated deep analysis of the document | Viewable analytical overview. *Not recommended as input for further analysis* — analyzing an analysis is a decaying game of telephone where each layer loses nuance. |
 
 **Viewing artifacts:**
-- **Quick Actions** → "View Summary" (when summary exists) or "Generate Summary" (when it doesn't). "View X-Ray (35%)" and "View Analysis (40%)" appear as individual buttons when those artifacts exist, showing progress percentage.
+- **Quick Actions** → "View Summary" (when summary exists) or "Generate Summary" (when it doesn't). "View Artifacts" appears when any artifacts exist, opening a picker to choose which one to view.
 - **File Browser** → Long-press a book → "View Artifacts (KOA)" → pick Summary, X-Ray, or Analysis
 - **Gesture** → Assign "KOAssistant: View Summary" for quick access, or "KOAssistant: View Artifacts" to browse all artifacts
 - **Coverage**: The viewer title shows coverage percentage if the document was truncated (e.g., "Summary (78%)")
