@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: KOAssistant 0.9.0\n"
 "Report-Msgid-Bugs-To: https://github.com/zeeyado/koassistant.koplugin/issues\n"
-"POT-Creation-Date: 2026-02-09 23:02+0000\n"
+"POT-Creation-Date: 2026-02-10 14:01+0000\n"
 "PO-Revision-Date: 2026-01-20 19:01+0000\n"
 "Last-Translator: ferdinanlima <star.stalker151@gmail.com>\n"
 "Language-Team: Portuguese (Brazil) <https://hosted.weblate.org/projects/koassistant/koassistant/pt_BR/>\n"
@@ -18,7 +18,7 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=n > 1;\n"
 "X-Generator: Weblate 5.16-dev\n"
 
-#: _meta.lua:4 main.lua:3631 main.lua:4546
+#: _meta.lua:4 main.lua:3640 main.lua:4851
 msgid "KOAssistant"
 msgstr "KOAssistant"
 
@@ -45,10 +45,10 @@ msgstr ""
 #: koassistant_chat_history_dialog.lua:144
 #: koassistant_chat_history_dialog.lua:846
 #: koassistant_chat_history_dialog.lua:1899
-#: koassistant_chat_history_dialog.lua:1937 koassistant_chatgptviewer.lua:2211
-#: koassistant_chatgptviewer.lua:2217 koassistant_notebook_manager.lua:156
-#: koassistant_notebook_manager.lua:161 koassistant_xray_browser.lua:735
-#: main.lua:7822 main.lua:7830 koassistant_ui/behavior_manager.lua:311
+#: koassistant_chat_history_dialog.lua:1937 koassistant_chatgptviewer.lua:2221
+#: koassistant_chatgptviewer.lua:2227 koassistant_notebook_manager.lua:156
+#: koassistant_notebook_manager.lua:161 koassistant_xray_browser.lua:771
+#: main.lua:8111 main.lua:8119 koassistant_ui/behavior_manager.lua:311
 #: koassistant_ui/domain_manager.lua:313 koassistant_ui/prompts_manager.lua:751
 msgid "Delete"
 msgstr "Excluir"
@@ -63,13 +63,13 @@ msgstr "%1 chat(s) excluído(s)"
 #: koassistant_chat_history_dialog.lua:269
 #: koassistant_chat_history_dialog.lua:855
 #: koassistant_chat_history_dialog.lua:883
-#: koassistant_chat_history_dialog.lua:1040 koassistant_chatgptviewer.lua:1368
-#: koassistant_chatgptviewer.lua:1878 koassistant_chatgptviewer.lua:2074
-#: koassistant_chatgptviewer.lua:2229 koassistant_chatgptviewer.lua:2418
-#: koassistant_chatgptviewer.lua:3940 koassistant_dialogs.lua:607
-#: koassistant_dialogs.lua:2635 koassistant_dialogs.lua:2671
-#: koassistant_xray_browser.lua:777 main.lua:2201 main.lua:4608 main.lua:5081
-#: main.lua:5231 koassistant_ui/behavior_manager.lua:382
+#: koassistant_chat_history_dialog.lua:1040 koassistant_chatgptviewer.lua:1374
+#: koassistant_chatgptviewer.lua:1887 koassistant_chatgptviewer.lua:2083
+#: koassistant_chatgptviewer.lua:2239 koassistant_chatgptviewer.lua:2428
+#: koassistant_chatgptviewer.lua:3951 koassistant_dialogs.lua:607
+#: koassistant_dialogs.lua:2669 koassistant_dialogs.lua:2705
+#: koassistant_xray_browser.lua:822 main.lua:2210 main.lua:4913 main.lua:5386
+#: main.lua:5520 koassistant_ui/behavior_manager.lua:382
 #: koassistant_ui/domain_manager.lua:383
 #: koassistant_ui/settings_manager.lua:265
 #: koassistant_ui/settings_manager.lua:351
@@ -100,7 +100,7 @@ msgstr ""
 "\n"
 "Esta ação não pode ser desfeita."
 
-#: koassistant_chat_history_dialog.lua:148 main.lua:6550
+#: koassistant_chat_history_dialog.lua:148 main.lua:6839
 msgid "Deleted %1 chat(s) from %2 book(s)"
 msgstr "%1 chat(s) excluído(s) de %2 livro(s)"
 
@@ -112,7 +112,7 @@ msgstr "Opções do histórico de conversas"
 #: koassistant_chat_history_dialog.lua:255
 #: koassistant_chat_history_dialog.lua:602 koassistant_constants.lua:123
 #: koassistant_settings_schema.lua:48 koassistant_settings_schema.lua:911
-#: koassistant_settings_schema.lua:1031 main.lua:338 main.lua:4986
+#: koassistant_settings_schema.lua:1031 main.lua:338 main.lua:5291
 msgid "Chat History"
 msgstr "Histórico de conversas"
 
@@ -123,7 +123,7 @@ msgid "Navigate"
 msgstr "Navegar"
 
 #: koassistant_chat_history_dialog.lua:322
-#: koassistant_chat_history_dialog.lua:520 main.lua:3852
+#: koassistant_chat_history_dialog.lua:520 main.lua:3861
 msgid "No saved chats found"
 msgstr "Nenhum chat salvo encontrado"
 
@@ -194,8 +194,8 @@ msgstr "Chats Multi-Livros"
 msgid "Validating chat index…"
 msgstr "Validando índice do chat…"
 
-#: koassistant_chat_history_dialog.lua:555 koassistant_dialogs.lua:3240
-#: koassistant_notebook_manager.lua:77 koassistant_xray_browser.lua:580
+#: koassistant_chat_history_dialog.lua:555 koassistant_dialogs.lua:3319
+#: koassistant_notebook_manager.lua:77 koassistant_xray_browser.lua:583
 #: koassistant_xray_parser.lua:160 koassistant_xray_parser.lua:163
 #: koassistant_xray_parser.lua:165 koassistant_xray_parser.lua:193
 #: koassistant_xray_parser.lua:219 koassistant_xray_parser.lua:231
@@ -227,11 +227,14 @@ msgstr "Chats: %1"
 msgid "Error: Cannot load chat data."
 msgstr "Erro: não foi possível carregar os dados do chat."
 
-#: koassistant_chat_history_dialog.lua:782 koassistant_xray_browser.lua:756
+#: koassistant_chat_history_dialog.lua:782 koassistant_xray_browser.lua:722
+#: koassistant_xray_browser.lua:724 koassistant_xray_browser.lua:796
+#: koassistant_xray_browser.lua:798 main.lua:4154 main.lua:4324 main.lua:4572
 msgid "Date:"
 msgstr "Data:"
 
-#: koassistant_chat_history_dialog.lua:783 koassistant_xray_browser.lua:750
+#: koassistant_chat_history_dialog.lua:783 koassistant_xray_browser.lua:719
+#: koassistant_xray_browser.lua:786 main.lua:4151 main.lua:4321 main.lua:4569
 msgid "Model:"
 msgstr "Modelo:"
 
@@ -252,8 +255,8 @@ msgstr "Renomear"
 msgid "Tags"
 msgstr "Etiquetas"
 
-#: koassistant_chat_history_dialog.lua:836 koassistant_chatgptviewer.lua:1179
-#: koassistant_chatgptviewer.lua:2110 koassistant_ui/prompts_manager.lua:470
+#: koassistant_chat_history_dialog.lua:836 koassistant_chatgptviewer.lua:1185
+#: koassistant_chatgptviewer.lua:2120 koassistant_ui/prompts_manager.lua:470
 msgid "Export"
 msgstr "Exportar"
 
@@ -317,7 +320,7 @@ msgstr "Digite o nome da tag"
 
 #: koassistant_chat_history_dialog.lua:1048
 #: koassistant_chat_history_dialog.lua:1235 koassistant_dialogs.lua:957
-#: main.lua:2014 main.lua:2442 main.lua:2915
+#: main.lua:2023 main.lua:2451 main.lua:2924
 #, fuzzy
 msgid "Add"
 msgstr "Adicionar"
@@ -344,16 +347,17 @@ msgstr "Chat não encontrado"
 #: koassistant_chat_history_dialog.lua:1660
 #: koassistant_chat_history_dialog.lua:1830
 #: koassistant_chat_history_dialog.lua:1873 koassistant_chatgptviewer.lua:496
-#: koassistant_chatgptviewer.lua:544 koassistant_chatgptviewer.lua:1720
-#: koassistant_chatgptviewer.lua:1857 koassistant_chatgptviewer.lua:2055
-#: koassistant_chatgptviewer.lua:3246 koassistant_chatgptviewer.lua:3428
+#: koassistant_chatgptviewer.lua:544 koassistant_chatgptviewer.lua:1729
+#: koassistant_chatgptviewer.lua:1866 koassistant_chatgptviewer.lua:2064
+#: koassistant_chatgptviewer.lua:3256 koassistant_chatgptviewer.lua:3438
 #: koassistant_dialogs.lua:949 koassistant_dialogs.lua:1635
-#: koassistant_dialogs.lua:1943 koassistant_dialogs.lua:2936
+#: koassistant_dialogs.lua:1943 koassistant_dialogs.lua:2981
 #: koassistant_notebook_manager.lua:182 koassistant_update_checker.lua:326
-#: koassistant_xray_browser.lua:618 main.lua:391 main.lua:1969 main.lua:2007
-#: main.lua:2073 main.lua:2311 main.lua:2435 main.lua:2579 main.lua:2752
-#: main.lua:2908 main.lua:3408 main.lua:3582 main.lua:4028 main.lua:5355
-#: main.lua:6913 main.lua:7467 koassistant_ui/behavior_manager.lua:419
+#: koassistant_xray_browser.lua:621 main.lua:391 main.lua:1978 main.lua:2016
+#: main.lua:2082 main.lua:2320 main.lua:2444 main.lua:2588 main.lua:2761
+#: main.lua:2917 main.lua:3417 main.lua:3591 main.lua:4037 main.lua:4502
+#: main.lua:5644 main.lua:7202 main.lua:7756
+#: koassistant_ui/behavior_manager.lua:419
 #: koassistant_ui/behavior_manager.lua:478
 #: koassistant_ui/behavior_manager.lua:557
 #: koassistant_ui/behavior_manager.lua:613
@@ -399,7 +403,7 @@ msgstr "Cancelar"
 msgid "Error: Failed to load chat messages."
 msgstr "Erro: Falha ao carregar mensagens do chat."
 
-#: koassistant_chat_history_dialog.lua:1432 koassistant_dialogs.lua:2453
+#: koassistant_chat_history_dialog.lua:1432 koassistant_dialogs.lua:2474
 #: stream_handler.lua:201
 #, fuzzy
 msgid "No response received from AI"
@@ -483,8 +487,8 @@ msgstr "Apenas resposta"
 msgid "Everything (debug)"
 msgstr "Tudo (debug)"
 
-#: koassistant_chat_history_dialog.lua:1668 koassistant_chatgptviewer.lua:1116
-#: koassistant_chatgptviewer.lua:1539 koassistant_chatgptviewer.lua:1945
+#: koassistant_chat_history_dialog.lua:1668 koassistant_chatgptviewer.lua:1122
+#: koassistant_chatgptviewer.lua:1548 koassistant_chatgptviewer.lua:1954
 #: koassistant_dialogs.lua:1643 koassistant_settings_schema.lua:362
 #: koassistant_settings_schema.lua:596 koassistant_settings_schema.lua:749
 #, fuzzy
@@ -496,7 +500,7 @@ msgstr "Copiar Conteúdo"
 msgid "Failed to generate export content"
 msgstr "Falha ao gerar conteúdo de exportação"
 
-#: koassistant_chat_history_dialog.lua:1761 koassistant_chatgptviewer.lua:3364
+#: koassistant_chat_history_dialog.lua:1761 koassistant_chatgptviewer.lua:3374
 #, fuzzy
 msgid ""
 "Saved to:\n"
@@ -505,38 +509,38 @@ msgstr ""
 "Salvo em:\n"
 "%1"
 
-#: koassistant_chat_history_dialog.lua:1766 koassistant_chatgptviewer.lua:3369
-#: main.lua:8502
+#: koassistant_chat_history_dialog.lua:1766 koassistant_chatgptviewer.lua:3379
+#: main.lua:8791
 #, fuzzy
 msgid "Failed to save: %1"
 msgstr "Falha ao salvar: %1"
 
-#: koassistant_chat_history_dialog.lua:1783 koassistant_chatgptviewer.lua:3383
+#: koassistant_chat_history_dialog.lua:1783 koassistant_chatgptviewer.lua:3393
 #, fuzzy
 msgid "Copy to Clipboard"
 msgstr "Copiar para Área de Transferência"
 
-#: koassistant_chat_history_dialog.lua:1793 koassistant_chatgptviewer.lua:3392
+#: koassistant_chat_history_dialog.lua:1793 koassistant_chatgptviewer.lua:3402
 #, fuzzy
 msgid "Save to File"
 msgstr "Salvar em Arquivo"
 
-#: koassistant_chat_history_dialog.lua:1805 koassistant_chatgptviewer.lua:3403
+#: koassistant_chat_history_dialog.lua:1805 koassistant_chatgptviewer.lua:3413
 #, fuzzy
 msgid "Select Export Directory"
 msgstr "Selecionar Diretório de Exportação"
 
-#: koassistant_chat_history_dialog.lua:1818 koassistant_chatgptviewer.lua:3416
+#: koassistant_chat_history_dialog.lua:1818 koassistant_chatgptviewer.lua:3426
 #, fuzzy
 msgid "Invalid export directory: %1"
 msgstr "Diretório de exportação inválido: %1"
 
-#: koassistant_chat_history_dialog.lua:1840 koassistant_chatgptviewer.lua:3437
+#: koassistant_chat_history_dialog.lua:1840 koassistant_chatgptviewer.lua:3447
 #, fuzzy
 msgid "Export Chat"
 msgstr "Exportar Chat"
 
-#: koassistant_chat_history_dialog.lua:1882 koassistant_chatgptviewer.lua:3445
+#: koassistant_chat_history_dialog.lua:1882 koassistant_chatgptviewer.lua:3455
 #, fuzzy
 msgid "Export Content"
 msgstr "Exportar Conteúdo"
@@ -580,9 +584,9 @@ msgstr "Histórico de Chat por Tag"
 msgid "No chats found with this tag"
 msgstr "Nenhum chat encontrado com esta tag"
 
-#: koassistant_chatgptviewer.lua:443 koassistant_chatgptviewer.lua:1083
-#: koassistant_chatgptviewer.lua:1504 koassistant_chatgptviewer.lua:1910
-#: koassistant_chatgptviewer.lua:2086 koassistant_update_checker.lua:288
+#: koassistant_chatgptviewer.lua:443 koassistant_chatgptviewer.lua:1089
+#: koassistant_chatgptviewer.lua:1513 koassistant_chatgptviewer.lua:1919
+#: koassistant_chatgptviewer.lua:2095 koassistant_update_checker.lua:288
 #, fuzzy
 msgid "Copy"
 msgstr "Copiar"
@@ -624,19 +628,19 @@ msgstr ""
 msgid "Translation only"
 msgstr "Apenas tradução"
 
-#: koassistant_chatgptviewer.lua:1049 koassistant_chatgptviewer.lua:2404
+#: koassistant_chatgptviewer.lua:1055 koassistant_chatgptviewer.lua:2414
 #, fuzzy
 msgid "Reply"
 msgstr "Responder"
 
-#: koassistant_chatgptviewer.lua:1066 koassistant_dialogs.lua:720
+#: koassistant_chatgptviewer.lua:1072 koassistant_dialogs.lua:720
 #: koassistant_dialogs.lua:1560
 #, fuzzy
 msgid "Autosaved"
 msgstr "Salvo automaticamente"
 
-#: koassistant_chatgptviewer.lua:1066 koassistant_dialogs.lua:615 main.lua:2080
-#: main.lua:2775 main.lua:3415 main.lua:3597 main.lua:6919
+#: koassistant_chatgptviewer.lua:1072 koassistant_dialogs.lua:615 main.lua:2089
+#: main.lua:2784 main.lua:3424 main.lua:3606 main.lua:7208
 #: koassistant_ui/behavior_manager.lua:496
 #: koassistant_ui/domain_manager.lua:487
 #: koassistant_ui/prompts_manager.lua:1778
@@ -646,74 +650,74 @@ msgstr "Salvo automaticamente"
 msgid "Save"
 msgstr "Salvar"
 
-#: koassistant_chatgptviewer.lua:1075
+#: koassistant_chatgptviewer.lua:1081
 #, fuzzy
 msgid "Save function not available"
 msgstr "Função salvar não disponível"
 
-#: koassistant_chatgptviewer.lua:1089
+#: koassistant_chatgptviewer.lua:1095
 #, fuzzy
 msgid "No chat to copy"
 msgstr "Nenhum chat para copiar"
 
-#: koassistant_chatgptviewer.lua:1110 koassistant_chatgptviewer.lua:1533
-#: koassistant_chatgptviewer.lua:1939 koassistant_chatgptviewer.lua:3339
+#: koassistant_chatgptviewer.lua:1116 koassistant_chatgptviewer.lua:1542
+#: koassistant_chatgptviewer.lua:1948 koassistant_chatgptviewer.lua:3349
 #: koassistant_dialogs.lua:1605
 #, fuzzy
 msgid "Copied"
 msgstr "Copiado"
 
-#: koassistant_chatgptviewer.lua:1124 koassistant_chatgptviewer.lua:1955
+#: koassistant_chatgptviewer.lua:1130 koassistant_chatgptviewer.lua:1964
 #, fuzzy
 msgid "Save to Note"
 msgstr "Salvar na Nota"
 
-#: koassistant_chatgptviewer.lua:1132
+#: koassistant_chatgptviewer.lua:1138
 #, fuzzy
 msgid "Save response as note on highlighted text"
 msgstr "Salvar resposta como nota no texto destacado"
 
-#: koassistant_chatgptviewer.lua:1138
+#: koassistant_chatgptviewer.lua:1144
 #, fuzzy
 msgid "Add to Notebook"
 msgstr "Adicionar ao Caderno"
 
-#: koassistant_chatgptviewer.lua:1148
+#: koassistant_chatgptviewer.lua:1154
 #, fuzzy
 msgid "Append chat to per-book notebook file"
 msgstr "Anexar chat ao arquivo de caderno por livro"
 
-#: koassistant_chatgptviewer.lua:1161
+#: koassistant_chatgptviewer.lua:1167
 #, fuzzy
 msgid "Tag function not available"
 msgstr "Função de etiquetas não disponível"
 
-#: koassistant_chatgptviewer.lua:1168
+#: koassistant_chatgptviewer.lua:1174
 #, fuzzy
 msgid "Add or manage tags for this chat"
 msgstr "Adicionar ou gerenciar etiquetas para este chat"
 
-#: koassistant_chatgptviewer.lua:1186
+#: koassistant_chatgptviewer.lua:1192
 #, fuzzy
 msgid "Export chat to file or clipboard"
 msgstr "Exportar chat para arquivo ou área de transferência"
 
-#: koassistant_chatgptviewer.lua:1197
+#: koassistant_chatgptviewer.lua:1203
 #, fuzzy
 msgid "↻ Fresh"
 msgstr "↻ Renovar"
 
-#: koassistant_chatgptviewer.lua:1204
+#: koassistant_chatgptviewer.lua:1210
 #, fuzzy
 msgid "Clear cache and regenerate from scratch (extracts all book text again)"
 msgstr "Limpar cache e regenerar do zero (extrai todo o texto do livro novamente)"
 
-#: koassistant_chatgptviewer.lua:1226 koassistant_ui/prompts_manager.lua:2123
+#: koassistant_chatgptviewer.lua:1232 koassistant_ui/prompts_manager.lua:2123
 #, fuzzy
 msgid "ON"
 msgstr "LIGADO"
 
-#: koassistant_chatgptviewer.lua:1226 koassistant_ui/prompts_manager.lua:2115
+#: koassistant_chatgptviewer.lua:1232 koassistant_ui/prompts_manager.lua:2115
 #: koassistant_ui/prompts_manager.lua:2204
 #: koassistant_ui/prompts_manager.lua:2283
 #: koassistant_ui/prompts_manager.lua:2356
@@ -721,356 +725,355 @@ msgstr "LIGADO"
 msgid "OFF"
 msgstr "DESLIGADO"
 
-#: koassistant_chatgptviewer.lua:1257
+#: koassistant_chatgptviewer.lua:1263
 #, fuzzy
 msgid "Toggle web search for this session (Anthropic, Gemini)"
 msgstr "Alternar busca na web para esta sessão (Anthropic, Gemini)"
 
-#: koassistant_chatgptviewer.lua:1277 koassistant_chatgptviewer.lua:1496
-#: koassistant_chatgptviewer.lua:1902
+#: koassistant_chatgptviewer.lua:1283 koassistant_chatgptviewer.lua:1505
+#: koassistant_chatgptviewer.lua:1911
 #, fuzzy
 msgid "Toggle between markdown and plain text display"
 msgstr "Alternar entre exibição markdown e texto simples"
 
-#: koassistant_chatgptviewer.lua:1292
+#: koassistant_chatgptviewer.lua:1298
 #, fuzzy
 msgid "Toggle debug display in chat viewer"
 msgstr "Alternar exibição de debug no visualizador de chat"
 
-#: koassistant_chatgptviewer.lua:1299 koassistant_chatgptviewer.lua:3699
+#: koassistant_chatgptviewer.lua:1305 koassistant_chatgptviewer.lua:3710
 #, fuzzy
 msgid "Show Quote"
 msgstr "Mostrar Citação"
 
-#: koassistant_chatgptviewer.lua:1299 koassistant_chatgptviewer.lua:3699
+#: koassistant_chatgptviewer.lua:1305 koassistant_chatgptviewer.lua:3710
 #, fuzzy
 msgid "Hide Quote"
 msgstr "Ocultar Citação"
 
-#: koassistant_chatgptviewer.lua:1311
+#: koassistant_chatgptviewer.lua:1317
 #, fuzzy
 msgid "Toggle highlighted text display in chat"
 msgstr "Alternar exibição de texto destacado no chat"
 
-#: koassistant_chatgptviewer.lua:1317
+#: koassistant_chatgptviewer.lua:1323
 #, fuzzy
 msgid "Show Reasoning"
 msgstr "Mostrar Raciocínio"
 
-#: koassistant_chatgptviewer.lua:1327
+#: koassistant_chatgptviewer.lua:1333
 #, fuzzy
 msgid "View AI reasoning/thinking content (when available)"
 msgstr "Ver conteúdo de raciocínio/pensamento da IA (quando disponível)"
 
-#: koassistant_chatgptviewer.lua:1510
+#: koassistant_chatgptviewer.lua:1519
 #, fuzzy
 msgid "No response to copy"
 msgstr "Nenhuma resposta para copiar"
 
-#: koassistant_chatgptviewer.lua:1549
+#: koassistant_chatgptviewer.lua:1558
 #, fuzzy
 msgid "+Note"
 msgstr "+Nota"
 
-#: koassistant_chatgptviewer.lua:1558
+#: koassistant_chatgptviewer.lua:1567
 #, fuzzy
 msgid "Save AI response as note on highlighted word"
 msgstr "Salvar resposta da IA como nota na palavra destacada"
 
-#: koassistant_chatgptviewer.lua:1559
+#: koassistant_chatgptviewer.lua:1568
 #, fuzzy
 msgid "No selection data available (word position not captured)"
 msgstr "Dados de seleção não disponíveis (posição da palavra não capturada)"
 
-#: koassistant_chatgptviewer.lua:1567
+#: koassistant_chatgptviewer.lua:1576
 #, fuzzy
 msgid "Wiki"
 msgstr "Wiki"
 
-#: koassistant_chatgptviewer.lua:1578
+#: koassistant_chatgptviewer.lua:1587
 #, fuzzy
 msgid "Wikipedia not available"
 msgstr "Wikipedia não disponível"
 
-#: koassistant_chatgptviewer.lua:1584
+#: koassistant_chatgptviewer.lua:1593
 #, fuzzy
 msgid "No word to look up"
 msgstr "Nenhuma palavra para consultar"
 
-#: koassistant_chatgptviewer.lua:1591
+#: koassistant_chatgptviewer.lua:1600
 #, fuzzy
 msgid "Look up word in Wikipedia"
 msgstr "Consultar palavra na Wikipedia"
 
-#: koassistant_chatgptviewer.lua:1602 koassistant_chatgptviewer.lua:1632
+#: koassistant_chatgptviewer.lua:1611 koassistant_chatgptviewer.lua:1641
 #, fuzzy
 msgid "Added"
 msgstr "Adicionado"
 
-#: koassistant_chatgptviewer.lua:1607
+#: koassistant_chatgptviewer.lua:1616
 #, fuzzy
 msgid "Word added to vocabulary builder"
 msgstr "Palavra adicionada ao construtor de vocabulário"
 
-#: koassistant_chatgptviewer.lua:1614
+#: koassistant_chatgptviewer.lua:1623
 #, fuzzy
 msgid "+Vocab"
 msgstr "+Vocab"
 
-#: koassistant_chatgptviewer.lua:1622 main.lua:6107
+#: koassistant_chatgptviewer.lua:1631 main.lua:6396
 #, fuzzy
 msgid "AI Dictionary lookup"
 msgstr "Consulta de dicionário por IA"
 
-#: koassistant_chatgptviewer.lua:1627
+#: koassistant_chatgptviewer.lua:1636
 #, fuzzy
 msgid "Added '%1' to vocabulary"
 msgstr "'%1' adicionado ao vocabulário"
 
-#: koassistant_chatgptviewer.lua:1640
+#: koassistant_chatgptviewer.lua:1649
 #, fuzzy
 msgid "Vocabulary builder not available"
 msgstr "Construtor de vocabulário não disponível"
 
-#: koassistant_chatgptviewer.lua:1648
+#: koassistant_chatgptviewer.lua:1657
 #, fuzzy
 msgid "Add word to vocabulary builder"
 msgstr "Adicionar palavra ao construtor de vocabulário"
 
-#: koassistant_chatgptviewer.lua:1657
+#: koassistant_chatgptviewer.lua:1666
 #, fuzzy
 msgid "Expand"
 msgstr "Expandir"
 
-#: koassistant_chatgptviewer.lua:1664
+#: koassistant_chatgptviewer.lua:1673
 #, fuzzy
 msgid "Open in full-size viewer with all options"
 msgstr "Abrir no visualizador em tamanho completo com todas as opções"
 
-#: koassistant_chatgptviewer.lua:1674 koassistant_chatgptviewer.lua:2007
+#: koassistant_chatgptviewer.lua:1683 koassistant_chatgptviewer.lua:2016
 #: koassistant_settings_schema.lua:996
 #, fuzzy
 msgid "Language"
 msgstr "Idioma"
 
-#: koassistant_chatgptviewer.lua:1683 koassistant_chatgptviewer.lua:2016
+#: koassistant_chatgptviewer.lua:1692 koassistant_chatgptviewer.lua:2025
 #, fuzzy
 msgid "Configure languages in Settings first"
 msgstr "Configure os idiomas em Configurações primeiro"
 
-#: koassistant_chatgptviewer.lua:1724 koassistant_settings_schema.lua:1010
-#: main.lua:4944 main.lua:5722
+#: koassistant_chatgptviewer.lua:1733 koassistant_settings_schema.lua:1010
+#: main.lua:5249 main.lua:6011
 #, fuzzy
 msgid "Dictionary Language"
 msgstr "Idioma do Dicionário"
 
-#: koassistant_chatgptviewer.lua:1731
+#: koassistant_chatgptviewer.lua:1740
 #, fuzzy
 msgid "Re-run with a different dictionary language"
 msgstr "Executar novamente com um idioma de dicionário diferente"
 
-#: koassistant_chatgptviewer.lua:1743
+#: koassistant_chatgptviewer.lua:1752
 #, fuzzy
 msgid "Ctx: ON"
 msgstr "Ctx: ATIVADO"
 
-#: koassistant_chatgptviewer.lua:1743
+#: koassistant_chatgptviewer.lua:1752
 #, fuzzy
 msgid "Ctx: OFF"
 msgstr "Ctx: DESATIVADO"
 
-#: koassistant_chatgptviewer.lua:1786
+#: koassistant_chatgptviewer.lua:1795
 #, fuzzy
 msgid "Re-run without surrounding context"
 msgstr "Executar novamente sem contexto ao redor"
 
-#: koassistant_chatgptviewer.lua:1786
+#: koassistant_chatgptviewer.lua:1795
 #, fuzzy
 msgid "Re-run with surrounding context"
 msgstr "Executar novamente com contexto ao redor"
 
-#: koassistant_chatgptviewer.lua:1861
+#: koassistant_chatgptviewer.lua:1870
 #, fuzzy
 msgid "Dictionary Action"
 msgstr "Ação do Dicionário"
 
-#: koassistant_chatgptviewer.lua:1869
+#: koassistant_chatgptviewer.lua:1878
 #, fuzzy
 msgid "Switch to a different dictionary action"
 msgstr "Alternar para uma ação de dicionário diferente"
 
-#: koassistant_chatgptviewer.lua:1870
+#: koassistant_chatgptviewer.lua:1879
 #, fuzzy
 msgid "No other dictionary actions available"
 msgstr "Nenhuma outra ação de dicionário disponível"
 
-#: koassistant_chatgptviewer.lua:1916
+#: koassistant_chatgptviewer.lua:1925
 #, fuzzy
 msgid "No translation to copy"
 msgstr "Nenhuma tradução para copiar"
 
-#: koassistant_chatgptviewer.lua:1963
+#: koassistant_chatgptviewer.lua:1972
 #, fuzzy
 msgid "Save translation as note on highlighted text"
 msgstr "Salvar tradução como nota no texto destacado"
 
-#: koassistant_chatgptviewer.lua:1971
+#: koassistant_chatgptviewer.lua:1980
 #, fuzzy
 msgid "→ Chat"
 msgstr "→ Chat"
 
-#: koassistant_chatgptviewer.lua:1978
+#: koassistant_chatgptviewer.lua:1987
 #, fuzzy
 msgid "Open full chat with all options"
 msgstr "Abrir chat completo com todas as opções"
 
-#: koassistant_chatgptviewer.lua:1988 koassistant_chatgptviewer.lua:3590
+#: koassistant_chatgptviewer.lua:1997 koassistant_chatgptviewer.lua:3601
 #, fuzzy
 msgid "Show Original"
 msgstr "Mostrar Original"
 
-#: koassistant_chatgptviewer.lua:1988 koassistant_chatgptviewer.lua:3590
+#: koassistant_chatgptviewer.lua:1997 koassistant_chatgptviewer.lua:3601
 #, fuzzy
 msgid "Hide Original"
 msgstr "Ocultar Original"
 
-#: koassistant_chatgptviewer.lua:1997
+#: koassistant_chatgptviewer.lua:2006
 #, fuzzy
 msgid "Show the original text"
 msgstr "Mostrar o texto original"
 
-#: koassistant_chatgptviewer.lua:1997
+#: koassistant_chatgptviewer.lua:2006
 #, fuzzy
 msgid "Hide the original text"
 msgstr "Ocultar o texto original"
 
-#: koassistant_chatgptviewer.lua:2059
+#: koassistant_chatgptviewer.lua:2068
 #, fuzzy
 msgid "Translate To"
 msgstr "Traduzir Para"
 
-#: koassistant_chatgptviewer.lua:2066
+#: koassistant_chatgptviewer.lua:2075
 #, fuzzy
 msgid "Re-run translation with a different target language"
 msgstr "Executar tradução novamente com um idioma de destino diferente"
 
-#: koassistant_chatgptviewer.lua:2099
+#: koassistant_chatgptviewer.lua:2109
 #, fuzzy
 msgid "Copied to clipboard"
 msgstr "Copiado para a área de transferência"
 
-#: koassistant_chatgptviewer.lua:2172
+#: koassistant_chatgptviewer.lua:2182
 #, fuzzy
 msgid "Open in Reader"
 msgstr "Abrir no Leitor"
 
-#: koassistant_chatgptviewer.lua:2181 koassistant_notebook_manager.lua:139
+#: koassistant_chatgptviewer.lua:2191 koassistant_notebook_manager.lua:139
 #: koassistant_ui/behavior_manager.lua:304
 #: koassistant_ui/domain_manager.lua:306
 #, fuzzy
 msgid "Edit"
 msgstr "Editar"
 
-#: koassistant_chatgptviewer.lua:2193 koassistant_chatgptviewer.lua:2199
+#: koassistant_chatgptviewer.lua:2203 koassistant_chatgptviewer.lua:2209
 #, fuzzy
 msgid "Regenerate"
 msgstr "Regenerar"
 
-#: koassistant_chatgptviewer.lua:2198
+#: koassistant_chatgptviewer.lua:2208
 #, fuzzy
 msgid ""
-"Regenerate this summary?\n"
+"Regenerate this %1?\n"
 "\n"
-"The current summary will be replaced."
+"The current %1 will be replaced."
 msgstr ""
-"Regenerar este resumo?\n"
+"Regenerar este %1?\n"
 "\n"
-"O resumo atual será substituído."
+"O %1 atual será substituído."
 
-#: koassistant_chatgptviewer.lua:2216
+#: koassistant_chatgptviewer.lua:2208 koassistant_chatgptviewer.lua:2226
 #, fuzzy
-msgid ""
-"Delete this summary?\n"
-"\n"
-"You can regenerate it later."
-msgstr ""
-"Excluir este resumo?\n"
-"\n"
-"Você pode regenerá-lo mais tarde."
+msgid "summary"
+msgstr "resumo"
 
-#: koassistant_chatgptviewer.lua:2407
+#: koassistant_chatgptviewer.lua:2226
+#, fuzzy
+msgid "Delete this %1?"
+msgstr "Excluir este %1?"
+
+#: koassistant_chatgptviewer.lua:2417
 #, fuzzy
 msgid "Type your reply..."
 msgstr "Digite sua resposta..."
 
-#: koassistant_chatgptviewer.lua:2432
+#: koassistant_chatgptviewer.lua:2442
 #, fuzzy
 msgid "Send"
 msgstr "Enviar"
 
-#: koassistant_chatgptviewer.lua:2836 koassistant_xray_browser.lua:195
+#: koassistant_chatgptviewer.lua:2846 koassistant_xray_browser.lua:195
 #, fuzzy
 msgid "Copied to clipboard."
 msgstr "Copiado para a área de transferência."
 
-#: koassistant_chatgptviewer.lua:3059
+#: koassistant_chatgptviewer.lua:3069
 #, fuzzy
 msgid "No highlight selection data available"
 msgstr "Nenhum dado de seleção de destaque disponível"
 
-#: koassistant_chatgptviewer.lua:3070 main.lua:5570
+#: koassistant_chatgptviewer.lua:3080 main.lua:5859
 #, fuzzy
 msgid "No document open"
 msgstr "Nenhum documento aberto"
 
-#: koassistant_chatgptviewer.lua:3079 koassistant_chatgptviewer.lua:3118
-#: koassistant_chatgptviewer.lua:3174
+#: koassistant_chatgptviewer.lua:3089 koassistant_chatgptviewer.lua:3128
+#: koassistant_chatgptviewer.lua:3184
 #, fuzzy
 msgid "No response to save"
 msgstr "Nenhuma resposta para salvar"
 
-#: koassistant_chatgptviewer.lua:3141
+#: koassistant_chatgptviewer.lua:3151
 #, fuzzy
 msgid "Failed to create highlight"
 msgstr "Falha ao criar destaque"
 
-#: koassistant_chatgptviewer.lua:3152 koassistant_settings_schema.lua:377
+#: koassistant_chatgptviewer.lua:3162 koassistant_settings_schema.lua:377
 #: koassistant_settings_schema.lua:612 koassistant_settings_schema.lua:765
 #, fuzzy
 msgid "Note Content"
 msgstr "Conteúdo da Nota"
 
-#: koassistant_chatgptviewer.lua:3165
+#: koassistant_chatgptviewer.lua:3175
 #, fuzzy
 msgid "Notebooks are only available for single-book chats"
 msgstr "Cadernos estão disponíveis apenas para chats de livro único"
 
-#: koassistant_chatgptviewer.lua:3204
+#: koassistant_chatgptviewer.lua:3214
 #, fuzzy
 msgid "Saved to notebook"
 msgstr "Salvo no caderno"
 
-#: koassistant_chatgptviewer.lua:3209
+#: koassistant_chatgptviewer.lua:3219
 #, fuzzy
 msgid "Failed to save: "
 msgstr "Falha ao salvar:"
 
-#: koassistant_chatgptviewer.lua:3220
+#: koassistant_chatgptviewer.lua:3230
 #, fuzzy
 msgid "No cached action to clear"
 msgstr "Nenhuma ação em cache para limpar"
 
-#: koassistant_chatgptviewer.lua:3229
+#: koassistant_chatgptviewer.lua:3239
 #, fuzzy
 msgid "Cache only applies to book actions"
 msgstr "Cache se aplica apenas a ações de livro"
 
-#: koassistant_chatgptviewer.lua:3241
+#: koassistant_chatgptviewer.lua:3251
 #, fuzzy
 msgid "Regenerate Fresh"
 msgstr "Regenerar do Zero"
 
-#: koassistant_chatgptviewer.lua:3242
+#: koassistant_chatgptviewer.lua:3252
 #, fuzzy
 msgid ""
 "This response was updated from a cached analysis at %1.\n"
@@ -1085,148 +1088,148 @@ msgstr ""
 "\n"
 "Limpar cache para esta ação?"
 
-#: koassistant_chatgptviewer.lua:3252
+#: koassistant_chatgptviewer.lua:3262
 #, fuzzy
 msgid "Clear & Close"
 msgstr "Limpar e Fechar"
 
-#: koassistant_chatgptviewer.lua:3261
+#: koassistant_chatgptviewer.lua:3271
 #, fuzzy
 msgid "Cache cleared. Run the action again for fresh analysis."
 msgstr "Cache limpo. Execute a ação novamente para análise do zero."
 
-#: koassistant_chatgptviewer.lua:3268
+#: koassistant_chatgptviewer.lua:3278
 #, fuzzy
 msgid "Failed to clear cache"
 msgstr "Falha ao limpar cache"
 
-#: koassistant_chatgptviewer.lua:3274
+#: koassistant_chatgptviewer.lua:3284
 #, fuzzy
 msgid "Cache module not available"
 msgstr "Módulo de cache não disponível"
 
-#: koassistant_chatgptviewer.lua:3291
+#: koassistant_chatgptviewer.lua:3301
 #, fuzzy
 msgid "No chat to export"
 msgstr "Nenhum chat para exportar"
 
-#: koassistant_chatgptviewer.lua:3351
+#: koassistant_chatgptviewer.lua:3361
 #, fuzzy
 msgid "No content to export"
 msgstr "Nenhum conteúdo para exportar"
 
-#: koassistant_chatgptviewer.lua:3459
+#: koassistant_chatgptviewer.lua:3469
 #, fuzzy
 msgid "No export metadata available."
 msgstr "Nenhum metadado de exportação disponível."
 
-#: koassistant_chatgptviewer.lua:3482 main.lua:8425
+#: koassistant_chatgptviewer.lua:3492 main.lua:8714
 #, fuzzy
 msgid "Select export folder"
 msgstr "Selecionar pasta de exportação"
 
-#: koassistant_chatgptviewer.lua:3506 main.lua:8447
+#: koassistant_chatgptviewer.lua:3517 main.lua:8736
 #, fuzzy
 msgid "Saved to %1"
 msgstr "Salvo em %1"
 
-#: koassistant_chatgptviewer.lua:3511 main.lua:8452
+#: koassistant_chatgptviewer.lua:3522 main.lua:8741
 #, fuzzy
 msgid "Export failed: %1"
 msgstr "Falha na exportação: %1"
 
-#: koassistant_chatgptviewer.lua:3654
+#: koassistant_chatgptviewer.lua:3665
 #, fuzzy
 msgid "Showing debug info"
 msgstr "Mostrando informações de depuração"
 
-#: koassistant_chatgptviewer.lua:3654
+#: koassistant_chatgptviewer.lua:3665
 #, fuzzy
 msgid "Debug info hidden"
 msgstr "Informações de depuração ocultadas"
 
-#: koassistant_chatgptviewer.lua:3704
+#: koassistant_chatgptviewer.lua:3715
 #, fuzzy
 msgid "Quote hidden"
 msgstr "Citação ocultada"
 
-#: koassistant_chatgptviewer.lua:3704
+#: koassistant_chatgptviewer.lua:3715
 #, fuzzy
 msgid "Quote shown"
 msgstr "Citação mostrada"
 
-#: koassistant_chatgptviewer.lua:3728
+#: koassistant_chatgptviewer.lua:3739
 #, fuzzy
 msgid "No conversation history available"
 msgstr "Nenhum histórico de conversa disponível"
 
-#: koassistant_chatgptviewer.lua:3737
+#: koassistant_chatgptviewer.lua:3748
 #, fuzzy
 msgid "No reasoning content available"
 msgstr "Nenhum conteúdo de raciocínio disponível"
 
-#: koassistant_chatgptviewer.lua:3766
+#: koassistant_chatgptviewer.lua:3777
 #, fuzzy
 msgid "AI Reasoning"
 msgstr "Raciocínio da IA"
 
-#: koassistant_chatgptviewer.lua:3766
+#: koassistant_chatgptviewer.lua:3777
 #, fuzzy
 msgid "Reasoning Status"
 msgstr "Status do Raciocínio"
 
-#: koassistant_chatgptviewer.lua:3878
+#: koassistant_chatgptviewer.lua:3889
 #, fuzzy
 msgid "Justified"
 msgstr "Justificado"
 
-#: koassistant_chatgptviewer.lua:3879
+#: koassistant_chatgptviewer.lua:3890
 #, fuzzy
 msgid "Right (RTL)"
 msgstr "Direita (RTL)"
 
-#: koassistant_chatgptviewer.lua:3880
+#: koassistant_chatgptviewer.lua:3891
 #, fuzzy
 msgid "Left"
 msgstr "Esquerda"
 
-#: koassistant_chatgptviewer.lua:3888
+#: koassistant_chatgptviewer.lua:3899
 #, fuzzy
 msgid "Chat Viewer Settings"
 msgstr "Configurações do Visualizador de Chat"
 
-#: koassistant_chatgptviewer.lua:3892 koassistant_chatgptviewer.lua:3954
+#: koassistant_chatgptviewer.lua:3903 koassistant_chatgptviewer.lua:3965
 #, fuzzy
 msgid "Font Size"
 msgstr "Tamanho da Fonte"
 
-#: koassistant_chatgptviewer.lua:3901
+#: koassistant_chatgptviewer.lua:3912
 #, fuzzy
 msgid "Alignment"
 msgstr "Alinhamento"
 
-#: koassistant_chatgptviewer.lua:3920
+#: koassistant_chatgptviewer.lua:3931
 #, fuzzy
 msgid "Alignment: %1"
 msgstr "Alinhamento: %1"
 
-#: koassistant_chatgptviewer.lua:3931 koassistant_settings_schema.lua:1490
+#: koassistant_chatgptviewer.lua:3942 koassistant_settings_schema.lua:1490
 #, fuzzy
 msgid "Reset to Defaults"
 msgstr "Restaurar Padrões"
 
-#: koassistant_chatgptviewer.lua:3960 main.lua:4859
+#: koassistant_chatgptviewer.lua:3971 main.lua:5164
 #: koassistant_ui/settings_manager.lua:317
 #, fuzzy
 msgid "Set"
 msgstr "Definir"
 
-#: koassistant_chatgptviewer.lua:3976
+#: koassistant_chatgptviewer.lua:3987
 #, fuzzy
 msgid "Font size set to %1"
 msgstr "Tamanho da fonte definido para %1"
 
-#: koassistant_chatgptviewer.lua:4003 main.lua:6740
+#: koassistant_chatgptviewer.lua:4014 main.lua:7029
 #, fuzzy
 msgid "Settings reset to defaults"
 msgstr "Configurações restauradas para os padrões"
@@ -1247,33 +1250,33 @@ msgid "Edit Notebook"
 msgstr "Editar Caderno"
 
 #: koassistant_constants.lua:124 koassistant_settings_schema.lua:912
-#: koassistant_settings_schema.lua:1052 main.lua:5022
+#: koassistant_settings_schema.lua:1052 main.lua:5327
 #, fuzzy
 msgid "Continue Last Chat"
 msgstr "Continuar Último Chat"
 
 #: koassistant_constants.lua:125 koassistant_settings_schema.lua:913
-#: koassistant_settings_schema.lua:1059 main.lua:5034
+#: koassistant_settings_schema.lua:1059 main.lua:5339
 #, fuzzy
 msgid "New Book Chat/Action"
 msgstr "Novo Chat/Ação do Livro"
 
 #: koassistant_constants.lua:126 koassistant_settings_schema.lua:41
 #: koassistant_settings_schema.lua:914 koassistant_settings_schema.lua:1045
-#: main.lua:5010
+#: main.lua:5315
 #, fuzzy
 msgid "General Chat/Action"
 msgstr "Chat/Ação Geral"
 
-#: koassistant_constants.lua:128 koassistant_dialogs.lua:2919
-#: koassistant_dialogs.lua:2942 koassistant_settings_schema.lua:916
-#: main.lua:369 main.lua:397 main.lua:4035
+#: koassistant_constants.lua:128 koassistant_dialogs.lua:2964
+#: koassistant_dialogs.lua:2987 koassistant_settings_schema.lua:916
+#: main.lua:369 main.lua:397 main.lua:4044 main.lua:5497
 #, fuzzy
 msgid "View Artifacts"
 msgstr "Ver Artefatos"
 
 #: koassistant_constants.lua:129 koassistant_settings_schema.lua:917
-#: main.lua:5102
+#: main.lua:5407
 #, fuzzy
 msgid "Quick Settings"
 msgstr "Configurações Rápidas"
@@ -1334,7 +1337,7 @@ msgstr "Não é possível adicionar tag: sem contexto do documento"
 msgid "Could not find summary action. Please try again."
 msgstr "Não foi possível encontrar a ação de resumo. Por favor, tente novamente."
 
-#: koassistant_dialogs.lua:1866 main.lua:4317
+#: koassistant_dialogs.lua:1866 main.lua:4422
 #, fuzzy
 msgid "Generating document summary..."
 msgstr "Gerando resumo do documento..."
@@ -1361,113 +1364,130 @@ msgstr ""
 "• Processa até o limite de caracteres\n"
 "• Cobertura mostrada no visualizador de cache"
 
-#: koassistant_dialogs.lua:1942 main.lua:4340
+#: koassistant_dialogs.lua:1942 main.lua:4445
 #, fuzzy
 msgid "Generate"
 msgstr "Gerar"
 
-#: koassistant_dialogs.lua:2200
+#: koassistant_dialogs.lua:2207
 #, fuzzy
 msgid ""
 "Book text truncated (covers %1 %–%2 %). Increase limit in Advanced Settings."
 msgstr "Texto do livro truncado (cobre %1 %–%2 %). Aumente o limite nas Configurações Avançadas."
 
-#: koassistant_dialogs.lua:2211
+#: koassistant_dialogs.lua:2218
 #, fuzzy
 msgid ""
 "Full document text truncated (covers %1 %–%2 %). Increase limit in Advanced Settings."
 msgstr "Texto completo do documento truncado (cobre %1 %–%2 %). Aumente o limite nas Configurações Avançadas."
 
-#: koassistant_dialogs.lua:2298
+#: koassistant_dialogs.lua:2307
 #, fuzzy
 msgid ""
 "New content truncated (covers %1 %–%2 %). Increase limit in Advanced Settings."
 msgstr "Novo conteúdo truncado (cobre %1 %–%2 %). Aumente o limite nas Configurações Avançadas."
 
-#: koassistant_dialogs.lua:2590 koassistant_dialogs.lua:2654
-#: koassistant_settings_schema.lua:564 main.lua:3532 main.lua:4736
-#: main.lua:5423 koassistant_ui/prompts_manager.lua:1518
+#: koassistant_dialogs.lua:2624 koassistant_dialogs.lua:2688
+#: koassistant_settings_schema.lua:564 main.lua:3541 main.lua:5041
+#: main.lua:5712 koassistant_ui/prompts_manager.lua:1518
 #: koassistant_ui/prompts_manager.lua:2677
 #: koassistant_ui/prompts_manager.lua:3395
 #, fuzzy
 msgid "None"
 msgstr "Nenhum"
 
-#: koassistant_dialogs.lua:2645
+#: koassistant_dialogs.lua:2679
 #, fuzzy
 msgid "Select Domain"
 msgstr "Selecionar Domínio"
 
-#: koassistant_dialogs.lua:2683
+#: koassistant_dialogs.lua:2717
 #, fuzzy
 msgid "Domain: "
 msgstr "Domínio:"
 
-#: koassistant_dialogs.lua:2690
+#: koassistant_dialogs.lua:2724
 #, fuzzy
 msgid "Ask"
 msgstr "Perguntar"
 
-#: koassistant_dialogs.lua:2798
+#: koassistant_dialogs.lua:2832
 #, fuzzy
 msgid "Chat"
 msgstr "Chat"
 
-#: koassistant_dialogs.lua:2802 koassistant_dialogs.lua:3171
+#: koassistant_dialogs.lua:2836 koassistant_dialogs.lua:3250
 #, fuzzy
 msgid "Error: "
 msgstr "Erro:"
 
-#: koassistant_dialogs.lua:2867
+#: koassistant_dialogs.lua:2903
 #, fuzzy
 msgid "Error handling prompt: "
 msgstr "Erro ao processar prompt:"
 
-#: koassistant_dialogs.lua:2901 main.lua:360 main.lua:3989 main.lua:4197
+#: koassistant_dialogs.lua:2946 main.lua:360 main.lua:3998 main.lua:4301
+#: main.lua:4530
 #, fuzzy
 msgid "Summary"
 msgstr "Resumo"
 
-#: koassistant_dialogs.lua:2905 main.lua:364 main.lua:3997 main.lua:5211
+#: koassistant_dialogs.lua:2950 main.lua:364 main.lua:4006 main.lua:4526
 #, fuzzy
 msgid "Analysis"
 msgstr "Análise"
 
-#: koassistant_dialogs.lua:2911 koassistant_notebook_manager.lua:124
+#: koassistant_dialogs.lua:2956 koassistant_notebook_manager.lua:124
+#: main.lua:369
 #, fuzzy
 msgid "View"
 msgstr "Visualizar"
 
-#: koassistant_dialogs.lua:2975
+#: koassistant_dialogs.lua:3020
 #, fuzzy
 msgid "KOAssistant Actions"
 msgstr "Ações do KOAssistant"
 
-#: koassistant_dialogs.lua:2977
+#: koassistant_dialogs.lua:3022
 msgid "Type your question or additional instructions for any action..."
 msgstr "Digite uma pergunta ou instruções adicionais para qualquer ação..."
 
-#: koassistant_dialogs.lua:3035
+#: koassistant_dialogs.lua:3080
 #, fuzzy
 msgid "Unknown prompt type: "
 msgstr "Tipo de prompt desconhecido:"
 
-#: koassistant_dialogs.lua:3061
+#: koassistant_dialogs.lua:3106
 #, fuzzy
 msgid "Error: No action specified"
 msgstr "Erro: Nenhuma ação especificada"
 
-#: koassistant_dialogs.lua:3145 main.lua:4112
+#: koassistant_dialogs.lua:3194 main.lua:4088
+#, fuzzy
+msgid "Based on AI training data knowledge"
+msgstr "Baseado no conhecimento dos dados de treinamento da IA"
+
+#: koassistant_dialogs.lua:3195 main.lua:4090
+#, fuzzy
+msgid "Based on extracted document text"
+msgstr "Baseado no texto extraído do documento"
+
+#: koassistant_dialogs.lua:3197 main.lua:4059
+#, fuzzy
+msgid "today"
+msgstr "hoje"
+
+#: koassistant_dialogs.lua:3224 main.lua:4199 main.lua:4584
 #, fuzzy
 msgid "%1 deleted"
 msgstr "%1 excluído"
 
-#: koassistant_dialogs.lua:3209
+#: koassistant_dialogs.lua:3288
 #, fuzzy
 msgid "Failed to extract document text"
 msgstr "Falha ao extrair texto do documento"
 
-#: koassistant_dialogs.lua:3229
+#: koassistant_dialogs.lua:3308
 #, fuzzy
 msgid ""
 "Text extraction is disabled.\n"
@@ -1478,7 +1498,7 @@ msgstr ""
 "\n"
 "Habilite-a em Configurações → Privacidade e Dados → Extração de Texto."
 
-#: koassistant_dialogs.lua:3230
+#: koassistant_dialogs.lua:3309
 #, fuzzy
 msgid ""
 "No document text could be extracted.\n"
@@ -1489,7 +1509,7 @@ msgstr ""
 "\n"
 "Este documento pode não suportar extração de texto."
 
-#: koassistant_dialogs.lua:3310
+#: koassistant_dialogs.lua:3393
 #, fuzzy
 msgid "Failed to generate summary"
 msgstr "Falha ao gerar resumo"
@@ -1537,7 +1557,7 @@ msgid "Chat about Book"
 msgstr "Conversar sobre o Livro"
 
 #: koassistant_settings_schema.lua:55 koassistant_settings_schema.lua:1038
-#: main.lua:4998
+#: main.lua:5303
 #, fuzzy
 msgid "Browse Notebooks"
 msgstr "Navegar pelos Cadernos"
@@ -1547,17 +1567,17 @@ msgstr "Navegar pelos Cadernos"
 msgid "Reading Features"
 msgstr "Recursos de Leitura"
 
-#: koassistant_settings_schema.lua:83 main.lua:1828 main.lua:4797
+#: koassistant_settings_schema.lua:83 main.lua:1837 main.lua:5102
 #, fuzzy
 msgid "Provider: %1"
 msgstr "Provedor: %1"
 
-#: koassistant_settings_schema.lua:92 main.lua:2401 main.lua:4810
+#: koassistant_settings_schema.lua:92 main.lua:2410 main.lua:5115
 #, fuzzy
 msgid "Model: %1"
 msgstr "Modelo: %1"
 
-#: koassistant_settings_schema.lua:99 main.lua:7292 main.lua:7422
+#: koassistant_settings_schema.lua:99 main.lua:7581 main.lua:7711
 #, fuzzy
 msgid "API Keys"
 msgstr "Chaves API"
@@ -1948,17 +1968,17 @@ msgstr "Idioma de Resposta: (Seguir Principal)"
 msgid "Response Language: %1"
 msgstr "Idioma de Resposta: %1"
 
-#: koassistant_settings_schema.lua:561 main.lua:3529
+#: koassistant_settings_schema.lua:561 main.lua:3538
 #, fuzzy
 msgid "Sentence"
 msgstr "Sentença"
 
-#: koassistant_settings_schema.lua:562 main.lua:3530
+#: koassistant_settings_schema.lua:562 main.lua:3539
 #, fuzzy
 msgid "Paragraph"
 msgstr "Parágrafo"
 
-#: koassistant_settings_schema.lua:563 main.lua:3531
+#: koassistant_settings_schema.lua:563 main.lua:3540
 #, fuzzy
 msgid "Characters"
 msgstr "Caracteres"
@@ -2246,12 +2266,12 @@ msgstr "Utilitários do Painel QS"
 msgid "Show or hide controls in the Quick Settings panel"
 msgstr "Mostrar ou ocultar controles no painel de Configurações Rápidas"
 
-#: koassistant_settings_schema.lua:947 main.lua:4650 main.lua:4802
+#: koassistant_settings_schema.lua:947 main.lua:4955 main.lua:5107
 #, fuzzy
 msgid "Provider"
 msgstr "Provedor"
 
-#: koassistant_settings_schema.lua:954 main.lua:4656 main.lua:4815
+#: koassistant_settings_schema.lua:954 main.lua:4961 main.lua:5120
 #, fuzzy
 msgid "Model"
 msgstr "Modelo"
@@ -2267,7 +2287,7 @@ msgid "Domain"
 msgstr "Domínio"
 
 #: koassistant_settings_schema.lua:975 koassistant_settings_schema.lua:1551
-#: main.lua:4860 koassistant_ui/prompts_manager.lua:722
+#: main.lua:5165 koassistant_ui/prompts_manager.lua:722
 #: koassistant_ui/prompts_manager.lua:1841
 #: koassistant_ui/prompts_manager.lua:3052
 msgid "Temperature"
@@ -2285,7 +2305,7 @@ msgstr "Raciocínio Anthropic/Gemini"
 msgid "Web Search"
 msgstr "Busca Web"
 
-#: koassistant_settings_schema.lua:1003 main.lua:4644 main.lua:4931
+#: koassistant_settings_schema.lua:1003 main.lua:4949 main.lua:5236
 #: koassistant_ui/prompts_manager.lua:4038
 #, fuzzy
 msgid "Translation Language"
@@ -2302,12 +2322,12 @@ msgid "D.Bypass"
 msgstr "D.Bypass"
 
 #: koassistant_settings_schema.lua:1066 koassistant_settings_schema.lua:1101
-#: main.lua:5046 koassistant_ui/prompts_manager.lua:501
+#: main.lua:5351 koassistant_ui/prompts_manager.lua:501
 #, fuzzy
 msgid "Manage Actions"
 msgstr "Gerenciar Ações"
 
-#: koassistant_settings_schema.lua:1073 main.lua:5250
+#: koassistant_settings_schema.lua:1073 main.lua:5539
 #, fuzzy
 msgid "Quick Actions"
 msgstr "Ações Rápidas"
@@ -2419,12 +2439,12 @@ msgstr "Mostrar botão apenas se o caderno já existir. Desative para permitir c
 msgid "Privacy & Data"
 msgstr "Privacidade e Dados"
 
-#: koassistant_settings_schema.lua:1204 main.lua:6942
+#: koassistant_settings_schema.lua:1204 main.lua:7231
 #, fuzzy
 msgid "Trusted Providers: None"
 msgstr "Provedores Confiáveis: Nenhum"
 
-#: koassistant_settings_schema.lua:1206 main.lua:6944
+#: koassistant_settings_schema.lua:1206 main.lua:7233
 #, fuzzy
 msgid "Trusted Providers: %1"
 msgstr "Provedores Confiáveis: %1"
@@ -2565,7 +2585,7 @@ msgid ""
 "Maximum PDF pages to extract (50-1,000). Higher = more context but slower. Default: 500 (~1M characters)."
 msgstr "Máximo de páginas PDF a extrair (50-1.000). Maior = mais contexto mas mais lento. Padrão: 500 (~1M caracteres)."
 
-#: koassistant_settings_schema.lua:1338 main.lua:5350
+#: koassistant_settings_schema.lua:1338 main.lua:5639
 #, fuzzy
 msgid "Clear Action Cache"
 msgstr "Limpar Cache de Ações"
@@ -3131,7 +3151,7 @@ msgstr "Testar Conexão"
 msgid "Settings Management"
 msgstr "Gerenciamento de Configurações"
 
-#: koassistant_settings_schema.lua:1808 main.lua:7238
+#: koassistant_settings_schema.lua:1808 main.lua:7527
 #, fuzzy
 msgid "Create Backup"
 msgstr "Criar Backup"
@@ -3403,7 +3423,7 @@ msgstr ""
 "%2"
 
 #: koassistant_update_checker.lua:635 koassistant_update_checker.lua:726
-#: main.lua:7917
+#: main.lua:8206
 #, fuzzy
 msgid "Later"
 msgstr "Mais Tarde"
@@ -3438,7 +3458,7 @@ msgstr "%1 (Traduzido)"
 msgid "Translation failed: %1"
 msgstr "Falha na tradução: %1"
 
-#: koassistant_update_checker.lua:695 main.lua:7331 main.lua:7706 main.lua:7846
+#: koassistant_update_checker.lua:695 main.lua:7620 main.lua:7995 main.lua:8135
 #, fuzzy
 msgid "Unknown error"
 msgstr "Erro desconhecido"
@@ -3538,7 +3558,7 @@ msgstr "Nota: Alguns arquivos de usuário (chaves API, ações personalizadas) p
 msgid "Chapter Characters"
 msgstr "Personagens do Capítulo"
 
-#: koassistant_xray_browser.lua:325 koassistant_xray_browser.lua:625
+#: koassistant_xray_browser.lua:325 koassistant_xray_browser.lua:628
 #, fuzzy
 msgid "Search"
 msgstr "Pesquisar"
@@ -3568,107 +3588,118 @@ msgstr "Conversar sobre isso"
 msgid "Details"
 msgstr "Detalhes"
 
-#: koassistant_xray_browser.lua:537
+#: koassistant_xray_browser.lua:540
 #, fuzzy
 msgid "No book open."
 msgstr "Nenhum livro aberto."
 
-#: koassistant_xray_browser.lua:545
+#: koassistant_xray_browser.lua:548
 #, fuzzy
 msgid "Analyzing chapter..."
 msgstr "Analisando capítulo..."
 
-#: koassistant_xray_browser.lua:556
+#: koassistant_xray_browser.lua:559
 #, fuzzy
 msgid "Could not extract chapter text."
 msgstr "Não foi possível extrair o texto do capítulo."
 
-#: koassistant_xray_browser.lua:566
+#: koassistant_xray_browser.lua:569
 #, fuzzy
 msgid "No known characters found in \"%1\"."
 msgstr "Nenhum personagem conhecido encontrado em \"%1\"."
 
-#: koassistant_xray_browser.lua:567
+#: koassistant_xray_browser.lua:570
 #, fuzzy
 msgid "No known characters found in current chapter."
 msgstr "Nenhum personagem conhecido encontrado no capítulo atual."
 
-#: koassistant_xray_browser.lua:585
+#: koassistant_xray_browser.lua:588
 #, fuzzy, lua-format
 msgid "%1x"
 msgstr "%1x"
 
-#: koassistant_xray_browser.lua:597
+#: koassistant_xray_browser.lua:600
 #, fuzzy
 msgid "%1 — %2 characters"
 msgstr "%1 — %2 personagens"
 
-#: koassistant_xray_browser.lua:599
+#: koassistant_xray_browser.lua:602
 #, fuzzy
 msgid "This Chapter — %1 characters"
 msgstr "Este Capítulo — %1 personagens"
 
-#: koassistant_xray_browser.lua:612
+#: koassistant_xray_browser.lua:615
 #, fuzzy
 msgid "Search X-Ray"
 msgstr "Pesquisar X-Ray"
 
-#: koassistant_xray_browser.lua:614
+#: koassistant_xray_browser.lua:617
 #, fuzzy
 msgid "Name, term, description..."
 msgstr "Nome, termo, descrição..."
 
-#: koassistant_xray_browser.lua:649
+#: koassistant_xray_browser.lua:652
 #, fuzzy
 msgid "No results for \"%1\"."
 msgstr "Nenhum resultado para \"%1\"."
 
-#: koassistant_xray_browser.lua:663
+#: koassistant_xray_browser.lua:666
 #, fuzzy
 msgid "alias"
 msgstr "também"
 
-#: koassistant_xray_browser.lua:665
+#: koassistant_xray_browser.lua:668
 #, fuzzy
 msgid "desc."
 msgstr "desc."
 
-#: koassistant_xray_browser.lua:680
+#: koassistant_xray_browser.lua:683
 #, fuzzy
 msgid "Results for \"%1\" (%2)"
 msgstr "Resultados para \"%1\" (%2)"
 
-#: koassistant_xray_browser.lua:725
+#: koassistant_xray_browser.lua:711 koassistant_xray_browser.lua:791
+#: main.lua:4144 main.lua:4562
+#, fuzzy
+msgid "updated from"
+msgstr "atualizado de"
+
+#: koassistant_xray_browser.lua:761
 #, fuzzy
 msgid "Delete X-Ray"
 msgstr "Excluir X-Ray"
 
-#: koassistant_xray_browser.lua:734
+#: koassistant_xray_browser.lua:770
 #, fuzzy
 msgid "Delete this X-Ray? This cannot be undone."
 msgstr "Excluir este X-Ray? Isso não pode ser desfeito."
 
-#: koassistant_xray_browser.lua:753
+#: koassistant_xray_browser.lua:793
 #, fuzzy
 msgid "Progress:"
 msgstr "Progresso:"
 
-#: koassistant_xray_browser.lua:758
+#: koassistant_xray_browser.lua:800
 #, fuzzy
 msgid "Fiction"
 msgstr "Ficção"
 
-#: koassistant_xray_browser.lua:758
+#: koassistant_xray_browser.lua:800
 #, fuzzy
 msgid "Non-Fiction"
 msgstr "Não-ficção"
 
-#: koassistant_xray_browser.lua:759
+#: koassistant_xray_browser.lua:801
 #, fuzzy
 msgid "Type:"
 msgstr "Tipo:"
 
-#: koassistant_xray_browser.lua:763 main.lua:7793
+#: koassistant_xray_browser.lua:803
+#, fuzzy
+msgid "Source:"
+msgstr "Fonte:"
+
+#: koassistant_xray_browser.lua:808 main.lua:8082
 #: koassistant_ui/prompts_manager.lua:1458
 #: koassistant_ui/prompts_manager.lua:1923
 #, fuzzy
@@ -3785,242 +3816,242 @@ msgstr "Construindo em direção a:"
 msgid "Chat/Action"
 msgstr "Chat/Ação"
 
-#: main.lua:314 main.lua:8396
+#: main.lua:314 main.lua:8685
 #, fuzzy
 msgid "Notebook"
 msgstr "Caderno"
 
-#: main.lua:439 main.lua:882
+#: main.lua:439 main.lua:891
 #, fuzzy
 msgid "Compare with KOAssistant"
 msgstr "Comparar com KOAssistant"
 
-#: main.lua:735 main.lua:906
+#: main.lua:739 main.lua:915
 #, fuzzy
 msgid "No files selected for comparison"
 msgstr "Nenhum arquivo selecionado para comparação"
 
-#: main.lua:818
+#: main.lua:827
 #, fuzzy
 msgid "Please select at least 2 books to compare"
 msgstr "Por favor selecione pelo menos 2 livros para comparar"
 
-#: main.lua:926
+#: main.lua:935
 #, fuzzy
 msgid "KOAssistant: Chat History"
 msgstr "KOAssistant: Histórico de Chat"
 
-#: main.lua:934
+#: main.lua:943
 #, fuzzy
 msgid "KOAssistant: Continue Last Saved Chat"
 msgstr "KOAssistant: Continuar Último Chat Salvo"
 
-#: main.lua:942
+#: main.lua:951
 #, fuzzy
 msgid "KOAssistant: Continue Last Opened Chat"
 msgstr "KOAssistant: Continuar Último Chat Aberto"
 
-#: main.lua:951
+#: main.lua:960
 #, fuzzy
 msgid "KOAssistant: Settings"
 msgstr "KOAssistant: Configurações"
 
-#: main.lua:959
+#: main.lua:968
 #, fuzzy
 msgid "KOAssistant: General Chat/Action"
 msgstr "KOAssistant: Chat/Ação Geral"
 
-#: main.lua:967
+#: main.lua:976
 #, fuzzy
 msgid "KOAssistant: New Book Chat/Action"
 msgstr "KOAssistant: Novo Chat/Ação de Livro"
 
-#: main.lua:984
+#: main.lua:993
 #, fuzzy
 msgid "KOAssistant: %1"
 msgstr "KOAssistant: %1"
 
-#: main.lua:994
+#: main.lua:1003
 #, fuzzy
 msgid "KOAssistant: Change Primary Language"
 msgstr "KOAssistant: Alterar Idioma Principal"
 
-#: main.lua:1001
+#: main.lua:1010
 #, fuzzy
 msgid "KOAssistant: Change Translation Language"
 msgstr "KOAssistant: Alterar Idioma de Tradução"
 
-#: main.lua:1008
+#: main.lua:1017
 #, fuzzy
 msgid "KOAssistant: Change Provider"
 msgstr "KOAssistant: Alterar Provedor"
 
-#: main.lua:1015
+#: main.lua:1024
 #, fuzzy
 msgid "KOAssistant: Change Model"
 msgstr "KOAssistant: Alterar Modelo"
 
-#: main.lua:1022
+#: main.lua:1031
 #, fuzzy
 msgid "KOAssistant: Change AI Behavior"
 msgstr "KOAssistant: Alterar Comportamento da IA"
 
-#: main.lua:1029
+#: main.lua:1038
 #, fuzzy
 msgid "KOAssistant: Quick Settings"
 msgstr "KOAssistant: Configurações Rápidas"
 
-#: main.lua:1037
+#: main.lua:1046
 #, fuzzy
 msgid "KOAssistant: Quick Actions"
 msgstr "KOAssistant: Ações Rápidas"
 
-#: main.lua:1045
+#: main.lua:1054
 #, fuzzy
 msgid "KOAssistant: Action Manager"
 msgstr "KOAssistant: Gerenciador de Ações"
 
-#: main.lua:1052
+#: main.lua:1061
 #, fuzzy
 msgid "KOAssistant: Behavior Manager"
 msgstr "KOAssistant: Gerenciador de Comportamentos"
 
-#: main.lua:1059
+#: main.lua:1068
 #, fuzzy
 msgid "KOAssistant: Domain Manager"
 msgstr "KOAssistant: Gerenciador de Domínios"
 
-#: main.lua:1066
+#: main.lua:1075
 #, fuzzy
 msgid "KOAssistant: Change Domain"
 msgstr "KOAssistant: Alterar Domínio"
 
-#: main.lua:1074
+#: main.lua:1083
 #, fuzzy
 msgid "KOAssistant: Dictionary Popup Manager"
 msgstr "KOAssistant: Gerenciador de Pop-up de Dicionário"
 
-#: main.lua:1081
+#: main.lua:1090
 #, fuzzy
 msgid "KOAssistant: Change Dictionary Language"
 msgstr "KOAssistant: Alterar Idioma do Dicionário"
 
-#: main.lua:1088
+#: main.lua:1097
 #, fuzzy
 msgid "KOAssistant: Toggle Dictionary Bypass"
 msgstr "KOAssistant: Alternar Ignorar Dicionário"
 
-#: main.lua:1096
+#: main.lua:1105
 #, fuzzy
 msgid "KOAssistant: Toggle Highlight Bypass"
 msgstr "KOAssistant: Alternar Ignorar Destaque"
 
-#: main.lua:1104
+#: main.lua:1113
 #, fuzzy
 msgid "KOAssistant: Translate Current Page"
 msgstr "KOAssistant: Traduzir Página Atual"
 
-#: main.lua:1115
+#: main.lua:1124
 #, fuzzy
 msgid "KOAssistant: View Notebook"
 msgstr "KOAssistant: Ver Caderno"
 
-#: main.lua:1124
+#: main.lua:1133
 #, fuzzy
 msgid "KOAssistant: Edit Notebook"
 msgstr "KOAssistant: Editar Caderno"
 
-#: main.lua:1133
+#: main.lua:1142
 #, fuzzy
 msgid "KOAssistant: Browse Notebooks"
 msgstr "KOAssistant: Navegar Cadernos"
 
-#: main.lua:1141
+#: main.lua:1150
 #, fuzzy
 msgid "KOAssistant: View Summary"
 msgstr "KOAssistant: Ver Resumo"
 
-#: main.lua:1149
+#: main.lua:1158
 #, fuzzy
 msgid "KOAssistant: View Artifacts"
 msgstr "KOAssistant: Ver Artefatos"
 
-#: main.lua:1174
+#: main.lua:1183
 #, fuzzy
 msgid "KOAssistant: "
 msgstr "KOAssistant:"
 
-#: main.lua:1294
+#: main.lua:1303
 #, fuzzy
 msgid "Custom (migrated)"
 msgstr "Personalizado (migrado)"
 
-#: main.lua:1499
+#: main.lua:1508
 #, fuzzy
 msgid "Model already exists"
 msgstr "Modelo já existe"
 
-#: main.lua:1629 main.lua:2089
+#: main.lua:1638 main.lua:2098
 #, fuzzy
 msgid "Provider name is required"
 msgstr "Nome do provedor é obrigatório"
 
-#: main.lua:1632 main.lua:2097
+#: main.lua:1641 main.lua:2106
 #, fuzzy
 msgid "Base URL is required"
 msgstr "URL base é obrigatória"
 
-#: main.lua:1641
+#: main.lua:1650
 #, fuzzy
 msgid "A provider with this name already exists"
 msgstr "Já existe um provedor com este nome"
 
-#: main.lua:1893
+#: main.lua:1902
 #, fuzzy
 msgid "Add custom provider..."
 msgstr "Adicionar provedor personalizado..."
 
-#: main.lua:1903
+#: main.lua:1912
 #, fuzzy
 msgid "Manage custom providers (%1)..."
 msgstr "Gerenciar provedores personalizados (%1)..."
 
-#: main.lua:1924
+#: main.lua:1933
 #, fuzzy
 msgid "API key: Required [tap to toggle]"
 msgstr "Chave API: Obrigatória [toque para alternar]"
 
-#: main.lua:1926
+#: main.lua:1935
 #, fuzzy
 msgid "API key: Not required [tap to toggle]"
 msgstr "Chave API: Não obrigatória [toque para alternar]"
 
-#: main.lua:1931
+#: main.lua:1940
 #, fuzzy
 msgid "Edit provider..."
 msgstr "Editar provedor..."
 
-#: main.lua:1945
+#: main.lua:1954
 #, fuzzy
 msgid "required"
 msgstr "obrigatória"
 
-#: main.lua:1945
+#: main.lua:1954
 #, fuzzy
 msgid "not required"
 msgstr "não obrigatória"
 
-#: main.lua:1947
+#: main.lua:1956
 #, fuzzy
 msgid "API key: %1"
 msgstr "Chave API: %1"
 
-#: main.lua:1953
+#: main.lua:1962
 #, fuzzy
 msgid "Remove provider"
 msgstr "Remover provedor"
 
-#: main.lua:1957
+#: main.lua:1966
 #, fuzzy
 msgid ""
 "Remove custom provider '%1'?\n"
@@ -4031,68 +4062,68 @@ msgstr ""
 "\n"
 "Isso também removerá quaisquer modelos personalizados e chave API deste provedor."
 
-#: main.lua:1961 main.lua:2300 main.lua:2533
+#: main.lua:1970 main.lua:2309 main.lua:2542
 #, fuzzy
 msgid "Removed: %1"
 msgstr "Removido: %1"
 
-#: main.lua:1989
+#: main.lua:1998
 #, fuzzy
 msgid "Add Custom Provider"
 msgstr "Adicionar Provedor Personalizado"
 
-#: main.lua:1993
+#: main.lua:2002
 #, fuzzy
 msgid "Provider name (e.g., LM Studio)"
 msgstr "Nome do provedor (ex.: LM Studio)"
 
-#: main.lua:1997
+#: main.lua:2006
 #, fuzzy
 msgid "Base URL (e.g., http://localhost:1234/v1/chat/completions)"
 msgstr "URL base (ex.: http://localhost:1234/v1/chat/completions)"
 
-#: main.lua:2001 main.lua:2067
+#: main.lua:2010 main.lua:2076
 #, fuzzy
 msgid "Default model name (optional)"
 msgstr "Nome do modelo padrão (opcional)"
 
-#: main.lua:2031
+#: main.lua:2040
 #, fuzzy
 msgid "Added provider: %1"
 msgstr "Provedor adicionado: %1"
 
-#: main.lua:2055 main.lua:2144
+#: main.lua:2064 main.lua:2153
 #, fuzzy
 msgid "Edit: %1"
 msgstr "Editar: %1"
 
-#: main.lua:2059
+#: main.lua:2068
 #, fuzzy
 msgid "Provider name"
 msgstr "Nome do provedor"
 
-#: main.lua:2063
+#: main.lua:2072
 #, fuzzy
 msgid "Base URL"
 msgstr "URL base"
 
-#: main.lua:2111 koassistant_ui/behavior_manager.lua:519
+#: main.lua:2120 koassistant_ui/behavior_manager.lua:519
 #: koassistant_ui/domain_manager.lua:510
 #, fuzzy
 msgid "Updated: %1"
 msgstr "Atualizado: %1"
 
-#: main.lua:2130
+#: main.lua:2139
 #, fuzzy
 msgid "No custom providers to manage"
 msgstr "Nenhum provedor personalizado para gerenciar"
 
-#: main.lua:2159
+#: main.lua:2168
 #, fuzzy
 msgid "Remove all (%1)"
 msgstr "Remover todos (%1)"
 
-#: main.lua:2163
+#: main.lua:2172
 #, fuzzy
 msgid ""
 "Remove all %1 custom provider(s)?\n"
@@ -4103,323 +4134,323 @@ msgstr ""
 "\n"
 "Isso também removerá seus modelos personalizados e chaves API."
 
-#: main.lua:2192
+#: main.lua:2201
 #, fuzzy
 msgid "All custom providers removed"
 msgstr "Todos os provedores personalizados removidos"
 
-#: main.lua:2208
+#: main.lua:2217
 #, fuzzy
 msgid "Manage Custom Providers"
 msgstr "Gerenciar Provedores Personalizados"
 
-#: main.lua:2261
+#: main.lua:2270
 #, fuzzy
 msgid "Set as default for %1"
 msgstr "Definir como padrão para %1"
 
-#: main.lua:2266
+#: main.lua:2275
 #, fuzzy
 msgid "Default for %1: %2"
 msgstr "Padrão para %1: %2"
 
-#: main.lua:2276
+#: main.lua:2285
 #, fuzzy
 msgid "Clear custom default"
 msgstr "Limpar padrão personalizado"
 
-#: main.lua:2281
+#: main.lua:2290
 #, fuzzy
 msgid "Cleared custom default for %1"
 msgstr "Padrão personalizado removido para %1"
 
-#: main.lua:2291
+#: main.lua:2300
 #, fuzzy
 msgid "Remove custom model"
 msgstr "Remover modelo personalizado"
 
-#: main.lua:2296 main.lua:2529
+#: main.lua:2305 main.lua:2538
 #, fuzzy
 msgid "Remove custom model '%1'?"
 msgstr "Remover modelo personalizado '%1'?"
 
-#: main.lua:2339 main.lua:2345 main.lua:3286
+#: main.lua:2348 main.lua:2354 main.lua:3295
 #, fuzzy
 msgid "(default)"
 msgstr "(padrão)"
 
-#: main.lua:2342
+#: main.lua:2351
 #, fuzzy
 msgid "(your default)"
 msgstr "(seu padrão)"
 
-#: main.lua:2348
+#: main.lua:2357
 #, fuzzy
 msgid "(system default)"
 msgstr "(padrão do sistema)"
 
-#: main.lua:2357
+#: main.lua:2366
 #, fuzzy
 msgid "Hold to manage. ★ = custom"
 msgstr "Mantenha pressionado para gerenciar. ★ = personalizado"
 
-#: main.lua:2420
+#: main.lua:2429
 #, fuzzy
 msgid "Add custom model..."
 msgstr "Adicionar modelo personalizado..."
 
-#: main.lua:2428
+#: main.lua:2437
 #, fuzzy
 msgid "Add Custom Model"
 msgstr "Adicionar Modelo Personalizado"
 
-#: main.lua:2430
+#: main.lua:2439
 #, fuzzy
 msgid "e.g., claude-3-opus-20240229"
 msgstr "ex.: claude-3-opus-20240229"
 
-#: main.lua:2431
+#: main.lua:2440
 #, fuzzy
 msgid "Enter the exact model identifier. It will be saved and selected."
 msgstr "Digite o identificador exato do modelo. Ele será salvo e selecionado."
 
-#: main.lua:2456 main.lua:2943
+#: main.lua:2465 main.lua:2952
 #, fuzzy
 msgid "Added: %1"
 msgstr "Adicionado: %1"
 
-#: main.lua:2461
+#: main.lua:2470
 #, fuzzy
 msgid "Failed to add model"
 msgstr "Falha ao adicionar modelo"
 
-#: main.lua:2481
+#: main.lua:2490
 #, fuzzy
 msgid "Manage custom models (%1)..."
 msgstr "Gerenciar modelos personalizados (%1)..."
 
-#: main.lua:2496
+#: main.lua:2505
 #, fuzzy
 msgid "No predefined models"
 msgstr "Nenhum modelo predefinido"
 
-#: main.lua:2511
+#: main.lua:2520
 #, fuzzy
 msgid "No custom models to manage"
 msgstr "Nenhum modelo personalizado para gerenciar"
 
-#: main.lua:2525
+#: main.lua:2534
 #, fuzzy
 msgid "Remove: %1"
 msgstr "Remover: %1"
 
-#: main.lua:2544
+#: main.lua:2553
 #, fuzzy
 msgid "Clear all custom models"
 msgstr "Limpar todos os modelos personalizados"
 
-#: main.lua:2548
+#: main.lua:2557
 #, fuzzy
 msgid "Remove all %1 custom model(s) for %2?"
 msgstr "Remover todos os %1 modelo(s) personalizado(s) para %2?"
 
-#: main.lua:2569
+#: main.lua:2578
 #, fuzzy
 msgid "All custom models cleared"
 msgstr "Todos os modelos personalizados removidos"
 
-#: main.lua:2586
+#: main.lua:2595
 #, fuzzy
 msgid "Custom Models for %1"
 msgstr "Modelos Personalizados para %1"
 
-#: main.lua:2733
+#: main.lua:2742
 #, fuzzy
 msgid "Current: %1"
 msgstr "Atual: %1"
 
-#: main.lua:2735
+#: main.lua:2744
 #, fuzzy
 msgid "Using key from apikeys.lua"
 msgstr "Usando chave do apikeys.lua"
 
-#: main.lua:2737
+#: main.lua:2746
 #, fuzzy
 msgid "Optional - leave empty for local servers"
 msgstr "Opcional - deixe vazio para servidores locais"
 
-#: main.lua:2739
+#: main.lua:2748
 #, fuzzy
 msgid "Enter API key..."
 msgstr "Digite a chave da API..."
 
-#: main.lua:2745
+#: main.lua:2754
 #, fuzzy
 msgid "API Key"
 msgstr "Chave da API"
 
-#: main.lua:2759
+#: main.lua:2768
 #, fuzzy
 msgid "Clear"
 msgstr "Limpar"
 
-#: main.lua:2769
+#: main.lua:2778
 #, fuzzy
 msgid "%1 API key cleared"
 msgstr "Chave da API %1 limpa"
 
-#: main.lua:2785
+#: main.lua:2794
 #, fuzzy
 msgid "%1 API key saved"
 msgstr "Chave da API %1 salva"
 
-#: main.lua:2790
+#: main.lua:2799
 #, fuzzy
 msgid "%1 API key saved. %1 selected as provider."
 msgstr "Chave da API %1 salva. %1 selecionado como provedor."
 
-#: main.lua:2901
+#: main.lua:2910
 #, fuzzy
 msgid "Add Custom Language"
 msgstr "Adicionar Idioma Personalizado"
 
-#: main.lua:2903
+#: main.lua:2912
 #, fuzzy
 msgid "e.g., Esperanto, Swahili"
 msgstr "ex.: Esperanto, Suaíli"
 
-#: main.lua:2904
+#: main.lua:2913
 #, fuzzy
 msgid "Enter a language name to add."
 msgstr "Digite o nome de um idioma para adicionar."
 
-#: main.lua:2952
+#: main.lua:2961
 #, fuzzy
 msgid "'%1' is already added"
 msgstr "'%1' já foi adicionado"
 
-#: main.lua:2976
+#: main.lua:2985
 #, fuzzy
 msgid "Languages you speak. Guides AI responses."
 msgstr "Idiomas que você fala. Orienta as respostas da IA."
 
-#: main.lua:2982 main.lua:3115
+#: main.lua:2991 main.lua:3124
 #, fuzzy
 msgid "Add Custom Language..."
 msgstr "Adicionar Idioma Personalizado..."
 
-#: main.lua:3109
+#: main.lua:3118
 #, fuzzy
 msgid "For translation/dictionary targets only."
 msgstr "Apenas para alvos de tradução/dicionário."
 
-#: main.lua:3255 main.lua:3272
+#: main.lua:3264 main.lua:3281
 #, fuzzy
 msgid "Set your languages first"
 msgstr "Defina seus idiomas primeiro"
 
-#: main.lua:3303
+#: main.lua:3312
 #, fuzzy
 msgid "Primary: %1"
 msgstr "Principal: %1"
 
-#: main.lua:3323
+#: main.lua:3332
 #, fuzzy
 msgid "Use Primary (%1)"
 msgstr "Usar Principal (%1)"
 
-#: main.lua:3349 main.lua:3381 main.lua:4926
+#: main.lua:3358 main.lua:3390 main.lua:5231
 #, fuzzy
 msgid "Translate: %1"
 msgstr "Traduzir: %1"
 
-#: main.lua:3395 koassistant_ui/prompts_manager.lua:1519
+#: main.lua:3404 koassistant_ui/prompts_manager.lua:1519
 #: koassistant_ui/prompts_manager.lua:2950
 #, fuzzy
 msgid "Custom..."
 msgstr "Personalizado..."
 
-#: main.lua:3401
+#: main.lua:3410
 #, fuzzy
 msgid "Custom Translation Language"
 msgstr "Idioma de Tradução Personalizado"
 
-#: main.lua:3403
+#: main.lua:3412
 #, fuzzy
 msgid "e.g., Spanish, Japanese, French"
 msgstr "ex.: Espanhol, Japonês, Francês"
 
-#: main.lua:3404
+#: main.lua:3413
 #, fuzzy
 msgid "Enter the target language for translations."
 msgstr "Digite o idioma de destino para traduções."
 
-#: main.lua:3438
+#: main.lua:3447
 #, fuzzy
 msgid "(Set your languages for quick selection)"
 msgstr "(Defina seus idiomas para seleção rápida)"
 
-#: main.lua:3454 main.lua:5735
+#: main.lua:3463 main.lua:6024
 #, fuzzy
 msgid "Follow Translation Language"
 msgstr "Seguir Idioma de Tradução"
 
-#: main.lua:3467
+#: main.lua:3476
 #, fuzzy
 msgid "Dictionary: Follow Translation"
 msgstr "Dicionário: Seguir Tradução"
 
-#: main.lua:3475 main.lua:5752
+#: main.lua:3484 main.lua:6041
 #, fuzzy
 msgid "Follow Primary Language"
 msgstr "Seguir Idioma Principal"
 
-#: main.lua:3487
+#: main.lua:3496
 #, fuzzy
 msgid "Dictionary: Follow Primary"
 msgstr "Dicionário: Seguir Principal"
 
-#: main.lua:3513 main.lua:4939
+#: main.lua:3522 main.lua:5244
 #, fuzzy
 msgid "Dictionary: %1"
 msgstr "Dicionário: %1"
 
-#: main.lua:3529
+#: main.lua:3538
 #, fuzzy
 msgid "Extract the full sentence containing the word"
 msgstr "Extrair a frase completa contendo a palavra"
 
-#: main.lua:3530
+#: main.lua:3539
 #, fuzzy
 msgid "Include more surrounding context"
 msgstr "Incluir mais contexto ao redor"
 
-#: main.lua:3531
+#: main.lua:3540
 #, fuzzy
 msgid "Fixed number of characters before/after"
 msgstr "Número fixo de caracteres antes/depois"
 
-#: main.lua:3532
+#: main.lua:3541
 #, fuzzy
 msgid "Only send the word, no surrounding context"
 msgstr "Enviar apenas a palavra, sem contexto ao redor"
 
-#: main.lua:3552
+#: main.lua:3561
 #, fuzzy
 msgid "Context: %1"
 msgstr "Contexto: %1"
 
-#: main.lua:3571 koassistant_ui/prompts_manager.lua:3782
+#: main.lua:3580 koassistant_ui/prompts_manager.lua:3782
 #, fuzzy
 msgid "Custom AI Behavior"
 msgstr "Comportamento da IA Personalizado"
 
-#: main.lua:3573
+#: main.lua:3582
 #, fuzzy
 msgid "Enter custom AI behavior instructions..."
 msgstr "Digite instruções personalizadas de comportamento da IA..."
 
-#: main.lua:3574
+#: main.lua:3583
 #, fuzzy
 msgid ""
 "Define how the AI should behave. This replaces the built-in Minimal/Full behavior when 'Custom' is selected.\n"
@@ -4430,38 +4461,38 @@ msgstr ""
 "\n"
 "Dica: Comece com o comportamento Completo como modelo."
 
-#: main.lua:3589
+#: main.lua:3598
 #, fuzzy
 msgid "Load Full"
 msgstr "Carregar Completo"
 
-#: main.lua:3645
+#: main.lua:3654
 #, fuzzy
 msgid ""
 "Model lists are now managed through the model_lists.lua file. Please edit this file to add or remove models."
 msgstr "As listas de modelos agora são gerenciadas através do arquivo model_lists.lua. Por favor, edite este arquivo para adicionar ou remover modelos."
 
-#: main.lua:3877
+#: main.lua:3886
 #, fuzzy
 msgid "No previously opened chat found"
 msgstr "Nenhum chat aberto anteriormente encontrado"
 
-#: main.lua:3894 main.lua:6360
+#: main.lua:3903 main.lua:6649
 #, fuzzy
 msgid "Configuration not found. Please set up configuration.lua first."
 msgstr "Configuração não encontrada. Por favor, configure o configuration.lua primeiro."
 
-#: main.lua:3931 main.lua:4352 main.lua:5506 main.lua:5524
+#: main.lua:3940 main.lua:4611 main.lua:5795 main.lua:5813
 #, fuzzy
 msgid "Please open a book first"
 msgstr "Por favor, abra um livro primeiro"
 
-#: main.lua:3968 main.lua:4172 main.lua:4281
+#: main.lua:3977 main.lua:4266 main.lua:4386
 #, fuzzy
 msgid "No book open"
 msgstr "Nenhum livro aberto"
 
-#: main.lua:4005
+#: main.lua:4014
 #, fuzzy
 msgid ""
 "No cached content found for this document.\n"
@@ -4472,7 +4503,32 @@ msgstr ""
 "\n"
 "Execute Raio-X, Resumir Documento ou Analisar Documento para criar caches reutilizáveis."
 
-#: main.lua:4183
+#: main.lua:4061
+#, lua-format, fuzzy
+msgid "%dd ago"
+msgstr "%dd atrás"
+
+#: main.lua:4068
+#, lua-format, fuzzy
+msgid "%dm%dd ago"
+msgstr "%dm%dd atrás"
+
+#: main.lua:4070
+#, lua-format, fuzzy
+msgid "%dm ago"
+msgstr "%dm atrás"
+
+#: main.lua:4075
+#, lua-format, fuzzy
+msgid "%dy%dm ago"
+msgstr "%dy%dm atrás"
+
+#: main.lua:4077
+#, lua-format, fuzzy
+msgid "%dy ago"
+msgstr "%dy atrás"
+
+#: main.lua:4277
 #, fuzzy
 msgid ""
 "No summary cached.\n"
@@ -4483,12 +4539,12 @@ msgstr ""
 "\n"
 "Use Ações Rápidas → Gerar Resumo para criar um."
 
-#: main.lua:4253
+#: main.lua:4356
 #, fuzzy
 msgid "Summary deleted"
 msgstr "Resumo excluído"
 
-#: main.lua:4292
+#: main.lua:4397
 #, fuzzy
 msgid ""
 "Summary already cached.\n"
@@ -4499,7 +4555,7 @@ msgstr ""
 "\n"
 "Use Ver Resumo para visualizá-lo."
 
-#: main.lua:4301
+#: main.lua:4406
 #, fuzzy
 msgid ""
 "Text extraction is required to generate a summary.\n"
@@ -4510,7 +4566,7 @@ msgstr ""
 "\n"
 "Ative em Configurações → Privacidade e Dados → Extração de Texto."
 
-#: main.lua:4339
+#: main.lua:4444
 #, fuzzy
 msgid ""
 "Generate a reusable document summary?\n"
@@ -4527,145 +4583,145 @@ msgstr ""
 "• Salvar o resumo para uso futuro\n"
 "• Habilitar ações Inteligentes para este livro"
 
-#: main.lua:4362 main.lua:4434 main.lua:4489
+#: main.lua:4484
+#, fuzzy
+msgid "View %1"
+msgstr "Ver %1"
+
+#: main.lua:4493
+#, fuzzy
+msgid "Update %1"
+msgstr "Atualizar %1"
+
+#: main.lua:4621 main.lua:4739 main.lua:4794
 #, fuzzy
 msgid "Action '%1' not found"
 msgstr "Ação '%1' não encontrada"
 
-#: main.lua:4472
+#: main.lua:4777
 #, fuzzy
 msgid "Unknown action context: %1"
 msgstr "Contexto de ação desconhecido: %1"
 
-#: main.lua:4638 main.lua:4918
+#: main.lua:4943 main.lua:5223
 #, fuzzy
 msgid "Primary Language"
 msgstr "Idioma Principal"
 
-#: main.lua:4662 main.lua:4828 koassistant_ui/prompts_manager.lua:725
+#: main.lua:4967 main.lua:5133 koassistant_ui/prompts_manager.lua:725
 #: koassistant_ui/prompts_manager.lua:2991
 #, fuzzy
 msgid "AI Behavior"
 msgstr "Comportamento da IA"
 
-#: main.lua:4747
+#: main.lua:5052
 #, fuzzy
 msgid "Default"
 msgstr "Padrão"
 
-#: main.lua:4823
+#: main.lua:5128
 #, fuzzy
 msgid "Behavior: %1"
 msgstr "Comportamento: %1"
 
-#: main.lua:4836
+#: main.lua:5141
 #, fuzzy
 msgid "Domain: %1"
 msgstr "Domínio: %1"
 
-#: main.lua:4841 main.lua:5405
+#: main.lua:5146 main.lua:5694
 #, fuzzy
 msgid "Knowledge Domain"
 msgstr "Domínio de Conhecimento"
 
-#: main.lua:4849
+#: main.lua:5154
 #, fuzzy
 msgid "Temp: %1"
 msgstr "Temp: %1"
 
-#: main.lua:4879
+#: main.lua:5184
 #, fuzzy
 msgid "Anthropic/Gemini Reasoning: ON"
 msgstr "Raciocínio Anthropic/Gemini: ATIVADO"
 
-#: main.lua:4879
+#: main.lua:5184
 #, fuzzy
 msgid "Anthropic/Gemini Reasoning: OFF"
 msgstr "Raciocínio Anthropic/Gemini: DESATIVADO"
 
-#: main.lua:4896
+#: main.lua:5201
 #, fuzzy
 msgid "Web Search: ON"
 msgstr "Busca na Web: LIGADO"
 
-#: main.lua:4896
+#: main.lua:5201
 #, fuzzy
 msgid "Web Search: OFF"
 msgstr "Busca na Web: DESLIGADO"
 
-#: main.lua:4913
+#: main.lua:5218
 #, fuzzy
 msgid "Language: %1"
 msgstr "Idioma: %1"
 
-#: main.lua:4952
+#: main.lua:5257
 #, fuzzy
 msgid "H.Bypass: ON"
 msgstr "Desvio D.: LIGADO"
 
-#: main.lua:4952
+#: main.lua:5257
 #, fuzzy
 msgid "H.Bypass: OFF"
 msgstr "Desvio D.: DESLIGADO"
 
-#: main.lua:4969
+#: main.lua:5274
 #, fuzzy
 msgid "D.Bypass: ON"
 msgstr "Desvio R.: LIGADO"
 
-#: main.lua:4969
+#: main.lua:5274
 #, fuzzy
 msgid "D.Bypass: OFF"
 msgstr "Desvio R.: DESLIGADO"
 
-#: main.lua:5058
+#: main.lua:5363
 #, fuzzy
 msgid "Quick Actions..."
 msgstr "Ações Rápidas..."
 
-#: main.lua:5070
+#: main.lua:5375
 #, fuzzy
 msgid "More Settings..."
 msgstr "Mais Configurações..."
 
-#: main.lua:5126
+#: main.lua:5431
 #, fuzzy
 msgid "Quick Actions is only available while reading a book."
 msgstr "Ações Rápidas está disponível apenas durante a leitura de um livro."
 
-#: main.lua:5175
+#: main.lua:5480
 #, fuzzy
 msgid "View Summary"
 msgstr "Ver Resumo"
 
-#: main.lua:5175
+#: main.lua:5480
 #, fuzzy
 msgid "Generate Summary"
 msgstr "Gerar Resumo"
 
-#: main.lua:5189
-#, fuzzy
-msgid "View X-Ray"
-msgstr "Ver X-Ray"
-
-#: main.lua:5203
-#, fuzzy
-msgid "View Analysis"
-msgstr "Ver Análise"
-
-#: main.lua:5266
+#: main.lua:5555
 #, fuzzy
 msgid "Testing connection..."
 msgstr "Testando conexão..."
 
-#: main.lua:5294
+#: main.lua:5583
 #, fuzzy
 msgid ""
 "Connection test failed:\n"
 msgstr ""
 "Teste de conexão falhou:\n"
 
-#: main.lua:5300
+#: main.lua:5589
 #, fuzzy
 msgid ""
 "Connection test successful!\n"
@@ -4682,12 +4738,12 @@ msgstr ""
 "\n"
 "Resposta: %3"
 
-#: main.lua:5308
+#: main.lua:5597
 #, fuzzy
 msgid "Connection test failed: "
 msgstr "Teste de conexão falhou:"
 
-#: main.lua:5328
+#: main.lua:5617
 #, fuzzy
 msgid ""
 "No book is currently open.\n"
@@ -4698,7 +4754,7 @@ msgstr ""
 "\n"
 "Abra um livro primeiro e então use esta opção para limpar suas respostas em cache de X-Ray e Recapitulação."
 
-#: main.lua:5341
+#: main.lua:5630
 #, fuzzy
 msgid ""
 "No action cache found for this book.\n"
@@ -4709,7 +4765,7 @@ msgstr ""
 "\n"
 "Execute X-Ray ou Recapitulação primeiro para criar um cache."
 
-#: main.lua:5351
+#: main.lua:5640
 #, fuzzy
 msgid ""
 "Clear cached X-Ray and Recap responses for this book?\n"
@@ -4720,62 +4776,62 @@ msgstr ""
 "\n"
 "Na próxima vez que você executar essas ações, elas serão regeneradas do zero em vez de atualizar a partir da versão em cache."
 
-#: main.lua:5361
+#: main.lua:5650
 #, fuzzy
 msgid "Clear Cache"
 msgstr "Limpar Cache"
 
-#: main.lua:5367
+#: main.lua:5656
 #, fuzzy
 msgid "Action cache cleared successfully."
 msgstr "Cache de ação limpo com sucesso."
 
-#: main.lua:5372
+#: main.lua:5661
 #, fuzzy
 msgid "Failed to clear action cache."
 msgstr "Falha ao limpar cache de ação."
 
-#: main.lua:5479
+#: main.lua:5768
 #, fuzzy
 msgid "Dictionary bypass: ON"
 msgstr "Desvio de dicionário: LIGADO"
 
-#: main.lua:5479
+#: main.lua:5768
 #, fuzzy
 msgid "Dictionary bypass: OFF"
 msgstr "Desvio de dicionário: DESLIGADO"
 
-#: main.lua:5493
+#: main.lua:5782
 #, fuzzy
 msgid "Highlight bypass: ON"
 msgstr "Desvio de destaque: LIGADO"
 
-#: main.lua:5493
+#: main.lua:5782
 #, fuzzy
 msgid "Highlight bypass: OFF"
 msgstr "Desvio de destaque: DESLIGADO"
 
-#: main.lua:5619
+#: main.lua:5908
 #, fuzzy
 msgid "Cannot determine current page"
 msgstr "Não é possível determinar a página atual"
 
-#: main.lua:5665
+#: main.lua:5954
 #, fuzzy
 msgid "Could not extract text from current page"
 msgstr "Não foi possível extrair texto da página atual"
 
-#: main.lua:5676
+#: main.lua:5965
 #, fuzzy
 msgid "Translate action not found"
 msgstr "Ação de tradução não encontrada"
 
-#: main.lua:5852
+#: main.lua:6141
 #, fuzzy
 msgid "Select Export Folder"
 msgstr "Selecionar Pasta de Exportação"
 
-#: main.lua:5859
+#: main.lua:6148
 #, fuzzy
 msgid ""
 "Export path set to:\n"
@@ -4784,17 +4840,17 @@ msgstr ""
 "Caminho de exportação definido para:\n"
 "%1"
 
-#: main.lua:6251 main.lua:6305
+#: main.lua:6540 main.lua:6594
 #, fuzzy
 msgid "Bypass action: %1"
 msgstr "Ação de desvio: %1"
 
-#: main.lua:6350
+#: main.lua:6639
 #, fuzzy
 msgid "All action settings restored to defaults"
 msgstr "Todas as configurações de ação restauradas para padrões"
 
-#: main.lua:6423
+#: main.lua:6712
 #, fuzzy
 msgid ""
 "KOAssistant Plugin\n"
@@ -4803,88 +4859,88 @@ msgstr ""
 "Plugin KOAssistant\n"
 "Versão:"
 
-#: main.lua:6508
+#: main.lua:6797
 #, fuzzy
 msgid "Feature settings reset to defaults"
 msgstr "Configurações de recursos redefinidas para padrões"
 
-#: main.lua:6538
+#: main.lua:6827
 #, fuzzy
 msgid "All customizations reset"
 msgstr "Todas as personalizações redefinidas"
 
-#: main.lua:6562
+#: main.lua:6851
 #, fuzzy
 msgid "Custom actions deleted"
 msgstr "Ações personalizadas excluídas"
 
-#: main.lua:6576
+#: main.lua:6865
 #, fuzzy
 msgid "Action edits reset to defaults"
 msgstr "Edições de ações redefinidas para padrões"
 
-#: main.lua:6606
+#: main.lua:6895
 #, fuzzy
 msgid "Action menus reset to defaults"
 msgstr "Menus de ações redefinidos para padrões"
 
-#: main.lua:6620
+#: main.lua:6909
 #, fuzzy
 msgid "Dictionary popup actions reset"
 msgstr "Ações de popup do dicionário redefinidas"
 
-#: main.lua:6633
+#: main.lua:6922
 #, fuzzy
 msgid "Highlight menu actions reset (restart to apply)"
 msgstr "Ações do menu de destaque redefinidas (reinicie para aplicar)"
 
-#: main.lua:6645
+#: main.lua:6934
 #, fuzzy
 msgid "File browser actions reset"
 msgstr "Ações do navegador de arquivos redefinidas"
 
-#: main.lua:6657
+#: main.lua:6946
 #, fuzzy
 msgid "Quick actions reset"
 msgstr "Ações rápidas redefinidas"
 
-#: main.lua:6678
+#: main.lua:6967
 #, fuzzy
 msgid "Custom providers and models reset"
 msgstr "Provedores e modelos personalizados redefinidos"
 
-#: main.lua:6751
+#: main.lua:7040
 #, fuzzy
 msgid "All action settings reset"
 msgstr "Todas as configurações de ações redefinidas"
 
-#: main.lua:6780
+#: main.lua:7069
 #, fuzzy
 msgid "Fresh start complete - API keys preserved"
 msgstr "Reinício completo - chaves de API preservadas"
 
-#: main.lua:6801
+#: main.lua:7090
 #, fuzzy
 msgid "Default: Personal content private, basic context shared"
 msgstr "Padrão: Conteúdo pessoal privado, contexto básico compartilhado"
 
-#: main.lua:6822
+#: main.lua:7111
 #, fuzzy
 msgid "Minimal: All extended sharing disabled"
 msgstr "Mínimo: Todo compartilhamento estendido desabilitado"
 
-#: main.lua:6843
+#: main.lua:7132
 #, fuzzy
 msgid ""
 "Full: All data sharing enabled (Text extraction must be enabled separately)"
 msgstr "Completo: Todo compartilhamento de dados habilitado (Extração de texto deve ser habilitada separadamente)"
 
-#: main.lua:6895
+#: main.lua:7184
 #, fuzzy
 msgid "(custom)"
 msgstr "(personalizado)"
 
-#: main.lua:6955
+#: main.lua:7244
 #, fuzzy
 msgid ""
 "Select providers to trust\n"
@@ -4895,157 +4951,157 @@ msgstr ""
 "\n"
 "Provedores confiáveis ignoram controles de compartilhamento de dados."
 
-#: main.lua:6981
+#: main.lua:7270
 #, fuzzy
 msgid "✓ Reset"
 msgstr "✓ Redefinir"
 
-#: main.lua:6983
+#: main.lua:7272
 #, fuzzy
 msgid "✗ Keep"
 msgstr "✗ Manter"
 
-#: main.lua:6989 main.lua:7289 main.lua:7420
+#: main.lua:7278 main.lua:7578 main.lua:7709
 #, fuzzy
 msgid "Settings"
 msgstr "Configurações"
 
-#: main.lua:6997
+#: main.lua:7286
 #, fuzzy
 msgid "Custom actions"
 msgstr "Ações personalizadas"
 
-#: main.lua:7005
+#: main.lua:7294
 #, fuzzy
 msgid "Action edits"
 msgstr "Edições de ações"
 
-#: main.lua:7013
+#: main.lua:7302
 #, fuzzy
 msgid "Action menus"
 msgstr "Menus de ações"
 
-#: main.lua:7021
+#: main.lua:7310
 #, fuzzy
 msgid "Custom providers & models"
 msgstr "Provedores e modelos personalizados"
 
-#: main.lua:7029
+#: main.lua:7318
 #, fuzzy
 msgid "Behaviors & domains"
 msgstr "Comportamentos e domínios"
 
-#: main.lua:7037 main.lua:7094
+#: main.lua:7326 main.lua:7383
 #, fuzzy
 msgid "API keys"
 msgstr "Chaves de API"
 
-#: main.lua:7049
+#: main.lua:7338
 #, fuzzy
 msgid "Reset Selected"
 msgstr "Redefinir Selecionados"
 
-#: main.lua:7058
+#: main.lua:7347
 #, fuzzy
 msgid "What would you like to reset?"
 msgstr "O que você gostaria de redefinir?"
 
-#: main.lua:7070
+#: main.lua:7359
 #, fuzzy
 msgid "settings"
 msgstr "configurações"
 
-#: main.lua:7074
+#: main.lua:7363
 #, fuzzy
 msgid "custom actions"
 msgstr "ações personalizadas"
 
-#: main.lua:7078
+#: main.lua:7367
 #, fuzzy
 msgid "action edits"
 msgstr "edições de ações"
 
-#: main.lua:7082
+#: main.lua:7371
 #, fuzzy
 msgid "action menus"
 msgstr "menus de ações"
 
-#: main.lua:7086
+#: main.lua:7375
 #, fuzzy
 msgid "providers/models"
 msgstr "provedores/modelos"
 
-#: main.lua:7090
+#: main.lua:7379
 #, fuzzy
 msgid "behaviors/domains"
 msgstr "comportamentos/domínios"
 
-#: main.lua:7099
+#: main.lua:7388
 #, fuzzy
 msgid "Reset: %1"
 msgstr "Redefinir: %1"
 
-#: main.lua:7104
+#: main.lua:7393
 #, fuzzy
 msgid "Nothing selected to reset"
 msgstr "Nada selecionado para redefinir"
 
-#: main.lua:7166
+#: main.lua:7455
 #, fuzzy
 msgid "Core Settings: ✓ Included"
 msgstr "Configurações Principais: ✓ Incluídas"
 
-#: main.lua:7172
+#: main.lua:7461
 #, fuzzy
 msgid "API Keys: ✓ Include (⚠ Sensitive)"
 msgstr "Chaves de API: ✓ Incluir (⚠ Sensível)"
 
-#: main.lua:7172
+#: main.lua:7461
 #, fuzzy
 msgid "API Keys: ✗ Exclude"
 msgstr "Chaves de API: ✗ Excluir"
 
-#: main.lua:7187
+#: main.lua:7476
 #, fuzzy
 msgid "Config Files: ✓ Include"
 msgstr "Arquivos de Configuração: ✓ Incluir"
 
-#: main.lua:7187
+#: main.lua:7476
 #, fuzzy
 msgid "Config Files: ✗ Exclude"
 msgstr "Arquivos de Configuração: ✗ Excluir"
 
-#: main.lua:7202
+#: main.lua:7491
 #, fuzzy
 msgid "Domains & Behaviors: ✓ Include"
 msgstr "Domínios e Comportamentos: ✓ Incluir"
 
-#: main.lua:7202
+#: main.lua:7491
 #, fuzzy
 msgid "Domains & Behaviors: ✗ Exclude"
 msgstr "Domínios e Comportamentos: ✗ Excluir"
 
-#: main.lua:7217
+#: main.lua:7506
 #, fuzzy
 msgid "Chat History: ✓ Include"
 msgstr "Histórico de Chat: ✓ Incluir"
 
-#: main.lua:7217
+#: main.lua:7506
 #, fuzzy
 msgid "Chat History: ✗ Exclude"
 msgstr "Histórico de Chat: ✗ Excluir"
 
-#: main.lua:7232 main.lua:7384 main.lua:7595 main.lua:7617
+#: main.lua:7521 main.lua:7673 main.lua:7884 main.lua:7906
 #, fuzzy
 msgid "━━━━━━━━━━━━━━━━"
 msgstr "━━━━━━━━━━━━━━━━"
 
-#: main.lua:7258
+#: main.lua:7547
 #, fuzzy
 msgid "What to include in backup:"
 msgstr "O que incluir no backup:"
 
-#: main.lua:7270
+#: main.lua:7559
 #, fuzzy
 msgid ""
 "Creating backup...\n"
@@ -5056,7 +5112,7 @@ msgstr ""
 "\n"
 "Isso pode levar um momento."
 
-#: main.lua:7282
+#: main.lua:7571
 #, fuzzy
 msgid ""
 "Backup created successfully!\n"
@@ -5071,47 +5127,47 @@ msgstr ""
 "\n"
 "Tamanho: %2"
 
-#: main.lua:7295 main.lua:7426
+#: main.lua:7584 main.lua:7715
 #, fuzzy
 msgid "Config Files"
 msgstr "Arquivos de Configuração"
 
-#: main.lua:7301 main.lua:7431
+#: main.lua:7590 main.lua:7720
 #, fuzzy
 msgid "%1 domains"
 msgstr "%1 domínios"
 
-#: main.lua:7303
+#: main.lua:7592
 #, fuzzy
 msgid "0 domains"
 msgstr "0 domínios"
 
-#: main.lua:7306 main.lua:7436
+#: main.lua:7595 main.lua:7725
 #, fuzzy
 msgid "%1 behaviors"
 msgstr "%1 comportamentos"
 
-#: main.lua:7308
+#: main.lua:7597
 #, fuzzy
 msgid "0 behaviors"
 msgstr "0 comportamentos"
 
-#: main.lua:7314 main.lua:7444
+#: main.lua:7603 main.lua:7733
 #, fuzzy
 msgid "%1 chats"
 msgstr "%1 conversas"
 
-#: main.lua:7316
+#: main.lua:7605
 #, fuzzy
 msgid "0 chats"
 msgstr "0 conversas"
 
-#: main.lua:7321
+#: main.lua:7610
 #, fuzzy
 msgid "Included:"
 msgstr "Incluído:"
 
-#: main.lua:7331
+#: main.lua:7620
 #, fuzzy
 msgid ""
 "Backup failed:\n"
@@ -5122,7 +5178,7 @@ msgstr ""
 "\n"
 "%1"
 
-#: main.lua:7348
+#: main.lua:7637
 #, fuzzy
 msgid ""
 "No backups found.\n"
@@ -5135,7 +5191,7 @@ msgstr ""
 "Crie um backup primeiro usando:\n"
 "Configurações → Avançado → Gerenciamento de Configurações → Criar Backup"
 
-#: main.lua:7390
+#: main.lua:7679
 #, fuzzy
 msgid ""
 "Select backup to restore\n"
@@ -5146,7 +5202,7 @@ msgstr ""
 "\n"
 "Total: %1 backup(s)"
 
-#: main.lua:7405 main.lua:7804
+#: main.lua:7694 main.lua:8093
 #, fuzzy
 msgid ""
 "Invalid backup:\n"
@@ -5157,7 +5213,7 @@ msgstr ""
 "\n"
 "%1"
 
-#: main.lua:7414
+#: main.lua:7703
 #, fuzzy
 msgid ""
 "Backup: %1\n"
@@ -5174,107 +5230,107 @@ msgstr ""
 "\n"
 "Conteúdo:"
 
-#: main.lua:7424
+#: main.lua:7713
 #, fuzzy
 msgid "No API keys"
 msgstr "Nenhuma chave API"
 
-#: main.lua:7433
+#: main.lua:7722
 #, fuzzy
 msgid "domains"
 msgstr "domínios"
 
-#: main.lua:7438
+#: main.lua:7727
 #, fuzzy
 msgid "behaviors"
 msgstr "comportamentos"
 
-#: main.lua:7446
+#: main.lua:7735
 #, fuzzy
 msgid "Chat history"
 msgstr "Histórico de conversas"
 
-#: main.lua:7456 main.lua:7677
+#: main.lua:7745 main.lua:7966
 #, fuzzy
 msgid "Warnings:"
 msgstr "Avisos:"
 
-#: main.lua:7473
+#: main.lua:7762
 #, fuzzy
 msgid "Restore →"
 msgstr "Restaurar →"
 
-#: main.lua:7510
+#: main.lua:7799
 #, fuzzy
 msgid "Settings: ✓ Restore"
 msgstr "Configurações: ✓ Restaurar"
 
-#: main.lua:7510
+#: main.lua:7799
 #, fuzzy
 msgid "Settings: ✗ Skip"
 msgstr "Configurações: ✗ Pular"
 
-#: main.lua:7527
+#: main.lua:7816
 #, fuzzy
 msgid "API Keys: ✓ Restore"
 msgstr "Chaves API: ✓ Restaurar"
 
-#: main.lua:7527
+#: main.lua:7816
 #, fuzzy
 msgid "API Keys: ✗ Skip"
 msgstr "Chaves API: ✗ Pular"
 
-#: main.lua:7544
+#: main.lua:7833
 #, fuzzy
 msgid "Config Files: ✓ Restore"
 msgstr "Arquivos de Configuração: ✓ Restaurar"
 
-#: main.lua:7544
+#: main.lua:7833
 #, fuzzy
 msgid "Config Files: ✗ Skip"
 msgstr "Arquivos de Configuração: ✗ Pular"
 
-#: main.lua:7561
+#: main.lua:7850
 #, fuzzy
 msgid "Domains & Behaviors: ✓ Restore"
 msgstr "Domínios e Comportamentos: ✓ Restaurar"
 
-#: main.lua:7561
+#: main.lua:7850
 #, fuzzy
 msgid "Domains & Behaviors: ✗ Skip"
 msgstr "Domínios e Comportamentos: ✗ Pular"
 
-#: main.lua:7578
+#: main.lua:7867
 #, fuzzy
 msgid "Chat History: ✓ Restore"
 msgstr "Histórico de Conversas: ✓ Restaurar"
 
-#: main.lua:7578
+#: main.lua:7867
 #, fuzzy
 msgid "Chat History: ✗ Skip"
 msgstr "Histórico de Conversas: ✗ Pular"
 
-#: main.lua:7601
+#: main.lua:7890
 #, fuzzy
 msgid "Mode: Merge with existing"
 msgstr "Modo: Mesclar com existente"
 
-#: main.lua:7601
+#: main.lua:7890
 #, fuzzy
 msgid "Mode: Replace existing"
 msgstr "Modo: Substituir existente"
 
-#: main.lua:7623
+#: main.lua:7912
 #, fuzzy
 msgid "Restore Now"
 msgstr "Restaurar Agora"
 
-#: main.lua:7643
+#: main.lua:7932
 #, fuzzy
 msgid "What to restore:"
 msgstr "O que restaurar:"
 
-#: main.lua:7656
+#: main.lua:7945
 #, fuzzy
 msgid ""
 "Restore from backup?\n"
@@ -5289,12 +5345,12 @@ msgstr ""
 "\n"
 "⚠ O KOReader deve ser reiniciado após a restauração para que as alterações tenham efeito completo."
 
-#: main.lua:7657 main.lua:7813
+#: main.lua:7946 main.lua:8102
 #, fuzzy
 msgid "Restore"
 msgstr "Restaurar"
 
-#: main.lua:7661
+#: main.lua:7950
 #, fuzzy
 msgid ""
 "Restoring backup...\n"
@@ -5305,7 +5361,7 @@ msgstr ""
 "\n"
 "Isso pode levar um momento."
 
-#: main.lua:7674
+#: main.lua:7963
 #, fuzzy
 msgid ""
 "Restore completed successfully!\n"
@@ -5316,7 +5372,7 @@ msgstr ""
 "\n"
 "É recomendado reiniciar o KOReader para que todas as alterações tenham efeito."
 
-#: main.lua:7686 koassistant_ui/prompts_manager.lua:2579
+#: main.lua:7975 koassistant_ui/prompts_manager.lua:2579
 #: koassistant_ui/prompts_manager.lua:3017
 #: koassistant_ui/prompts_manager.lua:3201
 #: koassistant_ui/prompts_manager.lua:3675
@@ -5328,12 +5384,12 @@ msgstr ""
 msgid "OK"
 msgstr "OK"
 
-#: main.lua:7692
+#: main.lua:7981
 #, fuzzy
 msgid "Restart Now"
 msgstr "Reiniciar Agora"
 
-#: main.lua:7706
+#: main.lua:7995
 #, fuzzy
 msgid ""
 "Restore failed:\n"
@@ -5344,12 +5400,12 @@ msgstr ""
 "\n"
 "%1"
 
-#: main.lua:7729
+#: main.lua:8018
 #, fuzzy
 msgid "No backups found."
 msgstr "Nenhum backup encontrado."
 
-#: main.lua:7777
+#: main.lua:8066
 #, fuzzy
 msgid ""
 "Backups (%1)\n"
@@ -5360,7 +5416,7 @@ msgstr ""
 "\n"
 "Tamanho total: %2"
 
-#: main.lua:7829
+#: main.lua:8118
 #, fuzzy
 msgid ""
 "Delete backup?\n"
@@ -5375,12 +5431,12 @@ msgstr ""
 "\n"
 "Isso não pode ser desfeito."
 
-#: main.lua:7837
+#: main.lua:8126
 #, fuzzy
 msgid "Backup deleted"
 msgstr "Backup excluído"
 
-#: main.lua:7846
+#: main.lua:8135
 #, fuzzy
 msgid ""
 "Failed to delete backup:\n"
@@ -5391,7 +5447,7 @@ msgstr ""
 "\n"
 "%1"
 
-#: main.lua:7909
+#: main.lua:8198
 #, fuzzy
 msgid ""
 "KOAssistant: Chat Storage Upgrade\n"
@@ -5410,22 +5466,22 @@ msgstr ""
 "\n"
 "Arquivos de conversas antigos serão copiados para koassistant_chats.backup/"
 
-#: main.lua:7916
+#: main.lua:8205
 #, fuzzy
 msgid "Migrate Now"
 msgstr "Migrar Agora"
 
-#: main.lua:7948
+#: main.lua:8237
 #, fuzzy
 msgid "KOAssistant: Migrating chat history..."
 msgstr "KOAssistant: Migrando histórico de conversas..."
 
-#: main.lua:7961
+#: main.lua:8250
 #, fuzzy
 msgid "No old chats found to migrate"
 msgstr "Nenhuma conversa antiga encontrada para migrar"
 
-#: main.lua:8083
+#: main.lua:8372
 #, fuzzy
 msgid ""
 "KOAssistant: Migration Incomplete\n"
@@ -5446,12 +5502,12 @@ msgstr ""
 "A migração será tentada novamente na próxima inicialização.\n"
 "Verifique o console para mensagens de erro detalhadas."
 
-#: main.lua:8095
+#: main.lua:8384
 #, fuzzy
 msgid "Failed documents:"
 msgstr "Documentos com falha:"
 
-#: main.lua:8102
+#: main.lua:8391
 #, fuzzy
 msgid ""
 "KOAssistant: Migration Complete\n"
@@ -5470,95 +5526,95 @@ msgstr ""
 "Arquivos de conversas antigos copiados para:\n"
 "koassistant_chats.backup/"
 
-#: main.lua:8166
+#: main.lua:8455
 #, fuzzy
 msgid "Welcome to KOAssistant!"
 msgstr "Bem-vindo ao KOAssistant!"
 
-#: main.lua:8167
+#: main.lua:8456
 #, fuzzy
 msgid "PRIVACY SETTINGS"
 msgstr "CONFIGURAÇÕES DE PRIVACIDADE"
 
-#: main.lua:8168
+#: main.lua:8457
 #, fuzzy
 msgid ""
 "Some features (like X-Ray) work best when they can access document text and other content."
 msgstr "Alguns recursos (como X-Ray) funcionam melhor quando podem acessar o texto do documento e outro conteúdo."
 
-#: main.lua:8169
+#: main.lua:8458
 #, fuzzy
 msgid "Enable in: Settings → Privacy & Data"
 msgstr "Ativar em: Configurações → Privacidade e Dados"
 
-#: main.lua:8170
+#: main.lua:8459
 #, fuzzy
 msgid "QUICK ACCESS"
 msgstr "ACESSO RÁPIDO"
 
-#: main.lua:8171
+#: main.lua:8460
 #, fuzzy
 msgid ""
 "Add Quick Actions panels and more to gestures in KOReader's gesture settings."
 msgstr "Adicione painéis de Ações Rápidas e mais aos gestos nas configurações de gestos do KOReader."
 
-#: main.lua:8172
+#: main.lua:8461
 #, fuzzy
 msgid "CUSTOM ACTIONS"
 msgstr "AÇÕES PERSONALIZADAS"
 
-#: main.lua:8173
+#: main.lua:8462
 #, fuzzy
 msgid "Create your own prompts and actions or edit built in ones."
 msgstr "Crie seus próprios prompts e ações ou edite os integrados."
 
-#: main.lua:8174
+#: main.lua:8463
 #, fuzzy
 msgid "Go to: Settings → Action Manager → Add"
 msgstr "Ir para: Configurações → Gerenciador de Ações → Adicionar"
 
-#: main.lua:8175
+#: main.lua:8464
 #, fuzzy
 msgid "MENU AND INFO ICONS"
 msgstr "ÍCONES DE MENU E INFORMAÇÃO"
 
-#: main.lua:8176
+#: main.lua:8465
 #, fuzzy
 msgid ""
 "Setup KOReader with emoji support to get informative icons in menus and more. See the emoji section in the README for details."
 msgstr "Configure o KOReader com suporte a emoji para obter ícones informativos em menus e mais. Veja a seção de emoji no README para detalhes."
 
-#: main.lua:8326
+#: main.lua:8615
 #, fuzzy
 msgid "No notebook available for this document"
 msgstr "Nenhum caderno disponível para este documento"
 
-#: main.lua:8336
+#: main.lua:8625
 #, fuzzy
 msgid "No notebook exists for this document. Create one?"
 msgstr "Não existe caderno para este documento. Criar um?"
 
-#: main.lua:8346
+#: main.lua:8635
 #, fuzzy
 msgid "Failed to create notebook: %1"
 msgstr "Falha ao criar caderno: %1"
 
-#: main.lua:8388
+#: main.lua:8677
 #, fuzzy
 msgid "Notebook is empty"
 msgstr "Caderno está vazio"
 
-#: main.lua:8437
+#: main.lua:8726
 #, fuzzy
 msgid "Failed to read notebook file."
 msgstr "Falha ao ler arquivo do caderno."
 
-#: main.lua:8500
+#: main.lua:8789
 #, fuzzy
 msgid "Notebook saved"
 msgstr "Caderno salvo"
 
-#: main.lua:8507
+#: main.lua:8796
 #, fuzzy
 msgid "Reset to last saved"
 msgstr "Restaurar para último salvo"

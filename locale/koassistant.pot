@@ -6,10 +6,10 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: KOAssistant 0.17.0-dev\n"
+"Project-Id-Version: KOAssistant 0.17.2-dev\n"
 "Report-Msgid-Bugs-To: https://github.com/zeeyado/koassistant.koplugin/"
 "issues\n"
-"POT-Creation-Date: 2026-02-09 23:02+0000\n"
+"POT-Creation-Date: 2026-02-10 14:01+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,7 +18,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: _meta.lua:4 main.lua:3631 main.lua:4546
+#: _meta.lua:4 main.lua:3640 main.lua:4851
 msgid "KOAssistant"
 msgstr ""
 
@@ -43,10 +43,10 @@ msgstr ""
 #: koassistant_chat_history_dialog.lua:144
 #: koassistant_chat_history_dialog.lua:846
 #: koassistant_chat_history_dialog.lua:1899
-#: koassistant_chat_history_dialog.lua:1937 koassistant_chatgptviewer.lua:2211
-#: koassistant_chatgptviewer.lua:2217 koassistant_notebook_manager.lua:156
-#: koassistant_notebook_manager.lua:161 koassistant_xray_browser.lua:735
-#: main.lua:7822 main.lua:7830 koassistant_ui/behavior_manager.lua:311
+#: koassistant_chat_history_dialog.lua:1937 koassistant_chatgptviewer.lua:2221
+#: koassistant_chatgptviewer.lua:2227 koassistant_notebook_manager.lua:156
+#: koassistant_notebook_manager.lua:161 koassistant_xray_browser.lua:771
+#: main.lua:8111 main.lua:8119 koassistant_ui/behavior_manager.lua:311
 #: koassistant_ui/domain_manager.lua:313 koassistant_ui/prompts_manager.lua:751
 msgid "Delete"
 msgstr ""
@@ -61,13 +61,13 @@ msgstr ""
 #: koassistant_chat_history_dialog.lua:269
 #: koassistant_chat_history_dialog.lua:855
 #: koassistant_chat_history_dialog.lua:883
-#: koassistant_chat_history_dialog.lua:1040 koassistant_chatgptviewer.lua:1368
-#: koassistant_chatgptviewer.lua:1878 koassistant_chatgptviewer.lua:2074
-#: koassistant_chatgptviewer.lua:2229 koassistant_chatgptviewer.lua:2418
-#: koassistant_chatgptviewer.lua:3940 koassistant_dialogs.lua:607
-#: koassistant_dialogs.lua:2635 koassistant_dialogs.lua:2671
-#: koassistant_xray_browser.lua:777 main.lua:2201 main.lua:4608 main.lua:5081
-#: main.lua:5231 koassistant_ui/behavior_manager.lua:382
+#: koassistant_chat_history_dialog.lua:1040 koassistant_chatgptviewer.lua:1374
+#: koassistant_chatgptviewer.lua:1887 koassistant_chatgptviewer.lua:2083
+#: koassistant_chatgptviewer.lua:2239 koassistant_chatgptviewer.lua:2428
+#: koassistant_chatgptviewer.lua:3951 koassistant_dialogs.lua:607
+#: koassistant_dialogs.lua:2669 koassistant_dialogs.lua:2705
+#: koassistant_xray_browser.lua:822 main.lua:2210 main.lua:4913 main.lua:5386
+#: main.lua:5520 koassistant_ui/behavior_manager.lua:382
 #: koassistant_ui/domain_manager.lua:383
 #: koassistant_ui/settings_manager.lua:265
 #: koassistant_ui/settings_manager.lua:351
@@ -95,7 +95,7 @@ msgid ""
 "This action cannot be undone."
 msgstr ""
 
-#: koassistant_chat_history_dialog.lua:148 main.lua:6550
+#: koassistant_chat_history_dialog.lua:148 main.lua:6839
 msgid "Deleted %1 chat(s) from %2 book(s)"
 msgstr ""
 
@@ -107,7 +107,7 @@ msgstr ""
 #: koassistant_chat_history_dialog.lua:255
 #: koassistant_chat_history_dialog.lua:602 koassistant_constants.lua:123
 #: koassistant_settings_schema.lua:48 koassistant_settings_schema.lua:911
-#: koassistant_settings_schema.lua:1031 main.lua:338 main.lua:4986
+#: koassistant_settings_schema.lua:1031 main.lua:338 main.lua:5291
 msgid "Chat History"
 msgstr ""
 
@@ -117,7 +117,7 @@ msgid "Navigate"
 msgstr ""
 
 #: koassistant_chat_history_dialog.lua:322
-#: koassistant_chat_history_dialog.lua:520 main.lua:3852
+#: koassistant_chat_history_dialog.lua:520 main.lua:3861
 msgid "No saved chats found"
 msgstr ""
 
@@ -185,8 +185,8 @@ msgstr ""
 msgid "Validating chat index…"
 msgstr ""
 
-#: koassistant_chat_history_dialog.lua:555 koassistant_dialogs.lua:3240
-#: koassistant_notebook_manager.lua:77 koassistant_xray_browser.lua:580
+#: koassistant_chat_history_dialog.lua:555 koassistant_dialogs.lua:3319
+#: koassistant_notebook_manager.lua:77 koassistant_xray_browser.lua:583
 #: koassistant_xray_parser.lua:160 koassistant_xray_parser.lua:163
 #: koassistant_xray_parser.lua:165 koassistant_xray_parser.lua:193
 #: koassistant_xray_parser.lua:219 koassistant_xray_parser.lua:231
@@ -217,11 +217,14 @@ msgstr ""
 msgid "Error: Cannot load chat data."
 msgstr ""
 
-#: koassistant_chat_history_dialog.lua:782 koassistant_xray_browser.lua:756
+#: koassistant_chat_history_dialog.lua:782 koassistant_xray_browser.lua:722
+#: koassistant_xray_browser.lua:724 koassistant_xray_browser.lua:796
+#: koassistant_xray_browser.lua:798 main.lua:4154 main.lua:4324 main.lua:4572
 msgid "Date:"
 msgstr ""
 
-#: koassistant_chat_history_dialog.lua:783 koassistant_xray_browser.lua:750
+#: koassistant_chat_history_dialog.lua:783 koassistant_xray_browser.lua:719
+#: koassistant_xray_browser.lua:786 main.lua:4151 main.lua:4321 main.lua:4569
 msgid "Model:"
 msgstr ""
 
@@ -242,8 +245,8 @@ msgstr ""
 msgid "Tags"
 msgstr ""
 
-#: koassistant_chat_history_dialog.lua:836 koassistant_chatgptviewer.lua:1179
-#: koassistant_chatgptviewer.lua:2110 koassistant_ui/prompts_manager.lua:470
+#: koassistant_chat_history_dialog.lua:836 koassistant_chatgptviewer.lua:1185
+#: koassistant_chatgptviewer.lua:2120 koassistant_ui/prompts_manager.lua:470
 msgid "Export"
 msgstr ""
 
@@ -301,7 +304,7 @@ msgstr ""
 
 #: koassistant_chat_history_dialog.lua:1048
 #: koassistant_chat_history_dialog.lua:1235 koassistant_dialogs.lua:957
-#: main.lua:2014 main.lua:2442 main.lua:2915
+#: main.lua:2023 main.lua:2451 main.lua:2924
 msgid "Add"
 msgstr ""
 
@@ -324,16 +327,17 @@ msgstr ""
 #: koassistant_chat_history_dialog.lua:1660
 #: koassistant_chat_history_dialog.lua:1830
 #: koassistant_chat_history_dialog.lua:1873 koassistant_chatgptviewer.lua:496
-#: koassistant_chatgptviewer.lua:544 koassistant_chatgptviewer.lua:1720
-#: koassistant_chatgptviewer.lua:1857 koassistant_chatgptviewer.lua:2055
-#: koassistant_chatgptviewer.lua:3246 koassistant_chatgptviewer.lua:3428
+#: koassistant_chatgptviewer.lua:544 koassistant_chatgptviewer.lua:1729
+#: koassistant_chatgptviewer.lua:1866 koassistant_chatgptviewer.lua:2064
+#: koassistant_chatgptviewer.lua:3256 koassistant_chatgptviewer.lua:3438
 #: koassistant_dialogs.lua:949 koassistant_dialogs.lua:1635
-#: koassistant_dialogs.lua:1943 koassistant_dialogs.lua:2936
+#: koassistant_dialogs.lua:1943 koassistant_dialogs.lua:2981
 #: koassistant_notebook_manager.lua:182 koassistant_update_checker.lua:326
-#: koassistant_xray_browser.lua:618 main.lua:391 main.lua:1969 main.lua:2007
-#: main.lua:2073 main.lua:2311 main.lua:2435 main.lua:2579 main.lua:2752
-#: main.lua:2908 main.lua:3408 main.lua:3582 main.lua:4028 main.lua:5355
-#: main.lua:6913 main.lua:7467 koassistant_ui/behavior_manager.lua:419
+#: koassistant_xray_browser.lua:621 main.lua:391 main.lua:1978 main.lua:2016
+#: main.lua:2082 main.lua:2320 main.lua:2444 main.lua:2588 main.lua:2761
+#: main.lua:2917 main.lua:3417 main.lua:3591 main.lua:4037 main.lua:4502
+#: main.lua:5644 main.lua:7202 main.lua:7756
+#: koassistant_ui/behavior_manager.lua:419
 #: koassistant_ui/behavior_manager.lua:478
 #: koassistant_ui/behavior_manager.lua:557
 #: koassistant_ui/behavior_manager.lua:613
@@ -377,7 +381,7 @@ msgstr ""
 msgid "Error: Failed to load chat messages."
 msgstr ""
 
-#: koassistant_chat_history_dialog.lua:1432 koassistant_dialogs.lua:2453
+#: koassistant_chat_history_dialog.lua:1432 koassistant_dialogs.lua:2474
 #: stream_handler.lua:201
 msgid "No response received from AI"
 msgstr ""
@@ -448,8 +452,8 @@ msgstr ""
 msgid "Everything (debug)"
 msgstr ""
 
-#: koassistant_chat_history_dialog.lua:1668 koassistant_chatgptviewer.lua:1116
-#: koassistant_chatgptviewer.lua:1539 koassistant_chatgptviewer.lua:1945
+#: koassistant_chat_history_dialog.lua:1668 koassistant_chatgptviewer.lua:1122
+#: koassistant_chatgptviewer.lua:1548 koassistant_chatgptviewer.lua:1954
 #: koassistant_dialogs.lua:1643 koassistant_settings_schema.lua:362
 #: koassistant_settings_schema.lua:596 koassistant_settings_schema.lua:749
 msgid "Copy Content"
@@ -459,38 +463,38 @@ msgstr ""
 msgid "Failed to generate export content"
 msgstr ""
 
-#: koassistant_chat_history_dialog.lua:1761 koassistant_chatgptviewer.lua:3364
+#: koassistant_chat_history_dialog.lua:1761 koassistant_chatgptviewer.lua:3374
 msgid ""
 "Saved to:\n"
 "%1"
 msgstr ""
 
-#: koassistant_chat_history_dialog.lua:1766 koassistant_chatgptviewer.lua:3369
-#: main.lua:8502
+#: koassistant_chat_history_dialog.lua:1766 koassistant_chatgptviewer.lua:3379
+#: main.lua:8791
 msgid "Failed to save: %1"
 msgstr ""
 
-#: koassistant_chat_history_dialog.lua:1783 koassistant_chatgptviewer.lua:3383
+#: koassistant_chat_history_dialog.lua:1783 koassistant_chatgptviewer.lua:3393
 msgid "Copy to Clipboard"
 msgstr ""
 
-#: koassistant_chat_history_dialog.lua:1793 koassistant_chatgptviewer.lua:3392
+#: koassistant_chat_history_dialog.lua:1793 koassistant_chatgptviewer.lua:3402
 msgid "Save to File"
 msgstr ""
 
-#: koassistant_chat_history_dialog.lua:1805 koassistant_chatgptviewer.lua:3403
+#: koassistant_chat_history_dialog.lua:1805 koassistant_chatgptviewer.lua:3413
 msgid "Select Export Directory"
 msgstr ""
 
-#: koassistant_chat_history_dialog.lua:1818 koassistant_chatgptviewer.lua:3416
+#: koassistant_chat_history_dialog.lua:1818 koassistant_chatgptviewer.lua:3426
 msgid "Invalid export directory: %1"
 msgstr ""
 
-#: koassistant_chat_history_dialog.lua:1840 koassistant_chatgptviewer.lua:3437
+#: koassistant_chat_history_dialog.lua:1840 koassistant_chatgptviewer.lua:3447
 msgid "Export Chat"
 msgstr ""
 
-#: koassistant_chat_history_dialog.lua:1882 koassistant_chatgptviewer.lua:3445
+#: koassistant_chat_history_dialog.lua:1882 koassistant_chatgptviewer.lua:3455
 msgid "Export Content"
 msgstr ""
 
@@ -524,9 +528,9 @@ msgstr ""
 msgid "No chats found with this tag"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:443 koassistant_chatgptviewer.lua:1083
-#: koassistant_chatgptviewer.lua:1504 koassistant_chatgptviewer.lua:1910
-#: koassistant_chatgptviewer.lua:2086 koassistant_update_checker.lua:288
+#: koassistant_chatgptviewer.lua:443 koassistant_chatgptviewer.lua:1089
+#: koassistant_chatgptviewer.lua:1513 koassistant_chatgptviewer.lua:1919
+#: koassistant_chatgptviewer.lua:2095 koassistant_update_checker.lua:288
 msgid "Copy"
 msgstr ""
 
@@ -558,17 +562,17 @@ msgstr ""
 msgid "Translation only"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1049 koassistant_chatgptviewer.lua:2404
+#: koassistant_chatgptviewer.lua:1055 koassistant_chatgptviewer.lua:2414
 msgid "Reply"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1066 koassistant_dialogs.lua:720
+#: koassistant_chatgptviewer.lua:1072 koassistant_dialogs.lua:720
 #: koassistant_dialogs.lua:1560
 msgid "Autosaved"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1066 koassistant_dialogs.lua:615 main.lua:2080
-#: main.lua:2775 main.lua:3415 main.lua:3597 main.lua:6919
+#: koassistant_chatgptviewer.lua:1072 koassistant_dialogs.lua:615 main.lua:2089
+#: main.lua:2784 main.lua:3424 main.lua:3606 main.lua:7208
 #: koassistant_ui/behavior_manager.lua:496
 #: koassistant_ui/domain_manager.lua:487
 #: koassistant_ui/prompts_manager.lua:1778
@@ -577,345 +581,346 @@ msgstr ""
 msgid "Save"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1075
+#: koassistant_chatgptviewer.lua:1081
 msgid "Save function not available"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1089
+#: koassistant_chatgptviewer.lua:1095
 msgid "No chat to copy"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1110 koassistant_chatgptviewer.lua:1533
-#: koassistant_chatgptviewer.lua:1939 koassistant_chatgptviewer.lua:3339
+#: koassistant_chatgptviewer.lua:1116 koassistant_chatgptviewer.lua:1542
+#: koassistant_chatgptviewer.lua:1948 koassistant_chatgptviewer.lua:3349
 #: koassistant_dialogs.lua:1605
 msgid "Copied"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1124 koassistant_chatgptviewer.lua:1955
+#: koassistant_chatgptviewer.lua:1130 koassistant_chatgptviewer.lua:1964
 msgid "Save to Note"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1132
+#: koassistant_chatgptviewer.lua:1138
 msgid "Save response as note on highlighted text"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1138
+#: koassistant_chatgptviewer.lua:1144
 msgid "Add to Notebook"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1148
+#: koassistant_chatgptviewer.lua:1154
 msgid "Append chat to per-book notebook file"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1161
+#: koassistant_chatgptviewer.lua:1167
 msgid "Tag function not available"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1168
+#: koassistant_chatgptviewer.lua:1174
 msgid "Add or manage tags for this chat"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1186
+#: koassistant_chatgptviewer.lua:1192
 msgid "Export chat to file or clipboard"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1197
+#: koassistant_chatgptviewer.lua:1203
 msgid "↻ Fresh"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1204
+#: koassistant_chatgptviewer.lua:1210
 msgid "Clear cache and regenerate from scratch (extracts all book text again)"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1226 koassistant_ui/prompts_manager.lua:2123
+#: koassistant_chatgptviewer.lua:1232 koassistant_ui/prompts_manager.lua:2123
 msgid "ON"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1226 koassistant_ui/prompts_manager.lua:2115
+#: koassistant_chatgptviewer.lua:1232 koassistant_ui/prompts_manager.lua:2115
 #: koassistant_ui/prompts_manager.lua:2204
 #: koassistant_ui/prompts_manager.lua:2283
 #: koassistant_ui/prompts_manager.lua:2356
 msgid "OFF"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1257
+#: koassistant_chatgptviewer.lua:1263
 msgid "Toggle web search for this session (Anthropic, Gemini)"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1277 koassistant_chatgptviewer.lua:1496
-#: koassistant_chatgptviewer.lua:1902
+#: koassistant_chatgptviewer.lua:1283 koassistant_chatgptviewer.lua:1505
+#: koassistant_chatgptviewer.lua:1911
 msgid "Toggle between markdown and plain text display"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1292
+#: koassistant_chatgptviewer.lua:1298
 msgid "Toggle debug display in chat viewer"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1299 koassistant_chatgptviewer.lua:3699
+#: koassistant_chatgptviewer.lua:1305 koassistant_chatgptviewer.lua:3710
 msgid "Show Quote"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1299 koassistant_chatgptviewer.lua:3699
+#: koassistant_chatgptviewer.lua:1305 koassistant_chatgptviewer.lua:3710
 msgid "Hide Quote"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1311
+#: koassistant_chatgptviewer.lua:1317
 msgid "Toggle highlighted text display in chat"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1317
+#: koassistant_chatgptviewer.lua:1323
 msgid "Show Reasoning"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1327
+#: koassistant_chatgptviewer.lua:1333
 msgid "View AI reasoning/thinking content (when available)"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1510
+#: koassistant_chatgptviewer.lua:1519
 msgid "No response to copy"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1549
+#: koassistant_chatgptviewer.lua:1558
 msgid "+Note"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1558
+#: koassistant_chatgptviewer.lua:1567
 msgid "Save AI response as note on highlighted word"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1559
+#: koassistant_chatgptviewer.lua:1568
 msgid "No selection data available (word position not captured)"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1567
+#: koassistant_chatgptviewer.lua:1576
 msgid "Wiki"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1578
+#: koassistant_chatgptviewer.lua:1587
 msgid "Wikipedia not available"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1584
+#: koassistant_chatgptviewer.lua:1593
 msgid "No word to look up"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1591
+#: koassistant_chatgptviewer.lua:1600
 msgid "Look up word in Wikipedia"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1602 koassistant_chatgptviewer.lua:1632
+#: koassistant_chatgptviewer.lua:1611 koassistant_chatgptviewer.lua:1641
 msgid "Added"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1607
+#: koassistant_chatgptviewer.lua:1616
 msgid "Word added to vocabulary builder"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1614
+#: koassistant_chatgptviewer.lua:1623
 msgid "+Vocab"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1622 main.lua:6107
+#: koassistant_chatgptviewer.lua:1631 main.lua:6396
 msgid "AI Dictionary lookup"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1627
+#: koassistant_chatgptviewer.lua:1636
 msgid "Added '%1' to vocabulary"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1640
+#: koassistant_chatgptviewer.lua:1649
 msgid "Vocabulary builder not available"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1648
+#: koassistant_chatgptviewer.lua:1657
 msgid "Add word to vocabulary builder"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1657
+#: koassistant_chatgptviewer.lua:1666
 msgid "Expand"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1664
+#: koassistant_chatgptviewer.lua:1673
 msgid "Open in full-size viewer with all options"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1674 koassistant_chatgptviewer.lua:2007
+#: koassistant_chatgptviewer.lua:1683 koassistant_chatgptviewer.lua:2016
 #: koassistant_settings_schema.lua:996
 msgid "Language"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1683 koassistant_chatgptviewer.lua:2016
+#: koassistant_chatgptviewer.lua:1692 koassistant_chatgptviewer.lua:2025
 msgid "Configure languages in Settings first"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1724 koassistant_settings_schema.lua:1010
-#: main.lua:4944 main.lua:5722
+#: koassistant_chatgptviewer.lua:1733 koassistant_settings_schema.lua:1010
+#: main.lua:5249 main.lua:6011
 msgid "Dictionary Language"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1731
+#: koassistant_chatgptviewer.lua:1740
 msgid "Re-run with a different dictionary language"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1743
+#: koassistant_chatgptviewer.lua:1752
 msgid "Ctx: ON"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1743
+#: koassistant_chatgptviewer.lua:1752
 msgid "Ctx: OFF"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1786
+#: koassistant_chatgptviewer.lua:1795
 msgid "Re-run without surrounding context"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1786
+#: koassistant_chatgptviewer.lua:1795
 msgid "Re-run with surrounding context"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1861
+#: koassistant_chatgptviewer.lua:1870
 msgid "Dictionary Action"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1869
+#: koassistant_chatgptviewer.lua:1878
 msgid "Switch to a different dictionary action"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1870
+#: koassistant_chatgptviewer.lua:1879
 msgid "No other dictionary actions available"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1916
+#: koassistant_chatgptviewer.lua:1925
 msgid "No translation to copy"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1963
+#: koassistant_chatgptviewer.lua:1972
 msgid "Save translation as note on highlighted text"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1971
+#: koassistant_chatgptviewer.lua:1980
 msgid "→ Chat"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1978
+#: koassistant_chatgptviewer.lua:1987
 msgid "Open full chat with all options"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1988 koassistant_chatgptviewer.lua:3590
+#: koassistant_chatgptviewer.lua:1997 koassistant_chatgptviewer.lua:3601
 msgid "Show Original"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1988 koassistant_chatgptviewer.lua:3590
+#: koassistant_chatgptviewer.lua:1997 koassistant_chatgptviewer.lua:3601
 msgid "Hide Original"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1997
+#: koassistant_chatgptviewer.lua:2006
 msgid "Show the original text"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:1997
+#: koassistant_chatgptviewer.lua:2006
 msgid "Hide the original text"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:2059
+#: koassistant_chatgptviewer.lua:2068
 msgid "Translate To"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:2066
+#: koassistant_chatgptviewer.lua:2075
 msgid "Re-run translation with a different target language"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:2099
+#: koassistant_chatgptviewer.lua:2109
 msgid "Copied to clipboard"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:2172
+#: koassistant_chatgptviewer.lua:2182
 msgid "Open in Reader"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:2181 koassistant_notebook_manager.lua:139
+#: koassistant_chatgptviewer.lua:2191 koassistant_notebook_manager.lua:139
 #: koassistant_ui/behavior_manager.lua:304
 #: koassistant_ui/domain_manager.lua:306
 msgid "Edit"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:2193 koassistant_chatgptviewer.lua:2199
+#: koassistant_chatgptviewer.lua:2203 koassistant_chatgptviewer.lua:2209
 msgid "Regenerate"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:2198
+#: koassistant_chatgptviewer.lua:2208
 msgid ""
-"Regenerate this summary?\n"
+"Regenerate this %1?\n"
 "\n"
-"The current summary will be replaced."
+"The current %1 will be replaced."
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:2216
-msgid ""
-"Delete this summary?\n"
-"\n"
-"You can regenerate it later."
+#: koassistant_chatgptviewer.lua:2208 koassistant_chatgptviewer.lua:2226
+msgid "summary"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:2407
+#: koassistant_chatgptviewer.lua:2226
+msgid "Delete this %1?"
+msgstr ""
+
+#: koassistant_chatgptviewer.lua:2417
 msgid "Type your reply..."
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:2432
+#: koassistant_chatgptviewer.lua:2442
 msgid "Send"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:2836 koassistant_xray_browser.lua:195
+#: koassistant_chatgptviewer.lua:2846 koassistant_xray_browser.lua:195
 msgid "Copied to clipboard."
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:3059
+#: koassistant_chatgptviewer.lua:3069
 msgid "No highlight selection data available"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:3070 main.lua:5570
+#: koassistant_chatgptviewer.lua:3080 main.lua:5859
 msgid "No document open"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:3079 koassistant_chatgptviewer.lua:3118
-#: koassistant_chatgptviewer.lua:3174
+#: koassistant_chatgptviewer.lua:3089 koassistant_chatgptviewer.lua:3128
+#: koassistant_chatgptviewer.lua:3184
 msgid "No response to save"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:3141
+#: koassistant_chatgptviewer.lua:3151
 msgid "Failed to create highlight"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:3152 koassistant_settings_schema.lua:377
+#: koassistant_chatgptviewer.lua:3162 koassistant_settings_schema.lua:377
 #: koassistant_settings_schema.lua:612 koassistant_settings_schema.lua:765
 msgid "Note Content"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:3165
+#: koassistant_chatgptviewer.lua:3175
 msgid "Notebooks are only available for single-book chats"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:3204
+#: koassistant_chatgptviewer.lua:3214
 msgid "Saved to notebook"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:3209
+#: koassistant_chatgptviewer.lua:3219
 msgid "Failed to save: "
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:3220
+#: koassistant_chatgptviewer.lua:3230
 msgid "No cached action to clear"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:3229
+#: koassistant_chatgptviewer.lua:3239
 msgid "Cache only applies to book actions"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:3241
+#: koassistant_chatgptviewer.lua:3251
 msgid "Regenerate Fresh"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:3242
+#: koassistant_chatgptviewer.lua:3252
 msgid ""
 "This response was updated from a cached analysis at %1.\n"
 "\n"
@@ -925,120 +930,120 @@ msgid ""
 "Clear cache for this action?"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:3252
+#: koassistant_chatgptviewer.lua:3262
 msgid "Clear & Close"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:3261
+#: koassistant_chatgptviewer.lua:3271
 msgid "Cache cleared. Run the action again for fresh analysis."
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:3268
+#: koassistant_chatgptviewer.lua:3278
 msgid "Failed to clear cache"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:3274
+#: koassistant_chatgptviewer.lua:3284
 msgid "Cache module not available"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:3291
+#: koassistant_chatgptviewer.lua:3301
 msgid "No chat to export"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:3351
+#: koassistant_chatgptviewer.lua:3361
 msgid "No content to export"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:3459
+#: koassistant_chatgptviewer.lua:3469
 msgid "No export metadata available."
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:3482 main.lua:8425
+#: koassistant_chatgptviewer.lua:3492 main.lua:8714
 msgid "Select export folder"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:3506 main.lua:8447
+#: koassistant_chatgptviewer.lua:3517 main.lua:8736
 msgid "Saved to %1"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:3511 main.lua:8452
+#: koassistant_chatgptviewer.lua:3522 main.lua:8741
 msgid "Export failed: %1"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:3654
+#: koassistant_chatgptviewer.lua:3665
 msgid "Showing debug info"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:3654
+#: koassistant_chatgptviewer.lua:3665
 msgid "Debug info hidden"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:3704
+#: koassistant_chatgptviewer.lua:3715
 msgid "Quote hidden"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:3704
+#: koassistant_chatgptviewer.lua:3715
 msgid "Quote shown"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:3728
+#: koassistant_chatgptviewer.lua:3739
 msgid "No conversation history available"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:3737
+#: koassistant_chatgptviewer.lua:3748
 msgid "No reasoning content available"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:3766
+#: koassistant_chatgptviewer.lua:3777
 msgid "AI Reasoning"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:3766
+#: koassistant_chatgptviewer.lua:3777
 msgid "Reasoning Status"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:3878
+#: koassistant_chatgptviewer.lua:3889
 msgid "Justified"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:3879
+#: koassistant_chatgptviewer.lua:3890
 msgid "Right (RTL)"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:3880
+#: koassistant_chatgptviewer.lua:3891
 msgid "Left"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:3888
+#: koassistant_chatgptviewer.lua:3899
 msgid "Chat Viewer Settings"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:3892 koassistant_chatgptviewer.lua:3954
+#: koassistant_chatgptviewer.lua:3903 koassistant_chatgptviewer.lua:3965
 msgid "Font Size"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:3901
+#: koassistant_chatgptviewer.lua:3912
 msgid "Alignment"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:3920
+#: koassistant_chatgptviewer.lua:3931
 msgid "Alignment: %1"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:3931 koassistant_settings_schema.lua:1490
+#: koassistant_chatgptviewer.lua:3942 koassistant_settings_schema.lua:1490
 msgid "Reset to Defaults"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:3960 main.lua:4859
+#: koassistant_chatgptviewer.lua:3971 main.lua:5164
 #: koassistant_ui/settings_manager.lua:317
 msgid "Set"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:3976
+#: koassistant_chatgptviewer.lua:3987
 msgid "Font size set to %1"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:4003 main.lua:6740
+#: koassistant_chatgptviewer.lua:4014 main.lua:7029
 msgid "Settings reset to defaults"
 msgstr ""
 
@@ -1055,29 +1060,29 @@ msgid "Edit Notebook"
 msgstr ""
 
 #: koassistant_constants.lua:124 koassistant_settings_schema.lua:912
-#: koassistant_settings_schema.lua:1052 main.lua:5022
+#: koassistant_settings_schema.lua:1052 main.lua:5327
 msgid "Continue Last Chat"
 msgstr ""
 
 #: koassistant_constants.lua:125 koassistant_settings_schema.lua:913
-#: koassistant_settings_schema.lua:1059 main.lua:5034
+#: koassistant_settings_schema.lua:1059 main.lua:5339
 msgid "New Book Chat/Action"
 msgstr ""
 
 #: koassistant_constants.lua:126 koassistant_settings_schema.lua:41
 #: koassistant_settings_schema.lua:914 koassistant_settings_schema.lua:1045
-#: main.lua:5010
+#: main.lua:5315
 msgid "General Chat/Action"
 msgstr ""
 
-#: koassistant_constants.lua:128 koassistant_dialogs.lua:2919
-#: koassistant_dialogs.lua:2942 koassistant_settings_schema.lua:916
-#: main.lua:369 main.lua:397 main.lua:4035
+#: koassistant_constants.lua:128 koassistant_dialogs.lua:2964
+#: koassistant_dialogs.lua:2987 koassistant_settings_schema.lua:916
+#: main.lua:369 main.lua:397 main.lua:4044 main.lua:5497
 msgid "View Artifacts"
 msgstr ""
 
 #: koassistant_constants.lua:129 koassistant_settings_schema.lua:917
-#: main.lua:5102
+#: main.lua:5407
 msgid "Quick Settings"
 msgstr ""
 
@@ -1128,7 +1133,7 @@ msgstr ""
 msgid "Could not find summary action. Please try again."
 msgstr ""
 
-#: koassistant_dialogs.lua:1866 main.lua:4317
+#: koassistant_dialogs.lua:1866 main.lua:4422
 msgid "Generating document summary..."
 msgstr ""
 
@@ -1146,110 +1151,124 @@ msgid ""
 "• Coverage shown in cache viewer"
 msgstr ""
 
-#: koassistant_dialogs.lua:1942 main.lua:4340
+#: koassistant_dialogs.lua:1942 main.lua:4445
 msgid "Generate"
 msgstr ""
 
-#: koassistant_dialogs.lua:2200
+#: koassistant_dialogs.lua:2207
 msgid ""
 "Book text truncated (covers %1 %–%2 %). Increase limit in Advanced Settings."
 msgstr ""
 
-#: koassistant_dialogs.lua:2211
+#: koassistant_dialogs.lua:2218
 msgid ""
 "Full document text truncated (covers %1 %–%2 %). Increase limit in Advanced "
 "Settings."
 msgstr ""
 
-#: koassistant_dialogs.lua:2298
+#: koassistant_dialogs.lua:2307
 msgid ""
 "New content truncated (covers %1 %–%2 %). Increase limit in Advanced "
 "Settings."
 msgstr ""
 
-#: koassistant_dialogs.lua:2590 koassistant_dialogs.lua:2654
-#: koassistant_settings_schema.lua:564 main.lua:3532 main.lua:4736
-#: main.lua:5423 koassistant_ui/prompts_manager.lua:1518
+#: koassistant_dialogs.lua:2624 koassistant_dialogs.lua:2688
+#: koassistant_settings_schema.lua:564 main.lua:3541 main.lua:5041
+#: main.lua:5712 koassistant_ui/prompts_manager.lua:1518
 #: koassistant_ui/prompts_manager.lua:2677
 #: koassistant_ui/prompts_manager.lua:3395
 msgid "None"
 msgstr ""
 
-#: koassistant_dialogs.lua:2645
+#: koassistant_dialogs.lua:2679
 msgid "Select Domain"
 msgstr ""
 
-#: koassistant_dialogs.lua:2683
+#: koassistant_dialogs.lua:2717
 msgid "Domain: "
 msgstr ""
 
-#: koassistant_dialogs.lua:2690
+#: koassistant_dialogs.lua:2724
 msgid "Ask"
 msgstr ""
 
-#: koassistant_dialogs.lua:2798
+#: koassistant_dialogs.lua:2832
 msgid "Chat"
 msgstr ""
 
-#: koassistant_dialogs.lua:2802 koassistant_dialogs.lua:3171
+#: koassistant_dialogs.lua:2836 koassistant_dialogs.lua:3250
 msgid "Error: "
 msgstr ""
 
-#: koassistant_dialogs.lua:2867
+#: koassistant_dialogs.lua:2903
 msgid "Error handling prompt: "
 msgstr ""
 
-#: koassistant_dialogs.lua:2901 main.lua:360 main.lua:3989 main.lua:4197
+#: koassistant_dialogs.lua:2946 main.lua:360 main.lua:3998 main.lua:4301
+#: main.lua:4530
 msgid "Summary"
 msgstr ""
 
-#: koassistant_dialogs.lua:2905 main.lua:364 main.lua:3997 main.lua:5211
+#: koassistant_dialogs.lua:2950 main.lua:364 main.lua:4006 main.lua:4526
 msgid "Analysis"
 msgstr ""
 
-#: koassistant_dialogs.lua:2911 koassistant_notebook_manager.lua:124
+#: koassistant_dialogs.lua:2956 koassistant_notebook_manager.lua:124
+#: main.lua:369
 msgid "View"
 msgstr ""
 
-#: koassistant_dialogs.lua:2975
+#: koassistant_dialogs.lua:3020
 msgid "KOAssistant Actions"
 msgstr ""
 
-#: koassistant_dialogs.lua:2977
+#: koassistant_dialogs.lua:3022
 msgid "Type your question or additional instructions for any action..."
 msgstr ""
 
-#: koassistant_dialogs.lua:3035
+#: koassistant_dialogs.lua:3080
 msgid "Unknown prompt type: "
 msgstr ""
 
-#: koassistant_dialogs.lua:3061
+#: koassistant_dialogs.lua:3106
 msgid "Error: No action specified"
 msgstr ""
 
-#: koassistant_dialogs.lua:3145 main.lua:4112
+#: koassistant_dialogs.lua:3194 main.lua:4088
+msgid "Based on AI training data knowledge"
+msgstr ""
+
+#: koassistant_dialogs.lua:3195 main.lua:4090
+msgid "Based on extracted document text"
+msgstr ""
+
+#: koassistant_dialogs.lua:3197 main.lua:4059
+msgid "today"
+msgstr ""
+
+#: koassistant_dialogs.lua:3224 main.lua:4199 main.lua:4584
 msgid "%1 deleted"
 msgstr ""
 
-#: koassistant_dialogs.lua:3209
+#: koassistant_dialogs.lua:3288
 msgid "Failed to extract document text"
 msgstr ""
 
-#: koassistant_dialogs.lua:3229
+#: koassistant_dialogs.lua:3308
 msgid ""
 "Text extraction is disabled.\n"
 "\n"
 "Enable it in Settings → Privacy & Data → Text Extraction."
 msgstr ""
 
-#: koassistant_dialogs.lua:3230
+#: koassistant_dialogs.lua:3309
 msgid ""
 "No document text could be extracted.\n"
 "\n"
 "This document may not support text extraction."
 msgstr ""
 
-#: koassistant_dialogs.lua:3310
+#: koassistant_dialogs.lua:3393
 msgid "Failed to generate summary"
 msgstr ""
 
@@ -1285,7 +1304,7 @@ msgid "Chat about Book"
 msgstr ""
 
 #: koassistant_settings_schema.lua:55 koassistant_settings_schema.lua:1038
-#: main.lua:4998
+#: main.lua:5303
 msgid "Browse Notebooks"
 msgstr ""
 
@@ -1293,15 +1312,15 @@ msgstr ""
 msgid "Reading Features"
 msgstr ""
 
-#: koassistant_settings_schema.lua:83 main.lua:1828 main.lua:4797
+#: koassistant_settings_schema.lua:83 main.lua:1837 main.lua:5102
 msgid "Provider: %1"
 msgstr ""
 
-#: koassistant_settings_schema.lua:92 main.lua:2401 main.lua:4810
+#: koassistant_settings_schema.lua:92 main.lua:2410 main.lua:5115
 msgid "Model: %1"
 msgstr ""
 
-#: koassistant_settings_schema.lua:99 main.lua:7292 main.lua:7422
+#: koassistant_settings_schema.lua:99 main.lua:7581 main.lua:7711
 msgid "API Keys"
 msgstr ""
 
@@ -1631,15 +1650,15 @@ msgstr ""
 msgid "Response Language: %1"
 msgstr ""
 
-#: koassistant_settings_schema.lua:561 main.lua:3529
+#: koassistant_settings_schema.lua:561 main.lua:3538
 msgid "Sentence"
 msgstr ""
 
-#: koassistant_settings_schema.lua:562 main.lua:3530
+#: koassistant_settings_schema.lua:562 main.lua:3539
 msgid "Paragraph"
 msgstr ""
 
-#: koassistant_settings_schema.lua:563 main.lua:3531
+#: koassistant_settings_schema.lua:563 main.lua:3540
 msgid "Characters"
 msgstr ""
 
@@ -1884,11 +1903,11 @@ msgstr ""
 msgid "Show or hide controls in the Quick Settings panel"
 msgstr ""
 
-#: koassistant_settings_schema.lua:947 main.lua:4650 main.lua:4802
+#: koassistant_settings_schema.lua:947 main.lua:4955 main.lua:5107
 msgid "Provider"
 msgstr ""
 
-#: koassistant_settings_schema.lua:954 main.lua:4656 main.lua:4815
+#: koassistant_settings_schema.lua:954 main.lua:4961 main.lua:5120
 msgid "Model"
 msgstr ""
 
@@ -1901,7 +1920,7 @@ msgid "Domain"
 msgstr ""
 
 #: koassistant_settings_schema.lua:975 koassistant_settings_schema.lua:1551
-#: main.lua:4860 koassistant_ui/prompts_manager.lua:722
+#: main.lua:5165 koassistant_ui/prompts_manager.lua:722
 #: koassistant_ui/prompts_manager.lua:1841
 #: koassistant_ui/prompts_manager.lua:3052
 msgid "Temperature"
@@ -1917,7 +1936,7 @@ msgstr ""
 msgid "Web Search"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1003 main.lua:4644 main.lua:4931
+#: koassistant_settings_schema.lua:1003 main.lua:4949 main.lua:5236
 #: koassistant_ui/prompts_manager.lua:4038
 msgid "Translation Language"
 msgstr ""
@@ -1931,11 +1950,11 @@ msgid "D.Bypass"
 msgstr ""
 
 #: koassistant_settings_schema.lua:1066 koassistant_settings_schema.lua:1101
-#: main.lua:5046 koassistant_ui/prompts_manager.lua:501
+#: main.lua:5351 koassistant_ui/prompts_manager.lua:501
 msgid "Manage Actions"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1073 main.lua:5250
+#: koassistant_settings_schema.lua:1073 main.lua:5539
 msgid "Quick Actions"
 msgstr ""
 
@@ -2027,11 +2046,11 @@ msgstr ""
 msgid "Privacy & Data"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1204 main.lua:6942
+#: koassistant_settings_schema.lua:1204 main.lua:7231
 msgid "Trusted Providers: None"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1206 main.lua:6944
+#: koassistant_settings_schema.lua:1206 main.lua:7233
 msgid "Trusted Providers: %1"
 msgstr ""
 
@@ -2163,7 +2182,7 @@ msgid ""
 "Default: 500 (~1M characters)."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1338 main.lua:5350
+#: koassistant_settings_schema.lua:1338 main.lua:5639
 msgid "Clear Action Cache"
 msgstr ""
 
@@ -2595,7 +2614,7 @@ msgstr ""
 msgid "Settings Management"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1808 main.lua:7238
+#: koassistant_settings_schema.lua:1808 main.lua:7527
 msgid "Create Backup"
 msgstr ""
 
@@ -2776,7 +2795,7 @@ msgid ""
 msgstr ""
 
 #: koassistant_update_checker.lua:635 koassistant_update_checker.lua:726
-#: main.lua:7917
+#: main.lua:8206
 msgid "Later"
 msgstr ""
 
@@ -2804,7 +2823,7 @@ msgstr ""
 msgid "Translation failed: %1"
 msgstr ""
 
-#: koassistant_update_checker.lua:695 main.lua:7331 main.lua:7706 main.lua:7846
+#: koassistant_update_checker.lua:695 main.lua:7620 main.lua:7995 main.lua:8135
 msgid "Unknown error"
 msgstr ""
 
@@ -2883,7 +2902,7 @@ msgstr ""
 msgid "Chapter Characters"
 msgstr ""
 
-#: koassistant_xray_browser.lua:325 koassistant_xray_browser.lua:625
+#: koassistant_xray_browser.lua:325 koassistant_xray_browser.lua:628
 msgid "Search"
 msgstr ""
 
@@ -2907,88 +2926,97 @@ msgstr ""
 msgid "Details"
 msgstr ""
 
-#: koassistant_xray_browser.lua:537
+#: koassistant_xray_browser.lua:540
 msgid "No book open."
 msgstr ""
 
-#: koassistant_xray_browser.lua:545
+#: koassistant_xray_browser.lua:548
 msgid "Analyzing chapter..."
 msgstr ""
 
-#: koassistant_xray_browser.lua:556
+#: koassistant_xray_browser.lua:559
 msgid "Could not extract chapter text."
 msgstr ""
 
-#: koassistant_xray_browser.lua:566
+#: koassistant_xray_browser.lua:569
 msgid "No known characters found in \"%1\"."
 msgstr ""
 
-#: koassistant_xray_browser.lua:567
+#: koassistant_xray_browser.lua:570
 msgid "No known characters found in current chapter."
 msgstr ""
 
-#: koassistant_xray_browser.lua:585
+#: koassistant_xray_browser.lua:588
 #, lua-format
 msgid "%1x"
 msgstr ""
 
-#: koassistant_xray_browser.lua:597
+#: koassistant_xray_browser.lua:600
 msgid "%1 — %2 characters"
 msgstr ""
 
-#: koassistant_xray_browser.lua:599
+#: koassistant_xray_browser.lua:602
 msgid "This Chapter — %1 characters"
 msgstr ""
 
-#: koassistant_xray_browser.lua:612
+#: koassistant_xray_browser.lua:615
 msgid "Search X-Ray"
 msgstr ""
 
-#: koassistant_xray_browser.lua:614
+#: koassistant_xray_browser.lua:617
 msgid "Name, term, description..."
 msgstr ""
 
-#: koassistant_xray_browser.lua:649
+#: koassistant_xray_browser.lua:652
 msgid "No results for \"%1\"."
 msgstr ""
 
-#: koassistant_xray_browser.lua:663
+#: koassistant_xray_browser.lua:666
 msgid "alias"
 msgstr ""
 
-#: koassistant_xray_browser.lua:665
+#: koassistant_xray_browser.lua:668
 msgid "desc."
 msgstr ""
 
-#: koassistant_xray_browser.lua:680
+#: koassistant_xray_browser.lua:683
 msgid "Results for \"%1\" (%2)"
 msgstr ""
 
-#: koassistant_xray_browser.lua:725
+#: koassistant_xray_browser.lua:711 koassistant_xray_browser.lua:791
+#: main.lua:4144 main.lua:4562
+msgid "updated from"
+msgstr ""
+
+#: koassistant_xray_browser.lua:761
 msgid "Delete X-Ray"
 msgstr ""
 
-#: koassistant_xray_browser.lua:734
+#: koassistant_xray_browser.lua:770
 msgid "Delete this X-Ray? This cannot be undone."
 msgstr ""
 
-#: koassistant_xray_browser.lua:753
+#: koassistant_xray_browser.lua:793
 msgid "Progress:"
 msgstr ""
 
-#: koassistant_xray_browser.lua:758
+#: koassistant_xray_browser.lua:800
 msgid "Fiction"
 msgstr ""
 
-#: koassistant_xray_browser.lua:758
+#: koassistant_xray_browser.lua:800
 msgid "Non-Fiction"
 msgstr ""
 
-#: koassistant_xray_browser.lua:759
+#: koassistant_xray_browser.lua:801
 msgid "Type:"
 msgstr ""
 
-#: koassistant_xray_browser.lua:763 main.lua:7793
+#: koassistant_xray_browser.lua:803
+msgid "Source:"
+msgstr ""
+
+#: koassistant_xray_browser.lua:808 main.lua:8082
 #: koassistant_ui/prompts_manager.lua:1458
 #: koassistant_ui/prompts_manager.lua:1923
 msgid "Info"
@@ -3082,511 +3110,511 @@ msgstr ""
 msgid "Chat/Action"
 msgstr ""
 
-#: main.lua:314 main.lua:8396
+#: main.lua:314 main.lua:8685
 msgid "Notebook"
 msgstr ""
 
-#: main.lua:439 main.lua:882
+#: main.lua:439 main.lua:891
 msgid "Compare with KOAssistant"
 msgstr ""
 
-#: main.lua:735 main.lua:906
+#: main.lua:739 main.lua:915
 msgid "No files selected for comparison"
 msgstr ""
 
-#: main.lua:818
+#: main.lua:827
 msgid "Please select at least 2 books to compare"
 msgstr ""
 
-#: main.lua:926
+#: main.lua:935
 msgid "KOAssistant: Chat History"
 msgstr ""
 
-#: main.lua:934
+#: main.lua:943
 msgid "KOAssistant: Continue Last Saved Chat"
 msgstr ""
 
-#: main.lua:942
+#: main.lua:951
 msgid "KOAssistant: Continue Last Opened Chat"
 msgstr ""
 
-#: main.lua:951
+#: main.lua:960
 msgid "KOAssistant: Settings"
 msgstr ""
 
-#: main.lua:959
+#: main.lua:968
 msgid "KOAssistant: General Chat/Action"
 msgstr ""
 
-#: main.lua:967
+#: main.lua:976
 msgid "KOAssistant: New Book Chat/Action"
 msgstr ""
 
-#: main.lua:984
+#: main.lua:993
 msgid "KOAssistant: %1"
 msgstr ""
 
-#: main.lua:994
+#: main.lua:1003
 msgid "KOAssistant: Change Primary Language"
 msgstr ""
 
-#: main.lua:1001
+#: main.lua:1010
 msgid "KOAssistant: Change Translation Language"
 msgstr ""
 
-#: main.lua:1008
+#: main.lua:1017
 msgid "KOAssistant: Change Provider"
 msgstr ""
 
-#: main.lua:1015
+#: main.lua:1024
 msgid "KOAssistant: Change Model"
 msgstr ""
 
-#: main.lua:1022
+#: main.lua:1031
 msgid "KOAssistant: Change AI Behavior"
 msgstr ""
 
-#: main.lua:1029
+#: main.lua:1038
 msgid "KOAssistant: Quick Settings"
 msgstr ""
 
-#: main.lua:1037
+#: main.lua:1046
 msgid "KOAssistant: Quick Actions"
 msgstr ""
 
-#: main.lua:1045
+#: main.lua:1054
 msgid "KOAssistant: Action Manager"
 msgstr ""
 
-#: main.lua:1052
+#: main.lua:1061
 msgid "KOAssistant: Behavior Manager"
 msgstr ""
 
-#: main.lua:1059
+#: main.lua:1068
 msgid "KOAssistant: Domain Manager"
 msgstr ""
 
-#: main.lua:1066
+#: main.lua:1075
 msgid "KOAssistant: Change Domain"
 msgstr ""
 
-#: main.lua:1074
+#: main.lua:1083
 msgid "KOAssistant: Dictionary Popup Manager"
 msgstr ""
 
-#: main.lua:1081
+#: main.lua:1090
 msgid "KOAssistant: Change Dictionary Language"
 msgstr ""
 
-#: main.lua:1088
+#: main.lua:1097
 msgid "KOAssistant: Toggle Dictionary Bypass"
 msgstr ""
 
-#: main.lua:1096
+#: main.lua:1105
 msgid "KOAssistant: Toggle Highlight Bypass"
 msgstr ""
 
-#: main.lua:1104
+#: main.lua:1113
 msgid "KOAssistant: Translate Current Page"
 msgstr ""
 
-#: main.lua:1115
+#: main.lua:1124
 msgid "KOAssistant: View Notebook"
 msgstr ""
 
-#: main.lua:1124
+#: main.lua:1133
 msgid "KOAssistant: Edit Notebook"
 msgstr ""
 
-#: main.lua:1133
+#: main.lua:1142
 msgid "KOAssistant: Browse Notebooks"
 msgstr ""
 
-#: main.lua:1141
+#: main.lua:1150
 msgid "KOAssistant: View Summary"
 msgstr ""
 
-#: main.lua:1149
+#: main.lua:1158
 msgid "KOAssistant: View Artifacts"
 msgstr ""
 
-#: main.lua:1174
+#: main.lua:1183
 msgid "KOAssistant: "
 msgstr ""
 
-#: main.lua:1294
+#: main.lua:1303
 msgid "Custom (migrated)"
 msgstr ""
 
-#: main.lua:1499
+#: main.lua:1508
 msgid "Model already exists"
 msgstr ""
 
-#: main.lua:1629 main.lua:2089
+#: main.lua:1638 main.lua:2098
 msgid "Provider name is required"
 msgstr ""
 
-#: main.lua:1632 main.lua:2097
+#: main.lua:1641 main.lua:2106
 msgid "Base URL is required"
 msgstr ""
 
-#: main.lua:1641
+#: main.lua:1650
 msgid "A provider with this name already exists"
 msgstr ""
 
-#: main.lua:1893
+#: main.lua:1902
 msgid "Add custom provider..."
 msgstr ""
 
-#: main.lua:1903
+#: main.lua:1912
 msgid "Manage custom providers (%1)..."
 msgstr ""
 
-#: main.lua:1924
+#: main.lua:1933
 msgid "API key: Required [tap to toggle]"
 msgstr ""
 
-#: main.lua:1926
+#: main.lua:1935
 msgid "API key: Not required [tap to toggle]"
 msgstr ""
 
-#: main.lua:1931
+#: main.lua:1940
 msgid "Edit provider..."
 msgstr ""
 
-#: main.lua:1945
+#: main.lua:1954
 msgid "required"
 msgstr ""
 
-#: main.lua:1945
+#: main.lua:1954
 msgid "not required"
 msgstr ""
 
-#: main.lua:1947
+#: main.lua:1956
 msgid "API key: %1"
 msgstr ""
 
-#: main.lua:1953
+#: main.lua:1962
 msgid "Remove provider"
 msgstr ""
 
-#: main.lua:1957
+#: main.lua:1966
 msgid ""
 "Remove custom provider '%1'?\n"
 "\n"
 "This will also remove any custom models and API key for this provider."
 msgstr ""
 
-#: main.lua:1961 main.lua:2300 main.lua:2533
+#: main.lua:1970 main.lua:2309 main.lua:2542
 msgid "Removed: %1"
 msgstr ""
 
-#: main.lua:1989
+#: main.lua:1998
 msgid "Add Custom Provider"
 msgstr ""
 
-#: main.lua:1993
+#: main.lua:2002
 msgid "Provider name (e.g., LM Studio)"
 msgstr ""
 
-#: main.lua:1997
+#: main.lua:2006
 msgid "Base URL (e.g., http://localhost:1234/v1/chat/completions)"
 msgstr ""
 
-#: main.lua:2001 main.lua:2067
+#: main.lua:2010 main.lua:2076
 msgid "Default model name (optional)"
 msgstr ""
 
-#: main.lua:2031
+#: main.lua:2040
 msgid "Added provider: %1"
 msgstr ""
 
-#: main.lua:2055 main.lua:2144
+#: main.lua:2064 main.lua:2153
 msgid "Edit: %1"
 msgstr ""
 
-#: main.lua:2059
+#: main.lua:2068
 msgid "Provider name"
 msgstr ""
 
-#: main.lua:2063
+#: main.lua:2072
 msgid "Base URL"
 msgstr ""
 
-#: main.lua:2111 koassistant_ui/behavior_manager.lua:519
+#: main.lua:2120 koassistant_ui/behavior_manager.lua:519
 #: koassistant_ui/domain_manager.lua:510
 msgid "Updated: %1"
 msgstr ""
 
-#: main.lua:2130
+#: main.lua:2139
 msgid "No custom providers to manage"
 msgstr ""
 
-#: main.lua:2159
+#: main.lua:2168
 msgid "Remove all (%1)"
 msgstr ""
 
-#: main.lua:2163
+#: main.lua:2172
 msgid ""
 "Remove all %1 custom provider(s)?\n"
 "\n"
 "This will also remove their custom models and API keys."
 msgstr ""
 
-#: main.lua:2192
+#: main.lua:2201
 msgid "All custom providers removed"
 msgstr ""
 
-#: main.lua:2208
+#: main.lua:2217
 msgid "Manage Custom Providers"
 msgstr ""
 
-#: main.lua:2261
+#: main.lua:2270
 msgid "Set as default for %1"
 msgstr ""
 
-#: main.lua:2266
+#: main.lua:2275
 msgid "Default for %1: %2"
 msgstr ""
 
-#: main.lua:2276
+#: main.lua:2285
 msgid "Clear custom default"
 msgstr ""
 
-#: main.lua:2281
+#: main.lua:2290
 msgid "Cleared custom default for %1"
 msgstr ""
 
-#: main.lua:2291
+#: main.lua:2300
 msgid "Remove custom model"
 msgstr ""
 
-#: main.lua:2296 main.lua:2529
+#: main.lua:2305 main.lua:2538
 msgid "Remove custom model '%1'?"
 msgstr ""
 
-#: main.lua:2339 main.lua:2345 main.lua:3286
+#: main.lua:2348 main.lua:2354 main.lua:3295
 msgid "(default)"
 msgstr ""
 
-#: main.lua:2342
+#: main.lua:2351
 msgid "(your default)"
 msgstr ""
 
-#: main.lua:2348
+#: main.lua:2357
 msgid "(system default)"
 msgstr ""
 
-#: main.lua:2357
+#: main.lua:2366
 msgid "Hold to manage. ★ = custom"
 msgstr ""
 
-#: main.lua:2420
+#: main.lua:2429
 msgid "Add custom model..."
 msgstr ""
 
-#: main.lua:2428
+#: main.lua:2437
 msgid "Add Custom Model"
 msgstr ""
 
-#: main.lua:2430
+#: main.lua:2439
 msgid "e.g., claude-3-opus-20240229"
 msgstr ""
 
-#: main.lua:2431
+#: main.lua:2440
 msgid "Enter the exact model identifier. It will be saved and selected."
 msgstr ""
 
-#: main.lua:2456 main.lua:2943
+#: main.lua:2465 main.lua:2952
 msgid "Added: %1"
 msgstr ""
 
-#: main.lua:2461
+#: main.lua:2470
 msgid "Failed to add model"
 msgstr ""
 
-#: main.lua:2481
+#: main.lua:2490
 msgid "Manage custom models (%1)..."
 msgstr ""
 
-#: main.lua:2496
+#: main.lua:2505
 msgid "No predefined models"
 msgstr ""
 
-#: main.lua:2511
+#: main.lua:2520
 msgid "No custom models to manage"
 msgstr ""
 
-#: main.lua:2525
+#: main.lua:2534
 msgid "Remove: %1"
 msgstr ""
 
-#: main.lua:2544
+#: main.lua:2553
 msgid "Clear all custom models"
 msgstr ""
 
-#: main.lua:2548
+#: main.lua:2557
 msgid "Remove all %1 custom model(s) for %2?"
 msgstr ""
 
-#: main.lua:2569
+#: main.lua:2578
 msgid "All custom models cleared"
 msgstr ""
 
-#: main.lua:2586
+#: main.lua:2595
 msgid "Custom Models for %1"
 msgstr ""
 
-#: main.lua:2733
+#: main.lua:2742
 msgid "Current: %1"
 msgstr ""
 
-#: main.lua:2735
+#: main.lua:2744
 msgid "Using key from apikeys.lua"
 msgstr ""
 
-#: main.lua:2737
+#: main.lua:2746
 msgid "Optional - leave empty for local servers"
 msgstr ""
 
-#: main.lua:2739
+#: main.lua:2748
 msgid "Enter API key..."
 msgstr ""
 
-#: main.lua:2745
+#: main.lua:2754
 msgid "API Key"
 msgstr ""
 
-#: main.lua:2759
+#: main.lua:2768
 msgid "Clear"
 msgstr ""
 
-#: main.lua:2769
+#: main.lua:2778
 msgid "%1 API key cleared"
 msgstr ""
 
-#: main.lua:2785
+#: main.lua:2794
 msgid "%1 API key saved"
 msgstr ""
 
-#: main.lua:2790
+#: main.lua:2799
 msgid "%1 API key saved. %1 selected as provider."
 msgstr ""
 
-#: main.lua:2901
+#: main.lua:2910
 msgid "Add Custom Language"
 msgstr ""
 
-#: main.lua:2903
+#: main.lua:2912
 msgid "e.g., Esperanto, Swahili"
 msgstr ""
 
-#: main.lua:2904
+#: main.lua:2913
 msgid "Enter a language name to add."
 msgstr ""
 
-#: main.lua:2952
+#: main.lua:2961
 msgid "'%1' is already added"
 msgstr ""
 
-#: main.lua:2976
+#: main.lua:2985
 msgid "Languages you speak. Guides AI responses."
 msgstr ""
 
-#: main.lua:2982 main.lua:3115
+#: main.lua:2991 main.lua:3124
 msgid "Add Custom Language..."
 msgstr ""
 
-#: main.lua:3109
+#: main.lua:3118
 msgid "For translation/dictionary targets only."
 msgstr ""
 
-#: main.lua:3255 main.lua:3272
+#: main.lua:3264 main.lua:3281
 msgid "Set your languages first"
 msgstr ""
 
-#: main.lua:3303
+#: main.lua:3312
 msgid "Primary: %1"
 msgstr ""
 
-#: main.lua:3323
+#: main.lua:3332
 msgid "Use Primary (%1)"
 msgstr ""
 
-#: main.lua:3349 main.lua:3381 main.lua:4926
+#: main.lua:3358 main.lua:3390 main.lua:5231
 msgid "Translate: %1"
 msgstr ""
 
-#: main.lua:3395 koassistant_ui/prompts_manager.lua:1519
+#: main.lua:3404 koassistant_ui/prompts_manager.lua:1519
 #: koassistant_ui/prompts_manager.lua:2950
 msgid "Custom..."
 msgstr ""
 
-#: main.lua:3401
+#: main.lua:3410
 msgid "Custom Translation Language"
 msgstr ""
 
-#: main.lua:3403
+#: main.lua:3412
 msgid "e.g., Spanish, Japanese, French"
 msgstr ""
 
-#: main.lua:3404
+#: main.lua:3413
 msgid "Enter the target language for translations."
 msgstr ""
 
-#: main.lua:3438
+#: main.lua:3447
 msgid "(Set your languages for quick selection)"
 msgstr ""
 
-#: main.lua:3454 main.lua:5735
+#: main.lua:3463 main.lua:6024
 msgid "Follow Translation Language"
 msgstr ""
 
-#: main.lua:3467
+#: main.lua:3476
 msgid "Dictionary: Follow Translation"
 msgstr ""
 
-#: main.lua:3475 main.lua:5752
+#: main.lua:3484 main.lua:6041
 msgid "Follow Primary Language"
 msgstr ""
 
-#: main.lua:3487
+#: main.lua:3496
 msgid "Dictionary: Follow Primary"
 msgstr ""
 
-#: main.lua:3513 main.lua:4939
+#: main.lua:3522 main.lua:5244
 msgid "Dictionary: %1"
 msgstr ""
 
-#: main.lua:3529
+#: main.lua:3538
 msgid "Extract the full sentence containing the word"
 msgstr ""
 
-#: main.lua:3530
+#: main.lua:3539
 msgid "Include more surrounding context"
 msgstr ""
 
-#: main.lua:3531
+#: main.lua:3540
 msgid "Fixed number of characters before/after"
 msgstr ""
 
-#: main.lua:3532
+#: main.lua:3541
 msgid "Only send the word, no surrounding context"
 msgstr ""
 
-#: main.lua:3552
+#: main.lua:3561
 msgid "Context: %1"
 msgstr ""
 
-#: main.lua:3571 koassistant_ui/prompts_manager.lua:3782
+#: main.lua:3580 koassistant_ui/prompts_manager.lua:3782
 msgid "Custom AI Behavior"
 msgstr ""
 
-#: main.lua:3573
+#: main.lua:3582
 msgid "Enter custom AI behavior instructions..."
 msgstr ""
 
-#: main.lua:3574
+#: main.lua:3583
 msgid ""
 "Define how the AI should behave. This replaces the built-in Minimal/Full "
 "behavior when 'Custom' is selected.\n"
@@ -3594,65 +3622,90 @@ msgid ""
 "Tip: Start with the Full behavior as a template."
 msgstr ""
 
-#: main.lua:3589
+#: main.lua:3598
 msgid "Load Full"
 msgstr ""
 
-#: main.lua:3645
+#: main.lua:3654
 msgid ""
 "Model lists are now managed through the model_lists.lua file. Please edit "
 "this file to add or remove models."
 msgstr ""
 
-#: main.lua:3877
+#: main.lua:3886
 msgid "No previously opened chat found"
 msgstr ""
 
-#: main.lua:3894 main.lua:6360
+#: main.lua:3903 main.lua:6649
 msgid "Configuration not found. Please set up configuration.lua first."
 msgstr ""
 
-#: main.lua:3931 main.lua:4352 main.lua:5506 main.lua:5524
+#: main.lua:3940 main.lua:4611 main.lua:5795 main.lua:5813
 msgid "Please open a book first"
 msgstr ""
 
-#: main.lua:3968 main.lua:4172 main.lua:4281
+#: main.lua:3977 main.lua:4266 main.lua:4386
 msgid "No book open"
 msgstr ""
 
-#: main.lua:4005
+#: main.lua:4014
 msgid ""
 "No cached content found for this document.\n"
 "\n"
 "Run X-Ray, Summarize Document, or Analyze Document to create reusable caches."
 msgstr ""
 
-#: main.lua:4183
+#: main.lua:4061
+#, lua-format
+msgid "%dd ago"
+msgstr ""
+
+#: main.lua:4068
+#, lua-format
+msgid "%dm%dd ago"
+msgstr ""
+
+#: main.lua:4070
+#, lua-format
+msgid "%dm ago"
+msgstr ""
+
+#: main.lua:4075
+#, lua-format
+msgid "%dy%dm ago"
+msgstr ""
+
+#: main.lua:4077
+#, lua-format
+msgid "%dy ago"
+msgstr ""
+
+#: main.lua:4277
 msgid ""
 "No summary cached.\n"
 "\n"
 "Use Quick Actions → Generate Summary to create one."
 msgstr ""
 
-#: main.lua:4253
+#: main.lua:4356
 msgid "Summary deleted"
 msgstr ""
 
-#: main.lua:4292
+#: main.lua:4397
 msgid ""
 "Summary already cached.\n"
 "\n"
 "Use View Summary to see it."
 msgstr ""
 
-#: main.lua:4301
+#: main.lua:4406
 msgid ""
 "Text extraction is required to generate a summary.\n"
 "\n"
 "Enable it in Settings → Privacy & Data → Text Extraction."
 msgstr ""
 
-#: main.lua:4339
+#: main.lua:4444
 msgid ""
 "Generate a reusable document summary?\n"
 "\n"
@@ -3662,116 +3715,116 @@ msgid ""
 "• Enable Smart actions for this book"
 msgstr ""
 
-#: main.lua:4362 main.lua:4434 main.lua:4489
+#: main.lua:4484
+msgid "View %1"
+msgstr ""
+
+#: main.lua:4493
+msgid "Update %1"
+msgstr ""
+
+#: main.lua:4621 main.lua:4739 main.lua:4794
 msgid "Action '%1' not found"
 msgstr ""
 
-#: main.lua:4472
+#: main.lua:4777
 msgid "Unknown action context: %1"
 msgstr ""
 
-#: main.lua:4638 main.lua:4918
+#: main.lua:4943 main.lua:5223
 msgid "Primary Language"
 msgstr ""
 
-#: main.lua:4662 main.lua:4828 koassistant_ui/prompts_manager.lua:725
+#: main.lua:4967 main.lua:5133 koassistant_ui/prompts_manager.lua:725
 #: koassistant_ui/prompts_manager.lua:2991
 msgid "AI Behavior"
 msgstr ""
 
-#: main.lua:4747
+#: main.lua:5052
 msgid "Default"
 msgstr ""
 
-#: main.lua:4823
+#: main.lua:5128
 msgid "Behavior: %1"
 msgstr ""
 
-#: main.lua:4836
+#: main.lua:5141
 msgid "Domain: %1"
 msgstr ""
 
-#: main.lua:4841 main.lua:5405
+#: main.lua:5146 main.lua:5694
 msgid "Knowledge Domain"
 msgstr ""
 
-#: main.lua:4849
+#: main.lua:5154
 msgid "Temp: %1"
 msgstr ""
 
-#: main.lua:4879
+#: main.lua:5184
 msgid "Anthropic/Gemini Reasoning: ON"
 msgstr ""
 
-#: main.lua:4879
+#: main.lua:5184
 msgid "Anthropic/Gemini Reasoning: OFF"
 msgstr ""
 
-#: main.lua:4896
+#: main.lua:5201
 msgid "Web Search: ON"
 msgstr ""
 
-#: main.lua:4896
+#: main.lua:5201
 msgid "Web Search: OFF"
 msgstr ""
 
-#: main.lua:4913
+#: main.lua:5218
 msgid "Language: %1"
 msgstr ""
 
-#: main.lua:4952
+#: main.lua:5257
 msgid "H.Bypass: ON"
 msgstr ""
 
-#: main.lua:4952
+#: main.lua:5257
 msgid "H.Bypass: OFF"
 msgstr ""
 
-#: main.lua:4969
+#: main.lua:5274
 msgid "D.Bypass: ON"
 msgstr ""
 
-#: main.lua:4969
+#: main.lua:5274
 msgid "D.Bypass: OFF"
 msgstr ""
 
-#: main.lua:5058
+#: main.lua:5363
 msgid "Quick Actions..."
 msgstr ""
 
-#: main.lua:5070
+#: main.lua:5375
 msgid "More Settings..."
 msgstr ""
 
-#: main.lua:5126
+#: main.lua:5431
 msgid "Quick Actions is only available while reading a book."
 msgstr ""
 
-#: main.lua:5175
+#: main.lua:5480
 msgid "View Summary"
 msgstr ""
 
-#: main.lua:5175
+#: main.lua:5480
 msgid "Generate Summary"
 msgstr ""
 
-#: main.lua:5189
-msgid "View X-Ray"
-msgstr ""
-
-#: main.lua:5203
-msgid "View Analysis"
-msgstr ""
-
-#: main.lua:5266
+#: main.lua:5555
 msgid "Testing connection..."
 msgstr ""
 
-#: main.lua:5294
+#: main.lua:5583
 msgid "Connection test failed:\n"
 msgstr ""
 
-#: main.lua:5300
+#: main.lua:5589
 msgid ""
 "Connection test successful!\n"
 "\n"
@@ -3781,11 +3834,11 @@ msgid ""
 "Response: %3"
 msgstr ""
 
-#: main.lua:5308
+#: main.lua:5597
 msgid "Connection test failed: "
 msgstr ""
 
-#: main.lua:5328
+#: main.lua:5617
 msgid ""
 "No book is currently open.\n"
 "\n"
@@ -3793,14 +3846,14 @@ msgid ""
 "responses."
 msgstr ""
 
-#: main.lua:5341
+#: main.lua:5630
 msgid ""
 "No action cache found for this book.\n"
 "\n"
 "Run X-Ray or Recap first to create a cache."
 msgstr ""
 
-#: main.lua:5351
+#: main.lua:5640
 msgid ""
 "Clear cached X-Ray and Recap responses for this book?\n"
 "\n"
@@ -3808,270 +3861,270 @@ msgid ""
 "of updating from the cached version."
 msgstr ""
 
-#: main.lua:5361
+#: main.lua:5650
 msgid "Clear Cache"
 msgstr ""
 
-#: main.lua:5367
+#: main.lua:5656
 msgid "Action cache cleared successfully."
 msgstr ""
 
-#: main.lua:5372
+#: main.lua:5661
 msgid "Failed to clear action cache."
 msgstr ""
 
-#: main.lua:5479
+#: main.lua:5768
 msgid "Dictionary bypass: ON"
 msgstr ""
 
-#: main.lua:5479
+#: main.lua:5768
 msgid "Dictionary bypass: OFF"
 msgstr ""
 
-#: main.lua:5493
+#: main.lua:5782
 msgid "Highlight bypass: ON"
 msgstr ""
 
-#: main.lua:5493
+#: main.lua:5782
 msgid "Highlight bypass: OFF"
 msgstr ""
 
-#: main.lua:5619
+#: main.lua:5908
 msgid "Cannot determine current page"
 msgstr ""
 
-#: main.lua:5665
+#: main.lua:5954
 msgid "Could not extract text from current page"
 msgstr ""
 
-#: main.lua:5676
+#: main.lua:5965
 msgid "Translate action not found"
 msgstr ""
 
-#: main.lua:5852
+#: main.lua:6141
 msgid "Select Export Folder"
 msgstr ""
 
-#: main.lua:5859
+#: main.lua:6148
 msgid ""
 "Export path set to:\n"
 "%1"
 msgstr ""
 
-#: main.lua:6251 main.lua:6305
+#: main.lua:6540 main.lua:6594
 msgid "Bypass action: %1"
 msgstr ""
 
-#: main.lua:6350
+#: main.lua:6639
 msgid "All action settings restored to defaults"
 msgstr ""
 
-#: main.lua:6423
+#: main.lua:6712
 msgid ""
 "KOAssistant Plugin\n"
 "Version: "
 msgstr ""
 
-#: main.lua:6508
+#: main.lua:6797
 msgid "Feature settings reset to defaults"
 msgstr ""
 
-#: main.lua:6538
+#: main.lua:6827
 msgid "All customizations reset"
 msgstr ""
 
-#: main.lua:6562
+#: main.lua:6851
 msgid "Custom actions deleted"
 msgstr ""
 
-#: main.lua:6576
+#: main.lua:6865
 msgid "Action edits reset to defaults"
 msgstr ""
 
-#: main.lua:6606
+#: main.lua:6895
 msgid "Action menus reset to defaults"
 msgstr ""
 
-#: main.lua:6620
+#: main.lua:6909
 msgid "Dictionary popup actions reset"
 msgstr ""
 
-#: main.lua:6633
+#: main.lua:6922
 msgid "Highlight menu actions reset (restart to apply)"
 msgstr ""
 
-#: main.lua:6645
+#: main.lua:6934
 msgid "File browser actions reset"
 msgstr ""
 
-#: main.lua:6657
+#: main.lua:6946
 msgid "Quick actions reset"
 msgstr ""
 
-#: main.lua:6678
+#: main.lua:6967
 msgid "Custom providers and models reset"
 msgstr ""
 
-#: main.lua:6751
+#: main.lua:7040
 msgid "All action settings reset"
 msgstr ""
 
-#: main.lua:6780
+#: main.lua:7069
 msgid "Fresh start complete - API keys preserved"
 msgstr ""
 
-#: main.lua:6801
+#: main.lua:7090
 msgid "Default: Personal content private, basic context shared"
 msgstr ""
 
-#: main.lua:6822
+#: main.lua:7111
 msgid "Minimal: All extended sharing disabled"
 msgstr ""
 
-#: main.lua:6843
+#: main.lua:7132
 msgid ""
 "Full: All data sharing enabled (Text extraction must be enabled separately)"
 msgstr ""
 
-#: main.lua:6895
+#: main.lua:7184
 msgid "(custom)"
 msgstr ""
 
-#: main.lua:6955
+#: main.lua:7244
 msgid ""
 "Select providers to trust\n"
 "\n"
 "Trusted providers bypass data sharing controls."
 msgstr ""
 
-#: main.lua:6981
+#: main.lua:7270
 msgid "✓ Reset"
 msgstr ""
 
-#: main.lua:6983
+#: main.lua:7272
 msgid "✗ Keep"
 msgstr ""
 
-#: main.lua:6989 main.lua:7289 main.lua:7420
+#: main.lua:7278 main.lua:7578 main.lua:7709
 msgid "Settings"
 msgstr ""
 
-#: main.lua:6997
+#: main.lua:7286
 msgid "Custom actions"
 msgstr ""
 
-#: main.lua:7005
+#: main.lua:7294
 msgid "Action edits"
 msgstr ""
 
-#: main.lua:7013
+#: main.lua:7302
 msgid "Action menus"
 msgstr ""
 
-#: main.lua:7021
+#: main.lua:7310
 msgid "Custom providers & models"
 msgstr ""
 
-#: main.lua:7029
+#: main.lua:7318
 msgid "Behaviors & domains"
 msgstr ""
 
-#: main.lua:7037 main.lua:7094
+#: main.lua:7326 main.lua:7383
 msgid "API keys"
 msgstr ""
 
-#: main.lua:7049
+#: main.lua:7338
 msgid "Reset Selected"
 msgstr ""
 
-#: main.lua:7058
+#: main.lua:7347
 msgid "What would you like to reset?"
 msgstr ""
 
-#: main.lua:7070
+#: main.lua:7359
 msgid "settings"
 msgstr ""
 
-#: main.lua:7074
+#: main.lua:7363
 msgid "custom actions"
 msgstr ""
 
-#: main.lua:7078
+#: main.lua:7367
 msgid "action edits"
 msgstr ""
 
-#: main.lua:7082
+#: main.lua:7371
 msgid "action menus"
 msgstr ""
 
-#: main.lua:7086
+#: main.lua:7375
 msgid "providers/models"
 msgstr ""
 
-#: main.lua:7090
+#: main.lua:7379
 msgid "behaviors/domains"
 msgstr ""
 
-#: main.lua:7099
+#: main.lua:7388
 msgid "Reset: %1"
 msgstr ""
 
-#: main.lua:7104
+#: main.lua:7393
 msgid "Nothing selected to reset"
 msgstr ""
 
-#: main.lua:7166
+#: main.lua:7455
 msgid "Core Settings: ✓ Included"
 msgstr ""
 
-#: main.lua:7172
+#: main.lua:7461
 msgid "API Keys: ✓ Include (⚠ Sensitive)"
 msgstr ""
 
-#: main.lua:7172
+#: main.lua:7461
 msgid "API Keys: ✗ Exclude"
 msgstr ""
 
-#: main.lua:7187
+#: main.lua:7476
 msgid "Config Files: ✓ Include"
 msgstr ""
 
-#: main.lua:7187
+#: main.lua:7476
 msgid "Config Files: ✗ Exclude"
 msgstr ""
 
-#: main.lua:7202
+#: main.lua:7491
 msgid "Domains & Behaviors: ✓ Include"
 msgstr ""
 
-#: main.lua:7202
+#: main.lua:7491
 msgid "Domains & Behaviors: ✗ Exclude"
 msgstr ""
 
-#: main.lua:7217
+#: main.lua:7506
 msgid "Chat History: ✓ Include"
 msgstr ""
 
-#: main.lua:7217
+#: main.lua:7506
 msgid "Chat History: ✗ Exclude"
 msgstr ""
 
-#: main.lua:7232 main.lua:7384 main.lua:7595 main.lua:7617
+#: main.lua:7521 main.lua:7673 main.lua:7884 main.lua:7906
 msgid "━━━━━━━━━━━━━━━━"
 msgstr ""
 
-#: main.lua:7258
+#: main.lua:7547
 msgid "What to include in backup:"
 msgstr ""
 
-#: main.lua:7270
+#: main.lua:7559
 msgid ""
 "Creating backup...\n"
 "\n"
 "This may take a moment."
 msgstr ""
 
-#: main.lua:7282
+#: main.lua:7571
 msgid ""
 "Backup created successfully!\n"
 "\n"
@@ -4080,46 +4133,46 @@ msgid ""
 "Size: %2"
 msgstr ""
 
-#: main.lua:7295 main.lua:7426
+#: main.lua:7584 main.lua:7715
 msgid "Config Files"
 msgstr ""
 
-#: main.lua:7301 main.lua:7431
+#: main.lua:7590 main.lua:7720
 msgid "%1 domains"
 msgstr ""
 
-#: main.lua:7303
+#: main.lua:7592
 msgid "0 domains"
 msgstr ""
 
-#: main.lua:7306 main.lua:7436
+#: main.lua:7595 main.lua:7725
 msgid "%1 behaviors"
 msgstr ""
 
-#: main.lua:7308
+#: main.lua:7597
 msgid "0 behaviors"
 msgstr ""
 
-#: main.lua:7314 main.lua:7444
+#: main.lua:7603 main.lua:7733
 msgid "%1 chats"
 msgstr ""
 
-#: main.lua:7316
+#: main.lua:7605
 msgid "0 chats"
 msgstr ""
 
-#: main.lua:7321
+#: main.lua:7610
 msgid "Included:"
 msgstr ""
 
-#: main.lua:7331
+#: main.lua:7620
 msgid ""
 "Backup failed:\n"
 "\n"
 "%1"
 msgstr ""
 
-#: main.lua:7348
+#: main.lua:7637
 msgid ""
 "No backups found.\n"
 "\n"
@@ -4127,21 +4180,21 @@ msgid ""
 "Settings → Advanced → Settings Management → Create Backup"
 msgstr ""
 
-#: main.lua:7390
+#: main.lua:7679
 msgid ""
 "Select backup to restore\n"
 "\n"
 "Total: %1 backup(s)"
 msgstr ""
 
-#: main.lua:7405 main.lua:7804
+#: main.lua:7694 main.lua:8093
 msgid ""
 "Invalid backup:\n"
 "\n"
 "%1"
 msgstr ""
 
-#: main.lua:7414
+#: main.lua:7703
 msgid ""
 "Backup: %1\n"
 "\n"
@@ -4151,87 +4204,87 @@ msgid ""
 "Contents:"
 msgstr ""
 
-#: main.lua:7424
+#: main.lua:7713
 msgid "No API keys"
 msgstr ""
 
-#: main.lua:7433
+#: main.lua:7722
 msgid "domains"
 msgstr ""
 
-#: main.lua:7438
+#: main.lua:7727
 msgid "behaviors"
 msgstr ""
 
-#: main.lua:7446
+#: main.lua:7735
 msgid "Chat history"
 msgstr ""
 
-#: main.lua:7456 main.lua:7677
+#: main.lua:7745 main.lua:7966
 msgid "Warnings:"
 msgstr ""
 
-#: main.lua:7473
+#: main.lua:7762
 msgid "Restore →"
 msgstr ""
 
-#: main.lua:7510
+#: main.lua:7799
 msgid "Settings: ✓ Restore"
 msgstr ""
 
-#: main.lua:7510
+#: main.lua:7799
 msgid "Settings: ✗ Skip"
 msgstr ""
 
-#: main.lua:7527
+#: main.lua:7816
 msgid "API Keys: ✓ Restore"
 msgstr ""
 
-#: main.lua:7527
+#: main.lua:7816
 msgid "API Keys: ✗ Skip"
 msgstr ""
 
-#: main.lua:7544
+#: main.lua:7833
 msgid "Config Files: ✓ Restore"
 msgstr ""
 
-#: main.lua:7544
+#: main.lua:7833
 msgid "Config Files: ✗ Skip"
 msgstr ""
 
-#: main.lua:7561
+#: main.lua:7850
 msgid "Domains & Behaviors: ✓ Restore"
 msgstr ""
 
-#: main.lua:7561
+#: main.lua:7850
 msgid "Domains & Behaviors: ✗ Skip"
 msgstr ""
 
-#: main.lua:7578
+#: main.lua:7867
 msgid "Chat History: ✓ Restore"
 msgstr ""
 
-#: main.lua:7578
+#: main.lua:7867
 msgid "Chat History: ✗ Skip"
 msgstr ""
 
-#: main.lua:7601
+#: main.lua:7890
 msgid "Mode: Merge with existing"
 msgstr ""
 
-#: main.lua:7601
+#: main.lua:7890
 msgid "Mode: Replace existing"
 msgstr ""
 
-#: main.lua:7623
+#: main.lua:7912
 msgid "Restore Now"
 msgstr ""
 
-#: main.lua:7643
+#: main.lua:7932
 msgid "What to restore:"
 msgstr ""
 
-#: main.lua:7656
+#: main.lua:7945
 msgid ""
 "Restore from backup?\n"
 "\n"
@@ -4240,25 +4293,25 @@ msgid ""
 "⚠ KOReader should be restarted after restore for changes to take full effect."
 msgstr ""
 
-#: main.lua:7657 main.lua:7813
+#: main.lua:7946 main.lua:8102
 msgid "Restore"
 msgstr ""
 
-#: main.lua:7661
+#: main.lua:7950
 msgid ""
 "Restoring backup...\n"
 "\n"
 "This may take a moment."
 msgstr ""
 
-#: main.lua:7674
+#: main.lua:7963
 msgid ""
 "Restore completed successfully!\n"
 "\n"
 "It's recommended to restart KOReader for all changes to take effect."
 msgstr ""
 
-#: main.lua:7686 koassistant_ui/prompts_manager.lua:2579
+#: main.lua:7975 koassistant_ui/prompts_manager.lua:2579
 #: koassistant_ui/prompts_manager.lua:3017
 #: koassistant_ui/prompts_manager.lua:3201
 #: koassistant_ui/prompts_manager.lua:3675
@@ -4269,29 +4322,29 @@ msgstr ""
 msgid "OK"
 msgstr ""
 
-#: main.lua:7692
+#: main.lua:7981
 msgid "Restart Now"
 msgstr ""
 
-#: main.lua:7706
+#: main.lua:7995
 msgid ""
 "Restore failed:\n"
 "\n"
 "%1"
 msgstr ""
 
-#: main.lua:7729
+#: main.lua:8018
 msgid "No backups found."
 msgstr ""
 
-#: main.lua:7777
+#: main.lua:8066
 msgid ""
 "Backups (%1)\n"
 "\n"
 "Total size: %2"
 msgstr ""
 
-#: main.lua:7829
+#: main.lua:8118
 msgid ""
 "Delete backup?\n"
 "\n"
@@ -4300,18 +4353,18 @@ msgid ""
 "This cannot be undone."
 msgstr ""
 
-#: main.lua:7837
+#: main.lua:8126
 msgid "Backup deleted"
 msgstr ""
 
-#: main.lua:7846
+#: main.lua:8135
 msgid ""
 "Failed to delete backup:\n"
 "\n"
 "%1"
 msgstr ""
 
-#: main.lua:7909
+#: main.lua:8198
 msgid ""
 "KOAssistant: Chat Storage Upgrade\n"
 "\n"
@@ -4324,19 +4377,19 @@ msgid ""
 "Old chat files will be backed up to koassistant_chats.backup/"
 msgstr ""
 
-#: main.lua:7916
+#: main.lua:8205
 msgid "Migrate Now"
 msgstr ""
 
-#: main.lua:7948
+#: main.lua:8237
 msgid "KOAssistant: Migrating chat history..."
 msgstr ""
 
-#: main.lua:7961
+#: main.lua:8250
 msgid "No old chats found to migrate"
 msgstr ""
 
-#: main.lua:8083
+#: main.lua:8372
 msgid ""
 "KOAssistant: Migration Incomplete\n"
 "\n"
@@ -4348,11 +4401,11 @@ msgid ""
 "Check the console for detailed error messages."
 msgstr ""
 
-#: main.lua:8095
+#: main.lua:8384
 msgid "Failed documents:"
 msgstr ""
 
-#: main.lua:8102
+#: main.lua:8391
 msgid ""
 "KOAssistant: Migration Complete\n"
 "\n"
@@ -4363,80 +4416,80 @@ msgid ""
 "koassistant_chats.backup/"
 msgstr ""
 
-#: main.lua:8166
+#: main.lua:8455
 msgid "Welcome to KOAssistant!"
 msgstr ""
 
-#: main.lua:8167
+#: main.lua:8456
 msgid "PRIVACY SETTINGS"
 msgstr ""
 
-#: main.lua:8168
+#: main.lua:8457
 msgid ""
 "Some features (like X-Ray) work best when they can access document text and "
 "other content."
 msgstr ""
 
-#: main.lua:8169
+#: main.lua:8458
 msgid "Enable in: Settings → Privacy & Data"
 msgstr ""
 
-#: main.lua:8170
+#: main.lua:8459
 msgid "QUICK ACCESS"
 msgstr ""
 
-#: main.lua:8171
+#: main.lua:8460
 msgid ""
 "Add Quick Actions panels and more to gestures in KOReader's gesture settings."
 msgstr ""
 
-#: main.lua:8172
+#: main.lua:8461
 msgid "CUSTOM ACTIONS"
 msgstr ""
 
-#: main.lua:8173
+#: main.lua:8462
 msgid "Create your own prompts and actions or edit built in ones."
 msgstr ""
 
-#: main.lua:8174
+#: main.lua:8463
 msgid "Go to: Settings → Action Manager → Add"
 msgstr ""
 
-#: main.lua:8175
+#: main.lua:8464
 msgid "MENU AND INFO ICONS"
 msgstr ""
 
-#: main.lua:8176
+#: main.lua:8465
 msgid ""
 "Setup KOReader with emoji support to get informative icons in menus and "
 "more. See the emoji section in the README for details."
 msgstr ""
 
-#: main.lua:8326
+#: main.lua:8615
 msgid "No notebook available for this document"
 msgstr ""
 
-#: main.lua:8336
+#: main.lua:8625
 msgid "No notebook exists for this document. Create one?"
 msgstr ""
 
-#: main.lua:8346
+#: main.lua:8635
 msgid "Failed to create notebook: %1"
 msgstr ""
 
-#: main.lua:8388
+#: main.lua:8677
 msgid "Notebook is empty"
 msgstr ""
 
-#: main.lua:8437
+#: main.lua:8726
 msgid "Failed to read notebook file."
 msgstr ""
 
-#: main.lua:8500
+#: main.lua:8789
 msgid "Notebook saved"
 msgstr ""
 
-#: main.lua:8507
+#: main.lua:8796
 msgid "Reset to last saved"
 msgstr ""
 
