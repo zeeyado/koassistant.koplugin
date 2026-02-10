@@ -6,6 +6,13 @@
 
 **Powerful, customizable AI assistant for KOReader.**
 
+<p align="center">
+  <a href="screenshots/ELI5highlightchat.png"><img src="screenshots/ELI5highlightchat.png" width="180" alt="AI explains highlighted text"></a>
+  <a href="screenshots/Xraybrowser.png"><img src="screenshots/Xraybrowser.png" width="180" alt="X-Ray browser"></a>
+  <a href="screenshots/compactdict.png"><img src="screenshots/compactdict.png" width="180" alt="Dictionary integration"></a>
+  <a href="screenshots/settingsui.png"><img src="screenshots/settingsui.png" width="180" alt="Settings and menu"></a>
+</p>
+
 - **Highlight text** → translate, explain, define words, analyze passages, connect ideas, save content directly to KOReader's highlight notes/annotations
 - **While reading** → reference guides (Summaries, browsable X-Ray with character tracking, Recap), analyze your highlights/annotations, explore the book/document (author, context, arguments, similar works), generate discussion questions
 - **Research & analysis** → deep analysis of papers/articles, explore arguments, find connections across works
@@ -223,6 +230,9 @@ Now the same tap gives you Quick Settings in the file browser and Quick Actions 
 KOAssistant provides two distinct quick-access panels for different purposes:
 
 **1. Quick Settings** (available everywhere)
+
+<a href="screenshots/QSpanel.png"><img src="screenshots/QSpanel.png" width="300" alt="Quick Settings panel"></a>
+
 Assign "KOAssistant: Quick Settings" to a gesture for one-tap access to a two-column settings panel with commonly used options:
 - **Provider & Model** — Quick switching between AI providers and models
 - **Behavior & Domain** — Change communication style and knowledge context
@@ -484,6 +494,8 @@ You can customize these, create your own, or disable ones you don't use. See [Ac
 
 ### Highlight Mode
 
+<a href="screenshots/highlightmenu.png"><img src="screenshots/highlightmenu.png" width="300" alt="Highlight menu with KOAssistant actions"></a>
+
 **Access**: Highlight text in a document → tap "KOAssistant"
 
 **Quick Actions**: You can add frequently-used actions directly to KOReader's highlight popup menu for faster access. Instead of going through the KOAssistant dialog, actions like "KOA: Explain" or "KOA: Translate" appear as separate buttons. See [Highlight Menu Actions](#highlight-menu-actions) below.
@@ -562,6 +574,8 @@ See [Document Artifacts → "Generate Once, Use Many Times"](#document-artifacts
 > **Tip**: Add frequently-used actions to the highlight menu (Settings → Menu Customization → Highlight Menu) for quick access. Other enabled highlight actions remain available from the main "KOAssistant" entry in the highlight popup. From that input window, you can also add extra instructions to any action (e.g., "esp. the economic implications" or "in simple terms").
 
 ### Book/Document Mode
+
+<a href="screenshots/bookinfowmetadata.png"><img src="screenshots/bookinfowmetadata.png" width="300" alt="Book Info chat response"></a>
 
 **Access**: Long-press a book in File Browser → "Chat/Action (KOA)" or while reading, use gesture or menu
 
@@ -798,6 +812,8 @@ Actions define what you're asking the AI to do. Each action has a prompt templat
 When you select an action and start a chat, you can optionally add your own input (a question, additional context, or specific request) which gets combined with the action's prompt template.
 
 ### Managing Actions
+
+<a href="screenshots/actionmanager.png"><img src="screenshots/actionmanager.png" width="300" alt="Action Manager"></a>
 
 **Settings → Actions & Prompts → Manage Actions**
 
@@ -1708,6 +1724,8 @@ Tags are simple labels for organizing chats. Unlike domains:
 
 ## Settings Reference
 
+<a href="screenshots/settingsui.png"><img src="screenshots/settingsui.png" width="300" alt="Settings menu"></a>
+
 **Tools → KOAssistant → Settings**
 
 ### Quick Actions
@@ -1909,6 +1927,9 @@ Configure the Quick Settings panel (available via gesture or gear icon in input 
   - All buttons are enabled by default. Disable any you don't use to streamline the panel.
 
 ### Quick Actions Settings
+
+<a href="screenshots/QApanelmore.png"><img src="screenshots/QApanelmore.png" width="300" alt="Quick Actions panel"></a>
+
 Configure the Quick Actions panel (available via gesture in reader mode).
 - **Panel Actions**: Reorder or remove actions from the Quick Actions panel. Add new actions via Action Manager → hold action → "Add to Quick Actions".
 - **QA Panel Utilities**: Show/hide utility buttons that appear below actions in the panel:
@@ -2338,6 +2359,8 @@ The Action Manager (Settings → Actions & Prompts → Manage Actions) has a ham
 ## Technical Features
 
 ### Streaming Responses
+
+<a href="screenshots/streaming.png"><img src="screenshots/streaming.png" width="300" alt="Streaming response"></a>
 
 When enabled, responses appear in real-time as the AI generates them.
 
