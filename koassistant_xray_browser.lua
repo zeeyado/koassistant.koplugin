@@ -436,9 +436,22 @@ function XrayBrowser:showItemDetail(item, category_key, title)
         detail_text = _("As of") .. " " .. self.metadata.progress .. "\n\n" .. detail_text
     end
 
-    -- For characters: append matching highlights if available
+    -- For characters: append matching highlights if annotation sharing is allowed
     if (category_key == "characters" or category_key == "key_figures") and self.ui then
-        local highlights = findCharacterHighlights(item, self.ui)
+        local config_features = (self.metadata.configuration or {}).features or {}
+        -- Check trusted provider (bypasses privacy settings)
+        local provider = config_features.provider
+        local provider_trusted = false
+        if provider then
+            for _idx, trusted_id in ipairs(config_features.trusted_providers or {}) do
+                if trusted_id == provider then
+                    provider_trusted = true
+                    break
+                end
+            end
+        end
+        local annotations_allowed = provider_trusted or config_features.enable_annotations_sharing == true
+        local highlights = annotations_allowed and findCharacterHighlights(item, self.ui) or {}
         if #highlights > 0 then
             detail_text = detail_text .. "\n\n" .. _("Your highlights:") .. "\n"
             for _idx, hl in ipairs(highlights) do

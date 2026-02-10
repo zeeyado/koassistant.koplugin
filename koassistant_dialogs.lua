@@ -2282,8 +2282,9 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                 message_data.cached_result = cached_entry.result
                 message_data.cached_progress = cached_progress_display
                 message_data.cached_progress_decimal = cached_progress
-                -- Stash previous cache's used_book_text for sticky-true inheritance
+                -- Stash previous cache's metadata for sticky-true inheritance
                 message_data.cached_used_book_text = cached_entry.used_book_text
+                message_data.cached_used_annotations = cached_entry.used_annotations
 
                 -- Get incremental book text (from cached to current position)
                 -- If text extraction is disabled, getBookTextRange returns empty — AI updates from training knowledge
@@ -2413,6 +2414,10 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                     -- Reading the cache will only require permissions for data that was actually used
                     local used_annotations = (message_data.highlights and message_data.highlights ~= "")
                         or (message_data.annotations and message_data.annotations ~= "")
+                    -- Sticky-true: if previous cache used annotations, keep it true even if this update didn't
+                    if using_cache and message_data.cached_used_annotations == true then
+                        used_annotations = true
+                    end
                     local xray_metadata = {
                         model = model_name,
                         used_annotations = used_annotations,
