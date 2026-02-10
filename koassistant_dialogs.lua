@@ -2118,7 +2118,11 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
             -- Try KOReader's merged props first (includes user edits from Book Info dialog)
             if ui and ui.doc_props then
                 message_data.book_title = ui.doc_props.display_title or ui.doc_props.title
-                message_data.book_author = ui.doc_props.authors
+                local raw_author = ui.doc_props.authors
+                if raw_author and raw_author:find("\n") then
+                    raw_author = raw_author:gsub("\n", ", ")
+                end
+                message_data.book_author = raw_author
             end
             -- Fall back to passed book_metadata if not available
             if not message_data.book_title and book_metadata then
@@ -2151,6 +2155,9 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
             local props = ui.doc_props
             local title = props.display_title or props.title or "Unknown"
             local authors = props.authors or ""
+            if authors:find("\n") then
+                authors = authors:gsub("\n", ", ")
+            end
             message_data.book_metadata = {
                 title = title,
                 author = authors,
@@ -2520,6 +2527,10 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     local ui_doc_props = ui_instance and ui_instance.doc_props
     local doc_title = ui_doc_props and (ui_doc_props.display_title or ui_doc_props.title) or nil
     local doc_author = ui_doc_props and ui_doc_props.authors or nil
+    -- Normalize multi-author strings (KOReader stores as newline-separated)
+    if doc_author and doc_author:find("\n") then
+        doc_author = doc_author:gsub("\n", ", ")
+    end
     local doc_file = ui_instance and ui_instance.document and ui_instance.document.file or nil
 
     -- For general context, don't use document_path - these chats are context-free
@@ -3102,6 +3113,10 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
         -- Use KOReader's merged metadata (includes user edits), filename as fallback
         local title = props.display_title or props.title
         local author = props.authors
+        -- Normalize multi-author strings (KOReader stores as newline-separated)
+        if author and author:find("\n") then
+            author = author:gsub("\n", ", ")
+        end
         book_metadata = {
             title = (title and title ~= "") and title or filename_fallback or "Unknown",
             author = (author and author ~= "") and author or ""  -- Empty, not "Unknown" - less confusing for AI
@@ -3260,6 +3275,10 @@ local function generateSummaryStandalone(ui, config, plugin, on_complete)
     local props = ui.doc_props or {}
     local title = props.display_title or props.title or _("Unknown")
     local authors = props.authors or ""
+    -- Normalize multi-author strings (KOReader stores as newline-separated)
+    if authors:find("\n") then
+        authors = authors:gsub("\n", ", ")
+    end
     local message_data = {
         full_document = full_doc_result.text,
         book_metadata = {

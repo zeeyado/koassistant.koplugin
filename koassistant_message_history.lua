@@ -359,18 +359,20 @@ function MessageHistory:createResultText(highlightedText, config)
 
     if not should_hide and highlightedText and highlightedText ~= "" then
         -- Check context type and use appropriate label
-        if config and config.features then
-            if config.features.is_book_context then
-                -- Single book context from file browser
-                table.insert(result, "Book: " .. highlightedText .. "\n\n")
-            elseif config.features.is_multi_book_context then
-                -- Multiple books selected
-                table.insert(result, "Selected books:\n" .. highlightedText .. "\n\n")
-            else
-                -- Default: highlighted text from reader
-                table.insert(result, "Highlighted text: \"" .. highlightedText .. "\"\n\n")
-            end
+        local is_book = config and config.features and config.features.is_book_context
+        local is_multi = config and config.features and config.features.is_multi_book_context
+        -- Detect book context from content when flag isn't set (e.g., continued from history)
+        if not is_book and not is_multi and (highlightedText:match("^Title:") or highlightedText:match("^Book:")) then
+            is_book = true
+        end
+        if is_book then
+            -- Book context: self-describing string (Title: ... Author: ...)
+            table.insert(result, highlightedText .. "\n\n")
+        elseif is_multi then
+            -- Multiple books selected
+            table.insert(result, "Selected books:\n" .. highlightedText .. "\n\n")
         else
+            -- Default: highlighted text from reader
             table.insert(result, "Highlighted text: \"" .. highlightedText .. "\"\n\n")
         end
     end

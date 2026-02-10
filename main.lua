@@ -660,20 +660,24 @@ function AskGPT:checkButtonVisibility()
 end
 
 function AskGPT:showKOAssistantDialogForFile(file, title, authors, book_props)
-  -- Create book context string
-  local book_context = string.format("Book: %s", title)
+  -- Normalize multi-author strings (KOReader stores as newline-separated)
+  if authors and authors:find("\n") then
+    authors = authors:gsub("\n", ", ")
+  end
+  -- Create book context string (period-separated for clean single-line display)
+  local book_context = string.format("Title: %s.", title)
   if authors and authors ~= "" then
-    book_context = book_context .. string.format("\nAuthor: %s", authors)
+    book_context = book_context .. string.format(" Author: %s.", authors)
   end
   if book_props then
     if book_props.series then
-      book_context = book_context .. string.format("\nSeries: %s", book_props.series)
+      book_context = book_context .. string.format(" Series: %s.", book_props.series)
     end
     if book_props.language then
-      book_context = book_context .. string.format("\nLanguage: %s", book_props.language)
+      book_context = book_context .. string.format(" Language: %s.", book_props.language)
     end
     if book_props.year then
-      book_context = book_context .. string.format("\nYear: %s", book_props.year)
+      book_context = book_context .. string.format(" Year: %s.", book_props.year)
     end
   end
 
@@ -798,8 +802,13 @@ function AskGPT:compareSelectedBooks(selected_files)
         title = file:match("([^/]+)$") or "Unknown"
       end
       
+      -- Normalize multi-author strings (KOReader stores as newline-separated)
+      if authors and authors:find("\n") then
+        authors = authors:gsub("\n", ", ")
+      end
+
       logger.info("KOAssistant: Book info - Title: " .. tostring(title) .. ", Authors: " .. tostring(authors))
-      
+
       table.insert(books_info, {
         title = title,
         authors = authors,
@@ -4385,6 +4394,10 @@ function AskGPT:executeBookLevelAction(action_id)
   local doc_props = self.ui.doc_props or {}
   local title = doc_props.display_title or doc_props.title or "Unknown"
   local authors = doc_props.authors or ""
+  -- Normalize multi-author strings (KOReader stores as newline-separated)
+  if authors:find("\n") then
+    authors = authors:gsub("\n", ", ")
+  end
   config_copy.features.book_metadata = {
     title = title,
     author = authors,
@@ -4411,6 +4424,10 @@ end
 --- @param book_props table: Book properties from file manager
 --- @param action_id string: The action ID to execute
 function AskGPT:executeFileBrowserAction(file, title, authors, book_props, action_id)
+  -- Normalize multi-author strings (KOReader stores as newline-separated)
+  if authors and authors:find("\n") then
+    authors = authors:gsub("\n", ", ")
+  end
   -- Set context flags (same pattern as showKOAssistantDialogForFile)
   configuration.features = configuration.features or {}
   configuration.features.is_general_context = nil
