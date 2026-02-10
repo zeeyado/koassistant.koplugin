@@ -565,7 +565,7 @@ local function getAllPrompts(configuration, plugin)
         end
 
         -- Convert from array to keyed table for compatibility
-        for _, prompt in ipairs(service_prompts) do
+        for _idx, prompt in ipairs(service_prompts) do
             local key = prompt.id or ("prompt_" .. #prompt_keys + 1)
             prompts[key] = prompt
             table.insert(prompt_keys, key)
@@ -801,7 +801,7 @@ local function createExportText(history, format)
     table.insert(result, "")
 
     -- Format messages
-    for _, msg in ipairs(history:getMessages()) do
+    for _idx, msg in ipairs(history:getMessages()) do
         local role = msg.role:gsub("^%l", string.upper)
         local content = msg.content
 
@@ -884,9 +884,9 @@ local function showTagsMenu(document_path, chat_id, chat_history_manager)
 
     -- Show existing tags that aren't on this chat (for quick add)
     local available_tags = {}
-    for _, tag in ipairs(all_tags) do
+    for _idx, tag in ipairs(all_tags) do
         local already_has = false
-        for _, current in ipairs(current_tags) do
+        for _idx2, current in ipairs(current_tags) do
             if current == tag then
                 already_has = true
                 break
@@ -2649,7 +2649,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         })
 
         -- Domain options with source indicators
-        for _, domain in ipairs(sorted_domains) do
+        for _idx, domain in ipairs(sorted_domains) do
             local prefix = (selected_domain == domain.id) and "● " or "○ "
             -- Use display_name which includes source indicator for UI-created domains
             local display_text = prefix .. domain.display_name
@@ -3007,7 +3007,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     -- Organize action buttons into rows of three
     local button_rows = {}
     local current_row = {}
-    for _, button in ipairs(all_buttons) do
+    for _idx, button in ipairs(all_buttons) do
         table.insert(current_row, button)
         if #current_row == 3 then
             table.insert(button_rows, current_row)
@@ -3076,8 +3076,8 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             UIManager:close(input_dialog)
             
             -- Find and trigger the corresponding button
-            for _, row in ipairs(button_rows) do
-                for _, button in ipairs(row) do
+            for _idx, row in ipairs(button_rows) do
+                for _idx2, button in ipairs(row) do
                     if button.prompt_type == prompt_type then
                         button.callback()
                         return
