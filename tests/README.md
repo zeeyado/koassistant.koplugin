@@ -158,9 +158,10 @@ lua tests/inspect.lua --web --port 3000
 
 ### Unit Tests (no API calls)
 
-Located in `tests/unit/` (767 tests total across 14 files):
+Located in `tests/unit/` (858 tests total across 16 files):
 - `test_action_service.lua` - ActionService integration, action execution flow (35 tests)
 - `test_actions.lua` - Placeholder gating, flag cascading, DOUBLE_GATED_FLAGS (65 tests)
+- `test_auto_update.lua` - Auto-update helper functions: verify, preserve, restore (23 tests)
 - `test_constants.lua` - Context constants, GitHub URLs (20 tests)
 - `test_constraint_utils.lua` - Plugin constraint utilities wrapper (25 tests)
 - `test_export.lua` - Export formatting, content modes, metadata (50 tests)
@@ -175,6 +176,12 @@ Located in `tests/unit/` (767 tests total across 14 files):
   - Context type tests: highlight, book, multi_book, general context building
   - Language, dictionary, surrounding context, reading stats, cache/incremental, additional input tests
 - `test_response_parser.lua` - Response parsing for all 16 providers (42 tests)
+- `test_state_management.lua` - Context detection, flag isolation, config merge, transient flags, cache permission gating (68 tests)
+  - Context detection contract: getPromptContext() priority rules (multi_book > book > general > highlight)
+  - Context flag isolation: entry point patterns correctly set/clear flags
+  - Config merge: runtime-only keys survive updateConfigFromSettings(), transient flags cleared
+  - Transient flag consumption: _hide_artifacts, _exclude_action_flags consumed and cleared
+  - Cache permission gating: used_book_text/used_annotations dynamic permission for X-Ray/Analyze/Summary caches
 - `test_streaming_parser.lua` - SSE/NDJSON content extraction for all providers (22 tests)
 - `test_system_prompts.lua` - Behavior variants, language parsing, domain, skip_language_instruction (73 tests)
 - `test_templates.lua` - Template constants, utility placeholders, nudge substitution, action regression (160 tests)
@@ -416,6 +423,7 @@ tests/
 └── unit/
     ├── test_action_service.lua      # ActionService integration tests (35 tests)
     ├── test_actions.lua             # Placeholder gating, flag cascading tests (65 tests)
+    ├── test_auto_update.lua         # Auto-update helper tests (23 tests)
     ├── test_constants.lua           # Context constants, GitHub URLs tests (20 tests)
     ├── test_constraint_utils.lua    # Constraint utilities tests (25 tests)
     ├── test_export.lua              # Export formatting, content modes tests (50 tests)
@@ -424,6 +432,7 @@ tests/
     ├── test_openai_compatible.lua   # OpenAI-compatible base class tests (30 tests)
     ├── test_prompt_building.lua     # MessageBuilder, ContextExtractor gating, cache flow (121 tests)
     ├── test_response_parser.lua     # Provider response parsing tests (42 tests)
+    ├── test_state_management.lua    # Context/config state management tests (68 tests)
     ├── test_streaming_parser.lua    # SSE/NDJSON parsing tests (22 tests)
     ├── test_system_prompts.lua      # Behavior, language, domain tests (73 tests)
     ├── test_templates.lua           # Template constants, nudge substitution, action regression (160 tests)
