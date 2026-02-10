@@ -92,6 +92,14 @@ Constants.GITHUB = {
     API_URL = "https://api.github.com/repos/zeeyado/koassistant.koplugin/releases",
 }
 
+-- Text extraction defaults (single source of truth)
+-- Referenced by: context_extractor (fallback), settings_schema (UI default)
+-- Callers should NOT hardcode their own fallbacks — pass nil to let extractor use these
+Constants.EXTRACTION_DEFAULTS = {
+    MAX_BOOK_TEXT_CHARS = 1000000,
+    MAX_PDF_PAGES = 500,
+}
+
 -- Quick Actions Panel Utilities
 -- Non-action items shown in the Quick Actions panel (below the actions)
 -- Each utility has: id (settings key suffix), callback (method name), default (enabled by default)

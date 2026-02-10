@@ -2175,8 +2175,8 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
             local extractor = ContextExtractor:new(ui, {
                 -- Extraction limits
                 enable_book_text_extraction = config.features and config.features.enable_book_text_extraction,
-                max_book_text_chars = prompt and prompt.max_book_text_chars or (config.features and config.features.max_book_text_chars) or 250000,
-                max_pdf_pages = config.features and config.features.max_pdf_pages or 250,
+                max_book_text_chars = prompt and prompt.max_book_text_chars or (config.features and config.features.max_book_text_chars),
+                max_pdf_pages = config.features and config.features.max_pdf_pages,
                 -- Privacy settings
                 provider = config.features and config.features.provider,
                 trusted_providers = config.features and config.features.trusted_providers,
@@ -2294,8 +2294,8 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                 if extraction_success and ContextExtractor then
                     local extractor = ContextExtractor:new(ui, {
                         enable_book_text_extraction = config.features and config.features.enable_book_text_extraction,
-                        max_book_text_chars = prompt.max_book_text_chars or (config.features and config.features.max_book_text_chars) or 250000,
-                        max_pdf_pages = (config.features and config.features.max_pdf_pages) or 250,
+                        max_book_text_chars = prompt.max_book_text_chars or (config.features and config.features.max_book_text_chars),
+                        max_pdf_pages = config.features and config.features.max_pdf_pages,
                     })
                     local range_result = extractor:getBookTextRange(cached_progress, current_progress)
                     message_data.incremental_book_text = range_result.text
@@ -3313,8 +3313,8 @@ local function generateSummaryStandalone(ui, config, plugin, on_complete)
     local features = config.features or {}
     local extractor = ContextExtractor:new(ui, {
         enable_book_text_extraction = features.enable_book_text_extraction,
-        max_book_text_chars = features.max_book_text_chars or 250000,
-        max_pdf_pages = features.max_pdf_pages or 250,
+        max_book_text_chars = features.max_book_text_chars,
+        max_pdf_pages = features.max_pdf_pages,
     })
 
     -- Get full document text

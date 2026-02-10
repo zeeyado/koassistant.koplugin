@@ -10,6 +10,7 @@ This module extracts reading context data from KOReader documents:
 @module koassistant_context_extractor
 ]]
 
+local Constants = require("koassistant_constants")
 local lfs = require("libs/libkoreader-lfs")
 local logger = require("logger")
 
@@ -114,8 +115,8 @@ end
 --   coverage_start/coverage_end are percentages (0-100) when truncated, nil otherwise
 function ContextExtractor:getBookText(options)
     options = options or {}
-    local max_chars = options.max_chars or self.settings.max_book_text_chars or 1000000
-    local max_pages = options.max_pages or self.settings.max_pdf_pages or 500
+    local max_chars = options.max_chars or self.settings.max_book_text_chars or Constants.EXTRACTION_DEFAULTS.MAX_BOOK_TEXT_CHARS
+    local max_pages = options.max_pages or self.settings.max_pdf_pages or Constants.EXTRACTION_DEFAULTS.MAX_PDF_PAGES
 
     logger.info("ContextExtractor:getBookText called, enable_book_text_extraction=",
                self.settings.enable_book_text_extraction and "true" or "false/nil")
@@ -240,8 +241,8 @@ end
 --   coverage_start/coverage_end are percentages (0-100) when truncated, nil otherwise
 function ContextExtractor:getBookTextRange(from_progress, to_progress, options)
     options = options or {}
-    local max_chars = options.max_chars or self.settings.max_book_text_chars or 1000000
-    local max_pages = options.max_pages or self.settings.max_pdf_pages or 500
+    local max_chars = options.max_chars or self.settings.max_book_text_chars or Constants.EXTRACTION_DEFAULTS.MAX_BOOK_TEXT_CHARS
+    local max_pages = options.max_pages or self.settings.max_pdf_pages or Constants.EXTRACTION_DEFAULTS.MAX_PDF_PAGES
 
     logger.info("ContextExtractor:getBookTextRange called, from=", from_progress, "to=", to_progress)
 
@@ -388,8 +389,8 @@ end
 -- @return table { text, truncated, char_count, disabled, coverage_start, coverage_end }
 function ContextExtractor:getFullDocumentText(options)
     options = options or {}
-    local max_chars = options.max_chars or self.settings.max_book_text_chars or 1000000
-    local max_pages = options.max_pages or self.settings.max_pdf_pages or 500
+    local max_chars = options.max_chars or self.settings.max_book_text_chars or Constants.EXTRACTION_DEFAULTS.MAX_BOOK_TEXT_CHARS
+    local max_pages = options.max_pages or self.settings.max_pdf_pages or Constants.EXTRACTION_DEFAULTS.MAX_PDF_PAGES
 
     logger.info("ContextExtractor:getFullDocumentText called")
 
