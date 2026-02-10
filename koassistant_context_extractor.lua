@@ -747,7 +747,7 @@ end
 --   used_annotations: Whether annotations were included when building this cache.
 --   Use this to determine if annotation permission is required to read the cache.
 function ContextExtractor:getXrayCache()
-    local result = { text = "", progress = nil, progress_formatted = nil, used_annotations = nil }
+    local result = { text = "", progress = nil, progress_formatted = nil, used_annotations = nil, used_book_text = nil }
 
     if not self:isAvailable() or not self.ui.document or not self.ui.document.file then
         return result
@@ -760,6 +760,7 @@ function ContextExtractor:getXrayCache()
         result.text = entry.result or ""
         result.progress = entry.progress_decimal
         result.used_annotations = entry.used_annotations
+        result.used_book_text = entry.used_book_text
         if entry.progress_decimal then
             result.progress_formatted = tostring(math.floor(entry.progress_decimal * 100 + 0.5)) .. "%"
         end
@@ -769,9 +770,9 @@ function ContextExtractor:getXrayCache()
 end
 
 --- Get cached document analysis (full document deep analysis).
--- @return table { text }
+-- @return table { text, used_book_text }
 function ContextExtractor:getAnalyzeCache()
-    local result = { text = "" }
+    local result = { text = "", used_book_text = nil }
 
     if not self:isAvailable() or not self.ui.document or not self.ui.document.file then
         return result
@@ -782,15 +783,16 @@ function ContextExtractor:getAnalyzeCache()
 
     if entry then
         result.text = entry.result or ""
+        result.used_book_text = entry.used_book_text
     end
 
     return result
 end
 
 --- Get cached document summary (full document summary).
--- @return table { text }
+-- @return table { text, used_book_text }
 function ContextExtractor:getSummaryCache()
-    local result = { text = "" }
+    local result = { text = "", used_book_text = nil }
 
     if not self:isAvailable() or not self.ui.document or not self.ui.document.file then
         return result
@@ -801,6 +803,7 @@ function ContextExtractor:getSummaryCache()
 
     if entry then
         result.text = entry.result or ""
+        result.used_book_text = entry.used_book_text
     end
 
     return result
@@ -913,32 +916,41 @@ function ContextExtractor:extractForAction(action)
         end
     end
 
-    -- Document cache extraction: double-gated like book text since cached content derives from book text
-    -- Requires both use_book_text flag AND enable_book_text_extraction global setting
-    -- Trusted providers bypass the global setting (consistent with book text extraction)
-    if action.use_book_text and (provider_trusted or self:isBookTextExtractionEnabled()) then
-        -- {xray_cache} / {xray_cache_section} → cached X-Ray
-        -- X-Ray MAY include annotation data, so check cache's used_annotations flag
-        -- Only require annotation permission if the cache was built with annotations
-        if action.use_xray_cache then
-            local xray = self:getXrayCache()
-            -- If cache was built with annotations, require annotation permission to read it
-            local requires_annotations = xray.used_annotations == true
-            if not requires_annotations or (annotations_allowed and action.use_annotations) then
-                data.xray_cache = xray.text
-                data.xray_cache_progress = xray.progress_formatted
-            end
-        end
+    -- Document cache extraction: dynamic permission based on what each cache actually contains
+    -- If cache was built without text extraction (used_book_text=false), no text extraction permission needed
+    -- If cache was built with text extraction (used_book_text=true or nil/legacy), require text extraction permission
+    -- Trusted providers bypass the text extraction setting (consistent with book text extraction)
+    local text_extraction_allowed = provider_trusted or self:isBookTextExtractionEnabled()
 
-        -- {analyze_cache} / {analyze_cache_section} → cached document analysis
-        if action.use_analyze_cache then
-            local analyze = self:getAnalyzeCache()
+    -- {xray_cache} / {xray_cache_section} → cached X-Ray
+    if action.use_xray_cache then
+        local xray = self:getXrayCache()
+        -- Dynamic text extraction gate: only require if cache used text (nil/legacy = requires)
+        local requires_text = xray.used_book_text ~= false
+        local text_ok = not requires_text or text_extraction_allowed
+        -- Dynamic annotation gate: only require if cache used annotations
+        local requires_annotations = xray.used_annotations == true
+        local annotations_ok = not requires_annotations or (annotations_allowed and action.use_annotations)
+        if text_ok and annotations_ok then
+            data.xray_cache = xray.text
+            data.xray_cache_progress = xray.progress_formatted
+        end
+    end
+
+    -- {analyze_cache} / {analyze_cache_section} → cached document analysis
+    if action.use_analyze_cache then
+        local analyze = self:getAnalyzeCache()
+        local requires_text = analyze.used_book_text ~= false
+        if not requires_text or text_extraction_allowed then
             data.analyze_cache = analyze.text
         end
+    end
 
-        -- {summary_cache} / {summary_cache_section} → cached document summary
-        if action.use_summary_cache then
-            local summary = self:getSummaryCache()
+    -- {summary_cache} / {summary_cache_section} → cached document summary
+    if action.use_summary_cache then
+        local summary = self:getSummaryCache()
+        local requires_text = summary.used_book_text ~= false
+        if not requires_text or text_extraction_allowed then
             data.summary_cache = summary.text
         end
     end

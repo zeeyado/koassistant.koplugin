@@ -2243,12 +2243,10 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
     end
 
     -- Response caching: check for cached response and switch to update prompt if applicable
-    -- Only cache when: action supports it, uses book text, and book text extraction is enabled
+    -- Cache when: action supports it and document is open (text extraction no longer required)
     local using_cache = false
     local cached_progress_display = nil
     local cache_enabled = prompt and prompt.use_response_caching
-        and prompt.use_book_text
-        and config.features and config.features.enable_book_text_extraction
         and ui and ui.document
 
     if cache_enabled then
@@ -2284,21 +2282,25 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                 -- Add cache data for placeholder substitution
                 message_data.cached_result = cached_entry.result
                 message_data.cached_progress = cached_progress_display
+                message_data.cached_progress_decimal = cached_progress
+                -- Stash previous cache's used_book_text for sticky-true inheritance
+                message_data.cached_used_book_text = cached_entry.used_book_text
 
                 -- Get incremental book text (from cached to current position)
+                -- If text extraction is disabled, getBookTextRange returns empty — AI updates from training knowledge
                 local extraction_success, ContextExtractor = pcall(require, "koassistant_context_extractor")
                 if extraction_success and ContextExtractor then
                     local extractor = ContextExtractor:new(ui, {
-                        enable_book_text_extraction = config.features.enable_book_text_extraction,
-                        max_book_text_chars = prompt.max_book_text_chars or config.features.max_book_text_chars or 250000,
-                        max_pdf_pages = config.features.max_pdf_pages or 250,
+                        enable_book_text_extraction = config.features and config.features.enable_book_text_extraction,
+                        max_book_text_chars = prompt.max_book_text_chars or (config.features and config.features.max_book_text_chars) or 250000,
+                        max_pdf_pages = (config.features and config.features.max_pdf_pages) or 250,
                     })
                     local range_result = extractor:getBookTextRange(cached_progress, current_progress)
                     message_data.incremental_book_text = range_result.text
                     logger.info("KOAssistant: Extracted incremental book text:", range_result.char_count, "chars")
 
-                    -- Show notification if incremental text was truncated (centered InfoMessage)
-                    if range_result.truncated then
+                    -- Show notification if incremental text was truncated (only when text was actually extracted)
+                    if range_result.truncated and not range_result.disabled then
                         local coverage_start = range_result.coverage_start or 0
                         local coverage_end = range_result.coverage_end or 0
                         UIManager:show(InfoMessage:new{
@@ -2363,12 +2365,20 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
             end
             history:addAssistantMessage(display_answer, ConfigHelper:getModelInfo(temp_config), reasoning, ConfigHelper:buildDebugInfo(temp_config), web_search_used)
 
-            -- Save to response cache if enabled
-            -- Cache when: action supports it, uses book text, extraction enabled, we have progress
-            -- Skip caching if response was truncated (contains truncation notice)
+            -- Determine if book text was provided (for cache metadata tracking)
+            -- Includes incremental text for update scenarios
             local ResponseParser = require("koassistant_api.response_parser")
             local is_truncated = answer:find(ResponseParser.TRUNCATION_NOTICE, 1, true) ~= nil
+            local book_text_was_provided = (message_data.book_text and message_data.book_text ~= "")
+                or (message_data.full_document and message_data.full_document ~= "")
+                or (message_data.incremental_book_text and message_data.incremental_book_text ~= "")
+            -- Sticky-true: if previous cache used text, keep it true even if this update didn't
+            if using_cache and message_data.cached_used_book_text == true then
+                book_text_was_provided = true
+            end
 
+            -- Save to response cache if enabled (for incremental updates)
+            -- Skip caching if response was truncated (contains truncation notice)
             if cache_enabled and original_action_id and message_data.progress_decimal and not is_truncated then
                 local ActionCache = require("koassistant_action_cache")
                 local save_success = ActionCache.set(
@@ -2376,59 +2386,63 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                     original_action_id,
                     cache_answer,
                     tonumber(message_data.progress_decimal) or 0,
-                    { model = ConfigHelper:getModelInfo(temp_config) }
+                    { model = ConfigHelper:getModelInfo(temp_config), used_book_text = book_text_was_provided,
+                      previous_progress_decimal = message_data.cached_progress_decimal }
                 )
                 if save_success then
-                    logger.info("KOAssistant: Saved response to cache for", original_action_id, "at", message_data.progress_decimal)
+                    logger.info("KOAssistant: Saved response to cache for", original_action_id, "at", message_data.progress_decimal, "used_book_text=", book_text_was_provided)
                 end
             elseif is_truncated and cache_enabled then
                 logger.info("KOAssistant: Skipping cache for", original_action_id, "- response was truncated")
             end
 
             -- Save to document caches if action has cache_as_* flags (for reuse by other actions)
-            -- Only cache if book text was actually provided (prevents low-quality caches from training data)
-            local book_text_was_provided = (message_data.book_text and message_data.book_text ~= "")
-                or (message_data.full_document and message_data.full_document ~= "")
-            if not is_truncated and ui.document and ui.document.file and book_text_was_provided then
+            -- Always cache regardless of text extraction — tracks used_book_text for dynamic permission gating
+            if not is_truncated and ui.document and ui.document.file then
                 local ActionCache = require("koassistant_action_cache")
                 local progress = tonumber(message_data.progress_decimal) or 0
-                local model_info = { model = ConfigHelper:getModelInfo(temp_config) }
+                local model_name = ConfigHelper:getModelInfo(temp_config)
 
                 if action.cache_as_xray then
-                    -- Track whether annotations were used when building this cache
-                    -- Reading the cache will only require annotation permission if annotations were included
+                    -- Track what data was used when building this cache
+                    -- Reading the cache will only require permissions for data that was actually used
                     local used_annotations = (message_data.highlights and message_data.highlights ~= "")
                         or (message_data.annotations and message_data.annotations ~= "")
                     local xray_metadata = {
-                        model = model_info.model,
+                        model = model_name,
                         used_annotations = used_annotations,
+                        used_book_text = book_text_was_provided,
+                        previous_progress_decimal = message_data.cached_progress_decimal,
                     }
                     local xray_success = ActionCache.setXrayCache(ui.document.file, cache_answer, progress, xray_metadata)
                     if xray_success then
-                        logger.info("KOAssistant: Saved X-Ray to reusable cache at", progress, "used_annotations=", used_annotations)
+                        logger.info("KOAssistant: Saved X-Ray to reusable cache at", progress, "used_annotations=", used_annotations, "used_book_text=", book_text_was_provided)
                     end
                 end
 
                 if action.cache_as_analyze then
-                    local analyze_success = ActionCache.setAnalyzeCache(ui.document.file, answer, 1.0, model_info)
+                    local analyze_metadata = {
+                        model = model_name,
+                        used_book_text = book_text_was_provided,
+                    }
+                    local analyze_success = ActionCache.setAnalyzeCache(ui.document.file, answer, 1.0, analyze_metadata)
                     if analyze_success then
-                        logger.info("KOAssistant: Saved document analysis to reusable cache")
+                        logger.info("KOAssistant: Saved document analysis to reusable cache, used_book_text=", book_text_was_provided)
                     end
                 end
 
                 if action.cache_as_summary then
                     -- Include language in metadata for cache viewer awareness
                     local summary_metadata = {
-                        model = model_info.model,
+                        model = model_name,
                         language = temp_config.features and temp_config.features.translation_language or "English",
+                        used_book_text = book_text_was_provided,
                     }
                     local summary_success = ActionCache.setSummaryCache(ui.document.file, answer, 1.0, summary_metadata)
                     if summary_success then
-                        logger.info("KOAssistant: Saved document summary to reusable cache with language:", summary_metadata.language)
+                        logger.info("KOAssistant: Saved document summary to reusable cache with language:", summary_metadata.language, "used_book_text=", book_text_was_provided)
                     end
                 end
-            elseif not book_text_was_provided and (action.cache_as_xray or action.cache_as_analyze or action.cache_as_summary) then
-                logger.info("KOAssistant: Skipping document cache - no book text was provided")
             end
 
             -- Store cache info in history for viewer to display notice
@@ -3165,6 +3179,11 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
                         local book_title = (book_metadata and book_metadata.title) or ""
                         local Notification = require("ui/widget/notification")
                         local config_features = (configuration or CONFIGURATION or {}).features or {}
+                        local source_label = xray_cache.used_book_text == false
+                            and _("Based on AI training data knowledge")
+                            or _("Based on extracted document text")
+                        local formatted_date = xray_cache.timestamp
+                            and (os.date("%Y-%m-%d", xray_cache.timestamp) .. " (" .. _("today") .. ")")
                         XrayBrowser:show(parsed, {
                             title = book_title,
                             progress = xray_cache.progress_decimal and
@@ -3175,6 +3194,19 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
                             enable_emoji = config_features.enable_emoji_icons == true,
                             configuration = configuration,
                             plugin = plugin,
+                            source_label = source_label,
+                            formatted_date = formatted_date,
+                            previous_progress = xray_cache.previous_progress_decimal and
+                                (math.floor(xray_cache.previous_progress_decimal * 100 + 0.5) .. "%"),
+                            cache_metadata = {
+                                cache_type = "xray",
+                                book_title = book_title,
+                                progress_decimal = xray_cache.progress_decimal,
+                                model = xray_cache.model,
+                                timestamp = xray_cache.timestamp,
+                                used_annotations = xray_cache.used_annotations,
+                                used_book_text = xray_cache.used_book_text,
+                            },
                         }, ui, function()
                             ActionCache.clearXrayCache(ui.document.file)
                             UIManager:show(Notification:new{
