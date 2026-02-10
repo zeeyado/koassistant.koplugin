@@ -4447,6 +4447,160 @@ function AskGPT:generateSummary(options)
   })
 end
 
+--- Show a popup for incremental actions that have an existing cached result.
+--- Offers "View" (opens cached result) or "Update" (re-runs the action incrementally).
+--- Called from executeBookLevelAction() and book chat input field for actions with use_response_caching.
+--- @param action table: The action definition
+--- @param action_id string: The action ID
+--- @param on_update function: Callback to execute the action (update/re-run)
+function AskGPT:showCacheActionPopup(action, action_id, on_update)
+  local file = self.ui and self.ui.document and self.ui.document.file
+  if not file then
+    on_update()
+    return
+  end
+
+  local ActionCache = require("koassistant_action_cache")
+  local cached = ActionCache.get(file, action_id)
+  if not cached or not cached.result then
+    on_update()
+    return
+  end
+
+  local action_name = action.text or action_id
+  local progress_str = ""
+  if cached.progress_decimal then
+    progress_str = " (" .. math.floor(cached.progress_decimal * 100 + 0.5) .. "%)"
+  end
+
+  local ButtonDialog = require("ui/widget/buttondialog")
+  local self_ref = self
+  local dialog
+  dialog = ButtonDialog:new{
+    title = action_name .. progress_str,
+    buttons = {
+      {
+        {
+          text = T(_("View %1"), action_name .. progress_str),
+          callback = function()
+            UIManager:close(dialog)
+            self_ref:viewCachedAction(action, action_id, cached)
+          end,
+        },
+      },
+      {
+        {
+          text = T(_("Update %1"), action_name),
+          callback = function()
+            UIManager:close(dialog)
+            on_update()
+          end,
+        },
+      },
+      {
+        {
+          text = _("Cancel"),
+          callback = function()
+            UIManager:close(dialog)
+          end,
+        },
+      },
+    },
+  }
+  UIManager:show(dialog)
+end
+
+--- View a cached action result, routing to the appropriate viewer.
+--- For actions with cache_as_xray/analyze/summary, uses the document cache viewer.
+--- For other cacheable actions (e.g., Recap), shows in ChatGPTViewer simple_view.
+--- @param action table: The action definition
+--- @param action_id string: The action ID
+--- @param cached_entry table: The cached entry from ActionCache.get()
+function AskGPT:viewCachedAction(action, action_id, cached_entry)
+  -- Route to document cache viewer for actions that write to document caches
+  if action.cache_as_xray then
+    self:showCacheViewer({ name = "X-Ray", key = "_xray_cache", data = cached_entry })
+    return
+  end
+  if action.cache_as_analyze then
+    self:showCacheViewer({ name = _("Analysis"), key = "_analyze_cache", data = cached_entry })
+    return
+  end
+  if action.cache_as_summary then
+    self:showCacheViewer({ name = _("Summary"), key = "_summary_cache", data = cached_entry })
+    return
+  end
+
+  -- Generic viewer for per-action caches (e.g., Recap)
+  local ChatGPTViewer = require("koassistant_chatgptviewer")
+  local action_name = action.text or action_id
+
+  -- Build title and info line (same pattern as showCacheViewer)
+  local progress_str
+  if cached_entry.progress_decimal then
+    progress_str = math.floor(cached_entry.progress_decimal * 100 + 0.5) .. "%"
+  end
+  local title = action_name
+  if progress_str then
+    title = title .. " (" .. progress_str .. ")"
+  end
+  local book_title
+  if self.ui then
+    local props = self.ui.doc_props
+    if props then
+      book_title = props.display_title or props.title
+    end
+  end
+  if book_title then
+    title = title .. " - " .. book_title
+  end
+
+  local info_parts = { action_name }
+  if progress_str then
+    local progress_label = progress_str
+    if cached_entry.previous_progress_decimal then
+      progress_label = progress_label .. " (" .. _("updated from") .. " "
+          .. math.floor(cached_entry.previous_progress_decimal * 100 + 0.5) .. "%)"
+    end
+    table.insert(info_parts, progress_label)
+  end
+  table.insert(info_parts, formatCacheSourceLabel(cached_entry.used_book_text))
+  if cached_entry.model then
+    table.insert(info_parts, _("Model:") .. " " .. cached_entry.model)
+  end
+  if cached_entry.timestamp then
+    table.insert(info_parts, _("Date:") .. " " .. formatDateWithRelative(cached_entry.timestamp))
+  end
+  local cache_info_text = table.concat(info_parts, ". ") .. "."
+
+  -- Delete callback
+  local on_delete
+  local file = self.ui and self.ui.document and self.ui.document.file
+  if file then
+    local ActionCache = require("koassistant_action_cache")
+    on_delete = function()
+      ActionCache.clear(file, action_id)
+      UIManager:show(require("ui/widget/notification"):new{
+        text = T(_("%1 deleted"), action_name),
+        timeout = 2,
+      })
+    end
+  end
+
+  local viewer = ChatGPTViewer:new{
+    title = title,
+    text = cache_info_text .. "\n\n" .. cached_entry.result,
+    _cache_content = cached_entry.result,
+    simple_view = true,
+    configuration = configuration,
+    cache_type_name = action_name,
+    on_delete = on_delete,
+    _plugin = self,
+    _ui = self.ui,
+  }
+  UIManager:show(viewer)
+end
+
 --- Helper function to execute book-level actions (X-Ray, Recap, Analyze Highlights)
 --- @param action_id string: The action ID from Actions.book
 function AskGPT:executeBookLevelAction(action_id)
@@ -4469,6 +4623,22 @@ function AskGPT:executeBookLevelAction(action_id)
     return
   end
 
+  -- For incremental actions with existing cache: show View/Update popup
+  if action.use_response_caching then
+    local self_ref = self
+    self:showCacheActionPopup(action, action_id, function()
+      self_ref:_executeBookLevelActionDirect(action, action_id)
+    end)
+    return
+  end
+
+  self:_executeBookLevelActionDirect(action, action_id)
+end
+
+--- Internal: Execute a book-level action directly (after popup, if any)
+--- @param action table: The action definition
+--- @param action_id string: The action ID
+function AskGPT:_executeBookLevelActionDirect(action, action_id)
   -- Make sure we're using the latest configuration
   self:updateConfigFromSettings()
 
@@ -5318,32 +5488,16 @@ function AskGPT:onKOAssistantQuickActions()
           end,
         })
       elseif qa_util.id == "view_caches" then
-        -- Individual artifact buttons (each shown only when that cache exists)
-        local xray = ActionCache.getXrayCache(file)
-        if xray and xray.result then
-          local xray_label = _("View X-Ray")
-          if xray.progress_decimal then
-            xray_label = xray_label .. " (" .. math.floor(xray.progress_decimal * 100 + 0.5) .. "%)"
-          end
+        -- Single "Artifacts" button — opens cache picker (skips list if only one)
+        local has_any_cache = ActionCache.getXrayCache(file)
+            or ActionCache.getAnalyzeCache(file)
+            or ActionCache.getSummaryCache(file)
+        if has_any_cache then
           addButton({
-            text = xray_label,
+            text = _("View Artifacts"),
             callback = function()
               UIManager:close(dialog)
-              self_ref:showCacheViewer({ name = "X-Ray", key = "_xray_cache", data = xray })
-            end,
-          })
-        end
-        local analyze = ActionCache.getAnalyzeCache(file)
-        if analyze and analyze.result then
-          local analyze_label = _("View Analysis")
-          if analyze.progress_decimal then
-            analyze_label = analyze_label .. " (" .. math.floor(analyze.progress_decimal * 100 + 0.5) .. "%)"
-          end
-          addButton({
-            text = analyze_label,
-            callback = function()
-              UIManager:close(dialog)
-              self_ref:showCacheViewer({ name = _("Analysis"), key = "_analyze_cache", data = analyze })
+              self_ref:viewCache()
             end,
           })
         end
