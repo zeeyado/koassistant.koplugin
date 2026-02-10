@@ -4523,15 +4523,22 @@ function AskGPT:showCacheActionPopup(action, action_id, on_update)
     end
   end
 
-  -- Update detail: current reading position, e.g. "Update X-Ray (to 45%)"
-  local update_detail = ""
+  -- Determine update vs redo based on progress change (matches 1% threshold in dialogs)
+  local update_text
+  local cached_progress = cached.progress_decimal or 0
   if self.ui and self.ui.document then
     local ContextExtractor = require("koassistant_context_extractor")
     local extractor = ContextExtractor:new(self.ui)
     local progress = extractor:getReadingProgress()
-    if progress.percent > 0 then
-      update_detail = " (" .. T(_("to %1"), progress.formatted) .. ")"
+    if progress.decimal > cached_progress + 0.01 then
+      -- Enough new content for incremental update
+      update_text = T(_("Update %1"), action_name .. " (" .. T(_("to %1"), progress.formatted) .. ")")
+    else
+      -- Same position or negligible change — full regeneration
+      update_text = T(_("Redo %1"), action_name)
     end
+  else
+    update_text = T(_("Redo %1"), action_name)
   end
 
   local ButtonDialog = require("ui/widget/buttondialog")
@@ -4551,7 +4558,7 @@ function AskGPT:showCacheActionPopup(action, action_id, on_update)
       },
       {
         {
-          text = T(_("Update %1"), action_name .. update_detail),
+          text = update_text,
           callback = function()
             UIManager:close(dialog)
             on_update()
