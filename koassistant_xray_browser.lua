@@ -523,6 +523,9 @@ function XrayBrowser:chatAboutItem(detail_text)
     config.features.is_book_context = nil
     config.features.is_multi_book_context = nil
     config.features.book_metadata = nil
+    -- Clear stale selection data - the "highlight" is AI-generated, not a real book selection,
+    -- so "Save to Note" must be disabled (prevents saving to a random prior highlight position)
+    config.features.selection_data = nil
     -- Hide artifact viewer and filter out actions that use book text / annotations / notebook
     -- (the "highlight" here is AI-generated X-Ray content, not actual book text)
     config.features._hide_artifacts = true
