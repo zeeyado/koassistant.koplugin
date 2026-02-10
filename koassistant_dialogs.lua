@@ -2481,6 +2481,15 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         plugin.current_input_dialog = nil
     end
 
+    -- Consume transient config flags (set by X-Ray browser "Chat about this", etc.)
+    -- Must read and clear immediately so they don't persist to subsequent calls
+    local hide_artifacts = ((configuration or {}).features or {})._hide_artifacts
+    local exclude_action_flags = ((configuration or {}).features or {})._exclude_action_flags
+    if configuration and configuration.features then
+        configuration.features._hide_artifacts = nil
+        configuration.features._exclude_action_flags = nil
+    end
+
     -- Log which provider we're using
     local logger = require("logger")
     logger.info("Using AI provider: " .. (configuration.provider or "anthropic"))
@@ -2820,7 +2829,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         local prompt = prompts[custom_prompt_type]
         if prompt and prompt.text then
             -- Skip actions with excluded flags (e.g., from X-Ray browser "Chat about this")
-            local exclude_flags = ((configuration or {}).features or {})._exclude_action_flags
+            local exclude_flags = exclude_action_flags
             local excluded = false
             if exclude_flags then
                 for _idx2, flag in ipairs(exclude_flags) do
@@ -2887,7 +2896,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     -- Build View Artifacts button (shows cached X-Ray/Summary/Analysis)
     -- Added as its own bottom row, separate from action buttons
     local artifact_button = nil
-    if not is_general_context and plugin and not ((configuration or {}).features or {})._hide_artifacts then
+    if not is_general_context and plugin and not hide_artifacts then
         local artifact_file = document_path
         if artifact_file then
             local ActionCache = require("koassistant_action_cache")
