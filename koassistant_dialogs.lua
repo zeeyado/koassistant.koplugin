@@ -368,10 +368,9 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
         config.api_params.temperature = features.default_temperature
     end
 
-    -- Apply max_tokens from defaults if not set
-    if not config.api_params.max_tokens then
-        config.api_params.max_tokens = 16384
-    end
+    -- Note: max_tokens is NOT set here. If the action doesn't specify it,
+    -- handlers fall back to their provider defaults (defaults.lua), then to 16384.
+    -- Model-specific ceilings are enforced by ModelConstraints.clampMaxTokens().
 
     -- Reasoning/Thinking support (per-provider toggles)
     -- Priority: action.reasoning_config > action.reasoning > master toggle > per-provider setting
