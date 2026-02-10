@@ -43,6 +43,7 @@ jobs:
                     --exclude='tests' \
                     --exclude='scripts' \
                     --exclude='hooks' \
+                    --exclude='screenshots' \
                     --exclude='.gitignore' \
                     . build/koassistant.koplugin/
 
