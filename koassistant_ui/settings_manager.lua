@@ -9,7 +9,7 @@ local SettingsManager = {}
 function SettingsManager:generateMenuFromSchema(plugin, schema)
     local menu_items = {}
 
-    for _, item in ipairs(schema.items) do
+    for _idx, item in ipairs(schema.items) do
         local menu_item = self:createMenuItem(plugin, item, schema)
         if menu_item then
             table.insert(menu_items, menu_item)
@@ -121,7 +121,7 @@ function SettingsManager:createMenuItem(plugin, item, schema)
 
             -- Check if it's an array of conditions (all must be true)
             if item.depends_on[1] then
-                for _, dep in ipairs(item.depends_on) do
+                for _idx, dep in ipairs(item.depends_on) do
                     if not checkCondition(dep) then
                         return false
                     end
@@ -185,7 +185,7 @@ function SettingsManager:createMenuItem(plugin, item, schema)
             end
         end
         menu_item.sub_item_table = {}
-        for _, option in ipairs(item.options) do
+        for _idx, option in ipairs(item.options) do
             table.insert(menu_item.sub_item_table, {
                 text = option.text,
                 radio = true,
@@ -215,7 +215,7 @@ function SettingsManager:createMenuItem(plugin, item, schema)
             end
             -- Find the label for current value
             local current_label = value
-            for _, option in ipairs(item.options) do
+            for _idx, option in ipairs(item.options) do
                 if option.value == value then
                     current_label = option.label
                     break
@@ -224,7 +224,7 @@ function SettingsManager:createMenuItem(plugin, item, schema)
             return T(item.text .. ": %1", current_label)
         end
         menu_item.sub_item_table = {}
-        for _, option in ipairs(item.options) do
+        for _idx, option in ipairs(item.options) do
             table.insert(menu_item.sub_item_table, {
                 text = option.label,
                 radio = true,
@@ -421,7 +421,7 @@ function SettingsManager:createMenuItem(plugin, item, schema)
         elseif item.items then
             -- Static submenu with predefined items
             menu_item.sub_item_table = {}
-            for _, subitem in ipairs(item.items) do
+            for _idx, subitem in ipairs(item.items) do
                 local submenu_item = self:createMenuItem(plugin, subitem, schema)
                 if submenu_item then
                     table.insert(menu_item.sub_item_table, submenu_item)
@@ -443,7 +443,7 @@ function SettingsManager:getSettingValue(plugin, path)
     end
     
     local value = plugin.settings.data
-    for _, part in ipairs(parts) do
+    for _idx, part in ipairs(parts) do
         if type(value) == "table" then
             value = value[part]
         else
