@@ -7,11 +7,10 @@
 **Powerful, customizable AI assistant for KOReader.**
 
 <p align="center">
-  <a href="screenshots/ELI5highlightchat.png"><img src="screenshots/ELI5highlightchat.png" width="180" alt="AI explains highlighted text"></a>
-  <a href="screenshots/Xraybrowser.png"><img src="screenshots/Xraybrowser.png" width="180" alt="X-Ray browser"></a>
-  <a href="screenshots/compactdict.png"><img src="screenshots/compactdict.png" width="180" alt="Dictionary integration"></a>
-  <a href="screenshots/settingsui.png"><img src="screenshots/settingsui.png" width="180" alt="Settings and menu"></a>
-  <a href="screenshots/QApanelmore.png"><img src="screenshots/QApanelmore.png" width="180" alt="Quick Actions panel"></a>
+  <a href="screenshots/ELI5highlightchat.png"><img src="screenshots/ELI5highlightchat.png" width="200" alt="AI explains highlighted text"></a>
+  <a href="screenshots/Xraybrowser.png"><img src="screenshots/Xraybrowser.png" width="200" alt="X-Ray browser"></a>
+  <a href="screenshots/compactdict.png"><img src="screenshots/compactdict.png" width="200" alt="Dictionary integration"></a>
+  <a href="screenshots/settingsui.png"><img src="screenshots/settingsui.png" width="200" alt="Settings and menu"></a>
 </p>
 
 - **Highlight text** → translate, explain, define words, analyze passages, connect ideas, save content directly to KOReader's highlight notes/annotations
@@ -253,6 +252,9 @@ In reader mode, additional buttons appear (items naturally shift to accommodate)
 To show/hide buttons in the Quick Settings panel, use **Settings → Quick Settings Settings → QS Panel Utilities**.
 
 **2. Quick Actions** (reader mode only)
+
+<a href="screenshots/QApanelmore.png"><img src="screenshots/QApanelmore.png" width="300" alt="Quick Actions panel"></a>
+
 Assign "KOAssistant: Quick Actions" to a gesture for fast access to reading-related actions:
 - **Default actions** — X-Ray, Recap, Book Info
 - **Summary management** — "View Summary" (if summary exists) or "Generate Summary" (if not) for cached document summaries
