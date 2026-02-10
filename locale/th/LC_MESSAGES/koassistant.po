@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: KOAssistant 0.12.0-dev\n"
 "Report-Msgid-Bugs-To: https://github.com/zeeyado/koassistant.koplugin/issues\n"
-"POT-Creation-Date: 2026-02-10 14:01+0000\n"
+"POT-Creation-Date: 2026-02-10 14:12+0000\n"
 "PO-Revision-Date: 2026-01-27 17:48+0000\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: _meta.lua:4 main.lua:3640 main.lua:4851
+#: _meta.lua:4 main.lua:3640 main.lua:4874
 #, fuzzy
 msgid "KOAssistant"
 msgstr "KOAssistant"
@@ -50,7 +50,7 @@ msgstr ""
 #: koassistant_chat_history_dialog.lua:1937 koassistant_chatgptviewer.lua:2221
 #: koassistant_chatgptviewer.lua:2227 koassistant_notebook_manager.lua:156
 #: koassistant_notebook_manager.lua:161 koassistant_xray_browser.lua:771
-#: main.lua:8111 main.lua:8119 koassistant_ui/behavior_manager.lua:311
+#: main.lua:8134 main.lua:8142 koassistant_ui/behavior_manager.lua:311
 #: koassistant_ui/domain_manager.lua:313 koassistant_ui/prompts_manager.lua:751
 #, fuzzy
 msgid "Delete"
@@ -72,8 +72,8 @@ msgstr "ลบแชท %1 รายการแล้ว"
 #: koassistant_chatgptviewer.lua:2239 koassistant_chatgptviewer.lua:2428
 #: koassistant_chatgptviewer.lua:3951 koassistant_dialogs.lua:607
 #: koassistant_dialogs.lua:2669 koassistant_dialogs.lua:2705
-#: koassistant_xray_browser.lua:822 main.lua:2210 main.lua:4913 main.lua:5386
-#: main.lua:5520 koassistant_ui/behavior_manager.lua:382
+#: koassistant_xray_browser.lua:822 main.lua:2210 main.lua:4936 main.lua:5409
+#: main.lua:5543 koassistant_ui/behavior_manager.lua:382
 #: koassistant_ui/domain_manager.lua:383
 #: koassistant_ui/settings_manager.lua:265
 #: koassistant_ui/settings_manager.lua:351
@@ -109,7 +109,7 @@ msgstr ""
 "\n"
 "การกระทำนี้ไม่สามารถยกเลิกได้"
 
-#: koassistant_chat_history_dialog.lua:148 main.lua:6839
+#: koassistant_chat_history_dialog.lua:148 main.lua:6862
 #, fuzzy
 msgid "Deleted %1 chat(s) from %2 book(s)"
 msgstr "ลบแชท %1 รายการจากหนังสือ %2 เล่มแล้ว"
@@ -123,7 +123,7 @@ msgstr "ตัวเลือกประวัติแชท"
 #: koassistant_chat_history_dialog.lua:255
 #: koassistant_chat_history_dialog.lua:602 koassistant_constants.lua:123
 #: koassistant_settings_schema.lua:48 koassistant_settings_schema.lua:911
-#: koassistant_settings_schema.lua:1031 main.lua:338 main.lua:5291
+#: koassistant_settings_schema.lua:1031 main.lua:338 main.lua:5314
 #, fuzzy
 msgid "Chat History"
 msgstr "ประวัติแชท"
@@ -256,13 +256,13 @@ msgstr "ข้อผิดพลาด: ไม่สามารถโหลด�
 
 #: koassistant_chat_history_dialog.lua:782 koassistant_xray_browser.lua:722
 #: koassistant_xray_browser.lua:724 koassistant_xray_browser.lua:796
-#: koassistant_xray_browser.lua:798 main.lua:4154 main.lua:4324 main.lua:4572
+#: koassistant_xray_browser.lua:798 main.lua:4154 main.lua:4324 main.lua:4595
 #, fuzzy
 msgid "Date:"
 msgstr "วันที่:"
 
 #: koassistant_chat_history_dialog.lua:783 koassistant_xray_browser.lua:719
-#: koassistant_xray_browser.lua:786 main.lua:4151 main.lua:4321 main.lua:4569
+#: koassistant_xray_browser.lua:786 main.lua:4151 main.lua:4321 main.lua:4592
 #, fuzzy
 msgid "Model:"
 msgstr "โมเดล:"
@@ -393,8 +393,8 @@ msgstr "ไม่พบแชท"
 #: koassistant_notebook_manager.lua:182 koassistant_update_checker.lua:326
 #: koassistant_xray_browser.lua:621 main.lua:391 main.lua:1978 main.lua:2016
 #: main.lua:2082 main.lua:2320 main.lua:2444 main.lua:2588 main.lua:2761
-#: main.lua:2917 main.lua:3417 main.lua:3591 main.lua:4037 main.lua:4502
-#: main.lua:5644 main.lua:7202 main.lua:7756
+#: main.lua:2917 main.lua:3417 main.lua:3591 main.lua:4037 main.lua:4525
+#: main.lua:5667 main.lua:7225 main.lua:7779
 #: koassistant_ui/behavior_manager.lua:419
 #: koassistant_ui/behavior_manager.lua:478
 #: koassistant_ui/behavior_manager.lua:557
@@ -548,7 +548,7 @@ msgstr ""
 "%1"
 
 #: koassistant_chat_history_dialog.lua:1766 koassistant_chatgptviewer.lua:3379
-#: main.lua:8791
+#: main.lua:8814
 #, fuzzy
 msgid "Failed to save: %1"
 msgstr "ไม่สามารถบันทึกได้: %1"
@@ -678,7 +678,7 @@ msgid "Autosaved"
 msgstr "บันทึกอัตโนมัติแล้ว"
 
 #: koassistant_chatgptviewer.lua:1072 koassistant_dialogs.lua:615 main.lua:2089
-#: main.lua:2784 main.lua:3424 main.lua:3606 main.lua:7208
+#: main.lua:2784 main.lua:3424 main.lua:3606 main.lua:7231
 #: koassistant_ui/behavior_manager.lua:496
 #: koassistant_ui/domain_manager.lua:487
 #: koassistant_ui/prompts_manager.lua:1778
@@ -859,7 +859,7 @@ msgstr "เพิ่มคำไปยังเครื่องมือสร
 msgid "+Vocab"
 msgstr "+คำศัพท์"
 
-#: koassistant_chatgptviewer.lua:1631 main.lua:6396
+#: koassistant_chatgptviewer.lua:1631 main.lua:6419
 #, fuzzy
 msgid "AI Dictionary lookup"
 msgstr "ค้นหาพจนานุกรม AI"
@@ -901,7 +901,7 @@ msgid "Configure languages in Settings first"
 msgstr "กำหนดค่าภาษาในการตั้งค่าก่อน"
 
 #: koassistant_chatgptviewer.lua:1733 koassistant_settings_schema.lua:1010
-#: main.lua:5249 main.lua:6011
+#: main.lua:5272 main.lua:6034
 #, fuzzy
 msgid "Dictionary Language"
 msgstr "ภาษาพจนานุกรม"
@@ -1059,7 +1059,7 @@ msgstr "คัดลอกไปยังคลิปบอร์ดแล้ว
 msgid "No highlight selection data available"
 msgstr "ไม่มีข้อมูลการเลือกไฮไลต์"
 
-#: koassistant_chatgptviewer.lua:3080 main.lua:5859
+#: koassistant_chatgptviewer.lua:3080 main.lua:5882
 #, fuzzy
 msgid "No document open"
 msgstr "ไม่มีเอกสารที่เปิดอยู่"
@@ -1161,17 +1161,17 @@ msgstr "ไม่มีเนื้อหาให้ส่งออก"
 msgid "No export metadata available."
 msgstr "ไม่มีข้อมูลเมตาสำหรับการส่งออก"
 
-#: koassistant_chatgptviewer.lua:3492 main.lua:8714
+#: koassistant_chatgptviewer.lua:3492 main.lua:8737
 #, fuzzy
 msgid "Select export folder"
 msgstr "เลือกโฟลเดอร์สำหรับส่งออก"
 
-#: koassistant_chatgptviewer.lua:3517 main.lua:8736
+#: koassistant_chatgptviewer.lua:3517 main.lua:8759
 #, fuzzy
 msgid "Saved to %1"
 msgstr "บันทึกไปยัง %1"
 
-#: koassistant_chatgptviewer.lua:3522 main.lua:8741
+#: koassistant_chatgptviewer.lua:3522 main.lua:8764
 #, fuzzy
 msgid "Export failed: %1"
 msgstr "การส่งออกล้มเหลว: %1"
@@ -1256,7 +1256,7 @@ msgstr "การจัดแนว: %1"
 msgid "Reset to Defaults"
 msgstr "รีเซ็ตเป็นค่าเริ่มต้น"
 
-#: koassistant_chatgptviewer.lua:3971 main.lua:5164
+#: koassistant_chatgptviewer.lua:3971 main.lua:5187
 #: koassistant_ui/settings_manager.lua:317
 #, fuzzy
 msgid "Set"
@@ -1267,7 +1267,7 @@ msgstr "ตั้งค่า"
 msgid "Font size set to %1"
 msgstr "ตั้งขนาดตัวอักษรเป็น %1"
 
-#: koassistant_chatgptviewer.lua:4014 main.lua:7029
+#: koassistant_chatgptviewer.lua:4014 main.lua:7052
 #, fuzzy
 msgid "Settings reset to defaults"
 msgstr "รีเซ็ตการตั้งค่าเป็นค่าเริ่มต้นแล้ว"
@@ -1288,33 +1288,33 @@ msgid "Edit Notebook"
 msgstr "แก้ไขสมุดบันทึก"
 
 #: koassistant_constants.lua:124 koassistant_settings_schema.lua:912
-#: koassistant_settings_schema.lua:1052 main.lua:5327
+#: koassistant_settings_schema.lua:1052 main.lua:5350
 #, fuzzy
 msgid "Continue Last Chat"
 msgstr "สนทนาต่อจากครั้งล่าสุด"
 
 #: koassistant_constants.lua:125 koassistant_settings_schema.lua:913
-#: koassistant_settings_schema.lua:1059 main.lua:5339
+#: koassistant_settings_schema.lua:1059 main.lua:5362
 #, fuzzy
 msgid "New Book Chat/Action"
 msgstr "สนทนา/การดำเนินการเกี่ยวกับหนังสือใหม่"
 
 #: koassistant_constants.lua:126 koassistant_settings_schema.lua:41
 #: koassistant_settings_schema.lua:914 koassistant_settings_schema.lua:1045
-#: main.lua:5315
+#: main.lua:5338
 #, fuzzy
 msgid "General Chat/Action"
 msgstr "สนทนา/การดำเนินการทั่วไป"
 
 #: koassistant_constants.lua:128 koassistant_dialogs.lua:2964
 #: koassistant_dialogs.lua:2987 koassistant_settings_schema.lua:916
-#: main.lua:369 main.lua:397 main.lua:4044 main.lua:5497
+#: main.lua:369 main.lua:397 main.lua:4044 main.lua:5520
 #, fuzzy
 msgid "View Artifacts"
 msgstr "ดูสิ่งประดิษฐ์"
 
 #: koassistant_constants.lua:129 koassistant_settings_schema.lua:917
-#: main.lua:5407
+#: main.lua:5430
 #, fuzzy
 msgid "Quick Settings"
 msgstr "การตั้งค่าด่วน"
@@ -1426,8 +1426,8 @@ msgid ""
 msgstr "เนื้อหาใหม่ถูกตัดทอน (ครอบคลุม %1 %–%2 %) เพิ่มขีดจำกัดในการตั้งค่าขั้นสูง"
 
 #: koassistant_dialogs.lua:2624 koassistant_dialogs.lua:2688
-#: koassistant_settings_schema.lua:564 main.lua:3541 main.lua:5041
-#: main.lua:5712 koassistant_ui/prompts_manager.lua:1518
+#: koassistant_settings_schema.lua:564 main.lua:3541 main.lua:5064
+#: main.lua:5735 koassistant_ui/prompts_manager.lua:1518
 #: koassistant_ui/prompts_manager.lua:2677
 #: koassistant_ui/prompts_manager.lua:3395
 #, fuzzy
@@ -1465,12 +1465,12 @@ msgid "Error handling prompt: "
 msgstr "ข้อผิดพลาดในการจัดการพรอมต์:"
 
 #: koassistant_dialogs.lua:2946 main.lua:360 main.lua:3998 main.lua:4301
-#: main.lua:4530
+#: main.lua:4553
 #, fuzzy
 msgid "Summary"
 msgstr "สรุป"
 
-#: koassistant_dialogs.lua:2950 main.lua:364 main.lua:4006 main.lua:4526
+#: koassistant_dialogs.lua:2950 main.lua:364 main.lua:4006 main.lua:4549
 #, fuzzy
 msgid "Analysis"
 msgstr "การวิเคราะห์"
@@ -1516,7 +1516,7 @@ msgstr "อิงจากข้อความที่แยกออกมา
 msgid "today"
 msgstr "วันนี้"
 
-#: koassistant_dialogs.lua:3224 main.lua:4199 main.lua:4584
+#: koassistant_dialogs.lua:3224 main.lua:4199 main.lua:4607
 #, fuzzy
 msgid "%1 deleted"
 msgstr "ลบ %1 แล้ว"
@@ -1596,7 +1596,7 @@ msgid "Chat about Book"
 msgstr "สนทนาเกี่ยวกับหนังสือ"
 
 #: koassistant_settings_schema.lua:55 koassistant_settings_schema.lua:1038
-#: main.lua:5303
+#: main.lua:5326
 #, fuzzy
 msgid "Browse Notebooks"
 msgstr "เรียกดูสมุดบันทึก"
@@ -1606,17 +1606,17 @@ msgstr "เรียกดูสมุดบันทึก"
 msgid "Reading Features"
 msgstr "คุณสมบัติการอ่าน"
 
-#: koassistant_settings_schema.lua:83 main.lua:1837 main.lua:5102
+#: koassistant_settings_schema.lua:83 main.lua:1837 main.lua:5125
 #, fuzzy
 msgid "Provider: %1"
 msgstr "ผู้ให้บริการ: %1"
 
-#: koassistant_settings_schema.lua:92 main.lua:2410 main.lua:5115
+#: koassistant_settings_schema.lua:92 main.lua:2410 main.lua:5138
 #, fuzzy
 msgid "Model: %1"
 msgstr "โมเดล: %1"
 
-#: koassistant_settings_schema.lua:99 main.lua:7581 main.lua:7711
+#: koassistant_settings_schema.lua:99 main.lua:7604 main.lua:7734
 #, fuzzy
 msgid "API Keys"
 msgstr "คีย์ API"
@@ -2305,12 +2305,12 @@ msgstr "ยูทิลิตี้แผงการตั้งค่าด่
 msgid "Show or hide controls in the Quick Settings panel"
 msgstr "แสดงหรือซ่อนตัวควบคุมในแผงการตั้งค่าด่วน"
 
-#: koassistant_settings_schema.lua:947 main.lua:4955 main.lua:5107
+#: koassistant_settings_schema.lua:947 main.lua:4978 main.lua:5130
 #, fuzzy
 msgid "Provider"
 msgstr "ผู้ให้บริการ"
 
-#: koassistant_settings_schema.lua:954 main.lua:4961 main.lua:5120
+#: koassistant_settings_schema.lua:954 main.lua:4984 main.lua:5143
 #, fuzzy
 msgid "Model"
 msgstr "โมเดล"
@@ -2326,7 +2326,7 @@ msgid "Domain"
 msgstr "โดเมน"
 
 #: koassistant_settings_schema.lua:975 koassistant_settings_schema.lua:1551
-#: main.lua:5165 koassistant_ui/prompts_manager.lua:722
+#: main.lua:5188 koassistant_ui/prompts_manager.lua:722
 #: koassistant_ui/prompts_manager.lua:1841
 #: koassistant_ui/prompts_manager.lua:3052
 #, fuzzy
@@ -2345,7 +2345,7 @@ msgstr "การใช้เหตุผล Anthropic/Gemini"
 msgid "Web Search"
 msgstr "การค้นหาเว็บ"
 
-#: koassistant_settings_schema.lua:1003 main.lua:4949 main.lua:5236
+#: koassistant_settings_schema.lua:1003 main.lua:4972 main.lua:5259
 #: koassistant_ui/prompts_manager.lua:4038
 #, fuzzy
 msgid "Translation Language"
@@ -2362,12 +2362,12 @@ msgid "D.Bypass"
 msgstr "D.Bypass"
 
 #: koassistant_settings_schema.lua:1066 koassistant_settings_schema.lua:1101
-#: main.lua:5351 koassistant_ui/prompts_manager.lua:501
+#: main.lua:5374 koassistant_ui/prompts_manager.lua:501
 #, fuzzy
 msgid "Manage Actions"
 msgstr "จัดการการกระทำ"
 
-#: koassistant_settings_schema.lua:1073 main.lua:5539
+#: koassistant_settings_schema.lua:1073 main.lua:5562
 #, fuzzy
 msgid "Quick Actions"
 msgstr "การกระทำด่วน"
@@ -2479,12 +2479,12 @@ msgstr "แสดงปุ่มเฉพาะเมื่อมีสมุด
 msgid "Privacy & Data"
 msgstr "ความเป็นส่วนตัวและข้อมูล"
 
-#: koassistant_settings_schema.lua:1204 main.lua:7231
+#: koassistant_settings_schema.lua:1204 main.lua:7254
 #, fuzzy
 msgid "Trusted Providers: None"
 msgstr "ผู้ให้บริการที่เชื่อถือ: ไม่มี"
 
-#: koassistant_settings_schema.lua:1206 main.lua:7233
+#: koassistant_settings_schema.lua:1206 main.lua:7256
 #, fuzzy
 msgid "Trusted Providers: %1"
 msgstr "ผู้ให้บริการที่เชื่อถือ: %1"
@@ -2625,7 +2625,7 @@ msgid ""
 "Maximum PDF pages to extract (50-1,000). Higher = more context but slower. Default: 500 (~1M characters)."
 msgstr "จำนวนหน้า PDF สูงสุดที่จะดึงข้อมูล (50-1,000) ค่าสูงขึ้น = บริบทมากขึ้นแต่ช้าลง ค่าเริ่มต้น: 500 (~1M อักขระ)"
 
-#: koassistant_settings_schema.lua:1338 main.lua:5639
+#: koassistant_settings_schema.lua:1338 main.lua:5662
 #, fuzzy
 msgid "Clear Action Cache"
 msgstr "ล้างแคชการกระทำ"
@@ -3191,7 +3191,7 @@ msgstr "ทดสอบการเชื่อมต่อ"
 msgid "Settings Management"
 msgstr "การจัดการการตั้งค่า"
 
-#: koassistant_settings_schema.lua:1808 main.lua:7527
+#: koassistant_settings_schema.lua:1808 main.lua:7550
 #, fuzzy
 msgid "Create Backup"
 msgstr "สร้างข้อมูลสำรอง"
@@ -3463,7 +3463,7 @@ msgstr ""
 "%2"
 
 #: koassistant_update_checker.lua:635 koassistant_update_checker.lua:726
-#: main.lua:8206
+#: main.lua:8229
 #, fuzzy
 msgid "Later"
 msgstr "ภายหลัง"
@@ -3498,7 +3498,7 @@ msgstr "%1 (แปลแล้ว)"
 msgid "Translation failed: %1"
 msgstr "การแปลล้มเหลว: %1"
 
-#: koassistant_update_checker.lua:695 main.lua:7620 main.lua:7995 main.lua:8135
+#: koassistant_update_checker.lua:695 main.lua:7643 main.lua:8018 main.lua:8158
 #, fuzzy
 msgid "Unknown error"
 msgstr "ข้อผิดพลาดที่ไม่ทราบสาเหตุ"
@@ -3699,7 +3699,7 @@ msgid "Results for \"%1\" (%2)"
 msgstr "ผลลัพธ์สำหรับ \"%1\" (%2)"
 
 #: koassistant_xray_browser.lua:711 koassistant_xray_browser.lua:791
-#: main.lua:4144 main.lua:4562
+#: main.lua:4144 main.lua:4585
 #, fuzzy
 msgid "updated from"
 msgstr "อัปเดตจาก"
@@ -3739,7 +3739,7 @@ msgstr "ประเภท:"
 msgid "Source:"
 msgstr "แหล่งที่มา:"
 
-#: koassistant_xray_browser.lua:808 main.lua:8082
+#: koassistant_xray_browser.lua:808 main.lua:8105
 #: koassistant_ui/prompts_manager.lua:1458
 #: koassistant_ui/prompts_manager.lua:1923
 #, fuzzy
@@ -3856,7 +3856,7 @@ msgstr "กำลังสร้างไปสู่:"
 msgid "Chat/Action"
 msgstr "แชท/การกระทำ"
 
-#: main.lua:314 main.lua:8685
+#: main.lua:314 main.lua:8708
 #, fuzzy
 msgid "Notebook"
 msgstr "สมุดบันทึก"
@@ -4399,7 +4399,7 @@ msgstr "หลัก: %1"
 msgid "Use Primary (%1)"
 msgstr "ใช้ภาษาหลัก (%1)"
 
-#: main.lua:3358 main.lua:3390 main.lua:5231
+#: main.lua:3358 main.lua:3390 main.lua:5254
 #, fuzzy
 msgid "Translate: %1"
 msgstr "แปล: %1"
@@ -4430,7 +4430,7 @@ msgstr "ป้อนภาษาเป้าหมายสำหรับกา
 msgid "(Set your languages for quick selection)"
 msgstr "(ตั้งค่าภาษาของคุณเพื่อเลือกอย่างรวดเร็ว)"
 
-#: main.lua:3463 main.lua:6024
+#: main.lua:3463 main.lua:6047
 #, fuzzy
 msgid "Follow Translation Language"
 msgstr "ตามภาษาแปล"
@@ -4440,7 +4440,7 @@ msgstr "ตามภาษาแปล"
 msgid "Dictionary: Follow Translation"
 msgstr "พจนานุกรม: ตามการแปล"
 
-#: main.lua:3484 main.lua:6041
+#: main.lua:3484 main.lua:6064
 #, fuzzy
 msgid "Follow Primary Language"
 msgstr "ตามภาษาหลัก"
@@ -4450,7 +4450,7 @@ msgstr "ตามภาษาหลัก"
 msgid "Dictionary: Follow Primary"
 msgstr "พจนานุกรม: ตามภาษาหลัก"
 
-#: main.lua:3522 main.lua:5244
+#: main.lua:3522 main.lua:5267
 #, fuzzy
 msgid "Dictionary: %1"
 msgstr "พจนานุกรม: %1"
@@ -4517,12 +4517,12 @@ msgstr "รายการโมเดลได้รับการจัดก
 msgid "No previously opened chat found"
 msgstr "ไม่พบแชทที่เปิดไว้ก่อนหน้านี้"
 
-#: main.lua:3903 main.lua:6649
+#: main.lua:3903 main.lua:6672
 #, fuzzy
 msgid "Configuration not found. Please set up configuration.lua first."
 msgstr "ไม่พบการกำหนดค่า กรุณาตั้งค่า configuration.lua ก่อน"
 
-#: main.lua:3940 main.lua:4611 main.lua:5795 main.lua:5813
+#: main.lua:3940 main.lua:4634 main.lua:5818 main.lua:5836
 #, fuzzy
 msgid "Please open a book first"
 msgstr "กรุณาเปิดหนังสือก่อน"
@@ -4544,27 +4544,27 @@ msgstr ""
 "เรียกใช้ X-Ray, สรุปเอกสาร หรือวิเคราะห์เอกสารเพื่อสร้างแคชที่นำกลับมาใช้ได้"
 
 #: main.lua:4061
-#, lua-format, fuzzy
+#, fuzzy, lua-format
 msgid "%dd ago"
 msgstr "%dวันที่แล้ว"
 
 #: main.lua:4068
-#, lua-format, fuzzy
+#, fuzzy, lua-format
 msgid "%dm%dd ago"
 msgstr "%dเดือน%dวันที่แล้ว"
 
 #: main.lua:4070
-#, lua-format, fuzzy
+#, fuzzy, lua-format
 msgid "%dm ago"
 msgstr "%dเดือนที่แล้ว"
 
 #: main.lua:4075
-#, lua-format, fuzzy
+#, fuzzy, lua-format
 msgid "%dy%dm ago"
 msgstr "%dปี%dเดือนที่แล้ว"
 
 #: main.lua:4077
-#, lua-format, fuzzy
+#, fuzzy, lua-format
 msgid "%dy ago"
 msgstr "%dปีที่แล้ว"
 
@@ -4623,145 +4623,150 @@ msgstr ""
 "• บันทึกสรุปเพื่อใช้ในอนาคต\n"
 "• เปิดใช้งานการดำเนินการอัจฉริยะสำหรับหนังสือเล่มนี้"
 
-#: main.lua:4484
+#: main.lua:4495
+#, fuzzy
+msgid "to %1"
+msgstr "ถึง %1"
+
+#: main.lua:4507
 #, fuzzy
 msgid "View %1"
 msgstr "ดู%1"
 
-#: main.lua:4493
+#: main.lua:4516
 #, fuzzy
 msgid "Update %1"
 msgstr "อัปเดต%1"
 
-#: main.lua:4621 main.lua:4739 main.lua:4794
+#: main.lua:4644 main.lua:4762 main.lua:4817
 #, fuzzy
 msgid "Action '%1' not found"
 msgstr "ไม่พบการดำเนินการ '%1'"
 
-#: main.lua:4777
+#: main.lua:4800
 #, fuzzy
 msgid "Unknown action context: %1"
 msgstr "บริบทการดำเนินการที่ไม่รู้จัก: %1"
 
-#: main.lua:4943 main.lua:5223
+#: main.lua:4966 main.lua:5246
 #, fuzzy
 msgid "Primary Language"
 msgstr "ภาษาหลัก"
 
-#: main.lua:4967 main.lua:5133 koassistant_ui/prompts_manager.lua:725
+#: main.lua:4990 main.lua:5156 koassistant_ui/prompts_manager.lua:725
 #: koassistant_ui/prompts_manager.lua:2991
 #, fuzzy
 msgid "AI Behavior"
 msgstr "พฤติกรรม AI"
 
-#: main.lua:5052
+#: main.lua:5075
 #, fuzzy
 msgid "Default"
 msgstr "ค่าเริ่มต้น"
 
-#: main.lua:5128
+#: main.lua:5151
 #, fuzzy
 msgid "Behavior: %1"
 msgstr "พฤติกรรม: %1"
 
-#: main.lua:5141
+#: main.lua:5164
 #, fuzzy
 msgid "Domain: %1"
 msgstr "โดเมน: %1"
 
-#: main.lua:5146 main.lua:5694
+#: main.lua:5169 main.lua:5717
 #, fuzzy
 msgid "Knowledge Domain"
 msgstr "โดเมนความรู้"
 
-#: main.lua:5154
+#: main.lua:5177
 #, fuzzy
 msgid "Temp: %1"
 msgstr "อุณหภูมิ: %1"
 
-#: main.lua:5184
+#: main.lua:5207
 #, fuzzy
 msgid "Anthropic/Gemini Reasoning: ON"
 msgstr "การใช้เหตุผล Anthropic/Gemini: เปิด"
 
-#: main.lua:5184
+#: main.lua:5207
 #, fuzzy
 msgid "Anthropic/Gemini Reasoning: OFF"
 msgstr "การใช้เหตุผล Anthropic/Gemini: ปิด"
 
-#: main.lua:5201
+#: main.lua:5224
 #, fuzzy
 msgid "Web Search: ON"
 msgstr "ค้นหาเว็บ: เปิด"
 
-#: main.lua:5201
+#: main.lua:5224
 #, fuzzy
 msgid "Web Search: OFF"
 msgstr "ค้นหาเว็บ: ปิด"
 
-#: main.lua:5218
+#: main.lua:5241
 #, fuzzy
 msgid "Language: %1"
 msgstr "ภาษา: %1"
 
-#: main.lua:5257
+#: main.lua:5280
 #, fuzzy
 msgid "H.Bypass: ON"
 msgstr "H.Bypass: เปิด"
 
-#: main.lua:5257
+#: main.lua:5280
 #, fuzzy
 msgid "H.Bypass: OFF"
 msgstr "H.Bypass: ปิด"
 
-#: main.lua:5274
+#: main.lua:5297
 #, fuzzy
 msgid "D.Bypass: ON"
 msgstr "D.Bypass: เปิด"
 
-#: main.lua:5274
+#: main.lua:5297
 #, fuzzy
 msgid "D.Bypass: OFF"
 msgstr "D.Bypass: ปิด"
 
-#: main.lua:5363
+#: main.lua:5386
 #, fuzzy
 msgid "Quick Actions..."
 msgstr "การดำเนินการด่วน..."
 
-#: main.lua:5375
+#: main.lua:5398
 #, fuzzy
 msgid "More Settings..."
 msgstr "การตั้งค่าเพิ่มเติม..."
 
-#: main.lua:5431
+#: main.lua:5454
 #, fuzzy
 msgid "Quick Actions is only available while reading a book."
 msgstr "การดำเนินการด่วนใช้ได้เฉพาะขณะอ่านหนังสือเท่านั้น"
 
-#: main.lua:5480
+#: main.lua:5503
 #, fuzzy
 msgid "View Summary"
 msgstr "ดูสรุป"
 
-#: main.lua:5480
+#: main.lua:5503
 #, fuzzy
 msgid "Generate Summary"
 msgstr "สร้างสรุป"
 
-#: main.lua:5555
+#: main.lua:5578
 #, fuzzy
 msgid "Testing connection..."
 msgstr "กำลังทดสอบการเชื่อมต่อ..."
 
-#: main.lua:5583
+#: main.lua:5606
 #, fuzzy
 msgid ""
 "Connection test failed:\n"
 msgstr ""
 "การทดสอบการเชื่อมต่อล้มเหลว:\n"
 
-#: main.lua:5589
+#: main.lua:5612
 #, fuzzy
 msgid ""
 "Connection test successful!\n"
@@ -4778,12 +4783,12 @@ msgstr ""
 "\n"
 "การตอบกลับ: %3"
 
-#: main.lua:5597
+#: main.lua:5620
 #, fuzzy
 msgid "Connection test failed: "
 msgstr "การทดสอบการเชื่อมต่อล้มเหลว:"
 
-#: main.lua:5617
+#: main.lua:5640
 #, fuzzy
 msgid ""
 "No book is currently open.\n"
@@ -4794,7 +4799,7 @@ msgstr ""
 "\n"
 "เปิดหนังสือก่อน จากนั้นใช้ตัวเลือกนี้เพื่อล้างแคช X-Ray และ Recap ที่เก็บไว้"
 
-#: main.lua:5630
+#: main.lua:5653
 #, fuzzy
 msgid ""
 "No action cache found for this book.\n"
@@ -4805,7 +4810,7 @@ msgstr ""
 "\n"
 "เรียกใช้ X-Ray หรือ Recap ก่อนเพื่อสร้างแคช"
 
-#: main.lua:5640
+#: main.lua:5663
 #, fuzzy
 msgid ""
 "Clear cached X-Ray and Recap responses for this book?\n"
@@ -4816,62 +4821,62 @@ msgstr ""
 "\n"
 "ครั้งถัดไปที่คุณเรียกใช้การดำเนินการเหล่านี้ จะสร้างใหม่ทั้งหมดแทนที่จะอัปเดตจากเวอร์ชันที่แคชไว้"
 
-#: main.lua:5650
+#: main.lua:5673
 #, fuzzy
 msgid "Clear Cache"
 msgstr "ล้างแคช"
 
-#: main.lua:5656
+#: main.lua:5679
 #, fuzzy
 msgid "Action cache cleared successfully."
 msgstr "ล้างแคชการดำเนินการสำเร็จ"
 
-#: main.lua:5661
+#: main.lua:5684
 #, fuzzy
 msgid "Failed to clear action cache."
 msgstr "ล้างแคชการดำเนินการล้มเหลว"
 
-#: main.lua:5768
+#: main.lua:5791
 #, fuzzy
 msgid "Dictionary bypass: ON"
 msgstr "Dictionary bypass: เปิด"
 
-#: main.lua:5768
+#: main.lua:5791
 #, fuzzy
 msgid "Dictionary bypass: OFF"
 msgstr "Dictionary bypass: ปิด"
 
-#: main.lua:5782
+#: main.lua:5805
 #, fuzzy
 msgid "Highlight bypass: ON"
 msgstr "Highlight bypass: เปิด"
 
-#: main.lua:5782
+#: main.lua:5805
 #, fuzzy
 msgid "Highlight bypass: OFF"
 msgstr "Highlight bypass: ปิด"
 
-#: main.lua:5908
+#: main.lua:5931
 #, fuzzy
 msgid "Cannot determine current page"
 msgstr "ไม่สามารถระบุหน้าปัจจุบันได้"
 
-#: main.lua:5954
+#: main.lua:5977
 #, fuzzy
 msgid "Could not extract text from current page"
 msgstr "ไม่สามารถแยกข้อความจากหน้าปัจจุบันได้"
 
-#: main.lua:5965
+#: main.lua:5988
 #, fuzzy
 msgid "Translate action not found"
 msgstr "ไม่พบการดำเนินการแปล"
 
-#: main.lua:6141
+#: main.lua:6164
 #, fuzzy
 msgid "Select Export Folder"
 msgstr "เลือกโฟลเดอร์ส่งออก"
 
-#: main.lua:6148
+#: main.lua:6171
 #, fuzzy
 msgid ""
 "Export path set to:\n"
@@ -4880,17 +4885,17 @@ msgstr ""
 "กำหนดเส้นทางส่งออกเป็น:\n"
 "%1"
 
-#: main.lua:6540 main.lua:6594
+#: main.lua:6563 main.lua:6617
 #, fuzzy
 msgid "Bypass action: %1"
 msgstr "การดำเนินการ Bypass: %1"
 
-#: main.lua:6639
+#: main.lua:6662
 #, fuzzy
 msgid "All action settings restored to defaults"
 msgstr "คืนค่าการตั้งค่าการดำเนินการทั้งหมดเป็นค่าเริ่มต้น"
 
-#: main.lua:6712
+#: main.lua:6735
 #, fuzzy
 msgid ""
 "KOAssistant Plugin\n"
@@ -4899,88 +4904,88 @@ msgstr ""
 "ปลั๊กอิน KOAssistant\n"
 "เวอร์ชัน:"
 
-#: main.lua:6797
+#: main.lua:6820
 #, fuzzy
 msgid "Feature settings reset to defaults"
 msgstr "รีเซ็ตการตั้งค่าฟีเจอร์เป็นค่าเริ่มต้น"
 
-#: main.lua:6827
+#: main.lua:6850
 #, fuzzy
 msgid "All customizations reset"
 msgstr "รีเซ็ตการปรับแต่งทั้งหมด"
 
-#: main.lua:6851
+#: main.lua:6874
 #, fuzzy
 msgid "Custom actions deleted"
 msgstr "ลบการดำเนินการที่กำหนดเอง"
 
-#: main.lua:6865
+#: main.lua:6888
 #, fuzzy
 msgid "Action edits reset to defaults"
 msgstr "รีเซ็ตการแก้ไขการดำเนินการเป็นค่าเริ่มต้น"
 
-#: main.lua:6895
+#: main.lua:6918
 #, fuzzy
 msgid "Action menus reset to defaults"
 msgstr "รีเซ็ตเมนูการดำเนินการเป็นค่าเริ่มต้น"
 
-#: main.lua:6909
+#: main.lua:6932
 #, fuzzy
 msgid "Dictionary popup actions reset"
 msgstr "รีเซ็ตการดำเนินการป๊อปอัพพจนานุกรม"
 
-#: main.lua:6922
+#: main.lua:6945
 #, fuzzy
 msgid "Highlight menu actions reset (restart to apply)"
 msgstr "รีเซ็ตการดำเนินการเมนูไฮไลต์ (รีสตาร์ทเพื่อใช้งาน)"
 
-#: main.lua:6934
+#: main.lua:6957
 #, fuzzy
 msgid "File browser actions reset"
 msgstr "รีเซ็ตการดำเนินการเบราว์เซอร์ไฟล์แล้ว"
 
-#: main.lua:6946
+#: main.lua:6969
 #, fuzzy
 msgid "Quick actions reset"
 msgstr "รีเซ็ตการดำเนินการด่วน"
 
-#: main.lua:6967
+#: main.lua:6990
 #, fuzzy
 msgid "Custom providers and models reset"
 msgstr "รีเซ็ตผู้ให้บริการและโมเดลที่กำหนดเอง"
 
-#: main.lua:7040
+#: main.lua:7063
 #, fuzzy
 msgid "All action settings reset"
 msgstr "รีเซ็ตการตั้งค่าการดำเนินการทั้งหมด"
 
-#: main.lua:7069
+#: main.lua:7092
 #, fuzzy
 msgid "Fresh start complete - API keys preserved"
 msgstr "เริ่มต้นใหม่สำเร็จ - คีย์ API ถูกเก็บไว้"
 
-#: main.lua:7090
+#: main.lua:7113
 #, fuzzy
 msgid "Default: Personal content private, basic context shared"
 msgstr "ค่าเริ่มต้น: เนื้อหาส่วนตัวเป็นความลับ แชร์บริบทพื้นฐาน"
 
-#: main.lua:7111
+#: main.lua:7134
 #, fuzzy
 msgid "Minimal: All extended sharing disabled"
 msgstr "น้อยที่สุด: ปิดการแชร์ข้อมูลเพิ่มเติมทั้งหมด"
 
-#: main.lua:7132
+#: main.lua:7155
 #, fuzzy
 msgid ""
 "Full: All data sharing enabled (Text extraction must be enabled separately)"
 msgstr "เต็มรูปแบบ: เปิดการแชร์ข้อมูลทั้งหมด (ต้องเปิดการดึงข้อความแยกต่างหาก)"
 
-#: main.lua:7184
+#: main.lua:7207
 #, fuzzy
 msgid "(custom)"
 msgstr "(กำหนดเอง)"
 
-#: main.lua:7244
+#: main.lua:7267
 #, fuzzy
 msgid ""
 "Select providers to trust\n"
@@ -4991,157 +4996,157 @@ msgstr ""
 "\n"
 "ผู้ให้บริการที่เชื่อถือได้จะข้ามการควบคุมการแชร์ข้อมูล"
 
-#: main.lua:7270
+#: main.lua:7293
 #, fuzzy
 msgid "✓ Reset"
 msgstr "✓ รีเซ็ต"
 
-#: main.lua:7272
+#: main.lua:7295
 #, fuzzy
 msgid "✗ Keep"
 msgstr "✗ เก็บไว้"
 
-#: main.lua:7278 main.lua:7578 main.lua:7709
+#: main.lua:7301 main.lua:7601 main.lua:7732
 #, fuzzy
 msgid "Settings"
 msgstr "การตั้งค่า"
 
-#: main.lua:7286
+#: main.lua:7309
 #, fuzzy
 msgid "Custom actions"
 msgstr "การกระทำที่กำหนดเอง"
 
-#: main.lua:7294
+#: main.lua:7317
 #, fuzzy
 msgid "Action edits"
 msgstr "การแก้ไขการกระทำ"
 
-#: main.lua:7302
+#: main.lua:7325
 #, fuzzy
 msgid "Action menus"
 msgstr "เมนูการกระทำ"
 
-#: main.lua:7310
+#: main.lua:7333
 #, fuzzy
 msgid "Custom providers & models"
 msgstr "ผู้ให้บริการและโมเดลที่กำหนดเอง"
 
-#: main.lua:7318
+#: main.lua:7341
 #, fuzzy
 msgid "Behaviors & domains"
 msgstr "พฤติกรรมและโดเมน"
 
-#: main.lua:7326 main.lua:7383
+#: main.lua:7349 main.lua:7406
 #, fuzzy
 msgid "API keys"
 msgstr "คีย์ API"
 
-#: main.lua:7338
+#: main.lua:7361
 #, fuzzy
 msgid "Reset Selected"
 msgstr "รีเซ็ตรายการที่เลือก"
 
-#: main.lua:7347
+#: main.lua:7370
 #, fuzzy
 msgid "What would you like to reset?"
 msgstr "คุณต้องการรีเซ็ตอะไร?"
 
-#: main.lua:7359
+#: main.lua:7382
 #, fuzzy
 msgid "settings"
 msgstr "การตั้งค่า"
 
-#: main.lua:7363
+#: main.lua:7386
 #, fuzzy
 msgid "custom actions"
 msgstr "การกระทำที่กำหนดเอง"
 
-#: main.lua:7367
+#: main.lua:7390
 #, fuzzy
 msgid "action edits"
 msgstr "การแก้ไขการกระทำ"
 
-#: main.lua:7371
+#: main.lua:7394
 #, fuzzy
 msgid "action menus"
 msgstr "เมนูการกระทำ"
 
-#: main.lua:7375
+#: main.lua:7398
 #, fuzzy
 msgid "providers/models"
 msgstr "ผู้ให้บริการ/โมเดล"
 
-#: main.lua:7379
+#: main.lua:7402
 #, fuzzy
 msgid "behaviors/domains"
 msgstr "พฤติกรรม/โดเมน"
 
-#: main.lua:7388
+#: main.lua:7411
 #, fuzzy
 msgid "Reset: %1"
 msgstr "รีเซ็ต: %1"
 
-#: main.lua:7393
+#: main.lua:7416
 #, fuzzy
 msgid "Nothing selected to reset"
 msgstr "ไม่มีรายการที่เลือกเพื่อรีเซ็ต"
 
-#: main.lua:7455
+#: main.lua:7478
 #, fuzzy
 msgid "Core Settings: ✓ Included"
 msgstr "การตั้งค่าหลัก: ✓ รวมอยู่"
 
-#: main.lua:7461
+#: main.lua:7484
 #, fuzzy
 msgid "API Keys: ✓ Include (⚠ Sensitive)"
 msgstr "คีย์ API: ✓ รวม (⚠ ข้อมูลละเอียดอ่อน)"
 
-#: main.lua:7461
+#: main.lua:7484
 #, fuzzy
 msgid "API Keys: ✗ Exclude"
 msgstr "คีย์ API: ✗ ไม่รวม"
 
-#: main.lua:7476
+#: main.lua:7499
 #, fuzzy
 msgid "Config Files: ✓ Include"
 msgstr "ไฟล์กำหนดค่า: ✓ รวม"
 
-#: main.lua:7476
+#: main.lua:7499
 #, fuzzy
 msgid "Config Files: ✗ Exclude"
 msgstr "ไฟล์กำหนดค่า: ✗ ไม่รวม"
 
-#: main.lua:7491
+#: main.lua:7514
 #, fuzzy
 msgid "Domains & Behaviors: ✓ Include"
 msgstr "โดเมนและพฤติกรรม: ✓ รวม"
 
-#: main.lua:7491
+#: main.lua:7514
 #, fuzzy
 msgid "Domains & Behaviors: ✗ Exclude"
 msgstr "โดเมนและพฤติกรรม: ✗ ไม่รวม"
 
-#: main.lua:7506
+#: main.lua:7529
 #, fuzzy
 msgid "Chat History: ✓ Include"
 msgstr "ประวัติการสนทนา: ✓ รวม"
 
-#: main.lua:7506
+#: main.lua:7529
 #, fuzzy
 msgid "Chat History: ✗ Exclude"
 msgstr "ประวัติการสนทนา: ✗ ไม่รวม"
 
-#: main.lua:7521 main.lua:7673 main.lua:7884 main.lua:7906
+#: main.lua:7544 main.lua:7696 main.lua:7907 main.lua:7929
 #, fuzzy
 msgid "━━━━━━━━━━━━━━━━"
 msgstr "━━━━━━━━━━━━━━━━"
 
-#: main.lua:7547
+#: main.lua:7570
 #, fuzzy
 msgid "What to include in backup:"
 msgstr "สิ่งที่จะรวมในการสำรองข้อมูล:"
 
-#: main.lua:7559
+#: main.lua:7582
 #, fuzzy
 msgid ""
 "Creating backup...\n"
@@ -5152,7 +5157,7 @@ msgstr ""
 "\n"
 "อาจใช้เวลาสักครู่"
 
-#: main.lua:7571
+#: main.lua:7594
 #, fuzzy
 msgid ""
 "Backup created successfully!\n"
@@ -5167,47 +5172,47 @@ msgstr ""
 "\n"
 "ขนาด: %2"
 
-#: main.lua:7584 main.lua:7715
+#: main.lua:7607 main.lua:7738
 #, fuzzy
 msgid "Config Files"
 msgstr "ไฟล์กำหนดค่า"
 
-#: main.lua:7590 main.lua:7720
+#: main.lua:7613 main.lua:7743
 #, fuzzy
 msgid "%1 domains"
 msgstr "%1 โดเมน"
 
-#: main.lua:7592
+#: main.lua:7615
 #, fuzzy
 msgid "0 domains"
 msgstr "0 โดเมน"
 
-#: main.lua:7595 main.lua:7725
+#: main.lua:7618 main.lua:7748
 #, fuzzy
 msgid "%1 behaviors"
 msgstr "%1 พฤติกรรม"
 
-#: main.lua:7597
+#: main.lua:7620
 #, fuzzy
 msgid "0 behaviors"
 msgstr "0 พฤติกรรม"
 
-#: main.lua:7603 main.lua:7733
+#: main.lua:7626 main.lua:7756
 #, fuzzy
 msgid "%1 chats"
 msgstr "%1 การสนทนา"
 
-#: main.lua:7605
+#: main.lua:7628
 #, fuzzy
 msgid "0 chats"
 msgstr "0 การสนทนา"
 
-#: main.lua:7610
+#: main.lua:7633
 #, fuzzy
 msgid "Included:"
 msgstr "รวมอยู่:"
 
-#: main.lua:7620
+#: main.lua:7643
 #, fuzzy
 msgid ""
 "Backup failed:\n"
@@ -5218,7 +5223,7 @@ msgstr ""
 "\n"
 "%1"
 
-#: main.lua:7637
+#: main.lua:7660
 #, fuzzy
 msgid ""
 "No backups found.\n"
@@ -5231,7 +5236,7 @@ msgstr ""
 "สร้างการสำรองข้อมูลก่อนโดยใช้:\n"
 "การตั้งค่า → ขั้นสูง → การจัดการการตั้งค่า → สร้างการสำรองข้อมูล"
 
-#: main.lua:7679
+#: main.lua:7702
 #, fuzzy
 msgid ""
 "Select backup to restore\n"
@@ -5242,7 +5247,7 @@ msgstr ""
 "\n"
 "ทั้งหมด: %1 การสำรองข้อมูล"
 
-#: main.lua:7694 main.lua:8093
+#: main.lua:7717 main.lua:8116
 #, fuzzy
 msgid ""
 "Invalid backup:\n"
@@ -5253,7 +5258,7 @@ msgstr ""
 "\n"
 "%1"
 
-#: main.lua:7703
+#: main.lua:7726
 #, fuzzy
 msgid ""
 "Backup: %1\n"
@@ -5270,107 +5275,107 @@ msgstr ""
 "\n"
 "เนื้อหา:"
 
-#: main.lua:7713
+#: main.lua:7736
 #, fuzzy
 msgid "No API keys"
 msgstr "ไม่มี API key"
 
-#: main.lua:7722
+#: main.lua:7745
 #, fuzzy
 msgid "domains"
 msgstr "โดเมน"
 
-#: main.lua:7727
+#: main.lua:7750
 #, fuzzy
 msgid "behaviors"
 msgstr "พฤติกรรม"
 
-#: main.lua:7735
+#: main.lua:7758
 #, fuzzy
 msgid "Chat history"
 msgstr "ประวัติการสนทนา"
 
-#: main.lua:7745 main.lua:7966
+#: main.lua:7768 main.lua:7989
 #, fuzzy
 msgid "Warnings:"
 msgstr "คำเตือน:"
 
-#: main.lua:7762
+#: main.lua:7785
 #, fuzzy
 msgid "Restore →"
 msgstr "กลับคืน →"
 
-#: main.lua:7799
+#: main.lua:7822
 #, fuzzy
 msgid "Settings: ✓ Restore"
 msgstr "การตั้งค่า: ✓ กลับคืน"
 
-#: main.lua:7799
+#: main.lua:7822
 #, fuzzy
 msgid "Settings: ✗ Skip"
 msgstr "การตั้งค่า: ✗ ข้าม"
 
-#: main.lua:7816
+#: main.lua:7839
 #, fuzzy
 msgid "API Keys: ✓ Restore"
 msgstr "API Keys: ✓ กลับคืน"
 
-#: main.lua:7816
+#: main.lua:7839
 #, fuzzy
 msgid "API Keys: ✗ Skip"
 msgstr "API Keys: ✗ ข้าม"
 
-#: main.lua:7833
+#: main.lua:7856
 #, fuzzy
 msgid "Config Files: ✓ Restore"
 msgstr "ไฟล์กำหนดค่า: ✓ กลับคืน"
 
-#: main.lua:7833
+#: main.lua:7856
 #, fuzzy
 msgid "Config Files: ✗ Skip"
 msgstr "ไฟล์กำหนดค่า: ✗ ข้าม"
 
-#: main.lua:7850
+#: main.lua:7873
 #, fuzzy
 msgid "Domains & Behaviors: ✓ Restore"
 msgstr "โดเมนและพฤติกรรม: ✓ กลับคืน"
 
-#: main.lua:7850
+#: main.lua:7873
 #, fuzzy
 msgid "Domains & Behaviors: ✗ Skip"
 msgstr "โดเมนและพฤติกรรม: ✗ ข้าม"
 
-#: main.lua:7867
+#: main.lua:7890
 #, fuzzy
 msgid "Chat History: ✓ Restore"
 msgstr "ประวัติการสนทนา: ✓ กลับคืน"
 
-#: main.lua:7867
+#: main.lua:7890
 #, fuzzy
 msgid "Chat History: ✗ Skip"
 msgstr "ประวัติการสนทนา: ✗ ข้าม"
 
-#: main.lua:7890
+#: main.lua:7913
 #, fuzzy
 msgid "Mode: Merge with existing"
 msgstr "โหมด: ผสานกับข้อมูลที่มีอยู่"
 
-#: main.lua:7890
+#: main.lua:7913
 #, fuzzy
 msgid "Mode: Replace existing"
 msgstr "โหมด: แทนที่ข้อมูลที่มีอยู่"
 
-#: main.lua:7912
+#: main.lua:7935
 #, fuzzy
 msgid "Restore Now"
 msgstr "กลับคืนเดี๋ยวนี้"
 
-#: main.lua:7932
+#: main.lua:7955
 #, fuzzy
 msgid "What to restore:"
 msgstr "สิ่งที่จะกลับคืน:"
 
-#: main.lua:7945
+#: main.lua:7968
 #, fuzzy
 msgid ""
 "Restore from backup?\n"
@@ -5385,12 +5390,12 @@ msgstr ""
 "\n"
 "⚠ ควรรีสตาร์ท KOReader หลังกลับคืนเพื่อให้การเปลี่ยนแปลงมีผลอย่างสมบูรณ์"
 
-#: main.lua:7946 main.lua:8102
+#: main.lua:7969 main.lua:8125
 #, fuzzy
 msgid "Restore"
 msgstr "กลับคืน"
 
-#: main.lua:7950
+#: main.lua:7973
 #, fuzzy
 msgid ""
 "Restoring backup...\n"
@@ -5401,7 +5406,7 @@ msgstr ""
 "\n"
 "อาจใช้เวลาสักครู่"
 
-#: main.lua:7963
+#: main.lua:7986
 #, fuzzy
 msgid ""
 "Restore completed successfully!\n"
@@ -5412,7 +5417,7 @@ msgstr ""
 "\n"
 "แนะนำให้รีสตาร์ท KOReader เพื่อให้การเปลี่ยนแปลงทั้งหมดมีผล"
 
-#: main.lua:7975 koassistant_ui/prompts_manager.lua:2579
+#: main.lua:7998 koassistant_ui/prompts_manager.lua:2579
 #: koassistant_ui/prompts_manager.lua:3017
 #: koassistant_ui/prompts_manager.lua:3201
 #: koassistant_ui/prompts_manager.lua:3675
@@ -5424,12 +5429,12 @@ msgstr ""
 msgid "OK"
 msgstr "ตกลง"
 
-#: main.lua:7981
+#: main.lua:8004
 #, fuzzy
 msgid "Restart Now"
 msgstr "รีสตาร์ทเดี๋ยวนี้"
 
-#: main.lua:7995
+#: main.lua:8018
 #, fuzzy
 msgid ""
 "Restore failed:\n"
@@ -5440,12 +5445,12 @@ msgstr ""
 "\n"
 "%1"
 
-#: main.lua:8018
+#: main.lua:8041
 #, fuzzy
 msgid "No backups found."
 msgstr "ไม่พบข้อมูลสำรอง"
 
-#: main.lua:8066
+#: main.lua:8089
 #, fuzzy
 msgid ""
 "Backups (%1)\n"
@@ -5456,7 +5461,7 @@ msgstr ""
 "\n"
 "ขนาดรวม: %2"
 
-#: main.lua:8118
+#: main.lua:8141
 #, fuzzy
 msgid ""
 "Delete backup?\n"
@@ -5471,12 +5476,12 @@ msgstr ""
 "\n"
 "ไม่สามารถยกเลิกได้"
 
-#: main.lua:8126
+#: main.lua:8149
 #, fuzzy
 msgid "Backup deleted"
 msgstr "ลบข้อมูลสำรองแล้ว"
 
-#: main.lua:8135
+#: main.lua:8158
 #, fuzzy
 msgid ""
 "Failed to delete backup:\n"
@@ -5487,7 +5492,7 @@ msgstr ""
 "\n"
 "%1"
 
-#: main.lua:8198
+#: main.lua:8221
 #, fuzzy
 msgid ""
 "KOAssistant: Chat Storage Upgrade\n"
@@ -5506,22 +5511,22 @@ msgstr ""
 "\n"
 "ไฟล์การสนทนาเก่าจะถูกสำรองไปยัง koassistant_chats.backup/"
 
-#: main.lua:8205
+#: main.lua:8228
 #, fuzzy
 msgid "Migrate Now"
 msgstr "ย้ายเดี๋ยวนี้"
 
-#: main.lua:8237
+#: main.lua:8260
 #, fuzzy
 msgid "KOAssistant: Migrating chat history..."
 msgstr "KOAssistant: กำลังย้ายประวัติการสนทนา..."
 
-#: main.lua:8250
+#: main.lua:8273
 #, fuzzy
 msgid "No old chats found to migrate"
 msgstr "ไม่พบการสนทนาเก่าให้ย้าย"
 
-#: main.lua:8372
+#: main.lua:8395
 #, fuzzy
 msgid ""
 "KOAssistant: Migration Incomplete\n"
@@ -5542,12 +5547,12 @@ msgstr ""
 "จะลองย้ายใหม่เมื่อเริ่มต้นครั้งถัดไป\n"
 "ตรวจสอบคอนโซลสำหรับข้อความข้อผิดพลาดโดยละเอียด"
 
-#: main.lua:8384
+#: main.lua:8407
 #, fuzzy
 msgid "Failed documents:"
 msgstr "เอกสารที่ล้มเหลว:"
 
-#: main.lua:8391
+#: main.lua:8414
 #, fuzzy
 msgid ""
 "KOAssistant: Migration Complete\n"
@@ -5566,95 +5571,95 @@ msgstr ""
 "ไฟล์การสนทนาเก่าสำรองไว้ที่:\n"
 "koassistant_chats.backup/"
 
-#: main.lua:8455
+#: main.lua:8478
 #, fuzzy
 msgid "Welcome to KOAssistant!"
 msgstr "ยินดีต้อนรับสู่ KOAssistant!"
 
-#: main.lua:8456
+#: main.lua:8479
 #, fuzzy
 msgid "PRIVACY SETTINGS"
 msgstr "การตั้งค่าความเป็นส่วนตัว"
 
-#: main.lua:8457
+#: main.lua:8480
 #, fuzzy
 msgid ""
 "Some features (like X-Ray) work best when they can access document text and other content."
 msgstr "ฟีเจอร์บางอย่าง (เช่น X-Ray) ทำงานได้ดีที่สุดเมื่อสามารถเข้าถึงข้อความเอกสารและเนื้อหาอื่นๆ"
 
-#: main.lua:8458
+#: main.lua:8481
 #, fuzzy
 msgid "Enable in: Settings → Privacy & Data"
 msgstr "เปิดใช้งานที่: การตั้งค่า → ความเป็นส่วนตัวและข้อมูล"
 
-#: main.lua:8459
+#: main.lua:8482
 #, fuzzy
 msgid "QUICK ACCESS"
 msgstr "การเข้าถึงด่วน"
 
-#: main.lua:8460
+#: main.lua:8483
 #, fuzzy
 msgid ""
 "Add Quick Actions panels and more to gestures in KOReader's gesture settings."
 msgstr "เพิ่มแผง Quick Actions และอื่นๆ ลงในท่าทางในการตั้งค่าท่าทางของ KOReader"
 
-#: main.lua:8461
+#: main.lua:8484
 #, fuzzy
 msgid "CUSTOM ACTIONS"
 msgstr "การกระทำที่กำหนดเอง"
 
-#: main.lua:8462
+#: main.lua:8485
 #, fuzzy
 msgid "Create your own prompts and actions or edit built in ones."
 msgstr "สร้างพรอมต์และการกระทำของคุณเองหรือแก้ไขที่มีอยู่แล้ว"
 
-#: main.lua:8463
+#: main.lua:8486
 #, fuzzy
 msgid "Go to: Settings → Action Manager → Add"
 msgstr "ไปที่: การตั้งค่า → ตัวจัดการการกระทำ → เพิ่ม"
 
-#: main.lua:8464
+#: main.lua:8487
 #, fuzzy
 msgid "MENU AND INFO ICONS"
 msgstr "ไอคอนเมนูและข้อมูล"
 
-#: main.lua:8465
+#: main.lua:8488
 #, fuzzy
 msgid ""
 "Setup KOReader with emoji support to get informative icons in menus and more. See the emoji section in the README for details."
 msgstr "ตั้งค่า KOReader ให้รองรับอีโมจิเพื่อรับไอคอนที่ให้ข้อมูลในเมนูและอื่นๆ ดูรายละเอียดในส่วนอีโมจิใน README"
 
-#: main.lua:8615
+#: main.lua:8638
 #, fuzzy
 msgid "No notebook available for this document"
 msgstr "ไม่มีสมุดบันทึกสำหรับเอกสารนี้"
 
-#: main.lua:8625
+#: main.lua:8648
 #, fuzzy
 msgid "No notebook exists for this document. Create one?"
 msgstr "ไม่มีสมุดบันทึกสำหรับเอกสารนี้ ต้องการสร้างหรือไม่?"
 
-#: main.lua:8635
+#: main.lua:8658
 #, fuzzy
 msgid "Failed to create notebook: %1"
 msgstr "ไม่สามารถสร้างสมุดบันทึก: %1"
 
-#: main.lua:8677
+#: main.lua:8700
 #, fuzzy
 msgid "Notebook is empty"
 msgstr "สมุดบันทึกว่างเปล่า"
 
-#: main.lua:8726
+#: main.lua:8749
 #, fuzzy
 msgid "Failed to read notebook file."
 msgstr "ไม่สามารถอ่านไฟล์สมุดบันทึก"
 
-#: main.lua:8789
+#: main.lua:8812
 #, fuzzy
 msgid "Notebook saved"
 msgstr "บันทึกสมุดบันทึกแล้ว"
 
-#: main.lua:8796
+#: main.lua:8819
 #, fuzzy
 msgid "Reset to last saved"
 msgstr "รีเซ็ตเป็นค่าที่บันทึกล่าสุด"

@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: KOAssistant 0.6.2\n"
 "Report-Msgid-Bugs-To: https://github.com/zeeyado/koassistant.koplugin/issues\n"
-"POT-Creation-Date: 2026-02-10 14:01+0000\n"
+"POT-Creation-Date: 2026-02-10 14:12+0000\n"
 "PO-Revision-Date: 2026-01-06 18:39+0000\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: Arabic\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: _meta.lua:4 main.lua:3640 main.lua:4851
+#: _meta.lua:4 main.lua:3640 main.lua:4874
 #, fuzzy
 msgid "KOAssistant"
 msgstr "KOAssistant"
@@ -49,7 +49,7 @@ msgstr ""
 #: koassistant_chat_history_dialog.lua:1937 koassistant_chatgptviewer.lua:2221
 #: koassistant_chatgptviewer.lua:2227 koassistant_notebook_manager.lua:156
 #: koassistant_notebook_manager.lua:161 koassistant_xray_browser.lua:771
-#: main.lua:8111 main.lua:8119 koassistant_ui/behavior_manager.lua:311
+#: main.lua:8134 main.lua:8142 koassistant_ui/behavior_manager.lua:311
 #: koassistant_ui/domain_manager.lua:313 koassistant_ui/prompts_manager.lua:751
 #, fuzzy
 msgid "Delete"
@@ -71,8 +71,8 @@ msgstr "تم حذف %1 محادثة (محادثات)"
 #: koassistant_chatgptviewer.lua:2239 koassistant_chatgptviewer.lua:2428
 #: koassistant_chatgptviewer.lua:3951 koassistant_dialogs.lua:607
 #: koassistant_dialogs.lua:2669 koassistant_dialogs.lua:2705
-#: koassistant_xray_browser.lua:822 main.lua:2210 main.lua:4913 main.lua:5386
-#: main.lua:5520 koassistant_ui/behavior_manager.lua:382
+#: koassistant_xray_browser.lua:822 main.lua:2210 main.lua:4936 main.lua:5409
+#: main.lua:5543 koassistant_ui/behavior_manager.lua:382
 #: koassistant_ui/domain_manager.lua:383
 #: koassistant_ui/settings_manager.lua:265
 #: koassistant_ui/settings_manager.lua:351
@@ -108,7 +108,7 @@ msgstr ""
 "\n"
 "لا يمكن التراجع عن هذا الإجراء."
 
-#: koassistant_chat_history_dialog.lua:148 main.lua:6839
+#: koassistant_chat_history_dialog.lua:148 main.lua:6862
 #, fuzzy
 msgid "Deleted %1 chat(s) from %2 book(s)"
 msgstr "تم حذف %1 محادثة (محادثات) من %2 كتاب (كتب)"
@@ -122,7 +122,7 @@ msgstr "خيارات سجل المحادثات"
 #: koassistant_chat_history_dialog.lua:255
 #: koassistant_chat_history_dialog.lua:602 koassistant_constants.lua:123
 #: koassistant_settings_schema.lua:48 koassistant_settings_schema.lua:911
-#: koassistant_settings_schema.lua:1031 main.lua:338 main.lua:5291
+#: koassistant_settings_schema.lua:1031 main.lua:338 main.lua:5314
 #, fuzzy
 msgid "Chat History"
 msgstr "سجل المحادثات"
@@ -255,13 +255,13 @@ msgstr "خطأ: تعذر تحميل بيانات المحادثة."
 
 #: koassistant_chat_history_dialog.lua:782 koassistant_xray_browser.lua:722
 #: koassistant_xray_browser.lua:724 koassistant_xray_browser.lua:796
-#: koassistant_xray_browser.lua:798 main.lua:4154 main.lua:4324 main.lua:4572
+#: koassistant_xray_browser.lua:798 main.lua:4154 main.lua:4324 main.lua:4595
 #, fuzzy
 msgid "Date:"
 msgstr "التاريخ:"
 
 #: koassistant_chat_history_dialog.lua:783 koassistant_xray_browser.lua:719
-#: koassistant_xray_browser.lua:786 main.lua:4151 main.lua:4321 main.lua:4569
+#: koassistant_xray_browser.lua:786 main.lua:4151 main.lua:4321 main.lua:4592
 #, fuzzy
 msgid "Model:"
 msgstr "النموذج:"
@@ -392,8 +392,8 @@ msgstr "المحادثة غير موجودة"
 #: koassistant_notebook_manager.lua:182 koassistant_update_checker.lua:326
 #: koassistant_xray_browser.lua:621 main.lua:391 main.lua:1978 main.lua:2016
 #: main.lua:2082 main.lua:2320 main.lua:2444 main.lua:2588 main.lua:2761
-#: main.lua:2917 main.lua:3417 main.lua:3591 main.lua:4037 main.lua:4502
-#: main.lua:5644 main.lua:7202 main.lua:7756
+#: main.lua:2917 main.lua:3417 main.lua:3591 main.lua:4037 main.lua:4525
+#: main.lua:5667 main.lua:7225 main.lua:7779
 #: koassistant_ui/behavior_manager.lua:419
 #: koassistant_ui/behavior_manager.lua:478
 #: koassistant_ui/behavior_manager.lua:557
@@ -547,7 +547,7 @@ msgstr ""
 "%1"
 
 #: koassistant_chat_history_dialog.lua:1766 koassistant_chatgptviewer.lua:3379
-#: main.lua:8791
+#: main.lua:8814
 #, fuzzy
 msgid "Failed to save: %1"
 msgstr "فشل الحفظ: %1"
@@ -677,7 +677,7 @@ msgid "Autosaved"
 msgstr "محفوظ تلقائياً"
 
 #: koassistant_chatgptviewer.lua:1072 koassistant_dialogs.lua:615 main.lua:2089
-#: main.lua:2784 main.lua:3424 main.lua:3606 main.lua:7208
+#: main.lua:2784 main.lua:3424 main.lua:3606 main.lua:7231
 #: koassistant_ui/behavior_manager.lua:496
 #: koassistant_ui/domain_manager.lua:487
 #: koassistant_ui/prompts_manager.lua:1778
@@ -858,7 +858,7 @@ msgstr "تمت إضافة الكلمة إلى باني المفردات"
 msgid "+Vocab"
 msgstr "+مفردات"
 
-#: koassistant_chatgptviewer.lua:1631 main.lua:6396
+#: koassistant_chatgptviewer.lua:1631 main.lua:6419
 #, fuzzy
 msgid "AI Dictionary lookup"
 msgstr "بحث قاموس الذكاء الاصطناعي"
@@ -900,7 +900,7 @@ msgid "Configure languages in Settings first"
 msgstr "قم بتكوين اللغات في الإعدادات أولاً"
 
 #: koassistant_chatgptviewer.lua:1733 koassistant_settings_schema.lua:1010
-#: main.lua:5249 main.lua:6011
+#: main.lua:5272 main.lua:6034
 #, fuzzy
 msgid "Dictionary Language"
 msgstr "لغة القاموس"
@@ -1058,7 +1058,7 @@ msgstr "تم النسخ إلى الحافظة."
 msgid "No highlight selection data available"
 msgstr "لا توجد بيانات تحديد متاحة"
 
-#: koassistant_chatgptviewer.lua:3080 main.lua:5859
+#: koassistant_chatgptviewer.lua:3080 main.lua:5882
 #, fuzzy
 msgid "No document open"
 msgstr "لا توجد وثيقة مفتوحة"
@@ -1160,17 +1160,17 @@ msgstr "لا يوجد محتوى للتصدير"
 msgid "No export metadata available."
 msgstr "لا توجد بيانات تعريفية للتصدير متاحة."
 
-#: koassistant_chatgptviewer.lua:3492 main.lua:8714
+#: koassistant_chatgptviewer.lua:3492 main.lua:8737
 #, fuzzy
 msgid "Select export folder"
 msgstr "اختر مجلد التصدير"
 
-#: koassistant_chatgptviewer.lua:3517 main.lua:8736
+#: koassistant_chatgptviewer.lua:3517 main.lua:8759
 #, fuzzy
 msgid "Saved to %1"
 msgstr "تم الحفظ في %1"
 
-#: koassistant_chatgptviewer.lua:3522 main.lua:8741
+#: koassistant_chatgptviewer.lua:3522 main.lua:8764
 #, fuzzy
 msgid "Export failed: %1"
 msgstr "فشل التصدير: %1"
@@ -1255,7 +1255,7 @@ msgstr "المحاذاة: %1"
 msgid "Reset to Defaults"
 msgstr "إعادة تعيين إلى الافتراضي"
 
-#: koassistant_chatgptviewer.lua:3971 main.lua:5164
+#: koassistant_chatgptviewer.lua:3971 main.lua:5187
 #: koassistant_ui/settings_manager.lua:317
 #, fuzzy
 msgid "Set"
@@ -1266,7 +1266,7 @@ msgstr "تعيين"
 msgid "Font size set to %1"
 msgstr "تم تعيين حجم الخط إلى %1"
 
-#: koassistant_chatgptviewer.lua:4014 main.lua:7029
+#: koassistant_chatgptviewer.lua:4014 main.lua:7052
 #, fuzzy
 msgid "Settings reset to defaults"
 msgstr "تمت إعادة تعيين الإعدادات إلى الافتراضي"
@@ -1287,33 +1287,33 @@ msgid "Edit Notebook"
 msgstr "تحرير دفتر الملاحظات"
 
 #: koassistant_constants.lua:124 koassistant_settings_schema.lua:912
-#: koassistant_settings_schema.lua:1052 main.lua:5327
+#: koassistant_settings_schema.lua:1052 main.lua:5350
 #, fuzzy
 msgid "Continue Last Chat"
 msgstr "متابعة آخر محادثة"
 
 #: koassistant_constants.lua:125 koassistant_settings_schema.lua:913
-#: koassistant_settings_schema.lua:1059 main.lua:5339
+#: koassistant_settings_schema.lua:1059 main.lua:5362
 #, fuzzy
 msgid "New Book Chat/Action"
 msgstr "محادثة/إجراء كتاب جديد"
 
 #: koassistant_constants.lua:126 koassistant_settings_schema.lua:41
 #: koassistant_settings_schema.lua:914 koassistant_settings_schema.lua:1045
-#: main.lua:5315
+#: main.lua:5338
 #, fuzzy
 msgid "General Chat/Action"
 msgstr "محادثة/إجراء عام"
 
 #: koassistant_constants.lua:128 koassistant_dialogs.lua:2964
 #: koassistant_dialogs.lua:2987 koassistant_settings_schema.lua:916
-#: main.lua:369 main.lua:397 main.lua:4044 main.lua:5497
+#: main.lua:369 main.lua:397 main.lua:4044 main.lua:5520
 #, fuzzy
 msgid "View Artifacts"
 msgstr "عرض المخرجات"
 
 #: koassistant_constants.lua:129 koassistant_settings_schema.lua:917
-#: main.lua:5407
+#: main.lua:5430
 #, fuzzy
 msgid "Quick Settings"
 msgstr "إعدادات سريعة"
@@ -1425,8 +1425,8 @@ msgid ""
 msgstr "تم اقتطاع المحتوى الجديد (يغطي %1 %–%2 %). زِد الحد في الإعدادات المتقدمة."
 
 #: koassistant_dialogs.lua:2624 koassistant_dialogs.lua:2688
-#: koassistant_settings_schema.lua:564 main.lua:3541 main.lua:5041
-#: main.lua:5712 koassistant_ui/prompts_manager.lua:1518
+#: koassistant_settings_schema.lua:564 main.lua:3541 main.lua:5064
+#: main.lua:5735 koassistant_ui/prompts_manager.lua:1518
 #: koassistant_ui/prompts_manager.lua:2677
 #: koassistant_ui/prompts_manager.lua:3395
 #, fuzzy
@@ -1464,12 +1464,12 @@ msgid "Error handling prompt: "
 msgstr "خطأ في معالجة الأمر:"
 
 #: koassistant_dialogs.lua:2946 main.lua:360 main.lua:3998 main.lua:4301
-#: main.lua:4530
+#: main.lua:4553
 #, fuzzy
 msgid "Summary"
 msgstr "ملخص"
 
-#: koassistant_dialogs.lua:2950 main.lua:364 main.lua:4006 main.lua:4526
+#: koassistant_dialogs.lua:2950 main.lua:364 main.lua:4006 main.lua:4549
 #, fuzzy
 msgid "Analysis"
 msgstr "تحليل"
@@ -1515,7 +1515,7 @@ msgstr "بناءً على النص المستخرج من المستند"
 msgid "today"
 msgstr "اليوم"
 
-#: koassistant_dialogs.lua:3224 main.lua:4199 main.lua:4584
+#: koassistant_dialogs.lua:3224 main.lua:4199 main.lua:4607
 #, fuzzy
 msgid "%1 deleted"
 msgstr "تم حذف %1"
@@ -1595,7 +1595,7 @@ msgid "Chat about Book"
 msgstr "محادثة عن الكتاب"
 
 #: koassistant_settings_schema.lua:55 koassistant_settings_schema.lua:1038
-#: main.lua:5303
+#: main.lua:5326
 #, fuzzy
 msgid "Browse Notebooks"
 msgstr "تصفح دفاتر الملاحظات"
@@ -1605,17 +1605,17 @@ msgstr "تصفح دفاتر الملاحظات"
 msgid "Reading Features"
 msgstr "ميزات القراءة"
 
-#: koassistant_settings_schema.lua:83 main.lua:1837 main.lua:5102
+#: koassistant_settings_schema.lua:83 main.lua:1837 main.lua:5125
 #, fuzzy
 msgid "Provider: %1"
 msgstr "المزود: %1"
 
-#: koassistant_settings_schema.lua:92 main.lua:2410 main.lua:5115
+#: koassistant_settings_schema.lua:92 main.lua:2410 main.lua:5138
 #, fuzzy
 msgid "Model: %1"
 msgstr "النموذج: %1"
 
-#: koassistant_settings_schema.lua:99 main.lua:7581 main.lua:7711
+#: koassistant_settings_schema.lua:99 main.lua:7604 main.lua:7734
 #, fuzzy
 msgid "API Keys"
 msgstr "مفاتيح API"
@@ -2304,12 +2304,12 @@ msgstr "أدوات لوحة الإعدادات السريعة"
 msgid "Show or hide controls in the Quick Settings panel"
 msgstr "إظهار أو إخفاء عناصر التحكم في لوحة الإعدادات السريعة"
 
-#: koassistant_settings_schema.lua:947 main.lua:4955 main.lua:5107
+#: koassistant_settings_schema.lua:947 main.lua:4978 main.lua:5130
 #, fuzzy
 msgid "Provider"
 msgstr "المزود"
 
-#: koassistant_settings_schema.lua:954 main.lua:4961 main.lua:5120
+#: koassistant_settings_schema.lua:954 main.lua:4984 main.lua:5143
 #, fuzzy
 msgid "Model"
 msgstr "النموذج"
@@ -2325,7 +2325,7 @@ msgid "Domain"
 msgstr "المجال"
 
 #: koassistant_settings_schema.lua:975 koassistant_settings_schema.lua:1551
-#: main.lua:5165 koassistant_ui/prompts_manager.lua:722
+#: main.lua:5188 koassistant_ui/prompts_manager.lua:722
 #: koassistant_ui/prompts_manager.lua:1841
 #: koassistant_ui/prompts_manager.lua:3052
 #, fuzzy
@@ -2344,7 +2344,7 @@ msgstr "استدلال Anthropic/Gemini"
 msgid "Web Search"
 msgstr "البحث على الويب"
 
-#: koassistant_settings_schema.lua:1003 main.lua:4949 main.lua:5236
+#: koassistant_settings_schema.lua:1003 main.lua:4972 main.lua:5259
 #: koassistant_ui/prompts_manager.lua:4038
 #, fuzzy
 msgid "Translation Language"
@@ -2361,12 +2361,12 @@ msgid "D.Bypass"
 msgstr "تجاوز القاموس"
 
 #: koassistant_settings_schema.lua:1066 koassistant_settings_schema.lua:1101
-#: main.lua:5351 koassistant_ui/prompts_manager.lua:501
+#: main.lua:5374 koassistant_ui/prompts_manager.lua:501
 #, fuzzy
 msgid "Manage Actions"
 msgstr "إدارة الإجراءات"
 
-#: koassistant_settings_schema.lua:1073 main.lua:5539
+#: koassistant_settings_schema.lua:1073 main.lua:5562
 #, fuzzy
 msgid "Quick Actions"
 msgstr "الإجراءات السريعة"
@@ -2478,12 +2478,12 @@ msgstr "إظهار الزر فقط إذا كان دفتر الملاحظات م�
 msgid "Privacy & Data"
 msgstr "الخصوصية والبيانات"
 
-#: koassistant_settings_schema.lua:1204 main.lua:7231
+#: koassistant_settings_schema.lua:1204 main.lua:7254
 #, fuzzy
 msgid "Trusted Providers: None"
 msgstr "الموفرون الموثوقون: لا يوجد"
 
-#: koassistant_settings_schema.lua:1206 main.lua:7233
+#: koassistant_settings_schema.lua:1206 main.lua:7256
 #, fuzzy
 msgid "Trusted Providers: %1"
 msgstr "الموفرون الموثوقون: %1"
@@ -2624,7 +2624,7 @@ msgid ""
 "Maximum PDF pages to extract (50-1,000). Higher = more context but slower. Default: 500 (~1M characters)."
 msgstr "الحد الأقصى لصفحات PDF المراد استخراجها (50-1,000). أعلى = سياق أكثر لكن أبطأ. الافتراضي: 500 (~1 مليون حرف)."
 
-#: koassistant_settings_schema.lua:1338 main.lua:5639
+#: koassistant_settings_schema.lua:1338 main.lua:5662
 #, fuzzy
 msgid "Clear Action Cache"
 msgstr "مسح ذاكرة التخزين المؤقت للإجراءات"
@@ -3190,7 +3190,7 @@ msgstr "اختبار الاتصال"
 msgid "Settings Management"
 msgstr "إدارة الإعدادات"
 
-#: koassistant_settings_schema.lua:1808 main.lua:7527
+#: koassistant_settings_schema.lua:1808 main.lua:7550
 #, fuzzy
 msgid "Create Backup"
 msgstr "إنشاء نسخة احتياطية"
@@ -3462,7 +3462,7 @@ msgstr ""
 "%2"
 
 #: koassistant_update_checker.lua:635 koassistant_update_checker.lua:726
-#: main.lua:8206
+#: main.lua:8229
 #, fuzzy
 msgid "Later"
 msgstr "لاحقاً"
@@ -3497,7 +3497,7 @@ msgstr "%1 (مترجم)"
 msgid "Translation failed: %1"
 msgstr "فشلت الترجمة: %1"
 
-#: koassistant_update_checker.lua:695 main.lua:7620 main.lua:7995 main.lua:8135
+#: koassistant_update_checker.lua:695 main.lua:7643 main.lua:8018 main.lua:8158
 #, fuzzy
 msgid "Unknown error"
 msgstr "خطأ غير معروف"
@@ -3698,7 +3698,7 @@ msgid "Results for \"%1\" (%2)"
 msgstr "نتائج \"%1\" (%2)"
 
 #: koassistant_xray_browser.lua:711 koassistant_xray_browser.lua:791
-#: main.lua:4144 main.lua:4562
+#: main.lua:4144 main.lua:4585
 #, fuzzy
 msgid "updated from"
 msgstr "تم التحديث من"
@@ -3738,7 +3738,7 @@ msgstr "النوع:"
 msgid "Source:"
 msgstr "المصدر:"
 
-#: koassistant_xray_browser.lua:808 main.lua:8082
+#: koassistant_xray_browser.lua:808 main.lua:8105
 #: koassistant_ui/prompts_manager.lua:1458
 #: koassistant_ui/prompts_manager.lua:1923
 #, fuzzy
@@ -3855,7 +3855,7 @@ msgstr "البناء نحو:"
 msgid "Chat/Action"
 msgstr "المحادثة/الإجراء"
 
-#: main.lua:314 main.lua:8685
+#: main.lua:314 main.lua:8708
 #, fuzzy
 msgid "Notebook"
 msgstr "المفكرة"
@@ -4398,7 +4398,7 @@ msgstr "الأساسية: %1"
 msgid "Use Primary (%1)"
 msgstr "استخدام الأساسية (%1)"
 
-#: main.lua:3358 main.lua:3390 main.lua:5231
+#: main.lua:3358 main.lua:3390 main.lua:5254
 #, fuzzy
 msgid "Translate: %1"
 msgstr "ترجمة: %1"
@@ -4429,7 +4429,7 @@ msgstr "أدخل اللغة المستهدفة للترجمات."
 msgid "(Set your languages for quick selection)"
 msgstr "(قم بتعيين لغاتك للاختيار السريع)"
 
-#: main.lua:3463 main.lua:6024
+#: main.lua:3463 main.lua:6047
 #, fuzzy
 msgid "Follow Translation Language"
 msgstr "اتباع لغة الترجمة"
@@ -4439,7 +4439,7 @@ msgstr "اتباع لغة الترجمة"
 msgid "Dictionary: Follow Translation"
 msgstr "القاموس: اتباع الترجمة"
 
-#: main.lua:3484 main.lua:6041
+#: main.lua:3484 main.lua:6064
 #, fuzzy
 msgid "Follow Primary Language"
 msgstr "اتباع اللغة الأساسية"
@@ -4449,7 +4449,7 @@ msgstr "اتباع اللغة الأساسية"
 msgid "Dictionary: Follow Primary"
 msgstr "القاموس: اتباع الأساسية"
 
-#: main.lua:3522 main.lua:5244
+#: main.lua:3522 main.lua:5267
 #, fuzzy
 msgid "Dictionary: %1"
 msgstr "القاموس: %1"
@@ -4516,12 +4516,12 @@ msgstr "يتم الآن إدارة قوائم النماذج من خلال مل�
 msgid "No previously opened chat found"
 msgstr "لم يتم العثور على محادثة مفتوحة سابقاً"
 
-#: main.lua:3903 main.lua:6649
+#: main.lua:3903 main.lua:6672
 #, fuzzy
 msgid "Configuration not found. Please set up configuration.lua first."
 msgstr "لم يتم العثور على التكوين. يرجى إعداد configuration.lua أولاً."
 
-#: main.lua:3940 main.lua:4611 main.lua:5795 main.lua:5813
+#: main.lua:3940 main.lua:4634 main.lua:5818 main.lua:5836
 #, fuzzy
 msgid "Please open a book first"
 msgstr "يرجى فتح كتاب أولاً"
@@ -4543,27 +4543,27 @@ msgstr ""
 "قم بتشغيل X-Ray أو تلخيص المستند أو تحليل المستند لإنشاء ذاكرة تخزين مؤقت قابلة لإعادة الاستخدام."
 
 #: main.lua:4061
-#, lua-format, fuzzy
+#, fuzzy, lua-format
 msgid "%dd ago"
 msgstr "منذ %dd"
 
 #: main.lua:4068
-#, lua-format, fuzzy
+#, fuzzy, lua-format
 msgid "%dm%dd ago"
 msgstr "منذ %dm%dd"
 
 #: main.lua:4070
-#, lua-format, fuzzy
+#, fuzzy, lua-format
 msgid "%dm ago"
 msgstr "منذ %dm"
 
 #: main.lua:4075
-#, lua-format, fuzzy
+#, fuzzy, lua-format
 msgid "%dy%dm ago"
 msgstr "منذ %dy%dm"
 
 #: main.lua:4077
-#, lua-format, fuzzy
+#, fuzzy, lua-format
 msgid "%dy ago"
 msgstr "منذ %dy"
 
@@ -4622,145 +4622,150 @@ msgstr ""
 "• حفظ الملخص للاستخدام المستقبلي\n"
 "• تمكين الإجراءات الذكية لهذا الكتاب"
 
-#: main.lua:4484
+#: main.lua:4495
+#, fuzzy
+msgid "to %1"
+msgstr "إلى %1"
+
+#: main.lua:4507
 #, fuzzy
 msgid "View %1"
 msgstr "عرض %1"
 
-#: main.lua:4493
+#: main.lua:4516
 #, fuzzy
 msgid "Update %1"
 msgstr "تحديث %1"
 
-#: main.lua:4621 main.lua:4739 main.lua:4794
+#: main.lua:4644 main.lua:4762 main.lua:4817
 #, fuzzy
 msgid "Action '%1' not found"
 msgstr "الإجراء '%1' غير موجود"
 
-#: main.lua:4777
+#: main.lua:4800
 #, fuzzy
 msgid "Unknown action context: %1"
 msgstr "سياق إجراء غير معروف: %1"
 
-#: main.lua:4943 main.lua:5223
+#: main.lua:4966 main.lua:5246
 #, fuzzy
 msgid "Primary Language"
 msgstr "اللغة الأساسية"
 
-#: main.lua:4967 main.lua:5133 koassistant_ui/prompts_manager.lua:725
+#: main.lua:4990 main.lua:5156 koassistant_ui/prompts_manager.lua:725
 #: koassistant_ui/prompts_manager.lua:2991
 #, fuzzy
 msgid "AI Behavior"
 msgstr "سلوك الذكاء الاصطناعي"
 
-#: main.lua:5052
+#: main.lua:5075
 #, fuzzy
 msgid "Default"
 msgstr "افتراضي"
 
-#: main.lua:5128
+#: main.lua:5151
 #, fuzzy
 msgid "Behavior: %1"
 msgstr "السلوك: %1"
 
-#: main.lua:5141
+#: main.lua:5164
 #, fuzzy
 msgid "Domain: %1"
 msgstr "المجال: %1"
 
-#: main.lua:5146 main.lua:5694
+#: main.lua:5169 main.lua:5717
 #, fuzzy
 msgid "Knowledge Domain"
 msgstr "مجال المعرفة"
 
-#: main.lua:5154
+#: main.lua:5177
 #, fuzzy
 msgid "Temp: %1"
 msgstr "الحرارة: %1"
 
-#: main.lua:5184
+#: main.lua:5207
 #, fuzzy
 msgid "Anthropic/Gemini Reasoning: ON"
 msgstr "استنتاج Anthropic/Gemini: مفعّل"
 
-#: main.lua:5184
+#: main.lua:5207
 #, fuzzy
 msgid "Anthropic/Gemini Reasoning: OFF"
 msgstr "استنتاج Anthropic/Gemini: معطّل"
 
-#: main.lua:5201
+#: main.lua:5224
 #, fuzzy
 msgid "Web Search: ON"
 msgstr "البحث في الويب: مفعّل"
 
-#: main.lua:5201
+#: main.lua:5224
 #, fuzzy
 msgid "Web Search: OFF"
 msgstr "البحث في الويب: معطّل"
 
-#: main.lua:5218
+#: main.lua:5241
 #, fuzzy
 msgid "Language: %1"
 msgstr "اللغة: %1"
 
-#: main.lua:5257
+#: main.lua:5280
 #, fuzzy
 msgid "H.Bypass: ON"
 msgstr "تجاوز التمييز: مفعّل"
 
-#: main.lua:5257
+#: main.lua:5280
 #, fuzzy
 msgid "H.Bypass: OFF"
 msgstr "تجاوز التمييز: معطّل"
 
-#: main.lua:5274
+#: main.lua:5297
 #, fuzzy
 msgid "D.Bypass: ON"
 msgstr "تجاوز القاموس: مفعّل"
 
-#: main.lua:5274
+#: main.lua:5297
 #, fuzzy
 msgid "D.Bypass: OFF"
 msgstr "تجاوز القاموس: معطّل"
 
-#: main.lua:5363
+#: main.lua:5386
 #, fuzzy
 msgid "Quick Actions..."
 msgstr "الإجراءات السريعة..."
 
-#: main.lua:5375
+#: main.lua:5398
 #, fuzzy
 msgid "More Settings..."
 msgstr "المزيد من الإعدادات..."
 
-#: main.lua:5431
+#: main.lua:5454
 #, fuzzy
 msgid "Quick Actions is only available while reading a book."
 msgstr "الإجراءات السريعة متاحة فقط أثناء قراءة كتاب."
 
-#: main.lua:5480
+#: main.lua:5503
 #, fuzzy
 msgid "View Summary"
 msgstr "عرض الملخص"
 
-#: main.lua:5480
+#: main.lua:5503
 #, fuzzy
 msgid "Generate Summary"
 msgstr "إنشاء ملخص"
 
-#: main.lua:5555
+#: main.lua:5578
 #, fuzzy
 msgid "Testing connection..."
 msgstr "جارٍ اختبار الاتصال..."
 
-#: main.lua:5583
+#: main.lua:5606
 #, fuzzy
 msgid ""
 "Connection test failed:\n"
 msgstr ""
 "فشل اختبار الاتصال:\n"
 
-#: main.lua:5589
+#: main.lua:5612
 #, fuzzy
 msgid ""
 "Connection test successful!\n"
@@ -4777,12 +4782,12 @@ msgstr ""
 "\n"
 "الاستجابة: %3"
 
-#: main.lua:5597
+#: main.lua:5620
 #, fuzzy
 msgid "Connection test failed: "
 msgstr "فشل اختبار الاتصال:"
 
-#: main.lua:5617
+#: main.lua:5640
 #, fuzzy
 msgid ""
 "No book is currently open.\n"
@@ -4793,7 +4798,7 @@ msgstr ""
 "\n"
 "افتح كتاباً أولاً، ثم استخدم هذا الخيار لمسح استجابات X-Ray والملخص المخزنة مؤقتاً."
 
-#: main.lua:5630
+#: main.lua:5653
 #, fuzzy
 msgid ""
 "No action cache found for this book.\n"
@@ -4804,7 +4809,7 @@ msgstr ""
 "\n"
 "قم بتشغيل X-Ray أو الملخص أولاً لإنشاء ذاكرة تخزين مؤقت."
 
-#: main.lua:5640
+#: main.lua:5663
 #, fuzzy
 msgid ""
 "Clear cached X-Ray and Recap responses for this book?\n"
@@ -4815,62 +4820,62 @@ msgstr ""
 "\n"
 "في المرة القادمة التي تشغل فيها هذه الإجراءات، سيتم إعادة إنشائها من الصفر بدلاً من التحديث من النسخة المخزنة مؤقتاً."
 
-#: main.lua:5650
+#: main.lua:5673
 #, fuzzy
 msgid "Clear Cache"
 msgstr "مسح الذاكرة المؤقتة"
 
-#: main.lua:5656
+#: main.lua:5679
 #, fuzzy
 msgid "Action cache cleared successfully."
 msgstr "تم مسح ذاكرة الإجراءات المؤقتة بنجاح."
 
-#: main.lua:5661
+#: main.lua:5684
 #, fuzzy
 msgid "Failed to clear action cache."
 msgstr "فشل مسح ذاكرة الإجراءات المؤقتة."
 
-#: main.lua:5768
+#: main.lua:5791
 #, fuzzy
 msgid "Dictionary bypass: ON"
 msgstr "تجاوز القاموس: مفعّل"
 
-#: main.lua:5768
+#: main.lua:5791
 #, fuzzy
 msgid "Dictionary bypass: OFF"
 msgstr "تجاوز القاموس: معطّل"
 
-#: main.lua:5782
+#: main.lua:5805
 #, fuzzy
 msgid "Highlight bypass: ON"
 msgstr "تجاوز التمييز: مفعّل"
 
-#: main.lua:5782
+#: main.lua:5805
 #, fuzzy
 msgid "Highlight bypass: OFF"
 msgstr "تجاوز التمييز: معطّل"
 
-#: main.lua:5908
+#: main.lua:5931
 #, fuzzy
 msgid "Cannot determine current page"
 msgstr "تعذر تحديد الصفحة الحالية"
 
-#: main.lua:5954
+#: main.lua:5977
 #, fuzzy
 msgid "Could not extract text from current page"
 msgstr "تعذر استخراج النص من الصفحة الحالية"
 
-#: main.lua:5965
+#: main.lua:5988
 #, fuzzy
 msgid "Translate action not found"
 msgstr "لم يتم العثور على إجراء الترجمة"
 
-#: main.lua:6141
+#: main.lua:6164
 #, fuzzy
 msgid "Select Export Folder"
 msgstr "اختر مجلد التصدير"
 
-#: main.lua:6148
+#: main.lua:6171
 #, fuzzy
 msgid ""
 "Export path set to:\n"
@@ -4879,17 +4884,17 @@ msgstr ""
 "تم تعيين مسار التصدير إلى:\n"
 "%1"
 
-#: main.lua:6540 main.lua:6594
+#: main.lua:6563 main.lua:6617
 #, fuzzy
 msgid "Bypass action: %1"
 msgstr "إجراء التجاوز: %1"
 
-#: main.lua:6639
+#: main.lua:6662
 #, fuzzy
 msgid "All action settings restored to defaults"
 msgstr "تمت استعادة جميع إعدادات الإجراءات إلى الافتراضية"
 
-#: main.lua:6712
+#: main.lua:6735
 #, fuzzy
 msgid ""
 "KOAssistant Plugin\n"
@@ -4898,88 +4903,88 @@ msgstr ""
 "إضافة KOAssistant\n"
 "الإصدار:"
 
-#: main.lua:6797
+#: main.lua:6820
 #, fuzzy
 msgid "Feature settings reset to defaults"
 msgstr "تمت إعادة تعيين إعدادات الميزات إلى الافتراضية"
 
-#: main.lua:6827
+#: main.lua:6850
 #, fuzzy
 msgid "All customizations reset"
 msgstr "تمت إعادة تعيين جميع التخصيصات"
 
-#: main.lua:6851
+#: main.lua:6874
 #, fuzzy
 msgid "Custom actions deleted"
 msgstr "تم حذف الإجراءات المخصصة"
 
-#: main.lua:6865
+#: main.lua:6888
 #, fuzzy
 msgid "Action edits reset to defaults"
 msgstr "تمت إعادة تعيين تعديلات الإجراءات إلى الافتراضية"
 
-#: main.lua:6895
+#: main.lua:6918
 #, fuzzy
 msgid "Action menus reset to defaults"
 msgstr "تمت إعادة تعيين قوائم الإجراءات إلى الافتراضية"
 
-#: main.lua:6909
+#: main.lua:6932
 #, fuzzy
 msgid "Dictionary popup actions reset"
 msgstr "تمت إعادة تعيين إجراءات القاموس المنبثق"
 
-#: main.lua:6922
+#: main.lua:6945
 #, fuzzy
 msgid "Highlight menu actions reset (restart to apply)"
 msgstr "تمت إعادة تعيين إجراءات قائمة التمييز (أعد التشغيل للتطبيق)"
 
-#: main.lua:6934
+#: main.lua:6957
 #, fuzzy
 msgid "File browser actions reset"
 msgstr "تم إعادة تعيين إجراءات متصفح الملفات"
 
-#: main.lua:6946
+#: main.lua:6969
 #, fuzzy
 msgid "Quick actions reset"
 msgstr "تمت إعادة تعيين الإجراءات السريعة"
 
-#: main.lua:6967
+#: main.lua:6990
 #, fuzzy
 msgid "Custom providers and models reset"
 msgstr "تمت إعادة تعيين المزودين والنماذج المخصصة"
 
-#: main.lua:7040
+#: main.lua:7063
 #, fuzzy
 msgid "All action settings reset"
 msgstr "تمت إعادة تعيين جميع إعدادات الإجراءات"
 
-#: main.lua:7069
+#: main.lua:7092
 #, fuzzy
 msgid "Fresh start complete - API keys preserved"
 msgstr "اكتملت البداية الجديدة - تم الحفاظ على مفاتيح API"
 
-#: main.lua:7090
+#: main.lua:7113
 #, fuzzy
 msgid "Default: Personal content private, basic context shared"
 msgstr "الافتراضي: المحتوى الشخصي خاص، السياق الأساسي مشترك"
 
-#: main.lua:7111
+#: main.lua:7134
 #, fuzzy
 msgid "Minimal: All extended sharing disabled"
 msgstr "الحد الأدنى: جميع المشاركة الموسعة معطلة"
 
-#: main.lua:7132
+#: main.lua:7155
 #, fuzzy
 msgid ""
 "Full: All data sharing enabled (Text extraction must be enabled separately)"
 msgstr "كامل: جميع مشاركة البيانات مفعلة (يجب تفعيل استخراج النص بشكل منفصل)"
 
-#: main.lua:7184
+#: main.lua:7207
 #, fuzzy
 msgid "(custom)"
 msgstr "(مخصص)"
 
-#: main.lua:7244
+#: main.lua:7267
 #, fuzzy
 msgid ""
 "Select providers to trust\n"
@@ -4990,157 +4995,157 @@ msgstr ""
 "\n"
 "مقدمو الخدمة الموثوقون يتجاوزون ضوابط مشاركة البيانات."
 
-#: main.lua:7270
+#: main.lua:7293
 #, fuzzy
 msgid "✓ Reset"
 msgstr "✓ إعادة تعيين"
 
-#: main.lua:7272
+#: main.lua:7295
 #, fuzzy
 msgid "✗ Keep"
 msgstr "✗ الاحتفاظ"
 
-#: main.lua:7278 main.lua:7578 main.lua:7709
+#: main.lua:7301 main.lua:7601 main.lua:7732
 #, fuzzy
 msgid "Settings"
 msgstr "الإعدادات"
 
-#: main.lua:7286
+#: main.lua:7309
 #, fuzzy
 msgid "Custom actions"
 msgstr "الإجراءات المخصصة"
 
-#: main.lua:7294
+#: main.lua:7317
 #, fuzzy
 msgid "Action edits"
 msgstr "تعديلات الإجراءات"
 
-#: main.lua:7302
+#: main.lua:7325
 #, fuzzy
 msgid "Action menus"
 msgstr "قوائم الإجراءات"
 
-#: main.lua:7310
+#: main.lua:7333
 #, fuzzy
 msgid "Custom providers & models"
 msgstr "مقدمو الخدمة والنماذج المخصصة"
 
-#: main.lua:7318
+#: main.lua:7341
 #, fuzzy
 msgid "Behaviors & domains"
 msgstr "السلوكيات والنطاقات"
 
-#: main.lua:7326 main.lua:7383
+#: main.lua:7349 main.lua:7406
 #, fuzzy
 msgid "API keys"
 msgstr "مفاتيح API"
 
-#: main.lua:7338
+#: main.lua:7361
 #, fuzzy
 msgid "Reset Selected"
 msgstr "إعادة تعيين المحدد"
 
-#: main.lua:7347
+#: main.lua:7370
 #, fuzzy
 msgid "What would you like to reset?"
 msgstr "ماذا تريد أن تعيد تعيينه؟"
 
-#: main.lua:7359
+#: main.lua:7382
 #, fuzzy
 msgid "settings"
 msgstr "الإعدادات"
 
-#: main.lua:7363
+#: main.lua:7386
 #, fuzzy
 msgid "custom actions"
 msgstr "الإجراءات المخصصة"
 
-#: main.lua:7367
+#: main.lua:7390
 #, fuzzy
 msgid "action edits"
 msgstr "تعديلات الإجراءات"
 
-#: main.lua:7371
+#: main.lua:7394
 #, fuzzy
 msgid "action menus"
 msgstr "قوائم الإجراءات"
 
-#: main.lua:7375
+#: main.lua:7398
 #, fuzzy
 msgid "providers/models"
 msgstr "مقدمو الخدمة/النماذج"
 
-#: main.lua:7379
+#: main.lua:7402
 #, fuzzy
 msgid "behaviors/domains"
 msgstr "السلوكيات/النطاقات"
 
-#: main.lua:7388
+#: main.lua:7411
 #, fuzzy
 msgid "Reset: %1"
 msgstr "إعادة تعيين: %1"
 
-#: main.lua:7393
+#: main.lua:7416
 #, fuzzy
 msgid "Nothing selected to reset"
 msgstr "لم يتم تحديد شيء لإعادة التعيين"
 
-#: main.lua:7455
+#: main.lua:7478
 #, fuzzy
 msgid "Core Settings: ✓ Included"
 msgstr "الإعدادات الأساسية: ✓ مُضمّن"
 
-#: main.lua:7461
+#: main.lua:7484
 #, fuzzy
 msgid "API Keys: ✓ Include (⚠ Sensitive)"
 msgstr "مفاتيح API: ✓ تضمين (⚠ حساس)"
 
-#: main.lua:7461
+#: main.lua:7484
 #, fuzzy
 msgid "API Keys: ✗ Exclude"
 msgstr "مفاتيح API: ✗ استبعاد"
 
-#: main.lua:7476
+#: main.lua:7499
 #, fuzzy
 msgid "Config Files: ✓ Include"
 msgstr "ملفات التكوين: ✓ تضمين"
 
-#: main.lua:7476
+#: main.lua:7499
 #, fuzzy
 msgid "Config Files: ✗ Exclude"
 msgstr "ملفات التكوين: ✗ استبعاد"
 
-#: main.lua:7491
+#: main.lua:7514
 #, fuzzy
 msgid "Domains & Behaviors: ✓ Include"
 msgstr "النطاقات والسلوكيات: ✓ تضمين"
 
-#: main.lua:7491
+#: main.lua:7514
 #, fuzzy
 msgid "Domains & Behaviors: ✗ Exclude"
 msgstr "النطاقات والسلوكيات: ✗ استبعاد"
 
-#: main.lua:7506
+#: main.lua:7529
 #, fuzzy
 msgid "Chat History: ✓ Include"
 msgstr "سجل المحادثات: ✓ تضمين"
 
-#: main.lua:7506
+#: main.lua:7529
 #, fuzzy
 msgid "Chat History: ✗ Exclude"
 msgstr "سجل المحادثات: ✗ استبعاد"
 
-#: main.lua:7521 main.lua:7673 main.lua:7884 main.lua:7906
+#: main.lua:7544 main.lua:7696 main.lua:7907 main.lua:7929
 #, fuzzy
 msgid "━━━━━━━━━━━━━━━━"
 msgstr "━━━━━━━━━━━━━━━━"
 
-#: main.lua:7547
+#: main.lua:7570
 #, fuzzy
 msgid "What to include in backup:"
 msgstr "ما المراد تضمينه في النسخة الاحتياطية:"
 
-#: main.lua:7559
+#: main.lua:7582
 #, fuzzy
 msgid ""
 "Creating backup...\n"
@@ -5151,7 +5156,7 @@ msgstr ""
 "\n"
 "قد يستغرق هذا بعض الوقت."
 
-#: main.lua:7571
+#: main.lua:7594
 #, fuzzy
 msgid ""
 "Backup created successfully!\n"
@@ -5166,47 +5171,47 @@ msgstr ""
 "\n"
 "الحجم: %2"
 
-#: main.lua:7584 main.lua:7715
+#: main.lua:7607 main.lua:7738
 #, fuzzy
 msgid "Config Files"
 msgstr "ملفات التكوين"
 
-#: main.lua:7590 main.lua:7720
+#: main.lua:7613 main.lua:7743
 #, fuzzy
 msgid "%1 domains"
 msgstr "%1 نطاق"
 
-#: main.lua:7592
+#: main.lua:7615
 #, fuzzy
 msgid "0 domains"
 msgstr "0 نطاق"
 
-#: main.lua:7595 main.lua:7725
+#: main.lua:7618 main.lua:7748
 #, fuzzy
 msgid "%1 behaviors"
 msgstr "%1 سلوك"
 
-#: main.lua:7597
+#: main.lua:7620
 #, fuzzy
 msgid "0 behaviors"
 msgstr "0 سلوك"
 
-#: main.lua:7603 main.lua:7733
+#: main.lua:7626 main.lua:7756
 #, fuzzy
 msgid "%1 chats"
 msgstr "%1 محادثة"
 
-#: main.lua:7605
+#: main.lua:7628
 #, fuzzy
 msgid "0 chats"
 msgstr "0 محادثة"
 
-#: main.lua:7610
+#: main.lua:7633
 #, fuzzy
 msgid "Included:"
 msgstr "المُضمّن:"
 
-#: main.lua:7620
+#: main.lua:7643
 #, fuzzy
 msgid ""
 "Backup failed:\n"
@@ -5217,7 +5222,7 @@ msgstr ""
 "\n"
 "%1"
 
-#: main.lua:7637
+#: main.lua:7660
 #, fuzzy
 msgid ""
 "No backups found.\n"
@@ -5230,7 +5235,7 @@ msgstr ""
 "أنشئ نسخة احتياطية أولاً باستخدام:\n"
 "الإعدادات ← متقدم ← إدارة الإعدادات ← إنشاء نسخة احتياطية"
 
-#: main.lua:7679
+#: main.lua:7702
 #, fuzzy
 msgid ""
 "Select backup to restore\n"
@@ -5241,7 +5246,7 @@ msgstr ""
 "\n"
 "الإجمالي: %1 نسخة احتياطية"
 
-#: main.lua:7694 main.lua:8093
+#: main.lua:7717 main.lua:8116
 #, fuzzy
 msgid ""
 "Invalid backup:\n"
@@ -5252,7 +5257,7 @@ msgstr ""
 "\n"
 "%1"
 
-#: main.lua:7703
+#: main.lua:7726
 #, fuzzy
 msgid ""
 "Backup: %1\n"
@@ -5269,107 +5274,107 @@ msgstr ""
 "\n"
 "المحتويات:"
 
-#: main.lua:7713
+#: main.lua:7736
 #, fuzzy
 msgid "No API keys"
 msgstr "لا توجد مفاتيح API"
 
-#: main.lua:7722
+#: main.lua:7745
 #, fuzzy
 msgid "domains"
 msgstr "النطاقات"
 
-#: main.lua:7727
+#: main.lua:7750
 #, fuzzy
 msgid "behaviors"
 msgstr "السلوكيات"
 
-#: main.lua:7735
+#: main.lua:7758
 #, fuzzy
 msgid "Chat history"
 msgstr "سجل المحادثات"
 
-#: main.lua:7745 main.lua:7966
+#: main.lua:7768 main.lua:7989
 #, fuzzy
 msgid "Warnings:"
 msgstr "تحذيرات:"
 
-#: main.lua:7762
+#: main.lua:7785
 #, fuzzy
 msgid "Restore →"
 msgstr "استعادة ←"
 
-#: main.lua:7799
+#: main.lua:7822
 #, fuzzy
 msgid "Settings: ✓ Restore"
 msgstr "الإعدادات: ✓ استعادة"
 
-#: main.lua:7799
+#: main.lua:7822
 #, fuzzy
 msgid "Settings: ✗ Skip"
 msgstr "الإعدادات: ✗ تخطي"
 
-#: main.lua:7816
+#: main.lua:7839
 #, fuzzy
 msgid "API Keys: ✓ Restore"
 msgstr "مفاتيح API: ✓ استعادة"
 
-#: main.lua:7816
+#: main.lua:7839
 #, fuzzy
 msgid "API Keys: ✗ Skip"
 msgstr "مفاتيح API: ✗ تخطي"
 
-#: main.lua:7833
+#: main.lua:7856
 #, fuzzy
 msgid "Config Files: ✓ Restore"
 msgstr "ملفات التكوين: ✓ استعادة"
 
-#: main.lua:7833
+#: main.lua:7856
 #, fuzzy
 msgid "Config Files: ✗ Skip"
 msgstr "ملفات التكوين: ✗ تخطي"
 
-#: main.lua:7850
+#: main.lua:7873
 #, fuzzy
 msgid "Domains & Behaviors: ✓ Restore"
 msgstr "النطاقات والسلوكيات: ✓ استعادة"
 
-#: main.lua:7850
+#: main.lua:7873
 #, fuzzy
 msgid "Domains & Behaviors: ✗ Skip"
 msgstr "النطاقات والسلوكيات: ✗ تخطي"
 
-#: main.lua:7867
+#: main.lua:7890
 #, fuzzy
 msgid "Chat History: ✓ Restore"
 msgstr "سجل المحادثات: ✓ استعادة"
 
-#: main.lua:7867
+#: main.lua:7890
 #, fuzzy
 msgid "Chat History: ✗ Skip"
 msgstr "سجل المحادثات: ✗ تخطي"
 
-#: main.lua:7890
+#: main.lua:7913
 #, fuzzy
 msgid "Mode: Merge with existing"
 msgstr "الوضع: دمج مع الموجود"
 
-#: main.lua:7890
+#: main.lua:7913
 #, fuzzy
 msgid "Mode: Replace existing"
 msgstr "الوضع: استبدال الموجود"
 
-#: main.lua:7912
+#: main.lua:7935
 #, fuzzy
 msgid "Restore Now"
 msgstr "استعادة الآن"
 
-#: main.lua:7932
+#: main.lua:7955
 #, fuzzy
 msgid "What to restore:"
 msgstr "ما المطلوب استعادته:"
 
-#: main.lua:7945
+#: main.lua:7968
 #, fuzzy
 msgid ""
 "Restore from backup?\n"
@@ -5384,12 +5389,12 @@ msgstr ""
 "\n"
 "⚠ يجب إعادة تشغيل KOReader بعد الاستعادة لتطبيق التغييرات بالكامل."
 
-#: main.lua:7946 main.lua:8102
+#: main.lua:7969 main.lua:8125
 #, fuzzy
 msgid "Restore"
 msgstr "استعادة"
 
-#: main.lua:7950
+#: main.lua:7973
 #, fuzzy
 msgid ""
 "Restoring backup...\n"
@@ -5400,7 +5405,7 @@ msgstr ""
 "\n"
 "قد يستغرق هذا بعض الوقت."
 
-#: main.lua:7963
+#: main.lua:7986
 #, fuzzy
 msgid ""
 "Restore completed successfully!\n"
@@ -5411,7 +5416,7 @@ msgstr ""
 "\n"
 "يُنصح بإعادة تشغيل KOReader لتطبيق جميع التغييرات."
 
-#: main.lua:7975 koassistant_ui/prompts_manager.lua:2579
+#: main.lua:7998 koassistant_ui/prompts_manager.lua:2579
 #: koassistant_ui/prompts_manager.lua:3017
 #: koassistant_ui/prompts_manager.lua:3201
 #: koassistant_ui/prompts_manager.lua:3675
@@ -5423,12 +5428,12 @@ msgstr ""
 msgid "OK"
 msgstr "موافق"
 
-#: main.lua:7981
+#: main.lua:8004
 #, fuzzy
 msgid "Restart Now"
 msgstr "إعادة التشغيل الآن"
 
-#: main.lua:7995
+#: main.lua:8018
 #, fuzzy
 msgid ""
 "Restore failed:\n"
@@ -5439,12 +5444,12 @@ msgstr ""
 "\n"
 "%1"
 
-#: main.lua:8018
+#: main.lua:8041
 #, fuzzy
 msgid "No backups found."
 msgstr "لم يتم العثور على نسخ احتياطية."
 
-#: main.lua:8066
+#: main.lua:8089
 #, fuzzy
 msgid ""
 "Backups (%1)\n"
@@ -5455,7 +5460,7 @@ msgstr ""
 "\n"
 "الحجم الإجمالي: %2"
 
-#: main.lua:8118
+#: main.lua:8141
 #, fuzzy
 msgid ""
 "Delete backup?\n"
@@ -5470,12 +5475,12 @@ msgstr ""
 "\n"
 "لا يمكن التراجع عن هذا الإجراء."
 
-#: main.lua:8126
+#: main.lua:8149
 #, fuzzy
 msgid "Backup deleted"
 msgstr "تم حذف النسخة الاحتياطية"
 
-#: main.lua:8135
+#: main.lua:8158
 #, fuzzy
 msgid ""
 "Failed to delete backup:\n"
@@ -5486,7 +5491,7 @@ msgstr ""
 "\n"
 "%1"
 
-#: main.lua:8198
+#: main.lua:8221
 #, fuzzy
 msgid ""
 "KOAssistant: Chat Storage Upgrade\n"
@@ -5505,22 +5510,22 @@ msgstr ""
 "\n"
 "سيتم نسخ ملفات المحادثات القديمة احتياطياً إلى koassistant_chats.backup/"
 
-#: main.lua:8205
+#: main.lua:8228
 #, fuzzy
 msgid "Migrate Now"
 msgstr "الترحيل الآن"
 
-#: main.lua:8237
+#: main.lua:8260
 #, fuzzy
 msgid "KOAssistant: Migrating chat history..."
 msgstr "KOAssistant: جارٍ ترحيل سجل المحادثات..."
 
-#: main.lua:8250
+#: main.lua:8273
 #, fuzzy
 msgid "No old chats found to migrate"
 msgstr "لم يتم العثور على محادثات قديمة للترحيل"
 
-#: main.lua:8372
+#: main.lua:8395
 #, fuzzy
 msgid ""
 "KOAssistant: Migration Incomplete\n"
@@ -5541,12 +5546,12 @@ msgstr ""
 "ستتم إعادة محاولة الترحيل عند بدء التشغيل التالي.\n"
 "تحقق من وحدة التحكم للحصول على رسائل خطأ مفصلة."
 
-#: main.lua:8384
+#: main.lua:8407
 #, fuzzy
 msgid "Failed documents:"
 msgstr "المستندات الفاشلة:"
 
-#: main.lua:8391
+#: main.lua:8414
 #, fuzzy
 msgid ""
 "KOAssistant: Migration Complete\n"
@@ -5565,95 +5570,95 @@ msgstr ""
 "تم نسخ ملفات المحادثات القديمة احتياطياً إلى:\n"
 "koassistant_chats.backup/"
 
-#: main.lua:8455
+#: main.lua:8478
 #, fuzzy
 msgid "Welcome to KOAssistant!"
 msgstr "مرحباً بك في KOAssistant!"
 
-#: main.lua:8456
+#: main.lua:8479
 #, fuzzy
 msgid "PRIVACY SETTINGS"
 msgstr "إعدادات الخصوصية"
 
-#: main.lua:8457
+#: main.lua:8480
 #, fuzzy
 msgid ""
 "Some features (like X-Ray) work best when they can access document text and other content."
 msgstr "بعض الميزات (مثل X-Ray) تعمل بشكل أفضل عندما يمكنها الوصول إلى نص المستند والمحتوى الآخر."
 
-#: main.lua:8458
+#: main.lua:8481
 #, fuzzy
 msgid "Enable in: Settings → Privacy & Data"
 msgstr "تفعيل في: الإعدادات ← الخصوصية والبيانات"
 
-#: main.lua:8459
+#: main.lua:8482
 #, fuzzy
 msgid "QUICK ACCESS"
 msgstr "الوصول السريع"
 
-#: main.lua:8460
+#: main.lua:8483
 #, fuzzy
 msgid ""
 "Add Quick Actions panels and more to gestures in KOReader's gesture settings."
 msgstr "أضف لوحات الإجراءات السريعة والمزيد إلى الإيماءات في إعدادات الإيماءات في KOReader."
 
-#: main.lua:8461
+#: main.lua:8484
 #, fuzzy
 msgid "CUSTOM ACTIONS"
 msgstr "إجراءات مخصصة"
 
-#: main.lua:8462
+#: main.lua:8485
 #, fuzzy
 msgid "Create your own prompts and actions or edit built in ones."
 msgstr "أنشئ موجهاتك وإجراءاتك الخاصة أو عدل الموجودة مسبقاً."
 
-#: main.lua:8463
+#: main.lua:8486
 #, fuzzy
 msgid "Go to: Settings → Action Manager → Add"
 msgstr "انتقل إلى: الإعدادات ← مدير الإجراءات ← إضافة"
 
-#: main.lua:8464
+#: main.lua:8487
 #, fuzzy
 msgid "MENU AND INFO ICONS"
 msgstr "أيقونات القائمة والمعلومات"
 
-#: main.lua:8465
+#: main.lua:8488
 #, fuzzy
 msgid ""
 "Setup KOReader with emoji support to get informative icons in menus and more. See the emoji section in the README for details."
 msgstr "قم بإعداد KOReader مع دعم الرموز التعبيرية للحصول على أيقونات معلوماتية في القوائم والمزيد. راجع قسم الرموز التعبيرية في README للتفاصيل."
 
-#: main.lua:8615
+#: main.lua:8638
 #, fuzzy
 msgid "No notebook available for this document"
 msgstr "لا توجد مفكرة متاحة لهذا المستند"
 
-#: main.lua:8625
+#: main.lua:8648
 #, fuzzy
 msgid "No notebook exists for this document. Create one?"
 msgstr "لا توجد مفكرة لهذا المستند. إنشاء واحدة؟"
 
-#: main.lua:8635
+#: main.lua:8658
 #, fuzzy
 msgid "Failed to create notebook: %1"
 msgstr "فشل إنشاء المفكرة: %1"
 
-#: main.lua:8677
+#: main.lua:8700
 #, fuzzy
 msgid "Notebook is empty"
 msgstr "المفكرة فارغة"
 
-#: main.lua:8726
+#: main.lua:8749
 #, fuzzy
 msgid "Failed to read notebook file."
 msgstr "فشل قراءة ملف المفكرة."
 
-#: main.lua:8789
+#: main.lua:8812
 #, fuzzy
 msgid "Notebook saved"
 msgstr "تم حفظ المفكرة"
 
-#: main.lua:8796
+#: main.lua:8819
 #, fuzzy
 msgid "Reset to last saved"
 msgstr "إعادة تعيين إلى آخر حفظ"
