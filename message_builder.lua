@@ -298,6 +298,12 @@ function MessageBuilder.build(params)
     if data.incremental_book_text then
         user_prompt = replace_placeholder(user_prompt, "{incremental_book_text}", data.incremental_book_text)
     end
+    -- {entity_index} - compact listing of existing entity names for merge-based updates
+    local entity_index_section = ""
+    if data.entity_index and data.entity_index ~= "" then
+        entity_index_section = "Existing entities in previous analysis:\n" .. data.entity_index
+    end
+    user_prompt = replace_placeholder(user_prompt, "{entity_index}", entity_index_section)
 
     -- Document cache placeholders (cached AI responses from previous X-Ray/Summary)
     -- {xray_cache_section} - previous X-Ray with progress label
@@ -599,6 +605,11 @@ function MessageBuilder.substituteVariables(prompt_text, data)
     if data.incremental_book_text then
         result = replace_placeholder(result, "{incremental_book_text}", data.incremental_book_text)
     end
+    local entity_index_section = ""
+    if data.entity_index and data.entity_index ~= "" then
+        entity_index_section = "Existing entities in previous analysis:\n" .. data.entity_index
+    end
+    result = replace_placeholder(result, "{entity_index}", entity_index_section)
 
     -- Document cache placeholders
     local xray_cache_section = ""
