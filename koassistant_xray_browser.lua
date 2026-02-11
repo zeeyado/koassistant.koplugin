@@ -1261,13 +1261,15 @@ function XrayBrowser:_buildDistributionView(item, category_key, item_title, data
                             end
                         end
                         -- Collect aliases as full terms (no longest-word extraction)
+                        -- Deduplicate: skip aliases that match the main search term
                         local alias_terms = {}
+                        local search_lower = search_name:lower()
                         if type(item.aliases) == "table" then
                             for _idx, alias in ipairs(item.aliases) do
                                 if #alias > 2 then
                                     local clean = alias:gsub("%s*%(.-%)%s*", "")
                                     clean = clean:match("^%s*(.-)%s*$") or clean
-                                    if #clean > 2 then
+                                    if #clean > 2 and clean:lower() ~= search_lower then
                                         table.insert(alias_terms, clean)
                                     end
                                 end
@@ -1284,7 +1286,10 @@ function XrayBrowser:_buildDistributionView(item, category_key, item_title, data
                                     for _idx2, a in ipairs(alias_terms) do
                                         pattern = pattern .. "|" .. esc(a)
                                     end
-                                    -- onShowSearchDialog(text, direction, regex, case_insensitive)
+                                    -- Set search state so input dialog reflects the regex pattern
+                                    captured_ui.search.last_search_text = pattern
+                                    captured_ui.search.use_regex = true
+                                    captured_ui.search.case_insensitive = true
                                     captured_ui.search:onShowSearchDialog(pattern, 0, true, true)
                                 else
                                     captured_ui.search:searchCallback(0, search_name)
