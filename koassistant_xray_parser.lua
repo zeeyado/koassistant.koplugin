@@ -159,22 +159,6 @@ function XrayParser.countItemOccurrences(item, text_lower)
         if paren_count > best_count then best_count = paren_count end
     end
 
-    -- For multi-word names, also search the longest word (catches surname-only references)
-    -- e.g., "Cabasilas" for "St Nicolas Cabasilas". Only the longest word to avoid
-    -- cross-contamination (e.g., "John" matching both "John James" and "John Smith")
-    if search_name:find(" ") then
-        local longest_word = ""
-        for word in search_name:gmatch("%S+") do
-            if #word > #longest_word then
-                longest_word = word
-            end
-        end
-        if #longest_word > 4 then
-            local word_count = XrayParser._countOccurrences(text_lower, longest_word)
-            if word_count > best_count then best_count = word_count end
-        end
-    end
-
     local item_aliases = ensure_array(item.aliases)
     if item_aliases then
         for _idx, alias in ipairs(item_aliases) do
@@ -866,9 +850,38 @@ function XrayParser.findCharactersInChapter(data, chapter_text)
     return results
 end
 
---- Count word-boundary occurrences of a substring in text (plain search)
---- Only counts matches where the needle is surrounded by non-alphanumeric characters
---- (or string start/end), preventing "Ali" from matching inside "quality".
+--- Check if a byte value is a "word" byte for boundary detection.
+--- Treats ASCII alphanumerics, apostrophe, AND all non-ASCII bytes (>= 0x80) as word content.
+--- This makes boundary detection UTF-8 aware: non-ASCII characters (Arabic, accented Latin,
+--- CJK, etc.) are treated as word content, preventing false matches like "caf" in "café".
+--- @param b number|nil Byte value
+--- @return boolean
+local function isWordByte(b)
+    if not b then return false end
+    if b >= 128 then return true end  -- Non-ASCII: part of UTF-8 character
+    if b >= 48 and b <= 57 then return true end   -- 0-9
+    if b >= 65 and b <= 90 then return true end   -- A-Z
+    if b >= 97 and b <= 122 then return true end  -- a-z
+    if b == 39 then return true end                -- apostrophe
+    return false
+end
+
+--- Check if text contains characters from scripts that lack word-boundary spaces
+--- (CJK, Thai, etc.). These are encoded as 3+ byte UTF-8 sequences (leading byte >= 0xE0).
+--- Cyrillic, Greek, Arabic, Hebrew are all 2-byte UTF-8 (< 0xE0) and have spaces — unaffected.
+--- @param str string Text to check
+--- @return boolean
+local function hasNonSpacedScript(str)
+    for i = 1, #str do
+        if str:byte(i) >= 0xE0 then return true end
+    end
+    return false
+end
+
+--- Count occurrences of a substring in text (plain search)
+--- For Latin/Cyrillic/Arabic/Greek (spaced scripts): uses word-boundary matching to prevent
+--- "Ali" from matching inside "quality". For CJK/Thai (non-spaced scripts): uses plain
+--- substring matching since word boundaries don't exist in these scripts.
 --- @param text string Haystack (already lowered)
 --- @param needle string Needle (already lowered)
 --- @return number count
@@ -877,15 +890,20 @@ function XrayParser._countOccurrences(text, needle)
     local pos = 1
     local needle_len = #needle
     local text_len = #text
+    local skip_boundaries = hasNonSpacedScript(needle)
     while true do
         local start = text:find(needle, pos, true)
         if not start then break end
-        -- Check word boundaries: character before/after must be non-alphanumeric
-        local before_ok = (start == 1) or not text:sub(start - 1, start - 1):match("[%w']")
-        local after_pos = start + needle_len
-        local after_ok = (after_pos > text_len) or not text:sub(after_pos, after_pos):match("[%w']")
-        if before_ok and after_ok then
+        if skip_boundaries then
             count = count + 1
+        else
+            -- Check word boundaries: byte before/after must be non-word
+            local before_ok = (start == 1) or not isWordByte(text:byte(start - 1))
+            local after_pos = start + needle_len
+            local after_ok = (after_pos > text_len) or not isWordByte(text:byte(after_pos))
+            if before_ok and after_ok then
+                count = count + 1
+            end
         end
         pos = start + needle_len
     end

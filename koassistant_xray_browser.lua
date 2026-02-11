@@ -301,11 +301,17 @@ local function extractChapterText(ui, chapter, max_chars)
 
     if ui.document.info.has_pages then
         -- PDF: iterate pages
+        local document = ui.document
+        local has_hidden = document.hasHiddenFlows and document:hasHiddenFlows()
         local parts = {}
         local char_count = 0
         local end_page = math.min(chapter.end_page, chapter.start_page + 50)  -- Cap pages too
         for page = chapter.start_page, end_page do
-            local ok, page_text = pcall(ui.document.getPageText, ui.document, page)
+            -- Skip hidden flow pages
+            if has_hidden and document:getPageFlow(page) ~= 0 then
+                -- skip
+            else
+            local ok, page_text = pcall(document.getPageText, document, page)
             if ok and page_text then
                 -- getPageText returns a table of text blocks for PDFs
                 if type(page_text) == "table" then
@@ -321,6 +327,7 @@ local function extractChapterText(ui, chapter, max_chars)
                 end
                 if char_count >= max_chars then break end
             end
+            end -- if has_hidden skip/else
         end
         text = table.concat(parts, " ")
     else
@@ -984,9 +991,12 @@ function XrayBrowser:showChapterAnalysis(target_depth)
         local chapter_text, chapter_title, toc_info = getCurrentChapterText(self_ref.ui, target_depth)
 
         if not chapter_text or chapter_text == "" then
+            local msg = self_ref.ui.document.info.has_pages
+                and _("Could not extract chapter text. PDF text extraction may not be available for this document.")
+                or _("Could not extract chapter text.")
             UIManager:show(InfoMessage:new{
-                text = _("Could not extract chapter text."),
-                timeout = 3,
+                text = msg,
+                timeout = 5,
             })
             return
         end
@@ -1091,9 +1101,12 @@ function XrayBrowser:showWholeBookAnalysis()
         local text = extractChapterText(self_ref.ui, chapter, 500000)
 
         if not text or text == "" then
+            local msg = self_ref.ui.document.info.has_pages
+                and _("Could not extract book text. PDF text extraction may not be available for this document.")
+                or _("Could not extract book text.")
             UIManager:show(InfoMessage:new{
-                text = _("Could not extract book text."),
-                timeout = 3,
+                text = msg,
+                timeout = 5,
             })
             return
         end
@@ -1152,9 +1165,12 @@ function XrayBrowser:showChapterItemsAt(chapter)
         local text = extractChapterText(self_ref.ui, chapter)
 
         if not text or text == "" then
+            local msg = self_ref.ui.document.info.has_pages
+                and _("Could not extract chapter text. PDF text extraction may not be available for this document.")
+                or _("Could not extract chapter text.")
             UIManager:show(InfoMessage:new{
-                text = _("Could not extract chapter text."),
-                timeout = 3,
+                text = msg,
+                timeout = 5,
             })
             return
         end
@@ -1299,26 +1315,13 @@ function XrayBrowser:_buildDistributionView(item, category_key, item_title, data
                         local captured_ui = self_ref.ui
                         UIManager:close(self_ref.menu)
                         captured_ui:handleEvent(Event:new("GotoPage", captured_chapter.start_page))
-                        -- Build search term: longest word from main name + full aliases
-                        -- Uses regex OR (|) when aliases exist for broader matching
-                        -- e.g., "سعيد س." with aliases "سعيد", "أبو خالد" → سعيد|أبو خالد
+                        -- Build search term: full display name + aliases with regex OR (|)
+                        -- e.g., "Edward Said" with aliases "Said" → Edward Said|Said
                         local search_name = item.name or item.term or item.event or item_title
                         -- Strip parenthetical: "Theosis (Deification)" → "Theosis"
                         search_name = search_name:gsub("%s*%(.-%)%s*", "")
                         search_name = search_name:match("^%s*(.-)%s*$") or search_name
-                        -- For multi-word main names, use longest word (> 4 chars)
-                        if search_name:find(" ") then
-                            local longest_word = ""
-                            for word in search_name:gmatch("%S+") do
-                                if #word > #longest_word then
-                                    longest_word = word
-                                end
-                            end
-                            if #longest_word > 4 then
-                                search_name = longest_word
-                            end
-                        end
-                        -- Collect aliases as full terms (no longest-word extraction)
+                        -- Collect aliases as full terms
                         -- Deduplicate: skip aliases that match the main search term
                         local alias_terms = {}
                         local search_lower = search_name:lower()
@@ -1480,9 +1483,12 @@ function XrayBrowser:showItemDistribution(item, category_key, item_title)
         end
 
         if total_mentions == 0 and scanned_count > 0 then
+            local msg = self_ref.ui.document.info.has_pages
+                and T(_("No mentions of \"%1\" found. PDF text extraction may not be available for this document."), item_title)
+                or T(_("No mentions of \"%1\" found in book text."), item_title)
             UIManager:show(InfoMessage:new{
-                text = T(_("No mentions of \"%1\" found in book text."), item_title),
-                timeout = 4,
+                text = msg,
+                timeout = 5,
             })
             return
         end

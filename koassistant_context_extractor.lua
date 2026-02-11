@@ -256,12 +256,18 @@ function ContextExtractor:getBookText(options)
     else
         -- PDF/page-based document: extract page by page
         local success, text = pcall(function()
+            local document = self.ui.document
             local current_page = self.ui.view and self.ui.view.state and self.ui.view.state.page or 1
             local start_page = math.max(1, current_page - max_pages)
+            local has_hidden = document.hasHiddenFlows and document:hasHiddenFlows()
             local pages = {}
 
             for page = start_page, current_page do
-                local page_text = self.ui.document:getPageText(page) or ""
+                -- Skip hidden flow pages
+                if has_hidden and document:getPageFlow(page) ~= 0 then
+                    -- skip
+                else
+                local page_text = document:getPageText(page) or ""
                 -- Handle complex table structure returned by some PDF handlers
                 if type(page_text) == "table" then
                     local words = {}
@@ -278,6 +284,7 @@ function ContextExtractor:getBookText(options)
                     page_text = table.concat(words, " ")
                 end
                 table.insert(pages, page_text)
+                end -- if has_hidden skip/else
             end
 
             return table.concat(pages, "\n")
@@ -409,6 +416,7 @@ function ContextExtractor:getBookTextRange(from_progress, to_progress, options)
     else
         -- PDF/page-based document: extract page by page
         local success, text = pcall(function()
+            local document = self.ui.document
             -- Calculate page range from progress
             local from_page = math.max(1, math.floor(from_progress * total_pages))
             local to_page = math.min(total_pages, math.ceil(to_progress * total_pages))
@@ -418,9 +426,12 @@ function ContextExtractor:getBookTextRange(from_progress, to_progress, options)
                 from_page = to_page - max_pages
             end
 
+            local has_hidden = document.hasHiddenFlows and document:hasHiddenFlows()
             local pages = {}
             for page = from_page, to_page do
-                local page_text = self.ui.document:getPageText(page) or ""
+                -- Skip hidden flow pages
+                if not (has_hidden and document:getPageFlow(page) ~= 0) then
+                local page_text = document:getPageText(page) or ""
                 -- Handle complex table structure
                 if type(page_text) == "table" then
                     local words = {}
@@ -437,6 +448,7 @@ function ContextExtractor:getBookTextRange(from_progress, to_progress, options)
                     page_text = table.concat(words, " ")
                 end
                 table.insert(pages, page_text)
+                end -- if not hidden
             end
 
             return table.concat(pages, "\n")
@@ -556,11 +568,15 @@ function ContextExtractor:getFullDocumentText(options)
     else
         -- PDF: extract ALL pages
         local success, text = pcall(function()
+            local document = self.ui.document
             local start_page = math.max(1, total_pages - max_pages + 1)
+            local has_hidden = document.hasHiddenFlows and document:hasHiddenFlows()
             local pages = {}
 
             for page = start_page, total_pages do
-                local page_text = self.ui.document:getPageText(page) or ""
+                -- Skip hidden flow pages
+                if not (has_hidden and document:getPageFlow(page) ~= 0) then
+                local page_text = document:getPageText(page) or ""
                 -- Handle table structure (same as getBookText)
                 if type(page_text) == "table" then
                     local words = {}
@@ -577,6 +593,7 @@ function ContextExtractor:getFullDocumentText(options)
                     page_text = table.concat(words, " ")
                 end
                 table.insert(pages, page_text)
+                end -- if not hidden
             end
 
             return table.concat(pages, "\n")
