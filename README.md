@@ -14,11 +14,12 @@
 </p>
 
 - **Highlight text** → translate, explain, define words, analyze passages, connect ideas, save content directly to KOReader's highlight notes/annotations
-- **While reading** → reference guides (Summaries, browsable X-Ray with character tracking, Recap), analyze your highlights/annotations, explore the book/document (author, context, arguments, similar works), generate discussion questions
+- **While reading** → reference guides (summaries, browsable X-Ray with character tracking, recap, artifacts), analyze your highlights/annotations, explore the book/document (author, context, arguments, similar works), generate discussion questions
 - **Research & analysis** → deep analysis of papers/articles, explore arguments, find connections across works
 - **Multi-document** → compare texts, find common themes, analyze your collection
 - **General chat** → AI without book/document context
 - **Web search** → AI can search the web for current information (Anthropic, Gemini, OpenRouter)
+- **Multilingual** → Use any language the AI understands, and use the KOAssitant UI in 20 langauges
 
 16 built-in providers (Anthropic, OpenAI, Gemini, Ollama, and more) plus custom OpenAI-compatible providers. Fully configurable: custom actions, behaviors, domains, per-action model overrides. **One-tap auto-update** keeps the plugin current. Personal reading data (highlights, annotations, notebooks) is opt-in — not sent to the AI unless you enable it.
 

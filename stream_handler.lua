@@ -249,7 +249,8 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
 
     -- Auto-scroll state: starts based on setting, can be toggled by user
     local auto_scroll_active = auto_scroll
-    local page_top_line = 1  -- Top line of current auto-scroll page
+    local page_scroll = settings and settings.stream_page_scroll ~= false  -- default true
+    local page_top_line = 1  -- Top line of current auto-scroll page (page-based mode only)
 
     -- Display throttling for performance (affects both auto-scroll and manual modes)
     local display_interval_sec = ((settings and settings.display_interval_ms) or 250) / 1000
@@ -314,7 +315,11 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                 iw:setText(display, true)
 
                 if auto_scroll_active then
-                    applyPageScroll(iw, display)
+                    if page_scroll then
+                        applyPageScroll(iw, display)
+                    else
+                        iw:scrollToBottom()
+                    end
                 end
             end
         end)
@@ -338,28 +343,30 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
 
     turnOnAutoScroll = function()
         auto_scroll_active = true
-        -- Jump to the last page of content
         local iw = streamDialog._input_widget
         if iw then
-            -- Re-render unpadded text to get accurate line count
-            local display = in_reasoning_phase and table.concat(reasoning_buffer) or table.concat(result_buffer)
-            iw:setText(display, true)
-            local stw = iw.text_widget
-            local inner = stw and stw.text_widget
-            if inner and inner.lines_per_page and inner.lines_per_page > 0 then
-                local total_lines = #(inner.vertical_string_list or {})
-                if total_lines > inner.lines_per_page then
-                    -- Calculate last page-aligned position
-                    local pages = math.ceil(total_lines / inner.lines_per_page)
-                    page_top_line = (pages - 1) * inner.lines_per_page + 1
+            if page_scroll then
+                -- Page-based: jump to the last page of content
+                local display = in_reasoning_phase and table.concat(reasoning_buffer) or table.concat(result_buffer)
+                iw:setText(display, true)
+                local stw = iw.text_widget
+                local inner = stw and stw.text_widget
+                if inner and inner.lines_per_page and inner.lines_per_page > 0 then
+                    local total_lines = #(inner.vertical_string_list or {})
+                    if total_lines > inner.lines_per_page then
+                        local pages = math.ceil(total_lines / inner.lines_per_page)
+                        page_top_line = (pages - 1) * inner.lines_per_page + 1
+                    else
+                        page_top_line = 1
+                    end
                 else
                     page_top_line = 1
                 end
+                applyPageScroll(iw, display)
             else
-                page_top_line = 1
+                -- Bottom-scroll: just scroll to bottom
+                iw:scrollToBottom()
             end
-            -- Pad and scroll to the calculated page
-            applyPageScroll(iw, display)
         end
         -- Update button to show current state (ON)
         local btn = streamDialog.button_table:getButtonById("scroll_control")
