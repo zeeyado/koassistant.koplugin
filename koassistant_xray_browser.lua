@@ -55,6 +55,20 @@ local function getChapterBoundaries(ui, target_depth)
         return nil, { has_toc = false, max_depth = 0, entry_count = 0 }
     end
 
+    -- Filter out TOC entries from hidden flows
+    local effective_toc = toc
+    if ui.document.hasHiddenFlows and ui.document:hasHiddenFlows() then
+        effective_toc = {}
+        for _idx, entry in ipairs(toc) do
+            if entry.page and ui.document:getPageFlow(entry.page) == 0 then
+                table.insert(effective_toc, entry)
+            end
+        end
+        if #effective_toc == 0 then
+            return nil, { has_toc = false, max_depth = 0, entry_count = 0 }
+        end
+    end
+
     local total_pages = ui.document.info.number_of_pages or 0
     local current_page = getCurrentPage(ui)
 
@@ -62,7 +76,7 @@ local function getChapterBoundaries(ui, target_depth)
     local max_depth = 0
     local depth_counts = {}
     local depth_titles = {}  -- current entry title at each depth level
-    for _idx, entry in ipairs(toc) do
+    for _idx, entry in ipairs(effective_toc) do
         local d = entry.depth or 1
         if d > max_depth then max_depth = d end
         depth_counts[d] = (depth_counts[d] or 0) + 1
@@ -75,14 +89,14 @@ local function getChapterBoundaries(ui, target_depth)
     local toc_info = {
         has_toc = true,
         max_depth = max_depth,
-        entry_count = #toc,
+        entry_count = #effective_toc,
         depth_counts = depth_counts,
         depth_titles = depth_titles,
     }
 
     -- Filter entries to target_depth (or use all if nil)
     local filtered = {}
-    for _idx, entry in ipairs(toc) do
+    for _idx, entry in ipairs(effective_toc) do
         local d = entry.depth or 1
         if not target_depth or d == target_depth then
             table.insert(filtered, entry)
@@ -130,6 +144,20 @@ local function getAllChapterBoundaries(ui, target_depth)
         return nil, { has_toc = false, max_depth = 0, entry_count = 0 }
     end
 
+    -- Filter out TOC entries from hidden flows
+    local effective_toc = toc
+    if ui.document.hasHiddenFlows and ui.document:hasHiddenFlows() then
+        effective_toc = {}
+        for _idx, entry in ipairs(toc) do
+            if entry.page and ui.document:getPageFlow(entry.page) == 0 then
+                table.insert(effective_toc, entry)
+            end
+        end
+        if #effective_toc == 0 then
+            return nil, { has_toc = false, max_depth = 0, entry_count = 0 }
+        end
+    end
+
     local total_pages = ui.document.info.number_of_pages or 0
     local current_page = getCurrentPage(ui)
 
@@ -137,7 +165,7 @@ local function getAllChapterBoundaries(ui, target_depth)
     local max_depth = 0
     local depth_counts = {}
     local depth_titles = {}
-    for _idx, entry in ipairs(toc) do
+    for _idx, entry in ipairs(effective_toc) do
         local d = entry.depth or 1
         if d > max_depth then max_depth = d end
         depth_counts[d] = (depth_counts[d] or 0) + 1
@@ -149,7 +177,7 @@ local function getAllChapterBoundaries(ui, target_depth)
     local toc_info = {
         has_toc = true,
         max_depth = max_depth,
-        entry_count = #toc,
+        entry_count = #effective_toc,
         depth_counts = depth_counts,
         depth_titles = depth_titles,
     }
@@ -159,7 +187,7 @@ local function getAllChapterBoundaries(ui, target_depth)
 
     -- Filter entries to target depth
     local filtered = {}
-    for _idx, entry in ipairs(toc) do
+    for _idx, entry in ipairs(effective_toc) do
         if (entry.depth or 1) == depth then
             table.insert(filtered, entry)
         end
@@ -241,6 +269,27 @@ local function getPageRangeChapter(ui)
     }, { has_toc = false, max_depth = 0 }
 end
 
+--- Extract text from visible page ranges using XPointers (browser-local helper).
+--- @param document table KOReader document object
+--- @param ranges table Array of {start_page, end_page}
+--- @param total_pages number Total pages in document
+--- @return string text
+local function extractVisibleText(document, ranges, total_pages)
+    if #ranges == 0 then return "" end
+    local parts = {}
+    for _idx, r in ipairs(ranges) do
+        local start_xp = document:getPageXPointer(r.start_page)
+        local end_xp = document:getPageXPointer(math.min(r.end_page + 1, total_pages))
+        if start_xp and end_xp then
+            local text = document:getTextFromXPointers(start_xp, end_xp)
+            if text and text ~= "" then
+                table.insert(parts, text)
+            end
+        end
+    end
+    return table.concat(parts, "\n")
+end
+
 --- Extract text between page boundaries
 --- @param ui table KOReader UI instance
 --- @param chapter table {start_page, end_page}
@@ -252,11 +301,17 @@ local function extractChapterText(ui, chapter, max_chars)
 
     if ui.document.info.has_pages then
         -- PDF: iterate pages
+        local document = ui.document
+        local has_hidden = document.hasHiddenFlows and document:hasHiddenFlows()
         local parts = {}
         local char_count = 0
         local end_page = math.min(chapter.end_page, chapter.start_page + 50)  -- Cap pages too
         for page = chapter.start_page, end_page do
-            local ok, page_text = pcall(ui.document.getPageText, ui.document, page)
+            -- Skip hidden flow pages
+            if has_hidden and document:getPageFlow(page) ~= 0 then
+                -- skip
+            else
+            local ok, page_text = pcall(document.getPageText, document, page)
             if ok and page_text then
                 -- getPageText returns a table of text blocks for PDFs
                 if type(page_text) == "table" then
@@ -272,16 +327,26 @@ local function extractChapterText(ui, chapter, max_chars)
                 end
                 if char_count >= max_chars then break end
             end
+            end -- if has_hidden skip/else
         end
         text = table.concat(parts, " ")
     else
         -- EPUB/reflowable: use xpointers for page range
-        local total_pages = ui.document.info.number_of_pages or 0
+        local document = ui.document
+        local total_pages = document.info.number_of_pages or 0
         local ok, result = pcall(function()
-            local start_xp = ui.document:getPageXPointer(chapter.start_page)
-            local end_xp = ui.document:getPageXPointer(math.min(chapter.end_page + 1, total_pages))
-            if start_xp and end_xp then
-                return ui.document:getTextFromXPointers(start_xp, end_xp)
+            if document.hasHiddenFlows and document:hasHiddenFlows() then
+                -- Flow-aware: extract only visible pages within chapter range
+                local ContextExtractor = require("koassistant_context_extractor")
+                local ranges = ContextExtractor.getVisiblePageRanges(document,
+                    chapter.start_page, math.min(chapter.end_page, total_pages))
+                return extractVisibleText(document, ranges, total_pages)
+            else
+                local start_xp = document:getPageXPointer(chapter.start_page)
+                local end_xp = document:getPageXPointer(math.min(chapter.end_page + 1, total_pages))
+                if start_xp and end_xp then
+                    return document:getTextFromXPointers(start_xp, end_xp)
+                end
             end
         end)
         if ok and result then
@@ -926,9 +991,12 @@ function XrayBrowser:showChapterAnalysis(target_depth)
         local chapter_text, chapter_title, toc_info = getCurrentChapterText(self_ref.ui, target_depth)
 
         if not chapter_text or chapter_text == "" then
+            local msg = self_ref.ui.document.info.has_pages
+                and _("Could not extract chapter text. PDF text extraction may not be available for this document.")
+                or _("Could not extract chapter text.")
             UIManager:show(InfoMessage:new{
-                text = _("Could not extract chapter text."),
-                timeout = 3,
+                text = msg,
+                timeout = 5,
             })
             return
         end
@@ -1033,9 +1101,12 @@ function XrayBrowser:showWholeBookAnalysis()
         local text = extractChapterText(self_ref.ui, chapter, 500000)
 
         if not text or text == "" then
+            local msg = self_ref.ui.document.info.has_pages
+                and _("Could not extract book text. PDF text extraction may not be available for this document.")
+                or _("Could not extract book text.")
             UIManager:show(InfoMessage:new{
-                text = _("Could not extract book text."),
-                timeout = 3,
+                text = msg,
+                timeout = 5,
             })
             return
         end
@@ -1094,9 +1165,12 @@ function XrayBrowser:showChapterItemsAt(chapter)
         local text = extractChapterText(self_ref.ui, chapter)
 
         if not text or text == "" then
+            local msg = self_ref.ui.document.info.has_pages
+                and _("Could not extract chapter text. PDF text extraction may not be available for this document.")
+                or _("Could not extract chapter text.")
             UIManager:show(InfoMessage:new{
-                text = _("Could not extract chapter text."),
-                timeout = 3,
+                text = msg,
+                timeout = 5,
             })
             return
         end
@@ -1241,26 +1315,13 @@ function XrayBrowser:_buildDistributionView(item, category_key, item_title, data
                         local captured_ui = self_ref.ui
                         UIManager:close(self_ref.menu)
                         captured_ui:handleEvent(Event:new("GotoPage", captured_chapter.start_page))
-                        -- Build search term: longest word from main name + full aliases
-                        -- Uses regex OR (|) when aliases exist for broader matching
-                        -- e.g., "سعيد س." with aliases "سعيد", "أبو خالد" → سعيد|أبو خالد
+                        -- Build search term: full display name + aliases with regex OR (|)
+                        -- e.g., "Edward Said" with aliases "Said" → Edward Said|Said
                         local search_name = item.name or item.term or item.event or item_title
                         -- Strip parenthetical: "Theosis (Deification)" → "Theosis"
                         search_name = search_name:gsub("%s*%(.-%)%s*", "")
                         search_name = search_name:match("^%s*(.-)%s*$") or search_name
-                        -- For multi-word main names, use longest word (> 4 chars)
-                        if search_name:find(" ") then
-                            local longest_word = ""
-                            for word in search_name:gmatch("%S+") do
-                                if #word > #longest_word then
-                                    longest_word = word
-                                end
-                            end
-                            if #longest_word > 4 then
-                                search_name = longest_word
-                            end
-                        end
-                        -- Collect aliases as full terms (no longest-word extraction)
+                        -- Collect aliases as full terms
                         -- Deduplicate: skip aliases that match the main search term
                         local alias_terms = {}
                         local search_lower = search_name:lower()
@@ -1422,9 +1483,12 @@ function XrayBrowser:showItemDistribution(item, category_key, item_title)
         end
 
         if total_mentions == 0 and scanned_count > 0 then
+            local msg = self_ref.ui.document.info.has_pages
+                and T(_("No mentions of \"%1\" found. PDF text extraction may not be available for this document."), item_title)
+                or T(_("No mentions of \"%1\" found in book text."), item_title)
             UIManager:show(InfoMessage:new{
-                text = T(_("No mentions of \"%1\" found in book text."), item_title),
-                timeout = 4,
+                text = msg,
+                timeout = 5,
             })
             return
         end

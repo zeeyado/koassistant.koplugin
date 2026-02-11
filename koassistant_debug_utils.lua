@@ -47,9 +47,10 @@ function DebugUtils.truncate(text, max_length, edge_size)
         return text
     end
 
-    local truncated_count = #text - (edge_size * 2)
+    local total = #text
+    local truncated_count = total - (edge_size * 2)
     return text:sub(1, edge_size)
-        .. "\n\n[... " .. truncated_count .. " chars truncated ...]\n\n"
+        .. "\n\n[... " .. truncated_count .. " of " .. total .. " chars truncated ...]\n\n"
         .. text:sub(-edge_size)
 end
 
@@ -145,8 +146,9 @@ function DebugUtils.truncateMessages(messages, max_content)
         for k, v in pairs(msg) do
             if k == "content" and type(v) == "string" and #v > max_content then
                 local edge = math.floor(max_content / 2)
+                local total = #v
                 new_msg[k] = v:sub(1, edge)
-                    .. "\n\n[... " .. (#v - max_content) .. " chars truncated ...]\n\n"
+                    .. "\n\n[... " .. (total - max_content) .. " of " .. total .. " chars truncated ...]\n\n"
                     .. v:sub(-edge)
             else
                 new_msg[k] = v

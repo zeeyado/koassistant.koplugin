@@ -173,6 +173,9 @@ local function saveCache(document_path, cache)
             if entry.previous_progress_decimal then
                 file:write(string.format("        previous_progress_decimal = %s,\n", tostring(entry.previous_progress_decimal)))
             end
+            if entry.flow_visible_pages then
+                file:write(string.format("        flow_visible_pages = %s,\n", tostring(entry.flow_visible_pages)))
+            end
             -- Result may contain special characters, use long string with safe delimiter
             local result_text = entry.result or ""
             local eq_count = findSafeDelimiter(result_text)
@@ -229,6 +232,8 @@ function ActionCache.set(document_path, action_id, result, progress_decimal, met
         used_book_text = metadata and metadata.used_book_text,
         -- Track incremental update origin
         previous_progress_decimal = metadata and metadata.previous_progress_decimal,
+        -- Track hidden flow state when cache was built (nil = no hidden flows)
+        flow_visible_pages = metadata and metadata.flow_visible_pages,
     }
 
     return saveCache(document_path, cache)

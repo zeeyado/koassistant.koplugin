@@ -4310,6 +4310,25 @@ function AskGPT:showCacheViewer(cache_info)
           previous_progress = cache_info.data.previous_progress_decimal and
               (math.floor(cache_info.data.previous_progress_decimal * 100 + 0.5) .. "%"),
         }
+        -- Check if hidden flow config changed since cache was built
+        if self.ui and self.ui.document then
+            local ce_ok, ContextExtractor = pcall(require, "koassistant_context_extractor")
+            if ce_ok and ContextExtractor then
+                local cached_flow_fp = cache_info.data.flow_visible_pages
+                local current_flow_fp = ContextExtractor.getFlowFingerprint(self.ui.document)
+                if cached_flow_fp ~= nil and cached_flow_fp ~= current_flow_fp then
+                    UIManager:show(Notification:new{
+                        text = _("Reading scope changed since this X-Ray was generated. Consider updating."),
+                    })
+                elseif cached_flow_fp == nil and current_flow_fp ~= nil
+                        and cache_info.data.used_book_text ~= false then
+                    UIManager:show(Notification:new{
+                        text = _("Hidden flows active but X-Ray was generated without flow filtering."),
+                    })
+                end
+            end
+        end
+
         XrayBrowser:show(parsed, browser_metadata, self.ui, on_delete)
         return
       end

@@ -2199,6 +2199,9 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                 end
                 logger.info("KOAssistant: Context extraction complete")
 
+                -- Compute flow fingerprint for cache staleness detection
+                message_data.flow_visible_pages = ContextExtractor.getFlowFingerprint(ui.document)
+
                 -- Show notification if book text was truncated (centered InfoMessage)
                 if extracted.book_text_truncated then
                     local coverage_start = extracted.book_text_coverage_start or 0
@@ -2432,6 +2435,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                         used_highlights = used_highlights,
                         used_book_text = book_text_was_provided,
                         previous_progress_decimal = message_data.cached_progress_decimal,
+                        flow_visible_pages = message_data.flow_visible_pages,
                     }
                     local xray_success = ActionCache.setXrayCache(ui.document.file, cache_answer, progress, xray_metadata)
                     if xray_success then
@@ -2443,6 +2447,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                     local analyze_metadata = {
                         model = model_name,
                         used_book_text = book_text_was_provided,
+                        flow_visible_pages = message_data.flow_visible_pages,
                     }
                     local analyze_success = ActionCache.setAnalyzeCache(ui.document.file, answer, 1.0, analyze_metadata)
                     if analyze_success then
@@ -2456,6 +2461,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                         model = model_name,
                         language = temp_config.features and temp_config.features.translation_language or "English",
                         used_book_text = book_text_was_provided,
+                        flow_visible_pages = message_data.flow_visible_pages,
                     }
                     local summary_success = ActionCache.setSummaryCache(ui.document.file, answer, 1.0, summary_metadata)
                     if summary_success then
@@ -3562,6 +3568,7 @@ local function generateSummaryStandalone(ui, config, plugin, on_complete)
 
             local summary_metadata = {
                 model = model_info or "",
+                flow_visible_pages = ContextExtractor.getFlowFingerprint(ui.document),
             }
 
             local save_success = ActionCache.setSummaryCache(ui.document.file, answer, progress, summary_metadata)
