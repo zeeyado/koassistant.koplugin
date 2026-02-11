@@ -14,6 +14,7 @@ maintaining a stack for back-arrow support.
 
 local ButtonDialog = require("ui/widget/buttondialog")
 local Device = require("device")
+local Event = require("ui/event")
 local InfoMessage = require("ui/widget/infomessage")
 local InputDialog = require("ui/widget/inputdialog")
 local Menu = require("ui/widget/menu")
@@ -166,11 +167,11 @@ local function getAllChapterBoundaries(ui, target_depth)
 
     if #filtered == 0 then return nil, toc_info end
 
-    -- Build chapter array with boundaries (spoiler-safe: only chapters user has entered)
+    -- Build chapter array with boundaries
+    -- Chapters past reading position are included but marked unread (for grayed-out display)
     local chapters = {}
     for i, entry in ipairs(filtered) do
-        -- Skip chapters the user hasn't reached yet
-        if not entry.page or entry.page > current_page then break end
+        if not entry.page then goto continue end
 
         local end_page
         if filtered[i + 1] and filtered[i + 1].page then
@@ -178,22 +179,26 @@ local function getAllChapterBoundaries(ui, target_depth)
         else
             end_page = total_pages
         end
-        local is_current = current_page <= end_page
+        local is_unread = entry.page > current_page
+        local is_current = not is_unread and current_page <= end_page
         table.insert(chapters, {
             title = entry.title or "",
             start_page = entry.page,
             end_page = end_page,
             depth = entry.depth or 1,
             is_current = is_current or false,
+            unread = is_unread,
         })
+        ::continue::
     end
 
     return chapters, toc_info
 end
 
---- Get ALL page-range chunks for books without usable TOC (up to current page)
+--- Get ALL page-range chunks for books without usable TOC
+--- Chunks past current reading position are marked unread
 --- @param ui table KOReader UI instance
---- @return table chapters Array of {title, start_page, end_page, depth, is_current}
+--- @return table chapters Array of {title, start_page, end_page, depth, is_current, unread}
 --- @return table toc_info {has_toc = false, max_depth = 0}
 local function getAllPageRangeChapters(ui)
     local total_pages = ui.document.info.number_of_pages or 0
@@ -203,16 +208,16 @@ local function getAllPageRangeChapters(ui)
     local start = 1
     while start <= total_pages do
         local end_page = math.min(start + chunk - 1, total_pages)
-        local is_current = current_page >= start and current_page <= end_page
+        local is_unread = start > current_page
+        local is_current = not is_unread and current_page >= start and current_page <= end_page
         table.insert(chapters, {
             title = T(_("Pages %1–%2"), start, end_page),
             start_page = start,
             end_page = end_page,
             depth = 0,
             is_current = is_current,
+            unread = is_unread,
         })
-        -- Stop after the chunk containing current page (spoiler-free)
-        if end_page >= current_page then break end
         start = end_page + 1
     end
     return chapters, { has_toc = false, max_depth = 0 }
@@ -314,22 +319,23 @@ local function getCurrentChapterText(ui, target_depth)
     return text, chapter.title or "", toc_info
 end
 
---- Find user highlights that mention a character (by name or aliases)
---- @param character table Character entry with name and aliases
+--- Find user highlights that mention an X-Ray item (by name, term, event, or aliases)
+--- @param item table X-Ray item entry
 --- @param ui table KOReader UI instance
 --- @return table matches Array of highlight text strings
-local function findCharacterHighlights(character, ui)
+local function findItemHighlights(item, ui)
     if not ui or not ui.annotation or not ui.annotation.annotations then
         return {}
     end
 
     -- Build list of names to search for
     local names = {}
-    if character.name and #character.name > 2 then
-        table.insert(names, character.name:lower())
+    local primary_name = item.name or item.term or item.event
+    if primary_name and #primary_name > 2 then
+        table.insert(names, primary_name:lower())
     end
-    if character.aliases then
-        for _idx, alias in ipairs(character.aliases) do
+    if type(item.aliases) == "table" then
+        for _idx, alias in ipairs(item.aliases) do
             if #alias > 2 then
                 table.insert(names, alias:lower())
             end
@@ -396,6 +402,18 @@ local CATEGORY_EMOJIS = {
     current_state = "📍", current_position = "📍",
 }
 
+-- Categories excluded from per-item distribution and highlight matching
+-- Matches TEXT_MATCH_EXCLUDED in parser: singletons + event-based categories
+-- whose "names" are descriptive phrases, not searchable entity names
+local DISTRIBUTION_EXCLUDED = {
+    current_state = true,
+    current_position = true,
+    reader_engagement = true,
+    arguments = true,
+    argument_development = true,
+    timeline = true,
+}
+
 --- Show the top-level X-Ray category menu
 --- @param xray_data table Parsed JSON structure
 --- @param metadata table { title, progress, model, timestamp, book_file, enable_emoji }
@@ -439,6 +457,7 @@ function XrayBrowser:show(xray_data, metadata, ui, on_delete)
     self.menu.onCloseWidget = function(menu_self)
         self_ref.menu = nil
         self_ref.nav_stack = {}
+        self_ref._dist_cache = nil
         if orig_onCloseWidget then
             return orig_onCloseWidget(menu_self)
         end
@@ -630,8 +649,8 @@ function XrayBrowser:showItemDetail(item, category_key, title, source)
         detail_text = _("As of") .. " " .. self.metadata.progress .. "\n\n" .. detail_text
     end
 
-    -- For characters: append matching highlights if annotation sharing is allowed
-    if (category_key == "characters" or category_key == "key_figures") and self.ui then
+    -- Append matching highlights for searchable categories
+    if not DISTRIBUTION_EXCLUDED[category_key] and self.ui then
         local config_features = (self.metadata.configuration or {}).features or {}
         -- Check trusted provider (bypasses privacy settings)
         local provider = config_features.provider
@@ -647,7 +666,7 @@ function XrayBrowser:showItemDetail(item, category_key, title, source)
         local highlights_allowed = provider_trusted
             or config_features.enable_highlights_sharing == true
             or config_features.enable_annotations_sharing == true
-        local highlights = highlights_allowed and findCharacterHighlights(item, self.ui) or {}
+        local highlights = highlights_allowed and findItemHighlights(item, self.ui) or {}
         if #highlights > 0 then
             detail_text = detail_text .. "\n\n" .. _("Your highlights:") .. "\n"
             for _idx, hl in ipairs(highlights) do
@@ -704,9 +723,8 @@ function XrayBrowser:showItemDetail(item, category_key, title, source)
 
     local buttons_rows = {}
 
-    -- "Chapter Appearances" button (first — non-singleton categories when book is open)
-    if self.ui and self.ui.document and category_key ~= "current_state"
-            and category_key ~= "current_position" and category_key ~= "reader_engagement" then
+    -- "Chapter Appearances" button (entity-like categories when book is open)
+    if self.ui and self.ui.document and not DISTRIBUTION_EXCLUDED[category_key] then
         local dist_item_name = XrayParser.getItemName(item, category_key)
         table.insert(buttons_rows, {{
             text = _("Chapter Appearances"),
@@ -834,17 +852,19 @@ local CHAPTER_CATEGORY_SHORT = {
 --- @param max_count number Maximum count across all chapters
 --- @param bar_width number|nil Number of bar characters (default 8)
 --- @return string e.g., "████░░░░  24"
-local function buildDistributionBar(count, max_count, bar_width)
+local function buildDistributionBar(count, max_count, bar_width, count_width)
     bar_width = bar_width or 8
+    count_width = count_width or #tostring(max_count)
+    local count_str = string.format("%" .. count_width .. "d", count)
     if max_count == 0 or count == 0 then
-        return string.rep("\u{2591}", bar_width) .. "  " .. tostring(count)
+        return string.rep("\u{2591}", bar_width) .. "  " .. count_str
     end
     local filled = math.max(1, math.floor((count / max_count) * bar_width + 0.5))
     if filled > bar_width then filled = bar_width end
     local empty = bar_width - filled
     return string.rep("\u{2588}", filled)
         .. string.rep("\u{2591}", empty)
-        .. "  " .. tostring(count)
+        .. "  " .. count_str
 end
 
 --- Show depth picker for TOC level selection
@@ -932,10 +952,18 @@ function XrayBrowser:showChapterAnalysis(target_depth)
         -- TOC depth selector (when multiple depths available)
         if toc_info and toc_info.has_toc and toc_info.max_depth > 1 then
             local current_depth = target_depth or toc_info.max_depth
+            local depth_title = toc_info.depth_titles and toc_info.depth_titles[current_depth]
+            local depth_label
+            if depth_title and depth_title ~= "" then
+                depth_label = T(_("Level %1: %2 \u{25BE}"), current_depth, depth_title)
+            else
+                depth_label = T(_("TOC Level %1 \u{25BE}"), current_depth)
+            end
             table.insert(items, {
-                text = T(_("TOC Level: %1"), current_depth),
+                text = depth_label,
                 mandatory = T(_("%1 levels"), toc_info.max_depth),
                 mandatory_dim = true,
+                bold = true,
                 callback = function()
                     self_ref:showDepthPicker(toc_info)
                 end,
@@ -1112,8 +1140,219 @@ function XrayBrowser:showChapterItemsAt(chapter)
     end)
 end
 
+--- Build distribution menu items and display them
+--- Called by showItemDistribution for both initial render and in-place refresh
+--- @param item table The X-Ray item
+--- @param category_key string Category key
+--- @param item_title string Display name for the item
+--- @param data table Mutable distribution state {chapters, chapter_counts, max_count, ...}
+--- @param is_refresh boolean If true, update menu in-place; if false, navigateForward
+function XrayBrowser:_buildDistributionView(item, category_key, item_title, data, is_refresh)
+    local self_ref = self
+    local chapters = data.chapters
+    local chapter_counts = data.chapter_counts
+    local count_width = data.max_count > 0 and #tostring(data.max_count) or 1
+
+    local items = {}
+    for i, chapter in ipairs(chapters) do
+        local count = chapter_counts[i]
+        local display_title = chapter.title or ""
+        local captured_chapter = chapter
+
+        if not count then
+            -- Unread chapter: dimmed, tap to reveal individually
+            local captured_i = i
+            table.insert(items, {
+                text = display_title,
+                mandatory = "···",
+                mandatory_dim = true,
+                dim = true,
+                callback = function()
+                    local function do_reveal()
+                        UIManager:show(Notification:new{
+                            text = _("Scanning…"),
+                        })
+                        UIManager:scheduleIn(0.1, function()
+                            local text = extractChapterText(self_ref.ui, captured_chapter, 500000)
+                            local ch_count = 0
+                            if text and text ~= "" then
+                                ch_count = XrayParser.countItemOccurrences(item, text:lower())
+                            end
+                            -- Update mutable state
+                            chapter_counts[captured_i] = ch_count
+                            data.total_mentions = data.total_mentions + ch_count
+                            data.scanned_count = data.scanned_count + 1
+                            if ch_count > data.max_count then
+                                data.max_count = ch_count
+                            end
+                            -- Check if any unread remain
+                            local still_unread = false
+                            for j = 1, #chapters do
+                                if chapters[j].unread and chapter_counts[j] == nil then
+                                    still_unread = true
+                                    break
+                                end
+                            end
+                            data.has_unread = still_unread
+                            -- Rebuild menu in-place, preserving scroll to revealed item
+                            data._focus_idx = captured_i
+                            self_ref:_buildDistributionView(item, category_key, item_title, data, true)
+                        end)
+                    end
+                    if not data.spoiler_warned then
+                        local confirm_dialog
+                        confirm_dialog = ButtonDialog:new{
+                            text = _("This chapter is ahead of your reading position and may contain spoilers.\n\nReveal mentions?"),
+                            buttons = {{
+                                {
+                                    text = _("Cancel"),
+                                    callback = function()
+                                        UIManager:close(confirm_dialog)
+                                    end,
+                                },
+                                {
+                                    text = _("Reveal"),
+                                    callback = function()
+                                        UIManager:close(confirm_dialog)
+                                        data.spoiler_warned = true
+                                        do_reveal()
+                                    end,
+                                },
+                            }},
+                        }
+                        UIManager:show(confirm_dialog)
+                    else
+                        do_reveal()
+                    end
+                end,
+            })
+        else
+            -- Mark current chapter with ▶
+            if chapter.is_current then
+                display_title = "\u{25B6} " .. display_title
+            end
+            table.insert(items, {
+                text = display_title,
+                mandatory = buildDistributionBar(count, data.max_count, nil, count_width),
+                mandatory_dim = (count == 0),
+                callback = function()
+                    if count > 0 then
+                        -- Close browser, navigate to chapter, search for item
+                        local captured_ui = self_ref.ui
+                        UIManager:close(self_ref.menu)
+                        captured_ui:handleEvent(Event:new("GotoPage", captured_chapter.start_page))
+                        -- Build search term: longest word from main name + full aliases
+                        -- Uses regex OR (|) when aliases exist for broader matching
+                        -- e.g., "سعيد س." with aliases "سعيد", "أبو خالد" → سعيد|أبو خالد
+                        local search_name = item.name or item.term or item.event or item_title
+                        -- Strip parenthetical: "Theosis (Deification)" → "Theosis"
+                        search_name = search_name:gsub("%s*%(.-%)%s*", "")
+                        search_name = search_name:match("^%s*(.-)%s*$") or search_name
+                        -- For multi-word main names, use longest word (> 4 chars)
+                        if search_name:find(" ") then
+                            local longest_word = ""
+                            for word in search_name:gmatch("%S+") do
+                                if #word > #longest_word then
+                                    longest_word = word
+                                end
+                            end
+                            if #longest_word > 4 then
+                                search_name = longest_word
+                            end
+                        end
+                        -- Collect aliases as full terms (no longest-word extraction)
+                        local alias_terms = {}
+                        if type(item.aliases) == "table" then
+                            for _idx, alias in ipairs(item.aliases) do
+                                if #alias > 2 then
+                                    local clean = alias:gsub("%s*%(.-%)%s*", "")
+                                    clean = clean:match("^%s*(.-)%s*$") or clean
+                                    if #clean > 2 then
+                                        table.insert(alias_terms, clean)
+                                    end
+                                end
+                            end
+                        end
+                        if captured_ui.search and #search_name > 2 then
+                            UIManager:scheduleIn(0.2, function()
+                                if #alias_terms > 0 then
+                                    -- Escape ECMAScript regex special chars in each term
+                                    local function esc(s)
+                                        return s:gsub("([%.%+%*%?%[%]%^%$%(%)%{%}%|\\])", "\\%1")
+                                    end
+                                    local pattern = esc(search_name)
+                                    for _idx2, a in ipairs(alias_terms) do
+                                        pattern = pattern .. "|" .. esc(a)
+                                    end
+                                    -- onShowSearchDialog(text, direction, regex, case_insensitive)
+                                    captured_ui.search:onShowSearchDialog(pattern, 0, true, true)
+                                else
+                                    captured_ui.search:searchCallback(0, search_name)
+                                end
+                            end)
+                        end
+                    else
+                        UIManager:show(Notification:new{
+                            text = T(_("No X-Ray items in \"%1\"."),
+                                captured_chapter.title or _("this chapter")),
+                        })
+                    end
+                end,
+            })
+        end
+    end
+
+    -- "Scan all chapters" footer when there are unread chapters
+    if data.has_unread then
+        table.insert(items, {
+            text = _("Scan all chapters"),
+            mandatory = _("may contain spoilers"),
+            mandatory_dim = true,
+            bold = true,
+            separator = true,
+            callback = function()
+                UIManager:show(Notification:new{
+                    text = _("Scanning all chapters…"),
+                })
+                UIManager:scheduleIn(0.2, function()
+                    for j = 1, #chapters do
+                        if chapter_counts[j] == nil then
+                            local text = extractChapterText(self_ref.ui, chapters[j], 500000)
+                            local ch_count = 0
+                            if text and text ~= "" then
+                                ch_count = XrayParser.countItemOccurrences(item, text:lower())
+                            end
+                            chapter_counts[j] = ch_count
+                            data.total_mentions = data.total_mentions + ch_count
+                            data.scanned_count = data.scanned_count + 1
+                            if ch_count > data.max_count then
+                                data.max_count = ch_count
+                            end
+                        end
+                    end
+                    data.has_unread = false
+                    data.spoiler_warned = true
+                    data._focus_idx = nil  -- reset to top after scanning all
+                    self_ref:_buildDistributionView(item, category_key, item_title, data, true)
+                end)
+            end,
+        })
+    end
+
+    local title = T(_("%1 — %2 chapters"), item_title,
+        data.has_unread and data.scanned_count or #chapters)
+
+    if is_refresh then
+        -- Update menu in-place, preserving scroll position
+        self.current_title = title
+        self.menu:switchItemTable(title, items, data._focus_idx)
+    else
+        self:navigateForward(title, items)
+    end
+end
+
 --- Show distribution of a single item's mentions across all chapters
---- Entry point: "Across Chapters" button in item detail view
+--- Entry point: "Chapter Appearances" button in item detail view
 --- @param item table The X-Ray item
 --- @param category_key string Category key
 --- @param item_title string Display name for the item
@@ -1123,6 +1362,15 @@ function XrayBrowser:showItemDistribution(item, category_key, item_title)
             text = _("No book open."),
             timeout = 3,
         })
+        return
+    end
+
+    -- Check per-session cache (keyed by item table reference)
+    self._dist_cache = self._dist_cache or {}
+    local cache_key = tostring(item)
+    local cached = self._dist_cache[cache_key]
+    if cached then
+        self:_buildDistributionView(item, category_key, item_title, cached, false)
         return
     end
 
@@ -1145,22 +1393,30 @@ function XrayBrowser:showItemDistribution(item, category_key, item_title)
             return
         end
 
-        -- Count mentions in each chapter
+        -- Count mentions in each chapter (skip unread)
         local chapter_counts = {}
         local max_count = 0
         local total_mentions = 0
+        local scanned_count = 0
+        local has_unread = false
         for _idx, chapter in ipairs(chapters) do
-            local text = extractChapterText(self_ref.ui, chapter, 500000)
-            local count = 0
-            if text and text ~= "" then
-                count = XrayParser.countItemOccurrences(item, text:lower())
+            if chapter.unread then
+                has_unread = true
+                table.insert(chapter_counts, nil)
+            else
+                scanned_count = scanned_count + 1
+                local text = extractChapterText(self_ref.ui, chapter, 500000)
+                local count = 0
+                if text and text ~= "" then
+                    count = XrayParser.countItemOccurrences(item, text:lower())
+                end
+                table.insert(chapter_counts, count)
+                total_mentions = total_mentions + count
+                if count > max_count then max_count = count end
             end
-            table.insert(chapter_counts, count)
-            total_mentions = total_mentions + count
-            if count > max_count then max_count = count end
         end
 
-        if total_mentions == 0 then
+        if total_mentions == 0 and scanned_count > 0 then
             UIManager:show(InfoMessage:new{
                 text = T(_("No mentions of \"%1\" found in book text."), item_title),
                 timeout = 4,
@@ -1168,36 +1424,17 @@ function XrayBrowser:showItemDistribution(item, category_key, item_title)
             return
         end
 
-        -- Build menu items
-        local items = {}
-        for i, chapter in ipairs(chapters) do
-            local count = chapter_counts[i]
-            local display_title = chapter.title or ""
-            -- Mark current chapter with ▶
-            if chapter.is_current then
-                display_title = "\u{25B6} " .. display_title
-            end
-
-            local captured_chapter = chapter
-            table.insert(items, {
-                text = display_title,
-                mandatory = buildDistributionBar(count, max_count),
-                mandatory_dim = (count == 0),
-                callback = function()
-                    if count > 0 then
-                        self_ref:showChapterItemsAt(captured_chapter)
-                    else
-                        UIManager:show(Notification:new{
-                            text = T(_("No X-Ray items in \"%1\"."),
-                                captured_chapter.title or _("this chapter")),
-                        })
-                    end
-                end,
-            })
-        end
-
-        local title = T(_("%1 — %2 chapters"), item_title, #chapters)
-        self_ref:navigateForward(title, items)
+        local data = {
+            chapters = chapters,
+            chapter_counts = chapter_counts,
+            max_count = max_count,
+            total_mentions = total_mentions,
+            scanned_count = scanned_count,
+            has_unread = has_unread,
+            spoiler_warned = false,
+        }
+        self_ref._dist_cache[cache_key] = data
+        self_ref:_buildDistributionView(item, category_key, item_title, data, false)
     end)
 end
 

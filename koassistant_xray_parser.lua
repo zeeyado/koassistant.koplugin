@@ -143,14 +143,28 @@ function XrayParser.countItemOccurrences(item, text_lower)
     if not name or #name <= 2 then return 0 end
 
     local name_lower = name:lower()
-    local best_count = XrayParser._countOccurrences(text_lower, name_lower)
+
+    -- Handle parenthetical names: "Theosis (Deification)" → search "theosis" + "deification"
+    -- AI often puts translations/alternate names in parens; literal "(" never matches in text
+    local clean_name = name_lower:gsub("%s*%(.-%)%s*", "")
+    clean_name = clean_name:match("^%s*(.-)%s*$") or clean_name  -- trim
+    local paren_content = name_lower:match("%((.-)%)")
+
+    local search_name = (#clean_name > 2) and clean_name or name_lower
+    local best_count = XrayParser._countOccurrences(text_lower, search_name)
+
+    -- Search parenthetical content as implicit alias (e.g., "Deification" from "Theosis (Deification)")
+    if paren_content and #paren_content > 2 then
+        local paren_count = XrayParser._countOccurrences(text_lower, paren_content)
+        if paren_count > best_count then best_count = paren_count end
+    end
 
     -- For multi-word names, also search the longest word (catches surname-only references)
     -- e.g., "Cabasilas" for "St Nicolas Cabasilas". Only the longest word to avoid
     -- cross-contamination (e.g., "John" matching both "John James" and "John Smith")
-    if name_lower:find(" ") then
+    if search_name:find(" ") then
         local longest_word = ""
-        for word in name_lower:gmatch("%S+") do
+        for word in search_name:gmatch("%S+") do
             if #word > #longest_word then
                 longest_word = word
             end
@@ -179,6 +193,17 @@ local SINGLETON_CATEGORIES = {
     current_state = true,
     current_position = true,
     reader_engagement = true,
+}
+
+--- Categories excluded from chapter text matching
+--- Event-based categories have descriptive phrases as "names" (not searchable entity names),
+--- which produces misleading counts (e.g., "Chapter 5 describes..." matching common words)
+local TEXT_MATCH_EXCLUDED = {
+    current_state = true,
+    current_position = true,
+    reader_engagement = true,
+    argument_development = true,
+    timeline = true,
 }
 
 --- Resolve a connection/reference string to any X-Ray item
@@ -468,6 +493,15 @@ function XrayParser.formatItemDetail(item, category_key)
             for _idx, b in ipairs(building) do
                 table.insert(parts, "- " .. b)
             end
+        end
+    end
+
+    -- Show aliases for any category that has them (characters/key_figures handle it above)
+    if category_key ~= "characters" and category_key ~= "key_figures" then
+        local aliases = ensure_array(item.aliases)
+        if aliases and #aliases > 0 then
+            table.insert(parts, "")
+            table.insert(parts, _("Also known as:") .. " " .. table.concat(aliases, ", "))
         end
     end
 
@@ -781,7 +815,7 @@ function XrayParser.findItemsInChapter(data, chapter_text)
     local results = {}
 
     for _idx, cat in ipairs(categories) do
-        if not SINGLETON_CATEGORIES[cat.key] then
+        if not TEXT_MATCH_EXCLUDED[cat.key] then
             for _idx2, item in ipairs(cat.items) do
                 local count = XrayParser.countItemOccurrences(item, text_lower)
                 if count > 0 then
