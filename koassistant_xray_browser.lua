@@ -116,6 +116,108 @@ local function getChapterBoundaries(ui, target_depth)
     }, toc_info
 end
 
+--- Get ALL chapter boundaries from TOC at a given depth
+--- Unlike getChapterBoundaries() which returns only the current chapter,
+--- this returns every chapter for use in distribution views.
+--- @param ui table KOReader UI instance
+--- @param target_depth number|nil TOC depth filter (nil = deepest)
+--- @return table|nil chapters Array of {title, start_page, end_page, depth, is_current}
+--- @return table toc_info {max_depth, has_toc, depth_counts, depth_titles}
+local function getAllChapterBoundaries(ui, target_depth)
+    local toc = ui.toc and ui.toc.toc
+    if not toc or #toc == 0 then
+        return nil, { has_toc = false, max_depth = 0, entry_count = 0 }
+    end
+
+    local total_pages = ui.document.info.number_of_pages or 0
+    local current_page = getCurrentPage(ui)
+
+    -- First pass: collect depth stats
+    local max_depth = 0
+    local depth_counts = {}
+    local depth_titles = {}
+    for _idx, entry in ipairs(toc) do
+        local d = entry.depth or 1
+        if d > max_depth then max_depth = d end
+        depth_counts[d] = (depth_counts[d] or 0) + 1
+        if entry.page and entry.page <= current_page then
+            depth_titles[d] = entry.title or ""
+        end
+    end
+
+    local toc_info = {
+        has_toc = true,
+        max_depth = max_depth,
+        entry_count = #toc,
+        depth_counts = depth_counts,
+        depth_titles = depth_titles,
+    }
+
+    -- Use deepest depth if not specified
+    local depth = target_depth or max_depth
+
+    -- Filter entries to target depth
+    local filtered = {}
+    for _idx, entry in ipairs(toc) do
+        if (entry.depth or 1) == depth then
+            table.insert(filtered, entry)
+        end
+    end
+
+    if #filtered == 0 then return nil, toc_info end
+
+    -- Build chapter array with boundaries (spoiler-safe: only chapters user has entered)
+    local chapters = {}
+    for i, entry in ipairs(filtered) do
+        -- Skip chapters the user hasn't reached yet
+        if not entry.page or entry.page > current_page then break end
+
+        local end_page
+        if filtered[i + 1] and filtered[i + 1].page then
+            end_page = filtered[i + 1].page - 1
+        else
+            end_page = total_pages
+        end
+        local is_current = current_page <= end_page
+        table.insert(chapters, {
+            title = entry.title or "",
+            start_page = entry.page,
+            end_page = end_page,
+            depth = entry.depth or 1,
+            is_current = is_current or false,
+        })
+    end
+
+    return chapters, toc_info
+end
+
+--- Get ALL page-range chunks for books without usable TOC (up to current page)
+--- @param ui table KOReader UI instance
+--- @return table chapters Array of {title, start_page, end_page, depth, is_current}
+--- @return table toc_info {has_toc = false, max_depth = 0}
+local function getAllPageRangeChapters(ui)
+    local total_pages = ui.document.info.number_of_pages or 0
+    local current_page = getCurrentPage(ui)
+    local chunk = math.max(20, math.floor(total_pages * 0.05))
+    local chapters = {}
+    local start = 1
+    while start <= total_pages do
+        local end_page = math.min(start + chunk - 1, total_pages)
+        local is_current = current_page >= start and current_page <= end_page
+        table.insert(chapters, {
+            title = T(_("Pages %1–%2"), start, end_page),
+            start_page = start,
+            end_page = end_page,
+            depth = 0,
+            is_current = is_current,
+        })
+        -- Stop after the chunk containing current page (spoiler-free)
+        if end_page >= current_page then break end
+        start = end_page + 1
+    end
+    return chapters, { has_toc = false, max_depth = 0 }
+end
+
 --- Get page-range chapter for books without usable TOC
 --- @param ui table KOReader UI instance
 --- @return table chapter {title, start_page, end_page, depth}
@@ -600,7 +702,20 @@ function XrayBrowser:showItemDetail(item, category_key, title, source)
         })
     end
 
-    local buttons_rows = { row }
+    local buttons_rows = {}
+
+    -- "Chapter Appearances" button (first — non-singleton categories when book is open)
+    if self.ui and self.ui.document and category_key ~= "current_state"
+            and category_key ~= "current_position" and category_key ~= "reader_engagement" then
+        local dist_item_name = XrayParser.getItemName(item, category_key)
+        table.insert(buttons_rows, {{
+            text = _("Chapter Appearances"),
+            callback = function()
+                if viewer then viewer:onClose() end
+                self_ref:showItemDistribution(item, category_key, dist_item_name)
+            end,
+        }})
+    end
 
     -- Resolve references into tappable cross-category navigation buttons
     if self.xray_data then
@@ -652,6 +767,9 @@ function XrayBrowser:showItemDetail(item, category_key, title, source)
             end
         end
     end
+
+    -- Navigation bar (last row — arrows + chat)
+    table.insert(buttons_rows, row)
 
     viewer = TextViewer:new{
         title = title or _("Details"),
@@ -710,6 +828,24 @@ local CHAPTER_CATEGORY_SHORT = {
     timeline = _("Arc"),
     argument_development = _("Dev"),
 }
+
+--- Build an inline bar string for chapter distribution display
+--- @param count number Mention count for this chapter
+--- @param max_count number Maximum count across all chapters
+--- @param bar_width number|nil Number of bar characters (default 8)
+--- @return string e.g., "████░░░░  24"
+local function buildDistributionBar(count, max_count, bar_width)
+    bar_width = bar_width or 8
+    if max_count == 0 or count == 0 then
+        return string.rep("\u{2591}", bar_width) .. "  " .. tostring(count)
+    end
+    local filled = math.max(1, math.floor((count / max_count) * bar_width + 0.5))
+    if filled > bar_width then filled = bar_width end
+    local empty = bar_width - filled
+    return string.rep("\u{2588}", filled)
+        .. string.rep("\u{2591}", empty)
+        .. "  " .. tostring(count)
+end
 
 --- Show depth picker for TOC level selection
 --- @param toc_info table TOC metadata from getChapterBoundaries
@@ -903,6 +1039,164 @@ function XrayBrowser:showWholeBookAnalysis()
         end
 
         local title = T(_("From Beginning — %1 mentions"), #found)
+        self_ref:navigateForward(title, items)
+    end)
+end
+
+--- Show all X-Ray items in a specific chapter (given boundaries)
+--- Called from distribution view when tapping a chapter.
+--- Unlike showChapterAnalysis(), takes arbitrary chapter boundaries
+--- and does not include a TOC depth picker.
+--- @param chapter table {title, start_page, end_page}
+function XrayBrowser:showChapterItemsAt(chapter)
+    if not self.ui or not self.ui.document then
+        UIManager:show(InfoMessage:new{
+            text = _("No book open."),
+            timeout = 3,
+        })
+        return
+    end
+
+    UIManager:show(Notification:new{
+        text = _("Analyzing chapter…"),
+    })
+
+    local self_ref = self
+    UIManager:scheduleIn(0.2, function()
+        local text = extractChapterText(self_ref.ui, chapter)
+
+        if not text or text == "" then
+            UIManager:show(InfoMessage:new{
+                text = _("Could not extract chapter text."),
+                timeout = 3,
+            })
+            return
+        end
+
+        local found = XrayParser.findItemsInChapter(self_ref.xray_data, text)
+
+        if #found == 0 then
+            local msg = chapter.title and chapter.title ~= ""
+                and T(_("No X-Ray items found in \"%1\"."), chapter.title)
+                or _("No X-Ray items found in this chapter.")
+            UIManager:show(InfoMessage:new{
+                text = msg,
+                timeout = 4,
+            })
+            return
+        end
+
+        local items = {}
+        for _idx, entry in ipairs(found) do
+            local name = XrayParser.getItemName(entry.item, entry.category_key)
+            local short_cat = CHAPTER_CATEGORY_SHORT[entry.category_key] or entry.category_label
+            local captured = entry
+            table.insert(items, {
+                text = name,
+                mandatory = string.format("[%s] %s", short_cat, T(_("%1x"), entry.count)),
+                mandatory_dim = true,
+                callback = function()
+                    self_ref:showItemDetail(captured.item, captured.category_key, name)
+                end,
+            })
+        end
+
+        local title
+        if chapter.title and chapter.title ~= "" then
+            title = T(_("%1 — %2 mentions"), chapter.title, #found)
+        else
+            title = T(_("Chapter — %1 mentions"), #found)
+        end
+
+        self_ref:navigateForward(title, items)
+    end)
+end
+
+--- Show distribution of a single item's mentions across all chapters
+--- Entry point: "Across Chapters" button in item detail view
+--- @param item table The X-Ray item
+--- @param category_key string Category key
+--- @param item_title string Display name for the item
+function XrayBrowser:showItemDistribution(item, category_key, item_title)
+    if not self.ui or not self.ui.document then
+        UIManager:show(InfoMessage:new{
+            text = _("No book open."),
+            timeout = 3,
+        })
+        return
+    end
+
+    UIManager:show(Notification:new{
+        text = _("Computing distribution…"),
+    })
+
+    local self_ref = self
+    UIManager:scheduleIn(0.2, function()
+        -- Get all chapters
+        local chapters, _toc_info = getAllChapterBoundaries(self_ref.ui)
+        if not chapters then
+            chapters, _toc_info = getAllPageRangeChapters(self_ref.ui)
+        end
+        if not chapters or #chapters == 0 then
+            UIManager:show(InfoMessage:new{
+                text = _("Could not determine chapter structure."),
+                timeout = 3,
+            })
+            return
+        end
+
+        -- Count mentions in each chapter
+        local chapter_counts = {}
+        local max_count = 0
+        local total_mentions = 0
+        for _idx, chapter in ipairs(chapters) do
+            local text = extractChapterText(self_ref.ui, chapter, 500000)
+            local count = 0
+            if text and text ~= "" then
+                count = XrayParser.countItemOccurrences(item, text:lower())
+            end
+            table.insert(chapter_counts, count)
+            total_mentions = total_mentions + count
+            if count > max_count then max_count = count end
+        end
+
+        if total_mentions == 0 then
+            UIManager:show(InfoMessage:new{
+                text = T(_("No mentions of \"%1\" found in book text."), item_title),
+                timeout = 4,
+            })
+            return
+        end
+
+        -- Build menu items
+        local items = {}
+        for i, chapter in ipairs(chapters) do
+            local count = chapter_counts[i]
+            local display_title = chapter.title or ""
+            -- Mark current chapter with ▶
+            if chapter.is_current then
+                display_title = "\u{25B6} " .. display_title
+            end
+
+            local captured_chapter = chapter
+            table.insert(items, {
+                text = display_title,
+                mandatory = buildDistributionBar(count, max_count),
+                mandatory_dim = (count == 0),
+                callback = function()
+                    if count > 0 then
+                        self_ref:showChapterItemsAt(captured_chapter)
+                    else
+                        UIManager:show(Notification:new{
+                            text = T(_("No X-Ray items in \"%1\"."),
+                                captured_chapter.title or _("this chapter")),
+                        })
+                    end
+                end,
+            })
+        end
+
+        local title = T(_("%1 — %2 chapters"), item_title, #chapters)
         self_ref:navigateForward(title, items)
     end)
 end

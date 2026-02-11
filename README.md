@@ -14,7 +14,7 @@
 </p>
 
 - **Highlight text** → translate, explain, define words, analyze passages, connect ideas, save content directly to KOReader's highlight notes/annotations
-- **While reading** → reference guides (summaries, browsable X-Ray with character tracking and cross-references, local X-Ray lookup, recap, artifacts), analyze your highlights/annotations, explore the book/document (author, context, arguments, similar works), generate discussion questions
+- **While reading** → reference guides (summaries, browsable X-Ray with character tracking, cross-references, chapter distribution, local X-Ray lookup, recap, artifacts), analyze your highlights/annotations, explore the book/document (author, context, arguments, similar works), generate discussion questions
 - **Research & analysis** → deep analysis of papers/articles, explore arguments, find connections across works
 - **Multi-document** → compare texts, find common themes, analyze your collection
 - **General chat** → AI without book/document context
@@ -603,7 +603,7 @@ Some actions work from the file browser (using only document metadata like title
 | **Historical Context** | When written and historical significance |
 | **Related Thinkers** | Intellectual landscape: influences, contemporaries, and connected thinkers |
 | **Book Reviews** | Find critical and reader reviews, awards, and reception ⚠️ *Requires: Web Search* |
-| **X-Ray** | Browsable reference guide: characters (with aliases and connections), locations, themes, lexicon, timeline — opens in a structured menu with search, chapter/book mention tracking, linkable cross-references, local lookup, and highlight integration ⚠️ *Best with: Allow Text Extraction* |
+| **X-Ray** | Browsable reference guide: characters (with aliases and connections), locations, themes, lexicon, timeline — opens in a structured menu with search, chapter/book mention tracking, per-item chapter distribution, linkable cross-references, local lookup, and highlight integration ⚠️ *Best with: Allow Text Extraction* |
 | **Recap** | "Previously on..." style summary to help you resume reading ⚠️ *Best with: Allow Text Extraction* |
 | **Analyze Highlights** | Discover patterns and connections in your highlights ⚠️ *Requires: Allow Annotation Notes* |
 | **Key Arguments** | Thesis, evidence, assumptions, and counterarguments using full book text ⚠️ *Requires: Allow Text Extraction* |
@@ -643,13 +643,14 @@ These actions analyze your actual reading content. They require specific privacy
 
 > **Tip:** Highlight actions can also use text extraction. "Explain in Context" and "Analyze in Context" send the full document text (`{full_document_section}`) to understand your highlighted passage within the complete work. See [Highlight Mode](#highlight-mode) for details.
 
-**X-Ray**: The X-Ray action produces a structured JSON analysis that opens in a **browsable category menu** rather than a plain text document. This was done with inspiration from [X-Ray Plugin for KOReader by 0zd3m1r](https://github.com/0zd3m1r/koreader-xray-plugin). The browser provides:
+**X-Ray**: The X-Ray action produces a structured JSON analysis that opens in a **browsable category menu** rather than a plain text document. The initial browsable menu concept was inspired by [X-Ray Plugin for KOReader by 0zd3m1r](https://github.com/0zd3m1r/koreader-xray-plugin). Chapter distribution, linkable connections, and local lookup features were informed by [Dynamic X-Ray by smartscripts-nl](https://github.com/smartscripts-nl/dynamic-xray) — a comprehensive manual X-Ray system with curated character databases, live page markers, and a custom histogram widget. Our approach differs: we use AI generation instead of manual curation, and menu-based navigation instead of custom widgets, but DX demonstrated the value of per-item chapter tracking and cross-reference linking. The browser provides:
 
 - **Category navigation** — Cast, World, Ideas, Lexicon, Story Arc, Reader Engagement, Current State (fiction) or Key Figures, Core Concepts, Arguments, Terminology, Argument Development, Reader Engagement, Current Position (non-fiction) — with item counts. Reader Engagement appears only when highlights were provided during generation.
 - **Character detail** — descriptions, AI-provided aliases (e.g., "Lizzy", "Miss Bennet"), connections/relationships, and your highlights mentioning each character
 - **Linkable references** — character connections and cross-category references (locations → characters, themes → characters, etc.) are tappable buttons that navigate directly to the referenced item's detail view. References are resolved across all categories using name, alias, and substring matching.
 - **Mentions (This Chapter)** — shows which X-Ray items (characters, locations, themes, lexicon, etc.) appear in the current chapter, with mention counts per item and category tags. Uses word-boundary matching against names and aliases. For books with nested TOC, a depth selector lets you switch between chapter levels (e.g., Part → Chapter → Section). Books without a TOC fall back to page-range chunks.
 - **Mentions (From Beginning)** — same analysis across the entire book from page 1 to current reading position, showing cumulative mention counts
+- **Chapter Appearances** — from any item's detail view, see where it appears across all chapters with inline bar visualization (████░░░░) and mention counts. Current chapter marked with ▶. Tap a chapter to see all X-Ray items mentioned there. Uses TOC-aware chapter boundaries with page-range fallback for books without TOC.
 - **Search** — find any entry across all categories by name, alias, or description
 - **Local X-Ray Lookup** — select text while reading → instantly look it up in cached X-Ray data. No AI call, no network, instant results. Single match shows full detail; multiple matches show a tappable list. Available in highlight menu and dictionary popup when an X-Ray cache exists. See "Look up in X-Ray" in [Highlight Mode](#highlight-mode).
 - **Full View** — rendered markdown view in the chat viewer (with export)
@@ -1357,7 +1358,7 @@ Actions with gestures show a `[gesture]` indicator in the Action Manager list.
 **Reader Only** (require open book; grayed out in File Browser gesture settings):
 - KOAssistant: Quick Actions — Reading actions panel
 - KOAssistant: New Book Chat/Action — Start a chat about current book or access book actions
-- KOAssistant: X-Ray — Generate browsable book reference guide (characters, locations, themes, timeline) with linkable cross-references
+- KOAssistant: X-Ray — Generate browsable book reference guide (characters, locations, themes, timeline) with linkable cross-references and chapter distribution
 - KOAssistant: Recap — Get a story summary
 - KOAssistant: Analyze Highlights — Analyze your annotations
 - KOAssistant: Translate Current Page — Translate visible page text
@@ -1761,7 +1762,7 @@ Tags are simple labels for organizing chats. Unlike domains:
 - **View/Generate Summary**: View cached summary (if exists) or generate one (reader mode only)
 
 ### Reading Features (visible when document is open)
-- **X-Ray**: Generate a browsable reference guide for the book up to your current reading position — opens in a structured category menu with characters, locations, themes, lexicon, and timeline
+- **X-Ray**: Generate a browsable reference guide for the book up to your current reading position — opens in a structured category menu with characters, locations, themes, lexicon, timeline, and per-item chapter distribution
 - **Recap**: Get a "Previously on..." style summary to help you resume reading
 - **Analyze Highlights**: Discover patterns and connections in your highlights and annotations
 
@@ -2457,7 +2458,7 @@ X-Ray, Recap, and other actions also produce **Document Artifacts** — reusable
 
 When certain actions complete, their results are saved as **document artifacts** — persistent, per-book outputs that serve two purposes:
 
-1. **Viewable as standalone reference guides.** Browse a book's Summary, X-Ray, or Analysis anytime without re-running the action. X-Ray opens as a browsable category menu (characters, locations, themes, lexicon, timeline) with search, chapter/book mention analysis, linkable cross-references, and your highlight mentions — useful for quickly checking character details, relationships, or what appears in the current chapter mid-read.
+1. **Viewable as standalone reference guides.** Browse a book's Summary, X-Ray, or Analysis anytime without re-running the action. X-Ray opens as a browsable category menu (characters, locations, themes, lexicon, timeline) with search, chapter/book mention analysis, per-item chapter distribution, linkable cross-references, and your highlight mentions — useful for quickly checking character details, relationships, or where a character appears across chapters mid-read.
 2. **Reusable as context in other actions.** Instead of sending full document text (~100K tokens) every time, actions can reference a compact artifact (~2-8K tokens). This is the foundation of **Smart actions** — dramatically cheaper and often better-performing, since models handle focused context more effectively than massive text dumps.
 
 **The three artifact types:**
@@ -2465,7 +2466,7 @@ When certain actions complete, their results are saved as **document artifacts**
 | Artifact | Generated by | What it contains | Primary use |
 |----------|-------------|------------------|-------------|
 | **Summary** | Summarize Document, Generate Summary | Neutral, comprehensive document representation | **Primary artifact for reuse.** Powers all Smart actions — replaces raw book text with a compact summary. Also useful on its own as a reading reference. |
-| **X-Ray** | X-Ray action | Structured JSON: characters (with aliases, connections), locations (with references), themes (with references), lexicon, timeline | **Browsable menu** with categories, search, chapter/book mention analysis, linkable cross-references, highlight integration. Also available as supplementary context in custom actions. |
+| **X-Ray** | X-Ray action | Structured JSON: characters (with aliases, connections), locations (with references), themes (with references), lexicon, timeline | **Browsable menu** with categories, search, chapter/book mention analysis, per-item chapter distribution, linkable cross-references, highlight integration. Also available as supplementary context in custom actions. |
 | **Analysis** | Analyze Document | Opinionated deep analysis of the document | Viewable analytical overview. *Not recommended as input for further analysis* — analyzing an analysis is a decaying game of telephone where each layer loses nuance. |
 
 **Viewing artifacts:**
