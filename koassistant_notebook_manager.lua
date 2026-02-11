@@ -99,6 +99,12 @@ function NotebookManager:showNotebookBrowser(opts)
         })
     end
 
+    -- Close existing menu if re-showing (e.g., after delete)
+    if self.current_menu then
+        UIManager:close(self.current_menu)
+        self.current_menu = nil
+    end
+
     -- Create menu
     local menu = Menu:new{
         title = _("Notebooks"),
@@ -107,6 +113,10 @@ function NotebookManager:showNotebookBrowser(opts)
         is_popout = false,
         width = Screen:getWidth(),
         height = Screen:getHeight(),
+        title_bar_left_icon = "appbar.menu",
+        onLeftButtonTap = function()
+            self_ref:showBrowserMenuOptions(opts)
+        end,
         multilines_show_more_text = true,
         items_max_lines = 2,
         single_line = false,
@@ -139,11 +149,6 @@ function NotebookManager:showNotebookOptions(doc_path, doc_title)
                     text = _("View"),
                     callback = function()
                         UIManager:close(dialog)
-                        -- Close browser and open in view mode
-                        if self_ref.current_menu then
-                            UIManager:close(self_ref.current_menu)
-                            self_ref.current_menu = nil
-                        end
                         local AskGPT = self_ref:getAskGPTInstance()
                         if AskGPT then
                             AskGPT:openNotebookForFile(doc_path)  -- view mode
@@ -154,15 +159,24 @@ function NotebookManager:showNotebookOptions(doc_path, doc_title)
                     text = _("Edit"),
                     callback = function()
                         UIManager:close(dialog)
-                        -- Close browser and open in edit mode
-                        if self_ref.current_menu then
-                            UIManager:close(self_ref.current_menu)
-                            self_ref.current_menu = nil
-                        end
                         local AskGPT = self_ref:getAskGPTInstance()
                         if AskGPT then
                             AskGPT:openNotebookForFile(doc_path, true)  -- edit mode
                         end
+                    end,
+                },
+            },
+            {
+                {
+                    text = _("Open Book"),
+                    callback = function()
+                        UIManager:close(dialog)
+                        if self_ref.current_menu then
+                            UIManager:close(self_ref.current_menu)
+                            self_ref.current_menu = nil
+                        end
+                        local ReaderUI = require("apps/reader/readerui")
+                        ReaderUI:showReader(doc_path)
                     end,
                 },
             },
@@ -195,6 +209,61 @@ function NotebookManager:showNotebookOptions(doc_path, doc_title)
             {
                 {
                     text = _("Cancel"),
+                    callback = function()
+                        UIManager:close(dialog)
+                    end,
+                },
+            },
+        },
+    }
+    UIManager:show(dialog)
+end
+
+--- Show hamburger menu with cross-browser navigation
+--- @param opts table|nil Config passed through for refresh
+function NotebookManager:showBrowserMenuOptions(opts)
+    local self_ref = self
+    local dialog
+    dialog = ButtonDialog:new{
+        title = _("Notebooks"),
+        buttons = {
+            {
+                {
+                    text = _("Chat History"),
+                    callback = function()
+                        UIManager:close(dialog)
+                        if self_ref.current_menu then
+                            UIManager:close(self_ref.current_menu)
+                            self_ref.current_menu = nil
+                        end
+                        UIManager:scheduleIn(0.1, function()
+                            local AskGPT = self_ref:getAskGPTInstance()
+                            if AskGPT then
+                                AskGPT:showChatHistory()
+                            end
+                        end)
+                    end,
+                },
+                {
+                    text = _("Browse Artifacts"),
+                    callback = function()
+                        UIManager:close(dialog)
+                        if self_ref.current_menu then
+                            UIManager:close(self_ref.current_menu)
+                            self_ref.current_menu = nil
+                        end
+                        UIManager:scheduleIn(0.1, function()
+                            local AskGPT = self_ref:getAskGPTInstance()
+                            if AskGPT then
+                                AskGPT:showArtifactBrowser()
+                            end
+                        end)
+                    end,
+                },
+            },
+            {
+                {
+                    text = _("Close"),
                     callback = function()
                         UIManager:close(dialog)
                     end,

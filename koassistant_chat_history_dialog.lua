@@ -135,6 +135,36 @@ function ChatHistoryDialog:showDocumentMenuOptions(ui, chat_history_manager, con
         },
         {
             {
+                text = _("Browse Notebooks"),
+                callback = function()
+                    safeClose(dialog)
+                    self_ref.current_options_dialog = nil
+                    safeClose(self_ref.current_menu)
+                    self_ref.current_menu = nil
+                    UIManager:scheduleIn(0.1, function()
+                        if ui.koassistant then
+                            ui.koassistant:showNotebookBrowser()
+                        end
+                    end)
+                end,
+            },
+            {
+                text = _("Browse Artifacts"),
+                callback = function()
+                    safeClose(dialog)
+                    self_ref.current_options_dialog = nil
+                    safeClose(self_ref.current_menu)
+                    self_ref.current_menu = nil
+                    UIManager:scheduleIn(0.1, function()
+                        if ui.koassistant then
+                            ui.koassistant:showArtifactBrowser()
+                        end
+                    end)
+                end,
+            },
+        },
+        {
+            {
                 text = _("Delete all chats"),
                 callback = function()
                     safeClose(dialog)
@@ -349,7 +379,6 @@ function ChatHistoryDialog:showChatsByDomainBrowser(ui, chat_history_manager, co
             text = display_name,
             mandatory = right_text,
             mandatory_dim = true,
-            bold = true,
             callback = function()
                 -- Target function handles closing current_menu
                 self_ref:showChatsForDomain(ui, domain_key, chats, all_domains, chat_history_manager, config)
@@ -593,7 +622,10 @@ function ChatHistoryDialog:showChatHistoryBrowser(ui, current_document_path, cha
                 logger.info("Document selected: " .. captured_doc.title)
                 -- Target function handles closing current_menu
                 self_ref:showChatsForDocument(ui, captured_doc, chat_history_manager, config, nav_context)
-            end
+            end,
+            hold_callback = function()
+                self_ref:showDocumentHoldOptions(ui, captured_doc, chat_history_manager, config, nav_context)
+            end,
         })
     end
 
@@ -613,6 +645,10 @@ function ChatHistoryDialog:showChatHistoryBrowser(ui, current_document_path, cha
         items_mandatory_font_size = 14,
         onLeftButtonTap = function()
             self_ref:showDocumentMenuOptions(ui, chat_history_manager, config)
+        end,
+        onMenuHold = function(_self_menu, item)
+            if item.hold_callback then item.hold_callback() end
+            return true
         end,
     }
     -- Set close_callback after creation so document_menu is defined
@@ -677,17 +713,23 @@ function ChatHistoryDialog:showChatsForDocument(ui, document, chat_history_manag
 
         -- Capture chat in closure
         local captured_chat = chat
+        -- Add chat emoji to level 2 items
+        local enable_emoji = config and config.features and config.features.enable_emoji_icons == true
+        local chat_display = Constants.getEmojiText("\u{1F4AC}", title .. " \u{00B7} " .. date_str, enable_emoji)
+
         table.insert(menu_items, {
-            text = title .. " • " .. date_str,
+            text = chat_display,
             -- Compact format: "model • count" (no "messages" text)
             mandatory = short_model .. " • " .. msg_count,
             mandatory_dim = true,
-            bold = true,
             help_text = preview,
             callback = function()
                 logger.info("Chat selected: " .. (captured_chat.id or "unknown") .. " - " .. (captured_chat.title or "Untitled"))
                 self_ref:showChatOptions(ui, document.path, captured_chat, chat_history_manager, config, document, nav_context)
-            end
+            end,
+            hold_callback = (document.path ~= "__GENERAL_CHATS__" and document.path ~= "__MULTI_BOOK_CHATS__") and function()
+                self_ref:showChatHoldOptions(ui, document, chat_history_manager, config)
+            end or nil,
         })
     end
 
@@ -704,12 +746,16 @@ function ChatHistoryDialog:showChatsForDocument(ui, document, chat_history_manag
         multilines_show_more_text = true,
         items_max_lines = 2,
         single_line = false,
-        items_font_size = 20,
-        items_mandatory_font_size = 16,
+        items_font_size = 18,
+        items_mandatory_font_size = 14,
         align_baselines = false,
         with_dots = false,
         onLeftButtonTap = function()
             self_ref:showChatListMenuOptions(ui, document, chat_history_manager, config, nav_context)
+        end,
+        onMenuHold = function(_self_menu, item)
+            if item.hold_callback then item.hold_callback() end
+            return true
         end,
         onReturn = function()
             logger.info("Chat history: Return button pressed")
@@ -747,6 +793,101 @@ function ChatHistoryDialog:showChatsForDocument(ui, document, chat_history_manag
     self.current_menu = chat_menu
     logger.info("KOAssistant: Set current_menu to " .. tostring(chat_menu))
     UIManager:show(chat_menu)
+end
+
+--- Hold options for level 1 document items
+function ChatHistoryDialog:showDocumentHoldOptions(ui, doc, chat_history_manager, config, nav_context)
+    local self_ref = self
+    local dialog
+    local buttons = {}
+
+    -- "Open Book" only for real book documents
+    if doc.path ~= "__GENERAL_CHATS__" and doc.path ~= "__MULTI_BOOK_CHATS__" then
+        table.insert(buttons, {
+            {
+                text = _("Open Book"),
+                callback = function()
+                    safeClose(dialog)
+                    safeClose(self_ref.current_menu)
+                    self_ref.current_menu = nil
+                    local ReaderUI = require("apps/reader/readerui")
+                    ReaderUI:showReader(doc.path)
+                end,
+            },
+        })
+    end
+
+    table.insert(buttons, {
+        {
+            text = _("Delete All Chats"),
+            callback = function()
+                safeClose(dialog)
+                UIManager:show(ConfirmBox:new{
+                    text = T(_("Delete all chats for \"%1\"?\n\nThis action cannot be undone."), doc.title),
+                    ok_text = _("Delete"),
+                    ok_callback = function()
+                        local deleted_count = chat_history_manager:deleteAllChatsForDocument(doc.path)
+                        UIManager:show(InfoMessage:new{
+                            text = T(_("Deleted %1 chat(s)"), deleted_count),
+                            timeout = 2,
+                        })
+                        safeClose(self_ref.current_menu)
+                        self_ref.current_menu = nil
+                        UIManager:scheduleIn(0.5, function()
+                            self_ref:showChatHistoryBrowser(ui, nil, chat_history_manager, config, nav_context)
+                        end)
+                    end,
+                })
+            end,
+        },
+    })
+
+    table.insert(buttons, {
+        {
+            text = _("Cancel"),
+            callback = function()
+                safeClose(dialog)
+            end,
+        },
+    })
+
+    dialog = ButtonDialog:new{
+        title = doc.title,
+        buttons = buttons,
+    }
+    UIManager:show(dialog)
+end
+
+--- Hold options for level 2 chat items (book documents only — "Open Book")
+function ChatHistoryDialog:showChatHoldOptions(ui, document, chat_history_manager, config)
+    local self_ref = self
+    local dialog
+    dialog = ButtonDialog:new{
+        title = document.title,
+        buttons = {
+            {
+                {
+                    text = _("Open Book"),
+                    callback = function()
+                        safeClose(dialog)
+                        safeClose(self_ref.current_menu)
+                        self_ref.current_menu = nil
+                        local ReaderUI = require("apps/reader/readerui")
+                        ReaderUI:showReader(document.path)
+                    end,
+                },
+            },
+            {
+                {
+                    text = _("Cancel"),
+                    callback = function()
+                        safeClose(dialog)
+                    end,
+                },
+            },
+        },
+    }
+    UIManager:show(dialog)
 end
 
 function ChatHistoryDialog:showChatOptions(ui, document_path, chat, chat_history_manager, config, document, nav_context)
@@ -805,11 +946,6 @@ function ChatHistoryDialog:showChatOptions(ui, document_path, chat, chat_history
                 callback = function()
                     safeClose(dialog)
                     self_ref.current_options_dialog = nil
-                    -- Close the menu before opening the chat viewer
-                    if menu_to_close then
-                        UIManager:close(menu_to_close)
-                    end
-                    self_ref.current_menu = nil
                     self_ref:continueChat(ui, document_path, chat, chat_history_manager, config)
                 end,
             },
@@ -2020,6 +2156,7 @@ function ChatHistoryDialog:showChatsByTagBrowser(ui, chat_history_manager, confi
         return
     end
 
+    local enable_emoji = config and config.features and config.features.enable_emoji_icons == true
     for i, tag_info in ipairs(tags) do
         local tag = tag_info.name
         local chat_count = tag_info.count
@@ -2032,10 +2169,9 @@ function ChatHistoryDialog:showChatsByTagBrowser(ui, chat_history_manager, confi
         local right_text = tostring(chat_count) .. " " .. (chat_count == 1 and _("chat") or _("chats")) .. " • " .. date_str
 
         table.insert(menu_items, {
-            text = "#" .. tag,
+            text = Constants.getEmojiText("\u{1F3F7}\u{FE0F}", "#" .. tag, enable_emoji),
             mandatory = right_text,
             mandatory_dim = true,
-            bold = true,
             callback = function()
                 -- Target function handles closing current_menu
                 self_ref:showChatsForTag(ui, tag, chat_history_manager, config)

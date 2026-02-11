@@ -117,7 +117,7 @@ function ArtifactBrowser:showArtifactBrowser(opts)
         if doc.author and doc.author ~= "" then
             display_text = display_text .. " \u{00B7} " .. doc.author
         end
-        display_text = Constants.getEmojiText("\u{1F4E6}", display_text, enable_emoji)
+        display_text = Constants.getEmojiText("\u{1F4D6}", display_text, enable_emoji)
 
         table.insert(menu_items, {
             text = display_text,
@@ -146,6 +146,14 @@ function ArtifactBrowser:showArtifactBrowser(opts)
         is_popout = false,
         width = Screen:getWidth(),
         height = Screen:getHeight(),
+        title_bar_left_icon = "appbar.menu",
+        onLeftButtonTap = function()
+            self_ref:showBrowserMenuOptions(opts)
+        end,
+        onMenuHold = function(_self_menu, item)
+            if item.hold_callback then item.hold_callback() end
+            return true
+        end,
         multilines_show_more_text = true,
         items_max_lines = 2,
         single_line = false,
@@ -199,39 +207,15 @@ function ArtifactBrowser:showArtifactSelector(doc_path, doc_title, opts)
         return
     end
 
-    -- If only one cache, open directly
-    if #caches == 1 then
-        -- Close browser before opening viewer
-        if self.current_menu then
-            UIManager:close(self.current_menu)
-            self.current_menu = nil
-        end
-        if caches[1].is_per_action then
-            AskGPT:viewCachedAction(
-                { text = caches[1].name }, caches[1].key, caches[1].data,
-                { file = doc_path, book_title = doc_title })
-        else
-            AskGPT:showCacheViewer({
-                name = caches[1].name, key = caches[1].key, data = caches[1].data,
-                book_title = doc_title, file = doc_path })
-        end
-        return
-    end
-
-    -- Multiple caches - show selector (same pattern as main.lua viewCache)
+    -- Always show popup selector (with View prefix and Open Book option)
     local self_ref = self
     local buttons = {}
     for _idx, cache in ipairs(caches) do
         local captured = cache
         table.insert(buttons, {{
-            text = captured.name,
+            text = _("View") .. " " .. captured.name,
             callback = function()
                 UIManager:close(self_ref._cache_selector)
-                -- Close browser before opening viewer
-                if self_ref.current_menu then
-                    UIManager:close(self_ref.current_menu)
-                    self_ref.current_menu = nil
-                end
                 if captured.is_per_action then
                     AskGPT:viewCachedAction(
                         { text = captured.name }, captured.key, captured.data,
@@ -245,6 +229,18 @@ function ArtifactBrowser:showArtifactSelector(doc_path, doc_title, opts)
         }})
     end
     table.insert(buttons, {{
+        text = _("Open Book"),
+        callback = function()
+            UIManager:close(self_ref._cache_selector)
+            if self_ref.current_menu then
+                UIManager:close(self_ref.current_menu)
+                self_ref.current_menu = nil
+            end
+            local ReaderUI = require("apps/reader/readerui")
+            ReaderUI:showReader(doc_path)
+        end,
+    }})
+    table.insert(buttons, {{
         text = _("Cancel"),
         callback = function()
             UIManager:close(self._cache_selector)
@@ -252,7 +248,7 @@ function ArtifactBrowser:showArtifactSelector(doc_path, doc_title, opts)
     }})
 
     self._cache_selector = ButtonDialog:new{
-        title = _("View Artifacts"),
+        title = doc_title,
         buttons = buttons,
     }
     UIManager:show(self._cache_selector)
@@ -361,6 +357,61 @@ function ArtifactBrowser:migrateExistingArtifacts()
     end
 
     logger.info("KOAssistant Artifacts: Migration complete, scanned", next(doc_paths) and "documents" or "0 documents", ", found", found, "with artifacts")
+end
+
+--- Show hamburger menu with cross-browser navigation
+--- @param opts table|nil Config passed through for refresh
+function ArtifactBrowser:showBrowserMenuOptions(opts)
+    local self_ref = self
+    local dialog
+    dialog = ButtonDialog:new{
+        title = _("Artifacts"),
+        buttons = {
+            {
+                {
+                    text = _("Chat History"),
+                    callback = function()
+                        UIManager:close(dialog)
+                        if self_ref.current_menu then
+                            UIManager:close(self_ref.current_menu)
+                            self_ref.current_menu = nil
+                        end
+                        UIManager:scheduleIn(0.1, function()
+                            local AskGPT = self_ref:getAskGPTInstance()
+                            if AskGPT then
+                                AskGPT:showChatHistory()
+                            end
+                        end)
+                    end,
+                },
+                {
+                    text = _("Browse Notebooks"),
+                    callback = function()
+                        UIManager:close(dialog)
+                        if self_ref.current_menu then
+                            UIManager:close(self_ref.current_menu)
+                            self_ref.current_menu = nil
+                        end
+                        UIManager:scheduleIn(0.1, function()
+                            local AskGPT = self_ref:getAskGPTInstance()
+                            if AskGPT then
+                                AskGPT:showNotebookBrowser()
+                            end
+                        end)
+                    end,
+                },
+            },
+            {
+                {
+                    text = _("Close"),
+                    callback = function()
+                        UIManager:close(dialog)
+                    end,
+                },
+            },
+        },
+    }
+    UIManager:show(dialog)
 end
 
 --- Get AskGPT plugin instance
