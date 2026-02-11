@@ -247,6 +247,10 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
     local font_size = (settings and settings.response_font_size) or 20
     local auto_scroll = settings and settings.stream_auto_scroll == true
 
+    -- Auto-scroll state: starts based on setting, can be toggled by user
+    local auto_scroll_active = auto_scroll
+    local page_top_line = 1  -- Top line of current auto-scroll page
+
     -- Display throttling for performance (affects both auto-scroll and manual modes)
     local display_interval_sec = ((settings and settings.display_interval_ms) or 250) / 1000
     local pending_ui_update = false
@@ -294,10 +298,6 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
             end
         end)
     end
-
-    -- Auto-scroll state: starts based on setting, can be toggled by user
-    local auto_scroll_active = auto_scroll
-    local page_top_line = 1  -- Top line of current auto-scroll page
 
     -- Functions to toggle auto-scroll (forward declarations)
     local turnOffAutoScroll, turnOnAutoScroll
