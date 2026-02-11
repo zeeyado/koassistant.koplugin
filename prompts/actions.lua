@@ -596,7 +596,52 @@ First, determine if this is FICTION or NON-FICTION. Then output ONLY a valid JSO
 ---
 
 FOR FICTION, use this JSON schema:
-{"type":"fiction","characters":[{"name":"Full Name","aliases":["Nickname","Title","Shortened Name"],"role":"Protagonist / Supporting / Antagonist","description":"Who they are, their journey so far, pivotal moments, and where they stand now.","connections":["Other Character (relationship)"]}],"locations":[{"name":"Place Name","description":"What it is, its atmosphere, and what the reader encounters there.","significance":"Key events here and why this place matters to the narrative.","references":["Character or item name"]}],"themes":[{"name":"Theme Name","description":"How this theme manifests through characters, conflicts, and events so far.","references":["Character or item name"]}],"lexicon":[{"term":"Term","definition":"Meaning and relevance to the story."}],"timeline":[{"event":"What happened","chapter":"Chapter/Section reference","significance":"Why it mattered and what it changed","characters":["Names involved"]}],"current_state":{"summary":"Where the story stands now — the immediate situation, emotional tone, and narrative momentum.","conflicts":["Active conflict, tension, or unresolved mystery"],"questions":["Unanswered question the reader is likely thinking about"]}}
+{
+  "type": "fiction",
+  "characters": [
+    {
+      "name": "Full Name",
+      "aliases": ["Nickname", "Title", "Shortened Name"],
+      "role": "Protagonist / Supporting / Antagonist",
+      "description": "Who they are, their journey so far, pivotal moments, and where they stand now.",
+      "connections": ["Other Character (relationship)"]
+    }
+  ],
+  "locations": [
+    {
+      "name": "Place Name",
+      "description": "What it is, its atmosphere, and what the reader encounters there.",
+      "significance": "Key events here and why this place matters to the narrative.",
+      "references": ["Character or item name"]
+    }
+  ],
+  "themes": [
+    {
+      "name": "Theme Name",
+      "description": "How this theme manifests through characters, conflicts, and events so far.",
+      "references": ["Character or item name"]
+    }
+  ],
+  "lexicon": [
+    {
+      "term": "Term",
+      "definition": "Meaning and relevance to the story."
+    }
+  ],
+  "timeline": [
+    {
+      "event": "What happened",
+      "chapter": "Chapter/Section reference",
+      "significance": "Why it mattered and what it changed",
+      "characters": ["Names involved"]
+    }
+  ],
+  "current_state": {
+    "summary": "Where the story stands now — the immediate situation, emotional tone, and narrative momentum.",
+    "conflicts": ["Active conflict, tension, or unresolved mystery"],
+    "questions": ["Unanswered question the reader is likely thinking about"]
+  }
+}
 
 Guidance for fiction:
 - **Characters**: The heart of the X-Ray. Be thorough — include all named characters, groups, and entities the reader encounters, not just protagonists. For major characters (protagonist, antagonist, key supporting), write 3-5 sentences covering personality, their arc through the story so far, pivotal moments or turning points, and their current situation. For minor characters, 1-2 sentences suffice. Always include aliases and connections with relationship type.
@@ -610,7 +655,61 @@ Guidance for fiction:
 ---
 
 FOR NON-FICTION, use this JSON schema:
-{"type":"nonfiction","key_figures":[{"name":"Person Name","aliases":["Alternate Name","Shortened Name"],"role":"Their role or significance.","description":"Who they are, their key contributions or ideas, how the author engages with them, and their importance to the argument.","connections":["Related Person (relationship)"]}],"locations":[{"name":"Place Name","description":"What it is, its historical or conceptual significance in the text.","significance":"Key events, arguments, or developments associated with this place.","references":["Key figure or concept name"]}],"core_concepts":[{"name":"Concept","description":"What it means and how the author introduces it.","significance":"How the author develops it through evidence, examples, or argument, and why it matters to the thesis.","references":["Key figure or concept name"]}],"arguments":[{"name":"Claim","description":"The argument being made and its stakes.","evidence":"Key evidence, reasoning, and any counter-arguments addressed.","references":["Key figure or concept name"]}],"terminology":[{"term":"Term","definition":"Definition and how it's used in context."}],"argument_development":[{"event":"Key point or development","chapter":"Chapter/Section","significance":"How it advances the overall argument or shifts the discussion","references":["Key figure or concept name"]}],"current_position":{"summary":"Where the argument stands now — what has been established, the current focus, and the intellectual trajectory.","questions_addressed":["Question or problem being addressed"],"building_toward":["What the author appears to be building toward"]}}
+{
+  "type": "nonfiction",
+  "key_figures": [
+    {
+      "name": "Person Name",
+      "aliases": ["Alternate Name", "Shortened Name"],
+      "role": "Their role or significance.",
+      "description": "Who they are, their key contributions or ideas, how the author engages with them, and their importance to the argument.",
+      "connections": ["Related Person (relationship)"]
+    }
+  ],
+  "locations": [
+    {
+      "name": "Place Name",
+      "description": "What it is, its historical or conceptual significance in the text.",
+      "significance": "Key events, arguments, or developments associated with this place.",
+      "references": ["Key figure or concept name"]
+    }
+  ],
+  "core_concepts": [
+    {
+      "name": "Concept",
+      "description": "What it means and how the author introduces it.",
+      "significance": "How the author develops it through evidence, examples, or argument, and why it matters to the thesis.",
+      "references": ["Key figure or concept name"]
+    }
+  ],
+  "arguments": [
+    {
+      "name": "Claim",
+      "description": "The argument being made and its stakes.",
+      "evidence": "Key evidence, reasoning, and any counter-arguments addressed.",
+      "references": ["Key figure or concept name"]
+    }
+  ],
+  "terminology": [
+    {
+      "term": "Term",
+      "definition": "Definition and how it's used in context."
+    }
+  ],
+  "argument_development": [
+    {
+      "event": "Key point or development",
+      "chapter": "Chapter/Section",
+      "significance": "How it advances the overall argument or shifts the discussion",
+      "references": ["Key figure or concept name"]
+    }
+  ],
+  "current_position": {
+    "summary": "Where the argument stands now — what has been established, the current focus, and the intellectual trajectory.",
+    "questions_addressed": ["Question or problem being addressed"],
+    "building_toward": ["What the author appears to be building toward"]
+  }
+}
 
 Guidance for non-fiction:
 - **Key Figures**: Be thorough — include all people, groups, institutions, and historical actors discussed or referenced, not just central figures. For central figures (the author's main interlocutors, key researchers, historical actors), write 3-5 sentences covering who they are, what ideas or work they contribute, how the author engages with them (agrees, critiques, builds on), and their significance to the argument. For briefly mentioned figures, 1-2 sentences. Always include aliases (alternate names, shortened forms, titles the text uses to refer to them) and connections where figures relate to each other.
@@ -651,22 +750,27 @@ Do NOT attempt to construct an X-Ray with fabricated or uncertain details.]],
 Previous analysis (at {cached_progress}):
 {cached_result}
 
+{entity_index}
+
 New content since then (now at {reading_progress}):
 {incremental_book_text_section}
 
 {highlights_section}
 
-Output an updated JSON object using the same schema as the previous analysis. If the previous analysis is in plain text rather than JSON, produce a fresh JSON analysis using the appropriate schema for the content type (fiction or nonfiction).
+Output ONLY the new or changed entries as a JSON object. Use exactly the same JSON keys and structure as shown in the previous analysis. Your output will be programmatically merged with the existing data, so:
+- OMIT categories entirely if nothing changed in them — they will be preserved as-is
+- When adding a new entry to a category, include ONLY the new entries in that category's array
+- When modifying an existing entry, output the COMPLETE entry with all fields (it will replace the old version)
+- To reference an existing entity, use the EXACT name from the entity list above
+- You MUST always include "current_state" (fiction) or "current_position" (nonfiction) — these are always considered changed
+
+If the previous analysis is in plain text rather than JSON, produce a fresh COMPLETE JSON analysis using the appropriate schema for the content type (fiction or nonfiction).
 
 Guidelines:
-- Add new characters, locations, themes, concepts, or key figures that appeared
+- Add new characters, locations, themes, concepts, or key figures that appeared in the new content
 - Add aliases and connections for new characters/key figures
-- Enrich existing major character/figure descriptions as new information emerges (arc developments, turning points, shifting relationships)
-- Update timeline with new events (include characters involved)
-- Update "current_state" or "current_position" for the new progress point
-- Keep existing entries, modify only if new information changes them
-- Do not remove anything unless clearly contradicted
-- Keep total length practical — consolidate earlier entries as needed
+- Update existing entries only when the new content reveals significant new information (arc developments, turning points, shifting relationships)
+- Add new timeline/argument_development entries for events in the new content
 - If highlights are provided, consider what the reader found notable
 
 {highlight_analysis_nudge}
