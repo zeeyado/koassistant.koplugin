@@ -247,9 +247,47 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
     local font_size = (settings and settings.response_font_size) or 20
     local auto_scroll = settings and settings.stream_auto_scroll == true
 
-    -- Display throttling for performance (only affects non-auto-scroll mode)
+    -- Auto-scroll state: starts based on setting, can be toggled by user
+    local auto_scroll_active = auto_scroll
+    local page_scroll = settings and settings.stream_page_scroll ~= false  -- default true
+    local page_top_line = 1  -- Top line of current auto-scroll page (page-based mode only)
+
+    -- Display throttling for performance (affects both auto-scroll and manual modes)
     local display_interval_sec = ((settings and settings.display_interval_ms) or 250) / 1000
     local pending_ui_update = false
+
+    -- Apply page-based scroll: advance page if overflowed, pad text to fill page, scroll
+    -- Must be called after iw:setText(display, true) so widget dimensions are available.
+    -- Uses scrollToBottom() instead of directly setting virtual_line_num, so the
+    -- ScrollTextWidget's scroll indicator and position tracking stay in sync.
+    -- This works because padding aligns text to the page boundary, making "bottom"
+    -- equal to the correct page position.
+    local function applyPageScroll(iw, display)
+        local stw = iw.text_widget  -- ScrollTextWidget
+        local inner = stw and stw.text_widget  -- TextBoxWidget
+        if not inner or not inner.lines_per_page or inner.lines_per_page <= 0 then return end
+        local lpp = inner.lines_per_page
+        local total_lines = #(inner.vertical_string_list or {})
+
+        -- Check if content overflowed current page
+        if total_lines > page_top_line + lpp - 1 then
+            while total_lines > page_top_line + lpp - 1 do
+                page_top_line = page_top_line + lpp
+            end
+        end
+
+        -- Pad text with empty lines to fill the current page.
+        -- This creates the blank space for text to stream into.
+        local page_end = page_top_line + lpp - 1
+        if total_lines < page_end then
+            iw:setText(display .. string.rep("\n", page_end - total_lines), true)
+        end
+
+        -- Scroll to current page via scrollToBottom (padding makes bottom = page position).
+        -- Goes through InputText → ScrollTextWidget → TextBoxWidget chain,
+        -- keeping scroll indicator and position tracking in sync.
+        iw:scrollToBottom()
+    end
 
     -- Throttled UI update function - batches multiple chunks into single display refresh
     local function scheduleUIUpdate()
@@ -259,15 +297,24 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
             pending_ui_update = false
             ui_update_task = nil
             if not completed and streamDialog and streamDialog._input_widget then
-                streamDialog._input_widget:resyncPos()
+                local iw = streamDialog._input_widget
+                if not auto_scroll_active then
+                    -- Preserve user's manual scroll position
+                    iw:resyncPos()
+                end
                 local display = in_reasoning_phase and table.concat(reasoning_buffer) or table.concat(result_buffer)
-                streamDialog._input_widget:setText(display, true)
+                iw:setText(display, true)
+
+                if auto_scroll_active then
+                    if page_scroll then
+                        applyPageScroll(iw, display)
+                    else
+                        iw:scrollToBottom()
+                    end
+                end
             end
         end)
     end
-
-    -- Auto-scroll state: starts based on setting, can be toggled by user
-    local auto_scroll_active = auto_scroll
 
     -- Functions to toggle auto-scroll (forward declarations)
     local turnOffAutoScroll, turnOnAutoScroll
@@ -287,8 +334,31 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
 
     turnOnAutoScroll = function()
         auto_scroll_active = true
-        -- Scroll to bottom
-        streamDialog._input_widget:scrollToBottom()
+        local iw = streamDialog._input_widget
+        if iw then
+            if page_scroll then
+                -- Page-based: jump to the last page of content
+                local display = in_reasoning_phase and table.concat(reasoning_buffer) or table.concat(result_buffer)
+                iw:setText(display, true)
+                local stw = iw.text_widget
+                local inner = stw and stw.text_widget
+                if inner and inner.lines_per_page and inner.lines_per_page > 0 then
+                    local total_lines = #(inner.vertical_string_list or {})
+                    if total_lines > inner.lines_per_page then
+                        local pages = math.ceil(total_lines / inner.lines_per_page)
+                        page_top_line = (pages - 1) * inner.lines_per_page + 1
+                    else
+                        page_top_line = 1
+                    end
+                else
+                    page_top_line = 1
+                end
+                applyPageScroll(iw, display)
+            else
+                -- Bottom-scroll: just scroll to bottom
+                iw:scrollToBottom()
+            end
+        end
         -- Update button to show current state (ON)
         local btn = streamDialog.button_table:getButtonById("scroll_control")
         if btn then
@@ -533,14 +603,10 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                                     end
                                     in_reasoning_phase = true
                                     streamDialog._input_widget:setText("", true)
+                                    if auto_scroll_active then page_top_line = 1 end
                                 end
 
-                                if auto_scroll_active then
-                                    streamDialog:addTextToInput(reasoning)
-                                else
-                                    -- Throttled update for performance
-                                    scheduleUIUpdate()
-                                end
+                                scheduleUIUpdate()
                             end
 
                             -- Handle regular content
@@ -564,11 +630,13 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                                     if in_web_search_phase then
                                         in_web_search_phase = false
                                         streamDialog._input_widget:setText("", true)
+                                        if auto_scroll_active then page_top_line = 1 end
                                     end
                                     if in_reasoning_phase then
                                         in_reasoning_phase = false
                                         -- Clear the reasoning display and show answer
                                         streamDialog._input_widget:setText("", true)
+                                        if auto_scroll_active then page_top_line = 1 end
                                     end
 
                                     table.insert(result_buffer, content)
@@ -581,15 +649,10 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                                             animation_task = nil
                                         end
                                         streamDialog._input_widget:setText("", true)
+                                        if auto_scroll_active then page_top_line = 1 end
                                     end
 
-                                    if auto_scroll_active then
-                                        -- Normal auto-scroll: append and scroll to bottom
-                                        streamDialog:addTextToInput(content)
-                                    else
-                                        -- Throttled update for performance
-                                        scheduleUIUpdate()
-                                    end
+                                    scheduleUIUpdate()
                                 end
                             end
                         else
@@ -638,14 +701,10 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                                         end
                                         in_reasoning_phase = true
                                         streamDialog._input_widget:setText("", true)
+                                        if auto_scroll_active then page_top_line = 1 end
                                     end
 
-                                    if auto_scroll_active then
-                                        streamDialog:addTextToInput(reasoning)
-                                    else
-                                        -- Throttled update for performance
-                                        scheduleUIUpdate()
-                                    end
+                                    scheduleUIUpdate()
                                 end
 
                                 -- Handle regular content
@@ -653,6 +712,7 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                                     if in_reasoning_phase then
                                         in_reasoning_phase = false
                                         streamDialog._input_widget:setText("", true)
+                                        if auto_scroll_active then page_top_line = 1 end
                                     end
 
                                     table.insert(result_buffer, content)
@@ -664,14 +724,10 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                                             animation_task = nil
                                         end
                                         streamDialog._input_widget:setText("", true)
+                                        if auto_scroll_active then page_top_line = 1 end
                                     end
 
-                                    if auto_scroll_active then
-                                        streamDialog:addTextToInput(content)
-                                    else
-                                        -- Throttled update for performance
-                                        scheduleUIUpdate()
-                                    end
+                                    scheduleUIUpdate()
                                 end
                             end
                         else
@@ -761,7 +817,7 @@ function StreamHandler:extractContentFromSSE(event)
             -- Check for web search tool calls (OpenAI/xAI)
             -- xAI uses "live_search" type
             if delta.tool_calls then
-                for _, tool_call in ipairs(delta.tool_calls) do
+                for _idx, tool_call in ipairs(delta.tool_calls) do
                     if tool_call.type == "web_search" or tool_call.type == "live_search" or
                        (tool_call["function"] and (tool_call["function"].name == "web_search" or tool_call["function"].name == "live_search")) then
                         return "__WEB_SEARCH_START__", nil
@@ -772,7 +828,7 @@ function StreamHandler:extractContentFromSSE(event)
             -- Check for OpenRouter web search annotations (url_citation)
             -- OpenRouter uses Exa search via :online suffix, annotations appear in delta
             if delta.annotations then
-                for _, annotation in ipairs(delta.annotations) do
+                for _idx, annotation in ipairs(delta.annotations) do
                     if annotation.type == "url_citation" then
                         return "__WEB_SEARCH_START__", nil
                     end
@@ -853,7 +909,7 @@ function StreamHandler:extractContentFromSSE(event)
             if search_used then
                 local has_content = false
                 if parts then
-                    for _, part in ipairs(parts) do
+                    for _idx, part in ipairs(parts) do
                         if part.text and part.text ~= "" then
                             has_content = true
                             break
@@ -870,7 +926,7 @@ function StreamHandler:extractContentFromSSE(event)
             local content_text = nil
             local reasoning_text = nil
 
-            for _, part in ipairs(parts) do
+            for _idx, part in ipairs(parts) do
                 if part.text then
                     if part.thought then
                         -- Thinking/reasoning part
