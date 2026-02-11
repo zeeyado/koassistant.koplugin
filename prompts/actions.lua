@@ -502,6 +502,17 @@ Focus on what's genuinely new or different from what the text describes. If the 
         },
         builtin = true,
     },
+    -- Local X-Ray lookup: search cached X-Ray data for selected text (no AI call)
+    xray_lookup = {
+        id = "xray_lookup",
+        text = _("Look up in X-Ray"),
+        description = _("Search X-Ray cache for selected text. Local lookup — no AI call, works offline."),
+        context = "highlight",
+        local_handler = "xray_lookup",
+        requires_open_book = true,
+        in_highlight_menu = 5,
+        builtin = true,
+    },
 }
 
 -- Built-in actions for book context (single book from file browser)

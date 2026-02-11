@@ -126,6 +126,57 @@ function XrayParser.getCharacters(data)
     return data[key] or {}
 end
 
+--- Resolve a connection string to a character/figure item
+--- Connection strings follow the format "Name (relationship)" or just "Name"
+--- @param data table Parsed X-Ray data
+--- @param connection_string string e.g. "Elizabeth Bennet (love interest)"
+--- @return table|nil result { item, name_portion, relationship } or nil if not found
+function XrayParser.resolveConnection(data, connection_string)
+    if not connection_string or connection_string == "" then return nil end
+
+    -- Extract name portion: everything before the last " (" or the whole string
+    local name_portion = connection_string:match("^(.-)%s*%(") or connection_string
+    name_portion = name_portion:match("^%s*(.-)%s*$")  -- trim
+
+    -- Extract relationship if present
+    local relationship = connection_string:match("%((.-)%)")
+
+    if not name_portion or name_portion == "" then return nil end
+
+    local characters = XrayParser.getCharacters(data)
+    if not characters or #characters == 0 then return nil end
+
+    local name_lower = name_portion:lower()
+
+    -- Pass 1: exact name match
+    for _idx, char in ipairs(characters) do
+        if char.name and char.name:lower() == name_lower then
+            return { item = char, name_portion = name_portion, relationship = relationship }
+        end
+    end
+
+    -- Pass 2: alias match
+    for _idx, char in ipairs(characters) do
+        local aliases = ensure_array(char.aliases)
+        if aliases then
+            for _idx2, alias in ipairs(aliases) do
+                if alias:lower() == name_lower then
+                    return { item = char, name_portion = name_portion, relationship = relationship }
+                end
+            end
+        end
+    end
+
+    -- Pass 3: substring match on name (e.g., "Elizabeth" matches "Elizabeth Bennet")
+    for _idx, char in ipairs(characters) do
+        if char.name and char.name:lower():find(name_lower, 1, true) then
+            return { item = char, name_portion = name_portion, relationship = relationship }
+        end
+    end
+
+    return nil
+end
+
 --- Get category definitions for building menus
 --- @param data table Parsed X-Ray data
 --- @return table categories Array of {key, label, items, singular_label}
