@@ -133,6 +133,47 @@ local function getItemSearchName(item)
     return item.name or item.term or item.event
 end
 
+--- Count occurrences of a single item (name + aliases) in pre-lowered text
+--- Uses word-boundary matching. Returns the highest count among name and aliases.
+--- @param item table An X-Ray item entry (must have name/term/event and optionally aliases)
+--- @param text_lower string Already-lowered text to search
+--- @return number count Best count among name and aliases (0 if not found or name ≤2 chars)
+function XrayParser.countItemOccurrences(item, text_lower)
+    local name = getItemSearchName(item)
+    if not name or #name <= 2 then return 0 end
+
+    local name_lower = name:lower()
+    local best_count = XrayParser._countOccurrences(text_lower, name_lower)
+
+    -- For multi-word names, also search the longest word (catches surname-only references)
+    -- e.g., "Cabasilas" for "St Nicolas Cabasilas". Only the longest word to avoid
+    -- cross-contamination (e.g., "John" matching both "John James" and "John Smith")
+    if name_lower:find(" ") then
+        local longest_word = ""
+        for word in name_lower:gmatch("%S+") do
+            if #word > #longest_word then
+                longest_word = word
+            end
+        end
+        if #longest_word > 4 then
+            local word_count = XrayParser._countOccurrences(text_lower, longest_word)
+            if word_count > best_count then best_count = word_count end
+        end
+    end
+
+    local item_aliases = ensure_array(item.aliases)
+    if item_aliases then
+        for _idx, alias in ipairs(item_aliases) do
+            if #alias > 2 then
+                local alias_count = XrayParser._countOccurrences(text_lower, alias:lower())
+                if alias_count > best_count then best_count = alias_count end
+            end
+        end
+    end
+
+    return best_count
+end
+
 --- Singleton categories not useful for chapter text matching
 local SINGLETON_CATEGORIES = {
     current_state = true,
@@ -742,29 +783,14 @@ function XrayParser.findItemsInChapter(data, chapter_text)
     for _idx, cat in ipairs(categories) do
         if not SINGLETON_CATEGORIES[cat.key] then
             for _idx2, item in ipairs(cat.items) do
-                local name = getItemSearchName(item)
-                if name and #name > 2 then
-                    local best_count = XrayParser._countOccurrences(text_lower, name:lower())
-
-                    -- Also check aliases — keep highest count
-                    local item_aliases = ensure_array(item.aliases)
-                    if item_aliases then
-                        for _idx3, alias in ipairs(item_aliases) do
-                            if #alias > 2 then
-                                local alias_count = XrayParser._countOccurrences(text_lower, alias:lower())
-                                if alias_count > best_count then best_count = alias_count end
-                            end
-                        end
-                    end
-
-                    if best_count > 0 then
-                        table.insert(results, {
-                            item = item,
-                            category_key = cat.key,
-                            category_label = cat.label,
-                            count = best_count,
-                        })
-                    end
+                local count = XrayParser.countItemOccurrences(item, text_lower)
+                if count > 0 then
+                    table.insert(results, {
+                        item = item,
+                        category_key = cat.key,
+                        category_label = cat.label,
+                        count = count,
+                    })
                 end
             end
         end
@@ -792,25 +818,7 @@ function XrayParser.findCharactersInChapter(data, chapter_text)
     local results = {}
 
     for _idx, char in ipairs(characters) do
-        local best_count = 0
-
-        -- Count mentions of full name
-        if char.name and #char.name > 2 then
-            local count = XrayParser._countOccurrences(text_lower, char.name:lower())
-            if count > best_count then best_count = count end
-        end
-
-        -- Count mentions of each alias (AI provides explicit aliases like "Lizzy", "Miss Bennet")
-        local ch_aliases = ensure_array(char.aliases)
-        if ch_aliases then
-            for _idx2, alias in ipairs(ch_aliases) do
-                if #alias > 2 then
-                    local count = XrayParser._countOccurrences(text_lower, alias:lower())
-                    if count > best_count then best_count = count end
-                end
-            end
-        end
-
+        local best_count = XrayParser.countItemOccurrences(char, text_lower)
         if best_count > 0 then
             table.insert(results, { item = char, count = best_count })
         end
