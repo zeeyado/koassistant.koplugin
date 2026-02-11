@@ -179,10 +179,8 @@ function NotebookManager:showNotebookOptions(doc_path, doc_title)
                         ReaderUI:showReader(doc_path)
                     end,
                 },
-            },
-            {
                 {
-                    text = _("Delete"),
+                    text = _("Delete Notebook"),
                     callback = function()
                         UIManager:close(dialog)
                         UIManager:show(ConfirmBox:new{
