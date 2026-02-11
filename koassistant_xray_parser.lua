@@ -126,6 +126,20 @@ function XrayParser.getCharacters(data)
     return data[key] or {}
 end
 
+--- Get the searchable name for an item (name, term, or event depending on type)
+--- @param item table An X-Ray item entry
+--- @return string|nil name The name to search for, or nil
+local function getItemSearchName(item)
+    return item.name or item.term or item.event
+end
+
+--- Singleton categories not useful for chapter text matching
+local SINGLETON_CATEGORIES = {
+    current_state = true,
+    current_position = true,
+    reader_engagement = true,
+}
+
 --- Resolve a connection/reference string to any X-Ray item
 --- Searches all categories: characters, locations, concepts, themes, etc.
 --- Connection strings follow the format "Name (relationship)" or just "Name"
@@ -151,8 +165,7 @@ function XrayParser.resolveConnection(data, connection_string)
     -- Skip singleton categories (current_state, current_position, reader_engagement)
     local searchable = {}
     for _idx, cat in ipairs(categories) do
-        if cat.key ~= "current_state" and cat.key ~= "current_position"
-            and cat.key ~= "reader_engagement" then
+        if not SINGLETON_CATEGORIES[cat.key] then
             for _idx2, item in ipairs(cat.items) do
                 table.insert(searchable, { item = item, category_key = cat.key })
             end
@@ -163,7 +176,7 @@ function XrayParser.resolveConnection(data, connection_string)
 
     -- Pass 1: exact name match (name, term, or event)
     for _idx, entry in ipairs(searchable) do
-        local item_name = entry.item.name or entry.item.term or entry.item.event
+        local item_name = getItemSearchName(entry.item)
         if item_name and item_name:lower() == name_lower then
             return { item = entry.item, category_key = entry.category_key,
                      name_portion = name_portion, relationship = relationship }
@@ -185,7 +198,7 @@ function XrayParser.resolveConnection(data, connection_string)
 
     -- Pass 3: substring match on name (e.g., "Elizabeth" matches "Elizabeth Bennet")
     for _idx, entry in ipairs(searchable) do
-        local item_name = entry.item.name or entry.item.term or entry.item.event
+        local item_name = getItemSearchName(entry.item)
         if item_name and item_name:lower():find(name_lower, 1, true) then
             return { item = entry.item, category_key = entry.category_key,
                      name_portion = name_portion, relationship = relationship }
@@ -708,6 +721,58 @@ function XrayParser.searchAll(data, query)
     local priority = { name = 1, alias = 2, description = 3 }
     table.sort(results, function(a, b)
         return (priority[a.match_field] or 9) < (priority[b.match_field] or 9)
+    end)
+
+    return results
+end
+
+--- Find all X-Ray items appearing in chapter text
+--- @param data table Parsed X-Ray data
+--- @param chapter_text string The chapter text content
+--- @return table results Array of {item, category_key, category_label, count} sorted by count desc
+function XrayParser.findItemsInChapter(data, chapter_text)
+    if not chapter_text or chapter_text == "" then return {} end
+
+    local categories = XrayParser.getCategories(data)
+    if not categories or #categories == 0 then return {} end
+
+    local text_lower = chapter_text:lower()
+    local results = {}
+
+    for _idx, cat in ipairs(categories) do
+        if not SINGLETON_CATEGORIES[cat.key] then
+            for _idx2, item in ipairs(cat.items) do
+                local name = getItemSearchName(item)
+                if name and #name > 2 then
+                    local best_count = XrayParser._countOccurrences(text_lower, name:lower())
+
+                    -- Also check aliases — keep highest count
+                    local item_aliases = ensure_array(item.aliases)
+                    if item_aliases then
+                        for _idx3, alias in ipairs(item_aliases) do
+                            if #alias > 2 then
+                                local alias_count = XrayParser._countOccurrences(text_lower, alias:lower())
+                                if alias_count > best_count then best_count = alias_count end
+                            end
+                        end
+                    end
+
+                    if best_count > 0 then
+                        table.insert(results, {
+                            item = item,
+                            category_key = cat.key,
+                            category_label = cat.label,
+                            count = best_count,
+                        })
+                    end
+                end
+            end
+        end
+    end
+
+    -- Sort by mention count descending
+    table.sort(results, function(a, b)
+        return a.count > b.count
     end)
 
     return results

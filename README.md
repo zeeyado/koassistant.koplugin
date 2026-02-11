@@ -601,7 +601,7 @@ Some actions work from the file browser (using only document metadata like title
 | **Historical Context** | When written and historical significance |
 | **Related Thinkers** | Intellectual landscape: influences, contemporaries, and connected thinkers |
 | **Book Reviews** | Find critical and reader reviews, awards, and reception ⚠️ *Requires: Web Search* |
-| **X-Ray** | Browsable reference guide: characters (with aliases and connections), locations, themes, lexicon, timeline — opens in a structured menu with search, chapter character tracking, linkable cross-references, local lookup, and highlight integration ⚠️ *Best with: Allow Text Extraction* |
+| **X-Ray** | Browsable reference guide: characters (with aliases and connections), locations, themes, lexicon, timeline — opens in a structured menu with search, chapter/book mention tracking, linkable cross-references, local lookup, and highlight integration ⚠️ *Best with: Allow Text Extraction* |
 | **Recap** | "Previously on..." style summary to help you resume reading ⚠️ *Best with: Allow Text Extraction* |
 | **Analyze Highlights** | Discover patterns and connections in your highlights ⚠️ *Requires: Allow Annotation Notes* |
 | **Key Arguments** | Thesis, evidence, assumptions, and counterarguments using full book text ⚠️ *Requires: Allow Text Extraction* |
@@ -646,7 +646,8 @@ These actions analyze your actual reading content. They require specific privacy
 - **Category navigation** — Cast, World, Ideas, Lexicon, Story Arc, Reader Engagement, Current State (fiction) or Key Figures, Core Concepts, Arguments, Terminology, Argument Development, Reader Engagement, Current Position (non-fiction) — with item counts. Reader Engagement appears only when highlights were provided during generation.
 - **Character detail** — descriptions, AI-provided aliases (e.g., "Lizzy", "Miss Bennet"), connections/relationships, and your highlights mentioning each character
 - **Linkable references** — character connections and cross-category references (locations → characters, themes → characters, etc.) are tappable buttons that navigate directly to the referenced item's detail view. References are resolved across all categories using name, alias, and substring matching.
-- **Chapter Characters** — shows which characters appear in your current chapter with mention counts, using word-boundary matching against names and aliases
+- **Mentions (This Chapter)** — shows which X-Ray items (characters, locations, themes, lexicon, etc.) appear in the current chapter, with mention counts per item and category tags. Uses word-boundary matching against names and aliases. For books with nested TOC, a depth selector lets you switch between chapter levels (e.g., Part → Chapter → Section). Books without a TOC fall back to page-range chunks.
+- **Mentions (From Beginning)** — same analysis across the entire book from page 1 to current reading position, showing cumulative mention counts
 - **Search** — find any entry across all categories by name, alias, or description
 - **Local X-Ray Lookup** — select text while reading → instantly look it up in cached X-Ray data. No AI call, no network, instant results. Single match shows full detail; multiple matches show a tappable list. Available in highlight menu and dictionary popup when an X-Ray cache exists. See "Look up in X-Ray" in [Highlight Mode](#highlight-mode).
 - **Full View** — rendered markdown view in the chat viewer (with export)
@@ -2454,7 +2455,7 @@ X-Ray, Recap, and other actions also produce **Document Artifacts** — reusable
 
 When certain actions complete, their results are saved as **document artifacts** — persistent, per-book outputs that serve two purposes:
 
-1. **Viewable as standalone reference guides.** Browse a book's Summary, X-Ray, or Analysis anytime without re-running the action. X-Ray opens as a browsable category menu (characters, locations, themes, lexicon, timeline) with search, chapter character tracking, linkable cross-references, and your highlight mentions — useful for quickly checking character details, relationships, or who appears in the current chapter mid-read.
+1. **Viewable as standalone reference guides.** Browse a book's Summary, X-Ray, or Analysis anytime without re-running the action. X-Ray opens as a browsable category menu (characters, locations, themes, lexicon, timeline) with search, chapter/book mention analysis, linkable cross-references, and your highlight mentions — useful for quickly checking character details, relationships, or what appears in the current chapter mid-read.
 2. **Reusable as context in other actions.** Instead of sending full document text (~100K tokens) every time, actions can reference a compact artifact (~2-8K tokens). This is the foundation of **Smart actions** — dramatically cheaper and often better-performing, since models handle focused context more effectively than massive text dumps.
 
 **The three artifact types:**
