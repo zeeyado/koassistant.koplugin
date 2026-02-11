@@ -198,6 +198,7 @@ function PromptsManager:loadPrompts()
             source = prompt.source,
             enabled = prompt.enabled,
             requires = prompt.requires,
+            description = prompt.description,
             id = prompt.id,
             include_book_context = prompt.include_book_context,
             skip_language_instruction = prompt.skip_language_instruction,
@@ -671,10 +672,15 @@ function PromptsManager:showPromptDetails(prompt)
     -- Basic info
     local info_text = prompt.text
 
+    -- Description (if available)
+    if prompt.description and prompt.description ~= "" then
+        info_text = info_text .. "\n\n" .. prompt.description
+    end
+
     -- Note about open book requirement (shown prominently at top)
     -- Uses dynamic inference from flags, not just explicit requires_open_book
     if Actions.requiresOpenBook(prompt) then
-        info_text = info_text .. "\n" .. _("(Only available when reading, not from file browser)")
+        info_text = info_text .. "\n\n" .. _("(Only available when reading, not from file browser)")
     end
 
     info_text = info_text .. string.format(
