@@ -3706,7 +3706,8 @@ function AskGPT:onDictButtonsReady(dict_popup, dict_buttons)
   -- Get configured actions for dictionary popup
   -- Filter out actions requiring open book if no book is open (should always be true for dictionary)
   local has_open_book = self.ui and self.ui.document ~= nil
-  local popup_actions = self.action_service:getDictionaryPopupActionObjects(has_open_book)
+  local document_path = has_open_book and self.ui.document.file
+  local popup_actions = self.action_service:getDictionaryPopupActionObjects(has_open_book, document_path)
   if #popup_actions == 0 then
     return  -- No actions configured
   end
@@ -6274,7 +6275,8 @@ function AskGPT:registerHighlightMenuActions()
 
   -- Filter out actions requiring open book if no book is open (should always be true in highlight menu)
   local has_open_book = self.ui and self.ui.document ~= nil
-  local quick_actions = self.action_service:getHighlightMenuActionObjects(has_open_book)
+  local document_path = has_open_book and self.ui.document.file
+  local quick_actions = self.action_service:getHighlightMenuActionObjects(has_open_book, document_path)
   if #quick_actions == 0 then
     logger.info("KOAssistant: No quick actions configured for highlight menu")
     return
@@ -6391,6 +6393,20 @@ function AskGPT:syncDictionaryBypass()
           return dictionary._koassistant_original_onLookupWord(dict_self, word, is_sane, boxes, highlight, link, dict_close_callback)
         end
         return
+      end
+
+      -- Check cache requirements before executing
+      if bypass_action.requires_xray_cache then
+        local ActionCache = require("koassistant_action_cache")
+        local file = self_ref.ui and self_ref.ui.document and self_ref.ui.document.file
+        local cached = file and ActionCache.getXrayCache(file)
+        if not cached or not cached.result then
+          logger.info("KOAssistant: Dictionary bypass - action requires X-Ray cache, falling through to dictionary")
+          if dictionary._koassistant_original_onLookupWord then
+            return dictionary._koassistant_original_onLookupWord(dict_self, word, is_sane, boxes, highlight, link, dict_close_callback)
+          end
+          return
+        end
       end
 
       -- Check if this is a non-reader lookup (e.g., from ChatGPT viewer or nested dictionary).
@@ -6583,6 +6599,16 @@ function AskGPT:syncHighlightBypass()
       end
 
       if action and hl_self.selected_text and hl_self.selected_text.text then
+        -- Check cache requirements before executing
+        if action.requires_xray_cache then
+          local ActionCache = require("koassistant_action_cache")
+          local file = self_ref.ui and self_ref.ui.document and self_ref.ui.document.file
+          local cached = file and ActionCache.getXrayCache(file)
+          if not cached or not cached.result then
+            logger.info("KOAssistant: Highlight bypass - action requires X-Ray cache, falling through to menu")
+            return highlight._koassistant_original_onShowHighlightMenu(hl_self, ...)
+          end
+        end
         logger.info("KOAssistant: Highlight bypass active, executing action: " .. action_id)
         -- Execute our action
         self_ref:executeHighlightBypassAction(action, hl_self.selected_text.text, hl_self)

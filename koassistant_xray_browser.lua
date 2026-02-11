@@ -431,7 +431,7 @@ end
 --- @param item table The item data
 --- @param category_key string The category key
 --- @param title string Display title
-function XrayBrowser:showItemDetail(item, category_key, title)
+function XrayBrowser:showItemDetail(item, category_key, title, source)
     local detail_text = XrayParser.formatItemDetail(item, category_key)
 
     -- For current state/position: prepend reading progress for clarity
@@ -481,6 +481,10 @@ function XrayBrowser:showItemDetail(item, category_key, title)
         text = "←",
         callback = function()
             if viewer then viewer:onClose() end
+            if source then
+                self_ref:showItemDetail(source.item, source.category_key,
+                    source.title, source.source)
+            end
         end,
     })
     table.insert(row, {
@@ -509,16 +513,29 @@ function XrayBrowser:showItemDetail(item, category_key, title)
 
     local buttons_rows = { row }
 
-    -- Resolve character connections into tappable navigation buttons
-    if (category_key == "characters" or category_key == "key_figures") and self.xray_data then
-        local connections = item.connections
-        if type(connections) == "string" and connections ~= "" then
-            connections = { connections }
+    -- Resolve character references into tappable navigation buttons
+    if self.xray_data then
+        -- Characters/key_figures: resolve connections (other characters)
+        -- Other categories: resolve characters field (referenced characters)
+        local names_list
+        if category_key == "characters" or category_key == "key_figures" then
+            names_list = item.connections
+        else
+            names_list = item.characters
         end
-        if type(connections) == "table" and #connections > 0 then
+        if type(names_list) == "string" and names_list ~= "" then
+            names_list = { names_list }
+        end
+        if type(names_list) == "table" and #names_list > 0 then
+            local current_source = {
+                item = item,
+                category_key = category_key,
+                title = title,
+                source = source,  -- Preserve chain for deep back-navigation
+            }
             local conn_row = {}
-            for _idx, conn_str in ipairs(connections) do
-                local resolved = XrayParser.resolveConnection(self.xray_data, conn_str)
+            for _idx, name_str in ipairs(names_list) do
+                local resolved = XrayParser.resolveConnection(self.xray_data, name_str)
                 if resolved and resolved.item ~= item then  -- Skip self-references
                     local captured_resolved = resolved
                     table.insert(conn_row, {
@@ -527,7 +544,7 @@ function XrayBrowser:showItemDetail(item, category_key, title)
                             if viewer then viewer:onClose() end
                             local char_key = XrayParser.getCharacterKey(self_ref.xray_data)
                             self_ref:showItemDetail(captured_resolved.item, char_key,
-                                captured_resolved.item.name or _("Details"))
+                                captured_resolved.item.name or _("Details"), current_source)
                         end,
                     })
                     -- Start a new row every 3 buttons

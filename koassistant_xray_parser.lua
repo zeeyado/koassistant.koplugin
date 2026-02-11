@@ -33,7 +33,7 @@ end
 
 -- Known category keys for validating parsed X-Ray data
 local FICTION_KEYS = { "characters", "locations", "themes", "lexicon", "timeline", "reader_engagement", "current_state" }
-local NONFICTION_KEYS = { "key_figures", "core_concepts", "arguments", "terminology", "argument_development", "reader_engagement", "current_position" }
+local NONFICTION_KEYS = { "key_figures", "locations", "core_concepts", "arguments", "terminology", "argument_development", "reader_engagement", "current_position" }
 
 --- Check if a table looks like valid X-Ray data (has at least one recognized category key)
 --- Also infers and sets the type field if missing.
@@ -197,6 +197,7 @@ function XrayParser.getCategories(data)
     else
         local cats = {
             { key = "key_figures",          label = _("Key Figures"),          items = data.key_figures or {} },
+            { key = "locations",            label = _("Locations"),            items = data.locations or {} },
             { key = "core_concepts",        label = _("Core Concepts"),        items = data.core_concepts or {} },
             { key = "arguments",            label = _("Arguments"),            items = data.arguments or {} },
             { key = "terminology",          label = _("Terminology"),          items = data.terminology or {} },

@@ -3126,6 +3126,7 @@ local function getProgressDecimal(ui)
 end
 
 -- Open X-Ray browser with cached data and metadata
+-- Returns the XrayBrowser module for chaining (e.g., showItemDetail, showSearchResults)
 local function openXrayBrowserFromCache(ui, data, cached, config, plugin, book_metadata)
     local XrayBrowser = require("koassistant_xray_browser")
     local ActionCache = require("koassistant_action_cache")
@@ -3169,6 +3170,7 @@ local function openXrayBrowserFromCache(ui, data, cached, config, plugin, book_m
             timeout = 2,
         })
     end)
+    return XrayBrowser
 end
 
 -- Handle local X-Ray lookup: search cached X-Ray data for the query
@@ -3219,14 +3221,6 @@ local function handleLocalXrayLookup(ui, query, document_path, book_metadata, co
         progress_gap = current_progress - cache_progress
     end
 
-    -- Build progress footer text
-    local progress_footer = ""
-    if progress_gap and progress_gap > 0.05 then
-        local cache_pct = math.floor(cache_progress * 100 + 0.5)
-        local current_pct = math.floor(current_progress * 100 + 0.5)
-        progress_footer = "\n\n—\n" .. T(_("X-Ray covers to %1%% · You're at %2%%"), cache_pct, current_pct)
-    end
-
     if #results == 0 then
         -- No results
         local msg = T(_("No results for \"%1\" in X-Ray."), query)
@@ -3239,127 +3233,30 @@ local function handleLocalXrayLookup(ui, query, document_path, book_metadata, co
             text = msg,
             timeout = 5,
         })
-
-    elseif #results == 1 then
-        -- Single result: show detail in TextViewer
-        local result = results[1]
-        local detail_text = XrayParser.formatItemDetail(result.item, result.category_key)
-        local header = result.category_label
-        detail_text = header .. "\n\n" .. detail_text .. progress_footer
-
-        local title = XrayParser.getItemName(result.item, result.category_key)
-        local TextViewer = require("ui/widget/textviewer")
-
-        local viewer
-        viewer = TextViewer:new{
-            title = title,
-            text = detail_text,
-            width = Screen:getWidth(),
-            height = Screen:getHeight(),
-            buttons_table = {{
-                {
-                    text = "←",
-                    id = "close",
-                    callback = function()
-                        if viewer then UIManager:close(viewer) end
-                    end,
-                },
-                {
-                    text = _("Open in X-Ray"),
-                    callback = function()
-                        if viewer then UIManager:close(viewer) end
-                        openXrayBrowserFromCache(ui, data, cached, config, plugin, book_metadata)
-                    end,
-                },
-            }},
-        }
-        UIManager:show(viewer)
-
     else
-        -- Multiple results: show list menu
-        local Menu = require("ui/widget/menu")
-        local TextViewer = require("ui/widget/textviewer")
+        -- Open X-Ray browser directly
+        local XrayBrowser = openXrayBrowserFromCache(ui, data, cached, config, plugin, book_metadata)
 
-        local items = {}
-        for _idx, result in ipairs(results) do
-            local name = XrayParser.getItemName(result.item, result.category_key)
-            local match_label = result.category_label
-            if result.match_field == "alias" then
-                match_label = match_label .. " (" .. _("alias") .. ")"
-            elseif result.match_field == "description" then
-                match_label = match_label .. " (" .. _("desc.") .. ")"
-            end
-
-            local captured_result = result
-            table.insert(items, {
-                text = name,
-                mandatory = match_label,
-                mandatory_dim = true,
-                callback = function()
-                    -- Show detail for this result
-                    local detail_text = XrayParser.formatItemDetail(captured_result.item, captured_result.category_key)
-                    local header = captured_result.category_label
-                    detail_text = header .. "\n\n" .. detail_text .. progress_footer
-
-                    local item_title = XrayParser.getItemName(captured_result.item, captured_result.category_key)
-                    local viewer
-                    viewer = TextViewer:new{
-                        title = item_title,
-                        text = detail_text,
-                        width = Screen:getWidth(),
-                        height = Screen:getHeight(),
-                        buttons_table = {{
-                            {
-                                text = "←",
-                                id = "close",
-                                callback = function()
-                                    if viewer then UIManager:close(viewer) end
-                                end,
-                            },
-                            {
-                                text = _("Open in X-Ray"),
-                                callback = function()
-                                    if viewer then UIManager:close(viewer) end
-                                    openXrayBrowserFromCache(ui, data, cached, config, plugin, book_metadata)
-                                end,
-                            },
-                        }},
-                    }
-                    UIManager:show(viewer)
-                end,
-            })
-        end
-
-        -- Add progress gap info item at bottom
+        -- Show progress gap notification if significant
         if progress_gap and progress_gap > 0.05 then
+            local Notification = require("ui/widget/notification")
             local cache_pct = math.floor(cache_progress * 100 + 0.5)
             local current_pct = math.floor(current_progress * 100 + 0.5)
-            if #items > 0 then
-                items[#items].separator = true
-            end
-            table.insert(items, {
-                text = T(_("X-Ray covers to %1%% (you're at %2%%)"), cache_pct, current_pct),
-                dim = true,
-                callback = function() end,
+            UIManager:show(Notification:new{
+                text = T(_("X-Ray covers to %1%% · You're at %2%%"), cache_pct, current_pct),
+                timeout = 3,
             })
         end
 
-        local title = T(_("X-Ray: \"%1\" — %2 results"), query, #results)
-
-        local menu
-        menu = Menu:new{
-            title = title,
-            item_table = items,
-            is_borderless = true,
-            is_popout = false,
-            width = Screen:getWidth(),
-            height = Screen:getHeight(),
-            single_line = true,
-            close_callback = function()
-                UIManager:close(menu)
-            end,
-        }
-        UIManager:show(menu)
+        if #results == 1 then
+            -- Single result: navigate directly to item detail
+            local result = results[1]
+            local name = XrayParser.getItemName(result.item, result.category_key)
+            XrayBrowser:showItemDetail(result.item, result.category_key, name)
+        else
+            -- Multiple results: show search results in browser
+            XrayBrowser:showSearchResults(query)
+        end
     end
 end
 
