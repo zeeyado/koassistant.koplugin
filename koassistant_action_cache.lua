@@ -271,6 +271,14 @@ function ActionCache.exists(document_path, action_id)
     return ActionCache.get(document_path, action_id) ~= nil
 end
 
+--- Refresh the artifact index for a document by loading its cache.
+--- Call this when artifacts are discovered through read-only paths (e.g., viewCache).
+--- @param document_path string The document file path
+function ActionCache.refreshIndex(document_path)
+    local cache = loadCache(document_path)
+    updateArtifactIndex(document_path, next(cache) and cache or nil)
+end
+
 -- =============================================================================
 -- Document Cache API
 -- Reserved cache keys for reusable document caches that other actions can reference

@@ -367,6 +367,10 @@ function AskGPT:generateFileDialogRows(file, is_file, book_props)
   if recap and recap.result then
     table.insert(caches, { name = _("Recap"), key = "recap", data = recap, book_title = title, book_author = authors, file = file, is_per_action = true })
   end
+  -- Refresh artifact index for this document (populates index for pre-existing artifacts)
+  if #caches > 0 then
+    ActionCache.refreshIndex(file)
+  end
   if show_artifacts and #caches > 0 then
     local self_ref = self
     table.insert(buttons, {
@@ -4063,6 +4067,9 @@ function AskGPT:viewCache()
       is_per_action = true,
     })
   end
+
+  -- Refresh artifact index for this document (populates index for pre-existing artifacts)
+  ActionCache.refreshIndex(file)
 
   if #caches == 0 then
     UIManager:show(InfoMessage:new{

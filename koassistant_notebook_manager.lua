@@ -11,6 +11,7 @@ Browser UI for viewing all notebooks across documents.
 
 local ButtonDialog = require("ui/widget/buttondialog")
 local ConfirmBox = require("ui/widget/confirmbox")
+local DocSettings = require("docsettings")
 local InfoMessage = require("ui/widget/infomessage")
 local Menu = require("ui/widget/menu")
 local Screen = require("device").screen
@@ -32,8 +33,11 @@ function NotebookManager:showNotebookBrowser(opts)
     local docs = {}
     for doc_path, stats in pairs(index) do
         if Notebook.exists(doc_path) then
-            -- Extract book name from path
-            local title = doc_path:match("([^/]+)%.[^%.]+$") or doc_path
+            -- Get book title from metadata, falling back to filename
+            local doc_settings = DocSettings:open(doc_path)
+            local doc_props = doc_settings:readSetting("doc_props")
+            local title = (doc_props and doc_props.title and doc_props.title ~= "") and doc_props.title
+                or doc_path:match("([^/]+)%.[^%.]+$") or doc_path
             table.insert(docs, {
                 path = doc_path,
                 title = title,
