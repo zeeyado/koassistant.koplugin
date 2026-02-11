@@ -564,22 +564,34 @@ First, determine if this is FICTION or NON-FICTION. Then output ONLY a valid JSO
 ---
 
 FOR FICTION, use this JSON schema:
-{"type":"fiction","characters":[{"name":"Full Name","aliases":["Nickname","Title","Shortened Name"],"role":"Protagonist / Supporting / Antagonist","description":"Key traits, current situation, allegiances.","connections":["Other Character (relationship)"]}],"locations":[{"name":"Place Name","description":"What it is.","significance":"Why it matters, what happened there."}],"themes":[{"name":"Theme Name","description":"How it's being explored in the story."}],"lexicon":[{"term":"Term","definition":"Definition and significance."}],"timeline":[{"event":"What happened","chapter":"Chapter/Section reference","significance":"Why it mattered","characters":["Names involved"]}],"current_state":{"summary":"Where the story stands now.","conflicts":["Active conflict or mystery"],"questions":["Unanswered question"]}}
+{"type":"fiction","characters":[{"name":"Full Name","aliases":["Nickname","Title","Shortened Name"],"role":"Protagonist / Supporting / Antagonist","description":"Who they are, their journey so far, pivotal moments, and where they stand now.","connections":["Other Character (relationship)"]}],"locations":[{"name":"Place Name","description":"What it is, its atmosphere, and what the reader encounters there.","significance":"Key events here and why this place matters to the narrative."}],"themes":[{"name":"Theme Name","description":"How this theme manifests through characters, conflicts, and events so far."}],"lexicon":[{"term":"Term","definition":"Meaning and relevance to the story."}],"timeline":[{"event":"What happened","chapter":"Chapter/Section reference","significance":"Why it mattered and what it changed","characters":["Names involved"]}],"current_state":{"summary":"Where the story stands now — the immediate situation, emotional tone, and narrative momentum.","conflicts":["Active conflict, tension, or unresolved mystery"],"questions":["Unanswered question the reader is likely thinking about"]}}
 
-Guidance for fiction: Aim for 8-12 characters (with aliases/nicknames and connections to each other), 5-8 locations, 4-6 themes, 5-8 lexicon terms, 6-10 timeline events (chronological, with characters involved), and a current state section.
+Guidance for fiction:
+- **Characters (8-15)**: The heart of the X-Ray. For major characters (protagonist, antagonist, key supporting), write 3-5 sentences covering personality, their arc through the story so far, pivotal moments or turning points, and their current situation. For minor characters, 1-2 sentences suffice. Always include aliases and connections with relationship type.
+- **Locations (5-10)**: For significant locations, convey atmosphere and what unfolds there. Minor locations need only a brief note.
+- **Themes (5-8)**: Don't just name themes — trace how they develop through specific characters, conflicts, or events.
+- **Lexicon (5-10)**: In-world terms, cultural references, or specialized vocabulary. Keep definitions concise — this is reference material.
+- **Timeline (8-15)**: Chronological events driving the plot. Include both major plot points and important character moments. Each event should have a chapter reference and involved characters.
+- **Current State**: A paragraph-length summary capturing where things stand, plus active conflicts and open questions.
 
 ---
 
 FOR NON-FICTION, use this JSON schema:
-{"type":"nonfiction","key_figures":[{"name":"Person Name","role":"Their role in the argument.","description":"Key ideas associated with them.","connections":["Related Person (relationship)"]}],"core_concepts":[{"name":"Concept","description":"What it means.","significance":"How the author uses it."}],"arguments":[{"name":"Claim","description":"The argument.","evidence":"Evidence or reasoning provided."}],"terminology":[{"term":"Term","definition":"Definition and usage."}],"argument_development":[{"event":"Key point made","chapter":"Chapter/Section","significance":"How it advances the overall argument"}],"current_position":{"summary":"Where the argument stands now.","questions_addressed":["Question being addressed"],"building_toward":["What the author seems to build toward"]}}
+{"type":"nonfiction","key_figures":[{"name":"Person Name","role":"Their role or significance.","description":"Who they are, their key contributions or ideas, how the author engages with them, and their importance to the argument.","connections":["Related Person (relationship)"]}],"core_concepts":[{"name":"Concept","description":"What it means and how the author introduces it.","significance":"How the author develops it through evidence, examples, or argument, and why it matters to the thesis."}],"arguments":[{"name":"Claim","description":"The argument being made and its stakes.","evidence":"Key evidence, reasoning, and any counter-arguments addressed."}],"terminology":[{"term":"Term","definition":"Definition and how it's used in context."}],"argument_development":[{"event":"Key point or development","chapter":"Chapter/Section","significance":"How it advances the overall argument or shifts the discussion"}],"current_position":{"summary":"Where the argument stands now — what has been established, the current focus, and the intellectual trajectory.","questions_addressed":["Question or problem being addressed"],"building_toward":["What the author appears to be building toward"]}}
 
-Guidance for non-fiction: Aim for 8-12 key figures, 6-10 core concepts, 4-6 arguments, 5-8 terminology terms, 6-10 argument development points (chronological), and a current position section.
+Guidance for non-fiction:
+- **Key Figures (6-12)**: For central figures (the author's main interlocutors, key researchers, historical actors), write 3-5 sentences covering who they are, what ideas or work they contribute, how the author engages with them (agrees, critiques, builds on), and their significance to the argument. For briefly mentioned figures, 1-2 sentences. Include connections where figures relate to each other.
+- **Core Concepts (6-10)**: For major concepts, explain both what they mean and how the author develops them — through what evidence, examples, or reasoning. Minor concepts need only a definition.
+- **Arguments (5-8)**: The author's key claims. For each, capture the argument itself, the evidence or reasoning supporting it, and any counter-arguments the author addresses.
+- **Terminology (5-10)**: Specialized vocabulary, jargon, or terms the author defines. Keep concise — this is reference material.
+- **Argument Development (8-15)**: Track the intellectual progression — how the argument unfolds chapter by chapter. Each entry should show how it advances the thesis or shifts the discussion.
+- **Current Position**: A paragraph-length summary of what's been established so far, the current line of inquiry, and where the author seems to be heading.
 
 ---
 
 {highlight_analysis_nudge}
 
-CRITICAL: Do not reveal ANYTHING beyond {reading_progress}. This must be completely spoiler-free. Output ONLY valid JSON — no other text.
+CRITICAL: Do not reveal ANYTHING beyond {reading_progress}. This must be completely spoiler-free. Output ONLY valid JSON — no other text. JSON keys must remain in English, but all string values (descriptions, summaries, significance, definitions, etc.) must follow your language instructions.
 
 If you don't recognize this work or lack sufficient detail to provide accurate information, respond with ONLY this JSON:
 {"error": "I don't recognize this work. Please enable text extraction or provide more context."}
@@ -613,6 +625,7 @@ Output an updated JSON object using the same schema as the previous analysis. If
 Guidelines:
 - Add new characters, locations, themes, or concepts that appeared
 - Add aliases and connections for new characters
+- Enrich existing major character/figure descriptions as new information emerges (arc developments, turning points, shifting relationships)
 - Update timeline with new events (include characters involved)
 - Update "current_state" or "current_position" for the new progress point
 - Keep existing entries, modify only if new information changes them
@@ -622,7 +635,7 @@ Guidelines:
 
 {highlight_analysis_nudge}
 
-CRITICAL: This must remain spoiler-free up to {reading_progress}. Output ONLY valid JSON — no other text.]],
+CRITICAL: This must remain spoiler-free up to {reading_progress}. Output ONLY valid JSON — no other text. JSON keys must remain in English, but all string values must follow your language instructions.]],
     },
     -- Recap: Story summary for re-immersion
     recap = {

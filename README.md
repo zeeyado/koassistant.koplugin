@@ -651,6 +651,12 @@ These actions analyze your actual reading content. They require specific privacy
 
 > **Tip:** If your device supports emoji fonts, enable **Emoji Menu Icons** in Settings → Display Settings for visual category icons in the X-Ray browser (e.g., characters, locations, themes). See [Emoji Menu Icons](#display-settings).
 
+> **Highlights in X-Ray:** When [Allow Highlights](#privacy-controls) is enabled, X-Ray incorporates your highlighted passages into its analysis — adding a **Reader Engagement** category that tracks which themes and ideas you've engaged with, and weaving your highlights into character and location entries. This gives the X-Ray a personal dimension tied to your reading. To control this:
+> - **Disable for all actions:** Turn off "Allow Highlights" in Settings → Privacy & Data. No action will see your highlights.
+> - **Disable for X-Ray only:** Go to Settings → Actions → Manage Actions, long-press the X-Ray action → "Edit Settings", and untick "Allow highlight use". Other actions keep highlight access.
+>
+> Without highlights, X-Ray still works fully — you just won't see the Reader Engagement category or highlight mentions in entries.
+
 **X-Ray/Recap** work in two modes:
 - **Without text extraction** (default): AI uses only the title/author and its training knowledge. Their prompts include specialized fallback guidance (e.g., Recap tells the AI to use what it knows; X-Ray provides format-specific error handling). Works for well-known titles; may be inaccurate for obscure works. Results are cached and labeled "Based on AI training data knowledge."
 - **With text extraction**: AI analyzes actual book content up to your reading position. More accurate but costs more tokens. Results are cached and labeled "Based on extracted document text."
