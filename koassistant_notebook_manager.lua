@@ -33,14 +33,16 @@ function NotebookManager:showNotebookBrowser(opts)
     local docs = {}
     for doc_path, stats in pairs(index) do
         if Notebook.exists(doc_path) then
-            -- Get book title from metadata, falling back to filename
+            -- Get book title and author from metadata, falling back to filename
             local doc_settings = DocSettings:open(doc_path)
             local doc_props = doc_settings:readSetting("doc_props")
             local title = (doc_props and doc_props.title and doc_props.title ~= "") and doc_props.title
                 or doc_path:match("([^/]+)%.[^%.]+$") or doc_path
+            local author = doc_props and doc_props.authors or nil
             table.insert(docs, {
                 path = doc_path,
                 title = title,
+                author = author,
                 modified = stats.modified or 0,
                 size = stats.size or 0,
             })
@@ -80,18 +82,24 @@ function NotebookManager:showNotebookBrowser(opts)
         local captured_doc = doc
         local date_str = doc.modified > 0 and os.date("%Y-%m-%d", doc.modified) or _("Unknown")
 
+        local display_text = doc.title
+        if doc.author and doc.author ~= "" then
+            display_text = display_text .. " \u{00B7} " .. doc.author
+        end
+        display_text = Constants.getEmojiText("\u{1F4D3}", display_text, enable_emoji)
+
         table.insert(menu_items, {
-            text = Constants.getEmojiText("📓", doc.title, enable_emoji),
+            text = display_text,
             mandatory = date_str,
             mandatory_dim = true,
+            help_text = doc.path,
             callback = function()
-                -- Show options menu (View, Edit, Delete) - consistent with Chat History pattern
                 self_ref:showNotebookOptions(captured_doc.path, captured_doc.title)
             end,
         })
     end
 
-    -- Create menu (matching ChatHistoryDialog style)
+    -- Create menu
     local menu = Menu:new{
         title = _("Notebooks"),
         item_table = menu_items,
@@ -99,7 +107,10 @@ function NotebookManager:showNotebookBrowser(opts)
         is_popout = false,
         width = Screen:getWidth(),
         height = Screen:getHeight(),
-        single_line = true,
+        multilines_show_more_text = true,
+        items_max_lines = 2,
+        single_line = false,
+        multilines_forced = true,
         items_font_size = 18,
         items_mandatory_font_size = 14,
         close_callback = function()

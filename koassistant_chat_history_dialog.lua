@@ -588,7 +588,6 @@ function ChatHistoryDialog:showChatHistoryBrowser(ui, current_document_path, cha
             text = display_text,
             mandatory = right_text,
             mandatory_dim = true,
-            bold = true,
             help_text = help_text,
             callback = function()
                 logger.info("Document selected: " .. captured_doc.title)
