@@ -17,6 +17,73 @@ local logger = require("logger")
 local ContextExtractor = {}
 ContextExtractor.__index = ContextExtractor
 
+--- Get contiguous ranges of visible (flow 0) pages within a page range.
+--- Short-circuits when no hidden flows active.
+--- @param document table KOReader document object
+--- @param from_page number Start page (inclusive, actual page number)
+--- @param to_page number End page (inclusive, actual page number)
+--- @return table ranges Array of {start_page, end_page}
+function ContextExtractor.getVisiblePageRanges(document, from_page, to_page)
+    if not document.hasHiddenFlows or not document:hasHiddenFlows() then
+        return {{ start_page = from_page, end_page = to_page }}
+    end
+    local ranges = {}
+    local range_start = nil
+    for page = from_page, to_page do
+        if document:getPageFlow(page) == 0 then
+            if not range_start then range_start = page end
+        else
+            if range_start then
+                table.insert(ranges, { start_page = range_start, end_page = page - 1 })
+                range_start = nil
+            end
+        end
+    end
+    if range_start then
+        table.insert(ranges, { start_page = range_start, end_page = to_page })
+    end
+    return ranges
+end
+
+--- Compute flow fingerprint: count of visible (flow 0) pages.
+--- Returns nil when no hidden flows active (no fingerprint needed).
+--- @param document table KOReader document object
+--- @return number|nil visible_page_count
+function ContextExtractor.getFlowFingerprint(document)
+    if not document.hasHiddenFlows or not document:hasHiddenFlows() then
+        return nil
+    end
+    local total_pages = document.info and document.info.number_of_pages or 0
+    local visible = 0
+    for page = 1, total_pages do
+        if document:getPageFlow(page) == 0 then
+            visible = visible + 1
+        end
+    end
+    return visible
+end
+
+--- Extract text from visible page ranges using XPointers.
+--- @param document table KOReader document object
+--- @param ranges table Array of {start_page, end_page} from getVisiblePageRanges
+--- @param total_pages number Total pages in document
+--- @return string text
+local function extractVisibleText(document, ranges, total_pages)
+    if #ranges == 0 then return "" end
+    local parts = {}
+    for _idx, r in ipairs(ranges) do
+        local start_xp = document:getPageXPointer(r.start_page)
+        local end_xp = document:getPageXPointer(math.min(r.end_page + 1, total_pages))
+        if start_xp and end_xp then
+            local text = document:getTextFromXPointers(start_xp, end_xp)
+            if text and text ~= "" then
+                table.insert(parts, text)
+            end
+        end
+    end
+    return table.concat(parts, "\n")
+end
+
 --- Create a new ContextExtractor instance.
 -- @param ui KOReader UI instance (ReaderUI)
 -- @param settings Settings table with extraction limits
@@ -148,24 +215,43 @@ function ContextExtractor:getBookText(options)
 
     if not self.ui.document.info.has_pages then
         -- EPUB/flowing document: use XPointers
-        local success, text = pcall(function()
-            local current_xp = self.ui.document:getXPointer()
-            if not current_xp then
-                return ""
-            end
-            -- Jump to beginning to get start position
-            self.ui.document:gotoPos(0)
-            local start_xp = self.ui.document:getXPointer()
-            -- Return to current position
-            self.ui.document:gotoXPointer(current_xp)
-            -- Extract text between start and current
-            return self.ui.document:getTextFromXPointers(start_xp, current_xp) or ""
-        end)
+        local document = self.ui.document
+        local total_pages = document.info.number_of_pages or 0
 
-        if success then
-            book_text = text
+        if document.hasHiddenFlows and document:hasHiddenFlows() and total_pages > 0 then
+            -- Flow-aware path: extract only visible (flow 0) pages
+            local success, text = pcall(function()
+                local current_xp = document:getXPointer()
+                if not current_xp then return "" end
+                local current_page = document:getPageFromXPointer(current_xp) or total_pages
+                local ranges = ContextExtractor.getVisiblePageRanges(document, 1, current_page)
+                return extractVisibleText(document, ranges, total_pages)
+            end)
+            if success then
+                book_text = text
+            else
+                logger.warn("ContextExtractor: Failed to extract flow-aware EPUB text:", text)
+            end
         else
-            logger.warn("ContextExtractor: Failed to extract EPUB text:", text)
+            -- Standard path: extract from beginning to current position
+            local success, text = pcall(function()
+                local current_xp = self.ui.document:getXPointer()
+                if not current_xp then
+                    return ""
+                end
+                -- Jump to beginning to get start position
+                self.ui.document:gotoPos(0)
+                local start_xp = self.ui.document:getXPointer()
+                -- Return to current position
+                self.ui.document:gotoXPointer(current_xp)
+                -- Extract text between start and current
+                return self.ui.document:getTextFromXPointers(start_xp, current_xp) or ""
+            end)
+            if success then
+                book_text = text
+            else
+                logger.warn("ContextExtractor: Failed to extract EPUB text:", text)
+            end
         end
     else
         -- PDF/page-based document: extract page by page
@@ -282,35 +368,43 @@ function ContextExtractor:getBookTextRange(from_progress, to_progress, options)
 
     if not self.ui.document.info.has_pages then
         -- EPUB/flowing document: use XPointers
-        local success, text = pcall(function()
-            -- Save current position to restore later
-            local current_xp = self.ui.document:getXPointer()
+        local document = self.ui.document
+        local from_page = math.max(1, math.floor(from_progress * total_pages))
+        local to_page = math.min(total_pages, math.ceil(to_progress * total_pages))
 
-            -- Calculate page numbers from progress
-            local from_page = math.max(1, math.floor(from_progress * total_pages))
-            local to_page = math.min(total_pages, math.ceil(to_progress * total_pages))
-
-            -- Go to from_page to get start XPointer
-            self.ui.document:gotoPage(from_page)
-            local start_xp = self.ui.document:getXPointer()
-
-            -- Go to to_page to get end XPointer
-            self.ui.document:gotoPage(to_page)
-            local end_xp = self.ui.document:getXPointer()
-
-            -- Restore original position
-            if current_xp then
-                self.ui.document:gotoXPointer(current_xp)
+        if document.hasHiddenFlows and document:hasHiddenFlows() then
+            -- Flow-aware path: extract only visible (flow 0) pages in range
+            local success, text = pcall(function()
+                local ranges = ContextExtractor.getVisiblePageRanges(document, from_page, to_page)
+                return extractVisibleText(document, ranges, total_pages)
+            end)
+            if success then
+                book_text = text
+            else
+                logger.warn("ContextExtractor: Failed to extract flow-aware EPUB range text:", text)
             end
-
-            -- Extract text between positions
-            return self.ui.document:getTextFromXPointers(start_xp, end_xp) or ""
-        end)
-
-        if success then
-            book_text = text
         else
-            logger.warn("ContextExtractor: Failed to extract EPUB range text:", text)
+            -- Standard path: navigate to get XPointers
+            local success, text = pcall(function()
+                local current_xp = document:getXPointer()
+
+                document:gotoPage(from_page)
+                local start_xp = document:getXPointer()
+
+                document:gotoPage(to_page)
+                local end_xp = document:getXPointer()
+
+                if current_xp then
+                    document:gotoXPointer(current_xp)
+                end
+
+                return document:getTextFromXPointers(start_xp, end_xp) or ""
+            end)
+            if success then
+                book_text = text
+            else
+                logger.warn("ContextExtractor: Failed to extract EPUB range text:", text)
+            end
         end
     else
         -- PDF/page-based document: extract page by page
@@ -423,31 +517,41 @@ function ContextExtractor:getFullDocumentText(options)
 
     if not self.ui.document.info.has_pages then
         -- EPUB: extract from start to END (not current position)
-        local success, text = pcall(function()
-            -- Save current position to restore later
-            local current_xp = self.ui.document:getXPointer()
+        local document = self.ui.document
 
-            -- Get start position
-            self.ui.document:gotoPos(0)
-            local start_xp = self.ui.document:getXPointer()
-
-            -- Get end position (last page)
-            self.ui.document:gotoPage(total_pages)
-            local end_xp = self.ui.document:getXPointer()
-
-            -- Restore original position
-            if current_xp then
-                self.ui.document:gotoXPointer(current_xp)
+        if document.hasHiddenFlows and document:hasHiddenFlows() and total_pages > 0 then
+            -- Flow-aware path: extract only visible (flow 0) pages
+            local success, text = pcall(function()
+                local ranges = ContextExtractor.getVisiblePageRanges(document, 1, total_pages)
+                return extractVisibleText(document, ranges, total_pages)
+            end)
+            if success then
+                book_text = text
+            else
+                logger.warn("ContextExtractor: Failed to extract flow-aware full EPUB text:", text)
             end
-
-            -- Extract text between start and end
-            return self.ui.document:getTextFromXPointers(start_xp, end_xp) or ""
-        end)
-
-        if success then
-            book_text = text
         else
-            logger.warn("ContextExtractor: Failed to extract full EPUB text:", text)
+            -- Standard path: navigate to get start/end XPointers
+            local success, text = pcall(function()
+                local current_xp = document:getXPointer()
+
+                document:gotoPos(0)
+                local start_xp = document:getXPointer()
+
+                document:gotoPage(total_pages)
+                local end_xp = document:getXPointer()
+
+                if current_xp then
+                    document:gotoXPointer(current_xp)
+                end
+
+                return document:getTextFromXPointers(start_xp, end_xp) or ""
+            end)
+            if success then
+                book_text = text
+            else
+                logger.warn("ContextExtractor: Failed to extract full EPUB text:", text)
+            end
         end
     else
         -- PDF: extract ALL pages

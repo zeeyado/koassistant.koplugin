@@ -55,6 +55,20 @@ local function getChapterBoundaries(ui, target_depth)
         return nil, { has_toc = false, max_depth = 0, entry_count = 0 }
     end
 
+    -- Filter out TOC entries from hidden flows
+    local effective_toc = toc
+    if ui.document.hasHiddenFlows and ui.document:hasHiddenFlows() then
+        effective_toc = {}
+        for _idx, entry in ipairs(toc) do
+            if entry.page and ui.document:getPageFlow(entry.page) == 0 then
+                table.insert(effective_toc, entry)
+            end
+        end
+        if #effective_toc == 0 then
+            return nil, { has_toc = false, max_depth = 0, entry_count = 0 }
+        end
+    end
+
     local total_pages = ui.document.info.number_of_pages or 0
     local current_page = getCurrentPage(ui)
 
@@ -62,7 +76,7 @@ local function getChapterBoundaries(ui, target_depth)
     local max_depth = 0
     local depth_counts = {}
     local depth_titles = {}  -- current entry title at each depth level
-    for _idx, entry in ipairs(toc) do
+    for _idx, entry in ipairs(effective_toc) do
         local d = entry.depth or 1
         if d > max_depth then max_depth = d end
         depth_counts[d] = (depth_counts[d] or 0) + 1
@@ -75,14 +89,14 @@ local function getChapterBoundaries(ui, target_depth)
     local toc_info = {
         has_toc = true,
         max_depth = max_depth,
-        entry_count = #toc,
+        entry_count = #effective_toc,
         depth_counts = depth_counts,
         depth_titles = depth_titles,
     }
 
     -- Filter entries to target_depth (or use all if nil)
     local filtered = {}
-    for _idx, entry in ipairs(toc) do
+    for _idx, entry in ipairs(effective_toc) do
         local d = entry.depth or 1
         if not target_depth or d == target_depth then
             table.insert(filtered, entry)
@@ -130,6 +144,20 @@ local function getAllChapterBoundaries(ui, target_depth)
         return nil, { has_toc = false, max_depth = 0, entry_count = 0 }
     end
 
+    -- Filter out TOC entries from hidden flows
+    local effective_toc = toc
+    if ui.document.hasHiddenFlows and ui.document:hasHiddenFlows() then
+        effective_toc = {}
+        for _idx, entry in ipairs(toc) do
+            if entry.page and ui.document:getPageFlow(entry.page) == 0 then
+                table.insert(effective_toc, entry)
+            end
+        end
+        if #effective_toc == 0 then
+            return nil, { has_toc = false, max_depth = 0, entry_count = 0 }
+        end
+    end
+
     local total_pages = ui.document.info.number_of_pages or 0
     local current_page = getCurrentPage(ui)
 
@@ -137,7 +165,7 @@ local function getAllChapterBoundaries(ui, target_depth)
     local max_depth = 0
     local depth_counts = {}
     local depth_titles = {}
-    for _idx, entry in ipairs(toc) do
+    for _idx, entry in ipairs(effective_toc) do
         local d = entry.depth or 1
         if d > max_depth then max_depth = d end
         depth_counts[d] = (depth_counts[d] or 0) + 1
@@ -149,7 +177,7 @@ local function getAllChapterBoundaries(ui, target_depth)
     local toc_info = {
         has_toc = true,
         max_depth = max_depth,
-        entry_count = #toc,
+        entry_count = #effective_toc,
         depth_counts = depth_counts,
         depth_titles = depth_titles,
     }
@@ -159,7 +187,7 @@ local function getAllChapterBoundaries(ui, target_depth)
 
     -- Filter entries to target depth
     local filtered = {}
-    for _idx, entry in ipairs(toc) do
+    for _idx, entry in ipairs(effective_toc) do
         if (entry.depth or 1) == depth then
             table.insert(filtered, entry)
         end
@@ -241,6 +269,27 @@ local function getPageRangeChapter(ui)
     }, { has_toc = false, max_depth = 0 }
 end
 
+--- Extract text from visible page ranges using XPointers (browser-local helper).
+--- @param document table KOReader document object
+--- @param ranges table Array of {start_page, end_page}
+--- @param total_pages number Total pages in document
+--- @return string text
+local function extractVisibleText(document, ranges, total_pages)
+    if #ranges == 0 then return "" end
+    local parts = {}
+    for _idx, r in ipairs(ranges) do
+        local start_xp = document:getPageXPointer(r.start_page)
+        local end_xp = document:getPageXPointer(math.min(r.end_page + 1, total_pages))
+        if start_xp and end_xp then
+            local text = document:getTextFromXPointers(start_xp, end_xp)
+            if text and text ~= "" then
+                table.insert(parts, text)
+            end
+        end
+    end
+    return table.concat(parts, "\n")
+end
+
 --- Extract text between page boundaries
 --- @param ui table KOReader UI instance
 --- @param chapter table {start_page, end_page}
@@ -276,12 +325,21 @@ local function extractChapterText(ui, chapter, max_chars)
         text = table.concat(parts, " ")
     else
         -- EPUB/reflowable: use xpointers for page range
-        local total_pages = ui.document.info.number_of_pages or 0
+        local document = ui.document
+        local total_pages = document.info.number_of_pages or 0
         local ok, result = pcall(function()
-            local start_xp = ui.document:getPageXPointer(chapter.start_page)
-            local end_xp = ui.document:getPageXPointer(math.min(chapter.end_page + 1, total_pages))
-            if start_xp and end_xp then
-                return ui.document:getTextFromXPointers(start_xp, end_xp)
+            if document.hasHiddenFlows and document:hasHiddenFlows() then
+                -- Flow-aware: extract only visible pages within chapter range
+                local ContextExtractor = require("koassistant_context_extractor")
+                local ranges = ContextExtractor.getVisiblePageRanges(document,
+                    chapter.start_page, math.min(chapter.end_page, total_pages))
+                return extractVisibleText(document, ranges, total_pages)
+            else
+                local start_xp = document:getPageXPointer(chapter.start_page)
+                local end_xp = document:getPageXPointer(math.min(chapter.end_page + 1, total_pages))
+                if start_xp and end_xp then
+                    return document:getTextFromXPointers(start_xp, end_xp)
+                end
             end
         end)
         if ok and result then
