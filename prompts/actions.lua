@@ -26,6 +26,7 @@ local Constants = require("koassistant_constants")
 --   skip_language_instruction - Don't include user's language preferences in system prompt (optional)
 --   requires         - Optional metadata requirement: "author", "title", etc.
 --   include_book_context - Include book metadata with highlight context (optional)
+--   description      - Human-readable summary of what the action does (optional, shown in details view)
 --   enabled          - Default enabled state (default: true)
 --   builtin          - Whether this is a built-in action (default: true for this file)
 --   storage_key      - Override chat save location (optional):
@@ -145,6 +146,7 @@ Actions.highlight = {
     explain = {
         id = "explain",
         text = _("Explain"),
+        description = _("Explains the selected passage clearly, matching the tone of the source material."),
         context = "highlight",
         template = "explain",
         in_highlight_menu = 2,  -- Default in highlight menu
@@ -160,6 +162,7 @@ Actions.highlight = {
         id = "eli5",
         enable_web_search = false,
         text = _("ELI5"),
+        description = _("Simplifies the passage into everyday language using analogies and concrete examples, without sacrificing accuracy."),
         context = "highlight",
         template = "eli5",
         -- Uses global behavior variant
@@ -175,6 +178,7 @@ Actions.highlight = {
         id = "summarize",
         enable_web_search = false,
         text = _("Summarize"),
+        description = _("Condenses the selected passage to its essential points, keeping what matters and trimming the rest."),
         context = "highlight",
         template = "summarize",
         -- Uses global behavior variant
@@ -189,6 +193,7 @@ Actions.highlight = {
         id = "elaborate",
         enable_web_search = false,
         text = _("Elaborate"),
+        description = _("Expands on the passage by unpacking concepts, adding context, and exploring implications."),
         context = "highlight",
         template = "elaborate",
         -- Uses global behavior variant
@@ -202,6 +207,7 @@ Actions.highlight = {
     connect = {
         id = "connect",
         text = _("Connect"),
+        description = _("Finds connections between the passage and broader themes, other works, thinkers, and intellectual traditions."),
         context = "highlight",
         prompt = [[Draw connections from this passage:
 
@@ -224,6 +230,7 @@ Surface connections that enrich understanding, not tangential trivia. {concisene
         id = "connect_with_notes",
         enable_web_search = false,
         text = _("Connect (With Notes)"),
+        description = _("Connects the passage to your own highlights and notebook entries, revealing patterns and echoes in your reading. Requires annotations and notebook sharing to be enabled."),
         context = "highlight",
         behavior_variant = "reader_assistant",
         include_book_context = true,
@@ -264,6 +271,7 @@ If I have no prior highlights or notebook entries, just reflect on this passage 
         id = "explain_in_context",
         enable_web_search = false,
         text = _("Explain in Context"),
+        description = _("Explains the passage using the full document text for deeper, contextualized understanding. Requires text extraction; without it, falls back to AI knowledge of the work."),
         context = "highlight",
         use_book_text = true,
         include_book_context = true,
@@ -293,6 +301,7 @@ Help me understand:
         id = "analyze_in_context",
         enable_web_search = false,
         text = _("Analyze in Context"),
+        description = _("Deep analysis of the passage within the full document, connecting it to themes and your annotations. Requires text extraction; also uses your annotations if shared."),
         context = "highlight",
         use_book_text = true,
         use_annotations = true,
@@ -327,6 +336,7 @@ Provide deeper analysis:
         id = "explain_in_context_smart",
         enable_web_search = false,
         text = _("Explain in Context") .. " (Smart)",
+        description = _("Like Explain in Context, but uses a pre-built Summary Cache instead of the full text — faster and cheaper, though less detailed. Requires generating a Summary Cache first."),
         context = "highlight",
         use_book_text = true,        -- Gate for accessing _summary_cache (derives from book text)
         use_summary_cache = true,    -- Reference the cached summary
@@ -359,6 +369,7 @@ Note: The summary may be in a different language than your response language. Tr
         id = "analyze_in_context_smart",
         enable_web_search = false,
         text = _("Analyze in Context") .. " (Smart)",
+        description = _("Like Analyze in Context, but uses a pre-built Summary Cache instead of the full text. Still includes your annotations if shared. Requires generating a Summary Cache first."),
         context = "highlight",
         use_book_text = true,        -- Gate for accessing _summary_cache (derives from book text)
         use_summary_cache = true,    -- Reference the cached summary
@@ -395,6 +406,7 @@ Note: The summary may be in a different language than your response language. Tr
         id = "thematic_connection_smart",
         enable_web_search = false,
         text = _("Thematic Connection") .. " (Smart)",
+        description = _("Analyzes how a passage connects to the work's major themes — alignment, significance, recurring patterns, and the author's craft. Uses Summary Cache."),
         context = "highlight",
         use_book_text = true,        -- Gate for accessing _summary_cache
         use_summary_cache = true,    -- Reference the cached summary
@@ -436,6 +448,7 @@ Note: The summary may be in a different language than your response language. Tr
         id = "fact_check",
         enable_web_search = true,  -- Force web search even if global setting is off
         text = _("Fact Check"),
+        description = _("Searches the web to verify claims in the selected passage, rating accuracy and citing current sources as evidence."),
         context = "highlight",
         include_book_context = true,
         skip_domain = true,  -- Fact-checking format is standardized
@@ -464,6 +477,7 @@ If multiple claims are present, address each separately. If the passage is opini
         id = "current_context",
         enable_web_search = true,  -- Force web search even if global setting is off
         text = _("Current Context"),
+        description = _("Searches the web for the latest developments on the topic discussed in the selected passage — what has changed since the book was written."),
         context = "highlight",
         include_book_context = true,
         skip_domain = true,  -- Current events format is standardized
@@ -495,6 +509,7 @@ Actions.book = {
     book_info = {
         id = "book_info",
         text = _("Book Info"),
+        description = _("General overview: what the book is about, its significance, who it appeals to, and what the reading experience is like. Based on AI knowledge — no book data needed."),
         context = "book",
         template = "book_info",
         api_params = {
@@ -507,6 +522,7 @@ Actions.book = {
     similar_books = {
         id = "similar_books",
         text = _("Find Similar"),
+        description = _("Recommends 5-7 similar works, explaining what makes each one similar and who would prefer which."),
         context = "book",
         template = "similar_books",
         api_params = {
@@ -518,6 +534,7 @@ Actions.book = {
     explain_author = {
         id = "explain_author",
         text = _("About Author"),
+        description = _("Biography, major works, writing style, and suggested reading order for the book's author."),
         context = "book",
         template = "explain_author",
         requires = "author",
@@ -530,6 +547,7 @@ Actions.book = {
     historical_context = {
         id = "historical_context",
         text = _("Historical Context"),
+        description = _("Explores when the book was written, what was happening at the time, and how the work reflects or responds to its era."),
         context = "book",
         template = "historical_context",
         api_params = {
@@ -543,6 +561,7 @@ Actions.book = {
         id = "xray",
         enable_web_search = false,
         text = _("X-Ray"),
+        description = _("Builds a structured reference guide — characters, themes, locations, timeline — up to your current reading position. Completely spoiler-free. When highlights are shared, adds a personal reader engagement section analyzing what catches your attention and patterns in your highlighting. Without highlights, focuses purely on the text content. Requires text extraction; updates incrementally as you read further."),
         context = "book",
         behavior_variant = "reader_assistant",
         -- Context extraction flags
@@ -642,6 +661,7 @@ CRITICAL: This must remain spoiler-free up to {reading_progress}. Output ONLY va
         id = "recap",
         enable_web_search = false,
         text = _("Recap"),
+        description = _("A 'Previously on...' refresher to help you get back into a book after time away. Covers recent events, active threads, and where you left off. Adapts to fiction or non-fiction. When highlights are shared, weaves in what you found notable. Requires text extraction; updates incrementally as you read."),
         context = "book",
         behavior_variant = "reader_assistant",
         -- Context extraction flags
@@ -722,6 +742,7 @@ CRITICAL: No spoilers beyond {reading_progress}.]],
         id = "analyze_highlights",
         enable_web_search = false,
         text = _("Analyze Highlights"),
+        description = _("Analyzes your highlighting and annotation patterns to reveal what catches your attention, emerging themes, and connections between your notes. This is about understanding you as a reader, not summarizing the book. Requires annotations and notebook sharing."),
         context = "book",
         behavior_variant = "reader_assistant",
         -- Context extraction flags
@@ -776,6 +797,7 @@ If you don't recognize this work or the highlights seem insufficient for meaning
     related_thinkers = {
         id = "related_thinkers",
         text = _("Related Thinkers"),
+        description = _("Maps the intellectual landscape: who influenced the author, who the author influenced, and contemporary thinkers working on similar problems. For fiction, focuses on literary influences and movements."),
         context = "book",
         -- No behavior_variant - uses user's global behavior
         -- No skip_domain - domain expertise helps here
@@ -810,6 +832,7 @@ Aim for the most significant connections, not an exhaustive list. {conciseness_n
         id = "key_arguments",
         enable_web_search = false,
         text = _("Key Arguments"),
+        description = _("Breaks down the book's thesis, supporting arguments, evidence, assumptions, and potential counterarguments. For fiction, analyzes themes and the author's worldview instead. Requires text extraction; without it, falls back to AI knowledge."),
         context = "book",
         use_book_text = true,  -- Permission gate for text extraction
         -- No behavior_variant - uses user's global behavior
@@ -855,6 +878,7 @@ This is an overview, not an essay. {conciseness_nudge} {hallucination_nudge}
         id = "key_arguments_smart",
         enable_web_search = false,
         text = _("Key Arguments") .. " (Smart)",
+        description = _("Same analysis as Key Arguments, but uses a pre-built Summary Cache instead of the full text — faster and cheaper. Requires generating a Summary Cache first."),
         context = "book",
         use_book_text = true,        -- Gate for accessing _summary_cache
         use_summary_cache = true,    -- Reference the cached summary
@@ -902,6 +926,7 @@ Note: The summary may be in a different language than your response language. Tr
         id = "discussion_questions",
         enable_web_search = false,
         text = _("Discussion Questions"),
+        description = _("Generates 8-10 discussion questions spanning comprehension, analysis, interpretation, and personal connection. Good for book clubs or classroom use. Requires text extraction; without it, falls back to AI knowledge."),
         context = "book",
         use_book_text = true,  -- Permission gate for text extraction
         -- User can mention reading progress in follow-up if needed
@@ -943,6 +968,7 @@ Note: These are general questions for the complete work. If the reader is mid-bo
         id = "discussion_questions_smart",
         enable_web_search = false,
         text = _("Discussion Questions") .. " (Smart)",
+        description = _("Same as Discussion Questions, but uses a pre-built Summary Cache instead of the full text. Requires generating a Summary Cache first."),
         context = "book",
         use_book_text = true,        -- Gate for accessing _summary_cache
         use_summary_cache = true,    -- Reference the cached summary
@@ -984,6 +1010,7 @@ Note: The summary may be in a different language than your response language. Tr
         id = "generate_quiz",
         enable_web_search = false,
         text = _("Generate Quiz"),
+        description = _("Creates a comprehension quiz with multiple choice, short answer, and essay questions with model answers. Requires text extraction; without it, falls back to AI knowledge."),
         context = "book",
         use_book_text = true,  -- Permission gate for text extraction
         prompt = [[Create a comprehension quiz for "{title}"{author_clause}.
@@ -1025,6 +1052,7 @@ Note: These are general questions for the complete work. If the reader is mid-bo
         id = "generate_quiz_smart",
         enable_web_search = false,
         text = _("Generate Quiz") .. " (Smart)",
+        description = _("Same as Generate Quiz, but uses a pre-built Summary Cache instead of the full text. Requires generating a Summary Cache first."),
         context = "book",
         use_book_text = true,        -- Gate for accessing _summary_cache
         use_summary_cache = true,    -- Reference the cached summary
@@ -1066,6 +1094,7 @@ Note: The summary may be in a different language than your response language. Tr
         id = "analyze_full_document",
         enable_web_search = false,
         text = _("Analyze Document"),
+        description = _("Analyzes the document's thesis, structure, key insights, and audience. The result is saved as an Analyze Cache that other actions can reference. Requires text extraction."),
         context = "book",
         use_book_text = true,  -- Permission gate (UI: "Allow text extraction")
         cache_as_analyze = true,  -- Save for other actions via {analyze_cache_section}
@@ -1095,6 +1124,7 @@ Provide analysis appropriate to this document's type and purpose. Address what's
         id = "summarize_full_document",
         enable_web_search = false,
         text = _("Summarize Document"),
+        description = _("Creates a comprehensive summary preserving key details and structure. The result is saved as a Summary Cache — the foundation that all Smart actions rely on. Requires text extraction."),
         context = "book",
         use_book_text = true,  -- Permission gate (UI: "Allow text extraction")
         cache_as_summary = true,  -- Save for other actions via {summary_cache_section}
@@ -1109,6 +1139,7 @@ Provide analysis appropriate to this document's type and purpose. Address what's
         id = "extract_insights",
         enable_web_search = false,
         text = _("Extract Key Insights"),
+        description = _("Distills the most important takeaways: ideas worth remembering, novel perspectives, actionable conclusions, and connections to broader concepts. Requires text extraction."),
         context = "book",
         use_book_text = true,  -- Permission gate (UI: "Allow text extraction")
         prompt = [[Extract key insights from: "{title}"{author_clause}.
@@ -1134,6 +1165,7 @@ What are the most important takeaways? Focus on:
         id = "book_reviews",
         enable_web_search = true,  -- Force web search even if global setting is off
         text = _("Book Reviews"),
+        description = _("Searches the web for critical and reader reviews, awards, and any controversy around the book."),
         context = "book",
         skip_domain = true,  -- Reviews format is standardized
         prompt = [[Find reviews and reception for "{title}"{author_clause}.
@@ -1165,6 +1197,7 @@ Actions.multi_book = {
         id = "compare_books",
         enable_web_search = false,
         text = _("Compare Books"),
+        description = _("Compares the selected books, focusing on meaningful contrasts: different approaches, unique strengths, and which readers would prefer which."),
         context = "multi_book",
         template = "compare_books",
         api_params = {
@@ -1177,6 +1210,7 @@ Actions.multi_book = {
         id = "common_themes",
         enable_web_search = false,
         text = _("Find Common Themes"),
+        description = _("Identifies shared themes, intellectual traditions, and deeper patterns across the selected books — beyond surface-level genre labels."),
         context = "multi_book",
         template = "common_themes",
         api_params = {
@@ -1189,6 +1223,7 @@ Actions.multi_book = {
         id = "collection_summary",
         enable_web_search = false,
         text = _("Analyze Collection"),
+        description = _("Analyzes what the collection reveals about the reader's interests, perspective, and what might be missing for a more complete picture."),
         context = "multi_book",
         template = "collection_summary",
         api_params = {
@@ -1201,6 +1236,7 @@ Actions.multi_book = {
         id = "quick_summaries",
         enable_web_search = false,
         text = _("Quick Summaries"),
+        description = _("A brief 2-3 sentence summary of each selected book, focusing on premise and appeal."),
         context = "multi_book",
         template = "quick_summaries",
         api_params = {
@@ -1213,6 +1249,7 @@ Actions.multi_book = {
         id = "reading_order",
         enable_web_search = false,
         text = _("Reading Order"),
+        description = _("Suggests an optimal reading order based on conceptual dependencies, difficulty progression, and thematic arc."),
         context = "multi_book",
         template = "reading_order",
         api_params = {
@@ -1228,6 +1265,7 @@ Actions.general = {
     news_update = {
         id = "news_update",
         text = _("News Update"),
+        description = _("Fetches today's top global news stories from Al Jazeera with headlines, summaries, and links. Uses web search."),
         context = "general",
         prompt = [[Get me a brief news update from Al Jazeera's most important stories today.
 
@@ -1255,6 +1293,7 @@ Actions.special = {
         id = "translate",
         enable_web_search = false,
         text = _("Translate"),
+        description = _("Translates the selected text into your configured translation language."),
         context = "highlight",  -- Only for highlighted text
         behavior_variant = "translator_direct",  -- Use built-in translation behavior
         in_highlight_menu = 1,  -- Default in highlight menu
@@ -1274,6 +1313,7 @@ Actions.special = {
         id = "quick_define",
         enable_web_search = false,
         text = _("Quick Define"),
+        description = _("A brief, one-line dictionary definition of the selected word in your dictionary language."),
         context = "highlight",  -- Only for highlighted text
         behavior_variant = "dictionary_direct",  -- Use built-in dictionary behavior
         in_dictionary_popup = 2,  -- Default order in dictionary popup
@@ -1303,6 +1343,7 @@ One line only. No etymology, no synonyms. No headers.]],
         id = "dictionary",
         enable_web_search = false,
         text = _("Dictionary"),
+        description = _("Full dictionary entry with pronunciation, definitions, etymology, and synonyms."),
         context = "highlight",  -- Only for highlighted text
         behavior_variant = "dictionary_direct",  -- Use built-in dictionary behavior
         in_dictionary_popup = 1,  -- Default order in dictionary popup
@@ -1335,6 +1376,7 @@ All labels and explanations in {dictionary_language}. Inline bold labels, no hea
         id = "dictionary_deep",
         enable_web_search = false,
         text = _("Deep Analysis"),
+        description = _("Deep linguistic analysis covering morphology, word family, etymology, cognates, and cross-language borrowings. Adapts to the word's language family (Semitic roots, Indo-European stems, etc.)."),
         context = "highlight",  -- Only for highlighted text
         behavior_variant = "dictionary_detailed",  -- Use built-in detailed dictionary behavior
         in_dictionary_popup = 3,  -- Default order in dictionary popup
