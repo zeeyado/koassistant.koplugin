@@ -7048,9 +7048,8 @@ function AskGPT:resetActionMenus(silent)
   self.settings:flush()
 
   if not silent then
-    UIManager:show(Notification:new{
-      text = _("Action menus reset to defaults"),
-      timeout = 2,
+    UIManager:show(InfoMessage:new{
+      text = _("Action menus reset to defaults.") .. "\n" .. _("Restart KOReader for highlight menu changes to apply."),
     })
   end
 end

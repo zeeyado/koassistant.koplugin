@@ -833,8 +833,10 @@ function PromptsManager:showPromptDetails(prompt)
                 local now_in_menu = self.plugin.action_service:toggleHighlightMenuAction(prompt.id)
                 UIManager:close(self.details_dialog)
                 UIManager:show(InfoMessage:new{
-                    text = now_in_menu and _("Added to highlight menu.") or _("Removed from highlight menu."),
-                    timeout = 2,
+                    text = now_in_menu
+                        and _("Added to highlight menu.\nRestart KOReader to apply.")
+                        or _("Removed from highlight menu.\nRestart KOReader to apply."),
+                    timeout = 3,
                 })
             end,
         })
@@ -4261,8 +4263,10 @@ function PromptsManager:addPrompt(state)
         })
 
         -- Add to highlight menu if requested (only for highlight-compatible contexts)
+        local added_to_highlight_menu = false
         if state.add_to_highlight_menu and self:contextIncludesHighlight(state.context) then
             service:addToHighlightMenu(new_action_id)
+            added_to_highlight_menu = true
         end
 
         -- Add to dictionary popup if requested (only for highlight-compatible contexts)
@@ -4270,8 +4274,12 @@ function PromptsManager:addPrompt(state)
             service:addToDictionaryPopup(new_action_id)
         end
 
+        local msg = _("Action added successfully")
+        if added_to_highlight_menu then
+            msg = msg .. "\n" .. _("Restart KOReader for highlight menu changes to apply.")
+        end
         UIManager:show(InfoMessage:new{
-            text = _("Action added successfully"),
+            text = msg,
         })
     end
 end
@@ -4512,6 +4520,10 @@ function PromptsManager:showHighlightMenuActionOptions(action, index, total)
                     self.plugin.action_service:moveHighlightMenuAction(action.id, "up")
                     UIManager:close(self.options_dialog)
                     UIManager:close(self.highlight_menu)
+                    UIManager:show(Notification:new{
+                        text = _("Changes require restart to take effect"),
+                        timeout = 2,
+                    })
                     self:showHighlightMenuManager()
                 end,
             },
@@ -4526,6 +4538,10 @@ function PromptsManager:showHighlightMenuActionOptions(action, index, total)
                     self.plugin.action_service:moveHighlightMenuAction(action.id, "down")
                     UIManager:close(self.options_dialog)
                     UIManager:close(self.highlight_menu)
+                    UIManager:show(Notification:new{
+                        text = _("Changes require restart to take effect"),
+                        timeout = 2,
+                    })
                     self:showHighlightMenuManager()
                 end,
             },
@@ -4539,6 +4555,10 @@ function PromptsManager:showHighlightMenuActionOptions(action, index, total)
                 self.plugin.action_service:removeFromHighlightMenu(action.id)
                 UIManager:close(self.options_dialog)
                 UIManager:close(self.highlight_menu)
+                UIManager:show(Notification:new{
+                    text = _("Changes require restart to take effect"),
+                    timeout = 2,
+                })
                 self:showHighlightMenuManager()
             end,
         },
