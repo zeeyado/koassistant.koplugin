@@ -746,7 +746,7 @@ When working with highlighted text, the **Save to Note** button lets you save th
 
 **Key features:**
 - **Native integration**: Uses KOReader's standard highlight/note system
-- **Configurable content**: Choose what to save — response only (default), question + response, or full chat with metadata. Configure in Settings → Chat Settings → Note Content
+- **Configurable content**: Choose what to save — response only (default), question + response, or full chat with metadata. Configure in Settings → Chat & Export → Note Content
 - **Editable before saving**: Review and modify the AI response before committing
 - **Creates permanent highlight**: The selected text becomes a saved highlight with the note attached
 - **Works with translations**: Great for saving translations alongside the original text
@@ -1613,7 +1613,7 @@ When you tap Export on a chat, you can choose:
 - **Copy to Clipboard**: Copy the formatted chat text
 - **Save to File**: Save as a markdown (.md) or text (.txt) file
 
-**Content options** (Settings → Chat Settings → History Export):
+**Content options** (Settings → Chat & Export → History Export):
 - **Ask every time** (default): Shows a picker dialog to choose what to include
 - **Follow Copy Content**: Uses the global Copy Content setting
 - Fixed formats (5 types):
@@ -1623,7 +1623,7 @@ When you tap Export on a chat, you can choose:
   - **Full**: Book metadata header + Q+A (no context messages)
   - **Everything**: Book metadata + all context messages + all messages (debug)
 
-**Directory options** for Save to File (Settings → Chat Settings → Save to File):
+**Directory options** for Save to File (Settings → Chat & Export → Save to File):
 - **KOAssistant exports folder** (default): Central `koassistant_exports/` in KOReader data directory
 - **Custom folder**: User-specified fixed directory
 - **Ask every time**: PathChooser dialog on each save
@@ -1797,17 +1797,20 @@ Tags are simple labels for organizing chats. Unlike domains:
   - Requires **emoji font support** — see [Emoji Font Setup](#emoji-font-setup).
 - **Plugin UI Language**: Language for plugin menus and dialogs. Does not affect AI responses. Options: Match KOReader (default), English, or 20+ other translations. Use this to switch the plugin UI to a language you're learning without changing KOReader's language, or to force English if you find the translations inaccurate. Requires restart.
 
-### Chat Settings
+### Chat & Export
 - **Auto-save All Chats**: Automatically save every new conversation
 - **Auto-save Continued Chats**: Only save when continuing from history
+- **Scroll to Last Message (Experimental)**: When resuming or replying to a chat, scroll to show your last question. Off by default (old behavior: top for new chats, bottom for replies)
+
+#### Streaming (sub-menu)
 - **Enable Streaming**: Show responses as they generate in real-time
 - **Auto-scroll Streaming**: Follow new text during streaming (off by default)
+- **Page-based Scroll (e-ink)**: Stream text into empty page space instead of scrolling from the bottom. Reduces full-screen refreshes on e-ink devices. When disabled, falls back to continuous bottom-scrolling. Default: on. Requires Auto-scroll.
 - **Large Stream Dialog**: Use full-screen streaming window
 - **Stream Poll Interval (ms)**: How often to check for new stream data (default: 125ms, range: 25-1000ms). Lower values are snappier but use more battery.
 - **Display Refresh Interval (ms)**: How often to refresh the display during streaming (default: 250ms, range: 100-500ms). Higher values improve performance on slower devices.
-- **Scroll to Last Message (Experimental)**: When resuming or replying to a chat, scroll to show your last question. Off by default (old behavior: top for new chats, bottom for replies)
 
-### Export Settings (within Chat Settings)
+### Export Settings (within Chat & Export)
 - **Export Style**: Format for Copy, Note, and Save to File — Markdown (default) or Plain Text
 - **Copy Content**: What to include when copying — Ask every time, Full (metadata + chat), Question + Response, Response only, or Everything (debug)
 - **Note Content**: What to include when saving to note — Ask every time, Full, Question + Response, Response only (default), or Everything (debug)
@@ -1815,7 +1818,7 @@ Tags are simple labels for organizing chats. Unlike domains:
 
 When "Ask every time" is selected, a picker dialog appears letting you choose what to include before proceeding.
 
-### Save to File Settings (within Chat Settings)
+### Save to File Settings (within Chat & Export)
 - **Save Location**: Where to save exported files
   - **KOAssistant exports folder** (default): Central `koassistant_exports/` folder with subfolders for book/general/multi-book chats
   - **Custom folder**: User-specified fixed directory
@@ -2373,6 +2376,7 @@ The Action Manager (Settings → Actions & Prompts → Manage Actions) has a ham
 When enabled, responses appear in real-time as the AI generates them.
 
 - **Auto-scroll**: Follows new text as it appears
+- **Page-based scroll** (default): Text fills the current page top-down, then advances to a blank page when full — minimizing full-screen e-ink refreshes. Disable for continuous bottom-scrolling.
 - **Auto-Scroll toggle button**: Tap to stop/start auto-scrolling
 
 Works with all providers that support streaming.
@@ -3027,7 +3031,7 @@ Edit `apikeys.lua` and add your key for the selected provider.
 3. Try Test Connection in settings
 
 ### Streaming not working
-1. Ensure "Enable Streaming" is on in Advanced settings
+1. Ensure "Enable Streaming" is on in Settings → Chat & Export → Streaming
 2. Some providers may have different streaming support
 
 ### Wrong model showing

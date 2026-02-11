@@ -256,20 +256,12 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
     local display_interval_sec = ((settings and settings.display_interval_ms) or 250) / 1000
     local pending_ui_update = false
 
-    -- Scroll the inner TextBoxWidget to a specific line
-    -- Uses the same pattern as TextBoxWidget:scrollToBottom()
-    local function scrollToLine(iw, line_num)
-        local stw = iw.text_widget  -- ScrollTextWidget
-        local inner = stw and stw.text_widget  -- TextBoxWidget
-        if inner and inner.virtual_line_num ~= line_num then
-            inner:free(false)
-            inner.virtual_line_num = line_num
-            inner:_updateLayout()
-        end
-    end
-
     -- Apply page-based scroll: advance page if overflowed, pad text to fill page, scroll
-    -- Must be called after iw:setText(display, true) so widget dimensions are available
+    -- Must be called after iw:setText(display, true) so widget dimensions are available.
+    -- Uses scrollToBottom() instead of directly setting virtual_line_num, so the
+    -- ScrollTextWidget's scroll indicator and position tracking stay in sync.
+    -- This works because padding aligns text to the page boundary, making "bottom"
+    -- equal to the correct page position.
     local function applyPageScroll(iw, display)
         local stw = iw.text_widget  -- ScrollTextWidget
         local inner = stw and stw.text_widget  -- TextBoxWidget
@@ -285,17 +277,16 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
         end
 
         -- Pad text with empty lines to fill the current page.
-        -- This creates the blank space for text to stream into,
-        -- and ensures scrollToLine stays within the widget's valid range.
+        -- This creates the blank space for text to stream into.
         local page_end = page_top_line + lpp - 1
         if total_lines < page_end then
             iw:setText(display .. string.rep("\n", page_end - total_lines), true)
         end
 
-        -- Scroll to page position (no-op on first page)
-        if page_top_line > 1 then
-            scrollToLine(iw, page_top_line)
-        end
+        -- Scroll to current page via scrollToBottom (padding makes bottom = page position).
+        -- Goes through InputText → ScrollTextWidget → TextBoxWidget chain,
+        -- keeping scroll indicator and position tracking in sync.
+        iw:scrollToBottom()
     end
 
     -- Throttled UI update function - batches multiple chunks into single display refresh
