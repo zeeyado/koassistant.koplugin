@@ -502,6 +502,19 @@ Focus on what's genuinely new or different from what the text describes. If the 
         },
         builtin = true,
     },
+    -- Local X-Ray lookup: search cached X-Ray data for selected text (no AI call)
+    xray_lookup = {
+        id = "xray_lookup",
+        text = _("Look up in X-Ray"),
+        description = _("Search X-Ray cache for selected text. Local lookup — no AI call, works offline."),
+        context = "highlight",
+        local_handler = "xray_lookup",
+        requires_open_book = true,
+        requires_xray_cache = true,
+        in_highlight_menu = 5,
+        in_dictionary_popup = 6,
+        builtin = true,
+    },
 }
 
 -- Built-in actions for book context (single book from file browser)
@@ -583,28 +596,31 @@ First, determine if this is FICTION or NON-FICTION. Then output ONLY a valid JSO
 ---
 
 FOR FICTION, use this JSON schema:
-{"type":"fiction","characters":[{"name":"Full Name","aliases":["Nickname","Title","Shortened Name"],"role":"Protagonist / Supporting / Antagonist","description":"Who they are, their journey so far, pivotal moments, and where they stand now.","connections":["Other Character (relationship)"]}],"locations":[{"name":"Place Name","description":"What it is, its atmosphere, and what the reader encounters there.","significance":"Key events here and why this place matters to the narrative."}],"themes":[{"name":"Theme Name","description":"How this theme manifests through characters, conflicts, and events so far."}],"lexicon":[{"term":"Term","definition":"Meaning and relevance to the story."}],"timeline":[{"event":"What happened","chapter":"Chapter/Section reference","significance":"Why it mattered and what it changed","characters":["Names involved"]}],"current_state":{"summary":"Where the story stands now — the immediate situation, emotional tone, and narrative momentum.","conflicts":["Active conflict, tension, or unresolved mystery"],"questions":["Unanswered question the reader is likely thinking about"]}}
+{"type":"fiction","characters":[{"name":"Full Name","aliases":["Nickname","Title","Shortened Name"],"role":"Protagonist / Supporting / Antagonist","description":"Who they are, their journey so far, pivotal moments, and where they stand now.","connections":["Other Character (relationship)"]}],"locations":[{"name":"Place Name","description":"What it is, its atmosphere, and what the reader encounters there.","significance":"Key events here and why this place matters to the narrative.","references":["Character or item name"]}],"themes":[{"name":"Theme Name","description":"How this theme manifests through characters, conflicts, and events so far.","references":["Character or item name"]}],"lexicon":[{"term":"Term","definition":"Meaning and relevance to the story."}],"timeline":[{"event":"What happened","chapter":"Chapter/Section reference","significance":"Why it mattered and what it changed","characters":["Names involved"]}],"current_state":{"summary":"Where the story stands now — the immediate situation, emotional tone, and narrative momentum.","conflicts":["Active conflict, tension, or unresolved mystery"],"questions":["Unanswered question the reader is likely thinking about"]}}
 
 Guidance for fiction:
-- **Characters (8-15)**: The heart of the X-Ray. For major characters (protagonist, antagonist, key supporting), write 3-5 sentences covering personality, their arc through the story so far, pivotal moments or turning points, and their current situation. For minor characters, 1-2 sentences suffice. Always include aliases and connections with relationship type.
-- **Locations (5-10)**: For significant locations, convey atmosphere and what unfolds there. Minor locations need only a brief note.
-- **Themes (5-8)**: Don't just name themes — trace how they develop through specific characters, conflicts, or events.
-- **Lexicon (5-10)**: In-world terms, cultural references, or specialized vocabulary. Keep definitions concise — this is reference material.
-- **Timeline (8-15)**: Chronological events driving the plot. Include both major plot points and important character moments. Each event should have a chapter reference and involved characters.
+- **Characters**: The heart of the X-Ray. Be thorough — include all named characters, groups, and entities the reader encounters, not just protagonists. For major characters (protagonist, antagonist, key supporting), write 3-5 sentences covering personality, their arc through the story so far, pivotal moments or turning points, and their current situation. For minor characters, 1-2 sentences suffice. Always include aliases and connections with relationship type.
+- **Locations**: For significant locations, convey atmosphere and what unfolds there. Minor locations need only a brief note. Include references to characters or items associated with each location.
+- **Themes**: Don't just name themes — trace how they develop through specific characters, conflicts, or events. Include references to characters or items that embody each theme.
+- **Lexicon**: In-world terms, cultural references, or specialized vocabulary. Keep definitions concise — this is reference material.
+- **Timeline**: Chronological events driving the plot. Include both major plot points and important character moments. Each event should have a chapter reference and involved characters.
 - **Current State**: A paragraph-length summary capturing where things stand, plus active conflicts and open questions.
+- **Output size**: Prioritize depth over breadth. Give detailed entries for significant items and brief entries for minor ones. Include all items the reader encounters, but keep minor entries concise to stay within output limits.
 
 ---
 
 FOR NON-FICTION, use this JSON schema:
-{"type":"nonfiction","key_figures":[{"name":"Person Name","role":"Their role or significance.","description":"Who they are, their key contributions or ideas, how the author engages with them, and their importance to the argument.","connections":["Related Person (relationship)"]}],"core_concepts":[{"name":"Concept","description":"What it means and how the author introduces it.","significance":"How the author develops it through evidence, examples, or argument, and why it matters to the thesis."}],"arguments":[{"name":"Claim","description":"The argument being made and its stakes.","evidence":"Key evidence, reasoning, and any counter-arguments addressed."}],"terminology":[{"term":"Term","definition":"Definition and how it's used in context."}],"argument_development":[{"event":"Key point or development","chapter":"Chapter/Section","significance":"How it advances the overall argument or shifts the discussion"}],"current_position":{"summary":"Where the argument stands now — what has been established, the current focus, and the intellectual trajectory.","questions_addressed":["Question or problem being addressed"],"building_toward":["What the author appears to be building toward"]}}
+{"type":"nonfiction","key_figures":[{"name":"Person Name","role":"Their role or significance.","description":"Who they are, their key contributions or ideas, how the author engages with them, and their importance to the argument.","connections":["Related Person (relationship)"]}],"locations":[{"name":"Place Name","description":"What it is, its historical or conceptual significance in the text.","significance":"Key events, arguments, or developments associated with this place.","references":["Key figure or concept name"]}],"core_concepts":[{"name":"Concept","description":"What it means and how the author introduces it.","significance":"How the author develops it through evidence, examples, or argument, and why it matters to the thesis.","references":["Key figure or concept name"]}],"arguments":[{"name":"Claim","description":"The argument being made and its stakes.","evidence":"Key evidence, reasoning, and any counter-arguments addressed.","references":["Key figure or concept name"]}],"terminology":[{"term":"Term","definition":"Definition and how it's used in context."}],"argument_development":[{"event":"Key point or development","chapter":"Chapter/Section","significance":"How it advances the overall argument or shifts the discussion","references":["Key figure or concept name"]}],"current_position":{"summary":"Where the argument stands now — what has been established, the current focus, and the intellectual trajectory.","questions_addressed":["Question or problem being addressed"],"building_toward":["What the author appears to be building toward"]}}
 
 Guidance for non-fiction:
-- **Key Figures (6-12)**: For central figures (the author's main interlocutors, key researchers, historical actors), write 3-5 sentences covering who they are, what ideas or work they contribute, how the author engages with them (agrees, critiques, builds on), and their significance to the argument. For briefly mentioned figures, 1-2 sentences. Include connections where figures relate to each other.
-- **Core Concepts (6-10)**: For major concepts, explain both what they mean and how the author develops them — through what evidence, examples, or reasoning. Minor concepts need only a definition.
-- **Arguments (5-8)**: The author's key claims. For each, capture the argument itself, the evidence or reasoning supporting it, and any counter-arguments the author addresses.
-- **Terminology (5-10)**: Specialized vocabulary, jargon, or terms the author defines. Keep concise — this is reference material.
-- **Argument Development (8-15)**: Track the intellectual progression — how the argument unfolds chapter by chapter. Each entry should show how it advances the thesis or shifts the discussion.
+- **Key Figures**: Be thorough — include all people, groups, institutions, and historical actors discussed or referenced, not just central figures. For central figures (the author's main interlocutors, key researchers, historical actors), write 3-5 sentences covering who they are, what ideas or work they contribute, how the author engages with them (agrees, critiques, builds on), and their significance to the argument. For briefly mentioned figures, 1-2 sentences. Include connections where figures relate to each other.
+- **Locations**: Cities, regions, institutions, and historically significant places discussed in the text. For each, note what it is, its significance to the subject matter, and what events or arguments are connected to it. Include references to key figures or concepts associated with each place.
+- **Core Concepts**: For major concepts, explain both what they mean and how the author develops them — through what evidence, examples, or reasoning. Minor concepts need only a definition. Include references to key figures or other items that develop each concept.
+- **Arguments**: The author's key claims. For each, capture the argument itself, the evidence or reasoning supporting it, and any counter-arguments the author addresses. Include references to key figures or concepts involved.
+- **Terminology**: Specialized vocabulary, jargon, or terms the author defines. Keep concise — this is reference material.
+- **Argument Development**: Track the intellectual progression — how the argument unfolds chapter by chapter. Each entry should show how it advances the thesis or shifts the discussion. Include references to key figures or concepts involved.
 - **Current Position**: A paragraph-length summary of what's been established so far, the current line of inquiry, and where the author seems to be heading.
+- **Output size**: Prioritize depth over breadth. Give detailed entries for significant items and brief entries for minor ones. Include all items discussed in the text, but keep minor entries concise to stay within output limits.
 
 ---
 
@@ -620,6 +636,7 @@ Do NOT attempt to construct an X-Ray with fabricated or uncertain details.]],
         -- Inherits global reasoning setting (user choice)
         api_params = {
             temperature = 0.5,
+            max_tokens = 32768,  -- X-Ray JSON can be large; 16K default often truncates
         },
         builtin = true,
         in_reading_features = 1,  -- Appears in Reading Features menu + default gesture
@@ -642,8 +659,8 @@ New content since then (now at {reading_progress}):
 Output an updated JSON object using the same schema as the previous analysis. If the previous analysis is in plain text rather than JSON, produce a fresh JSON analysis using the appropriate schema for the content type (fiction or nonfiction).
 
 Guidelines:
-- Add new characters, locations, themes, or concepts that appeared
-- Add aliases and connections for new characters
+- Add new characters, locations, themes, concepts, or key figures that appeared
+- Add aliases and connections for new characters/key figures
 - Enrich existing major character/figure descriptions as new information emerges (arc developments, turning points, shifting relationships)
 - Update timeline with new events (include characters involved)
 - Update "current_state" or "current_position" for the new progress point

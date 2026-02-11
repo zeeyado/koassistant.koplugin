@@ -101,6 +101,7 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
     local in_web_search_phase = false  -- Track if web search tool is executing
     local web_search_used = false  -- Track if web search was ever used during this stream
     local was_truncated = false  -- Track if response was truncated (max tokens)
+    local usage_data = nil  -- Track token usage from SSE events
 
     local chunksize = 1024 * 16
     local buffer = ffi.new('char[?]', chunksize, {0})
@@ -206,6 +207,13 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
         if was_truncated then
             local ResponseParser = require("koassistant_api.response_parser")
             result = result .. ResponseParser.TRUNCATION_NOTICE
+        end
+
+        -- Debug: Print token usage from accumulated SSE events
+        if settings and settings.debug and usage_data then
+            local DebugUtils = require("koassistant_debug_utils")
+            print(string.format("[%s] Token usage: %s", provider_name or "Stream",
+                DebugUtils.formatUsage(usage_data)))
         end
 
         -- Pass reasoning content as 4th arg (string if captured, nil otherwise)
@@ -576,6 +584,19 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                                 was_truncated = true
                             end
 
+                            -- Capture token usage from SSE events (provider-specific)
+                            local DebugUtils = require("koassistant_debug_utils")
+                            local event_usage = DebugUtils.extractUsage(event)
+                            if event_usage then
+                                -- Merge: later events may have more complete data
+                                usage_data = usage_data or {}
+                                if event_usage.input_tokens then usage_data.input_tokens = event_usage.input_tokens end
+                                if event_usage.output_tokens then usage_data.output_tokens = event_usage.output_tokens end
+                                if event_usage.total_tokens then usage_data.total_tokens = event_usage.total_tokens end
+                                if event_usage.cache_read then usage_data.cache_read = event_usage.cache_read end
+                                if event_usage.cache_creation then usage_data.cache_creation = event_usage.cache_creation end
+                            end
+
                             local content, reasoning = self:extractContentFromSSE(event)
 
                             -- Check for Gemini groundingMetadata (web search indicator)
@@ -669,6 +690,18 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                             -- Check for truncation
                             if self:checkIfTruncated(event) then
                                 was_truncated = true
+                            end
+
+                            -- Capture token usage from NDJSON events
+                            local DebugUtils = require("koassistant_debug_utils")
+                            local event_usage = DebugUtils.extractUsage(event)
+                            if event_usage then
+                                usage_data = usage_data or {}
+                                if event_usage.input_tokens then usage_data.input_tokens = event_usage.input_tokens end
+                                if event_usage.output_tokens then usage_data.output_tokens = event_usage.output_tokens end
+                                if event_usage.total_tokens then usage_data.total_tokens = event_usage.total_tokens end
+                                if event_usage.cache_read then usage_data.cache_read = event_usage.cache_read end
+                                if event_usage.cache_creation then usage_data.cache_creation = event_usage.cache_creation end
                             end
 
                             -- Check for error response

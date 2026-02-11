@@ -777,14 +777,25 @@ end
 
 -- Get full action objects for highlight menu (resolved, in order)
 -- @param has_open_book: boolean indicating if a book is currently open (for filtering)
-function ActionService:getHighlightMenuActionObjects(has_open_book)
+-- @param document_path: optional string path to check cache requirements
+function ActionService:getHighlightMenuActionObjects(has_open_book, document_path)
     local action_ids = self:getHighlightMenuActions()
     local result = {}
     local metadata = { has_open_book = has_open_book }
     for _, id in ipairs(action_ids) do
         local action = self:getAction("highlight", id)
         if action and action.enabled and self.Actions.checkRequirements(action, metadata) then
-            table.insert(result, action)
+            local include = true
+            if action.requires_xray_cache and document_path then
+                local ActionCache = require("koassistant_action_cache")
+                local cached = ActionCache.getXrayCache(document_path)
+                if not cached or not cached.result then
+                    include = false
+                end
+            end
+            if include then
+                table.insert(result, action)
+            end
         end
     end
     return result
@@ -923,14 +934,25 @@ end
 
 -- Get full action objects for dictionary popup (resolved, in order)
 -- @param has_open_book: boolean indicating if a book is currently open (for filtering)
-function ActionService:getDictionaryPopupActionObjects(has_open_book)
+-- @param document_path: optional string path to check cache requirements
+function ActionService:getDictionaryPopupActionObjects(has_open_book, document_path)
     local action_ids = self:getDictionaryPopupActions()
     local result = {}
     local metadata = { has_open_book = has_open_book }
     for _i, id in ipairs(action_ids) do
         local action = self:getAction("highlight", id)
         if action and action.enabled and self.Actions.checkRequirements(action, metadata) then
-            table.insert(result, action)
+            local include = true
+            if action.requires_xray_cache and document_path then
+                local ActionCache = require("koassistant_action_cache")
+                local cached = ActionCache.getXrayCache(document_path)
+                if not cached or not cached.result then
+                    include = false
+                end
+            end
+            if include then
+                table.insert(result, action)
+            end
         end
     end
     return result

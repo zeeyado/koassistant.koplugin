@@ -33,7 +33,7 @@ end
 
 -- Known category keys for validating parsed X-Ray data
 local FICTION_KEYS = { "characters", "locations", "themes", "lexicon", "timeline", "reader_engagement", "current_state" }
-local NONFICTION_KEYS = { "key_figures", "core_concepts", "arguments", "terminology", "argument_development", "reader_engagement", "current_position" }
+local NONFICTION_KEYS = { "key_figures", "locations", "core_concepts", "arguments", "terminology", "argument_development", "reader_engagement", "current_position" }
 
 --- Check if a table looks like valid X-Ray data (has at least one recognized category key)
 --- Also infers and sets the type field if missing.
@@ -126,6 +126,88 @@ function XrayParser.getCharacters(data)
     return data[key] or {}
 end
 
+--- Get the searchable name for an item (name, term, or event depending on type)
+--- @param item table An X-Ray item entry
+--- @return string|nil name The name to search for, or nil
+local function getItemSearchName(item)
+    return item.name or item.term or item.event
+end
+
+--- Singleton categories not useful for chapter text matching
+local SINGLETON_CATEGORIES = {
+    current_state = true,
+    current_position = true,
+    reader_engagement = true,
+}
+
+--- Resolve a connection/reference string to any X-Ray item
+--- Searches all categories: characters, locations, concepts, themes, etc.
+--- Connection strings follow the format "Name (relationship)" or just "Name"
+--- @param data table Parsed X-Ray data
+--- @param connection_string string e.g. "Elizabeth Bennet (love interest)" or "Constantinople"
+--- @return table|nil result { item, category_key, name_portion, relationship } or nil if not found
+function XrayParser.resolveConnection(data, connection_string)
+    if not connection_string or connection_string == "" then return nil end
+
+    -- Extract name portion: everything before the last " (" or the whole string
+    local name_portion = connection_string:match("^(.-)%s*%(") or connection_string
+    name_portion = name_portion:match("^%s*(.-)%s*$")  -- trim
+
+    -- Extract relationship if present
+    local relationship = connection_string:match("%((.-)%)")
+
+    if not name_portion or name_portion == "" then return nil end
+
+    local categories = XrayParser.getCategories(data)
+    local name_lower = name_portion:lower()
+
+    -- Build flat list of searchable items with their category keys
+    -- Skip singleton categories (current_state, current_position, reader_engagement)
+    local searchable = {}
+    for _idx, cat in ipairs(categories) do
+        if not SINGLETON_CATEGORIES[cat.key] then
+            for _idx2, item in ipairs(cat.items) do
+                table.insert(searchable, { item = item, category_key = cat.key })
+            end
+        end
+    end
+
+    if #searchable == 0 then return nil end
+
+    -- Pass 1: exact name match (name, term, or event)
+    for _idx, entry in ipairs(searchable) do
+        local item_name = getItemSearchName(entry.item)
+        if item_name and item_name:lower() == name_lower then
+            return { item = entry.item, category_key = entry.category_key,
+                     name_portion = name_portion, relationship = relationship }
+        end
+    end
+
+    -- Pass 2: alias match (characters/key_figures only)
+    for _idx, entry in ipairs(searchable) do
+        local aliases = ensure_array(entry.item.aliases)
+        if aliases then
+            for _idx2, alias in ipairs(aliases) do
+                if alias:lower() == name_lower then
+                    return { item = entry.item, category_key = entry.category_key,
+                             name_portion = name_portion, relationship = relationship }
+                end
+            end
+        end
+    end
+
+    -- Pass 3: substring match on name (e.g., "Elizabeth" matches "Elizabeth Bennet")
+    for _idx, entry in ipairs(searchable) do
+        local item_name = getItemSearchName(entry.item)
+        if item_name and item_name:lower():find(name_lower, 1, true) then
+            return { item = entry.item, category_key = entry.category_key,
+                     name_portion = name_portion, relationship = relationship }
+        end
+    end
+
+    return nil
+end
+
 --- Get category definitions for building menus
 --- @param data table Parsed X-Ray data
 --- @return table categories Array of {key, label, items, singular_label}
@@ -146,6 +228,7 @@ function XrayParser.getCategories(data)
     else
         local cats = {
             { key = "key_figures",          label = _("Key Figures"),          items = data.key_figures or {} },
+            { key = "locations",            label = _("Locations"),            items = data.locations or {} },
             { key = "core_concepts",        label = _("Core Concepts"),        items = data.core_concepts or {} },
             { key = "arguments",            label = _("Arguments"),            items = data.arguments or {} },
             { key = "terminology",          label = _("Terminology"),          items = data.terminology or {} },
@@ -239,6 +322,11 @@ function XrayParser.formatItemDetail(item, category_key)
         local sig = item.significance or item.importance
         if sig and sig ~= "" then
             table.insert(parts, _("Significance:") .. " " .. sig)
+            table.insert(parts, "")
+        end
+        local refs = ensure_array(item.references)
+        if refs and #refs > 0 then
+            table.insert(parts, _("References:") .. " " .. table.concat(refs, ", "))
         end
 
     elseif category_key == "themes" or category_key == "arguments" then
@@ -250,6 +338,11 @@ function XrayParser.formatItemDetail(item, category_key)
         end
         if item.evidence and item.evidence ~= "" then
             table.insert(parts, _("Evidence:") .. " " .. item.evidence)
+            table.insert(parts, "")
+        end
+        local refs = ensure_array(item.references)
+        if refs and #refs > 0 then
+            table.insert(parts, _("References:") .. " " .. table.concat(refs, ", "))
         end
 
     elseif category_key == "lexicon" or category_key == "terminology" then
@@ -272,7 +365,7 @@ function XrayParser.formatItemDetail(item, category_key)
             table.insert(parts, item.significance)
             table.insert(parts, "")
         end
-        local characters = ensure_array(item.characters)
+        local characters = ensure_array(item.characters) or ensure_array(item.references)
         if characters and #characters > 0 then
             table.insert(parts, _("Characters:") .. " " .. table.concat(characters, ", "))
         end
@@ -434,6 +527,10 @@ function XrayParser.renderToMarkdown(data, title, progress)
                         entry = entry .. " — " .. table.concat(detail_parts, ". ")
                     end
                     table.insert(lines, entry)
+                    local l_refs = ensure_array(loc.references)
+                    if l_refs and #l_refs > 0 then
+                        table.insert(lines, "*References: " .. table.concat(l_refs, ", ") .. "*")
+                    end
                     table.insert(lines, "")
                 end
             elseif cat.key == "themes" or cat.key == "arguments" then
@@ -446,6 +543,10 @@ function XrayParser.renderToMarkdown(data, title, progress)
                         entry = entry .. " " .. theme.evidence
                     end
                     table.insert(lines, entry)
+                    local t_refs = ensure_array(theme.references)
+                    if t_refs and #t_refs > 0 then
+                        table.insert(lines, "*References: " .. table.concat(t_refs, ", ") .. "*")
+                    end
                     table.insert(lines, "")
                 end
             elseif cat.key == "lexicon" or cat.key == "terminology" then
@@ -469,7 +570,7 @@ function XrayParser.renderToMarkdown(data, title, progress)
                     if event.significance and event.significance ~= "" then
                         entry = entry .. " — " .. event.significance
                     end
-                    local e_characters = ensure_array(event.characters)
+                    local e_characters = ensure_array(event.characters) or ensure_array(event.references)
                     if e_characters and #e_characters > 0 then
                         entry = entry .. " [" .. table.concat(e_characters, ", ") .. "]"
                     end
@@ -620,6 +721,58 @@ function XrayParser.searchAll(data, query)
     local priority = { name = 1, alias = 2, description = 3 }
     table.sort(results, function(a, b)
         return (priority[a.match_field] or 9) < (priority[b.match_field] or 9)
+    end)
+
+    return results
+end
+
+--- Find all X-Ray items appearing in chapter text
+--- @param data table Parsed X-Ray data
+--- @param chapter_text string The chapter text content
+--- @return table results Array of {item, category_key, category_label, count} sorted by count desc
+function XrayParser.findItemsInChapter(data, chapter_text)
+    if not chapter_text or chapter_text == "" then return {} end
+
+    local categories = XrayParser.getCategories(data)
+    if not categories or #categories == 0 then return {} end
+
+    local text_lower = chapter_text:lower()
+    local results = {}
+
+    for _idx, cat in ipairs(categories) do
+        if not SINGLETON_CATEGORIES[cat.key] then
+            for _idx2, item in ipairs(cat.items) do
+                local name = getItemSearchName(item)
+                if name and #name > 2 then
+                    local best_count = XrayParser._countOccurrences(text_lower, name:lower())
+
+                    -- Also check aliases — keep highest count
+                    local item_aliases = ensure_array(item.aliases)
+                    if item_aliases then
+                        for _idx3, alias in ipairs(item_aliases) do
+                            if #alias > 2 then
+                                local alias_count = XrayParser._countOccurrences(text_lower, alias:lower())
+                                if alias_count > best_count then best_count = alias_count end
+                            end
+                        end
+                    end
+
+                    if best_count > 0 then
+                        table.insert(results, {
+                            item = item,
+                            category_key = cat.key,
+                            category_label = cat.label,
+                            count = best_count,
+                        })
+                    end
+                end
+            end
+        end
+    end
+
+    -- Sort by mention count descending
+    table.sort(results, function(a, b)
+        return a.count > b.count
     end)
 
     return results

@@ -7,6 +7,7 @@ local logger = require("logger")
 local ffi = require("ffi")
 local ffiutil = require("ffi/util")
 local json = require("json")
+local DebugUtils = require("koassistant_debug_utils")
 
 -- Attempt to load the configuration module first
 local success, result = pcall(function() return require("configuration") end)
@@ -258,6 +259,11 @@ local function handleNonStreamingBackground(background_fn, provider, on_complete
                 return
             end
 
+            -- Debug: Print token usage
+            if config and config.features and config.features.debug then
+                DebugUtils.printUsage(provider, parsed)
+            end
+
             -- Use response parser to extract content
             if response_parser then
                 local parse_success, content, reasoning, web_search_used = response_parser(parsed)
@@ -423,6 +429,7 @@ local function queryChatGPT(message_history, temp_config, on_complete, settings)
             poll_interval_ms = config.features and config.features.stream_poll_interval or 125,
             display_interval_ms = config.features and config.features.stream_display_interval or 250,
             enable_emoji_icons = config.features and config.features.enable_emoji_icons == true,
+            debug = config.features and config.features.debug,
         }
 
         -- Streaming is async - show dialog and call on_complete when done

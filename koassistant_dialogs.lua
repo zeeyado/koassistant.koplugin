@@ -3109,6 +3109,172 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     end
 end
 
+-- Calculate current reading progress as a decimal (0.0-1.0) directly from the document
+-- Lightweight alternative to ContextExtractor:getReadingProgress() for quick checks
+local function getProgressDecimal(ui)
+    if not ui or not ui.document then return nil end
+    local total_pages = ui.document.info and ui.document.info.number_of_pages or 0
+    if total_pages == 0 then return nil end
+    local current_page
+    if ui.document.info.has_pages then
+        current_page = ui.view and ui.view.state and ui.view.state.page or 1
+    else
+        local xp = ui.document:getXPointer()
+        current_page = xp and ui.document:getPageFromXPointer(xp) or 1
+    end
+    return current_page / total_pages
+end
+
+-- Open X-Ray browser with cached data and metadata
+-- Returns the XrayBrowser module for chaining (e.g., showItemDetail, showSearchResults)
+local function openXrayBrowserFromCache(ui, data, cached, config, plugin, book_metadata)
+    local XrayBrowser = require("koassistant_xray_browser")
+    local ActionCache = require("koassistant_action_cache")
+    local Notification = require("ui/widget/notification")
+    local config_features = (config or {}).features or {}
+
+    local book_title = (book_metadata and book_metadata.title) or ""
+    local source_label = cached.used_book_text == false
+        and _("Based on AI training data knowledge")
+        or _("Based on extracted document text")
+    local formatted_date = cached.timestamp
+        and os.date("%Y-%m-%d", cached.timestamp)
+
+    XrayBrowser:show(data, {
+        title = book_title,
+        progress = cached.progress_decimal and
+            (math.floor(cached.progress_decimal * 100 + 0.5) .. "%"),
+        model = cached.model,
+        timestamp = cached.timestamp,
+        book_file = ui and ui.document and ui.document.file,
+        enable_emoji = config_features.enable_emoji_icons == true,
+        configuration = config,
+        plugin = plugin,
+        source_label = source_label,
+        formatted_date = formatted_date,
+        previous_progress = cached.previous_progress_decimal and
+            (math.floor(cached.previous_progress_decimal * 100 + 0.5) .. "%"),
+        cache_metadata = {
+            cache_type = "xray",
+            book_title = book_title,
+            progress_decimal = cached.progress_decimal,
+            model = cached.model,
+            timestamp = cached.timestamp,
+            used_annotations = cached.used_annotations,
+            used_book_text = cached.used_book_text,
+        },
+    }, ui, function()
+        ActionCache.clearXrayCache(ui.document.file)
+        UIManager:show(Notification:new{
+            text = T(_("%1 deleted"), "X-Ray"),
+            timeout = 2,
+        })
+    end)
+    return XrayBrowser
+end
+
+-- Handle local X-Ray lookup: search cached X-Ray data for the query
+local function handleLocalXrayLookup(ui, query, document_path, book_metadata, config, plugin)
+    local logger = require("logger")
+    logger.info("KOAssistant: Local X-Ray lookup for: " .. tostring(query))
+
+    if not document_path then
+        UIManager:show(InfoMessage:new{
+            text = _("No book open. X-Ray lookup requires an open book."),
+            timeout = 3,
+        })
+        return
+    end
+
+    -- Load X-Ray cache
+    local ActionCache = require("koassistant_action_cache")
+    local cached = ActionCache.getXrayCache(document_path)
+
+    if not cached or not cached.result then
+        UIManager:show(InfoMessage:new{
+            text = _("No X-Ray cache found for this book. Generate one first via the X-Ray action."),
+            timeout = 4,
+        })
+        return
+    end
+
+    -- Parse the cached JSON
+    local XrayParser = require("koassistant_xray_parser")
+    local data = XrayParser.parse(cached.result)
+
+    if not data then
+        UIManager:show(InfoMessage:new{
+            text = _("Could not parse X-Ray data. Try regenerating the X-Ray cache."),
+            timeout = 3,
+        })
+        return
+    end
+
+    -- Search across all categories
+    local results = XrayParser.searchAll(data, query)
+
+    -- Calculate progress gap
+    local current_progress = getProgressDecimal(ui)
+    local cache_progress = cached.progress_decimal
+    local progress_gap = nil
+    if current_progress and cache_progress then
+        progress_gap = current_progress - cache_progress
+    end
+
+    if #results == 0 then
+        -- No results
+        local msg = T(_("No results for \"%1\" in X-Ray."), query)
+        if progress_gap and progress_gap > 0.05 then
+            local cache_pct = math.floor(cache_progress * 100 + 0.5)
+            local current_pct = math.floor(current_progress * 100 + 0.5)
+            msg = msg .. "\n\n" .. T(_("X-Ray covers to %1%% (you're at %2%%). Updating may find this entry."), cache_pct, current_pct)
+        end
+        UIManager:show(InfoMessage:new{
+            text = msg,
+            timeout = 5,
+        })
+    else
+        -- Open X-Ray browser directly
+        local XrayBrowser = openXrayBrowserFromCache(ui, data, cached, config, plugin, book_metadata)
+
+        -- Show progress gap notification if significant
+        if progress_gap and progress_gap > 0.05 then
+            local Notification = require("ui/widget/notification")
+            local cache_pct = math.floor(cache_progress * 100 + 0.5)
+            local current_pct = math.floor(current_progress * 100 + 0.5)
+            UIManager:show(Notification:new{
+                text = T(_("X-Ray covers to %1%% · You're at %2%%"), cache_pct, current_pct),
+                timeout = 3,
+            })
+        end
+
+        if #results == 1 then
+            -- Single result: navigate directly to item detail
+            local result = results[1]
+            local name = XrayParser.getItemName(result.item, result.category_key)
+            XrayBrowser:showItemDetail(result.item, result.category_key, name)
+        else
+            -- Multiple results: show search results in browser
+            XrayBrowser:showSearchResults(query)
+        end
+    end
+end
+
+-- Dispatch a local (non-AI) action handler
+local function handleLocalAction(handler_name, ui, highlighted_text, document_path, book_metadata, config, plugin)
+    local logger = require("logger")
+
+    if handler_name == "xray_lookup" then
+        handleLocalXrayLookup(ui, highlighted_text, document_path, book_metadata, config, plugin)
+    else
+        logger.warn("KOAssistant: Unknown local handler: " .. tostring(handler_name))
+        UIManager:show(InfoMessage:new{
+            text = _("Unknown local action handler"),
+            timeout = 2,
+        })
+    end
+end
+
 -- Execute an action directly without showing the intermediate dialog
 -- Used for quick actions from highlight menu
 -- @param ui table: The UI instance
@@ -3177,6 +3343,12 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
             title = cfg_metadata.title or "Unknown",
             author = cfg_metadata.author or "",
         }
+    end
+
+    -- Handle local-only actions (no AI call)
+    if action.local_handler then
+        handleLocalAction(action.local_handler, ui, highlighted_text, document_path, book_metadata, configuration, plugin)
+        return
     end
 
     -- Callback for when response is ready
