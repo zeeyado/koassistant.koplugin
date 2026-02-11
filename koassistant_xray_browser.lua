@@ -1407,7 +1407,7 @@ function XrayBrowser:showItemDistribution(item, category_key, item_title)
         for _idx, chapter in ipairs(chapters) do
             if chapter.unread then
                 has_unread = true
-                table.insert(chapter_counts, nil)
+                -- chapter_counts[i] left nil implicitly (unread = not yet scanned)
             else
                 scanned_count = scanned_count + 1
                 local text = extractChapterText(self_ref.ui, chapter, 500000)
