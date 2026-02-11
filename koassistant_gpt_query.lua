@@ -417,6 +417,7 @@ local function queryChatGPT(message_history, temp_config, on_complete, settings)
         -- Get streaming settings
         local stream_settings = {
             stream_auto_scroll = config.features and config.features.stream_auto_scroll == true,
+            stream_page_scroll = config.features and config.features.stream_page_scroll ~= false,
             large_stream_dialog = config.features and config.features.large_stream_dialog ~= false,
             response_font_size = config.features and config.features.markdown_font_size or 20,
             poll_interval_ms = config.features and config.features.stream_poll_interval or 125,
