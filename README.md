@@ -14,7 +14,7 @@
 </p>
 
 - **Highlight text** → translate, explain, define words, analyze passages, connect ideas, save content directly to KOReader's highlight notes/annotations
-- **While reading** → reference guides (summaries, browsable X-Ray with character tracking, recap, artifacts), analyze your highlights/annotations, explore the book/document (author, context, arguments, similar works), generate discussion questions
+- **While reading** → reference guides (summaries, browsable X-Ray with character tracking and cross-references, local X-Ray lookup, recap, artifacts), analyze your highlights/annotations, explore the book/document (author, context, arguments, similar works), generate discussion questions
 - **Research & analysis** → deep analysis of papers/articles, explore arguments, find connections across works
 - **Multi-document** → compare texts, find common themes, analyze your collection
 - **General chat** → AI without book/document context
@@ -490,12 +490,14 @@ KOAssistant works in **4 contexts**, each with its own set of built-in actions:
 
 | Context | Built-in Actions |
 |---------|------------------|
-| **Highlight** | Explain, ELI5, Summarize, Elaborate, Connect, Connect (With Notes), Explain in Context, Explain in Context (Smart), Analyze in Context, Analyze in Context (Smart), Thematic Connection (Smart), Fact Check*, Current Context*, Translate, Dictionary, Quick Define, Deep Analysis |
+| **Highlight** | Explain, ELI5, Summarize, Elaborate, Connect, Connect (With Notes), Explain in Context, Explain in Context (Smart), Analyze in Context, Analyze in Context (Smart), Thematic Connection (Smart), Fact Check*, Current Context*, Translate, Dictionary, Quick Define, Deep Analysis, Look up in X-Ray† |
 | **Book** | Book Info, Find Similar, About Author, Historical Context, Related Thinkers, Book Reviews*, X-Ray, Recap, Analyze Highlights, Key Arguments, Key Arguments (Smart), Discussion Questions, Discussion Questions (Smart), Generate Quiz, Generate Quiz (Smart), Analyze Document, Summarize Document, Extract Key Insights |
 | **Multi-book** | Compare Books, Find Common Themes, Analyze Collection, Quick Summaries, Reading Order |
 | **General** | Ask, News Update* |
 
 *Requires web search (Anthropic, Gemini, OpenRouter). News Update is available in gesture menu by default but not in the general input dialog. See [Web Search](#web-search) and [General Chat](#general-chat) for details.
+
+†Local action — searches cached X-Ray data instantly, no AI call or network required. Only appears when the book has an X-Ray cache.
 
 You can customize these, create your own, or disable ones you don't use. See [Actions](#actions) for details.
 
@@ -530,6 +532,7 @@ You can customize these, create your own, or disable ones you don't use. See [Ac
 | **Dictionary** | Full dictionary entry: definition, etymology, synonyms, usage (also accessible via dictionary popup) |
 | **Quick Define** | Minimal lookup: brief definition only, no etymology or synonyms |
 | **Deep Analysis** | Linguistic deep-dive: morphology, word family, cognates, etymology path |
+| **Look up in X-Ray** | `[Local]` Instant search of cached X-Ray data for selected text — no AI call, works offline. Shows matching characters, locations, themes, or concepts with full detail. Available in highlight menu and dictionary popup. Only appears when the book has an X-Ray cache. |
 
 **Regular vs Smart actions:**
 
@@ -598,7 +601,7 @@ Some actions work from the file browser (using only document metadata like title
 | **Historical Context** | When written and historical significance |
 | **Related Thinkers** | Intellectual landscape: influences, contemporaries, and connected thinkers |
 | **Book Reviews** | Find critical and reader reviews, awards, and reception ⚠️ *Requires: Web Search* |
-| **X-Ray** | Browsable reference guide: characters (with aliases and connections), locations, themes, lexicon, timeline — opens in a structured menu with search, chapter character tracking, and highlight integration ⚠️ *Best with: Allow Text Extraction* |
+| **X-Ray** | Browsable reference guide: characters (with aliases and connections), locations, themes, lexicon, timeline — opens in a structured menu with search, chapter character tracking, linkable cross-references, local lookup, and highlight integration ⚠️ *Best with: Allow Text Extraction* |
 | **Recap** | "Previously on..." style summary to help you resume reading ⚠️ *Best with: Allow Text Extraction* |
 | **Analyze Highlights** | Discover patterns and connections in your highlights ⚠️ *Requires: Allow Annotation Notes* |
 | **Key Arguments** | Thesis, evidence, assumptions, and counterarguments using full book text ⚠️ *Requires: Allow Text Extraction* |
@@ -642,12 +645,16 @@ These actions analyze your actual reading content. They require specific privacy
 
 - **Category navigation** — Cast, World, Ideas, Lexicon, Story Arc, Reader Engagement, Current State (fiction) or Key Figures, Core Concepts, Arguments, Terminology, Argument Development, Reader Engagement, Current Position (non-fiction) — with item counts. Reader Engagement appears only when highlights were provided during generation.
 - **Character detail** — descriptions, AI-provided aliases (e.g., "Lizzy", "Miss Bennet"), connections/relationships, and your highlights mentioning each character
+- **Linkable references** — character connections and cross-category references (locations → characters, themes → characters, etc.) are tappable buttons that navigate directly to the referenced item's detail view. References are resolved across all categories using name, alias, and substring matching.
 - **Chapter Characters** — shows which characters appear in your current chapter with mention counts, using word-boundary matching against names and aliases
 - **Search** — find any entry across all categories by name, alias, or description
+- **Local X-Ray Lookup** — select text while reading → instantly look it up in cached X-Ray data. No AI call, no network, instant results. Single match shows full detail; multiple matches show a tappable list. Available in highlight menu and dictionary popup when an X-Ray cache exists. See "Look up in X-Ray" in [Highlight Mode](#highlight-mode).
 - **Full View** — rendered markdown view in the chat viewer (with export)
 - **Chat about this** — from any detail view, launch a book chat with the entry as context to ask follow-up questions (actions requiring book text or annotations are filtered out since the context is AI-generated analysis)
 - **Text selection** — hold to select text in detail views: 1-3 words opens dictionary, 4+ copies to clipboard
 - **Options menu** — info (model, progress, date, fiction/non-fiction type), delete, close
+
+> **Model selection for X-Ray:** X-Ray generates detailed structured JSON that can be large (10K-30K+ tokens of output). The action requests up to 32K output tokens to avoid truncation. Models with low output caps (e.g., some Groq models at 8K, DeepSeek Chat at 8K) will produce shorter, potentially truncated results — use models with higher output limits for best results. Model-level caps automatically override the action's request, so there's no risk of errors.
 
 > **Tip:** If your device supports emoji fonts, enable **Emoji Menu Icons** in Settings → Display Settings for visual category icons in the X-Ray browser (e.g., characters, locations, themes). See [Emoji Menu Icons](#display-settings).
 
@@ -1347,7 +1354,7 @@ Actions with gestures show a `[gesture]` indicator in the Action Manager list.
 **Reader Only** (require open book; grayed out in File Browser gesture settings):
 - KOAssistant: Quick Actions — Reading actions panel
 - KOAssistant: New Book Chat/Action — Start a chat about current book or access book actions
-- KOAssistant: X-Ray — Generate browsable book reference guide (characters, locations, themes, timeline)
+- KOAssistant: X-Ray — Generate browsable book reference guide (characters, locations, themes, timeline) with linkable cross-references
 - KOAssistant: Recap — Get a story summary
 - KOAssistant: Analyze Highlights — Analyze your annotations
 - KOAssistant: Translate Current Page — Translate visible page text
@@ -2028,7 +2035,7 @@ Control where KOAssistant appears in KOReader's menus. All toggles default to ON
   - **Restore from Backup**: Restore from a previous backup
   - **View Backups**: Manage existing backups and restore points
 - **Reset Settings**: Quick resets (Settings only, Actions only, Fresh start), Custom reset checklist, Clear chat history
-- **Console Debug**: Enable terminal/console debug logging
+- **Console Debug**: Enable terminal/console debug logging. When enabled, also shows token usage (input, output, cache hits) in the terminal after each API response.
 - **Show Debug in Chat**: Display debug info in chat viewer
 - **Debug Detail Level**: Verbosity (Minimal/Names/Full)
 - **Test Connection**: Verify API credentials work
@@ -2418,7 +2425,7 @@ X-Ray and Recap responses are automatically cached per book. This enables **incr
 
 The View/Update popup appears everywhere you can trigger X-Ray or Recap: Quick Actions panel, Reading Features menu, gestures, and the book chat input field action picker. If no cache exists yet, the action runs directly (no popup).
 
-**X-Ray format:** X-Ray results are stored as structured JSON (characters with aliases/connections, locations, themes, lexicon, timeline). The JSON is rendered to readable markdown for chat display and `{xray_cache_section}` placeholders, while the raw JSON powers the browsable menu UI. Legacy markdown X-Rays from older versions are still viewable but will be replaced with JSON on the next run.
+**X-Ray format:** X-Ray results are stored as structured JSON (characters with aliases/connections, locations with references, themes with references, lexicon, timeline). The JSON is rendered to readable markdown for chat display and `{xray_cache_section}` placeholders, while the raw JSON powers the browsable menu UI. Legacy markdown X-Rays from older versions are still viewable but will be replaced with JSON on the next run.
 
 **Requirements:**
 - You must be reading (not in file browser)
@@ -2447,7 +2454,7 @@ X-Ray, Recap, and other actions also produce **Document Artifacts** — reusable
 
 When certain actions complete, their results are saved as **document artifacts** — persistent, per-book outputs that serve two purposes:
 
-1. **Viewable as standalone reference guides.** Browse a book's Summary, X-Ray, or Analysis anytime without re-running the action. X-Ray opens as a browsable category menu (characters, locations, themes, lexicon, timeline) with search, chapter character tracking, and your highlight mentions — useful for quickly checking character details, relationships, or who appears in the current chapter mid-read.
+1. **Viewable as standalone reference guides.** Browse a book's Summary, X-Ray, or Analysis anytime without re-running the action. X-Ray opens as a browsable category menu (characters, locations, themes, lexicon, timeline) with search, chapter character tracking, linkable cross-references, and your highlight mentions — useful for quickly checking character details, relationships, or who appears in the current chapter mid-read.
 2. **Reusable as context in other actions.** Instead of sending full document text (~100K tokens) every time, actions can reference a compact artifact (~2-8K tokens). This is the foundation of **Smart actions** — dramatically cheaper and often better-performing, since models handle focused context more effectively than massive text dumps.
 
 **The three artifact types:**
@@ -2455,7 +2462,7 @@ When certain actions complete, their results are saved as **document artifacts**
 | Artifact | Generated by | What it contains | Primary use |
 |----------|-------------|------------------|-------------|
 | **Summary** | Summarize Document, Generate Summary | Neutral, comprehensive document representation | **Primary artifact for reuse.** Powers all Smart actions — replaces raw book text with a compact summary. Also useful on its own as a reading reference. |
-| **X-Ray** | X-Ray action | Structured JSON: characters (with aliases, connections), locations, themes, lexicon, timeline | **Browsable menu** with categories, search, chapter character tracking, highlight integration. Also available as supplementary context in custom actions. |
+| **X-Ray** | X-Ray action | Structured JSON: characters (with aliases, connections), locations (with references), themes (with references), lexicon, timeline | **Browsable menu** with categories, search, chapter character tracking, linkable cross-references, highlight integration. Also available as supplementary context in custom actions. |
 | **Analysis** | Analyze Document | Opinionated deep analysis of the document | Viewable analytical overview. *Not recommended as input for further analysis* — analyzing an analysis is a decaying game of telephone where each layer loses nuance. |
 
 **Viewing artifacts:**
@@ -2533,7 +2540,7 @@ All three artifacts can be referenced in custom actions using `{summary_cache_se
 
 If you haven't run X-Ray yet, the placeholder renders empty and the action still runs, just without the analysis context. Permission requirements for the placeholder depend on how the X-Ray was built — see [Cache permission inheritance](#text-extraction-and-double-gating) above.
 
-> **Tip**: For documents you'll query multiple times, generate the summary proactively via Quick Actions. The artifacts are also convenient in themselves — browse a book's X-Ray to look up characters (with aliases and connections), check who appears in the current chapter, search for any entry, review the Analysis for a refresher on key arguments, or skim the Summary before resuming a book you haven't read in a while.
+> **Tip**: For documents you'll query multiple times, generate the summary proactively via Quick Actions. The artifacts are also convenient in themselves — browse a book's X-Ray to look up characters (with aliases and connections), tap references to navigate between related items, check who appears in the current chapter, search for any entry, or use "Look up in X-Ray" to instantly search cached data while reading. Review the Analysis for a refresher on key arguments, or skim the Summary before resuming a book you haven't read in a while.
 
 **Text extraction guidelines:**
 - ~100 pages ≈ 25,000-40,000 characters (varies by formatting)
@@ -3082,6 +3089,7 @@ Shows:
 - Full request body sent to API
 - Raw API response
 - Configuration details (provider, model, temperature, etc.)
+- **Token usage** per request in the terminal: input tokens, output tokens, total, and cache hits (cache_read/cache_write) when applicable. Works for all providers (Anthropic, OpenAI, Gemini, Ollama, Cohere, and compatible). Displayed for both streaming and non-streaming responses.
 
 > **Note:** Debug view and export features (particularly the "Everything (debug)" content level) are under review for consistency improvements. Some metadata may not appear as expected in exports. See [Track 0.7](https://github.com/zeeyado/koassistant.koplugin) in the development roadmap.
 

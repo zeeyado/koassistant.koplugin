@@ -126,11 +126,12 @@ function XrayParser.getCharacters(data)
     return data[key] or {}
 end
 
---- Resolve a connection string to a character/figure item
+--- Resolve a connection/reference string to any X-Ray item
+--- Searches all categories: characters, locations, concepts, themes, etc.
 --- Connection strings follow the format "Name (relationship)" or just "Name"
 --- @param data table Parsed X-Ray data
---- @param connection_string string e.g. "Elizabeth Bennet (love interest)"
---- @return table|nil result { item, name_portion, relationship } or nil if not found
+--- @param connection_string string e.g. "Elizabeth Bennet (love interest)" or "Constantinople"
+--- @return table|nil result { item, category_key, name_portion, relationship } or nil if not found
 function XrayParser.resolveConnection(data, connection_string)
     if not connection_string or connection_string == "" then return nil end
 
@@ -143,34 +144,51 @@ function XrayParser.resolveConnection(data, connection_string)
 
     if not name_portion or name_portion == "" then return nil end
 
-    local characters = XrayParser.getCharacters(data)
-    if not characters or #characters == 0 then return nil end
-
+    local categories = XrayParser.getCategories(data)
     local name_lower = name_portion:lower()
 
-    -- Pass 1: exact name match
-    for _idx, char in ipairs(characters) do
-        if char.name and char.name:lower() == name_lower then
-            return { item = char, name_portion = name_portion, relationship = relationship }
+    -- Build flat list of searchable items with their category keys
+    -- Skip singleton categories (current_state, current_position, reader_engagement)
+    local searchable = {}
+    for _idx, cat in ipairs(categories) do
+        if cat.key ~= "current_state" and cat.key ~= "current_position"
+            and cat.key ~= "reader_engagement" then
+            for _idx2, item in ipairs(cat.items) do
+                table.insert(searchable, { item = item, category_key = cat.key })
+            end
         end
     end
 
-    -- Pass 2: alias match
-    for _idx, char in ipairs(characters) do
-        local aliases = ensure_array(char.aliases)
+    if #searchable == 0 then return nil end
+
+    -- Pass 1: exact name match (name, term, or event)
+    for _idx, entry in ipairs(searchable) do
+        local item_name = entry.item.name or entry.item.term or entry.item.event
+        if item_name and item_name:lower() == name_lower then
+            return { item = entry.item, category_key = entry.category_key,
+                     name_portion = name_portion, relationship = relationship }
+        end
+    end
+
+    -- Pass 2: alias match (characters/key_figures only)
+    for _idx, entry in ipairs(searchable) do
+        local aliases = ensure_array(entry.item.aliases)
         if aliases then
             for _idx2, alias in ipairs(aliases) do
                 if alias:lower() == name_lower then
-                    return { item = char, name_portion = name_portion, relationship = relationship }
+                    return { item = entry.item, category_key = entry.category_key,
+                             name_portion = name_portion, relationship = relationship }
                 end
             end
         end
     end
 
     -- Pass 3: substring match on name (e.g., "Elizabeth" matches "Elizabeth Bennet")
-    for _idx, char in ipairs(characters) do
-        if char.name and char.name:lower():find(name_lower, 1, true) then
-            return { item = char, name_portion = name_portion, relationship = relationship }
+    for _idx, entry in ipairs(searchable) do
+        local item_name = entry.item.name or entry.item.term or entry.item.event
+        if item_name and item_name:lower():find(name_lower, 1, true) then
+            return { item = entry.item, category_key = entry.category_key,
+                     name_portion = name_portion, relationship = relationship }
         end
     end
 
@@ -291,6 +309,11 @@ function XrayParser.formatItemDetail(item, category_key)
         local sig = item.significance or item.importance
         if sig and sig ~= "" then
             table.insert(parts, _("Significance:") .. " " .. sig)
+            table.insert(parts, "")
+        end
+        local refs = ensure_array(item.references)
+        if refs and #refs > 0 then
+            table.insert(parts, _("References:") .. " " .. table.concat(refs, ", "))
         end
 
     elseif category_key == "themes" or category_key == "arguments" then
@@ -302,6 +325,11 @@ function XrayParser.formatItemDetail(item, category_key)
         end
         if item.evidence and item.evidence ~= "" then
             table.insert(parts, _("Evidence:") .. " " .. item.evidence)
+            table.insert(parts, "")
+        end
+        local refs = ensure_array(item.references)
+        if refs and #refs > 0 then
+            table.insert(parts, _("References:") .. " " .. table.concat(refs, ", "))
         end
 
     elseif category_key == "lexicon" or category_key == "terminology" then
@@ -324,7 +352,7 @@ function XrayParser.formatItemDetail(item, category_key)
             table.insert(parts, item.significance)
             table.insert(parts, "")
         end
-        local characters = ensure_array(item.characters)
+        local characters = ensure_array(item.characters) or ensure_array(item.references)
         if characters and #characters > 0 then
             table.insert(parts, _("Characters:") .. " " .. table.concat(characters, ", "))
         end
@@ -486,6 +514,10 @@ function XrayParser.renderToMarkdown(data, title, progress)
                         entry = entry .. " — " .. table.concat(detail_parts, ". ")
                     end
                     table.insert(lines, entry)
+                    local l_refs = ensure_array(loc.references)
+                    if l_refs and #l_refs > 0 then
+                        table.insert(lines, "*References: " .. table.concat(l_refs, ", ") .. "*")
+                    end
                     table.insert(lines, "")
                 end
             elseif cat.key == "themes" or cat.key == "arguments" then
@@ -498,6 +530,10 @@ function XrayParser.renderToMarkdown(data, title, progress)
                         entry = entry .. " " .. theme.evidence
                     end
                     table.insert(lines, entry)
+                    local t_refs = ensure_array(theme.references)
+                    if t_refs and #t_refs > 0 then
+                        table.insert(lines, "*References: " .. table.concat(t_refs, ", ") .. "*")
+                    end
                     table.insert(lines, "")
                 end
             elseif cat.key == "lexicon" or cat.key == "terminology" then
@@ -521,7 +557,7 @@ function XrayParser.renderToMarkdown(data, title, progress)
                     if event.significance and event.significance ~= "" then
                         entry = entry .. " — " .. event.significance
                     end
-                    local e_characters = ensure_array(event.characters)
+                    local e_characters = ensure_array(event.characters) or ensure_array(event.references)
                     if e_characters and #e_characters > 0 then
                         entry = entry .. " [" .. table.concat(e_characters, ", ") .. "]"
                     end

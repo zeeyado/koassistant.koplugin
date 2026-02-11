@@ -513,15 +513,15 @@ function XrayBrowser:showItemDetail(item, category_key, title, source)
 
     local buttons_rows = { row }
 
-    -- Resolve character references into tappable navigation buttons
+    -- Resolve references into tappable cross-category navigation buttons
     if self.xray_data then
-        -- Characters/key_figures: resolve connections (other characters)
-        -- Other categories: resolve characters field (referenced characters)
+        -- Characters/key_figures: resolve connections (other characters/items)
+        -- Other categories: resolve references or characters field
         local names_list
         if category_key == "characters" or category_key == "key_figures" then
             names_list = item.connections
         else
-            names_list = item.characters
+            names_list = item.references or item.characters
         end
         if type(names_list) == "string" and names_list ~= "" then
             names_list = { names_list }
@@ -538,13 +538,17 @@ function XrayBrowser:showItemDetail(item, category_key, title, source)
                 local resolved = XrayParser.resolveConnection(self.xray_data, name_str)
                 if resolved and resolved.item ~= item then  -- Skip self-references
                     local captured_resolved = resolved
+                    local resolved_name = captured_resolved.item.name
+                        or captured_resolved.item.term
+                        or captured_resolved.item.event
+                        or _("Details")
                     table.insert(conn_row, {
                         text = captured_resolved.name_portion,
                         callback = function()
                             if viewer then viewer:onClose() end
-                            local char_key = XrayParser.getCharacterKey(self_ref.xray_data)
-                            self_ref:showItemDetail(captured_resolved.item, char_key,
-                                captured_resolved.item.name or _("Details"), current_source)
+                            self_ref:showItemDetail(captured_resolved.item,
+                                captured_resolved.category_key,
+                                resolved_name, current_source)
                         end,
                     })
                     -- Start a new row every 3 buttons

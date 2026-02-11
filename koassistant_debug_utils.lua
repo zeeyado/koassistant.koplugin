@@ -157,4 +157,103 @@ function DebugUtils.truncateMessages(messages, max_content)
     return truncated
 end
 
+--- Extract token usage from any provider's response format
+--- Normalizes to { input_tokens, output_tokens, total_tokens, cache_read, cache_creation }
+--- @param response table The raw API response (or SSE event)
+--- @return table|nil Normalized usage or nil if no usage data found
+function DebugUtils.extractUsage(response)
+    if not response or type(response) ~= "table" then return nil end
+
+    -- Anthropic: { usage: { input_tokens, output_tokens, cache_creation_input_tokens, cache_read_input_tokens } }
+    -- Also in message_start SSE: { message: { usage: { input_tokens, output_tokens } } }
+    -- Also in message_delta SSE: { usage: { output_tokens } }
+    local usage = response.usage
+        or (response.message and response.message.usage)
+
+    if usage and (usage.input_tokens or usage.output_tokens) then
+        return {
+            input_tokens = usage.input_tokens,
+            output_tokens = usage.output_tokens,
+            total_tokens = (usage.input_tokens or 0) + (usage.output_tokens or 0),
+            cache_read = usage.cache_read_input_tokens,
+            cache_creation = usage.cache_creation_input_tokens,
+        }
+    end
+
+    -- OpenAI/compatible: { usage: { prompt_tokens, completion_tokens, total_tokens } }
+    if usage and (usage.prompt_tokens or usage.completion_tokens) then
+        return {
+            input_tokens = usage.prompt_tokens,
+            output_tokens = usage.completion_tokens,
+            total_tokens = usage.total_tokens or ((usage.prompt_tokens or 0) + (usage.completion_tokens or 0)),
+            cache_read = usage.prompt_tokens_details and usage.prompt_tokens_details.cached_tokens,
+        }
+    end
+
+    -- Gemini: { usageMetadata: { promptTokenCount, candidatesTokenCount, totalTokenCount } }
+    local gemini = response.usageMetadata
+    if gemini and (gemini.promptTokenCount or gemini.candidatesTokenCount) then
+        return {
+            input_tokens = gemini.promptTokenCount,
+            output_tokens = gemini.candidatesTokenCount,
+            total_tokens = gemini.totalTokenCount or ((gemini.promptTokenCount or 0) + (gemini.candidatesTokenCount or 0)),
+            cache_read = gemini.cachedContentTokenCount,
+        }
+    end
+
+    -- Ollama: { eval_count, prompt_eval_count } (in done event)
+    if response.prompt_eval_count or response.eval_count then
+        return {
+            input_tokens = response.prompt_eval_count,
+            output_tokens = response.eval_count,
+            total_tokens = (response.prompt_eval_count or 0) + (response.eval_count or 0),
+        }
+    end
+
+    -- Cohere: { meta: { tokens: { input_tokens, output_tokens } } }
+    local cohere = response.meta and response.meta.tokens
+    if cohere and (cohere.input_tokens or cohere.output_tokens) then
+        return {
+            input_tokens = cohere.input_tokens,
+            output_tokens = cohere.output_tokens,
+            total_tokens = (cohere.input_tokens or 0) + (cohere.output_tokens or 0),
+        }
+    end
+
+    return nil
+end
+
+--- Format token usage as a compact debug string
+--- @param usage table Normalized usage from extractUsage()
+--- @return string Formatted usage line
+function DebugUtils.formatUsage(usage)
+    if not usage then return "" end
+    local parts = {}
+    if usage.input_tokens then
+        table.insert(parts, string.format("%d input", usage.input_tokens))
+    end
+    if usage.output_tokens then
+        table.insert(parts, string.format("%d output", usage.output_tokens))
+    end
+    if usage.cache_read and usage.cache_read > 0 then
+        table.insert(parts, string.format("%d cache_read", usage.cache_read))
+    end
+    if usage.cache_creation and usage.cache_creation > 0 then
+        table.insert(parts, string.format("%d cache_write", usage.cache_creation))
+    end
+    if #parts == 0 then return "" end
+    local total = usage.total_tokens and string.format(" (%d total)", usage.total_tokens) or ""
+    return table.concat(parts, ", ") .. total
+end
+
+--- Print token usage line to terminal
+--- @param label string Prefix label (e.g., "Anthropic")
+--- @param response table Raw API response
+function DebugUtils.printUsage(label, response)
+    local usage = DebugUtils.extractUsage(response)
+    if usage then
+        print(string.format("[%s] Token usage: %s", label, DebugUtils.formatUsage(usage)))
+    end
+end
+
 return DebugUtils
