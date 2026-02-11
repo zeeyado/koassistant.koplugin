@@ -470,7 +470,7 @@ local SettingsSchema = {
                 {
                     id = "show_export_in_chat_viewer",
                     type = "toggle",
-                    text = _("Show Export in Chat Viewer"),
+                    text = _("Show Export Button in Chat Viewer"),
                     path = "features.show_export_in_chat_viewer",
                     default = false,
                     help_text = _("Add Export button to the Chat Viewer (alongside Copy and Note)."),
@@ -1471,7 +1471,10 @@ local SettingsSchema = {
                     text = _("Only for books with notebooks"),
                     path = "features.notebook_button_require_existing",
                     default = true,
-                    depends_on = { id = "show_notebook_in_file_browser_ref", value = true },
+                    depends_on = {
+                        { id = "show_in_file_browser", value = true },
+                        { id = "show_notebook_in_file_browser_ref", value = true },
+                    },
                     help_text = _("Only show notebook button if notebook already exists."),
                 },
                 {
@@ -1552,11 +1555,19 @@ local SettingsSchema = {
                     keep_menu_open = true,
                 },
                 {
+                    id = "reset_quick_actions",
+                    type = "action",
+                    text = _("Reset Quick Actions"),
+                    callback = "resetQuickActions",
+                    help_text = _("Restore default Quick Actions panel items"),
+                    keep_menu_open = true,
+                },
+                {
                     id = "reset_all_menus",
                     type = "action",
                     text = _("Reset All Menu Customizations"),
                     callback = "resetActionMenus",
-                    help_text = _("Restore all menus to defaults (dictionary popup, highlight menu, file browser actions)"),
+                    help_text = _("Restore all menus to defaults (dictionary popup, highlight menu, file browser, quick actions, general menu)"),
                     separator = true,
                 },
                 -- Startup behavior
