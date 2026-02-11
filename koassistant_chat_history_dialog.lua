@@ -727,9 +727,6 @@ function ChatHistoryDialog:showChatsForDocument(ui, document, chat_history_manag
                 logger.info("Chat selected: " .. (captured_chat.id or "unknown") .. " - " .. (captured_chat.title or "Untitled"))
                 self_ref:showChatOptions(ui, document.path, captured_chat, chat_history_manager, config, document, nav_context)
             end,
-            hold_callback = (document.path ~= "__GENERAL_CHATS__" and document.path ~= "__MULTI_BOOK_CHATS__") and function()
-                self_ref:showChatHoldOptions(ui, document, chat_history_manager, config)
-            end or nil,
         })
     end
 
@@ -752,10 +749,6 @@ function ChatHistoryDialog:showChatsForDocument(ui, document, chat_history_manag
         with_dots = false,
         onLeftButtonTap = function()
             self_ref:showChatListMenuOptions(ui, document, chat_history_manager, config, nav_context)
-        end,
-        onMenuHold = function(_self_menu, item)
-            if item.hold_callback then item.hold_callback() end
-            return true
         end,
         onReturn = function()
             logger.info("Chat history: Return button pressed")
@@ -859,37 +852,6 @@ function ChatHistoryDialog:showDocumentHoldOptions(ui, doc, chat_history_manager
 end
 
 --- Hold options for level 2 chat items (book documents only — "Open Book")
-function ChatHistoryDialog:showChatHoldOptions(ui, document, chat_history_manager, config)
-    local self_ref = self
-    local dialog
-    dialog = ButtonDialog:new{
-        title = document.title,
-        buttons = {
-            {
-                {
-                    text = _("Open Book"),
-                    callback = function()
-                        safeClose(dialog)
-                        safeClose(self_ref.current_menu)
-                        self_ref.current_menu = nil
-                        local ReaderUI = require("apps/reader/readerui")
-                        ReaderUI:showReader(document.path)
-                    end,
-                },
-            },
-            {
-                {
-                    text = _("Cancel"),
-                    callback = function()
-                        safeClose(dialog)
-                    end,
-                },
-            },
-        },
-    }
-    UIManager:show(dialog)
-end
-
 function ChatHistoryDialog:showChatOptions(ui, document_path, chat, chat_history_manager, config, document, nav_context)
     logger.info("KOAssistant: showChatOptions - self.current_menu = " .. tostring(self.current_menu))
     -- Close any existing options dialog first
@@ -976,25 +938,54 @@ function ChatHistoryDialog:showChatOptions(ui, document_path, chat, chat_history
                 end,
             },
         },
-        {
+    }
+
+    -- Add "Open Book" row for book documents (not general/multi-book)
+    local is_book = document_path ~= "__GENERAL_CHATS__" and document_path ~= "__MULTI_BOOK_CHATS__"
+    if is_book then
+        table.insert(buttons, {
             {
-                text = _("Delete"),
+                text = _("Open Book"),
                 callback = function()
                     safeClose(dialog)
                     self_ref.current_options_dialog = nil
-                    -- Pass the menu reference to the confirm dialog - it will close only on confirm
+                    safeClose(self_ref.current_menu)
+                    self_ref.current_menu = nil
+                    local ReaderUI = require("apps/reader/readerui")
+                    ReaderUI:showReader(document_path)
+                end,
+            },
+            {
+                text = _("Delete Chat"),
+                callback = function()
+                    safeClose(dialog)
+                    self_ref.current_options_dialog = nil
                     self_ref:confirmDeleteWithClose(ui, document_path, chat.id, chat_history_manager, config, document, nav_context, menu_to_close)
                 end,
             },
+        })
+    else
+        table.insert(buttons, {
             {
-                text = _("Close"),
+                text = _("Delete Chat"),
                 callback = function()
                     safeClose(dialog)
                     self_ref.current_options_dialog = nil
+                    self_ref:confirmDeleteWithClose(ui, document_path, chat.id, chat_history_manager, config, document, nav_context, menu_to_close)
                 end,
             },
+        })
+    end
+
+    table.insert(buttons, {
+        {
+            text = _("Close"),
+            callback = function()
+                safeClose(dialog)
+                self_ref.current_options_dialog = nil
+            end,
         },
-    }
+    })
 
     dialog = ButtonDialog:new{
         title = detailed_title,

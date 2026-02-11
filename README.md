@@ -1601,14 +1601,10 @@ By default, all chats are automatically saved. You can disable this in Settings 
 
 **Access**: Tools → KOAssistant → Chat History
 
-Hamburger Menu:
-
-Browse saved conversations organized by:
-- **By Document**: Chats grouped by book (including "General AI Chats", "Multi-Book Chats", and individual books)
-- **By Domain**: Filter by knowledge domain (hamburger menu → View by Domain)
-- **By Tag**: Filter by tags you've added (hamburger menu → View by Tag)
-
-Delete all chats
+**Hamburger menu** (tap ☰ icon):
+- Browse by Document, by Domain, by Tag
+- **Browse Notebooks** / **Browse Artifacts** — navigate to other browsers
+- Delete all chats
 
 **Chat organization**: In the document view, chats are sorted as:
 1. General AI Chats
@@ -1617,14 +1613,21 @@ Delete all chats
 
 With [Emoji Menu Icons](#display-settings) enabled, each entry gets a type prefix: 💬 general, 📚 multi-book, 📖 book chats.
 
+**Document list actions:**
+- **Tap** → Opens the chat list for that document
+- **Hold** → Options popup: "Open Book" (book documents only), "Delete All Chats", "Cancel"
+
 ### Chat Actions
 
-Select any chat to:
-- **Continue**: Resume the conversation
+Select any chat to see the options popup:
+- **Continue Chat**: Resume the conversation
 - **Rename**: Change the chat title
 - **Tags**: Add or remove tags
 - **Export**: Copy to clipboard or save to file
-- **Delete**: Remove the chat
+- **Open Book**: Open the book in the reader (book documents only)
+- **Delete Chat**: Remove the chat
+
+With [Emoji Menu Icons](#display-settings) enabled, individual chats get a 💬 prefix. Tag browser entries get a 🏷️ prefix.
 
 ### Export & Save to File
 
@@ -1685,10 +1688,14 @@ Each entry includes timestamp, page number, progress percentage, and chapter tit
 - **From file browser**: Long-press a book → "Notebook (KOA)" button (if notebook exists)
 - **Via gestures**: Assign "View Notebook" or "Browse Notebooks" to a gesture for quick access (Settings → Gesture Manager → General → KOAssistant)
 
+The notebook browser has a **hamburger menu** (☰) for navigating to Chat History or Browse Artifacts.
+
 **Viewing vs Editing:**
-- **Tap** a notebook → Opens in the Chat Viewer (default) with Copy, Export, MD/TXT toggle, Open in Reader, and Edit buttons
-- **Hold** a notebook → Opens in KOReader's TextEditor (plain text editing)
-- **Open in Reader** button → Opens the notebook in KOReader's full reader (markdown rendering, page navigation)
+- **Tap** a notebook → Options popup: View, Edit, Open Book, Delete Notebook
+  - **View** → Opens in Chat Viewer (default) with Copy, Export, MD/TXT toggle, Open in Reader, and Edit buttons
+  - **Edit** → Opens in text editor for direct editing
+  - **Open Book** → Opens the book in the reader
+- **Open in Reader** button (in Chat Viewer) → Opens the notebook in KOReader's full reader (markdown rendering, page navigation)
 - **External editor**: Edit `.sdr/koassistant_notebook.md` directly with any markdown editor
 
 The default viewer can be changed in Settings → Notebooks → Viewer Mode (Chat Viewer or KOReader).
@@ -1761,6 +1768,7 @@ Tags are simple labels for organizing chats. Unlike domains:
 - **Quick Settings**: Quick access to provider, model, behavior, and other settings
 - **Chat History**: Browse saved conversations
 - **Browse Notebooks**: Open the Notebook Manager to view all notebooks
+- **Browse Artifacts**: Open the Artifact Browser to view all cached artifacts
 - **View/Generate Summary**: View cached summary (if exists) or generate one (reader mode only)
 
 ### Reading Features (visible when document is open)
@@ -1799,8 +1807,9 @@ Tags are simple labels for organizing chats. Unlike domains:
 - **Long Highlight Threshold**: Character limit before collapsing (default: 280)
 - **Emoji Menu Icons**: Show emoji icons in plugin UI menus and buttons. Off by default. When enabled:
   - **Settings menu**: Descriptive emojis on menu items and section headers (💬 Chat, 🔗 Provider, 🤖 Model, 📖 Reading Features, 🔒 Privacy, etc.)
-  - **Chat history**: Type prefixes (💬 general, 📚 multi-book, 📖 book chats)
+  - **Chat history**: Type prefixes on documents (💬 general, 📚 multi-book, 📖 book chats), 💬 on individual chats, 🏷️ on tag browser entries
   - **Notebook browser**: 📓 prefix on entries
+  - **Artifact browser**: 📖 prefix on entries
   - **X-Ray browser**: Category icons (👥 Characters, 🌍 Locations, 💭 Themes, 📖 Lexicon, 📅 Timeline, 📌 Reader Engagement, 📍 Current State). Highly recommended for the X-Ray browser — the visual icons make browsing categories much more intuitive.
   - **Chat viewer**: ↩️ Reply, 🏷️ Tag, 🔍 Web search toggle
   - **Streaming**: 🔍 web search indicator
@@ -2477,6 +2486,10 @@ When certain actions complete, their results are saved as **document artifacts**
 **Viewing artifacts:**
 - **Quick Actions** → "View Summary" (when summary exists) or "Generate Summary" (when it doesn't). "View Artifacts" appears when any artifacts exist, opening a picker to choose which one to view.
 - **File Browser** → Long-press a book → "View Artifacts (KOA)" → pick Summary, X-Ray, or Analysis
+- **Artifact Browser** → Browse all documents with cached artifacts. Access from Chat History or Notebook browser hamburger menus (☰), or Settings → Quick Actions → Browse Artifacts.
+  - **Tap** → Artifact selector popup: "View Summary", "View X-Ray", etc., plus "Open Book"
+  - **Hold** → Options popup: "View", "Delete All", "Cancel"
+  - **Hamburger menu** (☰) → Navigate to Chat History or Browse Notebooks
 - **Gesture** → Assign "KOAssistant: View Summary" for quick access, or "KOAssistant: View Artifacts" to browse all artifacts
 - **Coverage**: The viewer title shows coverage percentage if the document was truncated (e.g., "Summary (78%)")
 
