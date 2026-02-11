@@ -151,6 +151,8 @@ macOS:        ~/Library/Application Support/koreader/plugins/koassistant.koplugi
 Linux:        ~/.config/koreader/plugins/koassistant.koplugin/
 ```
 
+**Alternative:** You can also install KOAssistant directly from within KOReader using the [App Store plugin](https://github.com/omer-faruq/appstore.koplugin), which lets you browse, install, and update KOReader plugins without a computer. It can install from releases or from the latest main branch code.
+
 > Already installed? KOAssistant can update itself — see [Updating the Plugin](#updating-the-plugin).
 
 ### 2. Add Your API Key
