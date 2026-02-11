@@ -255,6 +255,48 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
     local display_interval_sec = ((settings and settings.display_interval_ms) or 250) / 1000
     local pending_ui_update = false
 
+    -- Scroll the inner TextBoxWidget to a specific line
+    -- Uses the same pattern as TextBoxWidget:scrollToBottom()
+    local function scrollToLine(iw, line_num)
+        local stw = iw.text_widget  -- ScrollTextWidget
+        local inner = stw and stw.text_widget  -- TextBoxWidget
+        if inner and inner.virtual_line_num ~= line_num then
+            inner:free(false)
+            inner.virtual_line_num = line_num
+            inner:_updateLayout()
+        end
+    end
+
+    -- Apply page-based scroll: advance page if overflowed, pad text to fill page, scroll
+    -- Must be called after iw:setText(display, true) so widget dimensions are available
+    local function applyPageScroll(iw, display)
+        local stw = iw.text_widget  -- ScrollTextWidget
+        local inner = stw and stw.text_widget  -- TextBoxWidget
+        if not inner or not inner.lines_per_page or inner.lines_per_page <= 0 then return end
+        local lpp = inner.lines_per_page
+        local total_lines = #(inner.vertical_string_list or {})
+
+        -- Check if content overflowed current page
+        if total_lines > page_top_line + lpp - 1 then
+            while total_lines > page_top_line + lpp - 1 do
+                page_top_line = page_top_line + lpp
+            end
+        end
+
+        -- Pad text with empty lines to fill the current page.
+        -- This creates the blank space for text to stream into,
+        -- and ensures scrollToLine stays within the widget's valid range.
+        local page_end = page_top_line + lpp - 1
+        if total_lines < page_end then
+            iw:setText(display .. string.rep("\n", page_end - total_lines), true)
+        end
+
+        -- Scroll to page position (no-op on first page)
+        if page_top_line > 1 then
+            scrollToLine(iw, page_top_line)
+        end
+    end
+
     -- Throttled UI update function - batches multiple chunks into single display refresh
     local function scheduleUIUpdate()
         if pending_ui_update or completed then return end
@@ -264,36 +306,15 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
             ui_update_task = nil
             if not completed and streamDialog and streamDialog._input_widget then
                 local iw = streamDialog._input_widget
-                if auto_scroll_active then
-                    -- Position at tracked page top
-                    iw.top_line_num = page_top_line
-                else
+                if not auto_scroll_active then
                     -- Preserve user's manual scroll position
                     iw:resyncPos()
                 end
                 local display = in_reasoning_phase and table.concat(reasoning_buffer) or table.concat(result_buffer)
                 iw:setText(display, true)
 
-                -- Page-based auto-advance: check if content overflowed current page
                 if auto_scroll_active then
-                    local stw = iw.text_widget  -- ScrollTextWidget
-                    local inner = stw and stw.text_widget  -- TextBoxWidget
-                    if inner and inner.lines_per_page and inner.lines_per_page > 0 then
-                        local total_lines = #(inner.vertical_string_list or {})
-                        if total_lines > page_top_line + inner.lines_per_page - 1 then
-                            -- Advance to the latest page
-                            while total_lines > page_top_line + inner.lines_per_page - 1 do
-                                page_top_line = page_top_line + inner.lines_per_page
-                            end
-                            -- Clamp
-                            local max_top = total_lines - inner.lines_per_page + 1
-                            if max_top < 1 then max_top = 1 end
-                            if page_top_line > max_top then page_top_line = max_top end
-                            -- Re-render at new page position
-                            iw.top_line_num = page_top_line
-                            iw:setText(display, true)
-                        end
-                    end
+                    applyPageScroll(iw, display)
                 end
             end
         end)
@@ -320,6 +341,9 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
         -- Jump to the last page of content
         local iw = streamDialog._input_widget
         if iw then
+            -- Re-render unpadded text to get accurate line count
+            local display = in_reasoning_phase and table.concat(reasoning_buffer) or table.concat(result_buffer)
+            iw:setText(display, true)
             local stw = iw.text_widget
             local inner = stw and stw.text_widget
             if inner and inner.lines_per_page and inner.lines_per_page > 0 then
@@ -334,10 +358,8 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
             else
                 page_top_line = 1
             end
-            -- Force immediate position update
-            iw.top_line_num = page_top_line
-            local display = in_reasoning_phase and table.concat(reasoning_buffer) or table.concat(result_buffer)
-            iw:setText(display, true)
+            -- Pad and scroll to the calculated page
+            applyPageScroll(iw, display)
         end
         -- Update button to show current state (ON)
         local btn = streamDialog.button_table:getButtonById("scroll_control")
