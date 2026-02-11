@@ -1157,6 +1157,14 @@ function AskGPT:onDispatcherRegisterActions()
     general = true,  -- Only general (no reader flag) so it's not grayed out in file browser
   })
 
+  -- Browse all artifacts (general context - works from anywhere)
+  Dispatcher:registerAction("koassistant_browse_artifacts", {
+    category = "none",
+    event = "KOAssistantBrowseArtifacts",
+    title = _("KOAssistant: Browse Artifacts"),
+    general = true,
+  })
+
   -- View Summary - shows summary directly in simple_view, or info message if none
   Dispatcher:registerAction("koassistant_view_summary", {
     category = "none",
@@ -5955,6 +5963,19 @@ function AskGPT:showNotebookBrowser()
   NotebookManager:showNotebookBrowser({ enable_emoji = features.enable_emoji_icons == true })
 end
 
+--- Browse artifacts gesture handler
+function AskGPT:onKOAssistantBrowseArtifacts()
+  self:showArtifactBrowser()
+  return true
+end
+
+--- Browse artifacts (settings menu callback)
+function AskGPT:showArtifactBrowser()
+  local ArtifactBrowser = require("koassistant_artifact_browser")
+  local features = self.settings:readSetting("features") or {}
+  ArtifactBrowser:showArtifactBrowser({ enable_emoji = features.enable_emoji_icons == true })
+end
+
 -- Translate current page gesture handler
 function AskGPT:onKOAssistantTranslatePage()
   self:translateCurrentPage()
@@ -8703,6 +8724,15 @@ function AskGPT:patchDocSettingsForChatIndex()
       notebook_index[old_path] = nil
       G_reader_settings:saveSetting("koassistant_notebook_index", notebook_index)
       logger.info("KOAssistant: Updated notebook index for moved file")
+    end
+
+    -- Update KOAssistant artifact index
+    local artifact_index = G_reader_settings:readSetting("koassistant_artifact_index", {})
+    if artifact_index[old_path] then
+      artifact_index[new_path] = artifact_index[old_path]
+      artifact_index[old_path] = nil
+      G_reader_settings:saveSetting("koassistant_artifact_index", artifact_index)
+      logger.info("KOAssistant: Updated artifact index for moved file")
     end
 
     -- Flush settings once after all index updates

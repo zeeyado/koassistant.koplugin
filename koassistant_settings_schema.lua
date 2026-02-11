@@ -55,6 +55,13 @@ local SettingsSchema = {
             text = _("Browse Notebooks"),
             emoji = "📓",
             callback = "showNotebookBrowser",
+        },
+        {
+            id = "browse_artifacts",
+            type = "action",
+            text = _("Browse Artifacts"),
+            emoji = "\u{1F4E6}",
+            callback = "showArtifactBrowser",
             separator = true,
         },
 

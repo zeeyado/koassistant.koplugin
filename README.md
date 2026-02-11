@@ -2020,9 +2020,10 @@ Control where KOAssistant appears in KOReader's menus. All toggles default to ON
   - **Dictionary Popup Actions...**: Configure which actions appear in the dictionary popup's AI menu
   - **Highlight Menu Actions...**: Configure which actions appear as shortcuts in the highlight menu
   - **File Browser Actions...**: Reorder and manage pinned file browser actions (tap to toggle, hold to move/remove)
-- **Reset Options**: Reset Dictionary Popup Actions, Highlight Menu Actions, File Browser Actions, or all at once
+- **Reset Options**: Reset Dictionary Popup Actions, Highlight Menu Actions, File Browser Actions, Quick Actions, or all at once
+- **Auto-check for updates**: Automatically check for new versions when KOReader starts (default: on)
 
-**Note:** File browser and highlight menu changes require a KOReader restart since buttons are registered at plugin startup. Dictionary popup changes take effect immediately.
+**Note:** File browser and highlight menu changes require a KOReader restart since buttons are registered at plugin startup. Dictionary popup and quick actions changes take effect immediately.
 
 ### Advanced
 - **Temperature**: Response creativity (0.0-2.0, Anthropic max 1.0)
@@ -2036,6 +2037,8 @@ Control where KOAssistant appears in KOReader's menus. All toggles default to ON
   - **Enable Web Search**: Global toggle (default: off). Supported by Anthropic, Gemini, and OpenRouter.
   - **Max Searches per Query**: 1-10 searches per query (Anthropic only, default: 5)
   - **Show Indicator in Chat**: Display "*[Web search was used]*" in chat when search is used (default: on)
+- **Provider Settings**:
+  - **Qwen Region**: Select your Alibaba Cloud region (International/China/US). API keys are region-specific and not interchangeable.
 - **Settings Management**: Backup and restore functionality (see [Backup & Restore](#backup--restore))
   - **Create Backup**: Save settings, API keys, custom content, and chat history
   - **Restore from Backup**: Restore from a previous backup

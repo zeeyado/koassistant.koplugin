@@ -22,6 +22,63 @@ local ActionCache = {}
 -- v2: Added used_annotations and used_book_text fields to track permission state when cache was built
 local CACHE_VERSION = 2
 
+-- Artifact keys tracked in the browsing index
+local ARTIFACT_KEYS = { "_xray_cache", "_summary_cache", "_analyze_cache", "recap" }
+
+--- Update the artifact index in g_reader_settings after any cache mutation.
+--- Scans the in-memory cache table for known artifact keys and updates the index entry.
+--- @param document_path string The document file path
+--- @param cache table|nil The current cache table (nil = removed)
+local function updateArtifactIndex(document_path, cache)
+    if not document_path
+        or document_path == "__GENERAL_CHATS__"
+        or document_path == "__MULTI_BOOK_CHATS__" then
+        return
+    end
+
+    local index = G_reader_settings:readSetting("koassistant_artifact_index", {})
+
+    if not cache then
+        -- Cache file deleted
+        if index[document_path] then
+            index[document_path] = nil
+            G_reader_settings:saveSetting("koassistant_artifact_index", index)
+            G_reader_settings:flush()
+        end
+        return
+    end
+
+    -- Count valid artifact entries and find most recent timestamp
+    local count = 0
+    local latest = 0
+    for _idx, key in ipairs(ARTIFACT_KEYS) do
+        local entry = cache[key]
+        if entry and type(entry) == "table" and entry.version == CACHE_VERSION and entry.result then
+            count = count + 1
+            if (entry.timestamp or 0) > latest then
+                latest = entry.timestamp or 0
+            end
+        end
+    end
+
+    local changed = false
+    if count > 0 then
+        local prev = index[document_path]
+        if not prev or prev.count ~= count or prev.modified ~= latest then
+            index[document_path] = { modified = latest, count = count }
+            changed = true
+        end
+    elseif index[document_path] then
+        index[document_path] = nil
+        changed = true
+    end
+
+    if changed then
+        G_reader_settings:saveSetting("koassistant_artifact_index", index)
+        G_reader_settings:flush()
+    end
+end
+
 --- Find a safe long string delimiter for content that won't appear in the text
 --- Returns number of = signs needed (0 means use [[]], 1 means [=[]=], etc.)
 --- @param content string The content to wrap
@@ -130,6 +187,7 @@ local function saveCache(document_path, cache)
     file:close()
 
     logger.info("KOAssistant ActionCache: Saved cache for", document_path)
+    updateArtifactIndex(document_path, cache)
     return true
 end
 
@@ -201,6 +259,7 @@ function ActionCache.clearAll(document_path)
         os.remove(path)
         logger.info("KOAssistant ActionCache: Cleared all cache for", document_path)
     end
+    updateArtifactIndex(document_path, nil)
     return true
 end
 
@@ -221,6 +280,7 @@ end
 ActionCache.XRAY_CACHE_KEY = "_xray_cache"
 ActionCache.ANALYZE_CACHE_KEY = "_analyze_cache"
 ActionCache.SUMMARY_CACHE_KEY = "_summary_cache"
+ActionCache.ARTIFACT_KEYS = ARTIFACT_KEYS
 
 --- Get cached X-Ray (partial document analysis to reading position)
 --- @param document_path string The document file path
