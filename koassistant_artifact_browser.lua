@@ -2,8 +2,9 @@
 Artifact Browser for KOAssistant
 
 Browser UI for viewing all documents with cached artifacts (X-Ray, Summary, Analysis, Recap).
-- Flat list: each artifact shown as "Book Title — Artifact Type"
-- Tap to view, hold to delete
+- One entry per document, sorted by most recent artifact date
+- Tap to show artifact selector popup (same as "View Artifacts" elsewhere)
+- Hold for delete options
 - Auto-cleanup stale index entries
 
 @module koassistant_artifact_browser
@@ -32,27 +33,21 @@ local ARTIFACT_NAMES = {
     ["recap"] = _("Recap"),
 }
 
--- Emoji icons for artifact types
-local ARTIFACT_EMOJI = {
-    ["_xray_cache"] = "\u{1F50D}",   -- magnifying glass
-    ["_summary_cache"] = "\u{1F4DD}", -- memo
-    ["_analyze_cache"] = "\u{1F4CA}", -- bar chart
-    ["recap"] = "\u{1F4D6}",          -- open book
-}
-
---- Get book title from DocSettings metadata, falling back to filename
+--- Get book title and author from DocSettings metadata
 --- @param doc_path string The document file path
 --- @return string title The book title
-local function getBookTitle(doc_path)
+--- @return string|nil author The book author, or nil
+local function getBookMetadata(doc_path)
     local doc_settings = DocSettings:open(doc_path)
     local doc_props = doc_settings:readSetting("doc_props")
-    if doc_props and doc_props.title and doc_props.title ~= "" then
-        return doc_props.title
-    end
-    return doc_path:match("([^/]+)%.[^%.]+$") or doc_path
+    local title = (doc_props and doc_props.title and doc_props.title ~= "")
+        and doc_props.title
+        or doc_path:match("([^/]+)%.[^%.]+$") or doc_path
+    local author = doc_props and doc_props.authors or nil
+    return title, author
 end
 
---- Show the artifact browser (flat list of all artifacts)
+--- Show the artifact browser (list of documents with artifacts)
 --- @param opts table|nil Optional config: { enable_emoji = bool }
 function ArtifactBrowser:showArtifactBrowser(opts)
     local lfs = require("libs/libkoreader-lfs")
@@ -67,27 +62,19 @@ function ArtifactBrowser:showArtifactBrowser(opts)
     local index = G_reader_settings:readSetting("koassistant_artifact_index", {})
     local needs_cleanup = false
 
-    -- Collect all individual artifacts across all documents
-    local all_artifacts = {}
+    -- Build sorted list (newest first), validate entries exist
+    local docs = {}
     for doc_path, stats in pairs(index) do
         local cache_path = ActionCache.getPath(doc_path)
         if cache_path and lfs.attributes(cache_path, "mode") == "file" then
-            local title = getBookTitle(doc_path)
-            -- Load actual cache to discover individual artifacts
-            for _idx, key in ipairs(ActionCache.ARTIFACT_KEYS) do
-                local entry = ActionCache.get(doc_path, key)
-                if entry and entry.result then
-                    table.insert(all_artifacts, {
-                        doc_path = doc_path,
-                        doc_title = title,
-                        key = key,
-                        name = ARTIFACT_NAMES[key] or key,
-                        emoji = ARTIFACT_EMOJI[key] or "",
-                        data = entry,
-                        timestamp = entry.timestamp or 0,
-                    })
-                end
-            end
+            local title, author = getBookMetadata(doc_path)
+            table.insert(docs, {
+                path = doc_path,
+                title = title,
+                author = author,
+                modified = stats.modified or 0,
+                count = stats.count or 0,
+            })
         else
             -- Stale entry - cache file no longer exists
             index[doc_path] = nil
@@ -104,7 +91,7 @@ function ArtifactBrowser:showArtifactBrowser(opts)
     end
 
     -- Handle empty state
-    if #all_artifacts == 0 then
+    if #docs == 0 then
         UIManager:show(InfoMessage:new{
             text = _("No artifacts yet.\n\nRun X-Ray, Summarize Document, or Analyze Document to create reusable artifacts."),
             timeout = 5,
@@ -112,39 +99,36 @@ function ArtifactBrowser:showArtifactBrowser(opts)
         return
     end
 
-    -- Sort by timestamp (newest first)
-    table.sort(all_artifacts, function(a, b) return a.timestamp > b.timestamp end)
+    -- Sort by last modified (newest first)
+    table.sort(docs, function(a, b) return a.modified > b.modified end)
 
     -- Build menu items
     local menu_items = {}
     local self_ref = self
     local enable_emoji = opts and opts.enable_emoji
 
-    for _idx, artifact in ipairs(all_artifacts) do
-        local captured = artifact
-        -- Build info string: progress% + date
-        local parts = {}
-        if captured.data.progress_decimal then
-            table.insert(parts, math.floor(captured.data.progress_decimal * 100 + 0.5) .. "%")
-        end
-        if captured.timestamp > 0 then
-            table.insert(parts, os.date("%Y-%m-%d", captured.timestamp))
-        end
-        local mandatory = table.concat(parts, " \u{00B7} ")
+    for _idx, doc in ipairs(docs) do
+        local captured_doc = doc
+        local date_str = doc.modified > 0 and os.date("%Y-%m-%d", doc.modified) or _("Unknown")
+        local count_str = tostring(doc.count)
+        local right_text = count_str .. " \u{00B7} " .. date_str
 
-        -- Display: "Book Title — Artifact Type"
-        local display_text = captured.doc_title .. " \u{2014} " .. captured.name
-        display_text = Constants.getEmojiText(captured.emoji, display_text, enable_emoji)
+        local display_text = doc.title
+        if doc.author and doc.author ~= "" then
+            display_text = display_text .. " \u{00B7} " .. doc.author
+        end
+        display_text = Constants.getEmojiText("\u{1F4E6}", display_text, enable_emoji)
 
         table.insert(menu_items, {
             text = display_text,
-            mandatory = mandatory,
+            mandatory = right_text,
             mandatory_dim = true,
+            help_text = doc.path,
             callback = function()
-                self_ref:showArtifactOptions(captured, opts)
+                self_ref:showArtifactSelector(captured_doc.path, captured_doc.title, opts)
             end,
             hold_callback = function()
-                self_ref:confirmDeleteArtifact(captured, opts)
+                self_ref:showDocumentOptions(captured_doc, opts)
             end,
         })
     end
@@ -162,7 +146,10 @@ function ArtifactBrowser:showArtifactBrowser(opts)
         is_popout = false,
         width = Screen:getWidth(),
         height = Screen:getHeight(),
-        single_line = true,
+        multilines_show_more_text = true,
+        items_max_lines = 2,
+        single_line = false,
+        multilines_forced = true,
         items_font_size = 18,
         items_mandatory_font_size = 14,
         close_callback = function()
@@ -174,31 +161,145 @@ function ArtifactBrowser:showArtifactBrowser(opts)
     UIManager:show(menu)
 end
 
---- Show options for an artifact (tap menu)
---- @param artifact table The artifact entry
+--- Show artifact selector popup for a document (same pattern as "View Artifacts" elsewhere)
+--- @param doc_path string The document file path
+--- @param doc_title string The document title
 --- @param opts table|nil Config passed through for refresh
-function ArtifactBrowser:showArtifactOptions(artifact, opts)
+function ArtifactBrowser:showArtifactSelector(doc_path, doc_title, opts)
+    -- Load actual cache and discover which artifacts exist
+    local caches = {}
+    for _idx, key in ipairs(ActionCache.ARTIFACT_KEYS) do
+        local entry = ActionCache.get(doc_path, key)
+        if entry and entry.result then
+            table.insert(caches, {
+                name = ARTIFACT_NAMES[key] or key,
+                key = key,
+                data = entry,
+                is_per_action = (key == "recap"),
+            })
+        end
+    end
+
+    if #caches == 0 then
+        -- All artifacts were removed since index was built; clean up and refresh
+        local index = G_reader_settings:readSetting("koassistant_artifact_index", {})
+        index[doc_path] = nil
+        G_reader_settings:saveSetting("koassistant_artifact_index", index)
+        G_reader_settings:flush()
+        UIManager:show(InfoMessage:new{
+            text = _("No artifacts found for this document."),
+        })
+        self:showArtifactBrowser(opts)
+        return
+    end
+
+    local AskGPT = self:getAskGPTInstance()
+    if not AskGPT then
+        UIManager:show(InfoMessage:new{ text = _("Could not open viewer.") })
+        return
+    end
+
+    -- If only one cache, open directly
+    if #caches == 1 then
+        -- Close browser before opening viewer
+        if self.current_menu then
+            UIManager:close(self.current_menu)
+            self.current_menu = nil
+        end
+        if caches[1].is_per_action then
+            AskGPT:viewCachedAction(
+                { text = caches[1].name }, caches[1].key, caches[1].data,
+                { file = doc_path, book_title = doc_title })
+        else
+            AskGPT:showCacheViewer({
+                name = caches[1].name, key = caches[1].key, data = caches[1].data,
+                book_title = doc_title, file = doc_path })
+        end
+        return
+    end
+
+    -- Multiple caches - show selector (same pattern as main.lua viewCache)
+    local self_ref = self
+    local buttons = {}
+    for _idx, cache in ipairs(caches) do
+        local captured = cache
+        table.insert(buttons, {{
+            text = captured.name,
+            callback = function()
+                UIManager:close(self_ref._cache_selector)
+                -- Close browser before opening viewer
+                if self_ref.current_menu then
+                    UIManager:close(self_ref.current_menu)
+                    self_ref.current_menu = nil
+                end
+                if captured.is_per_action then
+                    AskGPT:viewCachedAction(
+                        { text = captured.name }, captured.key, captured.data,
+                        { file = doc_path, book_title = doc_title })
+                else
+                    AskGPT:showCacheViewer({
+                        name = captured.name, key = captured.key, data = captured.data,
+                        book_title = doc_title, file = doc_path })
+                end
+            end,
+        }})
+    end
+    table.insert(buttons, {{
+        text = _("Cancel"),
+        callback = function()
+            UIManager:close(self._cache_selector)
+        end,
+    }})
+
+    self._cache_selector = ButtonDialog:new{
+        title = _("View Artifacts"),
+        buttons = buttons,
+    }
+    UIManager:show(self._cache_selector)
+end
+
+--- Show options for a document's artifacts (hold menu)
+--- @param doc table The document entry: { path, title, count }
+--- @param opts table|nil Config passed through for refresh
+function ArtifactBrowser:showDocumentOptions(doc, opts)
     local self_ref = self
 
     local dialog
     dialog = ButtonDialog:new{
-        title = artifact.name .. " \u{2014} " .. artifact.doc_title,
+        title = doc.title,
         buttons = {
             {
                 {
                     text = _("View"),
                     callback = function()
                         UIManager:close(dialog)
-                        self_ref:openArtifactViewer(artifact)
+                        self_ref:showArtifactSelector(doc.path, doc.title, opts)
                     end,
                 },
             },
             {
                 {
-                    text = _("Delete"),
+                    text = _("Delete All"),
                     callback = function()
                         UIManager:close(dialog)
-                        self_ref:confirmDeleteArtifact(artifact, opts)
+                        UIManager:show(ConfirmBox:new{
+                            text = _("Delete all artifacts for this document?\n\nThis cannot be undone."),
+                            ok_text = _("Delete"),
+                            ok_callback = function()
+                                ActionCache.clearAll(doc.path)
+                                -- Invalidate file browser row cache
+                                local AskGPT = self_ref:getAskGPTInstance()
+                                if AskGPT then
+                                    AskGPT._file_dialog_row_cache = { file = nil, rows = nil }
+                                end
+                                UIManager:show(Notification:new{
+                                    text = _("All artifacts deleted"),
+                                    timeout = 2,
+                                })
+                                -- Refresh browser
+                                self_ref:showArtifactBrowser(opts)
+                            end,
+                        })
                     end,
                 },
             },
@@ -213,71 +314,6 @@ function ArtifactBrowser:showArtifactOptions(artifact, opts)
         },
     }
     UIManager:show(dialog)
-end
-
---- Confirm and delete an artifact
---- @param artifact table The artifact entry
---- @param opts table|nil Config passed through for refresh
-function ArtifactBrowser:confirmDeleteArtifact(artifact, opts)
-    local self_ref = self
-
-    UIManager:show(ConfirmBox:new{
-        text = _("Delete this artifact?\n\nThis cannot be undone."),
-        ok_text = _("Delete"),
-        ok_callback = function()
-            ActionCache.clear(artifact.doc_path, artifact.key)
-            -- X-Ray also has a per-action cache
-            if artifact.key == "_xray_cache" then
-                ActionCache.clear(artifact.doc_path, "xray")
-            end
-            -- Invalidate file browser row cache
-            local AskGPT = self_ref:getAskGPTInstance()
-            if AskGPT then
-                AskGPT._file_dialog_row_cache = { file = nil, rows = nil }
-            end
-            UIManager:show(Notification:new{
-                text = artifact.name .. " " .. _("deleted"),
-                timeout = 2,
-            })
-            -- Refresh browser
-            self_ref:showArtifactBrowser(opts)
-        end,
-    })
-end
-
---- Open the appropriate viewer for an artifact
---- @param artifact table The artifact entry
-function ArtifactBrowser:openArtifactViewer(artifact)
-    local AskGPT = self:getAskGPTInstance()
-    if not AskGPT then
-        UIManager:show(InfoMessage:new{ text = _("Could not open viewer.") })
-        return
-    end
-
-    -- Close browser before opening viewer
-    if self.current_menu then
-        UIManager:close(self.current_menu)
-        self.current_menu = nil
-    end
-
-    if artifact.key == "recap" then
-        -- Recap uses viewCachedAction
-        AskGPT:viewCachedAction(
-            { text = artifact.name },
-            artifact.key,
-            artifact.data,
-            { file = artifact.doc_path, book_title = artifact.doc_title }
-        )
-    else
-        -- Document caches use showCacheViewer
-        AskGPT:showCacheViewer({
-            name = artifact.name,
-            key = artifact.key,
-            data = artifact.data,
-            book_title = artifact.doc_title,
-            file = artifact.doc_path,
-        })
-    end
 end
 
 --- One-time migration: scan known document paths for existing cache files.
