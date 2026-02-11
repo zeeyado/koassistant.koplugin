@@ -507,12 +507,48 @@ function XrayBrowser:showItemDetail(item, category_key, title)
         })
     end
 
+    local buttons_rows = { row }
+
+    -- Resolve character connections into tappable navigation buttons
+    if (category_key == "characters" or category_key == "key_figures") and self.xray_data then
+        local connections = item.connections
+        if type(connections) == "string" and connections ~= "" then
+            connections = { connections }
+        end
+        if type(connections) == "table" and #connections > 0 then
+            local conn_row = {}
+            for _idx, conn_str in ipairs(connections) do
+                local resolved = XrayParser.resolveConnection(self.xray_data, conn_str)
+                if resolved and resolved.item ~= item then  -- Skip self-references
+                    local captured_resolved = resolved
+                    table.insert(conn_row, {
+                        text = captured_resolved.name_portion,
+                        callback = function()
+                            if viewer then viewer:onClose() end
+                            local char_key = XrayParser.getCharacterKey(self_ref.xray_data)
+                            self_ref:showItemDetail(captured_resolved.item, char_key,
+                                captured_resolved.item.name or _("Details"))
+                        end,
+                    })
+                    -- Start a new row every 3 buttons
+                    if #conn_row == 3 then
+                        table.insert(buttons_rows, conn_row)
+                        conn_row = {}
+                    end
+                end
+            end
+            if #conn_row > 0 then
+                table.insert(buttons_rows, conn_row)
+            end
+        end
+    end
+
     viewer = TextViewer:new{
         title = title or _("Details"),
         text = detail_text,
         width = Screen:getWidth(),
         height = Screen:getHeight(),
-        buttons_table = { row },
+        buttons_table = buttons_rows,
         text_selection_callback = function(text)
             handleTextSelection(text, captured_ui)
         end,

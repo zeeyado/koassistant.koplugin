@@ -3761,90 +3761,96 @@ function AskGPT:onDictButtonsReady(dict_popup, dict_buttons)
           end
         end
 
-        -- Ensure network is available
-        NetworkMgr:runWhenOnline(function()
-          -- Make sure we're using the latest configuration
+        if action.local_handler then
+          -- Local actions don't need network or dictionary-specific config
           self_ref:updateConfigFromSettings()
-          -- Get effective dictionary language
-          local SystemPrompts = require("prompts.system_prompts")
-          local dict_language = SystemPrompts.getEffectiveDictionaryLanguage({
-            dictionary_language = features.dictionary_language,
-            translation_language = features.translation_language,
-            translation_use_primary = features.translation_use_primary,
-            interaction_languages = features.interaction_languages,
-            user_languages = features.user_languages,
-            primary_language = features.primary_language,
-          })
+          Dialogs.executeDirectAction(self_ref.ui, action, word, configuration, self_ref)
+        else
+          -- Ensure network is available
+          NetworkMgr:runWhenOnline(function()
+            -- Make sure we're using the latest configuration
+            self_ref:updateConfigFromSettings()
+            -- Get effective dictionary language
+            local SystemPrompts = require("prompts.system_prompts")
+            local dict_language = SystemPrompts.getEffectiveDictionaryLanguage({
+              dictionary_language = features.dictionary_language,
+              translation_language = features.translation_language,
+              translation_use_primary = features.translation_use_primary,
+              interaction_languages = features.interaction_languages,
+              user_languages = features.user_languages,
+              primary_language = features.primary_language,
+            })
 
-          -- Create a shallow copy of configuration to avoid polluting global state
-          local dict_config = {}
-          for k, v in pairs(configuration) do
-            dict_config[k] = v
-          end
-          -- Deep copy features to avoid modifying global
-          dict_config.features = {}
-          if configuration.features then
-            for k, v in pairs(configuration.features) do
-              dict_config.features[k] = v
+            -- Create a shallow copy of configuration to avoid polluting global state
+            local dict_config = {}
+            for k, v in pairs(configuration) do
+              dict_config[k] = v
             end
-          end
+            -- Deep copy features to avoid modifying global
+            dict_config.features = {}
+            if configuration.features then
+              for k, v in pairs(configuration.features) do
+                dict_config.features[k] = v
+              end
+            end
 
-          -- Clear context flags to ensure highlight context (like executeQuickAction does)
-          dict_config.features.is_general_context = nil
-          dict_config.features.is_book_context = nil
-          dict_config.features.is_multi_book_context = nil
+            -- Clear context flags to ensure highlight context (like executeQuickAction does)
+            dict_config.features.is_general_context = nil
+            dict_config.features.is_book_context = nil
+            dict_config.features.is_multi_book_context = nil
 
-          -- Set dictionary-specific values
-          if non_reader_lookup then
-            -- Non-reader lookup: no context available, disable CTX toggle
-            dict_config.features.dictionary_context = ""
-            dict_config.features._original_context = ""
-            dict_config.features._no_context_available = true
-          else
-            -- Only include context in the request if mode is not "none"
-            dict_config.features.dictionary_context = (context_mode ~= "none") and context or ""
-            -- Always store extracted context so compact view toggle can use it
-            dict_config.features._original_context = context
-            dict_config.features._original_context_mode = extraction_mode
-          end
-          dict_config.features.dictionary_language = dict_language
-          dict_config.features.dictionary_context_mode = features.dictionary_context_mode or "none"
-          -- Store selection_data for "Save to Note" feature (word position only)
-          dict_config.features.selection_data = selection_data
+            -- Set dictionary-specific values
+            if non_reader_lookup then
+              -- Non-reader lookup: no context available, disable CTX toggle
+              dict_config.features.dictionary_context = ""
+              dict_config.features._original_context = ""
+              dict_config.features._no_context_available = true
+            else
+              -- Only include context in the request if mode is not "none"
+              dict_config.features.dictionary_context = (context_mode ~= "none") and context or ""
+              -- Always store extracted context so compact view toggle can use it
+              dict_config.features._original_context = context
+              dict_config.features._original_context_mode = extraction_mode
+            end
+            dict_config.features.dictionary_language = dict_language
+            dict_config.features.dictionary_context_mode = features.dictionary_context_mode or "none"
+            -- Store selection_data for "Save to Note" feature (word position only)
+            dict_config.features.selection_data = selection_data
 
-          -- Skip auto-save for dictionary if setting is enabled (default: true)
-          if features.dictionary_disable_auto_save ~= false then
-            dict_config.features.storage_key = "__SKIP__"
-          end
+            -- Skip auto-save for dictionary if setting is enabled (default: true)
+            if features.dictionary_disable_auto_save ~= false then
+              dict_config.features.storage_key = "__SKIP__"
+            end
 
-          -- Always use compact view for dictionary popup actions
-          dict_config.features.compact_view = true
-          dict_config.features.hide_highlighted_text = true  -- Hide quote by default in compact mode
-          dict_config.features.minimal_buttons = true  -- Use minimal button set
-          dict_config.features.large_stream_dialog = false  -- Small streaming dialog
+            -- Always use compact view for dictionary popup actions
+            dict_config.features.compact_view = true
+            dict_config.features.hide_highlighted_text = true  -- Hide quote by default in compact mode
+            dict_config.features.minimal_buttons = true  -- Use minimal button set
+            dict_config.features.large_stream_dialog = false  -- Small streaming dialog
 
-          -- Check dictionary streaming setting
-          if features.dictionary_enable_streaming == false then
-            dict_config.features.enable_streaming = false
-          end
+            -- Check dictionary streaming setting
+            if features.dictionary_enable_streaming == false then
+              dict_config.features.enable_streaming = false
+            end
 
-          -- In popup mode, KOReader's dictionary already triggered WordLookedUp
-          -- (the word was added/skipped by KOReader's own vocab builder settings).
-          -- We just reflect the state for our UI button — don't fire the event again.
-          local vocab_settings = G_reader_settings and G_reader_settings:readSetting("vocabulary_builder") or {}
-          if vocab_settings.enabled then
-            dict_config.features.vocab_word_auto_added = true
-          end
+            -- In popup mode, KOReader's dictionary already triggered WordLookedUp
+            -- (the word was added/skipped by KOReader's own vocab builder settings).
+            -- We just reflect the state for our UI button — don't fire the event again.
+            local vocab_settings = G_reader_settings and G_reader_settings:readSetting("vocabulary_builder") or {}
+            if vocab_settings.enabled then
+              dict_config.features.vocab_word_auto_added = true
+            end
 
-          -- Execute the action
-          Dialogs.executeDirectAction(
-            self_ref.ui,   -- ui
-            action,        -- action (from closure)
-            word,          -- highlighted_text
-            dict_config,   -- local config copy (not global)
-            self_ref       -- plugin
-          )
-        end)
+            -- Execute the action
+            Dialogs.executeDirectAction(
+              self_ref.ui,   -- ui
+              action,        -- action (from closure)
+              word,          -- highlighted_text
+              dict_config,   -- local config copy (not global)
+              self_ref       -- plugin
+            )
+          end)
+        end
       end,
     }
   end
@@ -6325,11 +6331,17 @@ function AskGPT:registerHighlightMenuActions()
           -- Close highlight overlay to prevent darkening on saved highlights
           reader_highlight_instance:onClose()
 
-          NetworkMgr:runWhenOnline(function()
+          if action_copy.local_handler then
+            -- Local actions don't need network
             self:updateConfigFromSettings()
-            -- Pass extracted context and selection data to executeQuickAction
             self:executeQuickAction(action_copy, selected_text, context, selection_data)
-          end)
+          else
+            NetworkMgr:runWhenOnline(function()
+              self:updateConfigFromSettings()
+              -- Pass extracted context and selection data to executeQuickAction
+              self:executeQuickAction(action_copy, selected_text, context, selection_data)
+            end)
+          end
         end,
       }
     end)
@@ -6436,92 +6448,98 @@ function AskGPT:syncDictionaryBypass()
       end
 
       -- Execute the default action directly (context already captured above)
-      NetworkMgr:runWhenOnline(function()
-        -- Make sure we're using the latest configuration
+      if bypass_action.local_handler then
+        -- Local actions don't need network or dictionary-specific config
         self_ref:updateConfigFromSettings()
-        -- Get effective dictionary language
-        local SystemPrompts = require("prompts.system_prompts")
-        local dict_language = SystemPrompts.getEffectiveDictionaryLanguage({
-          dictionary_language = features.dictionary_language,
-          translation_language = features.translation_language,
-          translation_use_primary = features.translation_use_primary,
-          interaction_languages = features.interaction_languages,
-          user_languages = features.user_languages,
-          primary_language = features.primary_language,
-        })
+        Dialogs.executeDirectAction(self_ref.ui, bypass_action, word, configuration, self_ref)
+      else
+        NetworkMgr:runWhenOnline(function()
+          -- Make sure we're using the latest configuration
+          self_ref:updateConfigFromSettings()
+          -- Get effective dictionary language
+          local SystemPrompts = require("prompts.system_prompts")
+          local dict_language = SystemPrompts.getEffectiveDictionaryLanguage({
+            dictionary_language = features.dictionary_language,
+            translation_language = features.translation_language,
+            translation_use_primary = features.translation_use_primary,
+            interaction_languages = features.interaction_languages,
+            user_languages = features.user_languages,
+            primary_language = features.primary_language,
+          })
 
-        -- Create a shallow copy of configuration to avoid polluting global state
-        local dict_config = {}
-        for k, v in pairs(configuration) do
-          dict_config[k] = v
-        end
-        -- Deep copy features to avoid modifying global
-        dict_config.features = {}
-        if configuration.features then
-          for k, v in pairs(configuration.features) do
-            dict_config.features[k] = v
+          -- Create a shallow copy of configuration to avoid polluting global state
+          local dict_config = {}
+          for k, v in pairs(configuration) do
+            dict_config[k] = v
           end
-        end
+          -- Deep copy features to avoid modifying global
+          dict_config.features = {}
+          if configuration.features then
+            for k, v in pairs(configuration.features) do
+              dict_config.features[k] = v
+            end
+          end
 
-        -- Clear context flags to ensure highlight context
-        dict_config.features.is_general_context = nil
-        dict_config.features.is_book_context = nil
-        dict_config.features.is_multi_book_context = nil
+          -- Clear context flags to ensure highlight context
+          dict_config.features.is_general_context = nil
+          dict_config.features.is_book_context = nil
+          dict_config.features.is_multi_book_context = nil
 
-        -- Set dictionary-specific values
-        if non_reader_lookup then
-          -- Non-reader lookup: no context available, disable CTX toggle
-          dict_config.features.dictionary_context = ""
-          dict_config.features._original_context = ""
-          dict_config.features._no_context_available = true
-        else
-          -- Only include context in the request if mode is not "none"
-          dict_config.features.dictionary_context = (context_mode ~= "none") and context or ""
-          -- Always store extracted context so compact view toggle can use it
-          dict_config.features._original_context = context
-          dict_config.features._original_context_mode = extraction_mode
-        end
-        dict_config.features.dictionary_language = dict_language
-        dict_config.features.dictionary_context_mode = features.dictionary_context_mode or "none"
-        -- Store selection_data for "Save to Note" feature (word position only)
-        dict_config.features.selection_data = selection_data
+          -- Set dictionary-specific values
+          if non_reader_lookup then
+            -- Non-reader lookup: no context available, disable CTX toggle
+            dict_config.features.dictionary_context = ""
+            dict_config.features._original_context = ""
+            dict_config.features._no_context_available = true
+          else
+            -- Only include context in the request if mode is not "none"
+            dict_config.features.dictionary_context = (context_mode ~= "none") and context or ""
+            -- Always store extracted context so compact view toggle can use it
+            dict_config.features._original_context = context
+            dict_config.features._original_context_mode = extraction_mode
+          end
+          dict_config.features.dictionary_language = dict_language
+          dict_config.features.dictionary_context_mode = features.dictionary_context_mode or "none"
+          -- Store selection_data for "Save to Note" feature (word position only)
+          dict_config.features.selection_data = selection_data
 
-        -- Skip auto-save for dictionary if setting is enabled (default: true)
-        if features.dictionary_disable_auto_save ~= false then
-          dict_config.features.storage_key = "__SKIP__"
-        end
+          -- Skip auto-save for dictionary if setting is enabled (default: true)
+          if features.dictionary_disable_auto_save ~= false then
+            dict_config.features.storage_key = "__SKIP__"
+          end
 
-        -- Always use compact view for dictionary bypass
-        dict_config.features.compact_view = true
-        dict_config.features.hide_highlighted_text = true
-        dict_config.features.minimal_buttons = true
-        dict_config.features.large_stream_dialog = false
+          -- Always use compact view for dictionary bypass
+          dict_config.features.compact_view = true
+          dict_config.features.hide_highlighted_text = true
+          dict_config.features.minimal_buttons = true
+          dict_config.features.large_stream_dialog = false
 
-        -- Check dictionary streaming setting
-        if features.dictionary_enable_streaming == false then
-          dict_config.features.enable_streaming = false
-        end
+          -- Check dictionary streaming setting
+          if features.dictionary_enable_streaming == false then
+            dict_config.features.enable_streaming = false
+          end
 
-        -- Vocab builder auto-add in bypass mode:
-        -- Only add if both vocab builder is enabled AND the bypass vocab setting allows it
-        local vocab_settings = G_reader_settings and G_reader_settings:readSetting("vocabulary_builder") or {}
-        if vocab_settings.enabled and features.dictionary_bypass_vocab_add ~= false then
-          local book_title = (self_ref.ui.doc_props and self_ref.ui.doc_props.display_title) or _("AI Dictionary lookup")
-          local Event = require("ui/event")
-          self_ref.ui:handleEvent(Event:new("WordLookedUp", word, book_title, false))
-          dict_config.features.vocab_word_auto_added = true
-          logger.info("KOAssistant: Auto-added word to vocabulary builder (bypass): " .. word)
-        end
+          -- Vocab builder auto-add in bypass mode:
+          -- Only add if both vocab builder is enabled AND the bypass vocab setting allows it
+          local vocab_settings = G_reader_settings and G_reader_settings:readSetting("vocabulary_builder") or {}
+          if vocab_settings.enabled and features.dictionary_bypass_vocab_add ~= false then
+            local book_title = (self_ref.ui.doc_props and self_ref.ui.doc_props.display_title) or _("AI Dictionary lookup")
+            local Event = require("ui/event")
+            self_ref.ui:handleEvent(Event:new("WordLookedUp", word, book_title, false))
+            dict_config.features.vocab_word_auto_added = true
+            logger.info("KOAssistant: Auto-added word to vocabulary builder (bypass): " .. word)
+          end
 
-        -- Execute the action
-        Dialogs.executeDirectAction(
-          self_ref.ui,
-          bypass_action,
-          word,
-          dict_config,
-          self_ref
-        )
-      end)
+          -- Execute the action
+          Dialogs.executeDirectAction(
+            self_ref.ui,
+            bypass_action,
+            word,
+            dict_config,
+            self_ref
+          )
+        end)
+      end
     end
     logger.info("KOAssistant: Dictionary bypass enabled")
   else
