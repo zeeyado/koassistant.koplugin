@@ -247,7 +247,7 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
     local font_size = (settings and settings.response_font_size) or 20
     local auto_scroll = settings and settings.stream_auto_scroll == true
 
-    -- Display throttling for performance (only affects non-auto-scroll mode)
+    -- Display throttling for performance (affects both auto-scroll and manual modes)
     local display_interval_sec = ((settings and settings.display_interval_ms) or 250) / 1000
     local pending_ui_update = false
 
@@ -259,15 +259,45 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
             pending_ui_update = false
             ui_update_task = nil
             if not completed and streamDialog and streamDialog._input_widget then
-                streamDialog._input_widget:resyncPos()
+                local iw = streamDialog._input_widget
+                if auto_scroll_active then
+                    -- Position at tracked page top
+                    iw.top_line_num = page_top_line
+                else
+                    -- Preserve user's manual scroll position
+                    iw:resyncPos()
+                end
                 local display = in_reasoning_phase and table.concat(reasoning_buffer) or table.concat(result_buffer)
-                streamDialog._input_widget:setText(display, true)
+                iw:setText(display, true)
+
+                -- Page-based auto-advance: check if content overflowed current page
+                if auto_scroll_active then
+                    local stw = iw.text_widget  -- ScrollTextWidget
+                    local inner = stw and stw.text_widget  -- TextBoxWidget
+                    if inner and inner.lines_per_page and inner.lines_per_page > 0 then
+                        local total_lines = #(inner.vertical_string_list or {})
+                        if total_lines > page_top_line + inner.lines_per_page - 1 then
+                            -- Advance to the latest page
+                            while total_lines > page_top_line + inner.lines_per_page - 1 do
+                                page_top_line = page_top_line + inner.lines_per_page
+                            end
+                            -- Clamp
+                            local max_top = total_lines - inner.lines_per_page + 1
+                            if max_top < 1 then max_top = 1 end
+                            if page_top_line > max_top then page_top_line = max_top end
+                            -- Re-render at new page position
+                            iw.top_line_num = page_top_line
+                            iw:setText(display, true)
+                        end
+                    end
+                end
             end
         end)
     end
 
     -- Auto-scroll state: starts based on setting, can be toggled by user
     local auto_scroll_active = auto_scroll
+    local page_top_line = 1  -- Top line of current auto-scroll page
 
     -- Functions to toggle auto-scroll (forward declarations)
     local turnOffAutoScroll, turnOnAutoScroll
@@ -287,8 +317,28 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
 
     turnOnAutoScroll = function()
         auto_scroll_active = true
-        -- Scroll to bottom
-        streamDialog._input_widget:scrollToBottom()
+        -- Jump to the last page of content
+        local iw = streamDialog._input_widget
+        if iw then
+            local stw = iw.text_widget
+            local inner = stw and stw.text_widget
+            if inner and inner.lines_per_page and inner.lines_per_page > 0 then
+                local total_lines = #(inner.vertical_string_list or {})
+                if total_lines > inner.lines_per_page then
+                    -- Calculate last page-aligned position
+                    local pages = math.ceil(total_lines / inner.lines_per_page)
+                    page_top_line = (pages - 1) * inner.lines_per_page + 1
+                else
+                    page_top_line = 1
+                end
+            else
+                page_top_line = 1
+            end
+            -- Force immediate position update
+            iw.top_line_num = page_top_line
+            local display = in_reasoning_phase and table.concat(reasoning_buffer) or table.concat(result_buffer)
+            iw:setText(display, true)
+        end
         -- Update button to show current state (ON)
         local btn = streamDialog.button_table:getButtonById("scroll_control")
         if btn then
@@ -533,14 +583,10 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                                     end
                                     in_reasoning_phase = true
                                     streamDialog._input_widget:setText("", true)
+                                    if auto_scroll_active then page_top_line = 1 end
                                 end
 
-                                if auto_scroll_active then
-                                    streamDialog:addTextToInput(reasoning)
-                                else
-                                    -- Throttled update for performance
-                                    scheduleUIUpdate()
-                                end
+                                scheduleUIUpdate()
                             end
 
                             -- Handle regular content
@@ -564,11 +610,13 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                                     if in_web_search_phase then
                                         in_web_search_phase = false
                                         streamDialog._input_widget:setText("", true)
+                                        if auto_scroll_active then page_top_line = 1 end
                                     end
                                     if in_reasoning_phase then
                                         in_reasoning_phase = false
                                         -- Clear the reasoning display and show answer
                                         streamDialog._input_widget:setText("", true)
+                                        if auto_scroll_active then page_top_line = 1 end
                                     end
 
                                     table.insert(result_buffer, content)
@@ -581,15 +629,10 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                                             animation_task = nil
                                         end
                                         streamDialog._input_widget:setText("", true)
+                                        if auto_scroll_active then page_top_line = 1 end
                                     end
 
-                                    if auto_scroll_active then
-                                        -- Normal auto-scroll: append and scroll to bottom
-                                        streamDialog:addTextToInput(content)
-                                    else
-                                        -- Throttled update for performance
-                                        scheduleUIUpdate()
-                                    end
+                                    scheduleUIUpdate()
                                 end
                             end
                         else
@@ -638,14 +681,10 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                                         end
                                         in_reasoning_phase = true
                                         streamDialog._input_widget:setText("", true)
+                                        if auto_scroll_active then page_top_line = 1 end
                                     end
 
-                                    if auto_scroll_active then
-                                        streamDialog:addTextToInput(reasoning)
-                                    else
-                                        -- Throttled update for performance
-                                        scheduleUIUpdate()
-                                    end
+                                    scheduleUIUpdate()
                                 end
 
                                 -- Handle regular content
@@ -653,6 +692,7 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                                     if in_reasoning_phase then
                                         in_reasoning_phase = false
                                         streamDialog._input_widget:setText("", true)
+                                        if auto_scroll_active then page_top_line = 1 end
                                     end
 
                                     table.insert(result_buffer, content)
@@ -664,14 +704,10 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                                             animation_task = nil
                                         end
                                         streamDialog._input_widget:setText("", true)
+                                        if auto_scroll_active then page_top_line = 1 end
                                     end
 
-                                    if auto_scroll_active then
-                                        streamDialog:addTextToInput(content)
-                                    else
-                                        -- Throttled update for performance
-                                        scheduleUIUpdate()
-                                    end
+                                    scheduleUIUpdate()
                                 end
                             end
                         else
