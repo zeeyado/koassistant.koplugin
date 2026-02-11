@@ -63,6 +63,16 @@ Templates.HALLUCINATION_NUDGE = "If you don't recognize this or the content seem
 -- The {title} placeholder inside will be substituted by MessageBuilder
 Templates.TEXT_FALLBACK_NUDGE = 'Note: No document text was provided. Use your knowledge of "{title}" to provide the best response you can. If you don\'t recognize this work, say so honestly rather than fabricating details.'
 
+-- Highlight analysis nudge - appears only when highlights are provided
+-- Available as {highlight_analysis_nudge} conditional placeholder in X-Ray prompts
+Templates.HIGHLIGHT_ANALYSIS_NUDGE = [[If highlights are provided, add a "reader_engagement" section to the JSON:
+
+For fiction: {"reader_engagement":{"patterns":"What the reader's highlights reveal about their interests or reading focus.","notable_highlights":[{"passage":"Brief quote or reference","why_notable":"Why this highlight is interesting in context"}],"connections":"How highlighted passages connect to each other or to major themes."}}
+
+For non-fiction: {"reader_engagement":{"patterns":"What the reader's highlights reveal about their interests or focus areas.","notable_highlights":[{"passage":"Brief quote or reference","why_notable":"Why this highlight is interesting in context"}],"connections":"How highlighted passages connect to each other or to the author's main arguments."}}
+
+Include 3-5 notable highlights maximum. Focus on what makes each highlight interesting given the reader's apparent interests. Omit reader_engagement entirely if no highlights are provided.]]
+
 -- Highlight context templates
 Templates.highlight = {
     explain = [[Explain this passage:
@@ -197,7 +207,7 @@ Templates.special = {
 -- @return string or nil: Template text if found
 function Templates.get(template_id)
     -- Search all template tables
-    for _, context_table in pairs({Templates.highlight, Templates.book, Templates.multi_book, Templates.special}) do
+    for _idx, context_table in pairs({Templates.highlight, Templates.book, Templates.multi_book, Templates.special}) do
         if context_table[template_id] then
             return context_table[template_id]
         end

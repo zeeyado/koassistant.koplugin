@@ -13,7 +13,7 @@ local function getModelList(provider, capability)
     if not caps or not caps[capability] then return "" end
 
     local models = {}
-    for _, model in ipairs(caps[capability]) do
+    for _idx, model in ipairs(caps[capability]) do
         -- Shorten model names for display (remove date suffixes)
         local short = model:gsub("%-20%d%d%d%d%d%d$", "-*")
         table.insert(models, "- " .. short)
@@ -916,7 +916,7 @@ local SettingsSchema = {
                                 view_caches = _("View Artifacts"),
                                 ai_quick_settings = _("Quick Settings"),
                             }
-                            for _, util in ipairs(Constants.QUICK_ACTION_UTILITIES) do
+                            for _idx, util in ipairs(Constants.QUICK_ACTION_UTILITIES) do
                                 table.insert(utility_items, {
                                     id = "qa_show_" .. util.id,
                                     type = "toggle",
@@ -1236,20 +1236,38 @@ local SettingsSchema = {
                     keep_menu_open = true,
                     separator = true,
                 },
-                -- Data Sharing Controls header
-                {
-                    id = "data_sharing_header",
-                    type = "header",
-                    text = _("Data Sharing Controls (for non-trusted providers)"),
-                },
                 -- Individual toggles
                 {
                     id = "enable_annotations_sharing",
                     type = "toggle",
-                    text = _("Allow Highlights & Annotations"),
+                    text = _("Allow Annotation Notes"),
                     path = "features.enable_annotations_sharing",
                     default = false,
-                    help_text = _("Send your saved highlights and personal notes to the AI. Used by Analyze Highlights, X-Ray, Connect with Notes, and actions with {highlights} or {annotations} placeholders."),
+                    help_text = _("Share your personal notes attached to highlights with the AI. Automatically enables highlight sharing. Used by Analyze Highlights, Connect with Notes, and actions with {annotations} placeholders."),
+                    on_change = function(new_value, plugin)
+                        if new_value then
+                            -- Auto-enable highlights (annotations implies highlights)
+                            local f = plugin.settings:readSetting("features") or {}
+                            f.enable_highlights_sharing = true
+                            plugin.settings:saveSetting("features", f)
+                            plugin.settings:flush()
+                            plugin:updateConfigFromSettings()
+                        end
+                    end,
+                    refresh_menu = true,
+                },
+                {
+                    id = "enable_highlights_sharing",
+                    type = "toggle",
+                    text = _("Allow Highlights"),
+                    path = "features.enable_highlights_sharing",
+                    default = false,
+                    help_text = _("Share your highlighted text passages with the AI. Used by X-Ray, Recap, and actions with {highlights} placeholders. Does not include personal notes."),
+                    enabled_func = function(plugin)
+                        -- Grayed out when annotations is enabled (annotations implies highlights)
+                        local f = plugin.settings:readSetting("features") or {}
+                        return f.enable_annotations_sharing ~= true
+                    end,
                 },
                 {
                     id = "enable_notebook_sharing",
@@ -1311,7 +1329,7 @@ local SettingsSchema = {
                             type = "spinner",
                             text = _("Max Text Characters"),
                             path = "features.max_book_text_chars",
-                            default = 1000000,
+                            default = Constants.EXTRACTION_DEFAULTS.MAX_BOOK_TEXT_CHARS,
                             min = 10000,
                             max = 2000000,
                             step = 10000,
@@ -1324,7 +1342,7 @@ local SettingsSchema = {
                             type = "spinner",
                             text = _("Max PDF Pages"),
                             path = "features.max_pdf_pages",
-                            default = 500,
+                            default = Constants.EXTRACTION_DEFAULTS.MAX_PDF_PAGES,
                             min = 50,
                             max = 1000,
                             step = 50,
@@ -1917,7 +1935,7 @@ local SettingsSchema = {
     -- Helper functions for schema usage
     getItemById = function(self, item_id, items_list)
         items_list = items_list or self.items
-        for _, item in ipairs(items_list) do
+        for _idx, item in ipairs(items_list) do
             if item.id == item_id then
                 return item
             end
@@ -1964,7 +1982,7 @@ local SettingsSchema = {
         elseif item.type == "text" then
             return type(value) == "string", "Value must be text"
         elseif item.type == "radio" then
-            for _, option in ipairs(item.options) do
+            for _idx, option in ipairs(item.options) do
                 if option.value == value then
                     return true
                 end

@@ -32,8 +32,8 @@ function XrayParser.isJSON(result)
 end
 
 -- Known category keys for validating parsed X-Ray data
-local FICTION_KEYS = { "characters", "locations", "themes", "lexicon", "timeline", "current_state" }
-local NONFICTION_KEYS = { "key_figures", "core_concepts", "arguments", "terminology", "argument_development", "current_position" }
+local FICTION_KEYS = { "characters", "locations", "themes", "lexicon", "timeline", "reader_engagement", "current_state" }
+local NONFICTION_KEYS = { "key_figures", "core_concepts", "arguments", "terminology", "argument_development", "reader_engagement", "current_position" }
 
 --- Check if a table looks like valid X-Ray data (has at least one recognized category key)
 --- Also infers and sets the type field if missing.
@@ -131,23 +131,31 @@ end
 --- @return table categories Array of {key, label, items, singular_label}
 function XrayParser.getCategories(data)
     if XrayParser.isFiction(data) then
-        return {
+        local cats = {
             { key = "characters",    label = _("Cast"),          items = data.characters or {} },
             { key = "locations",     label = _("World"),         items = data.locations or {} },
             { key = "themes",        label = _("Ideas"),         items = data.themes or {} },
             { key = "lexicon",       label = _("Lexicon"),       items = data.lexicon or {} },
             { key = "timeline",      label = _("Story Arc"),     items = data.timeline or {} },
-            { key = "current_state", label = _("Current State"), items = data.current_state and { data.current_state } or {} },
         }
+        if data.reader_engagement then
+            table.insert(cats, { key = "reader_engagement", label = _("Reader Engagement"), items = { data.reader_engagement } })
+        end
+        table.insert(cats, { key = "current_state", label = _("Current State"), items = data.current_state and { data.current_state } or {} })
+        return cats
     else
-        return {
+        local cats = {
             { key = "key_figures",          label = _("Key Figures"),          items = data.key_figures or {} },
             { key = "core_concepts",        label = _("Core Concepts"),        items = data.core_concepts or {} },
             { key = "arguments",            label = _("Arguments"),            items = data.arguments or {} },
             { key = "terminology",          label = _("Terminology"),          items = data.terminology or {} },
             { key = "argument_development", label = _("Argument Development"), items = data.argument_development or {} },
-            { key = "current_position",     label = _("Current Position"),     items = data.current_position and { data.current_position } or {} },
         }
+        if data.reader_engagement then
+            table.insert(cats, { key = "reader_engagement", label = _("Reader Engagement"), items = { data.reader_engagement } })
+        end
+        table.insert(cats, { key = "current_position", label = _("Current Position"), items = data.current_position and { data.current_position } or {} })
+        return cats
     end
 end
 
@@ -161,6 +169,9 @@ function XrayParser.getItemName(item, category_key)
     end
     if category_key == "timeline" or category_key == "argument_development" then
         return item.event or _("Unknown")
+    end
+    if category_key == "reader_engagement" then
+        return _("Reader Engagement")
     end
     return item.name or _("Unknown")
 end
@@ -177,6 +188,9 @@ function XrayParser.getItemSecondary(item, category_key)
         return item.chapter or ""
     end
     if category_key == "lexicon" or category_key == "terminology" then
+        return ""
+    end
+    if category_key == "reader_engagement" then
         return ""
     end
     return ""
@@ -261,6 +275,34 @@ function XrayParser.formatItemDetail(item, category_key)
         local characters = ensure_array(item.characters)
         if characters and #characters > 0 then
             table.insert(parts, _("Characters:") .. " " .. table.concat(characters, ", "))
+        end
+
+    elseif category_key == "reader_engagement" then
+        if item.patterns and item.patterns ~= "" then
+            table.insert(parts, _("Patterns:") .. " " .. item.patterns)
+            table.insert(parts, "")
+        end
+        local notable = ensure_array(item.notable_highlights)
+        if notable then
+            table.insert(parts, _("Notable highlights:"))
+            for _idx, h in ipairs(notable) do
+                if type(h) == "table" then
+                    local passage = h.passage or ""
+                    local why = h.why_notable or ""
+                    if passage ~= "" then
+                        table.insert(parts, "- \"" .. passage .. "\"")
+                        if why ~= "" then
+                            table.insert(parts, "  " .. why)
+                        end
+                    end
+                elseif type(h) == "string" and h ~= "" then
+                    table.insert(parts, "- " .. h)
+                end
+            end
+            table.insert(parts, "")
+        end
+        if item.connections and item.connections ~= "" then
+            table.insert(parts, _("Connections:") .. " " .. item.connections)
         end
 
     elseif category_key == "current_state" or category_key == "current_position" then
@@ -434,6 +476,34 @@ function XrayParser.renderToMarkdown(data, title, progress)
                     table.insert(lines, "- " .. entry)
                 end
                 table.insert(lines, "")
+            elseif cat.key == "reader_engagement" then
+                local engagement = cat.items[1]
+                if engagement.patterns and engagement.patterns ~= "" then
+                    table.insert(lines, engagement.patterns)
+                    table.insert(lines, "")
+                end
+                local r_notable = ensure_array(engagement.notable_highlights)
+                if r_notable and #r_notable > 0 then
+                    for _idx2, h in ipairs(r_notable) do
+                        if type(h) == "table" then
+                            local passage = h.passage or ""
+                            local why = h.why_notable or ""
+                            if passage ~= "" then
+                                table.insert(lines, "- \"" .. passage .. "\"")
+                                if why ~= "" then
+                                    table.insert(lines, "  " .. why)
+                                end
+                            end
+                        elseif type(h) == "string" and h ~= "" then
+                            table.insert(lines, "- " .. h)
+                        end
+                    end
+                    table.insert(lines, "")
+                end
+                if engagement.connections and engagement.connections ~= "" then
+                    table.insert(lines, "*" .. engagement.connections .. "*")
+                    table.insert(lines, "")
+                end
             end
         end
     end
@@ -507,8 +577,9 @@ function XrayParser.searchAll(data, query)
     local results = {}
 
     for _idx, cat in ipairs(categories) do
-        -- Skip current_state/current_position (not useful in search)
-        if cat.key ~= "current_state" and cat.key ~= "current_position" then
+        -- Skip singleton categories (not useful in search)
+        if cat.key ~= "current_state" and cat.key ~= "current_position"
+            and cat.key ~= "reader_engagement" then
             for _idx2, item in ipairs(cat.items) do
                 local match_field = nil
                 -- Check primary name/term/event

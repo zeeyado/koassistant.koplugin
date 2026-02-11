@@ -225,6 +225,14 @@ function MessageBuilder.build(params)
     end
     user_prompt = replace_placeholder(user_prompt, "{text_fallback_nudge}", text_fallback_nudge)
 
+    -- {highlight_analysis_nudge} - conditional: appears only when highlights are provided
+    -- Adds reader_engagement section instruction to X-Ray prompts
+    local highlight_analysis_nudge = ""
+    if highlights_section ~= "" and Templates and Templates.HIGHLIGHT_ANALYSIS_NUDGE then
+        highlight_analysis_nudge = Templates.HIGHLIGHT_ANALYSIS_NUDGE
+    end
+    user_prompt = replace_placeholder(user_prompt, "{highlight_analysis_nudge}", highlight_analysis_nudge)
+
     -- {context_section} - includes label (for dictionary actions)
     -- Resolves to labeled context when present, empty string when not
     -- Each action's prompt structure determines how context is used
@@ -466,6 +474,8 @@ function MessageBuilder.substituteVariables(prompt_text, data)
         result = replace_placeholder(result, "{hallucination_nudge}", Templates.HALLUCINATION_NUDGE or "")
         -- Text fallback nudge (always empty in preview since we don't have extraction data)
         result = replace_placeholder(result, "{text_fallback_nudge}", "")
+        -- Highlight analysis nudge (always empty in preview since we don't have extraction data)
+        result = replace_placeholder(result, "{highlight_analysis_nudge}", "")
     end
 
     -- Common substitutions

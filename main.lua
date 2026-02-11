@@ -5546,7 +5546,7 @@ function AskGPT:onKOAssistantQuickActions()
   -- 1. Book actions from unified quick actions list (built-in defaults + user-added)
   local features = self.settings:readSetting("features") or {}
   local quick_action_ids = self.action_service:getQuickActions()
-  for _, action_id in ipairs(quick_action_ids) do
+  for _idx, action_id in ipairs(quick_action_ids) do
     local action = self.action_service:getAction("book", action_id)
     if action and action.enabled ~= false then
       addButton({
@@ -7187,6 +7187,7 @@ end
 function AskGPT:applyPrivacyPresetDefault(touchmenu_instance)
   local f = self.settings:readSetting("features") or {}
   -- Default: personal content private, basic context shared
+  f.enable_highlights_sharing = false
   f.enable_annotations_sharing = false
   f.enable_notebook_sharing = false
   f.enable_progress_sharing = true
@@ -7208,6 +7209,7 @@ end
 function AskGPT:applyPrivacyPresetMinimal(touchmenu_instance)
   local f = self.settings:readSetting("features") or {}
   -- Disable all extended data sharing
+  f.enable_highlights_sharing = false
   f.enable_annotations_sharing = false
   f.enable_notebook_sharing = false
   f.enable_progress_sharing = false
@@ -7229,6 +7231,7 @@ end
 function AskGPT:applyPrivacyPresetFull(touchmenu_instance)
   local f = self.settings:readSetting("features") or {}
   -- Enable all data sharing (except book text which has cost implications)
+  f.enable_highlights_sharing = true
   f.enable_annotations_sharing = true
   f.enable_notebook_sharing = true
   f.enable_progress_sharing = true
@@ -8135,7 +8138,7 @@ function AskGPT:showBackupListDialog()
 
   -- Calculate total size
   local total_size = 0
-  for _, backup in ipairs(backups) do
+  for _idx, backup in ipairs(backups) do
     total_size = total_size + backup.size
   end
 

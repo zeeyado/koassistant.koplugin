@@ -104,6 +104,9 @@ local function saveCache(document_path, cache)
             file:write(string.format("        model = %q,\n", entry.model or ""))
             file:write(string.format("        version = %s,\n", tostring(entry.version or CACHE_VERSION)))
             -- Track permission state when cache was built
+            if entry.used_highlights ~= nil then
+                file:write(string.format("        used_highlights = %s,\n", tostring(entry.used_highlights)))
+            end
             if entry.used_annotations ~= nil then
                 file:write(string.format("        used_annotations = %s,\n", tostring(entry.used_annotations)))
             end

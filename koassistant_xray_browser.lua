@@ -205,6 +205,7 @@ local CATEGORY_EMOJIS = {
     themes = "💭", arguments = "⚖️",
     lexicon = "📖", terminology = "📖",
     timeline = "📅", argument_development = "📅",
+    reader_engagement = "📌",
     current_state = "📍", current_position = "📍",
 }
 
@@ -283,7 +284,8 @@ function XrayBrowser:buildCategoryItems()
         if count > 0 then
             local mandatory_text = ""
             -- Don't show count for current_state/current_position (always 1)
-            if cat.key ~= "current_state" and cat.key ~= "current_position" then
+            if cat.key ~= "current_state" and cat.key ~= "current_position"
+                and cat.key ~= "reader_engagement" then
                 mandatory_text = tostring(count)
             end
 
@@ -293,7 +295,8 @@ function XrayBrowser:buildCategoryItems()
                 text = label,
                 mandatory = mandatory_text,
                 callback = function()
-                    if captured_cat.key == "current_state" or captured_cat.key == "current_position" then
+                    if captured_cat.key == "current_state" or captured_cat.key == "current_position"
+                        or captured_cat.key == "reader_engagement" then
                         self_ref:showItemDetail(captured_cat.items[1], captured_cat.key, captured_cat.label)
                     else
                         self_ref:showCategoryItems(captured_cat)
@@ -450,8 +453,10 @@ function XrayBrowser:showItemDetail(item, category_key, title)
                 end
             end
         end
-        local annotations_allowed = provider_trusted or config_features.enable_annotations_sharing == true
-        local highlights = annotations_allowed and findCharacterHighlights(item, self.ui) or {}
+        local highlights_allowed = provider_trusted
+            or config_features.enable_highlights_sharing == true
+            or config_features.enable_annotations_sharing == true
+        local highlights = highlights_allowed and findCharacterHighlights(item, self.ui) or {}
         if #highlights > 0 then
             detail_text = detail_text .. "\n\n" .. _("Your highlights:") .. "\n"
             for _idx, hl in ipairs(highlights) do
