@@ -817,7 +817,7 @@ function StreamHandler:extractContentFromSSE(event)
             -- Check for web search tool calls (OpenAI/xAI)
             -- xAI uses "live_search" type
             if delta.tool_calls then
-                for _, tool_call in ipairs(delta.tool_calls) do
+                for _idx, tool_call in ipairs(delta.tool_calls) do
                     if tool_call.type == "web_search" or tool_call.type == "live_search" or
                        (tool_call["function"] and (tool_call["function"].name == "web_search" or tool_call["function"].name == "live_search")) then
                         return "__WEB_SEARCH_START__", nil
@@ -828,7 +828,7 @@ function StreamHandler:extractContentFromSSE(event)
             -- Check for OpenRouter web search annotations (url_citation)
             -- OpenRouter uses Exa search via :online suffix, annotations appear in delta
             if delta.annotations then
-                for _, annotation in ipairs(delta.annotations) do
+                for _idx, annotation in ipairs(delta.annotations) do
                     if annotation.type == "url_citation" then
                         return "__WEB_SEARCH_START__", nil
                     end
@@ -909,7 +909,7 @@ function StreamHandler:extractContentFromSSE(event)
             if search_used then
                 local has_content = false
                 if parts then
-                    for _, part in ipairs(parts) do
+                    for _idx, part in ipairs(parts) do
                         if part.text and part.text ~= "" then
                             has_content = true
                             break
@@ -926,7 +926,7 @@ function StreamHandler:extractContentFromSSE(event)
             local content_text = nil
             local reasoning_text = nil
 
-            for _, part in ipairs(parts) do
+            for _idx, part in ipairs(parts) do
                 if part.text then
                     if part.thought then
                         -- Thinking/reasoning part
