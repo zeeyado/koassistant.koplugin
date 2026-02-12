@@ -179,6 +179,9 @@ local function saveCache(document_path, cache)
             if entry.progress_page then
                 file:write(string.format("        progress_page = %s,\n", tostring(entry.progress_page)))
             end
+            if entry.full_document then
+                file:write(string.format("        full_document = %s,\n", tostring(entry.full_document)))
+            end
             -- Result may contain special characters, use long string with safe delimiter
             local result_text = entry.result or ""
             local eq_count = findSafeDelimiter(result_text)
@@ -239,6 +242,8 @@ function ActionCache.set(document_path, action_id, result, progress_decimal, met
         flow_visible_pages = metadata and metadata.flow_visible_pages,
         -- Raw page number for extraction math (flow-aware progress can't be used for page calculations)
         progress_page = metadata and metadata.progress_page,
+        -- Full-document X-Ray (entire document, not spoiler-free)
+        full_document = metadata and metadata.full_document,
     }
 
     return saveCache(document_path, cache)

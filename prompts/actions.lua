@@ -517,6 +517,202 @@ Focus on what's genuinely new or different from what the text describes. If the 
     },
 }
 
+-- ============================================================
+-- X-Ray Prompt Template (Two-Track: Incremental + Complete)
+-- ============================================================
+-- One template with __MARKER__ placeholders, two sets of replacements:
+--   Incremental (partial): Spoiler-free, current_state/current_position
+--   Complete (holistic):   Entire document, conclusion
+-- Resolved at file load time into prompt and complete_prompt fields.
+
+local function build_xray_prompt(template, replacements)
+    local result = template
+    for key, value in pairs(replacements) do
+        result = result:gsub(key, function() return value end)
+    end
+    return result
+end
+
+local XRAY_PROMPT_TEMPLATE = [[Create a structured reader's companion for "{title}"{author_clause}.
+
+__SCOPE_LINE__
+
+{highlights_section}
+
+__TEXT_SECTION__
+
+{text_fallback_nudge}
+
+First, determine if this is FICTION or NON-FICTION. Then output ONLY a valid JSON object (no markdown, no code fences, no explanation) using the appropriate schema below. __SCOPE_INSTRUCTION__. Order characters by narrative importance.
+
+---
+
+FOR FICTION, use this JSON schema:
+{
+  "type": "fiction",
+  "characters": [
+    {
+      "name": "Full Name",
+      "aliases": ["Nickname", "Title", "Shortened Name"],
+      "role": "Protagonist / Supporting / Antagonist",
+      "description": "Who they are, their journey, pivotal moments, and key developments.",
+      "connections": ["Other Character (relationship)"]
+    }
+  ],
+  "locations": [
+    {
+      "name": "Place Name",
+      "description": "What it is, its atmosphere, and what the reader encounters there.",
+      "significance": "Key events here and why this place matters to the narrative.",
+      "references": ["Character or item name"]
+    }
+  ],
+  "themes": [
+    {
+      "name": "Theme Name",
+      "description": "How this theme manifests through characters, conflicts, and events.",
+      "references": ["Character or item name"]
+    }
+  ],
+  "lexicon": [
+    {
+      "term": "Term",
+      "definition": "Meaning and relevance to the story."
+    }
+  ],
+  "timeline": [
+    {
+      "event": "What happened",
+      "chapter": "Chapter/Section reference",
+      "significance": "Why it mattered and what it changed",
+      "characters": ["Names involved"]
+    }
+  ],
+  __FICTION_STATUS__
+}
+
+Guidance for fiction:
+- **Characters**: The heart of the X-Ray. Be thorough — include all named characters, groups, and entities the reader encounters, not just protagonists. For major characters (protagonist, antagonist, key supporting), write 3-5 sentences covering personality, their arc through the story, pivotal moments or turning points, and their current situation. For minor characters, 1-2 sentences suffice. Always include aliases and connections with relationship type.
+- **Locations**: For significant locations, convey atmosphere and what unfolds there. Minor locations need only a brief note. Include references to characters or items associated with each location.
+- **Themes**: Don't just name themes — trace how they develop through specific characters, conflicts, or events. Include references to characters or items that embody each theme.
+- **Lexicon**: In-world terms, cultural references, or specialized vocabulary. Keep definitions concise — this is reference material.
+- **Timeline**: Chronological events driving the plot. Include both major plot points and important character moments. Each event should have a chapter reference and involved characters.
+- __FICTION_STATUS_GUIDANCE__
+- **Output size**: Prioritize depth over breadth. Give detailed entries for significant items and brief entries for minor ones. Include all items the reader encounters, but keep minor entries concise to stay within output limits.
+
+---
+
+FOR NON-FICTION, use this JSON schema:
+{
+  "type": "nonfiction",
+  "key_figures": [
+    {
+      "name": "Person Name",
+      "aliases": ["Alternate Name", "Shortened Name"],
+      "role": "Their role or significance.",
+      "description": "Who they are, their key contributions or ideas, how the author engages with them, and their importance to the argument.",
+      "connections": ["Related Person (relationship)"]
+    }
+  ],
+  "locations": [
+    {
+      "name": "Place Name",
+      "description": "What it is, its historical or conceptual significance in the text.",
+      "significance": "Key events, arguments, or developments associated with this place.",
+      "references": ["Key figure or concept name"]
+    }
+  ],
+  "core_concepts": [
+    {
+      "name": "Concept",
+      "description": "What it means and how the author introduces it.",
+      "significance": "How the author develops it through evidence, examples, or argument, and why it matters to the thesis.",
+      "references": ["Key figure or concept name"]
+    }
+  ],
+  "arguments": [
+    {
+      "name": "Claim",
+      "description": "The argument being made and its stakes.",
+      "evidence": "Key evidence, reasoning, and any counter-arguments addressed.",
+      "references": ["Key figure or concept name"]
+    }
+  ],
+  "terminology": [
+    {
+      "term": "Term",
+      "definition": "Definition and how it's used in context."
+    }
+  ],
+  "argument_development": [
+    {
+      "event": "Key point or development",
+      "chapter": "Chapter/Section",
+      "significance": "How it advances the overall argument or shifts the discussion",
+      "references": ["Key figure or concept name"]
+    }
+  ],
+  __NONFICTION_STATUS__
+}
+
+Guidance for non-fiction:
+- **Key Figures**: Be thorough — include all people, groups, institutions, and historical actors discussed or referenced, not just central figures. For central figures (the author's main interlocutors, key researchers, historical actors), write 3-5 sentences covering who they are, what ideas or work they contribute, how the author engages with them (agrees, critiques, builds on), and their significance to the argument. For briefly mentioned figures, 1-2 sentences. Always include aliases (alternate names, shortened forms, titles the text uses to refer to them) and connections where figures relate to each other.
+- **Locations**: Cities, regions, institutions, and historically significant places discussed in the text. For each, note what it is, its significance to the subject matter, and what events or arguments are connected to it. Include references to key figures or concepts associated with each place.
+- **Core Concepts**: For major concepts, explain both what they mean and how the author develops them — through what evidence, examples, or reasoning. Minor concepts need only a definition. Include references to key figures or other items that develop each concept.
+- **Arguments**: The author's key claims. For each, capture the argument itself, the evidence or reasoning supporting it, and any counter-arguments the author addresses. Include references to key figures or concepts involved.
+- **Terminology**: Specialized vocabulary, jargon, or terms the author defines. Keep concise — this is reference material.
+- **Argument Development**: Track the intellectual progression — how the argument unfolds chapter by chapter. Each entry should show how it advances the thesis or shifts the discussion. Include references to key figures or concepts involved.
+- __NONFICTION_STATUS_GUIDANCE__
+- **Output size**: Prioritize depth over breadth. Give detailed entries for significant items and brief entries for minor ones. Include all items discussed in the text, but keep minor entries concise to stay within output limits.
+
+---
+
+{highlight_analysis_nudge}
+
+__CLOSING__
+
+If you don't recognize this work or lack sufficient detail to provide accurate information, respond with ONLY this JSON:
+{"error": "I don't recognize this work. Please enable text extraction or provide more context."}
+Do NOT attempt to construct an X-Ray with fabricated or uncertain details.]]
+
+local XRAY_PARTIAL_REPLACEMENTS = {
+    __SCOPE_LINE__ = [[I'm at {reading_progress}.]],
+    __TEXT_SECTION__ = "{book_text_section}",
+    __SCOPE_INSTRUCTION__ = "Cover ONLY what's happened up to my current position",
+    __FICTION_STATUS__ = [["current_state": {
+    "summary": "Where the story stands now — the immediate situation, emotional tone, and narrative momentum.",
+    "conflicts": ["Active conflict, tension, or unresolved mystery"],
+    "questions": ["Unanswered question the reader is likely thinking about"]
+  }]],
+    __FICTION_STATUS_GUIDANCE__ = "**Current State**: A paragraph-length summary capturing where things stand, plus active conflicts and open questions.",
+    __NONFICTION_STATUS__ = [["current_position": {
+    "summary": "Where the argument stands now — what has been established, the current focus, and the intellectual trajectory.",
+    "questions_addressed": ["Question or problem being addressed"],
+    "building_toward": ["What the author appears to be building toward"]
+  }]],
+    __NONFICTION_STATUS_GUIDANCE__ = "**Current Position**: A paragraph-length summary of what's been established so far, the current line of inquiry, and where the author seems to be heading.",
+    __CLOSING__ = [[CRITICAL: Do not reveal ANYTHING beyond {reading_progress}. This must be completely spoiler-free. Output ONLY valid JSON — no other text. JSON keys must remain in English. Character names, location names, terms, and aliases must be in the same language and script as the source text. All other string values (descriptions, summaries, significance, definitions, connections, etc.) must follow your language instructions.]],
+}
+
+local XRAY_COMPLETE_REPLACEMENTS = {
+    __SCOPE_LINE__ = "Analyzing the complete document.",
+    __TEXT_SECTION__ = "{full_document_section}",
+    __SCOPE_INSTRUCTION__ = "Cover the ENTIRE document comprehensively, including all events, resolutions, and conclusions",
+    __FICTION_STATUS__ = [["conclusion": {
+    "summary": "How the story concludes — the resolution, final state of affairs, and lasting impact.",
+    "resolutions": ["How major conflict or tension was resolved"],
+    "themes_resolved": ["How key theme played out across the entire work"]
+  }]],
+    __FICTION_STATUS_GUIDANCE__ = "**Conclusion**: A paragraph-length summary of how the story resolves, plus key resolutions and how themes played out across the work.",
+    __NONFICTION_STATUS__ = [["conclusion": {
+    "summary": "The document's overall conclusions, key findings, and lasting significance.",
+    "key_findings": ["Major conclusion or finding"],
+    "implications": ["Practical implication, recommendation, or open question"]
+  }]],
+    __NONFICTION_STATUS_GUIDANCE__ = "**Conclusion**: A paragraph-length summary of the document's overall conclusions and key findings, plus practical implications.",
+    __CLOSING__ = [[Output ONLY valid JSON — no other text. Cover the work comprehensively, including all events, resolutions, and conclusions. JSON keys must remain in English. Character names, location names, terms, and aliases must be in the same language and script as the source text. All other string values (descriptions, summaries, significance, definitions, connections, etc.) must follow your language instructions.]],
+}
+
 -- Built-in actions for book context (single book from file browser)
 Actions.book = {
     book_info = {
@@ -574,162 +770,15 @@ Actions.book = {
         id = "xray",
         enable_web_search = false,
         text = _("X-Ray"),
-        description = _("Builds a structured reference guide — characters, themes, locations, timeline — up to your current reading position. Completely spoiler-free. When highlights are shared, adds a personal reader engagement section analyzing what catches your attention and patterns in your highlighting. Without highlights, focuses purely on the text content. Requires text extraction; updates incrementally as you read further."),
+        description = _("Builds a structured reference guide — characters, themes, locations, timeline — up to your current reading position. Completely spoiler-free. When highlights are shared, adds a personal reader engagement section analyzing what catches your attention and patterns in your highlighting. Without highlights, focuses purely on the text content. Requires text extraction; updates incrementally as you read further. Can also generate a complete analysis of the entire document."),
         context = "book",
         behavior_variant = "reader_assistant",
         -- Context extraction flags
         use_book_text = true,
         use_highlights = true,
         use_reading_progress = true,
-        prompt = [[Create a structured reader's companion for "{title}"{author_clause}.
-
-I'm at {reading_progress}.
-
-{highlights_section}
-
-{book_text_section}
-
-{text_fallback_nudge}
-
-First, determine if this is FICTION or NON-FICTION. Then output ONLY a valid JSON object (no markdown, no code fences, no explanation) using the appropriate schema below. Cover ONLY what's happened up to my current position. Order characters by narrative importance.
-
----
-
-FOR FICTION, use this JSON schema:
-{
-  "type": "fiction",
-  "characters": [
-    {
-      "name": "Full Name",
-      "aliases": ["Nickname", "Title", "Shortened Name"],
-      "role": "Protagonist / Supporting / Antagonist",
-      "description": "Who they are, their journey so far, pivotal moments, and where they stand now.",
-      "connections": ["Other Character (relationship)"]
-    }
-  ],
-  "locations": [
-    {
-      "name": "Place Name",
-      "description": "What it is, its atmosphere, and what the reader encounters there.",
-      "significance": "Key events here and why this place matters to the narrative.",
-      "references": ["Character or item name"]
-    }
-  ],
-  "themes": [
-    {
-      "name": "Theme Name",
-      "description": "How this theme manifests through characters, conflicts, and events so far.",
-      "references": ["Character or item name"]
-    }
-  ],
-  "lexicon": [
-    {
-      "term": "Term",
-      "definition": "Meaning and relevance to the story."
-    }
-  ],
-  "timeline": [
-    {
-      "event": "What happened",
-      "chapter": "Chapter/Section reference",
-      "significance": "Why it mattered and what it changed",
-      "characters": ["Names involved"]
-    }
-  ],
-  "current_state": {
-    "summary": "Where the story stands now — the immediate situation, emotional tone, and narrative momentum.",
-    "conflicts": ["Active conflict, tension, or unresolved mystery"],
-    "questions": ["Unanswered question the reader is likely thinking about"]
-  }
-}
-
-Guidance for fiction:
-- **Characters**: The heart of the X-Ray. Be thorough — include all named characters, groups, and entities the reader encounters, not just protagonists. For major characters (protagonist, antagonist, key supporting), write 3-5 sentences covering personality, their arc through the story so far, pivotal moments or turning points, and their current situation. For minor characters, 1-2 sentences suffice. Always include aliases and connections with relationship type.
-- **Locations**: For significant locations, convey atmosphere and what unfolds there. Minor locations need only a brief note. Include references to characters or items associated with each location.
-- **Themes**: Don't just name themes — trace how they develop through specific characters, conflicts, or events. Include references to characters or items that embody each theme.
-- **Lexicon**: In-world terms, cultural references, or specialized vocabulary. Keep definitions concise — this is reference material.
-- **Timeline**: Chronological events driving the plot. Include both major plot points and important character moments. Each event should have a chapter reference and involved characters.
-- **Current State**: A paragraph-length summary capturing where things stand, plus active conflicts and open questions.
-- **Output size**: Prioritize depth over breadth. Give detailed entries for significant items and brief entries for minor ones. Include all items the reader encounters, but keep minor entries concise to stay within output limits.
-
----
-
-FOR NON-FICTION, use this JSON schema:
-{
-  "type": "nonfiction",
-  "key_figures": [
-    {
-      "name": "Person Name",
-      "aliases": ["Alternate Name", "Shortened Name"],
-      "role": "Their role or significance.",
-      "description": "Who they are, their key contributions or ideas, how the author engages with them, and their importance to the argument.",
-      "connections": ["Related Person (relationship)"]
-    }
-  ],
-  "locations": [
-    {
-      "name": "Place Name",
-      "description": "What it is, its historical or conceptual significance in the text.",
-      "significance": "Key events, arguments, or developments associated with this place.",
-      "references": ["Key figure or concept name"]
-    }
-  ],
-  "core_concepts": [
-    {
-      "name": "Concept",
-      "description": "What it means and how the author introduces it.",
-      "significance": "How the author develops it through evidence, examples, or argument, and why it matters to the thesis.",
-      "references": ["Key figure or concept name"]
-    }
-  ],
-  "arguments": [
-    {
-      "name": "Claim",
-      "description": "The argument being made and its stakes.",
-      "evidence": "Key evidence, reasoning, and any counter-arguments addressed.",
-      "references": ["Key figure or concept name"]
-    }
-  ],
-  "terminology": [
-    {
-      "term": "Term",
-      "definition": "Definition and how it's used in context."
-    }
-  ],
-  "argument_development": [
-    {
-      "event": "Key point or development",
-      "chapter": "Chapter/Section",
-      "significance": "How it advances the overall argument or shifts the discussion",
-      "references": ["Key figure or concept name"]
-    }
-  ],
-  "current_position": {
-    "summary": "Where the argument stands now — what has been established, the current focus, and the intellectual trajectory.",
-    "questions_addressed": ["Question or problem being addressed"],
-    "building_toward": ["What the author appears to be building toward"]
-  }
-}
-
-Guidance for non-fiction:
-- **Key Figures**: Be thorough — include all people, groups, institutions, and historical actors discussed or referenced, not just central figures. For central figures (the author's main interlocutors, key researchers, historical actors), write 3-5 sentences covering who they are, what ideas or work they contribute, how the author engages with them (agrees, critiques, builds on), and their significance to the argument. For briefly mentioned figures, 1-2 sentences. Always include aliases (alternate names, shortened forms, titles the text uses to refer to them) and connections where figures relate to each other.
-- **Locations**: Cities, regions, institutions, and historically significant places discussed in the text. For each, note what it is, its significance to the subject matter, and what events or arguments are connected to it. Include references to key figures or concepts associated with each place.
-- **Core Concepts**: For major concepts, explain both what they mean and how the author develops them — through what evidence, examples, or reasoning. Minor concepts need only a definition. Include references to key figures or other items that develop each concept.
-- **Arguments**: The author's key claims. For each, capture the argument itself, the evidence or reasoning supporting it, and any counter-arguments the author addresses. Include references to key figures or concepts involved.
-- **Terminology**: Specialized vocabulary, jargon, or terms the author defines. Keep concise — this is reference material.
-- **Argument Development**: Track the intellectual progression — how the argument unfolds chapter by chapter. Each entry should show how it advances the thesis or shifts the discussion. Include references to key figures or concepts involved.
-- **Current Position**: A paragraph-length summary of what's been established so far, the current line of inquiry, and where the author seems to be heading.
-- **Output size**: Prioritize depth over breadth. Give detailed entries for significant items and brief entries for minor ones. Include all items discussed in the text, but keep minor entries concise to stay within output limits.
-
----
-
-{highlight_analysis_nudge}
-
-CRITICAL: Do not reveal ANYTHING beyond {reading_progress}. This must be completely spoiler-free. Output ONLY valid JSON — no other text. JSON keys must remain in English. Character names, location names, terms, and aliases must be in the same language and script as the source text. All other string values (descriptions, summaries, significance, definitions, connections, etc.) must follow your language instructions.
-
-If you don't recognize this work or lack sufficient detail to provide accurate information, respond with ONLY this JSON:
-{"error": "I don't recognize this work. Please enable text extraction or provide more context."}
-Do NOT attempt to construct an X-Ray with fabricated or uncertain details.]],
+        prompt = build_xray_prompt(XRAY_PROMPT_TEMPLATE, XRAY_PARTIAL_REPLACEMENTS),
+        complete_prompt = build_xray_prompt(XRAY_PROMPT_TEMPLATE, XRAY_COMPLETE_REPLACEMENTS),
         skip_language_instruction = false,
         skip_domain = true,  -- X-Ray has specific structure
         -- Inherits global reasoning setting (user choice)

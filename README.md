@@ -659,14 +659,14 @@ These actions analyze your actual reading content. They require specific privacy
 - **Text selection** — hold to select text in detail views: 1-3 words opens dictionary, 4+ copies to clipboard
 - **Options menu** — info (model, progress, date, fiction/non-fiction type), delete, close
 
-> **Model selection for X-Ray:** X-Ray generates detailed structured JSON that can be large (10K-30K+ tokens of output). The action requests up to 32K output tokens to avoid truncation. Models with low output caps (e.g., some Groq models at 8K, DeepSeek Chat at 8K) will produce shorter, potentially truncated results — use models with higher output limits for best results. Model-level caps automatically override the action's request, so there's no risk of errors. If you find a model that produces great X-Rays, you can lock it in for this action while keeping your global model for everything else — see the tip below.
+> **Model selection for X-Ray:** X-Ray generates detailed structured JSON (for the X-Ray browser to work) that can be large (10K-30K+ tokens of output), and it is a complex task for the AI. The action requests up to 32K output tokens to avoid truncation. Weaker models can struggle to follow these instructions, and even if they manage it, will produce low quality content for the actual analysis, and models with low output caps (e.g., some Groq models at 8K, DeepSeek Chat at 8K) will produce shorter, potentially truncated results — use larger models with higher output limits for best results. If you find a model that produces great X-Rays, you can lock it in for this action while keeping your global model for everything else — see the tip below.
 
 > **Tip: Per-action model overrides.** You don't have to use the same model for every action. If you discover that a particular model excels at X-Ray (or any other action), you can assign it permanently to just that action:
 > 1. Go to **Settings → Actions → Manage Actions**
 > 2. Long-press the action (e.g., X-Ray) → **"Edit Settings"**
 > 3. Scroll to **Advanced** → set **Provider** and **Model**
 >
-> Your global model continues to be used for all other actions. This is useful for mixing cost and quality — for example, use a fast model (Gemini 2.5 Flash, Haiku) as your global default for quick lookups and chat, while assigning a more capable model (Gemini 2.5 Pro, Sonnet) specifically to X-Ray or Deep Analysis where quality matters most. See [Tuning Built-in Actions](#tuning-built-in-actions) for more examples.
+> Your global model continues to be used for all other actions. This is useful for mixing cost and quality — for example, use a fast model (Gemini 2.5 Flash, Haiku, small Mistral models, etc.) as your global default for quick lookups and chat, while assigning a more capable model (Gemini 2.5 Pro, Sonnet, large Mistral models, etc.) specifically to X-Ray or Deep Analysis where quality matters most. See [Tuning Built-in Actions](#tuning-built-in-actions) for more examples. You can of course also momentarily change you global model to run an action and then change back if you don't want to tie an action to a model. 
 
 > **Tip:** If your device supports emoji fonts, enable **Emoji Menu Icons** in Settings → Display Settings for visual category icons in the X-Ray browser (e.g., characters, locations, themes). See [Emoji Menu Icons](#display-settings).
 

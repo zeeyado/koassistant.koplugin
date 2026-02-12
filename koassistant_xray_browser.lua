@@ -525,12 +525,25 @@ function XrayBrowser:show(xray_data, metadata, ui, on_delete)
 
     -- Build update callback from plugin reference (works from all call sites)
     self.on_update = nil
+    self.on_update_full = nil
     if metadata.plugin and ui and ui.document then
         local plugin_ref = metadata.plugin
         self.on_update = function()
             local action = plugin_ref.action_service:getAction("book", "xray")
             if action then
                 plugin_ref:_executeBookLevelActionDirect(action, "xray")
+            end
+        end
+        self.on_update_full = function()
+            local action = plugin_ref.action_service:getAction("book", "xray")
+            if action then
+                plugin_ref:_executeBookLevelActionDirect(action, "xray", { full_document = true })
+            end
+        end
+        self.on_update_to_100 = function()
+            local action = plugin_ref.action_service:getAction("book", "xray")
+            if action then
+                plugin_ref:_executeBookLevelActionDirect(action, "xray", { update_to_full = true })
             end
         end
     end
@@ -2070,35 +2083,94 @@ function XrayBrowser:showOptions()
         }})
     end
 
-    -- Update/Redo option
+    -- Update/Redo options (adapted per cache type)
     if self.on_update then
-        local update_text
-        if self.ui then
-            local ContextExtractor = require("koassistant_context_extractor")
-            local extractor = ContextExtractor:new(self.ui)
-            local current = extractor:getReadingProgress()
-            local cached_dec = self.metadata.progress_decimal or 0
-            if current.decimal > cached_dec + 0.01 then
-                update_text = T(_("Update X-Ray (to %1)"), current.formatted)
+        local cached_dec = self.metadata.progress_decimal or 0
+        if self.metadata.full_document then
+            -- Full-document cache: redo maintains full-document semantics
+            local redo_callback = self.on_update_full or self.on_update
+            table.insert(buttons, {{
+                text = _("Redo X-Ray (entire document)"),
+                callback = function()
+                    if self_ref.options_dialog then
+                        UIManager:close(self_ref.options_dialog)
+                        self_ref.options_dialog = nil
+                    end
+                    if self_ref.menu then
+                        UIManager:close(self_ref.menu)
+                    end
+                    redo_callback()
+                end,
+            }})
+        elseif cached_dec >= 0.995 then
+            -- Partial at 100%: redo to 100% (maintains progress semantics)
+            table.insert(buttons, {{
+                text = _("Redo X-Ray (to 100%)"),
+                callback = function()
+                    if self_ref.options_dialog then
+                        UIManager:close(self_ref.options_dialog)
+                        self_ref.options_dialog = nil
+                    end
+                    if self_ref.menu then
+                        UIManager:close(self_ref.menu)
+                    end
+                    if self_ref.on_update_to_100 then
+                        self_ref.on_update_to_100()
+                    else
+                        self_ref.on_update()
+                    end
+                end,
+            }})
+        else
+            -- Partial < 100%: Update/Redo to current + Update to 100%
+            local update_text
+            local current_dec
+            if self.ui then
+                local ContextExtractor = require("koassistant_context_extractor")
+                local extractor = ContextExtractor:new(self.ui)
+                local current = extractor:getReadingProgress()
+                current_dec = current.decimal
+                if current.decimal > cached_dec + 0.01 then
+                    update_text = T(_("Update X-Ray (to %1)"), current.formatted)
+                else
+                    update_text = T(_("Redo X-Ray (to %1)"), current.formatted)
+                end
+            end
+            if not update_text then
+                update_text = _("Redo X-Ray")
+            end
+
+            table.insert(buttons, {{
+                text = update_text,
+                callback = function()
+                    if self_ref.options_dialog then
+                        UIManager:close(self_ref.options_dialog)
+                        self_ref.options_dialog = nil
+                    end
+                    if self_ref.menu then
+                        UIManager:close(self_ref.menu)
+                    end
+                    self_ref.on_update()
+                end,
+            }})
+
+            -- "Update to 100%": only when reader isn't already near 100%
+            if self_ref.on_update_to_100 and (not current_dec or current_dec < 0.995) then
+                table.insert(buttons, {{
+                    text = _("Update X-Ray (to 100%)"),
+                    callback = function()
+                        if self_ref.options_dialog then
+                            UIManager:close(self_ref.options_dialog)
+                            self_ref.options_dialog = nil
+                        end
+                        if self_ref.menu then
+                            UIManager:close(self_ref.menu)
+                        end
+                        self_ref.on_update_to_100()
+                    end,
+                }})
             end
         end
-        if not update_text then
-            update_text = _("Redo X-Ray")
-        end
-
-        table.insert(buttons, {{
-            text = update_text,
-            callback = function()
-                if self_ref.options_dialog then
-                    UIManager:close(self_ref.options_dialog)
-                    self_ref.options_dialog = nil
-                end
-                if self_ref.menu then
-                    UIManager:close(self_ref.menu)
-                end
-                self_ref.on_update()
-            end,
-        }})
     end
 
     -- Info

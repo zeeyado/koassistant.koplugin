@@ -32,8 +32,8 @@ function XrayParser.isJSON(result)
 end
 
 -- Known category keys for validating parsed X-Ray data
-local FICTION_KEYS = { "characters", "locations", "themes", "lexicon", "timeline", "reader_engagement", "current_state" }
-local NONFICTION_KEYS = { "key_figures", "locations", "core_concepts", "arguments", "terminology", "argument_development", "reader_engagement", "current_position" }
+local FICTION_KEYS = { "characters", "locations", "themes", "lexicon", "timeline", "reader_engagement", "current_state", "conclusion" }
+local NONFICTION_KEYS = { "key_figures", "locations", "core_concepts", "arguments", "terminology", "argument_development", "reader_engagement", "current_position", "conclusion" }
 
 --- Check if a table looks like valid X-Ray data (has at least one recognized category key)
 --- Also infers and sets the type field if missing.
@@ -207,6 +207,7 @@ local SINGLETON_CATEGORIES = {
     current_state = true,
     current_position = true,
     reader_engagement = true,
+    conclusion = true,
 }
 
 --- Categories excluded from chapter text matching
@@ -216,6 +217,7 @@ local TEXT_MATCH_EXCLUDED = {
     current_state = true,
     current_position = true,
     reader_engagement = true,
+    conclusion = true,
     argument_development = true,
     timeline = true,
 }
@@ -303,7 +305,12 @@ function XrayParser.getCategories(data)
         if data.reader_engagement then
             table.insert(cats, { key = "reader_engagement", label = _("Reader Engagement"), items = { data.reader_engagement } })
         end
-        table.insert(cats, { key = "current_state", label = _("Current State"), items = data.current_state and { data.current_state } or {} })
+        -- Complete X-Ray uses conclusion; incremental uses current_state
+        if data.conclusion then
+            table.insert(cats, { key = "conclusion", label = _("Conclusion"), items = { data.conclusion } })
+        elseif data.current_state then
+            table.insert(cats, { key = "current_state", label = _("Current State"), items = { data.current_state } })
+        end
         return cats
     else
         local cats = {
@@ -317,7 +324,12 @@ function XrayParser.getCategories(data)
         if data.reader_engagement then
             table.insert(cats, { key = "reader_engagement", label = _("Reader Engagement"), items = { data.reader_engagement } })
         end
-        table.insert(cats, { key = "current_position", label = _("Current Position"), items = data.current_position and { data.current_position } or {} })
+        -- Complete X-Ray uses conclusion; incremental uses current_position
+        if data.conclusion then
+            table.insert(cats, { key = "conclusion", label = _("Conclusion"), items = { data.conclusion } })
+        elseif data.current_position then
+            table.insert(cats, { key = "current_position", label = _("Current Position"), items = { data.current_position } })
+        end
         return cats
     end
 end
@@ -335,6 +347,9 @@ function XrayParser.getItemName(item, category_key)
     end
     if category_key == "reader_engagement" then
         return _("Reader Engagement")
+    end
+    if category_key == "conclusion" then
+        return _("Conclusion")
     end
     return item.name or _("Unknown")
 end
@@ -580,6 +595,46 @@ function XrayParser.formatItemDetail(item, category_key)
                 table.insert(parts, "- " .. b)
             end
         end
+
+    elseif category_key == "conclusion" then
+        if item.summary and item.summary ~= "" then
+            table.insert(parts, item.summary)
+            table.insert(parts, "")
+        end
+        -- Fiction fields
+        local resolutions = ensure_array(item.resolutions)
+        if resolutions and #resolutions > 0 then
+            table.insert(parts, _("Resolutions:"))
+            for _idx, r in ipairs(resolutions) do
+                table.insert(parts, "- " .. r)
+            end
+            table.insert(parts, "")
+        end
+        local themes_resolved = ensure_array(item.themes_resolved)
+        if themes_resolved and #themes_resolved > 0 then
+            table.insert(parts, _("Themes resolved:"))
+            for _idx, t in ipairs(themes_resolved) do
+                table.insert(parts, "- " .. t)
+            end
+            table.insert(parts, "")
+        end
+        -- Non-fiction fields
+        local key_findings = ensure_array(item.key_findings)
+        if key_findings and #key_findings > 0 then
+            table.insert(parts, _("Key findings:"))
+            for _idx, f in ipairs(key_findings) do
+                table.insert(parts, "- " .. f)
+            end
+            table.insert(parts, "")
+        end
+        local implications = ensure_array(item.implications)
+        if implications and #implications > 0 then
+            table.insert(parts, _("Implications:"))
+            for _idx, i in ipairs(implications) do
+                table.insert(parts, "- " .. i)
+            end
+            table.insert(parts, "")
+        end
     end
 
     -- Show aliases for any category that has them (characters/key_figures handle it above)
@@ -609,7 +664,11 @@ function XrayParser.renderToMarkdown(data, title, progress)
         header = header .. ": " .. title
     end
     if progress and progress ~= "" then
-        header = header .. " (Through " .. progress .. ")"
+        if progress == "Complete" or progress == "100%" then
+            header = header .. " (Complete)"
+        else
+            header = header .. " (Through " .. progress .. ")"
+        end
     end
     table.insert(lines, header)
     table.insert(lines, "")
@@ -623,13 +682,14 @@ function XrayParser.renderToMarkdown(data, title, progress)
         if cat.items and #cat.items > 0 then
             table.insert(lines, "## " .. cat.label)
 
-            if cat.key == "current_state" or cat.key == "current_position" then
-                -- Current state: render inline
+            if cat.key == "current_state" or cat.key == "current_position" or cat.key == "conclusion" then
+                -- Current state / conclusion: render inline
                 local state = cat.items[1]
                 if state.summary and state.summary ~= "" then
                     table.insert(lines, state.summary)
                     table.insert(lines, "")
                 end
+                -- current_state fields
                 local s_conflicts = ensure_array(state.conflicts)
                 if s_conflicts and #s_conflicts > 0 then
                     for _idx2, c in ipairs(s_conflicts) do
@@ -648,6 +708,36 @@ function XrayParser.renderToMarkdown(data, title, progress)
                 if s_building and #s_building > 0 then
                     for _idx2, b in ipairs(s_building) do
                         table.insert(lines, "- " .. b)
+                    end
+                    table.insert(lines, "")
+                end
+                -- conclusion fields (fiction)
+                local s_resolutions = ensure_array(state.resolutions)
+                if s_resolutions and #s_resolutions > 0 then
+                    for _idx2, r in ipairs(s_resolutions) do
+                        table.insert(lines, "- " .. r)
+                    end
+                    table.insert(lines, "")
+                end
+                local s_themes = ensure_array(state.themes_resolved)
+                if s_themes and #s_themes > 0 then
+                    for _idx2, t in ipairs(s_themes) do
+                        table.insert(lines, "- " .. t)
+                    end
+                    table.insert(lines, "")
+                end
+                -- conclusion fields (non-fiction)
+                local s_findings = ensure_array(state.key_findings)
+                if s_findings and #s_findings > 0 then
+                    for _idx2, f in ipairs(s_findings) do
+                        table.insert(lines, "- " .. f)
+                    end
+                    table.insert(lines, "")
+                end
+                local s_implications = ensure_array(state.implications)
+                if s_implications and #s_implications > 0 then
+                    for _idx2, i in ipairs(s_implications) do
+                        table.insert(lines, "- " .. i)
                     end
                     table.insert(lines, "")
                 end
@@ -841,7 +931,7 @@ function XrayParser.searchAll(data, query)
     for _idx, cat in ipairs(categories) do
         -- Skip singleton categories (not useful in search)
         if cat.key ~= "current_state" and cat.key ~= "current_position"
-            and cat.key ~= "reader_engagement" then
+            and cat.key ~= "reader_engagement" and cat.key ~= "conclusion" then
             for _idx2, item in ipairs(cat.items) do
                 local match_field = nil
                 -- Check primary name/term/event

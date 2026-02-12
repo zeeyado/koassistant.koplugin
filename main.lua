@@ -4296,8 +4296,9 @@ function AskGPT:showCacheViewer(cache_info)
         local features = configuration and configuration.features or {}
         local browser_metadata = {
           title = book_title,
-          progress = cache_info.data.progress_decimal and
-              (math.floor(cache_info.data.progress_decimal * 100 + 0.5) .. "%"),
+          progress = cache_info.data.full_document and "Complete"
+              or (cache_info.data.progress_decimal and
+              (math.floor(cache_info.data.progress_decimal * 100 + 0.5) .. "%")),
           model = cache_info.data.model,
           timestamp = cache_info.data.timestamp,
           book_file = self.ui and self.ui.document and self.ui.document.file,
@@ -4311,6 +4312,7 @@ function AskGPT:showCacheViewer(cache_info)
           previous_progress = cache_info.data.previous_progress_decimal and
               (math.floor(cache_info.data.previous_progress_decimal * 100 + 0.5) .. "%"),
           progress_decimal = cache_info.data.progress_decimal,
+          full_document = cache_info.data.full_document,
         }
         -- Staleness checks (flow config change or reading progress advance)
         local ce_ok, ContextExtractor
@@ -4342,6 +4344,7 @@ function AskGPT:showCacheViewer(cache_info)
         -- Progress staleness popup (only if flow staleness wasn't shown
         -- and not suppressed by caller, e.g. showCacheActionPopup already showed update option)
         if not staleness_shown and not cache_info.skip_stale_popup
+                and not cache_info.data.full_document
                 and ce_ok and ContextExtractor
                 and self.ui and self.ui.document
                 and cache_info.data.progress_decimal then
@@ -4624,6 +4627,13 @@ function AskGPT:showCacheActionPopup(action, action_id, on_update)
 
   local ActionCache = require("koassistant_action_cache")
   local cached = ActionCache.get(file, action_id)
+
+  -- X-Ray actions: always route to scope popup (handles no-cache and cached scenarios)
+  if action.cache_as_xray then
+    self:_showXrayScopePopup(action, action_id, on_update, cached)
+    return
+  end
+
   if not cached or not cached.result then
     on_update()
     return
@@ -4699,6 +4709,139 @@ function AskGPT:showCacheActionPopup(action, action_id, on_update)
       },
     },
   }
+  UIManager:show(dialog)
+end
+
+--- Show X-Ray scope popup: choose between partial (to reading position) or full-document X-Ray.
+--- For 100% caches (full-document or partial at 100%), goes directly to viewer.
+--- Otherwise handles two cases: no cache, partial cache (< 100%).
+--- @param action table: The action definition
+--- @param action_id string: The action ID
+--- @param on_update function: Callback to execute partial (to reading position) action
+--- @param cached_entry table|nil: Existing cached entry, or nil if no cache
+function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry)
+  local action_name = action.text or action_id
+  local ButtonDialog = require("ui/widget/buttondialog")
+  local self_ref = self
+
+  -- Get current reading progress
+  local current_progress
+  if self.ui and self.ui.document then
+    local ContextExtractor = require("koassistant_context_extractor")
+    local extractor = ContextExtractor:new(self.ui)
+    current_progress = extractor:getReadingProgress()
+  end
+
+  -- Direct-to-viewer for 100% caches (full-document or partial updated to 100%)
+  -- Even if reader turned back pages — the X-Ray is complete, popup is just friction
+  if cached_entry and cached_entry.result then
+    local cached_pct = cached_entry.progress_decimal or 0
+    if cached_entry.full_document or cached_pct >= 0.995 then
+      self:viewCachedAction(action, action_id, cached_entry)
+      return
+    end
+  end
+
+  local dialog
+  local buttons = {}
+
+  if not cached_entry or not cached_entry.result then
+    -- No cache: Generate (to X%) or Generate (entire document)
+    local generate_partial_label
+    if current_progress then
+      generate_partial_label = T(_("Generate %1 (to %2)"), action_name, current_progress.formatted)
+    else
+      generate_partial_label = T(_("Generate %1"), action_name)
+    end
+    table.insert(buttons, {{
+      text = generate_partial_label,
+      callback = function()
+        UIManager:close(dialog)
+        on_update()
+      end,
+    }})
+    table.insert(buttons, {{
+      text = T(_("Generate %1 (entire document)"), action_name),
+      callback = function()
+        UIManager:close(dialog)
+        self_ref:_executeBookLevelActionDirect(action, action_id, { full_document = true })
+      end,
+    }})
+    table.insert(buttons, {{
+      text = _("Cancel"),
+      callback = function()
+        UIManager:close(dialog)
+      end,
+    }})
+
+    dialog = ButtonDialog:new{
+      title = action_name,
+      buttons = buttons,
+    }
+  else
+    -- Partial cache (< 100%): View / Update-or-Redo / Update to 100% / Cancel
+    local view_detail = ""
+    local parts = {}
+    if cached_entry.progress_decimal then
+      table.insert(parts, math.floor(cached_entry.progress_decimal * 100 + 0.5) .. "%")
+    end
+    local rel_time = formatRelativeTime(cached_entry.timestamp)
+    if rel_time ~= "" then
+      table.insert(parts, rel_time)
+    end
+    if #parts > 0 then
+      view_detail = " (" .. table.concat(parts, ", ") .. ")"
+    end
+
+    -- Determine update vs redo based on progress delta
+    local update_text
+    local cached_progress = cached_entry.progress_decimal or 0
+    if current_progress and current_progress.decimal > cached_progress + 0.01 then
+      update_text = T(_("Update %1 (to %2)"), action_name, current_progress.formatted)
+    elseif current_progress then
+      update_text = T(_("Redo %1 (to %2)"), action_name, current_progress.formatted)
+    else
+      update_text = T(_("Redo %1"), action_name)
+    end
+
+    table.insert(buttons, {{
+      text = T(_("View %1"), action_name .. view_detail),
+      callback = function()
+        UIManager:close(dialog)
+        self_ref:viewCachedAction(action, action_id, cached_entry, { skip_stale_popup = true })
+      end,
+    }})
+    table.insert(buttons, {{
+      text = update_text,
+      callback = function()
+        UIManager:close(dialog)
+        on_update()
+      end,
+    }})
+    -- "Update to 100%": normal incremental update with progress override (same spoiler-free prompt)
+    -- Only shown when reader isn't already near 100% (otherwise the regular Update button covers it)
+    if not current_progress or current_progress.decimal < 0.995 then
+      table.insert(buttons, {{
+        text = T(_("Update %1 (to %2)"), action_name, "100%"),
+        callback = function()
+          UIManager:close(dialog)
+          self_ref:_executeBookLevelActionDirect(action, action_id, { update_to_full = true })
+        end,
+      }})
+    end
+    table.insert(buttons, {{
+      text = _("Cancel"),
+      callback = function()
+        UIManager:close(dialog)
+      end,
+    }})
+
+    dialog = ButtonDialog:new{
+      title = action_name .. view_detail,
+      buttons = buttons,
+    }
+  end
+
   UIManager:show(dialog)
 end
 
@@ -4844,7 +4987,8 @@ end
 --- Internal: Execute a book-level action directly (after popup, if any)
 --- @param action table: The action definition
 --- @param action_id string: The action ID
-function AskGPT:_executeBookLevelActionDirect(action, action_id)
+--- @param opts table|nil: Optional { full_document = true, update_to_full = true }
+function AskGPT:_executeBookLevelActionDirect(action, action_id, opts)
   -- Make sure we're using the latest configuration
   self:updateConfigFromSettings()
 
@@ -4861,6 +5005,15 @@ function AskGPT:_executeBookLevelActionDirect(action, action_id)
     config_copy.features[k] = v
   end
   config_copy.features.is_book_context = true  -- Signal book context to getPromptContext()
+
+  -- Full-document X-Ray: propagate transient flag to config for prompt transformation in dialogs
+  if opts and opts.full_document then
+    config_copy.features._full_document_xray = true
+  end
+  -- Update to 100%: override progress to 1.0 (same spoiler-free prompt, no schema change)
+  if opts and opts.update_to_full then
+    config_copy.features._update_to_full_progress = true
+  end
 
   -- Get book metadata from KOReader's merged props (includes user edits from Book Info dialog)
   local doc_props = self.ui.doc_props or {}

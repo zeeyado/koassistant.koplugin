@@ -2166,6 +2166,17 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
         end
     end
 
+    -- Full-document X-Ray: use complete_prompt (different schema, no spoiler restrictions)
+    -- Must happen BEFORE extractForAction() so placeholder detection picks {full_document_section}
+    if config.features and config.features._full_document_xray and prompt and prompt.complete_prompt then
+        local original_prompt = prompt
+        prompt = {}
+        for k, v in pairs(original_prompt) do
+            prompt[k] = v
+        end
+        prompt.prompt = original_prompt.complete_prompt
+    end
+
     -- Context extraction: auto-extract lightweight data when a document is open
     -- Lightweight data (progress, highlights, annotations, stats) is always available
     -- Book text extraction requires use_book_text flag (slow/expensive)
@@ -2230,6 +2241,15 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
     end
     -- Note: Notebook extraction is now handled by ContextExtractor:extractForAction()
 
+    -- Full-document or update-to-100%: override progress to 100% so cache is stored at 1.0
+    -- and extraction covers the entire document
+    if config.features and (config.features._full_document_xray or config.features._update_to_full_progress)
+            and ui and ui.document then
+        message_data.progress_decimal = "1.0"
+        message_data.reading_progress = "100%"
+        message_data.progress_page = ui.document.info and ui.document.info.number_of_pages
+    end
+
     -- Get domain context if a domain is set (skip if action opts out)
     -- Priority: prompt.domain (locked) > config.features.selected_domain (user choice)
     local domain_context = nil
@@ -2252,7 +2272,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
     local cache_enabled = prompt and prompt.use_response_caching
         and ui and ui.document
 
-    if cache_enabled then
+    if cache_enabled and not (config.features and config.features._full_document_xray) then
         local ActionCache = require("koassistant_action_cache")
         local cached_entry = ActionCache.get(ui.document.file, prompt.id)
 
@@ -2382,10 +2402,14 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                         logger.info("KOAssistant: Merged incremental X-Ray update into existing data")
                     end
                     local book_meta = message_data.book_metadata or {}
+                    local display_progress = message_data.reading_progress or ""
+                    if config.features and config.features._full_document_xray then
+                        display_progress = "Complete"
+                    end
                     display_answer = XrayParser.renderToMarkdown(
                         parsed,
                         book_meta.title or "",
-                        message_data.reading_progress or ""
+                        display_progress
                     )
                     -- Pretty-print cached JSON so future updates receive readable structured data
                     local json_mod = require("json")
@@ -2433,7 +2457,8 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                       used_highlights = highlights_were_provided,
                       previous_progress_decimal = message_data.cached_progress_decimal,
                       flow_visible_pages = message_data.flow_visible_pages,
-                      progress_page = message_data.progress_page }
+                      progress_page = message_data.progress_page,
+                      full_document = config.features and config.features._full_document_xray or nil }
                 )
                 if save_success then
                     logger.info("KOAssistant: Saved response to cache for", original_action_id, "at", message_data.progress_decimal, "used_book_text=", book_text_was_provided, "used_highlights=", highlights_were_provided)
@@ -2466,6 +2491,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                         previous_progress_decimal = message_data.cached_progress_decimal,
                         flow_visible_pages = message_data.flow_visible_pages,
                         progress_page = message_data.progress_page,
+                        full_document = config.features and config.features._full_document_xray or nil,
                     }
                     local xray_success = ActionCache.setXrayCache(ui.document.file, cache_answer, progress, xray_metadata)
                     if xray_success then
