@@ -1500,6 +1500,7 @@ function XrayBrowser:showChapterPicker(current_chapter)
         is_popout = false,
         single_line = true,
         align_baselines = true,
+        with_dots = true,
         items_per_page = items_per_page,
         items_font_size = items_font_size,
         items_mandatory_font_size = items_font_size - 4,
@@ -1643,7 +1644,6 @@ function XrayBrowser:showChapterPicker(current_chapter)
             -- Spoiler warning before revealing
             self_ref._spoiler_dialog = ButtonDialog:new{
                 title = _("Spoiler warning"),
-                info_face = true,
                 text = _("This chapter is beyond your X-Ray coverage and may contain spoilers.\n\nReveal mentions?"),
                 buttons = {
                     {{
@@ -1660,6 +1660,7 @@ function XrayBrowser:showChapterPicker(current_chapter)
                                 title = item.text,
                                 start_page = item.start_page,
                                 end_page = item.end_page,
+                                depth = item.depth,
                             })
                         end,
                     }},
@@ -1671,6 +1672,7 @@ function XrayBrowser:showChapterPicker(current_chapter)
                 title = item.text,
                 start_page = item.start_page,
                 end_page = item.end_page,
+                depth = item.depth,
             })
         end
         return true
@@ -1743,6 +1745,7 @@ function XrayBrowser:_showFlatChapterPicker(chunks, current_chapter)
         is_popout = false,
         single_line = true,
         align_baselines = true,
+        with_dots = true,
         items_font_size = 18,
         items_mandatory_font_size = 14,
         line_color = Blitbuffer.COLOR_WHITE,
@@ -1764,7 +1767,6 @@ function XrayBrowser:_showFlatChapterPicker(chunks, current_chapter)
             if ch.unread then
                 self_ref._spoiler_dialog = ButtonDialog:new{
                     title = _("Spoiler warning"),
-                    info_face = true,
                     text = _("This chapter is beyond your X-Ray coverage and may contain spoilers.\n\nReveal mentions?"),
                     buttons = {
                         {{
@@ -1900,6 +1902,7 @@ function XrayBrowser:showMentions(chapter)
 
         -- Chapter picker button at top
         local picker_label
+        local chapter_depth = type(chapter) == "table" and chapter.depth or nil
         if chapter == "all" then
             if self_ref.is_complete then
                 picker_label = _("All Chapters \u{25BE}")
@@ -1914,6 +1917,8 @@ function XrayBrowser:showMentions(chapter)
 
         table.insert(items, {
             text = picker_label,
+            mandatory = chapter_depth and chapter_depth > 1 and ("Lv." .. chapter_depth) or nil,
+            mandatory_dim = true,
             bold = true,
             callback = function()
                 self_ref:showChapterPicker(display_chapter)
