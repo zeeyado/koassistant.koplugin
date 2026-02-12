@@ -272,6 +272,69 @@ local function getAllPageRangeChapters(ui, coverage_page)
     return chapters, { has_toc = false, max_depth = 0 }
 end
 
+--- Get ALL TOC entries hierarchically (all depths) with page ranges and spoiler gating.
+--- Unlike getAllChapterBoundaries() which filters to one depth, this returns every entry
+--- for use in a KOReader-style hierarchical TOC with expand/collapse.
+--- @param ui table KOReader UI instance
+--- @param coverage_page number|nil X-Ray coverage page
+--- @return table|nil entries Array of {title, start_page, end_page, depth, is_current, unread}
+--- @return number max_depth Maximum TOC depth found
+local function getHierarchicalChapters(ui, coverage_page)
+    local toc = ui.toc and ui.toc.toc
+    if not toc or #toc == 0 then return nil, 0 end
+
+    -- Filter out TOC entries from hidden flows
+    local effective_toc = toc
+    if ui.document.hasHiddenFlows and ui.document:hasHiddenFlows() then
+        effective_toc = {}
+        for _idx, entry in ipairs(toc) do
+            if entry.page and ui.document:getPageFlow(entry.page) == 0 then
+                table.insert(effective_toc, entry)
+            end
+        end
+        if #effective_toc == 0 then return nil, 0 end
+    end
+
+    local total_pages = ui.document.info.number_of_pages or 0
+    local current_page = getCurrentPage(ui)
+    local gate_page = math.max(coverage_page or current_page, current_page)
+
+    local max_depth = 0
+    for _idx, entry in ipairs(effective_toc) do
+        local d = entry.depth or 1
+        if d > max_depth then max_depth = d end
+    end
+
+    -- Build entries with end_page scoped to same-or-shallower next sibling
+    local entries = {}
+    for i, entry in ipairs(effective_toc) do
+        if not entry.page then goto continue end
+        local d = entry.depth or 1
+        -- end_page = page before next entry at same or shallower depth
+        local end_page = total_pages
+        for j = i + 1, #effective_toc do
+            local next_d = effective_toc[j].depth or 1
+            if next_d <= d and effective_toc[j].page then
+                end_page = effective_toc[j].page - 1
+                break
+            end
+        end
+        local is_unread = entry.page > gate_page
+        local is_current = not is_unread and current_page >= entry.page and current_page <= end_page
+        table.insert(entries, {
+            title = entry.title or "",
+            start_page = entry.page,
+            end_page = end_page,
+            depth = d,
+            is_current = is_current,
+            unread = is_unread,
+        })
+        ::continue::
+    end
+
+    return entries, max_depth
+end
+
 --- Get page-range chapter for books without usable TOC
 --- @param ui table KOReader UI instance
 --- @return table chapter {title, start_page, end_page, depth}
@@ -691,24 +754,12 @@ function XrayBrowser:buildCategoryItems()
         items[#items].separator = true
     end
 
-    -- Chapter / whole-book analysis (only when book is open)
+    -- Mentions: unified chapter-navigable text matching (only when book is open)
     if self.ui and self.ui.document then
         table.insert(items, {
-            text = Constants.getEmojiText("📑", _("Mentions (Current Chapter)"), enable_emoji),
+            text = Constants.getEmojiText("📑", _("Mentions"), enable_emoji),
             callback = function()
-                self_ref:showChapterAnalysis()
-            end,
-        })
-        local mentions_label
-        if self.is_complete then
-            mentions_label = _("Mentions (All Chapters)")
-        else
-            mentions_label = T(_("Mentions (to %1)"), self.metadata.progress or "?%")
-        end
-        table.insert(items, {
-            text = Constants.getEmojiText("📊", mentions_label, enable_emoji),
-            callback = function()
-                self_ref:showWholeBookAnalysis()
+                self_ref:showMentions()
             end,
         })
     end
@@ -1328,46 +1379,441 @@ local function buildDistributionBar(count, max_count, bar_width, count_width)
         .. "  " .. count_str
 end
 
---- Show depth picker for TOC level selection
---- @param toc_info table TOC metadata from getChapterBoundaries
-function XrayBrowser:showDepthPicker(toc_info)
+--- Show chapter picker for Mentions navigation.
+--- Opens a KOReader-style hierarchical TOC as a full-screen modal with
+--- expand/collapse, indentation, and spoiler gating.
+--- @param current_chapter table|string|nil Current selection ("all" or chapter table)
+function XrayBrowser:showChapterPicker(current_chapter)
+    local BD = require("ui/bidi")
+    local Blitbuffer = require("ffi/blitbuffer")
+    local Button = require("ui/widget/button")
+    local CenterContainer = require("ui/widget/container/centercontainer")
+    local Font = require("ui/font")
+    local Geom = require("ui/geometry")
+    local Size = require("ui/size")
+    local TextWidget = require("ui/widget/textwidget")
+
     local self_ref = self
-    local buttons = {}
-    for depth = 1, toc_info.max_depth do
-        local title = toc_info.depth_titles and toc_info.depth_titles[depth]
-        local label
-        if title and title ~= "" then
-            label = T(_("Level %1: %2"), depth, title)
-        else
-            label = T(_("Level %1"), depth)
-        end
-        table.insert(buttons, {{
-            text = label,
-            callback = function()
-                UIManager:close(self_ref._depth_dialog)
-                -- Navigate back to remove current results
-                self_ref:navigateBack()
-                -- Re-run with new depth
-                self_ref:showChapterAnalysis(depth)
-            end,
-        }})
+
+    -- Get hierarchical TOC (all depths)
+    local entries, max_depth = getHierarchicalChapters(self.ui, self.coverage_page)
+    if not entries or #entries == 0 then
+        -- Fallback: page-range chunks (flat, no hierarchy)
+        local chunks = getAllPageRangeChapters(self.ui, self.coverage_page)
+        if not chunks or #chunks == 0 then return end
+        self:_showFlatChapterPicker(chunks, current_chapter)
+        return
     end
-    table.insert(buttons, {{
-        text = _("Cancel"),
-        callback = function()
-            UIManager:close(self_ref._depth_dialog)
-        end,
-    }})
-    self._depth_dialog = ButtonDialog:new{
-        title = _("Select TOC depth"),
-        buttons = buttons,
+
+    -- Calculate indentation unit: width of 4 spaces (same as KOReader TOC)
+    local items_font_size = 18
+    local tmp = TextWidget:new{
+        text = "    ",
+        face = Font:getFace("smallinfofont", items_font_size),
     }
-    UIManager:show(self._depth_dialog)
+    local toc_indent = tmp:getSize().w
+    tmp:free()
+
+    -- Build full TOC array with indent, depth, page range fields
+    local full_toc = {}
+    for i, entry in ipairs(entries) do
+        local d = entry.depth or 1
+        local title = entry.title
+        if not title or title == "" then title = T(_("Page %1"), entry.start_page) end
+        table.insert(full_toc, {
+            text = title,
+            mandatory = entry.start_page,
+            indent = toc_indent * (d - 1),
+            depth = d,
+            index = i,
+            start_page = entry.start_page,
+            end_page = entry.end_page,
+            is_current = entry.is_current,
+            unread = entry.unread,
+            dim = entry.unread,
+        })
+    end
+
+    -- Expand/collapse button sizing (same calculation as KOReader TOC)
+    local items_per_page = 14
+    local icon_size = math.floor(Screen:getHeight() / items_per_page * 2 / 5)
+    local button_width = icon_size * 2
+
+    -- Detect parent nodes (reverse pass: if depth < next entry's depth, it's a parent)
+    local can_collapse = max_depth > 1
+    if can_collapse then
+        local depth = 0
+        for i = #full_toc, 1, -1 do
+            local v = full_toc[i]
+            if v.depth < depth then
+                v._is_parent = true
+            end
+            depth = v.depth
+        end
+    end
+
+    -- State: expanded_nodes tracks which full_toc indices are expanded
+    local expanded_nodes = {}
+
+    -- Build initial collapsed view (only top-level entries if multi-depth)
+    local collapse_depth = 2
+    local collapsed_toc = {}
+    if can_collapse then
+        for _, v in ipairs(full_toc) do
+            if v.depth < collapse_depth then
+                table.insert(collapsed_toc, v)
+            end
+        end
+    else
+        for _, v in ipairs(full_toc) do
+            table.insert(collapsed_toc, v)
+        end
+    end
+
+    -- Prepend "All Chapters" option
+    local all_label
+    if self.is_complete then
+        all_label = _("All Chapters")
+    else
+        all_label = T(_("All Chapters (to %1)"), self.metadata.progress or "?%")
+    end
+    table.insert(collapsed_toc, 1, {
+        text = all_label,
+        bold = current_chapter == "all",
+        separator = true,
+        _is_all_chapters = true,
+    })
+
+    -- Mark current reading position for bold highlighting via .current
+    for i, v in ipairs(collapsed_toc) do
+        if not v._is_all_chapters and v.is_current then
+            collapsed_toc.current = i
+            break
+        end
+    end
+
+    -- Create the TOC menu (separate full-screen widget, not part of browser nav stack)
+    local toc_menu = Menu:new{
+        title = _("Table of Contents"),
+        state_w = can_collapse and button_width or 0,
+        is_borderless = true,
+        is_popout = false,
+        single_line = true,
+        align_baselines = true,
+        items_per_page = items_per_page,
+        items_font_size = items_font_size,
+        items_mandatory_font_size = items_font_size - 4,
+        items_padding = can_collapse and math.floor(Size.padding.fullscreen / 2) or nil,
+        line_color = Blitbuffer.COLOR_WHITE,
+    }
+
+    local menu_container = CenterContainer:new{
+        dimen = Screen:getSize(),
+        covers_fullscreen = true,
+        toc_menu,
+    }
+
+    -- Create expand/collapse buttons (after menu, for show_parent)
+    local expand_button = Button:new{
+        icon = "control.expand",
+        icon_rotation_angle = BD.mirroredUILayout() and 180 or 0,
+        width = button_width,
+        icon_width = icon_size,
+        icon_height = icon_size,
+        bordersize = 0,
+        show_parent = menu_container,
+        callback = function() end, -- replaced below
+        onTapSelectButton = function() end, -- pass through to onMenuSelect
+    }
+    local collapse_button = Button:new{
+        icon = "control.collapse",
+        width = button_width,
+        icon_width = icon_size,
+        icon_height = icon_size,
+        bordersize = 0,
+        show_parent = menu_container,
+        callback = function() end,
+        onTapSelectButton = function() end,
+    }
+
+    -- Assign expand/collapse state to parent nodes
+    if can_collapse then
+        for _, v in ipairs(full_toc) do
+            if v._is_parent then
+                v.state = expand_button:new{}
+            end
+        end
+    end
+
+    -- Expand: insert immediate children into collapsed_toc
+    local function expandTocNode(index)
+        if expanded_nodes[index] then return end
+        expanded_nodes[index] = true
+        local cur_node = full_toc[index]
+        local cur_depth = cur_node.depth
+        -- Find position in collapsed_toc
+        local collapsed_index
+        for i, v in ipairs(collapsed_toc) do
+            if v.start_page == cur_node.start_page and v.depth == cur_depth
+                    and v.text == cur_node.text then
+                collapsed_index = i
+                break
+            end
+        end
+        if not collapsed_index then return end
+        for i = index + 1, #full_toc do
+            local v = full_toc[i]
+            if v.depth == cur_depth + 1 then
+                collapsed_index = collapsed_index + 1
+                table.insert(collapsed_toc, collapsed_index, v)
+            elseif v.depth <= cur_depth then
+                break
+            end
+        end
+        if cur_node.state then cur_node.state:free() end
+        cur_node.state = collapse_button:new{}
+        toc_menu:switchItemTable(nil, collapsed_toc, -1)
+    end
+
+    -- Collapse: remove all descendants from collapsed_toc
+    local function collapseTocNode(index)
+        if not expanded_nodes[index] then return end
+        expanded_nodes[index] = nil
+        local cur_node = full_toc[index]
+        local cur_depth = cur_node.depth
+        local i = 1
+        local is_child_node = false
+        while i <= #collapsed_toc do
+            local v = collapsed_toc[i]
+            if is_child_node then
+                if v.depth and v.depth <= cur_depth then
+                    is_child_node = false
+                    i = i + 1
+                else
+                    -- Descendant: collapse and remove
+                    if v.state then
+                        v.state:free()
+                        if v._is_parent then
+                            v.state = expand_button:new{}
+                        end
+                        if v.index and expanded_nodes[v.index] then
+                            expanded_nodes[v.index] = nil
+                        end
+                    end
+                    table.remove(collapsed_toc, i)
+                end
+            else
+                if v.start_page == cur_node.start_page and v.depth == cur_depth
+                        and v.text == cur_node.text then
+                    is_child_node = true
+                end
+                i = i + 1
+            end
+        end
+        cur_node.state:free()
+        cur_node.state = expand_button:new{}
+        toc_menu:switchItemTable(nil, collapsed_toc, -1)
+    end
+
+    -- Wire button callbacks
+    expand_button.callback = function(index) expandTocNode(index) end
+    collapse_button.callback = function(index) collapseTocNode(index) end
+
+    -- Helper: select a chapter and show mentions
+    local function selectChapter(chapter_data)
+        UIManager:close(menu_container)
+        -- Pop the current Mentions results (modal doesn't use nav stack)
+        self_ref:navigateBack()
+        self_ref:showMentions(chapter_data)
+    end
+
+    -- Override onMenuSelect: left-zone tap toggles expand/collapse, rest selects chapter
+    function toc_menu:onMenuSelect(item, pos)
+        -- Expand/collapse zone check (same as KOReader TOC)
+        if item.state and pos and pos.x then
+            local do_toggle = BD.mirroredUILayout() and pos.x > 0.7 or pos.x < 0.3
+            if do_toggle then
+                item.state.callback(item.index)
+                return true
+            end
+        end
+        if item._is_all_chapters then
+            selectChapter("all")
+        elseif item.unread then
+            -- Spoiler warning before revealing
+            self_ref._spoiler_dialog = ButtonDialog:new{
+                title = _("Spoiler warning"),
+                info_face = true,
+                text = _("This chapter is beyond your X-Ray coverage and may contain spoilers.\n\nReveal mentions?"),
+                buttons = {
+                    {{
+                        text = _("Cancel"),
+                        callback = function()
+                            UIManager:close(self_ref._spoiler_dialog)
+                        end,
+                    }},
+                    {{
+                        text = _("Reveal"),
+                        callback = function()
+                            UIManager:close(self_ref._spoiler_dialog)
+                            selectChapter({
+                                title = item.text,
+                                start_page = item.start_page,
+                                end_page = item.end_page,
+                            })
+                        end,
+                    }},
+                },
+            }
+            UIManager:show(self_ref._spoiler_dialog)
+        else
+            selectChapter({
+                title = item.text,
+                start_page = item.start_page,
+                end_page = item.end_page,
+            })
+        end
+        return true
+    end
+
+    -- Long-press: show full title (same as KOReader TOC)
+    function toc_menu:onMenuHold(item)
+        if not Device:isTouchDevice() and item.state then
+            item.state.callback(item.index)
+        else
+            UIManager:show(InfoMessage:new{
+                show_icon = false,
+                text = item.text or "",
+            })
+        end
+        return true
+    end
+
+    toc_menu.close_callback = function()
+        UIManager:close(menu_container)
+    end
+    toc_menu.show_parent = menu_container
+
+    toc_menu:switchItemTable(nil, collapsed_toc, collapsed_toc.current or -1)
+    UIManager:show(menu_container)
 end
 
---- Show all X-Ray items appearing in the current chapter
---- @param target_depth number|nil TOC depth filter
-function XrayBrowser:showChapterAnalysis(target_depth)
+--- Flat chapter picker fallback for books without usable TOC.
+--- Shows page-range chunks in a modal Menu.
+--- @param chunks table Array from getAllPageRangeChapters
+--- @param current_chapter table|string|nil Current selection
+function XrayBrowser:_showFlatChapterPicker(chunks, current_chapter)
+    local Blitbuffer = require("ffi/blitbuffer")
+    local CenterContainer = require("ui/widget/container/centercontainer")
+
+    local self_ref = self
+    local items = {}
+
+    -- "All Chapters" at top
+    local all_label
+    if self.is_complete then
+        all_label = _("All Chapters")
+    else
+        all_label = T(_("All Chapters (to %1)"), self.metadata.progress or "?%")
+    end
+    table.insert(items, {
+        text = all_label,
+        bold = current_chapter == "all",
+        separator = true,
+        _is_all_chapters = true,
+    })
+
+    -- Page-range chunks
+    for _idx, ch in ipairs(chunks) do
+        table.insert(items, {
+            text = ch.title or "",
+            mandatory = ch.start_page,
+            mandatory_dim = true,
+            dim = ch.unread,
+            _chapter = ch,
+        })
+        if ch.is_current then
+            items.current = #items
+        end
+    end
+
+    local toc_menu = Menu:new{
+        title = _("Table of Contents"),
+        is_borderless = true,
+        is_popout = false,
+        single_line = true,
+        align_baselines = true,
+        items_font_size = 18,
+        items_mandatory_font_size = 14,
+        line_color = Blitbuffer.COLOR_WHITE,
+    }
+
+    local menu_container = CenterContainer:new{
+        dimen = Screen:getSize(),
+        covers_fullscreen = true,
+        toc_menu,
+    }
+
+    function toc_menu:onMenuSelect(item)
+        if item._is_all_chapters then
+            UIManager:close(menu_container)
+            self_ref:navigateBack()
+            self_ref:showMentions("all")
+        elseif item._chapter then
+            local ch = item._chapter
+            if ch.unread then
+                self_ref._spoiler_dialog = ButtonDialog:new{
+                    title = _("Spoiler warning"),
+                    info_face = true,
+                    text = _("This chapter is beyond your X-Ray coverage and may contain spoilers.\n\nReveal mentions?"),
+                    buttons = {
+                        {{
+                            text = _("Cancel"),
+                            callback = function()
+                                UIManager:close(self_ref._spoiler_dialog)
+                            end,
+                        }},
+                        {{
+                            text = _("Reveal"),
+                            callback = function()
+                                UIManager:close(self_ref._spoiler_dialog)
+                                UIManager:close(menu_container)
+                                self_ref:navigateBack()
+                                self_ref:showMentions(ch)
+                            end,
+                        }},
+                    },
+                }
+                UIManager:show(self_ref._spoiler_dialog)
+            else
+                UIManager:close(menu_container)
+                self_ref:navigateBack()
+                self_ref:showMentions(ch)
+            end
+        end
+        return true
+    end
+
+    function toc_menu:onMenuHold(item)
+        UIManager:show(InfoMessage:new{
+            show_icon = false,
+            text = item.text or "",
+        })
+        return true
+    end
+
+    toc_menu.close_callback = function()
+        UIManager:close(menu_container)
+    end
+    toc_menu.show_parent = menu_container
+
+    toc_menu:switchItemTable(nil, items, items.current or -1)
+    UIManager:show(menu_container)
+end
+
+--- Unified Mentions: show X-Ray items in a chapter, all chapters, or specific chapter.
+--- @param chapter table|string|nil nil=current chapter, "all"=aggregate, table=specific chapter
+function XrayBrowser:showMentions(chapter)
     if not self.ui or not self.ui.document then
         UIManager:show(InfoMessage:new{
             text = _("No book open."),
@@ -1376,20 +1822,54 @@ function XrayBrowser:showChapterAnalysis(target_depth)
         return
     end
 
-    -- Show processing notification
-    UIManager:show(Notification:new{
-        text = _("Analyzing chapter…"),
-    })
+    -- Determine notification text
+    local notif_text = chapter == "all" and _("Analyzing book…") or _("Analyzing chapter…")
+    UIManager:show(Notification:new{ text = notif_text })
 
-    -- Schedule the actual work to let the notification render
     local self_ref = self
     UIManager:scheduleIn(0.2, function()
-        local chapter_text, chapter_title, toc_info = getCurrentChapterText(self_ref.ui, target_depth, self_ref)
+        local text, chapter_title
+        local display_chapter = chapter  -- track what we're showing for the picker
 
-        if not chapter_text or chapter_text == "" then
-            local msg = self_ref.ui.document.info.has_pages
-                and _("Could not extract chapter text. PDF text extraction may not be available for this document.")
-                or _("Could not extract chapter text.")
+        if chapter == "all" then
+            -- Aggregate: page 1 to max(coverage, reading)
+            local total_pages = self_ref.ui.document.info.number_of_pages or 0
+            if total_pages == 0 then
+                UIManager:show(InfoMessage:new{
+                    text = _("Could not determine book length."),
+                    timeout = 3,
+                })
+                return
+            end
+            local current_page = getCurrentPage(self_ref.ui)
+            local end_page = current_page
+            if self_ref.coverage_page then
+                end_page = math.max(self_ref.coverage_page, current_page)
+            end
+            if end_page > total_pages then end_page = total_pages end
+            local all_chapter = { start_page = 1, end_page = end_page }
+            text = self_ref:_getChapterText(all_chapter)
+            chapter_title = ""
+        elseif type(chapter) == "table" then
+            -- Specific chapter from picker
+            text = self_ref:_getChapterText(chapter)
+            chapter_title = chapter.title or ""
+        else
+            -- Current chapter (default — deepest TOC match)
+            text, chapter_title = getCurrentChapterText(self_ref.ui, nil, self_ref)
+        end
+
+        if not text or text == "" then
+            local msg
+            if chapter == "all" then
+                msg = self_ref.ui.document.info.has_pages
+                    and _("Could not extract book text. PDF text extraction may not be available for this document.")
+                    or _("Could not extract book text.")
+            else
+                msg = self_ref.ui.document.info.has_pages
+                    and _("Could not extract chapter text. PDF text extraction may not be available for this document.")
+                    or _("Could not extract chapter text.")
+            end
             UIManager:show(InfoMessage:new{
                 text = msg,
                 timeout = 5,
@@ -1397,12 +1877,17 @@ function XrayBrowser:showChapterAnalysis(target_depth)
             return
         end
 
-        local found = XrayParser.findItemsInChapter(self_ref.xray_data, chapter_text)
+        local found = XrayParser.findItemsInChapter(self_ref.xray_data, text)
 
         if #found == 0 then
-            local msg = chapter_title ~= "" and
-                T(_("No X-Ray items found in \"%1\"."), chapter_title) or
-                _("No X-Ray items found in current chapter.")
+            local msg
+            if chapter == "all" then
+                msg = _("No X-Ray items found in book text.")
+            elseif chapter_title and chapter_title ~= "" then
+                msg = T(_("No X-Ray items found in \"%1\"."), chapter_title)
+            else
+                msg = _("No X-Ray items found in current chapter.")
+            end
             UIManager:show(InfoMessage:new{
                 text = msg,
                 timeout = 4,
@@ -1413,27 +1898,28 @@ function XrayBrowser:showChapterAnalysis(target_depth)
         -- Build menu items
         local items = {}
 
-        -- TOC depth selector (when multiple depths available)
-        if toc_info and toc_info.has_toc and toc_info.max_depth > 1 then
-            local current_depth = target_depth or toc_info.max_depth
-            local depth_title = toc_info.depth_titles and toc_info.depth_titles[current_depth]
-            local depth_label
-            if depth_title and depth_title ~= "" then
-                depth_label = T(_("Level %1: %2 \u{25BE}"), current_depth, depth_title)
+        -- Chapter picker button at top
+        local picker_label
+        if chapter == "all" then
+            if self_ref.is_complete then
+                picker_label = _("All Chapters \u{25BE}")
             else
-                depth_label = T(_("TOC Level %1 \u{25BE}"), current_depth)
+                picker_label = T(_("To %1 \u{25BE}"), self_ref.metadata.progress or "?%")
             end
-            table.insert(items, {
-                text = depth_label,
-                mandatory = T(_("%1 levels"), toc_info.max_depth),
-                mandatory_dim = true,
-                bold = true,
-                callback = function()
-                    self_ref:showDepthPicker(toc_info)
-                end,
-                separator = true,
-            })
+        elseif chapter_title and chapter_title ~= "" then
+            picker_label = chapter_title .. " \u{25BE}"
+        else
+            picker_label = _("This Chapter \u{25BE}")
         end
+
+        table.insert(items, {
+            text = picker_label,
+            bold = true,
+            callback = function()
+                self_ref:showChapterPicker(display_chapter)
+            end,
+            separator = true,
+        })
 
         -- Item list
         for _idx, entry in ipairs(found) do
@@ -1452,7 +1938,13 @@ function XrayBrowser:showChapterAnalysis(target_depth)
 
         -- Title
         local title
-        if chapter_title ~= "" then
+        if chapter == "all" then
+            if self_ref.is_complete then
+                title = T(_("All Chapters — %1 mentions"), #found)
+            else
+                title = T(_("To %1 — %2 mentions"), self_ref.metadata.progress or "?%", #found)
+            end
+        elseif chapter_title and chapter_title ~= "" then
             title = T(_("%1 — %2 mentions"), chapter_title, #found)
         else
             title = T(_("This Chapter — %1 mentions"), #found)
@@ -1462,96 +1954,9 @@ function XrayBrowser:showChapterAnalysis(target_depth)
     end)
 end
 
---- Show all X-Ray items found across the whole book (page 1 to current page)
-function XrayBrowser:showWholeBookAnalysis()
-    if not self.ui or not self.ui.document then
-        UIManager:show(InfoMessage:new{
-            text = _("No book open."),
-            timeout = 3,
-        })
-        return
-    end
-
-    -- Show processing notification
-    UIManager:show(Notification:new{
-        text = _("Analyzing book…"),
-    })
-
-    local self_ref = self
-    UIManager:scheduleIn(0.2, function()
-        local total_pages = self_ref.ui.document.info.number_of_pages or 0
-        if total_pages == 0 then
-            UIManager:show(InfoMessage:new{
-                text = _("Could not determine book length."),
-                timeout = 3,
-            })
-            return
-        end
-
-        local current_page = getCurrentPage(self_ref.ui)
-        -- Scan to max(coverage, reading) — covers both X-Ray analyzed text and physically read text
-        local end_page = current_page
-        if self_ref.coverage_page then
-            end_page = math.max(self_ref.coverage_page, current_page)
-        end
-        if end_page > total_pages then end_page = total_pages end
-        local chapter = {
-            start_page = 1,
-            end_page = end_page,
-        }
-
-        local text = self_ref:_getChapterText(chapter)
-
-        if not text or text == "" then
-            local msg = self_ref.ui.document.info.has_pages
-                and _("Could not extract book text. PDF text extraction may not be available for this document.")
-                or _("Could not extract book text.")
-            UIManager:show(InfoMessage:new{
-                text = msg,
-                timeout = 5,
-            })
-            return
-        end
-
-        local found = XrayParser.findItemsInChapter(self_ref.xray_data, text)
-
-        if #found == 0 then
-            UIManager:show(InfoMessage:new{
-                text = _("No X-Ray items found in book text."),
-                timeout = 4,
-            })
-            return
-        end
-
-        -- Build menu items
-        local items = {}
-        for _idx, entry in ipairs(found) do
-            local name = XrayParser.getItemName(entry.item, entry.category_key)
-            local short_cat = CHAPTER_CATEGORY_SHORT[entry.category_key] or entry.category_label
-            local captured = entry
-            table.insert(items, {
-                text = name,
-                mandatory = string.format("[%s] %s", short_cat, T(_("%1x"), entry.count)),
-                mandatory_dim = true,
-                callback = function()
-                    self_ref:showItemDetail(captured.item, captured.category_key, name)
-                end,
-            })
-        end
-
-        local title
-        if self_ref.is_complete then
-            title = T(_("All Chapters — %1 mentions"), #found)
-        else
-            title = T(_("To %1 — %2 mentions"), self_ref.metadata.progress or "?%", #found)
-        end
-        self_ref:navigateForward(title, items)
-    end)
-end
-
 --- Show all X-Ray items in a specific chapter (given boundaries)
 --- Called from distribution view when tapping a chapter.
---- Unlike showChapterAnalysis(), takes arbitrary chapter boundaries
+--- Unlike showMentions(), takes arbitrary chapter boundaries
 --- and does not include a TOC depth picker.
 --- @param chapter table {title, start_page, end_page}
 function XrayBrowser:showChapterItemsAt(chapter)
