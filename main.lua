@@ -78,6 +78,7 @@ end
 local KOASSISTANT_SIDECAR_FILES = {
     "koassistant_notebook.md",
     "koassistant_cache.lua",  -- X-Ray/Recap response cache
+    "koassistant_user_aliases.lua",  -- User-defined X-Ray search terms
 }
 
 -- Language data (shared module)

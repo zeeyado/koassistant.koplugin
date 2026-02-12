@@ -375,4 +375,94 @@ function ActionCache.clearSummaryCache(document_path)
     return ActionCache.clear(document_path, ActionCache.SUMMARY_CACHE_KEY)
 end
 
+--- Get path to user aliases file for a document
+--- @param document_path string The document file path
+--- @return string|nil path Full path, or nil if not applicable
+function ActionCache.getUserAliasesPath(document_path)
+    if not document_path
+        or document_path == "__GENERAL_CHATS__"
+        or document_path == "__MULTI_BOOK_CHATS__" then
+        return nil
+    end
+    local sidecar_dir = DocSettings:getSidecarDir(document_path)
+    return sidecar_dir .. "/koassistant_user_aliases.lua"
+end
+
+--- Load user-defined aliases for X-Ray items
+--- @param document_path string The document file path
+--- @return table aliases Mapping of item name → array of alias strings (empty table if none)
+function ActionCache.getUserAliases(document_path)
+    local path = ActionCache.getUserAliasesPath(document_path)
+    if not path then return {} end
+
+    local attr = lfs.attributes(path)
+    if not attr or attr.mode ~= "file" then
+        return {}
+    end
+
+    local ok, aliases = pcall(dofile, path)
+    if ok and type(aliases) == "table" then
+        return aliases
+    else
+        logger.warn("KOAssistant ActionCache: Failed to load user aliases:", path)
+        return {}
+    end
+end
+
+--- Save user-defined aliases for X-Ray items
+--- @param document_path string The document file path
+--- @param aliases_table table Mapping of item name → array of alias strings
+--- @return boolean success Whether save succeeded
+function ActionCache.setUserAliases(document_path, aliases_table)
+    local path = ActionCache.getUserAliasesPath(document_path)
+    if not path then return false end
+
+    -- Remove entries with empty alias arrays
+    for name, aliases in pairs(aliases_table) do
+        if type(aliases) ~= "table" or #aliases == 0 then
+            aliases_table[name] = nil
+        end
+    end
+
+    -- If nothing left, remove the file
+    if not next(aliases_table) then
+        os.remove(path)
+        return true
+    end
+
+    -- Ensure sidecar directory exists
+    local util = require("util")
+    local dir = path:match("(.*/)")
+    if dir then
+        util.makePath(dir)
+    end
+
+    local file, err = io.open(path, "w")
+    if not file then
+        logger.err("KOAssistant ActionCache: Failed to open user aliases file for writing:", err)
+        return false
+    end
+
+    file:write("return {\n")
+    for item_name, aliases in pairs(aliases_table) do
+        file:write(string.format("    [%q] = {", item_name))
+        if #aliases > 0 then
+            file:write(" ")
+            for i, alias in ipairs(aliases) do
+                file:write(string.format("%q", alias))
+                if i < #aliases then
+                    file:write(", ")
+                end
+            end
+            file:write(" ")
+        end
+        file:write("},\n")
+    end
+    file:write("}\n")
+    file:close()
+
+    logger.info("KOAssistant ActionCache: Saved user aliases for", document_path)
+    return true
+end
+
 return ActionCache

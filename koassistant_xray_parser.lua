@@ -309,6 +309,54 @@ function XrayParser.getItemName(item, category_key)
     return item.name or _("Unknown")
 end
 
+--- Merge user-defined aliases into parsed X-Ray data (mutates in place)
+--- @param data table Parsed X-Ray data
+--- @param user_aliases table Mapping of item name → array of alias strings
+--- @return table data The mutated data (for chaining)
+function XrayParser.mergeUserAliases(data, user_aliases)
+    if not user_aliases or not next(user_aliases) then
+        return data
+    end
+    if not data or type(data) ~= "table" then
+        return data
+    end
+
+    -- Build case-insensitive lookup
+    local lookup = {}
+    for name, aliases in pairs(user_aliases) do
+        if name and type(aliases) == "table" and #aliases > 0 then
+            lookup[name:lower()] = aliases
+        end
+    end
+    if not next(lookup) then return data end
+
+    local categories = XrayParser.getCategories(data)
+    for _idx, cat in ipairs(categories) do
+        for _idx2, item in ipairs(cat.items) do
+            local item_name = XrayParser.getItemName(item, cat.key)
+            if item_name then
+                local user_list = lookup[item_name:lower()]
+                if user_list then
+                    local existing = ensure_array(item.aliases) or {}
+                    local existing_lower = {}
+                    for _idx3, alias in ipairs(existing) do
+                        existing_lower[alias:lower()] = true
+                    end
+                    for _idx3, user_alias in ipairs(user_list) do
+                        if not existing_lower[user_alias:lower()] then
+                            table.insert(existing, user_alias)
+                            existing_lower[user_alias:lower()] = true
+                        end
+                    end
+                    item.aliases = existing
+                end
+            end
+        end
+    end
+
+    return data
+end
+
 --- Get the secondary text for an item (used as subtitle or mandatory text)
 --- @param item table The item entry
 --- @param category_key string The category key
