@@ -1347,13 +1347,13 @@ local SettingsSchema = {
                             text = _("Allow Text Extraction"),
                             path = "features.enable_book_text_extraction",
                             default = false,
-                            help_text = _("When enabled, actions can extract and send book text to the AI. Used by X-Ray, Recap, and actions with text placeholders."),
+                            help_text = _("When enabled, actions can extract and send book text to the AI. Used by X-Ray, Recap, and actions with text placeholders.\n\nTip: Use KOReader's Hidden Flows feature to exclude front matter, appendices, etc. from extraction — saving tokens and improving results."),
                             on_change = function(new_value)
                                 if new_value then
                                     local InfoMessage = require("ui/widget/infomessage")
                                     local UIManager = require("ui/uimanager")
                                     UIManager:show(InfoMessage:new{
-                                        text = _("Text extraction sends actual book content to the AI. This uses tokens (increases API costs) and processing time. Features like X-Ray and Recap use this to analyze your reading progress. Be mindful of how you use this feature."),
+                                        text = _("Text extraction sends actual book content to the AI. This uses tokens (increases API costs) and processing time. Features like X-Ray and Recap use this to analyze your reading progress.\n\nTip: Use KOReader's Hidden Flows feature to exclude front matter, appendices, etc. — saving tokens and improving AI results."),
                                     })
                                 end
                             end,
@@ -1364,24 +1364,33 @@ local SettingsSchema = {
                             text = _("Max Text Characters"),
                             path = "features.max_book_text_chars",
                             default = Constants.EXTRACTION_DEFAULTS.MAX_BOOK_TEXT_CHARS,
-                            min = 10000,
-                            max = 2000000,
-                            step = 10000,
+                            min = 100000,
+                            max = 10000000,
+                            step = 100000,
                             precision = "%d",
-                            help_text = _("Maximum characters to extract (10,000-2,000,000). Higher = more context but more tokens. Default: 1,000,000 (~250k tokens). Most models have smaller context windows — the API will reject requests that exceed them. See the README for guidance."),
+                            help_text = _("Maximum characters to extract (100,000-10,000,000). Higher = more context but more tokens. Default: 4,000,000 (~1M tokens). The API will reject requests that exceed the model's context window.\n\nTip: Use KOReader's Hidden Flows to exclude front matter, appendices, etc. — saving tokens without reducing the limit."),
                             depends_on = { id = "enable_book_text_extraction", value = true },
                         },
                         {
                             id = "max_pdf_pages",
                             type = "spinner",
-                            text = _("Max PDF Pages"),
+                            text = _("Max Pages (PDF, DJVU, CBZ…)"),
                             path = "features.max_pdf_pages",
                             default = Constants.EXTRACTION_DEFAULTS.MAX_PDF_PAGES,
-                            min = 50,
-                            max = 1000,
-                            step = 50,
+                            min = 100,
+                            max = 5000,
+                            step = 100,
                             precision = "%d",
-                            help_text = _("Maximum PDF pages to extract (50-1,000). Higher = more context but slower. Default: 500 (~1M characters)."),
+                            help_text = _("Maximum pages to extract from page-based formats like PDF, DJVU, and CBZ (100-5,000). Higher = more context but slower. Default: 2,000.\n\nTip: Use KOReader's Hidden Flows to exclude irrelevant pages — saving tokens without reducing the limit."),
+                            depends_on = { id = "enable_book_text_extraction", value = true },
+                        },
+                        {
+                            id = "suppress_large_extraction_warning",
+                            type = "toggle",
+                            text = _("Don't warn about large extractions"),
+                            path = "features.suppress_large_extraction_warning",
+                            default = false,
+                            help_text = _("When unchecked, a warning is shown before sending requests with large text extractions (over 500K characters / ~125K tokens). Most models have smaller context windows and will reject oversized requests.\n\nCheck this if you know your model's limits and don't need the reminder."),
                             depends_on = { id = "enable_book_text_extraction", value = true },
                         },
                         {

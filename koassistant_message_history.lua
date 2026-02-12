@@ -329,7 +329,7 @@ function MessageHistory:createResultText(highlightedText, config)
         local start_pct = self.book_text_coverage_start or 0
         local end_pct = self.book_text_coverage_end or 0
         table.insert(result, string.format(
-            "*Book text truncated (~%d%%–%d%% coverage). Increase limit in Advanced Settings → Book Text Extraction.*\n\n---\n\n",
+            "*Book text truncated (~%d%%–%d%% coverage). Increase limit in Advanced Settings → Book Text Extraction. You can also use Hidden Flows to exclude irrelevant sections.*\n\n---\n\n",
             start_pct, end_pct))
     end
 

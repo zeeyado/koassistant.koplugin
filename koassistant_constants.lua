@@ -96,9 +96,13 @@ Constants.GITHUB = {
 -- Referenced by: context_extractor (fallback), settings_schema (UI default)
 -- Callers should NOT hardcode their own fallbacks — pass nil to let extractor use these
 Constants.EXTRACTION_DEFAULTS = {
-    MAX_BOOK_TEXT_CHARS = 1000000,
-    MAX_PDF_PAGES = 500,
+    MAX_BOOK_TEXT_CHARS = 4000000,
+    MAX_PDF_PAGES = 2000,
 }
+
+-- Threshold for "large extraction" warning (in characters)
+-- ~125K tokens — at this point most models except Gemini are near their context limit
+Constants.LARGE_EXTRACTION_THRESHOLD = 500000
 
 -- Quick Actions Panel Utilities
 -- Non-action items shown in the Quick Actions panel (below the actions)
