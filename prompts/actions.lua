@@ -725,7 +725,7 @@ Guidance for non-fiction:
 
 {highlight_analysis_nudge}
 
-CRITICAL: Do not reveal ANYTHING beyond {reading_progress}. This must be completely spoiler-free. Output ONLY valid JSON — no other text. JSON keys must remain in English, but all string values (descriptions, summaries, significance, definitions, etc.) must follow your language instructions.
+CRITICAL: Do not reveal ANYTHING beyond {reading_progress}. This must be completely spoiler-free. Output ONLY valid JSON — no other text. JSON keys must remain in English. Character names, location names, terms, and aliases must be in the same language and script as the source text. All other string values (descriptions, summaries, significance, definitions, connections, etc.) must follow your language instructions.
 
 If you don't recognize this work or lack sufficient detail to provide accurate information, respond with ONLY this JSON:
 {"error": "I don't recognize this work. Please enable text extraction or provide more context."}
@@ -775,7 +775,7 @@ Guidelines:
 
 {highlight_analysis_nudge}
 
-CRITICAL: This must remain spoiler-free up to {reading_progress}. Output ONLY valid JSON — no other text. JSON keys must remain in English, but all string values must follow your language instructions.]],
+CRITICAL: This must remain spoiler-free up to {reading_progress}. Output ONLY valid JSON — no other text. JSON keys must remain in English. Character names, location names, terms, and aliases must be in the same language and script as the source text. All other string values must follow your language instructions.]],
     },
     -- Recap: Story summary for re-immersion
     recap = {
