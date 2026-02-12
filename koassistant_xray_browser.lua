@@ -508,6 +508,15 @@ function XrayBrowser:show(xray_data, metadata, ui, on_delete)
     self.on_delete = on_delete
     self.nav_stack = {}
 
+    -- Merge user-defined search terms into item aliases
+    if metadata.book_file then
+        local ActionCache = require("koassistant_action_cache")
+        local user_aliases = ActionCache.getUserAliases(metadata.book_file)
+        if next(user_aliases) then
+            XrayParser.mergeUserAliases(self.xray_data, user_aliases)
+        end
+    end
+
     local items = self:buildCategoryItems()
     local title = self:buildMainTitle()
     self.current_title = title
@@ -817,6 +826,21 @@ function XrayBrowser:showItemDetail(item, category_key, title, source)
         }})
     end
 
+    -- "Add Search Term" button (searchable categories with known book file)
+    if not DISTRIBUTION_EXCLUDED[category_key] and self.metadata.book_file then
+        table.insert(buttons_rows, {{
+            text = _("Add Search Term"),
+            callback = function()
+                if viewer then viewer:onClose() end
+                self_ref:addUserAlias(item, category_key, title, source)
+            end,
+            hold_callback = function()
+                if viewer then viewer:onClose() end
+                self_ref:manageUserAliases(item, category_key, title, source)
+            end,
+        }})
+    end
+
     -- Resolve references into tappable cross-category navigation buttons
     if self.xray_data then
         -- Characters/key_figures: resolve connections (other characters/items)
@@ -893,6 +917,163 @@ function XrayBrowser:showItemDetail(item, category_key, title, source)
         viewer.ges_events.HoldPanText[1].rate = Screen.low_pan_rate and 5.0 or 30.0
     end
     UIManager:show(viewer)
+end
+
+--- Show dialog to add a custom search term for an item
+--- @param item table The item data
+--- @param category_key string The category key
+--- @param item_title string Display title for refreshing detail view
+--- @param source table|nil Navigation source for back-button chain
+function XrayBrowser:addUserAlias(item, category_key, item_title, source)
+    local ActionCache = require("koassistant_action_cache")
+    local item_name = XrayParser.getItemName(item, category_key)
+    local self_ref = self
+
+    local input_dialog
+    input_dialog = InputDialog:new{
+        title = T(_("Add search term for \"%1\""), item_name),
+        input = "",
+        input_hint = _("Enter alternate name or spelling"),
+        buttons = {
+            {
+                {
+                    text = _("Cancel"),
+                    id = "close",
+                    callback = function()
+                        UIManager:close(input_dialog)
+                    end,
+                },
+                {
+                    text = _("Add"),
+                    is_enter_default = true,
+                    callback = function()
+                        local new_alias = input_dialog:getInputText()
+                        UIManager:close(input_dialog)
+                        if not new_alias or new_alias:match("^%s*$") then return end
+                        new_alias = new_alias:match("^%s*(.-)%s*$")  -- trim
+
+                        -- Load existing user aliases
+                        local all_aliases = ActionCache.getUserAliases(self_ref.metadata.book_file)
+                        local item_aliases = all_aliases[item_name] or {}
+
+                        -- Check for duplicates (case-insensitive)
+                        for _idx, alias in ipairs(item_aliases) do
+                            if alias:lower() == new_alias:lower() then
+                                UIManager:show(InfoMessage:new{
+                                    text = _("This search term already exists."),
+                                    timeout = 2,
+                                })
+                                return
+                            end
+                        end
+
+                        -- Save
+                        table.insert(item_aliases, new_alias)
+                        all_aliases[item_name] = item_aliases
+                        ActionCache.setUserAliases(self_ref.metadata.book_file, all_aliases)
+
+                        -- Update in-memory item aliases
+                        if type(item.aliases) ~= "table" then
+                            item.aliases = item.aliases and { item.aliases } or {}
+                        end
+                        table.insert(item.aliases, new_alias)
+
+                        -- Clear distribution cache for this item (forces recount)
+                        if self_ref._dist_cache then
+                            self_ref._dist_cache[tostring(item)] = nil
+                        end
+
+                        -- Refresh detail view to show new alias
+                        self_ref:showItemDetail(item, category_key, item_title, source)
+                        UIManager:show(Notification:new{
+                            text = T(_("Added \"%1\""), new_alias),
+                        })
+                    end,
+                },
+            },
+        },
+    }
+    UIManager:show(input_dialog)
+    input_dialog:onShowKeyboard()
+end
+
+--- Show dialog to manage (remove) custom search terms for an item
+--- @param item table The item data
+--- @param category_key string The category key
+--- @param item_title string Display title for refreshing detail view
+--- @param source table|nil Navigation source for back-button chain
+function XrayBrowser:manageUserAliases(item, category_key, item_title, source)
+    local ActionCache = require("koassistant_action_cache")
+    local item_name = XrayParser.getItemName(item, category_key)
+    local all_aliases = ActionCache.getUserAliases(self.metadata.book_file)
+    local user_aliases = all_aliases[item_name] or {}
+
+    if #user_aliases == 0 then
+        UIManager:show(InfoMessage:new{
+            text = _("No custom search terms for this item."),
+            timeout = 2,
+        })
+        return
+    end
+
+    local self_ref = self
+    local buttons = {}
+
+    for _idx, alias in ipairs(user_aliases) do
+        local captured_alias = alias
+        table.insert(buttons, {{
+            text = T(_("Remove \"%1\""), alias),
+            callback = function()
+                UIManager:close(self_ref._manage_dialog)
+                self_ref._manage_dialog = nil
+
+                -- Remove from storage
+                local fresh_aliases = ActionCache.getUserAliases(self_ref.metadata.book_file)
+                local item_list = fresh_aliases[item_name] or {}
+                for i = #item_list, 1, -1 do
+                    if item_list[i]:lower() == captured_alias:lower() then
+                        table.remove(item_list, i)
+                    end
+                end
+                fresh_aliases[item_name] = item_list
+                ActionCache.setUserAliases(self_ref.metadata.book_file, fresh_aliases)
+
+                -- Remove from in-memory item
+                if type(item.aliases) == "table" then
+                    for i = #item.aliases, 1, -1 do
+                        if item.aliases[i]:lower() == captured_alias:lower() then
+                            table.remove(item.aliases, i)
+                        end
+                    end
+                end
+
+                -- Clear distribution cache (forces recount)
+                if self_ref._dist_cache then
+                    self_ref._dist_cache[tostring(item)] = nil
+                end
+
+                -- Refresh detail view
+                self_ref:showItemDetail(item, category_key, item_title, source)
+                UIManager:show(Notification:new{
+                    text = T(_("Removed \"%1\""), captured_alias),
+                })
+            end,
+        }})
+    end
+
+    table.insert(buttons, {{
+        text = _("Close"),
+        callback = function()
+            UIManager:close(self_ref._manage_dialog)
+            self_ref._manage_dialog = nil
+        end,
+    }})
+
+    self._manage_dialog = ButtonDialog:new{
+        title = T(_("Custom search terms for \"%1\""), item_name),
+        buttons = buttons,
+    }
+    UIManager:show(self._manage_dialog)
 end
 
 --- Launch a highlight-context book chat with the given text
