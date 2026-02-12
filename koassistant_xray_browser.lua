@@ -1465,13 +1465,13 @@ function XrayBrowser:showChapterPicker(current_chapter)
     local collapse_depth = 2
     local collapsed_toc = {}
     if can_collapse then
-        for _, v in ipairs(full_toc) do
+        for _idx, v in ipairs(full_toc) do
             if v.depth < collapse_depth then
                 table.insert(collapsed_toc, v)
             end
         end
     else
-        for _, v in ipairs(full_toc) do
+        for _idx, v in ipairs(full_toc) do
             table.insert(collapsed_toc, v)
         end
     end
@@ -1547,7 +1547,7 @@ function XrayBrowser:showChapterPicker(current_chapter)
 
     -- Assign expand/collapse state to parent nodes
     if can_collapse then
-        for _, v in ipairs(full_toc) do
+        for _idx, v in ipairs(full_toc) do
             if v._is_parent then
                 v.state = expand_button:new{}
             end
@@ -1591,7 +1591,7 @@ function XrayBrowser:showChapterPicker(current_chapter)
             end
         end
         -- Expand each ancestor: insert its immediate children into collapsed_toc
-        for _, anc_idx in ipairs(ancestors) do
+        for _idx, anc_idx in ipairs(ancestors) do
             expanded_nodes[anc_idx] = true
             local anc = full_toc[anc_idx]
             -- Find position in collapsed_toc
