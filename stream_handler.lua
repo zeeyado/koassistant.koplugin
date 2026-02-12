@@ -423,6 +423,7 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
 
     -- Hook into scroll callbacks to auto-pause when user scrolls
     if auto_scroll then
+        -- Hook scroll buttons on InputText (called by △/▽ button callbacks)
         local original_scrollUp = streamDialog._input_widget.scrollUp
         streamDialog._input_widget.scrollUp = function(self_widget, ...)
             turnOffAutoScroll()
@@ -435,50 +436,38 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
             return original_scrollDown(self_widget, ...)
         end
 
-        -- Hook scrollText for pan scrolling (touch drag)
-        local original_scrollText = streamDialog._input_widget.scrollText
-        if original_scrollText then
-            streamDialog._input_widget.scrollText = function(self_widget, ...)
-                turnOffAutoScroll()
-                return original_scrollText(self_widget, ...)
+        -- Hook the inner ScrollTextWidget for swipe, device key, and pan scrolling.
+        -- Swipes and device keys dispatch directly to the inner widget (bypassing
+        -- InputText), calling scrollText(). Pan/drag calls onPanReleaseText().
+        -- The inner widget is recreated on every setText(), so we hook initTextBox
+        -- to re-apply hooks to each new instance.
+        local function hookInnerWidget(input_widget)
+            local inner = input_widget.text_widget
+            if not inner then return end
+
+            local orig_scrollText = inner.scrollText
+            if orig_scrollText then
+                inner.scrollText = function(self_w, ...)
+                    turnOffAutoScroll()
+                    return orig_scrollText(self_w, ...)
+                end
+            end
+
+            local orig_onPanRelease = inner.onPanReleaseText
+            if orig_onPanRelease then
+                inner.onPanReleaseText = function(self_w, ...)
+                    turnOffAutoScroll()
+                    return orig_onPanRelease(self_w, ...)
+                end
             end
         end
 
-        -- Hook page turn key events for hardware button scrolling
-        -- Store original handlers
-        local original_onKeyPgFwd = streamDialog.onKeyPgFwd
-        local original_onKeyPgBack = streamDialog.onKeyPgBack
-
-        streamDialog.onKeyPgFwd = function(self_dialog)
-            turnOffAutoScroll()
-            if original_onKeyPgFwd then
-                return original_onKeyPgFwd(self_dialog)
-            end
-            -- Default: scroll down
-            if self_dialog._input_widget and self_dialog._input_widget.scrollDown then
-                self_dialog._input_widget:scrollDown()
-            end
-            return true
+        local original_initTextBox = streamDialog._input_widget.initTextBox
+        streamDialog._input_widget.initTextBox = function(self_widget, ...)
+            original_initTextBox(self_widget, ...)
+            hookInnerWidget(self_widget)
         end
-
-        streamDialog.onKeyPgBack = function(self_dialog)
-            turnOffAutoScroll()
-            if original_onKeyPgBack then
-                return original_onKeyPgBack(self_dialog)
-            end
-            -- Default: scroll up
-            if self_dialog._input_widget and self_dialog._input_widget.scrollUp then
-                self_dialog._input_widget:scrollUp()
-            end
-            return true
-        end
-
-        -- Register key events for page turn buttons if device has keys
-        if Device:hasKeys() then
-            streamDialog.key_events = streamDialog.key_events or {}
-            streamDialog.key_events.KeyPgFwd = { { Device.input.group.PgFwd } }
-            streamDialog.key_events.KeyPgBack = { { Device.input.group.PgBack } }
-        end
+        hookInnerWidget(streamDialog._input_widget)
     end
 
     -- Set up waiting animation

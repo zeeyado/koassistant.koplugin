@@ -672,10 +672,10 @@ These actions analyze your actual reading content. They require specific privacy
 > Without highlights, X-Ray still works fully — you just won't see the Reader Engagement category or highlight mentions in entries.
 
 **X-Ray/Recap** work in two modes:
-- **Without text extraction** (default): AI uses only the title/author and its training knowledge. Their prompts include specialized fallback guidance (e.g., Recap tells the AI to use what it knows; X-Ray provides format-specific error handling). Works for well-known titles; may be inaccurate for obscure works. Results are cached and labeled "Based on AI training data knowledge."
-- **With text extraction**: AI analyzes actual book content up to your reading position. More accurate but costs more tokens. Results are cached and labeled "Based on extracted document text."
+- **With text extraction** (recommended): AI analyzes actual book content up to your reading position. Produces accurate, book-specific results with correct character names, relationships, and plot details. Chapter-based features (Mentions, Chapter Appearances) show real occurrence counts from the text. Results are cached and labeled "Based on extracted document text."
+- **Without text extraction** (default): AI uses only the title/author and its training knowledge. Works reasonably for well-known titles but produces generic results — character names may not match the edition/translation, relationships may be inaccurate, and chapter features won't reflect actual text content. For obscure works, research papers, or non-English books, results will be poor or unusable. Results are labeled "Based on AI training data knowledge."
 
-Both modes support response caching and incremental updates — running X-Ray again after reading further builds on the previous analysis rather than starting from scratch.
+Both modes support response caching and incremental updates — running X-Ray again after reading further builds on the previous analysis rather than starting from scratch. Updates use diff-based merging: the AI outputs only new or changed entries, which are programmatically merged into the existing X-Ray data (name-matched for entities, appended for timeline events, replaced for state summaries). This makes updates fast and cheap (~200-500 output tokens vs 2000-4000 for full regeneration).
 
 > **Spoiler safety:** X-Ray and Recap are the only built-in actions that limit extraction to your current reading position (`{book_text_section}`). All other text extraction actions — including "Explain in Context" and "Analyze in Context" — send the full document to give the AI complete context for its analysis. If you need a spoiler-free variant, create a custom action using `{book_text_section}` instead of `{full_document_section}`.
 
@@ -2439,8 +2439,9 @@ X-Ray and Recap responses are automatically cached per book. This enables **incr
 1. Run X-Ray at 30% → Full structured JSON analysis generated and cached
 2. Continue reading to 50%
 3. Tap X-Ray again → A popup shows: **View X-Ray (30%, today)** or **Update X-Ray (to 50%)**
-4. Choose Update → Only the new content (30%→50%) is sent, asking the AI to update its previous JSON analysis
-5. Result: Faster responses, lower token costs, continuity of analysis
+4. Choose Update → Only the new content (30%→50%) is sent along with an index of existing entities. The AI outputs only new or changed entries.
+5. Diff-based merge: new entries are name-matched and merged into existing data (entities update in place, timeline events append, state summaries replace). ~200-500 output tokens vs 2000-4000 for full regeneration.
+6. Result: Faster responses, lower token costs, continuity of analysis
 
 The View/Update popup appears everywhere you can trigger X-Ray or Recap: Quick Actions panel, Reading Features menu, gestures, and the book chat input field action picker. If no cache exists yet, the action runs directly (no popup).
 
