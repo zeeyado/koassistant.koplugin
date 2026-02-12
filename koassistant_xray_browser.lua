@@ -517,6 +517,18 @@ function XrayBrowser:show(xray_data, metadata, ui, on_delete)
     self.on_delete = on_delete
     self.nav_stack = {}
 
+    -- Build update callback from plugin reference (works from all call sites)
+    self.on_update = nil
+    if metadata.plugin and ui and ui.document then
+        local plugin_ref = metadata.plugin
+        self.on_update = function()
+            local action = plugin_ref.action_service:getAction("book", "xray")
+            if action then
+                plugin_ref:_executeBookLevelActionDirect(action, "xray")
+            end
+        end
+    end
+
     -- Merge user-defined search terms into item aliases
     if metadata.book_file then
         local ActionCache = require("koassistant_action_cache")
@@ -558,6 +570,7 @@ function XrayBrowser:show(xray_data, metadata, ui, on_delete)
         self_ref.menu = nil
         self_ref.nav_stack = {}
         self_ref._dist_cache = nil
+        self_ref.on_update = nil
         if orig_onCloseWidget then
             return orig_onCloseWidget(menu_self)
         end
@@ -2028,6 +2041,37 @@ function XrayBrowser:showOptions()
                         end
                     end,
                 })
+            end,
+        }})
+    end
+
+    -- Update/Redo option
+    if self.on_update then
+        local update_text
+        if self.ui then
+            local ContextExtractor = require("koassistant_context_extractor")
+            local extractor = ContextExtractor:new(self.ui)
+            local current = extractor:getReadingProgress()
+            local cached_dec = self.metadata.progress_decimal or 0
+            if current.decimal > cached_dec + 0.01 then
+                update_text = T(_("Update X-Ray (to %1)"), current.formatted)
+            end
+        end
+        if not update_text then
+            update_text = _("Redo X-Ray")
+        end
+
+        table.insert(buttons, {{
+            text = update_text,
+            callback = function()
+                if self_ref.options_dialog then
+                    UIManager:close(self_ref.options_dialog)
+                    self_ref.options_dialog = nil
+                end
+                if self_ref.menu then
+                    UIManager:close(self_ref.menu)
+                end
+                self_ref.on_update()
             end,
         }})
     end

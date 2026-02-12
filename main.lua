@@ -4310,27 +4310,81 @@ function AskGPT:showCacheViewer(cache_info)
           formatted_date = cache_info.data.timestamp and formatDateWithRelative(cache_info.data.timestamp),
           previous_progress = cache_info.data.previous_progress_decimal and
               (math.floor(cache_info.data.previous_progress_decimal * 100 + 0.5) .. "%"),
+          progress_decimal = cache_info.data.progress_decimal,
         }
-        -- Check if hidden flow config changed since cache was built
+        -- Staleness checks (flow config change or reading progress advance)
+        local ce_ok, ContextExtractor
         if self.ui and self.ui.document then
-            local ce_ok, ContextExtractor = pcall(require, "koassistant_context_extractor")
-            if ce_ok and ContextExtractor then
-                local cached_flow_fp = cache_info.data.flow_visible_pages
-                local current_flow_fp = ContextExtractor.getFlowFingerprint(self.ui.document)
-                if cached_flow_fp ~= nil and cached_flow_fp ~= current_flow_fp then
-                    UIManager:show(Notification:new{
-                        text = _("Reading scope changed since this X-Ray was generated. Consider updating."),
-                    })
-                elseif cached_flow_fp == nil and current_flow_fp ~= nil
-                        and cache_info.data.used_book_text ~= false then
-                    UIManager:show(Notification:new{
-                        text = _("Hidden flows active but X-Ray was generated without flow filtering."),
-                    })
-                end
+            ce_ok, ContextExtractor = pcall(require, "koassistant_context_extractor")
+        end
+
+        -- Check if hidden flow config changed since cache was built
+        local staleness_shown = false
+        if ce_ok and ContextExtractor and self.ui and self.ui.document then
+            local cached_flow_fp = cache_info.data.flow_visible_pages
+            local current_flow_fp = ContextExtractor.getFlowFingerprint(self.ui.document)
+            if cached_flow_fp ~= nil and cached_flow_fp ~= current_flow_fp then
+                UIManager:show(Notification:new{
+                    text = _("Reading scope changed since this X-Ray was generated. Consider updating."),
+                })
+                staleness_shown = true
+            elseif cached_flow_fp == nil and current_flow_fp ~= nil
+                    and cache_info.data.used_book_text ~= false then
+                UIManager:show(Notification:new{
+                    text = _("Hidden flows active but X-Ray was generated without flow filtering."),
+                })
+                staleness_shown = true
             end
         end
 
         XrayBrowser:show(parsed, browser_metadata, self.ui, on_delete)
+
+        -- Progress staleness popup (only if flow staleness wasn't shown)
+        if not staleness_shown and ce_ok and ContextExtractor
+                and self.ui and self.ui.document
+                and cache_info.data.progress_decimal then
+            local extractor = ContextExtractor:new(self.ui)
+            local current = extractor:getReadingProgress()
+            local cached_dec = cache_info.data.progress_decimal
+            if current.decimal - cached_dec > 0.05 then
+                local cache_pct = math.floor(cached_dec * 100 + 0.5)
+                local rel_time = formatRelativeTime(cache_info.data.timestamp)
+                local info_text = T(_("X-Ray covers to %1%%"), cache_pct)
+                if rel_time ~= "" then
+                    info_text = info_text .. " (" .. rel_time .. ")"
+                end
+                info_text = info_text .. "\n" .. T(_("You're now at %1%%."), current.percent)
+
+                local self_ref = self
+                local stale_dialog
+                stale_dialog = ButtonDialog:new{
+                    title = info_text,
+                    buttons = {
+                        {{
+                            text = T(_("Update X-Ray (to %1)"), current.formatted),
+                            callback = function()
+                                UIManager:close(stale_dialog)
+                                if XrayBrowser.menu then
+                                    UIManager:close(XrayBrowser.menu)
+                                end
+                                local action = self_ref.action_service:getAction("book", "xray")
+                                if action then
+                                    self_ref:_executeBookLevelActionDirect(action, "xray")
+                                end
+                            end,
+                        }},
+                        {{
+                            text = _("Dismiss"),
+                            callback = function()
+                                UIManager:close(stale_dialog)
+                            end,
+                        }},
+                    },
+                }
+                UIManager:show(stale_dialog)
+            end
+        end
+
         return
       end
     end
