@@ -4352,7 +4352,7 @@ function AskGPT:showCacheViewer(cache_info)
             local book_file = self.ui.document.file
             local dismissed = self._xray_stale_dismissed
                 and self._xray_stale_dismissed[book_file] == cached_dec
-            if not dismissed and current.decimal - cached_dec > 0.05 then
+            if not dismissed and current.decimal - cached_dec > 0.08 then
                 local cache_pct = math.floor(cached_dec * 100 + 0.5)
                 local rel_time = formatRelativeTime(cache_info.data.timestamp)
                 local info_text = T(_("X-Ray covers to %1%"), cache_pct)

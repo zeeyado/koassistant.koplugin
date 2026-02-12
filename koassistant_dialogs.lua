@@ -3277,7 +3277,7 @@ local function handleLocalXrayLookup(ui, query, document_path, book_metadata, co
     if #results == 0 then
         -- No results
         local msg = T(_("No results for \"%1\" in X-Ray."), query)
-        if progress_gap and progress_gap > 0.05 then
+        if progress_gap and progress_gap > 0.08 then
             local cache_pct = math.floor(cache_progress * 100 + 0.5)
             local current_pct = math.floor(current_progress * 100 + 0.5)
             msg = msg .. "\n\n" .. T(_("X-Ray covers to %1% (you're at %2%). Updating may find this entry."), cache_pct, current_pct)
@@ -3305,7 +3305,7 @@ local function handleLocalXrayLookup(ui, query, document_path, book_metadata, co
         local book_file = ui.document and ui.document.file
         local dismissed = book_file and plugin._xray_stale_dismissed
             and plugin._xray_stale_dismissed[book_file] == cache_progress
-        if not dismissed and progress_gap and progress_gap > 0.05 and plugin then
+        if not dismissed and progress_gap and progress_gap > 0.08 and plugin then
             local ButtonDialog = require("ui/widget/buttondialog")
             local cache_pct = math.floor(cache_progress * 100 + 0.5)
             local ContextExtractor = require("koassistant_context_extractor")
