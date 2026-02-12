@@ -735,7 +735,7 @@ Do NOT attempt to construct an X-Ray with fabricated or uncertain details.]],
         -- Inherits global reasoning setting (user choice)
         api_params = {
             temperature = 0.5,
-            max_tokens = 32768,  -- X-Ray JSON can be large; 16K default often truncates
+            max_tokens = 49152,  -- X-Ray JSON can be large; give headroom to avoid truncation
         },
         builtin = true,
         in_reading_features = 1,  -- Appears in Reading Features menu + default gesture
