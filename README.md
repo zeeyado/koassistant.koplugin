@@ -14,7 +14,7 @@
 </p>
 
 - **Highlight text** → translate, explain, define words, analyze passages, connect ideas, save content directly to KOReader's highlight notes/annotations
-- **While reading** → reference guides (summaries, browsable X-Ray with character tracking, cross-references, chapter distribution, local (offline) X-Ray lookup, recap, artifacts), analyze your highlights/annotations, explore the book/document (author, context, arguments, similar works), generate discussion questions
+- **While reading** → reference guides (summaries, browsable X-Ray with character tracking, cross-references, chapter distribution, local (offline) X-Ray lookup, X-Ray (Simple) prose overview from AI knowledge, recap, artifacts), analyze your highlights/annotations, explore the book/document (author, context, arguments, similar works), generate discussion questions
 - **Research & analysis** → deep analysis of papers/articles, explore arguments, find connections across works
 - **Multi-document** → compare texts, find common themes, analyze your collection
 - **General chat** → AI without book/document context
@@ -42,7 +42,7 @@
 - [How to Use KOAssistant](#how-to-use-koassistant) — Contexts & Built-in Actions
   - [Highlight Mode](#highlight-mode)
   - [Book/Document Mode](#bookdocument-mode)
-    - [Reading Analysis Actions](#reading-analysis-actions) — X-Ray, Recap, Full Document Analysis
+    - [Reading Analysis Actions](#reading-analysis-actions) — X-Ray, X-Ray (Simple), Recap, Full Document Analysis
   - [Multi-Document Mode](#multi-document-mode)
   - [General Chat](#general-chat)
   - [Save to Note](#save-to-note)
@@ -86,7 +86,7 @@
   - [Streaming Responses](#streaming-responses)
   - [Prompt Caching](#prompt-caching)
   - [Response Caching](#response-caching) — Incremental X-Ray/Recap updates as you read
-  - [Document Artifacts](#document-artifacts) — Summary, X-Ray, Analysis: viewable guides and reusable context for Smart actions
+  - [Document Artifacts](#document-artifacts) — Summary, X-Ray, X-Ray (Simple), Analysis: viewable guides and reusable context for Smart actions
   - [Reasoning/Thinking](#reasoningthinking)
   - [Web Search](#web-search) — AI searches the web for current information (Anthropic, Gemini, OpenRouter)
 - [Supported Providers + Settings](#supported-providers--settings) - Choose your model, etc
@@ -195,7 +195,7 @@ Find KOAssistant Settings in: **Tools → Page 2 → KOAssistant**
 Some features require opt-in to work:
 - **Analyze Highlights, Connect with Notes** → Enable "Allow Annotation Notes"
 - **X-Ray, Recap with your highlights** → Enable "Allow Highlights"
-- **X-Ray, Recap with actual book content** → Enable "Allow Text Extraction"
+- **X-Ray, Recap with actual book content** → Enable "Allow Text Extraction" (X-Ray requires this; without it, use X-Ray (Simple) for a prose overview from AI knowledge)
 
 Go to **Settings → Privacy & Data** to configure. See [Privacy & Data](#privacy--data) for details.
 
@@ -262,7 +262,7 @@ To show/hide buttons in the Quick Settings panel, use **Settings → Quick Setti
 Assign "KOAssistant: Quick Actions" to a gesture for fast access to reading-related actions:
 - **Default actions** — X-Ray, Recap, Book Info
 - **Summary management** — "View Summary" (if summary exists) or "Generate Summary" (if not) for cached document summaries
-- **Artifact button** — "View Artifacts" appears when any artifacts exist (X-Ray, Analysis, Summary), opening a picker to choose which one to view
+- **Artifact button** — "View Artifacts" appears when any artifacts exist (X-Ray, X-Ray (Simple), Analysis, Summary), opening a picker to choose which one to view
 - **Utilities** — Translate Page, View/Edit Notebook, Chat History, Continue Last Chat, New Book Chat/Action, General Chat/Action, Quick Settings
 
 You can add any book action to Quick Actions via **Action Manager → hold action → "Add to Quick Actions"**. To reorder or remove actions, use **Settings → Quick Actions Settings → Panel Actions**. To show/hide utility buttons (Translate Page, Chat History, etc.), use **Settings → Quick Actions Settings → QA Panel Utilities**. Defaults can also be removed.
@@ -404,7 +404,7 @@ KOAssistant sends data to AI providers to generate responses. This section expla
 
 **Trusted Providers:** Mark providers you fully trust (e.g., local Ollama) to bypass all data sharing controls.
 
-**Graceful degradation:** When you disable a data type, actions adapt automatically. Section placeholders like `{highlights_section}` simply disappear from prompts, so you don't need to modify your actions. For text extraction specifically, actions go a step further: when document text is unavailable, the AI is explicitly guided to use its training knowledge of the work (and to say so honestly if it doesn't recognize the title). This means actions like Explain in Context, Discussion Questions, and others still produce useful results for well-known books even without text extraction enabled — see [Text Extraction and Double-gating](#text-extraction-and-double-gating) for details.
+**Graceful degradation:** When you disable a data type, actions adapt automatically. Section placeholders like `{highlights_section}` simply disappear from prompts, so you don't need to modify your actions. For text extraction specifically, actions go a step further: when document text is unavailable, the AI is explicitly guided to use its training knowledge of the work (and to say so honestly if it doesn't recognize the title). This means actions like Explain in Context, Discussion Questions, and others still produce useful results for well-known books even without text extraction enabled — see [Text Extraction and Double-gating](#text-extraction-and-double-gating) for details. **Exception:** X-Ray requires text extraction and blocks generation without it (use X-Ray (Simple) instead for a prose overview from AI knowledge — see [Reading Analysis Actions](#reading-analysis-actions)).
 
 **Visibility tip:** If your device supports emoji fonts, enable **[Emoji Data Access Indicators](#display-settings)** (Settings → Display Settings) to see at a glance what data each action accesses — 📄 document text, 🔖 highlights, 📝 annotations, 📓 notebook, 🌐 web search — directly on action names throughout the UI.
 
@@ -412,7 +412,7 @@ KOAssistant sends data to AI providers to generate responses. This section expla
 
 > ⚠️ **Text extraction is OFF by default.** To use features like X-Ray, Recap, and context-aware highlight actions with actual book content (rather than AI's training knowledge), you must enable it in **Settings → Privacy & Data → Text Extraction → Allow Text Extraction**.
 
-Text extraction sends actual book/document content to the AI, enabling features like X-Ray, Recap, Summarize/Analyze Document, and highlight actions like "Explain in Context" to analyze what you've read. Without it enabled, these actions gracefully fall back to the AI's training knowledge — the AI is explicitly told no document text was provided and asked to use what it knows about the work (or say so honestly if it doesn't recognize it). This works reasonably for well-known titles but will be inaccurate for obscure works, and basically unusable for research papers and articles the AI hasn't seen.
+Text extraction sends actual book/document content to the AI, enabling features like X-Ray, Recap, Summarize/Analyze Document, and highlight actions like "Explain in Context" to analyze what you've read. Without it enabled, most actions gracefully fall back to the AI's training knowledge — the AI is explicitly told no document text was provided and asked to use what it knows about the work (or say so honestly if it doesn't recognize it). This works reasonably for well-known titles but will be inaccurate for obscure works, and basically unusable for research papers and articles the AI hasn't seen. **Exception:** X-Ray requires text extraction and blocks generation without it — use X-Ray (Simple) for a prose overview from AI knowledge.
 
 **Why it's off by default:**
 
@@ -445,7 +445,7 @@ The table below documents which flags are required for each data type (relevant 
 
 > **Tip:** Enable **[Emoji Data Access Indicators](#display-settings)** to see which flags each action has directly on its name — no need to inspect action settings manually.
 
-**Privacy compromise for X-Ray:** X-Ray and Recap now use highlights (not annotations). If you want them to see your highlighted passages but not personal notes, enable **Allow Highlights** only (leave **Allow Annotation Notes** off). If you prefer no personal data at all, leave both off — X-Ray and Recap analyze the book text alone.
+**Privacy compromise for X-Ray:** X-Ray, X-Ray (Simple), and Recap use highlights (not annotations). If you want them to see your highlighted passages but not personal notes, enable **Allow Highlights** only (leave **Allow Annotation Notes** off). If you prefer no personal data at all, leave both off — X-Ray and Recap analyze the book text alone, and X-Ray (Simple) uses AI knowledge alone.
 
 **Cache permission inheritance:** When caches are built, they record what data was used. Actions that later reference cache placeholders inherit requirements based on what the cache actually contains:
 - Cache built **without text extraction** → No "Allow Text Extraction" needed (AI used training knowledge only)
@@ -493,7 +493,7 @@ KOAssistant works in **4 contexts**, each with its own set of built-in actions:
 | Context | Built-in Actions |
 |---------|------------------|
 | **Highlight** | Explain, ELI5, Summarize, Elaborate, Connect, Connect (With Notes), Explain in Context, Explain in Context (Smart), Analyze in Context, Analyze in Context (Smart), Thematic Connection (Smart), Fact Check*, Current Context*, Translate, Dictionary, Quick Define, Deep Analysis, Look up in X-Ray† |
-| **Book** | Book Info, Find Similar, About Author, Historical Context, Related Thinkers, Book Reviews*, X-Ray, Recap, Analyze Highlights, Key Arguments, Key Arguments (Smart), Discussion Questions, Discussion Questions (Smart), Generate Quiz, Generate Quiz (Smart), Analyze Document, Summarize Document, Extract Key Insights |
+| **Book** | Book Info, Find Similar, About Author, Historical Context, Related Thinkers, Book Reviews*, X-Ray, X-Ray (Simple), Recap, Analyze Highlights, Key Arguments, Key Arguments (Smart), Discussion Questions, Discussion Questions (Smart), Generate Quiz, Generate Quiz (Smart), Analyze Document, Summarize Document, Extract Key Insights |
 | **Multi-book** | Compare Books, Find Common Themes, Analyze Collection, Quick Summaries, Reading Order |
 | **General** | Ask, News Update* |
 
@@ -572,10 +572,10 @@ Several actions come in two variants: a **regular** version that sends full docu
 **Managing summaries:**
 - **Generate**: Quick Actions → "Generate Summary" (when no summary exists)
 - **View**: Quick Actions → "View Summary" (when summary exists), or use the "View Summary" gesture
-- **File browser**: "View Artifacts (KOA)" button appears when a book has any artifacts (Summary, X-Ray, or Analysis) — tap to pick which one to view. X-Ray opens in a browsable category menu.
+- **File browser**: "View Artifacts (KOA)" button appears when a book has any artifacts (Summary, X-Ray, X-Ray (Simple), or Analysis) — tap to pick which one to view. X-Ray opens in a browsable category menu; X-Ray (Simple) opens in the text viewer.
 - **Coverage**: The viewer title shows coverage percentage if document was truncated (e.g., "Summary (78%)")
 
-> **Tip**: For documents you'll query multiple times, generate the summary proactively via Quick Actions to save tokens on future queries. The artifacts (Summary, X-Ray, Analysis) are also useful on their own as viewable reference guides — see [Document Artifacts](#document-artifacts).
+> **Tip**: For documents you'll query multiple times, generate the summary proactively via Quick Actions to save tokens on future queries. The artifacts (Summary, X-Ray, X-Ray (Simple), Analysis) are also useful on their own as viewable reference guides — see [Document Artifacts](#document-artifacts).
 
 See [Document Artifacts → "Generate Once, Use Many Times"](#document-artifacts) for full details on the summary artifact and Smart actions system.
 
@@ -603,7 +603,8 @@ Some actions work from the file browser (using only document metadata like title
 | **Historical Context** | When written and historical significance |
 | **Related Thinkers** | Intellectual landscape: influences, contemporaries, and connected thinkers |
 | **Book Reviews** | Find critical and reader reviews, awards, and reception ⚠️ *Requires: Web Search* |
-| **X-Ray** | Browsable reference guide: characters (with aliases and connections), locations, themes, lexicon, timeline — opens in a structured menu with search, chapter/book mention tracking, per-item chapter distribution, linkable cross-references, local lookup, and highlight integration ⚠️ *Best with: Allow Text Extraction* |
+| **X-Ray** | Browsable reference guide: characters (with aliases and connections), locations, themes, lexicon, timeline — opens in a structured menu with search, chapter/book mention tracking, per-item chapter distribution, linkable cross-references, local lookup, and highlight integration ⚠️ *Requires: Allow Text Extraction* |
+| **X-Ray (Simple)** | Prose companion guide from AI knowledge — characters, themes, settings, key terms. No text extraction needed. Uses reading progress to avoid spoilers. |
 | **Recap** | "Previously on..." style summary to help you resume reading ⚠️ *Best with: Allow Text Extraction* |
 | **Analyze Highlights** | Discover patterns and connections in your highlights ⚠️ *Requires: Allow Annotation Notes* |
 | **Key Arguments** | Thesis, evidence, assumptions, and counterarguments using full book text ⚠️ *Requires: Allow Text Extraction* |
@@ -624,7 +625,8 @@ These actions analyze your actual reading content. They require specific privacy
 
 | Action | What it analyzes | Privacy setting required |
 |--------|------------------|--------------------------|
-| **X-Ray** | Book text + highlights up to current position | Allow Text Extraction, Allow Highlights |
+| **X-Ray** | Book text + highlights up to current position | Allow Text Extraction (required), Allow Highlights (optional) |
+| **X-Ray (Simple)** | AI training knowledge + reading progress + highlights | Allow Highlights (optional) |
 | **Recap** | Book text + highlights up to current position | Allow Text Extraction, Allow Highlights |
 | **Analyze Highlights** | Your highlights and annotations | Allow Annotation Notes |
 | **Key Arguments** | Entire document | Allow Text Extraction |
@@ -637,18 +639,20 @@ These actions analyze your actual reading content. They require specific privacy
 | **Summarize Document** | Entire document | Allow Text Extraction |
 | **Extract Key Insights** | Entire document | Allow Text Extraction |
 
-> ⚠️ **Privacy settings required:** These actions won't have access to your reading data unless you enable the corresponding setting in **Settings → Privacy & Data**. Without text extraction enabled, actions that use document text gracefully fall back: the AI is explicitly guided to use its training knowledge of the work and to say so if it doesn't recognize the title. This produces reasonable results for well-known books but will be less accurate for obscure works and unusable for research papers. A "*Response generated without: ...*" notice will appear in the chat to indicate what data was requested but not provided.
+> ⚠️ **Privacy settings required:** These actions won't have access to your reading data unless you enable the corresponding setting in **Settings → Privacy & Data**. Without text extraction enabled, most actions gracefully fall back: the AI is explicitly guided to use its training knowledge of the work and to say so if it doesn't recognize the title. This produces reasonable results for well-known books but will be less accurate for obscure works and unusable for research papers. A "*Response generated without: ...*" notice will appear in the chat to indicate what data was requested but not provided. **Exception:** X-Ray requires text extraction and blocks generation without it — use X-Ray (Simple) for a prose overview from AI knowledge.
 >
 > **Smart actions don't fall back this way** — they require a pre-generated summary cache to function, so they prompt you to generate one first. If you decline, the action doesn't run. This is by design: Smart actions are specialized for repeated queries on a condensed summary, and running them without any document context would defeat their purpose.
 
 > **Tip:** Highlight actions can also use text extraction. "Explain in Context" and "Analyze in Context" send the full document text (`{full_document_section}`) to understand your highlighted passage within the complete work. See [Highlight Mode](#highlight-mode) for details.
 
-**X-Ray**: The X-Ray action produces a structured JSON analysis that opens in a **browsable category menu** rather than a plain text document. The initial browsable menu concept was inspired by [X-Ray Plugin for KOReader by 0zd3m1r](https://github.com/0zd3m1r/koreader-xray-plugin). Chapter distribution, linkable connections, and local lookup features were informed by [Dynamic X-Ray by smartscripts-nl](https://github.com/smartscripts-nl/dynamic-xray) — a comprehensive manual X-Ray system with curated character databases, live page markers, and a custom histogram widget. Our approach differs: we use AI generation instead of manual curation, and menu-based navigation instead of custom widgets, but DX demonstrated the value of per-item chapter tracking and cross-reference linking. The browser provides:
+**X-Ray** requires text extraction enabled (Settings → Privacy & Data → Text Extraction). Without it, generation is blocked with a message suggesting X-Ray (Simple) as an alternative. If you've already generated an X-Ray and later disable text extraction, you can still view the cached result but cannot update or redo it.
+
+The X-Ray action produces a structured JSON analysis that opens in a **browsable category menu** rather than a plain text document. The initial browsable menu concept was inspired by [X-Ray Plugin for KOReader by 0zd3m1r](https://github.com/0zd3m1r/koreader-xray-plugin). Chapter distribution, linkable connections, and local lookup features were informed by [Dynamic X-Ray by smartscripts-nl](https://github.com/smartscripts-nl/dynamic-xray) — a comprehensive manual X-Ray system with curated character databases, live page markers, and a custom histogram widget. Our approach differs: we use AI generation instead of manual curation, and menu-based navigation instead of custom widgets, but DX demonstrated the value of per-item chapter tracking and cross-reference linking. The browser provides:
 
 - **Category navigation** — Cast, World, Ideas, Lexicon, Story Arc, Reader Engagement, Current State/Conclusion (fiction) or Key Figures, Core Concepts, Arguments, Terminology, Argument Development, Reader Engagement, Current Position/Conclusion (non-fiction) — with item counts. Reader Engagement appears only when highlights were provided during generation. Current State/Current Position appears for incremental (spoiler-free) X-Rays; Conclusion appears for complete (entire document) X-Rays — see [two-track design](#x-ray-modes) below.
 - **Item detail** — descriptions, AI-provided aliases (e.g., "Lizzy", "Miss Bennet" — shown for all categories), connections/relationships, your highlights mentioning each item, and custom search term editing
 - **Linkable references** — character connections and cross-category references (locations → characters, themes → characters, etc.) are tappable buttons that navigate directly to the referenced item's detail view. References are resolved across all categories using name, alias, and substring matching.
-- **Mentions** — unified chapter-navigable text matching. Opens to your current chapter by default, showing which X-Ray items (characters, locations, themes, lexicon, etc.) appear there with mention counts and category tags. A chapter picker at the top opens a KOReader-style hierarchical TOC with expand/collapse for nested chapters — tap any entry at any depth (Part, Chapter, Section) to analyze that scope. Includes an "All Chapters" aggregate option that scans from page 1 to the coverage boundary. Chapters beyond the greater of X-Ray coverage and reading position are dimmed with tap-to-reveal spoiler protection. For complete X-Rays, all chapters are available with no spoiler gating. Books without a TOC fall back to page-range chunks. Excludes event-based categories (timeline, argument development) whose descriptive names produce misleading matches. Uses word-boundary matching against names and aliases.
+- **Mentions** — unified chapter-navigable text matching. Opens to your current chapter by default, showing which X-Ray items (characters, locations, themes, lexicon, etc.) appear there with mention counts and category tags. A chapter picker at the top opens a KOReader-style hierarchical TOC with expand/collapse for nested chapters — auto-expands to the current chapter and bolds it; subsequent opens remember your last selection. Tap any entry at any depth (Part, Chapter, Section) to analyze that scope. Includes an "All Chapters (to X%)" aggregate option that scans from page 1 to the coverage boundary, plus an "All Chapters" option that reveals the entire book (bypassing per-chapter spoiler confirmations). Chapters beyond the greater of X-Ray coverage and reading position are dimmed with tap-to-reveal spoiler protection. For complete X-Rays, all chapters are available with no spoiler gating. Books without a TOC fall back to page-range chunks. Excludes event-based categories (timeline, argument development) whose descriptive names produce misleading matches. Uses word-boundary matching against names and aliases.
 - **Chapter Appearances** — from any item's detail view, see where it appears across all chapters with inline bar visualization (████░░░░) and mention counts. Counts use union semantics: all match spans from the item's name and aliases are collected, overlapping spans merged, and unique matches counted — matching KOReader's text search behavior. Current chapter marked with ▶. Chapters beyond the greater of your X-Ray coverage and reading position are dimmed with tap-to-reveal spoiler protection (individual or "Scan all"). For complete X-Rays, all chapters are visible with no spoiler gating. Tap a chapter with mentions to navigate there and launch a text search for the item's name and aliases (uses regex OR for multi-term matching, e.g., `Constantine|Mithrandir`). Uses TOC-aware chapter boundaries with configurable depth and page-range fallback for books without TOC. Per-session caching avoids re-scanning.
 - **Edit Search Terms** — from any item's detail view, add custom search terms (alternate spellings, transliterations, nicknames) or ignore AI-generated aliases that produce false matches. Custom terms are stored per-book in a sidecar file that survives X-Ray regeneration. Added terms contribute to Chapter Appearances counts and KOReader text search patterns. Ignored terms are hidden from the item's alias list and excluded from counting. All operations (add, remove, ignore, restore) are accessible from a single "Edit Search Terms" button.
 - **Search** — find any entry across all categories by name, alias, or description
@@ -689,9 +693,13 @@ These actions analyze your actual reading content. They require specific privacy
 
 <a id="x-ray-modes"></a>
 
-**X-Ray/Recap** work in two modes:
-- **With text extraction** (recommended): AI analyzes actual book content. Produces accurate, book-specific results with correct character names, relationships, and plot details. Chapter-based features (Mentions, Chapter Appearances) show real occurrence counts from the text. Results are cached and labeled "Based on extracted document text."
-- **Without text extraction** (default): AI uses only the title/author and its training knowledge. Works reasonably for well-known titles but produces generic results — character names may not match the edition/translation, relationships may be inaccurate, and chapter features won't reflect actual text content. For obscure works, research papers, or non-English books, results will be poor or unusable. Results are labeled "Based on AI training data knowledge."
+**X-Ray** requires text extraction to generate — it blocks with a message directing you to enable text extraction or use X-Ray (Simple) instead. If you've already cached an X-Ray and later disable text extraction, you can still view the cached result but cannot update or redo it.
+
+**X-Ray (Simple)** is a separate action that produces a prose overview (Characters, Themes, Setting, Key Terms, Where Things Stand) from the AI's training knowledge — no text extraction needed. Uses your reading progress for spoiler gating and optionally includes your highlights. Available in the Reading Features menu and as a separate artifact. Every generation is fresh (no incremental updates). Best for well-known books when you don't want to enable text extraction. For obscure works or research papers, results will be limited since the AI may not recognize the title.
+
+**Recap** works in two modes:
+- **With text extraction** (recommended): AI analyzes actual book content. Produces accurate, book-specific results. Results are cached and labeled "Based on extracted document text."
+- **Without text extraction** (default): AI uses only the title/author and its training knowledge. Works reasonably for well-known titles but produces generic results. Results are labeled "Based on AI training data knowledge."
 
 **Two-track X-Ray:** When generating a new X-Ray, you choose between two tracks:
 
@@ -721,7 +729,7 @@ Book actions work in two contexts: **reading mode** (book is open) and **file br
 - **File browser** has access to book **metadata** only: title, author, identifiers
 - **Reading mode** additionally has access to **document state**: reading progress, highlights, annotations, notebook, extracted text
 
-**Reading-only actions** (hidden in file browser): X-Ray, Recap, Analyze Highlights, Key Arguments, Key Arguments (Smart), Discussion Questions, Discussion Questions (Smart), Generate Quiz, Generate Quiz (Smart), Analyze Document, Summarize Document, Extract Key Insights. These require document state that isn't available until you open the book.
+**Reading-only actions** (hidden in file browser): X-Ray, X-Ray (Simple), Recap, Analyze Highlights, Key Arguments, Key Arguments (Smart), Discussion Questions, Discussion Questions (Smart), Generate Quiz, Generate Quiz (Smart), Analyze Document, Summarize Document, Extract Key Insights. These require document state that isn't available until you open the book.
 
 Custom actions using placeholders like `{reading_progress}`, `{book_text}`, `{full_document}`, `{highlights}`, `{annotations}`, or `{notebook}` are filtered the same way. The Action Manager shows a `[reading]` indicator for such actions.
 
@@ -1016,7 +1024,7 @@ Utility placeholders provide reusable prompt fragments that can be inserted into
 **Why use these?**
 - **`{conciseness_nudge}`**: Some AI models (notably Claude Sonnet 4.5) tend to produce verbose responses. This provides a standard instruction to reduce verbosity without sacrificing quality. Used in 14 built-in actions including Explain, Summarize, ELI5, and the context-aware analysis actions.
 - **`{hallucination_nudge}`**: Prevents AI from fabricating information when it doesn't recognize a book or author. Used in 12 built-in templates including Book Info, Find Similar, Historical Context, and all multi-book actions.
-- **`{text_fallback_nudge}`**: Enables graceful degradation for actions that use document text extraction. When text extraction is disabled or yields no content, this nudge appears to guide the AI to use its training knowledge — and to say so honestly if it doesn't recognize the work. When document text IS present, the placeholder expands to nothing (zero overhead). Used in 8 built-in actions: Explain in Context, Analyze in Context, Key Arguments, Discussion Questions, Generate Quiz, Analyze Document, Summarize Document, Extract Insights. X-Ray and Recap have their own specialized fallback guidance. Smart actions are excluded because they require a pre-generated summary cache.
+- **`{text_fallback_nudge}`**: Enables graceful degradation for actions that use document text extraction. When text extraction is disabled or yields no content, this nudge appears to guide the AI to use its training knowledge — and to say so honestly if it doesn't recognize the work. When document text IS present, the placeholder expands to nothing (zero overhead). Used in 8 built-in actions: Explain in Context, Analyze in Context, Key Arguments, Discussion Questions, Generate Quiz, Analyze Document, Summarize Document, Extract Insights. X-Ray blocks generation without text extraction (use X-Ray (Simple) instead). Recap has its own specialized fallback guidance. Smart actions are excluded because they require a pre-generated summary cache.
 
 **For custom actions:** Add these placeholders at the end of your prompts where appropriate. The placeholders are replaced with the actual text at runtime, so you can also use the raw text directly if you prefer. `{text_fallback_nudge}` is especially useful in custom actions that use `{full_document_section}` or `{book_text_section}` — it ensures your action produces useful results even when text extraction is disabled.
 
@@ -1220,7 +1228,7 @@ See [How Language Settings Work Together](#how-language-settings-work-together) 
 
 Dictionary, translate, general chat, and artifact viewers have special handling for right-to-left (RTL) languages:
 
-- **Automatic RTL mode**: When your dictionary or translation language is set to an RTL language, results automatically use Plain Text mode for proper font rendering. For general chat and artifact viewers (X-Ray, Analyze, Summary), the content is checked—if RTL characters outnumber Latin, it switches to RTL mode (right-aligned text + Plain Text). This can be configured via **Settings → Display Settings → Text Mode for RTL Dictionary**, **Text Mode for RTL Translate**, and **Auto RTL mode for Chat**.
+- **Automatic RTL mode**: When your dictionary or translation language is set to an RTL language, results automatically use Plain Text mode for proper font rendering. For general chat and artifact viewers (X-Ray, X-Ray (Simple), Analyze, Summary), the content is checked—if RTL characters outnumber Latin, it switches to RTL mode (right-aligned text + Plain Text). This can be configured via **Settings → Display Settings → Text Mode for RTL Dictionary**, **Text Mode for RTL Translate**, and **Auto RTL mode for Chat**.
 - **BiDi text alignment**: Entries with RTL content display with correct bidirectional text alignment. Mixed RTL/LTR content (e.g., Arabic headwords with English pronunciation guides) renders in the correct reading order.
 - **IPA transcription handling**: Phonetic transcriptions are anchored to display correctly alongside RTL headwords.
 
@@ -1386,14 +1394,15 @@ Actions with gestures show a `[gesture]` indicator in the Action Manager list.
 **Reader Only** (require open book; grayed out in File Browser gesture settings):
 - KOAssistant: Quick Actions — Reading actions panel
 - KOAssistant: New Book Chat/Action — Start a chat about current book or access book actions
-- KOAssistant: X-Ray — Generate browsable book reference guide (characters, locations, themes, timeline) with linkable cross-references and chapter distribution
+- KOAssistant: X-Ray — Generate browsable book reference guide (characters, locations, themes, timeline) with linkable cross-references and chapter distribution (requires text extraction)
+- KOAssistant: X-Ray (Simple) — Prose companion guide from AI knowledge (no text extraction needed)
 - KOAssistant: Recap — Get a story summary
 - KOAssistant: Analyze Highlights — Analyze your annotations
 - KOAssistant: Translate Current Page — Translate visible page text
 - KOAssistant: View Notebook — View current book's notebook
 - KOAssistant: Edit Notebook — Edit current book's notebook
 - KOAssistant: View Summary — View the document summary artifact
-- KOAssistant: View Artifacts — Browse X-Ray, Analysis, and Summary artifacts for the current book (handy for re-reading previous results without re-running the action)
+- KOAssistant: View Artifacts — Browse X-Ray, X-Ray (Simple), Analysis, and Summary artifacts for the current book (handy for re-reading previous results without re-running the action)
 
 **General** (available in both File Browser and Reader gesture settings):
 - KOAssistant: Quick Settings — Two-column settings panel
@@ -1798,7 +1807,8 @@ Tags are simple labels for organizing chats. Unlike domains:
 - **View/Generate Summary**: View cached summary (if exists) or generate one (reader mode only)
 
 ### Reading Features (visible when document is open)
-- **X-Ray**: Generate a browsable reference guide for the book up to your current reading position — opens in a structured category menu with characters, locations, themes, lexicon, timeline, and per-item chapter distribution
+- **X-Ray**: Generate a browsable reference guide for the book up to your current reading position — opens in a structured category menu with characters, locations, themes, lexicon, timeline, and per-item chapter distribution. Requires text extraction enabled
+- **X-Ray (Simple)**: Prose companion guide from AI knowledge — characters, themes, settings, key terms. No text extraction needed
 - **Recap**: Get a "Previously on..." style summary to help you resume reading
 - **Analyze Highlights**: Discover patterns and connections in your highlights and annotations
 
@@ -1836,7 +1846,7 @@ Tags are simple labels for organizing chats. Unlike domains:
   - **Chat history**: Type prefixes on documents (💬 general, 📚 multi-book, 📖 book chats), 💬 on individual chats, 🏷️ on tag browser entries
   - **Notebook browser**: 📓 prefix on entries
   - **Artifact browser**: 📖 prefix on entries
-  - **X-Ray browser**: Category icons (👥 Characters, 🌍 Locations, 💭 Themes, 📖 Lexicon, 📅 Timeline, 📌 Reader Engagement, 📍 Current State). Highly recommended for the X-Ray browser — the visual icons make browsing categories much more intuitive.
+  - **X-Ray browser**: Category icons (👥 Characters, 🌍 Locations, 💭 Themes, 📖 Lexicon, 📅 Timeline, 📌 Reader Engagement, 📍 Current State/Current Position, 🏁 Conclusion). Highly recommended for the X-Ray browser — the visual icons make browsing categories much more intuitive.
   - **Chat viewer**: ↩️ Reply, 🏷️ Tag, 🔍 Web search toggle
   - **Streaming**: 🔍 web search indicator
   - Requires **emoji font support** — see [Emoji Font Setup](#emoji-font-setup) for installation instructions. If icons appear as question marks or blank squares, your device doesn't have a compatible emoji font installed.
@@ -2036,6 +2046,7 @@ See [Privacy & Data](#privacy--data) for background on what gets sent to AI prov
   - **Allow Text Extraction**: Master toggle for text extraction (off by default). When enabled, actions can extract and send book text to the AI. Used by X-Ray, Recap, Explain in Context, Analyze in Context, and actions with text placeholders (`{book_text}`, `{full_document}`, etc.). Enabling shows an informational notice about token costs and a tip about using Hidden Flows to save tokens.
   - **Max Text Characters**: Maximum characters to extract (100,000-10,000,000, default 4,000,000 ~1M tokens). The default covers most books with Gemini's 1M-token context; lower it for smaller models
   - **Max Pages (PDF, DJVU, CBZ…)**: Maximum pages to extract from page-based formats (100-5,000, default 2,000)
+  - **Don't warn about truncated extractions**: When unchecked (default), a blocking warning dialog appears before sending requests where extracted text was truncated to fit the character limit — shows the coverage percentage so you know how much of the document was included. The warning offers Cancel, Continue Anyway, or Don't warn again
   - **Don't warn about large extractions**: When unchecked (default), a warning dialog appears before sending requests with over 500K characters (~125K tokens) of extracted text — most models except Gemini will struggle at this size. The warning offers Cancel, Continue, or Don't warn again
   - **Clear Action Cache**: Clear cached X-Ray/Recap responses for the current book (requires book to be open). To clear just one action, use the delete button in the artifact viewer instead.
 
@@ -2049,7 +2060,7 @@ Control where KOAssistant appears in KOReader's menus. All toggles default to ON
   - **Show Notebook Button**: Show "Notebook (KOA)" button when long-pressing books
   - **Only for books with notebooks**: Only show notebook button if notebook already exists
   - **Show Chat History Button**: Show "Chat History (KOA)" button when long-pressing books that have chat history
-  - **Show Artifacts Button**: Show "View Artifacts (KOA)" button for books that have artifacts (X-Ray, Summary, Analysis). Default: on
+  - **Show Artifacts Button**: Show "View Artifacts (KOA)" button for books that have artifacts (X-Ray, X-Ray (Simple), Summary, Analysis). Default: on
   - **Pinned Actions**: Actions you add via Action Manager → hold → "Add to File Browser" appear as one-tap buttons. Manage order and visibility via **File Browser Actions...** manager
   - All file browser buttons are distributed across rows of up to 4 buttons, equally distributed
 - **Customize Visible Actions**:
@@ -2485,20 +2496,24 @@ The View/Update popup appears everywhere you can trigger X-Ray or Recap: Quick A
 - You must be reading (not in file browser)
 - Progress must advance by at least 1% to trigger an incremental update (incremental track only)
 
-> **With vs without text extraction:** When text extraction is enabled, incremental updates include new book content (e.g., text from 30% to 50%). Without text extraction, the AI updates from training knowledge using only the title, author, and reading position. Both modes cache results and support incremental updates. Caches are labeled "Based on extracted document text" or "Based on AI training data knowledge" so you know what they contain.
+> **Text extraction required for X-Ray:** X-Ray requires text extraction to be enabled — it blocks generation without it. Use X-Ray (Simple) for a prose overview based on AI knowledge when text extraction is not available. Recap still works without text extraction (the AI uses training knowledge), though results are less accurate.
+
+> **X-Ray (Simple) caching:** X-Ray (Simple) results are cached as a separate artifact alongside X-Ray. Unlike X-Ray, it doesn't support incremental updates — every generation is fresh. When your reading position advances, the "View/Update" popup lets you update (regenerate at the new position). Both X-Ray and X-Ray (Simple) can coexist for the same book.
 
 **Cache storage:**
 - Stored in the book's sidecar folder (`.sdr/koassistant_cache.lua`)
 - Automatically moves with the book if you reorganize your library
 
 **Clearing the cache:**
-- **Per-action**: In the artifact viewer, use the delete button (for X-Ray: options menu → "Delete X-Ray"; for Analysis/Summary/Recap: delete button in the chat viewer). This clears that action's cache for this book, then re-run the action manually.
+- **Per-action**: In the artifact viewer, use the delete button (for X-Ray: options menu → "Delete X-Ray"; for X-Ray (Simple): delete button in the text viewer; for Analysis/Summary/Recap: delete button in the chat viewer). This clears that action's cache for this book, then re-run the action manually.
 - **All actions for book**: Settings → Privacy & Data → Text Extraction → Clear Action Cache (requires book to be open)
 - Either option forces fresh generation on next run (useful if analysis got off track, or to switch between incremental and complete tracks)
 
 **Limitations:**
 - Only built-in X-Ray and Recap support incremental caching currently
+- X-Ray requires text extraction; X-Ray (Simple) and Recap work without it
 - Complete X-Rays don't support incremental updates (always fresh generation)
+- X-Ray (Simple) doesn't support incremental updates (always fresh generation)
 - Going backward in progress doesn't use cache (fresh generation)
 - Custom actions duplicated from X-Ray/Recap will inherit caching behavior
 - Legacy markdown X-Ray caches (from before the JSON update) are still viewable but will be fully regenerated (not incrementally updated) on the next run, producing the new JSON format
@@ -2510,7 +2525,7 @@ X-Ray, Recap, and other actions also produce **Document Artifacts** — reusable
 
 When certain actions complete, their results are saved as **document artifacts** — persistent, per-book outputs that serve two purposes:
 
-1. **Viewable as standalone reference guides.** Browse a book's Summary, X-Ray, or Analysis anytime without re-running the action. X-Ray opens as a browsable category menu (characters, locations, themes, lexicon, timeline) with search, chapter/book mention analysis, per-item chapter distribution, linkable cross-references, and your highlight mentions — useful for quickly checking character details, relationships, or where a character appears across chapters mid-read.
+1. **Viewable as standalone reference guides.** Browse a book's Summary, X-Ray, X-Ray (Simple), or Analysis anytime without re-running the action. X-Ray opens as a browsable category menu (characters, locations, themes, lexicon, timeline) with search, chapter/book mention analysis, per-item chapter distribution, linkable cross-references, and your highlight mentions — useful for quickly checking character details, relationships, or where a character appears across chapters mid-read. X-Ray (Simple) shows a prose overview.
 2. **Reusable as context in other actions.** Instead of sending full document text (~100K tokens) every time, actions can reference a compact artifact (~2-8K tokens). This is the foundation of **Smart actions** — dramatically cheaper and often better-performing, since models handle focused context more effectively than massive text dumps.
 
 **The three artifact types:**
@@ -2518,26 +2533,27 @@ When certain actions complete, their results are saved as **document artifacts**
 | Artifact | Generated by | What it contains | Primary use |
 |----------|-------------|------------------|-------------|
 | **Summary** | Summarize Document, Generate Summary | Neutral, comprehensive document representation | **Primary artifact for reuse.** Powers all Smart actions — replaces raw book text with a compact summary. Also useful on its own as a reading reference. |
-| **X-Ray** | X-Ray action | Structured JSON: characters (with aliases, connections), locations (with references), themes (with references), lexicon, timeline | **Browsable menu** with categories, search, chapter/book mention analysis, per-item chapter distribution, linkable cross-references, highlight integration. Also available as supplementary context in custom actions. |
+| **X-Ray** | X-Ray action | Structured JSON: characters (with aliases, connections), locations (with references), themes (with references), lexicon, timeline | **Browsable menu** with categories, search, chapter/book mention analysis, per-item chapter distribution, linkable cross-references, highlight integration. Requires text extraction. Also available as supplementary context in custom actions. |
+| **X-Ray (Simple)** | X-Ray (Simple) action | Prose overview: characters, themes, settings, key terms, where things stand | **Text viewer** — prose companion guide from AI knowledge. No text extraction needed. Separate cache from X-Ray; both can coexist. |
 | **Analysis** | Analyze Document | Opinionated deep analysis of the document | Viewable analytical overview. *Not recommended as input for further analysis* — analyzing an analysis is a decaying game of telephone where each layer loses nuance. |
 
 **Viewing artifacts:**
 - **Quick Actions** → "View Summary" (when summary exists) or "Generate Summary" (when it doesn't). "View Artifacts" appears when any artifacts exist, opening a picker to choose which one to view.
-- **File Browser** → Long-press a book → "View Artifacts (KOA)" → pick Summary, X-Ray, or Analysis
+- **File Browser** → Long-press a book → "View Artifacts (KOA)" → pick Summary, X-Ray, X-Ray (Simple), Recap, or Analysis
 - **Artifact Browser** → Browse all documents with cached artifacts. Access from Chat History or Notebook browser hamburger menus (☰), or Settings → Quick Actions → Browse Artifacts.
-  - **Tap** → Artifact selector popup: "View Summary", "View X-Ray", etc., plus "Open Book"
+  - **Tap** → Artifact selector popup: "View Summary", "View X-Ray", "View X-Ray (Simple)", etc., plus "Open Book"
   - **Hold** → Options popup: "View", "Delete All", "Cancel"
   - **Hamburger menu** (☰) → Navigate to Chat History or Browse Notebooks
 - **Gesture** → Assign "KOAssistant: View Summary" for quick access, or "KOAssistant: View Artifacts" to browse all artifacts
 - **Coverage**: The viewer title shows coverage percentage if the document was truncated (e.g., "Summary (78%)")
 
-The artifact viewer shows metadata (coverage, data source, model used, generation date with relative time) and provides buttons for copying, exporting, regenerating, or deleting. X-Ray artifacts open in a **browsable category menu** (see [Reading Analysis Actions](#reading-analysis-actions) for details); legacy markdown X-Rays fall back to the text viewer.
+The artifact viewer shows metadata (coverage, data source, model used, generation date with relative time) and provides buttons for copying, exporting, regenerating, or deleting. X-Ray artifacts open in a **browsable category menu** (see [Reading Analysis Actions](#reading-analysis-actions) for details); X-Ray (Simple) opens in the text viewer; legacy markdown X-Rays fall back to the text viewer.
 
 > **Cache source tracking:** Each artifact records whether it was built with actual document text or AI training knowledge. The artifact viewer displays "Based on extracted document text" or "Based on AI training data knowledge" so you always know what an artifact contains. Artifacts built without text extraction use the AI's training knowledge — this works well for popular books but may be less accurate for obscure works. You can always regenerate with text extraction enabled for higher quality.
 
 > **Permission requirements for artifact placeholders:** Dynamic based on how the artifact was built:
 > - Artifact built **with text extraction**: `{xray_cache_section}` requires **Allow Text Extraction** (plus **Allow Highlights** if built with highlights). `{analyze_cache_section}` and `{summary_cache_section}` require **Allow Text Extraction**.
-> - Artifact built **without text extraction**: No text extraction permission needed — the artifact contains only AI training knowledge.
+> - Artifact built **without text extraction**: No text extraction permission needed — the artifact contains only AI training knowledge. X-Ray (Simple) always falls in this category.
 >
 > Without the required gates enabled, the placeholder renders empty.
 
@@ -2589,7 +2605,7 @@ Add `requires_summary_cache = true` to your action. This triggers the pre-flight
 
 **Using artifacts in custom actions:**
 
-All three artifacts can be referenced in custom actions using `{summary_cache_section}`, `{xray_cache_section}`, or `{analyze_cache_section}` placeholders. The **summary** is the recommended choice for most custom actions. The X-Ray and Analyze placeholders are there for advanced users who want to experiment — artifact placeholders disappear when empty, so including them is always safe. See [Tips for Custom Actions](#tips-for-custom-actions) for usage guidance.
+Three artifacts can be referenced in custom actions using `{summary_cache_section}`, `{xray_cache_section}`, or `{analyze_cache_section}` placeholders. (X-Ray (Simple) is not available as a placeholder — it's a standalone prose overview, not structured data for reuse.) The **summary** is the recommended choice for most custom actions. The X-Ray and Analyze placeholders are there for advanced users who want to experiment — artifact placeholders disappear when empty, so including them is always safe. See [Tips for Custom Actions](#tips-for-custom-actions) for usage guidance.
 
 **Example: Create a "Questions from X-Ray" action**
 1. Enable **Allow Text Extraction** (and optionally **Allow Highlights**) in Settings → Privacy & Data
@@ -2607,8 +2623,8 @@ If you haven't run X-Ray yet, the placeholder renders empty and the action still
 - Default limit: 4,000,000 characters (~1M tokens), configurable up to 10,000,000
 - Default page limit (PDF, DJVU, CBZ, etc.): 2,000 pages, configurable up to 5,000
 - The 4M default handles most books with Gemini's 1M-token context. For smaller models (Claude ~200K tokens, GPT-4o ~128K tokens), you may want to lower it — or rely on the large extraction warning (see below)
-- **The extraction limit is not the bottleneck — your model's context window is.** If the extracted text exceeds what your model can handle, the API will reject the request. A **large extraction warning** now appears before sending requests over 500K characters (~125K tokens), giving you a chance to cancel. You can dismiss it permanently via the dialog or in Settings → Privacy & Data → Text Extraction
-- If truncation occurs, both you and the AI see a notice showing the coverage range (e.g., "covers 14%-100%"), along with a tip to use Hidden Flows to exclude irrelevant sections
+- **The extraction limit is not the bottleneck — your model's context window is.** If the extracted text exceeds what your model can handle, the API will reject the request. A **large extraction warning** dialog appears before sending requests over 500K characters (~125K tokens), giving you a chance to cancel. You can dismiss it permanently via the dialog or in Settings → Privacy & Data → Text Extraction → Don't warn about large extractions
+- **Truncation warning:** If extracted text exceeds the character limit and gets truncated, a blocking dialog appears before sending — showing the coverage range (e.g., "covers 0%–85% of the document") with Cancel, Continue Anyway, or Don't warn again. The truncation warning fires before the large extraction warning; each is independent and has its own suppress setting. You can also dismiss it permanently in Settings → Privacy & Data → Text Extraction → Don't warn about truncated extractions
 - **Use KOReader's Hidden Flows** to exclude front matter, appendices, endnotes, and other irrelevant content. This reduces token usage and improves AI results without lowering extraction limits. See the [Hidden flows support](#x-ray-browser) note above
 - **Two extraction types:** `{book_text_section}` extracts from start to current position (spoiler-safe, used by X-Ray/Recap only), `{full_document_section}` extracts the entire document regardless of position (used by all other text extraction actions)
 
@@ -2993,7 +3009,8 @@ If actions like Analyze Highlights, Connect with Notes, X-Ray, or Recap seem to 
 | Analyze Highlights shows nothing | Allow Annotation Notes |
 | Connect with Notes ignores your notes | Allow Annotation Notes + Allow Notebook |
 | X-Ray/Recap missing your highlights | Allow Highlights (or Allow Annotation Notes) |
-| X-Ray/Recap use only book title | Allow Text Extraction (in Text Extraction submenu) |
+| X-Ray blocked ("requires text extraction") | Allow Text Extraction (in Text Extraction submenu), or use X-Ray (Simple) instead |
+| Recap uses only book title | Allow Text Extraction (in Text Extraction submenu) |
 | Explain/Analyze in Context use only book title | Allow Text Extraction (in Text Extraction submenu) |
 | Analyze in Context ignores your highlights | Allow Annotation Notes |
 | Custom action with `{highlights}` empty | Allow Highlights (or Allow Annotation Notes) |
@@ -3010,7 +3027,7 @@ If actions like Analyze Highlights, Connect with Notes, X-Ray, or Recap seem to 
 
 ### Text Extraction Not Working
 
-If X-Ray, Recap, Explain in Context, Analyze in Context, or custom actions with `{book_text}` / `{full_document}` placeholders return empty or generic responses based only on book title:
+If Recap, Explain in Context, Analyze in Context, or custom actions with `{book_text}` / `{full_document}` placeholders return empty or generic responses based only on book title (X-Ray blocks generation entirely without text extraction — use X-Ray (Simple) as an alternative):
 
 **Text extraction is OFF by default.** You must enable it manually:
 
@@ -3028,9 +3045,9 @@ If X-Ray, Recap, Explain in Context, Analyze in Context, or custom actions with 
 - Some users prefer AI to use only its training knowledge
 - Content sensitivity — you control what gets shared
 
-**How actions behave without text extraction:** Actions don't fail — they gracefully degrade. The AI is explicitly told no document text was provided and asked to use its training knowledge of the work (with a guard against fabricating details for unrecognized works). For well-known books, this often produces helpful results. For obscure works or research papers, results will be generic or the AI will honestly say it doesn't recognize the work. Document artifacts (Summary, X-Ray, Analysis) are NOT saved from these fallback responses — see [Document Artifacts](#document-artifacts).
+**How actions behave without text extraction:** Most actions don't fail — they gracefully degrade. The AI is explicitly told no document text was provided and asked to use its training knowledge of the work (with a guard against fabricating details for unrecognized works). For well-known books, this often produces helpful results. For obscure works or research papers, results will be generic or the AI will honestly say it doesn't recognize the work. **Exception:** X-Ray blocks generation without text extraction — use X-Ray (Simple) for a prose overview from AI knowledge. Document artifacts (Summary, Analysis) are NOT saved from these fallback responses — see [Document Artifacts](#document-artifacts).
 
-**Quick check:** If X-Ray/Recap or context-aware highlight action responses seem to be based only on the book's title/author (generic knowledge), text extraction is not enabled.
+**Quick check:** If Recap or context-aware highlight action responses seem to be based only on the book's title/author (generic knowledge), text extraction is not enabled. X-Ray will show a blocking message with instructions.
 
 ### Emoji Font Setup
 
@@ -3092,7 +3109,7 @@ This is a limitation of KOReader's MuPDF HTML renderer, which lacks per-glyph fo
 **Automatic RTL mode** is enabled by default:
 - **Settings → Display Settings → Text Mode for RTL Dictionary** / **Text Mode for RTL Translate** / **Auto RTL mode for Chat**
 - Dictionary and translate switch to Plain Text when the target language is RTL
-- General chat and artifact viewers (X-Ray, Analyze, Summary) switch to RTL mode (right-aligned + Plain Text) when content is predominantly RTL (more RTL than Latin characters)
+- General chat and artifact viewers (X-Ray, X-Ray (Simple), Analyze, Summary) switch to RTL mode (right-aligned + Plain Text) when content is predominantly RTL (more RTL than Latin characters)
 - Your global Markdown/Plain Text preference is preserved when content is not predominantly RTL
 
 Plain Text mode includes markdown stripping that preserves readability: headers show with symbols and bold text, **bold** renders as actual bold, lists become bullets (•), and code is quoted. Mixed RTL/LTR content (like Arabic headwords followed by English definitions) displays in the correct order, and RTL-only headers align naturally to the right.

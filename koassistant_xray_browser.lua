@@ -564,6 +564,7 @@ local CATEGORY_EMOJIS = {
     timeline = "📅", argument_development = "📅",
     reader_engagement = "📌",
     current_state = "📍", current_position = "📍",
+    conclusion = "🏁",
 }
 
 -- Categories excluded from per-item distribution and highlight matching
@@ -739,7 +740,7 @@ function XrayBrowser:buildCategoryItems()
                 mandatory = mandatory_text,
                 callback = function()
                     if captured_cat.key == "current_state" or captured_cat.key == "current_position"
-                        or captured_cat.key == "reader_engagement" then
+                        or captured_cat.key == "reader_engagement" or captured_cat.key == "conclusion" then
                         self_ref:showItemDetail(captured_cat.items[1], captured_cat.key, captured_cat.label)
                     else
                         self_ref:showCategoryItems(captured_cat)
@@ -1474,26 +1475,28 @@ function XrayBrowser:showChapterPicker(current_chapter)
         end
     end
 
-    -- Prepend "All Chapters" option
-    local all_label
+    -- Prepend "All Chapters" option(s)
     if self.is_complete then
-        all_label = _("All Chapters")
+        table.insert(collapsed_toc, 1, {
+            text = _("All Chapters"),
+            bold = current_chapter == "all",
+            separator = true,
+            _is_all_chapters = true,
+        })
     else
-        all_label = T(_("All Chapters (to %1)"), self.metadata.progress or "?%")
-    end
-    table.insert(collapsed_toc, 1, {
-        text = all_label,
-        bold = current_chapter == "all",
-        separator = true,
-        _is_all_chapters = true,
-    })
-
-    -- Mark current reading position for bold highlighting via .current
-    for i, v in ipairs(collapsed_toc) do
-        if not v._is_all_chapters and v.is_current then
-            collapsed_toc.current = i
-            break
-        end
+        -- Two options: scoped (spoiler-safe) and reveal-all (entire book)
+        table.insert(collapsed_toc, 1, {
+            text = T(_("All Chapters (to %1)"), self.metadata.progress or "?%"),
+            bold = current_chapter == "all",
+            _is_all_chapters = true,
+        })
+        table.insert(collapsed_toc, 2, {
+            text = _("All Chapters"),
+            bold = current_chapter == "all_reveal",
+            dim = true,
+            separator = true,
+            _is_all_reveal = true,
+        })
     end
 
     -- Create the TOC menu (separate full-screen widget, not part of browser nav stack)
@@ -1546,6 +1549,94 @@ function XrayBrowser:showChapterPicker(current_chapter)
         for _, v in ipairs(full_toc) do
             if v._is_parent then
                 v.state = expand_button:new{}
+            end
+        end
+    end
+
+    -- Determine which entry to auto-expand and bold:
+    -- If a specific chapter was previously selected, target that; otherwise reading position
+    local target_ft_idx
+    if can_collapse then
+        if type(current_chapter) == "table" and current_chapter.start_page then
+            -- Previously selected chapter — find it in full_toc
+            for i, v in ipairs(full_toc) do
+                if v.start_page == current_chapter.start_page
+                        and v.depth == (current_chapter.depth or v.depth) then
+                    target_ft_idx = i
+                    break
+                end
+            end
+        end
+        if not target_ft_idx then
+            -- Default: deepest is_current entry (reading position)
+            for i, v in ipairs(full_toc) do
+                if v.is_current then
+                    target_ft_idx = i  -- keep overwriting → deepest wins
+                end
+            end
+        end
+    end
+
+    -- Auto-expand ancestor chain so the target entry is visible
+    if target_ft_idx and can_collapse and full_toc[target_ft_idx].depth >= collapse_depth then
+        -- Collect ancestors that need expanding (walk backward for each parent depth)
+        local ancestors = {}
+        local need_depth = full_toc[target_ft_idx].depth - 1
+        for i = target_ft_idx - 1, 1, -1 do
+            if full_toc[i].depth == need_depth then
+                table.insert(ancestors, 1, i)  -- prepend to maintain order
+                need_depth = need_depth - 1
+                if need_depth < 1 then break end  -- depth 1 already visible
+            end
+        end
+        -- Expand each ancestor: insert its immediate children into collapsed_toc
+        for _, anc_idx in ipairs(ancestors) do
+            expanded_nodes[anc_idx] = true
+            local anc = full_toc[anc_idx]
+            -- Find position in collapsed_toc
+            local ci
+            for j, cv in ipairs(collapsed_toc) do
+                if cv.start_page == anc.start_page and cv.depth == anc.depth
+                        and cv.text == anc.text then
+                    ci = j
+                    break
+                end
+            end
+            if ci then
+                for j = anc_idx + 1, #full_toc do
+                    local v = full_toc[j]
+                    if v.depth == anc.depth + 1 then
+                        ci = ci + 1
+                        table.insert(collapsed_toc, ci, v)
+                    elseif v.depth <= anc.depth then
+                        break
+                    end
+                end
+                -- Switch to collapse icon
+                if anc.state then anc.state:free() end
+                anc.state = collapse_button:new{}
+            end
+        end
+    end
+
+    -- Bold highlighting: target the selected chapter, or deepest is_current (reading position)
+    if target_ft_idx then
+        local target = full_toc[target_ft_idx]
+        for i, v in ipairs(collapsed_toc) do
+            if not v._is_all_chapters and not v._is_all_reveal
+                    and v.start_page == target.start_page and v.depth == target.depth then
+                collapsed_toc.current = i
+                break
+            end
+        end
+    end
+    if not collapsed_toc.current then
+        -- Fallback: deepest is_current in collapsed view
+        for i = #collapsed_toc, 1, -1 do
+            local v = collapsed_toc[i]
+            if not v._is_all_chapters and not v._is_all_reveal and v.is_current then
+                collapsed_toc.current = i
+                break
             end
         end
     end
@@ -1644,6 +1735,8 @@ function XrayBrowser:showChapterPicker(current_chapter)
         end
         if item._is_all_chapters then
             selectChapter("all")
+        elseif item._is_all_reveal then
+            selectChapter("all_reveal")
         elseif item.unread then
             -- Spoiler warning before revealing
             self_ref._spoiler_dialog = ButtonDialog:new{
@@ -1716,18 +1809,27 @@ function XrayBrowser:_showFlatChapterPicker(chunks, current_chapter)
     local items = {}
 
     -- "All Chapters" at top
-    local all_label
     if self.is_complete then
-        all_label = _("All Chapters")
+        table.insert(items, {
+            text = _("All Chapters"),
+            bold = current_chapter == "all",
+            separator = true,
+            _is_all_chapters = true,
+        })
     else
-        all_label = T(_("All Chapters (to %1)"), self.metadata.progress or "?%")
+        table.insert(items, {
+            text = T(_("All Chapters (to %1)"), self.metadata.progress or "?%"),
+            bold = current_chapter == "all",
+            _is_all_chapters = true,
+        })
+        table.insert(items, {
+            text = _("All Chapters"),
+            bold = current_chapter == "all_reveal",
+            dim = true,
+            separator = true,
+            _is_all_reveal = true,
+        })
     end
-    table.insert(items, {
-        text = all_label,
-        bold = current_chapter == "all",
-        separator = true,
-        _is_all_chapters = true,
-    })
 
     -- Page-range chunks
     for _idx, ch in ipairs(chunks) do
@@ -1766,6 +1868,10 @@ function XrayBrowser:_showFlatChapterPicker(chunks, current_chapter)
             UIManager:close(menu_container)
             self_ref:navigateBack()
             self_ref:showMentions("all")
+        elseif item._is_all_reveal then
+            UIManager:close(menu_container)
+            self_ref:navigateBack()
+            self_ref:showMentions("all_reveal")
         elseif item._chapter then
             local ch = item._chapter
             if ch.unread then
@@ -1829,7 +1935,8 @@ function XrayBrowser:showMentions(chapter)
     end
 
     -- Determine notification text
-    local notif_text = chapter == "all" and _("Analyzing book…") or _("Analyzing chapter…")
+    local is_all = (chapter == "all" or chapter == "all_reveal")
+    local notif_text = is_all and _("Analyzing book…") or _("Analyzing chapter…")
     UIManager:show(Notification:new{ text = notif_text })
 
     local self_ref = self
@@ -1837,8 +1944,9 @@ function XrayBrowser:showMentions(chapter)
         local text, chapter_title
         local display_chapter = chapter  -- track what we're showing for the picker
 
-        if chapter == "all" then
-            -- Aggregate: page 1 to max(coverage, reading)
+        if is_all then
+            -- Aggregate: page 1 to end
+            -- "all" = scoped to max(coverage, reading); "all_reveal" = entire book
             local total_pages = self_ref.ui.document.info.number_of_pages or 0
             if total_pages == 0 then
                 UIManager:show(InfoMessage:new{
@@ -1847,12 +1955,17 @@ function XrayBrowser:showMentions(chapter)
                 })
                 return
             end
-            local current_page = getCurrentPage(self_ref.ui)
-            local end_page = current_page
-            if self_ref.coverage_page then
-                end_page = math.max(self_ref.coverage_page, current_page)
+            local end_page
+            if chapter == "all_reveal" then
+                end_page = total_pages
+            else
+                local current_page = getCurrentPage(self_ref.ui)
+                end_page = current_page
+                if self_ref.coverage_page then
+                    end_page = math.max(self_ref.coverage_page, current_page)
+                end
+                if end_page > total_pages then end_page = total_pages end
             end
-            if end_page > total_pages then end_page = total_pages end
             local all_chapter = { start_page = 1, end_page = end_page }
             text = self_ref:_getChapterText(all_chapter)
             chapter_title = ""
@@ -1867,7 +1980,7 @@ function XrayBrowser:showMentions(chapter)
 
         if not text or text == "" then
             local msg
-            if chapter == "all" then
+            if is_all then
                 msg = self_ref.ui.document.info.has_pages
                     and _("Could not extract book text. PDF text extraction may not be available for this document.")
                     or _("Could not extract book text.")
@@ -1887,7 +2000,7 @@ function XrayBrowser:showMentions(chapter)
 
         if #found == 0 then
             local msg
-            if chapter == "all" then
+            if is_all then
                 msg = _("No X-Ray items found in book text.")
             elseif chapter_title and chapter_title ~= "" then
                 msg = T(_("No X-Ray items found in \"%1\"."), chapter_title)
@@ -1907,8 +2020,8 @@ function XrayBrowser:showMentions(chapter)
         -- Chapter picker button at top
         local picker_label
         local chapter_depth = type(chapter) == "table" and chapter.depth or nil
-        if chapter == "all" then
-            if self_ref.is_complete then
+        if is_all then
+            if chapter == "all_reveal" or self_ref.is_complete then
                 picker_label = _("All Chapters \u{25BE}")
             else
                 picker_label = T(_("To %1 \u{25BE}"), self_ref.metadata.progress or "?%")
@@ -1947,8 +2060,8 @@ function XrayBrowser:showMentions(chapter)
 
         -- Title
         local title
-        if chapter == "all" then
-            if self_ref.is_complete then
+        if is_all then
+            if chapter == "all_reveal" or self_ref.is_complete then
                 title = T(_("All Chapters — %1 mentions"), #found)
             else
                 title = T(_("To %1 — %2 mentions"), self_ref.metadata.progress or "?%", #found)

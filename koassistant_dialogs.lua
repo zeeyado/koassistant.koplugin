@@ -2569,7 +2569,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
             local tokens_k = math.floor(extracted_chars / 4000)
             local warning_dialog
             warning_dialog = ButtonDialog:new{
-                title = T(_("Large text extraction: ~%1K characters (~%2K tokens). This may exceed your model's context window, increasing costs or causing the request to fail.\n\nUse Hidden Flows to exclude irrelevant sections."), chars_k, tokens_k),
+                title = T(_("Large text extraction: ~%1K characters (~%2K tokens). Make sure your model's context window can accommodate this.\n\nYou can also use Hidden Flows to exclude irrelevant sections of the document."), chars_k, tokens_k),
                 buttons = {
                     {{
                         text = _("Cancel"),
@@ -2612,27 +2612,28 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
     end
 
     -- Step 1: Truncation warning (fires before large extraction check)
-    local truncation_parts = {}
-    if message_data.book_text_truncated then
-        local cs = message_data.book_text_coverage_start or 0
-        local ce = message_data.book_text_coverage_end or 0
-        table.insert(truncation_parts, T(_("Book text truncated (covers %1 %–%2 %)."), cs, ce))
-    end
-    if message_data.full_document_truncated then
-        local cs = message_data.full_document_coverage_start or 0
-        local ce = message_data.full_document_coverage_end or 0
-        table.insert(truncation_parts, T(_("Full document text truncated (covers %1 %–%2 %)."), cs, ce))
-    end
-    if message_data.incremental_book_text_truncated then
-        local cs = message_data.incremental_coverage_start or 0
-        local ce = message_data.incremental_coverage_end or 0
-        table.insert(truncation_parts, T(_("New content truncated (covers %1 %–%2 %)."), cs, ce))
+    -- Book text and full document truncation are mutually exclusive in practice;
+    -- incremental truncation is a separate case that could theoretically co-occur.
+    local truncation_msg
+    if not (config.features and config.features.suppress_truncation_warning) then
+        if message_data.book_text_truncated or message_data.full_document_truncated then
+            local cs = (message_data.book_text_truncated and message_data.book_text_coverage_start)
+                    or (message_data.full_document_truncated and message_data.full_document_coverage_start) or 0
+            local ce = (message_data.book_text_truncated and message_data.book_text_coverage_end)
+                    or (message_data.full_document_truncated and message_data.full_document_coverage_end) or 0
+            truncation_msg = T(_("Extracted text was truncated (covers %1%–%2% of the document)."), cs, ce)
+        end
+        if message_data.incremental_book_text_truncated then
+            local cs = message_data.incremental_coverage_start or 0
+            local ce = message_data.incremental_coverage_end or 0
+            local inc_msg = T(_("New text since last update was truncated (covers %1%–%2% of the update range)."), cs, ce)
+            truncation_msg = truncation_msg and (truncation_msg .. "\n" .. inc_msg) or inc_msg
+        end
     end
 
-    if #truncation_parts > 0
-            and not (config.features and config.features.suppress_truncation_warning) then
-        local truncation_msg = table.concat(truncation_parts, "\n") .. "\n\n"
-            .. _("Increase limit in Advanced Settings, or use Hidden Flows to exclude irrelevant sections.")
+    if truncation_msg then
+        truncation_msg = truncation_msg .. "\n\n"
+            .. _("You can increase the limit in Settings → Privacy & Data → Text Extraction, or use Hidden Flows to exclude irrelevant sections.")
         local truncation_dialog
         truncation_dialog = ButtonDialog:new{
             title = truncation_msg,
@@ -2644,7 +2645,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                     end,
                 }},
                 {{
-                    text = _("Continue"),
+                    text = _("Continue Anyway"),
                     callback = function()
                         UIManager:close(truncation_dialog)
                         checkLargeExtractionAndSend()
