@@ -1385,6 +1385,15 @@ local SettingsSchema = {
                             depends_on = { id = "enable_book_text_extraction", value = true },
                         },
                         {
+                            id = "suppress_truncation_warning",
+                            type = "toggle",
+                            text = _("Don't warn about truncated extractions"),
+                            path = "features.suppress_truncation_warning",
+                            default = false,
+                            help_text = _("When unchecked, a blocking warning is shown before sending requests when extracted text was truncated to fit the character limit. Shows coverage percentage so you know how much of the book was included.\n\nCheck this if you don't need the reminder."),
+                            depends_on = { id = "enable_book_text_extraction", value = true },
+                        },
+                        {
                             id = "suppress_large_extraction_warning",
                             type = "toggle",
                             text = _("Don't warn about large extractions"),

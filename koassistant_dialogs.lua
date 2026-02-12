@@ -2214,27 +2214,9 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                 -- Compute flow fingerprint for cache staleness detection
                 message_data.flow_visible_pages = ContextExtractor.getFlowFingerprint(ui.document)
 
-                -- Show notification if book text was truncated (centered InfoMessage)
-                if extracted.book_text_truncated then
-                    local coverage_start = extracted.book_text_coverage_start or 0
-                    local coverage_end = extracted.book_text_coverage_end or 0
-                    UIManager:show(InfoMessage:new{
-                        text = T(_("Book text truncated (covers %1 %–%2 %). Increase limit in Advanced Settings, or use Hidden Flows to exclude irrelevant sections."),
-                                 coverage_start, coverage_end),
-                        timeout = 5,
-                    })
-                end
-
-                -- Show notification if full document text was truncated
-                if extracted.full_document_truncated then
-                    local coverage_start = extracted.full_document_coverage_start or 0
-                    local coverage_end = extracted.full_document_coverage_end or 0
-                    UIManager:show(InfoMessage:new{
-                        text = T(_("Full document text truncated (covers %1 %–%2 %). Increase limit in Advanced Settings, or use Hidden Flows to exclude irrelevant sections."),
-                                 coverage_start, coverage_end),
-                        timeout = 5,
-                    })
-                end
+                -- Truncation metadata (book_text_truncated, full_document_truncated, coverage_*)
+                -- is stored in message_data via extraction merge above.
+                -- Warning dialog fires later in the pre-send check chain.
             end
         else
             logger.warn("KOAssistant: Failed to load context extractor:", ContextExtractor)
@@ -2343,15 +2325,11 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                     message_data.incremental_book_text = range_result.text
                     logger.info("KOAssistant: Extracted incremental book text:", range_result.char_count, "chars")
 
-                    -- Show notification if incremental text was truncated (only when text was actually extracted)
+                    -- Store truncation metadata for pre-send warning dialog
                     if range_result.truncated and not range_result.disabled then
-                        local coverage_start = range_result.coverage_start or 0
-                        local coverage_end = range_result.coverage_end or 0
-                        UIManager:show(InfoMessage:new{
-                            text = T(_("New content truncated (covers %1 %–%2 %). Increase limit in Advanced Settings, or use Hidden Flows to exclude irrelevant sections."),
-                                     coverage_start, coverage_end),
-                            timeout = 5,
-                        })
+                        message_data.incremental_book_text_truncated = true
+                        message_data.incremental_coverage_start = range_result.coverage_start
+                        message_data.incremental_coverage_end = range_result.coverage_end
                     end
                 end
             end
@@ -2575,58 +2553,127 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
         return history, temp_config
     end
 
-    -- Large extraction warning: warn before sending requests with lots of extracted text
-    -- Only checks book_text and full_document (the expensive extraction sources)
+    -- Pre-send check chain: truncation warning → large extraction warning → sendQuery
+    -- Each check is blocking — user must Continue or Cancel before proceeding.
+
+    -- Compute extracted chars for large extraction check
     local extracted_chars = 0
     if message_data.book_text then extracted_chars = extracted_chars + #message_data.book_text end
     if message_data.full_document then extracted_chars = extracted_chars + #message_data.full_document end
 
-    if extracted_chars > Constants.LARGE_EXTRACTION_THRESHOLD
-            and not (config.features and config.features.suppress_large_extraction_warning) then
-        local chars_k = math.floor(extracted_chars / 1000)
-        local tokens_k = math.floor(extracted_chars / 4000)
-        local warning_dialog
-        warning_dialog = ButtonDialog:new{
-            title = T(_("Large text extraction: ~%1K characters (~%2K tokens). This may exceed your model's context window, increasing costs or causing the request to fail.\n\nUse Hidden Flows to exclude irrelevant sections."), chars_k, tokens_k),
+    -- Step 2: Large extraction warning (existing check, now wrapped in function for chaining)
+    local function checkLargeExtractionAndSend()
+        if extracted_chars > Constants.LARGE_EXTRACTION_THRESHOLD
+                and not (config.features and config.features.suppress_large_extraction_warning) then
+            local chars_k = math.floor(extracted_chars / 1000)
+            local tokens_k = math.floor(extracted_chars / 4000)
+            local warning_dialog
+            warning_dialog = ButtonDialog:new{
+                title = T(_("Large text extraction: ~%1K characters (~%2K tokens). This may exceed your model's context window, increasing costs or causing the request to fail.\n\nUse Hidden Flows to exclude irrelevant sections."), chars_k, tokens_k),
+                buttons = {
+                    {{
+                        text = _("Cancel"),
+                        callback = function()
+                            UIManager:close(warning_dialog)
+                        end,
+                    }},
+                    {{
+                        text = _("Continue"),
+                        callback = function()
+                            UIManager:close(warning_dialog)
+                            sendQuery()
+                        end,
+                    }},
+                    {{
+                        text = _("Don't warn again"),
+                        callback = function()
+                            UIManager:close(warning_dialog)
+                            -- Persist the preference
+                            if plugin and plugin.settings then
+                                local features_tbl = plugin.settings:readSetting("features") or {}
+                                features_tbl.suppress_large_extraction_warning = true
+                                plugin.settings:saveSetting("features", features_tbl)
+                                plugin.settings:flush()
+                            end
+                            -- Also update current config so it takes effect immediately
+                            if config.features then
+                                config.features.suppress_large_extraction_warning = true
+                            end
+                            sendQuery()
+                        end,
+                    }},
+                },
+            }
+            UIManager:show(warning_dialog)
+            return nil  -- Early return; continuation via callback
+        end
+
+        return sendQuery()
+    end
+
+    -- Step 1: Truncation warning (fires before large extraction check)
+    local truncation_parts = {}
+    if message_data.book_text_truncated then
+        local cs = message_data.book_text_coverage_start or 0
+        local ce = message_data.book_text_coverage_end or 0
+        table.insert(truncation_parts, T(_("Book text truncated (covers %1 %–%2 %)."), cs, ce))
+    end
+    if message_data.full_document_truncated then
+        local cs = message_data.full_document_coverage_start or 0
+        local ce = message_data.full_document_coverage_end or 0
+        table.insert(truncation_parts, T(_("Full document text truncated (covers %1 %–%2 %)."), cs, ce))
+    end
+    if message_data.incremental_book_text_truncated then
+        local cs = message_data.incremental_coverage_start or 0
+        local ce = message_data.incremental_coverage_end or 0
+        table.insert(truncation_parts, T(_("New content truncated (covers %1 %–%2 %)."), cs, ce))
+    end
+
+    if #truncation_parts > 0
+            and not (config.features and config.features.suppress_truncation_warning) then
+        local truncation_msg = table.concat(truncation_parts, "\n") .. "\n\n"
+            .. _("Increase limit in Advanced Settings, or use Hidden Flows to exclude irrelevant sections.")
+        local truncation_dialog
+        truncation_dialog = ButtonDialog:new{
+            title = truncation_msg,
             buttons = {
                 {{
                     text = _("Cancel"),
                     callback = function()
-                        UIManager:close(warning_dialog)
+                        UIManager:close(truncation_dialog)
                     end,
                 }},
                 {{
                     text = _("Continue"),
                     callback = function()
-                        UIManager:close(warning_dialog)
-                        sendQuery()
+                        UIManager:close(truncation_dialog)
+                        checkLargeExtractionAndSend()
                     end,
                 }},
                 {{
                     text = _("Don't warn again"),
                     callback = function()
-                        UIManager:close(warning_dialog)
+                        UIManager:close(truncation_dialog)
                         -- Persist the preference
                         if plugin and plugin.settings then
-                            local features = plugin.settings:readSetting("features") or {}
-                            features.suppress_large_extraction_warning = true
-                            plugin.settings:saveSetting("features", features)
+                            local features_tbl = plugin.settings:readSetting("features") or {}
+                            features_tbl.suppress_truncation_warning = true
+                            plugin.settings:saveSetting("features", features_tbl)
                             plugin.settings:flush()
                         end
-                        -- Also update current config so it takes effect immediately
                         if config.features then
-                            config.features.suppress_large_extraction_warning = true
+                            config.features.suppress_truncation_warning = true
                         end
-                        sendQuery()
+                        checkLargeExtractionAndSend()
                     end,
                 }},
             },
         }
-        UIManager:show(warning_dialog)
+        UIManager:show(truncation_dialog)
         return nil  -- Early return; continuation via callback
     end
 
-    return sendQuery()
+    return checkLargeExtractionAndSend()
 end
 
 local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_type, plugin, book_metadata, initial_input)

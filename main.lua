@@ -4757,10 +4757,15 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry)
     end
   end
 
-  -- Gate: X-Ray requires text extraction for generation
+  -- Gate: X-Ray requires text extraction for generation (global setting + per-action flag)
   local features = configuration and configuration.features or {}
-  local text_extraction_enabled = features.enable_book_text_extraction == true
-  local text_extraction_block_msg = _("X-Ray requires text extraction for structured analysis.\n\nEnable it in Settings → Privacy & Data → Text Extraction, or use X-Ray (Simple) for an overview based on AI knowledge.")
+  local text_extraction_enabled = features.enable_book_text_extraction == true and action.use_book_text ~= false
+  local text_extraction_block_msg
+  if action.use_book_text == false then
+    text_extraction_block_msg = _("Text extraction is disabled for this action. Re-enable it in the Action Manager, or use X-Ray (Simple) for an overview based on AI knowledge.")
+  else
+    text_extraction_block_msg = _("X-Ray requires text extraction for structured analysis.\n\nEnable it in Settings → Privacy & Data → Text Extraction, or use X-Ray (Simple) for an overview based on AI knowledge.")
+  end
 
   local dialog
   local buttons = {}
