@@ -258,4 +258,53 @@ function DebugUtils.printUsage(label, response)
     end
 end
 
+--- Dump X-Ray merge data (old cache, AI delta, merged result) to docs/ for analysis.
+--- Call from koassistant_dialogs.lua inside the `if using_cache and message_data._parsed_old_xray` block,
+--- wrapping the XrayParser.merge() call:
+---   local DebugUtils = require("koassistant_debug_utils")
+---   parsed = DebugUtils.dumpXrayMerge(message_data._parsed_old_xray, parsed, XrayParser)
+function DebugUtils.dumpXrayMerge(old_xray, delta, XrayParser)
+    local logger = require("logger")
+    local script_path = require("ffi/util").realpath(debug.getinfo(1, "S").source:sub(2)):match("(.*/)")
+    local debug_dir = script_path .. "docs"
+
+    local function countEntries(data)
+        local counts = {}
+        for k, v in pairs(data) do
+            if k ~= "type" then
+                if type(v) == "table" and #v > 0 then
+                    counts[k] = #v
+                elseif type(v) == "table" then
+                    counts[k] = "singleton"
+                end
+            end
+        end
+        return counts
+    end
+
+    for label, data in pairs({OLD = old_xray, DELTA = delta}) do
+        logger.info("KOAssistant: X-Ray merge debug —", label, "categories:")
+        for k, v in pairs(countEntries(data)) do
+            logger.info("  ", k, "=", tostring(v))
+        end
+    end
+
+    local f = io.open(debug_dir .. "/debug_xray_old.json", "w")
+    if f then f:write(json.encode(old_xray)); f:close() end
+    f = io.open(debug_dir .. "/debug_xray_ai_delta.json", "w")
+    if f then f:write(json.encode(delta)); f:close() end
+
+    local merged = XrayParser.merge(old_xray, delta)
+
+    logger.info("KOAssistant: X-Ray merge debug — MERGED categories:")
+    for k, v in pairs(countEntries(merged)) do
+        logger.info("  ", k, "=", tostring(v))
+    end
+    f = io.open(debug_dir .. "/debug_xray_merged.json", "w")
+    if f then f:write(json.encode(merged)); f:close() end
+
+    logger.info("KOAssistant: Debug files written to docs/debug_xray_*.json")
+    return merged
+end
+
 return DebugUtils

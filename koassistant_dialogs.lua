@@ -2368,6 +2368,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                 elseif parsed then
                     -- Merge partial update into existing data when available
                     if using_cache and message_data._parsed_old_xray then
+                        -- To debug X-Ray merge: uncomment koassistant_debug_utils.dumpXrayMerge() below
                         parsed = XrayParser.merge(message_data._parsed_old_xray, parsed)
                         logger.info("KOAssistant: Merged incremental X-Ray update into existing data")
                     end
