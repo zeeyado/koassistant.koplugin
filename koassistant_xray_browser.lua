@@ -754,15 +754,17 @@ function XrayBrowser:buildCategoryItems()
         items[#items].separator = true
     end
 
-    -- Mentions: unified chapter-navigable text matching (only when book is open)
-    if self.ui and self.ui.document then
-        table.insert(items, {
-            text = Constants.getEmojiText("📑", _("Mentions"), enable_emoji),
-            callback = function()
+    -- Mentions: unified chapter-navigable text matching
+    table.insert(items, {
+        text = Constants.getEmojiText("📑", _("Mentions"), enable_emoji),
+        callback = function()
+            if self_ref.ui and self_ref.ui.document then
                 self_ref:showMentions()
-            end,
-        })
-    end
+            else
+                self_ref:_showReaderRequired()
+            end
+        end,
+    })
 
     -- Search
     table.insert(items, {
@@ -957,16 +959,18 @@ function XrayBrowser:showItemDetail(item, category_key, title, source)
     -- "Chapter Appearances" + "Add Search Term" row (searchable categories)
     if not DISTRIBUTION_EXCLUDED[category_key] then
         local search_row = {}
-        if self.ui and self.ui.document then
-            local dist_item_name = XrayParser.getItemName(item, category_key)
-            table.insert(search_row, {
-                text = _("Chapter Appearances"),
-                callback = function()
+        local dist_item_name = XrayParser.getItemName(item, category_key)
+        table.insert(search_row, {
+            text = _("Chapter Appearances"),
+            callback = function()
+                if self_ref.ui and self_ref.ui.document then
                     if viewer then viewer:onClose() end
                     self_ref:showItemDistribution(item, category_key, dist_item_name)
-                end,
-            })
-        end
+                else
+                    self_ref:_showReaderRequired()
+                end
+            end,
+        })
         if self.metadata.book_file then
             table.insert(search_row, {
                 text = _("Edit Search Terms"),
@@ -2661,6 +2665,20 @@ function XrayBrowser:showOptions()
         }})
     end
 
+    -- Open Book (when viewing from file browser without the book open)
+    if (not self.ui or not self.ui.document) and self.metadata.book_file then
+        table.insert(buttons, {{
+            text = _("Open Book"),
+            callback = function()
+                if self_ref.options_dialog then
+                    UIManager:close(self_ref.options_dialog)
+                    self_ref.options_dialog = nil
+                end
+                self_ref:_openBookFile()
+            end,
+        }})
+    end
+
     table.insert(buttons, {{
         text = _("Close"),
         callback = function()
@@ -2678,6 +2696,36 @@ function XrayBrowser:showOptions()
         buttons = buttons,
     }
     UIManager:show(self.options_dialog)
+end
+
+--- Open the book file in Reader mode (closing the browser)
+function XrayBrowser:_openBookFile()
+    local book_file = self.metadata and self.metadata.book_file
+    if not book_file then return end
+    if self.menu then
+        UIManager:close(self.menu)
+    end
+    local ReaderUI = require("apps/reader/readerui")
+    ReaderUI:showReader(book_file)
+end
+
+--- Show popup explaining a feature requires the book to be open in Reader mode
+function XrayBrowser:_showReaderRequired()
+    local self_ref = self
+    if self.metadata and self.metadata.book_file then
+        local ConfirmBox = require("ui/widget/confirmbox")
+        UIManager:show(ConfirmBox:new{
+            text = _("This feature requires the book to be open in Reader mode.\n\nOpen the book now?"),
+            ok_text = _("Open Book"),
+            ok_callback = function()
+                self_ref:_openBookFile()
+            end,
+        })
+    else
+        UIManager:show(InfoMessage:new{
+            text = _("This feature requires the book to be open in Reader mode."),
+        })
+    end
 end
 
 return XrayBrowser
