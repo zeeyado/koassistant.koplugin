@@ -244,7 +244,7 @@ Assign "KOAssistant: Quick Settings" to a gesture for one-tap access to a two-co
 - **Web Search & Language** — Enable AI web search and set primary response language
 - **Translate & Dictionary** — Translation and dictionary language settings
 - **Highlight Bypass & Dictionary Bypass** — Toggle bypass modes on/off
-- **Chat History & Browse Notebooks** — Quick access to saved chats and notebooks
+- **Chat History, Browse Notebooks & Browse Artifacts** — Quick access to saved chats, notebooks, and cached artifacts
 - **General Chat/Action** — Start a context-free conversation or run a general action
 - **Manage Actions** — Edit and configure your actions
 
@@ -1963,7 +1963,7 @@ Configure the Quick Settings panel (available via gesture or gear icon in input 
 - **QS Panel Utilities**: Show/hide buttons in the Quick Settings panel:
   - Provider, Model, Behavior, Domain, Temperature, Anthropic/Gemini Reasoning
   - Web Search, Language, Translation Language, Dictionary Language
-  - H.Bypass, D.Bypass, Chat History, Browse Notebooks
+  - H.Bypass, D.Bypass, Chat History, Browse Notebooks, Browse Artifacts
   - General Chat/Action, New Book Chat/Action, Manage Actions, Quick Actions, More Settings
   - All buttons are enabled by default. Disable any you don't use to streamline the panel.
 

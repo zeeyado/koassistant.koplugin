@@ -153,7 +153,30 @@ function ContextExtractor:getReadingProgress()
                     current_page = 1
                 end
             end
-            percent_finished = current_page / total_pages
+            -- Flow-aware progress: count only visible pages when hidden flows active
+            if self.ui.document.hasHiddenFlows
+                    and self.ui.document:hasHiddenFlows() then
+                local visible_at_or_before = 0
+                local total_visible = 0
+                for page = 1, total_pages do
+                    if self.ui.document:getPageFlow(page) == 0 then
+                        total_visible = total_visible + 1
+                        if page <= current_page then
+                            visible_at_or_before = visible_at_or_before + 1
+                        end
+                    end
+                end
+                if total_visible > 0 then
+                    percent_finished = visible_at_or_before / total_visible
+                else
+                    percent_finished = current_page / total_pages
+                end
+            else
+                percent_finished = current_page / total_pages
+            end
+
+            result.current_page = current_page
+            result.total_pages = total_pages
         end
     end
 
@@ -971,6 +994,7 @@ function ContextExtractor:extractForAction(action)
         local progress = self:getReadingProgress()
         data.reading_progress = progress.formatted
         data.progress_decimal = tostring(progress.decimal)
+        data.progress_page = progress.current_page
     else
         data.reading_progress = ""
         data.progress_decimal = ""
