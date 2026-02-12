@@ -388,9 +388,11 @@ function ActionCache.getUserAliasesPath(document_path)
     return sidecar_dir .. "/koassistant_user_aliases.lua"
 end
 
---- Load user-defined aliases for X-Ray items
+--- Load user-defined search term edits for X-Ray items
+--- Format: { [item_name] = { add = { ... }, ignore = { ... } } }
+--- Backward compatible with old format { [item_name] = { "alias1", "alias2" } }
 --- @param document_path string The document file path
---- @return table aliases Mapping of item name → array of alias strings (empty table if none)
+--- @return table aliases Mapping of item name → { add = {...}, ignore = {...} }
 function ActionCache.getUserAliases(document_path)
     local path = ActionCache.getUserAliasesPath(document_path)
     if not path then return {} end
@@ -400,27 +402,40 @@ function ActionCache.getUserAliases(document_path)
         return {}
     end
 
-    local ok, aliases = pcall(dofile, path)
-    if ok and type(aliases) == "table" then
-        return aliases
-    else
+    local ok, data = pcall(dofile, path)
+    if not ok or type(data) ~= "table" then
         logger.warn("KOAssistant ActionCache: Failed to load user aliases:", path)
         return {}
     end
+
+    -- Normalize: old format { [name] = { "a", "b" } } → { [name] = { add = { "a", "b" } } }
+    for name, entry in pairs(data) do
+        if type(entry) == "table" and not entry.add and not entry.ignore then
+            -- Old format: plain array of strings
+            data[name] = { add = entry }
+        end
+    end
+    return data
 end
 
---- Save user-defined aliases for X-Ray items
+--- Save user-defined search term edits for X-Ray items
 --- @param document_path string The document file path
---- @param aliases_table table Mapping of item name → array of alias strings
+--- @param aliases_table table Mapping of item name → { add = {...}, ignore = {...} }
 --- @return boolean success Whether save succeeded
 function ActionCache.setUserAliases(document_path, aliases_table)
     local path = ActionCache.getUserAliasesPath(document_path)
     if not path then return false end
 
-    -- Remove entries with empty alias arrays
-    for name, aliases in pairs(aliases_table) do
-        if type(aliases) ~= "table" or #aliases == 0 then
+    -- Remove entries with no content
+    for name, entry in pairs(aliases_table) do
+        if type(entry) ~= "table" then
             aliases_table[name] = nil
+        else
+            local add = entry.add or {}
+            local ignore = entry.ignore or {}
+            if #add == 0 and #ignore == 0 then
+                aliases_table[name] = nil
+            end
         end
     end
 
@@ -443,20 +458,28 @@ function ActionCache.setUserAliases(document_path, aliases_table)
         return false
     end
 
-    file:write("return {\n")
-    for item_name, aliases in pairs(aliases_table) do
-        file:write(string.format("    [%q] = {", item_name))
-        if #aliases > 0 then
-            file:write(" ")
-            for i, alias in ipairs(aliases) do
-                file:write(string.format("%q", alias))
-                if i < #aliases then
-                    file:write(", ")
-                end
-            end
-            file:write(" ")
+    local function write_array(f, arr)
+        if not arr or #arr == 0 then
+            f:write("{}")
+            return
         end
-        file:write("},\n")
+        f:write("{ ")
+        for i, val in ipairs(arr) do
+            f:write(string.format("%q", val))
+            if i < #arr then f:write(", ") end
+        end
+        f:write(" }")
+    end
+
+    file:write("return {\n")
+    for item_name, entry in pairs(aliases_table) do
+        file:write(string.format("    [%q] = { add = ", item_name))
+        write_array(file, entry.add)
+        if entry.ignore and #entry.ignore > 0 then
+            file:write(", ignore = ")
+            write_array(file, entry.ignore)
+        end
+        file:write(" },\n")
     end
     file:write("}\n")
     file:close()

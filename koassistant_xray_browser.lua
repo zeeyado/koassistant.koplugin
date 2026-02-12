@@ -814,31 +814,31 @@ function XrayBrowser:showItemDetail(item, category_key, title, source)
 
     local buttons_rows = {}
 
-    -- "Chapter Appearances" button (entity-like categories when book is open)
-    if self.ui and self.ui.document and not DISTRIBUTION_EXCLUDED[category_key] then
-        local dist_item_name = XrayParser.getItemName(item, category_key)
-        table.insert(buttons_rows, {{
-            text = _("Chapter Appearances"),
-            callback = function()
-                if viewer then viewer:onClose() end
-                self_ref:showItemDistribution(item, category_key, dist_item_name)
-            end,
-        }})
-    end
-
-    -- "Add Search Term" button (searchable categories with known book file)
-    if not DISTRIBUTION_EXCLUDED[category_key] and self.metadata.book_file then
-        table.insert(buttons_rows, {{
-            text = _("Add Search Term"),
-            callback = function()
-                if viewer then viewer:onClose() end
-                self_ref:addUserAlias(item, category_key, title, source)
-            end,
-            hold_callback = function()
-                if viewer then viewer:onClose() end
-                self_ref:manageUserAliases(item, category_key, title, source)
-            end,
-        }})
+    -- "Chapter Appearances" + "Add Search Term" row (searchable categories)
+    if not DISTRIBUTION_EXCLUDED[category_key] then
+        local search_row = {}
+        if self.ui and self.ui.document then
+            local dist_item_name = XrayParser.getItemName(item, category_key)
+            table.insert(search_row, {
+                text = _("Chapter Appearances"),
+                callback = function()
+                    if viewer then viewer:onClose() end
+                    self_ref:showItemDistribution(item, category_key, dist_item_name)
+                end,
+            })
+        end
+        if self.metadata.book_file then
+            table.insert(search_row, {
+                text = _("Edit Search Terms"),
+                callback = function()
+                    if viewer then viewer:onClose() end
+                    self_ref:editSearchTerms(item, category_key, title, source)
+                end,
+            })
+        end
+        if #search_row > 0 then
+            table.insert(buttons_rows, search_row)
+        end
     end
 
     -- Resolve references into tappable cross-category navigation buttons
@@ -920,13 +920,184 @@ function XrayBrowser:showItemDetail(item, category_key, title, source)
 end
 
 --- Show dialog to add a custom search term for an item
+--- Unified edit dialog for search terms: add, remove user terms, ignore/restore AI terms
 --- @param item table The item data
 --- @param category_key string The category key
 --- @param item_title string Display title for refreshing detail view
 --- @param source table|nil Navigation source for back-button chain
-function XrayBrowser:addUserAlias(item, category_key, item_title, source)
+function XrayBrowser:editSearchTerms(item, category_key, item_title, source)
     local ActionCache = require("koassistant_action_cache")
     local item_name = XrayParser.getItemName(item, category_key)
+    local self_ref = self
+
+    -- Load stored user edits
+    local all_data = ActionCache.getUserAliases(self.metadata.book_file)
+    local user_entry = all_data[item_name] or { add = {}, ignore = {} }
+    local user_add = user_entry.add or {}
+    local user_ignore = user_entry.ignore or {}
+
+    -- Build lookup sets for classification
+    local add_set = {}
+    for _idx, a in ipairs(user_add) do add_set[a:lower()] = true end
+    local ignore_set = {}
+    for _idx, a in ipairs(user_ignore) do ignore_set[a:lower()] = true end
+
+    -- Current in-memory aliases (post-merge: includes user-added, excludes ignored)
+    local current_aliases = type(item.aliases) == "table" and item.aliases
+        or (item.aliases and { item.aliases } or {})
+
+    local buttons = {}
+
+    -- Active aliases: show with Ignore (AI) or Remove (user-added) action
+    for _idx, alias in ipairs(current_aliases) do
+        local captured_alias = alias
+        local is_user_added = add_set[alias:lower()]
+        table.insert(buttons, {{
+            text = is_user_added
+                and T(_("Remove \"%1\""), alias)
+                or T(_("Ignore \"%1\""), alias),
+            callback = function()
+                UIManager:close(self_ref._edit_dialog)
+                self_ref._edit_dialog = nil
+                self_ref:_editSearchTermAction(item, category_key, item_title, source,
+                    item_name, captured_alias, is_user_added and "remove" or "ignore")
+            end,
+        }})
+    end
+
+    -- Ignored aliases: show with Restore action
+    for _idx, alias in ipairs(user_ignore) do
+        local captured_alias = alias
+        table.insert(buttons, {{
+            text = T(_("Restore \"%1\" (ignored)"), alias),
+            callback = function()
+                UIManager:close(self_ref._edit_dialog)
+                self_ref._edit_dialog = nil
+                self_ref:_editSearchTermAction(item, category_key, item_title, source,
+                    item_name, captured_alias, "restore")
+            end,
+        }})
+    end
+
+    -- Add separator before action buttons
+    if #buttons > 0 then
+        buttons[#buttons][1].separator = true
+    end
+
+    -- Add new + Close row
+    table.insert(buttons, {
+        {
+            text = _("Add new"),
+            callback = function()
+                UIManager:close(self_ref._edit_dialog)
+                self_ref._edit_dialog = nil
+                self_ref:_addSearchTermInput(item, category_key, item_title, source, item_name)
+            end,
+        },
+        {
+            text = _("Close"),
+            id = "close",
+            callback = function()
+                UIManager:close(self_ref._edit_dialog)
+                self_ref._edit_dialog = nil
+                -- Refresh detail view to reflect any changes
+                self_ref:showItemDetail(item, category_key, item_title, source)
+            end,
+        },
+    })
+
+    self._edit_dialog = ButtonDialog:new{
+        title = T(_("Search terms for \"%1\""), item_name),
+        buttons = buttons,
+    }
+    UIManager:show(self._edit_dialog)
+end
+
+--- Handle add/remove/ignore/restore actions on search terms
+--- @param item table The item data
+--- @param category_key string The category key
+--- @param item_title string Display title
+--- @param source table|nil Navigation source
+--- @param item_name string The item display name (storage key)
+--- @param alias string The alias being acted on
+--- @param action string "remove"|"ignore"|"restore"
+function XrayBrowser:_editSearchTermAction(item, category_key, item_title, source, item_name, alias, action)
+    local ActionCache = require("koassistant_action_cache")
+    local all_data = ActionCache.getUserAliases(self.metadata.book_file)
+    local entry = all_data[item_name] or { add = {}, ignore = {} }
+    entry.add = entry.add or {}
+    entry.ignore = entry.ignore or {}
+    local alias_lower = alias:lower()
+
+    if action == "remove" then
+        -- Remove user-added alias from storage
+        for i = #entry.add, 1, -1 do
+            if entry.add[i]:lower() == alias_lower then
+                table.remove(entry.add, i)
+            end
+        end
+        -- Remove from in-memory
+        if type(item.aliases) == "table" then
+            for i = #item.aliases, 1, -1 do
+                if item.aliases[i]:lower() == alias_lower then
+                    table.remove(item.aliases, i)
+                end
+            end
+        end
+
+    elseif action == "ignore" then
+        -- Add to ignore list (if not already there)
+        local already = false
+        for _idx, ign in ipairs(entry.ignore) do
+            if ign:lower() == alias_lower then already = true; break end
+        end
+        if not already then
+            table.insert(entry.ignore, alias)
+        end
+        -- Remove from in-memory
+        if type(item.aliases) == "table" then
+            for i = #item.aliases, 1, -1 do
+                if item.aliases[i]:lower() == alias_lower then
+                    table.remove(item.aliases, i)
+                end
+            end
+        end
+
+    elseif action == "restore" then
+        -- Remove from ignore list
+        for i = #entry.ignore, 1, -1 do
+            if entry.ignore[i]:lower() == alias_lower then
+                table.remove(entry.ignore, i)
+            end
+        end
+        -- Add back to in-memory aliases
+        if type(item.aliases) ~= "table" then
+            item.aliases = item.aliases and { item.aliases } or {}
+        end
+        table.insert(item.aliases, alias)
+    end
+
+    -- Save
+    all_data[item_name] = entry
+    ActionCache.setUserAliases(self.metadata.book_file, all_data)
+
+    -- Clear distribution cache (forces recount)
+    if self._dist_cache then
+        self._dist_cache[tostring(item)] = nil
+    end
+
+    -- Re-open edit dialog to reflect changes
+    self:editSearchTerms(item, category_key, item_title, source)
+end
+
+--- Show input dialog to add a new search term
+--- @param item table The item data
+--- @param category_key string The category key
+--- @param item_title string Display title
+--- @param source table|nil Navigation source
+--- @param item_name string The item display name (storage key)
+function XrayBrowser:_addSearchTermInput(item, category_key, item_title, source, item_name)
+    local ActionCache = require("koassistant_action_cache")
     local self_ref = self
 
     local input_dialog
@@ -941,6 +1112,8 @@ function XrayBrowser:addUserAlias(item, category_key, item_title, source)
                     id = "close",
                     callback = function()
                         UIManager:close(input_dialog)
+                        -- Re-open edit dialog
+                        self_ref:editSearchTerms(item, category_key, item_title, source)
                     end,
                 },
                 {
@@ -949,45 +1122,60 @@ function XrayBrowser:addUserAlias(item, category_key, item_title, source)
                     callback = function()
                         local new_alias = input_dialog:getInputText()
                         UIManager:close(input_dialog)
-                        if not new_alias or new_alias:match("^%s*$") then return end
+                        if not new_alias or new_alias:match("^%s*$") then
+                            self_ref:editSearchTerms(item, category_key, item_title, source)
+                            return
+                        end
                         new_alias = new_alias:match("^%s*(.-)%s*$")  -- trim
 
-                        -- Load existing user aliases
-                        local all_aliases = ActionCache.getUserAliases(self_ref.metadata.book_file)
-                        local item_aliases = all_aliases[item_name] or {}
+                        -- Load and check duplicates across all terms
+                        local all_data = ActionCache.getUserAliases(self_ref.metadata.book_file)
+                        local entry = all_data[item_name] or { add = {}, ignore = {} }
+                        entry.add = entry.add or {}
+                        entry.ignore = entry.ignore or {}
+                        local new_lower = new_alias:lower()
 
-                        -- Check for duplicates (case-insensitive)
-                        for _idx, alias in ipairs(item_aliases) do
-                            if alias:lower() == new_alias:lower() then
+                        -- Check existing aliases (both AI and user)
+                        local current = type(item.aliases) == "table" and item.aliases or {}
+                        for _idx, alias in ipairs(current) do
+                            if alias:lower() == new_lower then
                                 UIManager:show(InfoMessage:new{
                                     text = _("This search term already exists."),
                                     timeout = 2,
                                 })
+                                self_ref:editSearchTerms(item, category_key, item_title, source)
                                 return
                             end
                         end
 
-                        -- Save
-                        table.insert(item_aliases, new_alias)
-                        all_aliases[item_name] = item_aliases
-                        ActionCache.setUserAliases(self_ref.metadata.book_file, all_aliases)
+                        -- Save to storage
+                        table.insert(entry.add, new_alias)
+                        all_data[item_name] = entry
+                        ActionCache.setUserAliases(self_ref.metadata.book_file, all_data)
 
-                        -- Update in-memory item aliases
+                        -- Also remove from ignore if it was previously ignored
+                        for i = #entry.ignore, 1, -1 do
+                            if entry.ignore[i]:lower() == new_lower then
+                                table.remove(entry.ignore, i)
+                            end
+                        end
+
+                        -- Update in-memory
                         if type(item.aliases) ~= "table" then
                             item.aliases = item.aliases and { item.aliases } or {}
                         end
                         table.insert(item.aliases, new_alias)
 
-                        -- Clear distribution cache for this item (forces recount)
+                        -- Clear distribution cache
                         if self_ref._dist_cache then
                             self_ref._dist_cache[tostring(item)] = nil
                         end
 
-                        -- Refresh detail view to show new alias
-                        self_ref:showItemDetail(item, category_key, item_title, source)
                         UIManager:show(Notification:new{
                             text = T(_("Added \"%1\""), new_alias),
                         })
+                        -- Re-open edit dialog
+                        self_ref:editSearchTerms(item, category_key, item_title, source)
                     end,
                 },
             },
@@ -995,85 +1183,6 @@ function XrayBrowser:addUserAlias(item, category_key, item_title, source)
     }
     UIManager:show(input_dialog)
     input_dialog:onShowKeyboard()
-end
-
---- Show dialog to manage (remove) custom search terms for an item
---- @param item table The item data
---- @param category_key string The category key
---- @param item_title string Display title for refreshing detail view
---- @param source table|nil Navigation source for back-button chain
-function XrayBrowser:manageUserAliases(item, category_key, item_title, source)
-    local ActionCache = require("koassistant_action_cache")
-    local item_name = XrayParser.getItemName(item, category_key)
-    local all_aliases = ActionCache.getUserAliases(self.metadata.book_file)
-    local user_aliases = all_aliases[item_name] or {}
-
-    if #user_aliases == 0 then
-        UIManager:show(InfoMessage:new{
-            text = _("No custom search terms for this item."),
-            timeout = 2,
-        })
-        return
-    end
-
-    local self_ref = self
-    local buttons = {}
-
-    for _idx, alias in ipairs(user_aliases) do
-        local captured_alias = alias
-        table.insert(buttons, {{
-            text = T(_("Remove \"%1\""), alias),
-            callback = function()
-                UIManager:close(self_ref._manage_dialog)
-                self_ref._manage_dialog = nil
-
-                -- Remove from storage
-                local fresh_aliases = ActionCache.getUserAliases(self_ref.metadata.book_file)
-                local item_list = fresh_aliases[item_name] or {}
-                for i = #item_list, 1, -1 do
-                    if item_list[i]:lower() == captured_alias:lower() then
-                        table.remove(item_list, i)
-                    end
-                end
-                fresh_aliases[item_name] = item_list
-                ActionCache.setUserAliases(self_ref.metadata.book_file, fresh_aliases)
-
-                -- Remove from in-memory item
-                if type(item.aliases) == "table" then
-                    for i = #item.aliases, 1, -1 do
-                        if item.aliases[i]:lower() == captured_alias:lower() then
-                            table.remove(item.aliases, i)
-                        end
-                    end
-                end
-
-                -- Clear distribution cache (forces recount)
-                if self_ref._dist_cache then
-                    self_ref._dist_cache[tostring(item)] = nil
-                end
-
-                -- Refresh detail view
-                self_ref:showItemDetail(item, category_key, item_title, source)
-                UIManager:show(Notification:new{
-                    text = T(_("Removed \"%1\""), captured_alias),
-                })
-            end,
-        }})
-    end
-
-    table.insert(buttons, {{
-        text = _("Close"),
-        callback = function()
-            UIManager:close(self_ref._manage_dialog)
-            self_ref._manage_dialog = nil
-        end,
-    }})
-
-    self._manage_dialog = ButtonDialog:new{
-        title = T(_("Custom search terms for \"%1\""), item_name),
-        buttons = buttons,
-    }
-    UIManager:show(self._manage_dialog)
 end
 
 --- Launch a highlight-context book chat with the given text

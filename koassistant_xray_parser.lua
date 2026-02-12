@@ -133,43 +133,73 @@ local function getItemSearchName(item)
     return item.name or item.term or item.event
 end
 
---- Count occurrences of a single item (name + aliases) in pre-lowered text
---- Uses word-boundary matching. Returns the highest count among name and aliases.
+--- Count occurrences of a single item (name + aliases) in pre-lowered text.
+--- Finds all match spans from name and aliases, merges overlapping spans,
+--- and returns the total unique matches (union semantics, same as regex OR).
 --- @param item table An X-Ray item entry (must have name/term/event and optionally aliases)
 --- @param text_lower string Already-lowered text to search
---- @return number count Best count among name and aliases (0 if not found or name ≤2 chars)
+--- @return number count Unique match count across name and all aliases (0 if not found or name ≤2 chars)
 function XrayParser.countItemOccurrences(item, text_lower)
     local name = getItemSearchName(item)
     if not name or #name <= 2 then return 0 end
 
     local name_lower = name:lower()
 
-    -- Handle parenthetical names: "Theosis (Deification)" → search "theosis" + "deification"
-    -- AI often puts translations/alternate names in parens; literal "(" never matches in text
+    -- Collect all search terms
+    local terms = {}
+
+    -- Handle parenthetical names: "Theosis (Deification)" → "theosis" + "deification"
     local clean_name = name_lower:gsub("%s*%(.-%)%s*", "")
     clean_name = clean_name:match("^%s*(.-)%s*$") or clean_name  -- trim
     local paren_content = name_lower:match("%((.-)%)")
 
-    local search_name = (#clean_name > 2) and clean_name or name_lower
-    local best_count = XrayParser._countOccurrences(text_lower, search_name)
+    terms[#terms + 1] = (#clean_name > 2) and clean_name or name_lower
 
-    -- Search parenthetical content as implicit alias (e.g., "Deification" from "Theosis (Deification)")
     if paren_content and #paren_content > 2 then
-        local paren_count = XrayParser._countOccurrences(text_lower, paren_content)
-        if paren_count > best_count then best_count = paren_count end
+        terms[#terms + 1] = paren_content
     end
 
     local item_aliases = ensure_array(item.aliases)
     if item_aliases then
         for _idx, alias in ipairs(item_aliases) do
             if #alias > 2 then
-                local alias_count = XrayParser._countOccurrences(text_lower, alias:lower())
-                if alias_count > best_count then best_count = alias_count end
+                terms[#terms + 1] = alias:lower()
             end
         end
     end
 
-    return best_count
+    -- Collect all match spans from all terms
+    local all_spans = {}
+    for _idx, term in ipairs(terms) do
+        local spans = XrayParser._collectMatchSpans(text_lower, term)
+        for _idx2, span in ipairs(spans) do
+            all_spans[#all_spans + 1] = span
+        end
+    end
+
+    if #all_spans == 0 then return 0 end
+    if #all_spans == 1 then return 1 end
+
+    -- Sort by start position
+    table.sort(all_spans, function(a, b)
+        return a[1] < b[1]
+    end)
+
+    -- Merge overlapping spans and count unique matches
+    local count = 1
+    local current_end = all_spans[1][2]
+    for i = 2, #all_spans do
+        if all_spans[i][1] > current_end then
+            -- No overlap: new distinct match
+            count = count + 1
+            current_end = all_spans[i][2]
+        elseif all_spans[i][2] > current_end then
+            -- Overlapping: extend current span (don't increment count)
+            current_end = all_spans[i][2]
+        end
+    end
+
+    return count
 end
 
 --- Singleton categories not useful for chapter text matching
@@ -321,11 +351,15 @@ function XrayParser.mergeUserAliases(data, user_aliases)
         return data
     end
 
-    -- Build case-insensitive lookup
+    -- Build case-insensitive lookup: name_lower → { add = {...}, ignore = {...} }
     local lookup = {}
-    for name, aliases in pairs(user_aliases) do
-        if name and type(aliases) == "table" and #aliases > 0 then
-            lookup[name:lower()] = aliases
+    for name, entry in pairs(user_aliases) do
+        if name and type(entry) == "table" then
+            local add = entry.add or {}
+            local ignore = entry.ignore or {}
+            if #add > 0 or #ignore > 0 then
+                lookup[name:lower()] = entry
+            end
         end
     end
     if not next(lookup) then return data end
@@ -335,19 +369,39 @@ function XrayParser.mergeUserAliases(data, user_aliases)
         for _idx2, item in ipairs(cat.items) do
             local item_name = XrayParser.getItemName(item, cat.key)
             if item_name then
-                local user_list = lookup[item_name:lower()]
-                if user_list then
+                local user_entry = lookup[item_name:lower()]
+                if user_entry then
                     local existing = ensure_array(item.aliases) or {}
+
+                    -- Build ignore set (case-insensitive)
+                    local ignore_set = {}
+                    for _idx3, ignored in ipairs(user_entry.ignore or {}) do
+                        ignore_set[ignored:lower()] = true
+                    end
+
+                    -- Remove ignored aliases
+                    if next(ignore_set) then
+                        local filtered = {}
+                        for _idx3, alias in ipairs(existing) do
+                            if not ignore_set[alias:lower()] then
+                                table.insert(filtered, alias)
+                            end
+                        end
+                        existing = filtered
+                    end
+
+                    -- Add user aliases (dedup, case-insensitive)
                     local existing_lower = {}
                     for _idx3, alias in ipairs(existing) do
                         existing_lower[alias:lower()] = true
                     end
-                    for _idx3, user_alias in ipairs(user_list) do
+                    for _idx3, user_alias in ipairs(user_entry.add or {}) do
                         if not existing_lower[user_alias:lower()] then
                             table.insert(existing, user_alias)
                             existing_lower[user_alias:lower()] = true
                         end
                     end
+
                     item.aliases = existing
                 end
             end
@@ -898,64 +952,128 @@ function XrayParser.findCharactersInChapter(data, chapter_text)
     return results
 end
 
---- Check if a byte value is a "word" byte for boundary detection.
---- Treats ASCII alphanumerics, apostrophe, AND all non-ASCII bytes (>= 0x80) as word content.
---- This makes boundary detection UTF-8 aware: non-ASCII characters (Arabic, accented Latin,
---- CJK, etc.) are treated as word content, preventing false matches like "caf" in "café".
---- @param b number|nil Byte value
+--- Check if an ASCII byte is a word character (letter or digit).
+--- @param b number Byte value (must be < 128)
 --- @return boolean
-local function isWordByte(b)
-    if not b then return false end
-    if b >= 128 then return true end  -- Non-ASCII: part of UTF-8 character
+local function isAsciiWordByte(b)
     if b >= 48 and b <= 57 then return true end   -- 0-9
     if b >= 65 and b <= 90 then return true end   -- A-Z
     if b >= 97 and b <= 122 then return true end  -- a-z
-    if b == 39 then return true end                -- apostrophe
     return false
 end
 
---- Check if text contains characters from scripts that lack word-boundary spaces
---- (CJK, Thai, etc.). These are encoded as 3+ byte UTF-8 sequences (leading byte >= 0xE0).
---- Cyrillic, Greek, Arabic, Hebrew are all 2-byte UTF-8 (< 0xE0) and have spaces — unaffected.
+--- Check if the character at a text position is a word character for boundary detection.
+--- For ASCII bytes: checks letters and digits.
+--- For multi-byte UTF-8: decodes the codepoint and checks known non-word ranges
+--- (General Punctuation, Latin-1 symbols, CJK symbols, etc.).
+--- @param text string The text
+--- @param pos number Byte position to check
+--- @param scan_back boolean If true, pos may be a continuation byte (last byte of preceding
+---   character); scans back up to 3 bytes to find the leading byte and decode.
+--- @return boolean true if it's a word character
+local function isWordCharAt(text, pos, scan_back)
+    local b = text:byte(pos)
+    if not b then return false end
+
+    -- ASCII: simple byte check
+    if b < 128 then return isAsciiWordByte(b) end
+
+    -- Multi-byte UTF-8: find the leading byte
+    local lead_pos = pos
+    if scan_back and b < 0xC0 then
+        -- Continuation byte (0x80-0xBF): scan back to find leading byte
+        for i = 1, 3 do
+            local p = pos - i
+            if p < 1 then return true end  -- Can't decode, assume word
+            local pb = text:byte(p)
+            if pb >= 0xC0 then lead_pos = p; break end
+            if pb < 0x80 then return true end  -- Hit ASCII, malformed; assume word
+        end
+    end
+
+    -- Decode codepoint from leading byte
+    local lb = text:byte(lead_pos)
+    if not lb or lb < 0xC0 then return true end  -- Can't decode, assume word
+    local cp
+    if lb < 0xE0 then
+        -- 2-byte: U+0080-U+07FF (Latin Extended, Cyrillic, Arabic, Hebrew, etc.)
+        local b2 = text:byte(lead_pos + 1)
+        if not b2 then return true end
+        cp = (lb - 0xC0) * 64 + (b2 - 0x80)
+    elseif lb < 0xF0 then
+        -- 3-byte: U+0800-U+FFFF (CJK, General Punctuation, symbols, etc.)
+        local b2, b3 = text:byte(lead_pos + 1), text:byte(lead_pos + 2)
+        if not b2 or not b3 then return true end
+        cp = (lb - 0xE0) * 4096 + (b2 - 0x80) * 64 + (b3 - 0x80)
+    else
+        -- 4-byte: emoji/supplementary — treat as non-word boundary
+        return false
+    end
+
+    -- Check known non-word Unicode ranges (punctuation, symbols, spaces)
+    if cp >= 0x2000 and cp <= 0x206F then return false end  -- General Punctuation (smart quotes, dashes, ellipsis)
+    if cp >= 0x00A0 and cp <= 0x00BF then return false end  -- Latin-1 symbols (guillemets, ©, etc.)
+    if cp >= 0x2E00 and cp <= 0x2E7F then return false end  -- Supplemental Punctuation
+    if cp >= 0x3000 and cp <= 0x303F then return false end  -- CJK Symbols and Punctuation
+
+    -- Everything else (accented letters, Cyrillic, Greek, etc.): word character
+    return true
+end
+
+--- Check if needle should skip word-boundary checking.
+--- Returns true for scripts where byte-level boundary detection is unreliable:
+--- - CJK/Thai (3+ byte UTF-8, leading byte >= 0xE0): no word-boundary spaces
+--- - Arabic/Hebrew/Syriac (2-byte UTF-8, leading bytes 0xD6-0xDB): have spaces but
+---   multi-byte punctuation (،؛؟) makes byte-level boundary check unreliable
+--- Latin/Cyrillic/Greek (leading bytes 0xC0-0xD5) still use boundary checking.
 --- @param str string Text to check
 --- @return boolean
-local function hasNonSpacedScript(str)
+local function skipBoundaryCheck(str)
     for i = 1, #str do
-        if str:byte(i) >= 0xE0 then return true end
+        local b = str:byte(i)
+        if b >= 0xE0 then return true end           -- CJK, Thai, etc.
+        if b >= 0xD6 and b <= 0xDB then return true end  -- Arabic, Hebrew, Syriac
     end
     return false
 end
 
---- Count occurrences of a substring in text (plain search)
---- For Latin/Cyrillic/Arabic/Greek (spaced scripts): uses word-boundary matching to prevent
---- "Ali" from matching inside "quality". For CJK/Thai (non-spaced scripts): uses plain
---- substring matching since word boundaries don't exist in these scripts.
+--- Collect match spans of a substring in text (plain search).
+--- For Latin/Cyrillic/Greek: uses word-boundary matching to prevent false positives.
+--- For CJK/Thai/Arabic/Hebrew: skips boundary matching (see skipBoundaryCheck).
 --- @param text string Haystack (already lowered)
 --- @param needle string Needle (already lowered)
---- @return number count
-function XrayParser._countOccurrences(text, needle)
-    local count = 0
+--- @return table spans Array of {start, end_pos} pairs
+function XrayParser._collectMatchSpans(text, needle)
+    local spans = {}
     local pos = 1
     local needle_len = #needle
     local text_len = #text
-    local skip_boundaries = hasNonSpacedScript(needle)
+    local skip_boundaries = skipBoundaryCheck(needle)
     while true do
         local start = text:find(needle, pos, true)
         if not start then break end
+        local end_pos = start + needle_len - 1
         if skip_boundaries then
-            count = count + 1
+            spans[#spans + 1] = {start, end_pos}
         else
-            -- Check word boundaries: byte before/after must be non-word
-            local before_ok = (start == 1) or not isWordByte(text:byte(start - 1))
-            local after_pos = start + needle_len
-            local after_ok = (after_pos > text_len) or not isWordByte(text:byte(after_pos))
+            -- Check word boundaries: character before/after must be non-word
+            local before_ok = (start == 1) or not isWordCharAt(text, start - 1, true)
+            local after_ok = (end_pos >= text_len) or not isWordCharAt(text, end_pos + 1, false)
             if before_ok and after_ok then
-                count = count + 1
+                spans[#spans + 1] = {start, end_pos}
             end
         end
         pos = start + needle_len
     end
-    return count
+    return spans
+end
+
+--- Count occurrences of a substring in text (convenience wrapper).
+--- @param text string Haystack (already lowered)
+--- @param needle string Needle (already lowered)
+--- @return number count
+function XrayParser._countOccurrences(text, needle)
+    return #XrayParser._collectMatchSpans(text, needle)
 end
 
 --- Build a compact entity index listing existing names per category.
