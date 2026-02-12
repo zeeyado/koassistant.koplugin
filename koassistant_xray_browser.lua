@@ -1627,10 +1627,7 @@ function XrayBrowser:_buildDistributionView(item, category_key, item_title, data
                 mandatory_dim = (count == 0),
                 callback = function()
                     if count > 0 then
-                        -- Close browser, navigate to chapter, search for item
                         local captured_ui = self_ref.ui
-                        UIManager:close(self_ref.menu)
-                        captured_ui:handleEvent(Event:new("GotoPage", captured_chapter.start_page))
                         -- Build search term: full display name + aliases with regex OR (|)
                         -- e.g., "Edward Said" with aliases "Said" → Edward Said|Said
                         local search_name = item.name or item.term or item.event or item_title
@@ -1653,25 +1650,63 @@ function XrayBrowser:_buildDistributionView(item, category_key, item_title, data
                             end
                         end
                         if captured_ui.search and #search_name > 2 then
-                            UIManager:scheduleIn(0.2, function()
-                                if #alias_terms > 0 then
-                                    -- Escape ECMAScript regex special chars in each term
-                                    local function esc(s)
-                                        return s:gsub("([%.%+%*%?%[%]%^%$%(%)%{%}%|\\])", "\\%1")
+                            -- Close browser, navigate to chapter, then search
+                            local function navigateAndSearch(term, use_regex)
+                                UIManager:close(self_ref.menu)
+                                captured_ui:handleEvent(Event:new("GotoPage", captured_chapter.start_page))
+                                UIManager:scheduleIn(0.2, function()
+                                    if use_regex then
+                                        captured_ui.search.last_search_text = term
+                                        captured_ui.search.use_regex = true
+                                        captured_ui.search.case_insensitive = true
+                                        captured_ui.search:onShowSearchDialog(term, 0, true, true)
+                                    else
+                                        captured_ui.search:searchCallback(0, term)
                                     end
-                                    local pattern = esc(search_name)
-                                    for _idx2, a in ipairs(alias_terms) do
-                                        pattern = pattern .. "|" .. esc(a)
-                                    end
-                                    -- Set search state so input dialog reflects the regex pattern
-                                    captured_ui.search.last_search_text = pattern
-                                    captured_ui.search.use_regex = true
-                                    captured_ui.search.case_insensitive = true
-                                    captured_ui.search:onShowSearchDialog(pattern, 0, true, true)
-                                else
-                                    captured_ui.search:searchCallback(0, search_name)
+                                end)
+                            end
+                            -- PDF documents don't support regex search (no getAndClearRegexSearchError)
+                            local can_regex = not captured_ui.document.info.has_pages
+                            if not can_regex and #alias_terms > 0 then
+                                -- PDF with aliases: show picker for which term to search
+                                local buttons = {}
+                                -- Main name as first button
+                                table.insert(buttons, {{
+                                    text = search_name,
+                                    callback = function()
+                                        UIManager:close(self_ref._search_picker)
+                                        navigateAndSearch(search_name, false)
+                                    end,
+                                }})
+                                -- Each alias as a separate button
+                                for _idx2, a in ipairs(alias_terms) do
+                                    table.insert(buttons, {{
+                                        text = a,
+                                        callback = function()
+                                            UIManager:close(self_ref._search_picker)
+                                            navigateAndSearch(a, false)
+                                        end,
+                                    }})
                                 end
-                            end)
+                                self_ref._search_picker = ButtonDialog:new{
+                                    title = _("Search for:"),
+                                    buttons = buttons,
+                                }
+                                UIManager:show(self_ref._search_picker)
+                            elseif can_regex and #alias_terms > 0 then
+                                -- EPUB: regex OR pattern with all terms
+                                local function esc(s)
+                                    return s:gsub("([%.%+%*%?%[%]%^%$%(%)%{%}%|\\])", "\\%1")
+                                end
+                                local pattern = esc(search_name)
+                                for _idx2, a in ipairs(alias_terms) do
+                                    pattern = pattern .. "|" .. esc(a)
+                                end
+                                navigateAndSearch(pattern, true)
+                            else
+                                -- No aliases or single term: plain search
+                                navigateAndSearch(search_name, false)
+                            end
                         end
                     else
                         UIManager:show(Notification:new{
