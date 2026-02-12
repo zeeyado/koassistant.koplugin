@@ -2432,6 +2432,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                     { model = ConfigHelper:getModelInfo(temp_config), used_book_text = book_text_was_provided,
                       used_highlights = highlights_were_provided,
                       previous_progress_decimal = message_data.cached_progress_decimal,
+                      flow_visible_pages = message_data.flow_visible_pages,
                       progress_page = message_data.progress_page }
                 )
                 if save_success then

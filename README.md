@@ -151,7 +151,7 @@ macOS:        ~/Library/Application Support/koreader/plugins/koassistant.koplugi
 Linux:        ~/.config/koreader/plugins/koassistant.koplugin/
 ```
 
-**Alternative:** You can also install KOAssistant directly from within KOReader using the [App Store plugin](https://github.com/omer-faruq/appstore.koplugin), which lets you browse, install, and update KOReader plugins without a computer. It can install from releases or from the latest main branch code. Note: Currently, the App Store plugin overwrites your whole plugin directory, so if you use this, you have to manually backup your user files first. Only the ones in the actual plugin folder, like apikeys.lua (if you use it), domains/ and behaviors/ folders (if you use custom domains or behaviors in files), etc.
+**Alternative:** You can also install KOAssistant directly from within KOReader using the [App Store plugin](https://github.com/omer-faruq/appstore.koplugin), which lets you browse, install, and update KOReader plugins without a computer. It can install from releases or from the latest main branch code.
 
 > Already installed? KOAssistant can update itself — see [Updating the Plugin](#updating-the-plugin).
 
@@ -315,7 +315,7 @@ See detailed sections below for each feature.
 
 - **Good document metadata** improves AI responses. Use Calibre, Zotero, or similar tools to ensure titles, authors, and identifiers are correct.
 - **Shorter tap duration** makes text selection in KOReader easier: Settings → Taps and Gestures → Long-press interval
-- **Choose models wisely**: Fast models (like Haiku) for quick queries; powerful models (like Sonnet, Opus) for deeper analysis.
+- **Choose models wisely**: Fast models (like Haiku) for quick queries; powerful models (like Sonnet, Opus) for deeper analysis. You can set different models for different actions — see [Tuning Built-in Actions](#tuning-built-in-actions).
 - **Try different behavior styles**: 22 built-in behaviors include provider-inspired styles (Claude, GPT, Gemini, Grok, DeepSeek, Perplexity) — all work with any provider. Change via Quick Settings or Settings → Actions & Prompts → Manage Behaviors.
 - **Combine behaviors with domains**: Behavior controls *how* the AI communicates; Domain provides *what* context. Try Perplexity Style + a research domain for source-focused academic analysis.
 
@@ -659,11 +659,26 @@ These actions analyze your actual reading content. They require specific privacy
 - **Text selection** — hold to select text in detail views: 1-3 words opens dictionary, 4+ copies to clipboard
 - **Options menu** — info (model, progress, date, fiction/non-fiction type), delete, close
 
-> **Model selection for X-Ray:** X-Ray generates detailed structured JSON that can be large (10K-30K+ tokens of output). The action requests up to 32K output tokens to avoid truncation. Models with low output caps (e.g., some Groq models at 8K, DeepSeek Chat at 8K) will produce shorter, potentially truncated results — use models with higher output limits for best results. Model-level caps automatically override the action's request, so there's no risk of errors.
+> **Model selection for X-Ray:** X-Ray generates detailed structured JSON that can be large (10K-30K+ tokens of output). The action requests up to 32K output tokens to avoid truncation. Models with low output caps (e.g., some Groq models at 8K, DeepSeek Chat at 8K) will produce shorter, potentially truncated results — use models with higher output limits for best results. Model-level caps automatically override the action's request, so there's no risk of errors. If you find a model that produces great X-Rays, you can lock it in for this action while keeping your global model for everything else — see the tip below.
+
+> **Tip: Per-action model overrides.** You don't have to use the same model for every action. If you discover that a particular model excels at X-Ray (or any other action), you can assign it permanently to just that action:
+> 1. Go to **Settings → Actions → Manage Actions**
+> 2. Long-press the action (e.g., X-Ray) → **"Edit Settings"**
+> 3. Scroll to **Advanced** → set **Provider** and **Model**
+>
+> Your global model continues to be used for all other actions. This is useful for mixing cost and quality — for example, use a fast model (Gemini 2.5 Flash, Haiku) as your global default for quick lookups and chat, while assigning a more capable model (Gemini 2.5 Pro, Sonnet) specifically to X-Ray or Deep Analysis where quality matters most. See [Tuning Built-in Actions](#tuning-built-in-actions) for more examples.
 
 > **Tip:** If your device supports emoji fonts, enable **Emoji Menu Icons** in Settings → Display Settings for visual category icons in the X-Ray browser (e.g., characters, locations, themes). See [Emoji Menu Icons](#display-settings).
 
 > **Custom TOC support:** Chapter-based features (Mentions, Chapter Appearances) automatically use KOReader's active TOC — including custom/handmade TOCs. If your book has no chapters or a single chapter, the fallback is page-range chunks (~20 pages each). For better results, create a custom TOC in KOReader (long-press the TOC icon → "Set custom TOC from pages") and the X-Ray browser will use it.
+
+> **Hidden flows support:** When KOReader's hidden flows feature is active (hiding endnotes, translator introductions, or separate books in collected works), KOAssistant automatically adapts:
+> - **Text extraction** skips hidden content — only visible pages are sent to the AI
+> - **Reading progress** reports your position within visible content only (e.g., page 42 of 70 visible pages = 60%, not 42%)
+> - **TOC-based features** (Mentions, Chapter Appearances) filter out chapters from hidden flows
+> - **Cache staleness** detects when your hidden flow configuration changes and notifies you
+>
+> This works for both EPUB and PDF. Useful for collected works where you want to analyze just one book, or for editions with long endnotes/apparatus you want excluded from AI analysis. The hidden content is simply invisible to KOAssistant — extraction, progress tracking, and chapter features all operate on visible pages only.
 
 > **Highlights in X-Ray:** When [Allow Highlights](#privacy-controls) is enabled, X-Ray incorporates your highlighted passages into its analysis — adding a **Reader Engagement** category that tracks which themes and ideas you've engaged with, and weaving your highlights into character and location entries. This gives the X-Ray a personal dimension tied to your reading. To control this:
 > - **Disable for all actions:** Turn off "Allow Highlights" in Settings → Privacy & Data. No action will see your highlights.

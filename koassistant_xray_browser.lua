@@ -310,10 +310,10 @@ end
 --- Extract text between page boundaries
 --- @param ui table KOReader UI instance
 --- @param chapter table {start_page, end_page}
---- @param max_chars number Optional cap (default 100000)
+--- @param max_chars number Optional cap (default 5000000)
 --- @return string text
 local function extractChapterText(ui, chapter, max_chars)
-    max_chars = max_chars or 100000
+    max_chars = max_chars or 5000000
     local text = ""
 
     if ui.document.info.has_pages then
@@ -391,10 +391,11 @@ end
 --- Extract text for the current chapter from the open document
 --- @param ui table KOReader UI instance
 --- @param target_depth number|nil TOC depth filter (nil = deepest match)
+--- @param browser table|nil XrayBrowser instance (uses _text_cache when provided)
 --- @return string chapter_text The extracted text, or empty string
 --- @return string chapter_title The chapter title, or empty string
 --- @return table|nil toc_info TOC metadata for depth selector
-local function getCurrentChapterText(ui, target_depth)
+local function getCurrentChapterText(ui, target_depth, browser)
     if not ui or not ui.document then return "", "", nil end
 
     local total_pages = ui.document.info and ui.document.info.number_of_pages or 0
@@ -406,7 +407,12 @@ local function getCurrentChapterText(ui, target_depth)
     end
     if not chapter then return "", "", nil end
 
-    local text = extractChapterText(ui, chapter)
+    local text
+    if browser then
+        text = browser:_getChapterText(chapter)
+    else
+        text = extractChapterText(ui, chapter)
+    end
     return text, chapter.title or "", toc_info
 end
 
@@ -570,12 +576,31 @@ function XrayBrowser:show(xray_data, metadata, ui, on_delete)
         self_ref.menu = nil
         self_ref.nav_stack = {}
         self_ref._dist_cache = nil
+        self_ref._text_cache = nil
         self_ref.on_update = nil
         if orig_onCloseWidget then
             return orig_onCloseWidget(menu_self)
         end
     end
     UIManager:show(self.menu)
+end
+
+--- Get chapter text with per-session caching (raw + lowered).
+--- First call extracts via extractChapterText(); subsequent calls return cached.
+--- @param chapter table {start_page, end_page}
+--- @return string raw Raw extracted text
+--- @return string lower Lowercased text (for countItemOccurrences)
+function XrayBrowser:_getChapterText(chapter)
+    self._text_cache = self._text_cache or {}
+    local key = chapter.start_page .. ":" .. chapter.end_page
+    local cached = self._text_cache[key]
+    if cached then
+        return cached.raw, cached.lower
+    end
+    local raw = extractChapterText(self.ui, chapter)
+    local lower = raw ~= "" and raw:lower() or ""
+    self._text_cache[key] = { raw = raw, lower = lower }
+    return raw, lower
 end
 
 --- Build the main title for the browser
@@ -1317,7 +1342,7 @@ function XrayBrowser:showChapterAnalysis(target_depth)
     -- Schedule the actual work to let the notification render
     local self_ref = self
     UIManager:scheduleIn(0.2, function()
-        local chapter_text, chapter_title, toc_info = getCurrentChapterText(self_ref.ui, target_depth)
+        local chapter_text, chapter_title, toc_info = getCurrentChapterText(self_ref.ui, target_depth, self_ref)
 
         if not chapter_text or chapter_text == "" then
             local msg = self_ref.ui.document.info.has_pages
@@ -1427,7 +1452,7 @@ function XrayBrowser:showWholeBookAnalysis()
             end_page = current_page,
         }
 
-        local text = extractChapterText(self_ref.ui, chapter, 500000)
+        local text = self_ref:_getChapterText(chapter)
 
         if not text or text == "" then
             local msg = self_ref.ui.document.info.has_pages
@@ -1491,7 +1516,7 @@ function XrayBrowser:showChapterItemsAt(chapter)
 
     local self_ref = self
     UIManager:scheduleIn(0.2, function()
-        local text = extractChapterText(self_ref.ui, chapter)
+        local text = self_ref:_getChapterText(chapter)
 
         if not text or text == "" then
             local msg = self_ref.ui.document.info.has_pages
@@ -1576,10 +1601,10 @@ function XrayBrowser:_buildDistributionView(item, category_key, item_title, data
                             text = _("Scanning…"),
                         })
                         UIManager:scheduleIn(0.1, function()
-                            local text = extractChapterText(self_ref.ui, captured_chapter, 500000)
+                            local _raw, lower = self_ref:_getChapterText(captured_chapter)
                             local ch_count = 0
-                            if text and text ~= "" then
-                                ch_count = XrayParser.countItemOccurrences(item, text:lower())
+                            if lower ~= "" then
+                                ch_count = XrayParser.countItemOccurrences(item, lower)
                             end
                             -- Update mutable state
                             chapter_counts[captured_i] = ch_count
@@ -1747,10 +1772,10 @@ function XrayBrowser:_buildDistributionView(item, category_key, item_title, data
                 UIManager:scheduleIn(0.2, function()
                     for j = 1, #chapters do
                         if chapter_counts[j] == nil then
-                            local text = extractChapterText(self_ref.ui, chapters[j], 500000)
+                            local _raw, lower = self_ref:_getChapterText(chapters[j])
                             local ch_count = 0
-                            if text and text ~= "" then
-                                ch_count = XrayParser.countItemOccurrences(item, text:lower())
+                            if lower ~= "" then
+                                ch_count = XrayParser.countItemOccurrences(item, lower)
                             end
                             chapter_counts[j] = ch_count
                             data.total_mentions = data.total_mentions + ch_count
@@ -1835,10 +1860,10 @@ function XrayBrowser:showItemDistribution(item, category_key, item_title)
                 -- chapter_counts[i] left nil implicitly (unread = not yet scanned)
             else
                 scanned_count = scanned_count + 1
-                local text = extractChapterText(self_ref.ui, chapter, 500000)
+                local _raw, lower = self_ref:_getChapterText(chapter)
                 local count = 0
-                if text and text ~= "" then
-                    count = XrayParser.countItemOccurrences(item, text:lower())
+                if lower ~= "" then
+                    count = XrayParser.countItemOccurrences(item, lower)
                 end
                 chapter_counts[_idx] = count
                 total_mentions = total_mentions + count
