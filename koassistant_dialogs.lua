@@ -3176,6 +3176,7 @@ local function openXrayBrowserFromCache(ui, data, cached, config, plugin, book_m
         plugin = plugin,
         source_label = source_label,
         formatted_date = formatted_date,
+        progress_decimal = cached.progress_decimal,
         previous_progress = cached.previous_progress_decimal and
             (math.floor(cached.previous_progress_decimal * 100 + 0.5) .. "%"),
         cache_metadata = {
@@ -3251,7 +3252,7 @@ local function handleLocalXrayLookup(ui, query, document_path, book_metadata, co
         if progress_gap and progress_gap > 0.05 then
             local cache_pct = math.floor(cache_progress * 100 + 0.5)
             local current_pct = math.floor(current_progress * 100 + 0.5)
-            msg = msg .. "\n\n" .. T(_("X-Ray covers to %1%% (you're at %2%%). Updating may find this entry."), cache_pct, current_pct)
+            msg = msg .. "\n\n" .. T(_("X-Ray covers to %1% (you're at %2%). Updating may find this entry."), cache_pct, current_pct)
         end
         UIManager:show(InfoMessage:new{
             text = msg,
@@ -3261,17 +3262,6 @@ local function handleLocalXrayLookup(ui, query, document_path, book_metadata, co
         -- Open X-Ray browser directly
         local XrayBrowser = openXrayBrowserFromCache(ui, data, cached, config, plugin, book_metadata)
 
-        -- Show progress gap notification if significant
-        if progress_gap and progress_gap > 0.05 then
-            local Notification = require("ui/widget/notification")
-            local cache_pct = math.floor(cache_progress * 100 + 0.5)
-            local current_pct = math.floor(current_progress * 100 + 0.5)
-            UIManager:show(Notification:new{
-                text = T(_("X-Ray covers to %1%% · You're at %2%%"), cache_pct, current_pct),
-                timeout = 3,
-            })
-        end
-
         if #results == 1 then
             -- Single result: navigate directly to item detail
             local result = results[1]
@@ -3280,6 +3270,53 @@ local function handleLocalXrayLookup(ui, query, document_path, book_metadata, co
         else
             -- Multiple results: show search results in browser
             XrayBrowser:showSearchResults(query)
+        end
+
+        -- Show progress staleness popup AFTER navigation so it's on top of detail view
+        -- Check session-based dismiss (keyed by book + cached progress)
+        local book_file = ui.document and ui.document.file
+        local dismissed = book_file and plugin._xray_stale_dismissed
+            and plugin._xray_stale_dismissed[book_file] == cache_progress
+        if not dismissed and progress_gap and progress_gap > 0.05 and plugin then
+            local ButtonDialog = require("ui/widget/buttondialog")
+            local cache_pct = math.floor(cache_progress * 100 + 0.5)
+            local ContextExtractor = require("koassistant_context_extractor")
+            local extractor = ContextExtractor:new(ui)
+            local current = extractor:getReadingProgress()
+            local info_text = T(_("X-Ray covers to %1%"), cache_pct)
+            info_text = info_text .. "\n" .. T(_("You're now at %1%."), current.percent)
+
+            local stale_dialog
+            stale_dialog = ButtonDialog:new{
+                title = info_text,
+                buttons = {
+                    {{
+                        text = T(_("Update X-Ray (to %1)"), current.formatted),
+                        callback = function()
+                            UIManager:close(stale_dialog)
+                            if XrayBrowser.menu then
+                                UIManager:close(XrayBrowser.menu)
+                            end
+                            local action = plugin.action_service:getAction("book", "xray")
+                            if action then
+                                plugin:_executeBookLevelActionDirect(action, "xray")
+                            end
+                        end,
+                    }},
+                    {{
+                        text = _("Don't remind me this session"),
+                        callback = function()
+                            UIManager:close(stale_dialog)
+                            -- Suppress for this session until X-Ray is updated
+                            if not plugin._xray_stale_dismissed then
+                                plugin._xray_stale_dismissed = {}
+                            end
+                            plugin._xray_stale_dismissed[book_file] = cache_progress
+                        end,
+                    }},
+                },
+            }
+            UIManager:show(stale_dialog)
         end
     end
 end
