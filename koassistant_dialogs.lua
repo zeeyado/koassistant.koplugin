@@ -16,6 +16,7 @@ local MessageHistory = require("koassistant_message_history")
 local ChatHistoryManager = require("koassistant_chat_history_manager")
 local MessageBuilder = require("message_builder")
 local ModelConstraints = require("model_constraints")
+local Constants = require("koassistant_constants")
 local logger = require("logger")
 
 -- ActionService module (for static methods like getActionDisplayText)
@@ -2218,9 +2219,9 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                     local coverage_start = extracted.book_text_coverage_start or 0
                     local coverage_end = extracted.book_text_coverage_end or 0
                     UIManager:show(InfoMessage:new{
-                        text = T(_("Book text truncated (covers %1 %–%2 %). Increase limit in Advanced Settings."),
+                        text = T(_("Book text truncated (covers %1 %–%2 %). Increase limit in Advanced Settings, or use Hidden Flows to exclude irrelevant sections."),
                                  coverage_start, coverage_end),
-                        timeout = 4,
+                        timeout = 5,
                     })
                 end
 
@@ -2229,9 +2230,9 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                     local coverage_start = extracted.full_document_coverage_start or 0
                     local coverage_end = extracted.full_document_coverage_end or 0
                     UIManager:show(InfoMessage:new{
-                        text = T(_("Full document text truncated (covers %1 %–%2 %). Increase limit in Advanced Settings."),
+                        text = T(_("Full document text truncated (covers %1 %–%2 %). Increase limit in Advanced Settings, or use Hidden Flows to exclude irrelevant sections."),
                                  coverage_start, coverage_end),
-                        timeout = 4,
+                        timeout = 5,
                     })
                 end
             end
@@ -2347,9 +2348,9 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                         local coverage_start = range_result.coverage_start or 0
                         local coverage_end = range_result.coverage_end or 0
                         UIManager:show(InfoMessage:new{
-                            text = T(_("New content truncated (covers %1 %–%2 %). Increase limit in Advanced Settings."),
+                            text = T(_("New content truncated (covers %1 %–%2 %). Increase limit in Advanced Settings, or use Hidden Flows to exclude irrelevant sections."),
                                      coverage_start, coverage_end),
-                            timeout = 4,
+                            timeout = 5,
                         })
                     end
                 end
@@ -2560,16 +2561,72 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
         end
     end
 
-    local result = queryChatGPT(history:getMessages(), temp_config, handleResponse, plugin and plugin.settings)
+    -- Wrap the API call so it can be deferred by the large extraction warning dialog
+    local function sendQuery()
+        local result = queryChatGPT(history:getMessages(), temp_config, handleResponse, plugin and plugin.settings)
 
-    -- If streaming is in progress, return nil (result comes via callback)
-    if isStreamingInProgress(result) then
-        return nil
+        -- If streaming is in progress, return nil (result comes via callback)
+        if isStreamingInProgress(result) then
+            return nil
+        end
+
+        -- Non-streaming: handleResponse callback was already called by queryChatGPT
+        -- Return history and config for backward compatibility with callers that don't use callback
+        return history, temp_config
     end
 
-    -- Non-streaming: handleResponse callback was already called by queryChatGPT
-    -- Return history and config for backward compatibility with callers that don't use callback
-    return history, temp_config
+    -- Large extraction warning: warn before sending requests with lots of extracted text
+    -- Only checks book_text and full_document (the expensive extraction sources)
+    local extracted_chars = 0
+    if message_data.book_text then extracted_chars = extracted_chars + #message_data.book_text end
+    if message_data.full_document then extracted_chars = extracted_chars + #message_data.full_document end
+
+    if extracted_chars > Constants.LARGE_EXTRACTION_THRESHOLD
+            and not (config.features and config.features.suppress_large_extraction_warning) then
+        local chars_k = math.floor(extracted_chars / 1000)
+        local tokens_k = math.floor(extracted_chars / 4000)
+        local warning_dialog
+        warning_dialog = ButtonDialog:new{
+            title = T(_("Large text extraction: ~%1K characters (~%2K tokens). This may exceed your model's context window, increasing costs or causing the request to fail.\n\nUse Hidden Flows to exclude irrelevant sections."), chars_k, tokens_k),
+            buttons = {
+                {{
+                    text = _("Cancel"),
+                    callback = function()
+                        UIManager:close(warning_dialog)
+                    end,
+                }},
+                {{
+                    text = _("Continue"),
+                    callback = function()
+                        UIManager:close(warning_dialog)
+                        sendQuery()
+                    end,
+                }},
+                {{
+                    text = _("Don't warn again"),
+                    callback = function()
+                        UIManager:close(warning_dialog)
+                        -- Persist the preference
+                        if plugin and plugin.settings then
+                            local features = plugin.settings:readSetting("features") or {}
+                            features.suppress_large_extraction_warning = true
+                            plugin.settings:saveSetting("features", features)
+                            plugin.settings:flush()
+                        end
+                        -- Also update current config so it takes effect immediately
+                        if config.features then
+                            config.features.suppress_large_extraction_warning = true
+                        end
+                        sendQuery()
+                    end,
+                }},
+            },
+        }
+        UIManager:show(warning_dialog)
+        return nil  -- Early return; continuation via callback
+    end
+
+    return sendQuery()
 end
 
 local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_type, plugin, book_metadata, initial_input)
