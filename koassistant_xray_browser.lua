@@ -336,6 +336,15 @@ local function extractChapterText(ui, chapter, max_chars)
                         if block.text then
                             table.insert(parts, block.text)
                             char_count = char_count + #block.text
+                        elseif type(block) == "table" then
+                            -- Nested format from MuPDF: { {word="..."}, ... }
+                            for i = 1, #block do
+                                local span = block[i]
+                                if type(span) == "table" and span.word then
+                                    table.insert(parts, span.word)
+                                    char_count = char_count + #span.word
+                                end
+                            end
                         end
                     end
                 elseif type(page_text) == "string" then
