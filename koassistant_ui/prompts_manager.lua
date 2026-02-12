@@ -223,6 +223,8 @@ function PromptsManager:loadPrompts()
             translate_view = prompt.translate_view,
             compact_view = prompt.compact_view,
             minimal_buttons = prompt.minimal_buttons,
+            -- Duplication control
+            no_duplicate = prompt.no_duplicate,
             -- Menu flags
             in_quick_actions = prompt.in_quick_actions,
             in_reading_features = prompt.in_reading_features,
@@ -939,8 +941,8 @@ function PromptsManager:showPromptDetails(prompt)
         })
     end
 
-    -- Duplicate as Custom (always available)
-    if self.plugin.action_service then
+    -- Duplicate as Custom (blocked for actions with no_duplicate flag)
+    if self.plugin.action_service and not prompt.no_duplicate then
         table.insert(toggle_buttons, {
             text = _("Duplicate"),
             callback = function()
@@ -1003,6 +1005,7 @@ function PromptsManager:duplicateAction(action)
         use_reading_progress = duplicate.use_reading_progress,
         use_reading_stats = duplicate.use_reading_stats,
         use_notebook = duplicate.use_notebook,
+        requires = duplicate.requires,
         -- View mode flags
         translate_view = duplicate.translate_view,
         compact_view = duplicate.compact_view,

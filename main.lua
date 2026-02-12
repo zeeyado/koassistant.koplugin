@@ -4914,6 +4914,14 @@ function AskGPT:viewCachedAction(action, action_id, cached_entry, opts)
     return
   end
 
+  -- Look up full action definition if we got a minimal stub (e.g., from artifact browser)
+  if action_id and not action.id and self.action_service then
+    local full_action = self.action_service:getAction("book", action_id)
+    if full_action then
+      action = full_action
+    end
+  end
+
   -- Generic viewer for per-action caches (e.g., Recap)
   local ChatGPTViewer = require("koassistant_chatgptviewer")
   local action_name = action.text or action_id

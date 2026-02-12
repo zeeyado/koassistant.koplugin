@@ -1662,6 +1662,7 @@ function ActionService:createDuplicateAction(action)
         use_annotations = action.use_annotations,
         use_reading_progress = action.use_reading_progress,
         use_reading_stats = action.use_reading_stats,
+        use_notebook = action.use_notebook,
         -- View mode flags
         translate_view = action.translate_view,
         compact_view = action.compact_view,

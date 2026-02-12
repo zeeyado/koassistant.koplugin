@@ -2515,7 +2515,7 @@ The View/Update popup appears everywhere you can trigger X-Ray or Recap: Quick A
 - Complete X-Rays don't support incremental updates (always fresh generation)
 - X-Ray (Simple) doesn't support incremental updates (always fresh generation)
 - Going backward in progress doesn't use cache (fresh generation)
-- Custom actions duplicated from X-Ray/Recap will inherit caching behavior
+- X-Ray cannot be duplicated (its JSON output requires the X-Ray browser). All other actions can be duplicated — they work as one-shot chat actions but don't inherit caching or incremental update behavior
 - Legacy markdown X-Ray caches (from before the JSON update) are still viewable but will be fully regenerated (not incrementally updated) on the next run, producing the new JSON format
 - To switch between incremental and complete tracks, delete the cache and regenerate
 

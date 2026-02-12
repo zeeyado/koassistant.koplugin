@@ -590,6 +590,7 @@ function XrayBrowser:show(xray_data, metadata, ui, on_delete)
     self.ui = ui
     self.on_delete = on_delete
     self.nav_stack = {}
+    self._mentions_spoiler_warned = nil
 
     -- Compute X-Ray coverage page for spoiler gating
     -- Text-matching features (Mentions, Chapter Appearances) gate to max(coverage, reading),
@@ -1435,7 +1436,7 @@ function XrayBrowser:showChapterPicker(current_chapter)
             end_page = entry.end_page,
             is_current = entry.is_current,
             unread = entry.unread,
-            dim = entry.unread,
+            dim = entry.unread and not self._mentions_spoiler_warned,
         })
     end
 
@@ -1493,7 +1494,7 @@ function XrayBrowser:showChapterPicker(current_chapter)
         table.insert(collapsed_toc, 2, {
             text = _("All Chapters"),
             bold = current_chapter == "all_reveal",
-            dim = true,
+            dim = not self._mentions_spoiler_warned,
             separator = true,
             _is_all_reveal = true,
         })
@@ -1736,34 +1737,65 @@ function XrayBrowser:showChapterPicker(current_chapter)
         if item._is_all_chapters then
             selectChapter("all")
         elseif item._is_all_reveal then
-            selectChapter("all_reveal")
+            if not self_ref._mentions_spoiler_warned then
+                self_ref._spoiler_dialog = ButtonDialog:new{
+                    text = _("This will scan beyond your X-Ray coverage.\n\nReveal all mentions?"),
+                    buttons = {
+                        {{
+                            text = _("Cancel"),
+                            callback = function()
+                                UIManager:close(self_ref._spoiler_dialog)
+                            end,
+                        }},
+                        {{
+                            text = _("Reveal"),
+                            callback = function()
+                                UIManager:close(self_ref._spoiler_dialog)
+                                self_ref._mentions_spoiler_warned = true
+                                selectChapter("all_reveal")
+                            end,
+                        }},
+                    },
+                }
+                UIManager:show(self_ref._spoiler_dialog)
+            else
+                selectChapter("all_reveal")
+            end
         elseif item.unread then
-            -- Spoiler warning before revealing
-            self_ref._spoiler_dialog = ButtonDialog:new{
-                title = _("Spoiler warning"),
-                text = _("This chapter is beyond your X-Ray coverage and may contain spoilers.\n\nReveal mentions?"),
-                buttons = {
-                    {{
-                        text = _("Cancel"),
-                        callback = function()
-                            UIManager:close(self_ref._spoiler_dialog)
-                        end,
-                    }},
-                    {{
-                        text = _("Reveal"),
-                        callback = function()
-                            UIManager:close(self_ref._spoiler_dialog)
-                            selectChapter({
-                                title = item.text,
-                                start_page = item.start_page,
-                                end_page = item.end_page,
-                                depth = item.depth,
-                            })
-                        end,
-                    }},
-                },
-            }
-            UIManager:show(self_ref._spoiler_dialog)
+            if not self_ref._mentions_spoiler_warned then
+                self_ref._spoiler_dialog = ButtonDialog:new{
+                    text = _("This chapter is beyond your X-Ray coverage.\n\nReveal mentions?"),
+                    buttons = {
+                        {{
+                            text = _("Cancel"),
+                            callback = function()
+                                UIManager:close(self_ref._spoiler_dialog)
+                            end,
+                        }},
+                        {{
+                            text = _("Reveal"),
+                            callback = function()
+                                UIManager:close(self_ref._spoiler_dialog)
+                                self_ref._mentions_spoiler_warned = true
+                                selectChapter({
+                                    title = item.text,
+                                    start_page = item.start_page,
+                                    end_page = item.end_page,
+                                    depth = item.depth,
+                                })
+                            end,
+                        }},
+                    },
+                }
+                UIManager:show(self_ref._spoiler_dialog)
+            else
+                selectChapter({
+                    title = item.text,
+                    start_page = item.start_page,
+                    end_page = item.end_page,
+                    depth = item.depth,
+                })
+            end
         else
             selectChapter({
                 title = item.text,
@@ -1825,7 +1857,7 @@ function XrayBrowser:_showFlatChapterPicker(chunks, current_chapter)
         table.insert(items, {
             text = _("All Chapters"),
             bold = current_chapter == "all_reveal",
-            dim = true,
+            dim = not self._mentions_spoiler_warned,
             separator = true,
             _is_all_reveal = true,
         })
@@ -1837,7 +1869,7 @@ function XrayBrowser:_showFlatChapterPicker(chunks, current_chapter)
             text = ch.title or "",
             mandatory = ch.start_page,
             mandatory_dim = true,
-            dim = ch.unread,
+            dim = ch.unread and not self._mentions_spoiler_warned,
             _chapter = ch,
         })
         if ch.is_current then
@@ -1869,15 +1901,9 @@ function XrayBrowser:_showFlatChapterPicker(chunks, current_chapter)
             self_ref:navigateBack()
             self_ref:showMentions("all")
         elseif item._is_all_reveal then
-            UIManager:close(menu_container)
-            self_ref:navigateBack()
-            self_ref:showMentions("all_reveal")
-        elseif item._chapter then
-            local ch = item._chapter
-            if ch.unread then
+            if not self_ref._mentions_spoiler_warned then
                 self_ref._spoiler_dialog = ButtonDialog:new{
-                    title = _("Spoiler warning"),
-                    text = _("This chapter is beyond your X-Ray coverage and may contain spoilers.\n\nReveal mentions?"),
+                    text = _("This will scan beyond your X-Ray coverage.\n\nReveal all mentions?"),
                     buttons = {
                         {{
                             text = _("Cancel"),
@@ -1889,14 +1915,51 @@ function XrayBrowser:_showFlatChapterPicker(chunks, current_chapter)
                             text = _("Reveal"),
                             callback = function()
                                 UIManager:close(self_ref._spoiler_dialog)
+                                self_ref._mentions_spoiler_warned = true
                                 UIManager:close(menu_container)
                                 self_ref:navigateBack()
-                                self_ref:showMentions(ch)
+                                self_ref:showMentions("all_reveal")
                             end,
                         }},
                     },
                 }
                 UIManager:show(self_ref._spoiler_dialog)
+            else
+                UIManager:close(menu_container)
+                self_ref:navigateBack()
+                self_ref:showMentions("all_reveal")
+            end
+        elseif item._chapter then
+            local ch = item._chapter
+            if ch.unread then
+                if not self_ref._mentions_spoiler_warned then
+                    self_ref._spoiler_dialog = ButtonDialog:new{
+                        text = _("This chapter is beyond your X-Ray coverage.\n\nReveal mentions?"),
+                        buttons = {
+                            {{
+                                text = _("Cancel"),
+                                callback = function()
+                                    UIManager:close(self_ref._spoiler_dialog)
+                                end,
+                            }},
+                            {{
+                                text = _("Reveal"),
+                                callback = function()
+                                    UIManager:close(self_ref._spoiler_dialog)
+                                    self_ref._mentions_spoiler_warned = true
+                                    UIManager:close(menu_container)
+                                    self_ref:navigateBack()
+                                    self_ref:showMentions(ch)
+                                end,
+                            }},
+                        },
+                    }
+                    UIManager:show(self_ref._spoiler_dialog)
+                else
+                    UIManager:close(menu_container)
+                    self_ref:navigateBack()
+                    self_ref:showMentions(ch)
+                end
             else
                 UIManager:close(menu_container)
                 self_ref:navigateBack()

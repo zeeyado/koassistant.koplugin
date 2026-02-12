@@ -1938,7 +1938,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
             -- Cache missing - show confirmation dialog
             local ConfirmBox = require("ui/widget/confirmbox")
             UIManager:show(ConfirmBox:new{
-                text = _("This action uses a reusable document summary for context.\n\nGenerate summary now?\n• First time only\n• Processes up to character limit\n• Coverage shown in cache viewer"),
+                text = _("Smart actions use a shared document summary for context.\n\nGenerate one for this book?\n• One-time — reused by all Smart actions on this book\n• Saved as a viewable artifact\n• Uses your text extraction settings"),
                 ok_text = _("Generate"),
                 cancel_text = _("Cancel"),
                 ok_callback = function()
@@ -3636,6 +3636,20 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
                                 timeout = 2,
                             })
                         end)
+                        return
+                    end
+                end
+            end
+
+            -- For cache-first actions (Recap, X-Ray Simple): open in simple viewer
+            -- The result is already saved to ActionCache; the full chat viewer is unnecessary
+            if action.use_response_caching and action.id and plugin then
+                local ActionCache = require("koassistant_action_cache")
+                local file = ui and ui.document and ui.document.file or document_path
+                if file then
+                    local cached = ActionCache.get(file, action.id)
+                    if cached and cached.result then
+                        plugin:viewCachedAction(action, action.id, cached)
                         return
                     end
                 end

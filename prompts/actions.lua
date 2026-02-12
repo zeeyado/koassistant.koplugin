@@ -785,6 +785,7 @@ Actions.book = {
             max_tokens = 49152,  -- X-Ray JSON can be large; give headroom to avoid truncation
         },
         builtin = true,
+        no_duplicate = true,  -- JSON output requires X-Ray browser; duplicates would produce unusable raw JSON in chat
         in_reading_features = 1,  -- Appears in Reading Features menu + default gesture
         in_quick_actions = 1,     -- Appears in Quick Actions menu
         -- Document cache: save result for other actions to reference via {xray_cache_section}
@@ -939,6 +940,7 @@ If you don't recognize this work or the title/content seems unclear, tell me hon
         in_reading_features = 2,  -- Appears in Reading Features menu + default gesture
         in_quick_actions = 2,     -- Appears in Quick Actions menu
         -- Response caching: enables incremental updates as reading progresses
+        storage_key = "__SKIP__",       -- Cache, not chat history
         use_response_caching = true,
         update_prompt = [[Update this Recap for "{title}"{author_clause}.
 
