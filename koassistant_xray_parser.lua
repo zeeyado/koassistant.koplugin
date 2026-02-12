@@ -910,4 +910,113 @@ function XrayParser._countOccurrences(text, needle)
     return count
 end
 
+--- Build a compact entity index listing existing names per category.
+--- Used in update prompts so the AI uses exact matching strings for existing entities.
+--- @param data table Parsed X-Ray data
+--- @return string index Multi-line string: "category: Name1 (alias1, alias2); Name2\n..."
+function XrayParser.buildEntityIndex(data)
+    local categories = XrayParser.getCategories(data)
+    if not categories or #categories == 0 then return "" end
+
+    local lines = {}
+    for _idx, cat in ipairs(categories) do
+        if not SINGLETON_CATEGORIES[cat.key] and cat.items and #cat.items > 0 then
+            local names = {}
+            for _idx2, item in ipairs(cat.items) do
+                local name = getItemSearchName(item)
+                if name then
+                    local item_aliases = ensure_array(item.aliases)
+                    if item_aliases and #item_aliases > 0 then
+                        local shown = {}
+                        for i = 1, math.min(2, #item_aliases) do
+                            shown[i] = item_aliases[i]
+                        end
+                        name = name .. " (" .. table.concat(shown, ", ") .. ")"
+                    end
+                    names[#names + 1] = name
+                end
+            end
+            if #names > 0 then
+                lines[#lines + 1] = cat.key .. ": " .. table.concat(names, "; ")
+            end
+        end
+    end
+    return table.concat(lines, "\n")
+end
+
+--- Categories where items use descriptive phrases as names (not stable identifiers).
+--- These use pure append during merge instead of name-based matching.
+local APPEND_CATEGORIES = {
+    timeline = true,
+    argument_development = true,
+}
+
+--- Merge array category items by name matching (case-insensitive).
+--- Matching items are replaced in-place; new items are appended.
+--- @param old_items table Existing items array (mutated)
+--- @param new_items table New items to merge in
+--- @return table old_items The merged array
+local function mergeArrayCategory(old_items, new_items)
+    local lookup = {}
+    for i, item in ipairs(old_items) do
+        local name = getItemSearchName(item)
+        if name then
+            lookup[name:lower()] = i
+        end
+    end
+    for _idx, new_item in ipairs(new_items) do
+        local name = getItemSearchName(new_item)
+        local idx = name and lookup[name:lower()]
+        if idx then
+            old_items[idx] = new_item
+        else
+            old_items[#old_items + 1] = new_item
+        end
+    end
+    return old_items
+end
+
+--- Append new items to old items without deduplication.
+--- Used for timeline/argument_development where names are full sentences.
+--- @param old_items table Existing items array (mutated)
+--- @param new_items table New items to append
+--- @return table old_items The extended array
+local function appendCategory(old_items, new_items)
+    for _idx, item in ipairs(new_items) do
+        old_items[#old_items + 1] = item
+    end
+    return old_items
+end
+
+--- Merge partial X-Ray update into existing data.
+--- The AI outputs only new/changed entries; this merges them into the full dataset.
+--- @param old_data table Complete existing X-Ray data (mutated in place)
+--- @param new_data table Partial update from AI
+--- @return table old_data The merged result
+function XrayParser.merge(old_data, new_data)
+    if not new_data or type(new_data) ~= "table" then return old_data end
+    if not old_data or type(old_data) ~= "table" then return new_data end
+
+    old_data.type = old_data.type or new_data.type
+
+    local keys = XrayParser.isFiction(old_data) and FICTION_KEYS or NONFICTION_KEYS
+    for _idx, key in ipairs(keys) do
+        if new_data[key] ~= nil then
+            if SINGLETON_CATEGORIES[key] then
+                old_data[key] = new_data[key]
+            elseif APPEND_CATEGORIES[key] then
+                if type(new_data[key]) == "table" and #new_data[key] > 0 then
+                    old_data[key] = appendCategory(old_data[key] or {}, new_data[key])
+                end
+            else
+                if type(new_data[key]) == "table" then
+                    old_data[key] = mergeArrayCategory(old_data[key] or {}, new_data[key])
+                end
+            end
+        end
+    end
+
+    return old_data
+end
+
 return XrayParser

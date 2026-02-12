@@ -79,6 +79,14 @@ function GeminiHandler:buildRequestBody(message_history, config)
         max_tokens = thinking_enabled and 32768 or 16384
     end
 
+    -- Gemini 2.5 models have automatic thinking that shares the maxOutputTokens budget
+    -- without being controllable via thinkingConfig. Scale up large requests to give
+    -- visible output enough room alongside invisible thinking tokens.
+    local has_auto_thinking = model:match("^gemini%-2%.5")
+    if has_auto_thinking and max_tokens > 16384 then
+        max_tokens = math.min(max_tokens * 2, 65536)
+    end
+
     request_body.generationConfig = {
         temperature = api_params.temperature or default_params.temperature or 0.7,
         maxOutputTokens = max_tokens,
