@@ -2445,6 +2445,8 @@ X-Ray and Recap responses are automatically cached per book. This enables **incr
 
 The View/Update popup appears everywhere you can trigger X-Ray or Recap: Quick Actions panel, Reading Features menu, gestures, and the book chat input field action picker. If no cache exists yet, the action runs directly (no popup).
 
+**Stale X-Ray notification:** When you open the X-Ray browser and your reading has advanced >5% past the cached progress, a popup shows the gap (e.g., "X-Ray covers to 29% — You're now at 39%") with **Update** and **Don't remind me this session** buttons. This also appears when looking up items via "Look up in X-Ray" from highlight/dictionary. You can also update anytime from the browser's options menu (☰) — it shows **Update X-Ray (to 39%)** when you've read further, or **Redo X-Ray** at the same position.
+
 **X-Ray format:** X-Ray results are stored as structured JSON (characters with aliases/connections, locations with references, themes with references, lexicon, timeline). The JSON is rendered to readable markdown for chat display and `{xray_cache_section}` placeholders, while the raw JSON powers the browsable menu UI. Legacy markdown X-Rays from older versions are still viewable but will be replaced with JSON on the next run.
 
 **Requirements:**
