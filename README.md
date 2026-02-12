@@ -645,12 +645,12 @@ These actions analyze your actual reading content. They require specific privacy
 
 **X-Ray**: The X-Ray action produces a structured JSON analysis that opens in a **browsable category menu** rather than a plain text document. The initial browsable menu concept was inspired by [X-Ray Plugin for KOReader by 0zd3m1r](https://github.com/0zd3m1r/koreader-xray-plugin). Chapter distribution, linkable connections, and local lookup features were informed by [Dynamic X-Ray by smartscripts-nl](https://github.com/smartscripts-nl/dynamic-xray) — a comprehensive manual X-Ray system with curated character databases, live page markers, and a custom histogram widget. Our approach differs: we use AI generation instead of manual curation, and menu-based navigation instead of custom widgets, but DX demonstrated the value of per-item chapter tracking and cross-reference linking. The browser provides:
 
-- **Category navigation** — Cast, World, Ideas, Lexicon, Story Arc, Reader Engagement, Current State (fiction) or Key Figures, Core Concepts, Arguments, Terminology, Argument Development, Reader Engagement, Current Position (non-fiction) — with item counts. Reader Engagement appears only when highlights were provided during generation.
+- **Category navigation** — Cast, World, Ideas, Lexicon, Story Arc, Reader Engagement, Current State/Conclusion (fiction) or Key Figures, Core Concepts, Arguments, Terminology, Argument Development, Reader Engagement, Current Position/Conclusion (non-fiction) — with item counts. Reader Engagement appears only when highlights were provided during generation. Current State/Current Position appears for incremental (spoiler-free) X-Rays; Conclusion appears for complete (entire document) X-Rays — see [two-track design](#x-ray-modes) below.
 - **Item detail** — descriptions, AI-provided aliases (e.g., "Lizzy", "Miss Bennet" — shown for all categories), connections/relationships, your highlights mentioning each item, and custom search term editing
 - **Linkable references** — character connections and cross-category references (locations → characters, themes → characters, etc.) are tappable buttons that navigate directly to the referenced item's detail view. References are resolved across all categories using name, alias, and substring matching.
-- **Mentions (This Chapter)** — shows which X-Ray items (characters, locations, themes, lexicon, etc.) appear in the current chapter, with mention counts per item and category tags. Excludes event-based categories (timeline, argument development) whose descriptive names produce misleading matches. Uses word-boundary matching against names and aliases. For books with nested TOC, a depth selector lets you switch between chapter levels (e.g., Part → Chapter → Section) with level labels when available. Books without a TOC fall back to page-range chunks.
-- **Mentions (From Beginning)** — same analysis across the entire book from page 1 to current reading position, showing cumulative mention counts
-- **Chapter Appearances** — from any item's detail view, see where it appears across all chapters with inline bar visualization (████░░░░) and mention counts. Counts use union semantics: all match spans from the item's name and aliases are collected, overlapping spans merged, and unique matches counted — matching KOReader's text search behavior. Current chapter marked with ▶. Unread chapters shown dimmed with tap-to-reveal spoiler protection (individual or "Scan all"). Tap a chapter with mentions to navigate there and launch a text search for the item's name and aliases (uses regex OR for multi-term matching, e.g., `Constantine|Mithrandir`). Uses TOC-aware chapter boundaries with configurable depth and page-range fallback for books without TOC. Per-session caching avoids re-scanning.
+- **Mentions (Current Chapter)** — shows which X-Ray items (characters, locations, themes, lexicon, etc.) appear in the current chapter, with mention counts per item and category tags. Excludes event-based categories (timeline, argument development) whose descriptive names produce misleading matches. Uses word-boundary matching against names and aliases. For books with nested TOC, a depth selector lets you switch between chapter levels (e.g., Part → Chapter → Section) with level labels when available. Books without a TOC fall back to page-range chunks.
+- **Mentions (to X% / All Chapters)** — cumulative mention counts from page 1 to the greater of your X-Ray coverage or reading position. For complete X-Rays, labeled "Mentions (All Chapters)" and scans the entire document. For incremental X-Rays, labeled "Mentions (to X%)" where X is the X-Ray's coverage percentage.
+- **Chapter Appearances** — from any item's detail view, see where it appears across all chapters with inline bar visualization (████░░░░) and mention counts. Counts use union semantics: all match spans from the item's name and aliases are collected, overlapping spans merged, and unique matches counted — matching KOReader's text search behavior. Current chapter marked with ▶. Chapters beyond the greater of your X-Ray coverage and reading position are dimmed with tap-to-reveal spoiler protection (individual or "Scan all"). For complete X-Rays, all chapters are visible with no spoiler gating. Tap a chapter with mentions to navigate there and launch a text search for the item's name and aliases (uses regex OR for multi-term matching, e.g., `Constantine|Mithrandir`). Uses TOC-aware chapter boundaries with configurable depth and page-range fallback for books without TOC. Per-session caching avoids re-scanning.
 - **Edit Search Terms** — from any item's detail view, add custom search terms (alternate spellings, transliterations, nicknames) or ignore AI-generated aliases that produce false matches. Custom terms are stored per-book in a sidecar file that survives X-Ray regeneration. Added terms contribute to Chapter Appearances counts and KOReader text search patterns. Ignored terms are hidden from the item's alias list and excluded from counting. All operations (add, remove, ignore, restore) are accessible from a single "Edit Search Terms" button.
 - **Search** — find any entry across all categories by name, alias, or description
 - **Local X-Ray Lookup** — select text while reading → instantly look it up in cached X-Ray data. No AI call, no network, instant results. Single match shows full detail; multiple matches show a tappable list. Available in highlight menu and dictionary popup when an X-Ray cache exists. See "Look up in X-Ray" in [Highlight Mode](#highlight-mode).
@@ -686,15 +686,24 @@ These actions analyze your actual reading content. They require specific privacy
 >
 > Without highlights, X-Ray still works fully — you just won't see the Reader Engagement category or highlight mentions in entries.
 
+<a id="x-ray-modes"></a>
+
 **X-Ray/Recap** work in two modes:
-- **With text extraction** (recommended): AI analyzes actual book content up to your reading position. Produces accurate, book-specific results with correct character names, relationships, and plot details. Chapter-based features (Mentions, Chapter Appearances) show real occurrence counts from the text. Results are cached and labeled "Based on extracted document text."
+- **With text extraction** (recommended): AI analyzes actual book content. Produces accurate, book-specific results with correct character names, relationships, and plot details. Chapter-based features (Mentions, Chapter Appearances) show real occurrence counts from the text. Results are cached and labeled "Based on extracted document text."
 - **Without text extraction** (default): AI uses only the title/author and its training knowledge. Works reasonably for well-known titles but produces generic results — character names may not match the edition/translation, relationships may be inaccurate, and chapter features won't reflect actual text content. For obscure works, research papers, or non-English books, results will be poor or unusable. Results are labeled "Based on AI training data knowledge."
 
-Both modes support response caching and incremental updates — running X-Ray again after reading further builds on the previous analysis rather than starting from scratch. Updates use diff-based merging: the AI outputs only new or changed entries, which are programmatically merged into the existing X-Ray data (name-matched for entities, appended for timeline events, replaced for state summaries). This makes updates fast and cheap (~200-500 output tokens vs 2000-4000 for full regeneration).
+**Two-track X-Ray:** When generating a new X-Ray, you choose between two tracks:
 
-> **Spoiler safety:** X-Ray and Recap are the only built-in actions that limit extraction to your current reading position (`{book_text_section}`). All other text extraction actions — including "Explain in Context" and "Analyze in Context" — send the full document to give the AI complete context for its analysis. If you need a spoiler-free variant, create a custom action using `{book_text_section}` instead of `{full_document_section}`.
+- **Incremental** (default) — Spoiler-free: extracts text only up to your current reading position. Produces a **Current State** (fiction) or **Current Position** (non-fiction) section capturing active conflicts, open questions, and narrative momentum. Supports incremental updates as you read further — only new content is sent, and the AI's additions are diff-merged into the existing analysis. Updates are fast and cheap (~200-500 output tokens vs 2000-4000 for full regeneration). You can also **Update to 100%** to extend the incremental X-Ray to the end of the book using the same spoiler-free prompt. The scope popup offers: "Generate X-Ray (to 42%)" for a new incremental X-Ray, or "Update X-Ray (to 100%)" for an existing one.
+- **Complete** (entire document) — Holistic: extracts and analyzes the entire document in one pass. Produces a **Conclusion** section with resolutions, themes resolved (fiction) or key findings, implications (non-fiction). Always generates fresh — no incremental updates, no diff-merging. Best for articles, research papers, short works, or finished books where spoiler-free scoping isn't needed. The scope popup offers: "Generate X-Ray (entire document)".
 
-> **Note:** Marking a book as "finished" in KOReader does not affect text extraction. X-Ray and Recap still extract up to your actual page position, not 100%. This also means you can navigate to a specific point in a finished book and get a spoiler-free analysis up to that point.
+The track is chosen at initial generation and cannot be converted. To switch tracks, delete the cache and regenerate. Both tracks use the same browsable category menu, the same JSON structure for all shared categories (characters, locations, themes, etc.), and the same privacy gates. The only structural difference is the final status section (Current State/Current Position vs Conclusion).
+
+When an X-Ray cache covers 100% — whether from a complete generation, an incremental "Update to 100%", or simply reading to the end and updating — tapping X-Ray goes directly to the browser viewer with no popup (Redo is available in the browser's options menu).
+
+> **Spoiler safety:** By default, X-Ray and Recap use the **incremental** track, which limits extraction to your current reading position (`{book_text_section}`). Choosing "Generate X-Ray (entire document)" uses the **complete** track, which sends the full document (`{full_document_section}`). All other text extraction actions — including "Explain in Context" and "Analyze in Context" — always send the full document. If you need a spoiler-free variant of any action, create a custom action using `{book_text_section}` instead of `{full_document_section}`.
+
+> **Note:** Marking a book as "finished" in KOReader does not affect text extraction. Incremental X-Ray and Recap still extract up to your actual page position, not 100%. This means you can navigate to a specific point in a finished book and get a spoiler-free analysis up to that point. For a full analysis of a finished book, use "Generate X-Ray (entire document)" to get the complete track with Conclusion.
 
 > ⚠️ **To enable text extraction:** Go to Settings → Privacy & Data → Text Extraction → Allow Text Extraction. This is OFF by default to avoid unexpected token costs.
 
@@ -702,7 +711,7 @@ Both modes support response caching and incremental updates — running X-Ray ag
 
 > **Tip:** Create specialized versions for your workflow. Copy a built-in action, customize the prompt for your field (e.g., "Focus on methodology and statistical claims" for scientific papers), and pair it with a matching domain. Disable built-ins you don't use via Action Manager (tap to toggle). See [Custom Actions](#custom-actions) for details.
 
-> **📦 Response Caching**: X-Ray and Recap responses are automatically cached per book. When you tap X-Ray or Recap with an existing cache, a popup lets you **View** the cached result (with coverage and age) or **Update** it (showing what percentage it would update to). Choosing Update triggers an incremental update — only new content is sent to build on the previous analysis. See [Response Caching](#response-caching) for details.
+> **📦 Response Caching**: X-Ray and Recap responses are automatically cached per book. For incremental X-Rays with a partial cache, a popup lets you **View** the cached result (with coverage and age), **Update** it to your current position, or **Update to 100%**. Complete X-Rays and incremental caches at 100% go directly to the browser viewer — Redo is available in the options menu. See [Response Caching](#response-caching) for details.
 
 **Reading Mode vs File Browser:**
 
@@ -2448,25 +2457,31 @@ Prompt caching reduces costs and latency by reusing previously processed prompt 
 
 ### Response Caching
 
-X-Ray and Recap responses are automatically cached per book. This enables **incremental updates** — as you read further, the AI builds on its previous analysis rather than starting from scratch:
+X-Ray and Recap responses are automatically cached per book. For **incremental** X-Rays (the default track), this enables **incremental updates** — as you read further, the AI builds on its previous analysis rather than starting from scratch. **Complete** X-Rays (entire document) are cached but always generate fresh when redone.
 
-**How it works:**
+**How incremental caching works:**
 1. Run X-Ray at 30% → Full structured JSON analysis generated and cached
 2. Continue reading to 50%
-3. Tap X-Ray again → A popup shows: **View X-Ray (30%, today)** or **Update X-Ray (to 50%)**
+3. Tap X-Ray again → A popup shows: **View X-Ray (30%, today)**, **Update X-Ray (to 50%)**, or **Update X-Ray (to 100%)**
 4. Choose Update → Only the new content (30%→50%) is sent along with an index of existing entities. The AI outputs only new or changed entries.
 5. Diff-based merge: new entries are name-matched and merged into existing data (entities update in place, timeline events append, state summaries replace). ~200-500 output tokens vs 2000-4000 for full regeneration.
 6. Result: Faster responses, lower token costs, continuity of analysis
 
-The View/Update popup appears everywhere you can trigger X-Ray or Recap: Quick Actions panel, Reading Features menu, gestures, and the book chat input field action picker. If no cache exists yet, the action runs directly (no popup).
+**"Update to 100%"** extends an incremental X-Ray to the end of the book using the same spoiler-free prompt and Current State/Current Position schema. This is *not* a complete X-Ray — it's the incremental track at full coverage. Only shown when you haven't already read to near 100%.
 
-**Stale X-Ray notification:** When you open the X-Ray browser and your reading has advanced >5% past the cached progress, a popup shows the gap (e.g., "X-Ray covers to 29% — You're now at 39%") with **Update** and **Don't remind me this session** buttons. This also appears when looking up items via "Look up in X-Ray" from highlight/dictionary. You can also update anytime from the browser's options menu (☰) — it shows **Update X-Ray (to 39%)** when you've read further, or **Redo X-Ray** at the same position.
+**Complete X-Ray caching:** Complete (entire document) X-Rays are cached like any other, but they don't support incremental updates. Redoing a complete X-Ray always generates fresh from the full document. The cache is labeled "Complete" instead of a percentage.
 
-**X-Ray format:** X-Ray results are stored as structured JSON (characters with aliases/connections, locations with references, themes with references, lexicon, timeline). The JSON is rendered to readable markdown for chat display and `{xray_cache_section}` placeholders, while the raw JSON powers the browsable menu UI. Legacy markdown X-Rays from older versions are still viewable but will be replaced with JSON on the next run.
+**Direct-to-viewer:** When any X-Ray cache covers 100% — whether complete, incremental updated to 100%, or simply read to the end — tapping X-Ray goes directly to the browser viewer with no scope popup. Redo is available in the browser's options menu (☰).
+
+The View/Update popup appears everywhere you can trigger X-Ray or Recap: Quick Actions panel, Reading Features menu, gestures, and the book chat input field action picker. If no cache exists yet, the popup offers "Generate X-Ray (to X%)" and "Generate X-Ray (entire document)".
+
+**Stale X-Ray notification:** When you open the X-Ray browser and your reading has advanced >5% past the cached progress, a popup shows the gap (e.g., "X-Ray covers to 29% — You're now at 39%") with **Update** and **Don't remind me this session** buttons. This also appears when looking up items via "Look up in X-Ray" from highlight/dictionary. You can also update anytime from the browser's options menu (☰) — it shows **Update X-Ray (to 39%)** when you've read further, or **Redo X-Ray** at the same position. Stale notifications don't appear for 100% caches (reader is always at or behind the cache).
+
+**X-Ray format:** X-Ray results are stored as structured JSON (characters with aliases/connections, locations with references, themes with references, lexicon, timeline, plus Current State/Conclusion). The JSON is rendered to readable markdown for chat display and `{xray_cache_section}` placeholders, while the raw JSON powers the browsable menu UI. Legacy markdown X-Rays from older versions are still viewable but will be replaced with JSON on the next run.
 
 **Requirements:**
 - You must be reading (not in file browser)
-- Progress must advance by at least 1% to trigger an incremental update
+- Progress must advance by at least 1% to trigger an incremental update (incremental track only)
 
 > **With vs without text extraction:** When text extraction is enabled, incremental updates include new book content (e.g., text from 30% to 50%). Without text extraction, the AI updates from training knowledge using only the title, author, and reading position. Both modes cache results and support incremental updates. Caches are labeled "Based on extracted document text" or "Based on AI training data knowledge" so you know what they contain.
 
@@ -2477,13 +2492,15 @@ The View/Update popup appears everywhere you can trigger X-Ray or Recap: Quick A
 **Clearing the cache:**
 - **Per-action**: In the artifact viewer, use the delete button (for X-Ray: options menu → "Delete X-Ray"; for Analysis/Summary/Recap: delete button in the chat viewer). This clears that action's cache for this book, then re-run the action manually.
 - **All actions for book**: Settings → Privacy & Data → Text Extraction → Clear Action Cache (requires book to be open)
-- Either option forces fresh generation on next run (useful if analysis got off track)
+- Either option forces fresh generation on next run (useful if analysis got off track, or to switch between incremental and complete tracks)
 
 **Limitations:**
 - Only built-in X-Ray and Recap support incremental caching currently
+- Complete X-Rays don't support incremental updates (always fresh generation)
 - Going backward in progress doesn't use cache (fresh generation)
 - Custom actions duplicated from X-Ray/Recap will inherit caching behavior
 - Legacy markdown X-Ray caches (from before the JSON update) are still viewable but will be fully regenerated (not incrementally updated) on the next run, producing the new JSON format
+- To switch between incremental and complete tracks, delete the cache and regenerate
 
 X-Ray, Recap, and other actions also produce **Document Artifacts** — reusable results you can view anytime and reference in other actions. See the next section for details.
 

@@ -138,7 +138,7 @@ end
 --- @param target_depth number|nil TOC depth filter (nil = deepest)
 --- @return table|nil chapters Array of {title, start_page, end_page, depth, is_current}
 --- @return table toc_info {max_depth, has_toc, depth_counts, depth_titles}
-local function getAllChapterBoundaries(ui, target_depth)
+local function getAllChapterBoundaries(ui, target_depth, coverage_page)
     local toc = ui.toc and ui.toc.toc
     if not toc or #toc == 0 then
         return nil, { has_toc = false, max_depth = 0, entry_count = 0 }
@@ -160,6 +160,9 @@ local function getAllChapterBoundaries(ui, target_depth)
 
     local total_pages = ui.document.info.number_of_pages or 0
     local current_page = getCurrentPage(ui)
+    -- Spoiler gate: max of X-Ray coverage and reading position
+    -- Chapters beyond this are marked unread (dimmed + spoiler warning)
+    local gate_page = math.max(coverage_page or current_page, current_page)
 
     -- First pass: collect depth stats
     local max_depth = 0
@@ -224,7 +227,7 @@ local function getAllChapterBoundaries(ui, target_depth)
         else
             end_page = total_pages
         end
-        local is_unread = entry.page > current_page
+        local is_unread = entry.page > gate_page
         local is_current = not is_unread and current_page <= end_page
         table.insert(chapters, {
             title = entry.title or "",
@@ -245,15 +248,16 @@ end
 --- @param ui table KOReader UI instance
 --- @return table chapters Array of {title, start_page, end_page, depth, is_current, unread}
 --- @return table toc_info {has_toc = false, max_depth = 0}
-local function getAllPageRangeChapters(ui)
+local function getAllPageRangeChapters(ui, coverage_page)
     local total_pages = ui.document.info.number_of_pages or 0
     local current_page = getCurrentPage(ui)
+    local gate_page = math.max(coverage_page or current_page, current_page)
     local chunk = math.max(20, math.floor(total_pages * 0.05))
     local chapters = {}
     local start = 1
     while start <= total_pages do
         local end_page = math.min(start + chunk - 1, total_pages)
-        local is_unread = start > current_page
+        local is_unread = start > gate_page
         local is_current = not is_unread and current_page >= start and current_page <= end_page
         table.insert(chapters, {
             title = T(_("Pages %1–%2"), start, end_page),
@@ -523,6 +527,25 @@ function XrayBrowser:show(xray_data, metadata, ui, on_delete)
     self.on_delete = on_delete
     self.nav_stack = {}
 
+    -- Compute X-Ray coverage page for spoiler gating
+    -- Text-matching features (Mentions, Chapter Appearances) gate to max(coverage, reading),
+    -- so chapters the reader has physically read OR the X-Ray has analyzed are never spoiler-gated.
+    self.coverage_page = nil
+    self.is_complete = false
+    if ui and ui.document then
+        local total_pages = ui.document.info and ui.document.info.number_of_pages
+        if total_pages and total_pages > 0 then
+            if metadata.full_document then
+                self.coverage_page = total_pages
+            elseif metadata.progress_decimal then
+                self.coverage_page = math.floor(metadata.progress_decimal * total_pages + 0.5)
+                if self.coverage_page > total_pages then self.coverage_page = total_pages end
+            end
+        end
+    end
+    self.is_complete = metadata.full_document == true
+        or (metadata.progress_decimal and metadata.progress_decimal >= 0.995) or false
+
     -- Build update callback from plugin reference (works from all call sites)
     self.on_update = nil
     self.on_update_full = nil
@@ -671,13 +694,19 @@ function XrayBrowser:buildCategoryItems()
     -- Chapter / whole-book analysis (only when book is open)
     if self.ui and self.ui.document then
         table.insert(items, {
-            text = Constants.getEmojiText("📑", _("Mentions (This Chapter)"), enable_emoji),
+            text = Constants.getEmojiText("📑", _("Mentions (Current Chapter)"), enable_emoji),
             callback = function()
                 self_ref:showChapterAnalysis()
             end,
         })
+        local mentions_label
+        if self.is_complete then
+            mentions_label = _("Mentions (All Chapters)")
+        else
+            mentions_label = T(_("Mentions (to %1)"), self.metadata.progress or "?%")
+        end
         table.insert(items, {
-            text = Constants.getEmojiText("📊", _("Mentions (From Beginning)"), enable_emoji),
+            text = Constants.getEmojiText("📊", mentions_label, enable_emoji),
             callback = function()
                 self_ref:showWholeBookAnalysis()
             end,
@@ -1460,9 +1489,15 @@ function XrayBrowser:showWholeBookAnalysis()
         end
 
         local current_page = getCurrentPage(self_ref.ui)
+        -- Scan to max(coverage, reading) — covers both X-Ray analyzed text and physically read text
+        local end_page = current_page
+        if self_ref.coverage_page then
+            end_page = math.max(self_ref.coverage_page, current_page)
+        end
+        if end_page > total_pages then end_page = total_pages end
         local chapter = {
             start_page = 1,
-            end_page = current_page,
+            end_page = end_page,
         }
 
         local text = self_ref:_getChapterText(chapter)
@@ -1504,7 +1539,12 @@ function XrayBrowser:showWholeBookAnalysis()
             })
         end
 
-        local title = T(_("From Beginning — %1 mentions"), #found)
+        local title
+        if self_ref.is_complete then
+            title = T(_("All Chapters — %1 mentions"), #found)
+        else
+            title = T(_("To %1 — %2 mentions"), self_ref.metadata.progress or "?%", #found)
+        end
         self_ref:navigateForward(title, items)
     end)
 end
@@ -1643,7 +1683,7 @@ function XrayBrowser:_buildDistributionView(item, category_key, item_title, data
                     if not data.spoiler_warned then
                         local confirm_dialog
                         confirm_dialog = ButtonDialog:new{
-                            text = _("This chapter is ahead of your reading position and may contain spoilers.\n\nReveal mentions?"),
+                            text = _("This chapter is beyond your X-Ray coverage and may contain spoilers.\n\nReveal mentions?"),
                             buttons = {{
                                 {
                                     text = _("Cancel"),
@@ -1848,10 +1888,10 @@ function XrayBrowser:showItemDistribution(item, category_key, item_title)
 
     local self_ref = self
     UIManager:scheduleIn(0.2, function()
-        -- Get all chapters
-        local chapters, _toc_info = getAllChapterBoundaries(self_ref.ui)
+        -- Get all chapters (pass coverage_page for spoiler gating)
+        local chapters, _toc_info = getAllChapterBoundaries(self_ref.ui, nil, self_ref.coverage_page)
         if not chapters then
-            chapters, _toc_info = getAllPageRangeChapters(self_ref.ui)
+            chapters, _toc_info = getAllPageRangeChapters(self_ref.ui, self_ref.coverage_page)
         end
         if not chapters or #chapters == 0 then
             UIManager:show(InfoMessage:new{
