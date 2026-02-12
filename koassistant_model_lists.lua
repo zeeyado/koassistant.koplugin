@@ -57,13 +57,13 @@ local ModelLists = {
     },
 
     gemini = {
-        -- Gemini 2.5 (stable, recommended)
-        "gemini-2.5-flash",             -- standard (default)
-        "gemini-2.5-pro",               -- flagship
-        "gemini-2.5-flash-lite",        -- fast
-        -- Gemini 3 (preview - thinking models)
+        -- Gemini 3 (latest generation)
+        "gemini-3-flash-preview",       -- standard (default), FREE tier available
         "gemini-3-pro-preview",         -- reasoning
-        "gemini-3-flash-preview",       -- FREE tier available
+        -- Gemini 2.5 (stable)
+        "gemini-2.5-flash",             -- fast
+        "gemini-2.5-pro",               -- flagship
+        "gemini-2.5-flash-lite",        -- ultrafast
         -- Gemini 2.0 (DEPRECATED - shutdown Mar 31, 2026)
         "gemini-2.0-flash",
         "gemini-2.0-flash-lite",
@@ -404,7 +404,7 @@ local ModelLists = {
             anthropic = "claude-sonnet-4-5-20250929",
             openai = "gpt-5-mini",
             deepseek = "deepseek-chat",
-            gemini = "gemini-2.5-flash",
+            gemini = "gemini-3-flash-preview",
             groq = "llama-3.3-70b-versatile",
             mistral = "mistral-medium-latest",
             xai = "grok-3",
@@ -424,7 +424,7 @@ local ModelLists = {
             anthropic = "claude-haiku-4-5-20251001",
             openai = "gpt-5-nano",
             deepseek = "deepseek-chat",
-            gemini = "gemini-2.5-flash-lite",
+            gemini = "gemini-2.5-flash",
             groq = "llama-3.1-8b-instant",
             mistral = "mistral-small-latest",
             xai = "grok-3-fast",
