@@ -310,7 +310,7 @@ local SettingsSchema = {
                             type = "toggle",
                             text = _("Auto-scroll Streaming"),
                             path = "features.stream_auto_scroll",
-                            default = false,
+                            default = true,
                             depends_on = { id = "enable_streaming", value = true },
                         },
                         {

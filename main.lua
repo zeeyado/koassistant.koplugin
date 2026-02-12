@@ -1268,7 +1268,7 @@ function AskGPT:initSettings()
       auto_save_chats = true,      -- Default for continued chats
       render_markdown = true,      -- Default to render markdown
       enable_streaming = true,     -- Default to streaming for new installs
-      stream_auto_scroll = false,  -- Default to no auto-scroll during streaming
+      stream_auto_scroll = true,   -- Default to auto-scroll during streaming
       stream_page_scroll = true,   -- Default to page-based scroll (e-ink friendly)
       large_stream_dialog = true,  -- Default to full-screen streaming dialog
       stream_display_interval = 250,  -- ms between display updates (performance tuning)
