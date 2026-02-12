@@ -31,6 +31,7 @@ local ARTIFACT_NAMES = {
     ["_summary_cache"] = _("Summary"),
     ["_analyze_cache"] = _("Analysis"),
     ["recap"] = _("Recap"),
+    ["xray_simple"] = _("X-Ray (Simple)"),
 }
 
 --- Get book title and author from DocSettings metadata
@@ -183,7 +184,7 @@ function ArtifactBrowser:showArtifactSelector(doc_path, doc_title, opts)
                 name = ARTIFACT_NAMES[key] or key,
                 key = key,
                 data = entry,
-                is_per_action = (key == "recap"),
+                is_per_action = (key == "recap" or key == "xray_simple"),
             })
         end
     end

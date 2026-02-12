@@ -2290,7 +2290,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
             end
 
             -- Use cache if we've progressed by at least 1% since last time
-            if not skip_legacy and current_progress > cached_progress + 0.01 then
+            if not skip_legacy and current_progress > cached_progress + 0.01 and prompt.update_prompt then
                 using_cache = true
                 cached_progress_display = math.floor(cached_progress * 100) .. "%"
                 logger.info("KOAssistant: Using cached response from", cached_progress_display, "for", prompt.id)

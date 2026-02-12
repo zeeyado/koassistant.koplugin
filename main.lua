@@ -4015,6 +4015,12 @@ function AskGPT:onKOAssistantRecap()
   return true
 end
 
+--- Execute X-Ray (Simple) action (prose companion from AI knowledge)
+function AskGPT:onKOAssistantXraySimple()
+  self:executeBookLevelAction("xray_simple")
+  return true
+end
+
 --- Execute Analyze Highlights action (insights from user's annotations)
 function AskGPT:onKOAssistantAnalyzeHighlights()
   self:executeBookLevelAction("analyze_highlights")
@@ -4068,13 +4074,22 @@ function AskGPT:viewCache()
       is_per_action = true,
     })
   end
+  local xray_simple = ActionCache.get(file, "xray_simple")
+  if xray_simple and xray_simple.result then
+    table.insert(caches, {
+      name = _("X-Ray (Simple)"),
+      key = "xray_simple",
+      data = xray_simple,
+      is_per_action = true,
+    })
+  end
 
   -- Refresh artifact index for this document (populates index for pre-existing artifacts)
   ActionCache.refreshIndex(file)
 
   if #caches == 0 then
     UIManager:show(InfoMessage:new{
-      text = _("No cached content found for this document.\n\nRun X-Ray, Recap, Summarize Document, or Analyze Document to create reusable caches."),
+      text = _("No cached content found for this document.\n\nRun X-Ray, Recap, X-Ray (Simple), Summarize Document, or Analyze Document to create reusable caches."),
     })
     return
   end
@@ -4742,11 +4757,23 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry)
     end
   end
 
+  -- Gate: X-Ray requires text extraction for generation
+  local features = configuration and configuration.features or {}
+  local text_extraction_enabled = features.enable_book_text_extraction == true
+  local text_extraction_block_msg = _("X-Ray requires text extraction for structured analysis.\n\nEnable it in Settings → Privacy & Data → Text Extraction, or use X-Ray (Simple) for an overview based on AI knowledge.")
+
   local dialog
   local buttons = {}
 
   if not cached_entry or not cached_entry.result then
-    -- No cache: Generate (to X%) or Generate (entire document)
+    -- No cache: block if text extraction is off
+    if not text_extraction_enabled then
+      UIManager:show(InfoMessage:new{
+        text = text_extraction_block_msg,
+      })
+      return
+    end
+    -- Generate (to X%) or Generate (entire document)
     local generate_partial_label
     if current_progress then
       generate_partial_label = T(_("Generate %1 (to %2)"), action_name, current_progress.formatted)
@@ -4815,6 +4842,10 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry)
       text = update_text,
       callback = function()
         UIManager:close(dialog)
+        if not text_extraction_enabled then
+          UIManager:show(InfoMessage:new{ text = text_extraction_block_msg })
+          return
+        end
         on_update()
       end,
     }})
@@ -4825,6 +4856,10 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry)
         text = T(_("Update %1 (to %2)"), action_name, "100%"),
         callback = function()
           UIManager:close(dialog)
+          if not text_extraction_enabled then
+            UIManager:show(InfoMessage:new{ text = text_extraction_block_msg })
+            return
+          end
           self_ref:_executeBookLevelActionDirect(action, action_id, { update_to_full = true })
         end,
       }})
@@ -4936,6 +4971,22 @@ function AskGPT:viewCachedAction(action, action_id, cached_entry, opts)
     end
   end
 
+  -- Update button for cache-first actions without incremental update (e.g., X-Ray Simple)
+  -- Regenerates fresh with new reading position; only when book is open
+  local on_regenerate
+  local regenerate_label
+  if action.use_response_caching and not action.update_prompt and file then
+    local self_ref2 = self
+    local captured_action_id = action_id
+    on_regenerate = function()
+      local AC = require("koassistant_action_cache")
+      AC.clear(file, captured_action_id)
+      self_ref2._file_dialog_row_cache = { file = nil, rows = nil }
+      self_ref2:executeBookLevelAction(captured_action_id)
+    end
+    regenerate_label = _("Update")
+  end
+
   local viewer = ChatGPTViewer:new{
     title = title,
     text = cache_info_text .. "\n\n" .. cached_entry.result,
@@ -4944,6 +4995,8 @@ function AskGPT:viewCachedAction(action, action_id, cached_entry, opts)
     configuration = configuration,
     cache_type_name = action_name,
     on_delete = on_delete,
+    on_regenerate = on_regenerate,
+    regenerate_label = regenerate_label,
     _plugin = self,
     _ui = self.ui,
   }

@@ -909,6 +909,7 @@ local ChatGPTViewer = InputContainer:extend {
   -- on_delete: function() called when user clicks Delete (should close viewer and clear cache)
   -- cache_type_name: display name for confirmation dialogs (e.g., "X-Ray", "Summary", "Analysis")
   on_regenerate = nil,
+  regenerate_label = nil,  -- Custom label for regenerate button (e.g., "Update" instead of "Regenerate")
   on_delete = nil,
   cache_type_name = nil,
 
@@ -2202,14 +2203,15 @@ function ChatGPTViewer:init()
   else
     -- Cache mode: Regenerate + Delete buttons
     if self.on_regenerate then
+      local regen_label = self.regenerate_label or _("Regenerate")
       table.insert(simple_view_row2, {
-        text = _("Regenerate"),
+        text = regen_label,
         id = "regenerate_cache",
         callback = function()
           local ConfirmBox = require("ui/widget/confirmbox")
           UIManager:show(ConfirmBox:new{
             text = T(_("Regenerate this %1?\n\nThe current %1 will be replaced."), self.cache_type_name or _("summary")),
-            ok_text = _("Regenerate"),
+            ok_text = regen_label,
             ok_callback = function()
               self:onClose()
               self.on_regenerate()

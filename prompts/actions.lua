@@ -541,8 +541,6 @@ __SCOPE_LINE__
 
 __TEXT_SECTION__
 
-{text_fallback_nudge}
-
 First, determine if this is FICTION or NON-FICTION. Then output ONLY a valid JSON object (no markdown, no code fences, no explanation) using the appropriate schema below. __SCOPE_INSTRUCTION__. Order characters by narrative importance.
 
 ---
@@ -825,6 +823,64 @@ Guidelines:
 {highlight_analysis_nudge}
 
 CRITICAL: This must remain spoiler-free up to {reading_progress}. Output ONLY valid JSON — no other text. JSON keys must remain in English. Character names, location names, terms, and aliases must be in the same language and script as the source text. All other string values must follow your language instructions.]],
+    },
+    -- X-Ray (Simple): Prose companion from AI knowledge (no text extraction)
+    xray_simple = {
+        id = "xray_simple",
+        enable_web_search = false,
+        text = _("X-Ray (Simple)"),
+        description = _("A prose companion guide from AI knowledge — characters, themes, settings, key terms. No text extraction needed. Uses reading progress to avoid spoilers. Highlights add personal context when shared."),
+        context = "book",
+        behavior_variant = "reader_assistant",
+        use_highlights = true,          -- Optional, gated by enable_highlights_sharing
+        use_reading_progress = true,    -- For spoiler avoidance
+        -- NO use_book_text — intentionally omitted
+        prompt = [[Create a reader's companion for "{title}"{author_clause}.
+
+I'm currently at {reading_progress}. Using your knowledge of this work, provide a spoiler-free reference guide covering ONLY what happens up to approximately this point.
+
+{highlights_section}
+
+## Characters
+For each significant character the reader has encountered by this point:
+- **Name** — Role and who they are
+- Key relationships and connections to other characters
+- Their arc and motivations so far (3-5 sentences for major, 1-2 for minor)
+
+## Themes
+Major themes emerging up to this point:
+- **Theme** — How it manifests through characters, events, or arguments
+- How it's developing (not how it resolves)
+
+## Setting
+Significant places and world-building:
+- **Place** — What it is, its atmosphere, significance, key events there
+
+## Key Terms
+Important terminology, in-world vocabulary, or specialized concepts:
+- **Term** — Definition and relevance
+
+## Where Things Stand
+A paragraph capturing the current state of the narrative or argument — active tensions, open questions, the momentum carrying the reader forward.
+
+Adapt section names for the work type (e.g., "Key Figures" and "Arguments" for non-fiction). Use **bold** for names and terms. If highlights are provided, note what caught the reader's attention and how it connects to the broader work.
+
+CRITICAL: Do not reveal ANYTHING beyond {reading_progress}. No foreshadowing, no future developments, no hints about what comes next.
+
+If you don't recognize this work or are uncertain about details, say so honestly rather than fabricating.
+
+{conciseness_nudge}
+{hallucination_nudge}]],
+        skip_domain = true,
+        api_params = {
+            temperature = 0.5,
+            max_tokens = 8192,
+        },
+        builtin = true,
+        in_reading_features = 4,        -- After X-Ray(1), Recap(2), Analyze Highlights(3)
+        storage_key = "__SKIP__",       -- Cache, not chat history
+        use_response_caching = true,    -- Saves result to ActionCache for cache-first viewing
+        -- NO update_prompt — every generation is fresh (regenerate, not incremental)
     },
     -- Recap: Story summary for re-immersion
     recap = {
