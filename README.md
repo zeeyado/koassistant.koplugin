@@ -678,6 +678,8 @@ These actions analyze your actual reading content. They require specific privacy
 > - **Cache staleness** detects when your hidden flow configuration changes and notifies you
 >
 > This works for both EPUB and PDF. Useful for collected works where you want to analyze just one book, or for editions with long endnotes/apparatus you want excluded from AI analysis. The hidden content is simply invisible to KOAssistant — extraction, progress tracking, and chapter features all operate on visible pages only.
+>
+> **Tip:** Hidden Flows is one of the best ways to save tokens and improve AI results. By hiding front matter, appendices, indices, and other non-narrative content, you send only the parts that matter. This is especially valuable for complete X-Ray generation on long books. See KOReader's documentation for how to set up Hidden Flows.
 
 > **Highlights in X-Ray:** When [Allow Highlights](#privacy-controls) is enabled, X-Ray incorporates your highlighted passages into its analysis — adding a **Reader Engagement** category that tracks which themes and ideas you've engaged with, and weaving your highlights into character and location entries. This gives the X-Ray a personal dimension tied to your reading. To control this:
 > - **Disable for all actions:** Turn off "Allow Highlights" in Settings → Privacy & Data. No action will see your highlights.
@@ -2031,9 +2033,10 @@ See [Privacy & Data](#privacy--data) for background on what gets sent to AI prov
   - **Allow Reading Progress**: Send current reading position percentage (default: ON)
   - **Allow Chapter Info**: Send chapter title, chapters read, time since last opened (default: ON)
 - **Text Extraction** (submenu): Settings for extracting book content for AI analysis
-  - **Allow Text Extraction**: Master toggle for text extraction (off by default). When enabled, actions can extract and send book text to the AI. Used by X-Ray, Recap, Explain in Context, Analyze in Context, and actions with text placeholders (`{book_text}`, `{full_document}`, etc.). Enabling shows an informational notice about token costs.
-  - **Max Text Characters**: Maximum characters to extract (10,000-2,000,000, default 1,000,000 ~250k tokens)
-  - **Max PDF Pages**: Maximum PDF pages to process (50-1,000, default 500)
+  - **Allow Text Extraction**: Master toggle for text extraction (off by default). When enabled, actions can extract and send book text to the AI. Used by X-Ray, Recap, Explain in Context, Analyze in Context, and actions with text placeholders (`{book_text}`, `{full_document}`, etc.). Enabling shows an informational notice about token costs and a tip about using Hidden Flows to save tokens.
+  - **Max Text Characters**: Maximum characters to extract (100,000-10,000,000, default 4,000,000 ~1M tokens). The default covers most books with Gemini's 1M-token context; lower it for smaller models
+  - **Max Pages (PDF, DJVU, CBZ…)**: Maximum pages to extract from page-based formats (100-5,000, default 2,000)
+  - **Don't warn about large extractions**: When unchecked (default), a warning dialog appears before sending requests with over 500K characters (~125K tokens) of extracted text — most models except Gemini will struggle at this size. The warning offers Cancel, Continue, or Don't warn again
   - **Clear Action Cache**: Clear cached X-Ray/Recap responses for the current book (requires book to be open). To clear just one action, use the delete button in the artifact viewer instead.
 
 ### KOReader Integration
@@ -2601,16 +2604,17 @@ If you haven't run X-Ray yet, the placeholder renders empty and the action still
 
 **Text extraction guidelines:**
 - ~100 pages ≈ 25,000-40,000 characters (varies by formatting)
-- Default limit: 1,000,000 characters (~250k tokens), configurable up to 2,000,000
-- Default PDF limit: 500 pages, configurable up to 1,000
-- These defaults cover most novels (~80k-100k words ≈ 500k-600k chars). Even long fantasy novels (~200k words ≈ 1.2M chars) fit within the max setting
-- **The extraction limit is not the bottleneck — your model's context window is.** If the extracted text exceeds what your model can handle, the API will reject the request. A partial extraction that silently omits half the book produces worse results than a clear API error you can act on. See [Context Windows and Extraction Limits](#context-windows-and-extraction-limits) below
-- If truncation occurs, both you and the AI see a notice showing the coverage range (e.g., "covers 14%-100%")
+- Default limit: 4,000,000 characters (~1M tokens), configurable up to 10,000,000
+- Default page limit (PDF, DJVU, CBZ, etc.): 2,000 pages, configurable up to 5,000
+- The 4M default handles most books with Gemini's 1M-token context. For smaller models (Claude ~200K tokens, GPT-4o ~128K tokens), you may want to lower it — or rely on the large extraction warning (see below)
+- **The extraction limit is not the bottleneck — your model's context window is.** If the extracted text exceeds what your model can handle, the API will reject the request. A **large extraction warning** now appears before sending requests over 500K characters (~125K tokens), giving you a chance to cancel. You can dismiss it permanently via the dialog or in Settings → Privacy & Data → Text Extraction
+- If truncation occurs, both you and the AI see a notice showing the coverage range (e.g., "covers 14%-100%"), along with a tip to use Hidden Flows to exclude irrelevant sections
+- **Use KOReader's Hidden Flows** to exclude front matter, appendices, endnotes, and other irrelevant content. This reduces token usage and improves AI results without lowering extraction limits. See the [Hidden flows support](#x-ray-browser) note above
 - **Two extraction types:** `{book_text_section}` extracts from start to current position (spoiler-safe, used by X-Ray/Recap only), `{full_document_section}` extracts the entire document regardless of position (used by all other text extraction actions)
 
 #### Context Windows and Extraction Limits
 
-The max extraction setting is a safety cap, not a target. Your AI model's context window determines how much text it can actually process. Here's roughly what each provider supports:
+The max extraction setting is a safety cap, not a target. The default (4M chars) is sized for Gemini's 1M-token context — smaller models will hit their limit well before this. A **large extraction warning** appears at 500K characters (~125K tokens) to alert you before this happens. Here's roughly what each provider supports:
 
 | Provider | Context Window | Max English Text (~4 chars/token) |
 |----------|---------------|----------------------------------|
@@ -2639,10 +2643,11 @@ The max extraction setting is a safety cap, not a target. Your AI model's contex
 
 **Tips to avoid exceeding your model's context window:**
 
+- **Use Hidden Flows** — KOReader's Hidden Flows feature lets you exclude front matter, appendices, endnotes, and other irrelevant content from extraction. This saves tokens and improves AI results without lowering extraction limits. Particularly useful for collected works, annotated editions, or books with lengthy apparatus
 - **Use response caching** — Run X-Ray/Recap early in your reading. Subsequent runs send only new content since the last cached position, not the entire book again. Starting X-Ray at 80% on a long novel sends the whole 80% at once; starting at 10% and running periodically keeps each request small
 - **Use Smart actions for conversations** — They reference the cached summary (~2-8K tokens) instead of raw book text (~100K+ tokens). Since each follow-up resends the full conversation history, a smaller initial context leaves much more room for extended discussions and keeps per-turn costs low
 - **Lower the extraction limit** if your model is small — Settings → Privacy & Data → Text Extraction → Max Text Characters. Match it to your model's context window rather than leaving it at the default
-- **The max limit (2M chars) exists for Gemini's 1M-token context.** Most other models will never need more than 500k-800k chars. You probably don't need to raise the default unless you're using Gemini with very long documents
+- **The max limit (10M chars) exists for future large-context models.** The default (4M chars) is sized for Gemini's 1M-token context. Most other models will never need more than 500k-800k chars. The large extraction warning at 500K chars helps you catch oversized requests before they fail
 - **Keep conversations focused** — Each follow-up adds the AI's previous response and your new message to the history, and the entire history is resent every turn. For actions that used large context (full book text), consider starting a new chat rather than extending a very long conversation. The plugin warns you when conversation context exceeds ~50K tokens
 
 ### Reasoning/Thinking
