@@ -4301,7 +4301,7 @@ function AskGPT:showCacheViewer(cache_info)
               (math.floor(cache_info.data.progress_decimal * 100 + 0.5) .. "%")),
           model = cache_info.data.model,
           timestamp = cache_info.data.timestamp,
-          book_file = self.ui and self.ui.document and self.ui.document.file,
+          book_file = self.ui and self.ui.document and self.ui.document.file or cache_info.file,
           enable_emoji = features.enable_emoji_icons == true,
           cache_metadata = cache_metadata,
           configuration = configuration,
