@@ -2396,13 +2396,6 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
             -- Includes incremental text for update scenarios
             local ResponseParser = require("koassistant_api.response_parser")
             local is_truncated = answer:find(ResponseParser.TRUNCATION_NOTICE, 1, true) ~= nil
-            -- For X-Ray: if JSON parsed successfully, the data is structurally complete even if
-            -- the raw response was truncated (e.g., trailing text after JSON cut off). The re-encoded
-            -- cache_answer is clean — safe to cache.
-            if is_truncated and action.cache_as_xray and cache_answer and cache_answer ~= answer then
-                is_truncated = false
-                logger.info("KOAssistant: X-Ray raw response truncated but JSON parsed successfully, caching re-encoded result")
-            end
             local book_text_was_provided = (message_data.book_text and message_data.book_text ~= "")
                 or (message_data.full_document and message_data.full_document ~= "")
                 or (message_data.incremental_book_text and message_data.incremental_book_text ~= "")

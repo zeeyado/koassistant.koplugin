@@ -185,11 +185,28 @@ local function getAllChapterBoundaries(ui, target_depth)
     -- Use deepest depth if not specified
     local depth = target_depth or max_depth
 
-    -- Filter entries to target depth
+    -- Filter entries to target depth, but include shallower entries
+    -- that have no children at the target depth (e.g., "Introduction" at depth 1
+    -- when other parts have sub-chapters at depth 3)
     local filtered = {}
-    for _idx, entry in ipairs(effective_toc) do
-        if (entry.depth or 1) == depth then
+    for i, entry in ipairs(effective_toc) do
+        local d = entry.depth or 1
+        if d == depth then
             table.insert(filtered, entry)
+        elseif d < depth then
+            -- Check if this entry has any descendants at the target depth
+            local has_children_at_depth = false
+            for j = i + 1, #effective_toc do
+                local child_depth = effective_toc[j].depth or 1
+                if child_depth <= d then break end  -- Past this entry's subtree
+                if child_depth == depth then
+                    has_children_at_depth = true
+                    break
+                end
+            end
+            if not has_children_at_depth then
+                table.insert(filtered, entry)
+            end
         end
     end
 
@@ -1476,7 +1493,7 @@ function XrayBrowser:showItemDistribution(item, category_key, item_title)
                 if text and text ~= "" then
                     count = XrayParser.countItemOccurrences(item, text:lower())
                 end
-                table.insert(chapter_counts, count)
+                chapter_counts[_idx] = count
                 total_mentions = total_mentions + count
                 if count > max_count then max_count = count end
             end
