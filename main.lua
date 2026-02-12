@@ -4339,21 +4339,27 @@ function AskGPT:showCacheViewer(cache_info)
 
         XrayBrowser:show(parsed, browser_metadata, self.ui, on_delete)
 
-        -- Progress staleness popup (only if flow staleness wasn't shown)
-        if not staleness_shown and ce_ok and ContextExtractor
+        -- Progress staleness popup (only if flow staleness wasn't shown
+        -- and not suppressed by caller, e.g. showCacheActionPopup already showed update option)
+        if not staleness_shown and not cache_info.skip_stale_popup
+                and ce_ok and ContextExtractor
                 and self.ui and self.ui.document
                 and cache_info.data.progress_decimal then
             local extractor = ContextExtractor:new(self.ui)
             local current = extractor:getReadingProgress()
             local cached_dec = cache_info.data.progress_decimal
-            if current.decimal - cached_dec > 0.05 then
+            -- Check session-based dismiss (keyed by book + cached progress)
+            local book_file = self.ui.document.file
+            local dismissed = self._xray_stale_dismissed
+                and self._xray_stale_dismissed[book_file] == cached_dec
+            if not dismissed and current.decimal - cached_dec > 0.05 then
                 local cache_pct = math.floor(cached_dec * 100 + 0.5)
                 local rel_time = formatRelativeTime(cache_info.data.timestamp)
-                local info_text = T(_("X-Ray covers to %1%%"), cache_pct)
+                local info_text = T(_("X-Ray covers to %1%"), cache_pct)
                 if rel_time ~= "" then
                     info_text = info_text .. " (" .. rel_time .. ")"
                 end
-                info_text = info_text .. "\n" .. T(_("You're now at %1%%."), current.percent)
+                info_text = info_text .. "\n" .. T(_("You're now at %1%."), current.percent)
 
                 local self_ref = self
                 local stale_dialog
@@ -4374,9 +4380,14 @@ function AskGPT:showCacheViewer(cache_info)
                             end,
                         }},
                         {{
-                            text = _("Dismiss"),
+                            text = _("Don't remind me this session"),
                             callback = function()
                                 UIManager:close(stale_dialog)
+                                -- Suppress for this session until X-Ray is updated
+                                if not self_ref._xray_stale_dismissed then
+                                    self_ref._xray_stale_dismissed = {}
+                                end
+                                self_ref._xray_stale_dismissed[book_file] = cached_dec
                             end,
                         }},
                     },
@@ -4665,7 +4676,7 @@ function AskGPT:showCacheActionPopup(action, action_id, on_update)
           text = T(_("View %1"), action_name .. view_detail),
           callback = function()
             UIManager:close(dialog)
-            self_ref:viewCachedAction(action, action_id, cached)
+            self_ref:viewCachedAction(action, action_id, cached, { skip_stale_popup = true })
           end,
         },
       },
@@ -4703,6 +4714,7 @@ function AskGPT:viewCachedAction(action, action_id, cached_entry, opts)
   if action.cache_as_xray then
     local info = { name = "X-Ray", key = "_xray_cache", data = cached_entry }
     if opts then info.file = opts.file; info.book_title = opts.book_title; info.book_author = opts.book_author end
+    if opts and opts.skip_stale_popup then info.skip_stale_popup = true end
     self:showCacheViewer(info)
     return
   end
