@@ -2291,6 +2291,15 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                 message_data.cached_used_highlights = cached_entry.used_highlights
                 message_data.cached_used_annotations = cached_entry.used_annotations
 
+                -- For X-Ray: parse cached result and build entity index for merge-based updates
+                if prompt.id == "xray" and XrayParser.isJSON(cached_entry.result) then
+                    local parsed_cache = XrayParser.parse(cached_entry.result)
+                    if parsed_cache and not parsed_cache.error then
+                        message_data.entity_index = XrayParser.buildEntityIndex(parsed_cache)
+                        message_data._parsed_old_xray = parsed_cache
+                    end
+                end
+
                 -- Get incremental book text (from cached to current position)
                 -- If text extraction is disabled, getBookTextRange returns empty — AI updates from training knowledge
                 local extraction_success, ContextExtractor = pcall(require, "koassistant_context_extractor")
@@ -2357,12 +2366,20 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                     cache_answer = nil  -- Signal to skip caching below
                     logger.info("KOAssistant: X-Ray returned error response, skipping cache:", parsed.error)
                 elseif parsed then
+                    -- Merge partial update into existing data when available
+                    if using_cache and message_data._parsed_old_xray then
+                        parsed = XrayParser.merge(message_data._parsed_old_xray, parsed)
+                        logger.info("KOAssistant: Merged incremental X-Ray update into existing data")
+                    end
                     local book_meta = message_data.book_metadata or {}
                     display_answer = XrayParser.renderToMarkdown(
                         parsed,
                         book_meta.title or "",
                         message_data.reading_progress or ""
                     )
+                    -- Pretty-print cached JSON so future updates receive readable structured data
+                    local json_mod = require("json")
+                    cache_answer = json_mod.encode(parsed, { pretty = true, indent = true })
                     logger.info("KOAssistant: X-Ray JSON parsed successfully, rendered to markdown for display")
                 else
                     logger.info("KOAssistant: X-Ray response is not valid JSON, using as-is")
@@ -2379,6 +2396,13 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
             -- Includes incremental text for update scenarios
             local ResponseParser = require("koassistant_api.response_parser")
             local is_truncated = answer:find(ResponseParser.TRUNCATION_NOTICE, 1, true) ~= nil
+            -- For X-Ray: if JSON parsed successfully, the data is structurally complete even if
+            -- the raw response was truncated (e.g., trailing text after JSON cut off). The re-encoded
+            -- cache_answer is clean — safe to cache.
+            if is_truncated and action.cache_as_xray and cache_answer and cache_answer ~= answer then
+                is_truncated = false
+                logger.info("KOAssistant: X-Ray raw response truncated but JSON parsed successfully, caching re-encoded result")
+            end
             local book_text_was_provided = (message_data.book_text and message_data.book_text ~= "")
                 or (message_data.full_document and message_data.full_document ~= "")
                 or (message_data.incremental_book_text and message_data.incremental_book_text ~= "")
