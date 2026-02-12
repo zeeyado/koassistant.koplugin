@@ -5515,6 +5515,18 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
     })
   end
 
+  -- Browse Artifacts button
+  if isQsEnabled("browse_artifacts") then
+    table.insert(all_buttons, {
+      text = _("Browse Artifacts"),
+      callback = function()
+        opening_subdialog = true
+        UIManager:close(dialog)
+        self_ref:onKOAssistantBrowseArtifacts()
+      end,
+    })
+  end
+
   -- General Chat/Action button
   if isQsEnabled("general_chat") then
     table.insert(all_buttons, {

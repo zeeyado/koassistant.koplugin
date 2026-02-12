@@ -1067,6 +1067,13 @@ local SettingsSchema = {
                                 default = true,
                             },
                             {
+                                id = "qs_show_browse_artifacts",
+                                type = "toggle",
+                                text = _("Browse Artifacts"),
+                                path = "features.qs_show_browse_artifacts",
+                                default = true,
+                            },
+                            {
                                 id = "qs_show_general_chat",
                                 type = "toggle",
                                 text = _("General Chat/Action"),
