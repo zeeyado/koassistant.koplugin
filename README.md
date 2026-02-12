@@ -1833,7 +1833,7 @@ Tags are simple labels for organizing chats. Unlike domains:
 
 #### Streaming (sub-menu)
 - **Enable Streaming**: Show responses as they generate in real-time
-- **Auto-scroll Streaming**: Follow new text during streaming (off by default)
+- **Auto-scroll Streaming**: Follow new text during streaming (on by default)
 - **Page-based Scroll (e-ink)**: Stream text into empty page space instead of scrolling from the bottom. Reduces full-screen refreshes on e-ink devices. When disabled, falls back to continuous bottom-scrolling. Default: on. Requires Auto-scroll.
 - **Large Stream Dialog**: Use full-screen streaming window
 - **Stream Poll Interval (ms)**: How often to check for new stream data (default: 125ms, range: 25-1000ms). Lower values are snappier but use more battery.
@@ -2407,7 +2407,7 @@ The Action Manager (Settings → Actions & Prompts → Manage Actions) has a ham
 
 When enabled, responses appear in real-time as the AI generates them.
 
-- **Auto-scroll**: Follows new text as it appears
+- **Auto-scroll** (default): Follows new text as it appears. Automatically pauses when you swipe, use page buttons, or tap the scroll controls.
 - **Page-based scroll** (default): Text fills the current page top-down, then advances to a blank page when full — minimizing full-screen e-ink refreshes. Disable for continuous bottom-scrolling.
 - **Auto-Scroll toggle button**: Tap to stop/start auto-scrolling
 
