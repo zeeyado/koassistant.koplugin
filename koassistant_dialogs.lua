@@ -2309,7 +2309,16 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                         max_book_text_chars = prompt.max_book_text_chars or (config.features and config.features.max_book_text_chars),
                         max_pdf_pages = config.features and config.features.max_pdf_pages,
                     })
-                    local range_result = extractor:getBookTextRange(cached_progress, current_progress)
+                    -- Use raw page numbers for extraction range
+                    -- (flow-aware progress * total_pages gives wrong pages when hidden flows active)
+                    local total_pages = ui.document.info and ui.document.info.number_of_pages or 0
+                    local from_page = cached_entry.progress_page
+                        or math.floor(cached_progress * total_pages)
+                    local to_page = tonumber(message_data.progress_page)
+                        or math.floor(current_progress * total_pages)
+                    local from_raw = total_pages > 0 and from_page / total_pages or cached_progress
+                    local to_raw = total_pages > 0 and to_page / total_pages or current_progress
+                    local range_result = extractor:getBookTextRange(from_raw, to_raw)
                     message_data.incremental_book_text = range_result.text
                     logger.info("KOAssistant: Extracted incremental book text:", range_result.char_count, "chars")
 
@@ -2422,7 +2431,8 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                     tonumber(message_data.progress_decimal) or 0,
                     { model = ConfigHelper:getModelInfo(temp_config), used_book_text = book_text_was_provided,
                       used_highlights = highlights_were_provided,
-                      previous_progress_decimal = message_data.cached_progress_decimal }
+                      previous_progress_decimal = message_data.cached_progress_decimal,
+                      progress_page = message_data.progress_page }
                 )
                 if save_success then
                     logger.info("KOAssistant: Saved response to cache for", original_action_id, "at", message_data.progress_decimal, "used_book_text=", book_text_was_provided, "used_highlights=", highlights_were_provided)
@@ -2454,6 +2464,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                         used_book_text = book_text_was_provided,
                         previous_progress_decimal = message_data.cached_progress_decimal,
                         flow_visible_pages = message_data.flow_visible_pages,
+                        progress_page = message_data.progress_page,
                     }
                     local xray_success = ActionCache.setXrayCache(ui.document.file, cache_answer, progress, xray_metadata)
                     if xray_success then
@@ -3145,6 +3156,22 @@ local function getProgressDecimal(ui)
     else
         local xp = ui.document:getXPointer()
         current_page = xp and ui.document:getPageFromXPointer(xp) or 1
+    end
+    -- Flow-aware progress when hidden flows active
+    if ui.document.hasHiddenFlows and ui.document:hasHiddenFlows() then
+        local visible_at_or_before = 0
+        local total_visible = 0
+        for page = 1, total_pages do
+            if ui.document:getPageFlow(page) == 0 then
+                total_visible = total_visible + 1
+                if page <= current_page then
+                    visible_at_or_before = visible_at_or_before + 1
+                end
+            end
+        end
+        if total_visible > 0 then
+            return visible_at_or_before / total_visible
+        end
     end
     return current_page / total_pages
 end
