@@ -1227,11 +1227,20 @@ function PromptsManager:showStep1_NameAndContext(state)
 
     -- Highlight and annotation use toggles (for per-book contexts)
     if state.context and self:canUsePerBookData(state.context) then
-        local highlights_checkbox = state.use_highlights and "☑ " or "☐ "
+        local highlights_locked = state.use_annotations == true
+        local highlights_checkbox = highlights_locked and "☑ " or (state.use_highlights and "☑ " or "☐ ")
+        local highlights_suffix = highlights_locked and " ←" or ""
         table.insert(button_rows, {
             {
-                text = highlights_checkbox .. _("Allow highlight use"),
+                text = highlights_checkbox .. _("Allow highlight use") .. highlights_suffix,
                 callback = function()
+                    if highlights_locked then
+                        UIManager:show(Notification:new{
+                            text = _("Highlights are always on when annotations are enabled."),
+                            timeout = 3,
+                        })
+                        return
+                    end
                     state.name = self.step1_dialog:getInputText()
                     state.use_highlights = not state.use_highlights
                     if state.use_highlights then
@@ -2860,9 +2869,19 @@ function PromptsManager:showBuiltinSettingsDialog(state)
     end
 
     if prompt.context and self:canUsePerBookData(prompt.context) then
+        local hl_locked = state.use_annotations == true
+        local hl_checkbox = hl_locked and "☑ " or (state.use_highlights and "☑ " or "☐ ")
+        local hl_suffix = hl_locked and " ←" or ""
         table.insert(items, {
-            text = (state.use_highlights and "☑ " or "☐ ") .. _("Allow highlight use"),
+            text = hl_checkbox .. _("Allow highlight use") .. hl_suffix,
             callback = function()
+                if hl_locked then
+                    UIManager:show(Notification:new{
+                        text = _("Highlights are always on when annotations are enabled."),
+                        timeout = 3,
+                    })
+                    return
+                end
                 state.use_highlights = not state.use_highlights
                 if state.use_highlights then
                     local features = self.plugin.settings:readSetting("features") or {}
@@ -3609,9 +3628,19 @@ function PromptsManager:showCustomQuickSettingsDialog(state)
     end
 
     if state.context and self:canUsePerBookData(state.context) then
+        local hl_locked = state.use_annotations == true
+        local hl_checkbox = hl_locked and "☑ " or (state.use_highlights and "☑ " or "☐ ")
+        local hl_suffix = hl_locked and " ←" or ""
         table.insert(items, {
-            text = (state.use_highlights and "☑ " or "☐ ") .. _("Allow highlight use"),
+            text = hl_checkbox .. _("Allow highlight use") .. hl_suffix,
             callback = function()
+                if hl_locked then
+                    UIManager:show(Notification:new{
+                        text = _("Highlights are always on when annotations are enabled."),
+                        timeout = 3,
+                    })
+                    return
+                end
                 state.use_highlights = not state.use_highlights
                 if state.use_highlights then
                     local features = self.plugin.settings:readSetting("features") or {}
