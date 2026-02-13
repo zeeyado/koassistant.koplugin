@@ -28,7 +28,7 @@ local SettingsSchema = {
         {
             id = "chat_about_book",
             type = "action",
-            text = _("Chat about Book"),
+            text = _("Book Chat/Action"),
             emoji = "💬",
             callback = "onKOAssistantBookChat",
             visible_func = function(plugin)

@@ -540,6 +540,7 @@ local function handleTextSelection(text, ui)
     local did_lookup = false
     if word_count >= 1 and word_count <= 3 then
         if ui and ui.dictionary then
+            ui.dictionary._koassistant_non_reader_lookup = true
             ui.dictionary:onLookupWord(text)
             did_lookup = true
         end

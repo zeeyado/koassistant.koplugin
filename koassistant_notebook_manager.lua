@@ -36,8 +36,10 @@ function NotebookManager:showNotebookBrowser(opts)
             -- Get book title and author from metadata, falling back to filename
             local doc_settings = DocSettings:open(doc_path)
             local doc_props = doc_settings:readSetting("doc_props")
-            local title = (doc_props and doc_props.title and doc_props.title ~= "") and doc_props.title
-                or doc_path:match("([^/]+)%.[^%.]+$") or doc_path
+            local title = doc_props and (doc_props.display_title or doc_props.title) or nil
+            if not title or title == "" then
+                title = doc_path:match("([^/]+)%.[^%.]+$") or doc_path
+            end
             local author = doc_props and doc_props.authors or nil
             table.insert(docs, {
                 path = doc_path,
@@ -123,10 +125,16 @@ function NotebookManager:showNotebookBrowser(opts)
         multilines_forced = true,
         items_font_size = 18,
         items_mandatory_font_size = 14,
-        close_callback = function()
-            self_ref.current_menu = nil
-        end,
     }
+
+    -- Guarded close_callback: only clear if this menu is still the active one.
+    -- Prevents race condition where old menu's callback wipes reference to a newer menu.
+    -- (Same pattern as chat_history_dialog.lua)
+    menu.close_callback = function()
+        if self_ref.current_menu == menu then
+            self_ref.current_menu = nil
+        end
+    end
 
     self.current_menu = menu
     UIManager:show(menu)
@@ -141,6 +149,11 @@ function NotebookManager:showNotebookOptions(doc_path, doc_title)
     local self_ref = self
 
     local dialog
+    -- Close previous options dialog if still open
+    if self._current_options_dialog then
+        UIManager:close(self._current_options_dialog)
+        self._current_options_dialog = nil
+    end
     dialog = ButtonDialog:new{
         title = doc_title,
         buttons = {
@@ -214,6 +227,7 @@ function NotebookManager:showNotebookOptions(doc_path, doc_title)
             },
         },
     }
+    self._current_options_dialog = dialog
     UIManager:show(dialog)
 end
 
@@ -230,6 +244,10 @@ function NotebookManager:showBrowserMenuOptions(opts)
                     text = _("Chat History"),
                     callback = function()
                         UIManager:close(dialog)
+                        if self_ref._current_options_dialog then
+                            UIManager:close(self_ref._current_options_dialog)
+                            self_ref._current_options_dialog = nil
+                        end
                         if self_ref.current_menu then
                             UIManager:close(self_ref.current_menu)
                             self_ref.current_menu = nil
@@ -246,6 +264,10 @@ function NotebookManager:showBrowserMenuOptions(opts)
                     text = _("Browse Artifacts"),
                     callback = function()
                         UIManager:close(dialog)
+                        if self_ref._current_options_dialog then
+                            UIManager:close(self_ref._current_options_dialog)
+                            self_ref._current_options_dialog = nil
+                        end
                         if self_ref.current_menu then
                             UIManager:close(self_ref.current_menu)
                             self_ref.current_menu = nil

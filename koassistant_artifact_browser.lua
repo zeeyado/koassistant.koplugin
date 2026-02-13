@@ -41,9 +41,10 @@ local ARTIFACT_NAMES = {
 local function getBookMetadata(doc_path)
     local doc_settings = DocSettings:open(doc_path)
     local doc_props = doc_settings:readSetting("doc_props")
-    local title = (doc_props and doc_props.title and doc_props.title ~= "")
-        and doc_props.title
-        or doc_path:match("([^/]+)%.[^%.]+$") or doc_path
+    local title = doc_props and (doc_props.display_title or doc_props.title) or nil
+    if not title or title == "" then
+        title = doc_path:match("([^/]+)%.[^%.]+$") or doc_path
+    end
     local author = doc_props and doc_props.authors or nil
     return title, author
 end
@@ -161,10 +162,16 @@ function ArtifactBrowser:showArtifactBrowser(opts)
         multilines_forced = true,
         items_font_size = 18,
         items_mandatory_font_size = 14,
-        close_callback = function()
-            self_ref.current_menu = nil
-        end,
     }
+
+    -- Guarded close_callback: only clear if this menu is still the active one.
+    -- Prevents race condition where old menu's callback wipes reference to a newer menu.
+    -- (Same pattern as chat_history_dialog.lua)
+    menu.close_callback = function()
+        if self_ref.current_menu == menu then
+            self_ref.current_menu = nil
+        end
+    end
 
     self.current_menu = menu
     UIManager:show(menu)
@@ -373,6 +380,10 @@ function ArtifactBrowser:showBrowserMenuOptions(opts)
                     text = _("Chat History"),
                     callback = function()
                         UIManager:close(dialog)
+                        if self_ref._cache_selector then
+                            UIManager:close(self_ref._cache_selector)
+                            self_ref._cache_selector = nil
+                        end
                         if self_ref.current_menu then
                             UIManager:close(self_ref.current_menu)
                             self_ref.current_menu = nil
@@ -389,6 +400,10 @@ function ArtifactBrowser:showBrowserMenuOptions(opts)
                     text = _("Browse Notebooks"),
                     callback = function()
                         UIManager:close(dialog)
+                        if self_ref._cache_selector then
+                            UIManager:close(self_ref._cache_selector)
+                            self_ref._cache_selector = nil
+                        end
                         if self_ref.current_menu then
                             UIManager:close(self_ref.current_menu)
                             self_ref.current_menu = nil

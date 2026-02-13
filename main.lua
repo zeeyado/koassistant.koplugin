@@ -292,7 +292,17 @@ function AskGPT:generateFileDialogRows(file, is_file, book_props)
   local buttons = {}
 
   -- Main Chat/Action button (always first - primary entry point)
-  local title = book_props and book_props.title or file:match("([^/]+)$")
+  -- Title fallback: book_props → DocSettings (display_title/title) → filename
+  local title = book_props and book_props.title or nil
+  if not title or title == "" then
+    local DocSettings = require("docsettings")
+    local doc_settings = DocSettings:open(file)
+    local doc_props = doc_settings:readSetting("doc_props")
+    title = doc_props and (doc_props.display_title or doc_props.title) or nil
+  end
+  if not title or title == "" then
+    title = file:match("([^/]+)%.[^%.]+$") or file:match("([^/]+)$")
+  end
   local authors = book_props and book_props.authors or ""
   local self_ref_main = self
   table.insert(buttons, {
