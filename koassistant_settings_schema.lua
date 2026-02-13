@@ -1523,7 +1523,7 @@ local SettingsSchema = {
                     text = _("Show Artifacts Button"),
                     path = "features.show_artifacts_in_file_browser",
                     default = true,
-                    help_text = _("Show 'View Artifacts' button for books that have cached results (X-Ray, Summary, Analysis)."),
+                    help_text = _("Show 'View Artifacts' button for books that have cached results (X-Ray, X-Ray Simple, Recap, Summary, Analysis)."),
                     depends_on = { id = "show_in_file_browser", value = true },
                     separator = true,
                 },

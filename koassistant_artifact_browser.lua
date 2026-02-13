@@ -94,7 +94,7 @@ function ArtifactBrowser:showArtifactBrowser(opts)
     -- Handle empty state
     if #docs == 0 then
         UIManager:show(InfoMessage:new{
-            text = _("No artifacts yet.\n\nRun X-Ray, Summarize Document, or Analyze Document to create reusable artifacts."),
+            text = _("No artifacts yet.\n\nRun X-Ray, Recap, Summarize Document, or Analyze Document to create reusable artifacts."),
             timeout = 5,
         })
         return

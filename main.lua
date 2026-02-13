@@ -737,7 +737,7 @@ function AskGPT:showKOAssistantDialogForFile(file, title, authors, book_props)
     -- Make sure we're using the latest configuration
     self:updateConfigFromSettings()
     -- Show dialog with book context instead of highlighted text
-    -- Pass book_metadata so action input popup can access file path for View Summary
+    -- Pass book_metadata so action input popup can access file path for artifact viewers
     local book_metadata = configuration.features.book_metadata
     showChatGPTDialog(self.ui, book_context, configuration, nil, self, book_metadata)
   end)
@@ -5884,7 +5884,7 @@ function AskGPT:clearActionCache()
   local ui = self.ui
   if not ui or not ui.document or not ui.document.file then
     UIManager:show(InfoMessage:new{
-      text = _("No book is currently open.\n\nOpen a book first, then use this option to clear its cached X-Ray and Recap responses."),
+      text = _("No book is currently open.\n\nOpen a book first, then use this option to clear its cached action responses."),
       timeout = 5,
     })
     return
@@ -5897,7 +5897,7 @@ function AskGPT:clearActionCache()
   local attr = cache_path and lfs.attributes(cache_path)
   if not attr or attr.mode ~= "file" then
     UIManager:show(InfoMessage:new{
-      text = _("No action cache found for this book.\n\nRun X-Ray or Recap first to create a cache."),
+      text = _("No action cache found for this book.\n\nRun an artifact action (X-Ray, Recap, Summarize, etc.) to create a cache."),
       timeout = 3,
     })
     return
@@ -5907,7 +5907,7 @@ function AskGPT:clearActionCache()
   local dialog
   dialog = ButtonDialog:new{
     title = _("Clear Action Cache"),
-    text = _("Clear cached X-Ray and Recap responses for this book?\n\nNext time you run these actions, they will regenerate from scratch instead of updating from the cached version."),
+    text = _("Clear all cached action responses for this book?\n\nThis removes X-Ray, Recap, Summarize, Analyze, and X-Ray (Simple) caches. Next time you run these actions, they will regenerate from scratch."),
     buttons = {
       {
         {
