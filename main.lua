@@ -5314,7 +5314,7 @@ function TitledButtonDialog:init()
   }
   local buttontable_width = self.buttontable:getSize().w
 
-  local titlebar = TitleBar:new{
+  self.title_bar = TitleBar:new{
     width = buttontable_width,
     title = self.title or "",
     left_icon = self.left_icon or "appbar.settings",
@@ -5323,6 +5323,7 @@ function TitledButtonDialog:init()
     with_bottom_line = true,
     show_parent = self,
   }
+  local titlebar = self.title_bar
 
   local max_height = Screen:getHeight() - 2 * Size.padding.buttontable
                      - 2 * Size.margin.default - titlebar:getSize().h
@@ -5876,16 +5877,21 @@ function AskGPT:onKOAssistantQuickActions()
     title = _("Quick Actions"),
     buttons = buttons,
     left_icon_tap_callback = function()
-      UIManager:close(dialog)
       local chooser_dialog
       chooser_dialog = ButtonDialog:new{
+        shrink_unneeded_width = true,
+        anchor = function()
+          return dialog.title_bar.left_button.image.dimen, true
+        end,
         buttons = {
           {{ text = _("Panel Actions"), callback = function()
             UIManager:close(chooser_dialog)
+            UIManager:close(dialog)
             PromptsManager:new(self_ref):showQuickActionsManager()
           end }},
           {{ text = _("Panel Utilities"), callback = function()
             UIManager:close(chooser_dialog)
+            UIManager:close(dialog)
             PromptsManager:new(self_ref):showQaUtilitiesManager()
           end }},
         },

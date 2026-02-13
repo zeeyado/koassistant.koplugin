@@ -457,6 +457,9 @@ function PromptsManager:_refreshActionManagerMenu()
 end
 
 function PromptsManager:showPromptsMenu()
+    if not self.prompts then
+        self:loadPrompts()
+    end
     local menu_items = self:_buildActionManagerItems()
     
     -- Create footer buttons
