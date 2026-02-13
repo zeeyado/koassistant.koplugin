@@ -6095,6 +6095,57 @@ function AskGPT:onKOAssistantEditNotebook()
   return true
 end
 
+--- Notebook button for QA panel: View/Edit popup, or create if none exists
+function AskGPT:onKOAssistantNotebook()
+  local ReaderUI = require("apps/reader/readerui")
+  local reader_ui = ReaderUI.instance
+
+  if not reader_ui or not reader_ui.document then
+    UIManager:show(InfoMessage:new{
+      text = _("Please open a book first"),
+      timeout = 2,
+    })
+    return true
+  end
+
+  local file_path = reader_ui.document.file
+  local Notebook = require("koassistant_notebook")
+
+  if not Notebook.exists(file_path) then
+    -- No notebook — go straight to create prompt (opens editor after creation)
+    self:openNotebookForFile(file_path)
+    return true
+  end
+
+  -- Notebook exists — show View/Edit popup
+  local ButtonDialog = require("ui/widget/buttondialog")
+  local self_ref = self
+  local dialog
+  dialog = ButtonDialog:new{
+    title = _("Notebook"),
+    buttons = {
+      {
+        {
+          text = _("View"),
+          callback = function()
+            UIManager:close(dialog)
+            self_ref:openNotebookForFile(file_path)
+          end,
+        },
+        {
+          text = _("Edit"),
+          callback = function()
+            UIManager:close(dialog)
+            self_ref:openNotebookForFile(file_path, true)
+          end,
+        },
+      },
+    },
+  }
+  UIManager:show(dialog)
+  return true
+end
+
 --- Browse all notebooks gesture handler
 function AskGPT:onKOAssistantBrowseNotebooks()
   local NotebookManager = require("koassistant_notebook_manager")
