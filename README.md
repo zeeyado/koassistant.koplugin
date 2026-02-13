@@ -1087,6 +1087,8 @@ return {
 - `extended_thinking`: Legacy: "off" to disable, "on" to enable (Anthropic only)
 - `thinking_budget`: Legacy: Token budget when extended_thinking="on" (1024-32000)
 - `enabled`: Set to `false` to hide
+- `requires`: Array of requirement types that block execution if unmet: `{"book_text"}`, `{"highlights"}`. Shows user-facing error identifying which gate (per-action or global) is the problem, with optional `blocked_hint` suggestion.
+- `blocked_hint`: Suggestion text shown when action is blocked (e.g., `_("Or use X-Ray (Simple) for an overview based on AI knowledge.")`)
 - `use_book_text`: Allow text extraction for this action (acts as permission gate; also requires global "Allow Text Extraction" setting enabled). The actual extraction is triggered by placeholders in the prompt: `{book_text_section}` extracts to current position, `{full_document_section}` extracts entire document. Also gates access to analysis cache placeholders.
 - `use_highlights`: Include document highlights (text only, no notes). Requires Allow Highlights or Allow Annotation Notes.
 - `use_annotations`: Include document annotations (highlights with user notes). Requires Allow Annotation Notes.
