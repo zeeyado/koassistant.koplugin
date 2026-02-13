@@ -939,7 +939,6 @@ local SettingsSchema = {
                                 continue_last_chat = _("Continue Last Chat"),
                                 new_book_chat = _("New Book Chat/Action"),
                                 general_chat = _("General Chat/Action"),
-                                summary = _("Summary (View/Generate)"),
                                 view_caches = _("View Artifacts"),
                                 ai_quick_settings = _("Quick Settings"),
                             }

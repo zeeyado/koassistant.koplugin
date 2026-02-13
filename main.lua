@@ -1170,15 +1170,6 @@ function AskGPT:onDispatcherRegisterActions()
     general = true,
   })
 
-  -- View Summary - shows summary directly in simple_view, or info message if none
-  Dispatcher:registerAction("koassistant_view_summary", {
-    category = "none",
-    event = "KOAssistantViewSummary",
-    title = _("KOAssistant: View Summary"),
-    general = false,  -- Requires open book
-    reader = true,
-  })
-
   Dispatcher:registerAction("koassistant_view_caches", {
     category = "none",
     event = "KOAssistantViewCaches",
@@ -4027,6 +4018,18 @@ function AskGPT:onKOAssistantAnalyzeHighlights()
   return true
 end
 
+--- Execute Summarize Document action (foundation for Smart actions)
+function AskGPT:onKOAssistantSummarizeFullDocument()
+  self:executeBookLevelAction("summarize_full_document")
+  return true
+end
+
+--- Execute Analyze Document action (thesis, structure, insights)
+function AskGPT:onKOAssistantAnalyzeFullDocument()
+  self:executeBookLevelAction("analyze_full_document")
+  return true
+end
+
 --- Show available cached content for current document
 function AskGPT:viewCache()
   if not self.ui or not self.ui.document or not self.ui.document.file then
@@ -4281,8 +4284,10 @@ function AskGPT:showCacheViewer(cache_info)
         ActionCache.clear(file, "xray")
       elseif cache_key == "_analyze_cache" then
         ActionCache.clearAnalyzeCache(file)
+        ActionCache.clear(file, "analyze_full_document")
       elseif cache_key == "_summary_cache" then
         ActionCache.clearSummaryCache(file)
+        ActionCache.clear(file, "summarize_full_document")
       end
       -- Invalidate file browser row cache so deleted artifacts don't reappear
       self._file_dialog_row_cache = { file = nil, rows = nil }
@@ -4292,11 +4297,23 @@ function AskGPT:showCacheViewer(cache_info)
       })
     end
 
-    -- Summary gets a regenerate button when book is open (needs ui.document for generation)
+    -- Summary and Analyze get regenerate buttons when book is open
     if cache_key == "_summary_cache" and self.ui and self.ui.document then
       local self_ref = self
       on_regenerate = function()
-        self_ref:generateSummary({ skip_confirmation = true, skip_cache_check = true, clear_existing_cache = true })
+        ActionCache.clearSummaryCache(file)
+        ActionCache.clear(file, "summarize_full_document")
+        self_ref._file_dialog_row_cache = { file = nil, rows = nil }
+        self_ref:executeBookLevelAction("summarize_full_document")
+      end
+    end
+    if cache_key == "_analyze_cache" and self.ui and self.ui.document then
+      local self_ref = self
+      on_regenerate = function()
+        ActionCache.clearAnalyzeCache(file)
+        ActionCache.clear(file, "analyze_full_document")
+        self_ref._file_dialog_row_cache = { file = nil, rows = nil }
+        self_ref:executeBookLevelAction("analyze_full_document")
       end
     end
   end
@@ -4436,197 +4453,6 @@ function AskGPT:showCacheViewer(cache_info)
   UIManager:show(viewer)
 end
 
---- View the cached summary for current book
---- Summary-centric entry point: shows summary directly without selector
-function AskGPT:viewSummary()
-  if not self.ui or not self.ui.document or not self.ui.document.file then
-    UIManager:show(InfoMessage:new{
-      text = _("No book open"),
-    })
-    return
-  end
-
-  local ActionCache = require("koassistant_action_cache")
-  local file = self.ui.document.file
-  local summary = ActionCache.getSummaryCache(file)
-
-  if not summary or not summary.result then
-    UIManager:show(InfoMessage:new{
-      text = _("No summary cached.\n\nUse Quick Actions → Generate Summary to create one."),
-    })
-    return
-  end
-
-  self:showSummaryViewer(summary)
-end
-
---- Show the summary in a viewer with metadata in title
---- @param summary_data table: { result, progress_decimal, model, timestamp }
-function AskGPT:showSummaryViewer(summary_data)
-  local ChatGPTViewer = require("koassistant_chatgptviewer")
-
-  -- Get book metadata from KOReader's merged props (includes user edits from Book Info dialog)
-  local book_title, book_author
-  if self.ui then
-    local props = self.ui.doc_props
-    if props then
-      book_title = props.display_title or props.title
-      book_author = props.authors
-    end
-  end
-
-  -- Format title: Summary (XX%) - Book Title
-  local summary_name = _("Summary")
-  local progress_str
-  if summary_data.progress_decimal then
-    progress_str = math.floor(summary_data.progress_decimal * 100 + 0.5) .. "%"
-  end
-  local title = summary_name
-  if progress_str then
-    title = title .. " (" .. progress_str .. ")"
-  end
-  if book_title then
-    title = title .. " - " .. book_title
-  end
-
-  -- Build metadata info line for display at top of content
-  local info_parts = { summary_name }
-  if progress_str then
-    table.insert(info_parts, progress_str)
-  end
-  table.insert(info_parts, formatCacheSourceLabel(summary_data.used_book_text))
-  if summary_data.model and summary_data.model ~= "" then
-    table.insert(info_parts, _("Model:") .. " " .. summary_data.model)
-  end
-  if summary_data.timestamp then
-    table.insert(info_parts, _("Date:") .. " " .. formatDateWithRelative(summary_data.timestamp))
-  end
-  local cache_info_text = table.concat(info_parts, ". ") .. "."
-
-  -- Build cache metadata for export
-  local cache_metadata = {
-    cache_type = "summary",
-    book_title = book_title,
-    book_author = book_author,
-    progress_decimal = summary_data.progress_decimal,
-    model = summary_data.model,
-    timestamp = summary_data.timestamp,
-    used_book_text = summary_data.used_book_text,
-  }
-
-  -- Create callbacks for regenerate/delete (only if we have an open book)
-  local on_regenerate = nil
-  local on_delete = nil
-  if self.ui and self.ui.document and self.ui.document.file then
-    local file = self.ui.document.file
-    local self_ref = self
-
-    on_regenerate = function()
-      -- Regenerate (skip confirmation since user already confirmed in viewer)
-      -- Cache is cleared inside generateSummary() AFTER validation passes
-      self_ref:generateSummary({ skip_confirmation = true, skip_cache_check = true, clear_existing_cache = true })
-    end
-
-    on_delete = function()
-      local ActionCache = require("koassistant_action_cache")
-      ActionCache.clearSummaryCache(file)
-      -- Invalidate file browser row cache so deleted artifacts don't reappear
-      self._file_dialog_row_cache = { file = nil, rows = nil }
-      UIManager:show(Notification:new{
-        text = _("Summary deleted"),
-        timeout = 2,
-      })
-    end
-  end
-
-  local viewer = ChatGPTViewer:new{
-    title = title,
-    text = cache_info_text .. "\n\n" .. summary_data.result,
-    _cache_content = summary_data.result,
-    simple_view = true,
-    configuration = configuration,
-    cache_metadata = cache_metadata,
-    cache_type_name = summary_name,
-    on_regenerate = on_regenerate,
-    on_delete = on_delete,
-    _plugin = self,
-    _ui = self.ui,
-  }
-  UIManager:show(viewer)
-end
-
---- Generate summary cache for current book (standalone operation - no chat)
---- Shows result in simple_view when done, saves to _summary_cache
---- @param options table|nil: { skip_confirmation = bool, skip_cache_check = bool }
-function AskGPT:generateSummary(options)
-  options = options or {}
-
-  if not self.ui or not self.ui.document or not self.ui.document.file then
-    UIManager:show(InfoMessage:new{
-      text = _("No book open"),
-    })
-    return
-  end
-
-  local ActionCache = require("koassistant_action_cache")
-  local file = self.ui.document.file
-
-  -- Check if already exists (skip when regenerating)
-  if not options.skip_cache_check and ActionCache.getSummaryCache(file) then
-    UIManager:show(InfoMessage:new{
-      text = _("Summary already cached.\n\nUse View Summary to see it."),
-    })
-    return
-  end
-
-  -- Check if text extraction is enabled (required for summary generation)
-  local features = configuration and configuration.features or {}
-  if not features.enable_book_text_extraction then
-    UIManager:show(InfoMessage:new{
-      text = _("Text extraction is required to generate a summary.\n\nEnable it in Settings → Privacy & Data → Text Extraction."),
-    })
-    return
-  end
-
-  -- Clear existing cache if requested (for regenerate flow)
-  -- Done AFTER validation passes so we don't lose cache on failed validation
-  if options.clear_existing_cache then
-    ActionCache.clearSummaryCache(file)
-  end
-
-  -- Helper to execute the generation
-  local self_ref = self
-  local function doGenerate()
-    -- Show progress notification
-    UIManager:show(Notification:new{
-      text = _("Generating document summary..."),
-      timeout = 2,
-    })
-
-    -- Execute as standalone (no chat) using the dedicated handler
-    Dialogs.generateSummaryStandalone(self_ref.ui, configuration, self_ref, function(summary_data)
-      -- On success, show in simple_view
-      if summary_data then
-        self_ref:showSummaryViewer(summary_data)
-      end
-    end)
-  end
-
-  -- Skip confirmation if requested (e.g., when regenerating from viewer)
-  if options.skip_confirmation then
-    doGenerate()
-    return
-  end
-
-  -- Show confirmation dialog before generating
-  local ConfirmBox = require("ui/widget/confirmbox")
-  UIManager:show(ConfirmBox:new{
-    text = _("Generate a reusable document summary?\n\nThis will:\n• Extract and send book text to AI\n• Save the summary for future use\n• Enable Smart actions for this book"),
-    ok_text = _("Generate"),
-    ok_callback = doGenerate,
-  })
-end
-
 --- Show a popup for incremental actions that have an existing cached result.
 --- Offers "View" (opens cached result) or "Update" (re-runs the action incrementally).
 --- Called from executeBookLevelAction() and book chat input field for actions with use_response_caching.
@@ -4649,7 +4475,27 @@ function AskGPT:showCacheActionPopup(action, action_id, on_update)
     return
   end
 
+  -- Fallback for dual-cached actions: check document cache for migration
+  -- (existing users may have document-level cache but no per-action cache)
   if not cached or not cached.result then
+    if action.cache_as_summary then
+      cached = ActionCache.getSummaryCache(file)
+    elseif action.cache_as_analyze then
+      cached = ActionCache.getAnalyzeCache(file)
+    end
+  end
+
+  if not cached or not cached.result then
+    -- Text extraction gate for first-time generation
+    if action.use_book_text then
+      local features = self.settings and self.settings:readSetting("features") or {}
+      if not features.enable_book_text_extraction then
+        UIManager:show(InfoMessage:new{
+          text = _("Text extraction is required to generate this artifact.\n\nEnable it in Settings → Privacy & Data → Text Extraction."),
+        })
+        return
+      end
+    end
     on_update()
     return
   end
@@ -5902,7 +5748,6 @@ function AskGPT:onKOAssistantQuickActions()
   -- 2. Utility items (configurable via Settings → Quick Actions Settings → Panel Utilities)
   local ActionCache = require("koassistant_action_cache")
   local file = self.ui.document.file
-  local summary_exists = ActionCache.getSummaryCache(file) ~= nil
 
   for _idx, qa_util in ipairs(Constants.QUICK_ACTION_UTILITIES) do
     -- Check if utility is enabled (default true if not set)
@@ -5911,20 +5756,7 @@ function AskGPT:onKOAssistantQuickActions()
     if enabled == nil then enabled = qa_util.default end
 
     if enabled then
-      -- Special handling for summary (dynamic text)
-      if qa_util.id == "summary" then
-        addButton({
-          text = summary_exists and _("View Summary") or _("Generate Summary"),
-          callback = function()
-            UIManager:close(dialog)
-            if summary_exists then
-              self_ref:viewSummary()
-            else
-              self_ref:generateSummary()
-            end
-          end,
-        })
-      elseif qa_util.id == "view_caches" then
+      if qa_util.id == "view_caches" then
         -- Single "Artifacts" button — opens cache picker (skips list if only one)
         local has_any_cache = ActionCache.getXrayCache(file)
             or ActionCache.getAnalyzeCache(file)
@@ -6266,12 +6098,6 @@ function AskGPT:onKOAssistantBrowseNotebooks()
   local NotebookManager = require("koassistant_notebook_manager")
   local features = self.settings:readSetting("features") or {}
   NotebookManager:showNotebookBrowser({ enable_emoji = features.enable_emoji_icons == true })
-  return true
-end
-
---- View summary gesture handler
-function AskGPT:onKOAssistantViewSummary()
-  self:viewSummary()
   return true
 end
 

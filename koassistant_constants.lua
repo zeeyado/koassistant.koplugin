@@ -117,7 +117,6 @@ Constants.QUICK_ACTION_UTILITIES = {
     { id = "continue_last_chat", callback = "onKOAssistantContinueLastOpened",  default = true },
     { id = "new_book_chat",      callback = "onKOAssistantBookChat",            default = true },
     { id = "general_chat",       callback = "startGeneralChat",                 default = true },
-    { id = "summary",            callback = "handleSummary",                    default = true },  -- Special handling
     { id = "view_caches",        callback = "viewCache",                        default = true },  -- "View Artifacts": single button, opens cache picker
     { id = "ai_quick_settings",  callback = "onKOAssistantAISettings",          default = true },
 }
@@ -136,7 +135,6 @@ function Constants.getQuickActionUtilityText(id, _)
         continue_last_chat = _("Continue Last Chat"),
         new_book_chat = _("New Book Chat/Action"),
         general_chat = _("General Chat/Action"),
-        summary = nil,  -- Special: dynamic text based on cache state
         view_caches = _("View Artifacts"),
         ai_quick_settings = _("Quick Settings"),
     }
