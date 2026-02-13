@@ -4480,7 +4480,7 @@ function PromptsManager:showHighlightMenuManager()
 
     -- Help text item
     table.insert(menu_items, {
-        text = _("✓ = in menu | Tap = toggle | Hold = move"),
+        text = _("✓ = in menu | Tap = toggle | Hold = move | ☰ = navigate"),
         dim = true,
         callback = function() end,  -- No action
     })
@@ -4689,7 +4689,7 @@ function PromptsManager:_buildHighlightMenuItems(bold_id)
     local menu_items = {}
 
     table.insert(menu_items, {
-        text = _("✓ = in menu | Tap = toggle | Hold = move"),
+        text = _("✓ = in menu | Tap = toggle | Hold = move | ☰ = navigate"),
         dim = true,
         callback = function() end,
     })
@@ -4818,7 +4818,7 @@ function PromptsManager:_buildQuickActionsItems(bold_id)
     local menu_items = {}
 
     table.insert(menu_items, {
-        text = _("✓ = in panel | Tap = toggle | Hold = move"),
+        text = _("✓ = in panel | Tap = toggle | Hold = move | ☰ = navigate"),
         dim = true,
         callback = function() end,
     })
@@ -4949,7 +4949,7 @@ function PromptsManager:_buildQaUtilitiesItems(bold_id)
     local menu_items = {}
 
     table.insert(menu_items, {
-        text = _("✓ = visible | Tap = toggle | Hold = move"),
+        text = _("✓ = visible | Tap = toggle | Hold = move | ☰ = navigate"),
         dim = true,
         callback = function() end,
     })
@@ -5066,7 +5066,7 @@ function PromptsManager:_buildQsMenuItems(bold_id)
 
     -- Help text item
     table.insert(menu_items, {
-        text = _("✓ = visible | Tap = toggle | Hold = move"),
+        text = _("✓ = visible | Tap = toggle | Hold = move | ☰ = navigate"),
         dim = true,
         callback = function() end,
     })
@@ -5233,7 +5233,7 @@ function PromptsManager:_buildFileBrowserItems(bold_id)
     local menu_items = {}
 
     table.insert(menu_items, {
-        text = _("✓ = pinned | Tap = toggle | Hold = move"),
+        text = _("✓ = pinned | Tap = toggle | Hold = move | ☰ = navigate"),
         dim = true,
         callback = function() end,
     })
@@ -5362,7 +5362,7 @@ function PromptsManager:_buildDictionaryPopupItems(bold_id)
     local menu_items = {}
 
     table.insert(menu_items, {
-        text = _("✓ = in popup | Tap = toggle | Hold = move"),
+        text = _("✓ = in popup | Tap = toggle | Hold = move | ☰ = navigate"),
         dim = true,
         callback = function() end,
     })

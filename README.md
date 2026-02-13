@@ -253,7 +253,7 @@ In reader mode, additional buttons appear (items naturally shift to accommodate)
 - **Quick Actions...** — Access the Quick Actions panel for reading features
 - **More Settings...** — Open the full settings menu
 
-To show/hide or reorder buttons in the Quick Settings panel, use **Settings → Quick Settings Settings → QS Panel Utilities**.
+The panel has a **gear icon** (top-left) that opens the QS Panel Utilities manager for reordering and toggling buttons. Also accessible via **Settings → Quick Settings Settings → QS Panel Utilities**.
 
 **2. Quick Actions** (reader mode only)
 
@@ -264,7 +264,7 @@ Assign "KOAssistant: Quick Actions" to a gesture for fast access to reading-rela
 - **Artifact button** — "View Artifacts" appears when any artifacts exist (X-Ray, X-Ray (Simple), Analysis, Summary, Recap), opening a picker to choose which one to view
 - **Utilities** — Translate Page, New Book Chat/Action, Continue Last Chat, General Chat/Action, Chat History, Notebook, View Artifacts, Quick Settings
 
-You can add any book action to Quick Actions via **Action Manager → hold action → "Add to Quick Actions"**. To reorder or remove actions, use **Settings → Quick Actions Settings → Panel Actions**. To show/hide or reorder utility buttons (Translate Page, Chat History, etc.), use **Settings → Quick Actions Settings → QA Panel Utilities**. Defaults can also be removed.
+You can add any book action to Quick Actions via **Action Manager → hold action → "Add to Quick Actions"**. The panel has a **gear icon** (top-left) that lets you choose between managing **Panel Actions** (reorder/remove actions) or **Panel Utilities** (show/hide/reorder utility buttons). Also accessible via **Settings → Quick Actions Settings**. Defaults can also be removed.
 
 > **Tip**: For quick access, assign Quick Settings and Quick Actions to their own gestures (e.g., two-finger tap, corner tap). This gives you one-tap access to these panels from anywhere. Alternatively, you can add them to a KOReader QuickMenu alongside other actions (see below).
 
@@ -786,6 +786,7 @@ Actions like News Update that require [web search](#web-search) are available in
 
 - **Settings Icon (Input)**: Tap the gear icon in the input dialog title bar to open **Quick Settings**—a streamlined two-column panel providing quick access to frequently-changed settings without navigating through the full settings menu. See [Recommended Setup](#recommended-setup) for details on what's available in this panel.
 - **Settings Icon (Viewer)**: Tap the gear icon in the chat viewer title bar to adjust font size and text alignment (cycles left/justified/right on each click)
+- **Settings Icon (Panels)**: Both the Quick Settings and Quick Actions panels have a gear icon in the title bar for managing panel layout — reorder, show/hide buttons without leaving the panel
 - **Show/Hide Quote**: In the chat viewer, toggle button to show or hide the highlighted text quote (useful for long selections)
 - **Save to Note**: For highlight context chats, tap the **Save to Note** button to save the AI response directly as a note attached to your highlighted text (see [Save to Note](#save-to-note) below)
 - **Link Handling**: Tapping a link in the chat viewer opens KOReader's external link dialog — Copy, Show QR code, Open in browser, and any registered plugin actions (e.g., Add to Wallabag). When no book is open, a basic version of the dialog is shown.
@@ -2011,7 +2012,7 @@ See [Bypass Modes](#bypass-modes) and [Highlight Menu Actions](#highlight-menu-a
 
 ### Quick Settings Settings
 Configure the Quick Settings panel (available via gesture or gear icon in input dialog).
-- **QS Panel Utilities**: Show/hide and reorder buttons in the Quick Settings panel. Tap to toggle visibility, hold to move up/down:
+- **QS Panel Utilities**: Show/hide and reorder buttons in the Quick Settings panel. Tap to toggle visibility, hold to move up/down. Also accessible via the gear icon in the Quick Settings panel title bar.
   - Provider, Model, Behavior, Domain, Temperature, Anthropic/Gemini Reasoning
   - Web Search, Language, Translation Language, Dictionary Language
   - H.Bypass, D.Bypass, Chat History, Browse Notebooks, Browse Artifacts
@@ -2021,8 +2022,8 @@ Configure the Quick Settings panel (available via gesture or gear icon in input 
 ### Quick Actions Settings
 
 Configure the Quick Actions panel (available via gesture in reader mode).
-- **Panel Actions**: Reorder or remove actions from the Quick Actions panel. Add new actions via Action Manager → hold action → "Add to Quick Actions".
-- **QA Panel Utilities**: Show/hide and reorder utility buttons that appear below actions in the panel. Tap to toggle visibility, hold to move up/down:
+- **Panel Actions**: Reorder or remove actions from the Quick Actions panel. Add new actions via Action Manager → hold action → "Add to Quick Actions". Also accessible via the gear icon in the Quick Actions panel title bar → Panel Actions.
+- **QA Panel Utilities**: Show/hide and reorder utility buttons that appear below actions in the panel. Tap to toggle visibility, hold to move up/down. Also accessible via the gear icon → Panel Utilities.
   - Translate Page, New Book Chat/Action, Continue Last Chat, General Chat/Action
   - Chat History, Notebook (View/Edit popup), View Artifacts (opens picker when any artifacts exist), Quick Settings
   - All utilities are enabled by default. Disable any you don't use to streamline the panel.
@@ -2447,6 +2448,8 @@ Separate option to delete all saved conversations across all books. This cannot 
 #### Action Manager Menu
 
 The Action Manager (Settings → Actions & Prompts → Manage Actions) has a hamburger menu (☰) in the top-left with quick access to action-related resets.
+
+All six sorting/ordering managers (Manage Actions, Highlight Menu, Dictionary Popup, File Browser Actions, QA Panel Actions, QA Panel Utilities, QS Panel Items) have hamburger menus (☰) with cross-navigation links, so you can jump between them without going back to Settings.
 
 **When to reset:** After problematic updates, when experiencing strange behavior, or to start fresh. See [Troubleshooting → Settings Reset](#settings-reset) for details.
 

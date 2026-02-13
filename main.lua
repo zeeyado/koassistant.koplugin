@@ -5277,6 +5277,7 @@ function TitledButtonDialog:init()
   local TitleBar = require("ui/widget/titlebar")
   local Blitbuffer = require("ffi/blitbuffer")
   local CenterContainer = require("ui/widget/container/centercontainer")
+  local Font = require("ui/font")
   local FrameContainer = require("ui/widget/container/framecontainer")
   local Geom = require("ui/geometry")
   local GestureRange = require("ui/gesturerange")
@@ -5317,10 +5318,12 @@ function TitledButtonDialog:init()
   self.title_bar = TitleBar:new{
     width = buttontable_width,
     title = self.title or "",
+    title_face = Font:getFace("infofont"),
     left_icon = self.left_icon or "appbar.settings",
     left_icon_tap_callback = self.left_icon_tap_callback or function() end,
     close_callback = function() self:onClose() end,
     with_bottom_line = true,
+    bottom_line_color = Blitbuffer.COLOR_GRAY,
     show_parent = self,
   }
   local titlebar = self.title_bar
