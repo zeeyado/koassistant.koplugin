@@ -503,6 +503,7 @@ Focus on what's genuinely new or different from what the text describes. If the 
         requires_xray_cache = true,
         in_highlight_menu = 5,
         in_dictionary_popup = 6,
+        no_duplicate = true,
         builtin = true,
     },
 }

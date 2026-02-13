@@ -225,6 +225,8 @@ function PromptsManager:loadPrompts()
             minimal_buttons = prompt.minimal_buttons,
             -- Duplication control
             no_duplicate = prompt.no_duplicate,
+            -- Local handler (no AI call)
+            local_handler = prompt.local_handler,
             -- Menu flags
             in_quick_actions = prompt.in_quick_actions,
             in_reading_features = prompt.in_reading_features,
@@ -694,51 +696,56 @@ function PromptsManager:showPromptDetails(prompt)
         _("Status"), prompt.enabled and _("Enabled") or _("Disabled")
     )
 
-    -- Flags section (grouped together)
-    info_text = info_text .. "\n\n" .. _("─── Flags ───")
-
-    -- Skip language/domain
-    local skip_lang_text = prompt.skip_language_instruction and _("Yes") or _("No")
-    local skip_domain_text = prompt.skip_domain and _("Yes") or _("No")
-    info_text = info_text .. "\n" .. _("Skip Language") .. ": " .. skip_lang_text
-    info_text = info_text .. "  |  " .. _("Skip Domain") .. ": " .. skip_domain_text
-
-    -- Include book info (for highlight contexts)
-    if self:contextIncludesHighlight(prompt.context) then
-        local book_context_text = prompt.include_book_context and _("Yes") or _("No")
-        info_text = info_text .. "\n" .. _("Include Book Info") .. ": " .. book_context_text
-    end
-
-    -- Book text extraction (for contexts that can run in reading mode)
-    -- Note: Lightweight data (progress, highlights, annotations, stats) is always available
-    if self:canUseTextExtraction(prompt) then
-        local book_text_status = prompt.use_book_text and _("Yes") or _("No")
-        info_text = info_text .. "\n" .. _("Allow text extraction") .. ": " .. book_text_status
-    end
-
-    -- Web search override
-    local web_search_text
-    if prompt.enable_web_search == true then
-        web_search_text = _("Always")
-    elseif prompt.enable_web_search == false then
-        web_search_text = _("Never")
+    if prompt.local_handler then
+        -- Local handler actions don't use AI — skip flags, AI settings, and prompt sections
+        info_text = info_text .. "\n\n" .. _("This is a local action — no AI call is made.")
     else
-        web_search_text = _("Global")
-    end
-    info_text = info_text .. "\n" .. _("Web Search") .. ": " .. web_search_text
+        -- Flags section (grouped together)
+        info_text = info_text .. "\n\n" .. _("─── Flags ───")
 
-    -- AI Settings section
-    info_text = info_text .. "\n\n" .. _("─── AI Settings ───")
-    info_text = info_text .. "\n" .. _("Temperature") .. ": " .. temp_text
-    info_text = info_text .. "\n" .. _("Reasoning") .. ": " .. thinking_text
-    info_text = info_text .. "\n" .. _("Provider/Model") .. ": " .. provider_text .. " / " .. model_text
-    info_text = info_text .. "\n" .. _("AI Behavior") .. ": " .. behavior_text
+        -- Skip language/domain
+        local skip_lang_text = prompt.skip_language_instruction and _("Yes") or _("No")
+        local skip_domain_text = prompt.skip_domain and _("Yes") or _("No")
+        info_text = info_text .. "\n" .. _("Skip Language") .. ": " .. skip_lang_text
+        info_text = info_text .. "  |  " .. _("Skip Domain") .. ": " .. skip_domain_text
 
-    -- Prompt section (at the end since it's longest)
-    info_text = info_text .. "\n\n" .. _("─── Action Prompt ───") .. "\n" .. (prompt.prompt or _("(None)"))
+        -- Include book info (for highlight contexts)
+        if self:contextIncludesHighlight(prompt.context) then
+            local book_context_text = prompt.include_book_context and _("Yes") or _("No")
+            info_text = info_text .. "\n" .. _("Include Book Info") .. ": " .. book_context_text
+        end
 
-    if prompt.requires then
-        info_text = info_text .. "\n\n" .. _("Requires") .. ": " .. prompt.requires
+        -- Book text extraction (for contexts that can run in reading mode)
+        -- Note: Lightweight data (progress, highlights, annotations, stats) is always available
+        if self:canUseTextExtraction(prompt) then
+            local book_text_status = prompt.use_book_text and _("Yes") or _("No")
+            info_text = info_text .. "\n" .. _("Allow text extraction") .. ": " .. book_text_status
+        end
+
+        -- Web search override
+        local web_search_text
+        if prompt.enable_web_search == true then
+            web_search_text = _("Always")
+        elseif prompt.enable_web_search == false then
+            web_search_text = _("Never")
+        else
+            web_search_text = _("Global")
+        end
+        info_text = info_text .. "\n" .. _("Web Search") .. ": " .. web_search_text
+
+        -- AI Settings section
+        info_text = info_text .. "\n\n" .. _("─── AI Settings ───")
+        info_text = info_text .. "\n" .. _("Temperature") .. ": " .. temp_text
+        info_text = info_text .. "\n" .. _("Reasoning") .. ": " .. thinking_text
+        info_text = info_text .. "\n" .. _("Provider/Model") .. ": " .. provider_text .. " / " .. model_text
+        info_text = info_text .. "\n" .. _("AI Behavior") .. ": " .. behavior_text
+
+        -- Prompt section (at the end since it's longest)
+        info_text = info_text .. "\n\n" .. _("─── Action Prompt ───") .. "\n" .. (prompt.prompt or _("(None)"))
+
+        if prompt.requires then
+            info_text = info_text .. "\n\n" .. _("Requires") .. ": " .. prompt.requires
+        end
     end
 
     local buttons = {}
@@ -789,7 +796,7 @@ function PromptsManager:showPromptDetails(prompt)
                 end,
             },
         })
-    elseif prompt.source == "builtin" then
+    elseif prompt.source == "builtin" and not prompt.local_handler then
         -- Built-in actions - allow editing settings (not the prompt itself)
         local button_row = {
             {
