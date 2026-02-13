@@ -3145,6 +3145,13 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                             end)
                         end
 
+                        -- Block notes-based actions when highlight sharing is off
+                        if prompt.use_notes and plugin and plugin._isHighlightSharingBlocked then
+                            if plugin:_isHighlightSharingBlocked(prompt) then
+                                return
+                            end
+                        end
+
                         -- For incremental actions with cache: show View/Update popup
                         if prompt.use_response_caching and plugin and plugin.showCacheActionPopup then
                             plugin:showCacheActionPopup(prompt, custom_prompt_type, runAction)

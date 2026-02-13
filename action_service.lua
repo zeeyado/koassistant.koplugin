@@ -197,11 +197,17 @@ function ActionService:loadActions()
                     if override.use_annotations ~= nil then
                         action_data.use_annotations = override.use_annotations
                     end
+                    if override.use_notes ~= nil then
+                        action_data.use_notes = override.use_notes
+                    end
                     if override.use_reading_progress ~= nil then
                         action_data.use_reading_progress = override.use_reading_progress
                     end
                     if override.use_reading_stats ~= nil then
                         action_data.use_reading_stats = override.use_reading_stats
+                    end
+                    if override.use_notebook ~= nil then
+                        action_data.use_notebook = override.use_notebook
                     end
                     -- Web search override (tri-state: true/false/"global")
                     if override.enable_web_search ~= nil then

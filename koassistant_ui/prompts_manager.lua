@@ -214,6 +214,7 @@ function PromptsManager:loadPrompts()
             use_book_text = prompt.use_book_text,
             use_highlights = prompt.use_highlights,
             use_annotations = prompt.use_annotations,
+            use_notes = prompt.use_notes,
             use_reading_progress = prompt.use_reading_progress,
             use_reading_stats = prompt.use_reading_stats,
             use_notebook = prompt.use_notebook,
@@ -258,6 +259,7 @@ function PromptsManager:loadPrompts()
                 if override.use_book_text ~= nil then entry.use_book_text = override.use_book_text end
                 if override.use_highlights ~= nil then entry.use_highlights = override.use_highlights end
                 if override.use_annotations ~= nil then entry.use_annotations = override.use_annotations end
+                if override.use_notes ~= nil then entry.use_notes = override.use_notes end
                 if override.use_reading_progress ~= nil then entry.use_reading_progress = override.use_reading_progress end
                 if override.use_reading_stats ~= nil then entry.use_reading_stats = override.use_reading_stats end
                 if override.use_notebook ~= nil then entry.use_notebook = override.use_notebook end
@@ -1011,6 +1013,7 @@ function PromptsManager:duplicateAction(action)
         use_book_text = duplicate.use_book_text,
         use_highlights = duplicate.use_highlights,
         use_annotations = duplicate.use_annotations,
+        use_notes = duplicate.use_notes,
         use_reading_progress = duplicate.use_reading_progress,
         use_reading_stats = duplicate.use_reading_stats,
         use_notebook = duplicate.use_notebook,
@@ -1075,6 +1078,7 @@ function PromptsManager:showPromptEditor(existing_prompt)
         use_book_text = existing_prompt and existing_prompt.use_book_text or false,
         use_highlights = existing_prompt and existing_prompt.use_highlights or false,
         use_annotations = existing_prompt and existing_prompt.use_annotations or false,
+        use_notes = existing_prompt and existing_prompt.use_notes or false,
         use_reading_progress = existing_prompt and existing_prompt.use_reading_progress or false,
         use_reading_stats = existing_prompt and existing_prompt.use_reading_stats or false,
         use_notebook = existing_prompt and existing_prompt.use_notebook or false,
@@ -1281,6 +1285,31 @@ function PromptsManager:showStep1_NameAndContext(state)
                         if features.enable_annotations_sharing ~= true then
                             UIManager:show(Notification:new{
                                 text = _("Annotation use enabled. Note: Enable in Settings → Privacy & Data first."),
+                                timeout = 4,
+                            })
+                        end
+                    end
+                    UIManager:close(self.step1_dialog)
+                    self:showStep1_NameAndContext(state)
+                end,
+            },
+        })
+    end
+
+    -- Notes use toggle (annotations with highlight fallback)
+    if state.context and self:canUsePerBookData(state.context) then
+        local notes_checkbox = state.use_notes and "☑ " or "☐ "
+        table.insert(button_rows, {
+            {
+                text = notes_checkbox .. _("Allow note use (highlight fallback)"),
+                callback = function()
+                    state.name = self.step1_dialog:getInputText()
+                    state.use_notes = not state.use_notes
+                    if state.use_notes then
+                        local features = self.plugin.settings:readSetting("features") or {}
+                        if features.enable_highlights_sharing ~= true and features.enable_annotations_sharing ~= true then
+                            UIManager:show(Notification:new{
+                                text = _("Note use enabled. Note: Enable highlight or annotation sharing in Settings → Privacy & Data first."),
                                 timeout = 4,
                             })
                         end
@@ -2657,6 +2686,7 @@ function PromptsManager:showBuiltinSettingsEditor(prompt)
     local base_use_book_text = base_action and base_action.use_book_text or false
     local base_use_highlights = base_action and base_action.use_highlights or false
     local base_use_annotations = base_action and base_action.use_annotations or false
+    local base_use_notes = base_action and base_action.use_notes or false
     local base_use_reading_progress = base_action and base_action.use_reading_progress or false
     local base_use_reading_stats = base_action and base_action.use_reading_stats or false
     local base_use_notebook = base_action and base_action.use_notebook or false
@@ -2695,6 +2725,8 @@ function PromptsManager:showBuiltinSettingsEditor(prompt)
         use_highlights_base = base_use_highlights,
         use_annotations = prompt.use_annotations or false,
         use_annotations_base = base_use_annotations,
+        use_notes = prompt.use_notes or false,
+        use_notes_base = base_use_notes,
         use_reading_progress = prompt.use_reading_progress or false,
         use_reading_progress_base = base_use_reading_progress,
         use_reading_stats = prompt.use_reading_stats or false,
@@ -2914,6 +2946,24 @@ function PromptsManager:showBuiltinSettingsDialog(state)
                     if features.enable_annotations_sharing ~= true then
                         UIManager:show(Notification:new{
                             text = _("Annotation use enabled. Note: Enable in Settings → Privacy & Data first."),
+                            timeout = 4,
+                        })
+                    end
+                end
+                UIManager:close(self.builtin_settings_dialog)
+                self:showBuiltinSettingsDialog(state)
+            end,
+        })
+
+        table.insert(items, {
+            text = (state.use_notes and "☑ " or "☐ ") .. _("Allow note use (highlight fallback)"),
+            callback = function()
+                state.use_notes = not state.use_notes
+                if state.use_notes then
+                    local features = self.plugin.settings:readSetting("features") or {}
+                    if features.enable_highlights_sharing ~= true and features.enable_annotations_sharing ~= true then
+                        UIManager:show(Notification:new{
+                            text = _("Note use enabled. Note: Enable highlight or annotation sharing in Settings → Privacy & Data first."),
                             timeout = 4,
                         })
                     end
@@ -3364,6 +3414,10 @@ function PromptsManager:saveBuiltinOverride(prompt, state)
         override.use_annotations = state.use_annotations
         has_any = true
     end
+    if state.use_notes ~= (state.use_notes_base or false) then
+        override.use_notes = state.use_notes
+        has_any = true
+    end
     if state.use_reading_progress ~= (state.use_reading_progress_base or false) then
         override.use_reading_progress = state.use_reading_progress
         has_any = true
@@ -3445,6 +3499,7 @@ function PromptsManager:showCustomQuickSettings(prompt)
         use_book_text = prompt.use_book_text or false,
         use_highlights = prompt.use_highlights or false,
         use_annotations = prompt.use_annotations or false,
+        use_notes = prompt.use_notes or false,
         use_reading_progress = prompt.use_reading_progress or false,
         use_reading_stats = prompt.use_reading_stats or false,
         use_notebook = prompt.use_notebook or false,
@@ -3671,6 +3726,24 @@ function PromptsManager:showCustomQuickSettingsDialog(state)
                     if features.enable_annotations_sharing ~= true then
                         UIManager:show(Notification:new{
                             text = _("Annotation use enabled. Note: Enable in Settings → Privacy & Data first."),
+                            timeout = 4,
+                        })
+                    end
+                end
+                UIManager:close(self.custom_quick_dialog)
+                self:showCustomQuickSettingsDialog(state)
+            end,
+        })
+
+        table.insert(items, {
+            text = (state.use_notes and "☑ " or "☐ ") .. _("Allow note use (highlight fallback)"),
+            callback = function()
+                state.use_notes = not state.use_notes
+                if state.use_notes then
+                    local features = self.plugin.settings:readSetting("features") or {}
+                    if features.enable_highlights_sharing ~= true and features.enable_annotations_sharing ~= true then
+                        UIManager:show(Notification:new{
+                            text = _("Note use enabled. Note: Enable highlight or annotation sharing in Settings → Privacy & Data first."),
                             timeout = 4,
                         })
                     end
@@ -4262,6 +4335,7 @@ function PromptsManager:addPrompt(state)
             use_book_text = state.use_book_text or nil,
             use_highlights = state.use_highlights or nil,
             use_annotations = state.use_annotations or nil,
+            use_notes = state.use_notes or nil,
             use_reading_progress = state.use_reading_progress or nil,
             use_reading_stats = state.use_reading_stats or nil,
             use_notebook = state.use_notebook or nil,
