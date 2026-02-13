@@ -4012,7 +4012,7 @@ function AskGPT:onKOAssistantXraySimple()
   return true
 end
 
---- Execute Analyze Highlights action (insights from user's annotations)
+--- Execute Analyze My Notes action (insights from user's annotations)
 function AskGPT:onKOAssistantAnalyzeHighlights()
   self:executeBookLevelAction("analyze_highlights")
   return true
@@ -4864,7 +4864,7 @@ function AskGPT:viewCachedAction(action, action_id, cached_entry, opts)
   UIManager:show(viewer)
 end
 
---- Helper function to execute book-level actions (X-Ray, Recap, Analyze Highlights)
+--- Helper function to execute book-level actions (X-Ray, Recap, Analyze My Notes)
 --- @param action_id string: The action ID from Actions.book
 function AskGPT:executeBookLevelAction(action_id)
   -- Check if we have a document open

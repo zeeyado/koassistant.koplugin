@@ -1188,7 +1188,7 @@ function ActionService:getAllGeneralActionsWithMenuState()
 end
 
 -- ============================================================
--- Reading Features Actions (X-Ray, Recap, Analyze Highlights)
+-- Reading Features Actions (X-Ray, Recap, Analyze My Notes)
 -- ============================================================
 
 -- Get ordered list of reading features actions (from in_reading_features flag)

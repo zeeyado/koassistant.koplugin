@@ -1935,6 +1935,15 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
         local cache_entry = ActionCache.getSummaryCache(ui.document.file)
 
         if not cache_entry then
+            -- Summary generation requires text extraction — block if disabled
+            local features = config and config.features or {}
+            if features.enable_book_text_extraction ~= true then
+                UIManager:show(InfoMessage:new{
+                    text = _("Text extraction is required to generate this artifact.\n\nEnable it in Settings → Privacy & Data → Text Extraction."),
+                })
+                return nil
+            end
+
             -- Cache missing - show confirmation dialog
             local ConfirmBox = require("ui/widget/confirmbox")
             UIManager:show(ConfirmBox:new{
