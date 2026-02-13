@@ -377,6 +377,85 @@ function TestActions:runAll()
         self:assertEquals(Actions.checkRequirements(action, {}), true)
     end)
 
+    -- ================================================================
+    -- Built-in action 'requires' field validation
+    -- ================================================================
+    print("\n--- Built-in action requires field ---")
+
+    self:test("xray has requires={'book_text'}", function()
+        local action = Actions.getById("xray")
+        self:assert(action ~= nil, "xray exists")
+        self:assert(action.requires ~= nil, "xray has requires")
+        self:assertContains(action.requires, "book_text")
+    end)
+
+    self:test("analyze_highlights has requires={'highlights'}", function()
+        local action = Actions.getById("analyze_highlights")
+        self:assert(action ~= nil, "analyze_highlights exists")
+        self:assert(action.requires ~= nil, "has requires")
+        self:assertContains(action.requires, "highlights")
+    end)
+
+    self:test("connect_with_notes has requires={'highlights'}", function()
+        local action = Actions.getById("connect_with_notes")
+        self:assert(action ~= nil, "connect_with_notes exists")
+        self:assert(action.requires ~= nil, "has requires")
+        self:assertContains(action.requires, "highlights")
+    end)
+
+    self:test("summarize_full_document has requires={'book_text'}", function()
+        local action = Actions.getById("summarize_full_document")
+        self:assert(action ~= nil, "summarize_full_document exists")
+        self:assert(action.requires ~= nil, "has requires")
+        self:assertContains(action.requires, "book_text")
+    end)
+
+    self:test("analyze_full_document has requires={'book_text'}", function()
+        local action = Actions.getById("analyze_full_document")
+        self:assert(action ~= nil, "analyze_full_document exists")
+        self:assert(action.requires ~= nil, "has requires")
+        self:assertContains(action.requires, "book_text")
+    end)
+
+    self:test("actions with requires={'highlights'} have use_highlights or use_annotations", function()
+        -- Every action requiring highlights must have at least one highlight-type flag
+        local all_actions = {}
+        for _, ctx in ipairs({"highlight", "book", "multi_book", "general"}) do
+            for _, action in ipairs(Actions.getForContext(ctx)) do
+                all_actions[action.id] = action
+            end
+        end
+        for _id, action in pairs(all_actions) do
+            if action.requires then
+                for _, req in ipairs(action.requires) do
+                    if req == "highlights" then
+                        self:assert(action.use_highlights or action.use_annotations,
+                            action.id .. " requires highlights but has neither use_highlights nor use_annotations")
+                    end
+                end
+            end
+        end
+    end)
+
+    self:test("actions with requires={'book_text'} have use_book_text", function()
+        local all_actions = {}
+        for _, ctx in ipairs({"highlight", "book", "multi_book", "general"}) do
+            for _, action in ipairs(Actions.getForContext(ctx)) do
+                all_actions[action.id] = action
+            end
+        end
+        for _id, action in pairs(all_actions) do
+            if action.requires then
+                for _, req in ipairs(action.requires) do
+                    if req == "book_text" then
+                        self:assert(action.use_book_text == true,
+                            action.id .. " requires book_text but use_book_text is not true")
+                    end
+                end
+            end
+        end
+    end)
+
 
     -- ================================================================
     -- Actions.getForContext() tests
