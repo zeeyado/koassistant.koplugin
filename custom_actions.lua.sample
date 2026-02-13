@@ -21,7 +21,6 @@
 --   behavior_override - Custom behavior text (replaces variant if set)
 --
 --   api_params      - Optional API overrides: { temperature, max_tokens }
---   requires        - Optional: "author" or "title" (skip if missing)
 --   include_book_context - Include book title/author with highlight (default false)
 --   domain          - Lock to specific domain (optional)
 --   enabled         - Default enabled state (default true)
@@ -82,7 +81,6 @@ return {
         context = "book",
         -- Uses global behavior
         prompt = "Suggest 5 books similar to '{title}' by {author}. Explain why each is similar.",
-        requires = "author",  -- Only show if book has author info
     },
 
     -----------------------------------------------------------------------

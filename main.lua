@@ -4477,19 +4477,42 @@ function AskGPT:_isTextExtractionBlocked(action, alternative_text)
   return false
 end
 
---- Check if highlight/annotation sharing is blocked for a notes-based action.
---- Blocked when neither enable_highlights_sharing nor enable_annotations_sharing is on.
---- Mirrors _isTextExtractionBlocked() pattern for consistency.
---- @param action table: Action definition (checks use_notes flag)
+--- Check if highlight/annotation sharing is blocked for this action.
+--- Blocked when the action depends on annotations/highlights as core data AND
+--- no highlight-type data will actually reach the prompt (checks BOTH gates).
+--- Per-action gate: use_highlights / use_annotations flags (nil=never declared, false=overridden off).
+--- Global gate: enable_highlights_sharing / enable_annotations_sharing privacy settings.
+--- Actions with use_book_text or template are never blocked (highlights are supplementary).
+--- @param action table: Action definition (checks use_highlights, use_annotations)
 --- @return boolean: true if blocked (showed popup), false if OK to proceed
 function AskGPT:_isHighlightSharingBlocked(action)
+  -- Skip actions that have other primary data sources
+  if action.use_book_text or action.template then
+    return false
+  end
+  -- Check if action deals with highlight/annotation data at all
+  -- nil = never declared (action doesn't use this data type) → not our concern
+  -- false = explicitly disabled via per-action override
+  -- true = active
+  if action.use_highlights == nil and action.use_annotations == nil then
+    return false
+  end
+  -- Check effective data availability across both gates
   local features = self.settings and self.settings:readSetting("features") or {}
-  local highlights_ok = features.enable_highlights_sharing == true
-  local annotations_ok = features.enable_annotations_sharing == true
-  if not highlights_ok and not annotations_ok then
-    UIManager:show(InfoMessage:new{
-      text = _("This action requires access to your highlights or annotations.\n\nEnable sharing in Settings → Privacy & Data."),
-    })
+  local any_sharing_on = features.enable_highlights_sharing == true
+    or features.enable_annotations_sharing == true
+  -- Will any highlight-type data actually reach the prompt?
+  -- Needs BOTH: at least one per-action flag true AND at least one global setting on
+  local will_have_data = any_sharing_on
+    and (action.use_highlights or action.use_annotations)
+  if not will_have_data then
+    local msg
+    if not any_sharing_on then
+      msg = _("This action requires access to your highlights or annotations.\n\nEnable sharing in Settings → Privacy & Data.")
+    else
+      msg = _("This action requires highlight or annotation data, but data access is disabled for this action.\n\nRe-enable in Action Manager (hold the action → Edit).")
+    end
+    UIManager:show(InfoMessage:new{ text = msg })
     return true
   end
   return false
@@ -4532,8 +4555,8 @@ function AskGPT:showCacheActionPopup(action, action_id, on_update)
     if action.use_book_text and self:_isTextExtractionBlocked(action) then
       return
     end
-    -- Highlight sharing gate for notes-based actions
-    if action.use_notes and self:_isHighlightSharingBlocked(action) then
+    -- Highlight/annotation sharing gate
+    if self:_isHighlightSharingBlocked(action) then
       return
     end
     on_update()
@@ -4597,7 +4620,7 @@ function AskGPT:showCacheActionPopup(action, action_id, on_update)
           callback = function()
             UIManager:close(dialog)
             if action.use_book_text and self_ref:_isTextExtractionBlocked(action) then return end
-            if action.use_notes and self_ref:_isHighlightSharingBlocked(action) then return end
+            if self_ref:_isHighlightSharingBlocked(action) then return end
             on_update()
           end,
         },
@@ -4909,8 +4932,8 @@ function AskGPT:executeBookLevelAction(action_id)
     return
   end
 
-  -- Block notes-based actions when highlight sharing is off
-  if action.use_notes and self:_isHighlightSharingBlocked(action) then
+  -- Block actions when highlight/annotation sharing is off
+  if self:_isHighlightSharingBlocked(action) then
     return
   end
 
@@ -6540,11 +6563,15 @@ function AskGPT:registerHighlightMenuActions()
     -- Use numeric prefix for ordering: KOReader's orderedPairs sorts keys alphabetically
     -- Format: "90_%02d_koassistant_%s" where 90_ comes after KOReader's built-in items (08_-11_)
     local dialog_id = string.format("90_%02d_koassistant_%s", i, action.id)
-    local action_copy = action  -- Capture in closure
+    local action_id = action.id  -- Capture ID for fresh lookup in callback
 
     self.ui.highlight:addToHighlightDialog(dialog_id, function(reader_highlight_instance)
+      -- Re-fetch action to pick up mid-session override changes (flag toggles, etc.)
+      local fresh_action = self.action_service:getAction("highlight", action_id)
+      if not fresh_action or not fresh_action.enabled then return nil end
+      local cur_features = self.settings:readSetting("features") or {}
       return {
-        text = ActionService.getActionDisplayText(action_copy, features) .. " (KOA)",
+        text = ActionService.getActionDisplayText(fresh_action, cur_features) .. " (KOA)",
         enabled = Device:hasClipboard(),
         callback = function()
           -- Capture text and extract context BEFORE closing highlight overlay
@@ -6553,10 +6580,10 @@ function AskGPT:registerHighlightMenuActions()
           -- Check if highlight module has the getSelectedWordContext method
           -- Note: Method is on self.ui.highlight, not reader_highlight_instance
           if self.ui.highlight and self.ui.highlight.getSelectedWordContext then
-            local context_mode = features.dictionary_context_mode or "none"
+            local context_mode = cur_features.dictionary_context_mode or "none"
             -- Skip context extraction if mode is "none"
             if context_mode ~= "none" then
-              local context_chars = features.dictionary_context_chars or 100
+              local context_chars = cur_features.dictionary_context_chars or 100
               context = Dialogs.extractSurroundingContext(
                 self.ui,
                 selected_text,
@@ -6585,15 +6612,15 @@ function AskGPT:registerHighlightMenuActions()
           -- Close highlight overlay to prevent darkening on saved highlights
           reader_highlight_instance:onClose()
 
-          if action_copy.local_handler then
+          if fresh_action.local_handler then
             -- Local actions don't need network
             self:updateConfigFromSettings()
-            self:executeQuickAction(action_copy, selected_text, context, selection_data)
+            self:executeQuickAction(fresh_action, selected_text, context, selection_data)
           else
             NetworkMgr:runWhenOnline(function()
               self:updateConfigFromSettings()
               -- Pass extracted context and selection data to executeQuickAction
-              self:executeQuickAction(action_copy, selected_text, context, selection_data)
+              self:executeQuickAction(fresh_action, selected_text, context, selection_data)
             end)
           end
         end,
@@ -6893,8 +6920,8 @@ function AskGPT:executeHighlightBypassAction(action, selected_text, highlight_in
   end
   config_copy.context = "highlight"
 
-  -- Block notes-based actions when highlight sharing is off
-  if action.use_notes and self:_isHighlightSharingBlocked(action) then
+  -- Block actions when highlight/annotation sharing is off
+  if self:_isHighlightSharingBlocked(action) then
     return
   end
 
@@ -7032,8 +7059,8 @@ function AskGPT:executeQuickAction(action, highlighted_text, context, selection_
   end
   -- Store selection data for "Save to Note" feature
   configuration.features.selection_data = selection_data
-  -- Block notes-based actions when highlight sharing is off
-  if action.use_notes and self:_isHighlightSharingBlocked(action) then
+  -- Block actions when highlight/annotation sharing is off
+  if self:_isHighlightSharingBlocked(action) then
     return
   end
   Dialogs.executeDirectAction(self.ui, action, highlighted_text, configuration, self)

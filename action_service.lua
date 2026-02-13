@@ -197,9 +197,6 @@ function ActionService:loadActions()
                     if override.use_annotations ~= nil then
                         action_data.use_annotations = override.use_annotations
                     end
-                    if override.use_notes ~= nil then
-                        action_data.use_notes = override.use_notes
-                    end
                     if override.use_reading_progress ~= nil then
                         action_data.use_reading_progress = override.use_reading_progress
                     end
@@ -582,18 +579,7 @@ function ActionService:checkRequirements(action, metadata)
         return self.Actions.checkRequirements(action, metadata)
     end
 
-    -- Fallback check
-    if not action.requires then
-        return true
-    end
-
-    metadata = metadata or {}
-    if action.requires == "author" then
-        return metadata.author and metadata.author ~= ""
-    elseif action.requires == "title" then
-        return metadata.title and metadata.title ~= ""
-    end
-
+    -- Fallback: no requirements to check
     return true
 end
 
@@ -1661,7 +1647,6 @@ function ActionService:createDuplicateAction(action)
         include_book_context = action.include_book_context,
         skip_language_instruction = action.skip_language_instruction,
         skip_domain = action.skip_domain,
-        requires = action.requires,
         -- Context extraction flags (for reading-only actions)
         use_book_text = action.use_book_text,
         use_highlights = action.use_highlights,
@@ -1776,7 +1761,7 @@ end
 -- Get action display text with data access emoji indicators (static method)
 -- When enable_data_access_indicators is enabled, appends emoji showing what data the action accesses:
 --   📄 = document text (use_book_text, use_xray_cache, use_analyze_cache, use_summary_cache)
---   📝 = annotations/highlights (use_annotations)
+--   📝 = annotations (use_annotations; degrades to highlights-only)
 --   📓 = notebook (use_notebook)
 --   🌐 = web search forced on (enable_web_search == true)
 -- @param action: Action definition table (needs flag fields)

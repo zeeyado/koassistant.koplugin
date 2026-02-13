@@ -3145,8 +3145,8 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                             end)
                         end
 
-                        -- Block notes-based actions when highlight sharing is off
-                        if prompt.use_notes and plugin and plugin._isHighlightSharingBlocked then
+                        -- Block actions when highlight/annotation sharing is off
+                        if plugin and plugin._isHighlightSharingBlocked then
                             if plugin:_isHighlightSharingBlocked(prompt) then
                                 return
                             end

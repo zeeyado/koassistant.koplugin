@@ -192,64 +192,44 @@ local function runMessageBuilderTests()
         TestRunner:assertNotContains(result, "{highlights_section}")
     end)
 
-    TestRunner:test("annotations_section includes label when present", function()
+    TestRunner:test("annotations_section uses 'My annotations:' label (full data)", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "{annotations_section}" },
+            context = "general",
+            data = { annotations = "- Test note", _annotations_degraded = false },
+        })
+        TestRunner:assertContains(result, "My annotations:")
+        TestRunner:assertContains(result, "- Test note")
+    end)
+
+    TestRunner:test("annotations_section uses 'My highlights so far:' label when degraded", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "{annotations_section}" },
+            context = "general",
+            data = { annotations = "- Test highlight only", _annotations_degraded = true },
+        })
+        TestRunner:assertContains(result, "My highlights so far:")
+        TestRunner:assertContains(result, "- Test highlight only")
+    end)
+
+    TestRunner:test("annotations_section defaults to 'My annotations:' when _annotations_degraded not set", function()
         local result = MessageBuilder.build({
             prompt = { prompt = "{annotations_section}" },
             context = "general",
             data = { annotations = "- Test note" },
         })
         TestRunner:assertContains(result, "My annotations:")
-        TestRunner:assertContains(result, "- Test note")
     end)
 
-    TestRunner:test("notes_section uses 'My annotations:' label when _notes_is_annotations=true", function()
+    TestRunner:test("annotations_section disappears when annotations empty", function()
         local result = MessageBuilder.build({
-            prompt = { prompt = "{notes_section}" },
+            prompt = { prompt = "Here: {annotations_section} End" },
             context = "general",
-            data = { notes = "- Test annotation with note", _notes_is_annotations = true },
-        })
-        TestRunner:assertContains(result, "My annotations:")
-        TestRunner:assertContains(result, "- Test annotation with note")
-    end)
-
-    TestRunner:test("notes_section uses 'My highlights so far:' label when _notes_is_annotations=false", function()
-        local result = MessageBuilder.build({
-            prompt = { prompt = "{notes_section}" },
-            context = "general",
-            data = { notes = "- Test highlight only", _notes_is_annotations = false },
-        })
-        TestRunner:assertContains(result, "My highlights so far:")
-        TestRunner:assertContains(result, "- Test highlight only")
-    end)
-
-    TestRunner:test("notes_section disappears when notes empty", function()
-        local result = MessageBuilder.build({
-            prompt = { prompt = "Here: {notes_section} End" },
-            context = "general",
-            data = { notes = "" },
+            data = { annotations = "" },
         })
         TestRunner:assertNotContains(result, "My annotations:")
         TestRunner:assertNotContains(result, "My highlights so far:")
-        TestRunner:assertNotContains(result, "{notes_section}")
-    end)
-
-    TestRunner:test("notes_section disappears when notes nil", function()
-        local result = MessageBuilder.build({
-            prompt = { prompt = "Here: {notes_section} End" },
-            context = "general",
-            data = {},
-        })
-        TestRunner:assertNotContains(result, "{notes_section}")
-    end)
-
-    TestRunner:test("raw {notes} placeholder replaced", function()
-        local result = MessageBuilder.build({
-            prompt = { prompt = "Notes: {notes}" },
-            context = "general",
-            data = { notes = "raw note data" },
-        })
-        TestRunner:assertContains(result, "raw note data")
-        TestRunner:assertNotContains(result, "{notes}")
+        TestRunner:assertNotContains(result, "{annotations_section}")
     end)
 
     TestRunner:test("full_document_section includes label when present", function()
@@ -689,75 +669,75 @@ local function runGatingTests()
     end)
 
     -- =========================================================================
-    -- Notes Double-Gate (annotations → highlights fallback)
+    -- Annotations Degradation (annotations → highlights fallback)
     -- =========================================================================
-    print("\n--- ContextExtractor: Notes Double-Gate (fallback chain) ---")
+    print("\n--- ContextExtractor: Annotations Degradation (fallback chain) ---")
 
-    TestRunner:test("notes: blocked when both highlights and annotations sharing off", function()
+    TestRunner:test("annotations: empty when both highlights and annotations sharing off", function()
         local extractor = createMockExtractor({
             enable_highlights_sharing = false,
             enable_annotations_sharing = false,
         })
-        local data = extractor:extractForAction({ use_notes = true, prompt = "{notes_section}" })
-        TestRunner:assertEquals(data.notes, "")
+        local data = extractor:extractForAction({ use_annotations = true, prompt = "{annotations_section}" })
+        TestRunner:assertEquals(data.annotations, "")
     end)
 
-    TestRunner:test("notes: uses annotations when enable_annotations_sharing=true", function()
+    TestRunner:test("annotations: uses full annotations when enable_annotations_sharing=true", function()
         local extractor = createMockExtractor({
             enable_annotations_sharing = true,
         })
-        local data = extractor:extractForAction({ use_notes = true, prompt = "{notes_section}" })
-        TestRunner:assertContains(data.notes, "Test annotation")
-        TestRunner:assertEquals(data._notes_is_annotations, true)
+        local data = extractor:extractForAction({ use_annotations = true, prompt = "{annotations_section}" })
+        TestRunner:assertContains(data.annotations, "Test annotation")
+        TestRunner:assertEquals(data._annotations_degraded, false)
     end)
 
-    TestRunner:test("notes: falls back to highlights when annotations off but highlights on", function()
+    TestRunner:test("annotations: falls back to highlights when annotations off but highlights on", function()
         local extractor = createMockExtractor({
             enable_highlights_sharing = true,
             enable_annotations_sharing = false,
         })
-        local data = extractor:extractForAction({ use_notes = true, prompt = "{notes_section}" })
-        TestRunner:assertContains(data.notes, "Test highlight")
-        TestRunner:assertEquals(data._notes_is_annotations, false)
+        local data = extractor:extractForAction({ use_annotations = true, prompt = "{annotations_section}" })
+        TestRunner:assertContains(data.annotations, "Test highlight")
+        TestRunner:assertEquals(data._annotations_degraded, true)
     end)
 
-    TestRunner:test("notes: not extracted when use_notes not set", function()
+    TestRunner:test("annotations: not extracted when use_annotations not set", function()
         local extractor = createMockExtractor({
             enable_annotations_sharing = true,
         })
-        local data = extractor:extractForAction({ prompt = "{notes_section}" })
-        TestRunner:assertEquals(data.notes, nil)
+        local data = extractor:extractForAction({ prompt = "{annotations_section}" })
+        TestRunner:assertEquals(data.annotations, "")
     end)
 
-    TestRunner:test("notes: trusted provider bypasses sharing gate", function()
+    TestRunner:test("annotations: trusted provider bypasses sharing gate", function()
         local extractor = createMockExtractor({
             enable_highlights_sharing = false,
             enable_annotations_sharing = false,
             provider = "my_trusted",
             trusted_providers = { "my_trusted" },
         })
-        local data = extractor:extractForAction({ use_notes = true, prompt = "{notes_section}" })
-        TestRunner:assertContains(data.notes, "Test annotation")
-        TestRunner:assertEquals(data._notes_is_annotations, true)
+        local data = extractor:extractForAction({ use_annotations = true, prompt = "{annotations_section}" })
+        TestRunner:assertContains(data.annotations, "Test annotation")
+        TestRunner:assertEquals(data._annotations_degraded, false)
     end)
 
     -- =========================================================================
-    -- Notes: _unavailable_data tracking
+    -- Annotations: _unavailable_data tracking
     -- =========================================================================
-    print("\n--- ContextExtractor: Notes _unavailable_data ---")
+    print("\n--- ContextExtractor: Annotations _unavailable_data ---")
 
-    TestRunner:test("_unavailable_data: 'notes (sharing disabled)' when both off", function()
+    TestRunner:test("_unavailable_data: 'annotations (sharing disabled)' when both off", function()
         local extractor = createMockExtractor({
             enable_highlights_sharing = false,
             enable_annotations_sharing = false,
         })
-        local data = extractor:extractForAction({ use_notes = true, prompt = "{notes_section}" })
+        local data = extractor:extractForAction({ use_annotations = true, prompt = "{annotations_section}" })
         TestRunner:assert(data._unavailable_data, "should have _unavailable_data")
         local found = false
         for _, msg in ipairs(data._unavailable_data) do
-            if msg:find("notes (sharing disabled)", 1, true) then found = true end
+            if msg:find("annotations (sharing disabled)", 1, true) then found = true end
         end
-        TestRunner:assert(found, "should contain 'notes (sharing disabled)'")
+        TestRunner:assert(found, "should contain 'annotations (sharing disabled)'")
     end)
 
     TestRunner:test("_unavailable_data: 'annotations (using highlights only)' when degraded", function()
@@ -765,7 +745,7 @@ local function runGatingTests()
             enable_highlights_sharing = true,
             enable_annotations_sharing = false,
         })
-        local data = extractor:extractForAction({ use_notes = true, prompt = "{notes_section}" })
+        local data = extractor:extractForAction({ use_annotations = true, prompt = "{annotations_section}" })
         TestRunner:assert(data._unavailable_data, "should have _unavailable_data")
         local found = false
         for _, msg in ipairs(data._unavailable_data) do
@@ -780,7 +760,7 @@ local function runGatingTests()
         }, {
             annotations = { formatted = "" },
         })
-        local data = extractor:extractForAction({ use_notes = true, prompt = "{notes_section}" })
+        local data = extractor:extractForAction({ use_annotations = true, prompt = "{annotations_section}" })
         TestRunner:assert(data._unavailable_data, "should have _unavailable_data")
         local found = false
         for _, msg in ipairs(data._unavailable_data) do
@@ -789,15 +769,15 @@ local function runGatingTests()
         TestRunner:assert(found, "should contain 'annotations (none found)'")
     end)
 
-    TestRunner:test("_unavailable_data: no entry when notes data is present", function()
+    TestRunner:test("_unavailable_data: no annotations entry when data is present", function()
         local extractor = createMockExtractor({
             enable_annotations_sharing = true,
         })
-        local data = extractor:extractForAction({ use_notes = true, prompt = "{notes_section}" })
+        local data = extractor:extractForAction({ use_annotations = true, prompt = "{annotations_section}" })
         if data._unavailable_data then
             for _, msg in ipairs(data._unavailable_data) do
-                TestRunner:assert(not msg:find("notes", 1, true) and not msg:find("annotations", 1, true),
-                    "should not have notes/annotations unavailable entry, got: " .. msg)
+                TestRunner:assert(not msg:find("annotations", 1, true),
+                    "should not have annotations unavailable entry, got: " .. msg)
             end
         end
     end)
@@ -809,7 +789,7 @@ local function runGatingTests()
         }, {
             highlights = { formatted = "" },
         })
-        local data = extractor:extractForAction({ use_notes = true, prompt = "{notes_section}" })
+        local data = extractor:extractForAction({ use_annotations = true, prompt = "{annotations_section}" })
         TestRunner:assert(data._unavailable_data, "should have _unavailable_data")
         local found = false
         for _, msg in ipairs(data._unavailable_data) do

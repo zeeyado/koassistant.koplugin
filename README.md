@@ -395,7 +395,7 @@ KOAssistant sends data to AI providers to generate responses. This section expla
 | **Full** | All data sharing enabled for full functionality. Does not automatically enable text extraction (see below). |
 
 **Individual toggles** (under Data Sharing Controls):
-- **Allow Annotation Notes** — Your personal notes attached to highlights (default: OFF). Automatically enables Allow Highlights.
+- **Allow Annotation Notes** — Your personal notes attached to highlights (default: OFF). Automatically enables Allow Highlights. Actions requesting annotations degrade gracefully: when this is off but Allow Highlights is on, they receive highlights-only data (labeled "My highlights so far:" instead of "My annotations:").
 - **Allow Highlights** — Your highlighted text passages (default: OFF). Used by X-Ray, Recap, and actions with `{highlights}` placeholders. Does not include personal notes. Grayed out when annotations is enabled (annotations implies highlights).
 - **Allow Notebook** — Notebook entries for the book (default: OFF)
 - **Allow Reading Progress** — Current reading position percentage (default: ON)
@@ -436,7 +436,7 @@ The table below documents which flags are required for each data type (relevant 
 | X-Ray analysis cache | Allow Text Extraction if cache was built with text (+ Allow Highlights if cache was built with highlights) | "Allow text extraction" (if cache used text) and "Allow highlight use" (if cache used highlights) checked |
 | Analyze/Summary caches | Allow Text Extraction if cache was built with text | "Allow text extraction" (if cache used text) checked |
 | Highlights | Allow Highlights (or Allow Annotation Notes) | "Allow highlight use" checked |
-| Annotations | Allow Annotation Notes | "Allow annotation use (notes)" checked |
+| Annotations | Allow Annotation Notes (degrades to highlights when off but Allow Highlights is on) | "Allow annotation use (notes)" checked |
 | Notebook | Allow Notebook | "Allow notebook use" checked |
 | Surrounding context* | None (hard-capped 2000 chars) | Auto-inferred from placeholder |
 
@@ -975,7 +975,7 @@ Insert these in your action prompt to reference dynamic values:
 | `{highlights}` | Book, Highlight (reading) | All highlights from the document | Allow Highlights (or Allow Annotation Notes) |
 | `{annotations}` | Book, Highlight (reading) | All highlights with user notes | Allow Annotation Notes |
 | `{highlights_section}` | Book, Highlight (reading) | Highlights with "My highlights so far:" label | Allow Highlights (or Allow Annotation Notes) |
-| `{annotations_section}` | Book, Highlight (reading) | Annotations with "My annotations:" label | Allow Annotation Notes |
+| `{annotations_section}` | Book, Highlight (reading) | Annotations with adaptive label: "My annotations:" when full data available, "My highlights so far:" when degraded to highlights-only | Allow Annotation Notes (degrades to Allow Highlights) |
 | `{notebook}` | Book, Highlight (reading) | Content from the book's KOAssistant notebook | Allow Notebook |
 | `{notebook_section}` | Book, Highlight (reading) | Notebook with "My notebook entries:" label | Allow Notebook |
 | `{book_text}` | Book, Highlight (reading) | Extracted book text from start to current position | Allow Text Extraction |
@@ -1004,7 +1004,7 @@ Insert these in your action prompt to reference dynamic values:
 - `{full_document_section}` → "Full document:\n[content]" or "" if empty
 - `{context_section}` → "Word appears in this context: [text]" or "" if empty
 - `{highlights_section}` → "My highlights so far:\n[content]" or "" if empty
-- `{annotations_section}` → "My annotations:\n[content]" or "" if empty
+- `{annotations_section}` → "My annotations:\n[content]" or "My highlights so far:\n[content]" if degraded (annotations off, highlights on), or "" if both off
 - `{notebook_section}` → "My notebook entries:\n[content]" or "" if empty
 - `{surrounding_context_section}` → "Surrounding text:\n[content]" or "" if empty
 - `{xray_cache_section}` → "Previous X-Ray (as of X%):\n[content]" or "" if empty

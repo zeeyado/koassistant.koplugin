@@ -195,24 +195,17 @@ function MessageBuilder.build(params)
     end
     user_prompt = replace_placeholder(user_prompt, "{highlights_section}", highlights_section)
 
-    -- {annotations_section} - includes "My annotations:\n" label
+    -- {annotations_section} - adaptive label based on degradation state
+    -- Full annotations: "My annotations:" / Degraded to highlights: "My highlights so far:"
     local annotations_section = ""
     if data.annotations and data.annotations ~= "" then
-        annotations_section = "My annotations:\n" .. data.annotations
-    end
-    user_prompt = replace_placeholder(user_prompt, "{annotations_section}", annotations_section)
-
-    -- {notes_section} - annotations with highlight fallback
-    -- Label adapts: "My annotations:" when full data, "My highlights:" when degraded
-    local notes_section = ""
-    if data.notes and data.notes ~= "" then
-        if data._notes_is_annotations then
-            notes_section = "My annotations:\n" .. data.notes
+        if data._annotations_degraded then
+            annotations_section = "My highlights so far:\n" .. data.annotations
         else
-            notes_section = "My highlights so far:\n" .. data.notes
+            annotations_section = "My annotations:\n" .. data.annotations
         end
     end
-    user_prompt = replace_placeholder(user_prompt, "{notes_section}", notes_section)
+    user_prompt = replace_placeholder(user_prompt, "{annotations_section}", annotations_section)
 
     -- {notebook_section} - includes "My notebook entries:\n" label
     local notebook_section = ""
@@ -271,9 +264,6 @@ function MessageBuilder.build(params)
     end
     if data.annotations ~= nil then
         user_prompt = replace_placeholder(user_prompt, "{annotations}", data.annotations)
-    end
-    if data.notes ~= nil then
-        user_prompt = replace_placeholder(user_prompt, "{notes}", data.notes)
     end
     if data.book_text then
         user_prompt = replace_placeholder(user_prompt, "{book_text}", data.book_text)

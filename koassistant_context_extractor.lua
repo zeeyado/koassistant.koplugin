@@ -1012,29 +1012,23 @@ function ContextExtractor:extractForAction(action)
         data.highlights = ""
     end
 
-    -- Annotations - stricter gate: only annotations setting (includes highlight text + user notes)
+    -- Annotations: full annotations preferred, degrade to highlights-only when annotations
+    -- sharing is off but highlights sharing is on. Tracks degradation state for adaptive labels.
     local annotations_allowed = provider_trusted
         or self.settings.enable_annotations_sharing == true
-    if annotations_allowed and action.use_annotations then
-        data.annotations = self:getAnnotations().formatted
-    else
-        data.annotations = ""
-    end
-
-    -- Notes: annotations preferred, highlights fallback
-    -- Used by {notes_section} placeholder for actions where user notes are core data
-    if action.use_notes then
+    if action.use_annotations then
         if annotations_allowed then
-            local ann = self:getAnnotations()
-            data.notes = ann.formatted or ""
-            data._notes_is_annotations = true
+            data.annotations = self:getAnnotations().formatted or ""
+            data._annotations_degraded = false
         elseif highlights_allowed then
             -- Annotations not allowed, fall back to highlights only
-            data.notes = self:getHighlights().formatted or ""
-            data._notes_is_annotations = false
+            data.annotations = self:getHighlights().formatted or ""
+            data._annotations_degraded = true
         else
-            data.notes = ""
+            data.annotations = ""
         end
+    else
+        data.annotations = ""
     end
 
     -- Reading stats - check privacy setting (default: enabled)
@@ -1175,30 +1169,19 @@ function ContextExtractor:extractForAction(action)
         end
     end
 
-    -- Annotations: check if requested but not available
+    -- Annotations: check if requested but degraded or unavailable
     if action.use_annotations then
-        if not annotations_allowed then
-            table.insert(unavailable, "annotations (sharing disabled)")
-        elseif not data.annotations or data.annotations == "" then
-            table.insert(unavailable, "annotations (none found)")
-        end
-    end
-
-    -- Notes: check if requested but degraded or unavailable
-    if action.use_notes then
         if not highlights_allowed and not annotations_allowed then
-            table.insert(unavailable, "notes (sharing disabled)")
-        elseif not annotations_allowed and highlights_allowed then
-            -- Degraded: using highlights instead of full annotations
-            if data.notes and data.notes ~= "" then
+            table.insert(unavailable, "annotations (sharing disabled)")
+        elseif data._annotations_degraded then
+            -- Using highlights instead of full annotations
+            if data.annotations and data.annotations ~= "" then
                 table.insert(unavailable, "annotations (using highlights only)")
             else
                 table.insert(unavailable, "highlights (none found)")
             end
-        elseif annotations_allowed then
-            if not data.notes or data.notes == "" then
-                table.insert(unavailable, "annotations (none found)")
-            end
+        elseif not data.annotations or data.annotations == "" then
+            table.insert(unavailable, "annotations (none found)")
         end
     end
 

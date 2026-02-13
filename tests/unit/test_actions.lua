@@ -84,15 +84,6 @@ function TestActions:runAll()
         self:assertEquals(Actions.PLACEHOLDER_TO_FLAG["{annotations_section}"], "use_annotations")
     end)
 
-    -- Test notes placeholders map to use_notes
-    self:test("{notes} maps to use_notes", function()
-        self:assertEquals(Actions.PLACEHOLDER_TO_FLAG["{notes}"], "use_notes")
-    end)
-
-    self:test("{notes_section} maps to use_notes", function()
-        self:assertEquals(Actions.PLACEHOLDER_TO_FLAG["{notes_section}"], "use_notes")
-    end)
-
     -- Test book text placeholders
     self:test("{book_text} maps to use_book_text", function()
         self:assertEquals(Actions.PLACEHOLDER_TO_FLAG["{book_text}"], "use_book_text")
@@ -168,10 +159,6 @@ function TestActions:runAll()
         self:assertContains(Actions.DOUBLE_GATED_FLAGS, "use_annotations")
     end)
 
-    self:test("DOUBLE_GATED_FLAGS includes use_notes", function()
-        self:assertContains(Actions.DOUBLE_GATED_FLAGS, "use_notes")
-    end)
-
     self:test("DOUBLE_GATED_FLAGS includes use_notebook", function()
         self:assertContains(Actions.DOUBLE_GATED_FLAGS, "use_notebook")
     end)
@@ -199,19 +186,6 @@ function TestActions:runAll()
         local flags = Actions.inferOpenBookFlags("Use {highlights} here")
         self:assertEquals(flags.use_highlights, true)
         self:assertEquals(flags.use_annotations, nil, "highlights should NOT cascade to use_annotations")
-    end)
-
-    self:test("inferOpenBookFlags detects {notes_section} and cascades to use_highlights", function()
-        local flags = Actions.inferOpenBookFlags("Use {notes_section} here")
-        self:assertEquals(flags.use_notes, true)
-        self:assertEquals(flags.use_highlights, true, "notes should cascade to use_highlights")
-        self:assertEquals(flags.use_annotations, nil, "notes should NOT cascade to use_annotations")
-    end)
-
-    self:test("inferOpenBookFlags detects {notes}", function()
-        local flags = Actions.inferOpenBookFlags("Use {notes} here")
-        self:assertEquals(flags.use_notes, true)
-        self:assertEquals(flags.use_highlights, true, "notes should cascade to use_highlights")
     end)
 
     self:test("inferOpenBookFlags detects {book_text}", function()
@@ -303,46 +277,39 @@ function TestActions:runAll()
     end)
 
     -- ================================================================
-    -- Built-in actions with use_notes flag
+    -- Built-in actions with use_annotations (degradation to highlights)
     -- ================================================================
-    print("\n--- Built-in use_notes actions ---")
+    print("\n--- Built-in use_annotations actions ---")
 
-    self:test("analyze_highlights has use_notes (not use_annotations)", function()
+    self:test("analyze_highlights has use_annotations + use_highlights", function()
         local action = Actions.book.analyze_highlights
         self:assert(action, "analyze_highlights should exist")
-        self:assertEquals(action.use_notes, true, "should have use_notes")
-        self:assertEquals(action.use_annotations, nil, "should NOT have use_annotations")
+        self:assertEquals(action.use_annotations, true, "should have use_annotations")
+        self:assertEquals(action.use_highlights, true, "should have use_highlights")
     end)
 
-    self:test("analyze_highlights prompt uses {notes_section}", function()
+    self:test("analyze_highlights prompt uses {annotations_section}", function()
         local action = Actions.book.analyze_highlights
-        self:assert(action.prompt:find("{notes_section}", 1, true), "prompt should contain {notes_section}")
-        self:assert(not action.prompt:find("{annotations_section}", 1, true), "prompt should NOT contain {annotations_section}")
+        self:assert(action.prompt:find("{annotations_section}", 1, true), "prompt should contain {annotations_section}")
     end)
 
-    self:test("connect_with_notes has use_notes (not use_annotations)", function()
+    self:test("connect_with_notes has use_annotations + use_highlights", function()
         local action = Actions.highlight.connect_with_notes
         self:assert(action, "connect_with_notes should exist")
-        self:assertEquals(action.use_notes, true, "should have use_notes")
-        self:assertEquals(action.use_annotations, nil, "should NOT have use_annotations")
+        self:assertEquals(action.use_annotations, true, "should have use_annotations")
+        self:assertEquals(action.use_highlights, true, "should have use_highlights")
     end)
 
-    self:test("connect_with_notes prompt uses {notes_section}", function()
+    self:test("connect_with_notes prompt uses {annotations_section}", function()
         local action = Actions.highlight.connect_with_notes
-        self:assert(action.prompt:find("{notes_section}", 1, true), "prompt should contain {notes_section}")
-        self:assert(not action.prompt:find("{annotations_section}", 1, true), "prompt should NOT contain {annotations_section}")
+        self:assert(action.prompt:find("{annotations_section}", 1, true), "prompt should contain {annotations_section}")
     end)
 
-    self:test("analyze_in_context keeps use_annotations (not use_notes)", function()
+    self:test("analyze_in_context has use_annotations + use_highlights", function()
         local action = Actions.highlight.analyze_in_context
         self:assert(action, "analyze_in_context should exist")
         self:assertEquals(action.use_annotations, true, "should have use_annotations")
-        self:assertEquals(action.use_notes, nil, "should NOT have use_notes")
-    end)
-
-    -- OPEN_BOOK_FLAGS includes use_notes
-    self:test("OPEN_BOOK_FLAGS includes use_notes", function()
-        self:assertContains(Actions.OPEN_BOOK_FLAGS, "use_notes")
+        self:assertEquals(action.use_highlights, true, "should have use_highlights (annotations imply highlights)")
     end)
 
     -- ================================================================
@@ -378,10 +345,6 @@ function TestActions:runAll()
         self:assertEquals(Actions.requiresOpenBook({ use_annotations = true }), true)
     end)
 
-    self:test("requiresOpenBook returns true for use_notes", function()
-        self:assertEquals(Actions.requiresOpenBook({ use_notes = true }), true)
-    end)
-
     self:test("requiresOpenBook returns true for use_reading_stats", function()
         self:assertEquals(Actions.requiresOpenBook({ use_reading_stats = true }), true)
     end)
@@ -414,17 +377,6 @@ function TestActions:runAll()
         self:assertEquals(Actions.checkRequirements(action, {}), true)
     end)
 
-    self:test("checkRequirements requires=author fails when no author", function()
-        self:assertEquals(Actions.checkRequirements({ requires = "author" }, {}), false)
-    end)
-
-    self:test("checkRequirements requires=author fails when empty author", function()
-        self:assertEquals(Actions.checkRequirements({ requires = "author" }, { author = "" }), false)
-    end)
-
-    self:test("checkRequirements requires=author passes when author present", function()
-        self:assertEquals(Actions.checkRequirements({ requires = "author" }, { author = "Tolkien" }), true)
-    end)
 
     -- ================================================================
     -- Actions.getForContext() tests

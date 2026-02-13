@@ -24,7 +24,6 @@ local Constants = require("koassistant_constants")
 --   thinking_budget  - Token budget when extended_thinking="on" (1024-32000, default 4096)
 --   api_params       - Optional API parameters: { temperature, max_tokens }
 --   skip_language_instruction - Don't include user's language preferences in system prompt (optional)
---   requires         - Optional metadata requirement: "author", "title", etc.
 --   include_book_context - Include book metadata with highlight context (optional)
 --   description      - Human-readable summary of what the action does (optional, shown in details view)
 --   enabled          - Default enabled state (default: true)
@@ -50,7 +49,6 @@ Actions.OPEN_BOOK_FLAGS = {
     "use_reading_progress",
     "use_highlights",
     "use_annotations",
-    "use_notes",           -- annotations with highlight fallback
     "use_reading_stats",
     "use_notebook",
 }
@@ -67,13 +65,9 @@ Actions.PLACEHOLDER_TO_FLAG = {
     ["{highlights}"] = "use_highlights",
     ["{highlights_section}"] = "use_highlights",
 
-    -- Annotations placeholders (highlights + user notes)
+    -- Annotations placeholders (highlights + user notes; degrades to highlights-only)
     ["{annotations}"] = "use_annotations",
     ["{annotations_section}"] = "use_annotations",
-
-    -- Notes placeholders (annotations with highlight fallback)
-    ["{notes}"] = "use_notes",
-    ["{notes_section}"] = "use_notes",
 
     -- Book text placeholders
     ["{book_text}"] = "use_book_text",
@@ -124,8 +118,7 @@ Actions.REQUIRES_HIGHLIGHTS = {
 Actions.DOUBLE_GATED_FLAGS = {
     "use_book_text",      -- gate: enable_book_text_extraction
     "use_highlights",     -- gate: enable_highlights_sharing
-    "use_annotations",    -- gate: enable_annotations_sharing
-    "use_notes",          -- gate: enable_highlights_sharing OR enable_annotations_sharing
+    "use_annotations",    -- gate: enable_annotations_sharing (degrades to highlights)
     "use_notebook",       -- gate: enable_notebook_sharing
     -- Document cache flags inherit from use_book_text
     "use_xray_cache",
@@ -230,13 +223,14 @@ Surface connections that enrich understanding, not tangential trivia. {concisene
         behavior_variant = "reader_assistant",
         include_book_context = true,
         -- Context extraction flags
-        use_notes = true,
+        use_highlights = true,
+        use_annotations = true,
         use_notebook = true,
         prompt = [[I just highlighted this passage:
 
 "{highlighted_text}"
 
-{notes_section}
+{annotations_section}
 
 {notebook_section}
 
@@ -299,6 +293,7 @@ Help me understand:
         description = _("Deep analysis of the passage within the full document, connecting it to themes and your annotations. Requires text extraction; also uses your annotations if shared."),
         context = "highlight",
         use_book_text = true,
+        use_highlights = true,           -- Annotations imply highlights
         use_annotations = true,
         include_book_context = true,
         prompt = [[Analyze this passage in the broader context of the work:
@@ -367,6 +362,7 @@ Note: The summary may be in a different language than your response language. Tr
         description = _("Like Analyze in Context, but uses a pre-built Summary Cache instead of the full text. Still includes your annotations if shared. Requires generating a Summary Cache first."),
         context = "highlight",
         use_book_text = true,        -- Gate for accessing _summary_cache (derives from book text)
+        use_highlights = true,       -- Annotations imply highlights
         use_summary_cache = true,    -- Reference the cached summary
         use_annotations = true,      -- Still include user's annotations
         include_book_context = true,
@@ -970,14 +966,15 @@ CRITICAL: No spoilers beyond {reading_progress}.]],
         context = "book",
         behavior_variant = "reader_assistant",
         -- Context extraction flags
-        use_notes = true,
+        use_highlights = true,
+        use_annotations = true,
         use_reading_progress = true,
         use_notebook = true,
         prompt = [[Reflect on my reading of "{title}"{author_clause} through my highlights and notes.
 
 I'm at {reading_progress}. Here's what I've marked:
 
-{notes_section}
+{annotations_section}
 
 {notebook_section}
 
@@ -1765,11 +1762,6 @@ function Actions.inferOpenBookFlags(prompt_text)
         inferred_flags["use_highlights"] = true
     end
 
-    -- Cascade: notes imply highlights access (fallback chain)
-    if inferred_flags["use_notes"] then
-        inferred_flags["use_highlights"] = true
-    end
-
     return inferred_flags
 end
 
@@ -1786,18 +1778,6 @@ function Actions.checkRequirements(action, metadata)
     -- Only filter when has_open_book is explicitly false (not nil - nil means management mode)
     if Actions.requiresOpenBook(action) and metadata.has_open_book == false then
         return false
-    end
-
-    -- Check metadata requirements (author, title)
-    -- Only filter when not in management mode (has_open_book == nil means management mode)
-    if action.requires then
-        if metadata.has_open_book == nil then
-            -- Management mode: don't filter by metadata requirements
-        elseif action.requires == "author" then
-            return metadata.author and metadata.author ~= ""
-        elseif action.requires == "title" then
-            return metadata.title and metadata.title ~= ""
-        end
     end
 
     return true
