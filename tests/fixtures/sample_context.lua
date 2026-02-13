@@ -1,5 +1,5 @@
 --[[--
-Sample book context for testing X-Ray, Recap, and Analyze Highlights actions.
+Sample book context for testing X-Ray, Recap, and Analyze My Notes actions.
 
 This fixture provides realistic test data for the web inspector when
 ui.document is unavailable (running outside KOReader).

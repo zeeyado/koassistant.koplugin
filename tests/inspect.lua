@@ -53,7 +53,7 @@ local SampleContext = require("tests.fixtures.sample_context")
 local c = TerminalFormatter.colors
 
 -- Check if action uses context extraction features and merge sample data
--- This allows testing X-Ray, Recap, Analyze Highlights without a real document
+-- This allows testing X-Ray, Recap, Analyze My Notes without a real document
 local function mergeSampleContextIfNeeded(action, context_data, context_type)
     if not action then return end
 
@@ -971,7 +971,7 @@ local function startWebServer(options)
                     skip_domain = action.skip_domain,  -- Domain skip flag
                     context = action.context,  -- Include original context for filtering
                     is_custom = is_custom or false,
-                    -- Context extraction flags (for X-Ray, Recap, Analyze Highlights)
+                    -- Context extraction flags (for X-Ray, Recap, Analyze My Notes)
                     use_book_text = action.use_book_text,
                     use_highlights = action.use_highlights,
                     use_annotations = action.use_annotations,

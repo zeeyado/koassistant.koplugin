@@ -868,7 +868,7 @@ If you don't recognize this work or are uncertain about details, say so honestly
             max_tokens = 8192,
         },
         builtin = true,
-        in_reading_features = 4,        -- After X-Ray(1), Recap(2), Analyze Highlights(3)
+        in_reading_features = 4,        -- After X-Ray(1), Recap(2), Analyze My Notes(3)
         storage_key = "__SKIP__",       -- Cache, not chat history
         use_response_caching = true,    -- Saves result to ActionCache for cache-first viewing
         -- NO update_prompt — every generation is fresh (regenerate, not incremental)
@@ -955,7 +955,7 @@ Guidelines:
 
 CRITICAL: No spoilers beyond {reading_progress}.]],
     },
-    -- Analyze Highlights: Insights from user's annotations and notebook
+    -- Analyze My Notes: Insights from user's annotations and notebook
     analyze_highlights = {
         id = "analyze_highlights",
         enable_web_search = false,

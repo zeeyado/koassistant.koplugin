@@ -1276,7 +1276,7 @@ local SettingsSchema = {
                     text = _("Allow Annotation Notes"),
                     path = "features.enable_annotations_sharing",
                     default = false,
-                    help_text = _("Share your personal notes attached to highlights with the AI. Automatically enables highlight sharing. Used by Analyze Highlights, Connect with Notes, and actions with {annotations} placeholders."),
+                    help_text = _("Share your personal notes attached to highlights with the AI. Automatically enables highlight sharing. Used by Analyze My Notes, Connect with Notes, and actions with {annotations} placeholders."),
                     on_change = function(new_value, plugin)
                         if new_value then
                             -- Auto-enable highlights (annotations implies highlights)
