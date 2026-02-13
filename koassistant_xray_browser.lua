@@ -2697,12 +2697,22 @@ function XrayBrowser:showOptions()
     end
 
     -- View other artifacts for this book
-    if self.metadata.book_file then
+    local artifacts = self:_getAvailableArtifacts()
+    if #artifacts == 1 then
+        local art = artifacts[1]
+        table.insert(buttons, {{
+            text = T(_("View %1"), art.name), align = "left",
+            callback = function()
+                closeOptions()
+                self_ref:_openArtifact(art)
+            end,
+        }})
+    elseif #artifacts > 1 then
         table.insert(buttons, {{
             text = _("View other artifacts…"), align = "left",
             callback = function()
                 closeOptions()
-                self_ref:_showOtherArtifacts()
+                self_ref:_showOtherArtifacts(artifacts)
             end,
         }})
     end
@@ -2855,10 +2865,10 @@ function XrayBrowser:showOptions()
     UIManager:show(self.options_dialog)
 end
 
--- Show other cached artifacts for the current book (excluding X-Ray)
-function XrayBrowser:_showOtherArtifacts()
+-- Get available non-xray artifacts for this book
+function XrayBrowser:_getAvailableArtifacts()
     local book_file = self.metadata.book_file
-    if not book_file then return end
+    if not book_file then return {} end
 
     local ActionCache = require("koassistant_action_cache")
     local NAMES = {
@@ -2878,38 +2888,41 @@ function XrayBrowser:_showOtherArtifacts()
             end
         end
     end
+    return available
+end
 
-    if #available == 0 then
-        UIManager:show(InfoMessage:new{
-            text = _("No other artifacts cached for this book."),
-            timeout = 2,
-        })
-        return
+-- Open a specific artifact viewer
+function XrayBrowser:_openArtifact(art)
+    local plugin = self.metadata.plugin
+    if not plugin then return end
+    local book_file = self.metadata.book_file
+    local book_title = self.metadata.title or ""
+    if art.is_per_action then
+        plugin:viewCachedAction(
+            { text = art.name }, art.key, art.data,
+            { file = book_file, book_title = book_title })
+    else
+        plugin:showCacheViewer({
+            name = art.name, key = art.key, data = art.data,
+            book_title = book_title, file = book_file })
     end
+end
+
+-- Show popup listing other cached artifacts (for 2+ artifacts)
+function XrayBrowser:_showOtherArtifacts(available)
+    if not available or #available == 0 then return end
 
     local self_ref = self
-    local plugin = self.metadata.plugin
-    local book_title = self.metadata.title or ""
     local buttons = {}
     for _idx, art in ipairs(available) do
         local captured = art
         table.insert(buttons, {{
-            text = _("View") .. " " .. captured.name,
+            text = T(_("View %1"), captured.name),
             callback = function()
                 if self_ref._artifacts_dialog then
                     UIManager:close(self_ref._artifacts_dialog)
                 end
-                if plugin then
-                    if captured.is_per_action then
-                        plugin:viewCachedAction(
-                            { text = captured.name }, captured.key, captured.data,
-                            { file = book_file, book_title = book_title })
-                    else
-                        plugin:showCacheViewer({
-                            name = captured.name, key = captured.key, data = captured.data,
-                            book_title = book_title, file = book_file })
-                    end
-                end
+                self_ref:_openArtifact(captured)
             end,
         }})
     end
