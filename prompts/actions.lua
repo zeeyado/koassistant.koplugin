@@ -50,6 +50,7 @@ Actions.OPEN_BOOK_FLAGS = {
     "use_reading_progress",
     "use_highlights",
     "use_annotations",
+    "use_notes",           -- annotations with highlight fallback
     "use_reading_stats",
     "use_notebook",
 }
@@ -69,6 +70,10 @@ Actions.PLACEHOLDER_TO_FLAG = {
     -- Annotations placeholders (highlights + user notes)
     ["{annotations}"] = "use_annotations",
     ["{annotations_section}"] = "use_annotations",
+
+    -- Notes placeholders (annotations with highlight fallback)
+    ["{notes}"] = "use_notes",
+    ["{notes_section}"] = "use_notes",
 
     -- Book text placeholders
     ["{book_text}"] = "use_book_text",
@@ -120,6 +125,7 @@ Actions.DOUBLE_GATED_FLAGS = {
     "use_book_text",      -- gate: enable_book_text_extraction
     "use_highlights",     -- gate: enable_highlights_sharing
     "use_annotations",    -- gate: enable_annotations_sharing
+    "use_notes",          -- gate: enable_highlights_sharing OR enable_annotations_sharing
     "use_notebook",       -- gate: enable_notebook_sharing
     -- Document cache flags inherit from use_book_text
     "use_xray_cache",
@@ -224,13 +230,13 @@ Surface connections that enrich understanding, not tangential trivia. {concisene
         behavior_variant = "reader_assistant",
         include_book_context = true,
         -- Context extraction flags
-        use_annotations = true,
+        use_notes = true,
         use_notebook = true,
         prompt = [[I just highlighted this passage:
 
 "{highlighted_text}"
 
-{annotations_section}
+{notes_section}
 
 {notebook_section}
 
@@ -964,14 +970,14 @@ CRITICAL: No spoilers beyond {reading_progress}.]],
         context = "book",
         behavior_variant = "reader_assistant",
         -- Context extraction flags
-        use_annotations = true,
+        use_notes = true,
         use_reading_progress = true,
         use_notebook = true,
         prompt = [[Reflect on my reading of "{title}"{author_clause} through my highlights and notes.
 
 I'm at {reading_progress}. Here's what I've marked:
 
-{annotations_section}
+{notes_section}
 
 {notebook_section}
 
@@ -1756,6 +1762,11 @@ function Actions.inferOpenBookFlags(prompt_text)
 
     -- Cascade: annotations imply highlights (you can't have notes without highlighted text)
     if inferred_flags["use_annotations"] then
+        inferred_flags["use_highlights"] = true
+    end
+
+    -- Cascade: notes imply highlights access (fallback chain)
+    if inferred_flags["use_notes"] then
         inferred_flags["use_highlights"] = true
     end
 

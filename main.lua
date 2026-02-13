@@ -4477,6 +4477,24 @@ function AskGPT:_isTextExtractionBlocked(action, alternative_text)
   return false
 end
 
+--- Check if highlight/annotation sharing is blocked for a notes-based action.
+--- Blocked when neither enable_highlights_sharing nor enable_annotations_sharing is on.
+--- Mirrors _isTextExtractionBlocked() pattern for consistency.
+--- @param action table: Action definition (checks use_notes flag)
+--- @return boolean: true if blocked (showed popup), false if OK to proceed
+function AskGPT:_isHighlightSharingBlocked(action)
+  local features = self.settings and self.settings:readSetting("features") or {}
+  local highlights_ok = features.enable_highlights_sharing == true
+  local annotations_ok = features.enable_annotations_sharing == true
+  if not highlights_ok and not annotations_ok then
+    UIManager:show(InfoMessage:new{
+      text = _("This action requires access to your highlights or annotations.\n\nEnable sharing in Settings → Privacy & Data."),
+    })
+    return true
+  end
+  return false
+end
+
 --- Show a popup for incremental actions that have an existing cached result.
 --- Offers "View" (opens cached result) or "Update" (re-runs the action incrementally).
 --- Called from executeBookLevelAction() and book chat input field for actions with use_response_caching.
@@ -4512,6 +4530,10 @@ function AskGPT:showCacheActionPopup(action, action_id, on_update)
   if not cached or not cached.result then
     -- Text extraction gate for first-time generation
     if action.use_book_text and self:_isTextExtractionBlocked(action) then
+      return
+    end
+    -- Highlight sharing gate for notes-based actions
+    if action.use_notes and self:_isHighlightSharingBlocked(action) then
       return
     end
     on_update()
@@ -4575,6 +4597,7 @@ function AskGPT:showCacheActionPopup(action, action_id, on_update)
           callback = function()
             UIManager:close(dialog)
             if action.use_book_text and self_ref:_isTextExtractionBlocked(action) then return end
+            if action.use_notes and self_ref:_isHighlightSharingBlocked(action) then return end
             on_update()
           end,
         },
@@ -4883,6 +4906,11 @@ function AskGPT:executeBookLevelAction(action_id)
       icon = "notice-warning",
       text = T(_("Action '%1' not found"), action_id)
     })
+    return
+  end
+
+  -- Block notes-based actions when highlight sharing is off
+  if action.use_notes and self:_isHighlightSharingBlocked(action) then
     return
   end
 
@@ -6865,6 +6893,11 @@ function AskGPT:executeHighlightBypassAction(action, selected_text, highlight_in
   end
   config_copy.context = "highlight"
 
+  -- Block notes-based actions when highlight sharing is off
+  if action.use_notes and self:_isHighlightSharingBlocked(action) then
+    return
+  end
+
   -- Execute the action
   Dialogs.executeDirectAction(
     self.ui,
@@ -6999,6 +7032,10 @@ function AskGPT:executeQuickAction(action, highlighted_text, context, selection_
   end
   -- Store selection data for "Save to Note" feature
   configuration.features.selection_data = selection_data
+  -- Block notes-based actions when highlight sharing is off
+  if action.use_notes and self:_isHighlightSharingBlocked(action) then
+    return
+  end
   Dialogs.executeDirectAction(self.ui, action, highlighted_text, configuration, self)
 end
 

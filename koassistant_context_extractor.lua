@@ -1021,6 +1021,22 @@ function ContextExtractor:extractForAction(action)
         data.annotations = ""
     end
 
+    -- Notes: annotations preferred, highlights fallback
+    -- Used by {notes_section} placeholder for actions where user notes are core data
+    if action.use_notes then
+        if annotations_allowed then
+            local ann = self:getAnnotations()
+            data.notes = ann.formatted or ""
+            data._notes_is_annotations = true
+        elseif highlights_allowed then
+            -- Annotations not allowed, fall back to highlights only
+            data.notes = self:getHighlights().formatted or ""
+            data._notes_is_annotations = false
+        else
+            data.notes = ""
+        end
+    end
+
     -- Reading stats - check privacy setting (default: enabled)
     if provider_trusted or self.settings.enable_stats_sharing ~= false then
         local stats = self:getReadingStats()
@@ -1165,6 +1181,24 @@ function ContextExtractor:extractForAction(action)
             table.insert(unavailable, "annotations (sharing disabled)")
         elseif not data.annotations or data.annotations == "" then
             table.insert(unavailable, "annotations (none found)")
+        end
+    end
+
+    -- Notes: check if requested but degraded or unavailable
+    if action.use_notes then
+        if not highlights_allowed and not annotations_allowed then
+            table.insert(unavailable, "notes (sharing disabled)")
+        elseif not annotations_allowed and highlights_allowed then
+            -- Degraded: using highlights instead of full annotations
+            if data.notes and data.notes ~= "" then
+                table.insert(unavailable, "annotations (using highlights only)")
+            else
+                table.insert(unavailable, "highlights (none found)")
+            end
+        elseif annotations_allowed then
+            if not data.notes or data.notes == "" then
+                table.insert(unavailable, "annotations (none found)")
+            end
         end
     end
 
