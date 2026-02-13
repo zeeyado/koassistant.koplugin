@@ -222,6 +222,7 @@ Surface connections that enrich understanding, not tangential trivia. {concisene
         context = "highlight",
         behavior_variant = "reader_assistant",
         include_book_context = true,
+        requires = {"highlights"},      -- Block if no highlight-type data can reach the prompt
         -- Context extraction flags
         use_highlights = true,
         use_annotations = true,
@@ -764,6 +765,8 @@ Actions.book = {
         description = _("Builds a structured reference guide — characters, themes, locations, timeline — up to your current reading position. Completely spoiler-free. When highlights are shared, adds a personal reader engagement section analyzing what catches your attention and patterns in your highlighting. Without highlights, focuses purely on the text content. Requires text extraction; updates incrementally as you read further. Can also generate a complete analysis of the entire document."),
         context = "book",
         behavior_variant = "reader_assistant",
+        requires = {"book_text"},       -- Block if text extraction is off
+        blocked_hint = _("Or use X-Ray (Simple) for an overview based on AI knowledge."),
         -- Context extraction flags
         use_book_text = true,
         use_highlights = true,
@@ -965,6 +968,7 @@ CRITICAL: No spoilers beyond {reading_progress}.]],
         description = _("Analyzes your note-taking and highlighting patterns to reveal what catches your attention, emerging themes, and connections between your notes. This is about understanding you as a reader, not summarizing the book. Requires annotations and notebook sharing."),
         context = "book",
         behavior_variant = "reader_assistant",
+        requires = {"highlights"},      -- Block if no highlight-type data can reach the prompt
         -- Context extraction flags
         use_highlights = true,
         use_annotations = true,
@@ -1317,6 +1321,7 @@ Note: The summary may be in a different language than your response language. Tr
         text = _("Document Analysis"),
         description = _("Analyzes the document's thesis, structure, key insights, and audience. The result is saved as an Analyze artifact that other actions can reference. Requires text extraction."),
         context = "book",
+        requires = {"book_text"},       -- Block if text extraction is off
         use_book_text = true,  -- Permission gate (UI: "Allow text extraction")
         cache_as_analyze = true,  -- Save for other actions via {analyze_cache_section}
         use_response_caching = true,  -- View/Redo popup + per-action cache
@@ -1348,6 +1353,7 @@ Provide analysis appropriate to this document's type and purpose. Address what's
         text = _("Document Summary"),
         description = _("Creates a comprehensive summary preserving key details and structure. The result is saved as a Summary artifact — the foundation that all Smart actions rely on. Requires text extraction."),
         context = "book",
+        requires = {"book_text"},       -- Block if text extraction is off
         use_book_text = true,  -- Permission gate (UI: "Allow text extraction")
         cache_as_summary = true,  -- Save for other actions via {summary_cache_section}
         use_response_caching = true,  -- View/Redo popup + per-action cache

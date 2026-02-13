@@ -3145,9 +3145,9 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                             end)
                         end
 
-                        -- Block actions when highlight/annotation sharing is off
-                        if plugin and plugin._isHighlightSharingBlocked then
-                            if plugin:_isHighlightSharingBlocked(prompt) then
+                        -- Block actions when declared requirements are unmet
+                        if plugin and plugin._checkRequirements then
+                            if plugin:_checkRequirements(prompt) then
                                 return
                             end
                         end
