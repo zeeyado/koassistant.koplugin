@@ -39,19 +39,6 @@ local _ = require("koassistant_gettext")
 local Actions = {}
 
 -- ============================================================
--- Canonical Summary Prompt
--- ============================================================
--- The "workhorse" prompt for building reusable document summaries
--- Used by summarize_full_document action and referenced by Smart actions
-Actions.SUMMARY_PROMPT = [[Summarize: "{title}"{author_clause}.
-
-{full_document_section}
-
-Provide a comprehensive summary capturing the essential content. Cover the entire work evenly from beginning to end — do not front-load detail on early sections at the expense of later ones. This summary will be used as a stand-in for the full text in future queries and analysis, so preserve key details, arguments, and structure while being as concise as the content's length and density allow.
-
-{text_fallback_nudge}]]
-
--- ============================================================
 -- Open Book Flags - Centralized Definition
 -- ============================================================
 -- Actions that use these flags require an open book (reading mode)
@@ -1322,10 +1309,12 @@ Note: The summary may be in a different language than your response language. Tr
         id = "analyze_full_document",
         enable_web_search = false,
         text = _("Analyze Document"),
-        description = _("Analyzes the document's thesis, structure, key insights, and audience. The result is saved as an Analyze Cache that other actions can reference. Requires text extraction."),
+        description = _("Analyzes the document's thesis, structure, key insights, and audience. The result is saved as an Analyze artifact that other actions can reference. Requires text extraction."),
         context = "book",
         use_book_text = true,  -- Permission gate (UI: "Allow text extraction")
         cache_as_analyze = true,  -- Save for other actions via {analyze_cache_section}
+        use_response_caching = true,  -- View/Redo popup + per-action cache
+        in_reading_features = 6,  -- After Summarize Document (5)
         storage_key = "__SKIP__",  -- Result lives in document cache, not chat history
         prompt = [[Analyze this document: "{title}"{author_clause}.
 
@@ -1348,17 +1337,26 @@ Provide analysis appropriate to this document's type and purpose. Address what's
         builtin = true,
     },
     -- Summarize Full Document: Condense content without evaluation
-    -- Uses canonical SUMMARY_PROMPT - the "workhorse" for Smart actions
+    -- Foundation for Smart actions — pre-flight generates this automatically
     summarize_full_document = {
         id = "summarize_full_document",
         enable_web_search = false,
         text = _("Summarize Document"),
-        description = _("Creates a comprehensive summary preserving key details and structure. The result is saved as a Summary Cache — the foundation that all Smart actions rely on. Requires text extraction."),
+        description = _("Creates a comprehensive summary preserving key details and structure. The result is saved as a Summary artifact — the foundation that all Smart actions rely on. Requires text extraction."),
         context = "book",
         use_book_text = true,  -- Permission gate (UI: "Allow text extraction")
         cache_as_summary = true,  -- Save for other actions via {summary_cache_section}
+        use_response_caching = true,  -- View/Redo popup + per-action cache
+        in_reading_features = 5,  -- After X-Ray Simple (4)
+        in_quick_actions = 4,  -- After Book Info (3)
         storage_key = "__SKIP__",  -- Result lives in document cache, not chat history
-        prompt = Actions.SUMMARY_PROMPT,  -- Canonical summary prompt
+        prompt = [[Summarize: "{title}"{author_clause}.
+
+{full_document_section}
+
+Provide a comprehensive summary capturing the essential content. Cover the entire work evenly from beginning to end — do not front-load detail on early sections at the expense of later ones. This summary will be used as a stand-in for the full text in future queries and analysis, so preserve key details, arguments, and structure while being as concise as the content's length and density allow.
+
+{text_fallback_nudge}]],
         api_params = {
             temperature = 0.4,
         },
