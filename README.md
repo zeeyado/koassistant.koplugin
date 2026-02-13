@@ -42,7 +42,7 @@
 - [How to Use KOAssistant](#how-to-use-koassistant) — Contexts & Built-in Actions
   - [Highlight Mode](#highlight-mode)
   - [Book/Document Mode](#bookdocument-mode)
-    - [Reading Analysis Actions](#reading-analysis-actions) — X-Ray, X-Ray (Simple), Recap, Full Document Analysis
+    - [Reading Analysis Actions](#reading-analysis-actions) — X-Ray, X-Ray (Simple), Recap, Summarize Document, Analyze Document
   - [Multi-Document Mode](#multi-document-mode)
   - [General Chat](#general-chat)
   - [Save to Note](#save-to-note)
@@ -86,7 +86,7 @@
   - [Streaming Responses](#streaming-responses)
   - [Prompt Caching](#prompt-caching)
   - [Response Caching](#response-caching) — Incremental X-Ray/Recap updates as you read
-  - [Document Artifacts](#document-artifacts) — Summary, X-Ray, X-Ray (Simple), Analysis: viewable guides and reusable context for Smart actions
+  - [Document Artifacts](#document-artifacts) — Summary, X-Ray, X-Ray (Simple), Recap, Analysis: viewable guides and reusable context for Smart actions
   - [Reasoning/Thinking](#reasoningthinking)
   - [Web Search](#web-search) — AI searches the web for current information (Anthropic, Gemini, OpenRouter)
 - [Supported Providers + Settings](#supported-providers--settings) - Choose your model, etc
@@ -260,9 +260,8 @@ To show/hide buttons in the Quick Settings panel, use **Settings → Quick Setti
 <a href="screenshots/QApanelmore.png"><img src="screenshots/QApanelmore.png" width="300" alt="Quick Actions panel"></a>
 
 Assign "KOAssistant: Quick Actions" to a gesture for fast access to reading-related actions:
-- **Default actions** — X-Ray, Recap, Book Info
-- **Summary management** — "View Summary" (if summary exists) or "Generate Summary" (if not) for cached document summaries
-- **Artifact button** — "View Artifacts" appears when any artifacts exist (X-Ray, X-Ray (Simple), Analysis, Summary), opening a picker to choose which one to view
+- **Default actions** — X-Ray, Recap, Book Info, Summarize Document
+- **Artifact button** — "View Artifacts" appears when any artifacts exist (X-Ray, X-Ray (Simple), Analysis, Summary, Recap), opening a picker to choose which one to view
 - **Utilities** — Translate Page, View/Edit Notebook, Chat History, Continue Last Chat, New Book Chat/Action, General Chat/Action, Quick Settings
 
 You can add any book action to Quick Actions via **Action Manager → hold action → "Add to Quick Actions"**. To reorder or remove actions, use **Settings → Quick Actions Settings → Panel Actions**. To show/hide utility buttons (Translate Page, Chat History, etc.), use **Settings → Quick Actions Settings → QA Panel Utilities**. Defaults can also be removed.
@@ -564,18 +563,27 @@ Several actions come in two variants: a **regular** version that sends full docu
 - When you need the AI to work from the actual text, not a summary, for detail and accuracy
 
 **How Smart actions work:**
-- First use: Prompts to generate a reusable summary via a central function
+- First use: Prompts to generate a reusable summary via the **Summarize Document** action
 - Subsequent uses: Uses cached summary (much faster and cheaper)
 - The summary is available to other Smart actions and as a placeholder for use as you like
 - Token savings: ~100K raw text → ~2-8K cached summary per query
 
-**Managing summaries:**
-- **Generate**: Quick Actions → "Generate Summary" (when no summary exists)
-- **View**: Quick Actions → "View Summary" (when summary exists), or use the "View Summary" gesture
-- **File browser**: "View Artifacts (KOA)" button appears when a book has any artifacts (Summary, X-Ray, X-Ray (Simple), or Analysis) — tap to pick which one to view. X-Ray opens in a browsable category menu; X-Ray (Simple) opens in the text viewer.
+**Summarize Document and Smart actions:**
+
+The **Summarize Document** action is the same action that Smart actions trigger automatically when no summary exists — it generates the summary artifact. You can run it yourself proactively (from Reading Features, Quick Actions, gestures, or the book actions menu) or let Smart actions trigger it on demand. When triggered by a Smart action, the summary is generated silently in the background and the Smart action continues automatically. When triggered directly, it opens in the summary viewer.
+
+You can customize the Summarize Document action independently (provider, model, temperature, etc.) via Action Manager if you find a setup that works well for summary generation. Smart actions use their own settings (global or per-action overrides) — separate from the Summarize Document action's settings.
+
+Even if you remove Summarize Document from Quick Actions or Reading Features, or disable it entirely, it still works as the Smart action summary generator — the pre-flight mechanism calls it directly, not through the panel.
+
+**Accessing summaries:**
+- **Reading Features** → Summarize Document (shows View/Redo popup if summary exists, generates if not)
+- **Quick Actions** → Summarize Document (same behavior)
+- **File browser** → Long-press a book → "View Artifacts (KOA)" → pick Summary, X-Ray, X-Ray (Simple), Recap, or Analysis. X-Ray opens in a browsable category menu; X-Ray (Simple) opens in the text viewer.
+- **Gesture** → Assign "KOAssistant: Summarize Document" or "KOAssistant: View Artifacts"
 - **Coverage**: The viewer title shows coverage percentage if document was truncated (e.g., "Summary (78%)")
 
-> **Tip**: For documents you'll query multiple times, generate the summary proactively via Quick Actions to save tokens on future queries. The artifacts (Summary, X-Ray, X-Ray (Simple), Analysis) are also useful on their own as viewable reference guides — see [Document Artifacts](#document-artifacts).
+> **Tip**: For documents you'll query multiple times, generate the summary proactively to save tokens on future queries. The artifacts (Summary, X-Ray, X-Ray (Simple), Analysis, Recap) are also useful on their own as viewable reference guides — see [Document Artifacts](#document-artifacts).
 
 See [Document Artifacts → "Generate Once, Use Many Times"](#document-artifacts) for full details on the summary artifact and Smart actions system.
 
@@ -613,8 +621,8 @@ Some actions work from the file browser (using only document metadata like title
 | **Discussion Questions (Smart)** | Like Discussion Questions, but uses cached summary ⚠️ *Requires: Allow Text Extraction* |
 | **Generate Quiz** | Comprehension quiz with answers (multiple choice, short answer, essay) ⚠️ *Requires: Allow Text Extraction* |
 | **Generate Quiz (Smart)** | Like Generate Quiz, but uses cached summary ⚠️ *Requires: Allow Text Extraction* |
-| **Analyze Document** | Deep analysis of complete short documents (papers, articles, notes) ⚠️ *Requires: Allow Text Extraction* |
-| **Summarize Document** | Comprehensive summary of entire document ⚠️ *Requires: Allow Text Extraction* |
+| **Analyze Document** | Deep analysis: thesis, structure, key insights, audience. Saved as an Analysis artifact. ⚠️ *Requires: Allow Text Extraction* |
+| **Summarize Document** | Comprehensive summary of entire document. Saved as a Summary artifact — the foundation that all Smart actions rely on. ⚠️ *Requires: Allow Text Extraction* |
 | **Extract Key Insights** | Actionable takeaways and ideas worth remembering ⚠️ *Requires: Allow Text Extraction* |
 
 **What the AI sees**: Document metadata (title, author). For Analyze Highlights: your annotations. For full document actions: entire document text.
@@ -645,7 +653,7 @@ These actions analyze your actual reading content. They require specific privacy
 
 > **Tip:** Highlight actions can also use text extraction. "Explain in Context" and "Analyze in Context" send the full document text (`{full_document_section}`) to understand your highlighted passage within the complete work. See [Highlight Mode](#highlight-mode) for details.
 
-**X-Ray** requires text extraction enabled (Settings → Privacy & Data → Text Extraction). Without it, generation is blocked with a message suggesting X-Ray (Simple) as an alternative. If you've already generated an X-Ray and later disable text extraction, you can still view the cached result but cannot update or redo it.
+**X-Ray**, **Summarize Document**, and **Analyze Document** require text extraction enabled (Settings → Privacy & Data → Text Extraction). Without it, generation is blocked with a message directing you to enable text extraction (or use X-Ray (Simple) as an alternative for X-Ray). If you've already generated a cached result and later disable text extraction, you can still view it but cannot regenerate or redo it.
 
 The X-Ray action produces a structured JSON analysis that opens in a **browsable category menu** rather than a plain text document. The initial browsable menu concept was inspired by [X-Ray Plugin for KOReader by 0zd3m1r](https://github.com/0zd3m1r/koreader-xray-plugin). Chapter distribution, linkable connections, and local lookup features were informed by [Dynamic X-Ray by smartscripts-nl](https://github.com/smartscripts-nl/dynamic-xray) — a comprehensive manual X-Ray system with curated character databases, live page markers, and a custom histogram widget. Our approach differs: we use AI generation instead of manual curation, and menu-based navigation instead of custom widgets, but DX demonstrated the value of per-item chapter tracking and cross-reference linking. The browser provides:
 
@@ -1398,11 +1406,12 @@ Actions with gestures show a `[gesture]` indicator in the Action Manager list.
 - KOAssistant: X-Ray (Simple) — Prose companion guide from AI knowledge (no text extraction needed)
 - KOAssistant: Recap — Get a story summary
 - KOAssistant: Analyze Highlights — Analyze your annotations
+- KOAssistant: Summarize Document — Generate/view the document summary artifact (foundation for Smart actions)
+- KOAssistant: Analyze Document — Generate/view document analysis artifact
 - KOAssistant: Translate Current Page — Translate visible page text
 - KOAssistant: View Notebook — View current book's notebook
 - KOAssistant: Edit Notebook — Edit current book's notebook
-- KOAssistant: View Summary — View the document summary artifact
-- KOAssistant: View Artifacts — Browse X-Ray, X-Ray (Simple), Analysis, and Summary artifacts for the current book (handy for re-reading previous results without re-running the action)
+- KOAssistant: View Artifacts — Browse X-Ray, X-Ray (Simple), Recap, Summary, and Analysis artifacts for the current book
 
 **General** (available in both File Browser and Reader gesture settings):
 - KOAssistant: Quick Settings — Two-column settings panel
@@ -1804,13 +1813,14 @@ Tags are simple labels for organizing chats. Unlike domains:
 - **Chat History**: Browse saved conversations
 - **Browse Notebooks**: Open the Notebook Manager to view all notebooks
 - **Browse Artifacts**: Open the Artifact Browser to view all cached artifacts
-- **View/Generate Summary**: View cached summary (if exists) or generate one (reader mode only)
 
 ### Reading Features (visible when document is open)
 - **X-Ray**: Generate a browsable reference guide for the book up to your current reading position — opens in a structured category menu with characters, locations, themes, lexicon, timeline, and per-item chapter distribution. Requires text extraction enabled
 - **X-Ray (Simple)**: Prose companion guide from AI knowledge — characters, themes, settings, key terms. No text extraction needed
 - **Recap**: Get a "Previously on..." style summary to help you resume reading
 - **Analyze Highlights**: Discover patterns and connections in your highlights and annotations
+- **Summarize Document**: Generate a comprehensive document summary — foundation for Smart actions. Requires text extraction
+- **Analyze Document**: Deep analysis of thesis, structure, key insights, and audience. Requires text extraction
 
 ### Provider & Model
 - **Provider**: Select AI provider (16 built-in + custom providers)
@@ -2008,7 +2018,7 @@ Configure the Quick Actions panel (available via gesture in reader mode).
 - **Panel Actions**: Reorder or remove actions from the Quick Actions panel. Add new actions via Action Manager → hold action → "Add to Quick Actions".
 - **QA Panel Utilities**: Show/hide utility buttons that appear below actions in the panel:
   - Translate Page, View Notebook, Edit Notebook, Chat History, Continue Last Chat
-  - New Book Chat/Action, General Chat/Action, Summary (View/Generate), Quick Settings, View Artifacts (opens picker when any artifacts exist)
+  - New Book Chat/Action, General Chat/Action, Quick Settings, View Artifacts (opens picker when any artifacts exist)
   - All utilities are enabled by default. Disable any you don't use to streamline the panel.
 
 ### Actions & Prompts
@@ -2048,7 +2058,7 @@ See [Privacy & Data](#privacy--data) for background on what gets sent to AI prov
   - **Max Pages (PDF, DJVU, CBZ…)**: Maximum pages to extract from page-based formats (100-5,000, default 2,000)
   - **Don't warn about truncated extractions**: When unchecked (default), a blocking warning dialog appears before sending requests where extracted text was truncated to fit the character limit — shows the coverage percentage so you know how much of the document was included. The warning offers Cancel, Continue Anyway, or Don't warn again
   - **Don't warn about large extractions**: When unchecked (default), a warning dialog appears before sending requests with over 500K characters (~125K tokens) of extracted text — most models except Gemini will struggle at this size. The warning offers Cancel, Continue, or Don't warn again
-  - **Clear Action Cache**: Clear cached X-Ray/Recap responses for the current book (requires book to be open). To clear just one action, use the delete button in the artifact viewer instead.
+  - **Clear Action Cache**: Clear cached artifact responses (X-Ray, X-Ray (Simple), Recap, Summary, Analysis) for the current book (requires book to be open). To clear just one action, use the delete button in the artifact viewer instead.
 
 ### KOReader Integration
 Control where KOAssistant appears in KOReader's menus. All toggles default to ON; disable any to reduce UI presence.
@@ -2060,7 +2070,7 @@ Control where KOAssistant appears in KOReader's menus. All toggles default to ON
   - **Show Notebook Button**: Show "Notebook (KOA)" button when long-pressing books
   - **Only for books with notebooks**: Only show notebook button if notebook already exists
   - **Show Chat History Button**: Show "Chat History (KOA)" button when long-pressing books that have chat history
-  - **Show Artifacts Button**: Show "View Artifacts (KOA)" button for books that have artifacts (X-Ray, X-Ray (Simple), Summary, Analysis). Default: on
+  - **Show Artifacts Button**: Show "View Artifacts (KOA)" button for books that have artifacts (X-Ray, X-Ray (Simple), Recap, Summary, Analysis). Default: on
   - **Pinned Actions**: Actions you add via Action Manager → hold → "Add to File Browser" appear as one-tap buttons. Manage order and visibility via **File Browser Actions...** manager
   - All file browser buttons are distributed across rows of up to 4 buttons, equally distributed
 - **Customize Visible Actions**:
@@ -2486,7 +2496,7 @@ X-Ray and Recap responses are automatically cached per book. For **incremental**
 
 **Direct-to-viewer:** When any X-Ray cache covers 100% — whether complete, incremental updated to 100%, or simply read to the end — tapping X-Ray goes directly to the browser viewer with no scope popup. Redo is available in the browser's options menu (☰).
 
-The View/Update popup appears everywhere you can trigger X-Ray or Recap: Quick Actions panel, Reading Features menu, gestures, and the book chat input field action picker. If no cache exists yet, the popup offers "Generate X-Ray (to X%)" and "Generate X-Ray (entire document)".
+The View/Update popup appears everywhere you can trigger an artifact action (X-Ray, X-Ray (Simple), Recap, Summarize Document, Analyze Document): Quick Actions panel, Reading Features menu, gestures, and the book chat input field action picker. For X-Ray specifically, if no cache exists yet, the popup offers "Generate X-Ray (to X%)" and "Generate X-Ray (entire document)". For non-incremental actions (Summarize, Analyze, X-Ray (Simple)), the popup shows "View" and "Redo" (since there's nothing to incrementally update).
 
 **Stale X-Ray notification:** When you open the X-Ray browser and your reading has advanced >5% past the cached progress, a popup shows the gap (e.g., "X-Ray covers to 29% — You're now at 39%") with **Update** and **Don't remind me this session** buttons. This also appears when looking up items via "Look up in X-Ray" from highlight/dictionary. You can also update anytime from the browser's options menu (☰) — it shows **Update X-Ray (to 39%)** when you've read further, or **Redo X-Ray** at the same position. Stale notifications don't appear for 100% caches (reader is always at or behind the cache).
 
@@ -2505,13 +2515,13 @@ The View/Update popup appears everywhere you can trigger X-Ray or Recap: Quick A
 - Automatically moves with the book if you reorganize your library
 
 **Clearing the cache:**
-- **Per-action**: In the artifact viewer, use the delete button (for X-Ray: options menu → "Delete X-Ray"; for X-Ray (Simple): delete button in the text viewer; for Analysis/Summary/Recap: delete button in the chat viewer). This clears that action's cache for this book, then re-run the action manually.
+- **Per-action**: In the artifact viewer, use the delete button (for X-Ray: options menu → "Delete X-Ray"; for X-Ray (Simple)/Recap: delete button in the text viewer; for Summary/Analysis: delete button in the cache viewer). This clears that action's cache for this book. You can then re-run the action — Summary and Analysis also have a regenerate button in the viewer when the book is open.
 - **All actions for book**: Settings → Privacy & Data → Text Extraction → Clear Action Cache (requires book to be open)
 - Either option forces fresh generation on next run (useful if analysis got off track, or to switch between incremental and complete tracks)
 
 **Limitations:**
-- Only built-in X-Ray and Recap support incremental caching currently
-- X-Ray requires text extraction; X-Ray (Simple) and Recap work without it
+- Only X-Ray and Recap support incremental caching currently (other artifact actions cache results but always regenerate fresh)
+- X-Ray, Summarize Document, and Analyze Document require text extraction; X-Ray (Simple) and Recap work without it
 - Complete X-Rays don't support incremental updates (always fresh generation)
 - X-Ray (Simple) doesn't support incremental updates (always fresh generation)
 - Going backward in progress doesn't use cache (fresh generation)
@@ -2519,35 +2529,37 @@ The View/Update popup appears everywhere you can trigger X-Ray or Recap: Quick A
 - Legacy markdown X-Ray caches (from before the JSON update) are still viewable but will be fully regenerated (not incrementally updated) on the next run, producing the new JSON format
 - To switch between incremental and complete tracks, delete the cache and regenerate
 
-X-Ray, Recap, and other actions also produce **Document Artifacts** — reusable results you can view anytime and reference in other actions. See the next section for details.
+All five artifact actions (X-Ray, X-Ray (Simple), Recap, Summarize Document, Analyze Document) produce **Document Artifacts** — reusable results you can view anytime and reference in other actions. See the next section for details.
 
 ### Document Artifacts
 
 When certain actions complete, their results are saved as **document artifacts** — persistent, per-book outputs that serve two purposes:
 
-1. **Viewable as standalone reference guides.** Browse a book's Summary, X-Ray, X-Ray (Simple), or Analysis anytime without re-running the action. X-Ray opens as a browsable category menu (characters, locations, themes, lexicon, timeline) with search, chapter/book mention analysis, per-item chapter distribution, linkable cross-references, and your highlight mentions — useful for quickly checking character details, relationships, or where a character appears across chapters mid-read. X-Ray (Simple) shows a prose overview.
+1. **Viewable as standalone reference guides.** Browse a book's Summary, X-Ray, X-Ray (Simple), Recap, or Analysis anytime without re-running the action. X-Ray opens as a browsable category menu (characters, locations, themes, lexicon, timeline) with search, chapter/book mention analysis, per-item chapter distribution, linkable cross-references, and your highlight mentions — useful for quickly checking character details, relationships, or where a character appears across chapters mid-read. X-Ray (Simple) shows a prose overview.
 2. **Reusable as context in other actions.** Instead of sending full document text (~100K tokens) every time, actions can reference a compact artifact (~2-8K tokens). This is the foundation of **Smart actions** — dramatically cheaper and often better-performing, since models handle focused context more effectively than massive text dumps.
 
-**The three artifact types:**
+**The five artifact types:**
 
 | Artifact | Generated by | What it contains | Primary use |
 |----------|-------------|------------------|-------------|
-| **Summary** | Summarize Document, Generate Summary | Neutral, comprehensive document representation | **Primary artifact for reuse.** Powers all Smart actions — replaces raw book text with a compact summary. Also useful on its own as a reading reference. |
+| **Summary** | Summarize Document | Neutral, comprehensive document representation | **Primary artifact for reuse.** Powers all Smart actions — replaces raw book text with a compact summary. Also useful on its own as a reading reference. |
 | **X-Ray** | X-Ray action | Structured JSON: characters (with aliases, connections), locations (with references), themes (with references), lexicon, timeline | **Browsable menu** with categories, search, chapter/book mention analysis, per-item chapter distribution, linkable cross-references, highlight integration. Requires text extraction. Also available as supplementary context in custom actions. |
 | **X-Ray (Simple)** | X-Ray (Simple) action | Prose overview: characters, themes, settings, key terms, where things stand | **Text viewer** — prose companion guide from AI knowledge. No text extraction needed. Separate cache from X-Ray; both can coexist. |
+| **Recap** | Recap action | "Previously on..." story refresher | **Text viewer** — helps you resume reading where you left off. Supports incremental updates as you read further. |
 | **Analysis** | Analyze Document | Opinionated deep analysis of the document | Viewable analytical overview. *Not recommended as input for further analysis* — analyzing an analysis is a decaying game of telephone where each layer loses nuance. |
 
 **Viewing artifacts:**
-- **Quick Actions** → "View Summary" (when summary exists) or "Generate Summary" (when it doesn't). "View Artifacts" appears when any artifacts exist, opening a picker to choose which one to view.
+- **Reading Features** → Tap any artifact action (X-Ray, X-Ray (Simple), Recap, Summarize Document, Analyze Document). If a cache exists, a View/Redo popup appears; if not, generation starts directly.
+- **Quick Actions** → Same artifact action buttons, plus "View Artifacts" appears when any artifacts exist, opening a picker.
 - **File Browser** → Long-press a book → "View Artifacts (KOA)" → pick Summary, X-Ray, X-Ray (Simple), Recap, or Analysis
 - **Artifact Browser** → Browse all documents with cached artifacts. Access from Chat History or Notebook browser hamburger menus (☰), or Settings → Quick Actions → Browse Artifacts.
   - **Tap** → Artifact selector popup: "View Summary", "View X-Ray", "View X-Ray (Simple)", etc., plus "Open Book"
   - **Hold** → Options popup: "View", "Delete All", "Cancel"
   - **Hamburger menu** (☰) → Navigate to Chat History or Browse Notebooks
-- **Gesture** → Assign "KOAssistant: View Summary" for quick access, or "KOAssistant: View Artifacts" to browse all artifacts
+- **Gesture** → Assign "KOAssistant: Summarize Document", "KOAssistant: Analyze Document", or "KOAssistant: View Artifacts"
 - **Coverage**: The viewer title shows coverage percentage if the document was truncated (e.g., "Summary (78%)")
 
-The artifact viewer shows metadata (coverage, data source, model used, generation date with relative time) and provides buttons for copying, exporting, regenerating, or deleting. X-Ray artifacts open in a **browsable category menu** (see [Reading Analysis Actions](#reading-analysis-actions) for details); X-Ray (Simple) opens in the text viewer; legacy markdown X-Rays fall back to the text viewer.
+The artifact viewer shows metadata (coverage, data source, model used, generation date with relative time) and provides buttons for copying, exporting, regenerating, or deleting. X-Ray artifacts open in a **browsable category menu** (see [Reading Analysis Actions](#reading-analysis-actions) for details); X-Ray (Simple) and Recap open in the text viewer; Summary and Analysis open in the cache viewer with regenerate button (when book is open). Legacy markdown X-Rays fall back to the text viewer.
 
 > **Cache source tracking:** Each artifact records whether it was built with actual document text or AI training knowledge. The artifact viewer displays "Based on extracted document text" or "Based on AI training data knowledge" so you always know what an artifact contains. Artifacts built without text extraction use the AI's training knowledge — this works well for popular books but may be less accurate for obscure works. You can always regenerate with text extraction enabled for higher quality.
 
@@ -2566,9 +2578,9 @@ The summary artifact is the centerpiece of the reuse system. For medium and long
 3. **Result**: Massive token savings AND often better responses for repeated queries
 
 **How to generate a summary:**
-- **Quick Actions → Generate Summary** (when no summary exists)
-- **Summarize Document** action (from book actions menu)
-- **Smart actions auto-prompt** — When you use a Smart action without an existing summary, a dialog offers to generate one first
+- **Reading Features → Summarize Document** (shows View/Redo popup if exists, generates if not)
+- **Quick Actions → Summarize Document** (same behavior)
+- **Smart actions auto-prompt** — When you use a Smart action without an existing summary, a dialog offers to generate one first. The Summarize Document action runs silently in the background and the Smart action continues automatically
 
 **Built-in Smart actions:**
 - **Explain in Context (Smart)** — (Highlight) Uses `{summary_cache_section}` for context
@@ -2584,8 +2596,12 @@ Note that even the analysis-flavored Smart actions (Analyze in Context (Smart)) 
 1. User triggers a Smart action (highlight or book context)
 2. If summary artifact exists → Uses it immediately
 3. If no artifact → Shows confirmation dialog: "Generate summary now?"
-4. User confirms → Summary generated via `summarize_full_document` action
-5. Original action continues with newly cached summary
+4. User confirms → Summarize Document action runs silently in the background
+5. Original action continues with newly cached summary — no viewer opens
+
+The Summarize Document action is the same action available in Reading Features and Quick Actions. When triggered by a Smart action, it generates the summary silently (no viewer) and chains to the original action. When triggered directly by the user, it opens in the summary viewer after generation.
+
+You can customize the Summarize Document action independently — edit its provider, model, temperature, or other settings in the Action Manager. This lets you optimize summary generation (e.g., using a cheaper model) while keeping your global settings for everything else. Smart actions themselves use their own settings (global or per-action overrides), separate from the Summarize Document action.
 
 **Creating custom Smart actions:**
 Add `requires_summary_cache = true` to your action. This triggers the pre-flight check — if no summary exists, the user is prompted to generate one before the action proceeds.
@@ -2616,7 +2632,7 @@ Three artifacts can be referenced in custom actions using `{summary_cache_sectio
 
 If you haven't run X-Ray yet, the placeholder renders empty and the action still runs, just without the analysis context. Permission requirements for the placeholder depend on how the X-Ray was built — see [Cache permission inheritance](#text-extraction-and-double-gating) above.
 
-> **Tip**: For documents you'll query multiple times, generate the summary proactively via Quick Actions. The artifacts are also convenient in themselves — browse a book's X-Ray to look up characters (with aliases and connections), tap references to navigate between related items, check who appears in the current chapter, search for any entry, or use "Look up in X-Ray" to instantly search cached data while reading. Review the Analysis for a refresher on key arguments, or skim the Summary before resuming a book you haven't read in a while.
+> **Tip**: For documents you'll query multiple times, generate the summary proactively via Summarize Document (Reading Features or Quick Actions). The artifacts are also convenient in themselves — browse a book's X-Ray to look up characters (with aliases and connections), tap references to navigate between related items, check who appears in the current chapter, search for any entry, or use "Look up in X-Ray" to instantly search cached data while reading. Review the Analysis for a refresher on key arguments, or skim the Summary before resuming a book you haven't read in a while.
 
 **Text extraction guidelines:**
 - ~100 pages ≈ 25,000-40,000 characters (varies by formatting)
