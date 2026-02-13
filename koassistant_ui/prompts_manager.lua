@@ -353,16 +353,16 @@ function PromptsManager:setPromptEnabled(action_id, context, enabled)
     end
 end
 
-function PromptsManager:showPromptsMenu()
+function PromptsManager:_buildActionManagerItems()
     local menu_items = {}
-    
+
     -- Add help text at the top
     table.insert(menu_items, {
         text = _("Tap to toggle • Hold for details • ★ = custom • ⚙ = modified • [gesture] = in gesture menu"),
         dim = true,
         enabled = false,
     })
-    
+
     -- Add "Add New Prompt" item
     table.insert(menu_items, {
         text = _("+ Add Action"),
@@ -371,9 +371,7 @@ function PromptsManager:showPromptsMenu()
             self:showPromptEditor(nil)  -- nil = new prompt
         end,
     })
-    
-    -- No separator needed here
-    
+
     -- Group prompts by context
     local contexts = {
         { id = "highlight", text = _("Highlight Context") },
@@ -385,7 +383,7 @@ function PromptsManager:showPromptsMenu()
         { id = "book+general", text = _("Book & General") },
         { id = "both+general", text = _("Highlight, Book & General") },
     }
-    
+
     local features = self.plugin.settings:readSetting("features") or {}
 
     for _idx,context_info in ipairs(contexts) do
@@ -398,7 +396,6 @@ function PromptsManager:showPromptsMenu()
 
         if #context_prompts > 0 then
             -- Add context header with spacing
-            -- No empty line needed, the section header provides visual separation
             table.insert(menu_items, {
                 text = "▶ " .. context_info.text:upper(),
                 enabled = false,
@@ -411,8 +408,6 @@ function PromptsManager:showPromptsMenu()
                 local item_text = ActionService.getActionDisplayText(prompt, features)
 
                 -- Add source indicator
-                -- ★ = custom action (UI-created or from file)
-                -- ⚙ = built-in action with user overrides
                 if prompt.source == "ui" then
                     item_text = "★ " .. item_text
                 elseif prompt.source == "config" then
@@ -421,14 +416,12 @@ function PromptsManager:showPromptsMenu()
                     item_text = "⚙ " .. item_text
                 end
 
-                -- Add open book indicator (for actions only available when reading)
-                -- Uses dynamic inference from flags, not just explicit requires_open_book
-                -- Skip for highlight context - highlights always require reading mode
+                -- Add open book indicator
                 if prompt.context ~= "highlight" and Actions.requiresOpenBook(prompt) then
                     item_text = item_text .. " [reading]"
                 end
 
-                -- Add gesture indicator (only for gesture-compatible contexts)
+                -- Add gesture indicator
                 if self:isGestureEnabled(prompt) then
                     item_text = item_text .. " [gesture]"
                 end
@@ -436,25 +429,35 @@ function PromptsManager:showPromptsMenu()
                 -- Add checkbox with better spacing
                 local checkbox = prompt.enabled and "☑" or "☐"
                 item_text = checkbox .. "  " .. item_text
-                
+
                 table.insert(menu_items, {
                     text = item_text,
                     prompt = prompt,  -- Store reference to prompt
                     callback = function()
-                        -- Toggle enabled state (use prompt.id, not prompt.text)
+                        -- Toggle enabled state and flip local copy for instant refresh
                         self:setPromptEnabled(prompt.id, prompt.context, not prompt.enabled)
-                        -- Refresh the menu
-                        self:refreshMenu()
+                        prompt.enabled = not prompt.enabled
+                        self:_refreshActionManagerMenu()
                     end,
                     hold_callback = function()
-                        -- Show details on hold
-                        -- Don't close the menu, just show the details dialog on top
                         self:showPromptDetails(prompt)
                     end,
                 })
             end
         end
     end
+
+    return menu_items
+end
+
+function PromptsManager:_refreshActionManagerMenu()
+    if not self.prompts_menu then return end
+    local menu_items = self:_buildActionManagerItems()
+    self.prompts_menu:switchItemTable(_("Manage Actions"), menu_items, -1)
+end
+
+function PromptsManager:showPromptsMenu()
+    local menu_items = self:_buildActionManagerItems()
     
     -- Create footer buttons
     local buttons = {
@@ -483,14 +486,10 @@ function PromptsManager:showPromptsMenu()
                     UIManager:show(ConfirmBox:new{
                         text = _("This will remove all custom actions and reset all action settings. Continue?"),
                         ok_callback = function()
-                            UIManager:close(self.prompts_menu)
                             if self.plugin.restoreDefaultPrompts then
                                 self.plugin:restoreDefaultPrompts()
                             end
-                            -- Refresh the menu
-                            UIManager:scheduleIn(0.1, function()
-                                self:show()
-                            end)
+                            self:refreshMenu()
                         end,
                     })
                 end,
@@ -612,16 +611,11 @@ function PromptsManager:showMenuOptions()
 end
 
 function PromptsManager:refreshMenu()
-    -- Close and reopen the menu to refresh it, preserving the current page
+    -- Full reload: re-read prompts from action service and refresh in-place
     if self.prompts_menu then
-        local current_page = self.prompts_menu.page
-        UIManager:close(self.prompts_menu)
-        UIManager:nextTick(function()
-            self:show()
-            if self.prompts_menu and current_page and current_page > 1 then
-                self.prompts_menu:onGotoPage(current_page)
-            end
-        end)
+        self:loadPrompts()
+        local menu_items = self:_buildActionManagerItems()
+        self.prompts_menu:switchItemTable(_("Manage Actions"), menu_items, -1)
     end
 end
 

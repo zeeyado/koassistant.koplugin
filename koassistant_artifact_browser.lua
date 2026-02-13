@@ -152,8 +152,13 @@ function ArtifactBrowser:showArtifactBrowser(opts)
         onLeftButtonTap = function()
             self_ref:showBrowserMenuOptions(opts)
         end,
+        -- Override onMenuSelect to prevent close_callback from firing on item tap.
+        onMenuSelect = function(_self_menu, item)
+            if item and item.callback then item.callback() end
+            return true
+        end,
         onMenuHold = function(_self_menu, item)
-            if item.hold_callback then item.hold_callback() end
+            if item and item.hold_callback then item.hold_callback() end
             return true
         end,
         multilines_show_more_text = true,
@@ -164,9 +169,8 @@ function ArtifactBrowser:showArtifactBrowser(opts)
         items_mandatory_font_size = 14,
     }
 
-    -- Guarded close_callback: only clear if this menu is still the active one.
-    -- Prevents race condition where old menu's callback wipes reference to a newer menu.
-    -- (Same pattern as chat_history_dialog.lua)
+    -- close_callback: only fires from onCloseAllMenus (back/X button),
+    -- NOT from item tap (we override onMenuSelect above).
     menu.close_callback = function()
         if self_ref.current_menu == menu then
             self_ref.current_menu = nil
@@ -384,11 +388,11 @@ function ArtifactBrowser:showBrowserMenuOptions(opts)
                             UIManager:close(self_ref._cache_selector)
                             self_ref._cache_selector = nil
                         end
-                        if self_ref.current_menu then
-                            UIManager:close(self_ref.current_menu)
-                            self_ref.current_menu = nil
-                        end
+                        -- Close browser and open new one in same tick to avoid visible gap
+                        local menu_to_close = self_ref.current_menu
+                        self_ref.current_menu = nil
                         UIManager:nextTick(function()
+                            if menu_to_close then UIManager:close(menu_to_close) end
                             local AskGPT = self_ref:getAskGPTInstance()
                             if AskGPT then
                                 AskGPT:showChatHistory()
@@ -404,11 +408,10 @@ function ArtifactBrowser:showBrowserMenuOptions(opts)
                             UIManager:close(self_ref._cache_selector)
                             self_ref._cache_selector = nil
                         end
-                        if self_ref.current_menu then
-                            UIManager:close(self_ref.current_menu)
-                            self_ref.current_menu = nil
-                        end
+                        local menu_to_close = self_ref.current_menu
+                        self_ref.current_menu = nil
                         UIManager:nextTick(function()
+                            if menu_to_close then UIManager:close(menu_to_close) end
                             local AskGPT = self_ref:getAskGPTInstance()
                             if AskGPT then
                                 AskGPT:showNotebookBrowser()

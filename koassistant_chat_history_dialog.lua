@@ -109,11 +109,11 @@ function ChatHistoryDialog:showDocumentMenuOptions(ui, chat_history_manager, con
                 callback = function()
                     safeClose(dialog)
                     self_ref.current_options_dialog = nil
-                    -- Close current menu first, then open new one with delay
-                    safeClose(self_ref.current_menu)
+                    -- Close browser and open new one in same tick to avoid visible gap
+                    local menu_to_close = self_ref.current_menu
                     self_ref.current_menu = nil
-                    -- Delay to let UIManager process the close before opening new menu
                     UIManager:nextTick(function()
+                        safeClose(menu_to_close)
                         self_ref:showChatsByDomainBrowser(ui, chat_history_manager, config)
                     end)
                 end,
@@ -123,11 +123,10 @@ function ChatHistoryDialog:showDocumentMenuOptions(ui, chat_history_manager, con
                 callback = function()
                     safeClose(dialog)
                     self_ref.current_options_dialog = nil
-                    -- Close current menu first, then open new one with delay
-                    safeClose(self_ref.current_menu)
+                    local menu_to_close = self_ref.current_menu
                     self_ref.current_menu = nil
-                    -- Delay to let UIManager process the close before opening new menu
                     UIManager:nextTick(function()
+                        safeClose(menu_to_close)
                         self_ref:showChatsByTagBrowser(ui, chat_history_manager, config)
                     end)
                 end,
@@ -139,9 +138,10 @@ function ChatHistoryDialog:showDocumentMenuOptions(ui, chat_history_manager, con
                 callback = function()
                     safeClose(dialog)
                     self_ref.current_options_dialog = nil
-                    safeClose(self_ref.current_menu)
+                    local menu_to_close = self_ref.current_menu
                     self_ref.current_menu = nil
                     UIManager:nextTick(function()
+                        safeClose(menu_to_close)
                         if ui.koassistant then
                             ui.koassistant:showNotebookBrowser()
                         end
@@ -153,9 +153,10 @@ function ChatHistoryDialog:showDocumentMenuOptions(ui, chat_history_manager, con
                 callback = function()
                     safeClose(dialog)
                     self_ref.current_options_dialog = nil
-                    safeClose(self_ref.current_menu)
+                    local menu_to_close = self_ref.current_menu
                     self_ref.current_menu = nil
                     UIManager:nextTick(function()
+                        safeClose(menu_to_close)
                         if ui.koassistant then
                             ui.koassistant:showArtifactBrowser()
                         end
@@ -218,9 +219,10 @@ function ChatHistoryDialog:showDomainBrowserMenuOptions(ui, chat_history_manager
                 callback = function()
                     safeClose(dialog)
                     self_ref.current_options_dialog = nil
-                    safeClose(self_ref.current_menu)
+                    local menu_to_close = self_ref.current_menu
                     self_ref.current_menu = nil
                     UIManager:nextTick(function()
+                        safeClose(menu_to_close)
                         self_ref:showChatsByTagBrowser(ui, chat_history_manager, config)
                     end)
                 end,
@@ -232,9 +234,10 @@ function ChatHistoryDialog:showDomainBrowserMenuOptions(ui, chat_history_manager
                 callback = function()
                     safeClose(dialog)
                     self_ref.current_options_dialog = nil
-                    safeClose(self_ref.current_menu)
+                    local menu_to_close = self_ref.current_menu
                     self_ref.current_menu = nil
                     UIManager:nextTick(function()
+                        safeClose(menu_to_close)
                         self_ref:showChatHistoryBrowser(ui, nil, chat_history_manager, config)
                     end)
                 end,
@@ -272,9 +275,10 @@ function ChatHistoryDialog:showTagBrowserMenuOptions(ui, chat_history_manager, c
                 callback = function()
                     safeClose(dialog)
                     self_ref.current_options_dialog = nil
-                    safeClose(self_ref.current_menu)
+                    local menu_to_close = self_ref.current_menu
                     self_ref.current_menu = nil
                     UIManager:nextTick(function()
+                        safeClose(menu_to_close)
                         self_ref:showChatsByDomainBrowser(ui, chat_history_manager, config)
                     end)
                 end,
@@ -286,9 +290,10 @@ function ChatHistoryDialog:showTagBrowserMenuOptions(ui, chat_history_manager, c
                 callback = function()
                     safeClose(dialog)
                     self_ref.current_options_dialog = nil
-                    safeClose(self_ref.current_menu)
+                    local menu_to_close = self_ref.current_menu
                     self_ref.current_menu = nil
                     UIManager:nextTick(function()
+                        safeClose(menu_to_close)
                         self_ref:showChatHistoryBrowser(ui, nil, chat_history_manager, config)
                     end)
                 end,
@@ -397,13 +402,20 @@ function ChatHistoryDialog:showChatsByDomainBrowser(ui, chat_history_manager, co
         onLeftButtonTap = function()
             self_ref:showDomainBrowserMenuOptions(ui, chat_history_manager, config)
         end,
+        onMenuSelect = function(_self_menu, item)
+            if item and item.callback then item.callback() end
+            return true
+        end,
+        onMenuHold = function(_self_menu, item)
+            if item and item.hold_callback then item.hold_callback() end
+            return true
+        end,
         item_table = menu_items,
         single_line = false,
         multilines_forced = true,
         items_font_size = 18,
         items_mandatory_font_size = 14,
     }
-    -- Set close_callback after creation so domain_menu is defined
     domain_menu.close_callback = function()
         if self_ref.current_menu == domain_menu then
             self_ref.current_menu = nil
@@ -489,14 +501,20 @@ function ChatHistoryDialog:showChatsForDomain(ui, domain_key, chats, all_domains
         multilines_forced = true,
         items_font_size = 18,
         items_mandatory_font_size = 14,
+        onMenuSelect = function(_self_menu, item)
+            if item and item.callback then item.callback() end
+            return true
+        end,
+        onMenuHold = function(_self_menu, item)
+            if item and item.hold_callback then item.hold_callback() end
+            return true
+        end,
         onReturn = function()
-            -- Close this menu using self_ref.current_menu (chat_menu is nil during Menu:new evaluation)
             if self_ref.current_menu then
                 UIManager:close(self_ref.current_menu)
                 self_ref.current_menu = nil
             end
-            -- Delay to let UIManager process the close before showing new menu
-            UIManager:scheduleIn(0.15, function()
+            UIManager:nextTick(function()
                 self_ref:showChatsByDomainBrowser(ui, chat_history_manager, config)
             end)
         end,
@@ -650,19 +668,21 @@ function ChatHistoryDialog:showChatHistoryBrowser(ui, current_document_path, cha
         onLeftButtonTap = function()
             self_ref:showDocumentMenuOptions(ui, chat_history_manager, config)
         end,
+        -- Override onMenuSelect to prevent close_callback from firing on item tap.
+        onMenuSelect = function(_self_menu, item)
+            if item and item.callback then item.callback() end
+            return true
+        end,
         onMenuHold = function(_self_menu, item)
-            if item.hold_callback then item.hold_callback() end
+            if item and item.hold_callback then item.hold_callback() end
             return true
         end,
     }
-    -- Set close_callback after creation so document_menu is defined
+    -- close_callback: only fires from onCloseAllMenus (back/X button),
+    -- NOT from item tap (we override onMenuSelect above).
     document_menu.close_callback = function()
-        -- Only clear if this menu is still the current one
         if self_ref.current_menu == document_menu then
-            logger.info("KOAssistant: document_menu close_callback - clearing current_menu")
             self_ref.current_menu = nil
-        else
-            logger.info("KOAssistant: document_menu close_callback - skipping, current_menu already changed")
         end
     end
 
@@ -759,19 +779,22 @@ function ChatHistoryDialog:showChatsForDocument(ui, document, chat_history_manag
         onLeftButtonTap = function()
             self_ref:showChatListMenuOptions(ui, document, chat_history_manager, config, nav_context)
         end,
+        onMenuSelect = function(_self_menu, item)
+            if item and item.callback then item.callback() end
+            return true
+        end,
+        onMenuHold = function(_self_menu, item)
+            if item and item.hold_callback then item.hold_callback() end
+            return true
+        end,
         onReturn = function()
-            logger.info("Chat history: Return button pressed")
             safeClose(chat_menu)
             self_ref.current_menu = nil
             self_ref:showChatHistoryBrowser(ui, nil, chat_history_manager, config, nav_context)
         end,
         close_callback = function()
-            -- Only clear if this menu is still the current one
             if self_ref.current_menu == chat_menu then
-                logger.info("KOAssistant: chat_menu close_callback - clearing current_menu")
                 self_ref.current_menu = nil
-            else
-                logger.info("KOAssistant: chat_menu close_callback - skipping, current_menu already changed")
             end
         end,
     }
@@ -2189,13 +2212,20 @@ function ChatHistoryDialog:showChatsByTagBrowser(ui, chat_history_manager, confi
         onLeftButtonTap = function()
             self_ref:showTagBrowserMenuOptions(ui, chat_history_manager, config)
         end,
+        onMenuSelect = function(_self_menu, item)
+            if item and item.callback then item.callback() end
+            return true
+        end,
+        onMenuHold = function(_self_menu, item)
+            if item and item.hold_callback then item.hold_callback() end
+            return true
+        end,
         item_table = menu_items,
         single_line = false,
         multilines_forced = true,
         items_font_size = 18,
         items_mandatory_font_size = 14,
     }
-    -- Set close_callback after creation so tag_menu is defined
     tag_menu.close_callback = function()
         if self_ref.current_menu == tag_menu then
             self_ref.current_menu = nil
@@ -2276,14 +2306,20 @@ function ChatHistoryDialog:showChatsForTag(ui, tag, chat_history_manager, config
         multilines_forced = true,
         items_font_size = 18,
         items_mandatory_font_size = 14,
+        onMenuSelect = function(_self_menu, item)
+            if item and item.callback then item.callback() end
+            return true
+        end,
+        onMenuHold = function(_self_menu, item)
+            if item and item.hold_callback then item.hold_callback() end
+            return true
+        end,
         onReturn = function()
-            -- Close this menu using self_ref.current_menu (chat_menu is nil during Menu:new evaluation)
             if self_ref.current_menu then
                 UIManager:close(self_ref.current_menu)
                 self_ref.current_menu = nil
             end
-            -- Delay to let UIManager process the close before showing new menu
-            UIManager:scheduleIn(0.15, function()
+            UIManager:nextTick(function()
                 self_ref:showChatsByTagBrowser(ui, chat_history_manager, config)
             end)
         end,
