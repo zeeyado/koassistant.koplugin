@@ -670,7 +670,7 @@ Guidance for non-fiction:
 __CLOSING__
 
 If you don't recognize this work or lack sufficient detail to provide accurate information, respond with ONLY this JSON:
-{"error": "I don't recognize this work. Please enable text extraction or provide more context."}
+{"error": "I don't recognize this work. Please provide more context."}
 Do NOT attempt to construct an X-Ray with fabricated or uncertain details.]]
 
 local XRAY_PARTIAL_REPLACEMENTS = {
@@ -1326,6 +1326,7 @@ Note: The summary may be in a different language than your response language. Tr
         context = "book",
         use_book_text = true,  -- Permission gate (UI: "Allow text extraction")
         cache_as_analyze = true,  -- Save for other actions via {analyze_cache_section}
+        storage_key = "__SKIP__",  -- Result lives in document cache, not chat history
         prompt = [[Analyze this document: "{title}"{author_clause}.
 
 {full_document_section}
@@ -1356,6 +1357,7 @@ Provide analysis appropriate to this document's type and purpose. Address what's
         context = "book",
         use_book_text = true,  -- Permission gate (UI: "Allow text extraction")
         cache_as_summary = true,  -- Save for other actions via {summary_cache_section}
+        storage_key = "__SKIP__",  -- Result lives in document cache, not chat history
         prompt = Actions.SUMMARY_PROMPT,  -- Canonical summary prompt
         api_params = {
             temperature = 0.4,
