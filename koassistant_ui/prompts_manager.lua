@@ -230,6 +230,8 @@ function PromptsManager:loadPrompts()
             in_reading_features = prompt.in_reading_features,
             in_highlight_menu = prompt.in_highlight_menu,
             in_dictionary_popup = prompt.in_dictionary_popup,
+            -- Web search
+            enable_web_search = prompt.enable_web_search,
         }
 
         -- Apply builtin action overrides if this is a builtin action

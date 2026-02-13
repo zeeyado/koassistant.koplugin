@@ -189,6 +189,7 @@ Actions.highlight = {
             max_tokens = 4096,
         },
         include_book_context = true,
+        in_highlight_menu = 6,
         builtin = true,
     },
     connect = {
@@ -205,12 +206,13 @@ Explore how it relates to:
 - Other books, thinkers, or intellectual traditions
 - Broader historical or cultural context
 
-Surface connections that enrich understanding, not tangential trivia. {conciseness_nudge}]],
+Surface connections that enrich understanding, not tangential trivia. {conciseness_nudge} {hallucination_nudge}]],
         include_book_context = true,
         api_params = {
             temperature = 0.7,
             max_tokens = 4096,
         },
+        in_highlight_menu = 7,
         builtin = true,
     },
     connect_with_notes = {
@@ -438,6 +440,7 @@ Note: The summary may be in a different language than your response language. Tr
         description = _("Searches the web to verify claims in the selected passage, rating accuracy and citing current sources as evidence."),
         context = "highlight",
         include_book_context = true,
+        in_highlight_menu = 4,
         skip_domain = true,  -- Fact-checking format is standardized
         prompt = [[Fact-check this claim or statement:
 
@@ -712,6 +715,7 @@ Actions.book = {
         },
         builtin = true,
         in_quick_actions = 3,     -- Appears in Quick Actions menu
+        in_file_browser = 1,
     },
     similar_books = {
         id = "similar_books",
@@ -815,7 +819,6 @@ CRITICAL: This must remain spoiler-free up to {reading_progress}. Output ONLY va
     -- X-Ray (Simple): Prose companion from AI knowledge (no text extraction)
     xray_simple = {
         id = "xray_simple",
-        enable_web_search = false,
         text = _("X-Ray (Simple)"),
         description = _("A prose companion guide from AI knowledge — characters, themes, settings, key terms. No text extraction needed. Uses reading progress to avoid spoilers. Highlights add personal context when shared."),
         context = "book",
@@ -956,8 +959,8 @@ CRITICAL: No spoilers beyond {reading_progress}.]],
     analyze_highlights = {
         id = "analyze_highlights",
         enable_web_search = false,
-        text = _("Analyze Highlights"),
-        description = _("Analyzes your highlighting and annotation patterns to reveal what catches your attention, emerging themes, and connections between your notes. This is about understanding you as a reader, not summarizing the book. Requires annotations and notebook sharing."),
+        text = _("Analyze My Notes"),
+        description = _("Analyzes your note-taking and highlighting patterns to reveal what catches your attention, emerging themes, and connections between your notes. This is about understanding you as a reader, not summarizing the book. Requires annotations and notebook sharing."),
         context = "book",
         behavior_variant = "reader_assistant",
         -- Context extraction flags
@@ -1327,9 +1330,7 @@ Provide analysis appropriate to this document's type and purpose. Address what's
 - Intended audience and context
 - Strengths and areas for improvement
 
-{conciseness_nudge}
-
-{text_fallback_nudge}]],
+{conciseness_nudge}]],
         -- No skip_domain, no skip_behavior - relies on user's configured settings
         api_params = {
             temperature = 0.5,
@@ -1354,9 +1355,7 @@ Provide analysis appropriate to this document's type and purpose. Address what's
 
 {full_document_section}
 
-Provide a comprehensive summary capturing the essential content. Cover the entire work evenly from beginning to end — do not front-load detail on early sections at the expense of later ones. This summary will be used as a stand-in for the full text in future queries and analysis, so preserve key details, arguments, and structure while being as concise as the content's length and density allow.
-
-{text_fallback_nudge}]],
+Provide a comprehensive summary capturing the essential content. Cover the entire work evenly from beginning to end — do not front-load detail on early sections at the expense of later ones. This summary will be used as a stand-in for the full text in future queries and analysis, so preserve key details, arguments, and structure while being as concise as the content's length and density allow.]],
         api_params = {
             temperature = 0.4,
         },
@@ -1779,8 +1778,11 @@ function Actions.checkRequirements(action, metadata)
     end
 
     -- Check metadata requirements (author, title)
+    -- Only filter when not in management mode (has_open_book == nil means management mode)
     if action.requires then
-        if action.requires == "author" then
+        if metadata.has_open_book == nil then
+            -- Management mode: don't filter by metadata requirements
+        elseif action.requires == "author" then
             return metadata.author and metadata.author ~= ""
         elseif action.requires == "title" then
             return metadata.title and metadata.title ~= ""
