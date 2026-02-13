@@ -4459,61 +4459,52 @@ end
 --- @param action table: Action definition (checks use_book_text flag)
 --- @param alternative_text string|nil: Optional suffix appended to the message (e.g., X-Ray suggests Simple)
 --- @return boolean: true if blocked (showed popup), false if OK to proceed
-function AskGPT:_isTextExtractionBlocked(action, alternative_text)
-  local suffix = alternative_text or ""
-  if action.use_book_text == false then
-    UIManager:show(InfoMessage:new{
-      text = _("Text extraction is disabled for this action. Re-enable it in the Action Manager.") .. suffix,
-    })
-    return true
-  end
-  local features = self.settings and self.settings:readSetting("features") or {}
-  if features.enable_book_text_extraction ~= true then
-    UIManager:show(InfoMessage:new{
-      text = _("Text extraction is required to generate this artifact.\n\nEnable it in Settings → Privacy & Data → Text Extraction.") .. suffix,
-    })
-    return true
-  end
-  return false
-end
-
---- Check if highlight/annotation sharing is blocked for this action.
---- Blocked when the action depends on annotations/highlights as core data AND
---- no highlight-type data will actually reach the prompt (checks BOTH gates).
---- Per-action gate: use_highlights / use_annotations flags (nil=never declared, false=overridden off).
---- Global gate: enable_highlights_sharing / enable_annotations_sharing privacy settings.
---- Actions with use_book_text or template are never blocked (highlights are supplementary).
---- @param action table: Action definition (checks use_highlights, use_annotations)
+--- Check if any declared requirements for this action are unmet.
+--- Actions declare requirements via requires = {"book_text", "highlights", ...}.
+--- Each requirement checks per-action gate (flag override) then global gate (privacy setting).
+--- Shows an error popup identifying which gate is the problem.
+--- @param action table: Action definition (checks action.requires array)
 --- @return boolean: true if blocked (showed popup), false if OK to proceed
-function AskGPT:_isHighlightSharingBlocked(action)
-  -- Skip actions that have other primary data sources
-  if action.use_book_text or action.template then
+function AskGPT:_checkRequirements(action)
+  if not action.requires then
     return false
   end
-  -- Check if action deals with highlight/annotation data at all
-  -- nil = never declared (action doesn't use this data type) → not our concern
-  -- false = explicitly disabled via per-action override
-  -- true = active
-  if action.use_highlights == nil and action.use_annotations == nil then
-    return false
-  end
-  -- Check effective data availability across both gates
-  local features = self.settings and self.settings:readSetting("features") or {}
-  local any_sharing_on = features.enable_highlights_sharing == true
-    or features.enable_annotations_sharing == true
-  -- Will any highlight-type data actually reach the prompt?
-  -- Needs BOTH: at least one per-action flag true AND at least one global setting on
-  local will_have_data = any_sharing_on
-    and (action.use_highlights or action.use_annotations)
-  if not will_have_data then
-    local msg
-    if not any_sharing_on then
-      msg = _("This action requires access to your highlights or annotations.\n\nEnable sharing in Settings → Privacy & Data.")
-    else
-      msg = _("This action requires highlight or annotation data, but data access is disabled for this action.\n\nRe-enable in Action Manager (hold the action → Edit).")
+  local features
+  local hint = action.blocked_hint and ("\n\n" .. action.blocked_hint) or ""
+  for _idx, req in ipairs(action.requires) do
+    if req == "book_text" then
+      -- Per-action gate: use_book_text explicitly overridden to false?
+      if action.use_book_text == false then
+        UIManager:show(InfoMessage:new{
+          text = _("Text extraction is disabled for this action. Re-enable it in the Action Manager.") .. hint,
+        })
+        return true
+      end
+      -- Global gate: text extraction enabled?
+      features = features or (self.settings and self.settings:readSetting("features") or {})
+      if features.enable_book_text_extraction ~= true then
+        UIManager:show(InfoMessage:new{
+          text = _("Text extraction is required to generate this artifact.\n\nEnable it in Settings → Privacy & Data → Text Extraction.") .. hint,
+        })
+        return true
+      end
+    elseif req == "highlights" then
+      -- Per-action gate: are both highlight flags explicitly disabled?
+      if not action.use_highlights and not action.use_annotations then
+        UIManager:show(InfoMessage:new{
+          text = _("This action requires highlight or annotation data, but data access is disabled for this action.\n\nRe-enable in Action Manager (hold the action → Edit).") .. hint,
+        })
+        return true
+      end
+      -- Global gate: is any highlight-type sharing enabled?
+      features = features or (self.settings and self.settings:readSetting("features") or {})
+      if features.enable_highlights_sharing ~= true and features.enable_annotations_sharing ~= true then
+        UIManager:show(InfoMessage:new{
+          text = _("This action requires access to your highlights or annotations.\n\nEnable sharing in Settings → Privacy & Data.") .. hint,
+        })
+        return true
+      end
     end
-    UIManager:show(InfoMessage:new{ text = msg })
-    return true
   end
   return false
 end
@@ -4551,12 +4542,7 @@ function AskGPT:showCacheActionPopup(action, action_id, on_update)
   end
 
   if not cached or not cached.result then
-    -- Text extraction gate for first-time generation
-    if action.use_book_text and self:_isTextExtractionBlocked(action) then
-      return
-    end
-    -- Highlight/annotation sharing gate
-    if self:_isHighlightSharingBlocked(action) then
+    if self:_checkRequirements(action) then
       return
     end
     on_update()
@@ -4619,8 +4605,7 @@ function AskGPT:showCacheActionPopup(action, action_id, on_update)
           text = update_text,
           callback = function()
             UIManager:close(dialog)
-            if action.use_book_text and self_ref:_isTextExtractionBlocked(action) then return end
-            if self_ref:_isHighlightSharingBlocked(action) then return end
+            if self_ref:_checkRequirements(action) then return end
             on_update()
           end,
         },
@@ -4668,14 +4653,11 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry)
     end
   end
 
-  local xray_simple_hint = "\n\n" .. _("Or use X-Ray (Simple) for an overview based on AI knowledge.")
-
   local dialog
   local buttons = {}
 
   if not cached_entry or not cached_entry.result then
-    -- No cache: block if text extraction is off
-    if self:_isTextExtractionBlocked(action, xray_simple_hint) then
+    if self:_checkRequirements(action) then
       return
     end
     -- Generate (to X%) or Generate (entire document)
@@ -4747,7 +4729,7 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry)
       text = update_text,
       callback = function()
         UIManager:close(dialog)
-        if self_ref:_isTextExtractionBlocked(action, xray_simple_hint) then return end
+        if self_ref:_checkRequirements(action) then return end
         on_update()
       end,
     }})
@@ -4758,7 +4740,7 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry)
         text = T(_("Update %1 (to %2)"), action_name, "100%"),
         callback = function()
           UIManager:close(dialog)
-          if self_ref:_isTextExtractionBlocked(action, xray_simple_hint) then return end
+          if self_ref:_checkRequirements(action) then return end
           self_ref:_executeBookLevelActionDirect(action, action_id, { update_to_full = true })
         end,
       }})
@@ -4932,8 +4914,8 @@ function AskGPT:executeBookLevelAction(action_id)
     return
   end
 
-  -- Block actions when highlight/annotation sharing is off
-  if self:_isHighlightSharingBlocked(action) then
+  -- Block actions when declared requirements are unmet
+  if self:_checkRequirements(action) then
     return
   end
 
@@ -6920,8 +6902,8 @@ function AskGPT:executeHighlightBypassAction(action, selected_text, highlight_in
   end
   config_copy.context = "highlight"
 
-  -- Block actions when highlight/annotation sharing is off
-  if self:_isHighlightSharingBlocked(action) then
+  -- Block actions when declared requirements are unmet
+  if self:_checkRequirements(action) then
     return
   end
 
@@ -7059,8 +7041,8 @@ function AskGPT:executeQuickAction(action, highlighted_text, context, selection_
   end
   -- Store selection data for "Save to Note" feature
   configuration.features.selection_data = selection_data
-  -- Block actions when highlight/annotation sharing is off
-  if self:_isHighlightSharingBlocked(action) then
+  -- Block actions when declared requirements are unmet
+  if self:_checkRequirements(action) then
     return
   end
   Dialogs.executeDirectAction(self.ui, action, highlighted_text, configuration, self)
