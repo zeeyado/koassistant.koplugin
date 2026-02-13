@@ -113,7 +113,7 @@ function ChatHistoryDialog:showDocumentMenuOptions(ui, chat_history_manager, con
                     safeClose(self_ref.current_menu)
                     self_ref.current_menu = nil
                     -- Delay to let UIManager process the close before opening new menu
-                    UIManager:scheduleIn(0.1, function()
+                    UIManager:nextTick(function()
                         self_ref:showChatsByDomainBrowser(ui, chat_history_manager, config)
                     end)
                 end,
@@ -127,7 +127,7 @@ function ChatHistoryDialog:showDocumentMenuOptions(ui, chat_history_manager, con
                     safeClose(self_ref.current_menu)
                     self_ref.current_menu = nil
                     -- Delay to let UIManager process the close before opening new menu
-                    UIManager:scheduleIn(0.1, function()
+                    UIManager:nextTick(function()
                         self_ref:showChatsByTagBrowser(ui, chat_history_manager, config)
                     end)
                 end,
@@ -141,7 +141,7 @@ function ChatHistoryDialog:showDocumentMenuOptions(ui, chat_history_manager, con
                     self_ref.current_options_dialog = nil
                     safeClose(self_ref.current_menu)
                     self_ref.current_menu = nil
-                    UIManager:scheduleIn(0.1, function()
+                    UIManager:nextTick(function()
                         if ui.koassistant then
                             ui.koassistant:showNotebookBrowser()
                         end
@@ -155,7 +155,7 @@ function ChatHistoryDialog:showDocumentMenuOptions(ui, chat_history_manager, con
                     self_ref.current_options_dialog = nil
                     safeClose(self_ref.current_menu)
                     self_ref.current_menu = nil
-                    UIManager:scheduleIn(0.1, function()
+                    UIManager:nextTick(function()
                         if ui.koassistant then
                             ui.koassistant:showArtifactBrowser()
                         end
@@ -220,7 +220,7 @@ function ChatHistoryDialog:showDomainBrowserMenuOptions(ui, chat_history_manager
                     self_ref.current_options_dialog = nil
                     safeClose(self_ref.current_menu)
                     self_ref.current_menu = nil
-                    UIManager:scheduleIn(0.1, function()
+                    UIManager:nextTick(function()
                         self_ref:showChatsByTagBrowser(ui, chat_history_manager, config)
                     end)
                 end,
@@ -234,7 +234,7 @@ function ChatHistoryDialog:showDomainBrowserMenuOptions(ui, chat_history_manager
                     self_ref.current_options_dialog = nil
                     safeClose(self_ref.current_menu)
                     self_ref.current_menu = nil
-                    UIManager:scheduleIn(0.1, function()
+                    UIManager:nextTick(function()
                         self_ref:showChatHistoryBrowser(ui, nil, chat_history_manager, config)
                     end)
                 end,
@@ -274,7 +274,7 @@ function ChatHistoryDialog:showTagBrowserMenuOptions(ui, chat_history_manager, c
                     self_ref.current_options_dialog = nil
                     safeClose(self_ref.current_menu)
                     self_ref.current_menu = nil
-                    UIManager:scheduleIn(0.1, function()
+                    UIManager:nextTick(function()
                         self_ref:showChatsByDomainBrowser(ui, chat_history_manager, config)
                     end)
                 end,
@@ -288,7 +288,7 @@ function ChatHistoryDialog:showTagBrowserMenuOptions(ui, chat_history_manager, c
                     self_ref.current_options_dialog = nil
                     safeClose(self_ref.current_menu)
                     self_ref.current_menu = nil
-                    UIManager:scheduleIn(0.1, function()
+                    UIManager:nextTick(function()
                         self_ref:showChatHistoryBrowser(ui, nil, chat_history_manager, config)
                     end)
                 end,
@@ -620,6 +620,10 @@ function ChatHistoryDialog:showChatHistoryBrowser(ui, current_document_path, cha
             help_text = help_text,
             callback = function()
                 logger.info("Document selected: " .. captured_doc.title)
+                -- Save document list page for back navigation
+                if self_ref.current_menu then
+                    nav_context.documents_page = self_ref.current_menu.page
+                end
                 -- Target function handles closing current_menu
                 self_ref:showChatsForDocument(ui, captured_doc, chat_history_manager, config, nav_context)
             end,
@@ -665,6 +669,11 @@ function ChatHistoryDialog:showChatHistoryBrowser(ui, current_document_path, cha
     self.current_menu = document_menu
     logger.info("KOAssistant: Set current_menu to document_menu " .. tostring(document_menu))
     UIManager:show(document_menu)
+
+    -- Restore page from navigation context (e.g., returning from chat list)
+    if nav_context.documents_page and nav_context.documents_page > 1 then
+        document_menu:onGotoPage(nav_context.documents_page)
+    end
 end
 
 function ChatHistoryDialog:showChatsForDocument(ui, document, chat_history_manager, config, nav_context)
@@ -1659,7 +1668,7 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
 
                 showLoadingDialog()
 
-                UIManager:scheduleIn(0.1, function()
+                UIManager:nextTick(function()
                     -- Use callback pattern for streaming support
                     local function onResponseComplete(success, answer, err)
                         if success and answer then
@@ -2033,7 +2042,7 @@ function ChatHistoryDialog:confirmDeleteSimple(ui, document_path, chat_id, chat_
                 })
 
                 -- Schedule the reload with a small delay to let UI settle
-                UIManager:scheduleIn(0.1, function()
+                UIManager:nextTick(function()
                     -- Check if there are any chats left for this document
                     local remaining_chats = chat_history_manager:getChatsUnified(ui, document.path)
                     if #remaining_chats == 0 then

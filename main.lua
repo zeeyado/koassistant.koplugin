@@ -8886,13 +8886,11 @@ end
 function AskGPT:showWelcomeDialog()
   local text = _("Welcome to KOAssistant!") .. "\n\n" ..
     _("PRIVACY SETTINGS") .. "\n" ..
-    _("Some features (like X-Ray) work best when they can access document text and other content.") .. "\n" ..
-    _("Enable in: Settings → Privacy & Data") .. "\n\n" ..
+    _("Some features (like X-Ray) need to access document text and other content. Enable in: Settings → Privacy & Data") .. "\n\n" ..
     _("QUICK ACCESS") .. "\n" ..
-    _("Add Quick Actions panels and more to gestures in KOReader's gesture settings.") .. "\n\n" ..
+    _("Assign Quick Settings (File browser) and Quick Actions (Reader) panels to gestures. See KOReader Settings (Gear icon) → Taps and Gestures") .. "\n\n" ..
     _("CUSTOM ACTIONS") .. "\n" ..
-    _("Create your own prompts and actions or edit built in ones.") .. "\n" ..
-    _("Go to: Settings → Action Manager → Add") .. "\n\n" ..
+    _("Create your own prompts and actions or edit built in ones. Go to: Settings → Action Manager") .. "\n\n" ..
     _("MENU AND INFO ICONS") .. "\n" ..
     _("Setup KOReader with emoji support to get informative icons in menus and more. See the emoji section in the README for details.") 
 

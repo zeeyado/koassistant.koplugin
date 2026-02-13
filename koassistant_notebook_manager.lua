@@ -252,7 +252,7 @@ function NotebookManager:showBrowserMenuOptions(opts)
                             UIManager:close(self_ref.current_menu)
                             self_ref.current_menu = nil
                         end
-                        UIManager:scheduleIn(0.1, function()
+                        UIManager:nextTick(function()
                             local AskGPT = self_ref:getAskGPTInstance()
                             if AskGPT then
                                 AskGPT:showChatHistory()
@@ -272,7 +272,7 @@ function NotebookManager:showBrowserMenuOptions(opts)
                             UIManager:close(self_ref.current_menu)
                             self_ref.current_menu = nil
                         end
-                        UIManager:scheduleIn(0.1, function()
+                        UIManager:nextTick(function()
                             local AskGPT = self_ref:getAskGPTInstance()
                             if AskGPT then
                                 AskGPT:showArtifactBrowser()

@@ -614,14 +614,10 @@ end
 function PromptsManager:refreshMenu()
     -- Close and reopen the menu to refresh it, preserving the current page
     if self.prompts_menu then
-        local menu = self.prompts_menu
-        -- Save current page before closing
-        local current_page = menu.page
-        UIManager:close(menu)
-        -- Schedule reopening after close
-        UIManager:scheduleIn(0.1, function()
+        local current_page = self.prompts_menu.page
+        UIManager:close(self.prompts_menu)
+        UIManager:nextTick(function()
             self:show()
-            -- Restore page after menu is shown
             if self.prompts_menu and current_page and current_page > 1 then
                 self.prompts_menu:onGotoPage(current_page)
             end
@@ -4626,67 +4622,62 @@ end
 -- Highlight Menu Actions Manager
 -- ============================================================
 
-function PromptsManager:showHighlightMenuManager()
-    if not self.plugin.action_service then
-        UIManager:show(InfoMessage:new{
-            text = _("Action service not available."),
-        })
-        return
-    end
-
+function PromptsManager:_buildHighlightMenuItems(bold_id)
     local features = self.plugin.settings:readSetting("features") or {}
     local all_actions = self.plugin.action_service:getAllHighlightActionsWithMenuState()
-
-    if #all_actions == 0 then
-        UIManager:show(InfoMessage:new{
-            text = _("No highlight actions available."),
-        })
-        return
-    end
-
-    -- Count items in menu for display
     local menu_count = 0
-    for _idx,item in ipairs(all_actions) do
-        if item.in_menu then menu_count = menu_count + 1 end
-    end
-
     local menu_items = {}
 
-    -- Help text item
     table.insert(menu_items, {
         text = _("✓ = in menu | Tap = toggle | Hold = move"),
         dim = true,
-        callback = function() end,  -- No action
+        callback = function() end,
     })
 
-    for _idx,item in ipairs(all_actions) do
+    for _idx, item in ipairs(all_actions) do
         local action = item.action
+        if item.in_menu then menu_count = menu_count + 1 end
         local prefix = item.in_menu and "✓ " or "  "
         local position = item.in_menu and string.format("[%d] ", item.menu_position) or ""
         local source_indicator = ""
-        if action.source == "ui" then
-            source_indicator = " ★"
-        elseif action.source == "config" then
-            source_indicator = " ◆"
-        end
+        if action.source == "ui" then source_indicator = " ★"
+        elseif action.source == "config" then source_indicator = " ◆" end
 
         table.insert(menu_items, {
             text = prefix .. position .. ActionService.getActionDisplayText(action, features) .. source_indicator,
             action = action,
             in_menu = item.in_menu,
             menu_position = item.menu_position,
+            bold = (item.in_menu and action.id == bold_id),
             callback = function()
-                -- Toggle menu inclusion
                 self.plugin.action_service:toggleHighlightMenuAction(action.id)
-                -- Refresh the menu after close completes
-                UIManager:close(self.highlight_menu_manager)
-                UIManager:scheduleIn(0.1, function()
-                    self:showHighlightMenuManager()
-                end)
+                UIManager:nextTick(function() self:_refreshHighlightMenu() end)
             end,
         })
     end
+    return menu_items, menu_count
+end
 
+function PromptsManager:_refreshHighlightMenu(bold_id)
+    if not self.highlight_menu_manager then return end
+    local menu_items, menu_count = self:_buildHighlightMenuItems(bold_id)
+    self.highlight_menu_manager:switchItemTable(
+        T(_("Highlight Menu (%1 enabled)"), menu_count), menu_items, -1)
+end
+
+function PromptsManager:showHighlightMenuManager()
+    if not self.plugin.action_service then
+        UIManager:show(InfoMessage:new{ text = _("Action service not available.") })
+        return
+    end
+
+    local all_actions = self.plugin.action_service:getAllHighlightActionsWithMenuState()
+    if #all_actions == 0 then
+        UIManager:show(InfoMessage:new{ text = _("No highlight actions available.") })
+        return
+    end
+
+    local menu_items, menu_count = self:_buildHighlightMenuItems()
     local self_ref = self
     self.highlight_menu_manager = Menu:new{
         title = T(_("Highlight Menu (%1 enabled)"), menu_count),
@@ -4708,157 +4699,109 @@ function PromptsManager:showHighlightMenuManager()
         covers_fullscreen = true,
         is_borderless = true,
         is_popout = false,
-        onMenuHold = function(menu_widget, menu_item)
+        onMenuHold = function(_menu_widget, menu_item)
             if menu_item and menu_item.action then
                 if menu_item.in_menu then
-                    -- Show move options for items in menu
-                    self:showHighlightMenuActionOptions(menu_item.action, menu_item.menu_position, menu_count)
+                    self_ref:_refreshHighlightMenu(menu_item.action.id)
+                    local move_fn = function(id, dir) self_ref.plugin.action_service:moveHighlightMenuAction(id, dir) end
+                    local function find_pos(target_id)
+                        local all = self_ref.plugin.action_service:getAllHighlightActionsWithMenuState()
+                        local total, pos = 0, nil
+                        for _i, a in ipairs(all) do
+                            if a.in_menu then
+                                total = total + 1
+                                if a.action.id == target_id then pos = a.menu_position end
+                            end
+                        end
+                        return pos, total
+                    end
+                    local function reshow(moved_id)
+                        self_ref:_refreshHighlightMenu(moved_id)
+                        local pos, total = find_pos(moved_id)
+                        if pos then
+                            self_ref:showOrderItemOptions(moved_id, pos, total,
+                                move_fn, reshow, function() self_ref:_refreshHighlightMenu() end)
+                        end
+                    end
+                    local pos, total = find_pos(menu_item.action.id)
+                    if pos then
+                        self_ref:showOrderItemOptions(menu_item.action.id, pos, total,
+                            move_fn, reshow, function() self_ref:_refreshHighlightMenu() end)
+                    end
                 else
-                    -- Show info for items not in menu
                     UIManager:show(InfoMessage:new{
-                        text = string.format(
-                            "%s\n\nSource: %s\n\nTap to add to highlight menu.",
+                        text = string.format("%s\n\nSource: %s\n\nTap to add to highlight menu.",
                             menu_item.action.text or menu_item.action.id,
-                            menu_item.action.source or "builtin"
-                        ),
+                            menu_item.action.source or "builtin"),
                         timeout = 3,
                     })
                 end
             end
         end,
-        close_callback = function()
-            UIManager:close(self.highlight_menu_manager)
-        end,
     }
     UIManager:show(self.highlight_menu_manager)
-end
-
--- Show options for a highlight menu action (move up/down, remove)
-function PromptsManager:showHighlightMenuActionOptions(action, index, total)
-    local buttons = {}
-
-    if index > 1 then
-        table.insert(buttons, {
-            {
-                text = _("↑ Move Up"),
-                callback = function()
-                    self.plugin.action_service:moveHighlightMenuAction(action.id, "up")
-                    UIManager:close(self.highlight_options_dialog)
-                    UIManager:close(self.highlight_menu_manager)
-                    self:showHighlightMenuManager()
-                end,
-            },
-        })
-    end
-
-    if index < total then
-        table.insert(buttons, {
-            {
-                text = _("↓ Move Down"),
-                callback = function()
-                    self.plugin.action_service:moveHighlightMenuAction(action.id, "down")
-                    UIManager:close(self.highlight_options_dialog)
-                    UIManager:close(self.highlight_menu_manager)
-                    self:showHighlightMenuManager()
-                end,
-            },
-        })
-    end
-
-    table.insert(buttons, {
-        {
-            text = _("Remove from Menu"),
-            callback = function()
-                self.plugin.action_service:removeFromHighlightMenu(action.id)
-                UIManager:close(self.highlight_options_dialog)
-                UIManager:close(self.highlight_menu_manager)
-                self:showHighlightMenuManager()
-            end,
-        },
-    })
-
-    table.insert(buttons, {
-        {
-            text = _("Cancel"),
-            callback = function()
-                UIManager:close(self.highlight_options_dialog)
-            end,
-        },
-    })
-
-    self.highlight_options_dialog = ButtonDialog:new{
-        title = action.text or action.id,
-        info_text = _("Position: ") .. index .. "/" .. total,
-        buttons = buttons,
-    }
-    UIManager:show(self.highlight_options_dialog)
 end
 
 -- ============================================================
 -- Quick Actions Panel Manager
 -- ============================================================
 
-function PromptsManager:showQuickActionsManager()
-    if not self.plugin.action_service then
-        UIManager:show(InfoMessage:new{
-            text = _("Action service not available."),
-        })
-        return
-    end
-
+function PromptsManager:_buildQuickActionsItems(bold_id)
     local features = self.plugin.settings:readSetting("features") or {}
     local all_actions = self.plugin.action_service:getAllBookActionsWithQuickActionsState()
-
-    if #all_actions == 0 then
-        UIManager:show(InfoMessage:new{
-            text = _("No book actions available."),
-        })
-        return
-    end
-
-    -- Count items in quick actions for display
     local quick_count = 0
-    for _idx, item in ipairs(all_actions) do
-        if item.in_quick_actions then quick_count = quick_count + 1 end
-    end
-
     local menu_items = {}
 
-    -- Help text item
     table.insert(menu_items, {
         text = _("✓ = in panel | Tap = toggle | Hold = move"),
         dim = true,
-        callback = function() end,  -- No action
+        callback = function() end,
     })
 
     for _idx, item in ipairs(all_actions) do
         local action = item.action
+        if item.in_quick_actions then quick_count = quick_count + 1 end
         local prefix = item.in_quick_actions and "✓ " or "  "
         local position = item.in_quick_actions and string.format("[%d] ", item.quick_actions_position) or ""
         local source_indicator = ""
-        if action.source == "ui" then
-            source_indicator = " ★"
-        elseif action.source == "config" then
-            source_indicator = " ◆"
-        end
+        if action.source == "ui" then source_indicator = " ★"
+        elseif action.source == "config" then source_indicator = " ◆" end
 
         table.insert(menu_items, {
             text = prefix .. position .. ActionService.getActionDisplayText(action, features) .. source_indicator,
             action = action,
             in_quick_actions = item.in_quick_actions,
             quick_actions_position = item.quick_actions_position,
+            bold = (item.in_quick_actions and action.id == bold_id),
             callback = function()
-                -- Toggle quick actions inclusion
                 self.plugin.action_service:toggleQuickAction(action.id)
-                -- Refresh the menu after close completes
-                UIManager:close(self.quick_actions_menu)
-                UIManager:scheduleIn(0.1, function()
-                    self:showQuickActionsManager()
-                end)
+                UIManager:nextTick(function() self:_refreshQuickActionsMenu() end)
             end,
         })
     end
+    return menu_items, quick_count
+end
 
+function PromptsManager:_refreshQuickActionsMenu(bold_id)
+    if not self.quick_actions_menu then return end
+    local menu_items, quick_count = self:_buildQuickActionsItems(bold_id)
+    self.quick_actions_menu:switchItemTable(
+        T(_("Quick Actions (%1 enabled)"), quick_count), menu_items, -1)
+end
+
+function PromptsManager:showQuickActionsManager()
+    if not self.plugin.action_service then
+        UIManager:show(InfoMessage:new{ text = _("Action service not available.") })
+        return
+    end
+
+    local all_actions = self.plugin.action_service:getAllBookActionsWithQuickActionsState()
+    if #all_actions == 0 then
+        UIManager:show(InfoMessage:new{ text = _("No book actions available.") })
+        return
+    end
+
+    local menu_items, quick_count = self:_buildQuickActionsItems()
     local self_ref = self
     self.quick_actions_menu = Menu:new{
         title = T(_("Quick Actions (%1 enabled)"), quick_count),
@@ -4880,123 +4823,59 @@ function PromptsManager:showQuickActionsManager()
         covers_fullscreen = true,
         is_borderless = true,
         is_popout = false,
-        onMenuHold = function(menu_widget, menu_item)
+        onMenuHold = function(_menu_widget, menu_item)
             if menu_item and menu_item.action then
                 if menu_item.in_quick_actions then
-                    -- Show move options for items in quick actions
-                    self:showQuickActionsActionOptions(menu_item.action, menu_item.quick_actions_position, quick_count)
+                    self_ref:_refreshQuickActionsMenu(menu_item.action.id)
+                    local move_fn = function(id, dir) self_ref.plugin.action_service:moveQuickAction(id, dir) end
+                    local function find_pos(target_id)
+                        local all = self_ref.plugin.action_service:getAllBookActionsWithQuickActionsState()
+                        local total, pos = 0, nil
+                        for _i, a in ipairs(all) do
+                            if a.in_quick_actions then
+                                total = total + 1
+                                if a.action.id == target_id then pos = a.quick_actions_position end
+                            end
+                        end
+                        return pos, total
+                    end
+                    local function reshow(moved_id)
+                        self_ref:_refreshQuickActionsMenu(moved_id)
+                        local pos, total = find_pos(moved_id)
+                        if pos then
+                            self_ref:showOrderItemOptions(moved_id, pos, total,
+                                move_fn, reshow, function() self_ref:_refreshQuickActionsMenu() end)
+                        end
+                    end
+                    local pos, total = find_pos(menu_item.action.id)
+                    if pos then
+                        self_ref:showOrderItemOptions(menu_item.action.id, pos, total,
+                            move_fn, reshow, function() self_ref:_refreshQuickActionsMenu() end)
+                    end
                 else
-                    -- Show info for items not in quick actions
                     UIManager:show(InfoMessage:new{
-                        text = string.format(
-                            "%s\n\nSource: %s\n\nTap to add to Quick Actions panel.",
+                        text = string.format("%s\n\nSource: %s\n\nTap to add to Quick Actions panel.",
                             menu_item.action.text or menu_item.action.id,
-                            menu_item.action.source or "builtin"
-                        ),
+                            menu_item.action.source or "builtin"),
                         timeout = 3,
                     })
                 end
             end
         end,
-        close_callback = function()
-            UIManager:close(self.quick_actions_menu)
-        end,
     }
     UIManager:show(self.quick_actions_menu)
-end
-
--- Show options for a quick actions action (move up/down, remove)
-function PromptsManager:showQuickActionsActionOptions(action, index, total)
-    local buttons = {}
-
-    if index > 1 then
-        table.insert(buttons, {
-            {
-                text = _("↑ Move Up"),
-                callback = function()
-                    self.plugin.action_service:moveQuickAction(action.id, "up")
-                    UIManager:close(self.quick_options_dialog)
-                    UIManager:close(self.quick_actions_menu)
-                    self:showQuickActionsManager()
-                end,
-            },
-        })
-    end
-
-    if index < total then
-        table.insert(buttons, {
-            {
-                text = _("↓ Move Down"),
-                callback = function()
-                    self.plugin.action_service:moveQuickAction(action.id, "down")
-                    UIManager:close(self.quick_options_dialog)
-                    UIManager:close(self.quick_actions_menu)
-                    self:showQuickActionsManager()
-                end,
-            },
-        })
-    end
-
-    table.insert(buttons, {
-        {
-            text = _("Remove from Panel"),
-            callback = function()
-                self.plugin.action_service:removeFromQuickActions(action.id)
-                UIManager:close(self.quick_options_dialog)
-                UIManager:close(self.quick_actions_menu)
-                self:showQuickActionsManager()
-            end,
-        },
-    })
-
-    table.insert(buttons, {
-        {
-            text = _("Cancel"),
-            callback = function()
-                UIManager:close(self.quick_options_dialog)
-            end,
-        },
-    })
-
-    self.quick_options_dialog = ButtonDialog:new{
-        title = action.text or action.id,
-        info_text = _("Position: ") .. index .. "/" .. total,
-        buttons = buttons,
-    }
-    UIManager:show(self.quick_options_dialog)
 end
 
 -- ============================================================
 -- QA Utilities Manager
 -- ============================================================
 
-function PromptsManager:showQaUtilitiesManager(restore_page)
-    if not self.plugin.action_service then
-        UIManager:show(InfoMessage:new{
-            text = _("Action service not available."),
-        })
-        return
-    end
-
+function PromptsManager:_buildQaUtilitiesItems(bold_id)
     local features = self.plugin.settings:readSetting("features") or {}
     local order = self.plugin.action_service:getQaUtilitiesOrder()
-
-    -- Count enabled items
     local enabled_count = 0
-    for _idx, util_id in ipairs(order) do
-        local enabled = features["qa_show_" .. util_id]
-        if enabled == nil then
-            -- Look up default from Constants
-            for _i, u in ipairs(Constants.QUICK_ACTION_UTILITIES) do
-                if u.id == util_id then enabled = u.default; break end
-            end
-        end
-        if enabled then enabled_count = enabled_count + 1 end
-    end
-
     local menu_items = {}
 
-    -- Help text item
     table.insert(menu_items, {
         text = _("✓ = visible | Tap = toggle | Hold = move"),
         dim = true,
@@ -5010,6 +4889,7 @@ function PromptsManager:showQaUtilitiesManager(restore_page)
                 if u.id == util_id then enabled = u.default; break end
             end
         end
+        if enabled then enabled_count = enabled_count + 1 end
 
         local prefix = enabled and "✓ " or "  "
         local position = string.format("[%d] ", pos)
@@ -5020,21 +4900,33 @@ function PromptsManager:showQaUtilitiesManager(restore_page)
             util_id = util_id,
             position = pos,
             enabled = enabled,
+            bold = (util_id == bold_id),
             callback = function()
-                -- Toggle visibility
                 local f = self.plugin.settings:readSetting("features") or {}
                 f["qa_show_" .. util_id] = not enabled
                 self.plugin.settings:saveSetting("features", f)
                 self.plugin.settings:flush()
-                local cur_page = self.qa_utilities_menu.page
-                UIManager:close(self.qa_utilities_menu)
-                UIManager:scheduleIn(0.1, function()
-                    self:showQaUtilitiesManager(cur_page)
-                end)
+                UIManager:nextTick(function() self:_refreshQaUtilitiesMenu() end)
             end,
         })
     end
+    return menu_items, enabled_count
+end
 
+function PromptsManager:_refreshQaUtilitiesMenu(bold_id)
+    if not self.qa_utilities_menu then return end
+    local menu_items, enabled_count = self:_buildQaUtilitiesItems(bold_id)
+    self.qa_utilities_menu:switchItemTable(
+        T(_("QA Panel Utilities (%1 visible)"), enabled_count), menu_items, -1)
+end
+
+function PromptsManager:showQaUtilitiesManager(restore_page)
+    if not self.plugin.action_service then
+        UIManager:show(InfoMessage:new{ text = _("Action service not available.") })
+        return
+    end
+
+    local menu_items, enabled_count = self:_buildQaUtilitiesItems()
     local self_ref = self
     self.qa_utilities_menu = Menu:new{
         title = T(_("QA Panel Utilities (%1 visible)"), enabled_count),
@@ -5058,19 +4950,24 @@ function PromptsManager:showQaUtilitiesManager(restore_page)
         is_popout = false,
         onMenuHold = function(_menu_widget, menu_item)
             if menu_item and menu_item.util_id then
-                local cur_page = self.qa_utilities_menu.page
-                self:showOrderItemOptions(
-                    menu_item.util_id,
-                    menu_item.position,
-                    #order,
-                    Constants.getQuickActionUtilityText(menu_item.util_id, _) or menu_item.util_id,
-                    function(id, direction) self.plugin.action_service:moveQaUtility(id, direction) end,
-                    function() UIManager:close(self.qa_utilities_menu); self:showQaUtilitiesManager(cur_page) end
-                )
+                self_ref:_refreshQaUtilitiesMenu(menu_item.util_id)
+                local move_fn = function(id, dir) self_ref.plugin.action_service:moveQaUtility(id, dir) end
+                local function reshow(moved_id)
+                    self_ref:_refreshQaUtilitiesMenu(moved_id)
+                    local new_order = self_ref.plugin.action_service:getQaUtilitiesOrder()
+                    for i, id in ipairs(new_order) do
+                        if id == moved_id then
+                            self_ref:showOrderItemOptions(moved_id, i, #new_order,
+                                move_fn, reshow, function() self_ref:_refreshQaUtilitiesMenu() end)
+                            break
+                        end
+                    end
+                end
+                local cur_order = self_ref.plugin.action_service:getQaUtilitiesOrder()
+                self_ref:showOrderItemOptions(
+                    menu_item.util_id, menu_item.position, #cur_order,
+                    move_fn, reshow, function() self_ref:_refreshQaUtilitiesMenu() end)
             end
-        end,
-        close_callback = function()
-            UIManager:close(self.qa_utilities_menu)
         end,
     }
     UIManager:show(self.qa_utilities_menu)
@@ -5083,25 +4980,13 @@ end
 -- QS Items Manager
 -- ============================================================
 
-function PromptsManager:showQsItemsManager(restore_page)
-    if not self.plugin.action_service then
-        UIManager:show(InfoMessage:new{
-            text = _("Action service not available."),
-        })
-        return
-    end
-
+-- Build the item table for QS Items Manager.
+-- bold_id: optional item_id to render bold (currently being moved).
+function PromptsManager:_buildQsMenuItems(bold_id)
     local features = self.plugin.settings:readSetting("features") or {}
     local order = self.plugin.action_service:getQsItemsOrder()
 
-    -- Count enabled items
     local enabled_count = 0
-    for _idx, item_id in ipairs(order) do
-        local enabled = features["qs_show_" .. item_id]
-        if enabled == nil then enabled = true end
-        if enabled then enabled_count = enabled_count + 1 end
-    end
-
     local menu_items = {}
 
     -- Help text item
@@ -5114,6 +4999,7 @@ function PromptsManager:showQsItemsManager(restore_page)
     for pos, item_id in ipairs(order) do
         local enabled = features["qs_show_" .. item_id]
         if enabled == nil then enabled = true end
+        if enabled then enabled_count = enabled_count + 1 end
 
         local prefix = enabled and "✓ " or "  "
         local position = string.format("[%d] ", pos)
@@ -5128,20 +5014,45 @@ function PromptsManager:showQsItemsManager(restore_page)
             item_id = item_id,
             position = pos,
             enabled = enabled,
+            bold = (item_id == bold_id),
             callback = function()
                 -- Toggle visibility
                 local f = self.plugin.settings:readSetting("features") or {}
                 f["qs_show_" .. item_id] = not enabled
                 self.plugin.settings:saveSetting("features", f)
                 self.plugin.settings:flush()
-                local cur_page = self.qs_items_menu.page
-                UIManager:close(self.qs_items_menu)
-                UIManager:scheduleIn(0.1, function()
-                    self:showQsItemsManager(cur_page)
+                -- Defer: switchItemTable from within a MenuItem tap handler
+                -- destroys the MenuItem while it's still processing the event.
+                UIManager:nextTick(function()
+                    self:_refreshQsItemsMenu()
                 end)
             end,
         })
     end
+
+    return menu_items, enabled_count
+end
+
+-- Refresh the QS Items menu in-place (no close/reopen).
+-- bold_id: optional item_id to render bold.
+function PromptsManager:_refreshQsItemsMenu(bold_id)
+    if not self.qs_items_menu then return end
+    local menu_items, enabled_count = self:_buildQsMenuItems(bold_id)
+    -- itemnumber=-1 preserves current page (bypasses page-setting logic)
+    self.qs_items_menu:switchItemTable(
+        T(_("QS Panel Items (%1 visible)"), enabled_count),
+        menu_items, -1)
+end
+
+function PromptsManager:showQsItemsManager(restore_page)
+    if not self.plugin.action_service then
+        UIManager:show(InfoMessage:new{
+            text = _("Action service not available."),
+        })
+        return
+    end
+
+    local menu_items, enabled_count = self:_buildQsMenuItems()
 
     local self_ref = self
     self.qs_items_menu = Menu:new{
@@ -5166,20 +5077,30 @@ function PromptsManager:showQsItemsManager(restore_page)
         is_popout = false,
         onMenuHold = function(_menu_widget, menu_item)
             if menu_item and menu_item.item_id then
-                local cur_page = self.qs_items_menu.page
-                self:showOrderItemOptions(
-                    menu_item.item_id,
-                    menu_item.position,
-                    #order,
-                    Constants.getQsItemText(menu_item.item_id, _),
-                    function(id, direction) self.plugin.action_service:moveQsItem(id, direction) end,
-                    function() UIManager:close(self.qs_items_menu); self:showQsItemsManager(cur_page) end
-                )
+                -- Bold the held item immediately
+                self_ref:_refreshQsItemsMenu(menu_item.item_id)
+                local current_order = self_ref.plugin.action_service:getQsItemsOrder()
+                local move_fn = function(id, direction) self_ref.plugin.action_service:moveQsItem(id, direction) end
+                local function reshow(moved_id)
+                    self_ref:_refreshQsItemsMenu(moved_id)
+                    local new_order = self_ref.plugin.action_service:getQsItemsOrder()
+                    for i, id in ipairs(new_order) do
+                        if id == moved_id then
+                            self_ref:showOrderItemOptions(moved_id, i, #new_order,
+                                move_fn, reshow, function() self_ref:_refreshQsItemsMenu() end)
+                            break
+                        end
+                    end
+                end
+                local dismiss_fn = function() self_ref:_refreshQsItemsMenu() end
+                self_ref:showOrderItemOptions(
+                    menu_item.item_id, menu_item.position, #current_order,
+                    move_fn, reshow, dismiss_fn)
             end
         end,
-        close_callback = function()
-            UIManager:close(self.qs_items_menu)
-        end,
+        -- No close_callback: Menu:onMenuSelect calls close_callback after
+        -- every item tap. We refresh in-place via switchItemTable instead.
+        -- The Menu's built-in onClose handles the X/back button.
     }
     UIManager:show(self.qs_items_menu)
     if restore_page and restore_page > 1 then
@@ -5187,49 +5108,38 @@ function PromptsManager:showQsItemsManager(restore_page)
     end
 end
 
--- Shared hold options for ordered items (move up/down)
-function PromptsManager:showOrderItemOptions(item_id, index, total, display_text, move_fn, refresh_fn)
-    local buttons = {}
+-- Shared hold options for ordered items — persistent ↑/↓ arrows.
+-- No title, shrinks to fit. Tap outside to dismiss (calls dismiss_fn).
+-- reshow_fn(item_id): refreshes parent menu in-place and re-shows this dialog.
+-- dismiss_fn: called when user taps outside to close (e.g. unbold item).
+function PromptsManager:showOrderItemOptions(item_id, index, total, move_fn, reshow_fn, dismiss_fn)
+    if total <= 1 then return end
 
-    if index > 1 then
-        table.insert(buttons, {
+    local at_top = index <= 1
+    local at_bottom = index >= total
+    self.order_options_dialog = ButtonDialog:new{
+        buttons = { {
             {
-                text = _("↑ Move Up"),
+                text = "\u{2191}",
+                enabled = not at_top,
                 callback = function()
                     move_fn(item_id, "up")
                     UIManager:close(self.order_options_dialog)
-                    refresh_fn()
+                    reshow_fn(item_id)
                 end,
             },
-        })
-    end
-
-    if index < total then
-        table.insert(buttons, {
             {
-                text = _("↓ Move Down"),
+                text = "\u{2193}",
+                enabled = not at_bottom,
                 callback = function()
                     move_fn(item_id, "down")
                     UIManager:close(self.order_options_dialog)
-                    refresh_fn()
+                    reshow_fn(item_id)
                 end,
             },
-        })
-    end
-
-    table.insert(buttons, {
-        {
-            text = _("Cancel"),
-            callback = function()
-                UIManager:close(self.order_options_dialog)
-            end,
-        },
-    })
-
-    self.order_options_dialog = ButtonDialog:new{
-        title = display_text,
-        info_text = _("Position: ") .. index .. "/" .. total,
-        buttons = buttons,
+        } },
+        shrink_unneeded_width = true,
+        tap_close_callback = dismiss_fn,
     }
     UIManager:show(self.order_options_dialog)
 end
@@ -5238,67 +5148,62 @@ end
 -- File Browser Actions Manager
 -- ============================================================
 
-function PromptsManager:showFileBrowserActionsManager()
-    if not self.plugin.action_service then
-        UIManager:show(InfoMessage:new{
-            text = _("Action service not available."),
-        })
-        return
-    end
-
+function PromptsManager:_buildFileBrowserItems(bold_id)
     local features = self.plugin.settings:readSetting("features") or {}
     local all_actions = self.plugin.action_service:getAllBookActionsWithFileBrowserState()
-
-    if #all_actions == 0 then
-        UIManager:show(InfoMessage:new{
-            text = _("No eligible book actions available."),
-        })
-        return
-    end
-
-    -- Count items pinned in file browser
     local fb_count = 0
-    for _idx, item in ipairs(all_actions) do
-        if item.in_file_browser then fb_count = fb_count + 1 end
-    end
-
     local menu_items = {}
 
-    -- Help text item
     table.insert(menu_items, {
         text = _("✓ = pinned | Tap = toggle | Hold = move"),
         dim = true,
-        callback = function() end,  -- No action
+        callback = function() end,
     })
 
     for _idx, item in ipairs(all_actions) do
         local action = item.action
+        if item.in_file_browser then fb_count = fb_count + 1 end
         local prefix = item.in_file_browser and "✓ " or "  "
         local position = item.in_file_browser and string.format("[%d] ", item.file_browser_position) or ""
         local source_indicator = ""
-        if action.source == "ui" then
-            source_indicator = " ★"
-        elseif action.source == "config" then
-            source_indicator = " ◆"
-        end
+        if action.source == "ui" then source_indicator = " ★"
+        elseif action.source == "config" then source_indicator = " ◆" end
 
         table.insert(menu_items, {
             text = prefix .. position .. ActionService.getActionDisplayText(action, features) .. source_indicator,
             action = action,
             in_file_browser = item.in_file_browser,
             file_browser_position = item.file_browser_position,
+            bold = (item.in_file_browser and action.id == bold_id),
             callback = function()
-                -- Toggle file browser inclusion
                 self.plugin.action_service:toggleFileBrowserAction(action.id)
-                -- Refresh the menu after close completes
-                UIManager:close(self.file_browser_menu)
-                UIManager:scheduleIn(0.1, function()
-                    self:showFileBrowserActionsManager()
-                end)
+                UIManager:nextTick(function() self:_refreshFileBrowserMenu() end)
             end,
         })
     end
+    return menu_items, fb_count
+end
 
+function PromptsManager:_refreshFileBrowserMenu(bold_id)
+    if not self.file_browser_menu then return end
+    local menu_items, fb_count = self:_buildFileBrowserItems(bold_id)
+    self.file_browser_menu:switchItemTable(
+        T(_("File Browser Actions (%1 pinned)"), fb_count), menu_items, -1)
+end
+
+function PromptsManager:showFileBrowserActionsManager()
+    if not self.plugin.action_service then
+        UIManager:show(InfoMessage:new{ text = _("Action service not available.") })
+        return
+    end
+
+    local all_actions = self.plugin.action_service:getAllBookActionsWithFileBrowserState()
+    if #all_actions == 0 then
+        UIManager:show(InfoMessage:new{ text = _("No eligible book actions available.") })
+        return
+    end
+
+    local menu_items, fb_count = self:_buildFileBrowserItems()
     local self_ref = self
     self.file_browser_menu = Menu:new{
         title = T(_("File Browser Actions (%1 pinned)"), fb_count),
@@ -5323,154 +5228,106 @@ function PromptsManager:showFileBrowserActionsManager()
         onMenuHold = function(_menu_widget, menu_item)
             if menu_item and menu_item.action then
                 if menu_item.in_file_browser then
-                    -- Show move options for pinned items
-                    self:showFileBrowserActionOptions(menu_item.action, menu_item.file_browser_position, fb_count)
+                    self_ref:_refreshFileBrowserMenu(menu_item.action.id)
+                    local move_fn = function(id, dir) self_ref.plugin.action_service:moveFileBrowserAction(id, dir) end
+                    local function find_pos(target_id)
+                        local all = self_ref.plugin.action_service:getAllBookActionsWithFileBrowserState()
+                        local total, pos = 0, nil
+                        for _i, a in ipairs(all) do
+                            if a.in_file_browser then
+                                total = total + 1
+                                if a.action.id == target_id then pos = a.file_browser_position end
+                            end
+                        end
+                        return pos, total
+                    end
+                    local function reshow(moved_id)
+                        self_ref:_refreshFileBrowserMenu(moved_id)
+                        local pos, total = find_pos(moved_id)
+                        if pos then
+                            self_ref:showOrderItemOptions(moved_id, pos, total,
+                                move_fn, reshow, function() self_ref:_refreshFileBrowserMenu() end)
+                        end
+                    end
+                    local pos, total = find_pos(menu_item.action.id)
+                    if pos then
+                        self_ref:showOrderItemOptions(menu_item.action.id, pos, total,
+                            move_fn, reshow, function() self_ref:_refreshFileBrowserMenu() end)
+                    end
                 else
-                    -- Show info for non-pinned items
                     UIManager:show(InfoMessage:new{
-                        text = string.format(
-                            "%s\n\nSource: %s\n\nTap to pin to file browser.",
+                        text = string.format("%s\n\nSource: %s\n\nTap to pin to file browser.",
                             menu_item.action.text or menu_item.action.id,
-                            menu_item.action.source or "builtin"
-                        ),
+                            menu_item.action.source or "builtin"),
                         timeout = 3,
                     })
                 end
             end
         end,
-        close_callback = function()
-            UIManager:close(self.file_browser_menu)
-        end,
     }
     UIManager:show(self.file_browser_menu)
-end
-
--- Show options for a file browser action (move up/down, remove)
-function PromptsManager:showFileBrowserActionOptions(action, index, total)
-    local buttons = {}
-
-    if index > 1 then
-        table.insert(buttons, {
-            {
-                text = _("↑ Move Up"),
-                callback = function()
-                    self.plugin.action_service:moveFileBrowserAction(action.id, "up")
-                    UIManager:close(self.fb_options_dialog)
-                    UIManager:close(self.file_browser_menu)
-                    self:showFileBrowserActionsManager()
-                end,
-            },
-        })
-    end
-
-    if index < total then
-        table.insert(buttons, {
-            {
-                text = _("↓ Move Down"),
-                callback = function()
-                    self.plugin.action_service:moveFileBrowserAction(action.id, "down")
-                    UIManager:close(self.fb_options_dialog)
-                    UIManager:close(self.file_browser_menu)
-                    self:showFileBrowserActionsManager()
-                end,
-            },
-        })
-    end
-
-    table.insert(buttons, {
-        {
-            text = _("Remove from File Browser"),
-            callback = function()
-                self.plugin.action_service:removeFromFileBrowser(action.id)
-                UIManager:close(self.fb_options_dialog)
-                UIManager:close(self.file_browser_menu)
-                self:showFileBrowserActionsManager()
-            end,
-        },
-    })
-
-    table.insert(buttons, {
-        {
-            text = _("Cancel"),
-            callback = function()
-                UIManager:close(self.fb_options_dialog)
-            end,
-        },
-    })
-
-    self.fb_options_dialog = ButtonDialog:new{
-        title = action.text or action.id,
-        info_text = _("Position: ") .. index .. "/" .. total,
-        buttons = buttons,
-    }
-    UIManager:show(self.fb_options_dialog)
 end
 
 -- ============================================================
 -- Dictionary Popup Actions Manager
 -- ============================================================
 
-function PromptsManager:showDictionaryPopupManager()
-    if not self.plugin.action_service then
-        UIManager:show(InfoMessage:new{
-            text = _("Action service not available."),
-        })
-        return
-    end
-
+function PromptsManager:_buildDictionaryPopupItems(bold_id)
     local features = self.plugin.settings:readSetting("features") or {}
     local all_actions = self.plugin.action_service:getAllHighlightActionsWithPopupState()
-
-    if #all_actions == 0 then
-        UIManager:show(InfoMessage:new{
-            text = _("No highlight actions available."),
-        })
-        return
-    end
-
-    -- Count items in popup for display
     local popup_count = 0
-    for _idx,item in ipairs(all_actions) do
-        if item.in_popup then popup_count = popup_count + 1 end
-    end
-
     local menu_items = {}
 
-    -- Help text item
     table.insert(menu_items, {
         text = _("✓ = in popup | Tap = toggle | Hold = move"),
         dim = true,
-        callback = function() end,  -- No action
+        callback = function() end,
     })
 
-    for _idx,item in ipairs(all_actions) do
+    for _idx, item in ipairs(all_actions) do
         local action = item.action
+        if item.in_popup then popup_count = popup_count + 1 end
         local prefix = item.in_popup and "✓ " or "  "
         local position = item.in_popup and string.format("[%d] ", item.popup_position) or ""
         local source_indicator = ""
-        if action.source == "ui" then
-            source_indicator = " ★"
-        elseif action.source == "config" then
-            source_indicator = " ◆"
-        end
+        if action.source == "ui" then source_indicator = " ★"
+        elseif action.source == "config" then source_indicator = " ◆" end
 
         table.insert(menu_items, {
             text = prefix .. position .. ActionService.getActionDisplayText(action, features) .. source_indicator,
             action = action,
             in_popup = item.in_popup,
             popup_position = item.popup_position,
+            bold = (item.in_popup and action.id == bold_id),
             callback = function()
-                -- Toggle popup inclusion
                 self.plugin.action_service:toggleDictionaryPopupAction(action.id)
-                -- Refresh the menu after close completes
-                UIManager:close(self.dictionary_popup_menu)
-                UIManager:scheduleIn(0.1, function()
-                    self:showDictionaryPopupManager()
-                end)
+                UIManager:nextTick(function() self:_refreshDictionaryPopupMenu() end)
             end,
         })
     end
+    return menu_items, popup_count
+end
 
+function PromptsManager:_refreshDictionaryPopupMenu(bold_id)
+    if not self.dictionary_popup_menu then return end
+    local menu_items, popup_count = self:_buildDictionaryPopupItems(bold_id)
+    self.dictionary_popup_menu:switchItemTable(
+        T(_("Dictionary Popup (%1 enabled)"), popup_count), menu_items, -1)
+end
+
+function PromptsManager:showDictionaryPopupManager()
+    if not self.plugin.action_service then
+        UIManager:show(InfoMessage:new{ text = _("Action service not available.") })
+        return
+    end
+
+    local all_actions = self.plugin.action_service:getAllHighlightActionsWithPopupState()
+    if #all_actions == 0 then
+        UIManager:show(InfoMessage:new{ text = _("No highlight actions available.") })
+        return
+    end
+
+    local menu_items, popup_count = self:_buildDictionaryPopupItems()
     local self_ref = self
     self.dictionary_popup_menu = Menu:new{
         title = T(_("Dictionary Popup (%1 enabled)"), popup_count),
@@ -5492,90 +5349,47 @@ function PromptsManager:showDictionaryPopupManager()
         covers_fullscreen = true,
         is_borderless = true,
         is_popout = false,
-        onMenuHold = function(menu_widget, menu_item)
+        onMenuHold = function(_menu_widget, menu_item)
             if menu_item and menu_item.action then
                 if menu_item.in_popup then
-                    -- Show move options for items in popup
-                    self:showDictionaryPopupActionOptions(menu_item.action, menu_item.popup_position, popup_count)
+                    self_ref:_refreshDictionaryPopupMenu(menu_item.action.id)
+                    local move_fn = function(id, dir) self_ref.plugin.action_service:moveDictionaryPopupAction(id, dir) end
+                    local function find_pos(target_id)
+                        local all = self_ref.plugin.action_service:getAllHighlightActionsWithPopupState()
+                        local total, pos = 0, nil
+                        for _i, a in ipairs(all) do
+                            if a.in_popup then
+                                total = total + 1
+                                if a.action.id == target_id then pos = a.popup_position end
+                            end
+                        end
+                        return pos, total
+                    end
+                    local function reshow(moved_id)
+                        self_ref:_refreshDictionaryPopupMenu(moved_id)
+                        local pos, total = find_pos(moved_id)
+                        if pos then
+                            self_ref:showOrderItemOptions(moved_id, pos, total,
+                                move_fn, reshow, function() self_ref:_refreshDictionaryPopupMenu() end)
+                        end
+                    end
+                    local pos, total = find_pos(menu_item.action.id)
+                    if pos then
+                        self_ref:showOrderItemOptions(menu_item.action.id, pos, total,
+                            move_fn, reshow, function() self_ref:_refreshDictionaryPopupMenu() end)
+                    end
                 else
-                    -- Show info for items not in popup
                     UIManager:show(InfoMessage:new{
-                        text = string.format(
-                            "%s\n\nSource: %s\n\nTap to add to dictionary popup.",
+                        text = string.format("%s\n\nSource: %s\n\nTap to add to dictionary popup.",
                             menu_item.action.text or menu_item.action.id,
-                            menu_item.action.source or "builtin"
-                        ),
+                            menu_item.action.source or "builtin"),
                         timeout = 3,
                     })
                 end
             end
         end,
-        close_callback = function()
-            UIManager:close(self.dictionary_popup_menu)
-        end,
     }
     UIManager:show(self.dictionary_popup_menu)
-end
-
--- Show options for a dictionary popup action (move up/down, remove)
-function PromptsManager:showDictionaryPopupActionOptions(action, index, total)
-    local buttons = {}
-
-    if index > 1 then
-        table.insert(buttons, {
-            {
-                text = _("↑ Move Up"),
-                callback = function()
-                    self.plugin.action_service:moveDictionaryPopupAction(action.id, "up")
-                    UIManager:close(self.options_dialog)
-                    UIManager:close(self.dictionary_popup_menu)
-                    self:showDictionaryPopupManager()
-                end,
-            },
-        })
-    end
-
-    if index < total then
-        table.insert(buttons, {
-            {
-                text = _("↓ Move Down"),
-                callback = function()
-                    self.plugin.action_service:moveDictionaryPopupAction(action.id, "down")
-                    UIManager:close(self.options_dialog)
-                    UIManager:close(self.dictionary_popup_menu)
-                    self:showDictionaryPopupManager()
-                end,
-            },
-        })
-    end
-
-    table.insert(buttons, {
-        {
-            text = _("Remove from Popup"),
-            callback = function()
-                self.plugin.action_service:removeFromDictionaryPopup(action.id)
-                UIManager:close(self.options_dialog)
-                UIManager:close(self.dictionary_popup_menu)
-                self:showDictionaryPopupManager()
-            end,
-        },
-    })
-
-    table.insert(buttons, {
-        {
-            text = _("Cancel"),
-            callback = function()
-                UIManager:close(self.options_dialog)
-            end,
-        },
-    })
-
-    self.options_dialog = ButtonDialog:new{
-        title = action.text or action.id,
-        info_text = _("Position: ") .. index .. "/" .. total,
-        buttons = buttons,
-    }
-    UIManager:show(self.options_dialog)
 end
 
 return PromptsManager
