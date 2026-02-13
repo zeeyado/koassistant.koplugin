@@ -933,12 +933,11 @@ local SettingsSchema = {
                             local utility_items = {}
                             local util_texts = {
                                 translate_page = _("Translate Page"),
-                                view_notebook = _("View Notebook"),
-                                edit_notebook = _("Edit Notebook"),
-                                chat_history = _("Chat History"),
-                                continue_last_chat = _("Continue Last Chat"),
                                 new_book_chat = _("New Book Chat/Action"),
+                                continue_last_chat = _("Continue Last Chat"),
                                 general_chat = _("General Chat/Action"),
+                                chat_history = _("Chat History"),
+                                notebook = _("Notebook"),
                                 view_caches = _("View Artifacts"),
                                 ai_quick_settings = _("Quick Settings"),
                             }

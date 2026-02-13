@@ -111,12 +111,11 @@ Constants.LARGE_EXTRACTION_THRESHOLD = 500000
 -- Settings path: features.qa_show_{id}
 Constants.QUICK_ACTION_UTILITIES = {
     { id = "translate_page",     callback = "onKOAssistantTranslatePage",       default = true },
-    { id = "view_notebook",      callback = "onKOAssistantViewNotebook",        default = true },
-    { id = "edit_notebook",      callback = "onKOAssistantEditNotebook",        default = true },
-    { id = "chat_history",       callback = "onKOAssistantChatHistory",         default = true },
-    { id = "continue_last_chat", callback = "onKOAssistantContinueLastOpened",  default = true },
     { id = "new_book_chat",      callback = "onKOAssistantBookChat",            default = true },
+    { id = "continue_last_chat", callback = "onKOAssistantContinueLastOpened",  default = true },
     { id = "general_chat",       callback = "startGeneralChat",                 default = true },
+    { id = "chat_history",       callback = "onKOAssistantChatHistory",         default = true },
+    { id = "notebook",           callback = "onKOAssistantNotebook",            default = true },
     { id = "view_caches",        callback = "viewCache",                        default = true },  -- "View Artifacts": single button, opens cache picker
     { id = "ai_quick_settings",  callback = "onKOAssistantAISettings",          default = true },
 }
@@ -129,12 +128,11 @@ Constants.QUICK_ACTION_UTILITIES = {
 function Constants.getQuickActionUtilityText(id, _)
     local texts = {
         translate_page = _("Translate Page"),
-        view_notebook = _("View Notebook"),
-        edit_notebook = _("Edit Notebook"),
-        chat_history = _("Chat History"),
-        continue_last_chat = _("Continue Last Chat"),
         new_book_chat = _("New Book Chat/Action"),
+        continue_last_chat = _("Continue Last Chat"),
         general_chat = _("General Chat/Action"),
+        chat_history = _("Chat History"),
+        notebook = _("Notebook"),
         view_caches = _("View Artifacts"),
         ai_quick_settings = _("Quick Settings"),
     }
