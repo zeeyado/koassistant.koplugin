@@ -4875,6 +4875,8 @@ function PromptsManager:showQuickActionsManager()
                 self_ref:_makeNavButton(_("Highlight Menu"), from, function() self_ref:showHighlightMenuManager() end),
                 self_ref:_makeNavButton(_("Dictionary Popup"), from, function() self_ref:showDictionaryPopupManager() end),
                 self_ref:_makeNavButton(_("File Browser Actions"), from, function() self_ref:showFileBrowserActionsManager() end),
+                self_ref:_makeNavButton(_("QA Panel Utilities"), from, function() self_ref:showQaUtilitiesManager() end),
+                self_ref:_makeNavButton(_("QS Panel Items"), from, function() self_ref:showQsItemsManager() end),
                 {{ text = _("Reset to defaults"), align = "left", callback = function()
                     self_ref:_confirmAndReset(
                         _("Reset Quick Actions panel?\n\nThis restores the default actions shown in the Quick Actions menu.\n\nYour actions (custom and built-in) are preserved."),
@@ -5001,6 +5003,7 @@ function PromptsManager:showQaUtilitiesManager(restore_page)
         onLeftButtonTap = function()
             local from = "qa_utilities_menu"
             local buttons = {
+                self_ref:_makeNavButton(_("QA Panel Actions"), from, function() self_ref:showQuickActionsManager() end),
                 self_ref:_makeNavButton(_("QS Panel Items"), from, function() self_ref:showQsItemsManager() end),
                 {{ text = _("Reset to defaults"), align = "left", callback = function()
                     self_ref:_confirmAndReset(
@@ -5130,6 +5133,7 @@ function PromptsManager:showQsItemsManager(restore_page)
         onLeftButtonTap = function()
             local from = "qs_items_menu"
             local buttons = {
+                self_ref:_makeNavButton(_("QA Panel Actions"), from, function() self_ref:showQuickActionsManager() end),
                 self_ref:_makeNavButton(_("QA Panel Utilities"), from, function() self_ref:showQaUtilitiesManager() end),
                 {{ text = _("Reset to defaults"), align = "left", callback = function()
                     self_ref:_confirmAndReset(

@@ -5267,11 +5267,151 @@ function AskGPT:buildBehaviorMenu()
   return items
 end
 
+--- TitledButtonDialog: ButtonDialog-like popup with TitleBar (gear icon + close X).
+--- Used by QS and QA panels instead of plain ButtonDialog.
+local _FocusManager = require("ui/widget/focusmanager")
+local TitledButtonDialog = _FocusManager:extend{}
+
+function TitledButtonDialog:init()
+  local ButtonTable = require("ui/widget/buttontable")
+  local TitleBar = require("ui/widget/titlebar")
+  local Blitbuffer = require("ffi/blitbuffer")
+  local CenterContainer = require("ui/widget/container/centercontainer")
+  local FrameContainer = require("ui/widget/container/framecontainer")
+  local Geom = require("ui/geometry")
+  local GestureRange = require("ui/gesturerange")
+  local MovableContainer = require("ui/widget/container/movablecontainer")
+  local Size = require("ui/size")
+  local VerticalGroup = require("ui/widget/verticalgroup")
+
+  if not self.width then
+    self.width = math.floor(math.min(Screen:getWidth(), Screen:getHeight()) * 0.9)
+  end
+
+  if Device:hasKeys() then
+    local back_group = util.tableDeepCopy(Device.input.group.Back)
+    if Device:hasFewKeys() then
+      table.insert(back_group, "Left")
+    else
+      table.insert(back_group, "Menu")
+    end
+    self.key_events.Close = { { back_group } }
+  end
+  if Device:isTouchDevice() then
+    self.ges_events.TapClose = {
+      GestureRange:new{
+        ges = "tap",
+        range = Geom:new{ x = 0, y = 0, w = Screen:getWidth(), h = Screen:getHeight() },
+      }
+    }
+  end
+
+  local content_width = self.width - 2 * Size.border.window - 2 * Size.padding.button
+  self.buttontable = ButtonTable:new{
+    buttons = self.buttons,
+    width = content_width,
+    show_parent = self,
+  }
+  local buttontable_width = self.buttontable:getSize().w
+
+  local titlebar = TitleBar:new{
+    width = buttontable_width,
+    title = self.title or "",
+    left_icon = self.left_icon or "appbar.settings",
+    left_icon_tap_callback = self.left_icon_tap_callback or function() end,
+    close_callback = function() self:onClose() end,
+    with_bottom_line = true,
+    show_parent = self,
+  }
+
+  local max_height = Screen:getHeight() - 2 * Size.padding.buttontable
+                     - 2 * Size.margin.default - titlebar:getSize().h
+  local content
+  if self.buttontable:getSize().h > max_height then
+    local ScrollableContainer = require("ui/widget/container/scrollablecontainer")
+    local VerticalSpan = require("ui/widget/verticalspan")
+    self.buttontable:setupGridScrollBehaviour()
+    local step_scroll_grid = self.buttontable:getStepScrollGrid()
+    local row_height = step_scroll_grid[1].bottom + 1 - step_scroll_grid[1].top
+    max_height = row_height * math.floor(max_height / row_height)
+    self.cropping_widget = ScrollableContainer:new{
+      dimen = Geom:new{
+        w = buttontable_width + ScrollableContainer:getScrollbarWidth(),
+        h = max_height,
+      },
+      show_parent = self,
+      step_scroll_grid = step_scroll_grid,
+      self.buttontable,
+    }
+    content = VerticalGroup:new{
+      VerticalSpan:new{ width = Size.padding.buttontable },
+      self.cropping_widget,
+      VerticalSpan:new{ width = Size.padding.buttontable },
+    }
+  else
+    content = self.buttontable
+  end
+
+  self.movable = MovableContainer:new{
+    FrameContainer:new{
+      background = Blitbuffer.COLOR_WHITE,
+      bordersize = Size.border.window,
+      radius = Size.radius.window,
+      padding = Size.padding.button,
+      padding_top = 0,
+      padding_bottom = 0,
+      VerticalGroup:new{
+        titlebar,
+        content,
+      },
+    }
+  }
+
+  self.layout = self.buttontable.layout
+  self.buttontable.layout = nil
+
+  self[1] = CenterContainer:new{
+    dimen = Screen:getSize(),
+    self.movable,
+  }
+end
+
+function TitledButtonDialog:onShow()
+  UIManager:setDirty(self, function()
+    return "ui", self.movable.dimen
+  end)
+end
+
+function TitledButtonDialog:onCloseWidget()
+  UIManager:setDirty(nil, function()
+    return "flashui", self.movable.dimen
+  end)
+end
+
+function TitledButtonDialog:onClose()
+  if self.close_callback then
+    self.close_callback()
+  end
+  UIManager:close(self)
+  return true
+end
+
+function TitledButtonDialog:onTapClose(arg, ges)
+  if ges.pos:notIntersectWith(self.movable.dimen) then
+    self:onClose()
+  end
+  return true
+end
+
+function TitledButtonDialog:paintTo(...)
+  _FocusManager.paintTo(self, ...)
+  self.dimen = self.movable.dimen
+end
+
 --- Combined AI Quick Settings popup (for gesture action)
 --- Two-column layout with commonly used settings
 --- @param on_close_callback function: Optional callback called when user closes the dialog
 function AskGPT:onKOAssistantAISettings(on_close_callback)
-  local ButtonDialog = require("ui/widget/buttondialog")
   local SpinWidget = require("ui/widget/spinwidget")
   local DomainLoader = require("domain_loader")
   local SystemPrompts = require("prompts/system_prompts")
@@ -5609,18 +5749,6 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
     end
   end
 
-  -- Close button (always present, always last in order)
-  table.insert(all_buttons, {
-    text = _("Close"),
-    callback = function()
-      opening_subdialog = true
-      UIManager:close(dialog)
-      if on_close_callback then
-        on_close_callback()
-      end
-    end,
-  })
-
   -- Pair all buttons into rows of 2
   local buttons = {}
   for i = 1, #all_buttons, 2 do
@@ -5631,10 +5759,14 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
     end
   end
 
-  dialog = ButtonDialog:new{
+  dialog = TitledButtonDialog:new{
     title = _("Quick Settings"),
     buttons = buttons,
-    -- Handle all forms of dismissal (back button, tap outside, etc.)
+    left_icon_tap_callback = function()
+      opening_subdialog = true
+      UIManager:close(dialog)
+      PromptsManager:new(self_ref):showQsItemsManager()
+    end,
     close_callback = function()
       if not opening_subdialog and on_close_callback then
         on_close_callback()
@@ -5735,29 +5867,31 @@ function AskGPT:onKOAssistantQuickActions()
     end
   end
 
-  -- Add Close button - pair with last row if it has only 1 item, otherwise new row
-  local close_btn = {
-    text = _("Close"),
-    callback = function()
-      UIManager:close(dialog)
-    end,
-  }
-  if #row == 1 then
-    -- Last row has one item, pair Close with it
-    table.insert(row, close_btn)
+  -- Flush any remaining partial row
+  if #row > 0 then
     table.insert(buttons, row)
-  else
-    -- Flush remaining buttons in row (if any)
-    if #row > 0 then
-      table.insert(buttons, row)
-    end
-    -- Add Close on its own row
-    table.insert(buttons, { close_btn })
   end
 
-  dialog = ButtonDialog:new{
+  dialog = TitledButtonDialog:new{
     title = _("Quick Actions"),
     buttons = buttons,
+    left_icon_tap_callback = function()
+      UIManager:close(dialog)
+      local chooser_dialog
+      chooser_dialog = ButtonDialog:new{
+        buttons = {
+          {{ text = _("Panel Actions"), callback = function()
+            UIManager:close(chooser_dialog)
+            PromptsManager:new(self_ref):showQuickActionsManager()
+          end }},
+          {{ text = _("Panel Utilities"), callback = function()
+            UIManager:close(chooser_dialog)
+            PromptsManager:new(self_ref):showQaUtilitiesManager()
+          end }},
+        },
+      }
+      UIManager:show(chooser_dialog)
+    end,
   }
   UIManager:show(dialog)
   return true
