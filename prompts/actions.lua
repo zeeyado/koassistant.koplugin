@@ -735,7 +735,6 @@ Actions.book = {
         description = _("Biography, major works, writing style, and suggested reading order for the book's author."),
         context = "book",
         template = "explain_author",
-        requires = "author",
         api_params = {
             temperature = 0.7,
             max_tokens = 4096,
