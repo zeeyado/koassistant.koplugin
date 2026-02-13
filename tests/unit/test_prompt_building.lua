@@ -798,6 +798,101 @@ local function runGatingTests()
         TestRunner:assert(found, "should contain 'highlights (none found)'")
     end)
 
+    -- =========================================================================
+    -- Per-Action Gate Fallback (regression: annotations OFF at action level)
+    -- When use_annotations=false but use_highlights=true, annotations should
+    -- degrade to highlights (not be empty). This is the per-action gate path.
+    -- =========================================================================
+    print("\n--- ContextExtractor: Per-Action Gate Fallback ---")
+
+    TestRunner:test("per-action: use_annotations=false + use_highlights=true → annotations degrade to highlights", function()
+        local extractor = createMockExtractor({
+            enable_highlights_sharing = true,
+            enable_annotations_sharing = true,  -- Global gates open
+        })
+        local data = extractor:extractForAction({
+            use_annotations = false,  -- Per-action gate blocks annotations
+            use_highlights = true,
+            prompt = "{annotations_section}",
+        })
+        -- Should get highlights data in annotations field (degraded)
+        TestRunner:assertContains(data.annotations, "Test highlight")
+        TestRunner:assertEquals(data._annotations_degraded, true)
+    end)
+
+    TestRunner:test("per-action: use_annotations=false + use_highlights=true → highlights also extracted", function()
+        local extractor = createMockExtractor({
+            enable_highlights_sharing = true,
+            enable_annotations_sharing = true,
+        })
+        local data = extractor:extractForAction({
+            use_annotations = false,
+            use_highlights = true,
+            prompt = "{highlights_section} {annotations_section}",
+        })
+        -- Both should have data
+        TestRunner:assertContains(data.highlights, "Test highlight")
+        TestRunner:assertContains(data.annotations, "Test highlight")
+        TestRunner:assertEquals(data._annotations_degraded, true)
+    end)
+
+    TestRunner:test("per-action: use_highlights=true only → highlights extracted normally", function()
+        local extractor = createMockExtractor({
+            enable_highlights_sharing = true,
+        })
+        local data = extractor:extractForAction({
+            use_highlights = true,
+            prompt = "{highlights_section}",
+        })
+        TestRunner:assertContains(data.highlights, "Test highlight")
+    end)
+
+    TestRunner:test("per-action: both flags true + both globals on → full annotations (not degraded)", function()
+        local extractor = createMockExtractor({
+            enable_highlights_sharing = true,
+            enable_annotations_sharing = true,
+        })
+        local data = extractor:extractForAction({
+            use_annotations = true,
+            use_highlights = true,
+            prompt = "{annotations_section}",
+        })
+        TestRunner:assertContains(data.annotations, "Test annotation")
+        TestRunner:assertEquals(data._annotations_degraded, false)
+    end)
+
+    TestRunner:test("per-action: use_annotations=false + highlights sharing off → annotations empty", function()
+        local extractor = createMockExtractor({
+            enable_highlights_sharing = false,
+            enable_annotations_sharing = false,
+        })
+        local data = extractor:extractForAction({
+            use_annotations = false,
+            use_highlights = true,  -- Action wants highlights but global blocks
+            prompt = "{annotations_section}",
+        })
+        TestRunner:assertEquals(data.annotations, "")
+        TestRunner:assertEquals(data.highlights, "")
+    end)
+
+    TestRunner:test("_unavailable_data: per-action degraded reports 'using highlights only'", function()
+        local extractor = createMockExtractor({
+            enable_highlights_sharing = true,
+            enable_annotations_sharing = true,
+        })
+        local data = extractor:extractForAction({
+            use_annotations = false,  -- Per-action blocks annotations
+            use_highlights = true,
+            prompt = "{annotations_section}",
+        })
+        TestRunner:assert(data._unavailable_data, "should have _unavailable_data")
+        local found = false
+        for _, msg in ipairs(data._unavailable_data) do
+            if msg:find("annotations (using highlights only)", 1, true) then found = true end
+        end
+        TestRunner:assert(found, "should contain 'annotations (using highlights only)'")
+    end)
+
     print("\n--- ContextExtractor: Analysis Cache Gating ---")
 
     -- X-Ray cache with used_highlights=true (default mock) requires highlight permission
@@ -1256,6 +1351,151 @@ local function runCacheIntegrationTests()
         })
         TestRunner:assertNotContains(result, "Document analysis:")
         TestRunner:assertContains(result, "BeforeAfter")
+    end)
+end
+
+-- =============================================================================
+-- End-to-End: Extraction → MessageBuilder Integration Tests
+-- =============================================================================
+
+local function runEndToEndTests()
+    print("\n--- End-to-End: Extractor → MessageBuilder ---")
+
+    -- Simulates analyze_highlights: use_annotations=true, use_highlights=true
+    -- All gates open → full annotations with "My annotations:" label
+    TestRunner:test("e2e: annotations action, all gates open → 'My annotations:' in final prompt", function()
+        local extractor = createMockExtractor({
+            enable_highlights_sharing = true,
+            enable_annotations_sharing = true,
+            enable_notebook_sharing = true,
+        })
+        local action = {
+            use_highlights = true,
+            use_annotations = true,
+            use_notebook = true,
+            prompt = "{annotations_section}\n\n{notebook_section}\n\nAnalyze my reading.",
+        }
+        local data = extractor:extractForAction(action)
+        local result = MessageBuilder.build({
+            prompt = action,
+            context = "book",
+            data = data,
+        })
+        TestRunner:assertContains(result, "My annotations:")
+        TestRunner:assertContains(result, "Test annotation")
+        TestRunner:assertNotContains(result, "My highlights so far:")
+        TestRunner:assertContains(result, "My notebook entries:")
+    end)
+
+    -- Simulates analyze_highlights: annotations global gate OFF, highlights ON
+    -- Should degrade to "My highlights so far:" label
+    TestRunner:test("e2e: annotations action, global annotations off → 'My highlights so far:' in final prompt", function()
+        local extractor = createMockExtractor({
+            enable_highlights_sharing = true,
+            enable_annotations_sharing = false,  -- Global gate OFF
+            enable_notebook_sharing = true,
+        })
+        local action = {
+            use_highlights = true,
+            use_annotations = true,
+            use_notebook = true,
+            prompt = "{annotations_section}\n\n{notebook_section}\n\nAnalyze.",
+        }
+        local data = extractor:extractForAction(action)
+        local result = MessageBuilder.build({
+            prompt = action,
+            context = "book",
+            data = data,
+        })
+        TestRunner:assertContains(result, "My highlights so far:")
+        TestRunner:assertContains(result, "Test highlight")
+        TestRunner:assertNotContains(result, "My annotations:")
+    end)
+
+    -- User disables use_annotations in Action Manager but keeps use_highlights
+    -- Per-action gate blocks annotations → degrade to highlights
+    TestRunner:test("e2e: per-action annotations off, highlights on → degraded label in final prompt", function()
+        local extractor = createMockExtractor({
+            enable_highlights_sharing = true,
+            enable_annotations_sharing = true,  -- Global open
+        })
+        local action = {
+            use_highlights = true,
+            use_annotations = false,  -- Per-action OFF (user toggled in Action Manager)
+            prompt = "{annotations_section}\n\nAnalyze my reading.",
+        }
+        local data = extractor:extractForAction(action)
+        local result = MessageBuilder.build({
+            prompt = action,
+            context = "book",
+            data = data,
+        })
+        TestRunner:assertContains(result, "My highlights so far:")
+        TestRunner:assertNotContains(result, "My annotations:")
+    end)
+
+    -- Both sharing gates OFF → annotations section disappears entirely
+    TestRunner:test("e2e: all sharing off → annotations section disappears from prompt", function()
+        local extractor = createMockExtractor({
+            enable_highlights_sharing = false,
+            enable_annotations_sharing = false,
+        })
+        local action = {
+            use_highlights = true,
+            use_annotations = true,
+            prompt = "Start{annotations_section}End",
+        }
+        local data = extractor:extractForAction(action)
+        local result = MessageBuilder.build({
+            prompt = action,
+            context = "general",
+            data = data,
+        })
+        TestRunner:assertNotContains(result, "My annotations:")
+        TestRunner:assertNotContains(result, "My highlights so far:")
+        TestRunner:assertContains(result, "StartEnd")
+    end)
+
+    -- Highlights section: use_highlights only, no annotations
+    TestRunner:test("e2e: highlights-only action → highlights section with correct label", function()
+        local extractor = createMockExtractor({
+            enable_highlights_sharing = true,
+        })
+        local action = {
+            use_highlights = true,
+            prompt = "{highlights_section}\n\nSummarize my highlights.",
+        }
+        local data = extractor:extractForAction(action)
+        local result = MessageBuilder.build({
+            prompt = action,
+            context = "general",
+            data = data,
+        })
+        TestRunner:assertContains(result, "My highlights so far:")
+        TestRunner:assertContains(result, "Test highlight")
+    end)
+
+    -- Trusted provider bypasses all gates
+    TestRunner:test("e2e: trusted provider → full annotations even with sharing off", function()
+        local extractor = createMockExtractor({
+            enable_highlights_sharing = false,
+            enable_annotations_sharing = false,
+            provider = "local_ollama",
+            trusted_providers = { "local_ollama" },
+        })
+        local action = {
+            use_highlights = true,
+            use_annotations = true,
+            prompt = "{annotations_section}",
+        }
+        local data = extractor:extractForAction(action)
+        local result = MessageBuilder.build({
+            prompt = action,
+            context = "general",
+            data = data,
+        })
+        TestRunner:assertContains(result, "My annotations:")
+        TestRunner:assertContains(result, "Test annotation")
     end)
 end
 
@@ -1874,6 +2114,7 @@ local function runAll()
     runTextFallbackNudgeTests()
     runGatingTests()
     runCacheIntegrationTests()
+    runEndToEndTests()
     runContextTypeTests()
     runLanguagePlaceholderTests()
     runDictionaryContextTests()
