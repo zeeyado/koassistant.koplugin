@@ -3081,6 +3081,42 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                                             return nil -- Streaming will update via callback
                                         end
                                         closeLoadingDialog()
+
+                                        -- For cache-first actions (Recap, X-Ray Simple): open in simple viewer
+                                        if prompt.use_response_caching and prompt.id and plugin then
+                                            local ActionCache = require("koassistant_action_cache")
+                                            local file = ui_instance and ui_instance.document and ui_instance.document.file
+                                            if file then
+                                                local cached = ActionCache.get(file, prompt.id)
+                                                if cached and cached.result then
+                                                    plugin:viewCachedAction(prompt, prompt.id, cached)
+                                                    return
+                                                end
+                                            end
+                                        end
+
+                                        -- For document analysis/summary: open in cache viewer
+                                        if (prompt.cache_as_analyze or prompt.cache_as_summary) and plugin then
+                                            local ActionCache = require("koassistant_action_cache")
+                                            local file = ui_instance and ui_instance.document and ui_instance.document.file
+                                            if file then
+                                                local cached, cache_name, cache_key
+                                                if prompt.cache_as_analyze then
+                                                    cached = ActionCache.getAnalyzeCache(file)
+                                                    cache_name = _("Analysis")
+                                                    cache_key = "_analyze_cache"
+                                                else
+                                                    cached = ActionCache.getSummaryCache(file)
+                                                    cache_name = _("Summary")
+                                                    cache_key = "_summary_cache"
+                                                end
+                                                if cached and cached.result then
+                                                    plugin:showCacheViewer({ name = cache_name, key = cache_key, data = cached })
+                                                    return
+                                                end
+                                            end
+                                        end
+
                                         showResponseDialog(_(prompt.text), history, highlighted_text, addMessage, temp_config, document_path, plugin, book_metadata, launch_context, ui_instance)
                                     else
                                         closeLoadingDialog()
@@ -3650,6 +3686,29 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
                     local cached = ActionCache.get(file, action.id)
                     if cached and cached.result then
                         plugin:viewCachedAction(action, action.id, cached)
+                        return
+                    end
+                end
+            end
+
+            -- For document analysis/summary: open in cache viewer
+            -- (cache_as_xray already handled above with XrayBrowser)
+            if (action.cache_as_analyze or action.cache_as_summary) and plugin then
+                local ActionCache = require("koassistant_action_cache")
+                local file = ui and ui.document and ui.document.file
+                if file then
+                    local cached, cache_name, cache_key
+                    if action.cache_as_analyze then
+                        cached = ActionCache.getAnalyzeCache(file)
+                        cache_name = _("Analysis")
+                        cache_key = "_analyze_cache"
+                    else
+                        cached = ActionCache.getSummaryCache(file)
+                        cache_name = _("Summary")
+                        cache_key = "_summary_cache"
+                    end
+                    if cached and cached.result then
+                        plugin:showCacheViewer({ name = cache_name, key = cache_key, data = cached })
                         return
                     end
                 end
