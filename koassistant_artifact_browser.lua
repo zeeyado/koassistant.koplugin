@@ -25,15 +25,6 @@ local _ = require("koassistant_gettext")
 
 local ArtifactBrowser = {}
 
--- Human-readable names for artifact keys
-local ARTIFACT_NAMES = {
-    ["_xray_cache"] = "X-Ray",
-    ["_summary_cache"] = _("Summary"),
-    ["_analyze_cache"] = _("Analysis"),
-    ["recap"] = _("Recap"),
-    ["xray_simple"] = _("X-Ray (Simple)"),
-}
-
 --- Get book title and author from DocSettings metadata
 --- @param doc_path string The document file path
 --- @return string title The book title
@@ -187,18 +178,7 @@ end
 --- @param opts table|nil Config passed through for refresh
 function ArtifactBrowser:showArtifactSelector(doc_path, doc_title, opts)
     -- Load actual cache and discover which artifacts exist
-    local caches = {}
-    for _idx, key in ipairs(ActionCache.ARTIFACT_KEYS) do
-        local entry = ActionCache.get(doc_path, key)
-        if entry and entry.result then
-            table.insert(caches, {
-                name = ARTIFACT_NAMES[key] or key,
-                key = key,
-                data = entry,
-                is_per_action = (key == "recap" or key == "xray_simple"),
-            })
-        end
-    end
+    local caches = ActionCache.getAvailableArtifacts(doc_path)
 
     if #caches == 0 then
         -- All artifacts were removed since index was built; clean up and refresh

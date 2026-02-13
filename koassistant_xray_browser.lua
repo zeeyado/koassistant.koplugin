@@ -2869,26 +2869,8 @@ end
 function XrayBrowser:_getAvailableArtifacts()
     local book_file = self.metadata.book_file
     if not book_file then return {} end
-
     local ActionCache = require("koassistant_action_cache")
-    local NAMES = {
-        ["_summary_cache"] = _("Summary"),
-        ["_analyze_cache"] = _("Analysis"),
-        ["recap"] = _("Recap"),
-        ["xray_simple"] = _("X-Ray (Simple)"),
-    }
-
-    local available = {}
-    for _idx, key in ipairs(ActionCache.ARTIFACT_KEYS) do
-        if key ~= "_xray_cache" and NAMES[key] then
-            local entry = ActionCache.get(book_file, key)
-            if entry and entry.result then
-                table.insert(available, { key = key, name = NAMES[key], data = entry,
-                    is_per_action = (key == "recap" or key == "xray_simple") })
-            end
-        end
-    end
-    return available
+    return ActionCache.getAvailableArtifacts(book_file, "_xray_cache")
 end
 
 -- Open a specific artifact viewer

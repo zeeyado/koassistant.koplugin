@@ -361,22 +361,12 @@ function AskGPT:generateFileDialogRows(file, is_file, book_props)
   -- View Artifacts (KOA) button - if any document cache exists for this file
   local show_artifacts = features.show_artifacts_in_file_browser ~= false  -- default true
   local ActionCache = require("koassistant_action_cache")
-  local caches = {}
-  local xray = ActionCache.getXrayCache(file)
-  if xray and xray.result then
-    table.insert(caches, { name = "X-Ray", key = "_xray_cache", data = xray, book_title = title, book_author = authors, file = file })
-  end
-  local summary = ActionCache.getSummaryCache(file)
-  if summary and summary.result then
-    table.insert(caches, { name = _("Summary"), key = "_summary_cache", data = summary, book_title = title, book_author = authors, file = file })
-  end
-  local analyze = ActionCache.getAnalyzeCache(file)
-  if analyze and analyze.result then
-    table.insert(caches, { name = _("Analysis"), key = "_analyze_cache", data = analyze, book_title = title, book_author = authors, file = file })
-  end
-  local recap = ActionCache.get(file, "recap")
-  if recap and recap.result then
-    table.insert(caches, { name = _("Recap"), key = "recap", data = recap, book_title = title, book_author = authors, file = file, is_per_action = true })
+  local caches = ActionCache.getAvailableArtifacts(file)
+  -- Add book metadata for file browser context (no open book)
+  for _idx, cache in ipairs(caches) do
+    cache.book_title = title
+    cache.book_author = authors
+    cache.file = file
   end
   -- Refresh artifact index for this document (populates index for pre-existing artifacts)
   if #caches > 0 then
@@ -4052,50 +4042,7 @@ function AskGPT:viewCache()
   local ActionCache = require("koassistant_action_cache")
   local file = self.ui.document.file
 
-  -- Check which caches exist
-  local caches = {}
-  local xray = ActionCache.getXrayCache(file)
-  if xray and xray.result then
-    table.insert(caches, {
-      name = "X-Ray",
-      key = "_xray_cache",
-      data = xray,
-    })
-  end
-  local summary = ActionCache.getSummaryCache(file)
-  if summary and summary.result then
-    table.insert(caches, {
-      name = _("Summary"),
-      key = "_summary_cache",
-      data = summary,
-    })
-  end
-  local analyze = ActionCache.getAnalyzeCache(file)
-  if analyze and analyze.result then
-    table.insert(caches, {
-      name = _("Analysis"),
-      key = "_analyze_cache",
-      data = analyze,
-    })
-  end
-  local recap = ActionCache.get(file, "recap")
-  if recap and recap.result then
-    table.insert(caches, {
-      name = _("Recap"),
-      key = "recap",
-      data = recap,
-      is_per_action = true,
-    })
-  end
-  local xray_simple = ActionCache.get(file, "xray_simple")
-  if xray_simple and xray_simple.result then
-    table.insert(caches, {
-      name = _("X-Ray (Simple)"),
-      key = "xray_simple",
-      data = xray_simple,
-      is_per_action = true,
-    })
-  end
+  local caches = ActionCache.getAvailableArtifacts(file)
 
   -- Refresh artifact index for this document (populates index for pre-existing artifacts)
   ActionCache.refreshIndex(file)
@@ -5763,10 +5710,7 @@ function AskGPT:onKOAssistantQuickActions()
       if enabled then
         if util_id == "view_caches" then
           -- Single "Artifacts" button — opens cache picker (skips list if only one)
-          local has_any_cache = ActionCache.getXrayCache(file)
-              or ActionCache.getAnalyzeCache(file)
-              or ActionCache.getSummaryCache(file)
-              or ActionCache.get(file, "recap")
+          local has_any_cache = #ActionCache.getAvailableArtifacts(file) > 0
           if has_any_cache then
             addButton({
               text = _("View Artifacts"),

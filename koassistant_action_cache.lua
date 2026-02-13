@@ -15,6 +15,7 @@ text extraction permission to read).
 local DocSettings = require("docsettings")
 local lfs = require("libs/libkoreader-lfs")
 local logger = require("logger")
+local _ = require("koassistant_gettext")
 
 local ActionCache = {}
 
@@ -304,6 +305,43 @@ ActionCache.XRAY_CACHE_KEY = "_xray_cache"
 ActionCache.ANALYZE_CACHE_KEY = "_analyze_cache"
 ActionCache.SUMMARY_CACHE_KEY = "_summary_cache"
 ActionCache.ARTIFACT_KEYS = ARTIFACT_KEYS
+
+-- Human-readable names for artifact keys
+local ARTIFACT_NAMES = {
+    ["_xray_cache"] = "X-Ray",
+    ["_summary_cache"] = _("Summary"),
+    ["_analyze_cache"] = _("Analysis"),
+    ["recap"] = _("Recap"),
+    ["xray_simple"] = _("X-Ray (Simple)"),
+}
+ActionCache.ARTIFACT_NAMES = ARTIFACT_NAMES
+
+-- Artifact keys that are per-action caches (vs document-level caches)
+local PER_ACTION_ARTIFACTS = { recap = true, xray_simple = true }
+
+--- Get available artifacts for a document file.
+--- Central source of truth for discovering cached artifacts.
+--- @param document_path string The document file path
+--- @param exclude_key string|nil Optional artifact key to exclude (e.g. "_xray_cache" when viewing X-Ray)
+--- @return table Array of { name, key, data, is_per_action } entries
+function ActionCache.getAvailableArtifacts(document_path, exclude_key)
+    if not document_path then return {} end
+    local available = {}
+    for _idx, key in ipairs(ARTIFACT_KEYS) do
+        if key ~= exclude_key then
+            local entry = ActionCache.get(document_path, key)
+            if entry and entry.result then
+                table.insert(available, {
+                    name = ARTIFACT_NAMES[key] or key,
+                    key = key,
+                    data = entry,
+                    is_per_action = PER_ACTION_ARTIFACTS[key] or false,
+                })
+            end
+        end
+    end
+    return available
+end
 
 --- Get cached X-Ray (partial document analysis to reading position)
 --- @param document_path string The document file path

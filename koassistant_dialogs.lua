@@ -3167,25 +3167,22 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         end
     end
 
-    -- Build View Artifacts button (shows cached X-Ray/Summary/Analysis)
+    -- Build View Artifacts button (shows cached artifacts)
     -- Added as its own bottom row, separate from action buttons
     local artifact_button = nil
     if not is_general_context and plugin and not hide_artifacts then
         local artifact_file = document_path
         if artifact_file then
             local ActionCache = require("koassistant_action_cache")
-            local caches = {}
-            local xray = ActionCache.getXrayCache(artifact_file)
-            if xray and xray.result then
-                table.insert(caches, { name = "X-Ray", key = "_xray_cache", data = xray })
-            end
-            local summary = ActionCache.getSummaryCache(artifact_file)
-            if summary and summary.result then
-                table.insert(caches, { name = _("Summary"), key = "_summary_cache", data = summary })
-            end
-            local analyze = ActionCache.getAnalyzeCache(artifact_file)
-            if analyze and analyze.result then
-                table.insert(caches, { name = _("Analysis"), key = "_analyze_cache", data = analyze })
+            local caches = ActionCache.getAvailableArtifacts(artifact_file)
+
+            local function openArtifact(cache)
+                if cache.is_per_action then
+                    plugin:viewCachedAction({ text = cache.name }, cache.key, cache.data,
+                        { file = artifact_file, book_title = book_metadata and book_metadata.title })
+                else
+                    plugin:showCacheViewer(cache)
+                end
             end
 
             if #caches == 1 then
@@ -3194,7 +3191,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     text = _("View") .. " " .. cache.name,
                     callback = function()
                         UIManager:close(input_dialog)
-                        plugin:showCacheViewer(cache)
+                        openArtifact(cache)
                     end
                 }
             elseif #caches > 1 then
@@ -3202,8 +3199,6 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     text = _("View Artifacts"),
                     callback = function()
                         UIManager:close(input_dialog)
-                        -- Build selector inline using already-loaded caches
-                        -- (plugin:viewCache() requires an open document)
                         local ButtonDialog = require("ui/widget/buttondialog")
                         local btn_rows = {}
                         for _idx, cache in ipairs(caches) do
@@ -3211,7 +3206,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                                 text = cache.name,
                                 callback = function()
                                     UIManager:close(plugin._cache_selector)
-                                    plugin:showCacheViewer(cache)
+                                    openArtifact(cache)
                                 end,
                             }})
                         end
