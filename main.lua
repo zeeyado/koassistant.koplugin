@@ -4453,6 +4453,30 @@ function AskGPT:showCacheViewer(cache_info)
   UIManager:show(viewer)
 end
 
+--- Check if text extraction is blocked for an action.
+--- Shows an InfoMessage explaining the issue and returns true if blocked.
+--- Two blocking conditions: per-action disabled (use_book_text == false) or global setting off.
+--- @param action table: Action definition (checks use_book_text flag)
+--- @param alternative_text string|nil: Optional suffix appended to the message (e.g., X-Ray suggests Simple)
+--- @return boolean: true if blocked (showed popup), false if OK to proceed
+function AskGPT:_isTextExtractionBlocked(action, alternative_text)
+  local suffix = alternative_text or ""
+  if action.use_book_text == false then
+    UIManager:show(InfoMessage:new{
+      text = _("Text extraction is disabled for this action. Re-enable it in the Action Manager.") .. suffix,
+    })
+    return true
+  end
+  local features = self.settings and self.settings:readSetting("features") or {}
+  if features.enable_book_text_extraction ~= true then
+    UIManager:show(InfoMessage:new{
+      text = _("Text extraction is required to generate this artifact.\n\nEnable it in Settings → Privacy & Data → Text Extraction.") .. suffix,
+    })
+    return true
+  end
+  return false
+end
+
 --- Show a popup for incremental actions that have an existing cached result.
 --- Offers "View" (opens cached result) or "Update" (re-runs the action incrementally).
 --- Called from executeBookLevelAction() and book chat input field for actions with use_response_caching.
@@ -4487,14 +4511,8 @@ function AskGPT:showCacheActionPopup(action, action_id, on_update)
 
   if not cached or not cached.result then
     -- Text extraction gate for first-time generation
-    if action.use_book_text then
-      local features = self.settings and self.settings:readSetting("features") or {}
-      if not features.enable_book_text_extraction then
-        UIManager:show(InfoMessage:new{
-          text = _("Text extraction is required to generate this artifact.\n\nEnable it in Settings → Privacy & Data → Text Extraction."),
-        })
-        return
-      end
+    if action.use_book_text and self:_isTextExtractionBlocked(action) then
+      return
     end
     on_update()
     return
@@ -4556,6 +4574,7 @@ function AskGPT:showCacheActionPopup(action, action_id, on_update)
           text = update_text,
           callback = function()
             UIManager:close(dialog)
+            if action.use_book_text and self_ref:_isTextExtractionBlocked(action) then return end
             on_update()
           end,
         },
@@ -4603,25 +4622,14 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry)
     end
   end
 
-  -- Gate: X-Ray requires text extraction for generation (global setting + per-action flag)
-  local features = configuration and configuration.features or {}
-  local text_extraction_enabled = features.enable_book_text_extraction == true and action.use_book_text ~= false
-  local text_extraction_block_msg
-  if action.use_book_text == false then
-    text_extraction_block_msg = _("Text extraction is disabled for this action. Re-enable it in the Action Manager, or use X-Ray (Simple) for an overview based on AI knowledge.")
-  else
-    text_extraction_block_msg = _("X-Ray requires text extraction for structured analysis.\n\nEnable it in Settings → Privacy & Data → Text Extraction, or use X-Ray (Simple) for an overview based on AI knowledge.")
-  end
+  local xray_simple_hint = "\n\n" .. _("Or use X-Ray (Simple) for an overview based on AI knowledge.")
 
   local dialog
   local buttons = {}
 
   if not cached_entry or not cached_entry.result then
     -- No cache: block if text extraction is off
-    if not text_extraction_enabled then
-      UIManager:show(InfoMessage:new{
-        text = text_extraction_block_msg,
-      })
+    if self:_isTextExtractionBlocked(action, xray_simple_hint) then
       return
     end
     -- Generate (to X%) or Generate (entire document)
@@ -4693,10 +4701,7 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry)
       text = update_text,
       callback = function()
         UIManager:close(dialog)
-        if not text_extraction_enabled then
-          UIManager:show(InfoMessage:new{ text = text_extraction_block_msg })
-          return
-        end
+        if self_ref:_isTextExtractionBlocked(action, xray_simple_hint) then return end
         on_update()
       end,
     }})
@@ -4707,10 +4712,7 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry)
         text = T(_("Update %1 (to %2)"), action_name, "100%"),
         callback = function()
           UIManager:close(dialog)
-          if not text_extraction_enabled then
-            UIManager:show(InfoMessage:new{ text = text_extraction_block_msg })
-            return
-          end
+          if self_ref:_isTextExtractionBlocked(action, xray_simple_hint) then return end
           self_ref:_executeBookLevelActionDirect(action, action_id, { update_to_full = true })
         end,
       }})
