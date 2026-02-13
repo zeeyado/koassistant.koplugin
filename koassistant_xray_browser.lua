@@ -2689,27 +2689,20 @@ function XrayBrowser:showOptions()
     local self_ref = self
     local buttons = {}
 
-    -- Delete option
-    if self.on_delete then
-        table.insert(buttons, {{
-            text = _("Delete X-Ray"),
-            callback = function()
-                if self_ref.options_dialog then
-                    UIManager:close(self_ref.options_dialog)
-                    self_ref.options_dialog = nil
-                end
+    local function closeOptions()
+        if self_ref.options_dialog then
+            UIManager:close(self_ref.options_dialog)
+            self_ref.options_dialog = nil
+        end
+    end
 
-                local ConfirmBox = require("ui/widget/confirmbox")
-                UIManager:show(ConfirmBox:new{
-                    text = _("Delete this X-Ray? This cannot be undone."),
-                    ok_text = _("Delete"),
-                    ok_callback = function()
-                        self_ref.on_delete()
-                        if self_ref.menu then
-                            UIManager:close(self_ref.menu)
-                        end
-                    end,
-                })
+    -- View other artifacts for this book
+    if self.metadata.book_file then
+        table.insert(buttons, {{
+            text = _("View other artifacts…"), align = "left",
+            callback = function()
+                closeOptions()
+                self_ref:_showOtherArtifacts()
             end,
         }})
     end
@@ -2721,30 +2714,20 @@ function XrayBrowser:showOptions()
             -- Full-document cache: redo maintains full-document semantics
             local redo_callback = self.on_update_full or self.on_update
             table.insert(buttons, {{
-                text = _("Redo X-Ray (entire document)"),
+                text = _("Redo X-Ray (entire document)"), align = "left",
                 callback = function()
-                    if self_ref.options_dialog then
-                        UIManager:close(self_ref.options_dialog)
-                        self_ref.options_dialog = nil
-                    end
-                    if self_ref.menu then
-                        UIManager:close(self_ref.menu)
-                    end
+                    closeOptions()
+                    if self_ref.menu then UIManager:close(self_ref.menu) end
                     redo_callback()
                 end,
             }})
         elseif cached_dec >= 0.995 then
             -- Partial at 100%: redo to 100% (maintains progress semantics)
             table.insert(buttons, {{
-                text = _("Redo X-Ray (to 100%)"),
+                text = _("Redo X-Ray (to 100%)"), align = "left",
                 callback = function()
-                    if self_ref.options_dialog then
-                        UIManager:close(self_ref.options_dialog)
-                        self_ref.options_dialog = nil
-                    end
-                    if self_ref.menu then
-                        UIManager:close(self_ref.menu)
-                    end
+                    closeOptions()
+                    if self_ref.menu then UIManager:close(self_ref.menu) end
                     if self_ref.on_update_to_100 then
                         self_ref.on_update_to_100()
                     else
@@ -2772,15 +2755,10 @@ function XrayBrowser:showOptions()
             end
 
             table.insert(buttons, {{
-                text = update_text,
+                text = update_text, align = "left",
                 callback = function()
-                    if self_ref.options_dialog then
-                        UIManager:close(self_ref.options_dialog)
-                        self_ref.options_dialog = nil
-                    end
-                    if self_ref.menu then
-                        UIManager:close(self_ref.menu)
-                    end
+                    closeOptions()
+                    if self_ref.menu then UIManager:close(self_ref.menu) end
                     self_ref.on_update()
                 end,
             }})
@@ -2788,20 +2766,34 @@ function XrayBrowser:showOptions()
             -- "Update to 100%": only when reader isn't already near 100%
             if self_ref.on_update_to_100 and (not current_dec or current_dec < 0.995) then
                 table.insert(buttons, {{
-                    text = _("Update X-Ray (to 100%)"),
+                    text = _("Update X-Ray (to 100%)"), align = "left",
                     callback = function()
-                        if self_ref.options_dialog then
-                            UIManager:close(self_ref.options_dialog)
-                            self_ref.options_dialog = nil
-                        end
-                        if self_ref.menu then
-                            UIManager:close(self_ref.menu)
-                        end
+                        closeOptions()
+                        if self_ref.menu then UIManager:close(self_ref.menu) end
                         self_ref.on_update_to_100()
                     end,
                 }})
             end
         end
+    end
+
+    -- Delete option
+    if self.on_delete then
+        table.insert(buttons, {{
+            text = _("Delete X-Ray"), align = "left",
+            callback = function()
+                closeOptions()
+                local ConfirmBox = require("ui/widget/confirmbox")
+                UIManager:show(ConfirmBox:new{
+                    text = _("Delete this X-Ray? This cannot be undone."),
+                    ok_text = _("Delete"),
+                    ok_callback = function()
+                        self_ref.on_delete()
+                        if self_ref.menu then UIManager:close(self_ref.menu) end
+                    end,
+                })
+            end,
+        }})
     end
 
     -- Info
@@ -2829,12 +2821,9 @@ function XrayBrowser:showOptions()
 
     if #info_parts > 0 then
         table.insert(buttons, {{
-            text = _("Info"),
+            text = _("Info"), align = "left",
             callback = function()
-                if self_ref.options_dialog then
-                    UIManager:close(self_ref.options_dialog)
-                    self_ref.options_dialog = nil
-                end
+                closeOptions()
                 UIManager:show(InfoMessage:new{
                     text = table.concat(info_parts, "\n"),
                 })
@@ -2845,34 +2834,91 @@ function XrayBrowser:showOptions()
     -- Open Book (when viewing from file browser without the book open)
     if (not self.ui or not self.ui.document) and self.metadata.book_file then
         table.insert(buttons, {{
-            text = _("Open Book"),
+            text = _("Open Book"), align = "left",
             callback = function()
-                if self_ref.options_dialog then
-                    UIManager:close(self_ref.options_dialog)
-                    self_ref.options_dialog = nil
-                end
+                closeOptions()
                 self_ref:_openBookFile()
             end,
         }})
     end
-
-    table.insert(buttons, {{
-        text = _("Close"),
-        callback = function()
-            if self_ref.options_dialog then
-                UIManager:close(self_ref.options_dialog)
-                self_ref.options_dialog = nil
-            end
-        end,
-    }})
 
     if self.options_dialog then
         UIManager:close(self.options_dialog)
     end
     self.options_dialog = ButtonDialog:new{
         buttons = buttons,
+        shrink_unneeded_width = true,
+        anchor = function()
+            return self_ref.menu.title_bar.left_button.image.dimen, true
+        end,
     }
     UIManager:show(self.options_dialog)
+end
+
+-- Show other cached artifacts for the current book (excluding X-Ray)
+function XrayBrowser:_showOtherArtifacts()
+    local book_file = self.metadata.book_file
+    if not book_file then return end
+
+    local ActionCache = require("koassistant_action_cache")
+    local NAMES = {
+        ["_summary_cache"] = _("Summary"),
+        ["_analyze_cache"] = _("Analysis"),
+        ["recap"] = _("Recap"),
+        ["xray_simple"] = _("X-Ray (Simple)"),
+    }
+
+    local available = {}
+    for _idx, key in ipairs(ActionCache.ARTIFACT_KEYS) do
+        if key ~= "_xray_cache" and NAMES[key] then
+            local entry = ActionCache.get(book_file, key)
+            if entry and entry.result then
+                table.insert(available, { key = key, name = NAMES[key], data = entry,
+                    is_per_action = (key == "recap" or key == "xray_simple") })
+            end
+        end
+    end
+
+    if #available == 0 then
+        UIManager:show(InfoMessage:new{
+            text = _("No other artifacts cached for this book."),
+            timeout = 2,
+        })
+        return
+    end
+
+    local self_ref = self
+    local plugin = self.metadata.plugin
+    local book_title = self.metadata.title or ""
+    local buttons = {}
+    for _idx, art in ipairs(available) do
+        local captured = art
+        table.insert(buttons, {{
+            text = _("View") .. " " .. captured.name,
+            callback = function()
+                if self_ref._artifacts_dialog then
+                    UIManager:close(self_ref._artifacts_dialog)
+                end
+                if plugin then
+                    if captured.is_per_action then
+                        plugin:viewCachedAction(
+                            { text = captured.name }, captured.key, captured.data,
+                            { file = book_file, book_title = book_title })
+                    else
+                        plugin:showCacheViewer({
+                            name = captured.name, key = captured.key, data = captured.data,
+                            book_title = book_title, file = book_file })
+                    end
+                end
+            end,
+        }})
+    end
+
+    self._artifacts_dialog = ButtonDialog:new{
+        title = _("Other Artifacts"),
+        buttons = buttons,
+    }
+    UIManager:show(self._artifacts_dialog)
 end
 
 --- Open the book file in Reader mode (closing the browser)

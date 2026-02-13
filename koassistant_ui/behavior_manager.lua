@@ -194,27 +194,13 @@ function BehaviorManager:showBehaviorMenu()
         })
     end
 
-    -- Create footer buttons
-    local buttons = {
-        {
-            {
-                text = _("Restore Defaults"),
-                callback = function()
-                    UIManager:show(ConfirmBox:new{
-                        text = _("This will delete all custom behaviors and reset selection to Standard. Continue?"),
-                        ok_callback = function()
-                            self:saveCustomBehaviors({})
-                            self:setSelectedBehavior("standard")
-                            self:refreshMenu()
-                        end,
-                    })
-                end,
-            },
-        },
-    }
-
+    local self_ref = self
     self.behavior_menu = Menu:new{
         title = _("Manage Behaviors"),
+        title_bar_left_icon = "appbar.menu",
+        onLeftButtonTap = function()
+            self_ref:_showMenuOptions()
+        end,
         item_table = menu_items,
         width = self.width,
         height = self.height,
@@ -233,17 +219,52 @@ function BehaviorManager:showBehaviorMenu()
         close_callback = function()
             UIManager:close(self.behavior_menu)
         end,
-        buttons_table = buttons,
     }
 
     UIManager:show(self.behavior_menu)
+end
+
+function BehaviorManager:_showMenuOptions()
+    local self_ref = self
+    if self._anchored_menu then UIManager:close(self._anchored_menu) end
+    self._anchored_menu = ButtonDialog:new{
+        buttons = {
+            {{ text = _("Manage Domains"), align = "left", callback = function()
+                UIManager:close(self_ref._anchored_menu)
+                local menu_to_close = self_ref.behavior_menu
+                self_ref.behavior_menu = nil
+                UIManager:nextTick(function()
+                    if menu_to_close then UIManager:close(menu_to_close) end
+                    local DomainManager = require("koassistant_ui/domain_manager")
+                    local dm = DomainManager:new(self_ref.plugin)
+                    dm:show()
+                end)
+            end }},
+            {{ text = _("Restore defaults"), align = "left", callback = function()
+                UIManager:close(self_ref._anchored_menu)
+                UIManager:show(ConfirmBox:new{
+                    text = _("This will delete all custom behaviors and reset selection to Standard. Continue?"),
+                    ok_callback = function()
+                        self_ref:saveCustomBehaviors({})
+                        self_ref:setSelectedBehavior("standard")
+                        self_ref:refreshMenu()
+                    end,
+                })
+            end }},
+        },
+        shrink_unneeded_width = true,
+        anchor = function()
+            return self_ref.behavior_menu.title_bar.left_button.image.dimen, true
+        end,
+    }
+    UIManager:show(self._anchored_menu)
 end
 
 function BehaviorManager:refreshMenu()
     if self.behavior_menu then
         local current_page = self.behavior_menu.page
         UIManager:close(self.behavior_menu)
-        UIManager:scheduleIn(0.1, function()
+        UIManager:nextTick(function()
             self:show()
             if self.behavior_menu and current_page and current_page > 1 then
                 self.behavior_menu:onGotoPage(current_page)

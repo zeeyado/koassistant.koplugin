@@ -50,47 +50,36 @@ function ChatHistoryDialog:showChatListMenuOptions(ui, document, chat_history_ma
     local self_ref = self
     local dialog
     local buttons = {
-        {
-            {
-                text = _("Delete all chats for this book"),
-                callback = function()
-                    safeClose(dialog)
-                    self_ref.current_options_dialog = nil
-                    UIManager:show(ConfirmBox:new{
-                        text = T(_("Delete all chats for \"%1\"?\n\nThis action cannot be undone."), document.title),
-                        ok_text = _("Delete"),
-                        ok_callback = function()
-                            local deleted_count = chat_history_manager:deleteAllChatsForDocument(document.path)
-                            UIManager:show(InfoMessage:new{
-                                text = T(_("Deleted %1 chat(s)"), deleted_count),
-                                timeout = 2,
-                            })
-                            -- Close the chat list menu and go back to document list
-                            safeClose(self_ref.current_menu)
-                            self_ref.current_menu = nil
-                            -- Refresh the document list
-                            UIManager:scheduleIn(0.5, function()
-                                self_ref:showChatHistoryBrowser(ui, nil, chat_history_manager, config, nav_context)
-                            end)
-                        end,
+        {{ text = _("Delete all chats for this book"), align = "left", callback = function()
+            safeClose(dialog)
+            self_ref.current_options_dialog = nil
+            UIManager:show(ConfirmBox:new{
+                text = T(_("Delete all chats for \"%1\"?\n\nThis action cannot be undone."), document.title),
+                ok_text = _("Delete"),
+                ok_callback = function()
+                    local deleted_count = chat_history_manager:deleteAllChatsForDocument(document.path)
+                    UIManager:show(InfoMessage:new{
+                        text = T(_("Deleted %1 chat(s)"), deleted_count),
+                        timeout = 2,
                     })
+                    -- Close the chat list menu and go back to document list
+                    safeClose(self_ref.current_menu)
+                    self_ref.current_menu = nil
+                    -- Refresh the document list
+                    UIManager:scheduleIn(0.5, function()
+                        self_ref:showChatHistoryBrowser(ui, nil, chat_history_manager, config, nav_context)
+                    end)
                 end,
-            },
-        },
-        {
-            {
-                text = _("Close"),
-                callback = function()
-                    safeClose(dialog)
-                    self_ref.current_options_dialog = nil
-                end,
-            },
-        },
+            })
+        end }},
     }
 
     dialog = ButtonDialog:new{
-        title = document.title,
         buttons = buttons,
+        shrink_unneeded_width = true,
+        anchor = function()
+            return self_ref.current_menu.title_bar.left_button.image.dimen, true
+        end,
     }
     self.current_options_dialog = dialog
     UIManager:show(dialog)
@@ -102,105 +91,69 @@ function ChatHistoryDialog:showDocumentMenuOptions(ui, chat_history_manager, con
 
     local self_ref = self
     local dialog
+
+    local function navClose()
+        safeClose(dialog)
+        self_ref.current_options_dialog = nil
+        local menu_to_close = self_ref.current_menu
+        self_ref.current_menu = nil
+        return menu_to_close
+    end
+
     local buttons = {
-        {
-            {
-                text = _("View by Domain"),
-                callback = function()
-                    safeClose(dialog)
-                    self_ref.current_options_dialog = nil
-                    -- Close browser and open new one in same tick to avoid visible gap
-                    local menu_to_close = self_ref.current_menu
-                    self_ref.current_menu = nil
-                    UIManager:nextTick(function()
-                        safeClose(menu_to_close)
-                        self_ref:showChatsByDomainBrowser(ui, chat_history_manager, config)
-                    end)
-                end,
-            },
-            {
-                text = _("View by Tag"),
-                callback = function()
-                    safeClose(dialog)
-                    self_ref.current_options_dialog = nil
-                    local menu_to_close = self_ref.current_menu
-                    self_ref.current_menu = nil
-                    UIManager:nextTick(function()
-                        safeClose(menu_to_close)
-                        self_ref:showChatsByTagBrowser(ui, chat_history_manager, config)
-                    end)
-                end,
-            },
-        },
-        {
-            {
-                text = _("Browse Notebooks"),
-                callback = function()
-                    safeClose(dialog)
-                    self_ref.current_options_dialog = nil
-                    local menu_to_close = self_ref.current_menu
-                    self_ref.current_menu = nil
-                    UIManager:nextTick(function()
-                        safeClose(menu_to_close)
-                        if ui.koassistant then
-                            ui.koassistant:showNotebookBrowser()
-                        end
-                    end)
-                end,
-            },
-            {
-                text = _("Browse Artifacts"),
-                callback = function()
-                    safeClose(dialog)
-                    self_ref.current_options_dialog = nil
-                    local menu_to_close = self_ref.current_menu
-                    self_ref.current_menu = nil
-                    UIManager:nextTick(function()
-                        safeClose(menu_to_close)
-                        if ui.koassistant then
-                            ui.koassistant:showArtifactBrowser()
-                        end
-                    end)
-                end,
-            },
-        },
-        {
-            {
-                text = _("Delete all chats"),
-                callback = function()
-                    safeClose(dialog)
-                    self_ref.current_options_dialog = nil
-                    UIManager:show(ConfirmBox:new{
-                        text = _("Delete all saved chats?\n\nThis action cannot be undone."),
-                        ok_text = _("Delete"),
-                        ok_callback = function()
-                            local total_deleted, docs_deleted = chat_history_manager:deleteAllChats()
-                            UIManager:show(InfoMessage:new{
-                                text = T(_("Deleted %1 chat(s) from %2 book(s)"), total_deleted, docs_deleted),
-                                timeout = 2,
-                            })
-                            -- Close the menu since there's nothing left to show
-                            safeClose(self_ref.current_menu)
-                            self_ref.current_menu = nil
-                        end,
+        {{ text = _("Notebooks"), align = "left", callback = function()
+            local mc = navClose()
+            UIManager:nextTick(function()
+                safeClose(mc)
+                if ui.koassistant then ui.koassistant:showNotebookBrowser() end
+            end)
+        end }},
+        {{ text = _("Artifacts"), align = "left", callback = function()
+            local mc = navClose()
+            UIManager:nextTick(function()
+                safeClose(mc)
+                if ui.koassistant then ui.koassistant:showArtifactBrowser() end
+            end)
+        end }},
+        {{ text = _("View by Domain"), align = "left", callback = function()
+            local mc = navClose()
+            UIManager:nextTick(function()
+                safeClose(mc)
+                self_ref:showChatsByDomainBrowser(ui, chat_history_manager, config)
+            end)
+        end }},
+        {{ text = _("View by Tag"), align = "left", callback = function()
+            local mc = navClose()
+            UIManager:nextTick(function()
+                safeClose(mc)
+                self_ref:showChatsByTagBrowser(ui, chat_history_manager, config)
+            end)
+        end }},
+        {{ text = _("Delete all chats"), align = "left", callback = function()
+            safeClose(dialog)
+            self_ref.current_options_dialog = nil
+            UIManager:show(ConfirmBox:new{
+                text = _("Delete all saved chats?\n\nThis action cannot be undone."),
+                ok_text = _("Delete"),
+                ok_callback = function()
+                    local total_deleted, docs_deleted = chat_history_manager:deleteAllChats()
+                    UIManager:show(InfoMessage:new{
+                        text = T(_("Deleted %1 chat(s) from %2 book(s)"), total_deleted, docs_deleted),
+                        timeout = 2,
                     })
+                    safeClose(self_ref.current_menu)
+                    self_ref.current_menu = nil
                 end,
-            },
-        },
-        {
-            {
-                text = _("Close"),
-                callback = function()
-                    safeClose(dialog)
-                    self_ref.current_options_dialog = nil
-                end,
-            },
-        },
+            })
+        end }},
     }
 
     dialog = ButtonDialog:new{
-        title = _("Chat History Options"),
         buttons = buttons,
+        shrink_unneeded_width = true,
+        anchor = function()
+            return self_ref.current_menu.title_bar.left_button.image.dimen, true
+        end,
     }
     self.current_options_dialog = dialog
     UIManager:show(dialog)
@@ -212,51 +165,52 @@ function ChatHistoryDialog:showDomainBrowserMenuOptions(ui, chat_history_manager
 
     local self_ref = self
     local dialog
+
+    local function navClose()
+        safeClose(dialog)
+        self_ref.current_options_dialog = nil
+        local menu_to_close = self_ref.current_menu
+        self_ref.current_menu = nil
+        return menu_to_close
+    end
+
     local buttons = {
-        {
-            {
-                text = _("View by Tag"),
-                callback = function()
-                    safeClose(dialog)
-                    self_ref.current_options_dialog = nil
-                    local menu_to_close = self_ref.current_menu
-                    self_ref.current_menu = nil
-                    UIManager:nextTick(function()
-                        safeClose(menu_to_close)
-                        self_ref:showChatsByTagBrowser(ui, chat_history_manager, config)
-                    end)
-                end,
-            },
-        },
-        {
-            {
-                text = _("Chat History"),
-                callback = function()
-                    safeClose(dialog)
-                    self_ref.current_options_dialog = nil
-                    local menu_to_close = self_ref.current_menu
-                    self_ref.current_menu = nil
-                    UIManager:nextTick(function()
-                        safeClose(menu_to_close)
-                        self_ref:showChatHistoryBrowser(ui, nil, chat_history_manager, config)
-                    end)
-                end,
-            },
-        },
-        {
-            {
-                text = _("Close"),
-                callback = function()
-                    safeClose(dialog)
-                    self_ref.current_options_dialog = nil
-                end,
-            },
-        },
+        {{ text = _("Notebooks"), align = "left", callback = function()
+            local mc = navClose()
+            UIManager:nextTick(function()
+                safeClose(mc)
+                if ui.koassistant then ui.koassistant:showNotebookBrowser() end
+            end)
+        end }},
+        {{ text = _("Artifacts"), align = "left", callback = function()
+            local mc = navClose()
+            UIManager:nextTick(function()
+                safeClose(mc)
+                if ui.koassistant then ui.koassistant:showArtifactBrowser() end
+            end)
+        end }},
+        {{ text = _("View by Tag"), align = "left", callback = function()
+            local mc = navClose()
+            UIManager:nextTick(function()
+                safeClose(mc)
+                self_ref:showChatsByTagBrowser(ui, chat_history_manager, config)
+            end)
+        end }},
+        {{ text = _("Chat History"), align = "left", callback = function()
+            local mc = navClose()
+            UIManager:nextTick(function()
+                safeClose(mc)
+                self_ref:showChatHistoryBrowser(ui, nil, chat_history_manager, config)
+            end)
+        end }},
     }
 
     dialog = ButtonDialog:new{
-        title = _("Navigate"),
         buttons = buttons,
+        shrink_unneeded_width = true,
+        anchor = function()
+            return self_ref.current_menu.title_bar.left_button.image.dimen, true
+        end,
     }
     self.current_options_dialog = dialog
     UIManager:show(dialog)
@@ -268,51 +222,52 @@ function ChatHistoryDialog:showTagBrowserMenuOptions(ui, chat_history_manager, c
 
     local self_ref = self
     local dialog
+
+    local function navClose()
+        safeClose(dialog)
+        self_ref.current_options_dialog = nil
+        local menu_to_close = self_ref.current_menu
+        self_ref.current_menu = nil
+        return menu_to_close
+    end
+
     local buttons = {
-        {
-            {
-                text = _("View by Domain"),
-                callback = function()
-                    safeClose(dialog)
-                    self_ref.current_options_dialog = nil
-                    local menu_to_close = self_ref.current_menu
-                    self_ref.current_menu = nil
-                    UIManager:nextTick(function()
-                        safeClose(menu_to_close)
-                        self_ref:showChatsByDomainBrowser(ui, chat_history_manager, config)
-                    end)
-                end,
-            },
-        },
-        {
-            {
-                text = _("Chat History"),
-                callback = function()
-                    safeClose(dialog)
-                    self_ref.current_options_dialog = nil
-                    local menu_to_close = self_ref.current_menu
-                    self_ref.current_menu = nil
-                    UIManager:nextTick(function()
-                        safeClose(menu_to_close)
-                        self_ref:showChatHistoryBrowser(ui, nil, chat_history_manager, config)
-                    end)
-                end,
-            },
-        },
-        {
-            {
-                text = _("Close"),
-                callback = function()
-                    safeClose(dialog)
-                    self_ref.current_options_dialog = nil
-                end,
-            },
-        },
+        {{ text = _("Notebooks"), align = "left", callback = function()
+            local mc = navClose()
+            UIManager:nextTick(function()
+                safeClose(mc)
+                if ui.koassistant then ui.koassistant:showNotebookBrowser() end
+            end)
+        end }},
+        {{ text = _("Artifacts"), align = "left", callback = function()
+            local mc = navClose()
+            UIManager:nextTick(function()
+                safeClose(mc)
+                if ui.koassistant then ui.koassistant:showArtifactBrowser() end
+            end)
+        end }},
+        {{ text = _("View by Domain"), align = "left", callback = function()
+            local mc = navClose()
+            UIManager:nextTick(function()
+                safeClose(mc)
+                self_ref:showChatsByDomainBrowser(ui, chat_history_manager, config)
+            end)
+        end }},
+        {{ text = _("Chat History"), align = "left", callback = function()
+            local mc = navClose()
+            UIManager:nextTick(function()
+                safeClose(mc)
+                self_ref:showChatHistoryBrowser(ui, nil, chat_history_manager, config)
+            end)
+        end }},
     }
 
     dialog = ButtonDialog:new{
-        title = _("Navigate"),
         buttons = buttons,
+        shrink_unneeded_width = true,
+        anchor = function()
+            return self_ref.current_menu.title_bar.left_button.image.dimen, true
+        end,
     }
     self.current_options_dialog = dialog
     UIManager:show(dialog)
@@ -927,7 +882,7 @@ function ChatHistoryDialog:showChatOptions(ui, document_path, chat, chat_history
     local tags_display = ""
     if chat.tags and #chat.tags > 0 then
         local tag_strs = {}
-        for _, t in ipairs(chat.tags) do
+        for _idx, t in ipairs(chat.tags) do
             table.insert(tag_strs, "#" .. t)
         end
         tags_display = table.concat(tag_strs, " ")
@@ -1321,9 +1276,9 @@ function ChatHistoryDialog:showTagsMenuForChat(document_path, chat_id, chat_hist
 
         -- Show existing tags that aren't on this chat (for quick add)
         local available_tags = {}
-        for _, tag in ipairs(all_tags) do
+        for _idx, tag in ipairs(all_tags) do
             local already_has = false
-            for _, current in ipairs(current_tags) do
+            for _j, current in ipairs(current_tags) do
                 if current == tag then
                     already_has = true
                     break

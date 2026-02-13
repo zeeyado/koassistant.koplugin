@@ -528,86 +528,129 @@ function PromptsManager:showPromptsMenu()
     UIManager:show(self.prompts_menu)
 end
 
--- Hamburger menu options
+-- Hamburger menu options for Manage Actions
 function PromptsManager:showMenuOptions()
     local self_ref = self
-    local button_dialog
-    button_dialog = ButtonDialog:new{
-        title = _("Actions Menu"),
+    local from = "prompts_menu"
+    local buttons = {
+        self:_makeNavButton(_("Highlight Menu"), from, function() self_ref:showHighlightMenuManager() end),
+        self:_makeNavButton(_("Dictionary Popup"), from, function() self_ref:showDictionaryPopupManager() end),
+        self:_makeNavButton(_("Quick Actions"), from, function() self_ref:showQuickActionsManager() end),
+        self:_makeNavButton(_("File Browser Actions"), from, function() self_ref:showFileBrowserActionsManager() end),
+        {{ text = _("Reset custom actions"), align = "left", callback = function()
+            if self_ref._anchored_menu then UIManager:close(self_ref._anchored_menu) end
+            UIManager:show(ConfirmBox:new{
+                text = _("Delete all custom actions?\n\nThis removes actions you created.\n\nBuilt-in actions and their edits are preserved."),
+                ok_callback = function()
+                    self_ref.plugin:resetCustomActions()
+                    self_ref.plugin.action_service:loadActions()
+                    self_ref:refreshMenu()
+                end,
+            })
+        end }},
+        {{ text = _("Reset action edits"), align = "left", callback = function()
+            if self_ref._anchored_menu then UIManager:close(self_ref._anchored_menu) end
+            UIManager:show(ConfirmBox:new{
+                text = _("Reset all action edits?\n\nThis reverts any changes you made to built-in actions and re-enables disabled actions.\n\nCustom actions are preserved."),
+                ok_callback = function()
+                    self_ref.plugin:resetActionEdits()
+                    self_ref.plugin.action_service:loadActions()
+                    self_ref:refreshMenu()
+                end,
+            })
+        end }},
+        {{ text = _("Reset action menus…"), align = "left", callback = function()
+            if self_ref._anchored_menu then UIManager:close(self_ref._anchored_menu) end
+            self_ref:showResetMenusDialog()
+        end }},
+    }
+    self:_showAnchoredMenu(self.prompts_menu, buttons)
+end
+
+-- Sub-popup for resetting individual action menus
+function PromptsManager:showResetMenusDialog()
+    local self_ref = self
+    local dialog
+    dialog = ButtonDialog:new{
+        title = _("Reset Action Menus"),
         buttons = {
-            {
-                {
-                    text = _("Reset custom actions"),
-                    callback = function()
-                        UIManager:close(button_dialog)
-                        UIManager:show(ConfirmBox:new{
-                            text = _("Delete all custom actions?\n\nThis removes actions you created.\n\nBuilt-in actions and their edits are preserved."),
-                            ok_callback = function()
-                                self_ref.plugin:resetCustomActions()
-                                self_ref.plugin.action_service:loadActions()
-                                self_ref:refreshMenu()
-                            end,
-                        })
+            {{ text = _("Reset Highlight Menu"), callback = function()
+                UIManager:close(dialog)
+                UIManager:show(ConfirmBox:new{
+                    text = _("Reset highlight menu actions to defaults?"),
+                    ok_callback = function()
+                        self_ref.plugin:resetHighlightMenuActions()
+                        self_ref:refreshMenu()
                     end,
-                },
-            },
-            {
-                {
-                    text = _("Reset action edits"),
-                    callback = function()
-                        UIManager:close(button_dialog)
-                        UIManager:show(ConfirmBox:new{
-                            text = _("Reset all action edits?\n\nThis reverts any changes you made to built-in actions and re-enables disabled actions.\n\nCustom actions are preserved."),
-                            ok_callback = function()
-                                self_ref.plugin:resetActionEdits()
-                                self_ref.plugin.action_service:loadActions()
-                                self_ref:refreshMenu()
-                            end,
-                        })
+                })
+            end }},
+            {{ text = _("Reset Dictionary Popup"), callback = function()
+                UIManager:close(dialog)
+                UIManager:show(ConfirmBox:new{
+                    text = _("Reset dictionary popup actions to defaults?"),
+                    ok_callback = function()
+                        self_ref.plugin:resetDictionaryPopupActions()
+                        self_ref:refreshMenu()
                     end,
-                },
-            },
-            {
-                {
-                    text = _("Reset action menus"),
-                    callback = function()
-                        UIManager:close(button_dialog)
-                        UIManager:show(ConfirmBox:new{
-                            text = _("Reset action menu configurations?\n\nThis resets the ordering and selection in highlight menu and dictionary popup back to defaults.\n\nYour actions (custom and built-in) are preserved."),
-                            ok_callback = function()
-                                self_ref.plugin:resetActionMenus()
-                                self_ref:refreshMenu()
-                            end,
-                        })
+                })
+            end }},
+            {{ text = _("Reset Quick Actions"), callback = function()
+                UIManager:close(dialog)
+                UIManager:show(ConfirmBox:new{
+                    text = _("Reset Quick Actions panel to defaults?"),
+                    ok_callback = function()
+                        self_ref.plugin:resetQuickActions()
+                        self_ref:refreshMenu()
                     end,
-                },
-            },
-            {
-                {
-                    text = _("Reset Quick Actions"),
-                    callback = function()
-                        UIManager:close(button_dialog)
-                        UIManager:show(ConfirmBox:new{
-                            text = _("Reset Quick Actions panel?\n\nThis restores the default actions shown in the Quick Actions menu.\n\nYour actions (custom and built-in) are preserved."),
-                            ok_callback = function()
-                                self_ref.plugin:resetQuickActions()
-                                self_ref:refreshMenu()
-                            end,
-                        })
+                })
+            end }},
+            {{ text = _("Reset File Browser Actions"), callback = function()
+                UIManager:close(dialog)
+                UIManager:show(ConfirmBox:new{
+                    text = _("Reset file browser actions to defaults?"),
+                    ok_callback = function()
+                        self_ref.plugin:resetFileBrowserActions()
+                        self_ref:refreshMenu()
                     end,
-                },
-            },
-            {
-                {
-                    text = _("Cancel"),
-                    callback = function()
-                        UIManager:close(button_dialog)
+                })
+            end }},
+            {{ text = _("Reset QA Utilities"), callback = function()
+                UIManager:close(dialog)
+                UIManager:show(ConfirmBox:new{
+                    text = _("Reset QA panel utilities to defaults?"),
+                    ok_callback = function()
+                        self_ref.plugin:resetQaUtilities()
+                        self_ref:refreshMenu()
                     end,
-                },
-            },
+                })
+            end }},
+            {{ text = _("Reset QS Panel Items"), callback = function()
+                UIManager:close(dialog)
+                UIManager:show(ConfirmBox:new{
+                    text = _("Reset QS panel items to defaults?"),
+                    ok_callback = function()
+                        self_ref.plugin:resetQsItems()
+                        self_ref:refreshMenu()
+                    end,
+                })
+            end }},
+            {{ text = _("Reset All Menus"), callback = function()
+                UIManager:close(dialog)
+                UIManager:show(ConfirmBox:new{
+                    text = _("Reset ALL action menu configurations?\n\nThis resets ordering and selection in all menus back to defaults.\n\nYour actions (custom and built-in) are preserved."),
+                    ok_callback = function()
+                        self_ref.plugin:resetActionMenus()
+                        self_ref.plugin:resetQuickActions()
+                        self_ref.plugin:resetFileBrowserActions()
+                        self_ref.plugin:resetQaUtilities()
+                        self_ref.plugin:resetQsItems()
+                        self_ref:refreshMenu()
+                    end,
+                })
+            end }},
         },
     }
-    UIManager:show(button_dialog)
+    UIManager:show(dialog)
 end
 
 function PromptsManager:refreshMenu()
@@ -4579,37 +4622,57 @@ function PromptsManager:showHighlightMenuActionOptions(action, index, total)
 end
 
 -- ============================================================
--- Shared hamburger menu for sorting managers
+-- Shared anchored hamburger menu helpers
 -- ============================================================
 
-function PromptsManager:showManagerResetOption(title, confirm_text, reset_callback)
-    local button_dialog
-    button_dialog = ButtonDialog:new{
-        title = title,
-        buttons = {
-            {
-                {
-                    text = _("Reset to Defaults"),
-                    callback = function()
-                        UIManager:close(button_dialog)
-                        UIManager:show(ConfirmBox:new{
-                            text = confirm_text,
-                            ok_callback = reset_callback,
-                        })
-                    end,
-                },
-            },
-            {
-                {
-                    text = _("Cancel"),
-                    callback = function()
-                        UIManager:close(button_dialog)
-                    end,
-                },
-            },
-        },
+-- Show an anchored dropdown menu at the hamburger button of the given menu widget
+function PromptsManager:_showAnchoredMenu(menu_widget, buttons)
+    if self._anchored_menu then UIManager:close(self._anchored_menu) end
+    self._anchored_menu = ButtonDialog:new{
+        buttons = buttons,
+        shrink_unneeded_width = true,
+        anchor = function()
+            return menu_widget.title_bar.left_button.image.dimen, true
+        end,
     }
-    UIManager:show(button_dialog)
+    UIManager:show(self._anchored_menu)
+end
+
+-- Smooth cross-navigation: close anchored menu + current window, open target in nextTick
+function PromptsManager:_navigateToManager(from_field, show_fn)
+    if self._anchored_menu then UIManager:close(self._anchored_menu) end
+    local menu_to_close = self[from_field]
+    self[from_field] = nil
+    UIManager:nextTick(function()
+        if menu_to_close then UIManager:close(menu_to_close) end
+        show_fn()
+    end)
+end
+
+-- Build a single navigation button row for an anchored menu
+function PromptsManager:_makeNavButton(text, from_field, show_fn)
+    return {
+        { text = text, align = "left", callback = function()
+            self:_navigateToManager(from_field, show_fn)
+        end },
+    }
+end
+
+-- Confirm and execute a reset action, then reopen the manager via nextTick
+function PromptsManager:_confirmAndReset(confirm_text, reset_fn, menu_field, reshow_fn)
+    if self._anchored_menu then UIManager:close(self._anchored_menu) end
+    UIManager:show(ConfirmBox:new{
+        text = confirm_text,
+        ok_callback = function()
+            reset_fn()
+            local menu_to_close = self[menu_field]
+            self[menu_field] = nil
+            UIManager:nextTick(function()
+                if menu_to_close then UIManager:close(menu_to_close) end
+                reshow_fn()
+            end)
+        end,
+    })
 end
 
 -- ============================================================
@@ -4677,15 +4740,20 @@ function PromptsManager:showHighlightMenuManager()
         title = T(_("Highlight Menu (%1 enabled)"), menu_count),
         title_bar_left_icon = "appbar.menu",
         onLeftButtonTap = function()
-            self_ref:showManagerResetOption(
-                _("Reset Highlight Menu"),
-                _("Reset highlight menu actions to defaults?\n\nThis restores the default ordering and selection.\n\nYour actions (custom and built-in) are preserved."),
-                function()
-                    self_ref.plugin:resetHighlightMenuActions()
-                    UIManager:close(self_ref.highlight_menu_manager)
-                    UIManager:scheduleIn(0.1, function() self_ref:showHighlightMenuManager() end)
-                end
-            )
+            local from = "highlight_menu_manager"
+            local buttons = {
+                self_ref:_makeNavButton(_("Manage Actions"), from, function() self_ref:showPromptsMenu() end),
+                self_ref:_makeNavButton(_("Dictionary Popup"), from, function() self_ref:showDictionaryPopupManager() end),
+                self_ref:_makeNavButton(_("Quick Actions"), from, function() self_ref:showQuickActionsManager() end),
+                self_ref:_makeNavButton(_("File Browser Actions"), from, function() self_ref:showFileBrowserActionsManager() end),
+                {{ text = _("Reset to defaults"), align = "left", callback = function()
+                    self_ref:_confirmAndReset(
+                        _("Reset highlight menu actions to defaults?\n\nThis restores the default ordering and selection.\n\nYour actions (custom and built-in) are preserved."),
+                        function() self_ref.plugin:resetHighlightMenuActions() end,
+                        from, function() self_ref:showHighlightMenuManager() end)
+                end }},
+            }
+            self_ref:_showAnchoredMenu(self_ref.highlight_menu_manager, buttons)
         end,
         item_table = menu_items,
         width = self.width,
@@ -4801,15 +4869,20 @@ function PromptsManager:showQuickActionsManager()
         title = T(_("Quick Actions (%1 enabled)"), quick_count),
         title_bar_left_icon = "appbar.menu",
         onLeftButtonTap = function()
-            self_ref:showManagerResetOption(
-                _("Reset Quick Actions"),
-                _("Reset Quick Actions panel?\n\nThis restores the default actions shown in the Quick Actions menu.\n\nYour actions (custom and built-in) are preserved."),
-                function()
-                    self_ref.plugin:resetQuickActions()
-                    UIManager:close(self_ref.quick_actions_menu)
-                    UIManager:scheduleIn(0.1, function() self_ref:showQuickActionsManager() end)
-                end
-            )
+            local from = "quick_actions_menu"
+            local buttons = {
+                self_ref:_makeNavButton(_("Manage Actions"), from, function() self_ref:showPromptsMenu() end),
+                self_ref:_makeNavButton(_("Highlight Menu"), from, function() self_ref:showHighlightMenuManager() end),
+                self_ref:_makeNavButton(_("Dictionary Popup"), from, function() self_ref:showDictionaryPopupManager() end),
+                self_ref:_makeNavButton(_("File Browser Actions"), from, function() self_ref:showFileBrowserActionsManager() end),
+                {{ text = _("Reset to defaults"), align = "left", callback = function()
+                    self_ref:_confirmAndReset(
+                        _("Reset Quick Actions panel?\n\nThis restores the default actions shown in the Quick Actions menu.\n\nYour actions (custom and built-in) are preserved."),
+                        function() self_ref.plugin:resetQuickActions() end,
+                        from, function() self_ref:showQuickActionsManager() end)
+                end }},
+            }
+            self_ref:_showAnchoredMenu(self_ref.quick_actions_menu, buttons)
         end,
         item_table = menu_items,
         width = self.width,
@@ -4926,15 +4999,17 @@ function PromptsManager:showQaUtilitiesManager(restore_page)
         title = T(_("QA Panel Utilities (%1 visible)"), enabled_count),
         title_bar_left_icon = "appbar.menu",
         onLeftButtonTap = function()
-            self_ref:showManagerResetOption(
-                _("Reset QA Panel Utilities"),
-                _("Reset QA panel utilities to defaults?\n\nThis restores the default order and visibility of utility buttons."),
-                function()
-                    self_ref.plugin:resetQaUtilities()
-                    UIManager:close(self_ref.qa_utilities_menu)
-                    UIManager:scheduleIn(0.1, function() self_ref:showQaUtilitiesManager() end)
-                end
-            )
+            local from = "qa_utilities_menu"
+            local buttons = {
+                self_ref:_makeNavButton(_("QS Panel Items"), from, function() self_ref:showQsItemsManager() end),
+                {{ text = _("Reset to defaults"), align = "left", callback = function()
+                    self_ref:_confirmAndReset(
+                        _("Reset QA panel utilities to defaults?\n\nThis restores the default order and visibility of utility buttons."),
+                        function() self_ref.plugin:resetQaUtilities() end,
+                        from, function() self_ref:showQaUtilitiesManager() end)
+                end }},
+            }
+            self_ref:_showAnchoredMenu(self_ref.qa_utilities_menu, buttons)
         end,
         item_table = menu_items,
         width = self.width,
@@ -5053,15 +5128,17 @@ function PromptsManager:showQsItemsManager(restore_page)
         title = T(_("QS Panel Items (%1 visible)"), enabled_count),
         title_bar_left_icon = "appbar.menu",
         onLeftButtonTap = function()
-            self_ref:showManagerResetOption(
-                _("Reset QS Panel Items"),
-                _("Reset QS panel items to defaults?\n\nThis restores the default order and visibility of Quick Settings items."),
-                function()
-                    self_ref.plugin:resetQsItems()
-                    UIManager:close(self_ref.qs_items_menu)
-                    UIManager:scheduleIn(0.1, function() self_ref:showQsItemsManager() end)
-                end
-            )
+            local from = "qs_items_menu"
+            local buttons = {
+                self_ref:_makeNavButton(_("QA Panel Utilities"), from, function() self_ref:showQaUtilitiesManager() end),
+                {{ text = _("Reset to defaults"), align = "left", callback = function()
+                    self_ref:_confirmAndReset(
+                        _("Reset QS panel items to defaults?\n\nThis restores the default order and visibility of Quick Settings items."),
+                        function() self_ref.plugin:resetQsItems() end,
+                        from, function() self_ref:showQsItemsManager() end)
+                end }},
+            }
+            self_ref:_showAnchoredMenu(self_ref.qs_items_menu, buttons)
         end,
         item_table = menu_items,
         width = self.width,
@@ -5203,15 +5280,20 @@ function PromptsManager:showFileBrowserActionsManager()
         title = T(_("File Browser Actions (%1 pinned)"), fb_count),
         title_bar_left_icon = "appbar.menu",
         onLeftButtonTap = function()
-            self_ref:showManagerResetOption(
-                _("Reset File Browser Actions"),
-                _("Reset file browser actions to defaults?\n\nThis restores the default actions pinned to the file browser.\n\nYour actions (custom and built-in) are preserved."),
-                function()
-                    self_ref.plugin:resetFileBrowserActions()
-                    UIManager:close(self_ref.file_browser_menu)
-                    UIManager:scheduleIn(0.1, function() self_ref:showFileBrowserActionsManager() end)
-                end
-            )
+            local from = "file_browser_menu"
+            local buttons = {
+                self_ref:_makeNavButton(_("Manage Actions"), from, function() self_ref:showPromptsMenu() end),
+                self_ref:_makeNavButton(_("Highlight Menu"), from, function() self_ref:showHighlightMenuManager() end),
+                self_ref:_makeNavButton(_("Dictionary Popup"), from, function() self_ref:showDictionaryPopupManager() end),
+                self_ref:_makeNavButton(_("Quick Actions"), from, function() self_ref:showQuickActionsManager() end),
+                {{ text = _("Reset to defaults"), align = "left", callback = function()
+                    self_ref:_confirmAndReset(
+                        _("Reset file browser actions to defaults?\n\nThis restores the default actions pinned to the file browser.\n\nYour actions (custom and built-in) are preserved."),
+                        function() self_ref.plugin:resetFileBrowserActions() end,
+                        from, function() self_ref:showFileBrowserActionsManager() end)
+                end }},
+            }
+            self_ref:_showAnchoredMenu(self_ref.file_browser_menu, buttons)
         end,
         item_table = menu_items,
         width = self.width,
@@ -5327,15 +5409,20 @@ function PromptsManager:showDictionaryPopupManager()
         title = T(_("Dictionary Popup (%1 enabled)"), popup_count),
         title_bar_left_icon = "appbar.menu",
         onLeftButtonTap = function()
-            self_ref:showManagerResetOption(
-                _("Reset Dictionary Popup"),
-                _("Reset dictionary popup actions to defaults?\n\nThis restores the default ordering and selection.\n\nYour actions (custom and built-in) are preserved."),
-                function()
-                    self_ref.plugin:resetDictionaryPopupActions()
-                    UIManager:close(self_ref.dictionary_popup_menu)
-                    UIManager:scheduleIn(0.1, function() self_ref:showDictionaryPopupManager() end)
-                end
-            )
+            local from = "dictionary_popup_menu"
+            local buttons = {
+                self_ref:_makeNavButton(_("Manage Actions"), from, function() self_ref:showPromptsMenu() end),
+                self_ref:_makeNavButton(_("Highlight Menu"), from, function() self_ref:showHighlightMenuManager() end),
+                self_ref:_makeNavButton(_("Quick Actions"), from, function() self_ref:showQuickActionsManager() end),
+                self_ref:_makeNavButton(_("File Browser Actions"), from, function() self_ref:showFileBrowserActionsManager() end),
+                {{ text = _("Reset to defaults"), align = "left", callback = function()
+                    self_ref:_confirmAndReset(
+                        _("Reset dictionary popup actions to defaults?\n\nThis restores the default ordering and selection.\n\nYour actions (custom and built-in) are preserved."),
+                        function() self_ref.plugin:resetDictionaryPopupActions() end,
+                        from, function() self_ref:showDictionaryPopupManager() end)
+                end }},
+            }
+            self_ref:_showAnchoredMenu(self_ref.dictionary_popup_menu, buttons)
         end,
         item_table = menu_items,
         width = self.width,

@@ -187,42 +187,13 @@ function DomainManager:showDomainMenu()
         end
     end
 
-    -- Create footer buttons
-    local buttons = {
-        {
-            {
-                text = _("About Domains"),
-                callback = function()
-                    UIManager:show(InfoMessage:new{
-                        text = _("Domains provide specialized knowledge context to the AI.\n\nUnlike behaviors (which set communication style), domains give the AI expertise in specific subject areas.\n\nDomains are selected per-chat, not globally, making them like 'projects' you can switch between."),
-                    })
-                end,
-            },
-            {
-                text = _("Delete All Custom"),
-                callback = function()
-                    local custom = self:getCustomDomains()
-                    if #custom == 0 then
-                        UIManager:show(InfoMessage:new{
-                            text = _("No custom domains to delete"),
-                            timeout = 1,
-                        })
-                        return
-                    end
-                    UIManager:show(ConfirmBox:new{
-                        text = T(_("Delete all %1 custom domains?"), #custom),
-                        ok_callback = function()
-                            self:saveCustomDomains({})
-                            self:refreshMenu()
-                        end,
-                    })
-                end,
-            },
-        },
-    }
-
+    local self_ref = self
     self.domain_menu = Menu:new{
         title = _("Manage Domains"),
+        title_bar_left_icon = "appbar.menu",
+        onLeftButtonTap = function()
+            self_ref:_showMenuOptions()
+        end,
         item_table = menu_items,
         width = self.width,
         height = self.height,
@@ -241,17 +212,75 @@ function DomainManager:showDomainMenu()
         close_callback = function()
             UIManager:close(self.domain_menu)
         end,
-        buttons_table = buttons,
     }
 
     UIManager:show(self.domain_menu)
+end
+
+function DomainManager:_showMenuOptions()
+    local self_ref = self
+    if self._anchored_menu then UIManager:close(self._anchored_menu) end
+    self._anchored_menu = ButtonDialog:new{
+        buttons = {
+            {{ text = _("Manage Behaviors"), align = "left", callback = function()
+                UIManager:close(self_ref._anchored_menu)
+                local menu_to_close = self_ref.domain_menu
+                self_ref.domain_menu = nil
+                UIManager:nextTick(function()
+                    if menu_to_close then UIManager:close(menu_to_close) end
+                    local BehaviorManager = require("koassistant_ui/behavior_manager")
+                    local bm = BehaviorManager:new(self_ref.plugin)
+                    bm:show()
+                end)
+            end }},
+            {{ text = _("About Domains"), align = "left", callback = function()
+                UIManager:close(self_ref._anchored_menu)
+                UIManager:show(InfoMessage:new{
+                    text = _("Domains provide specialized knowledge context to the AI.\n\nUnlike behaviors (which set communication style), domains give the AI expertise in specific subject areas.\n\nDomains are selected per-chat, not globally, making them like 'projects' you can switch between."),
+                })
+            end }},
+            {{ text = _("Delete all custom"), align = "left", callback = function()
+                UIManager:close(self_ref._anchored_menu)
+                local custom = self_ref:getCustomDomains()
+                if #custom == 0 then
+                    UIManager:show(InfoMessage:new{
+                        text = _("No custom domains to delete"),
+                        timeout = 1,
+                    })
+                    return
+                end
+                UIManager:show(ConfirmBox:new{
+                    text = T(_("Delete all %1 custom domains?"), #custom),
+                    ok_callback = function()
+                        self_ref:saveCustomDomains({})
+                        self_ref:refreshMenu()
+                    end,
+                })
+            end }},
+            {{ text = _("Restore defaults"), align = "left", callback = function()
+                UIManager:close(self_ref._anchored_menu)
+                UIManager:show(ConfirmBox:new{
+                    text = _("This will delete all custom domains and restore built-in defaults. Continue?"),
+                    ok_callback = function()
+                        self_ref:saveCustomDomains({})
+                        self_ref:refreshMenu()
+                    end,
+                })
+            end }},
+        },
+        shrink_unneeded_width = true,
+        anchor = function()
+            return self_ref.domain_menu.title_bar.left_button.image.dimen, true
+        end,
+    }
+    UIManager:show(self._anchored_menu)
 end
 
 function DomainManager:refreshMenu()
     if self.domain_menu then
         local current_page = self.domain_menu.page
         UIManager:close(self.domain_menu)
-        UIManager:scheduleIn(0.1, function()
+        UIManager:nextTick(function()
             self:show()
             if self.domain_menu and current_page and current_page > 1 then
                 self.domain_menu:onGotoPage(current_page)

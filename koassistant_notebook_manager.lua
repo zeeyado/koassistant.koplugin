@@ -246,59 +246,41 @@ end
 function NotebookManager:showBrowserMenuOptions(opts)
     local self_ref = self
     local dialog
+
+    local function navClose()
+        UIManager:close(dialog)
+        if self_ref._current_options_dialog then
+            UIManager:close(self_ref._current_options_dialog)
+            self_ref._current_options_dialog = nil
+        end
+        local menu_to_close = self_ref.current_menu
+        self_ref.current_menu = nil
+        return menu_to_close
+    end
+
     dialog = ButtonDialog:new{
-        title = _("Notebooks"),
         buttons = {
-            {
-                {
-                    text = _("Chat History"),
-                    callback = function()
-                        UIManager:close(dialog)
-                        if self_ref._current_options_dialog then
-                            UIManager:close(self_ref._current_options_dialog)
-                            self_ref._current_options_dialog = nil
-                        end
-                        -- Close browser and open new one in same tick to avoid visible gap
-                        local menu_to_close = self_ref.current_menu
-                        self_ref.current_menu = nil
-                        UIManager:nextTick(function()
-                            if menu_to_close then UIManager:close(menu_to_close) end
-                            local AskGPT = self_ref:getAskGPTInstance()
-                            if AskGPT then
-                                AskGPT:showChatHistory()
-                            end
-                        end)
-                    end,
-                },
-                {
-                    text = _("Browse Artifacts"),
-                    callback = function()
-                        UIManager:close(dialog)
-                        if self_ref._current_options_dialog then
-                            UIManager:close(self_ref._current_options_dialog)
-                            self_ref._current_options_dialog = nil
-                        end
-                        local menu_to_close = self_ref.current_menu
-                        self_ref.current_menu = nil
-                        UIManager:nextTick(function()
-                            if menu_to_close then UIManager:close(menu_to_close) end
-                            local AskGPT = self_ref:getAskGPTInstance()
-                            if AskGPT then
-                                AskGPT:showArtifactBrowser()
-                            end
-                        end)
-                    end,
-                },
-            },
-            {
-                {
-                    text = _("Close"),
-                    callback = function()
-                        UIManager:close(dialog)
-                    end,
-                },
-            },
+            {{ text = _("Chat History"), align = "left", callback = function()
+                local mc = navClose()
+                UIManager:nextTick(function()
+                    if mc then UIManager:close(mc) end
+                    local AskGPT = self_ref:getAskGPTInstance()
+                    if AskGPT then AskGPT:showChatHistory() end
+                end)
+            end }},
+            {{ text = _("Artifacts"), align = "left", callback = function()
+                local mc = navClose()
+                UIManager:nextTick(function()
+                    if mc then UIManager:close(mc) end
+                    local AskGPT = self_ref:getAskGPTInstance()
+                    if AskGPT then AskGPT:showArtifactBrowser() end
+                end)
+            end }},
         },
+        shrink_unneeded_width = true,
+        anchor = function()
+            return self_ref.current_menu.title_bar.left_button.image.dimen, true
+        end,
     }
     UIManager:show(dialog)
 end

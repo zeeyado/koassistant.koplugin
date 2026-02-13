@@ -253,7 +253,7 @@ In reader mode, additional buttons appear (items naturally shift to accommodate)
 - **Quick Actions...** — Access the Quick Actions panel for reading features
 - **More Settings...** — Open the full settings menu
 
-To show/hide buttons in the Quick Settings panel, use **Settings → Quick Settings Settings → QS Panel Utilities**.
+To show/hide or reorder buttons in the Quick Settings panel, use **Settings → Quick Settings Settings → QS Panel Utilities**.
 
 **2. Quick Actions** (reader mode only)
 
@@ -264,7 +264,7 @@ Assign "KOAssistant: Quick Actions" to a gesture for fast access to reading-rela
 - **Artifact button** — "View Artifacts" appears when any artifacts exist (X-Ray, X-Ray (Simple), Analysis, Summary, Recap), opening a picker to choose which one to view
 - **Utilities** — Translate Page, New Book Chat/Action, Continue Last Chat, General Chat/Action, Chat History, Notebook, View Artifacts, Quick Settings
 
-You can add any book action to Quick Actions via **Action Manager → hold action → "Add to Quick Actions"**. To reorder or remove actions, use **Settings → Quick Actions Settings → Panel Actions**. To show/hide utility buttons (Translate Page, Chat History, etc.), use **Settings → Quick Actions Settings → QA Panel Utilities**. Defaults can also be removed.
+You can add any book action to Quick Actions via **Action Manager → hold action → "Add to Quick Actions"**. To reorder or remove actions, use **Settings → Quick Actions Settings → Panel Actions**. To show/hide or reorder utility buttons (Translate Page, Chat History, etc.), use **Settings → Quick Actions Settings → QA Panel Utilities**. Defaults can also be removed.
 
 > **Tip**: For quick access, assign Quick Settings and Quick Actions to their own gestures (e.g., two-finger tap, corner tap). This gives you one-tap access to these panels from anywhere. Alternatively, you can add them to a KOReader QuickMenu alongside other actions (see below).
 
@@ -2011,7 +2011,7 @@ See [Bypass Modes](#bypass-modes) and [Highlight Menu Actions](#highlight-menu-a
 
 ### Quick Settings Settings
 Configure the Quick Settings panel (available via gesture or gear icon in input dialog).
-- **QS Panel Utilities**: Show/hide buttons in the Quick Settings panel:
+- **QS Panel Utilities**: Show/hide and reorder buttons in the Quick Settings panel. Tap to toggle visibility, hold to move up/down:
   - Provider, Model, Behavior, Domain, Temperature, Anthropic/Gemini Reasoning
   - Web Search, Language, Translation Language, Dictionary Language
   - H.Bypass, D.Bypass, Chat History, Browse Notebooks, Browse Artifacts
@@ -2022,7 +2022,7 @@ Configure the Quick Settings panel (available via gesture or gear icon in input 
 
 Configure the Quick Actions panel (available via gesture in reader mode).
 - **Panel Actions**: Reorder or remove actions from the Quick Actions panel. Add new actions via Action Manager → hold action → "Add to Quick Actions".
-- **QA Panel Utilities**: Show/hide utility buttons that appear below actions in the panel:
+- **QA Panel Utilities**: Show/hide and reorder utility buttons that appear below actions in the panel. Tap to toggle visibility, hold to move up/down:
   - Translate Page, New Book Chat/Action, Continue Last Chat, General Chat/Action
   - Chat History, Notebook (View/Edit popup), View Artifacts (opens picker when any artifacts exist), Quick Settings
   - All utilities are enabled by default. Disable any you don't use to streamline the panel.
