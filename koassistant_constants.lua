@@ -139,6 +139,55 @@ function Constants.getQuickActionUtilityText(id, _)
     return texts[id]
 end
 
+-- Quick Settings Panel Default Order
+-- Defines the default sequence of items in the Quick Settings panel
+-- Used as fallback when no user-customized order is stored
+-- Settings path: features.qs_show_{id} (visibility toggles)
+Constants.QS_ITEMS_DEFAULT_ORDER = {
+    "provider", "model", "behavior", "domain",
+    "temperature", "extended_thinking", "web_search",
+    "language", "translation_language", "dictionary_language",
+    "h_bypass", "d_bypass",
+    "chat_history", "browse_notebooks", "browse_artifacts",
+    "general_chat", "continue_last_chat",
+    "new_book_chat", "manage_actions", "quick_actions",
+    "more_settings",
+}
+
+-- QS items that only appear when a book is open (dynamic)
+Constants.QS_DYNAMIC_ITEMS = { new_book_chat = true, quick_actions = true }
+
+--- Get display text for a Quick Settings item
+--- @param id string: QS item ID
+--- @param _ function: gettext function
+--- @return string: Translated display text
+function Constants.getQsItemText(id, _)
+    local texts = {
+        provider = _("Provider"),
+        model = _("Model"),
+        behavior = _("Behavior"),
+        domain = _("Domain"),
+        temperature = _("Temperature"),
+        extended_thinking = _("Anthropic/Gemini Reasoning"),
+        web_search = _("Web Search"),
+        language = _("Language"),
+        translation_language = _("Translation Language"),
+        dictionary_language = _("Dictionary Language"),
+        h_bypass = _("H.Bypass"),
+        d_bypass = _("D.Bypass"),
+        chat_history = _("Chat History"),
+        browse_notebooks = _("Browse Notebooks"),
+        browse_artifacts = _("Browse Artifacts"),
+        general_chat = _("General Chat/Action"),
+        continue_last_chat = _("Continue Last Chat"),
+        new_book_chat = _("New Book Chat/Action"),
+        manage_actions = _("Manage Actions"),
+        quick_actions = _("Quick Actions"),
+        more_settings = _("More Settings"),
+    }
+    return texts[id] or id
+end
+
 --- Get text with optional emoji prefix
 --- Returns emoji version if enable_emoji_icons is true, otherwise text-only version
 --- @param emoji string: The emoji to show when enabled (e.g., "🔍")

@@ -1404,6 +1404,106 @@ function ActionService:getUserQuickActions()
 end
 
 -- ============================================================
+-- Generic Ordered List Processing
+-- ============================================================
+-- Shared by QA utilities ordering and QS items ordering.
+-- Prunes stale IDs, deduplicates, and appends new valid IDs.
+
+local function processOrderedList(stored_order, valid_ids)
+    local valid_set = {}
+    for _i, id in ipairs(valid_ids) do valid_set[id] = true end
+
+    local result = {}
+    local seen = {}
+    -- Keep stored items that are still valid
+    for _i, id in ipairs(stored_order) do
+        if valid_set[id] and not seen[id] then
+            table.insert(result, id)
+            seen[id] = true
+        end
+    end
+    -- Append new valid IDs not in stored order
+    for _i, id in ipairs(valid_ids) do
+        if not seen[id] then
+            table.insert(result, id)
+        end
+    end
+
+    return result
+end
+
+-- ============================================================
+-- QA Utilities Ordering
+-- ============================================================
+
+-- Get default QA utility IDs from Constants
+local function getQaUtilitiesDefaultOrder()
+    local ids = {}
+    for _i, util in ipairs(Constants.QUICK_ACTION_UTILITIES) do
+        table.insert(ids, util.id)
+    end
+    return ids
+end
+
+-- Get ordered list of QA utility IDs
+function ActionService:getQaUtilitiesOrder()
+    local saved = self.settings:readSetting("qa_utilities_order")
+    if not saved then
+        return getQaUtilitiesDefaultOrder()
+    end
+    local processed = processOrderedList(saved, getQaUtilitiesDefaultOrder())
+    self.settings:saveSetting("qa_utilities_order", processed)
+    return processed
+end
+
+-- Move QA utility in order
+function ActionService:moveQaUtility(util_id, direction)
+    local order = self:getQaUtilitiesOrder()
+    for i, id in ipairs(order) do
+        if id == util_id then
+            local new_index = direction == "up" and i - 1 or i + 1
+            if new_index >= 1 and new_index <= #order then
+                order[i], order[new_index] = order[new_index], order[i]
+                self.settings:saveSetting("qa_utilities_order", order)
+                self.settings:flush()
+            end
+            return
+        end
+    end
+end
+
+-- ============================================================
+-- QS Items Ordering
+-- ============================================================
+
+-- Get ordered list of QS item IDs
+function ActionService:getQsItemsOrder()
+    local saved = self.settings:readSetting("qs_items_order")
+    if not saved then
+        return Constants.QS_ITEMS_DEFAULT_ORDER
+    end
+    local processed = processOrderedList(saved, Constants.QS_ITEMS_DEFAULT_ORDER)
+    self.settings:saveSetting("qs_items_order", processed)
+    return processed
+end
+
+-- Move QS item in order
+function ActionService:moveQsItem(item_id, direction)
+    local order = self:getQsItemsOrder()
+    for i, id in ipairs(order) do
+        if id == item_id then
+            local new_index = direction == "up" and i - 1 or i + 1
+            if new_index >= 1 and new_index <= #order then
+                order[i], order[new_index] = order[new_index], order[i]
+                self.settings:saveSetting("qs_items_order", order)
+                self.settings:flush()
+            end
+            return
+        end
+    end
+end
+
+-- ============================================================
 -- File Browser Actions Support
 -- ============================================================
 -- Users can pin non-reading book actions directly to the file browser

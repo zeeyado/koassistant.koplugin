@@ -5400,313 +5400,266 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
   -- Flag to track if we're closing for a sub-dialog (vs true dismissal)
   local opening_subdialog = false
 
-  -- Build ALL buttons dynamically based on QS Panel Utilities settings
+  -- Build ALL buttons dynamically based on QS Panel settings
+  -- Order driven by stored qs_items_order (user-sortable)
   -- Buttons populate in order, two per row, Close always last and alone
   local dialog  -- Forward declaration for callbacks
   local all_buttons = {}  -- All buttons except Close
 
-  -- Helper to check if a QS utility is enabled (default true)
+  -- Helper to check if a QS item is enabled (default true)
   local function isQsEnabled(key)
     local val = features["qs_show_" .. key]
     if val == nil then return true end  -- Default enabled
     return val
   end
 
-  -- Provider button
-  if isQsEnabled("provider") then
-    table.insert(all_buttons, {
-      text = T(_("Provider: %1"), provider_display),
-      callback = function()
-        opening_subdialog = true
-        UIManager:close(dialog)
-        local menu_items = self_ref:buildProviderMenu(true)
-        self_ref:showQuickSettingsPopup(_("Provider"), menu_items, true, reopenQuickSettings)
-      end,
-    })
-  end
+  -- Build button definitions map (id -> button spec)
+  -- Dynamic items only added when available; order iteration skips missing keys
+  local button_defs = {}
 
-  -- Model button
-  if isQsEnabled("model") then
-    table.insert(all_buttons, {
-      text = T(_("Model: %1"), model),
-      callback = function()
-        opening_subdialog = true
-        UIManager:close(dialog)
-        local menu_items = self_ref:buildModelMenu(true)
-        self_ref:showQuickSettingsPopup(_("Model"), menu_items, true, reopenQuickSettings)
-      end,
-    })
-  end
+  button_defs["provider"] = {
+    text = T(_("Provider: %1"), provider_display),
+    callback = function()
+      opening_subdialog = true
+      UIManager:close(dialog)
+      local menu_items = self_ref:buildProviderMenu(true)
+      self_ref:showQuickSettingsPopup(_("Provider"), menu_items, true, reopenQuickSettings)
+    end,
+  }
 
-  -- Behavior button
-  if isQsEnabled("behavior") then
-    table.insert(all_buttons, {
-      text = T(_("Behavior: %1"), behavior_display),
-      callback = function()
-        opening_subdialog = true
-        UIManager:close(dialog)
-        local menu_items = self_ref:buildBehaviorMenu()
-        self_ref:showQuickSettingsPopup(_("AI Behavior"), menu_items, true, reopenQuickSettings)
-      end,
-    })
-  end
+  button_defs["model"] = {
+    text = T(_("Model: %1"), model),
+    callback = function()
+      opening_subdialog = true
+      UIManager:close(dialog)
+      local menu_items = self_ref:buildModelMenu(true)
+      self_ref:showQuickSettingsPopup(_("Model"), menu_items, true, reopenQuickSettings)
+    end,
+  }
 
-  -- Domain button
-  if isQsEnabled("domain") then
-    table.insert(all_buttons, {
-      text = T(_("Domain: %1"), domain_display),
-      callback = function()
-        opening_subdialog = true
-        UIManager:close(dialog)
-        local menu_items = self_ref:buildDomainMenu()
-        self_ref:showQuickSettingsPopup(_("Knowledge Domain"), menu_items, true, reopenQuickSettings)
-      end,
-    })
-  end
+  button_defs["behavior"] = {
+    text = T(_("Behavior: %1"), behavior_display),
+    callback = function()
+      opening_subdialog = true
+      UIManager:close(dialog)
+      local menu_items = self_ref:buildBehaviorMenu()
+      self_ref:showQuickSettingsPopup(_("AI Behavior"), menu_items, true, reopenQuickSettings)
+    end,
+  }
 
-  -- Temperature button
-  if isQsEnabled("temperature") then
-    table.insert(all_buttons, {
-      text = T(_("Temp: %1"), string.format("%.1f", temp)),
-      callback = function()
-        opening_subdialog = true
-        UIManager:close(dialog)
-        local spin = SpinWidget:new{
-          value = temp,
-          value_min = 0,
-          value_max = 2,
-          value_step = 0.1,
-          precision = "%.1f",
-          ok_text = _("Set"),
-          title_text = _("Temperature"),
-          default_value = 0.7,
-          callback = function(spin_widget)
-            local f = self_ref.settings:readSetting("features") or {}
-            f.default_temperature = spin_widget.value
-            self_ref.settings:saveSetting("features", f)
-            self_ref.settings:flush()
-            self_ref:updateConfigFromSettings()
-            reopenQuickSettings()
-          end,
-        }
-        UIManager:show(spin)
-      end,
-    })
-  end
+  button_defs["domain"] = {
+    text = T(_("Domain: %1"), domain_display),
+    callback = function()
+      opening_subdialog = true
+      UIManager:close(dialog)
+      local menu_items = self_ref:buildDomainMenu()
+      self_ref:showQuickSettingsPopup(_("Knowledge Domain"), menu_items, true, reopenQuickSettings)
+    end,
+  }
 
-  -- Anthropic/Gemini Reasoning button
-  if isQsEnabled("extended_thinking") then
-    table.insert(all_buttons, {
-      text = reasoning_enabled and _("Anthropic/Gemini Reasoning: ON") or _("Anthropic/Gemini Reasoning: OFF"),
-      callback = function()
-        local f = self_ref.settings:readSetting("features") or {}
-        f.enable_reasoning = not f.enable_reasoning
-        self_ref.settings:saveSetting("features", f)
-        self_ref.settings:flush()
-        self_ref:updateConfigFromSettings()
-        opening_subdialog = true
-        UIManager:close(dialog)
-        reopenQuickSettings()
-      end,
-    })
-  end
+  button_defs["temperature"] = {
+    text = T(_("Temp: %1"), string.format("%.1f", temp)),
+    callback = function()
+      opening_subdialog = true
+      UIManager:close(dialog)
+      local spin = SpinWidget:new{
+        value = temp,
+        value_min = 0,
+        value_max = 2,
+        value_step = 0.1,
+        precision = "%.1f",
+        ok_text = _("Set"),
+        title_text = _("Temperature"),
+        default_value = 0.7,
+        callback = function(spin_widget)
+          local f = self_ref.settings:readSetting("features") or {}
+          f.default_temperature = spin_widget.value
+          self_ref.settings:saveSetting("features", f)
+          self_ref.settings:flush()
+          self_ref:updateConfigFromSettings()
+          reopenQuickSettings()
+        end,
+      }
+      UIManager:show(spin)
+    end,
+  }
 
-  -- Web Search button
-  if isQsEnabled("web_search") then
-    table.insert(all_buttons, {
-      text = web_search and _("Web Search: ON") or _("Web Search: OFF"),
-      callback = function()
-        local f = self_ref.settings:readSetting("features") or {}
-        f.enable_web_search = not f.enable_web_search
-        self_ref.settings:saveSetting("features", f)
-        self_ref.settings:flush()
-        self_ref:updateConfigFromSettings()
-        opening_subdialog = true
-        UIManager:close(dialog)
-        reopenQuickSettings()
-      end,
-    })
-  end
+  button_defs["extended_thinking"] = {
+    text = reasoning_enabled and _("Anthropic/Gemini Reasoning: ON") or _("Anthropic/Gemini Reasoning: OFF"),
+    callback = function()
+      local f = self_ref.settings:readSetting("features") or {}
+      f.enable_reasoning = not f.enable_reasoning
+      self_ref.settings:saveSetting("features", f)
+      self_ref.settings:flush()
+      self_ref:updateConfigFromSettings()
+      opening_subdialog = true
+      UIManager:close(dialog)
+      reopenQuickSettings()
+    end,
+  }
 
-  -- Language button (primary language)
-  if isQsEnabled("language") then
-    table.insert(all_buttons, {
-      text = T(_("Language: %1"), lang_display),
-      callback = function()
-        opening_subdialog = true
-        UIManager:close(dialog)
-        local menu_items = self_ref:buildPrimaryLanguageMenu()
-        self_ref:showQuickSettingsPopup(_("Primary Language"), menu_items, true, reopenQuickSettings)
-      end,
-    })
-  end
+  button_defs["web_search"] = {
+    text = web_search and _("Web Search: ON") or _("Web Search: OFF"),
+    callback = function()
+      local f = self_ref.settings:readSetting("features") or {}
+      f.enable_web_search = not f.enable_web_search
+      self_ref.settings:saveSetting("features", f)
+      self_ref.settings:flush()
+      self_ref:updateConfigFromSettings()
+      opening_subdialog = true
+      UIManager:close(dialog)
+      reopenQuickSettings()
+    end,
+  }
 
-  -- Translation Language button
-  if isQsEnabled("translation_language") then
-    table.insert(all_buttons, {
-      text = T(_("Translate: %1"), trans_display),
-      callback = function()
-        opening_subdialog = true
-        UIManager:close(dialog)
-        local menu_items = self_ref:buildTranslationLanguageMenu()
-        self_ref:showQuickSettingsPopup(_("Translation Language"), menu_items, true, reopenQuickSettings)
-      end,
-    })
-  end
+  button_defs["language"] = {
+    text = T(_("Language: %1"), lang_display),
+    callback = function()
+      opening_subdialog = true
+      UIManager:close(dialog)
+      local menu_items = self_ref:buildPrimaryLanguageMenu()
+      self_ref:showQuickSettingsPopup(_("Primary Language"), menu_items, true, reopenQuickSettings)
+    end,
+  }
 
-  -- Dictionary Language button
-  if isQsEnabled("dictionary_language") then
-    table.insert(all_buttons, {
-      text = T(_("Dictionary: %1"), dict_display),
-      callback = function()
-        opening_subdialog = true
-        UIManager:close(dialog)
-        local menu_items = self_ref:buildDictionaryLanguageMenu()
-        self_ref:showQuickSettingsPopup(_("Dictionary Language"), menu_items, true, reopenQuickSettings)
-      end,
-    })
-  end
+  button_defs["translation_language"] = {
+    text = T(_("Translate: %1"), trans_display),
+    callback = function()
+      opening_subdialog = true
+      UIManager:close(dialog)
+      local menu_items = self_ref:buildTranslationLanguageMenu()
+      self_ref:showQuickSettingsPopup(_("Translation Language"), menu_items, true, reopenQuickSettings)
+    end,
+  }
 
-  -- H.Bypass button
-  if isQsEnabled("h_bypass") then
-    table.insert(all_buttons, {
-      text = highlight_bypass and _("H.Bypass: ON") or _("H.Bypass: OFF"),
-      callback = function()
-        local f = self_ref.settings:readSetting("features") or {}
-        f.highlight_bypass_enabled = not f.highlight_bypass_enabled
-        self_ref.settings:saveSetting("features", f)
-        self_ref.settings:flush()
-        self_ref:syncHighlightBypass()
-        opening_subdialog = true
-        UIManager:close(dialog)
-        reopenQuickSettings()
-      end,
-    })
-  end
+  button_defs["dictionary_language"] = {
+    text = T(_("Dictionary: %1"), dict_display),
+    callback = function()
+      opening_subdialog = true
+      UIManager:close(dialog)
+      local menu_items = self_ref:buildDictionaryLanguageMenu()
+      self_ref:showQuickSettingsPopup(_("Dictionary Language"), menu_items, true, reopenQuickSettings)
+    end,
+  }
 
-  -- D.Bypass button
-  if isQsEnabled("d_bypass") then
-    table.insert(all_buttons, {
-      text = dict_bypass and _("D.Bypass: ON") or _("D.Bypass: OFF"),
-      callback = function()
-        local f = self_ref.settings:readSetting("features") or {}
-        f.dictionary_bypass_enabled = not f.dictionary_bypass_enabled
-        self_ref.settings:saveSetting("features", f)
-        self_ref.settings:flush()
-        self_ref:syncDictionaryBypass()
-        opening_subdialog = true
-        UIManager:close(dialog)
-        reopenQuickSettings()
-      end,
-    })
-  end
+  button_defs["h_bypass"] = {
+    text = highlight_bypass and _("H.Bypass: ON") or _("H.Bypass: OFF"),
+    callback = function()
+      local f = self_ref.settings:readSetting("features") or {}
+      f.highlight_bypass_enabled = not f.highlight_bypass_enabled
+      self_ref.settings:saveSetting("features", f)
+      self_ref.settings:flush()
+      self_ref:syncHighlightBypass()
+      opening_subdialog = true
+      UIManager:close(dialog)
+      reopenQuickSettings()
+    end,
+  }
 
-  -- Chat History button
-  if isQsEnabled("chat_history") then
-    table.insert(all_buttons, {
-      text = _("Chat History"),
-      callback = function()
-        opening_subdialog = true
-        UIManager:close(dialog)
-        self_ref:showChatHistory()
-      end,
-    })
-  end
+  button_defs["d_bypass"] = {
+    text = dict_bypass and _("D.Bypass: ON") or _("D.Bypass: OFF"),
+    callback = function()
+      local f = self_ref.settings:readSetting("features") or {}
+      f.dictionary_bypass_enabled = not f.dictionary_bypass_enabled
+      self_ref.settings:saveSetting("features", f)
+      self_ref.settings:flush()
+      self_ref:syncDictionaryBypass()
+      opening_subdialog = true
+      UIManager:close(dialog)
+      reopenQuickSettings()
+    end,
+  }
 
-  -- Browse Notebooks button
-  if isQsEnabled("browse_notebooks") then
-    table.insert(all_buttons, {
-      text = _("Browse Notebooks"),
-      callback = function()
-        opening_subdialog = true
-        UIManager:close(dialog)
-        self_ref:onKOAssistantBrowseNotebooks()
-      end,
-    })
-  end
+  button_defs["chat_history"] = {
+    text = _("Chat History"),
+    callback = function()
+      opening_subdialog = true
+      UIManager:close(dialog)
+      self_ref:showChatHistory()
+    end,
+  }
 
-  -- Browse Artifacts button
-  if isQsEnabled("browse_artifacts") then
-    table.insert(all_buttons, {
-      text = _("Browse Artifacts"),
-      callback = function()
-        opening_subdialog = true
-        UIManager:close(dialog)
-        self_ref:onKOAssistantBrowseArtifacts()
-      end,
-    })
-  end
+  button_defs["browse_notebooks"] = {
+    text = _("Browse Notebooks"),
+    callback = function()
+      opening_subdialog = true
+      UIManager:close(dialog)
+      self_ref:onKOAssistantBrowseNotebooks()
+    end,
+  }
 
-  -- General Chat/Action button
-  if isQsEnabled("general_chat") then
-    table.insert(all_buttons, {
-      text = _("General Chat/Action"),
-      callback = function()
-        opening_subdialog = true
-        UIManager:close(dialog)
-        self_ref:startGeneralChat()
-      end,
-    })
-  end
+  button_defs["browse_artifacts"] = {
+    text = _("Browse Artifacts"),
+    callback = function()
+      opening_subdialog = true
+      UIManager:close(dialog)
+      self_ref:onKOAssistantBrowseArtifacts()
+    end,
+  }
 
-  -- Continue Last Chat button
-  if isQsEnabled("continue_last_chat") then
-    table.insert(all_buttons, {
-      text = _("Continue Last Chat"),
-      callback = function()
-        opening_subdialog = true
-        UIManager:close(dialog)
-        self_ref:onKOAssistantContinueLastOpened()
-      end,
-    })
-  end
+  button_defs["general_chat"] = {
+    text = _("General Chat/Action"),
+    callback = function()
+      opening_subdialog = true
+      UIManager:close(dialog)
+      self_ref:startGeneralChat()
+    end,
+  }
 
-  -- New Book Chat/Action (only when book is open)
-  if has_document and isQsEnabled("new_book_chat") then
-    table.insert(all_buttons, {
+  button_defs["continue_last_chat"] = {
+    text = _("Continue Last Chat"),
+    callback = function()
+      opening_subdialog = true
+      UIManager:close(dialog)
+      self_ref:onKOAssistantContinueLastOpened()
+    end,
+  }
+
+  button_defs["manage_actions"] = {
+    text = _("Manage Actions"),
+    callback = function()
+      opening_subdialog = true
+      UIManager:close(dialog)
+      self_ref:showPromptsManager()
+    end,
+  }
+
+  button_defs["more_settings"] = {
+    text = _("More Settings..."),
+    callback = function()
+      opening_subdialog = true
+      UIManager:close(dialog)
+      self_ref:onKOAssistantSettings()
+    end,
+  }
+
+  -- Dynamic items (only when book is open)
+  if has_document then
+    button_defs["new_book_chat"] = {
       text = _("New Book Chat/Action"),
       callback = function()
         opening_subdialog = true
         UIManager:close(dialog)
         self_ref:onKOAssistantBookChat()
       end,
-    })
-  end
+    }
 
-  -- Manage Actions button
-  if isQsEnabled("manage_actions") then
-    table.insert(all_buttons, {
-      text = _("Manage Actions"),
-      callback = function()
-        opening_subdialog = true
-        UIManager:close(dialog)
-        self_ref:showPromptsManager()
-      end,
-    })
-  end
-
-  -- Quick Actions (only when book is open)
-  if has_document and isQsEnabled("quick_actions") then
-    table.insert(all_buttons, {
+    button_defs["quick_actions"] = {
       text = _("Quick Actions..."),
       callback = function()
         opening_subdialog = true
         UIManager:close(dialog)
         self_ref:onKOAssistantQuickActions()
       end,
-    })
+    }
   end
 
-  -- More Settings button
-  if isQsEnabled("more_settings") then
-    table.insert(all_buttons, {
-      text = _("More Settings..."),
-      callback = function()
-        opening_subdialog = true
-        UIManager:close(dialog)
-        self_ref:onKOAssistantSettings()
-      end,
-    })
+  -- Iterate stored order, adding enabled + available items
+  local qs_order = self.action_service:getQsItemsOrder()
+  for _idx, item_id in ipairs(qs_order) do
+    if isQsEnabled(item_id) and button_defs[item_id] then
+      table.insert(all_buttons, button_defs[item_id])
+    end
   end
 
   -- Close button (always present, always last in order)
@@ -5791,41 +5744,49 @@ function AskGPT:onKOAssistantQuickActions()
   end
 
   -- 2. Utility items (configurable via Settings → Quick Actions Settings → Panel Utilities)
+  -- Order driven by stored qa_utilities_order (user-sortable)
   local ActionCache = require("koassistant_action_cache")
   local file = self.ui.document.file
 
-  for _idx, qa_util in ipairs(Constants.QUICK_ACTION_UTILITIES) do
-    -- Check if utility is enabled (default true if not set)
-    local setting_key = "qa_show_" .. qa_util.id
-    local enabled = features[setting_key]
-    if enabled == nil then enabled = qa_util.default end
+  -- Build lookup map from constants
+  local qa_util_map = {}
+  for _i, u in ipairs(Constants.QUICK_ACTION_UTILITIES) do qa_util_map[u.id] = u end
 
-    if enabled then
-      if qa_util.id == "view_caches" then
-        -- Single "Artifacts" button — opens cache picker (skips list if only one)
-        local has_any_cache = ActionCache.getXrayCache(file)
-            or ActionCache.getAnalyzeCache(file)
-            or ActionCache.getSummaryCache(file)
-            or ActionCache.get(file, "recap")
-        if has_any_cache then
+  local qa_util_order = self.action_service:getQaUtilitiesOrder()
+  for _idx, util_id in ipairs(qa_util_order) do
+    local qa_util = qa_util_map[util_id]
+    if qa_util then
+      -- Check if utility is enabled (default true if not set)
+      local enabled = features["qa_show_" .. util_id]
+      if enabled == nil then enabled = qa_util.default end
+
+      if enabled then
+        if util_id == "view_caches" then
+          -- Single "Artifacts" button — opens cache picker (skips list if only one)
+          local has_any_cache = ActionCache.getXrayCache(file)
+              or ActionCache.getAnalyzeCache(file)
+              or ActionCache.getSummaryCache(file)
+              or ActionCache.get(file, "recap")
+          if has_any_cache then
+            addButton({
+              text = _("View Artifacts"),
+              callback = function()
+                UIManager:close(dialog)
+                self_ref:viewCache()
+              end,
+            })
+          end
+        else
+          -- Standard utility button
+          local display_text = Constants.getQuickActionUtilityText(util_id, _)
           addButton({
-            text = _("View Artifacts"),
+            text = display_text,
             callback = function()
               UIManager:close(dialog)
-              self_ref:viewCache()
+              self_ref[qa_util.callback](self_ref)
             end,
           })
         end
-      else
-        -- Standard utility button
-        local display_text = Constants.getQuickActionUtilityText(qa_util.id, _)
-        addButton({
-          text = display_text,
-          callback = function()
-            UIManager:close(dialog)
-            self_ref[qa_util.callback](self_ref)
-          end,
-        })
       end
     end
   end
@@ -6496,6 +6457,16 @@ end
 function AskGPT:showQuickActionsManager()
   local prompts_manager = PromptsManager:new(self)
   prompts_manager:showQuickActionsManager()
+end
+
+function AskGPT:showQaUtilitiesManager()
+  local prompts_manager = PromptsManager:new(self)
+  prompts_manager:showQaUtilitiesManager()
+end
+
+function AskGPT:showQsItemsManager()
+  local prompts_manager = PromptsManager:new(self)
+  prompts_manager:showQsItemsManager()
 end
 
 function AskGPT:showFileBrowserActionsManager()
@@ -7383,6 +7354,28 @@ function AskGPT:resetQuickActions(touchmenu_instance)
     timeout = 2,
   })
   if touchmenu_instance then touchmenu_instance:updateItems() end
+end
+
+-- Reset QA panel utilities order and visibility
+function AskGPT:resetQaUtilities()
+  self.settings:delSetting("qa_utilities_order")
+  local features = self.settings:readSetting("features") or {}
+  for _i, u in ipairs(Constants.QUICK_ACTION_UTILITIES) do
+    features["qa_show_" .. u.id] = nil
+  end
+  self.settings:saveSetting("features", features)
+  self.settings:flush()
+end
+
+-- Reset QS panel items order and visibility
+function AskGPT:resetQsItems()
+  self.settings:delSetting("qs_items_order")
+  local features = self.settings:readSetting("features") or {}
+  for _i, id in ipairs(Constants.QS_ITEMS_DEFAULT_ORDER) do
+    features["qs_show_" .. id] = nil
+  end
+  self.settings:saveSetting("features", features)
+  self.settings:flush()
 end
 
 -- Reset custom providers and models only

@@ -15,6 +15,7 @@ local ModelConstraints = require("model_constraints")
 local SystemPrompts = require("prompts/system_prompts")
 local Actions = require("prompts/actions")
 local ActionService = require("action_service")
+local Constants = require("koassistant_constants")
 
 local PromptsManager = {}
 
@@ -4588,6 +4589,40 @@ function PromptsManager:showHighlightMenuActionOptions(action, index, total)
 end
 
 -- ============================================================
+-- Shared hamburger menu for sorting managers
+-- ============================================================
+
+function PromptsManager:showManagerResetOption(title, confirm_text, reset_callback)
+    local button_dialog
+    button_dialog = ButtonDialog:new{
+        title = title,
+        buttons = {
+            {
+                {
+                    text = _("Reset to Defaults"),
+                    callback = function()
+                        UIManager:close(button_dialog)
+                        UIManager:show(ConfirmBox:new{
+                            text = confirm_text,
+                            ok_callback = reset_callback,
+                        })
+                    end,
+                },
+            },
+            {
+                {
+                    text = _("Cancel"),
+                    callback = function()
+                        UIManager:close(button_dialog)
+                    end,
+                },
+            },
+        },
+    }
+    UIManager:show(button_dialog)
+end
+
+-- ============================================================
 -- Highlight Menu Actions Manager
 -- ============================================================
 
@@ -4652,8 +4687,21 @@ function PromptsManager:showHighlightMenuManager()
         })
     end
 
+    local self_ref = self
     self.highlight_menu_manager = Menu:new{
         title = T(_("Highlight Menu (%1 enabled)"), menu_count),
+        title_bar_left_icon = "appbar.menu",
+        onLeftButtonTap = function()
+            self_ref:showManagerResetOption(
+                _("Reset Highlight Menu"),
+                _("Reset highlight menu actions to defaults?\n\nThis restores the default ordering and selection.\n\nYour actions (custom and built-in) are preserved."),
+                function()
+                    self_ref.plugin:resetHighlightMenuActions()
+                    UIManager:close(self_ref.highlight_menu_manager)
+                    UIManager:scheduleIn(0.1, function() self_ref:showHighlightMenuManager() end)
+                end
+            )
+        end,
         item_table = menu_items,
         width = self.width,
         height = self.height,
@@ -4811,8 +4859,21 @@ function PromptsManager:showQuickActionsManager()
         })
     end
 
+    local self_ref = self
     self.quick_actions_menu = Menu:new{
         title = T(_("Quick Actions (%1 enabled)"), quick_count),
+        title_bar_left_icon = "appbar.menu",
+        onLeftButtonTap = function()
+            self_ref:showManagerResetOption(
+                _("Reset Quick Actions"),
+                _("Reset Quick Actions panel?\n\nThis restores the default actions shown in the Quick Actions menu.\n\nYour actions (custom and built-in) are preserved."),
+                function()
+                    self_ref.plugin:resetQuickActions()
+                    UIManager:close(self_ref.quick_actions_menu)
+                    UIManager:scheduleIn(0.1, function() self_ref:showQuickActionsManager() end)
+                end
+            )
+        end,
         item_table = menu_items,
         width = self.width,
         height = self.height,
@@ -4906,6 +4967,274 @@ function PromptsManager:showQuickActionsActionOptions(action, index, total)
 end
 
 -- ============================================================
+-- QA Utilities Manager
+-- ============================================================
+
+function PromptsManager:showQaUtilitiesManager(restore_page)
+    if not self.plugin.action_service then
+        UIManager:show(InfoMessage:new{
+            text = _("Action service not available."),
+        })
+        return
+    end
+
+    local features = self.plugin.settings:readSetting("features") or {}
+    local order = self.plugin.action_service:getQaUtilitiesOrder()
+
+    -- Count enabled items
+    local enabled_count = 0
+    for _idx, util_id in ipairs(order) do
+        local enabled = features["qa_show_" .. util_id]
+        if enabled == nil then
+            -- Look up default from Constants
+            for _i, u in ipairs(Constants.QUICK_ACTION_UTILITIES) do
+                if u.id == util_id then enabled = u.default; break end
+            end
+        end
+        if enabled then enabled_count = enabled_count + 1 end
+    end
+
+    local menu_items = {}
+
+    -- Help text item
+    table.insert(menu_items, {
+        text = _("✓ = visible | Tap = toggle | Hold = move"),
+        dim = true,
+        callback = function() end,
+    })
+
+    for pos, util_id in ipairs(order) do
+        local enabled = features["qa_show_" .. util_id]
+        if enabled == nil then
+            for _i, u in ipairs(Constants.QUICK_ACTION_UTILITIES) do
+                if u.id == util_id then enabled = u.default; break end
+            end
+        end
+
+        local prefix = enabled and "✓ " or "  "
+        local position = string.format("[%d] ", pos)
+        local display_text = Constants.getQuickActionUtilityText(util_id, _) or util_id
+
+        table.insert(menu_items, {
+            text = prefix .. position .. display_text,
+            util_id = util_id,
+            position = pos,
+            enabled = enabled,
+            callback = function()
+                -- Toggle visibility
+                local f = self.plugin.settings:readSetting("features") or {}
+                f["qa_show_" .. util_id] = not enabled
+                self.plugin.settings:saveSetting("features", f)
+                self.plugin.settings:flush()
+                local cur_page = self.qa_utilities_menu.page
+                UIManager:close(self.qa_utilities_menu)
+                UIManager:scheduleIn(0.1, function()
+                    self:showQaUtilitiesManager(cur_page)
+                end)
+            end,
+        })
+    end
+
+    local self_ref = self
+    self.qa_utilities_menu = Menu:new{
+        title = T(_("QA Panel Utilities (%1 visible)"), enabled_count),
+        title_bar_left_icon = "appbar.menu",
+        onLeftButtonTap = function()
+            self_ref:showManagerResetOption(
+                _("Reset QA Panel Utilities"),
+                _("Reset QA panel utilities to defaults?\n\nThis restores the default order and visibility of utility buttons."),
+                function()
+                    self_ref.plugin:resetQaUtilities()
+                    UIManager:close(self_ref.qa_utilities_menu)
+                    UIManager:scheduleIn(0.1, function() self_ref:showQaUtilitiesManager() end)
+                end
+            )
+        end,
+        item_table = menu_items,
+        width = self.width,
+        height = self.height,
+        covers_fullscreen = true,
+        is_borderless = true,
+        is_popout = false,
+        onMenuHold = function(_menu_widget, menu_item)
+            if menu_item and menu_item.util_id then
+                local cur_page = self.qa_utilities_menu.page
+                self:showOrderItemOptions(
+                    menu_item.util_id,
+                    menu_item.position,
+                    #order,
+                    Constants.getQuickActionUtilityText(menu_item.util_id, _) or menu_item.util_id,
+                    function(id, direction) self.plugin.action_service:moveQaUtility(id, direction) end,
+                    function() UIManager:close(self.qa_utilities_menu); self:showQaUtilitiesManager(cur_page) end
+                )
+            end
+        end,
+        close_callback = function()
+            UIManager:close(self.qa_utilities_menu)
+        end,
+    }
+    UIManager:show(self.qa_utilities_menu)
+    if restore_page and restore_page > 1 then
+        self.qa_utilities_menu:onGotoPage(restore_page)
+    end
+end
+
+-- ============================================================
+-- QS Items Manager
+-- ============================================================
+
+function PromptsManager:showQsItemsManager(restore_page)
+    if not self.plugin.action_service then
+        UIManager:show(InfoMessage:new{
+            text = _("Action service not available."),
+        })
+        return
+    end
+
+    local features = self.plugin.settings:readSetting("features") or {}
+    local order = self.plugin.action_service:getQsItemsOrder()
+
+    -- Count enabled items
+    local enabled_count = 0
+    for _idx, item_id in ipairs(order) do
+        local enabled = features["qs_show_" .. item_id]
+        if enabled == nil then enabled = true end
+        if enabled then enabled_count = enabled_count + 1 end
+    end
+
+    local menu_items = {}
+
+    -- Help text item
+    table.insert(menu_items, {
+        text = _("✓ = visible | Tap = toggle | Hold = move"),
+        dim = true,
+        callback = function() end,
+    })
+
+    for pos, item_id in ipairs(order) do
+        local enabled = features["qs_show_" .. item_id]
+        if enabled == nil then enabled = true end
+
+        local prefix = enabled and "✓ " or "  "
+        local position = string.format("[%d] ", pos)
+        local display_text = Constants.getQsItemText(item_id, _)
+        local dynamic = Constants.QS_DYNAMIC_ITEMS[item_id]
+        if dynamic then
+            display_text = display_text .. " " .. _("(dynamic)")
+        end
+
+        table.insert(menu_items, {
+            text = prefix .. position .. display_text,
+            item_id = item_id,
+            position = pos,
+            enabled = enabled,
+            callback = function()
+                -- Toggle visibility
+                local f = self.plugin.settings:readSetting("features") or {}
+                f["qs_show_" .. item_id] = not enabled
+                self.plugin.settings:saveSetting("features", f)
+                self.plugin.settings:flush()
+                local cur_page = self.qs_items_menu.page
+                UIManager:close(self.qs_items_menu)
+                UIManager:scheduleIn(0.1, function()
+                    self:showQsItemsManager(cur_page)
+                end)
+            end,
+        })
+    end
+
+    local self_ref = self
+    self.qs_items_menu = Menu:new{
+        title = T(_("QS Panel Items (%1 visible)"), enabled_count),
+        title_bar_left_icon = "appbar.menu",
+        onLeftButtonTap = function()
+            self_ref:showManagerResetOption(
+                _("Reset QS Panel Items"),
+                _("Reset QS panel items to defaults?\n\nThis restores the default order and visibility of Quick Settings items."),
+                function()
+                    self_ref.plugin:resetQsItems()
+                    UIManager:close(self_ref.qs_items_menu)
+                    UIManager:scheduleIn(0.1, function() self_ref:showQsItemsManager() end)
+                end
+            )
+        end,
+        item_table = menu_items,
+        width = self.width,
+        height = self.height,
+        covers_fullscreen = true,
+        is_borderless = true,
+        is_popout = false,
+        onMenuHold = function(_menu_widget, menu_item)
+            if menu_item and menu_item.item_id then
+                local cur_page = self.qs_items_menu.page
+                self:showOrderItemOptions(
+                    menu_item.item_id,
+                    menu_item.position,
+                    #order,
+                    Constants.getQsItemText(menu_item.item_id, _),
+                    function(id, direction) self.plugin.action_service:moveQsItem(id, direction) end,
+                    function() UIManager:close(self.qs_items_menu); self:showQsItemsManager(cur_page) end
+                )
+            end
+        end,
+        close_callback = function()
+            UIManager:close(self.qs_items_menu)
+        end,
+    }
+    UIManager:show(self.qs_items_menu)
+    if restore_page and restore_page > 1 then
+        self.qs_items_menu:onGotoPage(restore_page)
+    end
+end
+
+-- Shared hold options for ordered items (move up/down)
+function PromptsManager:showOrderItemOptions(item_id, index, total, display_text, move_fn, refresh_fn)
+    local buttons = {}
+
+    if index > 1 then
+        table.insert(buttons, {
+            {
+                text = _("↑ Move Up"),
+                callback = function()
+                    move_fn(item_id, "up")
+                    UIManager:close(self.order_options_dialog)
+                    refresh_fn()
+                end,
+            },
+        })
+    end
+
+    if index < total then
+        table.insert(buttons, {
+            {
+                text = _("↓ Move Down"),
+                callback = function()
+                    move_fn(item_id, "down")
+                    UIManager:close(self.order_options_dialog)
+                    refresh_fn()
+                end,
+            },
+        })
+    end
+
+    table.insert(buttons, {
+        {
+            text = _("Cancel"),
+            callback = function()
+                UIManager:close(self.order_options_dialog)
+            end,
+        },
+    })
+
+    self.order_options_dialog = ButtonDialog:new{
+        title = display_text,
+        info_text = _("Position: ") .. index .. "/" .. total,
+        buttons = buttons,
+    }
+    UIManager:show(self.order_options_dialog)
+end
+
+-- ============================================================
 -- File Browser Actions Manager
 -- ============================================================
 
@@ -4970,8 +5299,21 @@ function PromptsManager:showFileBrowserActionsManager()
         })
     end
 
+    local self_ref = self
     self.file_browser_menu = Menu:new{
         title = T(_("File Browser Actions (%1 pinned)"), fb_count),
+        title_bar_left_icon = "appbar.menu",
+        onLeftButtonTap = function()
+            self_ref:showManagerResetOption(
+                _("Reset File Browser Actions"),
+                _("Reset file browser actions to defaults?\n\nThis restores the default actions pinned to the file browser.\n\nYour actions (custom and built-in) are preserved."),
+                function()
+                    self_ref.plugin:resetFileBrowserActions()
+                    UIManager:close(self_ref.file_browser_menu)
+                    UIManager:scheduleIn(0.1, function() self_ref:showFileBrowserActionsManager() end)
+                end
+            )
+        end,
         item_table = menu_items,
         width = self.width,
         height = self.height,
@@ -5129,8 +5471,21 @@ function PromptsManager:showDictionaryPopupManager()
         })
     end
 
+    local self_ref = self
     self.dictionary_popup_menu = Menu:new{
         title = T(_("Dictionary Popup (%1 enabled)"), popup_count),
+        title_bar_left_icon = "appbar.menu",
+        onLeftButtonTap = function()
+            self_ref:showManagerResetOption(
+                _("Reset Dictionary Popup"),
+                _("Reset dictionary popup actions to defaults?\n\nThis restores the default ordering and selection.\n\nYour actions (custom and built-in) are preserved."),
+                function()
+                    self_ref.plugin:resetDictionaryPopupActions()
+                    UIManager:close(self_ref.dictionary_popup_menu)
+                    UIManager:scheduleIn(0.1, function() self_ref:showDictionaryPopupManager() end)
+                end
+            )
+        end,
         item_table = menu_items,
         width = self.width,
         height = self.height,
