@@ -1311,13 +1311,13 @@ Note: The summary may be in a different language than your response language. Tr
     analyze_full_document = {
         id = "analyze_full_document",
         enable_web_search = false,
-        text = _("Analyze Document"),
+        text = _("Document Analysis"),
         description = _("Analyzes the document's thesis, structure, key insights, and audience. The result is saved as an Analyze artifact that other actions can reference. Requires text extraction."),
         context = "book",
         use_book_text = true,  -- Permission gate (UI: "Allow text extraction")
         cache_as_analyze = true,  -- Save for other actions via {analyze_cache_section}
         use_response_caching = true,  -- View/Redo popup + per-action cache
-        in_reading_features = 6,  -- After Summarize Document (5)
+        in_reading_features = 6,  -- After Document Summary (5)
         storage_key = "__SKIP__",  -- Result lives in document cache, not chat history
         prompt = [[Analyze this document: "{title}"{author_clause}.
 
@@ -1342,7 +1342,7 @@ Provide analysis appropriate to this document's type and purpose. Address what's
     summarize_full_document = {
         id = "summarize_full_document",
         enable_web_search = false,
-        text = _("Summarize Document"),
+        text = _("Document Summary"),
         description = _("Creates a comprehensive summary preserving key details and structure. The result is saved as a Summary artifact — the foundation that all Smart actions rely on. Requires text extraction."),
         context = "book",
         use_book_text = true,  -- Permission gate (UI: "Allow text extraction")

@@ -4018,13 +4018,13 @@ function AskGPT:onKOAssistantAnalyzeHighlights()
   return true
 end
 
---- Execute Summarize Document action (foundation for Smart actions)
+--- Execute Document Summary action (foundation for Smart actions)
 function AskGPT:onKOAssistantSummarizeFullDocument()
   self:executeBookLevelAction("summarize_full_document")
   return true
 end
 
---- Execute Analyze Document action (thesis, structure, insights)
+--- Execute Document Analysis action (thesis, structure, insights)
 function AskGPT:onKOAssistantAnalyzeFullDocument()
   self:executeBookLevelAction("analyze_full_document")
   return true
@@ -4092,7 +4092,7 @@ function AskGPT:viewCache()
 
   if #caches == 0 then
     UIManager:show(InfoMessage:new{
-      text = _("No cached content found for this document.\n\nRun X-Ray, Recap, X-Ray (Simple), Summarize Document, or Analyze Document to create reusable caches."),
+      text = _("No cached content found for this document.\n\nRun X-Ray, Recap, X-Ray (Simple), Document Summary, or Document Analysis to create reusable caches."),
     })
     return
   end
