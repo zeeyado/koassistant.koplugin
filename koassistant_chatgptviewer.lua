@@ -913,6 +913,19 @@ local ChatGPTViewer = InputContainer:extend {
   on_delete = nil,
   cache_type_name = nil,
 
+  -- Artifact viewer context (simple_view only)
+  -- _info_text: pre-built multi-line string for Info popup (model, date, source, etc.)
+  -- _artifact_file: book file path for cross-navigation and Open button
+  -- _artifact_key: current artifact key for excluding from "Other Artifacts" list
+  -- _artifact_book_title/author: for passing to cross-navigation viewers
+  -- _book_open: whether the book is currently open in the reader
+  _info_text = nil,
+  _artifact_file = nil,
+  _artifact_key = nil,
+  _artifact_book_title = nil,
+  _artifact_book_author = nil,
+  _book_open = false,
+
   -- Callbacks for notebook viewer (simple_view for notebooks)
   -- on_edit: function() called when user clicks Edit (should close viewer and open editor)
   -- on_open_reader: function() called when user clicks Open in Reader (should close viewer and open ReaderUI)
@@ -2092,8 +2105,9 @@ function ChatGPTViewer:init()
   })
 
   -- Simple view buttons - read-only viewer for cached analyses
-  -- Row 1: Copy, Export (if metadata), ⇱ (top), ⇲ (bottom)
-  -- Row 2: MD/Text, Regenerate (if callback), Delete (if callback), Close
+  -- Row 1: Copy, Info, [Artifacts], Export, ⇱ (top), ⇲ (bottom)
+  -- Row 2: MD/Text, [Update/Regenerate/Open], [Delete], Close
+  -- Notebook mode replaces Row 2 middle with: Open in Reader, Edit
   local simple_view_row1 = {
     {
       text = _("Copy"),
@@ -2118,7 +2132,71 @@ function ChatGPTViewer:init()
     },
   }
 
-  -- Add Export button if cache_metadata or on_export callback is provided
+  -- Info button (shows metadata popup)
+  if self._info_text then
+    table.insert(simple_view_row1, {
+      text = _("Info"),
+      id = "info_cache",
+      callback = function()
+        local InfoMessage = require("ui/widget/infomessage")
+        UIManager:show(InfoMessage:new{
+          text = self._info_text,
+        })
+      end,
+      hold_callback = self.default_hold_callback,
+    })
+  end
+
+  -- Artifacts button (cross-navigate to other cached artifacts for the same book)
+  if self._artifact_file then
+    local ActionCache = require("koassistant_action_cache")
+    local other_artifacts = ActionCache.getAvailableArtifacts(self._artifact_file, self._artifact_key)
+    if #other_artifacts > 0 then
+      table.insert(simple_view_row1, {
+        text = _("Artifacts"),
+        id = "artifacts",
+        callback = function()
+          local ButtonDialog = require("ui/widget/buttondialog")
+          local art_buttons = {}
+          for _idx, art in ipairs(other_artifacts) do
+            local captured = art
+            table.insert(art_buttons, {{
+              text = _("View") .. " " .. captured.name,
+              callback = function()
+                UIManager:close(self._artifacts_dialog)
+                self:onClose()
+                if self._plugin then
+                  if captured.is_per_action then
+                    self._plugin:viewCachedAction(
+                      { text = captured.name }, captured.key, captured.data,
+                      { file = self._artifact_file, book_title = self._artifact_book_title,
+                        book_author = self._artifact_book_author })
+                  else
+                    self._plugin:showCacheViewer({
+                      name = captured.name, key = captured.key, data = captured.data,
+                      book_title = self._artifact_book_title, book_author = self._artifact_book_author,
+                      file = self._artifact_file })
+                  end
+                end
+              end,
+            }})
+          end
+          table.insert(art_buttons, {{
+            text = _("Cancel"),
+            callback = function() UIManager:close(self._artifacts_dialog) end,
+          }})
+          self._artifacts_dialog = ButtonDialog:new{
+            title = _("Other Artifacts"),
+            buttons = art_buttons,
+          }
+          UIManager:show(self._artifacts_dialog)
+        end,
+        hold_callback = self.default_hold_callback,
+      })
+    end
+  end
+
+  -- Export button (if cache_metadata or on_export callback is provided)
   if self.cache_metadata or self.on_export then
     table.insert(simple_view_row1, {
       text = _("Export"),
@@ -2134,7 +2212,7 @@ function ChatGPTViewer:init()
     })
   end
 
-  -- Add navigation buttons
+  -- Navigation buttons
   table.insert(simple_view_row1, {
     text = "⇱",
     id = "top",
@@ -2201,8 +2279,9 @@ function ChatGPTViewer:init()
       hold_callback = self.default_hold_callback,
     })
   else
-    -- Cache mode: Regenerate + Delete buttons
-    if self.on_regenerate then
+    -- Cache mode: Update/Regenerate or Open button
+    if self._book_open and self.on_regenerate then
+      -- Book is open: show Update or Regenerate
       local regen_label = self.regenerate_label or _("Regenerate")
       table.insert(simple_view_row2, {
         text = regen_label,
@@ -2217,6 +2296,18 @@ function ChatGPTViewer:init()
               self.on_regenerate()
             end,
           })
+        end,
+        hold_callback = self.default_hold_callback,
+      })
+    elseif not self._book_open and self._artifact_file then
+      -- Book not open (file browser): show Open button
+      table.insert(simple_view_row2, {
+        text = _("Open"),
+        id = "open_book",
+        callback = function()
+          self:onClose()
+          local ReaderUI = require("apps/reader/readerui")
+          ReaderUI:showReader(self._artifact_file)
         end,
         hold_callback = self.default_hold_callback,
       })

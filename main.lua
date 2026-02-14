@@ -4156,6 +4156,39 @@ local function formatDateWithRelative(timestamp)
   return date_str
 end
 
+--- Build info popup text for artifact viewer (labeled lines for Info button popup).
+--- @param cached_entry table: Cache entry with progress_decimal, model, timestamp, etc.
+--- @param progress_str string|nil: Pre-formatted progress string (e.g., "45%")
+--- @return string: Multi-line info text for InfoMessage popup
+local function buildInfoPopupText(cached_entry, progress_str)
+  local info_lines = {}
+  if progress_str then
+    local progress_label = progress_str
+    if cached_entry.previous_progress_decimal then
+      progress_label = progress_label .. " (" .. _("updated from") .. " "
+          .. math.floor(cached_entry.previous_progress_decimal * 100 + 0.5) .. "%)"
+    end
+    table.insert(info_lines, _("Progress:") .. " " .. progress_label)
+  end
+  table.insert(info_lines, _("Source:") .. " " .. formatCacheSourceLabel(cached_entry.used_book_text))
+  if cached_entry.model then
+    table.insert(info_lines, _("Model:") .. " " .. cached_entry.model)
+  end
+  if cached_entry.timestamp then
+    table.insert(info_lines, _("Date:") .. " " .. formatDateWithRelative(cached_entry.timestamp))
+  end
+  if cached_entry.language then
+    table.insert(info_lines, _("Language:") .. " " .. cached_entry.language)
+  end
+  if cached_entry.used_reasoning then
+    table.insert(info_lines, _("Reasoning:") .. " " .. _("Yes"))
+  end
+  if cached_entry.web_search_used then
+    table.insert(info_lines, _("Web search:") .. " " .. _("Yes"))
+  end
+  return table.concat(info_lines, "\n")
+end
+
 --- Show a specific cache in the viewer
 --- @param cache_info table: { name, key, data } where data contains result, progress_decimal, model, timestamp, used_annotations, used_book_text
 function AskGPT:showCacheViewer(cache_info)
@@ -4188,26 +4221,8 @@ function AskGPT:showCacheViewer(cache_info)
     title = title .. " - " .. book_title
   end
 
-  -- Build metadata info line for display at top of content
-  local info_parts = { cache_info.name }
-  if progress_str then
-    local progress_label = progress_str
-    if cache_info.data.previous_progress_decimal then
-      progress_label = progress_label .. " (" .. _("updated from") .. " "
-          .. math.floor(cache_info.data.previous_progress_decimal * 100 + 0.5) .. "%)"
-    end
-    table.insert(info_parts, progress_label)
-  end
-  table.insert(info_parts, formatCacheSourceLabel(cache_info.data.used_book_text))
-  if cache_info.data.model then
-    table.insert(info_parts, _("Model:") .. " " .. cache_info.data.model)
-  end
-  if cache_info.data.timestamp then
-    table.insert(info_parts, _("Date:") .. " " .. formatDateWithRelative(cache_info.data.timestamp))
-  elseif cache_info.data.language then
-    table.insert(info_parts, cache_info.data.language)
-  end
-  local cache_info_text = table.concat(info_parts, ". ") .. "."
+  -- Build info popup text (for Info button)
+  local info_popup_text = buildInfoPopupText(cache_info.data, progress_str)
 
   -- Map cache key to cache type
   local cache_type_map = {
@@ -4290,6 +4305,7 @@ function AskGPT:showCacheViewer(cache_info)
         local features = configuration and configuration.features or {}
         local browser_metadata = {
           title = book_title,
+          book_author = book_author,
           progress = cache_info.data.full_document and "Complete"
               or (cache_info.data.progress_decimal and
               (math.floor(cache_info.data.progress_decimal * 100 + 0.5) .. "%")),
@@ -4307,6 +4323,9 @@ function AskGPT:showCacheViewer(cache_info)
               (math.floor(cache_info.data.previous_progress_decimal * 100 + 0.5) .. "%"),
           progress_decimal = cache_info.data.progress_decimal,
           full_document = cache_info.data.full_document,
+          used_reasoning = cache_info.data.used_reasoning,
+          web_search_used = cache_info.data.web_search_used,
+          info_popup_text = info_popup_text,
         }
         -- Staleness checks (flow config change or reading progress advance)
         local ce_ok, ContextExtractor
@@ -4401,7 +4420,7 @@ function AskGPT:showCacheViewer(cache_info)
   -- Fallback: ChatGPTViewer for legacy markdown caches or non-xray caches
   local viewer = ChatGPTViewer:new{
     title = title,
-    text = cache_info_text .. "\n\n" .. cache_info.data.result,
+    text = cache_info.data.result,
     _cache_content = cache_info.data.result,
     simple_view = true,
     configuration = configuration,
@@ -4411,6 +4430,12 @@ function AskGPT:showCacheViewer(cache_info)
     on_delete = on_delete,
     _plugin = self,
     _ui = self.ui,
+    _info_text = info_popup_text,
+    _artifact_file = file,
+    _artifact_key = cache_info.key,
+    _artifact_book_title = book_title,
+    _artifact_book_author = book_author,
+    _book_open = (self.ui and self.ui.document ~= nil),
   }
   UIManager:show(viewer)
 end
@@ -4540,11 +4565,21 @@ function AskGPT:showCacheActionPopup(action, action_id, on_update)
       -- Enough new content for incremental update
       update_text = T(_("Update %1"), action_name .. " (" .. T(_("to %1"), progress.formatted) .. ")")
     else
-      -- Same position or negligible change — full regeneration
-      update_text = T(_("Redo %1"), action_name)
+      -- Same position or negligible change
+      -- Position-relevant actions: "Redo" (re-run at same position)
+      -- Position-irrelevant actions: "Regenerate" (full regen, position doesn't matter)
+      if action.use_reading_progress then
+        update_text = T(_("Redo %1"), action_name)
+      else
+        update_text = T(_("Regenerate %1"), action_name)
+      end
     end
   else
-    update_text = T(_("Redo %1"), action_name)
+    if action.use_reading_progress then
+      update_text = T(_("Redo %1"), action_name)
+    else
+      update_text = T(_("Regenerate %1"), action_name)
+    end
   end
 
   local ButtonDialog = require("ui/widget/buttondialog")
@@ -4764,7 +4799,7 @@ function AskGPT:viewCachedAction(action, action_id, cached_entry, opts)
   local ChatGPTViewer = require("koassistant_chatgptviewer")
   local action_name = action.text or action_id
 
-  -- Build title and info line (same pattern as showCacheViewer)
+  -- Build title (same pattern as showCacheViewer)
   local progress_str
   if cached_entry.progress_decimal then
     progress_str = math.floor(cached_entry.progress_decimal * 100 + 0.5) .. "%"
@@ -4773,38 +4808,39 @@ function AskGPT:viewCachedAction(action, action_id, cached_entry, opts)
   if progress_str then
     title = title .. " (" .. progress_str .. ")"
   end
-  -- Book title: from open book or opts fallback (file browser)
-  local book_title
+  -- Book metadata: from open book or opts fallback (file browser)
+  local book_title, book_author
   if self.ui then
     local props = self.ui.doc_props
     if props then
       book_title = props.display_title or props.title
+      book_author = props.authors
     end
   end
   if not book_title and opts then
     book_title = opts.book_title
   end
+  if not book_author and opts then
+    book_author = opts.book_author
+  end
   if book_title then
     title = title .. " - " .. book_title
   end
 
-  local info_parts = { action_name }
-  if progress_str then
-    local progress_label = progress_str
-    if cached_entry.previous_progress_decimal then
-      progress_label = progress_label .. " (" .. _("updated from") .. " "
-          .. math.floor(cached_entry.previous_progress_decimal * 100 + 0.5) .. "%)"
-    end
-    table.insert(info_parts, progress_label)
-  end
-  table.insert(info_parts, formatCacheSourceLabel(cached_entry.used_book_text))
-  if cached_entry.model then
-    table.insert(info_parts, _("Model:") .. " " .. cached_entry.model)
-  end
-  if cached_entry.timestamp then
-    table.insert(info_parts, _("Date:") .. " " .. formatDateWithRelative(cached_entry.timestamp))
-  end
-  local cache_info_text = table.concat(info_parts, ". ") .. "."
+  -- Build info popup text (for Info button)
+  local info_popup_text = buildInfoPopupText(cached_entry, progress_str)
+
+  -- Build cache metadata for export
+  local cache_metadata = {
+    cache_type = action_id,
+    book_title = book_title,
+    book_author = book_author,
+    progress_decimal = cached_entry.progress_decimal,
+    model = cached_entry.model,
+    timestamp = cached_entry.timestamp,
+    used_annotations = cached_entry.used_annotations,
+    used_book_text = cached_entry.used_book_text,
+  }
 
   -- Delete callback (open book or file browser via opts.file)
   local on_delete
@@ -4822,11 +4858,11 @@ function AskGPT:viewCachedAction(action, action_id, cached_entry, opts)
     end
   end
 
-  -- Update button for cache-first actions without incremental update (e.g., X-Ray Simple)
-  -- Regenerates fresh with new reading position; only when book is open
+  -- Update/Regenerate button: only when book is open (file browser gets "Open" button instead)
   local on_regenerate
   local regenerate_label
-  if action.use_response_caching and not action.update_prompt and file then
+  if action.use_response_caching and not action.update_prompt
+      and self.ui and self.ui.document then
     local self_ref2 = self
     local captured_action_id = action_id
     on_regenerate = function()
@@ -4835,21 +4871,29 @@ function AskGPT:viewCachedAction(action, action_id, cached_entry, opts)
       self_ref2._file_dialog_row_cache = { file = nil, rows = nil }
       self_ref2:executeBookLevelAction(captured_action_id)
     end
-    regenerate_label = _("Update")
+    -- Position-relevant actions get "Update", position-irrelevant get "Regenerate"
+    regenerate_label = action.use_reading_progress and _("Update") or _("Regenerate")
   end
 
   local viewer = ChatGPTViewer:new{
     title = title,
-    text = cache_info_text .. "\n\n" .. cached_entry.result,
+    text = cached_entry.result,
     _cache_content = cached_entry.result,
     simple_view = true,
     configuration = configuration,
+    cache_metadata = cache_metadata,
     cache_type_name = action_name,
     on_delete = on_delete,
     on_regenerate = on_regenerate,
     regenerate_label = regenerate_label,
     _plugin = self,
     _ui = self.ui,
+    _info_text = info_popup_text,
+    _artifact_file = file,
+    _artifact_key = action_id,
+    _artifact_book_title = book_title,
+    _artifact_book_author = book_author,
+    _book_open = (self.ui and self.ui.document ~= nil),
   }
   UIManager:show(viewer)
 end

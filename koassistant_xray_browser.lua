@@ -2637,28 +2637,6 @@ function XrayBrowser:showFullView()
         title = title .. " - " .. self.metadata.title
     end
 
-    -- Build metadata info line for display at top of content
-    local info_parts = { "X-Ray" }
-    if self.metadata.progress then
-        local progress_label = self.metadata.progress
-        if self.metadata.previous_progress then
-            progress_label = progress_label .. " (" .. _("updated from") .. " " .. self.metadata.previous_progress .. ")"
-        end
-        table.insert(info_parts, progress_label)
-    end
-    if self.metadata.source_label then
-        table.insert(info_parts, self.metadata.source_label)
-    end
-    if self.metadata.model then
-        table.insert(info_parts, _("Model:") .. " " .. self.metadata.model)
-    end
-    if self.metadata.formatted_date then
-        table.insert(info_parts, _("Date:") .. " " .. self.metadata.formatted_date)
-    elseif self.metadata.timestamp then
-        table.insert(info_parts, _("Date:") .. " " .. os.date("%Y-%m-%d", self.metadata.timestamp))
-    end
-    local cache_info_text = table.concat(info_parts, ". ") .. "."
-
     -- Wrap on_delete to also close the browser since the cache is gone
     local on_delete_fullview
     if self.on_delete then
@@ -2674,13 +2652,20 @@ function XrayBrowser:showFullView()
     -- Overlay on top of the menu — closing the viewer returns to the browser
     UIManager:show(ChatGPTViewer:new{
         title = title,
-        text = cache_info_text .. "\n\n" .. markdown,
+        text = markdown,
         _cache_content = markdown,
         simple_view = true,
         cache_metadata = self.metadata.cache_metadata,
         cache_type_name = "X-Ray",
         on_delete = on_delete_fullview,
         configuration = self.metadata.configuration,
+        _info_text = self.metadata.info_popup_text,
+        _artifact_file = self.metadata.book_file,
+        _artifact_key = "_xray_cache",
+        _artifact_book_title = self.metadata.title,
+        _artifact_book_author = self.metadata.book_author,
+        _book_open = (self.ui and self.ui.document ~= nil),
+        _plugin = self.metadata.plugin,
     })
 end
 
@@ -2827,6 +2812,12 @@ function XrayBrowser:showOptions()
     table.insert(info_parts, _("Type:") .. " " .. type_label)
     if self.metadata.source_label then
         table.insert(info_parts, _("Source:") .. " " .. self.metadata.source_label)
+    end
+    if self.metadata.used_reasoning then
+        table.insert(info_parts, _("Reasoning:") .. " " .. _("Yes"))
+    end
+    if self.metadata.web_search_used then
+        table.insert(info_parts, _("Web search:") .. " " .. _("Yes"))
     end
 
     if #info_parts > 0 then

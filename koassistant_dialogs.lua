@@ -2448,6 +2448,8 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                     save_progress,
                     { model = ConfigHelper:getModelInfo(temp_config), used_book_text = book_text_was_provided,
                       used_highlights = highlights_were_provided,
+                      used_reasoning = (reasoning ~= nil and reasoning ~= ""),
+                      web_search_used = web_search_used or false,
                       previous_progress_decimal = message_data.cached_progress_decimal,
                       flow_visible_pages = message_data.flow_visible_pages,
                       progress_page = message_data.progress_page,
@@ -2481,6 +2483,8 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                         model = model_name,
                         used_highlights = used_highlights,
                         used_book_text = book_text_was_provided,
+                        used_reasoning = (reasoning ~= nil and reasoning ~= ""),
+                        web_search_used = web_search_used or false,
                         previous_progress_decimal = message_data.cached_progress_decimal,
                         flow_visible_pages = message_data.flow_visible_pages,
                         progress_page = message_data.progress_page,
@@ -2496,6 +2500,8 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                     local analyze_metadata = {
                         model = model_name,
                         used_book_text = book_text_was_provided,
+                        used_reasoning = (reasoning ~= nil and reasoning ~= ""),
+                        web_search_used = web_search_used or false,
                         flow_visible_pages = message_data.flow_visible_pages,
                     }
                     local analyze_success = ActionCache.setAnalyzeCache(ui.document.file, answer, 1.0, analyze_metadata)
@@ -2510,6 +2516,8 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                         model = model_name,
                         language = temp_config.features and temp_config.features.translation_language or "English",
                         used_book_text = book_text_was_provided,
+                        used_reasoning = (reasoning ~= nil and reasoning ~= ""),
+                        web_search_used = web_search_used or false,
                         flow_visible_pages = message_data.flow_visible_pages,
                     }
                     local summary_success = ActionCache.setSummaryCache(ui.document.file, answer, 1.0, summary_metadata)
