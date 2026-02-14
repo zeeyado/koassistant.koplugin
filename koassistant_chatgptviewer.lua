@@ -1054,6 +1054,7 @@ function ChatGPTViewer:init()
       self:showViewerSettings()
     end,
   }
+  self._titlebar = titlebar
 
   -- Scroll buttons stay always enabled - simpler and more reliable than
   -- tracking state across widget recreation (MD/Text mode toggle).
@@ -3994,7 +3995,10 @@ end
 function ChatGPTViewer:showViewerSettings()
   local dialog
   dialog = ButtonDialog:new{
-    title = _("Chat Viewer Settings"),
+    shrink_unneeded_width = true,
+    anchor = self._titlebar and self._titlebar.left_button and function()
+        return self._titlebar.left_button.image.dimen, true
+    end or nil,
     buttons = {
       {
         {

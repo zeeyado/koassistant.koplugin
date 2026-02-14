@@ -897,26 +897,6 @@ function PromptsManager:showPromptDetails(prompt)
         })
     end
 
-    -- Gesture menu toggle
-    if self:isGestureCompatibleContext(prompt.context) and prompt.enabled then
-        local in_gesture = self:isGestureEnabled(prompt)
-        table.insert(toggle_buttons, {
-            text = in_gesture and _("✓ Gesture Menu") or _("+ Gesture Menu"),
-            callback = function()
-                local self_ref = self
-                self_ref:setGestureEnabled(prompt, not in_gesture)
-                UIManager:close(self_ref.details_dialog)
-                UIManager:show(InfoMessage:new{
-                    text = in_gesture
-                        and _("Removed from gesture menu.\nRestart KOReader to apply.")
-                        or _("Added to gesture menu.\nRestart KOReader to apply."),
-                    timeout = 3,
-                })
-                self_ref:refreshMenu()
-            end,
-        })
-    end
-
     -- Quick Actions toggle (book context only)
     if prompt.context == "book" and prompt.enabled and self.plugin.action_service then
         local in_quick_actions = self.plugin.action_service:isInQuickActions(prompt.id)
@@ -935,6 +915,29 @@ function PromptsManager:showPromptDetails(prompt)
                 self_ref:refreshMenu()
             end,
         })
+    end
+
+    -- Input Dialog toggle (book and highlight contexts)
+    if self.plugin.action_service then
+        local input_ctx = ActionService.getInputContextForAction(prompt)
+        if input_ctx and prompt.enabled then
+            local in_input = self.plugin.action_service:isInInput(input_ctx, prompt.id)
+            table.insert(toggle_buttons, {
+                text = in_input and _("✓ Input Dialog") or _("+ Input Dialog"),
+                callback = function()
+                    local self_ref = self
+                    self.plugin.action_service:toggleInputAction(input_ctx, prompt.id)
+                    UIManager:close(self_ref.details_dialog)
+                    UIManager:show(InfoMessage:new{
+                        text = in_input
+                            and _("Removed from input dialog.")
+                            or _("Added to input dialog."),
+                        timeout = 2,
+                    })
+                    self_ref:refreshMenu()
+                end,
+            })
+        end
     end
 
     -- General Input toggle (general context only)
@@ -972,6 +975,26 @@ function PromptsManager:showPromptDetails(prompt)
                         and _("Removed from file browser.")
                         or _("Added to file browser."),
                     timeout = 2,
+                })
+                self_ref:refreshMenu()
+            end,
+        })
+    end
+
+    -- Gesture menu toggle (last among feature toggles)
+    if self:isGestureCompatibleContext(prompt.context) and prompt.enabled then
+        local in_gesture = self:isGestureEnabled(prompt)
+        table.insert(toggle_buttons, {
+            text = in_gesture and _("✓ Gesture Menu") or _("+ Gesture Menu"),
+            callback = function()
+                local self_ref = self
+                self_ref:setGestureEnabled(prompt, not in_gesture)
+                UIManager:close(self_ref.details_dialog)
+                UIManager:show(InfoMessage:new{
+                    text = in_gesture
+                        and _("Removed from gesture menu.\nRestart KOReader to apply.")
+                        or _("Added to gesture menu.\nRestart KOReader to apply."),
+                    timeout = 3,
                 })
                 self_ref:refreshMenu()
             end,
@@ -5478,6 +5501,176 @@ function PromptsManager:showDictionaryPopupManager()
         end,
     }
     UIManager:show(self.dictionary_popup_menu)
+end
+
+-- ============================================================
+-- Input Dialog Actions Manager (Generic for all 4 input contexts)
+-- ============================================================
+
+local INPUT_CONTEXT_TITLES = {
+    general = _("General Input Actions"),
+    book = _("Book Input Actions"),
+    book_filebrowser = _("File Browser Input Actions"),
+    highlight = _("Highlight Input Actions"),
+    xray_chat = _("X-Ray Chat Actions"),
+}
+
+function PromptsManager:_buildInputActionsItems(ctx_name, bold_id)
+    local features = self.plugin.settings:readSetting("features") or {}
+    local as = self.plugin.action_service
+    local is_general = ctx_name == "general"
+    local all_actions
+    if is_general then
+        -- General context uses dedicated general menu API
+        local raw = as:getAllGeneralActionsWithMenuState()
+        all_actions = {}
+        for _idx, item in ipairs(raw) do
+            table.insert(all_actions, {
+                action = item.action,
+                in_input = item.in_menu,
+                input_position = item.menu_position,
+            })
+        end
+    else
+        all_actions = as:getAllActionsWithInputState(ctx_name)
+    end
+    local input_count = 0
+    local menu_items = {}
+
+    table.insert(menu_items, {
+        text = _("✓ = shown | Tap = toggle | Hold = move | ☰ = menu"),
+        dim = true,
+        callback = function() end,
+    })
+
+    for _idx, item in ipairs(all_actions) do
+        local action = item.action
+        if item.in_input then input_count = input_count + 1 end
+        local prefix = item.in_input and "✓ " or "  "
+        local position = item.in_input and string.format("[%d] ", item.input_position) or ""
+        local source_indicator = ""
+        if action.source == "ui" then source_indicator = " ★"
+        elseif action.source == "config" then source_indicator = " ◆" end
+
+        table.insert(menu_items, {
+            text = prefix .. position .. ActionService.getActionDisplayText(action, features) .. source_indicator,
+            action = action,
+            in_input = item.in_input,
+            input_position = item.input_position,
+            bold = (item.in_input and action.id == bold_id),
+            callback = function()
+                if is_general then
+                    as:toggleGeneralMenuAction(action.id)
+                else
+                    as:toggleInputAction(ctx_name, action.id)
+                end
+                UIManager:nextTick(function() self:_refreshInputActionsMenu(ctx_name) end)
+            end,
+        })
+    end
+    return menu_items, input_count
+end
+
+function PromptsManager:_refreshInputActionsMenu(ctx_name, bold_id)
+    if not self.input_actions_menu then return end
+    local menu_items, input_count = self:_buildInputActionsItems(ctx_name, bold_id)
+    local title = INPUT_CONTEXT_TITLES[ctx_name] or _("Input Actions")
+    self.input_actions_menu:switchItemTable(
+        T(_("%1 (%2 shown)"), title, input_count), menu_items, -1)
+end
+
+function PromptsManager:showInputActionsManager(ctx_name, on_close_callback)
+    if not self.plugin or not self.plugin.action_service then
+        UIManager:show(InfoMessage:new{
+            text = _("Action service not available."),
+            timeout = 2,
+        })
+        return
+    end
+
+    local is_general = ctx_name == "general"
+    local menu_items, input_count = self:_buildInputActionsItems(ctx_name)
+    local self_ref = self
+    local title = INPUT_CONTEXT_TITLES[ctx_name] or _("Input Actions")
+    local as = self.plugin.action_service
+
+    -- Reset handler differs for general (clears dismissed list) vs other (resetInputActions)
+    local reset_callback = function()
+        if is_general then
+            self_ref.plugin.settings:delSetting("general_menu_actions")
+            self_ref.plugin.settings:delSetting("_dismissed_general_menu_actions")
+            self_ref.plugin.settings:flush()
+        else
+            as:resetInputActions(ctx_name)
+        end
+        self_ref:_refreshInputActionsMenu(ctx_name)
+    end
+
+    self.input_actions_menu = Menu:new{
+        title = T(_("%1 (%2 shown)"), title, input_count),
+        title_bar_left_icon = "appbar.menu",
+        onLeftButtonTap = function()
+            local buttons = {
+                {{ text = _("Reset to defaults"), align = "left", callback = function()
+                    if self_ref._anchored_menu then UIManager:close(self_ref._anchored_menu) end
+                    UIManager:show(ConfirmBox:new{
+                        text = _("Reset input actions to defaults?\n\nThis restores the default ordering and selection."),
+                        ok_callback = reset_callback,
+                    })
+                end }},
+            }
+            self_ref:_showAnchoredMenu(self_ref.input_actions_menu, buttons)
+        end,
+        item_table = menu_items,
+        width = self.width,
+        height = self.height,
+        covers_fullscreen = true,
+        is_borderless = true,
+        is_popout = false,
+        close_callback = on_close_callback,
+        onMenuHold = function(_menu_widget, menu_item)
+            if menu_item and menu_item.action then
+                if not menu_item.in_input or is_general then
+                    -- Not in input list, or general context (no reordering) — show info
+                    UIManager:show(InfoMessage:new{
+                        text = string.format("%s\n\nSource: %s\n\nTap to toggle.",
+                            menu_item.action.text or menu_item.action.id,
+                            menu_item.action.source or "builtin"),
+                        timeout = 3,
+                    })
+                else
+                    -- Non-general: hold to reorder
+                    self_ref:_refreshInputActionsMenu(ctx_name, menu_item.action.id)
+                    local move_fn = function(id, dir) as:moveInputAction(ctx_name, id, dir) end
+                    local function find_pos(target_id)
+                        local all = as:getAllActionsWithInputState(ctx_name)
+                        local total, pos = 0, nil
+                        for _i, a in ipairs(all) do
+                            if a.in_input then
+                                total = total + 1
+                                if a.action.id == target_id then pos = a.input_position end
+                            end
+                        end
+                        return pos, total
+                    end
+                    local function reshow(moved_id)
+                        self_ref:_refreshInputActionsMenu(ctx_name, moved_id)
+                        local pos, total = find_pos(moved_id)
+                        if pos then
+                            self_ref:showOrderItemOptions(moved_id, pos, total,
+                                move_fn, reshow, function() self_ref:_refreshInputActionsMenu(ctx_name) end)
+                        end
+                    end
+                    local pos, total = find_pos(menu_item.action.id)
+                    if pos then
+                        self_ref:showOrderItemOptions(menu_item.action.id, pos, total,
+                            move_fn, reshow, function() self_ref:_refreshInputActionsMenu(ctx_name) end)
+                    end
+                end
+            end
+        end,
+    }
+    UIManager:show(self.input_actions_menu)
 end
 
 return PromptsManager

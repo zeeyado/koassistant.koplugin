@@ -1903,4 +1903,282 @@ function ActionService.getActionDisplayText(action, features)
     return text
 end
 
+-- ============================================================
+-- Input Dialog Per-Context Action Ordering (Generic)
+-- ============================================================
+-- Parameterized system for 4 input dialog contexts:
+-- book, book_filebrowser, highlight, xray_chat
+-- Each context has its own ordered list of actions stored in settings.
+
+local INPUT_CONTEXTS = {
+    book = {
+        settings_key = "input_book_actions",
+        dismissed_key = "_dismissed_input_book_actions",
+        action_context = "book",
+        has_open_book = true,
+    },
+    book_filebrowser = {
+        settings_key = "input_book_fb_actions",
+        dismissed_key = "_dismissed_input_book_fb_actions",
+        action_context = "book",
+        has_open_book = false,  -- filters out requiresOpenBook actions
+    },
+    highlight = {
+        settings_key = "input_highlight_actions",
+        dismissed_key = "_dismissed_input_highlight_actions",
+        action_context = "highlight",
+        has_open_book = true,
+    },
+    xray_chat = {
+        settings_key = "input_xray_chat_actions",
+        dismissed_key = "_dismissed_input_xray_chat_actions",
+        action_context = "highlight",
+        has_open_book = true,
+        -- Curated defaults: only these actions appear by default
+        default_ids = {"explain", "elaborate", "eli5", "fact_check"},
+    },
+}
+
+-- Get all eligible action IDs for an input context (respects enabled state and open book filtering)
+function ActionService:_getEligibleInputActionIds(ctx_name)
+    local ctx = INPUT_CONTEXTS[ctx_name]
+    if not ctx then return {} end
+    local all = self:getAllActions(ctx.action_context, false, ctx.has_open_book)
+    local ids = {}
+    for _, action in ipairs(all) do
+        if action.id then
+            table.insert(ids, action.id)
+        end
+    end
+    return ids
+end
+
+-- Build default ordered list for an input context
+function ActionService:_buildInputDefaults(ctx_name)
+    local ctx = INPUT_CONTEXTS[ctx_name]
+    if not ctx then return {} end
+    if ctx.default_ids then
+        -- Curated defaults: filter to only those that actually exist and are eligible
+        local eligible_set = {}
+        for _, id in ipairs(self:_getEligibleInputActionIds(ctx_name)) do
+            eligible_set[id] = true
+        end
+        local result = {}
+        for _, id in ipairs(ctx.default_ids) do
+            if eligible_set[id] then
+                table.insert(result, id)
+            end
+        end
+        return result
+    else
+        -- Default all: return all eligible actions
+        return self:_getEligibleInputActionIds(ctx_name)
+    end
+end
+
+-- Process a saved input action list: prune stale, inject new defaults (respecting dismissals)
+function ActionService:_processInputList(ctx_name, saved)
+    local ctx = INPUT_CONTEXTS[ctx_name]
+    if not ctx then return saved end
+
+    local dismissed = self.settings:readSetting(ctx.dismissed_key) or {}
+    local dismissed_set = {}
+    for _, id in ipairs(dismissed) do dismissed_set[id] = true end
+
+    -- Build set of all eligible IDs
+    local eligible_ids = self:_getEligibleInputActionIds(ctx_name)
+    local eligible_set = {}
+    for _, id in ipairs(eligible_ids) do eligible_set[id] = true end
+
+    -- Prune stale IDs (actions that no longer exist or aren't eligible)
+    local pruned = {}
+    for _, id in ipairs(saved) do
+        if eligible_set[id] then
+            table.insert(pruned, id)
+        end
+    end
+
+    -- For non-curated contexts: inject new eligible actions not yet in list and not dismissed
+    if not ctx.default_ids then
+        local current_set = {}
+        for _, id in ipairs(pruned) do current_set[id] = true end
+        for _, id in ipairs(eligible_ids) do
+            if not current_set[id] and not dismissed_set[id] then
+                table.insert(pruned, id)
+            end
+        end
+    end
+
+    return pruned
+end
+
+-- Get ordered list of action IDs for an input context
+function ActionService:getInputActions(ctx_name)
+    local ctx = INPUT_CONTEXTS[ctx_name]
+    if not ctx then return {} end
+    local saved = self.settings:readSetting(ctx.settings_key)
+    if not saved then
+        return self:_buildInputDefaults(ctx_name)
+    end
+    local processed = self:_processInputList(ctx_name, saved)
+    self.settings:saveSetting(ctx.settings_key, processed)
+    return processed
+end
+
+-- Get ordered action objects for an input context (resolved, enabled only)
+function ActionService:getInputActionObjects(ctx_name)
+    local action_ids = self:getInputActions(ctx_name)
+    local result = {}
+    for _, id in ipairs(action_ids) do
+        -- Search across contexts since "both" actions appear in highlight and book
+        local action = self:getAction(nil, id)
+        if action and action.enabled then
+            table.insert(result, action)
+        end
+    end
+    return result
+end
+
+-- Check if action is in input context
+function ActionService:isInInput(ctx_name, action_id)
+    local actions = self:getInputActions(ctx_name)
+    for _, id in ipairs(actions) do
+        if id == action_id then return true end
+    end
+    return false
+end
+
+-- Add action to input context (appends to end)
+function ActionService:addToInput(ctx_name, action_id)
+    local ctx = INPUT_CONTEXTS[ctx_name]
+    if not ctx then return end
+    if self:isInInput(ctx_name, action_id) then return end
+    local actions = self:getInputActions(ctx_name)
+    table.insert(actions, action_id)
+    self.settings:saveSetting(ctx.settings_key, actions)
+    -- Remove from dismissed list if present
+    local dismissed = self.settings:readSetting(ctx.dismissed_key) or {}
+    for i, id in ipairs(dismissed) do
+        if id == action_id then
+            table.remove(dismissed, i)
+            self.settings:saveSetting(ctx.dismissed_key, dismissed)
+            break
+        end
+    end
+    self.settings:flush()
+end
+
+-- Remove action from input context
+function ActionService:removeFromInput(ctx_name, action_id)
+    local ctx = INPUT_CONTEXTS[ctx_name]
+    if not ctx then return end
+    local actions = self:getInputActions(ctx_name)
+    for i, id in ipairs(actions) do
+        if id == action_id then
+            table.remove(actions, i)
+            self.settings:saveSetting(ctx.settings_key, actions)
+            -- Add to dismissed list so it won't be auto-injected again
+            local dismissed = self.settings:readSetting(ctx.dismissed_key) or {}
+            table.insert(dismissed, action_id)
+            self.settings:saveSetting(ctx.dismissed_key, dismissed)
+            self.settings:flush()
+            return
+        end
+    end
+end
+
+-- Toggle action in input context
+-- Returns: true if now in context, false if removed
+function ActionService:toggleInputAction(ctx_name, action_id)
+    if self:isInInput(ctx_name, action_id) then
+        self:removeFromInput(ctx_name, action_id)
+        return false
+    else
+        self:addToInput(ctx_name, action_id)
+        return true
+    end
+end
+
+-- Move action within input context (reorder)
+function ActionService:moveInputAction(ctx_name, action_id, direction)
+    local ctx = INPUT_CONTEXTS[ctx_name]
+    if not ctx then return end
+    local actions = self:getInputActions(ctx_name)
+    for i, id in ipairs(actions) do
+        if id == action_id then
+            local new_index = direction == "up" and i - 1 or i + 1
+            if new_index >= 1 and new_index <= #actions then
+                actions[i], actions[new_index] = actions[new_index], actions[i]
+                self.settings:saveSetting(ctx.settings_key, actions)
+                self.settings:flush()
+            end
+            return
+        end
+    end
+end
+
+-- Get all eligible actions with input membership info (for sorting manager UI)
+-- Returns array of { action, in_input, input_position }
+function ActionService:getAllActionsWithInputState(ctx_name)
+    local ctx = INPUT_CONTEXTS[ctx_name]
+    if not ctx then return {} end
+    local input_ids = self:getInputActions(ctx_name)
+
+    -- Create position lookup
+    local input_positions = {}
+    for i, id in ipairs(input_ids) do
+        input_positions[id] = i
+    end
+
+    local all_actions = self:getAllActions(ctx.action_context, true, ctx.has_open_book)
+    local result = {}
+    for _, action in ipairs(all_actions) do
+        if action.id then
+            table.insert(result, {
+                action = action,
+                in_input = input_positions[action.id] ~= nil,
+                input_position = input_positions[action.id],
+            })
+        end
+    end
+
+    -- Sort: input items first (by position), then non-input items (alphabetically)
+    table.sort(result, function(a, b)
+        if a.in_input and b.in_input then
+            return a.input_position < b.input_position
+        elseif a.in_input then
+            return true
+        elseif b.in_input then
+            return false
+        else
+            return (a.action.text or ""):lower() < (b.action.text or ""):lower()
+        end
+    end)
+
+    return result
+end
+
+-- Reset input context to defaults
+function ActionService:resetInputActions(ctx_name)
+    local ctx = INPUT_CONTEXTS[ctx_name]
+    if not ctx then return end
+    self.settings:delSetting(ctx.settings_key)
+    self.settings:delSetting(ctx.dismissed_key)
+    self.settings:flush()
+end
+
+-- Get the input context name for an action based on its context type
+-- Returns ctx_name or nil if action doesn't belong to any input context
+function ActionService.getInputContextForAction(action)
+    if not action then return nil end
+    local context = action.context
+    if context == "book" then
+        return "book"
+    elseif context == "highlight" or context == "both" then
+        return "highlight"
+    end
+    -- general context actions use the existing general menu system, not input contexts
+    return nil
+end
+
 return ActionService

@@ -2724,9 +2724,11 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     -- Must read and clear immediately so they don't persist to subsequent calls
     local hide_artifacts = ((configuration or {}).features or {})._hide_artifacts
     local exclude_action_flags = ((configuration or {}).features or {})._exclude_action_flags
+    local is_xray_chat = ((configuration or {}).features or {})._xray_chat_context
     if configuration and configuration.features then
         configuration.features._hide_artifacts = nil
         configuration.features._exclude_action_flags = nil
+        configuration.features._xray_chat_context = nil
     end
 
     -- Log which provider we're using
@@ -2818,8 +2820,28 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         logger.info("KOAssistant: No metadata available in either context")
     end
 
+    -- Determine input context for per-context action ordering
+    local has_open_book = ui_instance and ui_instance.document ~= nil
+    local input_context
+    if is_general_context then
+        input_context = "general"  -- Uses existing getGeneralMenuActionObjects()
+    elseif is_xray_chat then
+        input_context = "xray_chat"
+    elseif configuration and configuration.features and configuration.features.is_book_context then
+        if has_open_book then
+            input_context = "book"
+        else
+            input_context = "book_filebrowser"
+        end
+    else
+        input_context = "highlight"
+    end
+
     -- Track selected domain for this dialog (initialize from config if set)
     local selected_domain = configuration and configuration.features and configuration.features.selected_domain or nil
+
+    -- Forward declaration (showDomainSelector uses refreshInputDialog, defined later)
+    local refreshInputDialog
 
     -- Function to show domain selector
     local function showDomainSelector()
@@ -2844,14 +2866,9 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     selected_domain = nil
                     configuration.features = configuration.features or {}
                     configuration.features.selected_domain = nil
-                    -- Persist to settings so it survives restarts
                     persistDomainSelection(plugin, nil)
-                    -- Capture current input text before closing
-                    local current_input = input_dialog:getInputText()
                     UIManager:close(_G.domain_selector_dialog)
-                    -- Refresh main dialog to show updated domain selection, preserving input
-                    UIManager:close(input_dialog)
-                    showChatGPTDialog(ui_instance, highlighted_text, configuration, nil, plugin, book_metadata, current_input)
+                    refreshInputDialog()
                 end,
             },
         })
@@ -2868,14 +2885,9 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         selected_domain = domain.id
                         configuration.features = configuration.features or {}
                         configuration.features.selected_domain = domain.id
-                        -- Persist to settings so it survives restarts
                         persistDomainSelection(plugin, domain.id)
-                        -- Capture current input text before closing
-                        local current_input = input_dialog:getInputText()
                         UIManager:close(_G.domain_selector_dialog)
-                        -- Refresh main dialog to show updated domain selection, preserving input
-                        UIManager:close(input_dialog)
-                        showChatGPTDialog(ui_instance, highlighted_text, configuration, nil, plugin, book_metadata, current_input)
+                        refreshInputDialog()
                     end,
                 },
             })
@@ -2916,30 +2928,54 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         return selected_domain
     end
 
-    -- Collect all buttons in priority order
-    local all_buttons = {
-        -- 1. Close
-        {
-            text = _("Close"),
-            id = "close",
-            callback = function()
-                UIManager:close(input_dialog)
-                -- Clear reference so other dialogs know we're closed
-                if plugin then
-                    plugin.current_input_dialog = nil
-                end
-            end
-        },
-        -- 2. Domain selector
-        {
-            text = _("Domain: ") .. getDomainDisplayName(),
-            callback = function()
-                showDomainSelector()
-            end
-        },
-        -- 3. Ask
-        {
-            text = _("Ask"),
+    -- Emoji helper for this dialog (scoped to dialog lifecycle)
+    local enable_emoji = configuration and configuration.features
+        and configuration.features.enable_emoji_icons == true
+
+    local function getWebToggleText()
+        local web_on = configuration and configuration.features
+            and configuration.features.enable_web_search
+        local label = web_on and _("Web ON") or _("Web OFF")
+        return Constants.getEmojiText("🔍", label, enable_emoji)
+    end
+
+    -- Build all input dialog buttons (called on init and on refresh via reinit)
+    local buildInputDialogButtons
+    buildInputDialogButtons = function()
+        -- Top row: [Web toggle] [Domain] [Send]
+        local top_row = {
+            -- 1. Web search toggle (persistent — writes to actual setting)
+            {
+                text = getWebToggleText(),
+                callback = function()
+                    configuration.features = configuration.features or {}
+                    configuration.features.enable_web_search = not configuration.features.enable_web_search
+                    -- Persist to settings
+                    if plugin and plugin.settings then
+                        local features = plugin.settings:readSetting("features") or {}
+                        features.enable_web_search = configuration.features.enable_web_search
+                        plugin.settings:saveSetting("features", features)
+                        plugin.settings:flush()
+                    end
+                    refreshInputDialog()
+                end,
+                hold_callback = function()
+                    UIManager:show(InfoMessage:new{
+                        text = _("Toggle web search for AI requests"),
+                        timeout = 2,
+                    })
+                end,
+            },
+            -- 2. Domain selector
+            {
+                text = _("Domain: ") .. getDomainDisplayName(),
+                callback = function()
+                    showDomainSelector()
+                end,
+            },
+            -- 3. Send (freeform chat with context)
+            {
+                text = _("Send"),
             callback = function()
                 UIManager:close(input_dialog)
                 -- Note: Loading dialog now handled by handleNonStreamingBackground in gpt_query.lua
@@ -3065,9 +3101,25 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         }
     }
 
-    -- 3. Custom actions (including Translate, which is now a built-in action)
-    local prompts, prompt_keys = getAllPrompts(configuration, plugin)
-    logger.info("showChatGPTDialog: Got " .. #prompt_keys .. " custom prompts")
+        -- Action buttons (collected separately, then arranged in rows of 2)
+        local action_buttons = {}
+        local prompts, prompt_keys
+        -- Use per-context ordering for non-general contexts
+        local action_service = plugin and plugin.action_service
+        if input_context ~= "general" and action_service then
+            local ordered_actions = action_service:getInputActionObjects(input_context)
+            prompts = {}
+            prompt_keys = {}
+            for _, action in ipairs(ordered_actions) do
+                local key = action.id or ("prompt_" .. #prompt_keys + 1)
+                prompts[key] = action
+                table.insert(prompt_keys, key)
+            end
+            logger.info("buildInputDialogButtons: Got " .. #prompt_keys .. " prompts from input context: " .. input_context)
+        else
+            prompts, prompt_keys = getAllPrompts(configuration, plugin)
+            logger.info("buildInputDialogButtons: Got " .. #prompt_keys .. " prompts from getAllPrompts")
+        end
     for _idx, custom_prompt_type in ipairs(prompt_keys) do
         local prompt = prompts[custom_prompt_type]
         if prompt and prompt.text then
@@ -3083,7 +3135,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                 logger.info("Skipping excluded prompt: " .. custom_prompt_type)
             else
                 logger.info("Adding button for prompt: " .. custom_prompt_type .. " with text: " .. prompt.text)
-                table.insert(all_buttons, {
+                table.insert(action_buttons, {
                     text = ActionServiceModule.getActionDisplayText(prompt, (configuration or {}).features),
                     prompt_type = custom_prompt_type,
                     callback = function()
@@ -3260,79 +3312,229 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         end
     end
 
-    -- Organize action buttons into rows of three
-    local button_rows = {}
-    local current_row = {}
-    for _idx, button in ipairs(all_buttons) do
-        table.insert(current_row, button)
-        if #current_row == 3 then
-            table.insert(button_rows, current_row)
-            current_row = {}
+        -- Organize into rows: top row (3 buttons), then action rows of 2
+        local button_rows = { top_row }
+        local current_row = {}
+        for _idx, button in ipairs(action_buttons) do
+            table.insert(current_row, button)
+            if #current_row == 2 then
+                table.insert(button_rows, current_row)
+                current_row = {}
+            end
         end
+        -- Artifact pairing: pair with last action if odd count, else solo row
+        if artifact_button then
+            if #current_row == 1 then
+                -- Odd action count: pair last action with artifact
+                table.insert(current_row, artifact_button)
+                table.insert(button_rows, current_row)
+            else
+                -- Even action count (or zero): flush remaining, then artifact solo
+                if #current_row > 0 then
+                    table.insert(button_rows, current_row)
+                end
+                table.insert(button_rows, { artifact_button })
+            end
+        elseif #current_row > 0 then
+            table.insert(button_rows, current_row)
+        end
+
+        return button_rows
     end
 
-    -- Add any remaining action buttons as the last row
-    if #current_row > 0 then
-        table.insert(button_rows, current_row)
-    end
-
-    -- Add artifact button as its own bottom row
-    if artifact_button then
-        table.insert(button_rows, { artifact_button })
+    -- Refresh dialog by close-and-reopen (reinit loses title bar X and causes visual glitches)
+    refreshInputDialog = function()
+        if not input_dialog then return end
+        local current_text = input_dialog:getInputText()
+        UIManager:close(input_dialog)
+        if plugin then plugin.current_input_dialog = nil end
+        -- Re-set transient flags for the reopen
+        if configuration and configuration.features then
+            if is_xray_chat then configuration.features._xray_chat_context = true end
+            if hide_artifacts then configuration.features._hide_artifacts = true end
+        end
+        showChatGPTDialog(ui_instance, highlighted_text, configuration, nil, plugin, book_metadata, current_text)
     end
 
     -- Show the dialog with the button rows
     input_dialog = InputDialog:new{
         title = _("KOAssistant Actions"),
-        input = initial_input or "",  -- Restore input if provided (e.g., after domain change)
+        input = initial_input or "",
         input_hint = _("Type your question or additional instructions for any action..."),
         input_type = "text",
-        buttons = button_rows,
+        buttons = buildInputDialogButtons(),
         input_height = 6,
         allow_newline = true,
         input_multiline = true,
         text_height = 300,
-        -- Settings icon in title bar - opens AI Quick Settings panel
+        -- Settings icon in title bar — opens anchored gear menu
         title_bar_left_icon = "appbar.settings",
         title_bar_left_icon_tap_callback = function()
             input_dialog:onCloseKeyboard()
-            if plugin then
-                -- Capture current input before showing settings
-                local current_input = input_dialog:getInputText()
-                -- When settings closes, refresh the dialog to apply changes
-                plugin:onKOAssistantAISettings(function()
-                    -- Update configuration from settings (modifies the shared configuration object)
-                    plugin:updateConfigFromSettings()
-                    -- Refresh the input dialog (configuration is already updated in place)
-                    UIManager:close(input_dialog)
-                    showChatGPTDialog(ui_instance, highlighted_text, configuration, nil, plugin, book_metadata, current_input)
-                end)
-            end
+            local gear_menu
+            gear_menu = ButtonDialog:new{
+                buttons = {
+                    {{ text = _("Quick Settings"), callback = function()
+                        UIManager:close(gear_menu)
+                        if plugin then
+                            plugin:onKOAssistantAISettings(function()
+                                plugin:updateConfigFromSettings()
+                                refreshInputDialog()
+                            end)
+                        end
+                    end }},
+                    {{ text = _("Choose and Sort Actions…"), callback = function()
+                        UIManager:close(gear_menu)
+                        if not plugin then return end
+                        local PromptsManager = require("koassistant_ui/prompts_manager")
+                        PromptsManager:new(plugin):showInputActionsManager(input_context, function()
+                            refreshInputDialog()
+                        end)
+                    end }},
+                    {{ text = _("More Actions…"), callback = function()
+                        UIManager:close(gear_menu)
+                        if not plugin or not plugin.action_service then return end
+                        -- Get all eligible actions minus those in the current favorites
+                        local as = plugin.action_service
+                        local current_ids
+                        if input_context == "general" then
+                            current_ids = as:getGeneralMenuActions()
+                        else
+                            current_ids = as:getInputActions(input_context)
+                        end
+                        local current_set = {}
+                        for _, id in ipairs(current_ids) do current_set[id] = true end
+                        local all_actions
+                        if input_context == "general" then
+                            local all_general = as:getAllActions("general", false, has_open_book)
+                            all_actions = {}
+                            for _, action in ipairs(all_general) do
+                                if not current_set[action.id] and action.enabled then
+                                    table.insert(all_actions, action)
+                                end
+                            end
+                        else
+                            -- Get the full eligible pool
+                            local eligible_ids = as:_getEligibleInputActionIds(input_context)
+                            all_actions = {}
+                            for _, id in ipairs(eligible_ids) do
+                                if not current_set[id] then
+                                    local action = as:getAction(nil, id)
+                                    if action and action.enabled then
+                                        table.insert(all_actions, action)
+                                    end
+                                end
+                            end
+                        end
+                        if #all_actions == 0 then
+                            UIManager:show(InfoMessage:new{
+                                text = _("All actions are already shown."),
+                                timeout = 2,
+                            })
+                            return
+                        end
+                        -- Build 2-per-row button dialog
+                        local btn_rows = {}
+                        local btn_row = {}
+                        for _, action in ipairs(all_actions) do
+                            table.insert(btn_row, {
+                                text = ActionServiceModule.getActionDisplayText(action, (configuration or {}).features),
+                                callback = function()
+                                    UIManager:close(plugin._more_actions_dialog)
+                                    -- Find and run the action (simulate button press)
+                                    local additional_input = input_dialog:getInputText()
+                                    UIManager:close(input_dialog)
+                                    UIManager:scheduleIn(0.1, function()
+                                        local function onPromptComplete(history, temp_config_or_error)
+                                            if history then
+                                                local temp_config = temp_config_or_error
+                                                local function addMessage(message, is_context, on_complete)
+                                                    history:addUserMessage(message, is_context)
+                                                    local answer_result = queryChatGPT(history:getMessages(), temp_config, function(success, answer, err, reasoning, web_search_used)
+                                                        if success and answer then
+                                                            history:addAssistantMessage(answer, ConfigHelper:getModelInfo(temp_config), reasoning, ConfigHelper:buildDebugInfo(temp_config), web_search_used)
+                                                        end
+                                                        if on_complete then on_complete(success, answer, err, reasoning, web_search_used) end
+                                                    end, plugin and plugin.settings)
+                                                    if not isStreamingInProgress(answer_result) then
+                                                        return answer_result
+                                                    end
+                                                    return nil
+                                                end
+                                                closeLoadingDialog()
+                                                showResponseDialog(_(action.text), history, highlighted_text, addMessage, temp_config, document_path, plugin, book_metadata, launch_context, ui_instance)
+                                            else
+                                                closeLoadingDialog()
+                                                local error_msg = temp_config_or_error or "Unknown error"
+                                                UIManager:show(InfoMessage:new{
+                                                    text = _("Error: ") .. error_msg,
+                                                    timeout = 2,
+                                                })
+                                            end
+                                        end
+                                        handlePredefinedPrompt(action.id, highlighted_text, ui_instance, configuration, nil, plugin, additional_input, onPromptComplete, book_metadata)
+                                    end)
+                                end,
+                            })
+                            if #btn_row == 2 then
+                                table.insert(btn_rows, btn_row)
+                                btn_row = {}
+                            end
+                        end
+                        if #btn_row > 0 then
+                            table.insert(btn_rows, btn_row)
+                        end
+                        table.insert(btn_rows, {{ text = _("Cancel"), id = "close", callback = function()
+                            UIManager:close(plugin._more_actions_dialog)
+                        end }})
+                        plugin._more_actions_dialog = ButtonDialog:new{
+                            title = _("More Actions"),
+                            buttons = btn_rows,
+                        }
+                        UIManager:show(plugin._more_actions_dialog)
+                    end }},
+                },
+                shrink_unneeded_width = true,
+                anchor = function()
+                    return input_dialog.title_bar.left_button.image.dimen, true
+                end,
+            }
+            UIManager:show(gear_menu)
         end,
     }
 
-    -- Add rotation support to input dialog
-    input_dialog.onScreenResize = function(self, dimen)
-        local current_input = self:getInputText()
-        UIManager:close(self)
-        UIManager:scheduleIn(0.2, function()
-            showChatGPTDialog(ui_instance, highlighted_text, configuration, nil, plugin, book_metadata, current_input)
-        end)
+    -- Add close X to title bar (InputDialog doesn't natively pass close_callback to TitleBar)
+    input_dialog.title_bar.close_callback = function()
+        UIManager:close(input_dialog)
+        if plugin then plugin.current_input_dialog = nil end
+    end
+    input_dialog.title_bar:init()
+
+    -- Enable tap-outside-to-close (InputDialog's onCloseDialog looks for id="close" button
+    -- which we removed; override to close directly)
+    input_dialog.onCloseDialog = function()
+        UIManager:close(input_dialog)
+        if plugin then plugin.current_input_dialog = nil end
         return true
     end
 
+    -- Rotation support via in-place refresh (no close-and-reopen gap)
+    input_dialog.onScreenResize = function(self, dimen)
+        refreshInputDialog()
+        return true
+    end
     input_dialog.onSetRotationMode = function(self, rotation)
         return self:onScreenResize(nil)
     end
-    
+
     -- If a prompt_type is specified, automatically trigger it after dialog is shown
     if prompt_type then
         UIManager:show(input_dialog)
         UIManager:scheduleIn(0.1, function()
             UIManager:close(input_dialog)
-            
+
             -- Find and trigger the corresponding button
-            for _idx, row in ipairs(button_rows) do
+            for _idx, row in ipairs(input_dialog.buttons or {}) do
                 for _idx2, button in ipairs(row) do
                     if button.prompt_type == prompt_type then
                         button.callback()
@@ -3340,7 +3542,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     end
                 end
             end
-            
+
             -- If no matching prompt found, just close
             UIManager:show(InfoMessage:new{
                 text = _("Unknown prompt type: ") .. tostring(prompt_type),
