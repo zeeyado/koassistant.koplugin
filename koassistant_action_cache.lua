@@ -245,6 +245,9 @@ function ActionCache.set(document_path, action_id, result, progress_decimal, met
         progress_page = metadata and metadata.progress_page,
         -- Full-document X-Ray (entire document, not spoiler-free)
         full_document = metadata and metadata.full_document,
+        -- Track reasoning and web search usage
+        used_reasoning = metadata and metadata.used_reasoning,
+        web_search_used = metadata and metadata.web_search_used,
     }
 
     return saveCache(document_path, cache)

@@ -4189,6 +4189,29 @@ local function buildInfoPopupText(cached_entry, progress_str)
   return table.concat(info_lines, "\n")
 end
 
+--- Build inline indicator text for reasoning/web search usage (matching chat viewer style).
+--- Respects show_reasoning_indicator and show_web_search_indicator settings.
+--- @param cached_entry table: Cache entry with used_reasoning, web_search_used
+--- @param config table|nil: Configuration with features settings
+--- @return string|nil: Indicator text to prepend, or nil if no indicators
+local function buildInlineIndicators(cached_entry, config)
+  local indicators = {}
+  local features = config and config.features
+  -- Default to showing indicators (matching chat viewer defaults)
+  local show_reasoning = not features or features.show_reasoning_indicator ~= false
+  local show_web_search = not features or features.show_web_search_indicator ~= false
+  if show_reasoning and cached_entry.used_reasoning then
+    table.insert(indicators, "*[Reasoning/Thinking was used]*")
+  end
+  if show_web_search and cached_entry.web_search_used then
+    table.insert(indicators, "*[Web search was used]*")
+  end
+  if #indicators > 0 then
+    return table.concat(indicators, "\n") .. "\n\n"
+  end
+  return nil
+end
+
 --- Show a specific cache in the viewer
 --- @param cache_info table: { name, key, data } where data contains result, progress_decimal, model, timestamp, used_annotations, used_book_text
 function AskGPT:showCacheViewer(cache_info)
@@ -4418,9 +4441,10 @@ function AskGPT:showCacheViewer(cache_info)
   end
 
   -- Fallback: ChatGPTViewer for legacy markdown caches or non-xray caches
+  local inline_prefix = buildInlineIndicators(cache_info.data, configuration)
   local viewer = ChatGPTViewer:new{
     title = title,
-    text = cache_info.data.result,
+    text = inline_prefix and (inline_prefix .. cache_info.data.result) or cache_info.data.result,
     _cache_content = cache_info.data.result,
     simple_view = true,
     configuration = configuration,
@@ -4875,9 +4899,10 @@ function AskGPT:viewCachedAction(action, action_id, cached_entry, opts)
     regenerate_label = action.use_reading_progress and _("Update") or _("Regenerate")
   end
 
+  local inline_prefix = buildInlineIndicators(cached_entry, configuration)
   local viewer = ChatGPTViewer:new{
     title = title,
-    text = cached_entry.result,
+    text = inline_prefix and (inline_prefix .. cached_entry.result) or cached_entry.result,
     _cache_content = cached_entry.result,
     simple_view = true,
     configuration = configuration,

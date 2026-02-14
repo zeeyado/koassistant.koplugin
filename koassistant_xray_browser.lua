@@ -2649,10 +2649,23 @@ function XrayBrowser:showFullView()
         end
     end
 
+    -- Build inline indicators for reasoning/web search (matching chat viewer style)
+    local display_text = markdown
+    local indicators = {}
+    if self.metadata.used_reasoning then
+        table.insert(indicators, "*[Reasoning/Thinking was used]*")
+    end
+    if self.metadata.web_search_used then
+        table.insert(indicators, "*[Web search was used]*")
+    end
+    if #indicators > 0 then
+        display_text = table.concat(indicators, "\n") .. "\n\n" .. markdown
+    end
+
     -- Overlay on top of the menu — closing the viewer returns to the browser
     UIManager:show(ChatGPTViewer:new{
         title = title,
-        text = markdown,
+        text = display_text,
         _cache_content = markdown,
         simple_view = true,
         cache_metadata = self.metadata.cache_metadata,
