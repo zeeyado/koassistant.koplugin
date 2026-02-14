@@ -4522,12 +4522,14 @@ end
 
 --- Show a popup for incremental actions that have an existing cached result.
 --- Offers "View" (opens cached result) or "Update" (re-runs the action incrementally).
---- Called from executeBookLevelAction() and book chat input field for actions with use_response_caching.
+--- Called from executeBookLevelAction(), book chat input, and file browser for actions with use_response_caching.
 --- @param action table: The action definition
 --- @param action_id string: The action ID
 --- @param on_update function: Callback to execute the action (update/re-run)
-function AskGPT:showCacheActionPopup(action, action_id, on_update)
+--- @param opts table|nil: Optional {file, book_title, book_author} fallback for closed-book contexts
+function AskGPT:showCacheActionPopup(action, action_id, on_update, opts)
   local file = self.ui and self.ui.document and self.ui.document.file
+      or (opts and opts.file)
   if not file then
     on_update()
     return
@@ -4617,7 +4619,12 @@ function AskGPT:showCacheActionPopup(action, action_id, on_update)
           text = T(_("View %1"), action_name .. view_detail),
           callback = function()
             UIManager:close(dialog)
-            self_ref:viewCachedAction(action, action_id, cached, { skip_stale_popup = true })
+            self_ref:viewCachedAction(action, action_id, cached, {
+              skip_stale_popup = true,
+              file = file,
+              book_title = opts and opts.book_title,
+              book_author = opts and opts.book_author,
+            })
           end,
         },
       },
@@ -4882,21 +4889,35 @@ function AskGPT:viewCachedAction(action, action_id, cached_entry, opts)
     end
   end
 
-  -- Update/Regenerate button: only when book is open (file browser gets "Open" button instead)
+  -- Update/Regenerate button
   local on_regenerate
   local regenerate_label
-  if action.use_response_caching and not action.update_prompt
-      and self.ui and self.ui.document then
+  if action.use_response_caching and not action.update_prompt then
     local self_ref2 = self
     local captured_action_id = action_id
-    on_regenerate = function()
-      local AC = require("koassistant_action_cache")
-      AC.clear(file, captured_action_id)
-      self_ref2._file_dialog_row_cache = { file = nil, rows = nil }
-      self_ref2:executeBookLevelAction(captured_action_id)
+    if self.ui and self.ui.document then
+      -- Open book: regenerate via executeBookLevelAction
+      on_regenerate = function()
+        local AC = require("koassistant_action_cache")
+        AC.clear(file, captured_action_id)
+        self_ref2._file_dialog_row_cache = { file = nil, rows = nil }
+        self_ref2:executeBookLevelAction(captured_action_id)
+      end
+      -- Position-relevant actions get "Update", position-irrelevant get "Regenerate"
+      regenerate_label = action.use_reading_progress and _("Update") or _("Regenerate")
+    elseif file then
+      -- Closed book: regenerate via file browser path (only for actions that don't need open book)
+      local Actions = require("prompts/actions")
+      if not Actions.requiresOpenBook(action) then
+        on_regenerate = function()
+          local AC = require("koassistant_action_cache")
+          AC.clear(file, captured_action_id)
+          self_ref2._file_dialog_row_cache = { file = nil, rows = nil }
+          self_ref2:executeFileBrowserAction(file, book_title or "Unknown", book_author or "", nil, captured_action_id)
+        end
+        regenerate_label = _("Regenerate")
+      end
     end
-    -- Position-relevant actions get "Update", position-irrelevant get "Regenerate"
-    regenerate_label = action.use_reading_progress and _("Update") or _("Regenerate")
   end
 
   local inline_prefix = buildInlineIndicators(cached_entry, configuration)
@@ -5088,7 +5109,14 @@ function AskGPT:executeFileBrowserAction(file, title, authors, book_props, actio
       config_copy.features[k] = v
     end
 
-    Dialogs.executeDirectAction(self.ui, action, book_context, config_copy, self)
+    if action.use_response_caching then
+      local self_ref = self
+      self:showCacheActionPopup(action, action_id, function()
+        Dialogs.executeDirectAction(self_ref.ui, action, book_context, config_copy, self_ref)
+      end, { file = file, book_title = title, book_author = authors })
+    else
+      Dialogs.executeDirectAction(self.ui, action, book_context, config_copy, self)
+    end
   end)
 end
 
