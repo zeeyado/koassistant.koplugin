@@ -3126,7 +3126,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             },
             -- 3. Send (freeform chat with context)
             {
-                text = Constants.getEmojiText("➤", _("Send"), enable_emoji),
+                text = enable_emoji and (_("Send") .. " ➤") or _("Send"),
             callback = function()
                 -- Block empty sends for contexts without highlighted text (nothing useful to send)
                 local typed_text = input_dialog:getInputText()
@@ -3345,7 +3345,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
 
             if #caches > 0 then
                 artifact_button = {
-                    text = _("View Artifacts"),
+                    text = Constants.getEmojiText("\u{1F4E6}", _("View Artifacts"), enable_emoji),
                     callback = function()
                         -- Don't close input dialog yet — only close when an artifact is selected
                         input_dialog:onCloseKeyboard()

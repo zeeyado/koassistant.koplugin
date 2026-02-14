@@ -5646,6 +5646,10 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
   -- Check if we're in reader mode (book is open)
   local has_document = self.ui and self.ui.document
 
+  -- Emoji support (uses separate "Emoji Panel Icons" setting)
+  local enable_emoji = features.enable_emoji_panel_icons == true
+  local function E(emoji, text) return Constants.getEmojiText(emoji, text, enable_emoji) end
+
   -- Flag to track if we're closing for a sub-dialog (vs true dismissal)
   local opening_subdialog = false
 
@@ -5667,7 +5671,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
   local button_defs = {}
 
   button_defs["provider"] = {
-    text = T(_("Provider: %1"), provider_display),
+    text = E("\u{1F517}", T(_("Provider: %1"), provider_display)),
     callback = function()
       opening_subdialog = true
       UIManager:close(dialog)
@@ -5677,7 +5681,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
   }
 
   button_defs["model"] = {
-    text = T(_("Model: %1"), model),
+    text = E("\u{1F916}", T(_("Model: %1"), model)),
     callback = function()
       opening_subdialog = true
       UIManager:close(dialog)
@@ -5687,7 +5691,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
   }
 
   button_defs["behavior"] = {
-    text = T(_("Behavior: %1"), behavior_display),
+    text = E("🎭", T(_("Behavior: %1"), behavior_display)),
     callback = function()
       opening_subdialog = true
       UIManager:close(dialog)
@@ -5697,7 +5701,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
   }
 
   button_defs["domain"] = {
-    text = T(_("Domain: %1"), domain_display),
+    text = E("\u{1F4DA}", T(_("Domain: %1"), domain_display)),
     callback = function()
       opening_subdialog = true
       UIManager:close(dialog)
@@ -5707,7 +5711,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
   }
 
   button_defs["temperature"] = {
-    text = T(_("Temp: %1"), string.format("%.1f", temp)),
+    text = E("\u{1F321}\u{FE0F}", T(_("Temp: %1"), string.format("%.1f", temp))),
     callback = function()
       opening_subdialog = true
       UIManager:close(dialog)
@@ -5734,7 +5738,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
   }
 
   button_defs["extended_thinking"] = {
-    text = reasoning_enabled and _("Anthropic/Gemini Reasoning: ON") or _("Anthropic/Gemini Reasoning: OFF"),
+    text = E("\u{1F9E0}", reasoning_enabled and _("Anthropic/Gemini Reasoning: ON") or _("Anthropic/Gemini Reasoning: OFF")),
     callback = function()
       local f = self_ref.settings:readSetting("features") or {}
       f.enable_reasoning = not f.enable_reasoning
@@ -5748,7 +5752,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
   }
 
   button_defs["web_search"] = {
-    text = web_search and _("Web Search: ON") or _("Web Search: OFF"),
+    text = E("\u{1F50D}", web_search and _("Web Search: ON") or _("Web Search: OFF")),
     callback = function()
       local f = self_ref.settings:readSetting("features") or {}
       f.enable_web_search = not f.enable_web_search
@@ -5762,7 +5766,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
   }
 
   button_defs["language"] = {
-    text = T(_("Language: %1"), lang_display),
+    text = E("\u{1F30D}", T(_("Language: %1"), lang_display)),
     callback = function()
       opening_subdialog = true
       UIManager:close(dialog)
@@ -5772,7 +5776,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
   }
 
   button_defs["translation_language"] = {
-    text = T(_("Translate: %1"), trans_display),
+    text = E("\u{1F30D}", T(_("Translate: %1"), trans_display)),
     callback = function()
       opening_subdialog = true
       UIManager:close(dialog)
@@ -5782,7 +5786,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
   }
 
   button_defs["dictionary_language"] = {
-    text = T(_("Dictionary: %1"), dict_display),
+    text = E("\u{1F30D}", T(_("Dictionary: %1"), dict_display)),
     callback = function()
       opening_subdialog = true
       UIManager:close(dialog)
@@ -5792,7 +5796,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
   }
 
   button_defs["h_bypass"] = {
-    text = highlight_bypass and _("H.Bypass: ON") or _("H.Bypass: OFF"),
+    text = E("\u{26A1}", highlight_bypass and _("H.Bypass: ON") or _("H.Bypass: OFF")),
     callback = function()
       local f = self_ref.settings:readSetting("features") or {}
       f.highlight_bypass_enabled = not f.highlight_bypass_enabled
@@ -5806,7 +5810,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
   }
 
   button_defs["d_bypass"] = {
-    text = dict_bypass and _("D.Bypass: ON") or _("D.Bypass: OFF"),
+    text = E("\u{26A1}", dict_bypass and _("D.Bypass: ON") or _("D.Bypass: OFF")),
     callback = function()
       local f = self_ref.settings:readSetting("features") or {}
       f.dictionary_bypass_enabled = not f.dictionary_bypass_enabled
@@ -5820,7 +5824,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
   }
 
   button_defs["chat_history"] = {
-    text = _("Chat History"),
+    text = E("\u{1F4DC}", _("Chat History")),
     callback = function()
       opening_subdialog = true
       UIManager:close(dialog)
@@ -5829,7 +5833,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
   }
 
   button_defs["browse_notebooks"] = {
-    text = _("Browse Notebooks"),
+    text = E("\u{1F4D3}", _("Browse Notebooks")),
     callback = function()
       opening_subdialog = true
       UIManager:close(dialog)
@@ -5838,7 +5842,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
   }
 
   button_defs["browse_artifacts"] = {
-    text = _("Browse Artifacts"),
+    text = E("\u{1F4E6}", _("Browse Artifacts")),
     callback = function()
       opening_subdialog = true
       UIManager:close(dialog)
@@ -5847,7 +5851,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
   }
 
   button_defs["general_chat"] = {
-    text = _("General Chat/Action"),
+    text = E("\u{1F4AC}", _("General Chat/Action")),
     callback = function()
       opening_subdialog = true
       UIManager:close(dialog)
@@ -5856,7 +5860,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
   }
 
   button_defs["continue_last_chat"] = {
-    text = _("Continue Last Chat"),
+    text = E("\u{21A9}\u{FE0F}", _("Continue Last Chat")),
     callback = function()
       opening_subdialog = true
       UIManager:close(dialog)
@@ -5865,7 +5869,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
   }
 
   button_defs["manage_actions"] = {
-    text = _("Manage Actions"),
+    text = E("\u{1F527}", _("Manage Actions")),
     callback = function()
       opening_subdialog = true
       UIManager:close(dialog)
@@ -5874,7 +5878,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
   }
 
   button_defs["more_settings"] = {
-    text = _("More Settings..."),
+    text = E("\u{2699}\u{FE0F}", _("More Settings...")),
     callback = function()
       opening_subdialog = true
       UIManager:close(dialog)
@@ -5885,7 +5889,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
   -- Dynamic items (only when book is open)
   if has_document then
     button_defs["new_book_chat"] = {
-      text = _("New Book Chat/Action"),
+      text = E("\u{1F4D6}", _("New Book Chat/Action")),
       callback = function()
         opening_subdialog = true
         UIManager:close(dialog)
@@ -5894,7 +5898,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
     }
 
     button_defs["quick_actions"] = {
-      text = _("Quick Actions..."),
+      text = E("\u{26A1}", _("Quick Actions...")),
       callback = function()
         opening_subdialog = true
         UIManager:close(dialog)
@@ -5992,6 +5996,19 @@ function AskGPT:onKOAssistantQuickActions()
   local ActionCache = require("koassistant_action_cache")
   local file = self.ui.document.file
 
+  -- Emoji support for QA utilities
+  local qa_enable_emoji = features.enable_emoji_panel_icons == true
+  local qa_emoji_map = {
+    -- translate_page intentionally omitted (action-like, first utility)
+    new_book_chat = "\u{1F4D6}",       -- 📖
+    continue_last_chat = "\u{21A9}\u{FE0F}", -- ↩️
+    general_chat = "\u{1F4AC}",        -- 💬
+    chat_history = "\u{1F4DC}",        -- 📜
+    notebook = "\u{1F4D3}",            -- 📓
+    view_caches = "\u{1F4E6}",         -- 📦
+    ai_quick_settings = "\u{2699}\u{FE0F}", -- ⚙️
+  }
+
   -- Build lookup map from constants
   local qa_util_map = {}
   for _i, u in ipairs(Constants.QUICK_ACTION_UTILITIES) do qa_util_map[u.id] = u end
@@ -6010,7 +6027,7 @@ function AskGPT:onKOAssistantQuickActions()
           local has_any_cache = #ActionCache.getAvailableArtifacts(file) > 0
           if has_any_cache then
             addButton({
-              text = _("View Artifacts"),
+              text = Constants.getEmojiText(qa_emoji_map[util_id], _("View Artifacts"), qa_enable_emoji),
               callback = function()
                 -- Don't close QA panel yet — close only when user picks an artifact
                 self_ref:viewCache(dialog)
@@ -6020,6 +6037,10 @@ function AskGPT:onKOAssistantQuickActions()
         else
           -- Standard utility button
           local display_text = Constants.getQuickActionUtilityText(util_id, _)
+          local emoji = qa_emoji_map[util_id]
+          if emoji then
+            display_text = Constants.getEmojiText(emoji, display_text, qa_enable_emoji)
+          end
           addButton({
             text = display_text,
             callback = function()

@@ -176,6 +176,14 @@ local SettingsSchema = {
                     help_text = _("Show emoji icons (🔍, 📖) in UI buttons and status indicators. Requires emoji font support in KOReader. Does not work on all devices. If icons appear as question marks, disable this option."),
                 },
                 {
+                    id = "enable_emoji_panel_icons",
+                    type = "toggle",
+                    text = _("Emoji Panel Icons"),
+                    path = "features.enable_emoji_panel_icons",
+                    default = false,
+                    help_text = _("Show emoji icons on Quick Settings and Quick Actions panel buttons (🔗 Provider, 🎭 Behavior, 📜 Chat History, etc.). Requires emoji font support."),
+                },
+                {
                     id = "enable_data_access_indicators",
                     type = "toggle",
                     text = _("Emoji Data Access Indicators"),
