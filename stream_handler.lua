@@ -624,7 +624,10 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                                 -- Check for web search marker
                                 if content == "__WEB_SEARCH_START__" then
                                     in_web_search_phase = true
-                                    web_search_used = true  -- Mark that search was used
+                                    web_search_used = true
+                                    -- Discard pre-search thinking text ("Let me search...")
+                                    -- The final answer after search will contain the full response
+                                    result_buffer = {}
                                     if not first_content_received then
                                         first_content_received = true
                                         if animation_task then
