@@ -2105,8 +2105,8 @@ function ChatGPTViewer:init()
   })
 
   -- Simple view buttons - read-only viewer for cached analyses
-  -- Row 1: Copy, Info, [Artifacts], Export, ⇱ (top), ⇲ (bottom)
-  -- Row 2: MD/Text, [Update/Regenerate/Open], [Delete], Close
+  -- Row 1: Copy, [Artifacts], Export, ⇱ (top), ⇲ (bottom)
+  -- Row 2: MD/Text, Info, [Update/Regenerate/Open Doc], [Delete], Close
   -- Notebook mode replaces Row 2 middle with: Open in Reader, Edit
   local simple_view_row1 = {
     {
@@ -2131,21 +2131,6 @@ function ChatGPTViewer:init()
       hold_callback = self.default_hold_callback,
     },
   }
-
-  -- Info button (shows metadata popup)
-  if self._info_text then
-    table.insert(simple_view_row1, {
-      text = _("Info"),
-      id = "info_cache",
-      callback = function()
-        local InfoMessage = require("ui/widget/infomessage")
-        UIManager:show(InfoMessage:new{
-          text = self._info_text,
-        })
-      end,
-      hold_callback = self.default_hold_callback,
-    })
-  end
 
   -- Artifacts button (cross-navigate to other cached artifacts for the same book)
   if self._artifact_file then
@@ -2258,6 +2243,20 @@ function ChatGPTViewer:init()
       hold_callback = self.default_hold_callback,
     },
   }
+  -- Info button (shows metadata popup) - in Row 2 for balanced button distribution
+  if self._info_text then
+    table.insert(simple_view_row2, {
+      text = _("Info"),
+      id = "info_cache",
+      callback = function()
+        local InfoMessage = require("ui/widget/infomessage")
+        UIManager:show(InfoMessage:new{
+          text = self._info_text,
+        })
+      end,
+      hold_callback = self.default_hold_callback,
+    })
+  end
   if self.on_open_reader and self.on_edit then
     -- Notebook mode: Open in Reader + Edit buttons
     table.insert(simple_view_row2, {
@@ -2300,9 +2299,9 @@ function ChatGPTViewer:init()
         hold_callback = self.default_hold_callback,
       })
     elseif not self._book_open and self._artifact_file then
-      -- Book not open (file browser): show Open button
+      -- Book not open (file browser): show Open Doc button
       table.insert(simple_view_row2, {
-        text = _("Open"),
+        text = _("Open Doc"),
         id = "open_book",
         callback = function()
           self:onClose()
