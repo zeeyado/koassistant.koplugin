@@ -24,7 +24,7 @@ local ActionCache = {}
 local CACHE_VERSION = 2
 
 -- Artifact keys tracked in the browsing index
-local ARTIFACT_KEYS = { "_xray_cache", "_summary_cache", "_analyze_cache", "recap", "xray_simple" }
+local ARTIFACT_KEYS = { "_xray_cache", "_summary_cache", "_analyze_cache", "recap", "xray_simple", "book_info", "analyze_highlights" }
 
 --- Update the artifact index in g_reader_settings after any cache mutation.
 --- Scans the in-memory cache table for known artifact keys and updates the index entry.

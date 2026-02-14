@@ -710,16 +710,17 @@ Actions.book = {
     book_info = {
         id = "book_info",
         text = _("Book Info"),
-        description = _("General overview: what the book is about, its significance, who it appeals to, and what the reading experience is like. Based on AI knowledge — no book data needed."),
+        description = _("Comprehensive overview: what the work is about, its themes, significance, and reading experience. Based on AI knowledge — no book data needed."),
         context = "book",
         template = "book_info",
+        use_response_caching = true,
         api_params = {
             temperature = 0.7,
-            max_tokens = 4096,
         },
         builtin = true,
         in_quick_actions = 3,     -- Appears in Quick Actions menu
         in_file_browser = 1,
+        in_reading_features = 5,  -- After X-Ray Simple (4), AI-knowledge companion
     },
     similar_books = {
         id = "similar_books",
@@ -965,15 +966,17 @@ CRITICAL: No spoilers beyond {reading_progress}.]],
         id = "analyze_highlights",
         enable_web_search = false,
         text = _("Analyze My Notes"),
-        description = _("Analyzes your note-taking and highlighting patterns to reveal what catches your attention, emerging themes, and connections between your notes. This is about understanding you as a reader, not summarizing the book. Requires annotations and notebook sharing."),
+        description = _("Analyzes your note-taking and highlighting patterns to reveal what catches your attention, emerging themes, and connections between your notes. This is about understanding you as a reader, not summarizing the book. Requires highlights or annotations sharing."),
         context = "book",
         behavior_variant = "reader_assistant",
         requires = {"highlights"},      -- Block if no highlight-type data can reach the prompt
+        use_response_caching = true,    -- View/Update popup + per-action cache (pseudo-update)
         -- Context extraction flags
         use_highlights = true,
         use_annotations = true,
         use_reading_progress = true,
         use_notebook = true,
+        use_summary_cache = true,       -- Optional enrichment: helps AI understand what reader is engaging with
         prompt = [[Reflect on my reading of "{title}"{author_clause} through my highlights and notes.
 
 I'm at {reading_progress}. Here's what I've marked:
@@ -981,6 +984,8 @@ I'm at {reading_progress}. Here's what I've marked:
 {annotations_section}
 
 {notebook_section}
+
+{summary_cache_section}
 
 Analyze MY READING PATTERNS, not just the content:
 
@@ -1325,7 +1330,7 @@ Note: The summary may be in a different language than your response language. Tr
         use_book_text = true,  -- Permission gate (UI: "Allow text extraction")
         cache_as_analyze = true,  -- Save for other actions via {analyze_cache_section}
         use_response_caching = true,  -- View/Redo popup + per-action cache
-        in_reading_features = 6,  -- After Document Summary (5)
+        in_reading_features = 7,  -- After Document Summary (6)
         storage_key = "__SKIP__",  -- Result lives in document cache, not chat history
         prompt = [[Analyze this document: "{title}"{author_clause}.
 
@@ -1357,7 +1362,7 @@ Provide analysis appropriate to this document's type and purpose. Address what's
         use_book_text = true,  -- Permission gate (UI: "Allow text extraction")
         cache_as_summary = true,  -- Save for other actions via {summary_cache_section}
         use_response_caching = true,  -- View/Redo popup + per-action cache
-        in_reading_features = 5,  -- After X-Ray Simple (4)
+        in_reading_features = 6,  -- After Book Info (5)
         in_quick_actions = 4,  -- After Book Info (3)
         storage_key = "__SKIP__",  -- Result lives in document cache, not chat history
         prompt = [[Summarize: "{title}"{author_clause}.

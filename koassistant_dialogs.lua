@@ -2436,11 +2436,16 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                 if using_cache and message_data.cached_used_highlights == true then
                     highlights_were_provided = true
                 end
+                -- Position-irrelevant actions (no use_reading_progress) store 1.0
+                -- so the popup correctly shows "Redo" instead of misleading "Update to X%"
+                local save_progress = prompt and prompt.use_reading_progress
+                    and (tonumber(message_data.progress_decimal) or 0)
+                    or 1.0
                 local save_success = ActionCache.set(
                     ui.document.file,
                     original_action_id,
                     cache_answer,
-                    tonumber(message_data.progress_decimal) or 0,
+                    save_progress,
                     { model = ConfigHelper:getModelInfo(temp_config), used_book_text = book_text_was_provided,
                       used_highlights = highlights_were_provided,
                       previous_progress_decimal = message_data.cached_progress_decimal,
@@ -2449,7 +2454,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                       full_document = config.features and config.features._full_document_xray or nil }
                 )
                 if save_success then
-                    logger.info("KOAssistant: Saved response to cache for", original_action_id, "at", message_data.progress_decimal, "used_book_text=", book_text_was_provided, "used_highlights=", highlights_were_provided)
+                    logger.info("KOAssistant: Saved response to cache for", original_action_id, "at", save_progress, "used_book_text=", book_text_was_provided, "used_highlights=", highlights_were_provided)
                 end
             elseif is_truncated and cache_enabled then
                 logger.info("KOAssistant: Skipping cache for", original_action_id, "- response was truncated")

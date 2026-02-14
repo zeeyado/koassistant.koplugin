@@ -102,14 +102,28 @@ Unpack key concepts, add helpful context, explore implications and connections. 
 
 -- Book context templates
 Templates.book = {
-    book_info = [[Tell me about "{title}"{author_clause}. Include:
+    book_info = [[Tell me about "{title}"{author_clause}. Provide a comprehensive overview:
 
-- What it's about (premise for fiction, thesis for non-fiction)
-- Its significance and why it matters
-- What type of reader typically loves this work
-- Reading experience (accessible? dense? requires background?)
+## About the Work
+- What it's about — premise and central conflict (fiction) or thesis and scope (non-fiction)
+- Historical and cultural context — when and why this work appeared, what it responded to
 
-Adapt tone and focus to content type (fiction vs non-fiction vs academic). Be concise but informative. {hallucination_nudge}]],
+## Themes and Ideas
+- Major themes, questions, or arguments the work explores
+- What makes its perspective distinctive
+
+## Significance
+- Why this work matters — its influence, reception, or lasting contribution
+- Where it fits in its genre or field
+
+## The Reading Experience
+- Style and structure — what to expect as a reader
+- Accessibility — does it require background knowledge?
+- Who tends to love this work, and why
+
+Adapt depth and focus to the type of work — a literary novel deserves attention to craft, a popular science book to clarity of explanation, a classic to historical context.
+
+Be substantive but not exhaustive. {hallucination_nudge}]],
 
     similar_books = [[Based on "{title}"{author_clause}, recommend 5-7 similar works.
 
