@@ -951,7 +951,6 @@ function XrayBrowser:showItemDetail(item, category_key, title, source)
         table.insert(row, {
             text = _("Chat about this"),
             callback = function()
-                if viewer then viewer:onClose() end
                 self_ref:chatAboutItem(detail_text)
             end,
         })
@@ -1341,15 +1340,25 @@ function XrayBrowser:chatAboutItem(detail_text)
     config.features.is_general_context = nil
     config.features.is_book_context = nil
     config.features.is_multi_book_context = nil
-    config.features.book_metadata = nil
+    -- Keep book_metadata — the dialog uses it for book context (title/author) and chat saving
     -- Clear stale selection data - the "highlight" is AI-generated, not a real book selection,
     -- so "Save to Note" must be disabled (prevents saving to a random prior highlight position)
     config.features.selection_data = nil
-    -- Hide artifact viewer and filter out actions that use book text / annotations / notebook
-    -- (the "highlight" here is AI-generated X-Ray content, not actual book text)
+    -- Set X-Ray chat pseudo-context flag (consumed once by showChatGPTDialog)
+    -- Action filtering is now handled by the xray_chat input context sorting
+    config.features._xray_chat_context = true
     config.features._hide_artifacts = true
-    config.features._exclude_action_flags = { "use_book_text", "use_annotations", "use_notebook" }
-    Dialogs.showChatGPTDialog(self.ui, detail_text, config, nil, self.metadata.plugin)
+
+    -- Build enhanced highlighted_text with X-Ray source framing
+    local framing
+    if not self.metadata.full_document and self.metadata.progress then
+        framing = "(Note: The following is from an analysis of the work, not the referenced work itself. The analysis was done at " .. self.metadata.progress .. " progress.)"
+    else
+        framing = "(Note: The following is from an analysis of the work, not the referenced work itself.)"
+    end
+    local enhanced_text = framing .. "\n\n" .. detail_text
+
+    Dialogs.showChatGPTDialog(self.ui, enhanced_text, config, nil, self.metadata.plugin)
 end
 
 -- Short category labels for chapter analysis display
