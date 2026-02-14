@@ -778,14 +778,25 @@ function PromptsManager:showPromptDetails(prompt)
 
     local buttons = {}
 
-    -- Edit button (only for UI-created prompts)
+    -- Duplicate button (reused across source types)
+    local duplicate_btn
+    if self.plugin.action_service and not prompt.no_duplicate then
+        duplicate_btn = {
+            text = _("Duplicate"),
+            callback = function()
+                UIManager:close(self.details_dialog)
+                self:duplicateAction(prompt)
+            end,
+        }
+    end
+
+    -- Top rows: Edit/Quick Edit + Duplicate (or Delete for UI-created)
     if prompt.source == "ui" then
-        -- Row with Edit and Delete buttons
+        -- Row 1: [Quick Edit] [Delete]
         table.insert(buttons, {
             {
                 text = _("Quick Edit"),
                 callback = function()
-                    -- Close the details dialog first
                     if self.details_dialog then
                         UIManager:close(self.details_dialog)
                     end
@@ -799,7 +810,6 @@ function PromptsManager:showPromptDetails(prompt)
                         text = _("Delete this action?"),
                         ok_callback = function()
                             self:deletePrompt(prompt)
-                            -- Close details and prompts menu, then refresh
                             if self.details_dialog then
                                 UIManager:close(self.details_dialog)
                             end
@@ -812,9 +822,12 @@ function PromptsManager:showPromptDetails(prompt)
                 end,
             },
         })
+        if duplicate_btn then
+            table.insert(buttons, { duplicate_btn })
+        end
     elseif prompt.source == "config" then
-        -- Prompts from custom_prompts.lua - show info about editing
-        table.insert(buttons, {
+        -- Row 1: [Edit file] [Duplicate]
+        local row = {
             {
                 text = _("Edit file"),
                 callback = function()
@@ -823,10 +836,12 @@ function PromptsManager:showPromptDetails(prompt)
                     })
                 end,
             },
-        })
+        }
+        if duplicate_btn then table.insert(row, duplicate_btn) end
+        table.insert(buttons, row)
     elseif prompt.source == "builtin" and not prompt.local_handler then
-        -- Built-in actions - allow editing settings (not the prompt itself)
-        local button_row = {
+        -- Row 1: [Edit Settings] [Duplicate]
+        local row = {
             {
                 text = _("Edit Settings"),
                 callback = function()
@@ -837,25 +852,31 @@ function PromptsManager:showPromptDetails(prompt)
                 end,
             },
         }
-        -- Add Reset button if there are overrides
+        if duplicate_btn then table.insert(row, duplicate_btn) end
+        table.insert(buttons, row)
+        -- Optional: [Reset to Default] row if overrides exist
         if prompt.has_override then
-            table.insert(button_row, {
-                text = _("Reset to Default"),
-                callback = function()
-                    UIManager:show(ConfirmBox:new{
-                        text = _("Reset this action to default settings?"),
-                        ok_callback = function()
-                            self:resetBuiltinOverride(prompt)
-                            if self.details_dialog then
-                                UIManager:close(self.details_dialog)
-                            end
-                            self:refreshMenu()
-                        end,
-                    })
-                end,
+            table.insert(buttons, {
+                {
+                    text = _("Reset to Default"),
+                    callback = function()
+                        UIManager:show(ConfirmBox:new{
+                            text = _("Reset this action to default settings?"),
+                            ok_callback = function()
+                                self:resetBuiltinOverride(prompt)
+                                if self.details_dialog then
+                                    UIManager:close(self.details_dialog)
+                                end
+                                self:refreshMenu()
+                            end,
+                        })
+                    end,
+                },
             })
         end
-        table.insert(buttons, button_row)
+    elseif duplicate_btn then
+        -- Other sources (e.g., builtin local_handler): just Duplicate
+        table.insert(buttons, { duplicate_btn })
     end
 
     -- Collect menu/toggle buttons, then pair them 2 per row to save space
@@ -997,17 +1018,6 @@ function PromptsManager:showPromptDetails(prompt)
                     timeout = 3,
                 })
                 self_ref:refreshMenu()
-            end,
-        })
-    end
-
-    -- Duplicate as Custom (blocked for actions with no_duplicate flag)
-    if self.plugin.action_service and not prompt.no_duplicate then
-        table.insert(toggle_buttons, {
-            text = _("Duplicate"),
-            callback = function()
-                UIManager:close(self.details_dialog)
-                self:duplicateAction(prompt)
             end,
         })
     end
