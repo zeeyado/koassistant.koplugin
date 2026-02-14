@@ -4301,19 +4301,21 @@ function AskGPT:showCacheViewer(cache_info)
     if cache_key == "_summary_cache" and self.ui and self.ui.document then
       local self_ref = self
       on_regenerate = function()
-        ActionCache.clearSummaryCache(file)
-        ActionCache.clear(file, "summarize_full_document")
         self_ref._file_dialog_row_cache = { file = nil, rows = nil }
-        self_ref:executeBookLevelAction("summarize_full_document")
+        local action = self_ref.action_service:getAction("book", "summarize_full_document")
+        if action then
+          self_ref:_executeBookLevelActionDirect(action, "summarize_full_document")
+        end
       end
     end
     if cache_key == "_analyze_cache" and self.ui and self.ui.document then
       local self_ref = self
       on_regenerate = function()
-        ActionCache.clearAnalyzeCache(file)
-        ActionCache.clear(file, "analyze_full_document")
         self_ref._file_dialog_row_cache = { file = nil, rows = nil }
-        self_ref:executeBookLevelAction("analyze_full_document")
+        local action = self_ref.action_service:getAction("book", "analyze_full_document")
+        if action then
+          self_ref:_executeBookLevelActionDirect(action, "analyze_full_document")
+        end
       end
     end
   end
@@ -4896,24 +4898,52 @@ function AskGPT:viewCachedAction(action, action_id, cached_entry, opts)
     local self_ref2 = self
     local captured_action_id = action_id
     if self.ui and self.ui.document then
-      -- Open book: regenerate via executeBookLevelAction
+      -- Open book: regenerate via direct execution (bypass cache popup)
       on_regenerate = function()
-        local AC = require("koassistant_action_cache")
-        AC.clear(file, captured_action_id)
         self_ref2._file_dialog_row_cache = { file = nil, rows = nil }
-        self_ref2:executeBookLevelAction(captured_action_id)
+        self_ref2:_executeBookLevelActionDirect(action, captured_action_id)
       end
       -- Position-relevant actions get "Update", position-irrelevant get "Regenerate"
       regenerate_label = action.use_reading_progress and _("Update") or _("Regenerate")
     elseif file then
-      -- Closed book: regenerate via file browser path (only for actions that don't need open book)
+      -- Closed book: regenerate via direct execution (bypass cache popup)
       local Actions = require("prompts/actions")
       if not Actions.requiresOpenBook(action) then
         on_regenerate = function()
-          local AC = require("koassistant_action_cache")
-          AC.clear(file, captured_action_id)
           self_ref2._file_dialog_row_cache = { file = nil, rows = nil }
-          self_ref2:executeFileBrowserAction(file, book_title or "Unknown", book_author or "", nil, captured_action_id)
+          -- Set up context flags (same as executeFileBrowserAction)
+          -- Required for cache_file resolution in handlePredefinedPrompt
+          local bt = book_title or "Unknown"
+          local ba = book_author or ""
+          configuration.features = configuration.features or {}
+          configuration.features.is_general_context = nil
+          configuration.features.is_book_context = true
+          configuration.features.is_multi_book_context = nil
+          configuration.features.book_metadata = {
+            title = bt,
+            author = ba,
+            author_clause = (ba ~= "") and (" by " .. ba) or "",
+            file = file,
+          }
+          local book_ctx = string.format("Title: %s.", bt)
+          if ba ~= "" then
+            book_ctx = book_ctx .. string.format(" Author: %s.", ba)
+          end
+          configuration.features.book_context = book_ctx
+          NetworkMgr:runWhenOnline(function()
+            self_ref2:ensureInitialized()
+            self_ref2:updateConfigFromSettings()
+            local config_copy = {}
+            for k, v in pairs(configuration or {}) do
+              config_copy[k] = v
+            end
+            config_copy.features = {}
+            for k, v in pairs((configuration or {}).features or {}) do
+              config_copy.features[k] = v
+            end
+            Dialogs.executeDirectAction(self_ref2.ui, action,
+                config_copy.features.book_context or "", config_copy, self_ref2)
+          end)
         end
         regenerate_label = _("Regenerate")
       end
