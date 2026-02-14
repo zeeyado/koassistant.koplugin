@@ -375,48 +375,68 @@ function AskGPT:generateFileDialogRows(file, is_file, book_props)
   if show_artifacts and #caches > 0 then
     local self_ref = self
     table.insert(buttons, {
-      text = (#caches == 1 and (_("View") .. " " .. caches[1].name) or _("View Artifacts")) .. " (KOA)",
+      text = _("View Artifacts") .. " (KOA)",
       callback = function()
         local UIManager = require("ui/uimanager")
-        local current_dialog = UIManager:getTopmostVisibleWidget()
-        if current_dialog and current_dialog.close then
-          UIManager:close(current_dialog)
-        end
-        if #caches == 1 then
-          local c = caches[1]
-          if c.is_per_action then
-            self_ref:viewCachedAction({ text = c.name }, c.key, c.data, { file = c.file, book_title = c.book_title, book_author = c.book_author })
-          else
-            self_ref:showCacheViewer(c)
+        -- Capture file browser menu reference before showing popup
+        local fb_menu = UIManager:getTopmostVisibleWidget()
+        local ButtonDialog = require("ui/widget/buttondialog")
+        local btn_rows = {}
+        for _idx, cache in ipairs(caches) do
+          -- Format with metadata: "X-Ray (100%, today)"
+          local display = cache.name
+          local meta_parts = {}
+          if cache.data then
+            if cache.data.progress_decimal then
+              local pct = math.floor(cache.data.progress_decimal * 100 + 0.5)
+              table.insert(meta_parts, pct .. "%")
+            end
+            if cache.data.timestamp then
+              local now = os.time()
+              local today_t = os.date("*t", now)
+              today_t.hour, today_t.min, today_t.sec = 0, 0, 0
+              local cached_t = os.date("*t", cache.data.timestamp)
+              cached_t.hour, cached_t.min, cached_t.sec = 0, 0, 0
+              local days = math.floor((os.time(today_t) - os.time(cached_t)) / 86400)
+              if days == 0 then
+                table.insert(meta_parts, _("today"))
+              elseif days < 30 then
+                table.insert(meta_parts, string.format(_("%dd ago"), days))
+              else
+                table.insert(meta_parts, string.format(_("%dm ago"), math.floor(days / 30)))
+              end
+            end
           end
-        else
-          local ButtonDialog = require("ui/widget/buttondialog")
-          local btn_rows = {}
-          for _idx, cache in ipairs(caches) do
-            table.insert(btn_rows, {{
-              text = cache.name,
-              callback = function()
-                UIManager:close(self_ref._cache_selector)
-                if cache.is_per_action then
-                  self_ref:viewCachedAction({ text = cache.name }, cache.key, cache.data, { file = cache.file, book_title = cache.book_title, book_author = cache.book_author })
-                else
-                  self_ref:showCacheViewer(cache)
-                end
-              end,
-            }})
+          if #meta_parts > 0 then
+            display = display .. " (" .. table.concat(meta_parts, ", ") .. ")"
           end
           table.insert(btn_rows, {{
-            text = _("Cancel"),
+            text = display,
             callback = function()
               UIManager:close(self_ref._cache_selector)
+              -- Close file browser menu after selection
+              if fb_menu then
+                UIManager:close(fb_menu)
+              end
+              if cache.is_per_action then
+                self_ref:viewCachedAction({ text = cache.name }, cache.key, cache.data, { file = cache.file, book_title = cache.book_title, book_author = cache.book_author })
+              else
+                self_ref:showCacheViewer(cache)
+              end
             end,
           }})
-          self_ref._cache_selector = ButtonDialog:new{
-            title = _("View Artifacts"),
-            buttons = btn_rows,
-          }
-          UIManager:show(self_ref._cache_selector)
         end
+        table.insert(btn_rows, {{
+          text = _("Cancel"),
+          callback = function()
+            UIManager:close(self_ref._cache_selector)
+          end,
+        }})
+        self_ref._cache_selector = ButtonDialog:new{
+          title = _("View Artifacts"),
+          buttons = btn_rows,
+        }
+        UIManager:show(self_ref._cache_selector)
       end,
     })
   end
@@ -4031,69 +4051,6 @@ function AskGPT:onKOAssistantAnalyzeFullDocument()
 end
 
 --- Show available cached content for current document
-function AskGPT:viewCache()
-  if not self.ui or not self.ui.document or not self.ui.document.file then
-    UIManager:show(InfoMessage:new{
-      text = _("No book open"),
-    })
-    return
-  end
-
-  local ActionCache = require("koassistant_action_cache")
-  local file = self.ui.document.file
-
-  local caches = ActionCache.getAvailableArtifacts(file)
-
-  -- Refresh artifact index for this document (populates index for pre-existing artifacts)
-  ActionCache.refreshIndex(file)
-
-  if #caches == 0 then
-    UIManager:show(InfoMessage:new{
-      text = _("No cached content found for this document.\n\nRun X-Ray, Recap, X-Ray (Simple), Document Summary, or Document Analysis to create reusable caches."),
-    })
-    return
-  end
-
-  -- If only one cache, open directly
-  if #caches == 1 then
-    if caches[1].is_per_action then
-      self:viewCachedAction({ text = caches[1].name }, caches[1].key, caches[1].data)
-    else
-      self:showCacheViewer(caches[1])
-    end
-    return
-  end
-
-  -- Multiple caches - show selector
-  local self_ref = self
-  local buttons = {}
-  for _idx, cache in ipairs(caches) do
-    table.insert(buttons, {{
-      text = cache.name,
-      callback = function()
-        UIManager:close(self_ref._cache_selector)
-        if cache.is_per_action then
-          self_ref:viewCachedAction({ text = cache.name }, cache.key, cache.data)
-        else
-          self_ref:showCacheViewer(cache)
-        end
-      end,
-    }})
-  end
-  table.insert(buttons, {{
-    text = _("Cancel"),
-    callback = function()
-      UIManager:close(self._cache_selector)
-    end,
-  }})
-
-  self._cache_selector = ButtonDialog:new{
-    title = _("View Artifacts"),
-    buttons = buttons,
-  }
-  UIManager:show(self._cache_selector)
-end
-
 --- Format a timestamp as relative time string (e.g., "3d ago", "1m2d ago")
 --- @param timestamp number Unix timestamp
 --- @return string Relative time string, or empty if invalid
@@ -4210,6 +4167,77 @@ local function buildInlineIndicators(cached_entry, config)
     return table.concat(indicators, "\n") .. "\n\n"
   end
   return nil
+end
+
+function AskGPT:viewCache(parent_dialog)
+  if not self.ui or not self.ui.document or not self.ui.document.file then
+    UIManager:show(InfoMessage:new{
+      text = _("No book open"),
+    })
+    return
+  end
+
+  local ActionCache = require("koassistant_action_cache")
+  local file = self.ui.document.file
+
+  local caches = ActionCache.getAvailableArtifacts(file)
+
+  -- Refresh artifact index for this document (populates index for pre-existing artifacts)
+  ActionCache.refreshIndex(file)
+
+  if #caches == 0 then
+    UIManager:show(InfoMessage:new{
+      text = _("No cached content found for this document.\n\nRun X-Ray, Recap, X-Ray (Simple), Document Summary, or Document Analysis to create reusable caches."),
+    })
+    return
+  end
+
+  -- Always show popup selector with metadata (even for single artifact)
+  local self_ref = self
+  local buttons = {}
+  for _idx, cache in ipairs(caches) do
+    -- Format with metadata: "X-Ray (100%, today)"
+    local display = cache.name
+    local meta_parts = {}
+    if cache.data then
+      if cache.data.progress_decimal then
+        local pct = math.floor(cache.data.progress_decimal * 100 + 0.5)
+        table.insert(meta_parts, pct .. "%")
+      end
+      if cache.data.timestamp then
+        local relative = formatRelativeTime(cache.data.timestamp)
+        if relative ~= "" then table.insert(meta_parts, relative) end
+      end
+    end
+    if #meta_parts > 0 then
+      display = display .. " (" .. table.concat(meta_parts, ", ") .. ")"
+    end
+    table.insert(buttons, {{
+      text = display,
+      callback = function()
+        UIManager:close(self_ref._cache_selector)
+        -- Close parent dialog (e.g., QA panel) only when user picks an artifact
+        if parent_dialog then UIManager:close(parent_dialog) end
+        if cache.is_per_action then
+          self_ref:viewCachedAction({ text = cache.name }, cache.key, cache.data)
+        else
+          self_ref:showCacheViewer(cache)
+        end
+      end,
+    }})
+  end
+  table.insert(buttons, {{
+    text = _("Cancel"),
+    callback = function()
+      UIManager:close(self._cache_selector)
+    end,
+  }})
+
+  self._cache_selector = ButtonDialog:new{
+    title = _("View Artifacts"),
+    buttons = buttons,
+  }
+  UIManager:show(self._cache_selector)
 end
 
 --- Show a specific cache in the viewer
@@ -5553,11 +5581,9 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
   local SystemPrompts = require("prompts/system_prompts")
   local self_ref = self
 
-  -- Helper to reopen this dialog after sub-dialog closes
+  -- Helper to reopen this dialog after sub-dialog closes (immediate, no delay)
   local function reopenQuickSettings()
-    UIManager:scheduleIn(0.1, function()
-      self_ref:onKOAssistantAISettings(on_close_callback)
-    end)
+    self_ref:onKOAssistantAISettings(on_close_callback)
   end
 
   local features = self.settings:readSetting("features") or {}
@@ -5899,9 +5925,12 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
     title = _("Quick Settings"),
     buttons = buttons,
     left_icon_tap_callback = function()
-      opening_subdialog = true
+      -- Close QS panel before sorting (invisible under fullscreen sorting manager).
+      -- UIManager:close won't trigger close_callback, only onCloseWidget.
       UIManager:close(dialog)
-      PromptsManager:new(self_ref):showQsItemsManager()
+      PromptsManager:new(self_ref):showQsItemsManager(nil, function()
+        reopenQuickSettings()
+      end)
     end,
     close_callback = function()
       if not opening_subdialog and on_close_callback then
@@ -5977,14 +6006,14 @@ function AskGPT:onKOAssistantQuickActions()
 
       if enabled then
         if util_id == "view_caches" then
-          -- Single "Artifacts" button — opens cache picker (skips list if only one)
+          -- Single "Artifacts" button — opens cache picker
           local has_any_cache = #ActionCache.getAvailableArtifacts(file) > 0
           if has_any_cache then
             addButton({
               text = _("View Artifacts"),
               callback = function()
-                UIManager:close(dialog)
-                self_ref:viewCache()
+                -- Don't close QA panel yet — close only when user picks an artifact
+                self_ref:viewCache(dialog)
               end,
             })
           end
@@ -6021,13 +6050,17 @@ function AskGPT:onKOAssistantQuickActions()
         buttons = {
           {{ text = _("Panel Actions"), callback = function()
             UIManager:close(chooser_dialog)
-            UIManager:close(dialog)
-            PromptsManager:new(self_ref):showQuickActionsManager()
+            UIManager:close(dialog)  -- Close QA panel (invisible under fullscreen sorting)
+            PromptsManager:new(self_ref):showQuickActionsManager(function()
+              self_ref:onKOAssistantQuickActions()
+            end)
           end }},
           {{ text = _("Panel Utilities"), callback = function()
             UIManager:close(chooser_dialog)
-            UIManager:close(dialog)
-            PromptsManager:new(self_ref):showQaUtilitiesManager()
+            UIManager:close(dialog)  -- Close QA panel (invisible under fullscreen sorting)
+            PromptsManager:new(self_ref):showQaUtilitiesManager(nil, function()
+              self_ref:onKOAssistantQuickActions()
+            end)
           end }},
         },
       }

@@ -4469,6 +4469,22 @@ function PromptsManager:getContextDisplayName(context)
     end
 end
 
+-- Sorting menus should NOT auto-close on item tap.
+-- KOReader's Menu:onMenuSelect() calls close_callback after each tap,
+-- which is wrong for multi-toggle sorting managers. Override to skip that.
+local function _sortingMenuOnSelect(this, item)
+    if item.sub_item_table == nil then
+        if item.select_enabled == false then return true end
+        if item.select_enabled_func and not item.select_enabled_func() then return true end
+        this:onMenuChoice(item)
+    else
+        item.table.title = this.title
+        table.insert(this.item_table_stack, this.item_table)
+        this:switchItemTable(item.text, item.sub_item_table)
+    end
+    return true
+end
+
 -- ============================================================
 -- Highlight Menu Manager
 -- ============================================================
@@ -4877,7 +4893,7 @@ function PromptsManager:_refreshQuickActionsMenu(bold_id)
         T(_("Quick Actions (%1 enabled)"), quick_count), menu_items, -1)
 end
 
-function PromptsManager:showQuickActionsManager()
+function PromptsManager:showQuickActionsManager(on_close_callback)
     if not self.plugin.action_service then
         UIManager:show(InfoMessage:new{ text = _("Action service not available.") })
         return
@@ -4907,7 +4923,7 @@ function PromptsManager:showQuickActionsManager()
                     self_ref:_confirmAndReset(
                         _("Reset Quick Actions panel?\n\nThis restores the default actions shown in the Quick Actions menu.\n\nYour actions (custom and built-in) are preserved."),
                         function() self_ref.plugin:resetQuickActions() end,
-                        from, function() self_ref:showQuickActionsManager() end)
+                        from, function() self_ref:showQuickActionsManager(on_close_callback) end)
                 end }},
             }
             self_ref:_showAnchoredMenu(self_ref.quick_actions_menu, buttons)
@@ -4957,7 +4973,9 @@ function PromptsManager:showQuickActionsManager()
                 end
             end
         end,
+        close_callback = on_close_callback,
     }
+    self.quick_actions_menu.onMenuSelect = _sortingMenuOnSelect
     UIManager:show(self.quick_actions_menu)
 end
 
@@ -5015,7 +5033,7 @@ function PromptsManager:_refreshQaUtilitiesMenu(bold_id)
         T(_("QA Panel Utilities (%1 visible)"), enabled_count), menu_items, -1)
 end
 
-function PromptsManager:showQaUtilitiesManager(restore_page)
+function PromptsManager:showQaUtilitiesManager(restore_page, on_close_callback)
     if not self.plugin.action_service then
         UIManager:show(InfoMessage:new{ text = _("Action service not available.") })
         return
@@ -5035,7 +5053,7 @@ function PromptsManager:showQaUtilitiesManager(restore_page)
                     self_ref:_confirmAndReset(
                         _("Reset QA panel utilities to defaults?\n\nThis restores the default order and visibility of utility buttons."),
                         function() self_ref.plugin:resetQaUtilities() end,
-                        from, function() self_ref:showQaUtilitiesManager() end)
+                        from, function() self_ref:showQaUtilitiesManager(nil, on_close_callback) end)
                 end }},
             }
             self_ref:_showAnchoredMenu(self_ref.qa_utilities_menu, buttons)
@@ -5067,7 +5085,9 @@ function PromptsManager:showQaUtilitiesManager(restore_page)
                     move_fn, reshow, function() self_ref:_refreshQaUtilitiesMenu() end)
             end
         end,
+        close_callback = on_close_callback,
     }
+    self.qa_utilities_menu.onMenuSelect = _sortingMenuOnSelect
     UIManager:show(self.qa_utilities_menu)
     if restore_page and restore_page > 1 then
         self.qa_utilities_menu:onGotoPage(restore_page)
@@ -5142,7 +5162,7 @@ function PromptsManager:_refreshQsItemsMenu(bold_id)
         menu_items, -1)
 end
 
-function PromptsManager:showQsItemsManager(restore_page)
+function PromptsManager:showQsItemsManager(restore_page, on_close_callback)
     if not self.plugin.action_service then
         UIManager:show(InfoMessage:new{
             text = _("Action service not available."),
@@ -5165,7 +5185,7 @@ function PromptsManager:showQsItemsManager(restore_page)
                     self_ref:_confirmAndReset(
                         _("Reset QS panel items to defaults?\n\nThis restores the default order and visibility of Quick Settings items."),
                         function() self_ref.plugin:resetQsItems() end,
-                        from, function() self_ref:showQsItemsManager() end)
+                        from, function() self_ref:showQsItemsManager(nil, on_close_callback) end)
                 end }},
             }
             self_ref:_showAnchoredMenu(self_ref.qs_items_menu, buttons)
@@ -5199,10 +5219,9 @@ function PromptsManager:showQsItemsManager(restore_page)
                     move_fn, reshow, dismiss_fn)
             end
         end,
-        -- No close_callback: Menu:onMenuSelect calls close_callback after
-        -- every item tap. We refresh in-place via switchItemTable instead.
-        -- The Menu's built-in onClose handles the X/back button.
+        close_callback = on_close_callback,
     }
+    self.qs_items_menu.onMenuSelect = _sortingMenuOnSelect
     UIManager:show(self.qs_items_menu)
     if restore_page and restore_page > 1 then
         self.qs_items_menu:onGotoPage(restore_page)
@@ -5670,6 +5689,7 @@ function PromptsManager:showInputActionsManager(ctx_name, on_close_callback)
             end
         end,
     }
+    self.input_actions_menu.onMenuSelect = _sortingMenuOnSelect
     UIManager:show(self.input_actions_menu)
 end
 

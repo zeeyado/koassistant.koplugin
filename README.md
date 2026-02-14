@@ -666,7 +666,7 @@ The X-Ray action produces a structured JSON analysis that opens in a **browsable
 - **Search** — find any entry across all categories by name, alias, or description
 - **Local X-Ray Lookup** — select text while reading → instantly look it up in cached X-Ray data. No AI call, no network, instant results. Single match shows full detail; multiple matches show a tappable list. Available in highlight menu and dictionary popup when an X-Ray cache exists. See "Look up in X-Ray" in [Highlight Mode](#highlight-mode).
 - **Full View** — rendered markdown view in the chat viewer (with export)
-- **Chat about this** — from any detail view, launch a book chat with the entry as context to ask follow-up questions (actions requiring book text or annotations are filtered out since the context is AI-generated analysis)
+- **Chat about this** — from any detail view, launch a chat with the entry as context to ask follow-up questions. Opens with a curated set of actions (Explain, Elaborate, ELI5, Fact Check by default) since the context is AI-generated analysis. The entry text is prefixed with a note clarifying it's from an analysis, not the work itself. Customize which actions appear via the gear icon → "Choose and Sort Actions"
 - **Text selection** — hold to select text in detail views: 1-3 words opens dictionary, 4+ copies to clipboard
 - **Options menu** — info (model, progress, date, fiction/non-fiction type), delete, close
 
@@ -771,7 +771,14 @@ A free-form conversation without specific document context. If started while a b
 
 **Managing the Input Dialog:**
 
-The general input dialog shows only actions you've explicitly added. By default, it shows just "Ask". To add more actions:
+All input dialogs (highlight, book, general) show a configurable set of actions that you can customize per context. The top row has **[Web ON/OFF] [Domain] [Send]**, followed by action buttons in rows of 2.
+
+**Customizing which actions appear:**
+- **From the input dialog**: Tap the gear icon → **"Choose and Sort Actions"** to reorder, show, or hide actions for the current context
+- **From the input dialog**: Tap the gear icon → **"More Actions"** to run any enabled action not currently shown in the grid
+- **From Action Manager**: Long-press any action → **"+ Input Dialog"** to add it to the relevant input context
+
+The general input dialog shows only actions you've explicitly added. By default, it shows just "Ask". To add more:
 
 1. Go to **Settings → Actions → Action Manager**
 2. Switch to **General** context (at the top)
@@ -784,7 +791,8 @@ Actions like News Update that require [web search](#web-search) are available in
 
 ### Quick UI Features
 
-- **Settings Icon (Input)**: Tap the gear icon in the input dialog title bar to open **Quick Settings**—a streamlined two-column panel providing quick access to frequently-changed settings without navigating through the full settings menu. See [Recommended Setup](#recommended-setup) for details on what's available in this panel.
+- **Settings Icon (Input)**: Tap the gear icon in the input dialog title bar for a menu with **Quick Settings** (streamlined settings panel), **Choose and Sort Actions** (reorder, show/hide actions for this context), and **More Actions** (access enabled actions not shown in the grid). See [Recommended Setup](#recommended-setup) for details on the Quick Settings panel.
+- **Web Search Toggle (Input)**: The input dialog has a **Web ON/OFF** button (top row) to toggle web search before running an action. This is a persistent toggle — the setting sticks across sessions. Action button labels update to reflect web search status.
 - **Settings Icon (Viewer)**: Tap the gear icon in the chat viewer title bar to adjust font size and text alignment (cycles left/justified/right on each click)
 - **Settings Icon (Panels)**: Both the Quick Settings and Quick Actions panels have a gear icon in the title bar for managing panel layout — reorder, show/hide buttons without leaving the panel
 - **Show/Hide Quote**: In the chat viewer, toggle button to show or hide the highlighted text quote (useful for long selections)
@@ -2449,7 +2457,7 @@ Separate option to delete all saved conversations across all books. This cannot 
 
 The Action Manager (Settings → Actions & Prompts → Manage Actions) has a hamburger menu (☰) in the top-left with quick access to action-related resets.
 
-All six sorting/ordering managers (Manage Actions, Highlight Menu, Dictionary Popup, File Browser Actions, QA Panel Actions, QA Panel Utilities, QS Panel Items) have hamburger menus (☰) with cross-navigation links, so you can jump between them without going back to Settings.
+All sorting/ordering managers (Manage Actions, Highlight Menu, Dictionary Popup, File Browser Actions, QA Panel Actions, QA Panel Utilities, QS Panel Items, Input Dialog Actions) have hamburger menus (☰) with cross-navigation links, so you can jump between them without going back to Settings.
 
 **When to reset:** After problematic updates, when experiencing strange behavior, or to start fresh. See [Troubleshooting → Settings Reset](#settings-reset) for details.
 
@@ -2749,8 +2757,9 @@ Supported providers can search the web to include current information in their r
 - **Max Searches per Query**: 1-10 (Anthropic only, default: 5)
 - **Show Indicator in Chat**: Show "*[Web search was used]*" after responses (default: ON)
 
-**Session Override:**
-The chat viewer has a Web ON/OFF toggle button (first row, 🔍 prefix with [Emoji Menu Icons](#display-settings)) to override web search for the current session without changing your global setting.
+**Quick Toggle:**
+- **Input dialog**: Web ON/OFF button (top row, 🔍 prefix with [Emoji Menu Icons](#display-settings)) toggles the persistent global web search setting. Action button labels update immediately to reflect web search status.
+- **Chat viewer**: Web ON/OFF toggle button (first row) overrides web search for the current session without changing your global setting.
 
 **Per-Action Override:**
 Custom actions can override the global setting:

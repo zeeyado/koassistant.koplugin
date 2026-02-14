@@ -435,10 +435,18 @@ function MessageBuilder.build(params)
                     (data.book_author and data.book_author ~= "") and (" by " .. data.book_author) or ""))
             end
 
+            -- Inject request prefix before selected text (e.g., X-Ray source framing)
+            if data.request_prefix then
+                if data.book_title then
+                    table.insert(parts, "")  -- Spacing after book info
+                end
+                table.insert(parts, data.request_prefix)
+            end
+
             -- Add highlighted text only if not already in prompt template
             if data.highlighted_text and not prompt_has_highlight_var then
-                if data.book_title then
-                    table.insert(parts, "")  -- Add spacing if book info was shown
+                if data.book_title or data.request_prefix then
+                    table.insert(parts, "")  -- Add spacing if book info or prefix was shown
                 end
                 table.insert(parts, "Selected text:")
                 table.insert(parts, '"' .. data.highlighted_text .. '"')

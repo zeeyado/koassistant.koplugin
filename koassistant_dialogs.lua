@@ -2094,6 +2094,10 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
     if config.features and config.features.book_metadata then
         logger.info("KOAssistant: book_metadata.title=", config.features.book_metadata.title or "nil")
     end
+    -- Consume X-Ray context prefix (transient flag set by action buttons from chatAboutItem)
+    local xray_prefix = config.features and config.features._xray_context_prefix
+    if config.features then config.features._xray_context_prefix = nil end
+
     local message_data = {
         highlighted_text = highlightedText,
         additional_input = additional_input,
@@ -2105,6 +2109,8 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
         -- Context from dictionary hook (surrounding text)
         context = config.features.dictionary_context or "",
         dictionary_context_mode = config.features.dictionary_context_mode,
+        -- X-Ray context prefix (injected before action prompt in message builder)
+        request_prefix = xray_prefix,
     }
     logger.info("KOAssistant: message_data.book_metadata=", message_data.book_metadata and "present" or "nil")
 
@@ -2709,6 +2715,39 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
     return checkLargeExtractionAndSend()
 end
 
+--- Format artifact metadata for popup display (e.g., "X-Ray (100%, today)")
+--- @param cache table Artifact cache entry with name, data.progress_decimal, data.timestamp
+--- @return string Formatted display text
+local function formatArtifactDisplayText(cache)
+    local parts = {}
+    if cache.data then
+        if cache.data.progress_decimal then
+            local pct = math.floor(cache.data.progress_decimal * 100 + 0.5)
+            table.insert(parts, pct .. "%")
+        end
+        if cache.data.timestamp then
+            local now = os.time()
+            local today_t = os.date("*t", now)
+            today_t.hour, today_t.min, today_t.sec = 0, 0, 0
+            local cached_t = os.date("*t", cache.data.timestamp)
+            cached_t.hour, cached_t.min, cached_t.sec = 0, 0, 0
+            local days = math.floor((os.time(today_t) - os.time(cached_t)) / 86400)
+            if days == 0 then
+                table.insert(parts, _("today"))
+            elseif days < 30 then
+                table.insert(parts, string.format(_("%dd ago"), days))
+            else
+                local months = math.floor(days / 30)
+                table.insert(parts, string.format(_("%dm ago"), months))
+            end
+        end
+    end
+    if #parts > 0 then
+        return cache.name .. " (" .. table.concat(parts, ", ") .. ")"
+    end
+    return cache.name
+end
+
 local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_type, plugin, book_metadata, initial_input)
     -- Use the passed configuration or fall back to the global CONFIGURATION
     local configuration = config or CONFIGURATION
@@ -2725,10 +2764,12 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     local hide_artifacts = ((configuration or {}).features or {})._hide_artifacts
     local exclude_action_flags = ((configuration or {}).features or {})._exclude_action_flags
     local is_xray_chat = ((configuration or {}).features or {})._xray_chat_context
+    local xray_context_prefix = ((configuration or {}).features or {})._xray_context_prefix
     if configuration and configuration.features then
         configuration.features._hide_artifacts = nil
         configuration.features._exclude_action_flags = nil
         configuration.features._xray_chat_context = nil
+        configuration.features._xray_context_prefix = nil
     end
 
     -- Log which provider we're using
@@ -2975,7 +3016,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             },
             -- 3. Send (freeform chat with context)
             {
-                text = _("Send"),
+                text = Constants.getEmojiText("➤", _("Send"), enable_emoji),
             callback = function()
                 UIManager:close(input_dialog)
                 -- Note: Loading dialog now handled by handleNonStreamingBackground in gpt_query.lua
@@ -3032,11 +3073,16 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                                 (book_metadata.author and book_metadata.author ~= "") and (" by " .. book_metadata.author) or ""))
                             table.insert(parts, "")
                         end
+                        -- Inject X-Ray context framing before selected text (explains source)
+                        if xray_context_prefix then
+                            table.insert(parts, xray_context_prefix)
+                            table.insert(parts, "")
+                        end
                         table.insert(parts, "Selected text:")
                         table.insert(parts, '"' .. highlighted_text .. '"')
                         table.insert(parts, "")
                     end
-                    
+
                     -- Get user's typed question
                     local question = input_dialog:getInputText()
                     local has_user_question = question and question ~= ""
@@ -3110,7 +3156,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             local ordered_actions = action_service:getInputActionObjects(input_context)
             prompts = {}
             prompt_keys = {}
-            for _, action in ipairs(ordered_actions) do
+            for _idx, action in ipairs(ordered_actions) do
                 local key = action.id or ("prompt_" .. #prompt_keys + 1)
                 prompts[key] = action
                 table.insert(prompt_keys, key)
@@ -3212,6 +3258,12 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                                     end
                                 end
 
+                                -- Pass X-Ray context prefix to handlePredefinedPrompt via transient flag
+                                if xray_context_prefix then
+                                    configuration.features = configuration.features or {}
+                                    configuration.features._xray_context_prefix = xray_context_prefix
+                                end
+
                                 -- Call with callback for streaming support
                                 local history, temp_config = handlePredefinedPrompt(custom_prompt_type, highlighted_text, ui_instance, configuration, nil, plugin, additional_input, onPromptComplete, book_metadata)
 
@@ -3253,7 +3305,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     end
 
     -- Build View Artifacts button (shows cached artifacts)
-    -- Added as its own bottom row, separate from action buttons
+    -- Always "View Artifacts" text, always shows popup selector with metadata
     local artifact_button = nil
     if not is_general_context and plugin and not hide_artifacts then
         local artifact_file = document_path
@@ -3270,27 +3322,21 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                 end
             end
 
-            if #caches == 1 then
-                local cache = caches[1]
-                artifact_button = {
-                    text = _("View") .. " " .. cache.name,
-                    callback = function()
-                        UIManager:close(input_dialog)
-                        openArtifact(cache)
-                    end
-                }
-            elseif #caches > 1 then
+            if #caches > 0 then
                 artifact_button = {
                     text = _("View Artifacts"),
                     callback = function()
-                        UIManager:close(input_dialog)
+                        -- Don't close input dialog yet — only close when an artifact is selected
+                        input_dialog:onCloseKeyboard()
                         local ButtonDialog = require("ui/widget/buttondialog")
                         local btn_rows = {}
                         for _idx, cache in ipairs(caches) do
                             table.insert(btn_rows, {{
-                                text = cache.name,
+                                text = formatArtifactDisplayText(cache),
                                 callback = function()
                                     UIManager:close(plugin._cache_selector)
+                                    UIManager:close(input_dialog)
+                                    if plugin then plugin.current_input_dialog = nil end
                                     openArtifact(cache)
                                 end,
                             }})
@@ -3352,6 +3398,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         if configuration and configuration.features then
             if is_xray_chat then configuration.features._xray_chat_context = true end
             if hide_artifacts then configuration.features._hide_artifacts = true end
+            if xray_context_prefix then configuration.features._xray_context_prefix = xray_context_prefix end
         end
         showChatGPTDialog(ui_instance, highlighted_text, configuration, nil, plugin, book_metadata, current_text)
     end
@@ -3388,10 +3435,13 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         if not plugin then return end
                         local PromptsManager = require("koassistant_ui/prompts_manager")
                         PromptsManager:new(plugin):showInputActionsManager(input_context, function()
-                            refreshInputDialog()
+                            -- Defer refresh to next tick so sorting manager is fully removed first
+                            UIManager:nextTick(function()
+                                refreshInputDialog()
+                            end)
                         end)
                     end }},
-                    {{ text = _("More Actions…"), callback = function()
+                    {{ text = _("Show More Actions…"), callback = function()
                         UIManager:close(gear_menu)
                         if not plugin or not plugin.action_service then return end
                         -- Get all eligible actions minus those in the current favorites
@@ -3403,12 +3453,12 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                             current_ids = as:getInputActions(input_context)
                         end
                         local current_set = {}
-                        for _, id in ipairs(current_ids) do current_set[id] = true end
+                        for _idx, id in ipairs(current_ids) do current_set[id] = true end
                         local all_actions
                         if input_context == "general" then
                             local all_general = as:getAllActions("general", false, has_open_book)
                             all_actions = {}
-                            for _, action in ipairs(all_general) do
+                            for _idx, action in ipairs(all_general) do
                                 if not current_set[action.id] and action.enabled then
                                     table.insert(all_actions, action)
                                 end
@@ -3417,7 +3467,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                             -- Get the full eligible pool
                             local eligible_ids = as:_getEligibleInputActionIds(input_context)
                             all_actions = {}
-                            for _, id in ipairs(eligible_ids) do
+                            for _idx, id in ipairs(eligible_ids) do
                                 if not current_set[id] then
                                     local action = as:getAction(nil, id)
                                     if action and action.enabled then
@@ -3436,7 +3486,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         -- Build 2-per-row button dialog
                         local btn_rows = {}
                         local btn_row = {}
-                        for _, action in ipairs(all_actions) do
+                        for _idx, action in ipairs(all_actions) do
                             table.insert(btn_row, {
                                 text = ActionServiceModule.getActionDisplayText(action, (configuration or {}).features),
                                 callback = function()
@@ -3472,6 +3522,11 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                                                 })
                                             end
                                         end
+                                        -- Pass X-Ray context prefix via transient flag
+                                        if xray_context_prefix then
+                                            configuration.features = configuration.features or {}
+                                            configuration.features._xray_context_prefix = xray_context_prefix
+                                        end
                                         handlePredefinedPrompt(action.id, highlighted_text, ui_instance, configuration, nil, plugin, additional_input, onPromptComplete, book_metadata)
                                     end)
                                 end,
@@ -3488,7 +3543,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                             UIManager:close(plugin._more_actions_dialog)
                         end }})
                         plugin._more_actions_dialog = ButtonDialog:new{
-                            title = _("More Actions"),
+                            title = _("Show More Actions"),
                             buttons = btn_rows,
                         }
                         UIManager:show(plugin._more_actions_dialog)
