@@ -1892,9 +1892,12 @@ function ActionService.getActionDisplayText(action, features)
         table.insert(indicators, "📓")
     end
     -- Web search: show when effectively enabled (per-action override or global setting)
-    if action.enable_web_search == true
-       or (action.enable_web_search == nil and features.enable_web_search == true) then
+    if action.enable_web_search == true then
+        -- Forced on: solid icon
         table.insert(indicators, "🌐")
+    elseif action.enable_web_search == nil and features.enable_web_search == true then
+        -- Follows global (currently on): parenthesized to distinguish from forced
+        table.insert(indicators, "(🌐)")
     end
 
     if #indicators > 0 then
@@ -1916,18 +1919,26 @@ local INPUT_CONTEXTS = {
         dismissed_key = "_dismissed_input_book_actions",
         action_context = "book",
         has_open_book = true,
+        -- Curated defaults: accessible actions without heavy data extraction requirements
+        default_ids = {"book_info", "xray_simple", "similar_books", "related_thinkers",
+            "key_arguments", "explain_author", "historical_context", "book_reviews"},
     },
     book_filebrowser = {
         settings_key = "input_book_fb_actions",
         dismissed_key = "_dismissed_input_book_fb_actions",
         action_context = "book",
         has_open_book = false,  -- filters out requiresOpenBook actions
+        -- Curated defaults: non-open-book actions suitable for file browser context
+        default_ids = {"book_info", "similar_books", "explain_author", "historical_context", "book_reviews"},
     },
     highlight = {
         settings_key = "input_highlight_actions",
         dismissed_key = "_dismissed_input_highlight_actions",
         action_context = "highlight",
         has_open_book = true,
+        -- Curated defaults: core highlight actions without heavy data requirements
+        default_ids = {"explain", "elaborate", "eli5", "translate", "summarize",
+            "fact_check", "connect", "current_context"},
     },
     xray_chat = {
         settings_key = "input_xray_chat_actions",

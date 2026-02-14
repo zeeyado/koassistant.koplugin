@@ -1349,16 +1349,16 @@ function XrayBrowser:chatAboutItem(detail_text)
     config.features._xray_chat_context = true
     config.features._hide_artifacts = true
 
-    -- Build enhanced highlighted_text with X-Ray source framing
+    -- Pass X-Ray source framing as context prefix (injected before action prompt, not into text)
     local framing
     if not self.metadata.full_document and self.metadata.progress then
         framing = "(Note: The following is from an analysis of the work, not the referenced work itself. The analysis was done at " .. self.metadata.progress .. " progress.)"
     else
         framing = "(Note: The following is from an analysis of the work, not the referenced work itself.)"
     end
-    local enhanced_text = framing .. "\n\n" .. detail_text
+    config.features._xray_context_prefix = framing
 
-    Dialogs.showChatGPTDialog(self.ui, enhanced_text, config, nil, self.metadata.plugin)
+    Dialogs.showChatGPTDialog(self.ui, detail_text, config, nil, self.metadata.plugin)
 end
 
 -- Short category labels for chapter analysis display
