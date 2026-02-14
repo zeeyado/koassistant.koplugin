@@ -4099,9 +4099,14 @@ end
 --- @return string Relative time string, or empty if invalid
 local function formatRelativeTime(timestamp)
   if not timestamp then return "" end
-  local diff = os.time() - timestamp
-  if diff < 0 then return "" end
-  local days = math.floor(diff / 86400)
+  local now = os.time()
+  if now - timestamp < 0 then return "" end
+  -- Compare calendar dates (midnight-aligned) to get accurate day counts
+  local today_t = os.date("*t", now)
+  today_t.hour, today_t.min, today_t.sec = 0, 0, 0
+  local cached_t = os.date("*t", timestamp)
+  cached_t.hour, cached_t.min, cached_t.sec = 0, 0, 0
+  local days = math.floor((os.time(today_t) - os.time(cached_t)) / 86400)
   if days == 0 then
     return _("today")
   elseif days < 30 then
