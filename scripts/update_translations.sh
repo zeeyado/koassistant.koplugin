@@ -53,6 +53,12 @@ if ! xgettext --from-code=UTF-8 -L Lua \
     exit 1
 fi
 
+# Remove lua-format flags — xgettext detects T() placeholders (%1, %2) as Lua
+# format specifiers, but they're not. False positives cause valid translations
+# to be marked fuzzy.
+sed -i '' '/^#, lua-format$/d' locale/koassistant.pot
+sed -i '' 's/#, fuzzy, lua-format/#, fuzzy/' locale/koassistant.pot
+
 # Count strings in .pot (subtract 1 for the header entry)
 POT_COUNT=$(grep -c "^msgid " locale/koassistant.pot 2>/dev/null || echo "0")
 POT_COUNT=$((POT_COUNT - 1))

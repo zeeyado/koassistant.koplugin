@@ -4132,7 +4132,7 @@ msgid "This Chapter u{25BE}"
 msgstr ""
 
 #: koassistant_xray_browser.lua:2117 koassistant_xray_browser.lua:2196
-#, fuzzy, lua-format
+#, fuzzy
 msgid "%1x"
 msgstr "%1×"
 
@@ -5156,27 +5156,27 @@ msgid ""
 msgstr ""
 
 #: main.lua:4108
-#, fuzzy, lua-format
+#, fuzzy
 msgid "%dd ago"
 msgstr "před %dd"
 
 #: main.lua:4115
-#, fuzzy, lua-format
+#, fuzzy
 msgid "%dm%dd ago"
 msgstr "před %dm%dd"
 
 #: main.lua:4117
-#, fuzzy, lua-format
+#, fuzzy
 msgid "%dm ago"
 msgstr "před %dm"
 
 #: main.lua:4122
-#, fuzzy, lua-format
+#, fuzzy
 msgid "%dy%dm ago"
 msgstr "před %dy%dm"
 
 #: main.lua:4124
-#, fuzzy, lua-format
+#, fuzzy
 msgid "%dy ago"
 msgstr "před %dy"
 
@@ -6420,7 +6420,7 @@ msgid "About File-Based Behaviors"
 msgstr "O souborových chováních"
 
 #: koassistant_ui/behavior_manager.lua:371
-#, fuzzy, lua-format
+#, fuzzy
 msgid ""
 "This behavior is loaded from a file in:\n"
 "\n"
@@ -6637,7 +6637,7 @@ msgid "About File-Based Domains"
 msgstr "O doménách ze souborů"
 
 #: koassistant_ui/domain_manager.lua:380
-#, fuzzy, lua-format
+#, fuzzy
 msgid ""
 "This domain is loaded from a file in:\n"
 "\n"
