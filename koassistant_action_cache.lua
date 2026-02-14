@@ -313,11 +313,13 @@ local ARTIFACT_NAMES = {
     ["_analyze_cache"] = _("Analysis"),
     ["recap"] = _("Recap"),
     ["xray_simple"] = _("X-Ray (Simple)"),
+    ["book_info"] = _("Book Info"),
+    ["analyze_highlights"] = _("Notes Analysis"),
 }
 ActionCache.ARTIFACT_NAMES = ARTIFACT_NAMES
 
 -- Artifact keys that are per-action caches (vs document-level caches)
-local PER_ACTION_ARTIFACTS = { recap = true, xray_simple = true }
+local PER_ACTION_ARTIFACTS = { recap = true, xray_simple = true, book_info = true, analyze_highlights = true }
 
 --- Get available artifacts for a document file.
 --- Central source of truth for discovering cached artifacts.
