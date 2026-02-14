@@ -44,8 +44,10 @@ local RESPONSE_TRANSFORMERS = {
                 elseif block.type == "text" and block.text then
                     table.insert(text_blocks, block.text)
                 elseif block.type == "server_tool_use" or block.type == "web_search_tool_result" then
-                    -- Web search was used
                     web_search_used = true
+                    -- Discard pre-search thinking text ("Let me search...")
+                    -- The final text block after search contains the full answer
+                    text_blocks = {}
                 end
                 -- Other blocks (tool_use) are silently ignored
                 -- Web search results are integrated into the text blocks by Anthropic
