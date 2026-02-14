@@ -979,7 +979,9 @@ CRITICAL: No spoilers beyond {reading_progress}.]],
         use_summary_cache = true,       -- Optional enrichment: helps AI understand what reader is engaging with
         prompt = [[Reflect on my reading of "{title}"{author_clause} through my highlights and notes.
 
-I'm at {reading_progress}. Here's what I've marked:
+I'm at {reading_progress}. Do not reference or spoil any events, reveals, or developments beyond this point.
+
+Here's what I've marked:
 
 {annotations_section}
 

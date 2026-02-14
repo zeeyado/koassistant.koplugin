@@ -2348,7 +2348,7 @@ function ChatGPTViewer:init()
       table.insert(buttons, minimal_button_row1)
       table.insert(buttons, minimal_button_row2)
     elseif self.simple_view then
-      for _, row in ipairs(simple_view_buttons) do
+      for _idx, row in ipairs(simple_view_buttons) do
         table.insert(buttons, row)
       end
     elseif self.translate_view then
@@ -2356,7 +2356,7 @@ function ChatGPTViewer:init()
       table.insert(buttons, translate_button_row2)
     else
       -- Add both rows
-      for _, row in ipairs(default_buttons) do
+      for _idx, row in ipairs(default_buttons) do
         table.insert(buttons, row)
       end
     end
@@ -3046,7 +3046,7 @@ function ChatGPTViewer:setTitle(new_title)
   -- Update the titlebar title - need to find it first
   if self.movable and self.movable.vertical_group then
     local vg = self.movable.vertical_group
-    for _, widget in ipairs(vg) do
+    for _idx, widget in ipairs(vg) do
       if widget.title_bar and widget.title_bar.setTitle then
         widget.title_bar:setTitle(new_title)
         UIManager:setDirty(self, function()
