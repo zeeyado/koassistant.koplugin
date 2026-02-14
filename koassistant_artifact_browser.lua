@@ -1,7 +1,7 @@
 --[[--
 Artifact Browser for KOAssistant
 
-Browser UI for viewing all documents with cached artifacts (X-Ray, Summary, Analysis, Recap).
+Browser UI for viewing all documents with cached artifacts (X-Ray, Summary, Analysis, Recap, X-Ray Simple, Book Info, Notes Analysis).
 - One entry per document, sorted by most recent artifact date
 - Tap to show artifact selector popup (same as "View Artifacts" elsewhere)
 - Hold for delete options
