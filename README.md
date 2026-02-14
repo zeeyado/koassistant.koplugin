@@ -2092,9 +2092,9 @@ Control where KOAssistant appears in KOReader's menus. All toggles default to ON
 ### Advanced
 - **Temperature**: Response creativity (0.0-2.0, Anthropic max 1.0)
 - **Reasoning/Thinking**: Per-provider reasoning settings:
-  - **Enable Anthropic/Gemini Reasoning**: Master toggle for optional reasoning (default: off). Only affects Anthropic and Gemini—other providers either always reason (OpenAI o-series, DeepSeek Reasoner) or don't support it.
+  - **Enable Anthropic/Gemini Reasoning**: Master toggle for optional reasoning (default: off). Only affects Anthropic and Gemini 3—other providers either always reason (OpenAI o-series, DeepSeek Reasoner) or don't support it. Gemini 2.5 models think automatically regardless of this toggle.
   - **Anthropic Extended Thinking**: Budget 1024-32000 tokens (requires master toggle)
-  - **Gemini Thinking**: Level (minimal/low/medium/high) (requires master toggle)
+  - **Gemini Thinking**: Level (minimal/low/medium/high) for Gemini 3 models (requires master toggle). Gemini 2.5 thinking content is captured automatically.
   - **OpenAI Reasoning Effort**: Effort level (low/medium/high). OpenAI reasoning models always reason—this controls depth.
   - **Show Reasoning Indicator**: Display "*[Reasoning was used]*" in chat when reasoning is active (default: on)
 - **Web Search**: Allow AI to search the web for current information:
@@ -2704,11 +2704,14 @@ For complex questions, supported models can "think" through the problem before r
 4. Temperature is forced to 1.0 (API requirement)
 5. Works with: Claude Sonnet 4.5, Opus 4.x, Haiku 4.5, Sonnet 3.7
 
-**Gemini Thinking:**
+**Gemini 3 Thinking:**
 1. Enable the master toggle: Settings → AI Response → Enable Anthropic/Gemini Reasoning
 2. Enable Gemini Thinking
 3. Set level (minimal/low/medium/high)
 4. Works with: gemini-3-*-preview models
+
+**Gemini 2.5 Auto-Thinking:**
+Gemini 2.5 Flash and Pro think automatically on every request — no toggle needed. Thinking content is captured when available and viewable via "Show Reasoning". Flash-Lite is excluded (thinking disabled by default).
 
 **OpenAI Reasoning:**
 OpenAI reasoning models (o3, o3-mini, o4-mini, GPT-5.x) always reason internally—there's no toggle to turn it off. You can only control the effort level:
@@ -2888,7 +2891,7 @@ The provider will revert to using the system default.
 
 - **Anthropic**: Temperature capped at 1.0; Extended thinking forces temp to exactly 1.0
 - **OpenAI**: Reasoning models (o3, GPT-5.x) force temp to 1.0; newer models use `max_completion_tokens`
-- **Gemini**: Uses "model" role instead of "assistant"; thinking uses camelCase REST API format
+- **Gemini**: Uses "model" role instead of "assistant"; thinking uses camelCase REST API format; 2.5 models auto-think (content captured automatically); streaming may arrive in larger chunks than other providers
 - **Ollama**: Local only; configure `base_url` in `configuration.lua` for remote instances
 - **OpenRouter**: Requires HTTP-Referer header (handled automatically)
 - **Cohere**: Uses v2/chat endpoint with different response format

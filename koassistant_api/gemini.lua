@@ -82,7 +82,8 @@ function GeminiHandler:buildRequestBody(message_history, config)
     -- Gemini 2.5 models have automatic thinking that shares the maxOutputTokens budget
     -- without being controllable via thinkingConfig. Scale up large requests to give
     -- visible output enough room alongside invisible thinking tokens.
-    local has_auto_thinking = model:match("^gemini%-2%.5")
+    -- Flash-Lite has thinking disabled by default, so no auto-scaling needed.
+    local has_auto_thinking = model:match("^gemini%-2%.5") and not model:match("flash%-lite")
     if has_auto_thinking and max_tokens > 16384 then
         max_tokens = math.min(max_tokens * 2, 65536)
     end
@@ -92,21 +93,34 @@ function GeminiHandler:buildRequestBody(message_history, config)
         maxOutputTokens = max_tokens,
     }
 
-    -- Add thinking config for Gemini 3 preview models if enabled
+    -- Add thinking config
     -- Gemini REST API uses camelCase: generationConfig.thinkingConfig.thinkingLevel
     -- Gemini 3 Pro: LOW, HIGH; Gemini 3 Flash: MINIMAL, LOW, MEDIUM, HIGH
     local adjustments = {}
     if api_params.thinking_level then
+        -- User-configured thinking level (Gemini 3 models)
         if thinking_enabled then
             request_body.generationConfig.thinkingConfig = {
                 thinkingLevel = api_params.thinking_level:upper(),
                 includeThoughts = true,  -- Required to get thinking in response
+            }
+        elseif has_auto_thinking then
+            -- Gemini 2.5 with reasoning toggle on: can't control level,
+            -- but still expose the automatic thinking content
+            request_body.generationConfig.thinkingConfig = {
+                includeThoughts = true,
             }
         else
             adjustments.thinking_skipped = {
                 reason = "model " .. model .. " does not support thinking"
             }
         end
+    elseif has_auto_thinking then
+        -- Gemini 2.5 Flash/Pro without reasoning toggle: thinking is automatic
+        -- and always-on. Request thought summaries for streaming and "Show Reasoning".
+        request_body.generationConfig.thinkingConfig = {
+            includeThoughts = true,
+        }
     end
 
     -- Add Google Search grounding if enabled
