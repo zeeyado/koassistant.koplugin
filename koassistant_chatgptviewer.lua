@@ -2278,9 +2278,8 @@ function ChatGPTViewer:init()
       hold_callback = self.default_hold_callback,
     })
   else
-    -- Cache mode: Update/Regenerate or Open button
-    if self._book_open and self.on_regenerate then
-      -- Book is open: show Update or Regenerate
+    -- Cache mode: Regenerate and/or Open Doc button
+    if self.on_regenerate then
       local regen_label = self.regenerate_label or _("Regenerate")
       table.insert(simple_view_row2, {
         text = regen_label,
@@ -2298,8 +2297,9 @@ function ChatGPTViewer:init()
         end,
         hold_callback = self.default_hold_callback,
       })
-    elseif not self._book_open and self._artifact_file then
-      -- Book not open (file browser): show Open Doc button
+    end
+    if not self._book_open and self._artifact_file then
+      -- Book not open: show Open Doc button (alongside Regenerate if eligible)
       table.insert(simple_view_row2, {
         text = _("Open Doc"),
         id = "open_book",

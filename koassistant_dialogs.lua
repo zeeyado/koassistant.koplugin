@@ -2258,15 +2258,16 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
     end
 
     -- Response caching: check for cached response and switch to update prompt if applicable
-    -- Cache when: action supports it and document is open (text extraction no longer required)
+    -- Cache when: action supports it and file is known (open book or file browser metadata fallback)
     local using_cache = false
     local cached_progress_display = nil
-    local cache_enabled = prompt and prompt.use_response_caching
-        and ui and ui.document
+    local cache_file = (ui and ui.document and ui.document.file)
+        or (config.features and config.features.book_metadata and config.features.book_metadata.file)
+    local cache_enabled = prompt and prompt.use_response_caching and cache_file
 
     if cache_enabled and not (config.features and config.features._full_document_xray) then
         local ActionCache = require("koassistant_action_cache")
-        local cached_entry = ActionCache.get(ui.document.file, prompt.id)
+        local cached_entry = ActionCache.get(cache_file, prompt.id)
 
         if cached_entry and message_data.progress_decimal then
             local current_progress = tonumber(message_data.progress_decimal) or 0
@@ -2429,7 +2430,11 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
 
             -- Save to response cache if enabled (for incremental updates)
             -- Skip caching if response was truncated or was an error response (cache_answer set to nil)
-            if cache_enabled and original_action_id and message_data.progress_decimal and not is_truncated and cache_answer then
+            -- For progress actions: require progress_decimal (extraction must succeed)
+            -- For non-progress actions (book_info, etc.): save with default 1.0 even without extraction
+            if cache_enabled and original_action_id
+                    and (message_data.progress_decimal or not (prompt and prompt.use_reading_progress))
+                    and not is_truncated and cache_answer then
                 local ActionCache = require("koassistant_action_cache")
                 -- Track highlights for response cache (e.g., Recap uses highlights)
                 local highlights_were_provided = (message_data.highlights and message_data.highlights ~= "")
@@ -2442,7 +2447,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                     and (tonumber(message_data.progress_decimal) or 0)
                     or 1.0
                 local save_success = ActionCache.set(
-                    ui.document.file,
+                    cache_file,
                     original_action_id,
                     cache_answer,
                     save_progress,
@@ -2464,7 +2469,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
 
             -- Save to document caches if action has cache_as_* flags (for reuse by other actions)
             -- Always cache regardless of text extraction — tracks used_book_text for dynamic permission gating
-            if not is_truncated and ui.document and ui.document.file then
+            if not is_truncated and cache_file then
                 local ActionCache = require("koassistant_action_cache")
                 local progress = tonumber(message_data.progress_decimal) or 0
                 local model_name = ConfigHelper:getModelInfo(temp_config)
@@ -2490,7 +2495,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                         progress_page = message_data.progress_page,
                         full_document = config.features and config.features._full_document_xray or nil,
                     }
-                    local xray_success = ActionCache.setXrayCache(ui.document.file, cache_answer, progress, xray_metadata)
+                    local xray_success = ActionCache.setXrayCache(cache_file, cache_answer, progress, xray_metadata)
                     if xray_success then
                         logger.info("KOAssistant: Saved X-Ray to reusable cache at", progress, "used_highlights=", used_highlights, "used_book_text=", book_text_was_provided)
                     end
@@ -2504,7 +2509,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                         web_search_used = web_search_used or false,
                         flow_visible_pages = message_data.flow_visible_pages,
                     }
-                    local analyze_success = ActionCache.setAnalyzeCache(ui.document.file, answer, 1.0, analyze_metadata)
+                    local analyze_success = ActionCache.setAnalyzeCache(cache_file, answer, 1.0, analyze_metadata)
                     if analyze_success then
                         logger.info("KOAssistant: Saved document analysis to reusable cache, used_book_text=", book_text_was_provided)
                     end
@@ -2520,7 +2525,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                         web_search_used = web_search_used or false,
                         flow_visible_pages = message_data.flow_visible_pages,
                     }
-                    local summary_success = ActionCache.setSummaryCache(ui.document.file, answer, 1.0, summary_metadata)
+                    local summary_success = ActionCache.setSummaryCache(cache_file, answer, 1.0, summary_metadata)
                     if summary_success then
                         logger.info("KOAssistant: Saved document summary to reusable cache with language:", summary_metadata.language, "used_book_text=", book_text_was_provided)
                     end
@@ -3167,7 +3172,17 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
 
                         -- For incremental actions with cache: show View/Update popup
                         if prompt.use_response_caching and plugin and plugin.showCacheActionPopup then
-                            plugin:showCacheActionPopup(prompt, custom_prompt_type, runAction)
+                            local cache_opts
+                            local cfg_bm = configuration and configuration.features
+                                and configuration.features.book_metadata
+                            if cfg_bm and cfg_bm.file then
+                                cache_opts = {
+                                    file = cfg_bm.file,
+                                    book_title = cfg_bm.title,
+                                    book_author = cfg_bm.author,
+                                }
+                            end
+                            plugin:showCacheActionPopup(prompt, custom_prompt_type, runAction, cache_opts)
                             return
                         end
 
@@ -3709,7 +3724,11 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
                 if file then
                     local cached = ActionCache.get(file, action.id)
                     if cached and cached.result then
-                        plugin:viewCachedAction(action, action.id, cached)
+                        plugin:viewCachedAction(action, action.id, cached, {
+                            file = file,
+                            book_title = book_metadata and book_metadata.title,
+                            book_author = book_metadata and book_metadata.author,
+                        })
                         return
                     end
                 end
