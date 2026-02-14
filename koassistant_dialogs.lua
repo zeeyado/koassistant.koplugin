@@ -2980,6 +2980,116 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         return Constants.getEmojiText("🔍", label, enable_emoji)
     end
 
+    -- Shared action execution for grid buttons, More Actions, and expanded in-grid buttons.
+    -- Handles: getInputText, close dialog, _checkRequirements, showCacheActionPopup,
+    -- cache viewer redirect, and handlePredefinedPrompt with full onPromptComplete.
+    local function executeInputAction(action, action_id)
+        local additional_input = input_dialog:getInputText()
+        UIManager:close(input_dialog)
+        if plugin then plugin.current_input_dialog = nil end
+
+        local function runAction()
+            UIManager:scheduleIn(0.1, function()
+                local function onPromptComplete(history, temp_config_or_error)
+                    if history then
+                        local temp_config = temp_config_or_error
+                        local function addMessage(message, is_context, on_complete)
+                            history:addUserMessage(message, is_context)
+                            local answer_result = queryChatGPT(history:getMessages(), temp_config, function(success, answer, err, reasoning, web_search_used)
+                                if success and answer then
+                                    history:addAssistantMessage(answer, ConfigHelper:getModelInfo(temp_config), reasoning, ConfigHelper:buildDebugInfo(temp_config), web_search_used)
+                                end
+                                if on_complete then on_complete(success, answer, err, reasoning, web_search_used) end
+                            end, plugin and plugin.settings)
+                            if not isStreamingInProgress(answer_result) then
+                                return answer_result
+                            end
+                            return nil
+                        end
+                        closeLoadingDialog()
+
+                        -- For cache-first actions (Recap, X-Ray Simple): open in simple viewer
+                        if action.use_response_caching and action.id and plugin then
+                            local ActionCache = require("koassistant_action_cache")
+                            local file = ui_instance and ui_instance.document and ui_instance.document.file
+                            if file then
+                                local cached = ActionCache.get(file, action.id)
+                                if cached and cached.result then
+                                    plugin:viewCachedAction(action, action.id, cached)
+                                    return
+                                end
+                            end
+                        end
+
+                        -- For document analysis/summary: open in cache viewer
+                        if (action.cache_as_analyze or action.cache_as_summary) and plugin then
+                            local ActionCache = require("koassistant_action_cache")
+                            local file = ui_instance and ui_instance.document and ui_instance.document.file
+                            if file then
+                                local cached, cache_name, cache_key
+                                if action.cache_as_analyze then
+                                    cached = ActionCache.getAnalyzeCache(file)
+                                    cache_name = _("Analysis")
+                                    cache_key = "_analyze_cache"
+                                else
+                                    cached = ActionCache.getSummaryCache(file)
+                                    cache_name = _("Summary")
+                                    cache_key = "_summary_cache"
+                                end
+                                if cached and cached.result then
+                                    plugin:showCacheViewer({ name = cache_name, key = cache_key, data = cached })
+                                    return
+                                end
+                            end
+                        end
+
+                        showResponseDialog(_(action.text), history, highlighted_text, addMessage, temp_config, document_path, plugin, book_metadata, launch_context, ui_instance)
+                    else
+                        closeLoadingDialog()
+                        local error_msg = temp_config_or_error or "Unknown error"
+                        UIManager:show(InfoMessage:new{
+                            text = _("Error: ") .. action_id .. " - " .. error_msg,
+                            timeout = 2
+                        })
+                    end
+                end
+
+                -- Pass X-Ray context prefix to handlePredefinedPrompt via transient flag
+                if xray_context_prefix then
+                    configuration.features = configuration.features or {}
+                    configuration.features._xray_context_prefix = xray_context_prefix
+                end
+
+                handlePredefinedPrompt(action_id, highlighted_text, ui_instance, configuration, nil, plugin, additional_input, onPromptComplete, book_metadata)
+            end)
+        end
+
+        -- Pre-flight: block when declared requirements are unmet
+        if plugin and plugin._checkRequirements then
+            if plugin:_checkRequirements(action) then
+                return
+            end
+        end
+
+        -- Pre-flight: show View/Update popup for cached actions
+        if action.use_response_caching and plugin and plugin.showCacheActionPopup then
+            local cache_opts
+            local cfg_bm = configuration and configuration.features
+                and configuration.features.book_metadata
+            if cfg_bm and cfg_bm.file then
+                cache_opts = {
+                    file = cfg_bm.file,
+                    book_title = cfg_bm.title,
+                    book_author = cfg_bm.author,
+                }
+            end
+            plugin:showCacheActionPopup(action, action_id, runAction, cache_opts)
+            return
+        end
+
+        runAction()
+    end
+
     -- Build all input dialog buttons (called on init and on refresh via reinit)
     local buildInputDialogButtons
     buildInputDialogButtons = function()
@@ -3206,117 +3316,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     text = ActionServiceModule.getActionDisplayText(prompt, (configuration or {}).features),
                     prompt_type = custom_prompt_type,
                     callback = function()
-                        local additional_input = input_dialog:getInputText()
-                        UIManager:close(input_dialog)
-
-                        local function runAction()
-                            -- Note: Loading dialog now handled by handleNonStreamingBackground in gpt_query.lua
-                            UIManager:scheduleIn(0.1, function()
-                                -- Callback for when response is ready (handles both streaming and non-streaming)
-                                local function onPromptComplete(history, temp_config_or_error)
-                                    if history then
-                                        local temp_config = temp_config_or_error
-                                        local function addMessage(message, is_context, on_complete)
-                                            history:addUserMessage(message, is_context)
-                                            -- For follow-up messages, use callback pattern too
-                                            local answer_result = queryChatGPT(history:getMessages(), temp_config, function(success, answer, err, reasoning, web_search_used)
-                                                if success and answer then
-                                                    history:addAssistantMessage(answer, ConfigHelper:getModelInfo(temp_config), reasoning, ConfigHelper:buildDebugInfo(temp_config), web_search_used)
-                                                end
-                                                if on_complete then on_complete(success, answer, err, reasoning, web_search_used) end
-                                            end, plugin and plugin.settings)
-                                            -- For non-streaming, return the result directly
-                                            if not isStreamingInProgress(answer_result) then
-                                                return answer_result
-                                            end
-                                            return nil -- Streaming will update via callback
-                                        end
-                                        closeLoadingDialog()
-
-                                        -- For cache-first actions (Recap, X-Ray Simple): open in simple viewer
-                                        if prompt.use_response_caching and prompt.id and plugin then
-                                            local ActionCache = require("koassistant_action_cache")
-                                            local file = ui_instance and ui_instance.document and ui_instance.document.file
-                                            if file then
-                                                local cached = ActionCache.get(file, prompt.id)
-                                                if cached and cached.result then
-                                                    plugin:viewCachedAction(prompt, prompt.id, cached)
-                                                    return
-                                                end
-                                            end
-                                        end
-
-                                        -- For document analysis/summary: open in cache viewer
-                                        if (prompt.cache_as_analyze or prompt.cache_as_summary) and plugin then
-                                            local ActionCache = require("koassistant_action_cache")
-                                            local file = ui_instance and ui_instance.document and ui_instance.document.file
-                                            if file then
-                                                local cached, cache_name, cache_key
-                                                if prompt.cache_as_analyze then
-                                                    cached = ActionCache.getAnalyzeCache(file)
-                                                    cache_name = _("Analysis")
-                                                    cache_key = "_analyze_cache"
-                                                else
-                                                    cached = ActionCache.getSummaryCache(file)
-                                                    cache_name = _("Summary")
-                                                    cache_key = "_summary_cache"
-                                                end
-                                                if cached and cached.result then
-                                                    plugin:showCacheViewer({ name = cache_name, key = cache_key, data = cached })
-                                                    return
-                                                end
-                                            end
-                                        end
-
-                                        showResponseDialog(_(prompt.text), history, highlighted_text, addMessage, temp_config, document_path, plugin, book_metadata, launch_context, ui_instance)
-                                    else
-                                        closeLoadingDialog()
-                                        local error_msg = temp_config_or_error or "Unknown error"
-                                        UIManager:show(InfoMessage:new{
-                                            text = _("Error handling prompt: ") .. custom_prompt_type .. " - " .. error_msg,
-                                            timeout = 2
-                                        })
-                                    end
-                                end
-
-                                -- Pass X-Ray context prefix to handlePredefinedPrompt via transient flag
-                                if xray_context_prefix then
-                                    configuration.features = configuration.features or {}
-                                    configuration.features._xray_context_prefix = xray_context_prefix
-                                end
-
-                                -- Call with callback for streaming support
-                                local history, temp_config = handlePredefinedPrompt(custom_prompt_type, highlighted_text, ui_instance, configuration, nil, plugin, additional_input, onPromptComplete, book_metadata)
-
-                                -- For non-streaming, history is returned directly and callback was also called
-                                -- The callback handles showing the dialog, so we don't need to do anything here
-                            end)
-                        end
-
-                        -- Block actions when declared requirements are unmet
-                        if plugin and plugin._checkRequirements then
-                            if plugin:_checkRequirements(prompt) then
-                                return
-                            end
-                        end
-
-                        -- For incremental actions with cache: show View/Update popup
-                        if prompt.use_response_caching and plugin and plugin.showCacheActionPopup then
-                            local cache_opts
-                            local cfg_bm = configuration and configuration.features
-                                and configuration.features.book_metadata
-                            if cfg_bm and cfg_bm.file then
-                                cache_opts = {
-                                    file = cfg_bm.file,
-                                    book_title = cfg_bm.title,
-                                    book_author = cfg_bm.author,
-                                }
-                            end
-                            plugin:showCacheActionPopup(prompt, custom_prompt_type, runAction, cache_opts)
-                            return
-                        end
-
-                        runAction()
+                        executeInputAction(prompt, custom_prompt_type)
                     end
                 })
             end
@@ -3512,44 +3512,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                                 text = ActionServiceModule.getActionDisplayText(action, (configuration or {}).features),
                                 callback = function()
                                     UIManager:close(plugin._more_actions_dialog)
-                                    -- Find and run the action (simulate button press)
-                                    local additional_input = input_dialog:getInputText()
-                                    UIManager:close(input_dialog)
-                                    UIManager:scheduleIn(0.1, function()
-                                        local function onPromptComplete(history, temp_config_or_error)
-                                            if history then
-                                                local temp_config = temp_config_or_error
-                                                local function addMessage(message, is_context, on_complete)
-                                                    history:addUserMessage(message, is_context)
-                                                    local answer_result = queryChatGPT(history:getMessages(), temp_config, function(success, answer, err, reasoning, web_search_used)
-                                                        if success and answer then
-                                                            history:addAssistantMessage(answer, ConfigHelper:getModelInfo(temp_config), reasoning, ConfigHelper:buildDebugInfo(temp_config), web_search_used)
-                                                        end
-                                                        if on_complete then on_complete(success, answer, err, reasoning, web_search_used) end
-                                                    end, plugin and plugin.settings)
-                                                    if not isStreamingInProgress(answer_result) then
-                                                        return answer_result
-                                                    end
-                                                    return nil
-                                                end
-                                                closeLoadingDialog()
-                                                showResponseDialog(_(action.text), history, highlighted_text, addMessage, temp_config, document_path, plugin, book_metadata, launch_context, ui_instance)
-                                            else
-                                                closeLoadingDialog()
-                                                local error_msg = temp_config_or_error or "Unknown error"
-                                                UIManager:show(InfoMessage:new{
-                                                    text = _("Error: ") .. error_msg,
-                                                    timeout = 2,
-                                                })
-                                            end
-                                        end
-                                        -- Pass X-Ray context prefix via transient flag
-                                        if xray_context_prefix then
-                                            configuration.features = configuration.features or {}
-                                            configuration.features._xray_context_prefix = xray_context_prefix
-                                        end
-                                        handlePredefinedPrompt(action.id, highlighted_text, ui_instance, configuration, nil, plugin, additional_input, onPromptComplete, book_metadata)
-                                    end)
+                                    executeInputAction(action, action.id)
                                 end,
                             })
                             if #btn_row == 2 then
@@ -3564,7 +3527,6 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                             UIManager:close(plugin._more_actions_dialog)
                         end }})
                         plugin._more_actions_dialog = ButtonDialog:new{
-                            title = _("Show More Actions"),
                             buttons = btn_rows,
                         }
                         UIManager:show(plugin._more_actions_dialog)
