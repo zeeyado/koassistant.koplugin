@@ -261,7 +261,7 @@ The panel has a **gear icon** (top-left) that opens the QS Panel Utilities manag
 
 Assign "KOAssistant: Quick Actions" to a gesture for fast access to reading-related actions:
 - **Default actions** — X-Ray, Recap, Book Info, Document Summary
-- **Artifact button** — "View Artifacts" appears when any artifacts exist (X-Ray, X-Ray (Simple), Analysis, Summary, Recap), opening a picker to choose which one to view
+- **Artifact button** — "View Artifacts" appears when any artifacts exist (X-Ray, X-Ray (Simple), Analysis, Summary, Recap), opening a picker showing each artifact with progress % and age (e.g., "X-Ray (100%, 3d ago)")
 - **Utilities** — Translate Page, New Book Chat/Action, Continue Last Chat, General Chat/Action, Chat History, Notebook, View Artifacts, Quick Settings
 
 You can add any book action to Quick Actions via **Action Manager → hold action → "Add to Quick Actions"**. The panel has a **gear icon** (top-left) that lets you choose between managing **Panel Actions** (reorder/remove actions) or **Panel Utilities** (show/hide/reorder utility buttons). Also accessible via **Settings → Quick Actions Settings**. Defaults can also be removed.
@@ -771,7 +771,7 @@ A free-form conversation without specific document context. If started while a b
 
 **Managing the Input Dialog:**
 
-All input dialogs (highlight, book, general) show a configurable set of actions that you can customize per context. The top row has **[Web ON/OFF] [Domain] [Send]**, followed by action buttons in rows of 2.
+All input dialogs (highlight, book, general) show a configurable set of actions that you can customize per context. The top row has **[Web ON/OFF] [Domain] [Send]**, followed by action buttons in rows of 2. The title bar has a close X on the right and a gear icon on the left.
 
 **Customizing which actions appear:**
 - **From the input dialog**: Tap the gear icon → **"Choose and Sort Actions"** to reorder, show, or hide actions for the current context
@@ -2758,7 +2758,7 @@ Supported providers can search the web to include current information in their r
 - **Show Indicator in Chat**: Show "*[Web search was used]*" after responses (default: ON)
 
 **Quick Toggle:**
-- **Input dialog**: Web ON/OFF button (top row, 🔍 prefix with [Emoji Menu Icons](#display-settings)) toggles the persistent global web search setting. Action button labels update immediately to reflect web search status.
+- **Input dialog**: Web ON/OFF button (top row, 🔍 prefix with [Emoji Menu Icons](#display-settings)) toggles the persistent global web search setting. Action button labels update immediately — forced web search shows 🌐, global-follows shows (🌐) to distinguish per-action overrides from the global toggle.
 - **Chat viewer**: Web ON/OFF toggle button (first row) overrides web search for the current session without changing your global setting.
 
 **Per-Action Override:**

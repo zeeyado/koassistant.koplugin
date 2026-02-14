@@ -3018,6 +3018,15 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             {
                 text = Constants.getEmojiText("➤", _("Send"), enable_emoji),
             callback = function()
+                -- Block empty sends for contexts without highlighted text (nothing useful to send)
+                local typed_text = input_dialog:getInputText()
+                if (not typed_text or typed_text == "") and not highlighted_text then
+                    UIManager:show(InfoMessage:new{
+                        text = _("Type a message first, or tap an action button."),
+                        timeout = 2,
+                    })
+                    return
+                end
                 UIManager:close(input_dialog)
                 -- Note: Loading dialog now handled by handleNonStreamingBackground in gpt_query.lua
                 UIManager:scheduleIn(0.1, function()
@@ -3092,9 +3101,9 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         table.insert(parts, "[User Question]")
                         table.insert(parts, question)
                     else
-                        -- Default prompt if no question provided
+                        -- Default prompt when user sends with highlighted text but no typed question
                         table.insert(parts, "[User Question]")
-                        table.insert(parts, "I have a question for you.")
+                        table.insert(parts, "Discuss this.")
                     end
 
                     -- Create the consolidated message (sent to AI as context)
@@ -3143,7 +3152,19 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     local result = queryChatGPT(history:getMessages(), configuration, onResponseReady, plugin and plugin.settings)
                     -- If not streaming, callback was already invoked
                 end)
-            end
+            end,
+            hold_callback = function()
+                local hint
+                if highlighted_text then
+                    hint = _("Send your typed message (or the selected text) as a freeform chat to the AI, without using any action template.")
+                else
+                    hint = _("Send your typed message as a freeform chat to the AI, without using any action template.")
+                end
+                UIManager:show(InfoMessage:new{
+                    text = hint,
+                    timeout = 4,
+                })
+            end,
         }
     }
 
