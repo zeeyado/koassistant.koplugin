@@ -1929,7 +1929,7 @@ local INPUT_CONTEXTS = {
         action_context = "book",
         has_open_book = false,  -- filters out requiresOpenBook actions
         -- Curated defaults: non-open-book actions suitable for file browser context
-        default_ids = {"book_info", "similar_books", "explain_author", "historical_context", "book_reviews"},
+        default_ids = {"book_info", "similar_books", "related_thinkers", "explain_author", "historical_context", "book_reviews"},
     },
     highlight = {
         settings_key = "input_highlight_actions",
