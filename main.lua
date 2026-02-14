@@ -5911,7 +5911,9 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
   local qs_order = self.action_service:getQsItemsOrder()
   for _idx, item_id in ipairs(qs_order) do
     if isQsEnabled(item_id) and button_defs[item_id] then
-      table.insert(all_buttons, button_defs[item_id])
+      local btn = button_defs[item_id]
+      btn.font_bold = false
+      table.insert(all_buttons, btn)
     end
   end
 
@@ -5968,6 +5970,7 @@ function AskGPT:onKOAssistantQuickActions()
 
   -- Helper to add a button to current row, flush row when full
   local function addButton(btn)
+    btn.font_bold = false
     table.insert(row, btn)
     if #row == 2 then
       table.insert(buttons, row)
