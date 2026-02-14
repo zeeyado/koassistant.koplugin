@@ -8,16 +8,18 @@ msgstr ""
 "Report-Msgid-Bugs-To: https://github.com/zeeyado/koassistant.koplugin/"
 "issues\n"
 "POT-Creation-Date: 2026-02-13 23:07+0000\n"
-"PO-Revision-Date: 2026-01-06 18:39+0000\n"
-"Last-Translator: Automatically generated\n"
-"Language-Team: German\n"
+"PO-Revision-Date: 2026-02-13 15:09+0000\n"
+"Last-Translator: Seruschl <ruven.schlensog@hotmail.com>\n"
+"Language-Team: German <https://hosted.weblate.org/projects/koassistant/"
+"koassistant/de/>\n"
 "Language: de\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 5.16-dev\n"
 
 #: _meta.lua:4 main.lua:3659 main.lua:5114
-#, fuzzy
 msgid "KOAssistant"
 msgstr "KOAssistant"
 
@@ -539,7 +541,7 @@ msgstr "Laden..."
 #: koassistant_chat_history_dialog.lua:1657 koassistant_dialogs.lua:1460
 #, fuzzy
 msgid "Failed to get response: "
-msgstr "Antwort konnte nicht abgerufen werden:"
+msgstr "Antwort konnte nicht abgerufen werden: "
 
 #: koassistant_chat_history_dialog.lua:1672
 #, fuzzy
@@ -977,9 +979,8 @@ msgid "Language"
 msgstr "Sprache"
 
 #: koassistant_chatgptviewer.lua:1693 koassistant_chatgptviewer.lua:2029
-#, fuzzy
 msgid "Configure languages in Settings first"
-msgstr "Sprachen zuerst in Einstellungen konfigurieren"
+msgstr "Sprachen zuerst in den Einstellungen konfigurieren"
 
 #: koassistant_chatgptviewer.lua:1734 koassistant_constants.lua:175
 #: main.lua:5632 main.lua:6434
@@ -995,12 +996,12 @@ msgstr "Mit anderer Wörterbuch-Sprache erneut ausführen"
 #: koassistant_chatgptviewer.lua:1756
 #, fuzzy
 msgid "Ctx: ON"
-msgstr "Ctx: AN"
+msgstr "Kontext: AN"
 
 #: koassistant_chatgptviewer.lua:1756
 #, fuzzy
 msgid "Ctx: OFF"
-msgstr "Ctx: AUS"
+msgstr "Kontext: AUS"
 
 #: koassistant_chatgptviewer.lua:1799
 #, fuzzy
@@ -1100,25 +1101,19 @@ msgid "Regenerate"
 msgstr "Neu generieren"
 
 #: koassistant_chatgptviewer.lua:2213
-#, fuzzy
 msgid ""
 "Regenerate this %1?\n"
 "\n"
 "The current %1 will be replaced."
 msgstr ""
-"Diesen %1 neu generieren?\n"
-"\n"
-"Der aktuelle %1 wird ersetzt."
 
 #: koassistant_chatgptviewer.lua:2213 koassistant_chatgptviewer.lua:2231
-#, fuzzy
 msgid "summary"
-msgstr "Zusammenfassung"
+msgstr ""
 
 #: koassistant_chatgptviewer.lua:2231
-#, fuzzy
 msgid "Delete this %1?"
-msgstr "Diesen %1 löschen?"
+msgstr ""
 
 #: koassistant_chatgptviewer.lua:2422
 #, fuzzy
@@ -1175,7 +1170,7 @@ msgstr "Im Notizbuch gespeichert"
 #: koassistant_chatgptviewer.lua:3227
 #, fuzzy
 msgid "Failed to save: "
-msgstr "Speichern fehlgeschlagen:"
+msgstr "Speichern fehlgeschlagen: "
 
 #: koassistant_chatgptviewer.lua:3238
 #, fuzzy
@@ -1222,17 +1217,14 @@ msgstr ""
 "Cache gelöscht. Führen Sie die Aktion erneut aus für eine aktuelle Analyse."
 
 #: koassistant_chatgptviewer.lua:3286
-#, fuzzy
 msgid "Failed to clear cache"
 msgstr "Cache konnte nicht gelöscht werden"
 
 #: koassistant_chatgptviewer.lua:3292
-#, fuzzy
 msgid "Cache module not available"
 msgstr "Cache-Modul nicht verfügbar"
 
 #: koassistant_chatgptviewer.lua:3309
-#, fuzzy
 msgid "No chat to export"
 msgstr "Kein Chat zum Exportieren"
 
@@ -1524,15 +1516,11 @@ msgid "Failed to save chat: "
 msgstr "Fehler beim Speichern des Chats:"
 
 #: koassistant_dialogs.lua:1333
-#, fuzzy
 msgid ""
 "This conversation is using approximately %1K tokens. Each follow-up resends "
 "the full history. Consider starting a new chat to reduce costs and maintain "
 "quality."
 msgstr ""
-"Diese Konversation verwendet ungefähr %1K Tokens. Jede Folgeanfrage sendet "
-"die vollständige Historie erneut. Erwägen Sie, einen neuen Chat zu starten, "
-"um Kosten zu reduzieren und die Qualität beizubehalten."
 
 #: koassistant_dialogs.lua:1656
 #, fuzzy
@@ -1677,14 +1665,12 @@ msgid "Unknown prompt type: "
 msgstr "Unbekannter Eingabetyp:"
 
 #: koassistant_dialogs.lua:3368 koassistant_dialogs.lua:3652 main.lua:4135
-#, fuzzy
 msgid "Based on AI training data knowledge"
-msgstr "Basierend auf KI-Trainingsdaten"
+msgstr ""
 
 #: koassistant_dialogs.lua:3369 koassistant_dialogs.lua:3653 main.lua:4137
-#, fuzzy
 msgid "Based on extracted document text"
-msgstr "Basierend auf extrahiertem Dokumenttext"
+msgstr ""
 
 #: koassistant_dialogs.lua:3400 koassistant_dialogs.lua:3682 main.lua:4252
 #: main.lua:4814
@@ -1739,9 +1725,8 @@ msgid "Error: No action specified"
 msgstr "Fehler: Keine Aktion angegeben"
 
 #: koassistant_dialogs.lua:3655 main.lua:4106
-#, fuzzy
 msgid "today"
-msgstr "heute"
+msgstr ""
 
 #: koassistant_gpt_query.lua:198 stream_handler.lua:161
 #, fuzzy
@@ -3812,9 +3797,8 @@ msgid "Please visit:"
 msgstr "Bitte besuchen Sie:"
 
 #: koassistant_update_checker.lua:660 koassistant_update_checker.lua:751
-#, fuzzy
 msgid "Update Now"
-msgstr "Jetzt aktualisieren"
+msgstr ""
 
 #: koassistant_update_checker.lua:672
 #, fuzzy
@@ -3844,94 +3828,69 @@ msgid "Translate"
 msgstr "Übersetzen"
 
 #: koassistant_update_checker.lua:1090
-#, fuzzy
 msgid "Download timed out"
-msgstr "Download-Zeitüberschreitung"
+msgstr ""
 
 #: koassistant_update_checker.lua:1138
-#, fuzzy
 msgid "Failed to start download"
-msgstr "Download konnte nicht gestartet werden"
+msgstr ""
 
 #: koassistant_update_checker.lua:1175
-#, fuzzy
 msgid "Downloaded file is empty"
-msgstr "Heruntergeladene Datei ist leer"
+msgstr ""
 
 #: koassistant_update_checker.lua:1325
-#, fuzzy
 msgid ""
 "Auto-update is disabled for git-based installs. Please use git pull instead."
 msgstr ""
-"Auto-Update ist für git-basierte Installationen deaktiviert. Bitte verwenden "
-"Sie stattdessen git pull."
 
 #: koassistant_update_checker.lua:1333
-#, fuzzy
 msgid "No download URL available for this release. Please update manually."
 msgstr ""
-"Keine Download-URL für diese Version verfügbar. Bitte manuell aktualisieren."
 
 #: koassistant_update_checker.lua:1342
-#, fuzzy
 msgid "No network connection. Please connect and try again."
-msgstr "Keine Netzwerkverbindung. Bitte verbinden und erneut versuchen."
+msgstr ""
 
 #: koassistant_update_checker.lua:1367
-#, fuzzy
 msgid "Update failed: %1"
-msgstr "Aktualisierung fehlgeschlagen: %1"
+msgstr ""
 
 #: koassistant_update_checker.lua:1374
-#, fuzzy
 msgid "Downloading update %1..."
-msgstr "Lade Update %1 herunter..."
+msgstr ""
 
 #: koassistant_update_checker.lua:1384
-#, fuzzy
 msgid "Download failed"
-msgstr "Download fehlgeschlagen"
+msgstr ""
 
 #: koassistant_update_checker.lua:1390
-#, fuzzy
 msgid "Installing update %1..."
-msgstr "Installiere Update %1..."
+msgstr ""
 
 #: koassistant_update_checker.lua:1405
-#, fuzzy
 msgid "Failed to extract update archive"
-msgstr "Fehler beim Entpacken des Update-Archivs"
+msgstr ""
 
 #: koassistant_update_checker.lua:1433
-#, fuzzy
 msgid "Failed to move current plugin to backup"
-msgstr "Fehler beim Verschieben des aktuellen Plugins in die Sicherung"
+msgstr ""
 
 #: koassistant_update_checker.lua:1444
-#, fuzzy
 msgid "Failed to install new plugin version. Previous version restored."
 msgstr ""
-"Fehler beim Installieren der neuen Plugin-Version. Vorherige Version "
-"wiederhergestellt."
 
 #: koassistant_update_checker.lua:1462
-#, fuzzy
 msgid ""
 "KOAssistant updated to version %1.\n"
 "\n"
 "Please restart KOReader to use the new version."
 msgstr ""
-"KOAssistant auf Version %1 aktualisiert.\n"
-"\n"
-"Bitte starten Sie KOReader neu, um die neue Version zu verwenden."
 
 #: koassistant_update_checker.lua:1464
-#, fuzzy
 msgid ""
 "Note: Some user files (API keys, custom actions) may need to be reconfigured."
 msgstr ""
-"Hinweis: Einige Benutzerdateien (API-Schlüssel, benutzerdefinierte Aktionen) "
-"müssen möglicherweise neu konfiguriert werden."
 
 #: koassistant_xray_browser.lua:263 koassistant_xray_browser.lua:349
 msgid "Pages %1–%2"
@@ -3962,9 +3921,8 @@ msgid "Your highlights:"
 msgstr "Ihre Markierungen:"
 
 #: koassistant_xray_browser.lua:952
-#, fuzzy
 msgid "Chat about this"
-msgstr "Darüber chatten"
+msgstr ""
 
 #: koassistant_xray_browser.lua:967
 msgid "Chapter Appearances"
@@ -4160,7 +4118,6 @@ msgid "This Chapter u{25BE}"
 msgstr ""
 
 #: koassistant_xray_browser.lua:2117 koassistant_xray_browser.lua:2196
-#, fuzzy, lua-format
 msgid "%1x"
 msgstr "%1×"
 
@@ -4277,15 +4234,13 @@ msgstr "Ergebnisse für „%1“ (%2)"
 
 #: koassistant_xray_browser.lua:2645 koassistant_xray_browser.lua:2817
 #: main.lua:4191 main.lua:4790
-#, fuzzy
 msgid "updated from"
-msgstr "aktualisiert von"
+msgstr ""
 
 #: koassistant_xray_browser.lua:2704 koassistant_xray_browser.lua:2902
 #: main.lua:4553 main.lua:4679
-#, fuzzy
 msgid "View %1"
-msgstr "%1 anzeigen"
+msgstr ""
 
 #: koassistant_xray_browser.lua:2712
 msgid "View other artifacts…"
@@ -4342,9 +4297,8 @@ msgid "Type:"
 msgstr "Typ:"
 
 #: koassistant_xray_browser.lua:2829
-#, fuzzy
 msgid "Source:"
-msgstr "Quelle:"
+msgstr ""
 
 #: koassistant_xray_browser.lua:2834 main.lua:8601
 #: koassistant_ui/prompts_manager.lua:1533
@@ -5188,29 +5142,24 @@ msgid ""
 msgstr ""
 
 #: main.lua:4108
-#, fuzzy, lua-format
 msgid "%dd ago"
-msgstr "vor %dd"
+msgstr ""
 
 #: main.lua:4115
-#, fuzzy, lua-format
 msgid "%dm%dd ago"
-msgstr "vor %dm%dd"
+msgstr ""
 
 #: main.lua:4117
-#, fuzzy, lua-format
 msgid "%dm ago"
-msgstr "vor %dm"
+msgstr ""
 
 #: main.lua:4122
-#, fuzzy, lua-format
 msgid "%dy%dm ago"
-msgstr "vor %dy%dm"
+msgstr ""
 
 #: main.lua:4124
-#, fuzzy, lua-format
 msgid "%dy ago"
-msgstr "vor %dy"
+msgstr ""
 
 #: main.lua:4319
 msgid ""
@@ -5243,14 +5192,12 @@ msgid ""
 msgstr ""
 
 #: main.lua:4536
-#, fuzzy
 msgid "Update %1"
-msgstr "%1 aktualisieren"
+msgstr ""
 
 #: main.lua:4536
-#, fuzzy
 msgid "to %1"
-msgstr "zu %1"
+msgstr ""
 
 #: main.lua:4539 main.lua:4542 main.lua:4675
 msgid "Redo %1"
@@ -6241,18 +6188,14 @@ msgid ""
 msgstr ""
 
 #: main.lua:8981
-#, fuzzy
 msgid "MENU AND INFO ICONS"
-msgstr "MENÜ- UND INFO-SYMBOLE"
+msgstr ""
 
 #: main.lua:8982
-#, fuzzy
 msgid ""
 "Setup KOReader with emoji support to get informative icons in menus and "
 "more. See the emoji section in the README for details."
 msgstr ""
-"Richten Sie KOReader mit Emoji-Unterstützung ein, um informative Symbole in "
-"Menüs und mehr zu erhalten. Siehe den Emoji-Abschnitt im README für Details."
 
 #: main.lua:9141
 #, fuzzy
@@ -6456,7 +6399,7 @@ msgid "About File-Based Behaviors"
 msgstr "Über dateibasierte Verhalten"
 
 #: koassistant_ui/behavior_manager.lua:371
-#, fuzzy, lua-format
+#, fuzzy
 msgid ""
 "This behavior is loaded from a file in:\n"
 "\n"
@@ -6674,7 +6617,7 @@ msgid "About File-Based Domains"
 msgstr "Über dateibasierte Domänen"
 
 #: koassistant_ui/domain_manager.lua:380
-#, fuzzy, lua-format
+#, fuzzy
 msgid ""
 "This domain is loaded from a file in:\n"
 "\n"
@@ -9122,7 +9065,6 @@ msgid ""
 msgstr ""
 
 #: prompts/actions.lua:1614
-#, fuzzy
 msgid "Deep Analysis"
 msgstr "Tiefenanalyse"
 

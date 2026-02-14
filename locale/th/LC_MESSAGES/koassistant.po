@@ -4063,7 +4063,7 @@ msgid "This Chapter u{25BE}"
 msgstr ""
 
 #: koassistant_xray_browser.lua:2117 koassistant_xray_browser.lua:2196
-#, fuzzy, lua-format
+#, fuzzy
 msgid "%1x"
 msgstr "%1x"
 
@@ -5085,27 +5085,27 @@ msgid ""
 msgstr ""
 
 #: main.lua:4108
-#, fuzzy, lua-format
+#, fuzzy
 msgid "%dd ago"
 msgstr "%dวันที่แล้ว"
 
 #: main.lua:4115
-#, fuzzy, lua-format
+#, fuzzy
 msgid "%dm%dd ago"
 msgstr "%dเดือน%dวันที่แล้ว"
 
 #: main.lua:4117
-#, fuzzy, lua-format
+#, fuzzy
 msgid "%dm ago"
 msgstr "%dเดือนที่แล้ว"
 
 #: main.lua:4122
-#, fuzzy, lua-format
+#, fuzzy
 msgid "%dy%dm ago"
 msgstr "%dปี%dเดือนที่แล้ว"
 
 #: main.lua:4124
-#, fuzzy, lua-format
+#, fuzzy
 msgid "%dy ago"
 msgstr "%dปีที่แล้ว"
 
@@ -6347,7 +6347,7 @@ msgid "About File-Based Behaviors"
 msgstr "เกี่ยวกับพฤติกรรมที่อิงจากไฟล์"
 
 #: koassistant_ui/behavior_manager.lua:371
-#, fuzzy, lua-format
+#, fuzzy
 msgid ""
 "This behavior is loaded from a file in:\n"
 "\n"
@@ -6561,7 +6561,7 @@ msgid "About File-Based Domains"
 msgstr "เกี่ยวกับโดเมนจากไฟล์"
 
 #: koassistant_ui/domain_manager.lua:380
-#, fuzzy, lua-format
+#, fuzzy
 msgid ""
 "This domain is loaded from a file in:\n"
 "\n"
