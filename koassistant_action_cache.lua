@@ -183,6 +183,12 @@ local function saveCache(document_path, cache)
             if entry.full_document then
                 file:write(string.format("        full_document = %s,\n", tostring(entry.full_document)))
             end
+            if entry.used_reasoning then
+                file:write(string.format("        used_reasoning = %s,\n", tostring(entry.used_reasoning)))
+            end
+            if entry.web_search_used then
+                file:write(string.format("        web_search_used = %s,\n", tostring(entry.web_search_used)))
+            end
             -- Result may contain special characters, use long string with safe delimiter
             local result_text = entry.result or ""
             local eq_count = findSafeDelimiter(result_text)
