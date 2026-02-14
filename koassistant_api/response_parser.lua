@@ -2,7 +2,7 @@ local ResponseParser = {}
 
 -- Truncation notice appended to responses that hit max tokens
 -- This marker is checked by caching logic to avoid caching incomplete responses
-ResponseParser.TRUNCATION_NOTICE = "\n\n---\n⚠️ *Response truncated: output token limit reached*"
+ResponseParser.TRUNCATION_NOTICE = "\n\n---\n⚠ *Response truncated: output token limit reached*"
 
 -- Helper to extract <think> tags from content (used by inference providers hosting R1)
 local function extractThinkTags(content)

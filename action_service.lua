@@ -1863,9 +1863,9 @@ end
 --   📄 = document text (use_book_text, use_xray_cache, use_analyze_cache, use_summary_cache)
 --   📝 = annotations (use_annotations; degrades to highlights-only)
 --   📓 = notebook (use_notebook)
---   🌐 = web search forced on (enable_web_search == true)
+--   🌐 = web search active (per-action force-on, or follows global when global is on)
 -- @param action: Action definition table (needs flag fields)
--- @param features: Features settings table (needs enable_emoji_icons)
+-- @param features: Features settings table (needs enable_data_access_indicators, enable_web_search)
 -- @return string: Display text with optional emoji suffix
 function ActionService.getActionDisplayText(action, features)
     local text = action.text or action.id
@@ -1891,8 +1891,9 @@ function ActionService.getActionDisplayText(action, features)
     if action.use_notebook then
         table.insert(indicators, "📓")
     end
-    -- Web search forced on
-    if action.enable_web_search == true then
+    -- Web search: show when effectively enabled (per-action override or global setting)
+    if action.enable_web_search == true
+       or (action.enable_web_search == nil and features.enable_web_search == true) then
         table.insert(indicators, "🌐")
     end
 
