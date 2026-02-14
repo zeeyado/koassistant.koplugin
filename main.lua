@@ -7944,7 +7944,7 @@ function AskGPT:_showCustomResetOptionsDialog(state)
       end,
     }},
     {{
-      text = toggleText(_("API keys"), state.reset_api_keys, " ⚠️"),
+      text = toggleText(_("API keys"), state.reset_api_keys, " ⚠"),
       callback = function()
         UIManager:close(dialog)
         state.reset_api_keys = not state.reset_api_keys
@@ -8274,7 +8274,8 @@ function AskGPT:showRestoreBackupDialog()
     backup_info = backup_info .. "\n" .. backup_manager:_formatSize(backup.size)
 
     if backup.is_restore_point then
-      backup_info = "🔄 " .. backup_info .. " (Restore Point)"
+      local enable_emoji = self.configuration.features.enable_emoji_icons == true
+      backup_info = Constants.getEmojiText("🔄", backup_info, enable_emoji) .. " (" .. _("Restore Point") .. ")"
     end
 
     table.insert(buttons, {
@@ -8661,7 +8662,8 @@ function AskGPT:showBackupListDialog()
     backup_info = backup_info .. " • " .. backup_manager:_formatSize(backup.size)
 
     if backup.is_restore_point then
-      backup_info = "🔄 " .. backup_info
+      local enable_emoji = self.configuration.features.enable_emoji_icons == true
+      backup_info = Constants.getEmojiText("🔄", backup_info, enable_emoji)
     end
 
     table.insert(buttons, {
