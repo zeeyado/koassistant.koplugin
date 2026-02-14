@@ -2532,6 +2532,11 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                 end
             end
 
+            -- Invalidate file browser row cache so new artifacts appear immediately
+            if plugin and plugin._file_dialog_row_cache then
+                plugin._file_dialog_row_cache = { file = nil, rows = nil }
+            end
+
             -- Store cache info in history for viewer to display notice
             if using_cache then
                 history.used_cache = true
