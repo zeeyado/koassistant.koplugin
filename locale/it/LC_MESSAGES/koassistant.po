@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: KOAssistant 0.6.2\n"
 "Report-Msgid-Bugs-To: https://github.com/zeeyado/koassistant.koplugin/issues\n"
-"POT-Creation-Date: 2026-02-15 17:22+0000\n"
+"POT-Creation-Date: 2026-02-15 20:14+0000\n"
 "PO-Revision-Date: 2026-01-27 00:00+0000\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: Italian\n"
@@ -107,7 +107,7 @@ msgstr "Visualizza"
 
 #: koassistant_artifact_browser.lua:224 koassistant_chat_history_dialog.lua:788
 #: koassistant_chat_history_dialog.lua:935 koassistant_notebook_manager.lua:194
-#: koassistant_xray_browser.lua:2926 koassistant_xray_browser.lua:3016
+#: koassistant_xray_browser.lua:2968 koassistant_xray_browser.lua:3058
 #, fuzzy
 msgid "Open Book"
 msgstr "Apri Libro"
@@ -126,10 +126,10 @@ msgstr "Apri Libro"
 #: koassistant_dialogs.lua:2623 koassistant_dialogs.lua:2690
 #: koassistant_dialogs.lua:3435 koassistant_notebook_manager.lua:232
 #: koassistant_update_checker.lua:326 koassistant_update_checker.lua:800
-#: koassistant_xray_browser.lua:1323 koassistant_xray_browser.lua:1821
-#: koassistant_xray_browser.lua:1846 koassistant_xray_browser.lua:1985
-#: koassistant_xray_browser.lua:2016 koassistant_xray_browser.lua:2355
-#: koassistant_xray_browser.lua:2630 main.lua:428 main.lua:1873 main.lua:1911
+#: koassistant_xray_browser.lua:1341 koassistant_xray_browser.lua:1839
+#: koassistant_xray_browser.lua:1864 koassistant_xray_browser.lua:2003
+#: koassistant_xray_browser.lua:2034 koassistant_xray_browser.lua:2397
+#: koassistant_xray_browser.lua:2672 main.lua:428 main.lua:1873 main.lua:1911
 #: main.lua:1977 main.lua:2215 main.lua:2339 main.lua:2483 main.lua:2656
 #: main.lua:2812 main.lua:3312 main.lua:3486 main.lua:4050 main.lua:4496
 #: main.lua:4566 main.lua:4630 main.lua:6078 main.lua:7820 main.lua:8375
@@ -192,7 +192,7 @@ msgstr ""
 #: koassistant_chat_history_dialog.lua:2012
 #: koassistant_chat_history_dialog.lua:2050 koassistant_chatgptviewer.lua:2317
 #: koassistant_chatgptviewer.lua:2323 koassistant_notebook_manager.lua:211
-#: koassistant_xray_browser.lua:2872 main.lua:8731 main.lua:8739
+#: koassistant_xray_browser.lua:2914 main.lua:8731 main.lua:8739
 #: koassistant_ui/behavior_manager.lua:332
 #: koassistant_ui/domain_manager.lua:342
 #: koassistant_ui/prompts_manager.lua:1027
@@ -391,13 +391,13 @@ msgstr "Elimina Tutte le Chat"
 msgid "Error: Cannot load chat data."
 msgstr "Errore: Impossibile caricare i dati della chat."
 
-#: koassistant_chat_history_dialog.lua:871 koassistant_xray_browser.lua:2895
-#: koassistant_xray_browser.lua:2897 main.lua:3955
+#: koassistant_chat_history_dialog.lua:871 koassistant_xray_browser.lua:2937
+#: koassistant_xray_browser.lua:2939 main.lua:3955
 #, fuzzy
 msgid "Date:"
 msgstr "Data:"
 
-#: koassistant_chat_history_dialog.lua:872 koassistant_xray_browser.lua:2885
+#: koassistant_chat_history_dialog.lua:872 koassistant_xray_browser.lua:2927
 #: main.lua:3952
 #, fuzzy
 msgid "Model:"
@@ -442,7 +442,7 @@ msgstr "Elimina Chat"
 #: koassistant_chatgptviewer.lua:1905 koassistant_chatgptviewer.lua:2101
 #: koassistant_chatgptviewer.lua:2335 koassistant_chatgptviewer.lua:2530
 #: koassistant_chatgptviewer.lua:4066 koassistant_dialogs.lua:607
-#: koassistant_dialogs.lua:2952 koassistant_xray_browser.lua:1208 main.lua:2105
+#: koassistant_dialogs.lua:2952 koassistant_xray_browser.lua:1226 main.lua:2105
 #: main.lua:5175 koassistant_ui/behavior_manager.lua:403
 #: koassistant_ui/domain_manager.lua:412
 #: koassistant_ui/settings_manager.lua:247
@@ -515,7 +515,7 @@ msgstr "Inserisci nome tag"
 
 #: koassistant_chat_history_dialog.lua:1161
 #: koassistant_chat_history_dialog.lua:1348 koassistant_dialogs.lua:957
-#: koassistant_xray_browser.lua:1332 main.lua:1918 main.lua:2346 main.lua:2819
+#: koassistant_xray_browser.lua:1350 main.lua:1918 main.lua:2346 main.lua:2819
 #, fuzzy
 msgid "Add"
 msgstr "Aggiungi"
@@ -650,7 +650,7 @@ msgstr ""
 "%1"
 
 #: koassistant_chat_history_dialog.lua:1879 koassistant_chatgptviewer.lua:3491
-#: main.lua:9556
+#: main.lua:9598
 #, fuzzy
 msgid "Failed to save: %1"
 msgstr "Impossibile salvare: %1"
@@ -1103,12 +1103,12 @@ msgstr "Riesegui la traduzione con una lingua di destinazione diversa"
 msgid "Copied to clipboard"
 msgstr "Copiato negli appunti"
 
-#: koassistant_chatgptviewer.lua:2175 koassistant_xray_browser.lua:2992
+#: koassistant_chatgptviewer.lua:2175 koassistant_xray_browser.lua:3034
 #, fuzzy
 msgid "Other Artifacts"
 msgstr "Altri Artefatti"
 
-#: koassistant_chatgptviewer.lua:2250 koassistant_xray_browser.lua:2913
+#: koassistant_chatgptviewer.lua:2250 koassistant_xray_browser.lua:2955
 #: main.lua:8702 koassistant_ui/prompts_manager.lua:1568
 #: koassistant_ui/prompts_manager.lua:2033
 #, fuzzy
@@ -1280,17 +1280,17 @@ msgstr "Nessun contenuto da esportare"
 msgid "No export metadata available."
 msgstr "Nessun metadato di esportazione disponibile."
 
-#: koassistant_chatgptviewer.lua:3604 main.lua:9479
+#: koassistant_chatgptviewer.lua:3604 main.lua:9521
 #, fuzzy
 msgid "Select export folder"
 msgstr "Seleziona cartella di esportazione"
 
-#: koassistant_chatgptviewer.lua:3629 main.lua:9501
+#: koassistant_chatgptviewer.lua:3629 main.lua:9543
 #, fuzzy
 msgid "Saved to %1"
 msgstr "Salvato in %1"
 
-#: koassistant_chatgptviewer.lua:3634 main.lua:9506
+#: koassistant_chatgptviewer.lua:3634 main.lua:9548
 #, fuzzy
 msgid "Export failed: %1"
 msgstr "Esportazione fallita: %1"
@@ -1408,7 +1408,7 @@ msgstr "Continua ultima chat"
 msgid "General Chat/Action"
 msgstr "Chat/azione generale"
 
-#: koassistant_constants.lua:135 main.lua:325 main.lua:6287 main.lua:9450
+#: koassistant_constants.lua:135 main.lua:325 main.lua:6287 main.lua:9492
 #, fuzzy
 msgid "Notebook"
 msgstr "Taccuino"
@@ -1826,7 +1826,7 @@ msgstr "X-Ray copre fino al %1%"
 msgid "You're now at %1%."
 msgstr "Ora sei al %1%."
 
-#: koassistant_dialogs.lua:3793 koassistant_xray_browser.lua:2831 main.lua:4261
+#: koassistant_dialogs.lua:3793 koassistant_xray_browser.lua:2873 main.lua:4261
 #, fuzzy
 msgid "Update X-Ray (to %1)"
 msgstr "Aggiorna X-Ray (al %1)"
@@ -2622,7 +2622,7 @@ msgstr "Azioni Menu Evidenziazione"
 msgid "Choose which actions appear in the highlight menu (requires restart)"
 msgstr "Scegli quali azioni appaiono nel menu di evidenziazione (richiede riavvio)"
 
-#: koassistant_settings_schema.lua:985
+#: koassistant_settings_schema.lua:985 main.lua:9231
 #, fuzzy
 msgid "Actions & Prompts"
 msgstr "Azioni e Prompt"
@@ -2714,7 +2714,7 @@ msgid ""
 "Only show button if notebook already exists. Disable to allow creating new notebooks from file browser."
 msgstr "Mostra il pulsante solo se il quaderno esiste già. Disabilita per consentire la creazione di nuovi quaderni dal gestore file."
 
-#: koassistant_settings_schema.lua:1083
+#: koassistant_settings_schema.lua:1083 main.lua:9229
 #, fuzzy
 msgid "Privacy & Data"
 msgstr "Privacy e Dati"
@@ -3797,7 +3797,7 @@ msgstr "Pagine %1–%2"
 msgid "Mentions"
 msgstr "Menzioni"
 
-#: koassistant_xray_browser.lua:777 koassistant_xray_browser.lua:2637
+#: koassistant_xray_browser.lua:777 koassistant_xray_browser.lua:2679
 #, fuzzy
 msgid "Search"
 msgstr "Cerca"
@@ -3817,143 +3817,143 @@ msgstr "Al"
 msgid "Your highlights:"
 msgstr "I tuoi evidenziazioni:"
 
-#: koassistant_xray_browser.lua:1009
+#: koassistant_xray_browser.lua:1024
 #, fuzzy
 msgid "Chat about this"
 msgstr "Parla di questo"
 
-#: koassistant_xray_browser.lua:1023
+#: koassistant_xray_browser.lua:1038
 #, fuzzy
 msgid "Chapter Appearances"
 msgstr "Apparizioni Capitolo"
 
-#: koassistant_xray_browser.lua:1035
+#: koassistant_xray_browser.lua:1050
 #, fuzzy
 msgid "Edit Search Terms"
 msgstr "Modifica Termini di Ricerca"
 
-#: koassistant_xray_browser.lua:1075 koassistant_xray_browser.lua:1102
+#: koassistant_xray_browser.lua:1090 koassistant_xray_browser.lua:1117
 #, fuzzy
 msgid "Details"
 msgstr "Dettagli"
 
-#: koassistant_xray_browser.lua:1167
+#: koassistant_xray_browser.lua:1185
 #, fuzzy
 msgid "Remove \"%1\""
 msgstr "Rimuovi \"%1\""
 
-#: koassistant_xray_browser.lua:1168
+#: koassistant_xray_browser.lua:1186
 #, fuzzy
 msgid "Ignore \"%1\""
 msgstr "Ignora \"%1\""
 
-#: koassistant_xray_browser.lua:1182
+#: koassistant_xray_browser.lua:1200
 #, fuzzy
 msgid "Restore \"%1\" (ignored)"
 msgstr "Ripristina \"%1\" (ignorato)"
 
-#: koassistant_xray_browser.lua:1200
+#: koassistant_xray_browser.lua:1218
 #, fuzzy
 msgid "Add new"
 msgstr "Aggiungi nuovo"
 
-#: koassistant_xray_browser.lua:1220
+#: koassistant_xray_browser.lua:1238
 #, fuzzy
 msgid "Search terms for \"%1\""
 msgstr "Termini di ricerca per \"%1\""
 
-#: koassistant_xray_browser.lua:1317
+#: koassistant_xray_browser.lua:1335
 #, fuzzy
 msgid "Add search term for \"%1\""
 msgstr "Aggiungi termine di ricerca per \"%1\""
 
-#: koassistant_xray_browser.lua:1319
+#: koassistant_xray_browser.lua:1337
 #, fuzzy
 msgid "Enter alternate name or spelling"
 msgstr "Inserisci nome alternativo o grafia"
 
-#: koassistant_xray_browser.lua:1355
+#: koassistant_xray_browser.lua:1373
 #, fuzzy
 msgid "This search term already exists."
 msgstr "Questo termine di ricerca esiste già."
 
-#: koassistant_xray_browser.lua:1387
+#: koassistant_xray_browser.lua:1405
 #, fuzzy
 msgid "Added \"%1\""
 msgstr "Aggiunto \"%1\""
 
-#: koassistant_xray_browser.lua:1432 koassistant_xray_parser.lua:299
+#: koassistant_xray_browser.lua:1450 koassistant_xray_parser.lua:299
 #, fuzzy
 msgid "Cast"
 msgstr "Cast"
 
-#: koassistant_xray_browser.lua:1433
+#: koassistant_xray_browser.lua:1451
 #, fuzzy
 msgid "Figures"
 msgstr "Figure"
 
-#: koassistant_xray_browser.lua:1434 koassistant_xray_parser.lua:300
+#: koassistant_xray_browser.lua:1452 koassistant_xray_parser.lua:300
 #, fuzzy
 msgid "World"
 msgstr "Mondo"
 
-#: koassistant_xray_browser.lua:1435 koassistant_xray_parser.lua:301
+#: koassistant_xray_browser.lua:1453 koassistant_xray_parser.lua:301
 #, fuzzy
 msgid "Ideas"
 msgstr "Idee"
 
-#: koassistant_xray_browser.lua:1436
+#: koassistant_xray_browser.lua:1454
 #, fuzzy
 msgid "Concepts"
 msgstr "Concetti"
 
-#: koassistant_xray_browser.lua:1437
+#: koassistant_xray_browser.lua:1455
 #, fuzzy
 msgid "Args"
 msgstr "Argomenti"
 
-#: koassistant_xray_browser.lua:1438 koassistant_xray_parser.lua:302
+#: koassistant_xray_browser.lua:1456 koassistant_xray_parser.lua:302
 #, fuzzy
 msgid "Lexicon"
 msgstr "Lessico"
 
-#: koassistant_xray_browser.lua:1439
+#: koassistant_xray_browser.lua:1457
 #, fuzzy
 msgid "Terms"
 msgstr "Termini"
 
-#: koassistant_xray_browser.lua:1440
+#: koassistant_xray_browser.lua:1458
 #, fuzzy
 msgid "Arc"
 msgstr "Arco"
 
-#: koassistant_xray_browser.lua:1441
+#: koassistant_xray_browser.lua:1459
 #, fuzzy
 msgid "Dev"
 msgstr "Sviluppo"
 
-#: koassistant_xray_browser.lua:1504
+#: koassistant_xray_browser.lua:1522
 #, fuzzy
 msgid "Page %1"
 msgstr "Pagina %1"
 
-#: koassistant_xray_browser.lua:1558 koassistant_xray_browser.lua:1571
-#: koassistant_xray_browser.lua:1922 koassistant_xray_browser.lua:1934
+#: koassistant_xray_browser.lua:1576 koassistant_xray_browser.lua:1589
+#: koassistant_xray_browser.lua:1940 koassistant_xray_browser.lua:1952
 #, fuzzy
 msgid "All Chapters"
 msgstr "Tutti i capitoli"
 
-#: koassistant_xray_browser.lua:1566 koassistant_xray_browser.lua:1929
+#: koassistant_xray_browser.lua:1584 koassistant_xray_browser.lua:1947
 #, fuzzy
 msgid "All Chapters (to %1)"
 msgstr "Tutti i capitoli (fino a %1)"
 
-#: koassistant_xray_browser.lua:1581 koassistant_xray_browser.lua:1957
+#: koassistant_xray_browser.lua:1599 koassistant_xray_browser.lua:1975
 #, fuzzy
 msgid "Table of Contents"
 msgstr "Indice dei contenuti"
 
-#: koassistant_xray_browser.lua:1818 koassistant_xray_browser.lua:1982
+#: koassistant_xray_browser.lua:1836 koassistant_xray_browser.lua:2000
 #, fuzzy
 msgid ""
 "This will scan beyond your X-Ray coverage.\n"
@@ -3964,14 +3964,14 @@ msgstr ""
 "\n"
 "Rivelare tutte le menzioni?"
 
-#: koassistant_xray_browser.lua:1827 koassistant_xray_browser.lua:1852
-#: koassistant_xray_browser.lua:1991 koassistant_xray_browser.lua:2022
-#: koassistant_xray_browser.lua:2361
+#: koassistant_xray_browser.lua:1845 koassistant_xray_browser.lua:1870
+#: koassistant_xray_browser.lua:2009 koassistant_xray_browser.lua:2040
+#: koassistant_xray_browser.lua:2403
 #, fuzzy
 msgid "Reveal"
 msgstr "Rivela"
 
-#: koassistant_xray_browser.lua:1843 koassistant_xray_browser.lua:2013
+#: koassistant_xray_browser.lua:1861 koassistant_xray_browser.lua:2031
 #, fuzzy
 msgid ""
 "This chapter is beyond your X-Ray coverage.\n"
@@ -3982,120 +3982,120 @@ msgstr ""
 "\n"
 "Rivelare le menzioni?"
 
-#: koassistant_xray_browser.lua:2070 koassistant_xray_browser.lua:2226
-#: koassistant_xray_browser.lua:2536
+#: koassistant_xray_browser.lua:2088 koassistant_xray_browser.lua:2256
+#: koassistant_xray_browser.lua:2578
 #, fuzzy
 msgid "No book open."
 msgstr "Nessun libro aperto."
 
-#: koassistant_xray_browser.lua:2078
+#: koassistant_xray_browser.lua:2096
 #, fuzzy
 msgid "Analyzing book…"
 msgstr "Analisi del libro in corso…"
 
-#: koassistant_xray_browser.lua:2078 koassistant_xray_browser.lua:2233
+#: koassistant_xray_browser.lua:2096 koassistant_xray_browser.lua:2263
 #, fuzzy
 msgid "Analyzing chapter…"
 msgstr "Analisi del capitolo in corso…"
 
-#: koassistant_xray_browser.lua:2092
+#: koassistant_xray_browser.lua:2110
 #, fuzzy
 msgid "Could not determine book length."
 msgstr "Impossibile determinare la lunghezza del libro."
 
-#: koassistant_xray_browser.lua:2124
+#: koassistant_xray_browser.lua:2142
 #, fuzzy
 msgid ""
 "Could not extract book text. PDF text extraction may not be available for this document."
 msgstr "Impossibile estrarre il testo del libro. L'estrazione del testo PDF potrebbe non essere disponibile per questo documento."
 
-#: koassistant_xray_browser.lua:2125
+#: koassistant_xray_browser.lua:2143
 #, fuzzy
 msgid "Could not extract book text."
 msgstr "Impossibile estrarre il testo del libro."
 
-#: koassistant_xray_browser.lua:2128 koassistant_xray_browser.lua:2242
+#: koassistant_xray_browser.lua:2146 koassistant_xray_browser.lua:2272
 #, fuzzy
 msgid ""
 "Could not extract chapter text. PDF text extraction may not be available for this document."
 msgstr "Impossibile estrarre il testo del capitolo. L'estrazione del testo PDF potrebbe non essere disponibile per questo documento."
 
-#: koassistant_xray_browser.lua:2129 koassistant_xray_browser.lua:2243
+#: koassistant_xray_browser.lua:2147 koassistant_xray_browser.lua:2273
 #, fuzzy
 msgid "Could not extract chapter text."
 msgstr "Impossibile estrarre il testo del capitolo."
 
-#: koassistant_xray_browser.lua:2143
+#: koassistant_xray_browser.lua:2161
 #, fuzzy
 msgid "No X-Ray items found in book text."
 msgstr "Nessun elemento X-Ray trovato nel testo del libro."
 
-#: koassistant_xray_browser.lua:2145 koassistant_xray_browser.lua:2255
+#: koassistant_xray_browser.lua:2163 koassistant_xray_browser.lua:2285
 #, fuzzy
 msgid "No X-Ray items found in \"%1\"."
 msgstr "Nessun elemento X-Ray trovato in \"%1\"."
 
-#: koassistant_xray_browser.lua:2147
+#: koassistant_xray_browser.lua:2165
 #, fuzzy
 msgid "No X-Ray items found in current chapter."
 msgstr "Nessun elemento X-Ray trovato nel capitolo corrente."
 
-#: koassistant_xray_browser.lua:2164
+#: koassistant_xray_browser.lua:2182
 #, fuzzy
 msgid "All Chapters u{25BE}"
 msgstr "Tutti i capitoli u{25BE}"
 
-#: koassistant_xray_browser.lua:2166
+#: koassistant_xray_browser.lua:2184
 #, fuzzy
 msgid "To %1 u{25BE}"
 msgstr "Fino a %1 u{25BE}"
 
-#: koassistant_xray_browser.lua:2171
+#: koassistant_xray_browser.lua:2189
 #, fuzzy
 msgid "This Chapter u{25BE}"
 msgstr "Questo capitolo u{25BE}"
 
-#: koassistant_xray_browser.lua:2192 koassistant_xray_browser.lua:2271
+#: koassistant_xray_browser.lua:2220 koassistant_xray_browser.lua:2311
 #, fuzzy
 msgid "%1x"
 msgstr "%1x"
 
-#: koassistant_xray_browser.lua:2204
+#: koassistant_xray_browser.lua:2234
 #, fuzzy
 msgid "All Chapters — %1 mentions"
 msgstr "Tutti i capitoli — %1 menzioni"
 
-#: koassistant_xray_browser.lua:2206
+#: koassistant_xray_browser.lua:2236
 #, fuzzy
 msgid "To %1 — %2 mentions"
 msgstr "Fino a %1 — %2 menzioni"
 
-#: koassistant_xray_browser.lua:2209 koassistant_xray_browser.lua:2281
+#: koassistant_xray_browser.lua:2239 koassistant_xray_browser.lua:2323
 #, fuzzy
 msgid "%1 — %2 mentions"
 msgstr "%1 — %2 menzioni"
 
-#: koassistant_xray_browser.lua:2211
+#: koassistant_xray_browser.lua:2241
 #, fuzzy
 msgid "This Chapter — %1 mentions"
 msgstr "Questo capitolo — %1 menzioni"
 
-#: koassistant_xray_browser.lua:2256
+#: koassistant_xray_browser.lua:2286
 #, fuzzy
 msgid "No X-Ray items found in this chapter."
 msgstr "Nessun elemento X-Ray trovato in questo capitolo."
 
-#: koassistant_xray_browser.lua:2283
+#: koassistant_xray_browser.lua:2325
 #, fuzzy
 msgid "Chapter — %1 mentions"
 msgstr "Capitolo — %1 menzioni"
 
-#: koassistant_xray_browser.lua:2320
+#: koassistant_xray_browser.lua:2362
 #, fuzzy
 msgid "Scanning…"
 msgstr "Scansione in corso…"
 
-#: koassistant_xray_browser.lua:2352
+#: koassistant_xray_browser.lua:2394
 #, fuzzy
 msgid ""
 "This chapter is beyond your X-Ray coverage and may contain spoilers.\n"
@@ -4106,174 +4106,174 @@ msgstr ""
 "\n"
 "Rivelare le menzioni?"
 
-#: koassistant_xray_browser.lua:2449
+#: koassistant_xray_browser.lua:2491
 #, fuzzy
 msgid "Search for:"
 msgstr "Cerca:"
 
-#: koassistant_xray_browser.lua:2470
+#: koassistant_xray_browser.lua:2512
 #, fuzzy
 msgid "No X-Ray items in \"%1\"."
 msgstr "Nessun elemento X-Ray in \"%1\"."
 
-#: koassistant_xray_browser.lua:2471
+#: koassistant_xray_browser.lua:2513
 #, fuzzy
 msgid "this chapter"
 msgstr "questo capitolo"
 
-#: koassistant_xray_browser.lua:2482
+#: koassistant_xray_browser.lua:2524
 #, fuzzy
 msgid "Scan all chapters"
 msgstr "Scansiona tutti i capitoli"
 
-#: koassistant_xray_browser.lua:2483
+#: koassistant_xray_browser.lua:2525
 #, fuzzy
 msgid "may contain spoilers"
 msgstr "potrebbe contenere spoiler"
 
-#: koassistant_xray_browser.lua:2489
+#: koassistant_xray_browser.lua:2531
 #, fuzzy
 msgid "Scanning all chapters…"
 msgstr "Scansione di tutti i capitoli in corso…"
 
-#: koassistant_xray_browser.lua:2516
+#: koassistant_xray_browser.lua:2558
 #, fuzzy
 msgid "%1 — %2 chapters"
 msgstr "%1 — %2 capitoli"
 
-#: koassistant_xray_browser.lua:2552
+#: koassistant_xray_browser.lua:2594
 #, fuzzy
 msgid "Computing distribution…"
 msgstr "Calcolo della distribuzione in corso…"
 
-#: koassistant_xray_browser.lua:2564
+#: koassistant_xray_browser.lua:2606
 #, fuzzy
 msgid "Could not determine chapter structure."
 msgstr "Impossibile determinare la struttura dei capitoli."
 
-#: koassistant_xray_browser.lua:2595
+#: koassistant_xray_browser.lua:2637
 #, fuzzy
 msgid ""
 "No mentions of \"%1\" found. PDF text extraction may not be available for this document."
 msgstr "Nessuna menzione di \"%1\" trovata. L'estrazione del testo PDF potrebbe non essere disponibile per questo documento."
 
-#: koassistant_xray_browser.lua:2596
+#: koassistant_xray_browser.lua:2638
 #, fuzzy
 msgid "No mentions of \"%1\" found in book text."
 msgstr "Nessuna menzione di \"%1\" trovata nel testo del libro."
 
-#: koassistant_xray_browser.lua:2624
+#: koassistant_xray_browser.lua:2666
 #, fuzzy
 msgid "Search X-Ray"
 msgstr "Cerca X-Ray"
 
-#: koassistant_xray_browser.lua:2626
+#: koassistant_xray_browser.lua:2668
 #, fuzzy
 msgid "Name, term, description..."
 msgstr "Nome, termine, descrizione..."
 
-#: koassistant_xray_browser.lua:2661
+#: koassistant_xray_browser.lua:2703
 #, fuzzy
 msgid "No results for \"%1\"."
 msgstr "Nessun risultato per \"%1\"."
 
-#: koassistant_xray_browser.lua:2675
+#: koassistant_xray_browser.lua:2717
 #, fuzzy
 msgid "alias"
 msgstr "alias"
 
-#: koassistant_xray_browser.lua:2677
+#: koassistant_xray_browser.lua:2719
 #, fuzzy
 msgid "desc."
 msgstr "desc."
 
-#: koassistant_xray_browser.lua:2692
+#: koassistant_xray_browser.lua:2734
 #, fuzzy
 msgid "Results for \"%1\" (%2)"
 msgstr "Risultati per \"%1\" (%2)"
 
-#: koassistant_xray_browser.lua:2777 koassistant_xray_browser.lua:2981
+#: koassistant_xray_browser.lua:2819 koassistant_xray_browser.lua:3023
 #: main.lua:4472 main.lua:4603
 #, fuzzy
 msgid "View %1"
 msgstr "Visualizza %1"
 
-#: koassistant_xray_browser.lua:2785
+#: koassistant_xray_browser.lua:2827
 #, fuzzy
 msgid "View other artifacts…"
 msgstr "Visualizza altri artefatti…"
 
-#: koassistant_xray_browser.lua:2800
+#: koassistant_xray_browser.lua:2842
 #, fuzzy
 msgid "Redo X-Ray (entire document)"
 msgstr "Rigenera X-Ray (intero documento)"
 
-#: koassistant_xray_browser.lua:2810
+#: koassistant_xray_browser.lua:2852
 #, fuzzy
 msgid "Redo X-Ray (to 100%)"
 msgstr "Rigenera X-Ray (fino al 100%)"
 
-#: koassistant_xray_browser.lua:2833
+#: koassistant_xray_browser.lua:2875
 #, fuzzy
 msgid "Redo X-Ray (to %1)"
 msgstr "Rigenera X-Ray (fino a %1)"
 
-#: koassistant_xray_browser.lua:2837
+#: koassistant_xray_browser.lua:2879
 #, fuzzy
 msgid "Redo X-Ray"
 msgstr "Rigenera X-Ray"
 
-#: koassistant_xray_browser.lua:2852
+#: koassistant_xray_browser.lua:2894
 #, fuzzy
 msgid "Update X-Ray (to 100%)"
 msgstr "Aggiorna X-Ray (fino al 100%)"
 
-#: koassistant_xray_browser.lua:2866
+#: koassistant_xray_browser.lua:2908
 #, fuzzy
 msgid "Delete X-Ray"
 msgstr "Elimina X-Ray"
 
-#: koassistant_xray_browser.lua:2871
+#: koassistant_xray_browser.lua:2913
 #, fuzzy
 msgid "Delete this X-Ray? This cannot be undone."
 msgstr "Eliminare questo X-Ray? Questa operazione non può essere annullata."
 
-#: koassistant_xray_browser.lua:2890 main.lua:3945
+#: koassistant_xray_browser.lua:2932 main.lua:3945
 #, fuzzy
 msgid "updated from"
 msgstr "aggiornato da"
 
-#: koassistant_xray_browser.lua:2892 main.lua:3948
+#: koassistant_xray_browser.lua:2934 main.lua:3948
 #, fuzzy
 msgid "Progress:"
 msgstr "Progresso:"
 
-#: koassistant_xray_browser.lua:2899
+#: koassistant_xray_browser.lua:2941
 #, fuzzy
 msgid "Fiction"
 msgstr "Narrativa"
 
-#: koassistant_xray_browser.lua:2899
+#: koassistant_xray_browser.lua:2941
 #, fuzzy
 msgid "Non-Fiction"
 msgstr "Saggistica"
 
-#: koassistant_xray_browser.lua:2900
+#: koassistant_xray_browser.lua:2942
 #, fuzzy
 msgid "Type:"
 msgstr "Tipo:"
 
-#: koassistant_xray_browser.lua:2902 main.lua:3950
+#: koassistant_xray_browser.lua:2944 main.lua:3950
 #, fuzzy
 msgid "Source:"
 msgstr "Fonte:"
 
-#: koassistant_xray_browser.lua:2905 main.lua:3961
+#: koassistant_xray_browser.lua:2947 main.lua:3961
 #, fuzzy
 msgid "Reasoning:"
 msgstr "Ragionamento:"
 
-#: koassistant_xray_browser.lua:2905 koassistant_xray_browser.lua:2908
+#: koassistant_xray_browser.lua:2947 koassistant_xray_browser.lua:2950
 #: main.lua:3961 main.lua:3964 koassistant_ui/prompts_manager.lua:746
 #: koassistant_ui/prompts_manager.lua:747
 #: koassistant_ui/prompts_manager.lua:753
@@ -4282,12 +4282,12 @@ msgstr "Ragionamento:"
 msgid "Yes"
 msgstr "Sì"
 
-#: koassistant_xray_browser.lua:2908 main.lua:3964
+#: koassistant_xray_browser.lua:2950 main.lua:3964
 #, fuzzy
 msgid "Web search:"
 msgstr "Ricerca web:"
 
-#: koassistant_xray_browser.lua:3015
+#: koassistant_xray_browser.lua:3057
 #, fuzzy
 msgid ""
 "This feature requires the book to be open in Reader mode.\n"
@@ -4298,7 +4298,7 @@ msgstr ""
 "\n"
 "Aprire il libro ora?"
 
-#: koassistant_xray_browser.lua:3023
+#: koassistant_xray_browser.lua:3065
 #, fuzzy
 msgid "This feature requires the book to be open in Reader mode."
 msgstr "Questa funzione richiede che il libro sia aperto in modalità Lettura."
@@ -6142,170 +6142,180 @@ msgstr ""
 "Vecchi file di chat salvati in:\n"
 "koassistant_chats.backup/"
 
-#: main.lua:9078
+#: main.lua:9132
 #, fuzzy
 msgid "Welcome to KOAssistant!"
 msgstr "Benvenuto in KOAssistant!"
 
-#: main.lua:9079
-#, fuzzy
-msgid "PRIVACY SETTINGS"
-msgstr "IMPOSTAZIONI PRIVACY"
-
-#: main.lua:9080
+#: main.lua:9133
 #, fuzzy
 msgid ""
-"Some features (like X-Ray) need to access document text and other content. Enable in: Settings → Privacy & Data"
-msgstr "Alcune funzionalità (come X-Ray) richiedono l'accesso al testo del documento e ad altri contenuti. Attiva in: Impostazioni → Privacy e Dati"
+"Your AI reading assistant is ready. Let's set up a few things. Tap the screen to continue."
+msgstr "Il tuo assistente di lettura AI è pronto. Impostiamo alcune cose. Tocca lo schermo per continuare."
 
-#: main.lua:9081
+#: main.lua:9144
 #, fuzzy
-msgid "QUICK ACCESS"
-msgstr "ACCESSO RAPIDO"
+msgid "EMOJI DISPLAY TEST"
+msgstr "TEST VISUALIZZAZIONE EMOJI"
 
-#: main.lua:9082
+#: main.lua:9145
 #, fuzzy
-msgid ""
-"Assign Quick Settings (File browser) and Quick Actions (Reader) panels to gestures. See KOReader Settings (Gear icon) → Taps and Gestures"
-msgstr "Assegna i pannelli Impostazioni Rapide (Browser file) e Azioni Rapide (Lettore) ai gesti. Vedi Impostazioni KOReader (icona ingranaggio) → Tocchi e Gesti"
+msgid "Do these icons display correctly on your device?"
+msgstr "Queste icone vengono visualizzate correttamente sul tuo dispositivo?"
 
-#: main.lua:9083
-#, fuzzy
-msgid "CUSTOM ACTIONS"
-msgstr "AZIONI PERSONALIZZATE"
-
-#: main.lua:9084
+#: main.lua:9149
 #, fuzzy
 msgid ""
-"Create your own prompts and actions or edit built in ones. Go to: Settings → Action Manager"
-msgstr "Crea i tuoi prompt e azioni personalizzati o modifica quelli integrati. Vai a: Impostazioni → Gestore Azioni"
+"See the README for instructions on how to enable emojis in the KOReader UI."
+msgstr "Consulta il README per le istruzioni su come abilitare le emoji nell'interfaccia di KOReader."
 
-#: main.lua:9085
+#: main.lua:9150
 #, fuzzy
-msgid "MENU AND INFO ICONS"
-msgstr "ICONE MENU E INFORMAZIONI"
+msgid "If you see blank boxes or question marks, choose \"No\"."
+msgstr "Se vedi riquadri vuoti o punti interrogativi, scegli \"No\"."
 
-#: main.lua:9086
+#: main.lua:9155
 #, fuzzy
-msgid ""
-"Setup KOReader with emoji support to get informative icons in menus and more. See the emoji section in the README for details."
-msgstr "Configura KOReader con il supporto emoji per ottenere icone informative nei menu e altro. Consulta la sezione emoji nel README per dettagli."
+msgid "Yes, enable"
+msgstr "Sì, abilita"
 
-#: main.lua:9161
+#: main.lua:9156
+#, fuzzy
+msgid "No, skip"
+msgstr "No, salta"
+
+#: main.lua:9186
 #, fuzzy
 msgid "GESTURE SETUP"
 msgstr "CONFIGURAZIONE GESTI"
 
-#: main.lua:9162
+#: main.lua:9187
 #, fuzzy
 msgid "KOAssistant has two quick-access panels:"
 msgstr "KOAssistant ha due pannelli ad accesso rapido:"
 
-#: main.lua:9163
+#: main.lua:9188
 #, fuzzy
 msgid "Quick Actions — book actions, artifacts, and utilities (reader mode)"
 msgstr "Azioni Rapide — azioni sui libri, artefatti e utilità (modalità lettore)"
 
-#: main.lua:9164
+#: main.lua:9189
 #, fuzzy
 msgid ""
 "Quick Settings — change provider, model, behavior, and more (file browser)"
 msgstr "Impostazioni Rapide — cambia provider, modello, comportamento e altro (browser file)"
 
-#: main.lua:9165
+#: main.lua:9190
 #, fuzzy
 msgid "Assign both to \"tap bottom right corner\"?"
 msgstr "Assegnare entrambi a \"tocca angolo inferiore destro\"?"
 
-#: main.lua:9166
+#: main.lua:9191
 #, fuzzy
 msgid ""
 "You can change these anytime in KOReader Settings (Gear icon) → Taps and Gestures."
 msgstr "Puoi modificarli in qualsiasi momento in Impostazioni KOReader (icona ingranaggio) → Tocchi e Gesti."
 
-#: main.lua:9167
+#: main.lua:9192
 #, fuzzy
 msgid "Requires KOReader restart to take effect."
 msgstr "Richiede il riavvio di KOReader per avere effetto."
 
-#: main.lua:9171
+#: main.lua:9197
 #, fuzzy
 msgid "Set up"
 msgstr "Configura"
 
-#: main.lua:9172
+#: main.lua:9198
 #, fuzzy
 msgid "No thanks"
 msgstr "No grazie"
 
-#: main.lua:9183
+#: main.lua:9213
 #, fuzzy
 msgid "GESTURE TIP"
 msgstr "SUGGERIMENTO GESTI"
 
-#: main.lua:9184
+#: main.lua:9214
 #, fuzzy
 msgid "KOAssistant has two quick-access panels you can assign to gestures:"
 msgstr "KOAssistant ha due pannelli ad accesso rapido che puoi assegnare ai gesti:"
 
-#: main.lua:9185
+#: main.lua:9215
 #, fuzzy
 msgid ""
 "Quick Actions — book actions, artifacts, and utilities (assign in reader mode)"
 msgstr "Azioni Rapide — azioni sui libri, artefatti e utilità (assegna in modalità lettore)"
 
-#: main.lua:9186
+#: main.lua:9216
 #, fuzzy
 msgid ""
 "Quick Settings — change provider, model, behavior, and more (assign in file browser mode)"
 msgstr "Impostazioni Rapide — cambia provider, modello, comportamento e altro (assegna in modalità browser file)"
 
-#: main.lua:9187
+#: main.lua:9217
 #, fuzzy
 msgid "Set them up in KOReader Settings (Gear icon) → Taps and Gestures."
 msgstr "Configurali in Impostazioni KOReader (icona ingranaggio) → Tocchi e Gesti."
 
-#: main.lua:9227
-#, fuzzy
-msgid "Quick Actions and Quick Settings assigned to tap bottom right corner."
-msgstr "Azioni Rapide e Impostazioni Rapide assegnate a tocco angolo inferiore destro."
-
 #: main.lua:9228
 #, fuzzy
-msgid "Please restart KOReader for changes to take effect."
-msgstr "Riavvia KOReader per applicare le modifiche."
+msgid "GETTING STARTED"
+msgstr "PRIMI PASSI"
 
-#: main.lua:9380
+#: main.lua:9230
+#, fuzzy
+msgid ""
+"Some features need document text access. Enable in: Settings → Privacy & Data"
+msgstr "Alcune funzionalità richiedono l'accesso al testo del documento. Abilita in: Impostazioni → Privacy e dati"
+
+#: main.lua:9232
+#, fuzzy
+msgid ""
+"Create or edit prompts: Settings → Actions & Prompts → Manage Actions (or from Quick Settings panel)"
+msgstr "Crea o modifica prompt: Impostazioni → Azioni e prompt → Gestisci azioni (o dal pannello Impostazioni rapide)"
+
+#: main.lua:9236
+#, fuzzy
+msgid "Gestures assigned. Please restart KOReader for changes to take effect."
+msgstr "Gesti assegnati. Riavvia KOReader per rendere effettive le modifiche."
+
+#: main.lua:9239
+#, fuzzy
+msgid "Enjoy your reading!"
+msgstr "Buona lettura!"
+
+#: main.lua:9422
 #, fuzzy
 msgid "No notebook available for this document"
 msgstr "Nessun taccuino disponibile per questo documento"
 
-#: main.lua:9390
+#: main.lua:9432
 #, fuzzy
 msgid "No notebook exists for this document. Create one?"
 msgstr "Non esiste un quaderno per questo documento. Crearne uno?"
 
-#: main.lua:9400
+#: main.lua:9442
 #, fuzzy
 msgid "Failed to create notebook: %1"
 msgstr "Impossibile creare il quaderno: %1"
 
-#: main.lua:9442
+#: main.lua:9484
 #, fuzzy
 msgid "Notebook is empty"
 msgstr "Il taccuino è vuoto"
 
-#: main.lua:9491
+#: main.lua:9533
 #, fuzzy
 msgid "Failed to read notebook file."
 msgstr "Impossibile leggere il file del taccuino."
 
-#: main.lua:9554
+#: main.lua:9596
 #, fuzzy
 msgid "Notebook saved"
 msgstr "Quaderno salvato"
 
-#: main.lua:9561
+#: main.lua:9603
 #, fuzzy
 msgid "Reset to last saved"
 msgstr "Ripristina all'ultimo salvato"
