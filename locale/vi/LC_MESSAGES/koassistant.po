@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: KOAssistant 0.12.0-dev\n"
 "Report-Msgid-Bugs-To: https://github.com/zeeyado/koassistant.koplugin/issues\n"
-"POT-Creation-Date: 2026-02-15 17:22+0000\n"
+"POT-Creation-Date: 2026-02-15 20:14+0000\n"
 "PO-Revision-Date: 2026-01-27 17:48+0000\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
@@ -108,7 +108,7 @@ msgstr "Xem"
 
 #: koassistant_artifact_browser.lua:224 koassistant_chat_history_dialog.lua:788
 #: koassistant_chat_history_dialog.lua:935 koassistant_notebook_manager.lua:194
-#: koassistant_xray_browser.lua:2926 koassistant_xray_browser.lua:3016
+#: koassistant_xray_browser.lua:2968 koassistant_xray_browser.lua:3058
 #, fuzzy
 msgid "Open Book"
 msgstr "Mở Sách"
@@ -127,10 +127,10 @@ msgstr "Mở Sách"
 #: koassistant_dialogs.lua:2623 koassistant_dialogs.lua:2690
 #: koassistant_dialogs.lua:3435 koassistant_notebook_manager.lua:232
 #: koassistant_update_checker.lua:326 koassistant_update_checker.lua:800
-#: koassistant_xray_browser.lua:1323 koassistant_xray_browser.lua:1821
-#: koassistant_xray_browser.lua:1846 koassistant_xray_browser.lua:1985
-#: koassistant_xray_browser.lua:2016 koassistant_xray_browser.lua:2355
-#: koassistant_xray_browser.lua:2630 main.lua:428 main.lua:1873 main.lua:1911
+#: koassistant_xray_browser.lua:1341 koassistant_xray_browser.lua:1839
+#: koassistant_xray_browser.lua:1864 koassistant_xray_browser.lua:2003
+#: koassistant_xray_browser.lua:2034 koassistant_xray_browser.lua:2397
+#: koassistant_xray_browser.lua:2672 main.lua:428 main.lua:1873 main.lua:1911
 #: main.lua:1977 main.lua:2215 main.lua:2339 main.lua:2483 main.lua:2656
 #: main.lua:2812 main.lua:3312 main.lua:3486 main.lua:4050 main.lua:4496
 #: main.lua:4566 main.lua:4630 main.lua:6078 main.lua:7820 main.lua:8375
@@ -193,7 +193,7 @@ msgstr ""
 #: koassistant_chat_history_dialog.lua:2012
 #: koassistant_chat_history_dialog.lua:2050 koassistant_chatgptviewer.lua:2317
 #: koassistant_chatgptviewer.lua:2323 koassistant_notebook_manager.lua:211
-#: koassistant_xray_browser.lua:2872 main.lua:8731 main.lua:8739
+#: koassistant_xray_browser.lua:2914 main.lua:8731 main.lua:8739
 #: koassistant_ui/behavior_manager.lua:332
 #: koassistant_ui/domain_manager.lua:342
 #: koassistant_ui/prompts_manager.lua:1027
@@ -392,13 +392,13 @@ msgstr "Xóa Tất cả Đoạn Chat"
 msgid "Error: Cannot load chat data."
 msgstr "Lỗi: Không thể tải dữ liệu trò chuyện."
 
-#: koassistant_chat_history_dialog.lua:871 koassistant_xray_browser.lua:2895
-#: koassistant_xray_browser.lua:2897 main.lua:3955
+#: koassistant_chat_history_dialog.lua:871 koassistant_xray_browser.lua:2937
+#: koassistant_xray_browser.lua:2939 main.lua:3955
 #, fuzzy
 msgid "Date:"
 msgstr "Ngày:"
 
-#: koassistant_chat_history_dialog.lua:872 koassistant_xray_browser.lua:2885
+#: koassistant_chat_history_dialog.lua:872 koassistant_xray_browser.lua:2927
 #: main.lua:3952
 #, fuzzy
 msgid "Model:"
@@ -443,7 +443,7 @@ msgstr "Xóa Đoạn Chat"
 #: koassistant_chatgptviewer.lua:1905 koassistant_chatgptviewer.lua:2101
 #: koassistant_chatgptviewer.lua:2335 koassistant_chatgptviewer.lua:2530
 #: koassistant_chatgptviewer.lua:4066 koassistant_dialogs.lua:607
-#: koassistant_dialogs.lua:2952 koassistant_xray_browser.lua:1208 main.lua:2105
+#: koassistant_dialogs.lua:2952 koassistant_xray_browser.lua:1226 main.lua:2105
 #: main.lua:5175 koassistant_ui/behavior_manager.lua:403
 #: koassistant_ui/domain_manager.lua:412
 #: koassistant_ui/settings_manager.lua:247
@@ -516,7 +516,7 @@ msgstr "Nhập tên thẻ"
 
 #: koassistant_chat_history_dialog.lua:1161
 #: koassistant_chat_history_dialog.lua:1348 koassistant_dialogs.lua:957
-#: koassistant_xray_browser.lua:1332 main.lua:1918 main.lua:2346 main.lua:2819
+#: koassistant_xray_browser.lua:1350 main.lua:1918 main.lua:2346 main.lua:2819
 #, fuzzy
 msgid "Add"
 msgstr "Thêm"
@@ -651,7 +651,7 @@ msgstr ""
 "%1"
 
 #: koassistant_chat_history_dialog.lua:1879 koassistant_chatgptviewer.lua:3491
-#: main.lua:9556
+#: main.lua:9598
 #, fuzzy
 msgid "Failed to save: %1"
 msgstr "Không thể lưu: %1"
@@ -1104,12 +1104,12 @@ msgstr "Chạy lại bản dịch với ngôn ngữ đích khác"
 msgid "Copied to clipboard"
 msgstr "Đã sao chép vào clipboard"
 
-#: koassistant_chatgptviewer.lua:2175 koassistant_xray_browser.lua:2992
+#: koassistant_chatgptviewer.lua:2175 koassistant_xray_browser.lua:3034
 #, fuzzy
 msgid "Other Artifacts"
 msgstr "Tài liệu tạo sẵn Khác"
 
-#: koassistant_chatgptviewer.lua:2250 koassistant_xray_browser.lua:2913
+#: koassistant_chatgptviewer.lua:2250 koassistant_xray_browser.lua:2955
 #: main.lua:8702 koassistant_ui/prompts_manager.lua:1568
 #: koassistant_ui/prompts_manager.lua:2033
 #, fuzzy
@@ -1281,17 +1281,17 @@ msgstr "Không có nội dung để xuất"
 msgid "No export metadata available."
 msgstr "Không có siêu dữ liệu xuất khẩu."
 
-#: koassistant_chatgptviewer.lua:3604 main.lua:9479
+#: koassistant_chatgptviewer.lua:3604 main.lua:9521
 #, fuzzy
 msgid "Select export folder"
 msgstr "Chọn thư mục xuất khẩu"
 
-#: koassistant_chatgptviewer.lua:3629 main.lua:9501
+#: koassistant_chatgptviewer.lua:3629 main.lua:9543
 #, fuzzy
 msgid "Saved to %1"
 msgstr "Đã lưu vào %1"
 
-#: koassistant_chatgptviewer.lua:3634 main.lua:9506
+#: koassistant_chatgptviewer.lua:3634 main.lua:9548
 #, fuzzy
 msgid "Export failed: %1"
 msgstr "Xuất khẩu thất bại: %1"
@@ -1409,7 +1409,7 @@ msgstr "Tiếp tục Trò chuyện Cuối"
 msgid "General Chat/Action"
 msgstr "Trò chuyện/Hành động Chung"
 
-#: koassistant_constants.lua:135 main.lua:325 main.lua:6287 main.lua:9450
+#: koassistant_constants.lua:135 main.lua:325 main.lua:6287 main.lua:9492
 #, fuzzy
 msgid "Notebook"
 msgstr "Sổ tay"
@@ -1827,7 +1827,7 @@ msgstr "X-Ray bao gồm đến %1%"
 msgid "You're now at %1%."
 msgstr "Bạn hiện đang ở %1%."
 
-#: koassistant_dialogs.lua:3793 koassistant_xray_browser.lua:2831 main.lua:4261
+#: koassistant_dialogs.lua:3793 koassistant_xray_browser.lua:2873 main.lua:4261
 #, fuzzy
 msgid "Update X-Ray (to %1)"
 msgstr "Cập nhật X-Ray (đến %1)"
@@ -2623,7 +2623,7 @@ msgstr "Hành Động Menu Đánh Dấu"
 msgid "Choose which actions appear in the highlight menu (requires restart)"
 msgstr "Chọn hành động nào xuất hiện trong menu đánh dấu (cần khởi động lại)"
 
-#: koassistant_settings_schema.lua:985
+#: koassistant_settings_schema.lua:985 main.lua:9231
 #, fuzzy
 msgid "Actions & Prompts"
 msgstr "Hành Động & Lời Nhắc"
@@ -2715,7 +2715,7 @@ msgid ""
 "Only show button if notebook already exists. Disable to allow creating new notebooks from file browser."
 msgstr "Chỉ hiển thị nút nếu sổ ghi chú đã tồn tại. Tắt để cho phép tạo sổ ghi chú mới từ trình duyệt tập tin."
 
-#: koassistant_settings_schema.lua:1083
+#: koassistant_settings_schema.lua:1083 main.lua:9229
 #, fuzzy
 msgid "Privacy & Data"
 msgstr "Quyền riêng tư & Dữ liệu"
@@ -3798,7 +3798,7 @@ msgstr "Trang %1–%2"
 msgid "Mentions"
 msgstr "Đề Cập"
 
-#: koassistant_xray_browser.lua:777 koassistant_xray_browser.lua:2637
+#: koassistant_xray_browser.lua:777 koassistant_xray_browser.lua:2679
 #, fuzzy
 msgid "Search"
 msgstr "Tìm kiếm"
@@ -3818,143 +3818,143 @@ msgstr "Tính đến"
 msgid "Your highlights:"
 msgstr "Đánh dấu của bạn:"
 
-#: koassistant_xray_browser.lua:1009
+#: koassistant_xray_browser.lua:1024
 #, fuzzy
 msgid "Chat about this"
 msgstr "Trò chuyện về nội dung này"
 
-#: koassistant_xray_browser.lua:1023
+#: koassistant_xray_browser.lua:1038
 #, fuzzy
 msgid "Chapter Appearances"
 msgstr "Xuất Hiện Chương"
 
-#: koassistant_xray_browser.lua:1035
+#: koassistant_xray_browser.lua:1050
 #, fuzzy
 msgid "Edit Search Terms"
 msgstr "Chỉnh Sửa Từ Khóa Tìm Kiếm"
 
-#: koassistant_xray_browser.lua:1075 koassistant_xray_browser.lua:1102
+#: koassistant_xray_browser.lua:1090 koassistant_xray_browser.lua:1117
 #, fuzzy
 msgid "Details"
 msgstr "Chi tiết"
 
-#: koassistant_xray_browser.lua:1167
+#: koassistant_xray_browser.lua:1185
 #, fuzzy
 msgid "Remove \"%1\""
 msgstr "Xóa \"%1\""
 
-#: koassistant_xray_browser.lua:1168
+#: koassistant_xray_browser.lua:1186
 #, fuzzy
 msgid "Ignore \"%1\""
 msgstr "Bỏ qua \"%1\""
 
-#: koassistant_xray_browser.lua:1182
+#: koassistant_xray_browser.lua:1200
 #, fuzzy
 msgid "Restore \"%1\" (ignored)"
 msgstr "Khôi phục \"%1\" (đã bỏ qua)"
 
-#: koassistant_xray_browser.lua:1200
+#: koassistant_xray_browser.lua:1218
 #, fuzzy
 msgid "Add new"
 msgstr "Thêm mới"
 
-#: koassistant_xray_browser.lua:1220
+#: koassistant_xray_browser.lua:1238
 #, fuzzy
 msgid "Search terms for \"%1\""
 msgstr "Từ khóa tìm kiếm cho \"%1\""
 
-#: koassistant_xray_browser.lua:1317
+#: koassistant_xray_browser.lua:1335
 #, fuzzy
 msgid "Add search term for \"%1\""
 msgstr "Thêm từ khóa tìm kiếm cho \"%1\""
 
-#: koassistant_xray_browser.lua:1319
+#: koassistant_xray_browser.lua:1337
 #, fuzzy
 msgid "Enter alternate name or spelling"
 msgstr "Nhập tên hoặc cách viết khác"
 
-#: koassistant_xray_browser.lua:1355
+#: koassistant_xray_browser.lua:1373
 #, fuzzy
 msgid "This search term already exists."
 msgstr "Từ khóa tìm kiếm này đã tồn tại."
 
-#: koassistant_xray_browser.lua:1387
+#: koassistant_xray_browser.lua:1405
 #, fuzzy
 msgid "Added \"%1\""
 msgstr "Đã thêm \"%1\""
 
-#: koassistant_xray_browser.lua:1432 koassistant_xray_parser.lua:299
+#: koassistant_xray_browser.lua:1450 koassistant_xray_parser.lua:299
 #, fuzzy
 msgid "Cast"
 msgstr "Nhân vật"
 
-#: koassistant_xray_browser.lua:1433
+#: koassistant_xray_browser.lua:1451
 #, fuzzy
 msgid "Figures"
 msgstr "Nhân vật"
 
-#: koassistant_xray_browser.lua:1434 koassistant_xray_parser.lua:300
+#: koassistant_xray_browser.lua:1452 koassistant_xray_parser.lua:300
 #, fuzzy
 msgid "World"
 msgstr "Thế giới"
 
-#: koassistant_xray_browser.lua:1435 koassistant_xray_parser.lua:301
+#: koassistant_xray_browser.lua:1453 koassistant_xray_parser.lua:301
 #, fuzzy
 msgid "Ideas"
 msgstr "Ý tưởng"
 
-#: koassistant_xray_browser.lua:1436
+#: koassistant_xray_browser.lua:1454
 #, fuzzy
 msgid "Concepts"
 msgstr "Khái niệm"
 
-#: koassistant_xray_browser.lua:1437
+#: koassistant_xray_browser.lua:1455
 #, fuzzy
 msgid "Args"
 msgstr "Tranh luận"
 
-#: koassistant_xray_browser.lua:1438 koassistant_xray_parser.lua:302
+#: koassistant_xray_browser.lua:1456 koassistant_xray_parser.lua:302
 #, fuzzy
 msgid "Lexicon"
 msgstr "Từ vựng"
 
-#: koassistant_xray_browser.lua:1439
+#: koassistant_xray_browser.lua:1457
 #, fuzzy
 msgid "Terms"
 msgstr "Thuật ngữ"
 
-#: koassistant_xray_browser.lua:1440
+#: koassistant_xray_browser.lua:1458
 #, fuzzy
 msgid "Arc"
 msgstr "Cung truyện"
 
-#: koassistant_xray_browser.lua:1441
+#: koassistant_xray_browser.lua:1459
 #, fuzzy
 msgid "Dev"
 msgstr "Phát triển"
 
-#: koassistant_xray_browser.lua:1504
+#: koassistant_xray_browser.lua:1522
 #, fuzzy
 msgid "Page %1"
 msgstr "Trang %1"
 
-#: koassistant_xray_browser.lua:1558 koassistant_xray_browser.lua:1571
-#: koassistant_xray_browser.lua:1922 koassistant_xray_browser.lua:1934
+#: koassistant_xray_browser.lua:1576 koassistant_xray_browser.lua:1589
+#: koassistant_xray_browser.lua:1940 koassistant_xray_browser.lua:1952
 #, fuzzy
 msgid "All Chapters"
 msgstr "Tất cả chương"
 
-#: koassistant_xray_browser.lua:1566 koassistant_xray_browser.lua:1929
+#: koassistant_xray_browser.lua:1584 koassistant_xray_browser.lua:1947
 #, fuzzy
 msgid "All Chapters (to %1)"
 msgstr "Tất cả chương (đến %1)"
 
-#: koassistant_xray_browser.lua:1581 koassistant_xray_browser.lua:1957
+#: koassistant_xray_browser.lua:1599 koassistant_xray_browser.lua:1975
 #, fuzzy
 msgid "Table of Contents"
 msgstr "Mục lục"
 
-#: koassistant_xray_browser.lua:1818 koassistant_xray_browser.lua:1982
+#: koassistant_xray_browser.lua:1836 koassistant_xray_browser.lua:2000
 #, fuzzy
 msgid ""
 "This will scan beyond your X-Ray coverage.\n"
@@ -3965,14 +3965,14 @@ msgstr ""
 "\n"
 "Hiển thị tất cả đề cập?"
 
-#: koassistant_xray_browser.lua:1827 koassistant_xray_browser.lua:1852
-#: koassistant_xray_browser.lua:1991 koassistant_xray_browser.lua:2022
-#: koassistant_xray_browser.lua:2361
+#: koassistant_xray_browser.lua:1845 koassistant_xray_browser.lua:1870
+#: koassistant_xray_browser.lua:2009 koassistant_xray_browser.lua:2040
+#: koassistant_xray_browser.lua:2403
 #, fuzzy
 msgid "Reveal"
 msgstr "Hiển thị"
 
-#: koassistant_xray_browser.lua:1843 koassistant_xray_browser.lua:2013
+#: koassistant_xray_browser.lua:1861 koassistant_xray_browser.lua:2031
 #, fuzzy
 msgid ""
 "This chapter is beyond your X-Ray coverage.\n"
@@ -3983,120 +3983,120 @@ msgstr ""
 "\n"
 "Hiển thị các đề cập?"
 
-#: koassistant_xray_browser.lua:2070 koassistant_xray_browser.lua:2226
-#: koassistant_xray_browser.lua:2536
+#: koassistant_xray_browser.lua:2088 koassistant_xray_browser.lua:2256
+#: koassistant_xray_browser.lua:2578
 #, fuzzy
 msgid "No book open."
 msgstr "Không có sách nào đang mở."
 
-#: koassistant_xray_browser.lua:2078
+#: koassistant_xray_browser.lua:2096
 #, fuzzy
 msgid "Analyzing book…"
 msgstr "Đang phân tích sách…"
 
-#: koassistant_xray_browser.lua:2078 koassistant_xray_browser.lua:2233
+#: koassistant_xray_browser.lua:2096 koassistant_xray_browser.lua:2263
 #, fuzzy
 msgid "Analyzing chapter…"
 msgstr "Đang phân tích chương…"
 
-#: koassistant_xray_browser.lua:2092
+#: koassistant_xray_browser.lua:2110
 #, fuzzy
 msgid "Could not determine book length."
 msgstr "Không thể xác định độ dài sách."
 
-#: koassistant_xray_browser.lua:2124
+#: koassistant_xray_browser.lua:2142
 #, fuzzy
 msgid ""
 "Could not extract book text. PDF text extraction may not be available for this document."
 msgstr "Không thể trích xuất văn bản sách. Trích xuất văn bản PDF có thể không khả dụng cho tài liệu này."
 
-#: koassistant_xray_browser.lua:2125
+#: koassistant_xray_browser.lua:2143
 #, fuzzy
 msgid "Could not extract book text."
 msgstr "Không thể trích xuất văn bản sách."
 
-#: koassistant_xray_browser.lua:2128 koassistant_xray_browser.lua:2242
+#: koassistant_xray_browser.lua:2146 koassistant_xray_browser.lua:2272
 #, fuzzy
 msgid ""
 "Could not extract chapter text. PDF text extraction may not be available for this document."
 msgstr "Không thể trích xuất văn bản chương. Trích xuất văn bản PDF có thể không khả dụng cho tài liệu này."
 
-#: koassistant_xray_browser.lua:2129 koassistant_xray_browser.lua:2243
+#: koassistant_xray_browser.lua:2147 koassistant_xray_browser.lua:2273
 #, fuzzy
 msgid "Could not extract chapter text."
 msgstr "Không thể trích xuất văn bản chương."
 
-#: koassistant_xray_browser.lua:2143
+#: koassistant_xray_browser.lua:2161
 #, fuzzy
 msgid "No X-Ray items found in book text."
 msgstr "Không tìm thấy mục X-Ray nào trong văn bản sách."
 
-#: koassistant_xray_browser.lua:2145 koassistant_xray_browser.lua:2255
+#: koassistant_xray_browser.lua:2163 koassistant_xray_browser.lua:2285
 #, fuzzy
 msgid "No X-Ray items found in \"%1\"."
 msgstr "Không tìm thấy mục X-Ray nào trong \"%1\"."
 
-#: koassistant_xray_browser.lua:2147
+#: koassistant_xray_browser.lua:2165
 #, fuzzy
 msgid "No X-Ray items found in current chapter."
 msgstr "Không tìm thấy mục X-Ray nào trong chương hiện tại."
 
-#: koassistant_xray_browser.lua:2164
+#: koassistant_xray_browser.lua:2182
 #, fuzzy
 msgid "All Chapters u{25BE}"
 msgstr "Tất cả chương u{25BE}"
 
-#: koassistant_xray_browser.lua:2166
+#: koassistant_xray_browser.lua:2184
 #, fuzzy
 msgid "To %1 u{25BE}"
 msgstr "Đến %1 u{25BE}"
 
-#: koassistant_xray_browser.lua:2171
+#: koassistant_xray_browser.lua:2189
 #, fuzzy
 msgid "This Chapter u{25BE}"
 msgstr "Chương này u{25BE}"
 
-#: koassistant_xray_browser.lua:2192 koassistant_xray_browser.lua:2271
+#: koassistant_xray_browser.lua:2220 koassistant_xray_browser.lua:2311
 #, fuzzy
 msgid "%1x"
 msgstr "%1x"
 
-#: koassistant_xray_browser.lua:2204
+#: koassistant_xray_browser.lua:2234
 #, fuzzy
 msgid "All Chapters — %1 mentions"
 msgstr "Tất cả chương — %1 đề cập"
 
-#: koassistant_xray_browser.lua:2206
+#: koassistant_xray_browser.lua:2236
 #, fuzzy
 msgid "To %1 — %2 mentions"
 msgstr "Đến %1 — %2 đề cập"
 
-#: koassistant_xray_browser.lua:2209 koassistant_xray_browser.lua:2281
+#: koassistant_xray_browser.lua:2239 koassistant_xray_browser.lua:2323
 #, fuzzy
 msgid "%1 — %2 mentions"
 msgstr "%1 — %2 đề cập"
 
-#: koassistant_xray_browser.lua:2211
+#: koassistant_xray_browser.lua:2241
 #, fuzzy
 msgid "This Chapter — %1 mentions"
 msgstr "Chương này — %1 đề cập"
 
-#: koassistant_xray_browser.lua:2256
+#: koassistant_xray_browser.lua:2286
 #, fuzzy
 msgid "No X-Ray items found in this chapter."
 msgstr "Không tìm thấy mục X-Ray nào trong chương này."
 
-#: koassistant_xray_browser.lua:2283
+#: koassistant_xray_browser.lua:2325
 #, fuzzy
 msgid "Chapter — %1 mentions"
 msgstr "Chương — %1 đề cập"
 
-#: koassistant_xray_browser.lua:2320
+#: koassistant_xray_browser.lua:2362
 #, fuzzy
 msgid "Scanning…"
 msgstr "Đang quét…"
 
-#: koassistant_xray_browser.lua:2352
+#: koassistant_xray_browser.lua:2394
 #, fuzzy
 msgid ""
 "This chapter is beyond your X-Ray coverage and may contain spoilers.\n"
@@ -4107,174 +4107,174 @@ msgstr ""
 "\n"
 "Hiển thị các đề cập?"
 
-#: koassistant_xray_browser.lua:2449
+#: koassistant_xray_browser.lua:2491
 #, fuzzy
 msgid "Search for:"
 msgstr "Tìm kiếm:"
 
-#: koassistant_xray_browser.lua:2470
+#: koassistant_xray_browser.lua:2512
 #, fuzzy
 msgid "No X-Ray items in \"%1\"."
 msgstr "Không có mục X-Ray nào trong \"%1\"."
 
-#: koassistant_xray_browser.lua:2471
+#: koassistant_xray_browser.lua:2513
 #, fuzzy
 msgid "this chapter"
 msgstr "chương này"
 
-#: koassistant_xray_browser.lua:2482
+#: koassistant_xray_browser.lua:2524
 #, fuzzy
 msgid "Scan all chapters"
 msgstr "Quét tất cả chương"
 
-#: koassistant_xray_browser.lua:2483
+#: koassistant_xray_browser.lua:2525
 #, fuzzy
 msgid "may contain spoilers"
 msgstr "có thể chứa spoiler"
 
-#: koassistant_xray_browser.lua:2489
+#: koassistant_xray_browser.lua:2531
 #, fuzzy
 msgid "Scanning all chapters…"
 msgstr "Đang quét tất cả chương…"
 
-#: koassistant_xray_browser.lua:2516
+#: koassistant_xray_browser.lua:2558
 #, fuzzy
 msgid "%1 — %2 chapters"
 msgstr "%1 — %2 chương"
 
-#: koassistant_xray_browser.lua:2552
+#: koassistant_xray_browser.lua:2594
 #, fuzzy
 msgid "Computing distribution…"
 msgstr "Đang tính toán phân bố…"
 
-#: koassistant_xray_browser.lua:2564
+#: koassistant_xray_browser.lua:2606
 #, fuzzy
 msgid "Could not determine chapter structure."
 msgstr "Không thể xác định cấu trúc chương."
 
-#: koassistant_xray_browser.lua:2595
+#: koassistant_xray_browser.lua:2637
 #, fuzzy
 msgid ""
 "No mentions of \"%1\" found. PDF text extraction may not be available for this document."
 msgstr "Không tìm thấy đề cập nào về \"%1\". Trích xuất văn bản PDF có thể không khả dụng cho tài liệu này."
 
-#: koassistant_xray_browser.lua:2596
+#: koassistant_xray_browser.lua:2638
 #, fuzzy
 msgid "No mentions of \"%1\" found in book text."
 msgstr "Không tìm thấy đề cập nào về \"%1\" trong văn bản sách."
 
-#: koassistant_xray_browser.lua:2624
+#: koassistant_xray_browser.lua:2666
 #, fuzzy
 msgid "Search X-Ray"
 msgstr "Tìm kiếm X-Ray"
 
-#: koassistant_xray_browser.lua:2626
+#: koassistant_xray_browser.lua:2668
 #, fuzzy
 msgid "Name, term, description..."
 msgstr "Tên, thuật ngữ, mô tả..."
 
-#: koassistant_xray_browser.lua:2661
+#: koassistant_xray_browser.lua:2703
 #, fuzzy
 msgid "No results for \"%1\"."
 msgstr "Không có kết quả cho \"%1\"."
 
-#: koassistant_xray_browser.lua:2675
+#: koassistant_xray_browser.lua:2717
 #, fuzzy
 msgid "alias"
 msgstr "bí danh"
 
-#: koassistant_xray_browser.lua:2677
+#: koassistant_xray_browser.lua:2719
 #, fuzzy
 msgid "desc."
 msgstr "mô tả"
 
-#: koassistant_xray_browser.lua:2692
+#: koassistant_xray_browser.lua:2734
 #, fuzzy
 msgid "Results for \"%1\" (%2)"
 msgstr "Kết quả cho \"%1\" (%2)"
 
-#: koassistant_xray_browser.lua:2777 koassistant_xray_browser.lua:2981
+#: koassistant_xray_browser.lua:2819 koassistant_xray_browser.lua:3023
 #: main.lua:4472 main.lua:4603
 #, fuzzy
 msgid "View %1"
 msgstr "Xem %1"
 
-#: koassistant_xray_browser.lua:2785
+#: koassistant_xray_browser.lua:2827
 #, fuzzy
 msgid "View other artifacts…"
 msgstr "Xem các tạo phẩm khác…"
 
-#: koassistant_xray_browser.lua:2800
+#: koassistant_xray_browser.lua:2842
 #, fuzzy
 msgid "Redo X-Ray (entire document)"
 msgstr "Làm lại X-Ray (toàn bộ tài liệu)"
 
-#: koassistant_xray_browser.lua:2810
+#: koassistant_xray_browser.lua:2852
 #, fuzzy
 msgid "Redo X-Ray (to 100%)"
 msgstr "Làm lại X-Ray (đến 100%)"
 
-#: koassistant_xray_browser.lua:2833
+#: koassistant_xray_browser.lua:2875
 #, fuzzy
 msgid "Redo X-Ray (to %1)"
 msgstr "Làm lại X-Ray (đến %1)"
 
-#: koassistant_xray_browser.lua:2837
+#: koassistant_xray_browser.lua:2879
 #, fuzzy
 msgid "Redo X-Ray"
 msgstr "Làm lại X-Ray"
 
-#: koassistant_xray_browser.lua:2852
+#: koassistant_xray_browser.lua:2894
 #, fuzzy
 msgid "Update X-Ray (to 100%)"
 msgstr "Cập nhật X-Ray (đến 100%)"
 
-#: koassistant_xray_browser.lua:2866
+#: koassistant_xray_browser.lua:2908
 #, fuzzy
 msgid "Delete X-Ray"
 msgstr "Xóa X-Ray"
 
-#: koassistant_xray_browser.lua:2871
+#: koassistant_xray_browser.lua:2913
 #, fuzzy
 msgid "Delete this X-Ray? This cannot be undone."
 msgstr "Xóa X-Ray này? Thao tác này không thể hoàn tác."
 
-#: koassistant_xray_browser.lua:2890 main.lua:3945
+#: koassistant_xray_browser.lua:2932 main.lua:3945
 #, fuzzy
 msgid "updated from"
 msgstr "đã cập nhật từ"
 
-#: koassistant_xray_browser.lua:2892 main.lua:3948
+#: koassistant_xray_browser.lua:2934 main.lua:3948
 #, fuzzy
 msgid "Progress:"
 msgstr "Tiến độ:"
 
-#: koassistant_xray_browser.lua:2899
+#: koassistant_xray_browser.lua:2941
 #, fuzzy
 msgid "Fiction"
 msgstr "Tiểu thuyết"
 
-#: koassistant_xray_browser.lua:2899
+#: koassistant_xray_browser.lua:2941
 #, fuzzy
 msgid "Non-Fiction"
 msgstr "Phi Tiểu thuyết"
 
-#: koassistant_xray_browser.lua:2900
+#: koassistant_xray_browser.lua:2942
 #, fuzzy
 msgid "Type:"
 msgstr "Thể loại:"
 
-#: koassistant_xray_browser.lua:2902 main.lua:3950
+#: koassistant_xray_browser.lua:2944 main.lua:3950
 #, fuzzy
 msgid "Source:"
 msgstr "Nguồn:"
 
-#: koassistant_xray_browser.lua:2905 main.lua:3961
+#: koassistant_xray_browser.lua:2947 main.lua:3961
 #, fuzzy
 msgid "Reasoning:"
 msgstr "Lý luận:"
 
-#: koassistant_xray_browser.lua:2905 koassistant_xray_browser.lua:2908
+#: koassistant_xray_browser.lua:2947 koassistant_xray_browser.lua:2950
 #: main.lua:3961 main.lua:3964 koassistant_ui/prompts_manager.lua:746
 #: koassistant_ui/prompts_manager.lua:747
 #: koassistant_ui/prompts_manager.lua:753
@@ -4283,12 +4283,12 @@ msgstr "Lý luận:"
 msgid "Yes"
 msgstr "Có"
 
-#: koassistant_xray_browser.lua:2908 main.lua:3964
+#: koassistant_xray_browser.lua:2950 main.lua:3964
 #, fuzzy
 msgid "Web search:"
 msgstr "Tìm kiếm web:"
 
-#: koassistant_xray_browser.lua:3015
+#: koassistant_xray_browser.lua:3057
 #, fuzzy
 msgid ""
 "This feature requires the book to be open in Reader mode.\n"
@@ -4299,7 +4299,7 @@ msgstr ""
 "\n"
 "Mở sách ngay bây giờ?"
 
-#: koassistant_xray_browser.lua:3023
+#: koassistant_xray_browser.lua:3065
 #, fuzzy
 msgid "This feature requires the book to be open in Reader mode."
 msgstr "Tính năng này yêu cầu sách được mở trong chế độ Đọc."
@@ -6143,170 +6143,180 @@ msgstr ""
 "Các tệp trò chuyện cũ đã được sao lưu vào:\n"
 "koassistant_chats.backup/"
 
-#: main.lua:9078
+#: main.lua:9132
 #, fuzzy
 msgid "Welcome to KOAssistant!"
 msgstr "Chào mừng đến với KOAssistant!"
 
-#: main.lua:9079
-#, fuzzy
-msgid "PRIVACY SETTINGS"
-msgstr "CÀI ĐẶT QUYỀN RIÊNG TƯ"
-
-#: main.lua:9080
+#: main.lua:9133
 #, fuzzy
 msgid ""
-"Some features (like X-Ray) need to access document text and other content. Enable in: Settings → Privacy & Data"
-msgstr "Một số tính năng (như X-Ray) cần truy cập văn bản tài liệu và nội dung khác. Bật trong: Cài đặt → Quyền riêng tư & Dữ liệu"
+"Your AI reading assistant is ready. Let's set up a few things. Tap the screen to continue."
+msgstr "Trợ lý đọc sách AI của bạn đã sẵn sàng. Hãy thiết lập một vài thứ. Chạm vào màn hình để tiếp tục."
 
-#: main.lua:9081
+#: main.lua:9144
 #, fuzzy
-msgid "QUICK ACCESS"
-msgstr "TRUY CẬP NHANH"
+msgid "EMOJI DISPLAY TEST"
+msgstr "KIỂM TRA HIỂN THỊ EMOJI"
 
-#: main.lua:9082
+#: main.lua:9145
 #, fuzzy
-msgid ""
-"Assign Quick Settings (File browser) and Quick Actions (Reader) panels to gestures. See KOReader Settings (Gear icon) → Taps and Gestures"
-msgstr "Gán các bảng Cài đặt nhanh (Trình duyệt tệp) và Hành động nhanh (Trình đọc) cho cử chỉ. Xem Cài đặt KOReader (biểu tượng bánh răng) → Chạm và Cử chỉ"
+msgid "Do these icons display correctly on your device?"
+msgstr "Các biểu tượng này có hiển thị đúng trên thiết bị của bạn không?"
 
-#: main.lua:9083
-#, fuzzy
-msgid "CUSTOM ACTIONS"
-msgstr "HÀNH ĐỘNG TÙY CHỈNH"
-
-#: main.lua:9084
+#: main.lua:9149
 #, fuzzy
 msgid ""
-"Create your own prompts and actions or edit built in ones. Go to: Settings → Action Manager"
-msgstr "Tạo lời nhắc và hành động của riêng bạn hoặc chỉnh sửa các mục có sẵn. Vào: Cài đặt → Quản lý hành động"
+"See the README for instructions on how to enable emojis in the KOReader UI."
+msgstr "Xem README để biết hướng dẫn cách bật emoji trong giao diện KOReader."
 
-#: main.lua:9085
+#: main.lua:9150
 #, fuzzy
-msgid "MENU AND INFO ICONS"
-msgstr "BIỂU TƯỢNG MENU VÀ THÔNG TIN"
+msgid "If you see blank boxes or question marks, choose \"No\"."
+msgstr "Nếu bạn thấy ô trống hoặc dấu hỏi chấm, chọn \"Không\"."
 
-#: main.lua:9086
+#: main.lua:9155
 #, fuzzy
-msgid ""
-"Setup KOReader with emoji support to get informative icons in menus and more. See the emoji section in the README for details."
-msgstr "Thiết lập KOReader với hỗ trợ emoji để có các biểu tượng thông tin trong menu và nhiều hơn nữa. Xem phần emoji trong README để biết chi tiết."
+msgid "Yes, enable"
+msgstr "Có, bật"
 
-#: main.lua:9161
+#: main.lua:9156
+#, fuzzy
+msgid "No, skip"
+msgstr "Không, bỏ qua"
+
+#: main.lua:9186
 #, fuzzy
 msgid "GESTURE SETUP"
 msgstr "THIẾT LẬP CỬ CHỈ"
 
-#: main.lua:9162
+#: main.lua:9187
 #, fuzzy
 msgid "KOAssistant has two quick-access panels:"
 msgstr "KOAssistant có hai bảng truy cập nhanh:"
 
-#: main.lua:9163
+#: main.lua:9188
 #, fuzzy
 msgid "Quick Actions — book actions, artifacts, and utilities (reader mode)"
 msgstr "Hành động nhanh — hành động sách, tạo phẩm và tiện ích (chế độ đọc)"
 
-#: main.lua:9164
+#: main.lua:9189
 #, fuzzy
 msgid ""
 "Quick Settings — change provider, model, behavior, and more (file browser)"
 msgstr "Cài đặt nhanh — thay đổi nhà cung cấp, mô hình, hành vi và hơn thế nữa (trình duyệt tệp)"
 
-#: main.lua:9165
+#: main.lua:9190
 #, fuzzy
 msgid "Assign both to \"tap bottom right corner\"?"
 msgstr "Gán cả hai cho \"chạm góc dưới bên phải\"?"
 
-#: main.lua:9166
+#: main.lua:9191
 #, fuzzy
 msgid ""
 "You can change these anytime in KOReader Settings (Gear icon) → Taps and Gestures."
 msgstr "Bạn có thể thay đổi những điều này bất cứ lúc nào trong Cài đặt KOReader (biểu tượng bánh răng) → Chạm và Cử chỉ."
 
-#: main.lua:9167
+#: main.lua:9192
 #, fuzzy
 msgid "Requires KOReader restart to take effect."
 msgstr "Yêu cầu khởi động lại KOReader để có hiệu lực."
 
-#: main.lua:9171
+#: main.lua:9197
 #, fuzzy
 msgid "Set up"
 msgstr "Thiết lập"
 
-#: main.lua:9172
+#: main.lua:9198
 #, fuzzy
 msgid "No thanks"
 msgstr "Không, cảm ơn"
 
-#: main.lua:9183
+#: main.lua:9213
 #, fuzzy
 msgid "GESTURE TIP"
 msgstr "MẸO CỬ CHỈ"
 
-#: main.lua:9184
+#: main.lua:9214
 #, fuzzy
 msgid "KOAssistant has two quick-access panels you can assign to gestures:"
 msgstr "KOAssistant có hai bảng truy cập nhanh bạn có thể gán cho cử chỉ:"
 
-#: main.lua:9185
+#: main.lua:9215
 #, fuzzy
 msgid ""
 "Quick Actions — book actions, artifacts, and utilities (assign in reader mode)"
 msgstr "Hành động nhanh — hành động sách, tạo phẩm và tiện ích (gán trong chế độ đọc)"
 
-#: main.lua:9186
+#: main.lua:9216
 #, fuzzy
 msgid ""
 "Quick Settings — change provider, model, behavior, and more (assign in file browser mode)"
 msgstr "Cài đặt nhanh — thay đổi nhà cung cấp, mô hình, hành vi và hơn thế nữa (gán trong chế độ trình duyệt tệp)"
 
-#: main.lua:9187
+#: main.lua:9217
 #, fuzzy
 msgid "Set them up in KOReader Settings (Gear icon) → Taps and Gestures."
 msgstr "Thiết lập chúng trong Cài đặt KOReader (biểu tượng bánh răng) → Chạm và Cử chỉ."
 
-#: main.lua:9227
-#, fuzzy
-msgid "Quick Actions and Quick Settings assigned to tap bottom right corner."
-msgstr "Hành động nhanh và Cài đặt nhanh đã được gán cho chạm góc dưới bên phải."
-
 #: main.lua:9228
 #, fuzzy
-msgid "Please restart KOReader for changes to take effect."
-msgstr "Vui lòng khởi động lại KOReader để các thay đổi có hiệu lực."
+msgid "GETTING STARTED"
+msgstr "BẮT ĐẦU"
 
-#: main.lua:9380
+#: main.lua:9230
+#, fuzzy
+msgid ""
+"Some features need document text access. Enable in: Settings → Privacy & Data"
+msgstr "Một số tính năng cần quyền truy cập văn bản tài liệu. Bật trong: Cài đặt → Riêng tư & Dữ liệu"
+
+#: main.lua:9232
+#, fuzzy
+msgid ""
+"Create or edit prompts: Settings → Actions & Prompts → Manage Actions (or from Quick Settings panel)"
+msgstr "Tạo hoặc chỉnh sửa lời nhắc: Cài đặt → Hành động & Lời nhắc → Quản lý Hành động (hoặc từ bảng Cài đặt Nhanh)"
+
+#: main.lua:9236
+#, fuzzy
+msgid "Gestures assigned. Please restart KOReader for changes to take effect."
+msgstr "Cử chỉ đã được gán. Vui lòng khởi động lại KOReader để các thay đổi có hiệu lực."
+
+#: main.lua:9239
+#, fuzzy
+msgid "Enjoy your reading!"
+msgstr "Chúc bạn đọc sách vui vẻ!"
+
+#: main.lua:9422
 #, fuzzy
 msgid "No notebook available for this document"
 msgstr "Không có sổ tay cho tài liệu này"
 
-#: main.lua:9390
+#: main.lua:9432
 #, fuzzy
 msgid "No notebook exists for this document. Create one?"
 msgstr "Không có sổ ghi chú nào cho tài liệu này. Tạo mới?"
 
-#: main.lua:9400
+#: main.lua:9442
 #, fuzzy
 msgid "Failed to create notebook: %1"
 msgstr "Không thể tạo sổ ghi chú: %1"
 
-#: main.lua:9442
+#: main.lua:9484
 #, fuzzy
 msgid "Notebook is empty"
 msgstr "Sổ tay trống"
 
-#: main.lua:9491
+#: main.lua:9533
 #, fuzzy
 msgid "Failed to read notebook file."
 msgstr "Không thể đọc tệp sổ tay."
 
-#: main.lua:9554
+#: main.lua:9596
 #, fuzzy
 msgid "Notebook saved"
 msgstr "Đã lưu sổ ghi chú"
 
-#: main.lua:9561
+#: main.lua:9603
 #, fuzzy
 msgid "Reset to last saved"
 msgstr "Đặt lại về lần lưu cuối"

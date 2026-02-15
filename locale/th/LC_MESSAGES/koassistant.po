@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: KOAssistant 0.12.0-dev\n"
 "Report-Msgid-Bugs-To: https://github.com/zeeyado/koassistant.koplugin/issues\n"
-"POT-Creation-Date: 2026-02-15 17:22+0000\n"
+"POT-Creation-Date: 2026-02-15 20:14+0000\n"
 "PO-Revision-Date: 2026-01-27 17:48+0000\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
@@ -107,7 +107,7 @@ msgstr "ดู"
 
 #: koassistant_artifact_browser.lua:224 koassistant_chat_history_dialog.lua:788
 #: koassistant_chat_history_dialog.lua:935 koassistant_notebook_manager.lua:194
-#: koassistant_xray_browser.lua:2926 koassistant_xray_browser.lua:3016
+#: koassistant_xray_browser.lua:2968 koassistant_xray_browser.lua:3058
 #, fuzzy
 msgid "Open Book"
 msgstr "เปิดหหนังสือ"
@@ -126,10 +126,10 @@ msgstr "เปิดหหนังสือ"
 #: koassistant_dialogs.lua:2623 koassistant_dialogs.lua:2690
 #: koassistant_dialogs.lua:3435 koassistant_notebook_manager.lua:232
 #: koassistant_update_checker.lua:326 koassistant_update_checker.lua:800
-#: koassistant_xray_browser.lua:1323 koassistant_xray_browser.lua:1821
-#: koassistant_xray_browser.lua:1846 koassistant_xray_browser.lua:1985
-#: koassistant_xray_browser.lua:2016 koassistant_xray_browser.lua:2355
-#: koassistant_xray_browser.lua:2630 main.lua:428 main.lua:1873 main.lua:1911
+#: koassistant_xray_browser.lua:1341 koassistant_xray_browser.lua:1839
+#: koassistant_xray_browser.lua:1864 koassistant_xray_browser.lua:2003
+#: koassistant_xray_browser.lua:2034 koassistant_xray_browser.lua:2397
+#: koassistant_xray_browser.lua:2672 main.lua:428 main.lua:1873 main.lua:1911
 #: main.lua:1977 main.lua:2215 main.lua:2339 main.lua:2483 main.lua:2656
 #: main.lua:2812 main.lua:3312 main.lua:3486 main.lua:4050 main.lua:4496
 #: main.lua:4566 main.lua:4630 main.lua:6078 main.lua:7820 main.lua:8375
@@ -192,7 +192,7 @@ msgstr ""
 #: koassistant_chat_history_dialog.lua:2012
 #: koassistant_chat_history_dialog.lua:2050 koassistant_chatgptviewer.lua:2317
 #: koassistant_chatgptviewer.lua:2323 koassistant_notebook_manager.lua:211
-#: koassistant_xray_browser.lua:2872 main.lua:8731 main.lua:8739
+#: koassistant_xray_browser.lua:2914 main.lua:8731 main.lua:8739
 #: koassistant_ui/behavior_manager.lua:332
 #: koassistant_ui/domain_manager.lua:342
 #: koassistant_ui/prompts_manager.lua:1027
@@ -391,13 +391,13 @@ msgstr "ลบการแชททั้งหมด"
 msgid "Error: Cannot load chat data."
 msgstr "ข้อผิดพลาด: ไม่สามารถโหลดข้อมูลแชทได้"
 
-#: koassistant_chat_history_dialog.lua:871 koassistant_xray_browser.lua:2895
-#: koassistant_xray_browser.lua:2897 main.lua:3955
+#: koassistant_chat_history_dialog.lua:871 koassistant_xray_browser.lua:2937
+#: koassistant_xray_browser.lua:2939 main.lua:3955
 #, fuzzy
 msgid "Date:"
 msgstr "วันที่:"
 
-#: koassistant_chat_history_dialog.lua:872 koassistant_xray_browser.lua:2885
+#: koassistant_chat_history_dialog.lua:872 koassistant_xray_browser.lua:2927
 #: main.lua:3952
 #, fuzzy
 msgid "Model:"
@@ -442,7 +442,7 @@ msgstr "ลบการแชท"
 #: koassistant_chatgptviewer.lua:1905 koassistant_chatgptviewer.lua:2101
 #: koassistant_chatgptviewer.lua:2335 koassistant_chatgptviewer.lua:2530
 #: koassistant_chatgptviewer.lua:4066 koassistant_dialogs.lua:607
-#: koassistant_dialogs.lua:2952 koassistant_xray_browser.lua:1208 main.lua:2105
+#: koassistant_dialogs.lua:2952 koassistant_xray_browser.lua:1226 main.lua:2105
 #: main.lua:5175 koassistant_ui/behavior_manager.lua:403
 #: koassistant_ui/domain_manager.lua:412
 #: koassistant_ui/settings_manager.lua:247
@@ -515,7 +515,7 @@ msgstr "ป้อนชื่อแท็ก"
 
 #: koassistant_chat_history_dialog.lua:1161
 #: koassistant_chat_history_dialog.lua:1348 koassistant_dialogs.lua:957
-#: koassistant_xray_browser.lua:1332 main.lua:1918 main.lua:2346 main.lua:2819
+#: koassistant_xray_browser.lua:1350 main.lua:1918 main.lua:2346 main.lua:2819
 #, fuzzy
 msgid "Add"
 msgstr "เพิ่ม"
@@ -650,7 +650,7 @@ msgstr ""
 "%1"
 
 #: koassistant_chat_history_dialog.lua:1879 koassistant_chatgptviewer.lua:3491
-#: main.lua:9556
+#: main.lua:9598
 #, fuzzy
 msgid "Failed to save: %1"
 msgstr "ไม่สามารถบันทึกได้: %1"
@@ -1103,12 +1103,12 @@ msgstr "แปลใหม่ด้วยภาษาเป้าหมายอ
 msgid "Copied to clipboard"
 msgstr "คัดลอกไปยังคลิปบอร์ดแล้ว"
 
-#: koassistant_chatgptviewer.lua:2175 koassistant_xray_browser.lua:2992
+#: koassistant_chatgptviewer.lua:2175 koassistant_xray_browser.lua:3034
 #, fuzzy
 msgid "Other Artifacts"
 msgstr "สิ่งประดิษฐ์อื่นๆ"
 
-#: koassistant_chatgptviewer.lua:2250 koassistant_xray_browser.lua:2913
+#: koassistant_chatgptviewer.lua:2250 koassistant_xray_browser.lua:2955
 #: main.lua:8702 koassistant_ui/prompts_manager.lua:1568
 #: koassistant_ui/prompts_manager.lua:2033
 #, fuzzy
@@ -1280,17 +1280,17 @@ msgstr "ไม่มีเนื้อหาให้ส่งออก"
 msgid "No export metadata available."
 msgstr "ไม่มีข้อมูลเมตาสำหรับการส่งออก"
 
-#: koassistant_chatgptviewer.lua:3604 main.lua:9479
+#: koassistant_chatgptviewer.lua:3604 main.lua:9521
 #, fuzzy
 msgid "Select export folder"
 msgstr "เลือกโฟลเดอร์สำหรับส่งออก"
 
-#: koassistant_chatgptviewer.lua:3629 main.lua:9501
+#: koassistant_chatgptviewer.lua:3629 main.lua:9543
 #, fuzzy
 msgid "Saved to %1"
 msgstr "บันทึกไปยัง %1"
 
-#: koassistant_chatgptviewer.lua:3634 main.lua:9506
+#: koassistant_chatgptviewer.lua:3634 main.lua:9548
 #, fuzzy
 msgid "Export failed: %1"
 msgstr "การส่งออกล้มเหลว: %1"
@@ -1408,7 +1408,7 @@ msgstr "สนทนาต่อจากครั้งล่าสุด"
 msgid "General Chat/Action"
 msgstr "สนทนา/การดำเนินการทั่วไป"
 
-#: koassistant_constants.lua:135 main.lua:325 main.lua:6287 main.lua:9450
+#: koassistant_constants.lua:135 main.lua:325 main.lua:6287 main.lua:9492
 #, fuzzy
 msgid "Notebook"
 msgstr "สมุดบันทึก"
@@ -1826,7 +1826,7 @@ msgstr "X-Ray ครอบคลุมถึง %1%"
 msgid "You're now at %1%."
 msgstr "ตอนนี้คุณอยู่ที่ %1%"
 
-#: koassistant_dialogs.lua:3793 koassistant_xray_browser.lua:2831 main.lua:4261
+#: koassistant_dialogs.lua:3793 koassistant_xray_browser.lua:2873 main.lua:4261
 #, fuzzy
 msgid "Update X-Ray (to %1)"
 msgstr "อัปเดต X-Ray (ถึง %1)"
@@ -2622,7 +2622,7 @@ msgstr "การกระทำในเมนูเน้นข้อควา
 msgid "Choose which actions appear in the highlight menu (requires restart)"
 msgstr "เลือกการกระทำที่จะแสดงในเมนูเน้นข้อความ (ต้องรีสตาร์ท)"
 
-#: koassistant_settings_schema.lua:985
+#: koassistant_settings_schema.lua:985 main.lua:9231
 #, fuzzy
 msgid "Actions & Prompts"
 msgstr "การกระทำและพรอมต์"
@@ -2714,7 +2714,7 @@ msgid ""
 "Only show button if notebook already exists. Disable to allow creating new notebooks from file browser."
 msgstr "แสดงปุ่มเฉพาะเมื่อมีสมุดบันทึกอยู่แล้ว ปิดใช้งานเพื่ออนุญาตให้สร้างสมุดบันทึกใหม่จากตัวเรียกดูไฟล์"
 
-#: koassistant_settings_schema.lua:1083
+#: koassistant_settings_schema.lua:1083 main.lua:9229
 #, fuzzy
 msgid "Privacy & Data"
 msgstr "ความเป็นส่วนตัวและข้อมูล"
@@ -3797,7 +3797,7 @@ msgstr "หน้า %1–%2"
 msgid "Mentions"
 msgstr "การกล่าวถึง"
 
-#: koassistant_xray_browser.lua:777 koassistant_xray_browser.lua:2637
+#: koassistant_xray_browser.lua:777 koassistant_xray_browser.lua:2679
 #, fuzzy
 msgid "Search"
 msgstr "ค้นหา"
@@ -3817,143 +3817,143 @@ msgstr "ณ วันที่"
 msgid "Your highlights:"
 msgstr "ไฮไลท์ของคุณ:"
 
-#: koassistant_xray_browser.lua:1009
+#: koassistant_xray_browser.lua:1024
 #, fuzzy
 msgid "Chat about this"
 msgstr "สนทนาเกี่ยวกับเรื่องนี้"
 
-#: koassistant_xray_browser.lua:1023
+#: koassistant_xray_browser.lua:1038
 #, fuzzy
 msgid "Chapter Appearances"
 msgstr "การปรากฏในบท"
 
-#: koassistant_xray_browser.lua:1035
+#: koassistant_xray_browser.lua:1050
 #, fuzzy
 msgid "Edit Search Terms"
 msgstr "แก้ไขคำค้นหา"
 
-#: koassistant_xray_browser.lua:1075 koassistant_xray_browser.lua:1102
+#: koassistant_xray_browser.lua:1090 koassistant_xray_browser.lua:1117
 #, fuzzy
 msgid "Details"
 msgstr "รายละเอียด"
 
-#: koassistant_xray_browser.lua:1167
+#: koassistant_xray_browser.lua:1185
 #, fuzzy
 msgid "Remove \"%1\""
 msgstr "ลบ \"%1\""
 
-#: koassistant_xray_browser.lua:1168
+#: koassistant_xray_browser.lua:1186
 #, fuzzy
 msgid "Ignore \"%1\""
 msgstr "เพิกเฉย \"%1\""
 
-#: koassistant_xray_browser.lua:1182
+#: koassistant_xray_browser.lua:1200
 #, fuzzy
 msgid "Restore \"%1\" (ignored)"
 msgstr "คืนค่า \"%1\" (เพิกเฉย)"
 
-#: koassistant_xray_browser.lua:1200
+#: koassistant_xray_browser.lua:1218
 #, fuzzy
 msgid "Add new"
 msgstr "เพิ่มใหม่"
 
-#: koassistant_xray_browser.lua:1220
+#: koassistant_xray_browser.lua:1238
 #, fuzzy
 msgid "Search terms for \"%1\""
 msgstr "คำค้นหาสำหรับ \"%1\""
 
-#: koassistant_xray_browser.lua:1317
+#: koassistant_xray_browser.lua:1335
 #, fuzzy
 msgid "Add search term for \"%1\""
 msgstr "เพิ่มคำค้นหาสำหรับ \"%1\""
 
-#: koassistant_xray_browser.lua:1319
+#: koassistant_xray_browser.lua:1337
 #, fuzzy
 msgid "Enter alternate name or spelling"
 msgstr "ใส่ชื่อหรือการสะกดอื่น"
 
-#: koassistant_xray_browser.lua:1355
+#: koassistant_xray_browser.lua:1373
 #, fuzzy
 msgid "This search term already exists."
 msgstr "คำค้นหานี้มีอยู่แล้ว"
 
-#: koassistant_xray_browser.lua:1387
+#: koassistant_xray_browser.lua:1405
 #, fuzzy
 msgid "Added \"%1\""
 msgstr "เพิ่ม \"%1\" แล้ว"
 
-#: koassistant_xray_browser.lua:1432 koassistant_xray_parser.lua:299
+#: koassistant_xray_browser.lua:1450 koassistant_xray_parser.lua:299
 #, fuzzy
 msgid "Cast"
 msgstr "นักแสดง"
 
-#: koassistant_xray_browser.lua:1433
+#: koassistant_xray_browser.lua:1451
 #, fuzzy
 msgid "Figures"
 msgstr "ตัวละคร"
 
-#: koassistant_xray_browser.lua:1434 koassistant_xray_parser.lua:300
+#: koassistant_xray_browser.lua:1452 koassistant_xray_parser.lua:300
 #, fuzzy
 msgid "World"
 msgstr "โลก"
 
-#: koassistant_xray_browser.lua:1435 koassistant_xray_parser.lua:301
+#: koassistant_xray_browser.lua:1453 koassistant_xray_parser.lua:301
 #, fuzzy
 msgid "Ideas"
 msgstr "แนวคิด"
 
-#: koassistant_xray_browser.lua:1436
+#: koassistant_xray_browser.lua:1454
 #, fuzzy
 msgid "Concepts"
 msgstr "แนวคิด"
 
-#: koassistant_xray_browser.lua:1437
+#: koassistant_xray_browser.lua:1455
 #, fuzzy
 msgid "Args"
 msgstr "Args"
 
-#: koassistant_xray_browser.lua:1438 koassistant_xray_parser.lua:302
+#: koassistant_xray_browser.lua:1456 koassistant_xray_parser.lua:302
 #, fuzzy
 msgid "Lexicon"
 msgstr "คำศัพท์"
 
-#: koassistant_xray_browser.lua:1439
+#: koassistant_xray_browser.lua:1457
 #, fuzzy
 msgid "Terms"
 msgstr "คำศัพท์"
 
-#: koassistant_xray_browser.lua:1440
+#: koassistant_xray_browser.lua:1458
 #, fuzzy
 msgid "Arc"
 msgstr "Arc"
 
-#: koassistant_xray_browser.lua:1441
+#: koassistant_xray_browser.lua:1459
 #, fuzzy
 msgid "Dev"
 msgstr "Dev"
 
-#: koassistant_xray_browser.lua:1504
+#: koassistant_xray_browser.lua:1522
 #, fuzzy
 msgid "Page %1"
 msgstr "หน้า %1"
 
-#: koassistant_xray_browser.lua:1558 koassistant_xray_browser.lua:1571
-#: koassistant_xray_browser.lua:1922 koassistant_xray_browser.lua:1934
+#: koassistant_xray_browser.lua:1576 koassistant_xray_browser.lua:1589
+#: koassistant_xray_browser.lua:1940 koassistant_xray_browser.lua:1952
 #, fuzzy
 msgid "All Chapters"
 msgstr "ทุกบท"
 
-#: koassistant_xray_browser.lua:1566 koassistant_xray_browser.lua:1929
+#: koassistant_xray_browser.lua:1584 koassistant_xray_browser.lua:1947
 #, fuzzy
 msgid "All Chapters (to %1)"
 msgstr "ทุกบท (ถึง %1)"
 
-#: koassistant_xray_browser.lua:1581 koassistant_xray_browser.lua:1957
+#: koassistant_xray_browser.lua:1599 koassistant_xray_browser.lua:1975
 #, fuzzy
 msgid "Table of Contents"
 msgstr "สารบัญ"
 
-#: koassistant_xray_browser.lua:1818 koassistant_xray_browser.lua:1982
+#: koassistant_xray_browser.lua:1836 koassistant_xray_browser.lua:2000
 #, fuzzy
 msgid ""
 "This will scan beyond your X-Ray coverage.\n"
@@ -3964,14 +3964,14 @@ msgstr ""
 "\n"
 "เปิดเผยการกล่าวถึงทั้งหมด?"
 
-#: koassistant_xray_browser.lua:1827 koassistant_xray_browser.lua:1852
-#: koassistant_xray_browser.lua:1991 koassistant_xray_browser.lua:2022
-#: koassistant_xray_browser.lua:2361
+#: koassistant_xray_browser.lua:1845 koassistant_xray_browser.lua:1870
+#: koassistant_xray_browser.lua:2009 koassistant_xray_browser.lua:2040
+#: koassistant_xray_browser.lua:2403
 #, fuzzy
 msgid "Reveal"
 msgstr "เปิดเผย"
 
-#: koassistant_xray_browser.lua:1843 koassistant_xray_browser.lua:2013
+#: koassistant_xray_browser.lua:1861 koassistant_xray_browser.lua:2031
 #, fuzzy
 msgid ""
 "This chapter is beyond your X-Ray coverage.\n"
@@ -3982,120 +3982,120 @@ msgstr ""
 "\n"
 "เปิดเผยการกล่าวถึง?"
 
-#: koassistant_xray_browser.lua:2070 koassistant_xray_browser.lua:2226
-#: koassistant_xray_browser.lua:2536
+#: koassistant_xray_browser.lua:2088 koassistant_xray_browser.lua:2256
+#: koassistant_xray_browser.lua:2578
 #, fuzzy
 msgid "No book open."
 msgstr "ไม่มีหนังสือเปิดอยู่"
 
-#: koassistant_xray_browser.lua:2078
+#: koassistant_xray_browser.lua:2096
 #, fuzzy
 msgid "Analyzing book…"
 msgstr "กำลังวิเคราะห์หนังสือ…"
 
-#: koassistant_xray_browser.lua:2078 koassistant_xray_browser.lua:2233
+#: koassistant_xray_browser.lua:2096 koassistant_xray_browser.lua:2263
 #, fuzzy
 msgid "Analyzing chapter…"
 msgstr "กำลังวิเคราะห์บท…"
 
-#: koassistant_xray_browser.lua:2092
+#: koassistant_xray_browser.lua:2110
 #, fuzzy
 msgid "Could not determine book length."
 msgstr "ไม่สามารถระบุความยาวของหนังสือได้"
 
-#: koassistant_xray_browser.lua:2124
+#: koassistant_xray_browser.lua:2142
 #, fuzzy
 msgid ""
 "Could not extract book text. PDF text extraction may not be available for this document."
 msgstr "ไม่สามารถดึงข้อความจากหนังสือได้ การดึงข้อความ PDF อาจใช้ไม่ได้กับเอกสารนี้"
 
-#: koassistant_xray_browser.lua:2125
+#: koassistant_xray_browser.lua:2143
 #, fuzzy
 msgid "Could not extract book text."
 msgstr "ไม่สามารถดึงข้อความจากหนังสือได้"
 
-#: koassistant_xray_browser.lua:2128 koassistant_xray_browser.lua:2242
+#: koassistant_xray_browser.lua:2146 koassistant_xray_browser.lua:2272
 #, fuzzy
 msgid ""
 "Could not extract chapter text. PDF text extraction may not be available for this document."
 msgstr "ไม่สามารถดึงข้อความจากบทได้ การดึงข้อความ PDF อาจใช้ไม่ได้กับเอกสารนี้"
 
-#: koassistant_xray_browser.lua:2129 koassistant_xray_browser.lua:2243
+#: koassistant_xray_browser.lua:2147 koassistant_xray_browser.lua:2273
 #, fuzzy
 msgid "Could not extract chapter text."
 msgstr "ไม่สามารถดึงข้อความบทได้"
 
-#: koassistant_xray_browser.lua:2143
+#: koassistant_xray_browser.lua:2161
 #, fuzzy
 msgid "No X-Ray items found in book text."
 msgstr "ไม่พบรายการ X-Ray ในข้อความหนังสือ"
 
-#: koassistant_xray_browser.lua:2145 koassistant_xray_browser.lua:2255
+#: koassistant_xray_browser.lua:2163 koassistant_xray_browser.lua:2285
 #, fuzzy
 msgid "No X-Ray items found in \"%1\"."
 msgstr "ไม่พบรายการ X-Ray ใน \"%1\""
 
-#: koassistant_xray_browser.lua:2147
+#: koassistant_xray_browser.lua:2165
 #, fuzzy
 msgid "No X-Ray items found in current chapter."
 msgstr "ไม่พบรายการ X-Ray ในบทปัจจุบัน"
 
-#: koassistant_xray_browser.lua:2164
+#: koassistant_xray_browser.lua:2182
 #, fuzzy
 msgid "All Chapters u{25BE}"
 msgstr "ทุกบท u{25BE}"
 
-#: koassistant_xray_browser.lua:2166
+#: koassistant_xray_browser.lua:2184
 #, fuzzy
 msgid "To %1 u{25BE}"
 msgstr "ถึง %1 u{25BE}"
 
-#: koassistant_xray_browser.lua:2171
+#: koassistant_xray_browser.lua:2189
 #, fuzzy
 msgid "This Chapter u{25BE}"
 msgstr "บทนี้ u{25BE}"
 
-#: koassistant_xray_browser.lua:2192 koassistant_xray_browser.lua:2271
+#: koassistant_xray_browser.lua:2220 koassistant_xray_browser.lua:2311
 #, fuzzy
 msgid "%1x"
 msgstr "%1x"
 
-#: koassistant_xray_browser.lua:2204
+#: koassistant_xray_browser.lua:2234
 #, fuzzy
 msgid "All Chapters — %1 mentions"
 msgstr "ทุกบท — %1 การกล่าวถึง"
 
-#: koassistant_xray_browser.lua:2206
+#: koassistant_xray_browser.lua:2236
 #, fuzzy
 msgid "To %1 — %2 mentions"
 msgstr "ถึง %1 — %2 การกล่าวถึง"
 
-#: koassistant_xray_browser.lua:2209 koassistant_xray_browser.lua:2281
+#: koassistant_xray_browser.lua:2239 koassistant_xray_browser.lua:2323
 #, fuzzy
 msgid "%1 — %2 mentions"
 msgstr "%1 — %2 การกล่าวถึง"
 
-#: koassistant_xray_browser.lua:2211
+#: koassistant_xray_browser.lua:2241
 #, fuzzy
 msgid "This Chapter — %1 mentions"
 msgstr "บทนี้ — %1 การกล่าวถึง"
 
-#: koassistant_xray_browser.lua:2256
+#: koassistant_xray_browser.lua:2286
 #, fuzzy
 msgid "No X-Ray items found in this chapter."
 msgstr "ไม่พบรายการ X-Ray ในบทนี้"
 
-#: koassistant_xray_browser.lua:2283
+#: koassistant_xray_browser.lua:2325
 #, fuzzy
 msgid "Chapter — %1 mentions"
 msgstr "บท — %1 การกล่าวถึง"
 
-#: koassistant_xray_browser.lua:2320
+#: koassistant_xray_browser.lua:2362
 #, fuzzy
 msgid "Scanning…"
 msgstr "กำลังสแกน…"
 
-#: koassistant_xray_browser.lua:2352
+#: koassistant_xray_browser.lua:2394
 #, fuzzy
 msgid ""
 "This chapter is beyond your X-Ray coverage and may contain spoilers.\n"
@@ -4106,174 +4106,174 @@ msgstr ""
 "\n"
 "เปิดเผยการกล่าวถึง?"
 
-#: koassistant_xray_browser.lua:2449
+#: koassistant_xray_browser.lua:2491
 #, fuzzy
 msgid "Search for:"
 msgstr "ค้นหา:"
 
-#: koassistant_xray_browser.lua:2470
+#: koassistant_xray_browser.lua:2512
 #, fuzzy
 msgid "No X-Ray items in \"%1\"."
 msgstr "ไม่มีรายการ X-Ray ใน \"%1\""
 
-#: koassistant_xray_browser.lua:2471
+#: koassistant_xray_browser.lua:2513
 #, fuzzy
 msgid "this chapter"
 msgstr "บทนี้"
 
-#: koassistant_xray_browser.lua:2482
+#: koassistant_xray_browser.lua:2524
 #, fuzzy
 msgid "Scan all chapters"
 msgstr "สแกนทุกบท"
 
-#: koassistant_xray_browser.lua:2483
+#: koassistant_xray_browser.lua:2525
 #, fuzzy
 msgid "may contain spoilers"
 msgstr "อาจมีสปอยเลอร์"
 
-#: koassistant_xray_browser.lua:2489
+#: koassistant_xray_browser.lua:2531
 #, fuzzy
 msgid "Scanning all chapters…"
 msgstr "กำลังสแกนทุกบท…"
 
-#: koassistant_xray_browser.lua:2516
+#: koassistant_xray_browser.lua:2558
 #, fuzzy
 msgid "%1 — %2 chapters"
 msgstr "%1 — %2 บท"
 
-#: koassistant_xray_browser.lua:2552
+#: koassistant_xray_browser.lua:2594
 #, fuzzy
 msgid "Computing distribution…"
 msgstr "กำลังคำนวณการกระจาย…"
 
-#: koassistant_xray_browser.lua:2564
+#: koassistant_xray_browser.lua:2606
 #, fuzzy
 msgid "Could not determine chapter structure."
 msgstr "ไม่สามารถระบุโครงสร้างของบทได้"
 
-#: koassistant_xray_browser.lua:2595
+#: koassistant_xray_browser.lua:2637
 #, fuzzy
 msgid ""
 "No mentions of \"%1\" found. PDF text extraction may not be available for this document."
 msgstr "ไม่พบการกล่าวถึง \"%1\" การดึงข้อความ PDF อาจใช้ไม่ได้กับเอกสารนี้"
 
-#: koassistant_xray_browser.lua:2596
+#: koassistant_xray_browser.lua:2638
 #, fuzzy
 msgid "No mentions of \"%1\" found in book text."
 msgstr "ไม่พบการกล่าวถึง \"%1\" ในข้อความหนังสือ"
 
-#: koassistant_xray_browser.lua:2624
+#: koassistant_xray_browser.lua:2666
 #, fuzzy
 msgid "Search X-Ray"
 msgstr "ค้นหา X-Ray"
 
-#: koassistant_xray_browser.lua:2626
+#: koassistant_xray_browser.lua:2668
 #, fuzzy
 msgid "Name, term, description..."
 msgstr "ชื่อ คำศัพท์ คำอธิบาย..."
 
-#: koassistant_xray_browser.lua:2661
+#: koassistant_xray_browser.lua:2703
 #, fuzzy
 msgid "No results for \"%1\"."
 msgstr "ไม่พบผลลัพธ์สำหรับ \"%1\""
 
-#: koassistant_xray_browser.lua:2675
+#: koassistant_xray_browser.lua:2717
 #, fuzzy
 msgid "alias"
 msgstr "นามแฝง"
 
-#: koassistant_xray_browser.lua:2677
+#: koassistant_xray_browser.lua:2719
 #, fuzzy
 msgid "desc."
 msgstr "คำอธิบาย"
 
-#: koassistant_xray_browser.lua:2692
+#: koassistant_xray_browser.lua:2734
 #, fuzzy
 msgid "Results for \"%1\" (%2)"
 msgstr "ผลลัพธ์สำหรับ \"%1\" (%2)"
 
-#: koassistant_xray_browser.lua:2777 koassistant_xray_browser.lua:2981
+#: koassistant_xray_browser.lua:2819 koassistant_xray_browser.lua:3023
 #: main.lua:4472 main.lua:4603
 #, fuzzy
 msgid "View %1"
 msgstr "ดู%1"
 
-#: koassistant_xray_browser.lua:2785
+#: koassistant_xray_browser.lua:2827
 #, fuzzy
 msgid "View other artifacts…"
 msgstr "ดูสิ่งประดิษฐ์อื่นๆ…"
 
-#: koassistant_xray_browser.lua:2800
+#: koassistant_xray_browser.lua:2842
 #, fuzzy
 msgid "Redo X-Ray (entire document)"
 msgstr "สร้าง X-Ray ใหม่ (เอกสารทั้งหมด)"
 
-#: koassistant_xray_browser.lua:2810
+#: koassistant_xray_browser.lua:2852
 #, fuzzy
 msgid "Redo X-Ray (to 100%)"
 msgstr "สร้าง X-Ray ใหม่ (ถึง 100%)"
 
-#: koassistant_xray_browser.lua:2833
+#: koassistant_xray_browser.lua:2875
 #, fuzzy
 msgid "Redo X-Ray (to %1)"
 msgstr "สร้าง X-Ray ใหม่ (ถึง %1)"
 
-#: koassistant_xray_browser.lua:2837
+#: koassistant_xray_browser.lua:2879
 #, fuzzy
 msgid "Redo X-Ray"
 msgstr "สร้าง X-Ray ใหม่"
 
-#: koassistant_xray_browser.lua:2852
+#: koassistant_xray_browser.lua:2894
 #, fuzzy
 msgid "Update X-Ray (to 100%)"
 msgstr "อัปเดต X-Ray (ถึง 100%)"
 
-#: koassistant_xray_browser.lua:2866
+#: koassistant_xray_browser.lua:2908
 #, fuzzy
 msgid "Delete X-Ray"
 msgstr "ลบ X-Ray"
 
-#: koassistant_xray_browser.lua:2871
+#: koassistant_xray_browser.lua:2913
 #, fuzzy
 msgid "Delete this X-Ray? This cannot be undone."
 msgstr "ลบ X-Ray นี้หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้"
 
-#: koassistant_xray_browser.lua:2890 main.lua:3945
+#: koassistant_xray_browser.lua:2932 main.lua:3945
 #, fuzzy
 msgid "updated from"
 msgstr "อัปเดตจาก"
 
-#: koassistant_xray_browser.lua:2892 main.lua:3948
+#: koassistant_xray_browser.lua:2934 main.lua:3948
 #, fuzzy
 msgid "Progress:"
 msgstr "ความคืบหน้า:"
 
-#: koassistant_xray_browser.lua:2899
+#: koassistant_xray_browser.lua:2941
 #, fuzzy
 msgid "Fiction"
 msgstr "นิยาย"
 
-#: koassistant_xray_browser.lua:2899
+#: koassistant_xray_browser.lua:2941
 #, fuzzy
 msgid "Non-Fiction"
 msgstr "สารคดี"
 
-#: koassistant_xray_browser.lua:2900
+#: koassistant_xray_browser.lua:2942
 #, fuzzy
 msgid "Type:"
 msgstr "ประเภท:"
 
-#: koassistant_xray_browser.lua:2902 main.lua:3950
+#: koassistant_xray_browser.lua:2944 main.lua:3950
 #, fuzzy
 msgid "Source:"
 msgstr "แหล่งที่มา:"
 
-#: koassistant_xray_browser.lua:2905 main.lua:3961
+#: koassistant_xray_browser.lua:2947 main.lua:3961
 #, fuzzy
 msgid "Reasoning:"
 msgstr "การใช้เหตุผล:"
 
-#: koassistant_xray_browser.lua:2905 koassistant_xray_browser.lua:2908
+#: koassistant_xray_browser.lua:2947 koassistant_xray_browser.lua:2950
 #: main.lua:3961 main.lua:3964 koassistant_ui/prompts_manager.lua:746
 #: koassistant_ui/prompts_manager.lua:747
 #: koassistant_ui/prompts_manager.lua:753
@@ -4282,12 +4282,12 @@ msgstr "การใช้เหตุผล:"
 msgid "Yes"
 msgstr "ใช่"
 
-#: koassistant_xray_browser.lua:2908 main.lua:3964
+#: koassistant_xray_browser.lua:2950 main.lua:3964
 #, fuzzy
 msgid "Web search:"
 msgstr "ค้นหาเว็บ:"
 
-#: koassistant_xray_browser.lua:3015
+#: koassistant_xray_browser.lua:3057
 #, fuzzy
 msgid ""
 "This feature requires the book to be open in Reader mode.\n"
@@ -4298,7 +4298,7 @@ msgstr ""
 "\n"
 "เปิดหนังสือตอนนี้เลยไหม?"
 
-#: koassistant_xray_browser.lua:3023
+#: koassistant_xray_browser.lua:3065
 #, fuzzy
 msgid "This feature requires the book to be open in Reader mode."
 msgstr "ฟีเจอร์นี้ต้องการให้เปิดหนังสือในโหมดอ่าน"
@@ -6142,170 +6142,180 @@ msgstr ""
 "ไฟล์การสนทนาเก่าสำรองไว้ที่:\n"
 "koassistant_chats.backup/"
 
-#: main.lua:9078
+#: main.lua:9132
 #, fuzzy
 msgid "Welcome to KOAssistant!"
 msgstr "ยินดีต้อนรับสู่ KOAssistant!"
 
-#: main.lua:9079
-#, fuzzy
-msgid "PRIVACY SETTINGS"
-msgstr "การตั้งค่าความเป็นส่วนตัว"
-
-#: main.lua:9080
+#: main.lua:9133
 #, fuzzy
 msgid ""
-"Some features (like X-Ray) need to access document text and other content. Enable in: Settings → Privacy & Data"
-msgstr "ฟีเจอร์บางอย่าง (เช่น X-Ray) ต้องเข้าถึงข้อความเอกสารและเนื้อหาอื่นๆ เปิดใช้งานใน: การตั้งค่า → ความเป็นส่วนตัวและข้อมูล"
+"Your AI reading assistant is ready. Let's set up a few things. Tap the screen to continue."
+msgstr "ผู้ช่วย AI สำหรับการอ่านของคุณพร้อมแล้ว มาตั้งค่าบางอย่างกันก่อน แตะหน้าจอเพื่อดำเนินการต่อ"
 
-#: main.lua:9081
+#: main.lua:9144
 #, fuzzy
-msgid "QUICK ACCESS"
-msgstr "การเข้าถึงด่วน"
+msgid "EMOJI DISPLAY TEST"
+msgstr "ทดสอบการแสดงผล EMOJI"
 
-#: main.lua:9082
+#: main.lua:9145
 #, fuzzy
-msgid ""
-"Assign Quick Settings (File browser) and Quick Actions (Reader) panels to gestures. See KOReader Settings (Gear icon) → Taps and Gestures"
-msgstr "กำหนดแผง Quick Settings (ตัวเรียกดูไฟล์) และ Quick Actions (ตัวอ่าน) ให้กับท่าทาง ดูที่ การตั้งค่า KOReader (ไอคอนเฟือง) → การแตะและท่าทาง"
+msgid "Do these icons display correctly on your device?"
+msgstr "ไอคอนเหล่านี้แสดงผลอย่างถูกต้องบนอุปกรณ์ของคุณหรือไม่?"
 
-#: main.lua:9083
-#, fuzzy
-msgid "CUSTOM ACTIONS"
-msgstr "การกระทำที่กำหนดเอง"
-
-#: main.lua:9084
+#: main.lua:9149
 #, fuzzy
 msgid ""
-"Create your own prompts and actions or edit built in ones. Go to: Settings → Action Manager"
-msgstr "สร้างพรอมต์และแอ็กชันของคุณเองหรือแก้ไขแอ็กชันในตัว ไปที่: การตั้งค่า → ตัวจัดการแอ็กชัน"
+"See the README for instructions on how to enable emojis in the KOReader UI."
+msgstr "ดูไฟล์ README เพื่อดูวิธีการเปิดใช้งาน emoji ใน UI ของ KOReader"
 
-#: main.lua:9085
+#: main.lua:9150
 #, fuzzy
-msgid "MENU AND INFO ICONS"
-msgstr "ไอคอนเมนูและข้อมูล"
+msgid "If you see blank boxes or question marks, choose \"No\"."
+msgstr "หากคุณเห็นกล่องว่างหรือเครื่องหมายคำถาม ให้เลือก \"ไม่\""
 
-#: main.lua:9086
+#: main.lua:9155
 #, fuzzy
-msgid ""
-"Setup KOReader with emoji support to get informative icons in menus and more. See the emoji section in the README for details."
-msgstr "ตั้งค่า KOReader ให้รองรับอีโมจิเพื่อรับไอคอนที่ให้ข้อมูลในเมนูและอื่นๆ ดูรายละเอียดในส่วนอีโมจิใน README"
+msgid "Yes, enable"
+msgstr "ใช่ เปิดใช้งาน"
 
-#: main.lua:9161
+#: main.lua:9156
+#, fuzzy
+msgid "No, skip"
+msgstr "ไม่ ข้าม"
+
+#: main.lua:9186
 #, fuzzy
 msgid "GESTURE SETUP"
 msgstr "ตั้งค่าท่าทาง"
 
-#: main.lua:9162
+#: main.lua:9187
 #, fuzzy
 msgid "KOAssistant has two quick-access panels:"
 msgstr "KOAssistant มีแผงเข้าถึงด่วนสองแผง:"
 
-#: main.lua:9163
+#: main.lua:9188
 #, fuzzy
 msgid "Quick Actions — book actions, artifacts, and utilities (reader mode)"
 msgstr "Quick Actions — แอ็กชันหนังสือ สิ่งประดิษฐ์ และยูทิลิตี้ (โหมดตัวอ่าน)"
 
-#: main.lua:9164
+#: main.lua:9189
 #, fuzzy
 msgid ""
 "Quick Settings — change provider, model, behavior, and more (file browser)"
 msgstr "Quick Settings — เปลี่ยนผู้ให้บริการ โมเดล พฤติกรรม และอื่นๆ (ตัวเรียกดูไฟล์)"
 
-#: main.lua:9165
+#: main.lua:9190
 #, fuzzy
 msgid "Assign both to \"tap bottom right corner\"?"
 msgstr "กำหนดทั้งสองแผงให้กับ \"แตะมุมล่างขวา\" หรือไม่?"
 
-#: main.lua:9166
+#: main.lua:9191
 #, fuzzy
 msgid ""
 "You can change these anytime in KOReader Settings (Gear icon) → Taps and Gestures."
 msgstr "คุณสามารถเปลี่ยนแปลงได้ตลอดเวลาใน การตั้งค่า KOReader (ไอคอนเฟือง) → การแตะและท่าทาง"
 
-#: main.lua:9167
+#: main.lua:9192
 #, fuzzy
 msgid "Requires KOReader restart to take effect."
 msgstr "ต้องรีสตาร์ท KOReader เพื่อให้มีผล"
 
-#: main.lua:9171
+#: main.lua:9197
 #, fuzzy
 msgid "Set up"
 msgstr "ตั้งค่า"
 
-#: main.lua:9172
+#: main.lua:9198
 #, fuzzy
 msgid "No thanks"
 msgstr "ไม่ ขอบคุณ"
 
-#: main.lua:9183
+#: main.lua:9213
 #, fuzzy
 msgid "GESTURE TIP"
 msgstr "เคล็ดลับท่าทาง"
 
-#: main.lua:9184
+#: main.lua:9214
 #, fuzzy
 msgid "KOAssistant has two quick-access panels you can assign to gestures:"
 msgstr "KOAssistant มีแผงเข้าถึงด่วนสองแผงที่คุณสามารถกำหนดให้กับท่าทางได้:"
 
-#: main.lua:9185
+#: main.lua:9215
 #, fuzzy
 msgid ""
 "Quick Actions — book actions, artifacts, and utilities (assign in reader mode)"
 msgstr "Quick Actions — แอ็กชันหนังสือ สิ่งประดิษฐ์ และยูทิลิตี้ (กำหนดในโหมดตัวอ่าน)"
 
-#: main.lua:9186
+#: main.lua:9216
 #, fuzzy
 msgid ""
 "Quick Settings — change provider, model, behavior, and more (assign in file browser mode)"
 msgstr "Quick Settings — เปลี่ยนผู้ให้บริการ โมเดล พฤติกรรม และอื่นๆ (กำหนดในโหมดตัวเรียกดูไฟล์)"
 
-#: main.lua:9187
+#: main.lua:9217
 #, fuzzy
 msgid "Set them up in KOReader Settings (Gear icon) → Taps and Gestures."
 msgstr "ตั้งค่าได้ใน การตั้งค่า KOReader (ไอคอนเฟือง) → การแตะและท่าทาง"
 
-#: main.lua:9227
-#, fuzzy
-msgid "Quick Actions and Quick Settings assigned to tap bottom right corner."
-msgstr "Quick Actions และ Quick Settings ถูกกำหนดให้กับการแตะมุมล่างขวาแล้ว"
-
 #: main.lua:9228
 #, fuzzy
-msgid "Please restart KOReader for changes to take effect."
-msgstr "กรุณารีสตาร์ท KOReader เพื่อให้การเปลี่ยนแปลงมีผล"
+msgid "GETTING STARTED"
+msgstr "เริ่มต้นใช้งาน"
 
-#: main.lua:9380
+#: main.lua:9230
+#, fuzzy
+msgid ""
+"Some features need document text access. Enable in: Settings → Privacy & Data"
+msgstr "บางฟีเจอร์ต้องการการเข้าถึงข้อความในเอกสาร เปิดใช้งานได้ที่: Settings → Privacy & Data"
+
+#: main.lua:9232
+#, fuzzy
+msgid ""
+"Create or edit prompts: Settings → Actions & Prompts → Manage Actions (or from Quick Settings panel)"
+msgstr "สร้างหรือแก้ไขพรอมต์: Settings → Actions & Prompts → Manage Actions (หรือจากแผง Quick Settings)"
+
+#: main.lua:9236
+#, fuzzy
+msgid "Gestures assigned. Please restart KOReader for changes to take effect."
+msgstr "กำหนดท่าทางเรียบร้อยแล้ว กรุณารีสตาร์ท KOReader เพื่อให้การเปลี่ยนแปลงมีผล"
+
+#: main.lua:9239
+#, fuzzy
+msgid "Enjoy your reading!"
+msgstr "ขอให้สนุกกับการอ่าน!"
+
+#: main.lua:9422
 #, fuzzy
 msgid "No notebook available for this document"
 msgstr "ไม่มีสมุดบันทึกสำหรับเอกสารนี้"
 
-#: main.lua:9390
+#: main.lua:9432
 #, fuzzy
 msgid "No notebook exists for this document. Create one?"
 msgstr "ไม่มีสมุดบันทึกสำหรับเอกสารนี้ ต้องการสร้างหรือไม่?"
 
-#: main.lua:9400
+#: main.lua:9442
 #, fuzzy
 msgid "Failed to create notebook: %1"
 msgstr "ไม่สามารถสร้างสมุดบันทึก: %1"
 
-#: main.lua:9442
+#: main.lua:9484
 #, fuzzy
 msgid "Notebook is empty"
 msgstr "สมุดบันทึกว่างเปล่า"
 
-#: main.lua:9491
+#: main.lua:9533
 #, fuzzy
 msgid "Failed to read notebook file."
 msgstr "ไม่สามารถอ่านไฟล์สมุดบันทึก"
 
-#: main.lua:9554
+#: main.lua:9596
 #, fuzzy
 msgid "Notebook saved"
 msgstr "บันทึกสมุดบันทึกแล้ว"
 
-#: main.lua:9561
+#: main.lua:9603
 #, fuzzy
 msgid "Reset to last saved"
 msgstr "รีเซ็ตเป็นค่าที่บันทึกล่าสุด"

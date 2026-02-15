@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: KOAssistant 0.12.0-dev\n"
 "Report-Msgid-Bugs-To: https://github.com/zeeyado/koassistant.koplugin/issues\n"
-"POT-Creation-Date: 2026-02-15 17:22+0000\n"
+"POT-Creation-Date: 2026-02-15 20:14+0000\n"
 "PO-Revision-Date: 2026-01-27 17:48+0000\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
@@ -108,7 +108,7 @@ msgstr "보기"
 
 #: koassistant_artifact_browser.lua:224 koassistant_chat_history_dialog.lua:788
 #: koassistant_chat_history_dialog.lua:935 koassistant_notebook_manager.lua:194
-#: koassistant_xray_browser.lua:2926 koassistant_xray_browser.lua:3016
+#: koassistant_xray_browser.lua:2968 koassistant_xray_browser.lua:3058
 #, fuzzy
 msgid "Open Book"
 msgstr "책 열기"
@@ -127,10 +127,10 @@ msgstr "책 열기"
 #: koassistant_dialogs.lua:2623 koassistant_dialogs.lua:2690
 #: koassistant_dialogs.lua:3435 koassistant_notebook_manager.lua:232
 #: koassistant_update_checker.lua:326 koassistant_update_checker.lua:800
-#: koassistant_xray_browser.lua:1323 koassistant_xray_browser.lua:1821
-#: koassistant_xray_browser.lua:1846 koassistant_xray_browser.lua:1985
-#: koassistant_xray_browser.lua:2016 koassistant_xray_browser.lua:2355
-#: koassistant_xray_browser.lua:2630 main.lua:428 main.lua:1873 main.lua:1911
+#: koassistant_xray_browser.lua:1341 koassistant_xray_browser.lua:1839
+#: koassistant_xray_browser.lua:1864 koassistant_xray_browser.lua:2003
+#: koassistant_xray_browser.lua:2034 koassistant_xray_browser.lua:2397
+#: koassistant_xray_browser.lua:2672 main.lua:428 main.lua:1873 main.lua:1911
 #: main.lua:1977 main.lua:2215 main.lua:2339 main.lua:2483 main.lua:2656
 #: main.lua:2812 main.lua:3312 main.lua:3486 main.lua:4050 main.lua:4496
 #: main.lua:4566 main.lua:4630 main.lua:6078 main.lua:7820 main.lua:8375
@@ -193,7 +193,7 @@ msgstr ""
 #: koassistant_chat_history_dialog.lua:2012
 #: koassistant_chat_history_dialog.lua:2050 koassistant_chatgptviewer.lua:2317
 #: koassistant_chatgptviewer.lua:2323 koassistant_notebook_manager.lua:211
-#: koassistant_xray_browser.lua:2872 main.lua:8731 main.lua:8739
+#: koassistant_xray_browser.lua:2914 main.lua:8731 main.lua:8739
 #: koassistant_ui/behavior_manager.lua:332
 #: koassistant_ui/domain_manager.lua:342
 #: koassistant_ui/prompts_manager.lua:1027
@@ -392,13 +392,13 @@ msgstr "모든 채팅 삭제"
 msgid "Error: Cannot load chat data."
 msgstr "오류: 대화 데이터를 불러올 수 없습니다."
 
-#: koassistant_chat_history_dialog.lua:871 koassistant_xray_browser.lua:2895
-#: koassistant_xray_browser.lua:2897 main.lua:3955
+#: koassistant_chat_history_dialog.lua:871 koassistant_xray_browser.lua:2937
+#: koassistant_xray_browser.lua:2939 main.lua:3955
 #, fuzzy
 msgid "Date:"
 msgstr "날짜:"
 
-#: koassistant_chat_history_dialog.lua:872 koassistant_xray_browser.lua:2885
+#: koassistant_chat_history_dialog.lua:872 koassistant_xray_browser.lua:2927
 #: main.lua:3952
 #, fuzzy
 msgid "Model:"
@@ -443,7 +443,7 @@ msgstr "채팅 삭제"
 #: koassistant_chatgptviewer.lua:1905 koassistant_chatgptviewer.lua:2101
 #: koassistant_chatgptviewer.lua:2335 koassistant_chatgptviewer.lua:2530
 #: koassistant_chatgptviewer.lua:4066 koassistant_dialogs.lua:607
-#: koassistant_dialogs.lua:2952 koassistant_xray_browser.lua:1208 main.lua:2105
+#: koassistant_dialogs.lua:2952 koassistant_xray_browser.lua:1226 main.lua:2105
 #: main.lua:5175 koassistant_ui/behavior_manager.lua:403
 #: koassistant_ui/domain_manager.lua:412
 #: koassistant_ui/settings_manager.lua:247
@@ -516,7 +516,7 @@ msgstr "태그 이름 입력"
 
 #: koassistant_chat_history_dialog.lua:1161
 #: koassistant_chat_history_dialog.lua:1348 koassistant_dialogs.lua:957
-#: koassistant_xray_browser.lua:1332 main.lua:1918 main.lua:2346 main.lua:2819
+#: koassistant_xray_browser.lua:1350 main.lua:1918 main.lua:2346 main.lua:2819
 #, fuzzy
 msgid "Add"
 msgstr "추가"
@@ -651,7 +651,7 @@ msgstr ""
 "%1"
 
 #: koassistant_chat_history_dialog.lua:1879 koassistant_chatgptviewer.lua:3491
-#: main.lua:9556
+#: main.lua:9598
 #, fuzzy
 msgid "Failed to save: %1"
 msgstr "저장 실패: %1"
@@ -1104,12 +1104,12 @@ msgstr "다른 대상 언어로 번역 다시 실행"
 msgid "Copied to clipboard"
 msgstr "클립보드에 복사됨"
 
-#: koassistant_chatgptviewer.lua:2175 koassistant_xray_browser.lua:2992
+#: koassistant_chatgptviewer.lua:2175 koassistant_xray_browser.lua:3034
 #, fuzzy
 msgid "Other Artifacts"
 msgstr "기타 아티팩트"
 
-#: koassistant_chatgptviewer.lua:2250 koassistant_xray_browser.lua:2913
+#: koassistant_chatgptviewer.lua:2250 koassistant_xray_browser.lua:2955
 #: main.lua:8702 koassistant_ui/prompts_manager.lua:1568
 #: koassistant_ui/prompts_manager.lua:2033
 #, fuzzy
@@ -1281,17 +1281,17 @@ msgstr "내보낼 콘텐츠가 없습니다"
 msgid "No export metadata available."
 msgstr "내보내기 메타데이터가 없습니다."
 
-#: koassistant_chatgptviewer.lua:3604 main.lua:9479
+#: koassistant_chatgptviewer.lua:3604 main.lua:9521
 #, fuzzy
 msgid "Select export folder"
 msgstr "내보내기 폴더 선택"
 
-#: koassistant_chatgptviewer.lua:3629 main.lua:9501
+#: koassistant_chatgptviewer.lua:3629 main.lua:9543
 #, fuzzy
 msgid "Saved to %1"
 msgstr "%1에 저장됨"
 
-#: koassistant_chatgptviewer.lua:3634 main.lua:9506
+#: koassistant_chatgptviewer.lua:3634 main.lua:9548
 #, fuzzy
 msgid "Export failed: %1"
 msgstr "내보내기 실패: %1"
@@ -1409,7 +1409,7 @@ msgstr "마지막 채팅 계속하기"
 msgid "General Chat/Action"
 msgstr "일반 채팅/작업"
 
-#: koassistant_constants.lua:135 main.lua:325 main.lua:6287 main.lua:9450
+#: koassistant_constants.lua:135 main.lua:325 main.lua:6287 main.lua:9492
 #, fuzzy
 msgid "Notebook"
 msgstr "노트북"
@@ -1827,7 +1827,7 @@ msgstr "X-Ray는 %1%까지 포함합니다"
 msgid "You're now at %1%."
 msgstr "현재 위치: %1%."
 
-#: koassistant_dialogs.lua:3793 koassistant_xray_browser.lua:2831 main.lua:4261
+#: koassistant_dialogs.lua:3793 koassistant_xray_browser.lua:2873 main.lua:4261
 #, fuzzy
 msgid "Update X-Ray (to %1)"
 msgstr "X-Ray 업데이트 (%1까지)"
@@ -2623,7 +2623,7 @@ msgstr "하이라이트 메뉴 작업"
 msgid "Choose which actions appear in the highlight menu (requires restart)"
 msgstr "하이라이트 메뉴에 표시할 작업 선택 (재시작 필요)"
 
-#: koassistant_settings_schema.lua:985
+#: koassistant_settings_schema.lua:985 main.lua:9231
 #, fuzzy
 msgid "Actions & Prompts"
 msgstr "작업 및 프롬프트"
@@ -2715,7 +2715,7 @@ msgid ""
 "Only show button if notebook already exists. Disable to allow creating new notebooks from file browser."
 msgstr "노트북이 이미 존재하는 경우에만 버튼을 표시합니다. 파일 브라우저에서 새 노트북 생성을 허용하려면 비활성화하세요."
 
-#: koassistant_settings_schema.lua:1083
+#: koassistant_settings_schema.lua:1083 main.lua:9229
 #, fuzzy
 msgid "Privacy & Data"
 msgstr "개인정보 및 데이터"
@@ -3798,7 +3798,7 @@ msgstr "페이지 %1–%2"
 msgid "Mentions"
 msgstr "언급"
 
-#: koassistant_xray_browser.lua:777 koassistant_xray_browser.lua:2637
+#: koassistant_xray_browser.lua:777 koassistant_xray_browser.lua:2679
 #, fuzzy
 msgid "Search"
 msgstr "검색"
@@ -3818,143 +3818,143 @@ msgstr "기준 시점"
 msgid "Your highlights:"
 msgstr "하이라이트:"
 
-#: koassistant_xray_browser.lua:1009
+#: koassistant_xray_browser.lua:1024
 #, fuzzy
 msgid "Chat about this"
 msgstr "이것에 대해 채팅하기"
 
-#: koassistant_xray_browser.lua:1023
+#: koassistant_xray_browser.lua:1038
 #, fuzzy
 msgid "Chapter Appearances"
 msgstr "챕터 등장"
 
-#: koassistant_xray_browser.lua:1035
+#: koassistant_xray_browser.lua:1050
 #, fuzzy
 msgid "Edit Search Terms"
 msgstr "검색어 편집"
 
-#: koassistant_xray_browser.lua:1075 koassistant_xray_browser.lua:1102
+#: koassistant_xray_browser.lua:1090 koassistant_xray_browser.lua:1117
 #, fuzzy
 msgid "Details"
 msgstr "상세 정보"
 
-#: koassistant_xray_browser.lua:1167
+#: koassistant_xray_browser.lua:1185
 #, fuzzy
 msgid "Remove \"%1\""
 msgstr "\"%1\" 제거"
 
-#: koassistant_xray_browser.lua:1168
+#: koassistant_xray_browser.lua:1186
 #, fuzzy
 msgid "Ignore \"%1\""
 msgstr "\"%1\" 무시"
 
-#: koassistant_xray_browser.lua:1182
+#: koassistant_xray_browser.lua:1200
 #, fuzzy
 msgid "Restore \"%1\" (ignored)"
 msgstr "\"%1\" 복원 (무시됨)"
 
-#: koassistant_xray_browser.lua:1200
+#: koassistant_xray_browser.lua:1218
 #, fuzzy
 msgid "Add new"
 msgstr "새로 추가"
 
-#: koassistant_xray_browser.lua:1220
+#: koassistant_xray_browser.lua:1238
 #, fuzzy
 msgid "Search terms for \"%1\""
 msgstr "\"%1\"에 대한 검색어"
 
-#: koassistant_xray_browser.lua:1317
+#: koassistant_xray_browser.lua:1335
 #, fuzzy
 msgid "Add search term for \"%1\""
 msgstr "\"%1\"에 대한 검색어 추가"
 
-#: koassistant_xray_browser.lua:1319
+#: koassistant_xray_browser.lua:1337
 #, fuzzy
 msgid "Enter alternate name or spelling"
 msgstr "대체 이름 또는 철자 입력"
 
-#: koassistant_xray_browser.lua:1355
+#: koassistant_xray_browser.lua:1373
 #, fuzzy
 msgid "This search term already exists."
 msgstr "이 검색어는 이미 존재합니다."
 
-#: koassistant_xray_browser.lua:1387
+#: koassistant_xray_browser.lua:1405
 #, fuzzy
 msgid "Added \"%1\""
 msgstr "\"%1\" 추가됨"
 
-#: koassistant_xray_browser.lua:1432 koassistant_xray_parser.lua:299
+#: koassistant_xray_browser.lua:1450 koassistant_xray_parser.lua:299
 #, fuzzy
 msgid "Cast"
 msgstr "등장인물"
 
-#: koassistant_xray_browser.lua:1433
+#: koassistant_xray_browser.lua:1451
 #, fuzzy
 msgid "Figures"
 msgstr "인물"
 
-#: koassistant_xray_browser.lua:1434 koassistant_xray_parser.lua:300
+#: koassistant_xray_browser.lua:1452 koassistant_xray_parser.lua:300
 #, fuzzy
 msgid "World"
 msgstr "세계관"
 
-#: koassistant_xray_browser.lua:1435 koassistant_xray_parser.lua:301
+#: koassistant_xray_browser.lua:1453 koassistant_xray_parser.lua:301
 #, fuzzy
 msgid "Ideas"
 msgstr "아이디어"
 
-#: koassistant_xray_browser.lua:1436
+#: koassistant_xray_browser.lua:1454
 #, fuzzy
 msgid "Concepts"
 msgstr "개념"
 
-#: koassistant_xray_browser.lua:1437
+#: koassistant_xray_browser.lua:1455
 #, fuzzy
 msgid "Args"
 msgstr "인수"
 
-#: koassistant_xray_browser.lua:1438 koassistant_xray_parser.lua:302
+#: koassistant_xray_browser.lua:1456 koassistant_xray_parser.lua:302
 #, fuzzy
 msgid "Lexicon"
 msgstr "용어집"
 
-#: koassistant_xray_browser.lua:1439
+#: koassistant_xray_browser.lua:1457
 #, fuzzy
 msgid "Terms"
 msgstr "용어"
 
-#: koassistant_xray_browser.lua:1440
+#: koassistant_xray_browser.lua:1458
 #, fuzzy
 msgid "Arc"
 msgstr "스토리"
 
-#: koassistant_xray_browser.lua:1441
+#: koassistant_xray_browser.lua:1459
 #, fuzzy
 msgid "Dev"
 msgstr "개발"
 
-#: koassistant_xray_browser.lua:1504
+#: koassistant_xray_browser.lua:1522
 #, fuzzy
 msgid "Page %1"
 msgstr "%1 페이지"
 
-#: koassistant_xray_browser.lua:1558 koassistant_xray_browser.lua:1571
-#: koassistant_xray_browser.lua:1922 koassistant_xray_browser.lua:1934
+#: koassistant_xray_browser.lua:1576 koassistant_xray_browser.lua:1589
+#: koassistant_xray_browser.lua:1940 koassistant_xray_browser.lua:1952
 #, fuzzy
 msgid "All Chapters"
 msgstr "전체 챕터"
 
-#: koassistant_xray_browser.lua:1566 koassistant_xray_browser.lua:1929
+#: koassistant_xray_browser.lua:1584 koassistant_xray_browser.lua:1947
 #, fuzzy
 msgid "All Chapters (to %1)"
 msgstr "전체 챕터 (%1까지)"
 
-#: koassistant_xray_browser.lua:1581 koassistant_xray_browser.lua:1957
+#: koassistant_xray_browser.lua:1599 koassistant_xray_browser.lua:1975
 #, fuzzy
 msgid "Table of Contents"
 msgstr "목차"
 
-#: koassistant_xray_browser.lua:1818 koassistant_xray_browser.lua:1982
+#: koassistant_xray_browser.lua:1836 koassistant_xray_browser.lua:2000
 #, fuzzy
 msgid ""
 "This will scan beyond your X-Ray coverage.\n"
@@ -3965,14 +3965,14 @@ msgstr ""
 "\n"
 "모든 언급을 표시하시겠습니까?"
 
-#: koassistant_xray_browser.lua:1827 koassistant_xray_browser.lua:1852
-#: koassistant_xray_browser.lua:1991 koassistant_xray_browser.lua:2022
-#: koassistant_xray_browser.lua:2361
+#: koassistant_xray_browser.lua:1845 koassistant_xray_browser.lua:1870
+#: koassistant_xray_browser.lua:2009 koassistant_xray_browser.lua:2040
+#: koassistant_xray_browser.lua:2403
 #, fuzzy
 msgid "Reveal"
 msgstr "표시"
 
-#: koassistant_xray_browser.lua:1843 koassistant_xray_browser.lua:2013
+#: koassistant_xray_browser.lua:1861 koassistant_xray_browser.lua:2031
 #, fuzzy
 msgid ""
 "This chapter is beyond your X-Ray coverage.\n"
@@ -3983,120 +3983,120 @@ msgstr ""
 "\n"
 "언급을 표시하시겠습니까?"
 
-#: koassistant_xray_browser.lua:2070 koassistant_xray_browser.lua:2226
-#: koassistant_xray_browser.lua:2536
+#: koassistant_xray_browser.lua:2088 koassistant_xray_browser.lua:2256
+#: koassistant_xray_browser.lua:2578
 #, fuzzy
 msgid "No book open."
 msgstr "열린 책이 없습니다."
 
-#: koassistant_xray_browser.lua:2078
+#: koassistant_xray_browser.lua:2096
 #, fuzzy
 msgid "Analyzing book…"
 msgstr "도서 분석 중…"
 
-#: koassistant_xray_browser.lua:2078 koassistant_xray_browser.lua:2233
+#: koassistant_xray_browser.lua:2096 koassistant_xray_browser.lua:2263
 #, fuzzy
 msgid "Analyzing chapter…"
 msgstr "챕터 분석 중…"
 
-#: koassistant_xray_browser.lua:2092
+#: koassistant_xray_browser.lua:2110
 #, fuzzy
 msgid "Could not determine book length."
 msgstr "도서 길이를 확인할 수 없습니다."
 
-#: koassistant_xray_browser.lua:2124
+#: koassistant_xray_browser.lua:2142
 #, fuzzy
 msgid ""
 "Could not extract book text. PDF text extraction may not be available for this document."
 msgstr "도서 텍스트를 추출할 수 없습니다. 이 문서에서는 PDF 텍스트 추출을 사용할 수 없습니다."
 
-#: koassistant_xray_browser.lua:2125
+#: koassistant_xray_browser.lua:2143
 #, fuzzy
 msgid "Could not extract book text."
 msgstr "도서 텍스트를 추출할 수 없습니다."
 
-#: koassistant_xray_browser.lua:2128 koassistant_xray_browser.lua:2242
+#: koassistant_xray_browser.lua:2146 koassistant_xray_browser.lua:2272
 #, fuzzy
 msgid ""
 "Could not extract chapter text. PDF text extraction may not be available for this document."
 msgstr "챕터 텍스트를 추출할 수 없습니다. 이 문서에서는 PDF 텍스트 추출을 사용할 수 없습니다."
 
-#: koassistant_xray_browser.lua:2129 koassistant_xray_browser.lua:2243
+#: koassistant_xray_browser.lua:2147 koassistant_xray_browser.lua:2273
 #, fuzzy
 msgid "Could not extract chapter text."
 msgstr "챕터 텍스트를 추출할 수 없습니다."
 
-#: koassistant_xray_browser.lua:2143
+#: koassistant_xray_browser.lua:2161
 #, fuzzy
 msgid "No X-Ray items found in book text."
 msgstr "도서 텍스트에서 X-Ray 항목을 찾을 수 없습니다."
 
-#: koassistant_xray_browser.lua:2145 koassistant_xray_browser.lua:2255
+#: koassistant_xray_browser.lua:2163 koassistant_xray_browser.lua:2285
 #, fuzzy
 msgid "No X-Ray items found in \"%1\"."
 msgstr "\"%1\"에서 X-Ray 항목을 찾을 수 없습니다."
 
-#: koassistant_xray_browser.lua:2147
+#: koassistant_xray_browser.lua:2165
 #, fuzzy
 msgid "No X-Ray items found in current chapter."
 msgstr "현재 챕터에서 X-Ray 항목을 찾을 수 없습니다."
 
-#: koassistant_xray_browser.lua:2164
+#: koassistant_xray_browser.lua:2182
 #, fuzzy
 msgid "All Chapters u{25BE}"
 msgstr "전체 챕터 u{25BE}"
 
-#: koassistant_xray_browser.lua:2166
+#: koassistant_xray_browser.lua:2184
 #, fuzzy
 msgid "To %1 u{25BE}"
 msgstr "%1까지 u{25BE}"
 
-#: koassistant_xray_browser.lua:2171
+#: koassistant_xray_browser.lua:2189
 #, fuzzy
 msgid "This Chapter u{25BE}"
 msgstr "이 챕터 u{25BE}"
 
-#: koassistant_xray_browser.lua:2192 koassistant_xray_browser.lua:2271
+#: koassistant_xray_browser.lua:2220 koassistant_xray_browser.lua:2311
 #, fuzzy
 msgid "%1x"
 msgstr "%1x"
 
-#: koassistant_xray_browser.lua:2204
+#: koassistant_xray_browser.lua:2234
 #, fuzzy
 msgid "All Chapters — %1 mentions"
 msgstr "전체 챕터 — %1개 언급"
 
-#: koassistant_xray_browser.lua:2206
+#: koassistant_xray_browser.lua:2236
 #, fuzzy
 msgid "To %1 — %2 mentions"
 msgstr "%1까지 — %2개 언급"
 
-#: koassistant_xray_browser.lua:2209 koassistant_xray_browser.lua:2281
+#: koassistant_xray_browser.lua:2239 koassistant_xray_browser.lua:2323
 #, fuzzy
 msgid "%1 — %2 mentions"
 msgstr "%1 — %2개 언급"
 
-#: koassistant_xray_browser.lua:2211
+#: koassistant_xray_browser.lua:2241
 #, fuzzy
 msgid "This Chapter — %1 mentions"
 msgstr "이 챕터 — %1개 언급"
 
-#: koassistant_xray_browser.lua:2256
+#: koassistant_xray_browser.lua:2286
 #, fuzzy
 msgid "No X-Ray items found in this chapter."
 msgstr "이 챕터에서 X-Ray 항목을 찾을 수 없습니다."
 
-#: koassistant_xray_browser.lua:2283
+#: koassistant_xray_browser.lua:2325
 #, fuzzy
 msgid "Chapter — %1 mentions"
 msgstr "챕터 — %1개 언급"
 
-#: koassistant_xray_browser.lua:2320
+#: koassistant_xray_browser.lua:2362
 #, fuzzy
 msgid "Scanning…"
 msgstr "스캔 중…"
 
-#: koassistant_xray_browser.lua:2352
+#: koassistant_xray_browser.lua:2394
 #, fuzzy
 msgid ""
 "This chapter is beyond your X-Ray coverage and may contain spoilers.\n"
@@ -4107,174 +4107,174 @@ msgstr ""
 "\n"
 "언급을 표시하시겠습니까?"
 
-#: koassistant_xray_browser.lua:2449
+#: koassistant_xray_browser.lua:2491
 #, fuzzy
 msgid "Search for:"
 msgstr "검색:"
 
-#: koassistant_xray_browser.lua:2470
+#: koassistant_xray_browser.lua:2512
 #, fuzzy
 msgid "No X-Ray items in \"%1\"."
 msgstr "\"%1\"에 X-Ray 항목이 없습니다."
 
-#: koassistant_xray_browser.lua:2471
+#: koassistant_xray_browser.lua:2513
 #, fuzzy
 msgid "this chapter"
 msgstr "이 챕터"
 
-#: koassistant_xray_browser.lua:2482
+#: koassistant_xray_browser.lua:2524
 #, fuzzy
 msgid "Scan all chapters"
 msgstr "전체 챕터 스캔"
 
-#: koassistant_xray_browser.lua:2483
+#: koassistant_xray_browser.lua:2525
 #, fuzzy
 msgid "may contain spoilers"
 msgstr "스포일러가 포함될 수 있음"
 
-#: koassistant_xray_browser.lua:2489
+#: koassistant_xray_browser.lua:2531
 #, fuzzy
 msgid "Scanning all chapters…"
 msgstr "전체 챕터 스캔 중…"
 
-#: koassistant_xray_browser.lua:2516
+#: koassistant_xray_browser.lua:2558
 #, fuzzy
 msgid "%1 — %2 chapters"
 msgstr "%1 — %2개 챕터"
 
-#: koassistant_xray_browser.lua:2552
+#: koassistant_xray_browser.lua:2594
 #, fuzzy
 msgid "Computing distribution…"
 msgstr "분포 계산 중…"
 
-#: koassistant_xray_browser.lua:2564
+#: koassistant_xray_browser.lua:2606
 #, fuzzy
 msgid "Could not determine chapter structure."
 msgstr "챕터 구조를 확인할 수 없습니다."
 
-#: koassistant_xray_browser.lua:2595
+#: koassistant_xray_browser.lua:2637
 #, fuzzy
 msgid ""
 "No mentions of \"%1\" found. PDF text extraction may not be available for this document."
 msgstr "\"%1\"에 대한 언급을 찾을 수 없습니다. 이 문서에서는 PDF 텍스트 추출을 사용할 수 없습니다."
 
-#: koassistant_xray_browser.lua:2596
+#: koassistant_xray_browser.lua:2638
 #, fuzzy
 msgid "No mentions of \"%1\" found in book text."
 msgstr "도서 텍스트에서 \"%1\"에 대한 언급을 찾을 수 없습니다."
 
-#: koassistant_xray_browser.lua:2624
+#: koassistant_xray_browser.lua:2666
 #, fuzzy
 msgid "Search X-Ray"
 msgstr "X-Ray 검색"
 
-#: koassistant_xray_browser.lua:2626
+#: koassistant_xray_browser.lua:2668
 #, fuzzy
 msgid "Name, term, description..."
 msgstr "이름, 용어, 설명..."
 
-#: koassistant_xray_browser.lua:2661
+#: koassistant_xray_browser.lua:2703
 #, fuzzy
 msgid "No results for \"%1\"."
 msgstr "\"%1\"에 대한 결과가 없습니다."
 
-#: koassistant_xray_browser.lua:2675
+#: koassistant_xray_browser.lua:2717
 #, fuzzy
 msgid "alias"
 msgstr "별칭"
 
-#: koassistant_xray_browser.lua:2677
+#: koassistant_xray_browser.lua:2719
 #, fuzzy
 msgid "desc."
 msgstr "설명"
 
-#: koassistant_xray_browser.lua:2692
+#: koassistant_xray_browser.lua:2734
 #, fuzzy
 msgid "Results for \"%1\" (%2)"
 msgstr "\"%1\" 결과 (%2)"
 
-#: koassistant_xray_browser.lua:2777 koassistant_xray_browser.lua:2981
+#: koassistant_xray_browser.lua:2819 koassistant_xray_browser.lua:3023
 #: main.lua:4472 main.lua:4603
 #, fuzzy
 msgid "View %1"
 msgstr "%1 보기"
 
-#: koassistant_xray_browser.lua:2785
+#: koassistant_xray_browser.lua:2827
 #, fuzzy
 msgid "View other artifacts…"
 msgstr "다른 아티팩트 보기…"
 
-#: koassistant_xray_browser.lua:2800
+#: koassistant_xray_browser.lua:2842
 #, fuzzy
 msgid "Redo X-Ray (entire document)"
 msgstr "X-Ray 재생성 (전체 문서)"
 
-#: koassistant_xray_browser.lua:2810
+#: koassistant_xray_browser.lua:2852
 #, fuzzy
 msgid "Redo X-Ray (to 100%)"
 msgstr "X-Ray 재생성 (100%까지)"
 
-#: koassistant_xray_browser.lua:2833
+#: koassistant_xray_browser.lua:2875
 #, fuzzy
 msgid "Redo X-Ray (to %1)"
 msgstr "X-Ray 재생성 (%1까지)"
 
-#: koassistant_xray_browser.lua:2837
+#: koassistant_xray_browser.lua:2879
 #, fuzzy
 msgid "Redo X-Ray"
 msgstr "X-Ray 재생성"
 
-#: koassistant_xray_browser.lua:2852
+#: koassistant_xray_browser.lua:2894
 #, fuzzy
 msgid "Update X-Ray (to 100%)"
 msgstr "X-Ray 업데이트 (100%까지)"
 
-#: koassistant_xray_browser.lua:2866
+#: koassistant_xray_browser.lua:2908
 #, fuzzy
 msgid "Delete X-Ray"
 msgstr "X-Ray 삭제"
 
-#: koassistant_xray_browser.lua:2871
+#: koassistant_xray_browser.lua:2913
 #, fuzzy
 msgid "Delete this X-Ray? This cannot be undone."
 msgstr "이 X-Ray를 삭제하시겠습니까? 이 작업은 취소할 수 없습니다."
 
-#: koassistant_xray_browser.lua:2890 main.lua:3945
+#: koassistant_xray_browser.lua:2932 main.lua:3945
 #, fuzzy
 msgid "updated from"
 msgstr "업데이트 출처"
 
-#: koassistant_xray_browser.lua:2892 main.lua:3948
+#: koassistant_xray_browser.lua:2934 main.lua:3948
 #, fuzzy
 msgid "Progress:"
 msgstr "진행 상황:"
 
-#: koassistant_xray_browser.lua:2899
+#: koassistant_xray_browser.lua:2941
 #, fuzzy
 msgid "Fiction"
 msgstr "소설"
 
-#: koassistant_xray_browser.lua:2899
+#: koassistant_xray_browser.lua:2941
 #, fuzzy
 msgid "Non-Fiction"
 msgstr "비소설"
 
-#: koassistant_xray_browser.lua:2900
+#: koassistant_xray_browser.lua:2942
 #, fuzzy
 msgid "Type:"
 msgstr "유형:"
 
-#: koassistant_xray_browser.lua:2902 main.lua:3950
+#: koassistant_xray_browser.lua:2944 main.lua:3950
 #, fuzzy
 msgid "Source:"
 msgstr "출처:"
 
-#: koassistant_xray_browser.lua:2905 main.lua:3961
+#: koassistant_xray_browser.lua:2947 main.lua:3961
 #, fuzzy
 msgid "Reasoning:"
 msgstr "추론:"
 
-#: koassistant_xray_browser.lua:2905 koassistant_xray_browser.lua:2908
+#: koassistant_xray_browser.lua:2947 koassistant_xray_browser.lua:2950
 #: main.lua:3961 main.lua:3964 koassistant_ui/prompts_manager.lua:746
 #: koassistant_ui/prompts_manager.lua:747
 #: koassistant_ui/prompts_manager.lua:753
@@ -4283,12 +4283,12 @@ msgstr "추론:"
 msgid "Yes"
 msgstr "예"
 
-#: koassistant_xray_browser.lua:2908 main.lua:3964
+#: koassistant_xray_browser.lua:2950 main.lua:3964
 #, fuzzy
 msgid "Web search:"
 msgstr "웹 검색:"
 
-#: koassistant_xray_browser.lua:3015
+#: koassistant_xray_browser.lua:3057
 #, fuzzy
 msgid ""
 "This feature requires the book to be open in Reader mode.\n"
@@ -4299,7 +4299,7 @@ msgstr ""
 "\n"
 "지금 책을 여시겠습니까?"
 
-#: koassistant_xray_browser.lua:3023
+#: koassistant_xray_browser.lua:3065
 #, fuzzy
 msgid "This feature requires the book to be open in Reader mode."
 msgstr "이 기능을 사용하려면 책이 리더 모드로 열려 있어야 합니다."
@@ -6143,170 +6143,180 @@ msgstr ""
 "이전 채팅 파일 백업 위치:\n"
 "koassistant_chats.backup/"
 
-#: main.lua:9078
+#: main.lua:9132
 #, fuzzy
 msgid "Welcome to KOAssistant!"
 msgstr "KOAssistant에 오신 것을 환영합니다!"
 
-#: main.lua:9079
-#, fuzzy
-msgid "PRIVACY SETTINGS"
-msgstr "개인정보 설정"
-
-#: main.lua:9080
+#: main.lua:9133
 #, fuzzy
 msgid ""
-"Some features (like X-Ray) need to access document text and other content. Enable in: Settings → Privacy & Data"
-msgstr "일부 기능(X-Ray 등)은 문서 텍스트 및 기타 콘텐츠에 액세스해야 합니다. 다음에서 활성화: 설정 → 개인정보 보호 및 데이터"
+"Your AI reading assistant is ready. Let's set up a few things. Tap the screen to continue."
+msgstr "AI 읽기 도우미가 준비되었습니다. 몇 가지 설정을 해보겠습니다. 화면을 탭하여 계속하세요."
 
-#: main.lua:9081
+#: main.lua:9144
 #, fuzzy
-msgid "QUICK ACCESS"
-msgstr "빠른 액세스"
+msgid "EMOJI DISPLAY TEST"
+msgstr "이모지 표시 테스트"
 
-#: main.lua:9082
+#: main.lua:9145
 #, fuzzy
-msgid ""
-"Assign Quick Settings (File browser) and Quick Actions (Reader) panels to gestures. See KOReader Settings (Gear icon) → Taps and Gestures"
-msgstr "제스처에 빠른 설정(파일 브라우저) 및 빠른 작업(리더) 패널을 할당하세요. KOReader 설정(톱니바퀴 아이콘) → 탭 및 제스처 참조"
+msgid "Do these icons display correctly on your device?"
+msgstr "이 아이콘들이 기기에서 올바르게 표시되나요?"
 
-#: main.lua:9083
-#, fuzzy
-msgid "CUSTOM ACTIONS"
-msgstr "사용자 지정 작업"
-
-#: main.lua:9084
+#: main.lua:9149
 #, fuzzy
 msgid ""
-"Create your own prompts and actions or edit built in ones. Go to: Settings → Action Manager"
-msgstr "자신만의 프롬프트와 작업을 만들거나 기본 제공 항목을 편집하세요. 이동: 설정 → 작업 관리자"
+"See the README for instructions on how to enable emojis in the KOReader UI."
+msgstr "KOReader UI에서 이모지를 활성화하는 방법은 README를 참조하세요."
 
-#: main.lua:9085
+#: main.lua:9150
 #, fuzzy
-msgid "MENU AND INFO ICONS"
-msgstr "메뉴 및 정보 아이콘"
+msgid "If you see blank boxes or question marks, choose \"No\"."
+msgstr "빈 상자나 물음표가 보이면 \"아니오\"를 선택하세요."
 
-#: main.lua:9086
+#: main.lua:9155
 #, fuzzy
-msgid ""
-"Setup KOReader with emoji support to get informative icons in menus and more. See the emoji section in the README for details."
-msgstr "메뉴 등에서 유용한 아이콘을 표시하려면 이모지 지원으로 KOReader를 설정하세요. 자세한 내용은 README의 이모지 섹션을 참조하세요."
+msgid "Yes, enable"
+msgstr "예, 활성화"
 
-#: main.lua:9161
+#: main.lua:9156
+#, fuzzy
+msgid "No, skip"
+msgstr "아니오, 건너뛰기"
+
+#: main.lua:9186
 #, fuzzy
 msgid "GESTURE SETUP"
 msgstr "제스처 설정"
 
-#: main.lua:9162
+#: main.lua:9187
 #, fuzzy
 msgid "KOAssistant has two quick-access panels:"
 msgstr "KOAssistant에는 두 개의 빠른 액세스 패널이 있습니다:"
 
-#: main.lua:9163
+#: main.lua:9188
 #, fuzzy
 msgid "Quick Actions — book actions, artifacts, and utilities (reader mode)"
 msgstr "빠른 작업 — 책 작업, 아티팩트 및 유틸리티(리더 모드)"
 
-#: main.lua:9164
+#: main.lua:9189
 #, fuzzy
 msgid ""
 "Quick Settings — change provider, model, behavior, and more (file browser)"
 msgstr "빠른 설정 — 공급자, 모델, 동작 등 변경(파일 브라우저)"
 
-#: main.lua:9165
+#: main.lua:9190
 #, fuzzy
 msgid "Assign both to \"tap bottom right corner\"?"
 msgstr "둘 다 \"오른쪽 하단 모서리 탭\"에 할당하시겠습니까?"
 
-#: main.lua:9166
+#: main.lua:9191
 #, fuzzy
 msgid ""
 "You can change these anytime in KOReader Settings (Gear icon) → Taps and Gestures."
 msgstr "KOReader 설정(톱니바퀴 아이콘) → 탭 및 제스처에서 언제든지 변경할 수 있습니다."
 
-#: main.lua:9167
+#: main.lua:9192
 #, fuzzy
 msgid "Requires KOReader restart to take effect."
 msgstr "적용하려면 KOReader를 재시작해야 합니다."
 
-#: main.lua:9171
+#: main.lua:9197
 #, fuzzy
 msgid "Set up"
 msgstr "설정하기"
 
-#: main.lua:9172
+#: main.lua:9198
 #, fuzzy
 msgid "No thanks"
 msgstr "괜찮습니다"
 
-#: main.lua:9183
+#: main.lua:9213
 #, fuzzy
 msgid "GESTURE TIP"
 msgstr "제스처 팁"
 
-#: main.lua:9184
+#: main.lua:9214
 #, fuzzy
 msgid "KOAssistant has two quick-access panels you can assign to gestures:"
 msgstr "KOAssistant에는 제스처에 할당할 수 있는 두 개의 빠른 액세스 패널이 있습니다:"
 
-#: main.lua:9185
+#: main.lua:9215
 #, fuzzy
 msgid ""
 "Quick Actions — book actions, artifacts, and utilities (assign in reader mode)"
 msgstr "빠른 작업 — 책 작업, 아티팩트 및 유틸리티(리더 모드에서 할당)"
 
-#: main.lua:9186
+#: main.lua:9216
 #, fuzzy
 msgid ""
 "Quick Settings — change provider, model, behavior, and more (assign in file browser mode)"
 msgstr "빠른 설정 — 공급자, 모델, 동작 등 변경(파일 브라우저 모드에서 할당)"
 
-#: main.lua:9187
+#: main.lua:9217
 #, fuzzy
 msgid "Set them up in KOReader Settings (Gear icon) → Taps and Gestures."
 msgstr "KOReader 설정(톱니바퀴 아이콘) → 탭 및 제스처에서 설정하세요."
 
-#: main.lua:9227
-#, fuzzy
-msgid "Quick Actions and Quick Settings assigned to tap bottom right corner."
-msgstr "빠른 작업 및 빠른 설정이 오른쪽 하단 모서리 탭에 할당되었습니다."
-
 #: main.lua:9228
 #, fuzzy
-msgid "Please restart KOReader for changes to take effect."
-msgstr "변경 사항을 적용하려면 KOReader를 재시작하세요."
+msgid "GETTING STARTED"
+msgstr "시작하기"
 
-#: main.lua:9380
+#: main.lua:9230
+#, fuzzy
+msgid ""
+"Some features need document text access. Enable in: Settings → Privacy & Data"
+msgstr "일부 기능은 문서 텍스트 접근이 필요합니다. 활성화 위치: 설정 → 개인정보 보호 및 데이터"
+
+#: main.lua:9232
+#, fuzzy
+msgid ""
+"Create or edit prompts: Settings → Actions & Prompts → Manage Actions (or from Quick Settings panel)"
+msgstr "프롬프트 생성 또는 편집: 설정 → 동작 및 프롬프트 → 동작 관리 (또는 빠른 설정 패널에서)"
+
+#: main.lua:9236
+#, fuzzy
+msgid "Gestures assigned. Please restart KOReader for changes to take effect."
+msgstr "제스처가 할당되었습니다. 변경 사항을 적용하려면 KOReader를 재시작하세요."
+
+#: main.lua:9239
+#, fuzzy
+msgid "Enjoy your reading!"
+msgstr "즐거운 독서 되세요!"
+
+#: main.lua:9422
 #, fuzzy
 msgid "No notebook available for this document"
 msgstr "이 문서에 사용할 수 있는 노트북이 없습니다"
 
-#: main.lua:9390
+#: main.lua:9432
 #, fuzzy
 msgid "No notebook exists for this document. Create one?"
 msgstr "이 문서에 대한 노트북이 없습니다. 새로 만드시겠습니까?"
 
-#: main.lua:9400
+#: main.lua:9442
 #, fuzzy
 msgid "Failed to create notebook: %1"
 msgstr "노트북 생성 실패: %1"
 
-#: main.lua:9442
+#: main.lua:9484
 #, fuzzy
 msgid "Notebook is empty"
 msgstr "노트북이 비어 있습니다"
 
-#: main.lua:9491
+#: main.lua:9533
 #, fuzzy
 msgid "Failed to read notebook file."
 msgstr "노트북 파일을 읽지 못했습니다."
 
-#: main.lua:9554
+#: main.lua:9596
 #, fuzzy
 msgid "Notebook saved"
 msgstr "노트북 저장됨"
 
-#: main.lua:9561
+#: main.lua:9603
 #, fuzzy
 msgid "Reset to last saved"
 msgstr "마지막 저장으로 되돌리기"
