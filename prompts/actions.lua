@@ -135,7 +135,7 @@ Actions.highlight = {
         description = _("Explains the selected passage clearly, matching the tone of the source material."),
         context = "highlight",
         template = "explain",
-        in_highlight_menu = 2,  -- Default in highlight menu
+        in_highlight_menu = 4,  -- Default in highlight menu
         -- Uses global behavior variant (full/minimal)
         api_params = {
             temperature = 0.5,  -- More focused for explanations
@@ -173,6 +173,7 @@ Actions.highlight = {
             max_tokens = 4096,
         },
         include_book_context = true,
+        in_highlight_menu = 6,
         builtin = true,
     },
     elaborate = {
@@ -188,7 +189,7 @@ Actions.highlight = {
             max_tokens = 4096,
         },
         include_book_context = true,
-        in_highlight_menu = 6,
+        in_highlight_menu = 5,
         builtin = true,
     },
     connect = {
@@ -443,7 +444,7 @@ Note: The summary may be in a different language than your response language. Tr
         description = _("Searches the web to verify claims in the selected passage, rating accuracy and citing current sources as evidence."),
         context = "highlight",
         include_book_context = true,
-        in_highlight_menu = 4,
+        in_highlight_menu = 8,
         skip_domain = true,  -- Fact-checking format is standardized
         prompt = [[Fact-check this claim or statement:
 
@@ -505,7 +506,7 @@ Focus on what's genuinely new or different from what the text describes. If the 
         local_handler = "xray_lookup",
         requires_open_book = true,
         requires_xray_cache = true,
-        in_highlight_menu = 5,
+        in_highlight_menu = 2,
         in_dictionary_popup = 6,
         no_duplicate = true,
         builtin = true,
@@ -1025,6 +1026,7 @@ If you don't recognize this work or the highlights seem insufficient for meaning
         },
         builtin = true,
         in_reading_features = 3,  -- Appears in Reading Features menu + default gesture
+        in_quick_actions = 5,
     },
     -- Related Thinkers: Intellectual landscape and influences
     related_thinkers = {
@@ -1105,6 +1107,7 @@ This is an overview, not an essay. {conciseness_nudge} {hallucination_nudge}
             max_tokens = 4096,
         },
         builtin = true,
+        in_quick_actions = 7,
     },
     -- Key Arguments (Smart): Thesis and argument analysis using cached summary
     key_arguments_smart = {
@@ -1403,6 +1406,7 @@ What are the most important takeaways? Focus on:
             temperature = 0.5,
         },
         builtin = true,
+        in_quick_actions = 6,
     },
     -- Web-enhanced book actions (force web search on)
     book_reviews = {
