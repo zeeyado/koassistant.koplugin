@@ -1936,9 +1936,9 @@ local INPUT_CONTEXTS = {
         dismissed_key = "_dismissed_input_book_actions",
         action_context = "book",
         has_open_book = true,
-        -- Curated defaults: accessible actions without heavy data extraction requirements
-        default_ids = {"book_info", "xray_simple", "similar_books", "related_thinkers",
-            "key_arguments", "explain_author", "historical_context", "book_reviews"},
+        -- Curated defaults: conversational actions for asking about a book
+        default_ids = {"book_info", "xray_simple", "similar_books", "key_arguments",
+            "extract_insights", "discussion_questions", "explain_author", "book_reviews"},
     },
     book_filebrowser = {
         settings_key = "input_book_fb_actions",
@@ -1954,16 +1954,17 @@ local INPUT_CONTEXTS = {
         action_context = "highlight",
         has_open_book = true,
         -- Curated defaults: core highlight actions without heavy data requirements
-        default_ids = {"explain", "elaborate", "eli5", "translate", "summarize",
-            "fact_check", "connect", "current_context"},
+        default_ids = {"translate", "eli5", "explain", "elaborate", "summarize",
+            "connect", "fact_check", "explain_in_context_smart"},
     },
     xray_chat = {
         settings_key = "input_xray_chat_actions",
         dismissed_key = "_dismissed_input_xray_chat_actions",
         action_context = "highlight",
         has_open_book = true,
-        -- Curated defaults: only these actions appear by default
-        default_ids = {"explain", "elaborate", "eli5", "fact_check"},
+        -- Curated defaults: core actions + context-aware smart actions for X-Ray items
+        default_ids = {"explain", "elaborate", "eli5", "fact_check",
+            "explain_in_context_smart", "thematic_connection_smart", "connect"},
     },
 }
 
