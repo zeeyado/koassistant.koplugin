@@ -6,8 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: KOAssistant 0.12.0-dev\n"
-"Report-Msgid-Bugs-To: https://github.com/zeeyado/koassistant.koplugin/"
-"issues\n"
+"Report-Msgid-Bugs-To: https://github.com/zeeyado/koassistant.koplugin/issues\n"
 "POT-Creation-Date: 2026-02-15 17:22+0000\n"
 "PO-Revision-Date: 2026-01-27 17:48+0000\n"
 "Last-Translator: Automatically generated\n"
@@ -24,8 +23,9 @@ msgid "KOAssistant"
 msgstr "KOAssistant"
 
 #: _meta.lua:5
+#, fuzzy
 msgid "A powerful AI assistant integrated into KOReader"
-msgstr ""
+msgstr "Trợ lý AI mạnh mẽ được tích hợp vào KOReader"
 
 #: koassistant_action_cache.lua:321 koassistant_dialogs.lua:3048
 #: koassistant_dialogs.lua:4016 main.lua:4668
@@ -45,8 +45,9 @@ msgid "Recap"
 msgstr "Tóm tắt lại"
 
 #: koassistant_action_cache.lua:324 prompts/actions.lua:830
+#, fuzzy
 msgid "X-Ray (Simple)"
-msgstr ""
+msgstr "X-Ray (Đơn giản)"
 
 #: koassistant_action_cache.lua:325 prompts/actions.lua:714
 #, fuzzy
@@ -54,16 +55,20 @@ msgid "Book Info"
 msgstr "Thông tin Sách"
 
 #: koassistant_action_cache.lua:326
+#, fuzzy
 msgid "Notes Analysis"
-msgstr ""
+msgstr "Phân tích Ghi chú"
 
 #: koassistant_artifact_browser.lua:89
+#, fuzzy
 msgid ""
 "No artifacts yet.\n"
 "\n"
-"Run X-Ray, Recap, Document Summary, or Document Analysis to create reusable "
-"artifacts."
+"Run X-Ray, Recap, Document Summary, or Document Analysis to create reusable artifacts."
 msgstr ""
+"Chưa có tài liệu tạo sẵn.\n"
+"\n"
+"Chạy X-Ray, Tóm tắt lại, Tóm tắt Tài liệu, hoặc Phân tích Tài liệu để tạo các tài liệu tạo sẵn có thể tái sử dụng."
 
 #: koassistant_artifact_browser.lua:105 koassistant_chat_history_dialog.lua:557
 #: koassistant_notebook_manager.lua:85 koassistant_xray_parser.lua:343
@@ -80,16 +85,19 @@ msgstr "Không xác định"
 #: koassistant_chat_history_dialog.lua:185
 #: koassistant_chat_history_dialog.lua:242 koassistant_chatgptviewer.lua:2142
 #: koassistant_notebook_manager.lua:271
+#, fuzzy
 msgid "Artifacts"
-msgstr ""
+msgstr "Tài liệu tạo sẵn"
 
 #: koassistant_artifact_browser.lua:190
+#, fuzzy
 msgid "No artifacts found for this document."
-msgstr ""
+msgstr "Không tìm thấy tài liệu tạo sẵn cho tài liệu này."
 
 #: koassistant_artifact_browser.lua:198
+#, fuzzy
 msgid "Could not open viewer."
-msgstr ""
+msgstr "Không thể mở trình xem."
 
 #: koassistant_artifact_browser.lua:208 koassistant_artifact_browser.lua:261
 #: koassistant_chatgptviewer.lua:2150 koassistant_notebook_manager.lua:172
@@ -101,8 +109,9 @@ msgstr "Xem"
 #: koassistant_artifact_browser.lua:224 koassistant_chat_history_dialog.lua:788
 #: koassistant_chat_history_dialog.lua:935 koassistant_notebook_manager.lua:194
 #: koassistant_xray_browser.lua:2926 koassistant_xray_browser.lua:3016
+#, fuzzy
 msgid "Open Book"
-msgstr ""
+msgstr "Mở Sách"
 
 #: koassistant_artifact_browser.lua:236 koassistant_artifact_browser.lua:296
 #: koassistant_chat_history_dialog.lua:827
@@ -163,15 +172,20 @@ msgid "Cancel"
 msgstr "Hủy"
 
 #: koassistant_artifact_browser.lua:270
+#, fuzzy
 msgid "Delete All"
-msgstr ""
+msgstr "Xóa Tất cả"
 
 #: koassistant_artifact_browser.lua:274
+#, fuzzy
 msgid ""
 "Delete all artifacts for this document?\n"
 "\n"
 "This cannot be undone."
 msgstr ""
+"Xóa tất cả tài liệu tạo sẵn cho tài liệu này?\n"
+"\n"
+"Hành động này không thể hoàn tác."
 
 #: koassistant_artifact_browser.lua:275 koassistant_chat_history_dialog.lua:58
 #: koassistant_chat_history_dialog.lua:137
@@ -188,8 +202,9 @@ msgid "Delete"
 msgstr "Xóa"
 
 #: koassistant_artifact_browser.lua:284
+#, fuzzy
 msgid "All artifacts deleted"
-msgstr ""
+msgstr "Đã xóa tất cả tài liệu tạo sẵn"
 
 #: koassistant_artifact_browser.lua:373 koassistant_chat_history_dialog.lua:199
 #: koassistant_chat_history_dialog.lua:256
@@ -367,8 +382,9 @@ msgid "Chats: %1"
 msgstr "Trò chuyện: %1"
 
 #: koassistant_chat_history_dialog.lua:802
+#, fuzzy
 msgid "Delete All Chats"
-msgstr ""
+msgstr "Xóa Tất cả Đoạn Chat"
 
 #: koassistant_chat_history_dialog.lua:850
 #: koassistant_chat_history_dialog.lua:1403
@@ -417,8 +433,9 @@ msgstr "Xuất"
 
 #: koassistant_chat_history_dialog.lua:946
 #: koassistant_chat_history_dialog.lua:957
+#, fuzzy
 msgid "Delete Chat"
-msgstr ""
+msgstr "Xóa Đoạn Chat"
 
 #: koassistant_chat_history_dialog.lua:969
 #: koassistant_chat_history_dialog.lua:996
@@ -1088,8 +1105,9 @@ msgid "Copied to clipboard"
 msgstr "Đã sao chép vào clipboard"
 
 #: koassistant_chatgptviewer.lua:2175 koassistant_xray_browser.lua:2992
+#, fuzzy
 msgid "Other Artifacts"
-msgstr ""
+msgstr "Tài liệu tạo sẵn Khác"
 
 #: koassistant_chatgptviewer.lua:2250 koassistant_xray_browser.lua:2913
 #: main.lua:8702 koassistant_ui/prompts_manager.lua:1568
@@ -1132,8 +1150,9 @@ msgid "summary"
 msgstr "tóm tắt"
 
 #: koassistant_chatgptviewer.lua:2305
+#, fuzzy
 msgid "Open Doc"
-msgstr ""
+msgstr "Mở Tài liệu"
 
 #: koassistant_chatgptviewer.lua:2322
 #, fuzzy
@@ -1217,15 +1236,13 @@ msgstr "Tạo lại hoàn toàn"
 msgid ""
 "This response was updated from a cached analysis at %1.\n"
 "\n"
-"Clearing the cache will extract and send all book text again on next run, "
-"which uses more tokens.\n"
+"Clearing the cache will extract and send all book text again on next run, which uses more tokens.\n"
 "\n"
 "Clear cache for this action?"
 msgstr ""
 "Phản hồi này đã được cập nhật từ phân tích đã lưu tại %1.\n"
 "\n"
-"Xóa bộ nhớ đệm sẽ trích xuất và gửi toàn bộ văn bản sách lại trong lần chạy "
-"tiếp theo, việc này sử dụng nhiều token hơn.\n"
+"Xóa bộ nhớ đệm sẽ trích xuất và gửi toàn bộ văn bản sách lại trong lần chạy tiếp theo, việc này sử dụng nhiều token hơn.\n"
 "\n"
 "Xóa bộ nhớ đệm cho hành động này?"
 
@@ -1377,8 +1394,9 @@ msgstr "Dịch trang"
 
 #: koassistant_constants.lua:131 koassistant_constants.lua:185
 #: koassistant_settings_schema.lua:31 main.lua:5722
+#, fuzzy
 msgid "Book Chat/Action"
-msgstr ""
+msgstr "Chat/Hành động Sách"
 
 #: koassistant_constants.lua:132 koassistant_constants.lua:184 main.lua:5693
 #, fuzzy
@@ -1465,8 +1483,9 @@ msgid "D.Bypass"
 msgstr "Bỏ Q. D.Bypass"
 
 #: koassistant_constants.lua:179
+#, fuzzy
 msgid "Text Extraction"
-msgstr ""
+msgstr "Trích xuất Văn bản"
 
 #: koassistant_constants.lua:181 koassistant_settings_schema.lua:55
 #: main.lua:5666
@@ -1476,8 +1495,9 @@ msgstr "Duyệt Sổ tay"
 
 #: koassistant_constants.lua:182 koassistant_settings_schema.lua:62
 #: main.lua:5675
+#, fuzzy
 msgid "Browse Artifacts"
-msgstr ""
+msgstr "Duyệt Tài liệu tạo sẵn"
 
 #: koassistant_constants.lua:186 koassistant_settings_schema.lua:991
 #: main.lua:5702 koassistant_ui/prompts_manager.lua:456
@@ -1543,13 +1563,8 @@ msgstr "Lưu trò chuyện thất bại:"
 #: koassistant_dialogs.lua:1333
 #, fuzzy
 msgid ""
-"This conversation is using approximately %1K tokens. Each follow-up resends "
-"the full history. Consider starting a new chat to reduce costs and maintain "
-"quality."
-msgstr ""
-"Cuộc trò chuyện này đang sử dụng khoảng %1K token. Mỗi lần tiếp tục sẽ gửi "
-"lại toàn bộ lịch sử. Hãy cân nhắc bắt đầu cuộc trò chuyện mới để giảm chi "
-"phí và duy trì chất lượng."
+"This conversation is using approximately %1K tokens. Each follow-up resends the full history. Consider starting a new chat to reduce costs and maintain quality."
+msgstr "Cuộc trò chuyện này đang sử dụng khoảng %1K token. Mỗi lần tiếp tục sẽ gửi lại toàn bộ lịch sử. Hãy cân nhắc bắt đầu cuộc trò chuyện mới để giảm chi phí và duy trì chất lượng."
 
 #: koassistant_dialogs.lua:1656
 #, fuzzy
@@ -1577,13 +1592,18 @@ msgid "Summary generation failed. Please try again."
 msgstr "Tạo tóm tắt thất bại. Vui lòng thử lại."
 
 #: koassistant_dialogs.lua:1942 main.lua:4351
+#, fuzzy
 msgid ""
 "Text extraction is required to generate this artifact.\n"
 "\n"
 "Enable it in Settings → Privacy & Data → Text Extraction."
 msgstr ""
+"Trích xuất văn bản là bắt buộc để tạo tài liệu tạo sẵn này.\n"
+"\n"
+"Bật nó trong Cài đặt → Quyền riêng tư & Dữ liệu → Trích xuất Văn bản."
 
 #: koassistant_dialogs.lua:1950
+#, fuzzy
 msgid ""
 "Smart actions use a shared document summary for context.\n"
 "\n"
@@ -1592,6 +1612,12 @@ msgid ""
 "• Saved as a viewable artifact\n"
 "• Uses your text extraction settings"
 msgstr ""
+"Hành động Smart sử dụng bản tóm tắt tài liệu chung để làm ngữ cảnh.\n"
+"\n"
+"Tạo bản tóm tắt cho cuốn sách này?\n"
+"• Một lần — được tái sử dụng bởi tất cả hành động Smart trên cuốn sách này\n"
+"• Được lưu như một tài liệu tạo sẵn có thể xem\n"
+"• Sử dụng cài đặt trích xuất văn bản của bạn"
 
 #: koassistant_dialogs.lua:1951
 #, fuzzy
@@ -1599,40 +1625,47 @@ msgid "Generate"
 msgstr "Tạo"
 
 #: koassistant_dialogs.lua:2620
+#, fuzzy
 msgid ""
-"Large text extraction: ~%1K characters (~%2K tokens). Make sure your model's "
-"context window can accommodate this.\n"
+"Large text extraction: ~%1K characters (~%2K tokens). Make sure your model's context window can accommodate this.\n"
 "\n"
 "You can also use Hidden Flows to exclude irrelevant sections of the document."
 msgstr ""
+"Trích xuất văn bản lớn: ~%1K ký tự (~%2K token). Đảm bảo cửa sổ ngữ cảnh của mô hình có thể chứa được.\n"
+"\n"
+"Bạn cũng có thể sử dụng Hidden Flows để loại trừ các phần không liên quan của tài liệu."
 
 #: koassistant_dialogs.lua:2629
+#, fuzzy
 msgid "Continue"
-msgstr ""
+msgstr "Tiếp tục"
 
 #: koassistant_dialogs.lua:2636 koassistant_dialogs.lua:2703
+#, fuzzy
 msgid "Don't warn again"
-msgstr ""
+msgstr "Không cảnh báo lại"
 
 #: koassistant_dialogs.lua:2672
+#, fuzzy
 msgid "Extracted text was truncated (covers %1%–%2% of the document)."
-msgstr ""
+msgstr "Văn bản trích xuất đã bị cắt bớt (bao gồm %1%–%2% tài liệu)."
 
 #: koassistant_dialogs.lua:2677
+#, fuzzy
 msgid ""
-"New text since last update was truncated (covers %1%–%2% of the update "
-"range)."
-msgstr ""
+"New text since last update was truncated (covers %1%–%2% of the update range)."
+msgstr "Văn bản mới kể từ lần cập nhật cuối đã bị cắt bớt (bao gồm %1%–%2% phạm vi cập nhật)."
 
 #: koassistant_dialogs.lua:2684
+#, fuzzy
 msgid ""
-"You can increase the limit in Settings → Privacy & Data → Text Extraction, "
-"or use Hidden Flows to exclude irrelevant sections."
-msgstr ""
+"You can increase the limit in Settings → Privacy & Data → Text Extraction, or use Hidden Flows to exclude irrelevant sections."
+msgstr "Bạn có thể tăng giới hạn trong Cài đặt → Quyền riêng tư & Dữ liệu → Trích xuất Văn bản, hoặc sử dụng Hidden Flows để loại trừ các phần không liên quan."
 
 #: koassistant_dialogs.lua:2696
+#, fuzzy
 msgid "Continue Anyway"
-msgstr ""
+msgstr "Vẫn Tiếp tục"
 
 #: koassistant_dialogs.lua:2746 koassistant_dialogs.lua:3949 main.lua:400
 #: main.lua:3888
@@ -1665,12 +1698,14 @@ msgid "Select Domain"
 msgstr "Chọn Lĩnh vực"
 
 #: koassistant_dialogs.lua:2991
+#, fuzzy
 msgid "Web ON"
-msgstr ""
+msgstr "Web BẬT"
 
 #: koassistant_dialogs.lua:2991
+#, fuzzy
 msgid "Web OFF"
-msgstr ""
+msgstr "Web TẮT"
 
 #: koassistant_dialogs.lua:3063 koassistant_dialogs.lua:3267
 #: koassistant_dialogs.lua:4043
@@ -1679,8 +1714,9 @@ msgid "Error: "
 msgstr "Lỗi:"
 
 #: koassistant_dialogs.lua:3127
+#, fuzzy
 msgid "Toggle web search for AI requests"
-msgstr ""
+msgstr "Bật/tắt tìm kiếm web cho yêu cầu AI"
 
 #: koassistant_dialogs.lua:3134
 #, fuzzy
@@ -1688,8 +1724,9 @@ msgid "Domain: "
 msgstr "Lĩnh vực:"
 
 #: koassistant_dialogs.lua:3147
+#, fuzzy
 msgid "Type a message first, or tap an action button."
-msgstr ""
+msgstr "Nhập tin nhắn trước, hoặc chạm vào nút hành động."
 
 #: koassistant_dialogs.lua:3263
 #, fuzzy
@@ -1697,20 +1734,21 @@ msgid "Chat"
 msgstr "Trò chuyện"
 
 #: koassistant_dialogs.lua:3281
+#, fuzzy
 msgid ""
-"Send your typed message (or the selected text) as a freeform chat to the AI, "
-"without using any action template."
-msgstr ""
+"Send your typed message (or the selected text) as a freeform chat to the AI, without using any action template."
+msgstr "Gửi tin nhắn đã nhập (hoặc văn bản đã chọn) dưới dạng chat tự do đến AI, không sử dụng mẫu hành động nào."
 
 #: koassistant_dialogs.lua:3283
+#, fuzzy
 msgid ""
-"Send your typed message as a freeform chat to the AI, without using any "
-"action template."
-msgstr ""
+"Send your typed message as a freeform chat to the AI, without using any action template."
+msgstr "Gửi tin nhắn đã nhập dưới dạng chat tự do đến AI, không sử dụng mẫu hành động nào."
 
 #: koassistant_dialogs.lua:3388 koassistant_dialogs.lua:3542
+#, fuzzy
 msgid "Show More Actions…"
-msgstr ""
+msgstr "Hiện Thêm Hành động…"
 
 #: koassistant_dialogs.lua:3506
 #, fuzzy
@@ -1723,12 +1761,14 @@ msgid "Type your question or additional instructions for any action..."
 msgstr "Nhập câu hỏi hoặc hướng dẫn bổ sung cho bất kỳ hành động nào..."
 
 #: koassistant_dialogs.lua:3531
+#, fuzzy
 msgid "Choose and Sort Actions…"
-msgstr ""
+msgstr "Chọn và Sắp xếp Hành động…"
 
 #: koassistant_dialogs.lua:3542
+#, fuzzy
 msgid "Show Fewer Actions"
-msgstr ""
+msgstr "Hiện Ít Hành động Hơn"
 
 #: koassistant_dialogs.lua:3606
 #, fuzzy
@@ -1752,45 +1792,55 @@ msgid "%1 deleted"
 msgstr "Đã xóa %1"
 
 #: koassistant_dialogs.lua:3707
+#, fuzzy
 msgid "No book open. X-Ray lookup requires an open book."
-msgstr ""
+msgstr "Không có sách mở. Tra cứu X-Ray yêu cầu một cuốn sách đang mở."
 
 #: koassistant_dialogs.lua:3719
+#, fuzzy
 msgid ""
 "No X-Ray cache found for this book. Generate one first via the X-Ray action."
-msgstr ""
+msgstr "Không tìm thấy bộ nhớ đệm X-Ray cho cuốn sách này. Hãy tạo một cái trước qua hành động X-Ray."
 
 #: koassistant_dialogs.lua:3731
+#, fuzzy
 msgid "Could not parse X-Ray data. Try regenerating the X-Ray cache."
-msgstr ""
+msgstr "Không thể phân tích dữ liệu X-Ray. Thử tạo lại bộ nhớ đệm X-Ray."
 
 #: koassistant_dialogs.lua:3750
+#, fuzzy
 msgid "No results for \"%1\" in X-Ray."
-msgstr ""
+msgstr "Không có kết quả cho \"%1\" trong X-Ray."
 
 #: koassistant_dialogs.lua:3754
+#, fuzzy
 msgid "X-Ray covers to %1% (you're at %2%). Updating may find this entry."
-msgstr ""
+msgstr "X-Ray bao gồm đến %1% (bạn đang ở %2%). Cập nhật có thể tìm thấy mục này."
 
 #: koassistant_dialogs.lua:3785 main.lua:4249
+#, fuzzy
 msgid "X-Ray covers to %1%"
-msgstr ""
+msgstr "X-Ray bao gồm đến %1%"
 
 #: koassistant_dialogs.lua:3786 main.lua:4253
+#, fuzzy
 msgid "You're now at %1%."
-msgstr ""
+msgstr "Bạn hiện đang ở %1%."
 
 #: koassistant_dialogs.lua:3793 koassistant_xray_browser.lua:2831 main.lua:4261
+#, fuzzy
 msgid "Update X-Ray (to %1)"
-msgstr ""
+msgstr "Cập nhật X-Ray (đến %1)"
 
 #: koassistant_dialogs.lua:3807 main.lua:4275
+#, fuzzy
 msgid "Don't remind me this session"
-msgstr ""
+msgstr "Không nhắc tôi trong phiên này"
 
 #: koassistant_dialogs.lua:3833
+#, fuzzy
 msgid "Unknown local action handler"
-msgstr ""
+msgstr "Trình xử lý hành động cục bộ không xác định"
 
 #: koassistant_dialogs.lua:3852
 #, fuzzy
@@ -1812,17 +1862,16 @@ msgstr "Khởi động tiến trình phụ cho yêu cầu thất bại"
 msgid ""
 "No notebooks yet.\n"
 "\n"
-"Use the NB button in chat viewer to save conversations to a per-book "
-"notebook."
+"Use the NB button in chat viewer to save conversations to a per-book notebook."
 msgstr ""
 "Chưa có sổ tay nào.\n"
 "\n"
-"Sử dụng nút NB trong trình xem trò chuyện để lưu cuộc hội thoại vào sổ tay "
-"theo từng sách."
+"Sử dụng nút NB trong trình xem trò chuyện để lưu cuộc hội thoại vào sổ tay theo từng sách."
 
 #: koassistant_notebook_manager.lua:206
+#, fuzzy
 msgid "Delete Notebook"
-msgstr ""
+msgstr "Xóa Sổ tay"
 
 #: koassistant_notebook_manager.lua:210
 #, fuzzy
@@ -1872,8 +1921,9 @@ msgid "Display Settings"
 msgstr "Cài đặt Hiển thị"
 
 #: koassistant_settings_schema.lua:134
+#, fuzzy
 msgid "Rendering"
-msgstr ""
+msgstr "Đang Kết xuất"
 
 #: koassistant_settings_schema.lua:139 koassistant_ui/prompts_manager.lua:2061
 #, fuzzy
@@ -1893,11 +1943,8 @@ msgstr "Văn bản Thuần"
 #: koassistant_settings_schema.lua:146
 #, fuzzy
 msgid ""
-"Markdown renders formatting. Plain Text has better font support for Arabic/"
-"CJK."
-msgstr ""
-"Markdown hiển thị định dạng. Văn bản Thuần hỗ trợ phông chữ tốt hơn cho "
-"tiếng Ả Rập/CJK."
+"Markdown renders formatting. Plain Text has better font support for Arabic/CJK."
+msgstr "Markdown hiển thị định dạng. Văn bản Thuần hỗ trợ phông chữ tốt hơn cho tiếng Ả Rập/CJK."
 
 #: koassistant_settings_schema.lua:151
 #, fuzzy
@@ -1912,11 +1959,8 @@ msgstr "Áp dụng Loại bỏ Markdown"
 #: koassistant_settings_schema.lua:159
 #, fuzzy
 msgid ""
-"Convert markdown syntax to readable plain text (headers, lists, etc). "
-"Disable to show raw markdown."
-msgstr ""
-"Chuyển đổi cú pháp markdown thành văn bản thuần dễ đọc (tiêu đề, danh sách, "
-"v.v.). Tắt để hiển thị markdown thô."
+"Convert markdown syntax to readable plain text (headers, lists, etc). Disable to show raw markdown."
+msgstr "Chuyển đổi cú pháp markdown thành văn bản thuần dễ đọc (tiêu đề, danh sách, v.v.). Tắt để hiển thị markdown thô."
 
 #: koassistant_settings_schema.lua:169
 #, fuzzy
@@ -1926,11 +1970,8 @@ msgstr "Chế độ Văn bản cho Từ điển"
 #: koassistant_settings_schema.lua:172
 #, fuzzy
 msgid ""
-"Use Plain Text mode for dictionary popup. Better font support for non-Latin "
-"scripts."
-msgstr ""
-"Sử dụng chế độ Văn bản Thuần cho cửa sổ từ điển. Hỗ trợ phông chữ tốt hơn "
-"cho chữ viết không phải Latinh."
+"Use Plain Text mode for dictionary popup. Better font support for non-Latin scripts."
+msgstr "Sử dụng chế độ Văn bản Thuần cho cửa sổ từ điển. Hỗ trợ phông chữ tốt hơn cho chữ viết không phải Latinh."
 
 #: koassistant_settings_schema.lua:177
 #, fuzzy
@@ -1940,12 +1981,8 @@ msgstr "Chế độ Văn bản cho Từ điển RTL"
 #: koassistant_settings_schema.lua:184
 #, fuzzy
 msgid ""
-"Use Plain Text mode for dictionary popup when dictionary language is Arabic, "
-"Persian, or Urdu. Grayed out when Text Mode for Dictionary is enabled."
-msgstr ""
-"Sử dụng chế độ Văn bản Thuần cho cửa sổ từ điển khi ngôn ngữ từ điển là "
-"tiếng Ả Rập, Ba Tư hoặc Urdu. Bị vô hiệu hóa khi Chế độ Văn bản cho Từ điển "
-"được bật."
+"Use Plain Text mode for dictionary popup when dictionary language is Arabic, Persian, or Urdu. Grayed out when Text Mode for Dictionary is enabled."
+msgstr "Sử dụng chế độ Văn bản Thuần cho cửa sổ từ điển khi ngôn ngữ từ điển là tiếng Ả Rập, Ba Tư hoặc Urdu. Bị vô hiệu hóa khi Chế độ Văn bản cho Từ điển được bật."
 
 #: koassistant_settings_schema.lua:189
 #, fuzzy
@@ -1955,11 +1992,8 @@ msgstr "Chế độ Văn bản cho Dịch thuật RTL"
 #: koassistant_settings_schema.lua:192
 #, fuzzy
 msgid ""
-"Use Plain Text mode for translate popup when translation language is Arabic, "
-"Persian, or Urdu."
-msgstr ""
-"Sử dụng chế độ Văn bản Thuần cho cửa sổ dịch thuật khi ngôn ngữ dịch là "
-"tiếng Ả Rập, Ba Tư hoặc Urdu."
+"Use Plain Text mode for translate popup when translation language is Arabic, Persian, or Urdu."
+msgstr "Sử dụng chế độ Văn bản Thuần cho cửa sổ dịch thuật khi ngôn ngữ dịch là tiếng Ả Rập, Ba Tư hoặc Urdu."
 
 #: koassistant_settings_schema.lua:197
 #, fuzzy
@@ -1969,19 +2003,13 @@ msgstr "Chế độ RTL Tự động cho Trò chuyện"
 #: koassistant_settings_schema.lua:204
 #, fuzzy
 msgid ""
-"Automatically detect RTL content and switch to RTL mode (right-aligned text "
-"+ Plain Text). Activates when the latest response has more RTL than Latin "
-"characters. Disabling removes all automatic RTL adjustments. Grayed out when "
-"markdown is disabled."
-msgstr ""
-"Tự động phát hiện nội dung RTL và chuyển sang chế độ RTL (văn bản căn phải + "
-"Văn bản Thuần). Kích hoạt khi phản hồi mới nhất có nhiều ký tự RTL hơn ký tự "
-"Latinh. Vô hiệu hóa sẽ xóa tất cả điều chỉnh RTL tự động. Bị vô hiệu hóa khi "
-"markdown bị tắt."
+"Automatically detect RTL content and switch to RTL mode (right-aligned text + Plain Text). Activates when the latest response has more RTL than Latin characters. Disabling removes all automatic RTL adjustments. Grayed out when markdown is disabled."
+msgstr "Tự động phát hiện nội dung RTL và chuyển sang chế độ RTL (văn bản căn phải + Văn bản Thuần). Kích hoạt khi phản hồi mới nhất có nhiều ký tự RTL hơn ký tự Latinh. Vô hiệu hóa sẽ xóa tất cả điều chỉnh RTL tự động. Bị vô hiệu hóa khi markdown bị tắt."
 
 #: koassistant_settings_schema.lua:211
+#, fuzzy
 msgid "Emoji"
-msgstr ""
+msgstr "Biểu tượng cảm xúc"
 
 #: koassistant_settings_schema.lua:216
 #, fuzzy
@@ -1991,23 +2019,19 @@ msgstr "Biểu tượng Emoji trong Menu"
 #: koassistant_settings_schema.lua:219
 #, fuzzy
 msgid ""
-"Show emoji icons (🔍, 📖) in UI buttons and status indicators. Requires "
-"emoji font support in KOReader. Does not work on all devices. If icons "
-"appear as question marks, disable this option."
-msgstr ""
-"Hiển thị biểu tượng emoji (🔍, 📖) trong các nút giao diện và chỉ báo trạng "
-"thái. Yêu cầu hỗ trợ phông chữ emoji trong KOReader. Không hoạt động trên "
-"tất cả thiết bị. Nếu biểu tượng hiển thị dạng dấu hỏi, hãy tắt tùy chọn này."
+"Show emoji icons (🔍, 📖) in UI buttons and status indicators. Requires emoji font support in KOReader. Does not work on all devices. If icons appear as question marks, disable this option."
+msgstr "Hiển thị biểu tượng emoji (🔍, 📖) trong các nút giao diện và chỉ báo trạng thái. Yêu cầu hỗ trợ phông chữ emoji trong KOReader. Không hoạt động trên tất cả thiết bị. Nếu biểu tượng hiển thị dạng dấu hỏi, hãy tắt tùy chọn này."
 
 #: koassistant_settings_schema.lua:224
+#, fuzzy
 msgid "Emoji Panel Icons"
-msgstr ""
+msgstr "Biểu tượng Bảng Emoji"
 
 #: koassistant_settings_schema.lua:227
+#, fuzzy
 msgid ""
-"Show emoji icons on Quick Settings and Quick Actions panel buttons (🔗 "
-"Provider, 🎭 Behavior, 📜 Chat History, etc.). Requires emoji font support."
-msgstr ""
+"Show emoji icons on Quick Settings and Quick Actions panel buttons (🔗 Provider, 🎭 Behavior, 📜 Chat History, etc.). Requires emoji font support."
+msgstr "Hiển thị biểu tượng emoji trên các nút của bảng Cài Đặt Nhanh và Thao Tác Nhanh (🔗 Nhà Cung Cấp, 🎭 Hành Vi, 📜 Lịch Sử Trò Chuyện, v.v.). Yêu cầu hỗ trợ phông chữ emoji."
 
 #: koassistant_settings_schema.lua:232
 #, fuzzy
@@ -2017,41 +2041,40 @@ msgstr "Chỉ báo Truy cập Dữ liệu bằng Emoji"
 #: koassistant_settings_schema.lua:235
 #, fuzzy
 msgid ""
-"Show emoji indicators on action names showing what data they access: 📄 "
-"document text, 📝 annotations, 📓 notebook, 🌐 web search. Requires emoji "
-"font support."
-msgstr ""
-"Hiển thị chỉ báo emoji trên tên hành động cho biết dữ liệu nào được truy "
-"cập: 📄 văn bản tài liệu, 📝 chú thích, 📓 sổ tay, 🌐 tìm kiếm web. Yêu cầu "
-"hỗ trợ phông chữ emoji."
+"Show emoji indicators on action names showing what data they access: 📄 document text, 📝 annotations, 📓 notebook, 🌐 web search. Requires emoji font support."
+msgstr "Hiển thị chỉ báo emoji trên tên hành động cho biết dữ liệu nào được truy cập: 📄 văn bản tài liệu, 📝 chú thích, 📓 sổ tay, 🌐 tìm kiếm web. Yêu cầu hỗ trợ phông chữ emoji."
 
 #: koassistant_settings_schema.lua:242
+#, fuzzy
 msgid "Panel Alignment"
-msgstr ""
+msgstr "Căn Chỉnh Bảng"
 
 #: koassistant_settings_schema.lua:247
+#, fuzzy
 msgid "Align Quick Settings"
-msgstr ""
+msgstr "Căn Chỉnh Cài Đặt Nhanh"
 
 #: koassistant_settings_schema.lua:250
+#, fuzzy
 msgid ""
-"Left-align button text in the Quick Settings panel instead of centering. "
-"Also available from the panel's gear menu."
-msgstr ""
+"Left-align button text in the Quick Settings panel instead of centering. Also available from the panel's gear menu."
+msgstr "Căn trái văn bản nút trong bảng Cài Đặt Nhanh thay vì căn giữa. Cũng có sẵn từ menu bánh răng của bảng."
 
 #: koassistant_settings_schema.lua:255
+#, fuzzy
 msgid "Align Quick Actions"
-msgstr ""
+msgstr "Căn Chỉnh Thao Tác Nhanh"
 
 #: koassistant_settings_schema.lua:258
+#, fuzzy
 msgid ""
-"Left-align button text in the Quick Actions panel instead of centering. Also "
-"available from the panel's gear menu."
-msgstr ""
+"Left-align button text in the Quick Actions panel instead of centering. Also available from the panel's gear menu."
+msgstr "Căn trái văn bản nút trong bảng Thao Tác Nhanh thay vì căn giữa. Cũng có sẵn từ menu bánh răng của bảng."
 
 #: koassistant_settings_schema.lua:265
+#, fuzzy
 msgid "Highlights"
-msgstr ""
+msgstr "Đánh Dấu"
 
 #: koassistant_settings_schema.lua:270
 #, fuzzy
@@ -2076,11 +2099,8 @@ msgstr "Ngôn ngữ Giao diện Plugin"
 #: koassistant_settings_schema.lua:302
 #, fuzzy
 msgid ""
-"Language for plugin menus and dialogs. Does not affect AI responses. "
-"Requires restart."
-msgstr ""
-"Ngôn ngữ cho menu và hộp thoại của plugin. Không ảnh hưởng đến phản hồi AI. "
-"Yêu cầu khởi động lại."
+"Language for plugin menus and dialogs. Does not affect AI responses. Requires restart."
+msgstr "Ngôn ngữ cho menu và hộp thoại của plugin. Không ảnh hưởng đến phản hồi AI. Yêu cầu khởi động lại."
 
 #: koassistant_settings_schema.lua:304
 #, fuzzy
@@ -2093,8 +2113,9 @@ msgid "Please restart KOReader for the language change to take effect."
 msgstr "Vui lòng khởi động lại KOReader để thay đổi ngôn ngữ có hiệu lực."
 
 #: koassistant_settings_schema.lua:342
+#, fuzzy
 msgid "Chat & Export Settings"
-msgstr ""
+msgstr "Cài Đặt Trò Chuyện & Xuất"
 
 #: koassistant_settings_schema.lua:348
 #, fuzzy
@@ -2107,8 +2128,9 @@ msgid "Auto-save Continued Chats"
 msgstr "Tự động Lưu Trò chuyện Tiếp tục"
 
 #: koassistant_settings_schema.lua:365
+#, fuzzy
 msgid "Streaming"
-msgstr ""
+msgstr "Truyền Tải"
 
 #: koassistant_settings_schema.lua:370 koassistant_settings_schema.lua:733
 #: koassistant_settings_schema.lua:846
@@ -2122,15 +2144,15 @@ msgid "Auto-scroll Streaming"
 msgstr "Tự động Cuộn Truyền phát"
 
 #: koassistant_settings_schema.lua:385
+#, fuzzy
 msgid "Page-based Scroll (e-ink)"
-msgstr ""
+msgstr "Cuộn Theo Trang (e-ink)"
 
 #: koassistant_settings_schema.lua:392
+#, fuzzy
 msgid ""
-"Stream text into empty page space instead of scrolling from the bottom. "
-"Reduces full-screen refreshes on e-ink. Disable for continuous bottom-"
-"scrolling."
-msgstr ""
+"Stream text into empty page space instead of scrolling from the bottom. Reduces full-screen refreshes on e-ink. Disable for continuous bottom-scrolling."
+msgstr "Truyền văn bản vào không gian trang trống thay vì cuộn từ dưới lên. Giảm làm mới toàn màn hình trên e-ink. Tắt để cuộn liên tục từ dưới lên."
 
 #: koassistant_settings_schema.lua:397
 #, fuzzy
@@ -2173,12 +2195,8 @@ msgstr "Cuộn đến Tin nhắn Cuối cùng (Thử nghiệm)"
 #: koassistant_settings_schema.lua:436
 #, fuzzy
 msgid ""
-"When resuming or replying to a chat, try to scroll so your last question is "
-"visible. When off, shows top for new chats and bottom for replies."
-msgstr ""
-"Khi tiếp tục hoặc trả lời trò chuyện, cố gắng cuộn để câu hỏi cuối cùng của "
-"bạn hiển thị. Khi tắt, hiển thị đầu trang cho trò chuyện mới và cuối trang "
-"cho trả lời."
+"When resuming or replying to a chat, try to scroll so your last question is visible. When off, shows top for new chats and bottom for replies."
+msgstr "Khi tiếp tục hoặc trả lời trò chuyện, cố gắng cuộn để câu hỏi cuối cùng của bạn hiển thị. Khi tắt, hiển thị đầu trang cho trò chuyện mới và cuối trang cho trả lời."
 
 #: koassistant_settings_schema.lua:443 koassistant_settings_schema.lua:1036
 #, fuzzy
@@ -2194,9 +2212,7 @@ msgstr "Kiểu Xuất"
 #, fuzzy
 msgid ""
 "Markdown uses # headers and **bold**. Plain text uses simple formatting."
-msgstr ""
-"Markdown sử dụng tiêu đề # và **in đậm**. Văn bản thuần sử dụng định dạng "
-"đơn giản."
+msgstr "Markdown sử dụng tiêu đề # và **in đậm**. Văn bản thuần sử dụng định dạng đơn giản."
 
 #: koassistant_settings_schema.lua:464 koassistant_settings_schema.lua:479
 #: koassistant_settings_schema.lua:495 koassistant_settings_schema.lua:520
@@ -2255,11 +2271,8 @@ msgstr "Thư mục tùy chỉnh"
 #: koassistant_settings_schema.lua:522
 #, fuzzy
 msgid ""
-"Where to save exported chat files. Creates subfolders for book/general/multi-"
-"book chats."
-msgstr ""
-"Nơi lưu các tệp trò chuyện đã xuất. Tạo thư mục con cho trò chuyện sách/"
-"chung/đa sách."
+"Where to save exported chat files. Creates subfolders for book/general/multi-book chats."
+msgstr "Nơi lưu các tệp trò chuyện đã xuất. Tạo thư mục con cho trò chuyện sách/chung/đa sách."
 
 #: koassistant_settings_schema.lua:533
 #, fuzzy
@@ -2284,15 +2297,13 @@ msgstr "Lưu trò chuyện sách cùng với sách"
 #: koassistant_settings_schema.lua:551
 #, fuzzy
 msgid ""
-"When enabled, book chats are saved to a 'chats' subfolder next to the book "
-"file instead of the central location."
-msgstr ""
-"Khi bật, trò chuyện sách được lưu vào thư mục con 'chats' bên cạnh tệp sách "
-"thay vì vị trí trung tâm."
+"When enabled, book chats are saved to a 'chats' subfolder next to the book file instead of the central location."
+msgstr "Khi bật, trò chuyện sách được lưu vào thư mục con 'chats' bên cạnh tệp sách thay vì vị trí trung tâm."
 
 #: koassistant_settings_schema.lua:558
+#, fuzzy
 msgid "Show Export Button in Chat Viewer"
-msgstr ""
+msgstr "Hiển Thị Nút Xuất trong Trình Xem Trò Chuyện"
 
 #: koassistant_settings_schema.lua:561
 #, fuzzy
@@ -2392,8 +2403,7 @@ msgstr "Ký tự Ngữ cảnh"
 #: koassistant_settings_schema.lua:684
 #, fuzzy
 msgid ""
-"Number of characters to include before/after the word when Context Mode is "
-"'Characters'"
+"Number of characters to include before/after the word when Context Mode is 'Characters'"
 msgstr "Số ký tự bao gồm trước/sau từ khi Chế độ Ngữ cảnh là 'Ký tự'"
 
 #: koassistant_settings_schema.lua:693
@@ -2404,13 +2414,8 @@ msgstr "Tắt Tự động lưu cho Từ điển"
 #: koassistant_settings_schema.lua:696
 #, fuzzy
 msgid ""
-"When enabled, dictionary lookups are not auto-saved. When disabled, "
-"dictionary chats follow your general chat saving settings. You can always "
-"save manually from an expanded view."
-msgstr ""
-"Khi bật, tra cứu từ điển không được tự động lưu. Khi tắt, trò chuyện từ điển "
-"tuân theo cài đặt lưu trò chuyện chung của bạn. Bạn luôn có thể lưu thủ công "
-"từ chế độ xem mở rộng."
+"When enabled, dictionary lookups are not auto-saved. When disabled, dictionary chats follow your general chat saving settings. You can always save manually from an expanded view."
+msgstr "Khi bật, tra cứu từ điển không được tự động lưu. Khi tắt, trò chuyện từ điển tuân theo cài đặt lưu trò chuyện chung của bạn. Bạn luôn có thể lưu thủ công từ chế độ xem mở rộng."
 
 #: koassistant_settings_schema.lua:705 koassistant_settings_schema.lua:721
 #: koassistant_settings_schema.lua:858 koassistant_settings_schema.lua:874
@@ -2437,10 +2442,8 @@ msgstr "Nội dung bao gồm khi lưu kết quả từ điển vào ghi chú."
 #: koassistant_settings_schema.lua:736
 #, fuzzy
 msgid ""
-"Stream dictionary responses in real-time. Disable to wait for complete "
-"response."
-msgstr ""
-"Truyền phản hồi từ điển theo thời gian thực. Tắt để đợi phản hồi hoàn chỉnh."
+"Stream dictionary responses in real-time. Disable to wait for complete response."
+msgstr "Truyền phản hồi từ điển theo thời gian thực. Tắt để đợi phản hồi hoàn chỉnh."
 
 #: koassistant_settings_schema.lua:741
 #, fuzzy
@@ -2460,11 +2463,8 @@ msgstr "Bỏ qua Từ điển KOReader"
 #: koassistant_settings_schema.lua:751
 #, fuzzy
 msgid ""
-"Skip KOReader's dictionary and go directly to AI when tapping words. Can "
-"also be toggled via gesture."
-msgstr ""
-"Bỏ qua từ điển KOReader và chuyển thẳng đến AI khi chạm vào từ. Cũng có thể "
-"bật/tắt qua cử chỉ."
+"Skip KOReader's dictionary and go directly to AI when tapping words. Can also be toggled via gesture."
+msgstr "Bỏ qua từ điển KOReader và chuyển thẳng đến AI khi chạm vào từ. Cũng có thể bật/tắt qua cử chỉ."
 
 #: koassistant_settings_schema.lua:772 koassistant_settings_schema.lua:776
 #: koassistant_settings_schema.lua:778 koassistant_settings_schema.lua:960
@@ -2486,13 +2486,8 @@ msgstr "Bỏ qua: Theo Tự động thêm Trình tạo Từ vựng"
 #: koassistant_settings_schema.lua:789
 #, fuzzy
 msgid ""
-"When enabled, dictionary bypass follows KOReader's Vocabulary Builder auto-"
-"add setting. Disable if you use bypass for analysis of words you already "
-"know and don't want them added."
-msgstr ""
-"Khi bật, bỏ qua từ điển tuân theo cài đặt tự động thêm Trình tạo Từ vựng của "
-"KOReader. Tắt nếu bạn dùng bỏ qua để phân tích các từ bạn đã biết và không "
-"muốn chúng được thêm vào."
+"When enabled, dictionary bypass follows KOReader's Vocabulary Builder auto-add setting. Disable if you use bypass for analysis of words you already know and don't want them added."
+msgstr "Khi bật, bỏ qua từ điển tuân theo cài đặt tự động thêm Trình tạo Từ vựng của KOReader. Tắt nếu bạn dùng bỏ qua để phân tích các từ bạn đã biết và không muốn chúng được thêm vào."
 
 #: koassistant_settings_schema.lua:798
 #, fuzzy
@@ -2507,8 +2502,7 @@ msgstr "Dịch sang Ngôn ngữ Chính"
 #: koassistant_settings_schema.lua:808
 #, fuzzy
 msgid ""
-"Use your primary language as the translation target. Disable to choose a "
-"different target."
+"Use your primary language as the translation target. Disable to choose a different target."
 msgstr "Sử dụng ngôn ngữ chính của bạn làm đích dịch. Tắt để chọn đích khác."
 
 #: koassistant_settings_schema.lua:828
@@ -2584,11 +2578,8 @@ msgstr "Ngưỡng Văn Bản Dài"
 #: koassistant_settings_schema.lua:918
 #, fuzzy
 msgid ""
-"Character count above which text is considered 'long'. Used when Original "
-"Text is set to 'Hide Long'."
-msgstr ""
-"Số ký tự mà văn bản được coi là 'dài'. Sử dụng khi Văn Bản Gốc được đặt là "
-"'Ẩn Khi Dài'."
+"Character count above which text is considered 'long'. Used when Original Text is set to 'Hide Long'."
+msgstr "Số ký tự mà văn bản được coi là 'dài'. Sử dụng khi Văn Bản Gốc được đặt là 'Ẩn Khi Dài'."
 
 #: koassistant_settings_schema.lua:927
 #, fuzzy
@@ -2598,12 +2589,8 @@ msgstr "Ẩn Khi Dịch Toàn Trang"
 #: koassistant_settings_schema.lua:930
 #, fuzzy
 msgid ""
-"Always hide original text for full page translations. Overrides all other "
-"visibility settings when enabled. Disable to use your normal Original Text "
-"setting above."
-msgstr ""
-"Luôn ẩn văn bản gốc khi dịch toàn trang. Ghi đè tất cả cài đặt hiển thị khác "
-"khi được bật. Tắt để sử dụng cài đặt Văn Bản Gốc thông thường ở trên."
+"Always hide original text for full page translations. Overrides all other visibility settings when enabled. Disable to use your normal Original Text setting above."
+msgstr "Luôn ẩn văn bản gốc khi dịch toàn trang. Ghi đè tất cả cài đặt hiển thị khác khi được bật. Tắt để sử dụng cài đặt Văn Bản Gốc thông thường ở trên."
 
 #: koassistant_settings_schema.lua:939
 #, fuzzy
@@ -2618,11 +2605,8 @@ msgstr "Bật Bỏ Qua Đánh Dấu"
 #: koassistant_settings_schema.lua:948
 #, fuzzy
 msgid ""
-"Immediately trigger an action when text is selected, skipping the highlight "
-"menu. Can also be toggled via gesture."
-msgstr ""
-"Kích hoạt hành động ngay lập tức khi văn bản được chọn, bỏ qua menu đánh "
-"dấu. Cũng có thể bật/tắt qua cử chỉ."
+"Immediately trigger an action when text is selected, skipping the highlight menu. Can also be toggled via gesture."
+msgstr "Kích hoạt hành động ngay lập tức khi văn bản được chọn, bỏ qua menu đánh dấu. Cũng có thể bật/tắt qua cử chỉ."
 
 #: koassistant_settings_schema.lua:969
 #, fuzzy
@@ -2663,8 +2647,7 @@ msgstr "Quản Lý Lĩnh Vực..."
 #: koassistant_settings_schema.lua:1014
 #, fuzzy
 msgid "Manage knowledge domains. Domains are selected per-chat."
-msgstr ""
-"Quản lý lĩnh vực kiến thức. Lĩnh vực được chọn cho mỗi cuộc trò chuyện."
+msgstr "Quản lý lĩnh vực kiến thức. Lĩnh vực được chọn cho mỗi cuộc trò chuyện."
 
 #: koassistant_settings_schema.lua:1029
 #, fuzzy
@@ -2685,12 +2668,10 @@ msgstr "Hỏi & Đáp Đầy Đủ (khuyến nghị)"
 #, fuzzy
 msgid ""
 "What to include when saving to notebook.\n"
-"Full Q&A includes all context messages + highlighted text + question + "
-"response."
+"Full Q&A includes all context messages + highlighted text + question + response."
 msgstr ""
 "Nội dung được lưu vào sổ ghi chú.\n"
-"Hỏi & Đáp đầy đủ bao gồm tất cả tin nhắn ngữ cảnh + văn bản được đánh dấu + "
-"câu hỏi + phản hồi."
+"Hỏi & Đáp đầy đủ bao gồm tất cả tin nhắn ngữ cảnh + văn bản được đánh dấu + câu hỏi + phản hồi."
 
 #: koassistant_settings_schema.lua:1049
 #, fuzzy
@@ -2710,11 +2691,8 @@ msgstr "KOReader"
 #: koassistant_settings_schema.lua:1056
 #, fuzzy
 msgid ""
-"Chat Viewer shows notebook with editing and export buttons. KOReader opens "
-"as a full document with navigation."
-msgstr ""
-"Trình xem Trò chuyện hiển thị sổ tay với nút chỉnh sửa và xuất. KOReader mở "
-"như một tài liệu đầy đủ với điều hướng."
+"Chat Viewer shows notebook with editing and export buttons. KOReader opens as a full document with navigation."
+msgstr "Trình xem Trò chuyện hiển thị sổ tay với nút chỉnh sửa và xuất. KOReader mở như một tài liệu đầy đủ với điều hướng."
 
 #: koassistant_settings_schema.lua:1062
 #, fuzzy
@@ -2734,11 +2712,8 @@ msgstr "Chỉ cho sách có sổ ghi chú"
 #: koassistant_settings_schema.lua:1074
 #, fuzzy
 msgid ""
-"Only show button if notebook already exists. Disable to allow creating new "
-"notebooks from file browser."
-msgstr ""
-"Chỉ hiển thị nút nếu sổ ghi chú đã tồn tại. Tắt để cho phép tạo sổ ghi chú "
-"mới từ trình duyệt tập tin."
+"Only show button if notebook already exists. Disable to allow creating new notebooks from file browser."
+msgstr "Chỉ hiển thị nút nếu sổ ghi chú đã tồn tại. Tắt để cho phép tạo sổ ghi chú mới từ trình duyệt tập tin."
 
 #: koassistant_settings_schema.lua:1083
 #, fuzzy
@@ -2758,12 +2733,8 @@ msgstr "Nhà cung cấp đáng tin cậy: %1"
 #: koassistant_settings_schema.lua:1099
 #, fuzzy
 msgid ""
-"Providers you trust bypass the data sharing controls below. Use for local "
-"Ollama instances or providers you fully trust."
-msgstr ""
-"Các nhà cung cấp bạn tin tưởng sẽ bỏ qua các điều khiển chia sẻ dữ liệu bên "
-"dưới. Sử dụng cho các phiên bản Ollama cục bộ hoặc nhà cung cấp bạn hoàn "
-"toàn tin tưởng."
+"Providers you trust bypass the data sharing controls below. Use for local Ollama instances or providers you fully trust."
+msgstr "Các nhà cung cấp bạn tin tưởng sẽ bỏ qua các điều khiển chia sẻ dữ liệu bên dưới. Sử dụng cho các phiên bản Ollama cục bộ hoặc nhà cung cấp bạn hoàn toàn tin tưởng."
 
 #: koassistant_settings_schema.lua:1107
 #, fuzzy
@@ -2773,13 +2744,8 @@ msgstr "Cài đặt sẵn: Mặc định"
 #: koassistant_settings_schema.lua:1108
 #, fuzzy
 msgid ""
-"Recommended balance. Share reading progress and chapter info for context-"
-"aware features. Personal content (highlights, annotations, notebook) stays "
-"private."
-msgstr ""
-"Cân bằng được khuyến nghị. Chia sẻ tiến trình đọc và thông tin chương để có "
-"tính năng nhận biết ngữ cảnh. Nội dung cá nhân (đánh dấu, chú thích, sổ ghi "
-"chú) được giữ riêng tư."
+"Recommended balance. Share reading progress and chapter info for context-aware features. Personal content (highlights, annotations, notebook) stays private."
+msgstr "Cân bằng được khuyến nghị. Chia sẻ tiến trình đọc và thông tin chương để có tính năng nhận biết ngữ cảnh. Nội dung cá nhân (đánh dấu, chú thích, sổ ghi chú) được giữ riêng tư."
 
 #: koassistant_settings_schema.lua:1115
 #, fuzzy
@@ -2789,11 +2755,8 @@ msgstr "Cài đặt sẵn: Tối thiểu"
 #: koassistant_settings_schema.lua:1116
 #, fuzzy
 msgid ""
-"Maximum privacy. Disable all extended data sharing including progress and "
-"chapter info. Only your question and book metadata are sent."
-msgstr ""
-"Quyền riêng tư tối đa. Tắt tất cả chia sẻ dữ liệu mở rộng bao gồm tiến trình "
-"và thông tin chương. Chỉ gửi câu hỏi và metadata sách của bạn."
+"Maximum privacy. Disable all extended data sharing including progress and chapter info. Only your question and book metadata are sent."
+msgstr "Quyền riêng tư tối đa. Tắt tất cả chia sẻ dữ liệu mở rộng bao gồm tiến trình và thông tin chương. Chỉ gửi câu hỏi và metadata sách của bạn."
 
 #: koassistant_settings_schema.lua:1123
 #, fuzzy
@@ -2803,32 +2766,30 @@ msgstr "Cài đặt sẵn: Đầy đủ"
 #: koassistant_settings_schema.lua:1124
 #, fuzzy
 msgid ""
-"Enable all data sharing for full functionality. Does not enable text "
-"extraction (see Text Extraction submenu)."
-msgstr ""
-"Bật tất cả chia sẻ dữ liệu để có đầy đủ chức năng. Không bật trích xuất văn "
-"bản (xem menu phụ Trích xuất văn bản)."
+"Enable all data sharing for full functionality. Does not enable text extraction (see Text Extraction submenu)."
+msgstr "Bật tất cả chia sẻ dữ liệu để có đầy đủ chức năng. Không bật trích xuất văn bản (xem menu phụ Trích xuất văn bản)."
 
 #: koassistant_settings_schema.lua:1133
+#, fuzzy
 msgid "Allow Annotation Notes"
-msgstr ""
+msgstr "Cho Phép Ghi Chú"
 
 #: koassistant_settings_schema.lua:1136
+#, fuzzy
 msgid ""
-"Share your personal notes attached to highlights with the AI. Automatically "
-"enables highlight sharing. Used by Analyze My Notes, Connect with Notes, and "
-"actions with {annotations} placeholders."
-msgstr ""
+"Share your personal notes attached to highlights with the AI. Automatically enables highlight sharing. Used by Analyze My Notes, Connect with Notes, and actions with {annotations} placeholders."
+msgstr "Chia sẻ ghi chú cá nhân đính kèm với đánh dấu của bạn với AI. Tự động bật chia sẻ đánh dấu. Được sử dụng bởi Phân Tích Ghi Chú, Kết Nối với Ghi Chú, và các thao tác có chỗ giữ {annotations}."
 
 #: koassistant_settings_schema.lua:1152
+#, fuzzy
 msgid "Allow Highlights"
-msgstr ""
+msgstr "Cho Phép Đánh Dấu"
 
 #: koassistant_settings_schema.lua:1155
+#, fuzzy
 msgid ""
-"Share your highlighted text passages with the AI. Used by X-Ray, Recap, and "
-"actions with {highlights} placeholders. Does not include personal notes."
-msgstr ""
+"Share your highlighted text passages with the AI. Used by X-Ray, Recap, and actions with {highlights} placeholders. Does not include personal notes."
+msgstr "Chia sẻ các đoạn văn bản đánh dấu của bạn với AI. Được sử dụng bởi X-Ray, Tóm Tắt, và các thao tác có chỗ giữ {highlights}. Không bao gồm ghi chú cá nhân."
 
 #: koassistant_settings_schema.lua:1165
 #, fuzzy
@@ -2838,11 +2799,8 @@ msgstr "Cho phép Sổ ghi chú"
 #: koassistant_settings_schema.lua:1168
 #, fuzzy
 msgid ""
-"Send notebook entries to AI. Used by Connect with Notes and actions with "
-"{notebook} placeholder."
-msgstr ""
-"Gửi các mục sổ ghi chú đến AI. Được sử dụng bởi Kết nối với ghi chú và các "
-"hành động có placeholder {notebook}."
+"Send notebook entries to AI. Used by Connect with Notes and actions with {notebook} placeholder."
+msgstr "Gửi các mục sổ ghi chú đến AI. Được sử dụng bởi Kết nối với ghi chú và các hành động có placeholder {notebook}."
 
 #: koassistant_settings_schema.lua:1173
 #, fuzzy
@@ -2862,11 +2820,8 @@ msgstr "Cho phép Thông tin chương"
 #: koassistant_settings_schema.lua:1184
 #, fuzzy
 msgid ""
-"Send current chapter title, chapters read count, and time since last opened. "
-"Used by Recap."
-msgstr ""
-"Gửi tiêu đề chương hiện tại, số chương đã đọc, và thời gian từ lần mở cuối. "
-"Được sử dụng bởi Recap."
+"Send current chapter title, chapters read count, and time since last opened. Used by Recap."
+msgstr "Gửi tiêu đề chương hiện tại, số chương đã đọc, và thời gian từ lần mở cuối. Được sử dụng bởi Recap."
 
 #: koassistant_settings_schema.lua:1194
 #, fuzzy
@@ -2884,23 +2839,26 @@ msgid "Allow Text Extraction"
 msgstr "Cho phép Trích xuất văn bản"
 
 #: koassistant_settings_schema.lua:1206
+#, fuzzy
 msgid ""
-"When enabled, actions can extract and send book text to the AI. Used by X-"
-"Ray, Recap, and actions with text placeholders.\n"
+"When enabled, actions can extract and send book text to the AI. Used by X-Ray, Recap, and actions with text placeholders.\n"
 "\n"
-"Tip: Use KOReader's Hidden Flows feature to exclude front matter, "
-"appendices, etc. from extraction — saving tokens and improving results."
+"Tip: Use KOReader's Hidden Flows feature to exclude front matter, appendices, etc. from extraction — saving tokens and improving results."
 msgstr ""
+"Khi được bật, các thao tác có thể trích xuất và gửi văn bản sách đến AI. Được sử dụng bởi X-Ray, Tóm Tắt, và các thao tác có chỗ giữ văn bản.\n"
+"\n"
+"Mẹo: Sử dụng tính năng Hidden Flows của KOReader để loại trừ phần mở đầu, phụ lục, v.v. khỏi quá trình trích xuất — tiết kiệm token và cải thiện kết quả."
 
 #: koassistant_settings_schema.lua:1219
+#, fuzzy
 msgid ""
-"Text extraction sends actual book content to the AI. This uses tokens "
-"(increases API costs) and processing time. Features like X-Ray and Recap use "
-"this to analyze your reading progress.\n"
+"Text extraction sends actual book content to the AI. This uses tokens (increases API costs) and processing time. Features like X-Ray and Recap use this to analyze your reading progress.\n"
 "\n"
-"Tip: Use KOReader's Hidden Flows feature to exclude front matter, "
-"appendices, etc. — saving tokens and improving AI results."
+"Tip: Use KOReader's Hidden Flows feature to exclude front matter, appendices, etc. — saving tokens and improving AI results."
 msgstr ""
+"Trích xuất văn bản gửi nội dung sách thực tế đến AI. Điều này sử dụng token (tăng chi phí API) và thời gian xử lý. Các tính năng như X-Ray và Tóm Tắt sử dụng điều này để phân tích tiến độ đọc của bạn.\n"
+"\n"
+"Mẹo: Sử dụng tính năng Hidden Flows của KOReader để loại trừ phần mở đầu, phụ lục, v.v. — tiết kiệm token và cải thiện kết quả AI."
 
 #: koassistant_settings_schema.lua:1227
 #, fuzzy
@@ -2908,53 +2866,63 @@ msgid "Max Text Characters"
 msgstr "Ký tự văn bản tối đa"
 
 #: koassistant_settings_schema.lua:1234
+#, fuzzy
 msgid ""
-"Maximum characters to extract (100,000-10,000,000). Higher = more context "
-"but more tokens. Default: 4,000,000 (~1M tokens). The API will reject "
-"requests that exceed the model's context window.\n"
+"Maximum characters to extract (100,000-10,000,000). Higher = more context but more tokens. Default: 4,000,000 (~1M tokens). The API will reject requests that exceed the model's context window.\n"
 "\n"
-"Tip: Use KOReader's Hidden Flows to exclude front matter, appendices, etc. — "
-"saving tokens without reducing the limit."
+"Tip: Use KOReader's Hidden Flows to exclude front matter, appendices, etc. — saving tokens without reducing the limit."
 msgstr ""
+"Số ký tự tối đa để trích xuất (100.000-10.000.000). Cao hơn = nhiều ngữ cảnh hơn nhưng nhiều token hơn. Mặc định: 4.000.000 (~1M token). API sẽ từ chối các yêu cầu vượt quá cửa sổ ngữ cảnh của mô hình.\n"
+"\n"
+"Mẹo: Sử dụng Hidden Flows của KOReader để loại trừ phần mở đầu, phụ lục, v.v. — tiết kiệm token mà không giảm giới hạn."
 
 #: koassistant_settings_schema.lua:1240
+#, fuzzy
 msgid "Max Pages (PDF, DJVU, CBZ…)"
-msgstr ""
+msgstr "Số Trang Tối Đa (PDF, DJVU, CBZ…)"
 
 #: koassistant_settings_schema.lua:1247
+#, fuzzy
 msgid ""
-"Maximum pages to extract from page-based formats like PDF, DJVU, and CBZ "
-"(100-5,000). Higher = more context but slower. Default: 2,000.\n"
+"Maximum pages to extract from page-based formats like PDF, DJVU, and CBZ (100-5,000). Higher = more context but slower. Default: 2,000.\n"
 "\n"
-"Tip: Use KOReader's Hidden Flows to exclude irrelevant pages — saving tokens "
-"without reducing the limit."
+"Tip: Use KOReader's Hidden Flows to exclude irrelevant pages — saving tokens without reducing the limit."
 msgstr ""
+"Số trang tối đa để trích xuất từ các định dạng dựa trên trang như PDF, DJVU, và CBZ (100-5.000). Cao hơn = nhiều ngữ cảnh hơn nhưng chậm hơn. Mặc định: 2.000.\n"
+"\n"
+"Mẹo: Sử dụng Hidden Flows của KOReader để loại trừ các trang không liên quan — tiết kiệm token mà không giảm giới hạn."
 
 #: koassistant_settings_schema.lua:1253
+#, fuzzy
 msgid "Don't warn about truncated extractions"
-msgstr ""
+msgstr "Không cảnh báo về trích xuất bị cắt ngắn"
 
 #: koassistant_settings_schema.lua:1256
+#, fuzzy
 msgid ""
-"When unchecked, a blocking warning is shown before sending requests when "
-"extracted text was truncated to fit the character limit. Shows coverage "
-"percentage so you know how much of the book was included.\n"
+"When unchecked, a blocking warning is shown before sending requests when extracted text was truncated to fit the character limit. Shows coverage percentage so you know how much of the book was included.\n"
 "\n"
 "Check this if you don't need the reminder."
 msgstr ""
+"Khi bỏ chọn, một cảnh báo chặn sẽ hiển thị trước khi gửi yêu cầu khi văn bản trích xuất bị cắt ngắn để phù hợp với giới hạn ký tự. Hiển thị phần trăm phủ để bạn biết bao nhiêu nội dung sách được bao gồm.\n"
+"\n"
+"Chọn mục này nếu bạn không cần lời nhắc."
 
 #: koassistant_settings_schema.lua:1262
+#, fuzzy
 msgid "Don't warn about large extractions"
-msgstr ""
+msgstr "Không cảnh báo về trích xuất lớn"
 
 #: koassistant_settings_schema.lua:1265
+#, fuzzy
 msgid ""
-"When unchecked, a warning is shown before sending requests with large text "
-"extractions (over 500K characters / ~125K tokens). Most models have smaller "
-"context windows and will reject oversized requests.\n"
+"When unchecked, a warning is shown before sending requests with large text extractions (over 500K characters / ~125K tokens). Most models have smaller context windows and will reject oversized requests.\n"
 "\n"
 "Check this if you know your model's limits and don't need the reminder."
 msgstr ""
+"Khi bỏ chọn, một cảnh báo sẽ hiển thị trước khi gửi yêu cầu với trích xuất văn bản lớn (trên 500K ký tự / ~125K token). Hầu hết các mô hình có cửa sổ ngữ cảnh nhỏ hơn và sẽ từ chối các yêu cầu quá lớn.\n"
+"\n"
+"Chọn mục này nếu bạn biết giới hạn của mô hình và không cần lời nhắc."
 
 #: koassistant_settings_schema.lua:1271 main.lua:6073
 #, fuzzy
@@ -2964,11 +2932,8 @@ msgstr "Xóa bộ nhớ đệm hành động"
 #: koassistant_settings_schema.lua:1272
 #, fuzzy
 msgid ""
-"Clear cached X-Ray and Recap responses for the current book. Use to "
-"regenerate from scratch."
-msgstr ""
-"Xóa các phản hồi X-Ray và Recap đã lưu trong bộ nhớ đệm cho sách hiện tại. "
-"Sử dụng để tạo lại từ đầu."
+"Clear cached X-Ray and Recap responses for the current book. Use to regenerate from scratch."
+msgstr "Xóa các phản hồi X-Ray và Recap đã lưu trong bộ nhớ đệm cho sách hiện tại. Sử dụng để tạo lại từ đầu."
 
 #: koassistant_settings_schema.lua:1285
 #, fuzzy
@@ -2986,9 +2951,10 @@ msgid "Show in File Browser"
 msgstr "Hiển thị trong Trình duyệt tập tin"
 
 #: koassistant_settings_schema.lua:1299
+#, fuzzy
 msgid ""
 "Add KOAssistant buttons to file browser context menus. Requires restart."
-msgstr ""
+msgstr "Thêm nút KOAssistant vào menu ngữ cảnh của trình duyệt tệp. Yêu cầu khởi động lại."
 
 #: koassistant_settings_schema.lua:1304 koassistant_settings_schema.lua:1319
 #: koassistant_settings_schema.lua:1334 koassistant_settings_schema.lua:1357
@@ -2997,28 +2963,25 @@ msgid "Please restart KOReader for this change to take effect."
 msgstr "Vui lòng khởi động lại KOReader để thay đổi này có hiệu lực."
 
 #: koassistant_settings_schema.lua:1311
+#, fuzzy
 msgid "Show in Highlight Menu"
-msgstr ""
+msgstr "Hiển Thị trong Menu Đánh Dấu"
 
 #: koassistant_settings_schema.lua:1314
 #, fuzzy
 msgid "Add main 'Chat/Action' button to highlight menu. Requires restart."
-msgstr ""
-"Thêm nút 'Trò chuyện/Hành động' chính vào menu đánh dấu. Yêu cầu khởi động "
-"lại."
+msgstr "Thêm nút 'Trò chuyện/Hành động' chính vào menu đánh dấu. Yêu cầu khởi động lại."
 
 #: koassistant_settings_schema.lua:1326
+#, fuzzy
 msgid "Show Highlight Quick Actions"
-msgstr ""
+msgstr "Hiển Thị Thao Tác Nhanh Đánh Dấu"
 
 #: koassistant_settings_schema.lua:1329
 #, fuzzy
 msgid ""
-"Add action shortcuts (Explain, Translate, etc.) to highlight menu. Requires "
-"restart."
-msgstr ""
-"Thêm phím tắt hành động (Giải thích, Dịch, v.v.) vào menu đánh dấu. Yêu cầu "
-"khởi động lại."
+"Add action shortcuts (Explain, Translate, etc.) to highlight menu. Requires restart."
+msgstr "Thêm phím tắt hành động (Giải thích, Dịch, v.v.) vào menu đánh dấu. Yêu cầu khởi động lại."
 
 #: koassistant_settings_schema.lua:1341
 #, fuzzy
@@ -3026,22 +2989,25 @@ msgid "Show in Dictionary Popup"
 msgstr "Hiển thị trong Cửa sổ từ điển"
 
 #: koassistant_settings_schema.lua:1344
+#, fuzzy
 msgid "Add AI buttons to KOReader's dictionary popup."
-msgstr ""
+msgstr "Thêm nút AI vào cửa sổ bật lên từ điển của KOReader."
 
 #: koassistant_settings_schema.lua:1349
+#, fuzzy
 msgid "Show in Gesture Menu"
-msgstr ""
+msgstr "Hiển Thị trong Menu Cử Chỉ"
 
 #: koassistant_settings_schema.lua:1352
+#, fuzzy
 msgid ""
-"Register KOAssistant actions in KOReader's gesture dispatcher. Requires "
-"restart."
-msgstr ""
+"Register KOAssistant actions in KOReader's gesture dispatcher. Requires restart."
+msgstr "Đăng ký các thao tác KOAssistant trong bộ điều phối cử chỉ của KOReader. Yêu cầu khởi động lại."
 
 #: koassistant_settings_schema.lua:1368
+#, fuzzy
 msgid "Backup & Reset"
-msgstr ""
+msgstr "Sao Lưu & Đặt Lại"
 
 #: koassistant_settings_schema.lua:1374 main.lua:8145
 #, fuzzy
@@ -3098,8 +3064,7 @@ msgid ""
 "• Reasoning & debug settings\n"
 "• Language preferences\n"
 "\n"
-"Keeps: API keys, all actions, custom behaviors/domains, custom providers/"
-"models, gesture registrations, chat history."
+"Keeps: API keys, all actions, custom behaviors/domains, custom providers/models, gesture registrations, chat history."
 msgstr ""
 "Đặt lại TẤT CẢ cài đặt trong menu này về mặc định:\n"
 "• Nhà cung cấp, mô hình, nhiệt độ\n"
@@ -3108,8 +3073,7 @@ msgstr ""
 "• Cài đặt reasoning & debug\n"
 "• Tùy chọn ngôn ngữ\n"
 "\n"
-"Giữ lại: Khóa API, tất cả hành động, behaviors/domains tùy chỉnh, providers/"
-"models tùy chỉnh, đăng ký cử chỉ, lịch sử chat."
+"Giữ lại: Khóa API, tất cả hành động, behaviors/domains tùy chỉnh, providers/models tùy chỉnh, đăng ký cử chỉ, lịch sử chat."
 
 #: koassistant_settings_schema.lua:1412
 #, fuzzy
@@ -3123,8 +3087,7 @@ msgid ""
 "• Reasoning & debug settings\n"
 "• Language preferences\n"
 "\n"
-"Keeps: API keys, all actions, custom behaviors/domains, custom providers/"
-"models, gesture registrations, chat history."
+"Keeps: API keys, all actions, custom behaviors/domains, custom providers/models, gesture registrations, chat history."
 msgstr ""
 "Đặt lại tất cả cài đặt về mặc định?\n"
 "\n"
@@ -3135,8 +3098,7 @@ msgstr ""
 "• Cài đặt reasoning & debug\n"
 "• Tùy chọn ngôn ngữ\n"
 "\n"
-"Giữ lại: Khóa API, tất cả hành động, behaviors/domains tùy chỉnh, providers/"
-"models tùy chỉnh, đăng ký cử chỉ, lịch sử chat."
+"Giữ lại: Khóa API, tất cả hành động, behaviors/domains tùy chỉnh, providers/models tùy chỉnh, đăng ký cử chỉ, lịch sử chat."
 
 #: koassistant_settings_schema.lua:1419
 #, fuzzy
@@ -3144,19 +3106,26 @@ msgid "Quick: Actions only"
 msgstr "Nhanh: Chỉ hành động"
 
 #: koassistant_settings_schema.lua:1420
+#, fuzzy
 msgid ""
 "Resets all action-related settings:\n"
 "• Custom actions you created\n"
 "• Edits to built-in actions\n"
 "• Disabled actions (re-enables all)\n"
-"• All action menus (highlight, dictionary, quick actions, general, file "
-"browser)\n"
+"• All action menus (highlight, dictionary, quick actions, general, file browser)\n"
 "\n"
-"Keeps: All settings, API keys, custom behaviors/domains, custom providers/"
-"models, gesture registrations, chat history."
+"Keeps: All settings, API keys, custom behaviors/domains, custom providers/models, gesture registrations, chat history."
 msgstr ""
+"Đặt lại tất cả các cài đặt liên quan đến thao tác:\n"
+"• Các thao tác tùy chỉnh bạn đã tạo\n"
+"• Chỉnh sửa các thao tác tích hợp\n"
+"• Thao tác đã tắt (bật lại tất cả)\n"
+"• Tất cả menu thao tác (đánh dấu, từ điển, thao tác nhanh, chung, trình duyệt tệp)\n"
+"\n"
+"Giữ lại: Tất cả cài đặt, khóa API, hành vi/miền tùy chỉnh, nhà cung cấp/mô hình tùy chỉnh, đăng ký cử chỉ, lịch sử trò chuyện."
 
 #: koassistant_settings_schema.lua:1422
+#, fuzzy
 msgid ""
 "Reset all action settings?\n"
 "\n"
@@ -3164,12 +3133,19 @@ msgid ""
 "• Custom actions you created\n"
 "• Edits to built-in actions\n"
 "• Disabled actions (re-enables all)\n"
-"• All action menus (highlight, dictionary, quick actions, general, file "
-"browser)\n"
+"• All action menus (highlight, dictionary, quick actions, general, file browser)\n"
 "\n"
-"Keeps: All settings, API keys, custom behaviors/domains, custom providers/"
-"models, gesture registrations, chat history."
+"Keeps: All settings, API keys, custom behaviors/domains, custom providers/models, gesture registrations, chat history."
 msgstr ""
+"Đặt lại tất cả cài đặt thao tác?\n"
+"\n"
+"Đặt lại:\n"
+"• Các thao tác tùy chỉnh bạn đã tạo\n"
+"• Chỉnh sửa các thao tác tích hợp\n"
+"• Thao tác đã tắt (bật lại tất cả)\n"
+"• Tất cả menu thao tác (đánh dấu, từ điển, thao tác nhanh, chung, trình duyệt tệp)\n"
+"\n"
+"Giữ lại: Tất cả cài đặt, khóa API, hành vi/miền tùy chỉnh, nhà cung cấp/mô hình tùy chỉnh, đăng ký cử chỉ, lịch sử trò chuyện."
 
 #: koassistant_settings_schema.lua:1429
 #, fuzzy
@@ -3290,14 +3266,19 @@ msgid "Enable Anthropic/Gemini Reasoning"
 msgstr "Bật Suy luận Anthropic/Gemini"
 
 #: koassistant_settings_schema.lua:1484
+#, fuzzy
 msgid ""
 "Enable extended thinking for Anthropic and Gemini 3.\n"
 "\n"
-"Note: OpenAI reasoning models (o3, gpt-5) always reason internally - this "
-"toggle does not affect them.\n"
+"Note: OpenAI reasoning models (o3, gpt-5) always reason internally - this toggle does not affect them.\n"
 "\n"
 "Gemini 2.5 models think automatically regardless of this toggle."
 msgstr ""
+"Bật suy nghĩ mở rộng cho Anthropic và Gemini 3.\n"
+"\n"
+"Lưu ý: Các mô hình lý luận OpenAI (o3, gpt-5) luôn lý luận nội bộ - công tắc này không ảnh hưởng đến chúng.\n"
+"\n"
+"Các mô hình Gemini 2.5 tự động suy nghĩ bất kể công tắc này."
 
 #: koassistant_settings_schema.lua:1493 koassistant_ui/prompts_manager.lua:2343
 #, fuzzy
@@ -3307,8 +3288,10 @@ msgstr "Tư duy Mở rộng Anthropic"
 #: koassistant_settings_schema.lua:1494 koassistant_settings_schema.lua:1521
 #: koassistant_settings_schema.lua:1560
 #, fuzzy
-msgid "Supported models:\n"
-msgstr "Các mô hình được hỗ trợ:\n"
+msgid ""
+"Supported models:\n"
+msgstr ""
+"Các mô hình được hỗ trợ:\n"
 
 #: koassistant_settings_schema.lua:1494
 #, fuzzy
@@ -3341,14 +3324,19 @@ msgid "Gemini Thinking"
 msgstr "Tư duy Gemini"
 
 #: koassistant_settings_schema.lua:1521
+#, fuzzy
 msgid ""
 "\n"
 "\n"
 "Control thinking depth for supported models.\n"
 "\n"
-"Note: Gemini 2.5 models think automatically regardless of this toggle. Their "
-"thinking content is captured when available."
+"Note: Gemini 2.5 models think automatically regardless of this toggle. Their thinking content is captured when available."
 msgstr ""
+"\n"
+"\n"
+"Kiểm soát độ sâu suy nghĩ cho các mô hình được hỗ trợ.\n"
+"\n"
+"Lưu ý: Các mô hình Gemini 2.5 tự động suy nghĩ bất kể công tắc này. Nội dung suy nghĩ của chúng được ghi lại khi có sẵn."
 
 #: koassistant_settings_schema.lua:1532 koassistant_settings_schema.lua:1675
 #, fuzzy
@@ -3440,13 +3428,11 @@ msgstr "Hiển thị Chỉ báo trong Chat"
 #: koassistant_settings_schema.lua:1575
 #, fuzzy
 msgid ""
-"Show '*[Reasoning was used]*' indicator in chat when reasoning is requested "
-"or used.\n"
+"Show '*[Reasoning was used]*' indicator in chat when reasoning is requested or used.\n"
 "\n"
 "Full reasoning content is always viewable via 'Show Reasoning' button."
 msgstr ""
-"Hiển thị chỉ báo '*[Đã sử dụng suy luận]*' trong chat khi suy luận được yêu "
-"cầu hoặc sử dụng.\n"
+"Hiển thị chỉ báo '*[Đã sử dụng suy luận]*' trong chat khi suy luận được yêu cầu hoặc sử dụng.\n"
 "\n"
 "Nội dung suy luận đầy đủ luôn có thể xem qua nút 'Hiển thị Suy luận'."
 
@@ -3508,8 +3494,7 @@ msgid ""
 "\n"
 "Streaming indicator ('Searching the web...') is always shown."
 msgstr ""
-"Hiển thị chỉ báo '*[Đã sử dụng tìm kiếm web]*' trong trò chuyện khi sử dụng "
-"tìm kiếm web.\n"
+"Hiển thị chỉ báo '*[Đã sử dụng tìm kiếm web]*' trong trò chuyện khi sử dụng tìm kiếm web.\n"
 "\n"
 "Chỉ báo streaming ('Đang tìm kiếm trên web...') luôn được hiển thị."
 
@@ -3628,11 +3613,8 @@ msgstr "Cắt ngắn Nội dung Lớn (debug)"
 #: koassistant_settings_schema.lua:1692
 #, fuzzy
 msgid ""
-"Truncate long content (book text, cached responses) in debug output. Shows "
-"first and last ~1500 characters with truncation notice."
-msgstr ""
-"Cắt ngắn nội dung dài (văn bản sách, phản hồi đã lưu) trong đầu ra gỡ lỗi. "
-"Hiển thị ~1500 ký tự đầu và cuối với thông báo cắt ngắn."
+"Truncate long content (book text, cached responses) in debug output. Shows first and last ~1500 characters with truncation notice."
+msgstr "Cắt ngắn nội dung dài (văn bản sách, phản hồi đã lưu) trong đầu ra gỡ lỗi. Hiển thị ~1500 ký tự đầu và cuối với thông báo cắt ngắn."
 
 #: koassistant_settings_schema.lua:1701
 #, fuzzy
@@ -3719,8 +3701,9 @@ msgid "Translate"
 msgstr "Dịch"
 
 #: koassistant_update_checker.lua:807
+#, fuzzy
 msgid "Translate to"
-msgstr ""
+msgstr "Dịch sang"
 
 #: koassistant_update_checker.lua:1132
 #, fuzzy
@@ -3741,15 +3724,12 @@ msgstr "Tệp đã tải xuống trống"
 #, fuzzy
 msgid ""
 "Auto-update is disabled for git-based installs. Please use git pull instead."
-msgstr ""
-"Tự động cập nhật bị vô hiệu hóa cho các bản cài đặt dựa trên git. Vui lòng "
-"sử dụng git pull thay thế."
+msgstr "Tự động cập nhật bị vô hiệu hóa cho các bản cài đặt dựa trên git. Vui lòng sử dụng git pull thay thế."
 
 #: koassistant_update_checker.lua:1375
 #, fuzzy
 msgid "No download URL available for this release. Please update manually."
-msgstr ""
-"Không có URL tải xuống cho bản phát hành này. Vui lòng cập nhật thủ công."
+msgstr "Không có URL tải xuống cho bản phát hành này. Vui lòng cập nhật thủ công."
 
 #: koassistant_update_checker.lua:1384
 #, fuzzy
@@ -3789,8 +3769,7 @@ msgstr "Không thể di chuyển plugin hiện tại sang bản sao lưu"
 #: koassistant_update_checker.lua:1486
 #, fuzzy
 msgid "Failed to install new plugin version. Previous version restored."
-msgstr ""
-"Không thể cài đặt phiên bản plugin mới. Đã khôi phục phiên bản trước đó."
+msgstr "Không thể cài đặt phiên bản plugin mới. Đã khôi phục phiên bản trước đó."
 
 #: koassistant_update_checker.lua:1504
 #, fuzzy
@@ -3807,17 +3786,17 @@ msgstr ""
 #, fuzzy
 msgid ""
 "Note: Some user files (API keys, custom actions) may need to be reconfigured."
-msgstr ""
-"Lưu ý: Một số tệp người dùng (khóa API, hành động tùy chỉnh) có thể cần được "
-"cấu hình lại."
+msgstr "Lưu ý: Một số tệp người dùng (khóa API, hành động tùy chỉnh) có thể cần được cấu hình lại."
 
 #: koassistant_xray_browser.lua:263 koassistant_xray_browser.lua:349
+#, fuzzy
 msgid "Pages %1–%2"
-msgstr ""
+msgstr "Trang %1–%2"
 
 #: koassistant_xray_browser.lua:765
+#, fuzzy
 msgid "Mentions"
-msgstr ""
+msgstr "Đề Cập"
 
 #: koassistant_xray_browser.lua:777 koassistant_xray_browser.lua:2637
 #, fuzzy
@@ -3845,12 +3824,14 @@ msgid "Chat about this"
 msgstr "Trò chuyện về nội dung này"
 
 #: koassistant_xray_browser.lua:1023
+#, fuzzy
 msgid "Chapter Appearances"
-msgstr ""
+msgstr "Xuất Hiện Chương"
 
 #: koassistant_xray_browser.lua:1035
+#, fuzzy
 msgid "Edit Search Terms"
-msgstr ""
+msgstr "Chỉnh Sửa Từ Khóa Tìm Kiếm"
 
 #: koassistant_xray_browser.lua:1075 koassistant_xray_browser.lua:1102
 #, fuzzy
@@ -3858,40 +3839,49 @@ msgid "Details"
 msgstr "Chi tiết"
 
 #: koassistant_xray_browser.lua:1167
+#, fuzzy
 msgid "Remove \"%1\""
-msgstr ""
+msgstr "Xóa \"%1\""
 
 #: koassistant_xray_browser.lua:1168
+#, fuzzy
 msgid "Ignore \"%1\""
-msgstr ""
+msgstr "Bỏ qua \"%1\""
 
 #: koassistant_xray_browser.lua:1182
+#, fuzzy
 msgid "Restore \"%1\" (ignored)"
-msgstr ""
+msgstr "Khôi phục \"%1\" (đã bỏ qua)"
 
 #: koassistant_xray_browser.lua:1200
+#, fuzzy
 msgid "Add new"
-msgstr ""
+msgstr "Thêm mới"
 
 #: koassistant_xray_browser.lua:1220
+#, fuzzy
 msgid "Search terms for \"%1\""
-msgstr ""
+msgstr "Từ khóa tìm kiếm cho \"%1\""
 
 #: koassistant_xray_browser.lua:1317
+#, fuzzy
 msgid "Add search term for \"%1\""
-msgstr ""
+msgstr "Thêm từ khóa tìm kiếm cho \"%1\""
 
 #: koassistant_xray_browser.lua:1319
+#, fuzzy
 msgid "Enter alternate name or spelling"
-msgstr ""
+msgstr "Nhập tên hoặc cách viết khác"
 
 #: koassistant_xray_browser.lua:1355
+#, fuzzy
 msgid "This search term already exists."
-msgstr ""
+msgstr "Từ khóa tìm kiếm này đã tồn tại."
 
 #: koassistant_xray_browser.lua:1387
+#, fuzzy
 msgid "Added \"%1\""
-msgstr ""
+msgstr "Đã thêm \"%1\""
 
 #: koassistant_xray_browser.lua:1432 koassistant_xray_parser.lua:299
 #, fuzzy
@@ -3899,8 +3889,9 @@ msgid "Cast"
 msgstr "Nhân vật"
 
 #: koassistant_xray_browser.lua:1433
+#, fuzzy
 msgid "Figures"
-msgstr ""
+msgstr "Nhân vật"
 
 #: koassistant_xray_browser.lua:1434 koassistant_xray_parser.lua:300
 #, fuzzy
@@ -3913,12 +3904,14 @@ msgid "Ideas"
 msgstr "Ý tưởng"
 
 #: koassistant_xray_browser.lua:1436
+#, fuzzy
 msgid "Concepts"
-msgstr ""
+msgstr "Khái niệm"
 
 #: koassistant_xray_browser.lua:1437
+#, fuzzy
 msgid "Args"
-msgstr ""
+msgstr "Tranh luận"
 
 #: koassistant_xray_browser.lua:1438 koassistant_xray_parser.lua:302
 #, fuzzy
@@ -3926,53 +3919,69 @@ msgid "Lexicon"
 msgstr "Từ vựng"
 
 #: koassistant_xray_browser.lua:1439
+#, fuzzy
 msgid "Terms"
-msgstr ""
+msgstr "Thuật ngữ"
 
 #: koassistant_xray_browser.lua:1440
+#, fuzzy
 msgid "Arc"
-msgstr ""
+msgstr "Cung truyện"
 
 #: koassistant_xray_browser.lua:1441
+#, fuzzy
 msgid "Dev"
-msgstr ""
+msgstr "Phát triển"
 
 #: koassistant_xray_browser.lua:1504
+#, fuzzy
 msgid "Page %1"
-msgstr ""
+msgstr "Trang %1"
 
 #: koassistant_xray_browser.lua:1558 koassistant_xray_browser.lua:1571
 #: koassistant_xray_browser.lua:1922 koassistant_xray_browser.lua:1934
+#, fuzzy
 msgid "All Chapters"
-msgstr ""
+msgstr "Tất cả chương"
 
 #: koassistant_xray_browser.lua:1566 koassistant_xray_browser.lua:1929
+#, fuzzy
 msgid "All Chapters (to %1)"
-msgstr ""
+msgstr "Tất cả chương (đến %1)"
 
 #: koassistant_xray_browser.lua:1581 koassistant_xray_browser.lua:1957
+#, fuzzy
 msgid "Table of Contents"
-msgstr ""
+msgstr "Mục lục"
 
 #: koassistant_xray_browser.lua:1818 koassistant_xray_browser.lua:1982
+#, fuzzy
 msgid ""
 "This will scan beyond your X-Ray coverage.\n"
 "\n"
 "Reveal all mentions?"
 msgstr ""
+"Việc này sẽ quét vượt phạm vi X-Ray của bạn.\n"
+"\n"
+"Hiển thị tất cả đề cập?"
 
 #: koassistant_xray_browser.lua:1827 koassistant_xray_browser.lua:1852
 #: koassistant_xray_browser.lua:1991 koassistant_xray_browser.lua:2022
 #: koassistant_xray_browser.lua:2361
+#, fuzzy
 msgid "Reveal"
-msgstr ""
+msgstr "Hiển thị"
 
 #: koassistant_xray_browser.lua:1843 koassistant_xray_browser.lua:2013
+#, fuzzy
 msgid ""
 "This chapter is beyond your X-Ray coverage.\n"
 "\n"
 "Reveal mentions?"
 msgstr ""
+"Chương này nằm ngoài phạm vi X-Ray của bạn.\n"
+"\n"
+"Hiển thị các đề cập?"
 
 #: koassistant_xray_browser.lua:2070 koassistant_xray_browser.lua:2226
 #: koassistant_xray_browser.lua:2536
@@ -3981,32 +3990,36 @@ msgid "No book open."
 msgstr "Không có sách nào đang mở."
 
 #: koassistant_xray_browser.lua:2078
+#, fuzzy
 msgid "Analyzing book…"
-msgstr ""
+msgstr "Đang phân tích sách…"
 
 #: koassistant_xray_browser.lua:2078 koassistant_xray_browser.lua:2233
+#, fuzzy
 msgid "Analyzing chapter…"
-msgstr ""
+msgstr "Đang phân tích chương…"
 
 #: koassistant_xray_browser.lua:2092
+#, fuzzy
 msgid "Could not determine book length."
-msgstr ""
+msgstr "Không thể xác định độ dài sách."
 
 #: koassistant_xray_browser.lua:2124
+#, fuzzy
 msgid ""
-"Could not extract book text. PDF text extraction may not be available for "
-"this document."
-msgstr ""
+"Could not extract book text. PDF text extraction may not be available for this document."
+msgstr "Không thể trích xuất văn bản sách. Trích xuất văn bản PDF có thể không khả dụng cho tài liệu này."
 
 #: koassistant_xray_browser.lua:2125
+#, fuzzy
 msgid "Could not extract book text."
-msgstr ""
+msgstr "Không thể trích xuất văn bản sách."
 
 #: koassistant_xray_browser.lua:2128 koassistant_xray_browser.lua:2242
+#, fuzzy
 msgid ""
-"Could not extract chapter text. PDF text extraction may not be available for "
-"this document."
-msgstr ""
+"Could not extract chapter text. PDF text extraction may not be available for this document."
+msgstr "Không thể trích xuất văn bản chương. Trích xuất văn bản PDF có thể không khả dụng cho tài liệu này."
 
 #: koassistant_xray_browser.lua:2129 koassistant_xray_browser.lua:2243
 #, fuzzy
@@ -4014,28 +4027,34 @@ msgid "Could not extract chapter text."
 msgstr "Không thể trích xuất văn bản chương."
 
 #: koassistant_xray_browser.lua:2143
+#, fuzzy
 msgid "No X-Ray items found in book text."
-msgstr ""
+msgstr "Không tìm thấy mục X-Ray nào trong văn bản sách."
 
 #: koassistant_xray_browser.lua:2145 koassistant_xray_browser.lua:2255
+#, fuzzy
 msgid "No X-Ray items found in \"%1\"."
-msgstr ""
+msgstr "Không tìm thấy mục X-Ray nào trong \"%1\"."
 
 #: koassistant_xray_browser.lua:2147
+#, fuzzy
 msgid "No X-Ray items found in current chapter."
-msgstr ""
+msgstr "Không tìm thấy mục X-Ray nào trong chương hiện tại."
 
 #: koassistant_xray_browser.lua:2164
+#, fuzzy
 msgid "All Chapters u{25BE}"
-msgstr ""
+msgstr "Tất cả chương u{25BE}"
 
 #: koassistant_xray_browser.lua:2166
+#, fuzzy
 msgid "To %1 u{25BE}"
-msgstr ""
+msgstr "Đến %1 u{25BE}"
 
 #: koassistant_xray_browser.lua:2171
+#, fuzzy
 msgid "This Chapter u{25BE}"
-msgstr ""
+msgstr "Chương này u{25BE}"
 
 #: koassistant_xray_browser.lua:2192 koassistant_xray_browser.lua:2271
 #, fuzzy
@@ -4043,85 +4062,106 @@ msgid "%1x"
 msgstr "%1x"
 
 #: koassistant_xray_browser.lua:2204
+#, fuzzy
 msgid "All Chapters — %1 mentions"
-msgstr ""
+msgstr "Tất cả chương — %1 đề cập"
 
 #: koassistant_xray_browser.lua:2206
+#, fuzzy
 msgid "To %1 — %2 mentions"
-msgstr ""
+msgstr "Đến %1 — %2 đề cập"
 
 #: koassistant_xray_browser.lua:2209 koassistant_xray_browser.lua:2281
+#, fuzzy
 msgid "%1 — %2 mentions"
-msgstr ""
+msgstr "%1 — %2 đề cập"
 
 #: koassistant_xray_browser.lua:2211
+#, fuzzy
 msgid "This Chapter — %1 mentions"
-msgstr ""
+msgstr "Chương này — %1 đề cập"
 
 #: koassistant_xray_browser.lua:2256
+#, fuzzy
 msgid "No X-Ray items found in this chapter."
-msgstr ""
+msgstr "Không tìm thấy mục X-Ray nào trong chương này."
 
 #: koassistant_xray_browser.lua:2283
+#, fuzzy
 msgid "Chapter — %1 mentions"
-msgstr ""
+msgstr "Chương — %1 đề cập"
 
 #: koassistant_xray_browser.lua:2320
+#, fuzzy
 msgid "Scanning…"
-msgstr ""
+msgstr "Đang quét…"
 
 #: koassistant_xray_browser.lua:2352
+#, fuzzy
 msgid ""
 "This chapter is beyond your X-Ray coverage and may contain spoilers.\n"
 "\n"
 "Reveal mentions?"
 msgstr ""
+"Chương này nằm ngoài phạm vi X-Ray của bạn và có thể chứa spoiler.\n"
+"\n"
+"Hiển thị các đề cập?"
 
 #: koassistant_xray_browser.lua:2449
+#, fuzzy
 msgid "Search for:"
-msgstr ""
+msgstr "Tìm kiếm:"
 
 #: koassistant_xray_browser.lua:2470
+#, fuzzy
 msgid "No X-Ray items in \"%1\"."
-msgstr ""
+msgstr "Không có mục X-Ray nào trong \"%1\"."
 
 #: koassistant_xray_browser.lua:2471
+#, fuzzy
 msgid "this chapter"
-msgstr ""
+msgstr "chương này"
 
 #: koassistant_xray_browser.lua:2482
+#, fuzzy
 msgid "Scan all chapters"
-msgstr ""
+msgstr "Quét tất cả chương"
 
 #: koassistant_xray_browser.lua:2483
+#, fuzzy
 msgid "may contain spoilers"
-msgstr ""
+msgstr "có thể chứa spoiler"
 
 #: koassistant_xray_browser.lua:2489
+#, fuzzy
 msgid "Scanning all chapters…"
-msgstr ""
+msgstr "Đang quét tất cả chương…"
 
 #: koassistant_xray_browser.lua:2516
+#, fuzzy
 msgid "%1 — %2 chapters"
-msgstr ""
+msgstr "%1 — %2 chương"
 
 #: koassistant_xray_browser.lua:2552
+#, fuzzy
 msgid "Computing distribution…"
-msgstr ""
+msgstr "Đang tính toán phân bố…"
 
 #: koassistant_xray_browser.lua:2564
+#, fuzzy
 msgid "Could not determine chapter structure."
-msgstr ""
+msgstr "Không thể xác định cấu trúc chương."
 
 #: koassistant_xray_browser.lua:2595
+#, fuzzy
 msgid ""
-"No mentions of \"%1\" found. PDF text extraction may not be available for "
-"this document."
-msgstr ""
+"No mentions of \"%1\" found. PDF text extraction may not be available for this document."
+msgstr "Không tìm thấy đề cập nào về \"%1\". Trích xuất văn bản PDF có thể không khả dụng cho tài liệu này."
 
 #: koassistant_xray_browser.lua:2596
+#, fuzzy
 msgid "No mentions of \"%1\" found in book text."
-msgstr ""
+msgstr "Không tìm thấy đề cập nào về \"%1\" trong văn bản sách."
 
 #: koassistant_xray_browser.lua:2624
 #, fuzzy
@@ -4160,28 +4200,34 @@ msgid "View %1"
 msgstr "Xem %1"
 
 #: koassistant_xray_browser.lua:2785
+#, fuzzy
 msgid "View other artifacts…"
-msgstr ""
+msgstr "Xem các tạo phẩm khác…"
 
 #: koassistant_xray_browser.lua:2800
+#, fuzzy
 msgid "Redo X-Ray (entire document)"
-msgstr ""
+msgstr "Làm lại X-Ray (toàn bộ tài liệu)"
 
 #: koassistant_xray_browser.lua:2810
+#, fuzzy
 msgid "Redo X-Ray (to 100%)"
-msgstr ""
+msgstr "Làm lại X-Ray (đến 100%)"
 
 #: koassistant_xray_browser.lua:2833
+#, fuzzy
 msgid "Redo X-Ray (to %1)"
-msgstr ""
+msgstr "Làm lại X-Ray (đến %1)"
 
 #: koassistant_xray_browser.lua:2837
+#, fuzzy
 msgid "Redo X-Ray"
-msgstr ""
+msgstr "Làm lại X-Ray"
 
 #: koassistant_xray_browser.lua:2852
+#, fuzzy
 msgid "Update X-Ray (to 100%)"
-msgstr ""
+msgstr "Cập nhật X-Ray (đến 100%)"
 
 #: koassistant_xray_browser.lua:2866
 #, fuzzy
@@ -4224,8 +4270,9 @@ msgid "Source:"
 msgstr "Nguồn:"
 
 #: koassistant_xray_browser.lua:2905 main.lua:3961
+#, fuzzy
 msgid "Reasoning:"
-msgstr ""
+msgstr "Lý luận:"
 
 #: koassistant_xray_browser.lua:2905 koassistant_xray_browser.lua:2908
 #: main.lua:3961 main.lua:3964 koassistant_ui/prompts_manager.lua:746
@@ -4237,19 +4284,25 @@ msgid "Yes"
 msgstr "Có"
 
 #: koassistant_xray_browser.lua:2908 main.lua:3964
+#, fuzzy
 msgid "Web search:"
-msgstr ""
+msgstr "Tìm kiếm web:"
 
 #: koassistant_xray_browser.lua:3015
+#, fuzzy
 msgid ""
 "This feature requires the book to be open in Reader mode.\n"
 "\n"
 "Open the book now?"
 msgstr ""
+"Tính năng này yêu cầu sách được mở trong chế độ Đọc.\n"
+"\n"
+"Mở sách ngay bây giờ?"
 
 #: koassistant_xray_browser.lua:3023
+#, fuzzy
 msgid "This feature requires the book to be open in Reader mode."
-msgstr ""
+msgstr "Tính năng này yêu cầu sách được mở trong chế độ Đọc."
 
 #: koassistant_xray_parser.lua:303
 #, fuzzy
@@ -4258,13 +4311,15 @@ msgstr "Mạch Truyện"
 
 #: koassistant_xray_parser.lua:306 koassistant_xray_parser.lua:325
 #: koassistant_xray_parser.lua:349
+#, fuzzy
 msgid "Reader Engagement"
-msgstr ""
+msgstr "Tương tác người đọc"
 
 #: koassistant_xray_parser.lua:310 koassistant_xray_parser.lua:329
 #: koassistant_xray_parser.lua:352
+#, fuzzy
 msgid "Conclusion"
-msgstr ""
+msgstr "Kết luận"
 
 #: koassistant_xray_parser.lua:312
 #, fuzzy
@@ -4277,8 +4332,9 @@ msgid "Key Figures"
 msgstr "Nhân vật Chính"
 
 #: koassistant_xray_parser.lua:318
+#, fuzzy
 msgid "Locations"
-msgstr ""
+msgstr "Vị trí"
 
 #: koassistant_xray_parser.lua:319
 #, fuzzy
@@ -4321,8 +4377,9 @@ msgid "Significance:"
 msgstr "Ý nghĩa:"
 
 #: koassistant_xray_parser.lua:496 koassistant_xray_parser.lua:512
+#, fuzzy
 msgid "References:"
-msgstr ""
+msgstr "Tham khảo:"
 
 #: koassistant_xray_parser.lua:507
 #, fuzzy
@@ -4335,12 +4392,14 @@ msgid "Characters:"
 msgstr "Nhân vật:"
 
 #: koassistant_xray_parser.lua:542
+#, fuzzy
 msgid "Patterns:"
-msgstr ""
+msgstr "Mẫu hình:"
 
 #: koassistant_xray_parser.lua:547
+#, fuzzy
 msgid "Notable highlights:"
-msgstr ""
+msgstr "Điểm nổi bật đáng chú ý:"
 
 #: koassistant_xray_parser.lua:575
 #, fuzzy
@@ -4363,20 +4422,24 @@ msgid "Building toward:"
 msgstr "Hướng tới:"
 
 #: koassistant_xray_parser.lua:607
+#, fuzzy
 msgid "Resolutions:"
-msgstr ""
+msgstr "Giải pháp:"
 
 #: koassistant_xray_parser.lua:615
+#, fuzzy
 msgid "Themes resolved:"
-msgstr ""
+msgstr "Chủ đề đã giải quyết:"
 
 #: koassistant_xray_parser.lua:624
+#, fuzzy
 msgid "Key findings:"
-msgstr ""
+msgstr "Phát hiện chính:"
 
 #: koassistant_xray_parser.lua:632
+#, fuzzy
 msgid "Implications:"
-msgstr ""
+msgstr "Ý nghĩa:"
 
 #: main.lua:164 main.lua:309
 #, fuzzy
@@ -4409,8 +4472,9 @@ msgid "KOAssistant: Continue Last Saved Chat"
 msgstr "KOAssistant: Tiếp tục cuộc trò chuyện đã lưu gần nhất"
 
 #: main.lua:988
+#, fuzzy
 msgid "KOAssistant: Continue Last Chat"
-msgstr ""
+msgstr "KOAssistant: Tiếp tục cuộc trò chuyện cuối"
 
 #: main.lua:997
 #, fuzzy
@@ -4423,8 +4487,9 @@ msgid "KOAssistant: General Chat/Action"
 msgstr "KOAssistant: Trò chuyện/Hành động chung"
 
 #: main.lua:1013
+#, fuzzy
 msgid "KOAssistant: Book Chat/Action"
-msgstr ""
+msgstr "KOAssistant: Trò chuyện/Hành động về sách"
 
 #: main.lua:1021
 #, fuzzy
@@ -4447,8 +4512,9 @@ msgid "KOAssistant: Toggle Highlight Bypass"
 msgstr "KOAssistant: Bật/tắt bỏ qua đánh dấu"
 
 #: main.lua:1052
+#, fuzzy
 msgid "KOAssistant: Translate Page"
-msgstr ""
+msgstr "KOAssistant: Dịch trang"
 
 #: main.lua:1080
 #, fuzzy
@@ -4927,13 +4993,11 @@ msgstr "Nhập hướng dẫn hành vi AI tùy chỉnh..."
 #: main.lua:3478
 #, fuzzy
 msgid ""
-"Define how the AI should behave. This replaces the built-in Minimal/Full "
-"behavior when 'Custom' is selected.\n"
+"Define how the AI should behave. This replaces the built-in Minimal/Full behavior when 'Custom' is selected.\n"
 "\n"
 "Tip: Start with the Full behavior as a template."
 msgstr ""
-"Định nghĩa cách AI nên hoạt động. Điều này thay thế hành vi Tối Thiểu/Đầy Đủ "
-"tích hợp sẵn khi chọn 'Tùy Chỉnh'.\n"
+"Định nghĩa cách AI nên hoạt động. Điều này thay thế hành vi Tối Thiểu/Đầy Đủ tích hợp sẵn khi chọn 'Tùy Chỉnh'.\n"
 "\n"
 "Mẹo: Bắt đầu với hành vi Đầy Đủ làm mẫu."
 
@@ -4945,11 +5009,8 @@ msgstr "Tải Đầy Đủ"
 #: main.lua:3549
 #, fuzzy
 msgid ""
-"Model lists are now managed through the model_lists.lua file. Please edit "
-"this file to add or remove models."
-msgstr ""
-"Danh sách mô hình hiện được quản lý qua tệp model_lists.lua. Vui lòng chỉnh "
-"sửa tệp này để thêm hoặc xóa mô hình."
+"Model lists are now managed through the model_lists.lua file. Please edit this file to add or remove models."
+msgstr "Danh sách mô hình hiện được quản lý qua tệp model_lists.lua. Vui lòng chỉnh sửa tệp này để thêm hoặc xóa mô hình."
 
 #: main.lua:3804
 #, fuzzy
@@ -4982,8 +5043,9 @@ msgid "%dy ago"
 msgstr "%d năm trước"
 
 #: main.lua:3958
+#, fuzzy
 msgid "Language:"
-msgstr ""
+msgstr "Ngôn ngữ:"
 
 #: main.lua:3995
 #, fuzzy
@@ -4991,42 +5053,54 @@ msgid "No book open"
 msgstr "Chưa mở sách"
 
 #: main.lua:4010
+#, fuzzy
 msgid ""
 "No cached content found for this document.\n"
 "\n"
-"Run X-Ray, Recap, X-Ray (Simple), Document Summary, or Document Analysis to "
-"create reusable caches."
+"Run X-Ray, Recap, X-Ray (Simple), Document Summary, or Document Analysis to create reusable caches."
 msgstr ""
+"Không tìm thấy nội dung đã lưu cho tài liệu này.\n"
+"\n"
+"Chạy X-Ray, Tóm tắt, X-Ray (Đơn giản), Tóm tắt tài liệu hoặc Phân tích tài liệu để tạo bộ nhớ đệm có thể tái sử dụng."
 
 #: main.lua:4218
+#, fuzzy
 msgid ""
 "Reading scope changed since this X-Ray was generated. Consider updating."
-msgstr ""
+msgstr "Phạm vi đọc đã thay đổi kể từ khi X-Ray này được tạo. Cân nhắc cập nhật."
 
 #: main.lua:4224
+#, fuzzy
 msgid "Hidden flows active but X-Ray was generated without flow filtering."
-msgstr ""
+msgstr "Luồng ẩn đang hoạt động nhưng X-Ray được tạo mà không có lọc luồng."
 
 #: main.lua:4343
+#, fuzzy
 msgid ""
-"Text extraction is disabled for this action. Re-enable it in the Action "
-"Manager."
-msgstr ""
+"Text extraction is disabled for this action. Re-enable it in the Action Manager."
+msgstr "Trích xuất văn bản bị tắt cho hành động này. Bật lại trong Quản lý hành động."
 
 #: main.lua:4359
+#, fuzzy
 msgid ""
-"This action requires highlight or annotation data, but data access is "
-"disabled for this action.\n"
+"This action requires highlight or annotation data, but data access is disabled for this action.\n"
 "\n"
 "Re-enable in Action Manager (hold the action → Edit)."
 msgstr ""
+"Hành động này yêu cầu dữ liệu đánh dấu hoặc chú thích, nhưng quyền truy cập dữ liệu bị tắt cho hành động này.\n"
+"\n"
+"Bật lại trong Quản lý hành động (giữ hành động → Chỉnh sửa)."
 
 #: main.lua:4367
+#, fuzzy
 msgid ""
 "This action requires access to your highlights or annotations.\n"
 "\n"
 "Enable sharing in Settings → Privacy & Data."
 msgstr ""
+"Hành động này yêu cầu quyền truy cập vào các đánh dấu hoặc chú thích của bạn.\n"
+"\n"
+"Bật chia sẻ trong Cài đặt → Quyền riêng tư & Dữ liệu."
 
 #: main.lua:4445
 #, fuzzy
@@ -5039,40 +5113,49 @@ msgid "to %1"
 msgstr "đến %1"
 
 #: main.lua:4451 main.lua:4458 main.lua:4599
+#, fuzzy
 msgid "Redo %1"
-msgstr ""
+msgstr "Làm lại %1"
 
 #: main.lua:4453 main.lua:4460
+#, fuzzy
 msgid "Regenerate %1"
-msgstr ""
+msgstr "Tạo lại %1"
 
 #: main.lua:4547
+#, fuzzy
 msgid "Generate %1 (to %2)"
-msgstr ""
+msgstr "Tạo %1 (đến %2)"
 
 #: main.lua:4549
+#, fuzzy
 msgid "Generate %1"
-msgstr ""
+msgstr "Tạo %1"
 
 #: main.lua:4559
+#, fuzzy
 msgid "Generate %1 (entire document)"
-msgstr ""
+msgstr "Tạo %1 (toàn bộ tài liệu)"
 
 #: main.lua:4595 main.lua:4621
+#, fuzzy
 msgid "Update %1 (to %2)"
-msgstr ""
+msgstr "Cập nhật %1 (đến %2)"
 
 #: main.lua:4597
+#, fuzzy
 msgid "Redo %1 (to %2)"
-msgstr ""
+msgstr "Làm lại %1 (đến %2)"
 
 #: main.lua:4765
+#, fuzzy
 msgid "Update to %1"
-msgstr ""
+msgstr "Cập nhật lên %1"
 
 #: main.lua:4767
+#, fuzzy
 msgid "Redo"
-msgstr ""
+msgstr "Làm lại"
 
 #: main.lua:4859 main.lua:4992 main.lua:5056
 #, fuzzy
@@ -5116,12 +5199,14 @@ msgid "Temp: %1"
 msgstr "Temp: %1"
 
 #: main.lua:5549
+#, fuzzy
 msgid "Reasoning: ON"
-msgstr ""
+msgstr "Lý luận: BẬT"
 
 #: main.lua:5549
+#, fuzzy
 msgid "Reasoning: OFF"
-msgstr ""
+msgstr "Lý luận: TẮT"
 
 #: main.lua:5563
 #, fuzzy
@@ -5164,20 +5249,27 @@ msgid "D.Bypass: OFF"
 msgstr "D.Bypass: TẮT"
 
 #: main.lua:5635
+#, fuzzy
 msgid "Text Extraction: ON"
-msgstr ""
+msgstr "Trích xuất văn bản: BẬT"
 
 #: main.lua:5635
+#, fuzzy
 msgid "Text Extraction: OFF"
-msgstr ""
+msgstr "Trích xuất văn bản: TẮT"
 
 #: main.lua:5642
+#, fuzzy
 msgid ""
 "To enable text extraction for the first time, go to:\n"
 "Settings → Privacy & Data → Text Extraction\n"
 "\n"
 "After that, this toggle will work directly."
 msgstr ""
+"Để bật trích xuất văn bản lần đầu tiên, đi đến:\n"
+"Cài đặt → Quyền riêng tư & Dữ liệu → Trích xuất văn bản\n"
+"\n"
+"Sau đó, nút chuyển này sẽ hoạt động trực tiếp."
 
 #: main.lua:5711
 #, fuzzy
@@ -5190,16 +5282,19 @@ msgid "Quick Actions..."
 msgstr "Thao tác nhanh..."
 
 #: main.lua:5776
+#, fuzzy
 msgid "Sort Items"
-msgstr ""
+msgstr "Sắp xếp mục"
 
 #: main.lua:5784 main.lua:5957
+#, fuzzy
 msgid "Align Buttons ✓"
-msgstr ""
+msgstr "Căn chỉnh nút ✓"
 
 #: main.lua:5784 main.lua:5957
+#, fuzzy
 msgid "Align Buttons"
-msgstr ""
+msgstr "Căn chỉnh nút"
 
 #: main.lua:5824
 #, fuzzy
@@ -5212,8 +5307,9 @@ msgid "Panel Actions"
 msgstr "Hành Động Bảng"
 
 #: main.lua:5950
+#, fuzzy
 msgid "Panel Utilities"
-msgstr ""
+msgstr "Tiện ích bảng điều khiển"
 
 #: main.lua:5989
 #, fuzzy
@@ -5222,8 +5318,10 @@ msgstr "Đang kiểm tra kết nối..."
 
 #: main.lua:6017
 #, fuzzy
-msgid "Connection test failed:\n"
-msgstr "Kiểm tra kết nối thất bại:\n"
+msgid ""
+"Connection test failed:\n"
+msgstr ""
+"Kiểm tra kết nối thất bại:\n"
 
 #: main.lua:6023
 #, fuzzy
@@ -5248,26 +5346,37 @@ msgid "Connection test failed: "
 msgstr "Kiểm tra kết nối thất bại:"
 
 #: main.lua:6051
+#, fuzzy
 msgid ""
 "No book is currently open.\n"
 "\n"
 "Open a book first, then use this option to clear its cached action responses."
 msgstr ""
+"Hiện không có sách nào đang mở.\n"
+"\n"
+"Mở sách trước, sau đó sử dụng tùy chọn này để xóa các phản hồi hành động đã lưu của sách đó."
 
 #: main.lua:6064
+#, fuzzy
 msgid ""
 "No action cache found for this book.\n"
 "\n"
 "Run an artifact action (X-Ray, Recap, Summarize, etc.) to create a cache."
 msgstr ""
+"Không tìm thấy bộ nhớ đệm hành động cho sách này.\n"
+"\n"
+"Chạy một hành động artifact (X-Ray, Tóm tắt, Tóm tắt, v.v.) để tạo bộ nhớ đệm."
 
 #: main.lua:6074
+#, fuzzy
 msgid ""
 "Clear all cached action responses for this book?\n"
 "\n"
-"This removes X-Ray, Recap, Summarize, Analyze, and X-Ray (Simple) caches. "
-"Next time you run these actions, they will regenerate from scratch."
+"This removes X-Ray, Recap, Summarize, Analyze, and X-Ray (Simple) caches. Next time you run these actions, they will regenerate from scratch."
 msgstr ""
+"Xóa tất cả phản hồi hành động đã lưu cho sách này?\n"
+"\n"
+"Điều này xóa bộ nhớ đệm X-Ray, Tóm tắt, Tóm tắt, Phân tích và X-Ray (Đơn giản). Lần sau khi bạn chạy các hành động này, chúng sẽ được tạo lại từ đầu."
 
 #: main.lua:6084
 #, fuzzy
@@ -5373,12 +5482,14 @@ msgid "Action edits reset to defaults"
 msgstr "Chỉnh sửa hành động đã đặt lại về mặc định"
 
 #: main.lua:7467
+#, fuzzy
 msgid "Action menus reset to defaults."
-msgstr ""
+msgstr "Menu hành động đã đặt lại về mặc định."
 
 #: main.lua:7467 koassistant_ui/prompts_manager.lua:4357
+#, fuzzy
 msgid "Restart KOReader for highlight menu changes to apply."
-msgstr ""
+msgstr "Khởi động lại KOReader để áp dụng thay đổi menu đánh dấu."
 
 #: main.lua:7480
 #, fuzzy
@@ -5401,8 +5512,9 @@ msgid "Quick actions reset"
 msgstr "Thao tác nhanh đã đặt lại"
 
 #: main.lua:7535
+#, fuzzy
 msgid "Input dialog actions reset"
-msgstr ""
+msgstr "Hành động hộp thoại nhập đã đặt lại"
 
 #: main.lua:7577
 #, fuzzy
@@ -5433,8 +5545,7 @@ msgstr "Tối thiểu: Tắt tất cả chia sẻ mở rộng"
 #, fuzzy
 msgid ""
 "Full: All data sharing enabled (Text extraction must be enabled separately)"
-msgstr ""
-"Đầy đủ: Bật tất cả chia sẻ dữ liệu (Trích xuất văn bản phải được bật riêng)"
+msgstr "Đầy đủ: Bật tất cả chia sẻ dữ liệu (Trích xuất văn bản phải được bật riêng)"
 
 #: main.lua:7802
 #, fuzzy
@@ -5680,16 +5791,22 @@ msgstr ""
 "%1"
 
 #: main.lua:8255
+#, fuzzy
 msgid ""
 "No backups found.\n"
 "\n"
 "Create a backup first using:\n"
 "Settings → Backup & Reset → Create Backup"
 msgstr ""
+"Không tìm thấy bản sao lưu.\n"
+"\n"
+"Tạo bản sao lưu trước bằng cách:\n"
+"Cài đặt → Sao lưu & Đặt lại → Tạo bản sao lưu"
 
 #: main.lua:8275
+#, fuzzy
 msgid "Restore Point"
-msgstr ""
+msgstr "Điểm khôi phục"
 
 #: main.lua:8298
 #, fuzzy
@@ -5843,8 +5960,7 @@ msgstr ""
 "\n"
 "⚠ Điểm khôi phục sẽ được tạo tự động.\n"
 "\n"
-"⚠ Nên khởi động lại KOReader sau khi khôi phục để các thay đổi có hiệu lực "
-"đầy đủ."
+"⚠ Nên khởi động lại KOReader sau khi khôi phục để các thay đổi có hiệu lực đầy đủ."
 
 #: main.lua:8565 main.lua:8722
 #, fuzzy
@@ -5953,21 +6069,17 @@ msgstr ""
 msgid ""
 "KOAssistant: Chat Storage Upgrade\n"
 "\n"
-"The KOAssistant plugin needs to upgrade its chat history storage to fix an "
-"issue where chats were lost when files were moved.\n"
+"The KOAssistant plugin needs to upgrade its chat history storage to fix an issue where chats were lost when files were moved.\n"
 "\n"
-"This will migrate all existing chats to the new system. The process may take "
-"a few minutes for large libraries.\n"
+"This will migrate all existing chats to the new system. The process may take a few minutes for large libraries.\n"
 "\n"
 "Old chat files will be backed up to koassistant_chats.backup/"
 msgstr ""
 "KOAssistant: Nâng cấp bộ nhớ trò chuyện\n"
 "\n"
-"Plugin KOAssistant cần nâng cấp bộ nhớ lịch sử trò chuyện để khắc phục vấn "
-"đề mất trò chuyện khi di chuyển tệp.\n"
+"Plugin KOAssistant cần nâng cấp bộ nhớ lịch sử trò chuyện để khắc phục vấn đề mất trò chuyện khi di chuyển tệp.\n"
 "\n"
-"Quá trình này sẽ chuyển đổi tất cả trò chuyện hiện có sang hệ thống mới. Quá "
-"trình có thể mất vài phút đối với thư viện lớn.\n"
+"Quá trình này sẽ chuyển đổi tất cả trò chuyện hiện có sang hệ thống mới. Quá trình có thể mất vài phút đối với thư viện lớn.\n"
 "\n"
 "Các tệp trò chuyện cũ sẽ được sao lưu vào koassistant_chats.backup/"
 
@@ -6042,10 +6154,10 @@ msgid "PRIVACY SETTINGS"
 msgstr "CÀI ĐẶT QUYỀN RIÊNG TƯ"
 
 #: main.lua:9080
+#, fuzzy
 msgid ""
-"Some features (like X-Ray) need to access document text and other content. "
-"Enable in: Settings → Privacy & Data"
-msgstr ""
+"Some features (like X-Ray) need to access document text and other content. Enable in: Settings → Privacy & Data"
+msgstr "Một số tính năng (như X-Ray) cần truy cập văn bản tài liệu và nội dung khác. Bật trong: Cài đặt → Quyền riêng tư & Dữ liệu"
 
 #: main.lua:9081
 #, fuzzy
@@ -6053,10 +6165,10 @@ msgid "QUICK ACCESS"
 msgstr "TRUY CẬP NHANH"
 
 #: main.lua:9082
+#, fuzzy
 msgid ""
-"Assign Quick Settings (File browser) and Quick Actions (Reader) panels to "
-"gestures. See KOReader Settings (Gear icon) → Taps and Gestures"
-msgstr ""
+"Assign Quick Settings (File browser) and Quick Actions (Reader) panels to gestures. See KOReader Settings (Gear icon) → Taps and Gestures"
+msgstr "Gán các bảng Cài đặt nhanh (Trình duyệt tệp) và Hành động nhanh (Trình đọc) cho cử chỉ. Xem Cài đặt KOReader (biểu tượng bánh răng) → Chạm và Cử chỉ"
 
 #: main.lua:9083
 #, fuzzy
@@ -6064,10 +6176,10 @@ msgid "CUSTOM ACTIONS"
 msgstr "HÀNH ĐỘNG TÙY CHỈNH"
 
 #: main.lua:9084
+#, fuzzy
 msgid ""
-"Create your own prompts and actions or edit built in ones. Go to: Settings → "
-"Action Manager"
-msgstr ""
+"Create your own prompts and actions or edit built in ones. Go to: Settings → Action Manager"
+msgstr "Tạo lời nhắc và hành động của riêng bạn hoặc chỉnh sửa các mục có sẵn. Vào: Cài đặt → Quản lý hành động"
 
 #: main.lua:9085
 #, fuzzy
@@ -6077,82 +6189,92 @@ msgstr "BIỂU TƯỢNG MENU VÀ THÔNG TIN"
 #: main.lua:9086
 #, fuzzy
 msgid ""
-"Setup KOReader with emoji support to get informative icons in menus and "
-"more. See the emoji section in the README for details."
-msgstr ""
-"Thiết lập KOReader với hỗ trợ emoji để có các biểu tượng thông tin trong "
-"menu và nhiều hơn nữa. Xem phần emoji trong README để biết chi tiết."
+"Setup KOReader with emoji support to get informative icons in menus and more. See the emoji section in the README for details."
+msgstr "Thiết lập KOReader với hỗ trợ emoji để có các biểu tượng thông tin trong menu và nhiều hơn nữa. Xem phần emoji trong README để biết chi tiết."
 
 #: main.lua:9161
+#, fuzzy
 msgid "GESTURE SETUP"
-msgstr ""
+msgstr "THIẾT LẬP CỬ CHỈ"
 
 #: main.lua:9162
+#, fuzzy
 msgid "KOAssistant has two quick-access panels:"
-msgstr ""
+msgstr "KOAssistant có hai bảng truy cập nhanh:"
 
 #: main.lua:9163
+#, fuzzy
 msgid "Quick Actions — book actions, artifacts, and utilities (reader mode)"
-msgstr ""
+msgstr "Hành động nhanh — hành động sách, tạo phẩm và tiện ích (chế độ đọc)"
 
 #: main.lua:9164
+#, fuzzy
 msgid ""
 "Quick Settings — change provider, model, behavior, and more (file browser)"
-msgstr ""
+msgstr "Cài đặt nhanh — thay đổi nhà cung cấp, mô hình, hành vi và hơn thế nữa (trình duyệt tệp)"
 
 #: main.lua:9165
+#, fuzzy
 msgid "Assign both to \"tap bottom right corner\"?"
-msgstr ""
+msgstr "Gán cả hai cho \"chạm góc dưới bên phải\"?"
 
 #: main.lua:9166
+#, fuzzy
 msgid ""
-"You can change these anytime in KOReader Settings (Gear icon) → Taps and "
-"Gestures."
-msgstr ""
+"You can change these anytime in KOReader Settings (Gear icon) → Taps and Gestures."
+msgstr "Bạn có thể thay đổi những điều này bất cứ lúc nào trong Cài đặt KOReader (biểu tượng bánh răng) → Chạm và Cử chỉ."
 
 #: main.lua:9167
+#, fuzzy
 msgid "Requires KOReader restart to take effect."
-msgstr ""
+msgstr "Yêu cầu khởi động lại KOReader để có hiệu lực."
 
 #: main.lua:9171
+#, fuzzy
 msgid "Set up"
-msgstr ""
+msgstr "Thiết lập"
 
 #: main.lua:9172
+#, fuzzy
 msgid "No thanks"
-msgstr ""
+msgstr "Không, cảm ơn"
 
 #: main.lua:9183
+#, fuzzy
 msgid "GESTURE TIP"
-msgstr ""
+msgstr "MẸO CỬ CHỈ"
 
 #: main.lua:9184
+#, fuzzy
 msgid "KOAssistant has two quick-access panels you can assign to gestures:"
-msgstr ""
+msgstr "KOAssistant có hai bảng truy cập nhanh bạn có thể gán cho cử chỉ:"
 
 #: main.lua:9185
+#, fuzzy
 msgid ""
-"Quick Actions — book actions, artifacts, and utilities (assign in reader "
-"mode)"
-msgstr ""
+"Quick Actions — book actions, artifacts, and utilities (assign in reader mode)"
+msgstr "Hành động nhanh — hành động sách, tạo phẩm và tiện ích (gán trong chế độ đọc)"
 
 #: main.lua:9186
+#, fuzzy
 msgid ""
-"Quick Settings — change provider, model, behavior, and more (assign in file "
-"browser mode)"
-msgstr ""
+"Quick Settings — change provider, model, behavior, and more (assign in file browser mode)"
+msgstr "Cài đặt nhanh — thay đổi nhà cung cấp, mô hình, hành vi và hơn thế nữa (gán trong chế độ trình duyệt tệp)"
 
 #: main.lua:9187
+#, fuzzy
 msgid "Set them up in KOReader Settings (Gear icon) → Taps and Gestures."
-msgstr ""
+msgstr "Thiết lập chúng trong Cài đặt KOReader (biểu tượng bánh răng) → Chạm và Cử chỉ."
 
 #: main.lua:9227
+#, fuzzy
 msgid "Quick Actions and Quick Settings assigned to tap bottom right corner."
-msgstr ""
+msgstr "Hành động nhanh và Cài đặt nhanh đã được gán cho chạm góc dưới bên phải."
 
 #: main.lua:9228
+#, fuzzy
 msgid "Please restart KOReader for changes to take effect."
-msgstr ""
+msgstr "Vui lòng khởi động lại KOReader để các thay đổi có hiệu lực."
 
 #: main.lua:9380
 #, fuzzy
@@ -6270,17 +6392,15 @@ msgstr "Quản lý Lĩnh vực"
 
 #: koassistant_ui/behavior_manager.lua:243
 #: koassistant_ui/domain_manager.lua:260
+#, fuzzy
 msgid "Restore defaults"
-msgstr ""
+msgstr "Khôi phục mặc định"
 
 #: koassistant_ui/behavior_manager.lua:246
 #, fuzzy
 msgid ""
-"This will delete all custom behaviors and reset selection to Standard. "
-"Continue?"
-msgstr ""
-"Thao tác này sẽ xóa tất cả hành vi tùy chỉnh và đặt lại về Tiêu Chuẩn. Tiếp "
-"tục?"
+"This will delete all custom behaviors and reset selection to Standard. Continue?"
+msgstr "Thao tác này sẽ xóa tất cả hành vi tùy chỉnh và đặt lại về Tiêu Chuẩn. Tiếp tục?"
 
 #: koassistant_ui/behavior_manager.lua:279
 #: koassistant_ui/domain_manager.lua:295 koassistant_ui/prompts_manager.lua:679
@@ -6442,13 +6562,11 @@ msgstr "Nhập hướng dẫn hành vi cho AI..."
 msgid ""
 "Name: %1\n"
 "\n"
-"Define how the AI should behave. This text is sent as part of the system "
-"prompt."
+"Define how the AI should behave. This text is sent as part of the system prompt."
 msgstr ""
 "Tên: %1\n"
 "\n"
-"Định nghĩa cách AI nên hoạt động. Văn bản này được gửi như một phần của lời "
-"nhắc hệ thống."
+"Định nghĩa cách AI nên hoạt động. Văn bản này được gửi như một phần của lời nhắc hệ thống."
 
 #: koassistant_ui/behavior_manager.lua:507
 #, fuzzy
@@ -6495,9 +6613,9 @@ msgstr "Không có lĩnh vực nào"
 
 #: koassistant_ui/domain_manager.lua:134
 #, fuzzy
-msgid "Create custom domains here or add .md/.txt files to the domains/ folder"
-msgstr ""
-"Tạo lĩnh vực tùy chỉnh tại đây hoặc thêm file .md/.txt vào thư mục domains/"
+msgid ""
+"Create custom domains here or add .md/.txt files to the domains/ folder"
+msgstr "Tạo lĩnh vực tùy chỉnh tại đây hoặc thêm file .md/.txt vào thư mục domains/"
 
 #: koassistant_ui/domain_manager.lua:150
 #, fuzzy
@@ -6525,23 +6643,20 @@ msgstr "Giới thiệu về Lĩnh vực"
 msgid ""
 "Domains provide specialized knowledge context to the AI.\n"
 "\n"
-"Unlike behaviors (which set communication style), domains give the AI "
-"expertise in specific subject areas.\n"
+"Unlike behaviors (which set communication style), domains give the AI expertise in specific subject areas.\n"
 "\n"
-"Domains are selected per-chat, not globally, making them like 'projects' you "
-"can switch between."
+"Domains are selected per-chat, not globally, making them like 'projects' you can switch between."
 msgstr ""
 "Lĩnh vực cung cấp ngữ cảnh kiến thức chuyên môn cho AI.\n"
 "\n"
-"Không giống hành vi (thiết lập phong cách giao tiếp), lĩnh vực cung cấp cho "
-"AI chuyên môn trong các lĩnh vực cụ thể.\n"
+"Không giống hành vi (thiết lập phong cách giao tiếp), lĩnh vực cung cấp cho AI chuyên môn trong các lĩnh vực cụ thể.\n"
 "\n"
-"Lĩnh vực được chọn theo từng cuộc trò chuyện, không phải toàn cục, giống như "
-"'dự án' bạn có thể chuyển đổi."
+"Lĩnh vực được chọn theo từng cuộc trò chuyện, không phải toàn cục, giống như 'dự án' bạn có thể chuyển đổi."
 
 #: koassistant_ui/domain_manager.lua:242
+#, fuzzy
 msgid "Delete all custom"
-msgstr ""
+msgstr "Xóa tất cả tùy chỉnh"
 
 #: koassistant_ui/domain_manager.lua:247
 #, fuzzy
@@ -6554,9 +6669,10 @@ msgid "Delete all %1 custom domains?"
 msgstr "Xóa tất cả %1 lĩnh vực tùy chỉnh?"
 
 #: koassistant_ui/domain_manager.lua:263
+#, fuzzy
 msgid ""
 "This will delete all custom domains and restore built-in defaults. Continue?"
-msgstr ""
+msgstr "Thao tác này sẽ xóa tất cả tên miền tùy chỉnh và khôi phục các mục mặc định có sẵn. Tiếp tục?"
 
 #: koassistant_ui/domain_manager.lua:297
 #, fuzzy
@@ -6611,11 +6727,8 @@ msgstr "Nhập tên lĩnh vực..."
 #: koassistant_ui/domain_manager.lua:445
 #, fuzzy
 msgid ""
-"Give this domain a descriptive name (e.g., 'Research', 'Creative Writing', "
-"'Philosophy')."
-msgstr ""
-"Đặt tên mô tả cho lĩnh vực này (ví dụ: 'Nghiên cứu', 'Viết Sáng tạo', 'Triết "
-"học')."
+"Give this domain a descriptive name (e.g., 'Research', 'Creative Writing', 'Philosophy')."
+msgstr "Đặt tên mô tả cho lĩnh vực này (ví dụ: 'Nghiên cứu', 'Viết Sáng tạo', 'Triết học')."
 
 #: koassistant_ui/domain_manager.lua:498
 #, fuzzy
@@ -6637,13 +6750,11 @@ msgstr "Nhập ngữ cảnh kiến thức lĩnh vực..."
 msgid ""
 "Name: %1\n"
 "\n"
-"Describe the knowledge area, terminology, and how the AI should approach "
-"topics in this domain."
+"Describe the knowledge area, terminology, and how the AI should approach topics in this domain."
 msgstr ""
 "Tên: %1\n"
 "\n"
-"Mô tả lĩnh vực kiến thức, thuật ngữ và cách AI nên tiếp cận các chủ đề trong "
-"lĩnh vực này."
+"Mô tả lĩnh vực kiến thức, thuật ngữ và cách AI nên tiếp cận các chủ đề trong lĩnh vực này."
 
 #: koassistant_ui/domain_manager.lua:522
 #, fuzzy
@@ -6701,11 +6812,8 @@ msgstr "Toàn cục"
 #: koassistant_ui/prompts_manager.lua:361
 #, fuzzy
 msgid ""
-"Tap to toggle • Hold for details • ★ = custom • ⚙ = modified • [gesture] = "
-"in gesture menu"
-msgstr ""
-"Chạm để bật/tắt • Giữ để xem chi tiết • ★ = tùy chỉnh • ⚙ = đã sửa đổi • "
-"[gesture] = trong menu cử chỉ"
+"Tap to toggle • Hold for details • ★ = custom • ⚙ = modified • [gesture] = in gesture menu"
+msgstr "Chạm để bật/tắt • Giữ để xem chi tiết • ★ = tùy chỉnh • ⚙ = đã sửa đổi • [gesture] = trong menu cử chỉ"
 
 #: koassistant_ui/prompts_manager.lua:368
 #, fuzzy
@@ -6782,9 +6890,7 @@ msgstr "Khôi Phục Mặc Định"
 #, fuzzy
 msgid ""
 "This will remove all custom actions and reset all action settings. Continue?"
-msgstr ""
-"Thao tác này sẽ xóa tất cả hành động tùy chỉnh và đặt lại cài đặt hành động. "
-"Tiếp tục?"
+msgstr "Thao tác này sẽ xóa tất cả hành động tùy chỉnh và đặt lại cài đặt hành động. Tiếp tục?"
 
 #: koassistant_ui/prompts_manager.lua:539
 #: koassistant_ui/prompts_manager.lua:1248
@@ -6808,8 +6914,9 @@ msgstr "Cửa sổ Từ điển"
 #: koassistant_ui/prompts_manager.lua:4802
 #: koassistant_ui/prompts_manager.lua:4931
 #: koassistant_ui/prompts_manager.lua:5478
+#, fuzzy
 msgid "File Browser Actions"
-msgstr ""
+msgstr "Hành động trình duyệt tệp"
 
 #: koassistant_ui/prompts_manager.lua:543
 #, fuzzy
@@ -6841,41 +6948,45 @@ msgstr "Đặt lại chỉnh sửa hành động"
 msgid ""
 "Reset all action edits?\n"
 "\n"
-"This reverts any changes you made to built-in actions and re-enables "
-"disabled actions.\n"
+"This reverts any changes you made to built-in actions and re-enables disabled actions.\n"
 "\n"
 "Custom actions are preserved."
 msgstr ""
 "Đặt lại tất cả chỉnh sửa hành động?\n"
 "\n"
-"Thao tác này sẽ hoàn tác mọi thay đổi bạn đã thực hiện đối với các hành động "
-"tích hợp sẵn và bật lại các hành động đã bị vô hiệu hóa.\n"
+"Thao tác này sẽ hoàn tác mọi thay đổi bạn đã thực hiện đối với các hành động tích hợp sẵn và bật lại các hành động đã bị vô hiệu hóa.\n"
 "\n"
 "Các hành động tùy chỉnh được giữ nguyên."
 
 #: koassistant_ui/prompts_manager.lua:565
+#, fuzzy
 msgid "Reset action menus…"
-msgstr ""
+msgstr "Đặt lại menu hành động…"
 
 #: koassistant_ui/prompts_manager.lua:578
+#, fuzzy
 msgid "Reset Action Menus"
-msgstr ""
+msgstr "Đặt lại menu hành động"
 
 #: koassistant_ui/prompts_manager.lua:580
+#, fuzzy
 msgid "Reset Highlight Menu"
-msgstr ""
+msgstr "Đặt lại menu đánh dấu"
 
 #: koassistant_ui/prompts_manager.lua:583
+#, fuzzy
 msgid "Reset highlight menu actions to defaults?"
-msgstr ""
+msgstr "Đặt lại hành động menu đánh dấu về mặc định?"
 
 #: koassistant_ui/prompts_manager.lua:590
+#, fuzzy
 msgid "Reset Dictionary Popup"
-msgstr ""
+msgstr "Đặt lại cửa sổ bật lên từ điển"
 
 #: koassistant_ui/prompts_manager.lua:593
+#, fuzzy
 msgid "Reset dictionary popup actions to defaults?"
-msgstr ""
+msgstr "Đặt lại hành động cửa sổ bật lên từ điển về mặc định?"
 
 #: koassistant_ui/prompts_manager.lua:600
 #, fuzzy
@@ -6883,8 +6994,9 @@ msgid "Reset Quick Actions"
 msgstr "Đặt lại Hành động Nhanh"
 
 #: koassistant_ui/prompts_manager.lua:603
+#, fuzzy
 msgid "Reset Quick Actions panel to defaults?"
-msgstr ""
+msgstr "Đặt lại bảng Hành động nhanh về mặc định?"
 
 #: koassistant_ui/prompts_manager.lua:610
 #, fuzzy
@@ -6892,40 +7004,48 @@ msgid "Reset File Browser Actions"
 msgstr "Đặt lại Thao tác Trình duyệt Tệp"
 
 #: koassistant_ui/prompts_manager.lua:613
+#, fuzzy
 msgid "Reset file browser actions to defaults?"
-msgstr ""
+msgstr "Đặt lại hành động trình duyệt tệp về mặc định?"
 
 #: koassistant_ui/prompts_manager.lua:620
+#, fuzzy
 msgid "Reset QA Utilities"
-msgstr ""
+msgstr "Đặt lại tiện ích QA"
 
 #: koassistant_ui/prompts_manager.lua:623
+#, fuzzy
 msgid "Reset QA panel utilities to defaults?"
-msgstr ""
+msgstr "Đặt lại tiện ích bảng QA về mặc định?"
 
 #: koassistant_ui/prompts_manager.lua:630
+#, fuzzy
 msgid "Reset QS Panel Items"
-msgstr ""
+msgstr "Đặt lại các mục bảng QS"
 
 #: koassistant_ui/prompts_manager.lua:633
+#, fuzzy
 msgid "Reset QS panel items to defaults?"
-msgstr ""
+msgstr "Đặt lại các mục bảng QS về mặc định?"
 
 #: koassistant_ui/prompts_manager.lua:640
+#, fuzzy
 msgid "Reset Input Dialog Actions"
-msgstr ""
+msgstr "Đặt lại hành động hộp thoại nhập"
 
 #: koassistant_ui/prompts_manager.lua:643
+#, fuzzy
 msgid ""
-"Reset input dialog actions to defaults for all contexts (book, file browser, "
-"highlight, X-Ray chat)?"
-msgstr ""
+"Reset input dialog actions to defaults for all contexts (book, file browser, highlight, X-Ray chat)?"
+msgstr "Đặt lại hành động hộp thoại nhập về mặc định cho tất cả ngữ cảnh (sách, trình duyệt tệp, đánh dấu, trò chuyện X-Ray)?"
 
 #: koassistant_ui/prompts_manager.lua:650
+#, fuzzy
 msgid "Reset All Menus"
-msgstr ""
+msgstr "Đặt lại tất cả menu"
 
 #: koassistant_ui/prompts_manager.lua:653
+#, fuzzy
 msgid ""
 "Reset ALL action menu configurations?\n"
 "\n"
@@ -6933,6 +7053,11 @@ msgid ""
 "\n"
 "Your actions (custom and built-in) are preserved."
 msgstr ""
+"Đặt lại TẤT CẢ cấu hình menu hành động?\n"
+"\n"
+"Thao tác này đặt lại thứ tự và lựa chọn trong tất cả menu về mặc định.\n"
+"\n"
+"Các hành động của bạn (tùy chỉnh và có sẵn) được bảo toàn."
 
 #: koassistant_ui/prompts_manager.lua:681
 #, fuzzy
@@ -6985,8 +7110,9 @@ msgid "Disabled"
 msgstr "Đã vô hiệu hóa"
 
 #: koassistant_ui/prompts_manager.lua:740
+#, fuzzy
 msgid "This is a local action — no AI call is made."
-msgstr ""
+msgstr "Đây là hành động cục bộ — không thực hiện cuộc gọi AI."
 
 #: koassistant_ui/prompts_manager.lua:743
 #, fuzzy
@@ -7106,16 +7232,22 @@ msgid "+ Highlight Menu"
 msgstr "+ Menu Đánh dấu"
 
 #: koassistant_ui/prompts_manager.lua:886
+#, fuzzy
 msgid ""
 "Added to highlight menu.\n"
 "Restart KOReader to apply."
 msgstr ""
+"Đã thêm vào menu đánh dấu.\n"
+"Khởi động lại KOReader để áp dụng."
 
 #: koassistant_ui/prompts_manager.lua:887
+#, fuzzy
 msgid ""
 "Removed from highlight menu.\n"
 "Restart KOReader to apply."
 msgstr ""
+"Đã xóa khỏi menu đánh dấu.\n"
+"Khởi động lại KOReader để áp dụng."
 
 #: koassistant_ui/prompts_manager.lua:898
 #, fuzzy
@@ -7158,20 +7290,24 @@ msgid "Added to Quick Actions."
 msgstr "Đã thêm vào Thao tác Nhanh."
 
 #: koassistant_ui/prompts_manager.lua:936
+#, fuzzy
 msgid "✓ Input Dialog"
-msgstr ""
+msgstr "✓ Hộp thoại nhập"
 
 #: koassistant_ui/prompts_manager.lua:936
+#, fuzzy
 msgid "+ Input Dialog"
-msgstr ""
+msgstr "+ Hộp thoại nhập"
 
 #: koassistant_ui/prompts_manager.lua:943
+#, fuzzy
 msgid "Removed from input dialog."
-msgstr ""
+msgstr "Đã xóa khỏi hộp thoại nhập."
 
 #: koassistant_ui/prompts_manager.lua:944
+#, fuzzy
 msgid "Added to input dialog."
-msgstr ""
+msgstr "Đã thêm vào hộp thoại nhập."
 
 #: koassistant_ui/prompts_manager.lua:957
 #, fuzzy
@@ -7330,26 +7466,31 @@ msgstr "Đã bật trích xuất văn bản cho thao tác này."
 #: koassistant_ui/prompts_manager.lua:1307
 #: koassistant_ui/prompts_manager.lua:2948
 #: koassistant_ui/prompts_manager.lua:3707
+#, fuzzy
 msgid "Allow highlight use"
-msgstr ""
+msgstr "Cho phép sử dụng đánh dấu"
 
 #: koassistant_ui/prompts_manager.lua:1311
 #: koassistant_ui/prompts_manager.lua:2952
 #: koassistant_ui/prompts_manager.lua:3711
+#, fuzzy
 msgid "Highlights are always on when annotations are enabled."
-msgstr ""
+msgstr "Đánh dấu luôn bật khi chú thích được bật."
 
 #: koassistant_ui/prompts_manager.lua:1322
 #: koassistant_ui/prompts_manager.lua:2962
 #: koassistant_ui/prompts_manager.lua:3721
-msgid "Highlight use enabled. Note: Enable in Settings → Privacy & Data first."
-msgstr ""
+#, fuzzy
+msgid ""
+"Highlight use enabled. Note: Enable in Settings → Privacy & Data first."
+msgstr "Đã bật sử dụng đánh dấu. Lưu ý: Bật trong Cài đặt → Quyền riêng tư & Dữ liệu trước."
 
 #: koassistant_ui/prompts_manager.lua:1335
 #: koassistant_ui/prompts_manager.lua:2972
 #: koassistant_ui/prompts_manager.lua:3731
+#, fuzzy
 msgid "Allow annotation use (notes)"
-msgstr ""
+msgstr "Cho phép sử dụng chú thích (ghi chú)"
 
 #: koassistant_ui/prompts_manager.lua:1345
 #: koassistant_ui/prompts_manager.lua:2980
@@ -7357,9 +7498,7 @@ msgstr ""
 #, fuzzy
 msgid ""
 "Annotation use enabled. Note: Enable in Settings → Privacy & Data first."
-msgstr ""
-"Đã bật sử dụng chú thích. Lưu ý: Bật trong Cài đặt → Riêng tư & Dữ liệu "
-"trước."
+msgstr "Đã bật sử dụng chú thích. Lưu ý: Bật trong Cài đặt → Riêng tư & Dữ liệu trước."
 
 #: koassistant_ui/prompts_manager.lua:1362
 #: koassistant_ui/prompts_manager.lua:2991
@@ -7373,9 +7512,7 @@ msgstr "Cho phép sử dụng sổ ghi chép"
 #: koassistant_ui/prompts_manager.lua:3757
 #, fuzzy
 msgid "Notebook use enabled. Note: Enable in Settings → Privacy & Data first."
-msgstr ""
-"Đã bật sử dụng sổ ghi chép. Lưu ý: Bật trong Cài đặt → Riêng tư & Dữ liệu "
-"trước."
+msgstr "Đã bật sử dụng sổ ghi chép. Lưu ý: Bật trong Cài đặt → Riêng tư & Dữ liệu trước."
 
 #: koassistant_ui/prompts_manager.lua:1375
 #: koassistant_ui/prompts_manager.lua:3003
@@ -7511,9 +7648,9 @@ msgstr "Thay đổi theo trình kích hoạt"
 
 #: koassistant_ui/prompts_manager.lua:1572
 #, fuzzy
-msgid "Context determines when your action appears and what data is available:"
-msgstr ""
-"Ngữ cảnh xác định khi nào hành động của bạn xuất hiện và dữ liệu nào có sẵn:"
+msgid ""
+"Context determines when your action appears and what data is available:"
+msgstr "Ngữ cảnh xác định khi nào hành động của bạn xuất hiện và dữ liệu nào có sẵn:"
 
 #: koassistant_ui/prompts_manager.lua:1573
 #, fuzzy
@@ -7523,8 +7660,7 @@ msgstr "Khi văn bản được chọn. Nhận: văn bản đã chọn, tùy ch�
 #: koassistant_ui/prompts_manager.lua:1574
 #, fuzzy
 msgid "File browser or 'New Book Chat/Action'. Gets: title, author"
-msgstr ""
-"Trình duyệt tệp hoặc 'Trò chuyện/Hành động Sách mới'. Nhận: tiêu đề, tác giả"
+msgstr "Trình duyệt tệp hoặc 'Trò chuyện/Hành động Sách mới'. Nhận: tiêu đề, tác giả"
 
 #: koassistant_ui/prompts_manager.lua:1575
 #, fuzzy
@@ -7627,8 +7763,7 @@ msgstr ""
 #, fuzzy
 msgid ""
 "Please enter custom behavior text, or go back and choose a different option"
-msgstr ""
-"Vui lòng nhập văn bản hành vi tùy chỉnh, hoặc quay lại và chọn tùy chọn khác"
+msgstr "Vui lòng nhập văn bản hành vi tùy chỉnh, hoặc quay lại và chọn tùy chọn khác"
 
 #: koassistant_ui/prompts_manager.lua:1745
 #, fuzzy
@@ -7649,9 +7784,7 @@ msgstr "AI nên làm gì?"
 #, fuzzy
 msgid ""
 "Write the AI instruction. Tap 'Help' for tips, 'Insert...' for placeholders."
-msgstr ""
-"Viết hướng dẫn cho AI. Nhấn 'Trợ giúp' để xem mẹo, 'Chèn...' để thêm giá trị "
-"giữ chỗ."
+msgstr "Viết hướng dẫn cho AI. Nhấn 'Trợ giúp' để xem mẹo, 'Chèn...' để thêm giá trị giữ chỗ."
 
 #: koassistant_ui/prompts_manager.lua:1762
 #: koassistant_ui/prompts_manager.lua:3032
@@ -7664,35 +7797,25 @@ msgstr "Trợ giúp"
 msgid ""
 "Writing Action Prompts\n"
 "\n"
-"• Use 'Insert...' to add placeholders like {title}, {author}, "
-"{highlighted_text}\n"
+"• Use 'Insert...' to add placeholders like {title}, {author}, {highlighted_text}\n"
 "\n"
-"• Tip: When using this action, there's an input field for optional "
-"additional context\n"
+"• Tip: When using this action, there's an input field for optional additional context\n"
 "\n"
-"• Reading-mode placeholders ({reading_progress}, {book_text}, {highlights}, "
-"{annotations}) auto-hide this action in File Browser — it only appears when "
-"reading\n"
+"• Reading-mode placeholders ({reading_progress}, {book_text}, {highlights}, {annotations}) auto-hide this action in File Browser — it only appears when reading\n"
 "\n"
-"• Test actions with the web inspector: 'lua tests/inspect.lua --web' from "
-"the plugin folder\n"
+"• Test actions with the web inspector: 'lua tests/inspect.lua --web' from the plugin folder\n"
 "\n"
 "• See README for full placeholder list and examples"
 msgstr ""
 "Viết lời nhắc hành động\n"
 "\n"
-"• Sử dụng 'Chèn...' để thêm giá trị giữ chỗ như {title}, {author}, "
-"{highlighted_text}\n"
+"• Sử dụng 'Chèn...' để thêm giá trị giữ chỗ như {title}, {author}, {highlighted_text}\n"
 "\n"
-"• Mẹo: Khi sử dụng hành động này, có trường nhập cho ngữ cảnh bổ sung tùy "
-"chọn\n"
+"• Mẹo: Khi sử dụng hành động này, có trường nhập cho ngữ cảnh bổ sung tùy chọn\n"
 "\n"
-"• Giá trị giữ chỗ chế độ đọc ({reading_progress}, {book_text}, {highlights}, "
-"{annotations}) tự động ẩn hành động này trong Trình duyệt tệp — chỉ xuất "
-"hiện khi đọc\n"
+"• Giá trị giữ chỗ chế độ đọc ({reading_progress}, {book_text}, {highlights}, {annotations}) tự động ẩn hành động này trong Trình duyệt tệp — chỉ xuất hiện khi đọc\n"
 "\n"
-"• Kiểm tra hành động với web inspector: 'lua tests/inspect.lua --web' từ thư "
-"mục plugin\n"
+"• Kiểm tra hành động với web inspector: 'lua tests/inspect.lua --web' từ thư mục plugin\n"
 "\n"
 "• Xem README để biết danh sách đầy đủ giá trị giữ chỗ và ví dụ"
 
@@ -7818,19 +7941,14 @@ msgstr "Hộp thoại đầy đủ với tất cả nút hành động phản h�
 #: koassistant_ui/prompts_manager.lua:2039
 #, fuzzy
 msgid ""
-"Smaller dialog optimized for quick lookups, with language buttons for word-"
-"by-word translation"
-msgstr ""
-"Hộp thoại nhỏ hơn được tối ưu hóa cho tra cứu nhanh, với nút ngôn ngữ để "
-"dịch từng từ"
+"Smaller dialog optimized for quick lookups, with language buttons for word-by-word translation"
+msgstr "Hộp thoại nhỏ hơn được tối ưu hóa cho tra cứu nhanh, với nút ngôn ngữ để dịch từng từ"
 
 #: koassistant_ui/prompts_manager.lua:2040
 #, fuzzy
 msgid ""
-"Translation view with language switch button and toggle to show/hide the "
-"original text"
-msgstr ""
-"Chế độ xem dịch với nút chuyển đổi ngôn ngữ và bật/tắt hiển thị văn bản gốc"
+"Translation view with language switch button and toggle to show/hide the original text"
+msgstr "Chế độ xem dịch với nút chuyển đổi ngôn ngữ và bật/tắt hiển thị văn bản gốc"
 
 #: koassistant_ui/prompts_manager.lua:2073
 #, fuzzy
@@ -7879,8 +7997,7 @@ msgid ""
 "\n"
 "• Global: Follow per-provider settings in Settings menu\n"
 "• Force OFF: Never use thinking for this action\n"
-"• Configure: Set per-provider reasoning (Anthropic budget, OpenAI effort, "
-"Gemini level)\n"
+"• Configure: Set per-provider reasoning (Anthropic budget, OpenAI effort, Gemini level)\n"
 "\n"
 "May force temperature to 1.0 for some models."
 msgstr ""
@@ -7888,8 +8005,7 @@ msgstr ""
 "\n"
 "• Toàn cục: Theo cài đặt từng nhà cung cấp trong menu Cài đặt\n"
 "• Bắt buộc TẮT: Không bao giờ sử dụng suy nghĩ cho hành động này\n"
-"• Cấu hình: Đặt lý luận theo nhà cung cấp (ngân sách Anthropic, nỗ lực "
-"OpenAI, cấp độ Gemini)\n"
+"• Cấu hình: Đặt lý luận theo nhà cung cấp (ngân sách Anthropic, nỗ lực OpenAI, cấp độ Gemini)\n"
 "\n"
 "Có thể buộc nhiệt độ về 1.0 cho một số mô hình."
 
@@ -8392,8 +8508,9 @@ msgstr "Không có hành động đánh dấu nào."
 
 #: koassistant_ui/prompts_manager.lua:4534
 #: koassistant_ui/prompts_manager.lua:4743
+#, fuzzy
 msgid "✓ = in menu | Tap = toggle | Hold = move | ☰ = navigate"
-msgstr ""
+msgstr "✓ = trong menu | Chạm = chuyển đổi | Giữ = di chuyển | ☰ = điều hướng"
 
 #: koassistant_ui/prompts_manager.lua:4560
 #: koassistant_ui/prompts_manager.lua:4618
@@ -8437,10 +8554,12 @@ msgstr "Vị trí:"
 #: koassistant_ui/prompts_manager.lua:5350
 #: koassistant_ui/prompts_manager.lua:5479
 #: koassistant_ui/prompts_manager.lua:5645
+#, fuzzy
 msgid "Reset to defaults"
-msgstr ""
+msgstr "Đặt lại về mặc định"
 
 #: koassistant_ui/prompts_manager.lua:4805
+#, fuzzy
 msgid ""
 "Reset highlight menu actions to defaults?\n"
 "\n"
@@ -8448,10 +8567,16 @@ msgid ""
 "\n"
 "Your actions (custom and built-in) are preserved."
 msgstr ""
+"Đặt lại các thao tác menu đánh dấu về mặc định?\n"
+"\n"
+"Thao tác này khôi phục thứ tự và lựa chọn mặc định.\n"
+"\n"
+"Các thao tác của bạn (tùy chỉnh và tích hợp sẵn) được giữ nguyên."
 
 #: koassistant_ui/prompts_manager.lua:4872
+#, fuzzy
 msgid "✓ = in panel | Tap = toggle | Hold = move | ☰ = navigate"
-msgstr ""
+msgstr "✓ = trong bảng | Chạm = chuyển đổi | Giữ = di chuyển | ☰ = điều hướng"
 
 #: koassistant_ui/prompts_manager.lua:4905
 #: koassistant_ui/prompts_manager.lua:4923
@@ -8472,8 +8597,9 @@ msgstr "Tiện Ích Bảng QA"
 
 #: koassistant_ui/prompts_manager.lua:4933
 #: koassistant_ui/prompts_manager.lua:5063
+#, fuzzy
 msgid "QS Panel Items"
-msgstr ""
+msgstr "Mục Bảng QS"
 
 #: koassistant_ui/prompts_manager.lua:4936
 #, fuzzy
@@ -8486,52 +8612,65 @@ msgid ""
 msgstr ""
 "Đặt lại bảng Hành động Nhanh?\n"
 "\n"
-"Thao tác này sẽ khôi phục các hành động mặc định hiển thị trong menu Hành "
-"động Nhanh.\n"
+"Thao tác này sẽ khôi phục các hành động mặc định hiển thị trong menu Hành động Nhanh.\n"
 "\n"
 "Các hành động của bạn (tùy chỉnh và tích hợp sẵn) được giữ nguyên."
 
 #: koassistant_ui/prompts_manager.lua:5005
 #: koassistant_ui/prompts_manager.lua:5124
+#, fuzzy
 msgid "✓ = visible | Tap = toggle | Hold = move | ☰ = navigate"
-msgstr ""
+msgstr "✓ = hiển thị | Chạm = chuyển đổi | Giữ = di chuyển | ☰ = điều hướng"
 
 #: koassistant_ui/prompts_manager.lua:5045
 #: koassistant_ui/prompts_manager.lua:5057
+#, fuzzy
 msgid "QA Panel Utilities (%1 visible)"
-msgstr ""
+msgstr "Tiện ích Bảng QA (%1 hiển thị)"
 
 #: koassistant_ui/prompts_manager.lua:5062
 #: koassistant_ui/prompts_manager.lua:5194
+#, fuzzy
 msgid "QA Panel Actions"
-msgstr ""
+msgstr "Thao tác Bảng QA"
 
 #: koassistant_ui/prompts_manager.lua:5066
+#, fuzzy
 msgid ""
 "Reset QA panel utilities to defaults?\n"
 "\n"
 "This restores the default order and visibility of utility buttons."
 msgstr ""
+"Đặt lại tiện ích bảng QA về mặc định?\n"
+"\n"
+"Thao tác này khôi phục thứ tự và trạng thái hiển thị mặc định của các nút tiện ích."
 
 #: koassistant_ui/prompts_manager.lua:5139
+#, fuzzy
 msgid "(dynamic)"
-msgstr ""
+msgstr "(động)"
 
 #: koassistant_ui/prompts_manager.lua:5173
 #: koassistant_ui/prompts_manager.lua:5189
+#, fuzzy
 msgid "QS Panel Items (%1 visible)"
-msgstr ""
+msgstr "Mục Bảng QS (%1 hiển thị)"
 
 #: koassistant_ui/prompts_manager.lua:5198
+#, fuzzy
 msgid ""
 "Reset QS panel items to defaults?\n"
 "\n"
 "This restores the default order and visibility of Quick Settings items."
 msgstr ""
+"Đặt lại mục bảng QS về mặc định?\n"
+"\n"
+"Thao tác này khôi phục thứ tự và trạng thái hiển thị mặc định của các mục Cài đặt Nhanh."
 
 #: koassistant_ui/prompts_manager.lua:5290
+#, fuzzy
 msgid "✓ = pinned | Tap = toggle | Hold = move | ☰ = navigate"
-msgstr ""
+msgstr "✓ = đã ghim | Chạm = chuyển đổi | Giữ = di chuyển | ☰ = điều hướng"
 
 #: koassistant_ui/prompts_manager.lua:5323
 #: koassistant_ui/prompts_manager.lua:5341
@@ -8545,6 +8684,7 @@ msgid "No eligible book actions available."
 msgstr "Không có thao tác sách phù hợp."
 
 #: koassistant_ui/prompts_manager.lua:5352
+#, fuzzy
 msgid ""
 "Reset file browser actions to defaults?\n"
 "\n"
@@ -8552,10 +8692,16 @@ msgid ""
 "\n"
 "Your actions (custom and built-in) are preserved."
 msgstr ""
+"Đặt lại các thao tác trình duyệt tệp về mặc định?\n"
+"\n"
+"Thao tác này khôi phục các thao tác mặc định được ghim vào trình duyệt tệp.\n"
+"\n"
+"Các thao tác của bạn (tùy chỉnh và tích hợp sẵn) được giữ nguyên."
 
 #: koassistant_ui/prompts_manager.lua:5419
+#, fuzzy
 msgid "✓ = in popup | Tap = toggle | Hold = move | ☰ = navigate"
-msgstr ""
+msgstr "✓ = trong cửa sổ bật lên | Chạm = chuyển đổi | Giữ = di chuyển | ☰ = điều hướng"
 
 #: koassistant_ui/prompts_manager.lua:5452
 #: koassistant_ui/prompts_manager.lua:5470
@@ -8564,6 +8710,7 @@ msgid "Dictionary Popup (%1 enabled)"
 msgstr "Popup từ điển (%1 đã bật)"
 
 #: koassistant_ui/prompts_manager.lua:5481
+#, fuzzy
 msgid ""
 "Reset dictionary popup actions to defaults?\n"
 "\n"
@@ -8571,47 +8718,64 @@ msgid ""
 "\n"
 "Your actions (custom and built-in) are preserved."
 msgstr ""
+"Đặt lại các thao tác cửa sổ bật lên từ điển về mặc định?\n"
+"\n"
+"Thao tác này khôi phục thứ tự và lựa chọn mặc định.\n"
+"\n"
+"Các thao tác của bạn (tùy chỉnh và tích hợp sẵn) được giữ nguyên."
 
 #: koassistant_ui/prompts_manager.lua:5542
+#, fuzzy
 msgid "General Input Actions"
-msgstr ""
+msgstr "Thao tác Đầu vào Chung"
 
 #: koassistant_ui/prompts_manager.lua:5543
+#, fuzzy
 msgid "Book Input Actions"
-msgstr ""
+msgstr "Thao tác Đầu vào Sách"
 
 #: koassistant_ui/prompts_manager.lua:5544
+#, fuzzy
 msgid "File Browser Input Actions"
-msgstr ""
+msgstr "Thao tác Đầu vào Trình duyệt Tệp"
 
 #: koassistant_ui/prompts_manager.lua:5545
+#, fuzzy
 msgid "Highlight Input Actions"
-msgstr ""
+msgstr "Thao tác Đầu vào Đánh dấu"
 
 #: koassistant_ui/prompts_manager.lua:5546
+#, fuzzy
 msgid "X-Ray Chat Actions"
-msgstr ""
+msgstr "Thao tác Trò chuyện X-Ray"
 
 #: koassistant_ui/prompts_manager.lua:5572
+#, fuzzy
 msgid "✓ = shown | Tap = toggle | Hold = move | ☰ = menu"
-msgstr ""
+msgstr "✓ = hiển thị | Chạm = chuyển đổi | Giữ = di chuyển | ☰ = menu"
 
 #: koassistant_ui/prompts_manager.lua:5608
 #: koassistant_ui/prompts_manager.lua:5625
+#, fuzzy
 msgid "Input Actions"
-msgstr ""
+msgstr "Thao tác Đầu vào"
 
 #: koassistant_ui/prompts_manager.lua:5610
 #: koassistant_ui/prompts_manager.lua:5641
+#, fuzzy
 msgid "%1 (%2 shown)"
-msgstr ""
+msgstr "%1 (%2 hiển thị)"
 
 #: koassistant_ui/prompts_manager.lua:5648
+#, fuzzy
 msgid ""
 "Reset input actions to defaults?\n"
 "\n"
 "This restores the default ordering and selection."
 msgstr ""
+"Đặt lại các thao tác đầu vào về mặc định?\n"
+"\n"
+"Thao tác này khôi phục thứ tự và lựa chọn mặc định."
 
 #: koassistant_ui/settings_manager.lua:265
 #, fuzzy
@@ -8629,10 +8793,10 @@ msgid "Explain"
 msgstr "Giải thích"
 
 #: prompts/actions.lua:135
+#, fuzzy
 msgid ""
-"Explains the selected passage clearly, matching the tone of the source "
-"material."
-msgstr ""
+"Explains the selected passage clearly, matching the tone of the source material."
+msgstr "Giải thích đoạn văn đã chọn một cách rõ ràng, phù hợp với giọng điệu của tài liệu gốc."
 
 #: prompts/actions.lua:150
 #, fuzzy
@@ -8640,10 +8804,10 @@ msgid "ELI5"
 msgstr "Giải thích đơn giản"
 
 #: prompts/actions.lua:151
+#, fuzzy
 msgid ""
-"Simplifies the passage into everyday language using analogies and concrete "
-"examples, without sacrificing accuracy."
-msgstr ""
+"Simplifies the passage into everyday language using analogies and concrete examples, without sacrificing accuracy."
+msgstr "Đơn giản hóa đoạn văn thành ngôn ngữ hàng ngày bằng cách sử dụng phép loại suy và ví dụ cụ thể, không làm giảm độ chính xác."
 
 #: prompts/actions.lua:166
 #, fuzzy
@@ -8651,10 +8815,10 @@ msgid "Summarize"
 msgstr "Tóm tắt"
 
 #: prompts/actions.lua:167
+#, fuzzy
 msgid ""
-"Condenses the selected passage to its essential points, keeping what matters "
-"and trimming the rest."
-msgstr ""
+"Condenses the selected passage to its essential points, keeping what matters and trimming the rest."
+msgstr "Cô đọng đoạn văn đã chọn thành các điểm thiết yếu, giữ lại những gì quan trọng và cắt bớt phần còn lại."
 
 #: prompts/actions.lua:182
 #, fuzzy
@@ -8662,10 +8826,10 @@ msgid "Elaborate"
 msgstr "Mở rộng"
 
 #: prompts/actions.lua:183
+#, fuzzy
 msgid ""
-"Expands on the passage by unpacking concepts, adding context, and exploring "
-"implications."
-msgstr ""
+"Expands on the passage by unpacking concepts, adding context, and exploring implications."
+msgstr "Mở rộng đoạn văn bằng cách làm rõ các khái niệm, thêm ngữ cảnh và khám phá hàm ý."
 
 #: prompts/actions.lua:197
 #, fuzzy
@@ -8673,10 +8837,10 @@ msgid "Connect"
 msgstr "Kết nối"
 
 #: prompts/actions.lua:198
+#, fuzzy
 msgid ""
-"Finds connections between the passage and broader themes, other works, "
-"thinkers, and intellectual traditions."
-msgstr ""
+"Finds connections between the passage and broader themes, other works, thinkers, and intellectual traditions."
+msgstr "Tìm kiếm mối liên hệ giữa đoạn văn với các chủ đề rộng hơn, các tác phẩm khác, nhà tư tưởng và truyền thống tri thức."
 
 #: prompts/actions.lua:221
 #, fuzzy
@@ -8684,11 +8848,10 @@ msgid "Connect (With Notes)"
 msgstr "Kết nối (Có Ghi chú)"
 
 #: prompts/actions.lua:222
+#, fuzzy
 msgid ""
-"Connects the passage to your own highlights and notebook entries, revealing "
-"patterns and echoes in your reading. Requires annotations and notebook "
-"sharing to be enabled."
-msgstr ""
+"Connects the passage to your own highlights and notebook entries, revealing patterns and echoes in your reading. Requires annotations and notebook sharing to be enabled."
+msgstr "Kết nối đoạn văn với các phần đánh dấu và mục ghi chú của bạn, tiết lộ các mẫu hình và tiếng vang trong việc đọc của bạn. Yêu cầu bật tính năng chia sẻ chú thích và ghi chú."
 
 #: prompts/actions.lua:264 prompts/actions.lua:330
 #, fuzzy
@@ -8696,11 +8859,10 @@ msgid "Explain in Context"
 msgstr "Giải thích theo Ngữ cảnh"
 
 #: prompts/actions.lua:265
+#, fuzzy
 msgid ""
-"Explains the passage using the full document text for deeper, contextualized "
-"understanding. Requires text extraction; without it, falls back to AI "
-"knowledge of the work."
-msgstr ""
+"Explains the passage using the full document text for deeper, contextualized understanding. Requires text extraction; without it, falls back to AI knowledge of the work."
+msgstr "Giải thích đoạn văn bằng cách sử dụng toàn bộ văn bản tài liệu để hiểu sâu hơn, có ngữ cảnh. Yêu cầu trích xuất văn bản; nếu không có, sẽ dựa vào kiến thức AI về tác phẩm."
 
 #: prompts/actions.lua:294 prompts/actions.lua:363
 #, fuzzy
@@ -8708,25 +8870,22 @@ msgid "Analyze in Context"
 msgstr "Phân tích theo Ngữ cảnh"
 
 #: prompts/actions.lua:295
+#, fuzzy
 msgid ""
-"Deep analysis of the passage within the full document, connecting it to "
-"themes and your annotations. Requires text extraction; also uses your "
-"annotations if shared."
-msgstr ""
+"Deep analysis of the passage within the full document, connecting it to themes and your annotations. Requires text extraction; also uses your annotations if shared."
+msgstr "Phân tích sâu đoạn văn trong toàn bộ tài liệu, kết nối với các chủ đề và chú thích của bạn. Yêu cầu trích xuất văn bản; cũng sử dụng chú thích của bạn nếu được chia sẻ."
 
 #: prompts/actions.lua:331
+#, fuzzy
 msgid ""
-"Like Explain in Context, but uses a pre-built Summary Cache instead of the "
-"full text — faster and cheaper, though less detailed. Requires generating a "
-"Summary Cache first."
-msgstr ""
+"Like Explain in Context, but uses a pre-built Summary Cache instead of the full text — faster and cheaper, though less detailed. Requires generating a Summary Cache first."
+msgstr "Giống như Giải thích trong Ngữ cảnh, nhưng sử dụng Bộ nhớ đệm Tóm tắt được xây dựng trước thay vì toàn bộ văn bản — nhanh hơn và rẻ hơn, dù ít chi tiết hơn. Yêu cầu tạo Bộ nhớ đệm Tóm tắt trước."
 
 #: prompts/actions.lua:364
+#, fuzzy
 msgid ""
-"Like Analyze in Context, but uses a pre-built Summary Cache instead of the "
-"full text. Still includes your annotations if shared. Requires generating a "
-"Summary Cache first."
-msgstr ""
+"Like Analyze in Context, but uses a pre-built Summary Cache instead of the full text. Still includes your annotations if shared. Requires generating a Summary Cache first."
+msgstr "Giống như Phân tích trong Ngữ cảnh, nhưng sử dụng Bộ nhớ đệm Tóm tắt được xây dựng trước thay vì toàn bộ văn bản. Vẫn bao gồm chú thích của bạn nếu được chia sẻ. Yêu cầu tạo Bộ nhớ đệm Tóm tắt trước."
 
 #: prompts/actions.lua:401
 #, fuzzy
@@ -8734,10 +8893,10 @@ msgid "Thematic Connection"
 msgstr "Liên kết Chủ đề"
 
 #: prompts/actions.lua:402
+#, fuzzy
 msgid ""
-"Analyzes how a passage connects to the work's major themes — alignment, "
-"significance, recurring patterns, and the author's craft. Uses Summary Cache."
-msgstr ""
+"Analyzes how a passage connects to the work's major themes — alignment, significance, recurring patterns, and the author's craft. Uses Summary Cache."
+msgstr "Phân tích cách một đoạn văn kết nối với các chủ đề chính của tác phẩm — sự liên kết, ý nghĩa, các mẫu hình lặp lại và nghệ thuật của tác giả. Sử dụng Bộ nhớ đệm Tóm tắt."
 
 #: prompts/actions.lua:443
 #, fuzzy
@@ -8745,10 +8904,10 @@ msgid "Fact Check"
 msgstr "Kiểm tra Sự thật"
 
 #: prompts/actions.lua:444
+#, fuzzy
 msgid ""
-"Searches the web to verify claims in the selected passage, rating accuracy "
-"and citing current sources as evidence."
-msgstr ""
+"Searches the web to verify claims in the selected passage, rating accuracy and citing current sources as evidence."
+msgstr "Tìm kiếm trên web để xác minh các tuyên bố trong đoạn văn đã chọn, đánh giá độ chính xác và trích dẫn các nguồn hiện tại làm bằng chứng."
 
 #: prompts/actions.lua:473
 #, fuzzy
@@ -8756,26 +8915,27 @@ msgid "Current Context"
 msgstr "Ngữ cảnh Hiện tại"
 
 #: prompts/actions.lua:474
+#, fuzzy
 msgid ""
-"Searches the web for the latest developments on the topic discussed in the "
-"selected passage — what has changed since the book was written."
-msgstr ""
+"Searches the web for the latest developments on the topic discussed in the selected passage — what has changed since the book was written."
+msgstr "Tìm kiếm trên web các phát triển mới nhất về chủ đề được thảo luận trong đoạn văn đã chọn — những gì đã thay đổi kể từ khi sách được viết."
 
 #: prompts/actions.lua:503
+#, fuzzy
 msgid "Look up in X-Ray"
-msgstr ""
+msgstr "Tra cứu trong X-Ray"
 
 #: prompts/actions.lua:504
+#, fuzzy
 msgid ""
-"Search X-Ray cache for selected text. Local lookup — no AI call, works "
-"offline."
-msgstr ""
+"Search X-Ray cache for selected text. Local lookup — no AI call, works offline."
+msgstr "Tìm kiếm bộ nhớ đệm X-Ray cho văn bản đã chọn. Tra cứu cục bộ — không gọi AI, hoạt động ngoại tuyến."
 
 #: prompts/actions.lua:715
+#, fuzzy
 msgid ""
-"Comprehensive overview: what the work is about, its themes, significance, "
-"and reading experience. Based on AI knowledge — no book data needed."
-msgstr ""
+"Comprehensive overview: what the work is about, its themes, significance, and reading experience. Based on AI knowledge — no book data needed."
+msgstr "Tổng quan toàn diện: tác phẩm nói về gì, các chủ đề, ý nghĩa và trải nghiệm đọc của nó. Dựa trên kiến thức AI — không cần dữ liệu sách."
 
 #: prompts/actions.lua:729
 #, fuzzy
@@ -8783,10 +8943,10 @@ msgid "Find Similar"
 msgstr "Tìm Sách Tương tự"
 
 #: prompts/actions.lua:730
+#, fuzzy
 msgid ""
-"Recommends 5-7 similar works, explaining what makes each one similar and who "
-"would prefer which."
-msgstr ""
+"Recommends 5-7 similar works, explaining what makes each one similar and who would prefer which."
+msgstr "Gợi ý 5-7 tác phẩm tương tự, giải thích điểm tương đồng của mỗi tác phẩm và ai sẽ thích tác phẩm nào hơn."
 
 #: prompts/actions.lua:741
 #, fuzzy
@@ -8794,10 +8954,10 @@ msgid "About Author"
 msgstr "Về Tác giả"
 
 #: prompts/actions.lua:742
+#, fuzzy
 msgid ""
-"Biography, major works, writing style, and suggested reading order for the "
-"book's author."
-msgstr ""
+"Biography, major works, writing style, and suggested reading order for the book's author."
+msgstr "Tiểu sử, tác phẩm chính, phong cách viết và thứ tự đọc được đề xuất cho tác giả của cuốn sách."
 
 #: prompts/actions.lua:753
 #, fuzzy
@@ -8805,10 +8965,10 @@ msgid "Historical Context"
 msgstr "Bối cảnh Lịch sử"
 
 #: prompts/actions.lua:754
+#, fuzzy
 msgid ""
-"Explores when the book was written, what was happening at the time, and how "
-"the work reflects or responds to its era."
-msgstr ""
+"Explores when the book was written, what was happening at the time, and how the work reflects or responds to its era."
+msgstr "Khám phá khi nào cuốn sách được viết, điều gì đang xảy ra vào thời điểm đó và tác phẩm phản ánh hoặc phản hồi thời đại của nó như thế nào."
 
 #: prompts/actions.lua:767
 #, fuzzy
@@ -8816,46 +8976,38 @@ msgid "X-Ray"
 msgstr "X-Ray"
 
 #: prompts/actions.lua:768
+#, fuzzy
 msgid ""
-"Builds a structured reference guide — characters, themes, locations, "
-"timeline — up to your current reading position. Completely spoiler-free. "
-"When highlights are shared, adds a personal reader engagement section "
-"analyzing what catches your attention and patterns in your highlighting. "
-"Without highlights, focuses purely on the text content. Requires text "
-"extraction; updates incrementally as you read further. Can also generate a "
-"complete analysis of the entire document."
-msgstr ""
+"Builds a structured reference guide — characters, themes, locations, timeline — up to your current reading position. Completely spoiler-free. When highlights are shared, adds a personal reader engagement section analyzing what catches your attention and patterns in your highlighting. Without highlights, focuses purely on the text content. Requires text extraction; updates incrementally as you read further. Can also generate a complete analysis of the entire document."
+msgstr "Xây dựng hướng dẫn tham khảo có cấu trúc — nhân vật, chủ đề, địa điểm, dòng thời gian — đến vị trí đọc hiện tại của bạn. Hoàn toàn không tiết lộ nội dung. Khi các phần đánh dấu được chia sẻ, thêm phần phân tích sự tương tác cá nhân của người đọc về những gì thu hút sự chú ý và các mẫu hình trong việc đánh dấu của bạn. Nếu không có phần đánh dấu, chỉ tập trung vào nội dung văn bản. Yêu cầu trích xuất văn bản; cập nhật dần dần khi bạn đọc xa hơn. Cũng có thể tạo phân tích hoàn chỉnh của toàn bộ tài liệu."
 
 #: prompts/actions.lua:772
+#, fuzzy
 msgid "Or use X-Ray (Simple) for an overview based on AI knowledge."
-msgstr ""
+msgstr "Hoặc sử dụng X-Ray (Simple) để có tổng quan dựa trên kiến thức AI."
 
 #: prompts/actions.lua:831
+#, fuzzy
 msgid ""
-"A prose companion guide from AI knowledge — characters, themes, settings, "
-"key terms. No text extraction needed. Uses reading progress to avoid "
-"spoilers. Highlights add personal context when shared."
-msgstr ""
+"A prose companion guide from AI knowledge — characters, themes, settings, key terms. No text extraction needed. Uses reading progress to avoid spoilers. Highlights add personal context when shared."
+msgstr "Hướng dẫn đồng hành dưới dạng văn xuôi từ kiến thức AI — nhân vật, chủ đề, bối cảnh, thuật ngữ chính. Không cần trích xuất văn bản. Sử dụng tiến trình đọc để tránh tiết lộ nội dung. Các phần đánh dấu thêm ngữ cảnh cá nhân khi được chia sẻ."
 
 #: prompts/actions.lua:887
+#, fuzzy
 msgid ""
-"A 'Previously on...' refresher to help you get back into a book after time "
-"away. Covers recent events, active threads, and where you left off. Adapts "
-"to fiction or non-fiction. When highlights are shared, weaves in what you "
-"found notable. Requires text extraction; updates incrementally as you read."
-msgstr ""
+"A 'Previously on...' refresher to help you get back into a book after time away. Covers recent events, active threads, and where you left off. Adapts to fiction or non-fiction. When highlights are shared, weaves in what you found notable. Requires text extraction; updates incrementally as you read."
+msgstr "Bản tóm tắt 'Trước đây đã diễn ra...' giúp bạn quay lại với cuốn sách sau thời gian nghỉ. Đề cập đến các sự kiện gần đây, các mạch truyện đang diễn ra và nơi bạn đã dừng lại. Thích ứng với sách hư cấu hoặc phi hư cấu. Khi các phần đánh dấu được chia sẻ, kết hợp những gì bạn thấy đáng chú ý. Yêu cầu trích xuất văn bản; cập nhật dần dần khi bạn đọc."
 
 #: prompts/actions.lua:968
+#, fuzzy
 msgid "Analyze My Notes"
-msgstr ""
+msgstr "Phân tích Ghi chú của Tôi"
 
 #: prompts/actions.lua:969
+#, fuzzy
 msgid ""
-"Analyzes your note-taking and highlighting patterns to reveal what catches "
-"your attention, emerging themes, and connections between your notes. This is "
-"about understanding you as a reader, not summarizing the book. Requires "
-"highlights or annotations sharing."
-msgstr ""
+"Analyzes your note-taking and highlighting patterns to reveal what catches your attention, emerging themes, and connections between your notes. This is about understanding you as a reader, not summarizing the book. Requires highlights or annotations sharing."
+msgstr "Phân tích các mẫu hình ghi chú và đánh dấu của bạn để tiết lộ điều gì thu hút sự chú ý, các chủ đề đang nổi lên và các mối liên hệ giữa các ghi chú của bạn. Đây là về việc hiểu bạn với tư cách là người đọc, không phải tóm tắt cuốn sách. Yêu cầu chia sẻ các phần đánh dấu hoặc chú thích."
 
 #: prompts/actions.lua:1032
 #, fuzzy
@@ -8863,11 +9015,10 @@ msgid "Related Thinkers"
 msgstr "Nhà tư tưởng Liên quan"
 
 #: prompts/actions.lua:1033
+#, fuzzy
 msgid ""
-"Maps the intellectual landscape: who influenced the author, who the author "
-"influenced, and contemporary thinkers working on similar problems. For "
-"fiction, focuses on literary influences and movements."
-msgstr ""
+"Maps the intellectual landscape: who influenced the author, who the author influenced, and contemporary thinkers working on similar problems. For fiction, focuses on literary influences and movements."
+msgstr "Vẽ bản đồ phong cảnh trí tuệ: ai đã ảnh hưởng đến tác giả, tác giả đã ảnh hưởng đến ai, và những nhà tư tưởng đương đại làm việc trên các vấn đề tương tự. Đối với tiểu thuyết, tập trung vào ảnh hưởng văn học và các trào lưu."
 
 #: prompts/actions.lua:1067 prompts/actions.lua:1114
 #, fuzzy
@@ -8875,19 +9026,16 @@ msgid "Key Arguments"
 msgstr "Luận điểm Chính"
 
 #: prompts/actions.lua:1068
+#, fuzzy
 msgid ""
-"Breaks down the book's thesis, supporting arguments, evidence, assumptions, "
-"and potential counterarguments. For fiction, analyzes themes and the "
-"author's worldview instead. Requires text extraction; without it, falls back "
-"to AI knowledge."
-msgstr ""
+"Breaks down the book's thesis, supporting arguments, evidence, assumptions, and potential counterarguments. For fiction, analyzes themes and the author's worldview instead. Requires text extraction; without it, falls back to AI knowledge."
+msgstr "Phân tích luận điểm của cuốn sách, các lập luận hỗ trợ, bằng chứng, giả định và phản biện tiềm năng. Đối với tiểu thuyết, phân tích chủ đề và thế giới quan của tác giả thay thế. Yêu cầu trích xuất văn bản; nếu không có, sẽ dựa vào kiến thức AI."
 
 #: prompts/actions.lua:1115
+#, fuzzy
 msgid ""
-"Same analysis as Key Arguments, but uses a pre-built Summary Cache instead "
-"of the full text — faster and cheaper. Requires generating a Summary Cache "
-"first."
-msgstr ""
+"Same analysis as Key Arguments, but uses a pre-built Summary Cache instead of the full text — faster and cheaper. Requires generating a Summary Cache first."
+msgstr "Phân tích tương tự như Lập Luận Chính, nhưng sử dụng Bộ Nhớ Cache Tóm Tắt được xây dựng sẵn thay vì toàn bộ văn bản — nhanh hơn và rẻ hơn. Yêu cầu tạo Bộ Nhớ Cache Tóm Tắt trước."
 
 #: prompts/actions.lua:1162 prompts/actions.lua:1204
 #, fuzzy
@@ -8895,17 +9043,16 @@ msgid "Discussion Questions"
 msgstr "Câu hỏi Thảo luận"
 
 #: prompts/actions.lua:1163
+#, fuzzy
 msgid ""
-"Generates 8-10 discussion questions spanning comprehension, analysis, "
-"interpretation, and personal connection. Good for book clubs or classroom "
-"use. Requires text extraction; without it, falls back to AI knowledge."
-msgstr ""
+"Generates 8-10 discussion questions spanning comprehension, analysis, interpretation, and personal connection. Good for book clubs or classroom use. Requires text extraction; without it, falls back to AI knowledge."
+msgstr "Tạo 8-10 câu hỏi thảo luận bao gồm lĩnh hội, phân tích, diễn giải và kết nối cá nhân. Thích hợp cho câu lạc bộ sách hoặc lớp học. Yêu cầu trích xuất văn bản; nếu không có, sẽ dựa vào kiến thức AI."
 
 #: prompts/actions.lua:1205
+#, fuzzy
 msgid ""
-"Same as Discussion Questions, but uses a pre-built Summary Cache instead of "
-"the full text. Requires generating a Summary Cache first."
-msgstr ""
+"Same as Discussion Questions, but uses a pre-built Summary Cache instead of the full text. Requires generating a Summary Cache first."
+msgstr "Tương tự như Câu Hỏi Thảo Luận, nhưng sử dụng Bộ Nhớ Cache Tóm Tắt được xây dựng sẵn thay vì toàn bộ văn bản. Yêu cầu tạo Bộ Nhớ Cache Tóm Tắt trước."
 
 #: prompts/actions.lua:1246 prompts/actions.lua:1288
 #, fuzzy
@@ -8913,39 +9060,38 @@ msgid "Generate Quiz"
 msgstr "Tạo Bài kiểm tra"
 
 #: prompts/actions.lua:1247
+#, fuzzy
 msgid ""
-"Creates a comprehension quiz with multiple choice, short answer, and essay "
-"questions with model answers. Requires text extraction; without it, falls "
-"back to AI knowledge."
-msgstr ""
+"Creates a comprehension quiz with multiple choice, short answer, and essay questions with model answers. Requires text extraction; without it, falls back to AI knowledge."
+msgstr "Tạo bài kiểm tra lĩnh hội với câu hỏi trắc nghiệm, câu trả lời ngắn và câu hỏi tự luận kèm đáp án mẫu. Yêu cầu trích xuất văn bản; nếu không có, sẽ dựa vào kiến thức AI."
 
 #: prompts/actions.lua:1289
+#, fuzzy
 msgid ""
-"Same as Generate Quiz, but uses a pre-built Summary Cache instead of the "
-"full text. Requires generating a Summary Cache first."
-msgstr ""
+"Same as Generate Quiz, but uses a pre-built Summary Cache instead of the full text. Requires generating a Summary Cache first."
+msgstr "Tương tự như Tạo Bài Kiểm Tra, nhưng sử dụng Bộ Nhớ Cache Tóm Tắt được xây dựng sẵn thay vì toàn bộ văn bản. Yêu cầu tạo Bộ Nhớ Cache Tóm Tắt trước."
 
 #: prompts/actions.lua:1330
+#, fuzzy
 msgid "Document Analysis"
-msgstr ""
+msgstr "Phân Tích Tài Liệu"
 
 #: prompts/actions.lua:1331
+#, fuzzy
 msgid ""
-"Analyzes the document's thesis, structure, key insights, and audience. The "
-"result is saved as an Analyze artifact that other actions can reference. "
-"Requires text extraction."
-msgstr ""
+"Analyzes the document's thesis, structure, key insights, and audience. The result is saved as an Analyze artifact that other actions can reference. Requires text extraction."
+msgstr "Phân tích luận điểm, cấu trúc, thông tin chính và đối tượng của tài liệu. Kết quả được lưu dưới dạng tác phẩm Analyze mà các hành động khác có thể tham chiếu. Yêu cầu trích xuất văn bản."
 
 #: prompts/actions.lua:1362
+#, fuzzy
 msgid "Document Summary"
-msgstr ""
+msgstr "Tóm Tắt Tài Liệu"
 
 #: prompts/actions.lua:1363
+#, fuzzy
 msgid ""
-"Creates a comprehensive summary preserving key details and structure. The "
-"result is saved as a Summary artifact — the foundation that all Smart "
-"actions rely on. Requires text extraction."
-msgstr ""
+"Creates a comprehensive summary preserving key details and structure. The result is saved as a Summary artifact — the foundation that all Smart actions rely on. Requires text extraction."
+msgstr "Tạo bản tóm tắt toàn diện bảo toàn các chi tiết và cấu trúc chính. Kết quả được lưu dưới dạng tác phẩm Summary — nền tảng mà tất cả các hành động Smart dựa vào. Yêu cầu trích xuất văn bản."
 
 #: prompts/actions.lua:1386
 #, fuzzy
@@ -8953,11 +9099,10 @@ msgid "Extract Key Insights"
 msgstr "Trích xuất Ý chính"
 
 #: prompts/actions.lua:1387
+#, fuzzy
 msgid ""
-"Distills the most important takeaways: ideas worth remembering, novel "
-"perspectives, actionable conclusions, and connections to broader concepts. "
-"Requires text extraction."
-msgstr ""
+"Distills the most important takeaways: ideas worth remembering, novel perspectives, actionable conclusions, and connections to broader concepts. Requires text extraction."
+msgstr "Chắt lọc những điểm quan trọng nhất: ý tưởng đáng nhớ, góc nhìn mới, kết luận có thể áp dụng và các kết nối với khái niệm rộng hơn. Yêu cầu trích xuất văn bản."
 
 #: prompts/actions.lua:1413
 #, fuzzy
@@ -8965,10 +9110,10 @@ msgid "Book Reviews"
 msgstr "Đánh giá Sách"
 
 #: prompts/actions.lua:1414
+#, fuzzy
 msgid ""
-"Searches the web for critical and reader reviews, awards, and any "
-"controversy around the book."
-msgstr ""
+"Searches the web for critical and reader reviews, awards, and any controversy around the book."
+msgstr "Tìm kiếm trên web các bài đánh giá phê bình và độc giả, giải thưởng và mọi tranh cãi xung quanh cuốn sách."
 
 #: prompts/actions.lua:1445
 #, fuzzy
@@ -8976,10 +9121,10 @@ msgid "Compare Books"
 msgstr "So sánh Sách"
 
 #: prompts/actions.lua:1446
+#, fuzzy
 msgid ""
-"Compares the selected books, focusing on meaningful contrasts: different "
-"approaches, unique strengths, and which readers would prefer which."
-msgstr ""
+"Compares the selected books, focusing on meaningful contrasts: different approaches, unique strengths, and which readers would prefer which."
+msgstr "So sánh các cuốn sách đã chọn, tập trung vào sự tương phản có ý nghĩa: cách tiếp cận khác nhau, điểm mạnh độc đáo và độc giả nào sẽ thích cuốn nào."
 
 #: prompts/actions.lua:1458
 #, fuzzy
@@ -8987,10 +9132,10 @@ msgid "Find Common Themes"
 msgstr "Tìm Chủ đề Chung"
 
 #: prompts/actions.lua:1459
+#, fuzzy
 msgid ""
-"Identifies shared themes, intellectual traditions, and deeper patterns "
-"across the selected books — beyond surface-level genre labels."
-msgstr ""
+"Identifies shared themes, intellectual traditions, and deeper patterns across the selected books — beyond surface-level genre labels."
+msgstr "Xác định chủ đề chung, truyền thống trí tuệ và các mô hình sâu hơn qua các cuốn sách đã chọn — vượt ra ngoài nhãn thể loại bề mặt."
 
 #: prompts/actions.lua:1471
 #, fuzzy
@@ -8998,10 +9143,10 @@ msgid "Analyze Collection"
 msgstr "Phân tích Bộ sưu tập"
 
 #: prompts/actions.lua:1472
+#, fuzzy
 msgid ""
-"Analyzes what the collection reveals about the reader's interests, "
-"perspective, and what might be missing for a more complete picture."
-msgstr ""
+"Analyzes what the collection reveals about the reader's interests, perspective, and what might be missing for a more complete picture."
+msgstr "Phân tích điều mà bộ sưu tập tiết lộ về sở thích, quan điểm của người đọc và những gì có thể còn thiếu để có bức tranh hoàn chỉnh hơn."
 
 #: prompts/actions.lua:1484
 #, fuzzy
@@ -9009,10 +9154,10 @@ msgid "Quick Summaries"
 msgstr "Tóm tắt Nhanh"
 
 #: prompts/actions.lua:1485
+#, fuzzy
 msgid ""
-"A brief 2-3 sentence summary of each selected book, focusing on premise and "
-"appeal."
-msgstr ""
+"A brief 2-3 sentence summary of each selected book, focusing on premise and appeal."
+msgstr "Bản tóm tắt ngắn gọn 2-3 câu về mỗi cuốn sách đã chọn, tập trung vào tiền đề và sức hấp dẫn."
 
 #: prompts/actions.lua:1497
 #, fuzzy
@@ -9020,10 +9165,10 @@ msgid "Reading Order"
 msgstr "Thứ tự Đọc"
 
 #: prompts/actions.lua:1498
+#, fuzzy
 msgid ""
-"Suggests an optimal reading order based on conceptual dependencies, "
-"difficulty progression, and thematic arc."
-msgstr ""
+"Suggests an optimal reading order based on conceptual dependencies, difficulty progression, and thematic arc."
+msgstr "Đề xuất thứ tự đọc tối ưu dựa trên sự phụ thuộc về khái niệm, tiến trình độ khó và mạch chủ đề."
 
 #: prompts/actions.lua:1513
 #, fuzzy
@@ -9031,16 +9176,16 @@ msgid "News Update"
 msgstr "Cập nhật Tin tức"
 
 #: prompts/actions.lua:1514
+#, fuzzy
 msgid ""
-"Fetches today's top global news stories from Al Jazeera with headlines, "
-"summaries, and links. Uses web search."
-msgstr ""
+"Fetches today's top global news stories from Al Jazeera with headlines, summaries, and links. Uses web search."
+msgstr "Lấy các tin tức toàn cầu hàng đầu hôm nay từ Al Jazeera với tiêu đề, tóm tắt và liên kết. Sử dụng tìm kiếm web."
 
 #: prompts/actions.lua:1542
+#, fuzzy
 msgid ""
-"Translates the selected text into your configured translation language. This "
-"action also controls the Translate Current Page function."
-msgstr ""
+"Translates the selected text into your configured translation language. This action also controls the Translate Current Page function."
+msgstr "Dịch văn bản đã chọn sang ngôn ngữ dịch được cấu hình của bạn. Hành động này cũng điều khiển chức năng Dịch Trang Hiện Tại."
 
 #: prompts/actions.lua:1561
 #, fuzzy
@@ -9048,10 +9193,10 @@ msgid "Quick Define"
 msgstr "Định nghĩa Nhanh"
 
 #: prompts/actions.lua:1562
+#, fuzzy
 msgid ""
-"A brief, one-line dictionary definition of the selected word in your "
-"dictionary language."
-msgstr ""
+"A brief, one-line dictionary definition of the selected word in your dictionary language."
+msgstr "Định nghĩa từ điển ngắn gọn, một dòng của từ đã chọn bằng ngôn ngữ từ điển của bạn."
 
 #: prompts/actions.lua:1591
 #, fuzzy
@@ -9059,10 +9204,10 @@ msgid "Dictionary"
 msgstr "Từ điển"
 
 #: prompts/actions.lua:1592
+#, fuzzy
 msgid ""
-"Full dictionary entry with pronunciation, definitions, etymology, and "
-"synonyms."
-msgstr ""
+"Full dictionary entry with pronunciation, definitions, etymology, and synonyms."
+msgstr "Mục từ điển đầy đủ với phát âm, định nghĩa, từ nguyên và từ đồng nghĩa."
 
 #: prompts/actions.lua:1624
 #, fuzzy
@@ -9070,8 +9215,7 @@ msgid "Deep Analysis"
 msgstr "Phân tích Sâu"
 
 #: prompts/actions.lua:1625
+#, fuzzy
 msgid ""
-"Deep linguistic analysis covering morphology, word family, etymology, "
-"cognates, and cross-language borrowings. Adapts to the word's language "
-"family (Semitic roots, Indo-European stems, etc.)."
-msgstr ""
+"Deep linguistic analysis covering morphology, word family, etymology, cognates, and cross-language borrowings. Adapts to the word's language family (Semitic roots, Indo-European stems, etc.)."
+msgstr "Phân tích ngôn ngữ học sâu bao gồm hình thái, họ từ, từ nguyên, từ đồng nguyên và các từ mượn xuyên ngôn ngữ. Thích ứng với họ ngôn ngữ của từ (gốc Semitic, gốc Ấn-Âu, v.v.)."

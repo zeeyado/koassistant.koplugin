@@ -6,8 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: KOAssistant 0.12.0-dev\n"
-"Report-Msgid-Bugs-To: https://github.com/zeeyado/koassistant.koplugin/"
-"issues\n"
+"Report-Msgid-Bugs-To: https://github.com/zeeyado/koassistant.koplugin/issues\n"
 "POT-Creation-Date: 2026-02-15 17:22+0000\n"
 "PO-Revision-Date: 2026-01-27 17:48+0000\n"
 "Last-Translator: Automatically generated\n"
@@ -24,8 +23,9 @@ msgid "KOAssistant"
 msgstr "KOAssistant"
 
 #: _meta.lua:5
+#, fuzzy
 msgid "A powerful AI assistant integrated into KOReader"
-msgstr ""
+msgstr "Een krachtige AI-assistent geïntegreerd in KOReader"
 
 #: koassistant_action_cache.lua:321 koassistant_dialogs.lua:3048
 #: koassistant_dialogs.lua:4016 main.lua:4668
@@ -45,8 +45,9 @@ msgid "Recap"
 msgstr "Samenvatting"
 
 #: koassistant_action_cache.lua:324 prompts/actions.lua:830
+#, fuzzy
 msgid "X-Ray (Simple)"
-msgstr ""
+msgstr "X-Ray (Eenvoudig)"
 
 #: koassistant_action_cache.lua:325 prompts/actions.lua:714
 #, fuzzy
@@ -54,16 +55,20 @@ msgid "Book Info"
 msgstr "Boekinfo"
 
 #: koassistant_action_cache.lua:326
+#, fuzzy
 msgid "Notes Analysis"
-msgstr ""
+msgstr "Notitie-analyse"
 
 #: koassistant_artifact_browser.lua:89
+#, fuzzy
 msgid ""
 "No artifacts yet.\n"
 "\n"
-"Run X-Ray, Recap, Document Summary, or Document Analysis to create reusable "
-"artifacts."
+"Run X-Ray, Recap, Document Summary, or Document Analysis to create reusable artifacts."
 msgstr ""
+"Nog geen artefacten.\n"
+"\n"
+"Voer X-Ray, Samenvatting, Documentsamenvatting of Documentanalyse uit om herbruikbare artefacten te maken."
 
 #: koassistant_artifact_browser.lua:105 koassistant_chat_history_dialog.lua:557
 #: koassistant_notebook_manager.lua:85 koassistant_xray_parser.lua:343
@@ -80,16 +85,19 @@ msgstr "Onbekend"
 #: koassistant_chat_history_dialog.lua:185
 #: koassistant_chat_history_dialog.lua:242 koassistant_chatgptviewer.lua:2142
 #: koassistant_notebook_manager.lua:271
+#, fuzzy
 msgid "Artifacts"
-msgstr ""
+msgstr "Artefacten"
 
 #: koassistant_artifact_browser.lua:190
+#, fuzzy
 msgid "No artifacts found for this document."
-msgstr ""
+msgstr "Geen artefacten gevonden voor dit document."
 
 #: koassistant_artifact_browser.lua:198
+#, fuzzy
 msgid "Could not open viewer."
-msgstr ""
+msgstr "Kon viewer niet openen."
 
 #: koassistant_artifact_browser.lua:208 koassistant_artifact_browser.lua:261
 #: koassistant_chatgptviewer.lua:2150 koassistant_notebook_manager.lua:172
@@ -101,8 +109,9 @@ msgstr "Bekijken"
 #: koassistant_artifact_browser.lua:224 koassistant_chat_history_dialog.lua:788
 #: koassistant_chat_history_dialog.lua:935 koassistant_notebook_manager.lua:194
 #: koassistant_xray_browser.lua:2926 koassistant_xray_browser.lua:3016
+#, fuzzy
 msgid "Open Book"
-msgstr ""
+msgstr "Open boek"
 
 #: koassistant_artifact_browser.lua:236 koassistant_artifact_browser.lua:296
 #: koassistant_chat_history_dialog.lua:827
@@ -163,15 +172,20 @@ msgid "Cancel"
 msgstr "Annuleren"
 
 #: koassistant_artifact_browser.lua:270
+#, fuzzy
 msgid "Delete All"
-msgstr ""
+msgstr "Alles verwijderen"
 
 #: koassistant_artifact_browser.lua:274
+#, fuzzy
 msgid ""
 "Delete all artifacts for this document?\n"
 "\n"
 "This cannot be undone."
 msgstr ""
+"Alle artefacten voor dit document verwijderen?\n"
+"\n"
+"Dit kan niet ongedaan worden gemaakt."
 
 #: koassistant_artifact_browser.lua:275 koassistant_chat_history_dialog.lua:58
 #: koassistant_chat_history_dialog.lua:137
@@ -188,8 +202,9 @@ msgid "Delete"
 msgstr "Verwijderen"
 
 #: koassistant_artifact_browser.lua:284
+#, fuzzy
 msgid "All artifacts deleted"
-msgstr ""
+msgstr "Alle artefacten verwijderd"
 
 #: koassistant_artifact_browser.lua:373 koassistant_chat_history_dialog.lua:199
 #: koassistant_chat_history_dialog.lua:256
@@ -367,8 +382,9 @@ msgid "Chats: %1"
 msgstr "Chats: %1"
 
 #: koassistant_chat_history_dialog.lua:802
+#, fuzzy
 msgid "Delete All Chats"
-msgstr ""
+msgstr "Alle chats verwijderen"
 
 #: koassistant_chat_history_dialog.lua:850
 #: koassistant_chat_history_dialog.lua:1403
@@ -417,8 +433,9 @@ msgstr "Exporteren"
 
 #: koassistant_chat_history_dialog.lua:946
 #: koassistant_chat_history_dialog.lua:957
+#, fuzzy
 msgid "Delete Chat"
-msgstr ""
+msgstr "Chat verwijderen"
 
 #: koassistant_chat_history_dialog.lua:969
 #: koassistant_chat_history_dialog.lua:996
@@ -834,9 +851,7 @@ msgstr "↻ Vers"
 #: koassistant_chatgptviewer.lua:1225
 #, fuzzy
 msgid "Clear cache and regenerate from scratch (extracts all book text again)"
-msgstr ""
-"Cache wissen en opnieuw genereren vanaf begin (extraheert alle boektekst "
-"opnieuw)"
+msgstr "Cache wissen en opnieuw genereren vanaf begin (extraheert alle boektekst opnieuw)"
 
 #: koassistant_chatgptviewer.lua:1247 koassistant_ui/prompts_manager.lua:2233
 #, fuzzy
@@ -1090,8 +1105,9 @@ msgid "Copied to clipboard"
 msgstr "Gekopieerd naar klembord"
 
 #: koassistant_chatgptviewer.lua:2175 koassistant_xray_browser.lua:2992
+#, fuzzy
 msgid "Other Artifacts"
-msgstr ""
+msgstr "Andere artefacten"
 
 #: koassistant_chatgptviewer.lua:2250 koassistant_xray_browser.lua:2913
 #: main.lua:8702 koassistant_ui/prompts_manager.lua:1568
@@ -1134,8 +1150,9 @@ msgid "summary"
 msgstr "samenvatting"
 
 #: koassistant_chatgptviewer.lua:2305
+#, fuzzy
 msgid "Open Doc"
-msgstr ""
+msgstr "Open doc"
 
 #: koassistant_chatgptviewer.lua:2322
 #, fuzzy
@@ -1219,15 +1236,13 @@ msgstr "Vers opnieuw genereren"
 msgid ""
 "This response was updated from a cached analysis at %1.\n"
 "\n"
-"Clearing the cache will extract and send all book text again on next run, "
-"which uses more tokens.\n"
+"Clearing the cache will extract and send all book text again on next run, which uses more tokens.\n"
 "\n"
 "Clear cache for this action?"
 msgstr ""
 "Deze reactie is bijgewerkt vanuit een gecachte analyse op %1.\n"
 "\n"
-"Het wissen van de cache zal alle boektekst opnieuw extraheren en verzenden "
-"bij de volgende uitvoering, wat meer tokens gebruikt.\n"
+"Het wissen van de cache zal alle boektekst opnieuw extraheren en verzenden bij de volgende uitvoering, wat meer tokens gebruikt.\n"
 "\n"
 "Cache wissen voor deze actie?"
 
@@ -1379,8 +1394,9 @@ msgstr "Pagina vertalen"
 
 #: koassistant_constants.lua:131 koassistant_constants.lua:185
 #: koassistant_settings_schema.lua:31 main.lua:5722
+#, fuzzy
 msgid "Book Chat/Action"
-msgstr ""
+msgstr "Boekchat/actie"
 
 #: koassistant_constants.lua:132 koassistant_constants.lua:184 main.lua:5693
 #, fuzzy
@@ -1467,8 +1483,9 @@ msgid "D.Bypass"
 msgstr "D.Omleiding"
 
 #: koassistant_constants.lua:179
+#, fuzzy
 msgid "Text Extraction"
-msgstr ""
+msgstr "Tekstextractie"
 
 #: koassistant_constants.lua:181 koassistant_settings_schema.lua:55
 #: main.lua:5666
@@ -1478,8 +1495,9 @@ msgstr "Notitieboeken bladeren"
 
 #: koassistant_constants.lua:182 koassistant_settings_schema.lua:62
 #: main.lua:5675
+#, fuzzy
 msgid "Browse Artifacts"
-msgstr ""
+msgstr "Blader door artefacten"
 
 #: koassistant_constants.lua:186 koassistant_settings_schema.lua:991
 #: main.lua:5702 koassistant_ui/prompts_manager.lua:456
@@ -1545,13 +1563,8 @@ msgstr "Chat opslaan mislukt:"
 #: koassistant_dialogs.lua:1333
 #, fuzzy
 msgid ""
-"This conversation is using approximately %1K tokens. Each follow-up resends "
-"the full history. Consider starting a new chat to reduce costs and maintain "
-"quality."
-msgstr ""
-"Dit gesprek gebruikt ongeveer %1K tokens. Elke vervolgreactie verstuurt de "
-"volledige geschiedenis opnieuw. Overweeg een nieuwe chat te starten om "
-"kosten te verlagen en kwaliteit te behouden."
+"This conversation is using approximately %1K tokens. Each follow-up resends the full history. Consider starting a new chat to reduce costs and maintain quality."
+msgstr "Dit gesprek gebruikt ongeveer %1K tokens. Elke vervolgreactie verstuurt de volledige geschiedenis opnieuw. Overweeg een nieuwe chat te starten om kosten te verlagen en kwaliteit te behouden."
 
 #: koassistant_dialogs.lua:1656
 #, fuzzy
@@ -1579,13 +1592,18 @@ msgid "Summary generation failed. Please try again."
 msgstr "Samenvatting genereren mislukt. Probeer het opnieuw."
 
 #: koassistant_dialogs.lua:1942 main.lua:4351
+#, fuzzy
 msgid ""
 "Text extraction is required to generate this artifact.\n"
 "\n"
 "Enable it in Settings → Privacy & Data → Text Extraction."
 msgstr ""
+"Tekstextractie is vereist om dit artefact te genereren.\n"
+"\n"
+"Schakel het in via Instellingen → Privacy & Gegevens → Tekstextractie."
 
 #: koassistant_dialogs.lua:1950
+#, fuzzy
 msgid ""
 "Smart actions use a shared document summary for context.\n"
 "\n"
@@ -1594,6 +1612,12 @@ msgid ""
 "• Saved as a viewable artifact\n"
 "• Uses your text extraction settings"
 msgstr ""
+"Smart-acties gebruiken een gedeelde documentsamenvatting voor context.\n"
+"\n"
+"Er een genereren voor dit boek?\n"
+"• Eenmalig — hergebruikt door alle Smart-acties voor dit boek\n"
+"• Opgeslagen als zichtbaar artefact\n"
+"• Gebruikt uw tekstextractie-instellingen"
 
 #: koassistant_dialogs.lua:1951
 #, fuzzy
@@ -1601,40 +1625,47 @@ msgid "Generate"
 msgstr "Genereren"
 
 #: koassistant_dialogs.lua:2620
+#, fuzzy
 msgid ""
-"Large text extraction: ~%1K characters (~%2K tokens). Make sure your model's "
-"context window can accommodate this.\n"
+"Large text extraction: ~%1K characters (~%2K tokens). Make sure your model's context window can accommodate this.\n"
 "\n"
 "You can also use Hidden Flows to exclude irrelevant sections of the document."
 msgstr ""
+"Grote tekstextractie: ~%1K tekens (~%2K tokens). Zorg ervoor dat het contextvenster van uw model dit kan verwerken.\n"
+"\n"
+"U kunt ook Hidden Flows gebruiken om irrelevante secties van het document uit te sluiten."
 
 #: koassistant_dialogs.lua:2629
+#, fuzzy
 msgid "Continue"
-msgstr ""
+msgstr "Doorgaan"
 
 #: koassistant_dialogs.lua:2636 koassistant_dialogs.lua:2703
+#, fuzzy
 msgid "Don't warn again"
-msgstr ""
+msgstr "Niet opnieuw waarschuwen"
 
 #: koassistant_dialogs.lua:2672
+#, fuzzy
 msgid "Extracted text was truncated (covers %1%–%2% of the document)."
-msgstr ""
+msgstr "Geëxtraheerde tekst werd afgekapt (dekt %1%–%2% van het document)."
 
 #: koassistant_dialogs.lua:2677
+#, fuzzy
 msgid ""
-"New text since last update was truncated (covers %1%–%2% of the update "
-"range)."
-msgstr ""
+"New text since last update was truncated (covers %1%–%2% of the update range)."
+msgstr "Nieuwe tekst sinds laatste update werd afgekapt (dekt %1%–%2% van het updatebereik)."
 
 #: koassistant_dialogs.lua:2684
+#, fuzzy
 msgid ""
-"You can increase the limit in Settings → Privacy & Data → Text Extraction, "
-"or use Hidden Flows to exclude irrelevant sections."
-msgstr ""
+"You can increase the limit in Settings → Privacy & Data → Text Extraction, or use Hidden Flows to exclude irrelevant sections."
+msgstr "U kunt de limiet verhogen in Instellingen → Privacy & Gegevens → Tekstextractie, of Hidden Flows gebruiken om irrelevante secties uit te sluiten."
 
 #: koassistant_dialogs.lua:2696
+#, fuzzy
 msgid "Continue Anyway"
-msgstr ""
+msgstr "Toch doorgaan"
 
 #: koassistant_dialogs.lua:2746 koassistant_dialogs.lua:3949 main.lua:400
 #: main.lua:3888
@@ -1667,12 +1698,14 @@ msgid "Select Domain"
 msgstr "Domein selecteren"
 
 #: koassistant_dialogs.lua:2991
+#, fuzzy
 msgid "Web ON"
-msgstr ""
+msgstr "Web AAN"
 
 #: koassistant_dialogs.lua:2991
+#, fuzzy
 msgid "Web OFF"
-msgstr ""
+msgstr "Web UIT"
 
 #: koassistant_dialogs.lua:3063 koassistant_dialogs.lua:3267
 #: koassistant_dialogs.lua:4043
@@ -1681,8 +1714,9 @@ msgid "Error: "
 msgstr "Fout:"
 
 #: koassistant_dialogs.lua:3127
+#, fuzzy
 msgid "Toggle web search for AI requests"
-msgstr ""
+msgstr "Schakel zoeken op het web in voor AI-verzoeken"
 
 #: koassistant_dialogs.lua:3134
 #, fuzzy
@@ -1690,8 +1724,9 @@ msgid "Domain: "
 msgstr "Domein:"
 
 #: koassistant_dialogs.lua:3147
+#, fuzzy
 msgid "Type a message first, or tap an action button."
-msgstr ""
+msgstr "Typ eerst een bericht of tik op een actieknop."
 
 #: koassistant_dialogs.lua:3263
 #, fuzzy
@@ -1699,20 +1734,21 @@ msgid "Chat"
 msgstr "Chat"
 
 #: koassistant_dialogs.lua:3281
+#, fuzzy
 msgid ""
-"Send your typed message (or the selected text) as a freeform chat to the AI, "
-"without using any action template."
-msgstr ""
+"Send your typed message (or the selected text) as a freeform chat to the AI, without using any action template."
+msgstr "Stuur uw getypte bericht (of de geselecteerde tekst) als vrije chat naar de AI, zonder een actiesjabloon te gebruiken."
 
 #: koassistant_dialogs.lua:3283
+#, fuzzy
 msgid ""
-"Send your typed message as a freeform chat to the AI, without using any "
-"action template."
-msgstr ""
+"Send your typed message as a freeform chat to the AI, without using any action template."
+msgstr "Stuur uw getypte bericht als vrije chat naar de AI, zonder een actiesjabloon te gebruiken."
 
 #: koassistant_dialogs.lua:3388 koassistant_dialogs.lua:3542
+#, fuzzy
 msgid "Show More Actions…"
-msgstr ""
+msgstr "Meer acties weergeven…"
 
 #: koassistant_dialogs.lua:3506
 #, fuzzy
@@ -1725,12 +1761,14 @@ msgid "Type your question or additional instructions for any action..."
 msgstr "Typ je vraag of aanvullende instructies voor elke actie..."
 
 #: koassistant_dialogs.lua:3531
+#, fuzzy
 msgid "Choose and Sort Actions…"
-msgstr ""
+msgstr "Acties kiezen en sorteren…"
 
 #: koassistant_dialogs.lua:3542
+#, fuzzy
 msgid "Show Fewer Actions"
-msgstr ""
+msgstr "Minder acties weergeven"
 
 #: koassistant_dialogs.lua:3606
 #, fuzzy
@@ -1754,45 +1792,55 @@ msgid "%1 deleted"
 msgstr "%1 verwijderd"
 
 #: koassistant_dialogs.lua:3707
+#, fuzzy
 msgid "No book open. X-Ray lookup requires an open book."
-msgstr ""
+msgstr "Geen boek geopend. X-Ray opzoeken vereist een geopend boek."
 
 #: koassistant_dialogs.lua:3719
+#, fuzzy
 msgid ""
 "No X-Ray cache found for this book. Generate one first via the X-Ray action."
-msgstr ""
+msgstr "Geen X-Ray cache gevonden voor dit boek. Genereer er eerst een via de X-Ray actie."
 
 #: koassistant_dialogs.lua:3731
+#, fuzzy
 msgid "Could not parse X-Ray data. Try regenerating the X-Ray cache."
-msgstr ""
+msgstr "Kon X-Ray gegevens niet verwerken. Probeer de X-Ray cache opnieuw te genereren."
 
 #: koassistant_dialogs.lua:3750
+#, fuzzy
 msgid "No results for \"%1\" in X-Ray."
-msgstr ""
+msgstr "Geen resultaten voor \"%1\" in X-Ray."
 
 #: koassistant_dialogs.lua:3754
+#, fuzzy
 msgid "X-Ray covers to %1% (you're at %2%). Updating may find this entry."
-msgstr ""
+msgstr "X-Ray dekt tot %1% (u bent bij %2%). Updaten kan dit item vinden."
 
 #: koassistant_dialogs.lua:3785 main.lua:4249
+#, fuzzy
 msgid "X-Ray covers to %1%"
-msgstr ""
+msgstr "X-Ray dekt tot %1%"
 
 #: koassistant_dialogs.lua:3786 main.lua:4253
+#, fuzzy
 msgid "You're now at %1%."
-msgstr ""
+msgstr "U bent nu bij %1%."
 
 #: koassistant_dialogs.lua:3793 koassistant_xray_browser.lua:2831 main.lua:4261
+#, fuzzy
 msgid "Update X-Ray (to %1)"
-msgstr ""
+msgstr "Update X-Ray (tot %1)"
 
 #: koassistant_dialogs.lua:3807 main.lua:4275
+#, fuzzy
 msgid "Don't remind me this session"
-msgstr ""
+msgstr "Herinner me deze sessie niet meer"
 
 #: koassistant_dialogs.lua:3833
+#, fuzzy
 msgid "Unknown local action handler"
-msgstr ""
+msgstr "Onbekende lokale actiehandler"
 
 #: koassistant_dialogs.lua:3852
 #, fuzzy
@@ -1814,17 +1862,16 @@ msgstr "Subproces starten voor verzoek mislukt"
 msgid ""
 "No notebooks yet.\n"
 "\n"
-"Use the NB button in chat viewer to save conversations to a per-book "
-"notebook."
+"Use the NB button in chat viewer to save conversations to a per-book notebook."
 msgstr ""
 "Nog geen notitieboeken.\n"
 "\n"
-"Gebruik de NB-knop in chatviewer om gesprekken op te slaan in een "
-"notitieboek per boek."
+"Gebruik de NB-knop in chatviewer om gesprekken op te slaan in een notitieboek per boek."
 
 #: koassistant_notebook_manager.lua:206
+#, fuzzy
 msgid "Delete Notebook"
-msgstr ""
+msgstr "Notitieblok verwijderen"
 
 #: koassistant_notebook_manager.lua:210
 #, fuzzy
@@ -1874,8 +1921,9 @@ msgid "Display Settings"
 msgstr "Weergave-instellingen"
 
 #: koassistant_settings_schema.lua:134
+#, fuzzy
 msgid "Rendering"
-msgstr ""
+msgstr "Renderen"
 
 #: koassistant_settings_schema.lua:139 koassistant_ui/prompts_manager.lua:2061
 #, fuzzy
@@ -1895,11 +1943,8 @@ msgstr "Platte tekst"
 #: koassistant_settings_schema.lua:146
 #, fuzzy
 msgid ""
-"Markdown renders formatting. Plain Text has better font support for Arabic/"
-"CJK."
-msgstr ""
-"Markdown geeft opmaak weer. Platte tekst heeft betere lettertype-"
-"ondersteuning voor Arabisch/CJK."
+"Markdown renders formatting. Plain Text has better font support for Arabic/CJK."
+msgstr "Markdown geeft opmaak weer. Platte tekst heeft betere lettertype-ondersteuning voor Arabisch/CJK."
 
 #: koassistant_settings_schema.lua:151
 #, fuzzy
@@ -1914,11 +1959,8 @@ msgstr "Markdown-verwijdering toepassen"
 #: koassistant_settings_schema.lua:159
 #, fuzzy
 msgid ""
-"Convert markdown syntax to readable plain text (headers, lists, etc). "
-"Disable to show raw markdown."
-msgstr ""
-"Converteer markdown-syntaxis naar leesbare platte tekst (koppen, lijsten, "
-"enz.). Uitschakelen om ruwe markdown te tonen."
+"Convert markdown syntax to readable plain text (headers, lists, etc). Disable to show raw markdown."
+msgstr "Converteer markdown-syntaxis naar leesbare platte tekst (koppen, lijsten, enz.). Uitschakelen om ruwe markdown te tonen."
 
 #: koassistant_settings_schema.lua:169
 #, fuzzy
@@ -1928,11 +1970,8 @@ msgstr "Tekstmodus voor woordenboek"
 #: koassistant_settings_schema.lua:172
 #, fuzzy
 msgid ""
-"Use Plain Text mode for dictionary popup. Better font support for non-Latin "
-"scripts."
-msgstr ""
-"Gebruik platte tekstmodus voor woordenboek-popup. Betere lettertype-"
-"ondersteuning voor niet-Latijnse schriften."
+"Use Plain Text mode for dictionary popup. Better font support for non-Latin scripts."
+msgstr "Gebruik platte tekstmodus voor woordenboek-popup. Betere lettertype-ondersteuning voor niet-Latijnse schriften."
 
 #: koassistant_settings_schema.lua:177
 #, fuzzy
@@ -1942,12 +1981,8 @@ msgstr "Tekstmodus voor RTL-woordenboek"
 #: koassistant_settings_schema.lua:184
 #, fuzzy
 msgid ""
-"Use Plain Text mode for dictionary popup when dictionary language is Arabic, "
-"Persian, or Urdu. Grayed out when Text Mode for Dictionary is enabled."
-msgstr ""
-"Gebruik platte tekstmodus voor woordenboek-popup wanneer de woordenboektaal "
-"Arabisch, Perzisch of Urdu is. Uitgegrijsd wanneer Tekstmodus voor "
-"woordenboek is ingeschakeld."
+"Use Plain Text mode for dictionary popup when dictionary language is Arabic, Persian, or Urdu. Grayed out when Text Mode for Dictionary is enabled."
+msgstr "Gebruik platte tekstmodus voor woordenboek-popup wanneer de woordenboektaal Arabisch, Perzisch of Urdu is. Uitgegrijsd wanneer Tekstmodus voor woordenboek is ingeschakeld."
 
 #: koassistant_settings_schema.lua:189
 #, fuzzy
@@ -1957,11 +1992,8 @@ msgstr "Tekstmodus voor RTL-vertaling"
 #: koassistant_settings_schema.lua:192
 #, fuzzy
 msgid ""
-"Use Plain Text mode for translate popup when translation language is Arabic, "
-"Persian, or Urdu."
-msgstr ""
-"Gebruik platte tekstmodus voor vertaal-popup wanneer de vertaaltaal "
-"Arabisch, Perzisch of Urdu is."
+"Use Plain Text mode for translate popup when translation language is Arabic, Persian, or Urdu."
+msgstr "Gebruik platte tekstmodus voor vertaal-popup wanneer de vertaaltaal Arabisch, Perzisch of Urdu is."
 
 #: koassistant_settings_schema.lua:197
 #, fuzzy
@@ -1971,19 +2003,13 @@ msgstr "Automatische RTL-modus voor chat"
 #: koassistant_settings_schema.lua:204
 #, fuzzy
 msgid ""
-"Automatically detect RTL content and switch to RTL mode (right-aligned text "
-"+ Plain Text). Activates when the latest response has more RTL than Latin "
-"characters. Disabling removes all automatic RTL adjustments. Grayed out when "
-"markdown is disabled."
-msgstr ""
-"Detecteer automatisch RTL-inhoud en schakel over naar RTL-modus (rechts "
-"uitgelijnd + platte tekst). Activeert wanneer het laatste antwoord meer RTL- "
-"dan Latijnse tekens bevat. Uitschakelen verwijdert alle automatische RTL-"
-"aanpassingen. Uitgegrijsd wanneer markdown is uitgeschakeld."
+"Automatically detect RTL content and switch to RTL mode (right-aligned text + Plain Text). Activates when the latest response has more RTL than Latin characters. Disabling removes all automatic RTL adjustments. Grayed out when markdown is disabled."
+msgstr "Detecteer automatisch RTL-inhoud en schakel over naar RTL-modus (rechts uitgelijnd + platte tekst). Activeert wanneer het laatste antwoord meer RTL- dan Latijnse tekens bevat. Uitschakelen verwijdert alle automatische RTL-aanpassingen. Uitgegrijsd wanneer markdown is uitgeschakeld."
 
 #: koassistant_settings_schema.lua:211
+#, fuzzy
 msgid "Emoji"
-msgstr ""
+msgstr "Emoji"
 
 #: koassistant_settings_schema.lua:216
 #, fuzzy
@@ -1993,23 +2019,19 @@ msgstr "Emoji-menu-iconen"
 #: koassistant_settings_schema.lua:219
 #, fuzzy
 msgid ""
-"Show emoji icons (🔍, 📖) in UI buttons and status indicators. Requires "
-"emoji font support in KOReader. Does not work on all devices. If icons "
-"appear as question marks, disable this option."
-msgstr ""
-"Toon emoji-iconen (🔍, 📖) in UI-knoppen en statusindicatoren. Vereist emoji-"
-"lettertype-ondersteuning in KOReader. Werkt niet op alle apparaten. Als "
-"iconen als vraagtekens verschijnen, schakel deze optie uit."
+"Show emoji icons (🔍, 📖) in UI buttons and status indicators. Requires emoji font support in KOReader. Does not work on all devices. If icons appear as question marks, disable this option."
+msgstr "Toon emoji-iconen (🔍, 📖) in UI-knoppen en statusindicatoren. Vereist emoji-lettertype-ondersteuning in KOReader. Werkt niet op alle apparaten. Als iconen als vraagtekens verschijnen, schakel deze optie uit."
 
 #: koassistant_settings_schema.lua:224
+#, fuzzy
 msgid "Emoji Panel Icons"
-msgstr ""
+msgstr "Emoji-paneelpictogrammen"
 
 #: koassistant_settings_schema.lua:227
+#, fuzzy
 msgid ""
-"Show emoji icons on Quick Settings and Quick Actions panel buttons (🔗 "
-"Provider, 🎭 Behavior, 📜 Chat History, etc.). Requires emoji font support."
-msgstr ""
+"Show emoji icons on Quick Settings and Quick Actions panel buttons (🔗 Provider, 🎭 Behavior, 📜 Chat History, etc.). Requires emoji font support."
+msgstr "Toon emoji-pictogrammen op de knoppen van de Snelle Instellingen en Snelle Acties panelen (🔗 Provider, 🎭 Gedrag, 📜 Chatgeschiedenis, etc.). Vereist ondersteuning voor emoji-lettertypen."
 
 #: koassistant_settings_schema.lua:232
 #, fuzzy
@@ -2019,41 +2041,40 @@ msgstr "Emoji-gegevenstoegang-indicatoren"
 #: koassistant_settings_schema.lua:235
 #, fuzzy
 msgid ""
-"Show emoji indicators on action names showing what data they access: 📄 "
-"document text, 📝 annotations, 📓 notebook, 🌐 web search. Requires emoji "
-"font support."
-msgstr ""
-"Toon emoji-indicatoren bij actienamen die weergeven tot welke gegevens ze "
-"toegang hebben: 📄 documenttekst, 📝 annotaties, 📓 notitieboek, 🌐 "
-"webzoekopdracht. Vereist emoji-lettertype-ondersteuning."
+"Show emoji indicators on action names showing what data they access: 📄 document text, 📝 annotations, 📓 notebook, 🌐 web search. Requires emoji font support."
+msgstr "Toon emoji-indicatoren bij actienamen die weergeven tot welke gegevens ze toegang hebben: 📄 documenttekst, 📝 annotaties, 📓 notitieboek, 🌐 webzoekopdracht. Vereist emoji-lettertype-ondersteuning."
 
 #: koassistant_settings_schema.lua:242
+#, fuzzy
 msgid "Panel Alignment"
-msgstr ""
+msgstr "Paneeluitlijning"
 
 #: koassistant_settings_schema.lua:247
+#, fuzzy
 msgid "Align Quick Settings"
-msgstr ""
+msgstr "Snelle Instellingen uitlijnen"
 
 #: koassistant_settings_schema.lua:250
+#, fuzzy
 msgid ""
-"Left-align button text in the Quick Settings panel instead of centering. "
-"Also available from the panel's gear menu."
-msgstr ""
+"Left-align button text in the Quick Settings panel instead of centering. Also available from the panel's gear menu."
+msgstr "Knoptekst links uitlijnen in het Snelle Instellingen paneel in plaats van centreren. Ook beschikbaar via het tandwielmenu van het paneel."
 
 #: koassistant_settings_schema.lua:255
+#, fuzzy
 msgid "Align Quick Actions"
-msgstr ""
+msgstr "Snelle Acties uitlijnen"
 
 #: koassistant_settings_schema.lua:258
+#, fuzzy
 msgid ""
-"Left-align button text in the Quick Actions panel instead of centering. Also "
-"available from the panel's gear menu."
-msgstr ""
+"Left-align button text in the Quick Actions panel instead of centering. Also available from the panel's gear menu."
+msgstr "Knoptekst links uitlijnen in het Snelle Acties paneel in plaats van centreren. Ook beschikbaar via het tandwielmenu van het paneel."
 
 #: koassistant_settings_schema.lua:265
+#, fuzzy
 msgid "Highlights"
-msgstr ""
+msgstr "Markeringen"
 
 #: koassistant_settings_schema.lua:270
 #, fuzzy
@@ -2078,11 +2099,8 @@ msgstr "Taal van plugin-interface"
 #: koassistant_settings_schema.lua:302
 #, fuzzy
 msgid ""
-"Language for plugin menus and dialogs. Does not affect AI responses. "
-"Requires restart."
-msgstr ""
-"Taal voor plugin-menu's en dialoogvensters. Heeft geen invloed op AI-"
-"antwoorden. Vereist herstart."
+"Language for plugin menus and dialogs. Does not affect AI responses. Requires restart."
+msgstr "Taal voor plugin-menu's en dialoogvensters. Heeft geen invloed op AI-antwoorden. Vereist herstart."
 
 #: koassistant_settings_schema.lua:304
 #, fuzzy
@@ -2095,8 +2113,9 @@ msgid "Please restart KOReader for the language change to take effect."
 msgstr "Start KOReader opnieuw op om de taalwijziging door te voeren."
 
 #: koassistant_settings_schema.lua:342
+#, fuzzy
 msgid "Chat & Export Settings"
-msgstr ""
+msgstr "Chat & Export Instellingen"
 
 #: koassistant_settings_schema.lua:348
 #, fuzzy
@@ -2109,8 +2128,9 @@ msgid "Auto-save Continued Chats"
 msgstr "Vervolgchats automatisch opslaan"
 
 #: koassistant_settings_schema.lua:365
+#, fuzzy
 msgid "Streaming"
-msgstr ""
+msgstr "Streaming"
 
 #: koassistant_settings_schema.lua:370 koassistant_settings_schema.lua:733
 #: koassistant_settings_schema.lua:846
@@ -2124,15 +2144,15 @@ msgid "Auto-scroll Streaming"
 msgstr "Automatisch scrollen bij streaming"
 
 #: koassistant_settings_schema.lua:385
+#, fuzzy
 msgid "Page-based Scroll (e-ink)"
-msgstr ""
+msgstr "Paginagebaseerd scrollen (e-ink)"
 
 #: koassistant_settings_schema.lua:392
+#, fuzzy
 msgid ""
-"Stream text into empty page space instead of scrolling from the bottom. "
-"Reduces full-screen refreshes on e-ink. Disable for continuous bottom-"
-"scrolling."
-msgstr ""
+"Stream text into empty page space instead of scrolling from the bottom. Reduces full-screen refreshes on e-ink. Disable for continuous bottom-scrolling."
+msgstr "Stream tekst in lege paginaruimte in plaats van scrollen vanaf de onderkant. Vermindert volledige schermverversingen op e-ink. Uitschakelen voor continu scrollen vanaf de onderkant."
 
 #: koassistant_settings_schema.lua:397
 #, fuzzy
@@ -2175,12 +2195,8 @@ msgstr "Scroll naar laatste bericht (experimenteel)"
 #: koassistant_settings_schema.lua:436
 #, fuzzy
 msgid ""
-"When resuming or replying to a chat, try to scroll so your last question is "
-"visible. When off, shows top for new chats and bottom for replies."
-msgstr ""
-"Bij hervatten of beantwoorden van een chat, proberen te scrollen zodat je "
-"laatste vraag zichtbaar is. Wanneer uit, toont bovenkant voor nieuwe chats "
-"en onderkant voor antwoorden."
+"When resuming or replying to a chat, try to scroll so your last question is visible. When off, shows top for new chats and bottom for replies."
+msgstr "Bij hervatten of beantwoorden van een chat, proberen te scrollen zodat je laatste vraag zichtbaar is. Wanneer uit, toont bovenkant voor nieuwe chats en onderkant voor antwoorden."
 
 #: koassistant_settings_schema.lua:443 koassistant_settings_schema.lua:1036
 #, fuzzy
@@ -2196,9 +2212,7 @@ msgstr "Exportstijl"
 #, fuzzy
 msgid ""
 "Markdown uses # headers and **bold**. Plain text uses simple formatting."
-msgstr ""
-"Markdown gebruikt # koppen en **vet**. Platte tekst gebruikt eenvoudige "
-"opmaak."
+msgstr "Markdown gebruikt # koppen en **vet**. Platte tekst gebruikt eenvoudige opmaak."
 
 #: koassistant_settings_schema.lua:464 koassistant_settings_schema.lua:479
 #: koassistant_settings_schema.lua:495 koassistant_settings_schema.lua:520
@@ -2257,11 +2271,8 @@ msgstr "Aangepaste map"
 #: koassistant_settings_schema.lua:522
 #, fuzzy
 msgid ""
-"Where to save exported chat files. Creates subfolders for book/general/multi-"
-"book chats."
-msgstr ""
-"Waar geëxporteerde chatbestanden worden opgeslagen. Maakt submappen aan voor "
-"boek-/algemene/meerdere-boeken-chats."
+"Where to save exported chat files. Creates subfolders for book/general/multi-book chats."
+msgstr "Waar geëxporteerde chatbestanden worden opgeslagen. Maakt submappen aan voor boek-/algemene/meerdere-boeken-chats."
 
 #: koassistant_settings_schema.lua:533
 #, fuzzy
@@ -2286,21 +2297,18 @@ msgstr "Boekgesprekken naast boeken opslaan"
 #: koassistant_settings_schema.lua:551
 #, fuzzy
 msgid ""
-"When enabled, book chats are saved to a 'chats' subfolder next to the book "
-"file instead of the central location."
-msgstr ""
-"Indien ingeschakeld worden boekgesprekken opgeslagen in een 'chats' submap "
-"naast het boekbestand in plaats van op de centrale locatie."
+"When enabled, book chats are saved to a 'chats' subfolder next to the book file instead of the central location."
+msgstr "Indien ingeschakeld worden boekgesprekken opgeslagen in een 'chats' submap naast het boekbestand in plaats van op de centrale locatie."
 
 #: koassistant_settings_schema.lua:558
+#, fuzzy
 msgid "Show Export Button in Chat Viewer"
-msgstr ""
+msgstr "Toon Export-knop in Chatweergave"
 
 #: koassistant_settings_schema.lua:561
 #, fuzzy
 msgid "Add Export button to the Chat Viewer (alongside Copy and Note)."
-msgstr ""
-"Voeg Export-knop toe aan de gespreksweergave (naast Kopiëren en Notitie)."
+msgstr "Voeg Export-knop toe aan de gespreksweergave (naast Kopiëren en Notitie)."
 
 #: koassistant_settings_schema.lua:570
 #, fuzzy
@@ -2395,8 +2403,7 @@ msgstr "Contexttekens"
 #: koassistant_settings_schema.lua:684
 #, fuzzy
 msgid ""
-"Number of characters to include before/after the word when Context Mode is "
-"'Characters'"
+"Number of characters to include before/after the word when Context Mode is 'Characters'"
 msgstr "Aantal tekens voor/na het woord wanneer contextmodus 'Tekens' is"
 
 #: koassistant_settings_schema.lua:693
@@ -2407,14 +2414,8 @@ msgstr "Automatisch opslaan uitschakelen voor woordenboek"
 #: koassistant_settings_schema.lua:696
 #, fuzzy
 msgid ""
-"When enabled, dictionary lookups are not auto-saved. When disabled, "
-"dictionary chats follow your general chat saving settings. You can always "
-"save manually from an expanded view."
-msgstr ""
-"Indien ingeschakeld worden woordenboekopzoekingen niet automatisch "
-"opgeslagen. Indien uitgeschakeld volgen woordenboekgesprekken uw algemene "
-"instellingen voor het opslaan van gesprekken. U kunt altijd handmatig "
-"opslaan vanuit een uitgevouwen weergave."
+"When enabled, dictionary lookups are not auto-saved. When disabled, dictionary chats follow your general chat saving settings. You can always save manually from an expanded view."
+msgstr "Indien ingeschakeld worden woordenboekopzoekingen niet automatisch opgeslagen. Indien uitgeschakeld volgen woordenboekgesprekken uw algemene instellingen voor het opslaan van gesprekken. U kunt altijd handmatig opslaan vanuit een uitgevouwen weergave."
 
 #: koassistant_settings_schema.lua:705 koassistant_settings_schema.lua:721
 #: koassistant_settings_schema.lua:858 koassistant_settings_schema.lua:874
@@ -2436,17 +2437,13 @@ msgstr "Wat mee te nemen bij kopiëren in woordenboekweergave."
 #: koassistant_settings_schema.lua:728
 #, fuzzy
 msgid "What to include when saving dictionary results to a note."
-msgstr ""
-"Wat mee te nemen bij het opslaan van woordenboekresultaten in een notitie."
+msgstr "Wat mee te nemen bij het opslaan van woordenboekresultaten in een notitie."
 
 #: koassistant_settings_schema.lua:736
 #, fuzzy
 msgid ""
-"Stream dictionary responses in real-time. Disable to wait for complete "
-"response."
-msgstr ""
-"Stream woordenboekantwoorden in realtime. Schakel uit om te wachten op "
-"volledig antwoord."
+"Stream dictionary responses in real-time. Disable to wait for complete response."
+msgstr "Stream woordenboekantwoorden in realtime. Schakel uit om te wachten op volledig antwoord."
 
 #: koassistant_settings_schema.lua:741
 #, fuzzy
@@ -2466,11 +2463,8 @@ msgstr "KOReader-woordenboek omzeilen"
 #: koassistant_settings_schema.lua:751
 #, fuzzy
 msgid ""
-"Skip KOReader's dictionary and go directly to AI when tapping words. Can "
-"also be toggled via gesture."
-msgstr ""
-"Sla KOReader's woordenboek over en ga direct naar AI bij tikken op woorden. "
-"Kan ook worden geschakeld via gebaar."
+"Skip KOReader's dictionary and go directly to AI when tapping words. Can also be toggled via gesture."
+msgstr "Sla KOReader's woordenboek over en ga direct naar AI bij tikken op woorden. Kan ook worden geschakeld via gebaar."
 
 #: koassistant_settings_schema.lua:772 koassistant_settings_schema.lua:776
 #: koassistant_settings_schema.lua:778 koassistant_settings_schema.lua:960
@@ -2482,8 +2476,7 @@ msgstr "Omzeilactie: %1"
 #: koassistant_settings_schema.lua:781
 #, fuzzy
 msgid "Action to trigger when dictionary bypass is enabled"
-msgstr ""
-"Actie die wordt geactiveerd wanneer woordenboek omzeilen is ingeschakeld"
+msgstr "Actie die wordt geactiveerd wanneer woordenboek omzeilen is ingeschakeld"
 
 #: koassistant_settings_schema.lua:786
 #, fuzzy
@@ -2493,13 +2486,8 @@ msgstr "Omzeilen: Volg Vocab Builder automatisch toevoegen"
 #: koassistant_settings_schema.lua:789
 #, fuzzy
 msgid ""
-"When enabled, dictionary bypass follows KOReader's Vocabulary Builder auto-"
-"add setting. Disable if you use bypass for analysis of words you already "
-"know and don't want them added."
-msgstr ""
-"Indien ingeschakeld volgt woordenboek omzeilen KOReader's Vocabulary Builder "
-"automatisch toevoegen instelling. Schakel uit als u omzeilen gebruikt voor "
-"analyse van woorden die u al kent en niet wilt toevoegen."
+"When enabled, dictionary bypass follows KOReader's Vocabulary Builder auto-add setting. Disable if you use bypass for analysis of words you already know and don't want them added."
+msgstr "Indien ingeschakeld volgt woordenboek omzeilen KOReader's Vocabulary Builder automatisch toevoegen instelling. Schakel uit als u omzeilen gebruikt voor analyse van woorden die u al kent en niet wilt toevoegen."
 
 #: koassistant_settings_schema.lua:798
 #, fuzzy
@@ -2514,11 +2502,8 @@ msgstr "Vertaal naar primaire taal"
 #: koassistant_settings_schema.lua:808
 #, fuzzy
 msgid ""
-"Use your primary language as the translation target. Disable to choose a "
-"different target."
-msgstr ""
-"Gebruik uw primaire taal als vertaaldoel. Schakel uit om een ander doel te "
-"kiezen."
+"Use your primary language as the translation target. Disable to choose a different target."
+msgstr "Gebruik uw primaire taal als vertaaldoel. Schakel uit om een ander doel te kiezen."
 
 #: koassistant_settings_schema.lua:828
 #, fuzzy
@@ -2533,9 +2518,7 @@ msgstr "Automatisch opslaan uitschakelen voor vertalen"
 #: koassistant_settings_schema.lua:841
 #, fuzzy
 msgid "Translations are not auto-saved. Save manually via → Chat button."
-msgstr ""
-"Vertalingen worden niet automatisch opgeslagen. Sla handmatig op via → Chat-"
-"knop."
+msgstr "Vertalingen worden niet automatisch opgeslagen. Sla handmatig op via → Chat-knop."
 
 #: koassistant_settings_schema.lua:849
 #, fuzzy
@@ -2595,11 +2578,8 @@ msgstr "Drempel Lange Tekst"
 #: koassistant_settings_schema.lua:918
 #, fuzzy
 msgid ""
-"Character count above which text is considered 'long'. Used when Original "
-"Text is set to 'Hide Long'."
-msgstr ""
-"Aantal tekens waarboven tekst als 'lang' wordt beschouwd. Wordt gebruikt "
-"wanneer Originele Tekst is ingesteld op 'Verberg Lange'."
+"Character count above which text is considered 'long'. Used when Original Text is set to 'Hide Long'."
+msgstr "Aantal tekens waarboven tekst als 'lang' wordt beschouwd. Wordt gebruikt wanneer Originele Tekst is ingesteld op 'Verberg Lange'."
 
 #: koassistant_settings_schema.lua:927
 #, fuzzy
@@ -2609,13 +2589,8 @@ msgstr "Verberg voor Volledige Paginavertaling"
 #: koassistant_settings_schema.lua:930
 #, fuzzy
 msgid ""
-"Always hide original text for full page translations. Overrides all other "
-"visibility settings when enabled. Disable to use your normal Original Text "
-"setting above."
-msgstr ""
-"Altijd originele tekst verbergen bij volledige paginavertalingen. "
-"Overschrijft alle andere zichtbaarheidsinstellingen wanneer ingeschakeld. "
-"Uitschakelen om uw normale Originele Tekst-instelling hierboven te gebruiken."
+"Always hide original text for full page translations. Overrides all other visibility settings when enabled. Disable to use your normal Original Text setting above."
+msgstr "Altijd originele tekst verbergen bij volledige paginavertalingen. Overschrijft alle andere zichtbaarheidsinstellingen wanneer ingeschakeld. Uitschakelen om uw normale Originele Tekst-instelling hierboven te gebruiken."
 
 #: koassistant_settings_schema.lua:939
 #, fuzzy
@@ -2630,17 +2605,13 @@ msgstr "Markeringsomleiding Inschakelen"
 #: koassistant_settings_schema.lua:948
 #, fuzzy
 msgid ""
-"Immediately trigger an action when text is selected, skipping the highlight "
-"menu. Can also be toggled via gesture."
-msgstr ""
-"Direct een actie activeren wanneer tekst wordt geselecteerd, waarbij het "
-"markeringsmenu wordt overgeslagen. Kan ook worden geschakeld via gebaar."
+"Immediately trigger an action when text is selected, skipping the highlight menu. Can also be toggled via gesture."
+msgstr "Direct een actie activeren wanneer tekst wordt geselecteerd, waarbij het markeringsmenu wordt overgeslagen. Kan ook worden geschakeld via gebaar."
 
 #: koassistant_settings_schema.lua:969
 #, fuzzy
 msgid "Action to trigger when highlight bypass is enabled"
-msgstr ""
-"Actie die wordt geactiveerd wanneer markeringsomleiding is ingeschakeld"
+msgstr "Actie die wordt geactiveerd wanneer markeringsomleiding is ingeschakeld"
 
 #: koassistant_settings_schema.lua:974
 #, fuzzy
@@ -2666,8 +2637,7 @@ msgstr "Gedragingen Beheren (%1)"
 #, fuzzy
 msgid ""
 "Select or create AI behavior styles that define how the AI communicates."
-msgstr ""
-"Selecteer of maak AI-gedragsstijlen die bepalen hoe de AI communiceert."
+msgstr "Selecteer of maak AI-gedragsstijlen die bepalen hoe de AI communiceert."
 
 #: koassistant_settings_schema.lua:1012
 #, fuzzy
@@ -2698,12 +2668,10 @@ msgstr "Volledige V&A (aanbevolen)"
 #, fuzzy
 msgid ""
 "What to include when saving to notebook.\n"
-"Full Q&A includes all context messages + highlighted text + question + "
-"response."
+"Full Q&A includes all context messages + highlighted text + question + response."
 msgstr ""
 "Wat opnemen bij opslaan in notitieboek.\n"
-"Volledige V&A bevat alle contextberichten + gemarkeerde tekst + vraag + "
-"antwoord."
+"Volledige V&A bevat alle contextberichten + gemarkeerde tekst + vraag + antwoord."
 
 #: koassistant_settings_schema.lua:1049
 #, fuzzy
@@ -2723,11 +2691,8 @@ msgstr "KOReader"
 #: koassistant_settings_schema.lua:1056
 #, fuzzy
 msgid ""
-"Chat Viewer shows notebook with editing and export buttons. KOReader opens "
-"as a full document with navigation."
-msgstr ""
-"Chat-weergave toont notitieboek met bewerkings- en exportknoppen. KOReader "
-"opent als volledig document met navigatie."
+"Chat Viewer shows notebook with editing and export buttons. KOReader opens as a full document with navigation."
+msgstr "Chat-weergave toont notitieboek met bewerkings- en exportknoppen. KOReader opent als volledig document met navigatie."
 
 #: koassistant_settings_schema.lua:1062
 #, fuzzy
@@ -2737,8 +2702,7 @@ msgstr "Tonen in bestandsbrowser menu"
 #: koassistant_settings_schema.lua:1065
 #, fuzzy
 msgid "Show 'Notebook' button when long-pressing books in the file browser."
-msgstr ""
-"Toon 'Notitieboek'-knop bij lang indrukken van boeken in de bestandsbrowser."
+msgstr "Toon 'Notitieboek'-knop bij lang indrukken van boeken in de bestandsbrowser."
 
 #: koassistant_settings_schema.lua:1070
 #, fuzzy
@@ -2748,11 +2712,8 @@ msgstr "Alleen voor boeken met notitieboeken"
 #: koassistant_settings_schema.lua:1074
 #, fuzzy
 msgid ""
-"Only show button if notebook already exists. Disable to allow creating new "
-"notebooks from file browser."
-msgstr ""
-"Toon knop alleen als notitieboek al bestaat. Uitschakelen om nieuwe "
-"notitieboeken vanuit bestandsbrowser te kunnen aanmaken."
+"Only show button if notebook already exists. Disable to allow creating new notebooks from file browser."
+msgstr "Toon knop alleen als notitieboek al bestaat. Uitschakelen om nieuwe notitieboeken vanuit bestandsbrowser te kunnen aanmaken."
 
 #: koassistant_settings_schema.lua:1083
 #, fuzzy
@@ -2772,12 +2733,8 @@ msgstr "Vertrouwde Providers: %1"
 #: koassistant_settings_schema.lua:1099
 #, fuzzy
 msgid ""
-"Providers you trust bypass the data sharing controls below. Use for local "
-"Ollama instances or providers you fully trust."
-msgstr ""
-"Providers die u vertrouwt omzeilen onderstaande instellingen voor "
-"gegevensdeling. Gebruik voor lokale Ollama instances of providers die u "
-"volledig vertrouwt."
+"Providers you trust bypass the data sharing controls below. Use for local Ollama instances or providers you fully trust."
+msgstr "Providers die u vertrouwt omzeilen onderstaande instellingen voor gegevensdeling. Gebruik voor lokale Ollama instances of providers die u volledig vertrouwt."
 
 #: koassistant_settings_schema.lua:1107
 #, fuzzy
@@ -2787,13 +2744,8 @@ msgstr "Voorinstelling: Standaard"
 #: koassistant_settings_schema.lua:1108
 #, fuzzy
 msgid ""
-"Recommended balance. Share reading progress and chapter info for context-"
-"aware features. Personal content (highlights, annotations, notebook) stays "
-"private."
-msgstr ""
-"Aanbevolen balans. Deel leesvoortgang en hoofdstukinfo voor contextbewuste "
-"functies. Persoonlijke inhoud (markeringen, annotaties, notitieboek) blijft "
-"privé."
+"Recommended balance. Share reading progress and chapter info for context-aware features. Personal content (highlights, annotations, notebook) stays private."
+msgstr "Aanbevolen balans. Deel leesvoortgang en hoofdstukinfo voor contextbewuste functies. Persoonlijke inhoud (markeringen, annotaties, notitieboek) blijft privé."
 
 #: koassistant_settings_schema.lua:1115
 #, fuzzy
@@ -2803,11 +2755,8 @@ msgstr "Voorinstelling: Minimaal"
 #: koassistant_settings_schema.lua:1116
 #, fuzzy
 msgid ""
-"Maximum privacy. Disable all extended data sharing including progress and "
-"chapter info. Only your question and book metadata are sent."
-msgstr ""
-"Maximale privacy. Schakel alle uitgebreide gegevensdeling uit inclusief "
-"voortgang en hoofdstukinfo. Alleen uw vraag en boekmetadata worden verzonden."
+"Maximum privacy. Disable all extended data sharing including progress and chapter info. Only your question and book metadata are sent."
+msgstr "Maximale privacy. Schakel alle uitgebreide gegevensdeling uit inclusief voortgang en hoofdstukinfo. Alleen uw vraag en boekmetadata worden verzonden."
 
 #: koassistant_settings_schema.lua:1123
 #, fuzzy
@@ -2817,32 +2766,30 @@ msgstr "Voorinstelling: Volledig"
 #: koassistant_settings_schema.lua:1124
 #, fuzzy
 msgid ""
-"Enable all data sharing for full functionality. Does not enable text "
-"extraction (see Text Extraction submenu)."
-msgstr ""
-"Schakel alle gegevensdeling in voor volledige functionaliteit. Schakelt "
-"tekstextractie niet in (zie submenu Tekstextractie)."
+"Enable all data sharing for full functionality. Does not enable text extraction (see Text Extraction submenu)."
+msgstr "Schakel alle gegevensdeling in voor volledige functionaliteit. Schakelt tekstextractie niet in (zie submenu Tekstextractie)."
 
 #: koassistant_settings_schema.lua:1133
+#, fuzzy
 msgid "Allow Annotation Notes"
-msgstr ""
+msgstr "Annotatieopmerkingen toestaan"
 
 #: koassistant_settings_schema.lua:1136
+#, fuzzy
 msgid ""
-"Share your personal notes attached to highlights with the AI. Automatically "
-"enables highlight sharing. Used by Analyze My Notes, Connect with Notes, and "
-"actions with {annotations} placeholders."
-msgstr ""
+"Share your personal notes attached to highlights with the AI. Automatically enables highlight sharing. Used by Analyze My Notes, Connect with Notes, and actions with {annotations} placeholders."
+msgstr "Deel je persoonlijke opmerkingen bij markeringen met de AI. Schakelt automatisch het delen van markeringen in. Gebruikt door Analyseer mijn opmerkingen, Verbind met opmerkingen, en acties met {annotations} placeholders."
 
 #: koassistant_settings_schema.lua:1152
+#, fuzzy
 msgid "Allow Highlights"
-msgstr ""
+msgstr "Markeringen toestaan"
 
 #: koassistant_settings_schema.lua:1155
+#, fuzzy
 msgid ""
-"Share your highlighted text passages with the AI. Used by X-Ray, Recap, and "
-"actions with {highlights} placeholders. Does not include personal notes."
-msgstr ""
+"Share your highlighted text passages with the AI. Used by X-Ray, Recap, and actions with {highlights} placeholders. Does not include personal notes."
+msgstr "Deel je gemarkeerde tekstpassages met de AI. Gebruikt door X-Ray, Samenvatting, en acties met {highlights} placeholders. Bevat geen persoonlijke opmerkingen."
 
 #: koassistant_settings_schema.lua:1165
 #, fuzzy
@@ -2852,11 +2799,8 @@ msgstr "Notitieboek Toestaan"
 #: koassistant_settings_schema.lua:1168
 #, fuzzy
 msgid ""
-"Send notebook entries to AI. Used by Connect with Notes and actions with "
-"{notebook} placeholder."
-msgstr ""
-"Stuur notitieboekitems naar AI. Gebruikt door Verbind met Notities en acties "
-"met {notebook} placeholder."
+"Send notebook entries to AI. Used by Connect with Notes and actions with {notebook} placeholder."
+msgstr "Stuur notitieboekitems naar AI. Gebruikt door Verbind met Notities en acties met {notebook} placeholder."
 
 #: koassistant_settings_schema.lua:1173
 #, fuzzy
@@ -2866,8 +2810,7 @@ msgstr "Leesvoortgang Toestaan"
 #: koassistant_settings_schema.lua:1176
 #, fuzzy
 msgid "Send current reading position (percentage). Used by X-Ray, Recap."
-msgstr ""
-"Stuur huidige leespositie (percentage). Gebruikt door X-Ray, Samenvatting."
+msgstr "Stuur huidige leespositie (percentage). Gebruikt door X-Ray, Samenvatting."
 
 #: koassistant_settings_schema.lua:1181
 #, fuzzy
@@ -2877,11 +2820,8 @@ msgstr "Hoofdstukinfo Toestaan"
 #: koassistant_settings_schema.lua:1184
 #, fuzzy
 msgid ""
-"Send current chapter title, chapters read count, and time since last opened. "
-"Used by Recap."
-msgstr ""
-"Stuur huidige hoofdstuktitel, aantal gelezen hoofdstukken en tijd sinds "
-"laatst geopend. Gebruikt door Samenvatting."
+"Send current chapter title, chapters read count, and time since last opened. Used by Recap."
+msgstr "Stuur huidige hoofdstuktitel, aantal gelezen hoofdstukken en tijd sinds laatst geopend. Gebruikt door Samenvatting."
 
 #: koassistant_settings_schema.lua:1194
 #, fuzzy
@@ -2899,23 +2839,26 @@ msgid "Allow Text Extraction"
 msgstr "Tekstextractie Toestaan"
 
 #: koassistant_settings_schema.lua:1206
+#, fuzzy
 msgid ""
-"When enabled, actions can extract and send book text to the AI. Used by X-"
-"Ray, Recap, and actions with text placeholders.\n"
+"When enabled, actions can extract and send book text to the AI. Used by X-Ray, Recap, and actions with text placeholders.\n"
 "\n"
-"Tip: Use KOReader's Hidden Flows feature to exclude front matter, "
-"appendices, etc. from extraction — saving tokens and improving results."
+"Tip: Use KOReader's Hidden Flows feature to exclude front matter, appendices, etc. from extraction — saving tokens and improving results."
 msgstr ""
+"Wanneer ingeschakeld kunnen acties boektekst extraheren en naar de AI sturen. Gebruikt door X-Ray, Samenvatting, en acties met tekst placeholders.\n"
+"\n"
+"Tip: Gebruik KOReader's Hidden Flows functie om voorwerk, bijlagen, etc. uit te sluiten van extractie — bespaart tokens en verbetert resultaten."
 
 #: koassistant_settings_schema.lua:1219
+#, fuzzy
 msgid ""
-"Text extraction sends actual book content to the AI. This uses tokens "
-"(increases API costs) and processing time. Features like X-Ray and Recap use "
-"this to analyze your reading progress.\n"
+"Text extraction sends actual book content to the AI. This uses tokens (increases API costs) and processing time. Features like X-Ray and Recap use this to analyze your reading progress.\n"
 "\n"
-"Tip: Use KOReader's Hidden Flows feature to exclude front matter, "
-"appendices, etc. — saving tokens and improving AI results."
+"Tip: Use KOReader's Hidden Flows feature to exclude front matter, appendices, etc. — saving tokens and improving AI results."
 msgstr ""
+"Tekstextractie stuurt daadwerkelijke boekinhoud naar de AI. Dit gebruikt tokens (verhoogt API-kosten) en verwerkingstijd. Functies zoals X-Ray en Samenvatting gebruiken dit om je leesvoortgang te analyseren.\n"
+"\n"
+"Tip: Gebruik KOReader's Hidden Flows functie om voorwerk, bijlagen, etc. uit te sluiten — bespaart tokens en verbetert AI-resultaten."
 
 #: koassistant_settings_schema.lua:1227
 #, fuzzy
@@ -2923,53 +2866,63 @@ msgid "Max Text Characters"
 msgstr "Max Teksttekens"
 
 #: koassistant_settings_schema.lua:1234
+#, fuzzy
 msgid ""
-"Maximum characters to extract (100,000-10,000,000). Higher = more context "
-"but more tokens. Default: 4,000,000 (~1M tokens). The API will reject "
-"requests that exceed the model's context window.\n"
+"Maximum characters to extract (100,000-10,000,000). Higher = more context but more tokens. Default: 4,000,000 (~1M tokens). The API will reject requests that exceed the model's context window.\n"
 "\n"
-"Tip: Use KOReader's Hidden Flows to exclude front matter, appendices, etc. — "
-"saving tokens without reducing the limit."
+"Tip: Use KOReader's Hidden Flows to exclude front matter, appendices, etc. — saving tokens without reducing the limit."
 msgstr ""
+"Maximum aantal te extraheren karakters (100.000-10.000.000). Hoger = meer context maar meer tokens. Standaard: 4.000.000 (~1M tokens). De API zal verzoeken afwijzen die het contextvenster van het model overschrijden.\n"
+"\n"
+"Tip: Gebruik KOReader's Hidden Flows om voorwerk, bijlagen, etc. uit te sluiten — bespaart tokens zonder de limiet te verlagen."
 
 #: koassistant_settings_schema.lua:1240
+#, fuzzy
 msgid "Max Pages (PDF, DJVU, CBZ…)"
-msgstr ""
+msgstr "Max pagina's (PDF, DJVU, CBZ…)"
 
 #: koassistant_settings_schema.lua:1247
+#, fuzzy
 msgid ""
-"Maximum pages to extract from page-based formats like PDF, DJVU, and CBZ "
-"(100-5,000). Higher = more context but slower. Default: 2,000.\n"
+"Maximum pages to extract from page-based formats like PDF, DJVU, and CBZ (100-5,000). Higher = more context but slower. Default: 2,000.\n"
 "\n"
-"Tip: Use KOReader's Hidden Flows to exclude irrelevant pages — saving tokens "
-"without reducing the limit."
+"Tip: Use KOReader's Hidden Flows to exclude irrelevant pages — saving tokens without reducing the limit."
 msgstr ""
+"Maximum aantal te extraheren pagina's uit paginagebaseerde formaten zoals PDF, DJVU en CBZ (100-5.000). Hoger = meer context maar langzamer. Standaard: 2.000.\n"
+"\n"
+"Tip: Gebruik KOReader's Hidden Flows om irrelevante pagina's uit te sluiten — bespaart tokens zonder de limiet te verlagen."
 
 #: koassistant_settings_schema.lua:1253
+#, fuzzy
 msgid "Don't warn about truncated extractions"
-msgstr ""
+msgstr "Waarschuw niet bij afgekapte extracties"
 
 #: koassistant_settings_schema.lua:1256
+#, fuzzy
 msgid ""
-"When unchecked, a blocking warning is shown before sending requests when "
-"extracted text was truncated to fit the character limit. Shows coverage "
-"percentage so you know how much of the book was included.\n"
+"When unchecked, a blocking warning is shown before sending requests when extracted text was truncated to fit the character limit. Shows coverage percentage so you know how much of the book was included.\n"
 "\n"
 "Check this if you don't need the reminder."
 msgstr ""
+"Wanneer uitgevinkt wordt een blokkerende waarschuwing getoond voordat verzoeken worden verzonden wanneer geëxtraheerde tekst is afgekapt om binnen de karakterlimiet te passen. Toont dekkingspercentage zodat je weet hoeveel van het boek is meegenomen.\n"
+"\n"
+"Vink dit aan als je de herinnering niet nodig hebt."
 
 #: koassistant_settings_schema.lua:1262
+#, fuzzy
 msgid "Don't warn about large extractions"
-msgstr ""
+msgstr "Waarschuw niet bij grote extracties"
 
 #: koassistant_settings_schema.lua:1265
+#, fuzzy
 msgid ""
-"When unchecked, a warning is shown before sending requests with large text "
-"extractions (over 500K characters / ~125K tokens). Most models have smaller "
-"context windows and will reject oversized requests.\n"
+"When unchecked, a warning is shown before sending requests with large text extractions (over 500K characters / ~125K tokens). Most models have smaller context windows and will reject oversized requests.\n"
 "\n"
 "Check this if you know your model's limits and don't need the reminder."
 msgstr ""
+"Wanneer uitgevinkt wordt een waarschuwing getoond voordat verzoeken met grote tekstextracties worden verzonden (meer dan 500K karakters / ~125K tokens). De meeste modellen hebben kleinere contextvensters en zullen te grote verzoeken afwijzen.\n"
+"\n"
+"Vink dit aan als je de limieten van je model kent en de herinnering niet nodig hebt."
 
 #: koassistant_settings_schema.lua:1271 main.lua:6073
 #, fuzzy
@@ -2979,11 +2932,8 @@ msgstr "Actiecache Wissen"
 #: koassistant_settings_schema.lua:1272
 #, fuzzy
 msgid ""
-"Clear cached X-Ray and Recap responses for the current book. Use to "
-"regenerate from scratch."
-msgstr ""
-"Wis gecachte X-Ray en Samenvatting antwoorden voor het huidige boek. Gebruik "
-"om vanaf nul te regenereren."
+"Clear cached X-Ray and Recap responses for the current book. Use to regenerate from scratch."
+msgstr "Wis gecachte X-Ray en Samenvatting antwoorden voor het huidige boek. Gebruik om vanaf nul te regenereren."
 
 #: koassistant_settings_schema.lua:1285
 #, fuzzy
@@ -3001,9 +2951,10 @@ msgid "Show in File Browser"
 msgstr "Tonen in Bestandsbrowser"
 
 #: koassistant_settings_schema.lua:1299
+#, fuzzy
 msgid ""
 "Add KOAssistant buttons to file browser context menus. Requires restart."
-msgstr ""
+msgstr "Voeg KOAssistant knoppen toe aan contextmenu's van bestandsbrowser. Vereist herstart."
 
 #: koassistant_settings_schema.lua:1304 koassistant_settings_schema.lua:1319
 #: koassistant_settings_schema.lua:1334 koassistant_settings_schema.lua:1357
@@ -3012,8 +2963,9 @@ msgid "Please restart KOReader for this change to take effect."
 msgstr "Herstart KOReader om deze wijziging door te voeren."
 
 #: koassistant_settings_schema.lua:1311
+#, fuzzy
 msgid "Show in Highlight Menu"
-msgstr ""
+msgstr "Toon in Markeringsmenu"
 
 #: koassistant_settings_schema.lua:1314
 #, fuzzy
@@ -3021,17 +2973,15 @@ msgid "Add main 'Chat/Action' button to highlight menu. Requires restart."
 msgstr "Voeg hoofd-'Chat/Actie'-knop toe aan markeringsmenu. Vereist herstart."
 
 #: koassistant_settings_schema.lua:1326
+#, fuzzy
 msgid "Show Highlight Quick Actions"
-msgstr ""
+msgstr "Toon Snelle Acties voor markeringen"
 
 #: koassistant_settings_schema.lua:1329
 #, fuzzy
 msgid ""
-"Add action shortcuts (Explain, Translate, etc.) to highlight menu. Requires "
-"restart."
-msgstr ""
-"Voeg actiesnelkoppelingen (Uitleggen, Vertalen, etc.) toe aan "
-"markeringsmenu. Vereist herstart."
+"Add action shortcuts (Explain, Translate, etc.) to highlight menu. Requires restart."
+msgstr "Voeg actiesnelkoppelingen (Uitleggen, Vertalen, etc.) toe aan markeringsmenu. Vereist herstart."
 
 #: koassistant_settings_schema.lua:1341
 #, fuzzy
@@ -3039,22 +2989,25 @@ msgid "Show in Dictionary Popup"
 msgstr "Tonen in Woordenboek Popup"
 
 #: koassistant_settings_schema.lua:1344
+#, fuzzy
 msgid "Add AI buttons to KOReader's dictionary popup."
-msgstr ""
+msgstr "Voeg AI-knoppen toe aan KOReader's woordenboek popup."
 
 #: koassistant_settings_schema.lua:1349
+#, fuzzy
 msgid "Show in Gesture Menu"
-msgstr ""
+msgstr "Toon in Gebaren menu"
 
 #: koassistant_settings_schema.lua:1352
+#, fuzzy
 msgid ""
-"Register KOAssistant actions in KOReader's gesture dispatcher. Requires "
-"restart."
-msgstr ""
+"Register KOAssistant actions in KOReader's gesture dispatcher. Requires restart."
+msgstr "Registreer KOAssistant acties in KOReader's gebarenbeheerder. Vereist herstart."
 
 #: koassistant_settings_schema.lua:1368
+#, fuzzy
 msgid "Backup & Reset"
-msgstr ""
+msgstr "Backup & Reset"
 
 #: koassistant_settings_schema.lua:1374 main.lua:8145
 #, fuzzy
@@ -3064,8 +3017,7 @@ msgstr "Backup Maken"
 #: koassistant_settings_schema.lua:1375
 #, fuzzy
 msgid "Create a backup of your settings, API keys, and custom content."
-msgstr ""
-"Maak een backup van uw instellingen, API-sleutels en aangepaste inhoud."
+msgstr "Maak een backup van uw instellingen, API-sleutels en aangepaste inhoud."
 
 #: koassistant_settings_schema.lua:1381
 #, fuzzy
@@ -3112,8 +3064,7 @@ msgid ""
 "• Reasoning & debug settings\n"
 "• Language preferences\n"
 "\n"
-"Keeps: API keys, all actions, custom behaviors/domains, custom providers/"
-"models, gesture registrations, chat history."
+"Keeps: API keys, all actions, custom behaviors/domains, custom providers/models, gesture registrations, chat history."
 msgstr ""
 "Reset ALLE instellingen in dit menu naar standaardwaarden:\n"
 "• Provider, model, temperatuur\n"
@@ -3122,8 +3073,7 @@ msgstr ""
 "• Redenering & debug instellingen\n"
 "• Taalvoorkeuren\n"
 "\n"
-"Behoudt: API-sleutels, alle acties, aangepaste gedragingen/domeinen, "
-"aangepaste providers/modellen, gebaarregistraties, chatgeschiedenis."
+"Behoudt: API-sleutels, alle acties, aangepaste gedragingen/domeinen, aangepaste providers/modellen, gebaarregistraties, chatgeschiedenis."
 
 #: koassistant_settings_schema.lua:1412
 #, fuzzy
@@ -3137,8 +3087,7 @@ msgid ""
 "• Reasoning & debug settings\n"
 "• Language preferences\n"
 "\n"
-"Keeps: API keys, all actions, custom behaviors/domains, custom providers/"
-"models, gesture registrations, chat history."
+"Keeps: API keys, all actions, custom behaviors/domains, custom providers/models, gesture registrations, chat history."
 msgstr ""
 "Alle instellingen naar standaardwaarden resetten?\n"
 "\n"
@@ -3149,8 +3098,7 @@ msgstr ""
 "• Redenering & debug instellingen\n"
 "• Taalvoorkeuren\n"
 "\n"
-"Behoudt: API-sleutels, alle acties, aangepaste gedragingen/domeinen, "
-"aangepaste providers/modellen, gebaarregistraties, chatgeschiedenis."
+"Behoudt: API-sleutels, alle acties, aangepaste gedragingen/domeinen, aangepaste providers/modellen, gebaarregistraties, chatgeschiedenis."
 
 #: koassistant_settings_schema.lua:1419
 #, fuzzy
@@ -3158,19 +3106,26 @@ msgid "Quick: Actions only"
 msgstr "Snel: Alleen acties"
 
 #: koassistant_settings_schema.lua:1420
+#, fuzzy
 msgid ""
 "Resets all action-related settings:\n"
 "• Custom actions you created\n"
 "• Edits to built-in actions\n"
 "• Disabled actions (re-enables all)\n"
-"• All action menus (highlight, dictionary, quick actions, general, file "
-"browser)\n"
+"• All action menus (highlight, dictionary, quick actions, general, file browser)\n"
 "\n"
-"Keeps: All settings, API keys, custom behaviors/domains, custom providers/"
-"models, gesture registrations, chat history."
+"Keeps: All settings, API keys, custom behaviors/domains, custom providers/models, gesture registrations, chat history."
 msgstr ""
+"Reset alle actiegerelateerde instellingen:\n"
+"• Aangepaste acties die je hebt gemaakt\n"
+"• Bewerkingen aan ingebouwde acties\n"
+"• Uitgeschakelde acties (schakelt alles weer in)\n"
+"• Alle actiemenu's (markering, woordenboek, snelle acties, algemeen, bestandsbrowser)\n"
+"\n"
+"Behoudt: Alle instellingen, API-sleutels, aangepaste gedragingen/domeinen, aangepaste providers/modellen, gebarenregistraties, chatgeschiedenis."
 
 #: koassistant_settings_schema.lua:1422
+#, fuzzy
 msgid ""
 "Reset all action settings?\n"
 "\n"
@@ -3178,12 +3133,19 @@ msgid ""
 "• Custom actions you created\n"
 "• Edits to built-in actions\n"
 "• Disabled actions (re-enables all)\n"
-"• All action menus (highlight, dictionary, quick actions, general, file "
-"browser)\n"
+"• All action menus (highlight, dictionary, quick actions, general, file browser)\n"
 "\n"
-"Keeps: All settings, API keys, custom behaviors/domains, custom providers/"
-"models, gesture registrations, chat history."
+"Keeps: All settings, API keys, custom behaviors/domains, custom providers/models, gesture registrations, chat history."
 msgstr ""
+"Alle actie-instellingen resetten?\n"
+"\n"
+"Reset:\n"
+"• Aangepaste acties die je hebt gemaakt\n"
+"• Bewerkingen aan ingebouwde acties\n"
+"• Uitgeschakelde acties (schakelt alles weer in)\n"
+"• Alle actiemenu's (markering, woordenboek, snelle acties, algemeen, bestandsbrowser)\n"
+"\n"
+"Behoudt: Alle instellingen, API-sleutels, aangepaste gedragingen/domeinen, aangepaste providers/modellen, gebarenregistraties, chatgeschiedenis."
 
 #: koassistant_settings_schema.lua:1429
 #, fuzzy
@@ -3304,14 +3266,19 @@ msgid "Enable Anthropic/Gemini Reasoning"
 msgstr "Anthropic/Gemini Redeneren Inschakelen"
 
 #: koassistant_settings_schema.lua:1484
+#, fuzzy
 msgid ""
 "Enable extended thinking for Anthropic and Gemini 3.\n"
 "\n"
-"Note: OpenAI reasoning models (o3, gpt-5) always reason internally - this "
-"toggle does not affect them.\n"
+"Note: OpenAI reasoning models (o3, gpt-5) always reason internally - this toggle does not affect them.\n"
 "\n"
 "Gemini 2.5 models think automatically regardless of this toggle."
 msgstr ""
+"Schakel uitgebreid denken in voor Anthropic en Gemini 3.\n"
+"\n"
+"Opmerking: OpenAI reasoning modellen (o3, gpt-5) redeneren altijd intern - deze schakelaar heeft geen invloed op hen.\n"
+"\n"
+"Gemini 2.5 modellen denken automatisch ongeacht deze schakelaar."
 
 #: koassistant_settings_schema.lua:1493 koassistant_ui/prompts_manager.lua:2343
 #, fuzzy
@@ -3321,8 +3288,10 @@ msgstr "Anthropic Uitgebreid Denken"
 #: koassistant_settings_schema.lua:1494 koassistant_settings_schema.lua:1521
 #: koassistant_settings_schema.lua:1560
 #, fuzzy
-msgid "Supported models:\n"
-msgstr "Ondersteunde modellen:\n"
+msgid ""
+"Supported models:\n"
+msgstr ""
+"Ondersteunde modellen:\n"
 
 #: koassistant_settings_schema.lua:1494
 #, fuzzy
@@ -3355,14 +3324,19 @@ msgid "Gemini Thinking"
 msgstr "Gemini Denken"
 
 #: koassistant_settings_schema.lua:1521
+#, fuzzy
 msgid ""
 "\n"
 "\n"
 "Control thinking depth for supported models.\n"
 "\n"
-"Note: Gemini 2.5 models think automatically regardless of this toggle. Their "
-"thinking content is captured when available."
+"Note: Gemini 2.5 models think automatically regardless of this toggle. Their thinking content is captured when available."
 msgstr ""
+"\n"
+"\n"
+"Beheer denkdiepte voor ondersteunde modellen.\n"
+"\n"
+"Opmerking: Gemini 2.5 modellen denken automatisch ongeacht deze schakelaar. Hun denkinhoud wordt vastgelegd wanneer beschikbaar."
 
 #: koassistant_settings_schema.lua:1532 koassistant_settings_schema.lua:1675
 #, fuzzy
@@ -3454,13 +3428,11 @@ msgstr "Indicator Tonen in Chat"
 #: koassistant_settings_schema.lua:1575
 #, fuzzy
 msgid ""
-"Show '*[Reasoning was used]*' indicator in chat when reasoning is requested "
-"or used.\n"
+"Show '*[Reasoning was used]*' indicator in chat when reasoning is requested or used.\n"
 "\n"
 "Full reasoning content is always viewable via 'Show Reasoning' button."
 msgstr ""
-"Toon '*[Redeneren werd gebruikt]*' indicator in chat wanneer redeneren wordt "
-"aangevraagd of gebruikt.\n"
+"Toon '*[Redeneren werd gebruikt]*' indicator in chat wanneer redeneren wordt aangevraagd of gebruikt.\n"
 "\n"
 "Volledige redeneringsinhoud is altijd zichtbaar via 'Toon Redenering' knop."
 
@@ -3522,8 +3494,7 @@ msgid ""
 "\n"
 "Streaming indicator ('Searching the web...') is always shown."
 msgstr ""
-"Toon '*[Webzoekopdracht werd gebruikt]*' indicator in chat wanneer "
-"webzoekopdracht wordt gebruikt.\n"
+"Toon '*[Webzoekopdracht werd gebruikt]*' indicator in chat wanneer webzoekopdracht wordt gebruikt.\n"
 "\n"
 "Streaming indicator ('Zoeken op het web...') wordt altijd getoond."
 
@@ -3642,11 +3613,8 @@ msgstr "Grote Inhoud Inkorten (debug)"
 #: koassistant_settings_schema.lua:1692
 #, fuzzy
 msgid ""
-"Truncate long content (book text, cached responses) in debug output. Shows "
-"first and last ~1500 characters with truncation notice."
-msgstr ""
-"Kort lange inhoud (boektekst, gecachte antwoorden) in debug-uitvoer in. "
-"Toont eerste en laatste ~1500 tekens met inkortingsmelding."
+"Truncate long content (book text, cached responses) in debug output. Shows first and last ~1500 characters with truncation notice."
+msgstr "Kort lange inhoud (boektekst, gecachte antwoorden) in debug-uitvoer in. Toont eerste en laatste ~1500 tekens met inkortingsmelding."
 
 #: koassistant_settings_schema.lua:1701
 #, fuzzy
@@ -3733,8 +3701,9 @@ msgid "Translate"
 msgstr "Vertalen"
 
 #: koassistant_update_checker.lua:807
+#, fuzzy
 msgid "Translate to"
-msgstr ""
+msgstr "Vertaal naar"
 
 #: koassistant_update_checker.lua:1132
 #, fuzzy
@@ -3755,16 +3724,12 @@ msgstr "Gedownload bestand is leeg"
 #, fuzzy
 msgid ""
 "Auto-update is disabled for git-based installs. Please use git pull instead."
-msgstr ""
-"Automatisch bijwerken is uitgeschakeld voor git-gebaseerde installaties. "
-"Gebruik alstublieft git pull."
+msgstr "Automatisch bijwerken is uitgeschakeld voor git-gebaseerde installaties. Gebruik alstublieft git pull."
 
 #: koassistant_update_checker.lua:1375
 #, fuzzy
 msgid "No download URL available for this release. Please update manually."
-msgstr ""
-"Geen download-URL beschikbaar voor deze release. Werk alstublieft handmatig "
-"bij."
+msgstr "Geen download-URL beschikbaar voor deze release. Werk alstublieft handmatig bij."
 
 #: koassistant_update_checker.lua:1384
 #, fuzzy
@@ -3821,17 +3786,17 @@ msgstr ""
 #, fuzzy
 msgid ""
 "Note: Some user files (API keys, custom actions) may need to be reconfigured."
-msgstr ""
-"Let op: Sommige gebruikersbestanden (API-sleutels, aangepaste acties) moeten "
-"mogelijk opnieuw worden geconfigureerd."
+msgstr "Let op: Sommige gebruikersbestanden (API-sleutels, aangepaste acties) moeten mogelijk opnieuw worden geconfigureerd."
 
 #: koassistant_xray_browser.lua:263 koassistant_xray_browser.lua:349
+#, fuzzy
 msgid "Pages %1–%2"
-msgstr ""
+msgstr "Pagina's %1–%2"
 
 #: koassistant_xray_browser.lua:765
+#, fuzzy
 msgid "Mentions"
-msgstr ""
+msgstr "Vermeldingen"
 
 #: koassistant_xray_browser.lua:777 koassistant_xray_browser.lua:2637
 #, fuzzy
@@ -3859,12 +3824,14 @@ msgid "Chat about this"
 msgstr "Chat hierover"
 
 #: koassistant_xray_browser.lua:1023
+#, fuzzy
 msgid "Chapter Appearances"
-msgstr ""
+msgstr "Hoofdstukvoorkomens"
 
 #: koassistant_xray_browser.lua:1035
+#, fuzzy
 msgid "Edit Search Terms"
-msgstr ""
+msgstr "Zoektermen bewerken"
 
 #: koassistant_xray_browser.lua:1075 koassistant_xray_browser.lua:1102
 #, fuzzy
@@ -3872,40 +3839,49 @@ msgid "Details"
 msgstr "Details"
 
 #: koassistant_xray_browser.lua:1167
+#, fuzzy
 msgid "Remove \"%1\""
-msgstr ""
+msgstr "Verwijder \"%1\""
 
 #: koassistant_xray_browser.lua:1168
+#, fuzzy
 msgid "Ignore \"%1\""
-msgstr ""
+msgstr "Negeer \"%1\""
 
 #: koassistant_xray_browser.lua:1182
+#, fuzzy
 msgid "Restore \"%1\" (ignored)"
-msgstr ""
+msgstr "Herstel \"%1\" (genegeerd)"
 
 #: koassistant_xray_browser.lua:1200
+#, fuzzy
 msgid "Add new"
-msgstr ""
+msgstr "Nieuwe toevoegen"
 
 #: koassistant_xray_browser.lua:1220
+#, fuzzy
 msgid "Search terms for \"%1\""
-msgstr ""
+msgstr "Zoektermen voor \"%1\""
 
 #: koassistant_xray_browser.lua:1317
+#, fuzzy
 msgid "Add search term for \"%1\""
-msgstr ""
+msgstr "Zoekterm toevoegen voor \"%1\""
 
 #: koassistant_xray_browser.lua:1319
+#, fuzzy
 msgid "Enter alternate name or spelling"
-msgstr ""
+msgstr "Voer alternatieve naam of spelling in"
 
 #: koassistant_xray_browser.lua:1355
+#, fuzzy
 msgid "This search term already exists."
-msgstr ""
+msgstr "Deze zoekterm bestaat al."
 
 #: koassistant_xray_browser.lua:1387
+#, fuzzy
 msgid "Added \"%1\""
-msgstr ""
+msgstr "\"%1\" toegevoegd"
 
 #: koassistant_xray_browser.lua:1432 koassistant_xray_parser.lua:299
 #, fuzzy
@@ -3913,8 +3889,9 @@ msgid "Cast"
 msgstr "Personages"
 
 #: koassistant_xray_browser.lua:1433
+#, fuzzy
 msgid "Figures"
-msgstr ""
+msgstr "Figuren"
 
 #: koassistant_xray_browser.lua:1434 koassistant_xray_parser.lua:300
 #, fuzzy
@@ -3927,12 +3904,14 @@ msgid "Ideas"
 msgstr "Ideeën"
 
 #: koassistant_xray_browser.lua:1436
+#, fuzzy
 msgid "Concepts"
-msgstr ""
+msgstr "Concepten"
 
 #: koassistant_xray_browser.lua:1437
+#, fuzzy
 msgid "Args"
-msgstr ""
+msgstr "Args"
 
 #: koassistant_xray_browser.lua:1438 koassistant_xray_parser.lua:302
 #, fuzzy
@@ -3940,53 +3919,69 @@ msgid "Lexicon"
 msgstr "Lexicon"
 
 #: koassistant_xray_browser.lua:1439
+#, fuzzy
 msgid "Terms"
-msgstr ""
+msgstr "Termen"
 
 #: koassistant_xray_browser.lua:1440
+#, fuzzy
 msgid "Arc"
-msgstr ""
+msgstr "Arc"
 
 #: koassistant_xray_browser.lua:1441
+#, fuzzy
 msgid "Dev"
-msgstr ""
+msgstr "Dev"
 
 #: koassistant_xray_browser.lua:1504
+#, fuzzy
 msgid "Page %1"
-msgstr ""
+msgstr "Pagina %1"
 
 #: koassistant_xray_browser.lua:1558 koassistant_xray_browser.lua:1571
 #: koassistant_xray_browser.lua:1922 koassistant_xray_browser.lua:1934
+#, fuzzy
 msgid "All Chapters"
-msgstr ""
+msgstr "Alle hoofdstukken"
 
 #: koassistant_xray_browser.lua:1566 koassistant_xray_browser.lua:1929
+#, fuzzy
 msgid "All Chapters (to %1)"
-msgstr ""
+msgstr "Alle hoofdstukken (tot %1)"
 
 #: koassistant_xray_browser.lua:1581 koassistant_xray_browser.lua:1957
+#, fuzzy
 msgid "Table of Contents"
-msgstr ""
+msgstr "Inhoudsopgave"
 
 #: koassistant_xray_browser.lua:1818 koassistant_xray_browser.lua:1982
+#, fuzzy
 msgid ""
 "This will scan beyond your X-Ray coverage.\n"
 "\n"
 "Reveal all mentions?"
 msgstr ""
+"Dit scant verder dan je X-Ray-dekking.\n"
+"\n"
+"Alle vermeldingen tonen?"
 
 #: koassistant_xray_browser.lua:1827 koassistant_xray_browser.lua:1852
 #: koassistant_xray_browser.lua:1991 koassistant_xray_browser.lua:2022
 #: koassistant_xray_browser.lua:2361
+#, fuzzy
 msgid "Reveal"
-msgstr ""
+msgstr "Tonen"
 
 #: koassistant_xray_browser.lua:1843 koassistant_xray_browser.lua:2013
+#, fuzzy
 msgid ""
 "This chapter is beyond your X-Ray coverage.\n"
 "\n"
 "Reveal mentions?"
 msgstr ""
+"Dit hoofdstuk valt buiten je X-Ray-dekking.\n"
+"\n"
+"Vermeldingen tonen?"
 
 #: koassistant_xray_browser.lua:2070 koassistant_xray_browser.lua:2226
 #: koassistant_xray_browser.lua:2536
@@ -3995,32 +3990,36 @@ msgid "No book open."
 msgstr "Geen boek geopend."
 
 #: koassistant_xray_browser.lua:2078
+#, fuzzy
 msgid "Analyzing book…"
-msgstr ""
+msgstr "Boek analyseren…"
 
 #: koassistant_xray_browser.lua:2078 koassistant_xray_browser.lua:2233
+#, fuzzy
 msgid "Analyzing chapter…"
-msgstr ""
+msgstr "Hoofdstuk analyseren…"
 
 #: koassistant_xray_browser.lua:2092
+#, fuzzy
 msgid "Could not determine book length."
-msgstr ""
+msgstr "Kon boeklengte niet bepalen."
 
 #: koassistant_xray_browser.lua:2124
+#, fuzzy
 msgid ""
-"Could not extract book text. PDF text extraction may not be available for "
-"this document."
-msgstr ""
+"Could not extract book text. PDF text extraction may not be available for this document."
+msgstr "Kon boektekst niet extraheren. PDF-tekstextractie is mogelijk niet beschikbaar voor dit document."
 
 #: koassistant_xray_browser.lua:2125
+#, fuzzy
 msgid "Could not extract book text."
-msgstr ""
+msgstr "Kon boektekst niet extraheren."
 
 #: koassistant_xray_browser.lua:2128 koassistant_xray_browser.lua:2242
+#, fuzzy
 msgid ""
-"Could not extract chapter text. PDF text extraction may not be available for "
-"this document."
-msgstr ""
+"Could not extract chapter text. PDF text extraction may not be available for this document."
+msgstr "Kon hoofdstuktekst niet extraheren. PDF-tekstextractie is mogelijk niet beschikbaar voor dit document."
 
 #: koassistant_xray_browser.lua:2129 koassistant_xray_browser.lua:2243
 #, fuzzy
@@ -4028,28 +4027,34 @@ msgid "Could not extract chapter text."
 msgstr "Kon hoofdstuktekst niet extraheren."
 
 #: koassistant_xray_browser.lua:2143
+#, fuzzy
 msgid "No X-Ray items found in book text."
-msgstr ""
+msgstr "Geen X-Ray-items gevonden in boektekst."
 
 #: koassistant_xray_browser.lua:2145 koassistant_xray_browser.lua:2255
+#, fuzzy
 msgid "No X-Ray items found in \"%1\"."
-msgstr ""
+msgstr "Geen X-Ray-items gevonden in \"%1\"."
 
 #: koassistant_xray_browser.lua:2147
+#, fuzzy
 msgid "No X-Ray items found in current chapter."
-msgstr ""
+msgstr "Geen X-Ray-items gevonden in huidig hoofdstuk."
 
 #: koassistant_xray_browser.lua:2164
+#, fuzzy
 msgid "All Chapters u{25BE}"
-msgstr ""
+msgstr "Alle hoofdstukken u{25BE}"
 
 #: koassistant_xray_browser.lua:2166
+#, fuzzy
 msgid "To %1 u{25BE}"
-msgstr ""
+msgstr "Tot %1 u{25BE}"
 
 #: koassistant_xray_browser.lua:2171
+#, fuzzy
 msgid "This Chapter u{25BE}"
-msgstr ""
+msgstr "Dit hoofdstuk u{25BE}"
 
 #: koassistant_xray_browser.lua:2192 koassistant_xray_browser.lua:2271
 #, fuzzy
@@ -4057,85 +4062,106 @@ msgid "%1x"
 msgstr "%1x"
 
 #: koassistant_xray_browser.lua:2204
+#, fuzzy
 msgid "All Chapters — %1 mentions"
-msgstr ""
+msgstr "Alle hoofdstukken — %1 vermeldingen"
 
 #: koassistant_xray_browser.lua:2206
+#, fuzzy
 msgid "To %1 — %2 mentions"
-msgstr ""
+msgstr "Tot %1 — %2 vermeldingen"
 
 #: koassistant_xray_browser.lua:2209 koassistant_xray_browser.lua:2281
+#, fuzzy
 msgid "%1 — %2 mentions"
-msgstr ""
+msgstr "%1 — %2 vermeldingen"
 
 #: koassistant_xray_browser.lua:2211
+#, fuzzy
 msgid "This Chapter — %1 mentions"
-msgstr ""
+msgstr "Dit hoofdstuk — %1 vermeldingen"
 
 #: koassistant_xray_browser.lua:2256
+#, fuzzy
 msgid "No X-Ray items found in this chapter."
-msgstr ""
+msgstr "Geen X-Ray-items gevonden in dit hoofdstuk."
 
 #: koassistant_xray_browser.lua:2283
+#, fuzzy
 msgid "Chapter — %1 mentions"
-msgstr ""
+msgstr "Hoofdstuk — %1 vermeldingen"
 
 #: koassistant_xray_browser.lua:2320
+#, fuzzy
 msgid "Scanning…"
-msgstr ""
+msgstr "Scannen…"
 
 #: koassistant_xray_browser.lua:2352
+#, fuzzy
 msgid ""
 "This chapter is beyond your X-Ray coverage and may contain spoilers.\n"
 "\n"
 "Reveal mentions?"
 msgstr ""
+"Dit hoofdstuk valt buiten je X-Ray-dekking en kan spoilers bevatten.\n"
+"\n"
+"Vermeldingen tonen?"
 
 #: koassistant_xray_browser.lua:2449
+#, fuzzy
 msgid "Search for:"
-msgstr ""
+msgstr "Zoeken naar:"
 
 #: koassistant_xray_browser.lua:2470
+#, fuzzy
 msgid "No X-Ray items in \"%1\"."
-msgstr ""
+msgstr "Geen X-Ray-items in \"%1\"."
 
 #: koassistant_xray_browser.lua:2471
+#, fuzzy
 msgid "this chapter"
-msgstr ""
+msgstr "dit hoofdstuk"
 
 #: koassistant_xray_browser.lua:2482
+#, fuzzy
 msgid "Scan all chapters"
-msgstr ""
+msgstr "Scan alle hoofdstukken"
 
 #: koassistant_xray_browser.lua:2483
+#, fuzzy
 msgid "may contain spoilers"
-msgstr ""
+msgstr "kan spoilers bevatten"
 
 #: koassistant_xray_browser.lua:2489
+#, fuzzy
 msgid "Scanning all chapters…"
-msgstr ""
+msgstr "Alle hoofdstukken scannen…"
 
 #: koassistant_xray_browser.lua:2516
+#, fuzzy
 msgid "%1 — %2 chapters"
-msgstr ""
+msgstr "%1 — %2 hoofdstukken"
 
 #: koassistant_xray_browser.lua:2552
+#, fuzzy
 msgid "Computing distribution…"
-msgstr ""
+msgstr "Verdeling berekenen…"
 
 #: koassistant_xray_browser.lua:2564
+#, fuzzy
 msgid "Could not determine chapter structure."
-msgstr ""
+msgstr "Kon hoofdstukstructuur niet bepalen."
 
 #: koassistant_xray_browser.lua:2595
+#, fuzzy
 msgid ""
-"No mentions of \"%1\" found. PDF text extraction may not be available for "
-"this document."
-msgstr ""
+"No mentions of \"%1\" found. PDF text extraction may not be available for this document."
+msgstr "Geen vermeldingen van \"%1\" gevonden. PDF-tekstextractie is mogelijk niet beschikbaar voor dit document."
 
 #: koassistant_xray_browser.lua:2596
+#, fuzzy
 msgid "No mentions of \"%1\" found in book text."
-msgstr ""
+msgstr "Geen vermeldingen van \"%1\" gevonden in boektekst."
 
 #: koassistant_xray_browser.lua:2624
 #, fuzzy
@@ -4174,28 +4200,34 @@ msgid "View %1"
 msgstr "%1 bekijken"
 
 #: koassistant_xray_browser.lua:2785
+#, fuzzy
 msgid "View other artifacts…"
-msgstr ""
+msgstr "Andere artefacten bekijken…"
 
 #: koassistant_xray_browser.lua:2800
+#, fuzzy
 msgid "Redo X-Ray (entire document)"
-msgstr ""
+msgstr "X-Ray opnieuw maken (volledig document)"
 
 #: koassistant_xray_browser.lua:2810
+#, fuzzy
 msgid "Redo X-Ray (to 100%)"
-msgstr ""
+msgstr "X-Ray opnieuw maken (tot 100%)"
 
 #: koassistant_xray_browser.lua:2833
+#, fuzzy
 msgid "Redo X-Ray (to %1)"
-msgstr ""
+msgstr "X-Ray opnieuw maken (tot %1)"
 
 #: koassistant_xray_browser.lua:2837
+#, fuzzy
 msgid "Redo X-Ray"
-msgstr ""
+msgstr "X-Ray opnieuw maken"
 
 #: koassistant_xray_browser.lua:2852
+#, fuzzy
 msgid "Update X-Ray (to 100%)"
-msgstr ""
+msgstr "X-Ray bijwerken (tot 100%)"
 
 #: koassistant_xray_browser.lua:2866
 #, fuzzy
@@ -4238,8 +4270,9 @@ msgid "Source:"
 msgstr "Bron:"
 
 #: koassistant_xray_browser.lua:2905 main.lua:3961
+#, fuzzy
 msgid "Reasoning:"
-msgstr ""
+msgstr "Redenering:"
 
 #: koassistant_xray_browser.lua:2905 koassistant_xray_browser.lua:2908
 #: main.lua:3961 main.lua:3964 koassistant_ui/prompts_manager.lua:746
@@ -4251,19 +4284,25 @@ msgid "Yes"
 msgstr "Ja"
 
 #: koassistant_xray_browser.lua:2908 main.lua:3964
+#, fuzzy
 msgid "Web search:"
-msgstr ""
+msgstr "Zoeken op internet:"
 
 #: koassistant_xray_browser.lua:3015
+#, fuzzy
 msgid ""
 "This feature requires the book to be open in Reader mode.\n"
 "\n"
 "Open the book now?"
 msgstr ""
+"Deze functie vereist dat het boek geopend is in de Lezermodus.\n"
+"\n"
+"Het boek nu openen?"
 
 #: koassistant_xray_browser.lua:3023
+#, fuzzy
 msgid "This feature requires the book to be open in Reader mode."
-msgstr ""
+msgstr "Deze functie vereist dat het boek geopend is in de Lezermodus."
 
 #: koassistant_xray_parser.lua:303
 #, fuzzy
@@ -4272,13 +4311,15 @@ msgstr "Verhaallijn"
 
 #: koassistant_xray_parser.lua:306 koassistant_xray_parser.lua:325
 #: koassistant_xray_parser.lua:349
+#, fuzzy
 msgid "Reader Engagement"
-msgstr ""
+msgstr "Leesbetrokkenheid"
 
 #: koassistant_xray_parser.lua:310 koassistant_xray_parser.lua:329
 #: koassistant_xray_parser.lua:352
+#, fuzzy
 msgid "Conclusion"
-msgstr ""
+msgstr "Conclusie"
 
 #: koassistant_xray_parser.lua:312
 #, fuzzy
@@ -4291,8 +4332,9 @@ msgid "Key Figures"
 msgstr "Sleutelfiguren"
 
 #: koassistant_xray_parser.lua:318
+#, fuzzy
 msgid "Locations"
-msgstr ""
+msgstr "Locaties"
 
 #: koassistant_xray_parser.lua:319
 #, fuzzy
@@ -4335,8 +4377,9 @@ msgid "Significance:"
 msgstr "Betekenis:"
 
 #: koassistant_xray_parser.lua:496 koassistant_xray_parser.lua:512
+#, fuzzy
 msgid "References:"
-msgstr ""
+msgstr "Referenties:"
 
 #: koassistant_xray_parser.lua:507
 #, fuzzy
@@ -4349,12 +4392,14 @@ msgid "Characters:"
 msgstr "Personages:"
 
 #: koassistant_xray_parser.lua:542
+#, fuzzy
 msgid "Patterns:"
-msgstr ""
+msgstr "Patronen:"
 
 #: koassistant_xray_parser.lua:547
+#, fuzzy
 msgid "Notable highlights:"
-msgstr ""
+msgstr "Opvallende markeringen:"
 
 #: koassistant_xray_parser.lua:575
 #, fuzzy
@@ -4377,20 +4422,24 @@ msgid "Building toward:"
 msgstr "Opbouwend naar:"
 
 #: koassistant_xray_parser.lua:607
+#, fuzzy
 msgid "Resolutions:"
-msgstr ""
+msgstr "Oplossingen:"
 
 #: koassistant_xray_parser.lua:615
+#, fuzzy
 msgid "Themes resolved:"
-msgstr ""
+msgstr "Opgeloste thema's:"
 
 #: koassistant_xray_parser.lua:624
+#, fuzzy
 msgid "Key findings:"
-msgstr ""
+msgstr "Belangrijkste bevindingen:"
 
 #: koassistant_xray_parser.lua:632
+#, fuzzy
 msgid "Implications:"
-msgstr ""
+msgstr "Implicaties:"
 
 #: main.lua:164 main.lua:309
 #, fuzzy
@@ -4423,8 +4472,9 @@ msgid "KOAssistant: Continue Last Saved Chat"
 msgstr "KOAssistant: Laatste opgeslagen chat voortzetten"
 
 #: main.lua:988
+#, fuzzy
 msgid "KOAssistant: Continue Last Chat"
-msgstr ""
+msgstr "KOAssistant: Laatste chat voortzetten"
 
 #: main.lua:997
 #, fuzzy
@@ -4437,8 +4487,9 @@ msgid "KOAssistant: General Chat/Action"
 msgstr "KOAssistant: Algemene chat/actie"
 
 #: main.lua:1013
+#, fuzzy
 msgid "KOAssistant: Book Chat/Action"
-msgstr ""
+msgstr "KOAssistant: Boekchat/Actie"
 
 #: main.lua:1021
 #, fuzzy
@@ -4461,8 +4512,9 @@ msgid "KOAssistant: Toggle Highlight Bypass"
 msgstr "KOAssistant: Markering omzeilen aan/uit"
 
 #: main.lua:1052
+#, fuzzy
 msgid "KOAssistant: Translate Page"
-msgstr ""
+msgstr "KOAssistant: Pagina vertalen"
 
 #: main.lua:1080
 #, fuzzy
@@ -4548,8 +4600,7 @@ msgid ""
 msgstr ""
 "Aangepaste provider '%1' verwijderen?\n"
 "\n"
-"Dit verwijdert ook alle aangepaste modellen en API-sleutel voor deze "
-"provider."
+"Dit verwijdert ook alle aangepaste modellen en API-sleutel voor deze provider."
 
 #: main.lua:1865 main.lua:2204 main.lua:2437
 #, fuzzy
@@ -4942,13 +4993,11 @@ msgstr "Voer aangepaste AI-gedragsinstructies in..."
 #: main.lua:3478
 #, fuzzy
 msgid ""
-"Define how the AI should behave. This replaces the built-in Minimal/Full "
-"behavior when 'Custom' is selected.\n"
+"Define how the AI should behave. This replaces the built-in Minimal/Full behavior when 'Custom' is selected.\n"
 "\n"
 "Tip: Start with the Full behavior as a template."
 msgstr ""
-"Definieer hoe de AI zich moet gedragen. Dit vervangt het ingebouwde Minimaal/"
-"Volledig gedrag wanneer 'Aangepast' is geselecteerd.\n"
+"Definieer hoe de AI zich moet gedragen. Dit vervangt het ingebouwde Minimaal/Volledig gedrag wanneer 'Aangepast' is geselecteerd.\n"
 "\n"
 "Tip: begin met het Volledig gedrag als sjabloon."
 
@@ -4960,11 +5009,8 @@ msgstr "Laad volledig"
 #: main.lua:3549
 #, fuzzy
 msgid ""
-"Model lists are now managed through the model_lists.lua file. Please edit "
-"this file to add or remove models."
-msgstr ""
-"Modellijsten worden nu beheerd via het model_lists.lua bestand. Bewerk dit "
-"bestand om modellen toe te voegen of te verwijderen."
+"Model lists are now managed through the model_lists.lua file. Please edit this file to add or remove models."
+msgstr "Modellijsten worden nu beheerd via het model_lists.lua bestand. Bewerk dit bestand om modellen toe te voegen of te verwijderen."
 
 #: main.lua:3804
 #, fuzzy
@@ -4997,8 +5043,9 @@ msgid "%dy ago"
 msgstr "%dy geleden"
 
 #: main.lua:3958
+#, fuzzy
 msgid "Language:"
-msgstr ""
+msgstr "Taal:"
 
 #: main.lua:3995
 #, fuzzy
@@ -5006,42 +5053,54 @@ msgid "No book open"
 msgstr "Geen boek geopend"
 
 #: main.lua:4010
+#, fuzzy
 msgid ""
 "No cached content found for this document.\n"
 "\n"
-"Run X-Ray, Recap, X-Ray (Simple), Document Summary, or Document Analysis to "
-"create reusable caches."
+"Run X-Ray, Recap, X-Ray (Simple), Document Summary, or Document Analysis to create reusable caches."
 msgstr ""
+"Geen cache-inhoud gevonden voor dit document.\n"
+"\n"
+"Voer X-Ray, Samenvatting, X-Ray (Eenvoudig), Documentsamenvatting of Documentanalyse uit om herbruikbare caches te maken."
 
 #: main.lua:4218
+#, fuzzy
 msgid ""
 "Reading scope changed since this X-Ray was generated. Consider updating."
-msgstr ""
+msgstr "Leesbereik is gewijzigd sinds deze X-Ray werd gegenereerd. Overweeg bij te werken."
 
 #: main.lua:4224
+#, fuzzy
 msgid "Hidden flows active but X-Ray was generated without flow filtering."
-msgstr ""
+msgstr "Verborgen stromen actief, maar X-Ray werd gegenereerd zonder stroomfiltering."
 
 #: main.lua:4343
+#, fuzzy
 msgid ""
-"Text extraction is disabled for this action. Re-enable it in the Action "
-"Manager."
-msgstr ""
+"Text extraction is disabled for this action. Re-enable it in the Action Manager."
+msgstr "Tekstextractie is uitgeschakeld voor deze actie. Schakel het opnieuw in bij Actiebeheer."
 
 #: main.lua:4359
+#, fuzzy
 msgid ""
-"This action requires highlight or annotation data, but data access is "
-"disabled for this action.\n"
+"This action requires highlight or annotation data, but data access is disabled for this action.\n"
 "\n"
 "Re-enable in Action Manager (hold the action → Edit)."
 msgstr ""
+"Deze actie vereist markerings- of annotatiegegevens, maar gegevenstoegang is uitgeschakeld voor deze actie.\n"
+"\n"
+"Schakel opnieuw in bij Actiebeheer (houd de actie ingedrukt → Bewerken)."
 
 #: main.lua:4367
+#, fuzzy
 msgid ""
 "This action requires access to your highlights or annotations.\n"
 "\n"
 "Enable sharing in Settings → Privacy & Data."
 msgstr ""
+"Deze actie vereist toegang tot uw markeringen of annotaties.\n"
+"\n"
+"Schakel delen in bij Instellingen → Privacy en gegevens."
 
 #: main.lua:4445
 #, fuzzy
@@ -5054,40 +5113,49 @@ msgid "to %1"
 msgstr "naar %1"
 
 #: main.lua:4451 main.lua:4458 main.lua:4599
+#, fuzzy
 msgid "Redo %1"
-msgstr ""
+msgstr "%1 opnieuw uitvoeren"
 
 #: main.lua:4453 main.lua:4460
+#, fuzzy
 msgid "Regenerate %1"
-msgstr ""
+msgstr "%1 opnieuw genereren"
 
 #: main.lua:4547
+#, fuzzy
 msgid "Generate %1 (to %2)"
-msgstr ""
+msgstr "%1 genereren (tot %2)"
 
 #: main.lua:4549
+#, fuzzy
 msgid "Generate %1"
-msgstr ""
+msgstr "%1 genereren"
 
 #: main.lua:4559
+#, fuzzy
 msgid "Generate %1 (entire document)"
-msgstr ""
+msgstr "%1 genereren (hele document)"
 
 #: main.lua:4595 main.lua:4621
+#, fuzzy
 msgid "Update %1 (to %2)"
-msgstr ""
+msgstr "%1 bijwerken (tot %2)"
 
 #: main.lua:4597
+#, fuzzy
 msgid "Redo %1 (to %2)"
-msgstr ""
+msgstr "%1 opnieuw uitvoeren (tot %2)"
 
 #: main.lua:4765
+#, fuzzy
 msgid "Update to %1"
-msgstr ""
+msgstr "Bijwerken naar %1"
 
 #: main.lua:4767
+#, fuzzy
 msgid "Redo"
-msgstr ""
+msgstr "Opnieuw uitvoeren"
 
 #: main.lua:4859 main.lua:4992 main.lua:5056
 #, fuzzy
@@ -5131,12 +5199,14 @@ msgid "Temp: %1"
 msgstr "Temp: %1"
 
 #: main.lua:5549
+#, fuzzy
 msgid "Reasoning: ON"
-msgstr ""
+msgstr "Redenering: AAN"
 
 #: main.lua:5549
+#, fuzzy
 msgid "Reasoning: OFF"
-msgstr ""
+msgstr "Redenering: UIT"
 
 #: main.lua:5563
 #, fuzzy
@@ -5179,20 +5249,27 @@ msgid "D.Bypass: OFF"
 msgstr "D.Bypass: UIT"
 
 #: main.lua:5635
+#, fuzzy
 msgid "Text Extraction: ON"
-msgstr ""
+msgstr "Tekstextractie: AAN"
 
 #: main.lua:5635
+#, fuzzy
 msgid "Text Extraction: OFF"
-msgstr ""
+msgstr "Tekstextractie: UIT"
 
 #: main.lua:5642
+#, fuzzy
 msgid ""
 "To enable text extraction for the first time, go to:\n"
 "Settings → Privacy & Data → Text Extraction\n"
 "\n"
 "After that, this toggle will work directly."
 msgstr ""
+"Om tekstextractie voor de eerste keer in te schakelen, ga naar:\n"
+"Instellingen → Privacy en gegevens → Tekstextractie\n"
+"\n"
+"Daarna werkt deze schakelaar direct."
 
 #: main.lua:5711
 #, fuzzy
@@ -5205,16 +5282,19 @@ msgid "Quick Actions..."
 msgstr "Snelacties..."
 
 #: main.lua:5776
+#, fuzzy
 msgid "Sort Items"
-msgstr ""
+msgstr "Items sorteren"
 
 #: main.lua:5784 main.lua:5957
+#, fuzzy
 msgid "Align Buttons ✓"
-msgstr ""
+msgstr "Knoppen uitlijnen ✓"
 
 #: main.lua:5784 main.lua:5957
+#, fuzzy
 msgid "Align Buttons"
-msgstr ""
+msgstr "Knoppen uitlijnen"
 
 #: main.lua:5824
 #, fuzzy
@@ -5227,8 +5307,9 @@ msgid "Panel Actions"
 msgstr "Paneelacties"
 
 #: main.lua:5950
+#, fuzzy
 msgid "Panel Utilities"
-msgstr ""
+msgstr "Paneelhulpmiddelen"
 
 #: main.lua:5989
 #, fuzzy
@@ -5237,8 +5318,10 @@ msgstr "Verbinding testen..."
 
 #: main.lua:6017
 #, fuzzy
-msgid "Connection test failed:\n"
-msgstr "Verbindingstest mislukt:\n"
+msgid ""
+"Connection test failed:\n"
+msgstr ""
+"Verbindingstest mislukt:\n"
 
 #: main.lua:6023
 #, fuzzy
@@ -5263,26 +5346,37 @@ msgid "Connection test failed: "
 msgstr "Verbindingstest mislukt:"
 
 #: main.lua:6051
+#, fuzzy
 msgid ""
 "No book is currently open.\n"
 "\n"
 "Open a book first, then use this option to clear its cached action responses."
 msgstr ""
+"Er is momenteel geen boek geopend.\n"
+"\n"
+"Open eerst een boek en gebruik dan deze optie om de cache-actierespons ervan te wissen."
 
 #: main.lua:6064
+#, fuzzy
 msgid ""
 "No action cache found for this book.\n"
 "\n"
 "Run an artifact action (X-Ray, Recap, Summarize, etc.) to create a cache."
 msgstr ""
+"Geen actiecache gevonden voor dit boek.\n"
+"\n"
+"Voer een artefactactie uit (X-Ray, Samenvatting, Samenvatten, Analyseren, enz.) om een cache te maken."
 
 #: main.lua:6074
+#, fuzzy
 msgid ""
 "Clear all cached action responses for this book?\n"
 "\n"
-"This removes X-Ray, Recap, Summarize, Analyze, and X-Ray (Simple) caches. "
-"Next time you run these actions, they will regenerate from scratch."
+"This removes X-Ray, Recap, Summarize, Analyze, and X-Ray (Simple) caches. Next time you run these actions, they will regenerate from scratch."
 msgstr ""
+"Alle cache-actierespons voor dit boek wissen?\n"
+"\n"
+"Dit verwijdert X-Ray, Samenvatting, Samenvatten, Analyseren en X-Ray (Eenvoudig) caches. De volgende keer dat u deze acties uitvoert, worden ze opnieuw gegenereerd."
 
 #: main.lua:6084
 #, fuzzy
@@ -5388,12 +5482,14 @@ msgid "Action edits reset to defaults"
 msgstr "Actiebewerkingen hersteld naar standaard"
 
 #: main.lua:7467
+#, fuzzy
 msgid "Action menus reset to defaults."
-msgstr ""
+msgstr "Actiemenu's teruggezet naar standaardinstellingen."
 
 #: main.lua:7467 koassistant_ui/prompts_manager.lua:4357
+#, fuzzy
 msgid "Restart KOReader for highlight menu changes to apply."
-msgstr ""
+msgstr "Herstart KOReader om wijzigingen in markeringsmenu toe te passen."
 
 #: main.lua:7480
 #, fuzzy
@@ -5416,8 +5512,9 @@ msgid "Quick actions reset"
 msgstr "Snelacties hersteld"
 
 #: main.lua:7535
+#, fuzzy
 msgid "Input dialog actions reset"
-msgstr ""
+msgstr "Invoerdialoogacties teruggezet"
 
 #: main.lua:7577
 #, fuzzy
@@ -5448,9 +5545,7 @@ msgstr "Minimaal: Alle uitgebreide deling uitgeschakeld"
 #, fuzzy
 msgid ""
 "Full: All data sharing enabled (Text extraction must be enabled separately)"
-msgstr ""
-"Volledig: Alle gegevensdeling ingeschakeld (Tekstextractie moet apart worden "
-"ingeschakeld)"
+msgstr "Volledig: Alle gegevensdeling ingeschakeld (Tekstextractie moet apart worden ingeschakeld)"
 
 #: main.lua:7802
 #, fuzzy
@@ -5696,16 +5791,22 @@ msgstr ""
 "%1"
 
 #: main.lua:8255
+#, fuzzy
 msgid ""
 "No backups found.\n"
 "\n"
 "Create a backup first using:\n"
 "Settings → Backup & Reset → Create Backup"
 msgstr ""
+"Geen back-ups gevonden.\n"
+"\n"
+"Maak eerst een back-up met:\n"
+"Instellingen → Back-up en herstellen → Back-up maken"
 
 #: main.lua:8275
+#, fuzzy
 msgid "Restore Point"
-msgstr ""
+msgstr "Herstelpunt"
 
 #: main.lua:8298
 #, fuzzy
@@ -5859,8 +5960,7 @@ msgstr ""
 "\n"
 "⚠ Er wordt automatisch een herstelpunt aangemaakt.\n"
 "\n"
-"⚠ KOReader moet na het herstellen opnieuw worden opgestart om alle "
-"wijzigingen door te voeren."
+"⚠ KOReader moet na het herstellen opnieuw worden opgestart om alle wijzigingen door te voeren."
 
 #: main.lua:8565 main.lua:8722
 #, fuzzy
@@ -5887,8 +5987,7 @@ msgid ""
 msgstr ""
 "Herstellen succesvol voltooid!\n"
 "\n"
-"Het wordt aanbevolen om KOReader opnieuw te starten zodat alle wijzigingen "
-"van kracht worden."
+"Het wordt aanbevolen om KOReader opnieuw te starten zodat alle wijzigingen van kracht worden."
 
 #: main.lua:8594 koassistant_ui/prompts_manager.lua:2689
 #: koassistant_ui/prompts_manager.lua:3153
@@ -5970,22 +6069,17 @@ msgstr ""
 msgid ""
 "KOAssistant: Chat Storage Upgrade\n"
 "\n"
-"The KOAssistant plugin needs to upgrade its chat history storage to fix an "
-"issue where chats were lost when files were moved.\n"
+"The KOAssistant plugin needs to upgrade its chat history storage to fix an issue where chats were lost when files were moved.\n"
 "\n"
-"This will migrate all existing chats to the new system. The process may take "
-"a few minutes for large libraries.\n"
+"This will migrate all existing chats to the new system. The process may take a few minutes for large libraries.\n"
 "\n"
 "Old chat files will be backed up to koassistant_chats.backup/"
 msgstr ""
 "KOAssistant: Upgrade chatopslag\n"
 "\n"
-"De KOAssistant-plugin moet de opslag van chatgeschiedenis upgraden om een "
-"probleem op te lossen waarbij chats verloren gingen wanneer bestanden werden "
-"verplaatst.\n"
+"De KOAssistant-plugin moet de opslag van chatgeschiedenis upgraden om een probleem op te lossen waarbij chats verloren gingen wanneer bestanden werden verplaatst.\n"
 "\n"
-"Hiermee worden alle bestaande chats gemigreerd naar het nieuwe systeem. Het "
-"proces kan enkele minuten duren voor grote bibliotheken.\n"
+"Hiermee worden alle bestaande chats gemigreerd naar het nieuwe systeem. Het proces kan enkele minuten duren voor grote bibliotheken.\n"
 "\n"
 "Oude chatbestanden worden geback-upt naar koassistant_chats.backup/"
 
@@ -6060,10 +6154,10 @@ msgid "PRIVACY SETTINGS"
 msgstr "PRIVACY-INSTELLINGEN"
 
 #: main.lua:9080
+#, fuzzy
 msgid ""
-"Some features (like X-Ray) need to access document text and other content. "
-"Enable in: Settings → Privacy & Data"
-msgstr ""
+"Some features (like X-Ray) need to access document text and other content. Enable in: Settings → Privacy & Data"
+msgstr "Sommige functies (zoals X-Ray) moeten toegang hebben tot documenttekst en andere inhoud. Inschakelen in: Instellingen → Privacy & Gegevens"
 
 #: main.lua:9081
 #, fuzzy
@@ -6071,10 +6165,10 @@ msgid "QUICK ACCESS"
 msgstr "SNELLE TOEGANG"
 
 #: main.lua:9082
+#, fuzzy
 msgid ""
-"Assign Quick Settings (File browser) and Quick Actions (Reader) panels to "
-"gestures. See KOReader Settings (Gear icon) → Taps and Gestures"
-msgstr ""
+"Assign Quick Settings (File browser) and Quick Actions (Reader) panels to gestures. See KOReader Settings (Gear icon) → Taps and Gestures"
+msgstr "Wijs Snelle Instellingen (Bestandsbrowser) en Snelle Acties (Lezer) panelen toe aan gebaren. Zie KOReader Instellingen (Tandwielpictogram) → Tikken en Gebaren"
 
 #: main.lua:9083
 #, fuzzy
@@ -6082,10 +6176,10 @@ msgid "CUSTOM ACTIONS"
 msgstr "AANGEPASTE ACTIES"
 
 #: main.lua:9084
+#, fuzzy
 msgid ""
-"Create your own prompts and actions or edit built in ones. Go to: Settings → "
-"Action Manager"
-msgstr ""
+"Create your own prompts and actions or edit built in ones. Go to: Settings → Action Manager"
+msgstr "Maak je eigen prompts en acties of bewerk ingebouwde. Ga naar: Instellingen → Actiebeheer"
 
 #: main.lua:9085
 #, fuzzy
@@ -6095,82 +6189,92 @@ msgstr "MENU- EN INFO-PICTOGRAMMEN"
 #: main.lua:9086
 #, fuzzy
 msgid ""
-"Setup KOReader with emoji support to get informative icons in menus and "
-"more. See the emoji section in the README for details."
-msgstr ""
-"Stel KOReader in met emoji-ondersteuning om informatieve pictogrammen in "
-"menu's en meer te krijgen. Zie het emoji-gedeelte in de README voor details."
+"Setup KOReader with emoji support to get informative icons in menus and more. See the emoji section in the README for details."
+msgstr "Stel KOReader in met emoji-ondersteuning om informatieve pictogrammen in menu's en meer te krijgen. Zie het emoji-gedeelte in de README voor details."
 
 #: main.lua:9161
+#, fuzzy
 msgid "GESTURE SETUP"
-msgstr ""
+msgstr "GEBAREN INSTELLEN"
 
 #: main.lua:9162
+#, fuzzy
 msgid "KOAssistant has two quick-access panels:"
-msgstr ""
+msgstr "KOAssistant heeft twee snelle toegangspanelen:"
 
 #: main.lua:9163
+#, fuzzy
 msgid "Quick Actions — book actions, artifacts, and utilities (reader mode)"
-msgstr ""
+msgstr "Snelle Acties — boekacties, artefacten en hulpmiddelen (lezermodus)"
 
 #: main.lua:9164
+#, fuzzy
 msgid ""
 "Quick Settings — change provider, model, behavior, and more (file browser)"
-msgstr ""
+msgstr "Snelle Instellingen — wijzig provider, model, gedrag en meer (bestandsbrowser)"
 
 #: main.lua:9165
+#, fuzzy
 msgid "Assign both to \"tap bottom right corner\"?"
-msgstr ""
+msgstr "Beide toewijzen aan \"tik rechtsonderhoek\"?"
 
 #: main.lua:9166
+#, fuzzy
 msgid ""
-"You can change these anytime in KOReader Settings (Gear icon) → Taps and "
-"Gestures."
-msgstr ""
+"You can change these anytime in KOReader Settings (Gear icon) → Taps and Gestures."
+msgstr "Je kunt deze altijd wijzigen in KOReader Instellingen (Tandwielpictogram) → Tikken en Gebaren."
 
 #: main.lua:9167
+#, fuzzy
 msgid "Requires KOReader restart to take effect."
-msgstr ""
+msgstr "Vereist herstart van KOReader om effect te hebben."
 
 #: main.lua:9171
+#, fuzzy
 msgid "Set up"
-msgstr ""
+msgstr "Instellen"
 
 #: main.lua:9172
+#, fuzzy
 msgid "No thanks"
-msgstr ""
+msgstr "Nee bedankt"
 
 #: main.lua:9183
+#, fuzzy
 msgid "GESTURE TIP"
-msgstr ""
+msgstr "GEBAREN TIP"
 
 #: main.lua:9184
+#, fuzzy
 msgid "KOAssistant has two quick-access panels you can assign to gestures:"
-msgstr ""
+msgstr "KOAssistant heeft twee snelle toegangspanelen die je kunt toewijzen aan gebaren:"
 
 #: main.lua:9185
+#, fuzzy
 msgid ""
-"Quick Actions — book actions, artifacts, and utilities (assign in reader "
-"mode)"
-msgstr ""
+"Quick Actions — book actions, artifacts, and utilities (assign in reader mode)"
+msgstr "Snelle Acties — boekacties, artefacten en hulpmiddelen (toewijzen in lezermodus)"
 
 #: main.lua:9186
+#, fuzzy
 msgid ""
-"Quick Settings — change provider, model, behavior, and more (assign in file "
-"browser mode)"
-msgstr ""
+"Quick Settings — change provider, model, behavior, and more (assign in file browser mode)"
+msgstr "Snelle Instellingen — wijzig provider, model, gedrag en meer (toewijzen in bestandsbrowsermodus)"
 
 #: main.lua:9187
+#, fuzzy
 msgid "Set them up in KOReader Settings (Gear icon) → Taps and Gestures."
-msgstr ""
+msgstr "Stel ze in via KOReader Instellingen (Tandwielpictogram) → Tikken en Gebaren."
 
 #: main.lua:9227
+#, fuzzy
 msgid "Quick Actions and Quick Settings assigned to tap bottom right corner."
-msgstr ""
+msgstr "Snelle Acties en Snelle Instellingen toegewezen aan tik rechtsonderhoek."
 
 #: main.lua:9228
+#, fuzzy
 msgid "Please restart KOReader for changes to take effect."
-msgstr ""
+msgstr "Herstart KOReader om de wijzigingen door te voeren."
 
 #: main.lua:9380
 #, fuzzy
@@ -6288,17 +6392,15 @@ msgstr "Domeinen beheren"
 
 #: koassistant_ui/behavior_manager.lua:243
 #: koassistant_ui/domain_manager.lua:260
+#, fuzzy
 msgid "Restore defaults"
-msgstr ""
+msgstr "Standaardinstellingen herstellen"
 
 #: koassistant_ui/behavior_manager.lua:246
 #, fuzzy
 msgid ""
-"This will delete all custom behaviors and reset selection to Standard. "
-"Continue?"
-msgstr ""
-"Dit zal alle aangepaste gedragingen verwijderen en de selectie resetten naar "
-"Standaard. Doorgaan?"
+"This will delete all custom behaviors and reset selection to Standard. Continue?"
+msgstr "Dit zal alle aangepaste gedragingen verwijderen en de selectie resetten naar Standaard. Doorgaan?"
 
 #: koassistant_ui/behavior_manager.lua:279
 #: koassistant_ui/domain_manager.lua:295 koassistant_ui/prompts_manager.lua:679
@@ -6460,13 +6562,11 @@ msgstr "Voer gedragsinstructies in voor de AI..."
 msgid ""
 "Name: %1\n"
 "\n"
-"Define how the AI should behave. This text is sent as part of the system "
-"prompt."
+"Define how the AI should behave. This text is sent as part of the system prompt."
 msgstr ""
 "Naam: %1\n"
 "\n"
-"Definieer hoe de AI zich moet gedragen. Deze tekst wordt verzonden als "
-"onderdeel van de systeemprompt."
+"Definieer hoe de AI zich moet gedragen. Deze tekst wordt verzonden als onderdeel van de systeemprompt."
 
 #: koassistant_ui/behavior_manager.lua:507
 #, fuzzy
@@ -6499,9 +6599,7 @@ msgstr "Leeg beginnen"
 #: koassistant_ui/domain_manager.lua:111
 #, fuzzy
 msgid "Hold for details • Domains are selected when starting a chat"
-msgstr ""
-"Ingedrukt houden voor details • Domeinen worden geselecteerd bij het starten "
-"van een chat"
+msgstr "Ingedrukt houden voor details • Domeinen worden geselecteerd bij het starten van een chat"
 
 #: koassistant_ui/domain_manager.lua:118
 #, fuzzy
@@ -6515,10 +6613,9 @@ msgstr "Geen domeinen beschikbaar"
 
 #: koassistant_ui/domain_manager.lua:134
 #, fuzzy
-msgid "Create custom domains here or add .md/.txt files to the domains/ folder"
-msgstr ""
-"Maak hier aangepaste domeinen aan of voeg .md/.txt-bestanden toe aan de "
-"domains/-map"
+msgid ""
+"Create custom domains here or add .md/.txt files to the domains/ folder"
+msgstr "Maak hier aangepaste domeinen aan of voeg .md/.txt-bestanden toe aan de domains/-map"
 
 #: koassistant_ui/domain_manager.lua:150
 #, fuzzy
@@ -6546,23 +6643,20 @@ msgstr "Over domeinen"
 msgid ""
 "Domains provide specialized knowledge context to the AI.\n"
 "\n"
-"Unlike behaviors (which set communication style), domains give the AI "
-"expertise in specific subject areas.\n"
+"Unlike behaviors (which set communication style), domains give the AI expertise in specific subject areas.\n"
 "\n"
-"Domains are selected per-chat, not globally, making them like 'projects' you "
-"can switch between."
+"Domains are selected per-chat, not globally, making them like 'projects' you can switch between."
 msgstr ""
 "Domeinen bieden gespecialiseerde kenniscontext aan de AI.\n"
 "\n"
-"In tegenstelling tot gedragingen (die de communicatiestijl bepalen), geven "
-"domeinen de AI expertise in specifieke kennisgebieden.\n"
+"In tegenstelling tot gedragingen (die de communicatiestijl bepalen), geven domeinen de AI expertise in specifieke kennisgebieden.\n"
 "\n"
-"Domeinen worden per chat geselecteerd, niet globaal, waardoor ze fungeren "
-"als 'projecten' waar je tussen kunt schakelen."
+"Domeinen worden per chat geselecteerd, niet globaal, waardoor ze fungeren als 'projecten' waar je tussen kunt schakelen."
 
 #: koassistant_ui/domain_manager.lua:242
+#, fuzzy
 msgid "Delete all custom"
-msgstr ""
+msgstr "Alle aangepaste verwijderen"
 
 #: koassistant_ui/domain_manager.lua:247
 #, fuzzy
@@ -6575,9 +6669,10 @@ msgid "Delete all %1 custom domains?"
 msgstr "Alle %1 aangepaste domeinen verwijderen?"
 
 #: koassistant_ui/domain_manager.lua:263
+#, fuzzy
 msgid ""
 "This will delete all custom domains and restore built-in defaults. Continue?"
-msgstr ""
+msgstr "Dit zal alle aangepaste domeinen verwijderen en ingebouwde standaardinstellingen herstellen. Doorgaan?"
 
 #: koassistant_ui/domain_manager.lua:297
 #, fuzzy
@@ -6632,11 +6727,8 @@ msgstr "Voer domeinnaam in..."
 #: koassistant_ui/domain_manager.lua:445
 #, fuzzy
 msgid ""
-"Give this domain a descriptive name (e.g., 'Research', 'Creative Writing', "
-"'Philosophy')."
-msgstr ""
-"Geef dit domein een beschrijvende naam (bijv. 'Onderzoek', 'Creatief "
-"schrijven', 'Filosofie')."
+"Give this domain a descriptive name (e.g., 'Research', 'Creative Writing', 'Philosophy')."
+msgstr "Geef dit domein een beschrijvende naam (bijv. 'Onderzoek', 'Creatief schrijven', 'Filosofie')."
 
 #: koassistant_ui/domain_manager.lua:498
 #, fuzzy
@@ -6658,13 +6750,11 @@ msgstr "Voer domeinkennis-context in..."
 msgid ""
 "Name: %1\n"
 "\n"
-"Describe the knowledge area, terminology, and how the AI should approach "
-"topics in this domain."
+"Describe the knowledge area, terminology, and how the AI should approach topics in this domain."
 msgstr ""
 "Naam: %1\n"
 "\n"
-"Beschrijf het kennisgebied, terminologie en hoe de AI onderwerpen in dit "
-"domein moet benaderen."
+"Beschrijf het kennisgebied, terminologie en hoe de AI onderwerpen in dit domein moet benaderen."
 
 #: koassistant_ui/domain_manager.lua:522
 #, fuzzy
@@ -6722,11 +6812,8 @@ msgstr "Globaal"
 #: koassistant_ui/prompts_manager.lua:361
 #, fuzzy
 msgid ""
-"Tap to toggle • Hold for details • ★ = custom • ⚙ = modified • [gesture] = "
-"in gesture menu"
-msgstr ""
-"Tikken om te wisselen • Ingedrukt houden voor details • ★ = aangepast • ⚙ = "
-"gewijzigd • [gebaar] = in gebaarenmenu"
+"Tap to toggle • Hold for details • ★ = custom • ⚙ = modified • [gesture] = in gesture menu"
+msgstr "Tikken om te wisselen • Ingedrukt houden voor details • ★ = aangepast • ⚙ = gewijzigd • [gebaar] = in gebaarenmenu"
 
 #: koassistant_ui/prompts_manager.lua:368
 #, fuzzy
@@ -6803,9 +6890,7 @@ msgstr "Standaardinstellingen herstellen"
 #, fuzzy
 msgid ""
 "This will remove all custom actions and reset all action settings. Continue?"
-msgstr ""
-"Dit verwijdert alle aangepaste acties en reset alle actie-instellingen. "
-"Doorgaan?"
+msgstr "Dit verwijdert alle aangepaste acties en reset alle actie-instellingen. Doorgaan?"
 
 #: koassistant_ui/prompts_manager.lua:539
 #: koassistant_ui/prompts_manager.lua:1248
@@ -6829,8 +6914,9 @@ msgstr "Woordenboek Popup"
 #: koassistant_ui/prompts_manager.lua:4802
 #: koassistant_ui/prompts_manager.lua:4931
 #: koassistant_ui/prompts_manager.lua:5478
+#, fuzzy
 msgid "File Browser Actions"
-msgstr ""
+msgstr "Bestandsbrowser Acties"
 
 #: koassistant_ui/prompts_manager.lua:543
 #, fuzzy
@@ -6862,41 +6948,45 @@ msgstr "Actiebewerkingen resetten"
 msgid ""
 "Reset all action edits?\n"
 "\n"
-"This reverts any changes you made to built-in actions and re-enables "
-"disabled actions.\n"
+"This reverts any changes you made to built-in actions and re-enables disabled actions.\n"
 "\n"
 "Custom actions are preserved."
 msgstr ""
 "Alle actiebewerkingen resetten?\n"
 "\n"
-"Dit maakt alle wijzigingen aan ingebouwde acties ongedaan en schakelt "
-"uitgeschakelde acties opnieuw in.\n"
+"Dit maakt alle wijzigingen aan ingebouwde acties ongedaan en schakelt uitgeschakelde acties opnieuw in.\n"
 "\n"
 "Aangepaste acties blijven behouden."
 
 #: koassistant_ui/prompts_manager.lua:565
+#, fuzzy
 msgid "Reset action menus…"
-msgstr ""
+msgstr "Actiemenu's resetten…"
 
 #: koassistant_ui/prompts_manager.lua:578
+#, fuzzy
 msgid "Reset Action Menus"
-msgstr ""
+msgstr "Actiemenu's Resetten"
 
 #: koassistant_ui/prompts_manager.lua:580
+#, fuzzy
 msgid "Reset Highlight Menu"
-msgstr ""
+msgstr "Markeringsmenu Resetten"
 
 #: koassistant_ui/prompts_manager.lua:583
+#, fuzzy
 msgid "Reset highlight menu actions to defaults?"
-msgstr ""
+msgstr "Markeringsmenu acties resetten naar standaardinstellingen?"
 
 #: koassistant_ui/prompts_manager.lua:590
+#, fuzzy
 msgid "Reset Dictionary Popup"
-msgstr ""
+msgstr "Woordenboek Popup Resetten"
 
 #: koassistant_ui/prompts_manager.lua:593
+#, fuzzy
 msgid "Reset dictionary popup actions to defaults?"
-msgstr ""
+msgstr "Woordenboek popup acties resetten naar standaardinstellingen?"
 
 #: koassistant_ui/prompts_manager.lua:600
 #, fuzzy
@@ -6904,8 +6994,9 @@ msgid "Reset Quick Actions"
 msgstr "Snelle Acties resetten"
 
 #: koassistant_ui/prompts_manager.lua:603
+#, fuzzy
 msgid "Reset Quick Actions panel to defaults?"
-msgstr ""
+msgstr "Snelle Acties paneel resetten naar standaardinstellingen?"
 
 #: koassistant_ui/prompts_manager.lua:610
 #, fuzzy
@@ -6913,40 +7004,48 @@ msgid "Reset File Browser Actions"
 msgstr "Bestandsbrowser acties resetten"
 
 #: koassistant_ui/prompts_manager.lua:613
+#, fuzzy
 msgid "Reset file browser actions to defaults?"
-msgstr ""
+msgstr "Bestandsbrowser acties resetten naar standaardinstellingen?"
 
 #: koassistant_ui/prompts_manager.lua:620
+#, fuzzy
 msgid "Reset QA Utilities"
-msgstr ""
+msgstr "QA Hulpmiddelen Resetten"
 
 #: koassistant_ui/prompts_manager.lua:623
+#, fuzzy
 msgid "Reset QA panel utilities to defaults?"
-msgstr ""
+msgstr "QA paneel hulpmiddelen resetten naar standaardinstellingen?"
 
 #: koassistant_ui/prompts_manager.lua:630
+#, fuzzy
 msgid "Reset QS Panel Items"
-msgstr ""
+msgstr "QS Paneel Items Resetten"
 
 #: koassistant_ui/prompts_manager.lua:633
+#, fuzzy
 msgid "Reset QS panel items to defaults?"
-msgstr ""
+msgstr "QS paneel items resetten naar standaardinstellingen?"
 
 #: koassistant_ui/prompts_manager.lua:640
+#, fuzzy
 msgid "Reset Input Dialog Actions"
-msgstr ""
+msgstr "Invoerdialoog Acties Resetten"
 
 #: koassistant_ui/prompts_manager.lua:643
+#, fuzzy
 msgid ""
-"Reset input dialog actions to defaults for all contexts (book, file browser, "
-"highlight, X-Ray chat)?"
-msgstr ""
+"Reset input dialog actions to defaults for all contexts (book, file browser, highlight, X-Ray chat)?"
+msgstr "Invoerdialoog acties resetten naar standaardinstellingen voor alle contexten (boek, bestandsbrowser, markering, X-Ray chat)?"
 
 #: koassistant_ui/prompts_manager.lua:650
+#, fuzzy
 msgid "Reset All Menus"
-msgstr ""
+msgstr "Alle Menu's Resetten"
 
 #: koassistant_ui/prompts_manager.lua:653
+#, fuzzy
 msgid ""
 "Reset ALL action menu configurations?\n"
 "\n"
@@ -6954,6 +7053,11 @@ msgid ""
 "\n"
 "Your actions (custom and built-in) are preserved."
 msgstr ""
+"ALLE actiemenu configuraties resetten?\n"
+"\n"
+"Dit reset de volgorde en selectie in alle menu's naar standaardinstellingen.\n"
+"\n"
+"Je acties (aangepast en ingebouwd) blijven behouden."
 
 #: koassistant_ui/prompts_manager.lua:681
 #, fuzzy
@@ -7006,8 +7110,9 @@ msgid "Disabled"
 msgstr "Uitgeschakeld"
 
 #: koassistant_ui/prompts_manager.lua:740
+#, fuzzy
 msgid "This is a local action — no AI call is made."
-msgstr ""
+msgstr "Dit is een lokale actie — er wordt geen AI-aanroep gedaan."
 
 #: koassistant_ui/prompts_manager.lua:743
 #, fuzzy
@@ -7127,16 +7232,22 @@ msgid "+ Highlight Menu"
 msgstr "+ Markeringsmenu"
 
 #: koassistant_ui/prompts_manager.lua:886
+#, fuzzy
 msgid ""
 "Added to highlight menu.\n"
 "Restart KOReader to apply."
 msgstr ""
+"Toegevoegd aan markeringsmenu.\n"
+"Herstart KOReader om toe te passen."
 
 #: koassistant_ui/prompts_manager.lua:887
+#, fuzzy
 msgid ""
 "Removed from highlight menu.\n"
 "Restart KOReader to apply."
 msgstr ""
+"Verwijderd uit markeringsmenu.\n"
+"Herstart KOReader om toe te passen."
 
 #: koassistant_ui/prompts_manager.lua:898
 #, fuzzy
@@ -7179,20 +7290,24 @@ msgid "Added to Quick Actions."
 msgstr "Toegevoegd aan Snelacties."
 
 #: koassistant_ui/prompts_manager.lua:936
+#, fuzzy
 msgid "✓ Input Dialog"
-msgstr ""
+msgstr "✓ Invoerdialoog"
 
 #: koassistant_ui/prompts_manager.lua:936
+#, fuzzy
 msgid "+ Input Dialog"
-msgstr ""
+msgstr "+ Invoerdialoog"
 
 #: koassistant_ui/prompts_manager.lua:943
+#, fuzzy
 msgid "Removed from input dialog."
-msgstr ""
+msgstr "Verwijderd uit invoerdialoog."
 
 #: koassistant_ui/prompts_manager.lua:944
+#, fuzzy
 msgid "Added to input dialog."
-msgstr ""
+msgstr "Toegevoegd aan invoerdialoog."
 
 #: koassistant_ui/prompts_manager.lua:957
 #, fuzzy
@@ -7339,9 +7454,7 @@ msgstr "Domein overslaan"
 #: koassistant_ui/prompts_manager.lua:3686
 #, fuzzy
 msgid "Text extraction enabled. Note: Enable in Settings → Advanced first."
-msgstr ""
-"Tekstextractie ingeschakeld. Let op: Schakel eerst in bij Instellingen → "
-"Geavanceerd."
+msgstr "Tekstextractie ingeschakeld. Let op: Schakel eerst in bij Instellingen → Geavanceerd."
 
 #: koassistant_ui/prompts_manager.lua:1288
 #: koassistant_ui/prompts_manager.lua:2932
@@ -7353,26 +7466,31 @@ msgstr "Tekstextractie ingeschakeld voor deze actie."
 #: koassistant_ui/prompts_manager.lua:1307
 #: koassistant_ui/prompts_manager.lua:2948
 #: koassistant_ui/prompts_manager.lua:3707
+#, fuzzy
 msgid "Allow highlight use"
-msgstr ""
+msgstr "Markeringsgebruik toestaan"
 
 #: koassistant_ui/prompts_manager.lua:1311
 #: koassistant_ui/prompts_manager.lua:2952
 #: koassistant_ui/prompts_manager.lua:3711
+#, fuzzy
 msgid "Highlights are always on when annotations are enabled."
-msgstr ""
+msgstr "Markeringen zijn altijd aan wanneer annotaties ingeschakeld zijn."
 
 #: koassistant_ui/prompts_manager.lua:1322
 #: koassistant_ui/prompts_manager.lua:2962
 #: koassistant_ui/prompts_manager.lua:3721
-msgid "Highlight use enabled. Note: Enable in Settings → Privacy & Data first."
-msgstr ""
+#, fuzzy
+msgid ""
+"Highlight use enabled. Note: Enable in Settings → Privacy & Data first."
+msgstr "Markeringsgebruik ingeschakeld. Opmerking: Schakel eerst in via Instellingen → Privacy & Gegevens."
 
 #: koassistant_ui/prompts_manager.lua:1335
 #: koassistant_ui/prompts_manager.lua:2972
 #: koassistant_ui/prompts_manager.lua:3731
+#, fuzzy
 msgid "Allow annotation use (notes)"
-msgstr ""
+msgstr "Annotatiegebruik toestaan (notities)"
 
 #: koassistant_ui/prompts_manager.lua:1345
 #: koassistant_ui/prompts_manager.lua:2980
@@ -7380,9 +7498,7 @@ msgstr ""
 #, fuzzy
 msgid ""
 "Annotation use enabled. Note: Enable in Settings → Privacy & Data first."
-msgstr ""
-"Annotatiegebruik ingeschakeld. Let op: Schakel eerst in bij Instellingen → "
-"Privacy & Gegevens."
+msgstr "Annotatiegebruik ingeschakeld. Let op: Schakel eerst in bij Instellingen → Privacy & Gegevens."
 
 #: koassistant_ui/prompts_manager.lua:1362
 #: koassistant_ui/prompts_manager.lua:2991
@@ -7396,9 +7512,7 @@ msgstr "Notitieboekgebruik toestaan"
 #: koassistant_ui/prompts_manager.lua:3757
 #, fuzzy
 msgid "Notebook use enabled. Note: Enable in Settings → Privacy & Data first."
-msgstr ""
-"Notitieboekgebruik ingeschakeld. Let op: Schakel eerst in bij Instellingen → "
-"Privacy & Gegevens."
+msgstr "Notitieboekgebruik ingeschakeld. Let op: Schakel eerst in bij Instellingen → Privacy & Gegevens."
 
 #: koassistant_ui/prompts_manager.lua:1375
 #: koassistant_ui/prompts_manager.lua:3003
@@ -7534,17 +7648,14 @@ msgstr "Varieert per trigger"
 
 #: koassistant_ui/prompts_manager.lua:1572
 #, fuzzy
-msgid "Context determines when your action appears and what data is available:"
-msgstr ""
-"Context bepaalt wanneer je actie verschijnt en welke gegevens beschikbaar "
-"zijn:"
+msgid ""
+"Context determines when your action appears and what data is available:"
+msgstr "Context bepaalt wanneer je actie verschijnt en welke gegevens beschikbaar zijn:"
 
 #: koassistant_ui/prompts_manager.lua:1573
 #, fuzzy
 msgid "When text is selected. Gets: selected text, optionally book info"
-msgstr ""
-"Wanneer tekst is geselecteerd. Krijgt: geselecteerde tekst, optioneel "
-"boekinfo"
+msgstr "Wanneer tekst is geselecteerd. Krijgt: geselecteerde tekst, optioneel boekinfo"
 
 #: koassistant_ui/prompts_manager.lua:1574
 #, fuzzy
@@ -7673,9 +7784,7 @@ msgstr "Wat moet de AI doen?"
 #, fuzzy
 msgid ""
 "Write the AI instruction. Tap 'Help' for tips, 'Insert...' for placeholders."
-msgstr ""
-"Schrijf de AI-instructie. Tik op 'Help' voor tips, 'Invoegen...' voor "
-"placeholders."
+msgstr "Schrijf de AI-instructie. Tik op 'Help' voor tips, 'Invoegen...' voor placeholders."
 
 #: koassistant_ui/prompts_manager.lua:1762
 #: koassistant_ui/prompts_manager.lua:3032
@@ -7688,35 +7797,25 @@ msgstr "Help"
 msgid ""
 "Writing Action Prompts\n"
 "\n"
-"• Use 'Insert...' to add placeholders like {title}, {author}, "
-"{highlighted_text}\n"
+"• Use 'Insert...' to add placeholders like {title}, {author}, {highlighted_text}\n"
 "\n"
-"• Tip: When using this action, there's an input field for optional "
-"additional context\n"
+"• Tip: When using this action, there's an input field for optional additional context\n"
 "\n"
-"• Reading-mode placeholders ({reading_progress}, {book_text}, {highlights}, "
-"{annotations}) auto-hide this action in File Browser — it only appears when "
-"reading\n"
+"• Reading-mode placeholders ({reading_progress}, {book_text}, {highlights}, {annotations}) auto-hide this action in File Browser — it only appears when reading\n"
 "\n"
-"• Test actions with the web inspector: 'lua tests/inspect.lua --web' from "
-"the plugin folder\n"
+"• Test actions with the web inspector: 'lua tests/inspect.lua --web' from the plugin folder\n"
 "\n"
 "• See README for full placeholder list and examples"
 msgstr ""
 "Actie Prompts Schrijven\n"
 "\n"
-"• Gebruik 'Invoegen...' om placeholders toe te voegen zoals {title}, "
-"{author}, {highlighted_text}\n"
+"• Gebruik 'Invoegen...' om placeholders toe te voegen zoals {title}, {author}, {highlighted_text}\n"
 "\n"
-"• Tip: Bij het gebruiken van deze actie is er een invoerveld voor optionele "
-"aanvullende context\n"
+"• Tip: Bij het gebruiken van deze actie is er een invoerveld voor optionele aanvullende context\n"
 "\n"
-"• Leesmodus-placeholders ({reading_progress}, {book_text}, {highlights}, "
-"{annotations}) verbergen deze actie automatisch in Bestandsbrowser — het "
-"verschijnt alleen tijdens het lezen\n"
+"• Leesmodus-placeholders ({reading_progress}, {book_text}, {highlights}, {annotations}) verbergen deze actie automatisch in Bestandsbrowser — het verschijnt alleen tijdens het lezen\n"
 "\n"
-"• Test acties met de web inspector: 'lua tests/inspect.lua --web' vanuit de "
-"plugin-map\n"
+"• Test acties met de web inspector: 'lua tests/inspect.lua --web' vanuit de plugin-map\n"
 "\n"
 "• Zie README voor volledige placeholderlijst en voorbeelden"
 
@@ -7842,20 +7941,14 @@ msgstr "Volledig dialoog met alle responsactieknoppen"
 #: koassistant_ui/prompts_manager.lua:2039
 #, fuzzy
 msgid ""
-"Smaller dialog optimized for quick lookups, with language buttons for word-"
-"by-word translation"
-msgstr ""
-"Kleiner dialoog geoptimaliseerd voor snelle opzoekingen, met taalknoppen "
-"voor woord-voor-woord vertaling"
+"Smaller dialog optimized for quick lookups, with language buttons for word-by-word translation"
+msgstr "Kleiner dialoog geoptimaliseerd voor snelle opzoekingen, met taalknoppen voor woord-voor-woord vertaling"
 
 #: koassistant_ui/prompts_manager.lua:2040
 #, fuzzy
 msgid ""
-"Translation view with language switch button and toggle to show/hide the "
-"original text"
-msgstr ""
-"Vertalingsweergave met taalwisselknop en schakelaar om de originele tekst te "
-"tonen/verbergen"
+"Translation view with language switch button and toggle to show/hide the original text"
+msgstr "Vertalingsweergave met taalwisselknop en schakelaar om de originele tekst te tonen/verbergen"
 
 #: koassistant_ui/prompts_manager.lua:2073
 #, fuzzy
@@ -7904,8 +7997,7 @@ msgid ""
 "\n"
 "• Global: Follow per-provider settings in Settings menu\n"
 "• Force OFF: Never use thinking for this action\n"
-"• Configure: Set per-provider reasoning (Anthropic budget, OpenAI effort, "
-"Gemini level)\n"
+"• Configure: Set per-provider reasoning (Anthropic budget, OpenAI effort, Gemini level)\n"
 "\n"
 "May force temperature to 1.0 for some models."
 msgstr ""
@@ -7913,8 +8005,7 @@ msgstr ""
 "\n"
 "• Globaal: Volg per-provider instellingen in Instellingenmenu\n"
 "• Forceer UIT: Gebruik nooit redenering voor deze actie\n"
-"• Configureren: Stel per-provider redenering in (Anthropic budget, OpenAI "
-"effort, Gemini level)\n"
+"• Configureren: Stel per-provider redenering in (Anthropic budget, OpenAI effort, Gemini level)\n"
 "\n"
 "Kan temperatuur naar 1.0 forceren voor sommige modellen."
 
@@ -8115,13 +8206,11 @@ msgid ""
 "\n"
 "Tip: To edit the action prompt, use 'Duplicate' to create a custom copy."
 msgstr ""
-"Deze instellingen overschrijven de standaardinstellingen voor deze "
-"ingebouwde actie.\n"
+"Deze instellingen overschrijven de standaardinstellingen voor deze ingebouwde actie.\n"
 "\n"
 "Stel in op \"Globaal\" om de standaardinstelling te gebruiken.\n"
 "\n"
-"Tip: Gebruik 'Dupliceren' om een aangepaste kopie te maken als je de "
-"actieprompt wilt bewerken."
+"Tip: Gebruik 'Dupliceren' om een aangepaste kopie te maken als je de actieprompt wilt bewerken."
 
 #: koassistant_ui/prompts_manager.lua:3054
 #, fuzzy
@@ -8419,8 +8508,9 @@ msgstr "Geen markeringsacties beschikbaar."
 
 #: koassistant_ui/prompts_manager.lua:4534
 #: koassistant_ui/prompts_manager.lua:4743
+#, fuzzy
 msgid "✓ = in menu | Tap = toggle | Hold = move | ☰ = navigate"
-msgstr ""
+msgstr "✓ = in menu | Tik = schakelen | Houden = verplaatsen | ☰ = navigeren"
 
 #: koassistant_ui/prompts_manager.lua:4560
 #: koassistant_ui/prompts_manager.lua:4618
@@ -8464,10 +8554,12 @@ msgstr "Positie:"
 #: koassistant_ui/prompts_manager.lua:5350
 #: koassistant_ui/prompts_manager.lua:5479
 #: koassistant_ui/prompts_manager.lua:5645
+#, fuzzy
 msgid "Reset to defaults"
-msgstr ""
+msgstr "Standaardwaarden herstellen"
 
 #: koassistant_ui/prompts_manager.lua:4805
+#, fuzzy
 msgid ""
 "Reset highlight menu actions to defaults?\n"
 "\n"
@@ -8475,10 +8567,16 @@ msgid ""
 "\n"
 "Your actions (custom and built-in) are preserved."
 msgstr ""
+"Acties markeringsmenu herstellen naar standaard?\n"
+"\n"
+"Dit herstelt de standaard volgorde en selectie.\n"
+"\n"
+"Uw acties (aangepast en ingebouwd) blijven behouden."
 
 #: koassistant_ui/prompts_manager.lua:4872
+#, fuzzy
 msgid "✓ = in panel | Tap = toggle | Hold = move | ☰ = navigate"
-msgstr ""
+msgstr "✓ = in paneel | Tik = schakelen | Houden = verplaatsen | ☰ = navigeren"
 
 #: koassistant_ui/prompts_manager.lua:4905
 #: koassistant_ui/prompts_manager.lua:4923
@@ -8499,8 +8597,9 @@ msgstr "SA-paneel Hulpmiddelen"
 
 #: koassistant_ui/prompts_manager.lua:4933
 #: koassistant_ui/prompts_manager.lua:5063
+#, fuzzy
 msgid "QS Panel Items"
-msgstr ""
+msgstr "QS-paneelitems"
 
 #: koassistant_ui/prompts_manager.lua:4936
 #, fuzzy
@@ -8513,52 +8612,65 @@ msgid ""
 msgstr ""
 "Snelle Acties-paneel resetten?\n"
 "\n"
-"Dit herstelt de standaardacties die worden getoond in het menu Snelle "
-"Acties.\n"
+"Dit herstelt de standaardacties die worden getoond in het menu Snelle Acties.\n"
 "\n"
 "Uw acties (aangepast en ingebouwd) blijven behouden."
 
 #: koassistant_ui/prompts_manager.lua:5005
 #: koassistant_ui/prompts_manager.lua:5124
+#, fuzzy
 msgid "✓ = visible | Tap = toggle | Hold = move | ☰ = navigate"
-msgstr ""
+msgstr "✓ = zichtbaar | Tik = schakelen | Houden = verplaatsen | ☰ = navigeren"
 
 #: koassistant_ui/prompts_manager.lua:5045
 #: koassistant_ui/prompts_manager.lua:5057
+#, fuzzy
 msgid "QA Panel Utilities (%1 visible)"
-msgstr ""
+msgstr "QA-paneelhulpmiddelen (%1 zichtbaar)"
 
 #: koassistant_ui/prompts_manager.lua:5062
 #: koassistant_ui/prompts_manager.lua:5194
+#, fuzzy
 msgid "QA Panel Actions"
-msgstr ""
+msgstr "QA-paneelacties"
 
 #: koassistant_ui/prompts_manager.lua:5066
+#, fuzzy
 msgid ""
 "Reset QA panel utilities to defaults?\n"
 "\n"
 "This restores the default order and visibility of utility buttons."
 msgstr ""
+"QA-paneelhulpmiddelen herstellen naar standaard?\n"
+"\n"
+"Dit herstelt de standaard volgorde en zichtbaarheid van hulpmiddelenknoppen."
 
 #: koassistant_ui/prompts_manager.lua:5139
+#, fuzzy
 msgid "(dynamic)"
-msgstr ""
+msgstr "(dynamisch)"
 
 #: koassistant_ui/prompts_manager.lua:5173
 #: koassistant_ui/prompts_manager.lua:5189
+#, fuzzy
 msgid "QS Panel Items (%1 visible)"
-msgstr ""
+msgstr "QS-paneelitems (%1 zichtbaar)"
 
 #: koassistant_ui/prompts_manager.lua:5198
+#, fuzzy
 msgid ""
 "Reset QS panel items to defaults?\n"
 "\n"
 "This restores the default order and visibility of Quick Settings items."
 msgstr ""
+"QS-paneelitems herstellen naar standaard?\n"
+"\n"
+"Dit herstelt de standaard volgorde en zichtbaarheid van Snelle instellingen-items."
 
 #: koassistant_ui/prompts_manager.lua:5290
+#, fuzzy
 msgid "✓ = pinned | Tap = toggle | Hold = move | ☰ = navigate"
-msgstr ""
+msgstr "✓ = vastgezet | Tik = schakelen | Houden = verplaatsen | ☰ = navigeren"
 
 #: koassistant_ui/prompts_manager.lua:5323
 #: koassistant_ui/prompts_manager.lua:5341
@@ -8572,6 +8684,7 @@ msgid "No eligible book actions available."
 msgstr "Geen geschikte boekacties beschikbaar."
 
 #: koassistant_ui/prompts_manager.lua:5352
+#, fuzzy
 msgid ""
 "Reset file browser actions to defaults?\n"
 "\n"
@@ -8579,10 +8692,16 @@ msgid ""
 "\n"
 "Your actions (custom and built-in) are preserved."
 msgstr ""
+"Acties bestandsbrowser herstellen naar standaard?\n"
+"\n"
+"Dit herstelt de standaard acties vastgezet in de bestandsbrowser.\n"
+"\n"
+"Uw acties (aangepast en ingebouwd) blijven behouden."
 
 #: koassistant_ui/prompts_manager.lua:5419
+#, fuzzy
 msgid "✓ = in popup | Tap = toggle | Hold = move | ☰ = navigate"
-msgstr ""
+msgstr "✓ = in pop-up | Tik = schakelen | Houden = verplaatsen | ☰ = navigeren"
 
 #: koassistant_ui/prompts_manager.lua:5452
 #: koassistant_ui/prompts_manager.lua:5470
@@ -8591,6 +8710,7 @@ msgid "Dictionary Popup (%1 enabled)"
 msgstr "Woordenboek pop-up (%1 ingeschakeld)"
 
 #: koassistant_ui/prompts_manager.lua:5481
+#, fuzzy
 msgid ""
 "Reset dictionary popup actions to defaults?\n"
 "\n"
@@ -8598,47 +8718,64 @@ msgid ""
 "\n"
 "Your actions (custom and built-in) are preserved."
 msgstr ""
+"Acties woordenboekpop-up herstellen naar standaard?\n"
+"\n"
+"Dit herstelt de standaard volgorde en selectie.\n"
+"\n"
+"Uw acties (aangepast en ingebouwd) blijven behouden."
 
 #: koassistant_ui/prompts_manager.lua:5542
+#, fuzzy
 msgid "General Input Actions"
-msgstr ""
+msgstr "Algemene invoeracties"
 
 #: koassistant_ui/prompts_manager.lua:5543
+#, fuzzy
 msgid "Book Input Actions"
-msgstr ""
+msgstr "Boekinvoeracties"
 
 #: koassistant_ui/prompts_manager.lua:5544
+#, fuzzy
 msgid "File Browser Input Actions"
-msgstr ""
+msgstr "Bestandsbrowser-invoeracties"
 
 #: koassistant_ui/prompts_manager.lua:5545
+#, fuzzy
 msgid "Highlight Input Actions"
-msgstr ""
+msgstr "Markeringsinvoeracties"
 
 #: koassistant_ui/prompts_manager.lua:5546
+#, fuzzy
 msgid "X-Ray Chat Actions"
-msgstr ""
+msgstr "X-Ray chatacties"
 
 #: koassistant_ui/prompts_manager.lua:5572
+#, fuzzy
 msgid "✓ = shown | Tap = toggle | Hold = move | ☰ = menu"
-msgstr ""
+msgstr "✓ = getoond | Tik = schakelen | Houden = verplaatsen | ☰ = menu"
 
 #: koassistant_ui/prompts_manager.lua:5608
 #: koassistant_ui/prompts_manager.lua:5625
+#, fuzzy
 msgid "Input Actions"
-msgstr ""
+msgstr "Invoeracties"
 
 #: koassistant_ui/prompts_manager.lua:5610
 #: koassistant_ui/prompts_manager.lua:5641
+#, fuzzy
 msgid "%1 (%2 shown)"
-msgstr ""
+msgstr "%1 (%2 getoond)"
 
 #: koassistant_ui/prompts_manager.lua:5648
+#, fuzzy
 msgid ""
 "Reset input actions to defaults?\n"
 "\n"
 "This restores the default ordering and selection."
 msgstr ""
+"Invoeracties herstellen naar standaard?\n"
+"\n"
+"Dit herstelt de standaard volgorde en selectie."
 
 #: koassistant_ui/settings_manager.lua:265
 #, fuzzy
@@ -8656,10 +8793,10 @@ msgid "Explain"
 msgstr "Uitleggen"
 
 #: prompts/actions.lua:135
+#, fuzzy
 msgid ""
-"Explains the selected passage clearly, matching the tone of the source "
-"material."
-msgstr ""
+"Explains the selected passage clearly, matching the tone of the source material."
+msgstr "Verklaart het geselecteerde fragment duidelijk, passend bij de toon van het bronmateriaal."
 
 #: prompts/actions.lua:150
 #, fuzzy
@@ -8667,10 +8804,10 @@ msgid "ELI5"
 msgstr "Leg uit alsof ik 5 ben"
 
 #: prompts/actions.lua:151
+#, fuzzy
 msgid ""
-"Simplifies the passage into everyday language using analogies and concrete "
-"examples, without sacrificing accuracy."
-msgstr ""
+"Simplifies the passage into everyday language using analogies and concrete examples, without sacrificing accuracy."
+msgstr "Vereenvoudigt het fragment tot alledaagse taal met analogieën en concrete voorbeelden, zonder nauwkeurigheid te verliezen."
 
 #: prompts/actions.lua:166
 #, fuzzy
@@ -8678,10 +8815,10 @@ msgid "Summarize"
 msgstr "Samenvatten"
 
 #: prompts/actions.lua:167
+#, fuzzy
 msgid ""
-"Condenses the selected passage to its essential points, keeping what matters "
-"and trimming the rest."
-msgstr ""
+"Condenses the selected passage to its essential points, keeping what matters and trimming the rest."
+msgstr "Comprimeert het geselecteerde fragment tot de essentiële punten, behoudt wat belangrijk is en verwijdert de rest."
 
 #: prompts/actions.lua:182
 #, fuzzy
@@ -8689,10 +8826,10 @@ msgid "Elaborate"
 msgstr "Uitwerken"
 
 #: prompts/actions.lua:183
+#, fuzzy
 msgid ""
-"Expands on the passage by unpacking concepts, adding context, and exploring "
-"implications."
-msgstr ""
+"Expands on the passage by unpacking concepts, adding context, and exploring implications."
+msgstr "Breidt het fragment uit door concepten uit te pakken, context toe te voegen en implicaties te verkennen."
 
 #: prompts/actions.lua:197
 #, fuzzy
@@ -8700,10 +8837,10 @@ msgid "Connect"
 msgstr "Verbinden"
 
 #: prompts/actions.lua:198
+#, fuzzy
 msgid ""
-"Finds connections between the passage and broader themes, other works, "
-"thinkers, and intellectual traditions."
-msgstr ""
+"Finds connections between the passage and broader themes, other works, thinkers, and intellectual traditions."
+msgstr "Vindt verbanden tussen het fragment en bredere thema's, andere werken, denkers en intellectuele tradities."
 
 #: prompts/actions.lua:221
 #, fuzzy
@@ -8711,11 +8848,10 @@ msgid "Connect (With Notes)"
 msgstr "Verbinden (met notities)"
 
 #: prompts/actions.lua:222
+#, fuzzy
 msgid ""
-"Connects the passage to your own highlights and notebook entries, revealing "
-"patterns and echoes in your reading. Requires annotations and notebook "
-"sharing to be enabled."
-msgstr ""
+"Connects the passage to your own highlights and notebook entries, revealing patterns and echoes in your reading. Requires annotations and notebook sharing to be enabled."
+msgstr "Verbindt het fragment met uw eigen markeringen en notitieboekitems, onthult patronen en echo's in uw lectuur. Vereist dat annotaties en notitieboekdeling ingeschakeld zijn."
 
 #: prompts/actions.lua:264 prompts/actions.lua:330
 #, fuzzy
@@ -8723,11 +8859,10 @@ msgid "Explain in Context"
 msgstr "Uitleggen in context"
 
 #: prompts/actions.lua:265
+#, fuzzy
 msgid ""
-"Explains the passage using the full document text for deeper, contextualized "
-"understanding. Requires text extraction; without it, falls back to AI "
-"knowledge of the work."
-msgstr ""
+"Explains the passage using the full document text for deeper, contextualized understanding. Requires text extraction; without it, falls back to AI knowledge of the work."
+msgstr "Verklaart het fragment met de volledige documenttekst voor dieper, gecontextualiseerd begrip. Vereist tekstextractie; valt anders terug op AI-kennis van het werk."
 
 #: prompts/actions.lua:294 prompts/actions.lua:363
 #, fuzzy
@@ -8735,25 +8870,22 @@ msgid "Analyze in Context"
 msgstr "Analyseren in context"
 
 #: prompts/actions.lua:295
+#, fuzzy
 msgid ""
-"Deep analysis of the passage within the full document, connecting it to "
-"themes and your annotations. Requires text extraction; also uses your "
-"annotations if shared."
-msgstr ""
+"Deep analysis of the passage within the full document, connecting it to themes and your annotations. Requires text extraction; also uses your annotations if shared."
+msgstr "Diepgaande analyse van het fragment binnen het volledige document, verbindt het met thema's en uw annotaties. Vereist tekstextractie; gebruikt ook uw annotaties indien gedeeld."
 
 #: prompts/actions.lua:331
+#, fuzzy
 msgid ""
-"Like Explain in Context, but uses a pre-built Summary Cache instead of the "
-"full text — faster and cheaper, though less detailed. Requires generating a "
-"Summary Cache first."
-msgstr ""
+"Like Explain in Context, but uses a pre-built Summary Cache instead of the full text — faster and cheaper, though less detailed. Requires generating a Summary Cache first."
+msgstr "Zoals Uitleggen in context, maar gebruikt een vooraf opgebouwde samenvattingscache in plaats van de volledige tekst — sneller en goedkoper, maar minder gedetailleerd. Vereist eerst het genereren van een samenvattingscache."
 
 #: prompts/actions.lua:364
+#, fuzzy
 msgid ""
-"Like Analyze in Context, but uses a pre-built Summary Cache instead of the "
-"full text. Still includes your annotations if shared. Requires generating a "
-"Summary Cache first."
-msgstr ""
+"Like Analyze in Context, but uses a pre-built Summary Cache instead of the full text. Still includes your annotations if shared. Requires generating a Summary Cache first."
+msgstr "Zoals Analyseren in context, maar gebruikt een vooraf opgebouwde samenvattingscache in plaats van de volledige tekst. Bevat nog steeds uw annotaties indien gedeeld. Vereist het genereren van een samenvattingscache."
 
 #: prompts/actions.lua:401
 #, fuzzy
@@ -8761,10 +8893,10 @@ msgid "Thematic Connection"
 msgstr "Thematische verbinding"
 
 #: prompts/actions.lua:402
+#, fuzzy
 msgid ""
-"Analyzes how a passage connects to the work's major themes — alignment, "
-"significance, recurring patterns, and the author's craft. Uses Summary Cache."
-msgstr ""
+"Analyzes how a passage connects to the work's major themes — alignment, significance, recurring patterns, and the author's craft. Uses Summary Cache."
+msgstr "Analyseert hoe een fragment verbonden is met de belangrijkste thema's van het werk — afstemming, betekenis, terugkerende patronen en het vakmanschap van de auteur. Gebruikt samenvattingscache."
 
 #: prompts/actions.lua:443
 #, fuzzy
@@ -8772,10 +8904,10 @@ msgid "Fact Check"
 msgstr "Feitencheck"
 
 #: prompts/actions.lua:444
+#, fuzzy
 msgid ""
-"Searches the web to verify claims in the selected passage, rating accuracy "
-"and citing current sources as evidence."
-msgstr ""
+"Searches the web to verify claims in the selected passage, rating accuracy and citing current sources as evidence."
+msgstr "Doorzoekt het web om beweringen in het geselecteerde fragment te verifiëren, beoordeelt nauwkeurigheid en citeert actuele bronnen als bewijs."
 
 #: prompts/actions.lua:473
 #, fuzzy
@@ -8783,26 +8915,27 @@ msgid "Current Context"
 msgstr "Huidige Context"
 
 #: prompts/actions.lua:474
+#, fuzzy
 msgid ""
-"Searches the web for the latest developments on the topic discussed in the "
-"selected passage — what has changed since the book was written."
-msgstr ""
+"Searches the web for the latest developments on the topic discussed in the selected passage — what has changed since the book was written."
+msgstr "Doorzoekt het web naar de nieuwste ontwikkelingen over het onderwerp besproken in het geselecteerde fragment — wat er veranderd is sinds het boek geschreven werd."
 
 #: prompts/actions.lua:503
+#, fuzzy
 msgid "Look up in X-Ray"
-msgstr ""
+msgstr "Opzoeken in X-Ray"
 
 #: prompts/actions.lua:504
+#, fuzzy
 msgid ""
-"Search X-Ray cache for selected text. Local lookup — no AI call, works "
-"offline."
-msgstr ""
+"Search X-Ray cache for selected text. Local lookup — no AI call, works offline."
+msgstr "Doorzoek X-Ray-cache voor geselecteerde tekst. Lokaal opzoeken — geen AI-oproep, werkt offline."
 
 #: prompts/actions.lua:715
+#, fuzzy
 msgid ""
-"Comprehensive overview: what the work is about, its themes, significance, "
-"and reading experience. Based on AI knowledge — no book data needed."
-msgstr ""
+"Comprehensive overview: what the work is about, its themes, significance, and reading experience. Based on AI knowledge — no book data needed."
+msgstr "Uitgebreid overzicht: waar het werk over gaat, de thema's, betekenis en leeservaring. Gebaseerd op AI-kennis — geen boekgegevens nodig."
 
 #: prompts/actions.lua:729
 #, fuzzy
@@ -8810,10 +8943,10 @@ msgid "Find Similar"
 msgstr "Vergelijkbare zoeken"
 
 #: prompts/actions.lua:730
+#, fuzzy
 msgid ""
-"Recommends 5-7 similar works, explaining what makes each one similar and who "
-"would prefer which."
-msgstr ""
+"Recommends 5-7 similar works, explaining what makes each one similar and who would prefer which."
+msgstr "Beveelt 5-7 vergelijkbare werken aan, legt uit wat elk werk vergelijkbaar maakt en wie welk werk zou prefereren."
 
 #: prompts/actions.lua:741
 #, fuzzy
@@ -8821,10 +8954,10 @@ msgid "About Author"
 msgstr "Over auteur"
 
 #: prompts/actions.lua:742
+#, fuzzy
 msgid ""
-"Biography, major works, writing style, and suggested reading order for the "
-"book's author."
-msgstr ""
+"Biography, major works, writing style, and suggested reading order for the book's author."
+msgstr "Biografie, belangrijkste werken, schrijfstijl en voorgestelde leesvolgorde voor de auteur van het boek."
 
 #: prompts/actions.lua:753
 #, fuzzy
@@ -8832,10 +8965,10 @@ msgid "Historical Context"
 msgstr "Historische context"
 
 #: prompts/actions.lua:754
+#, fuzzy
 msgid ""
-"Explores when the book was written, what was happening at the time, and how "
-"the work reflects or responds to its era."
-msgstr ""
+"Explores when the book was written, what was happening at the time, and how the work reflects or responds to its era."
+msgstr "Verkent wanneer het boek geschreven werd, wat er toen gebeurde en hoe het werk zijn tijdperk weerspiegelt of erop reageert."
 
 #: prompts/actions.lua:767
 #, fuzzy
@@ -8843,46 +8976,38 @@ msgid "X-Ray"
 msgstr "X-Ray"
 
 #: prompts/actions.lua:768
+#, fuzzy
 msgid ""
-"Builds a structured reference guide — characters, themes, locations, "
-"timeline — up to your current reading position. Completely spoiler-free. "
-"When highlights are shared, adds a personal reader engagement section "
-"analyzing what catches your attention and patterns in your highlighting. "
-"Without highlights, focuses purely on the text content. Requires text "
-"extraction; updates incrementally as you read further. Can also generate a "
-"complete analysis of the entire document."
-msgstr ""
+"Builds a structured reference guide — characters, themes, locations, timeline — up to your current reading position. Completely spoiler-free. When highlights are shared, adds a personal reader engagement section analyzing what catches your attention and patterns in your highlighting. Without highlights, focuses purely on the text content. Requires text extraction; updates incrementally as you read further. Can also generate a complete analysis of the entire document."
+msgstr "Bouwt een gestructureerde naslaggids — personages, thema's, locaties, tijdlijn — tot uw huidige leespositie. Volledig spoilervrij. Wanneer markeringen gedeeld worden, voegt een persoonlijke lezersengagementssectie toe die analyseert wat uw aandacht trekt en patronen in uw markeringen. Zonder markeringen, richt zich puur op de tekstinhoud. Vereist tekstextractie; werkt incrementeel bij naarmate u verder leest. Kan ook een complete analyse van het hele document genereren."
 
 #: prompts/actions.lua:772
+#, fuzzy
 msgid "Or use X-Ray (Simple) for an overview based on AI knowledge."
-msgstr ""
+msgstr "Of gebruik X-Ray (Simple) voor een overzicht gebaseerd op AI-kennis."
 
 #: prompts/actions.lua:831
+#, fuzzy
 msgid ""
-"A prose companion guide from AI knowledge — characters, themes, settings, "
-"key terms. No text extraction needed. Uses reading progress to avoid "
-"spoilers. Highlights add personal context when shared."
-msgstr ""
+"A prose companion guide from AI knowledge — characters, themes, settings, key terms. No text extraction needed. Uses reading progress to avoid spoilers. Highlights add personal context when shared."
+msgstr "Een prozabegeleidingsgids vanuit AI-kennis — personages, thema's, omgevingen, sleuteltermen. Geen tekstextractie nodig. Gebruikt leesvoortgang om spoilers te vermijden. Markeringen voegen persoonlijke context toe indien gedeeld."
 
 #: prompts/actions.lua:887
+#, fuzzy
 msgid ""
-"A 'Previously on...' refresher to help you get back into a book after time "
-"away. Covers recent events, active threads, and where you left off. Adapts "
-"to fiction or non-fiction. When highlights are shared, weaves in what you "
-"found notable. Requires text extraction; updates incrementally as you read."
-msgstr ""
+"A 'Previously on...' refresher to help you get back into a book after time away. Covers recent events, active threads, and where you left off. Adapts to fiction or non-fiction. When highlights are shared, weaves in what you found notable. Requires text extraction; updates incrementally as you read."
+msgstr "Een 'Eerder in...' opfrisser om u weer in een boek te krijgen na enige tijd weg. Behandelt recente gebeurtenissen, actieve lijnen en waar u gebleven was. Past zich aan fictie of non-fictie aan. Wanneer markeringen gedeeld worden, verweven met wat u opmerkelijk vond. Vereist tekstextractie; werkt incrementeel bij naarmate u leest."
 
 #: prompts/actions.lua:968
+#, fuzzy
 msgid "Analyze My Notes"
-msgstr ""
+msgstr "Analyseer mijn notities"
 
 #: prompts/actions.lua:969
+#, fuzzy
 msgid ""
-"Analyzes your note-taking and highlighting patterns to reveal what catches "
-"your attention, emerging themes, and connections between your notes. This is "
-"about understanding you as a reader, not summarizing the book. Requires "
-"highlights or annotations sharing."
-msgstr ""
+"Analyzes your note-taking and highlighting patterns to reveal what catches your attention, emerging themes, and connections between your notes. This is about understanding you as a reader, not summarizing the book. Requires highlights or annotations sharing."
+msgstr "Analyseert uw notitie- en markeringspatronen om te onthullen wat uw aandacht trekt, opkomende thema's en verbanden tussen uw notities. Dit gaat over u als lezer begrijpen, niet het samenvatten van het boek. Vereist het delen van markeringen of annotaties."
 
 #: prompts/actions.lua:1032
 #, fuzzy
@@ -8890,11 +9015,10 @@ msgid "Related Thinkers"
 msgstr "Gerelateerde denkers"
 
 #: prompts/actions.lua:1033
+#, fuzzy
 msgid ""
-"Maps the intellectual landscape: who influenced the author, who the author "
-"influenced, and contemporary thinkers working on similar problems. For "
-"fiction, focuses on literary influences and movements."
-msgstr ""
+"Maps the intellectual landscape: who influenced the author, who the author influenced, and contemporary thinkers working on similar problems. For fiction, focuses on literary influences and movements."
+msgstr "Brengt het intellectuele landschap in kaart: wie de auteur beïnvloedde, wie de auteur beïnvloedde, en hedendaagse denkers die aan vergelijkbare problemen werken. Voor fictie richt het zich op literaire invloeden en stromingen."
 
 #: prompts/actions.lua:1067 prompts/actions.lua:1114
 #, fuzzy
@@ -8902,19 +9026,16 @@ msgid "Key Arguments"
 msgstr "Belangrijkste argumenten"
 
 #: prompts/actions.lua:1068
+#, fuzzy
 msgid ""
-"Breaks down the book's thesis, supporting arguments, evidence, assumptions, "
-"and potential counterarguments. For fiction, analyzes themes and the "
-"author's worldview instead. Requires text extraction; without it, falls back "
-"to AI knowledge."
-msgstr ""
+"Breaks down the book's thesis, supporting arguments, evidence, assumptions, and potential counterarguments. For fiction, analyzes themes and the author's worldview instead. Requires text extraction; without it, falls back to AI knowledge."
+msgstr "Analyseert de stelling van het boek, ondersteunende argumenten, bewijs, aannames en mogelijke tegenargumenten. Voor fictie analyseert het in plaats daarvan thema's en de wereldvisie van de auteur. Vereist tekstextractie; zonder terugval op AI-kennis."
 
 #: prompts/actions.lua:1115
+#, fuzzy
 msgid ""
-"Same analysis as Key Arguments, but uses a pre-built Summary Cache instead "
-"of the full text — faster and cheaper. Requires generating a Summary Cache "
-"first."
-msgstr ""
+"Same analysis as Key Arguments, but uses a pre-built Summary Cache instead of the full text — faster and cheaper. Requires generating a Summary Cache first."
+msgstr "Dezelfde analyse als Belangrijkste Argumenten, maar gebruikt een vooraf gebouwde Samenvattingscache in plaats van de volledige tekst — sneller en goedkoper. Vereist eerst het genereren van een Samenvattingscache."
 
 #: prompts/actions.lua:1162 prompts/actions.lua:1204
 #, fuzzy
@@ -8922,17 +9043,16 @@ msgid "Discussion Questions"
 msgstr "Discussievragen"
 
 #: prompts/actions.lua:1163
+#, fuzzy
 msgid ""
-"Generates 8-10 discussion questions spanning comprehension, analysis, "
-"interpretation, and personal connection. Good for book clubs or classroom "
-"use. Requires text extraction; without it, falls back to AI knowledge."
-msgstr ""
+"Generates 8-10 discussion questions spanning comprehension, analysis, interpretation, and personal connection. Good for book clubs or classroom use. Requires text extraction; without it, falls back to AI knowledge."
+msgstr "Genereert 8-10 discussievragen over begrip, analyse, interpretatie en persoonlijke connectie. Geschikt voor leesclubs of gebruik in de klas. Vereist tekstextractie; zonder terugval op AI-kennis."
 
 #: prompts/actions.lua:1205
+#, fuzzy
 msgid ""
-"Same as Discussion Questions, but uses a pre-built Summary Cache instead of "
-"the full text. Requires generating a Summary Cache first."
-msgstr ""
+"Same as Discussion Questions, but uses a pre-built Summary Cache instead of the full text. Requires generating a Summary Cache first."
+msgstr "Hetzelfde als Discussievragen, maar gebruikt een vooraf gebouwde Samenvattingscache in plaats van de volledige tekst. Vereist eerst het genereren van een Samenvattingscache."
 
 #: prompts/actions.lua:1246 prompts/actions.lua:1288
 #, fuzzy
@@ -8940,39 +9060,38 @@ msgid "Generate Quiz"
 msgstr "Quiz genereren"
 
 #: prompts/actions.lua:1247
+#, fuzzy
 msgid ""
-"Creates a comprehension quiz with multiple choice, short answer, and essay "
-"questions with model answers. Requires text extraction; without it, falls "
-"back to AI knowledge."
-msgstr ""
+"Creates a comprehension quiz with multiple choice, short answer, and essay questions with model answers. Requires text extraction; without it, falls back to AI knowledge."
+msgstr "Creëert een begripsvragenlijst met meerkeuzevragen, korte antwoordvragen en essayvragen met modelantwoorden. Vereist tekstextractie; zonder terugval op AI-kennis."
 
 #: prompts/actions.lua:1289
+#, fuzzy
 msgid ""
-"Same as Generate Quiz, but uses a pre-built Summary Cache instead of the "
-"full text. Requires generating a Summary Cache first."
-msgstr ""
+"Same as Generate Quiz, but uses a pre-built Summary Cache instead of the full text. Requires generating a Summary Cache first."
+msgstr "Hetzelfde als Genereer Vragenlijst, maar gebruikt een vooraf gebouwde Samenvattingscache in plaats van de volledige tekst. Vereist eerst het genereren van een Samenvattingscache."
 
 #: prompts/actions.lua:1330
+#, fuzzy
 msgid "Document Analysis"
-msgstr ""
+msgstr "Documentanalyse"
 
 #: prompts/actions.lua:1331
+#, fuzzy
 msgid ""
-"Analyzes the document's thesis, structure, key insights, and audience. The "
-"result is saved as an Analyze artifact that other actions can reference. "
-"Requires text extraction."
-msgstr ""
+"Analyzes the document's thesis, structure, key insights, and audience. The result is saved as an Analyze artifact that other actions can reference. Requires text extraction."
+msgstr "Analyseert de stelling, structuur, belangrijkste inzichten en doelgroep van het document. Het resultaat wordt opgeslagen als een Analyseartefact waarnaar andere acties kunnen verwijzen. Vereist tekstextractie."
 
 #: prompts/actions.lua:1362
+#, fuzzy
 msgid "Document Summary"
-msgstr ""
+msgstr "Documentsamenvatting"
 
 #: prompts/actions.lua:1363
+#, fuzzy
 msgid ""
-"Creates a comprehensive summary preserving key details and structure. The "
-"result is saved as a Summary artifact — the foundation that all Smart "
-"actions rely on. Requires text extraction."
-msgstr ""
+"Creates a comprehensive summary preserving key details and structure. The result is saved as a Summary artifact — the foundation that all Smart actions rely on. Requires text extraction."
+msgstr "Creëert een uitgebreide samenvatting die belangrijke details en structuur behoudt. Het resultaat wordt opgeslagen als een Samenvattingsartefact — de basis waarop alle (Smart)-acties vertrouwen. Vereist tekstextractie."
 
 #: prompts/actions.lua:1386
 #, fuzzy
@@ -8980,11 +9099,10 @@ msgid "Extract Key Insights"
 msgstr "Belangrijkste inzichten extraheren"
 
 #: prompts/actions.lua:1387
+#, fuzzy
 msgid ""
-"Distills the most important takeaways: ideas worth remembering, novel "
-"perspectives, actionable conclusions, and connections to broader concepts. "
-"Requires text extraction."
-msgstr ""
+"Distills the most important takeaways: ideas worth remembering, novel perspectives, actionable conclusions, and connections to broader concepts. Requires text extraction."
+msgstr "Destilleert de belangrijkste conclusies: ideeën om te onthouden, nieuwe perspectieven, toepasbare conclusies en verbanden met bredere concepten. Vereist tekstextractie."
 
 #: prompts/actions.lua:1413
 #, fuzzy
@@ -8992,10 +9110,10 @@ msgid "Book Reviews"
 msgstr "Boekrecensies"
 
 #: prompts/actions.lua:1414
+#, fuzzy
 msgid ""
-"Searches the web for critical and reader reviews, awards, and any "
-"controversy around the book."
-msgstr ""
+"Searches the web for critical and reader reviews, awards, and any controversy around the book."
+msgstr "Zoekt op het web naar kritische recensies en lezerrecensies, prijzen en eventuele controverse rondom het boek."
 
 #: prompts/actions.lua:1445
 #, fuzzy
@@ -9003,10 +9121,10 @@ msgid "Compare Books"
 msgstr "Boeken vergelijken"
 
 #: prompts/actions.lua:1446
+#, fuzzy
 msgid ""
-"Compares the selected books, focusing on meaningful contrasts: different "
-"approaches, unique strengths, and which readers would prefer which."
-msgstr ""
+"Compares the selected books, focusing on meaningful contrasts: different approaches, unique strengths, and which readers would prefer which."
+msgstr "Vergelijkt de geselecteerde boeken, met focus op betekenisvolle contrasten: verschillende benaderingen, unieke sterke punten en welke lezers welk boek zouden verkiezen."
 
 #: prompts/actions.lua:1458
 #, fuzzy
@@ -9014,10 +9132,10 @@ msgid "Find Common Themes"
 msgstr "Gemeenschappelijke thema's zoeken"
 
 #: prompts/actions.lua:1459
+#, fuzzy
 msgid ""
-"Identifies shared themes, intellectual traditions, and deeper patterns "
-"across the selected books — beyond surface-level genre labels."
-msgstr ""
+"Identifies shared themes, intellectual traditions, and deeper patterns across the selected books — beyond surface-level genre labels."
+msgstr "Identificeert gedeelde thema's, intellectuele tradities en diepere patronen in de geselecteerde boeken — verder dan oppervlakkige genrelabels."
 
 #: prompts/actions.lua:1471
 #, fuzzy
@@ -9025,10 +9143,10 @@ msgid "Analyze Collection"
 msgstr "Collectie analyseren"
 
 #: prompts/actions.lua:1472
+#, fuzzy
 msgid ""
-"Analyzes what the collection reveals about the reader's interests, "
-"perspective, and what might be missing for a more complete picture."
-msgstr ""
+"Analyzes what the collection reveals about the reader's interests, perspective, and what might be missing for a more complete picture."
+msgstr "Analyseert wat de collectie onthult over de interesses en het perspectief van de lezer, en wat mogelijk ontbreekt voor een completer beeld."
 
 #: prompts/actions.lua:1484
 #, fuzzy
@@ -9036,10 +9154,10 @@ msgid "Quick Summaries"
 msgstr "Korte samenvattingen"
 
 #: prompts/actions.lua:1485
+#, fuzzy
 msgid ""
-"A brief 2-3 sentence summary of each selected book, focusing on premise and "
-"appeal."
-msgstr ""
+"A brief 2-3 sentence summary of each selected book, focusing on premise and appeal."
+msgstr "Een korte samenvatting van 2-3 zinnen van elk geselecteerd boek, gericht op premisse en aantrekkingskracht."
 
 #: prompts/actions.lua:1497
 #, fuzzy
@@ -9047,10 +9165,10 @@ msgid "Reading Order"
 msgstr "Leesvolgorde"
 
 #: prompts/actions.lua:1498
+#, fuzzy
 msgid ""
-"Suggests an optimal reading order based on conceptual dependencies, "
-"difficulty progression, and thematic arc."
-msgstr ""
+"Suggests an optimal reading order based on conceptual dependencies, difficulty progression, and thematic arc."
+msgstr "Suggereert een optimale leesvolgorde gebaseerd op conceptuele afhankelijkheden, moeilijkheidsprogressie en thematische boog."
 
 #: prompts/actions.lua:1513
 #, fuzzy
@@ -9058,16 +9176,16 @@ msgid "News Update"
 msgstr "Nieuwsupdate"
 
 #: prompts/actions.lua:1514
+#, fuzzy
 msgid ""
-"Fetches today's top global news stories from Al Jazeera with headlines, "
-"summaries, and links. Uses web search."
-msgstr ""
+"Fetches today's top global news stories from Al Jazeera with headlines, summaries, and links. Uses web search."
+msgstr "Haalt de belangrijkste wereldnieuws van vandaag op van Al Jazeera met koppen, samenvattingen en links. Gebruikt webzoekopdracht."
 
 #: prompts/actions.lua:1542
+#, fuzzy
 msgid ""
-"Translates the selected text into your configured translation language. This "
-"action also controls the Translate Current Page function."
-msgstr ""
+"Translates the selected text into your configured translation language. This action also controls the Translate Current Page function."
+msgstr "Vertaalt de geselecteerde tekst naar uw geconfigureerde vertaaltaal. Deze actie regelt ook de functie Huidige Pagina Vertalen."
 
 #: prompts/actions.lua:1561
 #, fuzzy
@@ -9075,10 +9193,10 @@ msgid "Quick Define"
 msgstr "Snel definiëren"
 
 #: prompts/actions.lua:1562
+#, fuzzy
 msgid ""
-"A brief, one-line dictionary definition of the selected word in your "
-"dictionary language."
-msgstr ""
+"A brief, one-line dictionary definition of the selected word in your dictionary language."
+msgstr "Een korte, eenregelige woordenboekdefinitie van het geselecteerde woord in uw woordenboektaal."
 
 #: prompts/actions.lua:1591
 #, fuzzy
@@ -9086,10 +9204,10 @@ msgid "Dictionary"
 msgstr "Woordenboek"
 
 #: prompts/actions.lua:1592
+#, fuzzy
 msgid ""
-"Full dictionary entry with pronunciation, definitions, etymology, and "
-"synonyms."
-msgstr ""
+"Full dictionary entry with pronunciation, definitions, etymology, and synonyms."
+msgstr "Volledig woordenboekartikel met uitspraak, definities, etymologie en synoniemen."
 
 #: prompts/actions.lua:1624
 #, fuzzy
@@ -9097,8 +9215,7 @@ msgid "Deep Analysis"
 msgstr "Diepgaande analyse"
 
 #: prompts/actions.lua:1625
+#, fuzzy
 msgid ""
-"Deep linguistic analysis covering morphology, word family, etymology, "
-"cognates, and cross-language borrowings. Adapts to the word's language "
-"family (Semitic roots, Indo-European stems, etc.)."
-msgstr ""
+"Deep linguistic analysis covering morphology, word family, etymology, cognates, and cross-language borrowings. Adapts to the word's language family (Semitic roots, Indo-European stems, etc.)."
+msgstr "Diepgaande linguïstische analyse over morfologie, woordfamilie, etymologie, cognaten en taaloverkoepelende leenwoorden. Past zich aan de taalfamilie van het woord aan (Semitische wortels, Indo-Europese stammen, enz.)."
