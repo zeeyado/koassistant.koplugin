@@ -128,7 +128,7 @@ Constants.QUICK_ACTION_UTILITIES = {
 function Constants.getQuickActionUtilityText(id, _)
     local texts = {
         translate_page = _("Translate Page"),
-        new_book_chat = _("New Book Chat/Action"),
+        new_book_chat = _("Book Chat/Action"),
         continue_last_chat = _("Continue Last Chat"),
         general_chat = _("General Chat/Action"),
         chat_history = _("Chat History"),
@@ -180,7 +180,7 @@ function Constants.getQsItemText(id, _)
         browse_artifacts = _("Browse Artifacts"),
         general_chat = _("General Chat/Action"),
         continue_last_chat = _("Continue Last Chat"),
-        new_book_chat = _("New Book Chat/Action"),
+        new_book_chat = _("Book Chat/Action"),
         manage_actions = _("Manage Actions"),
         quick_actions = _("Quick Actions"),
         more_settings = _("More Settings"),

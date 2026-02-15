@@ -1012,7 +1012,7 @@ function AskGPT:onDispatcherRegisterActions()
   Dispatcher:registerAction("koassistant_book_chat", {
     category = "none",
     event = "KOAssistantBookChat",
-    title = _("KOAssistant: New Book Chat/Action"),
+    title = _("KOAssistant: Book Chat/Action"),
     general = false,  -- Requires open book
     reader = true,
   })
@@ -5889,7 +5889,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
   -- Dynamic items (only when book is open)
   if has_document then
     button_defs["new_book_chat"] = {
-      text = E("\u{1F4D6}", _("New Book Chat/Action")),
+      text = E("\u{1F4D6}", _("Book Chat/Action")),
       callback = function()
         opening_subdialog = true
         UIManager:close(dialog)
@@ -6000,7 +6000,7 @@ function AskGPT:onKOAssistantQuickActions()
   -- Helper to add a button to current row, flush row when full
   local function addButton(btn)
     btn.font_bold = false
-    if qa_features.qa_left_align == true then btn.align = "left" end
+    if qa_features.qa_left_align ~= false then btn.align = "left" end
     table.insert(row, btn)
     if #row == 2 then
       table.insert(buttons, row)
@@ -6033,9 +6033,9 @@ function AskGPT:onKOAssistantQuickActions()
   local qa_enable_emoji = features.enable_emoji_panel_icons == true
   local qa_emoji_map = {
     -- translate_page intentionally omitted (action-like, first utility)
-    new_book_chat = "\u{1F4D6}",       -- 📖
+    new_book_chat = "\u{1F4AC}",       -- 💬
     continue_last_chat = "\u{21A9}\u{FE0F}", -- ↩️
-    general_chat = "\u{1F4AC}",        -- 💬
+    general_chat = "\u{1F5E8}\u{FE0F}", -- 🗨️
     chat_history = "\u{1F4DC}",        -- 📜
     notebook = "\u{1F4D3}",            -- 📓
     view_caches = "\u{1F4E6}",         -- 📦
@@ -6116,10 +6116,14 @@ function AskGPT:onKOAssistantQuickActions()
               self_ref:onKOAssistantQuickActions()
             end)
           end }},
-          {{ text = qa_features.qa_left_align == true and _("Left-Align Buttons ✓") or _("Left-Align Buttons"), callback = function()
+          {{ text = qa_features.qa_left_align ~= false and _("Left-Align Buttons ✓") or _("Left-Align Buttons"), callback = function()
             UIManager:close(chooser_dialog)
             local f = self_ref.settings:readSetting("features") or {}
-            f.qa_left_align = not f.qa_left_align
+            if f.qa_left_align ~= false then
+              f.qa_left_align = false
+            else
+              f.qa_left_align = true
+            end
             self_ref.settings:saveSetting("features", f)
             self_ref.settings:flush()
             self_ref:updateConfigFromSettings()

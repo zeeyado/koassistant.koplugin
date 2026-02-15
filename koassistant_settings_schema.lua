@@ -196,7 +196,7 @@ local SettingsSchema = {
                     type = "toggle",
                     text = _("Left-Align Quick Actions"),
                     path = "features.qa_left_align",
-                    default = false,
+                    default = true,
                     help_text = _("Left-align button text in the Quick Actions panel instead of centering. Also available from the panel's gear menu."),
                 },
                 {
