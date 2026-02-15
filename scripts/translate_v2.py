@@ -385,6 +385,37 @@ def escape_po_string(s: str) -> str:
     return s.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n').replace('\t', '\\t')
 
 
+def fix_german_quotes(s: str) -> str:
+    """Fix German quotation marks: AI translators pair „ (U+201E) with ASCII "
+    instead of " (U+201C). The ASCII " becomes \\" in PO files, breaking them."""
+    result = []
+    i = 0
+    while i < len(s):
+        if s[i] == '\u201e':  # „ opening German quote
+            result.append(s[i])
+            i += 1
+            while i < len(s):
+                if s[i] == '\u201c':  # already correct closing quote
+                    result.append(s[i])
+                    i += 1
+                    break
+                elif s[i] == '"':  # ASCII " — should be U+201C
+                    result.append('\u201c')
+                    i += 1
+                    break
+                elif s[i] == '\n':
+                    result.append(s[i])
+                    i += 1
+                    break
+                else:
+                    result.append(s[i])
+                    i += 1
+        else:
+            result.append(s[i])
+            i += 1
+    return ''.join(result)
+
+
 def format_msgstr_for_po(msgstr: str) -> List[str]:
     """Format msgstr for PO file (handles multi-line strings)."""
     if not msgstr:
@@ -410,6 +441,9 @@ def write_po_file(entries: List[POEntry], filepath: Path,
     """Write entries back to a PO file with proper formatting."""
     remove_fuzzy_for = remove_fuzzy_for or set()
     add_fuzzy_for = add_fuzzy_for or set()
+
+    # Language-specific post-processing
+    is_german = '/de/' in str(filepath)
 
     with open(filepath, 'w', encoding='utf-8') as f:
         for i, entry in enumerate(entries):
@@ -447,7 +481,10 @@ def write_po_file(entries: List[POEntry], filepath: Path,
             if entry.msgid_plural:
                 f.write(f'msgid_plural "{escape_po_string(entry.msgid_plural)}"\n')
 
-            for line in format_msgstr_for_po(entry.msgstr):
+            msgstr = entry.msgstr
+            if is_german and msgstr:
+                msgstr = fix_german_quotes(msgstr)
+            for line in format_msgstr_for_po(msgstr):
                 f.write(line + '\n')
 
             for idx, plural in enumerate(entry.msgstr_plural):
@@ -1575,6 +1612,29 @@ def cmd_multi_run(args, langs: List[str], script_dir: Path, locale_dir: Path):
     return 0 if fail_count == 0 else 1
 
 
+def cmd_fix(entries: List[POEntry], po_path: Path):
+    """Apply language-specific fixes to a PO file (e.g., German quote correction)."""
+    is_german = '/de/' in str(po_path)
+    if not is_german:
+        print("No language-specific fixes needed for this language.")
+        return 0
+
+    # Count fixes that would be applied
+    fix_count = 0
+    for entry in entries:
+        if entry.msgstr and entry.msgstr != fix_german_quotes(entry.msgstr):
+            fix_count += 1
+
+    if fix_count == 0:
+        print("No fixes needed — all German quotes are correct.")
+        return 0
+
+    print(f"Fixing {fix_count} German quote issue(s)...")
+    write_po_file(entries, po_path)
+    print(f"Fixed {fix_count} entries in {po_path}")
+    return 0
+
+
 def cmd_clean(args, script_dir: Path):
     """Clean up export files."""
     exports_dir = script_dir / "exports"
@@ -1636,6 +1696,7 @@ Examples:
   translate_v2.py ar,zh,ja run --api anthropic       # Translate multiple languages
   translate_v2.py all run --api anthropic --errors-only  # Fix errors in all languages
   translate_v2.py de clean              # Clean export files for German
+  translate_v2.py de fix                # Fix German quotes in existing file
   translate_v2.py all clean             # Clean all export files
 
 Translation modes:
@@ -1651,7 +1712,7 @@ ALL AI translations are marked fuzzy. Verified translations are never touched.
 
     parser.add_argument("lang", help="Language code (de, fr, etc.) or 'all'")
     parser.add_argument("command", nargs="?", default="status",
-                        choices=["status", "export", "import", "combine", "run", "clean"],
+                        choices=["status", "export", "import", "combine", "run", "fix", "clean"],
                         help="Command (default: status)")
     parser.add_argument("file", nargs="?", help="Optional file for import")
 
@@ -1743,6 +1804,8 @@ ALL AI translations are marked fuzzy. Verified translations are never touched.
         sys.exit(cmd_combine(args, script_dir))
     elif args.command == "run":
         sys.exit(cmd_run(args, entries, po_path, script_dir))
+    elif args.command == "fix":
+        sys.exit(cmd_fix(entries, po_path))
     elif args.command == "clean":
         sys.exit(cmd_clean(args, script_dir))
 
