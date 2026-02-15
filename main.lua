@@ -440,7 +440,7 @@ function AskGPT:generateFileDialogRows(file, is_file, book_props)
   end
 
   -- Pinned file browser actions (user-selected via Action Manager hold menu)
-  local fb_actions = self.settings:readSetting("file_browser_actions") or {}
+  local fb_actions = self.action_service and self.action_service:getFileBrowserActions() or {}
   if #fb_actions > 0 then
     local self_ref = self
     for _idx, fb_action in ipairs(fb_actions) do

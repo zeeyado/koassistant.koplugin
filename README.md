@@ -263,7 +263,7 @@ The panel has a **gear icon** (top-left) that opens the QS Panel Utilities manag
 <a href="screenshots/QApanelmore.png"><img src="screenshots/QApanelmore.png" width="300" alt="Quick Actions panel"></a>
 
 Assign "KOAssistant: Quick Actions" to a gesture for fast access to reading-related actions:
-- **Default actions** — X-Ray, Recap, Book Info, Document Summary
+- **Default actions** — X-Ray, Recap, Book Info, Document Summary, Analyze My Notes, Extract Key Insights, Key Arguments (Smart)
 - **Artifact button** — "View Artifacts" appears when any artifacts exist (X-Ray, X-Ray (Simple), Analysis, Summary, Recap), opening a picker showing each artifact with progress % and age (e.g., "X-Ray (100%, 3d ago)")
 - **Utilities** — Translate Page, New Book Chat/Action, Continue Last Chat, General Chat/Action, Chat History, Notebook, View Artifacts, Quick Settings
 
@@ -670,7 +670,7 @@ The X-Ray action produces a structured JSON analysis that opens in a **browsable
 - **Search** — find any entry across all categories by name, alias, or description
 - **Local X-Ray Lookup** — select text while reading → instantly look it up in cached X-Ray data. No AI call, no network, instant results. Single match shows full detail; multiple matches show a tappable list. Available in highlight menu and dictionary popup when an X-Ray cache exists. See "Look up in X-Ray" in [Highlight Mode](#highlight-mode).
 - **Full View** — rendered markdown view in the chat viewer (with export)
-- **Chat about this** — from any detail view, launch a chat with the entry as context to ask follow-up questions. Opens with a curated set of actions (Explain, Elaborate, ELI5, Fact Check by default) since the context is AI-generated analysis. The entry text is prefixed with a note clarifying it's from an analysis, not the work itself. Customize which actions appear via the gear icon → "Choose and Sort Actions"
+- **Chat about this** — from any detail view, launch a chat with the entry as context to ask follow-up questions. Opens with a curated set of actions (Explain, Elaborate, ELI5, Fact Check, Explain in Context (Smart), Thematic Connection (Smart), Connect by default) since the context is AI-generated analysis. The entry text is prefixed with a note clarifying it's from an analysis, not the work itself. Customize which actions appear via the gear icon → "Choose and Sort Actions"
 - **Text selection** — hold to select text in detail views: 1-3 words opens dictionary, 4+ copies to clipboard
 - **Options menu** — info (model, progress, date, fiction/non-fiction type), delete, close
 
@@ -776,6 +776,18 @@ A free-form conversation without specific document context. If started while a b
 **Managing the Input Dialog:**
 
 All input dialogs (highlight, book, general) show a configurable set of actions that you can customize per context. The top row has **[Web ON/OFF] [Domain] [Send]**, followed by action buttons in rows of 2. The title bar has a close X on the right and a gear icon on the left.
+
+**Default actions per context:**
+
+| Context | Default Actions |
+|---------|----------------|
+| **Highlight** | Translate, ELI5, Explain, Elaborate, Summarize, Connect, Fact Check, Explain in Context (Smart) |
+| **Book** | Book Info, X-Ray (Simple), Find Similar, Key Arguments, Extract Key Insights, Discussion Questions, About Author, Book Reviews |
+| **Book (file browser)** | Book Info, Find Similar, Related Thinkers, About Author, Historical Context, Book Reviews |
+| **X-Ray Chat** | Explain, Elaborate, ELI5, Fact Check, Explain in Context (Smart), Thematic Connection (Smart), Connect |
+| **General** | Ask |
+
+All defaults are customizable — add, remove, or reorder actions for each context independently. Remaining enabled actions are always accessible via "Show More Actions" in the grid or the gear icon → "More Actions".
 
 **Customizing which actions appear:**
 - **From the input dialog**: Tap the gear icon → **"Choose and Sort Actions"** to reorder, show, or hide actions for the current context
@@ -1136,14 +1148,15 @@ Add frequently-used highlight actions directly to KOReader's highlight popup for
 
 **Default actions** (included automatically):
 1. **Translate** — Instant translation of selected text
-2. **Explain** — Get an explanation of the passage
+2. **Look up in X-Ray** — Local search of cached X-Ray data (only appears when cache exists)
 3. **ELI5** — Explain Like I'm 5, simplified explanation
-4. **Fact Check** — Verify claims using web search
-5. **Look up in X-Ray** — Local search of cached X-Ray data (only appears when cache exists)
-6. **Elaborate** — Expand on concepts, provide additional context
+4. **Explain** — Get an explanation of the passage
+5. **Elaborate** — Expand on concepts, provide additional context
+6. **Summarize** — Condense the passage to its essential points
 7. **Connect** — Draw connections to other works, thinkers, and broader context
+8. **Fact Check** — Verify claims using web search
 
-**Other built-in actions you can add**: Summarize, Connect (With Notes), Explain in Context, Explain in Context (Smart), Analyze in Context, Analyze in Context (Smart), Thematic Connection (Smart), Current Context, Dictionary, Quick Define, Deep Analysis
+**Other built-in actions you can add**: Connect (With Notes), Explain in Context, Explain in Context (Smart), Analyze in Context, Analyze in Context (Smart), Thematic Connection (Smart), Current Context, Dictionary, Quick Define, Deep Analysis
 
 **Adding more actions**:
 1. Go to **Manage Actions**
