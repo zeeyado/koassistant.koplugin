@@ -1278,20 +1278,18 @@ local SettingsSchema = {
             text = _("KOReader Integration"),
             emoji = "🔌",
             items = {
-                -- Info header
                 {
                     id = "integration_info",
                     type = "header",
                     text = _("Control where KOAssistant appears in KOReader"),
                 },
-                -- Master toggles
                 {
                     id = "show_in_file_browser",
                     type = "toggle",
                     text = _("Show in File Browser"),
                     path = "features.show_in_file_browser",
                     default = true,
-                    help_text = _("Add KOAssistant button to file browser context menus. Requires restart."),
+                    help_text = _("Add KOAssistant buttons to file browser context menus. Requires restart."),
                     on_change = function()
                         local InfoMessage = require("ui/widget/infomessage")
                         local UIManager = require("ui/uimanager")
@@ -1303,7 +1301,7 @@ local SettingsSchema = {
                 {
                     id = "show_koassistant_in_highlight",
                     type = "toggle",
-                    text = _("Show Chat/Action Button in Highlight Menu"),
+                    text = _("Show in Highlight Menu"),
                     path = "features.show_koassistant_in_highlight",
                     default = true,
                     help_text = _("Add main 'Chat/Action' button to highlight menu. Requires restart."),
@@ -1318,7 +1316,7 @@ local SettingsSchema = {
                 {
                     id = "show_quick_actions_in_highlight",
                     type = "toggle",
-                    text = _("Show Highlight Menu Actions"),
+                    text = _("Show Highlight Quick Actions"),
                     path = "features.show_quick_actions_in_highlight",
                     default = true,
                     help_text = _("Add action shortcuts (Explain, Translate, etc.) to highlight menu. Requires restart."),
@@ -1331,146 +1329,27 @@ local SettingsSchema = {
                     end,
                 },
                 {
-                    id = "show_in_dictionary_popup_ref",
+                    id = "show_in_dictionary_popup",
                     type = "toggle",
                     text = _("Show in Dictionary Popup"),
                     path = "features.enable_dictionary_hook",
                     default = true,
-                    help_text = _("Add AI buttons to KOReader's dictionary popup"),
-                },
-                -- File browser buttons header
-                {
-                    id = "file_browser_buttons_header",
-                    type = "header",
-                    text = _("File Browser Buttons"),
+                    help_text = _("Add AI buttons to KOReader's dictionary popup."),
                 },
                 {
-                    id = "show_notebook_in_file_browser_ref",
+                    id = "show_in_gesture_menu",
                     type = "toggle",
-                    text = _("Show Notebook Button"),
-                    path = "features.show_notebook_in_file_browser",
+                    text = _("Show in Gesture Menu"),
+                    path = "features.show_in_gesture_menu",
                     default = true,
-                    help_text = _("Show 'Notebook' button when long-pressing books in the file browser."),
-                    depends_on = { id = "show_in_file_browser", value = true },
-                },
-                {
-                    id = "notebook_button_require_existing_ref",
-                    type = "toggle",
-                    text = _("Only for books with notebooks"),
-                    path = "features.notebook_button_require_existing",
-                    default = true,
-                    depends_on = {
-                        { id = "show_in_file_browser", value = true },
-                        { id = "show_notebook_in_file_browser_ref", value = true },
-                    },
-                    help_text = _("Only show notebook button if notebook already exists."),
-                },
-                {
-                    id = "show_chat_history_in_file_browser",
-                    type = "toggle",
-                    text = _("Show Chat History Button"),
-                    path = "features.show_chat_history_in_file_browser",
-                    default = true,
-                    help_text = _("Show 'Chat History' button when long-pressing books that have chat history."),
-                    depends_on = { id = "show_in_file_browser", value = true },
-                },
-                {
-                    id = "show_artifacts_in_file_browser",
-                    type = "toggle",
-                    text = _("Show Artifacts Button"),
-                    path = "features.show_artifacts_in_file_browser",
-                    default = true,
-                    help_text = _("Show 'View Artifacts' button for books that have cached results (X-Ray, X-Ray Simple, Recap, Summary, Analysis)."),
-                    depends_on = { id = "show_in_file_browser", value = true },
-                    separator = true,
-                },
-                -- Customization shortcuts
-                {
-                    id = "manage_header",
-                    type = "header",
-                    text = _("Customize Visible Actions"),
-                },
-                {
-                    id = "manage_dictionary_popup_integration",
-                    type = "action",
-                    text = _("Dictionary Popup Actions..."),
-                    callback = "showDictionaryPopupManager",
-                    depends_on = { id = "show_in_dictionary_popup_ref", value = true },
-                },
-                {
-                    id = "manage_highlight_menu_integration",
-                    type = "action",
-                    text = _("Highlight Menu Actions..."),
-                    callback = "showHighlightMenuManager",
-                    depends_on = { id = "show_quick_actions_in_highlight", value = true },
-                },
-                {
-                    id = "manage_file_browser_actions",
-                    type = "action",
-                    text = _("File Browser Actions..."),
-                    callback = "showFileBrowserActionsManager",
-                    depends_on = { id = "show_in_file_browser", value = true },
-                    separator = true,
-                },
-                -- Reset options
-                {
-                    id = "reset_header",
-                    type = "header",
-                    text = _("Reset to Defaults"),
-                },
-                {
-                    id = "reset_dictionary_popup_actions",
-                    type = "action",
-                    text = _("Reset Dictionary Popup Actions"),
-                    callback = "resetDictionaryPopupActions",
-                    help_text = _("Restore default dictionary popup buttons"),
-                    keep_menu_open = true,
-                },
-                {
-                    id = "reset_highlight_menu_actions",
-                    type = "action",
-                    text = _("Reset Highlight Menu Actions"),
-                    callback = "resetHighlightMenuActions",
-                    help_text = _("Restore default highlight menu items"),
-                    keep_menu_open = true,
-                },
-                {
-                    id = "reset_file_browser_actions",
-                    type = "action",
-                    text = _("Reset File Browser Actions"),
-                    callback = "resetFileBrowserActions",
-                    help_text = _("Remove all pinned file browser actions"),
-                    keep_menu_open = true,
-                },
-                {
-                    id = "reset_quick_actions",
-                    type = "action",
-                    text = _("Reset Quick Actions"),
-                    callback = "resetQuickActions",
-                    help_text = _("Restore default Quick Actions panel items"),
-                    keep_menu_open = true,
-                },
-                {
-                    id = "reset_all_menus",
-                    type = "action",
-                    text = _("Reset All Menu Customizations"),
-                    callback = "resetActionMenus",
-                    help_text = _("Restore all menus to defaults (dictionary popup, highlight menu, file browser, quick actions, general menu)"),
-                    separator = true,
-                },
-                -- Startup behavior
-                {
-                    id = "startup_header",
-                    type = "header",
-                    text = _("Startup Behavior"),
-                },
-                {
-                    id = "auto_check_updates_ref",
-                    type = "toggle",
-                    text = _("Auto-check for updates"),
-                    path = "features.auto_check_updates",
-                    default = true,
-                    help_text = _("Automatically check for new versions when KOReader starts."),
+                    help_text = _("Register KOAssistant actions in KOReader's gesture dispatcher. Requires restart."),
+                    on_change = function()
+                        local InfoMessage = require("ui/widget/infomessage")
+                        local UIManager = require("ui/uimanager")
+                        UIManager:show(InfoMessage:new{
+                            text = _("Please restart KOReader for this change to take effect."),
+                        })
+                    end,
                 },
             },
         },
