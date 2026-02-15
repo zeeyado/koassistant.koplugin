@@ -1480,7 +1480,12 @@ end
 function ActionService:getQsItemsOrder()
     local saved = self.settings:readSetting("qs_items_order")
     if not saved then
-        return Constants.QS_ITEMS_DEFAULT_ORDER
+        -- Return a copy to avoid callers mutating the constant
+        local copy = {}
+        for _i, id in ipairs(Constants.QS_ITEMS_DEFAULT_ORDER) do
+            copy[#copy + 1] = id
+        end
+        return copy
     end
     local processed = processOrderedList(saved, Constants.QS_ITEMS_DEFAULT_ORDER)
     -- Migration: insert text_extraction before chat_history for existing users
