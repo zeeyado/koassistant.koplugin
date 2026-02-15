@@ -406,7 +406,7 @@ KOAssistant sends data to AI providers to generate responses. This section expla
 
 **Graceful degradation:** When you disable a data type, actions adapt automatically. Section placeholders like `{highlights_section}` simply disappear from prompts, so you don't need to modify your actions. For text extraction specifically, actions go a step further: when document text is unavailable, the AI is explicitly guided to use its training knowledge of the work (and to say so honestly if it doesn't recognize the title). This means actions like Explain in Context, Discussion Questions, and others still produce useful results for well-known books even without text extraction enabled — see [Text Extraction and Double-gating](#text-extraction-and-double-gating) for details. **Exception:** X-Ray requires text extraction and blocks generation without it (use X-Ray (Simple) instead for a prose overview from AI knowledge — see [Reading Analysis Actions](#reading-analysis-actions)).
 
-**Visibility tip:** If your device supports emoji fonts, enable **[Emoji Data Access Indicators](#display-settings)** (Settings → Display Settings) to see at a glance what data each action accesses — 📄 document text, 🔖 highlights, 📝 annotations, 📓 notebook, 🌐 web search — directly on action names throughout the UI.
+**Visibility tip:** If your device supports emoji fonts, enable **[Emoji Data Access Indicators](#display-settings)** (Settings → Display Settings → Emoji) to see at a glance what data each action accesses — 📄 document text, 🔖 highlights, 📝 annotations, 📓 notebook, 🌐 web search — directly on action names throughout the UI.
 
 ### Text Extraction and Double-gating
 
@@ -680,7 +680,7 @@ The X-Ray action produces a structured JSON analysis that opens in a **browsable
 >
 > Your global model continues to be used for all other actions. This is useful for mixing cost and quality — for example, use a fast model (Gemini 2.5 Flash, Haiku, small Mistral models, etc.) as your global default for quick lookups and chat, while assigning a more capable model (Gemini 2.5 Pro, Sonnet, large Mistral models, etc.) specifically to X-Ray or Deep Analysis where quality matters most. See [Tuning Built-in Actions](#tuning-built-in-actions) for more examples. You can of course also momentarily change you global model to run an action and then change back if you don't want to tie an action to a model. 
 
-> **Tip:** If your device supports emoji fonts, enable **Emoji Menu Icons** in Settings → Display Settings for visual category icons in the X-Ray browser (e.g., characters, locations, themes). See [Emoji Menu Icons](#display-settings).
+> **Tip:** If your device supports emoji fonts, enable **Emoji Menu Icons** in Settings → Display Settings → Emoji for visual category icons in the X-Ray browser (e.g., characters, locations, themes). See [Emoji Menu Icons](#display-settings).
 
 > **Custom TOC support:** Chapter-based features (Mentions, Chapter Appearances) automatically use KOReader's active TOC — including custom/handmade TOCs. If your book has no chapters or a single chapter, the fallback is page-range chunks (~20 pages each). For better results, create a custom TOC in KOReader (long-press the TOC icon → "Set custom TOC from pages") and the X-Ray browser will use it.
 
@@ -1252,7 +1252,7 @@ See [How Language Settings Work Together](#how-language-settings-work-together) 
 
 Dictionary, translate, general chat, and artifact viewers have special handling for right-to-left (RTL) languages:
 
-- **Automatic RTL mode**: When your dictionary or translation language is set to an RTL language, results automatically use Plain Text mode for proper font rendering. For general chat and artifact viewers (X-Ray, X-Ray (Simple), Analyze, Summary), the content is checked—if RTL characters outnumber Latin, it switches to RTL mode (right-aligned text + Plain Text). This can be configured via **Settings → Display Settings → Text Mode for RTL Dictionary**, **Text Mode for RTL Translate**, and **Auto RTL mode for Chat**.
+- **Automatic RTL mode**: When your dictionary or translation language is set to an RTL language, results automatically use Plain Text mode for proper font rendering. For general chat and artifact viewers (X-Ray, X-Ray (Simple), Analyze, Summary), the content is checked—if RTL characters outnumber Latin, it switches to RTL mode (right-aligned text + Plain Text). This can be configured via **Settings → Display Settings → Rendering → Text Mode for RTL Dictionary**, **Text Mode for RTL Translate**, and **Auto RTL mode for Chat**.
 - **BiDi text alignment**: Entries with RTL content display with correct bidirectional text alignment. Mixed RTL/LTR content (e.g., Arabic headwords with English pronunciation guides) renders in the correct reading order.
 - **IPA transcription handling**: Phonetic transcriptions are anchored to display correctly alongside RTL headwords.
 
@@ -1855,6 +1855,8 @@ Tags are simple labels for organizing chats. Unlike domains:
 - Tap a provider to enter, view (masked), or clear its key
 
 ### Display Settings
+
+#### Rendering (sub-menu)
 - **View Mode**: Choose between Markdown (formatted) or Plain Text display
   - **Markdown**: Full formatting with bold, lists, headers, etc. (default)
   - **Plain Text**: Better font support for Arabic and some other non-Latin scripts
@@ -1864,9 +1866,8 @@ Tags are simple labels for organizing chats. Unlike domains:
 - **Text Mode for RTL Dictionary**: Automatically use Plain Text mode for dictionary popup when dictionary language is RTL. Grayed out when Text Mode for Dictionary is enabled. (default: on)
 - **Text Mode for RTL Translate**: Automatically use Plain Text mode for translate popup when translation language is RTL. (default: on)
 - **Auto RTL mode for Chat**: Automatically detect RTL content and switch to RTL mode (right-aligned text + Plain Text) for general chat and artifact viewers. Activates when the latest response has more RTL than Latin characters. English text referencing Arabic stays in Markdown. Disabling removes all automatic RTL adjustments. Grayed out when markdown is disabled. (default: on)
-- **Hide Highlighted Text**: Don't show selection in responses
-- **Hide Long Highlights**: Collapse highlights over character threshold
-- **Long Highlight Threshold**: Character limit before collapsing (default: 280)
+
+#### Emoji (sub-menu)
 - **Emoji Menu Icons**: Show emoji icons in plugin UI menus and buttons. Off by default. When enabled:
   - **Settings menu**: Descriptive emojis on menu items and section headers (💬 Chat, 🔗 Provider, 🤖 Model, 📖 Reading Features, 🔒 Privacy, etc.)
   - **Chat history**: Type prefixes on documents (💬 general, 📚 multi-book, 📖 book chats), 💬 on individual chats, 🏷️ on tag browser entries
@@ -1885,9 +1886,16 @@ Tags are simple labels for organizing chats. Unlike domains:
   - Visible in: action manager, reading features menu, quick actions, highlight/dictionary menus, file browser buttons
   - Helps you see at a glance which actions send personal data to AI providers. See [Privacy & Data](#privacy--data) for details on what gets shared.
   - Requires **emoji font support** — see [Emoji Font Setup](#emoji-font-setup).
+
+#### Highlights (sub-menu)
+- **Hide Highlighted Text**: Don't show selection in responses
+- **Hide Long Highlights**: Collapse highlights over character threshold
+- **Long Highlight Threshold**: Character limit before collapsing (default: 280)
+
+#### Other
 - **Plugin UI Language**: Language for plugin menus and dialogs. Does not affect AI responses. Options: Match KOReader (default), English, or 20+ other translations. Use this to switch the plugin UI to a language you're learning without changing KOReader's language, or to force English if you find the translations inaccurate. Requires restart.
 
-### Chat & Export
+### Chat & Export Settings
 - **Auto-save All Chats**: Automatically save every new conversation
 - **Auto-save Continued Chats**: Only save when continuing from history
 - **Scroll to Last Message (Experimental)**: When resuming or replying to a chat, scroll to show your last question. Off by default (old behavior: top for new chats, bottom for replies)
@@ -2970,7 +2978,7 @@ KOAssistant offers two view modes for displaying AI responses:
 
 **How to switch:**
 - **On the fly**: Tap **MD ON / TXT ON** button in chat viewer (bottom row)
-- **Permanently**: Settings → Display Settings → View Mode
+- **Permanently**: Settings → Display Settings → Rendering → View Mode
 
 ### Reply Draft Saving
 
@@ -3133,7 +3141,7 @@ Installing the font file alone is not enough — you must add it to KOReader's U
 
 **Step 3: Enable in KOAssistant**
 
-In KOAssistant: Settings → Display Settings → enable **Emoji Menu Icons** and/or **Emoji Data Access Indicators**.
+In KOAssistant: Settings → Display Settings → Emoji → enable **Emoji Menu Icons** and/or **Emoji Data Access Indicators**.
 
 **Platform notes:**
 - **Android** is the easiest — enable system fonts (see above), then enable Noto Emoji as a UI fallback font
@@ -3151,12 +3159,12 @@ In KOAssistant: Settings → Display Settings → enable **Emoji Menu Icons** an
 If text doesn't render correctly in Markdown view, switch to **Plain Text view**:
 
 - **On the fly**: Tap the **MD ON / TXT ON** button in the chat viewer to toggle
-- **Permanently**: Settings → Display Settings → View Mode → Plain Text
+- **Permanently**: Settings → Display Settings → Rendering → View Mode → Plain Text
 
 This is a limitation of KOReader's MuPDF HTML renderer, which lacks per-glyph font fallback. Plain Text mode uses KOReader's native text rendering with proper font support.
 
 **Automatic RTL mode** is enabled by default:
-- **Settings → Display Settings → Text Mode for RTL Dictionary** / **Text Mode for RTL Translate** / **Auto RTL mode for Chat**
+- **Settings → Display Settings → Rendering → Text Mode for RTL Dictionary** / **Text Mode for RTL Translate** / **Auto RTL mode for Chat**
 - Dictionary and translate switch to Plain Text when the target language is RTL
 - General chat and artifact viewers (X-Ray, X-Ray (Simple), Analyze, Summary) switch to RTL mode (right-aligned + Plain Text) when content is predominantly RTL (more RTL than Latin characters)
 - Your global Markdown/Plain Text preference is preserved when content is not predominantly RTL
