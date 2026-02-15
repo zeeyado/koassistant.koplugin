@@ -9232,6 +9232,9 @@ function AskGPT:ensureInitialized()
   -- Check welcome dialog (only shows if storage is v2+ and not seen before)
   -- If migration is pending (v1), this will skip and show next time
   self:checkWelcomeDialog()
+
+  -- One-time gesture setup offer (assign QA/QS to tap bottom right corner)
+  self:checkGestureSetup()
 end
 
 --[[
@@ -9271,6 +9274,141 @@ function AskGPT:showWelcomeDialog()
 
   self.settings:saveSetting("welcome_shown", true)
   self.settings:flush()
+end
+
+--[[
+    Gesture Setup
+    One-time dialog offering to assign QA/QS panels to "tap bottom right corner".
+    Shows once: auto-assign offer if both slots free, info-only tip otherwise.
+--]]
+
+-- Check if a dispatcher action is already assigned to any gesture
+local function _scanGesturesForAction(gestures_data, action_id)
+  for _idx, section_name in ipairs({"gesture_reader", "gesture_fm"}) do
+    local section = gestures_data[section_name]
+    if section then
+      for _gesture_name, gesture_entry in pairs(section) do
+        if type(gesture_entry) == "table" and gesture_entry[action_id] then
+          return true
+        end
+      end
+    end
+  end
+  return false
+end
+
+-- Check if a gesture slot is empty (nil or empty table)
+local function _isGestureSlotEmpty(gesture_entry)
+  if gesture_entry == nil then
+    return true
+  end
+  if type(gesture_entry) == "table" and next(gesture_entry) == nil then
+    return true
+  end
+  return false
+end
+
+-- Check if gesture setup dialog should be shown
+function AskGPT:checkGestureSetup()
+  -- Only offer once
+  if self.settings:readSetting("gesture_setup_offered") then
+    return
+  end
+
+  -- Open gestures.lua (returns empty data if file doesn't exist)
+  local gestures_path = DataStorage:getSettingsDir() .. "/gestures.lua"
+  local gestures_settings = LuaSettings:open(gestures_path)
+  local gestures_data = gestures_settings.data
+
+  -- If data is empty (fresh install, gesture plugin hasn't written yet),
+  -- return WITHOUT setting flag so we retry next session
+  if not gestures_data or not next(gestures_data) then
+    return
+  end
+
+  -- Check if target slots are both free
+  local reader_gestures = gestures_data.gesture_reader or {}
+  local fm_gestures = gestures_data.gesture_fm or {}
+  local both_free = _isGestureSlotEmpty(reader_gestures.tap_right_bottom_corner)
+    and _isGestureSlotEmpty(fm_gestures.tap_right_bottom_corner)
+
+  self:showGestureSetupDialog(gestures_settings, both_free)
+end
+
+-- Show gesture setup dialog
+function AskGPT:showGestureSetupDialog(gestures_settings, both_free)
+  if both_free then
+    -- Offer to auto-assign both gestures
+    local ConfirmBox = require("ui/widget/confirmbox")
+    local text = _("GESTURE SETUP") .. "\n\n" ..
+      _("KOAssistant has two quick-access panels:") .. "\n\n" ..
+      _("Quick Actions — book actions, artifacts, and utilities (reader mode)") .. "\n" ..
+      _("Quick Settings — change provider, model, behavior, and more (file browser)") .. "\n\n" ..
+      _("Assign both to \"tap bottom right corner\"?") .. "\n\n" ..
+      _("You can change these anytime in KOReader Settings (Gear icon) → Taps and Gestures.") .. "\n\n" ..
+      _("Requires KOReader restart to take effect.")
+
+    UIManager:show(ConfirmBox:new{
+      text = text,
+      ok_text = _("Set up"),
+      cancel_text = _("No thanks"),
+      ok_callback = function()
+        self:applyGestureSetup(gestures_settings)
+      end,
+      cancel_callback = function()
+        self.settings:saveSetting("gesture_setup_offered", true)
+        self.settings:flush()
+      end,
+    })
+  else
+    -- Info-only: user already has gestures assigned to bottom right
+    local text = _("GESTURE TIP") .. "\n\n" ..
+      _("KOAssistant has two quick-access panels you can assign to gestures:") .. "\n\n" ..
+      _("Quick Actions — book actions, artifacts, and utilities (assign in reader mode)") .. "\n" ..
+      _("Quick Settings — change provider, model, behavior, and more (assign in file browser mode)") .. "\n\n" ..
+      _("Set them up in KOReader Settings (Gear icon) → Taps and Gestures.")
+
+    UIManager:show(InfoMessage:new{
+      text = text,
+    })
+
+    self.settings:saveSetting("gesture_setup_offered", true)
+    self.settings:flush()
+  end
+end
+
+-- Apply gesture assignments to gestures.lua
+function AskGPT:applyGestureSetup(gestures_settings)
+  -- Ensure sections exist
+  if not gestures_settings.data.gesture_reader then
+    gestures_settings.data.gesture_reader = {}
+  end
+  if not gestures_settings.data.gesture_fm then
+    gestures_settings.data.gesture_fm = {}
+  end
+
+  -- Assign QA to tap bottom right in reader mode
+  gestures_settings.data.gesture_reader.tap_right_bottom_corner = {
+    koassistant_quick_actions = true,
+  }
+
+  -- Assign QS to tap bottom right in file browser mode
+  gestures_settings.data.gesture_fm.tap_right_bottom_corner = {
+    koassistant_ai_settings = true,
+  }
+
+  -- Persist to gestures.lua
+  gestures_settings:flush()
+
+  -- Mark as offered
+  self.settings:saveSetting("gesture_setup_offered", true)
+  self.settings:flush()
+
+  -- Show restart notification
+  UIManager:show(InfoMessage:new{
+    text = _("Quick Actions and Quick Settings assigned to tap bottom right corner.") .. "\n\n" ..
+      _("Please restart KOReader for changes to take effect."),
+  })
 end
 
 -- Patch DocSettings.updateLocation() to keep chat index in sync and move custom sidecar files
