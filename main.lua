@@ -342,9 +342,8 @@ function AskGPT:generateFileDialogRows(file, is_file, book_props)
     })
   end
 
-  -- Chat History (KOA) button - respects settings, only if chats exist
-  local show_chat_history = features.show_chat_history_in_file_browser ~= false  -- default true
-  if show_chat_history and has_chats then
+  -- Chat History (KOA) button - only if chats exist
+  if has_chats then
     table.insert(buttons, {
       text = _("Chat History") .. " (KOA)",
       callback = function()
@@ -359,7 +358,6 @@ function AskGPT:generateFileDialogRows(file, is_file, book_props)
   end
 
   -- View Artifacts (KOA) button - if any document cache exists for this file
-  local show_artifacts = features.show_artifacts_in_file_browser ~= false  -- default true
   local ActionCache = require("koassistant_action_cache")
   local caches = ActionCache.getAvailableArtifacts(file)
   -- Add book metadata for file browser context (no open book)
@@ -372,7 +370,7 @@ function AskGPT:generateFileDialogRows(file, is_file, book_props)
   if #caches > 0 then
     ActionCache.refreshIndex(file)
   end
-  if show_artifacts and #caches > 0 then
+  if #caches > 0 then
     local self_ref = self
     table.insert(buttons, {
       text = _("View Artifacts") .. " (KOA)",
@@ -1198,39 +1196,42 @@ function AskGPT:onDispatcherRegisterActions()
     reader = true,
   })
 
-  -- Register user-configured action gestures
+  -- Register user-configured action gestures (gated by show_in_gesture_menu toggle)
   -- These are toggled per-action in Action Manager → hold action → "Add to Gesture Menu"
   -- Uses ActionService:getGestureActions() to inject defaults from in_gesture_menu flags
-  local gesture_actions = {}
-  if self.action_service then
-    gesture_actions = self.action_service:getGestureActions() or {}
-  end
+  local gesture_features = self.settings:readSetting("features") or {}
+  if gesture_features.show_in_gesture_menu ~= false then
+    local gesture_actions = {}
+    if self.action_service then
+      gesture_actions = self.action_service:getGestureActions() or {}
+    end
 
-  for action_key, _enabled in pairs(gesture_actions) do
-    -- Parse "context:id" format
-    local context, action_id = action_key:match("^([^:]+):(.+)$")
-    if context and action_id and self.action_service then
-      local action = self.action_service:getAction(context, action_id)
-      if action then
-        local gesture_id = "koassistant_action_" .. context .. "_" .. action_id
-        local event_name = "KOAssistantAction_" .. context .. "_" .. action_id
+    for action_key, _enabled in pairs(gesture_actions) do
+      -- Parse "context:id" format
+      local context, action_id = action_key:match("^([^:]+):(.+)$")
+      if context and action_id and self.action_service then
+        local action = self.action_service:getAction(context, action_id)
+        if action then
+          local gesture_id = "koassistant_action_" .. context .. "_" .. action_id
+          local event_name = "KOAssistantAction_" .. context .. "_" .. action_id
 
-        Dispatcher:registerAction(gesture_id, {
-          category = "none",
-          event = event_name,
-          title = _("KOAssistant: ") .. (action.text or action_id),
-          general = (context == "general" or context == "book+general"),
-          reader = (context == "book" or context == "book+general"),
-        })
+          Dispatcher:registerAction(gesture_id, {
+            category = "none",
+            event = event_name,
+            title = _("KOAssistant: ") .. (action.text or action_id),
+            general = (context == "general" or context == "book+general"),
+            reader = (context == "book" or context == "book+general"),
+          })
 
-        -- Dynamically create handler using closure
-        AskGPT["on" .. event_name] = function(self_ref)
-          self_ref:executeConfigurableAction(context, action_id)
-          return true
+          -- Dynamically create handler using closure
+          AskGPT["on" .. event_name] = function(self_ref)
+            self_ref:executeConfigurableAction(context, action_id)
+            return true
+          end
+          logger.dbg("KOAssistant: Registered action gesture:", gesture_id)
+        else
+          logger.dbg("KOAssistant: Skipping gesture for missing action:", context, action_id)
         end
-        logger.dbg("KOAssistant: Registered action gesture:", gesture_id)
-      else
-        logger.dbg("KOAssistant: Skipping gesture for missing action:", context, action_id)
       end
     end
   end
