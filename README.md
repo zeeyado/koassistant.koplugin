@@ -677,6 +677,7 @@ These actions analyze your actual reading content. They require specific privacy
   <a href="screenshots/Xraybrowser.png"><img src="screenshots/Xraybrowser.png" width="180" alt="X-Ray categories"></a>
   <a href="screenshots/xrayarg.png"><img src="screenshots/xrayarg.png" width="180" alt="X-Ray item detail"></a>
   <a href="screenshots/xrayappearance.png"><img src="screenshots/xrayappearance.png" width="180" alt="Chapter appearances"></a>
+  <a href="screenshots/xrayapps.png"><img src="screenshots/xrayapps.png" width="180" alt="X-Ray apps"></a>
 </p>
 
 The X-Ray action produces a structured JSON analysis that opens in a **browsable category menu** rather than a plain text document. The initial browsable menu concept was inspired by [X-Ray Plugin for KOReader by 0zd3m1r](https://github.com/0zd3m1r/koreader-xray-plugin). Chapter distribution, linkable connections, and local lookup features were informed by [Dynamic X-Ray by smartscripts-nl](https://github.com/smartscripts-nl/dynamic-xray) — a comprehensive manual X-Ray system with curated character databases, live page markers, and a custom histogram widget. Our approach differs: we use AI generation instead of manual curation, and menu-based navigation instead of custom widgets, but DX demonstrated the value of per-item chapter tracking and cross-reference linking. The browser provides:
