@@ -860,7 +860,7 @@ function XrayBrowser:showCategoryItems(category)
         if secondary ~= "" then
             local name_w = TextWidget:new{ text = name, face = text_face }:getSize().w
             local avail_for_mandatory = content_width - name_w - padding
-            local min_chars = is_event_category and 10 or 5
+            local min_chars = is_event_category and 15 or 5
             local max_chars = math.max(min_chars, math.floor(avail_for_mandatory / ref_char_w))
             if #secondary > max_chars then
                 secondary = secondary:sub(1, max_chars - 3) .. "..."
