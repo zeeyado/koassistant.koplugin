@@ -732,9 +732,9 @@ function XrayBrowser:buildCategoryItems()
         local count = #cat.items
         if count > 0 then
             local mandatory_text = ""
-            -- Don't show count for current_state/current_position (always 1)
+            -- Don't show count for singleton categories (always 1)
             if cat.key ~= "current_state" and cat.key ~= "current_position"
-                and cat.key ~= "reader_engagement" then
+                and cat.key ~= "reader_engagement" and cat.key ~= "conclusion" then
                 mandatory_text = tostring(count)
             end
 
@@ -847,27 +847,39 @@ function XrayBrowser:showCategoryItems(category)
     local ref_char_w = TextWidget:new{ text = "a", face = mandatory_face }:getSize().w
     local padding = Screen:scaleBySize(10)
 
+    -- Event-based categories: guarantee minimum mandatory (chapter label) width
+    local is_event_category = category.key == "timeline" or category.key == "argument_development"
+
     for _idx, item in ipairs(category.items) do
         local name = XrayParser.getItemName(item, category.key)
         local secondary = XrayParser.getItemSecondary(item, category.key)
 
-        -- Measure actual name width in pixels, then truncate mandatory to fit remainder
+        -- Truncate mandatory (chapter label) to fit alongside the name.
+        -- The Menu widget truncates `text` (name) naturally — we only control mandatory length.
+        -- Event categories get a higher minimum so chapter labels aren't squashed to 2-3 chars.
         if secondary ~= "" then
             local name_w = TextWidget:new{ text = name, face = text_face }:getSize().w
             local avail_for_mandatory = content_width - name_w - padding
-            local max_chars = math.max(5, math.floor(avail_for_mandatory / ref_char_w))
+            local min_chars = is_event_category and 10 or 5
+            local max_chars = math.max(min_chars, math.floor(avail_for_mandatory / ref_char_w))
             if #secondary > max_chars then
                 secondary = secondary:sub(1, max_chars - 3) .. "..."
             end
         end
 
         local captured_item = item
+        local captured_idx = _idx
         table.insert(items, {
             text = name,
             mandatory = secondary,
             mandatory_dim = true,
             callback = function()
-                self_ref:showItemDetail(captured_item, category.key, name)
+                self_ref:showItemDetail(captured_item, category.key, name, nil, {
+                    items = category.items,
+                    index = captured_idx,
+                    category_key = category.key,
+                    category_label = category.label,
+                })
             end,
         })
     end
@@ -880,7 +892,9 @@ end
 --- @param item table The item data
 --- @param category_key string The category key
 --- @param title string Display title
-function XrayBrowser:showItemDetail(item, category_key, title, source)
+--- @param source table|nil Back-navigation chain (from connection links)
+--- @param nav_context table|nil Category navigation {items, index, category_key, category_label}
+function XrayBrowser:showItemDetail(item, category_key, title, source, nav_context)
     local detail_text = XrayParser.formatItemDetail(item, category_key)
 
     -- For current state/position: prepend reading progress for clarity
@@ -922,9 +936,12 @@ function XrayBrowser:showItemDetail(item, category_key, title, source)
     local captured_ui = self.ui
     local self_ref = self
 
-    -- Build custom button row: ← ⇱ ⇲ [Chat about this]
+    -- Build navigation row: ← + nav buttons + [Chat about this]
+    -- With category nav: ← ◀ ▶ [Chat]  (prev/next replace scroll buttons)
+    -- Without nav:       ← ⇱ ⇲ [Chat]  (scroll top/bottom for long content)
     local row = {}
     local viewer  -- forward declaration for button callbacks
+    local has_nav = nav_context and nav_context.items and #nav_context.items > 1
 
     table.insert(row, {
         text = "←",
@@ -936,20 +953,57 @@ function XrayBrowser:showItemDetail(item, category_key, title, source)
             end
         end,
     })
-    table.insert(row, {
-        text = "⇱",
-        id = "top",
-        callback = function()
-            if viewer then viewer.scroll_text_w:scrollToTop() end
-        end,
-    })
-    table.insert(row, {
-        text = "⇲",
-        id = "bottom",
-        callback = function()
-            if viewer then viewer.scroll_text_w:scrollToBottom() end
-        end,
-    })
+
+    if has_nav then
+        local nav_items = nav_context.items
+        local nav_idx = nav_context.index
+        local nav_cat_key = nav_context.category_key
+        local nav_cat_label = nav_context.category_label
+        local total = #nav_items
+        local prev_idx = nav_idx > 1 and nav_idx - 1 or total
+        local next_idx = nav_idx < total and nav_idx + 1 or 1
+
+        table.insert(row, {
+            text = "◀",
+            callback = function()
+                if viewer then viewer:onClose() end
+                local prev_item = nav_items[prev_idx]
+                local prev_name = XrayParser.getItemName(prev_item, nav_cat_key)
+                self_ref:showItemDetail(prev_item, nav_cat_key, prev_name, nil, {
+                    items = nav_items, index = prev_idx,
+                    category_key = nav_cat_key, category_label = nav_cat_label,
+                })
+            end,
+        })
+        table.insert(row, {
+            text = "▶",
+            callback = function()
+                if viewer then viewer:onClose() end
+                local next_item = nav_items[next_idx]
+                local next_name = XrayParser.getItemName(next_item, nav_cat_key)
+                self_ref:showItemDetail(next_item, nav_cat_key, next_name, nil, {
+                    items = nav_items, index = next_idx,
+                    category_key = nav_cat_key, category_label = nav_cat_label,
+                })
+            end,
+        })
+    else
+        table.insert(row, {
+            text = "⇱",
+            id = "top",
+            callback = function()
+                if viewer then viewer.scroll_text_w:scrollToTop() end
+            end,
+        })
+        table.insert(row, {
+            text = "⇲",
+            id = "bottom",
+            callback = function()
+                if viewer then viewer.scroll_text_w:scrollToBottom() end
+            end,
+        })
+    end
+
     if self.metadata.plugin and self.metadata.configuration then
         table.insert(row, {
             text = _("Chat about this"),
@@ -981,7 +1035,7 @@ function XrayBrowser:showItemDetail(item, category_key, title, source)
                 text = _("Edit Search Terms"),
                 callback = function()
                     if viewer then viewer:onClose() end
-                    self_ref:editSearchTerms(item, category_key, title, source)
+                    self_ref:editSearchTerms(item, category_key, title, source, nav_context)
                 end,
             })
         end
@@ -1044,8 +1098,14 @@ function XrayBrowser:showItemDetail(item, category_key, title, source)
     -- Navigation bar (last row — arrows + chat)
     table.insert(buttons_rows, row)
 
+    -- Title: append position indicator when navigating within a category
+    local display_title = title or _("Details")
+    if nav_context and nav_context.items then
+        display_title = T("%1 (%2/%3)", display_title, nav_context.index, #nav_context.items)
+    end
+
     viewer = TextViewer:new{
-        title = title or _("Details"),
+        title = display_title,
         text = detail_text,
         width = Screen:getWidth(),
         height = Screen:getHeight(),
@@ -1074,7 +1134,8 @@ end
 --- @param category_key string The category key
 --- @param item_title string Display title for refreshing detail view
 --- @param source table|nil Navigation source for back-button chain
-function XrayBrowser:editSearchTerms(item, category_key, item_title, source)
+--- @param nav_context table|nil Category navigation context (preserved for detail view)
+function XrayBrowser:editSearchTerms(item, category_key, item_title, source, nav_context)
     local ActionCache = require("koassistant_action_cache")
     local item_name = XrayParser.getItemName(item, category_key)
     local self_ref = self
@@ -1109,7 +1170,7 @@ function XrayBrowser:editSearchTerms(item, category_key, item_title, source)
                 UIManager:close(self_ref._edit_dialog)
                 self_ref._edit_dialog = nil
                 self_ref:_editSearchTermAction(item, category_key, item_title, source,
-                    item_name, captured_alias, is_user_added and "remove" or "ignore")
+                    item_name, captured_alias, is_user_added and "remove" or "ignore", nav_context)
             end,
         }})
     end
@@ -1123,7 +1184,7 @@ function XrayBrowser:editSearchTerms(item, category_key, item_title, source)
                 UIManager:close(self_ref._edit_dialog)
                 self_ref._edit_dialog = nil
                 self_ref:_editSearchTermAction(item, category_key, item_title, source,
-                    item_name, captured_alias, "restore")
+                    item_name, captured_alias, "restore", nav_context)
             end,
         }})
     end
@@ -1140,7 +1201,7 @@ function XrayBrowser:editSearchTerms(item, category_key, item_title, source)
             callback = function()
                 UIManager:close(self_ref._edit_dialog)
                 self_ref._edit_dialog = nil
-                self_ref:_addSearchTermInput(item, category_key, item_title, source, item_name)
+                self_ref:_addSearchTermInput(item, category_key, item_title, source, item_name, nav_context)
             end,
         },
         {
@@ -1150,7 +1211,7 @@ function XrayBrowser:editSearchTerms(item, category_key, item_title, source)
                 UIManager:close(self_ref._edit_dialog)
                 self_ref._edit_dialog = nil
                 -- Refresh detail view to reflect any changes
-                self_ref:showItemDetail(item, category_key, item_title, source)
+                self_ref:showItemDetail(item, category_key, item_title, source, nav_context)
             end,
         },
     })
@@ -1170,7 +1231,8 @@ end
 --- @param item_name string The item display name (storage key)
 --- @param alias string The alias being acted on
 --- @param action string "remove"|"ignore"|"restore"
-function XrayBrowser:_editSearchTermAction(item, category_key, item_title, source, item_name, alias, action)
+--- @param nav_context table|nil Category navigation context
+function XrayBrowser:_editSearchTermAction(item, category_key, item_title, source, item_name, alias, action, nav_context)
     local ActionCache = require("koassistant_action_cache")
     local all_data = ActionCache.getUserAliases(self.metadata.book_file)
     local entry = all_data[item_name] or { add = {}, ignore = {} }
@@ -1236,7 +1298,7 @@ function XrayBrowser:_editSearchTermAction(item, category_key, item_title, sourc
     end
 
     -- Re-open edit dialog to reflect changes
-    self:editSearchTerms(item, category_key, item_title, source)
+    self:editSearchTerms(item, category_key, item_title, source, nav_context)
 end
 
 --- Show input dialog to add a new search term
@@ -1245,7 +1307,8 @@ end
 --- @param item_title string Display title
 --- @param source table|nil Navigation source
 --- @param item_name string The item display name (storage key)
-function XrayBrowser:_addSearchTermInput(item, category_key, item_title, source, item_name)
+--- @param nav_context table|nil Category navigation context
+function XrayBrowser:_addSearchTermInput(item, category_key, item_title, source, item_name, nav_context)
     local ActionCache = require("koassistant_action_cache")
     local self_ref = self
 
@@ -1262,7 +1325,7 @@ function XrayBrowser:_addSearchTermInput(item, category_key, item_title, source,
                     callback = function()
                         UIManager:close(input_dialog)
                         -- Re-open edit dialog
-                        self_ref:editSearchTerms(item, category_key, item_title, source)
+                        self_ref:editSearchTerms(item, category_key, item_title, source, nav_context)
                     end,
                 },
                 {
@@ -1272,7 +1335,7 @@ function XrayBrowser:_addSearchTermInput(item, category_key, item_title, source,
                         local new_alias = input_dialog:getInputText()
                         UIManager:close(input_dialog)
                         if not new_alias or new_alias:match("^%s*$") then
-                            self_ref:editSearchTerms(item, category_key, item_title, source)
+                            self_ref:editSearchTerms(item, category_key, item_title, source, nav_context)
                             return
                         end
                         new_alias = new_alias:match("^%s*(.-)%s*$")  -- trim
@@ -1292,7 +1355,7 @@ function XrayBrowser:_addSearchTermInput(item, category_key, item_title, source,
                                     text = _("This search term already exists."),
                                     timeout = 2,
                                 })
-                                self_ref:editSearchTerms(item, category_key, item_title, source)
+                                self_ref:editSearchTerms(item, category_key, item_title, source, nav_context)
                                 return
                             end
                         end
@@ -1324,7 +1387,7 @@ function XrayBrowser:_addSearchTermInput(item, category_key, item_title, source,
                             text = T(_("Added \"%1\""), new_alias),
                         })
                         -- Re-open edit dialog
-                        self_ref:editSearchTerms(item, category_key, item_title, source)
+                        self_ref:editSearchTerms(item, category_key, item_title, source, nav_context)
                     end,
                 },
             },

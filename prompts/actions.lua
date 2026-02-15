@@ -498,6 +498,7 @@ Focus on what's genuinely new or different from what the text describes. If the 
     -- Local X-Ray lookup: search cached X-Ray data for selected text (no AI call)
     xray_lookup = {
         id = "xray_lookup",
+        enable_web_search = false,
         text = _("Look up in X-Ray"),
         description = _("Search X-Ray cache for selected text. Local lookup — no AI call, works offline."),
         context = "highlight",
