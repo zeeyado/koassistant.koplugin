@@ -637,14 +637,22 @@ function PromptsManager:showResetMenusDialog()
                     end,
                 })
             end }},
+            {{ text = _("Reset Input Dialog Actions"), callback = function()
+                UIManager:close(dialog)
+                UIManager:show(ConfirmBox:new{
+                    text = _("Reset input dialog actions to defaults for all contexts (book, file browser, highlight, X-Ray chat)?"),
+                    ok_callback = function()
+                        self_ref.plugin:resetInputDialogActions()
+                        self_ref:refreshMenu()
+                    end,
+                })
+            end }},
             {{ text = _("Reset All Menus"), callback = function()
                 UIManager:close(dialog)
                 UIManager:show(ConfirmBox:new{
                     text = _("Reset ALL action menu configurations?\n\nThis resets ordering and selection in all menus back to defaults.\n\nYour actions (custom and built-in) are preserved."),
                     ok_callback = function()
                         self_ref.plugin:resetActionMenus()
-                        self_ref.plugin:resetQuickActions()
-                        self_ref.plugin:resetFileBrowserActions()
                         self_ref.plugin:resetQaUtilities()
                         self_ref.plugin:resetQsItems()
                         self_ref:refreshMenu()

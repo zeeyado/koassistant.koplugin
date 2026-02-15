@@ -128,7 +128,7 @@
 
 **Note:** The README is intentionally verbose and somewhat repetitive to ensure you see all features and their nuances. Use the table of contents to jump to specific topics. A more concise structured documentation system is planned (contributions welcome).
 
-**Prefer a minimal footprint?** KOAssistant is designed to stay out of your way. The main menu is tucked under Tools (page 2), and all default integrations (file browser buttons, highlight menu items, dictionary popup) can be disabled via **[Settings → KOReader Integration](#koreader-integration)**. Use only what you need.
+**Prefer a minimal footprint?** KOAssistant is designed to stay out of your way. The main menu is tucked under Tools (page 2), and all default integrations (file browser buttons, highlight menu items, dictionary popup, gesture actions) can be disabled via **[Settings → KOReader Integration](#koreader-integration)**. Use only what you need.
 
 ---
 
@@ -1158,7 +1158,7 @@ Actions appear as "KOA: Explain", "KOA: Translate", etc. in the highlight popup.
 
 **Note**: Changes require an app restart since the highlight menu is built at startup.
 
-> **Prefer a cleaner menu?** You can disable KOAssistant's highlight menu integration entirely via **Settings → KOReader Integration**. The main "KOAssistant" button and quick action shortcuts (Translate, Explain, etc.) have separate toggles.
+> **Prefer a cleaner menu?** You can disable KOAssistant's highlight menu integration entirely via **Settings → KOReader Integration**. "Show in Highlight Menu" (the main button) and "Show Highlight Quick Actions" (shortcuts like Translate, Explain) have separate toggles.
 
 ---
 
@@ -1411,7 +1411,7 @@ Actions with gestures show a `[gesture]` indicator in the Action Manager list.
 
 **Why only book and general?** Highlight actions require selected text, and multi-book actions require file browser multi-select — neither can be triggered via gestures.
 
-**Note:** Changes require restart because KOReader's gesture system loads available actions at startup.
+**Note:** Changes require restart because KOReader's gesture system loads available actions at startup. To disable all custom action gestures at once, use **Settings → KOReader Integration → Show in Gesture Menu**. Built-in utility gestures (Quick Settings, Chat History, etc.) are not affected by this toggle.
 
 ### Available Gesture Actions
 
@@ -2087,24 +2087,12 @@ See [Privacy & Data](#privacy--data) for background on what gets sent to AI prov
 ### KOReader Integration
 Control where KOAssistant appears in KOReader's menus. All toggles default to ON; disable any to reduce UI presence.
 - **Show in File Browser**: Add KOAssistant buttons to file browser context menus (requires restart)
-- **Show KOAssistant Button in Highlight Menu**: Add the main "KOAssistant" button to the highlight popup (requires restart)
-- **Show Highlight Menu Actions**: Add Explain, Translate, and other action shortcuts to the highlight popup (requires restart)
-- **Show in Dictionary Popup**: Add AI buttons to KOReader's dictionary popup (same as Dictionary Settings toggle)
-- **File Browser Buttons** (sub-settings of Show in File Browser):
-  - **Show Notebook Button**: Show "Notebook (KOA)" button when long-pressing books
-  - **Only for books with notebooks**: Only show notebook button if notebook already exists
-  - **Show Chat History Button**: Show "Chat History (KOA)" button when long-pressing books that have chat history
-  - **Show Artifacts Button**: Show "View Artifacts (KOA)" button for books that have artifacts (X-Ray, X-Ray (Simple), Recap, Summary, Analysis). Default: on
-  - **Pinned Actions**: Book Info is included by default. Add more via Action Manager → hold → "Add to File Browser". Manage order and visibility via **File Browser Actions...** manager
-  - All file browser buttons are distributed across rows of up to 4 buttons, equally distributed
-- **Customize Visible Actions**:
-  - **Dictionary Popup Actions...**: Configure which actions appear in the dictionary popup's AI menu
-  - **Highlight Menu Actions...**: Configure which actions appear as shortcuts in the highlight menu
-  - **File Browser Actions...**: Reorder and manage pinned file browser actions (tap to toggle, hold to move/remove)
-- **Reset Options**: Reset Dictionary Popup Actions, Highlight Menu Actions, File Browser Actions, Quick Actions, or all at once
-- **Auto-check for updates**: Automatically check for new versions when KOReader starts (default: on)
+- **Show in Highlight Menu**: Add the main "Chat/Action" button to the highlight popup (requires restart)
+- **Show Highlight Quick Actions**: Add Explain, Translate, and other action shortcuts to the highlight popup (requires restart)
+- **Show in Dictionary Popup**: Add AI buttons to KOReader's dictionary popup
+- **Show in Gesture Menu**: Register KOAssistant actions in KOReader's gesture dispatcher (requires restart). Only affects custom action gestures — built-in utility gestures (Chat History, Quick Settings, etc.) are always available.
 
-**Note:** File browser and highlight menu changes require a KOReader restart since buttons are registered at plugin startup. Dictionary popup and quick actions changes take effect immediately.
+**Note:** File browser, highlight menu, and gesture menu changes require a KOReader restart since they are registered at plugin startup. Dictionary popup changes take effect immediately. To customize which actions appear in each menu, use **Action Manager → hold action** to add/remove from specific menus.
 
 ### Temperature
 - **Temperature**: Response creativity (0.0-2.0, Anthropic max 1.0). Top-level setting for quick access.
