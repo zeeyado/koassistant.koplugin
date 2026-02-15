@@ -14,7 +14,7 @@
 </p>
 
 - **Highlight text** → translate, explain, define words, analyze passages, connect ideas, save content directly to KOReader's highlight notes/annotations
-- **While reading** → reference guides (summaries, browsable X-Ray with character tracking, cross-references, chapter distribution, local (offline) X-Ray lookup, X-Ray (Simple) prose overview from AI knowledge, recap, book info, artifacts), analyze your highlights/annotations, explore the book/document (author, context, arguments, similar works), generate discussion questions
+- **While reading** → reference guides (summaries, browsable X-Ray with character tracking, cross-references, chapter distribution, local (offline) X-Ray lookup, X-Ray (Simple) prose overview from AI knowledge, recap, book info, notes analysis), analyze your highlights/annotations, explore the book/document (author, context, arguments, similar works), generate discussion questions
 - **Research & analysis** → deep analysis of papers/articles, explore arguments, find connections across works
 - **Multi-document** → compare texts, find common themes, analyze your collection
 - **General chat** → AI without book/document context
@@ -776,7 +776,7 @@ A free-form conversation without specific document context. If started while a b
 | **Ask** | Free-form question (default) |
 | **News Update** | Get today's top news stories from Al Jazeera with links ⚠️ *Requires: Web Search* |
 
-**Managing the Input Dialog:**
+#### Managing the Input Dialog
 
 All input dialogs (highlight, book, general) show a configurable set of actions that you can customize per context. The top row has **[Web ON/OFF] [Domain] [Send]**, followed by action buttons in rows of 2. The title bar has a close X on the right and a gear icon on the left.
 
