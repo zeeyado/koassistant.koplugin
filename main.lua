@@ -5947,7 +5947,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
               reopenQuickSettings()
             end)
           end }},
-          {{ text = features.qs_left_align ~= false and _("Left-Align Buttons ✓") or _("Left-Align Buttons"), callback = function()
+          {{ text = features.qs_left_align ~= false and _("Align Buttons ✓") or _("Align Buttons"), callback = function()
             UIManager:close(qs_gear_dialog)
             local f = self_ref.settings:readSetting("features") or {}
             if f.qs_left_align ~= false then
@@ -6116,7 +6116,7 @@ function AskGPT:onKOAssistantQuickActions()
               self_ref:onKOAssistantQuickActions()
             end)
           end }},
-          {{ text = qa_features.qa_left_align ~= false and _("Left-Align Buttons ✓") or _("Left-Align Buttons"), callback = function()
+          {{ text = qa_features.qa_left_align ~= false and _("Align Buttons ✓") or _("Align Buttons"), callback = function()
             UIManager:close(chooser_dialog)
             local f = self_ref.settings:readSetting("features") or {}
             if f.qa_left_align ~= false then

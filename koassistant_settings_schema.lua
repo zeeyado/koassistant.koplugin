@@ -186,7 +186,7 @@ local SettingsSchema = {
                 {
                     id = "qs_left_align",
                     type = "toggle",
-                    text = _("Left-Align Quick Settings"),
+                    text = _("Align Quick Settings"),
                     path = "features.qs_left_align",
                     default = true,
                     help_text = _("Left-align button text in the Quick Settings panel instead of centering. Also available from the panel's gear menu."),
@@ -194,7 +194,7 @@ local SettingsSchema = {
                 {
                     id = "qa_left_align",
                     type = "toggle",
-                    text = _("Left-Align Quick Actions"),
+                    text = _("Align Quick Actions"),
                     path = "features.qa_left_align",
                     default = true,
                     help_text = _("Left-align button text in the Quick Actions panel instead of centering. Also available from the panel's gear menu."),
