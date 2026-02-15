@@ -2765,11 +2765,13 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     local exclude_action_flags = ((configuration or {}).features or {})._exclude_action_flags
     local is_xray_chat = ((configuration or {}).features or {})._xray_chat_context
     local xray_context_prefix = ((configuration or {}).features or {})._xray_context_prefix
+    local show_all_actions = ((configuration or {}).features or {})._show_all_actions or false
     if configuration and configuration.features then
         configuration.features._hide_artifacts = nil
         configuration.features._exclude_action_flags = nil
         configuration.features._xray_chat_context = nil
         configuration.features._xray_context_prefix = nil
+        configuration.features._show_all_actions = nil
     end
 
     -- Log which provider we're using
@@ -3325,6 +3327,63 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         end
     end
 
+    -- "Show More Actions…" — compute remaining actions and optionally show in-grid button
+    if action_service then
+        -- Compute "more actions": enabled actions eligible for this context but not in the favorites list
+        local shown_set = {}
+        for _idx2, key in ipairs(prompt_keys) do shown_set[key] = true end
+        local more_actions = {}
+        if input_context == "general" then
+            local all_general = action_service:getAllActions("general", false, has_open_book)
+            for _idx2, action in ipairs(all_general) do
+                if action.id and not shown_set[action.id] and action.enabled then
+                    table.insert(more_actions, action)
+                end
+            end
+        else
+            local eligible_ids = action_service:_getEligibleInputActionIds(input_context)
+            for _idx2, id in ipairs(eligible_ids) do
+                if not shown_set[id] then
+                    local action = action_service:getAction(nil, id)
+                    if action and action.enabled then
+                        -- Apply exclude_action_flags filter
+                        local excluded = false
+                        if exclude_action_flags then
+                            for _idx3, flag in ipairs(exclude_action_flags) do
+                                if action[flag] then excluded = true; break end
+                            end
+                        end
+                        if not excluded then
+                            table.insert(more_actions, action)
+                        end
+                    end
+                end
+            end
+        end
+
+        if show_all_actions then
+            -- Expanded: append all remaining actions after favorites
+            for _idx2, action in ipairs(more_actions) do
+                table.insert(action_buttons, {
+                    text = ActionServiceModule.getActionDisplayText(action, (configuration or {}).features),
+                    prompt_type = action.id,
+                    callback = function()
+                        executeInputAction(action, action.id)
+                    end
+                })
+            end
+        elseif #more_actions > 0 and input_context ~= "general" then
+            -- Collapsed: show in-grid button (non-general only; general uses gear menu toggle)
+            table.insert(action_buttons, {
+                text = _("Show More Actions…"),
+                callback = function()
+                    show_all_actions = true
+                    refreshInputDialog()
+                end,
+            })
+        end
+    end
+
     -- Build View Artifacts button (shows cached artifacts)
     -- Always "View Artifacts" text, always shows popup selector with metadata
     local artifact_button = nil
@@ -3427,6 +3486,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             if is_xray_chat then configuration.features._xray_chat_context = true end
             if hide_artifacts then configuration.features._hide_artifacts = true end
             if xray_context_prefix then configuration.features._xray_context_prefix = xray_context_prefix end
+            if show_all_actions then configuration.features._show_all_actions = true end
         end
         showChatGPTDialog(ui_instance, highlighted_text, configuration, nil, plugin, book_metadata, current_text)
     end
@@ -3469,74 +3529,10 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                             end)
                         end)
                     end }},
-                    {{ text = _("Show More Actions…"), callback = function()
+                    {{ text = show_all_actions and _("Show Fewer Actions") or _("Show More Actions…"), callback = function()
                         UIManager:close(gear_menu)
-                        if not plugin or not plugin.action_service then return end
-                        -- Get all eligible actions minus those in the current favorites
-                        local as = plugin.action_service
-                        local current_ids
-                        if input_context == "general" then
-                            current_ids = as:getGeneralMenuActions()
-                        else
-                            current_ids = as:getInputActions(input_context)
-                        end
-                        local current_set = {}
-                        for _idx, id in ipairs(current_ids) do current_set[id] = true end
-                        local all_actions
-                        if input_context == "general" then
-                            local all_general = as:getAllActions("general", false, has_open_book)
-                            all_actions = {}
-                            for _idx, action in ipairs(all_general) do
-                                if not current_set[action.id] and action.enabled then
-                                    table.insert(all_actions, action)
-                                end
-                            end
-                        else
-                            -- Get the full eligible pool
-                            local eligible_ids = as:_getEligibleInputActionIds(input_context)
-                            all_actions = {}
-                            for _idx, id in ipairs(eligible_ids) do
-                                if not current_set[id] then
-                                    local action = as:getAction(nil, id)
-                                    if action and action.enabled then
-                                        table.insert(all_actions, action)
-                                    end
-                                end
-                            end
-                        end
-                        if #all_actions == 0 then
-                            UIManager:show(InfoMessage:new{
-                                text = _("All actions are already shown."),
-                                timeout = 2,
-                            })
-                            return
-                        end
-                        -- Build 2-per-row button dialog
-                        local btn_rows = {}
-                        local btn_row = {}
-                        for _idx, action in ipairs(all_actions) do
-                            table.insert(btn_row, {
-                                text = ActionServiceModule.getActionDisplayText(action, (configuration or {}).features),
-                                callback = function()
-                                    UIManager:close(plugin._more_actions_dialog)
-                                    executeInputAction(action, action.id)
-                                end,
-                            })
-                            if #btn_row == 2 then
-                                table.insert(btn_rows, btn_row)
-                                btn_row = {}
-                            end
-                        end
-                        if #btn_row > 0 then
-                            table.insert(btn_rows, btn_row)
-                        end
-                        table.insert(btn_rows, {{ text = _("Cancel"), id = "close", callback = function()
-                            UIManager:close(plugin._more_actions_dialog)
-                        end }})
-                        plugin._more_actions_dialog = ButtonDialog:new{
-                            buttons = btn_rows,
-                        }
-                        UIManager:show(plugin._more_actions_dialog)
+                        show_all_actions = not show_all_actions
+                        refreshInputDialog()
                     end }},
                 },
                 shrink_unneeded_width = true,
