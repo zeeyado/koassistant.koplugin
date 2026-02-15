@@ -1204,8 +1204,15 @@ local SettingsSchema = {
                             path = "features.enable_book_text_extraction",
                             default = false,
                             help_text = _("When enabled, actions can extract and send book text to the AI. Used by X-Ray, Recap, and actions with text placeholders.\n\nTip: Use KOReader's Hidden Flows feature to exclude front matter, appendices, etc. from extraction — saving tokens and improving results."),
-                            on_change = function(new_value)
+                            on_change = function(new_value, plugin)
                                 if new_value then
+                                    -- Unlock QS panel toggle after first manual enable
+                                    local f = plugin.settings:readSetting("features") or {}
+                                    if not f._text_extraction_acknowledged then
+                                        f._text_extraction_acknowledged = true
+                                        plugin.settings:saveSetting("features", f)
+                                        plugin.settings:flush()
+                                    end
                                     local InfoMessage = require("ui/widget/infomessage")
                                     local UIManager = require("ui/uimanager")
                                     UIManager:show(InfoMessage:new{
