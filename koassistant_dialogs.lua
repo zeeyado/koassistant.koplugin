@@ -3406,6 +3406,13 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             table.insert(button_rows, current_row)
         end
 
+        -- Non-bold buttons for lighter visual feel
+        for _ri, btn_row in ipairs(button_rows) do
+            for _bi, btn in ipairs(btn_row) do
+                btn.font_bold = false
+            end
+        end
+
         return button_rows
     end
 
@@ -3542,11 +3549,18 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     }
 
     -- Add close X to title bar (InputDialog doesn't natively pass close_callback to TitleBar)
+    -- Also use regular weight font for title (default x_smalltfont is NotoSans-Bold)
+    local Font = require("ui/font")
     input_dialog.title_bar.close_callback = function()
         UIManager:close(input_dialog)
         if plugin then plugin.current_input_dialog = nil end
     end
+    input_dialog.title_bar.title_face = Font:getFace("smallinfofont")
     input_dialog.title_bar:init()
+
+    -- Lighter input field border (default is COLOR_DARK_GRAY; use mid-gray for subtlety)
+    local Blitbuffer = require("ffi/blitbuffer")
+    input_dialog._input_widget._frame_textwidget.color = Blitbuffer.COLOR_GRAY
 
     -- Enable tap-outside-to-close (InputDialog's onCloseDialog looks for id="close" button
     -- which we removed; override to close directly)
