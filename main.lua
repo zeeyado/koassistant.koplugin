@@ -7351,15 +7351,12 @@ function AskGPT:executeQuickAction(action, highlighted_text, context, selection_
 end
 
 function AskGPT:restoreDefaultPrompts()
-  -- Combined reset: custom actions + edits + menus
-  -- Uses the granular reset functions internally
-  self.settings:delSetting("custom_actions")
-  self.settings:delSetting("builtin_action_overrides")
-  self.settings:delSetting("disabled_actions")
-  self.settings:delSetting("highlight_menu_actions")
-  self.settings:delSetting("dictionary_popup_actions")
-  self.settings:delSetting("_dismissed_highlight_actions")
-  self.settings:delSetting("_dismissed_dictionary_actions")
+  -- Combined reset: custom actions + edits + all menus
+  self:resetCustomActions(true)
+  self:resetActionEdits(true)
+  self:resetActionMenus(true)
+  self:resetQaUtilities()
+  self:resetQsItems()
   -- Legacy cleanup
   self.settings:delSetting("disabled_prompts")
   self.settings:flush()
@@ -7540,14 +7537,14 @@ function AskGPT:resetAllCustomizations()
 
   self.settings:saveSetting("features", new_features)
 
-  -- Clear all other top-level settings (custom actions, overrides, menu configs)
-  self.settings:delSetting("custom_actions")
-  self.settings:delSetting("builtin_action_overrides")
-  self.settings:delSetting("highlight_menu_actions")
-  self.settings:delSetting("dictionary_popup_actions")
-  self.settings:delSetting("disabled_actions")
-  self.settings:delSetting("_dismissed_highlight_actions")
-  self.settings:delSetting("_dismissed_dictionary_actions")
+  -- Clear all other top-level settings (custom actions, overrides, all menu configs)
+  self:resetCustomActions(true)
+  self:resetActionEdits(true)
+  self:resetActionMenus(true)
+  self:resetQaUtilities()
+  self:resetQsItems()
+  -- Legacy cleanup
+  self.settings:delSetting("disabled_prompts")
 
   self.settings:flush()
   self:updateConfigFromSettings()
@@ -7617,6 +7614,15 @@ function AskGPT:resetActionMenus(silent)
   -- File browser actions
   self.settings:delSetting("file_browser_actions")
   self.settings:delSetting("_dismissed_file_browser_actions")
+  -- Input dialog actions (all 4 contexts)
+  self.settings:delSetting("input_book_actions")
+  self.settings:delSetting("_dismissed_input_book_actions")
+  self.settings:delSetting("input_book_fb_actions")
+  self.settings:delSetting("_dismissed_input_book_fb_actions")
+  self.settings:delSetting("input_highlight_actions")
+  self.settings:delSetting("_dismissed_input_highlight_actions")
+  self.settings:delSetting("input_xray_chat_actions")
+  self.settings:delSetting("_dismissed_input_xray_chat_actions")
   self.settings:flush()
 
   if not silent then
@@ -7675,6 +7681,23 @@ function AskGPT:resetQuickActions(touchmenu_instance)
     timeout = 2,
   })
   if touchmenu_instance then touchmenu_instance:updateItems() end
+end
+
+-- Reset input dialog actions (all 4 contexts)
+function AskGPT:resetInputDialogActions()
+  self.settings:delSetting("input_book_actions")
+  self.settings:delSetting("_dismissed_input_book_actions")
+  self.settings:delSetting("input_book_fb_actions")
+  self.settings:delSetting("_dismissed_input_book_fb_actions")
+  self.settings:delSetting("input_highlight_actions")
+  self.settings:delSetting("_dismissed_input_highlight_actions")
+  self.settings:delSetting("input_xray_chat_actions")
+  self.settings:delSetting("_dismissed_input_xray_chat_actions")
+  self.settings:flush()
+  UIManager:show(Notification:new{
+    text = _("Input dialog actions reset"),
+    timeout = 2,
+  })
 end
 
 -- Reset QA panel utilities order and visibility
@@ -7786,6 +7809,8 @@ function AskGPT:quickResetActions()
   self:resetCustomActions(true)
   self:resetActionEdits(true)
   self:resetActionMenus(true)
+  self:resetQaUtilities()
+  self:resetQsItems()
   UIManager:show(Notification:new{
     text = _("All action settings reset"),
     timeout = 2,
@@ -7800,6 +7825,9 @@ function AskGPT:quickResetFreshStart()
   self:resetActionMenus(true)
   self:resetCustomProvidersModels(true)
   self:resetBehaviorsDomains()
+  -- QA/QS ordering keys (visibility flags already reset by _resetFeatureSettingsInternal)
+  self.settings:delSetting("qa_utilities_order")
+  self.settings:delSetting("qs_items_order")
 
   -- Fresh start: also clear user choices preserved by _resetFeatureSettingsInternal
   -- (keeps API keys, languages, and migration flags)
