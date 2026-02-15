@@ -1828,7 +1828,7 @@ Tags are simple labels for organizing chats. Unlike domains:
 
 ## Settings Reference
 
-<a href="screenshots/settingsui.png"><img src="screenshots/settingsui.png" width="300" alt="Settings menu"></a>
+<a href="screenshots/settingsref.png"><img src="screenshots/settingsref.png" width="300" alt="Settings menu"></a>
 
 **Tools → KOAssistant → Settings**
 
