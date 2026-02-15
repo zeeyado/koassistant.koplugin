@@ -561,20 +561,34 @@ local function compareVersions(v1, v2)
     return 0
 end
 
---- Get the effective translation language from plugin settings
-local function getTranslationLanguage()
+--- Get non-English interaction languages for the translate picker
+--- @return table: Array of language IDs (filtered, no English)
+local function getNonEnglishInteractionLanguages()
     local settings_file = DataStorage:getSettingsDir() .. "/koassistant_settings.lua"
     local settings = LuaSettings:open(settings_file)
     local features = settings:readSetting("features") or {}
 
-    local SystemPrompts = require("prompts.system_prompts")
-    return SystemPrompts.getEffectiveTranslationLanguage({
-        translation_language = features.translation_language,
-        translation_use_primary = features.translation_use_primary,
-        interaction_languages = features.interaction_languages,
-        user_languages = features.user_languages,
-        primary_language = features.primary_language,
-    })
+    -- Support both new array format and old comma-separated string
+    local langs = features.interaction_languages or features.user_languages
+    local all_languages = {}
+    if type(langs) == "table" then
+        for _, lang in ipairs(langs) do
+            if lang and lang ~= "" then table.insert(all_languages, lang) end
+        end
+    elseif type(langs) == "string" and langs ~= "" then
+        for lang in langs:gmatch("([^,]+)") do
+            local trimmed = lang:match("^%s*(.-)%s*$")
+            if trimmed ~= "" then table.insert(all_languages, trimmed) end
+        end
+    end
+
+    local result = {}
+    for _, lang in ipairs(all_languages) do
+        if not lang:match("^English") then
+            table.insert(result, lang)
+        end
+    end
+    return result
 end
 
 -- Forward declarations for mutual recursion
@@ -713,9 +727,9 @@ showUpdatePopup = function(update_info)
         update_info.release_notes
     )
 
-    -- Get translation language to determine if translate button should be shown
-    local translation_language = getTranslationLanguage()
-    local show_translate = translation_language and not translation_language:match("^English")
+    -- Get non-English interaction languages for translate button
+    local translate_languages = getNonEnglishInteractionLanguages()
+    local show_translate = #translate_languages > 0
 
     -- Build buttons
     local buttons = {}
@@ -757,7 +771,7 @@ showUpdatePopup = function(update_info)
         })
     end
 
-    -- Row 3: Translate (only if non-English language)
+    -- Row 3: Translate (only if non-English interaction languages exist)
     if show_translate then
         table.insert(buttons, {
             {
@@ -766,7 +780,35 @@ showUpdatePopup = function(update_info)
                     UIManager:close(update_viewer)
                     NetworkMgr:runWhenOnline(function()
                         local title = update_info.is_prerelease and "KOAssistant Pre-release Update" or "KOAssistant Update Available"
-                        translateAndShowContent(markdown_content, translation_language, title, update_info)
+                        if #translate_languages == 1 then
+                            -- Single language: translate directly
+                            translateAndShowContent(markdown_content, translate_languages[1], title, update_info)
+                        else
+                            -- Multiple languages: show picker
+                            local picker_dialog
+                            local picker_buttons = {}
+                            for _, lang_id in ipairs(translate_languages) do
+                                table.insert(picker_buttons, {{
+                                    text = Languages.getDisplay(lang_id),
+                                    callback = function()
+                                        UIManager:close(picker_dialog)
+                                        translateAndShowContent(markdown_content, lang_id, title, update_info)
+                                    end,
+                                }})
+                            end
+                            table.insert(picker_buttons, {{
+                                text = _("Cancel"),
+                                id = "close",
+                                callback = function()
+                                    UIManager:close(picker_dialog)
+                                end,
+                            }})
+                            picker_dialog = ButtonDialog:new{
+                                title = _("Translate to"),
+                                buttons = picker_buttons,
+                            }
+                            UIManager:show(picker_dialog)
+                        end
                     end)
                 end,
             },
