@@ -1578,23 +1578,23 @@ function XrayBrowser:showChapterPicker(current_chapter)
         end
     end
 
-    -- Prepend "All Chapters" option(s)
+    -- Prepend "Entire document" option(s)
     if self.is_complete then
         table.insert(collapsed_toc, 1, {
-            text = _("All Chapters"),
+            text = _("Entire document"),
             bold = current_chapter == "all",
             separator = true,
             _is_all_chapters = true,
         })
     else
-        -- Two options: scoped (spoiler-safe) and reveal-all (entire book)
+        -- Two options: scoped (spoiler-safe) and reveal-all (entire document)
         table.insert(collapsed_toc, 1, {
-            text = T(_("All Chapters (to %1)"), self.metadata.progress or "?%"),
+            text = T(_("Entire document (to %1)"), self.metadata.progress or "?%"),
             bold = current_chapter == "all",
             _is_all_chapters = true,
         })
         table.insert(collapsed_toc, 2, {
-            text = _("All Chapters"),
+            text = _("Entire document"),
             bold = current_chapter == "all_reveal",
             dim = not self._mentions_spoiler_warned,
             separator = true,
@@ -1942,22 +1942,22 @@ function XrayBrowser:_showFlatChapterPicker(chunks, current_chapter)
     local self_ref = self
     local items = {}
 
-    -- "All Chapters" at top
+    -- "Entire document" at top
     if self.is_complete then
         table.insert(items, {
-            text = _("All Chapters"),
+            text = _("Entire document"),
             bold = current_chapter == "all",
             separator = true,
             _is_all_chapters = true,
         })
     else
         table.insert(items, {
-            text = T(_("All Chapters (to %1)"), self.metadata.progress or "?%"),
+            text = T(_("Entire document (to %1)"), self.metadata.progress or "?%"),
             bold = current_chapter == "all",
             _is_all_chapters = true,
         })
         table.insert(items, {
-            text = _("All Chapters"),
+            text = _("Entire document"),
             bold = current_chapter == "all_reveal",
             dim = not self._mentions_spoiler_warned,
             separator = true,
@@ -2187,7 +2187,7 @@ function XrayBrowser:showMentions(chapter)
         local chapter_depth = type(chapter) == "table" and chapter.depth or nil
         if is_all then
             if chapter == "all_reveal" or self_ref.is_complete then
-                picker_label = _("All Chapters \u{25BE}")
+                picker_label = _("Entire document \u{25BE}")
             else
                 picker_label = T(_("To %1 \u{25BE}"), self_ref.metadata.progress or "?%")
             end
@@ -2239,7 +2239,7 @@ function XrayBrowser:showMentions(chapter)
         local title
         if is_all then
             if chapter == "all_reveal" or self_ref.is_complete then
-                title = T(_("All Chapters — %1 mentions"), #found)
+                title = T(_("Entire document — %1 mentions"), #found)
             else
                 title = T(_("To %1 — %2 mentions"), self_ref.metadata.progress or "?%", #found)
             end
@@ -2351,6 +2351,44 @@ function XrayBrowser:_buildDistributionView(item, category_key, item_title, data
     local count_width = data.max_count > 0 and #tostring(data.max_count) or 1
 
     local items = {}
+
+    -- "Scan entire document" at top when there are unread chapters
+    if data.has_unread then
+        table.insert(items, {
+            text = _("Scan entire document"),
+            mandatory = _("may contain spoilers"),
+            mandatory_dim = true,
+            bold = true,
+            separator = true,
+            callback = function()
+                UIManager:show(Notification:new{
+                    text = _("Scanning all chapters…"),
+                })
+                UIManager:scheduleIn(0.2, function()
+                    for j = 1, #chapters do
+                        if chapter_counts[j] == nil then
+                            local _raw, lower = self_ref:_getChapterText(chapters[j])
+                            local ch_count = 0
+                            if lower ~= "" then
+                                ch_count = XrayParser.countItemOccurrences(item, lower)
+                            end
+                            chapter_counts[j] = ch_count
+                            data.total_mentions = data.total_mentions + ch_count
+                            data.scanned_count = data.scanned_count + 1
+                            if ch_count > data.max_count then
+                                data.max_count = ch_count
+                            end
+                        end
+                    end
+                    data.has_unread = false
+                    data.spoiler_warned = true
+                    data._focus_idx = nil  -- reset to top after scanning all
+                    self_ref:_buildDistributionView(item, category_key, item_title, data, true)
+                end)
+            end,
+        })
+    end
+
     for i, chapter in ipairs(chapters) do
         local count = chapter_counts[i]
         local display_title = chapter.title or ""
@@ -2524,43 +2562,6 @@ function XrayBrowser:_buildDistributionView(item, category_key, item_title, data
                 end,
             })
         end
-    end
-
-    -- "Scan all chapters" footer when there are unread chapters
-    if data.has_unread then
-        table.insert(items, {
-            text = _("Scan all chapters"),
-            mandatory = _("may contain spoilers"),
-            mandatory_dim = true,
-            bold = true,
-            separator = true,
-            callback = function()
-                UIManager:show(Notification:new{
-                    text = _("Scanning all chapters…"),
-                })
-                UIManager:scheduleIn(0.2, function()
-                    for j = 1, #chapters do
-                        if chapter_counts[j] == nil then
-                            local _raw, lower = self_ref:_getChapterText(chapters[j])
-                            local ch_count = 0
-                            if lower ~= "" then
-                                ch_count = XrayParser.countItemOccurrences(item, lower)
-                            end
-                            chapter_counts[j] = ch_count
-                            data.total_mentions = data.total_mentions + ch_count
-                            data.scanned_count = data.scanned_count + 1
-                            if ch_count > data.max_count then
-                                data.max_count = ch_count
-                            end
-                        end
-                    end
-                    data.has_unread = false
-                    data.spoiler_warned = true
-                    data._focus_idx = nil  -- reset to top after scanning all
-                    self_ref:_buildDistributionView(item, category_key, item_title, data, true)
-                end)
-            end,
-        })
     end
 
     local title = T(_("%1 — %2 chapters"), item_title,
