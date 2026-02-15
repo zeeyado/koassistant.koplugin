@@ -792,8 +792,8 @@ function PromptsManager:showPromptDetails(prompt)
 
     -- Top rows: Edit/Quick Edit + Duplicate (or Delete for UI-created)
     if prompt.source == "ui" then
-        -- Row 1: [Quick Edit] [Delete]
-        table.insert(buttons, {
+        -- Row 1: [Quick Edit] [Duplicate]
+        local row = {
             {
                 text = _("Quick Edit"),
                 callback = function()
@@ -803,28 +803,9 @@ function PromptsManager:showPromptDetails(prompt)
                     self:showCustomQuickSettings(prompt)
                 end,
             },
-            {
-                text = _("Delete"),
-                callback = function()
-                    UIManager:show(ConfirmBox:new{
-                        text = _("Delete this action?"),
-                        ok_callback = function()
-                            self:deletePrompt(prompt)
-                            if self.details_dialog then
-                                UIManager:close(self.details_dialog)
-                            end
-                            if self.prompts_menu then
-                                UIManager:close(self.prompts_menu)
-                            end
-                            self:show()
-                        end,
-                    })
-                end,
-            },
-        })
-        if duplicate_btn then
-            table.insert(buttons, { duplicate_btn })
-        end
+        }
+        if duplicate_btn then table.insert(row, duplicate_btn) end
+        table.insert(buttons, row)
     elseif prompt.source == "config" then
         -- Row 1: [Edit file] [Duplicate]
         local row = {
@@ -1031,6 +1012,27 @@ function PromptsManager:showPromptDetails(prompt)
         end
     end
 
+    -- Delete button at the bottom for UI-created actions
+    if prompt.source == "ui" then
+        table.insert(buttons, {
+            {
+                text = _("Delete"),
+                callback = function()
+                    UIManager:show(ConfirmBox:new{
+                        text = _("Delete this action?"),
+                        ok_callback = function()
+                            self:deletePrompt(prompt)
+                            if self.details_dialog then
+                                UIManager:close(self.details_dialog)
+                            end
+                            self:refreshMenu()
+                        end,
+                    })
+                end,
+            },
+        })
+    end
+
     self.details_dialog = TextViewer:new{
         title = _("Action Details"),
         text = info_text,
@@ -1090,22 +1092,14 @@ function PromptsManager:duplicateAction(action)
     -- Save immediately as a new custom action (will have star icon as source = "ui")
     self.plugin.action_service:addUserAction(action_data)
 
-    -- Close the prompts menu if open
-    if self.prompts_menu then
-        UIManager:close(self.prompts_menu)
-    end
-
     -- Show success notification
     UIManager:show(InfoMessage:new{
-        text = T(_("Created: %1\n\nYou can find and edit it in the Actions list."), duplicate.text),
+        text = T(_("Created: %1"), duplicate.text),
         timeout = 2,
     })
 
-    -- Refresh the actions list after a delay (must reload prompts first!)
-    UIManager:scheduleIn(0.3, function()
-        self:loadPrompts()  -- Reload prompts from action_service
-        self:showPromptsMenu()
-    end)
+    -- Refresh in-place (preserves current page)
+    self:refreshMenu()
 end
 
 -- Wizard Step 1: Enter prompt name and select context
