@@ -19,7 +19,7 @@
 - **Multi-document** → compare texts, find common themes, analyze your collection
 - **General chat** → AI without book/document context
 - **Web search** → AI can search the web for current information (Anthropic, Gemini, OpenRouter)
-- **Multilingual** → Use any language the AI understands, and use the KOAssitant UI in 20 langauges
+- **Multilingual** → Use any language the AI understands, and use the KOAssistant UI in 20 languages
 
 16 built-in providers (Anthropic, OpenAI, Gemini, Ollama, and more) plus custom OpenAI-compatible providers. Fully configurable: custom actions, behaviors, domains, per-action model overrides. **One-tap auto-update** keeps the plugin current. Personal reading data (highlights, annotations, notebooks) is opt-in — not sent to the AI unless you enable it.
 
@@ -42,9 +42,10 @@
 - [How to Use KOAssistant](#how-to-use-koassistant) — Contexts & Built-in Actions
   - [Highlight Mode](#highlight-mode)
   - [Book/Document Mode](#bookdocument-mode)
-    - [Reading Analysis Actions](#reading-analysis-actions) — X-Ray, X-Ray (Simple), Recap, Document Summary, Document Analysis
+    - [Reading Analysis Actions](#reading-analysis-actions) — X-Ray, X-Ray (Simple), Recap, Document Summary, Document Analysis, Book Info, Analyze My Notes
   - [Multi-Document Mode](#multi-document-mode)
   - [General Chat](#general-chat)
+  - [Input Dialog Actions](#managing-the-input-dialog) — Per-context action sorting, gear menu, web toggle
   - [Save to Note](#save-to-note)
 - [How the AI Prompt Works](#how-the-ai-prompt-works) — Behavior + Domain + Language system
 - [Actions](#actions)
@@ -85,8 +86,8 @@
 - [Technical Features](#technical-features)
   - [Streaming Responses](#streaming-responses)
   - [Prompt Caching](#prompt-caching)
-  - [Response Caching](#response-caching) — Incremental X-Ray/Recap updates as you read
-  - [Document Artifacts](#document-artifacts) — Summary, X-Ray, X-Ray (Simple), Recap, Analysis: viewable guides and reusable context for Smart actions
+  - [Response Caching](#response-caching) — 7 cacheable artifacts, incremental X-Ray/Recap updates as you read
+  - [Document Artifacts](#document-artifacts) — Summary, X-Ray, X-Ray (Simple), Recap, Analysis, Book Info, Analyze My Notes: viewable guides and reusable context for Smart actions
   - [Reasoning/Thinking](#reasoningthinking)
   - [Web Search](#web-search) — AI searches the web for current information (Anthropic, Gemini, OpenRouter)
 - [Supported Providers + Settings](#supported-providers--settings) - Choose your model, etc
@@ -264,7 +265,7 @@ The panel has a **gear icon** (top-left) that opens the QS Panel Utilities manag
 
 Assign "KOAssistant: Quick Actions" to a gesture for fast access to reading-related actions:
 - **Default actions** — X-Ray, Recap, Book Info, Document Summary, Analyze My Notes, Extract Key Insights, Key Arguments (Smart)
-- **Artifact button** — "View Artifacts" appears when any artifacts exist (X-Ray, X-Ray (Simple), Analysis, Summary, Recap), opening a picker showing each artifact with progress % and age (e.g., "X-Ray (100%, 3d ago)")
+- **Artifact button** — "View Artifacts" appears when any artifacts exist (X-Ray, X-Ray (Simple), Summary, Analysis, Recap, Book Info, Analyze My Notes), opening a picker showing each artifact with progress % and age (e.g., "X-Ray (100%, 3d ago)")
 - **Utilities** — Translate Page, New Book Chat/Action, Continue Last Chat, General Chat/Action, Chat History, Notebook, View Artifacts, Quick Settings
 
 You can add any book action to Quick Actions via **Action Manager → hold action → "Add to Quick Actions"**. The panel has a **gear icon** (top-left) that lets you choose between managing **Panel Actions** (reorder/remove actions) or **Panel Utilities** (show/hide/reorder utility buttons). Also accessible via **Settings → Quick Actions Settings**. Defaults can also be removed.
@@ -319,7 +320,7 @@ See detailed sections below for each feature.
 - **Good document metadata** improves AI responses. Use Calibre, Zotero, or similar tools to ensure titles, authors, and identifiers are correct.
 - **Shorter tap duration** makes text selection in KOReader easier: Settings → Taps and Gestures → Long-press interval
 - **Choose models wisely**: Fast models (like Haiku) for quick queries; powerful models (like Sonnet, Opus) for deeper analysis. You can set different models for different actions — see [Tuning Built-in Actions](#tuning-built-in-actions).
-- **Try different behavior styles**: 22 built-in behaviors include provider-inspired styles (Claude, GPT, Gemini, Grok, DeepSeek, Perplexity) — all work with any provider. Change via Quick Settings or Settings → Actions & Prompts → Manage Behaviors.
+- **Try different behavior styles**: 23 built-in behaviors include provider-inspired styles (Claude, GPT, Gemini, Grok, DeepSeek, Perplexity) — all work with any provider. Change via Quick Settings or Settings → Actions & Prompts → Manage Behaviors.
 - **Combine behaviors with domains**: Behavior controls *how* the AI communicates; Domain provides *what* context. Try Perplexity Style + a research domain for source-focused academic analysis.
 
 ---
@@ -562,7 +563,7 @@ Several actions come in two variants: a **regular** version that sends full docu
 - When token cost is a concern
 
 **When to use regular variants:**
-- Short to medium length documents where full text is cheap to send and doesn't choke the context window, this degrading performance
+- Short to medium length documents where full text is cheap to send and doesn't choke the context window, thus degrading performance
 - One-off queries where generating a summary first isn't worth it
 - When you need the AI to work from the actual text, not a summary, for detail and accuracy
 
@@ -595,7 +596,7 @@ See [Document Artifacts → "Generate Once, Use Many Times"](#document-artifacts
 
 **Save to Note**: After getting an AI response, tap the **Save to Note** button to save it directly as a KOReader highlight note attached to your selected text. See [Save to Note](#save-to-note) for details.
 
-> **Tip**: Add frequently-used actions to the highlight menu (Settings → Menu Customization → Highlight Menu) for quick access. Other enabled highlight actions remain available from the main "KOAssistant" entry in the highlight popup. From that input window, you can also add extra instructions to any action (e.g., "esp. the economic implications" or "in simple terms").
+> **Tip**: Add frequently-used actions to the highlight menu (Action Manager → hold action → "Add to Highlight Menu") for quick access. Other enabled highlight actions remain available from the main "KOAssistant" entry in the highlight popup. From that input window, you can also add extra instructions to any action (e.g., "esp. the economic implications" or "in simple terms").
 
 ### Book/Document Mode
 
@@ -650,6 +651,8 @@ These actions analyze your actual reading content. They require specific privacy
 | **Document Analysis** | Entire document | Allow Text Extraction |
 | **Document Summary** | Entire document | Allow Text Extraction |
 | **Extract Key Insights** | Entire document | Allow Text Extraction |
+| **Book Info** | AI training knowledge (+ optional web search) | None (web search optional) |
+| **Analyze My Notes** | Your highlights and annotations | Allow Annotation Notes |
 
 > ⚠️ **Privacy settings required:** These actions won't have access to your reading data unless you enable the corresponding setting in **Settings → Privacy & Data**. Without text extraction enabled, most actions gracefully fall back: the AI is explicitly guided to use its training knowledge of the work and to say so if it doesn't recognize the title. This produces reasonable results for well-known books but will be less accurate for obscure works and unusable for research papers. A "*Response generated without: ...*" notice will appear in the chat to indicate what data was requested but not provided. **Exception:** X-Ray requires text extraction and blocks generation without it — use X-Ray (Simple) for a prose overview from AI knowledge.
 >
@@ -1051,12 +1054,12 @@ Utility placeholders provide reusable prompt fragments that can be inserted into
 | Placeholder | Expands To | Behavior |
 |-------------|------------|----------|
 | `{conciseness_nudge}` | "Be direct and concise. Don't restate or over-elaborate." | Always present |
-| `{hallucination_nudge}` | "If you don't recognize this or the content seems unclear, say so rather than guessing." | Always present |
+| `{hallucination_nudge}` | "If you don't recognize this or the content seems unclear, say so rather than guessing." (web-aware variant adds "search the web to verify" when web search is active) | Always present |
 | `{text_fallback_nudge}` | "Note: No document text was provided. Use your knowledge of \"{title}\" to provide the best response you can. If you don't recognize this work, say so honestly rather than fabricating details." | **Conditional** — only appears when document text is empty; invisible when text is present |
 
 **Why use these?**
 - **`{conciseness_nudge}`**: Some AI models (notably Claude Sonnet 4.5) tend to produce verbose responses. This provides a standard instruction to reduce verbosity without sacrificing quality. Used in 14 built-in actions including Explain, Summarize, ELI5, and the context-aware analysis actions.
-- **`{hallucination_nudge}`**: Prevents AI from fabricating information when it doesn't recognize a book or author. Used in many built-in actions including Book Info, Find Similar, Connect, Historical Context, and all multi-book actions.
+- **`{hallucination_nudge}`**: Prevents AI from fabricating information when it doesn't recognize a book or author. When web search is active, the nudge encourages the AI to search the web to verify before falling back. Used in many built-in actions including Book Info, Find Similar, Connect, Historical Context, and all multi-book actions.
 - **`{text_fallback_nudge}`**: Enables graceful degradation for actions that use document text extraction. When text extraction is disabled or yields no content, this nudge appears to guide the AI to use its training knowledge — and to say so honestly if it doesn't recognize the work. When document text IS present, the placeholder expands to nothing (zero overhead). Used in 6 built-in actions: Explain in Context, Analyze in Context, Key Arguments, Discussion Questions, Generate Quiz, Extract Insights. X-Ray, Document Analysis, and Document Summary block generation without text extraction rather than degrading gracefully. Recap has its own specialized fallback guidance. Smart actions are excluded because they require a pre-generated summary cache.
 
 **For custom actions:** Add these placeholders at the end of your prompts where appropriate. The placeholders are replaced with the actual text at runtime, so you can also use the raw text directly if you prefer. `{text_fallback_nudge}` is especially useful in custom actions that use `{full_document_section}` or `{book_text_section}` — it ensures your action produces useful results even when text extraction is disabled.
@@ -1828,9 +1831,10 @@ Tags are simple labels for organizing chats. Unlike domains:
 
 ### Reading Features (visible when document is open)
 - **X-Ray**: Generate a browsable reference guide for the book up to your current reading position — opens in a structured category menu with characters, locations, themes, lexicon, timeline, and per-item chapter distribution. Requires text extraction enabled
-- **X-Ray (Simple)**: Prose companion guide from AI knowledge — characters, themes, settings, key terms. No text extraction needed
 - **Recap**: Get a "Previously on..." style summary to help you resume reading
 - **Analyze My Notes**: Discover patterns and connections in your highlights and annotations
+- **X-Ray (Simple)**: Prose companion guide from AI knowledge — characters, themes, settings, key terms. No text extraction needed
+- **Book Info**: Overview, significance, and why to read it — from AI knowledge with optional web search
 - **Document Summary**: Generate a comprehensive document summary — foundation for Smart actions. Requires text extraction
 - **Document Analysis**: Deep analysis of thesis, structure, key insights, and audience. Requires text extraction
 
@@ -2021,15 +2025,16 @@ When "Ask every time" is selected (or inherited from global), a picker dialog ap
 See [Bypass Modes](#bypass-modes) and [Highlight Menu Actions](#highlight-menu-actions).
 - **Enable Highlight Bypass**: Immediately trigger action when selecting text (skip menu)
 - **Bypass Action**: Which action to trigger when bypass is enabled (default: Translate)
-- **Highlight Menu Actions**: View and reorder actions in the highlight popup menu (3 defaults: Translate, Explain, ELI5)
+- **Highlight Menu Actions**: View and reorder actions in the highlight popup menu (8 defaults: Translate, Look up in X-Ray, ELI5, Explain, Elaborate, Summarize, Connect, Fact Check)
 
 ### Quick Settings Settings
 Configure the Quick Settings panel (available via gesture or gear icon in input dialog).
 - **QS Panel Utilities**: Show/hide and reorder buttons in the Quick Settings panel. Tap to toggle visibility, hold to move up/down. Also accessible via the gear icon in the Quick Settings panel title bar.
   - Provider, Model, Behavior, Domain, Temperature, Anthropic/Gemini Reasoning
   - Web Search, Language, Translation Language, Dictionary Language
-  - H.Bypass, D.Bypass, Text Extraction, Chat History, Browse Notebooks, Browse Artifacts
-  - General Chat/Action, New Book Chat/Action, Manage Actions, Quick Actions, More Settings
+  - H.Bypass, D.Bypass, Text Extraction
+  - Chat History, Browse Notebooks, Browse Artifacts
+  - General Chat/Action, Continue Last Chat, New Book Chat/Action, Manage Actions, Quick Actions, More Settings
   - All buttons are enabled by default. Disable any you don't use to streamline the panel.
 
 ### Quick Actions Settings
@@ -2078,7 +2083,7 @@ See [Privacy & Data](#privacy--data) for background on what gets sent to AI prov
   - **Max Pages (PDF, DJVU, CBZ…)**: Maximum pages to extract from page-based formats (100-5,000, default 2,000)
   - **Don't warn about truncated extractions**: When unchecked (default), a blocking warning dialog appears before sending requests where extracted text was truncated to fit the character limit — shows the coverage percentage so you know how much of the document was included. The warning offers Cancel, Continue Anyway, or Don't warn again
   - **Don't warn about large extractions**: When unchecked (default), a warning dialog appears before sending requests with over 500K characters (~125K tokens) of extracted text — most models except Gemini will struggle at this size. The warning offers Cancel, Continue, or Don't warn again
-  - **Clear Action Cache**: Clear cached artifact responses (X-Ray, X-Ray (Simple), Recap, Summary, Analysis) for the current book (requires book to be open). To clear just one action, use the delete button in the artifact viewer instead.
+  - **Clear Action Cache**: Clear cached artifact responses (X-Ray, X-Ray (Simple), Recap, Summary, Analysis, Book Info, Analyze My Notes) for the current book (requires book to be open). To clear just one action, use the delete button in the artifact viewer instead.
 
 ### KOReader Integration
 Control where KOAssistant appears in KOReader's menus. All toggles default to ON; disable any to reduce UI presence.
@@ -2534,8 +2539,8 @@ The View/Update popup appears everywhere you can trigger an artifact action (X-R
 - Either option forces fresh generation on next run (useful if analysis got off track, or to switch between incremental and complete tracks)
 
 **Limitations:**
-- Only X-Ray and Recap support incremental caching currently (other artifact actions cache results but always regenerate fresh)
-- X-Ray, Document Summary, and Document Analysis require text extraction; X-Ray (Simple) and Recap work without it
+- Only X-Ray and Recap support incremental caching currently (other artifact actions — X-Ray (Simple), Document Summary, Document Analysis, Book Info, Analyze My Notes — cache results but always regenerate fresh)
+- X-Ray, Document Summary, and Document Analysis require text extraction; X-Ray (Simple), Recap, Book Info, and Analyze My Notes work without it
 - Complete X-Rays don't support incremental updates (always fresh generation)
 - X-Ray (Simple) doesn't support incremental updates (always fresh generation)
 - Going backward in progress doesn't use cache (fresh generation)
@@ -2543,7 +2548,7 @@ The View/Update popup appears everywhere you can trigger an artifact action (X-R
 - Legacy markdown X-Ray caches (from before the JSON update) are still viewable but will be fully regenerated (not incrementally updated) on the next run, producing the new JSON format
 - To switch between incremental and complete tracks, delete the cache and regenerate
 
-All five artifact actions (X-Ray, X-Ray (Simple), Recap, Document Summary, Document Analysis) produce **Document Artifacts** — reusable results you can view anytime and reference in other actions. See the next section for details.
+All seven artifact actions (X-Ray, X-Ray (Simple), Recap, Document Summary, Document Analysis, Book Info, Analyze My Notes) produce **Document Artifacts** — reusable results you can view anytime and reference in other actions. See the next section for details.
 
 ### Document Artifacts
 
@@ -2713,7 +2718,7 @@ For complex questions, supported models can "think" through the problem before r
 2. Enable Anthropic Extended Thinking
 3. Set token budget (1024-32000)
 4. Temperature is forced to 1.0 (API requirement)
-5. Works with: Claude Sonnet 4.5, Opus 4.x, Haiku 4.5, Sonnet 3.7
+5. Works with: Claude Sonnet 4.5, Opus 4.5, Opus 4.1, Sonnet 4, Opus 4, Haiku 4.5, Sonnet 3.7
 
 **Gemini 3 Thinking:**
 1. Enable the master toggle: Settings → AI Response → Enable Anthropic/Gemini Reasoning
@@ -2725,7 +2730,7 @@ For complex questions, supported models can "think" through the problem before r
 Gemini 2.5 Flash and Pro think automatically on every request — no toggle needed. Thinking content is captured when available and viewable via "Show Reasoning". Flash-Lite is excluded (thinking disabled by default).
 
 **OpenAI Reasoning:**
-OpenAI reasoning models (o3, o3-mini, o4-mini, GPT-5.x) always reason internally—there's no toggle to turn it off. You can only control the effort level:
+OpenAI reasoning models (o3, o3-mini, o3-pro, o4-mini, GPT-5, GPT-5-mini, GPT-5-nano, GPT-5.1, GPT-5.2) always reason internally—there's no toggle to turn it off. You can only control the effort level:
 1. Set effort level in Settings → AI Response → OpenAI Reasoning Effort (low/medium/high)
 2. Temperature is forced to 1.0 (API requirement)
 
@@ -2902,7 +2907,7 @@ The provider will revert to using the system default.
 ### Provider Quirks
 
 - **Anthropic**: Temperature capped at 1.0; Extended thinking forces temp to exactly 1.0
-- **OpenAI**: Reasoning models (o3, GPT-5.x) force temp to 1.0; newer models use `max_completion_tokens`
+- **OpenAI**: Reasoning models (o3, o3-pro, GPT-5.x) force temp to 1.0; newer models use `max_completion_tokens`
 - **Gemini**: Uses "model" role instead of "assistant"; thinking uses camelCase REST API format; 2.5 models auto-think (content captured automatically); streaming may arrive in larger chunks than other providers
 - **Ollama**: Local only; configure `base_url` in `configuration.lua` for remote instances
 - **OpenRouter**: Requires HTTP-Referer header (handled automatically)
