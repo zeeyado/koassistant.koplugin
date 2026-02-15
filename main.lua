@@ -985,7 +985,7 @@ function AskGPT:onDispatcherRegisterActions()
   Dispatcher:registerAction("koassistant_continue_last_opened", {
     category = "none",
     event = "KOAssistantContinueLastOpened",
-    title = _("KOAssistant: Continue Last Opened Chat"),
+    title = _("KOAssistant: Continue Last Chat"),
     general = true,
     separator = true
   })
@@ -1015,60 +1015,6 @@ function AskGPT:onDispatcherRegisterActions()
     reader = true,
   })
 
-  -- Book-level reading features (dynamically from in_reading_features flag)
-  -- Actions with this flag are automatically registered as gestures
-  local reading_actions = self.action_service:getReadingFeaturesActions()
-  for _i, action in ipairs(reading_actions) do
-    -- Generate gesture ID and event name from action ID
-    -- e.g., "xray" -> "koassistant_xray", "KOAssistantXRay"
-    local gesture_id = "koassistant_" .. action.id
-    local event_name = "KOAssistant" .. action.id:gsub("_(%l)", function(c) return c:upper() end):gsub("^%l", string.upper)
-
-    Dispatcher:registerAction(gesture_id, {
-      category = "none",
-      event = event_name,
-      title = T(_("KOAssistant: %1"), action.text),
-      general = false,  -- Book actions require open book
-      reader = true,
-    })
-  end
-
-  -- Register settings change actions (for gestures)
-  Dispatcher:registerAction("koassistant_change_primary_language", {
-    category = "none",
-    event = "KOAssistantChangePrimaryLanguage",
-    title = _("KOAssistant: Change Primary Language"),
-    general = true
-  })
-
-  Dispatcher:registerAction("koassistant_change_translation_language", {
-    category = "none",
-    event = "KOAssistantChangeTranslationLanguage",
-    title = _("KOAssistant: Change Translation Language"),
-    general = true
-  })
-
-  Dispatcher:registerAction("koassistant_change_provider", {
-    category = "none",
-    event = "KOAssistantChangeProvider",
-    title = _("KOAssistant: Change Provider"),
-    general = true
-  })
-
-  Dispatcher:registerAction("koassistant_change_model", {
-    category = "none",
-    event = "KOAssistantChangeModel",
-    title = _("KOAssistant: Change Model"),
-    general = true
-  })
-
-  Dispatcher:registerAction("koassistant_change_behavior", {
-    category = "none",
-    event = "KOAssistantChangeBehavior",
-    title = _("KOAssistant: Change AI Behavior"),
-    general = true
-  })
-
   Dispatcher:registerAction("koassistant_ai_settings", {
     category = "none",
     event = "KOAssistantAISettings",
@@ -1076,56 +1022,13 @@ function AskGPT:onDispatcherRegisterActions()
     general = true,
   })
 
-  -- Quick Actions menu - reader mode only
   Dispatcher:registerAction("koassistant_quick_actions", {
     category = "none",
     event = "KOAssistantQuickActions",
     title = _("KOAssistant: Quick Actions"),
-    general = false,  -- Requires open book
+    general = false,
     reader = true,
-  })
-
-  Dispatcher:registerAction("koassistant_action_manager", {
-    category = "none",
-    event = "KOAssistantActionManager",
-    title = _("KOAssistant: Action Manager"),
-    general = true,
-  })
-
-  Dispatcher:registerAction("koassistant_manage_behaviors", {
-    category = "none",
-    event = "KOAssistantManageBehaviors",
-    title = _("KOAssistant: Behavior Manager"),
-    general = true,
-  })
-
-  Dispatcher:registerAction("koassistant_manage_domains", {
-    category = "none",
-    event = "KOAssistantManageDomains",
-    title = _("KOAssistant: Domain Manager"),
-    general = true,
-  })
-
-  Dispatcher:registerAction("koassistant_change_domain", {
-    category = "none",
-    event = "KOAssistantChangeDomain",
-    title = _("KOAssistant: Change Domain"),
-    general = true,
-  })
-
-  -- Dictionary-related gesture actions
-  Dispatcher:registerAction("koassistant_dictionary_popup_manager", {
-    category = "none",
-    event = "KOAssistantDictionaryPopupManager",
-    title = _("KOAssistant: Dictionary Popup Manager"),
-    general = true,
-  })
-
-  Dispatcher:registerAction("koassistant_change_dictionary_language", {
-    category = "none",
-    event = "KOAssistantChangeDictionaryLanguage",
-    title = _("KOAssistant: Change Dictionary Language"),
-    general = true,
+    separator = true
   })
 
   Dispatcher:registerAction("koassistant_toggle_dictionary_bypass", {
@@ -1135,65 +1038,21 @@ function AskGPT:onDispatcherRegisterActions()
     general = true,
   })
 
-  -- Highlight bypass gesture actions
   Dispatcher:registerAction("koassistant_toggle_highlight_bypass", {
     category = "none",
     event = "KOAssistantToggleHighlightBypass",
     title = _("KOAssistant: Toggle Highlight Bypass"),
     general = true,
-  })
-
-  -- Translate current page gesture
-  Dispatcher:registerAction("koassistant_translate_page", {
-    category = "none",
-    event = "KOAssistantTranslatePage",
-    title = _("KOAssistant: Translate Current Page"),
-    general = false,  -- Requires open book
-    reader = true,
     separator = true
   })
 
-  -- Notebook gestures
-  -- View current book's notebook (requires open book)
-  Dispatcher:registerAction("koassistant_view_notebook", {
+  Dispatcher:registerAction("koassistant_translate_page", {
     category = "none",
-    event = "KOAssistantViewNotebook",
-    title = _("KOAssistant: View Notebook"),
-    general = false,  -- Requires open book
-    reader = true,
-  })
-
-  -- Edit current book's notebook (requires open book)
-  Dispatcher:registerAction("koassistant_edit_notebook", {
-    category = "none",
-    event = "KOAssistantEditNotebook",
-    title = _("KOAssistant: Edit Notebook"),
-    general = false,  -- Requires open book
-    reader = true,
-  })
-
-  -- Browse all notebooks (general context - works from anywhere)
-  Dispatcher:registerAction("koassistant_browse_notebooks", {
-    category = "none",
-    event = "KOAssistantBrowseNotebooks",
-    title = _("KOAssistant: Browse Notebooks"),
-    general = true,  -- Only general (no reader flag) so it's not grayed out in file browser
-  })
-
-  -- Browse all artifacts (general context - works from anywhere)
-  Dispatcher:registerAction("koassistant_browse_artifacts", {
-    category = "none",
-    event = "KOAssistantBrowseArtifacts",
-    title = _("KOAssistant: Browse Artifacts"),
-    general = true,
-  })
-
-  Dispatcher:registerAction("koassistant_view_caches", {
-    category = "none",
-    event = "KOAssistantViewCaches",
-    title = _("KOAssistant: View Artifacts"),
+    event = "KOAssistantTranslatePage",
+    title = _("KOAssistant: Translate Page"),
     general = false,
     reader = true,
+    separator = true
   })
 
   -- Register user-configured action gestures (gated by show_in_gesture_menu toggle)
@@ -1829,10 +1688,6 @@ function AskGPT:buildReadingFeaturesMenu()
   local reading_actions = self.action_service:getReadingFeaturesActions()
 
   for _i, action in ipairs(reading_actions) do
-    -- Map action ID to callback name (e.g., "xray" -> "onKOAssistantXray")
-    -- Capitalize first letter and handle underscores (e.g., "analyze_highlights" -> "AnalyzeHighlights")
-    local callback_name = "onKOAssistant" .. action.id:gsub("_(%l)", function(c) return c:upper() end):gsub("^%l", string.upper)
-
     -- Look up full action to get data access flags for indicators
     local full_action = self.action_service:getAction("book", action.id)
     table.insert(items, {
@@ -4015,42 +3870,6 @@ function AskGPT:onKOAssistantBookChat()
   return true
 end
 
---- Execute X-Ray action (book-level reading companion)
-function AskGPT:onKOAssistantXray()
-  self:executeBookLevelAction("xray")
-  return true
-end
-
---- Execute Recap action (story summary for re-immersion)
-function AskGPT:onKOAssistantRecap()
-  self:executeBookLevelAction("recap")
-  return true
-end
-
---- Execute X-Ray (Simple) action (prose companion from AI knowledge)
-function AskGPT:onKOAssistantXraySimple()
-  self:executeBookLevelAction("xray_simple")
-  return true
-end
-
---- Execute Analyze My Notes action (insights from user's annotations)
-function AskGPT:onKOAssistantAnalyzeHighlights()
-  self:executeBookLevelAction("analyze_highlights")
-  return true
-end
-
---- Execute Document Summary action (foundation for Smart actions)
-function AskGPT:onKOAssistantSummarizeFullDocument()
-  self:executeBookLevelAction("summarize_full_document")
-  return true
-end
-
---- Execute Document Analysis action (thesis, structure, insights)
-function AskGPT:onKOAssistantAnalyzeFullDocument()
-  self:executeBookLevelAction("analyze_full_document")
-  return true
-end
-
 --- Show available cached content for current document
 --- Format a timestamp as relative time string (e.g., "3d ago", "1m2d ago")
 --- @param timestamp number Unix timestamp
@@ -5379,39 +5198,7 @@ function AskGPT:showQuickSettingsPopup(title, menu_items, close_on_select, on_cl
   UIManager:show(self._quick_settings_dialog)
 end
 
---- Event handlers for gesture-accessible settings changes
-
-function AskGPT:onKOAssistantChangePrimaryLanguage()
-  local menu_items = self:buildPrimaryLanguageMenu()
-  self:showQuickSettingsPopup(_("Primary Language"), menu_items)
-  return true
-end
-
-function AskGPT:onKOAssistantChangeTranslationLanguage()
-  local menu_items = self:buildTranslationLanguageMenu()
-  self:showQuickSettingsPopup(_("Translation Language"), menu_items)
-  return true
-end
-
-function AskGPT:onKOAssistantChangeProvider()
-  local menu_items = self:buildProviderMenu(true)  -- simplified mode for quick access
-  self:showQuickSettingsPopup(_("Provider"), menu_items)
-  return true
-end
-
-function AskGPT:onKOAssistantChangeModel()
-  local menu_items = self:buildModelMenu(true)  -- simplified mode for quick access
-  self:showQuickSettingsPopup(_("Model"), menu_items)
-  return true
-end
-
-function AskGPT:onKOAssistantChangeBehavior()
-  local menu_items = self:buildBehaviorMenu()
-  self:showQuickSettingsPopup(_("AI Behavior"), menu_items)
-  return true
-end
-
---- Build behavior variant menu (for gesture action)
+--- Build behavior variant menu (for Quick Settings panel)
 --- Loads all behaviors from all sources (builtin, folder, UI-created)
 function AskGPT:buildBehaviorMenu()
   local SystemPrompts = require("prompts/system_prompts")
