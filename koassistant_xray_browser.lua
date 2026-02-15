@@ -704,6 +704,14 @@ function XrayBrowser:_getChapterText(chapter)
     end
     local raw = extractChapterText(self.ui, chapter)
     local lower = raw ~= "" and raw:lower() or ""
+    if lower ~= "" then
+        -- Normalize Unicode characters that break plain text matching.
+        -- Use string.char() for Lua 5.1 compatibility (no \xNN escapes).
+        local SOFT_HYPHEN = string.char(0xC2, 0xAD)   -- U+00AD: invisible hyphenation hints
+        local NBSP        = string.char(0xC2, 0xA0)   -- U+00A0: non-breaking space
+        local ZWSP        = string.char(0xE2, 0x80, 0x8B) -- U+200B: zero-width space
+        lower = lower:gsub(SOFT_HYPHEN, ""):gsub(NBSP, " "):gsub(ZWSP, "")
+    end
     self._text_cache[key] = { raw = raw, lower = lower }
     return raw, lower
 end
