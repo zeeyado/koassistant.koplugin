@@ -620,18 +620,21 @@ function XrayBrowser:show(xray_data, metadata, ui, on_delete)
         self.on_update = function()
             local action = plugin_ref.action_service:getAction("book", "xray")
             if action then
+                if plugin_ref:_checkRequirements(action) then return end
                 plugin_ref:_executeBookLevelActionDirect(action, "xray")
             end
         end
         self.on_update_full = function()
             local action = plugin_ref.action_service:getAction("book", "xray")
             if action then
+                if plugin_ref:_checkRequirements(action) then return end
                 plugin_ref:_executeBookLevelActionDirect(action, "xray", { full_document = true })
             end
         end
         self.on_update_to_100 = function()
             local action = plugin_ref.action_service:getAction("book", "xray")
             if action then
+                if plugin_ref:_checkRequirements(action) then return end
                 plugin_ref:_executeBookLevelActionDirect(action, "xray", { update_to_full = true })
             end
         end

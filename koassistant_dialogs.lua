@@ -3788,6 +3788,7 @@ local function handleLocalXrayLookup(ui, query, document_path, book_metadata, co
                             end
                             local action = plugin.action_service:getAction("book", "xray")
                             if action then
+                                if plugin:_checkRequirements(action) then return end
                                 plugin:_executeBookLevelActionDirect(action, "xray")
                             end
                         end,
