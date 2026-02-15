@@ -5615,6 +5615,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
   local streaming = features.enable_streaming ~= false  -- Default true
   local reasoning_enabled = features.enable_reasoning == true  -- Default false
   local web_search = features.enable_web_search == true  -- Default false
+  local text_extraction = features.enable_book_text_extraction == true  -- Default false
 
   -- Get behavior display name (with source indicator)
   local custom_behaviors = features.custom_behaviors or {}
@@ -5837,6 +5838,28 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
       self_ref.settings:saveSetting("features", f)
       self_ref.settings:flush()
       self_ref:syncDictionaryBypass()
+      opening_subdialog = true
+      UIManager:close(dialog)
+      reopenQuickSettings()
+    end,
+  }
+
+  button_defs["text_extraction"] = {
+    text = E("\u{1F4C4}", text_extraction and _("Text Extraction: ON") or _("Text Extraction: OFF")),
+    callback = function()
+      local f = self_ref.settings:readSetting("features") or {}
+      -- First-time guard: must enable via Settings → Privacy & Data first
+      if not f._text_extraction_acknowledged then
+        local InfoMessage = require("ui/widget/infomessage")
+        UIManager:show(InfoMessage:new{
+          text = _("To enable text extraction for the first time, go to:\nSettings → Privacy & Data → Text Extraction\n\nAfter that, this toggle will work directly."),
+        })
+        return
+      end
+      f.enable_book_text_extraction = not f.enable_book_text_extraction
+      self_ref.settings:saveSetting("features", f)
+      self_ref.settings:flush()
+      self_ref:updateConfigFromSettings()
       opening_subdialog = true
       UIManager:close(dialog)
       reopenQuickSettings()

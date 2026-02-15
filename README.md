@@ -210,7 +210,7 @@ Go to **Settings → Privacy & Data** to configure. See [Privacy & Data](#privac
 After setting up your API key, complete these steps for the best experience:
 
 - [ ] **Configure privacy settings** — Enable data sharing for features you want (Settings → Privacy & Data). See [Privacy & Data](#privacy--data)
-- [ ] **Set up gesture access** — See [Configure Quick Access Gestures](#configure-quick-access-gestures) for the recommended two-step setup (Quick Settings in file browser + Quick Actions in reader, same gesture)
+- [ ] **Set up gesture access** — A one-time setup dialog offers to assign Quick Settings (file browser) and Quick Actions (reader) to tap bottom-right corner. Or configure manually: see [Configure Quick Access Gestures](#configure-quick-access-gestures)
 - [ ] **Explore the highlight menu** — Translate, Explain, and ELI5 are included by default; add more via Manage Actions → hold action → "Add to Highlight Menu"
 - [ ] **Try Dictionary Bypass** — Single-word selections go straight to AI dictionary (Settings → Dictionary Settings → Bypass KOReader Dictionary)
 - [ ] **Try Highlight Bypass** — Multi-word selections trigger instant translation (Settings → Highlight Settings → Enable Highlight Bypass)
@@ -222,7 +222,9 @@ After setting up your API key, complete these steps for the best experience:
 
 ### Configure Quick Access Gestures
 
-**Recommended quick setup** (same gesture, two contexts):
+**Automatic setup:** The first time you interact with KOAssistant, a one-time setup dialog offers to assign both panels to **tap bottom-right corner** — Quick Settings in the file browser and Quick Actions in the reader. Accept to set up both gestures automatically (requires KOReader restart). If the bottom-right corner is already assigned to another action, you'll get an informational tip instead.
+
+**Manual setup** (same gesture, two contexts):
 
 1. **In File Browser**: Go to Settings → Gesture Manager, pick a gesture (e.g., tap bottom-right corner), select **KOAssistant: Quick Settings**
 2. **In Reader** (open any book or document): Go to Settings → Gesture Manager, pick the **same gesture**, select **KOAssistant: Quick Actions**
