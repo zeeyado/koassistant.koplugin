@@ -9151,6 +9151,7 @@ function AskGPT:showSetupStep2EmojiTest(next_step)
 
   local wizard_advancing = false
   UIManager:show(ConfirmBox:new{
+    icon = "notice-info",
     text = text,
     ok_text = _("Yes, enable"),
     cancel_text = _("No, skip"),
