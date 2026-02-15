@@ -5757,6 +5757,10 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
       table.insert(buttons, { all_buttons[i] })
     end
   end
+  -- Center lone last-row item when left-align is on
+  if features.qs_left_align ~= false and #buttons > 0 and #buttons[#buttons] == 1 then
+    buttons[#buttons][1].align = "center"
+  end
 
   dialog = TitledButtonDialog:new{
     title = _("Quick Settings"),
@@ -5919,6 +5923,10 @@ function AskGPT:onKOAssistantQuickActions()
   -- Flush any remaining partial row
   if #row > 0 then
     table.insert(buttons, row)
+  end
+  -- Center lone last-row item when left-align is on
+  if qa_features.qa_left_align ~= false and #buttons > 0 and #buttons[#buttons] == 1 then
+    buttons[#buttons][1].align = "center"
   end
 
   dialog = TitledButtonDialog:new{

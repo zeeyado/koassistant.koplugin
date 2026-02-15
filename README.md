@@ -61,7 +61,7 @@
   - [Translate View](#translate-view)
   - [Custom Action Gestures](#custom-action-gestures)
   - [Available Gesture Actions](#available-gesture-actions)
-  - [Translate Current Page](#translate-current-page)
+  - [Translate Page](#translate-page)
 - [Behaviors](#behaviors) — Customize AI personality
   - [Built-in Behaviors](#built-in-behaviors)
   - [Sample Behaviors](#sample-behaviors)
@@ -273,15 +273,15 @@ You can add any book action to Quick Actions via **Action Manager → hold actio
 
 **Alternative: Build a KOReader QuickMenu**
 For full customization, assign multiple KOAssistant actions to one gesture and enable **"Show as QuickMenu"** to get a selection menu with any actions you want, in any order, mixed with non-KOAssistant actions:
-- Chat History, Continue Last Chat, General Chat/Action, New Book Chat/Action
+- Chat History, Continue Last Chat, General Chat/Action, Book Chat/Action
 - Toggle Dictionary Bypass, Toggle Highlight Bypass
-- Translate Current Page, Settings, etc.
+- Translate Page, Settings, etc.
 
 Unlike KOAssistant's built-in panels (Quick Settings, Quick Actions) which show two buttons per row, KOReader's QuickMenu shows one button per row but allows mixing KOAssistant actions with any other KOReader actions.
 
 **Direct gesture assignments**
 You can also assign individual actions directly to their own gestures for instant one-tap access:
-- "Translate Current Page" on a multiswipe for instant page translation
+- "Translate Page" on a multiswipe for instant page translation
 - "Toggle Dictionary Bypass" on a tap corner if you frequently switch modes
 - "Continue Last Chat" for quickly resuming conversations
 
@@ -292,7 +292,7 @@ Any book or general action (built-in or custom) can be added to the gesture menu
 > - **File Browser gestures**: Configure from the file browser (Settings → Gesture Manager)
 > - **Reader gestures**: Configure while a book or document is open (Settings → Gesture Manager)
 >
-> You must set up gestures in **both places** if you want access from both contexts. Reader-only gestures (like Quick Actions, X-Ray, Translate Page) will appear grayed out if you try to add them to File Browser gestures — this is expected. General gestures (like Quick Settings, Chat History) work in both contexts and can be added to either or both.
+> You must set up gestures in **both places** if you want access from both contexts. Reader-only gestures (like Quick Actions, Translate Page, Book Chat/Action) will appear grayed out if you try to add them to File Browser gestures — this is expected. General gestures (like Quick Settings, Chat History) work in both contexts and can be added to either or both.
 
 
 ### Key Features to Explore
@@ -584,7 +584,7 @@ Even if you remove Document Summary from Quick Actions or Reading Features, or d
 - **Reading Features** → Document Summary (shows View/Redo popup if summary exists, generates if not)
 - **Quick Actions** → Document Summary (same behavior)
 - **File browser** → Long-press a book → "View Artifacts (KOA)" → pick Summary, X-Ray, X-Ray (Simple), Recap, or Analysis. X-Ray opens in a browsable category menu; X-Ray (Simple) opens in the text viewer.
-- **Gesture** → Assign "KOAssistant: Document Summary" or "KOAssistant: View Artifacts"
+- **Gesture** → Add artifact actions to gesture menu via Action Manager (hold action → "Add to Gesture Menu")
 - **Coverage**: The viewer title shows coverage percentage if document was truncated (e.g., "Summary (78%)")
 
 > **Tip**: For documents you'll query multiple times, generate the summary proactively to save tokens on future queries. The artifacts (Summary, X-Ray, X-Ray (Simple), Analysis, Recap) are also useful on their own as viewable reference guides — see [Document Artifacts](#document-artifacts).
@@ -1420,49 +1420,29 @@ Actions with gestures show a `[gesture]` indicator in the Action Manager list.
 
 **Reader Only** (require open book; grayed out in File Browser gesture settings):
 - KOAssistant: Quick Actions — Reading actions panel
-- KOAssistant: New Book Chat/Action — Start a chat about current book or access book actions
-- KOAssistant: X-Ray — Generate browsable book reference guide (characters, locations, themes, timeline) with linkable cross-references and chapter distribution (requires text extraction)
-- KOAssistant: X-Ray (Simple) — Prose companion guide from AI knowledge (no text extraction needed)
-- KOAssistant: Recap — Get a story summary
-- KOAssistant: Analyze My Notes — Analyze your annotations
-- KOAssistant: Document Summary — Generate/view the document summary artifact (foundation for Smart actions)
-- KOAssistant: Document Analysis — Generate/view document analysis artifact
-- KOAssistant: Translate Current Page — Translate visible page text
-- KOAssistant: View Notebook — View current book's notebook
-- KOAssistant: Edit Notebook — Edit current book's notebook
-- KOAssistant: View Artifacts — Browse X-Ray, X-Ray (Simple), Recap, Summary, and Analysis artifacts for the current book
+- KOAssistant: Book Chat/Action — Start a chat about current book or access book actions
+- KOAssistant: Translate Page — Translate visible page text
 
 **General** (available in both File Browser and Reader gesture settings):
-- KOAssistant: Quick Settings — Two-column settings panel
 - KOAssistant: Chat History — Browse all saved chats
 - KOAssistant: Continue Last Saved Chat — Resume most recently saved chat
-- KOAssistant: Continue Last Opened Chat — Resume most recently viewed chat
-- KOAssistant: General Chat/Action — Start a new general conversation or run a general action
+- KOAssistant: Continue Last Chat — Resume most recently viewed chat
 - KOAssistant: Settings — Open main settings menu
-- KOAssistant: Action Manager — Manage all actions
-- KOAssistant: Manage Behaviors — Select or create behaviors
-- KOAssistant: Manage Domains — Manage knowledge domains
-- KOAssistant: Dictionary Popup Manager — Configure dictionary popup actions
-- KOAssistant: Change Primary Language — Quick language picker
-- KOAssistant: Change Translation Language — Pick translation target
-- KOAssistant: Change Dictionary Language — Pick dictionary language
-- KOAssistant: Change Provider — Quick provider picker
-- KOAssistant: Change Model — Quick model picker
-- KOAssistant: Change Behavior — Quick behavior picker
-- KOAssistant: Change Domain — Quick domain picker
+- KOAssistant: General Chat/Action — Start a new general conversation or run a general action
+- KOAssistant: Quick Settings — Two-column settings panel
 - KOAssistant: Toggle Dictionary Bypass — Toggle dictionary bypass on/off
 - KOAssistant: Toggle Highlight Bypass — Toggle highlight bypass on/off
-- KOAssistant: Browse Notebooks — Open Notebook Manager
 
 **Custom Actions:**
-- Book actions you add via "Add to Gesture Menu" → Reader Only
-- General actions you add via "Add to Gesture Menu" → Available in both contexts
+- Any book or general action can be added via "Add to Gesture Menu" in Action Manager
+- Book actions → Reader Only; General actions → Available in both contexts
+- Includes artifact actions (X-Ray, Recap, Document Summary, etc.), utility actions, and your own custom actions
 
-### Translate Current Page
+### Translate Page
 
 A special gesture action to translate all visible text on the current page:
 
-**Gesture:** KOAssistant: Translate Current Page
+**Gesture:** KOAssistant: Translate Page
 
 This extracts all text from the visible page/screen and sends it to the Translate action. Uses Translate View (see below) for a focused translation experience.
 
@@ -1470,7 +1450,7 @@ This extracts all text from the visible page/screen and sends it to the Translat
 
 ### Translate View
 
-All translation actions (Highlight Bypass with Translate, Translate Current Page, highlight menu Translate) use a specialized **Translate View** — a minimal UI focused on translations.
+All translation actions (Highlight Bypass with Translate, Translate Page, highlight menu Translate) use a specialized **Translate View** — a minimal UI focused on translations.
 
 **Button layout:**
 - **Row 1:** MD ON/TXT ON (toggle markdown), Copy, Save to Note (when highlighting)
@@ -1490,7 +1470,7 @@ All translation actions (Highlight Bypass with Translate, Translate Current Page
 >
 > - **Dictionary Bypass** → Language learners wanting instant definitions
 > - **Highlight Bypass** → Quick translations or instant explanations
-> - **Translate Current Page** → Academic reading, foreign language texts
+> - **Translate Page** → Academic reading, foreign language texts
 >
 > All bypass modes can be toggled via gestures for quick on/off switching.
 
@@ -2093,7 +2073,7 @@ Control where KOAssistant appears in KOReader's menus. All toggles default to ON
 - **Show in Highlight Menu**: Add the main "Chat/Action" button to the highlight popup (requires restart)
 - **Show Highlight Quick Actions**: Add Explain, Translate, and other action shortcuts to the highlight popup (requires restart)
 - **Show in Dictionary Popup**: Add AI buttons to KOReader's dictionary popup
-- **Show in Gesture Menu**: Register KOAssistant actions in KOReader's gesture dispatcher (requires restart). Only affects custom action gestures — built-in utility gestures (Chat History, Quick Settings, etc.) are always available.
+- **Show in Gesture Menu**: Register custom action gestures in KOReader's gesture dispatcher (requires restart). Only affects actions added via "Add to Gesture Menu" in Action Manager — built-in gestures (Chat History, Quick Settings, toggles, etc.) are always available.
 
 **Note:** File browser, highlight menu, and gesture menu changes require a KOReader restart since they are registered at plugin startup. Dictionary popup changes take effect immediately. To customize which actions appear in each menu, use **Action Manager → hold action** to add/remove from specific menus.
 
@@ -2579,7 +2559,7 @@ When certain actions complete, their results are saved as **document artifacts**
   - **Tap** → Artifact selector popup: "View Summary", "View X-Ray", "View X-Ray (Simple)", etc., plus "Open Book"
   - **Hold** → Options popup: "View", "Delete All", "Cancel"
   - **Hamburger menu** (☰) → Navigate to Chat History or Browse Notebooks
-- **Gesture** → Assign "KOAssistant: Document Summary", "KOAssistant: Document Analysis", or "KOAssistant: View Artifacts"
+- **Gesture** → Add artifact actions to gesture menu via Action Manager (hold action → "Add to Gesture Menu")
 - **Coverage**: The viewer title shows coverage percentage if the document was truncated (e.g., "Summary (78%)")
 
 **Artifact viewer buttons:**
