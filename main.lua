@@ -5913,6 +5913,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
     if isQsEnabled(item_id) and button_defs[item_id] then
       local btn = button_defs[item_id]
       btn.font_bold = false
+      if features.qs_left_align ~= false then btn.align = "left" end
       table.insert(all_buttons, btn)
     end
   end
@@ -5931,12 +5932,39 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
     title = _("Quick Settings"),
     buttons = buttons,
     left_icon_tap_callback = function()
-      -- Close QS panel before sorting (invisible under fullscreen sorting manager).
-      -- UIManager:close won't trigger close_callback, only onCloseWidget.
-      UIManager:close(dialog)
-      PromptsManager:new(self_ref):showQsItemsManager(nil, function()
-        reopenQuickSettings()
-      end)
+      local qs_gear_dialog
+      qs_gear_dialog = ButtonDialog:new{
+        shrink_unneeded_width = true,
+        anchor = function()
+          return dialog.title_bar.left_button.image.dimen, true
+        end,
+        buttons = {
+          {{ text = _("Sort Items"), callback = function()
+            UIManager:close(qs_gear_dialog)
+            -- Close QS panel before sorting (invisible under fullscreen sorting manager)
+            UIManager:close(dialog)
+            PromptsManager:new(self_ref):showQsItemsManager(nil, function()
+              reopenQuickSettings()
+            end)
+          end }},
+          {{ text = features.qs_left_align ~= false and _("Left-Align Buttons ✓") or _("Left-Align Buttons"), callback = function()
+            UIManager:close(qs_gear_dialog)
+            local f = self_ref.settings:readSetting("features") or {}
+            if f.qs_left_align ~= false then
+              f.qs_left_align = false
+            else
+              f.qs_left_align = true
+            end
+            self_ref.settings:saveSetting("features", f)
+            self_ref.settings:flush()
+            self_ref:updateConfigFromSettings()
+            opening_subdialog = true
+            UIManager:close(dialog)
+            reopenQuickSettings()
+          end }},
+        },
+      }
+      UIManager:show(qs_gear_dialog)
     end,
     close_callback = function()
       if not opening_subdialog and on_close_callback then
@@ -5967,10 +5995,12 @@ function AskGPT:onKOAssistantQuickActions()
   local dialog
   local buttons = {}
   local row = {}
+  local qa_features = self.settings:readSetting("features") or {}
 
   -- Helper to add a button to current row, flush row when full
   local function addButton(btn)
     btn.font_bold = false
+    if qa_features.qa_left_align == true then btn.align = "left" end
     table.insert(row, btn)
     if #row == 2 then
       table.insert(buttons, row)
@@ -6085,6 +6115,16 @@ function AskGPT:onKOAssistantQuickActions()
             PromptsManager:new(self_ref):showQaUtilitiesManager(nil, function()
               self_ref:onKOAssistantQuickActions()
             end)
+          end }},
+          {{ text = qa_features.qa_left_align == true and _("Left-Align Buttons ✓") or _("Left-Align Buttons"), callback = function()
+            UIManager:close(chooser_dialog)
+            local f = self_ref.settings:readSetting("features") or {}
+            f.qa_left_align = not f.qa_left_align
+            self_ref.settings:saveSetting("features", f)
+            self_ref.settings:flush()
+            self_ref:updateConfigFromSettings()
+            UIManager:close(dialog)
+            self_ref:onKOAssistantQuickActions()
           end }},
         },
       }

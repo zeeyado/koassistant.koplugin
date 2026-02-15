@@ -184,6 +184,22 @@ local SettingsSchema = {
                     help_text = _("Show emoji icons on Quick Settings and Quick Actions panel buttons (🔗 Provider, 🎭 Behavior, 📜 Chat History, etc.). Requires emoji font support."),
                 },
                 {
+                    id = "qs_left_align",
+                    type = "toggle",
+                    text = _("Left-Align Quick Settings"),
+                    path = "features.qs_left_align",
+                    default = true,
+                    help_text = _("Left-align button text in the Quick Settings panel instead of centering. Also available from the panel's gear menu."),
+                },
+                {
+                    id = "qa_left_align",
+                    type = "toggle",
+                    text = _("Left-Align Quick Actions"),
+                    path = "features.qa_left_align",
+                    default = false,
+                    help_text = _("Left-align button text in the Quick Actions panel instead of centering. Also available from the panel's gear menu."),
+                },
+                {
                     id = "enable_data_access_indicators",
                     type = "toggle",
                     text = _("Emoji Data Access Indicators"),
