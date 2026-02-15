@@ -941,7 +941,9 @@ function XrayBrowser:showItemDetail(item, category_key, title, source, nav_conte
     -- Without nav:       ← ⇱ ⇲ [Chat]  (scroll top/bottom for long content)
     local row = {}
     local viewer  -- forward declaration for button callbacks
-    local has_nav = nav_context and nav_context.items and #nav_context.items > 1
+    local has_nav = nav_context and (
+        (nav_context.items and #nav_context.items > 1) or
+        (nav_context.entries and #nav_context.entries > 1))
 
     table.insert(row, {
         text = "←",
@@ -955,11 +957,10 @@ function XrayBrowser:showItemDetail(item, category_key, title, source, nav_conte
     })
 
     if has_nav then
-        local nav_items = nav_context.items
+        local is_mixed = nav_context.entries ~= nil
+        local nav_list = is_mixed and nav_context.entries or nav_context.items
         local nav_idx = nav_context.index
-        local nav_cat_key = nav_context.category_key
-        local nav_cat_label = nav_context.category_label
-        local total = #nav_items
+        local total = #nav_list
         local prev_idx = nav_idx > 1 and nav_idx - 1 or total
         local next_idx = nav_idx < total and nav_idx + 1 or 1
 
@@ -967,24 +968,38 @@ function XrayBrowser:showItemDetail(item, category_key, title, source, nav_conte
             text = "◀",
             callback = function()
                 if viewer then viewer:onClose() end
-                local prev_item = nav_items[prev_idx]
-                local prev_name = XrayParser.getItemName(prev_item, nav_cat_key)
-                self_ref:showItemDetail(prev_item, nav_cat_key, prev_name, nil, {
-                    items = nav_items, index = prev_idx,
-                    category_key = nav_cat_key, category_label = nav_cat_label,
-                })
+                if is_mixed then
+                    local entry = nav_list[prev_idx]
+                    self_ref:showItemDetail(entry.item, entry.category_key, entry.name, nil, {
+                        entries = nav_list, index = prev_idx,
+                    })
+                else
+                    local prev_item = nav_list[prev_idx]
+                    local prev_name = XrayParser.getItemName(prev_item, nav_context.category_key)
+                    self_ref:showItemDetail(prev_item, nav_context.category_key, prev_name, nil, {
+                        items = nav_list, index = prev_idx,
+                        category_key = nav_context.category_key, category_label = nav_context.category_label,
+                    })
+                end
             end,
         })
         table.insert(row, {
             text = "▶",
             callback = function()
                 if viewer then viewer:onClose() end
-                local next_item = nav_items[next_idx]
-                local next_name = XrayParser.getItemName(next_item, nav_cat_key)
-                self_ref:showItemDetail(next_item, nav_cat_key, next_name, nil, {
-                    items = nav_items, index = next_idx,
-                    category_key = nav_cat_key, category_label = nav_cat_label,
-                })
+                if is_mixed then
+                    local entry = nav_list[next_idx]
+                    self_ref:showItemDetail(entry.item, entry.category_key, entry.name, nil, {
+                        entries = nav_list, index = next_idx,
+                    })
+                else
+                    local next_item = nav_list[next_idx]
+                    local next_name = XrayParser.getItemName(next_item, nav_context.category_key)
+                    self_ref:showItemDetail(next_item, nav_context.category_key, next_name, nil, {
+                        items = nav_list, index = next_idx,
+                        category_key = nav_context.category_key, category_label = nav_context.category_label,
+                    })
+                end
             end,
         })
     else
@@ -1098,10 +1113,13 @@ function XrayBrowser:showItemDetail(item, category_key, title, source, nav_conte
     -- Navigation bar (last row — arrows + chat)
     table.insert(buttons_rows, row)
 
-    -- Title: append position indicator when navigating within a category
+    -- Title: append position indicator when navigating within a category/list
     local display_title = title or _("Details")
-    if nav_context and nav_context.items then
-        display_title = T("%1 (%2/%3)", display_title, nav_context.index, #nav_context.items)
+    if nav_context then
+        local nav_list = nav_context.entries or nav_context.items
+        if nav_list then
+            display_title = T("%1 (%2/%3)", display_title, nav_context.index, #nav_list)
+        end
     end
 
     viewer = TextViewer:new{
@@ -2182,17 +2200,29 @@ function XrayBrowser:showMentions(chapter)
             separator = true,
         })
 
+        -- Build nav entries for prev/next navigation in detail view
+        local nav_entries = {}
+        for _idx, entry in ipairs(found) do
+            table.insert(nav_entries, {
+                item = entry.item,
+                category_key = entry.category_key,
+                name = XrayParser.getItemName(entry.item, entry.category_key),
+            })
+        end
+
         -- Item list
         for _idx, entry in ipairs(found) do
-            local name = XrayParser.getItemName(entry.item, entry.category_key)
+            local nav_entry = nav_entries[_idx]
             local short_cat = CHAPTER_CATEGORY_SHORT[entry.category_key] or entry.category_label
-            local captured = entry
+            local captured_idx = _idx
             table.insert(items, {
-                text = name,
+                text = nav_entry.name,
                 mandatory = string.format("[%s] %s", short_cat, T(_("%1x"), entry.count)),
                 mandatory_dim = true,
                 callback = function()
-                    self_ref:showItemDetail(captured.item, captured.category_key, name)
+                    self_ref:showItemDetail(nav_entry.item, nav_entry.category_key, nav_entry.name, nil, {
+                        entries = nav_entries, index = captured_idx,
+                    })
                 end,
             })
         end
@@ -2261,17 +2291,29 @@ function XrayBrowser:showChapterItemsAt(chapter)
             return
         end
 
+        -- Build nav entries for prev/next navigation in detail view
+        local nav_entries = {}
+        for _idx, entry in ipairs(found) do
+            table.insert(nav_entries, {
+                item = entry.item,
+                category_key = entry.category_key,
+                name = XrayParser.getItemName(entry.item, entry.category_key),
+            })
+        end
+
         local items = {}
         for _idx, entry in ipairs(found) do
-            local name = XrayParser.getItemName(entry.item, entry.category_key)
+            local nav_entry = nav_entries[_idx]
             local short_cat = CHAPTER_CATEGORY_SHORT[entry.category_key] or entry.category_label
-            local captured = entry
+            local captured_idx = _idx
             table.insert(items, {
-                text = name,
+                text = nav_entry.name,
                 mandatory = string.format("[%s] %s", short_cat, T(_("%1x"), entry.count)),
                 mandatory_dim = true,
                 callback = function()
-                    self_ref:showItemDetail(captured.item, captured.category_key, name)
+                    self_ref:showItemDetail(nav_entry.item, nav_entry.category_key, nav_entry.name, nil, {
+                        entries = nav_entries, index = captured_idx,
+                    })
                 end,
             })
         end
