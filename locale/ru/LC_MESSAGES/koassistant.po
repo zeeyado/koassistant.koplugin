@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: KOAssistant 0.12.0-dev\n"
 "Report-Msgid-Bugs-To: https://github.com/zeeyado/koassistant.koplugin/issues\n"
-"POT-Creation-Date: 2026-02-15 20:14+0000\n"
+"POT-Creation-Date: 2026-02-15 23:26+0000\n"
 "PO-Revision-Date: 2026-01-27 17:48+0000\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
@@ -28,13 +28,13 @@ msgid "A powerful AI assistant integrated into KOReader"
 msgstr "Мощный AI-ассистент, интегрированный в KOReader"
 
 #: koassistant_action_cache.lua:321 koassistant_dialogs.lua:3048
-#: koassistant_dialogs.lua:4016 main.lua:4668
+#: koassistant_dialogs.lua:4019 main.lua:4668
 #, fuzzy
 msgid "Summary"
 msgstr "Резюме"
 
 #: koassistant_action_cache.lua:322 koassistant_dialogs.lua:3044
-#: koassistant_dialogs.lua:4012 main.lua:4662
+#: koassistant_dialogs.lua:4015 main.lua:4662
 #, fuzzy
 msgid "Analysis"
 msgstr "Анализ"
@@ -108,7 +108,7 @@ msgstr "Просмотр"
 
 #: koassistant_artifact_browser.lua:224 koassistant_chat_history_dialog.lua:788
 #: koassistant_chat_history_dialog.lua:935 koassistant_notebook_manager.lua:194
-#: koassistant_xray_browser.lua:2968 koassistant_xray_browser.lua:3058
+#: koassistant_xray_browser.lua:2977 koassistant_xray_browser.lua:3067
 #, fuzzy
 msgid "Open Book"
 msgstr "Открыть книгу"
@@ -127,10 +127,10 @@ msgstr "Открыть книгу"
 #: koassistant_dialogs.lua:2623 koassistant_dialogs.lua:2690
 #: koassistant_dialogs.lua:3435 koassistant_notebook_manager.lua:232
 #: koassistant_update_checker.lua:326 koassistant_update_checker.lua:800
-#: koassistant_xray_browser.lua:1341 koassistant_xray_browser.lua:1839
-#: koassistant_xray_browser.lua:1864 koassistant_xray_browser.lua:2003
-#: koassistant_xray_browser.lua:2034 koassistant_xray_browser.lua:2397
-#: koassistant_xray_browser.lua:2672 main.lua:428 main.lua:1873 main.lua:1911
+#: koassistant_xray_browser.lua:1349 koassistant_xray_browser.lua:1847
+#: koassistant_xray_browser.lua:1872 koassistant_xray_browser.lua:2011
+#: koassistant_xray_browser.lua:2042 koassistant_xray_browser.lua:2443
+#: koassistant_xray_browser.lua:2681 main.lua:428 main.lua:1873 main.lua:1911
 #: main.lua:1977 main.lua:2215 main.lua:2339 main.lua:2483 main.lua:2656
 #: main.lua:2812 main.lua:3312 main.lua:3486 main.lua:4050 main.lua:4496
 #: main.lua:4566 main.lua:4630 main.lua:6078 main.lua:7820 main.lua:8375
@@ -193,7 +193,7 @@ msgstr ""
 #: koassistant_chat_history_dialog.lua:2012
 #: koassistant_chat_history_dialog.lua:2050 koassistant_chatgptviewer.lua:2317
 #: koassistant_chatgptviewer.lua:2323 koassistant_notebook_manager.lua:211
-#: koassistant_xray_browser.lua:2914 main.lua:8731 main.lua:8739
+#: koassistant_xray_browser.lua:2923 main.lua:8731 main.lua:8739
 #: koassistant_ui/behavior_manager.lua:332
 #: koassistant_ui/domain_manager.lua:342
 #: koassistant_ui/prompts_manager.lua:1027
@@ -392,13 +392,13 @@ msgstr "Удалить все чаты"
 msgid "Error: Cannot load chat data."
 msgstr "Ошибка: Невозможно загрузить данные чата."
 
-#: koassistant_chat_history_dialog.lua:871 koassistant_xray_browser.lua:2937
-#: koassistant_xray_browser.lua:2939 main.lua:3955
+#: koassistant_chat_history_dialog.lua:871 koassistant_xray_browser.lua:2946
+#: koassistant_xray_browser.lua:2948 main.lua:3955
 #, fuzzy
 msgid "Date:"
 msgstr "Дата:"
 
-#: koassistant_chat_history_dialog.lua:872 koassistant_xray_browser.lua:2927
+#: koassistant_chat_history_dialog.lua:872 koassistant_xray_browser.lua:2936
 #: main.lua:3952
 #, fuzzy
 msgid "Model:"
@@ -443,7 +443,7 @@ msgstr "Удалить чат"
 #: koassistant_chatgptviewer.lua:1905 koassistant_chatgptviewer.lua:2101
 #: koassistant_chatgptviewer.lua:2335 koassistant_chatgptviewer.lua:2530
 #: koassistant_chatgptviewer.lua:4066 koassistant_dialogs.lua:607
-#: koassistant_dialogs.lua:2952 koassistant_xray_browser.lua:1226 main.lua:2105
+#: koassistant_dialogs.lua:2952 koassistant_xray_browser.lua:1234 main.lua:2105
 #: main.lua:5175 koassistant_ui/behavior_manager.lua:403
 #: koassistant_ui/domain_manager.lua:412
 #: koassistant_ui/settings_manager.lua:247
@@ -516,7 +516,7 @@ msgstr "Введите название тега"
 
 #: koassistant_chat_history_dialog.lua:1161
 #: koassistant_chat_history_dialog.lua:1348 koassistant_dialogs.lua:957
-#: koassistant_xray_browser.lua:1350 main.lua:1918 main.lua:2346 main.lua:2819
+#: koassistant_xray_browser.lua:1358 main.lua:1918 main.lua:2346 main.lua:2819
 #, fuzzy
 msgid "Add"
 msgstr "Добавить"
@@ -651,7 +651,7 @@ msgstr ""
 "%1"
 
 #: koassistant_chat_history_dialog.lua:1879 koassistant_chatgptviewer.lua:3491
-#: main.lua:9598
+#: main.lua:9599
 #, fuzzy
 msgid "Failed to save: %1"
 msgstr "Не удалось сохранить: %1"
@@ -1104,12 +1104,12 @@ msgstr "Повторить перевод на другой язык"
 msgid "Copied to clipboard"
 msgstr "Скопировано в буфер обмена"
 
-#: koassistant_chatgptviewer.lua:2175 koassistant_xray_browser.lua:3034
+#: koassistant_chatgptviewer.lua:2175 koassistant_xray_browser.lua:3043
 #, fuzzy
 msgid "Other Artifacts"
 msgstr "Другие артефакты"
 
-#: koassistant_chatgptviewer.lua:2250 koassistant_xray_browser.lua:2955
+#: koassistant_chatgptviewer.lua:2250 koassistant_xray_browser.lua:2964
 #: main.lua:8702 koassistant_ui/prompts_manager.lua:1568
 #: koassistant_ui/prompts_manager.lua:2033
 #, fuzzy
@@ -1281,17 +1281,17 @@ msgstr "Нет содержимого для экспорта"
 msgid "No export metadata available."
 msgstr "Метаданные экспорта недоступны."
 
-#: koassistant_chatgptviewer.lua:3604 main.lua:9521
+#: koassistant_chatgptviewer.lua:3604 main.lua:9522
 #, fuzzy
 msgid "Select export folder"
 msgstr "Выберите папку для экспорта"
 
-#: koassistant_chatgptviewer.lua:3629 main.lua:9543
+#: koassistant_chatgptviewer.lua:3629 main.lua:9544
 #, fuzzy
 msgid "Saved to %1"
 msgstr "Сохранено в %1"
 
-#: koassistant_chatgptviewer.lua:3634 main.lua:9548
+#: koassistant_chatgptviewer.lua:3634 main.lua:9549
 #, fuzzy
 msgid "Export failed: %1"
 msgstr "Ошибка экспорта: %1"
@@ -1409,7 +1409,7 @@ msgstr "Продолжить последний чат"
 msgid "General Chat/Action"
 msgstr "Общий чат/действие"
 
-#: koassistant_constants.lua:135 main.lua:325 main.lua:6287 main.lua:9492
+#: koassistant_constants.lua:135 main.lua:325 main.lua:6287 main.lua:9493
 #, fuzzy
 msgid "Notebook"
 msgstr "Заметки"
@@ -1667,7 +1667,7 @@ msgstr "Вы можете увеличить лимит в Настройки �
 msgid "Continue Anyway"
 msgstr "Всё равно продолжить"
 
-#: koassistant_dialogs.lua:2746 koassistant_dialogs.lua:3949 main.lua:400
+#: koassistant_dialogs.lua:2746 koassistant_dialogs.lua:3950 main.lua:400
 #: main.lua:3888
 #, fuzzy
 msgid "today"
@@ -1708,7 +1708,7 @@ msgid "Web OFF"
 msgstr "Веб ВЫКЛ"
 
 #: koassistant_dialogs.lua:3063 koassistant_dialogs.lua:3267
-#: koassistant_dialogs.lua:4043
+#: koassistant_dialogs.lua:4046
 #, fuzzy
 msgid "Error: "
 msgstr "Ошибка:"
@@ -1775,74 +1775,74 @@ msgstr "Показать меньше действий"
 msgid "Unknown prompt type: "
 msgstr "Неизвестный тип запроса:"
 
-#: koassistant_dialogs.lua:3661 koassistant_dialogs.lua:3946 main.lua:3917
+#: koassistant_dialogs.lua:3661 koassistant_dialogs.lua:3947 main.lua:3917
 #, fuzzy
 msgid "Based on AI training data knowledge"
 msgstr "На основе знаний из обучающих данных AI"
 
-#: koassistant_dialogs.lua:3662 koassistant_dialogs.lua:3947 main.lua:3919
+#: koassistant_dialogs.lua:3662 koassistant_dialogs.lua:3948 main.lua:3919
 #, fuzzy
 msgid "Based on extracted document text"
 msgstr "На основе извлечённого текста документа"
 
-#: koassistant_dialogs.lua:3693 koassistant_dialogs.lua:3976 main.lua:4143
+#: koassistant_dialogs.lua:3694 koassistant_dialogs.lua:3979 main.lua:4143
 #: main.lua:4739
 #, fuzzy
 msgid "%1 deleted"
 msgstr "%1 удалено"
 
-#: koassistant_dialogs.lua:3707
+#: koassistant_dialogs.lua:3708
 #, fuzzy
 msgid "No book open. X-Ray lookup requires an open book."
 msgstr "Книга не открыта. Для поиска X-Ray требуется открытая книга."
 
-#: koassistant_dialogs.lua:3719
+#: koassistant_dialogs.lua:3720
 #, fuzzy
 msgid ""
 "No X-Ray cache found for this book. Generate one first via the X-Ray action."
 msgstr "Кэш X-Ray для этой книги не найден. Сначала создайте его через действие X-Ray."
 
-#: koassistant_dialogs.lua:3731
+#: koassistant_dialogs.lua:3732
 #, fuzzy
 msgid "Could not parse X-Ray data. Try regenerating the X-Ray cache."
 msgstr "Не удалось разобрать данные X-Ray. Попробуйте пересоздать кэш X-Ray."
 
-#: koassistant_dialogs.lua:3750
+#: koassistant_dialogs.lua:3751
 #, fuzzy
 msgid "No results for \"%1\" in X-Ray."
 msgstr "Нет результатов для \"%1\" в X-Ray."
 
-#: koassistant_dialogs.lua:3754
+#: koassistant_dialogs.lua:3755
 #, fuzzy
 msgid "X-Ray covers to %1% (you're at %2%). Updating may find this entry."
 msgstr "X-Ray охватывает до %1% (вы находитесь на %2%). Обновление может найти эту запись."
 
-#: koassistant_dialogs.lua:3785 main.lua:4249
+#: koassistant_dialogs.lua:3786 main.lua:4249
 #, fuzzy
 msgid "X-Ray covers to %1%"
 msgstr "X-Ray охватывает до %1%"
 
-#: koassistant_dialogs.lua:3786 main.lua:4253
+#: koassistant_dialogs.lua:3787 main.lua:4253
 #, fuzzy
 msgid "You're now at %1%."
 msgstr "Вы сейчас на %1%."
 
-#: koassistant_dialogs.lua:3793 koassistant_xray_browser.lua:2873 main.lua:4261
+#: koassistant_dialogs.lua:3794 koassistant_xray_browser.lua:2882 main.lua:4261
 #, fuzzy
 msgid "Update X-Ray (to %1)"
 msgstr "Обновить X-Ray (до %1)"
 
-#: koassistant_dialogs.lua:3807 main.lua:4275
+#: koassistant_dialogs.lua:3808 main.lua:4275
 #, fuzzy
 msgid "Don't remind me this session"
 msgstr "Не напоминать в этой сессии"
 
-#: koassistant_dialogs.lua:3833
+#: koassistant_dialogs.lua:3834
 #, fuzzy
 msgid "Unknown local action handler"
 msgstr "Неизвестный обработчик локального действия"
 
-#: koassistant_dialogs.lua:3852
+#: koassistant_dialogs.lua:3853
 #, fuzzy
 msgid "Error: No action specified"
 msgstr "Ошибка: действие не указано"
@@ -2623,7 +2623,7 @@ msgstr "Действия меню выделения"
 msgid "Choose which actions appear in the highlight menu (requires restart)"
 msgstr "Выберите, какие действия отображаются в меню выделения (требуется перезапуск)"
 
-#: koassistant_settings_schema.lua:985 main.lua:9231
+#: koassistant_settings_schema.lua:985 main.lua:9232
 #, fuzzy
 msgid "Actions & Prompts"
 msgstr "Действия и запросы"
@@ -2715,7 +2715,7 @@ msgid ""
 "Only show button if notebook already exists. Disable to allow creating new notebooks from file browser."
 msgstr "Показывать кнопку только если блокнот уже существует. Отключите, чтобы разрешить создание новых блокнотов из файлового браузера."
 
-#: koassistant_settings_schema.lua:1083 main.lua:9229
+#: koassistant_settings_schema.lua:1083 main.lua:9230
 #, fuzzy
 msgid "Privacy & Data"
 msgstr "Конфиденциальность и данные"
@@ -3793,168 +3793,168 @@ msgstr "Примечание: Некоторые пользовательски�
 msgid "Pages %1–%2"
 msgstr "Страницы %1–%2"
 
-#: koassistant_xray_browser.lua:765
+#: koassistant_xray_browser.lua:773
 #, fuzzy
 msgid "Mentions"
 msgstr "Упоминания"
 
-#: koassistant_xray_browser.lua:777 koassistant_xray_browser.lua:2679
+#: koassistant_xray_browser.lua:785 koassistant_xray_browser.lua:2688
 #, fuzzy
 msgid "Search"
 msgstr "Поиск"
 
-#: koassistant_xray_browser.lua:785
+#: koassistant_xray_browser.lua:793
 #, fuzzy
 msgid "Full View"
 msgstr "Полный вид"
 
-#: koassistant_xray_browser.lua:902
+#: koassistant_xray_browser.lua:910
 #, fuzzy
 msgid "As of"
 msgstr "По состоянию на"
 
-#: koassistant_xray_browser.lua:924
+#: koassistant_xray_browser.lua:932
 #, fuzzy
 msgid "Your highlights:"
 msgstr "Ваши выделения:"
 
-#: koassistant_xray_browser.lua:1024
+#: koassistant_xray_browser.lua:1032
 #, fuzzy
 msgid "Chat about this"
 msgstr "Обсудить это"
 
-#: koassistant_xray_browser.lua:1038
+#: koassistant_xray_browser.lua:1046
 #, fuzzy
 msgid "Chapter Appearances"
 msgstr "Появления в главах"
 
-#: koassistant_xray_browser.lua:1050
+#: koassistant_xray_browser.lua:1058
 #, fuzzy
 msgid "Edit Search Terms"
 msgstr "Редактировать поисковые термины"
 
-#: koassistant_xray_browser.lua:1090 koassistant_xray_browser.lua:1117
+#: koassistant_xray_browser.lua:1098 koassistant_xray_browser.lua:1125
 #, fuzzy
 msgid "Details"
 msgstr "Подробности"
 
-#: koassistant_xray_browser.lua:1185
+#: koassistant_xray_browser.lua:1193
 #, fuzzy
 msgid "Remove \"%1\""
 msgstr "Удалить «%1»"
 
-#: koassistant_xray_browser.lua:1186
+#: koassistant_xray_browser.lua:1194
 #, fuzzy
 msgid "Ignore \"%1\""
 msgstr "Игнорировать «%1»"
 
-#: koassistant_xray_browser.lua:1200
+#: koassistant_xray_browser.lua:1208
 #, fuzzy
 msgid "Restore \"%1\" (ignored)"
 msgstr "Восстановить «%1» (игнорируется)"
 
-#: koassistant_xray_browser.lua:1218
+#: koassistant_xray_browser.lua:1226
 #, fuzzy
 msgid "Add new"
 msgstr "Добавить новый"
 
-#: koassistant_xray_browser.lua:1238
+#: koassistant_xray_browser.lua:1246
 #, fuzzy
 msgid "Search terms for \"%1\""
 msgstr "Поисковые термины для «%1»"
 
-#: koassistant_xray_browser.lua:1335
+#: koassistant_xray_browser.lua:1343
 #, fuzzy
 msgid "Add search term for \"%1\""
 msgstr "Добавить поисковый термин для «%1»"
 
-#: koassistant_xray_browser.lua:1337
+#: koassistant_xray_browser.lua:1345
 #, fuzzy
 msgid "Enter alternate name or spelling"
 msgstr "Введите альтернативное имя или написание"
 
-#: koassistant_xray_browser.lua:1373
+#: koassistant_xray_browser.lua:1381
 #, fuzzy
 msgid "This search term already exists."
 msgstr "Этот поисковый термин уже существует."
 
-#: koassistant_xray_browser.lua:1405
+#: koassistant_xray_browser.lua:1413
 #, fuzzy
 msgid "Added \"%1\""
 msgstr "Добавлено «%1»"
 
-#: koassistant_xray_browser.lua:1450 koassistant_xray_parser.lua:299
+#: koassistant_xray_browser.lua:1458 koassistant_xray_parser.lua:299
 #, fuzzy
 msgid "Cast"
 msgstr "Персонажи"
 
-#: koassistant_xray_browser.lua:1451
+#: koassistant_xray_browser.lua:1459
 #, fuzzy
 msgid "Figures"
 msgstr "Персонажи"
 
-#: koassistant_xray_browser.lua:1452 koassistant_xray_parser.lua:300
+#: koassistant_xray_browser.lua:1460 koassistant_xray_parser.lua:300
 #, fuzzy
 msgid "World"
 msgstr "Мир"
 
-#: koassistant_xray_browser.lua:1453 koassistant_xray_parser.lua:301
+#: koassistant_xray_browser.lua:1461 koassistant_xray_parser.lua:301
 #, fuzzy
 msgid "Ideas"
 msgstr "Идеи"
 
-#: koassistant_xray_browser.lua:1454
+#: koassistant_xray_browser.lua:1462
 #, fuzzy
 msgid "Concepts"
 msgstr "Концепции"
 
-#: koassistant_xray_browser.lua:1455
+#: koassistant_xray_browser.lua:1463
 #, fuzzy
 msgid "Args"
 msgstr "Аргументы"
 
-#: koassistant_xray_browser.lua:1456 koassistant_xray_parser.lua:302
+#: koassistant_xray_browser.lua:1464 koassistant_xray_parser.lua:302
 #, fuzzy
 msgid "Lexicon"
 msgstr "Лексикон"
 
-#: koassistant_xray_browser.lua:1457
+#: koassistant_xray_browser.lua:1465
 #, fuzzy
 msgid "Terms"
 msgstr "Термины"
 
-#: koassistant_xray_browser.lua:1458
+#: koassistant_xray_browser.lua:1466
 #, fuzzy
 msgid "Arc"
 msgstr "Сюжет"
 
-#: koassistant_xray_browser.lua:1459
+#: koassistant_xray_browser.lua:1467
 #, fuzzy
 msgid "Dev"
 msgstr "Разр"
 
-#: koassistant_xray_browser.lua:1522
+#: koassistant_xray_browser.lua:1530
 #, fuzzy
 msgid "Page %1"
 msgstr "Страница %1"
 
-#: koassistant_xray_browser.lua:1576 koassistant_xray_browser.lua:1589
-#: koassistant_xray_browser.lua:1940 koassistant_xray_browser.lua:1952
+#: koassistant_xray_browser.lua:1584 koassistant_xray_browser.lua:1597
+#: koassistant_xray_browser.lua:1948 koassistant_xray_browser.lua:1960
 #, fuzzy
-msgid "All Chapters"
-msgstr "Все главы"
+msgid "Entire document"
+msgstr "Весь документ"
 
-#: koassistant_xray_browser.lua:1584 koassistant_xray_browser.lua:1947
+#: koassistant_xray_browser.lua:1592 koassistant_xray_browser.lua:1955
 #, fuzzy
-msgid "All Chapters (to %1)"
-msgstr "Все главы (до %1)"
+msgid "Entire document (to %1)"
+msgstr "Весь документ (до %1)"
 
-#: koassistant_xray_browser.lua:1599 koassistant_xray_browser.lua:1975
+#: koassistant_xray_browser.lua:1607 koassistant_xray_browser.lua:1983
 #, fuzzy
 msgid "Table of Contents"
 msgstr "Оглавление"
 
-#: koassistant_xray_browser.lua:1836 koassistant_xray_browser.lua:2000
+#: koassistant_xray_browser.lua:1844 koassistant_xray_browser.lua:2008
 #, fuzzy
 msgid ""
 "This will scan beyond your X-Ray coverage.\n"
@@ -3965,14 +3965,14 @@ msgstr ""
 "\n"
 "Показать все упоминания?"
 
-#: koassistant_xray_browser.lua:1845 koassistant_xray_browser.lua:1870
-#: koassistant_xray_browser.lua:2009 koassistant_xray_browser.lua:2040
-#: koassistant_xray_browser.lua:2403
+#: koassistant_xray_browser.lua:1853 koassistant_xray_browser.lua:1878
+#: koassistant_xray_browser.lua:2017 koassistant_xray_browser.lua:2048
+#: koassistant_xray_browser.lua:2449
 #, fuzzy
 msgid "Reveal"
 msgstr "Показать"
 
-#: koassistant_xray_browser.lua:1861 koassistant_xray_browser.lua:2031
+#: koassistant_xray_browser.lua:1869 koassistant_xray_browser.lua:2039
 #, fuzzy
 msgid ""
 "This chapter is beyond your X-Ray coverage.\n"
@@ -3983,120 +3983,135 @@ msgstr ""
 "\n"
 "Показать упоминания?"
 
-#: koassistant_xray_browser.lua:2088 koassistant_xray_browser.lua:2256
-#: koassistant_xray_browser.lua:2578
+#: koassistant_xray_browser.lua:2096 koassistant_xray_browser.lua:2264
+#: koassistant_xray_browser.lua:2587
 #, fuzzy
 msgid "No book open."
 msgstr "Книга не открыта."
 
-#: koassistant_xray_browser.lua:2096
+#: koassistant_xray_browser.lua:2104
 #, fuzzy
 msgid "Analyzing book…"
 msgstr "Анализ книги…"
 
-#: koassistant_xray_browser.lua:2096 koassistant_xray_browser.lua:2263
+#: koassistant_xray_browser.lua:2104 koassistant_xray_browser.lua:2271
 #, fuzzy
 msgid "Analyzing chapter…"
 msgstr "Анализ главы…"
 
-#: koassistant_xray_browser.lua:2110
+#: koassistant_xray_browser.lua:2118
 #, fuzzy
 msgid "Could not determine book length."
 msgstr "Не удалось определить длину книги."
 
-#: koassistant_xray_browser.lua:2142
+#: koassistant_xray_browser.lua:2150
 #, fuzzy
 msgid ""
 "Could not extract book text. PDF text extraction may not be available for this document."
 msgstr "Не удалось извлечь текст книги. Извлечение текста PDF может быть недоступно для этого документа."
 
-#: koassistant_xray_browser.lua:2143
+#: koassistant_xray_browser.lua:2151
 #, fuzzy
 msgid "Could not extract book text."
 msgstr "Не удалось извлечь текст книги."
 
-#: koassistant_xray_browser.lua:2146 koassistant_xray_browser.lua:2272
+#: koassistant_xray_browser.lua:2154 koassistant_xray_browser.lua:2280
 #, fuzzy
 msgid ""
 "Could not extract chapter text. PDF text extraction may not be available for this document."
 msgstr "Не удалось извлечь текст главы. Извлечение текста PDF может быть недоступно для этого документа."
 
-#: koassistant_xray_browser.lua:2147 koassistant_xray_browser.lua:2273
+#: koassistant_xray_browser.lua:2155 koassistant_xray_browser.lua:2281
 #, fuzzy
 msgid "Could not extract chapter text."
 msgstr "Не удалось извлечь текст главы."
 
-#: koassistant_xray_browser.lua:2161
+#: koassistant_xray_browser.lua:2169
 #, fuzzy
 msgid "No X-Ray items found in book text."
 msgstr "Элементы X-Ray не найдены в тексте книги."
 
-#: koassistant_xray_browser.lua:2163 koassistant_xray_browser.lua:2285
+#: koassistant_xray_browser.lua:2171 koassistant_xray_browser.lua:2293
 #, fuzzy
 msgid "No X-Ray items found in \"%1\"."
 msgstr "Элементы X-Ray не найдены в \"%1\"."
 
-#: koassistant_xray_browser.lua:2165
+#: koassistant_xray_browser.lua:2173
 #, fuzzy
 msgid "No X-Ray items found in current chapter."
 msgstr "Элементы X-Ray не найдены в текущей главе."
 
-#: koassistant_xray_browser.lua:2182
+#: koassistant_xray_browser.lua:2190
 #, fuzzy
-msgid "All Chapters u{25BE}"
-msgstr "Все главы u{25BE}"
+msgid "Entire document u{25BE}"
+msgstr "Весь документ u{25BE}"
 
-#: koassistant_xray_browser.lua:2184
+#: koassistant_xray_browser.lua:2192
 #, fuzzy
 msgid "To %1 u{25BE}"
 msgstr "До %1 u{25BE}"
 
-#: koassistant_xray_browser.lua:2189
+#: koassistant_xray_browser.lua:2197
 #, fuzzy
 msgid "This Chapter u{25BE}"
 msgstr "Эта глава u{25BE}"
 
-#: koassistant_xray_browser.lua:2220 koassistant_xray_browser.lua:2311
+#: koassistant_xray_browser.lua:2228 koassistant_xray_browser.lua:2319
 #, fuzzy
 msgid "%1x"
 msgstr "%1x"
 
-#: koassistant_xray_browser.lua:2234
+#: koassistant_xray_browser.lua:2242
 #, fuzzy
-msgid "All Chapters — %1 mentions"
-msgstr "Все главы — упоминаний: %1"
+msgid "Entire document — %1 mentions"
+msgstr "Весь документ — упоминаний: %1"
 
-#: koassistant_xray_browser.lua:2236
+#: koassistant_xray_browser.lua:2244
 #, fuzzy
 msgid "To %1 — %2 mentions"
 msgstr "До %1 — упоминаний: %2"
 
-#: koassistant_xray_browser.lua:2239 koassistant_xray_browser.lua:2323
+#: koassistant_xray_browser.lua:2247 koassistant_xray_browser.lua:2331
 #, fuzzy
 msgid "%1 — %2 mentions"
 msgstr "%1 — упоминаний: %2"
 
-#: koassistant_xray_browser.lua:2241
+#: koassistant_xray_browser.lua:2249
 #, fuzzy
 msgid "This Chapter — %1 mentions"
 msgstr "Эта глава — упоминаний: %1"
 
-#: koassistant_xray_browser.lua:2286
+#: koassistant_xray_browser.lua:2294
 #, fuzzy
 msgid "No X-Ray items found in this chapter."
 msgstr "Элементы X-Ray не найдены в этой главе."
 
-#: koassistant_xray_browser.lua:2325
+#: koassistant_xray_browser.lua:2333
 #, fuzzy
 msgid "Chapter — %1 mentions"
 msgstr "Глава — упоминаний: %1"
 
-#: koassistant_xray_browser.lua:2362
+#: koassistant_xray_browser.lua:2358
+#, fuzzy
+msgid "Scan entire document"
+msgstr "Сканировать весь документ"
+
+#: koassistant_xray_browser.lua:2359
+#, fuzzy
+msgid "may contain spoilers"
+msgstr "может содержать спойлеры"
+
+#: koassistant_xray_browser.lua:2365
+#, fuzzy
+msgid "Scanning all chapters…"
+msgstr "Сканирование всех глав…"
+
+#: koassistant_xray_browser.lua:2408
 #, fuzzy
 msgid "Scanning…"
 msgstr "Сканирование…"
 
-#: koassistant_xray_browser.lua:2394
+#: koassistant_xray_browser.lua:2440
 #, fuzzy
 msgid ""
 "This chapter is beyond your X-Ray coverage and may contain spoilers.\n"
@@ -4107,174 +4122,159 @@ msgstr ""
 "\n"
 "Показать упоминания?"
 
-#: koassistant_xray_browser.lua:2491
+#: koassistant_xray_browser.lua:2537
 #, fuzzy
 msgid "Search for:"
 msgstr "Поиск:"
 
-#: koassistant_xray_browser.lua:2512
+#: koassistant_xray_browser.lua:2558
 #, fuzzy
 msgid "No X-Ray items in \"%1\"."
 msgstr "Нет элементов X-Ray в \"%1\"."
 
-#: koassistant_xray_browser.lua:2513
+#: koassistant_xray_browser.lua:2559
 #, fuzzy
 msgid "this chapter"
 msgstr "эта глава"
 
-#: koassistant_xray_browser.lua:2524
-#, fuzzy
-msgid "Scan all chapters"
-msgstr "Сканировать все главы"
-
-#: koassistant_xray_browser.lua:2525
-#, fuzzy
-msgid "may contain spoilers"
-msgstr "может содержать спойлеры"
-
-#: koassistant_xray_browser.lua:2531
-#, fuzzy
-msgid "Scanning all chapters…"
-msgstr "Сканирование всех глав…"
-
-#: koassistant_xray_browser.lua:2558
+#: koassistant_xray_browser.lua:2567
 #, fuzzy
 msgid "%1 — %2 chapters"
 msgstr "%1 — глав: %2"
 
-#: koassistant_xray_browser.lua:2594
+#: koassistant_xray_browser.lua:2603
 #, fuzzy
 msgid "Computing distribution…"
 msgstr "Вычисление распределения…"
 
-#: koassistant_xray_browser.lua:2606
+#: koassistant_xray_browser.lua:2615
 #, fuzzy
 msgid "Could not determine chapter structure."
 msgstr "Не удалось определить структуру глав."
 
-#: koassistant_xray_browser.lua:2637
+#: koassistant_xray_browser.lua:2646
 #, fuzzy
 msgid ""
 "No mentions of \"%1\" found. PDF text extraction may not be available for this document."
 msgstr "Упоминания \"%1\" не найдены. Извлечение текста PDF может быть недоступно для этого документа."
 
-#: koassistant_xray_browser.lua:2638
+#: koassistant_xray_browser.lua:2647
 #, fuzzy
 msgid "No mentions of \"%1\" found in book text."
 msgstr "Упоминания \"%1\" не найдены в тексте книги."
 
-#: koassistant_xray_browser.lua:2666
+#: koassistant_xray_browser.lua:2675
 #, fuzzy
 msgid "Search X-Ray"
 msgstr "Поиск X-Ray"
 
-#: koassistant_xray_browser.lua:2668
+#: koassistant_xray_browser.lua:2677
 #, fuzzy
 msgid "Name, term, description..."
 msgstr "Имя, термин, описание..."
 
-#: koassistant_xray_browser.lua:2703
+#: koassistant_xray_browser.lua:2712
 #, fuzzy
 msgid "No results for \"%1\"."
 msgstr "Нет результатов для \"%1\"."
 
-#: koassistant_xray_browser.lua:2717
+#: koassistant_xray_browser.lua:2726
 #, fuzzy
 msgid "alias"
 msgstr "псевдоним"
 
-#: koassistant_xray_browser.lua:2719
+#: koassistant_xray_browser.lua:2728
 #, fuzzy
 msgid "desc."
 msgstr "описание"
 
-#: koassistant_xray_browser.lua:2734
+#: koassistant_xray_browser.lua:2743
 #, fuzzy
 msgid "Results for \"%1\" (%2)"
 msgstr "Результаты для \"%1\" (%2)"
 
-#: koassistant_xray_browser.lua:2819 koassistant_xray_browser.lua:3023
+#: koassistant_xray_browser.lua:2828 koassistant_xray_browser.lua:3032
 #: main.lua:4472 main.lua:4603
 #, fuzzy
 msgid "View %1"
 msgstr "Просмотреть %1"
 
-#: koassistant_xray_browser.lua:2827
+#: koassistant_xray_browser.lua:2836
 #, fuzzy
 msgid "View other artifacts…"
 msgstr "Просмотреть другие артефакты…"
 
-#: koassistant_xray_browser.lua:2842
+#: koassistant_xray_browser.lua:2851
 #, fuzzy
 msgid "Redo X-Ray (entire document)"
 msgstr "Пересоздать X-Ray (весь документ)"
 
-#: koassistant_xray_browser.lua:2852
+#: koassistant_xray_browser.lua:2861
 #, fuzzy
 msgid "Redo X-Ray (to 100%)"
 msgstr "Пересоздать X-Ray (до 100%)"
 
-#: koassistant_xray_browser.lua:2875
+#: koassistant_xray_browser.lua:2884
 #, fuzzy
 msgid "Redo X-Ray (to %1)"
 msgstr "Пересоздать X-Ray (до %1)"
 
-#: koassistant_xray_browser.lua:2879
+#: koassistant_xray_browser.lua:2888
 #, fuzzy
 msgid "Redo X-Ray"
 msgstr "Пересоздать X-Ray"
 
-#: koassistant_xray_browser.lua:2894
+#: koassistant_xray_browser.lua:2903
 #, fuzzy
 msgid "Update X-Ray (to 100%)"
 msgstr "Обновить X-Ray (до 100%)"
 
-#: koassistant_xray_browser.lua:2908
+#: koassistant_xray_browser.lua:2917
 #, fuzzy
 msgid "Delete X-Ray"
 msgstr "Удалить X-Ray"
 
-#: koassistant_xray_browser.lua:2913
+#: koassistant_xray_browser.lua:2922
 #, fuzzy
 msgid "Delete this X-Ray? This cannot be undone."
 msgstr "Удалить этот X-Ray? Это действие нельзя отменить."
 
-#: koassistant_xray_browser.lua:2932 main.lua:3945
+#: koassistant_xray_browser.lua:2941 main.lua:3945
 #, fuzzy
 msgid "updated from"
 msgstr "обновлено из"
 
-#: koassistant_xray_browser.lua:2934 main.lua:3948
+#: koassistant_xray_browser.lua:2943 main.lua:3948
 #, fuzzy
 msgid "Progress:"
 msgstr "Прогресс:"
 
-#: koassistant_xray_browser.lua:2941
+#: koassistant_xray_browser.lua:2950
 #, fuzzy
 msgid "Fiction"
 msgstr "Художественная литература"
 
-#: koassistant_xray_browser.lua:2941
+#: koassistant_xray_browser.lua:2950
 #, fuzzy
 msgid "Non-Fiction"
 msgstr "Нехудожественная литература"
 
-#: koassistant_xray_browser.lua:2942
+#: koassistant_xray_browser.lua:2951
 #, fuzzy
 msgid "Type:"
 msgstr "Тип:"
 
-#: koassistant_xray_browser.lua:2944 main.lua:3950
+#: koassistant_xray_browser.lua:2953 main.lua:3950
 #, fuzzy
 msgid "Source:"
 msgstr "Источник:"
 
-#: koassistant_xray_browser.lua:2947 main.lua:3961
+#: koassistant_xray_browser.lua:2956 main.lua:3961
 #, fuzzy
 msgid "Reasoning:"
 msgstr "Рассуждение:"
 
-#: koassistant_xray_browser.lua:2947 koassistant_xray_browser.lua:2950
+#: koassistant_xray_browser.lua:2956 koassistant_xray_browser.lua:2959
 #: main.lua:3961 main.lua:3964 koassistant_ui/prompts_manager.lua:746
 #: koassistant_ui/prompts_manager.lua:747
 #: koassistant_ui/prompts_manager.lua:753
@@ -4283,12 +4283,12 @@ msgstr "Рассуждение:"
 msgid "Yes"
 msgstr "Да"
 
-#: koassistant_xray_browser.lua:2950 main.lua:3964
+#: koassistant_xray_browser.lua:2959 main.lua:3964
 #, fuzzy
 msgid "Web search:"
 msgstr "Веб-поиск:"
 
-#: koassistant_xray_browser.lua:3057
+#: koassistant_xray_browser.lua:3066
 #, fuzzy
 msgid ""
 "This feature requires the book to be open in Reader mode.\n"
@@ -4299,7 +4299,7 @@ msgstr ""
 "\n"
 "Открыть книгу сейчас?"
 
-#: koassistant_xray_browser.lua:3065
+#: koassistant_xray_browser.lua:3074
 #, fuzzy
 msgid "This feature requires the book to be open in Reader mode."
 msgstr "Эта функция требует, чтобы книга была открыта в режиме чтения."
@@ -6175,148 +6175,148 @@ msgstr "Смотрите README для инструкций по включен�
 msgid "If you see blank boxes or question marks, choose \"No\"."
 msgstr "Если вы видите пустые квадраты или вопросительные знаки, выберите «Нет»."
 
-#: main.lua:9155
+#: main.lua:9156
 #, fuzzy
 msgid "Yes, enable"
 msgstr "Да, включить"
 
-#: main.lua:9156
+#: main.lua:9157
 #, fuzzy
 msgid "No, skip"
 msgstr "Нет, пропустить"
 
-#: main.lua:9186
+#: main.lua:9187
 #, fuzzy
 msgid "GESTURE SETUP"
 msgstr "НАСТРОЙКА ЖЕСТОВ"
 
-#: main.lua:9187
+#: main.lua:9188
 #, fuzzy
 msgid "KOAssistant has two quick-access panels:"
 msgstr "KOAssistant имеет две панели быстрого доступа:"
 
-#: main.lua:9188
+#: main.lua:9189
 #, fuzzy
 msgid "Quick Actions — book actions, artifacts, and utilities (reader mode)"
 msgstr "Быстрые действия — действия с книгой, артефакты и утилиты (режим ридера)"
 
-#: main.lua:9189
+#: main.lua:9190
 #, fuzzy
 msgid ""
 "Quick Settings — change provider, model, behavior, and more (file browser)"
 msgstr "Быстрые настройки — изменение провайдера, модели, поведения и прочего (браузер файлов)"
 
-#: main.lua:9190
+#: main.lua:9191
 #, fuzzy
 msgid "Assign both to \"tap bottom right corner\"?"
 msgstr "Назначить обе на «касание правого нижнего угла»?"
 
-#: main.lua:9191
+#: main.lua:9192
 #, fuzzy
 msgid ""
 "You can change these anytime in KOReader Settings (Gear icon) → Taps and Gestures."
 msgstr "Вы можете изменить это в любое время в Настройках KOReader (значок шестерёнки) → Касания и жесты."
 
-#: main.lua:9192
+#: main.lua:9193
 #, fuzzy
 msgid "Requires KOReader restart to take effect."
 msgstr "Требуется перезапуск KOReader для вступления в силу."
 
-#: main.lua:9197
+#: main.lua:9198
 #, fuzzy
 msgid "Set up"
 msgstr "Настроить"
 
-#: main.lua:9198
+#: main.lua:9199
 #, fuzzy
 msgid "No thanks"
 msgstr "Нет, спасибо"
 
-#: main.lua:9213
+#: main.lua:9214
 #, fuzzy
 msgid "GESTURE TIP"
 msgstr "ПОДСКАЗКА ПО ЖЕСТАМ"
 
-#: main.lua:9214
+#: main.lua:9215
 #, fuzzy
 msgid "KOAssistant has two quick-access panels you can assign to gestures:"
 msgstr "KOAssistant имеет две панели быстрого доступа, которые можно назначить на жесты:"
 
-#: main.lua:9215
+#: main.lua:9216
 #, fuzzy
 msgid ""
 "Quick Actions — book actions, artifacts, and utilities (assign in reader mode)"
 msgstr "Быстрые действия — действия с книгой, артефакты и утилиты (назначаются в режиме ридера)"
 
-#: main.lua:9216
+#: main.lua:9217
 #, fuzzy
 msgid ""
 "Quick Settings — change provider, model, behavior, and more (assign in file browser mode)"
 msgstr "Быстрые настройки — изменение провайдера, модели, поведения и прочего (назначаются в режиме браузера файлов)"
 
-#: main.lua:9217
+#: main.lua:9218
 #, fuzzy
 msgid "Set them up in KOReader Settings (Gear icon) → Taps and Gestures."
 msgstr "Настройте их в Настройках KOReader (значок шестерёнки) → Касания и жесты."
 
-#: main.lua:9228
+#: main.lua:9229
 #, fuzzy
 msgid "GETTING STARTED"
 msgstr "НАЧАЛО РАБОТЫ"
 
-#: main.lua:9230
+#: main.lua:9231
 #, fuzzy
 msgid ""
 "Some features need document text access. Enable in: Settings → Privacy & Data"
 msgstr "Некоторым функциям требуется доступ к тексту документа. Включите в: Настройки → Конфиденциальность и данные"
 
-#: main.lua:9232
+#: main.lua:9233
 #, fuzzy
 msgid ""
 "Create or edit prompts: Settings → Actions & Prompts → Manage Actions (or from Quick Settings panel)"
 msgstr "Создание или редактирование запросов: Настройки → Действия и запросы → Управление действиями (или из панели быстрых настроек)"
 
-#: main.lua:9236
+#: main.lua:9237
 #, fuzzy
 msgid "Gestures assigned. Please restart KOReader for changes to take effect."
 msgstr "Жесты назначены. Пожалуйста, перезапустите KOReader, чтобы изменения вступили в силу."
 
-#: main.lua:9239
+#: main.lua:9240
 #, fuzzy
 msgid "Enjoy your reading!"
 msgstr "Приятного чтения!"
 
-#: main.lua:9422
+#: main.lua:9423
 #, fuzzy
 msgid "No notebook available for this document"
 msgstr "Нет доступных заметок для этого документа"
 
-#: main.lua:9432
+#: main.lua:9433
 #, fuzzy
 msgid "No notebook exists for this document. Create one?"
 msgstr "Для этого документа не существует блокнота. Создать?"
 
-#: main.lua:9442
+#: main.lua:9443
 #, fuzzy
 msgid "Failed to create notebook: %1"
 msgstr "Не удалось создать блокнот: %1"
 
-#: main.lua:9484
+#: main.lua:9485
 #, fuzzy
 msgid "Notebook is empty"
 msgstr "Заметки пусты"
 
-#: main.lua:9533
+#: main.lua:9534
 #, fuzzy
 msgid "Failed to read notebook file."
 msgstr "Не удалось прочитать файл заметок."
 
-#: main.lua:9596
+#: main.lua:9597
 #, fuzzy
 msgid "Notebook saved"
 msgstr "Блокнот сохранён"
 
-#: main.lua:9603
+#: main.lua:9604
 #, fuzzy
 msgid "Reset to last saved"
 msgstr "Вернуть к последнему сохранённому"
