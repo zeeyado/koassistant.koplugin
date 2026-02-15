@@ -853,7 +853,7 @@ local ChatGPTViewer = InputContainer:extend {
   auto_para_direction = true,
   alignment_strict = false,
 
-  title_face = nil,               -- use default from TitleBar
+  title_face = Font:getFace("smallinfofont"), -- Regular weight (default x_smalltfont is Bold)
   title_multilines = nil,         -- see TitleBar for details
   title_shrink_font_to_fit = nil, -- see TitleBar for details
   text_face = Font:getFace("x_smallinfofont"),
@@ -2362,6 +2362,12 @@ function ChatGPTViewer:init()
       end
     end
   end
+  -- Non-bold buttons for lighter visual feel
+  for _ri, btn_row in ipairs(buttons) do
+    for _bi, btn in ipairs(btn_row) do
+      btn.font_bold = false
+    end
+  end
   self.button_table = ButtonTable:new {
     width = self.width - 2 * self.button_padding,
     buttons = buttons,
@@ -2523,6 +2529,7 @@ function ChatGPTViewer:askAnotherQuestion()
         {
           text = _("Close"),
           id = "close",  -- Enable tap-outside-to-close
+          font_bold = false,
           callback = function()
             -- Save draft before closing
             local draft = input_dialog:getInputText()
@@ -2537,6 +2544,7 @@ function ChatGPTViewer:askAnotherQuestion()
         {
           text = _("Send"),
           is_enter_default = true,
+          font_bold = false,
           callback = function()
             local input_text = input_dialog:getInputText()
             UIManager:close(input_dialog)
@@ -2559,6 +2567,11 @@ function ChatGPTViewer:askAnotherQuestion()
       },
     },
   }
+  -- Non-bold title (Regular weight, same size as default Bold)
+  input_dialog.title_bar.title_face = Font:getFace("smallinfofont")
+  input_dialog.title_bar:init()
+  -- Lighter input field border
+  input_dialog._input_widget._frame_textwidget.color = Blitbuffer.COLOR_GRAY
   UIManager:show(input_dialog)
   input_dialog:onShowKeyboard()
 end

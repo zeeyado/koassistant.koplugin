@@ -5671,7 +5671,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
   local button_defs = {}
 
   button_defs["provider"] = {
-    text = E("\u{1F517}", T(_("Provider: %1"), provider_display)),
+    text = enable_emoji and ("\u{1F517} " .. provider_display) or T(_("Provider: %1"), provider_display),
     callback = function()
       opening_subdialog = true
       UIManager:close(dialog)
@@ -5681,7 +5681,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
   }
 
   button_defs["model"] = {
-    text = E("\u{1F916}", T(_("Model: %1"), model)),
+    text = enable_emoji and ("\u{1F916} " .. model) or T(_("Model: %1"), model),
     callback = function()
       opening_subdialog = true
       UIManager:close(dialog)
@@ -5691,7 +5691,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
   }
 
   button_defs["behavior"] = {
-    text = E("🎭", T(_("Behavior: %1"), behavior_display)),
+    text = enable_emoji and ("🎭 " .. behavior_display) or T(_("Behavior: %1"), behavior_display),
     callback = function()
       opening_subdialog = true
       UIManager:close(dialog)
@@ -5738,7 +5738,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
   }
 
   button_defs["extended_thinking"] = {
-    text = E("\u{1F9E0}", reasoning_enabled and _("Anthropic/Gemini Reasoning: ON") or _("Anthropic/Gemini Reasoning: OFF")),
+    text = E("\u{1F9E0}", reasoning_enabled and _("Reasoning: ON") or _("Reasoning: OFF")),
     callback = function()
       local f = self_ref.settings:readSetting("features") or {}
       f.enable_reasoning = not f.enable_reasoning
