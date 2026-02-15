@@ -106,6 +106,18 @@ local SettingsSchema = {
             text = _("API Keys"),
             emoji = "🔑",
             callback = "buildApiKeysMenu",
+        },
+        {
+            id = "temperature",
+            type = "spinner",
+            text = _("Temperature"),
+            path = "features.default_temperature",
+            default = 0.7,
+            min = 0,
+            max = 2,
+            step = 0.1,
+            precision = "%.1f",
+            info_text = _("Range: 0.0-2.0 (Anthropic max 1.0)\nLower = focused, deterministic\nHigher = creative, varied"),
             separator = true,
         },
         -- Display Settings submenu
@@ -115,6 +127,10 @@ local SettingsSchema = {
             text = _("Display Settings"),
             emoji = "🎨",
             items = {
+                {
+                    type = "header",
+                    text = _("Rendering"),
+                },
                 {
                     id = "render_markdown",
                     type = "dropdown",
@@ -126,6 +142,27 @@ local SettingsSchema = {
                         { value = false, label = _("Plain Text") },
                     },
                     help_text = _("Markdown renders formatting. Plain Text has better font support for Arabic/CJK."),
+                },
+                -- Plain Text Options submenu (moved up to be with Rendering)
+                {
+                    id = "plain_text_options",
+                    type = "submenu",
+                    text = _("Plain Text Options"),
+                    separator = true,
+                    items = {
+                        {
+                            id = "strip_markdown_in_text_mode",
+                            type = "toggle",
+                            text = _("Apply Markdown Stripping"),
+                            path = "features.strip_markdown_in_text_mode",
+                            default = true,
+                            help_text = _("Convert markdown syntax to readable plain text (headers, lists, etc). Disable to show raw markdown."),
+                        },
+                    },
+                },
+                {
+                    type = "header",
+                    text = _("RTL"),
                 },
                 {
                     id = "dictionary_text_mode",
@@ -168,6 +205,10 @@ local SettingsSchema = {
                     help_text = _("Automatically detect RTL content and switch to RTL mode (right-aligned text + Plain Text). Activates when the latest response has more RTL than Latin characters. Disabling removes all automatic RTL adjustments. Grayed out when markdown is disabled."),
                 },
                 {
+                    type = "header",
+                    text = _("Emoji"),
+                },
+                {
                     id = "enable_emoji_icons",
                     type = "toggle",
                     text = _("Emoji Menu Icons"),
@@ -184,6 +225,19 @@ local SettingsSchema = {
                     help_text = _("Show emoji icons on Quick Settings and Quick Actions panel buttons (🔗 Provider, 🎭 Behavior, 📜 Chat History, etc.). Requires emoji font support."),
                 },
                 {
+                    id = "enable_data_access_indicators",
+                    type = "toggle",
+                    text = _("Emoji Data Access Indicators"),
+                    path = "features.enable_data_access_indicators",
+                    default = false,
+                    help_text = _("Show emoji indicators on action names showing what data they access: 📄 document text, 📝 annotations, 📓 notebook, 🌐 web search. Requires emoji font support."),
+                    separator = true,
+                },
+                {
+                    type = "header",
+                    text = _("Panel Alignment"),
+                },
+                {
                     id = "qs_left_align",
                     type = "toggle",
                     text = _("Align Quick Settings"),
@@ -198,31 +252,11 @@ local SettingsSchema = {
                     path = "features.qa_left_align",
                     default = true,
                     help_text = _("Left-align button text in the Quick Actions panel instead of centering. Also available from the panel's gear menu."),
-                },
-                {
-                    id = "enable_data_access_indicators",
-                    type = "toggle",
-                    text = _("Emoji Data Access Indicators"),
-                    path = "features.enable_data_access_indicators",
-                    default = false,
-                    help_text = _("Show emoji indicators on action names showing what data they access: 📄 document text, 📝 annotations, 📓 notebook, 🌐 web search. Requires emoji font support."),
-                },
-                -- Plain Text Options submenu
-                {
-                    id = "plain_text_options",
-                    type = "submenu",
-                    text = _("Plain Text Options"),
                     separator = true,
-                    items = {
-                        {
-                            id = "strip_markdown_in_text_mode",
-                            type = "toggle",
-                            text = _("Apply Markdown Stripping"),
-                            path = "features.strip_markdown_in_text_mode",
-                            default = true,
-                            help_text = _("Convert markdown syntax to readable plain text (headers, lists, etc). Disable to show raw markdown."),
-                        },
-                    },
+                },
+                {
+                    type = "header",
+                    text = _("Highlights"),
                 },
                 {
                     id = "hide_highlighted_text",
@@ -297,7 +331,7 @@ local SettingsSchema = {
         {
             id = "chat_settings",
             type = "submenu",
-            text = _("Chat & Export"),
+            text = _("Chat & Export Settings"),
             emoji = "💬",
             items = {
                 {
@@ -394,109 +428,121 @@ local SettingsSchema = {
                     help_text = _("When resuming or replying to a chat, try to scroll so your last question is visible. When off, shows top for new chats and bottom for replies."),
                     separator = true,
                 },
-                -- Export settings
+                -- Content Format submenu
                 {
-                    id = "export_style",
-                    type = "dropdown",
-                    text = _("Export Style"),
-                    path = "features.export_style",
-                    default = "markdown",
-                    options = {
-                        { value = "markdown", label = _("Markdown") },
-                        { value = "text", label = _("Plain Text") },
+                    id = "content_format",
+                    type = "submenu",
+                    text = _("Content Format"),
+                    items = {
+                        {
+                            id = "export_style",
+                            type = "dropdown",
+                            text = _("Export Style"),
+                            path = "features.export_style",
+                            default = "markdown",
+                            options = {
+                                { value = "markdown", label = _("Markdown") },
+                                { value = "text", label = _("Plain Text") },
+                            },
+                            help_text = _("Markdown uses # headers and **bold**. Plain text uses simple formatting."),
+                        },
+                        {
+                            id = "copy_content",
+                            type = "dropdown",
+                            text = _("Copy Content"),
+                            path = "features.copy_content",
+                            default = "full",
+                            options = {
+                                { value = "ask", label = _("Ask every time") },
+                                { value = "full", label = _("Full (metadata + chat)") },
+                                { value = "qa", label = _("Question + Response") },
+                                { value = "response", label = _("Last response only") },
+                                { value = "everything", label = _("Everything (debug)") },
+                            },
+                            help_text = _("What to include when copying chat to clipboard."),
+                        },
+                        {
+                            id = "note_content",
+                            type = "dropdown",
+                            text = _("Note Content"),
+                            path = "features.note_content",
+                            default = "qa",
+                            options = {
+                                { value = "ask", label = _("Ask every time") },
+                                { value = "full", label = _("Full (metadata + chat)") },
+                                { value = "qa", label = _("Question + Response") },
+                                { value = "response", label = _("Last response only") },
+                                { value = "everything", label = _("Everything (debug)") },
+                            },
+                            help_text = _("What to include when saving to note."),
+                        },
+                        {
+                            id = "history_copy_content",
+                            type = "dropdown",
+                            text = _("Chat History Export"),
+                            path = "features.history_copy_content",
+                            default = "ask",
+                            options = {
+                                { value = "global", label = _("Follow Copy Content") },
+                                { value = "ask", label = _("Ask every time") },
+                                { value = "full", label = _("Full (metadata + chat)") },
+                                { value = "qa", label = _("Question + Response") },
+                                { value = "response", label = _("Last response only") },
+                                { value = "everything", label = _("Everything (debug)") },
+                            },
+                            help_text = _("What to include when exporting from Chat History."),
+                        },
                     },
-                    help_text = _("Markdown uses # headers and **bold**. Plain text uses simple formatting."),
                 },
+                -- Save Location submenu
                 {
-                    id = "copy_content",
-                    type = "dropdown",
-                    text = _("Copy Content"),
-                    path = "features.copy_content",
-                    default = "full",
-                    options = {
-                        { value = "ask", label = _("Ask every time") },
-                        { value = "full", label = _("Full (metadata + chat)") },
-                        { value = "qa", label = _("Question + Response") },
-                        { value = "response", label = _("Last response only") },
-                        { value = "everything", label = _("Everything (debug)") },
-                    },
-                    help_text = _("What to include when copying chat to clipboard."),
-                },
-                {
-                    id = "note_content",
-                    type = "dropdown",
-                    text = _("Note Content"),
-                    path = "features.note_content",
-                    default = "qa",
-                    options = {
-                        { value = "ask", label = _("Ask every time") },
-                        { value = "full", label = _("Full (metadata + chat)") },
-                        { value = "qa", label = _("Question + Response") },
-                        { value = "response", label = _("Last response only") },
-                        { value = "everything", label = _("Everything (debug)") },
-                    },
-                    help_text = _("What to include when saving to note."),
-                },
-                {
-                    id = "history_copy_content",
-                    type = "dropdown",
-                    text = _("Chat History Export"),
-                    path = "features.history_copy_content",
-                    default = "ask",
-                    options = {
-                        { value = "global", label = _("Follow Copy Content") },
-                        { value = "ask", label = _("Ask every time") },
-                        { value = "full", label = _("Full (metadata + chat)") },
-                        { value = "qa", label = _("Question + Response") },
-                        { value = "response", label = _("Last response only") },
-                        { value = "everything", label = _("Everything (debug)") },
-                    },
-                    help_text = _("What to include when exporting from Chat History."),
-                    separator = true,
-                },
-                -- Save to File settings
-                {
-                    id = "export_save_directory",
-                    type = "dropdown",
+                    id = "save_location",
+                    type = "submenu",
                     text = _("Save Location"),
-                    path = "features.export_save_directory",
-                    default = "exports_folder",
-                    options = {
-                        { value = "exports_folder", label = _("KOAssistant exports folder") },
-                        { value = "custom", label = _("Custom folder") },
-                        { value = "ask", label = _("Ask every time") },
+                    items = {
+                        {
+                            id = "export_save_directory",
+                            type = "dropdown",
+                            text = _("Save Location"),
+                            path = "features.export_save_directory",
+                            default = "exports_folder",
+                            options = {
+                                { value = "exports_folder", label = _("KOAssistant exports folder") },
+                                { value = "custom", label = _("Custom folder") },
+                                { value = "ask", label = _("Ask every time") },
+                            },
+                            help_text = _("Where to save exported chat files. Creates subfolders for book/general/multi-book chats."),
+                        },
+                        {
+                            id = "export_custom_path",
+                            type = "action",
+                            text_func = function(plugin)
+                                local f = plugin.settings:readSetting("features") or {}
+                                local path = f.export_custom_path
+                                if path and path ~= "" then
+                                    -- Show shortened path for display
+                                    local short = path:match("([^/]+)$") or path
+                                    return T(_("Custom Folder: %1"), short)
+                                end
+                                return _("Set Custom Folder...")
+                            end,
+                            callback = "showExportPathPicker",
+                            enabled_func = function(plugin)
+                                local f = plugin.settings:readSetting("features") or {}
+                                local dir_option = f.export_save_directory or "exports_folder"
+                                return dir_option == "custom"
+                            end,
+                            help_text = _("Select directory for exported files."),
+                        },
+                        {
+                            id = "export_book_to_book_folder",
+                            type = "toggle",
+                            text = _("Save book chats alongside books"),
+                            path = "features.export_book_to_book_folder",
+                            default = false,
+                            help_text = _("When enabled, book chats are saved to a 'chats' subfolder next to the book file instead of the central location."),
+                        },
                     },
-                    help_text = _("Where to save exported chat files. Creates subfolders for book/general/multi-book chats."),
-                },
-                {
-                    id = "export_custom_path",
-                    type = "action",
-                    text_func = function(plugin)
-                        local f = plugin.settings:readSetting("features") or {}
-                        local path = f.export_custom_path
-                        if path and path ~= "" then
-                            -- Show shortened path for display
-                            local short = path:match("([^/]+)$") or path
-                            return T(_("Custom Folder: %1"), short)
-                        end
-                        return _("Set Custom Folder...")
-                    end,
-                    callback = "showExportPathPicker",
-                    -- Only show when "custom" is selected
-                    enabled_func = function(plugin)
-                        local f = plugin.settings:readSetting("features") or {}
-                        local dir_option = f.export_save_directory or "exports_folder"
-                        return dir_option == "custom"
-                    end,
-                    help_text = _("Select directory for exported files."),
-                },
-                {
-                    id = "export_book_to_book_folder",
-                    type = "toggle",
-                    text = _("Save book chats alongside books"),
-                    path = "features.export_book_to_book_folder",
-                    default = false,
-                    help_text = _("When enabled, book chats are saved to a 'chats' subfolder next to the book file instead of the central location."),
                 },
                 {
                     id = "show_export_in_chat_viewer",
@@ -922,55 +968,6 @@ local SettingsSchema = {
                     help_text = _("Choose which actions appear in the highlight menu (requires restart)"),
                 },
             },
-        },
-
-        -- Quick Panel Settings
-        {
-            id = "quick_panel_settings",
-            type = "submenu",
-            text = _("Quick Panel Settings"),
-            emoji = "⚡",
-            items = (function()
-                -- Build items dynamically from Constants
-                local items = {
-                    -- Quick Actions Panel section
-                    {
-                        id = "quick_actions_header",
-                        type = "header",
-                        text = _("Quick Actions Panel"),
-                    },
-                    {
-                        id = "quick_actions_actions",
-                        type = "action",
-                        text = _("Panel Actions"),
-                        callback = "showQuickActionsManager",
-                        help_text = _("Choose which actions appear in the Quick Actions panel and their order"),
-                    },
-                    {
-                        id = "qa_panel_utilities",
-                        type = "action",
-                        text = _("Panel Utilities"),
-                        callback = "showQaUtilitiesManager",
-                        help_text = _("Show, hide, and reorder utility buttons in the Quick Actions panel"),
-                        separator = true,
-                    },
-
-                    -- Quick Settings Panel section
-                    {
-                        id = "quick_settings_header",
-                        type = "header",
-                        text = _("Quick Settings Panel"),
-                    },
-                    {
-                        id = "qs_panel_items",
-                        type = "action",
-                        text = _("Panel Items"),
-                        callback = "showQsItemsManager",
-                        help_text = _("Show, hide, and reorder items in the Quick Settings panel"),
-                    },
-                }
-                return items
-            end)(),
         },
 
         -- Actions & Prompts submenu
@@ -1470,6 +1467,102 @@ local SettingsSchema = {
             },
         },
 
+        -- Backup & Reset submenu
+        {
+            id = "backup_and_reset",
+            type = "submenu",
+            text = _("Backup & Reset"),
+            emoji = "💾",
+            items = {
+                {
+                    id = "create_backup",
+                    type = "action",
+                    text = _("Create Backup"),
+                    info_text = _("Create a backup of your settings, API keys, and custom content."),
+                    callback = "showCreateBackupDialog",
+                },
+                {
+                    id = "restore_backup",
+                    type = "action",
+                    text = _("Restore from Backup"),
+                    info_text = _("Restore settings from a previous backup."),
+                    callback = "showRestoreBackupDialog",
+                },
+                {
+                    id = "manage_backups",
+                    type = "action",
+                    text = _("View Backups"),
+                    info_text = _("View and manage existing backups."),
+                    callback = "showBackupListDialog",
+                    separator = true,
+                },
+                {
+                    id = "backup_settings_info",
+                    type = "header",
+                    text = _("Backups are stored in: koassistant_backups/"),
+                    separator = true,
+                },
+                -- Reset Settings submenu
+                {
+                    id = "reset_settings",
+                    type = "submenu",
+                    text = _("Reset Settings..."),
+                    items = {
+                        -- Quick: Settings only
+                        {
+                            id = "quick_reset_settings",
+                            type = "action",
+                            text = _("Quick: Settings only"),
+                            help_text = _("Resets ALL settings in this menu to defaults:\n• Provider, model, temperature\n• Streaming, display, export settings\n• Dictionary & translation settings\n• Reasoning & debug settings\n• Language preferences\n\nKeeps: API keys, all actions, custom behaviors/domains, custom providers/models, gesture registrations, chat history."),
+                            confirm = true,
+                            confirm_text = _("Reset all settings to defaults?\n\nResets ALL settings in Settings menu:\n• Provider, model, temperature\n• Streaming, display, export settings\n• Dictionary & translation settings\n• Reasoning & debug settings\n• Language preferences\n\nKeeps: API keys, all actions, custom behaviors/domains, custom providers/models, gesture registrations, chat history."),
+                            callback = "quickResetSettings",
+                        },
+                        -- Quick: Actions only
+                        {
+                            id = "quick_reset_actions",
+                            type = "action",
+                            text = _("Quick: Actions only"),
+                            help_text = _("Resets all action-related settings:\n• Custom actions you created\n• Edits to built-in actions\n• Disabled actions (re-enables all)\n• Highlight menu order & dismissed items\n• Dictionary menu order & dismissed items\n\nKeeps: All settings, API keys, custom behaviors/domains, custom providers/models, gesture registrations, chat history."),
+                            confirm = true,
+                            confirm_text = _("Reset all action settings?\n\nResets:\n• Custom actions you created\n• Edits to built-in actions\n• Disabled actions (re-enables all)\n• Highlight menu order & dismissed items\n• Dictionary menu order & dismissed items\n\nKeeps: All settings, API keys, custom behaviors/domains, custom providers/models, gesture registrations, chat history."),
+                            callback = "quickResetActions",
+                        },
+                        -- Quick: Fresh start
+                        {
+                            id = "quick_reset_fresh_start",
+                            type = "action",
+                            text = _("Quick: Fresh start"),
+                            help_text = _("Resets everything except API keys and chat history:\n• All settings (provider, model, temperature, all toggles)\n• All actions (custom, edits, menus)\n• Custom behaviors & domains\n• Custom providers & models\n\nKeeps: API keys, gesture registrations, chat history only."),
+                            confirm = true,
+                            confirm_text = _("Fresh start?\n\nResets:\n• All settings (provider, model, temperature, all toggles)\n• All actions (custom, edits, menus)\n• Custom behaviors & domains\n• Custom providers & models\n\nKeeps: API keys, gesture registrations, chat history only."),
+                            callback = "quickResetFreshStart",
+                            separator = true,
+                        },
+                        -- Custom reset
+                        {
+                            id = "custom_reset",
+                            type = "action",
+                            text = _("Custom reset..."),
+                            help_text = _("Opens a checklist to choose exactly what to reset:\n• Settings (all toggles and preferences)\n• Custom actions\n• Action edits\n• Action menus\n• Custom providers & models\n• Behaviors & domains\n• API keys (with warning)"),
+                            callback = "showCustomResetDialog",
+                            separator = true,
+                        },
+                        -- Clear chat history
+                        {
+                            id = "clear_chat_history",
+                            type = "action",
+                            text = _("Clear all chat history"),
+                            help_text = _("Deletes all saved conversations across all books."),
+                            confirm = true,
+                            confirm_text = _("Delete all chat history?\n\nThis removes all saved conversations across all books.\n\nThis cannot be undone."),
+                            callback = "clearAllChatHistory",
+                        },
+                    },
+                },
+            },
+        },
+
         -- Advanced submenu
         {
             id = "advanced",
@@ -1477,19 +1570,6 @@ local SettingsSchema = {
             text = _("Advanced"),
             emoji = "⚙️",
             items = {
-                {
-                    id = "temperature",
-                    type = "spinner",
-                    text = _("Temperature"),
-                    path = "features.default_temperature",
-                    default = 0.7,
-                    min = 0,
-                    max = 2,
-                    step = 0.1,
-                    precision = "%.1f",
-                    info_text = _("Range: 0.0-2.0 (Anthropic max 1.0)\nLower = focused, deterministic\nHigher = creative, varied"),
-                    separator = true,
-                },
                 -- Reasoning / Thinking submenu (per-provider toggles)
                 {
                     id = "reasoning_submenu",
@@ -1726,100 +1806,6 @@ local SettingsSchema = {
                     type = "action",
                     text = _("Test Connection"),
                     callback = "testProviderConnection",
-                    separator = true,
-                },
-                -- Settings Management submenu
-                {
-                    id = "settings_management",
-                    type = "submenu",
-                    text = _("Settings Management"),
-                    items = {
-                        {
-                            id = "create_backup",
-                            type = "action",
-                            text = _("Create Backup"),
-                            info_text = _("Create a backup of your settings, API keys, and custom content."),
-                            callback = "showCreateBackupDialog",
-                        },
-                        {
-                            id = "restore_backup",
-                            type = "action",
-                            text = _("Restore from Backup"),
-                            info_text = _("Restore settings from a previous backup."),
-                            callback = "showRestoreBackupDialog",
-                        },
-                        {
-                            id = "manage_backups",
-                            type = "action",
-                            text = _("View Backups"),
-                            info_text = _("View and manage existing backups."),
-                            callback = "showBackupListDialog",
-                            separator = true,
-                        },
-                        {
-                            id = "backup_settings_info",
-                            type = "header",
-                            text = _("Backups are stored in: koassistant_backups/"),
-                        },
-                    },
-                },
-                -- Reset Settings submenu
-                {
-                    id = "reset_settings",
-                    type = "submenu",
-                    text = _("Reset Settings..."),
-                    items = {
-                        -- Quick: Settings only
-                        {
-                            id = "quick_reset_settings",
-                            type = "action",
-                            text = _("Quick: Settings only"),
-                            help_text = _("Resets ALL settings in this menu to defaults:\n• Provider, model, temperature\n• Streaming, display, export settings\n• Dictionary & translation settings\n• Reasoning & debug settings\n• Language preferences\n\nKeeps: API keys, all actions, custom behaviors/domains, custom providers/models, gesture registrations, chat history."),
-                            confirm = true,
-                            confirm_text = _("Reset all settings to defaults?\n\nResets ALL settings in Settings menu:\n• Provider, model, temperature\n• Streaming, display, export settings\n• Dictionary & translation settings\n• Reasoning & debug settings\n• Language preferences\n\nKeeps: API keys, all actions, custom behaviors/domains, custom providers/models, gesture registrations, chat history."),
-                            callback = "quickResetSettings",
-                        },
-                        -- Quick: Actions only
-                        {
-                            id = "quick_reset_actions",
-                            type = "action",
-                            text = _("Quick: Actions only"),
-                            help_text = _("Resets all action-related settings:\n• Custom actions you created\n• Edits to built-in actions\n• Disabled actions (re-enables all)\n• Highlight menu order & dismissed items\n• Dictionary menu order & dismissed items\n\nKeeps: All settings, API keys, custom behaviors/domains, custom providers/models, gesture registrations, chat history."),
-                            confirm = true,
-                            confirm_text = _("Reset all action settings?\n\nResets:\n• Custom actions you created\n• Edits to built-in actions\n• Disabled actions (re-enables all)\n• Highlight menu order & dismissed items\n• Dictionary menu order & dismissed items\n\nKeeps: All settings, API keys, custom behaviors/domains, custom providers/models, gesture registrations, chat history."),
-                            callback = "quickResetActions",
-                        },
-                        -- Quick: Fresh start
-                        {
-                            id = "quick_reset_fresh_start",
-                            type = "action",
-                            text = _("Quick: Fresh start"),
-                            help_text = _("Resets everything except API keys and chat history:\n• All settings (provider, model, temperature, all toggles)\n• All actions (custom, edits, menus)\n• Custom behaviors & domains\n• Custom providers & models\n\nKeeps: API keys, gesture registrations, chat history only."),
-                            confirm = true,
-                            confirm_text = _("Fresh start?\n\nResets:\n• All settings (provider, model, temperature, all toggles)\n• All actions (custom, edits, menus)\n• Custom behaviors & domains\n• Custom providers & models\n\nKeeps: API keys, gesture registrations, chat history only."),
-                            callback = "quickResetFreshStart",
-                            separator = true,
-                        },
-                        -- Custom reset
-                        {
-                            id = "custom_reset",
-                            type = "action",
-                            text = _("Custom reset..."),
-                            help_text = _("Opens a checklist to choose exactly what to reset:\n• Settings (all toggles and preferences)\n• Custom actions\n• Action edits\n• Action menus\n• Custom providers & models\n• Behaviors & domains\n• API keys (with warning)"),
-                            callback = "showCustomResetDialog",
-                            separator = true,
-                        },
-                        -- Clear chat history (unchanged)
-                        {
-                            id = "clear_chat_history",
-                            type = "action",
-                            text = _("Clear all chat history"),
-                            help_text = _("Deletes all saved conversations across all books."),
-                            confirm = true,
-                            confirm_text = _("Delete all chat history?\n\nThis removes all saved conversations across all books.\n\nThis cannot be undone."),
-                            callback = "clearAllChatHistory",
-                        },
-                    },
                 },
             },
         },
