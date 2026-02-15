@@ -3676,6 +3676,7 @@ local function openXrayBrowserFromCache(ui, data, cached, config, plugin, book_m
         source_label = source_label,
         formatted_date = formatted_date,
         progress_decimal = cached.progress_decimal,
+        full_document = cached.full_document,
         previous_progress = cached.previous_progress_decimal and
             (math.floor(cached.previous_progress_decimal * 100 + 0.5) .. "%"),
         cache_metadata = {
@@ -3959,6 +3960,8 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
                             plugin = plugin,
                             source_label = source_label,
                             formatted_date = formatted_date,
+                            progress_decimal = xray_cache.progress_decimal,
+                            full_document = xray_cache.full_document,
                             previous_progress = xray_cache.previous_progress_decimal and
                                 (math.floor(xray_cache.previous_progress_decimal * 100 + 0.5) .. "%"),
                             cache_metadata = {
