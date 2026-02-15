@@ -306,6 +306,7 @@ After basic setup, explore these features to get the most out of KOAssistant:
 | **[Dictionary Integration](#dictionary-integration)** | AI-powered word lookups when selecting single words | Settings → Dictionary Settings |
 | **[Bypass Modes](#bypass-modes)** | Instant AI actions without menus | Settings → Dictionary/Highlight Settings |
 | **Reasoning/Thinking** | Enable deep analysis for complex questions | Settings → Advanced → Reasoning |
+| **Backup & Reset** | Backup settings, restore, and reset options | Settings → Backup & Reset |
 | **Languages** | Configure multilingual responses (native script pickers) | Settings → AI Language Settings |
 
 See detailed sections below for each feature.
@@ -816,7 +817,7 @@ When working with highlighted text, the **Save to Note** button lets you save th
 
 **Key features:**
 - **Native integration**: Uses KOReader's standard highlight/note system
-- **Configurable content**: Choose what to save — response only (default), question + response, or full chat with metadata. Configure in Settings → Chat & Export → Note Content
+- **Configurable content**: Choose what to save — response only (default), question + response, or full chat with metadata. Configure in Settings → Chat & Export Settings → Content Format → Note Content
 - **Editable before saving**: Review and modify the AI response before committing
 - **Creates permanent highlight**: The selected text becomes a saved highlight with the note attached
 - **Works with translations**: Great for saving translations alongside the original text
@@ -1651,7 +1652,7 @@ Chat History → hamburger menu → **View by Domain**
 
 ### Auto-Save
 
-By default, all chats are automatically saved. You can disable this in Settings → Conversations.
+By default, all chats are automatically saved. You can disable this in Settings → Chat & Export Settings.
 
 - **Auto-save All Chats**: Save every new conversation
 - **Auto-save Continued Chats**: Only save when continuing from history (i.e. from an already saved chat)
@@ -1694,7 +1695,7 @@ When you tap Export on a chat, you can choose:
 - **Copy to Clipboard**: Copy the formatted chat text
 - **Save to File**: Save as a markdown (.md) or text (.txt) file
 
-**Content options** (Settings → Chat & Export → History Export):
+**Content options** (Settings → Chat & Export Settings → Content Format → Chat History Export):
 - **Ask every time** (default): Shows a picker dialog to choose what to include
 - **Follow Copy Content**: Uses the global Copy Content setting
 - Fixed formats (5 types):
@@ -1704,7 +1705,7 @@ When you tap Export on a chat, you can choose:
   - **Full**: Book metadata header + Q+A (no context messages)
   - **Everything**: Book metadata + all context messages + all messages (debug)
 
-**Directory options** for Save to File (Settings → Chat & Export → Save to File):
+**Directory options** for Save to File (Settings → Chat & Export Settings → Save Location):
 - **KOAssistant exports folder** (default): Central `koassistant_exports/` in KOReader data directory
 - **Custom folder**: User-specified fixed directory
 - **Ask every time**: PathChooser dialog on each save
@@ -1899,7 +1900,7 @@ Tags are simple labels for organizing chats. Unlike domains:
 - **Stream Poll Interval (ms)**: How often to check for new stream data (default: 125ms, range: 25-1000ms). Lower values are snappier but use more battery.
 - **Display Refresh Interval (ms)**: How often to refresh the display during streaming (default: 250ms, range: 100-500ms). Higher values improve performance on slower devices.
 
-### Export Settings (within Chat & Export)
+### Content Format (within Chat & Export Settings)
 - **Export Style**: Format for Copy, Note, and Save to File — Markdown (default) or Plain Text
 - **Copy Content**: What to include when copying — Ask every time, Full (metadata + chat), Question + Response, Response only, or Everything (debug)
 - **Note Content**: What to include when saving to note — Ask every time, Full, Question + Response, Response only (default), or Everything (debug)
@@ -1907,7 +1908,7 @@ Tags are simple labels for organizing chats. Unlike domains:
 
 When "Ask every time" is selected, a picker dialog appears letting you choose what to include before proceeding.
 
-### Save to File Settings (within Chat & Export)
+### Save Location (within Chat & Export Settings)
 - **Save Location**: Where to save exported files
   - **KOAssistant exports folder** (default): Central `koassistant_exports/` folder with subfolders for book/general/multi-book chats
   - **Custom folder**: User-specified fixed directory
@@ -2097,8 +2098,17 @@ Control where KOAssistant appears in KOReader's menus. All toggles default to ON
 
 **Note:** File browser and highlight menu changes require a KOReader restart since buttons are registered at plugin startup. Dictionary popup and quick actions changes take effect immediately.
 
+### Temperature
+- **Temperature**: Response creativity (0.0-2.0, Anthropic max 1.0). Top-level setting for quick access.
+
+### Backup & Reset
+Backup and restore functionality, plus reset options. See [Backup & Restore](#backup--restore) for full details.
+- **Create Backup**: Save settings, API keys, custom content, and chat history
+- **Restore from Backup**: Restore from a previous backup
+- **View Backups**: Manage existing backups and restore points
+- **Reset Settings**: Quick resets (Settings only, Actions only, Fresh start), Custom reset checklist, Clear chat history
+
 ### Advanced
-- **Temperature**: Response creativity (0.0-2.0, Anthropic max 1.0)
 - **Reasoning/Thinking**: Per-provider reasoning settings:
   - **Enable Anthropic/Gemini Reasoning**: Master toggle for optional reasoning (default: off). Only affects Anthropic and Gemini 3—other providers either always reason (OpenAI o-series, DeepSeek Reasoner) or don't support it. Gemini 2.5 models think automatically regardless of this toggle.
   - **Anthropic Extended Thinking**: Budget 1024-32000 tokens (requires master toggle)
@@ -2111,11 +2121,6 @@ Control where KOAssistant appears in KOReader's menus. All toggles default to ON
   - **Show Indicator in Chat**: Display "*[Web search was used]*" in chat when search is used (default: on)
 - **Provider Settings**:
   - **Qwen Region**: Select your Alibaba Cloud region (International/China/US). API keys are region-specific and not interchangeable.
-- **Settings Management**: Backup and restore functionality (see [Backup & Restore](#backup--restore))
-  - **Create Backup**: Save settings, API keys, custom content, and chat history
-  - **Restore from Backup**: Restore from a previous backup
-  - **View Backups**: Manage existing backups and restore points
-- **Reset Settings**: Quick resets (Settings only, Actions only, Fresh start), Custom reset checklist, Clear chat history
 - **Console Debug**: Enable terminal/console debug logging. When enabled, also shows token usage (input, output, cache hits) in the terminal after each API response.
 - **Show Debug in Chat**: Display debug info in chat viewer
 - **Debug Detail Level**: Verbosity (Minimal/Names/Full)
@@ -2302,7 +2307,7 @@ return {
 
 KOAssistant includes comprehensive backup and restore functionality to protect your settings, custom content, and optionally API keys and chat history.
 
-**Access:** Tools → KOAssistant → Settings → Advanced → Settings Management
+**Access:** Tools → KOAssistant → Settings → Backup & Reset
 
 ### What Can Be Backed Up
 
@@ -2321,7 +2326,7 @@ Backups are selective — choose what to include:
 ### Creating Backups
 
 **Steps:**
-1. Settings → Advanced → Settings Management → Create Backup
+1. Settings → Backup & Reset → Create Backup
 2. Choose what to include (checkboxes for each category)
 3. Tap "Create Backup"
 4. Backup saved to `koassistant_backups/` folder with timestamp
@@ -2337,7 +2342,7 @@ Backups are selective — choose what to include:
 ### Restoring Backups
 
 **Steps:**
-1. Settings → Advanced → Settings Management → Restore from Backup
+1. Settings → Backup & Reset → Restore from Backup
 2. Select a backup from the list (sorted newest first)
 3. Preview what the backup contains
 4. Choose what to restore (can exclude categories)
@@ -2367,7 +2372,7 @@ Backups are selective — choose what to include:
 
 ### Managing Backups
 
-**View all backups:** Settings → Advanced → Settings Management → View Backups
+**View all backups:** Settings → Backup & Reset → View Backups
 
 **For each backup:**
 - **Info** — View manifest details (what's included, version, timestamp)
@@ -2418,7 +2423,7 @@ The restore system validates settings and handles edge cases:
 
 KOAssistant provides clear reset options for different use cases.
 
-**Access:** Settings → Advanced → Reset Settings
+**Access:** Settings → Backup & Reset → Reset Settings
 
 #### Quick Resets
 
@@ -2429,7 +2434,7 @@ Three preset options that cover most needs:
 - Keeps: API keys, all actions, custom behaviors/domains, custom providers/models, gesture registrations, chat history
 
 **Quick: Actions only**
-- Resets all action-related settings (custom actions, edits to built-in actions, disabled actions, highlight/dictionary menu ordering)
+- Resets all action-related settings (custom actions, edits to built-in actions, disabled actions, all action menus: highlight, dictionary, quick actions, general, file browser)
 - Keeps: All settings, API keys, custom behaviors/domains, custom providers/models, gesture registrations, chat history
 
 **Quick: Fresh start**
@@ -3167,7 +3172,7 @@ Edit `apikeys.lua` and add your key for the selected provider.
 3. Try Test Connection in settings
 
 ### Streaming not working
-1. Ensure "Enable Streaming" is on in Settings → Chat & Export → Streaming
+1. Ensure "Enable Streaming" is on in Settings → Chat & Export Settings → Streaming
 2. Some providers may have different streaming support
 
 ### Wrong model showing
@@ -3175,7 +3180,7 @@ Edit `apikeys.lua` and add your key for the selected provider.
 2. When switching providers, the model resets to that provider's default
 
 ### Chats not saving
-1. Check Settings → Conversations → Auto-save settings
+1. Check Settings → Chat & Export Settings → Auto-save settings
 2. Manually save via the Save button in chat
 
 ### Bypass or highlight menu actions not working
@@ -3188,7 +3193,7 @@ KOReader has text selection settings that can interfere with KOAssistant feature
 
 If you're experiencing issues after updating the plugin, or want a fresh start with default settings:
 
-**Access:** Settings → Advanced → Reset Settings
+**Access:** Settings → Backup & Reset → Reset Settings
 
 **For targeted fixes:**
 - **Settings wrong?** Use "Quick: Settings only" (resets all settings, keeps actions and API keys)
