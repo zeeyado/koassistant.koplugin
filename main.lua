@@ -8386,7 +8386,7 @@ function AskGPT:showRestoreBackupDialog()
   if #backups == 0 then
     local InfoMessage = require("ui/widget/infomessage")
     UIManager:show(InfoMessage:new{
-      text = _("No backups found.\n\nCreate a backup first using:\nSettings → Advanced → Settings Management → Create Backup"),
+      text = _("No backups found.\n\nCreate a backup first using:\nSettings → Backup & Reset → Create Backup"),
       timeout = 5,
     })
     return
