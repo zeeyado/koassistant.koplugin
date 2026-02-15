@@ -206,12 +206,23 @@ Go to **Settings → Privacy & Data** to configure. See [Privacy & Data](#privac
 
 ## Recommended Setup
 
+### Setup Wizard
+
+On first launch, KOAssistant walks you through a 4-step setup wizard:
+
+1. **Welcome** — Brief introduction
+2. **Emoji Display Test** — Shows emoji icons used throughout the plugin. If they render correctly on your device, tap "Yes, enable" to turn on all emoji features (menu icons, panel icons, data access indicators). If you see blank boxes or question marks, tap "No, skip". See the [Emoji Fonts](#emoji-fonts) section for instructions on enabling emoji support in KOReader.
+3. **Gesture Setup** — Offers to assign Quick Settings and Quick Actions panels to tap bottom-right corner (or shows a tip if the gesture slot is already taken)
+4. **Getting Started Tips** — Pointers to privacy settings and action management
+
+The wizard runs once and won't appear again. You can always change emoji and gesture settings later in Settings.
+
 ### Getting Started Checklist
 
-After setting up your API key, complete these steps for the best experience:
+After the setup wizard, complete these steps for the best experience:
 
 - [ ] **Configure privacy settings** — Enable data sharing for features you want (Settings → Privacy & Data). See [Privacy & Data](#privacy--data)
-- [ ] **Set up gesture access** — A one-time setup dialog offers to assign Quick Settings (file browser) and Quick Actions (reader) to tap bottom-right corner. Or configure manually: see [Configure Quick Access Gestures](#configure-quick-access-gestures)
+- [ ] **Set up gestures** (if you skipped the wizard) — See [Configure Quick Access Gestures](#configure-quick-access-gestures)
 - [ ] **Explore the highlight menu** — Translate, Explain, and ELI5 are included by default; add more via Manage Actions → hold action → "Add to Highlight Menu"
 - [ ] **Try Dictionary Bypass** — Single-word selections go straight to AI dictionary (Settings → Dictionary Settings → Bypass KOReader Dictionary)
 - [ ] **Try Highlight Bypass** — Multi-word selections trigger instant translation (Settings → Highlight Settings → Enable Highlight Bypass)
@@ -223,7 +234,7 @@ After setting up your API key, complete these steps for the best experience:
 
 ### Configure Quick Access Gestures
 
-**Automatic setup:** The first time you interact with KOAssistant, a one-time setup dialog offers to assign both panels to **tap bottom-right corner** — Quick Settings in the file browser and Quick Actions in the reader. Accept to set up both gestures automatically (requires KOReader restart). If the bottom-right corner is already assigned to another action, you'll get an informational tip instead.
+**Automatic setup:** The setup wizard offers to assign both panels to **tap bottom-right corner** — Quick Settings in the file browser and Quick Actions in the reader. Accept to set up both gestures automatically (requires KOReader restart). If the bottom-right corner is already assigned to another action, you'll get an informational tip instead.
 
 **Manual setup** (same gesture, two contexts):
 
