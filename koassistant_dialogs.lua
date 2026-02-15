@@ -2352,6 +2352,16 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
         end
     end
 
+    -- Determine if web search will be active for this request
+    -- Per-action override takes priority, otherwise follow global setting
+    -- Used by MessageBuilder to select web-aware hallucination nudge
+    local action_ws = prompt and prompt.enable_web_search
+    if action_ws ~= nil then
+        message_data.web_search_active = action_ws
+    else
+        message_data.web_search_active = config.features and config.features.enable_web_search == true
+    end
+
     -- Build and add the consolidated message
     -- System prompt and domain are now in config.system (unified approach)
     local consolidated_message = buildConsolidatedMessage(prompt, context, message_data, nil, nil, true)
