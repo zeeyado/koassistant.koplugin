@@ -9047,57 +9047,15 @@ function AskGPT:ensureInitialized()
   -- Check migration first (may show dialog if old chats exist)
   self:checkChatMigrationStatus()
 
-  -- Check welcome dialog (only shows if storage is v2+ and not seen before)
-  -- If migration is pending (v1), this will skip and show next time
-  self:checkWelcomeDialog()
-
-  -- One-time gesture setup offer (assign QA/QS to tap bottom right corner)
-  self:checkGestureSetup()
+  -- Setup wizard: welcome → emoji test → gesture setup → tips
+  -- Shows once for new users (v2+ storage, not yet completed)
+  self:checkSetupWizard()
 end
 
 --[[
-    Welcome Dialog
-    Shows once for new users to explain privacy settings and key features.
-    Only appears after storage is v2+ (skips users mid-migration).
---]]
-
--- Check if welcome dialog should be shown
-function AskGPT:checkWelcomeDialog()
-  local storage_version = G_reader_settings:readSetting("chat_storage_version", 1)
-  local welcome_shown = self.settings:readSetting("welcome_shown")
-
-  -- Only show for v2+ users who haven't seen welcome
-  -- This skips users mid-migration (v1) to avoid dialog collision
-  if storage_version >= 2 and not welcome_shown then
-    self:showWelcomeDialog()
-  end
-end
-
--- Show welcome dialog to new users
-function AskGPT:showWelcomeDialog()
-  local text = _("Welcome to KOAssistant!") .. "\n\n" ..
-    _("PRIVACY SETTINGS") .. "\n" ..
-    _("Some features (like X-Ray) need to access document text and other content. Enable in: Settings → Privacy & Data") .. "\n\n" ..
-    _("QUICK ACCESS") .. "\n" ..
-    _("Assign Quick Settings (File browser) and Quick Actions (Reader) panels to gestures. See KOReader Settings (Gear icon) → Taps and Gestures") .. "\n\n" ..
-    _("CUSTOM ACTIONS") .. "\n" ..
-    _("Create your own prompts and actions or edit built in ones. Go to: Settings → Action Manager") .. "\n\n" ..
-    _("MENU AND INFO ICONS") .. "\n" ..
-    _("Setup KOReader with emoji support to get informative icons in menus and more. See the emoji section in the README for details.") 
-
-  UIManager:show(InfoMessage:new{
-    text = text,
-    -- No timeout - user must tap to dismiss
-  })
-
-  self.settings:saveSetting("welcome_shown", true)
-  self.settings:flush()
-end
-
---[[
-    Gesture Setup
-    One-time dialog offering to assign QA/QS panels to "tap bottom right corner".
-    Shows once: auto-assign offer if both slots free, info-only tip otherwise.
+    Setup Wizard
+    Sequential first-run setup: welcome → emoji test → gesture setup → tips.
+    Shows once for new users. Replaces the old separate welcome + gesture dialogs.
 --]]
 
 -- Check if a dispatcher action is already assigned to any gesture
@@ -9126,38 +9084,105 @@ local function _isGestureSlotEmpty(gesture_entry)
   return false
 end
 
--- Check if gesture setup dialog should be shown
-function AskGPT:checkGestureSetup()
-  -- Only offer once
-  if self.settings:readSetting("gesture_setup_offered") then
+-- Check if setup wizard should be shown
+function AskGPT:checkSetupWizard()
+  -- Skip if already completed
+  if self.settings:readSetting("setup_wizard_completed") then
     return
   end
 
-  -- Open gestures.lua (returns empty data if file doesn't exist)
+  -- Only show for v2+ users (skips users mid-migration to avoid dialog collision)
+  local storage_version = G_reader_settings:readSetting("chat_storage_version", 1)
+  if storage_version < 2 then
+    return
+  end
+
+  self:showSetupWizard()
+end
+
+-- Orchestrate the setup wizard steps
+function AskGPT:showSetupWizard()
+  -- Pre-load gesture data for step 3
   local gestures_path = DataStorage:getSettingsDir() .. "/gestures.lua"
   local gestures_settings = LuaSettings:open(gestures_path)
   local gestures_data = gestures_settings.data
 
-  -- If data is empty (fresh install, gesture plugin hasn't written yet),
-  -- return WITHOUT setting flag so we retry next session
-  if not gestures_data or not next(gestures_data) then
-    return
+  -- Determine gesture slot availability
+  local gestures_available = gestures_data and next(gestures_data) ~= nil
+  local both_free = false
+  if gestures_available then
+    local reader_gestures = gestures_data.gesture_reader or {}
+    local fm_gestures = gestures_data.gesture_fm or {}
+    both_free = _isGestureSlotEmpty(reader_gestures.tap_right_bottom_corner)
+      and _isGestureSlotEmpty(fm_gestures.tap_right_bottom_corner)
   end
 
-  -- Check if target slots are both free
-  local reader_gestures = gestures_data.gesture_reader or {}
-  local fm_gestures = gestures_data.gesture_fm or {}
-  local both_free = _isGestureSlotEmpty(reader_gestures.tap_right_bottom_corner)
-    and _isGestureSlotEmpty(fm_gestures.tap_right_bottom_corner)
-
-  self:showGestureSetupDialog(gestures_settings, both_free)
+  -- Chain: Step 1 → Step 2 → Step 3 → Step 4
+  self:showSetupStep1Welcome(function()
+    self:showSetupStep2EmojiTest(function()
+      self:showSetupStep3Gestures(gestures_settings, gestures_available, both_free, function(gestures_applied)
+        self:showSetupStep4Tips(gestures_applied)
+      end)
+    end)
+  end)
 end
 
--- Show gesture setup dialog
-function AskGPT:showGestureSetupDialog(gestures_settings, both_free)
-  if both_free then
+-- Step 1: Welcome
+function AskGPT:showSetupStep1Welcome(next_step)
+  local text = _("Welcome to KOAssistant!") .. "\n\n" ..
+    _("Your AI reading assistant is ready. Let's set up a few things. Tap the screen to continue.")
+
+  UIManager:show(InfoMessage:new{
+    text = text,
+    dismiss_callback = next_step,
+  })
+end
+
+-- Step 2: Emoji display test
+function AskGPT:showSetupStep2EmojiTest(next_step)
+  local ConfirmBox = require("ui/widget/confirmbox")
+  local text = _("EMOJI DISPLAY TEST") .. "\n\n" ..
+    _("Do these icons display correctly on your device?") .. "\n\n" ..
+    "📄 Document  📝 Notes  📓 Notebook\n" ..
+    "🔍 Search  🌐 Web  🎭 Behavior\n" ..
+    "📜 History  🔖 Bookmark  📖 Book" .. "\n\n" ..
+    _("See the README for instructions on how to enable emojis in the KOReader UI.") .. "\n\n" ..
+    _("If you see blank boxes or question marks, choose \"No\".")
+
+  local wizard_advancing = false
+  UIManager:show(ConfirmBox:new{
+    text = text,
+    ok_text = _("Yes, enable"),
+    cancel_text = _("No, skip"),
+    ok_callback = function()
+      -- Enable all three emoji settings
+      local features = self.settings:readSetting("features") or {}
+      features.enable_emoji_icons = true
+      features.enable_emoji_panel_icons = true
+      features.enable_data_access_indicators = true
+      self.settings:saveSetting("features", features)
+      self.settings:flush()
+      self:updateConfigFromSettings()
+      wizard_advancing = true
+      next_step()
+    end,
+    cancel_callback = function()
+      -- ConfirmBox calls cancel_callback on both "No" tap and dismiss.
+      -- Guard against advancing twice.
+      if not wizard_advancing then
+        wizard_advancing = true
+        next_step()
+      end
+    end,
+  })
+end
+
+-- Step 3: Gesture setup
+function AskGPT:showSetupStep3Gestures(gestures_settings, gestures_available, both_free, next_step)
+  local ConfirmBox = require("ui/widget/confirmbox")
+
+  if gestures_available and both_free then
     -- Offer to auto-assign both gestures
-    local ConfirmBox = require("ui/widget/confirmbox")
     local text = _("GESTURE SETUP") .. "\n\n" ..
       _("KOAssistant has two quick-access panels:") .. "\n\n" ..
       _("Quick Actions — book actions, artifacts, and utilities (reader mode)") .. "\n" ..
@@ -9166,20 +9191,25 @@ function AskGPT:showGestureSetupDialog(gestures_settings, both_free)
       _("You can change these anytime in KOReader Settings (Gear icon) → Taps and Gestures.") .. "\n\n" ..
       _("Requires KOReader restart to take effect.")
 
+    local wizard_advancing = false
     UIManager:show(ConfirmBox:new{
       text = text,
       ok_text = _("Set up"),
       cancel_text = _("No thanks"),
       ok_callback = function()
         self:applyGestureSetup(gestures_settings)
+        wizard_advancing = true
+        next_step(true) -- true = gestures were set up
       end,
       cancel_callback = function()
-        self.settings:saveSetting("gesture_setup_offered", true)
-        self.settings:flush()
+        if not wizard_advancing then
+          wizard_advancing = true
+          next_step()
+        end
       end,
     })
   else
-    -- Info-only: user already has gestures assigned to bottom right
+    -- Info-only: gesture slots already occupied or gestures.lua not ready
     local text = _("GESTURE TIP") .. "\n\n" ..
       _("KOAssistant has two quick-access panels you can assign to gestures:") .. "\n\n" ..
       _("Quick Actions — book actions, artifacts, and utilities (assign in reader mode)") .. "\n" ..
@@ -9188,11 +9218,33 @@ function AskGPT:showGestureSetupDialog(gestures_settings, both_free)
 
     UIManager:show(InfoMessage:new{
       text = text,
+      dismiss_callback = next_step,
     })
-
-    self.settings:saveSetting("gesture_setup_offered", true)
-    self.settings:flush()
   end
+end
+
+-- Step 4: Getting started tips
+function AskGPT:showSetupStep4Tips(gestures_applied)
+  local text = _("GETTING STARTED") .. "\n\n" ..
+    _("Privacy & Data") .. "\n" ..
+    _("Some features need document text access. Enable in: Settings → Privacy & Data") .. "\n\n" ..
+    _("Actions & Prompts") .. "\n" ..
+    _("Create or edit prompts: Settings → Actions & Prompts → Manage Actions (or from Quick Settings panel)")
+
+  if gestures_applied then
+    text = text .. "\n\n" ..
+      _("Gestures assigned. Please restart KOReader for changes to take effect.")
+  end
+
+  text = text .. "\n\n" .. _("Enjoy your reading!")
+
+  UIManager:show(InfoMessage:new{
+    text = text,
+  })
+
+  -- Mark wizard as completed
+  self.settings:saveSetting("setup_wizard_completed", true)
+  self.settings:flush()
 end
 
 -- Apply gesture assignments to gestures.lua
@@ -9217,16 +9269,6 @@ function AskGPT:applyGestureSetup(gestures_settings)
 
   -- Persist to gestures.lua
   gestures_settings:flush()
-
-  -- Mark as offered
-  self.settings:saveSetting("gesture_setup_offered", true)
-  self.settings:flush()
-
-  -- Show restart notification
-  UIManager:show(InfoMessage:new{
-    text = _("Quick Actions and Quick Settings assigned to tap bottom right corner.") .. "\n\n" ..
-      _("Please restart KOReader for changes to take effect."),
-  })
 end
 
 -- Patch DocSettings.updateLocation() to keep chat index in sync and move custom sidecar files
