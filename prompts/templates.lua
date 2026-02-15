@@ -56,7 +56,9 @@ Templates.CONCISENESS_NUDGE = "Be direct and concise. Don't restate or over-elab
 
 -- Hallucination nudge - standard instruction to admit uncertainty
 -- Available as {hallucination_nudge} placeholder in all contexts
+-- MessageBuilder selects the web-aware variant when web search is active for the request
 Templates.HALLUCINATION_NUDGE = "If you don't recognize this or the content seems unclear, say so rather than guessing."
+Templates.HALLUCINATION_NUDGE_WEB = "If you don't recognize this or the content seems unclear, search the web to verify. If you still can't confirm, say so rather than guessing."
 
 -- Text fallback nudge - appears only when document text extraction is empty
 -- Available as {text_fallback_nudge} conditional placeholder
@@ -79,13 +81,13 @@ Templates.highlight = {
 
 {highlighted_text}
 
-Be clear and thorough. Match the text's tone - a philosophy text deserves rigor, a thriller just needs clarity. {conciseness_nudge}]],
+Be clear and precise. Match the text's tone - a philosophy text deserves rigor, a thriller just needs clarity. {conciseness_nudge}]],
 
     eli5 = [[Explain this like I'm 5 - make it genuinely simple:
 
 {highlighted_text}
 
-Use simple words, analogies to everyday things, and concrete examples. Stay accurate - simplify the explanation, not the truth. {conciseness_nudge}]],
+Use simple words and a concrete analogy/example. Stay accurate - simplify the explanation, not the truth. {conciseness_nudge}]],
 
     summarize = [[Summarize this passage:
 
@@ -119,7 +121,7 @@ Templates.book = {
 ## The Reading Experience
 - Style and structure — what to expect as a reader
 - Accessibility — does it require background knowledge?
-- Who tends to love this work, and why
+- Who tends to enjoy this work, and why
 
 Avoid spoilers: do not reveal plot twists, endings, character deaths, or major surprises. Describe the premise and central tensions without spoiling their resolution.
 

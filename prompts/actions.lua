@@ -866,8 +866,6 @@ Adapt section names for the work type (e.g., "Key Figures" and "Arguments" for n
 
 CRITICAL: Do not reveal ANYTHING beyond {reading_progress}. No foreshadowing, no future developments, no hints about what comes next.
 
-If you don't recognize this work or are uncertain about details, say so honestly rather than fabricating.
-
 {conciseness_nudge}
 {hallucination_nudge}]],
         skip_domain = true,

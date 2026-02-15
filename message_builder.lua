@@ -132,9 +132,12 @@ function MessageBuilder.build(params)
 
     -- Substitute utility placeholders (conciseness/hallucination nudges)
     -- These are defined in Templates but used in both template and direct-prompt actions
+    -- Hallucination nudge adapts: when web search is active, encourages searching before admitting
     if Templates then
         user_prompt = replace_placeholder(user_prompt, "{conciseness_nudge}", Templates.CONCISENESS_NUDGE or "")
-        user_prompt = replace_placeholder(user_prompt, "{hallucination_nudge}", Templates.HALLUCINATION_NUDGE or "")
+        local hallucination_text = (data.web_search_active and Templates.HALLUCINATION_NUDGE_WEB)
+            or Templates.HALLUCINATION_NUDGE or ""
+        user_prompt = replace_placeholder(user_prompt, "{hallucination_nudge}", hallucination_text)
     end
 
     -- Substitute language placeholders early (applies to all contexts)
@@ -490,7 +493,9 @@ function MessageBuilder.substituteVariables(prompt_text, data)
     -- Utility placeholders (conciseness/hallucination nudges)
     if Templates then
         result = replace_placeholder(result, "{conciseness_nudge}", Templates.CONCISENESS_NUDGE or "")
-        result = replace_placeholder(result, "{hallucination_nudge}", Templates.HALLUCINATION_NUDGE or "")
+        local hallucination_text = (data.web_search_active and Templates.HALLUCINATION_NUDGE_WEB)
+            or Templates.HALLUCINATION_NUDGE or ""
+        result = replace_placeholder(result, "{hallucination_nudge}", hallucination_text)
         -- Text fallback nudge (always empty in preview since we don't have extraction data)
         result = replace_placeholder(result, "{text_fallback_nudge}", "")
         -- Highlight analysis nudge (always empty in preview since we don't have extraction data)
