@@ -5834,7 +5834,7 @@ function AskGPT:onKOAssistantQuickActions()
   -- Helper to add a button to current row, flush row when full
   local function addButton(btn)
     btn.font_bold = false
-    if qa_features.qa_left_align ~= false then btn.align = "left" end
+    if qa_features.qa_left_align == true then btn.align = "left" end
     table.insert(row, btn)
     if #row == 2 then
       table.insert(buttons, row)
@@ -5925,7 +5925,7 @@ function AskGPT:onKOAssistantQuickActions()
     table.insert(buttons, row)
   end
   -- Center lone last-row item when left-align is on
-  if qa_features.qa_left_align ~= false and #buttons > 0 and #buttons[#buttons] == 1 then
+  if qa_features.qa_left_align == true and #buttons > 0 and #buttons[#buttons] == 1 then
     buttons[#buttons][1].align = "center"
   end
 
@@ -5954,10 +5954,10 @@ function AskGPT:onKOAssistantQuickActions()
               self_ref:onKOAssistantQuickActions()
             end)
           end }},
-          {{ text = qa_features.qa_left_align ~= false and _("Align Buttons ✓") or _("Align Buttons"), callback = function()
+          {{ text = qa_features.qa_left_align == true and _("Align Buttons ✓") or _("Align Buttons"), callback = function()
             UIManager:close(chooser_dialog)
             local f = self_ref.settings:readSetting("features") or {}
-            if f.qa_left_align ~= false then
+            if f.qa_left_align == true then
               f.qa_left_align = false
             else
               f.qa_left_align = true
