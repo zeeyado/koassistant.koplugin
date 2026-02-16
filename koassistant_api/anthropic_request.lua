@@ -110,6 +110,7 @@ function AnthropicRequest:build(config)
 
     -- Apply parameters to request
     request_body.max_tokens = params.max_tokens or AnthropicRequest.DEFAULT_PARAMS.max_tokens
+    request_body.max_tokens = ModelConstraints.clampMaxTokens("anthropic", request_body.model, request_body.max_tokens)
     request_body.temperature = params.temperature or AnthropicRequest.DEFAULT_PARAMS.temperature
 
     -- Add web search tool if enabled

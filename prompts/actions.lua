@@ -588,11 +588,11 @@ FOR FICTION, use this JSON schema:
 Guidance for fiction:
 - **Characters**: The heart of the X-Ray. Be thorough — include all named characters, groups, and entities the reader encounters, not just protagonists. For major characters (protagonist, antagonist, key supporting), write 3-5 sentences covering personality, their arc through the story, pivotal moments or turning points, and their current situation. For minor characters, 1-2 sentences suffice. Always include aliases and connections with relationship type.
 - **Locations**: For significant locations, convey atmosphere and what unfolds there. Minor locations need only a brief note. Include references to characters or items associated with each location.
-- **Themes**: Don't just name themes — trace how they develop through specific characters, conflicts, or events. Include references to characters or items that embody each theme.
+- **Themes**: Be thorough — include all themes, motifs, and recurring ideas, not just the central ones. For major themes, trace how they develop through specific characters, conflicts, and events. For minor motifs or recurring ideas, a brief note suffices. Include references to characters or items that embody each theme.
 - **Lexicon**: In-world terms, cultural references, or specialized vocabulary. Keep definitions concise — this is reference material.
-- **Timeline**: Chronological events driving the plot. Include both major plot points and important character moments. Each event should have a chapter reference and involved characters.
+- **Timeline**: Be thorough — include all significant events, not just major plot points. Cover character moments, revelations, turning points, and developments across each chapter. Each event should have a chapter reference and involved characters.
 - __FICTION_STATUS_GUIDANCE__
-- **Output size**: Prioritize depth over breadth. Give detailed entries for significant items and brief entries for minor ones. Include all items the reader encounters, but keep minor entries concise to stay within output limits.
+- **Output size**: Be comprehensive. Prioritize both depth and breadth. Give detailed entries for significant items and keep minor entries concise.
 
 ---
 
@@ -652,12 +652,12 @@ FOR NON-FICTION, use this JSON schema:
 Guidance for non-fiction:
 - **Key Figures**: Be thorough — include all people, groups, institutions, and historical actors discussed or referenced, not just central figures. For central figures (the author's main interlocutors, key researchers, historical actors), write 3-5 sentences covering who they are, what ideas or work they contribute, how the author engages with them (agrees, critiques, builds on), and their significance to the argument. For briefly mentioned figures, 1-2 sentences. Always include aliases (alternate names, shortened forms, titles the text uses to refer to them) and connections where figures relate to each other.
 - **Locations**: Cities, regions, institutions, and historically significant places discussed in the text. For each, note what it is, its significance to the subject matter, and what events or arguments are connected to it. Include references to key figures or concepts associated with each place.
-- **Core Concepts**: For major concepts, explain both what they mean and how the author develops them — through what evidence, examples, or reasoning. Minor concepts need only a definition. Include references to key figures or other items that develop each concept.
-- **Arguments**: The author's key claims. For each, capture the argument itself, the evidence or reasoning supporting it, and any counter-arguments the author addresses. Include references to key figures or concepts involved.
+- **Core Concepts**: Be thorough — include all concepts, theories, frameworks, and ideas the author introduces, develops, or critiques. For central concepts, explain what they mean and how the author develops them through evidence, examples, or reasoning. For peripheral concepts, a brief definition suffices. Include references to key figures or other items that develop each concept.
+- **Arguments**: Be thorough — include all claims, propositions, and arguments the author advances or engages with, not just the central thesis. For major arguments, capture the claim, evidence or reasoning, and counter-arguments addressed. For minor or supporting arguments, a brief statement suffices. Include references to key figures or concepts involved.
 - **Terminology**: Specialized vocabulary, jargon, or terms the author defines. Keep concise — this is reference material.
-- **Argument Development**: Track the intellectual progression — how the argument unfolds chapter by chapter. Each entry should show how it advances the thesis or shifts the discussion. Include references to key figures or concepts involved.
+- **Argument Development**: Track the intellectual progression across the work. Include developments, turning points, and shifts in each chapter or section — not just the main thesis but subsidiary arguments and case studies. Each entry should show how it advances or complicates the discussion. Include references to key figures or concepts involved.
 - __NONFICTION_STATUS_GUIDANCE__
-- **Output size**: Prioritize depth over breadth. Give detailed entries for significant items and brief entries for minor ones. Include all items discussed in the text, but keep minor entries concise to stay within output limits.
+- **Output size**: Be comprehensive. Prioritize both depth and breadth. Give detailed entries for significant items and keep minor entries concise.
 
 ---
 
@@ -781,7 +781,7 @@ Actions.book = {
         -- Inherits global reasoning setting (user choice)
         api_params = {
             temperature = 0.5,
-            max_tokens = 49152,  -- X-Ray JSON can be large; give headroom to avoid truncation
+            max_tokens = 65536,  -- X-Ray JSON can be large; Sonnet 4.5 max is 64000
         },
         builtin = true,
         no_duplicate = true,  -- JSON output requires X-Ray browser; duplicates would produce unusable raw JSON in chat
