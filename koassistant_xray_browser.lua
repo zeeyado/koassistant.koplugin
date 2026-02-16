@@ -672,6 +672,17 @@ function XrayBrowser:show(xray_data, metadata, ui, on_delete)
         end
     end
 
+    -- Warn if reading position is outside active hidden flow
+    if ui and ui.document and ui.document.hasHiddenFlows
+            and ui.document:hasHiddenFlows() then
+        local current_page = getCurrentPage(ui)
+        if ui.document:getPageFlow(current_page) ~= 0 then
+            UIManager:show(Notification:new{
+                text = _("Reading position is outside the hidden flow. Chapter features may not work correctly."),
+            })
+        end
+    end
+
     local items = self:buildCategoryItems()
     local title = self:buildMainTitle()
     self.current_title = title
