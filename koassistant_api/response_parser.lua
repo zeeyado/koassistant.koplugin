@@ -38,6 +38,7 @@ local RESPONSE_TRANSFORMERS = {
             local web_search_used = nil
 
             -- Look for thinking and text blocks (ignore tool_use blocks)
+            local seen_search_tool = false
             for _, block in ipairs(response.content) do
                 if block.type == "thinking" and block.thinking then
                     thinking_content = block.thinking
@@ -45,9 +46,13 @@ local RESPONSE_TRANSFORMERS = {
                     table.insert(text_blocks, block.text)
                 elseif block.type == "server_tool_use" or block.type == "web_search_tool_result" then
                     web_search_used = true
-                    -- Discard pre-search thinking text ("Let me search...")
-                    -- The final text block after search contains the full answer
-                    text_blocks = {}
+                    -- Only discard pre-search thinking text ("Let me search...")
+                    -- on the first search tool encounter. Subsequent searches must
+                    -- not wipe answer content from earlier searches.
+                    if not seen_search_tool then
+                        text_blocks = {}
+                        seen_search_tool = true
+                    end
                 end
                 -- Other blocks (tool_use) are silently ignored
                 -- Web search results are integrated into the text blocks by Anthropic

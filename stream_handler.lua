@@ -100,6 +100,7 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
     local in_reasoning_phase = false  -- Track if we're currently showing reasoning
     local in_web_search_phase = false  -- Track if web search tool is executing
     local web_search_used = false  -- Track if web search was ever used during this stream
+    local has_post_search_content = false  -- Track if real answer content arrived after a search
     local was_truncated = false  -- Track if response was truncated (max tokens)
     local usage_data = nil  -- Track token usage from SSE events
 
@@ -625,9 +626,12 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                                 if content == "__WEB_SEARCH_START__" then
                                     in_web_search_phase = true
                                     web_search_used = true
-                                    -- Discard pre-search thinking text ("Let me search...")
-                                    -- The final answer after search will contain the full response
-                                    result_buffer = {}
+                                    -- Only discard pre-search thinking text ("Let me search...")
+                                    -- on the FIRST search. Subsequent searches must not wipe
+                                    -- accumulated answer content from earlier searches.
+                                    if not has_post_search_content then
+                                        result_buffer = {}
+                                    end
                                     if not first_content_received then
                                         first_content_received = true
                                         if animation_task then
@@ -642,6 +646,7 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                                     -- If transitioning from web search or reasoning to answer, clear display
                                     if in_web_search_phase then
                                         in_web_search_phase = false
+                                        has_post_search_content = true
                                         streamDialog._input_widget:setText("", true)
                                         if auto_scroll_active then page_top_line = 1 end
                                     end
