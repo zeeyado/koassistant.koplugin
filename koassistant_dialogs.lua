@@ -3228,10 +3228,6 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     if has_user_question then
                         table.insert(parts, "[User Question]")
                         table.insert(parts, question)
-                    else
-                        -- Default prompt when user sends with highlighted text but no typed question
-                        table.insert(parts, "[User Question]")
-                        table.insert(parts, "Discuss this.")
                     end
 
                     -- Create the consolidated message (sent to AI as context)

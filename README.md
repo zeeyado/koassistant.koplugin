@@ -520,7 +520,7 @@ KOAssistant works in **4 contexts**, each with its own set of built-in actions:
 | **Highlight** | Explain, ELI5, Summarize, Elaborate, Connect, Connect (With Notes), Explain in Context, Explain in Context (Smart), Analyze in Context, Analyze in Context (Smart), Thematic Connection (Smart), Fact Check*, Current Context*, Translate, Dictionary, Quick Define, Deep Analysis, Look up in X-Ray† |
 | **Book** | Book Info, Find Similar, About Author, Historical Context, Related Thinkers, Book Reviews*, X-Ray, X-Ray (Simple), Recap, Analyze My Notes, Key Arguments, Key Arguments (Smart), Discussion Questions, Discussion Questions (Smart), Generate Quiz, Generate Quiz (Smart), Document Analysis, Document Summary, Extract Key Insights |
 | **Multi-book** | Compare Books, Find Common Themes, Analyze Collection, Quick Summaries, Reading Order |
-| **General** | Ask, News Update* |
+| **General** | News Update* |
 
 *Requires web search (Anthropic, Gemini, OpenRouter). News Update is available in gesture menu by default but not in the general input dialog. See [Web Search](#web-search) and [General Chat](#general-chat) for details.
 
@@ -541,7 +541,6 @@ You can customize these, create your own, or disable ones you don't use. See [Ac
 **Built-in Actions**:
 | Action | Description |
 |--------|-------------|
-| **Ask** | Free-form question about the text |
 | **Explain** | Detailed explanation of the passage |
 | **ELI5** | Explain Like I'm 5 - simplified explanation |
 | **Summarize** | Concise summary of the text |
@@ -630,7 +629,6 @@ Some actions work from the file browser (using only document metadata like title
 **Built-in Actions**:
 | Action | Description |
 |--------|-------------|
-| **Ask** | Free-form question about the book |
 | **Book Info** | Overview, significance, and why to read it |
 | **Find Similar** | Recommendations for similar books |
 | **About Author** | Author biography and writing style |
@@ -785,7 +783,6 @@ Custom actions using placeholders like `{reading_progress}`, `{book_text}`, `{fu
 **Built-in Actions**:
 | Action | Description |
 |--------|-------------|
-| **Ask** | Free-form question about the selected books |
 | **Compare Books** | What makes each book distinct — contrasts, not just similarities |
 | **Find Common Themes** | Shared DNA — recurring themes, influences, connections |
 | **Analyze Collection** | What this selection reveals about the reader's interests |
@@ -803,7 +800,6 @@ A free-form conversation without specific document context. If started while a b
 **Built-in Actions**:
 | Action | Description |
 |--------|-------------|
-| **Ask** | Free-form question (default) |
 | **News Update** | Get today's top news stories from Al Jazeera with links ⚠️ *Requires: Web Search* |
 
 #### Managing the Input Dialog
@@ -818,7 +814,7 @@ All input dialogs (highlight, book, general) show a configurable set of actions 
 | **Book** | Book Info, X-Ray (Simple), Find Similar, Key Arguments, Extract Key Insights, Discussion Questions, About Author, Book Reviews |
 | **Book (file browser)** | Book Info, Find Similar, Related Thinkers, About Author, Historical Context, Book Reviews |
 | **X-Ray Chat** | Explain, Elaborate, ELI5, Fact Check, Explain in Context (Smart), Thematic Connection (Smart), Connect |
-| **General** | Ask |
+| **General** | *(none — use Send button for freeform chat)* |
 
 All defaults are customizable — add, remove, or reorder actions for each context independently. Remaining enabled actions are always accessible via "Show More Actions" in the grid or the gear icon → "More Actions".
 
@@ -827,7 +823,7 @@ All defaults are customizable — add, remove, or reorder actions for each conte
 - **From the input dialog**: Tap the gear icon → **"More Actions"** to run any enabled action not currently shown in the grid
 - **From Action Manager**: Long-press any action → **"+ Input Dialog"** to add it to the relevant input context
 
-The general input dialog shows only actions you've explicitly added. By default, it shows just "Ask". To add more:
+The general input dialog shows only actions you've explicitly added. By default, it starts empty (use the Send button for freeform chat). To add actions:
 
 1. Go to **Settings → Actions → Action Manager**
 2. Switch to **General** context (at the top)
@@ -1203,7 +1199,7 @@ Actions appear as "KOA: Explain", "KOA: Translate", etc. in the highlight popup.
 - Use **Settings → Highlight Settings → Highlight Menu Actions** to view all enabled actions
 - Tap an action to move it up/down or remove it
 - Default actions can be removed (they won't auto-reappear)
-- Actions requiring user input (like "Ask") cannot be added
+- Freeform chat is always available via the Send button in the input dialog
 
 **Note**: Changes require an app restart since the highlight menu is built at startup.
 
