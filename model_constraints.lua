@@ -73,8 +73,13 @@ ModelConstraints.capabilities = {
 
 -- Maximum output token limits per model
 -- Used by handlers to clamp max_tokens before sending requests
--- Only models with limits below the universal 16384 default need entries
+-- Models with known output token ceilings (prevents API 400 errors)
 ModelConstraints._max_output_tokens = {
+    anthropic = {
+        ["claude-sonnet-4-5"] = 64000,
+        ["claude-opus-4"] = 64000,
+        ["claude-haiku-4-5"] = 64000,
+    },
     deepseek = {
         ["deepseek-chat"] = 8192,
         -- deepseek-reasoner: no cap needed (64K limit)
