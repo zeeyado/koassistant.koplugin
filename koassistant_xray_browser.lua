@@ -1012,8 +1012,9 @@ function XrayBrowser:showItemDetail(item, category_key, title, source, nav_conte
                 if viewer then viewer:onClose() end
                 if is_mixed then
                     local entry = nav_list[prev_idx]
-                    self_ref:showItemDetail(entry.item, entry.category_key, entry.name, nil, {
+                    self_ref:showItemDetail(entry.item, entry.category_key, entry.name, nav_context.source, {
                         entries = nav_list, index = prev_idx,
+                        source = nav_context.source,
                     })
                 else
                     local prev_item = nav_list[prev_idx]
@@ -1031,8 +1032,9 @@ function XrayBrowser:showItemDetail(item, category_key, title, source, nav_conte
                 if viewer then viewer:onClose() end
                 if is_mixed then
                     local entry = nav_list[next_idx]
-                    self_ref:showItemDetail(entry.item, entry.category_key, entry.name, nil, {
+                    self_ref:showItemDetail(entry.item, entry.category_key, entry.name, nav_context.source, {
                         entries = nav_list, index = next_idx,
+                        source = nav_context.source,
                     })
                 else
                     local next_item = nav_list[next_idx]
@@ -1122,29 +1124,40 @@ function XrayBrowser:showItemDetail(item, category_key, title, source, nav_conte
                 source = source,  -- Preserve chain for deep back-navigation
                 nav_context = nav_context,  -- Preserve prev/next navigation for back-button
             }
-            local conn_row = {}
+            -- Resolve all connections first for nav_context
+            local conn_entries = {}
             for _idx, name_str in ipairs(names_list) do
                 local resolved = XrayParser.resolveConnection(self.xray_data, name_str)
                 if resolved and resolved.item ~= item then  -- Skip self-references
-                    local captured_resolved = resolved
-                    local resolved_name = captured_resolved.item.name
-                        or captured_resolved.item.term
-                        or captured_resolved.item.event
-                        or _("Details")
-                    table.insert(conn_row, {
-                        text = captured_resolved.name_portion,
-                        callback = function()
-                            if viewer then viewer:onClose() end
-                            self_ref:showItemDetail(captured_resolved.item,
-                                captured_resolved.category_key,
-                                resolved_name, current_source)
-                        end,
+                    table.insert(conn_entries, {
+                        item = resolved.item,
+                        category_key = resolved.category_key,
+                        name = resolved.item.name or resolved.item.term
+                            or resolved.item.event or _("Details"),
+                        button_text = resolved.name_portion,
                     })
-                    -- Start a new row every 3 buttons
-                    if #conn_row == 3 then
-                        table.insert(buttons_rows, conn_row)
-                        conn_row = {}
-                    end
+                end
+            end
+            -- Build connection buttons with nav_context for prev/next arrows
+            local conn_row = {}
+            for conn_idx, entry in ipairs(conn_entries) do
+                local captured_idx = conn_idx
+                table.insert(conn_row, {
+                    text = entry.button_text,
+                    callback = function()
+                        if viewer then viewer:onClose() end
+                        self_ref:showItemDetail(entry.item,
+                            entry.category_key,
+                            entry.name, current_source, {
+                            entries = conn_entries, index = captured_idx,
+                            source = current_source,
+                        })
+                    end,
+                })
+                -- Start a new row every 3 buttons
+                if #conn_row == 3 then
+                    table.insert(buttons_rows, conn_row)
+                    conn_row = {}
                 end
             end
             if #conn_row > 0 then
@@ -2774,9 +2787,18 @@ function XrayBrowser:showSearchResults(query)
     local items = {}
     local self_ref = self
 
+    -- Build nav entries for prev/next navigation in detail view
+    local nav_entries = {}
     for _idx, result in ipairs(results) do
-        local item = result.item
-        local name = XrayParser.getItemName(item, result.category_key)
+        table.insert(nav_entries, {
+            item = result.item,
+            category_key = result.category_key,
+            name = XrayParser.getItemName(result.item, result.category_key),
+        })
+    end
+
+    for _idx, result in ipairs(results) do
+        local nav_entry = nav_entries[_idx]
         local match_label = result.category_label
         if result.match_field == "alias" then
             match_label = match_label .. " (" .. _("alias") .. ")"
@@ -2784,14 +2806,15 @@ function XrayBrowser:showSearchResults(query)
             match_label = match_label .. " (" .. _("desc.") .. ")"
         end
 
-        local captured_item = item
-        local captured_key = result.category_key
+        local captured_idx = _idx
         table.insert(items, {
-            text = name,
+            text = nav_entry.name,
             mandatory = match_label,
             mandatory_dim = true,
             callback = function()
-                self_ref:showItemDetail(captured_item, captured_key, name)
+                self_ref:showItemDetail(nav_entry.item, nav_entry.category_key, nav_entry.name, nil, {
+                    entries = nav_entries, index = captured_idx,
+                })
             end,
         })
     end
