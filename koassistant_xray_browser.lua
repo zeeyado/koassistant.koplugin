@@ -987,8 +987,19 @@ function XrayBrowser:showItemDetail(item, category_key, title, source, nav_conte
         (nav_context.items and #nav_context.items > 1) or
         (nav_context.entries and #nav_context.entries > 1))
 
+    -- Back button: show source name when navigating from connections
+    local back_text = "←"
+    if source then
+        local back_name = source.breadcrumb or source.title or ""
+        if back_name ~= "" then
+            if #back_name > 12 then
+                back_name = back_name:sub(1, 10) .. "…"
+            end
+            back_text = "← " .. back_name
+        end
+    end
     table.insert(row, {
-        text = "←",
+        text = back_text,
         callback = function()
             if viewer then viewer:onClose() end
             if source then
@@ -1117,10 +1128,16 @@ function XrayBrowser:showItemDetail(item, category_key, title, source, nav_conte
             names_list = { names_list }
         end
         if type(names_list) == "table" and #names_list > 0 then
+            -- breadcrumb: short name for trail display (from connection nav_context if available)
+            local breadcrumb_name
+            if nav_context and nav_context.entries and nav_context.entries[nav_context.index] then
+                breadcrumb_name = nav_context.entries[nav_context.index].button_text
+            end
             local current_source = {
                 item = item,
                 category_key = category_key,
                 title = title,
+                breadcrumb = breadcrumb_name,
                 source = source,  -- Preserve chain for deep back-navigation
                 nav_context = nav_context,  -- Preserve prev/next navigation for back-button
             }
