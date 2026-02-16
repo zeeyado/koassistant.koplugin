@@ -4202,36 +4202,17 @@ function AskGPT:showCacheViewer(cache_info)
           web_search_used = cache_info.data.web_search_used,
           info_popup_text = info_popup_text,
         }
-        -- Staleness checks (flow config change or reading progress advance)
+        -- Staleness check (reading progress advance)
         local ce_ok, ContextExtractor
         if self.ui and self.ui.document then
             ce_ok, ContextExtractor = pcall(require, "koassistant_context_extractor")
         end
 
-        -- Check if hidden flow config changed since cache was built
-        local staleness_shown = false
-        if ce_ok and ContextExtractor and self.ui and self.ui.document then
-            local cached_flow_fp = cache_info.data.flow_visible_pages
-            local current_flow_fp = ContextExtractor.getFlowFingerprint(self.ui.document)
-            if cached_flow_fp ~= nil and cached_flow_fp ~= current_flow_fp then
-                UIManager:show(Notification:new{
-                    text = _("Reading scope changed since this X-Ray was generated. Consider updating."),
-                })
-                staleness_shown = true
-            elseif cached_flow_fp == nil and current_flow_fp ~= nil
-                    and cache_info.data.used_book_text ~= false then
-                UIManager:show(Notification:new{
-                    text = _("Hidden flows active but X-Ray was generated without flow filtering."),
-                })
-                staleness_shown = true
-            end
-        end
-
         XrayBrowser:show(parsed, browser_metadata, self.ui, on_delete)
 
-        -- Progress staleness popup (only if flow staleness wasn't shown
-        -- and not suppressed by caller, e.g. showCacheActionPopup already showed update option)
-        if not staleness_shown and not cache_info.skip_stale_popup
+        -- Progress staleness popup (not suppressed by caller,
+        -- e.g. showCacheActionPopup already showed update option)
+        if not cache_info.skip_stale_popup
                 and not cache_info.data.full_document
                 and ce_ok and ContextExtractor
                 and self.ui and self.ui.document

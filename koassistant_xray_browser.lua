@@ -678,7 +678,7 @@ function XrayBrowser:show(xray_data, metadata, ui, on_delete)
         local current_page = getCurrentPage(ui)
         if ui.document:getPageFlow(current_page) ~= 0 then
             UIManager:show(Notification:new{
-                text = _("Reading position is outside the hidden flow. Chapter features may not work correctly."),
+                text = _("Position is outside the active hidden flow"),
             })
         end
     end
