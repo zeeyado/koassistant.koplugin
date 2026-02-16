@@ -722,6 +722,23 @@ function XrayBrowser:show(xray_data, metadata, ui, on_delete)
         end
     end
     UIManager:show(self.menu)
+
+    -- Auto-navigate to saved position (from file browser → open book reopen flow)
+    if XrayBrowser._pending_navigate_to then
+        local navigate_to = XrayBrowser._pending_navigate_to
+        XrayBrowser._pending_navigate_to = nil
+        local target_items = self.xray_data[navigate_to.category_key]
+        if target_items then
+            for _idx, target_item in ipairs(target_items) do
+                if XrayParser.getItemName(target_item, navigate_to.category_key) == navigate_to.item_name then
+                    UIManager:scheduleIn(0.1, function()
+                        self_ref:showItemDetail(target_item, navigate_to.category_key, navigate_to.item_name)
+                    end)
+                    break
+                end
+            end
+        end
+    end
 end
 
 --- Get chapter text with per-session caching (raw + lowered).
@@ -1096,7 +1113,10 @@ function XrayBrowser:showItemDetail(item, category_key, title, source, nav_conte
                     if viewer then viewer:onClose() end
                     self_ref:showItemDistribution(item, category_key, dist_item_name)
                 else
-                    self_ref:_showReaderRequired()
+                    self_ref:_showReaderRequired({
+                        category_key = category_key,
+                        item_name = dist_item_name,
+                    })
                 end
             end,
         })
@@ -3143,9 +3163,16 @@ function XrayBrowser:_showOtherArtifacts(available)
 end
 
 --- Open the book file in Reader mode (closing the browser)
-function XrayBrowser:_openBookFile()
+--- Saves pending reopen state so onReaderReady can auto-reopen the X-Ray browser
+--- @param navigate_to table|nil Optional {category_key, item_name} to restore position
+function XrayBrowser:_openBookFile(navigate_to)
     local book_file = self.metadata and self.metadata.book_file
     if not book_file then return end
+    -- Save pending reopen state on the module table (survives plugin re-instantiation)
+    XrayBrowser._pending_reopen = {
+        book_file = book_file,
+        navigate_to = navigate_to,
+    }
     if self.menu then
         UIManager:close(self.menu)
     end
@@ -3154,7 +3181,8 @@ function XrayBrowser:_openBookFile()
 end
 
 --- Show popup explaining a feature requires the book to be open in Reader mode
-function XrayBrowser:_showReaderRequired()
+--- @param navigate_to table|nil Optional {category_key, item_name} to restore position on reopen
+function XrayBrowser:_showReaderRequired(navigate_to)
     local self_ref = self
     if self.metadata and self.metadata.book_file then
         local ConfirmBox = require("ui/widget/confirmbox")
@@ -3162,7 +3190,7 @@ function XrayBrowser:_showReaderRequired()
             text = _("This feature requires the book to be open in Reader mode.\n\nOpen the book now?"),
             ok_text = _("Open Book"),
             ok_callback = function()
-                self_ref:_openBookFile()
+                self_ref:_openBookFile(navigate_to)
             end,
         })
     else

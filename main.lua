@@ -224,6 +224,32 @@ function AskGPT:init()
     self:registerToMainMenu()
     -- Sync highlight bypass (needs ui.highlight to be available)
     self:syncHighlightBypass()
+    -- Auto-reopen X-Ray browser after opening book from file browser
+    local XrayBrowser = require("koassistant_xray_browser")
+    if XrayBrowser._pending_reopen then
+      local pending = XrayBrowser._pending_reopen
+      XrayBrowser._pending_reopen = nil
+      local book_file = self.ui and self.ui.document and self.ui.document.file
+      if book_file and book_file == pending.book_file then
+        -- Stash navigate_to for show() to pick up after scheduleIn delay
+        if pending.navigate_to then
+          XrayBrowser._pending_navigate_to = pending.navigate_to
+        end
+        local UIManager = require("ui/uimanager")
+        UIManager:scheduleIn(0.5, function()
+          local ActionCache = require("koassistant_action_cache")
+          local cached = ActionCache.getXrayCache(book_file)
+          if cached then
+            self:showCacheViewer({
+              name = "X-Ray",
+              key = "_xray_cache",
+              data = cached,
+              skip_stale_popup = true,
+            })
+          end
+        end)
+      end
+    end
   end
   
   -- Register file dialog buttons with delays to ensure they appear at the bottom
