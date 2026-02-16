@@ -2614,10 +2614,11 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
         if extracted_chars > Constants.LARGE_EXTRACTION_THRESHOLD
                 and not (config.features and config.features.suppress_large_extraction_warning) then
             local chars_k = math.floor(extracted_chars / 1000)
-            local tokens_k = math.floor(extracted_chars / 4000)
+            local tokens_low = math.floor(extracted_chars / 4000)
+            local tokens_high = math.floor(extracted_chars / 2000)
             local warning_dialog
             warning_dialog = ButtonDialog:new{
-                title = T(_("Large text extraction: ~%1K characters (~%2K tokens). Make sure your model's context window can accommodate this.\n\nYou can also use Hidden Flows to exclude irrelevant sections of the document."), chars_k, tokens_k),
+                title = T(_("Large text extraction: ~%1K characters (~%2K-%3K tokens). Make sure your model's context window can accommodate this.\n\nYou can also use Hidden Flows to exclude irrelevant sections of the document."), chars_k, tokens_low, tokens_high),
                 buttons = {
                     {{
                         text = _("Cancel"),
