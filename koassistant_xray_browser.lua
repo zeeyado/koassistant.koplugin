@@ -982,7 +982,7 @@ function XrayBrowser:showItemDetail(item, category_key, title, source, nav_conte
             if viewer then viewer:onClose() end
             if source then
                 self_ref:showItemDetail(source.item, source.category_key,
-                    source.title, source.source)
+                    source.title, source.source, source.nav_context)
             end
         end,
     })
@@ -1109,6 +1109,7 @@ function XrayBrowser:showItemDetail(item, category_key, title, source, nav_conte
                 category_key = category_key,
                 title = title,
                 source = source,  -- Preserve chain for deep back-navigation
+                nav_context = nav_context,  -- Preserve prev/next navigation for back-button
             }
             local conn_row = {}
             for _idx, name_str in ipairs(names_list) do
@@ -1144,12 +1145,12 @@ function XrayBrowser:showItemDetail(item, category_key, title, source, nav_conte
     -- Navigation bar (last row — arrows + chat)
     table.insert(buttons_rows, row)
 
-    -- Title: append position indicator when navigating within a category/list
+    -- Title: prepend position indicator when navigating within a category/list
     local display_title = title or _("Details")
     if nav_context then
         local nav_list = nav_context.entries or nav_context.items
         if nav_list then
-            display_title = T("%1 (%2/%3)", display_title, nav_context.index, #nav_list)
+            display_title = T("(%1/%2) %3", nav_context.index, #nav_list, display_title)
         end
     end
 
