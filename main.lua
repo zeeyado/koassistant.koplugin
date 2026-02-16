@@ -5681,7 +5681,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
   }
 
   button_defs["general_chat"] = {
-    text = E("\u{1F4AC}", _("General Chat/Action")),
+    text = E("\u{1F5E8}\u{FE0F}", _("General Chat/Action")),
     callback = function()
       opening_subdialog = true
       UIManager:close(dialog)
@@ -5719,7 +5719,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
   -- Dynamic items (only when book is open)
   if has_document then
     button_defs["new_book_chat"] = {
-      text = E("\u{1F4D6}", _("Book Chat/Action")),
+      text = E("\u{1F4AC}", _("Book Chat/Action")),
       callback = function()
         opening_subdialog = true
         UIManager:close(dialog)
