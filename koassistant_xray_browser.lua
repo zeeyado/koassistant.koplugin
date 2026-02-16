@@ -211,8 +211,24 @@ local function getAllChapterBoundaries(ui, target_depth, coverage_page)
                 end
             end
             if not has_children_at_depth then
-                current_parent_title = nil  -- standalone leaf breaks parent chain
-                table.insert(filtered, entry)
+                -- Check if it has children at any depth (parent of shallower leaves)
+                local has_any_children = false
+                for j = i + 1, #effective_toc do
+                    local jd = effective_toc[j].depth or 1
+                    if jd <= d then break end
+                    has_any_children = true
+                    break
+                end
+                if has_any_children then
+                    current_parent_title = entry.title or ""
+                else
+                    if current_parent_title and d > 1 then
+                        entry._parent_title = current_parent_title
+                    else
+                        current_parent_title = nil
+                    end
+                    table.insert(filtered, entry)
+                end
             else
                 current_parent_title = entry.title or ""
             end
