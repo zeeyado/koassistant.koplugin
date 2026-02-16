@@ -190,11 +190,14 @@ local function getAllChapterBoundaries(ui, target_depth, coverage_page)
 
     -- Filter entries to target depth, but include shallower entries
     -- that have no children at the target depth (e.g., "Introduction" at depth 1
-    -- when other parts have sub-chapters at depth 3)
+    -- when other parts have sub-chapters at depth 3).
+    -- Track parent titles for chapters at target depth (used by distribution view).
     local filtered = {}
+    local current_parent_title = nil
     for i, entry in ipairs(effective_toc) do
         local d = entry.depth or 1
         if d == depth then
+            entry._parent_title = current_parent_title
             table.insert(filtered, entry)
         elseif d < depth then
             -- Check if this entry has any descendants at the target depth
@@ -208,7 +211,10 @@ local function getAllChapterBoundaries(ui, target_depth, coverage_page)
                 end
             end
             if not has_children_at_depth then
+                current_parent_title = nil  -- standalone leaf breaks parent chain
                 table.insert(filtered, entry)
+            else
+                current_parent_title = entry.title or ""
             end
         end
     end
@@ -228,7 +234,7 @@ local function getAllChapterBoundaries(ui, target_depth, coverage_page)
             end_page = total_pages
         end
         local is_unread = entry.page > gate_page
-        local is_current = not is_unread and current_page <= end_page
+        local is_current = not is_unread and current_page >= entry.page and current_page <= end_page
         table.insert(chapters, {
             title = entry.title or "",
             start_page = entry.page,
@@ -236,6 +242,7 @@ local function getAllChapterBoundaries(ui, target_depth, coverage_page)
             depth = entry.depth or 1,
             is_current = is_current or false,
             unread = is_unread,
+            parent_title = entry._parent_title,
         })
         ::continue::
     end
@@ -2389,7 +2396,21 @@ function XrayBrowser:_buildDistributionView(item, category_key, item_title, data
         })
     end
 
+    -- Track parent headers and chapter-to-item index mapping (for focus after reveal)
+    local last_parent = false  -- false distinguishes from nil (no parent)
+    local chapter_to_item = {}
+
     for i, chapter in ipairs(chapters) do
+        -- Insert parent section header when group changes
+        if chapter.parent_title and chapter.parent_title ~= last_parent then
+            table.insert(items, {
+                text = chapter.parent_title,
+                bold = true,
+                dim = true,
+            })
+        end
+        last_parent = chapter.parent_title
+
         local count = chapter_counts[i]
         local display_title = chapter.title or ""
         local captured_chapter = chapter
@@ -2397,6 +2418,7 @@ function XrayBrowser:_buildDistributionView(item, category_key, item_title, data
         if not count then
             -- Unread chapter: dimmed, tap to reveal individually
             local captured_i = i
+            chapter_to_item[i] = #items + 1
             table.insert(items, {
                 text = display_title,
                 mandatory = "···",
@@ -2466,6 +2488,7 @@ function XrayBrowser:_buildDistributionView(item, category_key, item_title, data
             if chapter.is_current then
                 display_title = "\u{25B6} " .. display_title
             end
+            chapter_to_item[i] = #items + 1
             table.insert(items, {
                 text = display_title,
                 mandatory = buildDistributionBar(count, data.max_count, nil, count_width),
@@ -2562,6 +2585,11 @@ function XrayBrowser:_buildDistributionView(item, category_key, item_title, data
                 end,
             })
         end
+    end
+
+    -- Convert focus_idx from chapter index to items index (accounts for headers)
+    if data._focus_idx and chapter_to_item[data._focus_idx] then
+        data._focus_idx = chapter_to_item[data._focus_idx]
     end
 
     local title = T(_("%1 — %2 chapters"), item_title,
