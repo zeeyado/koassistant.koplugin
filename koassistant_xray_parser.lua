@@ -77,10 +77,14 @@ function XrayParser.parse(text)
         return data, nil
     end
 
-    -- Attempt 2: strip markdown code fences
-    local stripped = text:match("```json%s*(.-)%s*```")
-        or text:match("```%s*({.+})%s*```")
-    if stripped then
+    -- Attempt 2: strip markdown code fences (find-based to cross newlines)
+    local fence_open = text:find("```json%s*\n") or text:find("```%s*\n")
+    if fence_open then
+        local content_start = text:find("\n", fence_open) + 1
+        local fence_close = text:find("\n%s*```%s*$")
+        local stripped = fence_close
+            and text:sub(content_start, fence_close - 1)
+            or text:sub(content_start)
         ok, data = pcall(json.decode, stripped)
         if ok and isValidXrayData(data) then
             return data, nil
@@ -89,7 +93,14 @@ function XrayParser.parse(text)
 
     -- Attempt 3: extract from first { to last }
     local first_brace = text:find("{")
-    local last_brace = text:match(".*()}")
+    -- Scan backwards (Lua's .* doesn't cross newlines)
+    local last_brace
+    for i = #text, 1, -1 do
+        if text:byte(i) == 125 then -- }
+            last_brace = i
+            break
+        end
+    end
     if first_brace and last_brace and last_brace > first_brace then
         local extracted = text:sub(first_brace, last_brace)
         ok, data = pcall(json.decode, extracted)
