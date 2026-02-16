@@ -147,6 +147,7 @@ Actions.highlight = {
     eli5 = {
         id = "eli5",
         enable_web_search = false,
+        reasoning_config = "off",  -- Simplification doesn't benefit from reasoning
         text = _("ELI5"),
         description = _("Simplifies the passage into everyday language using analogies and concrete examples, without sacrificing accuracy."),
         context = "highlight",
@@ -163,6 +164,7 @@ Actions.highlight = {
     summarize = {
         id = "summarize",
         enable_web_search = false,
+        reasoning_config = "off",  -- Condensation doesn't benefit from reasoning
         text = _("Summarize"),
         description = _("Condenses the selected passage to its essential points, keeping what matters and trimming the rest."),
         context = "highlight",
@@ -711,6 +713,7 @@ local XRAY_COMPLETE_REPLACEMENTS = {
 Actions.book = {
     book_info = {
         id = "book_info",
+        reasoning_config = "off",  -- Straightforward recall doesn't benefit from reasoning
         text = _("Book Info"),
         description = _("Comprehensive overview: what the work is about, its themes, significance, and reading experience. Based on AI knowledge — no book data needed."),
         context = "book",
@@ -738,6 +741,7 @@ Actions.book = {
     },
     explain_author = {
         id = "explain_author",
+        reasoning_config = "off",  -- Biographical info doesn't benefit from reasoning
         text = _("About Author"),
         description = _("Biography, major works, writing style, and suggested reading order for the book's author."),
         context = "book",
@@ -1409,6 +1413,7 @@ What are the most important takeaways? Focus on:
     -- Web-enhanced book actions (force web search on)
     book_reviews = {
         id = "book_reviews",
+        reasoning_config = "off",  -- Review aggregation doesn't benefit from reasoning
         enable_web_search = true,  -- Force web search even if global setting is off
         text = _("Book Reviews"),
         description = _("Searches the web for critical and reader reviews, awards, and any controversy around the book."),
@@ -1481,6 +1486,7 @@ Actions.multi_book = {
     quick_summaries = {
         id = "quick_summaries",
         enable_web_search = false,
+        reasoning_config = "off",  -- Brief summaries don't benefit from reasoning
         text = _("Quick Summaries"),
         description = _("A brief 2-3 sentence summary of each selected book, focusing on premise and appeal."),
         context = "multi_book",
@@ -1510,6 +1516,7 @@ Actions.multi_book = {
 Actions.general = {
     news_update = {
         id = "news_update",
+        reasoning_config = "off",  -- News fetching doesn't benefit from reasoning
         text = _("News Update"),
         description = _("Fetches today's top global news stories from Al Jazeera with headlines, summaries, and links. Uses web search."),
         context = "general",
@@ -1545,7 +1552,7 @@ Actions.special = {
         in_highlight_menu = 1,  -- Default in highlight menu
         prompt = "Translate this to {translation_language}: {highlighted_text}",
         include_book_context = false,
-        extended_thinking = "off",  -- Translations don't benefit from extended thinking
+        reasoning_config = "off",  -- Translations don't benefit from reasoning
         skip_language_instruction = true,  -- Target language already in prompt
         skip_domain = true,  -- Domain context not relevant for translations
         translate_view = true,  -- Use special translate view
@@ -1573,7 +1580,7 @@ Write entirely in {dictionary_language}. Only the headword stays in original lan
 
 One line only. No etymology, no synonyms. No headers.]],
         include_book_context = false,  -- Word definitions don't typically need book metadata
-        extended_thinking = "off",  -- Dictionary lookups don't benefit from extended thinking
+        reasoning_config = "off",  -- Dictionary lookups don't benefit from reasoning
         skip_language_instruction = true,  -- Target language already in prompt
         skip_domain = true,  -- Domain context not relevant for dictionary lookups
         compact_view = true,  -- Always use compact dictionary view
@@ -1606,7 +1613,7 @@ Synonyms
 
 All labels and explanations in {dictionary_language}. Inline bold labels, no headers. Concise.]],
         include_book_context = false,  -- Word definitions don't typically need book metadata
-        extended_thinking = "off",  -- Dictionary lookups don't benefit from extended thinking
+        reasoning_config = "off",  -- Dictionary lookups don't benefit from reasoning
         skip_language_instruction = true,  -- Target language already in prompt
         skip_domain = true,  -- Domain context not relevant for dictionary lookups
         compact_view = true,  -- Always use compact dictionary view
@@ -1644,7 +1651,7 @@ When context is provided, note how this specific form or sense fits the passage,
 
 Write in {dictionary_language}. Headwords, lemmas, and cognates stay in original script. Inline bold labels, no headers. {conciseness_nudge}]],
         include_book_context = false,
-        extended_thinking = "off",
+        reasoning_config = "off",  -- Structured lookups don't benefit from reasoning
         skip_language_instruction = true,
         skip_domain = true,  -- Domain context not relevant for dictionary lookups
         -- storage_key set dynamically based on dictionary_disable_auto_save setting

@@ -462,8 +462,11 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
     end
 
     -- Apply reasoning parameters based on provider
+    -- Note: Can't use `x ~= nil and x or default` pattern here because x=false
+    -- is falsy in Lua, causing it to fall through to the default. Use explicit nil check.
     if provider == "anthropic" then
-        local enabled = action_anthropic_override ~= nil and action_anthropic_override or anthropic_reasoning
+        local enabled = anthropic_reasoning
+        if action_anthropic_override ~= nil then enabled = action_anthropic_override end
         if enabled then
             config.api_params.thinking = {
                 type = "enabled",
@@ -471,14 +474,16 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
             }
         end
     elseif provider == "openai" then
-        local enabled = action_openai_override ~= nil and action_openai_override or openai_reasoning
+        local enabled = openai_reasoning
+        if action_openai_override ~= nil then enabled = action_openai_override end
         if enabled then
             config.api_params.reasoning = {
                 effort = reasoning_effort,
             }
         end
     elseif provider == "gemini" then
-        local enabled = action_gemini_override ~= nil and action_gemini_override or gemini_reasoning
+        local enabled = gemini_reasoning
+        if action_gemini_override ~= nil then enabled = action_gemini_override end
         if enabled then
             config.api_params.thinking_level = reasoning_depth:upper()
         end
