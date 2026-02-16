@@ -590,9 +590,9 @@ Guidance for fiction:
 - **Locations**: For significant locations, convey atmosphere and what unfolds there. Minor locations need only a brief note. Include references to characters or items associated with each location.
 - **Themes**: Be thorough — include all themes, motifs, and recurring ideas, not just the central ones. For major themes, trace how they develop through specific characters, conflicts, and events. For minor motifs or recurring ideas, a brief note suffices. Include references to characters or items that embody each theme.
 - **Lexicon**: In-world terms, cultural references, or specialized vocabulary. Keep definitions concise — this is reference material.
-- **Timeline**: Be thorough — include all significant events, not just major plot points. Cover character moments, revelations, turning points, and developments across each chapter. Each event should have a chapter reference and involved characters.
+- **Timeline**: Be thorough and chronological — include all significant events, not just major plot points. Cover character moments, revelations, turning points, and developments across each chapter. Each event should have a chapter reference and involved characters.
 - __FICTION_STATUS_GUIDANCE__
-- **Output size**: Be comprehensive. Prioritize both depth and breadth. Give detailed entries for significant items and keep minor entries concise.
+- **Output size**: Prioritize depth over breadth. Give detailed entries for significant items and brief entries for minor ones. Include all items the reader encounters, but keep minor entries concise to stay within output limits.
 
 ---
 
@@ -657,7 +657,7 @@ Guidance for non-fiction:
 - **Terminology**: Specialized vocabulary, jargon, or terms the author defines. Keep concise — this is reference material.
 - **Argument Development**: Track the intellectual progression across the work. Include developments, turning points, and shifts in each chapter or section — not just the main thesis but subsidiary arguments and case studies. Each entry should show how it advances or complicates the discussion. Include references to key figures or concepts involved.
 - __NONFICTION_STATUS_GUIDANCE__
-- **Output size**: Be comprehensive. Prioritize both depth and breadth. Give detailed entries for significant items and keep minor entries concise.
+- **Output size**: Prioritize depth over breadth. Give detailed entries for significant items and brief entries for minor ones. Include all items discussed in the text, but keep minor entries concise to stay within output limits.
 
 ---
 
