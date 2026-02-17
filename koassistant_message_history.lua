@@ -442,8 +442,11 @@ function MessageHistory:createResultText(highlightedText, config)
                 local features = config.features or {}
                 local full_model = config.model or model
 
-                if provider == "anthropic" and features.anthropic_reasoning then
-                    if ModelConstraints.supportsCapability("anthropic", full_model, "extended_thinking") then
+                if provider == "anthropic" then
+                    if features.anthropic_adaptive and ModelConstraints.supportsCapability("anthropic", full_model, "adaptive_thinking") then
+                        local effort = features.anthropic_effort or "high"
+                        reasoning_info = string.format(", adaptive(%s)", effort)
+                    elseif features.anthropic_reasoning and ModelConstraints.supportsCapability("anthropic", full_model, "extended_thinking") then
                         local budget = features.reasoning_budget or 4096
                         reasoning_info = string.format(", thinking=%d", budget)
                     end

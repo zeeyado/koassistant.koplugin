@@ -69,8 +69,13 @@ function PromptsManager:getReasoningDisplayText(obj)
             -- Per-provider config
             local parts = {}
             if obj.reasoning_config.anthropic then
-                if type(obj.reasoning_config.anthropic) == "table" and obj.reasoning_config.anthropic.budget then
-                    table.insert(parts, string.format("A:%d", obj.reasoning_config.anthropic.budget))
+                if type(obj.reasoning_config.anthropic) == "table" then
+                    if obj.reasoning_config.anthropic.effort then
+                        table.insert(parts, "A:" .. obj.reasoning_config.anthropic.effort:sub(1,1):upper())
+                    end
+                    if obj.reasoning_config.anthropic.budget then
+                        table.insert(parts, string.format("A:%d", obj.reasoning_config.anthropic.budget))
+                    end
                 end
             end
             if obj.reasoning_config.openai then
@@ -2223,8 +2228,18 @@ function PromptsManager:showPerProviderReasoningMenu(state, refresh_callback)
         local cfg = state.reasoning_config[provider]
         if cfg == nil then return _("(global)") end
         if cfg == false then return _("OFF") end
-        if provider == "anthropic" and cfg.budget then
-            return T(_("ON (%1 tokens)"), cfg.budget)
+        if provider == "anthropic" then
+            local status_parts = {}
+            if cfg.effort then
+                table.insert(status_parts, _("adaptive: ") .. cfg.effort)
+            end
+            if cfg.budget then
+                table.insert(status_parts, T(_("%1 tokens"), cfg.budget))
+            end
+            if #status_parts > 0 then
+                return _("ON (") .. table.concat(status_parts, ", ") .. ")"
+            end
+            return _("ON")
         elseif provider == "openai" and cfg.effort then
             return _("ON (") .. cfg.effort .. ")"
         elseif provider == "gemini" and cfg.level then
@@ -2321,7 +2336,16 @@ function PromptsManager:showAnthropicReasoningConfig(state)
         },
         {
             {
-                text = _("ON (set budget)..."),
+                text = _("Adaptive (set effort)..."),
+                callback = function()
+                    UIManager:close(self.anthropic_dialog)
+                    self:showAnthropicEffortSelector(state)
+                end,
+            },
+        },
+        {
+            {
+                text = _("Extended (set budget)..."),
                 callback = function()
                     UIManager:close(self.anthropic_dialog)
                     self:showAnthropicBudgetSelector(state)
@@ -2340,8 +2364,8 @@ function PromptsManager:showAnthropicReasoningConfig(state)
     }
 
     self.anthropic_dialog = ButtonDialog:new{
-        title = _("Anthropic Extended Thinking"),
-        info_text = _("Extended thinking for Claude models.\nSupports: Sonnet 4.5, Opus 4.x, Haiku 4.5, Sonnet 3.7"),
+        title = _("Anthropic Reasoning"),
+        info_text = _("Adaptive thinking (4.6): Claude decides when to think.\nExtended thinking (4.5): Manual budget mode.\n\nBoth can coexist: effort for 4.6, budget for 4.5 models."),
         buttons = buttons,
     }
 
@@ -2367,12 +2391,95 @@ function PromptsManager:showAnthropicBudgetSelector(state)
         default_value = defaults.budget,
         ok_always_enabled = true,
         callback = function(spin)
-            state.reasoning_config.anthropic = { budget = spin.value }
+            -- Preserve existing effort if set
+            local existing = state.reasoning_config.anthropic
+            local new_config = { budget = spin.value }
+            if type(existing) == "table" and existing.effort then
+                new_config.effort = existing.effort
+            end
+            state.reasoning_config.anthropic = new_config
             self:showPerProviderReasoningMenu(state)
         end,
     }
 
     UIManager:show(spin_widget)
+end
+
+-- Anthropic effort selector (adaptive thinking 4.6)
+function PromptsManager:showAnthropicEffortSelector(state)
+    local defaults = ModelConstraints.reasoning_defaults.anthropic_adaptive
+
+    local current = state.reasoning_config.anthropic
+    local current_effort = (type(current) == "table" and current.effort) or defaults.effort
+
+    local buttons = {
+        {
+            {
+                text = _("Use global setting"),
+                callback = function()
+                    -- Remove effort from config, preserve budget if set
+                    local existing = state.reasoning_config.anthropic
+                    if type(existing) == "table" and existing.budget then
+                        existing.effort = nil
+                        -- If only budget remains, keep it
+                    else
+                        state.reasoning_config.anthropic = nil
+                    end
+                    UIManager:close(self.anthropic_effort_dialog)
+                    self:showPerProviderReasoningMenu(state)
+                end,
+            },
+        },
+    }
+
+    -- Build effort option buttons
+    -- Use opus options (includes "max") — the handler validates model support
+    for _idx, effort in ipairs(defaults.effort_options_opus) do
+        local label = effort:sub(1,1):upper() .. effort:sub(2)
+        if effort == defaults.effort then
+            label = label .. _(" (default)")
+        elseif effort == "max" then
+            label = label .. _(" (Opus 4.6 only)")
+        end
+        local is_current = (effort == current_effort)
+        if is_current then
+            label = label .. " *"
+        end
+        table.insert(buttons, {
+            {
+                text = label,
+                callback = function()
+                    -- Preserve existing budget if set
+                    local existing = state.reasoning_config.anthropic
+                    local new_config = { effort = effort }
+                    if type(existing) == "table" and existing.budget then
+                        new_config.budget = existing.budget
+                    end
+                    state.reasoning_config.anthropic = new_config
+                    UIManager:close(self.anthropic_effort_dialog)
+                    self:showPerProviderReasoningMenu(state)
+                end,
+            },
+        })
+    end
+
+    table.insert(buttons, {
+        {
+            text = _("Cancel"),
+            callback = function()
+                UIManager:close(self.anthropic_effort_dialog)
+                self:showPerProviderReasoningMenu(state)
+            end,
+        },
+    })
+
+    self.anthropic_effort_dialog = ButtonDialog:new{
+        title = _("Adaptive Thinking Effort"),
+        info_text = _("For Claude 4.6 models. Claude decides when and how much to think.\n\nLow = may skip thinking\nMedium = balanced\nHigh = almost always thinks\nMax = deepest thinking (Opus 4.6 only)"),
+        buttons = buttons,
+    }
+
+    UIManager:show(self.anthropic_effort_dialog)
 end
 
 -- OpenAI reasoning config

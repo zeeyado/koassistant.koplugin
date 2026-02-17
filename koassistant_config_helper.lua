@@ -149,10 +149,17 @@ function ConfigHelper:buildDebugInfo(config)
 
     -- Add reasoning info based on provider
     if provider == "anthropic" and config.api_params and config.api_params.thinking then
-        debug_info.reasoning = {
-            type = "anthropic",
-            budget = config.api_params.thinking.budget_tokens,
-        }
+        if config.api_params.thinking.type == "adaptive" then
+            debug_info.reasoning = {
+                type = "anthropic_adaptive",
+                effort = config.api_params.output_config and config.api_params.output_config.effort or "high",
+            }
+        else
+            debug_info.reasoning = {
+                type = "anthropic",
+                budget = config.api_params.thinking.budget_tokens,
+            }
+        end
     elseif provider == "openai" and config.api_params and config.api_params.reasoning then
         debug_info.reasoning = {
             type = "openai",

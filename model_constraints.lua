@@ -30,8 +30,14 @@ local ModelConstraints = {
 -- e.g., "claude-sonnet-4-5" matches "claude-sonnet-4-5-20250929", "claude-sonnet-4-5-latest", etc.
 ModelConstraints.capabilities = {
     anthropic = {
-        -- Models that support extended thinking
-        -- Claude 3 Haiku does NOT support it
+        -- Models that support adaptive thinking (4.6+)
+        -- New mode: thinking = {type = "adaptive"}, output_config = {effort = "..."}
+        adaptive_thinking = {
+            "claude-sonnet-4-6",      -- 4.6 Sonnet
+            "claude-opus-4-6",        -- 4.6 Opus
+        },
+        -- Models that support extended thinking (manual budget mode)
+        -- Still works on 4.6 but deprecated in favor of adaptive
         extended_thinking = {
             "claude-sonnet-4-6",      -- 4.6 Sonnet
             "claude-opus-4-6",        -- 4.6 Opus
@@ -99,7 +105,13 @@ ModelConstraints._max_output_tokens = {
 -- Default values for reasoning/thinking settings
 -- Use these instead of hardcoding values throughout the codebase
 ModelConstraints.reasoning_defaults = {
-    -- Anthropic extended thinking
+    -- Anthropic adaptive thinking (4.6+)
+    anthropic_adaptive = {
+        effort = "high",     -- Default effort level
+        effort_options = { "low", "medium", "high" },  -- Common options
+        effort_options_opus = { "low", "medium", "high", "max" },  -- Opus 4.6 only
+    },
+    -- Anthropic extended thinking (manual budget mode)
     anthropic = {
         budget = 32000,      -- Default budget_tokens (max cap, model uses what it needs)
         budget_min = 1024,   -- Minimum allowed

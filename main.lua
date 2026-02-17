@@ -1379,6 +1379,9 @@ function AskGPT:updateConfigFromSettings()
     table.insert(config_parts, "temp=" .. features.default_temperature)
   end
   -- Show per-provider reasoning settings
+  if features.anthropic_adaptive then
+    table.insert(config_parts, "anthropic_adaptive=" .. (features.anthropic_effort or "high"))
+  end
   if features.anthropic_reasoning then
     table.insert(config_parts, "anthropic_thinking=" .. (features.reasoning_budget or 4096))
   end

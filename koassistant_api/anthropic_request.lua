@@ -146,43 +146,72 @@ function AnthropicRequest:build(config)
     local adjustments
     request_body, adjustments = ModelConstraints.apply("anthropic", model, request_body)
 
-    -- Add extended thinking if enabled AND model supports it
+    -- Add thinking if enabled AND model supports it
+    -- Two modes: adaptive (4.6+) and manual/extended (4.5+)
     if params.thinking then
-        -- Validate model supports extended thinking
-        local supports_thinking = ModelConstraints.supportsCapability("anthropic", model, "extended_thinking")
+        if params.thinking.type == "adaptive" then
+            -- Adaptive thinking (4.6+ models)
+            local supports_adaptive = ModelConstraints.supportsCapability("anthropic", model, "adaptive_thinking")
 
-        if supports_thinking then
-            request_body.thinking = params.thinking
-            -- Extended thinking has specific requirements:
-            -- - budget_tokens must be >= 1024
-            -- - max_tokens MUST be > budget_tokens
-            -- - temperature MUST be exactly 1.0 (API rejects any other value)
-            if request_body.temperature ~= 1.0 then
-                adjustments.temperature = {
-                    from = request_body.temperature,
-                    to = 1.0,
-                    reason = "extended thinking requires temp=1.0"
-                }
-                request_body.temperature = 1.0
-            end
-
-            -- Ensure max_tokens > budget_tokens (API requirement)
-            local default_budget = ModelConstraints.reasoning_defaults.anthropic.budget
-            local budget = params.thinking.budget_tokens or default_budget
-            if request_body.max_tokens <= budget then
-                local old_max = request_body.max_tokens
-                request_body.max_tokens = budget + default_budget
-                adjustments.max_tokens = {
-                    from = old_max,
-                    to = request_body.max_tokens,
-                    reason = "must be > thinking budget"
+            if supports_adaptive then
+                request_body.thinking = { type = "adaptive" }
+                -- Pass through output_config (effort level) if provided
+                if params.output_config then
+                    request_body.output_config = params.output_config
+                end
+                -- Adaptive thinking requires temperature=1.0
+                if request_body.temperature ~= 1.0 then
+                    adjustments.temperature = {
+                        from = request_body.temperature,
+                        to = 1.0,
+                        reason = "adaptive thinking requires temp=1.0"
+                    }
+                    request_body.temperature = 1.0
+                end
+                -- No budget_tokens/max_tokens validation needed for adaptive mode
+            else
+                -- Model doesn't support adaptive thinking - skip it
+                adjustments.thinking_skipped = {
+                    reason = "model " .. model .. " does not support adaptive thinking"
                 }
             end
         else
-            -- Model doesn't support extended thinking - skip it
-            adjustments.thinking_skipped = {
-                reason = "model " .. model .. " does not support extended thinking"
-            }
+            -- Manual/extended thinking (type = "enabled" with budget_tokens)
+            local supports_thinking = ModelConstraints.supportsCapability("anthropic", model, "extended_thinking")
+
+            if supports_thinking then
+                request_body.thinking = params.thinking
+                -- Extended thinking has specific requirements:
+                -- - budget_tokens must be >= 1024
+                -- - max_tokens MUST be > budget_tokens
+                -- - temperature MUST be exactly 1.0 (API rejects any other value)
+                if request_body.temperature ~= 1.0 then
+                    adjustments.temperature = {
+                        from = request_body.temperature,
+                        to = 1.0,
+                        reason = "extended thinking requires temp=1.0"
+                    }
+                    request_body.temperature = 1.0
+                end
+
+                -- Ensure max_tokens > budget_tokens (API requirement)
+                local default_budget = ModelConstraints.reasoning_defaults.anthropic.budget
+                local budget = params.thinking.budget_tokens or default_budget
+                if request_body.max_tokens <= budget then
+                    local old_max = request_body.max_tokens
+                    request_body.max_tokens = budget + default_budget
+                    adjustments.max_tokens = {
+                        from = old_max,
+                        to = request_body.max_tokens,
+                        reason = "must be > thinking budget"
+                    }
+                end
+            else
+                -- Model doesn't support extended thinking - skip it
+                adjustments.thinking_skipped = {
+                    reason = "model " .. model .. " does not support extended thinking"
+                }
+            end
         end
     end
 
