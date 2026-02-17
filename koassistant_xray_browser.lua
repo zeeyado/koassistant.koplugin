@@ -1650,7 +1650,12 @@ end
 --- @param detail_text string The X-Ray detail text to discuss
 function XrayBrowser:chatAboutItem(detail_text)
     local Dialogs = require("koassistant_dialogs")  -- Lazy to avoid circular dep
-    local config = self.metadata.configuration
+    -- Shallow-copy config and features to avoid mutating shared metadata
+    local orig_config = self.metadata.configuration
+    local config = {}
+    for k, v in pairs(orig_config) do config[k] = v end
+    config.features = {}
+    for k, v in pairs(orig_config.features or {}) do config.features[k] = v end
     -- Clear context flags for highlight context (matches main.lua highlight pattern)
     config.features.is_general_context = nil
     config.features.is_book_context = nil
