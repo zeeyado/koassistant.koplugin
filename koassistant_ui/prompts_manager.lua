@@ -2304,7 +2304,7 @@ function PromptsManager:showPerProviderReasoningMenu(state, refresh_callback)
 
     self.per_provider_dialog = ButtonDialog:new{
         title = _("Per-Provider Reasoning"),
-        info_text = _("Configure reasoning for each provider independently.\nDeepSeek reasoner model always uses reasoning automatically."),
+        info_text = _("Configure reasoning for each provider independently.\nOpenAI o-series and GPT-5 always reason at factory defaults.\nDeepSeek reasoner always uses reasoning automatically."),
         buttons = buttons,
     }
 
@@ -2537,6 +2537,16 @@ function PromptsManager:showOpenAIReasoningConfig(state)
         },
         {
             {
+                text = _("Extra High effort (5.2+)"),
+                callback = function()
+                    state.reasoning_config.openai = { effort = "xhigh" }
+                    UIManager:close(self.openai_dialog)
+                    self:showPerProviderReasoningMenu(state)
+                end,
+            },
+        },
+        {
+            {
                 text = _("Cancel"),
                 callback = function()
                     UIManager:close(self.openai_dialog)
@@ -2548,7 +2558,7 @@ function PromptsManager:showOpenAIReasoningConfig(state)
 
     self.openai_dialog = ButtonDialog:new{
         title = _("OpenAI Reasoning"),
-        info_text = _("Reasoning effort for OpenAI models.\nSupports: o3, o3-mini, o4-mini, GPT-5.x"),
+        info_text = _("Reasoning effort for per-action override.\nGlobal toggle affects GPT-5.1+ only.\nOther models (o3, GPT-5) always reason at factory defaults."),
         buttons = buttons,
     }
 

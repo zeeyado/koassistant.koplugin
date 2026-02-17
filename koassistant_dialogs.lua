@@ -376,11 +376,11 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
 
     -- Reasoning/Thinking support (per-provider toggles)
     -- Priority: action.reasoning_config > action.reasoning > master toggle > per-provider setting
-    -- Note: Master toggle only gates Anthropic and Gemini (can actually be disabled)
-    --       OpenAI reasoning models always reason - we just control effort level
+    -- Master toggle gates: Anthropic, Gemini, and OpenAI 5.1+ (reasoning_gated)
+    -- Always-on models (o3, gpt-5, deepseek-reasoner): not affected, use factory defaults
     local provider = config.provider or config.default_provider or "anthropic"
 
-    -- Master reasoning toggle (gates Anthropic and Gemini only)
+    -- Master reasoning toggle
     local enable_reasoning_master = features.enable_reasoning
 
     -- Global defaults from settings (fall back to centralized defaults)
@@ -393,11 +393,9 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
     local anthropic_adaptive = enable_reasoning_master and features.anthropic_adaptive
     local anthropic_effort = features.anthropic_effort or rd.anthropic_adaptive.effort
 
-    -- Per-provider reasoning toggles
-    -- Anthropic/Gemini: gated by master toggle + individual toggle
-    -- OpenAI: always send effort (handler checks model capability)
+    -- Per-provider reasoning toggles (all gated by master toggle + individual toggle)
     local anthropic_reasoning = enable_reasoning_master and features.anthropic_reasoning
-    local openai_reasoning = true  -- Always enabled; handler filters by model capability
+    local openai_reasoning = enable_reasoning_master and features.openai_reasoning
     local gemini_reasoning = enable_reasoning_master and features.gemini_reasoning
 
     -- Check for action overrides
@@ -504,13 +502,21 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
             end
         end
     elseif provider == "openai" then
-        local enabled = openai_reasoning
-        if action_openai_override ~= nil then enabled = action_openai_override end
-        if enabled then
-            config.api_params.reasoning = {
-                effort = reasoning_effort,
-            }
+        local model = config.model or Defaults.ProviderDefaults.openai.model
+        local is_gated = ModelConstraints.supportsCapability("openai", model, "reasoning_gated")
+
+        if action_openai_override ~= nil then
+            -- Per-action override applies to all reasoning models
+            if action_openai_override and ModelConstraints.supportsCapability("openai", model, "reasoning") then
+                config.api_params.reasoning = { effort = reasoning_effort }
+            end
+        elseif is_gated then
+            -- Gated models (5.1+): controlled by master + openai_reasoning toggle
+            if openai_reasoning then
+                config.api_params.reasoning = { effort = reasoning_effort }
+            end
         end
+        -- Always-on models (o3, gpt-5): no effort param sent, factory defaults apply
     elseif provider == "gemini" then
         local enabled = gemini_reasoning
         if action_gemini_override ~= nil then enabled = action_gemini_override end
