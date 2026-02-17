@@ -1005,6 +1005,23 @@ function XrayBrowser:navigateBack()
     -- Remove from paths so back arrow disables when we reach root
     table.remove(self.menu.paths)
     self.menu:switchItemTable(prev.title, prev.items)
+
+    -- Reopen item detail TextViewer if distribution was entered from one
+    if prev.reopen_detail then
+        local d = prev.reopen_detail
+        local nav_ctx = d.nav_context
+        -- Reconstruct nav_context if not provided (e.g. search return flow)
+        if not nav_ctx and self.xray_data and self.xray_data[d.category_key] then
+            local cat_items = self.xray_data[d.category_key]
+            for idx, cat_item in ipairs(cat_items) do
+                if cat_item == d.item then
+                    nav_ctx = { items = cat_items, index = idx, category_key = d.category_key }
+                    break
+                end
+            end
+        end
+        self:showItemDetail(d.item, d.category_key, d.title, d.source, nav_ctx)
+    end
 end
 
 --- Show items within a category (navigates forward)
@@ -1232,7 +1249,10 @@ function XrayBrowser:showItemDetail(item, category_key, title, source, nav_conte
             callback = function()
                 if self_ref.ui and self_ref.ui.document then
                     if viewer then viewer:onClose() end
-                    self_ref:showItemDistribution(item, category_key, dist_item_name)
+                    self_ref:showItemDistribution(item, category_key, dist_item_name, {
+                        source = source,
+                        nav_context = nav_context,
+                    })
                 else
                     self_ref:_showReaderRequired({
                         category_key = category_key,
@@ -2550,7 +2570,7 @@ end
 --- @param item_title string Display name for the item
 --- @param data table Mutable distribution state {chapters, chapter_counts, max_count, ...}
 --- @param is_refresh boolean If true, update menu in-place; if false, navigateForward
-function XrayBrowser:_buildDistributionView(item, category_key, item_title, data, is_refresh)
+function XrayBrowser:_buildDistributionView(item, category_key, item_title, data, is_refresh, detail_context)
     local self_ref = self
     local chapters = data.chapters
     local chapter_counts = data.chapter_counts
@@ -2809,6 +2829,17 @@ function XrayBrowser:_buildDistributionView(item, category_key, item_title, data
         self.menu:switchItemTable(title, items, data._focus_idx)
     else
         self:navigateForward(title, items)
+        -- Stash item detail info so back from distribution reopens the TextViewer
+        local top = self.nav_stack[#self.nav_stack]
+        if top then
+            top.reopen_detail = {
+                item = item,
+                category_key = category_key,
+                title = item_title,
+                source = detail_context and detail_context.source,
+                nav_context = detail_context and detail_context.nav_context,
+            }
+        end
     end
 end
 
@@ -2817,7 +2848,7 @@ end
 --- @param item table The X-Ray item
 --- @param category_key string Category key
 --- @param item_title string Display name for the item
-function XrayBrowser:showItemDistribution(item, category_key, item_title)
+function XrayBrowser:showItemDistribution(item, category_key, item_title, detail_context)
     if not self.ui or not self.ui.document then
         UIManager:show(InfoMessage:new{
             text = _("No book open."),
@@ -2831,7 +2862,7 @@ function XrayBrowser:showItemDistribution(item, category_key, item_title)
     local cache_key = tostring(item)
     local cached = self._dist_cache[cache_key]
     if cached then
-        self:_buildDistributionView(item, category_key, item_title, cached, false)
+        self:_buildDistributionView(item, category_key, item_title, cached, false, detail_context)
         return
     end
 
@@ -2898,7 +2929,7 @@ function XrayBrowser:showItemDistribution(item, category_key, item_title)
             spoiler_warned = false,
         }
         self_ref._dist_cache[cache_key] = data
-        self_ref:_buildDistributionView(item, category_key, item_title, data, false)
+        self_ref:_buildDistributionView(item, category_key, item_title, data, false, detail_context)
     end)
 end
 
