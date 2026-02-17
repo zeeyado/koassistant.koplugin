@@ -30,6 +30,112 @@ local XrayParser = require("koassistant_xray_parser")
 
 local XrayBrowser = {}
 
+-- Forward declaration for mutual reference
+local dismissSearchReturnButton
+
+--- Show a floating "Back to X-Ray" button overlay.
+--- Appears after navigateAndSearch closes the browser for document text search.
+--- Tap: reopens the X-Ray browser at the distribution view.
+--- Hold: dismisses the button without navigating.
+--- Uses toast=true so events propagate to widgets below (search dialog stays interactive).
+local function showSearchReturnButton(return_state)
+    dismissSearchReturnButton()
+
+    -- Lazy requires (avoid top-level to prevent init-order issues)
+    local Button = require("ui/widget/button")
+    local Size = require("ui/size")
+
+    local margin = Screen:scaleBySize(12)
+    local btn = Button:new{
+        text = _("← X-Ray"),
+        radius = Size.radius.button,
+        callback = function()
+            -- Dismiss overlay synchronously (safe: just removes current toast from stack)
+            dismissSearchReturnButton()
+            -- Schedule heavy work for next event loop to avoid modifying
+            -- the window stack during UIManager's toast event dispatch phase
+            UIManager:nextTick(function()
+                -- Close KOReader's search dialog(s) if still open
+                local ui = return_state.ui
+                if ui and ui.search then
+                    if ui.search.input_dialog and UIManager:isWidgetShown(ui.search.input_dialog) then
+                        UIManager:close(ui.search.input_dialog)
+                    end
+                    if ui.search.search_dialog then
+                        ui.search.search_dialog:onClose()
+                    end
+                end
+                -- Reopen X-Ray browser via plugin reference
+                local plugin = return_state.plugin_ref
+                if plugin then
+                    local ActionCache = require("koassistant_action_cache")
+                    local book_file = ui and ui.document and ui.document.file
+                    if book_file then
+                        local cached = ActionCache.getXrayCache(book_file)
+                        if cached then
+                            -- Set navigate_to so show() auto-navigates to the distribution view
+                            XrayBrowser._pending_navigate_to = {
+                                category_key = return_state.category_key,
+                                item_name = return_state.item_name,
+                                open_distribution = true,
+                            }
+                            plugin:showCacheViewer({
+                                name = "X-Ray",
+                                key = "_xray_cache",
+                                data = cached,
+                                skip_stale_popup = true,
+                            })
+                        end
+                    end
+                end
+            end)
+        end,
+        hold_callback = function()
+            -- Long-press dismisses the button without navigating back
+            dismissSearchReturnButton()
+        end,
+    }
+
+    -- toast = true: UIManager dispatches events to toasts in a separate phase and
+    -- always propagates them to widgets below, so this overlay won't block the search dialog.
+    btn.toast = true
+
+    -- Position at top-center (avoids keyboard overlap at bottom)
+    local btn_width = btn:getSize().w
+    local pos_x = math.floor((Screen:getWidth() - btn_width) / 2)
+    local pos_y = margin
+
+    XrayBrowser._search_return_overlay = btn
+    UIManager:show(btn, "partial", nil, pos_x, pos_y)
+
+    -- Auto-dismiss when the search dialog is closed.
+    -- Polls UIManager's widget stack: stays alive while either the search results
+    -- dialog (search_dialog) or expanded input dialog (input_dialog) is showing.
+    local function pollSearchActive()
+        if not XrayBrowser._search_return_overlay then return end -- already dismissed
+        local search = return_state.ui and return_state.ui.search
+        if not search then
+            dismissSearchReturnButton()
+            return
+        end
+        if (search.search_dialog and UIManager:isWidgetShown(search.search_dialog))
+                or (search.input_dialog and UIManager:isWidgetShown(search.input_dialog)) then
+            UIManager:scheduleIn(0.5, pollSearchActive)
+        else
+            dismissSearchReturnButton()
+        end
+    end
+    UIManager:scheduleIn(0.5, pollSearchActive)
+end
+
+--- Dismiss the floating "Back to X-Ray" button if visible
+dismissSearchReturnButton = function()
+    if XrayBrowser._search_return_overlay then
+        UIManager:close(XrayBrowser._search_return_overlay)
+        XrayBrowser._search_return_overlay = nil
+    end
+end
+
 --- Get current page number from KOReader UI
 --- @param ui table KOReader UI instance
 --- @return number current_page
@@ -717,13 +823,14 @@ function XrayBrowser:show(xray_data, metadata, ui, on_delete)
         self_ref._dist_cache = nil
         self_ref._text_cache = nil
         self_ref.on_update = nil
+        dismissSearchReturnButton()
         if orig_onCloseWidget then
             return orig_onCloseWidget(menu_self)
         end
     end
     UIManager:show(self.menu)
 
-    -- Auto-navigate to saved position (from file browser → open book reopen flow)
+    -- Auto-navigate to saved position (from file browser reopen or search return flow)
     if XrayBrowser._pending_navigate_to then
         local navigate_to = XrayBrowser._pending_navigate_to
         XrayBrowser._pending_navigate_to = nil
@@ -732,7 +839,21 @@ function XrayBrowser:show(xray_data, metadata, ui, on_delete)
             for _idx, target_item in ipairs(target_items) do
                 if XrayParser.getItemName(target_item, navigate_to.category_key) == navigate_to.item_name then
                     UIManager:scheduleIn(0.1, function()
-                        self_ref:showItemDetail(target_item, navigate_to.category_key, navigate_to.item_name)
+                        if navigate_to.open_distribution then
+                            -- Push category items onto nav stack first (search return flow)
+                            -- so back from distribution goes to category items, not main categories
+                            local categories = XrayParser.getCategories(self_ref.xray_data)
+                            for _idx2, cat in ipairs(categories) do
+                                if cat.key == navigate_to.category_key then
+                                    self_ref:showCategoryItems(cat)
+                                    break
+                                end
+                            end
+                            self_ref:showItemDistribution(target_item, navigate_to.category_key, navigate_to.item_name)
+                        else
+                            -- Go to item detail (file browser reopen flow)
+                            self_ref:showItemDetail(target_item, navigate_to.category_key, navigate_to.item_name)
+                        end
                     end)
                     break
                 end
@@ -2609,6 +2730,15 @@ function XrayBrowser:_buildDistributionView(item, category_key, item_title, data
                                     else
                                         captured_ui.search:searchCallback(0, term)
                                     end
+                                    -- Show floating "Back to X-Ray" button after search starts
+                                    UIManager:scheduleIn(0.3, function()
+                                        showSearchReturnButton({
+                                            ui = captured_ui,
+                                            plugin_ref = self_ref.metadata and self_ref.metadata.plugin,
+                                            category_key = category_key,
+                                            item_name = item_title,
+                                        })
+                                    end)
                                 end)
                             end
                             -- PDF documents don't support regex search (no getAndClearRegexSearchError)
