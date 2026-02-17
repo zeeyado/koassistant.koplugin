@@ -160,9 +160,10 @@ function BaseHandler:backgroundRequest(url, headers, body)
             elseif code ~= 200 then
                 logger.warn("Background request non-200:", code, "status:", status, "url:", url)
                 local status_text = status and status:match("^HTTP/%S+%s+%d+%s+(.+)$") or status or "Request failed"
+                local numeric_code = tonumber(code) or 0
                 ffiutil.writeToFD(child_write_fd,
                     string.format("\r\n%sError %d: %s\n\n",
-                        self.PROTOCOL_NON_200, code or 0, status_text))
+                        self.PROTOCOL_NON_200, numeric_code, status_text))
             end
         end)
 
