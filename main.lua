@@ -1383,7 +1383,7 @@ function AskGPT:updateConfigFromSettings()
     table.insert(config_parts, "anthropic_adaptive=" .. (features.anthropic_effort or "high"))
   end
   if features.anthropic_reasoning then
-    table.insert(config_parts, "anthropic_thinking=" .. (features.reasoning_budget or 4096))
+    table.insert(config_parts, "anthropic_thinking=" .. (features.reasoning_budget or 32000))
   end
   if features.openai_reasoning then
     table.insert(config_parts, "openai_reasoning=" .. (features.reasoning_effort or "medium"))

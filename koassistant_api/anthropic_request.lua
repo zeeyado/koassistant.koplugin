@@ -158,6 +158,15 @@ function AnthropicRequest:build(config)
                 -- Pass through output_config (effort level) if provided
                 if params.output_config then
                     request_body.output_config = params.output_config
+                    -- Clamp "max" effort to "high" for non-Opus models
+                    if request_body.output_config.effort == "max" and not model:match("opus") then
+                        adjustments.effort = {
+                            from = "max",
+                            to = "high",
+                            reason = "max effort is Opus 4.6 only"
+                        }
+                        request_body.output_config.effort = "high"
+                    end
                 end
                 -- Adaptive thinking requires temperature=1.0
                 if request_body.temperature ~= 1.0 then

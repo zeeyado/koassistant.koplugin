@@ -1490,8 +1490,8 @@ local SettingsSchema = {
                         {
                             id = "anthropic_adaptive",
                             type = "toggle",
-                            text = _("Anthropic Adaptive Thinking (4.6)"),
-                            help_text = _("Supported models:\n") .. getModelList("anthropic", "adaptive_thinking") .. _("\n\nClaude decides when and how much to think based on the task.\nRecommended for 4.6 models. For older models, use Extended Thinking below."),
+                            text = _("Anthropic Adaptive Thinking"),
+                            help_text = _("Supported models:\n") .. getModelList("anthropic", "adaptive_thinking") .. _("\n\nClaude decides when and how much to think based on the task.\nRecommended for 4.6 models. Takes priority over Extended Thinking when the model supports both."),
                             path = "features.anthropic_adaptive",
                             default = false,
                             depends_on = { id = "enable_reasoning", value = true },
@@ -1524,8 +1524,8 @@ local SettingsSchema = {
                         {
                             id = "anthropic_reasoning",
                             type = "toggle",
-                            text = _("Anthropic Extended Thinking (4.5)"),
-                            help_text = _("Supported models:\n") .. getModelList("anthropic", "extended_thinking") .. _("\n\nManual thinking budget mode. For 4.6 models, use Adaptive Thinking above instead."),
+                            text = _("Anthropic Extended Thinking"),
+                            help_text = _("Supported models:\n") .. getModelList("anthropic", "extended_thinking") .. _("\n\nManual thinking budget mode. Works on all thinking-capable models.\nOn 4.6 models, Adaptive Thinking takes priority if both are enabled."),
                             path = "features.anthropic_reasoning",
                             default = false,
                             depends_on = { id = "enable_reasoning", value = true },
