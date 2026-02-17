@@ -1248,10 +1248,12 @@ function XrayBrowser:showItemDetail(item, category_key, title, source, nav_conte
             text = _("Chapter Appearances"),
             callback = function()
                 if self_ref.ui and self_ref.ui.document then
-                    if viewer then viewer:onClose() end
+                    -- Don't close viewer here; it stays visible as a loading screen
+                    -- while distribution computes, then closes in _buildDistributionView
                     self_ref:showItemDistribution(item, category_key, dist_item_name, {
                         source = source,
                         nav_context = nav_context,
+                        dismiss_viewer = viewer,
                     })
                 else
                     self_ref:_showReaderRequired({
@@ -2839,6 +2841,10 @@ function XrayBrowser:_buildDistributionView(item, category_key, item_title, data
                 source = detail_context and detail_context.source,
                 nav_context = detail_context and detail_context.nav_context,
             }
+        end
+        -- Close the item detail TextViewer now that distribution is ready underneath
+        if detail_context and detail_context.dismiss_viewer then
+            detail_context.dismiss_viewer:onClose()
         end
     end
 end
