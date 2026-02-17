@@ -1481,17 +1481,51 @@ local SettingsSchema = {
                             id = "enable_reasoning",
                             type = "toggle",
                             text = _("Enable Anthropic/Gemini Reasoning"),
-                            help_text = _("Enable extended thinking for Anthropic and Gemini 3.\n\nNote: OpenAI reasoning models (o3, gpt-5) always reason internally - this toggle does not affect them.\n\nGemini 2.5 models think automatically regardless of this toggle."),
+                            help_text = _("Enable thinking for Anthropic (adaptive 4.6 / extended 4.5) and Gemini 3.\n\nNote: OpenAI reasoning models (o3, gpt-5) always reason internally - this toggle does not affect them.\n\nGemini 2.5 models think automatically regardless of this toggle."),
                             path = "features.enable_reasoning",
                             default = false,
                             separator = true,
                         },
-                        -- Anthropic Extended Thinking
+                        -- Anthropic Adaptive Thinking (4.6)
+                        {
+                            id = "anthropic_adaptive",
+                            type = "toggle",
+                            text = _("Anthropic Adaptive Thinking (4.6)"),
+                            help_text = _("Supported models:\n") .. getModelList("anthropic", "adaptive_thinking") .. _("\n\nClaude decides when and how much to think based on the task.\nRecommended for 4.6 models. For older models, use Extended Thinking below."),
+                            path = "features.anthropic_adaptive",
+                            default = false,
+                            depends_on = { id = "enable_reasoning", value = true },
+                        },
+                        {
+                            id = "anthropic_effort",
+                            type = "radio",
+                            text_func = function(plugin)
+                                local f = plugin.settings:readSetting("features") or {}
+                                local effort = f.anthropic_effort or "high"
+                                local labels = { low = _("Low"), medium = _("Medium"), high = _("High"), max = _("Max") }
+                                return T(_("Effort: %1"), labels[effort] or effort)
+                            end,
+                            help_text = _("Low = may skip thinking for simple tasks\nMedium = balanced\nHigh = almost always thinks (recommended)\nMax = deepest thinking (Opus 4.6 only)"),
+                            path = "features.anthropic_effort",
+                            default = "high",
+                            depends_on = {
+                                { id = "enable_reasoning", value = true },
+                                { id = "anthropic_adaptive", value = true },
+                            },
+                            separator = true,
+                            options = {
+                                { value = "low", text = _("Low (may skip thinking)") },
+                                { value = "medium", text = _("Medium") },
+                                { value = "high", text = _("High (default)") },
+                                { value = "max", text = _("Max (Opus 4.6 only)") },
+                            },
+                        },
+                        -- Anthropic Extended Thinking (4.5)
                         {
                             id = "anthropic_reasoning",
                             type = "toggle",
-                            text = _("Anthropic Extended Thinking"),
-                            help_text = _("Supported models:\n") .. getModelList("anthropic", "extended_thinking") .. _("\n\nLet Claude think through complex problems before responding."),
+                            text = _("Anthropic Extended Thinking (4.5)"),
+                            help_text = _("Supported models:\n") .. getModelList("anthropic", "extended_thinking") .. _("\n\nManual thinking budget mode. For 4.6 models, use Adaptive Thinking above instead."),
                             path = "features.anthropic_reasoning",
                             default = false,
                             depends_on = { id = "enable_reasoning", value = true },

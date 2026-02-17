@@ -16,6 +16,7 @@ local MessageHistory = require("koassistant_message_history")
 local ChatHistoryManager = require("koassistant_chat_history_manager")
 local MessageBuilder = require("message_builder")
 local ModelConstraints = require("model_constraints")
+local Defaults = require("koassistant_api.defaults")
 local Constants = require("koassistant_constants")
 local logger = require("logger")
 
@@ -388,6 +389,10 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
     local reasoning_effort = features.reasoning_effort or rd.openai.effort
     local reasoning_depth = features.reasoning_depth or rd.gemini.level
 
+    -- Anthropic adaptive thinking (4.6) settings
+    local anthropic_adaptive = enable_reasoning_master and features.anthropic_adaptive
+    local anthropic_effort = features.anthropic_effort or rd.anthropic_adaptive.effort
+
     -- Per-provider reasoning toggles
     -- Anthropic/Gemini: gated by master toggle + individual toggle
     -- OpenAI: always send effort (handler checks model capability)
@@ -399,6 +404,7 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
     -- NEW format: action.reasoning_config = { anthropic: {...}, openai: {...}, gemini: {...} } or "off"
     -- LEGACY format: action.reasoning = "on"/"off", action.thinking_budget, etc.
     local action_anthropic_override = nil  -- nil = use global, true = on, false = off
+    local action_anthropic_adaptive_override = nil  -- nil = use global, true = on, false = off
     local action_openai_override = nil
     local action_gemini_override = nil
 
@@ -418,9 +424,16 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
                 if rc.anthropic then
                     if rc.anthropic == "off" then
                         action_anthropic_override = false
-                    elseif rc.anthropic.budget then
-                        action_anthropic_override = true
-                        reasoning_budget = rc.anthropic.budget
+                        action_anthropic_adaptive_override = false
+                    elseif type(rc.anthropic) == "table" then
+                        if rc.anthropic.effort then
+                            action_anthropic_adaptive_override = true
+                            anthropic_effort = rc.anthropic.effort
+                        end
+                        if rc.anthropic.budget then
+                            action_anthropic_override = true
+                            reasoning_budget = rc.anthropic.budget
+                        end
                     end
                 end
 
@@ -448,11 +461,13 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
         elseif action.reasoning == "off" or action.extended_thinking == "off" then
             -- Legacy: force off for all providers
             action_anthropic_override = false
+            action_anthropic_adaptive_override = false
             action_openai_override = false
             action_gemini_override = false
         elseif action.reasoning == "on" or action.extended_thinking == "on" then
             -- Legacy: force on with per-field overrides
             action_anthropic_override = true
+            action_anthropic_adaptive_override = true
             action_openai_override = true
             action_gemini_override = true
             if action.thinking_budget then reasoning_budget = action.thinking_budget end
@@ -465,13 +480,28 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
     -- Note: Can't use `x ~= nil and x or default` pattern here because x=false
     -- is falsy in Lua, causing it to fall through to the default. Use explicit nil check.
     if provider == "anthropic" then
-        local enabled = anthropic_reasoning
-        if action_anthropic_override ~= nil then enabled = action_anthropic_override end
-        if enabled then
-            config.api_params.thinking = {
-                type = "enabled",
-                budget_tokens = math.max(reasoning_budget, 1024),
-            }
+        local model = config.model or Defaults.ProviderDefaults.anthropic.model
+        local use_adaptive = ModelConstraints.supportsCapability("anthropic", model, "adaptive_thinking")
+
+        if use_adaptive then
+            -- Adaptive thinking (4.6+ models): check adaptive toggle first
+            local enabled = anthropic_adaptive
+            if action_anthropic_adaptive_override ~= nil then enabled = action_anthropic_adaptive_override end
+            if enabled then
+                config.api_params.thinking = { type = "adaptive" }
+                config.api_params.output_config = { effort = anthropic_effort }
+            end
+        end
+        -- Fallback: manual mode for older models OR 4.6 when adaptive not enabled
+        if not config.api_params.thinking then
+            local enabled = anthropic_reasoning
+            if action_anthropic_override ~= nil then enabled = action_anthropic_override end
+            if enabled then
+                config.api_params.thinking = {
+                    type = "enabled",
+                    budget_tokens = math.max(reasoning_budget, 1024),
+                }
+            end
         end
     elseif provider == "openai" then
         local enabled = openai_reasoning
