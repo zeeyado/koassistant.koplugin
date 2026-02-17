@@ -152,7 +152,7 @@ macOS:        ~/Library/Application Support/koreader/plugins/koassistant.koplugi
 Linux:        ~/.config/koreader/plugins/koassistant.koplugin/
 ```
 
-For the plugin to be installed correctly, the file structure should look like this (no nested folder):
+For the plugin to be installed correctly, the file structure should look like this (no nested folder, and foldername must be `koassistant.koplugin` exactly):
 ```
 koreader
 └── plugins
