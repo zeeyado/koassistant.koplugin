@@ -35,9 +35,9 @@ local dismissSearchReturnButton
 
 --- Show a floating "Back to X-Ray" button overlay.
 --- Appears after navigateAndSearch closes the browser for document text search.
---- Tapping it reopens the X-Ray browser at the distribution view.
+--- Tap: reopens the X-Ray browser at the distribution view.
+--- Hold: dismisses the button without navigating.
 --- Uses toast=true so events propagate to widgets below (search dialog stays interactive).
---- Dismisses on any tap/gesture outside its area (tap still reaches page normally).
 local function showSearchReturnButton(return_state)
     dismissSearchReturnButton()
 
@@ -55,10 +55,15 @@ local function showSearchReturnButton(return_state)
             -- Schedule heavy work for next event loop to avoid modifying
             -- the window stack during UIManager's toast event dispatch phase
             UIManager:nextTick(function()
-                -- Close KOReader's search dialog if still open
+                -- Close KOReader's search dialog(s) if still open
                 local ui = return_state.ui
-                if ui and ui.search and ui.search.search_dialog then
-                    ui.search.search_dialog:onClose()
+                if ui and ui.search then
+                    if ui.search.input_dialog and UIManager:isWidgetShown(ui.search.input_dialog) then
+                        UIManager:close(ui.search.input_dialog)
+                    end
+                    if ui.search.search_dialog then
+                        ui.search.search_dialog:onClose()
+                    end
                 end
                 -- Reopen X-Ray browser via plugin reference
                 local plugin = return_state.plugin_ref
@@ -85,29 +90,15 @@ local function showSearchReturnButton(return_state)
                 end
             end)
         end,
+        hold_callback = function()
+            -- Long-press dismisses the button without navigating back
+            dismissSearchReturnButton()
+        end,
     }
 
     -- toast = true: UIManager dispatches events to toasts in a separate phase and
     -- always propagates them to widgets below, so this overlay won't block the search dialog.
     btn.toast = true
-
-    -- Dismiss on any gesture outside the button area. Since we're a toast, the gesture
-    -- still propagates to widgets below (page turn etc.), so the tap isn't "lost".
-    local orig_onGesture = btn.onGesture
-    btn.onGesture = function(self_btn, ev)
-        if ev and ev.pos and self_btn.dimen then
-            local d = self_btn.dimen
-            if ev.pos.x < d.x or ev.pos.x >= d.x + d.w
-                    or ev.pos.y < d.y or ev.pos.y >= d.y + d.h then
-                dismissSearchReturnButton()
-                return false
-            end
-        end
-        if orig_onGesture then
-            return orig_onGesture(self_btn, ev)
-        end
-        return false
-    end
 
     -- Position at top-center (avoids keyboard overlap at bottom)
     local btn_width = btn:getSize().w
@@ -116,6 +107,25 @@ local function showSearchReturnButton(return_state)
 
     XrayBrowser._search_return_overlay = btn
     UIManager:show(btn, "partial", nil, pos_x, pos_y)
+
+    -- Auto-dismiss when the search dialog is closed.
+    -- Polls UIManager's widget stack: stays alive while either the search results
+    -- dialog (search_dialog) or expanded input dialog (input_dialog) is showing.
+    local function pollSearchActive()
+        if not XrayBrowser._search_return_overlay then return end -- already dismissed
+        local search = return_state.ui and return_state.ui.search
+        if not search then
+            dismissSearchReturnButton()
+            return
+        end
+        if (search.search_dialog and UIManager:isWidgetShown(search.search_dialog))
+                or (search.input_dialog and UIManager:isWidgetShown(search.input_dialog)) then
+            UIManager:scheduleIn(0.5, pollSearchActive)
+        else
+            dismissSearchReturnButton()
+        end
+    end
+    UIManager:scheduleIn(0.5, pollSearchActive)
 end
 
 --- Dismiss the floating "Back to X-Ray" button if visible
@@ -830,7 +840,15 @@ function XrayBrowser:show(xray_data, metadata, ui, on_delete)
                 if XrayParser.getItemName(target_item, navigate_to.category_key) == navigate_to.item_name then
                     UIManager:scheduleIn(0.1, function()
                         if navigate_to.open_distribution then
-                            -- Go directly to distribution view (search return flow)
+                            -- Push category items onto nav stack first (search return flow)
+                            -- so back from distribution goes to category items, not main categories
+                            local categories = XrayParser.getCategories(self_ref.xray_data)
+                            for _idx2, cat in ipairs(categories) do
+                                if cat.key == navigate_to.category_key then
+                                    self_ref:showCategoryItems(cat)
+                                    break
+                                end
+                            end
                             self_ref:showItemDistribution(target_item, navigate_to.category_key, navigate_to.item_name)
                         else
                             -- Go to item detail (file browser reopen flow)
