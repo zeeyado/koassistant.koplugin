@@ -1484,9 +1484,14 @@ performUpdate = function(update_info)
         if mv_ret ~= 0 then
             -- CRITICAL: Restore from backup
             logger.err("UpdateChecker: CRITICAL - staging move failed, restoring backup")
-            ffiutil.execute(mv_bin, backup_path, plugin_path)
+            local restore_ret = ffiutil.execute(mv_bin, backup_path, plugin_path)
             UIManager:close(install_msg)
-            updateFailed(_("Failed to install new plugin version. Previous version restored."), { archive_path, preserve_path })
+            if restore_ret ~= 0 then
+                logger.err("UpdateChecker: CRITICAL - backup restore also failed!")
+                updateFailed(_("Failed to install update AND failed to restore previous version. Backup is at: ") .. backup_path, { archive_path, preserve_path })
+            else
+                updateFailed(_("Failed to install new plugin version. Previous version restored."), { archive_path, preserve_path })
+            end
             return
         end
 
