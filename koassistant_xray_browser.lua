@@ -317,14 +317,9 @@ local function getAllChapterBoundaries(ui, target_depth, coverage_page)
                 end
             end
             if not has_children_at_depth then
-                -- Check if it has children at any depth (parent of shallower leaves)
-                local has_any_children = false
-                for j = i + 1, #effective_toc do
-                    local jd = effective_toc[j].depth or 1
-                    if jd <= d then break end
-                    has_any_children = true
-                    break
-                end
+                -- Check if next entry is a child (any depth deeper)
+                local next_entry = effective_toc[i + 1]
+                local has_any_children = next_entry and (next_entry.depth or 1) > d
                 if has_any_children then
                     current_parent_title = entry.title or ""
                 else
