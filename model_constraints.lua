@@ -56,6 +56,12 @@ ModelConstraints.capabilities = {
             "o3", "o3-mini", "o3-pro", "o4-mini",
             "gpt-5", "gpt-5-mini", "gpt-5-nano", "gpt-5.1", "gpt-5.2",
         },
+        -- Models where reasoning is opt-in (default=none from OpenAI)
+        -- Gated by master reasoning toggle + openai_reasoning sub-toggle
+        -- Other reasoning models (o3, gpt-5, etc.) always reason at factory defaults
+        reasoning_gated = {
+            "gpt-5.1", "gpt-5.2",
+        },
         -- Note: OpenAI Chat Completions API does NOT have native web search.
         -- Web search requires Responses API or function calling with external tools.
     },
@@ -118,10 +124,10 @@ ModelConstraints.reasoning_defaults = {
         budget_max = 32000,  -- Maximum allowed
         budget_step = 1024,  -- SpinWidget step
     },
-    -- OpenAI reasoning effort
+    -- OpenAI reasoning effort (for gated models: 5.1+)
     openai = {
         effort = "medium",   -- Default effort level
-        effort_options = { "low", "medium", "high" },
+        effort_options = { "low", "medium", "high", "xhigh" },
     },
     -- Gemini thinking level
     gemini = {

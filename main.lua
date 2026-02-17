@@ -5571,13 +5571,24 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
     text = E("\u{1F9E0}", reasoning_enabled and _("Reasoning: ON") or _("Reasoning: OFF")),
     callback = function()
       local f = self_ref.settings:readSetting("features") or {}
+      local was_off = not f.enable_reasoning
+      local show_hint = was_off and not f._reasoning_hint_shown
       f.enable_reasoning = not f.enable_reasoning
+      if show_hint then
+        f._reasoning_hint_shown = true
+      end
       self_ref.settings:saveSetting("features", f)
       self_ref.settings:flush()
       self_ref:updateConfigFromSettings()
       opening_subdialog = true
       UIManager:close(dialog)
       reopenQuickSettings()
+      -- One-time info on first enable
+      if show_hint then
+        UIManager:show(InfoMessage:new{
+          text = _("Reasoning enhances response quality for complex tasks at the cost of higher latency and token usage.\n\nThis toggle controls:\n\n• Anthropic: Adaptive thinking (4.6+) or extended thinking (older models)\n• Gemini: Thinking depth (Gemini 3 models)\n• OpenAI: Reasoning for GPT-5.1+ models\n\nOther reasoning models (o3, GPT-5, DeepSeek Reasoner) always reason by default and are not affected by this toggle.\n\nCustomize per-provider settings in:\nSettings → Advanced → Reasoning"),
+        })
+      end
     end,
   }
 

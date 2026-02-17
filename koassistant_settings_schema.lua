@@ -1476,21 +1476,21 @@ local SettingsSchema = {
                             text = _("Long-press provider for supported models"),
                             separator = true,
                         },
-                        -- Master reasoning toggle (affects Anthropic and Gemini only)
+                        -- Master reasoning toggle
                         {
                             id = "enable_reasoning",
                             type = "toggle",
-                            text = _("Enable Anthropic/Gemini Reasoning"),
-                            help_text = _("Enable thinking for Anthropic (adaptive 4.6 / extended 4.5) and Gemini 3.\n\nNote: OpenAI reasoning models (o3, gpt-5) always reason internally - this toggle does not affect them.\n\nGemini 2.5 models think automatically regardless of this toggle."),
+                            text = _("Enable Reasoning"),
+                            help_text = _("Controls reasoning/thinking for providers with configurable reasoning:\n\n• Anthropic: Adaptive thinking (4.6+) / Extended thinking\n• Gemini: Thinking depth (Gemini 3)\n• OpenAI: Reasoning for GPT-5.1+ models\n\nModels like o3, GPT-5, DeepSeek Reasoner, and Gemini 2.5 always reason by default and are not affected by this toggle."),
                             path = "features.enable_reasoning",
                             default = false,
                             separator = true,
                         },
-                        -- Anthropic Adaptive Thinking (4.6)
+                        -- Anthropic Adaptive Thinking (4.6+)
                         {
                             id = "anthropic_adaptive",
                             type = "toggle",
-                            text = _("Anthropic Adaptive Thinking"),
+                            text = _("Anthropic Adaptive Thinking (4.6+)"),
                             help_text = _("Supported models:\n") .. getModelList("anthropic", "adaptive_thinking") .. _("\n\nClaude decides when and how much to think based on the task.\nRecommended for 4.6 models. Takes priority over Extended Thinking when the model supports both."),
                             path = "features.anthropic_adaptive",
                             default = false,
@@ -1581,24 +1581,38 @@ local SettingsSchema = {
                                 { value = "high", text = _("High (default)") },
                             },
                         },
-                        -- OpenAI Reasoning Effort (always visible - models reason by design)
+                        -- OpenAI Reasoning (5.1+)
+                        {
+                            id = "openai_reasoning",
+                            type = "toggle",
+                            text = _("OpenAI Reasoning (5.1+)"),
+                            help_text = _("Supported models:\n") .. getModelList("openai", "reasoning_gated") .. _("\n\nEnables reasoning for models where it is off by default.\n\nOther OpenAI reasoning models (o3, GPT-5) always reason at their factory defaults and are not affected by this toggle."),
+                            path = "features.openai_reasoning",
+                            default = false,
+                            depends_on = { id = "enable_reasoning", value = true },
+                        },
                         {
                             id = "reasoning_effort",
                             type = "radio",
                             text_func = function(plugin)
                                 local f = plugin.settings:readSetting("features") or {}
                                 local effort = f.reasoning_effort or "medium"
-                                local labels = { low = _("Low"), medium = _("Medium"), high = _("High") }
-                                return T(_("OpenAI Reasoning Effort: %1"), labels[effort] or effort)
+                                local labels = { low = _("Low"), medium = _("Medium"), high = _("High"), xhigh = _("Extra High") }
+                                return T(_("Effort: %1"), labels[effort] or effort)
                             end,
-                            help_text = _("Supported models:\n") .. getModelList("openai", "reasoning") .. _("\n\nOpenAI reasoning models always reason internally.\nThis controls the effort level (hidden from user)."),
+                            help_text = _("Low = faster, less reasoning\nMedium = balanced (recommended)\nHigh = thorough reasoning\nExtra High = maximum reasoning (GPT-5.2+ only)"),
                             path = "features.reasoning_effort",
                             default = "medium",
+                            depends_on = {
+                                { id = "enable_reasoning", value = true },
+                                { id = "openai_reasoning", value = true },
+                            },
                             separator = true,
                             options = {
-                                { value = "low", text = _("Low (faster, cheaper)") },
+                                { value = "low", text = _("Low (faster)") },
                                 { value = "medium", text = _("Medium (default)") },
                                 { value = "high", text = _("High (thorough)") },
+                                { value = "xhigh", text = _("Extra High (5.2+ only)") },
                             },
                         },
                         -- Indicator in chat (separate from "Show Reasoning" button)

@@ -447,11 +447,11 @@ function MessageHistory:createResultText(highlightedText, config)
                         local effort = features.anthropic_effort or "high"
                         reasoning_info = string.format(", adaptive(%s)", effort)
                     elseif features.anthropic_reasoning and ModelConstraints.supportsCapability("anthropic", full_model, "extended_thinking") then
-                        local budget = features.reasoning_budget or 4096
+                        local budget = features.reasoning_budget or 32000
                         reasoning_info = string.format(", thinking=%d", budget)
                     end
-                elseif provider == "openai" and features.openai_reasoning then
-                    if ModelConstraints.supportsCapability("openai", full_model, "reasoning") then
+                elseif provider == "openai" then
+                    if features.openai_reasoning and ModelConstraints.supportsCapability("openai", full_model, "reasoning_gated") then
                         local effort = features.reasoning_effort or "medium"
                         reasoning_info = string.format(", reasoning=%s", effort)
                     end
