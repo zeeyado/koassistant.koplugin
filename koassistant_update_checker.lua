@@ -1267,6 +1267,9 @@ end
 --- @return boolean success, string|nil error_msg
 local function preserveUserFiles(src_dir, preserve_dir)
     lfs.mkdir(preserve_dir)
+    if lfs.attributes(preserve_dir, "mode") ~= "directory" then
+        return false, "Failed to create preserve directory"
+    end
 
     for _idx, filename in ipairs(USER_FILES) do
         local src_path = src_dir .. "/" .. filename
