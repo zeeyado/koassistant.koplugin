@@ -1,6 +1,6 @@
 -- Model lists for each provider
 -- SINGLE SOURCE OF TRUTH for all model data
--- Last updated: 2026-02-02
+-- Last updated: 2026-02-17
 --
 -- Structure:
 --   ModelLists[provider] = array of model IDs (for backward compat & dropdowns)
@@ -15,17 +15,13 @@ local ModelLists = {
     ---------------------------------------------------------------------------
 
     anthropic = {
-        -- Claude 4.5 (latest generation)
-        "claude-sonnet-4-5-20250929",   -- flagship (default)
+        -- Claude 4.6 (latest generation)
+        "claude-sonnet-4-6",            -- flagship (default)
+        "claude-opus-4-6",              -- reasoning
         "claude-haiku-4-5-20251001",    -- fast
-        "claude-opus-4-5-20251101",     -- reasoning
-        -- Claude 4.x (legacy but still available)
-        "claude-opus-4-1-20250805",
-        "claude-sonnet-4-20250514",
-        "claude-opus-4-20250514",
-        -- Claude 3.x (legacy)
-        "claude-3-7-sonnet-20250219",
-        "claude-3-haiku-20240307",
+        -- Claude 4.5 (still active through late 2026)
+        "claude-sonnet-4-5-20250929",
+        "claude-opus-4-5-20251101",
     },
 
     openai = {
@@ -168,11 +164,11 @@ local ModelLists = {
         -- Format: provider/model-name (no "-latest" suffixes, periods not dashes)
 
         -- Anthropic
-        "anthropic/claude-sonnet-4.5",  -- default (flagship)
-        "anthropic/claude-opus-4.5",
+        "anthropic/claude-sonnet-4.6",  -- default (flagship)
+        "anthropic/claude-opus-4.6",
         "anthropic/claude-haiku-4.5",
-        "anthropic/claude-3.7-sonnet",
-        "anthropic/claude-3.7-sonnet:thinking",
+        "anthropic/claude-sonnet-4.5",
+        "anthropic/claude-opus-4.5",
 
         -- OpenAI
         "openai/gpt-5.2",
@@ -361,7 +357,7 @@ local ModelLists = {
     _tiers = {
         -- Models with explicit thinking/reasoning traces
         reasoning = {
-            anthropic = "claude-opus-4-5-20251101",
+            anthropic = "claude-opus-4-6",
             openai = "o3",
             deepseek = "deepseek-reasoner",
             gemini = "gemini-2.5-pro",
@@ -381,7 +377,7 @@ local ModelLists = {
 
         -- Provider's most capable general-purpose model
         flagship = {
-            anthropic = "claude-sonnet-4-5-20250929",
+            anthropic = "claude-sonnet-4-6",
             openai = "gpt-5.2",
             deepseek = "deepseek-chat",
             gemini = "gemini-2.5-pro",
@@ -390,7 +386,7 @@ local ModelLists = {
             xai = "grok-4-1-fast-non-reasoning",
             cohere = "command-a-03-2025",
             ollama = "llama3.3",
-            openrouter = "anthropic/claude-sonnet-4.5",
+            openrouter = "anthropic/claude-sonnet-4.6",
             together = "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
             fireworks = "accounts/fireworks/models/llama4-maverick-instruct-basic",
             sambanova = "Meta-Llama-4-Maverick-17B-128E-Instruct",
@@ -401,7 +397,7 @@ local ModelLists = {
 
         -- Balanced performance and cost
         standard = {
-            anthropic = "claude-sonnet-4-5-20250929",
+            anthropic = "claude-sonnet-4-5-20250929",  -- still excellent, lower cost alternative
             openai = "gpt-5-mini",
             deepseek = "deepseek-chat",
             gemini = "gemini-2.5-flash",

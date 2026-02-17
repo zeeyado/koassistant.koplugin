@@ -31,8 +31,10 @@ local ModelConstraints = {
 ModelConstraints.capabilities = {
     anthropic = {
         -- Models that support extended thinking
-        -- Claude 3.5 Sonnet and Claude 3 Haiku do NOT support it
+        -- Claude 3 Haiku does NOT support it
         extended_thinking = {
+            "claude-sonnet-4-6",      -- 4.6 Sonnet
+            "claude-opus-4-6",        -- 4.6 Opus
             "claude-sonnet-4-5",      -- 4.5 Sonnet
             "claude-haiku-4-5",       -- 4.5 Haiku
             "claude-opus-4-5",        -- 4.5 Opus
@@ -76,8 +78,10 @@ ModelConstraints.capabilities = {
 -- Models with known output token ceilings (prevents API 400 errors)
 ModelConstraints._max_output_tokens = {
     anthropic = {
+        ["claude-opus-4-6"] = 128000,    -- 128K max output
+        ["claude-sonnet-4-6"] = 64000,
         ["claude-sonnet-4-5"] = 64000,
-        ["claude-opus-4"] = 64000,
+        ["claude-opus-4-5"] = 64000,
         ["claude-haiku-4-5"] = 64000,
     },
     deepseek = {
