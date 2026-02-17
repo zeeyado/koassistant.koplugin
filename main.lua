@@ -4342,6 +4342,18 @@ function AskGPT:_checkRequirements(action)
   end
   local features
   local hint = action.blocked_hint and ("\n\n" .. action.blocked_hint) or ""
+
+  -- Check if current provider is trusted (bypasses global privacy gates)
+  local function isProviderTrusted()
+    features = features or (self.settings and self.settings:readSetting("features") or {})
+    local provider = features.provider
+    if not provider then return false end
+    for _idx, trusted_id in ipairs(features.trusted_providers or {}) do
+      if trusted_id == provider then return true end
+    end
+    return false
+  end
+
   for _idx, req in ipairs(action.requires) do
     if req == "book_text" then
       -- Per-action gate: use_book_text explicitly overridden to false?
@@ -4351,9 +4363,9 @@ function AskGPT:_checkRequirements(action)
         })
         return true
       end
-      -- Global gate: text extraction enabled?
+      -- Global gate: text extraction enabled? (trusted providers bypass)
       features = features or (self.settings and self.settings:readSetting("features") or {})
-      if features.enable_book_text_extraction ~= true then
+      if features.enable_book_text_extraction ~= true and not isProviderTrusted() then
         UIManager:show(InfoMessage:new{
           text = _("Text extraction is required to generate this artifact.\n\nEnable it in Settings → Privacy & Data → Text Extraction.") .. hint,
         })
@@ -4367,9 +4379,9 @@ function AskGPT:_checkRequirements(action)
         })
         return true
       end
-      -- Global gate: is any highlight-type sharing enabled?
+      -- Global gate: is any highlight-type sharing enabled? (trusted providers bypass)
       features = features or (self.settings and self.settings:readSetting("features") or {})
-      if features.enable_highlights_sharing ~= true and features.enable_annotations_sharing ~= true then
+      if features.enable_highlights_sharing ~= true and features.enable_annotations_sharing ~= true and not isProviderTrusted() then
         UIManager:show(InfoMessage:new{
           text = _("This action requires access to your highlights or annotations.\n\nEnable sharing in Settings → Privacy & Data.") .. hint,
         })

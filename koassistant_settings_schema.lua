@@ -1096,7 +1096,7 @@ local SettingsSchema = {
                             return T(_("Trusted Providers: %1"), table.concat(trusted, ", "))
                         end
                     end,
-                    help_text = _("Providers you trust bypass the data sharing controls below. Use for local Ollama instances or providers you fully trust."),
+                    help_text = _("Providers you trust bypass all data sharing controls below AND text extraction. All data types (highlights, annotations, notebook, book text) are available without toggling individual settings. Use for local Ollama instances or providers you fully trust."),
                     callback = "showTrustedProvidersDialog",
                     separator = true,
                 },

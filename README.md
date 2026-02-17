@@ -427,7 +427,7 @@ KOAssistant sends data to AI providers to generate responses. This section expla
 - **Allow Reading Progress** — Current reading position percentage (default: ON)
 - **Allow Chapter Info** — Chapter title, chapters read, time since last opened (default: ON)
 
-**Trusted Providers:** Mark providers you fully trust (e.g., local Ollama) to bypass all data sharing controls.
+**Trusted Providers:** Mark providers you fully trust (e.g., local Ollama) to bypass all data sharing controls AND text extraction. When the active provider is trusted, all data types — highlights, annotations, notebook, reading progress, and book text — are available without toggling individual settings.
 
 **Graceful degradation:** When you disable a data type, actions adapt automatically. Section placeholders like `{highlights_section}` simply disappear from prompts, so you don't need to modify your actions. For text extraction specifically, actions go a step further: when document text is unavailable, the AI is explicitly guided to use its training knowledge of the work (and to say so honestly if it doesn't recognize the title). This means actions like Explain in Context, Discussion Questions, and others still produce useful results for well-known books even without text extraction enabled — see [Text Extraction and Double-gating](#text-extraction-and-double-gating) for details. **Exception:** X-Ray requires text extraction and blocks generation without it (use X-Ray (Simple) instead for a prose overview from AI knowledge — see [Reading Analysis Actions](#reading-analysis-actions)).
 
@@ -2093,7 +2093,7 @@ Configure the Quick Actions panel (available via gesture in reader mode).
 
 ### Privacy & Data
 See [Privacy & Data](#privacy--data) for background on what gets sent to AI providers and the reasoning behind these defaults.
-- **Trusted Providers**: Mark providers (e.g., local Ollama) that bypass all data sharing controls
+- **Trusted Providers**: Mark providers (e.g., local Ollama) that bypass all data sharing controls AND text extraction — all data types are available without toggling individual settings
 - **Preset: Default**: Recommended balance — progress and chapter info shared, personal content private
 - **Preset: Minimal**: Maximum privacy — only question and book metadata sent
 - **Preset: Full**: Enable all data sharing for full functionality (does not enable text extraction)
