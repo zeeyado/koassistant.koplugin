@@ -1505,7 +1505,7 @@ local SettingsSchema = {
                                 local labels = { low = _("Low"), medium = _("Medium"), high = _("High"), max = _("Max") }
                                 return T(_("Effort: %1"), labels[effort] or effort)
                             end,
-                            help_text = _("Low = may skip thinking for simple tasks\nMedium = balanced\nHigh = almost always thinks (recommended)\nMax = deepest thinking (Opus 4.6 only)"),
+                            help_text = _("Low = may skip thinking for simple tasks\nMedium = balanced\nHigh = almost always thinks\nMax = deepest thinking (Opus 4.6 only)"),
                             path = "features.anthropic_effort",
                             default = "high",
                             depends_on = {

@@ -732,7 +732,7 @@ The X-Ray action produces a structured JSON analysis that opens in a **browsable
 >
 > Without highlights, X-Ray still works fully — you just won't see the Reader Engagement category or highlight mentions in entries.
 
-> **Tip: Reasoning for dense material.** For short, dense works (research papers, academic chapters, technical documents under ~100 pages), enabling **Reasoning/Extended Thinking** can significantly improve X-Ray quality and depth. The additional processing time is worthwhile when the text is concentrated — the AI produces more thorough entries and fewer omissions. See [Reasoning/Thinking](#reasoningthinking) in Settings.
+> **Tip: Reasoning for complex tasks.** For short, dense works (research papers, academic chapters, technical documents under ~100 pages), enabling **Reasoning** can significantly improve X-Ray quality and depth. The additional processing time is worthwhile when the text is concentrated — the AI produces more thorough entries and fewer omissions. For Claude 4.6 models, use **Adaptive Thinking** (effort: high or max for Opus) — the model decides how much thinking each part of the analysis needs. For other models, **Extended Thinking** with a higher budget helps. This also applies to Document Analysis and other complex one-off tasks. See [Reasoning/Thinking](#reasoningthinking).
 
 <a id="x-ray-modes"></a>
 
@@ -2133,10 +2133,11 @@ Backup and restore functionality, plus reset options. See [Backup & Restore](#ba
 
 ### Advanced
 - **Reasoning/Thinking**: Per-provider reasoning settings:
-  - **Enable Anthropic/Gemini Reasoning**: Master toggle for optional reasoning (default: off). Only affects Anthropic and Gemini 3—other providers either always reason (OpenAI o-series, DeepSeek Reasoner) or don't support it. Gemini 2.5 models think automatically regardless of this toggle.
-  - **Anthropic Extended Thinking**: Budget 1024-32000 tokens (requires master toggle)
+  - **Enable Reasoning**: Master toggle for optional reasoning (default: off). Controls Anthropic (adaptive/extended thinking), Gemini 3 (thinking depth), and OpenAI GPT-5.1+ (reasoning effort). Other providers either always reason at factory defaults (o3, GPT-5, DeepSeek Reasoner) or don't support configurable reasoning. Gemini 2.5 models think automatically regardless of this toggle.
+  - **Anthropic Adaptive Thinking (4.6+)**: Effort level (low/medium/high, max for Opus 4.6). Claude decides when and how much to think based on the task. Recommended for 4.6 models. Takes priority over Extended Thinking when model supports both. (requires master toggle)
+  - **Anthropic Extended Thinking**: Budget 1024-32000 tokens. Manual thinking budget mode for all thinking-capable Claude models (4.6, 4.5, 4.1, 4, 3.7). On 4.6 models, Adaptive Thinking takes priority if both are enabled. (requires master toggle)
   - **Gemini Thinking**: Level (minimal/low/medium/high) for Gemini 3 models (requires master toggle). Gemini 2.5 thinking content is captured automatically.
-  - **OpenAI Reasoning Effort**: Effort level (low/medium/high). OpenAI reasoning models always reason—this controls depth.
+  - **OpenAI Reasoning (5.1+)**: Enables reasoning for GPT-5.1 and GPT-5.2 models where it is off by default (requires master toggle). Effort level: low/medium/high/xhigh. Other OpenAI reasoning models (o3, o3-mini, o3-pro, o4-mini, GPT-5, GPT-5-mini, GPT-5-nano) always reason at their factory defaults and are not affected by this toggle.
   - **Show Reasoning Indicator**: Display "*[Reasoning was used]*" in chat when reasoning is active (default: on)
 - **Web Search**: Allow AI to search the web for current information:
   - **Enable Web Search**: Global toggle (default: off). Supported by Anthropic, Gemini, and OpenRouter.
@@ -2735,19 +2736,28 @@ The max extraction setting is a safety cap, not a target. The default (4M chars)
 
 ### Reasoning/Thinking
 
-For complex questions, supported models can "think" through the problem before responding.
+For complex questions, supported models can "think" through the problem before responding. Reasoning increases latency and token usage but can significantly improve results for complex tasks like X-Ray generation, deep analysis, and nuanced questions.
 
-> **Note:** Some models always use reasoning by default (OpenAI o-series, DeepSeek Reasoner) and don't have toggles. The settings below are for models where reasoning is *optional* and can be controlled. A model tier system is being developed that will let you select provider-agnostic tiers (like "reasoning" or "ultrafast") in action settings — currently you must specify provider and model explicitly.
+> **Note:** Some models always reason at their factory defaults and don't need any settings — the toggles below are only for models where reasoning is *optional*. A first-time info notification appears when you enable reasoning via Quick Settings, explaining which models are affected.
 
-**Anthropic Extended Thinking:**
-1. Enable the master toggle: Settings → AI Response → Enable Anthropic/Gemini Reasoning
+**Anthropic Adaptive Thinking (4.6+)** — Recommended for Claude 4.6 models:
+1. Enable the master toggle: Settings → Advanced → Enable Reasoning
+2. Enable Anthropic Adaptive Thinking (4.6+)
+3. Set effort level (low/medium/high, max for Opus 4.6 only)
+4. Temperature is forced to 1.0 (API requirement)
+5. Works with: Claude Sonnet 4.6, Opus 4.6
+6. Claude decides when and how much to think based on the task — no manual budget needed
+
+**Anthropic Extended Thinking** — Manual budget mode for older Claude models:
+1. Enable the master toggle: Settings → Advanced → Enable Reasoning
 2. Enable Anthropic Extended Thinking
 3. Set token budget (1024-32000)
 4. Temperature is forced to 1.0 (API requirement)
-5. Works with: Claude Sonnet 4.5, Opus 4.5, Opus 4.1, Sonnet 4, Opus 4, Haiku 4.5, Sonnet 3.7
+5. Works with: Claude Sonnet 4.6, Opus 4.6, Sonnet 4.5, Opus 4.5, Opus 4.1, Sonnet 4, Opus 4, Haiku 4.5, Sonnet 3.7
+6. On 4.6 models, Adaptive Thinking takes priority if both are enabled
 
 **Gemini 3 Thinking:**
-1. Enable the master toggle: Settings → AI Response → Enable Anthropic/Gemini Reasoning
+1. Enable the master toggle: Settings → Advanced → Enable Reasoning
 2. Enable Gemini Thinking
 3. Set level (minimal/low/medium/high)
 4. Works with: gemini-3-*-preview models
@@ -2755,14 +2765,19 @@ For complex questions, supported models can "think" through the problem before r
 **Gemini 2.5 Auto-Thinking:**
 Gemini 2.5 Flash and Pro think automatically on every request — no toggle needed. Thinking content is captured when available and viewable via "Show Reasoning". Flash-Lite is excluded (thinking disabled by default).
 
-**OpenAI Reasoning:**
-OpenAI reasoning models (o3, o3-mini, o3-pro, o4-mini, GPT-5, GPT-5-mini, GPT-5-nano, GPT-5.1, GPT-5.2) always reason internally—there's no toggle to turn it off. You can only control the effort level:
-1. Set effort level in Settings → AI Response → OpenAI Reasoning Effort (low/medium/high)
-2. Temperature is forced to 1.0 (API requirement)
+**OpenAI Reasoning (5.1+):**
+GPT-5.1 and GPT-5.2 ship with reasoning off by default (reasoning_effort=none from OpenAI). To enable:
+1. Enable the master toggle: Settings → Advanced → Enable Reasoning
+2. Enable OpenAI Reasoning (5.1+)
+3. Set effort level (low/medium/high/xhigh)
+4. Temperature is forced to 1.0 (API requirement)
+
+**OpenAI Always-On Reasoning:**
+Other OpenAI reasoning models (o3, o3-mini, o3-pro, o4-mini, GPT-5, GPT-5-mini, GPT-5-nano) always reason at their factory defaults — no toggle needed, no effort parameter sent. These models are not affected by the master toggle.
 
 **DeepSeek:** The `deepseek-reasoner` model automatically uses reasoning (no setting needed).
 
-Best for: Complex analysis, reasoning problems, nuanced questions
+**Per-action overrides:** Any action can override reasoning settings for specific providers via Action Manager → hold action → Edit Settings → Advanced → Per-Provider Reasoning. This works for all reasoning-capable models, including those not controlled by the master toggle. See [Tuning Built-in Actions](#tuning-built-in-actions).
 
 ### Web Search
 
