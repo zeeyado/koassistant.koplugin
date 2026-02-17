@@ -698,12 +698,13 @@ local CATEGORY_EMOJIS = {
 }
 
 -- Categories excluded from per-item distribution and highlight matching
--- Matches TEXT_MATCH_EXCLUDED in parser: singletons + event-based categories
+-- Mirrors TEXT_MATCH_EXCLUDED in parser: singletons + event-based categories
 -- whose "names" are descriptive phrases, not searchable entity names
 local DISTRIBUTION_EXCLUDED = {
     current_state = true,
     current_position = true,
     reader_engagement = true,
+    conclusion = true,
     arguments = true,
     argument_development = true,
     timeline = true,
@@ -1613,17 +1614,17 @@ function XrayBrowser:_addSearchTermInput(item, category_key, item_title, source,
                             end
                         end
 
-                        -- Save to storage
-                        table.insert(entry.add, new_alias)
-                        all_data[item_name] = entry
-                        ActionCache.setUserAliases(self_ref.metadata.book_file, all_data)
-
-                        -- Also remove from ignore if it was previously ignored
+                        -- Remove from ignore if it was previously ignored
                         for i = #entry.ignore, 1, -1 do
                             if entry.ignore[i]:lower() == new_lower then
                                 table.remove(entry.ignore, i)
                             end
                         end
+
+                        -- Save to storage
+                        table.insert(entry.add, new_alias)
+                        all_data[item_name] = entry
+                        ActionCache.setUserAliases(self_ref.metadata.book_file, all_data)
 
                         -- Update in-memory
                         if type(item.aliases) ~= "table" then

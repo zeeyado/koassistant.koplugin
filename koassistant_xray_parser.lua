@@ -229,6 +229,7 @@ local TEXT_MATCH_EXCLUDED = {
     current_position = true,
     reader_engagement = true,
     conclusion = true,
+    arguments = true,
     argument_development = true,
     timeline = true,
 }
