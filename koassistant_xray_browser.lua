@@ -1138,6 +1138,11 @@ function XrayBrowser:showItemDetail(item, category_key, title, source, nav_conte
     -- Without nav:       ← ⇱ ⇲ [Chat]  (scroll top/bottom for long content)
     local row = {}
     local viewer  -- forward declaration for button callbacks
+    local nav_closing = false  -- flag: true when a button callback is closing the viewer
+    local function closeViewerForNav()
+        nav_closing = true
+        if viewer then viewer:onClose() end
+    end
     local has_nav = nav_context and (
         (nav_context.items and #nav_context.items > 1) or
         (nav_context.entries and #nav_context.entries > 1))
@@ -1156,7 +1161,7 @@ function XrayBrowser:showItemDetail(item, category_key, title, source, nav_conte
     table.insert(row, {
         text = back_text,
         callback = function()
-            if viewer then viewer:onClose() end
+            closeViewerForNav()
             if source then
                 self_ref:showItemDetail(source.item, source.category_key,
                     source.title, source.source, source.nav_context)
@@ -1175,7 +1180,7 @@ function XrayBrowser:showItemDetail(item, category_key, title, source, nav_conte
         table.insert(row, {
             text = "◀",
             callback = function()
-                if viewer then viewer:onClose() end
+                closeViewerForNav()
                 if is_mixed then
                     local entry = nav_list[prev_idx]
                     self_ref:showItemDetail(entry.item, entry.category_key, entry.name, nav_context.source, {
@@ -1195,7 +1200,7 @@ function XrayBrowser:showItemDetail(item, category_key, title, source, nav_conte
         table.insert(row, {
             text = "▶",
             callback = function()
-                if viewer then viewer:onClose() end
+                closeViewerForNav()
                 if is_mixed then
                     local entry = nav_list[next_idx]
                     self_ref:showItemDetail(entry.item, entry.category_key, entry.name, nav_context.source, {
@@ -1248,7 +1253,7 @@ function XrayBrowser:showItemDetail(item, category_key, title, source, nav_conte
             text = _("Chapter Appearances"),
             callback = function()
                 if self_ref.ui and self_ref.ui.document then
-                    if viewer then viewer:onClose() end
+                    closeViewerForNav()
                     self_ref:showItemDistribution(item, category_key, dist_item_name, {
                         source = source,
                         nav_context = nav_context,
@@ -1265,7 +1270,7 @@ function XrayBrowser:showItemDetail(item, category_key, title, source, nav_conte
             table.insert(search_row, {
                 text = _("Edit Search Terms"),
                 callback = function()
-                    if viewer then viewer:onClose() end
+                    closeViewerForNav()
                     self_ref:editSearchTerms(item, category_key, title, source, nav_context)
                 end,
             })
@@ -1323,7 +1328,7 @@ function XrayBrowser:showItemDetail(item, category_key, title, source, nav_conte
                 table.insert(conn_row, {
                     text = entry.button_text,
                     callback = function()
-                        if viewer then viewer:onClose() end
+                        closeViewerForNav()
                         self_ref:showItemDetail(entry.item,
                             entry.category_key,
                             entry.name, current_source, {
@@ -1364,6 +1369,11 @@ function XrayBrowser:showItemDetail(item, category_key, title, source, nav_conte
         buttons_table = buttons_rows,
         text_selection_callback = function(text)
             handleTextSelection(text, captured_ui)
+        end,
+        close_callback = function()
+            if not nav_closing and self_ref.menu then
+                UIManager:close(self_ref.menu)
+            end
         end,
     }
     -- Enable gray highlight on text selection (TextViewer doesn't expose this prop)
