@@ -831,6 +831,7 @@ function XrayBrowser:show(xray_data, metadata, ui, on_delete)
     UIManager:show(self.menu)
 
     -- Auto-navigate to saved position (from file browser reopen or search return flow)
+    -- Run synchronously (no scheduleIn) so all switchItemTable calls batch into one repaint.
     if XrayBrowser._pending_navigate_to then
         local navigate_to = XrayBrowser._pending_navigate_to
         XrayBrowser._pending_navigate_to = nil
@@ -838,23 +839,21 @@ function XrayBrowser:show(xray_data, metadata, ui, on_delete)
         if target_items then
             for _idx, target_item in ipairs(target_items) do
                 if XrayParser.getItemName(target_item, navigate_to.category_key) == navigate_to.item_name then
-                    UIManager:scheduleIn(0.1, function()
-                        if navigate_to.open_distribution then
-                            -- Push category items onto nav stack first (search return flow)
-                            -- so back from distribution goes to category items, not main categories
-                            local categories = XrayParser.getCategories(self_ref.xray_data)
-                            for _idx2, cat in ipairs(categories) do
-                                if cat.key == navigate_to.category_key then
-                                    self_ref:showCategoryItems(cat)
-                                    break
-                                end
+                    if navigate_to.open_distribution then
+                        -- Push category items onto nav stack first (search return flow)
+                        -- so back from distribution goes to category items, not main categories
+                        local categories = XrayParser.getCategories(self_ref.xray_data)
+                        for _idx2, cat in ipairs(categories) do
+                            if cat.key == navigate_to.category_key then
+                                self_ref:showCategoryItems(cat)
+                                break
                             end
-                            self_ref:showItemDistribution(target_item, navigate_to.category_key, navigate_to.item_name)
-                        else
-                            -- Go to item detail (file browser reopen flow)
-                            self_ref:showItemDetail(target_item, navigate_to.category_key, navigate_to.item_name)
                         end
-                    end)
+                        self_ref:showItemDistribution(target_item, navigate_to.category_key, navigate_to.item_name)
+                    else
+                        -- Go to item detail (file browser reopen flow)
+                        self_ref:showItemDetail(target_item, navigate_to.category_key, navigate_to.item_name)
+                    end
                     break
                 end
             end
