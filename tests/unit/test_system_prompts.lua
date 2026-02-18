@@ -451,11 +451,13 @@ TestRunner:test("block has no cache_control when caching disabled", function()
     TestRunner:assertNil(result[1].cache_control, "no cache_control")
 end)
 
-TestRunner:test("returns empty array when behavior=none and no domain", function()
+TestRunner:test("returns language-only block when behavior=none and no domain", function()
     local result = SystemPrompts.buildAnthropicSystemArray({
         behavior_variant = "none",
     })
-    TestRunner:assertEqual(#result, 0, "empty array")
+    -- Language instruction is always generated (auto-detects from KOReader)
+    TestRunner:assertEqual(#result, 1, "one block (language only)")
+    TestRunner:assertContains(result[1].text, "respond in", "has language instruction")
 end)
 
 TestRunner:test("returns array with domain when behavior=none", function()
@@ -473,7 +475,8 @@ TestRunner:test("block has debug_components", function()
         domain_context = "Test domain",
     })
     TestRunner:assertNotNil(result[1].debug_components, "has debug_components")
-    TestRunner:assertEqual(#result[1].debug_components, 2, "two components")
+    -- behavior + domain + language (language always generated via auto-detect)
+    TestRunner:assertEqual(#result[1].debug_components, 3, "three components")
 end)
 
 -- Test buildFlattenedPrompt()
@@ -491,11 +494,12 @@ TestRunner:test("returns combined string", function()
     TestRunner:assertContains(result, "Test domain", "has domain")
 end)
 
-TestRunner:test("returns empty string when behavior=none and no domain", function()
+TestRunner:test("returns language instruction when behavior=none and no domain", function()
     local result = SystemPrompts.buildFlattenedPrompt({
         behavior_variant = "none",
     })
-    TestRunner:assertEqual(result, "", "empty string")
+    -- Language instruction is always generated (auto-detects from KOReader)
+    TestRunner:assertContains(result, "respond in", "has language instruction")
 end)
 
 -- Test getEffectiveTranslationLanguage()

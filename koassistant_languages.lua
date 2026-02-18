@@ -107,4 +107,109 @@ function Languages.getAllIds()
     return ids
 end
 
+-- KOReader locale code → plugin language ID mapping
+-- Covers all locales from KOReader's frontend/ui/language.lua
+-- Uses base codes where KOReader uses country-specific codes (e.g., it for it_IT)
+Languages.KOREADER_LOCALE_MAP = {
+    C       = "English",
+    en      = "English",
+    ar      = "Arabic",
+    bg      = "Bulgarian",
+    bn      = "Bengali",
+    ca      = "Catalan",
+    cs      = "Czech",
+    da      = "Danish",
+    de      = "German",
+    el      = "Greek",
+    es      = "Spanish",
+    fa      = "Persian",
+    fi      = "Finnish",
+    fr      = "French",
+    hi      = "Hindi",
+    hr      = "Croatian",
+    hu      = "Hungarian",
+    it      = "Italian",
+    ja      = "Japanese",
+    ka      = "Georgian",
+    ko      = "Korean",
+    lt      = "Lithuanian",
+    lv      = "Latvian",
+    nb      = "Norwegian (Bokmål)",
+    nl      = "Dutch",
+    pl      = "Polish",
+    pt_PT   = "Portuguese",
+    pt_BR   = "Portuguese (Brazilian)",
+    ro      = "Romanian",
+    ru      = "Russian",
+    sk      = "Slovak",
+    sr      = "Serbian",
+    sv      = "Swedish",
+    th      = "Thai",
+    tr      = "Turkish",
+    uk      = "Ukrainian",
+    vi      = "Vietnamese",
+    zh_CN   = "Chinese (Simplified)",
+    zh_TW   = "Chinese (Traditional)",
+}
+
+-- Fallback names for KOReader locales not in REGULAR
+-- AI understands these language names even without native script display
+Languages.KOREADER_LOCALE_FALLBACK = {
+    eo = "Esperanto",
+    eu = "Basque",
+    gl = "Galician",
+    he = "Hebrew",
+    kk = "Kazakh",
+}
+
+--- Detect primary language from KOReader's UI language setting.
+--- Returns a plugin language ID (e.g., "French") or nil if unmappable.
+--- Does NOT save anything to settings — purely runtime.
+--- @return string|nil: Plugin language ID, or nil on failure
+function Languages.detectFromKOReader()
+    -- Read KOReader's UI language
+    local locale = nil
+    if G_reader_settings then
+        locale = G_reader_settings:readSetting("language")
+    end
+    if not locale then
+        -- Fallback: try to read directly from settings file
+        local ok, result = pcall(function()
+            local DataStorage = require("datastorage")
+            local LuaSettings = require("luasettings")
+            local settings = LuaSettings:open(DataStorage:getSettingsDir() .. "/settings.reader.lua")
+            return settings:readSetting("language")
+        end)
+        if ok and result then
+            locale = result
+        end
+    end
+    if not locale then
+        return nil
+    end
+
+    -- Try exact match first
+    if Languages.KOREADER_LOCALE_MAP[locale] then
+        return Languages.KOREADER_LOCALE_MAP[locale]
+    end
+
+    -- Try fallback names (Esperanto, Basque, etc.)
+    if Languages.KOREADER_LOCALE_FALLBACK[locale] then
+        return Languages.KOREADER_LOCALE_FALLBACK[locale]
+    end
+
+    -- Try base language code (e.g., "it_IT" → "it", "ko_KR" → "ko")
+    local base = locale:match("^([a-z]+)")
+    if base and base ~= locale then
+        if Languages.KOREADER_LOCALE_MAP[base] then
+            return Languages.KOREADER_LOCALE_MAP[base]
+        end
+        if Languages.KOREADER_LOCALE_FALLBACK[base] then
+            return Languages.KOREADER_LOCALE_FALLBACK[base]
+        end
+    end
+
+    return nil
+end
+
 return Languages
