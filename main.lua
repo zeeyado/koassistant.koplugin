@@ -9193,9 +9193,13 @@ function AskGPT:checkLanguagePrompt()
     cancel_callback = function()
       if not prompt_advancing then
         prompt_advancing = true
+        -- Save English explicitly so auto-detect doesn't override
+        features.interaction_languages = { "English" }
+        features.user_languages = "English"
         features._language_prompt_shown = true
         self.settings:saveSetting("features", features)
         self.settings:flush()
+        self:updateConfigFromSettings()
       end
     end,
   })
