@@ -484,7 +484,7 @@ function ActionService:buildAnthropicSystem(config)
     -- Get global setting as fallback
     local global_variant = self:getBehaviorVariant()
 
-    -- Get language settings (empty = no language instruction)
+    -- Get language settings (auto-detects from KOReader when empty)
     local features = self.settings:readSetting("features") or {}
     local interaction_languages = features.interaction_languages  -- New array format
     local user_languages = features.user_languages or ""  -- Old string format (backward compat)
@@ -531,7 +531,7 @@ function ActionService:buildFlattenedSystem(config)
     -- Get global setting as fallback
     local global_variant = self:getBehaviorVariant()
 
-    -- Get language settings (empty = no language instruction)
+    -- Get language settings (auto-detects from KOReader when empty)
     local features = self.settings:readSetting("features") or {}
     local interaction_languages = features.interaction_languages  -- New array format
     local user_languages = features.user_languages or ""  -- Old string format (backward compat)

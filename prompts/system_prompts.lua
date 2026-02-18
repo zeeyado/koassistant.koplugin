@@ -195,13 +195,9 @@ function SystemPrompts.buildAnthropicSystemArray(config)
         custom_behaviors = config.custom_behaviors,  -- NEW: array of UI-created behaviors
     })
 
-    -- Build language instruction if user has configured languages
-    -- Check for new array format (interaction_languages) or old string format (user_languages)
-    local language_instruction = nil
+    -- Build language instruction (auto-detects from KOReader when no languages configured)
     local langs = config.interaction_languages or config.user_languages
-    if langs and (type(langs) == "table" and #langs > 0 or type(langs) == "string" and langs ~= "") then
-        language_instruction = SystemPrompts.buildLanguageInstruction(langs, config.primary_language)
-    end
+    local language_instruction = SystemPrompts.buildLanguageInstruction(langs, config.primary_language)
 
     -- Get cacheable content (behavior + domain, or just domain if behavior disabled)
     local cacheable = SystemPrompts.getCacheableContent(behavior_text, config.domain_context)
@@ -294,16 +290,13 @@ function SystemPrompts.buildFlattenedPrompt(config)
     -- Get combined content
     local content = SystemPrompts.getCacheableContent(behavior_text, config.domain_context)
 
-    -- Append language instruction if user has configured languages
-    -- Check for new array format (interaction_languages) or old string format (user_languages)
+    -- Append language instruction (auto-detects from KOReader when no languages configured)
     local langs = config.interaction_languages or config.user_languages
-    if langs and (type(langs) == "table" and #langs > 0 or type(langs) == "string" and langs ~= "") then
-        local language_instruction = SystemPrompts.buildLanguageInstruction(langs, config.primary_language)
-        if content then
-            content = content .. "\n\n" .. language_instruction
-        else
-            content = language_instruction
-        end
+    local language_instruction = SystemPrompts.buildLanguageInstruction(langs, config.primary_language)
+    if content then
+        content = content .. "\n\n" .. language_instruction
+    else
+        content = language_instruction
     end
 
     return content or ""
@@ -348,13 +341,11 @@ function SystemPrompts.buildUnifiedSystem(config)
         custom_behaviors = config.custom_behaviors,  -- NEW: array of UI-created behaviors
     })
 
-    -- Build language instruction if user has configured languages
+    -- Build language instruction (auto-detects from KOReader when no languages configured)
     -- Skip if action has opted out (e.g., translate action already specifies target language)
-    -- Check for new array format (interaction_languages) or old string format (user_languages)
     local language_instruction = nil
-    local langs = config.interaction_languages or config.user_languages
-    if not config.skip_language_instruction and
-       langs and (type(langs) == "table" and #langs > 0 or type(langs) == "string" and langs ~= "") then
+    if not config.skip_language_instruction then
+        local langs = config.interaction_languages or config.user_languages
         language_instruction = SystemPrompts.buildLanguageInstruction(
             langs, config.primary_language
         )
@@ -541,9 +532,14 @@ function SystemPrompts.parseUserLanguages(user_languages, primary_override)
         end
     end
 
-    -- Default to English if empty
+    -- Auto-detect from KOReader UI language when no languages configured
     if #languages == 0 then
-        return "English", "English", "English"
+        local detected = Languages.detectFromKOReader()
+        if detected then
+            local display = Languages.getDisplay(detected)
+            return detected, display, display
+        end
+        return "English", "English", "English"  -- ultimate fallback
     end
 
     -- Determine primary: override if valid, else first
@@ -588,7 +584,7 @@ function SystemPrompts.buildLanguageInstruction(user_languages, primary_override
             end
         end
     end
-    local languages_list = #languages > 0 and table.concat(languages, ", ") or "English"
+    local languages_list = #languages > 0 and table.concat(languages, ", ") or primary
 
     return string.format(
         "IMPORTANT - Response language: Always respond in %s. " ..

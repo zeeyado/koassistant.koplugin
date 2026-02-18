@@ -218,14 +218,15 @@ Go to **Settings → Privacy & Data** to configure. See [Privacy & Data](#privac
 
 ### Setup Wizard
 
-On first launch, KOAssistant walks you through a 4-step setup wizard:
+On first launch, KOAssistant walks you through a 5-step setup wizard:
 
 1. **Welcome** — Brief introduction
-2. **Emoji Display Test** — Shows emoji icons used throughout the plugin. If they render correctly on your device, tap "Yes, enable" to turn on all emoji features (menu icons, panel icons, data access indicators). If you see blank boxes or question marks, tap "No, skip". See the [Emoji Fonts](#emoji-fonts) section for instructions on enabling emoji support in KOReader.
-3. **Gesture Setup** — Offers to assign Quick Settings and Quick Actions panels to tap bottom-right corner (or shows a tip if the gesture slot is already taken)
-4. **Getting Started Tips** — Pointers to privacy settings and action management
+2. **Language Setup** — Detects your KOReader UI language and asks if you want to use it as your AI language. For non-English users, it confirms the detected language (e.g., "Use Français?"). For English users, it offers to keep English or choose a different language. You can also pick from the full list of 47 supported languages. This sets your primary interaction language for all AI responses, translations, and dictionary lookups.
+3. **Emoji Display Test** — Shows emoji icons used throughout the plugin. If they render correctly on your device, tap "Yes, enable" to turn on all emoji features (menu icons, panel icons, data access indicators). If you see blank boxes or question marks, tap "No, skip". See the [Emoji Fonts](#emoji-fonts) section for instructions on enabling emoji support in KOReader.
+4. **Gesture Setup** — Offers to assign Quick Settings and Quick Actions panels to tap bottom-right corner (or shows a tip if the gesture slot is already taken)
+5. **Getting Started Tips** — Pointers to privacy settings and action management
 
-The wizard runs once and won't appear again. You can always change emoji and gesture settings later in Settings.
+The wizard runs once and won't appear again. If you re-run the wizard (by resetting the setup flag), it skips the language step if you've already configured a language. You can always change language, emoji, and gesture settings later in Settings.
 
 ### Getting Started Checklist
 
@@ -236,7 +237,7 @@ After the setup wizard, complete these steps for the best experience:
 - [ ] **Explore the highlight menu** — 8 actions included by default (Translate, Look up in X-Ray, ELI5, Explain, Elaborate, Summarize, Connect, Fact Check); add more via Manage Actions → hold action → "Add to Highlight Menu"
 - [ ] **Try Dictionary Bypass** — Single-word selections go straight to AI dictionary (Settings → Dictionary Settings → Bypass KOReader Dictionary)
 - [ ] **Try Highlight Bypass** — Multi-word selections trigger instant translation (Settings → Highlight Settings → Enable Highlight Bypass)
-- [ ] **Set your languages** — Configure response languages with native script pickers (Settings → AI Language Settings)
+- [ ] **Set your languages** (if you skipped the wizard) — KOAssistant auto-detects from your KOReader UI language, but you can configure additional languages or change your primary (Settings → AI Language Settings)
 - [ ] **Add custom actions to gestures** — Any book/general action can become a gesture (Manage Actions → hold → "Add to Gesture Menu", requires restart)
 - [ ] **Pin actions to file browser** — Add frequently-used book actions directly to the long-press menu (Manage Actions → hold → "Add to File Browser")
 
@@ -1954,6 +1955,10 @@ When "Ask every time" is selected, a picker dialog appears letting you choose wh
 ### AI Language Settings
 These settings control what language the AI responds in.
 
+**Auto-detection:** KOAssistant automatically detects your language from KOReader's UI language setting. If you haven't configured any languages, the AI will respond in your KOReader language (e.g., if KOReader is set to Français, the AI responds in French). This also applies to translation and dictionary actions. The auto-detected language is shown as "(auto)" in Quick Settings. Once you explicitly set a language, auto-detection is no longer used.
+
+**Existing users:** If you completed the setup wizard before this feature was added and haven't configured languages, KOAssistant will show a one-time prompt offering to use your detected KOReader language (non-English users only).
+
 - **Your Languages**: Languages you speak/understand. Opens a picker with 47 pre-loaded languages displayed in their native scripts (日本語, Français, Español, etc.). Select multiple languages. These are sent to the AI in the system prompt ("The user understands: ...").
 - **Primary Language**: Pick which of your languages the AI should respond in by default. Defaults to first in your list.
 - **Additional Languages**: Extra languages for translation/dictionary targets without affecting AI response language. These are NOT sent to the AI in the system prompt but appear in translation/dictionary language pickers and the Language button in compact/translate views. Use cases: scholarly work (Latin, Sanskrit, Ancient Greek), language learning (translate TO a language you're studying), or occasional use of languages you understand but don't want the AI defaulting to.
@@ -1964,11 +1969,10 @@ These settings control what language the AI responds in.
 
 **Note:** Translation target language settings are in **Settings → Translate Settings**.
 
-**How language responses work** (when Your Languages is configured):
-- AI responds in your primary language by default
+**How language responses work:**
+- AI responds in your primary language by default (auto-detected or explicitly set)
 - If you type in another language from your list, AI switches to that language
 - The AI only auto-switches between Your Languages—it will never spontaneously respond in an Additional Language, even when working with content in that language. This is because Additional Languages are not included in the system-level language instruction sent to the AI; they exist solely for translation/dictionary targeting.
-- Leave empty to let AI use its default behavior
 
 **Examples:**
 - Your Languages: `English` - AI always responds in English

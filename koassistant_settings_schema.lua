@@ -580,6 +580,12 @@ local SettingsSchema = {
                             -- Fall back to old format for display
                             local old = f.user_languages or ""
                             if old == "" then
+                                -- Show auto-detected language if available
+                                local Languages = require("koassistant_languages")
+                                local detected = Languages.detectFromKOReader()
+                                if detected then
+                                    return T(_("Your Languages: %1 (auto)"), Languages.getDisplay(detected))
+                                end
                                 return _("Your Languages: (not set)")
                             end
                             return T(_("Your Languages: %1"), old)

@@ -1158,7 +1158,7 @@ function AskGPT:initSettings()
       hide_highlighted_text = configuration.features.hide_highlighted_text or false,
       hide_long_highlights = configuration.features.hide_long_highlights or true,
       long_highlight_threshold = configuration.features.long_highlight_threshold or 280,
-      translation_language = configuration.features.translation_language or "English",
+      translation_language = configuration.features.translation_language,
       debug = configuration.features.debug or false,
       show_debug_in_chat = false,  -- Whether to show debug in chat viewer (independent of console logging)
       auto_save_all_chats = true,  -- Default to auto-save for new installs
@@ -2754,7 +2754,8 @@ function AskGPT:getEffectivePrimaryLanguage()
     -- Fall back to old string format for backward compatibility
     local user_languages = features.user_languages or ""
     if user_languages == "" then
-      return nil
+      -- Auto-detect from KOReader UI language
+      return Languages.detectFromKOReader()
     end
     languages = {}
     for lang in user_languages:gmatch("([^,]+)") do
@@ -2766,7 +2767,8 @@ function AskGPT:getEffectivePrimaryLanguage()
   end
 
   if #languages == 0 then
-    return nil
+    -- Auto-detect from KOReader UI language
+    return Languages.detectFromKOReader()
   end
 
   -- Check if override is valid (exists in list)
@@ -3332,7 +3334,7 @@ function AskGPT:buildTranslationLanguageMenu()
       local input_dialog
       input_dialog = InputDialog:new{
         title = _("Custom Translation Language"),
-        input = f.translation_language or "English",
+        input = f.translation_language or "",
         input_hint = _("e.g., Spanish, Japanese, French"),
         description = _("Enter the target language for translations."),
         buttons = {
@@ -9080,9 +9082,12 @@ function AskGPT:ensureInitialized()
   -- Check migration first (may show dialog if old chats exist)
   self:checkChatMigrationStatus()
 
-  -- Setup wizard: welcome → emoji test → gesture setup → tips
+  -- Setup wizard: welcome → language → emoji test → gesture setup → tips
   -- Shows once for new users (v2+ storage, not yet completed)
   self:checkSetupWizard()
+
+  -- One-time language prompt for existing users who never configured languages
+  self:checkLanguagePrompt()
 end
 
 --[[
@@ -9133,6 +9138,69 @@ function AskGPT:checkSetupWizard()
   self:showSetupWizard()
 end
 
+-- One-time language prompt for existing users who completed wizard
+-- but never configured languages, and auto-detect finds non-English.
+function AskGPT:checkLanguagePrompt()
+  -- Only show if wizard was completed (this is an existing user, not a new one)
+  if not self.settings:readSetting("setup_wizard_completed") then
+    return
+  end
+
+  local features = self.settings:readSetting("features") or {}
+
+  -- Skip if already has languages configured (new or old format)
+  if features.interaction_languages and #features.interaction_languages > 0 then
+    return
+  end
+  if features.user_languages and features.user_languages ~= "" then
+    return
+  end
+
+  -- Skip if already prompted
+  if features._language_prompt_shown then
+    return
+  end
+
+  -- Auto-detect from KOReader
+  local detected = Languages.detectFromKOReader()
+
+  -- Skip if English or unmappable (English users already get correct behavior)
+  if not detected or detected == "English" then
+    return
+  end
+
+  local ConfirmBox = require("ui/widget/confirmbox")
+  local detected_display = Languages.getDisplay(detected)
+
+  local text = T(_("KOAssistant detected your language as %1."), detected_display) .. "\n\n" ..
+    T(_("Use %1 for AI responses, translations, and dictionary?"), detected_display) .. "\n\n" ..
+    _("You can change this anytime in Settings → AI Language Settings.")
+
+  local prompt_advancing = false
+  UIManager:show(ConfirmBox:new{
+    text = text,
+    ok_text = T(_("Use %1"), detected_display),
+    cancel_text = _("Keep English"),
+    ok_callback = function()
+      prompt_advancing = true
+      features.interaction_languages = { detected }
+      features.user_languages = detected  -- backward compat
+      features._language_prompt_shown = true
+      self.settings:saveSetting("features", features)
+      self.settings:flush()
+      self:updateConfigFromSettings()
+    end,
+    cancel_callback = function()
+      if not prompt_advancing then
+        prompt_advancing = true
+        features._language_prompt_shown = true
+        self.settings:saveSetting("features", features)
+        self.settings:flush()
+      end
+    end,
+  })
+end
+
 -- Orchestrate the setup wizard steps
 function AskGPT:showSetupWizard()
   -- Pre-load gesture data for step 3
@@ -9150,11 +9218,13 @@ function AskGPT:showSetupWizard()
       and _isGestureSlotEmpty(fm_gestures.tap_right_bottom_corner)
   end
 
-  -- Chain: Step 1 → Step 2 → Step 3 → Step 4
+  -- Chain: Step 1 → Step 2 → Step 3 → Step 4 → Step 5
   self:showSetupStep1Welcome(function()
-    self:showSetupStep2EmojiTest(function()
-      self:showSetupStep3Gestures(gestures_settings, gestures_available, both_free, function(gestures_applied)
-        self:showSetupStep4Tips(gestures_applied)
+    self:showSetupStep2Language(function()
+      self:showSetupStep3EmojiTest(function()
+        self:showSetupStep4Gestures(gestures_settings, gestures_available, both_free, function(gestures_applied)
+          self:showSetupStep5Tips(gestures_applied)
+        end)
       end)
     end)
   end)
@@ -9171,8 +9241,124 @@ function AskGPT:showSetupStep1Welcome(next_step)
   })
 end
 
--- Step 2: Emoji display test
-function AskGPT:showSetupStep2EmojiTest(next_step)
+-- Step 2: Language selection
+function AskGPT:showSetupStep2Language(next_step)
+  -- Skip if languages already configured (e.g., re-running wizard)
+  do
+    local f = self.settings:readSetting("features") or {}
+    if (f.interaction_languages and #f.interaction_languages > 0)
+        or (f.user_languages and f.user_languages ~= "") then
+      next_step()
+      return
+    end
+  end
+
+  local ConfirmBox = require("ui/widget/confirmbox")
+
+  -- Auto-detect from KOReader UI language
+  local detected = Languages.detectFromKOReader()
+  local detected_display = detected and Languages.getDisplay(detected) or nil
+
+  local function saveLanguageAndAdvance(lang_id)
+    local features = self.settings:readSetting("features") or {}
+    features.interaction_languages = { lang_id }
+    features.user_languages = lang_id  -- backward compat
+    self.settings:saveSetting("features", features)
+    self.settings:flush()
+    self:updateConfigFromSettings()
+    next_step()
+  end
+
+  if detected and detected ~= "English" then
+    -- Non-English detected: confirm or let them choose differently
+    local text = _("LANGUAGE SETUP") .. "\n\n" ..
+      T(_("Your KOReader language is %1."), detected_display) .. "\n" ..
+      T(_("Use %1 as your AI language?"), detected_display) .. "\n\n" ..
+      _("You can add more languages later in Settings.")
+
+    local wizard_advancing = false
+    UIManager:show(ConfirmBox:new{
+      text = text,
+      ok_text = T(_("Use %1"), detected_display),
+      cancel_text = _("Choose different"),
+      ok_callback = function()
+        wizard_advancing = true
+        saveLanguageAndAdvance(detected)
+      end,
+      cancel_callback = function()
+        if not wizard_advancing then
+          wizard_advancing = true
+          self:showWizardLanguagePicker(next_step)
+        end
+      end,
+    })
+  else
+    -- English detected or detection failed: confirm or choose different
+    local text = _("LANGUAGE SETUP") .. "\n\n" ..
+      _("KOAssistant will respond in English by default.") .. "\n" ..
+      _("If you prefer a different language, tap \"Choose Language\".") .. "\n\n" ..
+      _("You can add more languages later in Settings.")
+
+    local wizard_advancing = false
+    UIManager:show(ConfirmBox:new{
+      text = text,
+      ok_text = _("Keep English"),
+      cancel_text = _("Choose language"),
+      ok_callback = function()
+        wizard_advancing = true
+        saveLanguageAndAdvance("English")
+      end,
+      cancel_callback = function()
+        if not wizard_advancing then
+          wizard_advancing = true
+          self:showWizardLanguagePicker(next_step)
+        end
+      end,
+    })
+  end
+end
+
+-- Helper: Show language picker for wizard
+function AskGPT:showWizardLanguagePicker(next_step)
+  -- Build button rows (2 columns) from REGULAR languages
+  local buttons = {}
+  local row = {}
+  local picker_dialog
+  for _i, lang in ipairs(Languages.REGULAR) do
+    local lang_id = lang.id
+    local lang_display = lang.display
+    table.insert(row, {
+      text = lang_display,
+      callback = function()
+        UIManager:close(picker_dialog)
+        -- Save selected language
+        local features = self.settings:readSetting("features") or {}
+        features.interaction_languages = { lang_id }
+        features.user_languages = lang_id  -- backward compat
+        self.settings:saveSetting("features", features)
+        self.settings:flush()
+        self:updateConfigFromSettings()
+        next_step()
+      end,
+    })
+    if #row == 2 then
+      table.insert(buttons, row)
+      row = {}
+    end
+  end
+  if #row > 0 then
+    table.insert(buttons, row)
+  end
+
+  picker_dialog = ButtonDialog:new{
+    title = _("Choose your AI language"),
+    buttons = buttons,
+  }
+  UIManager:show(picker_dialog)
+end
+
+-- Step 3: Emoji display test
+function AskGPT:showSetupStep3EmojiTest(next_step)
   local ConfirmBox = require("ui/widget/confirmbox")
   local text = _("EMOJI DISPLAY TEST") .. "\n\n" ..
     _("Do these icons display correctly on your device?") .. "\n\n" ..
@@ -9211,8 +9397,8 @@ function AskGPT:showSetupStep2EmojiTest(next_step)
   })
 end
 
--- Step 3: Gesture setup
-function AskGPT:showSetupStep3Gestures(gestures_settings, gestures_available, both_free, next_step)
+-- Step 4: Gesture setup
+function AskGPT:showSetupStep4Gestures(gestures_settings, gestures_available, both_free, next_step)
   local ConfirmBox = require("ui/widget/confirmbox")
 
   if gestures_available and both_free then
@@ -9257,8 +9443,8 @@ function AskGPT:showSetupStep3Gestures(gestures_settings, gestures_available, bo
   end
 end
 
--- Step 4: Getting started tips
-function AskGPT:showSetupStep4Tips(gestures_applied)
+-- Step 5: Getting started tips
+function AskGPT:showSetupStep5Tips(gestures_applied)
   local text = _("GETTING STARTED") .. "\n\n" ..
     _("Privacy & Data") .. "\n" ..
     _("Some features need document text access. Enable in: Settings → Privacy & Data") .. "\n\n" ..
