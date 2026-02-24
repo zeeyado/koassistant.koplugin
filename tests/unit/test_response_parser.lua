@@ -396,6 +396,18 @@ TestRunner:test("handles error response", function()
     TestRunner:assertEqual(result, "Error from Perplexity", "error message")
 end)
 
+TestRunner:test("extracts reasoning from <think> tags (sonar-reasoning-pro)", function()
+    local response = {
+        choices = { { message = { content = "<think>Let me reason about this</think>The answer is 42" } } },
+        citations = { "https://example.com/answer" }
+    }
+    local success, result, reasoning, web_search_used = ResponseParser:parseResponse(response, "perplexity")
+    TestRunner:assertTrue(success, "success")
+    TestRunner:assertEqual(result, "The answer is 42\n\n---\n**Sources:**\n[1] [example.com](https://example.com/answer)", "content without think tags")
+    TestRunner:assertEqual(reasoning, "Let me reason about this", "reasoning extracted")
+    TestRunner:assertTrue(web_search_used, "web_search_used always true")
+end)
+
 -- Test unknown provider
 TestRunner:suite("Unknown provider")
 

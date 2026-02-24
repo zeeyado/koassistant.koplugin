@@ -350,10 +350,10 @@ local ModelLists = {
 
     perplexity = {
         -- All Sonar models include built-in web search with citations
-        "sonar",                        -- fast search (default)
-        "sonar-pro",                    -- flagship (advanced search)
+        "sonar-pro",                    -- flagship (default, advanced search)
         "sonar-reasoning-pro",          -- reasoning + search
         "sonar-deep-research",          -- deep research
+        "sonar",                        -- fast search (lightweight)
     },
 
     zai = {

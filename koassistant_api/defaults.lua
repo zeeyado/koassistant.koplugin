@@ -30,7 +30,7 @@ local function getDefaultModel(provider)
         cohere = "command-r-plus-08-2024",
         doubao = "doubao-1.5-pro-32k",
         zai = "glm-4.7-flash",
-        perplexity = "sonar",
+        perplexity = "sonar-pro",
     }
     return fallbacks[provider] or "unknown"
 end

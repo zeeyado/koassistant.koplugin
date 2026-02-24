@@ -429,6 +429,11 @@ local RESPONSE_TRANSFORMERS = {
         end
         if response.choices and response.choices[1] and response.choices[1].message then
             local content = response.choices[1].message.content
+            -- Extract <think> tags from reasoning models (sonar-reasoning-pro)
+            local reasoning = nil
+            if content then
+                content, reasoning = extractThinkTags(content)
+            end
             -- Check for truncation
             local finish_reason = response.choices[1].finish_reason
             if content and content ~= "" and finish_reason == "length" then
@@ -439,7 +444,7 @@ local RESPONSE_TRANSFORMERS = {
                 content = content .. formatCitations(response.citations)
             end
             -- Perplexity always searches the web — every response is web-grounded
-            return true, content, nil, true
+            return true, content, reasoning, true
         end
         return false, "Unexpected response format"
     end

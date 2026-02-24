@@ -104,6 +104,10 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
     local perplexity_citations = nil  -- Capture Perplexity citations from SSE events
     local was_truncated = false  -- Track if response was truncated (max tokens)
     local usage_data = nil  -- Track token usage from SSE events
+    -- State for <think> tag parsing (R1-style models: groq, together, fireworks, sambanova, ollama, perplexity)
+    local think_tag_active = false   -- Currently inside <think> block
+    local think_tag_checked = false  -- Already determined if response starts with <think>
+    local think_tag_partial = ""     -- Buffer for partial tag detection at start
 
     local chunksize = 1024 * 16
     local buffer = ffi.new('char[?]', chunksize, {0})
@@ -112,6 +116,58 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
     -- Poll interval from settings (default 125ms), converted to seconds
     local poll_interval_ms = settings and settings.poll_interval_ms or 125
     local check_interval_sec = poll_interval_ms / 1000
+
+    --- Process streamed content through <think> tag state machine.
+    --- R1-style models (groq, together, fireworks, sambanova, ollama, perplexity)
+    --- wrap reasoning in <think>...</think> inline in content. This splits
+    --- that into separate reasoning and content streams.
+    --- @param content string: Raw streamed content chunk
+    --- @param reasoning string|nil: Reasoning already extracted by extractContentFromSSE
+    --- @return string|nil content, string|nil reasoning
+    local function processThinkTags(content, reasoning)
+        -- Skip if provider already returned native reasoning (DeepSeek, Anthropic, Gemini, Z.AI)
+        if reasoning then return content, reasoning end
+        if not content or #content == 0 then return content, nil end
+
+        if not think_tag_checked then
+            -- Accumulate start of response to detect <think> prefix
+            think_tag_partial = think_tag_partial .. content
+            local trimmed = think_tag_partial:gsub("^%s+", "")
+            if trimmed:match("^<[Tt]hink>") then
+                -- Response starts with <think> — enter thinking mode
+                think_tag_active = true
+                think_tag_checked = true
+                content = trimmed:gsub("^<[Tt]hink>", "")
+                think_tag_partial = ""
+            elseif #trimmed >= 7 or (trimmed ~= "" and not trimmed:match("^<")) then
+                -- Long enough to know it's not <think>, or doesn't start with <
+                think_tag_checked = true
+                content = think_tag_partial
+                think_tag_partial = ""
+                return content, nil  -- Normal content
+            else
+                -- Still accumulating (e.g., just "<" or "<th")
+                return nil, nil
+            end
+        end
+
+        if think_tag_active then
+            -- Look for </think> closing tag
+            local s, e = content:find("</[Tt]hink>")
+            if s then
+                think_tag_active = false
+                local think_part = content:sub(1, s - 1)
+                local content_part = content:sub(e + 1):gsub("^%s*\n?", "")
+                return (#content_part > 0 and content_part or nil),
+                       (#think_part > 0 and think_part or nil)
+            else
+                -- All content is reasoning
+                return nil, content
+            end
+        end
+
+        return content, nil
+    end
 
     local function cleanup()
         if animation_task then
@@ -596,6 +652,9 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
 
                             local content, reasoning = self:extractContentFromSSE(event)
 
+                            -- Process <think> tags from R1-style models
+                            content, reasoning = processThinkTags(content, reasoning)
+
                             -- Check for Gemini groundingMetadata (web search indicator)
                             -- Only set web_search_used if metadata contains actual search results
                             local gm = event.candidates and event.candidates[1] and event.candidates[1].groundingMetadata
@@ -726,6 +785,9 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                             else
                                 -- Try to extract streaming content
                                 local content, reasoning = self:extractContentFromSSE(event)
+
+                                -- Process <think> tags from R1-style models
+                                content, reasoning = processThinkTags(content, reasoning)
 
                                 -- Check for Gemini groundingMetadata (web search indicator)
                                 if event.candidates and event.candidates[1] and event.candidates[1].groundingMetadata then

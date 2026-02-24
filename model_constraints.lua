@@ -116,6 +116,9 @@ ModelConstraints._max_output_tokens = {
         ["meta-llama/llama-4-maverick"] = 8192,
         ["meta-llama/llama-4-scout"] = 8192,
     },
+    perplexity = {
+        ["sonar-pro"] = 8192,
+    },
 }
 
 -- Default values for reasoning/thinking settings
