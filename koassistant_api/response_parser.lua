@@ -375,6 +375,29 @@ local RESPONSE_TRANSFORMERS = {
             return true, response.choices[1].message.content
         end
         return false, "Unexpected response format"
+    end,
+
+    zai = function(response)
+        if response.error then
+            return false, response.error.message or response.error.type or "Unknown error"
+        end
+        if response.choices and response.choices[1] and response.choices[1].message then
+            local message = response.choices[1].message
+            local content = message.content
+            local reasoning = message.reasoning_content  -- GLM-4.5+ returns this
+            -- Check for truncation
+            local finish_reason = response.choices[1].finish_reason
+            if content and content ~= "" and finish_reason == "length" then
+                content = content .. ResponseParser.TRUNCATION_NOTICE
+            end
+            -- Check for web search usage (top-level array in Z.AI responses)
+            local web_search_used = nil
+            if response.web_search and #response.web_search > 0 then
+                web_search_used = true
+            end
+            return true, content, reasoning, web_search_used
+        end
+        return false, "Unexpected response format"
     end
 }
 

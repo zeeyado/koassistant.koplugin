@@ -1487,7 +1487,7 @@ local SettingsSchema = {
                             id = "enable_reasoning",
                             type = "toggle",
                             text = _("Enable Reasoning"),
-                            help_text = _("Controls reasoning/thinking for providers with configurable reasoning:\n\n• Anthropic: Adaptive thinking (4.6+) / Extended thinking\n• Gemini: Thinking depth (Gemini 3)\n• OpenAI: Reasoning for GPT-5.1+ models\n\nModels like o3, GPT-5, DeepSeek Reasoner, and Gemini 2.5 always reason by default and are not affected by this toggle."),
+                            help_text = _("Controls reasoning/thinking for providers with configurable reasoning:\n\n• Anthropic: Adaptive thinking (4.6+) / Extended thinking\n• Gemini: Thinking depth (Gemini 3)\n• OpenAI: Reasoning for GPT-5.1+ models\n• Z.AI: Thinking for GLM-4.5+ models\n\nModels like o3, GPT-5, DeepSeek Reasoner, and Gemini 2.5 always reason by default and are not affected by this toggle."),
                             path = "features.enable_reasoning",
                             default = false,
                             separator = true,
@@ -1621,6 +1621,17 @@ local SettingsSchema = {
                                 { value = "xhigh", text = _("Extra High (5.2+ only)") },
                             },
                         },
+                        -- Z.AI Thinking
+                        {
+                            id = "zai_reasoning",
+                            type = "toggle",
+                            text = _("Z.AI Thinking"),
+                            help_text = _("Supported models:\n") .. getModelList("zai", "thinking") .. _("\n\nEnable thinking for GLM models. Returns reasoning traces viewable via 'Show Reasoning' button."),
+                            path = "features.zai_reasoning",
+                            default = false,
+                            depends_on = { id = "enable_reasoning", value = true },
+                            separator = true,
+                        },
                         -- Indicator in chat (separate from "Show Reasoning" button)
                         {
                             id = "show_reasoning_indicator",
@@ -1640,7 +1651,7 @@ local SettingsSchema = {
                     items = {
                         {
                             type = "info",
-                            text = _("Supported: Anthropic, Gemini, OpenRouter"),
+                            text = _("Supported: Anthropic, Gemini, OpenRouter, Z.AI"),
                         },
                         {
                             id = "enable_web_search",
@@ -1680,6 +1691,26 @@ local SettingsSchema = {
                     type = "submenu",
                     text = _("Provider Settings"),
                     items = {
+                        {
+                            id = "zai_region",
+                            type = "radio",
+                            text_func = function(plugin)
+                                local f = plugin.settings:readSetting("features") or {}
+                                local region = f.zai_region or "international"
+                                local labels = {
+                                    international = _("International"),
+                                    china = _("China"),
+                                }
+                                return T(_("Z.AI Region: %1"), labels[region] or region)
+                            end,
+                            help_text = _("Select the Z.AI API endpoint.\n\nThe same API key works on both endpoints:\n- International: api.z.ai\n- China: open.bigmodel.cn"),
+                            path = "features.zai_region",
+                            default = "international",
+                            options = {
+                                { value = "international", text = _("International (api.z.ai)") },
+                                { value = "china", text = _("China (open.bigmodel.cn)") },
+                            },
+                        },
                         {
                             id = "qwen_region",
                             type = "radio",

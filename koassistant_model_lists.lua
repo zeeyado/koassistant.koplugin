@@ -348,6 +348,20 @@ local ModelLists = {
         "doubao-lite-32k",              -- ultrafast
     },
 
+    zai = {
+        -- GLM-5 (flagship, 200K context)
+        "glm-5",                        -- flagship
+        -- GLM-4.7 (128K context)
+        "glm-4.7",                      -- reasoning
+        "glm-4.7-flashx",              -- fast (paid)
+        "glm-4.7-flash",              -- free tier (default)
+        -- GLM-4.6 (128K context)
+        "glm-4.6",                      -- standard
+        -- GLM-4.5 (96K context)
+        "glm-4.5",
+        "glm-4.5-flash",              -- free tier
+    },
+
     ---------------------------------------------------------------------------
     -- TIER MAPPINGS
     -- Maps tier -> provider -> recommended model_id
@@ -373,6 +387,7 @@ local ModelLists = {
             qwen = "qwen3-max",
             kimi = "kimi-k2-thinking",
             doubao = "doubao-1.8-pro-256k",
+            zai = "glm-4.7",
         },
 
         -- Provider's most capable general-purpose model
@@ -393,6 +408,7 @@ local ModelLists = {
             qwen = "qwen3-max",
             kimi = "kimi-k2-0905-preview",
             doubao = "doubao-1.8-pro-32k",
+            zai = "glm-5",
         },
 
         -- Balanced performance and cost
@@ -413,6 +429,7 @@ local ModelLists = {
             qwen = "qwen-plus",
             kimi = "kimi-k2-0905-preview",
             doubao = "doubao-1.5-pro-32k",
+            zai = "glm-4.6",
         },
 
         -- Optimized for speed and lower cost
@@ -433,6 +450,7 @@ local ModelLists = {
             qwen = "qwen-turbo",
             kimi = "kimi-k2-turbo-preview",
             doubao = "doubao-seed-1.6-flash",
+            zai = "glm-4.7-flashx",
         },
 
         -- Smallest/cheapest models for basic tasks
@@ -453,6 +471,7 @@ local ModelLists = {
             qwen = "qwen-turbo",
             kimi = "kimi-k2-turbo-preview",
             doubao = "doubao-lite-32k",
+            zai = "glm-4.7-flash",
         },
     },
 
@@ -523,6 +542,10 @@ local ModelLists = {
         },
         doubao = {
             docs = "https://www.volcengine.com/docs/82379/1263482",
+        },
+        zai = {
+            api_list = "https://api.z.ai/api/paas/v4/models",
+            docs = "https://docs.z.ai/api-reference/llm/chat-completion",
         },
         ollama = {
             api_list = "http://localhost:11434/api/tags",

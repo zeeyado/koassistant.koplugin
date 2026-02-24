@@ -136,7 +136,7 @@ lua tests/inspect.lua --web --port 3000
 **Features:**
 - Live request building (no API calls needed)
 - **Send Request** to actually call provider APIs
-- Provider/model selection with all 16 providers
+- Provider/model selection with all 17 providers
 - Behavior toggles, temperature slider, **max tokens slider**
 - **Domain loading** from your actual `domains/` folder
 - **Action loading** from `prompts/actions.lua` + custom actions from settings
@@ -175,7 +175,7 @@ Located in `tests/unit/` (858 tests total across 16 files):
   - Cache integration tests: analysis cache flow to MessageBuilder
   - Context type tests: highlight, book, multi_book, general context building
   - Language, dictionary, surrounding context, reading stats, cache/incremental, additional input tests
-- `test_response_parser.lua` - Response parsing for all 16 providers (42 tests)
+- `test_response_parser.lua` - Response parsing for all 17 providers (46 tests)
 - `test_state_management.lua` - Context detection, flag isolation, config merge, transient flags, cache permission gating (68 tests)
   - Context detection contract: getPromptContext() priority rules (multi_book > book > general > highlight)
   - Context flag isolation: entry point patterns correctly set/clear flags

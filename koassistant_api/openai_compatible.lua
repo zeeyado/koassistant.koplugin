@@ -2,7 +2,7 @@
 OpenAI-Compatible Handler Base Class
 
 Shared implementation for providers that follow the OpenAI API format:
-groq, mistral, xai, together, fireworks, sambanova, openrouter, qwen, kimi, doubao, custom_openai
+groq, mistral, xai, together, fireworks, sambanova, openrouter, qwen, kimi, doubao, zai, custom_openai
 
 Child classes override:
 - getProviderName() [REQUIRED] - Display name for errors ("Mistral")
