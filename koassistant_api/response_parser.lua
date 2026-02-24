@@ -21,6 +21,29 @@ local function extractThinkTags(content)
     return content, nil
 end
 
+-- Format Perplexity citations as clickable footnotes
+-- @param citations table: Array of URL strings from Perplexity response
+-- @return string: Formatted sources section (or empty string if no citations)
+local function formatCitations(citations)
+    if not citations or type(citations) ~= "table" or #citations == 0 then
+        return ""
+    end
+    local parts = { "\n\n---\n**Sources:**" }
+    for i, url in ipairs(citations) do
+        if type(url) == "string" and url ~= "" then
+            -- Extract domain for readable link text
+            local domain = url:match("^https?://([^/]+)") or url
+            -- Remove www. prefix for cleaner display
+            domain = domain:gsub("^www%.", "")
+            table.insert(parts, string.format("[%d] [%s](%s)", i, domain, url))
+        end
+    end
+    if #parts == 1 then
+        return ""  -- No valid URLs
+    end
+    return table.concat(parts, "\n")
+end
+
 -- Response format transformers for each provider
 -- Returns: success, content, reasoning (reasoning is optional third return value)
 local RESPONSE_TRANSFORMERS = {
@@ -398,6 +421,27 @@ local RESPONSE_TRANSFORMERS = {
             return true, content, reasoning, web_search_used
         end
         return false, "Unexpected response format"
+    end,
+
+    perplexity = function(response)
+        if response.error then
+            return false, response.error.message or response.error.type or "Unknown error"
+        end
+        if response.choices and response.choices[1] and response.choices[1].message then
+            local content = response.choices[1].message.content
+            -- Check for truncation
+            local finish_reason = response.choices[1].finish_reason
+            if content and content ~= "" and finish_reason == "length" then
+                content = content .. ResponseParser.TRUNCATION_NOTICE
+            end
+            -- Append citation footnotes (Perplexity returns citations as top-level array)
+            if content and response.citations then
+                content = content .. formatCitations(response.citations)
+            end
+            -- Perplexity always searches the web — every response is web-grounded
+            return true, content, nil, true
+        end
+        return false, "Unexpected response format"
     end
 }
 
@@ -428,4 +472,7 @@ function ResponseParser:parseResponse(response, provider)
     return success, result, reasoning, web_search_used
 end
 
-return ResponseParser 
+-- Expose citation formatter for stream handler
+ResponseParser.formatCitations = formatCitations
+
+return ResponseParser

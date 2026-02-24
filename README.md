@@ -18,10 +18,10 @@
 - **Research & analysis** → deep analysis of papers/articles, explore arguments, find connections across works
 - **Multi-document** → compare texts, find common themes, analyze your collection
 - **General chat** → AI without book/document context
-- **Web search** → AI can search the web for current information (Anthropic, Gemini, OpenRouter)
+- **Web search** → AI can search the web for current information (Anthropic, Gemini, OpenRouter, Perplexity)
 - **Multilingual** → Use any language the AI understands, and use the KOAssistant UI in 20 languages
 
-17 built-in providers (Anthropic, OpenAI, Gemini, Ollama, and more) plus custom OpenAI-compatible providers. Fully configurable: custom actions, behaviors, domains, per-action model overrides. **One-tap auto-update** keeps the plugin current. Personal reading data (highlights, annotations, notebooks) is opt-in — not sent to the AI unless you enable it.
+18 built-in providers (Anthropic, OpenAI, Gemini, Ollama, and more) plus custom OpenAI-compatible providers. Fully configurable: custom actions, behaviors, domains, per-action model overrides. **One-tap auto-update** keeps the plugin current. Personal reading data (highlights, annotations, notebooks) is opt-in — not sent to the AI unless you enable it.
 
 **Status:** Active development — [issues](https://github.com/zeeyado/koassistant.koplugin/issues), [discussions](https://github.com/zeeyado/koassistant.koplugin/discussions), and [translations](https://hosted.weblate.org/engage/koassistant/) welcome. If you are somewhat technical and don't want to wait for tested releases, you can run off main branch to get the latest features. Breakage may happen. Also see [Assistant Plugin](https://github.com/omer-faruq/assistant.koplugin); both can run side by side.
 
@@ -139,7 +139,7 @@
 
 ### 1. Install the Plugin
 
-Download `koassistant.koplugin.zip` from the latest [Release](https://github.com/zeeyado/koassistant.koplugin/releases) → Assets, or clone the repo:
+Download `koassistant.koplugin.zip` from the latest [Release](https://github.com/zeeyado/koassistant.koplugin/releases) → Assets, or to run the latest from main branch: Code -> Download Zip, or clone the repo:
 ```bash
 git clone https://github.com/zeeyado/koassistant.koplugin
 ```
@@ -152,7 +152,7 @@ macOS:        ~/Library/Application Support/koreader/plugins/koassistant.koplugi
 Linux:        ~/.config/koreader/plugins/koassistant.koplugin/
 ```
 
-For the plugin to be installed correctly, the file structure should look like this (no nested folder, and foldername must be `koassistant.koplugin` exactly):
+For the plugin to be installed correctly, the file structure should look like this (no nested folder, and foldername must be `koassistant.koplugin` exactly; remove "-main" or similar if you downloaded the zip from head):
 ```
 koreader
 └── plugins
@@ -2144,7 +2144,7 @@ Backup and restore functionality, plus reset options. See [Backup & Restore](#ba
   - **OpenAI Reasoning (5.1+)**: Enables reasoning for GPT-5.1 and GPT-5.2 models where it is off by default (requires master toggle). Effort level: low/medium/high/xhigh. Other OpenAI reasoning models (o3, o3-mini, o3-pro, o4-mini, GPT-5, GPT-5-mini, GPT-5-nano) always reason at their factory defaults and are not affected by this toggle.
   - **Show Reasoning Indicator**: Display "*[Reasoning was used]*" in chat when reasoning is active (default: on)
 - **Web Search**: Allow AI to search the web for current information:
-  - **Enable Web Search**: Global toggle (default: off). Supported by Anthropic, Gemini, and OpenRouter.
+  - **Enable Web Search**: Global toggle (default: off). Supported by Anthropic, Gemini, and OpenRouter. Perplexity always searches the web (no toggle needed).
   - **Max Searches per Query**: 1-10 searches per query (Anthropic only, default: 5)
   - **Show Indicator in Chat**: Display "*[Web search was used]*" in chat when search is used (default: on)
 - **Provider Settings**:
@@ -2850,6 +2850,7 @@ KOAssistant supports **17 AI providers**. Please test and give feedback -- fixes
 | **Kimi** | Moonshot, 256K context | [platform.moonshot.cn](https://platform.moonshot.cn/) |
 | **Doubao** | ByteDance Volcano Engine | [console.volcengine.com](https://console.volcengine.com/) |
 | **Z.AI** | GLM models, free tier available | [z.ai](https://z.ai/) |
+| **Perplexity** | Sonar models, built-in web search with citations | [perplexity.ai](https://www.perplexity.ai/settings/api) |
 
 > 💡 **Free & Low-Cost Options**
 >

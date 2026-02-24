@@ -348,6 +348,14 @@ local ModelLists = {
         "doubao-lite-32k",              -- ultrafast
     },
 
+    perplexity = {
+        -- All Sonar models include built-in web search with citations
+        "sonar",                        -- fast search (default)
+        "sonar-pro",                    -- flagship (advanced search)
+        "sonar-reasoning-pro",          -- reasoning + search
+        "sonar-deep-research",          -- deep research
+    },
+
     zai = {
         -- GLM-5 (flagship, 200K context)
         "glm-5",                        -- flagship
@@ -388,6 +396,7 @@ local ModelLists = {
             kimi = "kimi-k2-thinking",
             doubao = "doubao-1.8-pro-256k",
             zai = "glm-4.7",
+            perplexity = "sonar-reasoning-pro",
         },
 
         -- Provider's most capable general-purpose model
@@ -409,6 +418,7 @@ local ModelLists = {
             kimi = "kimi-k2-0905-preview",
             doubao = "doubao-1.8-pro-32k",
             zai = "glm-5",
+            perplexity = "sonar-pro",
         },
 
         -- Balanced performance and cost
@@ -430,6 +440,7 @@ local ModelLists = {
             kimi = "kimi-k2-0905-preview",
             doubao = "doubao-1.5-pro-32k",
             zai = "glm-4.6",
+            perplexity = "sonar",
         },
 
         -- Optimized for speed and lower cost
@@ -451,6 +462,7 @@ local ModelLists = {
             kimi = "kimi-k2-turbo-preview",
             doubao = "doubao-seed-1.6-flash",
             zai = "glm-4.7-flashx",
+            perplexity = "sonar",
         },
 
         -- Smallest/cheapest models for basic tasks
@@ -472,6 +484,7 @@ local ModelLists = {
             kimi = "kimi-k2-turbo-preview",
             doubao = "doubao-lite-32k",
             zai = "glm-4.7-flash",
+            perplexity = "sonar",
         },
     },
 
@@ -542,6 +555,9 @@ local ModelLists = {
         },
         doubao = {
             docs = "https://www.volcengine.com/docs/82379/1263482",
+        },
+        perplexity = {
+            docs = "https://docs.perplexity.ai/",
         },
         zai = {
             api_list = "https://api.z.ai/api/paas/v4/models",

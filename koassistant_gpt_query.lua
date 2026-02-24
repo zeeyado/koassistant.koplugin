@@ -59,6 +59,7 @@ loadHandler("sambanova")
 loadHandler("cohere")
 loadHandler("doubao")
 loadHandler("zai")
+loadHandler("perplexity")
 -- Generic handler for custom OpenAI-compatible providers
 loadHandler("custom_openai")
 
