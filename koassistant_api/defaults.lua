@@ -30,6 +30,7 @@ local function getDefaultModel(provider)
         cohere = "command-r-plus-08-2024",
         doubao = "doubao-1.5-pro-32k",
         zai = "glm-4.7-flash",
+        perplexity = "sonar",
     }
     return fallbacks[provider] or "unknown"
 end
@@ -202,6 +203,15 @@ local ProviderDefaults = {
         provider = "zai",
         model = getDefaultModel("zai"),
         base_url = "https://api.z.ai/api/paas/v4/chat/completions",
+        additional_parameters = {
+            temperature = 0.7,
+            max_tokens = 16384
+        }
+    },
+    perplexity = {
+        provider = "perplexity",
+        model = getDefaultModel("perplexity"),
+        base_url = "https://api.perplexity.ai/chat/completions",
         additional_parameters = {
             temperature = 0.7,
             max_tokens = 16384

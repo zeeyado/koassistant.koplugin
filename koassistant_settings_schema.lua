@@ -1651,13 +1651,13 @@ local SettingsSchema = {
                     items = {
                         {
                             type = "info",
-                            text = _("Supported: Anthropic, Gemini, OpenRouter, Z.AI"),
+                            text = _("Supported: Anthropic, Gemini, OpenRouter"),
                         },
                         {
                             id = "enable_web_search",
                             type = "toggle",
                             text = _("Enable Web Search"),
-                            help_text = _("Allow AI to search the web for current information.\n\nSupported providers:\n• Anthropic (Claude)\n• Gemini\n• OpenRouter (all models)\n\nOther providers ignore this setting.\n\nIncreases token usage/cost."),
+                            help_text = _("Allow AI to search the web for current information.\n\nSupported providers:\n• Anthropic (Claude)\n• Gemini\n• OpenRouter (all models)\n\nPerplexity always searches the web (no toggle needed).\n\nOther providers ignore this setting.\n\nIncreases token usage/cost."),
                             path = "features.enable_web_search",
                             default = false,
                         },

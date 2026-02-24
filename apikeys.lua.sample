@@ -74,4 +74,8 @@ return {
     -- Z.AI API key (GLM models, free tier available)
     -- Get from: https://z.ai/manage-apikey/apikey-list
     zai = "YOUR_ZAI_API_KEY",
+
+    -- Perplexity API key (Sonar models, web search built-in)
+    -- Get from: https://www.perplexity.ai/settings/api
+    perplexity = "YOUR_PERPLEXITY_API_KEY",
 }

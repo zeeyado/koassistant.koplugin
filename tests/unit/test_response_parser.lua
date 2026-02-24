@@ -1,5 +1,5 @@
 -- Unit tests for koassistant_api/response_parser.lua
--- Tests response parsing for all 17 providers
+-- Tests response parsing for all 18 providers
 -- No API calls - tests with mock responses
 
 -- Setup paths (detect script location)
@@ -352,6 +352,49 @@ for _, provider in ipairs(openai_compatible) do
         TestRunner:assertEqual(result, "Error from " .. provider, "error for " .. provider)
     end)
 end
+
+-- Test Perplexity (always-on web search + citations)
+TestRunner:suite("Perplexity")
+
+TestRunner:test("parses successful response with web_search_used=true", function()
+    local response = {
+        choices = { { message = { content = "Hello from Perplexity" } } }
+    }
+    local success, result, reasoning, web_search_used = ResponseParser:parseResponse(response, "perplexity")
+    TestRunner:assertTrue(success, "success")
+    TestRunner:assertEqual(result, "Hello from Perplexity", "content")
+    TestRunner:assertTrue(web_search_used, "web_search_used always true")
+end)
+
+TestRunner:test("appends citation footnotes", function()
+    local response = {
+        choices = { { message = { content = "Answer with [1] and [2] refs" } } },
+        citations = { "https://example.com/article", "https://en.wikipedia.org/wiki/Topic" }
+    }
+    local success, result = ResponseParser:parseResponse(response, "perplexity")
+    TestRunner:assertTrue(success, "success")
+    TestRunner:assertContains(result, "**Sources:**", "sources header")
+    TestRunner:assertContains(result, "[1] [example.com](https://example.com/article)", "citation 1")
+    TestRunner:assertContains(result, "[2] [en.wikipedia.org](https://en.wikipedia.org/wiki/Topic)", "citation 2")
+end)
+
+TestRunner:test("handles response without citations", function()
+    local response = {
+        choices = { { message = { content = "No citations here" } } }
+    }
+    local success, result = ResponseParser:parseResponse(response, "perplexity")
+    TestRunner:assertTrue(success, "success")
+    TestRunner:assertEqual(result, "No citations here", "content unchanged")
+end)
+
+TestRunner:test("handles error response", function()
+    local response = {
+        error = { message = "Error from Perplexity" }
+    }
+    local success, result = ResponseParser:parseResponse(response, "perplexity")
+    TestRunner:assertFalse(success, "error success")
+    TestRunner:assertEqual(result, "Error from Perplexity", "error message")
+end)
 
 -- Test unknown provider
 TestRunner:suite("Unknown provider")

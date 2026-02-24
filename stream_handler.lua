@@ -101,6 +101,7 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
     local in_web_search_phase = false  -- Track if web search tool is executing
     local web_search_used = false  -- Track if web search was ever used during this stream
     local has_post_search_content = false  -- Track if real answer content arrived after a search
+    local perplexity_citations = nil  -- Capture Perplexity citations from SSE events
     local was_truncated = false  -- Track if response was truncated (max tokens)
     local usage_data = nil  -- Track token usage from SSE events
 
@@ -208,6 +209,12 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
         if was_truncated then
             local ResponseParser = require("koassistant_api.response_parser")
             result = result .. ResponseParser.TRUNCATION_NOTICE
+        end
+
+        -- Append Perplexity citation footnotes (captured during streaming)
+        if perplexity_citations then
+            local ResponseParser = require("koassistant_api.response_parser")
+            result = result .. ResponseParser.formatCitations(perplexity_citations)
         end
 
         -- Debug: Print token usage from accumulated SSE events
@@ -599,6 +606,12 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                                    (gm.groundingSupports and #gm.groundingSupports > 0) then
                                     web_search_used = true
                                 end
+                            end
+
+                            -- Capture Perplexity citations (top-level array in SSE events)
+                            if event.citations and type(event.citations) == "table" and #event.citations > 0 then
+                                perplexity_citations = event.citations
+                                web_search_used = true
                             end
 
                             -- Handle reasoning content (displayed with header, saved separately)
