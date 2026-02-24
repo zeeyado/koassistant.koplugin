@@ -21,7 +21,7 @@
 - **Web search** → AI can search the web for current information (Anthropic, Gemini, OpenRouter)
 - **Multilingual** → Use any language the AI understands, and use the KOAssistant UI in 20 languages
 
-16 built-in providers (Anthropic, OpenAI, Gemini, Ollama, and more) plus custom OpenAI-compatible providers. Fully configurable: custom actions, behaviors, domains, per-action model overrides. **One-tap auto-update** keeps the plugin current. Personal reading data (highlights, annotations, notebooks) is opt-in — not sent to the AI unless you enable it.
+17 built-in providers (Anthropic, OpenAI, Gemini, Ollama, and more) plus custom OpenAI-compatible providers. Fully configurable: custom actions, behaviors, domains, per-action model overrides. **One-tap auto-update** keeps the plugin current. Personal reading data (highlights, annotations, notebooks) is opt-in — not sent to the AI unless you enable it.
 
 **Status:** Active development — [issues](https://github.com/zeeyado/koassistant.koplugin/issues), [discussions](https://github.com/zeeyado/koassistant.koplugin/discussions), and [translations](https://hosted.weblate.org/engage/koassistant/) welcome. If you are somewhat technical and don't want to wait for tested releases, you can run off main branch to get the latest features. Breakage may happen. Also see [Assistant Plugin](https://github.com/omer-faruq/assistant.koplugin); both can run side by side.
 
@@ -187,7 +187,7 @@ Edit `apikeys.lua` and add your API key(s):
 return {
     anthropic = "your-key-here",  -- console.anthropic.com
     openai = "",                  -- platform.openai.com
-    -- See apikeys.lua.sample for all 16 providers
+    -- See apikeys.lua.sample for all 17 providers
 }
 ```
 
@@ -1866,7 +1866,7 @@ Tags are simple labels for organizing chats. Unlike domains:
 - **Document Analysis**: Deep analysis of thesis, structure, key insights, and audience. Requires text extraction
 
 ### Provider & Model
-- **Provider**: Select AI provider (16 built-in + custom providers)
+- **Provider**: Select AI provider (17 built-in + custom providers)
   - Tap to select from built-in providers
   - Custom providers appear with ★ prefix (see [Adding Custom Providers](#adding-custom-providers))
   - Long-press "Add custom provider..." to create your own
@@ -2829,7 +2829,7 @@ The built-in **News Update** action demonstrates this—it uses `enable_web_sear
 
 ## Supported Providers + Settings
 
-KOAssistant supports **16 AI providers**. Please test and give feedback -- fixes are quickly implemented
+KOAssistant supports **17 AI providers**. Please test and give feedback -- fixes are quickly implemented
 
 | Provider | Description | Get API Key |
 |----------|-------------|-------------|
@@ -2849,6 +2849,7 @@ KOAssistant supports **16 AI providers**. Please test and give feedback -- fixes
 | **Qwen** | Alibaba's Qwen models | [dashscope.console.aliyun.com](https://dashscope.console.aliyun.com/) |
 | **Kimi** | Moonshot, 256K context | [platform.moonshot.cn](https://platform.moonshot.cn/) |
 | **Doubao** | ByteDance Volcano Engine | [console.volcengine.com](https://console.volcengine.com/) |
+| **Z.AI** | GLM models, free tier available | [z.ai](https://z.ai/) |
 
 > 💡 **Free & Low-Cost Options**
 >
@@ -2857,6 +2858,7 @@ KOAssistant supports **16 AI providers**. Please test and give feedback -- fixes
 > - **Gemini**: gemini-3-flash-preview and free quota on other models
 > - **Ollama**: Completely free (runs locally on your hardware)
 > - **SambaNova**: Free tier for open-source models
+> - **Z.AI**: GLM-4.7-Flash, GLM-4.5-Flash are free
 >
 > See details below.
 
@@ -2872,6 +2874,7 @@ Several providers offer free tiers for testing or budget-conscious users:
 | **Ollama** | Completely free (runs locally on your hardware) |
 | **Mistral** | Open-weight models free: `open-mistral-nemo`, `magistral-small-latest` (Apache 2.0) |
 | **OpenRouter** | Some models have free tiers; check per-model pricing |
+| **Z.AI** | GLM-4.7-Flash, GLM-4.5-Flash free (1 concurrent request) |
 
 **Best for testing:** Groq (fastest free inference), Gemini (generous free quota), Ollama (no API key needed).
 

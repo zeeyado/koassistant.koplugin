@@ -83,6 +83,16 @@ ModelConstraints.capabilities = {
     },
     -- Note: xAI web search requires Responses API (/v1/responses) which is
     -- not compatible with Chat Completions. Deprecated Feb 20, 2026 (410 Gone).
+    -- Note: Z.AI web search only works via a separate endpoint (/api/paas/v4/tools),
+    -- NOT via the chat completions tools parameter (silently ignored).
+    zai = {
+        -- GLM-4.5+ models support toggleable thinking (type: enabled/disabled)
+        -- Returns reasoning_content field in responses (like DeepSeek)
+        thinking = {
+            "glm-5", "glm-4.7", "glm-4.7-flashx", "glm-4.7-flash",
+            "glm-4.6", "glm-4.5", "glm-4.5-flash",
+        },
+    },
 }
 
 -- Maximum output token limits per model

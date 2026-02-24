@@ -58,6 +58,7 @@ loadHandler("fireworks")
 loadHandler("sambanova")
 loadHandler("cohere")
 loadHandler("doubao")
+loadHandler("zai")
 -- Generic handler for custom OpenAI-compatible providers
 loadHandler("custom_openai")
 
