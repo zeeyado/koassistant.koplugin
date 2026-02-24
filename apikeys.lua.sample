@@ -70,4 +70,8 @@ return {
     -- Doubao/ByteDance API key
     -- Get from: https://console.volcengine.com/
     doubao = "YOUR_DOUBAO_API_KEY",
-} 
+
+    -- Z.AI API key (GLM models, free tier available)
+    -- Get from: https://z.ai/manage-apikey/apikey-list
+    zai = "YOUR_ZAI_API_KEY",
+}

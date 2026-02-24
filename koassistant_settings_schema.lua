@@ -1487,7 +1487,7 @@ local SettingsSchema = {
                             id = "enable_reasoning",
                             type = "toggle",
                             text = _("Enable Reasoning"),
-                            help_text = _("Controls reasoning/thinking for providers with configurable reasoning:\n\n• Anthropic: Adaptive thinking (4.6+) / Extended thinking\n• Gemini: Thinking depth (Gemini 3)\n• OpenAI: Reasoning for GPT-5.1+ models\n\nModels like o3, GPT-5, DeepSeek Reasoner, and Gemini 2.5 always reason by default and are not affected by this toggle."),
+                            help_text = _("Controls reasoning/thinking for providers with configurable reasoning:\n\n• Anthropic: Adaptive thinking (4.6+) / Extended thinking\n• Gemini: Thinking depth (Gemini 3)\n• OpenAI: Reasoning for GPT-5.1+ models\n• Z.AI: Thinking for GLM-4.5+ models\n\nModels like o3, GPT-5, DeepSeek Reasoner, and Gemini 2.5 always reason by default and are not affected by this toggle."),
                             path = "features.enable_reasoning",
                             default = false,
                             separator = true,
@@ -1621,6 +1621,17 @@ local SettingsSchema = {
                                 { value = "xhigh", text = _("Extra High (5.2+ only)") },
                             },
                         },
+                        -- Z.AI Thinking
+                        {
+                            id = "zai_reasoning",
+                            type = "toggle",
+                            text = _("Z.AI Thinking"),
+                            help_text = _("Supported models:\n") .. getModelList("zai", "thinking") .. _("\n\nEnable thinking for GLM models. Returns reasoning traces viewable via 'Show Reasoning' button."),
+                            path = "features.zai_reasoning",
+                            default = false,
+                            depends_on = { id = "enable_reasoning", value = true },
+                            separator = true,
+                        },
                         -- Indicator in chat (separate from "Show Reasoning" button)
                         {
                             id = "show_reasoning_indicator",
@@ -1640,13 +1651,13 @@ local SettingsSchema = {
                     items = {
                         {
                             type = "info",
-                            text = _("Supported: Anthropic, Gemini, OpenRouter"),
+                            text = _("Supported: Anthropic, Gemini, OpenRouter, Z.AI"),
                         },
                         {
                             id = "enable_web_search",
                             type = "toggle",
                             text = _("Enable Web Search"),
-                            help_text = _("Allow AI to search the web for current information.\n\nSupported providers:\n• Anthropic (Claude)\n• Gemini\n• OpenRouter (all models)\n\nOther providers ignore this setting.\n\nIncreases token usage/cost."),
+                            help_text = _("Allow AI to search the web for current information.\n\nSupported providers:\n• Anthropic (Claude)\n• Gemini\n• OpenRouter (all models)\n• Z.AI (GLM models)\n\nOther providers ignore this setting.\n\nIncreases token usage/cost."),
                             path = "features.enable_web_search",
                             default = false,
                         },

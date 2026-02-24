@@ -1,5 +1,5 @@
 -- Unit tests for koassistant_api/response_parser.lua
--- Tests response parsing for all 16 providers
+-- Tests response parsing for all 17 providers
 -- No API calls - tests with mock responses
 
 -- Setup paths (detect script location)
@@ -90,7 +90,7 @@ local ResponseParser = require("koassistant_api.response_parser")
 
 print("")
 print(string.rep("=", 50))
-print("  Unit Tests: Response Parser (16 Providers)")
+print("  Unit Tests: Response Parser (17 Providers)")
 print(string.rep("=", 50))
 
 -- Test Anthropic format
@@ -281,6 +281,48 @@ TestRunner:test("handles error response", function()
     local success, result = ResponseParser:parseResponse(response, "cohere")
     TestRunner:assertFalse(success, "success")
     TestRunner:assertEqual(result, "Rate limited", "error message")
+end)
+
+-- Test Z.AI format (custom transformer with reasoning_content + web search)
+TestRunner:suite("Z.AI")
+
+TestRunner:test("parses successful response", function()
+    local response = {
+        choices = { { message = { content = "Hello from Z.AI" } } }
+    }
+    local success, result = ResponseParser:parseResponse(response, "zai")
+    TestRunner:assertTrue(success, "success")
+    TestRunner:assertEqual(result, "Hello from Z.AI", "content")
+end)
+
+TestRunner:test("extracts reasoning_content", function()
+    local response = {
+        choices = { { message = { content = "Answer", reasoning_content = "Thinking..." } } }
+    }
+    local success, result, reasoning = ResponseParser:parseResponse(response, "zai")
+    TestRunner:assertTrue(success, "success")
+    TestRunner:assertEqual(result, "Answer", "content")
+    TestRunner:assertEqual(reasoning, "Thinking...", "reasoning")
+end)
+
+TestRunner:test("detects web search usage", function()
+    local response = {
+        choices = { { message = { content = "Search result" } } },
+        web_search = { { content = "source info" } }
+    }
+    local success, result, reasoning, web_search_used = ResponseParser:parseResponse(response, "zai")
+    TestRunner:assertTrue(success, "success")
+    TestRunner:assertEqual(result, "Search result", "content")
+    TestRunner:assertTrue(web_search_used, "web_search_used")
+end)
+
+TestRunner:test("handles error response", function()
+    local response = {
+        error = { message = "Error from Z.AI" }
+    }
+    local success, result = ResponseParser:parseResponse(response, "zai")
+    TestRunner:assertFalse(success, "error success")
+    TestRunner:assertEqual(result, "Error from Z.AI", "error message")
 end)
 
 -- Test OpenAI-compatible providers

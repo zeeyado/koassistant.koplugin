@@ -29,6 +29,7 @@ local function getDefaultModel(provider)
         sambanova = "Meta-Llama-3.3-70B-Instruct",
         cohere = "command-r-plus-08-2024",
         doubao = "doubao-1.5-pro-32k",
+        zai = "glm-4.7-flash",
     }
     return fallbacks[provider] or "unknown"
 end
@@ -192,6 +193,15 @@ local ProviderDefaults = {
         provider = "doubao",
         model = getDefaultModel("doubao"),
         base_url = "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
+        additional_parameters = {
+            temperature = 0.7,
+            max_tokens = 16384
+        }
+    },
+    zai = {
+        provider = "zai",
+        model = getDefaultModel("zai"),
+        base_url = "https://api.z.ai/api/paas/v4/chat/completions",
         additional_parameters = {
             temperature = 0.7,
             max_tokens = 16384

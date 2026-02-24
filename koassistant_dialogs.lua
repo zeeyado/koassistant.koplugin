@@ -397,14 +397,16 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
     local anthropic_reasoning = enable_reasoning_master and features.anthropic_reasoning
     local openai_reasoning = enable_reasoning_master and features.openai_reasoning
     local gemini_reasoning = enable_reasoning_master and features.gemini_reasoning
+    local zai_reasoning = enable_reasoning_master and features.zai_reasoning
 
     -- Check for action overrides
-    -- NEW format: action.reasoning_config = { anthropic: {...}, openai: {...}, gemini: {...} } or "off"
+    -- NEW format: action.reasoning_config = { anthropic: {...}, openai: {...}, gemini: {...}, zai: {...} } or "off"
     -- LEGACY format: action.reasoning = "on"/"off", action.thinking_budget, etc.
     local action_anthropic_override = nil  -- nil = use global, true = on, false = off
     local action_anthropic_adaptive_override = nil  -- nil = use global, true = on, false = off
     local action_openai_override = nil
     local action_gemini_override = nil
+    local action_zai_override = nil
 
     if action then
         -- NEW format: per-provider reasoning_config
@@ -414,6 +416,7 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
                 action_anthropic_override = false
                 action_openai_override = false
                 action_gemini_override = false
+                action_zai_override = false
             elseif type(action.reasoning_config) == "table" then
                 -- Per-provider configuration
                 local rc = action.reasoning_config
@@ -454,6 +457,15 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
                         reasoning_depth = rc.gemini.level
                     end
                 end
+
+                -- Z.AI config (binary: on/off, no effort levels)
+                if rc.zai then
+                    if rc.zai == "off" then
+                        action_zai_override = false
+                    else
+                        action_zai_override = true
+                    end
+                end
             end
         -- LEGACY format: action.reasoning = "on"/"off" or action.extended_thinking
         elseif action.reasoning == "off" or action.extended_thinking == "off" then
@@ -462,12 +474,14 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
             action_anthropic_adaptive_override = false
             action_openai_override = false
             action_gemini_override = false
+            action_zai_override = false
         elseif action.reasoning == "on" or action.extended_thinking == "on" then
             -- Legacy: force on with per-field overrides
             action_anthropic_override = true
             action_anthropic_adaptive_override = true
             action_openai_override = true
             action_gemini_override = true
+            action_zai_override = true
             if action.thinking_budget then reasoning_budget = action.thinking_budget end
             if action.reasoning_effort then reasoning_effort = action.reasoning_effort end
             if action.reasoning_depth then reasoning_depth = action.reasoning_depth end
@@ -522,6 +536,12 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
         if action_gemini_override ~= nil then enabled = action_gemini_override end
         if enabled then
             config.api_params.thinking_level = reasoning_depth:upper()
+        end
+    elseif provider == "zai" then
+        local enabled = zai_reasoning
+        if action_zai_override ~= nil then enabled = action_zai_override end
+        if enabled then
+            config.api_params.zai_thinking = { type = "enabled" }
         end
     end
     -- DeepSeek: no parameter needed, reasoner model always reasons

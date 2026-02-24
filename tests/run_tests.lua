@@ -112,7 +112,7 @@ Examples:
 Providers:
   anthropic, openai, deepseek, gemini, ollama, groq, mistral,
   xai, openrouter, qwen, kimi, together, fireworks, sambanova,
-  cohere, doubao
+  cohere, doubao, zai
 
 Configuration:
   Create tests/local_config.lua from tests/local_config.lua.sample
