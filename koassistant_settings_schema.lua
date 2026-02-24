@@ -1692,6 +1692,26 @@ local SettingsSchema = {
                     text = _("Provider Settings"),
                     items = {
                         {
+                            id = "zai_region",
+                            type = "radio",
+                            text_func = function(plugin)
+                                local f = plugin.settings:readSetting("features") or {}
+                                local region = f.zai_region or "international"
+                                local labels = {
+                                    international = _("International"),
+                                    china = _("China"),
+                                }
+                                return T(_("Z.AI Region: %1"), labels[region] or region)
+                            end,
+                            help_text = _("Select the Z.AI API endpoint.\n\nThe same API key works on both endpoints:\n- International: api.z.ai\n- China: open.bigmodel.cn"),
+                            path = "features.zai_region",
+                            default = "international",
+                            options = {
+                                { value = "international", text = _("International (api.z.ai)") },
+                                { value = "china", text = _("China (open.bigmodel.cn)") },
+                            },
+                        },
+                        {
                             id = "qwen_region",
                             type = "radio",
                             text_func = function(plugin)
