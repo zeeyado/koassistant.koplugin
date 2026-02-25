@@ -714,6 +714,16 @@ local function createSaveDialog(document_path, history, chat_history_manager, is
                                 -- v2: DocSettings-based storage
                                 -- Build complete chat_data structure (matching old saveChat format)
                                 local chat_id = metadata.id or chat_history_manager:generateChatId()
+
+                                -- Preserve existing tags when updating an existing chat
+                                local existing_tags = {}
+                                if metadata.id then
+                                    local existing = chat_history_manager:getChatById(document_path, metadata.id)
+                                    if existing then
+                                        existing_tags = existing.tags or {}
+                                    end
+                                end
+
                                 local chat_data = {
                                     id = chat_id,
                                     title = chat_title or "Conversation",
@@ -727,7 +737,7 @@ local function createSaveDialog(document_path, history, chat_history_manager, is
                                     prompt_action = history.prompt_action,
                                     launch_context = metadata.launch_context,
                                     domain = metadata.domain,
-                                    tags = metadata.tags or {},
+                                    tags = existing_tags,
                                     original_highlighted_text = metadata.original_highlighted_text,
                                     -- Store system prompt metadata for debug display
                                     system_metadata = config and config.system,
@@ -1454,9 +1464,22 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                             if chat_history_manager:useDocSettingsStorage() then
                                 -- v2: DocSettings-based storage
                                 local chat_id = metadata.id or history.chat_id or chat_history_manager:generateChatId()
+
+                                -- Preserve existing tags and title when updating an existing chat
+                                local existing_tags = {}
+                                local existing_title = suggested_title
+                                local effective_chat_id = metadata.id or history.chat_id
+                                if effective_chat_id and save_path then
+                                    local existing = chat_history_manager:getChatById(save_path, effective_chat_id)
+                                    if existing then
+                                        existing_tags = existing.tags or {}
+                                        existing_title = existing.title or suggested_title
+                                    end
+                                end
+
                                 local chat_data = {
                                     id = chat_id,
-                                    title = suggested_title or "Conversation",
+                                    title = existing_title or "Conversation",
                                     document_path = save_path,
                                     timestamp = os.time(),
                                     messages = history:getMessages(),
@@ -1467,7 +1490,7 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                                     prompt_action = history.prompt_action,
                                     launch_context = metadata.launch_context,
                                     domain = metadata.domain,
-                                    tags = metadata.tags or {},
+                                    tags = existing_tags,
                                     original_highlighted_text = metadata.original_highlighted_text,
                                     -- Store system prompt metadata for debug display
                                     system_metadata = cfg.system,
@@ -1563,9 +1586,22 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                     if chat_history_manager:useDocSettingsStorage() then
                         -- v2: DocSettings-based storage
                         local chat_id = metadata.id or history.chat_id or chat_history_manager:generateChatId()
+
+                        -- Preserve existing tags and title when updating an existing chat
+                        local existing_tags = {}
+                        local existing_title = suggested_title
+                        local effective_chat_id = metadata.id or history.chat_id
+                        if effective_chat_id then
+                            local existing = chat_history_manager:getChatById(save_path, effective_chat_id)
+                            if existing then
+                                existing_tags = existing.tags or {}
+                                existing_title = existing.title or suggested_title
+                            end
+                        end
+
                         local chat_data = {
                             id = chat_id,
-                            title = suggested_title or "Conversation",
+                            title = existing_title or "Conversation",
                             document_path = save_path,
                             timestamp = os.time(),
                             messages = history:getMessages(),
@@ -1576,7 +1612,7 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                             prompt_action = history.prompt_action,
                             launch_context = metadata.launch_context,
                             domain = metadata.domain,
-                            tags = metadata.tags or {},
+                            tags = existing_tags,
                             original_highlighted_text = metadata.original_highlighted_text,
                             -- Store system prompt metadata for debug display
                             system_metadata = viewer_config and viewer_config.system,
@@ -1808,9 +1844,22 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                 if chat_history_manager:useDocSettingsStorage() then
                     -- v2: DocSettings-based storage
                     local chat_id = metadata.id or history.chat_id or chat_history_manager:generateChatId()
+
+                    -- Preserve existing tags and title when updating an existing chat
+                    local existing_tags = {}
+                    local existing_title = suggested_title
+                    local effective_chat_id = metadata.id or history.chat_id
+                    if effective_chat_id and save_path then
+                        local existing = chat_history_manager:getChatById(save_path, effective_chat_id)
+                        if existing then
+                            existing_tags = existing.tags or {}
+                            existing_title = existing.title or suggested_title
+                        end
+                    end
+
                     local chat_data = {
                         id = chat_id,
-                        title = suggested_title or "Conversation",
+                        title = existing_title or "Conversation",
                         document_path = save_path,
                         timestamp = os.time(),
                         messages = history:getMessages(),
@@ -1821,7 +1870,7 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                         prompt_action = history.prompt_action,
                         launch_context = metadata.launch_context,
                         domain = metadata.domain,
-                        tags = metadata.tags or {},
+                        tags = existing_tags,
                         original_highlighted_text = metadata.original_highlighted_text,
                         -- Store system prompt metadata for debug display
                         system_metadata = temp_config.system,

@@ -1491,13 +1491,19 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
 
                 -- Auto-save continued chats
                 if config.features.auto_save_all_chats or (config.features.auto_save_chats ~= false) then
+                    -- Reload fresh tags and title from disk to pick up any
+                    -- changes made via the tag/rename UI during this session
+                    local fresh = chat_history_manager:getChatById(document_path, chat.id)
+                    local save_tags = (fresh and fresh.tags) or chat.tags or {}
+                    local save_title = (fresh and fresh.title) or chat.title
+
                     local save_ok
                     -- Check storage version and route to appropriate method
                     if chat_history_manager:useDocSettingsStorage() then
                         -- v2: DocSettings-based storage
                         local chat_data = {
                             id = chat.id,
-                            title = chat.title,
+                            title = save_title,
                             document_path = document_path,
                             timestamp = os.time(),
                             messages = history:getMessages(),
@@ -1508,7 +1514,7 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
                             prompt_action = history.prompt_action,
                             launch_context = chat.launch_context,
                             domain = chat.domain,
-                            tags = chat.tags or {},
+                            tags = save_tags,
                             original_highlighted_text = chat.original_highlighted_text,
                             -- Preserve system prompt metadata for debug display
                             system_metadata = chat.system_metadata,
@@ -1678,13 +1684,19 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
                         timeout = 2,
                     })
                 else
+                    -- Reload fresh tags and title from disk to pick up any
+                    -- changes made via the tag/rename UI during this session
+                    local fresh = chat_history_manager:getChatById(document_path, chat.id)
+                    local save_tags = (fresh and fresh.tags) or chat.tags or {}
+                    local save_title = (fresh and fresh.title) or chat.title
+
                     local save_ok
                     -- Check storage version and route to appropriate method
                     if chat_history_manager:useDocSettingsStorage() then
                         -- v2: DocSettings-based storage
                         local chat_data = {
                             id = chat.id,
-                            title = chat.title,
+                            title = save_title,
                             document_path = document_path,
                             timestamp = os.time(),
                             messages = history:getMessages(),
@@ -1695,7 +1707,7 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
                             prompt_action = history.prompt_action,
                             launch_context = chat.launch_context,
                             domain = chat.domain,
-                            tags = chat.tags or {},
+                            tags = save_tags,
                             original_highlighted_text = chat.original_highlighted_text,
                             -- Preserve system prompt metadata for debug display
                             system_metadata = chat.system_metadata,
