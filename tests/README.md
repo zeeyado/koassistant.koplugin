@@ -378,7 +378,7 @@ cp tests/local_config.lua.sample tests/local_config.lua
 
 Supports: `plugin_dir`, `apikeys_path`, `default_provider`, `verbose`, `skip_providers`
 
-## Providers (16 total)
+## Providers (18 total)
 
 | Provider | Description |
 |----------|-------------|
@@ -398,6 +398,8 @@ Supports: `plugin_dir`, `apikeys_path`, `default_provider`, `verbose`, `skip_pro
 | sambanova | SambaNova |
 | cohere | Command models (v2 API) |
 | doubao | ByteDance |
+| zai | Z.AI GLM models |
+| perplexity | Sonar models (built-in web search) |
 
 ## Files
 

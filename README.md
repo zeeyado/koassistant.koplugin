@@ -89,7 +89,7 @@
   - [Response Caching](#response-caching) — 7 cacheable artifacts, incremental X-Ray/Recap updates as you read
   - [Document Artifacts](#document-artifacts) — Summary, X-Ray, X-Ray (Simple), Recap, Analysis, Book Info, Analyze My Notes: viewable guides and reusable context for Smart actions
   - [Reasoning/Thinking](#reasoningthinking)
-  - [Web Search](#web-search) — AI searches the web for current information (Anthropic, Gemini, OpenRouter)
+  - [Web Search](#web-search) — AI searches the web for current information (Anthropic, Gemini, OpenRouter, Perplexity)
 - [Supported Providers + Settings](#supported-providers--settings) - Choose your model, etc
   - [Free Tier Providers](#free-tier-providers)
   - [Adding Custom Providers](#adding-custom-providers)
@@ -1866,7 +1866,7 @@ Tags are simple labels for organizing chats. Unlike domains:
 - **Document Analysis**: Deep analysis of thesis, structure, key insights, and audience. Requires text extraction
 
 ### Provider & Model
-- **Provider**: Select AI provider (17 built-in + custom providers)
+- **Provider**: Select AI provider (18 built-in + custom providers)
   - Tap to select from built-in providers
   - Custom providers appear with ★ prefix (see [Adding Custom Providers](#adding-custom-providers))
   - Long-press "Add custom provider..." to create your own
@@ -2149,6 +2149,7 @@ Backup and restore functionality, plus reset options. See [Backup & Restore](#ba
   - **Show Indicator in Chat**: Display "*[Web search was used]*" in chat when search is used (default: on)
 - **Provider Settings**:
   - **Qwen Region**: Select your Alibaba Cloud region (International/China/US). API keys are region-specific and not interchangeable.
+  - **Z.AI Region**: Select endpoint (International/China). Same API key works on both endpoints.
 - **Console Debug**: Enable terminal/console debug logging. When enabled, also shows token usage (input, output, cache hits) in the terminal after each API response.
 - **Show Debug in Chat**: Display debug info in chat viewer
 - **Debug Detail Level**: Verbosity (Minimal/Names/Full)
@@ -2792,6 +2793,7 @@ Supported providers can search the web to include current information in their r
 | **Anthropic** | `web_search_20250305` tool | Configurable max searches (1-10) |
 | **Gemini** | Google Search grounding | Automatic search count |
 | **OpenRouter** | Exa search via `:online` suffix | Works with all models ($0.02/search) |
+| **Perplexity** | Built-in Sonar web search | Always-on, every response includes citations |
 
 **How it works:**
 1. Enable in Settings → AI Response → Web Search → Enable Web Search
@@ -2818,7 +2820,7 @@ The built-in **News Update** action demonstrates this—it uses `enable_web_sear
 
 **Best for:** Questions about current events, recent developments, fact-checking, research topics.
 
-**Note:** Web search increases token usage and may add latency. Unsupported providers silently ignore this setting.
+**Note:** Perplexity always searches the web — the toggle has no effect on Perplexity (web search is inherent to all Sonar models). For other providers, web search increases token usage and may add latency. Unsupported providers silently ignore this setting.
 
 **Troubleshooting OpenRouter:**
 - OpenRouter routes requests to many different backend providers, each with their own streaming behavior
@@ -2829,7 +2831,7 @@ The built-in **News Update** action demonstrates this—it uses `enable_web_sear
 
 ## Supported Providers + Settings
 
-KOAssistant supports **17 AI providers**. Please test and give feedback -- fixes are quickly implemented
+KOAssistant supports **18 AI providers**. Please test and give feedback -- fixes are quickly implemented
 
 | Provider | Description | Get API Key |
 |----------|-------------|-------------|
