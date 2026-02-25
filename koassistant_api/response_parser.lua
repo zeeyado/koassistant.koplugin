@@ -28,7 +28,7 @@ local function formatCitations(citations)
     if not citations or type(citations) ~= "table" or #citations == 0 then
         return ""
     end
-    local parts = { "\n\n---\n**Sources:**" }
+    local parts = {}
     for i, url in ipairs(citations) do
         if type(url) == "string" and url ~= "" then
             -- Sanitize URL: strip whitespace (API artifacts break markdown links)
@@ -37,14 +37,14 @@ local function formatCitations(citations)
             local domain = url:match("^https?://([^/]+)") or url
             -- Remove www. prefix for cleaner display
             domain = domain:gsub("^www%.", "")
-            table.insert(parts, string.format("[%d] [%s](%s)", i, domain, url))
+            table.insert(parts, string.format("- [%d] [%s](%s)", i, domain, url))
         end
     end
-    if #parts == 1 then
-        return ""  -- No valid URLs
+    if #parts == 0 then
+        return ""
     end
-    -- Use double newlines (paragraph breaks) — luamd ignores trailing-space line breaks
-    return table.concat(parts, "\n\n")
+    -- Markdown list items are block-level — guaranteed separate lines in any renderer
+    return "\n\n---\n**Sources:**\n\n" .. table.concat(parts, "\n")
 end
 
 -- Response format transformers for each provider
