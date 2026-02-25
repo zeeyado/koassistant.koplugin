@@ -23,4 +23,24 @@ function PerplexityHandler:getProviderKey()
     return "perplexity"
 end
 
+-- Perplexity requires strict user/assistant message alternation.
+-- Merge consecutive same-role messages to avoid 400 errors
+-- (e.g., context message + user question are both role="user").
+function PerplexityHandler:customizeRequestBody(body, config)
+    local messages = body.messages
+    if messages and #messages > 1 then
+        local merged = { messages[1] }
+        for i = 2, #messages do
+            local prev = merged[#merged]
+            if messages[i].role == prev.role then
+                prev.content = prev.content .. "\n\n" .. messages[i].content
+            else
+                table.insert(merged, messages[i])
+            end
+        end
+        body.messages = merged
+    end
+    return body
+end
+
 return PerplexityHandler
