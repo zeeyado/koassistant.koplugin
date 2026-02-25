@@ -1769,20 +1769,37 @@ function ActionService:createDuplicateAction(action)
         include_book_context = action.include_book_context,
         skip_language_instruction = action.skip_language_instruction,
         skip_domain = action.skip_domain,
-        -- Context extraction flags (for reading-only actions)
+        -- Web search override (tri-state: true/false/nil)
+        enable_web_search = action.enable_web_search,
+        -- Context extraction flags
         use_book_text = action.use_book_text,
         use_highlights = action.use_highlights,
         use_annotations = action.use_annotations,
         use_reading_progress = action.use_reading_progress,
         use_reading_stats = action.use_reading_stats,
         use_notebook = action.use_notebook,
+        -- NOT copying artifact flags: use_response_caching, cache_as_*, use_*_cache,
+        -- update_prompt, storage_key, requires_*_cache (tightly coupled system)
+        -- Requirements & blocking
+        blocked_hint = action.blocked_hint,
         -- View mode flags
         translate_view = action.translate_view,
         compact_view = action.compact_view,
         minimal_buttons = action.minimal_buttons,
+        -- Description
+        description = action.description,
         -- NOT copying: id (auto-generated), source (will be "ui"), enabled (default true)
         -- NOT copying: requires_open_book (dynamically inferred from flags above)
+        -- NOT copying: menu placement (in_dictionary_popup, in_highlight_menu, etc.)
     }
+
+    -- Handle requires array (shallow copy to avoid shared reference)
+    if action.requires then
+        duplicate.requires = {}
+        for _idx, req in ipairs(action.requires) do
+            duplicate.requires[_idx] = req
+        end
+    end
 
     -- Handle prompt: copy directly if exists, or resolve from template
     if action.prompt then
