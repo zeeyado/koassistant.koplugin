@@ -1510,6 +1510,18 @@ Actions.multi_book = {
         },
         builtin = true,
     },
+    recommend_books = {
+        id = "recommend_books",
+        text = _("Recommend Books"),
+        description = _("Recommends 5-8 new books based on the patterns across your selected books — matching the intersection of your interests, not just similarity to one title."),
+        context = "multi_book",
+        template = "recommend_books",
+        api_params = {
+            temperature = 0.8,  -- Higher creativity for discovery
+            max_tokens = 4096,
+        },
+        builtin = true,
+    },
 }
 
 -- Built-in actions for general context

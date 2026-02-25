@@ -213,6 +213,21 @@ Consider:
 - Thematic arc (what order tells a coherent story?)
 
 Explain your reasoning briefly. If order genuinely doesn't matter, say so. {hallucination_nudge}]],
+
+    recommend_books = [[Based on these {count} books, recommend new books to read:
+
+{books_list}
+
+First, briefly identify the pattern — what do these books suggest about this reader's taste? Then recommend 5-8 books, prioritizing:
+- Books that match the *intersection* of interests these books reveal, not just "similar to one of them"
+- A mix: some that lean into the reader's clear preferences, some that stretch in a direction they'd likely appreciate
+- Lesser-known works alongside well-known ones
+
+For each recommendation:
+- Why this reader specifically would enjoy it (connect to the pattern you identified)
+- What it offers that none of the listed books do
+
+Skip obvious picks the reader has almost certainly encountered. {hallucination_nudge}]],
 }
 
 -- Special templates (reserved for future use)
