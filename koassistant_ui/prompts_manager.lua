@@ -1078,6 +1078,7 @@ function PromptsManager:duplicateAction(action)
         include_book_context = duplicate.include_book_context,
         skip_language_instruction = duplicate.skip_language_instruction,
         skip_domain = duplicate.skip_domain,
+        enable_web_search = duplicate.enable_web_search,
         reasoning_config = duplicate.reasoning_config,
         extended_thinking = duplicate.extended_thinking,
         thinking_budget = duplicate.thinking_budget,
@@ -1090,16 +1091,27 @@ function PromptsManager:duplicateAction(action)
         use_reading_progress = duplicate.use_reading_progress,
         use_reading_stats = duplicate.use_reading_stats,
         use_notebook = duplicate.use_notebook,
+        -- NOT copying artifact flags (tightly coupled system)
+        -- Requirements & blocking
+        requires = duplicate.requires,
+        blocked_hint = duplicate.blocked_hint,
         -- View mode flags
         translate_view = duplicate.translate_view,
         compact_view = duplicate.compact_view,
         minimal_buttons = duplicate.minimal_buttons,
+        -- Description
+        description = duplicate.description,
     }
 
-    -- Add temperature if set
-    if duplicate.temperature then
-        action_data.api_params = action_data.api_params or {}
-        action_data.api_params.temperature = duplicate.temperature
+    -- Add api_params if set
+    if duplicate.temperature or duplicate.max_tokens then
+        action_data.api_params = {}
+        if duplicate.temperature then
+            action_data.api_params.temperature = duplicate.temperature
+        end
+        if duplicate.max_tokens then
+            action_data.api_params.max_tokens = duplicate.max_tokens
+        end
     end
 
     -- Save immediately as a new custom action (will have star icon as source = "ui")
