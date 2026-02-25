@@ -31,6 +31,8 @@ local function formatCitations(citations)
     local parts = { "\n\n---\n**Sources:**" }
     for i, url in ipairs(citations) do
         if type(url) == "string" and url ~= "" then
+            -- Sanitize URL: strip whitespace (API artifacts break markdown links)
+            url = url:gsub("%s", "")
             -- Extract domain for readable link text
             local domain = url:match("^https?://([^/]+)") or url
             -- Remove www. prefix for cleaner display
@@ -41,7 +43,8 @@ local function formatCitations(citations)
     if #parts == 1 then
         return ""  -- No valid URLs
     end
-    return table.concat(parts, "\n")
+    -- Use double newlines (paragraph breaks) — luamd ignores trailing-space line breaks
+    return table.concat(parts, "\n\n")
 end
 
 -- Response format transformers for each provider
