@@ -520,7 +520,7 @@ KOAssistant works in **4 contexts**, each with its own set of built-in actions:
 |---------|------------------|
 | **Highlight** | Explain, ELI5, Summarize, Elaborate, Connect, Connect (With Notes), Explain in Context, Explain in Context (Smart), Analyze in Context, Analyze in Context (Smart), Thematic Connection (Smart), Fact Check*, Current Context*, Translate, Dictionary, Quick Define, Deep Analysis, Look up in X-Ray† |
 | **Book** | Book Info, Find Similar, About Author, Historical Context, Related Thinkers, Book Reviews*, X-Ray, X-Ray (Simple), Recap, Analyze My Notes, Key Arguments, Key Arguments (Smart), Discussion Questions, Discussion Questions (Smart), Generate Quiz, Generate Quiz (Smart), Document Analysis, Document Summary, Extract Key Insights |
-| **Multi-book** | Compare Books, Find Common Themes, Analyze Collection, Quick Summaries, Reading Order |
+| **Multi-book** | Compare Books, Find Common Themes, Analyze Collection, Quick Summaries, Reading Order, Recommend Books |
 | **General** | News Update* |
 
 *Requires web search (Anthropic, Gemini, OpenRouter). News Update is available in gesture menu by default but not in the general input dialog. See [Web Search](#web-search) and [General Chat](#general-chat) for details.
@@ -789,8 +789,9 @@ Custom actions using placeholders like `{reading_progress}`, `{book_text}`, `{fu
 | **Analyze Collection** | What this selection reveals about the reader's interests |
 | **Quick Summaries** | Brief summary of each book |
 | **Reading Order** | Suggest optimal order based on dependencies, difficulty, themes |
+| **Recommend Books** | Suggests 5-8 new books based on patterns across your selected books |
 
-**What the AI sees**: List of titles, authors, and identifiers 
+**What the AI sees**: List of titles, authors, and identifiers
 
 ### General Chat
 

@@ -1988,6 +1988,15 @@ local INPUT_CONTEXTS = {
         default_ids = {"explain", "elaborate", "eli5", "fact_check",
             "explain_in_context_smart", "thematic_connection_smart", "connect"},
     },
+    multi_book = {
+        settings_key = "input_multi_book_actions",
+        dismissed_key = "_dismissed_input_multi_book_actions",
+        action_context = "multi_book",
+        has_open_book = false,
+        -- All multi-book actions as defaults
+        default_ids = {"compare_books", "common_themes", "collection_summary",
+            "quick_summaries", "reading_order", "recommend_books"},
+    },
 }
 
 -- Get all eligible action IDs for an input context (respects enabled state and open book filtering)
@@ -2227,6 +2236,8 @@ function ActionService.getInputContextForAction(action)
         return "book"
     elseif context == "highlight" or context == "both" then
         return "highlight"
+    elseif context == "multi_book" then
+        return "multi_book"
     end
     -- general context actions use the existing general menu system, not input contexts
     return nil

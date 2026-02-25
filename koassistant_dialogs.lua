@@ -2999,6 +2999,8 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         input_context = "general"  -- Uses existing getGeneralMenuActionObjects()
     elseif is_xray_chat then
         input_context = "xray_chat"
+    elseif configuration and configuration.features and configuration.features.is_multi_book_context then
+        input_context = "multi_book"
     elseif configuration and configuration.features and configuration.features.is_book_context then
         if has_open_book then
             input_context = "book"
