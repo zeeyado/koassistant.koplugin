@@ -2171,6 +2171,14 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
     -- Pass prompt text for better chat naming
     local history = MessageHistory:new(nil, prompt.text)
 
+    -- Store source data for title generation (avoids fragile regex on message content)
+    if highlightedText and highlightedText ~= "" then
+        history.source_highlight = highlightedText
+    end
+    if additional_input and additional_input ~= "" then
+        history.source_input = additional_input
+    end
+
     -- Determine context
     local context = getPromptContext(config)
 
@@ -3280,7 +3288,13 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     end
 
                     -- Create history WITHOUT system prompt (system is in config.system)
-                    local history = MessageHistory:new(nil, "Ask")
+                    -- No prompt_action for Send — title uses user question or highlight directly
+                    local history = MessageHistory:new(nil, nil)
+
+                    -- Store source data for title generation
+                    if highlighted_text and highlighted_text ~= "" then
+                        history.source_highlight = highlighted_text
+                    end
 
                     -- Store domain in history for saving with chat
                     if domain_id then
@@ -3328,6 +3342,11 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     -- Get user's typed question
                     local question = input_dialog:getInputText()
                     local has_user_question = question and question ~= ""
+
+                    -- Store user question for title generation
+                    if has_user_question then
+                        history.source_input = question
+                    end
 
                     -- Add user question to context message
                     if has_user_question then

@@ -236,23 +236,47 @@ end
 
 -- Get a title suggestion based on the first user message
 function MessageHistory:getSuggestedTitle()
-    -- Try to create a meaningful title based on context and content
-    
-    -- First, check if we have a prompt action stored
+    -- Truncate and clean text for title use
+    local function truncate(text, max)
+        max = max or 40
+        local clean = text:sub(1, max):gsub("\n", " "):gsub("^%s*(.-)%s*$", "%1")
+        return #text > max and (clean .. "...") or clean
+    end
+
+    -- Build action prefix (e.g. "Explain - ")
     local action_prefix = ""
     if self.prompt_action then
         action_prefix = self.prompt_action .. " - "
     end
-    
-    -- Look for highlighted text in messages
+
+    -- Priority 1: Use stored source data (set at chat creation time)
+    -- This avoids fragile regex extraction from message content, which breaks
+    -- when templates embed {highlighted_text} directly (no "Selected text:" label)
+    if self.prompt_action then
+        -- Action chats: highlight is most identifying, then user's additional input
+        if self.source_highlight and self.source_highlight ~= "" then
+            return action_prefix .. truncate(self.source_highlight)
+        end
+        if self.source_input and self.source_input ~= "" then
+            return action_prefix .. truncate(self.source_input)
+        end
+    else
+        -- Send chats (no action): user question is most identifying, then highlight
+        if self.source_input and self.source_input ~= "" then
+            return truncate(self.source_input)
+        end
+        if self.source_highlight and self.source_highlight ~= "" then
+            return truncate(self.source_highlight)
+        end
+    end
+
+    -- Priority 2: Regex extraction from message content (legacy/continued chats)
     local highlighted_text = nil
-    
-    -- Look through all messages for highlighted text or user content
+
     for _, msg in ipairs(self.messages) do
         if msg.role == self.ROLES.USER then
             -- Check if this is a consolidated message with sections
             if msg.content:match("%[Context%]") or msg.content:match("Highlighted text:") then
-                -- Try to extract highlighted text from various formats
                 local highlight_match = msg.content:match("Highlighted text:%s*\n?\"([^\"]+)\"")
                 if not highlight_match then
                     highlight_match = msg.content:match("Selected text:%s*\n?\"([^\"]+)\"")
@@ -261,55 +285,38 @@ function MessageHistory:getSuggestedTitle()
                     highlighted_text = highlight_match
                 end
             end
-            
+
             -- If we still don't have highlighted text, check for [Request] section
             if not highlighted_text and not msg.is_context then
                 local request_match = msg.content:match("%[Request%]%s*\n([^\n]+)")
                 if request_match then
-                    -- This is likely the user's actual question/request
-                    local snippet = request_match:sub(1, 40):gsub("\n", " ")
-                    if #request_match > 40 then
-                        snippet = snippet .. "..."
-                    end
-                    return action_prefix .. snippet
+                    return action_prefix .. truncate(request_match)
                 end
             end
         end
     end
-    
-    -- If we found highlighted text, use it
+
     if highlighted_text then
-        local snippet = highlighted_text:sub(1, 40):gsub("\n", " ")
-        if #highlighted_text > 40 then
-            snippet = snippet .. "..."
-        end
-        return action_prefix .. snippet
+        return action_prefix .. truncate(highlighted_text)
     end
-    
-    -- Otherwise, look for first actual user message/question
+
+    -- Priority 3: First actual user message/question
     for _, msg in ipairs(self.messages) do
         if msg.role == self.ROLES.USER and not msg.is_context then
-            -- Try to extract the meaningful part
             local content = msg.content
-            
-            -- Skip system instructions and context sections
             local user_part = content:match("%[User Question%]%s*\n([^\n]+)") or
                             content:match("%[Additional user input%]%s*\n([^\n]+)") or
                             content
-            
-            -- Clean up and use first part
-            local first_words = user_part:sub(1, 40):gsub("\n", " "):gsub("^%s*(.-)%s*$", "%1")
-            if #user_part > 40 then
-                first_words = first_words .. "..."
-            end
-            
+
+            local first_words = truncate(user_part)
+
             -- Don't return generic phrases
             if first_words ~= "I have a question for you." and first_words ~= "" then
                 return action_prefix .. first_words
             end
         end
     end
-    
+
     -- Ultimate fallback
     return action_prefix .. "Chat"
 end

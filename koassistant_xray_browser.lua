@@ -1650,6 +1650,10 @@ end
 --- @param detail_text string The X-Ray detail text to discuss
 function XrayBrowser:chatAboutItem(detail_text)
     local Dialogs = require("koassistant_dialogs")  -- Lazy to avoid circular dep
+    -- Refresh config from settings so provider/model changes since browser opened take effect
+    if self.metadata.plugin and self.metadata.plugin.updateConfigFromSettings then
+        self.metadata.plugin:updateConfigFromSettings()
+    end
     -- Shallow-copy config and features to avoid mutating shared metadata
     local orig_config = self.metadata.configuration
     local config = {}
