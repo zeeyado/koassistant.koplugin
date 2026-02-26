@@ -182,6 +182,19 @@ local function updatePinnedIndex(document_path, pinned)
     end
 end
 
+--- Invalidate file browser dialog row cache so pin changes are reflected.
+--- The file browser caches button rows per-file; pin add/remove must clear it.
+local function invalidateFileDialogCache()
+    local ok1, FileManager = pcall(require, "apps/filemanager/filemanager")
+    if ok1 and FileManager.instance and FileManager.instance.koassistant then
+        FileManager.instance.koassistant._file_dialog_row_cache = { file = nil, rows = nil }
+    end
+    local ok2, ReaderUI = pcall(require, "apps/reader/readerui")
+    if ok2 and ReaderUI.instance and ReaderUI.instance.koassistant then
+        ReaderUI.instance.koassistant._file_dialog_row_cache = { file = nil, rows = nil }
+    end
+end
+
 --- Add a pinned artifact.
 --- @param document_path string Document path or special key
 --- @param entry table Pinned entry (must include id, result, action_text, etc.)
@@ -199,6 +212,7 @@ function PinnedManager.addPin(document_path, entry)
     local ok = savePinned(document_path, pinned)
     if ok then
         updatePinnedIndex(document_path, pinned)
+        invalidateFileDialogCache()
     end
     return ok
 end
@@ -236,6 +250,7 @@ function PinnedManager.removePin(document_path, pin_id)
 
     if ok then
         updatePinnedIndex(document_path, #pinned > 0 and pinned or nil)
+        invalidateFileDialogCache()
     end
     return ok or false
 end

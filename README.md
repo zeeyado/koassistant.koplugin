@@ -1852,7 +1852,7 @@ Two complementary features for surfacing important content:
 
 **Star Conversation** — Mark a chat as starred for quick access. Starred chats appear with a ★ prefix and are collected in a virtual "Starred" folder at the top of the Chat History browser. Starring is about the *conversation* — use it when the whole chat is worth revisiting.
 
-**Pin to Artifacts** — Snapshot a chat's first AI response as a read-only pseudo-artifact. Pinned artifacts appear in the Artifact Browser alongside AI-generated cached artifacts (marked with "(Pinned)"). Pinning is about a specific *response* — use it when a particular AI answer is worth keeping as a reference, like an insightful analysis or a useful explanation.
+**Pin to Artifacts** — Snapshot a chat's first AI response as a read-only pseudo-artifact. Pinned artifacts appear in the Artifact Browser alongside AI-generated cached artifacts (marked with "(Pinned)"). Pinning is about a specific *response* — use it for non-Artifact actions whose output is still worth keeping as a reference, like Extract Key Insights, Key Arguments, etc.
 
 **How to star/pin:**
 - **Chat viewer**: Tap the **Pin / ★** button (first row) → popup with "Pin to Artifacts" and "Star Conversation" options. Labels update to reflect current state (Unpin/Unstar when already active).
