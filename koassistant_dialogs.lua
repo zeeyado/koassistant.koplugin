@@ -104,8 +104,9 @@ local function showLoadingDialog(config)
         -- These are set by buildUnifiedRequestConfig based on action overrides and global settings
         local reasoning_enabled = false
         if config.api_params then
-            -- Anthropic: thinking, OpenAI: reasoning, Gemini: thinking_level
-            if config.api_params.thinking or config.api_params.reasoning or config.api_params.thinking_level then
+            -- Anthropic: thinking, OpenAI: reasoning, Gemini: thinking_level / thinking_budget
+            if config.api_params.thinking or config.api_params.reasoning or config.api_params.thinking_level
+               or (config.api_params.thinking_budget and config.api_params.thinking_budget ~= 0) then
                 reasoning_enabled = true
             end
         end
@@ -376,7 +377,7 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
 
     -- Reasoning/Thinking support (per-provider toggles)
     -- Priority: action.reasoning_config > action.reasoning > master toggle > per-provider setting
-    -- Master toggle gates: Anthropic, Gemini, and OpenAI 5.1+ (reasoning_gated)
+    -- Master toggle gates: Anthropic, Gemini (2.5+3), and OpenAI 5.1+ (reasoning_gated)
     -- Always-on models (o3, gpt-5, deepseek-reasoner): not affected, use factory defaults
     local provider = config.provider or config.default_provider or "anthropic"
 
@@ -388,6 +389,7 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
     local reasoning_budget = features.reasoning_budget or rd.anthropic.budget
     local reasoning_effort = features.reasoning_effort or rd.openai.effort
     local reasoning_depth = features.reasoning_depth or rd.gemini.level
+    local gemini_thinking_budget = features.gemini_thinking_budget or rd.gemini.budget
 
     -- Anthropic adaptive thinking (4.6) settings
     local anthropic_adaptive = enable_reasoning_master and features.anthropic_adaptive
@@ -422,8 +424,8 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
                 local rc = action.reasoning_config
 
                 -- Anthropic config
-                if rc.anthropic then
-                    if rc.anthropic == "off" then
+                if rc.anthropic ~= nil then
+                    if rc.anthropic == "off" or rc.anthropic == false then
                         action_anthropic_override = false
                         action_anthropic_adaptive_override = false
                     elseif type(rc.anthropic) == "table" then
@@ -439,28 +441,34 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
                 end
 
                 -- OpenAI config
-                if rc.openai then
-                    if rc.openai == "off" then
+                if rc.openai ~= nil then
+                    if rc.openai == "off" or rc.openai == false then
                         action_openai_override = false
-                    elseif rc.openai.effort then
+                    elseif type(rc.openai) == "table" and rc.openai.effort then
                         action_openai_override = true
                         reasoning_effort = rc.openai.effort
                     end
                 end
 
                 -- Gemini config
-                if rc.gemini then
-                    if rc.gemini == "off" then
+                if rc.gemini ~= nil then
+                    if rc.gemini == "off" or rc.gemini == false then
                         action_gemini_override = false
-                    elseif rc.gemini.level then
-                        action_gemini_override = true
-                        reasoning_depth = rc.gemini.level
+                    elseif type(rc.gemini) == "table" then
+                        if rc.gemini.level then
+                            action_gemini_override = true
+                            reasoning_depth = rc.gemini.level
+                        end
+                        if rc.gemini.budget then
+                            action_gemini_override = true
+                            gemini_thinking_budget = rc.gemini.budget
+                        end
                     end
                 end
 
                 -- Z.AI config (binary: on/off, no effort levels)
-                if rc.zai then
-                    if rc.zai == "off" then
+                if rc.zai ~= nil then
+                    if rc.zai == "off" or rc.zai == false then
                         action_zai_override = false
                     else
                         action_zai_override = true
@@ -532,10 +540,25 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
         end
         -- Always-on models (o3, gpt-5): no effort param sent, factory defaults apply
     elseif provider == "gemini" then
+        local model = config.model or Defaults.ProviderDefaults.gemini.model
         local enabled = gemini_reasoning
         if action_gemini_override ~= nil then enabled = action_gemini_override end
+
         if enabled then
-            config.api_params.thinking_level = reasoning_depth:upper()
+            -- Gemini 3: set thinking level
+            if ModelConstraints.supportsCapability("gemini", model, "thinking") then
+                config.api_params.thinking_level = reasoning_depth:upper()
+            end
+            -- Gemini 2.5: set thinking budget (named level -> numeric value)
+            if ModelConstraints.supportsCapability("gemini", model, "thinking_budget") then
+                local budget_map = rd.gemini.budget_map
+                config.api_params.thinking_budget = budget_map[gemini_thinking_budget] or -1
+            end
+        else
+            -- Explicitly disabled: tell Gemini 2.5 to not think
+            if ModelConstraints.supportsCapability("gemini", model, "thinking_budget") then
+                config.api_params.thinking_budget = 0
+            end
         end
     elseif provider == "zai" then
         local enabled = zai_reasoning

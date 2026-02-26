@@ -69,8 +69,16 @@ function GeminiHandler:buildRequestBody(message_history, config)
     local default_params = defaults.additional_parameters or {}
 
     -- Check if thinking will be enabled (affects default max_tokens)
+    -- Gemini 3: thinkingLevel from settings
     local thinking_enabled = api_params.thinking_level and
                              ModelConstraints.supportsCapability("gemini", model, "thinking")
+
+    -- Gemini 2.5: thinkingBudget from settings (-1=dynamic, 0=disabled, 128-24576=specific)
+    local has_budget_support = ModelConstraints.supportsCapability("gemini", model, "thinking_budget")
+    local thinking_budget = api_params.thinking_budget  -- may be nil, 0, -1, or 128-24576
+    if has_budget_support and thinking_budget and thinking_budget ~= 0 then
+        thinking_enabled = true
+    end
 
     -- Determine max_tokens - use 16384 as base default for all modes
     -- Gemini thinking tokens count toward maxOutputTokens, so thinking gets even more
@@ -79,12 +87,9 @@ function GeminiHandler:buildRequestBody(message_history, config)
         max_tokens = thinking_enabled and 32768 or 16384
     end
 
-    -- Gemini 2.5 models have automatic thinking that shares the maxOutputTokens budget
-    -- without being controllable via thinkingConfig. Scale up large requests to give
-    -- visible output enough room alongside invisible thinking tokens.
-    -- Flash-Lite has thinking disabled by default, so no auto-scaling needed.
-    local has_auto_thinking = model:match("^gemini%-2%.5") and not model:match("flash%-lite")
-    if has_auto_thinking and max_tokens > 16384 then
+    -- Gemini 2.5: thinking tokens share the maxOutputTokens budget.
+    -- Scale up large requests only when thinking is active.
+    if has_budget_support and thinking_enabled and max_tokens > 16384 then
         max_tokens = math.min(max_tokens * 2, 65536)
     end
 
@@ -93,33 +98,44 @@ function GeminiHandler:buildRequestBody(message_history, config)
         maxOutputTokens = max_tokens,
     }
 
-    -- Add thinking config
-    -- Gemini REST API uses camelCase: generationConfig.thinkingConfig.thinkingLevel
-    -- Gemini 3 Pro: LOW, HIGH; Gemini 3 Flash: MINIMAL, LOW, MEDIUM, HIGH
+    -- Build thinkingConfig
+    -- Gemini REST API uses camelCase: generationConfig.thinkingConfig
+    -- Gemini 3 uses thinkingLevel (LOW/MEDIUM/HIGH/MINIMAL)
+    -- Gemini 2.5 uses thinkingBudget (0=off, -1=dynamic, 128-24576=specific)
     local adjustments = {}
-    if api_params.thinking_level then
-        -- User-configured thinking level (Gemini 3 models)
-        if thinking_enabled then
+
+    if api_params.thinking_level and
+       ModelConstraints.supportsCapability("gemini", model, "thinking") then
+        -- Gemini 3: thinkingLevel
+        request_body.generationConfig.thinkingConfig = {
+            thinkingLevel = api_params.thinking_level:upper(),
+            includeThoughts = true,
+        }
+    elseif has_budget_support then
+        -- Gemini 2.5: thinkingBudget
+        if thinking_budget == 0 then
+            -- Explicitly disabled
             request_body.generationConfig.thinkingConfig = {
-                thinkingLevel = api_params.thinking_level:upper(),
-                includeThoughts = true,  -- Required to get thinking in response
+                thinkingBudget = 0,
             }
-        elseif has_auto_thinking then
-            -- Gemini 2.5 with reasoning toggle on: can't control level,
-            -- but still expose the automatic thinking content
+        elseif thinking_budget then
+            -- Enabled: specific budget or dynamic (-1)
             request_body.generationConfig.thinkingConfig = {
+                thinkingBudget = thinking_budget,
                 includeThoughts = true,
             }
         else
-            adjustments.thinking_skipped = {
-                reason = "model " .. model .. " does not support thinking"
+            -- No thinking_budget in api_params (backward compat / direct API calls):
+            -- default to dynamic thinking with thoughts exposed
+            request_body.generationConfig.thinkingConfig = {
+                thinkingBudget = -1,
+                includeThoughts = true,
             }
         end
-    elseif has_auto_thinking then
-        -- Gemini 2.5 Flash/Pro without reasoning toggle: thinking is automatic
-        -- and always-on. Request thought summaries for streaming and "Show Reasoning".
-        request_body.generationConfig.thinkingConfig = {
-            includeThoughts = true,
+    elseif api_params.thinking_level then
+        -- thinking_level set but model doesn't support it
+        adjustments.thinking_skipped = {
+            reason = "model " .. model .. " does not support thinking"
         }
     end
 

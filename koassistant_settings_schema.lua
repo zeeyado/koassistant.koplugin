@@ -1487,7 +1487,7 @@ local SettingsSchema = {
                             id = "enable_reasoning",
                             type = "toggle",
                             text = _("Enable Reasoning"),
-                            help_text = _("Controls reasoning/thinking for providers with configurable reasoning:\n\n• Anthropic: Adaptive thinking (4.6+) / Extended thinking\n• Gemini: Thinking depth (Gemini 3)\n• OpenAI: Reasoning for GPT-5.1+ models\n• Z.AI: Thinking for GLM-4.5+ models\n\nModels like o3, GPT-5, DeepSeek Reasoner, and Gemini 2.5 always reason by default and are not affected by this toggle."),
+                            help_text = _("Controls reasoning/thinking for providers with configurable reasoning:\n\n• Anthropic: Adaptive thinking (4.6+) / Extended thinking\n• Gemini: Thinking budget (2.5) / Thinking depth (3)\n• OpenAI: Reasoning for GPT-5.1+ models\n• Z.AI: Thinking for GLM-4.5+ models\n\nModels like o3, GPT-5, and DeepSeek Reasoner always reason by default and are not affected by this toggle."),
                             path = "features.enable_reasoning",
                             default = false,
                             separator = true,
@@ -1558,7 +1558,7 @@ local SettingsSchema = {
                             id = "gemini_reasoning",
                             type = "toggle",
                             text = _("Gemini Thinking"),
-                            help_text = _("Supported models:\n") .. getModelList("gemini", "thinking") .. _("\n\nControl thinking depth for supported models.\n\nNote: Gemini 2.5 models think automatically regardless of this toggle. Their thinking content is captured when available."),
+                            help_text = _("Supported models:\n") .. getModelList("gemini", "thinking") .. "\n" .. getModelList("gemini", "thinking_budget") .. _("\n\nControl thinking for Gemini models.\n\nGemini 3: Configurable thinking depth (level).\nGemini 2.5: Configurable thinking budget. When off, thinking is disabled entirely."),
                             path = "features.gemini_reasoning",
                             default = false,
                             depends_on = { id = "enable_reasoning", value = true },
@@ -1572,19 +1572,49 @@ local SettingsSchema = {
                                 local labels = { minimal = _("Minimal"), low = _("Low"), medium = _("Medium"), high = _("High") }
                                 return T(_("Thinking Depth: %1"), labels[depth] or depth)
                             end,
-                            help_text = _("Minimal = fastest\nLow/Medium = balanced\nHigh = deepest thinking"),
+                            help_text = _("Thinking depth for Gemini 3 models.\n\nMinimal = fastest\nLow/Medium = balanced\nHigh = deepest thinking"),
                             path = "features.reasoning_depth",
                             default = "high",
                             depends_on = {
                                 { id = "enable_reasoning", value = true },
                                 { id = "gemini_reasoning", value = true },
                             },
-                            separator = true,
                             options = {
                                 { value = "minimal", text = _("Minimal (fastest)") },
                                 { value = "low", text = _("Low") },
                                 { value = "medium", text = _("Medium") },
                                 { value = "high", text = _("High (default)") },
+                            },
+                        },
+                        {
+                            id = "gemini_thinking_budget",
+                            type = "radio",
+                            text_func = function(plugin)
+                                local f = plugin.settings:readSetting("features") or {}
+                                local budget = f.gemini_thinking_budget or "dynamic"
+                                local labels = {
+                                    dynamic = _("Dynamic"),
+                                    low = _("Low"),
+                                    medium = _("Medium"),
+                                    high = _("High"),
+                                    max = _("Max"),
+                                }
+                                return T(_("Thinking Budget: %1"), labels[budget] or budget)
+                            end,
+                            help_text = _("Token budget for Gemini 2.5 thinking.\n\nDynamic = model decides how much to think\nLow = minimal thinking (fastest)\nMedium = balanced\nHigh = deep thinking\nMax = maximum thinking budget"),
+                            path = "features.gemini_thinking_budget",
+                            default = "dynamic",
+                            depends_on = {
+                                { id = "enable_reasoning", value = true },
+                                { id = "gemini_reasoning", value = true },
+                            },
+                            separator = true,
+                            options = {
+                                { value = "dynamic", text = _("Dynamic (model decides)") },
+                                { value = "low", text = _("Low (1,024 tokens)") },
+                                { value = "medium", text = _("Medium (8,192 tokens)") },
+                                { value = "high", text = _("High (16,384 tokens)") },
+                                { value = "max", text = _("Max (24,576 tokens)") },
                             },
                         },
                         -- OpenAI Reasoning (5.1+)

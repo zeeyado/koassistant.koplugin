@@ -71,9 +71,11 @@ ModelConstraints.capabilities = {
         reasoning = { "deepseek-reasoner" },
     },
     gemini = {
-        -- Gemini 3 preview models support thinking_level
-        -- Gemini 2.x does NOT
+        -- Gemini 3 preview models support thinkingLevel
         thinking = { "gemini-3-pro-preview", "gemini-3-flash-preview" },
+        -- Gemini 2.5 models support thinkingBudget (0=off, -1=dynamic, 128-24576)
+        -- Flash-Lite excluded (thinking disabled by default, no budget control)
+        thinking_budget = { "gemini-2.5-pro", "gemini-2.5-flash" },
         -- Google Search grounding (most Gemini 2.x+ models)
         google_search = {
             "gemini-2.5-pro", "gemini-2.5-flash",
@@ -142,11 +144,20 @@ ModelConstraints.reasoning_defaults = {
         effort = "medium",   -- Default effort level
         effort_options = { "low", "medium", "high", "xhigh" },
     },
-    -- Gemini thinking level
+    -- Gemini thinking level (Gemini 3)
     gemini = {
         level = "high",      -- Default thinking level
         level_options = { "low", "medium", "high" },  -- Common options
         level_options_flash = { "minimal", "low", "medium", "high" },  -- Flash-specific
+        -- Gemini 2.5 thinking budget (named levels -> numeric values)
+        budget = "dynamic",  -- Default budget setting
+        budget_map = {
+            dynamic = -1,    -- Model decides how much to think
+            low = 1024,
+            medium = 8192,
+            high = 16384,
+            max = 24576,
+        },
     },
 }
 

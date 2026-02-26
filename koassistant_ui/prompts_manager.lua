@@ -84,8 +84,15 @@ function PromptsManager:getReasoningDisplayText(obj)
                 end
             end
             if obj.reasoning_config.gemini then
-                if type(obj.reasoning_config.gemini) == "table" and obj.reasoning_config.gemini.level then
-                    table.insert(parts, "G:" .. obj.reasoning_config.gemini.level:sub(1,1):upper())
+                if type(obj.reasoning_config.gemini) == "table" then
+                    if obj.reasoning_config.gemini.level then
+                        table.insert(parts, "G:" .. obj.reasoning_config.gemini.level:sub(1,1):upper())
+                    end
+                    if obj.reasoning_config.gemini.budget then
+                        table.insert(parts, "G:" .. obj.reasoning_config.gemini.budget:sub(1,1):upper())
+                    end
+                elseif obj.reasoning_config.gemini == false then
+                    table.insert(parts, "G:OFF")
                 end
             end
             if #parts > 0 then
@@ -2254,8 +2261,16 @@ function PromptsManager:showPerProviderReasoningMenu(state, refresh_callback)
             return _("ON")
         elseif provider == "openai" and cfg.effort then
             return _("ON (") .. cfg.effort .. ")"
-        elseif provider == "gemini" and cfg.level then
-            return _("ON (") .. cfg.level .. ")"
+        elseif provider == "gemini" then
+            if type(cfg) == "table" then
+                if cfg.level and cfg.budget then
+                    return _("ON (") .. cfg.level .. ", " .. cfg.budget .. ")"
+                elseif cfg.level then
+                    return _("ON (") .. cfg.level .. ")"
+                elseif cfg.budget then
+                    return _("ON (") .. cfg.budget .. ")"
+                end
+            end
         end
         return _("ON")
     end
@@ -2316,7 +2331,7 @@ function PromptsManager:showPerProviderReasoningMenu(state, refresh_callback)
 
     self.per_provider_dialog = ButtonDialog:new{
         title = _("Per-Provider Reasoning"),
-        info_text = _("Configure reasoning for each provider independently.\nOpenAI o-series and GPT-5 always reason at factory defaults.\nDeepSeek reasoner always uses reasoning automatically."),
+        info_text = _("Configure reasoning for each provider independently.\nOpenAI o-series and GPT-5 always reason at factory defaults.\nDeepSeek Reasoner always uses reasoning automatically."),
         buttons = buttons,
     }
 
@@ -2579,71 +2594,50 @@ end
 
 -- Gemini reasoning config
 function PromptsManager:showGeminiReasoningConfig(state)
+    local function setAndClose(value)
+        state.reasoning_config.gemini = value
+        UIManager:close(self.gemini_dialog)
+        self:showPerProviderReasoningMenu(state)
+    end
+
     local buttons = {
         {
-            {
-                text = _("Use global setting"),
-                callback = function()
-                    state.reasoning_config.gemini = nil
-                    UIManager:close(self.gemini_dialog)
-                    self:showPerProviderReasoningMenu(state)
-                end,
-            },
+            { text = _("Use global setting"), callback = function() setAndClose(nil) end },
         },
         {
-            {
-                text = _("OFF"),
-                callback = function()
-                    state.reasoning_config.gemini = false
-                    UIManager:close(self.gemini_dialog)
-                    self:showPerProviderReasoningMenu(state)
-                end,
-            },
+            { text = _("OFF (disable thinking)"), callback = function() setAndClose(false) end },
+        },
+        -- Gemini 3: thinking level
+        {
+            { text = _("Level: Low"), callback = function() setAndClose({ level = "low" }) end },
+            { text = _("Level: Medium"), callback = function() setAndClose({ level = "medium" }) end },
         },
         {
-            {
-                text = _("Low"),
-                callback = function()
-                    state.reasoning_config.gemini = { level = "low" }
-                    UIManager:close(self.gemini_dialog)
-                    self:showPerProviderReasoningMenu(state)
-                end,
-            },
+            { text = _("Level: High"), callback = function() setAndClose({ level = "high" }) end },
+        },
+        -- Gemini 2.5: thinking budget
+        {
+            { text = _("Budget: Dynamic"), callback = function() setAndClose({ budget = "dynamic" }) end },
+            { text = _("Budget: Low"), callback = function() setAndClose({ budget = "low" }) end },
         },
         {
-            {
-                text = _("Medium"),
-                callback = function()
-                    state.reasoning_config.gemini = { level = "medium" }
-                    UIManager:close(self.gemini_dialog)
-                    self:showPerProviderReasoningMenu(state)
-                end,
-            },
+            { text = _("Budget: Medium"), callback = function() setAndClose({ budget = "medium" }) end },
+            { text = _("Budget: High"), callback = function() setAndClose({ budget = "high" }) end },
         },
         {
-            {
-                text = _("High"),
-                callback = function()
-                    state.reasoning_config.gemini = { level = "high" }
-                    UIManager:close(self.gemini_dialog)
-                    self:showPerProviderReasoningMenu(state)
-                end,
-            },
+            { text = _("Budget: Max"), callback = function() setAndClose({ budget = "max" }) end },
         },
         {
-            {
-                text = _("Cancel"),
-                callback = function()
-                    UIManager:close(self.gemini_dialog)
-                    self:showPerProviderReasoningMenu(state)
-                end,
-            },
+            { text = _("Cancel"), callback = function()
+                UIManager:close(self.gemini_dialog)
+                self:showPerProviderReasoningMenu(state)
+            end },
         },
     }
 
     self.gemini_dialog = ButtonDialog:new{
         title = _("Gemini Thinking"),
-        info_text = _("Thinking level for Gemini models.\nSupports: gemini-3-*-preview"),
+        info_text = _("Level options: Gemini 3 models (thinkingLevel).\nBudget options: Gemini 2.5 models (thinkingBudget).\nOFF disables thinking for both."),
         buttons = buttons,
     }
 
