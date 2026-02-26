@@ -963,6 +963,32 @@ function XrayBrowser:buildCategoryItems()
         end,
     })
 
+    -- Other artifacts for this book (if any)
+    local artifacts = self:_getAvailableArtifacts()
+    if #artifacts > 0 then
+        items[#items].separator = true
+        if #artifacts == 1 then
+            local art = artifacts[1]
+            local label = art.is_pinned
+                and (art.name .. " (" .. _("Pinned") .. ")")
+                or art.name
+            table.insert(items, {
+                text = Constants.getEmojiText("📋", T(_("View %1"), label), enable_emoji),
+                callback = function()
+                    self_ref:_openArtifact(art)
+                end,
+            })
+        else
+            table.insert(items, {
+                text = Constants.getEmojiText("📋", _("Other Artifacts") .. "…", enable_emoji),
+                mandatory = tostring(#artifacts),
+                callback = function()
+                    self_ref:_showOtherArtifacts(artifacts)
+                end,
+            })
+        end
+    end
+
     return items
 end
 
@@ -3105,27 +3131,6 @@ function XrayBrowser:showOptions()
             UIManager:close(self_ref.options_dialog)
             self_ref.options_dialog = nil
         end
-    end
-
-    -- View other artifacts for this book
-    local artifacts = self:_getAvailableArtifacts()
-    if #artifacts == 1 then
-        local art = artifacts[1]
-        table.insert(buttons, {{
-            text = T(_("View %1"), art.name), align = "left",
-            callback = function()
-                closeOptions()
-                self_ref:_openArtifact(art)
-            end,
-        }})
-    elseif #artifacts > 1 then
-        table.insert(buttons, {{
-            text = _("View other artifacts…"), align = "left",
-            callback = function()
-                closeOptions()
-                self_ref:_showOtherArtifacts(artifacts)
-            end,
-        }})
     end
 
     -- Update/Redo options (adapted per cache type)
