@@ -4137,18 +4137,17 @@ function AskGPT:showCacheViewer(cache_info)
   local ChatGPTViewer = require("koassistant_chatgptviewer")
   local ActionCache = require("koassistant_action_cache")
 
-  -- Get book metadata from KOReader's merged props (includes user edits from Book Info dialog)
-  -- Falls back to cache_info.book_title/book_author (set by file browser when book isn't open)
-  local book_title, book_author
-  if self.ui then
+  -- Get book metadata: prefer explicit (artifact browser may show a different book)
+  -- Fall back to open book's merged props (includes user edits from Book Info dialog)
+  local book_title = cache_info.book_title
+  local book_author = cache_info.book_author
+  if not book_title and self.ui then
     local props = self.ui.doc_props
     if props then
       book_title = props.display_title or props.title
-      book_author = props.authors
+      book_author = book_author or props.authors
     end
   end
-  book_title = book_title or cache_info.book_title
-  book_author = book_author or cache_info.book_author
 
   -- Format title: Type (XX%) - Book Title
   local progress_str
@@ -4188,9 +4187,10 @@ function AskGPT:showCacheViewer(cache_info)
 
   -- Create delete/regenerate callbacks
   -- Delete works from both open book and file browser (via cache_info.file fallback)
+  -- Prefer explicit file (artifact browser may pass a different book than the one open)
   local on_delete = nil
   local on_regenerate = nil
-  local file = self.ui and self.ui.document and self.ui.document.file or cache_info.file
+  local file = cache_info.file or (self.ui and self.ui.document and self.ui.document.file)
   if file then
     local cache_key = cache_info.key
     local cache_name = cache_info.name
@@ -4756,20 +4756,19 @@ function AskGPT:viewCachedAction(action, action_id, cached_entry, opts)
   if progress_str then
     title = title .. " (" .. progress_str .. ")"
   end
-  -- Book metadata: from open book or opts fallback (file browser)
+  -- Book metadata: prefer explicit opts (artifact browser may show a different book)
+  -- Fall back to open book's props
   local book_title, book_author
-  if self.ui then
+  if opts then
+    book_title = opts.book_title
+    book_author = opts.book_author
+  end
+  if not book_title and self.ui then
     local props = self.ui.doc_props
     if props then
       book_title = props.display_title or props.title
-      book_author = props.authors
+      book_author = book_author or props.authors
     end
-  end
-  if not book_title and opts then
-    book_title = opts.book_title
-  end
-  if not book_author and opts then
-    book_author = opts.book_author
   end
   if book_title then
     title = title .. " - " .. book_title
@@ -4791,8 +4790,9 @@ function AskGPT:viewCachedAction(action, action_id, cached_entry, opts)
   }
 
   -- Delete callback (open book or file browser via opts.file)
+  -- Prefer explicit file (artifact browser may pass a different book than the one open)
   local on_delete
-  local file = self.ui and self.ui.document and self.ui.document.file or (opts and opts.file)
+  local file = (opts and opts.file) or (self.ui and self.ui.document and self.ui.document.file)
   if file then
     local ActionCache = require("koassistant_action_cache")
     on_delete = function()
