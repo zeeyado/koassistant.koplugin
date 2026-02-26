@@ -1197,43 +1197,7 @@ function ChatGPTViewer:init()
     },
   }
 
-  -- Conditionally add Export button if enabled in settings
-  local export_features = self.configuration and self.configuration.features or {}
-  if export_features.show_export_in_chat_viewer then
-    table.insert(first_row, {
-      text = _("Export"),
-      id = "export_chat",
-      callback = function()
-        self:showExportDialog()
-      end,
-      hold_callback = function()
-        UIManager:show(Notification:new{
-          text = _("Export chat to file or clipboard"),
-          timeout = 2,
-        })
-      end,
-    })
-  end
-
-  -- Conditionally add Regenerate Fresh button when response was from cache
-  local history = self._message_history or self.original_history
-  if history and history.used_cache and history.cache_action_id then
-    table.insert(first_row, {
-      text = _("↻ Fresh"),
-      id = "regenerate_fresh",
-      callback = function()
-        self:showRegenerateFreshDialog()
-      end,
-      hold_callback = function()
-        UIManager:show(Notification:new{
-          text = _("Clear cache and regenerate from scratch (extracts all book text again)"),
-          timeout = 3,
-        })
-      end,
-    })
-  end
-
-  -- Add web search toggle (far right of first row)
+  -- Web search state helpers (used by Row 2 toggle)
   -- Session override > global setting
   local function getWebSearchState()
     if self.session_web_search_override ~= nil then
@@ -1340,17 +1304,14 @@ function ChatGPTViewer:init()
         end,
       },
       {
-        text = _("Show Reasoning"),
-        id = "view_reasoning",
-        enabled_func = function()
-          return self:hasReasoningContent()
-        end,
+        text = _("Export"),
+        id = "export_chat",
         callback = function()
-          self:showReasoningViewer()
+          self:showExportDialog()
         end,
         hold_callback = function()
           UIManager:show(Notification:new{
-            text = _("View AI reasoning/thinking content (when available)"),
+            text = _("Save chat to file"),
             timeout = 2,
           })
         end,
@@ -3461,17 +3422,6 @@ function ChatGPTViewer:showExportDialog()
     chat_type = "general"
   end
 
-  -- Helper to perform the copy
-  local function doCopy(selected_content)
-    local data = Export.fromHistory(history, viewer_self.original_highlighted_text, export_book_metadata, export_books_info)
-    local text = Export.format(data, selected_content, style)
-    Device.input.setClipboardText(text)
-    UIManager:show(Notification:new{
-      text = _("Copied"),
-      timeout = 2,
-    })
-  end
-
   -- Helper to perform save to file
   local function doSave(selected_content, target_dir, skip_book_title)
     local data = Export.fromHistory(history, viewer_self.original_highlighted_text, export_book_metadata, export_books_info)
@@ -3503,82 +3453,47 @@ function ChatGPTViewer:showExportDialog()
     end
   end
 
-  -- Show action selection dialog
-  local function showActionDialog(selected_content)
-    local action_dialog
+  -- Save to file directly (no copy-or-save choice — Copy button handles clipboard)
+  local function performSave(selected_content)
     local dir_option = features.export_save_directory or "book_folder"
 
-    local buttons = {
-      {
-        {
-          text = _("Copy to Clipboard"),
-          callback = function()
-            UIManager:close(action_dialog)
-            doCopy(selected_content)
-          end,
-        },
-      },
-      {
-        {
-          text = _("Save to File"),
-          callback = function()
-            UIManager:close(action_dialog)
-
-            if dir_option == "ask" then
-              -- Show PathChooser
-              local PathChooser = require("ui/widget/pathchooser")
-              local DataStorage = require("datastorage")
-              -- Use KOReader's fallback chain: home_dir setting → Device.home_dir → DataStorage
-              local start_path = G_reader_settings:readSetting("home_dir") or Device.home_dir or DataStorage:getDataDir()
-              local path_chooser = PathChooser:new{
-                title = _("Select Export Directory"),
-                path = start_path,
-                select_directory = true,
-                onConfirm = function(path)
-                  doSave(selected_content, path, false)  -- User-chosen path, don't skip book title
-                end,
-              }
-              UIManager:show(path_chooser)
-            else
-              -- Use configured directory
-              local target_dir, dir_err, skip_book_title = Export.getDirectory(features, document_path, chat_type)
-              if not target_dir then
-                UIManager:show(InfoMessage:new{
-                  text = T(_("Invalid export directory: %1"), dir_err or "Unknown error"),
-                  timeout = 3,
-                })
-                return
-              end
-              doSave(selected_content, target_dir, skip_book_title)
-            end
-          end,
-        },
-      },
-      {
-        {
-          text = _("Cancel"),
-          callback = function()
-            UIManager:close(action_dialog)
-          end,
-        },
-      },
-    }
-
-    action_dialog = ButtonDialog:new{
-      title = _("Export Chat"),
-      buttons = buttons,
-    }
-    UIManager:show(action_dialog)
+    if dir_option == "ask" then
+      -- Show PathChooser
+      local PathChooser = require("ui/widget/pathchooser")
+      local DataStorage = require("datastorage")
+      -- Use KOReader's fallback chain: home_dir setting → Device.home_dir → DataStorage
+      local start_path = G_reader_settings:readSetting("home_dir") or Device.home_dir or DataStorage:getDataDir()
+      local path_chooser = PathChooser:new{
+        title = _("Select Export Directory"),
+        path = start_path,
+        select_directory = true,
+        onConfirm = function(path)
+          doSave(selected_content, path, false)  -- User-chosen path, don't skip book title
+        end,
+      }
+      UIManager:show(path_chooser)
+    else
+      -- Use configured directory
+      local target_dir, dir_err, skip_book_title = Export.getDirectory(features, document_path, chat_type)
+      if not target_dir then
+        UIManager:show(InfoMessage:new{
+          text = T(_("Invalid export directory: %1"), dir_err or "Unknown error"),
+          timeout = 3,
+        })
+        return
+      end
+      doSave(selected_content, target_dir, skip_book_title)
+    end
   end
 
   if content_setting == "ask" then
-    -- Show content picker first
+    -- Show content picker first, then save
     showContentPicker(_("Export Content"), self.translate_view, function(selected_content)
-      showActionDialog(selected_content)
+      performSave(selected_content)
     end)
   else
-    -- Content is predetermined, show action dialog directly
-    showActionDialog(content_setting)
+    -- Content is predetermined, save directly
+    performSave(content_setting)
   end
 end
 
@@ -3804,9 +3719,13 @@ function ChatGPTViewer:showPinStarDialog()
       and ("\u{2605} " .. _("Unstar Conversation"))
       or ("\u{2606} " .. _("Star Conversation"))
 
+  local pin_star_button = self.button_table and self.button_table:getButtonById("pin_star")
   local dialog
   dialog = ButtonDialog:new{
     shrink_unneeded_width = true,
+    anchor = pin_star_button and function()
+        return pin_star_button.dimen, true
+    end or nil,
     buttons = {
       {
         {
@@ -4119,21 +4038,33 @@ function ChatGPTViewer:showViewerSettings()
       },
       {
         {
+          text = _("Reset to Defaults"),
+          callback = function()
+            UIManager:close(dialog)
+            self:resetViewerSettings()
+          end,
+        },
+      },
+      {
+        {
+          text = _("Show Reasoning"),
+          enabled_func = function()
+            return self:hasReasoningContent()
+          end,
+          callback = function()
+            UIManager:close(dialog)
+            self:showReasoningViewer()
+          end,
+        },
+      },
+      {
+        {
           text_func = function()
             return self.show_debug_in_chat and _("Hide Debug") or _("Show Debug")
           end,
           callback = function()
             UIManager:close(dialog)
             self:toggleDebugMode()
-          end,
-        },
-      },
-      {
-        {
-          text = _("Reset to Defaults"),
-          callback = function()
-            UIManager:close(dialog)
-            self:resetViewerSettings()
           end,
         },
       },

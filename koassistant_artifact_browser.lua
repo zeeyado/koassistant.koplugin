@@ -621,6 +621,13 @@ function ArtifactBrowser:showPinnedViewer(entry, context_path, opts)
         text = entry.result or "",
         simple_view = true,
         cache_type_name = _("pinned artifact"),
+        cache_metadata = {
+            cache_type = "pinned",
+            book_title = entry.book_title,
+            book_author = entry.book_author,
+            model = entry.model,
+            timestamp = entry.timestamp,
+        },
         _info_text = #info_parts > 0 and table.concat(info_parts, "\n") or nil,
         on_delete = function()
             PinnedManager.removePin(context_path, entry.id)
