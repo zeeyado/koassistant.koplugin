@@ -243,13 +243,28 @@ local function handleNonStreamingBackground(background_fn, provider, on_complete
             -- Process complete response
             local full_response = table.concat(response_data)
 
-            -- Check for error marker
-            if full_response:find(PROTOCOL_NON_200) then
-                local err_msg = full_response:match(PROTOCOL_NON_200 .. "(.+)")
+            -- Check for error marker (plain find — PROTOCOL_NON_200 contains '-'
+            -- which is a Lua pattern quantifier, so pattern matching fails)
+            local marker_pos = full_response:find(PROTOCOL_NON_200, 1, true)
+            if marker_pos then
+                -- Try to extract detailed error from JSON body (before the marker)
+                local body = full_response:sub(1, marker_pos - 1):match("^%s*(.-)%s*$")
+                if body and #body > 0 then
+                    local decode_ok, j = pcall(json.decode, body)
+                    if decode_ok and j then
+                        local err = (j.error and j.error.message) or j.message
+                        if err then
+                            finish(false, nil, err)
+                            return
+                        end
+                    end
+                end
+                -- Fallback to status line from marker
+                local err_msg = full_response:sub(marker_pos + #PROTOCOL_NON_200)
                 if err_msg then
                     err_msg = err_msg:gsub("^%s*", ""):gsub("%s*$", "")  -- trim
                 end
-                finish(false, nil, err_msg or "Request failed")
+                finish(false, nil, err_msg ~= "" and err_msg or "Request failed")
                 return
             end
 
