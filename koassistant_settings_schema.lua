@@ -552,14 +552,6 @@ local SettingsSchema = {
                         },
                     },
                 },
-                {
-                    id = "show_export_in_chat_viewer",
-                    type = "toggle",
-                    text = _("Show Export Button in Chat Viewer"),
-                    path = "features.show_export_in_chat_viewer",
-                    default = false,
-                    help_text = _("Add Export button to the Chat Viewer (alongside Copy and Note)."),
-                },
             },
         },
 

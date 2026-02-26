@@ -841,7 +841,7 @@ Actions like News Update that require [web search](#web-search) are available in
 
 - **Settings Icon (Input)**: Tap the gear icon in the input dialog title bar for a menu with **Quick Settings** (streamlined settings panel), **Choose and Sort Actions** (reorder, show/hide actions for this context), and **More Actions** (access enabled actions not shown in the grid). See [Recommended Setup](#recommended-setup) for details on the Quick Settings panel.
 - **Web Search Toggle (Input)**: The input dialog has a **Web ON/OFF** button (top row) to toggle web search before running an action. This is a persistent toggle — the setting sticks across sessions. Action button labels update to reflect web search status.
-- **Settings Icon (Viewer)**: Tap the gear icon in the chat viewer title bar for a menu with Font Size, Alignment, Show/Hide Debug, and Reset to Defaults
+- **Settings Icon (Viewer)**: Tap the gear icon in the chat viewer title bar for a menu with Font Size, Alignment, Reset to Defaults, Show Reasoning (when available), and Show/Hide Debug
 - **Settings Icon (Panels)**: Both the Quick Settings and Quick Actions panels have a gear icon in the title bar for managing panel layout — reorder, show/hide buttons without leaving the panel
 - **Show/Hide Quote**: In the chat viewer, toggle button to show or hide the highlighted text quote (useful for long selections)
 - **Save to Note**: For highlight context chats, tap the **Save to Note** button to save the AI response directly as a note attached to your highlighted text (see [Save to Note](#save-to-note) below)
@@ -1848,11 +1848,11 @@ Tags are simple labels for organizing chats. Unlike domains:
 
 ### Starring & Pinning
 
-Two complementary features for surfacing important content:
+Two complementary features for making important content easily available:
 
-**Star Conversation** — Mark a chat as starred for quick access. Starred chats appear with a ★ prefix and are collected in a virtual "Starred" folder at the top of the Chat History browser. Starring is about the *conversation* — use it when the whole chat is worth revisiting.
+**Star Conversation** - Mark a chat as starred for quick access. Starred chats appear with a ★ prefix and are collected in a virtual "Starred" folder at the top of the Chat History browser. Starring is about the *conversation* — use it when the whole chat is worth revisiting. It stays a regular conversation that you can continue any time. Starring only makes it easily findable and more visible.
 
-**Pin to Artifacts** — Snapshot a chat's first AI response as a read-only pseudo-artifact. Pinned artifacts appear in the Artifact Browser alongside AI-generated cached artifacts (marked with "(Pinned)"). Pinning is about a specific *response* — use it for non-Artifact actions whose output is still worth keeping as a reference, like Extract Key Insights, Key Arguments, etc.
+**Pin to Artifacts** - Snapshot a chat's first AI response as a read-only pseudo-artifact. Pinned artifacts appear in the Artifact Browser alongside AI-generated cached artifacts (marked with "(Pinned)"). Pinning is about a specific *response* — use it for non-Artifact actions whose output is still worth keeping as a reference, like Extract Key Insights, Key Arguments, etc. Only the first response from the AI is included in the artifact. The chat it came from stays as is, and can be continued, starred, deleted, etc., without affecting the artifact. Deleting a pinned artifact has no effect on the chat it came from.
 
 **How to star/pin:**
 - **Chat viewer**: Tap the **Pin / ★** button (first row) → popup with "Pin to Artifacts" and "Star Conversation" options. Labels update to reflect current state (Unpin/Unstar when already active).
@@ -1974,7 +1974,6 @@ When "Ask every time" is selected, a picker dialog appears letting you choose wh
   - **Ask every time**: PathChooser dialog on each save
 - **Save book chats alongside books**: When enabled, book chats go to `[book_folder]/chats/` subfolder (default: OFF)
 - **Set Custom Folder**: Set the custom directory path (appears when Custom folder is selected)
-- **Show Export in Chat Viewer**: Add Export button to the chat viewer toolbar (default: off)
 
 ### AI Language Settings
 These settings control what language the AI responds in.

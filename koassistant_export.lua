@@ -485,6 +485,7 @@ function Export.formatCacheContent(content, metadata, style)
         xray = "X-Ray",
         summary = "Summary",
         analyze = "Analysis",
+        pinned = "Pinned Artifact",
     }
     local type_name = type_names[metadata.cache_type] or metadata.cache_type or "Cache"
 
@@ -589,6 +590,7 @@ function Export.getCacheFilename(book_title, cache_type)
         xray = "X-Ray",
         summary = "Summary",
         analyze = "Analysis",
+        pinned = "Pinned Artifact",
     }
     local type_name = type_names[cache_type] or cache_type or "Cache"
 
