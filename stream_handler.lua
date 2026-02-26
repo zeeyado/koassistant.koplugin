@@ -221,20 +221,34 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
         end
 
         if non200 then
-            -- Try to parse error from JSON
-            if result:sub(1, 1) == '{' then
-                local endPos = result:reverse():find("}")
-                if endPos and endPos > 0 then
-                    local ok, j = pcall(json.decode, result:sub(1, #result - endPos + 1))
-                    if ok then
-                        local err = (j.error and j.error.message) or j.message
-                        if err then
-                            if on_complete then on_complete(false, nil, err) end
-                            return
-                        end
+            -- Try to parse error from JSON in result
+            -- The opening '{' may have been consumed by the NDJSON branch
+            -- (it tries json.decode("{") which fails, silently dropping the line),
+            -- so try prepending '{' if result doesn't start with it
+            local json_candidate = result
+            if result:sub(1, 1) ~= '{' then
+                json_candidate = '{' .. result
+            end
+
+            local endPos = json_candidate:reverse():find("}")
+            if endPos and endPos > 0 then
+                local ok, j = pcall(json.decode, json_candidate:sub(1, #json_candidate - endPos + 1))
+                if ok then
+                    local err = (j.error and j.error.message) or j.message
+                    if err then
+                        if on_complete then on_complete(false, nil, err) end
+                        return
                     end
                 end
             end
+
+            -- Pattern match fallback: extract "message" value from raw text
+            local msg = result:match('"message"%s*:%s*"([^"]+)"')
+            if msg then
+                if on_complete then on_complete(false, nil, msg) end
+                return
+            end
+
             if on_complete then on_complete(false, nil, result) end
             return
         end
