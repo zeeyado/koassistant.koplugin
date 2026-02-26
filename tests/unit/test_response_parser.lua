@@ -403,7 +403,7 @@ TestRunner:test("extracts reasoning from <think> tags (sonar-reasoning-pro)", fu
     }
     local success, result, reasoning, web_search_used = ResponseParser:parseResponse(response, "perplexity")
     TestRunner:assertTrue(success, "success")
-    TestRunner:assertEqual(result, "The answer is 42\n\n---\n**Sources:**\n[1] [example.com](https://example.com/answer)", "content without think tags")
+    TestRunner:assertEqual(result, "The answer is 42\n\n---\n**Sources:**\n\n- [1] [example.com](https://example.com/answer)", "content without think tags")
     TestRunner:assertEqual(reasoning, "Let me reason about this", "reasoning extracted")
     TestRunner:assertTrue(web_search_used, "web_search_used always true")
 end)
