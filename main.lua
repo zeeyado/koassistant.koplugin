@@ -79,6 +79,7 @@ local KOASSISTANT_SIDECAR_FILES = {
     "koassistant_notebook.md",
     "koassistant_cache.lua",  -- X-Ray/Recap response cache
     "koassistant_user_aliases.lua",  -- User-defined X-Ray search terms
+    "koassistant_pinned.lua",  -- Pinned artifacts
 }
 
 -- Language data (shared module)
@@ -385,12 +386,14 @@ function AskGPT:generateFileDialogRows(file, is_file, book_props)
 
   -- View Artifacts (KOA) button - if any document cache exists for this file
   local ActionCache = require("koassistant_action_cache")
-  local caches = ActionCache.getAvailableArtifacts(file)
+  local caches = ActionCache.getAvailableArtifactsWithPinned(file)
   -- Add book metadata for file browser context (no open book)
   for _idx, cache in ipairs(caches) do
-    cache.book_title = title
-    cache.book_author = authors
-    cache.file = file
+    if not cache.is_pinned then
+      cache.book_title = title
+      cache.book_author = authors
+      cache.file = file
+    end
   end
   -- Refresh artifact index for this document (populates index for pre-existing artifacts)
   if #caches > 0 then
@@ -407,15 +410,11 @@ function AskGPT:generateFileDialogRows(file, is_file, book_props)
         local ButtonDialog = require("ui/widget/buttondialog")
         local btn_rows = {}
         for _idx, cache in ipairs(caches) do
-          -- Format with metadata: "X-Ray (100%, today)"
           local display = cache.name
-          local meta_parts = {}
-          if cache.data then
-            if cache.data.progress_decimal then
-              local pct = math.floor(cache.data.progress_decimal * 100 + 0.5)
-              table.insert(meta_parts, pct .. "%")
-            end
-            if cache.data.timestamp then
+          if cache.is_pinned then
+            local meta_parts = {}
+            table.insert(meta_parts, _("Pinned"))
+            if cache.data and cache.data.timestamp then
               local now = os.time()
               local today_t = os.date("*t", now)
               today_t.hour, today_t.min, today_t.sec = 0, 0, 0
@@ -430,9 +429,34 @@ function AskGPT:generateFileDialogRows(file, is_file, book_props)
                 table.insert(meta_parts, string.format(_("%dm ago"), math.floor(days / 30)))
               end
             end
-          end
-          if #meta_parts > 0 then
             display = display .. " (" .. table.concat(meta_parts, ", ") .. ")"
+          else
+            -- Format with metadata: "X-Ray (100%, today)"
+            local meta_parts = {}
+            if cache.data then
+              if cache.data.progress_decimal then
+                local pct = math.floor(cache.data.progress_decimal * 100 + 0.5)
+                table.insert(meta_parts, pct .. "%")
+              end
+              if cache.data.timestamp then
+                local now = os.time()
+                local today_t = os.date("*t", now)
+                today_t.hour, today_t.min, today_t.sec = 0, 0, 0
+                local cached_t = os.date("*t", cache.data.timestamp)
+                cached_t.hour, cached_t.min, cached_t.sec = 0, 0, 0
+                local days = math.floor((os.time(today_t) - os.time(cached_t)) / 86400)
+                if days == 0 then
+                  table.insert(meta_parts, _("today"))
+                elseif days < 30 then
+                  table.insert(meta_parts, string.format(_("%dd ago"), days))
+                else
+                  table.insert(meta_parts, string.format(_("%dm ago"), math.floor(days / 30)))
+                end
+              end
+            end
+            if #meta_parts > 0 then
+              display = display .. " (" .. table.concat(meta_parts, ", ") .. ")"
+            end
           end
           table.insert(btn_rows, {{
             text = display,
@@ -442,7 +466,10 @@ function AskGPT:generateFileDialogRows(file, is_file, book_props)
               if fb_menu then
                 UIManager:close(fb_menu)
               end
-              if cache.is_per_action then
+              if cache.is_pinned then
+                local ArtifactBrowser = require("koassistant_artifact_browser")
+                ArtifactBrowser:showPinnedViewer(cache.data, file)
+              elseif cache.is_per_action then
                 self_ref:viewCachedAction({ text = cache.name }, cache.key, cache.data, { file = cache.file, book_title = cache.book_title, book_author = cache.book_author })
               else
                 self_ref:showCacheViewer(cache)
@@ -4031,7 +4058,7 @@ function AskGPT:viewCache(parent_dialog)
   local ActionCache = require("koassistant_action_cache")
   local file = self.ui.document.file
 
-  local caches = ActionCache.getAvailableArtifacts(file)
+  local caches = ActionCache.getAvailableArtifactsWithPinned(file)
 
   -- Refresh artifact index for this document (populates index for pre-existing artifacts)
   ActionCache.refreshIndex(file)
@@ -4047,21 +4074,31 @@ function AskGPT:viewCache(parent_dialog)
   local self_ref = self
   local buttons = {}
   for _idx, cache in ipairs(caches) do
-    -- Format with metadata: "X-Ray (100%, today)"
+    -- Format with metadata: "X-Ray (100%, today)" or pinned indicator
     local display = cache.name
-    local meta_parts = {}
-    if cache.data then
-      if cache.data.progress_decimal then
-        local pct = math.floor(cache.data.progress_decimal * 100 + 0.5)
-        table.insert(meta_parts, pct .. "%")
-      end
-      if cache.data.timestamp then
+    if cache.is_pinned then
+      local meta_parts = {}
+      table.insert(meta_parts, _("Pinned"))
+      if cache.data and cache.data.timestamp then
         local relative = formatRelativeTime(cache.data.timestamp)
         if relative ~= "" then table.insert(meta_parts, relative) end
       end
-    end
-    if #meta_parts > 0 then
       display = display .. " (" .. table.concat(meta_parts, ", ") .. ")"
+    else
+      local meta_parts = {}
+      if cache.data then
+        if cache.data.progress_decimal then
+          local pct = math.floor(cache.data.progress_decimal * 100 + 0.5)
+          table.insert(meta_parts, pct .. "%")
+        end
+        if cache.data.timestamp then
+          local relative = formatRelativeTime(cache.data.timestamp)
+          if relative ~= "" then table.insert(meta_parts, relative) end
+        end
+      end
+      if #meta_parts > 0 then
+        display = display .. " (" .. table.concat(meta_parts, ", ") .. ")"
+      end
     end
     table.insert(buttons, {{
       text = display,
@@ -4069,7 +4106,10 @@ function AskGPT:viewCache(parent_dialog)
         UIManager:close(self_ref._cache_selector)
         -- Close parent dialog (e.g., QA panel) only when user picks an artifact
         if parent_dialog then UIManager:close(parent_dialog) end
-        if cache.is_per_action then
+        if cache.is_pinned then
+          local ArtifactBrowser = require("koassistant_artifact_browser")
+          ArtifactBrowser:showPinnedViewer(cache.data, file)
+        elseif cache.is_per_action then
           self_ref:viewCachedAction({ text = cache.name }, cache.key, cache.data)
         else
           self_ref:showCacheViewer(cache)
@@ -5926,7 +5966,7 @@ function AskGPT:onKOAssistantQuickActions()
       if enabled then
         if util_id == "view_caches" then
           -- Single "Artifacts" button — opens cache picker
-          local has_any_cache = #ActionCache.getAvailableArtifacts(file) > 0
+          local has_any_cache = #ActionCache.getAvailableArtifactsWithPinned(file) > 0
           if has_any_cache then
             addButton({
               text = Constants.getEmojiText(qa_emoji_map[util_id], _("View Artifacts"), qa_enable_emoji),

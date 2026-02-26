@@ -354,6 +354,33 @@ function ActionCache.getAvailableArtifacts(document_path, exclude_key)
     return available
 end
 
+--- Get available artifacts + pinned artifacts for a document.
+--- Combines cached artifacts from getAvailableArtifacts() with pinned artifacts from PinnedManager.
+--- Pinned entries have is_pinned=true flag for caller to handle differently.
+--- @param document_path string The document file path
+--- @param exclude_key string|nil Optional artifact key to exclude
+--- @return table Array of entries (cached + pinned)
+function ActionCache.getAvailableArtifactsWithPinned(document_path, exclude_key)
+    local artifacts = ActionCache.getAvailableArtifacts(document_path, exclude_key)
+    if not document_path then return artifacts end
+
+    local ok, PinnedManager = pcall(require, "koassistant_pinned_manager")
+    if not ok or not PinnedManager then return artifacts end
+
+    local pinned = PinnedManager.getPinnedForDocument(document_path)
+    for _idx, pin in ipairs(pinned) do
+        table.insert(artifacts, {
+            name = pin.action_text or "Pinned",
+            key = pin.id,
+            data = pin,
+            is_per_action = false,
+            is_pinned = true,
+        })
+    end
+
+    return artifacts
+end
+
 --- Get cached X-Ray (partial document analysis to reading position)
 --- @param document_path string The document file path
 --- @return table|nil entry { result, progress_decimal, timestamp, model, used_annotations, used_book_text } or nil

@@ -902,6 +902,16 @@ function BackupManager:createBackup(options)
                 -- No need to restore since we're just reading
             end
         end
+
+        -- Copy pinned artifact files (general + multi-book)
+        local pinned_general = self.SETTINGS_DIR .. "/koassistant_pinned_general.lua"
+        if lfs.attributes(pinned_general, "mode") == "file" then
+            self:_copyFile(pinned_general, settings_dir .. "/koassistant_pinned_general.lua")
+        end
+        local pinned_multi = self.SETTINGS_DIR .. "/koassistant_pinned_multi_book.lua"
+        if lfs.attributes(pinned_multi, "mode") == "file" then
+            self:_copyFile(pinned_multi, settings_dir .. "/koassistant_pinned_multi_book.lua")
+        end
     end
 
     -- Copy config files
@@ -1558,6 +1568,16 @@ function BackupManager:restoreBackup(backup_path, options)
                     table.insert(warnings, "API keys were not included in backup. You may need to re-enter them.")
                 end
             end
+        end
+
+        -- Restore pinned artifact files (general + multi-book)
+        local backup_pinned_general = temp_dir .. "/settings/koassistant_pinned_general.lua"
+        if lfs.attributes(backup_pinned_general, "mode") == "file" then
+            self:_copyFile(backup_pinned_general, self.SETTINGS_DIR .. "/koassistant_pinned_general.lua")
+        end
+        local backup_pinned_multi = temp_dir .. "/settings/koassistant_pinned_multi_book.lua"
+        if lfs.attributes(backup_pinned_multi, "mode") == "file" then
+            self:_copyFile(backup_pinned_multi, self.SETTINGS_DIR .. "/koassistant_pinned_multi_book.lua")
         end
     end
 

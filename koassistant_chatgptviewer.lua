@@ -870,6 +870,10 @@ local ChatGPTViewer = InputContainer:extend {
   save_callback = nil, -- New callback for saving chat
   export_callback = nil, -- New callback for exporting chat
   tag_callback = nil, -- Callback for tagging chat (receives showTagDialog function)
+  pin_callback = nil, -- Callback for pinning/unpinning response as artifact
+  star_callback = nil, -- Callback for starring/unstarring conversation
+  get_pin_state = nil, -- Function returning (is_pinned, pin_id)
+  get_star_state = nil, -- Function returning is_starred
   scroll_to_bottom = false, -- Whether to scroll to bottom on show
   scroll_to_last_question = false, -- Whether to scroll to last user question on show
 
@@ -1251,31 +1255,18 @@ function ChatGPTViewer:init()
     return "Web " .. label
   end
 
+  -- Pin / Star button (end of first row)
   table.insert(first_row, {
-    text_func = function()
-      local state = getWebSearchState()
-      return getWebSearchButtonText(state)
-    end,
-    id = "toggle_web_search",
+    text = enable_emoji
+      and Constants.getEmojiText("\u{1F4CC}", "", true) .. "/ " .. Constants.getEmojiText("\u{2B50}", "", true)
+      or (_("Pin") .. " / \u{2605}"),
+    id = "pin_star",
     callback = function()
-      -- Toggle web search override for this session
-      local current_state = getWebSearchState()
-      self.session_web_search_override = not current_state
-      -- Update button text (force re-init to handle truncation avoidance)
-      local button = self.button_table:getButtonById("toggle_web_search")
-      if button then
-        local new_state = getWebSearchState()
-        button.did_truncation_tweaks = true  -- Force full re-init with truncation check
-        button:setText(getWebSearchButtonText(new_state), button.width)
-      end
-      -- Refresh display
-      UIManager:setDirty(self, function()
-        return "ui", self.frame.dimen
-      end)
+      self:showPinStarDialog()
     end,
     hold_callback = function()
       UIManager:show(Notification:new{
-        text = _("Toggle web search for this session (Anthropic, Gemini)"),
+        text = _("Pin response as artifact or star this conversation"),
         timeout = 2,
       })
     end,
@@ -1302,15 +1293,29 @@ function ChatGPTViewer:init()
       },
       {
         text_func = function()
-          return self.show_debug_in_chat and "Hide Debug" or "Show Debug"
+          local state = getWebSearchState()
+          return getWebSearchButtonText(state)
         end,
-        id = "toggle_debug",
+        id = "toggle_web_search",
         callback = function()
-          self:toggleDebugMode()
+          -- Toggle web search override for this session
+          local current_state = getWebSearchState()
+          self.session_web_search_override = not current_state
+          -- Update button text (force re-init to handle truncation avoidance)
+          local button = self.button_table:getButtonById("toggle_web_search")
+          if button then
+            local new_state = getWebSearchState()
+            button.did_truncation_tweaks = true  -- Force full re-init with truncation check
+            button:setText(getWebSearchButtonText(new_state), button.width)
+          end
+          -- Refresh display
+          UIManager:setDirty(self, function()
+            return "ui", self.frame.dimen
+          end)
         end,
         hold_callback = function()
           UIManager:show(Notification:new{
-            text = _("Toggle debug display in chat viewer"),
+            text = _("Toggle web search for this session (Anthropic, Gemini)"),
             timeout = 2,
           })
         end,
@@ -2799,6 +2804,10 @@ function ChatGPTViewer:expandToFullView()
     save_callback = self.save_callback,
     export_callback = self.export_callback,
     tag_callback = self.tag_callback,
+    pin_callback = self.pin_callback,
+    star_callback = self.star_callback,
+    get_pin_state = self.get_pin_state,
+    get_star_state = self.get_star_state,
     close_callback = self.close_callback,
     add_default_buttons = true,
     render_markdown = self.render_markdown,
@@ -3766,12 +3775,6 @@ function ChatGPTViewer:toggleDebugMode()
     self:update(new_text, false)  -- false = don't scroll to bottom
   end
 
-  -- Update button text
-  local button = self.button_table:getButtonById("toggle_debug")
-  if button then
-    button:setText(self.show_debug_in_chat and "Hide Debug" or "Show Debug", button.width)
-  end
-
   -- Show notification
   UIManager:show(Notification:new{
     text = self.show_debug_in_chat and _("Showing debug info") or _("Debug info hidden"),
@@ -3782,6 +3785,64 @@ function ChatGPTViewer:toggleDebugMode()
   UIManager:setDirty(self, function()
     return "ui", self.frame.dimen
   end)
+end
+
+-- Show pin/star dialog popup
+function ChatGPTViewer:showPinStarDialog()
+  -- Check current state
+  local is_pinned = false
+  if self.get_pin_state then
+      is_pinned = self.get_pin_state()
+  end
+  local is_starred = false
+  if self.get_star_state then
+      is_starred = self.get_star_state()
+  end
+
+  local pin_text = is_pinned and _("Unpin from Artifacts") or _("Pin to Artifacts")
+  local star_text = is_starred
+      and ("\u{2605} " .. _("Unstar Conversation"))
+      or ("\u{2606} " .. _("Star Conversation"))
+
+  local dialog
+  dialog = ButtonDialog:new{
+    shrink_unneeded_width = true,
+    buttons = {
+      {
+        {
+          text = pin_text,
+          callback = function()
+            UIManager:close(dialog)
+            if self.pin_callback then
+              self.pin_callback()
+            else
+              UIManager:show(Notification:new{
+                text = _("Pin function not available"),
+                timeout = 2,
+              })
+            end
+          end,
+        },
+      },
+      {
+        {
+          text = star_text,
+          callback = function()
+            UIManager:close(dialog)
+            if self.star_callback then
+              self.star_callback()
+            else
+              UIManager:show(Notification:new{
+                text = _("Star function not available"),
+                timeout = 2,
+              })
+            end
+          end,
+        },
+      },
+    },
+  }
+  UIManager:show(dialog)
 end
 
 -- Toggle highlighted text visibility (session-only, does not persist)
@@ -3971,6 +4032,10 @@ function ChatGPTViewer:captureState()
     save_callback = self.save_callback,
     export_callback = self.export_callback,
     tag_callback = self.tag_callback,
+    pin_callback = self.pin_callback,
+    star_callback = self.star_callback,
+    get_pin_state = self.get_pin_state,
+    get_star_state = self.get_star_state,
     close_callback = self.close_callback,
     settings_callback = self.settings_callback,
     update_debug_callback = self.update_debug_callback,
@@ -4054,18 +4119,21 @@ function ChatGPTViewer:showViewerSettings()
       },
       {
         {
-          text = _("Reset to Defaults"),
+          text_func = function()
+            return self.show_debug_in_chat and _("Hide Debug") or _("Show Debug")
+          end,
           callback = function()
             UIManager:close(dialog)
-            self:resetViewerSettings()
+            self:toggleDebugMode()
           end,
         },
       },
       {
         {
-          text = _("Close"),
+          text = _("Reset to Defaults"),
           callback = function()
             UIManager:close(dialog)
+            self:resetViewerSettings()
           end,
         },
       },

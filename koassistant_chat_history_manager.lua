@@ -1514,6 +1514,199 @@ function ChatHistoryManager:getTagChatCounts()
     return counts
 end
 
+-- =============================================================================
+-- Star / Unstar
+-- =============================================================================
+
+--- Star a chat (mark as favorite).
+--- @param document_path string Document path or special key
+--- @param chat_id string Chat ID
+--- @return boolean success
+function ChatHistoryManager:starChat(document_path, chat_id)
+    if not document_path or not chat_id then
+        logger.warn("Cannot star chat: missing required parameters")
+        return false
+    end
+
+    if self:useDocSettingsStorage() then
+        if document_path == "__GENERAL_CHATS__" then
+            return self:updateGeneralChat(chat_id, { starred = true })
+        elseif document_path == "__MULTI_BOOK_CHATS__" then
+            return self:updateMultiBookChat(chat_id, { starred = true })
+        else
+            return self:updateChatInDocSettings(nil, chat_id, { starred = true }, document_path)
+        end
+    else
+        local chat = self:getChatById(document_path, chat_id)
+        if not chat then return false end
+        chat.starred = true
+        return self:updateChatData(document_path, chat_id, chat)
+    end
+end
+
+--- Unstar a chat.
+--- @param document_path string Document path or special key
+--- @param chat_id string Chat ID
+--- @return boolean success
+function ChatHistoryManager:unstarChat(document_path, chat_id)
+    if not document_path or not chat_id then
+        logger.warn("Cannot unstar chat: missing required parameters")
+        return false
+    end
+
+    if self:useDocSettingsStorage() then
+        if document_path == "__GENERAL_CHATS__" then
+            return self:updateGeneralChat(chat_id, { starred = false })
+        elseif document_path == "__MULTI_BOOK_CHATS__" then
+            return self:updateMultiBookChat(chat_id, { starred = false })
+        else
+            return self:updateChatInDocSettings(nil, chat_id, { starred = false }, document_path)
+        end
+    else
+        local chat = self:getChatById(document_path, chat_id)
+        if not chat then return false end
+        chat.starred = false
+        return self:updateChatData(document_path, chat_id, chat)
+    end
+end
+
+--- Get all starred chats across all storage types.
+--- @return table Array of { chat, document_path } sorted by timestamp desc
+function ChatHistoryManager:getStarredChats()
+    local starred = {}
+
+    if self:useDocSettingsStorage() then
+        local DocSettings = require("docsettings")
+
+        -- 1. Scan general chats
+        local general_chats = self:getGeneralChats()
+        for _idx, chat in ipairs(general_chats) do
+            if chat and chat.starred and chat.messages and #chat.messages > 0 then
+                table.insert(starred, {
+                    chat = chat,
+                    document_path = "__GENERAL_CHATS__"
+                })
+            end
+        end
+
+        -- 2. Scan multi-book chats
+        local multi_book_chats = self:getMultiBookChats()
+        for _idx, chat in ipairs(multi_book_chats) do
+            if chat and chat.starred and chat.messages and #chat.messages > 0 then
+                table.insert(starred, {
+                    chat = chat,
+                    document_path = "__MULTI_BOOK_CHATS__"
+                })
+            end
+        end
+
+        -- 3. Scan document chats from chat index
+        local index = self:getChatIndex()
+        for doc_path, _info in pairs(index) do
+            if doc_path ~= "__GENERAL_CHATS__" and lfs.attributes(doc_path, "mode") then
+                local doc_settings = DocSettings:open(doc_path)
+                local chats_table = doc_settings:readSetting("koassistant_chats", {})
+                for _chat_id, chat in pairs(chats_table) do
+                    if chat and chat.starred and chat.messages and #chat.messages > 0 then
+                        table.insert(starred, {
+                            chat = chat,
+                            document_path = doc_path
+                        })
+                    end
+                end
+            end
+        end
+    else
+        -- v1: Loop through all document directories
+        if lfs.attributes(self.CHAT_DIR, "mode") then
+            for doc_hash in lfs.dir(self.CHAT_DIR) do
+                if doc_hash ~= "." and doc_hash ~= ".." then
+                    local doc_dir = self.CHAT_DIR .. "/" .. doc_hash
+                    if lfs.attributes(doc_dir, "mode") == "directory" then
+                        for filename in lfs.dir(doc_dir) do
+                            if filename ~= "." and filename ~= ".." and not filename:match("%.old$") then
+                                local chat_path = doc_dir .. "/" .. filename
+                                local chat = self:loadChat(chat_path)
+                                if chat and chat.starred and chat.messages and #chat.messages > 0 then
+                                    table.insert(starred, {
+                                        chat = chat,
+                                        document_path = chat.document_path
+                                    })
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    -- Sort by timestamp (newest first)
+    table.sort(starred, function(a, b)
+        return (a.chat.timestamp or 0) > (b.chat.timestamp or 0)
+    end)
+
+    return starred
+end
+
+--- Get count of starred chats across all storage types.
+--- @return number count
+function ChatHistoryManager:getStarredChatCount()
+    local count = 0
+
+    if self:useDocSettingsStorage() then
+        local DocSettings = require("docsettings")
+
+        local general_chats = self:getGeneralChats()
+        for _idx, chat in ipairs(general_chats) do
+            if chat and chat.starred and chat.messages and #chat.messages > 0 then
+                count = count + 1
+            end
+        end
+
+        local multi_book_chats = self:getMultiBookChats()
+        for _idx, chat in ipairs(multi_book_chats) do
+            if chat and chat.starred and chat.messages and #chat.messages > 0 then
+                count = count + 1
+            end
+        end
+
+        local index = self:getChatIndex()
+        for doc_path, _info in pairs(index) do
+            if doc_path ~= "__GENERAL_CHATS__" and lfs.attributes(doc_path, "mode") then
+                local doc_settings = DocSettings:open(doc_path)
+                local chats_table = doc_settings:readSetting("koassistant_chats", {})
+                for _chat_id, chat in pairs(chats_table) do
+                    if chat and chat.starred and chat.messages and #chat.messages > 0 then
+                        count = count + 1
+                    end
+                end
+            end
+        end
+    else
+        if lfs.attributes(self.CHAT_DIR, "mode") then
+            for doc_hash in lfs.dir(self.CHAT_DIR) do
+                if doc_hash ~= "." and doc_hash ~= ".." then
+                    local doc_dir = self.CHAT_DIR .. "/" .. doc_hash
+                    if lfs.attributes(doc_dir, "mode") == "directory" then
+                        for filename in lfs.dir(doc_dir) do
+                            if filename ~= "." and filename ~= ".." and not filename:match("%.old$") then
+                                local chat_path = doc_dir .. "/" .. filename
+                                local chat = self:loadChat(chat_path)
+                                if chat and chat.starred and chat.messages and #chat.messages > 0 then
+                                    count = count + 1
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    return count
+end
+
 --[[ ============================================================================
      NEW STORAGE SYSTEM (v2) - Metadata.lua Integration
      ============================================================================

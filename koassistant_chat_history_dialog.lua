@@ -539,6 +539,24 @@ function ChatHistoryDialog:showChatHistoryBrowser(ui, current_document_path, cha
     local menu_items = {}
     local self_ref = self  -- Capture self for callbacks
 
+    -- Add virtual "Starred" folder at top if any starred chats exist
+    local starred_count = chat_history_manager:getStarredChatCount()
+    if starred_count > 0 then
+        local enable_emoji_starred = config and config.features and config.features.enable_emoji_icons == true
+        table.insert(menu_items, {
+            text = Constants.getEmojiText("\u{2B50}", _("Starred"), enable_emoji_starred),
+            mandatory = tostring(starred_count) .. " " .. (starred_count == 1 and _("chat") or _("chats")),
+            mandatory_dim = true,
+            help_text = _("Chats you've marked as favorites"),
+            callback = function()
+                if self_ref.current_menu then
+                    nav_context.documents_page = self_ref.current_menu.page
+                end
+                self_ref:showStarredChats(ui, chat_history_manager, config, nav_context)
+            end,
+        })
+    end
+
     logger.info("Chat history: Creating menu items for " .. #documents .. " documents")
 
     for doc_idx, doc in ipairs(documents) do
@@ -697,9 +715,11 @@ function ChatHistoryDialog:showChatsForDocument(ui, document, chat_history_manag
 
         -- Capture chat in closure
         local captured_chat = chat
+        -- Add star prefix for starred chats
+        local star_prefix = chat.starred and "\u{2605} " or ""
         -- Add chat emoji to level 2 items
         local enable_emoji = config and config.features and config.features.enable_emoji_icons == true
-        local chat_display = Constants.getEmojiText("\u{1F4AC}", title .. " \u{00B7} " .. date_str, enable_emoji)
+        local chat_display = Constants.getEmojiText("\u{1F4AC}", star_prefix .. title .. " \u{00B7} " .. date_str, enable_emoji)
 
         table.insert(menu_items, {
             text = chat_display,
@@ -840,6 +860,7 @@ end
 
 --- Hold options for level 2 chat items (book documents only — "Open Book")
 function ChatHistoryDialog:showChatOptions(ui, document_path, chat, chat_history_manager, config, document, nav_context)
+    local Notification = require("ui/widget/notification")
     logger.info("KOAssistant: showChatOptions - self.current_menu = " .. tostring(self.current_menu))
     -- Close any existing options dialog first
     safeClose(self.current_options_dialog)
@@ -926,6 +947,130 @@ function ChatHistoryDialog:showChatOptions(ui, document_path, chat, chat_history
             },
         },
     }
+
+    -- Add Star / Pin row
+    table.insert(buttons, {
+        {
+            text = chat.starred and _("Unstar") or _("Star"),
+            callback = function()
+                safeClose(dialog)
+                self_ref.current_options_dialog = nil
+                if chat.starred then
+                    chat_history_manager:unstarChat(document_path, chat.id)
+                    UIManager:show(Notification:new{
+                        text = _("Chat unstarred"),
+                        timeout = 2,
+                    })
+                else
+                    chat_history_manager:starChat(document_path, chat.id)
+                    UIManager:show(Notification:new{
+                        text = _("Chat starred"),
+                        timeout = 2,
+                    })
+                end
+                -- Refresh chat list to update star indicator
+                if document then
+                    self_ref:showChatsForDocument(ui, document, chat_history_manager, config, nav_context)
+                end
+            end,
+        },
+        {
+            text_func = function()
+                -- Check if first response is already pinned
+                local PinnedManager = require("koassistant_pinned_manager")
+                local first_response = ""
+                if chat.messages then
+                    for i = 1, #chat.messages do
+                        if chat.messages[i].role == "assistant" and chat.messages[i].content then
+                            first_response = chat.messages[i].content
+                            break
+                        end
+                    end
+                end
+                if first_response ~= "" then
+                    local pinned = PinnedManager.getPinnedForDocument(document_path)
+                    for _pidx, pin in ipairs(pinned) do
+                        local pin_result = pin.result or ""
+                        if pin_result:sub(-1) == "\n" then pin_result = pin_result:sub(1, -2) end
+                        if pin_result == first_response then
+                            return _("Unpin from Artifacts")
+                        end
+                    end
+                end
+                return _("Pin to Artifacts")
+            end,
+            callback = function()
+                safeClose(dialog)
+                self_ref.current_options_dialog = nil
+                -- Get first AI response and first user prompt
+                local first_response, first_prompt = "", ""
+                if chat.messages then
+                    for i = 1, #chat.messages do
+                        if chat.messages[i].role == "user" and first_prompt == "" and not chat.messages[i].is_context then
+                            first_prompt = chat.messages[i].content or ""
+                        end
+                        if chat.messages[i].role == "assistant" and chat.messages[i].content and first_response == "" then
+                            first_response = chat.messages[i].content
+                            break
+                        end
+                    end
+                end
+                if first_response == "" then
+                    UIManager:show(Notification:new{
+                        text = _("No response to pin"),
+                        timeout = 2,
+                    })
+                    return
+                end
+                local PinnedManager = require("koassistant_pinned_manager")
+                -- Check if already pinned
+                local existing_pin_id = nil
+                local pinned = PinnedManager.getPinnedForDocument(document_path)
+                for _pidx, pin in ipairs(pinned) do
+                    local pin_result = pin.result or ""
+                    if pin_result:sub(-1) == "\n" then pin_result = pin_result:sub(1, -2) end
+                    if pin_result == first_response then
+                        existing_pin_id = pin.id
+                        break
+                    end
+                end
+                if existing_pin_id then
+                    if PinnedManager.removePin(document_path, existing_pin_id) then
+                        UIManager:show(Notification:new{
+                            text = _("Unpinned from Artifacts"),
+                            timeout = 2,
+                        })
+                    end
+                else
+                    local entry = {
+                        id = PinnedManager.generateId(),
+                        action_id = chat.prompt_action or "chat",
+                        action_text = chat.prompt_action or _("Chat"),
+                        result = first_response,
+                        user_prompt = first_prompt,
+                        timestamp = os.time(),
+                        model = chat.model or "",
+                        context_type = document_path == "__MULTI_BOOK_CHATS__" and "multi_book"
+                                       or (document_path == "__GENERAL_CHATS__" and "general" or "book"),
+                        book_title = chat.book_title,
+                        book_author = chat.book_author,
+                        document_path = document_path,
+                    }
+                    if PinnedManager.addPin(document_path, entry) then
+                        UIManager:show(Notification:new{
+                            text = _("Pinned to Artifacts"),
+                            timeout = 2,
+                        })
+                    else
+                        UIManager:show(Notification:new{
+                            text = _("Failed to pin"),
+                            timeout = 2,
+                        })
+                    end
+                end
+            end,
+        },
+    })
 
     -- Add "Open Book" row for book documents (not general/multi-book)
     local is_book = document_path ~= "__GENERAL_CHATS__" and document_path ~= "__MULTI_BOOK_CHATS__"
@@ -1581,6 +1726,48 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
         UIManager:show(loading)
     end
 
+    -- Pin/Star helpers (closures shared by callbacks and state checkers)
+    local function getFirstResponseAndPrompt()
+        local msgs = history:getMessages()
+        if not msgs then return "", "" end
+        local first_response, first_prompt = "", ""
+        for i = 1, #msgs do
+            if msgs[i].role == "user" and first_prompt == "" and not msgs[i].is_context then
+                first_prompt = msgs[i].content or ""
+            end
+            if msgs[i].role == "assistant" and msgs[i].content and first_response == "" then
+                first_response = msgs[i].content
+                break
+            end
+        end
+        return first_response, first_prompt
+    end
+
+    local function getPinState()
+        local first_response = getFirstResponseAndPrompt()
+        if first_response == "" then return false, nil end
+        local ok_pm, PinnedManager = pcall(require, "koassistant_pinned_manager")
+        if not ok_pm or not PinnedManager then return false, nil end
+        local pinned = PinnedManager.getPinnedForDocument(document_path)
+        for _idx, pin in ipairs(pinned) do
+            -- Strip trailing newline from loaded content (writeLongString legacy)
+            local pin_result = pin.result or ""
+            if pin_result:sub(-1) == "\n" then
+                pin_result = pin_result:sub(1, -2)
+            end
+            if pin_result == first_response then
+                return true, pin.id
+            end
+        end
+        return false, nil
+    end
+
+    local function getStarState()
+        if not history.chat_id then return false end
+        local fresh = chat_history_manager:getChatById(document_path, history.chat_id)
+        return fresh and fresh.starred == true or false
+    end
+
     -- Function to create and show the chat viewer
     -- state param for rotation: {text, scroll_ratio, scroll_to_last_question}
     -- session_web_search param: preserved session web search override (nil/true/false)
@@ -1801,6 +1988,75 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
             tag_callback = function()
                 -- Show tag management dialog for this chat
                 self_ref:showTagsMenuForChat(document_path, chat.id, chat_history_manager)
+            end,
+            get_pin_state = getPinState,
+            get_star_state = getStarState,
+            pin_callback = function()
+                local Notification = require("ui/widget/notification")
+                local first_response, first_prompt = getFirstResponseAndPrompt()
+                if first_response == "" then
+                    UIManager:show(Notification:new{
+                        text = _("No response to pin"),
+                        timeout = 2,
+                    })
+                    return
+                end
+
+                local PinnedManager = require("koassistant_pinned_manager")
+                local is_pinned, existing_pin_id = getPinState()
+
+                if is_pinned then
+                    if PinnedManager.removePin(document_path, existing_pin_id) then
+                        UIManager:show(Notification:new{
+                            text = _("Unpinned from Artifacts"),
+                            timeout = 2,
+                        })
+                    end
+                else
+                    local entry = {
+                        id = PinnedManager.generateId(),
+                        action_id = history.prompt_action or "chat",
+                        action_text = history.prompt_action or _("Chat"),
+                        result = first_response,
+                        user_prompt = first_prompt,
+                        timestamp = os.time(),
+                        model = history:getModel() or "",
+                        context_type = document_path == "__GENERAL_CHATS__" and "general"
+                            or (document_path == "__MULTI_BOOK_CHATS__" and "multi_book" or "book"),
+                        book_title = chat.book_title,
+                        book_author = chat.book_author,
+                        document_path = document_path,
+                    }
+
+                    if PinnedManager.addPin(document_path, entry) then
+                        UIManager:show(Notification:new{
+                            text = _("Pinned to Artifacts"),
+                            timeout = 2,
+                        })
+                    else
+                        UIManager:show(Notification:new{
+                            text = _("Failed to pin"),
+                            timeout = 2,
+                        })
+                    end
+                end
+            end,
+            star_callback = function()
+                local Notification = require("ui/widget/notification")
+                local is_starred = getStarState()
+                if is_starred then
+                    chat_history_manager:unstarChat(document_path, history.chat_id)
+                    UIManager:show(Notification:new{
+                        text = _("Chat unstarred"),
+                        timeout = 2,
+                    })
+                else
+                    chat_history_manager:starChat(document_path, history.chat_id)
+                    UIManager:show(Notification:new{
+                        text = _("Chat starred"),
+                        timeout = 2,
+                    })
+                end
             end,
             close_callback = function()
                 self_ref.current_chat_viewer = nil
@@ -2108,6 +2364,166 @@ function ChatHistoryDialog:confirmDelete(ui, document_path, chat_id, chat_histor
         self.current_menu = nil
     end
     self:confirmDeleteSimple(ui, document_path, chat_id, chat_history_manager, config, document, nav_context)
+end
+
+-- Show all starred chats across all contexts
+function ChatHistoryDialog:showStarredChats(ui, chat_history_manager, config, nav_context)
+    -- Close any existing menu first
+    safeClose(self.current_menu)
+    self.current_menu = nil
+
+    local starred = chat_history_manager:getStarredChats()
+    if #starred == 0 then
+        UIManager:show(InfoMessage:new{
+            text = _("No starred chats."),
+            timeout = 2,
+        })
+        return
+    end
+
+    local self_ref = self
+    local enable_emoji = config and config.features and config.features.enable_emoji_icons == true
+    local menu_items = {}
+
+    for _idx, item in ipairs(starred) do
+        local chat = item.chat
+        local doc_path = item.document_path
+        local captured_chat = chat
+        local captured_path = doc_path
+
+        local date_str = os.date("%Y-%m-%d %H:%M", chat.timestamp or 0)
+        local title = chat.title or "Untitled"
+        local short_model = (chat.model or ""):gsub("%-20%d%d%d%d%d%d$", "")
+
+        -- Show book context info
+        local context_label = ""
+        if doc_path == "__GENERAL_CHATS__" then
+            context_label = _("General")
+        elseif doc_path == "__MULTI_BOOK_CHATS__" then
+            context_label = _("Multi-Book")
+        else
+            context_label = chat.book_title or doc_path:match("([^/]+)%.[^%.]+$") or ""
+        end
+
+        local chat_display = Constants.getEmojiText("\u{2B50}", title, enable_emoji)
+        local msg_count = #(chat.messages or {})
+
+        table.insert(menu_items, {
+            text = chat_display,
+            info = context_label ~= "" and context_label or nil,
+            mandatory = date_str .. " \u{00B7} " .. short_model .. " \u{00B7} " .. msg_count,
+            mandatory_dim = true,
+            callback = function()
+                -- Build a minimal document object for showChatOptions
+                local document = {
+                    path = captured_path,
+                    title = context_label,
+                }
+                self_ref:showChatOptions(ui, captured_path, captured_chat, chat_history_manager, config, document, nav_context or {})
+            end,
+        })
+    end
+
+    local menu
+    menu = Menu:new{
+        title = _("Starred Chats"),
+        item_table = menu_items,
+        is_borderless = true,
+        is_popout = false,
+        width = Screen:getWidth(),
+        height = Screen:getHeight(),
+        title_bar_left_icon = "appbar.menu",
+        onLeftButtonTap = function()
+            self_ref:showStarredMenuOptions(ui, chat_history_manager, config)
+        end,
+        onMenuSelect = function(_self_menu, item)
+            if item and item.callback then item.callback() end
+            return true
+        end,
+        onMenuHold = function(_self_menu, item)
+            if item and item.hold_callback then item.hold_callback() end
+            return true
+        end,
+        onReturn = function()
+            if self_ref.current_menu then
+                UIManager:close(self_ref.current_menu)
+                self_ref.current_menu = nil
+            end
+            UIManager:nextTick(function()
+                self_ref:showChatHistoryBrowser(ui, nil, chat_history_manager, config)
+            end)
+        end,
+        multilines_show_more_text = true,
+        items_max_lines = 2,
+        single_line = false,
+        multilines_forced = true,
+        items_font_size = 18,
+        items_mandatory_font_size = 14,
+    }
+
+    menu.close_callback = function()
+        if self_ref.current_menu == menu then
+            self_ref.current_menu = nil
+        end
+    end
+
+    -- Enable return button (back arrow to chat history)
+    menu.paths = menu.paths or {}
+    table.insert(menu.paths, true)
+    if menu.page_return_arrow then
+        menu.page_return_arrow:show()
+        menu.page_return_arrow:enableDisable(true)
+    end
+
+    self.current_menu = menu
+    UIManager:show(menu)
+end
+
+-- Navigation menu for starred chats browser
+function ChatHistoryDialog:showStarredMenuOptions(ui, chat_history_manager, config)
+    local self_ref = self
+    local dialog
+
+    local function navClose()
+        safeClose(dialog)
+        self_ref.current_options_dialog = nil
+        local menu_to_close = self_ref.current_menu
+        self_ref.current_menu = nil
+        return menu_to_close
+    end
+
+    dialog = ButtonDialog:new{
+        buttons = {
+            {{ text = _("Chat History"), align = "left", callback = function()
+                local mc = navClose()
+                UIManager:nextTick(function()
+                    safeClose(mc)
+                    self_ref:showChatHistoryBrowser(ui, chat_history_manager, config)
+                end)
+            end }},
+            {{ text = _("Notebooks"), align = "left", callback = function()
+                local mc = navClose()
+                UIManager:nextTick(function()
+                    safeClose(mc)
+                    local AskGPT = self_ref:getAskGPTInstance()
+                    if AskGPT then AskGPT:showNotebookBrowser() end
+                end)
+            end }},
+            {{ text = _("Artifacts"), align = "left", callback = function()
+                local mc = navClose()
+                UIManager:nextTick(function()
+                    safeClose(mc)
+                    local AskGPT = self_ref:getAskGPTInstance()
+                    if AskGPT then AskGPT:showArtifactBrowser() end
+                end)
+            end }},
+        },
+        shrink_unneeded_width = true,
+        anchor = function()
+            return self_ref.current_menu.title_bar.left_button.image.dimen, true
+        end,
+    }
+    UIManager:show(dialog)
 end
 
 -- Show chats grouped by tag

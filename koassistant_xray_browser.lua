@@ -3287,7 +3287,7 @@ function XrayBrowser:_getAvailableArtifacts()
     local book_file = self.metadata.book_file
     if not book_file then return {} end
     local ActionCache = require("koassistant_action_cache")
-    return ActionCache.getAvailableArtifacts(book_file, "_xray_cache")
+    return ActionCache.getAvailableArtifactsWithPinned(book_file, "_xray_cache")
 end
 
 -- Open a specific artifact viewer
@@ -3296,7 +3296,10 @@ function XrayBrowser:_openArtifact(art)
     if not plugin then return end
     local book_file = self.metadata.book_file
     local book_title = self.metadata.title or ""
-    if art.is_per_action then
+    if art.is_pinned then
+        local ArtifactBrowser = require("koassistant_artifact_browser")
+        ArtifactBrowser:showPinnedViewer(art.data, book_file)
+    elseif art.is_per_action then
         plugin:viewCachedAction(
             { text = art.name }, art.key, art.data,
             { file = book_file, book_title = book_title })
@@ -3315,8 +3318,11 @@ function XrayBrowser:_showOtherArtifacts(available)
     local buttons = {}
     for _idx, art in ipairs(available) do
         local captured = art
+        local label = captured.is_pinned
+            and (captured.name .. " (" .. _("Pinned") .. ")")
+            or captured.name
         table.insert(buttons, {{
-            text = T(_("View %1"), captured.name),
+            text = T(_("View %1"), label),
             callback = function()
                 if self_ref._artifacts_dialog then
                     UIManager:close(self_ref._artifacts_dialog)

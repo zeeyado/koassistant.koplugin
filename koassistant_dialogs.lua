@@ -1199,6 +1199,10 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
             save_callback = state.save_callback,
             export_callback = state.export_callback,
             tag_callback = state.tag_callback,
+            pin_callback = state.pin_callback,
+            star_callback = state.star_callback,
+            get_pin_state = state.get_pin_state,
+            get_star_state = state.get_star_state,
             settings_callback = state.settings_callback,
             update_debug_callback = state.update_debug_callback,
             -- Pass recreate function for subsequent rotations
@@ -1259,6 +1263,58 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
     end
 
     -- Cache notice is now handled in MessageHistory:createResultText() so it persists through debug toggle
+
+    -- Pin/Star helpers (closures shared by callbacks and state checkers)
+    local pin_star_path = (function()
+        local is_multi = temp_config and temp_config.features and temp_config.features.is_multi_book_context
+        if is_multi then return "__MULTI_BOOK_CHATS__"
+        elseif not document_path then return "__GENERAL_CHATS__"
+        else return document_path end
+    end)()
+
+    -- Get first AI response and its preceding user prompt
+    local function getFirstResponseAndPrompt()
+        local msgs = history:getMessages()
+        if not msgs then return "", "" end
+        local first_response, first_prompt = "", ""
+        for i = 1, #msgs do
+            if msgs[i].role == "user" and first_prompt == "" and not msgs[i].is_context then
+                first_prompt = msgs[i].content or ""
+            end
+            if msgs[i].role == "assistant" and msgs[i].content and first_response == "" then
+                first_response = msgs[i].content
+                break
+            end
+        end
+        return first_response, first_prompt
+    end
+
+    -- Check if first AI response is already pinned; returns (is_pinned, pin_id)
+    local function getPinState()
+        local first_response = getFirstResponseAndPrompt()
+        if first_response == "" then return false, nil end
+        local ok_pm, PinnedManager = pcall(require, "koassistant_pinned_manager")
+        if not ok_pm or not PinnedManager then return false, nil end
+        local pinned = PinnedManager.getPinnedForDocument(pin_star_path)
+        for _idx, pin in ipairs(pinned) do
+            -- Strip trailing newline from loaded content (writeLongString legacy)
+            local pin_result = pin.result or ""
+            if pin_result:sub(-1) == "\n" then
+                pin_result = pin_result:sub(1, -2)
+            end
+            if pin_result == first_response then
+                return true, pin.id
+            end
+        end
+        return false, nil
+    end
+
+    -- Check if chat is starred; returns is_starred
+    local function getStarState()
+        if not history.chat_id then return false end
+        local chat = chat_history_manager:getChatById(pin_star_path, history.chat_id)
+        return chat and chat.starred == true or false
+    end
 
     chatgpt_viewer = ChatGPTViewer:new {
         title = title .. " (" .. model_info .. ")",
@@ -1374,6 +1430,10 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                         save_callback = viewer.save_callback,
                         export_callback = viewer.export_callback,
                         tag_callback = viewer.tag_callback,
+                        pin_callback = viewer.pin_callback,
+                        star_callback = viewer.star_callback,
+                        get_pin_state = viewer.get_pin_state,
+                        get_star_state = viewer.get_star_state,
                         selection_data = viewer.selection_data,  -- Preserve for "Save to Note" feature
                         session_web_search_override = viewer.session_web_search_override,  -- Preserve session override
                     }
@@ -1769,15 +1829,24 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
             end
         end,
         tag_callback = function()
+            local Notification = require("ui/widget/notification")
+            -- If chat not saved yet, force-save first
+            if not history.chat_id then
+                local viewer = _G.ActiveChatViewer
+                if viewer and viewer.save_callback then
+                    viewer.save_callback()
+                end
+                if not history.chat_id then
+                    UIManager:show(Notification:new{
+                        text = _("Save the chat first to add tags"),
+                        timeout = 2,
+                    })
+                    return
+                end
+            end
+
             -- Show tag management dialog for this chat
             local chat_id = history.chat_id
-            if not chat_id then
-                UIManager:show(InfoMessage:new{
-                    text = _("Save the chat first to add tags"),
-                    timeout = 2,
-                })
-                return
-            end
 
             -- Get effective document path
             local effective_path = document_path
@@ -1795,6 +1864,92 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
             end
 
             showTagsMenu(effective_path, chat_id, chat_history_manager)
+        end,
+        get_pin_state = getPinState,
+        get_star_state = getStarState,
+        pin_callback = function()
+            local Notification = require("ui/widget/notification")
+            local first_response, first_prompt = getFirstResponseAndPrompt()
+            if first_response == "" then
+                UIManager:show(Notification:new{
+                    text = _("No response to pin"),
+                    timeout = 2,
+                })
+                return
+            end
+
+            local PinnedManager = require("koassistant_pinned_manager")
+            local is_pinned, existing_pin_id = getPinState()
+
+            if is_pinned then
+                -- Unpin
+                if PinnedManager.removePin(pin_star_path, existing_pin_id) then
+                    UIManager:show(Notification:new{
+                        text = _("Unpinned from Artifacts"),
+                        timeout = 2,
+                    })
+                end
+            else
+                -- Pin first AI response
+                local is_multi = temp_config and temp_config.features and temp_config.features.is_multi_book_context
+                local entry = {
+                    id = PinnedManager.generateId(),
+                    action_id = history.prompt_action or "chat",
+                    action_text = history.prompt_action or _("Chat"),
+                    result = first_response,
+                    user_prompt = first_prompt,
+                    timestamp = os.time(),
+                    model = history:getModel() or "",
+                    context_type = is_multi and "multi_book" or (document_path and "book" or "general"),
+                    book_title = book_metadata and book_metadata.title,
+                    book_author = book_metadata and book_metadata.author,
+                    document_path = pin_star_path,
+                }
+
+                if PinnedManager.addPin(pin_star_path, entry) then
+                    UIManager:show(Notification:new{
+                        text = _("Pinned to Artifacts"),
+                        timeout = 2,
+                    })
+                else
+                    UIManager:show(Notification:new{
+                        text = _("Failed to pin"),
+                        timeout = 2,
+                    })
+                end
+            end
+        end,
+        star_callback = function()
+            local Notification = require("ui/widget/notification")
+            -- If chat not saved yet, force-save first
+            if not history.chat_id then
+                local viewer = _G.ActiveChatViewer
+                if viewer and viewer.save_callback then
+                    viewer.save_callback()
+                end
+                if not history.chat_id then
+                    UIManager:show(Notification:new{
+                        text = _("Save the chat first to star it"),
+                        timeout = 2,
+                    })
+                    return
+                end
+            end
+
+            local is_starred = getStarState()
+            if is_starred then
+                chat_history_manager:unstarChat(pin_star_path, history.chat_id)
+                UIManager:show(Notification:new{
+                    text = _("Chat unstarred"),
+                    timeout = 2,
+                })
+            else
+                chat_history_manager:starChat(pin_star_path, history.chat_id)
+                UIManager:show(Notification:new{
+                    text = _("Chat starred"),
+                    timeout = 2,
+                })
+            end
         end,
         close_callback = function()
             if _G.ActiveChatViewer == chatgpt_viewer then
@@ -3545,22 +3700,48 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         end
     end
 
-    -- Build View Artifacts button (shows cached artifacts)
+    -- Build View Artifacts button (shows cached artifacts + pinned)
     -- Always "View Artifacts" text, always shows popup selector with metadata
     local artifact_button = nil
     if not is_general_context and plugin and not hide_artifacts then
         local artifact_file = document_path
         if artifact_file then
             local ActionCache = require("koassistant_action_cache")
-            local caches = ActionCache.getAvailableArtifacts(artifact_file)
+            local caches = ActionCache.getAvailableArtifactsWithPinned(artifact_file)
 
             local function openArtifact(cache)
-                if cache.is_per_action then
+                if cache.is_pinned then
+                    local ArtifactBrowser = require("koassistant_artifact_browser")
+                    ArtifactBrowser:showPinnedViewer(cache.data, artifact_file)
+                elseif cache.is_per_action then
                     plugin:viewCachedAction({ text = cache.name }, cache.key, cache.data,
                         { file = artifact_file, book_title = book_metadata and book_metadata.title })
                 else
                     plugin:showCacheViewer(cache)
                 end
+            end
+
+            local function formatDisplayText(cache)
+                if cache.is_pinned then
+                    local parts = { _("Pinned") }
+                    if cache.data and cache.data.timestamp then
+                        local now = os.time()
+                        local today_t = os.date("*t", now)
+                        today_t.hour, today_t.min, today_t.sec = 0, 0, 0
+                        local cached_t = os.date("*t", cache.data.timestamp)
+                        cached_t.hour, cached_t.min, cached_t.sec = 0, 0, 0
+                        local days = math.floor((os.time(today_t) - os.time(cached_t)) / 86400)
+                        if days == 0 then
+                            table.insert(parts, _("today"))
+                        elseif days < 30 then
+                            table.insert(parts, string.format(_("%dd ago"), days))
+                        else
+                            table.insert(parts, string.format(_("%dm ago"), math.floor(days / 30)))
+                        end
+                    end
+                    return cache.name .. " (" .. table.concat(parts, ", ") .. ")"
+                end
+                return formatArtifactDisplayText(cache)
             end
 
             if #caches > 0 then
@@ -3573,7 +3754,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         local btn_rows = {}
                         for _idx, cache in ipairs(caches) do
                             table.insert(btn_rows, {{
-                                text = formatArtifactDisplayText(cache),
+                                text = formatDisplayText(cache),
                                 callback = function()
                                     UIManager:close(plugin._cache_selector)
                                     UIManager:close(input_dialog)

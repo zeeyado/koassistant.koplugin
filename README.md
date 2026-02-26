@@ -76,6 +76,7 @@
   - [Notebooks (Per-Book Notes)](#notebooks-per-book-notes)
   - [Chat Storage & File Moves](#chat-storage--file-moves)
   - [Tags](#tags)
+  - [Starring & Pinning](#starring--pinning) — Star conversations for quick access, pin responses as artifacts
 - [Settings Reference](#settings-reference) ↓ includes [KOReader Integration](#koreader-integration)
 - [Updating the Plugin](#updating-the-plugin) — Auto-update and manual methods
   - [Automatic Update (One-Tap)](#automatic-update-one-tap)
@@ -840,7 +841,7 @@ Actions like News Update that require [web search](#web-search) are available in
 
 - **Settings Icon (Input)**: Tap the gear icon in the input dialog title bar for a menu with **Quick Settings** (streamlined settings panel), **Choose and Sort Actions** (reorder, show/hide actions for this context), and **More Actions** (access enabled actions not shown in the grid). See [Recommended Setup](#recommended-setup) for details on the Quick Settings panel.
 - **Web Search Toggle (Input)**: The input dialog has a **Web ON/OFF** button (top row) to toggle web search before running an action. This is a persistent toggle — the setting sticks across sessions. Action button labels update to reflect web search status.
-- **Settings Icon (Viewer)**: Tap the gear icon in the chat viewer title bar to adjust font size and text alignment (cycles left/justified/right on each click)
+- **Settings Icon (Viewer)**: Tap the gear icon in the chat viewer title bar for a menu with Font Size, Alignment, Show/Hide Debug, and Reset to Defaults
 - **Settings Icon (Panels)**: Both the Quick Settings and Quick Actions panels have a gear icon in the title bar for managing panel layout — reorder, show/hide buttons without leaving the panel
 - **Show/Hide Quote**: In the chat viewer, toggle button to show or hide the highlighted text quote (useful for long selections)
 - **Save to Note**: For highlight context chats, tap the **Save to Note** button to save the AI response directly as a note attached to your highlighted text (see [Save to Note](#save-to-note) below)
@@ -1694,11 +1695,12 @@ By default, all chats are automatically saved. You can disable this in Settings 
 - Delete all chats
 
 **Chat organization**: In the document view, chats are sorted as:
-1. General AI Chats
-2. Multi-Book Chats (comparisons and analyses across multiple books)
-3. Individual books (alphabetically)
+1. **Starred** — Virtual folder with all starred chats across all documents (appears when any chats are starred)
+2. General AI Chats
+3. Multi-Book Chats (comparisons and analyses across multiple books)
+4. Individual books (alphabetically)
 
-With [Emoji Menu Icons](#display-settings) enabled, each entry gets a type prefix: 💬 general, 📚 multi-book, 📖 book chats.
+With [Emoji Menu Icons](#display-settings) enabled, each entry gets a type prefix: 💬 general, 📚 multi-book, 📖 book chats. Starred chats show a ★ prefix.
 
 **Document list actions:**
 - **Tap** → Opens the chat list for that document
@@ -1710,6 +1712,8 @@ Select any chat to see the options popup:
 - **Continue Chat**: Resume the conversation
 - **Rename**: Change the chat title
 - **Tags**: Add or remove tags
+- **Star / Unstar**: Mark the chat as starred for quick access in the Starred virtual folder
+- **Pin to Artifacts / Unpin**: Snapshot the first AI response as a read-only pinned artifact, browsable from the Artifact Browser
 - **Export**: Copy to clipboard or save to file
 - **Open Book**: Open the book in the reader (book documents only)
 - **Delete Chat**: Remove the chat
@@ -1815,6 +1819,7 @@ This means:
 - ✅ **No data loss** when reorganizing your library
 - ✅ **Automatic index sync**: When you move or rename books via KOReader's file manager, the chat index automatically updates to track the new path — chats remain accessible immediately without needing to reopen books
 - ✅ **Multi-book context preserved**: Chats comparing multiple books (Compare Books, Common Themes) preserve the full list of compared books in metadata and appear in a separate section in Chat History
+- ✅ **Pinned artifacts travel with books**: Pinned artifacts are stored in the book's sidecar folder (`koassistant_pinned.lua`) and automatically move with the book. General and multi-book pinned artifacts are stored globally.
 
 **Storage Modes**: KOAssistant is designed for and tested with KOReader's default **"Book folder"** storage mode (metadata stored alongside book files in `.sdr` folders).
 
@@ -1840,6 +1845,24 @@ Tags are simple labels for organizing chats. Unlike domains:
 - In chat history: Long-press a chat → Tags
 
 **Browsing by Tag**: Chat History → hamburger menu → View by Tag
+
+### Starring & Pinning
+
+Two complementary features for surfacing important content:
+
+**Star Conversation** — Mark a chat as starred for quick access. Starred chats appear with a ★ prefix and are collected in a virtual "Starred" folder at the top of the Chat History browser. Starring is about the *conversation* — use it when the whole chat is worth revisiting.
+
+**Pin to Artifacts** — Snapshot a chat's first AI response as a read-only pseudo-artifact. Pinned artifacts appear in the Artifact Browser alongside AI-generated cached artifacts (marked with "(Pinned)"). Pinning is about a specific *response* — use it when a particular AI answer is worth keeping as a reference, like an insightful analysis or a useful explanation.
+
+**How to star/pin:**
+- **Chat viewer**: Tap the **Pin / ★** button (first row) → popup with "Pin to Artifacts" and "Star Conversation" options. Labels update to reflect current state (Unpin/Unstar when already active).
+- **Chat history**: Select a chat → "Star"/"Unstar" and "Pin to Artifacts"/"Unpin" in the options popup
+- **Continued chats**: Pin/Star works on both new and reopened chats
+
+**Pin behavior:**
+- Always captures the **first AI response** in the conversation (not the latest). This makes pinning idempotent — pinning the same chat always references the same content.
+- Pinned artifacts are stored per-book (in sidecar), per-general, or per-multi-book context and travel with books when moved.
+- Unsaved chats are automatically saved before starring or tagging.
 
 ---
 
@@ -1902,7 +1925,7 @@ Tags are simple labels for organizing chats. Unlike domains:
   - **Notebook browser**: 📓 prefix on entries
   - **Artifact browser**: 📖 prefix on entries
   - **X-Ray browser**: Category icons (👥 Characters, 🌍 Locations, 💭 Themes, 📖 Lexicon, 📅 Timeline, 📌 Reader Engagement, 📍 Current State/Current Position, 🏁 Conclusion). Highly recommended for the X-Ray browser — the visual icons make browsing categories much more intuitive.
-  - **Chat viewer**: ↩️ Reply, 🏷️ Tag, 🔍 Web search toggle
+  - **Chat viewer**: ↩️ Reply, 🏷️ Tag, 📌/⭐ Pin/Star, 🔍 Web search toggle
   - **Streaming**: 🔍 web search indicator
   - Requires **emoji font support** — see [Emoji Font Setup](#emoji-font-setup) for installation instructions. If icons appear as question marks or blank squares, your device doesn't have a compatible emoji font installed.
 - **Emoji Data Access Indicators**: Show emoji suffixes on action names indicating what sensitive data they access. Off by default. Independent from Emoji Menu Icons — you can enable either or both. When enabled:
@@ -2606,8 +2629,10 @@ When certain actions complete, their results are saved as **document artifacts**
 - **Reading Features** → Tap any artifact action (X-Ray, X-Ray (Simple), Recap, Document Summary, Document Analysis, Book Info, Analyze My Notes). If a cache exists, a View/Update/Regenerate popup appears; if not, generation starts directly.
 - **Quick Actions** → Same artifact action buttons, plus "View Artifacts" appears when any artifacts exist, opening a picker.
 - **File Browser** → Long-press a book → "View Artifacts (KOA)" → pick any cached artifact
-- **Artifact Browser** → Browse all documents with cached artifacts. Access from Chat History or Notebook browser hamburger menus (☰), or Settings → Quick Actions → Browse Artifacts.
-  - **Tap** → Artifact selector popup: "View Summary", "View X-Ray", "View X-Ray (Simple)", etc., plus "Open Book"
+- **Artifact Browser** → Browse all documents with cached/pinned artifacts. Access from Chat History or Notebook browser hamburger menus (☰), or Settings → Quick Actions → Browse Artifacts.
+  - **Top sections**: General Pinned and Multi-Book Pinned appear at the top when pinned artifacts exist in those contexts
+  - **Per-book entries**: Show combined count of generated artifacts + pinned artifacts
+  - **Tap** → Artifact selector popup: "View Summary", "View X-Ray", etc., plus any pinned artifacts (marked with "(Pinned)"), plus "Open Book"
   - **Hold** → Options popup: "View", "Delete All", "Cancel"
   - **Hamburger menu** (☰) → Navigate to Chat History or Browse Notebooks
 - **Gesture** → Add artifact actions to gesture menu via Action Manager (hold action → "Add to Gesture Menu")
@@ -2814,7 +2839,7 @@ Supported providers can search the web to include current information in their r
 
 **Quick Toggle:**
 - **Input dialog**: Web ON/OFF button (top row, 🔍 prefix with [Emoji Menu Icons](#display-settings)) toggles the persistent global web search setting. Action button labels update immediately — forced web search shows 🌐, global-follows shows (🌐) to distinguish per-action overrides from the global toggle.
-- **Chat viewer**: Web ON/OFF toggle button (first row) overrides web search for the current session without changing your global setting.
+- **Chat viewer**: Web ON/OFF toggle button (second row) overrides web search for the current session without changing your global setting.
 
 **Per-Action Override:**
 Custom actions can override the global setting:
