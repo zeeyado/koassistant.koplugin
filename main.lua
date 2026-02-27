@@ -1848,6 +1848,15 @@ function AskGPT:buildProviderMenu(simplified)
       callback = function() end,
     })
 
+    -- Add local provider preset option
+    table.insert(items, {
+      text = _("Quick setup: Local provider..."),
+      callback = function()
+        self_ref:showLocalProviderPresets()
+      end,
+      keep_menu_open = false,
+    })
+
     -- Add custom provider option
     table.insert(items, {
       text = _("Add custom provider..."),
@@ -1940,20 +1949,66 @@ function AskGPT:showCustomProviderOptions(provider)
   UIManager:show(self._provider_options_dialog)
 end
 
+-- Local provider presets for quick setup
+-- All use OpenAI-compatible API format, no API key needed
+local LOCAL_PROVIDER_PRESETS = {
+  { name = "LM Studio",     port = 1234, desc = _("Popular GUI, drag-and-drop models") },
+  { name = "llama.cpp",     port = 8080, desc = _("Fast CLI server (llama-server)") },
+  { name = "Jan",           port = 1337, desc = _("Desktop app, easy setup") },
+  { name = "vLLM",          port = 8000, desc = _("Production-grade serving") },
+  { name = "KoboldCpp",     port = 5001, desc = _("Optimized for creative writing") },
+  { name = "LocalAI",       port = 8080, desc = _("Drop-in OpenAI replacement") },
+}
+
+-- Helper: Show local provider preset selection
+function AskGPT:showLocalProviderPresets()
+  local self_ref = self
+  local ButtonDialog = require("ui/widget/buttondialog")
+
+  local buttons = {}
+  for _idx, preset in ipairs(LOCAL_PROVIDER_PRESETS) do
+    table.insert(buttons, {{
+      text = T("%1  (%2)", preset.name, T(_("port %1"), preset.port)),
+      callback = function()
+        UIManager:close(self_ref._local_presets_dialog)
+        self_ref:showAddCustomProviderDialog({
+          name = preset.name,
+          base_url = string.format("http://localhost:%d/v1/chat/completions", preset.port),
+          api_key_required = false,
+        })
+      end,
+    }})
+  end
+  table.insert(buttons, {{
+    text = _("Cancel"),
+    callback = function()
+      UIManager:close(self_ref._local_presets_dialog)
+    end,
+  }})
+
+  self._local_presets_dialog = ButtonDialog:new{
+    title = _("Select local provider"),
+    info_text = _("Pre-fills name and URL. Change 'localhost' to your server's IP if needed."),
+    buttons = buttons,
+  }
+  UIManager:show(self._local_presets_dialog)
+end
+
 -- Helper: Show dialog to add a new custom provider
-function AskGPT:showAddCustomProviderDialog()
+-- @param preset table: Optional pre-fill values {name, base_url, api_key_required}
+function AskGPT:showAddCustomProviderDialog(preset)
   local self_ref = self
 
   local dialog
   dialog = MultiInputDialog:new{
-    title = _("Add Custom Provider"),
+    title = preset and T(_("Add: %1"), preset.name) or _("Add Custom Provider"),
     fields = {
       {
-        text = "",
+        text = preset and preset.name or "",
         hint = _("Provider name (e.g., LM Studio)"),
       },
       {
-        text = "",
+        text = preset and preset.base_url or "",
         hint = _("Base URL (e.g., http://localhost:1234/v1/chat/completions)"),
       },
       {
@@ -1982,7 +2037,7 @@ function AskGPT:showAddCustomProviderDialog()
               name = name,
               base_url = base_url,
               default_model = default_model,
-              api_key_required = true,
+              api_key_required = preset and preset.api_key_required or true,
             })
 
             if success then

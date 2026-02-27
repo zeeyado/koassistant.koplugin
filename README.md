@@ -93,7 +93,7 @@
   - [Web Search](#web-search) — AI searches the web for current information (Anthropic, Gemini, OpenRouter, Perplexity)
 - [Supported Providers + Settings](#supported-providers--settings) - Choose your model, etc
   - [Free Tier Providers](#free-tier-providers)
-  - [Adding Custom Providers](#adding-custom-providers)
+  - [Adding Custom Providers](#adding-custom-providers) — Local provider presets (LM Studio, llama.cpp, Jan, vLLM, KoboldCpp, LocalAI)
   - [Adding Custom Models](#adding-custom-models)
   - [Setting Default Models](#setting-default-models)
 - [Tips & Advanced Usage](#tips--advanced-usage)
@@ -497,7 +497,7 @@ For maximum privacy, **Ollama** can run AI models entirely on your device(s):
 - Quick start: Install Ollama → `ollama pull qwen2.5:0.5b` → Select "Ollama" as provider in KOAssistant settings
 - For network hosting, change the endpoint in Settings → Provider → Base URL (e.g., `http://192.168.1.100:11434/api/chat`)
 
-**Other local options:** LM Studio, vLLM, llama.cpp server, and Text Generation WebUI all work via [Adding Custom Providers](#adding-custom-providers) since they support OpenAI-compatible APIs. Just input the Provider name and Model name and you are set -- they will be saved for future use.
+**Other local options:** LM Studio, llama.cpp, Jan, vLLM, KoboldCpp, and LocalAI all have **one-tap presets** — go to **Settings → Provider → Quick setup: Local provider**, pick your engine, and the name and URL are pre-filled. Just change `localhost` to your server's IP if it's on another machine. See [Adding Custom Providers](#adding-custom-providers) for details.
 
 Anyone using local LLMs is encouraged to open Issues/Feature Requests/Discussions to help enhance support for local, privacy-focused usage.
 
@@ -2607,10 +2607,9 @@ All seven artifact actions (X-Ray, X-Ray (Simple), Recap, Document Summary, Docu
 
 ### Document Artifacts
 
-When certain actions complete, their results are saved as **document artifacts** — persistent, per-book outputs that serve two purposes:
+When certain actions complete, their results are saved as **document artifacts** — persistent, per-book outputs you can browse anytime without re-running the action. All seven artifact types are viewable as standalone reference guides. The **Summary** artifact is additionally reusable as context for Smart actions — instead of sending full document text (~100K tokens) every time, Smart actions reference the compact summary (~2-8K tokens), which is dramatically cheaper and often better-performing since models handle focused context more effectively than massive text dumps.
 
-1. **Viewable as standalone reference guides.** Browse a book's Summary, X-Ray, X-Ray (Simple), Recap, Analysis, Book Info, or Analyze My Notes anytime without re-running the action. X-Ray opens as a browsable category menu (characters, locations, themes, lexicon, timeline) with search, chapter/book mention analysis, per-item chapter distribution, linkable cross-references, and your highlight mentions — useful for quickly checking character details, relationships, or where a character appears across chapters mid-read. X-Ray (Simple) shows a prose overview.
-2. **Reusable as context in other actions.** Instead of sending full document text (~100K tokens) every time, actions can reference a compact artifact (~2-8K tokens). This is the foundation of **Smart actions** — dramatically cheaper and often better-performing, since models handle focused context more effectively than massive text dumps.
+X-Ray opens as a browsable category menu (characters, locations, themes, lexicon, timeline) with search, chapter/book mention analysis, per-item chapter distribution, linkable cross-references, and your highlight mentions — useful for quickly checking character details, relationships, or where a character appears across chapters mid-read. X-Ray (Simple) shows a prose overview.
 
 **The seven artifact types:**
 
@@ -2943,17 +2942,33 @@ Several providers offer free tiers for testing or budget-conscious users:
 
 You can add your own OpenAI-compatible providers for local servers or cloud services not in the built-in list.
 
-**Supported endpoints:** LM Studio, vLLM, Text Generation WebUI, Ollama's OpenAI-compatible endpoint, and any API following the OpenAI chat completions format.
+**Quick setup for local providers:**
 
-**To add a custom provider:**
+1. Go to **Settings → Provider → Quick setup: Local provider**
+2. Pick your engine — presets available for:
+
+   | Engine | Default Port | Notes |
+   |--------|-------------|-------|
+   | LM Studio | 1234 | Popular GUI, drag-and-drop models |
+   | llama.cpp | 8080 | Fast CLI server (llama-server) |
+   | Jan | 1337 | Desktop app, easy setup |
+   | vLLM | 8000 | Production-grade serving |
+   | KoboldCpp | 5001 | Optimized for creative writing |
+   | LocalAI | 8080 | Drop-in OpenAI replacement |
+
+3. Name and URL are pre-filled — just change `localhost` to your server's IP if it's running on another machine
+4. Add a model name, tap **Add**, and you're ready
+
+API key is automatically disabled for preset local providers.
+
+**Manual setup (cloud services or unlisted endpoints):**
 
 1. Go to **Settings → Provider**
 2. Select **"Add custom provider..."**
 3. Fill in the details:
-   - **Name**: Display name (e.g., "LM Studio")
-   - **Base URL**: Full endpoint URL (e.g., `http://localhost:1234/v1/chat/completions`)
+   - **Name**: Display name (e.g., "My Service")
+   - **Base URL**: Full endpoint URL (e.g., `https://api.example.com/v1/chat/completions`)
    - **Default Model**: Optional model name to use by default
-   - **API Key Required**: Enable for cloud services, disable for local servers
 
 **Managing custom providers:**
 - Custom providers appear with ★ prefix in the Provider menu
@@ -2963,7 +2978,6 @@ You can add your own OpenAI-compatible providers for local servers or cloud serv
 
 **Tips:**
 - For Ollama's OpenAI-compatible mode, use `http://localhost:11434/v1/chat/completions`
-- For LM Studio, the default is `http://localhost:1234/v1/chat/completions`
 - The first custom model you add becomes the default automatically
 
 ### Adding Custom Models
