@@ -2623,6 +2623,8 @@ X-Ray opens as a browsable category menu (characters, locations, themes, lexicon
 | **Book Info** | Book Info action | Reader-oriented overview from AI knowledge | **Text viewer** — background, reception, and reading context. No text extraction needed. Uses web search when enabled for current information. |
 | **Analyze My Notes** | Analyze My Notes action | Analysis of your highlights and annotations | **Text viewer** — patterns in what you've been noting, reading engagement analysis. Updates as you add more notes. |
 
+Beyond these seven generated artifacts, you can **pin any chat response as a pseudo-artifact** using the Pin / ★ button in the chat viewer. This is useful for non-artifact actions whose output is worth keeping as a reference — Extract Key Insights, Key Arguments, Discussion Questions, etc. Pinned artifacts appear alongside generated ones in the Artifact Browser and artifact cross-navigation. See [Starring & Pinning](#starring--pinning) for details.
+
 **Viewing artifacts:**
 - **Reading Features** → Tap any artifact action (X-Ray, X-Ray (Simple), Recap, Document Summary, Document Analysis, Book Info, Analyze My Notes). If a cache exists, a View/Update/Regenerate popup appears; if not, generation starts directly.
 - **Quick Actions** → Same artifact action buttons, plus "View Artifacts" appears when any artifacts exist, opening a picker.
