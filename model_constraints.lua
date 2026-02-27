@@ -72,7 +72,7 @@ ModelConstraints.capabilities = {
     },
     gemini = {
         -- Gemini 3 preview models support thinkingLevel
-        thinking = { "gemini-3-pro-preview", "gemini-3-flash-preview" },
+        thinking = { "gemini-3.1-pro-preview", "gemini-3-flash-preview" },
         -- Gemini 2.5 models support thinkingBudget (0=off, -1=dynamic, 128-24576)
         -- Flash-Lite excluded (thinking disabled by default, no budget control)
         thinking_budget = { "gemini-2.5-pro", "gemini-2.5-flash" },
@@ -80,7 +80,7 @@ ModelConstraints.capabilities = {
         google_search = {
             "gemini-2.5-pro", "gemini-2.5-flash",
             "gemini-2.0-flash", "gemini-2.0-flash-lite",
-            "gemini-3-pro-preview", "gemini-3-flash-preview",
+            "gemini-3.1-pro-preview", "gemini-3-flash-preview",
         },
     },
     -- Note: xAI web search requires Responses API (/v1/responses) which is

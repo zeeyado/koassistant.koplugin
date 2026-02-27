@@ -629,6 +629,12 @@ function ArtifactBrowser:showPinnedViewer(entry, context_path, opts)
             timestamp = entry.timestamp,
         },
         _info_text = #info_parts > 0 and table.concat(info_parts, "\n") or nil,
+        _artifact_file = context_path,
+        _artifact_key = "pinned:" .. (entry.id or ""),
+        _artifact_book_title = entry.book_title,
+        _artifact_book_author = entry.book_author,
+        _book_open = (AskGPT.ui and AskGPT.ui.document ~= nil),
+        _plugin = AskGPT,
         on_delete = function()
             PinnedManager.removePin(context_path, entry.id)
             UIManager:show(Notification:new{

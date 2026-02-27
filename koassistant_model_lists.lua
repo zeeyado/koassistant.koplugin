@@ -1,6 +1,6 @@
 -- Model lists for each provider
 -- SINGLE SOURCE OF TRUTH for all model data
--- Last updated: 2026-02-17
+-- Last updated: 2026-02-27
 --
 -- Structure:
 --   ModelLists[provider] = array of model IDs (for backward compat & dropdowns)
@@ -57,10 +57,10 @@ local ModelLists = {
         "gemini-2.5-flash",             -- standard (default), free quota
         "gemini-2.5-pro",               -- flagship, reasoning
         "gemini-2.5-flash-lite",        -- ultrafast
-        -- Gemini 3 (preview - output capped ~3K tokens, not recommended)
+        -- Gemini 3 (preview)
         "gemini-3-flash-preview",       -- FREE tier available
-        "gemini-3-pro-preview",         
-        -- Gemini 2.0 (DEPRECATED - shutdown Mar 31, 2026)
+        "gemini-3.1-pro-preview",       -- replaces gemini-3-pro-preview (shutdown Mar 9, 2026)
+        -- Gemini 2.0 (DEPRECATED - shutdown Jun 1, 2026)
         "gemini-2.0-flash",
         "gemini-2.0-flash-lite",
     },
@@ -185,7 +185,7 @@ local ModelLists = {
         -- Google
         "google/gemini-2.5-pro",
         "google/gemini-2.5-flash",
-        "google/gemini-3-pro-preview",
+        "google/gemini-3.1-pro-preview",
         "google/gemini-3-flash-preview",
         "google/gemma-3-27b-it",
         "google/gemma-3-27b-it:free",
