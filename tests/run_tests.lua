@@ -11,6 +11,7 @@
 --   lua tests/run_tests.lua openai -v    # Test one provider, verbose
 --   lua tests/run_tests.lua groq --full  # Run comprehensive tests for a provider
 --   lua tests/run_tests.lua --full       # Run comprehensive tests for all providers
+--   lua tests/run_tests.lua --reasoning  # Test reasoning/thinking across providers
 
 -- Detect script location and set up paths
 local function setupPaths()
@@ -57,6 +58,7 @@ local function parseArgs()
         all = false,
         full = false,
         models = false,
+        reasoning = false,
     }
 
     -- Apply defaults from local config
@@ -76,6 +78,8 @@ local function parseArgs()
             args.full = true
         elseif a == "--models" then
             args.models = true
+        elseif a == "--reasoning" then
+            args.reasoning = true
         elseif not a:match("^%-") then
             args.provider = a
         end
@@ -95,6 +99,7 @@ Options:
   --all            Run both unit and integration tests
   --full           Run comprehensive tests (behaviors, temps, domains, languages)
   --models         Validate ALL models (minimal cost ~1 token per model)
+  --reasoning      Test reasoning/thinking parameters across providers
   -v, --verbose    Show API responses
   -h, --help       Show this help
 
@@ -107,6 +112,8 @@ Examples:
   lua tests/run_tests.lua --full       # Comprehensive tests for all providers
   lua tests/run_tests.lua --models     # Validate all models (detects constraints)
   lua tests/run_tests.lua --models openai  # Validate only OpenAI models
+  lua tests/run_tests.lua --reasoning  # Test reasoning for all providers
+  lua tests/run_tests.lua --reasoning deepseek  # Test reasoning for one provider
   lua tests/run_tests.lua -v openai    # Test OpenAI with verbose output
 
 Providers:
@@ -290,6 +297,26 @@ local function runFullTests(args)
     return all_passed
 end
 
+-- Run reasoning tests (--reasoning flag)
+local function runReasoningTests(args)
+    local ReasoningTests = require("integration.test_reasoning")
+    ReasoningTests:reset()
+
+    local apikeys = TestConfig.loadApiKeys()
+
+    print("")
+    print(string.rep("=", 70))
+    print("  KOAssistant Reasoning Tests (--reasoning)")
+    print(string.rep("=", 70))
+    print("")
+
+    local all_passed = ReasoningTests:runAllTests(apikeys, args)
+
+    ReasoningTests:printSummary()
+
+    return all_passed
+end
+
 -- Run integration tests (provider tests with real API calls)
 local function runIntegrationTests(args)
     -- Load API keys
@@ -394,6 +421,10 @@ end
 if args.models then
     local models_success = runModelValidation(args)
     success = success and models_success
+-- Run reasoning tests if --reasoning flag is set
+elseif args.reasoning then
+    local reasoning_success = runReasoningTests(args)
+    success = success and reasoning_success
 -- Run full comprehensive tests if --full flag is set
 elseif args.full then
     local full_success = runFullTests(args)

@@ -30,7 +30,7 @@ function TestHelpers.patchHandlerForSync(handler)
 end
 
 --- Handle query() result that may be a string, function, or _non_streaming table.
---- Returns: success, text, elapsed
+--- Returns: success, text, elapsed, reasoning
 function TestHelpers.handleQueryResult(ok, result, elapsed)
     if not ok then
         return false, "Exception: " .. tostring(result), elapsed
@@ -57,11 +57,11 @@ function TestHelpers.handleQueryResult(ok, result, elapsed)
         if not response then
             return false, "Failed to parse response JSON", elapsed
         end
-        local parse_ok, text = result._response_parser(response)
+        local parse_ok, text, reasoning = result._response_parser(response)
         if not parse_ok then
             return false, text, elapsed
         end
-        return true, text, elapsed
+        return true, text, elapsed, reasoning
     else
         return false, "Unexpected result type: " .. type(result), elapsed
     end

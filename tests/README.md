@@ -53,6 +53,9 @@ lua tests/run_tests.lua
 # Validate all models (detects constraints, ~1 token per model)
 lua tests/run_tests.lua --models
 
+# Test reasoning/thinking across providers
+lua tests/run_tests.lua --reasoning
+
 # Inspect request structure
 lua tests/inspect.lua anthropic
 
@@ -158,7 +161,7 @@ lua tests/inspect.lua --web --port 3000
 
 ### Unit Tests (no API calls)
 
-Located in `tests/unit/` (858 tests total across 16 files):
+Located in `tests/unit/` (923 tests total across 17 files):
 - `test_action_service.lua` - ActionService integration, action execution flow (35 tests)
 - `test_actions.lua` - Placeholder gating, flag cascading, DOUBLE_GATED_FLAGS (65 tests)
 - `test_auto_update.lua` - Auto-update helper functions: verify, preserve, restore (23 tests)
@@ -175,6 +178,7 @@ Located in `tests/unit/` (858 tests total across 16 files):
   - Cache integration tests: analysis cache flow to MessageBuilder
   - Context type tests: highlight, book, multi_book, general context building
   - Language, dictionary, surrounding context, reading stats, cache/incremental, additional input tests
+- `test_reasoning.lua` - Reasoning capabilities, defaults, request injection, response parsing (65 tests)
 - `test_response_parser.lua` - Response parsing for all 17 providers (46 tests)
 - `test_state_management.lua` - Context detection, flag isolation, config merge, transient flags, cache permission gating (68 tests)
   - Context detection contract: getPromptContext() priority rules (multi_book > book > general > highlight)
@@ -201,6 +205,7 @@ Located in `tests/unit/` (858 tests total across 16 files):
 | Default | Basic connectivity (API responds, returns string) |
 | `--full` | Behaviors, temperatures, domains, languages, extended thinking |
 | `--models` | Validate ALL models (~1 token each), detect parameter constraints |
+| `--reasoning` | Test reasoning/thinking parameters across providers |
 
 #### Model Validation (`--models`)
 
@@ -421,7 +426,8 @@ tests/
 │   └── index.html             # Web UI frontend
 ├── integration/
 │   ├── test_full_provider.lua    # Comprehensive tests (--full)
-│   └── test_model_validation.lua # Model validation (--models)
+│   ├── test_model_validation.lua # Model validation (--models)
+│   └── test_reasoning.lua        # Reasoning integration tests (--reasoning)
 └── unit/
     ├── test_action_service.lua      # ActionService integration tests (35 tests)
     ├── test_actions.lua             # Placeholder gating, flag cascading tests (65 tests)
@@ -433,6 +439,7 @@ tests/
     ├── test_message_history.lua     # Conversation tracking, token estimation tests (54 tests)
     ├── test_openai_compatible.lua   # OpenAI-compatible base class tests (30 tests)
     ├── test_prompt_building.lua     # MessageBuilder, ContextExtractor gating, cache flow (121 tests)
+    ├── test_reasoning.lua              # Reasoning capabilities, request injection tests (65 tests)
     ├── test_response_parser.lua     # Provider response parsing tests (42 tests)
     ├── test_state_management.lua    # Context/config state management tests (68 tests)
     ├── test_streaming_parser.lua    # SSE/NDJSON parsing tests (22 tests)
