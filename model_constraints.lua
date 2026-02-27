@@ -66,8 +66,10 @@ ModelConstraints.capabilities = {
         -- Web search requires Responses API or function calling with external tools.
     },
     deepseek = {
-        -- deepseek-reasoner always reasons (no parameter needed)
-        -- deepseek-chat does NOT support reasoning
+        -- V3.2+: both models support thinking toggle (type: enabled/disabled)
+        -- deepseek-reasoner defaults ON, deepseek-chat defaults OFF
+        thinking = { "deepseek-chat", "deepseek-reasoner" },
+        -- Keep reasoning list for tier system (which models are "reasoning-class")
         reasoning = { "deepseek-reasoner" },
     },
     gemini = {
@@ -94,6 +96,51 @@ ModelConstraints.capabilities = {
             "glm-5", "glm-4.7", "glm-4.7-flashx", "glm-4.7-flash",
             "glm-4.6", "glm-4.5", "glm-4.5-flash",
         },
+    },
+    openrouter = {
+        -- Unified reasoning object works for all backend models
+        -- OpenRouter auto-translates effort to each provider's native format
+        -- No model list needed — controlled by whether reasoning param is sent
+    },
+    groq = {
+        -- Models with reasoning_effort support
+        reasoning = {
+            "openai/gpt-oss-120b", "openai/gpt-oss-20b",
+            "qwen/qwen3-32b",
+        },
+    },
+    together = {
+        -- Models with reasoning_effort support
+        reasoning = {
+            "deepseek-ai/DeepSeek-R1",
+            "Qwen/Qwen3-235B-A22B", "Qwen/Qwen3-32B",
+        },
+    },
+    fireworks = {
+        -- Models with reasoning_effort support
+        reasoning = {
+            "accounts/fireworks/models/deepseek-r1",
+            "accounts/fireworks/models/qwen3-235b-a22b",
+        },
+    },
+    sambanova = {
+        -- Models with thinking toggle (chat_template_kwargs.enable_thinking)
+        thinking = { "DeepSeek-R1", "Qwen3-32B" },
+    },
+    xai = {
+        -- Only grok-3-mini supports reasoning_effort (low/high)
+        -- Other Grok models reason internally but don't expose content via Chat Completions
+        reasoning = { "grok-3-mini" },
+    },
+    perplexity = {
+        -- Reasoning models (always-on, but effort is controllable)
+        -- sonar-reasoning-pro uses <think> tags, sonar-deep-research also supports effort
+        reasoning = { "sonar-reasoning-pro", "sonar-reasoning", "sonar-deep-research" },
+    },
+    mistral = {
+        -- Magistral models always think (no toggle, extraction only)
+        -- Returns structured content blocks with type: "thinking"
+        thinking = { "magistral-medium", "magistral-small" },
     },
 }
 
@@ -158,6 +205,31 @@ ModelConstraints.reasoning_defaults = {
             high = 16384,
             max = 24576,
         },
+    },
+    -- Effort-based providers
+    openrouter = {
+        effort = "high",
+        effort_options = { "low", "medium", "high" },
+    },
+    groq = {
+        effort = "high",
+        effort_options = { "low", "medium", "high" },
+    },
+    together = {
+        effort = "high",
+        effort_options = { "low", "medium", "high" },
+    },
+    fireworks = {
+        effort = "high",
+        effort_options = { "low", "medium", "high" },
+    },
+    xai = {
+        effort = "high",
+        effort_options = { "low", "high" },
+    },
+    perplexity = {
+        effort = "high",
+        effort_options = { "low", "medium", "high" },
     },
 }
 

@@ -2807,10 +2807,38 @@ GPT-5.1 and GPT-5.2 ship with reasoning off by default (reasoning_effort=none fr
 3. Set effort level (low/medium/high/xhigh)
 4. Temperature is forced to 1.0 (API requirement)
 
-**OpenAI Always-On Reasoning:**
-Other OpenAI reasoning models (o3, o3-mini, o3-pro, o4-mini, GPT-5, GPT-5-mini, GPT-5-nano) always reason at their factory defaults — no toggle needed, no effort parameter sent. These models are not affected by the master toggle.
+**DeepSeek Thinking:**
+1. Enable the master toggle: Settings → Advanced → Enable Reasoning
+2. Enable DeepSeek Thinking
+3. Works with: deepseek-chat, deepseek-reasoner (V3.2+)
 
-**DeepSeek:** The `deepseek-reasoner` model automatically uses reasoning (no setting needed).
+**Z.AI Thinking:**
+1. Enable the master toggle: Settings → Advanced → Enable Reasoning
+2. Enable Z.AI Thinking
+3. Works with: GLM-4.5+ models
+
+**OpenRouter Reasoning:**
+1. Enable the master toggle: Settings → Advanced → Enable Reasoning
+2. Enable OpenRouter Reasoning
+3. Set effort level (low/medium/high)
+4. OpenRouter auto-translates to each backend provider's native format
+
+**SambaNova Thinking:**
+1. Enable the master toggle: Settings → Advanced → Enable Reasoning
+2. Enable SambaNova Thinking
+3. Works with: DeepSeek-R1, Qwen3-32B
+
+**Always-On Reasoning (effort level only):**
+These models always reason — you can only adjust the effort level, not turn reasoning off. These controls are independent of the master toggle.
+
+- **OpenAI** (o3, o3-mini, o3-pro, o4-mini, GPT-5, GPT-5-mini, GPT-5-nano): Effort low/medium/high (default: medium)
+- **xAI** (grok-3-mini): Effort low/high (default: high)
+- **Perplexity** (sonar-reasoning-pro, sonar-reasoning, sonar-deep-research): Effort low/medium/high (default: high)
+- **Groq** (gpt-oss-120b, gpt-oss-20b, qwen3-32b): Effort low/medium/high (default: high)
+- **Together** (DeepSeek-R1, Qwen3-235B, Qwen3-32B): Effort low/medium/high (default: high)
+- **Fireworks** (deepseek-r1, qwen3-235b): Effort low/medium/high (default: high)
+
+**Mistral Magistral:** Always reasons (structured content blocks). Thinking content is automatically extracted and viewable via "Show Reasoning" — no toggle or effort control.
 
 **Per-action overrides:** Any action can override reasoning settings for specific providers via Action Manager → hold action → Edit Settings → Advanced → Per-Provider Reasoning. This works for all reasoning-capable models, including those not controlled by the master toggle. See [Tuning Built-in Actions](#tuning-built-in-actions).
 
@@ -2993,7 +3021,7 @@ The provider will revert to using the system default.
 - **Ollama**: Local only; configure `base_url` in `configuration.lua` for remote instances
 - **OpenRouter**: Requires HTTP-Referer header (handled automatically)
 - **Cohere**: Uses v2/chat endpoint with different response format
-- **DeepSeek**: `deepseek-reasoner` model always reasons automatically
+- **DeepSeek**: V3.2+ supports `thinking` toggle for both `deepseek-chat` and `deepseek-reasoner`; controlled via Enable Reasoning master switch
 
 ### Meta-Providers Note
 

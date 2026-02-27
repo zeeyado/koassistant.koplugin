@@ -5628,7 +5628,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
       -- One-time info on first enable
       if show_hint then
         UIManager:show(InfoMessage:new{
-          text = _("Reasoning enhances response quality for complex tasks at the cost of higher latency and token usage.\n\nThis toggle controls:\n\n• Anthropic: Adaptive thinking (4.6+) or extended thinking (older models)\n• Gemini: Thinking depth (Gemini 3 models)\n• OpenAI: Reasoning for GPT-5.1+ models\n\nOther reasoning models (o3, GPT-5, DeepSeek Reasoner) always reason by default and are not affected by this toggle.\n\nCustomize per-provider settings in:\nSettings → Advanced → Reasoning"),
+          text = _("Reasoning enhances response quality for complex tasks at the cost of higher latency and token usage.\n\nThis toggle controls providers where reasoning can be fully enabled or disabled:\n\n• Anthropic: Adaptive thinking (4.6+) / Extended thinking\n• Gemini: Thinking budget (2.5) / Thinking depth (3)\n• OpenAI: Reasoning for GPT-5.1+ models\n• DeepSeek: Thinking for V3.2+ models\n• Z.AI: Thinking for GLM-4.5+ models\n• OpenRouter / SambaNova\n\nAlways-on models (o3, GPT-5, Magistral, Grok-3-mini, Sonar, R1) have separate effort controls below the toggle.\n\nCustomize per-provider settings in:\nSettings → Advanced → Reasoning"),
         })
       end
     end,

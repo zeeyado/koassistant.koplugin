@@ -59,6 +59,16 @@ function DeepSeekHandler:buildRequestBody(message_history, config)
     request_body.max_tokens = api_params.max_tokens or default_params.max_tokens or 16384
     request_body.max_tokens = ModelConstraints.clampMaxTokens("deepseek", model, request_body.max_tokens)
 
+    -- V3.2+ thinking toggle: apply to models that support it
+    if ModelConstraints.supportsCapability("deepseek", model, "thinking") then
+        if api_params.deepseek_thinking then
+            request_body.thinking = api_params.deepseek_thinking
+        else
+            -- Default: explicitly disable (deepseek-reasoner defaults ON)
+            request_body.thinking = { type = "disabled" }
+        end
+    end
+
     local headers = {
         ["Content-Type"] = "application/json",
         ["Authorization"] = "Bearer " .. (config.api_key or ""),
@@ -108,13 +118,22 @@ function DeepSeekHandler:query(message_history, config)
     end
 
     -- Apply API parameters from unified config
-    -- Note: deepseek-reasoner model ignores temperature/top_p (uses internal reasoning)
     local api_params = config.api_params or {}
     local default_params = defaults.additional_parameters or {}
 
     request_body.temperature = api_params.temperature or default_params.temperature or 0.7
     request_body.max_tokens = api_params.max_tokens or default_params.max_tokens or 16384
     request_body.max_tokens = ModelConstraints.clampMaxTokens("deepseek", model, request_body.max_tokens)
+
+    -- V3.2+ thinking toggle: apply to models that support it
+    if ModelConstraints.supportsCapability("deepseek", model, "thinking") then
+        if api_params.deepseek_thinking then
+            request_body.thinking = api_params.deepseek_thinking
+        else
+            -- Default: explicitly disable (deepseek-reasoner defaults ON)
+            request_body.thinking = { type = "disabled" }
+        end
+    end
 
     -- Check if streaming is enabled
     local use_streaming = config.features and config.features.enable_streaming

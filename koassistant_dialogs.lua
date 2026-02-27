@@ -392,23 +392,47 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
     local gemini_thinking_budget = features.gemini_thinking_budget or rd.gemini.budget
 
     -- Anthropic adaptive thinking (4.6) settings
-    local anthropic_adaptive = enable_reasoning_master and features.anthropic_adaptive
+    -- Sub-toggles default true (opt-out): use ~= false so nil (unset) is treated as enabled
+    local anthropic_adaptive = enable_reasoning_master and (features.anthropic_adaptive ~= false)
     local anthropic_effort = features.anthropic_effort or rd.anthropic_adaptive.effort
 
-    -- Per-provider reasoning toggles (all gated by master toggle + individual toggle)
-    local anthropic_reasoning = enable_reasoning_master and features.anthropic_reasoning
-    local openai_reasoning = enable_reasoning_master and features.openai_reasoning
-    local gemini_reasoning = enable_reasoning_master and features.gemini_reasoning
-    local zai_reasoning = enable_reasoning_master and features.zai_reasoning
+    -- Per-provider reasoning toggles (gated by master toggle + individual toggle)
+    -- All sub-toggles default true: when master is ON, all providers reason by default
+    local anthropic_reasoning = enable_reasoning_master and (features.anthropic_reasoning ~= false)
+    local openai_reasoning = enable_reasoning_master and (features.openai_reasoning ~= false)
+    local gemini_reasoning = enable_reasoning_master and (features.gemini_reasoning ~= false)
+    local zai_reasoning = enable_reasoning_master and (features.zai_reasoning ~= false)
+    local deepseek_reasoning = enable_reasoning_master and (features.deepseek_reasoning ~= false)
+    local openrouter_reasoning = enable_reasoning_master and (features.openrouter_reasoning ~= false)
+    local sambanova_reasoning = enable_reasoning_master and (features.sambanova_reasoning ~= false)
+
+    -- Effort defaults for effort-based providers
+    -- Toggleable (gated by master): OpenRouter
+    local openrouter_effort = features.openrouter_effort or rd.openrouter.effort
+    -- Always-on providers (effort only, not gated by master toggle):
+    local groq_effort = features.groq_effort or rd.groq.effort
+    local together_effort = features.together_effort or rd.together.effort
+    local fireworks_effort = features.fireworks_effort or rd.fireworks.effort
+    local xai_effort = features.xai_effort or rd.xai.effort
+    local perplexity_effort = features.perplexity_effort or rd.perplexity.effort
+    local openai_always_on_effort = features.openai_always_on_effort or "medium"
 
     -- Check for action overrides
-    -- NEW format: action.reasoning_config = { anthropic: {...}, openai: {...}, gemini: {...}, zai: {...} } or "off"
+    -- NEW format: action.reasoning_config = { anthropic: {...}, openai: {...}, ... } or "off"
     -- LEGACY format: action.reasoning = "on"/"off", action.thinking_budget, etc.
     local action_anthropic_override = nil  -- nil = use global, true = on, false = off
     local action_anthropic_adaptive_override = nil  -- nil = use global, true = on, false = off
     local action_openai_override = nil
     local action_gemini_override = nil
     local action_zai_override = nil
+    local action_deepseek_override = nil
+    local action_openrouter_override = nil
+    local action_groq_override = nil
+    local action_together_override = nil
+    local action_fireworks_override = nil
+    local action_sambanova_override = nil
+    local action_xai_override = nil
+    local action_perplexity_override = nil
 
     if action then
         -- NEW format: per-provider reasoning_config
@@ -419,6 +443,14 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
                 action_openai_override = false
                 action_gemini_override = false
                 action_zai_override = false
+                action_deepseek_override = false
+                action_openrouter_override = false
+                action_groq_override = false
+                action_together_override = false
+                action_fireworks_override = false
+                action_sambanova_override = false
+                action_xai_override = false
+                action_perplexity_override = false
             elseif type(action.reasoning_config) == "table" then
                 -- Per-provider configuration
                 local rc = action.reasoning_config
@@ -474,6 +506,97 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
                         action_zai_override = true
                     end
                 end
+
+                -- DeepSeek config (binary: on/off)
+                if rc.deepseek ~= nil then
+                    if rc.deepseek == "off" or rc.deepseek == false then
+                        action_deepseek_override = false
+                    else
+                        action_deepseek_override = true
+                    end
+                end
+
+                -- SambaNova config (binary: on/off)
+                if rc.sambanova ~= nil then
+                    if rc.sambanova == "off" or rc.sambanova == false then
+                        action_sambanova_override = false
+                    else
+                        action_sambanova_override = true
+                    end
+                end
+
+                -- Effort-based providers: override can be false (off) or { effort = "..." }
+                -- OpenRouter
+                if rc.openrouter ~= nil then
+                    if rc.openrouter == "off" or rc.openrouter == false then
+                        action_openrouter_override = false
+                    elseif type(rc.openrouter) == "table" and rc.openrouter.effort then
+                        action_openrouter_override = true
+                        openrouter_effort = rc.openrouter.effort
+                    else
+                        action_openrouter_override = true
+                    end
+                end
+
+                -- Groq
+                if rc.groq ~= nil then
+                    if rc.groq == "off" or rc.groq == false then
+                        action_groq_override = false
+                    elseif type(rc.groq) == "table" and rc.groq.effort then
+                        action_groq_override = true
+                        groq_effort = rc.groq.effort
+                    else
+                        action_groq_override = true
+                    end
+                end
+
+                -- Together
+                if rc.together ~= nil then
+                    if rc.together == "off" or rc.together == false then
+                        action_together_override = false
+                    elseif type(rc.together) == "table" and rc.together.effort then
+                        action_together_override = true
+                        together_effort = rc.together.effort
+                    else
+                        action_together_override = true
+                    end
+                end
+
+                -- Fireworks
+                if rc.fireworks ~= nil then
+                    if rc.fireworks == "off" or rc.fireworks == false then
+                        action_fireworks_override = false
+                    elseif type(rc.fireworks) == "table" and rc.fireworks.effort then
+                        action_fireworks_override = true
+                        fireworks_effort = rc.fireworks.effort
+                    else
+                        action_fireworks_override = true
+                    end
+                end
+
+                -- xAI
+                if rc.xai ~= nil then
+                    if rc.xai == "off" or rc.xai == false then
+                        action_xai_override = false
+                    elseif type(rc.xai) == "table" and rc.xai.effort then
+                        action_xai_override = true
+                        xai_effort = rc.xai.effort
+                    else
+                        action_xai_override = true
+                    end
+                end
+
+                -- Perplexity
+                if rc.perplexity ~= nil then
+                    if rc.perplexity == "off" or rc.perplexity == false then
+                        action_perplexity_override = false
+                    elseif type(rc.perplexity) == "table" and rc.perplexity.effort then
+                        action_perplexity_override = true
+                        perplexity_effort = rc.perplexity.effort
+                    else
+                        action_perplexity_override = true
+                    end
+                end
             end
         -- LEGACY format: action.reasoning = "on"/"off" or action.extended_thinking
         elseif action.reasoning == "off" or action.extended_thinking == "off" then
@@ -483,6 +606,14 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
             action_openai_override = false
             action_gemini_override = false
             action_zai_override = false
+            action_deepseek_override = false
+            action_openrouter_override = false
+            action_groq_override = false
+            action_together_override = false
+            action_fireworks_override = false
+            action_sambanova_override = false
+            action_xai_override = false
+            action_perplexity_override = false
         elseif action.reasoning == "on" or action.extended_thinking == "on" then
             -- Legacy: force on with per-field overrides
             action_anthropic_override = true
@@ -490,6 +621,14 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
             action_openai_override = true
             action_gemini_override = true
             action_zai_override = true
+            action_deepseek_override = true
+            action_openrouter_override = true
+            action_groq_override = true
+            action_together_override = true
+            action_fireworks_override = true
+            action_sambanova_override = true
+            action_xai_override = true
+            action_perplexity_override = true
             if action.thinking_budget then reasoning_budget = action.thinking_budget end
             if action.reasoning_effort then reasoning_effort = action.reasoning_effort end
             if action.reasoning_depth then reasoning_depth = action.reasoning_depth end
@@ -537,8 +676,10 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
             if openai_reasoning then
                 config.api_params.reasoning = { effort = reasoning_effort }
             end
+        elseif ModelConstraints.supportsCapability("openai", model, "reasoning") then
+            -- Always-on models (o3, gpt-5): send configured effort level
+            config.api_params.reasoning = { effort = openai_always_on_effort }
         end
-        -- Always-on models (o3, gpt-5): no effort param sent, factory defaults apply
     elseif provider == "gemini" then
         local model = config.model or Defaults.ProviderDefaults.gemini.model
         local enabled = gemini_reasoning
@@ -566,11 +707,73 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
         if enabled then
             config.api_params.zai_thinking = { type = "enabled" }
         end
+    elseif provider == "deepseek" then
+        local model = config.model or Defaults.ProviderDefaults.deepseek.model
+        if ModelConstraints.supportsCapability("deepseek", model, "thinking") then
+            local enabled = deepseek_reasoning
+            if action_deepseek_override ~= nil then enabled = action_deepseek_override end
+            if enabled then
+                config.api_params.deepseek_thinking = { type = "enabled" }
+            end
+            -- When disabled or nil: handler defaults to { type = "disabled" }
+        end
+    elseif provider == "openrouter" then
+        local enabled = openrouter_reasoning
+        if action_openrouter_override ~= nil then enabled = action_openrouter_override end
+        if enabled then
+            config.api_params.openrouter_reasoning = { effort = openrouter_effort }
+        end
+    elseif provider == "groq" then
+        -- Always-on reasoning: send effort unless per-action override says off
+        local model = config.model or Defaults.ProviderDefaults.groq.model
+        if ModelConstraints.supportsCapability("groq", model, "reasoning") then
+            if action_groq_override ~= false then
+                config.api_params.groq_reasoning = { effort = groq_effort }
+            end
+        end
+    elseif provider == "together" then
+        -- Always-on reasoning: send effort unless per-action override says off
+        local model = config.model or Defaults.ProviderDefaults.together.model
+        if ModelConstraints.supportsCapability("together", model, "reasoning") then
+            if action_together_override ~= false then
+                config.api_params.together_reasoning = { effort = together_effort }
+            end
+        end
+    elseif provider == "fireworks" then
+        -- Always-on reasoning: send effort unless per-action override says off
+        local model = config.model or Defaults.ProviderDefaults.fireworks.model
+        if ModelConstraints.supportsCapability("fireworks", model, "reasoning") then
+            if action_fireworks_override ~= false then
+                config.api_params.fireworks_reasoning = { effort = fireworks_effort }
+            end
+        end
+    elseif provider == "sambanova" then
+        local model = config.model or Defaults.ProviderDefaults.sambanova.model
+        if ModelConstraints.supportsCapability("sambanova", model, "thinking") then
+            local enabled = sambanova_reasoning
+            if action_sambanova_override ~= nil then enabled = action_sambanova_override end
+            if enabled then
+                config.api_params.sambanova_thinking = true
+            end
+            -- When disabled or nil: handler defaults to { enable_thinking = false }
+        end
+    elseif provider == "xai" then
+        -- Always-on reasoning: send effort unless per-action override says off
+        local model = config.model or Defaults.ProviderDefaults.xai.model
+        if ModelConstraints.supportsCapability("xai", model, "reasoning") then
+            if action_xai_override ~= false then
+                config.api_params.xai_reasoning = { effort = xai_effort }
+            end
+        end
+    elseif provider == "perplexity" then
+        -- Always-on reasoning: send effort unless per-action override says off
+        local model = config.model or Defaults.ProviderDefaults.perplexity.model
+        if ModelConstraints.supportsCapability("perplexity", model, "reasoning") then
+            if action_perplexity_override ~= false then
+                config.api_params.perplexity_reasoning = { effort = perplexity_effort }
+            end
+        end
     end
-    -- DeepSeek: no parameter needed, reasoner model always reasons
-
-    -- Note: Legacy enable_extended_thinking setting removed - use per-provider toggles instead
-    -- (anthropic_reasoning, openai_reasoning, gemini_reasoning in AI Response Settings)
 
     -- Web search support (per-action override)
     -- Global setting is in features.enable_web_search, per-action is action.enable_web_search

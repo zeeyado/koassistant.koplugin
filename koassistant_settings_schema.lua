@@ -1479,7 +1479,7 @@ local SettingsSchema = {
                             id = "enable_reasoning",
                             type = "toggle",
                             text = _("Enable Reasoning"),
-                            help_text = _("Controls reasoning/thinking for providers with configurable reasoning:\n\n• Anthropic: Adaptive thinking (4.6+) / Extended thinking\n• Gemini: Thinking budget (2.5) / Thinking depth (3)\n• OpenAI: Reasoning for GPT-5.1+ models\n• Z.AI: Thinking for GLM-4.5+ models\n\nModels like o3, GPT-5, and DeepSeek Reasoner always reason by default and are not affected by this toggle."),
+                            help_text = _("Controls reasoning/thinking for providers where reasoning can be fully enabled or disabled.\n\nWhen ON, all sub-toggles below are enabled by default. You can selectively disable individual providers.\n\n• Anthropic: Adaptive thinking (4.6+) / Extended thinking\n• Gemini: Thinking budget (2.5) / Thinking depth (3)\n• OpenAI: Reasoning for GPT-5.1+ models\n• DeepSeek: Thinking for V3.2+ models\n• Z.AI: Thinking for GLM-4.5+ models\n• OpenRouter: Reasoning effort (translates to backend)\n• SambaNova: Thinking toggle (R1, Qwen3)\n\nAlways-on models (o3, GPT-5, Grok-3-mini, Magistral, etc.) are not affected by this toggle. Effort controls for always-on providers are in a separate section below."),
                             path = "features.enable_reasoning",
                             default = false,
                             separator = true,
@@ -1491,7 +1491,7 @@ local SettingsSchema = {
                             text = _("Anthropic Adaptive Thinking (4.6+)"),
                             help_text = _("Supported models:\n") .. getModelList("anthropic", "adaptive_thinking") .. _("\n\nClaude decides when and how much to think based on the task.\nRecommended for 4.6 models. Takes priority over Extended Thinking when the model supports both."),
                             path = "features.anthropic_adaptive",
-                            default = false,
+                            default = true,
                             depends_on = { id = "enable_reasoning", value = true },
                         },
                         {
@@ -1525,7 +1525,7 @@ local SettingsSchema = {
                             text = _("Anthropic Extended Thinking"),
                             help_text = _("Supported models:\n") .. getModelList("anthropic", "extended_thinking") .. _("\n\nManual thinking budget mode. Works on all thinking-capable models.\nOn 4.6 models, Adaptive Thinking takes priority if both are enabled."),
                             path = "features.anthropic_reasoning",
-                            default = false,
+                            default = true,
                             depends_on = { id = "enable_reasoning", value = true },
                         },
                         {
@@ -1552,7 +1552,7 @@ local SettingsSchema = {
                             text = _("Gemini Thinking"),
                             help_text = _("Supported models:\n") .. getModelList("gemini", "thinking") .. "\n" .. getModelList("gemini", "thinking_budget") .. _("\n\nControl thinking for Gemini models.\n\nGemini 3: Configurable thinking depth (level).\nGemini 2.5: Configurable thinking budget. When off, thinking is disabled entirely."),
                             path = "features.gemini_reasoning",
-                            default = false,
+                            default = true,
                             depends_on = { id = "enable_reasoning", value = true },
                         },
                         {
@@ -1616,7 +1616,7 @@ local SettingsSchema = {
                             text = _("OpenAI Reasoning (5.1+)"),
                             help_text = _("Supported models:\n") .. getModelList("openai", "reasoning_gated") .. _("\n\nEnables reasoning for models where it is off by default.\n\nOther OpenAI reasoning models (o3, GPT-5) always reason at their factory defaults and are not affected by this toggle."),
                             path = "features.openai_reasoning",
-                            default = false,
+                            default = true,
                             depends_on = { id = "enable_reasoning", value = true },
                         },
                         {
@@ -1650,7 +1650,62 @@ local SettingsSchema = {
                             text = _("Z.AI Thinking"),
                             help_text = _("Supported models:\n") .. getModelList("zai", "thinking") .. _("\n\nEnable thinking for GLM models. Returns reasoning traces viewable via 'Show Reasoning' button."),
                             path = "features.zai_reasoning",
-                            default = false,
+                            default = true,
+                            depends_on = { id = "enable_reasoning", value = true },
+                            separator = true,
+                        },
+                        -- DeepSeek Thinking
+                        {
+                            id = "deepseek_reasoning",
+                            type = "toggle",
+                            text = _("DeepSeek Thinking"),
+                            help_text = _("Supported models:\n") .. getModelList("deepseek", "thinking") .. _("\n\nToggle thinking for DeepSeek V3.2+ models.\nWhen off, deepseek-reasoner runs without reasoning traces.\nWhen off, deepseek-chat runs without thinking."),
+                            path = "features.deepseek_reasoning",
+                            default = true,
+                            depends_on = { id = "enable_reasoning", value = true },
+                            separator = true,
+                        },
+                        -- OpenRouter Reasoning
+                        {
+                            id = "openrouter_reasoning",
+                            type = "toggle",
+                            text = _("OpenRouter Reasoning"),
+                            help_text = _("Enable reasoning for models accessed via OpenRouter.\n\nOpenRouter translates the effort level to each backend provider's native format automatically."),
+                            path = "features.openrouter_reasoning",
+                            default = true,
+                            depends_on = { id = "enable_reasoning", value = true },
+                        },
+                        {
+                            id = "openrouter_effort",
+                            type = "radio",
+                            text_func = function(plugin)
+                                local f = plugin.settings:readSetting("features") or {}
+                                local effort = f.openrouter_effort or "high"
+                                local labels = { low = _("Low"), medium = _("Medium"), high = _("High") }
+                                return T(_("Effort: %1"), labels[effort] or effort)
+                            end,
+                            help_text = _("Reasoning effort level.\n\nLow = faster, less reasoning\nMedium = balanced\nHigh = thorough reasoning"),
+                            path = "features.openrouter_effort",
+                            default = "high",
+                            depends_on = {
+                                { id = "enable_reasoning", value = true },
+                                { id = "openrouter_reasoning", value = true },
+                            },
+                            separator = true,
+                            options = {
+                                { value = "low", text = _("Low (faster)") },
+                                { value = "medium", text = _("Medium") },
+                                { value = "high", text = _("High (default)") },
+                            },
+                        },
+                        -- SambaNova Thinking
+                        {
+                            id = "sambanova_reasoning",
+                            type = "toggle",
+                            text = _("SambaNova Thinking"),
+                            help_text = _("Supported models:\n") .. getModelList("sambanova", "thinking") .. _("\n\nToggle thinking for SambaNova-hosted reasoning models (DeepSeek-R1, Qwen3)."),
+                            path = "features.sambanova_reasoning",
+                            default = true,
                             depends_on = { id = "enable_reasoning", value = true },
                             separator = true,
                         },
@@ -1662,6 +1717,132 @@ local SettingsSchema = {
                             help_text = _("Show '*[Reasoning was used]*' indicator in chat when reasoning is requested or used.\n\nFull reasoning content is always viewable via 'Show Reasoning' button."),
                             path = "features.show_reasoning_indicator",
                             default = true,
+                            separator = true,
+                        },
+                        -- Always-on reasoning: effort level controls (not gated by master toggle)
+                        -- These models always reason — controls below adjust effort depth only
+                        {
+                            type = "info",
+                            text = _("Always-on reasoning (effort level):"),
+                        },
+                        -- OpenAI always-on effort (o3, gpt-5 family)
+                        {
+                            id = "openai_always_on_effort",
+                            type = "radio",
+                            text_func = function(plugin)
+                                local f = plugin.settings:readSetting("features") or {}
+                                local effort = f.openai_always_on_effort or "medium"
+                                local labels = { low = _("Low"), medium = _("Medium"), high = _("High") }
+                                return T(_("OpenAI (o3, GPT-5): %1"), labels[effort] or effort)
+                            end,
+                            help_text = _("Reasoning effort for always-on OpenAI models (o3, o3-mini, o4-mini, GPT-5, GPT-5-mini, GPT-5-nano).\n\nThese models always reason — this controls depth, not on/off.\nDefault matches factory setting (medium)."),
+                            path = "features.openai_always_on_effort",
+                            default = "medium",
+                            separator = true,
+                            options = {
+                                { value = "low", text = _("Low (faster)") },
+                                { value = "medium", text = _("Medium (default)") },
+                                { value = "high", text = _("High (thorough)") },
+                            },
+                        },
+                        -- xAI Reasoning Effort
+                        {
+                            id = "xai_effort",
+                            type = "radio",
+                            text_func = function(plugin)
+                                local f = plugin.settings:readSetting("features") or {}
+                                local effort = f.xai_effort or "high"
+                                local labels = { low = _("Low"), high = _("High") }
+                                return T(_("xAI (Grok-3-mini): %1"), labels[effort] or effort)
+                            end,
+                            help_text = _("Reasoning effort for Grok-3-mini.\n\nThis model always reasons — this controls depth, not on/off."),
+                            path = "features.xai_effort",
+                            default = "high",
+                            separator = true,
+                            options = {
+                                { value = "low", text = _("Low (faster)") },
+                                { value = "high", text = _("High (default)") },
+                            },
+                        },
+                        -- Perplexity Reasoning Effort
+                        {
+                            id = "perplexity_effort",
+                            type = "radio",
+                            text_func = function(plugin)
+                                local f = plugin.settings:readSetting("features") or {}
+                                local effort = f.perplexity_effort or "high"
+                                local labels = { low = _("Low"), medium = _("Medium"), high = _("High") }
+                                return T(_("Perplexity: %1"), labels[effort] or effort)
+                            end,
+                            help_text = _("Reasoning effort for Perplexity Sonar reasoning models.\n\nThese models always reason — this controls depth, not on/off."),
+                            path = "features.perplexity_effort",
+                            default = "high",
+                            separator = true,
+                            options = {
+                                { value = "low", text = _("Low (faster)") },
+                                { value = "medium", text = _("Medium") },
+                                { value = "high", text = _("High (default)") },
+                            },
+                        },
+                        -- Groq Reasoning Effort
+                        {
+                            id = "groq_effort",
+                            type = "radio",
+                            text_func = function(plugin)
+                                local f = plugin.settings:readSetting("features") or {}
+                                local effort = f.groq_effort or "high"
+                                local labels = { low = _("Low"), medium = _("Medium"), high = _("High") }
+                                return T(_("Groq: %1"), labels[effort] or effort)
+                            end,
+                            help_text = _("Supported models:\n") .. getModelList("groq", "reasoning") .. _("\n\nReasoning effort for Groq-hosted reasoning models.\nThese models always reason — this controls depth, not on/off."),
+                            path = "features.groq_effort",
+                            default = "high",
+                            separator = true,
+                            options = {
+                                { value = "low", text = _("Low (faster)") },
+                                { value = "medium", text = _("Medium") },
+                                { value = "high", text = _("High (default)") },
+                            },
+                        },
+                        -- Together Reasoning Effort
+                        {
+                            id = "together_effort",
+                            type = "radio",
+                            text_func = function(plugin)
+                                local f = plugin.settings:readSetting("features") or {}
+                                local effort = f.together_effort or "high"
+                                local labels = { low = _("Low"), medium = _("Medium"), high = _("High") }
+                                return T(_("Together: %1"), labels[effort] or effort)
+                            end,
+                            help_text = _("Supported models:\n") .. getModelList("together", "reasoning") .. _("\n\nReasoning effort for Together-hosted reasoning models.\nThese models always reason — this controls depth, not on/off."),
+                            path = "features.together_effort",
+                            default = "high",
+                            separator = true,
+                            options = {
+                                { value = "low", text = _("Low (faster)") },
+                                { value = "medium", text = _("Medium") },
+                                { value = "high", text = _("High (default)") },
+                            },
+                        },
+                        -- Fireworks Reasoning Effort
+                        {
+                            id = "fireworks_effort",
+                            type = "radio",
+                            text_func = function(plugin)
+                                local f = plugin.settings:readSetting("features") or {}
+                                local effort = f.fireworks_effort or "high"
+                                local labels = { low = _("Low"), medium = _("Medium"), high = _("High") }
+                                return T(_("Fireworks: %1"), labels[effort] or effort)
+                            end,
+                            help_text = _("Supported models:\n") .. getModelList("fireworks", "reasoning") .. _("\n\nReasoning effort for Fireworks-hosted reasoning models.\nThese models always reason — this controls depth, not on/off."),
+                            path = "features.fireworks_effort",
+                            default = "high",
+                            separator = true,
+                            options = {
+                                { value = "low", text = _("Low (faster)") },
+                                { value = "medium", text = _("Medium") },
+                                { value = "high", text = _("High (default)") },
+                            },
                         },
                     },
                 },

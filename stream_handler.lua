@@ -954,9 +954,31 @@ function StreamHandler:extractContentFromSSE(event)
                 end
             end
 
-            -- DeepSeek: reasoning_content comes alongside regular content
-            local reasoning = delta.reasoning_content
+            -- DeepSeek/OpenRouter: reasoning_content or reasoning comes alongside regular content
+            local reasoning = delta.reasoning_content or delta.reasoning
             local content = delta.content
+
+            -- Handle structured content blocks (Mistral Magistral)
+            if type(content) == "table" then
+                local text_parts, think_parts = {}, {}
+                for _idx, block in ipairs(content) do
+                    if type(block) == "table" then
+                        if block.type == "thinking" and block.thinking then
+                            for _j, t in ipairs(block.thinking) do
+                                if t.text then table.insert(think_parts, t.text) end
+                            end
+                        elseif block.type == "text" and block.text then
+                            table.insert(text_parts, block.text)
+                        elseif block.text then
+                            table.insert(text_parts, block.text)
+                        end
+                    end
+                end
+                content = #text_parts > 0 and table.concat(text_parts) or nil
+                local think = #think_parts > 0 and table.concat(think_parts) or nil
+                if content or think then return content, think end
+            end
+
             if reasoning or content then
                 return content, reasoning
             end

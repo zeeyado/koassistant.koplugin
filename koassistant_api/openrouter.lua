@@ -47,6 +47,11 @@ function OpenRouterHandler:customizeRequestBody(body, config)
         end
     end
 
+    -- Add reasoning object (OpenRouter auto-translates to backend provider format)
+    if config.api_params and config.api_params.openrouter_reasoning then
+        body.reasoning = { effort = config.api_params.openrouter_reasoning.effort }
+    end
+
     return body
 end
 

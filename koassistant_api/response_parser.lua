@@ -261,7 +261,27 @@ local RESPONSE_TRANSFORMERS = {
             return false, response.error.message or response.error.type or "Unknown error"
         end
         if response.choices and response.choices[1] and response.choices[1].message then
-            return true, response.choices[1].message.content
+            local message = response.choices[1].message
+            local content = message.content
+            -- Magistral models return structured content blocks
+            if type(content) == "table" then
+                local text_parts, think_parts = {}, {}
+                for _idx, block in ipairs(content) do
+                    if type(block) == "table" then
+                        if block.type == "thinking" and block.thinking then
+                            for _j, t in ipairs(block.thinking) do
+                                if t.text then table.insert(think_parts, t.text) end
+                            end
+                        elseif block.type == "text" and block.text then
+                            table.insert(text_parts, block.text)
+                        end
+                    end
+                end
+                local text = table.concat(text_parts, "\n")
+                local thinking = #think_parts > 0 and table.concat(think_parts, "\n") or nil
+                return true, text, thinking
+            end
+            return true, content  -- Non-Magistral models return string
         end
         return false, "Unexpected response format"
     end,
@@ -287,7 +307,9 @@ local RESPONSE_TRANSFORMERS = {
                 end
             end
 
-            return true, content, nil, web_search_used
+            -- xAI returns reasoning_content for grok-3-mini
+            local reasoning = message.reasoning_content
+            return true, content, reasoning, web_search_used
         end
         return false, "Unexpected response format"
     end,
@@ -312,7 +334,9 @@ local RESPONSE_TRANSFORMERS = {
                 end
             end
 
-            return true, content, nil, web_search_used
+            -- OpenRouter normalizes reasoning to message.reasoning field
+            local reasoning = message.reasoning
+            return true, content, reasoning, web_search_used
         end
         return false, "Unexpected response format"
     end,
@@ -322,7 +346,10 @@ local RESPONSE_TRANSFORMERS = {
             return false, response.error.message or response.error.type or "Unknown error"
         end
         if response.choices and response.choices[1] and response.choices[1].message then
-            return true, response.choices[1].message.content
+            local message = response.choices[1].message
+            -- Passive extraction: Qwen thinking models return reasoning_content
+            local reasoning = message.reasoning_content
+            return true, message.content, reasoning
         end
         return false, "Unexpected response format"
     end,
@@ -332,7 +359,10 @@ local RESPONSE_TRANSFORMERS = {
             return false, response.error.message or response.error.type or "Unknown error"
         end
         if response.choices and response.choices[1] and response.choices[1].message then
-            return true, response.choices[1].message.content
+            local message = response.choices[1].message
+            -- Passive extraction: Kimi thinking models return reasoning_content
+            local reasoning = message.reasoning_content
+            return true, message.content, reasoning
         end
         return false, "Unexpected response format"
     end,
@@ -398,7 +428,10 @@ local RESPONSE_TRANSFORMERS = {
             return false, response.error.message or response.error.type or "Unknown error"
         end
         if response.choices and response.choices[1] and response.choices[1].message then
-            return true, response.choices[1].message.content
+            local message = response.choices[1].message
+            -- Passive extraction: Doubao thinking models return reasoning_content
+            local reasoning = message.reasoning_content
+            return true, message.content, reasoning
         end
         return false, "Unexpected response format"
     end,

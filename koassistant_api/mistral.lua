@@ -1,7 +1,10 @@
 --[[--
 Mistral API Handler
 
-Pure OpenAI-compatible handler with no provider-specific customization.
+OpenAI-compatible handler with thinking extraction for Magistral models.
+Magistral models always think — there is no toggle to disable reasoning.
+Thinking output comes as structured content blocks (type: "thinking")
+rather than <think> tags.
 
 @module mistral
 ]]
@@ -16,6 +19,13 @@ end
 
 function MistralHandler:getProviderKey()
     return "mistral"
+end
+
+-- Mistral uses structured content blocks, not <think> tags.
+-- Extraction is handled by the response parser and stream handler.
+-- Return false here to avoid processThinkTags() interfering.
+function MistralHandler:supportsReasoningExtraction()
+    return false
 end
 
 return MistralHandler

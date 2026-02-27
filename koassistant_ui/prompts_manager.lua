@@ -95,6 +95,32 @@ function PromptsManager:getReasoningDisplayText(obj)
                     table.insert(parts, "G:OFF")
                 end
             end
+            -- Binary toggle providers
+            local binary_providers = { { key = "zai", label = "Z" }, { key = "deepseek", label = "DS" }, { key = "sambanova", label = "SN" } }
+            for _idx, p in ipairs(binary_providers) do
+                local val = obj.reasoning_config[p.key]
+                if val == true then
+                    table.insert(parts, p.label .. ":ON")
+                elseif val == false then
+                    table.insert(parts, p.label .. ":OFF")
+                end
+            end
+            -- Effort-based providers
+            local effort_providers = {
+                { key = "openrouter", label = "OR" }, { key = "groq", label = "GQ" },
+                { key = "together", label = "TG" }, { key = "fireworks", label = "FW" },
+                { key = "xai", label = "X" }, { key = "perplexity", label = "PX" },
+            }
+            for _idx, p in ipairs(effort_providers) do
+                local val = obj.reasoning_config[p.key]
+                if val == false then
+                    table.insert(parts, p.label .. ":OFF")
+                elseif type(val) == "table" and val.effort then
+                    table.insert(parts, p.label .. ":" .. val.effort:sub(1,1):upper())
+                elseif val == true then
+                    table.insert(parts, p.label .. ":ON")
+                end
+            end
             if #parts > 0 then
                 return table.concat(parts, ", ")
             end
@@ -2240,6 +2266,15 @@ function PromptsManager:showPerProviderReasoningMenu(state, refresh_callback)
             anthropic = nil,  -- nil = use global, false = off, { budget = N } = on
             openai = nil,     -- nil = use global, false = off, { effort = "..." } = on
             gemini = nil,     -- nil = use global, false = off, { level = "..." } = on
+            zai = nil,        -- nil = use global, false = off, true = on
+            deepseek = nil,   -- nil = use global, false = off, true = on
+            openrouter = nil, -- nil = use global, false = off, { effort = "..." } = on
+            groq = nil,
+            together = nil,
+            fireworks = nil,
+            sambanova = nil,  -- nil = use global, false = off, true = on
+            xai = nil,
+            perplexity = nil,
         }
     end
 
@@ -2259,7 +2294,7 @@ function PromptsManager:showPerProviderReasoningMenu(state, refresh_callback)
                 return _("ON (") .. table.concat(status_parts, ", ") .. ")"
             end
             return _("ON")
-        elseif provider == "openai" and cfg.effort then
+        elseif provider == "openai" and type(cfg) == "table" and cfg.effort then
             return _("ON (") .. cfg.effort .. ")"
         elseif provider == "gemini" then
             if type(cfg) == "table" then
@@ -2271,6 +2306,9 @@ function PromptsManager:showPerProviderReasoningMenu(state, refresh_callback)
                     return _("ON (") .. cfg.budget .. ")"
                 end
             end
+        elseif type(cfg) == "table" and cfg.effort then
+            -- Effort-based providers (openrouter, groq, together, fireworks, xai, perplexity)
+            return _("ON (") .. cfg.effort .. ")"
         end
         return _("ON")
     end
@@ -2289,6 +2327,86 @@ function PromptsManager:showPerProviderReasoningMenu(state, refresh_callback)
             self:showStep4_Advanced(state)
         end
     end
+
+    -- Helper to create a binary config dialog (Global/OFF/ON)
+    local function showBinaryConfig(provider, title)
+        local function setAndClose(value)
+            state.reasoning_config[provider] = value
+            UIManager:close(self.binary_dialog)
+            self:showPerProviderReasoningMenu(state)
+        end
+        self.binary_dialog = ButtonDialog:new{
+            title = title,
+            buttons = {
+                { { text = _("Use global setting"), callback = function() setAndClose(nil) end } },
+                { { text = _("OFF"), callback = function() setAndClose(false) end } },
+                { { text = _("ON"), callback = function() setAndClose(true) end } },
+                { { text = _("Cancel"), callback = function()
+                    UIManager:close(self.binary_dialog)
+                    self:showPerProviderReasoningMenu(state)
+                end } },
+            },
+        }
+        UIManager:show(self.binary_dialog)
+    end
+
+    -- Helper to create an effort config dialog (Global/OFF/effort levels)
+    -- For toggleable providers (can turn reasoning off)
+    local function showEffortConfig(provider, title, effort_options)
+        local function setAndClose(value)
+            state.reasoning_config[provider] = value
+            UIManager:close(self.effort_dialog)
+            self:showPerProviderReasoningMenu(state)
+        end
+        local btns = {
+            { { text = _("Use global setting"), callback = function() setAndClose(nil) end } },
+            { { text = _("OFF"), callback = function() setAndClose(false) end } },
+        }
+        for _idx, effort in ipairs(effort_options) do
+            local label = effort:sub(1,1):upper() .. effort:sub(2) .. _(" effort")
+            table.insert(btns, { { text = label, callback = function()
+                setAndClose({ effort = effort })
+            end } })
+        end
+        table.insert(btns, { { text = _("Cancel"), callback = function()
+            UIManager:close(self.effort_dialog)
+            self:showPerProviderReasoningMenu(state)
+        end } })
+        self.effort_dialog = ButtonDialog:new{
+            title = title,
+            buttons = btns,
+        }
+        UIManager:show(self.effort_dialog)
+    end
+
+    -- Helper for always-on providers (Global/effort levels, no OFF option)
+    local function showAlwaysOnEffortConfig(provider, title, effort_options)
+        local function setAndClose(value)
+            state.reasoning_config[provider] = value
+            UIManager:close(self.effort_dialog)
+            self:showPerProviderReasoningMenu(state)
+        end
+        local btns = {
+            { { text = _("Use global setting"), callback = function() setAndClose(nil) end } },
+        }
+        for _idx, effort in ipairs(effort_options) do
+            local label = effort:sub(1,1):upper() .. effort:sub(2) .. _(" effort")
+            table.insert(btns, { { text = label, callback = function()
+                setAndClose({ effort = effort })
+            end } })
+        end
+        table.insert(btns, { { text = _("Cancel"), callback = function()
+            UIManager:close(self.effort_dialog)
+            self:showPerProviderReasoningMenu(state)
+        end } })
+        self.effort_dialog = ButtonDialog:new{
+            title = title,
+            buttons = btns,
+        }
+        UIManager:show(self.effort_dialog)
+    end
+
+    local rd = ModelConstraints.reasoning_defaults
 
     local buttons = {
         {
@@ -2320,6 +2438,80 @@ function PromptsManager:showPerProviderReasoningMenu(state, refresh_callback)
         },
         {
             {
+                text = _("DeepSeek: ") .. getStatusText("deepseek"),
+                callback = function()
+                    UIManager:close(self.per_provider_dialog)
+                    showBinaryConfig("deepseek", _("DeepSeek Thinking"))
+                end,
+            },
+            {
+                text = _("Z.AI: ") .. getStatusText("zai"),
+                callback = function()
+                    UIManager:close(self.per_provider_dialog)
+                    showBinaryConfig("zai", _("Z.AI Thinking"))
+                end,
+            },
+        },
+        {
+            {
+                text = _("OpenRouter: ") .. getStatusText("openrouter"),
+                callback = function()
+                    UIManager:close(self.per_provider_dialog)
+                    showEffortConfig("openrouter", _("OpenRouter Reasoning"), rd.openrouter.effort_options)
+                end,
+            },
+            {
+                text = _("SambaNova: ") .. getStatusText("sambanova"),
+                callback = function()
+                    UIManager:close(self.per_provider_dialog)
+                    showBinaryConfig("sambanova", _("SambaNova Thinking"))
+                end,
+            },
+        },
+        -- Always-on providers: effort level only (no OFF option)
+        {
+            {
+                text = _("xAI: ") .. getStatusText("xai"),
+                callback = function()
+                    UIManager:close(self.per_provider_dialog)
+                    showAlwaysOnEffortConfig("xai", _("xAI Reasoning Effort"), rd.xai.effort_options)
+                end,
+            },
+            {
+                text = _("Perplexity: ") .. getStatusText("perplexity"),
+                callback = function()
+                    UIManager:close(self.per_provider_dialog)
+                    showAlwaysOnEffortConfig("perplexity", _("Perplexity Reasoning Effort"), rd.perplexity.effort_options)
+                end,
+            },
+        },
+        {
+            {
+                text = _("Groq: ") .. getStatusText("groq"),
+                callback = function()
+                    UIManager:close(self.per_provider_dialog)
+                    showAlwaysOnEffortConfig("groq", _("Groq Reasoning Effort"), rd.groq.effort_options)
+                end,
+            },
+            {
+                text = _("Together: ") .. getStatusText("together"),
+                callback = function()
+                    UIManager:close(self.per_provider_dialog)
+                    showAlwaysOnEffortConfig("together", _("Together Reasoning Effort"), rd.together.effort_options)
+                end,
+            },
+        },
+        {
+            {
+                text = _("Fireworks: ") .. getStatusText("fireworks"),
+                callback = function()
+                    UIManager:close(self.per_provider_dialog)
+                    showAlwaysOnEffortConfig("fireworks", _("Fireworks Reasoning Effort"), rd.fireworks.effort_options)
+                end,
+            },
+        },
+        {
+            {
                 text = _("Done"),
                 callback = function()
                     UIManager:close(self.per_provider_dialog)
@@ -2331,7 +2523,7 @@ function PromptsManager:showPerProviderReasoningMenu(state, refresh_callback)
 
     self.per_provider_dialog = ButtonDialog:new{
         title = _("Per-Provider Reasoning"),
-        info_text = _("Configure reasoning for each provider independently.\nOpenAI o-series and GPT-5 always reason at factory defaults.\nDeepSeek Reasoner always uses reasoning automatically."),
+        info_text = _("Configure reasoning per provider.\nToggleable providers: Global/OFF/ON.\nAlways-on providers: effort level only (cannot be turned off)."),
         buttons = buttons,
     }
 
