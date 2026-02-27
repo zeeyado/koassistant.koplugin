@@ -2102,7 +2102,7 @@ function ChatGPTViewer:init()
   -- Artifacts button (cross-navigate to other cached artifacts for the same book)
   if self._artifact_file then
     local ActionCache = require("koassistant_action_cache")
-    local other_artifacts = ActionCache.getAvailableArtifacts(self._artifact_file, self._artifact_key)
+    local other_artifacts = ActionCache.getAvailableArtifactsWithPinned(self._artifact_file, self._artifact_key)
     if #other_artifacts > 0 then
       table.insert(simple_view_row1, {
         text = _("Artifacts"),
@@ -2112,12 +2112,18 @@ function ChatGPTViewer:init()
           local art_buttons = {}
           for _idx, art in ipairs(other_artifacts) do
             local captured = art
+            local label = captured.is_pinned
+                and (captured.name .. " (" .. _("Pinned") .. ")")
+                or captured.name
             table.insert(art_buttons, {{
-              text = _("View") .. " " .. captured.name,
+              text = _("View") .. " " .. label,
               callback = function()
                 UIManager:close(self._artifacts_dialog)
                 self:onClose()
-                if self._plugin then
+                if captured.is_pinned then
+                  local ArtifactBrowser = require("koassistant_artifact_browser")
+                  ArtifactBrowser:showPinnedViewer(captured.data, self._artifact_file)
+                elseif self._plugin then
                   if captured.is_per_action then
                     self._plugin:viewCachedAction(
                       { text = captured.name }, captured.key, captured.data,

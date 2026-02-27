@@ -4257,7 +4257,7 @@ function AskGPT:showCacheViewer(cache_info)
               (math.floor(cache_info.data.progress_decimal * 100 + 0.5) .. "%")),
           model = cache_info.data.model,
           timestamp = cache_info.data.timestamp,
-          book_file = self.ui and self.ui.document and self.ui.document.file or cache_info.file,
+          book_file = cache_info.file or (self.ui and self.ui.document and self.ui.document.file),
           enable_emoji = features.enable_emoji_icons == true,
           cache_metadata = cache_metadata,
           configuration = configuration,
@@ -4273,13 +4273,23 @@ function AskGPT:showCacheViewer(cache_info)
           web_search_used = cache_info.data.web_search_used,
           info_popup_text = info_popup_text,
         }
-        -- Staleness check (reading progress advance)
+        -- Pass ui only when the open book matches the artifact's book
+        -- Cross-book viewing (artifact browser) must not use the open book's document
+        local browser_ui = self.ui
+        if browser_ui and browser_ui.document then
+          local open_file = browser_ui.document.file
+          local artifact_file = browser_metadata.book_file
+          if open_file and artifact_file and open_file ~= artifact_file then
+            browser_ui = nil
+          end
+        end
+        XrayBrowser:show(parsed, browser_metadata, browser_ui, on_delete)
+
+        -- Staleness check (reading progress advance) — only when viewing same book
         local ce_ok, ContextExtractor
-        if self.ui and self.ui.document then
+        if browser_ui and browser_ui.document then
             ce_ok, ContextExtractor = pcall(require, "koassistant_context_extractor")
         end
-
-        XrayBrowser:show(parsed, browser_metadata, self.ui, on_delete)
 
         -- Progress staleness popup (not suppressed by caller,
         -- e.g. showCacheActionPopup already showed update option)
