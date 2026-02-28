@@ -1084,6 +1084,13 @@ function AskGPT:onDispatcherRegisterActions()
     separator = true
   })
 
+  Dispatcher:registerAction("koassistant_multi_book_actions", {
+    category = "none",
+    event = "KOAssistantMultiBookActions",
+    title = _("KOAssistant: Multi-Book Actions"),
+    general = true,
+  })
+
   Dispatcher:registerAction("koassistant_toggle_dictionary_bypass", {
     category = "none",
     event = "KOAssistantToggleDictionaryBypass",
@@ -5820,6 +5827,15 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
     end,
   }
 
+  button_defs["multi_book_actions"] = {
+    text = E("\u{1F4DA}", _("Multi-Book Actions")),
+    callback = function()
+      opening_subdialog = true
+      UIManager:close(dialog)
+      self_ref:showMultiBookPicker()
+    end,
+  }
+
   button_defs["general_chat"] = {
     text = E("\u{1F5E8}\u{FE0F}", _("General Chat/Action")),
     callback = function()
@@ -6479,6 +6495,23 @@ function AskGPT:showArtifactBrowser()
   local ArtifactBrowser = require("koassistant_artifact_browser")
   local features = self.settings:readSetting("features") or {}
   ArtifactBrowser:showArtifactBrowser({ enable_emoji = features.enable_emoji_icons == true })
+end
+
+--- Multi-book actions gesture handler
+function AskGPT:onKOAssistantMultiBookActions()
+  self:showMultiBookPicker()
+  return true
+end
+
+--- Multi-book actions launcher (settings menu + QS callback)
+function AskGPT:showMultiBookPicker()
+  local BookPicker = require("koassistant_book_picker")
+  local self_ref = self
+  BookPicker:show({
+    on_confirm = function(selected_files)
+      self_ref:compareSelectedBooks(selected_files)
+    end,
+  })
 end
 
 -- Translate current page gesture handler

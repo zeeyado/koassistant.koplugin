@@ -62,6 +62,13 @@ local SettingsSchema = {
             text = _("Browse Artifacts"),
             emoji = "\u{1F4E6}",
             callback = "showArtifactBrowser",
+        },
+        {
+            id = "multi_book_actions",
+            type = "action",
+            text = _("Multi-Book Actions"),
+            emoji = "\u{1F4DA}",
+            callback = "showMultiBookPicker",
             separator = true,
         },
 
