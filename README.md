@@ -272,6 +272,7 @@ Assign "KOAssistant: Quick Settings" to a gesture for one-tap access to a two-co
 - **Highlight Bypass & Dictionary Bypass** — Toggle bypass modes on/off
 - **Text Extraction** — Toggle book text extraction on/off (must be enabled once via Settings → Privacy & Data first)
 - **Chat History, Browse Notebooks & Browse Artifacts** — Quick access to saved chats, notebooks, and cached artifacts
+- **Multi-Book Actions** — Launch multi-book actions by selecting books from your reading history
 - **General Chat/Action** — Start a context-free conversation or run a general action
 - **Manage Actions** — Edit and configure your actions
 
@@ -780,7 +781,11 @@ Custom actions using placeholders like `{reading_progress}`, `{book_text}`, `{fu
 
 ### Multi-Document Mode
 
-**Access**: Select multiple documents in File Browser → tap any → "Compare with KOAssistant"
+**Access** (two ways):
+1. **Multi-Book Actions launcher** — Quick Settings → Multi-Book Actions, or Settings menu → Multi-Book Actions, or via gesture. Opens a reading history picker where you tap books to select them (☐/☑), then confirm to choose an action.
+2. **File browser multi-select** — Select multiple documents in File Browser → tap any → "Compare with KOAssistant". Quick shortcut when books are in the same folder.
+
+Both paths lead to the same multi-book action picker.
 
 **Built-in Actions**:
 | Action | Description |
@@ -1457,7 +1462,7 @@ Actions with gestures show a `[gesture]` indicator in the Action Manager list.
 - **Book actions** → Reader gestures only (requires open book; grayed out in File Browser)
 - **General actions** → Available in both contexts (can add to Reader and/or File Browser gestures)
 
-**Why only book and general?** Highlight actions require selected text, and multi-book actions require file browser multi-select — neither can be triggered via gestures.
+**Why only book and general?** Highlight actions require selected text and cannot be triggered via gestures.
 
 **Note:** Changes require restart because KOReader's gesture system loads available actions at startup. To disable all custom action gestures at once, use **Settings → KOReader Integration → Show in Gesture Menu**. Built-in utility gestures (Quick Settings, Chat History, etc.) are not affected by this toggle.
 
@@ -1475,6 +1480,7 @@ Actions with gestures show a `[gesture]` indicator in the Action Manager list.
 - KOAssistant: Settings — Open main settings menu
 - KOAssistant: General Chat/Action — Start a new general conversation or run a general action
 - KOAssistant: Quick Settings — Two-column settings panel
+- KOAssistant: Multi-Book Actions — Pick books from reading history for multi-book actions
 - KOAssistant: Toggle Dictionary Bypass — Toggle dictionary bypass on/off
 - KOAssistant: Toggle Highlight Bypass — Toggle highlight bypass on/off
 
@@ -1879,6 +1885,7 @@ Two complementary features for making important content easily available:
 - **Chat History**: Browse saved conversations
 - **Browse Notebooks**: Open the Notebook Manager to view all notebooks
 - **Browse Artifacts**: Open the Artifact Browser to view all cached artifacts
+- **Multi-Book Actions**: Pick books from your reading history and run multi-book actions (Compare, Recommend, Common Themes, etc.)
 
 ### Reading Features (visible when document is open)
 - **X-Ray**: Generate a browsable reference guide for the book up to your current reading position — opens in a structured category menu with characters, locations, themes, lexicon, timeline, and per-item chapter distribution. Requires text extraction enabled
@@ -2086,7 +2093,7 @@ Configure the Quick Settings panel (available via gesture or gear icon in input 
   - Provider, Model, Behavior, Domain, Temperature, Anthropic/Gemini Reasoning
   - Web Search, Language, Translation Language, Dictionary Language
   - H.Bypass, D.Bypass, Text Extraction
-  - Chat History, Browse Notebooks, Browse Artifacts
+  - Chat History, Browse Notebooks, Browse Artifacts, Multi-Book Actions
   - General Chat/Action, Continue Last Chat, New Book Chat/Action, Manage Actions, Quick Actions, More Settings
   - All buttons are enabled by default. Disable any you don't use to streamline the panel.
 
