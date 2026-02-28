@@ -137,7 +137,7 @@ function BookPicker:show(opts)
     local menu_items = buildMenuItems(entries, selected, toggleEntry)
 
     menu = Menu:new{
-        title = T(_("Select Books (%1 selected)"), countSelected(selected)),
+        title = T(_("Reading History (%1 selected)"), countSelected(selected)),
         item_table = menu_items,
         is_borderless = true,
         is_popout = false,
@@ -185,7 +185,7 @@ function BookPicker:_refresh(menu, entries, selected)
     end
 
     local items = buildMenuItems(entries, selected, toggleEntry)
-    menu:switchItemTable(T(_("Select Books (%1 selected)"), countSelected(selected)), items, -1)
+    menu:switchItemTable(T(_("Reading History (%1 selected)"), countSelected(selected)), items, -1)
 end
 
 --- Show picker options menu (hamburger)

@@ -1446,7 +1446,6 @@ Attribute opinions to their sources where possible. Distinguish between critical
 Actions.multi_book = {
     compare_books = {
         id = "compare_books",
-        enable_web_search = false,
         text = _("Compare Books"),
         description = _("Compares the selected books, focusing on meaningful contrasts: different approaches, unique strengths, and which readers would prefer which."),
         context = "multi_book",
@@ -1459,7 +1458,6 @@ Actions.multi_book = {
     },
     common_themes = {
         id = "common_themes",
-        enable_web_search = false,
         text = _("Find Common Themes"),
         description = _("Identifies shared themes, intellectual traditions, and deeper patterns across the selected books — beyond surface-level genre labels."),
         context = "multi_book",
@@ -1472,7 +1470,6 @@ Actions.multi_book = {
     },
     collection_summary = {
         id = "collection_summary",
-        enable_web_search = false,
         text = _("Analyze Collection"),
         description = _("Analyzes what the collection reveals about the reader's interests, perspective, and what might be missing for a more complete picture."),
         context = "multi_book",
@@ -1485,7 +1482,6 @@ Actions.multi_book = {
     },
     quick_summaries = {
         id = "quick_summaries",
-        enable_web_search = false,
         reasoning_config = "off",  -- Brief summaries don't benefit from reasoning
         text = _("Quick Summaries"),
         description = _("A brief 2-3 sentence summary of each selected book, focusing on premise and appeal."),
@@ -1499,7 +1495,6 @@ Actions.multi_book = {
     },
     reading_order = {
         id = "reading_order",
-        enable_web_search = false,
         text = _("Reading Order"),
         description = _("Suggests an optimal reading order based on conceptual dependencies, difficulty progression, and thematic arc."),
         context = "multi_book",
