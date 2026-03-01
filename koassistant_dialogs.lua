@@ -4045,8 +4045,13 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     end
 
     -- Show the dialog with the button rows
+    local is_multi = config and config.features and config.features.is_multi_book_context
+    local multi_count = is_multi and config.features.books_info and #config.features.books_info or 0
+    local dialog_title = is_multi and multi_count > 0
+        and T(_("Multi-Book: %1 books"), multi_count)
+        or _("KOAssistant Actions")
     input_dialog = InputDialog:new{
-        title = _("KOAssistant Actions"),
+        title = dialog_title,
         input = initial_input or "",
         input_hint = _("Type your question or additional instructions for any action..."),
         input_type = "text",
