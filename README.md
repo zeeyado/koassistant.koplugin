@@ -782,10 +782,10 @@ Custom actions using placeholders like `{reading_progress}`, `{book_text}`, `{fu
 ### Multi-Document Mode
 
 **Access** (two ways):
-1. **Multi-Book Actions launcher** — Quick Settings → Multi-Book Actions, or Settings menu → Multi-Book Actions, or via gesture. Opens a reading history picker where you tap books to select them (☐/☑), then confirm to choose an action.
+1. **Multi-Book Actions launcher** — Quick Settings → Multi-Book Actions, or Settings menu → Multi-Book Actions, or via gesture. Opens a reading history picker where you tap books to select them (☐/☑), then confirm to choose an action. The picker supports filtering by status (All, Reading, On Hold, Finished, Finished 75%+) and search by title/author via the hamburger menu.
 2. **File browser multi-select** — Select multiple documents in File Browser → tap any → "Compare with KOAssistant". Quick shortcut when books are in the same folder.
 
-Both paths lead to the same multi-book action picker.
+Both paths lead to the same multi-book action picker, which shows the number of selected books in the title bar.
 
 **Built-in Actions**:
 | Action | Description |
