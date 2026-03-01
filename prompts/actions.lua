@@ -1639,6 +1639,8 @@ All labels and explanations in {dictionary_language}. Inline bold labels, no hea
         description = _("Deep linguistic analysis covering morphology, word family, etymology, cognates, and cross-language borrowings. Adapts to the word's language family (Semitic roots, Indo-European stems, etc.)."),
         context = "highlight",  -- Only for highlighted text
         behavior_variant = "dictionary_detailed",  -- Use built-in detailed dictionary behavior
+        dictionary_view = true,  -- Full-size dictionary view (more room for detailed analysis)
+        minimal_buttons = true,  -- Dictionary button set
         in_dictionary_popup = 3,  -- Default order in dictionary popup
         prompt = [[Deep analysis of the word "{highlighted_text}":
 

@@ -1343,7 +1343,7 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
     -- For compact view (dictionary lookups), force debug OFF regardless of global setting
     -- Create a config copy for createResultText with debug disabled
     local config_for_text = temp_config or CONFIGURATION
-    if config_for_text and config_for_text.features and config_for_text.features.compact_view then
+    if config_for_text and config_for_text.features and (config_for_text.features.compact_view or config_for_text.features.dictionary_view) then
         -- Don't modify the original config, just note that debug should be off
         -- The createResultText will check show_debug_in_chat in the config
         -- We'll handle this by passing a modified config
@@ -1432,6 +1432,8 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
 
     -- Check if compact view should be used
     local use_compact_view = temp_config and temp_config.features and temp_config.features.compact_view
+    -- Check if dictionary view should be used (full-size with dictionary buttons)
+    local use_dictionary_view = temp_config and temp_config.features and temp_config.features.dictionary_view
     -- Check if minimal buttons should be used (for dictionary popup lookups)
     local use_minimal_buttons = temp_config and temp_config.features and temp_config.features.minimal_buttons
     -- Check if translate view should be used
@@ -1447,7 +1449,7 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
     -- Debug info should NEVER show in compact/translate view
     -- regardless of the global setting
     local show_debug = false
-    if not use_compact_view and not use_translate_view then
+    if not use_compact_view and not use_dictionary_view and not use_translate_view then
         show_debug = temp_config and temp_config.features and temp_config.features.show_debug_in_chat or false
     end
 
@@ -1525,6 +1527,7 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
         configuration = temp_config or CONFIGURATION,  -- Pass configuration for debug toggle
         show_debug_in_chat = show_debug,
         compact_view = use_compact_view,  -- Use compact height for dictionary lookups
+        dictionary_view = use_dictionary_view,  -- Full-size with dictionary buttons
         minimal_buttons = use_minimal_buttons,  -- Use minimal buttons for dictionary lookups
         translate_view = use_translate_view,  -- Use translate view for translations
         translate_hide_quote = translate_hide_quote,  -- Initial hide state for original text
@@ -2511,12 +2514,17 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
         end
     end
 
-    -- Apply compact dictionary view settings if action has compact_view flag
-    if prompt.compact_view then
+    -- Apply dictionary view settings (shared between compact and dictionary views)
+    if prompt.compact_view or prompt.dictionary_view then
         temp_config.features = temp_config.features or {}
-        temp_config.features.compact_view = true
-        temp_config.features.hide_highlighted_text = true  -- Hide quote by default in compact mode
-        temp_config.features.large_stream_dialog = false  -- Small streaming dialog
+        if prompt.compact_view then
+            temp_config.features.compact_view = true
+            temp_config.features.large_stream_dialog = false  -- Small streaming dialog for compact
+        end
+        if prompt.dictionary_view then
+            temp_config.features.dictionary_view = true
+        end
+        temp_config.features.hide_highlighted_text = true  -- Hide quote by default in dictionary modes
 
         -- Apply dictionary-specific settings from user preferences
         local f = config.features or {}

@@ -260,6 +260,7 @@ function PromptsManager:loadPrompts()
             -- View mode flags
             translate_view = prompt.translate_view,
             compact_view = prompt.compact_view,
+            dictionary_view = prompt.dictionary_view,
             minimal_buttons = prompt.minimal_buttons,
             -- Duplication control
             no_duplicate = prompt.no_duplicate,
@@ -302,6 +303,7 @@ function PromptsManager:loadPrompts()
                 -- View mode flag overrides
                 if override.translate_view ~= nil then entry.translate_view = override.translate_view end
                 if override.compact_view ~= nil then entry.compact_view = override.compact_view end
+                if override.dictionary_view ~= nil then entry.dictionary_view = override.dictionary_view end
                 if override.minimal_buttons ~= nil then entry.minimal_buttons = override.minimal_buttons end
             end
         end
@@ -1131,6 +1133,7 @@ function PromptsManager:duplicateAction(action)
         -- View mode flags
         translate_view = duplicate.translate_view,
         compact_view = duplicate.compact_view,
+        dictionary_view = duplicate.dictionary_view,
         minimal_buttons = duplicate.minimal_buttons,
         -- Description
         description = duplicate.description,
@@ -1193,6 +1196,7 @@ function PromptsManager:showPromptEditor(existing_prompt)
         -- View mode flags
         translate_view = existing_prompt and existing_prompt.translate_view or false,
         compact_view = existing_prompt and existing_prompt.compact_view or false,
+        dictionary_view = existing_prompt and existing_prompt.dictionary_view or false,
         minimal_buttons = existing_prompt and existing_prompt.minimal_buttons or false,
         -- Web search (tri-state: nil/true/false)
         enable_web_search = existing_prompt and existing_prompt.enable_web_search or nil,
@@ -2023,6 +2027,8 @@ end
 function PromptsManager:getViewModeDisplayText(state)
     if state.translate_view then
         return _("Translate")
+    elseif state.dictionary_view then
+        return _("Dictionary")
     elseif state.compact_view then
         return _("Dictionary Compact")
     else
@@ -2036,6 +2042,7 @@ end
 function PromptsManager:showViewModeSelector(state, refresh_callback)
     local view_modes = {
         { id = "standard", text = _("Standard"), desc = _("Full dialog with all buttons") },
+        { id = "dictionary", text = _("Dictionary"), desc = _("Full-size with dictionary buttons") },
         { id = "compact", text = _("Dictionary Compact"), desc = _("Compact with language buttons") },
         { id = "translate", text = _("Translate"), desc = _("With language switch and original toggle") },
     }
@@ -2044,6 +2051,8 @@ function PromptsManager:showViewModeSelector(state, refresh_callback)
     local current = "standard"
     if state.translate_view then
         current = "translate"
+    elseif state.dictionary_view then
+        current = "dictionary"
     elseif state.compact_view then
         current = "compact"
     end
@@ -2060,9 +2069,13 @@ function PromptsManager:showViewModeSelector(state, refresh_callback)
                     -- Reset all view flags
                     state.translate_view = false
                     state.compact_view = false
+                    state.dictionary_view = false
                     state.minimal_buttons = false
                     -- Set based on selection
-                    if mode.id == "compact" then
+                    if mode.id == "dictionary" then
+                        state.dictionary_view = true
+                        state.minimal_buttons = true
+                    elseif mode.id == "compact" then
                         state.compact_view = true
                         state.minimal_buttons = true
                     elseif mode.id == "translate" then
@@ -2086,7 +2099,8 @@ function PromptsManager:showViewModeSelector(state, refresh_callback)
                 UIManager:show(InfoMessage:new{
                     text = _("View modes control how results are displayed:") .. "\n\n" ..
                            "• " .. _("Standard") .. " — " .. _("Full dialog with all response action buttons") .. "\n\n" ..
-                           "• " .. _("Dictionary Compact") .. " — " .. _("Smaller dialog optimized for quick lookups, with language buttons for word-by-word translation") .. "\n\n" ..
+                           "• " .. _("Dictionary") .. " — " .. _("Full-size dialog with dictionary buttons (language, context, action switcher). Expands to full chat via → Chat button") .. "\n\n" ..
+                           "• " .. _("Dictionary Compact") .. " — " .. _("Smaller dialog optimized for quick lookups, with the same dictionary buttons. Expands to Dictionary view") .. "\n\n" ..
                            "• " .. _("Translate") .. " — " .. _("Translation view with language switch button and toggle to show/hide the original text"),
                 })
             end,
@@ -3041,6 +3055,7 @@ function PromptsManager:showBuiltinSettingsEditor(prompt)
     -- Get base view mode flags for comparison
     local base_translate_view = base_action and base_action.translate_view or false
     local base_compact_view = base_action and base_action.compact_view or false
+    local base_dictionary_view = base_action and base_action.dictionary_view or false
     local base_minimal_buttons = base_action and base_action.minimal_buttons or false
 
     -- Get base web search setting (tri-state: nil/true/false)
@@ -3083,6 +3098,8 @@ function PromptsManager:showBuiltinSettingsEditor(prompt)
         translate_view_base = base_translate_view,
         compact_view = prompt.compact_view or false,
         compact_view_base = base_compact_view,
+        dictionary_view = prompt.dictionary_view or false,
+        dictionary_view_base = base_dictionary_view,
         minimal_buttons = prompt.minimal_buttons or false,
         minimal_buttons_base = base_minimal_buttons,
         -- Web search (tri-state: nil/true/false)
@@ -3776,6 +3793,10 @@ function PromptsManager:saveBuiltinOverride(prompt, state)
         override.compact_view = state.compact_view
         has_any = true
     end
+    if state.dictionary_view ~= (state.dictionary_view_base or false) then
+        override.dictionary_view = state.dictionary_view
+        has_any = true
+    end
     if state.minimal_buttons ~= (state.minimal_buttons_base or false) then
         override.minimal_buttons = state.minimal_buttons
         has_any = true
@@ -3830,6 +3851,7 @@ function PromptsManager:showCustomQuickSettings(prompt)
         -- View mode flags
         translate_view = prompt.translate_view or false,
         compact_view = prompt.compact_view or false,
+        dictionary_view = prompt.dictionary_view or false,
         minimal_buttons = prompt.minimal_buttons or false,
         -- Web search (tri-state: nil/true/false)
         enable_web_search = prompt.enable_web_search,
@@ -4649,6 +4671,7 @@ function PromptsManager:addPrompt(state)
             -- View mode flags
             translate_view = state.translate_view or nil,
             compact_view = state.compact_view or nil,
+            dictionary_view = state.dictionary_view or nil,
             minimal_buttons = state.minimal_buttons or nil,
             -- Web search (tri-state: nil/true/false - nil means follow global)
             enable_web_search = state.enable_web_search,

@@ -1243,6 +1243,11 @@ function AskGPT:initSettings()
       needs_save = true
       logger.info("KOAssistant: Cleaned up stray compact_view flag")
     end
+    if features.dictionary_view ~= nil then
+      features.dictionary_view = nil
+      needs_save = true
+      logger.info("KOAssistant: Cleaned up stray dictionary_view flag")
+    end
     if features.minimal_buttons ~= nil then
       features.minimal_buttons = nil
       needs_save = true
@@ -1380,6 +1385,7 @@ function AskGPT:updateConfigFromSettings()
     books_info = true,
     selection_data = true,
     compact_view = true,
+    dictionary_view = true,
     minimal_buttons = true,
     is_full_page_translate = true,
   }
@@ -1396,6 +1402,7 @@ function AskGPT:updateConfigFromSettings()
   -- Ensure transient flags are cleared (these are only set at runtime for specific actions)
   -- This prevents flags from "leaking" to other actions
   configuration.features.compact_view = nil
+  configuration.features.dictionary_view = nil
   configuration.features.minimal_buttons = nil
   configuration.features.is_full_page_translate = nil  -- Only set by translateCurrentPage
 
@@ -3823,11 +3830,17 @@ function AskGPT:onDictButtonsReady(dict_popup, dict_buttons)
               dict_config.features.storage_key = "__SKIP__"
             end
 
-            -- Always use compact view for dictionary popup actions
-            dict_config.features.compact_view = true
-            dict_config.features.hide_highlighted_text = true  -- Hide quote by default in compact mode
-            dict_config.features.minimal_buttons = true  -- Use minimal button set
-            dict_config.features.large_stream_dialog = false  -- Small streaming dialog
+            -- Apply view mode from action definition (respects user overrides)
+            if action.compact_view then
+              dict_config.features.compact_view = true
+              dict_config.features.hide_highlighted_text = true
+              dict_config.features.minimal_buttons = action.minimal_buttons ~= false
+              dict_config.features.large_stream_dialog = false  -- Small streaming dialog
+            elseif action.dictionary_view then
+              dict_config.features.dictionary_view = true
+              dict_config.features.hide_highlighted_text = true
+              dict_config.features.minimal_buttons = action.minimal_buttons ~= false
+            end
 
             -- Check dictionary streaming setting
             if features.dictionary_enable_streaming == false then
@@ -6651,8 +6664,9 @@ function AskGPT:translateCurrentPage()
   config_copy.features.is_general_context = nil
   config_copy.features.is_book_context = nil
   config_copy.features.is_multi_book_context = nil
-  -- Explicitly ensure full view (not compact)
+  -- Explicitly ensure full view (not compact/dictionary)
   config_copy.features.compact_view = false
+  config_copy.features.dictionary_view = false
   config_copy.features.minimal_buttons = false
   -- Mark this as full page translate so handlePredefinedPrompt can apply translate_hide_full_page setting
   -- Note: The actual hiding is handled in handlePredefinedPrompt which respects user's translate_hide_highlight_mode
@@ -7097,11 +7111,17 @@ function AskGPT:syncDictionaryBypass()
             dict_config.features.storage_key = "__SKIP__"
           end
 
-          -- Always use compact view for dictionary bypass
-          dict_config.features.compact_view = true
-          dict_config.features.hide_highlighted_text = true
-          dict_config.features.minimal_buttons = true
-          dict_config.features.large_stream_dialog = false
+          -- Apply view mode from action definition (respects user overrides)
+          if bypass_action.compact_view then
+            dict_config.features.compact_view = true
+            dict_config.features.hide_highlighted_text = true
+            dict_config.features.minimal_buttons = bypass_action.minimal_buttons ~= false
+            dict_config.features.large_stream_dialog = false
+          elseif bypass_action.dictionary_view then
+            dict_config.features.dictionary_view = true
+            dict_config.features.hide_highlighted_text = true
+            dict_config.features.minimal_buttons = bypass_action.minimal_buttons ~= false
+          end
 
           -- Check dictionary streaming setting
           if features.dictionary_enable_streaming == false then

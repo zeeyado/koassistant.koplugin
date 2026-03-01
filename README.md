@@ -1004,7 +1004,7 @@ Don't like how a built-in action behaves? Clone and customize it:
 The action wizard walks through 4 steps:
 
 1. **Name & Context**: Set button text and where it appears (highlight, book, multi-book, general, or both). Options:
-   - *View Mode* — Choose how results display: Standard (full chat), Dictionary Compact (minimal popup), or Translate (translation-focused UI)
+   - *View Mode* — Choose how results display: Standard (full chat), Dictionary (full-size with dictionary buttons), Dictionary Compact (minimal popup), or Translate (translation-focused UI)
    - *Include book info* — Send title/author with highlight actions
    - *Skip language instruction* — Don't send your language preferences (useful when prompt already specifies target language)
    - *Skip domain* — Don't include domain context (useful for linguistic tasks like translation)
@@ -1350,17 +1350,27 @@ When bypass is enabled, selecting a word skips KOReader's dictionary popup entir
 
 **Toggle via gesture:** Assign "KOAssistant: Toggle Dictionary Bypass" to a gesture for quick on/off switching. These settings are also available in the recommended Quick Settings panel.
 
-**Note:** Dictionary bypass (and the dictionary popup AI button) uses compact view by default for quick, focused responses.
+**Note:** Dictionary bypass (and the dictionary popup AI button) uses compact view by default for quick, focused responses. Deep Analysis uses the full-size dictionary view.
 
-### Compact View Features
+### Dictionary View Modes
 
-The compact dictionary view provides two rows of buttons:
+Dictionary actions support three view modes, configurable per-action via Action Manager:
+
+**Dictionary Compact** (default for Dictionary, Quick Define) — Small 60% height popup optimized for quick lookups. Tap **Expand** to open in the full-size Dictionary view.
+
+**Dictionary** (default for Deep Analysis) — Full-size window with the same dictionary-specific buttons. Provides more room for detailed content like morphology and etymology. Has a **→ Chat** button to expand to the standard chat viewer.
+
+**Standard** — Full chat viewer with all buttons (reply, save, tag, pin, export, etc.). No dictionary-specific buttons.
+
+The expansion chain: **Compact → Expand → Dictionary → → Chat → Standard**
+
+Both dictionary view modes share the same button layout:
 - **Row 1:** MD ON/TXT ON, Copy, +Note, Wiki, +Vocab
-- **Row 2:** Expand, Language, Ctx, [Action], Close
+- **Row 2:** Expand or → Chat, Language, Ctx, [Action], Close
 
 **MD ON / TXT ON** — Toggle between Markdown and Plain Text view modes. Shows "MD ON" when Markdown is active, "TXT ON" when Plain Text is active. For RTL languages, this may default to TXT ON automatically based on your settings.
 
-**Copy** — Copies the AI response only (plain text). Unlike the full chat view, compact view always copies just the response without metadata or asking for format.
+**Copy** — Copies the AI response only (plain text). Unlike the full chat view, dictionary views always copy just the response without metadata or asking for format.
 
 **+Note** — Save the AI response as a note attached to your highlighted word in KOReader's annotation system. The button is greyed out if word position data isn't available (e.g., when launched from certain contexts).
 
@@ -1368,7 +1378,9 @@ The compact dictionary view provides two rows of buttons:
 
 **+Vocab** — Add the looked-up word to KOReader's Vocabulary Builder. After adding, the button changes to "Added" (greyed out). See [Vocabulary Builder Integration](#vocabulary-builder-integration).
 
-**Expand** — Open the response in the full-size chat viewer with all options (continue conversation, save, export, etc.).
+**Expand** (compact only) — Open the response in the full-size dictionary view with the same buttons but more room.
+
+**→ Chat** (dictionary view only) — Open in the full standard chat viewer with all options (continue conversation, save, export, etc.).
 
 **Language** — Re-run the lookup in a different language (picks from your configured languages). Closes the current view and opens a new one with the updated result.
 
@@ -1376,9 +1388,9 @@ The compact dictionary view provides two rows of buttons:
 
 **[Action]** — Shows the name of the current dictionary action. Tap to switch to a different dictionary popup action. If only one other action is available, switches directly; otherwise shows a picker with all available dictionary actions.
 
-**Close** — Close the compact view.
+**Close** — Close the view.
 
-**RTL-aware rendering**: When viewing dictionary results for RTL languages, the compact view automatically uses Plain Text mode (if enabled in settings) and applies correct bidirectional text alignment for proper display of RTL content.
+**RTL-aware rendering**: When viewing dictionary results for RTL languages, both dictionary view modes automatically use Plain Text mode (if enabled in settings) and apply correct bidirectional text alignment for proper display of RTL content.
 
 ### Vocabulary Builder Integration
 
@@ -1411,7 +1423,7 @@ Skip KOReader's dictionary popup when selecting words. Useful for language learn
 **How it works:**
 1. Select a word in the document
 2. Instead of dictionary popup → AI action triggers immediately
-3. Response appears in **compact view** (minimal UI optimized for quick lookups — see [Compact View Features](#compact-view-features))
+3. Response appears in the action's configured view mode (compact view by default — see [Dictionary View Modes](#dictionary-view-modes))
 
 **Configure:** Settings → Dictionary Settings → Bypass KOReader Dictionary
 
@@ -1991,7 +2003,7 @@ These settings control what language the AI responds in.
 
 - **Your Languages**: Languages you speak/understand. Opens a picker with 47 pre-loaded languages displayed in their native scripts (日本語, Français, Español, etc.). Select multiple languages. These are sent to the AI in the system prompt ("The user understands: ...").
 - **Primary Language**: Pick which of your languages the AI should respond in by default. Defaults to first in your list.
-- **Additional Languages**: Extra languages for translation/dictionary targets without affecting AI response language. These are NOT sent to the AI in the system prompt but appear in translation/dictionary language pickers and the Language button in compact/translate views. Use cases: scholarly work (Latin, Sanskrit, Ancient Greek), language learning (translate TO a language you're studying), or occasional use of languages you understand but don't want the AI defaulting to.
+- **Additional Languages**: Extra languages for translation/dictionary targets without affecting AI response language. These are NOT sent to the AI in the system prompt but appear in translation/dictionary language pickers and the Language button in dictionary/translate views. Use cases: scholarly work (Latin, Sanskrit, Ancient Greek), language learning (translate TO a language you're studying), or occasional use of languages you understand but don't want the AI defaulting to.
 
 **Native script display:** Languages appear in their native scripts in menus and settings (日本語, Français, etc.). System prompts sent to the AI use English names for better language model comprehension. Classical/scholarly languages (Ancient Greek, Biblical Hebrew, Classical Arabic, Latin, Sanskrit) are displayed in English only.
 
@@ -3123,14 +3135,15 @@ When using actions from gestures or highlight menus, they trigger immediately wi
 
 Your additional input is combined with the action's prompt template.
 
-### Expanding Compact View to Save
+### Expanding Dictionary Views to Save
 
-Dictionary lookups and popup actions use compact view by default (minimal UI). To save a lookup or continue the conversation:
+Dictionary lookups use compact view by default (minimal UI). To save a lookup or continue the conversation:
 
-1. Tap the **Expand** button in compact view
-2. The chat opens in full view with all standard features
-3. The **Save** button becomes active
-4. You can now save to the current document or continue asking follow-up questions
+1. Tap **Expand** in compact view → opens the full-size Dictionary view (same buttons, bigger window)
+2. Tap **→ Chat** in the Dictionary view → opens the standard chat viewer
+3. The **Save** button becomes active and you can continue asking follow-up questions
+
+If the action uses Dictionary view directly (e.g., Deep Analysis), step 1 is skipped.
 
 **Use case:** You looked up a word, got interested, and want to ask deeper questions about etymology or usage patterns.
 

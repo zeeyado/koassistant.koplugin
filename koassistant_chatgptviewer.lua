@@ -890,6 +890,9 @@ local ChatGPTViewer = InputContainer:extend {
   -- Compact view mode (used for dictionary lookups)
   compact_view = false,
 
+  -- Dictionary view mode (full-size with dictionary buttons)
+  dictionary_view = false,
+
   -- Minimal buttons mode (used for dictionary lookups)
   -- Shows only: MD/Text, Copy, Expand, Close
   minimal_buttons = false,
@@ -971,6 +974,8 @@ function ChatGPTViewer:init()
   -- - standard: full Wikipedia-style height
   if self.compact_view then
     self.height = self.height or UIConstants.COMPACT_DIALOG_HEIGHT()
+  elseif self.dictionary_view then
+    self.height = self.height or UIConstants.CHAT_HEIGHT()
   elseif self.simple_view or self.translate_view or (self.configuration and self.configuration.features and self.configuration.features.translate_view) then
     -- Dynamic height for simple/translate view (like Wikipedia)
     -- Calculate based on content length, capped at max available height
@@ -1402,6 +1407,9 @@ function ChatGPTViewer:init()
     if self.configuration.features.compact_view then
       self.compact_view = true
     end
+    if self.configuration.features.dictionary_view then
+      self.dictionary_view = true
+    end
     if self.configuration.features.minimal_buttons then
       self.minimal_buttons = true
     end
@@ -1411,8 +1419,8 @@ function ChatGPTViewer:init()
     if self.configuration.features.translate_hide_quote then
       self.translate_hide_quote = true
     end
-    -- Dictionary compact view: text mode and RTL settings
-    if self.compact_view then
+    -- Dictionary view: text mode and RTL settings (applies to both compact and full dictionary)
+    if self.compact_view or self.dictionary_view then
       -- Check if text mode is forced for all dictionary lookups
       if self.configuration.features.dictionary_text_mode then
         self.render_markdown = false
@@ -1443,7 +1451,7 @@ function ChatGPTViewer:init()
     end
     -- Standard chat view: auto-detect RTL in AI response if setting enabled
     -- (compact_view and translate_view have their own RTL handling via language settings)
-    if not self.compact_view and not self.translate_view and not self.simple_view then
+    if not self.compact_view and not self.dictionary_view and not self.translate_view and not self.simple_view then
       if self.configuration.features.rtl_chat_text_mode ~= false then
         local latest_response = getLatestResponse(self._message_history or self.original_history)
         if hasDominantRTL(latest_response) then
@@ -1642,20 +1650,38 @@ function ChatGPTViewer:init()
     })
   end
 
-  -- Row 2: Expand button
-  table.insert(minimal_button_row2, {
-    text = _("Expand"),
-    id = "expand_view",
-    callback = function()
-      self:expandToFullView()
-    end,
-    hold_callback = function()
-      UIManager:show(Notification:new{
-        text = _("Open in full-size viewer with all options"),
-        timeout = 2,
-      })
-    end,
-  })
+  -- Row 2: Expand / → Chat button
+  if self.compact_view then
+    -- Compact view: Expand to full-size dictionary view
+    table.insert(minimal_button_row2, {
+      text = _("Expand"),
+      id = "expand_view",
+      callback = function()
+        self:expandToDictionaryView()
+      end,
+      hold_callback = function()
+        UIManager:show(Notification:new{
+          text = _("Open in full-size dictionary viewer"),
+          timeout = 2,
+        })
+      end,
+    })
+  else
+    -- Dictionary view (or fallback): → Chat to open full chat viewer
+    table.insert(minimal_button_row2, {
+      text = _("→ Chat"),
+      id = "expand_view",
+      callback = function()
+        self:expandToFullView()
+      end,
+      hold_callback = function()
+        UIManager:show(Notification:new{
+          text = _("Open full chat with all options"),
+          timeout = 2,
+        })
+      end,
+    })
+  end
 
   -- Row 2: Language button (re-run with different dictionary language)
   local rerun_features = self.configuration and self.configuration.features
@@ -2371,7 +2397,7 @@ function ChatGPTViewer:init()
   local dict_lang = self.configuration and self.configuration.features
       and self.configuration.features.dictionary_language
   local is_rtl_lang = Languages.isRTL(dict_lang)
-  local needs_rtl_fix = self.compact_view and is_rtl_lang
+  local needs_rtl_fix = (self.compact_view or self.dictionary_view) and is_rtl_lang
 
   if self.render_markdown then
     -- Convert Markdown to HTML and render in a ScrollHtmlWidget
@@ -2725,6 +2751,7 @@ function ChatGPTViewer:expandToFullView()
     -- Reset ALL compact-mode settings so expanded view works correctly
     if expanded_config.features then
       expanded_config.features.compact_view = false
+      expanded_config.features.dictionary_view = false
       expanded_config.features.minimal_buttons = false
       expanded_config.features.translate_view = false
       expanded_config.features.simple_view = false
@@ -2786,8 +2813,9 @@ function ChatGPTViewer:expandToFullView()
     settings_callback = self.settings_callback,
     update_debug_callback = self.update_debug_callback,
     selection_data = self.selection_data,  -- Preserve for "Save to Note" feature
-    -- Explicitly disable compact mode
+    -- Explicitly disable compact/dictionary modes
     compact_view = false,
+    dictionary_view = false,
     minimal_buttons = false,
   }
 
@@ -2813,6 +2841,86 @@ function ChatGPTViewer:expandToFullView()
     -- Without this, updateViewer() checks fail and replies don't show
     _G.ActiveChatViewer = full_viewer
     UIManager:show(full_viewer)
+  end)
+end
+
+function ChatGPTViewer:expandToDictionaryView()
+  -- Expand compact view to full-size dictionary view (same buttons, bigger window)
+  -- No text regeneration needed — both views hide prefixes
+  local dict_config = nil
+  if self.configuration then
+    dict_config = {}
+    for k, v in pairs(self.configuration) do
+      if type(v) == "table" then
+        dict_config[k] = {}
+        for k2, v2 in pairs(v) do
+          dict_config[k][k2] = v2
+        end
+      else
+        dict_config[k] = v
+      end
+    end
+    if dict_config.features then
+      dict_config.features.compact_view = false
+      dict_config.features.dictionary_view = true
+      dict_config.features.minimal_buttons = true
+      -- Full-size window uses large streaming dialog for re-runs
+      dict_config.features.large_stream_dialog = true
+    end
+  end
+
+  local config_for_dict_view = dict_config or self.configuration
+  local message_history = self._message_history or self.original_history
+
+  local current_state = {
+    text = self.text,  -- Same text, no regeneration needed
+    title = self.title,
+    title_multilines = self.title_multilines,
+    title_shrink_font_to_fit = self.title_shrink_font_to_fit,
+    _message_history = message_history,
+    original_history = message_history,
+    original_highlighted_text = self.original_highlighted_text,
+    configuration = config_for_dict_view,
+    onAskQuestion = self.onAskQuestion,
+    save_callback = self.save_callback,
+    export_callback = self.export_callback,
+    tag_callback = self.tag_callback,
+    pin_callback = self.pin_callback,
+    star_callback = self.star_callback,
+    get_pin_state = self.get_pin_state,
+    get_star_state = self.get_star_state,
+    close_callback = self.close_callback,
+    add_default_buttons = true,
+    render_markdown = self.render_markdown,
+    markdown_font_size = self.markdown_font_size,
+    text_align = self.text_align,
+    show_debug_in_chat = self.show_debug_in_chat,
+    hide_highlighted_text = self.hide_highlighted_text,
+    _recreate_func = self._recreate_func,
+    settings_callback = self.settings_callback,
+    update_debug_callback = self.update_debug_callback,
+    selection_data = self.selection_data,
+    compact_view = false,
+    dictionary_view = true,
+    minimal_buttons = true,
+  }
+
+  UIManager:close(self)
+
+  UIManager:scheduleIn(0.1, function()
+    local original_close_callback = current_state.close_callback
+    current_state.close_callback = function()
+      if _G.ActiveChatViewer then
+        _G.ActiveChatViewer = nil
+      end
+      if original_close_callback then
+        original_close_callback()
+      end
+    end
+
+    local dict_viewer = ChatGPTViewer:new(current_state)
+    _G.ActiveChatViewer = dict_viewer
+    UIManager:show(dict_viewer)
   end)
 end
 
@@ -2959,7 +3067,7 @@ function ChatGPTViewer:update(new_text, scroll_to_bottom)
     -- For dictionary popup with RTL language, use "starts with RTL" detection
     local dict_lang = self.configuration and self.configuration.features
         and self.configuration.features.dictionary_language
-    local bidi_opts = { use_starts_with_rtl = self.compact_view and Languages.isRTL(dict_lang) }
+    local bidi_opts = { use_starts_with_rtl = (self.compact_view or self.dictionary_view) and Languages.isRTL(dict_lang) }
     html_body = addHtmlBidiAttributes(html_body, bidi_opts)
 
     -- Recreate the ScrollHtmlWidget with new content
@@ -2990,7 +3098,7 @@ function ChatGPTViewer:update(new_text, scroll_to_bottom)
     -- For plain text, optionally strip markdown and recreate widget
     local display_text = self.strip_markdown_in_text_mode and stripMarkdown(new_text, self.para_direction_rtl) or new_text
     -- Fix BiDi issues for RTL dictionary compact view
-    if self.compact_view and self.para_direction_rtl then
+    if (self.compact_view or self.dictionary_view) and self.para_direction_rtl then
       display_text = fixIPABidi(display_text)
     end
     self.scroll_text_w = ScrollTextWidget:new {
@@ -3076,7 +3184,7 @@ function ChatGPTViewer:toggleMarkdown()
   -- Check if RTL dictionary popup for IPA fix
   local dict_lang = self.configuration and self.configuration.features
       and self.configuration.features.dictionary_language
-  local needs_rtl_fix = self.compact_view and Languages.isRTL(dict_lang)
+  local needs_rtl_fix = (self.compact_view or self.dictionary_view) and Languages.isRTL(dict_lang)
 
   if self.render_markdown then
     -- Convert to markdown
@@ -3601,7 +3709,7 @@ function ChatGPTViewer:toggleTranslateQuoteVisibility()
     -- For dictionary popup with RTL language, use "starts with RTL" detection
     local dict_lang = self.configuration and self.configuration.features
         and self.configuration.features.dictionary_language
-    local bidi_opts = { use_starts_with_rtl = self.compact_view and Languages.isRTL(dict_lang) }
+    local bidi_opts = { use_starts_with_rtl = (self.compact_view or self.dictionary_view) and Languages.isRTL(dict_lang) }
     html_body = addHtmlBidiAttributes(html_body, bidi_opts)
     self.scroll_text_w = ScrollHtmlWidget:new {
       html_body = html_body,
@@ -4155,7 +4263,7 @@ function ChatGPTViewer:refreshMarkdownDisplay()
   -- For dictionary popup with RTL language, use "starts with RTL" detection
   local dict_lang = self.configuration and self.configuration.features
       and self.configuration.features.dictionary_language
-  local bidi_opts = { use_starts_with_rtl = self.compact_view and Languages.isRTL(dict_lang) }
+  local bidi_opts = { use_starts_with_rtl = (self.compact_view or self.dictionary_view) and Languages.isRTL(dict_lang) }
   html_body = addHtmlBidiAttributes(html_body, bidi_opts)
 
   -- Calculate current height

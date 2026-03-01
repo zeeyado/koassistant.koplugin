@@ -214,6 +214,19 @@ function ActionService:loadActions()
                             action_data.enable_web_search = override.enable_web_search
                         end
                     end
+                    -- View mode overrides
+                    if override.compact_view ~= nil then
+                        action_data.compact_view = override.compact_view
+                    end
+                    if override.dictionary_view ~= nil then
+                        action_data.dictionary_view = override.dictionary_view
+                    end
+                    if override.translate_view ~= nil then
+                        action_data.translate_view = override.translate_view
+                    end
+                    if override.minimal_buttons ~= nil then
+                        action_data.minimal_buttons = override.minimal_buttons
+                    end
                 end
 
                 table.insert(self.actions_cache[context], action_data)
@@ -1785,6 +1798,7 @@ function ActionService:createDuplicateAction(action)
         -- View mode flags
         translate_view = action.translate_view,
         compact_view = action.compact_view,
+        dictionary_view = action.dictionary_view,
         minimal_buttons = action.minimal_buttons,
         -- Description
         description = action.description,

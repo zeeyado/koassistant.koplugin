@@ -597,7 +597,7 @@ function MessageHistory:createResultText(highlightedText, config)
 
     -- Show conversation (non-context messages)
     -- In compact mode (dictionary lookups), hide prefixes for cleaner display
-    local hide_prefixes = config and config.features and config.features.compact_view
+    local hide_prefixes = config and config.features and (config.features.compact_view or config.features.dictionary_view)
     local added_first_message = false
     for i = 2, #self.messages do
         if not self.messages[i].is_context then
