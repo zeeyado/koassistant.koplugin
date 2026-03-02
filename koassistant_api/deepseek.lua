@@ -59,14 +59,11 @@ function DeepSeekHandler:buildRequestBody(message_history, config)
     request_body.max_tokens = api_params.max_tokens or default_params.max_tokens or 16384
     request_body.max_tokens = ModelConstraints.clampMaxTokens("deepseek", model, request_body.max_tokens)
 
-    -- V3.2+ thinking toggle: apply to models that support it
-    if ModelConstraints.supportsCapability("deepseek", model, "thinking") then
-        if api_params.deepseek_thinking then
-            request_body.thinking = api_params.deepseek_thinking
-        else
-            -- Default: explicitly disable (deepseek-reasoner defaults ON)
-            request_body.thinking = { type = "disabled" }
-        end
+    -- V3.2+ thinking toggle: apply when explicitly set by dialogs
+    -- When nil: don't send anything — let API defaults apply
+    -- (deepseek-reasoner thinks by default, deepseek-chat doesn't)
+    if api_params.deepseek_thinking then
+        request_body.thinking = api_params.deepseek_thinking
     end
 
     local headers = {
@@ -125,14 +122,11 @@ function DeepSeekHandler:query(message_history, config)
     request_body.max_tokens = api_params.max_tokens or default_params.max_tokens or 16384
     request_body.max_tokens = ModelConstraints.clampMaxTokens("deepseek", model, request_body.max_tokens)
 
-    -- V3.2+ thinking toggle: apply to models that support it
-    if ModelConstraints.supportsCapability("deepseek", model, "thinking") then
-        if api_params.deepseek_thinking then
-            request_body.thinking = api_params.deepseek_thinking
-        else
-            -- Default: explicitly disable (deepseek-reasoner defaults ON)
-            request_body.thinking = { type = "disabled" }
-        end
+    -- V3.2+ thinking toggle: apply when explicitly set by dialogs
+    -- When nil: don't send anything — let API defaults apply
+    -- (deepseek-reasoner thinks by default, deepseek-chat doesn't)
+    if api_params.deepseek_thinking then
+        request_body.thinking = api_params.deepseek_thinking
     end
 
     -- Check if streaming is enabled

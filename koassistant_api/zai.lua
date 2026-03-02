@@ -53,14 +53,11 @@ function ZaiHandler:customizeRequestBody(body, config)
     local model = body.model or ""
 
     -- Thinking parameter (GLM-4.5+ models)
-    -- Z.AI defaults to thinking ENABLED, so we must explicitly disable it
-    -- when the toggle is off, otherwise all requests produce reasoning_content
-    if ModelConstraints.supportsCapability("zai", model, "thinking") then
-        if config.api_params and config.api_params.zai_thinking then
-            body.thinking = config.api_params.zai_thinking
-        else
-            body.thinking = { type = "disabled" }
-        end
+    -- Apply when explicitly set by dialogs (enabled or disabled).
+    -- When nil: don't send anything — let API defaults apply
+    -- (GLM-4.5+ thinks by default)
+    if config.api_params and config.api_params.zai_thinking then
+        body.thinking = config.api_params.zai_thinking
     end
 
     -- Note: Z.AI web search only works via a separate endpoint (/api/paas/v4/tools)

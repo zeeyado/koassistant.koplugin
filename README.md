@@ -2179,10 +2179,10 @@ Backup and restore functionality, plus reset options. See [Backup & Restore](#ba
 
 ### Advanced
 - **Reasoning/Thinking**: Per-provider reasoning settings:
-  - **Enable Reasoning**: Master toggle for optional reasoning (default: off). Controls Anthropic (adaptive/extended thinking), Gemini (2.5 thinking budget / 3 thinking depth), and OpenAI GPT-5.1+ (reasoning effort). Other providers either always reason at factory defaults (o3, GPT-5, DeepSeek Reasoner) or don't support configurable reasoning.
+  - **Enable Reasoning**: Master toggle for optional reasoning (default: off). Controls Anthropic (adaptive/extended thinking), Gemini (2.5 thinking budget / 3 thinking depth), OpenAI GPT-5.1+ (reasoning effort), DeepSeek (V3.2+ thinking), Z.AI (GLM-4.5+ thinking), OpenRouter (effort), and SambaNova (thinking). Models that think by default (Gemini 2.5, DeepSeek Reasoner, GLM-4.5+) keep their natural behavior when the toggle is off — thinking is only suppressed when explicitly disabled via the toggle or per-action overrides.
   - **Anthropic Adaptive Thinking (4.6+)**: Effort level (low/medium/high, max for Opus 4.6). Claude decides when and how much to think based on the task. Recommended for 4.6 models. Takes priority over Extended Thinking when model supports both. (requires master toggle)
   - **Anthropic Extended Thinking**: Budget 1024-32000 tokens. Manual thinking budget mode for all thinking-capable Claude models (4.6, 4.5, 4.1, 4, 3.7). On 4.6 models, Adaptive Thinking takes priority if both are enabled. (requires master toggle)
-  - **Gemini Thinking**: Controls thinking for all Gemini models (requires master toggle). Gemini 3: configurable thinking depth (minimal/low/medium/high). Gemini 2.5: configurable thinking budget (dynamic/low/medium/high/max). When disabled, thinking is turned off entirely for Gemini 2.5.
+  - **Gemini Thinking**: Controls thinking for all Gemini models (requires master toggle). Gemini 3: configurable thinking depth (minimal/low/medium/high). Gemini 2.5: configurable thinking budget (dynamic/low/medium/high/max). Gemini 2.5 models think by default — when the master toggle is off, their natural thinking behavior is preserved.
   - **OpenAI Reasoning (5.1+)**: Enables reasoning for GPT-5.1 and GPT-5.2 models where it is off by default (requires master toggle). Effort level: low/medium/high/xhigh. Other OpenAI reasoning models (o3, o3-mini, o3-pro, o4-mini, GPT-5, GPT-5-mini, GPT-5-nano) always reason at their factory defaults and are not affected by this toggle.
   - **Show Reasoning Indicator**: Display "*[Reasoning was used]*" in chat when reasoning is active (default: on)
 - **Web Search**: Allow AI to search the web for current information:
@@ -2818,7 +2818,7 @@ For complex questions, supported models can "think" through the problem before r
 3. Set thinking budget (dynamic/low/medium/high/max)
 4. Works with: gemini-2.5-pro, gemini-2.5-flash
 5. Flash-Lite is excluded (thinking disabled by default, no budget control)
-6. When the toggle is off, thinking is disabled entirely (thinkingBudget: 0)
+6. Gemini 2.5 thinks by default — when the toggle is off, natural behavior is preserved (per-action overrides can still suppress thinking)
 
 **OpenAI Reasoning (5.1+):**
 GPT-5.1 and GPT-5.2 ship with reasoning off by default (reasoning_effort=none from OpenAI). To enable:

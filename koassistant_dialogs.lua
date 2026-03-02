@@ -695,17 +695,26 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
                 local budget_map = rd.gemini.budget_map
                 config.api_params.thinking_budget = budget_map[gemini_thinking_budget] or -1
             end
-        else
-            -- Explicitly disabled: tell Gemini 2.5 to not think
+        elseif action_gemini_override == false or enable_reasoning_master then
+            -- Suppress thinking when per-action override says OFF or master is ON
+            -- but sub-toggle is OFF. When master is OFF with no action override,
+            -- don't send anything — let API defaults apply (Gemini 2.5 thinks by default).
             if ModelConstraints.supportsCapability("gemini", model, "thinking_budget") then
                 config.api_params.thinking_budget = 0
             end
         end
     elseif provider == "zai" then
-        local enabled = zai_reasoning
-        if action_zai_override ~= nil then enabled = action_zai_override end
-        if enabled then
-            config.api_params.zai_thinking = { type = "enabled" }
+        local model = config.model or Defaults.ProviderDefaults.zai.model
+        if ModelConstraints.supportsCapability("zai", model, "thinking") then
+            local enabled = zai_reasoning
+            if action_zai_override ~= nil then enabled = action_zai_override end
+            if enabled then
+                config.api_params.zai_thinking = { type = "enabled" }
+            elseif action_zai_override == false or enable_reasoning_master then
+                -- Suppress when per-action says OFF or master ON but sub-toggle OFF.
+                -- When master OFF with no override: API default (GLM-4.5+ thinks).
+                config.api_params.zai_thinking = { type = "disabled" }
+            end
         end
     elseif provider == "deepseek" then
         local model = config.model or Defaults.ProviderDefaults.deepseek.model
@@ -714,8 +723,11 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
             if action_deepseek_override ~= nil then enabled = action_deepseek_override end
             if enabled then
                 config.api_params.deepseek_thinking = { type = "enabled" }
+            elseif action_deepseek_override == false or enable_reasoning_master then
+                -- Suppress when per-action says OFF or master ON but sub-toggle OFF.
+                -- When master OFF with no override: API default (reasoner thinks, chat doesn't).
+                config.api_params.deepseek_thinking = { type = "disabled" }
             end
-            -- When disabled or nil: handler defaults to { type = "disabled" }
         end
     elseif provider == "openrouter" then
         local enabled = openrouter_reasoning

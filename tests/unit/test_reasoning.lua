@@ -112,9 +112,7 @@ TestRunner:suite("DeepSeek thinking injection")
 
 local DeepSeekHandler = require("deepseek")
 
-TestRunner:test("deepseek-reasoner gets thinking disabled when no config", function()
-    -- DeepSeek handler sets thinking in buildRequestBody, not customizeRequestBody
-    -- Just verify capability detection works
+TestRunner:test("deepseek-reasoner supports thinking capability", function()
     TestRunner:assertTrue(
         ModelConstraints.supportsCapability("deepseek", "deepseek-reasoner", "thinking"),
         "deepseek-reasoner should support thinking"
