@@ -143,14 +143,24 @@ function AskGPT:init()
   -- (see ChatHistoryDialog:showChatHistoryBrowser for lazy validation)
 
   -- Auto-check for updates at startup (if enabled)
-  -- Skip NetworkMgr:isOnline() check - it can block the UI thread for several seconds
-  -- on shaky WiFi connections. The HTTP request runs in a subprocess with an 8-second
-  -- timeout, so it fails gracefully when offline without blocking the UI.
+  -- Use isWifiOn() as a fast, non-blocking guard (avoids isOnline() which can block
+  -- the UI thread for several seconds on shaky WiFi connections).
+  -- The HTTP request runs in a subprocess with an 8-second timeout, so it fails
+  -- gracefully when offline without blocking the UI.
   local features = self.settings:readSetting("features") or {}
   if features.auto_check_updates ~= false then
     UIManager:scheduleIn(1, function()
-      local UpdateChecker = require("koassistant_update_checker")
-      UpdateChecker.checkForUpdates(true) -- auto = true (silent background check)
+      if not NetworkMgr:isWifiOn() then
+        logger.dbg("KOAssistant: Skipping auto update check (Wi-Fi not on)")
+        return
+      end
+      local ok, err = pcall(function()
+        local UpdateChecker = require("koassistant_update_checker")
+        UpdateChecker.checkForUpdates(true) -- auto = true (silent background check)
+      end)
+      if not ok then
+        logger.warn("KOAssistant: Auto update check failed:", err)
+      end
     end)
   end
 

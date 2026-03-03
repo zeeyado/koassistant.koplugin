@@ -995,12 +995,13 @@ local function fetchWithAbsoluteTimeout(url, timeout, callback)
         end
     end)
 
-    -- Start subprocess
-    pid, parent_read_fd = ffiutil.runInSubProcess(subprocess_func, true)
+    -- Start subprocess (pcall-protected to prevent crash if fork fails)
+    local fork_ok
+    fork_ok, pid, parent_read_fd = pcall(ffiutil.runInSubProcess, subprocess_func, true)
 
-    if not pid then
+    if not fork_ok or not pid then
         cleanup()
-        callback(false, "Failed to start subprocess")
+        callback(false, fork_ok and "Failed to start subprocess" or ("Fork error: " .. tostring(pid)))
         return
     end
 
