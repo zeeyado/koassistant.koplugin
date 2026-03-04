@@ -2000,7 +2000,7 @@ local INPUT_CONTEXTS = {
         has_open_book = true,
         -- Curated defaults: core actions + context-aware smart actions for X-Ray items
         default_ids = {"explain", "elaborate", "eli5", "fact_check",
-            "explain_in_context_smart", "thematic_connection_smart", "connect"},
+            "explain_in_context_smart", "thematic_connection_smart", "connect", "wiki"},
     },
     multi_book = {
         settings_key = "input_multi_book_actions",

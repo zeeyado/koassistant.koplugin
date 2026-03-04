@@ -498,6 +498,38 @@ Focus on what's genuinely new or different from what the text describes. If the 
         },
         builtin = true,
     },
+    wiki = {
+        id = "wiki",
+        -- enable_web_search = nil: follows global setting (useful for current topics)
+        text = _("Wiki"),
+        description = _("Generates a Wikipedia-style encyclopedia entry about the selected text, using AI knowledge and optionally web search for current information."),
+        context = "highlight",
+        behavior_variant = "none",  -- Prompt controls tone entirely
+        skip_domain = true,  -- Encyclopedic format is standardized
+        include_book_context = true,
+        in_dictionary_popup = 4,  -- After dictionary_deep(3), before xray_lookup(6)
+        prompt = [[Write a Wikipedia-style encyclopedia entry about:
+
+"{highlighted_text}"
+
+{surrounding_context_section}
+
+Use the surrounding text and book context (from "{title}"{author_clause}) only to disambiguate what topic is being asked about. Do not analyze or reference the source text directly.
+
+Structure the entry as:
+- **Opening paragraph:** Clear definition and significance of the topic
+- **Key sections:** Cover the most important facets — history, concepts, context, impact — as appropriate for the subject
+- **Notable details:** Interesting facts, connections, or developments worth knowing
+
+Write in an encyclopedic tone: factual, neutral, well-organized. Prioritize accuracy over comprehensiveness — it's better to cover fewer points confidently than to speculate.
+
+{conciseness_nudge} {hallucination_nudge}]],
+        api_params = {
+            temperature = 0.3,  -- Low temp for factual accuracy
+            max_tokens = 4096,
+        },
+        builtin = true,
+    },
     -- Local X-Ray lookup: search cached X-Ray data for selected text (no AI call)
     xray_lookup = {
         id = "xray_lookup",
