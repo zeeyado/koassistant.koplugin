@@ -261,6 +261,8 @@ function AskGPT:init()
         end)
       end
     end
+    -- Check if recap reminder should be shown
+    self:checkRecapReminder()
   end
   
   -- Register file dialog buttons with delays to ensure they appear at the bottom
@@ -4996,6 +4998,54 @@ function AskGPT:viewCachedAction(action, action_id, cached_entry, opts)
     _book_open = (self.ui and self.ui.document ~= nil),
   }
   UIManager:show(viewer)
+end
+
+--- Check if we should show a recap reminder for the current book.
+--- Called from onReaderReady when the user opens a book they haven't read in a while.
+function AskGPT:checkRecapReminder()
+  local features = self.settings:readSetting("features") or {}
+  if features.enable_recap_reminder ~= true then return end
+
+  if not self.ui or not self.ui.document or not self.ui.doc_settings then return end
+
+  local now = os.time()
+  local last_opened = self.ui.doc_settings:readSetting("koassistant_last_opened")
+
+  -- Retroactive fallback: use sidecar directory mod time for books opened
+  -- before this feature existed (sidecar is written on book close)
+  if not last_opened then
+    local DocSettings = require("docsettings")
+    local sidecar_dir = DocSettings:getSidecarDir(self.ui.document.file)
+    local attr = lfs.attributes(sidecar_dir)
+    if attr and attr.modification then
+      last_opened = attr.modification
+    end
+  end
+
+  -- Always update timestamp for next session
+  self.ui.doc_settings:saveSetting("koassistant_last_opened", now)
+
+  if not last_opened then return end
+
+  local days_since = (now - last_opened) / 86400
+  local threshold = features.recap_reminder_days or 7
+  if days_since < threshold then return end
+
+  -- Skip if not started or nearly finished
+  local percent = self.ui.doc_settings:readSetting("percent_finished") or 0
+  if percent <= 0 or percent > 0.95 then return end
+
+  local days_display = math.floor(days_since)
+  local self_ref = self
+  local ConfirmBox = require("ui/widget/confirmbox")
+  UIManager:show(ConfirmBox:new{
+    text = T(_("You haven't read this book in %1 days.\n\nWould you like an AI Recap to help you get back into it?"), days_display),
+    ok_text = _("Recap"),
+    ok_callback = function()
+      self_ref:ensureInitialized()
+      self_ref:executeBookLevelAction("recap")
+    end,
+  })
 end
 
 --- Helper function to execute book-level actions (X-Ray, Recap, Analyze My Notes)

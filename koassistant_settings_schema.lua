@@ -1363,6 +1363,35 @@ local SettingsSchema = {
                         })
                     end,
                 },
+                {
+                    type = "separator",
+                },
+                {
+                    id = "recap_reminder_header",
+                    type = "header",
+                    text = _("Recap Reminder"),
+                },
+                {
+                    id = "enable_recap_reminder",
+                    type = "toggle",
+                    text = _("Remind to Recap on Book Open"),
+                    path = "features.enable_recap_reminder",
+                    default = false,
+                    help_text = _("Show a reminder to run Recap when you open a book you haven't read in a while."),
+                },
+                {
+                    id = "recap_reminder_days",
+                    type = "spinner",
+                    text = _("Days Before Reminder"),
+                    path = "features.recap_reminder_days",
+                    default = 7,
+                    min = 1,
+                    max = 90,
+                    step = 1,
+                    precision = "%d",
+                    help_text = _("Number of days since last reading before the reminder appears."),
+                    depends_on = { id = "enable_recap_reminder", value = true },
+                },
             },
         },
 
