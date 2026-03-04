@@ -520,7 +520,7 @@ KOAssistant works in **4 contexts**, each with its own set of built-in actions:
 
 | Context | Built-in Actions |
 |---------|------------------|
-| **Highlight** | Explain, ELI5, Summarize, Elaborate, Connect, Connect (With Notes), Explain in Context, Explain in Context (Smart), Analyze in Context, Analyze in Context (Smart), Thematic Connection (Smart), Fact Check*, Current Context*, Translate, Dictionary, Quick Define, Deep Analysis, Look up in X-Ray† |
+| **Highlight** | Explain, ELI5, Summarize, Elaborate, Connect, Connect (With Notes), Explain in Context, Explain in Context (Smart), Analyze in Context, Analyze in Context (Smart), Thematic Connection (Smart), Fact Check*, Current Context*, Translate, AI Wiki, Dictionary, Quick Define, Deep Analysis, Look up in X-Ray† |
 | **Book** | Book Info, Find Similar, About Author, Historical Context, Related Thinkers, Book Reviews*, X-Ray, X-Ray (Simple), Recap, Analyze My Notes, Key Arguments, Key Arguments (Smart), Discussion Questions, Discussion Questions (Smart), Generate Quiz, Generate Quiz (Smart), Document Analysis, Document Summary, Extract Key Insights |
 | **Multi-book** | Compare Books, Find Common Themes, Analyze Collection, Quick Summaries, Reading Order, Recommend Books |
 | **General** | News Update* |
@@ -558,6 +558,7 @@ You can customize these, create your own, or disable ones you don't use. See [Ac
 | **Fact Check** | Verify claims using web search ⚠️ *Requires: Web Search* |
 | **Current Context** | Get latest information about a topic using web search ⚠️ *Requires: Web Search* |
 | **Translate** | Translate to your configured language |
+| **AI Wiki** | Wikipedia-style encyclopedia entry about the selected text, using AI knowledge. Uses web search if enabled globally. Available in dictionary popup by default |
 | **Dictionary** | Full dictionary entry: definition, etymology, synonyms, usage (also accessible via dictionary popup) |
 | **Quick Define** | Minimal lookup: brief definition only, no etymology or synonyms |
 | **Deep Analysis** | Linguistic deep-dive: morphology, word family, cognates, etymology path |
@@ -1195,7 +1196,7 @@ Add frequently-used highlight actions directly to KOReader's highlight popup for
 7. **Connect** — Draw connections to other works, thinkers, and broader context
 8. **Fact Check** — Verify claims using web search
 
-**Other built-in actions you can add**: Connect (With Notes), Explain in Context, Explain in Context (Smart), Analyze in Context, Analyze in Context (Smart), Thematic Connection (Smart), Current Context, Dictionary, Quick Define, Deep Analysis
+**Other built-in actions you can add**: Connect (With Notes), Explain in Context, Explain in Context (Smart), Analyze in Context, Analyze in Context (Smart), Thematic Connection (Smart), Current Context, AI Wiki, Dictionary, Quick Define, Deep Analysis
 
 **Adding more actions**:
 1. Go to **Manage Actions**
@@ -1234,10 +1235,11 @@ When you select a word in a document, KOReader normally shows its dictionary pop
 1. **Add AI actions to the dictionary popup** — Tap "Dictionary (KOA)" or another Action button from KOReader's Dictionary popup
 2. **Bypass the dictionary entirely** — Skip KOReader's dictionary and go directly to your selected KOAssistant Dictionary Action for word lookups
 
-**Default dictionary popup actions** (3 included):
+**Default dictionary popup actions** (4 included):
 1. **Dictionary** — Full entry: definition, etymology, synonyms, usage
 2. **Quick Define** — Minimal: brief definition only
 3. **Deep Analysis** — Linguistic deep-dive: morphology, word family, cognates
+4. **AI Wiki** — Wikipedia-style encyclopedia entry about the word
 
 You can add or substitute other highlight actions to this menu via **Manage Actions → hold action → "Add to Dictionary Popup"** or manage the actions centrally from Dictionary Settings.
 
@@ -1253,22 +1255,23 @@ You can add or substitute other highlight actions to this menu via **Manage Acti
 | **Context Characters** | Character count when using "Characters" mode | 100 |
 | **Disable Auto-save** | Don't auto-save dictionary lookups to chat history | On |
 | **Enable Streaming** | Stream responses in real-time (shows text as it generates) | On |
-| **Dictionary Popup Actions** | Configure which actions appear in the AI menu (reorder, add custom) | 3 built-in |
+| **Dictionary Popup Actions** | Configure which actions appear in the AI menu (reorder, add custom) | 4 built-in |
 | **Bypass KOReader Dictionary** | Skip native dictionary, go directly to your selected bypass Action | Off |
 | **Bypass Action** | Which action triggers on bypass (try Quick Define for speed) | Dictionary |
 | **Bypass: Follow Vocab Builder** | Respect KOReader's Vocabulary Builder auto-add setting during bypass | On |
 
 > **Tip:** Test different dictionary actions and context modes in the [web inspector](#testing-your-setup) to find what works best for your reading. Consider creating custom dictionary actions for your specific language pair.
 
-### Dictionary Popup Actions (3 included by default)
+### Dictionary Popup Actions (4 included by default)
 
-When "AI Buttons in Dictionary Popup" is enabled, KOAssistant Dictionary Actions are added to KOReader's dictionary popup. Three built-in dictionary actions are included by default:
+When "AI Buttons in Dictionary Popup" is enabled, KOAssistant Dictionary Actions are added to KOReader's dictionary popup. Four built-in actions are included by default:
 
 | Action | Purpose | Includes |
 |--------|---------|----------|
 | **Dictionary** | Standard dictionary entry | Definition, pronunciation, etymology, synonyms, usage examples |
 | **Quick Define** | Fast, minimal lookup | Brief definition only—no etymology, no synonyms |
 | **Deep Analysis** | Linguistic deep-dive | Morphology (roots, affixes), word family, etymology path, cognates |
+| **AI Wiki** | Encyclopedia entry | Wikipedia-style overview: definition, history, key facts, significance |
 
 Dictionary (KOA) is the default if you turn on Bypass mode. You can set any action as the **Bypass Action** for instant one-tap lookups.
 

@@ -501,7 +501,7 @@ Focus on what's genuinely new or different from what the text describes. If the 
     wiki = {
         id = "wiki",
         -- enable_web_search = nil: follows global setting (useful for current topics)
-        text = _("Wiki"),
+        text = _("AI Wiki"),
         description = _("Generates a Wikipedia-style encyclopedia entry about the selected text, using AI knowledge and optionally web search for current information."),
         context = "highlight",
         behavior_variant = "none",  -- Prompt controls tone entirely
