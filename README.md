@@ -747,6 +747,8 @@ The X-Ray action produces a structured JSON analysis that opens in a **browsable
 - **With text extraction** (recommended): AI analyzes actual book content. Produces accurate, book-specific results. Results are cached and labeled "Based on extracted document text."
 - **Without text extraction** (default): AI uses only the title/author and its training knowledge. Works reasonably for well-known titles but produces generic results. Results are labeled "Based on AI training data knowledge."
 
+> **Tip:** Enable **Recap Reminder** in Settings → KOReader Integration to get a prompt to run Recap when you open a book you haven't read in a while (off by default). See [KOReader Integration](#koreader-integration).
+
 **Two-track X-Ray:** When generating a new X-Ray, you choose between two tracks:
 
 - **Incremental** (default) — Spoiler-free: extracts text only up to your current reading position. Produces a **Current State** (fiction) or **Current Position** (non-fiction) section capturing active conflicts, open questions, and narrative momentum. Supports incremental updates as you read further — only new content is sent, and the AI's additions are diff-merged into the existing analysis. Updates are fast and cheap (~200-500 output tokens vs 2000-4000 for full regeneration). You can also **Update to 100%** to extend the incremental X-Ray to the end of the book using the same spoiler-free prompt. The scope popup offers: "Generate X-Ray (to 42%)" for a new incremental X-Ray, or "Update X-Ray (to 100%)" for an existing one.
@@ -2166,6 +2168,10 @@ Control where KOAssistant appears in KOReader's menus. All toggles default to ON
 - **Show in Gesture Menu**: Register custom action gestures in KOReader's gesture dispatcher (requires restart). Only affects actions added via "Add to Gesture Menu" in Action Manager — built-in gestures (Chat History, Quick Settings, toggles, etc.) are always available.
 
 **Note:** File browser, highlight menu, and gesture menu changes require a KOReader restart since they are registered at plugin startup. Dictionary popup changes take effect immediately. To customize which actions appear in each menu, use **Action Manager → hold action** to add/remove from specific menus.
+
+#### Recap Reminder
+- **Remind to Recap on Book Open**: When enabled, shows a reminder to run AI Recap when you open a book you haven't read in a while (default: OFF)
+- **Days Before Reminder**: Number of days since last reading before the reminder appears (default: 7, range: 1-90)
 
 ### Temperature
 - **Temperature**: Response creativity (0.0-2.0, Anthropic max 1.0). Top-level setting for quick access.
