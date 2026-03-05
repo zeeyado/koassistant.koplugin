@@ -2145,11 +2145,44 @@ function ChatGPTViewer:init()
               text = _("View") .. " " .. label,
               callback = function()
                 UIManager:close(self._artifacts_dialog)
-                self:onClose()
-                if captured.is_pinned then
+                if captured.is_section_xray_group then
+                  -- Show section sub-popup without closing the viewer
+                  local sec_buttons = {}
+                  for _idx2, sec in ipairs(captured.data) do
+                    if sec.key ~= captured._excluded_section_key then
+                      local cap_sec = sec
+                      local sec_label = cap_sec.label or cap_sec.key
+                      local page_info = cap_sec.data and cap_sec.data.scope_page_summary or ""
+                      local sec_display = page_info ~= "" and (sec_label .. " (" .. page_info .. ")") or sec_label
+                      table.insert(sec_buttons, {{
+                        text = T(_("View %1"), sec_display),
+                        callback = function()
+                          UIManager:close(self._section_group_dialog)
+                          self:onClose()
+                          if self._plugin then
+                            self._plugin:showCacheViewer({
+                              name = sec_label, key = cap_sec.key, data = cap_sec.data,
+                              book_title = self._artifact_book_title,
+                              book_author = self._artifact_book_author,
+                              file = self._artifact_file })
+                          end
+                        end,
+                      }})
+                    end
+                  end
+                  if #sec_buttons > 0 then
+                    self._section_group_dialog = ButtonDialog:new{
+                      title = _("Section X-Rays"),
+                      buttons = sec_buttons,
+                    }
+                    UIManager:show(self._section_group_dialog)
+                  end
+                elseif captured.is_pinned then
+                  self:onClose()
                   local ArtifactBrowser = require("koassistant_artifact_browser")
                   ArtifactBrowser:showPinnedViewer(captured.data, self._artifact_file)
                 elseif self._plugin then
+                  self:onClose()
                   if captured.is_per_action then
                     self._plugin:viewCachedAction(
                       { text = captured.name }, captured.key, captured.data,

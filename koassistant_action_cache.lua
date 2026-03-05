@@ -61,6 +61,18 @@ local function updateArtifactIndex(document_path, cache)
             end
         end
     end
+    -- Also count section X-Ray entries (prefix scan)
+    local section_prefix = ActionCache.SECTION_XRAY_PREFIX
+    local section_prefix_len = #section_prefix
+    for key, entry in pairs(cache) do
+        if type(key) == "string" and key:sub(1, section_prefix_len) == section_prefix
+           and type(entry) == "table" and entry.version == CACHE_VERSION and entry.result then
+            count = count + 1
+            if (entry.timestamp or 0) > latest then
+                latest = entry.timestamp or 0
+            end
+        end
+    end
 
     local changed = false
     if count > 0 then
@@ -189,6 +201,19 @@ local function saveCache(document_path, cache)
             if entry.web_search_used then
                 file:write(string.format("        web_search_used = %s,\n", tostring(entry.web_search_used)))
             end
+            -- Section X-Ray scope metadata
+            if entry.scope_label then
+                file:write(string.format("        scope_label = %q,\n", entry.scope_label))
+            end
+            if entry.scope_start_page then
+                file:write(string.format("        scope_start_page = %s,\n", tostring(entry.scope_start_page)))
+            end
+            if entry.scope_end_page then
+                file:write(string.format("        scope_end_page = %s,\n", tostring(entry.scope_end_page)))
+            end
+            if entry.scope_page_summary then
+                file:write(string.format("        scope_page_summary = %q,\n", entry.scope_page_summary))
+            end
             -- Result may contain special characters, use long string with safe delimiter
             local result_text = entry.result or ""
             local eq_count = findSafeDelimiter(result_text)
@@ -254,6 +279,11 @@ function ActionCache.set(document_path, action_id, result, progress_decimal, met
         -- Track reasoning and web search usage
         used_reasoning = metadata and metadata.used_reasoning,
         web_search_used = metadata and metadata.web_search_used,
+        -- Section X-Ray scope metadata
+        scope_label = metadata and metadata.scope_label,
+        scope_start_page = metadata and metadata.scope_start_page,
+        scope_end_page = metadata and metadata.scope_end_page,
+        scope_page_summary = metadata and metadata.scope_page_summary,
     }
 
     return saveCache(document_path, cache)
@@ -350,6 +380,28 @@ function ActionCache.getAvailableArtifacts(document_path, exclude_key)
                 })
             end
         end
+    end
+    -- Add section X-Ray group entry if any exist
+    local sections = ActionCache.getSectionXrays(document_path)
+    if #sections > 0 then
+        local excluded = false
+        if exclude_key then
+            for _idx, sec in ipairs(sections) do
+                if sec.key == exclude_key then
+                    excluded = true
+                    break
+                end
+            end
+        end
+        -- Add the group entry (individual sections accessible via data)
+        table.insert(available, {
+            name = string.format(_("Section X-Rays (%d)"), #sections),
+            key = "_xray_sections",
+            data = sections,
+            is_section_xray_group = true,
+            -- If current exclude_key is a section, still show the group (other sections visible)
+            _excluded_section_key = excluded and exclude_key or nil,
+        })
     end
     return available
 end
@@ -460,6 +512,9 @@ end
 function ActionCache.clearSummaryCache(document_path)
     return ActionCache.clear(document_path, ActionCache.SUMMARY_CACHE_KEY)
 end
+
+-- Section X-Ray prefix for per-section X-Ray entries (stored in same cache file)
+ActionCache.SECTION_XRAY_PREFIX = "_xray_section:"
 
 -- Wiki entry prefix for per-item encyclopedia entries (stored in same cache file)
 ActionCache.WIKI_PREFIX = "_wiki:"
@@ -622,6 +677,74 @@ function ActionCache.setUserAliases(document_path, aliases_table)
     file:close()
 
     logger.info("KOAssistant ActionCache: Saved user aliases for", document_path)
+    return true
+end
+
+-- =============================================================================
+-- Section X-Ray API
+-- Multiple X-Rays per book, each scoped to a TOC entry's page range
+-- =============================================================================
+
+--- Get all section X-Rays for a document, sorted by start page.
+--- @param document_path string The document file path
+--- @return table Array of { key, label, data } sorted by scope_start_page
+function ActionCache.getSectionXrays(document_path)
+    if not document_path then return {} end
+    local cache = loadCache(document_path)
+    local sections = {}
+    local prefix = ActionCache.SECTION_XRAY_PREFIX
+    local prefix_len = #prefix
+    for key, entry in pairs(cache) do
+        if type(key) == "string" and key:sub(1, prefix_len) == prefix
+           and type(entry) == "table" and entry.version == CACHE_VERSION and entry.result then
+            table.insert(sections, {
+                key = key,
+                label = entry.scope_label or key:sub(prefix_len + 1),
+                data = entry,
+            })
+        end
+    end
+    -- Sort by start page (earliest first)
+    table.sort(sections, function(a, b)
+        return (a.data.scope_start_page or 0) < (b.data.scope_start_page or 0)
+    end)
+    return sections
+end
+
+--- Get count of section X-Rays for a document (lightweight, no full data load).
+--- @param document_path string The document file path
+--- @return number count
+function ActionCache.getSectionXrayCount(document_path)
+    if not document_path then return 0 end
+    local cache = loadCache(document_path)
+    local count = 0
+    local prefix = ActionCache.SECTION_XRAY_PREFIX
+    local prefix_len = #prefix
+    for key, entry in pairs(cache) do
+        if type(key) == "string" and key:sub(1, prefix_len) == prefix
+           and type(entry) == "table" and entry.version == CACHE_VERSION and entry.result then
+            count = count + 1
+        end
+    end
+    return count
+end
+
+--- Clear all section X-Ray entries for a document
+--- @param document_path string The document file path
+--- @return boolean success
+function ActionCache.clearSectionXrays(document_path)
+    local cache = loadCache(document_path)
+    local found = false
+    local prefix_len = #ActionCache.SECTION_XRAY_PREFIX
+    for key, _v in pairs(cache) do
+        if type(key) == "string" and key:sub(1, prefix_len) == ActionCache.SECTION_XRAY_PREFIX then
+            cache[key] = nil
+            found = true
+        end
+    end
+    if found then
+        return saveCache(document_path, cache)
+    end
     return true
 end
 

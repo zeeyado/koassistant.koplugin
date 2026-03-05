@@ -4258,7 +4258,9 @@ function AskGPT:showCacheViewer(cache_info)
     ["_summary_cache"] = "summary",
     ["_analyze_cache"] = "analyze",
   }
-  local cache_type = cache_type_map[cache_info.key] or "cache"
+  local is_section_xray = type(cache_info.key) == "string"
+      and cache_info.key:sub(1, #ActionCache.SECTION_XRAY_PREFIX) == ActionCache.SECTION_XRAY_PREFIX
+  local cache_type = is_section_xray and "section_xray" or (cache_type_map[cache_info.key] or "cache")
 
   -- Build cache metadata for export
   local cache_metadata = {
@@ -4270,6 +4272,8 @@ function AskGPT:showCacheViewer(cache_info)
     timestamp = cache_info.data.timestamp,
     used_annotations = cache_info.data.used_annotations,
     used_book_text = cache_info.data.used_book_text,
+    scope_label = cache_info.data.scope_label,
+    scope_page_summary = cache_info.data.scope_page_summary,
   }
 
   -- Create delete/regenerate callbacks
@@ -4296,6 +4300,9 @@ function AskGPT:showCacheViewer(cache_info)
       elseif cache_key == "_summary_cache" then
         ActionCache.clearSummaryCache(file)
         ActionCache.clear(file, "summarize_full_document")
+      else
+        -- Section X-Ray or other generic key: clear directly
+        ActionCache.clear(file, cache_key)
       end
       -- Invalidate file browser row cache so deleted artifacts don't reappear
       self._file_dialog_row_cache = { file = nil, rows = nil }
@@ -4330,8 +4337,11 @@ function AskGPT:showCacheViewer(cache_info)
     end
   end
 
-  -- For X-Ray: try structured JSON browser when data is JSON
-  if cache_info.key == "_xray_cache" then
+  -- For X-Ray (main or section): try structured JSON browser when data is JSON
+  local ActionCache = require("koassistant_action_cache")
+  local is_section_xray = type(cache_info.key) == "string"
+      and cache_info.key:sub(1, #ActionCache.SECTION_XRAY_PREFIX) == ActionCache.SECTION_XRAY_PREFIX
+  if cache_info.key == "_xray_cache" or is_section_xray then
     local XrayParser = require("koassistant_xray_parser")
     if XrayParser.isJSON(cache_info.data.result) then
       local parsed = XrayParser.parse(cache_info.data.result)
@@ -4362,6 +4372,18 @@ function AskGPT:showCacheViewer(cache_info)
           web_search_used = cache_info.data.web_search_used,
           info_popup_text = info_popup_text,
         }
+        -- Add scope metadata for section X-Rays
+        if is_section_xray and cache_info.data.scope_label then
+          browser_metadata.scope = {
+            label = cache_info.data.scope_label,
+            start_page = cache_info.data.scope_start_page,
+            end_page = cache_info.data.scope_end_page,
+            page_summary = cache_info.data.scope_page_summary,
+            cache_key = cache_info.key,
+          }
+          browser_metadata.progress = "Complete"
+          browser_metadata.full_document = true
+        end
         -- Pass ui only when the open book matches the artifact's book
         -- Cross-book viewing (artifact browser) must not use the open book's document
         local browser_ui = self.ui
@@ -4556,7 +4578,7 @@ function AskGPT:showCacheActionPopup(action, action_id, on_update, opts)
 
   -- X-Ray actions: always route to scope popup (handles no-cache and cached scenarios)
   if action.cache_as_xray then
-    self:_showXrayScopePopup(action, action_id, on_update, cached)
+    self:_showXrayScopePopup(action, action_id, on_update, cached, opts)
     return
   end
 
@@ -4674,7 +4696,7 @@ end
 --- @param action_id string: The action ID
 --- @param on_update function: Callback to execute partial (to reading position) action
 --- @param cached_entry table|nil: Existing cached entry, or nil if no cache
-function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry)
+function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, opts)
   local action_name = action.text or action_id
   local ButtonDialog = require("ui/widget/buttondialog")
   local self_ref = self
@@ -4725,6 +4747,32 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry)
         self_ref:_executeBookLevelActionDirect(action, action_id, { full_document = true })
       end,
     }})
+    -- Section X-Rays: list existing + new
+    local ActionCache = require("koassistant_action_cache")
+    local sx_file = (self.ui and self.ui.document and self.ui.document.file)
+        or (opts and opts.file)
+    if sx_file then
+      local sx_count = ActionCache.getSectionXrayCount(sx_file)
+      if sx_count > 0 then
+        table.insert(buttons, {{
+          text = T(_("Section X-Rays (%1)"), sx_count),
+          callback = function()
+            UIManager:close(dialog)
+            self_ref:_showSectionXrayList(opts)
+          end,
+        }})
+      end
+      -- "New Section X-Ray..." only when book is open and has TOC
+      if self.ui and self.ui.toc and self.ui.toc.toc and #self.ui.toc.toc > 0 then
+        table.insert(buttons, {{
+          text = _("New Section X-Ray…"),
+          callback = function()
+            UIManager:close(dialog)
+            self_ref:_showSectionXrayPicker(action)
+          end,
+        }})
+      end
+    end
     table.insert(buttons, {{
       text = _("Cancel"),
       callback = function()
@@ -4789,6 +4837,31 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry)
         end,
       }})
     end
+    -- Section X-Rays: list existing + new
+    local ActionCache = require("koassistant_action_cache")
+    local sx_file = (self.ui and self.ui.document and self.ui.document.file)
+        or (opts and opts.file)
+    if sx_file then
+      local sx_count = ActionCache.getSectionXrayCount(sx_file)
+      if sx_count > 0 then
+        table.insert(buttons, {{
+          text = T(_("Section X-Rays (%1)"), sx_count),
+          callback = function()
+            UIManager:close(dialog)
+            self_ref:_showSectionXrayList(opts)
+          end,
+        }})
+      end
+      if self.ui and self.ui.toc and self.ui.toc.toc and #self.ui.toc.toc > 0 then
+        table.insert(buttons, {{
+          text = _("New Section X-Ray…"),
+          callback = function()
+            UIManager:close(dialog)
+            self_ref:_showSectionXrayPicker(action)
+          end,
+        }})
+      end
+    end
     table.insert(buttons, {{
       text = _("Cancel"),
       callback = function()
@@ -4803,6 +4876,345 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry)
   end
 
   UIManager:show(dialog)
+end
+
+--- Show a TOC picker for selecting a section scope for Section X-Ray generation.
+--- @param action table: The base xray action definition
+function AskGPT:_showSectionXrayPicker(action)
+  if not self.ui or not self.ui.document or not self.ui.toc then return end
+
+  local toc = self.ui.toc.toc
+  if not toc or #toc == 0 then
+    UIManager:show(InfoMessage:new{ text = _("This book has no table of contents."), timeout = 3 })
+    return
+  end
+
+  local total_pages = self.ui.document.info.number_of_pages or 0
+  local ButtonDialog = require("ui/widget/buttondialog")
+  local Menu = require("ui/widget/menu")
+  local Font = require("ui/font")
+  local TextWidget = require("ui/widget/textwidget")
+  local self_ref = self
+
+  -- Filter hidden flow entries
+  local effective_toc = toc
+  if self.ui.document.hasHiddenFlows and self.ui.document:hasHiddenFlows() then
+    effective_toc = {}
+    for _idx, entry in ipairs(toc) do
+      if entry.page and self.ui.document:getPageFlow(entry.page) == 0 then
+        table.insert(effective_toc, entry)
+      end
+    end
+  end
+  if #effective_toc == 0 then
+    UIManager:show(InfoMessage:new{ text = _("No chapters available."), timeout = 3 })
+    return
+  end
+
+  -- Build entries with end_page scoped to same-or-shallower next sibling
+  local entries = {}
+  local max_depth = 0
+  for i, entry in ipairs(effective_toc) do
+    if entry.page then
+      local d = entry.depth or 1
+      if d > max_depth then max_depth = d end
+      local end_page = total_pages
+      for j = i + 1, #effective_toc do
+        local next_d = effective_toc[j].depth or 1
+        if next_d <= d and effective_toc[j].page then
+          end_page = effective_toc[j].page - 1
+          break
+        end
+      end
+      table.insert(entries, {
+        title = entry.title or "",
+        start_page = entry.page,
+        end_page = end_page,
+        depth = d,
+      })
+    end
+  end
+
+  -- Indentation for depth
+  local items_font_size = 18
+  local tmp = TextWidget:new{
+    text = "    ",
+    face = Font:getFace("smallinfofont", items_font_size),
+  }
+  local toc_indent = tmp:getSize().w
+  tmp:free()
+
+  -- Build flat menu items
+  local menu_items = {}
+  for _idx, entry in ipairs(entries) do
+    local page_range = T(_("pp %1–%2"), entry.start_page, entry.end_page)
+    table.insert(menu_items, {
+      text = entry.title ~= "" and entry.title or T(_("Page %1"), entry.start_page),
+      mandatory = page_range,
+      indent = toc_indent * ((entry.depth or 1) - 1),
+      _entry = entry,
+    })
+  end
+
+  -- Create the picker menu
+  local toc_menu
+  toc_menu = Menu:new{
+    title = _("Select Section for X-Ray"),
+    is_borderless = true,
+    is_popout = false,
+    single_line = true,
+    align_baselines = true,
+    items_font_size = items_font_size,
+    item_table = menu_items,
+    width = Screen:getWidth(),
+    height = Screen:getHeight(),
+    onMenuSelect = function(menu_self, item)
+      local entry = item._entry
+      if not entry then return end
+      UIManager:close(toc_menu)
+      self_ref:_showSectionXrayNameInput(action, entry)
+    end,
+    close_callback = function()
+      UIManager:close(toc_menu)
+    end,
+  }
+  UIManager:show(toc_menu)
+end
+
+--- Show name input for a Section X-Ray, then trigger generation.
+--- @param action table: The base xray action definition
+--- @param entry table: TOC entry { title, start_page, end_page, depth }
+function AskGPT:_showSectionXrayNameInput(action, entry)
+  local InputDialog = require("ui/widget/inputdialog")
+  local ActionCache = require("koassistant_action_cache")
+  local Actions = require("prompts/actions")
+  local self_ref = self
+
+  -- Default name: TOC title, truncated to 30 chars
+  local default_name = entry.title or ""
+  if #default_name > 30 then
+    default_name = default_name:sub(1, 27) .. "..."
+  end
+
+  local input_dialog
+  input_dialog = InputDialog:new{
+    title = _("Section X-Ray Name"),
+    description = T(_("Pages %1–%2"), entry.start_page, entry.end_page),
+    input = default_name,
+    input_hint = _("Enter a name for this Section X-Ray"),
+    buttons = {
+      {
+        {
+          text = _("Cancel"),
+          id = "close",
+          callback = function()
+            UIManager:close(input_dialog)
+          end,
+        },
+        {
+          text = _("Generate"),
+          is_enter_default = true,
+          callback = function()
+            local label = input_dialog:getInputText()
+            if not label or label == "" then
+              UIManager:show(InfoMessage:new{ text = _("Please enter a name."), timeout = 2 })
+              return
+            end
+            -- Truncate to 30 chars
+            if #label > 30 then label = label:sub(1, 30) end
+            UIManager:close(input_dialog)
+
+            -- Sanitize cache key: strip colons (separator conflict)
+            local cache_label = label:gsub(":", "-")
+
+            -- Check for duplicate
+            local file = self_ref.ui and self_ref.ui.document and self_ref.ui.document.file
+            local cache_key = ActionCache.SECTION_XRAY_PREFIX .. cache_label
+            if file and ActionCache.get(file, cache_key) then
+              local confirm_dialog
+              confirm_dialog = ButtonDialog:new{
+                title = T(_("A Section X-Ray named '%1' already exists. Replace it?"), label),
+                buttons = {
+                  {{
+                    text = _("Replace"),
+                    callback = function()
+                      UIManager:close(confirm_dialog)
+                      self_ref:_generateSectionXray(action, entry, label, cache_label)
+                    end,
+                  }},
+                  {{
+                    text = _("Cancel"),
+                    callback = function()
+                      UIManager:close(confirm_dialog)
+                    end,
+                  }},
+                },
+              }
+              UIManager:show(confirm_dialog)
+            else
+              self_ref:_generateSectionXray(action, entry, label, cache_label)
+            end
+          end,
+        },
+      },
+    },
+  }
+  UIManager:show(input_dialog)
+  input_dialog:onShowKeyboard()
+end
+
+--- Generate a Section X-Ray for the given entry.
+--- @param action table: The base xray action definition
+--- @param entry table: TOC entry { title, start_page, end_page }
+--- @param label string: Display label for the section
+--- @param cache_label string: Sanitized label for cache key
+function AskGPT:_generateSectionXray(action, entry, label, cache_label)
+  local Actions = require("prompts/actions")
+  local ActionCache = require("koassistant_action_cache")
+
+  local page_summary = T(_("pp %1–%2"), entry.start_page, entry.end_page)
+
+  -- Clone the xray action and override for section behavior
+  local section_action = {}
+  for k, v in pairs(action) do section_action[k] = v end
+
+  section_action.id = "section_xray"
+  section_action.prompt = Actions.buildSectionXrayPrompt(label, page_summary)
+  section_action.complete_prompt = nil
+  section_action.update_prompt = nil
+  section_action.use_reading_progress = false
+  section_action.use_response_caching = false
+  section_action.cache_as_xray = false
+  section_action._section_scope = {
+    label = label,
+    cache_label = cache_label,
+    start_page = entry.start_page,
+    end_page = entry.end_page,
+    page_summary = page_summary,
+    cache_key = ActionCache.SECTION_XRAY_PREFIX .. cache_label,
+  }
+
+  self:_executeBookLevelActionDirect(section_action, "section_xray", { section_xray = section_action._section_scope })
+end
+
+--- Show a list popup of all section X-Rays for the current book.
+--- @param opts table|nil: Optional { file, book_title, book_author } for file browser context
+function AskGPT:_showSectionXrayList(opts)
+  local ActionCache = require("koassistant_action_cache")
+  local ButtonDialog = require("ui/widget/buttondialog")
+
+  local file = (self.ui and self.ui.document and self.ui.document.file) or (opts and opts.file)
+  if not file then return end
+
+  local sections = ActionCache.getSectionXrays(file)
+  if #sections == 0 then
+    UIManager:show(InfoMessage:new{ text = _("No Section X-Rays found."), timeout = 2 })
+    return
+  end
+
+  local self_ref = self
+  local section_dialog
+  local buttons = {}
+  for _idx, sec in ipairs(sections) do
+    local detail_parts = {}
+    if sec.data.scope_page_summary then
+      table.insert(detail_parts, sec.data.scope_page_summary)
+    end
+    local rel_time = formatRelativeTime(sec.data.timestamp)
+    if rel_time ~= "" then
+      table.insert(detail_parts, rel_time)
+    end
+    local detail = #detail_parts > 0 and (" (" .. table.concat(detail_parts, ", ") .. ")") or ""
+
+    table.insert(buttons, {{
+      text = sec.label .. detail,
+      callback = function()
+        UIManager:close(section_dialog)
+        self_ref:showCacheViewer({
+          name = T(_("Section X-Ray: %1"), sec.label),
+          key = sec.key,
+          data = sec.data,
+          file = file,
+          book_title = opts and opts.book_title,
+          book_author = opts and opts.book_author,
+        })
+      end,
+      hold_callback = function()
+        UIManager:close(section_dialog)
+        self_ref:_showSectionXrayOptions(sec, file, opts)
+      end,
+    }})
+  end
+
+  table.insert(buttons, {{
+    text = _("Cancel"),
+    callback = function()
+      UIManager:close(section_dialog)
+    end,
+  }})
+
+  section_dialog = ButtonDialog:new{
+    title = T(_("Section X-Rays (%1)"), #sections),
+    buttons = buttons,
+  }
+  UIManager:show(section_dialog)
+end
+
+--- Show options (rename/delete) for a section X-Ray.
+--- @param sec table: { key, label, data } from getSectionXrays
+--- @param file string: Document file path
+--- @param opts table|nil: Context opts for re-opening list
+function AskGPT:_showSectionXrayOptions(sec, file, opts)
+  local ActionCache = require("koassistant_action_cache")
+  local ButtonDialog = require("ui/widget/buttondialog")
+  local self_ref = self
+
+  local options_dialog
+  options_dialog = ButtonDialog:new{
+    title = T(_("Section X-Ray: %1"), sec.label),
+    buttons = {
+      {{
+        text = _("Delete"),
+        callback = function()
+          UIManager:close(options_dialog)
+          local confirm_dialog
+          confirm_dialog = ButtonDialog:new{
+            title = T(_("Delete Section X-Ray: %1?"), sec.label),
+            buttons = {
+              {{
+                text = _("Delete"),
+                callback = function()
+                  UIManager:close(confirm_dialog)
+                  ActionCache.clear(file, sec.key)
+                  self_ref._file_dialog_row_cache = { file = nil, rows = nil }
+                  UIManager:show(Notification:new{
+                    text = T(_("Section X-Ray '%1' deleted"), sec.label),
+                    timeout = 2,
+                  })
+                end,
+              }},
+              {{
+                text = _("Cancel"),
+                callback = function()
+                  UIManager:close(confirm_dialog)
+                  self_ref:_showSectionXrayList(opts)
+                end,
+              }},
+            },
+          }
+          UIManager:show(confirm_dialog)
+        end,
+      }},
+      {{
+        text = _("Cancel"),
+        callback = function()
+          UIManager:close(options_dialog)
+          self_ref:_showSectionXrayList(opts)
+        end,
+      }},
+    },
+  }
+  UIManager:show(options_dialog)
 end
 
 --- View a cached action result, routing to the appropriate viewer.
@@ -5118,6 +5530,11 @@ function AskGPT:_executeBookLevelActionDirect(action, action_id, opts)
   -- Update to 100%: override progress to 1.0 (same spoiler-free prompt, no schema change)
   if opts and opts.update_to_full then
     config_copy.features._update_to_full_progress = true
+  end
+  -- Section X-Ray: propagate scope and trigger full extraction
+  if opts and opts.section_xray then
+    config_copy.features._section_xray = opts.section_xray
+    config_copy.features._full_document_xray = true  -- Triggers full extraction + 100% progress
   end
 
   -- Get book metadata from KOReader's merged props (includes user edits from Book Info dialog)

@@ -483,6 +483,7 @@ function Export.formatCacheContent(content, metadata, style)
     -- Cache type display names
     local type_names = {
         xray = "X-Ray",
+        section_xray = "Section X-Ray",
         summary = "Summary",
         analyze = "Analysis",
         pinned = "Pinned Artifact",
@@ -493,8 +494,11 @@ function Export.formatCacheContent(content, metadata, style)
     if is_md then
         -- Markdown: # Type: Book Title
         local header = "# " .. type_name
+        if metadata.scope_label then
+            header = header .. ": " .. metadata.scope_label
+        end
         if metadata.book_title then
-            header = header .. ": " .. metadata.book_title
+            header = header .. " — " .. metadata.book_title
         end
         table.insert(result, header)
         table.insert(result, "")
@@ -502,6 +506,11 @@ function Export.formatCacheContent(content, metadata, style)
         -- Author
         if metadata.book_author and metadata.book_author ~= "" then
             table.insert(result, "**Author:** " .. metadata.book_author)
+        end
+
+        -- Section scope
+        if metadata.scope_page_summary then
+            table.insert(result, "**Scope:** " .. (metadata.scope_label or "") .. " (" .. metadata.scope_page_summary .. ")")
         end
 
         -- Generated date
@@ -535,8 +544,11 @@ function Export.formatCacheContent(content, metadata, style)
         table.insert(result, header_line)
 
         local title_line = string.upper(type_name)
+        if metadata.scope_label then
+            title_line = title_line .. ": " .. metadata.scope_label
+        end
         if metadata.book_title then
-            title_line = title_line .. ": " .. metadata.book_title
+            title_line = title_line .. " — " .. metadata.book_title
         end
         table.insert(result, title_line)
         table.insert(result, header_line)
@@ -545,6 +557,11 @@ function Export.formatCacheContent(content, metadata, style)
         -- Author
         if metadata.book_author and metadata.book_author ~= "" then
             table.insert(result, "Author: " .. metadata.book_author)
+        end
+
+        -- Section scope
+        if metadata.scope_page_summary then
+            table.insert(result, "Scope: " .. (metadata.scope_label or "") .. " (" .. metadata.scope_page_summary .. ")")
         end
 
         -- Generated date
@@ -588,6 +605,7 @@ function Export.getCacheFilename(book_title, cache_type)
     -- Cache type display names for filename
     local type_names = {
         xray = "X-Ray",
+        section_xray = "Section-X-Ray",
         summary = "Summary",
         analyze = "Analysis",
         pinned = "Pinned Artifact",
