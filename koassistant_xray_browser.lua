@@ -358,10 +358,11 @@ local function getAllChapterBoundaries(ui, target_depth, coverage_page, scope)
         end
         local is_unread = entry.page > gate_page
         -- Section scope: chapters outside scope are out_of_scope (not unread)
-        -- Chapters within scope are never unread
+        -- A chapter is in-scope only if it starts within [scope.start_page, scope.end_page]
+        -- This ensures sibling chapters at the same depth are properly excluded
         local is_out_of_scope = false
         if scope then
-            is_out_of_scope = entry.page > scope.end_page or end_page < scope.start_page
+            is_out_of_scope = entry.page < scope.start_page or entry.page > scope.end_page
             is_unread = false  -- Scope replaces spoiler gating
         end
         -- is_current: only within scope (if scoped)
@@ -470,6 +471,8 @@ local function getHierarchicalChapters(ui, coverage_page, scope)
             end
         end
         local is_unread = entry.page > gate_page
+        -- Section scope: a chapter is out_of_scope if it doesn't overlap with the scope
+        -- Overlap check: parent chapters that contain the scope stay in-scope (start before, end after)
         local is_out_of_scope = false
         if scope then
             is_out_of_scope = entry.page > scope.end_page or end_page < scope.start_page
@@ -1053,7 +1056,7 @@ end
 --- Navigate forward: push current state and switch to new items
 --- @param title string New menu title
 --- @param items table New menu items
-function XrayBrowser:navigateForward(title, items)
+function XrayBrowser:navigateForward(title, items, focus_idx)
     if not self.menu then return end
 
     -- Save current state
@@ -1065,7 +1068,7 @@ function XrayBrowser:navigateForward(title, items)
 
     -- Add to paths so back arrow becomes enabled via updatePageInfo
     table.insert(self.menu.paths, true)
-    self.menu:switchItemTable(title, items)
+    self.menu:switchItemTable(title, items, focus_idx)
 end
 
 --- Navigate back: pop state and restore, or close if at root
@@ -2037,12 +2040,18 @@ function XrayBrowser:showChapterPicker(current_chapter)
 
     -- Prepend scope/document options
     if self.scope then
-        -- Section X-Ray: "Entire section" is the primary scope
+        -- Section X-Ray: "Entire section" is the primary scope, plus "Entire document" reveal
         table.insert(collapsed_toc, 1, {
             text = T(_("Entire section (%1)"), self.scope.page_summary or ""),
             bold = current_chapter == "all",
-            separator = true,
             _is_all_chapters = true,
+        })
+        table.insert(collapsed_toc, 2, {
+            text = _("Entire document"),
+            bold = current_chapter == "all_reveal",
+            dim = not self._scope_reveal_warned,
+            separator = true,
+            _is_all_reveal = true,
         })
     elseif self.is_complete then
         table.insert(collapsed_toc, 1, {
@@ -2304,9 +2313,13 @@ function XrayBrowser:showChapterPicker(current_chapter)
         if item._is_all_chapters then
             selectChapter("all")
         elseif item._is_all_reveal then
-            if not self_ref._mentions_spoiler_warned then
+            local warned = self_ref.scope and self_ref._scope_reveal_warned or self_ref._mentions_spoiler_warned
+            if not warned then
+                local warn_text = self_ref.scope
+                    and _("This will scan beyond this Section X-Ray's scope.\n\nReveal all mentions?")
+                    or _("This will scan beyond your X-Ray coverage.\n\nReveal all mentions?")
                 self_ref._spoiler_dialog = ButtonDialog:new{
-                    text = _("This will scan beyond your X-Ray coverage.\n\nReveal all mentions?"),
+                    text = warn_text,
                     buttons = {
                         {{
                             text = _("Cancel"),
@@ -2318,7 +2331,11 @@ function XrayBrowser:showChapterPicker(current_chapter)
                             text = _("Reveal"),
                             callback = function()
                                 UIManager:close(self_ref._spoiler_dialog)
-                                self_ref._mentions_spoiler_warned = true
+                                if self_ref.scope then
+                                    self_ref._scope_reveal_warned = true
+                                else
+                                    self_ref._mentions_spoiler_warned = true
+                                end
                                 selectChapter("all_reveal")
                             end,
                         }},
@@ -2447,8 +2464,14 @@ function XrayBrowser:_showFlatChapterPicker(chunks, current_chapter)
         table.insert(items, {
             text = T(_("Entire section (%1)"), self.scope.page_summary or ""),
             bold = current_chapter == "all",
-            separator = true,
             _is_all_chapters = true,
+        })
+        table.insert(items, {
+            text = _("Entire document"),
+            bold = current_chapter == "all_reveal",
+            dim = not self._scope_reveal_warned,
+            separator = true,
+            _is_all_reveal = true,
         })
     elseif self.is_complete then
         table.insert(items, {
@@ -2516,9 +2539,13 @@ function XrayBrowser:_showFlatChapterPicker(chunks, current_chapter)
             self_ref:navigateBack()
             self_ref:showMentions("all")
         elseif item._is_all_reveal then
-            if not self_ref._mentions_spoiler_warned then
+            local warned = self_ref.scope and self_ref._scope_reveal_warned or self_ref._mentions_spoiler_warned
+            if not warned then
+                local warn_text = self_ref.scope
+                    and _("This will scan beyond this Section X-Ray's scope.\n\nReveal all mentions?")
+                    or _("This will scan beyond your X-Ray coverage.\n\nReveal all mentions?")
                 self_ref._spoiler_dialog = ButtonDialog:new{
-                    text = _("This will scan beyond your X-Ray coverage.\n\nReveal all mentions?"),
+                    text = warn_text,
                     buttons = {
                         {{
                             text = _("Cancel"),
@@ -2530,7 +2557,11 @@ function XrayBrowser:_showFlatChapterPicker(chunks, current_chapter)
                             text = _("Reveal"),
                             callback = function()
                                 UIManager:close(self_ref._spoiler_dialog)
-                                self_ref._mentions_spoiler_warned = true
+                                if self_ref.scope then
+                                    self_ref._scope_reveal_warned = true
+                                else
+                                    self_ref._mentions_spoiler_warned = true
+                                end
                                 UIManager:close(menu_container)
                                 self_ref:navigateBack()
                                 self_ref:showMentions("all_reveal")
@@ -2734,7 +2765,7 @@ function XrayBrowser:showMentions(chapter)
         local picker_label
         local chapter_depth = type(chapter) == "table" and chapter.depth or nil
         if is_all then
-            if self_ref.scope then
+            if self_ref.scope and chapter ~= "all_reveal" then
                 picker_label = T(_("Entire section (%1) \u{25BE}"), self_ref.scope.page_summary or "")
             elseif chapter == "all_reveal" or self_ref.is_complete then
                 picker_label = _("Entire document \u{25BE}")
@@ -3157,7 +3188,17 @@ function XrayBrowser:_buildDistributionView(item, category_key, item_title, data
         self.current_title = title
         self.menu:switchItemTable(title, items, data._focus_idx)
     else
-        self:navigateForward(title, items)
+        -- For section X-Rays, scroll to first in-scope chapter
+        local initial_focus
+        if self.scope and not data._focus_idx then
+            for i, chapter in ipairs(chapters) do
+                if not chapter.out_of_scope and chapter_to_item[i] then
+                    initial_focus = chapter_to_item[i]
+                    break
+                end
+            end
+        end
+        self:navigateForward(title, items, initial_focus or data._focus_idx)
         -- Stash item detail info so back from distribution reopens the TextViewer
         local top = self.nav_stack[#self.nav_stack]
         if top then
@@ -3605,14 +3646,30 @@ function XrayBrowser:_getAvailableArtifacts()
     return ActionCache.getAvailableArtifactsWithPinned(book_file, exclude_key)
 end
 
+-- Check if an artifact key would open another X-Ray browser
+function XrayBrowser:_isXrayArtifact(art)
+    if art.is_section_xray_group then return true end
+    local ActionCache = require("koassistant_action_cache")
+    return art.key == "_xray_cache"
+        or (type(art.key) == "string"
+            and art.key:sub(1, #ActionCache.SECTION_XRAY_PREFIX) == ActionCache.SECTION_XRAY_PREFIX)
+end
+
 -- Open a specific artifact viewer
 function XrayBrowser:_openArtifact(art)
     local plugin = self.metadata.plugin
     if not plugin then return end
     local book_file = self.metadata.book_file
     local book_title = self.metadata.title or ""
+    -- Close current browser before opening another X-Ray browser (prevents stacking)
+    -- For section groups, defer closing until user picks a specific section
+    if not art.is_section_xray_group and self:_isXrayArtifact(art) and self.menu then
+        UIManager:close(self.menu)
+    end
     if art.is_section_xray_group then
         self:_showSectionXrayGroupPopup(art.data, art._excluded_section_key)
+    elseif art.is_wiki_group then
+        self:_showWikiGroupPopup(art.data)
     elseif art.is_pinned then
         local ArtifactBrowser = require("koassistant_artifact_browser")
         ArtifactBrowser:showPinnedViewer(art.data, book_file)
@@ -3633,6 +3690,7 @@ function XrayBrowser:_showSectionXrayGroupPopup(sections, excluded_key)
     if not plugin then return end
     local book_file = self.metadata.book_file
     local book_title = self.metadata.title or ""
+    local self_ref = self
 
     local buttons = {}
     for _idx, sec in ipairs(sections) do
@@ -3644,8 +3702,12 @@ function XrayBrowser:_showSectionXrayGroupPopup(sections, excluded_key)
             table.insert(buttons, {{
                 text = T(_("View %1"), display),
                 callback = function()
-                    if self._section_group_dialog then
-                        UIManager:close(self._section_group_dialog)
+                    if self_ref._section_group_dialog then
+                        UIManager:close(self_ref._section_group_dialog)
+                    end
+                    -- Close current browser before opening another (prevents stacking)
+                    if self_ref.menu then
+                        UIManager:close(self_ref.menu)
                     end
                     plugin:showCacheViewer({
                         name = label, key = captured.key, data = captured.data,
@@ -3668,6 +3730,57 @@ function XrayBrowser:_showSectionXrayGroupPopup(sections, excluded_key)
         buttons = buttons,
     }
     UIManager:show(self._section_group_dialog)
+end
+
+-- Show popup listing individual wiki entries from a group entry
+function XrayBrowser:_showWikiGroupPopup(wiki_entries)
+    local ChatGPTViewer = require("koassistant_chatgptviewer")
+    local ActionCache = require("koassistant_action_cache")
+    local book_file = self.metadata.book_file
+    local self_ref = self
+
+    local buttons = {}
+    for _idx, wiki in ipairs(wiki_entries) do
+        local captured = wiki
+        table.insert(buttons, {{
+            text = captured.label,
+            callback = function()
+                if self_ref._wiki_group_dialog then
+                    UIManager:close(self_ref._wiki_group_dialog)
+                end
+                local viewer = ChatGPTViewer:new{
+                    title = T(_("AI Wiki: %1"), captured.label),
+                    text = captured.data.result,
+                    simple_view = true,
+                    cache_type_name = _("AI Wiki"),
+                    on_delete = function()
+                        ActionCache.clear(book_file, captured.key)
+                        UIManager:show(Notification:new{
+                            text = _("AI Wiki deleted"),
+                            timeout = 2,
+                        })
+                    end,
+                    _book_open = self_ref.ui and self_ref.ui.document ~= nil,
+                    _artifact_file = book_file,
+                }
+                UIManager:show(viewer)
+            end,
+        }})
+    end
+
+    if #buttons == 0 then
+        UIManager:show(InfoMessage:new{
+            text = _("No AI Wiki entries available."),
+            timeout = 3,
+        })
+        return
+    end
+
+    self._wiki_group_dialog = ButtonDialog:new{
+        title = _("AI Wiki Entries"),
+        buttons = buttons,
+    }
+    UIManager:show(self._wiki_group_dialog)
 end
 
 -- Show popup listing other cached artifacts (for 2+ artifacts)

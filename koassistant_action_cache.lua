@@ -61,15 +61,20 @@ local function updateArtifactIndex(document_path, cache)
             end
         end
     end
-    -- Also count section X-Ray entries (prefix scan)
+    -- Also count section X-Ray and wiki entries (prefix scan)
     local section_prefix = ActionCache.SECTION_XRAY_PREFIX
     local section_prefix_len = #section_prefix
+    local wiki_prefix = ActionCache.WIKI_PREFIX
+    local wiki_prefix_len = #wiki_prefix
     for key, entry in pairs(cache) do
-        if type(key) == "string" and key:sub(1, section_prefix_len) == section_prefix
-           and type(entry) == "table" and entry.version == CACHE_VERSION and entry.result then
-            count = count + 1
-            if (entry.timestamp or 0) > latest then
-                latest = entry.timestamp or 0
+        if type(key) == "string" and type(entry) == "table"
+           and entry.version == CACHE_VERSION and entry.result then
+            if key:sub(1, section_prefix_len) == section_prefix
+               or key:sub(1, wiki_prefix_len) == wiki_prefix then
+                count = count + 1
+                if (entry.timestamp or 0) > latest then
+                    latest = entry.timestamp or 0
+                end
             end
         end
     end
@@ -403,6 +408,16 @@ function ActionCache.getAvailableArtifacts(document_path, exclude_key)
             _excluded_section_key = excluded and exclude_key or nil,
         })
     end
+    -- Add wiki entries group if any exist
+    local wikis = ActionCache.getWikiEntries(document_path)
+    if #wikis > 0 then
+        table.insert(available, {
+            name = string.format(_("AI Wiki Entries (%d)"), #wikis),
+            key = "_wiki_entries",
+            data = wikis,
+            is_wiki_group = true,
+        })
+    end
     return available
 end
 
@@ -565,6 +580,36 @@ end
 --- @return boolean success
 function ActionCache.clearWikiEntry(document_path, category_key, item_name)
     return ActionCache.clear(document_path, ActionCache.WIKI_PREFIX .. category_key .. ":" .. item_name)
+end
+
+--- Get all wiki entries for a document, sorted alphabetically by item name.
+--- @param document_path string The document file path
+--- @return table Array of { key, label, category_key, item_name, data }
+function ActionCache.getWikiEntries(document_path)
+    if not document_path then return {} end
+    local cache = loadCache(document_path)
+    local entries = {}
+    local prefix = ActionCache.WIKI_PREFIX
+    local prefix_len = #prefix
+    for key, entry in pairs(cache) do
+        if type(key) == "string" and key:sub(1, prefix_len) == prefix
+           and type(entry) == "table" and entry.version == CACHE_VERSION and entry.result then
+            -- Key format: _wiki:category_key:item_name
+            local rest = key:sub(prefix_len + 1)
+            local cat_key, item_name = rest:match("^([^:]+):(.+)$")
+            table.insert(entries, {
+                key = key,
+                label = item_name or rest,
+                category_key = cat_key or "",
+                item_name = item_name or rest,
+                data = entry,
+            })
+        end
+    end
+    table.sort(entries, function(a, b)
+        return (a.label or "") < (b.label or "")
+    end)
+    return entries
 end
 
 --- Get path to user aliases file for a document

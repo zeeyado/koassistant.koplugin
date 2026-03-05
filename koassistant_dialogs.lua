@@ -3958,7 +3958,17 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             local caches = ActionCache.getAvailableArtifactsWithPinned(artifact_file)
 
             local function openArtifact(cache)
-                if cache.is_pinned then
+                if cache.is_section_xray_group then
+                    local ArtifactBrowser = require("koassistant_artifact_browser")
+                    local AskGPT = plugin
+                    ArtifactBrowser:_showSectionXrayGroupPopup(
+                        cache.data, artifact_file,
+                        book_metadata and book_metadata.title, AskGPT,
+                        cache._excluded_section_key)
+                elseif cache.is_wiki_group then
+                    local ArtifactBrowser = require("koassistant_artifact_browser")
+                    ArtifactBrowser:_showWikiGroupPopup(cache.data, artifact_file)
+                elseif cache.is_pinned then
                     local ArtifactBrowser = require("koassistant_artifact_browser")
                     ArtifactBrowser:showPinnedViewer(cache.data, artifact_file)
                 elseif cache.is_per_action then

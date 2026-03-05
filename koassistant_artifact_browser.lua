@@ -307,6 +307,8 @@ function ArtifactBrowser:showArtifactSelector(doc_path, doc_title, opts)
                 if captured.is_section_xray_group then
                     self_ref:_showSectionXrayGroupPopup(
                         captured.data, doc_path, doc_title, AskGPT, captured._excluded_section_key)
+                elseif captured.is_wiki_group then
+                    self_ref:_showWikiGroupPopup(captured.data, doc_path)
                 elseif captured.is_pinned then
                     self_ref:showPinnedViewer(captured.data, doc_path, opts)
                 elseif captured.is_per_action then
@@ -784,6 +786,54 @@ function ArtifactBrowser:_showSectionXrayGroupPopup(sections, doc_path, doc_titl
         buttons = buttons,
     }
     UIManager:show(self._section_group_dialog)
+end
+
+--- Show popup listing individual wiki entries from a group entry (artifact browser context)
+function ArtifactBrowser:_showWikiGroupPopup(wiki_entries, doc_path)
+    local ChatGPTViewer = require("koassistant_chatgptviewer")
+    local self_ref = self
+
+    local buttons = {}
+    for _idx, wiki in ipairs(wiki_entries) do
+        local captured = wiki
+        table.insert(buttons, {{
+            text = captured.label,
+            callback = function()
+                if self_ref._wiki_group_dialog then
+                    UIManager:close(self_ref._wiki_group_dialog)
+                end
+                local viewer = ChatGPTViewer:new{
+                    title = T(_("AI Wiki: %1"), captured.label),
+                    text = captured.data.result,
+                    simple_view = true,
+                    cache_type_name = _("AI Wiki"),
+                    on_delete = function()
+                        ActionCache.clear(doc_path, captured.key)
+                        UIManager:show(Notification:new{
+                            text = _("AI Wiki deleted"),
+                            timeout = 2,
+                        })
+                    end,
+                    _artifact_file = doc_path,
+                }
+                UIManager:show(viewer)
+            end,
+        }})
+    end
+
+    if #buttons == 0 then
+        UIManager:show(InfoMessage:new{
+            text = _("No AI Wiki entries available."),
+            timeout = 3,
+        })
+        return
+    end
+
+    self._wiki_group_dialog = ButtonDialog:new{
+        title = _("AI Wiki Entries"),
+        buttons = buttons,
+    }
+    UIManager:show(self._wiki_group_dialog)
 end
 
 return ArtifactBrowser
