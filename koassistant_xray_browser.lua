@@ -1474,6 +1474,8 @@ function XrayBrowser:showItemDetail(item, category_key, title, source, nav_conte
         viewer.ges_events.HoldPanText[1].ges = "hold_pan"
         viewer.ges_events.HoldPanText[1].rate = Screen.low_pan_rate and 5.0 or 30.0
     end
+    -- Store reference so wiki generation can close and re-open with fresh button state
+    self._detail_viewer = viewer
     UIManager:show(viewer)
 end
 
@@ -1827,12 +1829,21 @@ function XrayBrowser:runWikiForItem(item, category_key, title, source, nav_conte
 
     Dialogs.executeActionForResult(wiki_action, item_name, self.ui, config, self.metadata.plugin, book_metadata,
         function(result, metadata)
+            -- Close stale item detail viewer (buttons reflect pre-generation state)
+            if self_ref._detail_viewer then
+                UIManager:close(self_ref._detail_viewer)
+                self_ref._detail_viewer = nil
+            end
             if result then
                 ActionCache.setWikiEntry(file, category_key, item_name, result, metadata)
                 local cached = ActionCache.getWikiEntry(file, category_key, item_name)
+                -- Re-open item detail (fresh "View AI Wiki" button) with wiki on top
+                self_ref:showItemDetail(item, category_key, title, source, nav_context)
                 self_ref:showWikiViewer(item, category_key, cached, title, source, nav_context)
+            else
+                -- Error case: re-open item detail view
+                self_ref:showItemDetail(item, category_key, title, source, nav_context)
             end
-            -- Error case: handlePredefinedPrompt already shows error UI
         end
     )
 end
@@ -1862,7 +1873,11 @@ function XrayBrowser:showWikiViewer(item, category_key, cached, title, source, n
         regenerate_label = _("Regenerate"),
         on_delete = function()
             ActionCache.clearWikiEntry(file, category_key, item_name)
-            -- Re-open item detail to update button state
+            -- Close stale item detail viewer before re-opening with fresh button state
+            if self_ref._detail_viewer then
+                UIManager:close(self_ref._detail_viewer)
+                self_ref._detail_viewer = nil
+            end
             self_ref:showItemDetail(item, category_key, title, source, nav_context)
             UIManager:show(Notification:new{
                 text = _("AI Wiki deleted"),
