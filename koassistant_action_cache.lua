@@ -15,6 +15,7 @@ text extraction permission to read).
 local DocSettings = require("docsettings")
 local lfs = require("libs/libkoreader-lfs")
 local logger = require("logger")
+local T = require("ffi/util").template
 local _ = require("koassistant_gettext")
 
 local ActionCache = {}
@@ -781,6 +782,42 @@ function ActionCache.getSectionXrayCount(document_path)
         end
     end
     return count
+end
+
+--- Reconvert stored page summary using XPointers for font-size independence.
+--- Returns the reconverted summary or the stored one if reconversion not possible.
+--- @param data table Cache entry with scope_* fields
+--- @param doc table|nil Document object with getPageFromXPointer method
+--- @return string page_summary
+function ActionCache.reconvertPageSummary(data, doc)
+    if not data then return "" end
+    if not doc or not doc.getPageFromXPointer then return data.scope_page_summary or "" end
+    local start_xp = data.scope_start_xpointer
+    if not start_xp then return data.scope_page_summary or "" end
+    local new_start = doc:getPageFromXPointer(start_xp)
+    local new_end
+    local end_xp = data.scope_end_xpointer
+    if end_xp then
+        new_end = doc:getPageFromXPointer(end_xp)
+        if new_end then new_end = new_end - 1 end
+    else
+        -- Last section: find last visible page (excluding hidden flows)
+        local total = doc.info.number_of_pages or 0
+        if doc.hasHiddenFlows and doc:hasHiddenFlows() then
+            for page = total, 1, -1 do
+                if doc:getPageFlow(page) == 0 then
+                    new_end = page
+                    break
+                end
+            end
+        else
+            new_end = total
+        end
+    end
+    if new_start and new_end then
+        return T(_("pp %1–%2"), new_start, new_end)
+    end
+    return data.scope_page_summary or ""
 end
 
 --- Clear all section X-Ray entries for a document

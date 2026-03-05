@@ -14,7 +14,7 @@
 </p>
 
 - **Highlight text** → translate, explain, define words, analyze passages, connect ideas, save content directly to KOReader's highlight notes/annotations
-- **While reading** → reference guides (summaries, browsable X-Ray with character tracking, cross-references, chapter distribution, local (offline) X-Ray lookup, X-Ray (Simple) prose overview from AI knowledge, recap, book info, notes analysis), analyze your highlights/annotations, explore the book/document (author, context, arguments, similar works), generate discussion questions
+- **While reading** → reference guides (summaries, browsable X-Ray with character tracking, cross-references, chapter distribution, Section X-Rays for focused chapter/part analysis, AI Wiki for per-item encyclopedia entries, local (offline) X-Ray lookup, X-Ray (Simple) prose overview from AI knowledge, recap, book info, notes analysis), analyze your highlights/annotations, explore the book/document (author, context, arguments, similar works), generate discussion questions
 - **Research & analysis** → deep analysis of papers/articles, explore arguments, find connections across works
 - **Multi-document** → compare texts, find common themes, analyze your collection
 - **General chat** → AI without book/document context
@@ -330,6 +330,7 @@ After basic setup, explore these features to get the most out of KOAssistant:
 | **[Domains](#domains)** | Add project-like context to conversations | Settings → Actions & Prompts → Manage Domains |
 | **[Actions](#actions)** | Create your own prompts and workflows | Settings → Actions & Prompts → Manage Actions |
 | **Quick Actions** | Fast access to reading actions while in a book or document | Gesture → "KOAssistant: Quick Actions" |
+| **[X-Ray Browser](#reading-analysis-actions)** | Browsable reference guide with Section X-Rays, AI Wiki, chapter tracking | Reading Features or Quick Actions → X-Ray |
 | **[Highlight Menu](#highlight-menu-actions)** | Actions in highlight popup (8 defaults including Translate, ELI5, Explain) | Manage Actions → Add to Highlight Menu |
 | **[Dictionary Integration](#dictionary-integration)** | AI-powered word lookups when selecting single words | Settings → Dictionary Settings |
 | **[Bypass Modes](#bypass-modes)** | Instant AI actions without menus | Settings → Dictionary/Highlight Settings |
@@ -639,7 +640,7 @@ Some actions work from the file browser (using only document metadata like title
 | **Historical Context** | When written and historical significance |
 | **Related Thinkers** | Intellectual landscape: influences, contemporaries, and connected thinkers |
 | **Book Reviews** | Find critical and reader reviews, awards, and reception ⚠️ *Requires: Web Search* |
-| **X-Ray** | Browsable reference guide: characters (with aliases and connections), locations, themes, lexicon, timeline — opens in a structured menu with search, chapter/book mention tracking, per-item chapter distribution, linkable cross-references, local lookup, and highlight integration ⚠️ *Requires: Allow Text Extraction* |
+| **X-Ray** | Browsable reference guide: characters (with aliases and connections), locations, themes, lexicon, timeline — opens in a structured menu with search, chapter/book mention tracking, per-item chapter distribution, AI Wiki per-item encyclopedia, Section X-Rays for focused chapter/part analysis, linkable cross-references, local lookup, and highlight integration ⚠️ *Requires: Allow Text Extraction* |
 | **X-Ray (Simple)** | Prose companion guide from AI knowledge — characters, themes, settings, key terms. No text extraction needed. Uses reading progress to avoid spoilers. |
 | **Recap** | "Previously on..." style summary to help you resume reading ⚠️ *Best with: Allow Text Extraction* |
 | **Analyze My Notes** | Discover patterns and connections in your notes and highlights ⚠️ *Requires: Allow Annotation Notes* |
@@ -729,7 +730,7 @@ The X-Ray action produces a structured JSON analysis that opens in a **browsable
 >
 > This works for both EPUB and PDF. Useful for collected works where you want to analyze just one book, or for editions with long endnotes/apparatus you want excluded from AI analysis. The hidden content is simply invisible to KOAssistant — extraction, progress tracking, and chapter features all operate on visible pages only.
 >
-> **Tip:** Hidden Flows is one of the best ways to save tokens and improve AI results. By hiding front matter, appendices, indices, and other non-narrative content, you send only the parts that matter. For collected works or anthologies, use Hidden Flows to isolate individual volumes or sections — a "Complete X-Ray" treats the visible content as the entire document, giving you a focused, high-quality analysis of just the part you're reading. See KOReader's documentation for how to set up Hidden Flows. *(Planned: **Scoped X-Rays & Sub-Books** — save named scopes as reactivatable "sub-documents" with their own complete set of artifacts and caches, then bridge across related documents in a series or research collection for shared cross-document analysis.)*
+> **Tip:** Hidden Flows is one of the best ways to save tokens and improve AI results. By hiding front matter, appendices, indices, and other non-narrative content, you send only the parts that matter. For collected works or anthologies, use Hidden Flows to isolate individual volumes or sections — a "Complete X-Ray" treats the visible content as the entire document, giving you a focused, high-quality analysis of just the part you're reading. See KOReader's documentation for how to set up Hidden Flows. For even more focused analysis, see [Section X-Rays](#section-x-rays) below — create separate X-Rays for individual chapters or parts of a book.
 
 > **Highlights in X-Ray:** When [Allow Highlights](#privacy-controls) is enabled, X-Ray incorporates your highlighted passages into its analysis — adding a **Reader Engagement** category that tracks which themes and ideas you've engaged with, and weaving your highlights into character and location entries. This gives the X-Ray a personal dimension tied to your reading. To control this:
 > - **Disable for all actions:** Turn off "Allow Highlights" in Settings → Privacy & Data. No action will see your highlights.
@@ -765,6 +766,32 @@ When an X-Ray cache covers 100% — whether from a complete generation, an incre
 > **Note:** Marking a book as "finished" in KOReader does not affect text extraction. Incremental X-Ray and Recap still extract up to your actual page position, not 100%. This means you can navigate to a specific point in a finished book and get a spoiler-free analysis up to that point. For a full analysis of a finished book, use "Generate X-Ray (entire document)" to get the complete track with Conclusion.
 
 > ⚠️ **To enable text extraction:** Go to Settings → Privacy & Data → Text Extraction → Allow Text Extraction. This is OFF by default to avoid unexpected token costs.
+
+<a id="section-x-rays"></a>
+
+**Section X-Rays** — focused X-Rays for individual chapters, parts, or sections of a book. Unlike the main X-Ray (which covers the whole document), Section X-Rays analyze only a specific page range chosen from the book's table of contents. You can have multiple Section X-Rays per book alongside the main X-Ray — each is independent and stored separately.
+
+**How to create a Section X-Ray:**
+1. From the X-Ray scope popup, tap **"New Section X-Ray..."**
+2. A hierarchical TOC picker shows all chapters/parts — tap the section you want
+3. Optionally rename it (defaults to the TOC entry title, 30-character limit)
+4. The AI analyzes only the text within that page range and produces a complete X-Ray
+
+**How to browse Section X-Rays:**
+- From the X-Ray scope popup → **"Section X-Rays (N)"** — lists all sections with page ranges and timestamps
+- From **View Artifacts** (Quick Actions, file browser, artifact browser) → **"Section X-Rays (N)"** group
+- Tap any entry to open it in the X-Ray browser; hold for rename/delete options
+
+**Section X-Ray browsing differences:**
+- **Title** shows "X-Ray § [Section Name]" instead of "X-Ray"
+- **Scope gating** replaces spoiler gating: chapters outside the section's page range are dimmed (not unread-based). Tap to reveal with a scope warning
+- **Complete-only**: no incremental updates — section scope is fully analyzed in one pass
+- **Reading position marker** only shown when your current page falls within the section's scope
+- **Options menu** shows "Regenerate" (no Update variants) and section-specific info (scope, page range, model)
+
+**Font-size independence:** Section X-Rays store XPointers (stable document positions) alongside page numbers. When you change font size and reopen the book, page ranges in the section list and browser automatically update to reflect the new layout.
+
+> **Tip:** Section X-Rays are ideal for dense chapters in academic works, pivotal scenes in novels, or introductory sections you want to reference independently. They're also useful for collected works where you want a focused analysis of one piece without hiding flows.
 
 **Full Document Actions** (Document Analysis, Document Summary, Extract Insights, Key Arguments, Discussion Questions, Generate Quiz, Explain in Context, Analyze in Context): These actions send the entire document text to the AI regardless of reading position. **Document Analysis** and **Document Summary** require text extraction — they block generation when it's disabled, like X-Ray. Other full document actions gracefully degrade when text extraction is disabled — the AI is guided to use its training knowledge and to be honest about unrecognized works (see [Privacy Controls](#privacy-controls)). They adapt to your content type and work especially well with [Domains](#domains). For example, with a "Linguistics" domain active, analyzing a linguistics paper will naturally focus on relevant aspects. Key Arguments, Discussion Questions, and Generate Quiz also have **Smart variants** that use a cached summary instead of full text — cheaper for repeated use on longer books.
 
@@ -2597,6 +2624,8 @@ X-Ray and Recap responses are automatically cached per book. For **incremental**
 
 **Complete X-Ray caching:** Complete (entire document) X-Rays are cached like any other, but they don't support incremental updates. Redoing a complete X-Ray always generates fresh from the full document. The cache is labeled "Complete" instead of a percentage.
 
+**Section X-Ray caching:** Section X-Rays are stored with a `_xray_section:` prefix alongside the main X-Ray cache. Each is independent — you can have multiple Section X-Rays per book plus the main X-Ray. Section X-Rays are always complete (no incremental updates) since they analyze a bounded page range. They also store XPointers for font-size-independent page reconversion (EPUB only).
+
 **Direct-to-viewer:** When any X-Ray cache covers 100% — whether complete, incremental updated to 100%, or simply read to the end — tapping X-Ray goes directly to the browser viewer with no scope popup. Redo is available in the browser's options menu (☰).
 
 The View/Update popup appears everywhere you can trigger an artifact action (X-Ray, X-Ray (Simple), Recap, Document Summary, Document Analysis): Quick Actions panel, Reading Features menu, gestures, and the book chat input field action picker. For X-Ray specifically, if no cache exists yet, the popup offers "Generate X-Ray (to X%)" and "Generate X-Ray (entire document)". For non-incremental actions (Summarize, Analyze, X-Ray (Simple)), the popup shows "View" and "Redo" (since there's nothing to incrementally update).
@@ -2618,27 +2647,28 @@ The View/Update popup appears everywhere you can trigger an artifact action (X-R
 - Automatically moves with the book if you reorganize your library
 
 **Clearing the cache:**
-- **Per-action**: In the artifact viewer, use the delete button (for X-Ray: options menu → "Delete X-Ray"; for X-Ray (Simple)/Recap: delete button in the text viewer; for Summary/Analysis: delete button in the cache viewer). This clears that action's cache for this book. You can then re-run the action — Summary and Analysis also have a regenerate button in the viewer when the book is open.
+- **Per-action**: In the artifact viewer, use the delete button (for X-Ray: options menu → "Delete X-Ray"; for Section X-Rays: options menu → "Delete Section X-Ray"; for X-Ray (Simple)/Recap: delete button in the text viewer; for Summary/Analysis: delete button in the cache viewer). This clears that action's cache for this book. You can then re-run the action — Summary and Analysis also have a regenerate button in the viewer when the book is open. Deleting the main X-Ray also clears all associated AI Wiki entries.
 - **All actions for book**: Settings → Privacy & Data → Text Extraction → Clear Action Cache (requires book to be open)
 - Either option forces fresh generation on next run (useful if analysis got off track, or to switch between incremental and complete tracks)
 
 **Limitations:**
 - Only X-Ray and Recap support incremental caching currently (other artifact actions — X-Ray (Simple), Document Summary, Document Analysis, Book Info, Analyze My Notes — cache results but always regenerate fresh)
 - X-Ray, Document Summary, and Document Analysis require text extraction; X-Ray (Simple), Recap, Book Info, and Analyze My Notes work without it
-- Complete X-Rays don't support incremental updates (always fresh generation)
+- Complete X-Rays and Section X-Rays don't support incremental updates (always fresh generation)
 - X-Ray (Simple) doesn't support incremental updates (always fresh generation)
+- Section X-Rays require an open book with a TOC (not available from file browser)
 - Going backward in progress doesn't use cache (fresh generation)
 - X-Ray cannot be duplicated (its JSON output requires the X-Ray browser). All other actions can be duplicated — they work as one-shot chat actions but don't inherit caching or incremental update behavior
 - Legacy markdown X-Ray caches (from before the JSON update) are still viewable but will be fully regenerated (not incrementally updated) on the next run, producing the new JSON format
 - To switch between incremental and complete tracks, delete the cache and regenerate
 
-All seven artifact actions (X-Ray, X-Ray (Simple), Recap, Document Summary, Document Analysis, Book Info, Analyze My Notes) produce **Document Artifacts** — reusable results you can view anytime and reference in other actions. See the next section for details.
+All seven artifact actions (X-Ray, X-Ray (Simple), Recap, Document Summary, Document Analysis, Book Info, Analyze My Notes) produce **Document Artifacts** — reusable results you can view anytime and reference in other actions. Additionally, **Section X-Rays** and **AI Wiki** entries are stored alongside these artifacts and appear in the artifact browser. See the next section for details.
 
 ### Document Artifacts
 
 When certain actions complete, their results are saved as **document artifacts** — persistent, per-book outputs you can browse anytime without re-running the action. All seven artifact types are viewable as standalone reference guides. The **Summary** artifact is additionally reusable as context for Smart actions — instead of sending full document text (~100K tokens) every time, Smart actions reference the compact summary (~2-8K tokens), which is dramatically cheaper and often better-performing since models handle focused context more effectively than massive text dumps.
 
-X-Ray opens as a browsable category menu (characters, locations, themes, lexicon, timeline) with search, chapter/book mention analysis, per-item chapter distribution, linkable cross-references, and your highlight mentions — useful for quickly checking character details, relationships, or where a character appears across chapters mid-read. X-Ray (Simple) shows a prose overview.
+X-Ray opens as a browsable category menu (characters, locations, themes, lexicon, timeline) with search, chapter/book mention analysis, per-item chapter distribution, per-item AI Wiki encyclopedia, linkable cross-references, and your highlight mentions — useful for quickly checking character details, relationships, or where a character appears across chapters mid-read. Section X-Rays provide the same browsable experience scoped to a specific chapter or part. X-Ray (Simple) shows a prose overview.
 
 **The seven artifact types:**
 
@@ -2661,7 +2691,7 @@ Beyond these seven generated artifacts, you can **pin any chat response as a pse
 - **Artifact Browser** → Browse all documents with cached/pinned artifacts. Access from Chat History or Notebook browser hamburger menus (☰), or Settings → Quick Actions → Browse Artifacts.
   - **Top sections**: General Pinned and Multi-Book Pinned appear at the top when pinned artifacts exist in those contexts
   - **Per-book entries**: Show combined count of generated artifacts + pinned artifacts
-  - **Tap** → Artifact selector popup: "View Summary", "View X-Ray", etc., plus any pinned artifacts (marked with "(Pinned)"), plus "Open Book"
+  - **Tap** → Artifact selector popup: Summary, X-Ray, etc., plus "Section X-Rays (N)" and "AI Wiki Entries (N)" groups when they exist, plus any pinned artifacts (marked with "(Pinned)"), plus "Open Book"
   - **Hold** → Options popup: "View", "Delete All", "Cancel"
   - **Hamburger menu** (☰) → Navigate to Chat History or Browse Notebooks
 - **Gesture** → Add artifact actions to gesture menu via Action Manager (hold action → "Add to Gesture Menu")

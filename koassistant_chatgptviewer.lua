@@ -2152,7 +2152,8 @@ function ChatGPTViewer:init()
                     if sec.key ~= captured._excluded_section_key then
                       local cap_sec = sec
                       local sec_label = cap_sec.label or cap_sec.key
-                      local page_info = cap_sec.data and cap_sec.data.scope_page_summary or ""
+                      local sec_doc = self._plugin and self._plugin.ui and self._plugin.ui.document
+                      local page_info = cap_sec.data and ActionCache.reconvertPageSummary(cap_sec.data, sec_doc) or ""
                       local sec_display = page_info ~= "" and (sec_label .. " (" .. page_info .. ")") or sec_label
                       table.insert(sec_buttons, {{
                         text = sec_display,
@@ -2178,7 +2179,7 @@ function ChatGPTViewer:init()
                     UIManager:show(self._section_group_dialog)
                   end
                 elseif captured.is_wiki_group then
-                  -- Show wiki sub-popup without closing the viewer
+                  -- Show wiki sub-popup; close parent viewer when opening a wiki entry
                   local wiki_buttons = {}
                   for _idx2, wiki in ipairs(captured.data) do
                     local cap_wiki = wiki
@@ -2186,6 +2187,7 @@ function ChatGPTViewer:init()
                       text = cap_wiki.label,
                       callback = function()
                         UIManager:close(self._wiki_group_dialog)
+                        self:onClose()
                         -- ChatGPTViewer already in scope (this IS the chatgptviewer module)
                         local viewer = ChatGPTViewer:new{
                           title = T(_("AI Wiki: %1"), cap_wiki.label),
@@ -2201,7 +2203,11 @@ function ChatGPTViewer:init()
                             })
                           end,
                           _book_open = self._book_open,
+                          _plugin = self._plugin,
                           _artifact_file = self._artifact_file,
+                          _artifact_key = cap_wiki.key,
+                          _artifact_book_title = self._artifact_book_title,
+                          _artifact_book_author = self._artifact_book_author,
                         }
                         UIManager:show(viewer)
                       end,

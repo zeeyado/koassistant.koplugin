@@ -35,32 +35,38 @@ end
 local FICTION_KEYS = { "characters", "locations", "themes", "lexicon", "timeline", "reader_engagement", "current_state", "conclusion" }
 local NONFICTION_KEYS = { "key_figures", "locations", "core_concepts", "arguments", "terminology", "argument_development", "reader_engagement", "current_position", "conclusion" }
 
--- Common AI hallucinated key variants → expected key names
-local KEY_ALIASES = {
-    keyfigures = "key_figures",
-    keyFigures = "key_figures",
-    coreconcepts = "core_concepts",
-    coreConcepts = "core_concepts",
-    argumentdevelopment = "argument_development",
-    argumentDevelopment = "argument_development",
-    readerengagement = "reader_engagement",
-    readerEngagement = "reader_engagement",
-    currentstate = "current_state",
-    currentState = "current_state",
-    currentposition = "current_position",
-    currentPosition = "current_position",
-}
+-- Build normalized key → canonical key map for fuzzy matching.
+-- Normalizing = lowercase + strip separators (_, -, spaces).
+-- Catches all variants: camelCase, PascalCase, kebab-case, concatenated, etc.
+local CANONICAL_KEY_MAP = {}
+local function normalizeKeyString(key)
+    return key:lower():gsub("[_%- ]", "")
+end
+for _idx, key in ipairs(FICTION_KEYS) do
+    CANONICAL_KEY_MAP[normalizeKeyString(key)] = key
+end
+for _idx, key in ipairs(NONFICTION_KEYS) do
+    CANONICAL_KEY_MAP[normalizeKeyString(key)] = key
+end
 
---- Normalize common key name variants that AI models sometimes produce.
---- Renames hallucinated keys to the expected canonical names in-place.
+--- Normalize AI-hallucinated key variants to canonical names in-place.
+--- Uses normalize-based matching: lowercase + strip separators → match canonical.
+--- Unknown keys that don't match any canonical key are silently ignored.
 --- @param data table Candidate parsed data
 local function normalizeKeyAliases(data)
     if type(data) ~= "table" then return end
-    for alias, canonical in pairs(KEY_ALIASES) do
-        if data[alias] and not data[canonical] then
-            data[canonical] = data[alias]
-            data[alias] = nil
+    local to_rename = {}
+    for key, value in pairs(data) do
+        if type(key) == "string" then
+            local canonical = CANONICAL_KEY_MAP[normalizeKeyString(key)]
+            if canonical and canonical ~= key and not data[canonical] then
+                to_rename[key] = { canonical = canonical, value = value }
+            end
         end
+    end
+    for old_key, info in pairs(to_rename) do
+        data[info.canonical] = info.value
+        data[old_key] = nil
     end
 end
 

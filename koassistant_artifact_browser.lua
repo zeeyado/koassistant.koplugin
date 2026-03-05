@@ -301,14 +301,14 @@ function ArtifactBrowser:showArtifactSelector(doc_path, doc_title, opts)
             display_name = captured.name
         end
         table.insert(buttons, {{
-            text = _("View") .. " " .. display_name,
+            text = display_name,
             callback = function()
                 UIManager:close(self_ref._cache_selector)
                 if captured.is_section_xray_group then
                     self_ref:_showSectionXrayGroupPopup(
                         captured.data, doc_path, doc_title, AskGPT, captured._excluded_section_key)
                 elseif captured.is_wiki_group then
-                    self_ref:_showWikiGroupPopup(captured.data, doc_path)
+                    self_ref:_showWikiGroupPopup(captured.data, doc_path, AskGPT, doc_title)
                 elseif captured.is_pinned then
                     self_ref:showPinnedViewer(captured.data, doc_path, opts)
                 elseif captured.is_per_action then
@@ -757,7 +757,8 @@ function ArtifactBrowser:_showSectionXrayGroupPopup(sections, doc_path, doc_titl
         if sec.key ~= excluded_key then
             local captured = sec
             local label = captured.label or captured.key
-            local page_info = captured.data and captured.data.scope_page_summary or ""
+            local doc = AskGPT and AskGPT.ui and AskGPT.ui.document
+            local page_info = captured.data and ActionCache.reconvertPageSummary(captured.data, doc) or ""
             local display = page_info ~= "" and (label .. " (" .. page_info .. ")") or label
             table.insert(buttons, {{
                 text = display,
@@ -789,7 +790,10 @@ function ArtifactBrowser:_showSectionXrayGroupPopup(sections, doc_path, doc_titl
 end
 
 --- Show popup listing individual wiki entries from a group entry (artifact browser context)
-function ArtifactBrowser:_showWikiGroupPopup(wiki_entries, doc_path)
+--- @param wiki_entries table Array of wiki entries
+--- @param doc_path string Document file path
+--- @param AskGPT table|nil Plugin instance for artifact cross-navigation
+function ArtifactBrowser:_showWikiGroupPopup(wiki_entries, doc_path, AskGPT, doc_title)
     local ChatGPTViewer = require("koassistant_chatgptviewer")
     local self_ref = self
 
@@ -814,7 +818,11 @@ function ArtifactBrowser:_showWikiGroupPopup(wiki_entries, doc_path)
                             timeout = 2,
                         })
                     end,
+                    _plugin = AskGPT,
                     _artifact_file = doc_path,
+                    _artifact_key = captured.key,
+                    _book_open = (AskGPT and AskGPT.ui and AskGPT.ui.document ~= nil),
+                    _artifact_book_title = doc_title,
                 }
                 UIManager:show(viewer)
             end,

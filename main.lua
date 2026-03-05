@@ -484,7 +484,7 @@ function AskGPT:generateFileDialogRows(file, is_file, book_props)
                     cache.data, file, title, self_ref, cache._excluded_section_key)
               elseif cache.is_wiki_group then
                 local ArtifactBrowser = require("koassistant_artifact_browser")
-                ArtifactBrowser:_showWikiGroupPopup(cache.data, file)
+                ArtifactBrowser:_showWikiGroupPopup(cache.data, file, self_ref)
               elseif cache.is_pinned then
                 local ArtifactBrowser = require("koassistant_artifact_browser")
                 ArtifactBrowser:showPinnedViewer(cache.data, file)
@@ -4208,7 +4208,7 @@ function AskGPT:viewCache(parent_dialog)
               cache.data, file, book_title, self_ref, cache._excluded_section_key)
         elseif cache.is_wiki_group then
           local ArtifactBrowser = require("koassistant_artifact_browser")
-          ArtifactBrowser:_showWikiGroupPopup(cache.data, file)
+          ArtifactBrowser:_showWikiGroupPopup(cache.data, file, self_ref)
         elseif cache.is_pinned then
           local ArtifactBrowser = require("koassistant_artifact_browser")
           ArtifactBrowser:showPinnedViewer(cache.data, file)
@@ -5391,15 +5391,25 @@ function AskGPT:_generateSectionXray(action, entry, label, cache_label)
   section_action.use_response_caching = false
   section_action.cache_as_xray = false
   -- Extract XPointers for font-size-independent storage (EPUB only; nil for PDF)
-  local total_pages = self.ui.document.info.number_of_pages or 0
+  -- Use last visible page (excluding hidden flows) to avoid XPointers into hidden content
+  local raw_total = self.ui.document.info.number_of_pages or 0
+  local visible_total = raw_total
+  if self.ui.document.hasHiddenFlows and self.ui.document:hasHiddenFlows() then
+    for page = raw_total, 1, -1 do
+      if self.ui.document:getPageFlow(page) == 0 then
+        visible_total = page
+        break
+      end
+    end
+  end
   local start_xp, end_xp
   if self.ui.document.getPageXPointer then
     start_xp = self.ui.document:getPageXPointer(entry.start_page)
     -- Store XPointer at start of next section (end_page + 1) to mark the boundary
-    if entry.end_page < total_pages then
+    if entry.end_page < visible_total then
       end_xp = self.ui.document:getPageXPointer(entry.end_page + 1)
     end
-    -- nil end_xp = last section (use total_pages at reconversion)
+    -- nil end_xp = last section (use last visible page at reconversion)
   end
 
   section_action._section_scope = {
@@ -5433,42 +5443,13 @@ function AskGPT:_showSectionXrayList(opts)
 
   -- Reconvert XPointers to current pages if book is open (font-size independence)
   local doc = self.ui and self.ui.document
-  local function reconvertPageSummary(data)
-    if not doc or not doc.getPageFromXPointer then return data.scope_page_summary end
-    local start_xp = data.scope_start_xpointer
-    local end_xp = data.scope_end_xpointer
-    if not start_xp then return data.scope_page_summary end
-    local new_start = doc:getPageFromXPointer(start_xp)
-    local new_end
-    if end_xp then
-      new_end = doc:getPageFromXPointer(end_xp)
-      if new_end then new_end = new_end - 1 end
-    else
-      -- Last section: find last visible page (excluding hidden flows)
-      local total = doc.info.number_of_pages or 0
-      if doc.hasHiddenFlows and doc:hasHiddenFlows() then
-        for page = total, 1, -1 do
-          if doc:getPageFlow(page) == 0 then
-            new_end = page
-            break
-          end
-        end
-      else
-        new_end = total
-      end
-    end
-    if new_start and new_end then
-      return T(_("pp %1–%2"), new_start, new_end)
-    end
-    return data.scope_page_summary
-  end
 
   local self_ref = self
   local section_dialog
   local buttons = {}
   for _idx, sec in ipairs(sections) do
     local detail_parts = {}
-    local page_summary = reconvertPageSummary(sec.data)
+    local page_summary = ActionCache.reconvertPageSummary(sec.data, doc)
     if page_summary then
       table.insert(detail_parts, page_summary)
     end

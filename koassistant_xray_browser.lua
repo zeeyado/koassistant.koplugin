@@ -3691,6 +3691,7 @@ end
 
 -- Show popup listing individual section X-Rays from a group entry
 function XrayBrowser:_showSectionXrayGroupPopup(sections, excluded_key)
+    local ActionCache = require("koassistant_action_cache")
     local plugin = self.metadata.plugin
     if not plugin then return end
     local book_file = self.metadata.book_file
@@ -3702,7 +3703,8 @@ function XrayBrowser:_showSectionXrayGroupPopup(sections, excluded_key)
         if sec.key ~= excluded_key then
             local captured = sec
             local label = captured.label or captured.key
-            local page_info = captured.data and captured.data.scope_page_summary or ""
+            local sec_doc = self_ref.ui and self_ref.ui.document
+            local page_info = captured.data and ActionCache.reconvertPageSummary(captured.data, sec_doc) or ""
             local display = page_info ~= "" and (label .. " (" .. page_info .. ")") or label
             table.insert(buttons, {{
                 text = display,
@@ -3766,7 +3768,11 @@ function XrayBrowser:_showWikiGroupPopup(wiki_entries)
                         })
                     end,
                     _book_open = self_ref.ui and self_ref.ui.document ~= nil,
+                    _plugin = self_ref.metadata.plugin,
                     _artifact_file = book_file,
+                    _artifact_key = captured.key,
+                    _artifact_book_title = self_ref.metadata.title,
+                    _artifact_book_author = self_ref.metadata.author,
                 }
                 UIManager:show(viewer)
             end,

@@ -3969,7 +3969,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         cache._excluded_section_key)
                 elseif cache.is_wiki_group then
                     local ArtifactBrowser = require("koassistant_artifact_browser")
-                    ArtifactBrowser:_showWikiGroupPopup(cache.data, artifact_file)
+                    ArtifactBrowser:_showWikiGroupPopup(cache.data, artifact_file, plugin)
                 elseif cache.is_pinned then
                     local ArtifactBrowser = require("koassistant_artifact_browser")
                     ArtifactBrowser:showPinnedViewer(cache.data, artifact_file)
