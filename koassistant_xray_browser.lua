@@ -1814,6 +1814,10 @@ function XrayBrowser:runWikiForItem(item, category_key, title, source, nav_conte
     for k, v in pairs(orig_config) do config[k] = v end
     config.features = {}
     for k, v in pairs(orig_config.features or {}) do config.features[k] = v end
+    -- Clear context flags for highlight context (wiki uses item name as highlighted_text)
+    config.features.is_general_context = nil
+    config.features.is_book_context = nil
+    config.features.is_multi_book_context = nil
 
     -- Set item description as disambiguation context (consumed by _forced_surrounding_context)
     config.features._forced_surrounding_context = XrayParser.formatItemDetail(item, category_key)

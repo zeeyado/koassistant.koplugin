@@ -507,6 +507,7 @@ Focus on what's genuinely new or different from what the text describes. If the 
         behavior_variant = "none",  -- Prompt controls tone entirely
         skip_domain = true,  -- Encyclopedic format is standardized
         include_book_context = true,
+        use_surrounding_context = true,  -- For _forced_surrounding_context from X-Ray browser
         in_dictionary_popup = 4,  -- After dictionary_deep(3), before xray_lookup(6)
         prompt = [[Write a Wikipedia-style encyclopedia entry about:
 
