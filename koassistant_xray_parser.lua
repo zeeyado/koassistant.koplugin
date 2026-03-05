@@ -35,6 +35,35 @@ end
 local FICTION_KEYS = { "characters", "locations", "themes", "lexicon", "timeline", "reader_engagement", "current_state", "conclusion" }
 local NONFICTION_KEYS = { "key_figures", "locations", "core_concepts", "arguments", "terminology", "argument_development", "reader_engagement", "current_position", "conclusion" }
 
+-- Common AI hallucinated key variants → expected key names
+local KEY_ALIASES = {
+    keyfigures = "key_figures",
+    keyFigures = "key_figures",
+    coreconcepts = "core_concepts",
+    coreConcepts = "core_concepts",
+    argumentdevelopment = "argument_development",
+    argumentDevelopment = "argument_development",
+    readerengagement = "reader_engagement",
+    readerEngagement = "reader_engagement",
+    currentstate = "current_state",
+    currentState = "current_state",
+    currentposition = "current_position",
+    currentPosition = "current_position",
+}
+
+--- Normalize common key name variants that AI models sometimes produce.
+--- Renames hallucinated keys to the expected canonical names in-place.
+--- @param data table Candidate parsed data
+local function normalizeKeyAliases(data)
+    if type(data) ~= "table" then return end
+    for alias, canonical in pairs(KEY_ALIASES) do
+        if data[alias] and not data[canonical] then
+            data[canonical] = data[alias]
+            data[alias] = nil
+        end
+    end
+end
+
 --- Check if a table looks like valid X-Ray data (has at least one recognized category key)
 --- Also infers and sets the type field if missing.
 --- @param data table Candidate parsed data
@@ -43,6 +72,8 @@ local function isValidXrayData(data)
     if type(data) ~= "table" then return false end
     -- Check for error response
     if data.error then return true end
+    -- Normalize common key variants before checking
+    normalizeKeyAliases(data)
     -- Check for fiction keys
     for _idx, key in ipairs(FICTION_KEYS) do
         if data[key] then

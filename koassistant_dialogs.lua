@@ -3053,6 +3053,8 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                         scope_label = scope.label,
                         scope_start_page = scope.start_page,
                         scope_end_page = scope.end_page,
+                        scope_start_xpointer = scope.start_xpointer,
+                        scope_end_xpointer = scope.end_xpointer,
                         scope_page_summary = scope.page_summary,
                     }
                     local section_success = ActionCache.set(cache_file, scope.cache_key, cache_answer, 1.0, section_metadata)

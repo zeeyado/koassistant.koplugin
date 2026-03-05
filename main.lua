@@ -478,7 +478,14 @@ function AskGPT:generateFileDialogRows(file, is_file, book_props)
               if fb_menu then
                 UIManager:close(fb_menu)
               end
-              if cache.is_pinned then
+              if cache.is_section_xray_group then
+                local ArtifactBrowser = require("koassistant_artifact_browser")
+                ArtifactBrowser:_showSectionXrayGroupPopup(
+                    cache.data, file, title, self_ref, cache._excluded_section_key)
+              elseif cache.is_wiki_group then
+                local ArtifactBrowser = require("koassistant_artifact_browser")
+                ArtifactBrowser:_showWikiGroupPopup(cache.data, file)
+              elseif cache.is_pinned then
                 local ArtifactBrowser = require("koassistant_artifact_browser")
                 ArtifactBrowser:showPinnedViewer(cache.data, file)
               elseif cache.is_per_action then
@@ -4193,7 +4200,16 @@ function AskGPT:viewCache(parent_dialog)
         UIManager:close(self_ref._cache_selector)
         -- Close parent dialog (e.g., QA panel) only when user picks an artifact
         if parent_dialog then UIManager:close(parent_dialog) end
-        if cache.is_pinned then
+        if cache.is_section_xray_group then
+          local ArtifactBrowser = require("koassistant_artifact_browser")
+          local props = self_ref.ui and self_ref.ui.doc_props
+          local book_title = props and (props.display_title or props.title)
+          ArtifactBrowser:_showSectionXrayGroupPopup(
+              cache.data, file, book_title, self_ref, cache._excluded_section_key)
+        elseif cache.is_wiki_group then
+          local ArtifactBrowser = require("koassistant_artifact_browser")
+          ArtifactBrowser:_showWikiGroupPopup(cache.data, file)
+        elseif cache.is_pinned then
           local ArtifactBrowser = require("koassistant_artifact_browser")
           ArtifactBrowser:showPinnedViewer(cache.data, file)
         elseif cache.is_per_action then
@@ -4374,11 +4390,32 @@ function AskGPT:showCacheViewer(cache_info)
         }
         -- Add scope metadata for section X-Rays
         if is_section_xray and cache_info.data.scope_label then
+          local scope_start = cache_info.data.scope_start_page
+          local scope_end = cache_info.data.scope_end_page
+          local scope_summary = cache_info.data.scope_page_summary
+          -- Reconvert XPointers to current pages if book is open (font-size independence)
+          local doc = self.ui and self.ui.document
+          if doc and doc.getPageFromXPointer then
+            local start_xp = cache_info.data.scope_start_xpointer
+            local end_xp = cache_info.data.scope_end_xpointer
+            if start_xp then
+              local new_start = doc:getPageFromXPointer(start_xp)
+              if new_start then scope_start = new_start end
+            end
+            if end_xp then
+              local new_end = doc:getPageFromXPointer(end_xp)
+              if new_end then scope_end = new_end - 1 end  -- XPointer was at next section start
+            else
+              -- Last section: use total pages
+              scope_end = doc.info.number_of_pages or scope_end
+            end
+            scope_summary = T(_("pp %1–%2"), scope_start, scope_end)
+          end
           browser_metadata.scope = {
             label = cache_info.data.scope_label,
-            start_page = cache_info.data.scope_start_page,
-            end_page = cache_info.data.scope_end_page,
-            page_summary = cache_info.data.scope_page_summary,
+            start_page = scope_start,
+            end_page = scope_end,
+            page_summary = scope_summary,
             cache_key = cache_info.key,
           }
           browser_metadata.progress = "Complete"
@@ -4879,6 +4916,7 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
 end
 
 --- Show a TOC picker for selecting a section scope for Section X-Ray generation.
+--- Uses the same collapsible hierarchical TOC pattern as the chapter picker in mentions.
 --- @param action table: The base xray action definition
 function AskGPT:_showSectionXrayPicker(action)
   if not self.ui or not self.ui.document or not self.ui.toc then return end
@@ -4890,9 +4928,14 @@ function AskGPT:_showSectionXrayPicker(action)
   end
 
   local total_pages = self.ui.document.info.number_of_pages or 0
-  local ButtonDialog = require("ui/widget/buttondialog")
-  local Menu = require("ui/widget/menu")
+  local BD = require("ui/bidi")
+  local Blitbuffer = require("ffi/blitbuffer")
+  local Button = require("ui/widget/button")
+  local CenterContainer = require("ui/widget/container/centercontainer")
   local Font = require("ui/font")
+  local Geom = require("ui/geometry")
+  local Menu = require("ui/widget/menu")
+  local Size = require("ui/size")
   local TextWidget = require("ui/widget/textwidget")
   local self_ref = self
 
@@ -4912,8 +4955,8 @@ function AskGPT:_showSectionXrayPicker(action)
   end
 
   -- Build entries with end_page scoped to same-or-shallower next sibling
-  local entries = {}
   local max_depth = 0
+  local entries = {}
   for i, entry in ipairs(effective_toc) do
     if entry.page then
       local d = entry.depth or 1
@@ -4935,7 +4978,7 @@ function AskGPT:_showSectionXrayPicker(action)
     end
   end
 
-  -- Indentation for depth
+  -- Calculate indentation unit: width of 4 spaces (same as KOReader TOC)
   local items_font_size = 18
   local tmp = TextWidget:new{
     text = "    ",
@@ -4944,41 +4987,287 @@ function AskGPT:_showSectionXrayPicker(action)
   local toc_indent = tmp:getSize().w
   tmp:free()
 
-  -- Build flat menu items
-  local menu_items = {}
-  for _idx, entry in ipairs(entries) do
-    local page_range = T(_("pp %1–%2"), entry.start_page, entry.end_page)
-    table.insert(menu_items, {
-      text = entry.title ~= "" and entry.title or T(_("Page %1"), entry.start_page),
-      mandatory = page_range,
-      indent = toc_indent * ((entry.depth or 1) - 1),
+  -- Find current reading page for auto-expand
+  local current_page = self.ui.view and self.ui.view.state
+      and self.ui.view.state.page or 0
+
+  -- Build full TOC array with indent, depth, page range fields
+  local full_toc = {}
+  for i, entry in ipairs(entries) do
+    local d = entry.depth or 1
+    local title = entry.title
+    if not title or title == "" then title = T(_("Page %1"), entry.start_page) end
+    local is_current = current_page >= entry.start_page and current_page <= entry.end_page
+    table.insert(full_toc, {
+      text = title,
+      mandatory = T(_("pp %1–%2"), entry.start_page, entry.end_page),
+      indent = toc_indent * (d - 1),
+      depth = d,
+      index = i,
+      start_page = entry.start_page,
+      end_page = entry.end_page,
+      is_current = is_current,
       _entry = entry,
     })
   end
 
-  -- Create the picker menu
-  local toc_menu
-  toc_menu = Menu:new{
+  -- Expand/collapse button sizing (same calculation as KOReader TOC)
+  local items_per_page = 14
+  local icon_size = math.floor(Screen:getHeight() / items_per_page * 2 / 5)
+  local button_width = icon_size * 2
+
+  -- Detect parent nodes (reverse pass: if depth < next entry's depth, it's a parent)
+  local can_collapse = max_depth > 1
+  if can_collapse then
+    local depth = 0
+    for i = #full_toc, 1, -1 do
+      local v = full_toc[i]
+      if v.depth < depth then
+        v._is_parent = true
+      end
+      depth = v.depth
+    end
+  end
+
+  -- State: expanded_nodes tracks which full_toc indices are expanded
+  local expanded_nodes = {}
+
+  -- Build initial collapsed view (only top-level entries if multi-depth)
+  local collapse_depth = 2
+  local collapsed_toc = {}
+  if can_collapse then
+    for _idx, v in ipairs(full_toc) do
+      if v.depth < collapse_depth then
+        table.insert(collapsed_toc, v)
+      end
+    end
+  else
+    for _idx, v in ipairs(full_toc) do
+      table.insert(collapsed_toc, v)
+    end
+  end
+
+  -- Create the TOC menu (full-screen widget)
+  local toc_menu = Menu:new{
     title = _("Select Section for X-Ray"),
+    state_w = can_collapse and button_width or 0,
     is_borderless = true,
     is_popout = false,
     single_line = true,
     align_baselines = true,
+    with_dots = true,
+    items_per_page = items_per_page,
     items_font_size = items_font_size,
-    item_table = menu_items,
-    width = Screen:getWidth(),
-    height = Screen:getHeight(),
-    onMenuSelect = function(menu_self, item)
-      local entry = item._entry
-      if not entry then return end
-      UIManager:close(toc_menu)
-      self_ref:_showSectionXrayNameInput(action, entry)
-    end,
-    close_callback = function()
-      UIManager:close(toc_menu)
-    end,
+    items_mandatory_font_size = items_font_size - 4,
+    items_padding = can_collapse and math.floor(Size.padding.fullscreen / 2) or nil,
+    line_color = Blitbuffer.COLOR_WHITE,
   }
-  UIManager:show(toc_menu)
+
+  local menu_container = CenterContainer:new{
+    dimen = Screen:getSize(),
+    covers_fullscreen = true,
+    toc_menu,
+  }
+
+  -- Create expand/collapse buttons (after menu, for show_parent)
+  local expand_button = Button:new{
+    icon = "control.expand",
+    icon_rotation_angle = BD.mirroredUILayout() and 180 or 0,
+    width = button_width,
+    icon_width = icon_size,
+    icon_height = icon_size,
+    bordersize = 0,
+    show_parent = menu_container,
+    callback = function() end,
+    onTapSelectButton = function() end,
+  }
+  local collapse_button = Button:new{
+    icon = "control.collapse",
+    width = button_width,
+    icon_width = icon_size,
+    icon_height = icon_size,
+    bordersize = 0,
+    show_parent = menu_container,
+    callback = function() end,
+    onTapSelectButton = function() end,
+  }
+
+  -- Assign expand/collapse state to parent nodes
+  if can_collapse then
+    for _idx, v in ipairs(full_toc) do
+      if v._is_parent then
+        v.state = expand_button:new{}
+      end
+    end
+  end
+
+  -- Find deepest is_current entry (reading position) for auto-expand
+  local target_ft_idx
+  if can_collapse then
+    for i, v in ipairs(full_toc) do
+      if v.is_current then
+        target_ft_idx = i  -- keep overwriting → deepest wins
+      end
+    end
+  end
+
+  -- Auto-expand ancestor chain so the current entry is visible
+  if target_ft_idx and can_collapse and full_toc[target_ft_idx].depth >= collapse_depth then
+    local ancestors = {}
+    local need_depth = full_toc[target_ft_idx].depth - 1
+    for i = target_ft_idx - 1, 1, -1 do
+      if full_toc[i].depth == need_depth then
+        table.insert(ancestors, 1, i)
+        need_depth = need_depth - 1
+        if need_depth < 1 then break end
+      end
+    end
+    for _idx, anc_idx in ipairs(ancestors) do
+      expanded_nodes[anc_idx] = true
+      local anc = full_toc[anc_idx]
+      local ci
+      for j, cv in ipairs(collapsed_toc) do
+        if cv.start_page == anc.start_page and cv.depth == anc.depth
+            and cv.text == anc.text then
+          ci = j
+          break
+        end
+      end
+      if ci then
+        for j = anc_idx + 1, #full_toc do
+          local v = full_toc[j]
+          if v.depth == anc.depth + 1 then
+            ci = ci + 1
+            table.insert(collapsed_toc, ci, v)
+          elseif v.depth <= anc.depth then
+            break
+          end
+        end
+        if anc.state then anc.state:free() end
+        anc.state = collapse_button:new{}
+      end
+    end
+  end
+
+  -- Bold highlighting: target the current reading position
+  if target_ft_idx then
+    local target = full_toc[target_ft_idx]
+    for i, v in ipairs(collapsed_toc) do
+      if v.start_page == target.start_page and v.depth == target.depth then
+        collapsed_toc.current = i
+        break
+      end
+    end
+  end
+
+  -- Expand: insert immediate children into collapsed_toc
+  local function expandTocNode(index)
+    if expanded_nodes[index] then return end
+    expanded_nodes[index] = true
+    local cur_node = full_toc[index]
+    local cur_depth = cur_node.depth
+    local collapsed_index
+    for i, v in ipairs(collapsed_toc) do
+      if v.start_page == cur_node.start_page and v.depth == cur_depth
+          and v.text == cur_node.text then
+        collapsed_index = i
+        break
+      end
+    end
+    if not collapsed_index then return end
+    for i = index + 1, #full_toc do
+      local v = full_toc[i]
+      if v.depth == cur_depth + 1 then
+        collapsed_index = collapsed_index + 1
+        table.insert(collapsed_toc, collapsed_index, v)
+      elseif v.depth <= cur_depth then
+        break
+      end
+    end
+    if cur_node.state then cur_node.state:free() end
+    cur_node.state = collapse_button:new{}
+    toc_menu:switchItemTable(nil, collapsed_toc, -1)
+  end
+
+  -- Collapse: remove all descendants from collapsed_toc
+  local function collapseTocNode(index)
+    if not expanded_nodes[index] then return end
+    expanded_nodes[index] = nil
+    local cur_node = full_toc[index]
+    local cur_depth = cur_node.depth
+    local i = 1
+    local is_child_node = false
+    while i <= #collapsed_toc do
+      local v = collapsed_toc[i]
+      if is_child_node then
+        if v.depth and v.depth <= cur_depth then
+          is_child_node = false
+          i = i + 1
+        else
+          if v.state then
+            v.state:free()
+            if v._is_parent then
+              v.state = expand_button:new{}
+            end
+            if v.index and expanded_nodes[v.index] then
+              expanded_nodes[v.index] = nil
+            end
+          end
+          table.remove(collapsed_toc, i)
+        end
+      else
+        if v.start_page == cur_node.start_page and v.depth == cur_depth
+            and v.text == cur_node.text then
+          is_child_node = true
+        end
+        i = i + 1
+      end
+    end
+    cur_node.state:free()
+    cur_node.state = expand_button:new{}
+    toc_menu:switchItemTable(nil, collapsed_toc, -1)
+  end
+
+  -- Wire button callbacks
+  expand_button.callback = function(index) expandTocNode(index) end
+  collapse_button.callback = function(index) collapseTocNode(index) end
+
+  -- Override onMenuSelect: left-zone tap toggles expand/collapse, rest selects entry
+  function toc_menu:onMenuSelect(item, pos)
+    if item.state and pos and pos.x then
+      local do_toggle = BD.mirroredUILayout() and pos.x > 0.7 or pos.x < 0.3
+      if do_toggle then
+        item.state.callback(item.index)
+        return true
+      end
+    end
+    local entry = item._entry
+    if not entry then return true end
+    UIManager:close(menu_container)
+    self_ref:_showSectionXrayNameInput(action, entry)
+    return true
+  end
+
+  -- Long-press: show full title (same as KOReader TOC)
+  function toc_menu:onMenuHold(item)
+    if not Device:isTouchDevice() and item.state then
+      item.state.callback(item.index)
+    else
+      UIManager:show(InfoMessage:new{
+        show_icon = false,
+        text = item.text or "",
+      })
+    end
+    return true
+  end
+
+  toc_menu.close_callback = function()
+    UIManager:close(menu_container)
+  end
+  toc_menu.show_parent = menu_container
+
+  toc_menu:switchItemTable(nil, collapsed_toc, collapsed_toc.current or -1)
+  UIManager:show(menu_container)
 end
 
 --- Show name input for a Section X-Ray, then trigger generation.
@@ -4990,11 +5279,8 @@ function AskGPT:_showSectionXrayNameInput(action, entry)
   local Actions = require("prompts/actions")
   local self_ref = self
 
-  -- Default name: TOC title, truncated to 30 chars
+  -- Default name: full TOC title (menus truncate long text naturally)
   local default_name = entry.title or ""
-  if #default_name > 30 then
-    default_name = default_name:sub(1, 27) .. "..."
-  end
 
   local input_dialog
   input_dialog = InputDialog:new{
@@ -5020,8 +5306,8 @@ function AskGPT:_showSectionXrayNameInput(action, entry)
               UIManager:show(InfoMessage:new{ text = _("Please enter a name."), timeout = 2 })
               return
             end
-            -- Truncate to 30 chars
-            if #label > 30 then label = label:sub(1, 30) end
+            -- Truncate to 80 chars (menus truncate display naturally)
+            if #label > 80 then label = label:sub(1, 80) end
             UIManager:close(input_dialog)
 
             -- Sanitize cache key: strip colons (separator conflict)
@@ -5085,11 +5371,25 @@ function AskGPT:_generateSectionXray(action, entry, label, cache_label)
   section_action.use_reading_progress = false
   section_action.use_response_caching = false
   section_action.cache_as_xray = false
+  -- Extract XPointers for font-size-independent storage (EPUB only; nil for PDF)
+  local total_pages = self.ui.document.info.number_of_pages or 0
+  local start_xp, end_xp
+  if self.ui.document.getPageXPointer then
+    start_xp = self.ui.document:getPageXPointer(entry.start_page)
+    -- Store XPointer at start of next section (end_page + 1) to mark the boundary
+    if entry.end_page < total_pages then
+      end_xp = self.ui.document:getPageXPointer(entry.end_page + 1)
+    end
+    -- nil end_xp = last section (use total_pages at reconversion)
+  end
+
   section_action._section_scope = {
     label = label,
     cache_label = cache_label,
     start_page = entry.start_page,
     end_page = entry.end_page,
+    start_xpointer = start_xp,
+    end_xpointer = end_xp,
     page_summary = page_summary,
     cache_key = ActionCache.SECTION_XRAY_PREFIX .. cache_label,
   }
@@ -5112,13 +5412,35 @@ function AskGPT:_showSectionXrayList(opts)
     return
   end
 
+  -- Reconvert XPointers to current pages if book is open (font-size independence)
+  local doc = self.ui and self.ui.document
+  local function reconvertPageSummary(data)
+    if not doc or not doc.getPageFromXPointer then return data.scope_page_summary end
+    local start_xp = data.scope_start_xpointer
+    local end_xp = data.scope_end_xpointer
+    if not start_xp then return data.scope_page_summary end
+    local new_start = doc:getPageFromXPointer(start_xp)
+    local new_end
+    if end_xp then
+      new_end = doc:getPageFromXPointer(end_xp)
+      if new_end then new_end = new_end - 1 end
+    else
+      new_end = doc.info.number_of_pages
+    end
+    if new_start and new_end then
+      return T(_("pp %1–%2"), new_start, new_end)
+    end
+    return data.scope_page_summary
+  end
+
   local self_ref = self
   local section_dialog
   local buttons = {}
   for _idx, sec in ipairs(sections) do
     local detail_parts = {}
-    if sec.data.scope_page_summary then
-      table.insert(detail_parts, sec.data.scope_page_summary)
+    local page_summary = reconvertPageSummary(sec.data)
+    if page_summary then
+      table.insert(detail_parts, page_summary)
     end
     local rel_time = formatRelativeTime(sec.data.timestamp)
     if rel_time ~= "" then

@@ -216,6 +216,12 @@ local function saveCache(document_path, cache)
             if entry.scope_end_page then
                 file:write(string.format("        scope_end_page = %s,\n", tostring(entry.scope_end_page)))
             end
+            if entry.scope_start_xpointer then
+                file:write(string.format("        scope_start_xpointer = %q,\n", entry.scope_start_xpointer))
+            end
+            if entry.scope_end_xpointer then
+                file:write(string.format("        scope_end_xpointer = %q,\n", entry.scope_end_xpointer))
+            end
             if entry.scope_page_summary then
                 file:write(string.format("        scope_page_summary = %q,\n", entry.scope_page_summary))
             end
@@ -288,6 +294,8 @@ function ActionCache.set(document_path, action_id, result, progress_decimal, met
         scope_label = metadata and metadata.scope_label,
         scope_start_page = metadata and metadata.scope_start_page,
         scope_end_page = metadata and metadata.scope_end_page,
+        scope_start_xpointer = metadata and metadata.scope_start_xpointer,
+        scope_end_xpointer = metadata and metadata.scope_end_xpointer,
         scope_page_summary = metadata and metadata.scope_page_summary,
     }
 
@@ -386,7 +394,7 @@ function ActionCache.getAvailableArtifacts(document_path, exclude_key)
             end
         end
     end
-    -- Add section X-Ray group entry if any exist
+    -- Add section X-Ray group entry if any exist (skip if only the excluded one remains)
     local sections = ActionCache.getSectionXrays(document_path)
     if #sections > 0 then
         local excluded = false
@@ -398,15 +406,16 @@ function ActionCache.getAvailableArtifacts(document_path, exclude_key)
                 end
             end
         end
-        -- Add the group entry (individual sections accessible via data)
-        table.insert(available, {
-            name = string.format(_("Section X-Rays (%d)"), #sections),
-            key = "_xray_sections",
-            data = sections,
-            is_section_xray_group = true,
-            -- If current exclude_key is a section, still show the group (other sections visible)
-            _excluded_section_key = excluded and exclude_key or nil,
-        })
+        -- Don't show group if the only section is the one being excluded
+        if not (excluded and #sections == 1) then
+            table.insert(available, {
+                name = string.format(_("Section X-Rays (%d)"), #sections),
+                key = "_xray_sections",
+                data = sections,
+                is_section_xray_group = true,
+                _excluded_section_key = excluded and exclude_key or nil,
+            })
+        end
     end
     -- Add wiki entries group if any exist
     local wikis = ActionCache.getWikiEntries(document_path)
